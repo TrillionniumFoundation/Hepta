@@ -1,0 +1,157 @@
+{
+  "schema": "hepta.hia.private-ci.failure-log-readout.v1",
+  "recorded_utc": "2026-10-28T11:34:11.890734+00:00",
+  "repository": "TrillionniumFoundation/hepta-private-ci",
+  "expected_head_sha": "c4a1bbed3a39beba43a6abf1a18b6f75c5725c21",
+  "run_id": 40673287072,
+  "run_attempt": 1,
+  "job_id": 122765658158,
+  "job_name": "Bazel / Bazel test on windows-latest for x86_64-pc-windows-msvc shard 3/4",
+  "conclusion": "failure",
+  "failing_step": "bazel test shard",
+  "step_exit_code": 3,
+  "decoded_log": {
+    "file": "20261028T113331_072Z.windows-shard3.decoded.log",
+    "bytes": 2322890,
+    "sha256": "c9ed02af41a69904ad88c611ffe105d507826fabaaf79e1734d62985f4704815",
+    "capture": "UTF-8 encoding of exact connector decoded content; not original service ZIP bytes"
+  },
+  "bazel_summary": [
+    {
+      "line": 16947,
+      "text": "2026-10-28T11:32:05.4377308Z Executed 100 out of 145 tests: 90 tests pass, 10 fail locally, and 45 were skipped."
+    }
+  ],
+  "reported_targets": {
+    "total": 145,
+    "executed": 100,
+    "passed": 90,
+    "failed_locally": 10,
+    "skipped": 45
+  },
+  "failed_targets": [
+    {
+      "line": 16903,
+      "text": "2026-10-28T11:32:05.4338687Z //codex-rs/code-mode-host:code-mode-host-unit-tests                      FAILED in 2.2s"
+    },
+    {
+      "line": 16905,
+      "text": "2026-10-28T11:32:05.4340120Z //codex-rs/code-mode-runtime:code-mode-runtime-unit-tests                FAILED in 107.5s"
+    },
+    {
+      "line": 16907,
+      "text": "2026-10-28T11:32:05.4342783Z //codex-rs/exec-server:exec-server-authorized_read_rpc-test              FAILED in 0.8s"
+    },
+    {
+      "line": 16909,
+      "text": "2026-10-28T11:32:05.4344464Z //codex-rs/ext/queue:queue-queue_service-test                            FAILED in 64.7s"
+    },
+    {
+      "line": 16911,
+      "text": "2026-10-28T11:32:05.4346230Z //codex-rs/hepta-agentd:hepta-agentd-unit-tests                          FAILED in 52.0s"
+    },
+    {
+      "line": 16913,
+      "text": "2026-10-28T11:32:05.4347649Z //codex-rs/hepta-evidence:hepta-evidence-unit-tests                      FAILED in 169.8s"
+    },
+    {
+      "line": 16915,
+      "text": "2026-10-28T11:32:05.4349097Z //codex-rs/hepta-matrixd:hepta-matrixd-unit-tests                        FAILED in 2.6s"
+    },
+    {
+      "line": 16917,
+      "text": "2026-10-28T11:32:05.4350615Z //codex-rs/hepta-supervisor:hepta-supervisor-signed_intent_recovery-test FAILED in 0.2s"
+    },
+    {
+      "line": 16919,
+      "text": "2026-10-28T11:32:05.4352171Z //codex-rs/v8-poc:v8-poc-unit-tests                                      FAILED in 109.0s"
+    },
+    {
+      "line": 16923,
+      "text": "2026-10-28T11:32:05.4354374Z //codex-rs/tui:tui-unit-tests                                            FAILED in 21 out of 22 in 56.4s"
+    }
+  ],
+  "representative_diagnostics": [
+    {
+      "line": 16964,
+      "text": "2026-10-28T11:32:21.6752785Z [FATAL:partition_address_space.cc(301)] Check failed: !IsConfigurablePoolInitialized(). "
+    },
+    {
+      "line": 17105,
+      "text": "2026-10-28T11:32:21.8271606Z thread 'authorized_read_rpc_is_capability_gated_and_denies_outside_root' (1248) panicked at exec-server/tests/authorized_read_rpc.rs:84:13:"
+    },
+    {
+      "line": 17106,
+      "text": "2026-10-28T11:32:21.8272667Z assertion `left == right` failed"
+    },
+    {
+      "line": 17107,
+      "text": "2026-10-28T11:32:21.8273057Z   left: -32600"
+    },
+    {
+      "line": 17108,
+      "text": "2026-10-28T11:32:21.8273330Z  right: -32603"
+    },
+    {
+      "line": 17162,
+      "text": "2026-10-28T11:32:21.9056534Z Error: timed out waiting for `D:\\tmp\\.tmpgKQypQ\\queue_blocking_prompt_hook.entered`"
+    },
+    {
+      "line": 17168,
+      "text": "2026-10-28T11:32:21.9058158Z Error: timed out waiting for `D:\\tmp\\.tmpXYON6T\\queue_blocking_prompt_hook.entered`"
+    },
+    {
+      "line": 17207,
+      "text": "2026-10-28T11:32:21.9469584Z Error: deadline has elapsed"
+    },
+    {
+      "line": 17271,
+      "text": "2026-10-28T11:32:21.9859845Z thread 'prompt_runtime::tests::named_agentd_pipeline_stages_exact_registry_bytes_for_app_server_host' (5580) panicked at hepta-agentd/src\\prompt_runtime_tests.rs:511:33:"
+    },
+    {
+      "line": 17272,
+      "text": "2026-10-28T11:32:21.9860586Z pipeline owner: RegistryOpen(\"UnsafeStateDirectory\")"
+    },
+    {
+      "line": 17375,
+      "text": "2026-10-28T11:32:21.9917607Z thread 'state::isolation_tests::configured_intelligence_runner_is_not_advertised_without_daemon_ingress' (6940) panicked at hepta-agentd/src\\state_isolation_tests.rs:123:46:"
+    },
+    {
+      "line": 17376,
+      "text": "2026-10-28T11:32:21.9918605Z runtime fixture: agentd protocol error: prompt pipeline durable owners failed to open: RegistryOpen(\"UnsafeStateDirectory\")"
+    },
+    {
+      "line": 17516,
+      "text": "2026-10-28T11:32:22.0655563Z thread 'authbus_outbox_tests::bounded_capacity_prunes_only_terminal_history_and_keeps_replay_consumed' (9036) panicked at hepta-evidence/src\\authbus_outbox_tests.rs:57:10:"
+    },
+    {
+      "line": 17517,
+      "text": "2026-10-28T11:32:22.0656301Z called `Result::unwrap()` on an `Err` value: Capacity"
+    },
+    {
+      "line": 17614,
+      "text": "2026-10-28T11:32:22.1455528Z Error: Io(Custom { kind: AlreadyExists, error: \"matrixd control socket path is not stale: \\\\\\\\?\\\\D:\\\\tmp\\\\hmx-control-9HUr1K\\\\fleet\\\\run\\\\aaghu64s7r56mdd2v36p3hkrmci.mx\" })"
+    },
+    {
+      "line": 17634,
+      "text": "2026-10-28T11:32:22.2194337Z thread 'exact_digest_abort_terminalizes_unresolved_intent' (7392) panicked at hepta-supervisor/tests/signed_intent_recovery.rs:162:5:"
+    },
+    {
+      "line": 17635,
+      "text": "2026-10-28T11:32:22.2195614Z assertion failed: matches!(first, Err(SupervisorError::SignedIntentRecoveryRequired(agent_id))"
+    },
+    {
+      "line": 17636,
+      "text": "2026-10-28T11:32:22.2196317Z     if agent_id == fleet.agent_id)"
+    },
+    {
+      "line": 17855,
+      "text": "2026-10-28T11:32:22.3677432Z [FATAL:partition_address_space.cc(301)] Check failed: !IsConfigurablePoolInitialized(). "
+    },
+    {
+      "line": 17892,
+      "text": "2026-10-28T11:32:22.3999006Z ##[error]Process completed with exit code 3."
+    }
+  ],
+  "diagnostic_scope": "These are observed messages, not a causal root-cause or regression attribution. Underlying resolver/platform/fixture/configuration or pre-existing versus candidate origin is unestablished; no re-execution was performed."
+}

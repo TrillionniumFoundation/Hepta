@@ -1,0 +1,94 @@
+{
+  "schema": "hepta.cpp-unique-development-observations.v1",
+  "scientific_qualification": false,
+  "full_raw_development_ast_retained": false,
+  "reproducible_probe_census": [
+    {
+      "path": "/tmp/hepta-unique-probe.json",
+      "bytes": 232276324,
+      "sha256": "6d6b854fcb5e8f262a7340764223aed407dbb761248ee97c3817f6e094a777d7",
+      "purpose": "reproducible exploratory standard-library AST capture, no qualification"
+    },
+    {
+      "path": "/tmp/hepta-unique-probe-bits.json",
+      "bytes": 192355514,
+      "sha256": "c6e9674ec88e333efe2892c6037ef3e3c1d655a05e97870658b2d580edbb614d",
+      "purpose": "reproducible exploratory standard-library AST capture, no qualification"
+    },
+    {
+      "path": "/tmp/hepta-unique-probe.txt",
+      "bytes": 21076972,
+      "sha256": "efb0c4deee582195a77447a862200bba400f226bae35a895aa11dcc5176e14c6",
+      "purpose": "reproducible exploratory standard-library AST capture, no qualification"
+    }
+  ],
+  "observations": [
+    {
+      "phase": "whole_document_probe",
+      "result": "full <memory> AST was 232276324 bytes; direct json parsing exceeded desired memory footprint",
+      "action": "replaced with complete streamed top-level capture, not source filtering"
+    },
+    {
+      "phase": "full_document_attempt_2",
+      "result": "Clang nonzero exit with empty stderr; exact exit code was not preserved by the initial development wrapper",
+      "host_observation": {
+        "cgroup_memory_current_bytes": 7946231808,
+        "cgroup_memory_max_bytes": 8589934592,
+        "oom_kill_counter": 6,
+        "overlay_available_bytes": 0
+      },
+      "causality": "OOM or storage cause not independently proved; no native qualification produced"
+    },
+    {
+      "phase": "development_rejections",
+      "diagnostics": [
+        "Member reference is not an inventoried declaration",
+        "Unmodeled preprocessor output directive",
+        "invalid argument -std=c++20 not allowed with C",
+        "Complete unique-array wrapper differs from the checked default-deleter contract"
+      ],
+      "fixes": [
+        "normalize combined leaf/composite with bound library-member references",
+        "preserve and compare standard-header pragma output",
+        "use explicit -x c++ for reference stdin",
+        "bind library typeAliasDeclId by its captured signature and force reference destructor instantiation"
+      ]
+    },
+    {
+      "phase": "initial_native_adversarial_suite",
+      "tests": 7,
+      "passed": 6,
+      "failed": 1,
+      "seconds": 296.148,
+      "failure": "Missing definition correctly rejected at earlier owner-definition/ODR admission; test expected a later undefined-symbol diagnostic. Kept exact destructor contract; only assertion changed to require refusal without prescribing diagnostic phase.",
+      "source_stability": "Development run: two header-framing hardenings and unrelated compiler modules changed after native positive completed; not final source-unchanged qualification.",
+      "log": {
+        "path": "development-tests-01.log",
+        "sha256": "dab79576c5ea29fbf41220aebffeb04346c5fdf10638ec8b5a4b106c4fff6bdf"
+      }
+    },
+    {
+      "phase": "corrected_missing_definition_and_odr_control",
+      "status": "passed",
+      "tests": 1,
+      "seconds": 87.535,
+      "semantic_contract_weakened": false
+    },
+    {
+      "phase": "process_group_cleanup",
+      "production_fix": "Always terminate the owned Clang process group even after the parent exited, as existing bounded capture does.",
+      "initial_controls": "Two initial assertions incorrectly inspected numeric /proc paths across a PID-namespace mismatch; failed logs retained.",
+      "final_control": "Open exact child pidfd while alive; timeout closes the whole owned group; pidfd becomes readable. Six streamed-capture controls passed in1.120seconds.",
+      "source_semantics_changed": false
+    },
+    {
+      "phase": "retained_qualification_attempt01",
+      "status": "refused",
+      "reason": "Shared compiler sources changed during capture; no variant qualified or native candidate published.",
+      "wall_ns": 40858801548,
+      "report": "refused-source-drift-01.json"
+    }
+  ],
+  "performance_result": null,
+  "human_engineering_seconds": null
+}

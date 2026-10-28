@@ -1,0 +1,2778 @@
+{
+  "binding_sha256": "c35786d1e004110d1f2a7d724489f76609f15a23c9e8a72ca2cce2d57c2d3b49",
+  "claims": {
+    "backend_refinement_proved": false,
+    "final_artifact_bound": true,
+    "performance_qualified": false,
+    "unverified_candidate_published": false
+  },
+  "native": {
+    "artifact_bytes": 15536,
+    "artifact_sha256": "c9f5dd1f3d4730301d1783ebf612aab2ef5bc7e5f7de0d390a4f35de8e8e6638",
+    "binary_inventory": {
+      "claims": {
+        "backend_refinement_proven": false,
+        "binary_abi_observed": true,
+        "native_execution_proven": false,
+        "whole_language_memory_safety_proven": false
+      },
+      "dynamic_exports": [
+        "full_lifecycle",
+        "packet_xor"
+      ],
+      "format": "ELF64",
+      "kind": "ET_DYN",
+      "machine": 62,
+      "schema": "hepta.elf-shared-abi.v1",
+      "source_exports_rechecked": true,
+      "unresolved_imports": [
+        "_ITM_deregisterTMCloneTable",
+        "_ITM_registerTMCloneTable",
+        "__cxa_finalize",
+        "__gmon_start__",
+        "abort",
+        "calloc",
+        "free"
+      ]
+    },
+    "claims": {
+      "backend_refinement_proved": false,
+      "c_codegen_used": false,
+      "cross_target_execution_qualified": false,
+      "fallback_used": false,
+      "foreign_buffer_entrypoints_exposed": false,
+      "native_execution_qualified": false,
+      "rust_codegen_used": false,
+      "rust_reference_required": false,
+      "source_ast_required": false,
+      "standalone_core_reverified": true,
+      "whole_language_soundness_proved": false
+    },
+    "core_sha256": "d7473e258bf129789b380703aedf315ac256f99e9ce61506fc1881171ef93775",
+    "exports": [
+      "full_lifecycle",
+      "packet_xor"
+    ],
+    "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+    "flags": [
+      "--target=x86_64-unknown-linux-gnu",
+      "-x",
+      "ir",
+      "-O3",
+      "-fPIC",
+      "-shared"
+    ],
+    "implementation_sha256": "0519011099263210f3f0e9c0ad11c0dc4586fdaf079c6df16746ba49cc4a3ef9",
+    "input_sha256": "d7473e258bf129789b380703aedf315ac256f99e9ce61506fc1881171ef93775",
+    "kind": "shared",
+    "llvm_ir_sha256": "0c9494b1119f97d719d48ebbe178b950b55cc3cbd9f0e5430b627ecc2493b8b0",
+    "ok": true,
+    "output": "/workspace/scratch/5567a9db5cf4/hepta-work/experiments/hia_narrowing/round3_20261028/native01/narrowed.so",
+    "profile": "hepta.hia.program.llvm-linux-x86_64.v1",
+    "runtime_assumptions": [
+      "Linux LP64 target with 64-bit pointers and size_t",
+      "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+      "C malloc returns null or a fresh nonaliasing allocation of the requested size; bytes are initialized before read or remain unobserved",
+      "C free accepts a live allocation from calloc or malloc, or null",
+      "abort terminates execution; no cleanup after traps is promised",
+      "native compiler, linker, loader, libc and host hardware are trusted"
+    ],
+    "schema": "hepta.hia.program.native.v1",
+    "status": "native_compiled_not_executed",
+    "target": "x86_64-unknown-linux-gnu",
+    "toolchain": {
+      "default_target": "x86_64-pc-linux-gnu",
+      "path": "/tmp/hepta-next-llvm-20261028/usr/lib/llvm-20/bin/clang",
+      "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+      "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+    }
+  },
+  "schema": "hepta.hia.optimized-native.v1",
+  "status": "verified_core_native_bound",
+  "verification": {
+    "base_sha256": "1de9c862ca95838fa22ce0aecc2d873735cdb67f16e1a318926bd7ad1ce492ab",
+    "candidate_sha256": "d7473e258bf129789b380703aedf315ac256f99e9ce61506fc1881171ef93775",
+    "checker_sha256": "097f6d417d903f3f3248a621df19e815bcf3bd8e8798f18897b7a8bc9281b0c5",
+    "claims": {
+      "backend_refinement_proved": false,
+      "complete_fallback_equivalence_checked": true,
+      "core_effect_and_resource_equivalence_checked": true,
+      "deployment_authority": false,
+      "independent_stage_proofs_bound": true,
+      "performance_qualified": false,
+      "whole_language_soundness_proved": false
+    },
+    "elapsed_ns": 642309675,
+    "intermediate_sha256": "6d697598eac42a5559206fee595b36c22035c88c6cdd2574b69eea804f7e9c3b",
+    "policy": {
+      "max_obligations": 1024,
+      "max_scalar_operations": 4096,
+      "preconditions": [],
+      "schema": "hepta.hia.optimization-policy.v1",
+      "target": "x86_64-unknown-linux-gnu",
+      "timeout_ms": 30000
+    },
+    "preconditions": [
+      {
+        "argument": "arg1",
+        "function": "full_lifecycle",
+        "maximum": 32
+      },
+      {
+        "argument": "arg71",
+        "function": "packet_xor",
+        "maximum": 32
+      }
+    ],
+    "proposal_sha256": "b491c312f33ed5d750f61fcde055dee36d5cbbde11b94efbdce406ae2500ce91",
+    "reason": "both independent stages bind original, intermediate and final Core",
+    "resource_delta": {
+      "allocation_failure_sequence_preserved_under_core_model": true,
+      "code_size_and_compile_cost_may_increase": true,
+      "ordered_resource_operations_preserved": true,
+      "peak_live_bytes_change_under_core_model": 0,
+      "resource_trace_equivalence_checked": true,
+      "vm_tick_count_preserved": false
+    },
+    "schema": "hepta.hia.guarded-narrowing-verification.v1",
+    "solver": {
+      "binding_sha256": "093e8f2a92070c5b60a6f50e91e799a79123ba8573a2df64f1b31c01edd86b39",
+      "library_path": "/tmp/hepta-next-z3-20261028/z3/lib/libz3.so",
+      "library_sha256": "89456c35d2deb579a6a73f012d366148baa54d750f547069b89d86ee616d89cb",
+      "name": "Z3",
+      "version": "4.13.4"
+    },
+    "stages": [
+      {
+        "proof": {
+          "base_sha256": "1de9c862ca95838fa22ce0aecc2d873735cdb67f16e1a318926bd7ad1ce492ab",
+          "candidate_sha256": "6d697598eac42a5559206fee595b36c22035c88c6cdd2574b69eea804f7e9c3b",
+          "changes": [
+            {
+              "block": "b8",
+              "function": "full_lifecycle",
+              "operation": 4
+            },
+            {
+              "block": "b22",
+              "function": "packet_xor",
+              "operation": 4
+            }
+          ],
+          "checker_sha256": "6c6df88ddca7e8ed64eff8adb26f0bc434cac63f180bdedb2091dd2db1a66acf",
+          "claims": {
+            "backend_refinement_proved": false,
+            "core_resource_trace_equivalence_checked": true,
+            "deployment_authority": false,
+            "inductive_invariants_checked": true,
+            "original_fallback_preserved": true,
+            "performance_qualified": false,
+            "removed_checks_nontrapping": true,
+            "whole_language_soundness_proved": false
+          },
+          "elapsed_ns": 261715878,
+          "fast_core_sha256": "d4d9dc3f39410f6a45b18356a94a3dbc4a400fbc3e0f9d4853da6f8734b28f93",
+          "obligations": [
+            {
+              "function": "full_lifecycle",
+              "kind": "guard_establishes_entry",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |full_lifecycle.entry:arg1| () (_ BitVec 64))\n(assert\n (let (($x8 (bvule |full_lifecycle.entry:arg1| (_ bv32 64))))\n(and $x8 (not (and (bvule ((_ zero_extend 64) |full_lifecycle.entry:arg1|) (_ bv32 128)))))))\n(check-sat)\n",
+              "smt2_sha256": "2774086d0eeb5273f6658d91e101c14a2c10b4b4ac70c6bf5faa350cfc53e605"
+            },
+            {
+              "block": "b1",
+              "function": "full_lifecycle",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |full_lifecycle.b1.input:arg1| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b1.effect:0:v4| () Bool)\n(assert\n (let (($x13 (and (bvule ((_ zero_extend 64) |full_lifecycle.b1.input:arg1|) (_ bv32 128)))))\n(and $x13 (= 0 0) |full_lifecycle.b1.effect:0:v4| (not $x13))))\n(check-sat)\n",
+              "smt2_sha256": "d2ac724c52e61c182fd9c67af47f776df3689c33c9222745449009b2554daf71",
+              "target": "b2"
+            },
+            {
+              "block": "b1",
+              "function": "full_lifecycle",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |full_lifecycle.b1.input:arg1| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b1.effect:0:v4| () Bool)\n(assert\n (let (($x35 (not |full_lifecycle.b1.effect:0:v4|)))\n(let (($x13 (and (bvule ((_ zero_extend 64) |full_lifecycle.b1.input:arg1|) (_ bv32 128)))))\n(and $x13 (= 0 0) $x35 (not $x13)))))\n(check-sat)\n",
+              "smt2_sha256": "c3a31229a07197ee6f3e7a33315418d770fd2ab0c97ac8a636fae91eeca773e2",
+              "target": "b3"
+            },
+            {
+              "block": "b2",
+              "function": "full_lifecycle",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |full_lifecycle.b2.input:p6| () (_ BitVec 64))\n(assert\n (let (($x45 (bvule ((_ zero_extend 64) |full_lifecycle.b2.input:p6|) (_ bv32 128))))\n(let (($x50 (and $x45)))\n(and $x50 (= 0 0) true (not (and $x45 $x45))))))\n(check-sat)\n",
+              "smt2_sha256": "4ae51e19ac0e9825865c4335e57fca06bb3668328fff94c1fbc61a6f4c05e465",
+              "target": "b4"
+            },
+            {
+              "block": "b4",
+              "function": "full_lifecycle",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |full_lifecycle.b4.input:p21| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b4.input:p18| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b4.input:p22| () (_ BitVec 64))\n(assert\n (let (($x27 (and (bvule ((_ zero_extend 64) |full_lifecycle.b4.input:p18|) (_ bv32 128)) (bvule ((_ zero_extend 64) |full_lifecycle.b4.input:p21|) (_ bv32 128)))))\n(let (($x61 (bvult |full_lifecycle.b4.input:p22| |full_lifecycle.b4.input:p21|)))\n(and $x27 (= 0 0) $x61 (not $x27)))))\n(check-sat)\n",
+              "smt2_sha256": "8a8815adb0d73be9944bc962902746af1375dd3ffb3f418a7ca757933cdb63de",
+              "target": "b5"
+            },
+            {
+              "block": "b4",
+              "function": "full_lifecycle",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |full_lifecycle.b4.input:p21| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b4.input:p18| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b4.input:p22| () (_ BitVec 64))\n(assert\n (let (($x27 (and (bvule ((_ zero_extend 64) |full_lifecycle.b4.input:p18|) (_ bv32 128)) (bvule ((_ zero_extend 64) |full_lifecycle.b4.input:p21|) (_ bv32 128)))))\n(let (($x61 (bvult |full_lifecycle.b4.input:p22| |full_lifecycle.b4.input:p21|)))\n(let (($x39 (not $x61)))\n(and $x27 (= 0 0) $x39 (not $x27))))))\n(check-sat)\n",
+              "smt2_sha256": "a4bd70c46923c10401a2360695d0e8e4e0d10a5664bf3570a0b907672dab0e9c",
+              "target": "b6"
+            },
+            {
+              "block": "b5",
+              "function": "full_lifecycle",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |full_lifecycle.b5.input:p27| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b5.input:p24| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b5.input:p28| () (_ BitVec 64))\n(assert\n (let (($x68 (and (bvule ((_ zero_extend 64) |full_lifecycle.b5.input:p24|) (_ bv32 128)) (bvule ((_ zero_extend 64) |full_lifecycle.b5.input:p27|) (_ bv32 128)))))\n(let (($x59 (and (distinct (bvadd ((_ zero_extend 64) |full_lifecycle.b5.input:p28|) ((_ zero_extend 64) (_ bv1 64))) ((_ zero_extend 64) (bvadd |full_lifecycle.b5.input:p28| (_ bv1 64)))) true)))\n(let ((?x36 (ite $x59 1 0)))\n(let ((?x19 (ite (= 0 0) ?x36 0)))\n(and $x68 (= ?x19 0) true (not $x68)))))))\n(check-sat)\n",
+              "smt2_sha256": "53b4f3321e6141a256d766ff7828bf5b6e790fcb3996a4c794e7512d85574ecd",
+              "target": "b4"
+            },
+            {
+              "block": "b6",
+              "function": "full_lifecycle",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |full_lifecycle.b6.input:p29| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b6.input:p32| () (_ BitVec 64))\n(assert\n (let ((?x21 ((_ zero_extend 64) |full_lifecycle.b6.input:p29|)))\n(let (($x64 (bvule ?x21 (_ bv32 128))))\n(let (($x69 (and $x64 $x64 (bvule ((_ zero_extend 64) (_ bv0 64)) ?x21) (bvule ((_ zero_extend 64) (_ bv0 64)) (bvmul ((_ zero_extend 64) (_ bv0 64)) (_ bv255 128))))))\n(let (($x95 (and $x64 (bvule ((_ zero_extend 64) |full_lifecycle.b6.input:p32|) (_ bv32 128)))))\n(and $x95 (= 0 0) true (not $x69)))))))\n(check-sat)\n",
+              "smt2_sha256": "525e9c095107e46f4e2f501d30bd9b682e457c48a1ae03579e94a76a6a8c39bd",
+              "target": "b7"
+            },
+            {
+              "block": "b7",
+              "function": "full_lifecycle",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |full_lifecycle.b7.input:p47| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b7.input:p45| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b7.input:p46| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b7.input:p42| () (_ BitVec 64))\n(assert\n (let (($x77 (bvule ((_ zero_extend 64) |full_lifecycle.b7.input:p45|) (bvmul ((_ zero_extend 64) |full_lifecycle.b7.input:p47|) (_ bv255 128)))))\n(let ((?x69 ((_ zero_extend 64) |full_lifecycle.b7.input:p46|)))\n(let ((?x67 ((_ zero_extend 64) |full_lifecycle.b7.input:p47|)))\n(let (($x66 (bvule ?x69 (_ bv32 128))))\n(let (($x33 (bvule ((_ zero_extend 64) |full_lifecycle.b7.input:p42|) (_ bv32 128))))\n(let (($x17 (bvult |full_lifecycle.b7.input:p47| |full_lifecycle.b7.input:p46|)))\n(let (($x43 (and $x33 $x66 (bvule ?x67 ?x69) $x77)))\n(and $x43 (= 0 0) $x17 (not (and $x33 $x66 (bvult ?x67 ?x69) $x77)))))))))))\n(check-sat)\n",
+              "smt2_sha256": "0234af8ab121cb2a3c74fa66b571038c8911fc355044320db07c49439993ef16",
+              "target": "b8"
+            },
+            {
+              "block": "b7",
+              "function": "full_lifecycle",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |full_lifecycle.b7.input:p46| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b7.input:p42| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b7.input:p47| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b7.input:p45| () (_ BitVec 64))\n(assert\n (let ((?x69 ((_ zero_extend 64) |full_lifecycle.b7.input:p46|)))\n(let (($x66 (bvule ?x69 (_ bv32 128))))\n(let (($x33 (bvule ((_ zero_extend 64) |full_lifecycle.b7.input:p42|) (_ bv32 128))))\n(let (($x17 (bvult |full_lifecycle.b7.input:p47| |full_lifecycle.b7.input:p46|)))\n(let (($x56 (not $x17)))\n(let (($x77 (bvule ((_ zero_extend 64) |full_lifecycle.b7.input:p45|) (bvmul ((_ zero_extend 64) |full_lifecycle.b7.input:p47|) (_ bv255 128)))))\n(let (($x43 (and $x33 $x66 (bvule ((_ zero_extend 64) |full_lifecycle.b7.input:p47|) ?x69) $x77)))\n(and $x43 (= 0 0) $x56 (not (and $x33 $x66)))))))))))\n(check-sat)\n",
+              "smt2_sha256": "18e4575963cb6e7078f744e108d6173cd5c7afbbf2aa01aa466a96e45eb1b35a",
+              "target": "b9"
+            },
+            {
+              "block": "b8",
+              "function": "full_lifecycle",
+              "kind": "removed_check_cannot_trap",
+              "operation": 4,
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |full_lifecycle.b8.effect:1:v62| () (_ BitVec 8))\n(declare-fun |full_lifecycle.b8.input:p52| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b8.input:p54| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b8.input:p53| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b8.input:p49| () (_ BitVec 64))\n(assert\n (let ((?x33 ((_ zero_extend 56) |full_lifecycle.b8.effect:1:v62|)))\n(let ((?x69 (bvadd |full_lifecycle.b8.input:p52| ?x33)))\n(let (($x29 (and (distinct (bvadd ((_ zero_extend 64) |full_lifecycle.b8.input:p52|) ((_ zero_extend 64) ?x33)) ((_ zero_extend 64) ?x69)) true)))\n(let ((?x77 (ite $x29 1 0)))\n(let (($x81 (= 0 0)))\n(let ((?x43 (ite $x81 ?x77 0)))\n(let ((?x114 ((_ zero_extend 64) |full_lifecycle.b8.input:p52|)))\n(let ((?x36 ((_ zero_extend 64) |full_lifecycle.b8.input:p53|)))\n(let ((?x89 ((_ zero_extend 64) |full_lifecycle.b8.input:p54|)))\n(let (($x78 (and (bvule ((_ zero_extend 64) |full_lifecycle.b8.input:p49|) (_ bv32 128)) (bvule ?x36 (_ bv32 128)) (bvult ?x89 ?x36) (bvule ?x114 (bvmul ?x89 (_ bv255 128))))))\n(and $x78 $x81 (and (distinct ?x43 0) true)))))))))))))\n(check-sat)\n",
+              "smt2_sha256": "54630c5e462817e7fd945d1d8ff2fa894c8c6276c41d79d452c2371b9cb509b9"
+            },
+            {
+              "block": "b8",
+              "function": "full_lifecycle",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |full_lifecycle.b8.input:p54| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b8.effect:1:v62| () (_ BitVec 8))\n(declare-fun |full_lifecycle.b8.input:p52| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b8.input:p53| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b8.input:p49| () (_ BitVec 64))\n(assert\n (let ((?x33 ((_ zero_extend 56) |full_lifecycle.b8.effect:1:v62|)))\n(let ((?x69 (bvadd |full_lifecycle.b8.input:p52| ?x33)))\n(let ((?x34 ((_ zero_extend 64) ?x69)))\n(let (($x37 (bvule ?x34 (bvmul ((_ zero_extend 64) (bvadd |full_lifecycle.b8.input:p54| (_ bv1 64))) (_ bv255 128)))))\n(let ((?x36 ((_ zero_extend 64) |full_lifecycle.b8.input:p53|)))\n(let ((?x24 (bvadd |full_lifecycle.b8.input:p54| (_ bv1 64))))\n(let ((?x104 ((_ zero_extend 64) ?x24)))\n(let (($x63 (bvule ?x36 (_ bv32 128))))\n(let (($x113 (bvule ((_ zero_extend 64) |full_lifecycle.b8.input:p49|) (_ bv32 128))))\n(let (($x29 (and (distinct (bvadd ((_ zero_extend 64) |full_lifecycle.b8.input:p52|) ((_ zero_extend 64) ?x33)) ?x34) true)))\n(let ((?x77 (ite $x29 1 0)))\n(let ((?x43 (ite (= 0 0) ?x77 0)))\n(let (($x98 (and (distinct (bvadd ((_ zero_extend 64) |full_lifecycle.b8.input:p54|) ((_ zero_extend 64) (_ bv1 64))) ?x104) true)))\n(let ((?x115 (ite (= ?x43 0) (ite $x98 1 0) ?x43)))\n(let ((?x114 ((_ zero_extend 64) |full_lifecycle.b8.input:p52|)))\n(let (($x78 (and $x113 $x63 (bvult ((_ zero_extend 64) |full_lifecycle.b8.input:p54|) ?x36) (bvule ?x114 (bvmul ((_ zero_extend 64) |full_lifecycle.b8.input:p54|) (_ bv255 128))))))\n(and $x78 (= ?x115 0) true (not (and $x113 $x63 (bvule ?x104 ?x36) $x37))))))))))))))))))))\n(check-sat)\n",
+              "smt2_sha256": "cf1a17b48702c80fd8120f7890e1b441ed30e03e6e25d502671c31b0895e1f39",
+              "target": "b7"
+            },
+            {
+              "function": "packet_xor",
+              "kind": "guard_establishes_entry",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.entry:arg71| () (_ BitVec 64))\n(assert\n (let (($x22 (bvule |packet_xor.entry:arg71| (_ bv32 64))))\n(and $x22 (not (and (bvule ((_ zero_extend 64) |packet_xor.entry:arg71|) (_ bv32 128)))))))\n(check-sat)\n",
+              "smt2_sha256": "e31c39282319e4cd6c6310f13c3bd3d86505a383b26fd92610ab4cdbf2ed3a92"
+            },
+            {
+              "block": "b10",
+              "function": "packet_xor",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b10.input:arg71| () (_ BitVec 64))\n(declare-fun |packet_xor.b10.effect:0:v74| () Bool)\n(assert\n (let (($x30 (and (bvule ((_ zero_extend 64) |packet_xor.b10.input:arg71|) (_ bv32 128)))))\n(and $x30 (= 0 0) |packet_xor.b10.effect:0:v74| (not $x30))))\n(check-sat)\n",
+              "smt2_sha256": "ba28f4cb501fd3132c85f9a4d6d00e41fe22760b887a9b40aeaef4a4e9da5cd6",
+              "target": "b11"
+            },
+            {
+              "block": "b10",
+              "function": "packet_xor",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b10.input:arg71| () (_ BitVec 64))\n(declare-fun |packet_xor.b10.effect:0:v74| () Bool)\n(assert\n (let (($x8 (not |packet_xor.b10.effect:0:v74|)))\n(let (($x30 (and (bvule ((_ zero_extend 64) |packet_xor.b10.input:arg71|) (_ bv32 128)))))\n(and $x30 (= 0 0) $x8 (not $x30)))))\n(check-sat)\n",
+              "smt2_sha256": "637293c678d9483b27b143ac1fd63a0b5aabf3424bdeb53ee97872791a2229e4",
+              "target": "b12"
+            },
+            {
+              "block": "b11",
+              "function": "packet_xor",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b11.input:p76| () (_ BitVec 64))\n(assert\n (let (($x41 (bvule ((_ zero_extend 64) |packet_xor.b11.input:p76|) (_ bv32 128))))\n(let (($x113 (and $x41)))\n(and $x113 (= 0 0) true (not (and $x41 $x41))))))\n(check-sat)\n",
+              "smt2_sha256": "d333b0f62c99cceb6287941bfc77962ff1a4b05ae336eeccb8862ba59ec0c408",
+              "target": "b13"
+            },
+            {
+              "block": "b13",
+              "function": "packet_xor",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b13.input:p91| () (_ BitVec 64))\n(declare-fun |packet_xor.b13.input:p88| () (_ BitVec 64))\n(declare-fun |packet_xor.b13.input:p92| () (_ BitVec 64))\n(assert\n (let (($x43 (and (bvule ((_ zero_extend 64) |packet_xor.b13.input:p88|) (_ bv32 128)) (bvule ((_ zero_extend 64) |packet_xor.b13.input:p91|) (_ bv32 128)))))\n(let (($x66 (bvult |packet_xor.b13.input:p92| |packet_xor.b13.input:p91|)))\n(and $x43 (= 0 0) $x66 (not $x43)))))\n(check-sat)\n",
+              "smt2_sha256": "d473851358377645d382eac52e323e0d2eac154c024d0f6cfb33bcaae2a1220a",
+              "target": "b14"
+            },
+            {
+              "block": "b13",
+              "function": "packet_xor",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b13.input:p91| () (_ BitVec 64))\n(declare-fun |packet_xor.b13.input:p88| () (_ BitVec 64))\n(declare-fun |packet_xor.b13.input:p92| () (_ BitVec 64))\n(assert\n (let (($x43 (and (bvule ((_ zero_extend 64) |packet_xor.b13.input:p88|) (_ bv32 128)) (bvule ((_ zero_extend 64) |packet_xor.b13.input:p91|) (_ bv32 128)))))\n(let (($x66 (bvult |packet_xor.b13.input:p92| |packet_xor.b13.input:p91|)))\n(let (($x85 (not $x66)))\n(and $x43 (= 0 0) $x85 (not $x43))))))\n(check-sat)\n",
+              "smt2_sha256": "f2d36cf646ab5ff8d075841f43c5dad7224d1409862fdf9e38b9d66003e7f32e",
+              "target": "b15"
+            },
+            {
+              "block": "b14",
+              "function": "packet_xor",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b14.input:p97| () (_ BitVec 64))\n(declare-fun |packet_xor.b14.input:p94| () (_ BitVec 64))\n(declare-fun |packet_xor.b14.input:p98| () (_ BitVec 64))\n(assert\n (let (($x115 (and (bvule ((_ zero_extend 64) |packet_xor.b14.input:p94|) (_ bv32 128)) (bvule ((_ zero_extend 64) |packet_xor.b14.input:p97|) (_ bv32 128)))))\n(let (($x81 (and (distinct (bvadd ((_ zero_extend 64) |packet_xor.b14.input:p98|) ((_ zero_extend 64) (_ bv1 64))) ((_ zero_extend 64) (bvadd |packet_xor.b14.input:p98| (_ bv1 64)))) true)))\n(let ((?x53 (ite $x81 1 0)))\n(let ((?x113 (ite (= 0 0) ?x53 0)))\n(and $x115 (= ?x113 0) true (not $x115)))))))\n(check-sat)\n",
+              "smt2_sha256": "9f83ce0e193a2d2eabc40f5502aea409c5835e34ca5386b0c09fdd46cbfe4ba8",
+              "target": "b13"
+            },
+            {
+              "block": "b15",
+              "function": "packet_xor",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b15.input:p99| () (_ BitVec 64))\n(declare-fun |packet_xor.b15.effect:0:v113| () Bool)\n(declare-fun |packet_xor.b15.input:p102| () (_ BitVec 64))\n(assert\n (let (($x67 (bvule ((_ zero_extend 64) |packet_xor.b15.input:p99|) (_ bv32 128))))\n(let (($x5717 (and $x67 (bvule ((_ zero_extend 64) |packet_xor.b15.input:p102|) (_ bv32 128)))))\n(and $x5717 (= 0 0) |packet_xor.b15.effect:0:v113| (not (and $x67))))))\n(check-sat)\n",
+              "smt2_sha256": "62610b18a4a4577c490a808b1c77e237d89b14a1f3923c6d6db5c21fbad60736",
+              "target": "b16"
+            },
+            {
+              "block": "b15",
+              "function": "packet_xor",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b15.input:p99| () (_ BitVec 64))\n(declare-fun |packet_xor.b15.effect:0:v113| () Bool)\n(declare-fun |packet_xor.b15.input:p102| () (_ BitVec 64))\n(assert\n (let (($x54 (not |packet_xor.b15.effect:0:v113|)))\n(let (($x67 (bvule ((_ zero_extend 64) |packet_xor.b15.input:p99|) (_ bv32 128))))\n(let (($x5717 (and $x67 (bvule ((_ zero_extend 64) |packet_xor.b15.input:p102|) (_ bv32 128)))))\n(and $x5717 (= 0 0) $x54 (not (and $x67)))))))\n(check-sat)\n",
+              "smt2_sha256": "019b5f37a2c7bfb0b03a4fcb72579f9fceef1cc6c9887ed51890622bee41dd69",
+              "target": "b17"
+            },
+            {
+              "block": "b16",
+              "function": "packet_xor",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b16.input:p115| () (_ BitVec 64))\n(assert\n (let (($x5696 (bvule ((_ zero_extend 64) |packet_xor.b16.input:p115|) (_ bv32 128))))\n(let (($x11 (and $x5696)))\n(and $x11 (= 0 0) true (not (and $x5696 $x5696))))))\n(check-sat)\n",
+              "smt2_sha256": "d775f0c6ac16d31fe11fae6f7b4df4e7a446d22e3923fcc346e1582d87fdaa66",
+              "target": "b18"
+            },
+            {
+              "block": "b18",
+              "function": "packet_xor",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b18.input:p133| () (_ BitVec 64))\n(declare-fun |packet_xor.b18.input:p129| () (_ BitVec 64))\n(declare-fun |packet_xor.b18.input:p134| () (_ BitVec 64))\n(assert\n (let (($x5681 (and (bvule ((_ zero_extend 64) |packet_xor.b18.input:p129|) (_ bv32 128)) (bvule ((_ zero_extend 64) |packet_xor.b18.input:p133|) (_ bv32 128)))))\n(let (($x5706 (bvult |packet_xor.b18.input:p134| |packet_xor.b18.input:p133|)))\n(and $x5681 (= 0 0) $x5706 (not $x5681)))))\n(check-sat)\n",
+              "smt2_sha256": "777dd568eda45e2266f03ea76cc3c118a27088111853f0b8ee9481fba7ad9094",
+              "target": "b19"
+            },
+            {
+              "block": "b18",
+              "function": "packet_xor",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b18.input:p133| () (_ BitVec 64))\n(declare-fun |packet_xor.b18.input:p129| () (_ BitVec 64))\n(declare-fun |packet_xor.b18.input:p134| () (_ BitVec 64))\n(assert\n (let (($x5681 (and (bvule ((_ zero_extend 64) |packet_xor.b18.input:p129|) (_ bv32 128)) (bvule ((_ zero_extend 64) |packet_xor.b18.input:p133|) (_ bv32 128)))))\n(let (($x5706 (bvult |packet_xor.b18.input:p134| |packet_xor.b18.input:p133|)))\n(let (($x5690 (not $x5706)))\n(and $x5681 (= 0 0) $x5690 (not $x5681))))))\n(check-sat)\n",
+              "smt2_sha256": "dcc393b64b8ae78ef3b7f8342eecd67b479a9cb6a7338e52a64965fea74c0e34",
+              "target": "b20"
+            },
+            {
+              "block": "b19",
+              "function": "packet_xor",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b19.input:p140| () (_ BitVec 64))\n(declare-fun |packet_xor.b19.input:p136| () (_ BitVec 64))\n(declare-fun |packet_xor.b19.input:p141| () (_ BitVec 64))\n(assert\n (let (($x71 (and (bvule ((_ zero_extend 64) |packet_xor.b19.input:p136|) (_ bv32 128)) (bvule ((_ zero_extend 64) |packet_xor.b19.input:p140|) (_ bv32 128)))))\n(let (($x55 (and (distinct (bvadd ((_ zero_extend 64) |packet_xor.b19.input:p141|) ((_ zero_extend 64) (_ bv1 64))) ((_ zero_extend 64) (bvadd |packet_xor.b19.input:p141| (_ bv1 64)))) true)))\n(let ((?x80 (ite $x55 1 0)))\n(let ((?x5718 (ite (= 0 0) ?x80 0)))\n(and $x71 (= ?x5718 0) true (not $x71)))))))\n(check-sat)\n",
+              "smt2_sha256": "e42ceb372c06b9593f9fcb732f9ea61f6fcbb84033b4075f6bb56c16c472d9e7",
+              "target": "b18"
+            },
+            {
+              "block": "b20",
+              "function": "packet_xor",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b20.input:p142| () (_ BitVec 64))\n(declare-fun |packet_xor.b20.input:p146| () (_ BitVec 64))\n(assert\n (let ((?x106 ((_ zero_extend 64) |packet_xor.b20.input:p142|)))\n(let (($x6 (bvule ?x106 (_ bv32 128))))\n(let (($x110 (and $x6 $x6 (bvule ((_ zero_extend 64) (_ bv0 64)) ?x106) (bvule ((_ zero_extend 64) (_ bv0 64)) (bvmul ((_ zero_extend 64) (_ bv0 64)) (_ bv255 128))))))\n(let (($x392 (and $x6 (bvule ((_ zero_extend 64) |packet_xor.b20.input:p146|) (_ bv32 128)))))\n(and $x392 (= 0 0) true (not $x110)))))))\n(check-sat)\n",
+              "smt2_sha256": "c6382cb679aef539d19843312012e2665f2703780b84b1a2c2c9a3b7221a6f2f",
+              "target": "b21"
+            },
+            {
+              "block": "b21",
+              "function": "packet_xor",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b21.input:p167| () (_ BitVec 64))\n(declare-fun |packet_xor.b21.input:p165| () (_ BitVec 64))\n(declare-fun |packet_xor.b21.input:p166| () (_ BitVec 64))\n(declare-fun |packet_xor.b21.input:p161| () (_ BitVec 64))\n(assert\n (let (($x79 (bvule ((_ zero_extend 64) |packet_xor.b21.input:p165|) (bvmul ((_ zero_extend 64) |packet_xor.b21.input:p167|) (_ bv255 128)))))\n(let ((?x110 ((_ zero_extend 64) |packet_xor.b21.input:p166|)))\n(let ((?x84 ((_ zero_extend 64) |packet_xor.b21.input:p167|)))\n(let (($x120 (bvule ?x110 (_ bv32 128))))\n(let (($x121 (bvule ((_ zero_extend 64) |packet_xor.b21.input:p161|) (_ bv32 128))))\n(let (($x53 (bvult |packet_xor.b21.input:p167| |packet_xor.b21.input:p166|)))\n(let (($x66 (and $x121 $x120 (bvule ?x84 ?x110) $x79)))\n(and $x66 (= 0 0) $x53 (not (and $x121 $x120 (bvult ?x84 ?x110) $x79)))))))))))\n(check-sat)\n",
+              "smt2_sha256": "dc240d74956a8b0d582421d6617505be2005b525cb54af3174d0c4df92038921",
+              "target": "b22"
+            },
+            {
+              "block": "b21",
+              "function": "packet_xor",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b21.input:p166| () (_ BitVec 64))\n(declare-fun |packet_xor.b21.input:p161| () (_ BitVec 64))\n(declare-fun |packet_xor.b21.input:p167| () (_ BitVec 64))\n(declare-fun |packet_xor.b21.input:p165| () (_ BitVec 64))\n(assert\n (let ((?x110 ((_ zero_extend 64) |packet_xor.b21.input:p166|)))\n(let (($x120 (bvule ?x110 (_ bv32 128))))\n(let (($x121 (bvule ((_ zero_extend 64) |packet_xor.b21.input:p161|) (_ bv32 128))))\n(let (($x53 (bvult |packet_xor.b21.input:p167| |packet_xor.b21.input:p166|)))\n(let (($x81 (not $x53)))\n(let (($x79 (bvule ((_ zero_extend 64) |packet_xor.b21.input:p165|) (bvmul ((_ zero_extend 64) |packet_xor.b21.input:p167|) (_ bv255 128)))))\n(let (($x66 (and $x121 $x120 (bvule ((_ zero_extend 64) |packet_xor.b21.input:p167|) ?x110) $x79)))\n(and $x66 (= 0 0) $x81 (not (and $x121 $x120)))))))))))\n(check-sat)\n",
+              "smt2_sha256": "0a16dca361a43a068ff2682ff06f6c4496fed5d8cacb20043765c9726eb640c5",
+              "target": "b23"
+            },
+            {
+              "block": "b22",
+              "function": "packet_xor",
+              "kind": "removed_check_cannot_trap",
+              "operation": 4,
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b22.effect:1:v184| () (_ BitVec 8))\n(declare-fun |packet_xor.b22.input:p173| () (_ BitVec 64))\n(declare-fun |packet_xor.b22.input:p175| () (_ BitVec 64))\n(declare-fun |packet_xor.b22.input:p174| () (_ BitVec 64))\n(declare-fun |packet_xor.b22.input:p169| () (_ BitVec 64))\n(assert\n (let ((?x121 ((_ zero_extend 56) |packet_xor.b22.effect:1:v184|)))\n(let ((?x110 (bvadd |packet_xor.b22.input:p173| ?x121)))\n(let (($x40 (and (distinct (bvadd ((_ zero_extend 64) |packet_xor.b22.input:p173|) ((_ zero_extend 64) ?x121)) ((_ zero_extend 64) ?x110)) true)))\n(let ((?x79 (ite $x40 1 0)))\n(let (($x63 (= 0 0)))\n(let ((?x66 (ite $x63 ?x79 0)))\n(let ((?x27 ((_ zero_extend 64) |packet_xor.b22.input:p173|)))\n(let ((?x80 ((_ zero_extend 64) |packet_xor.b22.input:p174|)))\n(let ((?x55 ((_ zero_extend 64) |packet_xor.b22.input:p175|)))\n(let (($x5717 (and (bvule ((_ zero_extend 64) |packet_xor.b22.input:p169|) (_ bv32 128)) (bvule ?x80 (_ bv32 128)) (bvult ?x55 ?x80) (bvule ?x27 (bvmul ?x55 (_ bv255 128))))))\n(and $x5717 $x63 (and (distinct ?x66 0) true)))))))))))))\n(check-sat)\n",
+              "smt2_sha256": "08638fe0d77742e7653515833337b3cbba52855521a36c696f4d54c698507bc4"
+            },
+            {
+              "block": "b22",
+              "function": "packet_xor",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b22.input:p175| () (_ BitVec 64))\n(declare-fun |packet_xor.b22.effect:1:v184| () (_ BitVec 8))\n(declare-fun |packet_xor.b22.input:p173| () (_ BitVec 64))\n(declare-fun |packet_xor.b22.input:p174| () (_ BitVec 64))\n(declare-fun |packet_xor.b22.input:p169| () (_ BitVec 64))\n(assert\n (let ((?x121 ((_ zero_extend 56) |packet_xor.b22.effect:1:v184|)))\n(let ((?x110 (bvadd |packet_xor.b22.input:p173| ?x121)))\n(let ((?x56 ((_ zero_extend 64) ?x110)))\n(let (($x7 (bvule ?x56 (bvmul ((_ zero_extend 64) (bvadd |packet_xor.b22.input:p175| (_ bv1 64))) (_ bv255 128)))))\n(let ((?x80 ((_ zero_extend 64) |packet_xor.b22.input:p174|)))\n(let ((?x104 (bvadd |packet_xor.b22.input:p175| (_ bv1 64))))\n(let ((?x5694 ((_ zero_extend 64) ?x104)))\n(let (($x5682 (bvule ?x80 (_ bv32 128))))\n(let (($x5723 (bvule ((_ zero_extend 64) |packet_xor.b22.input:p169|) (_ bv32 128))))\n(let (($x40 (and (distinct (bvadd ((_ zero_extend 64) |packet_xor.b22.input:p173|) ((_ zero_extend 64) ?x121)) ?x56) true)))\n(let ((?x79 (ite $x40 1 0)))\n(let ((?x66 (ite (= 0 0) ?x79 0)))\n(let (($x71 (and (distinct (bvadd ((_ zero_extend 64) |packet_xor.b22.input:p175|) ((_ zero_extend 64) (_ bv1 64))) ?x5694) true)))\n(let ((?x52 (ite (= ?x66 0) (ite $x71 1 0) ?x66)))\n(let ((?x27 ((_ zero_extend 64) |packet_xor.b22.input:p173|)))\n(let (($x5717 (and $x5723 $x5682 (bvult ((_ zero_extend 64) |packet_xor.b22.input:p175|) ?x80) (bvule ?x27 (bvmul ((_ zero_extend 64) |packet_xor.b22.input:p175|) (_ bv255 128))))))\n(and $x5717 (= ?x52 0) true (not (and $x5723 $x5682 (bvule ?x5694 ?x80) $x7))))))))))))))))))))\n(check-sat)\n",
+              "smt2_sha256": "ae7a754e6050ebb746129e9bb8aacf7177c91f4b248f8b78db7367460819b710",
+              "target": "b21"
+            }
+          ],
+          "policy": {
+            "max_obligations": 1024,
+            "max_scalar_operations": 4096,
+            "preconditions": [],
+            "schema": "hepta.hia.optimization-policy.v1",
+            "target": "x86_64-unknown-linux-gnu",
+            "timeout_ms": 29918
+          },
+          "preconditions": [
+            {
+              "argument": "arg1",
+              "function": "full_lifecycle",
+              "maximum": 32
+            },
+            {
+              "argument": "arg71",
+              "function": "packet_xor",
+              "maximum": 32
+            }
+          ],
+          "proposal_sha256": "78c7fff005e56ecf9ae74d41a60e46f0074fdf1098a76b1cb43b042ac58923e4",
+          "reason": "guarded entry, every CFG edge, and removed-check obligations are UNSAT",
+          "resource_delta": {
+            "allocation_failure_sequence_preserved": true,
+            "code_size_and_compile_cost_may_increase": true,
+            "ordered_resource_instructions_unchanged": true,
+            "peak_live_bytes_change_under_core_model": 0,
+            "resource_trace_equivalence_checked": true,
+            "vm_steps_preserved": false
+          },
+          "schema": "hepta.hia.guarded-optimization-verification.v1",
+          "solver": {
+            "binding_sha256": "093e8f2a92070c5b60a6f50e91e799a79123ba8573a2df64f1b31c01edd86b39",
+            "library_path": "/tmp/hepta-next-z3-20261028/z3/lib/libz3.so",
+            "library_sha256": "89456c35d2deb579a6a73f012d366148baa54d750f547069b89d86ee616d89cb",
+            "name": "Z3",
+            "version": "4.13.4"
+          },
+          "status": "verified",
+          "target": "x86_64-unknown-linux-gnu",
+          "target_constraints": {
+            "foreign_abi": "unchanged scalar C exports",
+            "guard_before_effects": true,
+            "original_fallback": true,
+            "triple": "x86_64-unknown-linux-gnu"
+          },
+          "verification_sha256": "9646d34680b6d9acdbf78b16df99e1d630bb7d7ff340f55e1aea4939eec15358"
+        },
+        "stage": "guarded-reduction"
+      },
+      {
+        "proof": {
+          "base_sha256": "6d697598eac42a5559206fee595b36c22035c88c6cdd2574b69eea804f7e9c3b",
+          "candidate_sha256": "d7473e258bf129789b380703aedf315ac256f99e9ce61506fc1881171ef93775",
+          "checker_sha256": "986aa285c7ae6c5bd347c8553316878550a9bd345e6daf2794d857e5948434c5",
+          "claims": {
+            "all_declared_scalar_inputs": true,
+            "backend_refinement_proved": false,
+            "core_scalar_effect_equivalence_checked": true,
+            "deployment_authority": false,
+            "exact_edit_inventory_checked": true,
+            "performance_qualified": false,
+            "whole_language_soundness_proved": false
+          },
+          "elapsed_ns": 295884970,
+          "equivalence": {
+            "base_input_sha256": "6d697598eac42a5559206fee595b36c22035c88c6cdd2574b69eea804f7e9c3b",
+            "base_sha256": "6d697598eac42a5559206fee595b36c22035c88c6cdd2574b69eea804f7e9c3b",
+            "candidate_input_sha256": "d7473e258bf129789b380703aedf315ac256f99e9ce61506fc1881171ef93775",
+            "candidate_sha256": "d7473e258bf129789b380703aedf315ac256f99e9ce61506fc1881171ef93775",
+            "checker_sha256": "78694a5f57a303f576dd9b5430498affc9d65e7fa93d639721a940cf66554f12",
+            "claims": {
+              "all_scalar_inputs_in_declared_widths": true,
+              "arbitrary_rewrites_supported": false,
+              "backend_refinement_proved": false,
+              "cfg_and_resource_protocol_preserved": true,
+              "core_scalar_effect_equivalence_checked": true,
+              "deployment_authority": false,
+              "native_execution_qualified": false,
+              "whole_language_soundness_proved": false
+            },
+            "elapsed_ns": 239564636,
+            "obligations": [
+              {
+                "block": "hia_guard_entry",
+                "function": "full_lifecycle",
+                "observed": [
+                  "hia_guard_test",
+                  "arg1",
+                  "arg2",
+                  "arg1",
+                  "arg2"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f0.b0.input:arg2| () (_ BitVec 32))\n(declare-fun |f0.b0.input:arg1| () (_ BitVec 64))\n(assert\n (let (($x12 (and (distinct |f0.b0.input:arg2| |f0.b0.input:arg2|) true)))\n(let (($x11 (and (distinct |f0.b0.input:arg1| |f0.b0.input:arg1|) true)))\n(let (($x9 (bvule |f0.b0.input:arg1| (_ bv32 64))))\n(let (($x10 (and (distinct $x9 $x9) true)))\n(let (($x13 (or $x10 $x11 $x12 $x11 $x12)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x13)))))))))\n(check-sat)\n",
+                "smt2_sha256": "9b213015f8a8368318d49051430a16894af0953da49aa68c1553b928c9253b6d"
+              },
+              {
+                "block": "gf_b1",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gf_arg1"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f0.b1.input:gf_arg1| () (_ BitVec 64))\n(assert\n (let (($x47 (and (distinct |f0.b1.input:gf_arg1| |f0.b1.input:gf_arg1|) true)))\n(let (($x48 (or $x47)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x48))))))\n(check-sat)\n",
+                "smt2_sha256": "5ca0e757592c18b1a22821fb2bda3180f6fc67877ce77d6b0b81b2a44ed7e687"
+              },
+              {
+                "block": "gf_b1",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gf_v4",
+                  "gf_arg1",
+                  "gf_arg2",
+                  "gf_v4",
+                  "gf_v3",
+                  "gf_v5",
+                  "gf_arg1",
+                  "gf_arg2",
+                  "gf_v4",
+                  "gf_v3",
+                  "gf_v5"
+                ],
+                "result": "unsat",
+                "segment": 1,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f0.b1.effect:0:gf_v4| () Bool)\n(declare-fun |f0.b1.input:gf_arg2| () (_ BitVec 32))\n(declare-fun |f0.b1.input:gf_arg1| () (_ BitVec 64))\n(assert\n (let (($x27 (and (distinct (_ bv1 8) (_ bv1 8)) true)))\n(let (($x37 (and (distinct |f0.b1.effect:0:gf_v4| |f0.b1.effect:0:gf_v4|) true)))\n(let (($x41 (and (distinct |f0.b1.input:gf_arg2| |f0.b1.input:gf_arg2|) true)))\n(let (($x47 (and (distinct |f0.b1.input:gf_arg1| |f0.b1.input:gf_arg1|) true)))\n(let (($x25 (or $x37 $x47 $x41 $x37 $x27 $x47 $x41 $x37 $x27)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x25)))))))))\n(check-sat)\n",
+                "smt2_sha256": "10a76342e190963bc2d7de1b5a54eb719bdac37e5cca3beaaa9c83fb8de9be82"
+              },
+              {
+                "block": "gf_b2",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gf_p9"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gf_b2",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gf_p6",
+                  "gf_p7",
+                  "gf_v16",
+                  "gf_p6",
+                  "gf_v17"
+                ],
+                "result": "unsat",
+                "segment": 1,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f0.b2.input:gf_p6| () (_ BitVec 64))\n(declare-fun |f0.b2.input:gf_p7| () (_ BitVec 32))\n(assert\n (let (($x40 (and (distinct (_ bv0 64) (_ bv0 64)) true)))\n(let (($x39 (and (distinct |f0.b2.input:gf_p6| |f0.b2.input:gf_p6|) true)))\n(let (($x38 (and (distinct |f0.b2.input:gf_p7| |f0.b2.input:gf_p7|) true)))\n(let (($x42 (or $x39 $x38 $x39 $x40)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x42))))))))\n(check-sat)\n",
+                "smt2_sha256": "a3ca843612ab660e2ebc07ae76e97d0db323fa0526efb356beb38403b819ee12"
+              },
+              {
+                "block": "gf_b3",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gf_p14"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gf_b3",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gf_v70"
+                ],
+                "result": "unsat",
+                "segment": 1,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f0.b3.input:gf_p15| () (_ BitVec 8))\n(assert\n (let ((?x36 ((_ zero_extend 56) |f0.b3.input:gf_p15|)))\n(let ((?x8 (bvadd (_ bv1000 64) ?x36)))\n(let (($x29 (and (distinct ?x8 ?x8) true)))\n(let (($x28 (or $x29)))\n(let (($x19 (and (distinct (bvadd ((_ zero_extend 64) (_ bv1000 64)) ((_ zero_extend 64) ?x36)) ((_ zero_extend 64) ?x8)) true)))\n(let ((?x50 (ite $x19 1 0)))\n(let ((?x30 (ite (= 0 0) ?x50 0)))\n(let (($x24 (= ?x30 0)))\n(or (and (distinct ?x30 ?x30) true) (and $x24 $x24 $x28)))))))))))\n(check-sat)\n",
+                "smt2_sha256": "692ff8028748079e6c773cb8824b840fc2792a65bae15a0608181bd1aff41334"
+              },
+              {
+                "block": "gf_b4",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gf_v23",
+                  "gf_p18",
+                  "gf_p19",
+                  "gf_p20",
+                  "gf_p21",
+                  "gf_p22",
+                  "gf_p18",
+                  "gf_p19",
+                  "gf_p20",
+                  "gf_p21",
+                  "gf_p22"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f0.b4.input:gf_p22| () (_ BitVec 64))\n(declare-fun |f0.b4.input:gf_p21| () (_ BitVec 64))\n(declare-fun |f0.b4.input:gf_p19| () (_ BitVec 32))\n(declare-fun |f0.b4.input:gf_p18| () (_ BitVec 64))\n(assert\n (let (($x73 (and (distinct |f0.b4.input:gf_p22| |f0.b4.input:gf_p22|) true)))\n(let (($x72 (and (distinct |f0.b4.input:gf_p21| |f0.b4.input:gf_p21|) true)))\n(let (($x71 (and (distinct |f0.b4.input:gf_p19| |f0.b4.input:gf_p19|) true)))\n(let (($x41 (and (distinct |f0.b4.input:gf_p18| |f0.b4.input:gf_p18|) true)))\n(let (($x17 (bvult |f0.b4.input:gf_p22| |f0.b4.input:gf_p21|)))\n(let (($x46 (and (distinct $x17 $x17) true)))\n(let (($x74 (or $x46 $x41 $x71 $x72 $x73 $x41 $x71 $x72 $x73)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x74)))))))))))\n(check-sat)\n",
+                "smt2_sha256": "017d540b7aefacf9ea90c0862b21a105bfcc632e7cf754ab6f62b78ce28cabab"
+              },
+              {
+                "block": "gf_b5",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gf_p26"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gf_b5",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gf_v37",
+                  "gf_p28",
+                  "gf_v36"
+                ],
+                "result": "unsat",
+                "segment": 1,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f0.b5.input:gf_p25| () (_ BitVec 32))\n(declare-fun |f0.b5.input:gf_p28| () (_ BitVec 64))\n(assert\n (let ((?x62 ((_ extract 7 0) |f0.b5.input:gf_p25|)))\n(let ((?x61 ((_ extract 7 0) |f0.b5.input:gf_p28|)))\n(let ((?x11 (bvadd ?x61 ?x62)))\n(let ((?x39 ((_ zero_extend 0) ?x11)))\n(let ((?x53 ((_ extract 31 0) |f0.b5.input:gf_p28|)))\n(let ((?x54 (bvadd ?x53 |f0.b5.input:gf_p25|)))\n(let ((?x60 ((_ extract 7 0) ?x54)))\n(let (($x22 (and (distinct ?x60 ?x39) true)))\n(let (($x25 (and (distinct |f0.b5.input:gf_p28| |f0.b5.input:gf_p28|) true)))\n(let (($x49 (or $x25 $x22)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x49))))))))))))))\n(check-sat)\n",
+                "smt2_sha256": "c0b3772acc86c889af1a49fcc86b2512d0c9b3cc4c6c0a244b33e32a63e4c630"
+              },
+              {
+                "block": "gf_b5",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gf_v37"
+                ],
+                "result": "unsat",
+                "segment": 2,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gf_b5",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gf_p24",
+                  "gf_p25",
+                  "gf_p26",
+                  "gf_p27",
+                  "gf_v39"
+                ],
+                "result": "unsat",
+                "segment": 3,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f0.b5.input:gf_p28| () (_ BitVec 64))\n(declare-fun |f0.b5.input:gf_p27| () (_ BitVec 64))\n(declare-fun |f0.b5.input:gf_p25| () (_ BitVec 32))\n(declare-fun |f0.b5.input:gf_p24| () (_ BitVec 64))\n(assert\n (let ((?x14 (bvadd |f0.b5.input:gf_p28| (_ bv1 64))))\n(let (($x47 (and (distinct ?x14 ?x14) true)))\n(let (($x16 (and (distinct |f0.b5.input:gf_p27| |f0.b5.input:gf_p27|) true)))\n(let (($x8 (and (distinct |f0.b5.input:gf_p25| |f0.b5.input:gf_p25|) true)))\n(let (($x19 (and (distinct |f0.b5.input:gf_p24| |f0.b5.input:gf_p24|) true)))\n(let (($x36 (or $x19 $x8 $x16 $x47)))\n(let (($x70 (and (distinct (bvadd ((_ zero_extend 64) |f0.b5.input:gf_p28|) ((_ zero_extend 64) (_ bv1 64))) ((_ zero_extend 64) ?x14)) true)))\n(let ((?x26 (ite $x70 1 0)))\n(let ((?x30 (ite (= 0 0) ?x26 0)))\n(let (($x58 (= ?x30 0)))\n(or (and (distinct ?x30 ?x30) true) (and $x58 $x58 $x36)))))))))))))\n(check-sat)\n",
+                "smt2_sha256": "db65915577fa054ad80bacdb5a7499cdc50fa9a6ed40b0f21c3bda12e7ff4eff"
+              },
+              {
+                "block": "gf_b6",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gf_p29",
+                  "gf_p30",
+                  "gf_p31",
+                  "gf_v40",
+                  "gf_p29",
+                  "gf_v41"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f0.b6.input:gf_p29| () (_ BitVec 64))\n(declare-fun |f0.b6.input:gf_p30| () (_ BitVec 32))\n(assert\n (let (($x60 (and (distinct (_ bv0 64) (_ bv0 64)) true)))\n(let (($x53 (and (distinct |f0.b6.input:gf_p29| |f0.b6.input:gf_p29|) true)))\n(let (($x54 (and (distinct |f0.b6.input:gf_p30| |f0.b6.input:gf_p30|) true)))\n(let (($x61 (or $x53 $x54 $x60 $x53 $x60)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x61))))))))\n(check-sat)\n",
+                "smt2_sha256": "6c3fc0aad4253655fca675f14cfab0fb9c83d49bb9237da2386257be6098c7bb"
+              },
+              {
+                "block": "gf_b7",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gf_v48",
+                  "gf_p42",
+                  "gf_p43",
+                  "gf_p44",
+                  "gf_p45",
+                  "gf_p46",
+                  "gf_p47",
+                  "gf_p42",
+                  "gf_p43",
+                  "gf_p44",
+                  "gf_p45",
+                  "gf_p46",
+                  "gf_p47"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f0.b7.input:gf_p47| () (_ BitVec 64))\n(declare-fun |f0.b7.input:gf_p46| () (_ BitVec 64))\n(declare-fun |f0.b7.input:gf_p45| () (_ BitVec 64))\n(declare-fun |f0.b7.input:gf_p43| () (_ BitVec 32))\n(declare-fun |f0.b7.input:gf_p42| () (_ BitVec 64))\n(assert\n (let (($x65 (and (distinct |f0.b7.input:gf_p47| |f0.b7.input:gf_p47|) true)))\n(let (($x51 (and (distinct |f0.b7.input:gf_p46| |f0.b7.input:gf_p46|) true)))\n(let (($x23 (and (distinct |f0.b7.input:gf_p45| |f0.b7.input:gf_p45|) true)))\n(let (($x52 (and (distinct |f0.b7.input:gf_p43| |f0.b7.input:gf_p43|) true)))\n(let (($x75 (and (distinct |f0.b7.input:gf_p42| |f0.b7.input:gf_p42|) true)))\n(let (($x43 (bvult |f0.b7.input:gf_p47| |f0.b7.input:gf_p46|)))\n(let (($x34 (and (distinct $x43 $x43) true)))\n(let (($x49 (or $x34 $x75 $x52 $x23 $x51 $x65 $x75 $x52 $x23 $x51 $x65)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x49))))))))))))\n(check-sat)\n",
+                "smt2_sha256": "d611dd5ce881b31ce5e548720e695d8f1644e385a698abdbea96cc72fc97e2b0"
+              },
+              {
+                "block": "gf_b8",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gf_p51"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gf_b8",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gf_v61",
+                  "gf_p54"
+                ],
+                "result": "unsat",
+                "segment": 1,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f0.b8.input:gf_p54| () (_ BitVec 64))\n(assert\n (let (($x58 (and (distinct |f0.b8.input:gf_p54| |f0.b8.input:gf_p54|) true)))\n(let (($x57 (or $x58)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x57))))))\n(check-sat)\n",
+                "smt2_sha256": "f18fd0023676c76e498047e432a9f0c130d4ff3f208390a692e72d1dd96ca1c8"
+              },
+              {
+                "block": "gf_b8",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gf_v61"
+                ],
+                "result": "unsat",
+                "segment": 2,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gf_b8",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gf_p49",
+                  "gf_p50",
+                  "gf_p51",
+                  "gf_v64",
+                  "gf_p53",
+                  "gf_v66"
+                ],
+                "result": "unsat",
+                "segment": 3,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f0.b8.input:gf_p54| () (_ BitVec 64))\n(declare-fun |f0.b8.input:gf_p53| () (_ BitVec 64))\n(declare-fun |f0.b8.effect:1:gf_v62| () (_ BitVec 8))\n(declare-fun |f0.b8.input:gf_p52| () (_ BitVec 64))\n(declare-fun |f0.b8.input:gf_p50| () (_ BitVec 32))\n(declare-fun |f0.b8.input:gf_p49| () (_ BitVec 64))\n(assert\n (let ((?x64 (bvadd |f0.b8.input:gf_p54| (_ bv1 64))))\n(let (($x53 (and (distinct ?x64 ?x64) true)))\n(let (($x28 (and (distinct |f0.b8.input:gf_p53| |f0.b8.input:gf_p53|) true)))\n(let ((?x21 ((_ zero_extend 56) |f0.b8.effect:1:gf_v62|)))\n(let ((?x52 (bvadd |f0.b8.input:gf_p52| ?x21)))\n(let (($x60 (and (distinct ?x52 ?x52) true)))\n(let (($x61 (and (distinct |f0.b8.input:gf_p50| |f0.b8.input:gf_p50|) true)))\n(let (($x39 (and (distinct |f0.b8.input:gf_p49| |f0.b8.input:gf_p49|) true)))\n(let (($x31 (or $x39 $x61 $x60 $x28 $x53)))\n(let (($x56 (and (distinct (bvadd ((_ zero_extend 64) |f0.b8.input:gf_p54|) ((_ zero_extend 64) (_ bv1 64))) ((_ zero_extend 64) ?x64)) true)))\n(let ((?x70 (ite $x56 1 0)))\n(let ((?x30 (ite (= 0 0) ?x70 0)))\n(let (($x12 (= ?x30 0)))\n(or (and (distinct ?x30 ?x30) true) (and $x12 $x12 $x31))))))))))))))))\n(check-sat)\n",
+                "smt2_sha256": "69e6b7d43398b476cb8fda167c9c726d0a68d8fee8a4cd134b6831f10b82e94c"
+              },
+              {
+                "block": "gf_b9",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gf_p57"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gf_b9",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gf_v67"
+                ],
+                "result": "unsat",
+                "segment": 1,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gf_b9",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gf_p58"
+                ],
+                "result": "unsat",
+                "segment": 2,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f0.b9.input:gf_p58| () (_ BitVec 64))\n(assert\n (let (($x21 (and (distinct |f0.b9.input:gf_p58| |f0.b9.input:gf_p58|) true)))\n(let (($x52 (or $x21)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x52))))))\n(check-sat)\n",
+                "smt2_sha256": "34269ca07edd49fb997b438b76a520737da53f7c66c722962294f1577ffdad23"
+              },
+              {
+                "block": "gs_b1",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gs_arg1"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f0.b10.input:gs_arg1| () (_ BitVec 64))\n(assert\n (let (($x32 (and (distinct |f0.b10.input:gs_arg1| |f0.b10.input:gs_arg1|) true)))\n(let (($x24 (or $x32)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x24))))))\n(check-sat)\n",
+                "smt2_sha256": "13ea234ad608b0428f5e3345087202afb1d3915ddb2065512ee6339fade324b2"
+              },
+              {
+                "block": "gs_b1",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gs_v4",
+                  "gs_arg1",
+                  "gs_arg2",
+                  "gs_v4",
+                  "gs_v3",
+                  "gs_v5",
+                  "gs_arg1",
+                  "gs_arg2",
+                  "gs_v4",
+                  "gs_v3",
+                  "gs_v5"
+                ],
+                "result": "unsat",
+                "segment": 1,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f0.b10.effect:0:gs_v4| () Bool)\n(declare-fun |f0.b10.input:gs_arg2| () (_ BitVec 32))\n(declare-fun |f0.b10.input:gs_arg1| () (_ BitVec 64))\n(assert\n (let (($x12 (and (distinct (_ bv1 8) (_ bv1 8)) true)))\n(let (($x23 (and (distinct |f0.b10.effect:0:gs_v4| |f0.b10.effect:0:gs_v4|) true)))\n(let (($x39 (and (distinct |f0.b10.input:gs_arg2| |f0.b10.input:gs_arg2|) true)))\n(let (($x32 (and (distinct |f0.b10.input:gs_arg1| |f0.b10.input:gs_arg1|) true)))\n(let (($x71 (or $x23 $x32 $x39 $x23 $x12 $x32 $x39 $x23 $x12)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x71)))))))))\n(check-sat)\n",
+                "smt2_sha256": "1c42810f24d0ea7e4581ef74b3ce2040ab1fda64f6c9111740456d5e005e5680"
+              },
+              {
+                "block": "gs_b2",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gs_p9"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gs_b2",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gs_p6",
+                  "gs_p7",
+                  "gs_v16",
+                  "gs_p6",
+                  "gs_v17"
+                ],
+                "result": "unsat",
+                "segment": 1,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f0.b11.input:gs_p6| () (_ BitVec 64))\n(declare-fun |f0.b11.input:gs_p7| () (_ BitVec 32))\n(assert\n (let (($x42 (and (distinct (_ bv0 64) (_ bv0 64)) true)))\n(let (($x26 (and (distinct |f0.b11.input:gs_p6| |f0.b11.input:gs_p6|) true)))\n(let (($x5 (and (distinct |f0.b11.input:gs_p7| |f0.b11.input:gs_p7|) true)))\n(let (($x69 (or $x26 $x5 $x26 $x42)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x69))))))))\n(check-sat)\n",
+                "smt2_sha256": "0a381c97b20d81f866e1a8367007de09104c2d083270f57dcee37c522fcefbca"
+              },
+              {
+                "block": "gs_b3",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gs_p14"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gs_b3",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gs_v70"
+                ],
+                "result": "unsat",
+                "segment": 1,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f0.b12.input:gs_p15| () (_ BitVec 8))\n(assert\n (let ((?x70 ((_ zero_extend 56) |f0.b12.input:gs_p15|)))\n(let ((?x21 (bvadd (_ bv1000 64) ?x70)))\n(let (($x62 (and (distinct ?x21 ?x21) true)))\n(let (($x50 (or $x62)))\n(let (($x53 (and (distinct (bvadd ((_ zero_extend 64) (_ bv1000 64)) ((_ zero_extend 64) ?x70)) ((_ zero_extend 64) ?x21)) true)))\n(let ((?x73 (ite $x53 1 0)))\n(let ((?x17 (ite (= 0 0) ?x73 0)))\n(let (($x63 (= ?x17 0)))\n(or (and (distinct ?x17 ?x17) true) (and $x63 $x63 $x50)))))))))))\n(check-sat)\n",
+                "smt2_sha256": "70f6191f34cb4180310e2905a96b7adc3bfffbe925b5333e02b8b9d5b3cab5d9"
+              },
+              {
+                "block": "gs_b4",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gs_v23",
+                  "gs_p18",
+                  "gs_p19",
+                  "gs_p20",
+                  "gs_p21",
+                  "gs_p22",
+                  "gs_p18",
+                  "gs_p19",
+                  "gs_p20",
+                  "gs_p21",
+                  "gs_p22"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f0.b13.input:gs_p22| () (_ BitVec 64))\n(declare-fun |f0.b13.input:gs_p21| () (_ BitVec 64))\n(declare-fun |f0.b13.input:gs_p19| () (_ BitVec 32))\n(declare-fun |f0.b13.input:gs_p18| () (_ BitVec 64))\n(assert\n (let (($x33 (and (distinct |f0.b13.input:gs_p22| |f0.b13.input:gs_p22|) true)))\n(let (($x65 (and (distinct |f0.b13.input:gs_p21| |f0.b13.input:gs_p21|) true)))\n(let (($x51 (and (distinct |f0.b13.input:gs_p19| |f0.b13.input:gs_p19|) true)))\n(let (($x39 (and (distinct |f0.b13.input:gs_p18| |f0.b13.input:gs_p18|) true)))\n(let (($x78 (bvult |f0.b13.input:gs_p22| |f0.b13.input:gs_p21|)))\n(let (($x56 (and (distinct $x78 $x78) true)))\n(let (($x59 (or $x56 $x39 $x51 $x65 $x33 $x39 $x51 $x65 $x33)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x59)))))))))))\n(check-sat)\n",
+                "smt2_sha256": "fc47a61b10cb41ccf17639fb802ca5d87048f6ee340ee003f42a7263e859b7eb"
+              },
+              {
+                "block": "gs_b5",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gs_p26"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gs_b5",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gs_v37",
+                  "gs_p28",
+                  "gs_v36"
+                ],
+                "result": "unsat",
+                "segment": 1,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f0.b14.input:gs_p25| () (_ BitVec 32))\n(declare-fun |f0.b14.input:gs_p28| () (_ BitVec 64))\n(assert\n (let ((?x11 ((_ extract 7 0) |f0.b14.input:gs_p25|)))\n(let ((?x22 ((_ extract 7 0) |f0.b14.input:gs_p28|)))\n(let ((?x40 (bvadd ?x22 ?x11)))\n(let ((?x44 ((_ zero_extend 0) ?x40)))\n(let ((?x46 ((_ extract 31 0) |f0.b14.input:gs_p28|)))\n(let ((?x41 (bvadd ?x46 |f0.b14.input:gs_p25|)))\n(let ((?x48 ((_ extract 7 0) ?x41)))\n(let (($x6 (and (distinct ?x48 ?x44) true)))\n(let (($x71 (and (distinct |f0.b14.input:gs_p28| |f0.b14.input:gs_p28|) true)))\n(let (($x18 (or $x71 $x6)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x18))))))))))))))\n(check-sat)\n",
+                "smt2_sha256": "f1f286674ad2f750319a2a1a0ebea19e5e9498042af88e2af535bbbcd38dafe6"
+              },
+              {
+                "block": "gs_b5",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gs_v37"
+                ],
+                "result": "unsat",
+                "segment": 2,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gs_b5",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gs_p24",
+                  "gs_p25",
+                  "gs_p26",
+                  "gs_p27",
+                  "gs_v39"
+                ],
+                "result": "unsat",
+                "segment": 3,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f0.b14.input:gs_p28| () (_ BitVec 64))\n(declare-fun |f0.b14.input:gs_p27| () (_ BitVec 64))\n(declare-fun |f0.b14.input:gs_p25| () (_ BitVec 32))\n(declare-fun |f0.b14.input:gs_p24| () (_ BitVec 64))\n(assert\n (let ((?x47 (bvadd |f0.b14.input:gs_p28| (_ bv1 64))))\n(let (($x32 (and (distinct ?x47 ?x47) true)))\n(let (($x54 (and (distinct |f0.b14.input:gs_p27| |f0.b14.input:gs_p27|) true)))\n(let (($x21 (and (distinct |f0.b14.input:gs_p25| |f0.b14.input:gs_p25|) true)))\n(let (($x53 (and (distinct |f0.b14.input:gs_p24| |f0.b14.input:gs_p24|) true)))\n(let (($x70 (or $x53 $x21 $x54 $x32)))\n(let (($x63 (and (distinct (bvadd ((_ zero_extend 64) |f0.b14.input:gs_p28|) ((_ zero_extend 64) (_ bv1 64))) ((_ zero_extend 64) ?x47)) true)))\n(let ((?x19 (ite $x63 1 0)))\n(let ((?x17 (ite (= 0 0) ?x19 0)))\n(let (($x57 (= ?x17 0)))\n(or (and (distinct ?x17 ?x17) true) (and $x57 $x57 $x70)))))))))))))\n(check-sat)\n",
+                "smt2_sha256": "8a07f72bfcb4fa18db7daaed7c0c236922699f2cbb2292c2ad1ad5111f59ad3a"
+              },
+              {
+                "block": "gs_b6",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gs_p29",
+                  "gs_p30",
+                  "gs_p31",
+                  "gs_v40",
+                  "gs_p29",
+                  "gs_v41"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f0.b15.input:gs_p29| () (_ BitVec 64))\n(declare-fun |f0.b15.input:gs_p30| () (_ BitVec 32))\n(assert\n (let (($x48 (and (distinct (_ bv0 64) (_ bv0 64)) true)))\n(let (($x46 (and (distinct |f0.b15.input:gs_p29| |f0.b15.input:gs_p29|) true)))\n(let (($x41 (and (distinct |f0.b15.input:gs_p30| |f0.b15.input:gs_p30|) true)))\n(let (($x22 (or $x46 $x41 $x48 $x46 $x48)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x22))))))))\n(check-sat)\n",
+                "smt2_sha256": "3fc6ac812c83d57c4b5059ea21332511fcd70374dbd7b41e7787d05fbce6714b"
+              },
+              {
+                "block": "gs_b7",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gs_v48",
+                  "gs_p42",
+                  "gs_p43",
+                  "gs_p44",
+                  "gs_p45",
+                  "gs_p46",
+                  "gs_p47",
+                  "gs_p42",
+                  "gs_p43",
+                  "gs_p44",
+                  "gs_p45",
+                  "gs_p46",
+                  "gs_p47"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f0.b16.input:gs_p47| () (_ BitVec 64))\n(declare-fun |f0.b16.input:gs_p46| () (_ BitVec 64))\n(declare-fun |f0.b16.input:gs_p45| () (_ BitVec 64))\n(declare-fun |f0.b16.input:gs_p43| () (_ BitVec 32))\n(declare-fun |f0.b16.input:gs_p42| () (_ BitVec 64))\n(assert\n (let (($x35 (and (distinct |f0.b16.input:gs_p47| |f0.b16.input:gs_p47|) true)))\n(let (($x66 (and (distinct |f0.b16.input:gs_p46| |f0.b16.input:gs_p46|) true)))\n(let (($x42 (and (distinct |f0.b16.input:gs_p45| |f0.b16.input:gs_p45|) true)))\n(let (($x38 (and (distinct |f0.b16.input:gs_p43| |f0.b16.input:gs_p43|) true)))\n(let (($x16 (and (distinct |f0.b16.input:gs_p42| |f0.b16.input:gs_p42|) true)))\n(let (($x8 (bvult |f0.b16.input:gs_p47| |f0.b16.input:gs_p46|)))\n(let (($x28 (and (distinct $x8 $x8) true)))\n(let (($x31 (or $x28 $x16 $x38 $x42 $x66 $x35 $x16 $x38 $x42 $x66 $x35)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x31))))))))))))\n(check-sat)\n",
+                "smt2_sha256": "d85fcf25f0c2842a03192508e57a48260d3bc4acd35b534ee53c1e0bd815e6bb"
+              },
+              {
+                "block": "gs_b8",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gs_p51"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gs_b8",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gs_v61",
+                  "gs_p54"
+                ],
+                "result": "unsat",
+                "segment": 1,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f0.b17.input:gs_p54| () (_ BitVec 64))\n(assert\n (let (($x57 (and (distinct |f0.b17.input:gs_p54| |f0.b17.input:gs_p54|) true)))\n(let (($x29 (or $x57)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x29))))))\n(check-sat)\n",
+                "smt2_sha256": "c88669fea160667c7ea65e3233c522c72b777467c1f1e78d0d9e939cbd3cc184"
+              },
+              {
+                "block": "gs_b8",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gs_v61"
+                ],
+                "result": "unsat",
+                "segment": 2,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gs_b8",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gs_p49",
+                  "gs_p50",
+                  "gs_p51",
+                  "gs_v64",
+                  "gs_p53",
+                  "gs_v66"
+                ],
+                "result": "unsat",
+                "segment": 3,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f0.b17.input:gs_p54| () (_ BitVec 64))\n(declare-fun |f0.b17.input:gs_p53| () (_ BitVec 64))\n(declare-fun |f0.b17.effect:1:gs_v62| () (_ BitVec 8))\n(declare-fun |f0.b17.input:gs_p52| () (_ BitVec 64))\n(declare-fun |f0.b17.input:gs_p50| () (_ BitVec 32))\n(declare-fun |f0.b17.input:gs_p49| () (_ BitVec 64))\n(assert\n (let ((?x17 (bvadd |f0.b17.input:gs_p54| (_ bv1 64))))\n(let (($x5 (and (distinct ?x17 ?x17) true)))\n(let (($x34 (and (distinct |f0.b17.input:gs_p53| |f0.b17.input:gs_p53|) true)))\n(let ((?x76 ((_ zero_extend 56) |f0.b17.effect:1:gs_v62|)))\n(let ((?x38 (bvadd |f0.b17.input:gs_p52| ?x76)))\n(let (($x55 (and (distinct ?x38 ?x38) true)))\n(let (($x49 (and (distinct |f0.b17.input:gs_p50| |f0.b17.input:gs_p50|) true)))\n(let (($x20 (and (distinct |f0.b17.input:gs_p49| |f0.b17.input:gs_p49|) true)))\n(let (($x18 (or $x20 $x49 $x55 $x34 $x5)))\n(let (($x21 (and (distinct (bvadd ((_ zero_extend 64) |f0.b17.input:gs_p52|) ((_ zero_extend 64) ?x76)) ((_ zero_extend 64) ?x38)) true)))\n(let ((?x73 (ite $x21 1 0)))\n(let ((?x61 (ite (= 0 0) ?x73 0)))\n(let (($x46 (and (distinct (bvadd ((_ zero_extend 64) |f0.b17.input:gs_p54|) ((_ zero_extend 64) (_ bv1 64))) ((_ zero_extend 64) ?x17)) true)))\n(let ((?x9 (ite (= ?x61 0) (ite $x46 1 0) ?x61)))\n(let (($x6 (= ?x9 0)))\n(or (and (distinct ?x9 ?x9) true) (and $x6 $x6 $x18))))))))))))))))))\n(check-sat)\n",
+                "smt2_sha256": "7d5482cdad2b82a087de16dd6a3fafa3bfb924b69bf1b2e0ada484048fb41a15"
+              },
+              {
+                "block": "gs_b9",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gs_p57"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gs_b9",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gs_v67"
+                ],
+                "result": "unsat",
+                "segment": 1,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gs_b9",
+                "function": "full_lifecycle",
+                "observed": [
+                  "gs_p58"
+                ],
+                "result": "unsat",
+                "segment": 2,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f0.b18.input:gs_p58| () (_ BitVec 64))\n(assert\n (let (($x50 (and (distinct |f0.b18.input:gs_p58| |f0.b18.input:gs_p58|) true)))\n(let (($x46 (or $x50)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x46))))))\n(check-sat)\n",
+                "smt2_sha256": "c0f2590431db2fd284f9444de8c4f23e80b74e7ef13ad01f5f5e5a048b36d008"
+              },
+              {
+                "block": "hia_guard_entry",
+                "function": "packet_xor",
+                "observed": [
+                  "hia_guard_test",
+                  "arg71",
+                  "arg72",
+                  "arg71",
+                  "arg72"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b0.input:arg72| () (_ BitVec 32))\n(declare-fun |f1.b0.input:arg71| () (_ BitVec 64))\n(assert\n (let (($x59 (and (distinct |f1.b0.input:arg72| |f1.b0.input:arg72|) true)))\n(let (($x91 (and (distinct |f1.b0.input:arg71| |f1.b0.input:arg71|) true)))\n(let (($x94 (bvule |f1.b0.input:arg71| (_ bv32 64))))\n(let (($x92 (and (distinct $x94 $x94) true)))\n(let (($x6 (or $x92 $x91 $x59 $x91 $x59)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x6)))))))))\n(check-sat)\n",
+                "smt2_sha256": "c5b594caf27d0cdcd3f32e4d3013293b2b75b22229971f9614b846b3aaf58db6"
+              },
+              {
+                "block": "gf_b10",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_arg71"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b1.input:gf_arg71| () (_ BitVec 64))\n(assert\n (let (($x67 (and (distinct |f1.b1.input:gf_arg71| |f1.b1.input:gf_arg71|) true)))\n(let (($x78 (or $x67)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x78))))))\n(check-sat)\n",
+                "smt2_sha256": "647bda01f97a40e238f52a33274feaea48e950a989e72b25a75c55bfcdc38821"
+              },
+              {
+                "block": "gf_b10",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_v74",
+                  "gf_arg71",
+                  "gf_arg72",
+                  "gf_v74",
+                  "gf_v73",
+                  "gf_v75",
+                  "gf_arg71",
+                  "gf_arg72",
+                  "gf_v74",
+                  "gf_v73",
+                  "gf_v75"
+                ],
+                "result": "unsat",
+                "segment": 1,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b1.effect:0:gf_v74| () Bool)\n(declare-fun |f1.b1.input:gf_arg72| () (_ BitVec 32))\n(declare-fun |f1.b1.input:gf_arg71| () (_ BitVec 64))\n(assert\n (let (($x49 (and (distinct (_ bv1 8) (_ bv1 8)) true)))\n(let (($x61 (and (distinct |f1.b1.effect:0:gf_v74| |f1.b1.effect:0:gf_v74|) true)))\n(let (($x63 (and (distinct |f1.b1.input:gf_arg72| |f1.b1.input:gf_arg72|) true)))\n(let (($x67 (and (distinct |f1.b1.input:gf_arg71| |f1.b1.input:gf_arg71|) true)))\n(let (($x98 (or $x61 $x67 $x63 $x61 $x49 $x67 $x63 $x61 $x49)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x98)))))))))\n(check-sat)\n",
+                "smt2_sha256": "e4015a669ed66c823376b8cbd1169889d07074edf425d1648d636d3f2d0fa893"
+              },
+              {
+                "block": "gf_b11",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_p79"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gf_b11",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_p76",
+                  "gf_p77",
+                  "gf_v86",
+                  "gf_p76",
+                  "gf_v87"
+                ],
+                "result": "unsat",
+                "segment": 1,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b2.input:gf_p76| () (_ BitVec 64))\n(declare-fun |f1.b2.input:gf_p77| () (_ BitVec 32))\n(assert\n (let (($x19 (and (distinct (_ bv0 64) (_ bv0 64)) true)))\n(let (($x36 (and (distinct |f1.b2.input:gf_p76| |f1.b2.input:gf_p76|) true)))\n(let (($x33 (and (distinct |f1.b2.input:gf_p77| |f1.b2.input:gf_p77|) true)))\n(let (($x55 (or $x36 $x33 $x36 $x19)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x55))))))))\n(check-sat)\n",
+                "smt2_sha256": "31fc027a0fce41a1cef721e4e8d347eaf669c46ca6e9b25690d09e3ff565f946"
+              },
+              {
+                "block": "gf_b12",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_p84"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gf_b12",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_v197"
+                ],
+                "result": "unsat",
+                "segment": 1,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b3.input:gf_p85| () (_ BitVec 8))\n(assert\n (let ((?x76 ((_ zero_extend 56) |f1.b3.input:gf_p85|)))\n(let ((?x95 (bvadd (_ bv1000 64) ?x76)))\n(let (($x13 (and (distinct ?x95 ?x95) true)))\n(let (($x44 (or $x13)))\n(let (($x41 (and (distinct (bvadd ((_ zero_extend 64) (_ bv1000 64)) ((_ zero_extend 64) ?x76)) ((_ zero_extend 64) ?x95)) true)))\n(let ((?x5 (ite $x41 1 0)))\n(let ((?x51 (ite (= 0 0) ?x5 0)))\n(let (($x48 (= ?x51 0)))\n(or (and (distinct ?x51 ?x51) true) (and $x48 $x48 $x44)))))))))))\n(check-sat)\n",
+                "smt2_sha256": "ee9d1834f55eeb2a57f73985c9e93e9fe1789fd3a0218ba07529bcec93ae4c56"
+              },
+              {
+                "block": "gf_b13",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_v93",
+                  "gf_p88",
+                  "gf_p89",
+                  "gf_p90",
+                  "gf_p91",
+                  "gf_p92",
+                  "gf_p88",
+                  "gf_p89",
+                  "gf_p90",
+                  "gf_p91",
+                  "gf_p92"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b4.input:gf_p92| () (_ BitVec 64))\n(declare-fun |f1.b4.input:gf_p91| () (_ BitVec 64))\n(declare-fun |f1.b4.input:gf_p89| () (_ BitVec 32))\n(declare-fun |f1.b4.input:gf_p88| () (_ BitVec 64))\n(assert\n (let (($x68 (and (distinct |f1.b4.input:gf_p92| |f1.b4.input:gf_p92|) true)))\n(let (($x88 (and (distinct |f1.b4.input:gf_p91| |f1.b4.input:gf_p91|) true)))\n(let (($x62 (and (distinct |f1.b4.input:gf_p89| |f1.b4.input:gf_p89|) true)))\n(let (($x63 (and (distinct |f1.b4.input:gf_p88| |f1.b4.input:gf_p88|) true)))\n(let (($x20 (bvult |f1.b4.input:gf_p92| |f1.b4.input:gf_p91|)))\n(let (($x18 (and (distinct $x20 $x20) true)))\n(let (($x71 (or $x18 $x63 $x62 $x88 $x68 $x63 $x62 $x88 $x68)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x71)))))))))))\n(check-sat)\n",
+                "smt2_sha256": "60f69352f9976adefdcfb44ff52c74cba456b09f7fff9d9bf2fdbe7aff93313a"
+              },
+              {
+                "block": "gf_b14",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_p96"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gf_b14",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_v109",
+                  "gf_p98",
+                  "gf_v108"
+                ],
+                "result": "unsat",
+                "segment": 1,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b5.input:gf_p95| () (_ BitVec 32))\n(declare-fun |f1.b5.input:gf_p98| () (_ BitVec 64))\n(assert\n (let ((?x91 ((_ extract 7 0) |f1.b5.input:gf_p95|)))\n(let ((?x75 ((_ extract 7 0) |f1.b5.input:gf_p98|)))\n(let ((?x58 (bvmul ?x75 (_ bv13 8))))\n(let ((?x81 (bvadd ?x58 ?x91)))\n(let ((?x77 ((_ zero_extend 0) ?x81)))\n(let ((?x9 ((_ extract 31 0) |f1.b5.input:gf_p98|)))\n(let ((?x53 (bvmul ?x9 (_ bv13 32))))\n(let ((?x39 (bvadd ?x53 |f1.b5.input:gf_p95|)))\n(let ((?x56 ((_ extract 7 0) ?x39)))\n(let (($x38 (and (distinct ?x56 ?x77) true)))\n(let (($x98 (and (distinct |f1.b5.input:gf_p98| |f1.b5.input:gf_p98|) true)))\n(let (($x11 (or $x98 $x38)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x11))))))))))))))))\n(check-sat)\n",
+                "smt2_sha256": "da90c82ee0feb05b89ee497f559ce280b3f17f15f7f209c876cf2de8398122f7"
+              },
+              {
+                "block": "gf_b14",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_v109"
+                ],
+                "result": "unsat",
+                "segment": 2,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gf_b14",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_p94",
+                  "gf_p95",
+                  "gf_p96",
+                  "gf_p97",
+                  "gf_v111"
+                ],
+                "result": "unsat",
+                "segment": 3,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b5.input:gf_p98| () (_ BitVec 64))\n(declare-fun |f1.b5.input:gf_p97| () (_ BitVec 64))\n(declare-fun |f1.b5.input:gf_p95| () (_ BitVec 32))\n(declare-fun |f1.b5.input:gf_p94| () (_ BitVec 64))\n(assert\n (let ((?x63 (bvadd |f1.b5.input:gf_p98| (_ bv1 64))))\n(let (($x27 (and (distinct ?x63 ?x63) true)))\n(let (($x68 (and (distinct |f1.b5.input:gf_p97| |f1.b5.input:gf_p97|) true)))\n(let (($x62 (and (distinct |f1.b5.input:gf_p95| |f1.b5.input:gf_p95|) true)))\n(let (($x5 (and (distinct |f1.b5.input:gf_p94| |f1.b5.input:gf_p94|) true)))\n(let (($x76 (or $x5 $x62 $x68 $x27)))\n(let (($x43 (and (distinct (bvadd ((_ zero_extend 64) |f1.b5.input:gf_p98|) ((_ zero_extend 64) (_ bv1 64))) ((_ zero_extend 64) ?x63)) true)))\n(let ((?x96 (ite $x43 1 0)))\n(let ((?x90 (ite (= 0 0) ?x96 0)))\n(let (($x23 (= ?x90 0)))\n(or (and (distinct ?x90 ?x90) true) (and $x23 $x23 $x76)))))))))))))\n(check-sat)\n",
+                "smt2_sha256": "b1d5b4b840b4bb99fdd0217530b4eb49dd8c2ff8cf17fba407633ff4a209da61"
+              },
+              {
+                "block": "gf_b15",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_p99"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b6.input:gf_p99| () (_ BitVec 64))\n(assert\n (let (($x9 (and (distinct |f1.b6.input:gf_p99| |f1.b6.input:gf_p99|) true)))\n(let (($x40 (or $x9)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x40))))))\n(check-sat)\n",
+                "smt2_sha256": "d80f2aff2a23894d2079f7e9f6e182c6c9927727a69cd9163fa8b68027031d31"
+              },
+              {
+                "block": "gf_b15",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_v113",
+                  "gf_p99",
+                  "gf_p100",
+                  "gf_p101",
+                  "gf_v113",
+                  "gf_v112",
+                  "gf_v114",
+                  "gf_p99",
+                  "gf_p100",
+                  "gf_p101",
+                  "gf_v113",
+                  "gf_v112",
+                  "gf_v114"
+                ],
+                "result": "unsat",
+                "segment": 1,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b6.effect:0:gf_v113| () Bool)\n(declare-fun |f1.b6.input:gf_p100| () (_ BitVec 32))\n(declare-fun |f1.b6.input:gf_p99| () (_ BitVec 64))\n(assert\n (let (($x84 (and (distinct (_ bv1 8) (_ bv1 8)) true)))\n(let (($x27 (and (distinct |f1.b6.effect:0:gf_v113| |f1.b6.effect:0:gf_v113|) true)))\n(let (($x76 (and (distinct |f1.b6.input:gf_p100| |f1.b6.input:gf_p100|) true)))\n(let (($x9 (and (distinct |f1.b6.input:gf_p99| |f1.b6.input:gf_p99|) true)))\n(let (($x85 (or $x27 $x9 $x76 $x27 $x84 $x9 $x76 $x27 $x84)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x85)))))))))\n(check-sat)\n",
+                "smt2_sha256": "bb033fbbc2d1770bb3093def4d78159d10bf4d0b8d81bb0a57fa8579a7a3dd22"
+              },
+              {
+                "block": "gf_b16",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_p119"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gf_b16",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_p115",
+                  "gf_p116",
+                  "gf_p117",
+                  "gf_v127",
+                  "gf_p115",
+                  "gf_v128"
+                ],
+                "result": "unsat",
+                "segment": 1,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b7.input:gf_p115| () (_ BitVec 64))\n(declare-fun |f1.b7.input:gf_p116| () (_ BitVec 32))\n(assert\n (let (($x5 (and (distinct (_ bv0 64) (_ bv0 64)) true)))\n(let (($x23 (and (distinct |f1.b7.input:gf_p115| |f1.b7.input:gf_p115|) true)))\n(let (($x80 (and (distinct |f1.b7.input:gf_p116| |f1.b7.input:gf_p116|) true)))\n(let (($x62 (or $x23 $x80 $x23 $x5)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x62))))))))\n(check-sat)\n",
+                "smt2_sha256": "577c9437fe1dcb67923c9a6bdd6deef87824443903c316642bcfe662fb426edf"
+              },
+              {
+                "block": "gf_b17",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_p125"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gf_b17",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_p123"
+                ],
+                "result": "unsat",
+                "segment": 1,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gf_b17",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_v191"
+                ],
+                "result": "unsat",
+                "segment": 2,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gf_b17",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_v194"
+                ],
+                "result": "unsat",
+                "segment": 3,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b8.input:gf_p126| () (_ BitVec 8))\n(assert\n (let ((?x93 ((_ zero_extend 56) |f1.b8.input:gf_p126|)))\n(let ((?x89 (bvadd (_ bv1000 64) ?x93)))\n(let (($x21 (and (distinct ?x89 ?x89) true)))\n(let (($x19 (or $x21)))\n(let (($x44 (and (distinct (bvadd ((_ zero_extend 64) (_ bv1000 64)) ((_ zero_extend 64) ?x93)) ((_ zero_extend 64) ?x89)) true)))\n(let ((?x72 (ite $x44 1 0)))\n(let ((?x56 (ite (= 0 0) ?x72 0)))\n(let (($x59 (= ?x56 0)))\n(or (and (distinct ?x56 ?x56) true) (and $x59 $x59 $x19)))))))))))\n(check-sat)\n",
+                "smt2_sha256": "6178f389e91150deae39392c7c29e3c8c41ccc157ee09c5617158f2ba8af674c"
+              },
+              {
+                "block": "gf_b18",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_v135",
+                  "gf_p129",
+                  "gf_p130",
+                  "gf_p131",
+                  "gf_p132",
+                  "gf_p133",
+                  "gf_p134",
+                  "gf_p129",
+                  "gf_p130",
+                  "gf_p131",
+                  "gf_p132",
+                  "gf_p133",
+                  "gf_p134"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b9.input:gf_p134| () (_ BitVec 64))\n(declare-fun |f1.b9.input:gf_p133| () (_ BitVec 64))\n(declare-fun |f1.b9.input:gf_p130| () (_ BitVec 32))\n(declare-fun |f1.b9.input:gf_p129| () (_ BitVec 64))\n(assert\n (let (($x75 (and (distinct |f1.b9.input:gf_p134| |f1.b9.input:gf_p134|) true)))\n(let (($x67 (and (distinct |f1.b9.input:gf_p133| |f1.b9.input:gf_p133|) true)))\n(let (($x98 (and (distinct |f1.b9.input:gf_p130| |f1.b9.input:gf_p130|) true)))\n(let (($x76 (and (distinct |f1.b9.input:gf_p129| |f1.b9.input:gf_p129|) true)))\n(let (($x90 (bvult |f1.b9.input:gf_p134| |f1.b9.input:gf_p133|)))\n(let (($x92 (and (distinct $x90 $x90) true)))\n(let (($x24 (or $x92 $x76 $x98 $x67 $x75 $x76 $x98 $x67 $x75)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x24)))))))))))\n(check-sat)\n",
+                "smt2_sha256": "8917f6b8dd4e5cfa57ac68260bf86295669547ae56cfd81424c4fc3ebeeeae9c"
+              },
+              {
+                "block": "gf_b19",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_p138"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gf_b19",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_v148",
+                  "gf_p141"
+                ],
+                "result": "unsat",
+                "segment": 1,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b10.input:gf_p141| () (_ BitVec 64))\n(assert\n (let (($x85 (and (distinct |f1.b10.input:gf_p141| |f1.b10.input:gf_p141|) true)))\n(let (($x26 (or $x85)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x26))))))\n(check-sat)\n",
+                "smt2_sha256": "af5743479ce396969e4f7fd78a92afae64931a30f25b2295915013ccd8954a92"
+              },
+              {
+                "block": "gf_b19",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_v148"
+                ],
+                "result": "unsat",
+                "segment": 2,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gf_b19",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_p139"
+                ],
+                "result": "unsat",
+                "segment": 3,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gf_b19",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_v156",
+                  "gf_p141",
+                  "gf_v155"
+                ],
+                "result": "unsat",
+                "segment": 4,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b10.input:gf_p137| () (_ BitVec 32))\n(declare-fun |f1.b10.input:gf_p141| () (_ BitVec 64))\n(declare-fun |f1.b10.effect:1:gf_v149| () (_ BitVec 8))\n(assert\n (let ((?x50 ((_ extract 7 0) |f1.b10.input:gf_p137|)))\n(let ((?x44 (bvxor ?x50 (_ bv90 8))))\n(let ((?x59 ((_ extract 7 0) |f1.b10.input:gf_p141|)))\n(let ((?x89 (bvadd ?x59 ?x44)))\n(let ((?x96 ((_ zero_extend 0) ?x89)))\n(let ((?x9 (bvxor |f1.b10.effect:1:gf_v149| ?x96)))\n(let ((?x75 (bvxor |f1.b10.input:gf_p137| (_ bv90 32))))\n(let ((?x72 ((_ extract 31 0) |f1.b10.input:gf_p141|)))\n(let ((?x13 (bvadd ?x72 ?x75)))\n(let ((?x19 ((_ extract 7 0) ?x13)))\n(let ((?x21 (bvxor |f1.b10.effect:1:gf_v149| ?x19)))\n(let (($x46 (and (distinct ?x21 ?x9) true)))\n(let (($x93 (and (distinct |f1.b10.input:gf_p141| |f1.b10.input:gf_p141|) true)))\n(let (($x78 (or $x93 $x46)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x78))))))))))))))))))\n(check-sat)\n",
+                "smt2_sha256": "6d7928213a82302f8e4ed8dc3527824778c857c403d9dfa155e17cf6457c07ec"
+              },
+              {
+                "block": "gf_b19",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_v156"
+                ],
+                "result": "unsat",
+                "segment": 5,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gf_b19",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_p136",
+                  "gf_p137",
+                  "gf_p138",
+                  "gf_p139",
+                  "gf_p140",
+                  "gf_v158"
+                ],
+                "result": "unsat",
+                "segment": 6,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b10.input:gf_p141| () (_ BitVec 64))\n(declare-fun |f1.b10.input:gf_p140| () (_ BitVec 64))\n(declare-fun |f1.b10.input:gf_p137| () (_ BitVec 32))\n(declare-fun |f1.b10.input:gf_p136| () (_ BitVec 64))\n(assert\n (let ((?x84 (bvadd |f1.b10.input:gf_p141| (_ bv1 64))))\n(let (($x97 (and (distinct ?x84 ?x84) true)))\n(let (($x5 (and (distinct |f1.b10.input:gf_p140| |f1.b10.input:gf_p140|) true)))\n(let (($x43 (and (distinct |f1.b10.input:gf_p137| |f1.b10.input:gf_p137|) true)))\n(let (($x74 (and (distinct |f1.b10.input:gf_p136| |f1.b10.input:gf_p136|) true)))\n(let (($x88 (or $x74 $x43 $x5 $x97)))\n(let (($x6 (and (distinct (bvadd ((_ zero_extend 64) |f1.b10.input:gf_p141|) ((_ zero_extend 64) (_ bv1 64))) ((_ zero_extend 64) ?x84)) true)))\n(let ((?x48 (ite $x6 1 0)))\n(let ((?x51 (ite (= 0 0) ?x48 0)))\n(let (($x62 (= ?x51 0)))\n(or (and (distinct ?x51 ?x51) true) (and $x62 $x62 $x88)))))))))))))\n(check-sat)\n",
+                "smt2_sha256": "1421bb3191b85330a088e2e979c053b99c189a1125ca8f98bb93862f200aadab"
+              },
+              {
+                "block": "gf_b20",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_p142",
+                  "gf_p143",
+                  "gf_p144",
+                  "gf_p145",
+                  "gf_v159",
+                  "gf_p142",
+                  "gf_v160"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b11.input:gf_p142| () (_ BitVec 64))\n(declare-fun |f1.b11.input:gf_p143| () (_ BitVec 32))\n(assert\n (let (($x75 (and (distinct (_ bv0 64) (_ bv0 64)) true)))\n(let (($x72 (and (distinct |f1.b11.input:gf_p142| |f1.b11.input:gf_p142|) true)))\n(let (($x98 (and (distinct |f1.b11.input:gf_p143| |f1.b11.input:gf_p143|) true)))\n(let (($x13 (or $x72 $x98 $x75 $x72 $x75)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x13))))))))\n(check-sat)\n",
+                "smt2_sha256": "781283e3033b282593009fd3580bf9c57428571762e700e5ba6d41da9bcea963"
+              },
+              {
+                "block": "gf_b21",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_v168",
+                  "gf_p161",
+                  "gf_p162",
+                  "gf_p163",
+                  "gf_p164",
+                  "gf_p165",
+                  "gf_p166",
+                  "gf_p167",
+                  "gf_p161",
+                  "gf_p162",
+                  "gf_p163",
+                  "gf_p164",
+                  "gf_p165",
+                  "gf_p166",
+                  "gf_p167"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b12.input:gf_p167| () (_ BitVec 64))\n(declare-fun |f1.b12.input:gf_p166| () (_ BitVec 64))\n(declare-fun |f1.b12.input:gf_p165| () (_ BitVec 64))\n(declare-fun |f1.b12.input:gf_p162| () (_ BitVec 32))\n(declare-fun |f1.b12.input:gf_p161| () (_ BitVec 64))\n(assert\n (let (($x86 (and (distinct |f1.b12.input:gf_p167| |f1.b12.input:gf_p167|) true)))\n(let (($x53 (and (distinct |f1.b12.input:gf_p166| |f1.b12.input:gf_p166|) true)))\n(let (($x90 (and (distinct |f1.b12.input:gf_p165| |f1.b12.input:gf_p165|) true)))\n(let (($x41 (and (distinct |f1.b12.input:gf_p162| |f1.b12.input:gf_p162|) true)))\n(let (($x58 (and (distinct |f1.b12.input:gf_p161| |f1.b12.input:gf_p161|) true)))\n(let (($x36 (bvult |f1.b12.input:gf_p167| |f1.b12.input:gf_p166|)))\n(let (($x77 (and (distinct $x36 $x36) true)))\n(let (($x11 (or $x77 $x58 $x41 $x90 $x53 $x86 $x58 $x41 $x90 $x53 $x86)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x11))))))))))))\n(check-sat)\n",
+                "smt2_sha256": "491d53b39fdb46eb548f65d90f0388c9fd248a71909ea8ffaa959a2037aeda31"
+              },
+              {
+                "block": "gf_b22",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_p172"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gf_b22",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_v183",
+                  "gf_p175"
+                ],
+                "result": "unsat",
+                "segment": 1,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b13.input:gf_p175| () (_ BitVec 64))\n(assert\n (let (($x62 (and (distinct |f1.b13.input:gf_p175| |f1.b13.input:gf_p175|) true)))\n(let (($x47 (or $x62)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x47))))))\n(check-sat)\n",
+                "smt2_sha256": "b8e395155d76e7fb9113d529bb3c4033fc882576e635de40aa7bf16ae651fb04"
+              },
+              {
+                "block": "gf_b22",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_v183"
+                ],
+                "result": "unsat",
+                "segment": 2,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gf_b22",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_p169",
+                  "gf_p170",
+                  "gf_p171",
+                  "gf_p172",
+                  "gf_v186",
+                  "gf_p174",
+                  "gf_v188"
+                ],
+                "result": "unsat",
+                "segment": 3,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b13.input:gf_p175| () (_ BitVec 64))\n(declare-fun |f1.b13.input:gf_p174| () (_ BitVec 64))\n(declare-fun |f1.b13.effect:1:gf_v184| () (_ BitVec 8))\n(declare-fun |f1.b13.input:gf_p173| () (_ BitVec 64))\n(declare-fun |f1.b13.input:gf_p170| () (_ BitVec 32))\n(declare-fun |f1.b13.input:gf_p169| () (_ BitVec 64))\n(assert\n (let ((?x40 (bvadd |f1.b13.input:gf_p175| (_ bv1 64))))\n(let (($x72 (and (distinct ?x40 ?x40) true)))\n(let (($x18 (and (distinct |f1.b13.input:gf_p174| |f1.b13.input:gf_p174|) true)))\n(let ((?x55 ((_ zero_extend 56) |f1.b13.effect:1:gf_v184|)))\n(let ((?x41 (bvadd |f1.b13.input:gf_p173| ?x55)))\n(let (($x75 (and (distinct ?x41 ?x41) true)))\n(let (($x13 (and (distinct |f1.b13.input:gf_p170| |f1.b13.input:gf_p170|) true)))\n(let (($x59 (and (distinct |f1.b13.input:gf_p169| |f1.b13.input:gf_p169|) true)))\n(let (($x67 (or $x59 $x13 $x75 $x18 $x72)))\n(let (($x52 (and (distinct (bvadd ((_ zero_extend 64) |f1.b13.input:gf_p175|) ((_ zero_extend 64) (_ bv1 64))) ((_ zero_extend 64) ?x40)) true)))\n(let ((?x6 (ite $x52 1 0)))\n(let ((?x51 (ite (= 0 0) ?x6 0)))\n(let (($x61 (= ?x51 0)))\n(or (and (distinct ?x51 ?x51) true) (and $x61 $x61 $x67))))))))))))))))\n(check-sat)\n",
+                "smt2_sha256": "1e0f51c203dbe481f4b062e3dc45c98a69c06de3a13934efaaf67d26a1149f1b"
+              },
+              {
+                "block": "gf_b23",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_p179"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gf_b23",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_v189"
+                ],
+                "result": "unsat",
+                "segment": 1,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gf_b23",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_p178"
+                ],
+                "result": "unsat",
+                "segment": 2,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gf_b23",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_v190"
+                ],
+                "result": "unsat",
+                "segment": 3,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gf_b23",
+                "function": "packet_xor",
+                "observed": [
+                  "gf_p180"
+                ],
+                "result": "unsat",
+                "segment": 4,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b14.input:gf_p180| () (_ BitVec 64))\n(assert\n (let (($x55 (and (distinct |f1.b14.input:gf_p180| |f1.b14.input:gf_p180|) true)))\n(let (($x41 (or $x55)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x41))))))\n(check-sat)\n",
+                "smt2_sha256": "3f4c6182c79e78a794ef5bca4a858bb6cf1ee075dcfdc4bcab3f0ac615d04622"
+              },
+              {
+                "block": "gs_b10",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_arg71"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b15.input:gs_arg71| () (_ BitVec 64))\n(assert\n (let (($x50 (and (distinct |f1.b15.input:gs_arg71| |f1.b15.input:gs_arg71|) true)))\n(let (($x79 (or $x50)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x79))))))\n(check-sat)\n",
+                "smt2_sha256": "73bf7c5231650f2cb928e55d5dfa436daec50327591dc2b42f7ab1880d66e437"
+              },
+              {
+                "block": "gs_b10",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_v74",
+                  "gs_arg71",
+                  "gs_arg72",
+                  "gs_v74",
+                  "gs_v73",
+                  "gs_v75",
+                  "gs_arg71",
+                  "gs_arg72",
+                  "gs_v74",
+                  "gs_v73",
+                  "gs_v75"
+                ],
+                "result": "unsat",
+                "segment": 1,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b15.effect:0:gs_v74| () Bool)\n(declare-fun |f1.b15.input:gs_arg72| () (_ BitVec 32))\n(declare-fun |f1.b15.input:gs_arg71| () (_ BitVec 64))\n(assert\n (let (($x17 (and (distinct (_ bv1 8) (_ bv1 8)) true)))\n(let (($x59 (and (distinct |f1.b15.effect:0:gs_v74| |f1.b15.effect:0:gs_v74|) true)))\n(let (($x13 (and (distinct |f1.b15.input:gs_arg72| |f1.b15.input:gs_arg72|) true)))\n(let (($x50 (and (distinct |f1.b15.input:gs_arg71| |f1.b15.input:gs_arg71|) true)))\n(let (($x95 (or $x59 $x50 $x13 $x59 $x17 $x50 $x13 $x59 $x17)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x95)))))))))\n(check-sat)\n",
+                "smt2_sha256": "b3cbf818cb7e7436b6ce555c4902eb660fd0ec56195224ca620935eb8642753c"
+              },
+              {
+                "block": "gs_b11",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_p79"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gs_b11",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_p76",
+                  "gs_p77",
+                  "gs_v86",
+                  "gs_p76",
+                  "gs_v87"
+                ],
+                "result": "unsat",
+                "segment": 1,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b16.input:gs_p76| () (_ BitVec 64))\n(declare-fun |f1.b16.input:gs_p77| () (_ BitVec 32))\n(assert\n (let (($x91 (and (distinct (_ bv0 64) (_ bv0 64)) true)))\n(let (($x98 (and (distinct |f1.b16.input:gs_p76| |f1.b16.input:gs_p76|) true)))\n(let (($x48 (and (distinct |f1.b16.input:gs_p77| |f1.b16.input:gs_p77|) true)))\n(let (($x43 (or $x98 $x48 $x98 $x91)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x43))))))))\n(check-sat)\n",
+                "smt2_sha256": "2c22e720ceee3f0030637fb2015eb07e4c595c59bb3b3c9f8f94287fb87dcc6c"
+              },
+              {
+                "block": "gs_b12",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_p84"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gs_b12",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_v197"
+                ],
+                "result": "unsat",
+                "segment": 1,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b17.input:gs_p85| () (_ BitVec 8))\n(assert\n (let ((?x22 ((_ zero_extend 56) |f1.b17.input:gs_p85|)))\n(let ((?x55 (bvadd (_ bv1000 64) ?x22)))\n(let (($x19 (and (distinct ?x55 ?x55) true)))\n(let (($x81 (or $x19)))\n(let (($x72 (and (distinct (bvadd ((_ zero_extend 64) (_ bv1000 64)) ((_ zero_extend 64) ?x22)) ((_ zero_extend 64) ?x55)) true)))\n(let ((?x52 (ite $x72 1 0)))\n(let ((?x71 (ite (= 0 0) ?x52 0)))\n(let (($x74 (= ?x71 0)))\n(or (and (distinct ?x71 ?x71) true) (and $x74 $x74 $x81)))))))))))\n(check-sat)\n",
+                "smt2_sha256": "d3dd7d927b8e8e5be90ca5ab32545a54bee7580673145301e4e34fde58cc39eb"
+              },
+              {
+                "block": "gs_b13",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_v93",
+                  "gs_p88",
+                  "gs_p89",
+                  "gs_p90",
+                  "gs_p91",
+                  "gs_p92",
+                  "gs_p88",
+                  "gs_p89",
+                  "gs_p90",
+                  "gs_p91",
+                  "gs_p92"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b18.input:gs_p92| () (_ BitVec 64))\n(declare-fun |f1.b18.input:gs_p91| () (_ BitVec 64))\n(declare-fun |f1.b18.input:gs_p89| () (_ BitVec 32))\n(declare-fun |f1.b18.input:gs_p88| () (_ BitVec 64))\n(assert\n (let (($x39 (and (distinct |f1.b18.input:gs_p92| |f1.b18.input:gs_p92|) true)))\n(let (($x86 (and (distinct |f1.b18.input:gs_p91| |f1.b18.input:gs_p91|) true)))\n(let (($x53 (and (distinct |f1.b18.input:gs_p89| |f1.b18.input:gs_p89|) true)))\n(let (($x13 (and (distinct |f1.b18.input:gs_p88| |f1.b18.input:gs_p88|) true)))\n(let (($x89 (bvult |f1.b18.input:gs_p92| |f1.b18.input:gs_p91|)))\n(let (($x40 (and (distinct $x89 $x89) true)))\n(let (($x42 (or $x40 $x13 $x53 $x86 $x39 $x13 $x53 $x86 $x39)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x42)))))))))))\n(check-sat)\n",
+                "smt2_sha256": "8f797f4b4dd752b3404992644fe6d9b520819880569057bccb4d2b9899fd9146"
+              },
+              {
+                "block": "gs_b14",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_p96"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gs_b14",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_v109",
+                  "gs_p98",
+                  "gs_v108"
+                ],
+                "result": "unsat",
+                "segment": 1,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b19.input:gs_p95| () (_ BitVec 32))\n(declare-fun |f1.b19.input:gs_p98| () (_ BitVec 64))\n(assert\n (let ((?x46 ((_ extract 7 0) |f1.b19.input:gs_p95|)))\n(let ((?x84 ((_ extract 7 0) |f1.b19.input:gs_p98|)))\n(let ((?x11 (bvmul ?x84 (_ bv13 8))))\n(let ((?x73 (bvadd ?x11 ?x46)))\n(let ((?x94 ((_ zero_extend 0) ?x73)))\n(let ((?x26 ((_ extract 31 0) |f1.b19.input:gs_p98|)))\n(let ((?x28 (bvmul ?x26 (_ bv13 32))))\n(let ((?x21 (bvadd ?x28 |f1.b19.input:gs_p95|)))\n(let ((?x27 ((_ extract 7 0) ?x21)))\n(let (($x24 (and (distinct ?x27 ?x94) true)))\n(let (($x95 (and (distinct |f1.b19.input:gs_p98| |f1.b19.input:gs_p98|) true)))\n(let (($x38 (or $x95 $x24)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x38))))))))))))))))\n(check-sat)\n",
+                "smt2_sha256": "92cc549a5d6c9d442bba1e7c1ca47a0f4783daaa62ba24486829c25637018d66"
+              },
+              {
+                "block": "gs_b14",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_v109"
+                ],
+                "result": "unsat",
+                "segment": 2,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gs_b14",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_p94",
+                  "gs_p95",
+                  "gs_p96",
+                  "gs_p97",
+                  "gs_v111"
+                ],
+                "result": "unsat",
+                "segment": 3,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b19.input:gs_p98| () (_ BitVec 64))\n(declare-fun |f1.b19.input:gs_p97| () (_ BitVec 64))\n(declare-fun |f1.b19.input:gs_p95| () (_ BitVec 32))\n(declare-fun |f1.b19.input:gs_p94| () (_ BitVec 64))\n(assert\n (let ((?x13 (bvadd |f1.b19.input:gs_p98| (_ bv1 64))))\n(let (($x88 (and (distinct ?x13 ?x13) true)))\n(let (($x39 (and (distinct |f1.b19.input:gs_p97| |f1.b19.input:gs_p97|) true)))\n(let (($x53 (and (distinct |f1.b19.input:gs_p95| |f1.b19.input:gs_p95|) true)))\n(let (($x52 (and (distinct |f1.b19.input:gs_p94| |f1.b19.input:gs_p94|) true)))\n(let (($x22 (or $x52 $x53 $x39 $x88)))\n(let (($x62 (and (distinct (bvadd ((_ zero_extend 64) |f1.b19.input:gs_p98|) ((_ zero_extend 64) (_ bv1 64))) ((_ zero_extend 64) ?x13)) true)))\n(let ((?x56 (ite $x62 1 0)))\n(let ((?x97 (ite (= 0 0) ?x56 0)))\n(let (($x92 (= ?x97 0)))\n(or (and (distinct ?x97 ?x97) true) (and $x92 $x92 $x22)))))))))))))\n(check-sat)\n",
+                "smt2_sha256": "292dd874b884e4eae727013eb2af7924ddb16afc48a2e1fe2c29c795e0534c06"
+              },
+              {
+                "block": "gs_b15",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_p99"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b20.input:gs_p99| () (_ BitVec 64))\n(assert\n (let (($x26 (and (distinct |f1.b20.input:gs_p99| |f1.b20.input:gs_p99|) true)))\n(let (($x37 (or $x26)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x37))))))\n(check-sat)\n",
+                "smt2_sha256": "006e86d703059337817168f24907843464c5f6a03039897480506449b38237dc"
+              },
+              {
+                "block": "gs_b15",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_v113",
+                  "gs_p99",
+                  "gs_p100",
+                  "gs_p101",
+                  "gs_v113",
+                  "gs_v112",
+                  "gs_v114",
+                  "gs_p99",
+                  "gs_p100",
+                  "gs_p101",
+                  "gs_v113",
+                  "gs_v112",
+                  "gs_v114"
+                ],
+                "result": "unsat",
+                "segment": 1,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b20.effect:0:gs_v113| () Bool)\n(declare-fun |f1.b20.input:gs_p100| () (_ BitVec 32))\n(declare-fun |f1.b20.input:gs_p99| () (_ BitVec 64))\n(assert\n (let (($x49 (and (distinct (_ bv1 8) (_ bv1 8)) true)))\n(let (($x88 (and (distinct |f1.b20.effect:0:gs_v113| |f1.b20.effect:0:gs_v113|) true)))\n(let (($x22 (and (distinct |f1.b20.input:gs_p100| |f1.b20.input:gs_p100|) true)))\n(let (($x26 (and (distinct |f1.b20.input:gs_p99| |f1.b20.input:gs_p99|) true)))\n(let (($x20 (or $x88 $x26 $x22 $x88 $x49 $x26 $x22 $x88 $x49)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x20)))))))))\n(check-sat)\n",
+                "smt2_sha256": "13be896969dd099b93f1d2e157220c0f497c4ae6eef4d442417cbaefee7ca25f"
+              },
+              {
+                "block": "gs_b16",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_p119"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gs_b16",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_p115",
+                  "gs_p116",
+                  "gs_p117",
+                  "gs_v127",
+                  "gs_p115",
+                  "gs_v128"
+                ],
+                "result": "unsat",
+                "segment": 1,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b21.input:gs_p115| () (_ BitVec 64))\n(declare-fun |f1.b21.input:gs_p116| () (_ BitVec 32))\n(assert\n (let (($x52 (and (distinct (_ bv0 64) (_ bv0 64)) true)))\n(let (($x92 (and (distinct |f1.b21.input:gs_p115| |f1.b21.input:gs_p115|) true)))\n(let (($x63 (and (distinct |f1.b21.input:gs_p116| |f1.b21.input:gs_p116|) true)))\n(let (($x53 (or $x92 $x63 $x92 $x52)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x53))))))))\n(check-sat)\n",
+                "smt2_sha256": "234e63573978a7f2f7acdc79cfab2aace7b14549a15af4880b528ec658a5975b"
+              },
+              {
+                "block": "gs_b17",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_p125"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gs_b17",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_p123"
+                ],
+                "result": "unsat",
+                "segment": 1,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gs_b17",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_v191"
+                ],
+                "result": "unsat",
+                "segment": 2,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gs_b17",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_v194"
+                ],
+                "result": "unsat",
+                "segment": 3,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b22.input:gs_p126| () (_ BitVec 8))\n(assert\n (let ((?x65 ((_ zero_extend 56) |f1.b22.input:gs_p126|)))\n(let ((?x34 (bvadd (_ bv1000 64) ?x65)))\n(let (($x44 (and (distinct ?x34 ?x34) true)))\n(let (($x91 (or $x44)))\n(let (($x81 (and (distinct (bvadd ((_ zero_extend 64) (_ bv1000 64)) ((_ zero_extend 64) ?x65)) ((_ zero_extend 64) ?x34)) true)))\n(let ((?x78 (ite $x81 1 0)))\n(let ((?x27 (ite (= 0 0) ?x78 0)))\n(let (($x25 (= ?x27 0)))\n(or (and (distinct ?x27 ?x27) true) (and $x25 $x25 $x91)))))))))))\n(check-sat)\n",
+                "smt2_sha256": "6a948fc2951a36a613bc44922d5aaecc1591590f3644a68eaddba13a1ffc0bee"
+              },
+              {
+                "block": "gs_b18",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_v135",
+                  "gs_p129",
+                  "gs_p130",
+                  "gs_p131",
+                  "gs_p132",
+                  "gs_p133",
+                  "gs_p134",
+                  "gs_p129",
+                  "gs_p130",
+                  "gs_p131",
+                  "gs_p132",
+                  "gs_p133",
+                  "gs_p134"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b23.input:gs_p134| () (_ BitVec 64))\n(declare-fun |f1.b23.input:gs_p133| () (_ BitVec 64))\n(declare-fun |f1.b23.input:gs_p130| () (_ BitVec 32))\n(declare-fun |f1.b23.input:gs_p129| () (_ BitVec 64))\n(assert\n (let (($x84 (and (distinct |f1.b23.input:gs_p134| |f1.b23.input:gs_p134|) true)))\n(let (($x50 (and (distinct |f1.b23.input:gs_p133| |f1.b23.input:gs_p133|) true)))\n(let (($x95 (and (distinct |f1.b23.input:gs_p130| |f1.b23.input:gs_p130|) true)))\n(let (($x22 (and (distinct |f1.b23.input:gs_p129| |f1.b23.input:gs_p129|) true)))\n(let (($x97 (bvult |f1.b23.input:gs_p134| |f1.b23.input:gs_p133|)))\n(let (($x75 (and (distinct $x97 $x97) true)))\n(let (($x98 (or $x75 $x22 $x95 $x50 $x84 $x22 $x95 $x50 $x84)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x98)))))))))))\n(check-sat)\n",
+                "smt2_sha256": "bb9997de0fa9dacd4c8ed2729f4493b9d4d1483ad1aeca4d21ef677b4bbfc9d5"
+              },
+              {
+                "block": "gs_b19",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_p138"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gs_b19",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_v148",
+                  "gs_p141"
+                ],
+                "result": "unsat",
+                "segment": 1,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b24.input:gs_p141| () (_ BitVec 64))\n(assert\n (let (($x20 (and (distinct |f1.b24.input:gs_p141| |f1.b24.input:gs_p141|) true)))\n(let (($x76 (or $x20)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x76))))))\n(check-sat)\n",
+                "smt2_sha256": "6d1e3e5ba680769ccc677ab275e7aad2a121fcd2c0ce971a34d2f85ce712c8d2"
+              },
+              {
+                "block": "gs_b19",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_v148"
+                ],
+                "result": "unsat",
+                "segment": 2,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gs_b19",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_p139"
+                ],
+                "result": "unsat",
+                "segment": 3,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gs_b19",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_v156",
+                  "gs_p141",
+                  "gs_v155"
+                ],
+                "result": "unsat",
+                "segment": 4,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b24.input:gs_p137| () (_ BitVec 32))\n(declare-fun |f1.b24.input:gs_p141| () (_ BitVec 64))\n(declare-fun |f1.b24.effect:1:gs_v149| () (_ BitVec 8))\n(assert\n (let ((?x67 ((_ extract 7 0) |f1.b24.input:gs_p137|)))\n(let ((?x81 (bvxor ?x67 (_ bv90 8))))\n(let ((?x25 ((_ extract 7 0) |f1.b24.input:gs_p141|)))\n(let ((?x34 (bvadd ?x25 ?x81)))\n(let ((?x56 ((_ zero_extend 0) ?x34)))\n(let ((?x26 (bvxor |f1.b24.effect:1:gs_v149| ?x56)))\n(let ((?x84 (bvxor |f1.b24.input:gs_p137| (_ bv90 32))))\n(let ((?x78 ((_ extract 31 0) |f1.b24.input:gs_p141|)))\n(let ((?x19 (bvadd ?x78 ?x84)))\n(let ((?x91 ((_ extract 7 0) ?x19)))\n(let ((?x44 (bvxor |f1.b24.effect:1:gs_v149| ?x91)))\n(let (($x60 (and (distinct ?x44 ?x26) true)))\n(let (($x65 (and (distinct |f1.b24.input:gs_p141| |f1.b24.input:gs_p141|) true)))\n(let (($x79 (or $x65 $x60)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x79))))))))))))))))))\n(check-sat)\n",
+                "smt2_sha256": "321c006f797c7d49fda1177e2dd0395037d93cb7b8f0972a9d2d5ff4acdea6b8"
+              },
+              {
+                "block": "gs_b19",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_v156"
+                ],
+                "result": "unsat",
+                "segment": 5,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gs_b19",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_p136",
+                  "gs_p137",
+                  "gs_p138",
+                  "gs_p139",
+                  "gs_p140",
+                  "gs_v158"
+                ],
+                "result": "unsat",
+                "segment": 6,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b24.input:gs_p141| () (_ BitVec 64))\n(declare-fun |f1.b24.input:gs_p140| () (_ BitVec 64))\n(declare-fun |f1.b24.input:gs_p137| () (_ BitVec 32))\n(declare-fun |f1.b24.input:gs_p136| () (_ BitVec 64))\n(assert\n (let ((?x92 (bvadd |f1.b24.input:gs_p141| (_ bv1 64))))\n(let (($x62 (and (distinct ?x92 ?x92) true)))\n(let (($x5 (and (distinct |f1.b24.input:gs_p140| |f1.b24.input:gs_p140|) true)))\n(let (($x53 (and (distinct |f1.b24.input:gs_p137| |f1.b24.input:gs_p137|) true)))\n(let (($x93 (and (distinct |f1.b24.input:gs_p136| |f1.b24.input:gs_p136|) true)))\n(let (($x52 (or $x93 $x53 $x5 $x62)))\n(let (($x23 (and (distinct (bvadd ((_ zero_extend 64) |f1.b24.input:gs_p141|) ((_ zero_extend 64) (_ bv1 64))) ((_ zero_extend 64) ?x92)) true)))\n(let ((?x6 (ite $x23 1 0)))\n(let ((?x49 (ite (= 0 0) ?x6 0)))\n(let (($x86 (= ?x49 0)))\n(or (and (distinct ?x49 ?x49) true) (and $x86 $x86 $x52)))))))))))))\n(check-sat)\n",
+                "smt2_sha256": "6275a5640d958509ab43735020d326eccbf2d4b5017eee1cbbe54a757616c86f"
+              },
+              {
+                "block": "gs_b20",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_p142",
+                  "gs_p143",
+                  "gs_p144",
+                  "gs_p145",
+                  "gs_v159",
+                  "gs_p142",
+                  "gs_v160"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b25.input:gs_p142| () (_ BitVec 64))\n(declare-fun |f1.b25.input:gs_p143| () (_ BitVec 32))\n(assert\n (let (($x84 (and (distinct (_ bv0 64) (_ bv0 64)) true)))\n(let (($x78 (and (distinct |f1.b25.input:gs_p142| |f1.b25.input:gs_p142|) true)))\n(let (($x95 (and (distinct |f1.b25.input:gs_p143| |f1.b25.input:gs_p143|) true)))\n(let (($x19 (or $x78 $x95 $x84 $x78 $x84)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x19))))))))\n(check-sat)\n",
+                "smt2_sha256": "84fad05e1440e99ba402bf2a672d5897212f308d3a99cc6236db3fa7da98b10f"
+              },
+              {
+                "block": "gs_b21",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_v168",
+                  "gs_p161",
+                  "gs_p162",
+                  "gs_p163",
+                  "gs_p164",
+                  "gs_p165",
+                  "gs_p166",
+                  "gs_p167",
+                  "gs_p161",
+                  "gs_p162",
+                  "gs_p163",
+                  "gs_p164",
+                  "gs_p165",
+                  "gs_p166",
+                  "gs_p167"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b26.input:gs_p167| () (_ BitVec 64))\n(declare-fun |f1.b26.input:gs_p166| () (_ BitVec 64))\n(declare-fun |f1.b26.input:gs_p165| () (_ BitVec 64))\n(declare-fun |f1.b26.input:gs_p162| () (_ BitVec 32))\n(declare-fun |f1.b26.input:gs_p161| () (_ BitVec 64))\n(assert\n (let (($x28 (and (distinct |f1.b26.input:gs_p167| |f1.b26.input:gs_p167|) true)))\n(let (($x85 (and (distinct |f1.b26.input:gs_p166| |f1.b26.input:gs_p166|) true)))\n(let (($x72 (and (distinct |f1.b26.input:gs_p165| |f1.b26.input:gs_p165|) true)))\n(let (($x97 (and (distinct |f1.b26.input:gs_p162| |f1.b26.input:gs_p162|) true)))\n(let (($x11 (and (distinct |f1.b26.input:gs_p161| |f1.b26.input:gs_p161|) true)))\n(let (($x9 (bvult |f1.b26.input:gs_p167| |f1.b26.input:gs_p166|)))\n(let (($x96 (and (distinct $x9 $x9) true)))\n(let (($x17 (or $x96 $x11 $x97 $x72 $x85 $x28 $x11 $x97 $x72 $x85 $x28)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x17))))))))))))\n(check-sat)\n",
+                "smt2_sha256": "9b58892ecbd94ca53360564ee25b0b5474ff16d045da29d1c0cf1c0c62f44dee"
+              },
+              {
+                "block": "gs_b22",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_p172"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gs_b22",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_v183",
+                  "gs_p175"
+                ],
+                "result": "unsat",
+                "segment": 1,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b27.input:gs_p175| () (_ BitVec 64))\n(assert\n (let (($x86 (and (distinct |f1.b27.input:gs_p175| |f1.b27.input:gs_p175|) true)))\n(let (($x77 (or $x86)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x77))))))\n(check-sat)\n",
+                "smt2_sha256": "54c1a93ab9a5c5ba44f1ab909fc9ba06fd6b9d8a7784b556c3b6cba475f24e2f"
+              },
+              {
+                "block": "gs_b22",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_v183"
+                ],
+                "result": "unsat",
+                "segment": 2,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gs_b22",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_p169",
+                  "gs_p170",
+                  "gs_p171",
+                  "gs_p172",
+                  "gs_v186",
+                  "gs_p174",
+                  "gs_v188"
+                ],
+                "result": "unsat",
+                "segment": 3,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b27.input:gs_p175| () (_ BitVec 64))\n(declare-fun |f1.b27.input:gs_p174| () (_ BitVec 64))\n(declare-fun |f1.b27.effect:1:gs_v184| () (_ BitVec 8))\n(declare-fun |f1.b27.input:gs_p173| () (_ BitVec 64))\n(declare-fun |f1.b27.input:gs_p170| () (_ BitVec 32))\n(declare-fun |f1.b27.input:gs_p169| () (_ BitVec 64))\n(assert\n (let ((?x49 (bvadd |f1.b27.input:gs_p175| (_ bv1 64))))\n(let (($x73 (and (distinct ?x49 ?x49) true)))\n(let (($x76 (and (distinct |f1.b27.input:gs_p174| |f1.b27.input:gs_p174|) true)))\n(let ((?x18 ((_ zero_extend 56) |f1.b27.effect:1:gs_v184|)))\n(let ((?x97 (bvadd |f1.b27.input:gs_p173| ?x18)))\n(let (($x48 (and (distinct ?x97 ?x97) true)))\n(let (($x79 (and (distinct |f1.b27.input:gs_p170| |f1.b27.input:gs_p170|) true)))\n(let (($x59 (and (distinct |f1.b27.input:gs_p169| |f1.b27.input:gs_p169|) true)))\n(let (($x98 (or $x59 $x79 $x48 $x76 $x73)))\n(let (($x53 (and (distinct (bvadd ((_ zero_extend 64) |f1.b27.input:gs_p173|) ((_ zero_extend 64) ?x18)) ((_ zero_extend 64) ?x97)) true)))\n(let ((?x55 (ite $x53 1 0)))\n(let ((?x36 (ite (= 0 0) ?x55 0)))\n(let (($x78 (and (distinct (bvadd ((_ zero_extend 64) |f1.b27.input:gs_p175|) ((_ zero_extend 64) (_ bv1 64))) ((_ zero_extend 64) ?x49)) true)))\n(let ((?x46 (ite (= ?x36 0) (ite $x78 1 0) ?x36)))\n(let (($x60 (= ?x46 0)))\n(or (and (distinct ?x46 ?x46) true) (and $x60 $x60 $x98))))))))))))))))))\n(check-sat)\n",
+                "smt2_sha256": "ea3c346f0d08ab5f5782d48aafb93cfdd88875e286aabd6dedd0ac3fd9a7bdaa"
+              },
+              {
+                "block": "gs_b23",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_p179"
+                ],
+                "result": "unsat",
+                "segment": 0,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gs_b23",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_v189"
+                ],
+                "result": "unsat",
+                "segment": 1,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gs_b23",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_p178"
+                ],
+                "result": "unsat",
+                "segment": 2,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gs_b23",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_v190"
+                ],
+                "result": "unsat",
+                "segment": 3,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(assert\n (or (and (distinct 0 0) true) (and (= 0 0) (= 0 0) false)))\n(check-sat)\n",
+                "smt2_sha256": "35a95fd9c2f941ecc0974024b891243756cec1470c11822d8b7720a30d39f1cd"
+              },
+              {
+                "block": "gs_b23",
+                "function": "packet_xor",
+                "observed": [
+                  "gs_p180"
+                ],
+                "result": "unsat",
+                "segment": 4,
+                "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b28.input:gs_p180| () (_ BitVec 64))\n(assert\n (let (($x40 (and (distinct |f1.b28.input:gs_p180| |f1.b28.input:gs_p180|) true)))\n(let (($x78 (or $x40)))\n(let (($x15 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x15 $x15 $x78))))))\n(check-sat)\n",
+                "smt2_sha256": "9e0914052d59e013bbab817c1f47fbdcf2fcdf15f1094ae23e030a75ced43d36"
+              }
+            ],
+            "policy": {
+              "max_obligations": 994,
+              "max_scalar_operations": 4096,
+              "preconditions": [],
+              "schema": "hepta.hia.optimization-policy.v1",
+              "target": "x86_64-unknown-linux-gnu",
+              "timeout_ms": 29602
+            },
+            "policy_sha256": "5eaff3054e30e85ba1c09b6d1d0d04d2f63a1b1914ca9201d45d5e0d7616c7d0",
+            "preconditions": [],
+            "reason": "all compositional scalar/effect/trap obligations are UNSAT",
+            "resource_delta": {
+              "after": {
+                "borrow.mut": 6,
+                "borrow.read": 6,
+                "buffer.load": 6,
+                "buffer.store": 6,
+                "buffer.try_new": 6,
+                "loan.end": 12,
+                "owner.drop": 14,
+                "owner.move": 14
+              },
+              "allocation_failure_sequence_preserved_under_core_model": true,
+              "before": {
+                "borrow.mut": 6,
+                "borrow.read": 6,
+                "buffer.load": 6,
+                "buffer.store": 6,
+                "buffer.try_new": 6,
+                "loan.end": 12,
+                "owner.drop": 14,
+                "owner.move": 14
+              },
+              "native_cost_change_measured": false,
+              "ordered_resource_operations_preserved": true,
+              "peak_live_bytes_change_under_core_model": 0,
+              "resource_trace_equivalence_checked": true,
+              "vm_tick_count_preserved": false
+            },
+            "schema": "hepta.hia.optimization-verification.v1",
+            "solver": {
+              "binding_sha256": "093e8f2a92070c5b60a6f50e91e799a79123ba8573a2df64f1b31c01edd86b39",
+              "library_path": "/tmp/hepta-next-z3-20261028/z3/lib/libz3.so",
+              "library_sha256": "89456c35d2deb579a6a73f012d366148baa54d750f547069b89d86ee616d89cb",
+              "name": "Z3",
+              "version": "4.13.4"
+            },
+            "status": "verified",
+            "structural_preconditions": [
+              "both inputs pass canonical core admission",
+              "identical signatures, CFG edges and ordered resource/call operations",
+              "all scalar inputs in their declared finite widths; no asserted input assumptions"
+            ],
+            "target": "x86_64-unknown-linux-gnu",
+            "target_constraints": {
+              "foreign_abi": "scalar-only exports",
+              "optimization_budget": "policy deadline and obligation/operation limits",
+              "pointer_width": 64,
+              "resources": "preserve exact modeled trace",
+              "triple": "x86_64-unknown-linux-gnu"
+            },
+            "verification_sha256": "a4bdf3ce90e535419b392d895e273a0d79ce32d96b3802458eb6425a9db23fcd"
+          },
+          "policy": {
+            "max_obligations": 994,
+            "max_scalar_operations": 4096,
+            "preconditions": [],
+            "schema": "hepta.hia.optimization-policy.v1",
+            "target": "x86_64-unknown-linux-gnu",
+            "timeout_ms": 29656
+          },
+          "preconditions": [],
+          "proposal_sha256": "b86b80bdbe25c3368255d0e04aabf7a13e17d24e6203c32e34813e67be8c6a7b",
+          "reason": "independent modular scalar/effect/first-trap obligations are UNSAT",
+          "resource_delta": {
+            "after": {
+              "borrow.mut": 6,
+              "borrow.read": 6,
+              "buffer.load": 6,
+              "buffer.store": 6,
+              "buffer.try_new": 6,
+              "loan.end": 12,
+              "owner.drop": 14,
+              "owner.move": 14
+            },
+            "allocation_failure_sequence_preserved_under_core_model": true,
+            "before": {
+              "borrow.mut": 6,
+              "borrow.read": 6,
+              "buffer.load": 6,
+              "buffer.store": 6,
+              "buffer.try_new": 6,
+              "loan.end": 12,
+              "owner.drop": 14,
+              "owner.move": 14
+            },
+            "native_cost_change_measured": false,
+            "ordered_resource_operations_preserved": true,
+            "peak_live_bytes_change_under_core_model": 0,
+            "resource_trace_equivalence_checked": true,
+            "vm_tick_count_preserved": false
+          },
+          "rewrites": [
+            {
+              "block": "gf_b5",
+              "function": "full_lifecycle",
+              "operation": 2,
+              "replacement": [
+                {
+                  "args": [
+                    "gf_p28"
+                  ],
+                  "attrs": {
+                    "mode": "wrap"
+                  },
+                  "op": "int.cast",
+                  "out": [
+                    {
+                      "name": "hia_narrow_4",
+                      "type": "u8"
+                    }
+                  ]
+                },
+                {
+                  "args": [
+                    "gf_p25"
+                  ],
+                  "attrs": {
+                    "mode": "wrap"
+                  },
+                  "op": "int.cast",
+                  "out": [
+                    {
+                      "name": "hia_narrow_5",
+                      "type": "u8"
+                    }
+                  ]
+                },
+                {
+                  "args": [
+                    "hia_narrow_4",
+                    "hia_narrow_5"
+                  ],
+                  "attrs": {},
+                  "op": "int.add.wrap",
+                  "out": [
+                    {
+                      "name": "hia_narrow_2",
+                      "type": "u8"
+                    }
+                  ]
+                },
+                {
+                  "args": [
+                    "hia_narrow_2"
+                  ],
+                  "attrs": {
+                    "mode": "wrap"
+                  },
+                  "op": "int.cast",
+                  "out": [
+                    {
+                      "name": "gf_v36",
+                      "type": "u8"
+                    }
+                  ]
+                }
+              ],
+              "rule": "unsigned-modular-truncation.v1"
+            },
+            {
+              "block": "gs_b5",
+              "function": "full_lifecycle",
+              "operation": 2,
+              "replacement": [
+                {
+                  "args": [
+                    "gs_p28"
+                  ],
+                  "attrs": {
+                    "mode": "wrap"
+                  },
+                  "op": "int.cast",
+                  "out": [
+                    {
+                      "name": "hia_narrow_9",
+                      "type": "u8"
+                    }
+                  ]
+                },
+                {
+                  "args": [
+                    "gs_p25"
+                  ],
+                  "attrs": {
+                    "mode": "wrap"
+                  },
+                  "op": "int.cast",
+                  "out": [
+                    {
+                      "name": "hia_narrow_10",
+                      "type": "u8"
+                    }
+                  ]
+                },
+                {
+                  "args": [
+                    "hia_narrow_9",
+                    "hia_narrow_10"
+                  ],
+                  "attrs": {},
+                  "op": "int.add.wrap",
+                  "out": [
+                    {
+                      "name": "hia_narrow_7",
+                      "type": "u8"
+                    }
+                  ]
+                },
+                {
+                  "args": [
+                    "hia_narrow_7"
+                  ],
+                  "attrs": {
+                    "mode": "wrap"
+                  },
+                  "op": "int.cast",
+                  "out": [
+                    {
+                      "name": "gs_v36",
+                      "type": "u8"
+                    }
+                  ]
+                }
+              ],
+              "rule": "unsigned-modular-truncation.v1"
+            },
+            {
+              "block": "gf_b14",
+              "function": "packet_xor",
+              "operation": 4,
+              "replacement": [
+                {
+                  "args": [
+                    "gf_p98"
+                  ],
+                  "attrs": {
+                    "mode": "wrap"
+                  },
+                  "op": "int.cast",
+                  "out": [
+                    {
+                      "name": "hia_narrow_15",
+                      "type": "u8"
+                    }
+                  ]
+                },
+                {
+                  "args": [],
+                  "attrs": {
+                    "value": 13
+                  },
+                  "op": "const",
+                  "out": [
+                    {
+                      "name": "hia_narrow_16",
+                      "type": "u8"
+                    }
+                  ]
+                },
+                {
+                  "args": [
+                    "hia_narrow_15",
+                    "hia_narrow_16"
+                  ],
+                  "attrs": {},
+                  "op": "int.mul.wrap",
+                  "out": [
+                    {
+                      "name": "hia_narrow_13",
+                      "type": "u8"
+                    }
+                  ]
+                },
+                {
+                  "args": [
+                    "gf_p95"
+                  ],
+                  "attrs": {
+                    "mode": "wrap"
+                  },
+                  "op": "int.cast",
+                  "out": [
+                    {
+                      "name": "hia_narrow_17",
+                      "type": "u8"
+                    }
+                  ]
+                },
+                {
+                  "args": [
+                    "hia_narrow_13",
+                    "hia_narrow_17"
+                  ],
+                  "attrs": {},
+                  "op": "int.add.wrap",
+                  "out": [
+                    {
+                      "name": "hia_narrow_12",
+                      "type": "u8"
+                    }
+                  ]
+                },
+                {
+                  "args": [
+                    "hia_narrow_12"
+                  ],
+                  "attrs": {
+                    "mode": "wrap"
+                  },
+                  "op": "int.cast",
+                  "out": [
+                    {
+                      "name": "gf_v108",
+                      "type": "u8"
+                    }
+                  ]
+                }
+              ],
+              "rule": "unsigned-modular-truncation.v1"
+            },
+            {
+              "block": "gf_b19",
+              "function": "packet_xor",
+              "operation": 7,
+              "replacement": [
+                {
+                  "args": [
+                    "gf_p141"
+                  ],
+                  "attrs": {
+                    "mode": "wrap"
+                  },
+                  "op": "int.cast",
+                  "out": [
+                    {
+                      "name": "hia_narrow_21",
+                      "type": "u8"
+                    }
+                  ]
+                },
+                {
+                  "args": [
+                    "gf_p137"
+                  ],
+                  "attrs": {
+                    "mode": "wrap"
+                  },
+                  "op": "int.cast",
+                  "out": [
+                    {
+                      "name": "hia_narrow_23",
+                      "type": "u8"
+                    }
+                  ]
+                },
+                {
+                  "args": [],
+                  "attrs": {
+                    "value": 90
+                  },
+                  "op": "const",
+                  "out": [
+                    {
+                      "name": "hia_narrow_24",
+                      "type": "u8"
+                    }
+                  ]
+                },
+                {
+                  "args": [
+                    "hia_narrow_23",
+                    "hia_narrow_24"
+                  ],
+                  "attrs": {},
+                  "op": "bit.xor",
+                  "out": [
+                    {
+                      "name": "hia_narrow_22",
+                      "type": "u8"
+                    }
+                  ]
+                },
+                {
+                  "args": [
+                    "hia_narrow_21",
+                    "hia_narrow_22"
+                  ],
+                  "attrs": {},
+                  "op": "int.add.wrap",
+                  "out": [
+                    {
+                      "name": "hia_narrow_19",
+                      "type": "u8"
+                    }
+                  ]
+                },
+                {
+                  "args": [
+                    "hia_narrow_19"
+                  ],
+                  "attrs": {
+                    "mode": "wrap"
+                  },
+                  "op": "int.cast",
+                  "out": [
+                    {
+                      "name": "gf_v154",
+                      "type": "u8"
+                    }
+                  ]
+                }
+              ],
+              "rule": "unsigned-modular-truncation.v1"
+            },
+            {
+              "block": "gs_b14",
+              "function": "packet_xor",
+              "operation": 4,
+              "replacement": [
+                {
+                  "args": [
+                    "gs_p98"
+                  ],
+                  "attrs": {
+                    "mode": "wrap"
+                  },
+                  "op": "int.cast",
+                  "out": [
+                    {
+                      "name": "hia_narrow_29",
+                      "type": "u8"
+                    }
+                  ]
+                },
+                {
+                  "args": [],
+                  "attrs": {
+                    "value": 13
+                  },
+                  "op": "const",
+                  "out": [
+                    {
+                      "name": "hia_narrow_30",
+                      "type": "u8"
+                    }
+                  ]
+                },
+                {
+                  "args": [
+                    "hia_narrow_29",
+                    "hia_narrow_30"
+                  ],
+                  "attrs": {},
+                  "op": "int.mul.wrap",
+                  "out": [
+                    {
+                      "name": "hia_narrow_27",
+                      "type": "u8"
+                    }
+                  ]
+                },
+                {
+                  "args": [
+                    "gs_p95"
+                  ],
+                  "attrs": {
+                    "mode": "wrap"
+                  },
+                  "op": "int.cast",
+                  "out": [
+                    {
+                      "name": "hia_narrow_31",
+                      "type": "u8"
+                    }
+                  ]
+                },
+                {
+                  "args": [
+                    "hia_narrow_27",
+                    "hia_narrow_31"
+                  ],
+                  "attrs": {},
+                  "op": "int.add.wrap",
+                  "out": [
+                    {
+                      "name": "hia_narrow_26",
+                      "type": "u8"
+                    }
+                  ]
+                },
+                {
+                  "args": [
+                    "hia_narrow_26"
+                  ],
+                  "attrs": {
+                    "mode": "wrap"
+                  },
+                  "op": "int.cast",
+                  "out": [
+                    {
+                      "name": "gs_v108",
+                      "type": "u8"
+                    }
+                  ]
+                }
+              ],
+              "rule": "unsigned-modular-truncation.v1"
+            },
+            {
+              "block": "gs_b19",
+              "function": "packet_xor",
+              "operation": 7,
+              "replacement": [
+                {
+                  "args": [
+                    "gs_p141"
+                  ],
+                  "attrs": {
+                    "mode": "wrap"
+                  },
+                  "op": "int.cast",
+                  "out": [
+                    {
+                      "name": "hia_narrow_35",
+                      "type": "u8"
+                    }
+                  ]
+                },
+                {
+                  "args": [
+                    "gs_p137"
+                  ],
+                  "attrs": {
+                    "mode": "wrap"
+                  },
+                  "op": "int.cast",
+                  "out": [
+                    {
+                      "name": "hia_narrow_37",
+                      "type": "u8"
+                    }
+                  ]
+                },
+                {
+                  "args": [],
+                  "attrs": {
+                    "value": 90
+                  },
+                  "op": "const",
+                  "out": [
+                    {
+                      "name": "hia_narrow_38",
+                      "type": "u8"
+                    }
+                  ]
+                },
+                {
+                  "args": [
+                    "hia_narrow_37",
+                    "hia_narrow_38"
+                  ],
+                  "attrs": {},
+                  "op": "bit.xor",
+                  "out": [
+                    {
+                      "name": "hia_narrow_36",
+                      "type": "u8"
+                    }
+                  ]
+                },
+                {
+                  "args": [
+                    "hia_narrow_35",
+                    "hia_narrow_36"
+                  ],
+                  "attrs": {},
+                  "op": "int.add.wrap",
+                  "out": [
+                    {
+                      "name": "hia_narrow_33",
+                      "type": "u8"
+                    }
+                  ]
+                },
+                {
+                  "args": [
+                    "hia_narrow_33"
+                  ],
+                  "attrs": {
+                    "mode": "wrap"
+                  },
+                  "op": "int.cast",
+                  "out": [
+                    {
+                      "name": "gs_v154",
+                      "type": "u8"
+                    }
+                  ]
+                }
+              ],
+              "rule": "unsigned-modular-truncation.v1"
+            }
+          ],
+          "schema": "hepta.hia.modular-narrowing-verification.v1",
+          "solver": {
+            "binding_sha256": "093e8f2a92070c5b60a6f50e91e799a79123ba8573a2df64f1b31c01edd86b39",
+            "library_path": "/tmp/hepta-next-z3-20261028/z3/lib/libz3.so",
+            "library_sha256": "89456c35d2deb579a6a73f012d366148baa54d750f547069b89d86ee616d89cb",
+            "name": "Z3",
+            "version": "4.13.4"
+          },
+          "status": "verified",
+          "structural_preconditions": [
+            "exact inventoried unsigned wrapping truncation roots",
+            "original operations retained except inventoried root casts",
+            "identical signatures, CFG, ordered resource/call operations and first traps"
+          ],
+          "target": "x86_64-unknown-linux-gnu",
+          "target_constraints": {
+            "foreign_abi": "unchanged scalar C exports",
+            "pointer_width": 64,
+            "triple": "x86_64-unknown-linux-gnu"
+          },
+          "verification_sha256": "1b22e061acaf176deb71bbc33bb0cb08500bdcc950477bd55031b746ae536df0"
+        },
+        "stage": "modular-narrowing"
+      }
+    ],
+    "status": "verified",
+    "target": "x86_64-unknown-linux-gnu",
+    "target_constraints": {
+      "fallback_equivalent_via_modular_proof": true,
+      "foreign_abi": "unchanged scalar C exports",
+      "guard_before_effects": true,
+      "pointer_width": 64,
+      "triple": "x86_64-unknown-linux-gnu"
+    },
+    "verification_sha256": "73e4e137cda67f4ac13cd2de845afeb0324566c27d1c5ee68f4b572f2e3f7614",
+    "whole_chain_operation_count": 329
+  }
+}

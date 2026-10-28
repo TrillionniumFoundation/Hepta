@@ -44,6 +44,24 @@ separates implemented scope, finite correctness, scientific advantage and open
 repository CI gates. Passing a test suite does not satisfy an unpassed performance,
 NDU net-benefit or agent-productivity criterion.
 
+The [third-round implementation and evidence report](docs/HIA_ROUND3_20261028.md)
+adds [independently proved modular narrowing](docs/HIA_MODULAR_NARROWING.md),
+[actual default-deleter unique-array migration](docs/CPP_UNIQUE_PROJECT_MIGRATION.md),
+bounded sealed-process NDU sessions, and internally bound proof reuse at runtime
+safe points. Its source checkpoint passed **327 tests with zero failures, errors
+or skips**, plus actual CLI, migration and native qualification. A new preregistered
+eight-arm experiment passed all 14 finite-host noninferiority gates on two kernels;
+its retained batch-p99 regressions and preparation costs prevent a universal
+performance claim. The [third-round acceptance ledger](experiments/hia_verified_integration/round3_20261028/acceptance.json)
+keeps NDU total cost, actual model tasks, owned-state adaptation and repository CI
+separate. The completed native NDU graph made three NDU-selected transitions but
+lost its full-cost gate to both strong controls. All 16 registered cells across the
+two actual model families were attempted, with zero correct tasks. Three fresh owned-state queues completed
+2.1 billion updates without replay or leaks and passed their measured full-cost
+gate, including one actual automatic rollback; their aggregate measured net saving
+was 4.417590258 seconds. Broader companion CI failed. Complete seven-track
+acceptance remains false.
+
 ## Implemented capabilities
 
 The table describes the union of the explicitly qualified profiles in this

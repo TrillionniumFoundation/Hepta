@@ -1,0 +1,1035 @@
+{
+  "model_requests": 0,
+  "control_source_sha256": "9df36a49182edac4ca0e0f715864b0bdc423570524b4ec10c64cfe15035f77bf",
+  "source": "#!/usr/bin/env python3\n\"\"\"Native hostile-candidate controls for provider obligations.\n\nThese deliberately return correct public entry results while violating the\nprovider contract. They must be rejected by the separate provider observation,\nnot accidentally by an unrelated response-format or compiler error.\n\"\"\"\nfrom __future__ import annotations\n\nimport copy\nfrom pathlib import Path\nimport sys\n\nROOT=Path(__file__).resolve().parents[2]\nsys.path.insert(0,str(ROOT))\nfrom experiments.hia_agent_matched_v3_20261028 import fixtures, evaluator\nfrom experiments.hia_optimizer_eval.next_20261028.upgrade_pilot import op\nfrom tools.provider_adapter.llama_cpp_engine import canonical\n\n\ndef inline_sum(consumer):\n    result=copy.deepcopy(consumer)\n    operations=result[\"blocks\"][0][\"ops\"]\n    operations[1:1]=[op(\"int.cast\",[\"a\"],\"inline_a\",\"u64\"),\n        op(\"int.cast\",[\"b\"],\"inline_b\",\"u64\"),op(\"int.add.wrap\",[\"inline_a\",\"inline_b\"],\"inline_sum\",\"u64\")]\n    operations[4][\"args\"]=[\"inline_sum\"]\n    return result\n\n\ndef hostile_candidates():\n    task=fixtures.make_fixtures()[0]\n    rows=[]\n    for language in (\"hia\",\"rust\"):\n        files=copy.deepcopy(task[\"correct_\"+language])\n        if language==\"hia\":\n            files[\"client.hia.json\"][\"blocks\"][0][\"ops\"][0][\"args\"]=[\"b\",\"a\"]\n        else:\n            files[\"client.rs\"]=files[\"client.rs\"].replace(\"api::total(a,b)\",\"api::total(b,a)\")\n        rows.append((\"wrong_arguments\",language,files))\n        files=copy.deepcopy(task[\"correct_\"+language])\n        if language==\"hia\":\n            provider=files[\"api.hia.json\"]\n            provider[\"blocks\"][0][\"ops\"]=[op(\"const\",[],\"answer\",\"u64\",value=0)]\n            files[\"client.hia.json\"]=inline_sum(files[\"client.hia.json\"])\n        else:\n            files[\"api.rs\"]=\"pub fn total(a:u32,b:u32)->u64 { let _ = a; let _ = b; 0 }\"\n            files[\"client.rs\"]=\"use crate::api; pub fn entrypoint(a:u32,b:u32,c:u32)->u64 { let _ = api::total(a,b); ((a as u64)+(b as u64)) ^ (((c & 255) as u64)<<48) }\"\n        rows.append((\"wrong_provider_bypassed\",language,files))\n        files=copy.deepcopy(task[\"correct_\"+language])\n        if language==\"hia\":\n            original=files[\"client.hia.json\"]\n            call_block=copy.deepcopy(original[\"blocks\"][0]);call_block[\"id\"]=\"called\"\n            inline_block=inline_sum(original)[\"blocks\"][0]\n            inline_block[\"id\"]=\"bypassed\";inline_block[\"ops\"].pop(0)\n            entry={\"id\":\"entry\",\"params\":copy.deepcopy(original[\"params\"]),\n                \"ops\":[op(\"const\",[],\"never\",\"bool\",value=False)],\n                \"term\":{\"op\":\"branch\",\"cond\":\"never\",\"then\":{\"target\":\"called\",\"args\":[\"a\",\"b\",\"c\"]},\n                        \"else\":{\"target\":\"bypassed\",\"args\":[\"a\",\"b\",\"c\"]}}}\n            original[\"blocks\"]=[entry,call_block,inline_block]\n        else:\n            files[\"client.rs\"]=\"use crate::api; pub fn entrypoint(a:u32,b:u32,c:u32)->u64 { if false { let _ = api::total(a,b); } ((a as u64)+(b as u64)) ^ (((c & 255) as u64)<<48) }\"\n        rows.append((\"provider_not_executed\",language,files))\n    return task,rows\n\n\ndef run(output,clang,rustc):\n    folder=Path(output);folder.mkdir(parents=True,exist_ok=False)\n    task,candidates=hostile_candidates();rows=[]\n    for name,language,files in candidates:\n        built=evaluator.build(task,language,canonical({\"files\":files}).decode(),folder/(name+\"_\"+language),clang,rustc)\n        observed=evaluator.execute(built,task,task[\"public_cases\"],task[\"public_expected\"]) if built[\"native_built\"] else None\n        passed=bool(built[\"native_built\"] and observed[\"actual\"]==task[\"public_expected\"] and observed[\"status\"]==\"observable_wrong\")\n        rows.append({\"name\":name,\"language\":language,\"build\":built,\"execution\":observed,\"passed\":passed})\n    result={\"count\":len(rows),\"passed\":sum(row[\"passed\"] for row in rows),\"rows\":rows,\"model_answers\":False}\n    evaluator.save(folder/\"CONTROLS.json\",result)\n    return result\n\n\nif __name__==\"__main__\":\n    import argparse,json\n    parser=argparse.ArgumentParser(description=__doc__)\n    for name in (\"output\",\"clang\",\"rustc\"):\n        parser.add_argument(\"--\"+name,required=True)\n    result=run(**vars(parser.parse_args()))\n    print(json.dumps({\"count\":result[\"count\"],\"passed\":result[\"passed\"]}),flush=True)\n    raise SystemExit(result[\"count\"]!=result[\"passed\"])\n",
+  "result": {
+    "count": 6,
+    "model_answers": false,
+    "passed": 4,
+    "rows": [
+      {
+        "build": {
+          "artifact": {
+            "bytes": 16240,
+            "path": "/tmp/hepta-agent-matched-v3-hostile-01/wrong_arguments_hia/candidate",
+            "sha256": "fec008ec0b904e2877a929c470b815395d56e129e670c57ebf4d30e9305a5cab"
+          },
+          "compile": {
+            "argv": [
+              "/tmp/hepta-next-llvm-20261028/usr/lib/llvm-20/bin/clang",
+              "-O2",
+              "/tmp/hepta-agent-matched-v3-hostile-01/wrong_arguments_hia/driver.c",
+              "/tmp/hepta-agent-matched-v3-hostile-01/wrong_arguments_hia/candidate.o",
+              "-o",
+              "/tmp/hepta-agent-matched-v3-hostile-01/wrong_arguments_hia/candidate"
+            ],
+            "returncode": 0,
+            "stderr": "",
+            "stdout": ""
+          },
+          "compiler": {
+            "bytes": 132448,
+            "path": "/tmp/hepta-next-llvm-20261028/usr/lib/llvm-20/bin/clang",
+            "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d"
+          },
+          "compiler_unchanged": true,
+          "core_path": "/tmp/hepta-agent-matched-v3-hostile-01/wrong_arguments_hia/candidate.hia.json",
+          "core_sha256": "7f2d77cd0bdcda22f021269b88402a5897f1167a656bbe8cab74036b2593d3d1",
+          "folder": "/tmp/hepta-agent-matched-v3-hostile-01/wrong_arguments_hia",
+          "language": "hia",
+          "native_built": true,
+          "native_receipt": {
+            "artifact_bytes": 624,
+            "artifact_sha256": "ce283b6caf28dba226b4147e5ca0a43682a1008da9391ee9462fd95479dc7b45",
+            "binary_inventory": {
+              "defined": [
+                "entrypoint"
+              ],
+              "undefined": []
+            },
+            "claims": {
+              "backend_refinement_proved": false,
+              "c_codegen_used": false,
+              "cross_target_execution_qualified": false,
+              "fallback_used": false,
+              "foreign_buffer_entrypoints_exposed": false,
+              "native_execution_qualified": false,
+              "rust_codegen_used": false,
+              "rust_reference_required": false,
+              "source_ast_required": false,
+              "standalone_core_reverified": true,
+              "whole_language_soundness_proved": false
+            },
+            "core_sha256": "7f2d77cd0bdcda22f021269b88402a5897f1167a656bbe8cab74036b2593d3d1",
+            "exports": [
+              "entrypoint"
+            ],
+            "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+            "flags": [
+              "--target=x86_64-unknown-linux-gnu",
+              "-x",
+              "ir",
+              "-O3",
+              "-fPIC",
+              "-c"
+            ],
+            "implementation_sha256": "0519011099263210f3f0e9c0ad11c0dc4586fdaf079c6df16746ba49cc4a3ef9",
+            "input_sha256": "7f2d77cd0bdcda22f021269b88402a5897f1167a656bbe8cab74036b2593d3d1",
+            "kind": "object",
+            "llvm_ir_sha256": "c5488cbc9dd3a3a15d0b2c3bc08c1ab337a219c328fecda318b825ca8804fa11",
+            "ok": true,
+            "output": "/tmp/hepta-agent-matched-v3-hostile-01/wrong_arguments_hia/candidate.o",
+            "profile": "hepta.hia.program.llvm-linux-x86_64-range-fill.v6",
+            "runtime_assumptions": [
+              "Linux LP64 target with 64-bit pointers and size_t",
+              "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+              "C malloc returns null or a fresh nonaliasing allocation of the requested size; bytes are initialized before read or remain unobserved",
+              "C free accepts a live allocation from calloc or malloc, or null",
+              "abort terminates execution; no cleanup after traps is promised",
+              "native compiler, linker, loader, libc and host hardware are trusted"
+            ],
+            "schema": "hepta.hia.program.native.v1",
+            "status": "native_compiled_not_executed",
+            "target": "x86_64-unknown-linux-gnu",
+            "toolchain": {
+              "default_target": "x86_64-pc-linux-gnu",
+              "path": "/tmp/hepta-next-llvm-20261028/usr/lib/llvm-20/bin/clang",
+              "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+              "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+            }
+          },
+          "patch_receipt": {
+            "after_sha256": "7f2d77cd0bdcda22f021269b88402a5897f1167a656bbe8cab74036b2593d3d1",
+            "before_sha256": "a5615018bb62e54068df5424fe58a4295a42ada4167439c0c3557b61f42b2d4e",
+            "claims": {
+              "behavior_equivalence_proved": false,
+              "external_callers_revalidated": false,
+              "interface_preserved": true,
+              "native_executed": false,
+              "whole_module_rechecked": true
+            },
+            "edit_domain": "independently_verified_normalized_core",
+            "edits": 2,
+            "interface_changes": [],
+            "interface_policy": "migrate",
+            "ok": true,
+            "original_input_sha256": "a5615018bb62e54068df5424fe58a4295a42ada4167439c0c3557b61f42b2d4e",
+            "schema": "hepta.hia.patch-result.v2",
+            "status": "verified_unpublished"
+          },
+          "provider_audit": true,
+          "status": "compiled",
+          "task_id": "carry_sum_tag",
+          "wall_ns": 265727356
+        },
+        "execution": {
+          "actual": [
+            0,
+            562954248388608,
+            844424930132032
+          ],
+          "artifact_sha256": "fec008ec0b904e2877a929c470b815395d56e129e670c57ebf4d30e9305a5cab",
+          "artifact_unchanged": true,
+          "cases": [
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              4294967295,
+              1,
+              2
+            ],
+            [
+              23,
+              41,
+              259
+            ]
+          ],
+          "expected": [
+            0,
+            562954248388608,
+            844424930132032
+          ],
+          "native_execution_ns": 4581796,
+          "native_vm_agreement": true,
+          "provider_actual": [
+            [
+              0
+            ],
+            [
+              4294967296
+            ],
+            [
+              64
+            ]
+          ],
+          "provider_argument_matches": [
+            1,
+            0,
+            0
+          ],
+          "provider_arguments_passed": false,
+          "provider_audit_ns": 9585223,
+          "provider_call_counts": [
+            1,
+            1,
+            1
+          ],
+          "provider_calls_passed": true,
+          "provider_contract_passed": true,
+          "provider_expected": [
+            [
+              0
+            ],
+            [
+              4294967296
+            ],
+            [
+              64
+            ]
+          ],
+          "provider_observation_kind": "same-hashed-Core VM calls; native entrypoint checked separately",
+          "returncode": 0,
+          "sealed_image": true,
+          "seals": 15,
+          "status": "observable_wrong",
+          "stderr": "",
+          "stdout": "0\n562954248388608\n844424930132032\n",
+          "vm_provider_observations": [
+            {
+              "arguments_match": true,
+              "call_count": 1,
+              "case": [
+                0,
+                0,
+                0
+              ],
+              "entry": {
+                "calls": [
+                  {
+                    "arguments": [
+                      0,
+                      0,
+                      0
+                    ],
+                    "function": "entrypoint",
+                    "returned": true,
+                    "values": [
+                      0
+                    ]
+                  },
+                  {
+                    "arguments": [
+                      0,
+                      0
+                    ],
+                    "function": "total",
+                    "returned": true,
+                    "values": [
+                      0
+                    ]
+                  }
+                ],
+                "status": "returned",
+                "values": [
+                  0
+                ]
+              },
+              "provider": {
+                "calls": [
+                  {
+                    "arguments": [
+                      0,
+                      0
+                    ],
+                    "function": "total",
+                    "returned": true,
+                    "values": [
+                      0
+                    ]
+                  }
+                ],
+                "status": "returned",
+                "values": [
+                  0
+                ]
+              }
+            },
+            {
+              "arguments_match": false,
+              "call_count": 1,
+              "case": [
+                4294967295,
+                1,
+                2
+              ],
+              "entry": {
+                "calls": [
+                  {
+                    "arguments": [
+                      4294967295,
+                      1,
+                      2
+                    ],
+                    "function": "entrypoint",
+                    "returned": true,
+                    "values": [
+                      562954248388608
+                    ]
+                  },
+                  {
+                    "arguments": [
+                      1,
+                      4294967295
+                    ],
+                    "function": "total",
+                    "returned": true,
+                    "values": [
+                      4294967296
+                    ]
+                  }
+                ],
+                "status": "returned",
+                "values": [
+                  562954248388608
+                ]
+              },
+              "provider": {
+                "calls": [
+                  {
+                    "arguments": [
+                      4294967295,
+                      1
+                    ],
+                    "function": "total",
+                    "returned": true,
+                    "values": [
+                      4294967296
+                    ]
+                  }
+                ],
+                "status": "returned",
+                "values": [
+                  4294967296
+                ]
+              }
+            },
+            {
+              "arguments_match": false,
+              "call_count": 1,
+              "case": [
+                23,
+                41,
+                259
+              ],
+              "entry": {
+                "calls": [
+                  {
+                    "arguments": [
+                      23,
+                      41,
+                      259
+                    ],
+                    "function": "entrypoint",
+                    "returned": true,
+                    "values": [
+                      844424930132032
+                    ]
+                  },
+                  {
+                    "arguments": [
+                      41,
+                      23
+                    ],
+                    "function": "total",
+                    "returned": true,
+                    "values": [
+                      64
+                    ]
+                  }
+                ],
+                "status": "returned",
+                "values": [
+                  844424930132032
+                ]
+              },
+              "provider": {
+                "calls": [
+                  {
+                    "arguments": [
+                      23,
+                      41
+                    ],
+                    "function": "total",
+                    "returned": true,
+                    "values": [
+                      64
+                    ]
+                  }
+                ],
+                "status": "returned",
+                "values": [
+                  64
+                ]
+              }
+            }
+          ],
+          "wall_ns": 14534344
+        },
+        "language": "hia",
+        "name": "wrong_arguments",
+        "passed": true
+      },
+      {
+        "build": {
+          "artifact": {
+            "bytes": 16240,
+            "path": "/tmp/hepta-agent-matched-v3-hostile-01/wrong_provider_bypassed_hia/candidate",
+            "sha256": "f4a246e3c72d583166e982211b70ebe87a40081fcd08097882dcb5cd5aec35ca"
+          },
+          "compile": {
+            "argv": [
+              "/tmp/hepta-next-llvm-20261028/usr/lib/llvm-20/bin/clang",
+              "-O2",
+              "/tmp/hepta-agent-matched-v3-hostile-01/wrong_provider_bypassed_hia/driver.c",
+              "/tmp/hepta-agent-matched-v3-hostile-01/wrong_provider_bypassed_hia/candidate.o",
+              "-o",
+              "/tmp/hepta-agent-matched-v3-hostile-01/wrong_provider_bypassed_hia/candidate"
+            ],
+            "returncode": 0,
+            "stderr": "",
+            "stdout": ""
+          },
+          "compiler": {
+            "bytes": 132448,
+            "path": "/tmp/hepta-next-llvm-20261028/usr/lib/llvm-20/bin/clang",
+            "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d"
+          },
+          "compiler_unchanged": true,
+          "core_path": "/tmp/hepta-agent-matched-v3-hostile-01/wrong_provider_bypassed_hia/candidate.hia.json",
+          "core_sha256": "c23c919c1a15e9ecca063bbbe243beae43ec4cb665d5bc9b6ac8da61eae6e242",
+          "folder": "/tmp/hepta-agent-matched-v3-hostile-01/wrong_provider_bypassed_hia",
+          "language": "hia",
+          "native_built": true,
+          "native_receipt": {
+            "artifact_bytes": 624,
+            "artifact_sha256": "6f8d210ef4e5feaa79efcfd1a7c8ab819c949c0f775f733999c3805584cfb323",
+            "binary_inventory": {
+              "defined": [
+                "entrypoint"
+              ],
+              "undefined": []
+            },
+            "claims": {
+              "backend_refinement_proved": false,
+              "c_codegen_used": false,
+              "cross_target_execution_qualified": false,
+              "fallback_used": false,
+              "foreign_buffer_entrypoints_exposed": false,
+              "native_execution_qualified": false,
+              "rust_codegen_used": false,
+              "rust_reference_required": false,
+              "source_ast_required": false,
+              "standalone_core_reverified": true,
+              "whole_language_soundness_proved": false
+            },
+            "core_sha256": "c23c919c1a15e9ecca063bbbe243beae43ec4cb665d5bc9b6ac8da61eae6e242",
+            "exports": [
+              "entrypoint"
+            ],
+            "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+            "flags": [
+              "--target=x86_64-unknown-linux-gnu",
+              "-x",
+              "ir",
+              "-O3",
+              "-fPIC",
+              "-c"
+            ],
+            "implementation_sha256": "0519011099263210f3f0e9c0ad11c0dc4586fdaf079c6df16746ba49cc4a3ef9",
+            "input_sha256": "c23c919c1a15e9ecca063bbbe243beae43ec4cb665d5bc9b6ac8da61eae6e242",
+            "kind": "object",
+            "llvm_ir_sha256": "32afc93bbb22c04d926e830b983b2ed3082a07aa451cbaca3d3ce41a19a74a72",
+            "ok": true,
+            "output": "/tmp/hepta-agent-matched-v3-hostile-01/wrong_provider_bypassed_hia/candidate.o",
+            "profile": "hepta.hia.program.llvm-linux-x86_64-range-fill.v6",
+            "runtime_assumptions": [
+              "Linux LP64 target with 64-bit pointers and size_t",
+              "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+              "C malloc returns null or a fresh nonaliasing allocation of the requested size; bytes are initialized before read or remain unobserved",
+              "C free accepts a live allocation from calloc or malloc, or null",
+              "abort terminates execution; no cleanup after traps is promised",
+              "native compiler, linker, loader, libc and host hardware are trusted"
+            ],
+            "schema": "hepta.hia.program.native.v1",
+            "status": "native_compiled_not_executed",
+            "target": "x86_64-unknown-linux-gnu",
+            "toolchain": {
+              "default_target": "x86_64-pc-linux-gnu",
+              "path": "/tmp/hepta-next-llvm-20261028/usr/lib/llvm-20/bin/clang",
+              "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+              "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+            }
+          },
+          "patch_receipt": {
+            "after_sha256": "c23c919c1a15e9ecca063bbbe243beae43ec4cb665d5bc9b6ac8da61eae6e242",
+            "before_sha256": "a5615018bb62e54068df5424fe58a4295a42ada4167439c0c3557b61f42b2d4e",
+            "claims": {
+              "behavior_equivalence_proved": false,
+              "external_callers_revalidated": false,
+              "interface_preserved": true,
+              "native_executed": false,
+              "whole_module_rechecked": true
+            },
+            "edit_domain": "independently_verified_normalized_core",
+            "edits": 2,
+            "interface_changes": [],
+            "interface_policy": "migrate",
+            "ok": true,
+            "original_input_sha256": "a5615018bb62e54068df5424fe58a4295a42ada4167439c0c3557b61f42b2d4e",
+            "schema": "hepta.hia.patch-result.v2",
+            "status": "verified_unpublished"
+          },
+          "provider_audit": true,
+          "status": "compiled",
+          "task_id": "carry_sum_tag",
+          "wall_ns": 251051136
+        },
+        "execution": {
+          "actual": [
+            0,
+            562954248388608,
+            844424930132032
+          ],
+          "artifact_sha256": "f4a246e3c72d583166e982211b70ebe87a40081fcd08097882dcb5cd5aec35ca",
+          "artifact_unchanged": true,
+          "cases": [
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              4294967295,
+              1,
+              2
+            ],
+            [
+              23,
+              41,
+              259
+            ]
+          ],
+          "expected": [
+            0,
+            562954248388608,
+            844424930132032
+          ],
+          "native_execution_ns": 5274963,
+          "native_vm_agreement": true,
+          "provider_actual": [
+            [
+              0
+            ],
+            [
+              0
+            ],
+            [
+              0
+            ]
+          ],
+          "provider_argument_matches": [
+            1,
+            1,
+            1
+          ],
+          "provider_arguments_passed": true,
+          "provider_audit_ns": 4800754,
+          "provider_call_counts": [
+            1,
+            1,
+            1
+          ],
+          "provider_calls_passed": true,
+          "provider_contract_passed": false,
+          "provider_expected": [
+            [
+              0
+            ],
+            [
+              4294967296
+            ],
+            [
+              64
+            ]
+          ],
+          "provider_observation_kind": "same-hashed-Core VM calls; native entrypoint checked separately",
+          "returncode": 0,
+          "sealed_image": true,
+          "seals": 15,
+          "status": "observable_wrong",
+          "stderr": "",
+          "stdout": "0\n562954248388608\n844424930132032\n",
+          "vm_provider_observations": [
+            {
+              "arguments_match": true,
+              "call_count": 1,
+              "case": [
+                0,
+                0,
+                0
+              ],
+              "entry": {
+                "calls": [
+                  {
+                    "arguments": [
+                      0,
+                      0,
+                      0
+                    ],
+                    "function": "entrypoint",
+                    "returned": true,
+                    "values": [
+                      0
+                    ]
+                  },
+                  {
+                    "arguments": [
+                      0,
+                      0
+                    ],
+                    "function": "total",
+                    "returned": true,
+                    "values": [
+                      0
+                    ]
+                  }
+                ],
+                "status": "returned",
+                "values": [
+                  0
+                ]
+              },
+              "provider": {
+                "calls": [
+                  {
+                    "arguments": [
+                      0,
+                      0
+                    ],
+                    "function": "total",
+                    "returned": true,
+                    "values": [
+                      0
+                    ]
+                  }
+                ],
+                "status": "returned",
+                "values": [
+                  0
+                ]
+              }
+            },
+            {
+              "arguments_match": true,
+              "call_count": 1,
+              "case": [
+                4294967295,
+                1,
+                2
+              ],
+              "entry": {
+                "calls": [
+                  {
+                    "arguments": [
+                      4294967295,
+                      1,
+                      2
+                    ],
+                    "function": "entrypoint",
+                    "returned": true,
+                    "values": [
+                      562954248388608
+                    ]
+                  },
+                  {
+                    "arguments": [
+                      4294967295,
+                      1
+                    ],
+                    "function": "total",
+                    "returned": true,
+                    "values": [
+                      0
+                    ]
+                  }
+                ],
+                "status": "returned",
+                "values": [
+                  562954248388608
+                ]
+              },
+              "provider": {
+                "calls": [
+                  {
+                    "arguments": [
+                      4294967295,
+                      1
+                    ],
+                    "function": "total",
+                    "returned": true,
+                    "values": [
+                      0
+                    ]
+                  }
+                ],
+                "status": "returned",
+                "values": [
+                  0
+                ]
+              }
+            },
+            {
+              "arguments_match": true,
+              "call_count": 1,
+              "case": [
+                23,
+                41,
+                259
+              ],
+              "entry": {
+                "calls": [
+                  {
+                    "arguments": [
+                      23,
+                      41,
+                      259
+                    ],
+                    "function": "entrypoint",
+                    "returned": true,
+                    "values": [
+                      844424930132032
+                    ]
+                  },
+                  {
+                    "arguments": [
+                      23,
+                      41
+                    ],
+                    "function": "total",
+                    "returned": true,
+                    "values": [
+                      0
+                    ]
+                  }
+                ],
+                "status": "returned",
+                "values": [
+                  844424930132032
+                ]
+              },
+              "provider": {
+                "calls": [
+                  {
+                    "arguments": [
+                      23,
+                      41
+                    ],
+                    "function": "total",
+                    "returned": true,
+                    "values": [
+                      0
+                    ]
+                  }
+                ],
+                "status": "returned",
+                "values": [
+                  0
+                ]
+              }
+            }
+          ],
+          "wall_ns": 10527874
+        },
+        "language": "hia",
+        "name": "wrong_provider_bypassed",
+        "passed": true
+      },
+      {
+        "build": {
+          "error": {
+            "message": "E_HIA_SSA: SSA value a is defined more than once",
+            "type": "HIAProgramRejected"
+          },
+          "folder": "/tmp/hepta-agent-matched-v3-hostile-01/provider_not_executed_hia",
+          "language": "hia",
+          "native_built": false,
+          "provider_audit": true,
+          "status": "response_rejected",
+          "task_id": "carry_sum_tag",
+          "wall_ns": 10727077
+        },
+        "execution": null,
+        "language": "hia",
+        "name": "provider_not_executed",
+        "passed": false
+      },
+      {
+        "build": {
+          "artifact": {
+            "bytes": 4350904,
+            "path": "/tmp/hepta-agent-matched-v3-hostile-01/wrong_arguments_rust/candidate",
+            "sha256": "6516cc6c99979b5ae9cd9a387845cb3b2ffffbefae74e8c1d808081647434d8b"
+          },
+          "compile": {
+            "argv": [
+              "/tmp/hepta-ci-rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc",
+              "--edition=2021",
+              "-Copt-level=2",
+              "-Coverflow-checks=on",
+              "/tmp/hepta-agent-matched-v3-hostile-01/wrong_arguments_rust/main.rs",
+              "-o",
+              "/tmp/hepta-agent-matched-v3-hostile-01/wrong_arguments_rust/candidate"
+            ],
+            "returncode": 0,
+            "stderr": "",
+            "stdout": ""
+          },
+          "compiler": {
+            "bytes": 644784,
+            "path": "/tmp/hepta-ci-rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc",
+            "sha256": "bff349e72704ff70bc08a234a3847338e797065bbedde5e556808bc87b7bf7c6"
+          },
+          "compiler_unchanged": true,
+          "folder": "/tmp/hepta-agent-matched-v3-hostile-01/wrong_arguments_rust",
+          "language": "rust",
+          "native_built": true,
+          "patch_receipt": null,
+          "provider_audit": true,
+          "status": "compiled",
+          "task_id": "carry_sum_tag",
+          "wall_ns": 284430936
+        },
+        "execution": {
+          "actual": [
+            0,
+            562954248388608,
+            844424930132032
+          ],
+          "artifact_sha256": "6516cc6c99979b5ae9cd9a387845cb3b2ffffbefae74e8c1d808081647434d8b",
+          "artifact_unchanged": true,
+          "cases": [
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              4294967295,
+              1,
+              2
+            ],
+            [
+              23,
+              41,
+              259
+            ]
+          ],
+          "expected": [
+            0,
+            562954248388608,
+            844424930132032
+          ],
+          "native_execution_ns": 4979226,
+          "native_vm_agreement": true,
+          "provider_actual": [
+            [
+              0
+            ],
+            [
+              4294967296
+            ],
+            [
+              64
+            ]
+          ],
+          "provider_argument_matches": [
+            1,
+            0,
+            0
+          ],
+          "provider_arguments_passed": false,
+          "provider_audit_ns": 15339,
+          "provider_call_counts": [
+            1,
+            1,
+            1
+          ],
+          "provider_calls_passed": true,
+          "provider_contract_passed": true,
+          "provider_expected": [
+            [
+              0
+            ],
+            [
+              4294967296
+            ],
+            [
+              64
+            ]
+          ],
+          "provider_observation_kind": "trusted native wrapper counter and independent native provider call",
+          "returncode": 0,
+          "sealed_image": true,
+          "seals": 15,
+          "status": "observable_wrong",
+          "stderr": "",
+          "stdout": "0 1 1 0\n562954248388608 1 0 4294967296\n844424930132032 1 0 64\n",
+          "wall_ns": 8972995
+        },
+        "language": "rust",
+        "name": "wrong_arguments",
+        "passed": true
+      },
+      {
+        "build": {
+          "artifact": {
+            "bytes": 4350888,
+            "path": "/tmp/hepta-agent-matched-v3-hostile-01/wrong_provider_bypassed_rust/candidate",
+            "sha256": "a8e14f9e8b854162730b9f898e78e7ffa5d058dcc741e4df5347b35b032f6525"
+          },
+          "compile": {
+            "argv": [
+              "/tmp/hepta-ci-rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc",
+              "--edition=2021",
+              "-Copt-level=2",
+              "-Coverflow-checks=on",
+              "/tmp/hepta-agent-matched-v3-hostile-01/wrong_provider_bypassed_rust/main.rs",
+              "-o",
+              "/tmp/hepta-agent-matched-v3-hostile-01/wrong_provider_bypassed_rust/candidate"
+            ],
+            "returncode": 0,
+            "stderr": "",
+            "stdout": ""
+          },
+          "compiler": {
+            "bytes": 644784,
+            "path": "/tmp/hepta-ci-rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc",
+            "sha256": "bff349e72704ff70bc08a234a3847338e797065bbedde5e556808bc87b7bf7c6"
+          },
+          "compiler_unchanged": true,
+          "folder": "/tmp/hepta-agent-matched-v3-hostile-01/wrong_provider_bypassed_rust",
+          "language": "rust",
+          "native_built": true,
+          "patch_receipt": null,
+          "provider_audit": true,
+          "status": "compiled",
+          "task_id": "carry_sum_tag",
+          "wall_ns": 278540692
+        },
+        "execution": {
+          "actual": [
+            0,
+            562954248388608,
+            844424930132032
+          ],
+          "artifact_sha256": "a8e14f9e8b854162730b9f898e78e7ffa5d058dcc741e4df5347b35b032f6525",
+          "artifact_unchanged": true,
+          "cases": [
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              4294967295,
+              1,
+              2
+            ],
+            [
+              23,
+              41,
+              259
+            ]
+          ],
+          "expected": [
+            0,
+            562954248388608,
+            844424930132032
+          ],
+          "native_execution_ns": 4105918,
+          "native_vm_agreement": true,
+          "provider_actual": [
+            [
+              0
+            ],
+            [
+              0
+            ],
+            [
+              0
+            ]
+          ],
+          "provider_argument_matches": [
+            1,
+            1,
+            1
+          ],
+          "provider_arguments_passed": true,
+          "provider_audit_ns": 14063,
+          "provider_call_counts": [
+            1,
+            1,
+            1
+          ],
+          "provider_calls_passed": true,
+          "provider_contract_passed": false,
+          "provider_expected": [
+            [
+              0
+            ],
+            [
+              4294967296
+            ],
+            [
+              64
+            ]
+          ],
+          "provider_observation_kind": "trusted native wrapper counter and independent native provider call",
+          "returncode": 0,
+          "sealed_image": true,
+          "seals": 15,
+          "status": "observable_wrong",
+          "stderr": "",
+          "stdout": "0 1 1 0\n562954248388608 1 1 0\n844424930132032 1 1 0\n",
+          "wall_ns": 8436706
+        },
+        "language": "rust",
+        "name": "wrong_provider_bypassed",
+        "passed": true
+      },
+      {
+        "build": {
+          "error": {
+            "message": "E_UPGRADE_RUST_CALLABLE_VALUE",
+            "type": "ValueError"
+          },
+          "folder": "/tmp/hepta-agent-matched-v3-hostile-01/provider_not_executed_rust",
+          "language": "rust",
+          "native_built": false,
+          "provider_audit": true,
+          "status": "response_rejected",
+          "task_id": "carry_sum_tag",
+          "wall_ns": 436515
+        },
+        "execution": null,
+        "language": "rust",
+        "name": "provider_not_executed",
+        "passed": false
+      }
+    ]
+  },
+  "diagnosis": "Two hostile fixtures rejected by existing admission before exercising the intended dynamic obligation; repair fixture syntax before registration."
+}

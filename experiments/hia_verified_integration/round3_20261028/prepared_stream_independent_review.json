@@ -1,0 +1,74 @@
+{
+  "deployment_authority": false,
+  "findings": [
+    {
+      "execution_evidence": "root added the oversized-manifest control; final integration must run it separately",
+      "id": "bounded-manifest-read",
+      "observed_before_fix": "NduSession read_bytes materialized the whole identity file before enforcing the 1 MiB cap.",
+      "resolution": "open binary stream and read(MAX_REQUEST_BYTES + 1), then reject oversized input before JSON parsing.",
+      "status": "resolved_at_source_review"
+    },
+    {
+      "execution_evidence": "root added an actual function-substitution rollback control; final integration must run it separately",
+      "id": "rollback-loaded-mapping",
+      "observed_before_fix": "The previously admitted rollback path checked bytes and state but did not repeat the actual function mapping gate used by ordinary select. This required private host metadata mutation; the host remains explicitly trusted.",
+      "resolution": "verify_loaded_symbols checks the old function against the still-open sealed image before updating current token and generation, without a solver call.",
+      "status": "resolved_at_source_review"
+    }
+  ],
+  "method": "independent source review; no tests executed by this reviewer for these root-owned changes",
+  "new_blocking_findings_remaining": [],
+  "nonblocking_existing_limits": [
+    "The trusted Python host can introspect or mutate private objects; these APIs are not an adversarial same-process security boundary.",
+    "General NduBridge JSON serialization materializes caller data before its byte cap; the new finite graph builder separately bounds its logical graph and the Rust stream bounds wire input.",
+    "Compiler/linker/loader/OS and the locally trusted build identity manifest are not remotely attested.",
+    "No whole-program safety, performance advantage, universal optimality or deployment permission follows from this code review."
+  ],
+  "reviewed_at_utc": "2026-10-28T10:40:18.800462+00:00",
+  "reviewed_invariants": [
+    "Prepared records originate only from internal successful proof/build/load and there is no serialized receipt admission API.",
+    "Record reuse rechecks actual Core bytes, full state, artifact, receipt, implementation, policy and private runtime scope; equivalent roots establish transitive scalar equivalence.",
+    "Sixteen loaded versions bound retained admission records and proof depth.",
+    "Selection rechecks active calls, generation and current token under the runtime lock, plus actual sealed image mapping.",
+    "Owned selection holds its outer lock across the whole base selection and verifies unchanged native owner address and contents.",
+    "Native stream evaluates each request separately through original typed decoding and NDU algorithms and retains DENY_ALL authority.",
+    "Stream limits are 256 requests, at most 1 MiB per input, bounded responses and bounded cumulative stderr; sequence, request digest, native identity, objective and generation are checked.",
+    "Malformed protocol, timeout or identity failure closes the session permanently; later evaluation cannot reuse a poisoned session."
+  ],
+  "reviewer": "/root/certified_narrowing",
+  "schema": "hepta.hia.independent-prepared-stream-review.v1",
+  "source_bindings": {
+    "hepta-ndu-stream/tools/hia-ndu-bridge/src/main.rs": {
+      "bytes": 12857,
+      "sha256": "132af086590fdab0f36a7c5788ba7fca90b06e21b7c4a669169eeee3f3035c84"
+    },
+    "hepta-ndu-stream/tools/hia-ndu-bridge/src/stream.rs": {
+      "bytes": 1872,
+      "sha256": "f10e293cd59196a644a95408ad59ad26873bd3ea2270f379df952fa0718c7e2f"
+    },
+    "hepta-work/hepta/hia_adaptive.py": {
+      "bytes": 20973,
+      "sha256": "2ca3069d470c78f72f7158cb20f69a931b93e56c566e006d3f91272c340c47cf"
+    },
+    "hepta-work/hepta/hia_ndu_session.py": {
+      "bytes": 10792,
+      "sha256": "0458724d443bf6b581fbf8f7411513867fa0f8841172675d4aedff0cecf57fc8"
+    },
+    "hepta-work/hepta/hia_prepared.py": {
+      "bytes": 4515,
+      "sha256": "bf0285705531f3950aaec6c2f31ac60fe13a354079a2218239676d7b619afe87"
+    },
+    "hepta-work/hepta/hia_stateful.py": {
+      "bytes": 38188,
+      "sha256": "cf58d57a062a71f40743de29b776900f389d300718636571ddaad6edfb26cab8"
+    },
+    "hepta-work/tests/test_hia_ndu_session.py": {
+      "bytes": 5623,
+      "sha256": "86029009d1c7c3e81734f7eac57e6273a803f9adf4fc94e80535274911e1a604"
+    },
+    "hepta-work/tests/test_hia_prepared.py": {
+      "bytes": 6352,
+      "sha256": "da6650b90618ef3f48bcb4fa6c48b51fd967d8ef25342d7c8cc7bb6b9137b6a0"
+    }
+  }
+}
