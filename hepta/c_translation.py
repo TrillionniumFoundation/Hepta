@@ -11,8 +11,8 @@ import json
 from pathlib import Path
 import re
 
-from .c_migrate import MigrationRejected
-from .c_project import invoke
+from .c_migrate import MigrationRejected, reject_function_type_attributes
+from .c_project import captured_source_argument, invoke
 
 
 INTEGER = {f"{s}{w}" for s in ("u", "i") for w in (8, 16, 32, 64)} | {"usize", "isize"}
@@ -24,6 +24,29 @@ def ident(name: str) -> str:
     if not IDENTIFIER.fullmatch(name) or name.startswith("__"):
         raise MigrationRejected("E_C_IDENTIFIER", "Unsupported C identifier: " + repr(name))
     return name
+
+
+def reject_adjusted_pointer_parameter(node: dict) -> None:
+    """Refuse C array parameter decay before a pointer slice contract is admitted.
+
+    Clang's qualType turns 'T data[++n]' into 'T *' and discards the
+    parameter-entry increment. Only the direct declarator ending at its
+    declared name is supported; array suffixes and macro-ambiguous locations
+    require an independent source-semantic lowering, not a slice contract.
+    """
+    loc = node.get("loc")
+    span = node.get("range")
+    end = span.get("end") if isinstance(span, dict) else None
+    if not isinstance(loc, dict) or not isinstance(end, dict):
+        raise MigrationRejected("E_C_PARAMETER_DECLARATOR", "Parameter source location is not available")
+    for position in (loc, end):
+        if (type(position.get("offset")) is not int or position["offset"] < 0
+                or type(position.get("tokLen")) is not int or position["tokLen"] <= 0):
+            raise MigrationRejected("E_C_PARAMETER_DECLARATOR",
+                                    "Ambiguous or expanded parameter declarator")
+    if (loc["offset"], loc["tokLen"]) != (end["offset"], end["tokLen"]):
+        raise MigrationRejected("E_C_PARAMETER_DECLARATOR",
+                                "Array or trailing parameter syntax is not a plain pointer")
 
 
 def width(typ: str) -> int:
@@ -132,7 +155,8 @@ class CTranslator:
         for config in self.capture["configurations"]:
             directory = Path(config["directory"])
             tree = json.loads(invoke([self.capture["compiler"]["path"], *config["frontend_arguments"],
-                                     "-Werror", "-fsyntax-only", "-Xclang", "-ast-dump=json", config["source"]], directory))
+                                     "-Werror", "-fsyntax-only", "-Xclang", "-ast-dump=json",
+                                     captured_source_argument(config)], directory))
             if tree.get("kind") != "TranslationUnitDecl":
                 raise MigrationRejected("E_C_AST", "Clang did not produce a translation unit")
             active_file = None
@@ -253,6 +277,7 @@ class CTranslator:
                 item.update(status="prototype_resolved", reason=None)
 
     def signature(self, node: dict, key: str, unit: int, model: dict) -> dict:
+        reject_function_type_attributes(node)
         name = ident(node["name"])
         if name == "main" or node.get("variadic") or "..." in node["type"]["qualType"] or node["type"]["qualType"].endswith(" ()"):
             raise MigrationRejected("E_C_FUNCTION", "main, varargs and unprototyped functions are unsupported")
@@ -271,6 +296,7 @@ class CTranslator:
             raw = child["type"]["qualType"]
             pointer = re.fullmatch(r"(const\s+)?([^*]+?)\s*\*", raw)
             if pointer:
+                reject_adjusted_pointer_parameter(child)
                 # C prototypes may legally use different parameter names from
                 # their implementation. Ordinal selectors remain unambiguous.
                 selectors = [key for key in (pname, str(len(params))) if key in contract["slices"]]
@@ -484,6 +510,24 @@ class CTranslator:
                 return [pad + "return;"]
             if len(children) != 1:
                 raise MigrationRejected("E_C_RETURN", "Unsupported return")
+            # Return-position conditionals become control flow so only the
+            # selected operand is evaluated (an empty slice must not be read).
+            # Clang retains the conditional's common-type conversions on its
+            # operands; do not strip cast nodes or eagerly evaluate both arms.
+            returned = children[0]
+            while returned.get("kind") == "ParenExpr" and len(returned.get("inner", [])) == 1:
+                returned = returned["inner"][0]
+            if returned.get("kind") == "ConditionalOperator":
+                arms = returned.get("inner", [])
+                if len(arms) != 3 or self.typ(returned["type"]) not in NUMBER | {"bool"}:
+                    raise MigrationRejected("E_C_RETURN", "Only scalar return conditionals are supported")
+                condition = truth(self.expr(arms[0]))
+                if condition.side_effect:
+                    raise MigrationRejected("E_C_EVALUATION_ORDER", "Mutating return conditions are unsupported")
+                return [f"{pad}if {condition.text} {{",
+                        *self.stmt({"kind": "ReturnStmt", "inner": [arms[1]]}, depth + 1),
+                        pad + "} else {",
+                        *self.stmt({"kind": "ReturnStmt", "inner": [arms[2]]}, depth + 1), pad + "}"]
             value = cast(self.expr(children[0]), self.current["return"])
             return [f"{pad}return {value.text};"]
         if kind in {"IfStmt", "WhileStmt"}:
@@ -498,15 +542,20 @@ class CTranslator:
                 out += [pad + "else {", *self.stmt(children[2], depth + 1), pad + "}"]
             return out
         if kind == "ForStmt":
-            if len(children) != 5 or children[1] or not all(children[i] for i in (0, 2, 3, 4)):
-                raise MigrationRejected("E_C_FOR", "Only explicit init/condition/increment C for loops are supported")
-            initial = self.stmt(children[0], depth)
+            if len(children) != 5 or children[1] or not all(children[i] for i in (2, 3, 4)):
+                raise MigrationRejected("E_C_FOR", "C for loops require an explicit condition and increment")
+            initial = self.stmt(children[0], depth) if children[0] else []
             condition = truth(self.expr(children[2]))
             if condition.side_effect:
                 raise MigrationRejected("E_C_EVALUATION_ORDER", "Mutating loop conditions are unsupported")
             return initial + [f"{pad}while {condition.text} {{", *self.stmt(children[4], depth + 1),
                               *self.stmt(children[3], depth + 1), pad + "}"]
         if kind in {"BinaryOperator", "CompoundAssignOperator"} and len(children) == 2:
+            if kind == "BinaryOperator" and node.get("opcode") == ",":
+                # The C comma operator introduces a sequence point. Only
+                # statement position is admitted; each operand must itself
+                # be a supported statement, executed exactly left to right.
+                return self.stmt(children[0], depth) + self.stmt(children[1], depth)
             lhs, rhs = self.lvalue(children[0]), self.expr(children[1])
             op = node.get("opcode", "")
             if kind == "BinaryOperator" and op != "=":

@@ -239,6 +239,9 @@ def rank_candidates(baseline, candidates, observations, *, function, bridge, obj
             _integer(observation[field], field)
     if observed["abstain"]["program_sha256"] != before.sha256:
         _reject("baseline measurement belongs to a different program")
+    supplied_search_ns = sum(row["search_ns"] for row in observed.values())
+    _integer(supplied_search_ns, "aggregate measured search cost")
+    base_lower = max(0, observed["abstain"]["runtime_ns"] - observed["abstain"]["uncertainty_ns"])
     candidate_reports, checked = [], {}
     for candidate in prepared:
         cid, program = candidate["id"], candidate["program"]
@@ -251,17 +254,26 @@ def rank_candidates(baseline, candidates, observations, *, function, bridge, obj
         elif not _same_other_functions(before, program, function):
             report["reason"] = "unselected_function_or_module_changed"
         else:
-            proved, proof = _fresh_proof(before, program, function, timeout_ms)
-            report.update(equivalence_proved=proved, proof=proof,
-                          reason="proved" if proved else "behavior_not_proved")
-            if proved:
-                checked[cid] = program
+            spent_lower = supplied_search_ns + time.perf_counter_ns() - started
+            candidate_upper = (observed[cid]["runtime_ns"] + observed[cid]["uncertainty_ns"]) * calls
+            # Already paid cost cannot decrease. These tests may refuse work,
+            # never approve a candidate or claim behavioral equivalence.
+            # Keep canonical admission and measurement bindings above, and the
+            # real native advisory invocation below, even when all are pruned.
+            report["preproof_cost_lower_bound_ns"] = spent_lower
+            if spent_lower > cap:
+                report["reason"] = "search_budget_exhausted_before_proof"
+            elif candidate_upper + spent_lower >= base_lower * calls:
+                report["reason"] = "cost_dominated_before_proof"
+            else:
+                proved, proof = _fresh_proof(before, program, function, timeout_ms)
+                report.update(equivalence_proved=proved, proof=proof,
+                              reason="proved" if proved else "behavior_not_proved")
+                if proved:
+                    checked[cid] = program
         candidate_reports.append(report)
-    supplied_search_ns = sum(row["search_ns"] for row in observed.values())
-    _integer(supplied_search_ns, "aggregate measured search cost")
     elapsed_before_rank = time.perf_counter_ns() - started
     search_at_rank = supplied_search_ns + elapsed_before_rank
-    base_lower = max(0, observed["abstain"]["runtime_ns"] - observed["abstain"]["uncertainty_ns"])
     objective_sha = _digest({"schema": SCHEMA, "objective": objective, "function": function,
                              "before_sha256": before.sha256, "before_input_sha256": before.input_sha256})
     rows = [{"id": "abstain", "cost_q32": ns_to_ms_q32(base_lower * calls),

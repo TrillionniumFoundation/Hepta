@@ -10,6 +10,18 @@ struct Loan {
     mutable: bool,
 }
 
+// Flat identities avoid recursive host destruction when a finite-step stop
+// leaves a long chain partially destroyed. Node storage and payloads remain
+// ordinary byte owners in the shared ledger, exactly as in canonical Core.
+#[derive(Clone, Copy)]
+struct ChainNode {
+    storage: u64,
+    payload: u64,
+    tail: Option<u64>,
+}
+
+const CHAIN_NODE_BYTES: u64 = 24;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -53,11 +65,102 @@ mod tests {
         memory.operation("owner.drop", &[owner]).unwrap();
         assert!(memory.is_clean());
     }
+
+    #[test]
+    fn all_bulk_bounds_are_checked_before_writes_and_copy_crosses_scratch_chunks() {
+        let mut memory = ByteMemory::new(20_000, None);
+        let source_bytes: Vec<u8> = (0..8193).map(|i| (i % 251) as u8).collect();
+        let source = memory.new_owner(source_bytes.clone());
+        let destination = memory.new_owner(vec![97; 8193]);
+        let source_id = memory.root(&source).unwrap();
+        let destination_id = memory.root(&destination).unwrap();
+        let reader = memory.operation("borrow.read", &[source.clone()]).unwrap().remove(0);
+        let writer = memory.operation("borrow.mut", &[destination.clone()]).unwrap().remove(0);
+        for (dst, src, size) in [(0, 8193, 1), (8193, 0, 1), (0, u64::MAX, 0),
+                                (u64::MAX, 0, 0), (1, 0, u64::MAX)] {
+            let before = memory.owners[&destination_id].clone();
+            assert!(matches!(memory.operation("buffer.copy_range", &[
+                writer.clone(), reader.clone(), scalar(dst), scalar(src), scalar(size)]),
+                Err(Halt::Trap("bounds"))));
+            assert_eq!(memory.owners[&destination_id], before);
+        }
+        memory.operation("buffer.copy_range", &[writer.clone(), reader.clone(),
+            scalar(1), scalar(0), scalar(8192)]).unwrap();
+        assert_eq!(memory.owners[&destination_id][0], 97);
+        assert_eq!(&memory.owners[&destination_id][1..], &source_bytes[..8192]);
+        assert_eq!(memory.owners[&source_id], source_bytes);
+        memory.operation("buffer.copy_range", &[writer.clone(), reader.clone(),
+            scalar(8193), scalar(8193), scalar(0)]).unwrap();
+        memory.operation("loan.end", &[writer]).unwrap();
+        memory.operation("loan.end", &[reader]).unwrap();
+        memory.operation("owner.drop", &[destination]).unwrap();
+        memory.operation("owner.drop", &[source]).unwrap();
+        assert!(memory.is_clean());
+    }
+
+    #[test]
+    fn overlapping_move_is_memmove_and_failed_ranges_do_not_partially_mutate() {
+        for (dst, src, expected) in [(1, 0, vec![1, 1, 2, 3, 4]),
+                                     (0, 1, vec![2, 3, 4, 5, 5])] {
+            let mut memory = ByteMemory::new(5, None);
+            let owner = memory.new_owner(vec![1, 2, 3, 4, 5]);
+            let root = memory.root(&owner).unwrap();
+            let writer = memory.operation("borrow.mut", &[owner.clone()]).unwrap().remove(0);
+            memory.operation("buffer.move_within", &[writer.clone(), scalar(dst),
+                scalar(src), scalar(4)]).unwrap();
+            assert_eq!(memory.owners[&root], expected);
+            for (op, args) in [
+                ("buffer.move_within", vec![writer.clone(), scalar(0), scalar(4), scalar(2)]),
+                ("buffer.fill_range", vec![writer.clone(), scalar(4), scalar(2), scalar(99)]),
+                ("buffer.swap", vec![writer.clone(), scalar(0), scalar(u64::MAX)]),
+            ] {
+                assert!(matches!(memory.operation(op, &args), Err(Halt::Trap("bounds"))));
+                assert_eq!(memory.owners[&root], expected);
+            }
+            memory.operation("loan.end", &[writer]).unwrap();
+            memory.operation("owner.drop", &[owner]).unwrap();
+            assert!(memory.is_clean());
+        }
+    }
+
+    #[test]
+    fn head_reborrow_keeps_shape_frozen_and_pop_recovers_exact_payload() {
+        let mut memory = ByteMemory::new(25, None);
+        let payload = memory.operation("buffer.new", &[scalar(1)]).unwrap().remove(0);
+        let empty = memory.operation("chain.empty", &[]).unwrap().remove(0);
+        let pushed = memory.operation("chain.try_push", &[empty, payload.clone()]).unwrap();
+        let chain = pushed[0].clone();
+        memory.operation("owner.drop", &[pushed[1].clone()]).unwrap();
+        let parent = memory.operation("chain.head_mut", &[chain.clone()]).unwrap().remove(0);
+        let child = memory.operation("borrow.read", &[parent.clone()]).unwrap().remove(0);
+        for operation in ["owner.move", "chain.pop"] {
+            assert!(matches!(memory.operation(operation, &[chain.clone()]), Err(Halt::Internal)));
+        }
+        assert!(matches!(memory.begin_chain_drop(&chain), Err(Halt::Internal)));
+        assert!(matches!(memory.operation("loan.end", &[parent.clone()]), Err(Halt::Internal)));
+        memory.operation("loan.end", &[child]).unwrap();
+        memory.operation("buffer.store", &[parent.clone(), scalar(0), scalar(42)]).unwrap();
+        memory.operation("loan.end", &[parent]).unwrap();
+        let popped = memory.operation("chain.pop", &[chain]).unwrap();
+        assert_eq!(memory.root(&popped[1]).unwrap(), memory.root(&payload).unwrap());
+        assert_eq!(memory.owners[&memory.root(&popped[1]).unwrap()], vec![42]);
+        assert_eq!(memory.report(true)["chain_nodes_dropped"], 1);
+        assert_eq!(memory.report(true)["live_bytes"], 1);
+        memory.operation("owner.drop", &[popped[1].clone()]).unwrap();
+        assert!(memory.begin_chain_drop(&popped[0]).unwrap().is_none());
+        assert!(memory.is_clean());
+    }
 }
 
 pub(super) struct ByteMemory {
     owners: BTreeMap<u64, Vec<u8>>,
     loans: BTreeMap<u64, Loan>,
+    chains: BTreeMap<u64, Option<u64>>,
+    chain_nodes: BTreeMap<u64, ChainNode>,
+    chains_created: u64,
+    chains_consumed: u64,
+    chain_nodes_created: u64,
+    chain_nodes_dropped: u64,
     max_heap: u64,
     fail_at: Option<u64>,
     attempts: u64,
@@ -74,6 +177,9 @@ pub(super) struct ByteMemory {
 impl ByteMemory {
     pub(super) fn new(max_heap: u64, fail_at: Option<u64>) -> Self {
         Self { owners: BTreeMap::new(), loans: BTreeMap::new(), max_heap, fail_at,
+            chains: BTreeMap::new(), chain_nodes: BTreeMap::new(),
+            chains_created: 0, chains_consumed: 0,
+            chain_nodes_created: 0, chain_nodes_dropped: 0,
             attempts: 0, allocations: 0, frees: 0, owners_created: 0,
             owners_dropped: 0, loans_started: 0, loans_ended: 0,
             live_bytes: 0, peak_bytes: 0 }
@@ -83,6 +189,78 @@ impl ByteMemory {
         matches!(op, "buffer.new" | "buffer.try_new" | "buffer.len" |
             "borrow.read" | "borrow.mut" | "loan.end" |
             "owner.move" | "owner.drop" | "buffer.load" | "buffer.store")
+            || Self::extended(op)
+    }
+
+    pub(super) fn extended(op: &str) -> bool {
+        matches!(op, "buffer.fill" | "buffer.copy" | "buffer.move_within" |
+            "buffer.fill_range" | "buffer.copy_range" | "buffer.swap" |
+            "chain.empty" | "chain.try_push" | "chain.pop" | "chain.is_empty" |
+            "chain.head_read" | "chain.head_mut")
+    }
+
+    pub(super) fn live_chain(&self, id: u64) -> bool {
+        self.chains.contains_key(&id)
+    }
+
+    fn chain_id(&self, value: &RuntimeValue) -> Exec<u64> {
+        match value {
+            RuntimeValue::Chain(id) if self.chains.contains_key(id) => Ok(*id),
+            _ => Err(Halt::Internal),
+        }
+    }
+
+    fn new_chain(&mut self, head: Option<u64>) -> RuntimeValue {
+        self.chains_created += 1;
+        self.chains.insert(self.chains_created, head);
+        RuntimeValue::Chain(self.chains_created)
+    }
+
+    fn unborrowed_owner(&self, id: u64) -> Exec<()> {
+        if !self.owners.contains_key(&id) || self.loans.values().any(|loan| loan.root == id) {
+            return Err(Halt::Internal);
+        }
+        Ok(())
+    }
+
+    fn unborrowed_chain(&self, id: u64) -> Exec<()> {
+        if let Some(head) = self.chains.get(&id).ok_or(Halt::Internal)? {
+            // Only the head payload can have an exposed loan. Any shape
+            // change requires it ended; tail payloads were enclosed with no
+            // live loans and cannot be addressed through a chain capability.
+            self.unborrowed_owner(self.chain_nodes.get(head).ok_or(Halt::Internal)?.payload)?;
+        }
+        Ok(())
+    }
+
+    fn consume_chain(&mut self, id: u64) -> Exec<Option<u64>> {
+        self.unborrowed_chain(id)?;
+        let head = self.chains.remove(&id).ok_or(Halt::Internal)?;
+        self.chains_consumed += 1;
+        Ok(head)
+    }
+
+    pub(super) fn begin_chain_drop(&mut self, value: &RuntimeValue) -> Exec<Option<u64>> {
+        let id = self.chain_id(value)?;
+        self.consume_chain(id)
+    }
+
+    pub(super) fn drop_chain_node(&mut self, id: u64) -> Exec<Option<u64>> {
+        let node = *self.chain_nodes.get(&id).ok_or(Halt::Internal)?;
+        self.drop_owner(node.payload)?;
+        self.drop_owner(node.storage)?;
+        self.chain_nodes.remove(&id).ok_or(Halt::Internal)?;
+        self.chain_nodes_dropped += 1;
+        Ok(node.tail)
+    }
+
+    fn drop_owner(&mut self, id: u64) -> Exec<()> {
+        self.unborrowed_owner(id)?;
+        let bytes = self.owners.remove(&id).ok_or(Halt::Internal)?;
+        self.owners_dropped += 1;
+        if !bytes.is_empty() { self.frees += 1; }
+        self.live_bytes -= bytes.len() as u64;
+        Ok(())
     }
 
     pub(super) fn loan_type(&self, id: u64) -> Option<&'static str> {
@@ -169,7 +347,39 @@ impl ByteMemory {
         value.scalar()?.as_u64().ok_or(Halt::Internal)
     }
 
+    fn argument(args: &[RuntimeValue], index: usize) -> Exec<u64> {
+        Self::unsigned(args.get(index).ok_or(Halt::Internal)?)
+    }
+
+    fn range(&self, root: u64, offset: u64, size: u64) -> Exec<(usize, usize)> {
+        let length = self.owners.get(&root).ok_or(Halt::Internal)?.len() as u64;
+        if offset > length || size > length - offset { return Err(Halt::Trap("bounds")); }
+        Ok((usize::try_from(offset).map_err(|_| Halt::Internal)?,
+            usize::try_from(size).map_err(|_| Halt::Internal)?))
+    }
+
+    fn copy_range(&mut self, destination: u64, source: u64,
+                  dst_offset: u64, src_offset: u64, size: u64) -> Exec<()> {
+        if destination == source { return Err(Halt::Internal); }
+        // Validate BOTH complete ranges before the first write. Use fixed
+        // scratch rather than allocating another size-proportional buffer.
+        let (dst_offset, size) = self.range(destination, dst_offset, size)?;
+        let (src_offset, _) = self.range(source, src_offset, size as u64)?;
+        let mut scratch = [0_u8; 4096];
+        let mut copied = 0;
+        while copied < size {
+            let count = (size - copied).min(scratch.len());
+            scratch[..count].copy_from_slice(
+                &self.owners[&source][src_offset + copied..src_offset + copied + count]);
+            self.owners.get_mut(&destination).ok_or(Halt::Internal)?[
+                dst_offset + copied..dst_offset + copied + count].copy_from_slice(&scratch[..count]);
+            copied += count;
+        }
+        Ok(())
+    }
+
     pub(super) fn operation(&mut self, op: &str, args: &[RuntimeValue]) -> Exec<Vec<RuntimeValue>> {
+        if op == "chain.empty" { return Ok(vec![self.new_chain(None)]); }
         let first = args.first().ok_or(Halt::Internal)?;
         match op {
             "buffer.new" | "buffer.try_new" => {
@@ -201,6 +411,10 @@ impl ByteMemory {
                 Ok(vec![])
             }
             "owner.move" => {
+                if let RuntimeValue::Chain(id) = first {
+                    self.unborrowed_chain(*id)?;
+                    return Ok(vec![first.clone()]);
+                }
                 let RuntimeValue::Owner(id) = first else { return Err(Halt::Internal); };
                 self.root(first)?;
                 if self.loans.values().any(|loan| loan.root == *id) { return Err(Halt::Internal); }
@@ -208,12 +422,64 @@ impl ByteMemory {
             }
             "owner.drop" => {
                 let RuntimeValue::Owner(id) = first else { return Err(Halt::Internal); };
-                if self.loans.values().any(|loan| loan.root == *id) { return Err(Halt::Internal); }
-                let bytes = self.owners.remove(id).ok_or(Halt::Internal)?;
-                self.owners_dropped += 1;
-                if !bytes.is_empty() { self.frees += 1; }
-                self.live_bytes -= bytes.len() as u64;
+                self.drop_owner(*id)?;
                 Ok(vec![])
+            }
+            "chain.try_push" => {
+                let chain = self.chain_id(first)?;
+                self.unborrowed_chain(chain)?;
+                let RuntimeValue::Owner(payload) = args.get(1).ok_or(Halt::Internal)?
+                    else { return Err(Halt::Internal); };
+                self.unborrowed_owner(*payload)?;
+                let head = self.chains[&chain];
+                let (storage, success) = self.allocate(CHAIN_NODE_BYTES, true)?;
+                let RuntimeValue::Owner(storage) = storage else { return Err(Halt::Internal); };
+                if success {
+                    self.chain_nodes_created += 1;
+                    self.chain_nodes.insert(self.chain_nodes_created,
+                        ChainNode { storage, payload: *payload, tail: head });
+                    let fallback = self.new_owner(Vec::new());
+                    self.consume_chain(chain)?;
+                    let new_chain = self.new_chain(Some(self.chain_nodes_created));
+                    Ok(vec![new_chain, fallback, RuntimeValue::Scalar(json!(true))])
+                } else {
+                    self.drop_owner(storage)?;
+                    self.consume_chain(chain)?;
+                    let new_chain = self.new_chain(head);
+                    Ok(vec![new_chain, RuntimeValue::Owner(*payload), RuntimeValue::Scalar(json!(false))])
+                }
+            }
+            "chain.pop" => {
+                let chain = self.chain_id(first)?;
+                let head = self.consume_chain(chain)?;
+                if let Some(id) = head {
+                    let node = self.chain_nodes.remove(&id).ok_or(Halt::Internal)?;
+                    self.drop_owner(node.storage)?;
+                    self.chain_nodes_dropped += 1;
+                    Ok(vec![self.new_chain(node.tail), RuntimeValue::Owner(node.payload),
+                            RuntimeValue::Scalar(json!(true))])
+                } else {
+                    let chain = self.new_chain(None);
+                    let empty = self.new_owner(Vec::new());
+                    Ok(vec![chain, empty, RuntimeValue::Scalar(json!(false))])
+                }
+            }
+            "chain.is_empty" => {
+                let chain = self.chain_id(first)?;
+                Ok(vec![RuntimeValue::Scalar(json!(self.chains[&chain].is_none()))])
+            }
+            "chain.head_read" | "chain.head_mut" => {
+                let chain = self.chain_id(first)?;
+                let head = self.chains[&chain].ok_or(Halt::Trap("bounds"))?;
+                let root = self.chain_nodes.get(&head).ok_or(Halt::Internal)?.payload;
+                let mutable = op == "chain.head_mut";
+                if self.loans.values().any(|loan| loan.root == root && (mutable || loan.mutable)) {
+                    return Err(Halt::Internal);
+                }
+                self.loans_started += 1;
+                self.loans.insert(self.loans_started,
+                    Loan { root, mutable, parent: RuntimeValue::Owner(root) });
+                Ok(vec![RuntimeValue::Loan(self.loans_started)])
             }
             "buffer.load" | "buffer.store" => {
                 let root = self.access(first, op == "buffer.store")?;
@@ -227,12 +493,58 @@ impl ByteMemory {
                     Ok(vec![])
                 } else { Ok(vec![RuntimeValue::Scalar(json!(data[index]))]) }
             }
+            "buffer.fill" | "buffer.fill_range" => {
+                let root = self.access(first, true)?;
+                let (offset, size, value) = if op == "buffer.fill" {
+                    (0, self.owners[&root].len() as u64, Self::argument(args, 1)?)
+                } else {
+                    (Self::argument(args, 1)?, Self::argument(args, 2)?, Self::argument(args, 3)?)
+                };
+                let (offset, size) = self.range(root, offset, size)?;
+                let value = u8::try_from(value).map_err(|_| Halt::Internal)?;
+                self.owners.get_mut(&root).ok_or(Halt::Internal)?[offset..offset + size].fill(value);
+                Ok(vec![])
+            }
+            "buffer.copy" | "buffer.copy_range" => {
+                let destination = self.access(first, true)?;
+                let source = self.access(args.get(1).ok_or(Halt::Internal)?, false)?;
+                let (dst_offset, src_offset, size) = if op == "buffer.copy" {
+                    (0, 0, Self::argument(args, 2)?)
+                } else {
+                    (Self::argument(args, 2)?, Self::argument(args, 3)?, Self::argument(args, 4)?)
+                };
+                self.copy_range(destination, source, dst_offset, src_offset, size)?;
+                Ok(vec![])
+            }
+            "buffer.move_within" => {
+                let root = self.access(first, true)?;
+                let destination = Self::argument(args, 1)?;
+                let source = Self::argument(args, 2)?;
+                let size = Self::argument(args, 3)?;
+                let (destination, size) = self.range(root, destination, size)?;
+                let (source, _) = self.range(root, source, size as u64)?;
+                self.owners.get_mut(&root).ok_or(Halt::Internal)?
+                    .copy_within(source..source + size, destination);
+                Ok(vec![])
+            }
+            "buffer.swap" => {
+                let root = self.access(first, true)?;
+                let left = Self::argument(args, 1)?;
+                let right = Self::argument(args, 2)?;
+                let (left, _) = self.range(root, left, 1)?;
+                let (right, _) = self.range(root, right, 1)?;
+                self.owners.get_mut(&root).ok_or(Halt::Internal)?.swap(left, right);
+                Ok(vec![])
+            }
             _ => Err(Halt::Internal),
         }
     }
 
     pub(super) fn is_clean(&self) -> bool {
         self.owners.is_empty() && self.loans.is_empty() && self.live_bytes == 0
+            && self.chains.is_empty() && self.chain_nodes.is_empty()
+            && self.chains_created == self.chains_consumed
+            && self.chain_nodes_created == self.chain_nodes_dropped
             && self.loans_started == self.loans_ended
     }
 
@@ -246,12 +558,12 @@ impl ByteMemory {
             "loans_ended": self.loans_ended, "live_local_loans": self.loans.len()
         });
         if v7 {
-            // The v7 Python ledger includes chain counters even in a program
-            // with no chain opcode. This execution profile never admits one.
-            for field in ["chains_created", "chains_consumed", "live_chains",
-                          "chain_nodes_created", "chain_nodes_dropped", "live_chain_nodes"] {
-                report[field] = json!(0);
-            }
+            report["chains_created"] = json!(self.chains_created);
+            report["chains_consumed"] = json!(self.chains_consumed);
+            report["live_chains"] = json!(self.chains.len());
+            report["chain_nodes_created"] = json!(self.chain_nodes_created);
+            report["chain_nodes_dropped"] = json!(self.chain_nodes_dropped);
+            report["live_chain_nodes"] = json!(self.chain_nodes.len());
         }
         report
     }

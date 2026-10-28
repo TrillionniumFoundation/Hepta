@@ -87,7 +87,7 @@ def qualify():
             "full_P2_closed": False,
         },
         "limits": [
-            "Finite corpus and whole-module byte-op whitelist; no chain/bulk/nominal execution.",
+            "This finite v2 corpus covers byte owners; the separate v3 owned-memory corpus qualifies bulk/chains and canonically lowered composites.",
             "Public scalar signatures only; 32 call frames, at most 1M steps and 16MiB live bytes.",
             "Trap and evaluator budget stops retain actual live-resource ledgers; no unwind cleanup claim.",
             "Python Core remains production authority; this is neither a native backend nor a soundness proof.",

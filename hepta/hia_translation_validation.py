@@ -256,8 +256,17 @@ class _Encoder:
             env = {}
             for index, param in enumerate(block["params"]):
                 value = self.zero(param["type"])
-                for edge_guard, values in arrivals:
-                    value = self.choose(edge_guard, values[index], value, param["type"])
+                if len(arrivals) == 1:
+                    # On every execution of this block its only edge guard is
+                    # true, so its argument is the phi value. Off that guard,
+                    # values are unobservable: traps, outcomes and successor
+                    # edges below retain the complete reachability guard.
+                    # Scalar BV expressions themselves are total in Z3.
+                    value = arrivals[0][1][index]
+                else:
+                    # Preserve zero-arrival defaults and all guarded merges.
+                    for edge_guard, values in arrivals:
+                        value = self.choose(edge_guard, values[index], value, param["type"])
                 env[param["name"]] = value
             for op in block["ops"]:
                 value, traps = self.operation(op, env, types)

@@ -203,10 +203,10 @@ class RustByteOwnerVmParity(unittest.TestCase):
         bulk = resource_program()
         bulk["schema"] = "hepta.hia.program.v2"
         bulk["functions"][0]["blocks"][0]["ops"].insert(
-            2, i("buffer.fill", ["writer", "value"]))
+            2, i("buffer.fill.future", ["writer", "value"]))
         variants.append((bulk, "owned", [4, 7]))
         # Additional functions and resource CFG/calls are now supported by
-        # bounded-cfg-byte-owner-v2. Still reject a genuinely unsupported
+        # bounded-cfg-byte-owner-v2, and bulk/chain operations by v3. Reject a genuinely unsupported
         # operation in an uncalled private helper before executing the entry.
         hidden = resource_program()
         hidden["schema"] = "hepta.hia.program.v2"
@@ -214,21 +214,21 @@ class RustByteOwnerVmParity(unittest.TestCase):
         hidden["functions"].append(f("hidden", [("view", "mutbuf"), ("byte", "u8")],
                                     [], ["write"], [
             b("hidden_entry", [("view", "mutbuf"), ("byte", "u8")],
-              [i("buffer.fill", ["view", "byte"])], ret())]))
+              [i("buffer.fill.future", ["view", "byte"])], ret())]))
         variants.append((hidden, "owned", [4, 7]))
         for source, entry, args in variants:
-            raw = verify_program(source).canonical_bytes
+            with self.assertRaises(HIAProgramRejected):
+                verify_program(source)
+            raw = json.dumps(source).encode()
             result = self.raw_run(raw, entry, args, fail=1)
             self.assertNotEqual(result.returncode, 0)
             self.assertTrue(result.stderr.startswith(b"E_HIA_RUST_UNSUPPORTED:"), result.stderr)
             self.assertEqual(result.stdout, b"")
-        chain = (ROOT / "examples/hia_recursive_chain/core_v7.json").read_bytes()
         nominal = (ROOT / "examples/hia_program/generic_owned_enum.hia").read_bytes()
         verify_program(nominal)
-        # Primitive chain reaches the execution profile and is unsupported;
-        # a raw nominal document is outside the existing strict Rust schema.
+        # A raw nominal document remains outside the strict Rust schema;
+        # canonical Python lowering is required before primitive execution.
         for raw, entry, error in (
-            (chain, "chain_probe", b"E_HIA_RUST_UNSUPPORTED:"),
             (nominal, "probe", b"E_HIA_FORMAT:"),
         ):
             result = self.raw_run(raw, entry, [])

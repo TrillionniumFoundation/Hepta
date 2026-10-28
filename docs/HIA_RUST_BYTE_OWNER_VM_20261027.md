@@ -1,5 +1,12 @@
 # Executed Rust byte-owner shadow: finite profile
 
+This document records the byte-only v2 boundary and its historical evidence.
+The same Machine now has a separately identified v3 bulk/chain capability set;
+see [owned-memory v3](HIA_RUST_OWNED_MEMORY_VM_20261028.md) for its exact scope,
+source projection-borrow lowering and independent execution collector.
+Byte-only modules retain the v2 report profile described here. Historical
+counts below do not qualify the v3 implementation or an integrated revision.
+
 The existing Rust scalar `Machine` now has an explicitly enabled, bounded byte
 storage component. `--owned-run` executes a finite primitive HIA buffer/loan
 profile after the existing `verify_owned` admission check. This does not change

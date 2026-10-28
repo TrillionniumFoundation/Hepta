@@ -34,6 +34,16 @@ check, loaded-library identity and bindings digest. Its prior 4.13.4 results are
 historical. The integration regression exercises both engines concurrently with
 fresh independent Z3 contexts and tests their deliberately different scopes.
 
+The finite action set now also includes explicit scalar equality guards with
+specialized and generic clones. The guard remains executable Core, and every
+selected candidate still requires fresh all-input validation. A narrow
+single-arrival parameter-encoding reduction preserves reachability and first
+traps; independent tests compare it with the prior encoding. An already-paid
+cost lower bound may skip dominated proof work but never grants admission.
+See [HIA_GUARDED_SPECIALIZATION_20261028.md](HIA_GUARDED_SPECIALIZATION_20261028.md)
+for the frozen real-NDU experiment, equal-information controls and separate
+direct-baseline deployment accounting. Its results retain their tested SHA.
+
 ## Two native NDU transports, no implicit protocol fallback
 
 The shared NDU evaluator is advisory in both transports. The candidate-cost bridge
@@ -72,6 +82,26 @@ preparation cost before a conditional publication. Neither implements general
 live owner/loan/state migration. The runtime's actual Linux sealing/readback
 checks remain mandatory even when Python lacks named `fcntl` constants; test
 readiness now reflects Linux/memfd capability instead of those Python names.
+
+The subsequent resource increment extends the same Rust Machine with canonical
+bulk operations and v7 chains, including stopped destructor ledgers. It retains
+the v2 byte-only report and uses an explicit v3 execution profile for extended
+modules; see [HIA_RUST_OWNED_MEMORY_VM_20261028.md](HIA_RUST_OWNED_MEMORY_VM_20261028.md).
+Source returned projection borrows still use the existing checked inlining;
+primitive cross-call Loan returns remain rejected.
+
+Captured C source spelling, semantic driver dependencies and decayed array/
+function-attribute ABI refusals are now checked before translation, including
+the record-view route. [C_MUSL_COMPARE.md](C_MUSL_COMPARE.md) describes migration
+of two unchanged, complete musl 1.2.5 comparison components. Its finite native
+oracle and authored platform/contract adapters do not imply a whole-libc build
+or general C++ translation. The existing C++ reuse and ownership gates remain.
+
+[HIA_SCALAR_STATE.md](HIA_SCALAR_STATE.md) adds one explicit scalar state value
+on top of the existing generation-lease runtime. All-input equivalence includes
+that state argument; revision checks prevent duplicate commits, cooperative
+cancellation can discard an in-flight result, and rollback changes code without
+rewinding data. Heap/loan/stack migration and profitability remain unestablished.
 
 ## Fresh integrated qualification
 

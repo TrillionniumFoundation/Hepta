@@ -1,0 +1,21 @@
+module borrowed_projection;
+
+struct Packet { data: Buffer<u8>, tag: u64 }
+
+fn view(packet: read Packet) -> read [u8] from packet effects {} {
+    return read packet.data;
+}
+
+fn edit_view(packet: mut Packet) -> mut [u8] from packet effects {} {
+    return mut packet.data;
+}
+
+pub fn projection_probe(size: usize, value: u8) -> u8 effects {alloc, block, panic, write} {
+    let mut packet = Packet {data: buffer(size), tag: 9};
+    packet.data[0] = value;
+    let observed = edit_view(mut packet)[0];
+    packet.data[0] = observed ^ 90;
+    let answer = view(read packet)[0];
+    drop(move packet);
+    return answer;
+}

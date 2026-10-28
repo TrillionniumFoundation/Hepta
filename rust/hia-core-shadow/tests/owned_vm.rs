@@ -108,12 +108,12 @@ fn unsupported_suffix_rejects_before_a_hiding_allocator_failure() {
     let mut source = roundtrip();
     source["schema"] = json!("hepta.hia.program.v2");
     source["functions"][0]["blocks"][0]["ops"].as_array_mut().unwrap().insert(4,
-        json!({"op":"buffer.fill","args":["view","byte"],"out":[],"attrs":{}}));
+        json!({"op":"buffer.fill.future","args":["view","byte"],"out":[],"attrs":{}}));
     let raw = serde_json::to_vec(&source).unwrap();
-    assert!(verify_owned(&raw).is_ok());
+    assert!(verify_owned(&raw).is_err());
     let error = execute_owned(&raw, "probe", &[json!(4)], 100, 100, Some(1)).unwrap_err();
     assert_eq!(error.code, "E_HIA_RUST_UNSUPPORTED");
-    assert!(error.detail.contains("buffer.fill"));
+    assert!(error.detail.contains("buffer.fill.future"));
 }
 
 #[test]

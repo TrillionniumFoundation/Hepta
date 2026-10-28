@@ -265,7 +265,7 @@ class RustByteOwnerCfgParity(unittest.TestCase):
             self.assertEqual(report["resources"]["live_local_loans"], 2)
             self.assertEqual(report["resources"]["owners_dropped"], 0)
 
-    def test_hidden_bulk_or_chain_reject_before_entry_allocation_failure(self):
+    def test_unknown_hidden_opcode_rejects_before_entry_allocation_failure(self):
         for kind in ("bulk", "chain"):
             source = call_owner()
             source["schema"] = "hepta.hia.program.v7"
@@ -277,8 +277,13 @@ class RustByteOwnerCfgParity(unittest.TestCase):
                       f("hidden", [("list", "chain")], [], ["trap"], [
                           b("hidden_entry", [("list", "chain")], [], {"op": "trap", "code": "user"})]))
             source["functions"].append(helper)
-            canonical = verify_program(source)
-            result = self.raw_run(canonical.canonical_bytes, "use", [4], steps=1, fail=1)
+            # Bulk and chain operations now execute in the v3 profile. Keep
+            # this preflight negative about a genuinely unmodeled operation.
+            verify_program(source)
+            helper["blocks"][0]["ops"].append(i("resource.future"))
+            with self.assertRaises(HIAProgramRejected):
+                verify_program(source)
+            result = self.raw_run(json.dumps(source).encode(), "use", [4], steps=1, fail=1)
             self.assertNotEqual(result.returncode, 0)
             self.assertEqual(result.stdout, b"")
             self.assertTrue(result.stderr.startswith(b"E_HIA_RUST_UNSUPPORTED:"), result.stderr)

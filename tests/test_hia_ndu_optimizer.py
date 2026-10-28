@@ -131,6 +131,28 @@ class NativeProofGatedRankingTests(unittest.TestCase):
         self.assertFalse(result["admitted"])
         self.assertEqual(result["selected_program"], verify_program(self.baseline).as_dict())
 
+    def test_cost_dominated_candidate_is_not_proved_or_marked_safe(self):
+        self.observations["cancel"].update(runtime_ns=100_000, uncertainty_ns=1)
+        with patch("hepta.hia_ndu_optimizer.validate_translation", side_effect=AssertionError("unneeded proof")):
+            result = self.rank()
+        report = result["candidate_reports"][0]
+        self.assertFalse(result["admitted"])
+        self.assertEqual(report["reason"], "cost_dominated_before_proof")
+        self.assertIsNone(report["proof"])
+        self.assertFalse(report["equivalence_proved"])
+        self.assertTrue(result["native_request"]["candidates"][1]["hard_violation"])
+        self.assertEqual(result["native_response"]["authority"], "ADVISORY_ONLY")
+
+    def test_exhausted_budget_skips_proof_but_still_binds_candidate_and_bridge(self):
+        self.objective["resource_cap_ns"] = 0
+        with patch("hepta.hia_ndu_optimizer.validate_translation", side_effect=AssertionError("unneeded proof")):
+            result = self.rank()
+        self.assertFalse(result["admitted"])
+        self.assertEqual(result["candidate_reports"][0]["reason"], "search_budget_exhausted_before_proof")
+        self.observations["cancel"]["program_sha256"] = "0" * 64
+        with self.assertRaises(OptimizationRejected):
+            self.rank()
+
     def test_fresh_selected_proof_can_still_refuse_native_recommendation(self):
         def proof(before, after, **kwargs):
             proof.calls += 1
