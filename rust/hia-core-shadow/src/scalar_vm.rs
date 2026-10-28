@@ -215,7 +215,7 @@ impl<'a> Machine<'a> {
         let by_name: BTreeMap<&str, &Value> = blocks.iter()
             .map(|b| (b["id"].as_str().unwrap_or(""), b)).collect();
         let mut current = function["entry"].as_str().ok_or(Halt::Internal)?;
-        let mut env = bind(&function["params"], args)?;
+        let mut env = bind(&function["params"], args.clone())?;
         loop {
             let block = *by_name.get(current).ok_or(Halt::Internal)?;
             for op in block["ops"].as_array().ok_or(Halt::Internal)? {
@@ -282,7 +282,20 @@ impl<'a> Machine<'a> {
             self.tick()?;
             let term = &block["term"];
             match term["op"].as_str().ok_or(Halt::Internal)? {
-                "ret" => return resolve(&env, &term["values"]),
+                "ret" => {
+                    let mut values = resolve(&env, &term["values"])?;
+                    if let Some(origins) = function.get("return_origins") {
+                        let formal = function["params"].as_array().ok_or(Halt::Internal)?;
+                        for (index, origin) in origins.as_array().ok_or(Halt::Internal)?.iter().enumerate() {
+                            if origin.is_null() { continue; }
+                            let position = formal.iter().position(|p| p["name"] == *origin)
+                                .ok_or(Halt::Internal)?;
+                            values[index] = self.memory.as_mut().ok_or(Halt::Internal)?.return_loan(
+                                &args[position], &values[index], function["returns"][index] == "mutbuf")?;
+                        }
+                    }
+                    return Ok(values);
+                }
                 "trap" => {
                     let code = term["code"].as_str().ok_or(Halt::Internal)?;
                     return match code {
@@ -389,6 +402,7 @@ fn execute(input: &[u8], function: &str, arguments: &[Value], max_steps: u64,
     let verification = if owned_policy.is_some() { verify_owned(input)? } else { verify(input)? };
     let (document, _) = decode_hia(input)?;
     let extended = if owned_policy.is_some() { owned_execution_profile(&document)? } else { false };
+    let returned_loans = document["schema"] == "hepta.hia.program.v8";
     let functions = document["functions"].as_array().ok_or_else(|| super::VerifyError {
         code: "E_HIA_FORMAT", detail: "missing verified function inventory".into(),
     })?;
@@ -446,9 +460,10 @@ fn execute(input: &[u8], function: &str, arguments: &[Value], max_steps: u64,
     });
     if let Some(memory) = machine.memory.as_ref() {
         report["schema"] = json!("hepta.hia.rust-byte-owner-execution.v1");
-        report["profile"] = json!(if extended { "bounded-cfg-owned-memory-v3" }
+        report["profile"] = json!(if returned_loans { "bounded-cfg-returned-loan-v4" }
+                                  else if extended { "bounded-cfg-owned-memory-v3" }
                                   else { "bounded-cfg-byte-owner-v2" });
-        report["resources"] = memory.report(document["schema"] == "hepta.hia.program.v7");
+        report["resources"] = memory.report(document["schema"] == "hepta.hia.program.v7" || returned_loans);
         report["max_heap_bytes"] = json!(owned_policy.unwrap().0);
         report["allocation_fail_at"] = json!(owned_policy.unwrap().1);
         report["claims"] = json!({
@@ -458,6 +473,7 @@ fn execute(input: &[u8], function: &str, arguments: &[Value], max_steps: u64,
             "scalar_public_entry_and_results_only": true,
             "verified_resource_cfg_execution": true,
             "interprocedural_byte_owner_and_loan_execution": true,
+            "explicit_parameter_returned_loan_execution": returned_loans,
             "chain_and_bulk_execution": extended,
             "interprocedural_chain_execution": extended,
             "general_resource_execution": false,

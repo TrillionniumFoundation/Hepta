@@ -14,8 +14,8 @@ call absent from the interpreter's resource ledger.
 
 | Stage | Integrated implementation and executable evidence | Remaining obligation before the complete goal can pass |
 | --- | --- | --- |
-| 1. Semantics and format | Shared `hia_schema` registry; distinct nominal namespace; primitive v1–v7 grammar rules; explicit legacy adapter; normalization, loading, editing, interpretation and native code use reverified Core | New frontends/backends must use the same registry and cannot infer a grammar from conflicting legacy fields |
-| 2. Resource composition | Generic products/enums, local stored/reborrowed loans, direct record-field borrowing, fallible allocation and cooperative cancellation compose with bulk/move/swap/offset/range memory operations; v7 adds dynamically allocated recursive buffer chains and composite v2 composition | General recursive heap ADTs/trees, escaping stored borrows, general asynchronous scheduling and channels remain unsupported |
+| 1. Semantics and format | Shared `hia_schema` registry; distinct nominal namespace; primitive v1–v8 grammar rules; explicit legacy adapter; normalization, loading, editing, interpretation and native code use reverified Core | New frontends/backends must use the same registry and cannot infer a grammar from conflicting legacy fields; v8 native scope is Linux x86-64 |
+| 2. Resource composition | Generic products/enums, local stored/reborrowed loans, direct record-field borrowing, fallible allocation and cooperative cancellation compose with bulk/move/swap/offset/range memory operations; v7 adds dynamically allocated recursive buffer chains and composite v2 composition; v8 adds explicit parameter-origin returned byte loans | General recursive heap ADTs/trees, escaping stored borrows, general asynchronous scheduling and channels remain unsupported |
 | 3. Source/Core/machine correspondence | Source adapters feed independent Core admission; native/interpreter controls cover scalar, control, ownership and failure paths; a selected actual Core program has a separate Lean operational model and checked universal arithmetic property | The selected theorem does not prove the Python exporter, every verifier rule, LLVM refinement or whole-compiler soundness |
 | 4. C migration | Complete compilation-database partitions; every active declaration has a disposition; finite standalone HIA modules plus unchanged upstream Ring-Buffer and an independent caller TU through contracted safe Hepta/Rust migration | Arbitrary C, unlisted macro configurations, inferred resource contracts and migration labor cost are unqualified; record-view migration is not standalone HIA lowering |
 | 5. C++ migration | Owner/template native paths remain separate from new multi-object RAII bridges; real vector/deque and two nlohmann/json releases exercise copied-value dependencies, reverse destruction and publication after cleanup | General templates/STL, arbitrary object models and historical-library replacement are unqualified; foreign noexcept termination is retained and cannot be counted as recovery |
@@ -58,17 +58,16 @@ collector uses the selected `--cargo` and `--rustc` and places
 in the example above.
 
 Within primitive v1–v7, the default Rust checker and `--scalar-run` accept
-only resource-free scalar programs. `--owned-shadow` statically checks the
-typed owner/loan CFG subset, including v7 chain transitions. `--owned-run`
-executes verified byte-owner CFG/loops and internal owner/loan calls with scalar
-public entry/results and ten byte-owner/loan operations. Its v2 execution
-profile shares one ledger across bounded frames and rejects bulk operations,
-chains and direct nominal input. Python Core remains the standalone/native
-admission authority.
+only resource-free scalar programs and reject v8. `--owned-shadow` statically
+checks the typed resource CFG through v8. `--owned-run` selects finite byte,
+bulk/chain, or returned-loan execution profiles on one bounded shared ledger.
+Nominal input first requires canonical normalization; v8 does not change that
+normalization. Python Core remains the standalone/native admission authority.
 See the [consumer support table](HIA_PROGRAM.md) and
 [finite Rust execution profile](HIA_RUST_BYTE_OWNER_VM_20261027.md).
-The static budget analyzer rejects v7 instead of counting a dynamic
-chain destructor as one constant-time/free event.
+The static budget analyzer rejects v7/v8 instead of counting a dynamic
+chain destructor as one constant-time/free event or assuming a returned-loan
+budget contract without its own review.
 
 Run the full Linux native-isolation suite with a native Linux Python exposing
 `fcntl.F_ADD_SEALS`, `F_GET_SEALS`, `F_SEAL_WRITE`, `F_SEAL_GROW`,

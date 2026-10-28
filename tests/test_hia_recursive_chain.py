@@ -13,7 +13,7 @@ from hepta.hia_program import HIAProgramRejected, verify_program
 from hepta.hia_program_llvm import build_program_native
 from hepta.hia_program_runtime import HIAProgramBudgetExceeded, HIAProgramTrap, execute_program
 from hepta.hia_schema import (COMPOSITE_SCHEMA, COMPOSITE_SCHEMA_V2, SCHEMA_V6,
-                              SCHEMA_V7, composite_core_schema, profile_for_schema,
+                              SCHEMA_V7, SCHEMA_V8, composite_core_schema, profile_for_schema,
                               schema_registry, supports_feature)
 from tests.test_hia_program import b, c, f, i, ret
 from tools.qualify_hia_recursive_chain import (EXAMPLES, independent_spec,
@@ -56,7 +56,8 @@ class HIARecursiveChainTests(unittest.TestCase):
         self.assertEqual(composite_core_schema(COMPOSITE_SCHEMA_V2), SCHEMA_V7)
         self.assertTrue(supports_feature(SCHEMA_V7, "recursive_chain"))
         self.assertFalse(supports_feature(SCHEMA_V6, "recursive_chain"))
-        self.assertEqual(schema_registry()["latest_core_schema"], SCHEMA_V7)
+        self.assertEqual(schema_registry()["latest_core_schema"], SCHEMA_V8)
+        self.assertFalse(supports_feature(SCHEMA_V7, "returned_loan"))
         self.assertIn("v7", profile_for_schema(COMPOSITE_SCHEMA_V2))
         for name, program in self.programs.items():
             with self.subTest(name=name):

@@ -58,6 +58,51 @@ class RouteTests(unittest.TestCase):
             with patch("hepta.parser.parse", side_effect=AssertionError("execution reparsed source")):
                 self.assertEqual(execute_core(core, "sum_rows", [5])["result"], 18)
 
+    def test_explicit_v8_source_route_keeps_returned_loans_and_cannot_override_wire_bytes(self):
+        source_path = Path(__file__).resolve().parents[1] / "examples/hia_returned_loans/returned_views.hepta"
+        source = source_path.read_text()
+        from hepta.hia_program_source import HIAProgramSourceRejected
+        # This branching helper needs explicit v8; the older projection-only
+        # source profile must keep refusing it rather than choosing a schema.
+        with self.assertRaises(HIAProgramSourceRejected):
+            admit_route("hepta-source", source)
+        legacy = admit_route("hepta-source", "pub fn identity(x:u8)->u8 effects{} { return x; }")
+        current = admit_route("hepta-source", source, core_schema="hepta.hia.program.v8")
+        self.assertEqual(legacy.as_dict()["schema"], "hepta.hia.program.v1")
+        self.assertEqual(current.as_dict()["schema"], "hepta.hia.program.v8")
+        functions = {f["name"]: f for f in current.as_dict()["functions"]}
+        self.assertEqual(functions["view"]["return_origins"], [functions["view"]["params"][0]["name"]])
+        self.assertEqual(functions["edit"]["return_origins"], [functions["edit"]["params"][0]["name"]])
+        calls = [op["attrs"]["function"] for b in functions["probe"]["blocks"] for op in b["ops"] if op["op"] == "call"]
+        self.assertEqual(calls, ["edit", "view"])
+        result = execute_route("hepta-source", source, "probe", [1, 42, True],
+                               context={"core_schema": "hepta.hia.program.v8"})
+        self.assertEqual(result["result"], 42 ^ 90)
+        self.assertEqual(result["resources"]["live_local_loans"], 0)
+        for route, payload in (("standalone-hia", current), ("legacy-executable", {}),
+                               ("legacy-scalar", {}), ("legacy-composite-v2", {})):
+            with self.assertRaisesRegex(RouteRejected, "cannot override"):
+                admit_route(route, payload, core_schema="hepta.hia.program.v1")
+
+    def test_cli_v8_lower_and_run_use_the_same_explicit_contract(self):
+        source = Path(__file__).resolve().parents[1] / "examples/hia_returned_loans/returned_views.hepta"
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "returned.json"
+            stream = io.StringIO()
+            with contextlib.redirect_stdout(stream):
+                self.assertEqual(main(["hia", "lower", str(source), "--core-schema",
+                    "hepta.hia.program.v8", "-o", str(output)]), 0)
+            self.assertEqual(json.loads(output.read_text())["schema"], "hepta.hia.program.v8")
+            stream = io.StringIO()
+            with contextlib.redirect_stdout(stream):
+                self.assertEqual(main(["hia", "run", str(output), "--function", "probe",
+                                       "--arguments", "[1,42,false]"]), 0)
+            report = json.loads(stream.getvalue())
+            self.assertEqual(report["result"], 42 ^ 90)
+            self.assertEqual(report["resources"]["live_owners"], 0)
+            with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                main(["hia", "lower", str(source), "--core-schema", "hepta.hia.program.v7"])
+
     def test_source_and_legacy_share_resource_and_failure_semantics(self):
         old = lower_executable_core(parse(OWNED, "owned.hepta"))
         programs = [admit_route("hepta-source", OWNED),

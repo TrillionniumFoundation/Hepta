@@ -267,6 +267,26 @@ impl ByteMemory {
         self.loans.get(&id).map(|loan| if loan.mutable { "mutbuf" } else { "readbuf" })
     }
 
+    pub(super) fn return_loan(&mut self, parent: &RuntimeValue, value: &RuntimeValue,
+                             mutable: bool) -> Exec<RuntimeValue> {
+        let (RuntimeValue::Loan(parent_id), RuntimeValue::Loan(value_id)) = (parent, value)
+            else { return Err(Halt::Internal); };
+        self.root(parent)?;
+        self.root(value)?;
+        if parent_id == value_id {
+            // A returned incoming parameter is a NEW child of the caller's
+            // argument; ending it cannot consume the original caller loan.
+            return self.operation(if mutable { "borrow.mut" } else { "borrow.read" },
+                                  &[parent.clone()])?.pop().ok_or(Halt::Internal);
+        }
+        let loan = self.loans.get(value_id).ok_or(Halt::Internal)?;
+        if !matches!(&loan.parent, RuntimeValue::Loan(id) if id == parent_id) ||
+            loan.mutable != mutable || self.child_exists(*value_id) {
+            return Err(Halt::Internal);
+        }
+        Ok(value.clone())
+    }
+
     fn root(&self, value: &RuntimeValue) -> Exec<u64> {
         let mut current = value;
         let mut traversed = 0;

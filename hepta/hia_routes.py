@@ -24,7 +24,7 @@ _ADMITTED = frozenset({"standalone-hia", "hepta-source", "legacy-executable",
 def route_inventory():
     """Detached, versioned route metadata, including explicit nonroutes."""
     inputs = [
-        {"route": "standalone-hia", "input": "primitive v1-v7 / composite v1-v2",
+        {"route": "standalone-hia", "input": "primitive v1-v8 / composite v1-v2",
          "adapter": "hepta.hia_program.verify_program", "admission": "supported",
          "origin_required": False},
         {"route": "hepta-source", "input": "checked finite Hepta source profile",
@@ -66,7 +66,7 @@ def route_inventory():
         {"backend": "interpreter", "entry": "hepta.core.execute_core", "same_standalone_core": True,
          "scope": "reverified values, traps, effects and resource CFG; evaluator budgets separate"},
         {"backend": "direct-llvm", "entry": "hepta.core.build_core", "same_standalone_core": True,
-         "scope": "x86-64 Linux shared/object; AArch64/RV64 objects require separate execution qualification"},
+         "scope": "x86-64 Linux shared/object through v8; AArch64/RV64 v1-v7 objects require separate execution qualification; v8 rejects on those targets"},
         {"backend": "rust-shadow", "entry": "hepta.hia_rust_crosscheck.crosscheck_rust_shadow",
          "same_standalone_core": "finite profile only", "scope": "independent comparison, never deployment authority"},
         {"backend": "legacy-rust", "entry": "hepta.backend", "same_standalone_core": False,
@@ -105,10 +105,13 @@ def route_inventory():
     return result
 
 
-def admit_route(route, payload, *, source=None, path=None, project_sha256=None, module=None):
+def admit_route(route, payload, *, source=None, path=None, project_sha256=None, module=None,
+                core_schema=None):
     """Perform the named import and reverify the resulting actual operations."""
     if route not in _ADMITTED:
         raise RouteRejected("E_HIA_ROUTE_UNSUPPORTED: no executable adapter for " + str(route))
+    if core_schema is not None and route != "hepta-source":
+        raise RouteRejected("E_HIA_ROUTE_CONTEXT: a source Core schema cannot override submitted or historical bytes")
     if route == "standalone-hia":
         if any(value is not None for value in (source, path, project_sha256, module)):
             raise RouteRejected("E_HIA_ROUTE_CONTEXT: standalone bytes accept no source override")
@@ -118,7 +121,8 @@ def admit_route(route, payload, *, source=None, path=None, project_sha256=None, 
             raise RouteRejected("E_HIA_ROUTE_CONTEXT: source text must be the payload")
         from .hia_program_source import lower_source
         text = payload.decode("utf-8") if isinstance(payload, bytes) else payload
-        program = lower_source(text, path=path or "<hia-route-source>", module=module)
+        options = {} if core_schema is None else {"core_schema": core_schema}
+        program = lower_source(text, path=path or "<hia-route-source>", module=module, **options)
     elif route == "legacy-composite-v2":
         if any(value is not None for value in (source, path, project_sha256, module)):
             raise RouteRejected("E_HIA_ROUTE_CONTEXT: nominal adapter accepts only its explicit document")

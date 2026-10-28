@@ -180,6 +180,24 @@ class CRecordViewsTests(unittest.TestCase):
     def test_read_before_first_assignment_is_rejected(self):
         self.reject(SOURCE.replace("return ctx->data[i];", "unsigned int value; return value;"), "E_C_REFERENCE")
 
+    def test_pure_scalar_conditional_helper_remains_available_in_record_view_profile(self):
+        source = SOURCE.replace("return ctx->data[i];", "return ctx->data[i] + (i ? 12u/(unsigned)i : 7u);")
+        report, work = self.migrate(source, native=True)
+        self.assertTrue(report["ok"], report)
+        original = work / "original.so"
+        built = subprocess.run([self.clang, "-std=c11", "-O2", "-shared", "-fPIC",
+                                str(work / "input.c"), "-o", str(original)], capture_output=True)
+        self.assertEqual(built.returncode, 0, built.stderr)
+        class State(ctypes.Structure):
+            _fields_ = [("data", ctypes.POINTER(ctypes.c_uint8)), ("n", ctypes.c_size_t), ("head", ctypes.c_uint32)]
+        for path in (original, work / "translated/libtranslated.so"):
+            library = ctypes.CDLL(str(path))
+            library.read_at.argtypes = [ctypes.POINTER(State), ctypes.c_size_t]
+            library.read_at.restype = ctypes.c_uint32
+            data = (ctypes.c_uint8 * 4)(10, 20, 30, 40)
+            state = State(data, 4, 0)
+            self.assertEqual([library.read_at(ctypes.byref(state), i) for i in range(4)], [17, 32, 36, 44])
+
     def test_signed_relative_cursor_indices_preserve_defined_c_access(self):
         bodies = [
             ("unsigned char *p=ctx->data; ++p; return p[-1];", 13),

@@ -118,6 +118,10 @@ def main(argv=None) -> int:
                            default="x86_64-unknown-linux-gnu")
         if action in {"lower", "import-executable", "import-scalar"}:
             h.add_argument("--module", default="migrated")
+        if action == "lower":
+            from .hia_schema import SCHEMA, SCHEMA_V8
+            h.add_argument("--core-schema", choices=[SCHEMA, SCHEMA_V8], default=SCHEMA,
+                           help="Explicit source lowering contract; v8 retains parameter-origin returned loans as calls")
         if action in {"import-executable", "import-scalar"}:
             h.add_argument("--source", required=True, help="Legacy origin authentication only")
             h.add_argument("--project-sha256", required=action == "import-scalar")
@@ -332,7 +336,8 @@ def main(argv=None) -> int:
                 return 0
             if args.hia_action == "lower":
                 program = admit_route("hepta-source", read_bounded(args.input),
-                                      path=str(Path(args.input).absolute()), module=args.module)
+                                      path=str(Path(args.input).absolute()), module=args.module,
+                                      core_schema=args.core_schema)
                 result = publish_program(program, args.output) if args.output else program.as_dict()
                 output_json(result)
                 return 0

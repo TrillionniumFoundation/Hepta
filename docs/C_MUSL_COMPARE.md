@@ -54,8 +54,10 @@ Three generic control-flow extensions make the upstream source admissible:
 * A scalar conditional directly in return position lowers to an `if` with one
   return in each branch. Only the selected branch evaluates, so the empty-range
   return does not read either cursor. Clang's operand conversions are retained.
-  Mutating conditions, general ternary expressions in local initializers and
-  cast-wrapped conditional forms outside this declared subset still reject.
+  Mutating conditions still reject. The later scalar extension documented in
+  `C_STB_DIVIDE.md` also accepts pure scalar conditional values in initializers
+  and arithmetic through lazy helpers; pointer/record captures remain outside
+  that value profile. The original musl qualification did not rely on it.
 
 `-fno-builtin` is retained in captured frontend and model-probe arguments. It
 prevents the component's public function names from being silently replaced by

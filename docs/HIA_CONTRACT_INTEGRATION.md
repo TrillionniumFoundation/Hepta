@@ -88,7 +88,13 @@ bulk operations and v7 chains, including stopped destructor ledgers. It retains
 the v2 byte-only report and uses an explicit v3 execution profile for extended
 modules; see [HIA_RUST_OWNED_MEMORY_VM_20261028.md](HIA_RUST_OWNED_MEMORY_VM_20261028.md).
 Source returned projection borrows still use the existing checked inlining;
-primitive cross-call Loan returns remain rejected.
+that remains the default v1 frontend contract. The explicit v8 frontend instead
+retains returned byte-view helpers as actual calls/returns with parameter-origin
+metadata. `hia lower --core-schema hepta.hia.program.v8` feeds the same canonical
+authority, Python VM, independent Rust resource VM and Linux x86-64 emitter.
+Old versions, nominal normalization, unsupported targets and arbitrary lifetime
+relations retain their refusal boundaries. See
+[HIA_RETURNED_LOANS_V8.md](HIA_RETURNED_LOANS_V8.md).
 
 Captured C source spelling, semantic driver dependencies and decayed array/
 function-attribute ABI refusals are now checked before translation, including
@@ -96,12 +102,48 @@ the record-view route. [C_MUSL_COMPARE.md](C_MUSL_COMPARE.md) describes migratio
 of two unchanged, complete musl 1.2.5 comparison components. Its finite native
 oracle and authored platform/contract adapters do not imply a whole-libc build
 or general C++ translation. The existing C++ reuse and ownership gates remain.
+The next complete C component is unchanged upstream `stb_divide.h` v0.94:
+six public functions, both declared preprocessor configurations, all active
+declarations accounted for and independently compiled originals. Pure scalar
+lazy conditionals and checked definite assignment are shared lowering additions.
+[C_STB_DIVIDE.md](C_STB_DIVIDE.md) separates source migration, native ABI/oracle
+checks, target-only undefined-input traps and actual-host qualification. An
+authored seven-host CI step is not evidence that every host has executed it.
 
 [HIA_SCALAR_STATE.md](HIA_SCALAR_STATE.md) adds one explicit scalar state value
 on top of the existing generation-lease runtime. All-input equivalence includes
 that state argument; revision checks prevent duplicate commits, cooperative
 cancellation can discard an in-flight result, and rollback changes code without
 rewinding data. Heap/loan/stack migration and profitability remain unestablished.
+
+## Proved total native candidates and finite economic search
+
+[HIA_PROVED_TOTAL_RUNTIME.md](HIA_PROVED_TOTAL_RUNTIME.md) adds an explicit
+runtime profile for acyclic u8/u16 checked division and remainder. Every exported
+function needs a fresh all-input normal-return proof before any native build;
+candidate equivalence is an additional independent obligation. A self-equivalent
+program that traps remains inadmissible. Unknown, timed-out, stale and malformed
+proofs cannot authorize a candidate. The original syntactically total profile
+remains the default.
+
+[HIA_NATIVE_RETIREMENT.md](HIA_NATIVE_RETIREMENT.md) defines observable resource
+retirement, finite pending-cleanup capacity, native operations attempted at most
+once, and explicit ownership-bound file cleanup. A cleanup error does not undo
+an already committed selection or become a fabricated successful release.
+The actual post-close observation is made before an outer temporary-directory
+helper can remove artifacts. This does not establish crash recovery or protect
+against arbitrary mutation by the trusted host process.
+
+[HIA_ECONOMIC_SEARCH_20261028.md](HIA_ECONOMIC_SEARCH_20261028.md) specifies a
+separate frozen experiment using the actual recursive NDU bridge to choose
+finite measure/stop actions. Exact arithmetic over the same supplied scalar
+model, fixed actions, a calibration-selected fixed action and exhaustive search
+remain controls. Costs include the dependencies each strategy actually uses;
+same-information costs and full single-deployment charges are also retained.
+The local native driver has its own explicit byte recurrence and independent
+long-run checksum oracle. It is not a `ScalarStateSession` commit experiment.
+Formal measurements belong only to their recorded source and protocol hashes;
+the earlier all-abstain `01310b2` campaign is not replaced or relabeled.
 
 ## Fresh integrated qualification
 

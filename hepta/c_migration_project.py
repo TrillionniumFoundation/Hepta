@@ -101,7 +101,7 @@ def migrate_project(database: str | Path, output_directory: str | Path, *,
             contents["migration.json"] = json.dumps(report, indent=2, sort_keys=True) + "\n"
             for name, text in contents.items():
                 path = stage / name
-                with path.open("x", encoding="utf-8") as stream:
+                with path.open("x", encoding="utf-8", newline="\n") as stream:
                     stream.write(text)
                     stream.flush()
                     os.fsync(stream.fileno())

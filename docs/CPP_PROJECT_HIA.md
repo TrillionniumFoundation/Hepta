@@ -24,8 +24,10 @@ possible platform, macro configuration or dependency version has been listed.
 
 ## Executable profile
 
-The admitted profile contains integer and Boolean parameters/results, initialized
-scalar locals, ordinary control flow and direct calls to captured implementations.
+The admitted profile contains integer and Boolean parameters/results, scalar
+locals initialized or proven assigned on every path before read, ordinary control
+flow and direct calls to captured implementations. Pure scalar conditional values
+use lazy branch helpers in the shared C lowerer; pointer/record captures reject.
 Functions must explicitly be `noexcept`. Clang-resolved overloads are identified
 by declaration identity and symbol, including namespace and translation-unit
 identity for internal linkage. Calls are never resolved by spelling alone.

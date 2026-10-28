@@ -322,7 +322,7 @@ class CProjectMigrationTests(unittest.TestCase):
         self.assertEqual(result["native_validation"], "not_run")
 
     def test_uninitialized_local_and_unsupported_continue_are_rejected(self):
-        self.rejected("int f(int x){int y; y=x;return y;}", "E_C_LOCAL")
+        self.rejected("int f(int x){int y; if(x)y=x;return y;}", "E_C_UNINITIALIZED")
         self.rejected("int f(int x){while(x>0){--x;continue;}return x;}", "E_C_STATEMENT")
 
     def test_pointer_requires_explicit_contract(self):

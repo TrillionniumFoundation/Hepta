@@ -447,7 +447,7 @@ class CRecordViewTranslator(CTranslator):
             fn["inventory"].update(status="function_converted", reason=None)
             reports.append({k: v for k, v in fn.items() if k not in {"body", "node", "inventory", "model", "shape"}})
             reports[-1]["params"] = [{k: v for k, v in p.items() if k != "id"} for p in fn["params"]]
-        return "\n\n".join(pieces) + "\n", self.bridge(), reports
+        return "\n\n".join(pieces + self.expression_helpers) + "\n", self.bridge(), reports
 
     def bridge(self):
         pieces = ["// Caller-unsafe original C ABI. Initialized live disjoint storage is an external obligation.",

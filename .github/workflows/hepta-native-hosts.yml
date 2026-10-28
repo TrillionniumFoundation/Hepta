@@ -74,6 +74,9 @@ jobs:
           cat > artifacts/native-host.json <<'JSON'
           {"schema":"hepta.native-host.v2","status":"failed","error":"Native host setup or execution did not finish; inspect retained setup/test logs.","requested_compiler":"${{ matrix.cc }}","requested_family":"${{ matrix.cc_family }}","claims":{"cross_host_results_inferred":false}}
           JSON
+          cat > artifacts/stb-divide-host.json <<'JSON'
+          {"schema":"hepta.c-stb-divide-qualification.v1","ok":false,"status":"failed","error":"Complete component setup or execution did not finish; inspect retained setup and component logs.","claims":{"cross_host_results_inferred":false,"cpp_migration":false}}
+          JSON
           git rev-parse HEAD > artifacts/native-host-setup.log
       - uses: actions/setup-python@v5
         with:
@@ -130,6 +133,20 @@ jobs:
             --cc "$HEPTA_HOST_CC" --cc-family "$HEPTA_HOST_CC_FAMILY" \
             --expected-system '${{ matrix.system }}' --expected-machine '${{ matrix.machine }}' \
             --output artifacts/native-host.json
+      - name: Execute the complete frozen stb_divide C component on this actual host
+        shell: bash
+        run: |
+          set +e
+          python tools/qualify_c_stb_divide.py \
+            --clang clang --rustc "$(rustup which --toolchain 1.90.0 rustc)" \
+            --cc "$HEPTA_HOST_CC" --cc-family "$HEPTA_HOST_CC_FAMILY" \
+            --expected-system '${{ matrix.system }}' --expected-machine '${{ matrix.machine }}' \
+            --output-directory artifacts/stb-divide-host 2>&1 | tee artifacts/stb-divide-host.log
+          stb_status=${PIPESTATUS[0]}
+          if [ -f artifacts/stb-divide-host/qualification.json ]; then
+            cp artifacts/stb-divide-host/qualification.json artifacts/stb-divide-host.json
+          fi
+          exit "$stb_status"
       - name: Retain actual host evidence, including failures
         if: always()
         uses: actions/upload-artifact@v4
@@ -139,4 +156,7 @@ jobs:
             artifacts/native-host.json
             artifacts/native-host-setup.log
             artifacts/native-host-adapter-tests.log
+            artifacts/stb-divide-host.json
+            artifacts/stb-divide-host.log
+            artifacts/stb-divide-host/
           if-no-files-found: error
