@@ -153,6 +153,12 @@ def _atomic_write(path: Path, content: str) -> None:
 
 
 def migrate(source: Path, output: Path, report: Path, clang: str = "clang", verify_native: bool = False, rustc: str | None = None) -> dict:
+    # Enforce the CLI path-isolation gate for direct library callers as well.
+    # Otherwise a rejected conversion can overwrite the original C source
+    # when the report path aliases it (including through a parent symlink).
+    resolved = (source.resolve(), output.resolve(), report.resolve())
+    if len(set(resolved)) != 3:
+        raise UnsupportedC("source, output and report paths must be distinct")
     try:
         original = source.read_bytes()
         read_error = None
