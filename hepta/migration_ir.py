@@ -114,7 +114,67 @@ def _block(body: tuple[Stmt, ...], names: dict[str, str], result: str) -> set[st
     raise IRValidationError(f"unsupported statement node: {statement.kind}")
 
 
+# This public IR can be constructed without the bounded Clang importer.
+# Check its shape iteratively before recursive checking, hashing or emission:
+# malformed/unhashable fields and cyclic or explosively shared trees must
+# fail with IRValidationError, not Python exceptions or unbounded work.
+_MAX_IR_DEPTH = 128
+_MAX_IR_NODES = 4096
+_MAX_IR_PARAMS = 256
+_MAX_IR_TOKEN_LENGTH = 256
+
+
+def _preflight_shape(function: Function) -> None:
+    if (not isinstance(function, Function)
+            or not isinstance(function.params, tuple)
+            or len(function.params) > _MAX_IR_PARAMS
+            or not isinstance(function.result, str)
+            or not isinstance(function.body, tuple)):
+        raise IRValidationError("invalid migration IR function shape")
+    for item in function.params:
+        if (not isinstance(item, tuple) or len(item) != 2
+                or not isinstance(item[0], str)
+                or not isinstance(item[1], str)
+                or len(item[0]) > _MAX_IR_TOKEN_LENGTH):
+            raise IRValidationError("invalid migration IR parameter shape")
+
+    pending: list[tuple[str, object, int]] = [("block", function.body, 0)]
+    examined = 0
+    while pending:
+        category, item, depth = pending.pop()
+        examined += 1
+        if examined > _MAX_IR_NODES or depth > _MAX_IR_DEPTH:
+            raise IRValidationError("migration IR structural budget exceeded")
+        if category == "block":
+            if not isinstance(item, tuple) or len(item) != 1:
+                raise IRValidationError("invalid migration IR block shape")
+            pending.append(("stmt", item[0], depth + 1))
+        elif category == "stmt":
+            if (not isinstance(item, Stmt) or not isinstance(item.kind, str)
+                    or not isinstance(item.then_body, tuple)
+                    or not isinstance(item.else_body, tuple)):
+                raise IRValidationError("invalid migration IR statement shape")
+            if item.kind == "if":
+                pending.append(("block", item.then_body, depth + 1))
+                pending.append(("block", item.else_body, depth + 1))
+            elif item.kind != "return":
+                raise IRValidationError("unsupported migration IR statement")
+            pending.append(("expr", item.expr, depth + 1))
+        else:
+            if (not isinstance(item, Expr)
+                    or not isinstance(item.kind, str)
+                    or not isinstance(item.ty, str)
+                    or not isinstance(item.value, str)
+                    or len(item.value) > _MAX_IR_TOKEN_LENGTH
+                    or not isinstance(item.args, tuple)
+                    or len(item.args) > 2):
+                raise IRValidationError("invalid migration IR expression shape")
+            for arg in item.args:
+                pending.append(("expr", arg, depth + 1))
+
+
 def check_function(function: Function) -> frozenset[str]:
+    _preflight_shape(function)
     _require_pilot_identifier(function.name)
     if function.result not in NUMERIC or not function.body:
         raise IRValidationError("unsupported result or empty function")
