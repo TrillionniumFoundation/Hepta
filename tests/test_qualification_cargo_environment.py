@@ -47,11 +47,26 @@ class QualificationCargoEnvironmentTests(unittest.TestCase):
         rustc = os.environ.get('RUSTC') or shutil.which('rustc')
         self.assertIsNotNone(cargo, 'Cargo is required for the native qualification gate')
         self.assertIsNotNone(rustc, 'rustc is required for the native qualification gate')
-        rows = re.findall(r'^      (CARGO_HOME|CARGO_TARGET_DIR|RUSTC): (.+)$',
-                          WORKFLOW.read_text(), re.MULTILINE)
-        self.assertEqual(len(rows), 3)
-        declared = dict(rows)
-        self.assertEqual(set(declared), {'CARGO_HOME', 'CARGO_TARGET_DIR', 'RUSTC'})
+        workflow = WORKFLOW.read_text()
+        # Job-level GitHub expressions cannot use runner.temp. The two Cargo
+        # paths are written by the preceding runner step to GITHUB_ENV.
+        job_rows = re.findall(
+            r'^      (CARGO_HOME|CARGO_TARGET_DIR|RUSTC): (.+)$',
+            workflow, re.MULTILINE)
+        self.assertEqual(job_rows, [
+            ('RUSTC', '${{ github.workspace }}/../toolchains/rust-1.90.0/bin/rustc')])
+        init_step = re.search(
+            r'^      - name: Configure isolated Cargo directories\n'
+            r'        shell: bash\n'
+            r'        run: \|\n'
+            r'((?:          [^\n]*\n)+)', workflow, re.MULTILINE)
+        self.assertIsNotNone(init_step)
+        self.assertLess(
+            init_step.start(),
+            workflow.index('      - name: Checkout frozen source snapshot'))
+        script = '\n'.join(line[10:] for line in init_step.group(1).splitlines())
+        self.assertNotIn('${{', script)
+
         with tempfile.TemporaryDirectory(prefix='hepta-cargo-workflow-') as directory:
             root = Path(directory)
             workspace, runner_temp = root / 'workspace', root / 'runner-temp'
@@ -65,13 +80,27 @@ class QualificationCargoEnvironmentTests(unittest.TestCase):
             before = {str(p.relative_to(workspace)): p.read_bytes()
                       for p in workspace.rglob('*') if p.is_file()}
             env = dict(os.environ)
+            github_env = root / 'github-env'
+            env.update({'RUNNER_TEMP': str(runner_temp), 'GITHUB_ENV': str(github_env)})
+            initialized = subprocess.run(
+                ['bash', '-euo', 'pipefail', '-c', script],
+                cwd=workspace, env=env, capture_output=True, text=True, timeout=15)
+            self.assertEqual(initialized.returncode, 0, initialized.stderr)
+            assignments = [row.split('=', 1) for row in github_env.read_text().splitlines()]
+            self.assertEqual(len(assignments), 2)
+            self.assertEqual({name for name, _ in assignments},
+                             {'CARGO_HOME', 'CARGO_TARGET_DIR'})
+            declared = dict(assignments)
+            declared['RUSTC'] = job_rows[0][1].replace(
+                '${{ github.workspace }}', str(workspace))
             for name, value in declared.items():
-                value = value.replace('${{ runner.temp }}', str(runner_temp))
-                value = value.replace('${{ github.workspace }}', str(workspace))
                 self.assertNotIn('${{', value)
                 path = Path(value).resolve()
                 self.assertTrue(path.is_relative_to(root))
                 self.assertFalse(path.is_relative_to(workspace))
+                if name in {'CARGO_HOME', 'CARGO_TARGET_DIR'}:
+                    self.assertTrue(path.is_relative_to(runner_temp))
+                    self.assertTrue(path.is_dir())
                 env[name] = str(path)
             # Recreate only the declared tool location as an alias to the
             # selected compiler. Its payload/sysroot is not copied or changed.
