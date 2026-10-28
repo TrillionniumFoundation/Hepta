@@ -126,16 +126,20 @@ _MAX_IR_TOKEN_LENGTH = 256
 
 def _preflight_shape(function: Function) -> None:
     if (not isinstance(function, Function)
+            or not isinstance(function.name, str)
+            or len(function.name) > _MAX_IR_TOKEN_LENGTH
             or not isinstance(function.params, tuple)
             or len(function.params) > _MAX_IR_PARAMS
             or not isinstance(function.result, str)
+            or len(function.result) > 16
             or not isinstance(function.body, tuple)):
         raise IRValidationError("invalid migration IR function shape")
     for item in function.params:
         if (not isinstance(item, tuple) or len(item) != 2
                 or not isinstance(item[0], str)
                 or not isinstance(item[1], str)
-                or len(item[0]) > _MAX_IR_TOKEN_LENGTH):
+                or len(item[0]) > _MAX_IR_TOKEN_LENGTH
+                or len(item[1]) > 16):
             raise IRValidationError("invalid migration IR parameter shape")
 
     pending: list[tuple[str, object, int]] = [("block", function.body, 0)]
@@ -151,6 +155,7 @@ def _preflight_shape(function: Function) -> None:
             pending.append(("stmt", item[0], depth + 1))
         elif category == "stmt":
             if (not isinstance(item, Stmt) or not isinstance(item.kind, str)
+                    or len(item.kind) > 16
                     or not isinstance(item.then_body, tuple)
                     or not isinstance(item.else_body, tuple)):
                 raise IRValidationError("invalid migration IR statement shape")
@@ -164,6 +169,8 @@ def _preflight_shape(function: Function) -> None:
             if (not isinstance(item, Expr)
                     or not isinstance(item.kind, str)
                     or not isinstance(item.ty, str)
+                    or len(item.ty) > 16
+                    or len(item.kind) > 16
                     or not isinstance(item.value, str)
                     or len(item.value) > _MAX_IR_TOKEN_LENGTH
                     or not isinstance(item.args, tuple)

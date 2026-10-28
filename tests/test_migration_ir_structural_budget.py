@@ -30,6 +30,11 @@ class StructuralMigrationIRBudget(unittest.TestCase):
             self.wrap(Expr("var", "i32", [])),
             self.wrap(Expr("neg", "i32", "", [Expr("literal", "i32", "1")])),
             self.wrap(Expr("var", "i32", "x" * 100000)),
+            Function("f" * 100000, (), "i32", base.body),
+            Function("safe", (), "i32" * 100000, base.body),
+            Function("safe", (("x", "i32" * 100000),), "i32", base.body),
+            self.wrap(Expr("literal" * 100000, "i32", "1")),
+            self.wrap(Expr("literal", "i32" * 100000, "1")),
         )
         for function in bad:
             self.assert_all_reject(function)
