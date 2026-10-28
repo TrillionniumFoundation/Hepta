@@ -35,9 +35,25 @@ class V7RootInclusiveCallDepthTests(unittest.TestCase):
         self.assertEqual(execute_program(core, "outer", [9], max_call_depth=2)["result"], 9)
         with self.assertRaisesRegex(HIAStaticBudgetRejected, "E_HIA_BUDGET_EXCEEDED"):
             qualify_vm_call_depth(core, max_call_depth=1)
-        # V7 chain semantics still cannot claim finite ticks/allocator events.
-        with self.assertRaisesRegex(HIAStaticBudgetRejected, "E_HIA_BUDGET_PROFILE"):
-            analyze_static_budget(core, max_call_depth=2)
+        # The reviewed primitive-byte v7 subset now has a finite structural
+        # bound; this is not a chain, native-time, RSS or soundness proof.
+        finite = analyze_static_budget(core, max_call_depth=2)
+        self.assertEqual(finite["schema"], "hepta.hia.static-budget.v3")
+        self.assertEqual(finite["profile"], "acyclic-byte-owner-v7")
+        self.assertEqual(finite["core_sha256"], core.sha256)
+        self.assertTrue(finite["claims"]["canonical_byte_only_resource_profile_reverified"])
+        for claim in ("native_cpu_time_or_rss_proved", "recursive_chain_costs_bounded",
+                      "whole_language_soundness_proved"):
+            self.assertFalse(finite["claims"][claim])
+        static = {row["function"]: row for row in finite["functions"]}
+        for name in ("inner", "outer"):
+            observed = execute_program(core, name, [9], max_call_depth=2)
+            self.assertLessEqual(observed["steps"], static[name]["max_vm_ticks"])
+            self.assertLessEqual(
+                observed["resources"]["allocations"] + observed["resources"]["frees"],
+                static[name]["max_allocator_interactions"])
+        with self.assertRaisesRegex(HIAStaticBudgetRejected, "E_HIA_BUDGET_EXCEEDED"):
+            analyze_static_budget(core, max_call_depth=1)
 
     def test_v7_recursive_frames_count_root_before_tick(self):
         core = verify_program(v7(recursively_nested(), exports=["again"]))
