@@ -25,6 +25,7 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from hepta.backend import compile_rust, emit_rust, linker_info
+from hepta.ast import HeptaError
 from hepta.c_migrate import migrate_c_project
 from hepta.c_project import captured_source_argument, invoke, verify_capture
 from hepta.checker import check
@@ -356,6 +357,18 @@ def compile_bound_rust(source, *, rustc, output, linker_identity):
     return built
 
 
+def failure_record(error):
+    """Retain structured diagnostics and bounded linker evidence on rejection."""
+    result = {"type": type(error).__name__, "message": str(error)}
+    if isinstance(error, HeptaError):
+        result["diagnostic"] = error.diagnostic.to_dict()
+    if hasattr(error, "linker_evidence"):
+        result["linker_evidence"] = error.linker_evidence
+    if error.__cause__ is not None:
+        result["cause"] = {"type": type(error.__cause__).__name__, "message": str(error.__cause__)}
+    return result
+
+
 def qualify(output, *, clang, rustc, cc, cc_family, additional_cc=None, hia_native=False, audit_original_ub=False,
             expected_system=None, expected_machine=None, linker=None):
     output = Path(output).resolve()
@@ -632,7 +645,7 @@ def qualify(output, *, clang, rustc, cc, cc_family, additional_cc=None, hia_nati
             "unsupported_declarations_reject_whole_bundle": True}
         report.update(ok=True, status="passed_for_actual_host_and_declared_component_variants")
     except Exception as exc:
-        report["error"] = {"type": type(exc).__name__, "message": str(exc)}
+        report["error"] = failure_record(exc)
     finally:
         report["source_after"] = source_identity()
         report["source_unchanged_during_run"] = report["source_before"] == report["source_after"]

@@ -542,17 +542,31 @@ def linker_info(explicit: str) -> dict:
     correctness or defend an adversarial build host. Consumers may additionally
     require a particular family, as the actual Windows component gate does.
     """
-    from .clang_capture import run_bounded
+    from base64 import b64encode
+    from .clang_capture import CaptureRejected, run_bounded
+    evidence = {"requested_path": explicit if isinstance(explicit, str) else repr(explicit),
+                "stage": "validate_absolute_path", "probe": None}
     try:
         if not isinstance(explicit, str) or not explicit or not Path(explicit).is_absolute():
             raise ValueError("explicit linker must be an absolute path")
         path = Path(explicit).resolve(strict=True)
+        evidence.update(path=str(path), stage="check_regular_executable_before_probe")
         if not os.access(path, os.X_OK):
             raise ValueError("selected linker is not executable")
         before = digest_executable(path)
+        evidence["sha256_before_probe"] = before
         command = [str(path), "/?" if path.name.casefold() == "link.exe" else "--version"]
+        evidence.update(stage="bounded_identity_probe", probe={"argv": command,
+            "timeout_seconds": 15, "stdout_limit_bytes": 65536, "stderr_limit_bytes": 65536})
         probe = run_bounded(command, timeout=15, stdout_limit=65536, stderr_limit=65536)
+        evidence["probe"].update(returncode=probe.returncode, stdout=probe.stdout, stderr=probe.stderr,
+            text_normalization="UTF-8 with CRLF/CR normalized to LF by bounded capture",
+            stdout_normalized_sha256=sha256(probe.stdout.encode()),
+            stderr_normalized_sha256=sha256(probe.stderr.encode()))
+        evidence["stage"] = "check_regular_executable_after_probe"
         after = digest_executable(path)
+        evidence["sha256_after_probe"] = after
+        evidence["stage"] = "probe_acceptance"
         if (before != after or not os.access(path, os.X_OK) or probe.returncode
                 or not (probe.stdout.strip() or probe.stderr.strip())):
             raise ValueError("selected linker changed or its identity probe failed")
@@ -562,8 +576,29 @@ def linker_info(explicit: str) -> dict:
                           "stdout": probe.stdout, "stderr": probe.stderr},
                 "unchanged_after_probe": True}
     except (OSError, RuntimeError, ValueError) as exc:
-        raise HeptaError(Diagnostic("E_LINKER_IDENTITY", "Cannot bind the explicit native linker",
-                                    notes=[str(exc)], phase="backend")) from exc
+        # Preserve failure observations without converting a failed probe into
+        # an accepted identity. Non-UTF8 bytes remain raw, bounded, and hashable.
+        if isinstance(exc, CaptureRejected):
+            evidence["capture_error"] = {"code": exc.code, "message": str(exc)}
+            if exc.capture is not None:
+                capture = exc.capture
+                evidence["probe"].update(argv=list(capture.command), returncode=capture.returncode)
+                for name in ("stdout", "stderr"):
+                    data = getattr(capture, name)
+                    evidence["probe"][name + "_raw"] = {"base64": b64encode(data).decode("ascii"),
+                        "sha256": sha256(data), "retained_bytes": len(data),
+                        "total_bytes": getattr(capture, name + "_total_bytes")}
+            if exc.capture_error is not None:
+                evidence["capture_read_error"] = exc.capture_error
+        if evidence.get("path") and "sha256_after_probe" not in evidence:
+            try:
+                evidence["sha256_after_probe"] = digest_executable(evidence["path"])
+            except ToolIdentityRejected as identity_error:
+                evidence["after_probe_identity_error"] = str(identity_error)
+        error = HeptaError(Diagnostic("E_LINKER_IDENTITY", "Cannot bind the explicit native linker",
+                                     notes=[str(exc)], phase="backend"))
+        error.linker_evidence = evidence
+        raise error from exc
 
 
 def compile_rust(source: str, *, rustc: str | None = None, target: str | None = None,

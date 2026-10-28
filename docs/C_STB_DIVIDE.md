@@ -169,6 +169,15 @@ DLL. Those failures remain unqualified. The explicit-linker change requires
 fresh actual Windows CI; local GCC and authored mutation fixtures only verify
 selection and rejection behavior on their execution host.
 
+If linker binding fails, the component report retains the complete structured
+Hepta diagnostic, its cause and the failed identity stage. A completed rejected
+probe includes its actual argv, exit code and bounded normalized text; capture
+errors retain bounded original stdout/stderr bytes as base64 with SHA-256,
+retained lengths and total byte counts. Non-UTF8 output stays rejected, and no
+failure receipt is an accepted linker identity. This closes an observability
+gap exposed by source `6b005ca`, whose two Windows reports retained only the
+generic binding-error message and cannot establish the underlying probe cause.
+
 A declared workflow step is not a remote execution result. Until a particular
 job completes successfully on the integrated source revision, that host's new
 component gate remains unqualified. The older seven-host ABI results do not

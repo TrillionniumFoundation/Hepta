@@ -3,6 +3,7 @@
 The small Python driver fixtures exercise argv and file mutation on this host;
 they are not Microsoft linker execution or Windows qualification evidence.
 """
+import base64
 import hashlib
 import json
 import os
@@ -105,6 +106,64 @@ class LinkerSelectionTests(unittest.TestCase):
             backend.linker_info(str(selected))
         self.assertEqual(rejected.exception.diagnostic.code, "E_LINKER_IDENTITY")
         self.assertEqual([json.loads(line) for line in log.read_text().splitlines()], [["--version"]])
+        evidence = rejected.exception.linker_evidence
+        self.assertEqual(evidence["stage"], "probe_acceptance")
+        self.assertNotEqual(evidence["sha256_before_probe"], evidence["sha256_after_probe"])
+
+    def probe_fixture(self, source):
+        path = self.directory / "probe-failure-fixture"
+        path.write_text("#!" + sys.executable + "\n" + source, encoding="utf-8")
+        path.chmod(0o755)
+        return path
+
+    def test_nonzero_probe_keeps_exit_output_stage_and_hash_in_actual_failed_report(self):
+        selected = self.probe_fixture("import sys\nprint('identity stdout')\nprint('identity stderr', file=sys.stderr)\nraise SystemExit(9)\n")
+        report = component.qualify(self.directory / "failed-qualification", clang="not-invoked",
+            rustc="not-invoked", cc="not-invoked", cc_family="gcc", linker=str(selected))
+        self.assertFalse(report["ok"])
+        self.assertEqual(report["variants"], [])
+        error = report["error"]
+        self.assertEqual(error["diagnostic"]["code"], "E_LINKER_IDENTITY")
+        self.assertEqual(error["diagnostic"]["phase"], "backend")
+        self.assertTrue(error["diagnostic"]["notes"])
+        self.assertIn("span", error["diagnostic"])
+        self.assertEqual(error["cause"]["type"], "ValueError")
+        observed = error["linker_evidence"]
+        self.assertEqual(observed["stage"], "probe_acceptance")
+        self.assertEqual(observed["sha256_before_probe"], observed["sha256_after_probe"])
+        self.assertEqual(observed["probe"]["argv"], [str(selected), "--version"])
+        self.assertEqual(observed["probe"]["returncode"], 9)
+        self.assertEqual(observed["probe"]["stdout"], "identity stdout\n")
+        self.assertEqual(observed["probe"]["stderr"], "identity stderr\n")
+        retained = json.loads((self.directory / "failed-qualification/qualification.json").read_text())
+        self.assertEqual(retained["error"], error)
+
+    def test_non_utf8_probe_keeps_bounded_raw_bytes_and_exit_without_acceptance(self):
+        selected = self.probe_fixture("import os\nos.write(1, b'raw\\xff\\x00\\r\\n')\nos.write(2, b'error\\xfe')\nraise SystemExit(7)\n")
+        with self.assertRaises(HeptaError) as rejected:
+            backend.linker_info(str(selected))
+        observed = component.failure_record(rejected.exception)["linker_evidence"]
+        self.assertEqual(observed["capture_error"]["code"], "E_CAPTURE_ENCODING")
+        self.assertEqual(observed["stage"], "bounded_identity_probe")
+        self.assertEqual(observed["probe"]["returncode"], 7)
+        self.assertEqual(observed["sha256_before_probe"], observed["sha256_after_probe"])
+        for key, original in [("stdout", b"raw\xff\x00\r\n"), ("stderr", b"error\xfe")]:
+            record = observed["probe"][key + "_raw"]
+            self.assertEqual(base64.b64decode(record["base64"], validate=True), original)
+            self.assertEqual(record["sha256"], hashlib.sha256(original).hexdigest())
+            self.assertEqual((record["retained_bytes"], record["total_bytes"]), (len(original),len(original)))
+
+    def test_oversize_probe_keeps_only_bounded_prefix_and_total_byte_count(self):
+        selected = self.probe_fixture("import os\nos.write(1, b'x' * 65537)\n")
+        with self.assertRaises(HeptaError) as rejected:
+            backend.linker_info(str(selected))
+        observed = component.failure_record(rejected.exception)["linker_evidence"]
+        self.assertEqual(observed["capture_error"]["code"], "E_CAPTURE_OUTPUT_SIZE")
+        raw = observed["probe"]["stdout_raw"]
+        self.assertEqual(raw["total_bytes"], 65537)
+        self.assertEqual(raw["retained_bytes"], 65536)
+        self.assertEqual(base64.b64decode(raw["base64"], validate=True), b"x" * 65536)
+        self.assertEqual(raw["sha256"], hashlib.sha256(b"x" * 65536).hexdigest())
 
     def test_change_after_binding_is_rejected_before_build(self):
         selected, log = self.driver()
