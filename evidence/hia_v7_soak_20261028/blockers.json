@@ -1,0 +1,376 @@
+{
+  "additional_finite_profile_closures": [],
+  "broader_open_count": 14,
+  "counts": {
+    "closed_in_declared_profile": 3,
+    "open": 14
+  },
+  "full_p0_p7_closed": false,
+  "historical_closed_count": 3,
+  "historical_ledger": {
+    "bytes": 26156,
+    "path": "/workspace/scratch/7e691a7ff65f/hepta/evidence/hia_system_closure_20261028/blockers.json",
+    "sha256": "4d02b41e3fcfb5e8fc32911533895b193dccd8d3162999179cab4c111adec3e4"
+  },
+  "obligations": [
+    {
+      "current_identity_confirmed": true,
+      "current_source_commit": "f5b6598bdd88db92c4ef2b17e10deda9a90bdd59",
+      "current_unit_inventory_complete": true,
+      "gap_or_scope_limit": "当前固定源码的语义、显式适配、旧修复所需门槛、唯一ID完整性及源码/工具绑定已完成；结论限于声明profile，不扩展到未支持语言构造。",
+      "historical_evidence_is_not_current_execution": true,
+      "historical_gap_or_scope_limit": "当前完整单元清单已完成；最终相关语义/兼容门槛及源码前后绑定仍待填，不能用历史 b921 通过数代替。",
+      "historical_source_commit": "de49fe3e0254b7b71dbcb5b2907a3f3145999393",
+      "historical_state": "closed_in_declared_profile",
+      "id": "P0-CURRENT-SOURCE",
+      "next_closure_evidence": [],
+      "required_current_gates": [
+        "unit_regression",
+        "agent_query_semantics",
+        "legacy_executable_core"
+      ],
+      "scope": "current_declared_profile",
+      "stage": "P0",
+      "state": "closed_in_declared_profile",
+      "title": "收敛语义"
+    },
+    {
+      "current_identity_confirmed": true,
+      "current_source_commit": "f5b6598bdd88db92c4ef2b17e10deda9a90bdd59",
+      "current_unit_inventory_complete": true,
+      "gap_or_scope_limit": "一般递归ADTs/树、逃逸stored borrow及更广泛typed place/layout/init不在当前有限profile中。",
+      "historical_evidence_is_not_current_execution": true,
+      "historical_gap_or_scope_limit": "一般递归ADTs/树、逃逸stored borrow及更广泛typed place/layout/init不在当前有限profile中。",
+      "historical_source_commit": "de49fe3e0254b7b71dbcb5b2907a3f3145999393",
+      "historical_state": "open",
+      "id": "P1-GENERAL-RESOURCE-MODEL",
+      "next_closure_evidence": [
+        "逐项定义操作语义和受支持边界；实现验证器、执行器及后端。",
+        "加入正常/错误/部分初始化/析构/预算停止的独立正负控制，比较完整资源行为。"
+      ],
+      "required_current_gates": [],
+      "scope": "broader_original_goal",
+      "stage": "P1",
+      "state": "open",
+      "title": "补齐资源模型"
+    },
+    {
+      "current_identity_confirmed": true,
+      "current_source_commit": "f5b6598bdd88db92c4ef2b17e10deda9a90bdd59",
+      "current_unit_inventory_complete": true,
+      "gap_or_scope_limit": "现有cooperative task与有限hosted I/O不足以覆盖一般异步调度、通道及共享状态取消规则。",
+      "historical_evidence_is_not_current_execution": true,
+      "historical_gap_or_scope_limit": "现有cooperative task与有限hosted I/O不足以覆盖一般异步调度、通道及共享状态取消规则。",
+      "historical_source_commit": "de49fe3e0254b7b71dbcb5b2907a3f3145999393",
+      "historical_state": "open",
+      "id": "P1-ERROR-CANCEL-CONCURRENCY",
+      "next_closure_evidence": [
+        "定义跨任务借用、取消、错误传播和析构顺序。",
+        "实现并发资源规则并保留可重复的失败/竞态/取消控制和完整资源观察。"
+      ],
+      "required_current_gates": [],
+      "scope": "broader_original_goal",
+      "stage": "P1",
+      "state": "open",
+      "title": "补齐资源模型"
+    },
+    {
+      "current_identity_confirmed": true,
+      "current_source_commit": "f5b6598bdd88db92c4ef2b17e10deda9a90bdd59",
+      "current_unit_inventory_complete": true,
+      "gap_or_scope_limit": "当前声明Core范围的解释器、独立实现、native及所选形式化门槛和身份核对已完成；不构成全语言前后端精化证明，独立性能资格未通过。",
+      "historical_evidence_is_not_current_execution": true,
+      "historical_gap_or_scope_limit": "当前源码相关执行链最终回执待填。",
+      "historical_source_commit": "de49fe3e0254b7b71dbcb5b2907a3f3145999393",
+      "historical_state": "closed_in_declared_profile",
+      "id": "P2-CURRENT-SOURCE-EQUIVALENCE",
+      "next_closure_evidence": [],
+      "required_current_gates": [
+        "unit_regression",
+        "rust_shadow_cargo",
+        "rust_shadow_parity",
+        "standalone_native",
+        "standalone_resources",
+        "composite_resources",
+        "composite_bulk_targets",
+        "recursive_resource_chains",
+        "cpp_composed_implementation_llvm",
+        "llvm_local_stored_views",
+        "selected_core_formal",
+        "standalone_aarch64_qemu",
+        "standalone_riscv64_qemu",
+        "legacy_executable_core",
+        "legacy_hosted_composition",
+        "provenance_and_type_core",
+        "formal_core"
+      ],
+      "scope": "current_declared_profile",
+      "stage": "P2",
+      "state": "closed_in_declared_profile",
+      "title": "验证编译链"
+    },
+    {
+      "current_identity_confirmed": true,
+      "current_source_commit": "f5b6598bdd88db92c4ef2b17e10deda9a90bdd59",
+      "current_unit_inventory_complete": true,
+      "gap_or_scope_limit": "有限对照和独立算术定理不能支持全语言安全或所有前端/后端精化。",
+      "historical_evidence_is_not_current_execution": true,
+      "historical_gap_or_scope_limit": "有限对照和独立算术定理不能支持全语言安全或所有前端/后端精化。",
+      "historical_source_commit": "de49fe3e0254b7b71dbcb5b2907a3f3145999393",
+      "historical_state": "open",
+      "id": "P2-REFINEMENT-SCOPE",
+      "next_closure_evidence": [
+        "扩大profile时为同一Core补齐独立实现与原生对应证据。",
+        "若主张更广泛安全/精化，建立源到Core、Core到native的对应证明与外部合约，列出Python/Lean/LLVM/系统TCB。"
+      ],
+      "required_current_gates": [],
+      "scope": "broader_original_goal",
+      "stage": "P2",
+      "state": "open",
+      "title": "验证编译链"
+    },
+    {
+      "current_identity_confirmed": true,
+      "current_source_commit": "f5b6598bdd88db92c4ef2b17e10deda9a90bdd59",
+      "current_unit_inventory_complete": true,
+      "gap_or_scope_limit": "当前 primitive v7 已有 byte-swap.v1 与 checked-unsigned-reduction.v1 的有界适配；fill-loop 仍限 v1–v6。未新增 chain 优化、任意 AI 候选空间、全程序规划或全局最优证明。",
+      "historical_evidence_is_not_current_execution": true,
+      "historical_gap_or_scope_limit": "任意AI规划/全程序优化不由三个注册规则或NDU评分证明；NDU适配器仍限primitive v1-v6。",
+      "historical_source_commit": "de49fe3e0254b7b71dbcb5b2907a3f3145999393",
+      "historical_state": "open",
+      "id": "P3-BROAD-CANDIDATE-SPACE",
+      "next_closure_evidence": [
+        "为每次扩展固定输入域、目标、候选空间、预算和可检查变换关系。",
+        "保留全部候选、拒绝、实际编译验证测量及no-change；不把有限候选选择称为任意程序全局最优。"
+      ],
+      "required_current_gates": [],
+      "scope": "broader_original_goal",
+      "stage": "P3",
+      "state": "open",
+      "title": "接入NDU编译候选"
+    },
+    {
+      "current_identity_confirmed": true,
+      "current_source_commit": "f5b6598bdd88db92c4ef2b17e10deda9a90bdd59",
+      "current_unit_inventory_complete": true,
+      "gap_or_scope_limit": "归约第一次超时；第二次基线/候选MAD均超5%；未获得满足固定门槛的可重复净收益。",
+      "historical_evidence_is_not_current_execution": true,
+      "historical_gap_or_scope_limit": "归约第一次超时；第二次基线/候选MAD均超5%；未获得满足固定门槛的可重复净收益。",
+      "historical_source_commit": "de49fe3e0254b7b71dbcb5b2907a3f3145999393",
+      "historical_state": "open",
+      "id": "P4-REPRODUCIBLE-NET-GAIN",
+      "next_closure_evidence": [
+        "新研究先固定源码、编译器/flags、预算、原始样本保留和选择门槛。",
+        "计入候选生成、验证、编译、测量及适用的切换成本，记录失败/退化；不得重试直到出现有利结果。"
+      ],
+      "required_current_gates": [],
+      "scope": "stage_acceptance",
+      "stage": "P4",
+      "state": "open",
+      "title": "证明实际收益"
+    },
+    {
+      "current_identity_confirmed": true,
+      "current_source_commit": "f5b6598bdd88db92c4ef2b17e10deda9a90bdd59",
+      "current_unit_inventory_complete": true,
+      "gap_or_scope_limit": "现有合成归约不是工业热函数；已审阅固定上游模块均未直接匹配当前三个规则。",
+      "historical_evidence_is_not_current_execution": true,
+      "historical_gap_or_scope_limit": "现有合成归约不是工业热函数；已审阅固定上游模块均未直接匹配当前三个规则。",
+      "historical_source_commit": "de49fe3e0254b7b71dbcb5b2907a3f3145999393",
+      "historical_state": "open",
+      "id": "P4-REAL-WORKLOAD",
+      "next_closure_evidence": [
+        "选择带固定来源、合约和实际热度/代表负载证据的模块。",
+        "若引入Ring-Buffer批量变换，先保持完整backing bytes、输出后缀、head/tail、别名和回绕语义并接通正确Core路径，再冻结实验。"
+      ],
+      "required_current_gates": [],
+      "scope": "stage_acceptance",
+      "stage": "P4",
+      "state": "open",
+      "title": "证明实际收益"
+    },
+    {
+      "current_identity_confirmed": true,
+      "current_source_commit": "f5b6598bdd88db92c4ef2b17e10deda9a90bdd59",
+      "current_unit_inventory_complete": true,
+      "gap_or_scope_limit": "任意C/C++、全部构建配置、自动资源契约恢复及广泛历史C++库转换尚未建立。",
+      "historical_evidence_is_not_current_execution": true,
+      "historical_gap_or_scope_limit": "任意C/C++、全部构建配置、自动资源契约恢复及广泛历史C++库转换尚未建立。",
+      "historical_source_commit": "de49fe3e0254b7b71dbcb5b2907a3f3145999393",
+      "historical_state": "open",
+      "id": "P5-CONTRACTS-AND-COVERAGE",
+      "next_closure_evidence": [
+        "冻结真实项目的TU、宏/ABI配置、依赖和声明清单，对所有输入记录convert/bridge/reject处置。",
+        "分别计数转换实现与foreign bridge，验证extent/alias/lifetime/layout/异常边界和契约来源。"
+      ],
+      "required_current_gates": [],
+      "scope": "stage_acceptance",
+      "stage": "P5",
+      "state": "open",
+      "title": "扩大迁移"
+    },
+    {
+      "current_identity_confirmed": true,
+      "current_source_commit": "f5b6598bdd88db92c4ef2b17e10deda9a90bdd59",
+      "current_unit_inventory_complete": true,
+      "gap_or_scope_limit": "自动资格耗时不能代表人工契约、修复、审查或后续维护成本。",
+      "historical_evidence_is_not_current_execution": true,
+      "historical_gap_or_scope_limit": "自动资格耗时不能代表人工契约、修复、审查或后续维护成本。",
+      "historical_source_commit": "de49fe3e0254b7b71dbcb5b2907a3f3145999393",
+      "historical_state": "open",
+      "id": "P5-MIGRATION-ECONOMICS",
+      "next_closure_evidence": [
+        "记录契约编写/编辑/修复/审查工时、构建与运行成本和不成功尝试。",
+        "跟进至少一次真实上游变化，测桥接与转换维护成本；不把手工adapter视为上游库的自动重写。"
+      ],
+      "required_current_gates": [],
+      "scope": "stage_acceptance",
+      "stage": "P5",
+      "state": "open",
+      "title": "扩大迁移"
+    },
+    {
+      "current_identity_confirmed": true,
+      "current_source_commit": "f5b6598bdd88db92c4ef2b17e10deda9a90bdd59",
+      "current_unit_inventory_complete": true,
+      "gap_or_scope_limit": "当前隔离子进程native-loan控制的尝试、启动、回收、完成及入口分母、版本持有和最终排空已核对；该有限结论不覆盖失败的持续负载资格或持久回调、任务、共享状态迁移。",
+      "historical_evidence_is_not_current_execution": true,
+      "historical_gap_or_scope_limit": "修正版独立native-loan v2冻结执行回执待填，开发43项不能代替它。",
+      "historical_source_commit": "de49fe3e0254b7b71dbcb5b2907a3f3145999393",
+      "historical_state": "closed_in_declared_profile",
+      "id": "P6-CURRENT-CLEANUP-RECEIPT",
+      "next_closure_evidence": [],
+      "required_current_gates": [
+        "unit_regression",
+        "standalone_resources"
+      ],
+      "scope": "current_declared_profile",
+      "stage": "P6",
+      "state": "closed_in_declared_profile",
+      "title": "受控动态优化"
+    },
+    {
+      "current_identity_confirmed": true,
+      "current_source_commit": "f5b6598bdd88db92c4ef2b17e10deda9a90bdd59",
+      "current_unit_inventory_complete": true,
+      "gap_or_scope_limit": "当前每次调用在资源私有的子进程；尚无跨调用外部借用、持久回调/任务/共享状态迁移和进程内热补丁资格。",
+      "historical_evidence_is_not_current_execution": true,
+      "historical_gap_or_scope_limit": "当前每次调用在资源私有的子进程；尚无跨调用外部借用、持久回调/任务/共享状态迁移和进程内热补丁资格。",
+      "historical_source_commit": "de49fe3e0254b7b71dbcb5b2907a3f3145999393",
+      "historical_state": "open",
+      "id": "P6-PERSISTENT-STATE",
+      "next_closure_evidence": [
+        "定义实际持久资源的版本归属、切换屏障、状态转换、回调/任务排空和失败回退合约。",
+        "实现对应调度与回收协议，以真实并发切换、取消、崩溃/回收失败和状态观察验证；测生产切换及后台编译开销。"
+      ],
+      "required_current_gates": [],
+      "scope": "stage_acceptance",
+      "stage": "P6",
+      "state": "open",
+      "title": "受控动态优化"
+    },
+    {
+      "current_identity_confirmed": true,
+      "current_source_commit": "f5b6598bdd88db92c4ef2b17e10deda9a90bdd59",
+      "current_unit_inventory_complete": true,
+      "gap_or_scope_limit": "当前full35选Linux x86-64 GCC/Clang；其他OS/ABI的native HIA和宿主矩阵尚无本次资格。",
+      "historical_evidence_is_not_current_execution": true,
+      "historical_gap_or_scope_limit": "当前full35选Linux x86-64 GCC/Clang；其他OS/ABI的native HIA和宿主矩阵尚无本次资格。",
+      "historical_source_commit": "de49fe3e0254b7b71dbcb5b2907a3f3145999393",
+      "historical_state": "open",
+      "id": "P7-ACTUAL-HOSTS",
+      "next_closure_evidence": [
+        "在每个声称支持的实际宿主/编译器运行ABI/错误实现负例和对应HIA runtime。",
+        "区分交叉对象、QEMU执行与物理native执行，保留独立工具/产物/宿主身份。"
+      ],
+      "required_current_gates": [],
+      "scope": "stage_acceptance",
+      "stage": "P7",
+      "state": "open",
+      "title": "系统资格"
+    },
+    {
+      "current_identity_confirmed": true,
+      "current_source_commit": "f5b6598bdd88db92c4ef2b17e10deda9a90bdd59",
+      "current_unit_inventory_complete": true,
+      "gap_or_scope_limit": "QEMU Rust BSP不证明物理MMIO/IRQ/DMA/GPU/NPU或设备资源安全；对应软件移植也仍需要实现。",
+      "historical_evidence_is_not_current_execution": true,
+      "historical_gap_or_scope_limit": "QEMU Rust BSP不证明物理MMIO/IRQ/DMA/GPU/NPU或设备资源安全；对应软件移植也仍需要实现。",
+      "historical_source_commit": "de49fe3e0254b7b71dbcb5b2907a3f3145999393",
+      "historical_state": "open",
+      "id": "P7-PHYSICAL-DEVICES",
+      "next_closure_evidence": [
+        "选定物理平台与协议，实现所需后端/runtime/BSP和设备资源/同步合约。",
+        "保留正确与错误IRQ/初始化/所有权/取消等实际物理控制，以及相应性能/资源观察。"
+      ],
+      "required_current_gates": [],
+      "scope": "broader_original_goal",
+      "stage": "P7",
+      "state": "open",
+      "title": "系统资格"
+    },
+    {
+      "current_identity_confirmed": true,
+      "current_source_commit": "f5b6598bdd88db92c4ef2b17e10deda9a90bdd59",
+      "current_unit_inventory_complete": true,
+      "gap_or_scope_limit": "锁定模型与runtime在P7资产审计时不可用；没有本次独立Agent开发成本结论。",
+      "historical_evidence_is_not_current_execution": true,
+      "historical_gap_or_scope_limit": "锁定模型与runtime在P7资产审计时不可用；没有本次独立Agent开发成本结论。",
+      "historical_source_commit": "de49fe3e0254b7b71dbcb5b2907a3f3145999393",
+      "historical_state": "open",
+      "id": "P7-INDEPENDENT-AGENTS",
+      "next_closure_evidence": [
+        "提供精确锁定权重、固定兼容runtime和足够资源，按现有32 requests+4 preflights计划保留所有成功/失败/未完成单元。",
+        "每个模型分别满足原主次标准；代表性工业维护需另设独立任务与完整人工/集成成本协议，不能用源码审阅次数代替。"
+      ],
+      "required_current_gates": [],
+      "scope": "stage_acceptance",
+      "stage": "P7",
+      "state": "open",
+      "title": "系统资格"
+    },
+    {
+      "current_identity_confirmed": true,
+      "current_source_commit": "f5b6598bdd88db92c4ef2b17e10deda9a90bdd59",
+      "current_unit_inventory_complete": true,
+      "gap_or_scope_limit": "有限96顺序ABI请求/3trials及短期resource门槛不构成长时间服务证据。",
+      "historical_evidence_is_not_current_execution": true,
+      "historical_gap_or_scope_limit": "有限96顺序ABI请求/3trials及短期resource门槛不构成长时间服务证据。",
+      "historical_source_commit": "de49fe3e0254b7b71dbcb5b2907a3f3145999393",
+      "historical_state": "open",
+      "id": "P7-LONGLOAD",
+      "next_closure_evidence": [
+        "冻结代表负载、持续时间、并发、失败/取消/切换安排和接受门槛。",
+        "保留吞吐、尾延迟、allocator/RSS、泄漏、任务/借用排空和恢复的完整长期记录。"
+      ],
+      "required_current_gates": [],
+      "scope": "stage_acceptance",
+      "stage": "P7",
+      "state": "open",
+      "title": "系统资格"
+    },
+    {
+      "current_identity_confirmed": true,
+      "current_source_commit": "f5b6598bdd88db92c4ef2b17e10deda9a90bdd59",
+      "current_unit_inventory_complete": true,
+      "gap_or_scope_limit": "没有分别闭合性能、资源、安全、迁移和总开发成本的系统证据；有限门槛通过不能相互替代。",
+      "historical_evidence_is_not_current_execution": true,
+      "historical_gap_or_scope_limit": "没有分别闭合性能、资源、安全、迁移和总开发成本的系统证据；有限门槛通过不能相互替代。",
+      "historical_source_commit": "de49fe3e0254b7b71dbcb5b2907a3f3145999393",
+      "historical_state": "open",
+      "id": "P7-DIMENSIONAL-QUALIFICATION",
+      "next_closure_evidence": [
+        "保持各维度独立分母、source/tool/workload身份和失败门槛。",
+        "只有相应证据全部满足时更新完整目标标志；明确TCB、unsupported scope及不可用证据。"
+      ],
+      "required_current_gates": [],
+      "scope": "stage_acceptance",
+      "stage": "P7",
+      "state": "open",
+      "title": "系统资格"
+    }
+  ],
+  "original_obligation_count": 17,
+  "schema": "hepta.hia.v7-soak-blockers.v1",
+  "source_commit": "f5b6598bdd88db92c4ef2b17e10deda9a90bdd59"
+}

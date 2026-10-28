@@ -1,0 +1,170 @@
+{
+  "bindings": [
+    {
+      "bytes": 1983,
+      "path": "README.md",
+      "sha256": "12efa6f3d0840bbe85d94d07411dc5abf19f7975286d4cd3efcbd38207dafb0d"
+    },
+    {
+      "bytes": 18655,
+      "path": "REPORT.zh-CN.md",
+      "sha256": "b27322a89e51cdcbb350b3ce014a5b3d7e5a5eb2d0624f6aa48e8e6139650717"
+    },
+    {
+      "bytes": 217901,
+      "path": "results.json",
+      "sha256": "56e25adedd155e98ad43c192f7d675802b705adfabf301d8523a7e1dc6b98714"
+    },
+    {
+      "bytes": 19863,
+      "path": "blockers.json",
+      "sha256": "b3bf3df33eb4181c1c423824f519b9f25f197f22a08ad8117037e72f2ba31d61"
+    },
+    {
+      "bytes": 31322,
+      "path": "audits/system-final-v1.summary.json",
+      "sha256": "9ce3cd5bbbc149849ee9affec042c63cf06b23e325efa50855774a5ad3981b40"
+    },
+    {
+      "bytes": 83021,
+      "path": "audits/soak-failure-v1.json",
+      "sha256": "fdeec1879f4befadc90647129e3402f4c782be69ed079735a8366c5bf47d93a5"
+    },
+    {
+      "bytes": 3519,
+      "path": "report-correction.json",
+      "sha256": "b23d45af50b92395489175a068b8082c478d4fbfc2d790e4f49c02b92103debe"
+    },
+    {
+      "bytes": 1525,
+      "path": "runner-access-blocker.json",
+      "sha256": "9b40fb6ccd5ddc1889aefc9d9a47c964ac59b7eb93b60d3e1749dc0950de3ef7"
+    },
+    {
+      "bytes": 4059,
+      "path": "raw-evidence-parts.json",
+      "sha256": "df58a314f1c220e0da21da7e987c6918c0f3f82feab8b05305dc64d29a60dd9c"
+    },
+    {
+      "bytes": 1230,
+      "path": "transport-verification.json",
+      "sha256": "d1c10d6522c216c152ecd7c6fc97f383011ba8c7032cb59322266b438e892bf3"
+    }
+  ],
+  "checks": {
+    "all_passed": true,
+    "correction_phase_checks": 43,
+    "prior_delivery_checks": "All 34 targeted field/summary/archive-receipt comparisons pass after correcting the list-schema assumption; checks are audits, not tests.",
+    "scope": "All current gate decisions/returncodes, unique-ID counts, Rust denominator, full application slowdown list, performance evaluation, native and hosted counters, summary projection, audit hashes and archive receipts were compared before the three-description-only correction. No qualification field changed in that correction."
+  },
+  "confirmed_results": {
+    "application_comparisons": 60,
+    "application_slowdown_comparisons": 28,
+    "archive_bytes": 14747460,
+    "archive_identity_scope": "Existing packager/index/reassembler receipts agree. This reviewer did not reread archive members or rerun reassembly.",
+    "archive_members": 4497,
+    "archive_sha256": "6e9e1c01809499659155329790d008e82d5d1cc581dcc67d1e3ae22252ee4d07",
+    "finite_closed_obligations": 3,
+    "full_p0_p7_closed": false,
+    "hosted_attempted_started_reaped": 4982,
+    "hosted_complete_epochs": 150,
+    "hosted_completed_observations": 4981,
+    "hosted_native_entries_observed": 4831,
+    "hosted_native_entries_unavailable": 151,
+    "hosted_native_entry_invocations": null,
+    "hosted_qualified": false,
+    "native_attempts_started_reaped_completed": 7,
+    "native_drained": true,
+    "native_entries_observed": 6,
+    "native_entries_unavailable": 1,
+    "native_entry_invocations": null,
+    "native_released_instances": 3,
+    "open_obligations": 14,
+    "performance_qualified": false,
+    "python_failures_errors_skips": 0,
+    "python_modules": 276,
+    "python_unique_ids": 2729,
+    "rust_binary_summaries": 10,
+    "rust_tests": 56,
+    "standalone_mad_failures": 4,
+    "standalone_ratio_failures": 0,
+    "standalone_samples": 63,
+    "system_gates_executed": 35,
+    "system_gates_passed": 34,
+    "system_qualification": "scoped_gates_not_all_qualified",
+    "transport_parts": 19
+  },
+  "corrected_reviewer_assumptions": [
+    {
+      "initial_assumption": "failed_gates/not_completed_gates were integer counts; a first correction-only comparison also treated added historical metadata as an unintended change.",
+      "observed_schema": "Gate fields are name lists [standalone_performance] and []; historical_gap_or_scope_limit is additive lineage metadata on all obligations.",
+      "raw_contradiction": false,
+      "resolution": "Compared the proper list schema and removed only newly added historical metadata when checking existing fields. Exactly three current descriptions and no states change. No report/input changed to satisfy these reviewer corrections.",
+      "reviewer": "/root/chain_vm_closure",
+      "scope": "Delivery field comparisons"
+    },
+    {
+      "corrected_audit_archive_member": "independent/final/soak-failure-v1.json",
+      "initial_audit_archive_member": "independent/final/soak-failure-v1.initial-inventory-assumption.json",
+      "initial_audit_sha256": "ab792c2fd1e2ef12ac6c7666fe8cb85063f9b498713d2f7b0c8ca442b7d2df87",
+      "raw_contradiction": false,
+      "resolution": "Outer tracked-source and registration snapshots use different declared inventories. The frozen corrected audit matches 1155 common source files and separately verifies 117 registered ignored NDU source/provenance files. Initial audit remains retained. This delivery review does not repeat the journal audit.",
+      "reviewer": "/root/native_gain_candidate",
+      "scope": "Previously frozen hosted-soak audit inventory comparison"
+    }
+  ],
+  "execution_by_delivery_reviewer": {
+    "archive_reassemblies": 0,
+    "browser_actions": 0,
+    "compiler_runs": 0,
+    "native_runs": 0,
+    "new_raw_files": 0,
+    "project_module_imports": 0,
+    "raw_archive_member_reads": 0,
+    "test_runs": 0
+  },
+  "finding": {
+    "ids": [
+      "P0-CURRENT-SOURCE",
+      "P2-CURRENT-SOURCE-EQUIVALENCE",
+      "P6-CURRENT-CLEANUP-RECEIPT"
+    ],
+    "initial": "Three finite-closed records inherited historical pending-receipt wording as their current description.",
+    "remaining_findings": [],
+    "resolution": "Exactly those three current descriptions state completed finite scope and limits; exact initial wording remains historical_gap_or_scope_limit. All 17 states, counts and other existing fields are unchanged. Historical metadata was also added to the other obligations."
+  },
+  "frozen_audit_bindings": [
+    {
+      "archive_member": "independent/final/system-final-v1.json",
+      "bytes": 1938268,
+      "evidence_integrity": "passed",
+      "qualification": "34 of 35; not all qualified",
+      "sha256": "8d9ba853c62f085f1cd0e4e85c84a07902408584b7dbc12fd2d5d6ec8da06f96"
+    },
+    {
+      "archive_member": "independent/final/soak-failure-v1.json",
+      "bytes": 83021,
+      "sha256": "fdeec1879f4befadc90647129e3402f4c782be69ed079735a8366c5bf47d93a5",
+      "status": "audited_failed_qualification_with_unresolved_cause"
+    }
+  ],
+  "limits": [
+    "Report consistency passing does not change either failed qualification.",
+    "Evidence integrity, finite semantic controls, performance qualification and hosted qualification remain separate.",
+    "This delivery receipt is created after the frozen raw archive and is versioned directly; it is not inserted into or backdated into that archive."
+  ],
+  "recorded_utc": "2026-10-28T10:36:45.846542+00:00",
+  "reviewer": "/root/chain_vm_closure",
+  "runner_access": {
+    "authentication_started": false,
+    "automatic_review": "rejected",
+    "credentials_read_or_entered": false,
+    "fresh_workflow_dispatch_attempted": false,
+    "scope": "Compared versioned blocker receipt only; no browser action by this reviewer.",
+    "workaround_attempted": false
+  },
+  "schema": "hepta.review.v7-soak-delivery-consistency.v1",
+  "scope": "Final report/summary consistency against already frozen system and soak audits; then narrow review of three corrected finite-closed descriptions. No new raw execution audit.",
+  "source_commit": "f5b6598bdd88db92c4ef2b17e10deda9a90bdd59",
+  "status": "passed_after_three_historical_description_corrections"
+}

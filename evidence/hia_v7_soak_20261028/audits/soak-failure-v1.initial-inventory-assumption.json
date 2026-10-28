@@ -1,0 +1,851 @@
+{
+  "audit_scope": "One read-only streaming pass through all retained journal records, independent count/schedule/resource arithmetic, object/log/receipt hash binding, focused source review. This is a failed-run evidence audit, not a successful profile validation.",
+  "audit_script": {
+    "bytes": 28150,
+    "path": "/workspace/scratch/7e691a7ff65f/validation-v7-soak-audits/audit_soak_failure_v1.py",
+    "sha256": "5fcbb66ee47491bd355034c842751f0814571c4bd43aab4cc6c675a2f55b3780"
+  },
+  "causal_assessment": {
+    "causal_status": "unresolved_no_implementation_defect_demonstrated_and_no_host_delay_cause_proved",
+    "condition_behavior": "wait_active checks _events and _done under the same Condition used by _record to append and notify. The observed error is raised only when _events remains empty and _done false at its deadline check.",
+    "correction_or_retry_proposed": false,
+    "deadline_anchors": "wait_active starts its own monotonic deadline when called. The native timeout is set in the observer thread after Popen and pipe setup, not at the same admission timestamp.",
+    "final_event_limit": "The final loan_started record proves eventual selected-entry observation. It has no host arrival timestamp and does not establish availability before the 5-second deadline.",
+    "five_seconds_binding": "Hardcoded in the registered producer/probe source snapshot, not a separate configurable field in profile JSON.",
+    "frozen_source_files": [
+      {
+        "bytes": 40776,
+        "path": "/workspace/scratch/7e691a7ff65f/hepta/tools/soak_hia_native_runtime.py",
+        "sha256": "432bfe393b161fc80f67e33809054ea7991aacc2f8323c06a0cf02ba980d40a0"
+      },
+      {
+        "bytes": 35329,
+        "path": "/workspace/scratch/7e691a7ff65f/hepta/tools/hia_runtime_soak_evidence.py",
+        "sha256": "6f42bc4914ef16e1fedad293a7f97e67e82493c287e5458b0f58bf3893a9ddc3"
+      },
+      {
+        "bytes": 16503,
+        "path": "/workspace/scratch/7e691a7ff65f/hepta/tools/qualify_hia_native_loans.py",
+        "sha256": "010912a0c1fa4d0c26e3bc91b6ef605c7ea248210dd7262956a99086d6f12906"
+      },
+      {
+        "bytes": 28614,
+        "path": "/workspace/scratch/7e691a7ff65f/hepta/hepta/hia_native_loan_probe.py",
+        "sha256": "f95d6133238d1739cf8f6c07bbd121ba3181eedda4bfbd2a6d24f9fbca11a999"
+      },
+      {
+        "bytes": 27947,
+        "path": "/workspace/scratch/7e691a7ff65f/hepta/hepta/hia_native_version_dispatch.py",
+        "sha256": "9e7924b3ea6884b66a02f53168be8d4257609231eac650d9409aca41923e4086"
+      },
+      {
+        "bytes": 46466,
+        "path": "/workspace/scratch/7e691a7ff65f/hepta/hepta/hia_native_differential.py",
+        "sha256": "db28f38e78c50e47b0e4a33ff49d2403abea212dd0844b3252e07048cad70ecd"
+      }
+    ],
+    "host_active_wait_seconds": 5.0,
+    "native_call_timeout_seconds": 8.0,
+    "not_proved": [
+      "No root cause among process startup, OS scheduling, observer-thread scheduling or pipe I/O can be selected from these records.",
+      "No lost-wakeup race is demonstrated by the reviewed Condition code.",
+      "No zero-risk proof or general backend/resource-ledger correctness follows from this finite execution."
+    ],
+    "separate_author_causal_review": {
+      "bytes": 9430,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-next/hosted-failure-investigation-1/causal-review.json",
+      "sha256": "fecc62da1ffa0847fc502bd0347aaee86e5e93426403b8a43dc74cf8ce66ad84"
+    }
+  },
+  "checks": {
+    "check_instances": 185923,
+    "distinct_checks": 72,
+    "failures": [
+      "registration_source_subset_binding"
+    ],
+    "per_check_instances": {
+      "actual_pid_reap_binding": 4982,
+      "actual_reader_rejection": 1,
+      "all_counts_recomputed": 1,
+      "all_epoch_cleanup_drained": 1,
+      "attempt_sample_bijection": 1,
+      "attempt_unique_contiguous": 4982,
+      "build_image_identity": 302,
+      "build_llvm_identity": 302,
+      "cancelled_build_publication_evidence": 1,
+      "case_denominators_recomputed": 1,
+      "child_resource_maxima": 1,
+      "child_resource_sample_denominators": 1,
+      "commands_executed_as_planned": 1,
+      "complete_and_partial_epochs": 1,
+      "completed_epoch_resource_receipts": 1,
+      "content_addressed_object_hash": 7,
+      "cost_sums_recomputed": 1,
+      "current_critical_source_matches_registered_bytes": 6,
+      "drained_parent_resource_maxima": 1,
+      "expected_timeout_observations": 151,
+      "failed_admission_not_miscounted_as_complete": 1,
+      "failed_qualification_clean_terminal_state": 1,
+      "failure_error_identity": 1,
+      "failure_phase_binding": 1,
+      "final_call_terminal_not_quarantined": 4982,
+      "fixed_schedule_prefix": 4982,
+      "fixture_source_binding": 1,
+      "formal_profile_identity": 1,
+      "immutable_command_plan": 1,
+      "journal_canonical_bytes": 23852,
+      "journal_elapsed_monotonic": 23852,
+      "journal_previous_hash": 23852,
+      "journal_sequence": 23852,
+      "journal_terminal_extent": 1,
+      "last_completed_epoch_resources": 1,
+      "latency_summary_recomputed": 1,
+      "only_uncompleted_control": 1,
+      "outer_log_identity": 6,
+      "outer_process_wait_confirmation": 3,
+      "outer_returncodes": 1,
+      "outer_step_summary_binding": 3,
+      "parent_resource_anchors": 1,
+      "producer_report_binding": 1,
+      "profile_claims_unchanged": 1,
+      "profile_digest": 1,
+      "reader_failure_shape_explanation": 1,
+      "reader_shape_identified": 1,
+      "registered_tool_binding": 2,
+      "registration_canonical": 1,
+      "registration_identity": 1,
+      "registration_original_equals_retained_object": 1,
+      "registration_source_snapshot_digest": 1,
+      "registration_source_subset_binding": 1,
+      "regular_retained_objects": 7,
+      "result_observation_identity": 4830,
+      "retained_byte_accounting": 1,
+      "retained_object_reference": 763,
+      "returned_endpoint_bytes": 4528,
+      "returned_values_and_loan_events": 4528,
+      "run_end_timing_anchor": 1,
+      "sample_attempt_identity": 39856,
+      "sample_image_binding": 4982,
+      "sample_latency_arithmetic": 4982,
+      "sample_unique_bound": 4982,
+      "sampled_parent_resource_limits": 1,
+      "source_before_after": 1,
+      "source_commit": 1,
+      "tools_before_after": 1,
+      "tracked_source_inventory_digest": 1,
+      "trap_observations": 302,
+      "unique_source_inventory_paths": 1,
+      "unknown_entry_scope": 1
+    }
+  },
+  "costs": {
+    "call_interval_sum_ns": 706676899034,
+    "call_intervals_overlap": true,
+    "do_not_add_nested_or_overlapping_wall_intervals": true,
+    "driver_main_cost": {
+      "engineering_model_energy_and_human_costs_measured": false,
+      "parent_system_seconds": 0.383993,
+      "parent_user_seconds": 0.894053,
+      "scope": "Main entry through final source/tool checks; excludes module imports, final summary serialization and caller overhead. Child step wall values are nested in this duration, not additive.",
+      "wall_ns": 820532837845
+    },
+    "latency_summary_recomputed": {
+      "max_ns": 5315938319,
+      "p50_ns": 89859476,
+      "p95_ns": 351384911,
+      "p99_ns": 1009651019,
+      "samples": 4982
+    },
+    "no_performance_gain_or_network_slo_claim": true,
+    "outer_child_step_wall_sum_ns": 819171131986,
+    "outer_steps": {
+      "register": {
+        "child_system_seconds": 0.15098299999999998,
+        "child_user_seconds": 0.6970049999999999,
+        "finished_utc": "2026-10-28T10:00:46.039851+00:00",
+        "process_completion_confirmed": true,
+        "returncode": 0,
+        "started_utc": "2026-10-28T10:00:45.196345+00:00",
+        "wall_ns": 843469138
+      },
+      "run": {
+        "child_system_seconds": 135.082674,
+        "child_user_seconds": 360.928213,
+        "finished_utc": "2026-10-28T10:14:09.785166+00:00",
+        "process_completion_confirmed": true,
+        "returncode": 1,
+        "started_utc": "2026-10-28T10:00:46.042460+00:00",
+        "wall_ns": 803742568794
+      },
+      "validate": {
+        "child_system_seconds": 2.6821700000000135,
+        "child_user_seconds": 9.764920999999958,
+        "finished_utc": "2026-10-28T10:14:24.373696+00:00",
+        "process_completion_confirmed": true,
+        "returncode": 1,
+        "started_utc": "2026-10-28T10:14:09.788580+00:00",
+        "wall_ns": 14585094054
+      }
+    },
+    "producer_build_control_wall_sum_ns": 127963752753,
+    "producer_observation_wall_ns": 799016829047,
+    "producer_pacing_ns": 131572004082,
+    "producer_parent_cpu_seconds": 88.375479,
+    "producer_total_wall_ns": 803432207515
+  },
+  "denominators": {
+    "case_counts": {
+      "return": 4529,
+      "timeout": 151,
+      "trap_before_loan": 151,
+      "trap_in_loan": 151
+    },
+    "child_returncode_counts": {
+      "-6": 302,
+      "-9": 152,
+      "0": 4528
+    },
+    "completed_epoch_calls": 4950,
+    "completed_epochs": 150,
+    "counts": {
+      "attempted_calls": 4982,
+      "child_process_start_count_complete": true,
+      "child_processes_reaped": 4982,
+      "child_processes_started": 4982,
+      "completed_observations": 4981,
+      "native_entries_observed": 4831,
+      "native_entry_invocations": null,
+      "unavailable_child_start_outcomes": 0,
+      "unavailable_native_entry_outcomes": 151,
+      "unconfirmed_child_reaps": 0
+    },
+    "interrupted_epoch_attempts": 32,
+    "interrupted_epoch_completed_observations": 31,
+    "interrupted_epoch_index": 150,
+    "interrupted_epoch_number": 151,
+    "last_planned_call_not_attempted": "baseline-across-close-1",
+    "loan_event_counts": {
+      "loan_ended": 4528,
+      "loan_started": 4831
+    },
+    "observed_unique_child_pids": 4982,
+    "outcome_categories": {
+      "expected_timeout": 151,
+      "failed_uncompleted": 1,
+      "returned": 4528,
+      "trapped": 302
+    },
+    "pid_uniqueness_is_not_assumed_as_global_identity": true,
+    "uncompleted_attempt_ids": [
+      4982
+    ],
+    "unknown_entry_rows": {
+      "case": "trap-before-loan",
+      "count": 151,
+      "native_entry_invocations_remains": null
+    }
+  },
+  "failure": {
+    "attempt_id": 4982,
+    "attempt_row": {
+      "admission_version": "88a20a15e04cdce6670d47a52032eb0bca159da98abac7a58c8d73059a8657f1",
+      "arguments": [
+        5,
+        0,
+        4,
+        0
+      ],
+      "attempt_id": 4982,
+      "case": "baseline-across-close-0",
+      "dispatcher_admission_attempted": false,
+      "elapsed_ns": 787794440893,
+      "entry": "native_swap",
+      "epoch": 150,
+      "expected": "return",
+      "start_ns": 787787709459
+    },
+    "completed_result_present": false,
+    "delta_ns": {
+      "admission_to_final_sample": 11216749354,
+      "admission_to_host_error": 5315938319,
+      "host_error_to_final_sample": 5900811035
+    },
+    "final_ack_sent": false,
+    "final_cleanup_confirmed": true,
+    "final_entry_observed": true,
+    "final_epoch_cleanup": {
+      "close": {
+        "compiler_preempted": false,
+        "drained": true,
+        "new_admission_disabled": true,
+        "quarantined_calls": 0,
+        "schema": "hepta.hia.native-version-close.v2",
+        "status": "closed",
+        "unconfirmed_child_reaps": 0
+      },
+      "dispatch": {
+        "active_sha256": "88a20a15e04cdce6670d47a52032eb0bca159da98abac7a58c8d73059a8657f1",
+        "background_build_active": false,
+        "baseline_sha256": "88a20a15e04cdce6670d47a52032eb0bca159da98abac7a58c8d73059a8657f1",
+        "build_job": {
+          "activated": false,
+          "artifact_sha256": "5d60fac2039ae81305fbe716c24990e83edefd093d0e3f087877c2daf922509e",
+          "baseline_sha256": "88a20a15e04cdce6670d47a52032eb0bca159da98abac7a58c8d73059a8657f1",
+          "build_attempt_started": true,
+          "cancel_requested": false,
+          "candidate_sha256": "c04873679ba7d62f935f15304f14f992092e661bc1466507da3ff5b8acec8ba3",
+          "generation_at_submission": 0,
+          "job_id": 2,
+          "native_artifact_built": true,
+          "native_bytes_equal_baseline": true,
+          "native_receipt": {
+            "artifact_bytes": 15736,
+            "artifact_sha256": "5d60fac2039ae81305fbe716c24990e83edefd093d0e3f087877c2daf922509e",
+            "binary_inventory": {
+              "claims": {
+                "backend_refinement_proven": false,
+                "binary_abi_observed": true,
+                "native_execution_proven": false,
+                "whole_language_memory_safety_proven": false
+              },
+              "dynamic_exports": [
+                "__hia_loan_probe_configure",
+                "native_swap"
+              ],
+              "format": "ELF64",
+              "kind": "ET_DYN",
+              "machine": 62,
+              "schema": "hepta.elf-shared-abi.v1",
+              "source_exports_rechecked": true,
+              "unresolved_imports": [
+                "_ITM_deregisterTMCloneTable",
+                "_ITM_registerTMCloneTable",
+                "__cxa_finalize",
+                "__gmon_start__",
+                "abort",
+                "calloc",
+                "free"
+              ]
+            },
+            "claims": {
+              "backend_refinement_proved": false,
+              "diagnostic_instrumentation": true,
+              "production_artifact": false,
+              "same_uninstrumented_timing": false
+            },
+            "core_sha256": "c04873679ba7d62f935f15304f14f992092e661bc1466507da3ff5b8acec8ba3",
+            "exports": [
+              "__hia_loan_probe_configure",
+              "native_swap"
+            ],
+            "flags": [
+              "--target=x86_64-unknown-linux-gnu",
+              "-x",
+              "ir",
+              "-O3",
+              "-fPIC",
+              "-shared"
+            ],
+            "implementation_sha256": "b0d00090f7fe4d6587d1558b97f55ae0136957831e0c0ad20996dbfc0d3b1e69",
+            "kind": "shared",
+            "llvm_ir": "; Standalone HIA: verified core -> LLVM. No source AST or Rust safety gate.\ntarget triple = \"x86_64-unknown-linux-gnu\"\n%hia.buffer = type { ptr, i64 }\n%hia.alloc = type { %hia.buffer, i1 }\ndeclare void @abort() noreturn\ndeclare ptr @calloc(i64, i64) \"no-builtins\"\ndeclare ptr @malloc(i64) \"no-builtins\"\ndeclare void @free(ptr) \"no-builtins\"\n\n; A failed allocation is an empty, valid owner plus false. Zero length succeeds.\n; The independent verifier still requires every resulting owner to be consumed.\ndefine internal %hia.alloc @__hia_allocate(i64 %length, i1 %zero_bytes) {\nentry:\n  %zero = icmp eq i64 %length, 0\n  br i1 %zero, label %empty, label %nonempty\nempty:\n  %empty_result = insertvalue %hia.alloc zeroinitializer, i1 true, 1\n  ret %hia.alloc %empty_result\nnonempty:\n  %valid = icmp ule i64 %length, 9223372036854775807\n  br i1 %valid, label %allocate, label %failed\nallocate:\n  br i1 %zero_bytes, label %zeroed, label %unread\nzeroed:\n  %zero_pointer = call ptr @calloc(i64 1, i64 %length) nobuiltin\n  br label %allocated\nunread:\n  %unread_pointer = call ptr @malloc(i64 %length) nobuiltin\n  br label %allocated\nallocated:\n  %pointer = phi ptr [ %zero_pointer, %zeroed ], [ %unread_pointer, %unread ]\n  %success = icmp ne ptr %pointer, null\n  br i1 %success, label %ready, label %failed\nready:\n  %b0 = insertvalue %hia.buffer zeroinitializer, ptr %pointer, 0\n  %b1 = insertvalue %hia.buffer %b0, i64 %length, 1\n  %r0 = insertvalue %hia.alloc zeroinitializer, %hia.buffer %b1, 0\n  %r1 = insertvalue %hia.alloc %r0, i1 true, 1\n  ret %hia.alloc %r1\nfailed:\n  ret %hia.alloc zeroinitializer\n}\n\ndefine internal i8 @__hia_fn_0(i64 %p_0_0, i64 %p_0_1, i64 %p_0_2, i64 %p_0_3) {\nb0:\n  %t1 = call %hia.alloc @__hia_allocate(i64 %p_0_0, i1 true)\n  %t2 = extractvalue %hia.alloc %t1, 0\n  %t3 = extractvalue %hia.alloc %t1, 1\n  br i1 %t3, label %ok_4, label %trap_4\ntrap_4:\n  call void @abort()\n  unreachable\nok_4:\n  %t5 = insertvalue %hia.buffer %t2, i64 %p_0_0, 1\n  call void @__hia_probe_begin(%hia.buffer %t5)\n  %t6 = extractvalue %hia.buffer %t5, 0\n  %t7 = extractvalue %hia.buffer %t5, 1\n  %t8 = icmp ult i64 0, %t7\n  br i1 %t8, label %ok_9, label %trap_9\ntrap_9:\n  call void @abort()\n  unreachable\nok_9:\n  %t10 = getelementptr i8, ptr %t6, i64 0\n  store i8 11, ptr %t10, align 1\n  %t11 = extractvalue %hia.buffer %t5, 0\n  %t12 = extractvalue %hia.buffer %t5, 1\n  %t13 = icmp ult i64 1, %t12\n  br i1 %t13, label %ok_14, label %trap_14\ntrap_14:\n  call void @abort()\n  unreachable\nok_14:\n  %t15 = getelementptr i8, ptr %t11, i64 1\n  store i8 22, ptr %t15, align 1\n  %t16 = extractvalue %hia.buffer %t5, 0\n  %t17 = extractvalue %hia.buffer %t5, 1\n  %t18 = icmp ult i64 2, %t17\n  br i1 %t18, label %ok_19, label %trap_19\ntrap_19:\n  call void @abort()\n  unreachable\nok_19:\n  %t20 = getelementptr i8, ptr %t16, i64 2\n  store i8 33, ptr %t20, align 1\n  %t21 = extractvalue %hia.buffer %t5, 0\n  %t22 = extractvalue %hia.buffer %t5, 1\n  %t23 = icmp ult i64 3, %t22\n  br i1 %t23, label %ok_24, label %trap_24\ntrap_24:\n  call void @abort()\n  unreachable\nok_24:\n  %t25 = getelementptr i8, ptr %t21, i64 3\n  store i8 44, ptr %t25, align 1\n  %t26 = extractvalue %hia.buffer %t5, 0\n  %t27 = extractvalue %hia.buffer %t5, 1\n  %t28 = icmp ult i64 4, %t27\n  br i1 %t28, label %ok_29, label %trap_29\ntrap_29:\n  call void @abort()\n  unreachable\nok_29:\n  %t30 = getelementptr i8, ptr %t26, i64 4\n  store i8 55, ptr %t30, align 1\n  %t31 = extractvalue %hia.buffer %t5, 0\n  %t32 = extractvalue %hia.buffer %t5, 1\n  %t33 = icmp ult i64 %p_0_1, %t32\n  br i1 %t33, label %ok_34, label %trap_34\ntrap_34:\n  call void @abort()\n  unreachable\nok_34:\n  %t35 = icmp ult i64 %p_0_2, %t32\n  br i1 %t35, label %ok_36, label %trap_36\ntrap_36:\n  call void @abort()\n  unreachable\nok_36:\n  %t37 = getelementptr i8, ptr %t31, i64 %p_0_1\n  %t38 = getelementptr i8, ptr %t31, i64 %p_0_2\n  %t39 = load i8, ptr %t37, align 1\n  %t40 = load i8, ptr %t38, align 1\n  store i8 %t40, ptr %t37, align 1\n  store i8 %t39, ptr %t38, align 1\n  %t41 = extractvalue %hia.buffer %t5, 0\n  %t42 = extractvalue %hia.buffer %t5, 1\n  %t43 = icmp ult i64 %p_0_3, %t42\n  br i1 %t43, label %ok_44, label %trap_44\ntrap_44:\n  call void @abort()\n  unreachable\nok_44:\n  %t45 = getelementptr i8, ptr %t41, i64 %p_0_3\n  %t46 = load i8, ptr %t45, align 1\n  call void @__hia_probe_end(%hia.buffer %t5)\n  %t47 = extractvalue %hia.buffer %t5, 0\n  %t48 = icmp ne ptr %t47, null\n  br i1 %t48, label %drop_nonnull_49, label %drop_after_49\ndrop_nonnull_49:\n  call void @free(ptr %t47) nobuiltin\n  br label %drop_after_49\ndrop_after_49:\n  ret i8 %t46\n}\n\ndefine internal i32 @__hia_fn_1(i32 %p_0_0, i32 %p_0_1, i32 %p_0_2, i32 %p_0_3) {\nb0:\n  %t1 = zext i32 %p_0_0 to i64\n  %t2 = zext i32 %p_0_1 to i64\n  %t3 = zext i32 %p_0_2 to i64\n  %t4 = zext i32 %p_0_3 to i64\n  %t5 = call i8 @__hia_fn_0(i64 %t1, i64 %t2, i64 %t3, i64 %t4)\n  %t6 = zext i8 %t5 to i32\n  ret i32 %t6\n}\n\ndefine i32 @native_swap(i32 %a0, i32 %a1, i32 %a2, i32 %a3) {\nentry:\n  %result = call i32 @__hia_fn_1(i32 %a0, i32 %a1, i32 %a2, i32 %a3)\n  ret i32 %result\n}\n\n@__hia_probe_event_fd = internal global i32 -1\n@__hia_probe_ack_fd = internal global i32 -1\n@__hia_probe_state = internal global i32 0\n\ndefine i32 @__hia_loan_probe_configure(i32 %event, i32 %ack) noinline {\nentry:\n  %old = load volatile i32, ptr @__hia_probe_event_fd\n  %fresh = icmp eq i32 %old, -1\n  %eok = icmp sge i32 %event, 3\n  %aok = icmp sge i32 %ack, 3\n  %different = icmp ne i32 %event, %ack\n  %ok0 = and i1 %fresh, %eok\n  %ok1 = and i1 %aok, %different\n  %ok = and i1 %ok0, %ok1\n  br i1 %ok, label %ready, label %bad\nready:\n  store volatile i32 %event, ptr @__hia_probe_event_fd\n  store volatile i32 %ack, ptr @__hia_probe_ack_fd\n  ret i32 0\nbad:\n  call void @abort()\n  unreachable\n}\n\ndefine internal void @__hia_probe_record(i64 %phase, %hia.buffer %view) noinline {\nentry:\n  %pointer = extractvalue %hia.buffer %view, 0\n  %length = extractvalue %hia.buffer %view, 1\n  %positive = icmp ne i64 %length, 0\n  br i1 %positive, label %read_bytes, label %record\nread_bytes:\n  %first_byte = load volatile i8, ptr %pointer, align 1\n  %last_index = sub i64 %length, 1\n  %last_ptr = getelementptr i8, ptr %pointer, i64 %last_index\n  %last_byte = load volatile i8, ptr %last_ptr, align 1\n  %first_wide = zext i8 %first_byte to i64\n  %last_wide = zext i8 %last_byte to i64\n  br label %record\nrecord:\n  %first = phi i64 [ 0, %entry ], [ %first_wide, %read_bytes ]\n  %last = phi i64 [ 0, %entry ], [ %last_wide, %read_bytes ]\n  %packet = alloca [5 x i64], align 8\n  %p1 = getelementptr [5 x i64], ptr %packet, i64 0, i64 1\n  %p2 = getelementptr [5 x i64], ptr %packet, i64 0, i64 2\n  %p3 = getelementptr [5 x i64], ptr %packet, i64 0, i64 3\n  %p4 = getelementptr [5 x i64], ptr %packet, i64 0, i64 4\n  store i64 5208766240033689137, ptr %packet, align 8\n  store i64 %phase, ptr %p1, align 8\n  store i64 %length, ptr %p2, align 8\n  store i64 %first, ptr %p3, align 8\n  store i64 %last, ptr %p4, align 8\n  %fd32 = load volatile i32, ptr @__hia_probe_event_fd\n  %fd = sext i32 %fd32 to i64\n  %written = call i64 asm sideeffect \"syscall\", \"={rax},{rax},{rdi},{rsi},{rdx},~{rcx},~{r11},~{memory},~{dirflag},~{fpsr},~{flags}\"(i64 1, i64 %fd, ptr %packet, i64 40)\n  %ok = icmp eq i64 %written, 40\n  br i1 %ok, label %done, label %bad\ndone:\n  ret void\nbad:\n  call void @abort()\n  unreachable\n}\n\ndefine internal void @__hia_probe_begin(%hia.buffer %view) noinline {\nentry:\n  %state = load volatile i32, ptr @__hia_probe_state\n  %first = icmp eq i32 %state, 0\n  br i1 %first, label %observe, label %done\nobserve:\n  store volatile i32 1, ptr @__hia_probe_state\n  call void @__hia_probe_record(i64 1, %hia.buffer %view)\n  %ack = alloca i8, align 1\n  %fd32 = load volatile i32, ptr @__hia_probe_ack_fd\n  %fd = sext i32 %fd32 to i64\n  %read = call i64 asm sideeffect \"syscall\", \"={rax},{rax},{rdi},{rsi},{rdx},~{rcx},~{r11},~{memory},~{dirflag},~{fpsr},~{flags}\"(i64 0, i64 %fd, ptr %ack, i64 1)\n  %read_ok = icmp eq i64 %read, 1\n  br i1 %read_ok, label %check, label %bad\ncheck:\n  %byte = load i8, ptr %ack, align 1\n  %ack_ok = icmp eq i8 %byte, -91\n  br i1 %ack_ok, label %done, label %bad\ndone:\n  ret void\nbad:\n  call void @abort()\n  unreachable\n}\n\ndefine internal void @__hia_probe_end(%hia.buffer %view) noinline {\nentry:\n  %state = load volatile i32, ptr @__hia_probe_state\n  %active = icmp eq i32 %state, 1\n  br i1 %active, label %observe, label %done\nobserve:\n  call void @__hia_probe_record(i64 2, %hia.buffer %view)\n  store volatile i32 2, ptr @__hia_probe_state\n  br label %done\ndone:\n  ret void\n}\n",
+            "llvm_ir_sha256": "b6852318dee544d045bc6dd0a39e2656762aaedd1f9c6bb751a2a413ac92f617",
+            "loan_probe_site": {
+              "allocation_index": 0,
+              "block": "entry",
+              "borrow_index": 1,
+              "borrow_operation": "borrow.mut",
+              "diagnostic_zero_initialization": "forced for selected function allocations",
+              "end_index": 19,
+              "function": "swap_candidate",
+              "loan": "loan",
+              "observed_dynamic_occurrence": "first only",
+              "owner": "owner",
+              "same_block_end_required": true,
+              "selected_function_reentrant": false
+            },
+            "ok": true,
+            "ordinary_llvm_ir_sha256": "421f74537d246d5ed215438b32d727a47bff36753d20f584ecd8daa4452bf7c1",
+            "profile": "hepta.hia.native-loan-probe.v1",
+            "schema": "hepta.hia.native-loan-probe-build.v1",
+            "status": "native_compiled_not_executed",
+            "target": "x86_64-unknown-linux-gnu",
+            "toolchain": {
+              "default_target": "x86_64-pc-linux-gnu",
+              "path": "/usr/lib/llvm-20/bin/clang",
+              "sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+              "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+            }
+          },
+          "pass_id": "byte-swap.v1",
+          "plan_sha256": "59f6de9fa40129b2d5408f4c8cb0d00ee65201300c352f9a8f1f6ce11368e97b",
+          "published": true,
+          "relation": "reproduced_registered_rewrite",
+          "rewrite_replacements": 1,
+          "schema": "hepta.hia.native-version-build.v2",
+          "status": "staged"
+        },
+        "claims": {
+          "crash_durable": false,
+          "diagnostic_loan_instrumentation": true,
+          "distributed_fencing": false,
+          "foreign_callbacks_supported": false,
+          "in_process_native_hot_patch": false,
+          "native_entry_version_dispatch": true,
+          "production_p6_qualified": false,
+          "shared_external_state_supported": false
+        },
+        "discarded_build_artifacts": 0,
+        "drained": true,
+        "generation": 2,
+        "in_flight": 0,
+        "max_in_flight": 2,
+        "new_admission_disabled": true,
+        "quarantined_calls": [],
+        "released_artifacts": 2,
+        "retired_versions": 1,
+        "schema": "hepta.hia.native-version-snapshot.v2",
+        "unconfirmed_child_reaps": 0,
+        "versions": []
+      },
+      "elapsed_ns": 797478129364,
+      "epoch": 150
+    },
+    "final_native_returncode": -9,
+    "final_native_timeout_error": {
+      "message": "E_HIA_LOAN_PROBE: native child timed out while loan execution remained tracked; process group terminated",
+      "type": "HIADifferentialRejected"
+    },
+    "loan_held_event_present": false,
+    "report_error": {
+      "identity": "147e30728d3c3d2c3d4436d32399b0ff9f5338bd48c002cc04a306700915e687",
+      "message": "E_HIA_LOAN_PROBE: selected native loan was not observed within wait deadline",
+      "type": "HIADifferentialRejected"
+    },
+    "sample_row": {
+      "admission_to_observation_ns": 5315938319,
+      "admission_version": "88a20a15e04cdce6670d47a52032eb0bca159da98abac7a58c8d73059a8657f1",
+      "arguments": [
+        5,
+        0,
+        4,
+        0
+      ],
+      "attempt_id": 4982,
+      "case": "baseline-across-close-0",
+      "dispatcher_admission_attempted": true,
+      "elapsed_ns": 799004465297,
+      "entry": "native_swap",
+      "epoch": 150,
+      "error": {
+        "identity": "147e30728d3c3d2c3d4436d32399b0ff9f5338bd48c002cc04a306700915e687",
+        "message": "E_HIA_LOAN_PROBE: selected native loan was not observed within wait deadline",
+        "type": "HIADifferentialRejected"
+      },
+      "expected": "return",
+      "final_observation": {
+        "ack_sent": false,
+        "artifact_sha256": "5d60fac2039ae81305fbe716c24990e83edefd093d0e3f087877c2daf922509e",
+        "child_process": {
+          "child_start_count_complete": true,
+          "cleanup": {
+            "claims": {
+              "direct_child_reaped": true,
+              "uninterruptible_kernel_wait_preempted": false
+            },
+            "cleanup_confirmed": true,
+            "group_signal_attempted": true,
+            "group_signal_delivered": true,
+            "last_error": null,
+            "pid": 1076311,
+            "quarantined": false,
+            "reap_attempts": 1,
+            "returncode": -9,
+            "schema": "hepta.hia.native-child-cleanup.v1",
+            "secondary_errors": [],
+            "status": "reaped"
+          },
+          "creation_attempted": true,
+          "known_child_processes_started": 1,
+          "native_entry_observed": true,
+          "native_entry_outcome_available": true,
+          "pid": 1076311,
+          "spawn_observed": true
+        },
+        "done": true,
+        "error": {
+          "message": "E_HIA_LOAN_PROBE: native child timed out while loan execution remained tracked; process group terminated",
+          "type": "HIADifferentialRejected"
+        },
+        "events": [
+          {
+            "bytes": 5,
+            "event": "loan_started",
+            "first_byte": 0,
+            "last_byte": 0,
+            "selected_loan_active": true
+          }
+        ],
+        "generation": 2,
+        "held": false,
+        "program_sha256": "88a20a15e04cdce6670d47a52032eb0bca159da98abac7a58c8d73059a8657f1",
+        "quarantined": false,
+        "schema": "hepta.hia.native-loan-observation.v2"
+      },
+      "finalized_ns": 799004458813,
+      "observed_ns": 793103647778,
+      "start_ns": 787787709459
+    },
+    "terminal_observation_event_present": false
+  },
+  "hosted_retries": 0,
+  "journal": {
+    "canonical_hash_chain_verified": true,
+    "event_kind_counts": {
+      "activation": 151,
+      "attempt": 4982,
+      "baseline_build": 151,
+      "build_attempt": 453,
+      "cancel_attempt": 151,
+      "candidate_build": 151,
+      "close_while_held": 150,
+      "drained_resources": 150,
+      "epoch_cleanup": 151,
+      "loan_held": 4830,
+      "pacing": 2265,
+      "rollback": 151,
+      "run_end": 1,
+      "run_start": 1,
+      "sample": 4982,
+      "staged_image": 151,
+      "terminal_observation": 4981
+    },
+    "file": {
+      "bytes": 24162331,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/run/events.jsonl",
+      "sha256": "f91ab4797d1a217636619e568647f28ad9e5e0b9836734b02e06453c50c7fb91"
+    },
+    "last_row_sha256": "324765775b95fc6636af8e249057832c95e5e96d880cf61e0ecebfc6cf700a69",
+    "logical_core_image_bindings": [
+      {
+        "artifact_sha256": "5d60fac2039ae81305fbe716c24990e83edefd093d0e3f087877c2daf922509e",
+        "core_sha256": "88a20a15e04cdce6670d47a52032eb0bca159da98abac7a58c8d73059a8657f1"
+      },
+      {
+        "artifact_sha256": "5d60fac2039ae81305fbe716c24990e83edefd093d0e3f087877c2daf922509e",
+        "core_sha256": "c04873679ba7d62f935f15304f14f992092e661bc1466507da3ff5b8acec8ba3"
+      }
+    ],
+    "object_bytes": 190055,
+    "object_manifest": [
+      {
+        "bytes": 3552,
+        "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/run/objects/3b1d9ce62f726eca9de8505d441457e4b613222f09b5429b0c32e2253d159607.fixture.json",
+        "sha256": "3b1d9ce62f726eca9de8505d441457e4b613222f09b5429b0c32e2253d159607"
+      },
+      {
+        "bytes": 11501,
+        "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/run/objects/4a3fb981094bdb592e3dbdacf85a6555df319897807da4f1b73f5a2ed039be05.build.json",
+        "sha256": "4a3fb981094bdb592e3dbdacf85a6555df319897807da4f1b73f5a2ed039be05"
+      },
+      {
+        "bytes": 15736,
+        "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/run/objects/5d60fac2039ae81305fbe716c24990e83edefd093d0e3f087877c2daf922509e.so",
+        "sha256": "5d60fac2039ae81305fbe716c24990e83edefd093d0e3f087877c2daf922509e"
+      },
+      {
+        "bytes": 141545,
+        "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/run/objects/626059a3c9ba3c558033fff8d330424c74ada4cdc4e4b3662e4ceec2eb373c1e.registration.json",
+        "sha256": "626059a3c9ba3c558033fff8d330424c74ada4cdc4e4b3662e4ceec2eb373c1e"
+      },
+      {
+        "bytes": 10881,
+        "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/run/objects/817768edab431ab7ca4e00a31ded72ce71b064091ff4deed306cba8e5465ff17.build.json",
+        "sha256": "817768edab431ab7ca4e00a31ded72ce71b064091ff4deed306cba8e5465ff17"
+      },
+      {
+        "bytes": 3551,
+        "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/run/objects/88a20a15e04cdce6670d47a52032eb0bca159da98abac7a58c8d73059a8657f1.core.json",
+        "sha256": "88a20a15e04cdce6670d47a52032eb0bca159da98abac7a58c8d73059a8657f1"
+      },
+      {
+        "bytes": 3289,
+        "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/run/objects/c04873679ba7d62f935f15304f14f992092e661bc1466507da3ff5b8acec8ba3.core.json",
+        "sha256": "c04873679ba7d62f935f15304f14f992092e661bc1466507da3ff5b8acec8ba3"
+      }
+    ],
+    "records": 23852,
+    "retained_bytes_excluding_report": 24352386,
+    "same_native_artifact_is_not_performance_gain_evidence": true,
+    "unique_content_addressed_objects": 7,
+    "unique_physical_native_artifacts": [
+      "5d60fac2039ae81305fbe716c24990e83edefd093d0e3f087877c2daf922509e"
+    ]
+  },
+  "native_or_compiler_reexecutions": 0,
+  "original_artifacts_modified": false,
+  "qualification": {
+    "control_failure_alone_prevents_qualification": true,
+    "execution_passed": false,
+    "producer_ok": false,
+    "producer_status": "incomplete_or_failed",
+    "reader": {
+      "extra_failed_report_fields": [
+        "failure_phase"
+      ],
+      "first_error": "E_NATIVE_RUNTIME_SOAK_EVIDENCE: complete report shape differs",
+      "interpretation": "The current reader accepts only complete successful profile receipts. Here it rejects the failed receipt shape before object/journal replay. This rejection is not evidence of raw corruption; even after shape adaptation the failed execution, insufficient completed observations and duration must remain unqualified.",
+      "missing_fields": [],
+      "reader_was_not_rerun_or_relaxed_by_audit": true,
+      "returncode": 1
+    },
+    "reporter_wrapper_completed_means_terminal_execution_not_qualification_success": true,
+    "stop_reason": "unexpected_failure",
+    "threshold_checks": {
+      "completed_epochs": {
+        "actual": 150,
+        "met": true,
+        "minimum": 128
+      },
+      "completed_observations": {
+        "actual": 4981,
+        "deficit": 19,
+        "met": false,
+        "minimum": 5000
+      },
+      "observation_duration_ns": {
+        "actual": 799016829047,
+        "deficit": 700983170953,
+        "met": false,
+        "minimum": 1500000000000
+      },
+      "pacing_fraction": {
+        "actual": 0.16466737532791145,
+        "maximum": 0.6,
+        "met": true
+      },
+      "total_profile_wall_ns": {
+        "actual": 803432207515,
+        "maximum": 1800000000000,
+        "within_cap": true
+      }
+    }
+  },
+  "raw_bindings": {
+    "command-plan.json": {
+      "bytes": 829,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/command-plan.json",
+      "sha256": "d632913f0fdd23e2ef9975041770ba11c82f8a54dda19a6bdfe6661ba963b99b"
+    },
+    "register.process.json": {
+      "bytes": 1398,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/register.process.json",
+      "sha256": "95a0755193a136cab5eb1bde068e4b0820caecb68b73b33b862e0fca00f9873a"
+    },
+    "register.stderr.log": {
+      "bytes": 0,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/register.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "register.stdout.log": {
+      "bytes": 224,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/register.stdout.log",
+      "sha256": "c59fa043d4f03e08be23542c98b96cb7d7db6a27d4ce3560cb1a8992e9c7a510"
+    },
+    "registration-command.json": {
+      "bytes": 375,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/registration-command.json",
+      "sha256": "5926e7f2b667372ff1c6547887ff17ee5d4a6612e00a16c68c7abc20aad39858"
+    },
+    "registration.json": {
+      "bytes": 141545,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/registration.json",
+      "sha256": "626059a3c9ba3c558033fff8d330424c74ada4cdc4e4b3662e4ceec2eb373c1e"
+    },
+    "run.process.json": {
+      "bytes": 1462,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/run.process.json",
+      "sha256": "b555fcacf0f32e3b4ed62a81d2f052e2ec21a972a0a9f28ba137739b1e59913b"
+    },
+    "run.stderr.log": {
+      "bytes": 0,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/run.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "run.stdout.log": {
+      "bytes": 468,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/run.stdout.log",
+      "sha256": "92d2ec853a7cc9a0319f9016b000d3ec73ba48ffc49b0b00474406144073502c"
+    },
+    "run/events.jsonl": {
+      "bytes": 24162331,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/run/events.jsonl",
+      "sha256": "f91ab4797d1a217636619e568647f28ad9e5e0b9836734b02e06453c50c7fb91"
+    },
+    "run/report.json": {
+      "bytes": 4997,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/run/report.json",
+      "sha256": "30ca1fbfbfc7f1d82720ce50381bc3209c91d98e99352ab79eb44129a45ccb7d"
+    },
+    "source-after.json": {
+      "bytes": 775634,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/source-after.json",
+      "sha256": "ce81851a5c57f5539ebf51bf700f6ecf55abba61ecdbefa03e93428adc36f463"
+    },
+    "source-before.json": {
+      "bytes": 775634,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/source-before.json",
+      "sha256": "ce81851a5c57f5539ebf51bf700f6ecf55abba61ecdbefa03e93428adc36f463"
+    },
+    "summary.json": {
+      "bytes": 8212,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/summary.json",
+      "sha256": "b97b95fe627b1f0f7a5cd1e0c27dde3d13d7df0c246c044fe0861165158fef0d"
+    },
+    "tools-after.json": {
+      "bytes": 1251,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/tools-after.json",
+      "sha256": "dd7d59e0e8bb4e309660418f990854700754244d6ea76d7a901ada751deaca62"
+    },
+    "tools-before.json": {
+      "bytes": 1251,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/tools-before.json",
+      "sha256": "dd7d59e0e8bb4e309660418f990854700754244d6ea76d7a901ada751deaca62"
+    },
+    "validate.process.json": {
+      "bytes": 1286,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/validate.process.json",
+      "sha256": "912f99de1bada4fbae02713e91cb6d6605ad0524a7b76d2aaf0730a2bcafe93a"
+    },
+    "validate.stderr.log": {
+      "bytes": 1199,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/validate.stderr.log",
+      "sha256": "36ffc2db84761591c5f2e62b96fa6ac7608151cac82dbb5ce376ac24ac9bf66a"
+    },
+    "validate.stdout.log": {
+      "bytes": 0,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/validate.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "registration": {
+    "created_utc": "2026-10-28T10:00:45.464515+00:00",
+    "profile": {
+      "buffer_sizes": [
+        5,
+        64,
+        4096,
+        65536
+      ],
+      "build_wait_seconds": 60.0,
+      "calls_per_epoch": 33,
+      "close_wait_seconds": 60.0,
+      "formal_qualification": true,
+      "max_attempted_calls": 16896,
+      "max_concurrent_calls": 2,
+      "max_drained_parent_fd_growth": 4,
+      "max_epochs": 512,
+      "max_evidence_bytes": 100663296,
+      "max_pacing_fraction": 0.6,
+      "max_parent_rss_kib": 524288,
+      "max_wall_seconds": 1800.0,
+      "middle_pairs_per_epoch": 12,
+      "minimum_completed_epochs": 128,
+      "minimum_completed_observations": 5000,
+      "minimum_free_disk_bytes": 134217728,
+      "minimum_observation_seconds": 1500.0,
+      "minimum_pair_spacing_seconds": 0.2,
+      "native_call_timeout_seconds": 8.0,
+      "new_epoch_deadline_seconds": 1620.0,
+      "profile_id": "hosted-native-lifecycle-30m.v1",
+      "report_reserve_bytes": 2097152,
+      "schema": "hepta.hia.native-runtime-soak-profile.v1",
+      "withheld_ack_timeout_seconds": 1.0
+    },
+    "profile_sha256": "c4146c19dca53f94aa2cace481f7a9dd9213b73a531e1e4e6b8ec773d024885d",
+    "raw": {
+      "bytes": 141545,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/registration.json",
+      "sha256": "626059a3c9ba3c558033fff8d330424c74ada4cdc4e4b3662e4ceec2eb373c1e"
+    },
+    "registered_before_run_start": true,
+    "retained_copy_byte_identical": true,
+    "source_snapshot_files": 1272,
+    "source_snapshot_sha256": "26ac531e41b129a0c6402b0f976832c0179e6cc82692b602e5bc3f7b6aa07434"
+  },
+  "remaining_obligations": [
+    "The frozen first hosted qualification remains failed; no completion claim or threshold relaxation is justified.",
+    "Root cause of the selected-loan observation deadline remains unresolved from the retained event timestamps.",
+    "A failed-run CLI inspection mode or clearer rejection diagnostic would improve reviewability; the current successful-profile reader correctly grants no qualification."
+  ],
+  "resources_and_ownership": {
+    "all_151_epoch_cleanup_receipts_drained": true,
+    "final_drained": true,
+    "full_heap_ledger_or_all_bytes_observed": false,
+    "outer_forced_kill": false,
+    "outer_steps_confirmed_reaped": {
+      "register": true,
+      "run": true,
+      "validate": true
+    },
+    "parent_and_sampled_child_resources": {
+      "available_child_samples": 4830,
+      "largest_observed_child_fd_count": 6,
+      "largest_observed_child_rss_kib": 11628,
+      "largest_observed_drained_parent_fd_count": 5,
+      "largest_observed_drained_parent_rss_kib": 31352,
+      "last_drained_parent": {
+        "available": true,
+        "fd_count": 5,
+        "pid": 1061379,
+        "rss_kib": 31352,
+        "starttime_ticks": 9470821,
+        "threads": 1,
+        "vm_hwm_kib": 33888
+      },
+      "parent_after": {
+        "available": true,
+        "fd_count": 5,
+        "pid": 1061379,
+        "rss_kib": 31360,
+        "starttime_ticks": 9470821,
+        "threads": 1,
+        "vm_hwm_kib": 33888
+      },
+      "parent_before": {
+        "available": true,
+        "fd_count": 5,
+        "pid": 1061379,
+        "rss_kib": 26644,
+        "starttime_ticks": 9470821,
+        "threads": 1,
+        "vm_hwm_kib": 26644
+      },
+      "unavailable_or_unrequested_child_samples": 152
+    },
+    "retained_cleanup_recovery_phase_present": false,
+    "sampled_parent_fd_growth": 0,
+    "sampled_parent_thresholds_met": true,
+    "unconfirmed_child_reaps": 0,
+    "whole_process_tree_peak_or_all_kernel_resources_proved_bounded": false
+  },
+  "reviewer": "/root/native_gain_candidate",
+  "schema": "hepta.review.first-hosted-soak-failure.v1",
+  "source_and_tools": {
+    "all_registration_sources_match_outer_inventory": true,
+    "all_tracked_inventory_paths": 3443,
+    "critical_current_source_files_rehashed": 6,
+    "full_source_archives_rehashed_by_this_audit": false,
+    "producer_before_after_claims": {
+      "source_unchanged": true,
+      "tools_unchanged": true
+    },
+    "registration_tool_hashes_match_outer_receipts": true,
+    "scope_limit": "Before/after receipt coherence and targeted current-source hashes do not attest exclusive host control or an atomic snapshot.",
+    "source_before_after_equal": true,
+    "tools_before_after_equal": true
+  },
+  "source_commit": "f5b6598bdd88db92c4ef2b17e10deda9a90bdd59",
+  "status": "audit_inconsistencies_require_review",
+  "threshold_edits": 0
+}

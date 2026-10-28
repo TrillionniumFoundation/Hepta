@@ -83,8 +83,11 @@ class CandidatePlanTests(unittest.TestCase):
         from hepta.hia_schema import SCHEMA_V7
         source["schema"] = SCHEMA_V7
         plan = make_plan(source, entry="swap_candidate")
-        with self.assertRaisesRegex(HIANDURejected, "primitive v1-v6"):
-            prepare_candidate(source, plan)
+        prepared = prepare_candidate(source, plan)
+        self.assertEqual(prepared.replacements, 1)
+        self.assertEqual(prepared.baseline.as_dict()["schema"], SCHEMA_V7)
+        self.assertEqual(prepared.candidate.as_dict()["schema"], SCHEMA_V7)
+        self.assertEqual(prepared.plan["baseline_sha256"], prepared.baseline.sha256)
 
     def test_actual_values_traps_failure_and_full_resource_observations(self):
         prepared = prepare_candidate(self.source, self.plan)

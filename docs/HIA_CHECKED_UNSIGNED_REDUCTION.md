@@ -4,7 +4,9 @@
 `checked-unsigned-reduction.v1`. The input and complete output are independently
 admitted by `verify_program`. The rule retains the input primitive schema,
 including v7; it refuses composite inputs instead of erasing their structured
-identity. NDU's registered adapter separately retains its primitive v1–v6 scope.
+identity. NDU's registered checked-reduction adapter also admits primitive
+v1–v7 with full replay and identity checks; its fill-loop rule remains v1–v6.
+See [the adapter's version boundaries](HIA_NDU_V7_ADMISSION_20261028.md).
 
 ## Accepted dataflow
 

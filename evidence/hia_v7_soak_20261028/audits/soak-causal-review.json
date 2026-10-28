@@ -1,0 +1,219 @@
+{
+  "causal_findings": [
+    {
+      "claim": "The recorded normal-call admission wait failed; its observed interval from attempt start is 5.315938319 seconds. Final observation later contains exactly one loan_started event, no ACK, native timeout, -9 returncode, and confirmed direct-child reap.",
+      "kind": "observed"
+    },
+    {
+      "claim": "wait_active checks events/done and waits under the same Condition used by _record append/notify_all. The reported deadline error can occur only while events is empty and done is false at that check. This code inspection does not expose a lost notification or premature dispatch release.",
+      "kind": "static"
+    },
+    {
+      "claim": "After begin raises, run_epoch fails and close_epoch retains the dispatcher until its active observer ends. No resume is performed for the failed admission. Its fixed native deadline then terminates and confirms cleanup; retained final native error differs from, and does not overwrite, the original admission error.",
+      "kind": "static"
+    },
+    {
+      "claim": "The observer stored loan_started after the failing empty-events deadline check; the native write may have happened earlier. No per-event, worker-start, Popen-return, or first-read timestamps were retained, so child startup/execution delay cannot be separated from observer scheduling/IO delay.",
+      "kind": "inference_with_limit"
+    },
+    {
+      "claim": "The evidence does not establish host interference as the cause, a false early deadline, lost-wakeup, an ABI/compiler defect, or that the call would have returned correctly if ACK had been sent.",
+      "kind": "not_established"
+    }
+  ],
+  "decision": {
+    "code_defect_demonstrated": false,
+    "compiles": 0,
+    "correction_proposed": false,
+    "first_failed_run_retained": true,
+    "generator_modified_during_investigation": false,
+    "hosted_retries": 0,
+    "new_native_calls": 0,
+    "reason": "A late final entry observation alone does not show the five-second observation contract was incorrectly enforced. Increasing its limit or retrying for a favorable host outcome is not justified.",
+    "source_modified": false,
+    "thresholds_unchanged": true,
+    "timing_repeats": 0
+  },
+  "journal_focus": {
+    "extraction": {
+      "bytes": 16250,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-next/hosted-failure-investigation-1/focused-original-events.jsonl",
+      "sha256": "0ac7b01d8544d38e881f8eb24d932bda226fc89fe6431a7fad5fdd56ddf544e0"
+    },
+    "full_bytes": 24162331,
+    "line_sha256": [
+      "010103075ad4f5c78381c8e85fb1bcd545ce966ed4ca50afba6ab0729e48dcd5",
+      "8b94e24f16728acddc5b32670a32a340d08af353b4e2275027fc0cbb478943ac",
+      "f180f7193a6631887be6173d080f7c38bdce8d9ea284690360e25fd65136a254",
+      "bc3b975e9d69ac384e37b986b66da715f0964124a5cb56016ac1dafb642fe3da",
+      "324765775b95fc6636af8e249057832c95e5e96d880cf61e0ecebfc6cf700a69"
+    ],
+    "sequences": [
+      23702,
+      23817,
+      23818,
+      23850,
+      23851
+    ],
+    "source_path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/run/events.jsonl",
+    "source_stat_unchanged": true,
+    "tail_read_bytes": 240000,
+    "tail_read_offset": 23922331,
+    "whole_journal_chain_and_denominator_audit_owner": "/root/native_gain_candidate; separate validation-v7-soak-audits/soak-failure-v1.json"
+  },
+  "limits": [
+    "The formal finite profile remains failed: 150 complete epochs, 4982 attempts/starts/reaps, 4981 complete observations; observed duration and complete-observation minima were not reached.",
+    "Case counts label intended case classes, and the latency sample population includes the failed admission; neither is a count of successful returned native calls.",
+    "Drained FD/RSS observations and confirmed direct-child reap do not prove production resource safety or every-instant resource bounds."
+  ],
+  "observed": {
+    "admission_error": {
+      "identity": "147e30728d3c3d2c3d4436d32399b0ff9f5338bd48c002cc04a306700915e687",
+      "message": "E_HIA_LOAN_PROBE: selected native loan was not observed within wait deadline",
+      "type": "HIADifferentialRejected"
+    },
+    "admission_to_observation_ns": 5315938319,
+    "attempt_id": 4982,
+    "case": "baseline-across-close-0",
+    "completed_epochs": 150,
+    "counts": {
+      "attempted_calls": 4982,
+      "child_process_start_count_complete": true,
+      "child_processes_reaped": 4982,
+      "child_processes_started": 4982,
+      "completed_observations": 4981,
+      "native_entries_observed": 4831,
+      "native_entry_invocations": null,
+      "unavailable_child_start_outcomes": 0,
+      "unavailable_native_entry_outcomes": 151,
+      "unconfirmed_child_reaps": 0
+    },
+    "epoch_cleanup": {
+      "close": {
+        "compiler_preempted": false,
+        "drained": true,
+        "new_admission_disabled": true,
+        "quarantined_calls": 0,
+        "schema": "hepta.hia.native-version-close.v2",
+        "status": "closed",
+        "unconfirmed_child_reaps": 0
+      },
+      "dispatch": {
+        "drained": true,
+        "in_flight": 0,
+        "quarantined_calls": [],
+        "released_artifacts": 2,
+        "unconfirmed_child_reaps": 0,
+        "versions": []
+      },
+      "elapsed_ns": 797478129364
+    },
+    "failure_phase": "admission:baseline-across-close-0",
+    "final_observation": {
+      "ack_sent": false,
+      "artifact_sha256": "5d60fac2039ae81305fbe716c24990e83edefd093d0e3f087877c2daf922509e",
+      "child_process": {
+        "child_start_count_complete": true,
+        "cleanup": {
+          "claims": {
+            "direct_child_reaped": true,
+            "uninterruptible_kernel_wait_preempted": false
+          },
+          "cleanup_confirmed": true,
+          "group_signal_attempted": true,
+          "group_signal_delivered": true,
+          "last_error": null,
+          "pid": 1076311,
+          "quarantined": false,
+          "reap_attempts": 1,
+          "returncode": -9,
+          "schema": "hepta.hia.native-child-cleanup.v1",
+          "secondary_errors": [],
+          "status": "reaped"
+        },
+        "creation_attempted": true,
+        "known_child_processes_started": 1,
+        "native_entry_observed": true,
+        "native_entry_outcome_available": true,
+        "pid": 1076311,
+        "spawn_observed": true
+      },
+      "done": true,
+      "error": {
+        "message": "E_HIA_LOAN_PROBE: native child timed out while loan execution remained tracked; process group terminated",
+        "type": "HIADifferentialRejected"
+      },
+      "events": [
+        {
+          "bytes": 5,
+          "event": "loan_started",
+          "first_byte": 0,
+          "last_byte": 0,
+          "selected_loan_active": true
+        }
+      ],
+      "generation": 2,
+      "held": false,
+      "program_sha256": "88a20a15e04cdce6670d47a52032eb0bca159da98abac7a58c8d73059a8657f1",
+      "quarantined": false,
+      "schema": "hepta.hia.native-loan-observation.v2"
+    },
+    "finalized_ns": 799004458813,
+    "minimum_completed_epochs_satisfied": true,
+    "minimum_completed_observations_satisfied": false,
+    "minimum_duration_satisfied": false,
+    "observation_wall_ns": 799016829047,
+    "observed_ns": 793103647778,
+    "pid": 1076311,
+    "start_ns": 787787709459,
+    "total_wall_ns": 803432207515
+  },
+  "policy": {
+    "failed_call_uses_normal_timeout": true,
+    "native_call_timeout_seconds": 8.0,
+    "native_timeout_origin": "Registered profile field; observer starts this deadline after Popen returns.",
+    "protocol_or_threshold_changed": false,
+    "wait_active_origin": "Frozen NativeRuntimeSoak.begin normal-call literal; not a separate profile JSON field. Registered source snapshot binds this code.",
+    "wait_active_seconds": 5,
+    "withheld_ack_control_timeout_seconds": 1.0
+  },
+  "registration": {
+    "bytes": 141545,
+    "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/registration.json",
+    "sha256": "626059a3c9ba3c558033fff8d330424c74ada4cdc4e4b3662e4ceec2eb373c1e"
+  },
+  "report": {
+    "bytes": 4997,
+    "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/run/report.json",
+    "sha256": "30ca1fbfbfc7f1d82720ce50381bc3209c91d98e99352ab79eb44129a45ccb7d"
+  },
+  "schema": "hepta.hia.native-soak-causal-diagnosis.v1",
+  "source_commit": "f5b6598bdd88db92c4ef2b17e10deda9a90bdd59",
+  "source_files": {
+    "hepta/hia_native_differential.py": {
+      "bytes": 46466,
+      "isolated_matches_current_main": true,
+      "matches_registered_snapshot": true,
+      "sha256": "db28f38e78c50e47b0e4a33ff49d2403abea212dd0844b3252e07048cad70ecd"
+    },
+    "hepta/hia_native_loan_probe.py": {
+      "bytes": 28614,
+      "isolated_matches_current_main": true,
+      "matches_registered_snapshot": true,
+      "sha256": "f95d6133238d1739cf8f6c07bbd121ba3181eedda4bfbd2a6d24f9fbca11a999"
+    },
+    "hepta/hia_native_version_dispatch.py": {
+      "bytes": 27947,
+      "isolated_matches_current_main": true,
+      "matches_registered_snapshot": true,
+      "sha256": "9e7924b3ea6884b66a02f53168be8d4257609231eac650d9409aca41923e4086"
+    },
+    "tools/soak_hia_native_runtime.py": {
+      "bytes": 40776,
+      "isolated_matches_current_main": true,
+      "matches_registered_snapshot": true,
+      "sha256": "432bfe393b161fc80f67e33809054ea7991aacc2f8323c06a0cf02ba980d40a0"
+    }
+  },
+  "status": "no_code_correction_justified_by_recorded_evidence"
+}

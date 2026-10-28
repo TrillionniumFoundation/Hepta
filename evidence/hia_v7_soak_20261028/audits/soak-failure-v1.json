@@ -1,0 +1,1577 @@
+{
+  "audit_scope": "One read-only streaming pass through all retained journal records, independent count/schedule/resource arithmetic, object/log/receipt hash binding, focused source review. This is a failed-run evidence audit, not a successful profile validation. The 1,155 shared source files match both inventory schemes; 117 registered ignored NDU source/provenance files were additionally rehashed without rereading the journal.",
+  "audit_script": {
+    "bytes": 28150,
+    "path": "/workspace/scratch/7e691a7ff65f/validation-v7-soak-audits/audit_soak_failure_v1.py",
+    "sha256": "5fcbb66ee47491bd355034c842751f0814571c4bd43aab4cc6c675a2f55b3780"
+  },
+  "auditor_inventory_assumption_correction": {
+    "correction_script": {
+      "bytes": 4310,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-v7-soak-audits/correct_soak_inventory_scope_v1.py",
+      "sha256": "e1424780cd628228fb940fad9a0b9dc702580bc04a077cc8d2885527eb226ccc"
+    },
+    "evidence_for_correction": "All 117 apparent mismatches were missing Git inventory entries, not conflicting hashes. All 1,155 common hashes match; all 117 ignored current files match registration hashes.",
+    "initial_report": {
+      "bytes": 43037,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-v7-soak-audits/soak-failure-v1.initial-inventory-assumption.json",
+      "sha256": "ab792c2fd1e2ef12ac6c7666fe8cb85063f9b498713d2f7b0c8ca442b7d2df87"
+    },
+    "initial_report_status": "reviewer_scope_assumption_failed_not_product_source_drift",
+    "journal_or_native_execution_repeated": false,
+    "raw_artifacts_changed": false,
+    "wrong_assumption": "The release_check filesystem source inventory was assumed to be a subset of the wrapper Git-tracked source inventory."
+  },
+  "causal_assessment": {
+    "causal_status": "unresolved_no_implementation_defect_demonstrated_and_no_host_delay_cause_proved",
+    "condition_behavior": "wait_active checks _events and _done under the same Condition used by _record to append and notify. The observed error is raised only when _events remains empty and _done false at its deadline check.",
+    "correction_or_retry_proposed": false,
+    "deadline_anchors": "wait_active starts its own monotonic deadline when called. The native timeout is set in the observer thread after Popen and pipe setup, not at the same admission timestamp.",
+    "final_event_limit": "The final loan_started record proves eventual selected-entry observation. It has no host arrival timestamp and does not establish availability before the 5-second deadline.",
+    "five_seconds_binding": "Hardcoded in the registered producer/probe source snapshot, not a separate configurable field in profile JSON.",
+    "frozen_source_files": [
+      {
+        "bytes": 40776,
+        "path": "/workspace/scratch/7e691a7ff65f/hepta/tools/soak_hia_native_runtime.py",
+        "sha256": "432bfe393b161fc80f67e33809054ea7991aacc2f8323c06a0cf02ba980d40a0"
+      },
+      {
+        "bytes": 35329,
+        "path": "/workspace/scratch/7e691a7ff65f/hepta/tools/hia_runtime_soak_evidence.py",
+        "sha256": "6f42bc4914ef16e1fedad293a7f97e67e82493c287e5458b0f58bf3893a9ddc3"
+      },
+      {
+        "bytes": 16503,
+        "path": "/workspace/scratch/7e691a7ff65f/hepta/tools/qualify_hia_native_loans.py",
+        "sha256": "010912a0c1fa4d0c26e3bc91b6ef605c7ea248210dd7262956a99086d6f12906"
+      },
+      {
+        "bytes": 28614,
+        "path": "/workspace/scratch/7e691a7ff65f/hepta/hepta/hia_native_loan_probe.py",
+        "sha256": "f95d6133238d1739cf8f6c07bbd121ba3181eedda4bfbd2a6d24f9fbca11a999"
+      },
+      {
+        "bytes": 27947,
+        "path": "/workspace/scratch/7e691a7ff65f/hepta/hepta/hia_native_version_dispatch.py",
+        "sha256": "9e7924b3ea6884b66a02f53168be8d4257609231eac650d9409aca41923e4086"
+      },
+      {
+        "bytes": 46466,
+        "path": "/workspace/scratch/7e691a7ff65f/hepta/hepta/hia_native_differential.py",
+        "sha256": "db28f38e78c50e47b0e4a33ff49d2403abea212dd0844b3252e07048cad70ecd"
+      }
+    ],
+    "host_active_wait_seconds": 5.0,
+    "native_call_timeout_seconds": 8.0,
+    "not_proved": [
+      "No root cause among process startup, OS scheduling, observer-thread scheduling or pipe I/O can be selected from these records.",
+      "No lost-wakeup race is demonstrated by the reviewed Condition code.",
+      "No zero-risk proof or general backend/resource-ledger correctness follows from this finite execution."
+    ],
+    "separate_author_causal_review": {
+      "bytes": 9430,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-next/hosted-failure-investigation-1/causal-review.json",
+      "sha256": "fecc62da1ffa0847fc502bd0347aaee86e5e93426403b8a43dc74cf8ce66ad84"
+    }
+  },
+  "checks": {
+    "check_instances": 187194,
+    "distinct_checks": 73,
+    "failures": [],
+    "per_check_instances": {
+      "actual_pid_reap_binding": 4982,
+      "actual_reader_rejection": 1,
+      "all_counts_recomputed": 1,
+      "all_epoch_cleanup_drained": 1,
+      "attempt_sample_bijection": 1,
+      "attempt_unique_contiguous": 4982,
+      "build_image_identity": 302,
+      "build_llvm_identity": 302,
+      "cancelled_build_publication_evidence": 1,
+      "case_denominators_recomputed": 1,
+      "child_resource_maxima": 1,
+      "child_resource_sample_denominators": 1,
+      "commands_executed_as_planned": 1,
+      "complete_and_partial_epochs": 1,
+      "completed_epoch_resource_receipts": 1,
+      "content_addressed_object_hash": 7,
+      "cost_sums_recomputed": 1,
+      "current_critical_source_matches_registered_bytes": 6,
+      "drained_parent_resource_maxima": 1,
+      "expected_timeout_observations": 151,
+      "failed_admission_not_miscounted_as_complete": 1,
+      "failed_qualification_clean_terminal_state": 1,
+      "failure_error_identity": 1,
+      "failure_phase_binding": 1,
+      "final_call_terminal_not_quarantined": 4982,
+      "fixed_schedule_prefix": 4982,
+      "fixture_source_binding": 1,
+      "formal_profile_identity": 1,
+      "immutable_command_plan": 1,
+      "journal_canonical_bytes": 23852,
+      "journal_elapsed_monotonic": 23852,
+      "journal_previous_hash": 23852,
+      "journal_sequence": 23852,
+      "journal_terminal_extent": 1,
+      "last_completed_epoch_resources": 1,
+      "latency_summary_recomputed": 1,
+      "only_uncompleted_control": 1,
+      "outer_log_identity": 6,
+      "outer_process_wait_confirmation": 3,
+      "outer_returncodes": 1,
+      "outer_step_summary_binding": 3,
+      "parent_resource_anchors": 1,
+      "producer_report_binding": 1,
+      "profile_claims_unchanged": 1,
+      "profile_digest": 1,
+      "reader_failure_shape_explanation": 1,
+      "reader_shape_identified": 1,
+      "registered_non_git_inputs_current_hash_binding": 117,
+      "registered_tool_binding": 2,
+      "registration_canonical": 1,
+      "registration_identity": 1,
+      "registration_original_equals_retained_object": 1,
+      "registration_outer_common_scope_binding": 1155,
+      "registration_source_snapshot_digest": 1,
+      "regular_retained_objects": 7,
+      "result_observation_identity": 4830,
+      "retained_byte_accounting": 1,
+      "retained_object_reference": 763,
+      "returned_endpoint_bytes": 4528,
+      "returned_values_and_loan_events": 4528,
+      "run_end_timing_anchor": 1,
+      "sample_attempt_identity": 39856,
+      "sample_image_binding": 4982,
+      "sample_latency_arithmetic": 4982,
+      "sample_unique_bound": 4982,
+      "sampled_parent_resource_limits": 1,
+      "source_before_after": 1,
+      "source_commit": 1,
+      "tools_before_after": 1,
+      "tracked_source_inventory_digest": 1,
+      "trap_observations": 302,
+      "unique_source_inventory_paths": 1,
+      "unknown_entry_scope": 1
+    }
+  },
+  "costs": {
+    "call_interval_sum_ns": 706676899034,
+    "call_intervals_overlap": true,
+    "do_not_add_nested_or_overlapping_wall_intervals": true,
+    "driver_main_cost": {
+      "engineering_model_energy_and_human_costs_measured": false,
+      "parent_system_seconds": 0.383993,
+      "parent_user_seconds": 0.894053,
+      "scope": "Main entry through final source/tool checks; excludes module imports, final summary serialization and caller overhead. Child step wall values are nested in this duration, not additive.",
+      "wall_ns": 820532837845
+    },
+    "latency_summary_recomputed": {
+      "max_ns": 5315938319,
+      "p50_ns": 89859476,
+      "p95_ns": 351384911,
+      "p99_ns": 1009651019,
+      "samples": 4982
+    },
+    "no_performance_gain_or_network_slo_claim": true,
+    "outer_child_step_wall_sum_ns": 819171131986,
+    "outer_steps": {
+      "register": {
+        "child_system_seconds": 0.15098299999999998,
+        "child_user_seconds": 0.6970049999999999,
+        "finished_utc": "2026-10-28T10:00:46.039851+00:00",
+        "process_completion_confirmed": true,
+        "returncode": 0,
+        "started_utc": "2026-10-28T10:00:45.196345+00:00",
+        "wall_ns": 843469138
+      },
+      "run": {
+        "child_system_seconds": 135.082674,
+        "child_user_seconds": 360.928213,
+        "finished_utc": "2026-10-28T10:14:09.785166+00:00",
+        "process_completion_confirmed": true,
+        "returncode": 1,
+        "started_utc": "2026-10-28T10:00:46.042460+00:00",
+        "wall_ns": 803742568794
+      },
+      "validate": {
+        "child_system_seconds": 2.6821700000000135,
+        "child_user_seconds": 9.764920999999958,
+        "finished_utc": "2026-10-28T10:14:24.373696+00:00",
+        "process_completion_confirmed": true,
+        "returncode": 1,
+        "started_utc": "2026-10-28T10:14:09.788580+00:00",
+        "wall_ns": 14585094054
+      }
+    },
+    "producer_build_control_wall_sum_ns": 127963752753,
+    "producer_observation_wall_ns": 799016829047,
+    "producer_pacing_ns": 131572004082,
+    "producer_parent_cpu_seconds": 88.375479,
+    "producer_total_wall_ns": 803432207515
+  },
+  "denominators": {
+    "case_counts": {
+      "return": 4529,
+      "timeout": 151,
+      "trap_before_loan": 151,
+      "trap_in_loan": 151
+    },
+    "child_returncode_counts": {
+      "-6": 302,
+      "-9": 152,
+      "0": 4528
+    },
+    "completed_epoch_calls": 4950,
+    "completed_epochs": 150,
+    "counts": {
+      "attempted_calls": 4982,
+      "child_process_start_count_complete": true,
+      "child_processes_reaped": 4982,
+      "child_processes_started": 4982,
+      "completed_observations": 4981,
+      "native_entries_observed": 4831,
+      "native_entry_invocations": null,
+      "unavailable_child_start_outcomes": 0,
+      "unavailable_native_entry_outcomes": 151,
+      "unconfirmed_child_reaps": 0
+    },
+    "interrupted_epoch_attempts": 32,
+    "interrupted_epoch_completed_observations": 31,
+    "interrupted_epoch_index": 150,
+    "interrupted_epoch_number": 151,
+    "last_planned_call_not_attempted": "baseline-across-close-1",
+    "loan_event_counts": {
+      "loan_ended": 4528,
+      "loan_started": 4831
+    },
+    "observed_unique_child_pids": 4982,
+    "outcome_categories": {
+      "expected_timeout": 151,
+      "failed_uncompleted": 1,
+      "returned": 4528,
+      "trapped": 302
+    },
+    "pid_uniqueness_is_not_assumed_as_global_identity": true,
+    "uncompleted_attempt_ids": [
+      4982
+    ],
+    "unknown_entry_rows": {
+      "case": "trap-before-loan",
+      "count": 151,
+      "native_entry_invocations_remains": null
+    }
+  },
+  "failure": {
+    "attempt_id": 4982,
+    "attempt_row": {
+      "admission_version": "88a20a15e04cdce6670d47a52032eb0bca159da98abac7a58c8d73059a8657f1",
+      "arguments": [
+        5,
+        0,
+        4,
+        0
+      ],
+      "attempt_id": 4982,
+      "case": "baseline-across-close-0",
+      "dispatcher_admission_attempted": false,
+      "elapsed_ns": 787794440893,
+      "entry": "native_swap",
+      "epoch": 150,
+      "expected": "return",
+      "start_ns": 787787709459
+    },
+    "completed_result_present": false,
+    "delta_ns": {
+      "admission_to_final_sample": 11216749354,
+      "admission_to_host_error": 5315938319,
+      "host_error_to_final_sample": 5900811035
+    },
+    "final_ack_sent": false,
+    "final_cleanup_confirmed": true,
+    "final_entry_observed": true,
+    "final_epoch_cleanup": {
+      "close": {
+        "compiler_preempted": false,
+        "drained": true,
+        "new_admission_disabled": true,
+        "quarantined_calls": 0,
+        "schema": "hepta.hia.native-version-close.v2",
+        "status": "closed",
+        "unconfirmed_child_reaps": 0
+      },
+      "dispatch": {
+        "active_sha256": "88a20a15e04cdce6670d47a52032eb0bca159da98abac7a58c8d73059a8657f1",
+        "background_build_active": false,
+        "baseline_sha256": "88a20a15e04cdce6670d47a52032eb0bca159da98abac7a58c8d73059a8657f1",
+        "build_job": {
+          "activated": false,
+          "artifact_sha256": "5d60fac2039ae81305fbe716c24990e83edefd093d0e3f087877c2daf922509e",
+          "baseline_sha256": "88a20a15e04cdce6670d47a52032eb0bca159da98abac7a58c8d73059a8657f1",
+          "build_attempt_started": true,
+          "cancel_requested": false,
+          "candidate_sha256": "c04873679ba7d62f935f15304f14f992092e661bc1466507da3ff5b8acec8ba3",
+          "generation_at_submission": 0,
+          "job_id": 2,
+          "native_artifact_built": true,
+          "native_bytes_equal_baseline": true,
+          "native_receipt": {
+            "artifact_bytes": 15736,
+            "artifact_sha256": "5d60fac2039ae81305fbe716c24990e83edefd093d0e3f087877c2daf922509e",
+            "binary_inventory": {
+              "claims": {
+                "backend_refinement_proven": false,
+                "binary_abi_observed": true,
+                "native_execution_proven": false,
+                "whole_language_memory_safety_proven": false
+              },
+              "dynamic_exports": [
+                "__hia_loan_probe_configure",
+                "native_swap"
+              ],
+              "format": "ELF64",
+              "kind": "ET_DYN",
+              "machine": 62,
+              "schema": "hepta.elf-shared-abi.v1",
+              "source_exports_rechecked": true,
+              "unresolved_imports": [
+                "_ITM_deregisterTMCloneTable",
+                "_ITM_registerTMCloneTable",
+                "__cxa_finalize",
+                "__gmon_start__",
+                "abort",
+                "calloc",
+                "free"
+              ]
+            },
+            "claims": {
+              "backend_refinement_proved": false,
+              "diagnostic_instrumentation": true,
+              "production_artifact": false,
+              "same_uninstrumented_timing": false
+            },
+            "core_sha256": "c04873679ba7d62f935f15304f14f992092e661bc1466507da3ff5b8acec8ba3",
+            "exports": [
+              "__hia_loan_probe_configure",
+              "native_swap"
+            ],
+            "flags": [
+              "--target=x86_64-unknown-linux-gnu",
+              "-x",
+              "ir",
+              "-O3",
+              "-fPIC",
+              "-shared"
+            ],
+            "implementation_sha256": "b0d00090f7fe4d6587d1558b97f55ae0136957831e0c0ad20996dbfc0d3b1e69",
+            "kind": "shared",
+            "llvm_ir": "; Standalone HIA: verified core -> LLVM. No source AST or Rust safety gate.\ntarget triple = \"x86_64-unknown-linux-gnu\"\n%hia.buffer = type { ptr, i64 }\n%hia.alloc = type { %hia.buffer, i1 }\ndeclare void @abort() noreturn\ndeclare ptr @calloc(i64, i64) \"no-builtins\"\ndeclare ptr @malloc(i64) \"no-builtins\"\ndeclare void @free(ptr) \"no-builtins\"\n\n; A failed allocation is an empty, valid owner plus false. Zero length succeeds.\n; The independent verifier still requires every resulting owner to be consumed.\ndefine internal %hia.alloc @__hia_allocate(i64 %length, i1 %zero_bytes) {\nentry:\n  %zero = icmp eq i64 %length, 0\n  br i1 %zero, label %empty, label %nonempty\nempty:\n  %empty_result = insertvalue %hia.alloc zeroinitializer, i1 true, 1\n  ret %hia.alloc %empty_result\nnonempty:\n  %valid = icmp ule i64 %length, 9223372036854775807\n  br i1 %valid, label %allocate, label %failed\nallocate:\n  br i1 %zero_bytes, label %zeroed, label %unread\nzeroed:\n  %zero_pointer = call ptr @calloc(i64 1, i64 %length) nobuiltin\n  br label %allocated\nunread:\n  %unread_pointer = call ptr @malloc(i64 %length) nobuiltin\n  br label %allocated\nallocated:\n  %pointer = phi ptr [ %zero_pointer, %zeroed ], [ %unread_pointer, %unread ]\n  %success = icmp ne ptr %pointer, null\n  br i1 %success, label %ready, label %failed\nready:\n  %b0 = insertvalue %hia.buffer zeroinitializer, ptr %pointer, 0\n  %b1 = insertvalue %hia.buffer %b0, i64 %length, 1\n  %r0 = insertvalue %hia.alloc zeroinitializer, %hia.buffer %b1, 0\n  %r1 = insertvalue %hia.alloc %r0, i1 true, 1\n  ret %hia.alloc %r1\nfailed:\n  ret %hia.alloc zeroinitializer\n}\n\ndefine internal i8 @__hia_fn_0(i64 %p_0_0, i64 %p_0_1, i64 %p_0_2, i64 %p_0_3) {\nb0:\n  %t1 = call %hia.alloc @__hia_allocate(i64 %p_0_0, i1 true)\n  %t2 = extractvalue %hia.alloc %t1, 0\n  %t3 = extractvalue %hia.alloc %t1, 1\n  br i1 %t3, label %ok_4, label %trap_4\ntrap_4:\n  call void @abort()\n  unreachable\nok_4:\n  %t5 = insertvalue %hia.buffer %t2, i64 %p_0_0, 1\n  call void @__hia_probe_begin(%hia.buffer %t5)\n  %t6 = extractvalue %hia.buffer %t5, 0\n  %t7 = extractvalue %hia.buffer %t5, 1\n  %t8 = icmp ult i64 0, %t7\n  br i1 %t8, label %ok_9, label %trap_9\ntrap_9:\n  call void @abort()\n  unreachable\nok_9:\n  %t10 = getelementptr i8, ptr %t6, i64 0\n  store i8 11, ptr %t10, align 1\n  %t11 = extractvalue %hia.buffer %t5, 0\n  %t12 = extractvalue %hia.buffer %t5, 1\n  %t13 = icmp ult i64 1, %t12\n  br i1 %t13, label %ok_14, label %trap_14\ntrap_14:\n  call void @abort()\n  unreachable\nok_14:\n  %t15 = getelementptr i8, ptr %t11, i64 1\n  store i8 22, ptr %t15, align 1\n  %t16 = extractvalue %hia.buffer %t5, 0\n  %t17 = extractvalue %hia.buffer %t5, 1\n  %t18 = icmp ult i64 2, %t17\n  br i1 %t18, label %ok_19, label %trap_19\ntrap_19:\n  call void @abort()\n  unreachable\nok_19:\n  %t20 = getelementptr i8, ptr %t16, i64 2\n  store i8 33, ptr %t20, align 1\n  %t21 = extractvalue %hia.buffer %t5, 0\n  %t22 = extractvalue %hia.buffer %t5, 1\n  %t23 = icmp ult i64 3, %t22\n  br i1 %t23, label %ok_24, label %trap_24\ntrap_24:\n  call void @abort()\n  unreachable\nok_24:\n  %t25 = getelementptr i8, ptr %t21, i64 3\n  store i8 44, ptr %t25, align 1\n  %t26 = extractvalue %hia.buffer %t5, 0\n  %t27 = extractvalue %hia.buffer %t5, 1\n  %t28 = icmp ult i64 4, %t27\n  br i1 %t28, label %ok_29, label %trap_29\ntrap_29:\n  call void @abort()\n  unreachable\nok_29:\n  %t30 = getelementptr i8, ptr %t26, i64 4\n  store i8 55, ptr %t30, align 1\n  %t31 = extractvalue %hia.buffer %t5, 0\n  %t32 = extractvalue %hia.buffer %t5, 1\n  %t33 = icmp ult i64 %p_0_1, %t32\n  br i1 %t33, label %ok_34, label %trap_34\ntrap_34:\n  call void @abort()\n  unreachable\nok_34:\n  %t35 = icmp ult i64 %p_0_2, %t32\n  br i1 %t35, label %ok_36, label %trap_36\ntrap_36:\n  call void @abort()\n  unreachable\nok_36:\n  %t37 = getelementptr i8, ptr %t31, i64 %p_0_1\n  %t38 = getelementptr i8, ptr %t31, i64 %p_0_2\n  %t39 = load i8, ptr %t37, align 1\n  %t40 = load i8, ptr %t38, align 1\n  store i8 %t40, ptr %t37, align 1\n  store i8 %t39, ptr %t38, align 1\n  %t41 = extractvalue %hia.buffer %t5, 0\n  %t42 = extractvalue %hia.buffer %t5, 1\n  %t43 = icmp ult i64 %p_0_3, %t42\n  br i1 %t43, label %ok_44, label %trap_44\ntrap_44:\n  call void @abort()\n  unreachable\nok_44:\n  %t45 = getelementptr i8, ptr %t41, i64 %p_0_3\n  %t46 = load i8, ptr %t45, align 1\n  call void @__hia_probe_end(%hia.buffer %t5)\n  %t47 = extractvalue %hia.buffer %t5, 0\n  %t48 = icmp ne ptr %t47, null\n  br i1 %t48, label %drop_nonnull_49, label %drop_after_49\ndrop_nonnull_49:\n  call void @free(ptr %t47) nobuiltin\n  br label %drop_after_49\ndrop_after_49:\n  ret i8 %t46\n}\n\ndefine internal i32 @__hia_fn_1(i32 %p_0_0, i32 %p_0_1, i32 %p_0_2, i32 %p_0_3) {\nb0:\n  %t1 = zext i32 %p_0_0 to i64\n  %t2 = zext i32 %p_0_1 to i64\n  %t3 = zext i32 %p_0_2 to i64\n  %t4 = zext i32 %p_0_3 to i64\n  %t5 = call i8 @__hia_fn_0(i64 %t1, i64 %t2, i64 %t3, i64 %t4)\n  %t6 = zext i8 %t5 to i32\n  ret i32 %t6\n}\n\ndefine i32 @native_swap(i32 %a0, i32 %a1, i32 %a2, i32 %a3) {\nentry:\n  %result = call i32 @__hia_fn_1(i32 %a0, i32 %a1, i32 %a2, i32 %a3)\n  ret i32 %result\n}\n\n@__hia_probe_event_fd = internal global i32 -1\n@__hia_probe_ack_fd = internal global i32 -1\n@__hia_probe_state = internal global i32 0\n\ndefine i32 @__hia_loan_probe_configure(i32 %event, i32 %ack) noinline {\nentry:\n  %old = load volatile i32, ptr @__hia_probe_event_fd\n  %fresh = icmp eq i32 %old, -1\n  %eok = icmp sge i32 %event, 3\n  %aok = icmp sge i32 %ack, 3\n  %different = icmp ne i32 %event, %ack\n  %ok0 = and i1 %fresh, %eok\n  %ok1 = and i1 %aok, %different\n  %ok = and i1 %ok0, %ok1\n  br i1 %ok, label %ready, label %bad\nready:\n  store volatile i32 %event, ptr @__hia_probe_event_fd\n  store volatile i32 %ack, ptr @__hia_probe_ack_fd\n  ret i32 0\nbad:\n  call void @abort()\n  unreachable\n}\n\ndefine internal void @__hia_probe_record(i64 %phase, %hia.buffer %view) noinline {\nentry:\n  %pointer = extractvalue %hia.buffer %view, 0\n  %length = extractvalue %hia.buffer %view, 1\n  %positive = icmp ne i64 %length, 0\n  br i1 %positive, label %read_bytes, label %record\nread_bytes:\n  %first_byte = load volatile i8, ptr %pointer, align 1\n  %last_index = sub i64 %length, 1\n  %last_ptr = getelementptr i8, ptr %pointer, i64 %last_index\n  %last_byte = load volatile i8, ptr %last_ptr, align 1\n  %first_wide = zext i8 %first_byte to i64\n  %last_wide = zext i8 %last_byte to i64\n  br label %record\nrecord:\n  %first = phi i64 [ 0, %entry ], [ %first_wide, %read_bytes ]\n  %last = phi i64 [ 0, %entry ], [ %last_wide, %read_bytes ]\n  %packet = alloca [5 x i64], align 8\n  %p1 = getelementptr [5 x i64], ptr %packet, i64 0, i64 1\n  %p2 = getelementptr [5 x i64], ptr %packet, i64 0, i64 2\n  %p3 = getelementptr [5 x i64], ptr %packet, i64 0, i64 3\n  %p4 = getelementptr [5 x i64], ptr %packet, i64 0, i64 4\n  store i64 5208766240033689137, ptr %packet, align 8\n  store i64 %phase, ptr %p1, align 8\n  store i64 %length, ptr %p2, align 8\n  store i64 %first, ptr %p3, align 8\n  store i64 %last, ptr %p4, align 8\n  %fd32 = load volatile i32, ptr @__hia_probe_event_fd\n  %fd = sext i32 %fd32 to i64\n  %written = call i64 asm sideeffect \"syscall\", \"={rax},{rax},{rdi},{rsi},{rdx},~{rcx},~{r11},~{memory},~{dirflag},~{fpsr},~{flags}\"(i64 1, i64 %fd, ptr %packet, i64 40)\n  %ok = icmp eq i64 %written, 40\n  br i1 %ok, label %done, label %bad\ndone:\n  ret void\nbad:\n  call void @abort()\n  unreachable\n}\n\ndefine internal void @__hia_probe_begin(%hia.buffer %view) noinline {\nentry:\n  %state = load volatile i32, ptr @__hia_probe_state\n  %first = icmp eq i32 %state, 0\n  br i1 %first, label %observe, label %done\nobserve:\n  store volatile i32 1, ptr @__hia_probe_state\n  call void @__hia_probe_record(i64 1, %hia.buffer %view)\n  %ack = alloca i8, align 1\n  %fd32 = load volatile i32, ptr @__hia_probe_ack_fd\n  %fd = sext i32 %fd32 to i64\n  %read = call i64 asm sideeffect \"syscall\", \"={rax},{rax},{rdi},{rsi},{rdx},~{rcx},~{r11},~{memory},~{dirflag},~{fpsr},~{flags}\"(i64 0, i64 %fd, ptr %ack, i64 1)\n  %read_ok = icmp eq i64 %read, 1\n  br i1 %read_ok, label %check, label %bad\ncheck:\n  %byte = load i8, ptr %ack, align 1\n  %ack_ok = icmp eq i8 %byte, -91\n  br i1 %ack_ok, label %done, label %bad\ndone:\n  ret void\nbad:\n  call void @abort()\n  unreachable\n}\n\ndefine internal void @__hia_probe_end(%hia.buffer %view) noinline {\nentry:\n  %state = load volatile i32, ptr @__hia_probe_state\n  %active = icmp eq i32 %state, 1\n  br i1 %active, label %observe, label %done\nobserve:\n  call void @__hia_probe_record(i64 2, %hia.buffer %view)\n  store volatile i32 2, ptr @__hia_probe_state\n  br label %done\ndone:\n  ret void\n}\n",
+            "llvm_ir_sha256": "b6852318dee544d045bc6dd0a39e2656762aaedd1f9c6bb751a2a413ac92f617",
+            "loan_probe_site": {
+              "allocation_index": 0,
+              "block": "entry",
+              "borrow_index": 1,
+              "borrow_operation": "borrow.mut",
+              "diagnostic_zero_initialization": "forced for selected function allocations",
+              "end_index": 19,
+              "function": "swap_candidate",
+              "loan": "loan",
+              "observed_dynamic_occurrence": "first only",
+              "owner": "owner",
+              "same_block_end_required": true,
+              "selected_function_reentrant": false
+            },
+            "ok": true,
+            "ordinary_llvm_ir_sha256": "421f74537d246d5ed215438b32d727a47bff36753d20f584ecd8daa4452bf7c1",
+            "profile": "hepta.hia.native-loan-probe.v1",
+            "schema": "hepta.hia.native-loan-probe-build.v1",
+            "status": "native_compiled_not_executed",
+            "target": "x86_64-unknown-linux-gnu",
+            "toolchain": {
+              "default_target": "x86_64-pc-linux-gnu",
+              "path": "/usr/lib/llvm-20/bin/clang",
+              "sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+              "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+            }
+          },
+          "pass_id": "byte-swap.v1",
+          "plan_sha256": "59f6de9fa40129b2d5408f4c8cb0d00ee65201300c352f9a8f1f6ce11368e97b",
+          "published": true,
+          "relation": "reproduced_registered_rewrite",
+          "rewrite_replacements": 1,
+          "schema": "hepta.hia.native-version-build.v2",
+          "status": "staged"
+        },
+        "claims": {
+          "crash_durable": false,
+          "diagnostic_loan_instrumentation": true,
+          "distributed_fencing": false,
+          "foreign_callbacks_supported": false,
+          "in_process_native_hot_patch": false,
+          "native_entry_version_dispatch": true,
+          "production_p6_qualified": false,
+          "shared_external_state_supported": false
+        },
+        "discarded_build_artifacts": 0,
+        "drained": true,
+        "generation": 2,
+        "in_flight": 0,
+        "max_in_flight": 2,
+        "new_admission_disabled": true,
+        "quarantined_calls": [],
+        "released_artifacts": 2,
+        "retired_versions": 1,
+        "schema": "hepta.hia.native-version-snapshot.v2",
+        "unconfirmed_child_reaps": 0,
+        "versions": []
+      },
+      "elapsed_ns": 797478129364,
+      "epoch": 150
+    },
+    "final_native_returncode": -9,
+    "final_native_timeout_error": {
+      "message": "E_HIA_LOAN_PROBE: native child timed out while loan execution remained tracked; process group terminated",
+      "type": "HIADifferentialRejected"
+    },
+    "loan_held_event_present": false,
+    "report_error": {
+      "identity": "147e30728d3c3d2c3d4436d32399b0ff9f5338bd48c002cc04a306700915e687",
+      "message": "E_HIA_LOAN_PROBE: selected native loan was not observed within wait deadline",
+      "type": "HIADifferentialRejected"
+    },
+    "sample_row": {
+      "admission_to_observation_ns": 5315938319,
+      "admission_version": "88a20a15e04cdce6670d47a52032eb0bca159da98abac7a58c8d73059a8657f1",
+      "arguments": [
+        5,
+        0,
+        4,
+        0
+      ],
+      "attempt_id": 4982,
+      "case": "baseline-across-close-0",
+      "dispatcher_admission_attempted": true,
+      "elapsed_ns": 799004465297,
+      "entry": "native_swap",
+      "epoch": 150,
+      "error": {
+        "identity": "147e30728d3c3d2c3d4436d32399b0ff9f5338bd48c002cc04a306700915e687",
+        "message": "E_HIA_LOAN_PROBE: selected native loan was not observed within wait deadline",
+        "type": "HIADifferentialRejected"
+      },
+      "expected": "return",
+      "final_observation": {
+        "ack_sent": false,
+        "artifact_sha256": "5d60fac2039ae81305fbe716c24990e83edefd093d0e3f087877c2daf922509e",
+        "child_process": {
+          "child_start_count_complete": true,
+          "cleanup": {
+            "claims": {
+              "direct_child_reaped": true,
+              "uninterruptible_kernel_wait_preempted": false
+            },
+            "cleanup_confirmed": true,
+            "group_signal_attempted": true,
+            "group_signal_delivered": true,
+            "last_error": null,
+            "pid": 1076311,
+            "quarantined": false,
+            "reap_attempts": 1,
+            "returncode": -9,
+            "schema": "hepta.hia.native-child-cleanup.v1",
+            "secondary_errors": [],
+            "status": "reaped"
+          },
+          "creation_attempted": true,
+          "known_child_processes_started": 1,
+          "native_entry_observed": true,
+          "native_entry_outcome_available": true,
+          "pid": 1076311,
+          "spawn_observed": true
+        },
+        "done": true,
+        "error": {
+          "message": "E_HIA_LOAN_PROBE: native child timed out while loan execution remained tracked; process group terminated",
+          "type": "HIADifferentialRejected"
+        },
+        "events": [
+          {
+            "bytes": 5,
+            "event": "loan_started",
+            "first_byte": 0,
+            "last_byte": 0,
+            "selected_loan_active": true
+          }
+        ],
+        "generation": 2,
+        "held": false,
+        "program_sha256": "88a20a15e04cdce6670d47a52032eb0bca159da98abac7a58c8d73059a8657f1",
+        "quarantined": false,
+        "schema": "hepta.hia.native-loan-observation.v2"
+      },
+      "finalized_ns": 799004458813,
+      "observed_ns": 793103647778,
+      "start_ns": 787787709459
+    },
+    "terminal_observation_event_present": false
+  },
+  "hosted_retries": 0,
+  "journal": {
+    "canonical_hash_chain_verified": true,
+    "event_kind_counts": {
+      "activation": 151,
+      "attempt": 4982,
+      "baseline_build": 151,
+      "build_attempt": 453,
+      "cancel_attempt": 151,
+      "candidate_build": 151,
+      "close_while_held": 150,
+      "drained_resources": 150,
+      "epoch_cleanup": 151,
+      "loan_held": 4830,
+      "pacing": 2265,
+      "rollback": 151,
+      "run_end": 1,
+      "run_start": 1,
+      "sample": 4982,
+      "staged_image": 151,
+      "terminal_observation": 4981
+    },
+    "file": {
+      "bytes": 24162331,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/run/events.jsonl",
+      "sha256": "f91ab4797d1a217636619e568647f28ad9e5e0b9836734b02e06453c50c7fb91"
+    },
+    "last_row_sha256": "324765775b95fc6636af8e249057832c95e5e96d880cf61e0ecebfc6cf700a69",
+    "logical_core_image_bindings": [
+      {
+        "artifact_sha256": "5d60fac2039ae81305fbe716c24990e83edefd093d0e3f087877c2daf922509e",
+        "core_sha256": "88a20a15e04cdce6670d47a52032eb0bca159da98abac7a58c8d73059a8657f1"
+      },
+      {
+        "artifact_sha256": "5d60fac2039ae81305fbe716c24990e83edefd093d0e3f087877c2daf922509e",
+        "core_sha256": "c04873679ba7d62f935f15304f14f992092e661bc1466507da3ff5b8acec8ba3"
+      }
+    ],
+    "object_bytes": 190055,
+    "object_manifest": [
+      {
+        "bytes": 3552,
+        "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/run/objects/3b1d9ce62f726eca9de8505d441457e4b613222f09b5429b0c32e2253d159607.fixture.json",
+        "sha256": "3b1d9ce62f726eca9de8505d441457e4b613222f09b5429b0c32e2253d159607"
+      },
+      {
+        "bytes": 11501,
+        "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/run/objects/4a3fb981094bdb592e3dbdacf85a6555df319897807da4f1b73f5a2ed039be05.build.json",
+        "sha256": "4a3fb981094bdb592e3dbdacf85a6555df319897807da4f1b73f5a2ed039be05"
+      },
+      {
+        "bytes": 15736,
+        "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/run/objects/5d60fac2039ae81305fbe716c24990e83edefd093d0e3f087877c2daf922509e.so",
+        "sha256": "5d60fac2039ae81305fbe716c24990e83edefd093d0e3f087877c2daf922509e"
+      },
+      {
+        "bytes": 141545,
+        "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/run/objects/626059a3c9ba3c558033fff8d330424c74ada4cdc4e4b3662e4ceec2eb373c1e.registration.json",
+        "sha256": "626059a3c9ba3c558033fff8d330424c74ada4cdc4e4b3662e4ceec2eb373c1e"
+      },
+      {
+        "bytes": 10881,
+        "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/run/objects/817768edab431ab7ca4e00a31ded72ce71b064091ff4deed306cba8e5465ff17.build.json",
+        "sha256": "817768edab431ab7ca4e00a31ded72ce71b064091ff4deed306cba8e5465ff17"
+      },
+      {
+        "bytes": 3551,
+        "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/run/objects/88a20a15e04cdce6670d47a52032eb0bca159da98abac7a58c8d73059a8657f1.core.json",
+        "sha256": "88a20a15e04cdce6670d47a52032eb0bca159da98abac7a58c8d73059a8657f1"
+      },
+      {
+        "bytes": 3289,
+        "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/run/objects/c04873679ba7d62f935f15304f14f992092e661bc1466507da3ff5b8acec8ba3.core.json",
+        "sha256": "c04873679ba7d62f935f15304f14f992092e661bc1466507da3ff5b8acec8ba3"
+      }
+    ],
+    "records": 23852,
+    "retained_bytes_excluding_report": 24352386,
+    "same_native_artifact_is_not_performance_gain_evidence": true,
+    "unique_content_addressed_objects": 7,
+    "unique_physical_native_artifacts": [
+      "5d60fac2039ae81305fbe716c24990e83edefd093d0e3f087877c2daf922509e"
+    ]
+  },
+  "native_or_compiler_reexecutions": 0,
+  "original_artifacts_modified": false,
+  "qualification": {
+    "control_failure_alone_prevents_qualification": true,
+    "execution_passed": false,
+    "producer_ok": false,
+    "producer_status": "incomplete_or_failed",
+    "reader": {
+      "extra_failed_report_fields": [
+        "failure_phase"
+      ],
+      "first_error": "E_NATIVE_RUNTIME_SOAK_EVIDENCE: complete report shape differs",
+      "interpretation": "The current reader accepts only complete successful profile receipts. Here it rejects the failed receipt shape before object/journal replay. This rejection is not evidence of raw corruption; even after shape adaptation the failed execution, insufficient completed observations and duration must remain unqualified.",
+      "missing_fields": [],
+      "reader_was_not_rerun_or_relaxed_by_audit": true,
+      "returncode": 1
+    },
+    "reporter_wrapper_completed_means_terminal_execution_not_qualification_success": true,
+    "stop_reason": "unexpected_failure",
+    "threshold_checks": {
+      "completed_epochs": {
+        "actual": 150,
+        "met": true,
+        "minimum": 128
+      },
+      "completed_observations": {
+        "actual": 4981,
+        "deficit": 19,
+        "met": false,
+        "minimum": 5000
+      },
+      "observation_duration_ns": {
+        "actual": 799016829047,
+        "deficit": 700983170953,
+        "met": false,
+        "minimum": 1500000000000
+      },
+      "pacing_fraction": {
+        "actual": 0.16466737532791145,
+        "maximum": 0.6,
+        "met": true
+      },
+      "total_profile_wall_ns": {
+        "actual": 803432207515,
+        "maximum": 1800000000000,
+        "within_cap": true
+      }
+    }
+  },
+  "raw_bindings": {
+    "command-plan.json": {
+      "bytes": 829,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/command-plan.json",
+      "sha256": "d632913f0fdd23e2ef9975041770ba11c82f8a54dda19a6bdfe6661ba963b99b"
+    },
+    "register.process.json": {
+      "bytes": 1398,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/register.process.json",
+      "sha256": "95a0755193a136cab5eb1bde068e4b0820caecb68b73b33b862e0fca00f9873a"
+    },
+    "register.stderr.log": {
+      "bytes": 0,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/register.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "register.stdout.log": {
+      "bytes": 224,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/register.stdout.log",
+      "sha256": "c59fa043d4f03e08be23542c98b96cb7d7db6a27d4ce3560cb1a8992e9c7a510"
+    },
+    "registration-command.json": {
+      "bytes": 375,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/registration-command.json",
+      "sha256": "5926e7f2b667372ff1c6547887ff17ee5d4a6612e00a16c68c7abc20aad39858"
+    },
+    "registration.json": {
+      "bytes": 141545,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/registration.json",
+      "sha256": "626059a3c9ba3c558033fff8d330424c74ada4cdc4e4b3662e4ceec2eb373c1e"
+    },
+    "run.process.json": {
+      "bytes": 1462,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/run.process.json",
+      "sha256": "b555fcacf0f32e3b4ed62a81d2f052e2ec21a972a0a9f28ba137739b1e59913b"
+    },
+    "run.stderr.log": {
+      "bytes": 0,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/run.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "run.stdout.log": {
+      "bytes": 468,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/run.stdout.log",
+      "sha256": "92d2ec853a7cc9a0319f9016b000d3ec73ba48ffc49b0b00474406144073502c"
+    },
+    "run/events.jsonl": {
+      "bytes": 24162331,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/run/events.jsonl",
+      "sha256": "f91ab4797d1a217636619e568647f28ad9e5e0b9836734b02e06453c50c7fb91"
+    },
+    "run/report.json": {
+      "bytes": 4997,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/run/report.json",
+      "sha256": "30ca1fbfbfc7f1d82720ce50381bc3209c91d98e99352ab79eb44129a45ccb7d"
+    },
+    "source-after.json": {
+      "bytes": 775634,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/source-after.json",
+      "sha256": "ce81851a5c57f5539ebf51bf700f6ecf55abba61ecdbefa03e93428adc36f463"
+    },
+    "source-before.json": {
+      "bytes": 775634,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/source-before.json",
+      "sha256": "ce81851a5c57f5539ebf51bf700f6ecf55abba61ecdbefa03e93428adc36f463"
+    },
+    "summary.json": {
+      "bytes": 8212,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/summary.json",
+      "sha256": "b97b95fe627b1f0f7a5cd1e0c27dde3d13d7df0c246c044fe0861165158fef0d"
+    },
+    "tools-after.json": {
+      "bytes": 1251,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/tools-after.json",
+      "sha256": "dd7d59e0e8bb4e309660418f990854700754244d6ea76d7a901ada751deaca62"
+    },
+    "tools-before.json": {
+      "bytes": 1251,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/tools-before.json",
+      "sha256": "dd7d59e0e8bb4e309660418f990854700754244d6ea76d7a901ada751deaca62"
+    },
+    "validate.process.json": {
+      "bytes": 1286,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/validate.process.json",
+      "sha256": "912f99de1bada4fbae02713e91cb6d6605ad0524a7b76d2aaf0730a2bcafe93a"
+    },
+    "validate.stderr.log": {
+      "bytes": 1199,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/validate.stderr.log",
+      "sha256": "36ffc2db84761591c5f2e62b96fa6ac7608151cac82dbb5ce376ac24ac9bf66a"
+    },
+    "validate.stdout.log": {
+      "bytes": 0,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/validate.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "registration": {
+    "created_utc": "2026-10-28T10:00:45.464515+00:00",
+    "profile": {
+      "buffer_sizes": [
+        5,
+        64,
+        4096,
+        65536
+      ],
+      "build_wait_seconds": 60.0,
+      "calls_per_epoch": 33,
+      "close_wait_seconds": 60.0,
+      "formal_qualification": true,
+      "max_attempted_calls": 16896,
+      "max_concurrent_calls": 2,
+      "max_drained_parent_fd_growth": 4,
+      "max_epochs": 512,
+      "max_evidence_bytes": 100663296,
+      "max_pacing_fraction": 0.6,
+      "max_parent_rss_kib": 524288,
+      "max_wall_seconds": 1800.0,
+      "middle_pairs_per_epoch": 12,
+      "minimum_completed_epochs": 128,
+      "minimum_completed_observations": 5000,
+      "minimum_free_disk_bytes": 134217728,
+      "minimum_observation_seconds": 1500.0,
+      "minimum_pair_spacing_seconds": 0.2,
+      "native_call_timeout_seconds": 8.0,
+      "new_epoch_deadline_seconds": 1620.0,
+      "profile_id": "hosted-native-lifecycle-30m.v1",
+      "report_reserve_bytes": 2097152,
+      "schema": "hepta.hia.native-runtime-soak-profile.v1",
+      "withheld_ack_timeout_seconds": 1.0
+    },
+    "profile_sha256": "c4146c19dca53f94aa2cace481f7a9dd9213b73a531e1e4e6b8ec773d024885d",
+    "raw": {
+      "bytes": 141545,
+      "path": "/workspace/scratch/7e691a7ff65f/validation-runtime-soak-frozen/registration.json",
+      "sha256": "626059a3c9ba3c558033fff8d330424c74ada4cdc4e4b3662e4ceec2eb373c1e"
+    },
+    "registered_before_run_start": true,
+    "retained_copy_byte_identical": true,
+    "source_snapshot_files": 1272,
+    "source_snapshot_sha256": "26ac531e41b129a0c6402b0f976832c0179e6cc82692b602e5bc3f7b6aa07434"
+  },
+  "remaining_obligations": [
+    "The frozen first hosted qualification remains failed; no completion claim or threshold relaxation is justified.",
+    "Root cause of the selected-loan observation deadline remains unresolved from the retained event timestamps.",
+    "A failed-run CLI inspection mode or clearer rejection diagnostic would improve reviewability; the current successful-profile reader correctly grants no qualification."
+  ],
+  "resources_and_ownership": {
+    "all_151_epoch_cleanup_receipts_drained": true,
+    "final_drained": true,
+    "full_heap_ledger_or_all_bytes_observed": false,
+    "outer_forced_kill": false,
+    "outer_steps_confirmed_reaped": {
+      "register": true,
+      "run": true,
+      "validate": true
+    },
+    "parent_and_sampled_child_resources": {
+      "available_child_samples": 4830,
+      "largest_observed_child_fd_count": 6,
+      "largest_observed_child_rss_kib": 11628,
+      "largest_observed_drained_parent_fd_count": 5,
+      "largest_observed_drained_parent_rss_kib": 31352,
+      "last_drained_parent": {
+        "available": true,
+        "fd_count": 5,
+        "pid": 1061379,
+        "rss_kib": 31352,
+        "starttime_ticks": 9470821,
+        "threads": 1,
+        "vm_hwm_kib": 33888
+      },
+      "parent_after": {
+        "available": true,
+        "fd_count": 5,
+        "pid": 1061379,
+        "rss_kib": 31360,
+        "starttime_ticks": 9470821,
+        "threads": 1,
+        "vm_hwm_kib": 33888
+      },
+      "parent_before": {
+        "available": true,
+        "fd_count": 5,
+        "pid": 1061379,
+        "rss_kib": 26644,
+        "starttime_ticks": 9470821,
+        "threads": 1,
+        "vm_hwm_kib": 26644
+      },
+      "unavailable_or_unrequested_child_samples": 152
+    },
+    "retained_cleanup_recovery_phase_present": false,
+    "sampled_parent_fd_growth": 0,
+    "sampled_parent_thresholds_met": true,
+    "unconfirmed_child_reaps": 0,
+    "whole_process_tree_peak_or_all_kernel_resources_proved_bounded": false
+  },
+  "reviewer": "/root/native_gain_candidate",
+  "schema": "hepta.review.first-hosted-soak-failure.v1",
+  "source_and_tools": {
+    "all_tracked_inventory_paths": 3443,
+    "critical_current_source_files_rehashed": 6,
+    "full_source_archives_rehashed_by_this_audit": false,
+    "producer_before_after_claims": {
+      "source_unchanged": true,
+      "tools_unchanged": true
+    },
+    "registered_extra_before_after_scope": "The producer recomputed the full registered snapshot and recorded source_unchanged=true. No separate detailed after-inventory for the ignored extras is stored. This audit corroborates their registration identities with current bytes; it does not invent a second historical full-inventory receipt.",
+    "registration_additional_current_source_bytes": 1452070,
+    "registration_additional_current_source_inventory": [
+      {
+        "bytes": 45147,
+        "current_sha256": "544c8f7df87322a5e395d5d5c0b45699c9e275e2bf1159aa54016425badb2588",
+        "registered_sha256": "544c8f7df87322a5e395d5d5c0b45699c9e275e2bf1159aa54016425badb2588",
+        "relative_path": "rust/hia-ndu-bridge/build-provenance.json"
+      },
+      {
+        "bytes": 40,
+        "current_sha256": "83f2b995f84e97d06d95dede817e303fa115e15572bf875641bd32e800062a12",
+        "registered_sha256": "83f2b995f84e97d06d95dede817e303fa115e15572bf875641bd32e800062a12",
+        "relative_path": "rust/hia-ndu-bridge/upstream/.hia-pinned-export"
+      },
+      {
+        "bytes": 4603,
+        "current_sha256": "37039c59c18cc5f108fea97f09d4d5759856bbbfc81220121806944955821775",
+        "registered_sha256": "37039c59c18cc5f108fea97f09d4d5759856bbbfc81220121806944955821775",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/BUILD.bazel"
+      },
+      {
+        "bytes": 29356,
+        "current_sha256": "6a6966d66ec8d93c3ff9b56ec51df52a45d463c96c96d6b66b6a34721f079478",
+        "registered_sha256": "6a6966d66ec8d93c3ff9b56ec51df52a45d463c96c96d6b66b6a34721f079478",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/CALLERS.toml"
+      },
+      {
+        "bytes": 550,
+        "current_sha256": "c48d79e8652d98613b31ff60d554e883c5b812657010ec8e26c34c49b5b84a96",
+        "registered_sha256": "c48d79e8652d98613b31ff60d554e883c5b812657010ec8e26c34c49b5b84a96",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/Cargo.toml"
+      },
+      {
+        "bytes": 22320,
+        "current_sha256": "bd68969a3aecee62347c467aa0f064f2eb2dc75e11bc1b8320cb692413a00508",
+        "registered_sha256": "bd68969a3aecee62347c467aa0f064f2eb2dc75e11bc1b8320cb692413a00508",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/FINAL_USE.md"
+      },
+      {
+        "bytes": 10990,
+        "current_sha256": "7bd915c7ed9513635046413a45986debba26589dd1d9e3ac326d8ef49824a8df",
+        "registered_sha256": "7bd915c7ed9513635046413a45986debba26589dd1d9e3ac326d8ef49824a8df",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/FINAL_USE_CONTROL.md"
+      },
+      {
+        "bytes": 19306,
+        "current_sha256": "f37a9e6239eda4c9b411760b590651d30f8a8afee258721644e82798cfe9b984",
+        "registered_sha256": "f37a9e6239eda4c9b411760b590651d30f8a8afee258721644e82798cfe9b984",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/README.md"
+      },
+      {
+        "bytes": 3093,
+        "current_sha256": "990df0e55c4c180adaa765241cd274ee0e463368498541b0e69da9dbea581fd7",
+        "registered_sha256": "990df0e55c4c180adaa765241cd274ee0e463368498541b0e69da9dbea581fd7",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/fixtures/AUTHBUS_SOURCE_MANIFEST.v1.json"
+      },
+      {
+        "bytes": 3196,
+        "current_sha256": "456b322e28ab0ab6f26f7ae5b2fde5d6d8a9a28b9bb467371664e185e2a88650",
+        "registered_sha256": "456b322e28ab0ab6f26f7ae5b2fde5d6d8a9a28b9bb467371664e185e2a88650",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/src/agent_id.rs"
+      },
+      {
+        "bytes": 1412,
+        "current_sha256": "687f2c2c3a22f914da5c8c8e0b5f6262b5b3ed388b1226575b3aeb23799b23c4",
+        "registered_sha256": "687f2c2c3a22f914da5c8c8e0b5f6262b5b3ed388b1226575b3aeb23799b23c4",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/src/agent_id_tests.rs"
+      },
+      {
+        "bytes": 44249,
+        "current_sha256": "e46c0a6707e7657bf517029d2cbed92aac38882de344ef7400a5c7a67592b86f",
+        "registered_sha256": "e46c0a6707e7657bf517029d2cbed92aac38882de344ef7400a5c7a67592b86f",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/src/authbus.rs"
+      },
+      {
+        "bytes": 20141,
+        "current_sha256": "d3b026eb246ac5aa4d53230f40f7b2a184bc0478788823327b42d02db00a9ae3",
+        "registered_sha256": "d3b026eb246ac5aa4d53230f40f7b2a184bc0478788823327b42d02db00a9ae3",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/src/authbus_b1.rs"
+      },
+      {
+        "bytes": 7366,
+        "current_sha256": "dda55dcb8787f0c7aa5c3a9b2ca6f541007c9ef32b38fe90c3c667ef45ff7e56",
+        "registered_sha256": "dda55dcb8787f0c7aa5c3a9b2ca6f541007c9ef32b38fe90c3c667ef45ff7e56",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/src/authbus_b1_tests.rs"
+      },
+      {
+        "bytes": 28349,
+        "current_sha256": "cccba8e634952d460b7903b474b1d650e28f9daaa372f2d91863431e6b496aa5",
+        "registered_sha256": "cccba8e634952d460b7903b474b1d650e28f9daaa372f2d91863431e6b496aa5",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/src/authbus_b2.rs"
+      },
+      {
+        "bytes": 20105,
+        "current_sha256": "e5145cfe6afb8535cb10ea7c940a51b7c20d4605c48302ea62fb8adcb6acb10a",
+        "registered_sha256": "e5145cfe6afb8535cb10ea7c940a51b7c20d4605c48302ea62fb8adcb6acb10a",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/src/authbus_b2_tests.rs"
+      },
+      {
+        "bytes": 71267,
+        "current_sha256": "b1556ec7612b528705b20e3d0207f0a4ad592af1c9f57cba1f2ea7805c019520",
+        "registered_sha256": "b1556ec7612b528705b20e3d0207f0a4ad592af1c9f57cba1f2ea7805c019520",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/src/authbus_b3.rs"
+      },
+      {
+        "bytes": 43906,
+        "current_sha256": "9cbf191a7171f8e092bc1e1561ae6f4f1f4d227449ecbb7886b1a74847c869f0",
+        "registered_sha256": "9cbf191a7171f8e092bc1e1561ae6f4f1f4d227449ecbb7886b1a74847c869f0",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/src/authbus_b3_adapter.rs"
+      },
+      {
+        "bytes": 49758,
+        "current_sha256": "96abf96c74601953a60e28bea0d7979f12d812ecf4013754d4a81fcbef5cec83",
+        "registered_sha256": "96abf96c74601953a60e28bea0d7979f12d812ecf4013754d4a81fcbef5cec83",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/src/authbus_b4.rs"
+      },
+      {
+        "bytes": 54689,
+        "current_sha256": "62b19602c73ecbed34804ef03c9fee5bf8c10cd87b7ff1422f8fe6c2537b1eb3",
+        "registered_sha256": "62b19602c73ecbed34804ef03c9fee5bf8c10cd87b7ff1422f8fe6c2537b1eb3",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/src/authbus_b5.rs"
+      },
+      {
+        "bytes": 12248,
+        "current_sha256": "e3052c5d6f67eafca3ea075d4b66b2def881880e49bd4cd133b165be8e2b9432",
+        "registered_sha256": "e3052c5d6f67eafca3ea075d4b66b2def881880e49bd4cd133b165be8e2b9432",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/src/authbus_tests.rs"
+      },
+      {
+        "bytes": 62044,
+        "current_sha256": "4d009658997801e6e9f23d8a1f6fca26faa39cf177c9996f1060af1d6ae70f94",
+        "registered_sha256": "4d009658997801e6e9f23d8a1f6fca26faa39cf177c9996f1060af1d6ae70f94",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/src/authority_lease.rs"
+      },
+      {
+        "bytes": 2313,
+        "current_sha256": "7d468026631ae10908c084c66a4bd49f2caac67ed96ae1a4d3572df886cde352",
+        "registered_sha256": "7d468026631ae10908c084c66a4bd49f2caac67ed96ae1a4d3572df886cde352",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/src/authority_trust.rs"
+      },
+      {
+        "bytes": 28639,
+        "current_sha256": "68c2694defb619732185319541a280e2f29e3396b3655f9ad596ae4190b49e7a",
+        "registered_sha256": "68c2694defb619732185319541a280e2f29e3396b3655f9ad596ae4190b49e7a",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/src/callers_manifest_tests.rs"
+      },
+      {
+        "bytes": 751,
+        "current_sha256": "5710602d0ed199727e7ce9176dba3a72ebf367bc201d8ec3ba8c006d850e5353",
+        "registered_sha256": "5710602d0ed199727e7ce9176dba3a72ebf367bc201d8ec3ba8c006d850e5353",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/src/canonical.rs"
+      },
+      {
+        "bytes": 38020,
+        "current_sha256": "0c15ccb2541340cf48a790fdb2019334859f5bb36d984453bd57b4177bac14aa",
+        "registered_sha256": "0c15ccb2541340cf48a790fdb2019334859f5bb36d984453bd57b4177bac14aa",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/src/final_use.rs"
+      },
+      {
+        "bytes": 41660,
+        "current_sha256": "79f53a7fd13fd749c09940c6bfbc128487789661ecaa2a0b6c969fea3f8cf861",
+        "registered_sha256": "79f53a7fd13fd749c09940c6bfbc128487789661ecaa2a0b6c969fea3f8cf861",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/src/final_use_control.rs"
+      },
+      {
+        "bytes": 3020,
+        "current_sha256": "19a86291bee4b380a5af81443fb27dddb528bfa6fc4b3c360e5a7bcd3bf71d3b",
+        "registered_sha256": "19a86291bee4b380a5af81443fb27dddb528bfa6fc4b3c360e5a7bcd3bf71d3b",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/src/final_use_nonce_log.rs"
+      },
+      {
+        "bytes": 14335,
+        "current_sha256": "6af9febc896d72b97d082bdb94afe22581da8f6dcd624fb7b34f49b7d9852b7f",
+        "registered_sha256": "6af9febc896d72b97d082bdb94afe22581da8f6dcd624fb7b34f49b7d9852b7f",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/src/final_use_nonce_tests.rs"
+      },
+      {
+        "bytes": 17392,
+        "current_sha256": "88a3438aacc8ff601bd3deed4f2fb5c2bd42623c6390ab2587bed3e40a78a535",
+        "registered_sha256": "88a3438aacc8ff601bd3deed4f2fb5c2bd42623c6390ab2587bed3e40a78a535",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/src/final_use_store.rs"
+      },
+      {
+        "bytes": 3467,
+        "current_sha256": "8071aa9a7388db25e8d5aee466dafe94e4e237986db69ad9b100aeee8f570241",
+        "registered_sha256": "8071aa9a7388db25e8d5aee466dafe94e4e237986db69ad9b100aeee8f570241",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/src/final_use_store_tests.rs"
+      },
+      {
+        "bytes": 30454,
+        "current_sha256": "ed0576ebdc3424fe6f6db4f3d6b5ad5a8688052714d9c104c467799530944371",
+        "registered_sha256": "ed0576ebdc3424fe6f6db4f3d6b5ad5a8688052714d9c104c467799530944371",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/src/final_use_tests.rs"
+      },
+      {
+        "bytes": 2133,
+        "current_sha256": "adeae1abde5f75cce1e10ba51f789fbc01b089167ec4f42b93efc81a847d23d8",
+        "registered_sha256": "adeae1abde5f75cce1e10ba51f789fbc01b089167ec4f42b93efc81a847d23d8",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/src/identity.rs"
+      },
+      {
+        "bytes": 13274,
+        "current_sha256": "0a8f62cd80f73c4d893e06cbf09d209debac8a102ef89046a163fd4fd62a884c",
+        "registered_sha256": "0a8f62cd80f73c4d893e06cbf09d209debac8a102ef89046a163fd4fd62a884c",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/src/lib.rs"
+      },
+      {
+        "bytes": 30083,
+        "current_sha256": "45162ae4d2dae44981cc2f4d36ab5477d02914247d048aa8d29030fda4067ec3",
+        "registered_sha256": "45162ae4d2dae44981cc2f4d36ab5477d02914247d048aa8d29030fda4067ec3",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/src/memory.rs"
+      },
+      {
+        "bytes": 26730,
+        "current_sha256": "cad972180e395a4198c318681417b90b15e7095483a3252ed2ef75a29ec7bef2",
+        "registered_sha256": "cad972180e395a4198c318681417b90b15e7095483a3252ed2ef75a29ec7bef2",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/src/provider.rs"
+      },
+      {
+        "bytes": 111959,
+        "current_sha256": "922820410f1e03a07649e7b1e5d0a0a27c3391c25d5620b1fed2536d64aab519",
+        "registered_sha256": "922820410f1e03a07649e7b1e5d0a0a27c3391c25d5620b1fed2536d64aab519",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/src/provider_effect.rs"
+      },
+      {
+        "bytes": 12139,
+        "current_sha256": "d5e53f70c1ea1ca3364c370d9716413082167c03ecc1b4e91fec70261d2fb3cc",
+        "registered_sha256": "d5e53f70c1ea1ca3364c370d9716413082167c03ecc1b4e91fec70261d2fb3cc",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/src/qualification_receipt.rs"
+      },
+      {
+        "bytes": 4973,
+        "current_sha256": "06d7bef52524048e0f9e2577dcc4a0d80b5043bcc780dacadca792e7d5f561eb",
+        "registered_sha256": "06d7bef52524048e0f9e2577dcc4a0d80b5043bcc780dacadca792e7d5f561eb",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/src/receipt.rs"
+      },
+      {
+        "bytes": 385,
+        "current_sha256": "66e5591c9461eb33ca8edbfbbbe331a2634d47c56e3f284561c7dc5bd4d21f0c",
+        "registered_sha256": "66e5591c9461eb33ca8edbfbbbe331a2634d47c56e3f284561c7dc5bd4d21f0c",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/src/stable_id.rs"
+      },
+      {
+        "bytes": 6248,
+        "current_sha256": "47df59c1199c4618909ad7fe5c35936d97bef7679602e9cb4d17655be21e475d",
+        "registered_sha256": "47df59c1199c4618909ad7fe5c35936d97bef7679602e9cb4d17655be21e475d",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/src/verified_use_witness.rs"
+      },
+      {
+        "bytes": 20313,
+        "current_sha256": "e1695529bfa514909888fd296606e1080ac316dfe62a7aac04c38f8ba13fc734",
+        "registered_sha256": "e1695529bfa514909888fd296606e1080ac316dfe62a7aac04c38f8ba13fc734",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/tests/authbus_b3_adapter_qualification.rs"
+      },
+      {
+        "bytes": 11821,
+        "current_sha256": "948c91d4714dfd877383ddf378948864816ceaa4c8f48b3762b402dd376e98f6",
+        "registered_sha256": "948c91d4714dfd877383ddf378948864816ceaa4c8f48b3762b402dd376e98f6",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/tests/authbus_local_qualification.rs"
+      },
+      {
+        "bytes": 3063,
+        "current_sha256": "ca77c0eae30d530bd760e284091bcfc7ac266f815add1564e2c6b4827d184ca9",
+        "registered_sha256": "ca77c0eae30d530bd760e284091bcfc7ac266f815add1564e2c6b4827d184ca9",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-contracts/tests/final_use_linearization.rs"
+      },
+      {
+        "bytes": 121,
+        "current_sha256": "f2d1b5135da40059f000209620f1a206162b77204d5faab580836c1bb3a7d756",
+        "registered_sha256": "f2d1b5135da40059f000209620f1a206162b77204d5faab580836c1bb3a7d756",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/BUILD.bazel"
+      },
+      {
+        "bytes": 4364,
+        "current_sha256": "30038e7ce008597fe0a8539682b848e13043d73060f4233499ddc05c1ab96c0b",
+        "registered_sha256": "30038e7ce008597fe0a8539682b848e13043d73060f4233499ddc05c1ab96c0b",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/COVARIANCE_REGRESSION.md"
+      },
+      {
+        "bytes": 358,
+        "current_sha256": "086d8e3caeae12e20b134bd5068ee53842b20343b6a720a04763ae607213e4ba",
+        "registered_sha256": "086d8e3caeae12e20b134bd5068ee53842b20343b6a720a04763ae607213e4ba",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/Cargo.toml"
+      },
+      {
+        "bytes": 2544,
+        "current_sha256": "597430b09d42df8f7b9d1fff3c1aecb146acebc75107f833adccf36673dcdc7b",
+        "registered_sha256": "597430b09d42df8f7b9d1fff3c1aecb146acebc75107f833adccf36673dcdc7b",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/RECURSIVE_UTILITY.md"
+      },
+      {
+        "bytes": 15538,
+        "current_sha256": "8a12d68158061e40aad1f6dc2fd4d6cba4abda7d2d2bbf764dd923d8ff551b1c",
+        "registered_sha256": "8a12d68158061e40aad1f6dc2fd4d6cba4abda7d2d2bbf764dd923d8ff551b1c",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/src/bin/ndu-named-host-qualification.rs"
+      },
+      {
+        "bytes": 7871,
+        "current_sha256": "3eeb9d065538d5a385c1b3e55924f352adc6dfab15ac457a417555b4ad81640a",
+        "registered_sha256": "3eeb9d065538d5a385c1b3e55924f352adc6dfab15ac457a417555b4ad81640a",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/src/coefficient_profile.rs"
+      },
+      {
+        "bytes": 5149,
+        "current_sha256": "3a8fbc5b41cf2b89112ce4f9bdb76e265bdfdc1a0dadb6550a81788d28818475",
+        "registered_sha256": "3a8fbc5b41cf2b89112ce4f9bdb76e265bdfdc1a0dadb6550a81788d28818475",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/src/coefficient_profile_tests.rs"
+      },
+      {
+        "bytes": 4962,
+        "current_sha256": "ce48afe1ce6bfc0e5cea2f0fe7c93c1a8bba55c2918a5ff6c75bc05638fa734a",
+        "registered_sha256": "ce48afe1ce6bfc0e5cea2f0fe7c93c1a8bba55c2918a5ff6c75bc05638fa734a",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/src/conditional_moments.rs"
+      },
+      {
+        "bytes": 8695,
+        "current_sha256": "0a21f79764ffa6d6d7f4ed5f16fb092b7f4f189145ed7e6fd0c1e11fa32eb150",
+        "registered_sha256": "0a21f79764ffa6d6d7f4ed5f16fb092b7f4f189145ed7e6fd0c1e11fa32eb150",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/src/covariance.rs"
+      },
+      {
+        "bytes": 3483,
+        "current_sha256": "ca81bae981a10f60c61c98b4b8a4324f26e88130fde8f1ac4da04188b48fa6fe",
+        "registered_sha256": "ca81bae981a10f60c61c98b4b8a4324f26e88130fde8f1ac4da04188b48fa6fe",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/src/covariance_profile.rs"
+      },
+      {
+        "bytes": 10932,
+        "current_sha256": "b4eb83f3a3acd7e9de165fc864355e6f1a2cde3abeaee0a8618fe6833249386a",
+        "registered_sha256": "b4eb83f3a3acd7e9de165fc864355e6f1a2cde3abeaee0a8618fe6833249386a",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/src/covariance_tests.rs"
+      },
+      {
+        "bytes": 9607,
+        "current_sha256": "9d5f4518d2506bfad811a8d7196d6ccc024a2f9174f1e1acc682883b2ac424e7",
+        "registered_sha256": "9d5f4518d2506bfad811a8d7196d6ccc024a2f9174f1e1acc682883b2ac424e7",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/src/error.rs"
+      },
+      {
+        "bytes": 5383,
+        "current_sha256": "9c22395f12e5882be7107a5ac21fd6356a7165ea825373819007e020db065d10",
+        "registered_sha256": "9c22395f12e5882be7107a5ac21fd6356a7165ea825373819007e020db065d10",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/src/evaluation_digest.rs"
+      },
+      {
+        "bytes": 26365,
+        "current_sha256": "910644ee9c4e90e6859dc746c8a441424909fff68e55a070b7827724a0c3df81",
+        "registered_sha256": "910644ee9c4e90e6859dc746c8a441424909fff68e55a070b7827724a0c3df81",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/src/evaluator.rs"
+      },
+      {
+        "bytes": 12823,
+        "current_sha256": "0b5825318bd22f4428f44ba82e8bef51e7c4f7bfdcd38d64f4e910ab3a705319",
+        "registered_sha256": "0b5825318bd22f4428f44ba82e8bef51e7c4f7bfdcd38d64f4e910ab3a705319",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/src/evaluator_tests.rs"
+      },
+      {
+        "bytes": 935,
+        "current_sha256": "f400db811f757422339f5800de2451a7250bc582726c70c617138461ea52ead2",
+        "registered_sha256": "f400db811f757422339f5800de2451a7250bc582726c70c617138461ea52ead2",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/src/fixed.rs"
+      },
+      {
+        "bytes": 798,
+        "current_sha256": "47e7cf78e83a85cd2d50246ebfd9d99bcebdb2337d4d664d94246e8fd5414593",
+        "registered_sha256": "47e7cf78e83a85cd2d50246ebfd9d99bcebdb2337d4d664d94246e8fd5414593",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/src/fixed_tests.rs"
+      },
+      {
+        "bytes": 4295,
+        "current_sha256": "9dcae595328b6b4aaa30ff407a3089ea278dc571babc2ff1cd35e9b93650996c",
+        "registered_sha256": "9dcae595328b6b4aaa30ff407a3089ea278dc571babc2ff1cd35e9b93650996c",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/src/lib.rs"
+      },
+      {
+        "bytes": 5862,
+        "current_sha256": "591fffc141af50e5a4e7a184484603545c0208f2f075277b5ce204244f333cd8",
+        "registered_sha256": "591fffc141af50e5a4e7a184484603545c0208f2f075277b5ce204244f333cd8",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/src/model.rs"
+      },
+      {
+        "bytes": 12890,
+        "current_sha256": "0bdc23a30bce3e600fdc3bac78fe2b68e0814b4a6898fdbedd821eebacbe7d69",
+        "registered_sha256": "0bdc23a30bce3e600fdc3bac78fe2b68e0814b4a6898fdbedd821eebacbe7d69",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/src/owner.rs"
+      },
+      {
+        "bytes": 9728,
+        "current_sha256": "4ad67bccfd7fd151ebc7406b9148250845b40e78926162454f59fc582fedf26d",
+        "registered_sha256": "4ad67bccfd7fd151ebc7406b9148250845b40e78926162454f59fc582fedf26d",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/src/owner_tests.rs"
+      },
+      {
+        "bytes": 15865,
+        "current_sha256": "aef065bbf686589e1e5542d57da5495c9fa3e150281e4499f66b523eb8dd9839",
+        "registered_sha256": "aef065bbf686589e1e5542d57da5495c9fa3e150281e4499f66b523eb8dd9839",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/src/preference.rs"
+      },
+      {
+        "bytes": 9454,
+        "current_sha256": "c6640a67f2ab5977c6b9cadea326fe3f2df2c9b6dd2ca8ed3ae94b81ff5b6eff",
+        "registered_sha256": "c6640a67f2ab5977c6b9cadea326fe3f2df2c9b6dd2ca8ed3ae94b81ff5b6eff",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/src/preference_tests.rs"
+      },
+      {
+        "bytes": 17081,
+        "current_sha256": "f9b2ee7af341f6da63b6bdce2ff70d790f5aad458ada832f41e1b01f4679c8c8",
+        "registered_sha256": "f9b2ee7af341f6da63b6bdce2ff70d790f5aad458ada832f41e1b01f4679c8c8",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/src/projection_journal.rs"
+      },
+      {
+        "bytes": 7166,
+        "current_sha256": "63ffd007a4466267e24fef653c6fbbb0bba06c96cc81b87c51d5fcf349f20d49",
+        "registered_sha256": "63ffd007a4466267e24fef653c6fbbb0bba06c96cc81b87c51d5fcf349f20d49",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/src/projection_journal_tests.rs"
+      },
+      {
+        "bytes": 14110,
+        "current_sha256": "a23c6b23ebaaeaeb8079d7405c69f7bf29637ecb23b9d04210cfa8614863d705",
+        "registered_sha256": "a23c6b23ebaaeaeb8079d7405c69f7bf29637ecb23b9d04210cfa8614863d705",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/src/projection_store.rs"
+      },
+      {
+        "bytes": 11330,
+        "current_sha256": "88d09c3a68ea6bc38bea6e8a3539fd1a43352508f0b4e8ea774782f90a731b1f",
+        "registered_sha256": "88d09c3a68ea6bc38bea6e8a3539fd1a43352508f0b4e8ea774782f90a731b1f",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/src/projection_store_tests.rs"
+      },
+      {
+        "bytes": 501,
+        "current_sha256": "4c39e468fe42050c321e0f12fc5a5e808714da095cea2cc1cbe3a779e42efedf",
+        "registered_sha256": "4c39e468fe42050c321e0f12fc5a5e808714da095cea2cc1cbe3a779e42efedf",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/src/projection_store_unsupported_tests.rs"
+      },
+      {
+        "bytes": 4164,
+        "current_sha256": "1d92fc28c593d6e5c1f7e33272d19a99f039812762894302d8368cf2eb2acccc",
+        "registered_sha256": "1d92fc28c593d6e5c1f7e33272d19a99f039812762894302d8368cf2eb2acccc",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/src/protocol.rs"
+      },
+      {
+        "bytes": 2918,
+        "current_sha256": "bceddedb9affa5a4a9d50c5298bc623c21813c81d20f5b1810692446a2282405",
+        "registered_sha256": "bceddedb9affa5a4a9d50c5298bc623c21813c81d20f5b1810692446a2282405",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/src/protocol_tests.rs"
+      },
+      {
+        "bytes": 5219,
+        "current_sha256": "8f5b71cbbc217d4b07a0d4797944eedf5d3c3bd3884cd6fbcb304a48318102fb",
+        "registered_sha256": "8f5b71cbbc217d4b07a0d4797944eedf5d3c3bd3884cd6fbcb304a48318102fb",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/src/recursive.rs"
+      },
+      {
+        "bytes": 6118,
+        "current_sha256": "485d0ffd50141e69e656d584270a626a562c876e9e1d52e22f98be8a1df73187",
+        "registered_sha256": "485d0ffd50141e69e656d584270a626a562c876e9e1d52e22f98be8a1df73187",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/src/recursive_tests.rs"
+      },
+      {
+        "bytes": 5450,
+        "current_sha256": "84b3d8c6ba7daefd67b6676ffebe5234a125c5bdbc38def9e38a7d175202d9a7",
+        "registered_sha256": "84b3d8c6ba7daefd67b6676ffebe5234a125c5bdbc38def9e38a7d175202d9a7",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/src/scoring.rs"
+      },
+      {
+        "bytes": 7613,
+        "current_sha256": "0f68f0ccc793c12a5e69403cf953bb02924cfe85ebed3ac2eace03a51bac12cb",
+        "registered_sha256": "0f68f0ccc793c12a5e69403cf953bb02924cfe85ebed3ac2eace03a51bac12cb",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/src/scoring_tests.rs"
+      },
+      {
+        "bytes": 9460,
+        "current_sha256": "03b6b6b1ee5fca121dd9697f2712f8bb4c587eb5107cbe8afca96255d1e8ec5b",
+        "registered_sha256": "03b6b6b1ee5fca121dd9697f2712f8bb4c587eb5107cbe8afca96255d1e8ec5b",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/src/z_conversion.rs"
+      },
+      {
+        "bytes": 5835,
+        "current_sha256": "e7b016e37ffa4fcf9e7760f21eb5e680a48457b286c1b82ba3e1b248076dbc65",
+        "registered_sha256": "e7b016e37ffa4fcf9e7760f21eb5e680a48457b286c1b82ba3e1b248076dbc65",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-ndu/src/z_conversion_tests.rs"
+      },
+      {
+        "bytes": 125,
+        "current_sha256": "17cc281ebcb7260184f6efed980e1b2528ce60aed498759e0ea78b8444ceb1ec",
+        "registered_sha256": "17cc281ebcb7260184f6efed980e1b2528ce60aed498759e0ea78b8444ceb1ec",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/BUILD.bazel"
+      },
+      {
+        "bytes": 2868,
+        "current_sha256": "b5c0645ff95391dc770e0438667f9168bf22a74f2d87863444eeb4f78d1b434d",
+        "registered_sha256": "b5c0645ff95391dc770e0438667f9168bf22a74f2d87863444eeb4f78d1b434d",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/CANONICAL_DIGEST_V1.md"
+      },
+      {
+        "bytes": 8007,
+        "current_sha256": "cb26f693ea7832e6b042efa4bf55d573cc08f14546d3f9ef1c0baf4cefd39eba",
+        "registered_sha256": "cb26f693ea7832e6b042efa4bf55d573cc08f14546d3f9ef1c0baf4cefd39eba",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/CANONICAL_V1_CONFORMANCE.json"
+      },
+      {
+        "bytes": 286,
+        "current_sha256": "5eb045ad6aed56b4e33904de8ecaa0d6f4c56d9f29ffffa3abf8b880c7c34ad3",
+        "registered_sha256": "5eb045ad6aed56b4e33904de8ecaa0d6f4c56d9f29ffffa3abf8b880c7c34ad3",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/Cargo.toml"
+      },
+      {
+        "bytes": 2949,
+        "current_sha256": "c9c7cdbfc69af6dac470e5970844af58ed05ce8d977ac5057f7bb59684d612cc",
+        "registered_sha256": "c9c7cdbfc69af6dac470e5970844af58ed05ce8d977ac5057f7bb59684d612cc",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/NUMERIC_SIGNAL_CONVERSION.md"
+      },
+      {
+        "bytes": 2025,
+        "current_sha256": "21d936f0fd60fccc78413e1a44cb741122429f698a253d6c757e5b5488f94b5b",
+        "registered_sha256": "21d936f0fd60fccc78413e1a44cb741122429f698a253d6c757e5b5488f94b5b",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/bindings/PLATFORM_TYPES_BINDINGS_V1.json"
+      },
+      {
+        "bytes": 8382,
+        "current_sha256": "b7c3b29fe2d76ee48ce14069c6979a54b7672bc02b5385905d91e2e42e2a81bb",
+        "registered_sha256": "b7c3b29fe2d76ee48ce14069c6979a54b7672bc02b5385905d91e2e42e2a81bb",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/bindings/generate_bindings.py"
+      },
+      {
+        "bytes": 2453,
+        "current_sha256": "eecd1536cf292221bf8962151a02dfeffcd93777f15e0121c83643ee15d9665c",
+        "registered_sha256": "eecd1536cf292221bf8962151a02dfeffcd93777f15e0121c83643ee15d9665c",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/bindings/verify_generated.mjs"
+      },
+      {
+        "bytes": 2145,
+        "current_sha256": "f5a41e35cd549958a34cbc771c15d09a65fdf44ab1e687d182a63c3bf97b8e6f",
+        "registered_sha256": "f5a41e35cd549958a34cbc771c15d09a65fdf44ab1e687d182a63c3bf97b8e6f",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/bindings/verify_generated.py"
+      },
+      {
+        "bytes": 6960,
+        "current_sha256": "d6455456de29ce31d84ef84cc8ca516851646d01cf755057d322357a3eb4a4af",
+        "registered_sha256": "d6455456de29ce31d84ef84cc8ca516851646d01cf755057d322357a3eb4a4af",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/conformance/verify_rejections.mjs"
+      },
+      {
+        "bytes": 7144,
+        "current_sha256": "dc4cc07baf7d82f37861c58e9a7dbd9e558d47db34b0f8b93cbe53a33a9ccca8",
+        "registered_sha256": "dc4cc07baf7d82f37861c58e9a7dbd9e558d47db34b0f8b93cbe53a33a9ccca8",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/conformance/verify_rejections.py"
+      },
+      {
+        "bytes": 3988,
+        "current_sha256": "9bdffb8a01e0a2783161d117df568b12b21126caa94cf68867947e913e24a4a2",
+        "registered_sha256": "9bdffb8a01e0a2783161d117df568b12b21126caa94cf68867947e913e24a4a2",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/conformance/verify_vectors.py"
+      },
+      {
+        "bytes": 4595,
+        "current_sha256": "1e29cbe33fc26613fa23574a1a37ff817c8cebb18244f14cb454d602b99d9552",
+        "registered_sha256": "1e29cbe33fc26613fa23574a1a37ff817c8cebb18244f14cb454d602b99d9552",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/conformance/verify_vectors.ts"
+      },
+      {
+        "bytes": 3794,
+        "current_sha256": "73480584646dc737923a3685bf1ac23f968c6a1b82e92b610741850ab3260a9d",
+        "registered_sha256": "73480584646dc737923a3685bf1ac23f968c6a1b82e92b610741850ab3260a9d",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/generated/javascript/hepta_platform_types_v1.mjs"
+      },
+      {
+        "bytes": 4067,
+        "current_sha256": "c3ef4d249519f9b5bb65fe9f38cd17a0b3a191ad8b1fd0f84718829cfaf8fd01",
+        "registered_sha256": "c3ef4d249519f9b5bb65fe9f38cd17a0b3a191ad8b1fd0f84718829cfaf8fd01",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/generated/python/hepta_platform_types_v1.py"
+      },
+      {
+        "bytes": 1578,
+        "current_sha256": "ee051dedd4b02b2e495799facfe29bdee375cd18a5b7ba7dfb559fbb936bd95c",
+        "registered_sha256": "ee051dedd4b02b2e495799facfe29bdee375cd18a5b7ba7dfb559fbb936bd95c",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/generated/typescript/hepta_platform_types_v1.d.ts"
+      },
+      {
+        "bytes": 3413,
+        "current_sha256": "5907602ef8128b3237991e737e2fc687eb5ac9c716505cc7d884eed9523ea2a9",
+        "registered_sha256": "5907602ef8128b3237991e737e2fc687eb5ac9c716505cc7d884eed9523ea2a9",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/src/bounded.rs"
+      },
+      {
+        "bytes": 1642,
+        "current_sha256": "3145c56c2882e91420bc994dd93f3375e1b532b03331826868d0ecfc019077bc",
+        "registered_sha256": "3145c56c2882e91420bc994dd93f3375e1b532b03331826868d0ecfc019077bc",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/src/bounded_tests.rs"
+      },
+      {
+        "bytes": 15228,
+        "current_sha256": "d7df2b3581046fec4d7350747b1a8053a549c6feb33e462802107a4eb4acd391",
+        "registered_sha256": "d7df2b3581046fec4d7350747b1a8053a549c6feb33e462802107a4eb4acd391",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/src/canonical_digest.rs"
+      },
+      {
+        "bytes": 14679,
+        "current_sha256": "9985f3ac27b0f357653206f4788cb366b623548c53502d277cd81f1a0f3d8fbe",
+        "registered_sha256": "9985f3ac27b0f357653206f4788cb366b623548c53502d277cd81f1a0f3d8fbe",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/src/canonical_digest_tests.rs"
+      },
+      {
+        "bytes": 4474,
+        "current_sha256": "8bfa9aa8424a4a60d4f2f7044099a080a07e9bf3cff958690c3a4e9046a4b4e2",
+        "registered_sha256": "8bfa9aa8424a4a60d4f2f7044099a080a07e9bf3cff958690c3a4e9046a4b4e2",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/src/digest.rs"
+      },
+      {
+        "bytes": 1484,
+        "current_sha256": "9ff87ab6ffb17f27c2a23762893f641bb55edaff33f8bfb307729d9be8295a6c",
+        "registered_sha256": "9ff87ab6ffb17f27c2a23762893f641bb55edaff33f8bfb307729d9be8295a6c",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/src/digest_stream_tests.rs"
+      },
+      {
+        "bytes": 1719,
+        "current_sha256": "838dc12e305735321c1028dabb7c5dd4e363f1bced8126d2c50eb7527febe37c",
+        "registered_sha256": "838dc12e305735321c1028dabb7c5dd4e363f1bced8126d2c50eb7527febe37c",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/src/digest_tests.rs"
+      },
+      {
+        "bytes": 3717,
+        "current_sha256": "38de891c6a9dd6a2889c0d6a83fd0bcecf6ed17e2b7090739df8d2effe0b2cff",
+        "registered_sha256": "38de891c6a9dd6a2889c0d6a83fd0bcecf6ed17e2b7090739df8d2effe0b2cff",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/src/fixed.rs"
+      },
+      {
+        "bytes": 2115,
+        "current_sha256": "cfa86da0bc63fa273c3124bbd0988fd6bd22383a0338b15ac2a944c80aa5544b",
+        "registered_sha256": "cfa86da0bc63fa273c3124bbd0988fd6bd22383a0338b15ac2a944c80aa5544b",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/src/fixed_tests.rs"
+      },
+      {
+        "bytes": 13344,
+        "current_sha256": "5e73c7848a46cd72f22fed856890ff4978204a6a0d2a0088dfe4a974796515f3",
+        "registered_sha256": "5e73c7848a46cd72f22fed856890ff4978204a6a0d2a0088dfe4a974796515f3",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/src/identity.rs"
+      },
+      {
+        "bytes": 5482,
+        "current_sha256": "c3bba7041a11ead1ccb655fb6491c5835a3020c3f26d4deb22edc94a4f8e34be",
+        "registered_sha256": "c3bba7041a11ead1ccb655fb6491c5835a3020c3f26d4deb22edc94a4f8e34be",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/src/identity_tests.rs"
+      },
+      {
+        "bytes": 3046,
+        "current_sha256": "6793a05230b404884f1e2aed89a4369c52ad9a7f7adbb52a39a3ff1bf0ef5283",
+        "registered_sha256": "6793a05230b404884f1e2aed89a4369c52ad9a7f7adbb52a39a3ff1bf0ef5283",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/src/lib.rs"
+      },
+      {
+        "bytes": 9505,
+        "current_sha256": "d183cfb5f6981cb9d767a0d8a90cb895153f932ebc3c635ceb4f0b86e090cbfd",
+        "registered_sha256": "d183cfb5f6981cb9d767a0d8a90cb895153f932ebc3c635ceb4f0b86e090cbfd",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/src/numeric_conversion.rs"
+      },
+      {
+        "bytes": 11101,
+        "current_sha256": "554d51398fdef4cd69ccc43b3f0d4a002a2a8eed20552a8228770bfde364883a",
+        "registered_sha256": "554d51398fdef4cd69ccc43b3f0d4a002a2a8eed20552a8228770bfde364883a",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/src/numeric_conversion_tests.rs"
+      },
+      {
+        "bytes": 9363,
+        "current_sha256": "d656fa38fea5a18105da911107caae4d326a653854df0c5baed10d4ab3c6bbe9",
+        "registered_sha256": "d656fa38fea5a18105da911107caae4d326a653854df0c5baed10d4ab3c6bbe9",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/src/numeric_profile.rs"
+      },
+      {
+        "bytes": 1969,
+        "current_sha256": "fab0d6bd469412e77191e43cb17dde7f9638b07292ea5e2df5ad242cf616ea1a",
+        "registered_sha256": "fab0d6bd469412e77191e43cb17dde7f9638b07292ea5e2df5ad242cf616ea1a",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/src/numeric_profile_tests.rs"
+      },
+      {
+        "bytes": 4948,
+        "current_sha256": "f01b741add536a597bf9c87664f83909fd77989d19ff4e2fc2c752d98cfbf593",
+        "registered_sha256": "f01b741add536a597bf9c87664f83909fd77989d19ff4e2fc2c752d98cfbf593",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/src/prompt_delivery.rs"
+      },
+      {
+        "bytes": 2578,
+        "current_sha256": "1ad1075b9433c1a31629ba3df0509ce16ae7c70060797d2ea08f21b5a2c63f1a",
+        "registered_sha256": "1ad1075b9433c1a31629ba3df0509ce16ae7c70060797d2ea08f21b5a2c63f1a",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/src/prompt_delivery_tests.rs"
+      },
+      {
+        "bytes": 9460,
+        "current_sha256": "ad15fac503e3988c3fc5d8892136f91c45bb41a12266de5e037a31a6a690b005",
+        "registered_sha256": "ad15fac503e3988c3fc5d8892136f91c45bb41a12266de5e037a31a6a690b005",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/src/registry.rs"
+      },
+      {
+        "bytes": 5008,
+        "current_sha256": "d964bd53b636362da367fc9edf053c72272d62416ef231b632ee3dda6a5ec59a",
+        "registered_sha256": "d964bd53b636362da367fc9edf053c72272d62416ef231b632ee3dda6a5ec59a",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/src/registry_tests.rs"
+      },
+      {
+        "bytes": 14135,
+        "current_sha256": "e1888c64c8682491837c907a91a960327530251450ecb38e70a60df792adba22",
+        "registered_sha256": "e1888c64c8682491837c907a91a960327530251450ecb38e70a60df792adba22",
+        "relative_path": "rust/hia-ndu-bridge/upstream/hepta-types/src/topology.rs"
+      }
+    ],
+    "registration_additional_current_sources_all_match": true,
+    "registration_additional_non_git_source_count": 117,
+    "registration_outer_common_source_count": 1155,
+    "registration_outer_common_sources_all_match": true,
+    "registration_source_inventory_scope": "release_check.snapshot enumerates selected filesystem source, including ignored NDU upstream/provenance inputs. The outer frozen snapshot enumerates all Git-tracked files. Neither inventory is asserted to be the complete subset of the other.",
+    "registration_tool_hashes_match_outer_receipts": true,
+    "scope_limit": "Before/after receipt coherence and targeted current-source hashes do not attest exclusive host control or an atomic snapshot.",
+    "source_before_after_equal": true,
+    "tools_before_after_equal": true
+  },
+  "source_commit": "f5b6598bdd88db92c4ef2b17e10deda9a90bdd59",
+  "status": "audited_failed_qualification_with_unresolved_cause",
+  "threshold_edits": 0
+}
