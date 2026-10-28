@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -21,6 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from hepta.migration_ir import Expr, Function, IRValidationError, Stmt, check_function, emit_function, function_hash  # noqa: E402
 
 TYPES = {"int": "i32", "unsigned int": "u32"}
+_MAX_SOURCE_BYTES = 256_000
 IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z_0-9]*\Z", re.ASCII)
 RESERVED = frozenset({"module", "import", "fn", "pub", "extern", "export", "effects", "resources", "as", "let", "mut", "take", "move", "read", "unsafe", "struct", "enum", "match", "if", "else", "return", "for", "while", "true", "false", "wrapping_add", "wrapping_sub", "wrapping_mul", "len", "assert", "main"})
 
@@ -152,6 +154,20 @@ def _atomic_write(path: Path, content: str) -> None:
             os.unlink(tmp)
 
 
+def _read_bounded_source(source: Path) -> bytes:
+    """Read at most the declared source budget plus one byte.
+
+    Open non-blocking so an untrusted FIFO path cannot stall before fstat;
+    only regular files are admitted. Use the same bounded read for initial
+    admission and the post-Clang source-identity recheck.
+    """
+    flags = os.O_RDONLY | getattr(os, "O_NONBLOCK", 0)
+    with os.fdopen(os.open(source, flags), "rb") as stream:
+        if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+            raise UnsupportedC("C input must be a regular file")
+        return stream.read(_MAX_SOURCE_BYTES + 1)
+
+
 def migrate(source: Path, output: Path, report: Path, clang: str = "clang", verify_native: bool = False, rustc: str | None = None) -> dict:
     # Enforce the CLI path-isolation gate for direct library callers as well.
     # Otherwise a rejected conversion can overwrite the original C source
@@ -160,12 +176,15 @@ def migrate(source: Path, output: Path, report: Path, clang: str = "clang", veri
     if len(set(resolved)) != 3:
         raise UnsupportedC("source, output and report paths must be distinct")
     try:
-        original = source.read_bytes()
+        original = _read_bounded_source(source)
         read_error = None
-    except OSError as exc:
+    except (OSError, UnsupportedC) as exc:
         original = None
         read_error = str(exc)
-    digest = hashlib.sha256(original).hexdigest() if original is not None else None
+    # An oversized file was sampled only up to the explicit admission cap.
+    # Never publish a prefix digest as the complete source identity.
+    digest = (hashlib.sha256(original).hexdigest()
+              if original is not None and len(original) <= _MAX_SOURCE_BYTES else None)
     info = {"schema": "hepta.c2hepta.v0", "source": str(source.resolve()),
             "source_sha256": digest, "status": "rejected", "safety": "not_qualified",
             "functions": [], "frontend_validation": "not_run", "backend_validation": "not_run", "clang": "not_run"}
@@ -173,7 +192,7 @@ def migrate(source: Path, output: Path, report: Path, clang: str = "clang", veri
     try:
         if read_error is not None:
             raise UnsupportedC("cannot read C input: " + read_error)
-        if len(original) > 256_000:
+        if len(original) > _MAX_SOURCE_BYTES:
             raise UnsupportedC("pilot input limit is 256 KB")
         if output.is_symlink() or report.is_symlink():
             raise UnsupportedC("symlink output/report paths are not accepted")
@@ -219,7 +238,7 @@ def migrate(source: Path, output: Path, report: Path, clang: str = "clang", veri
                 info["functions"].append({"name": label, "status": "unsupported", "reason": str(exc)})
         if any(item["status"] != "converted" for item in info["functions"]):
             raise UnsupportedC("one or more declarations unsupported; no partial source emitted")
-        if hashlib.sha256(source.read_bytes()).hexdigest() != digest:
+        if hashlib.sha256(_read_bounded_source(source)).hexdigest() != digest:
             raise UnsupportedC("source changed during conversion")
         emitted = "module c2hepta_generated;\n\n" + "\n\n".join(emit_function(fn) for fn in converted) + "\n"
         # Check syntax/types against the actual Hepta frontend when it is installed.
