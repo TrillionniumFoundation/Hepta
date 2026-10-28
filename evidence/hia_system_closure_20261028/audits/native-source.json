@@ -1,0 +1,285 @@
+{
+  "agent": "/root/native_loan_closure",
+  "all_reviewed_files_match_frozen_commit": true,
+  "checks": [
+    {
+      "evidence": "Dispatcher requires immutable bytes and re-verifies primitive v1-v6; resource-bearing external signatures, composite identity and v7 reject.",
+      "id": "core_admission",
+      "result": "reviewed"
+    },
+    {
+      "evidence": "Candidate bytes must equal baseline or the exact registered prepare_candidate result; public ABI must match. Registry pass and plan hash are recorded in build receipt v2.",
+      "id": "candidate_relation",
+      "result": "reviewed"
+    },
+    {
+      "evidence": "Exact built-in three-string tuple; unique direct borrow, local allocation and later exact loan.end in one block. Site objects originate from one detached verified document.",
+      "id": "site_identity",
+      "result": "reviewed"
+    },
+    {
+      "evidence": "Transitive call graph excludes recursive re-entry of selected function; per-child one-shot state observes first dynamic occurrence only.",
+      "id": "selected_recursion",
+      "result": "reviewed"
+    },
+    {
+      "evidence": "Ordinary IR re-emitted, one exact function body identified, deterministic probe body substituted. Repeat emission and implementation digest checked around build/publication.",
+      "id": "emitter_identity",
+      "result": "reviewed"
+    },
+    {
+      "evidence": "Begin helper follows selected borrow; end helper follows loan.end and samples the local owner before the next Core instruction. Selected function allocations retain zero initialization so newly observed endpoint reads do not expose formerly unread allocation contents.",
+      "id": "loan_endpoint_state",
+      "result": "reviewed"
+    },
+    {
+      "evidence": "Runtime branches on zero extent before either endpoint dereference; parser requires both recorded endpoint bytes to be zero for empty view.",
+      "id": "empty_views",
+      "result": "reviewed"
+    },
+    {
+      "evidence": "Two 40-byte packets, fixed magic/phases, extent bound and endpoint byte ranges; no raw address exported. Exact one-byte ACK. No caller code hook/IR callback input.",
+      "id": "fixed_native_protocol",
+      "result": "reviewed"
+    },
+    {
+      "evidence": "ACK write and ack_sent transition occur under the same Condition in observer thread; the same thread parses end records. Resume requests require a prior begin and cannot enqueue twice.",
+      "id": "ack_race",
+      "result": "reviewed"
+    },
+    {
+      "evidence": "After WNOWAIT exit observation the event pipe is read again before acceptance; partial/extra/out-of-order packets reject.",
+      "id": "exit_pipe_drain",
+      "result": "reviewed"
+    },
+    {
+      "evidence": "Exact ordinary pre-dlopen worker prefix reused. Pass-fd inventory includes sealed image plus the two intended channels, in addition to standard streams; ambient loader environment absent.",
+      "id": "worker_isolation",
+      "result": "reviewed"
+    },
+    {
+      "evidence": "Existing no-follow bounded artifact reader seals bytes into memfd and verifies seals; dispatcher cross-checks Core/IR/export/hash/size receipt. Public execution receives no mutable library path.",
+      "id": "artifact_identity",
+      "result": "reviewed"
+    },
+    {
+      "evidence": "Generation/image captured and reference incremented under dispatcher lock before execution thread starts. Rollback affects future admission; inactive candidate descriptor waits for zero tracked references.",
+      "id": "per_call_pin",
+      "result": "reviewed"
+    },
+    {
+      "evidence": "Ordinary execute rejects diagnostic images; start_loan_probe rejects ordinary images. Diagnostic compiler has separate schema/profile and false production/timing/refinement claims.",
+      "id": "ordinary_diagnostic_split",
+      "result": "reviewed"
+    },
+    {
+      "evidence": "Cancel withdraws publication; real compiler is not preempted. Finished unpublished image closes; current generation is unchanged. Only one background build and two version identities admitted.",
+      "id": "build_cancel",
+      "result": "reviewed"
+    },
+    {
+      "evidence": "Finite timeout/parse/child failure releases the tracked dispatch reference; partial selected-loan records remain in handle. No trap cause or language destructor is inferred from SIGABRT/OS termination.",
+      "id": "finite_call_failure",
+      "result": "reviewed"
+    },
+    {
+      "evidence": "Close rejects new work, keeps admitted references until observer completes, and reports drain of tracked host inventory. Reap-failure qualification gap is separately listed.",
+      "id": "close_semantics",
+      "result": "reviewed_with_limit"
+    },
+    {
+      "evidence": "Passing fixed producer requires seven completed control outcomes (four return/two trap/one timeout), not just an attempt count. CLI labels attempt length as actual_child_calls even on failure; separately listed.",
+      "id": "producer_denominator",
+      "result": "reviewed_with_limit"
+    },
+    {
+      "evidence": "Producer copies actual sealed image bytes, checks hash/length and retains canonical Core, diagnostic IR, receipts and transition/loan snapshots. Exclusive new directory and checkpointing prevent normal accidental overwrite.",
+      "id": "producer_raw_retention",
+      "result": "reviewed"
+    },
+    {
+      "evidence": "Producer requires clean Git status and unchanged bounded source snapshots for ok. This establishes tracked-source cleanliness; ignored non-code snapshot inputs are not thereby attested as committed, and host/compiler TCB remains explicit.",
+      "id": "source_freeze",
+      "result": "reviewed_with_limit"
+    },
+    {
+      "evidence": "Compilation/interruption/snapshot errors leave checkpoint; active calls retain finite deadlines while close waits. execution_passed is kept distinct from committed-source ok.",
+      "id": "failure_evidence",
+      "result": "reviewed"
+    },
+    {
+      "evidence": "No tests or native calls were executed for this audit. Previously reported 29 methods include all three modules; no extra credit is added by this review.",
+      "id": "method_counts",
+      "result": "reviewed"
+    }
+  ],
+  "claims": {
+    "full_p0_p7_closed": false,
+    "new_native_execution": false,
+    "no_new_observed_normal_path_mismatch": true,
+    "production_p6_qualified": false,
+    "zero_remaining_production_blockers": false
+  },
+  "git_commit": "b92141483ca5084691f436d28d4cd0dcbefe4717",
+  "historical_artifact_readback": {
+    "all_artifact_and_ir_checks_passed": true,
+    "all_three_artifacts_identical": true,
+    "artifacts": [
+      {
+        "bytes": 15736,
+        "compiler": {
+          "default_target": "x86_64-pc-linux-gnu",
+          "path": "/usr/lib/llvm-20/bin/clang",
+          "sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+          "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+        },
+        "llvm_sha256_matches": true,
+        "matches_measurement_receipt": true,
+        "path": "/workspace/scratch/7e691a7ff65f/validation-loan-next/producer-development/baseline.so",
+        "sha256": "5d60fac2039ae81305fbe716c24990e83edefd093d0e3f087877c2daf922509e",
+        "source_scope": "historical uncommitted development execution, not the forthcoming frozen qualification"
+      },
+      {
+        "bytes": 15736,
+        "compiler": {
+          "default_target": "x86_64-pc-linux-gnu",
+          "path": "/usr/lib/llvm-20/bin/clang",
+          "sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+          "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+        },
+        "llvm_sha256_matches": true,
+        "matches_measurement_receipt": true,
+        "path": "/workspace/scratch/7e691a7ff65f/validation-loan-next/producer-development/candidate-first.so",
+        "sha256": "5d60fac2039ae81305fbe716c24990e83edefd093d0e3f087877c2daf922509e",
+        "source_scope": "historical uncommitted development execution, not the forthcoming frozen qualification"
+      },
+      {
+        "bytes": 15736,
+        "compiler": {
+          "default_target": "x86_64-pc-linux-gnu",
+          "path": "/usr/lib/llvm-20/bin/clang",
+          "sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+          "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+        },
+        "llvm_sha256_matches": true,
+        "matches_measurement_receipt": true,
+        "path": "/workspace/scratch/7e691a7ff65f/validation-loan-next/producer-development/candidate-second.so",
+        "sha256": "5d60fac2039ae81305fbe716c24990e83edefd093d0e3f087877c2daf922509e",
+        "source_scope": "historical uncommitted development execution, not the forthcoming frozen qualification"
+      }
+    ]
+  },
+  "independent_agent_productivity_experiment": false,
+  "issues": [
+    {
+      "finding": "If proc.wait(timeout=2) itself raises, _run still calls _release. The dispatcher can subsequently report drained while the OS child has not been confirmed reaped. SIGKILL pending on an uninterruptible kernel wait does not establish immediate disappearance of the process or its kernel resources.",
+      "id": "NATIVE_REAP_FAILURE_TRACKING",
+      "impact": "Do not equate tracked-host drain with unconditional OS-process/resource drain; no safe reuse of child-owned external state is qualified. The sealed mapping still has the child OS reference, so this is not evidence of use-after-free.",
+      "location": "hepta/hia_native_loan_probe.py: NativeLoanExecution._observe / _run; ordinary observer shares the bounded-reap assumption",
+      "recommended_next_step": "For production lifecycle scope, retain explicit unresolved-child ownership until confirmed reap or expose incomplete-cleanup state; add a meaningful controlled reap-failure test. No frozen source edit performed.",
+      "severity": "remaining production lifecycle limitation",
+      "status": "static review; not triggered in retained finite executions"
+    },
+    {
+      "finding": "begin appends its attempt before dispatcher/thread/Popen success. CLI actual_child_calls uses len(attempts), so a spawn failure may overstate actual child executions in a failed run.",
+      "id": "ATTEMPT_COUNT_LABEL",
+      "impact": "Interpret len(attempts) as attempted calls unless individual native observations establish actual execution. A passed fixed run has the expected outcome evidence for all seven.",
+      "location": "tools/qualify_hia_native_loans.py: begin / main",
+      "recommended_next_step": "Rename the CLI field to attempted_child_calls or separately record spawn and completion identities. Preserve the current failed-run raw report; do not relabel an attempt as execution.",
+      "severity": "failure-report precision",
+      "status": "static review; passing seven-call report unaffected"
+    }
+  ],
+  "limits": [
+    "No native calls, compiles or tests executed in this audit. Frozen native-loan producer execution is still pending.",
+    "Selected local loan and endpoint bytes only; no full resource ledger/all-byte observation, backend refinement or uninstrumented scheduling proof.",
+    "Diagnostic zero initialization and IO change artifact timing; no production performance or general P6 completion claim.",
+    "External loans, callbacks, tasks, shared state, persistent workers, in-process patching and OS/crash durability remain outside scope.",
+    "Compiler/linker/loader/libc/kernel and trusted Python host remain TCB. Source/API hashing is not independent attestation of that environment.",
+    "The three byte-identical diagnostic artifacts are historical observations for the recorded compiler/flags/fixture; equality is not a compiler-independent or future-build invariant."
+  ],
+  "review_kind": "read-only adversarial source and retained-artifact review",
+  "reviewed_source_files": {
+    "docs/HIA_NATIVE_VERSION_DISPATCH_20261027.md": {
+      "bytes": 15807,
+      "matches_commit": true,
+      "sha256": "2095367d225742c047a0a031e5e4154dcbd23a445f6cad3f08c716d76f3d57b7"
+    },
+    "examples/hia_native_lifecycle/swap.json": {
+      "bytes": 3552,
+      "matches_commit": true,
+      "sha256": "3b1d9ce62f726eca9de8505d441457e4b613222f09b5429b0c32e2253d159607"
+    },
+    "hepta/artifact_publication.py": {
+      "bytes": 5673,
+      "matches_commit": true,
+      "sha256": "44416fe2b5d3f3d29bbb006c592b34bf32ac59c249de995a31fe7976393ed915",
+      "syntax_parsed_without_execution": true
+    },
+    "hepta/elf_shared_abi.py": {
+      "bytes": 11420,
+      "matches_commit": true,
+      "sha256": "f9afbaa95a3aa5a9163546da42b601d3ac98648d8da68e6122008e381177ed02",
+      "syntax_parsed_without_execution": true
+    },
+    "hepta/hia_native_differential.py": {
+      "bytes": 40460,
+      "matches_commit": true,
+      "sha256": "66d1fc71e5760ab368b86568a37a34901da26735aa5d0ef87a98b87cb79534e8",
+      "syntax_parsed_without_execution": true
+    },
+    "hepta/hia_native_loan_probe.py": {
+      "bytes": 26130,
+      "compile_probe_definition_count": 1,
+      "matches_commit": true,
+      "sha256": "9c371bbf71843e4d4c90e4f76128511303b4b581bc242cde15e3f75a7e00d490",
+      "syntax_parsed_without_execution": true
+    },
+    "hepta/hia_native_version_dispatch.py": {
+      "bytes": 23800,
+      "matches_commit": true,
+      "sha256": "e2cc99f4db797dca2cd98a91f83915619a62835213b4e067a24b770394aa1fa5",
+      "syntax_parsed_without_execution": true
+    },
+    "hepta/hia_ndu.py": {
+      "bytes": 18164,
+      "matches_commit": true,
+      "sha256": "593afee696aac587ec6ed14b346da9f869368e855041193ac64ddb8d6be3f4ab",
+      "syntax_parsed_without_execution": true
+    },
+    "hepta/hia_program_llvm.py": {
+      "bytes": 50313,
+      "matches_commit": true,
+      "sha256": "e77a727159f2a0882e00917c819b936d7aafe2b018c3ca288b03fef1145f242f",
+      "syntax_parsed_without_execution": true
+    },
+    "tests/test_hia_native_loan_probe.py": {
+      "bytes": 19143,
+      "matches_commit": true,
+      "sha256": "66faa70d49d83c5ec7817fe031c1533b185627a258fbe254cfea825387a108f6",
+      "syntax_parsed_without_execution": true
+    },
+    "tests/test_hia_native_loan_qualification.py": {
+      "bytes": 3130,
+      "matches_commit": true,
+      "sha256": "96ee16914caa06ad03ea3a8e9b31a9e2630f4f17854a889cb338a16e9cbb8fa3",
+      "syntax_parsed_without_execution": true
+    },
+    "tests/test_hia_native_version_dispatch.py": {
+      "bytes": 19264,
+      "matches_commit": true,
+      "sha256": "e636b50868e08829b419052143205cdee4ffd7ad470da46365480151481d4552",
+      "syntax_parsed_without_execution": true
+    },
+    "tools/qualify_hia_native_loans.py": {
+      "bytes": 13993,
+      "matches_commit": true,
+      "sha256": "e3ba8ae8f41951b9e5b0e473ee8848a48aa6a69060d321b11fe94cb552f6b734",
+      "syntax_parsed_without_execution": true
+    }
+  },
+  "reviewed_utc": "2026-10-28T01:58:39.437643+00:00",
+  "reviewer_is_original_implementation_author": true,
+  "schema": "hepta.audit.native-source-review.v1",
+  "working_tree_clean": true
+}

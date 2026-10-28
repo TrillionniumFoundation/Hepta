@@ -1,0 +1,216 @@
+{
+  "schema": "hepta.hia.delivery-text-pre-generation-review.v1",
+  "created_utc": "2026-10-28T03:12:05.834611+00:00",
+  "reviewer": "/root/native_gain_candidate",
+  "reviewer_authorship": {
+    "drafts_original_author": true,
+    "finalizer_author": false,
+    "agent_productivity_trial": false
+  },
+  "review_kind": "lightweight_pre_generation_text_review",
+  "execution_result_audit": false,
+  "finalizer_executed": false,
+  "generated_delivery_files_inspected": false,
+  "tests_compiles_timing_or_large_artifact_hashing_performed": false,
+  "main_repository_or_reviewed_inputs_modified": false,
+  "reviewed_inputs": [
+    {
+      "path": "finalize_system_docs.py",
+      "bytes": 16276,
+      "sha256": "b85fe396f0c9de7e1c24d2acc26c3d06efef961fb9753753e096d9a6724e0213",
+      "lines": 185
+    },
+    {
+      "path": "validation-system-report-drafts/REPORT.zh-CN.md",
+      "bytes": 21206,
+      "sha256": "2b714e90a98e4f25b965f77b81f1424f77517c11a24ba00cc948a3747408df1b",
+      "lines": 142
+    },
+    {
+      "path": "validation-system-report-drafts/README.md",
+      "bytes": 8536,
+      "sha256": "91b6522398f8a677b70990fea857738adaee3fa6853a99d448b4d9e07245a2c6",
+      "lines": 77
+    },
+    {
+      "path": "validation-system-report-drafts/blockers.json",
+      "bytes": 23449,
+      "sha256": "6ea7efde8021c4f5c198ccbb3571fa18a0284a685d4fabe59a4bf4e2b5d6852d",
+      "lines": 517
+    }
+  ],
+  "observed_generator_fixes": [
+    {
+      "id": "README-current-pending",
+      "status": "replacement_present_in_latest_reviewed_generator",
+      "old_text": "These are completed gate results; the full collector remains pending.",
+      "replacement": "The complete collector and separate native-loan v2 results follow; the unit and Cargo counts are not additional system qualification claims.",
+      "both_literals_present_in_generator": true
+    },
+    {
+      "id": "README-source-row",
+      "status": "replacement_present_in_latest_reviewed_generator",
+      "old_text": "Current-source full35 and native-loan v2 results must come from their own final receipts.",
+      "replacement": "The source-bound full35 and native-loan v2 final results appear below.",
+      "both_literals_present_in_generator": true
+    },
+    {
+      "id": "REPORT-P0-row",
+      "status": "replacement_present_in_latest_reviewed_generator",
+      "old_text": "完整单元 ID 已核对；继续核对 `de49` 相关语义/兼容/旧修复门槛及最终源码身份，历史通过不能代替当前结果",
+      "replacement": "当前 `de49` 的语义/兼容/旧修复门槛、完整 ID 与源码身份已核对；该有限 profile 的当前回执义务已关闭",
+      "both_literals_present_in_generator": true
+    },
+    {
+      "id": "REPORT-current-table-heading",
+      "status": "replacement_present_in_latest_reviewed_generator",
+      "old_text": "已有结果或待填回执",
+      "replacement": "最终回执",
+      "both_literals_present_in_generator": true
+    },
+    {
+      "id": "REPORT-current-unit-scope",
+      "status": "replacement_present_in_latest_reviewed_generator",
+      "old_text": "这两个门槛的完成不代表整条资格链已结束。",
+      "replacement": "完整资格链及独立原生借用 v2 的最终结果如下；单元与 Cargo 通过数不另加为系统级验收结论。",
+      "both_literals_present_in_generator": true
+    }
+  ],
+  "findings": [
+    {
+      "id": "DTR-PG-001",
+      "priority": "before_publication",
+      "category": "stale_generation_instructions",
+      "status": "resolved_in_reviewed_generator_text",
+      "location": "validation-system-report-drafts/REPORT.zh-CN.md, section 6 final evidence paragraph; finalize_system_docs.py markdown replacement branch",
+      "observation": "The generated report still points readers to final filling rules after the README filling section is removed, and still directs a future pre-publication member check even though the final README asserts that check has completed.",
+      "exact_revisions": [
+        {
+          "old": "文件地图、源码边界和最终填充规则",
+          "new": "文件地图、源码边界和证据复核步骤"
+        },
+        {
+          "old": "发布前应按实际打包结果重新打开全部成员并核对散列。",
+          "new": "归档全部成员已重新打开，并按实际成员清单核对。"
+        }
+      ],
+      "condition": "Use the completed-check wording only after the packager actually completes and records member verification. Add path/type/size/hash details only for fields the recorded verification covers.",
+      "initial_status": "open_at_review",
+      "resolution_check": {
+        "matching_literals_present": true,
+        "generator_sha256": "b85fe396f0c9de7e1c24d2acc26c3d06efef961fb9753753e096d9a6724e0213",
+        "text_only": true
+      },
+      "resolution_note": "The new final wording has a manifest verification precondition. This review did not execute the packager or validate that manifest assertion against archive members."
+    },
+    {
+      "id": "DTR-PG-002",
+      "priority": "clarity",
+      "category": "stage_table_status",
+      "status": "resolved_in_reviewed_generator_text",
+      "location": "validation-system-report-drafts/REPORT.zh-CN.md, section 5 third column heading",
+      "observation": "After the P0 correction the third column contains a closed finite-profile conclusion, but its heading still says every entry is next-step evidence that must be obtained.",
+      "exact_revisions": [
+        {
+          "old": "下一步必须取得的具体闭合证据",
+          "new": "当前验收结论与后续义务"
+        }
+      ],
+      "initial_status": "open_at_review",
+      "resolution_check": {
+        "matching_literals_present": true,
+        "generator_sha256": "b85fe396f0c9de7e1c24d2acc26c3d06efef961fb9753753e096d9a6724e0213",
+        "text_only": true
+      }
+    },
+    {
+      "id": "DTR-PG-003",
+      "priority": "before_publication",
+      "category": "closed_ledger_future_action_field",
+      "status": "resolved_in_reviewed_generator_text",
+      "location": "finalize_system_docs.py close_ids loop; blockers.json P0-CURRENT-SOURCE / P2-CURRENT-SOURCE-EQUIVALENCE / P6-CURRENT-CLEANUP-RECEIPT",
+      "observation": "The generator closes these three records and moves gap into previous_gap, but leaves next_closure_evidence as an active future-action field. The state is unambiguous, yet consumers or readers following that field can infer that the same receipt checks are still pending.",
+      "recommendation": "For the three closed records only, move next_closure_evidence to closure_requirements_checked (or previous_next_closure_evidence). Keep closure_evidence, closed_source_commit and previous_gap. Do not remove historical pending wording from previous_gap or operational pending-cleanup terminology.",
+      "suggested_statement": "item[\"closure_requirements_checked\"] = item.pop(\"next_closure_evidence\")",
+      "scope_note": "The other 14 open obligations must retain their next_closure_evidence and remain open.",
+      "initial_status": "open_at_review",
+      "resolution_check": {
+        "matching_literals_present": true,
+        "generator_sha256": "b85fe396f0c9de7e1c24d2acc26c3d06efef961fb9753753e096d9a6724e0213",
+        "text_only": true
+      }
+    },
+    {
+      "id": "DTR-PG-004",
+      "priority": "before_publication",
+      "category": "reproduction_guidance",
+      "status": "resolved_in_reviewed_generator_text",
+      "location": "validation-system-report-drafts/README.md Inspecting the raw package and generated Current audits and tool provenance sections",
+      "observation": "The public-facing instructions explain extraction, but do not give a concrete reader path from the archive/index to the actual replay plan, tool inputs and source checkouts. The newly appended text states that the private NDU implementation and binary are excluded; it does not explicitly explain the resulting replay limitation.",
+      "recommendations": [
+        "Add a concise evidence-inspection vs re-execution section. Link source-run-index.json and identify the actual archived plan/command receipt for each historical b921 and corrected de49 run after packaging fixes the member names.",
+        "Document checking out the exact source commit, matching the recorded compiler/runtime versions and arguments, mapping original absolute paths into the new checkout/tool locations, and writing new results to a fresh output directory. Retain the original producer records unchanged.",
+        "State that archive extraction and manifest/statistics checking do not rerun tests, compilers or the timed experiment, and new timing observations do not overwrite the two historical attempts.",
+        "State explicitly that re-executing the historical NDU evaluator requires authorized access to the matching bridge binary (or a build from the pinned private source and recorded toolchain); public archived records alone cannot rebuild that omitted implementation. The archive can still support review of the retained request/response, identity and native measurement records.",
+        "If a standalone archive verifier is included, give its real path and command; otherwise provide a documented member/hash verification method matched to the actual manifest schema. Do not invent a command or claim a verifier was executed in this review."
+      ],
+      "initial_status": "open_at_review",
+      "resolution_check": {
+        "matching_literals_present": true,
+        "generator_sha256": "b85fe396f0c9de7e1c24d2acc26c3d06efef961fb9753753e096d9a6724e0213",
+        "text_only": true
+      },
+      "resolution_note": "The generator now gives explicit source pins, archive plan names, recorded tool/environment inputs, path/output adaptation and private NDU replay prerequisites. Actual packaged member names and availability still belong to package verification."
+    }
+  ],
+  "consistent_boundaries_observed": [
+    "The finalizer closes only the three finite current-profile receipt obligations; this yields three closed and fourteen open obligations from the seventeen-item ledger.",
+    "Broader P0-P7, industrial gain, global optimum, whole-language soundness, platform and Agent-cost claims remain false.",
+    "Historical NDU rows retain b921 source identity, complete-pair denominators and actual paid/CLI costs instead of being relabelled de49.",
+    "The finalizer permits standalone-performance to remain unqualified and derives its noise and threshold failures from its report.",
+    "No current final execution status is established by this text review. The full35 and native-loan audit remains a separate prerequisite.",
+    "Historical previous_gap and pending-cleanup algorithm terms should not be erased by a broad pending-word ban."
+  ],
+  "limits": [
+    "No generated output exists in the scope inspected here; findings describe literal generator behavior and the reviewed draft text.",
+    "Source-run-index, packaging manifest and private-implementation exclusions were not independently audited in this review.",
+    "Small hashes identify only the four text inputs; they are not execution or platform attestation."
+  ],
+  "revision_history": [
+    {
+      "previous_audit_sha256": "762dc35ac6ff92c4c99fd19bb59f23073118dfea20fede9e0caf432ead4964ee",
+      "previous_reviewed_inputs": [
+        {
+          "path": "finalize_system_docs.py",
+          "bytes": 16276,
+          "sha256": "b85fe396f0c9de7e1c24d2acc26c3d06efef961fb9753753e096d9a6724e0213",
+          "lines": 185
+        },
+        {
+          "path": "validation-system-report-drafts/REPORT.zh-CN.md",
+          "bytes": 21206,
+          "sha256": "2b714e90a98e4f25b965f77b81f1424f77517c11a24ba00cc948a3747408df1b",
+          "lines": 142
+        },
+        {
+          "path": "validation-system-report-drafts/README.md",
+          "bytes": 8536,
+          "sha256": "91b6522398f8a677b70990fea857738adaee3fa6853a99d448b4d9e07245a2c6",
+          "lines": 77
+        },
+        {
+          "path": "validation-system-report-drafts/blockers.json",
+          "bytes": 23449,
+          "sha256": "6ea7efde8021c4f5c198ccbb3571fa18a0284a685d4fabe59a4bf4e2b5d6852d",
+          "lines": 517
+        }
+      ],
+      "reason": "Root revised only the generator after the initial text findings; latest generator was read again without execution."
+    }
+  ],
+  "updated_utc": "2026-10-28T03:12:42.506238+00:00",
+  "review_status": "completed_no_open_text_findings_in_reviewed_scope",
+  "current_run_results_require_separate_execution_audit": true,
+  "parent_reported_current_run_complete_not_verified_here": true,
+  "final_result_boundary": "Current gate counts, MAD failures, native child/entry counts, image drain and source/tool identities must be established by the execution audits and original receipts. This pre-generation text review does not establish or independently validate any of those results."
+}

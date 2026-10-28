@@ -1,0 +1,103 @@
+{
+  "schema": "hepta.independent-native-cleanup-source-review.v1",
+  "reviewer": "/root/native_gain_candidate",
+  "independent_author_review": true,
+  "base_commit": "b92141483ca5084691f436d28d4cd0dcbefe4717",
+  "worktree": "/workspace/scratch/7e691a7ff65f/hepta-native-cleanup-fix",
+  "reviewed_patch_sha256_from_author": "cddcee8c0bc2b95a7dd2059852e3dd6f125a3edf19314b265073a8aeab85df15",
+  "method": "Read-only source/diff/control-flow review. No code execution, native compilation, tests, timing or repository edits by reviewer.",
+  "scope": [
+    "Cleanup owner and propagation",
+    "Dispatcher quarantine, idempotent release, rollback/close lifecycle",
+    "Retry and snapshot lock timing",
+    "Positive spawn/entry/reap/completion counters",
+    "Five newly authored actual-child fault tests and one pure denominator negative",
+    "Changed documentation and direct observer caller boundary"
+  ],
+  "status": "changes_requested_static_findings_not_runtime_reproduced",
+  "files": [
+    {
+      "path": "hepta/hia_native_differential.py",
+      "sha256": "77488c6f3794e4fcb0ae395c9fca8f972b43bdd1ed4267aba099f74632648a03"
+    },
+    {
+      "path": "hepta/hia_native_version_dispatch.py",
+      "sha256": "9e7924b3ea6884b66a02f53168be8d4257609231eac650d9409aca41923e4086"
+    },
+    {
+      "path": "hepta/hia_native_loan_probe.py",
+      "sha256": "38bda3d3b6b39e086cb631fc15791544dd18a8fec52c1811acf145ff00022969"
+    },
+    {
+      "path": "tools/qualify_hia_native_loans.py",
+      "sha256": "010912a0c1fa4d0c26e3bc91b6ef605c7ea248210dd7262956a99086d6f12906"
+    },
+    {
+      "path": "tests/test_hia_native_cleanup_quarantine.py",
+      "sha256": "d5de94981bc1f08dfa824b86a2e22a52ed9deaadfff71f025c90eecb82c47d3d"
+    },
+    {
+      "path": "tests/test_hia_native_loan_probe.py",
+      "sha256": "b9bb9558d3e4017cab37421ae60562f8ed029d65e61277c9bee62bff5ba04027"
+    },
+    {
+      "path": "tests/test_hia_native_loan_qualification.py",
+      "sha256": "2536d675a055721809cd2592355c221d14159d52ba818b9baa856ee42eb97dcf"
+    },
+    {
+      "path": "docs/HIA_NATIVE_VERSION_DISPATCH_20261027.md",
+      "sha256": "81d1709013ec998b0e8b1bc252888fe894e3f48f1b6861efe3d2e644f81019e3"
+    }
+  ],
+  "positive_findings": [
+    "A normal direct-child wait failure creates explicit recoverable cleanup ownership rather than releasing dispatch references.",
+    "Per-call identities make successful recovery release at most once; rollback/close retain a quarantined version while its call count is nonzero.",
+    "Retries do not execute the native entry or signal a possibly reused PGID again.",
+    "Diagnostic recovery preserves the earlier failure; it cannot retrospectively turn the observation into success.",
+    "Popen success is separately recorded from positive HIA entry evidence; setup failures and missing outcomes remain unavailable.",
+    "New fault tests withhold confirmation only after real exit observed through WNOWAIT, then use the original Popen.wait to reap the same child.",
+    "No immediate cyclic lock ordering found: try_reap releases cleanup lock before dispatcher release and probe callback."
+  ],
+  "issues": [
+    {
+      "id": "cleanup-exception-masking",
+      "severity": "high",
+      "status": "open",
+      "runtime_reproduced": false,
+      "location": [
+        "hepta/hia_native_loan_probe.py:NativeLoanExecution._observe outer descriptor-finally",
+        "hepta/hia_native_loan_probe.py:NativeLoanExecution._run generic-except/finally",
+        "hepta/hia_native_differential.py:_observe_native temporary-file context exits"
+      ],
+      "finding": "Quarantine depends on NativeChildCleanupPending remaining the propagated exception. A descriptor close OSError in the diagnostic outer finally can mask Pending, leaving _cleanup.confirmed false but _quarantined false; _run then takes generic except and releases the call. Ordinary temporary-file context exit can analogously mask Pending before execute catches it.",
+      "suggested_resolution": "Base the outermost release decision on retained cleanup ownership/confirmation, preserve auxiliary close errors separately, and add a failure control for a parent finalizer error after withheld reap confirmation."
+    },
+    {
+      "id": "cleanup-lock-timeout-overrun",
+      "severity": "medium",
+      "status": "open",
+      "runtime_reproduced": false,
+      "location": [
+        "hepta/hia_native_differential.py:NativeChildCleanup.try_reap",
+        "hepta/hia_native_differential.py:NativeChildCleanup.snapshot",
+        "hepta/hia_native_version_dispatch.py:retry_cleanup/close"
+      ],
+      "finding": "try_reap validates its timeout but acquires a plain blocking Lock while another caller may hold that lock through process.wait(timeout=2). A simultaneous retry_cleanup(timeout=0) or close(wait=True,timeout=0.02) can wait beyond its caller deadline before its own wait begins. This does not itself release resources early; it contradicts bounded-deadline behavior.",
+      "suggested_resolution": "Bound or avoid lock acquisition and recompute remaining time before process.wait; cover two concurrent retry callers. Keep cleanup safety separate from wall-time guarantees."
+    }
+  ],
+  "boundary_notes": [
+    {
+      "id": "standalone-observer-recovery",
+      "location": "hepta/hia_native_differential.py:compare_oracle_with_native",
+      "finding": "The direct comparison propagates NativeChildCleanupPending and therefore emits no successful receipt, but always closes its own pinned descriptor. A caller that serializes/drops the exception also drops the explicit cleanup recovery handle; unlike NativeVersionDispatcher it provides no persistent quarantine inventory. Child-side inherited descriptors remain owned by the child.",
+      "scope": "Do not generalize dispatcher drain guarantees to standalone direct-observer clients. Either document the required retained exception.cleanup contract or add an explicit owner boundary for those consumers."
+    }
+  ],
+  "not_claimed": [
+    "Runtime reproduction of these findings",
+    "Full compiler/ABI/backend proof",
+    "Production external-state or crash-durable recovery",
+    "Agent productivity experiment"
+  ]
+}

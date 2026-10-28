@@ -1,0 +1,160 @@
+{
+  "schema": "hepta.workload-source-reconnaissance.v1",
+  "reviewer": "/root/native_gain_candidate",
+  "observed_head": "b92141483ca5084691f436d28d4cd0dcbefe4717",
+  "method": "Bounded read-only source inspection; no repository code executed, tests run, compilation, download, timing or repository edit.",
+  "scope": "Existing pinned migration modules, selected authored conformance examples, current three registered matchers and source lowering. Not an exhaustive proof over every vendored nlohmann/json function.",
+  "no_current_eligible_upstream_workload_identified": true,
+  "industrial_p4_closed": false,
+  "registered_passes": [
+    "byte-swap.v1",
+    "full-view-fill-loop.v1",
+    "checked-unsigned-reduction.v1"
+  ],
+  "candidates": [
+    {
+      "module": "AndersKaloer/Ring-Buffer",
+      "pin": "8de8fff55a0baee4fef2a1c6a82d258a27c3c0ba",
+      "source": "tests/fixtures/c_migration/ring_buffer/ringbuffer.c",
+      "functions": [
+        "ring_buffer_queue_arr",
+        "ring_buffer_dequeue_arr"
+      ],
+      "current_pass_match": false,
+      "reason": "Input-dependent reads, helper calls, output writes, head/tail mutation, early stop and ordinary C unsigned arithmetic differ from the pure checked invariant reduction/full constant fill/byte swap rules. Current qualification targets the record-view safe core and Rust backend, not the NDU primitive Core path.",
+      "existing_workload": "tools/fixtures/c_ring_buffer_benchmark.c mode 1: queue/dequeue 64 bytes through a 1024-byte ring; authored library-operation benchmark, no captured application trace or production hotness evidence.",
+      "possible_next_transform": "New guarded bulk dequeue transformation with take=min(requested,(head-tail)&mask), at most two copies and final tail update; not an existing registered rule or an implemented candidate.",
+      "required_contracts": [
+        "non-overlap of output, record and backing storage",
+        "valid capacity/head/tail domain including capacity one",
+        "zero-length/null slice semantics",
+        "unchanged output suffix and full backing bytes",
+        "exact returned count and persistent head/tail/pointer state",
+        "same wrapping arithmetic and external observation domain",
+        "verified adaptation from record-view migration to executable Core/native entry"
+      ]
+    },
+    {
+      "module": "fragglet/c-algorithms compare-int and hash-int",
+      "pin": "23d453792ed89a28ed7d2c8d4311a4d9f7822edd",
+      "source": "tests/fixtures/c_migration/c_algorithms",
+      "current_pass_match": false,
+      "reason": "Complete retained comparison and hash-int modules have no qualifying loops, byte-view swap or constant fill."
+    },
+    {
+      "module": "nlohmann/json API adapter",
+      "pins": {
+        "3.11.3": "9bea4c8066ef4a1c206b2be5a36302f8926f7fdc6087af5d20b417d0cf103ea6",
+        "3.12.0": "aaf127c04cb31c406e5b04a63f1ae89369fccde6d8fa7cdda1ed4f32dfc5de63"
+      },
+      "source": "examples/cpp/upgrade/adapter.hpp",
+      "current_pass_match": false,
+      "reason": "Document.sum is authored adapter code with signed input-dependent values and JSON accessor/iterator calls; bounded contract can keep sum in range but does not make addend invariant. Bridge retains C++ implementation. No current-pass upstream hot function found in bounded review."
+    },
+    {
+      "module": "Hepta existing native interop example",
+      "pin": "d29a246cabaec5ddd8c5f6043b6b234b56ae8b67",
+      "source": "tests/fixtures/c_migration/native/native.c",
+      "current_pass_match": false,
+      "reason": "native_transform accumulates changing input bytes into record state and adjusts a floating field; not invariant unsigned reduction. Provenance explicitly disclaims independent production-library status."
+    },
+    {
+      "module": "Hepta authored OwnedBytes conformance example",
+      "pin": "b92141483ca5084691f436d28d4cd0dcbefe4717",
+      "source": "examples/cpp/owned_migration/owned_bytes.cpp",
+      "function": "OwnedBytes.fill",
+      "semantic_full_fill": true,
+      "current_pass_match": false,
+      "industrial_workload": false,
+      "reason": "Closest existing source-level full-fill operation. Standalone source lowering supports the concrete owner record, but evaluates for-loop len in preheader, whereas the fill matcher requires buffer.len in header. Each indexed store emits borrow.mut/store/loan.end, exceeding the exact three-op matcher body and adding real loan transitions. Existing cpp-owned LLVM qualification routes through llvm_owned_pipeline rather than NDU.",
+      "next_step": "A separate source-to-Core integration task with explicit resource-observation preservation is required; do not erase/hoist per-iteration loan events merely to force matcher acceptance. No native artifact inequality or speedup is established."
+    }
+  ],
+  "notes": [
+    "Ordinary unsigned C wrapping arithmetic cannot be relabeled checked arithmetic without preserving the accepted source contract.",
+    "Existing checksum loops in benchmark harnesses are not evidence for optimizing the actual library hot function.",
+    "Any new experiment must freeze source, domain, workload, budgets and selection rule before timing and retain failures/no-change."
+  ],
+  "files": [
+    {
+      "path": "hepta/hia_checked_reduction_opt.py",
+      "sha256": "d2829048f7916f18f344c0e36be3c181d343a9d529fad1057424f18ddccf9afc"
+    },
+    {
+      "path": "hepta/hia_fill_loop_opt.py",
+      "sha256": "2e9e7299aa1e3e446e3645e71fb8176dd6965ffaee7204fe18a38c32db658069"
+    },
+    {
+      "path": "hepta/hia_swap_opt.py",
+      "sha256": "c008e1efe28ff88489b7117b84d3454c53ec1b7bb759768895546c87f6ca234a"
+    },
+    {
+      "path": "hepta/hia_program_source.py",
+      "sha256": "9faf24112fc2bc602fa04d7f64220f407944260c8a4e380c5ee8c912475f8363"
+    },
+    {
+      "path": "examples/cpp/owned_migration/owned_bytes.cpp",
+      "sha256": "7ee9b4f6b0a9948c6db7926c44821a58c8bafb9dfbfbe7b939cef1637dc1af19"
+    },
+    {
+      "path": "examples/cpp/owned_migration/expected.hepta",
+      "sha256": "31f6f8e18fd222237cd9506d05b0c7b8a0ea2669cb9cdde77c9877948bce9e15"
+    },
+    {
+      "path": "tools/qualify_cpp_owned_llvm.py",
+      "sha256": "13ca182d865bda4427b05ae10e22efd01ab25f87a9748ad53e85ac925e417eb0"
+    },
+    {
+      "path": "tests/fixtures/c_migration/ring_buffer/UPSTREAM.json",
+      "sha256": "73693d9894947c504461b2f73bf1e5fc09184b01ed8b6844a64dd56e0d0245af"
+    },
+    {
+      "path": "tests/fixtures/c_migration/ring_buffer/ringbuffer.c",
+      "sha256": "21fde4113929246e00ad79533f83bb6def2bb154a18c12c2d84159bc61d4c39f"
+    },
+    {
+      "path": "tests/fixtures/c_migration/ring_buffer/ringbuffer.h",
+      "sha256": "065589a731ffa8367ace4a17885968a53f35e265c7d0d45cdddbe3fa09cfa9e9"
+    },
+    {
+      "path": "tests/fixtures/c_migration/ring_buffer/contracts.json",
+      "sha256": "3b7dcf14ba43aff30faf8a9e68678b4b18d0660a23cefecdadf4e9ee27faca56"
+    },
+    {
+      "path": "tools/qualify_c_ring_buffer.py",
+      "sha256": "cae03aaedbfdb7e3b054e35b9a78b1df5a99649492dc10131ec9c83424e5b15c"
+    },
+    {
+      "path": "tools/fixtures/c_ring_buffer_benchmark.c",
+      "sha256": "c8f6ae195d1c984f7f38b85e125aba66f4eba70364842385016b70657e6347ee"
+    },
+    {
+      "path": "tests/fixtures/c_migration/c_algorithms/UPSTREAM.json",
+      "sha256": "71b986b5acc43895862a2e3f83806b85dfd00e98e66f6db09d612c41c05feb46"
+    },
+    {
+      "path": "tests/fixtures/c_migration/c_algorithms/compare-int.c",
+      "sha256": "e31f939aac72fe45f771a39237538d90c8c65e87c908c685791e6f3248355b46"
+    },
+    {
+      "path": "tests/fixtures/c_migration/c_algorithms/hash-int.c",
+      "sha256": "0f317af10597f1df9503c76dcb4128579fa4b3247931545749ecb14e2ec36acf"
+    },
+    {
+      "path": "tests/fixtures/cpp_upgrade/lock.json",
+      "sha256": "90fa718dd5d69baf45c52c8b559f7a1db8cf2b32a2e39294255dbd92f2299cc5"
+    },
+    {
+      "path": "examples/cpp/upgrade/adapter.hpp",
+      "sha256": "dd1b56627625ef6da5d79938c18be1217c8eae670aa6b32f8fb126c70aa915b2"
+    },
+    {
+      "path": "tests/fixtures/c_migration/native/PROVENANCE.md",
+      "sha256": "82daa0fe338a778bedcf0ebfd7040d9286ed242f5e2231abcd367b5c6ef44d0d"
+    },
+    {
+      "path": "tests/fixtures/c_migration/native/native.c",
+      "sha256": "6d09a60ef96cf28287e860e49d024d5e090e0bd16a5e81e3070f7b634df9e3ab"
+    }
+  ]
+}

@@ -1,0 +1,339 @@
+{
+  "auditor_task": "/root/chain_vm_closure",
+  "check_count": 26,
+  "checks": [
+    {
+      "detail": "Unified source and actual started receipt use hepta.hia.unified-qualification.v4.",
+      "id": "schema_version",
+      "status": "verified_in_source_or_read_only_identity"
+    },
+    {
+      "detail": "All 12 reviewed files match frozen b92141483ca5084691f436d28d4cd0dcbefe4717 Git bytes.",
+      "id": "exact_source",
+      "status": "verified_in_source_or_read_only_identity"
+    },
+    {
+      "detail": "AST-inspected plan has exactly 35 unique gate names; actual started receipt matches the ordered plan.",
+      "id": "fixed_inventory",
+      "status": "verified_in_source_or_read_only_identity"
+    },
+    {
+      "detail": "application_performance and standalone_performance are the last two declared gates.",
+      "id": "performance_order",
+      "status": "verified_in_source_or_read_only_identity"
+    },
+    {
+      "detail": "Git failures, dirty/untracked visible files and non-allowlisted ignored implementation inputs reject before the output directory is created.",
+      "id": "source_admission",
+      "status": "verified_in_source_or_read_only_identity"
+    },
+    {
+      "detail": "Only build-provenance.json and the upstream/ export are allowed as additional local dependency inputs; all 117 actual additional input hashes currently match the started receipt.",
+      "id": "ndu_dependencies",
+      "status": "verified_in_source_or_read_only_identity"
+    },
+    {
+      "detail": "Only the exact two Cargo output-root prefixes are newly excluded; arbitrary source directories named target remain included, with a protocol regression.",
+      "id": "cargo_output_scope",
+      "status": "verified_in_source_or_read_only_identity"
+    },
+    {
+      "detail": "Source files use bounded ordinary inode hashing, no-follow/nonblocking open and before/during/after identity checks; historical generated-path exclusions remain explicit in source.",
+      "id": "source_file_identity",
+      "status": "verified_in_source_or_read_only_identity"
+    },
+    {
+      "detail": "Unified completion requires before/after source snapshot equality; a snapshot exception prevents qualification.",
+      "id": "source_after",
+      "status": "verified_in_source_or_read_only_identity"
+    },
+    {
+      "detail": "Initial discovery refuses loader errors, an empty inventory, duplicate IDs and module-name escapes.",
+      "id": "discovery",
+      "status": "verified_in_source_or_read_only_identity"
+    },
+    {
+      "detail": "Every discovered module is scheduled once, descending case count with alphabetical ties, with two worker threads and retries=0 in the declared plan.",
+      "id": "module_schedule",
+      "status": "verified_in_source_or_read_only_identity"
+    },
+    {
+      "detail": "Child test runner records start and finish IDs and exact unittest counts; setup errors, skips, expected failures and unexpected successes prevent success.",
+      "id": "actual_ids",
+      "status": "verified_in_source_or_read_only_identity"
+    },
+    {
+      "detail": "validate_report requires independently supplied expected_ids; the unified caller obtains them through fresh source discovery, not the submitted report.",
+      "id": "independent_replay",
+      "status": "verified_in_source_or_read_only_identity"
+    },
+    {
+      "detail": "Regression removes a complete module, its IDs and adjusted aggregate counts/hash and requires rejection against independent expected_ids.",
+      "id": "whole_module_omission",
+      "status": "verified_in_source_or_read_only_identity"
+    },
+    {
+      "detail": "Replay now requires exact total tests, completed/expected/passed module counts, no failed modules, workers=2, single_process_full_suite=false, passed=true per module and exact sorted expected_ids.",
+      "id": "summary_consistency",
+      "status": "verified_in_source_or_read_only_identity"
+    },
+    {
+      "detail": "Child and aggregate intake uses strict duplicate-key and literal NaN/Infinity rejection; rehashed child duplicate/nonfinite controls are present.",
+      "id": "strict_receipts",
+      "status": "verified_in_source_or_read_only_identity"
+    },
+    {
+      "detail": "Replay requires module-specific basenames, stable regular bounded receipt/log reads and exact SHA-256/size binding, including zero-byte stdout.",
+      "id": "retained_bytes",
+      "status": "verified_in_source_or_read_only_identity"
+    },
+    {
+      "detail": "Module qualification requires actual zero process exit, no capture rejection, completed child status and matching successful nonempty terminal unittest summary.",
+      "id": "process_and_terminal_result",
+      "status": "verified_in_source_or_read_only_identity"
+    },
+    {
+      "detail": "600-second child budget is polled at test starts and bounded-tool polls, and scope exit marks late completion; nesting cannot extend parent deadlines.",
+      "id": "cooperative_deadline",
+      "status": "verified_in_source_or_read_only_identity"
+    },
+    {
+      "detail": "Parent retains bounded partial output and fails the module on its separate 900-second process-group timeout; no preemptive whole-tree guarantee is claimed.",
+      "id": "outer_timeout",
+      "status": "verified_in_source_or_read_only_identity"
+    },
+    {
+      "detail": "Unified coordinator invokes module scheduling directly and does not impose the historical 1800-second aggregate kill on the full unit inventory.",
+      "id": "unit_aggregate_bound",
+      "status": "verified_in_source_or_read_only_identity"
+    },
+    {
+      "detail": "Imported hosted/native gates call their existing validators and require actual zero producer exit; success flags alone are covered by negative controls.",
+      "id": "native_imported_gate_replay",
+      "status": "verified_in_source_or_read_only_identity"
+    },
+    {
+      "detail": "Plan/started records are written before execution and each completed unified gate gets an exclusive checkpoint; module logs/results/progress files are also exclusive.",
+      "id": "retention",
+      "status": "verified_in_source_or_read_only_identity"
+    },
+    {
+      "detail": "Unified catches interruption for final incomplete reporting, restores environment/cwd, attempts a post-run snapshot and rethrows; retained checkpoints cannot produce a full pass.",
+      "id": "interruption",
+      "status": "verified_in_source_or_read_only_identity"
+    },
+    {
+      "detail": "full_six_deliverables_complete and full_seven_deliverables_complete remain false independently of finite gate success.",
+      "id": "whole_goal_claims",
+      "status": "verified_in_source_or_read_only_identity"
+    },
+    {
+      "detail": "37 methods across the four reviewed protocol modules were inspected in source; this audit did not execute them or count them as current-run passes.",
+      "id": "protocol_source_review",
+      "status": "verified_in_source_or_read_only_identity"
+    }
+  ],
+  "created_utc": "2026-10-28T01:57:37.363825+00:00",
+  "declared_gate_inventory": [
+    "unit_regression",
+    "rust_shadow_cargo",
+    "rust_shadow_parity",
+    "agent_query_semantics",
+    "standalone_native",
+    "standalone_resources",
+    "composite_resources",
+    "composite_bulk_targets",
+    "recursive_resource_chains",
+    "source_migration",
+    "cpp_template_migration",
+    "c_configuration_matrix",
+    "cpp_configuration_matrix",
+    "upstream_c_resource_matrix",
+    "upstream_cpp_composed_lifetimes",
+    "cpp_composed_implementation_llvm",
+    "llvm_local_stored_views",
+    "task_io_composition",
+    "selected_core_formal",
+    "standalone_aarch64_qemu",
+    "standalone_riscv64_qemu",
+    "legacy_executable_core",
+    "legacy_hosted_composition",
+    "legacy_cortex_m4_qemu",
+    "bounded_concurrency",
+    "shared_runtime",
+    "independent_concurrent_ir",
+    "structured_task_trees",
+    "bounded_async_io",
+    "native_host_gcc",
+    "native_host_clang",
+    "provenance_and_type_core",
+    "formal_core",
+    "application_performance",
+    "standalone_performance"
+  ],
+  "findings": [],
+  "frozen_source_commit": "b92141483ca5084691f436d28d4cd0dcbefe4717",
+  "limits": [
+    "This is a source audit; the full 35-gate run was still active and its eventual results are not credited here.",
+    "A frozen before/after source digest is point-in-time identity, not continuous tamper detection or remote host/toolchain attestation.",
+    "Local producer code, Python unittest behavior and the local filesystem remain trusted. An operator able to fabricate all receipts/logs is outside this validation model.",
+    "The unit guarantee is a module-partitioned exact-ID matrix, not a single-process suite and not representative Agent productivity.",
+    "The 600-second deadline is cooperative. The 900-second module timeout and other bounded commands clean POSIX process groups but do not guarantee cleanup of descendants that create new sessions.",
+    "Generated Cargo outputs are excluded from source snapshots; selected compiler/evaluator identities require their separate executable/build provenance evidence.",
+    "117 separately inventoried NDU dependency inputs are not files in the Hepta commit; their hashes were checked without certifying private upstream implementation correctness.",
+    "Module/test counts are method-ID counts; subtests and native/resource observations require separate explicitly scoped denominators.",
+    "Protocol regressions include synthetic control-flow fixtures. Their presence or later pass does not substitute for actual native/platform/performance qualification."
+  ],
+  "observed_started_receipt": {
+    "bytes": 168317,
+    "path": "/workspace/scratch/7e691a7ff65f/validation-system-frozen/unified/started.json",
+    "sha256": "04b753852fb5146eb674aef045b6fc4743438664eb23f22c051f9c4e384f1258"
+  },
+  "prior_findings": [
+    {
+      "evidence": "required expected_ids parameter, fresh discovery in unified caller, complete-module deletion negative in test_hia_partitioned_unit.py",
+      "id": "whole_module_omission",
+      "status": "fixed_in_frozen_source"
+    },
+    {
+      "evidence": "aggregate and per-module summary consistency checks plus negative mutations in test_hia_partitioned_unit.py",
+      "id": "contradictory_coverage_summary",
+      "status": "fixed_in_frozen_source"
+    }
+  ],
+  "production_or_full_goal_qualification_granted": false,
+  "repository_worktree_clean_after_audit": true,
+  "review_method": "Read-only source/control-flow inspection, AST plan extraction, Git-byte comparisons and dependency hash rereads. No tests, benchmarks, compilers, process signals or repository writes.",
+  "reviewed_source_files": [
+    {
+      "bytes": 16645,
+      "matches_frozen_commit": true,
+      "path": "tools/qualify_hia_unit.py",
+      "sha256": "dc51564f7712da3ff74a1c6ef1edb92a5d07d996dd4a275535ff32917e2aafdd"
+    },
+    {
+      "bytes": 28909,
+      "matches_frozen_commit": true,
+      "path": "tools/qualify_hia_unified.py",
+      "sha256": "09084eae8890d10121a9c1469df61cd4978765e63d2169df8a5909d578a761e8"
+    },
+    {
+      "bytes": 80155,
+      "matches_frozen_commit": true,
+      "path": "tools/release_check.py",
+      "sha256": "312d1436fb4c423e9487571dac7b61fc98dd113d0d4866c5c9219a96dda42882"
+    },
+    {
+      "bytes": 9129,
+      "matches_frozen_commit": true,
+      "path": "hepta/clang_capture.py",
+      "sha256": "fd240a50eed4fd8cb75de0ebfee44791e9531231b6b77a66e613ff194a2078f4"
+    },
+    {
+      "bytes": 8707,
+      "matches_frozen_commit": true,
+      "path": "tests/test_hia_partitioned_unit.py",
+      "protocol_test_methods": [
+        "test_replay_rejects_partial_duplicate_skipped_and_forged_execution",
+        "test_actual_two_module_execution_and_bound_logs_replay",
+        "test_duplicate_and_nonfinite_child_receipts_are_refused_even_if_rehashed",
+        "test_skip_failure_and_setup_class_error_stay_in_completed_matrix",
+        "test_previous_output_is_preserved_and_success_flags_are_insufficient"
+      ],
+      "sha256": "d028b4c704026a924cbbe0ce0ef741d4a89c896d2bd0d69bff362e2d69f53885"
+    },
+    {
+      "bytes": 19187,
+      "matches_frozen_commit": true,
+      "path": "tests/test_hia_unified_qualification.py",
+      "protocol_test_methods": [
+        "test_interruption_retains_completed_gate_and_final_incomplete_report",
+        "test_ignored_uncommitted_implementation_is_not_a_frozen_source",
+        "test_timeout_preserves_bounded_partial_logs_without_a_success_code",
+        "test_completed_failure_keeps_denominator_and_counts",
+        "test_only_completed_nonempty_zero_skip_success_passes",
+        "test_cargo_requires_nonempty_complete_zero_skip_test_execution",
+        "test_candidate_executes_merged_paths_and_never_credits_missing_native_reports",
+        "test_plan_keeps_hosted_denominators_compilers_and_timing_order_explicit",
+        "test_imported_success_convention_is_delegated_and_exit_status_still_required",
+        "test_workflow_shell_passes_all_required_cli_arguments_before_any_execution"
+      ],
+      "sha256": "29856153b4e86e62af990c735e171e1ab07da62ae85bcee93bcf96e0a354da4e"
+    },
+    {
+      "bytes": 5573,
+      "matches_frozen_commit": true,
+      "path": "tests/test_release_snapshot_identity.py",
+      "protocol_test_methods": [
+        "test_regular_and_empty_source_are_streamed_and_deterministic",
+        "test_special_source_paths_are_never_ignored",
+        "test_only_the_two_declared_cargo_output_roots_are_excluded",
+        "test_fifo_in_source_tree_is_refused_without_open",
+        "test_regular_source_fifo_swap_cannot_block_on_open",
+        "test_sparse_oversized_source_refused_before_open",
+        "test_post_check_symlink_swap_is_rejected"
+      ],
+      "sha256": "0f6e2d7d22ee4c589499b947f0addf47e14a937fcb9dbbabe64f8e87ab623388"
+    },
+    {
+      "bytes": 7898,
+      "matches_frozen_commit": true,
+      "path": "tests/test_clang_capture.py",
+      "protocol_test_methods": [
+        "test_success_preserves_text_and_input",
+        "test_real_clang_c_preprocess",
+        "test_child_exit_failure_does_not_turn_into_success",
+        "test_stdout_limit",
+        "test_stderr_limit",
+        "test_wall_timeout",
+        "test_elapsed_scope_does_not_preempt_python_or_launch_another_tool",
+        "test_nested_disabled_or_later_deadline_cannot_extend_outer_scope",
+        "test_scope_exit_records_unpolled_expiry_and_restores_outer_scope",
+        "test_invalid_scoped_deadline_does_not_replace_context",
+        "test_invalid_timeout_budgets_reject_before_launch",
+        "test_invalid_byte_limits_reject_before_launch",
+        "test_oversize_stdin_without_process_launch",
+        "test_bad_utf8_stdout_is_rejected",
+        "test_descendant_cancelled_even_when_parent_succeeds"
+      ],
+      "sha256": "abaf46b8cdb53a9ad496dc7a73a6d38a664e7e74bb197d02b3fff0ffde66097e"
+    },
+    {
+      "bytes": 10727,
+      "matches_frozen_commit": true,
+      "path": "docs/HIA_UNIFIED_QUALIFICATION_V3.md",
+      "sha256": "5fdf127fdf6d4398b6284f88de4487267f522960d9fef503858bc22544b630d5"
+    },
+    {
+      "bytes": 8713,
+      "matches_frozen_commit": true,
+      "path": ".github/workflows/hepta-qualification.yml",
+      "sha256": "5fb0ab879a063163effb5c142a389a2d42c918a355e9a7f2b89fbdd087b06a86"
+    },
+    {
+      "bytes": 52916,
+      "matches_frozen_commit": true,
+      "path": "docs/HIA_PROGRAM.md",
+      "sha256": "834efbbcbe482b14251d47a8d67249a71d57fc3dd78a09e41d89490eeff40a78"
+    },
+    {
+      "bytes": 10492,
+      "matches_frozen_commit": true,
+      "path": "docs/HIA_SEVEN_STAGE.md",
+      "sha256": "168033ed842d5c58c9b0ed21dc17a0f776c1fc4e7e56db2b5944c15dc038042c"
+    }
+  ],
+  "schema": "hepta.hia.collector-source-audit.v1",
+  "source_head_unchanged_after_audit": true,
+  "started_receipt_summary": {
+    "dependency_hash_mismatches": [],
+    "dependency_inputs_count": 117,
+    "full_seven_deliverables_complete": false,
+    "git_commit": "b92141483ca5084691f436d28d4cd0dcbefe4717",
+    "plan_matches_source": true,
+    "schema": "hepta.hia.unified-qualification.v4",
+    "source_snapshot_sha256": "d8c976ae2e835ee6bc1fc456d385efe61b2088a1f69182d54e4d2b28a4182991"
+  },
+  "status": "source_review_completed",
+  "tests_executed_by_this_audit": 0
+}

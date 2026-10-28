@@ -1,0 +1,197 @@
+{
+  "admitted_core_counterexample_found": false,
+  "captured_utc": "2026-10-28T01:57:08.469208+00:00",
+  "checks": [
+    {
+      "basis": "Input passes verify_program; composite structured identity is refused; primitive wire schema is preserved.",
+      "id": "input_admission",
+      "result": "checked"
+    },
+    {
+      "basis": "Both changing slots originate from exact typed literal zero in the only non-backedge incoming block, whose terminator is the incoming jump.",
+      "id": "zero_initialization",
+      "result": "checked"
+    },
+    {
+      "basis": "Header has exactly compare.lt; body exactly one literal1 and two checked additions; unique body entry and exact loop backedge reject extra paths and effects.",
+      "id": "closed_loop",
+      "result": "checked"
+    },
+    {
+      "basis": "Count and addend are unchanged body parameters at the same unsigned type as index and sum. Neither can alias the changing slots. Count may equal the invariant addend.",
+      "id": "invariants_and_types",
+      "result": "checked"
+    },
+    {
+      "basis": "Nonnegative partial sums are monotone. An addition traps iff the final product exceeds type maximum. index<count<=maximum makes index+1 representable even if increment occurs before addition. No other body trap/resource/memory operation can intervene.",
+      "id": "overflow_order",
+      "result": "checked"
+    },
+    {
+      "basis": "Successful final index maps to count and sum maps to a fresh checked product; all other exit args preserve their identities. Escaped condition rejects matching; zero count is covered by zero product.",
+      "id": "exit_values",
+      "result": "checked"
+    },
+    {
+      "basis": "Exact body argument order/backedge retain all carried resources. Outside operations are unchanged; complete result re-verification checks resource flow. Fuel stops and host interruption are explicitly excluded.",
+      "id": "resource_edges",
+      "result": "checked"
+    },
+    {
+      "basis": "Every match is made against current function state, removed body cannot also be an accepted header because their exact opcode shapes differ, new SSA name uses current definition inventory, and full output is reverified.",
+      "id": "multiple_loops",
+      "result": "checked"
+    },
+    {
+      "basis": "Independent Nat/Option arithmetic matches repeated checked unsigned addition and checked product including overflow. It neither parses Core nor proves the Python matcher, CFG paths, resource verifier, LLVM or ABI.",
+      "id": "lean_correspondence",
+      "result": "scoped"
+    },
+    {
+      "basis": "Registry maps pass to checked_reduction identity. prepare_candidate verifies baseline/plan, reproduces exact rewrite and re-verifies immutable candidate bytes. observe_semantics repeats this admission.",
+      "id": "ndu_candidate_binding",
+      "result": "checked"
+    },
+    {
+      "basis": "Qualification hashes plan, semantic observations, full measurement and assessment; each contribution binds Core/artifact/evidence. invoke_ndu snapshots request, checks actual executable before/after, echoed identities, support digest, generation, objective and DENY_ALL.",
+      "id": "ndu_evidence_binding",
+      "result": "checked"
+    },
+    {
+      "basis": "Both native artifacts come from emitted/reverified Core with equal compiler identity; per-case actual results and full sample/order/checksum inventory are required; completed retention rehashes actual libraries and driver and coordinator checks paths and hashes.",
+      "id": "measurement_binding",
+      "result": "checked"
+    },
+    {
+      "basis": "Different artifact hashes are necessary but not sufficient for gain. Fixed noise/saving/cost requirements and actual evaluator recommendation precede host candidate_advised; no activation. Caller horizon/workload assumptions remain explicit.",
+      "id": "decision_limits",
+      "result": "scoped"
+    },
+    {
+      "basis": "Two fixed18case attempts with31pairs and50000corpus repetitions; existing60s admission/2s reserve/120s cooperative limits, no trimming or repeat-until-pass; synthetic corpus is explicitly not industrial P4 evidence.",
+      "id": "frozen_protocol_scope",
+      "result": "checked"
+    }
+  ],
+  "claims": {
+    "agent_productivity_trial": false,
+    "full_p0_p7_closed": false,
+    "industrial_p4_closed": false,
+    "native_backend_refinement_proved": false
+  },
+  "compiler_invocations_in_this_audit": 0,
+  "expected_frozen_commit": "b92141483ca5084691f436d28d4cd0dcbefe4717",
+  "files": [
+    {
+      "bytes": 8295,
+      "matches_reviewed_commit": true,
+      "path": "hepta/hia_checked_reduction_opt.py",
+      "sha256": "d2829048f7916f18f344c0e36be3c181d343a9d529fad1057424f18ddccf9afc"
+    },
+    {
+      "bytes": 1880,
+      "matches_reviewed_commit": true,
+      "path": "formal/HiaCheckedReduction.lean",
+      "sha256": "5f0517b8c34e37fce39ec349465876080b2aa72eee6bd0621ecfb8a257e5aace"
+    },
+    {
+      "bytes": 17882,
+      "matches_reviewed_commit": true,
+      "path": "tests/test_hia_checked_reduction_opt.py",
+      "sha256": "cc7a514cef4fab51fe37354a766d8b763f14d4d3abdb78297b99fded73a2bcd2"
+    },
+    {
+      "bytes": 42679,
+      "matches_reviewed_commit": true,
+      "path": "hepta/hia_program.py",
+      "sha256": "acd0a8d68ace92fd388eda53f184023e6915de9600276662c30eecc853acfed1"
+    },
+    {
+      "bytes": 25416,
+      "matches_reviewed_commit": true,
+      "path": "hepta/hia_program_runtime.py",
+      "sha256": "bf951217e040d6588877314c3fe08eb5a92f2137b02bc06704fb798b68c3145a"
+    },
+    {
+      "bytes": 4523,
+      "matches_reviewed_commit": true,
+      "path": "hepta/hia_schema.py",
+      "sha256": "3f61932bbdc0e66a4b2b75f8a407ce9bf665540fd4760e9b065129f0da029c84"
+    },
+    {
+      "bytes": 50313,
+      "matches_reviewed_commit": true,
+      "path": "hepta/hia_program_llvm.py",
+      "sha256": "e77a727159f2a0882e00917c819b936d7aafe2b018c3ca288b03fef1145f242f"
+    },
+    {
+      "bytes": 18164,
+      "matches_reviewed_commit": true,
+      "path": "hepta/hia_ndu.py",
+      "sha256": "593afee696aac587ec6ed14b346da9f869368e855041193ac64ddb8d6be3f4ab"
+    },
+    {
+      "bytes": 13326,
+      "matches_reviewed_commit": true,
+      "path": "tools/qualify_hia_ndu.py",
+      "sha256": "3c747d1640fa94c16fe2a982a483e010f5f268d137f5b8d2061a6da3666c60df"
+    },
+    {
+      "bytes": 24175,
+      "matches_reviewed_commit": true,
+      "path": "tools/hia_ndu_measure.py",
+      "sha256": "5890200dc7c75f9a68ae91407a9aedb421536ded92b865ba0c0c40f07892a681"
+    },
+    {
+      "bytes": 23757,
+      "matches_reviewed_commit": true,
+      "path": "experiments/hia_ndu_native_20261027/run_frozen.py",
+      "sha256": "3d894da8d6d40477078d17c618a903743bc066ace0a3a10358bb0860e2813234"
+    },
+    {
+      "bytes": 458,
+      "matches_reviewed_commit": true,
+      "path": "experiments/hia_checked_reduction_20261027/run_frozen.py",
+      "sha256": "155a326ab192bfde45b7b2c065c38eab1d903c79ad06b8462f3c2e95f32f3d3e"
+    },
+    {
+      "bytes": 2205,
+      "matches_reviewed_commit": true,
+      "path": "experiments/hia_checked_reduction_20261027/protocol.json",
+      "sha256": "792118e03cd1c635159f23f9f30997216df55ade355241436ceb633f3e4a4bdf"
+    },
+    {
+      "bytes": 5043,
+      "matches_reviewed_commit": true,
+      "path": "docs/HIA_CHECKED_UNSIGNED_REDUCTION.md",
+      "sha256": "4d4acbc87a022837851dc64764f7b61cb1e5ad56e338664e579bb72b79a13c7a"
+    },
+    {
+      "bytes": 18205,
+      "matches_reviewed_commit": true,
+      "path": "docs/HIA_NDU_CANDIDATE_PIPELINE.md",
+      "sha256": "fcaafa6ba4ab1669c4ca10657968f9d58164b394556f3d7e5545df387aae095a"
+    }
+  ],
+  "issues": [],
+  "limits": [
+    "No exhaustive program search or independent reviewer identity; this audit cannot prove no counterexample exists.",
+    "Lean theorem is independently defined arithmetic, not a proof of matcher/CFG/compiler correspondence.",
+    "Instruction fuel, host interruption, timeouts, scheduling and host memory failure remain outside the rewrite equivalence contract.",
+    "Plan and evidence hashes identify bytes under the trusted local host/toolchain; they are not remote attestation.",
+    "Frozen report checker checks schedule consistency; actual evaluator trust and policy computation remain in the source-bound qualification producer.",
+    "No claims made here about ongoing frozen execution results."
+  ],
+  "performance_runs_in_this_audit": 0,
+  "reviewed_commit": "b92141483ca5084691f436d28d4cd0dcbefe4717",
+  "reviewer": {
+    "agent": "/root/native_gain_candidate",
+    "authored_reviewed_rule_earlier": true,
+    "independent_author_review": false,
+    "method": "separate read-only static review pass; no compile, execution, timing or productivity experiment"
+  },
+  "schema": "hepta.hia.readonly-source-audit.v1",
+  "source_matches_frozen_commit": true,
+  "tests_executed_in_this_audit": 0,
+  "universal_refinement_proved": false
+}
