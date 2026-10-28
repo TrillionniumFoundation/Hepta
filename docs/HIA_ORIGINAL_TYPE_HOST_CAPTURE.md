@@ -7,6 +7,22 @@ complete `stb_divide` component passed on four Linux jobs and failed on macOS
 and both Windows jobs during original-parameter-type admission. Those results
 are distinct denominators. The failures must remain in retained evidence.
 
+The subsequent `0ecd748a8f30edd668a3059e879ea6117e2712d4` run's new
+descendant tests exposed a second POSIX group-termination call in `finally`
+after normal cleanup had already completed. On macOS that redundant call
+raised `EPERM`. Capture now records completed cleanup and does not repeat a
+signal after disposing that owner. Failure of the initial cleanup still
+propagates; this change does not broadly ignore permission errors.
+
+That run passed the new Windows process tests, then exposed the compile-command
+parser's rejection of the actual `clang.exe` spelling. The parser explicitly
+admits `.exe` spellings of its existing GNU-compatible driver allowlist. It
+still records the original database command without executing it, and rejects
+wrappers, `clang-cl`, MSVC driver syntax and response files. The separately
+selected capture Clang retains its actual path and identity. A preflight
+failure also surfaces the retained migration diagnostics rather than only
+reporting that its expected type receipt is missing.
+
 ## Toolchain identity
 
 On macOS, `/usr/bin/clang` is a developer-tool shim. The host preflight executes

@@ -139,6 +139,7 @@ def run_bounded(
             raise CaptureRejected("E_CAPTURE_EXEC", "Compiler launch failed: " + str(exc)) from exc
         deadline = time.monotonic() + timeout
         failure = None
+        cleanup_complete = False
         try:
             while proc.poll() is None:
                 if (os.fstat(output_file.fileno()).st_size > stdout_limit
@@ -149,6 +150,7 @@ def run_bounded(
                 time.sleep(min(.01, max(.001, deadline - time.monotonic())))
             # Parent exit does not mean descendants have exited.
             _terminate(proc, job)
+            cleanup_complete = True
             stdout_size = os.fstat(output_file.fileno()).st_size
             stderr_size = os.fstat(error_file.fileno()).st_size
             if stdout_size > stdout_limit or stderr_size > stderr_limit:
@@ -165,7 +167,12 @@ def run_bounded(
         finally:
             cleanup_failure = None
             try:
-                _terminate(proc, job)
+                # Normal completion already disposed the owned group/job before
+                # reading outputs. Do not signal that numeric group again after
+                # ownership ended; macOS can refuse the repeated killpg. Initial
+                # cleanup failures still propagate and retain Windows owners.
+                if not cleanup_complete:
+                    _terminate(proc, job)
             except CaptureRejected as error:
                 cleanup_failure = error
                 if failure is not None:

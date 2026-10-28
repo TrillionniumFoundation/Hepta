@@ -84,7 +84,7 @@ CRITICAL_MODULES = {
     "returned_loan_resource_budgets": ("test_hia_returned_loan_budgets",),
     "returned_loan_cross_target_execution": ("test_hia_returned_loans_cross",),
     "migration_source_invocation": ("test_c_project_semantic_flags", "test_c_project_source_arguments",
-                                    "test_c_project", "test_c_cursor_control"),
+                                    "test_c_project", "test_c_project_driver_names", "test_c_cursor_control"),
     "migration_parameter_entry_effects": ("test_c_array_declarator_guard", "test_c_parameter_entry_effects"),
     "migration_original_parameter_types": ("test_c_parameter_types", "test_c_original_type_host_preflight",
                                            "test_clang_capture"),

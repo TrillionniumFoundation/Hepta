@@ -222,7 +222,9 @@ def _command_arguments(argv: list[str], source: Path, directory: Path, *, langua
     drivers = ({"cc", "gcc", "clang", "clang-20", "clang-19", "clang-18"}
                if language == "c" else
                {"c++", "g++", "clang++", "clang++-20", "clang++-19", "clang++-18"})
-    if Path(argv[0]).name not in drivers:
+    # Windows GNU-style drivers use the same names with an executable suffix.
+    # This only admits database spelling; the recorded command is never run.
+    if Path(argv[0]).name.removesuffix(".exe") not in drivers:
         raise MigrationRejected("E_C_BUILD_COMMAND", "Unsupported database compiler or wrapper")
     forwarded, omitted = [], []
     source_arguments = []

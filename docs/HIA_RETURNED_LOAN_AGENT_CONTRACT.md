@@ -44,14 +44,27 @@ original different CFG, resource and call boundaries remain intact. The route
 inventory derives the current admitted primitive range from the version
 registry while stating the separate proof range explicitly.
 
-The separately implemented Rust byte-owner execution profile now supports
-finite v8 returned loans under `bounded-cfg-byte-owner-loan-returns-v4`.
-Its owned static receipt uses `rust-owner-shadow.v2`; older versions retain
-their old receipt/profile. See [the independent Rust contract](HIA_RUST_RETURNED_LOANS_V8.md).
-An Agent query or edit receipt does not grant that execution qualification.
-Rust scalar-only execution still refuses v8 and chain execution remains
-unsupported. External lifetimes, whole-language soundness and native refinement
-are outside these finite contracts.
+The separately implemented Rust owned executor uses one independently checked
+Machine and selects its execution profile from the actual primitive input:
+
+| Primitive input | Execution profile |
+| --- | --- |
+| v1–v7 without chain signatures or operations | `bounded-cfg-byte-owner-bulk-v3` |
+| v8 without chain signatures or operations | `bounded-cfg-byte-owner-loan-returns-v4` |
+| v7/v8 containing chain signatures or operations | `bounded-cfg-owned-memory-v5` |
+
+The v5 profile composes chains with v8 parameter-bound returned loans; v4 keeps
+its no-chain boundary. The v8 owned static receipt uses `rust-owner-shadow.v2`;
+older versions retain their original static receipt/profile. See
+[the independent returned-loan contract](HIA_RUST_RETURNED_LOANS_V8.md) and
+[the combined chain/returned-loan contract](HIA_RUST_RETURNED_CHAINS_V8.md).
+
+Rust scalar-only execution remains restricted to resource-free primitive
+v1–v7 and refuses v8 and chain resources. The canonical Python Core verifier
+remains the production admission authority; these Rust profiles remain shadow
+qualification. An Agent query or edit receipt does not grant execution
+qualification. External lifetimes, whole-language soundness and native
+refinement are outside these finite contracts.
 
 ## Converged presentation controls
 

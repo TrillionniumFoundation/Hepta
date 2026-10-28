@@ -118,7 +118,9 @@ def check_identity(identity, chosen, version, target, system):
 
 def check_case(name, report, identity, work):
     receipts = report.get("source_type_admission", [])
-    require(len(receipts) == 1, "missing original-type admission receipt")
+    require(len(receipts) == 1,
+            "missing original-type admission receipt; actual migration diagnostics: "
+            + json.dumps(report.get("diagnostics", [])[:8], sort_keys=True)[:4000])
     receipt = receipts[0]
     require(receipt["schema"] == "hepta.c-original-parameter-types.v2"
             and receipt["compiler"] == identity["compiler"]
