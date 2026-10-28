@@ -142,12 +142,16 @@ def qualification_plan(output, *, python, clang, cc, rustc, cargo, qemu_aarch64,
                                 "tests.test_hia_rust_calls_shadow", "tests.test_hia_rust_chain_shadow",
                                 "tests.test_hia_rust_scalar_vm", "tests.test_hia_rust_crosscheck",
                                 "tests.test_hia_rust_crosscheck_cli", "tests.test_hia_rust_owned_vm",
+                                "tests.test_hia_rust_raw_integer", "tests.test_hia_rust_returned_loans",
+                                "tests.test_hia_rust_returned_chains", "tests.test_hia_rust_owned_memory",
                                 "-v"], None),
         ("agent_query_semantics", [python, "-m", "unittest",
                                    "tests.test_hia_edit_query", "tests.test_hia_edit_batch",
                                    "tests.test_hia_edit_transitive_context", "tests.test_hia_edit_cfg_context",
                                    "tests.test_hia_edit_control_context", "tests.test_hia_edit_batch_identity",
                                    "tests.test_hia_cfg_render_convergence", "tests.test_hia_context_render_input",
+                                   "tests.test_hia_incremental", "tests.test_hia_incremental_independent",
+                                   "tests.test_hia_incremental_v8",
                                    "-v"], None),
         ("standalone_native", [python, "tools/qualify_hia_program.py", "--clang", clang,
                                "--output", output / "native.json"], output / "native.json"),
@@ -155,6 +159,9 @@ def qualification_plan(output, *, python, clang, cc, rustc, cargo, qemu_aarch64,
                                   "--output", output / "resources.json"], output / "resources.json"),
         ("composite_resources", [python, "tools/qualify_hia_program_composite.py", "--clang", clang,
                                  "--workdir", output / "composite"], output / "composite/qualification.json"),
+        ("partial_record_resources", [python, "tools/qualify_hia_partial_records.py", "--clang", clang,
+                                      "--rust-vm", output / "rust-shadow-target/debug/hia-core-shadow",
+                                      "--output-directory", output / "partial-records"], output / "partial-records/report.json"),
         ("composite_bulk_targets", [python, "tools/qualify_hia_composite_bulk.py", "--clang", clang,
                                     "--linker", linker, "--qemu-aarch64", qemu_aarch64,
                                     "--output-directory", output / "composite-bulk"], output / "composite-bulk/qualification.json"),
@@ -166,6 +173,9 @@ def qualification_plan(output, *, python, clang, cc, rustc, cargo, qemu_aarch64,
         ("cpp_template_migration", [python, "tools/qualify_cpp_project_hia.py", "--clang", clang,
                                    "--clangxx", str(Path(clang).with_name("clang++")),
                                    "--workdir", output / "cpp-templates"], output / "cpp-templates/qualification.json"),
+        ("cpp_constexpr_migration", [python, "tools/qualify_cpp_constexpr.py", "--clang", clang,
+                                    "--clangxx", str(Path(clang).with_name("clang++")),
+                                    "--output-directory", output / "cpp-constexpr"], output / "cpp-constexpr/report.json"),
         ("c_configuration_matrix", [python, "tools/qualify_c_project_matrix.py", "--clang", clang,
                                     "--workdir", output / "c-matrix"], output / "c-matrix/qualification.json"),
         ("cpp_configuration_matrix", [python, "tools/qualify_cpp_project_matrix.py", "--clang", clang,
@@ -325,7 +335,15 @@ def qualify(output, *, clang, cc, rustc, cargo, qemu_aarch64, qemu_riscv64,
                             raise ValueError("gate evidence must be a JSON object")
                         row["evidence"] = {"path": str(evidence.relative_to(output)), "sha256": sha(raw),
                                            "status": payload.get("status"), "ok": payload.get("ok")}
-                        if name in IMPORTED_QUALIFICATION_NAMES:
+                        if name == "partial_record_resources":
+                            from tools.hia_semantic_gate_receipts import validate_partial_records
+                            validate_partial_records(payload, evidence.parent)
+                            scoped_ok = True
+                        elif name == "cpp_constexpr_migration":
+                            from tools.qualify_cpp_constexpr import validate_cpp_constexpr_receipt
+                            validate_cpp_constexpr_receipt(payload)
+                            scoped_ok = payload.get("ok") is True
+                        elif name in IMPORTED_QUALIFICATION_NAMES:
                             # Existing producers have different success fields.
                             # Their shared validator owns that convention and
                             # the complete nested evidence requirements.
@@ -334,7 +352,7 @@ def qualify(output, *, clang, cc, rustc, cargo, qemu_aarch64, qemu_riscv64,
                         else:
                             scoped_ok = payload.get("ok") is True or (name == "legacy_cortex_m4_qemu" and payload.get("status") == "passed")
                         row["passed"] = executed["returncode"] == 0 and scoped_ok
-                    except (OSError, ValueError, TypeError) as exc:
+                    except (OSError, ValueError, TypeError, KeyError) as exc:
                         row["evidence_error"] = {"type": type(exc).__name__, "message": str(exc)}
                 report["gates"].append(row)
                 print(json.dumps({"gate": name, "passed": row["passed"], "seconds": row["seconds"],

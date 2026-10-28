@@ -7,6 +7,7 @@
 //! Every unsupported feature rejects instead of being interpreted as safe.
 #![forbid(unsafe_code)]
 
+use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
@@ -507,11 +508,40 @@ mod ownership;
 mod scalar_vm;
 pub use scalar_vm::{execute_owned, execute_scalar};
 
+// serde_json reports the JSON integer token -0 through visit_f64, although
+// the Core JSON contract (and its Python decoder) treats that token as integer
+// zero. Mask only its minus sign, outside strings and at complete value-token
+// boundaries, before the same bounded/duplicate-safe decoder runs. Keeping the
+// byte count and all other bytes unchanged preserves error offsets and budgets.
+// Float spellings (-0.0, -0e0) and malformed numbers (-00, --0) are untouched.
+fn integer_negative_zero(input: &[u8]) -> Cow<'_, [u8]> {
+    let mut output = Cow::Borrowed(input);
+    let (mut quoted, mut escaped) = (false, false);
+    for (index, &byte) in input.iter().enumerate() {
+        if quoted {
+            if escaped { escaped = false; }
+            else if byte == b'\\' { escaped = true; }
+            else if byte == b'"' { quoted = false; }
+            continue;
+        }
+        if byte == b'"' { quoted = true; continue; }
+        if byte == b'-' && input.get(index + 1) == Some(&b'0')
+            && (index == 0 || matches!(input[index - 1], b'[' | b':' | b',' | b' ' | b'\t' | b'\r' | b'\n'))
+            && (index + 2 == input.len()
+                || matches!(input[index + 2], b']' | b'}' | b',' | b' ' | b'\t' | b'\r' | b'\n'))
+        {
+            output.to_mut()[index] = b' ';
+        }
+    }
+    output
+}
+
 fn decode_hia(input: &[u8]) -> R<(Value, Vec<u8>)> {
     if input.len() > MAX_BYTES {
         return failure("E_HIA_LIMIT", "encoded HIA program exceeds 8 MiB");
     }
-    let mut d = serde_json::Deserializer::from_slice(input);
+    let integer_input = integer_negative_zero(input);
+    let mut d = serde_json::Deserializer::from_slice(&integer_input);
     let parsed = UniqueJson::deserialize(&mut d).map_err(|e| {
         let detail = e.to_string();
         VerifyError {

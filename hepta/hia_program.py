@@ -469,6 +469,17 @@ def _function_shape(fn, *, recursive_chain=False, parameter_loan_returns=False):
     return by_id
 
 
+@dataclass(frozen=True, slots=True)
+class _FunctionInterface:
+    # Original formal identities are semantic inputs in v8: return_loans names
+    # a formal, not whichever same-typed or aliased argument happens to survive.
+    params: tuple[str, ...]
+    param_names: tuple[str, ...]
+    returns: tuple[str, ...]
+    return_loans: tuple[str | None, ...]
+    effects: frozenset[str]
+
+
 class _BlockCheck:
     def __init__(self, fn, block, capabilities, functions, *, bulk_memory=False, inplace_memory=False, byte_swap=False, offset_copy=False, range_fill=False, recursive_chain=False):
         self.fn, self.block, self.functions = fn, block, functions
@@ -742,11 +753,10 @@ class _BlockCheck:
             if callee_name not in self.functions:
                 _reject("unknown callee", "E_HIA_CALL")
             callee = self.functions[callee_name]
-            if len(args) != len(callee["params"]):
+            if len(args) != len(callee.params):
                 _reject("call arity mismatch", "E_HIA_CALL")
             used_owners, views = set(), []
-            for name, typ, param in zip(args, actual, callee["params"]):
-                formal = param["type"]
+            for name, typ, formal in zip(args, actual, callee.params):
                 if typ != formal and not (formal == "readbuf" and typ == "mutbuf"):
                     _reject("call argument type mismatch", "E_HIA_CALL")
                 if typ in OWNERS:
@@ -760,8 +770,8 @@ class _BlockCheck:
                     if any(r == root and (m or formal == "mutbuf") for r, m in views):
                         _reject("aliased exclusive call arguments", "E_HIA_LOAN")
                     views.append((root, formal == "mutbuf"))
-            expected = callee["returns"]
-            self.required.update(callee["effects"])
+            expected = list(callee.returns)
+            self.required.update(callee.effects)
         else:
             _reject(f"unsupported opcode {op}", "E_HIA_OPCODE")
         if op not in {"const", "int.cast", "call"}:
@@ -793,8 +803,8 @@ class _BlockCheck:
             for name, typ in zip(args, actual):
                 if typ in OWNERS:
                     del self.caps[name]
-            bindings = {p["name"]: a for p, a in zip(callee["params"], args)}
-            for name, typ, origin in zip(names, types, callee.get("return_loans", [None] * len(types))):
+            bindings = dict(zip(callee.param_names, args))
+            for name, typ, origin in zip(names, types, callee.return_loans):
                 if typ in OWNERS:
                     self.caps[name] = _Capability(typ, name)
                 elif typ in {"readbuf", "mutbuf"}:
@@ -861,32 +871,12 @@ class _BlockCheck:
             _reject(f"missing effects {sorted(self.required - set(self.fn['effects']))}", "E_HIA_EFFECT")
 
 
-def verify_program(program) -> VerifiedProgram:
-    """Check standalone operations and every CFG edge; no source/hash authority.
+def _primitive_structure(data):
+    """Check every declaration, shape, SSA identity, CFG edge and export.
 
-    Even a manually constructed VerifiedProgram is parsed and fully rechecked.
-    Caller-owned dictionaries and decoded dictionaries never back execution.
+    Incremental admission never caches this pass. It establishes every
+    function interface before any function body can be reused or checked.
     """
-    if isinstance(program, VerifiedProgram) and program.structured_bytes is not None:
-        if type(program.structured_bytes) is not bytes:
-            _reject("structured input must be immutable canonical bytes", "E_HIA_FORMAT")
-        checked = verify_program(program.structured_bytes)
-        if (checked.structured_bytes != program.structured_bytes
-                or checked.canonical_bytes != program.canonical_bytes):
-            _reject("structured input and executable core differ", "E_HIA_CORE")
-        return checked
-    data, raw = _decode(program)
-    if (type(data) is dict and type(data.get("schema")) is str
-            and data["schema"] in COMPOSITE_SCHEMAS):
-        from .hia_program_composite import elaborate_program
-        # The entire input was bounded/strictly decoded above.  The whole
-        # generated program is independently checked, with no receipt bypass.
-        core = verify_program(elaborate_program(data))
-        return VerifiedProgram(core.canonical_bytes, raw)
-    if type(data) is dict and data.get("schema") == SCHEMA_V2 and "types" in data:
-        _reject("historical nominal v2 requires import_legacy_composite_v2; "
-                "the primitive v2 namespace cannot infer a producer profile",
-                "E_HIA_VERSION_COLLISION")
     fields = {"schema", "module", "functions"}
     if type(data) is dict and "exports" in data:
         fields.add("exports")
@@ -913,42 +903,93 @@ def verify_program(program) -> VerifiedProgram:
             fn = functions[name]
             if any(p["type"] not in SCALARS for p in fn["params"]) or any(t not in SCALARS for t in fn["returns"]):
                 _reject("public exports cannot carry resource descriptors", "E_HIA_TYPE")
+    return functions, block_maps
+
+
+def _function_interfaces(functions):
+    """Detached immutable facts visible across a body-checking boundary."""
+    return {name: _FunctionInterface(
+                tuple(p["type"] for p in fn["params"]),
+                tuple(p["name"] for p in fn["params"]),
+                tuple(fn["returns"]),
+                tuple(fn.get("return_loans", [None] * len(fn["returns"]))),
+                frozenset(fn["effects"]))
+            for name, fn in functions.items()}
+
+
+def _verify_function(schema, fn, blocks, interfaces):
+    """Verify a closed body using its bytes and immutable callee interfaces.
+
+    V8 formal identities and returned-loan declarations are dependencies.
+    Callee bodies, caller receipts and hidden global summaries are not inputs.
+    Any future cross-function obligation must extend the cache contract first.
+    """
+    track_origins = supports_feature(schema, "parameter_loan_returns") and any(
+        typ in {"readbuf", "mutbuf"} for typ in fn["returns"])
+    initial = {p["name"]: _Capability(p["type"], p["name"], external=p["type"] not in OWNERS,
+                                     origin=p["name"] if track_origins and p["type"] not in OWNERS else None)
+               for p in fn["params"] if p["type"] in RESOURCES}
+    incoming = {fn["entry"]: initial}
+    pending = deque([fn["entry"]])
+    processed = set()
+    while pending:
+        ident = pending.popleft()
+        if ident in processed:
+            continue
+        processed.add(ident)
+        block = blocks[ident]
+        check = _BlockCheck(fn, block, incoming[ident], interfaces,
+                            bulk_memory=supports_feature(schema, "bulk_memory"),
+                            inplace_memory=supports_feature(schema, "inplace_memory"),
+                            byte_swap=supports_feature(schema, "byte_swap"),
+                            offset_copy=supports_feature(schema, "offset_copy"),
+                            range_fill=supports_feature(schema, "range_fill"),
+                            recursive_chain=supports_feature(schema, "recursive_chain"))
+        for ins in block["ops"]:
+            check.instruction(ins)
+        check.finish()
+        for edge in _edges(block["term"]):
+            target = edge["target"]
+            state = check.transfer(edge, blocks[target])
+            if target in incoming and incoming[target] != state:
+                _reject("predecessors disagree on loan origins/permissions", "E_HIA_LOAN")
+            if target not in incoming:
+                incoming[target] = state
+                pending.append(target)
+    if processed != set(blocks):
+        _reject("not all blocks were checked", "E_HIA_CFG")
+
+
+def verify_program(program) -> VerifiedProgram:
+    """Check standalone operations and every CFG edge; no source/hash authority.
+
+    Even a manually constructed VerifiedProgram is parsed and fully rechecked.
+    Caller-owned dictionaries and decoded dictionaries never back execution.
+    """
+    if isinstance(program, VerifiedProgram) and program.structured_bytes is not None:
+        if type(program.structured_bytes) is not bytes:
+            _reject("structured input must be immutable canonical bytes", "E_HIA_FORMAT")
+        checked = verify_program(program.structured_bytes)
+        if (checked.structured_bytes != program.structured_bytes
+                or checked.canonical_bytes != program.canonical_bytes):
+            _reject("structured input and executable core differ", "E_HIA_CORE")
+        return checked
+    data, raw = _decode(program)
+    if (type(data) is dict and type(data.get("schema")) is str
+            and data["schema"] in COMPOSITE_SCHEMAS):
+        from .hia_program_composite import elaborate_program
+        # The entire input was bounded/strictly decoded above.  The whole
+        # generated program is independently checked, with no receipt bypass.
+        core = verify_program(elaborate_program(data))
+        return VerifiedProgram(core.canonical_bytes, raw)
+    if type(data) is dict and data.get("schema") == SCHEMA_V2 and "types" in data:
+        _reject("historical nominal v2 requires import_legacy_composite_v2; "
+                "the primitive v2 namespace cannot infer a producer profile",
+                "E_HIA_VERSION_COLLISION")
+    functions, block_maps = _primitive_structure(data)
+    interfaces = _function_interfaces(functions)
     for fn in functions.values():
-        blocks = block_maps[fn["name"]]
-        track_origins = supports_feature(data["schema"], "parameter_loan_returns") and any(
-            typ in {"readbuf", "mutbuf"} for typ in fn["returns"])
-        initial = {p["name"]: _Capability(p["type"], p["name"], external=p["type"] not in OWNERS,
-                                         origin=p["name"] if track_origins and p["type"] not in OWNERS else None)
-                   for p in fn["params"] if p["type"] in RESOURCES}
-        incoming = {fn["entry"]: initial}
-        pending = deque([fn["entry"]])
-        processed = set()
-        while pending:
-            ident = pending.popleft()
-            if ident in processed:
-                continue
-            processed.add(ident)
-            block = blocks[ident]
-            check = _BlockCheck(fn, block, incoming[ident], functions,
-                                bulk_memory=supports_feature(data["schema"], "bulk_memory"),
-                                inplace_memory=supports_feature(data["schema"], "inplace_memory"),
-                                byte_swap=supports_feature(data["schema"], "byte_swap"),
-                                offset_copy=supports_feature(data["schema"], "offset_copy"),
-                                range_fill=supports_feature(data["schema"], "range_fill"),
-                                recursive_chain=supports_feature(data["schema"], "recursive_chain"))
-            for ins in block["ops"]:
-                check.instruction(ins)
-            check.finish()
-            for edge in _edges(block["term"]):
-                target = edge["target"]
-                state = check.transfer(edge, blocks[target])
-                if target in incoming and incoming[target] != state:
-                    _reject("predecessors disagree on loan origins/permissions", "E_HIA_LOAN")
-                if target not in incoming:
-                    incoming[target] = state
-                    pending.append(target)
-        if processed != set(blocks):
-            _reject("not all blocks were checked", "E_HIA_CFG")
+        _verify_function(data["schema"], fn, block_maps[fn["name"]], interfaces)
     return VerifiedProgram(raw)
 
 

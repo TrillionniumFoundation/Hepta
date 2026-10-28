@@ -275,9 +275,12 @@ def inspect_program(document):
     }
 
 
-def apply_program_patch(document, request):
-    from .hia_program import verify_program
-    original = verify_program(document)
+def _prepare_program_patch(original, request):
+    """Build a detached candidate from an actually checked local snapshot.
+
+    The public editor fully checks its base. Incremental sessions own their
+    verified base; neither helper nor a caller digest grants candidate admission.
+    """
     if type(request) in (str, bytes):
         request = decode_json(request)
     else:
@@ -372,9 +375,10 @@ def apply_program_patch(document, request):
                 _reject("duplicate terminator edit")
             touched.add(key)
             block["term"] = copy.deepcopy(edit["term"])
-    # This rechecks the *whole resulting module*, including all callers and
-    # resource obligations.  Neither a valid base nor a digest can waive it.
-    verified = verify_program(candidate)
+    return candidate, schema, interface_policy, len(edits)
+
+
+def _check_patch_interface(original, verified, interface_policy):
     before = {f["name"]: function_signature(f, include_return_loans=True)
               for f in original.as_dict()["functions"]}
     after = {f["name"]: function_signature(f, include_return_loans=True)
@@ -383,10 +387,21 @@ def apply_program_patch(document, request):
                      if before.get(name) != after.get(name))
     if changed and interface_policy != "migrate":
         _reject("interface change needs explicit v2 migrate policy: " + ", ".join(changed[:8]))
+    return changed
+
+
+def apply_program_patch(document, request):
+    from .hia_program import verify_program
+    original = verify_program(document)
+    candidate, schema, interface_policy, edit_count = _prepare_program_patch(original, request)
+    # Existing consumers retain full base and candidate checking, including v8
+    # returned-loan interfaces. A digest never waives resource obligations.
+    verified = verify_program(candidate)
+    changed = _check_patch_interface(original, verified, interface_policy)
     receipt = {
         "schema": "hepta.hia.patch-result.v1", "ok": True,
         "status": "verified_unpublished", "before_sha256": original.sha256,
-        "after_sha256": verified.sha256, "edits": len(edits),
+        "after_sha256": verified.sha256, "edits": edit_count,
         "edit_domain": "independently_verified_normalized_core",
         "original_input_sha256": getattr(original, "input_sha256", original.sha256),
         "interface_changes": changed,

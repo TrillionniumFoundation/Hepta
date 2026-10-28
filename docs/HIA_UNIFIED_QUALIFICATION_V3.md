@@ -1,9 +1,10 @@
-# One candidate, 35 explicit native, hosted and Rust shadow gates
+# One candidate, 37 explicit native, hosted and Rust shadow gates
 
 `tools/qualify_hia_unified.py` emits `hepta.hia.unified-qualification.v3`.
-The current plan contains **35 gates**: the earlier 24-gate converged plan,
-ten existing hosted/native/formal/application gates, and one independently
-reported Agent-query mechanism gate. All run against the same unchanged,
+The current plan contains **37 gates**: the earlier 35-gate converged plan,
+plus finite partial-record execution and captured constexpr migration.
+The existing Rust parity and Agent-query groups also include raw JSON integer
+admission, v8 returned loans and incremental cache invalidation. All run against the same unchanged,
 committed source tree. The native and Rust convergence gates include:
 
 | Gate | Actual execution | Success condition |
@@ -11,6 +12,8 @@ committed source tree. The native and Rust convergence gates include:
 | `rust_shadow_cargo` | The pinned Cargo and Rust compiler build and execute the real shadow crate tests, locked and offline | Nonempty complete test results, zero failures, ignored tests or filters, and successful process exit |
 | `rust_shadow_parity` | The Python-to-Rust scalar, owned-verifier, call, chain, scalar VM, finite byte-owner VM and exact-binary crosscheck tests | A completed nonempty unittest report with zero skips, failures and errors |
 | `agent_query_semantics` | Existing single/batch queries, transitive/CFG/control slices, display identity and untrusted-render controls | A completed nonempty unittest report with zero skips, failures and errors; this is mechanical qualification, not an AI-model productivity trial |
+| `partial_record_resources` | 121 nominal/Core/Rust cases, 11 budget boundaries, 242 direct LLVM native cases and three deliberately incorrect native controls | Successful producer exit and replay of the complete corpus, retained process observations, Core, tool identities and file inventory |
+| `cpp_constexpr_migration` | 100 defined unsigned cases in each of separately linked original C++ and direct HIA libraries, including ordinary constexpr runtime bodies | Successful producer exit and the producer's source/capture/Core/object/link/observation validator |
 | `cpp_composed_implementation_llvm` | Actual Clang AST migration of the supported composed-owner C++ implementations, direct LLVM compilation and native lifecycle controls | Fresh report, successful exit, and the existing `cpp_composed_to_llvm` replay validator |
 | `llvm_local_stored_views` | Actual source-bound LLVM, Rust and C local-view execution and negative controls | Fresh report, successful exit, and the existing local-view replay validator |
 | `task_io_composition` | Three repetitions of the actual task/I/O native cases | Fresh report, successful exit, and the existing task/I/O replay validator |
@@ -119,11 +122,11 @@ the existing Python Core. The raw Cargo result parser counts actual test
 binaries, rejects an empty run, and retains failures and ignored/filtered counts.
 The collector regression exercises every planned command and confirms that
 zero exits without native reports and forged hosted reports containing only
-success flags cannot pass. Protocol controls also check the fixed 35-gate
+success flags cannot pass. Protocol controls also check the fixed 37-gate
 inventory, repetitions, request denominator, compiler-family selections,
 performance ordering, exact workflow shell/CLI expansion, environment transfer
 and restoration, and delegated status-only receipt handling. These are collector
-protocol tests rather than native qualification evidence; the frozen 35-gate
+protocol tests rather than native qualification evidence; the frozen 37-gate
 run must still execute each real producer.
 
 The schema continues to report `full_six_deliverables_complete=false` and

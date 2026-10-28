@@ -1,0 +1,74 @@
+module source_partial_restore;
+
+struct Pair { left: Buffer<u8>, right: Buffer<u8>, tag: u64 }
+struct Box<T> { value: T, tag: u64 }
+struct Outer { inner: Box<Buffer<u8>>, last: Buffer<u8> }
+
+export "C" fn restore() -> usize effects {alloc,block,panic} {
+    let mut p = Pair {left: buffer(3), right: buffer(5), tag: 7};
+    release(move p.left);
+    p.left = buffer(9);
+    let total = len(p.left) + len(p.right);
+    drop(move p);
+    return total;
+}
+
+export "C" fn restore_try() -> usize effects {alloc,block,panic} {
+    let mut p = Pair {left: buffer(3), right: buffer(5), tag: 7};
+    release(move p.left);
+    let candidate = try_buffer(9);
+    match move candidate {
+        Result::Ok(replacement) => {
+            p.left = move replacement;
+            let total = len(p.left) + len(p.right);
+            drop(move p);
+            return total;
+        },
+        Result::Err(code) => {
+            release(move p.right);
+            return code as usize;
+        },
+    }
+}
+
+export "C" fn branch_restore(large: u8) -> usize effects {alloc,block,panic} {
+    let mut p = Pair {left: buffer(3), right: buffer(5), tag: 7};
+    release(move p.left);
+    if large != 0 { p.left = buffer(9); } else { p.left = buffer(4); }
+    let total = len(p.left) + len(p.right);
+    drop(move p);
+    return total;
+}
+
+export "C" fn cancel_restore(cancel: u8) -> usize effects {alloc,block,panic} {
+    let mut p = Pair {left: buffer(3), right: buffer(5), tag: 7};
+    release(move p.left);
+    if cancel != 0 { release(move p.right); return 33; }
+    p.left = buffer(9);
+    let total = len(p.left) + len(p.right);
+    drop(move p);
+    return total;
+}
+
+export "C" fn loop_restore(rounds: usize) -> usize effects {alloc,block,panic} {
+    let mut p = Pair {left: buffer(3), right: buffer(5), tag: 7};
+    for index in 0..rounds {
+        let old = move p.left;
+        release(move old);
+        p.left = buffer(3);
+    }
+    let total = len(p.left) + len(p.right);
+    drop(move p);
+    return total;
+}
+
+export "C" fn nested_restore() -> usize effects {alloc,block,panic} {
+    let mut p = Outer {inner: Box {value: buffer(3), tag: 7}, last: buffer(5)};
+    let copied_tag = p.inner.tag;
+    let old = move p.inner;
+    drop(move old);
+    p.inner = Box {value: buffer(9), tag: 11};
+    let total = len(p.inner.value) + len(p.last) + (copied_tag as usize) + (p.inner.tag as usize);
+    drop(move p);
+    return total;
+}

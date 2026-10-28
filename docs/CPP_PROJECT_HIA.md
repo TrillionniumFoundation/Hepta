@@ -57,8 +57,20 @@ project; each instance's actual body is translated and independently checked.
 Unused template patterns with no concrete executable destination reject. The
 pattern and its parameters remain inventoried as the source of the concrete
 instances. A repeated inline/template definition may merge only when normalized
-instantiated body semantics agree across translation units. A macro-dependent
-definition mismatch rejects.
+instantiated body semantics and complete template-pattern identities agree
+across translation units, including definitions at different source locations.
+A macro-dependent definition mismatch rejects even when it occurs only in a
+discarded template branch.
+
+An `if constexpr` with no init/condition-variable declaration is admitted when
+the captured concrete Clang AST supplies an exact Boolean `ConstantExpr`.
+Only its selected branch is lowered; a false condition without an else emits
+no runtime statement. Nested selections, full-definition identities and every
+discarded subtree receive explicit dispositions. Unknown conditions are never
+guessed. Selected operations remain subject to all scalar/lifetime rules;
+discarding a class/throwing branch does not enable its execution. See
+[CPP_CONSTEXPR_MIGRATION.md](CPP_CONSTEXPR_MIGRATION.md) for the exact boundary
+and its separate finite native qualification.
 
 Every active project declaration receives a disposition, including namespace and
 language-linkage containers, prototypes, patterns, parameters and instances.
@@ -69,7 +81,8 @@ rows and at most 120 concrete functions in this frontend.
 
 Class templates, STL objects, pointer/reference interfaces, exception unwinding,
 custom destructors, global state, template packs/defaults, dependent constraints,
-`if constexpr` and general C++ class or mangled ABI preservation are not in this
+`if consteval`, constexpr init/condition-variable statements, and general C++
+class or mangled ABI preservation are not in this
 profile. They fail closed rather than being silently omitted.
 
 ## Behavior, safety and ABI

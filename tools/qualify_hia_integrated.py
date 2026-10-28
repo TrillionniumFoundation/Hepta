@@ -42,7 +42,8 @@ CRITICAL_MODULES = {
                        "test_hia_program_tools"),
     "cpp_lexical_ownership": ("test_cpp_scoped_ownership_migration", "test_cpp_composed_migrate"),
     "llvm_allocation_and_native_observables": ("test_hia_program_llvm", "test_hia_empty_owner_native",
-                                               "test_hia_native_side_effects", "test_hia_native_pinning"),
+                                               "test_hia_native_side_effects", "test_hia_native_pinning",
+                                               "test_hia_native_cleanup"),
     "acyclic_scalar_smt": ("test_hia_translation_validation", "test_hia_encoding_guard"),
     "compositional_barrier_smt": ("test_hia_optimization",),
     "proof_profile_integration": ("test_hia_profile_integration",),
@@ -55,6 +56,13 @@ CRITICAL_MODULES = {
     "finite_actions_and_instruction_grammar": ("test_hia_finite_actions", "test_hia_x86_search"),
     "rust_resource_execution": ("test_hia_rust_owned_vm", "test_hia_rust_owned_cfg",
                                 "test_hia_rust_owned_memory", "test_hia_rust_migration"),
+    "raw_rust_integer_admission": ("test_hia_rust_raw_integer",),
+    "partial_record_states": ("test_hia_partial_record", "test_hia_partial_record_scenarios"),
+    "source_partial_restore": ("test_hia_source_partial",),
+    "source_scalar_export_boundaries": ("test_hia_source_exports",),
+    "incremental_v8_admission": ("test_hia_incremental", "test_hia_incremental_independent",
+                                 "test_hia_incremental_v8"),
+    "cpp_constexpr_migration": ("test_cpp_constexpr_migration",),
     "parameter_bound_loan_returns": ("test_hia_returned_loans", "test_hia_returned_chain_loans"),
     "returned_loan_agent_interfaces": ("test_hia_returned_loan_interfaces", "test_hia_patch_impact", "test_hia_edit_batch"),
     "rust_bulk_resource_execution": ("test_hia_rust_bulk_vm",),
@@ -70,7 +78,8 @@ CRITICAL_MODULES = {
     "prospective_agent_choice_protocol": ("test_hia_batch_disclosed_choices",),
     "native_profile_and_lifecycle_convergence": ("test_hia_native_profile_convergence",),
     "qualification_toolchain_and_budgets": ("test_release_unit_timeout",
-        "test_qualification_cargo_environment", "test_hia_unified_workflow_cli", "test_source_checkout_identity"),
+        "test_qualification_cargo_environment", "test_hia_unified_workflow_cli", "test_source_checkout_identity",
+        "test_hia_semantic_gate_receipts"),
 }
 
 
