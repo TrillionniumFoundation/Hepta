@@ -81,7 +81,8 @@ def _expr(expr: Expr, names: dict[str, str]) -> set[str]:
             raise IRValidationError("integer literal exceeds scalar range")
         return set()
     if expr.kind == "neg":
-        if len(expr.args) != 1 or expr.ty != "i32" or expr.args[0].ty != "i32":
+        if (len(expr.args) != 1 or expr.ty != "i32"
+                or expr.args[0].ty != "i32" or expr.value):
             raise IRValidationError("negative expression requires i32")
         return _expr(expr.args[0], names) | {"panic"}
     if expr.kind in {"arith", "compare"}:
