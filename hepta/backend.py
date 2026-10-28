@@ -357,18 +357,47 @@ def emit_header(program: Program) -> str:
     return "\n".join(lines)
 
 
+def _canonical_rustc(candidate: str) -> str:
+    """Resolve a rustup shim to the pinned real compiler, never to rustup itself."""
+    path = Path(candidate)
+    actual = path.resolve()
+    # On Unix rustup's ~/.cargo/bin/rustc is commonly a symlink to 'rustup'.
+    # Executing or hashing the canonical manager path records the wrong tool.
+    if path.is_symlink() and path.stem.lower() == "rustc" and actual.stem.lower() == "rustup":
+        try:
+            lookup = subprocess.run(
+                [str(actual), "which", "--toolchain", RUST_VERSION, "rustc"],
+                text=True, capture_output=True, timeout=30)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise HeptaError(Diagnostic(
+                "E_TOOLCHAIN", "Cannot resolve the pinned rustup compiler",
+                phase="backend")) from exc
+        lines = lookup.stdout.splitlines()
+        if lookup.returncode or len(lines) != 1 or not Path(lines[0]).is_absolute():
+            raise HeptaError(Diagnostic(
+                "E_TOOLCHAIN", "The pinned rustup compiler is unavailable",
+                phase="backend"))
+        compiler = Path(lines[0]).resolve()
+        if compiler == actual or not compiler.is_file() or not os.access(compiler, os.X_OK):
+            raise HeptaError(Diagnostic(
+                "E_TOOLCHAIN", "rustup did not resolve to an executable compiler",
+                phase="backend"))
+        return str(compiler)
+    return str(actual)
+
+
 def find_rustc(explicit: str | None = None) -> str:
     selected = explicit if explicit is not None else os.environ.get("RUSTC")
     if selected is not None:
         resolved = shutil.which(selected) if not Path(selected).is_file() else selected
         if not resolved or not Path(resolved).is_file() or not os.access(resolved, os.X_OK):
             raise HeptaError(Diagnostic("E_TOOLCHAIN", "The explicitly selected Rust compiler is unavailable: " + selected, phase="backend"))
-        return str(Path(resolved).resolve())
+        return _canonical_rustc(resolved)
     candidates = [shutil.which("rustc"),
                   str(Path(__file__).resolve().parents[2] / "toolchains" / ("rust-" + RUST_VERSION) / "bin/rustc")]
     for candidate in candidates:
         if candidate and Path(candidate).is_file() and os.access(candidate, os.X_OK):
-            return str(Path(candidate).resolve())
+            return _canonical_rustc(candidate)
     raise HeptaError(Diagnostic("E_TOOLCHAIN", "rustc is required for native and borrow validation; set RUSTC or --rustc", phase="backend"))
 
 
