@@ -315,18 +315,21 @@ class NduBridge:
             raise NduBridgeError(str(error)) from error
         if len(payload) > MAX_REQUEST_BYTES:
             raise NduBridgeError("request exceeds 1 MiB")
+        # The caller may mutate its dict while the native process runs. Bind
+        # every reply check to the actual immutable bytes sent on the wire.
+        frozen = _read_json(payload)
         self._verify_binary()
         response = self._invoke([], payload)
         if response.get("schema") != "hepta.hia.ndu.response.v1" or response.get("status") != "advisory":
             raise NduBridgeError("unsupported native response")
-        expected = {"objective_digest": request.get("objective_digest"),
-                    "snapshot_digest": request.get("snapshot_digest"),
-                    "generation": request.get("generation"),
+        expected = {"objective_digest": frozen.get("objective_digest"),
+                    "snapshot_digest": frozen.get("snapshot_digest"),
+                    "generation": frozen.get("generation"),
                     "request_digest": hashlib.sha256(payload).hexdigest(),
                     "identity": self.manifest["identity"]}
         if any(response.get(key) != value for key, value in expected.items()):
             raise NduBridgeError("native response has stale or foreign bindings")
-        candidates = {row["id"] for row in request.get("candidates", [])}
+        candidates = {row["id"] for row in frozen.get("candidates", [])}
         if response.get("advisory_candidate_id") not in candidates | {None}:
             raise NduBridgeError("native response names an unknown candidate")
         return response

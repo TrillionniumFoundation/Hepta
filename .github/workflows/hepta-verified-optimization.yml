@@ -9,14 +9,20 @@ on:
       - 'tests/test_cpp_composed_migrate.py'
       - 'tests/test_cpp_scoped_ownership_migration.py'
       - 'tests/test_cpp_composed_project.py'
+      - 'tests/test_cpp_unique_*.py'
       - 'tools/qualify_hia_*'
       - 'tools/build_hia_ndu_bridge.py'
       - 'tools/qualify_cpp_scoped_ownership.py'
       - 'tools/qualify_cpp_composed_project.py'
+      - 'tools/qualify_cpp_unique_project.py'
       - 'examples/cpp/scoped_ownership_migration/**'
       - 'examples/cpp/composed_project_migration/**'
+      - 'examples/cpp/unique_project_migration/**'
       - 'experiments/hia_optimizer_eval/**'
       - 'experiments/hia_verified_integration/**'
+      - 'experiments/hia_agent_matched_v3_20261028/**'
+      - 'experiments/hia_ndu_graph_eval/round3_20261028/**'
+      - 'experiments/hia_stateful_eval/round3_20261028/**'
       - 'pyproject.toml'
       - '.github/workflows/hepta-verified-optimization.yml'
   workflow_dispatch:
@@ -30,9 +36,10 @@ jobs:
     timeout-minutes: 35
     env:
       HEPTA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-      NDU_SOURCE_SHA: dc984bb3b3cb21259f838a31f67a7c2983ea9510
+      NDU_SOURCE_SHA: c4a1bbed3a39beba43a6abf1a18b6f75c5725c21
       CLANG: /usr/bin/clang-20
       CLANGXX: /usr/bin/clang++-20
+      HEPTA_CLANG: /usr/bin/clang-20
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
       - uses: actions/checkout@v4
@@ -86,14 +93,17 @@ jobs:
             --expected-source "$NDU_SOURCE_SHA" --cargo "$CARGO" --rustc "$NDU_RUSTC" \
             --output "$RUNNER_TEMP/hia-ndu"
           echo "HEPTA_NDU_IDENTITY=$RUNNER_TEMP/hia-ndu/identity.json" >> "$GITHUB_ENV"
+          echo "HEPTA_NDU_STREAM_IDENTITY=$RUNNER_TEMP/hia-ndu/identity.json" >> "$GITHUB_ENV"
       - name: Run actual native integration and regression gates without skipped tests
         run: |
           python tools/qualify_hia_verified_increment.py --output artifacts/verified-optimization/regression
           python experiments/hia_verified_integration/next_20261028/qualify_guarded_cli.py artifacts/verified-optimization/guarded-cli
+          python tools/qualify_hia_narrowing_cli.py --output artifacts/verified-optimization/narrowing-cli --clang "$CLANG"
       - name: Validate model fault recovery controls
         run: |
           python -m unittest discover -s experiments/hia_optimizer_eval/upgrade_continuation_20261028 -p 'test_*.py' -v
           python -m unittest discover -s experiments/hia_optimizer_eval/primary_continuation_20261028 -p 'test_*.py' -v
+          python -m unittest discover -s experiments/hia_agent_matched_v3_20261028 -p 'test_*.py' -v
       - name: Retain real finite NDU loop and migration/runtime evidence
         run: |
           python tools/qualify_hia_ndu_loop.py --identity "$HEPTA_NDU_IDENTITY" --clang "$CLANG" --output artifacts/verified-optimization/ndu-loop
@@ -101,6 +111,8 @@ jobs:
           python tools/qualify_hia_adaptive.py --workdir artifacts/verified-optimization/adaptive --clang "$CLANG"
           python tools/qualify_cpp_composed_project.py --workdir artifacts/verified-optimization/cpp-composed-project --clangxx "$CLANGXX" --clang "$CLANG" --cc gcc
           python tools/qualify_hia_stateful.py --workdir artifacts/verified-optimization/owned-state --clang "$CLANG"
+          python tools/qualify_hia_narrowing.py --out artifacts/verified-optimization/narrowing --clang "$CLANG"
+          python tools/qualify_cpp_unique_project.py --workdir artifacts/verified-optimization/cpp-unique-project --clangxx "$CLANGXX" --clang "$CLANG" --cc gcc
       - name: Retain all completed and failed evidence
         if: always()
         uses: actions/upload-artifact@v4

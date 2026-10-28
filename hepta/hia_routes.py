@@ -19,7 +19,8 @@ class RouteRejected(ValueError):
 
 _ADMITTED = frozenset({"standalone-hia", "hepta-source", "legacy-executable",
                        "legacy-scalar", "legacy-composite-v2"})
-_CPP_ROUTES = frozenset({"cpp-project", "cpp-matrix", "cpp-composed-project", "cpp-composed-matrix"})
+_CPP_ROUTES = frozenset({"cpp-project", "cpp-matrix", "cpp-composed-project", "cpp-composed-matrix",
+                         "cpp-unique-project", "cpp-unique-matrix"})
 
 
 def route_inventory():
@@ -47,7 +48,9 @@ def route_inventory():
                        (" matrix" if route.endswith("matrix") else ""),
                        "adapter": "hepta.hia_routes.admit_captured_cpp", "admission": "supported",
                        "origin_required": True, "all_declared_configurations_verified": True,
-                       "scope": "finite leaf owner or composed by-value owner profile"})
+                       "scope": ("captured default-deleter std::unique_ptr<byte[]> wrapper with complete library census"
+                                 if route.startswith("cpp-unique-") else
+                                 "finite leaf owner or composed by-value owner profile")})
     sources = [
         {"language": "Hepta", "path": "hepta-source -> standalone-hia", "scope": "finite checked source profile"},
         {"language": "C", "path": "migrate-c / migrate-c-project -> Hepta -> hepta-source",
@@ -89,6 +92,10 @@ def route_inventory():
          "scope": "equal control/resource skeleton and exact scalar first-trap equivalence"},
         {"route": "guarded-reduction", "entry": "hepta.hia_guarded_optimization.verify_guarded_optimization",
          "scope": "proved runtime guard, inductive entry/edge/check obligations and complete original fallback"},
+        {"route": "modular-narrowing", "entry": "hepta.hia_narrowing.verify_modular_narrowing",
+         "scope": "exact unsigned truncation edits with independent scalar/effect/first-trap equivalence"},
+        {"route": "guarded-narrowing", "entry": "hepta.hia_narrowing.verify_guarded_narrowing",
+         "scope": "shared proof budget and exact original/intermediate/final Core chain; final artifact binding"},
     ]
     result = {"schema": "hepta.hia.routes.v1", "inputs": inputs, "source_languages": sources,
               "historical_ir": historical, "backends": backends, "versions": schema_registry(),
@@ -112,7 +119,10 @@ def admit_captured_cpp(route, payload, *, clangxx="clang++", variant=None):
     matrix = route.endswith("matrix")
     if (matrix and type(variant) is not str) or (not matrix and variant is not None):
         raise RouteRejected("E_HIA_ROUTE_VARIANT: exactly one declared matrix variant is required")
-    if route.startswith("cpp-composed-"):
+    if route.startswith("cpp-unique-"):
+        from .cpp_unique_project import lower_unique_project, lower_unique_matrix
+        lower = lower_unique_matrix if matrix else lower_unique_project
+    elif route.startswith("cpp-composed-"):
         from .cpp_composed_project import lower_composed_project, lower_composed_matrix
         lower = lower_composed_matrix if matrix else lower_composed_project
     else:

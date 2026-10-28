@@ -9,6 +9,7 @@ whole calibrated plan. All costs and failed samples remain in the evidence.
 from __future__ import annotations
 
 import argparse
+from contextlib import ExitStack
 from copy import deepcopy
 from datetime import datetime, timezone
 from hashlib import sha256
@@ -28,6 +29,8 @@ if __package__ in {None, ""}:
 from hepta.hia_guarded_optimization import (build_guarded_native,
     guarded_checker_identity, propose_guarded_reduction, verify_guarded_optimization)
 from hepta.hia_ndu import NduBridge, finite_plan_request
+from hepta.hia_narrowing import (propose_guarded_narrowing, build_guarded_narrowed_native,
+                                  chain_checker_identity)
 from hepta.hia_optimization import (DEFAULT_POLICY, OptimizationRejected,
     build_optimized_native, verify_optimization)
 from hepta.hia_program_source import lower_source
@@ -57,24 +60,48 @@ PROTOCOL = {
     "sample_exclusion": "none", "general_performance_claim": False,
 }
 
-DRIVER = r'''#define _POSIX_C_SOURCE 200809L
+DRIVER = r'''#define _GNU_SOURCE
 #include <dlfcn.h>
+#include <fcntl.h>
 #include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/sysmacros.h>
 #include <time.h>
 static uint64_t ns(clockid_t clock) { struct timespec t; if(clock_gettime(clock,&t)) exit(3); return (uint64_t)t.tv_sec*1000000000ULL+t.tv_nsec; }
+static void mapped_image(const char *path, void *symbol) {
+  int fd=-1, consumed=0;
+  if(sscanf(path,"/proc/self/fd/%d%n",&fd,&consumed)!=1 || path[consumed] || fd<0) exit(6);
+  struct stat file;
+  int seals=F_SEAL_SEAL|F_SEAL_SHRINK|F_SEAL_GROW|F_SEAL_WRITE;
+  if(fstat(fd,&file) || file.st_size<=0 || !S_ISREG(file.st_mode) || (fcntl(fd,F_GET_SEALS)&seals)!=seals) exit(6);
+  FILE *maps=fopen("/proc/self/maps","r"); if(!maps) exit(6);
+  char line[8192], permissions[5]; unsigned long start,end,offset;
+  unsigned major_number,minor_number; unsigned long long inode; unsigned matches=0;
+  uintptr_t address=(uintptr_t)symbol;
+  while(fgets(line,sizeof(line),maps)) {
+    if(sscanf(line,"%lx-%lx %4s %lx %x:%x %llu",&start,&end,permissions,&offset,&major_number,&minor_number,&inode)!=7) continue;
+    if(address<start || address>=end) continue;
+    if(strcmp(permissions,"r-xp") || major_number!=major(file.st_dev) || minor_number!=minor(file.st_dev) ||
+       inode!=(unsigned long long)file.st_ino || (uint64_t)offset+address-start>=(uint64_t)file.st_size) exit(6);
+    ++matches;
+  }
+  fclose(maps); if(matches!=1) exit(6);
+}
 int main(int argc,char **argv) {
   if(argc!=5) return 2;
   uint64_t n=strtoull(argv[2],0,10), calls=strtoull(argv[3],0,10), seed=strtoull(argv[4],0,10);
   if(n>65536 || calls==0 || calls>10000000 || seed>255) return 2;
   void *lib=dlopen(argv[1],RTLD_NOW|RTLD_LOCAL); if(!lib) { fprintf(stderr,"%s",dlerror()); return 4; }
   uint64_t (*work)(size_t,uint32_t); *(void**)(&work)=dlsym(lib,"full_lifecycle"); if(!work) return 5;
+  mapped_image(argv[1],(void*)work);
   uint64_t sum=0, start=ns(CLOCK_MONOTONIC), cpu=ns(CLOCK_PROCESS_CPUTIME_ID);
   for(uint64_t i=0;i<calls;i++) sum+=work(n,(uint32_t)((seed+i)&255));
   cpu=ns(CLOCK_PROCESS_CPUTIME_ID)-cpu; uint64_t elapsed=ns(CLOCK_MONOTONIC)-start;
-  printf("{\"elapsed_ns\":%" PRIu64 ",\"process_cpu_ns\":%" PRIu64 ",\"checksum\":%" PRIu64 "}\n",elapsed,cpu,sum);
+  printf("{\"elapsed_ns\":%" PRIu64 ",\"process_cpu_ns\":%" PRIu64 ",\"checksum\":%" PRIu64 ",\"loaded_mapping_verified\":true}\n",elapsed,cpu,sum);
   dlclose(lib); return 0;
 }
 '''
@@ -213,13 +240,16 @@ def light_bundle(bank, *, fixed_target=None, **arguments):
 def calibration(base, root, driver, clang, protocol, ledger):
     candidates, proposals = {}, {}
     for name, maximum in protocol["guard_limits"].items():
+        narrow = name in protocol.get("narrow_targets", [])
+        propose = propose_guarded_narrowing if narrow else propose_guarded_reduction
+        build = build_guarded_narrowed_native if narrow else build_guarded_native
         proposals[name] = measured("propose." + name, ledger,
-                                  lambda limit=maximum: propose_guarded_reduction(base, maximum=limit))
+                                  lambda limit=maximum: propose(base, maximum=limit))
         proposal_ns = ledger[-1]["wall_ns"]
         save(root / (name + ".proposal.json"), proposals[name])
         path = root / (name + ".so")
         receipt = measured("prove-build." + name, ledger,
-            lambda p=proposals[name], out=path: build_guarded_native(base, p, out, clang=clang))
+            lambda p=proposals[name], out=path: build(base, p, out, clang=clang))
         candidates[name] = {"receipt": receipt, "verification": receipt["verification"],
             "source_sha256": receipt["verification"]["candidate_sha256"],
             "proposal_sha256": digest(proposals[name]), "setup_ns": proposal_ns + ledger[-1]["wall_ns"],
@@ -229,7 +259,8 @@ def calibration(base, root, driver, clang, protocol, ledger):
                        lambda: build_optimized_native(base, base, path, clang=clang))
     candidates["base"] = {"receipt": receipt, "verification": receipt["verification"],
         "source_sha256": base.sha256, "setup_ns": ledger[-1]["wall_ns"], "artifact": str(path)}
-    unguarded = proposals["guard-wide"]["fast_core"]
+    wide = proposals["guard-wide"]
+    unguarded = wide["guarded"]["fast_core"] if "guarded" in wide else wide["fast_core"]
     refusal = measured("reject.unguarded-fast-body", ledger,
                        lambda: verify_optimization(base, unguarded))
     if refusal["status"] != "rejected":
@@ -284,11 +315,12 @@ def run_episode(arm, group, base, bank, root, driver, bridge, clang, protocol, d
     source = folder / "base.json"
     save(source, base.as_dict())
     source_sha = sha256(source.read_bytes()).hexdigest()
-    checker = guarded_checker_identity()
+    checker_identity = chain_checker_identity if protocol.get("narrow_targets") else guarded_checker_identity
+    checker = checker_identity()
 
     def admit_snapshot():
         require_snapshot(source, source_sha)
-        if guarded_checker_identity() != checker:
+        if checker_identity() != checker:
             raise OptimizationRejected("E_HIA_NDU_CHECKER_DRIFT: independent verifier changed")
 
     def stage(label, operation):
@@ -372,14 +404,17 @@ def run_episode(arm, group, base, bank, root, driver, bridge, clang, protocol, d
                     target = action["target"]
                     if target not in protocol["guard_limits"] or bank["candidates"][target]["verification"]["status"] != "verified":
                         raise OptimizationRejected("E_HIA_NDU_UNVERIFIED: no executable candidate was admitted")
+                    narrow = target in protocol.get("narrow_targets", [])
+                    propose = propose_guarded_narrowing if narrow else propose_guarded_reduction
+                    build = build_guarded_narrowed_native if narrow else build_guarded_native
                     proposed = stage("repropose." + str(batch) + "." + target,
-                        lambda: propose_guarded_reduction(base, maximum=protocol["guard_limits"][target]))
+                        lambda: propose(base, maximum=protocol["guard_limits"][target]))
                     if digest(proposed) != bank["candidates"][target]["proposal_sha256"]:
                         raise OptimizationRejected("E_HIA_NDU_PROPOSAL_DRIFT: observed candidate changed")
                     admit_snapshot()
                     artifact = folder / (f"transition-{batch}-" + target + ".so")
                     receipt = stage("reprove-build." + str(batch) + "." + target,
-                        lambda: build_guarded_native(base, proposed, artifact, clang=clang,
+                        lambda: build(base, proposed, artifact, clang=clang,
                             policy=dict(DEFAULT_POLICY, timeout_ms=min(30000, budget.remaining_ns() // 1_000_000))))
                     if receipt["verification"]["candidate_sha256"] != bank["candidates"][target]["source_sha256"]:
                         raise OptimizationRejected("E_HIA_NDU_FINAL_CORE_DRIFT: final receipt differs from selected candidate")
@@ -436,7 +471,18 @@ def failure_probes(base, bank, root, driver, protocol, ledger):
 
 
 def qualify(output, *, identity, clang, protocol=None):
+    with ExitStack() as cleanup:
+        return _qualify(output, identity=identity, clang=clang, protocol=protocol, cleanup=cleanup)
+
+
+def _qualify(output, *, identity, clang, protocol, cleanup):
     protocol = deepcopy(PROTOCOL if protocol is None else protocol)
+    transport = protocol.get("native_transport", "oneshot")
+    if transport not in {"oneshot", "stream"}:
+        raise ValueError("Unknown native NDU transport")
+    targets = protocol.get("narrow_targets", [])
+    if type(targets) is not list or len(set(targets)) != len(targets) or not set(targets) <= set(protocol["guard_limits"]):
+        raise ValueError("Narrowing targets must be a unique subset of declared candidates")
     root = Path(output).resolve()
     root.mkdir(parents=True, exist_ok=False)
     repository = Path(__file__).resolve().parents[1]
@@ -463,7 +509,13 @@ def qualify(output, *, identity, clang, protocol=None):
     save(root / "BASE.json", base.as_dict())
     manifest = json.loads(Path(identity).read_bytes())
     save(root / "NATIVE_BUILD_IDENTITY.json", manifest)
-    bridge = measured("native.admission", controller_setup["ndu"], lambda: NduBridge(manifest["binary"], identity))
+    bridge_class = NduBridge
+    if transport == "stream":
+        from hepta.hia_ndu_session import NduSession
+        bridge_class = NduSession
+    bridge = measured("native.admission", controller_setup["ndu"], lambda: bridge_class(manifest["binary"], identity))
+    if transport == "stream":
+        cleanup.callback(bridge.close)
     (root / "driver.c").write_text(DRIVER)
     driver = root / "driver"
     def build_driver():
@@ -518,20 +570,27 @@ def qualify(output, *, identity, clang, protocol=None):
             episodes.append(row)
     if any(sha256((repository / name).read_bytes()).hexdigest() != expected for name, expected in source_identity.items()):
         raise RuntimeError("source changed during graph measurement; retain the attempt without qualification")
+    session = None
+    if transport == "stream":
+        measured("native.shutdown", controller_setup["ndu"], bridge.close)
+        session = measured("native.snapshot", controller_setup["ndu"], bridge.snapshot)
     study_ns = time.monotonic_ns() - start
     costs = {arm: [r["net_cost_ns"] for r in episodes if r["arm"] == arm] for arm in ARMS}
     medians = {arm: statistics.median(values) for arm, values in costs.items()}
     controller_ns = {arm: sum(row["wall_ns"] for row in controller_setup.get(arm, [])) for arm in ARMS}
     common_ns = study_ns - sum(r["episode_wall_ns"] for r in episodes) - sum(controller_ns.values())
     build_cost = manifest.get("build_cost")
-    build_ns = build_cost["wall_ns"] if build_cost else 0
+    valid_build_cost = (type(build_cost) is dict and type(build_cost.get("wall_ns")) is int
+                        and build_cost["wall_ns"] >= 0 and build_cost.get("target_cache") == "empty")
+    build_ns = build_cost["wall_ns"] if valid_build_cost else 0
     own_ns = {arm: controller_ns[arm] + (build_ns if arm == "ndu" else 0) for arm in ARMS}
     amortized = {arm: medians[arm] + (common_ns + own_ns[arm]) / len(costs[arm]) for arm in ARMS}
-    complete = bool(build_cost and build_cost["target_cache"] == "empty")
+    complete = valid_build_cost
     all_completed = all(r["completion_admitted"] for r in episodes)
     result = {"schema": "hepta.hia.ndu.graph.result.v1", "protocol_sha256": digest(protocol),
         "host": host, "source_identity": source_identity, "native_identity": manifest["identity"],
         "native_binary_sha256": manifest["binary_sha256"], "driver": driver_identity,
+        "native_transport": transport, "native_session": session,
         "bank_sha256": bank["bank_sha256"], "shared_setup_ledger": shared,
         "controller_setup_ledger": controller_setup, "shared_setup_wall_ns": common_ns,
         "setup_accounting": {"common_once_per_standalone_strategy": True,

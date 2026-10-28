@@ -34,6 +34,10 @@ MODULES = (
     "tests.test_cpp_composed_project", "tests.test_hia_stateful",
     "tests.test_hia_native_mapping_identity",
     "tests.test_hia_next_evaluation",
+    "tests.test_hia_prepared", "tests.test_hia_ndu_session",
+    "tests.test_hia_narrowing", "tests.test_hia_narrowing_bench",
+    "tests.test_cpp_unique_capture", "tests.test_cpp_unique_project",
+    "tests.test_hia_round3_routes", "tests.test_hia_registered_followup",
 )
 
 
@@ -41,11 +45,15 @@ def inventory():
     paths = list((ROOT / "hepta").glob("*.py")) + [Path(__file__)]
     paths += list((ROOT / "tools").rglob("*.py"))
     for folder in ("examples/cpp/composed_project_migration", "examples/cpp/scoped_ownership_migration",
-                   "experiments/hia_optimizer_eval/next_20261028"):
+                   "examples/cpp/unique_project_migration",
+                   "experiments/hia_optimizer_eval/next_20261028",
+                   "experiments/hia_optimizer_eval/round3_20261028",
+                   "experiments/hia_ndu_graph_eval/round3_20261028",
+                   "experiments/hia_stateful_eval/round3_20261028"):
         paths += [path for path in (ROOT / folder).iterdir()
-                  if path.is_file() and path.suffix in {".py", ".json", ".h", ".cpp"}
+                  if path.is_file() and path.suffix in {".py", ".json", ".h", ".cpp", ".c"}
                   and (not folder.startswith("experiments/") or
-                       path.suffix == ".py" or path.name in {"PROTOCOL.json", "FIXTURES.json", "REGISTRATION.json",
+                       path.suffix in {".py", ".c"} or path.name in {"PROTOCOL.json", "FIXTURES.json", "REGISTRATION.json",
                                                             "ADMISSION_CONTROLS.json"})]
     paths += [ROOT / (name.replace(".", "/") + ".py") for name in MODULES]
     return {str(path.relative_to(ROOT)): sha256(path.read_bytes()).hexdigest() for path in sorted(set(paths))}
