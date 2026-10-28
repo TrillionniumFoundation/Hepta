@@ -1100,6 +1100,63 @@ def source_report(source: str, *, path="<hia-source>", module: str | None = None
                        "c_aggregate_abi_preserved_by_scalarization": False}}
 
 
+def lower_c_project_views(database, *, contracts, clang="clang", client_source="",
+                          retain_asts=False) -> dict:
+    """Lower a captured C record/slice project into the existing independent Core.
+
+    The same structural C translator and caller-supplied contracts are used as
+    the established migration route. No Rust bridge is compiled or admitted.
+    An optional, separately authored Hepta client can construct actual owned
+    storage and call the migrated borrowed interfaces. It is checked together
+    with the generated AST, and is accounted separately from migrated bodies.
+    Only the resulting scalar entries cross the public native ABI: arbitrary
+    foreign pointers do not become trusted Core loan descriptors.
+    """
+    from .c_contracts import contract_identity, snapshot_contracts
+    from .c_project import capture_project, verify_capture
+    from .c_record_views import CRecordViewTranslator
+
+    if type(client_source) is not str or len(client_source.encode("utf-8")) > 1024 * 1024:
+        _reject("project client must be bounded Hepta source text")
+    if type(retain_asts) is not bool:
+        _reject("AST retention must be an explicit Boolean")
+    frozen_contracts = snapshot_contracts(contracts)
+    capture = capture_project(database, clang=clang)
+    translator = CRecordViewTranslator(capture, frozen_contracts)
+    if retain_asts:
+        translator.retained_asts = {}
+    source, _unused_foreign_bridge, functions = translator.emit()
+    program = parse(source, "<captured-c-project-views>")
+    client = parse(client_source, "<authored-hia-client>")
+    if client.imports or client.enums:
+        _reject("project client must use the closed concrete source profile")
+    combined = replace(program, structs=[*program.structs, *client.structs],
+                       functions=[*program.functions, *client.functions])
+    verified = lower_program(combined)
+    verify_capture(capture)
+    project = [row for row in translator.inventory
+               if row["status"] != "system_or_compiler_declaration"]
+    return {"program": verified, "source": source, "client_source": client_source,
+            "functions": functions, "capture": capture,
+            "contracts": frozen_contracts, "contract_identity": contract_identity(frozen_contracts),
+            "declarations": translator.inventory,
+            "source_type_admission": translator.original_type_receipts,
+            "declaration_inventory_complete": translator.inventory_complete,
+            "active_project_declarations": len(project),
+            "translated_function_bodies": len(functions),
+            "authored_client_function_bodies": len(client.functions),
+            "raw_asts": translator.retained_asts,
+            "claims": {"structural_ast_translation": True,
+                       "independent_core_execution": True,
+                       "original_c_implementation_linked_into_target": False,
+                       "rust_backend_required": False,
+                       "foreign_pointer_abi_admitted": False,
+                       "c_record_layout_preserved_by_scalarization": False,
+                       "pointer_contracts_inferred": False,
+                       "source_equivalence_proved": False,
+                       "all_c_cpp_supported": False}}
+
+
 def lower_c_multi_owner(database, *, clang="clang") -> dict:
     """Migrate a captured C subset with structurally recognized byte owners.
 

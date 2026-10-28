@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 import re
 
-from .c_migrate import MigrationRejected, reject_function_type_attributes
+from .c_migrate import MigrationRejected, reject_function_type_attributes, _load_bounded_clang_ast
 from .c_contracts import snapshot_contracts
 from .c_project import _read_dependency, captured_source_argument, digest, invoke
 
@@ -203,6 +203,10 @@ class CTranslator:
         self.original_type_receipts: list[dict] = []
         self.parameter_sources: dict[str, bytes] = {}
         self.physical_source_files: dict[int, str | None] = {}
+        # Optional evidence retention for the direct HIA project adapter. The
+        # exact text consumed by this translator is retained, not a second
+        # compiler invocation whose AST could describe different source bytes.
+        self.retained_asts: dict[int, str] | None = None
 
     def check_parameter_sources(self, node: dict, item: dict) -> None:
         """Bind finite spelling before any type adaptation or array admission."""
@@ -299,11 +303,18 @@ class CTranslator:
 
     def collect(self) -> None:
         deferred_errors = []
+        retained_bytes = 0
         for config in self.capture["configurations"]:
             directory = Path(config["directory"])
-            tree = json.loads(invoke([self.capture["compiler"]["path"], *config["frontend_arguments"],
-                                     "-Werror", "-fsyntax-only", "-Xclang", "-ast-dump=json",
-                                     captured_source_argument(config)], directory))
+            raw_ast = invoke([self.capture["compiler"]["path"], *config["frontend_arguments"],
+                              "-Werror", "-fsyntax-only", "-Xclang", "-ast-dump=json",
+                              captured_source_argument(config)], directory)
+            tree = _load_bounded_clang_ast(raw_ast)
+            if self.retained_asts is not None:
+                retained_bytes += len(raw_ast.encode("utf-8"))
+                if retained_bytes > 64_000_000:
+                    raise MigrationRejected("E_C_AST_RETENTION", "Retained project AST text exceeds 64 MB")
+                self.retained_asts[config["index"]] = raw_ast
             if tree.get("kind") != "TranslationUnitDecl":
                 raise MigrationRejected("E_C_AST", "Clang did not produce a translation unit")
             source_files = _physical_source_files(tree, directory)

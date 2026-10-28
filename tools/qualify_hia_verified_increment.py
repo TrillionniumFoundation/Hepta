@@ -49,6 +49,13 @@ MODULES = (
     "tests.test_cpp_unique_capture", "tests.test_cpp_unique_project",
     "tests.test_c_contract_identity",
     "tests.test_hia_round3_routes", "tests.test_hia_registered_followup",
+    "tests.test_c2hepta_api_path_isolation", "tests.test_c2hepta_bounded_source",
+    "tests.test_c2hepta_snapshot_capture", "tests.test_migration_ir_identifier_guard",
+    "tests.test_migration_ir_literal_guard", "tests.test_migration_ir_neg_payload_guard",
+    "tests.test_migration_ir_parser_budget", "tests.test_migration_ir_structural_budget",
+    "tests.test_hia_scalar_lowering_check", "tests.test_hia_cursor_math",
+    "tests.test_hia_c_project_views", "tests.test_hia_ndu_activation",
+    "tests.test_hia_agent_repair",
 )
 
 
@@ -67,6 +74,11 @@ def inventory():
                        path.suffix in {".py", ".c"} or path.name in {"PROTOCOL.json", "FIXTURES.json", "REGISTRATION.json",
                                                             "ADMISSION_CONTROLS.json"})]
     paths += [ROOT / (name.replace(".", "/") + ".py") for name in MODULES]
+    for folder in ("examples/hia_legacy_queue", "tests/fixtures/c_migration/ring_buffer",
+                   "tests/fixtures/c_migration/musl_compare", "experiments/hia_legacy_queue",
+                   "experiments/hia_ndu_activation", "experiments/hia_agent_factorial_v5_20261028"):
+        paths += [path for path in (ROOT / folder).rglob("*") if path.is_file()
+                  and "__pycache__" not in path.parts]
     return {str(path.relative_to(ROOT)): sha256(path.read_bytes()).hexdigest() for path in sorted(set(paths))}
 
 

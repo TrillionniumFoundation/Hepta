@@ -273,9 +273,15 @@ class CRecordViewTranslator(CTranslator):
                 raise MigrationRejected("E_C_VIEW_CURSOR", "Cursor index must be a pure integer")
             # C indexes are relative to the cursor, and a negative signed
             # index can still identify a live earlier element in this view.
-            # All accepted C integers are at most 64 bits. Widen *before*
-            # adding, then check the absolute position before narrowing.
-            return Expression(f"{info['base']}[c_view_index({info['offset']}, ({index.text} as i128), len(read {info['base']}))]", base.typ[6:])
+            # Every accepted C integer is at most 64 bits. Check the distance
+            # before adding/subtracting, so the independent HIA Core needs no
+            # wider integer or unchecked narrowing. In particular, negating
+            # INT64_MIN in a signed type would overflow; the signed helper
+            # computes its magnitude using unsigned wrapping subtraction.
+            signed = index.typ.startswith("i")
+            helper = "c_view_index_signed" if signed else "c_view_index_unsigned"
+            wide = "i64" if signed else "u64"
+            return Expression(f"{info['base']}[{helper}({info['offset']}, ({index.text} as {wide}), len(read {info['base']}))]", base.typ[6:])
         if kind == "UnaryOperator" and node.get("opcode") == "*" and len(children) == 1:
             value = self.expr(children[0])
             info = self._slice(value)
@@ -393,11 +399,21 @@ class CRecordViewTranslator(CTranslator):
         pieces = ["module c_record_views_migrated;",
                   "// Scalar state plus explicit slices; foreign record/storage contracts remain external.",
                   "fn c_bool_to_int(value: bool) -> i32 effects {} { if value { return 1; } else { return 0; } }",
-                  "fn c_view_index(offset: usize, index: i128, length: usize) -> usize effects {panic} {\n"
-                  "    let absolute: i128 = (offset as i128) + index;\n"
-                  "    assert(absolute >= 0);\n"
-                  "    assert(absolute < (length as i128));\n"
-                  "    return absolute as usize;\n}"]
+                  "fn c_view_index_unsigned(offset: usize, index: u64, length: usize) -> usize effects {panic} {\n"
+                  "    assert(offset < length);\n"
+                  "    assert(index < ((length - offset) as u64));\n"
+                  "    return offset + (index as usize);\n}",
+                  "fn c_view_index_signed(offset: usize, index: i64, length: usize) -> usize effects {panic} {\n"
+                  "    if index >= 0 {\n"
+                  "        assert(offset < length);\n"
+                  "        assert((index as u64) < ((length - offset) as u64));\n"
+                  "        return offset + (index as usize);\n"
+                  "    }\n"
+                  "    let magnitude: u64 = wrapping_sub((0 as u64), (index as u64));\n"
+                  "    assert(magnitude <= (offset as u64));\n"
+                  "    let absolute: usize = offset - (magnitude as usize);\n"
+                  "    assert(absolute < length);\n"
+                  "    return absolute;\n}"]
         for name, fields in sorted(self.records.items()):
             scalars = [(field, typ) for field, typ in fields if not typ.startswith("view:")]
             if not scalars:

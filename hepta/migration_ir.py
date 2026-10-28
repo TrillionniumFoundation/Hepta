@@ -9,6 +9,23 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 import hashlib
 import json
+import re
+
+from .lexer import KEYWORDS
+
+
+# Enforce the C pilot's strict public-name policy at the IR boundary too.
+# The Clang importer checks names, but IR is a public, independently callable API.
+_ASCII_PILOT_IDENT = re.compile(r"[A-Za-z][A-Za-z_0-9]*\Z", re.ASCII)
+_RESERVED_PILOT_IDENT = KEYWORDS | frozenset({
+    "wrapping_add", "wrapping_sub", "wrapping_mul", "len", "assert", "main",
+})
+
+
+def _require_pilot_identifier(value: str) -> None:
+    if (not isinstance(value, str) or not _ASCII_PILOT_IDENT.fullmatch(value)
+            or value in _RESERVED_PILOT_IDENT):
+        raise IRValidationError("invalid or reserved migration IR identifier")
 
 
 NUMERIC = frozenset({"i32", "u32"})
@@ -50,7 +67,13 @@ def _expr(expr: Expr, names: dict[str, str]) -> set[str]:
             raise IRValidationError("variable not bound with the stated type")
         return set()
     if expr.kind == "literal":
-        if expr.args or expr.ty not in NUMERIC or not expr.value.isascii() or not expr.value.isdecimal():
+        # 32-bit values need at most ten decimal digits. Check type and
+        # length before int(): long untrusted IR literals otherwise raise
+        # Python's digit-conversion ValueError or consume unbounded work.
+        if (expr.args or expr.ty not in NUMERIC
+                or not isinstance(expr.value, str) or not expr.value
+                or len(expr.value) > 10
+                or not expr.value.isascii() or not expr.value.isdecimal()):
             raise IRValidationError("invalid integer literal")
         number = int(expr.value)
         high = 2**31 - 1 if expr.ty == "i32" else 2**32 - 1
@@ -58,7 +81,8 @@ def _expr(expr: Expr, names: dict[str, str]) -> set[str]:
             raise IRValidationError("integer literal exceeds scalar range")
         return set()
     if expr.kind == "neg":
-        if len(expr.args) != 1 or expr.ty != "i32" or expr.args[0].ty != "i32":
+        if (len(expr.args) != 1 or expr.ty != "i32"
+                or expr.args[0].ty != "i32" or expr.value):
             raise IRValidationError("negative expression requires i32")
         return _expr(expr.args[0], names) | {"panic"}
     if expr.kind in {"arith", "compare"}:
@@ -91,11 +115,96 @@ def _block(body: tuple[Stmt, ...], names: dict[str, str], result: str) -> set[st
     raise IRValidationError(f"unsupported statement node: {statement.kind}")
 
 
+# This public IR can be constructed without the bounded Clang importer.
+# Check its shape iteratively before recursive checking, hashing or emission:
+# malformed/unhashable fields and cyclic or explosively shared trees must
+# fail with IRValidationError, not Python exceptions or unbounded work.
+_MAX_IR_DEPTH = 128
+_MAX_IR_NODES = 4096
+_MAX_IR_PARAMS = 256
+_MAX_IR_TOKEN_LENGTH = 256
+# The Hepta parser caps nesting at 96. Emission adds parentheses and an
+# extra recursive parse level for prefix negation / binary right operands.
+# Leave eight levels of headroom for enclosing function/type syntax.
+_MAX_EMITTED_PARSE_NESTING = 88
+
+
+def _preflight_shape(function: Function) -> None:
+    if (not isinstance(function, Function)
+            or not isinstance(function.name, str)
+            or len(function.name) > _MAX_IR_TOKEN_LENGTH
+            or not isinstance(function.params, tuple)
+            or len(function.params) > _MAX_IR_PARAMS
+            or not isinstance(function.result, str)
+            or len(function.result) > 16
+            or not isinstance(function.body, tuple)):
+        raise IRValidationError("invalid migration IR function shape")
+    for item in function.params:
+        if (not isinstance(item, tuple) or len(item) != 2
+                or not isinstance(item[0], str)
+                or not isinstance(item[1], str)
+                or len(item[0]) > _MAX_IR_TOKEN_LENGTH
+                or len(item[1]) > 16):
+            raise IRValidationError("invalid migration IR parameter shape")
+
+    pending: list[tuple[str, object, int, int]] = [("block", function.body, 0, 0)]
+    examined = 0
+    while pending:
+        category, item, depth, parse_depth = pending.pop()
+        examined += 1
+        if (examined > _MAX_IR_NODES or depth > _MAX_IR_DEPTH
+                or parse_depth > _MAX_EMITTED_PARSE_NESTING):
+            raise IRValidationError("migration IR structural budget exceeded")
+        if category == "block":
+            if not isinstance(item, tuple) or len(item) != 1:
+                raise IRValidationError("invalid migration IR block shape")
+            pending.append(("stmt", item[0], depth + 1, parse_depth + 1))
+        elif category == "stmt":
+            if (not isinstance(item, Stmt) or not isinstance(item.kind, str)
+                    or len(item.kind) > 16
+                    or not isinstance(item.then_body, tuple)
+                    or not isinstance(item.else_body, tuple)):
+                raise IRValidationError("invalid migration IR statement shape")
+            if item.kind == "if":
+                pending.append(("block", item.then_body, depth + 1, parse_depth))
+                pending.append(("block", item.else_body, depth + 1, parse_depth))
+            elif item.kind != "return":
+                raise IRValidationError("unsupported migration IR statement")
+            pending.append(("expr", item.expr, depth + 1, parse_depth + 1))
+        else:
+            if (not isinstance(item, Expr)
+                    or not isinstance(item.kind, str)
+                    or not isinstance(item.ty, str)
+                    or len(item.ty) > 16
+                    or len(item.kind) > 16
+                    or not isinstance(item.value, str)
+                    or len(item.value) > _MAX_IR_TOKEN_LENGTH
+                    or not isinstance(item.args, tuple)
+                    or len(item.args) > 2):
+                raise IRValidationError("invalid migration IR expression shape")
+            # Source emission is more deeply nested than the IR tree:
+            # (-child) adds a parenthesized expression and unary operand;
+            # binary right operands add a Pratt-recursive expression.
+            if item.kind == "literal" and parse_depth + 1 > _MAX_EMITTED_PARSE_NESTING:
+                raise IRValidationError("migration IR emitted parser budget exceeded")
+            for i, arg in enumerate(item.args):
+                extra = 0
+                if item.kind == "neg":
+                    extra = 2
+                elif item.kind in {"arith", "compare"}:
+                    extra = (1 if item.kind == "arith" and item.ty == "u32"
+                             else 2 if i == 1 else 1)
+                pending.append(("expr", arg, depth + 1, parse_depth + extra))
+
+
 def check_function(function: Function) -> frozenset[str]:
+    _preflight_shape(function)
+    _require_pilot_identifier(function.name)
     if function.result not in NUMERIC or not function.body:
         raise IRValidationError("unsupported result or empty function")
     names: dict[str, str] = {}
     for name, ty in function.params:
+        _require_pilot_identifier(name)
         if name in names or ty not in NUMERIC:
             raise IRValidationError("duplicate or unsupported parameter")
         names[name] = ty
