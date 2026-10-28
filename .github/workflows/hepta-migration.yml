@@ -4,6 +4,7 @@ on:
     branches:
       - dot/hsir-c2hepta-p0-p3-20261024
       - audit/hepta-rustup-pinned-identity-20261028
+      - audit/hepta-native-tests-nonskip-20261028
   workflow_dispatch:
 
 concurrency:
@@ -23,7 +24,25 @@ jobs:
         run: |
           set -euo pipefail
           rustup toolchain install 1.90.0 --profile minimal
-          python3 -c 'from hepta.backend import find_rustc, toolchain_info; print(toolchain_info(find_rustc())["version"])'
+          # Both the public CLI and the native regression tests must execute
+          # the same concrete pinned compiler. The older tests deliberately
+          # probe ../toolchains/rust-1.90.0/bin/rustc, not the rustup shim.
+          pinned="$(rustup which --toolchain 1.90.0 rustc)"
+          test -f "$pinned" && test -x "$pinned"
+          python3 -c 'import sys; from hepta.backend import find_rustc, toolchain_info; print(toolchain_info(find_rustc(sys.argv[1]))["version"])' "$pinned"
+          toolchain_root="$(dirname "$(dirname "$pinned")")"
+          test_root="${GITHUB_WORKSPACE}/../toolchains"
+          mkdir -p "$test_root"
+          # Never overwrite an existing toolchain path in the runner.
+          if [ -e "$test_root/rust-1.90.0" ] || [ -L "$test_root/rust-1.90.0" ]; then
+            echo "E_TOOLCHAIN: unexpected pinned test toolchain path" >&2
+            exit 1
+          fi
+          # Link the entire sysroot, not only rustc: native tests need rustlib.
+          ln -s "$toolchain_root" "$test_root/rust-1.90.0"
+          test "$(realpath "$test_root/rust-1.90.0/bin/rustc")" = "$(realpath "$pinned")"
+          python3 -c 'import sys; from hepta.backend import find_rustc, toolchain_info; print(toolchain_info(find_rustc(sys.argv[1]))["version"])' "$test_root/rust-1.90.0/bin/rustc"
+          printf 'RUSTC=%s\n' "$test_root/rust-1.90.0/bin/rustc" >> "$GITHUB_ENV"
       - name: Test rustup shim identity and fail-closed controls
         run: python3 -m unittest discover -s tests -p test_rustup_real_compiler_identity.py -v
       - name: Verify compilers
@@ -33,5 +52,14 @@ jobs:
           gcc --version
       - name: Run c2hepta and HSIR suite
         run: python3 -m unittest discover -s tests -p test_c2hepta.py -v
-      - name: Run entire Python test suite
-        run: python3 -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Run entire Python test suite without skipped acceptance tests
+        run: |
+          python3 - <<'PY'
+          import unittest
+          suite = unittest.defaultTestLoader.discover("tests", pattern="test_*.py")
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          if result.skipped:
+              print(f"E_CI_SKIPPED: {len(result.skipped)} tests were not executed")
+          if not result.wasSuccessful() or result.skipped:
+              raise SystemExit(1)
+          PY
