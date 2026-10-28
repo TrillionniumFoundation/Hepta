@@ -61,7 +61,11 @@ class ClangMigrationTests(unittest.TestCase):
         self.c.write_text("int shared = 7; int f(int x) {return x + shared;}\n")
         result = migrate_c(self.c, self.hepta)
         self.assertFalse(result["ok"])
-        self.assertIn("E_C_REF", [x["code"] for x in result["rejected"]])
+        # A file-scope global must be refused before expression lowering;
+        # E_C_REF only applies if an unsupported reference reaches that stage.
+        self.assertEqual(result["status"], "rejected")
+        self.assertEqual(result["converted"], [])
+        self.assertIn("E_C_TOPLEVEL", [x["code"] for x in result["rejected"]])
         self.assertFalse(self.hepta.exists())
 
     def test_unsupported_cast_rejected_without_writing(self):
