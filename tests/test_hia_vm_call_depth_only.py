@@ -72,8 +72,23 @@ class V7SynchronousFrameBudgetTests(unittest.TestCase):
             execute_program(canonical, "outer", [7], max_call_depth=1)
         with self.assertRaisesRegex(HIAStaticBudgetRejected, "E_HIA_BUDGET_EXCEEDED"):
             qualify_vm_call_depth(canonical, max_call_depth=1)
-        with self.assertRaisesRegex(HIAStaticBudgetRejected, "E_HIA_BUDGET_PROFILE"):
-            analyze_static_budget(canonical)
+        # The audited primitive-byte v7 subset has a separate finite static
+        # receipt; the frame-only receipt above still makes no tick/RSS claim.
+        budget = analyze_static_budget(canonical)
+        self.assertEqual(budget, analyze_static_budget(canonical.canonical_bytes))
+        self.assertEqual(budget["schema"], "hepta.hia.static-budget.v3")
+        self.assertEqual(budget["core_schema"], SCHEMA_V7)
+        self.assertTrue(budget["claims"]["canonical_byte_only_resource_profile_reverified"])
+        self.assertFalse(budget["claims"]["recursive_chain_costs_bounded"])
+        self.assertFalse(budget["claims"]["native_cpu_time_or_rss_proved"])
+        by_name = {row["function"]: row for row in budget["functions"]}
+        observed = execute_program(canonical, "outer", [7], max_call_depth=2)
+        self.assertLessEqual(observed["steps"], by_name["outer"]["max_vm_ticks"])
+        self.assertLessEqual(
+            observed["resources"]["allocations"] + observed["resources"]["frees"],
+            by_name["outer"]["max_allocator_interactions"])
+        with self.assertRaisesRegex(HIAStaticBudgetRejected, "E_HIA_BUDGET_EXCEEDED"):
+            analyze_static_budget(canonical, max_call_depth=1)
 
     def test_v7_chain_drop_only_qualifies_synchronous_call_frames(self):
         canonical = verify_program(chain_drop())
@@ -89,7 +104,8 @@ class V7SynchronousFrameBudgetTests(unittest.TestCase):
         proof = qualify_vm_call_depth(canonical, max_call_depth=1)
         self.assertEqual(proof["functions"][0]["max_call_depth"], 1)
         self.assertFalse(proof["claims"]["vm_ticks_bounded"])
-        with self.assertRaisesRegex(HIAStaticBudgetRejected, "E_HIA_BUDGET_PROFILE"):
+        # A bounded call stack must not be mistaken for a terminating CFG.
+        with self.assertRaisesRegex(HIAStaticBudgetRejected, "E_HIA_BUDGET_UNBOUNDED"):
             analyze_static_budget(canonical)
 
     def test_direct_recursion_remains_unknown_without_a_finite_proof(self):
