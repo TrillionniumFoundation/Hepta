@@ -1,0 +1,169 @@
+{
+  "baseline_bound_during_review": {
+    "report_path": "/tmp/hepta-c-contract-binding-audit-20261028/report.json",
+    "report_sha256": "dfc3e962d21843cce825d9f532e2c7a8fe3f9cc4347a5f292fa33e74267205d7",
+    "seal_path": "/tmp/hepta-c-contract-binding-audit-20261028/seal.json",
+    "seal_sha256": "313eac864b2557b081c5d6c58d0667838d11b56c7108e493a36fe0da1f82f700"
+  },
+  "claim_boundaries": [
+    "Static review does not replace formal runtime validation.",
+    "Declared contract consistency does not prove source equivalence, foreign pointer memory safety or all-language soundness.",
+    "No additional generic tests or gates were requested by this final review."
+  ],
+  "conclusion": "生产四文件最终字节与已审diff一致，未发现需要追加修复的具体实现问题。已指出的验证脚本问题在正式两门均通过launch_validation.py启动的前提下闭合；无需追加门禁。",
+  "creation_scope": "This file saves the already completed static review. No review, test, replay, application or compiler execution was repeated while saving it.",
+  "findings_and_resolutions": [
+    {
+      "finding": "Replay had no own 120-second whole-process bound.",
+      "resolution": "The formal launcher applies a 120-second outer deadline to replay.",
+      "status": "closed_under_launcher"
+    },
+    {
+      "finding": "Targeted SIGINT/SIGTERM or child post-identity failures could bypass complete cleanup/reporting.",
+      "resolution": "Launcher owns signal/timeout handling, records cleanup errors, uses retained PID/start-time/pidfd cleanup, preserves child streams/exit code, and rejects missing or non-passing child report/manifest.",
+      "status": "closed_under_launcher"
+    },
+    {
+      "finding": "Replay critical HEAD/seal/output guards used assert, removable under optimization.",
+      "resolution": "Guards use explicit require; launcher removes PYTHONOPTIMIZE.",
+      "status": "closed"
+    },
+    {
+      "finding": "Actual GCC calls were absent from targeted tool identity coverage.",
+      "resolution": "GCC is included in before/after tool identity and controlled PATH resolution. Static resolution observed /usr/bin/gcc -> /usr/bin/x86_64-linux-gnu-gcc-13, without running GCC.",
+      "status": "closed"
+    },
+    {
+      "finding": "Replay per-case progress and baseline after-check needed explicit records.",
+      "resolution": "Each case records START/completion; baseline members are hashed before and after; output is rejected inside source or old baseline.",
+      "status": "closed"
+    }
+  ],
+  "formal_execution_contract_reviewed": {
+    "failure_conditions": [
+      "nonzero child exit",
+      "timeout",
+      "handled interruption",
+      "recorded exception",
+      "missing report or manifest",
+      "child report not explicitly passed",
+      "source identity change",
+      "cleanup remaining processes or errors"
+    ],
+    "fixed_existing_modules": [
+      "test_c_project",
+      "test_c_record_views",
+      "test_c_parameter_types",
+      "test_cpp_project_hia",
+      "test_cpp_constexpr_migration",
+      "test_c_project_matrix",
+      "test_c_project_source_arguments",
+      "test_c_project_semantic_flags"
+    ],
+    "new_module": "test_c_contract_identity",
+    "planned_method_count_reported_by_parent": 104,
+    "replay_case_count": 4,
+    "replay_expected_negative_code": "E_C_FUNCTION",
+    "replay_original_or_target_native_execution_requested": false,
+    "replay_outer_timeout_seconds": 120,
+    "replay_positive_exact_files": [
+      "source.hepta",
+      "bridge.rs",
+      "generated.rs"
+    ],
+    "required_entrypoint": "/tmp/hepta-c-contract-identity-publication-20261028/launch_validation.py",
+    "targeted_outer_timeout_seconds": 630,
+    "unit_timeout_seconds": 600,
+    "zero_native_scope": "The zero-original/target execution condition applies to the four sealed-input replay cases. Existing native tests inside the selected unittest modules remain allowed."
+  },
+  "implementation_contract": {
+    "comparison_boundary": "Both profiles use the shared signature comparison across captured declarations before bundle publication.",
+    "extent_identity": "Tagged fixed length versus parameter ordinal; fixed 1 remains distinct from ordinal 1.",
+    "finite_test_source_coverage": [
+      "slice-length ordinal drift",
+      "initializer-source ordinal drift",
+      "same-position parameter renaming",
+      "declaration/definition collection order",
+      "ordinary slice binding in record-view profile",
+      "fixed extent 1 versus parameter ordinal 1"
+    ],
+    "initializer_identity": "Each record initializer field maps to a source parameter ordinal after existing validation.",
+    "new_grammar_introduced": false,
+    "new_test_methods_read": 6,
+    "preserved_fields": [
+      "return and parameter types",
+      "pointer/value classification",
+      "access mode",
+      "existing C const/void information",
+      "original names and contracts for emission and diagnostics"
+    ],
+    "profiles": [
+      "ordinary C",
+      "record-view"
+    ]
+  },
+  "latest_parent_report": {
+    "replay_session": 51395,
+    "statement": "Both formal gates were reported started by parent on fetched clean e8c5da27. This static review record does not claim their terminal outcomes.",
+    "targeted_session": 72735
+  },
+  "parallel_static_reviewer": "/root/followup_validation/contract_runner_audit",
+  "publication_metadata": {
+    "local_commit": "695223952a5795af9ffd72339697d2626dd90e50",
+    "metadata_source": "Parent reported blob/tree publication, fetch and clean checkout. This reviewer independently bound the source bytes listed above, but did not perform the publication or fetch.",
+    "remote_expected_commit": "e8c5da272560cf1243b7113faa5b9868d24b136c",
+    "tree": "20c6ba1e845e3d59c0027cd0d4ee305ddd602936"
+  },
+  "retained_process_helper": {
+    "path": "/tmp/hepta-final-integrated-preparation-20261028/run_final_validation.py",
+    "sha256": "990d86847853b9370a70ce370d7222ef0f287751f22d62cbe25c2593de8ea5c0"
+  },
+  "reviewed_scripts": [
+    {
+      "path": "/tmp/hepta-c-contract-identity-publication-20261028/run_targeted.py",
+      "sha256": "c1195644110e6cb1d367efabeb6782371afdd352bfa01d9143b1c18d4ba17880"
+    },
+    {
+      "path": "/tmp/hepta-c-contract-identity-publication-20261028/replay_original_cases.py",
+      "sha256": "6ea4de63918fff56ffedc87ad1aea5f12672920960e1f1fba0f5d7cb2a7b7b62"
+    },
+    {
+      "path": "/tmp/hepta-c-contract-identity-publication-20261028/launch_validation.py",
+      "sha256": "e62e215ffc31590be07a1066d3649a2f3f635d66b65f5c6a5e852622381346b2"
+    }
+  ],
+  "reviewed_source_files": [
+    {
+      "path": "/workspace/scratch/4bc91e0ee48c/hepta-followup-integration/hepta/c_translation.py",
+      "sha256": "b5691e33585268af0c0028fe1e0810daa0077197e283d688523f5912bdb0a11d"
+    },
+    {
+      "path": "/workspace/scratch/4bc91e0ee48c/hepta-followup-integration/hepta/c_record_views.py",
+      "sha256": "21574a0f31e802711378c49b8ab5e77886752aba7f5f029d37090f69818b7832"
+    },
+    {
+      "path": "/workspace/scratch/4bc91e0ee48c/hepta-followup-integration/docs/C_PARAMETER_CONTRACT_IDENTITY.md",
+      "sha256": "48c14fe95022f9c1e433ca6b3e5f0986455c29f51a1f8406970edb670a7bb04a"
+    },
+    {
+      "path": "/workspace/scratch/4bc91e0ee48c/hepta-followup-integration/tests/test_c_contract_identity.py",
+      "sha256": "66f58617f772c0b0386603255727ac582a4ad9e3bfc428f4db6c4e4567ca8fc7"
+    }
+  ],
+  "reviewer": "/root/followup_validation",
+  "saved_utc": "2026-10-28T08:50:25.593804+00:00",
+  "schema": "hepta.c-contract-identity.independent-static-review.v1",
+  "scope": {
+    "applications_executed_by_reviewer": 0,
+    "compiler_executed_by_reviewer": false,
+    "existing_evidence_modified": false,
+    "fault_injection_executed": false,
+    "formal_test_result_claimed": false,
+    "repository_modified": false,
+    "runtime_cleanup_behavior_dynamically_qualified": false,
+    "static_read_only_review": true,
+    "tests_executed_by_reviewer": 0,
+    "validation_scripts_executed_by_reviewer": 0
+  },
+  "status": "no_remaining_concrete_startup_blocker_under_declared_launcher"
+}
