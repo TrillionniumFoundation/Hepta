@@ -1,0 +1,280 @@
+{
+  "checkpoint_evidence_relabelled_as_merged": false,
+  "checkpoint_qualification_preserved": true,
+  "checkpoint_source_commit": "5fead4df11e6157626773ea74c42a59b342f91a6",
+  "fetched_test_source_receipt": {
+    "path": "/workspace/scratch/bf7d454bbc83/hia-round3-pr329-reviewability/resource-review-fetched-tests.json",
+    "sha256": "62a47601559cbe58caaff1db79497e169ac243a2e8f8ee66f753793f61ebb2a0"
+  },
+  "findings": [
+    {
+      "actual_order": [
+        "super().close()",
+        "hs_free(self._state)",
+        "self._state=None",
+        "self._final_ledger=self._ledger()",
+        "_ctypes.dlclose(self._driver._handle)",
+        "os.close(self._driver_fd)",
+        "self._driver=None"
+      ],
+      "function": "hepta/hia_stateful.py::OwnedAdaptiveRuntime.close",
+      "id": "OWNER_DRIVER_CLOSE_RETRY",
+      "lines": [
+        695,
+        708
+      ],
+      "minimum_fix": "Mark each capability release attempted before the fallible operation, detach every callable/handle from active runtime use, keep immutable cached ledger and explicit unknown/pending outcomes, never retry a numeric fd or dlclose handle. A state free with unknown outcome must retain the driver capability and remain pending. Repeated close is observation/retry of explicitly safe disk operations only.",
+      "provenance": "new hia_stateful adapter in upstream 03d4635/d5a",
+      "reproduced_in_this_review": false,
+      "severity": "must_fix_before_new_owner_lifecycle_qualification",
+      "static_counterexample": "If driver dlclose succeeds and os.close(fd) raises after or without closing, _driver remains non-None. A second close invokes _ledger through an already unloaded driver, then may repeat dlclose and numeric-fd close. The stale call is earlier than the next close attempt."
+    },
+    {
+      "actual_order": [
+        "for image in self._images.values(): _dispose(image)",
+        "_dispose: dlclose(image.library._handle)",
+        "_dispose: os.close(image.fd)",
+        "after whole loop: self._images.clear(); self._closed=True"
+      ],
+      "functions": [
+        "hepta/hia_adaptive.py::AdaptiveRuntime._dispose",
+        "hepta/hia_adaptive.py::AdaptiveRuntime.close"
+      ],
+      "id": "ADAPTIVE_PARTIAL_CLOSE_RETRY",
+      "lines": [
+        376,
+        394
+      ],
+      "minimum_fix": "Adopt per-image at-most-once native-release state and aggregate pending accounting before iterating. Preserve independent fd cleanup on loader failure without retrying either unknown release. Do not mark all native resources released solely because the dispatcher is closed.",
+      "provenance": "inherited pre-d5a AdaptiveRuntime behavior, newly inherited by the owner adapter; not introduced by the mapping patch",
+      "reproduced_in_this_review": false,
+      "severity": "must_fix_before_combined_lifecycle_claim",
+      "static_counterexample": "After one image fully closes and a later image release raises, _images still contains both and _closed remains false. Retrying close repeats release of the already closed earlier image. A per-image fd error after dlclose has the same stale-handle problem."
+    },
+    {
+      "actual_order": [
+        "sealed fd created from checked artifact",
+        "ctypes.CDLL(/proc/self/fd/N)",
+        "getattr export",
+        "immediately invoke finite probe vectors",
+        "publish _Generation"
+      ],
+      "functions": [
+        "hepta/hia_multiversion.py::ScalarMultiversionRuntime._prepare",
+        "hepta/hia_native_retirement.py::NativeRetirement.attempt"
+      ],
+      "id": "MULTIVERSION_MAPPING_ADMISSION",
+      "lines": [
+        412,
+        457
+      ],
+      "minimum_fix": "Collect and type-bind every export, call verify_loaded_symbols(fd, functions) once before the first native probe or publication, reject missing/mismatched mapping evidence through existing retirement cleanup. Retain detached mapping receipt and include native_mapping_identity.py in source/dependency inventories. Keep path inode pins and release-at-most-once logic unchanged.",
+      "provenance": "existing 5fe multiversion loader lacks the new upstream guard; integration gap, not a regression introduced by d5a",
+      "severity": "must_fix_or_explicitly_exclude_before_new_combined_loaded_identity_claim",
+      "static_risk": "NativeRetirement deliberately closes the independently owned fd even when loader release is unknown. A still-retained old loader reference plus fd-number reuse can return a previous same-path mapping, particularly across different runtimes. Hashing the new sealed fd and finite output probes do not establish actual mapping identity. Upstream isolated test source explicitly exercises this loader behavior; this review did not run it."
+    }
+  ],
+  "mapping_scope": [
+    {
+      "before_native_invocation": true,
+      "caller": "hia_adaptive._load_image",
+      "dependency_bound": "hia_adaptive._identity includes native_mapping_identity.py hash",
+      "upstream_guard": true
+    },
+    {
+      "before_native_invocation": true,
+      "caller": "hia_stateful._driver",
+      "dependency_bound": "_adapter_identity chains stateful source to adaptive identity",
+      "exports": 14,
+      "upstream_guard": true
+    },
+    {
+      "before_native_invocation": false,
+      "caller": "hia_multiversion.ScalarMultiversionRuntime._prepare at checkpoint 5fe",
+      "required_merge_action": "Add the same mandatory gate before any probe.",
+      "upstream_guard": false
+    },
+    {
+      "caller": "other source/native backends",
+      "claim": "No blanket loaded-mapping coverage inferred.",
+      "reviewed": false
+    }
+  ],
+  "merge_design": [
+    "Preserve immutable 5fe source/evidence. Merge d5a in a fresh isolated worktree and qualify a new exact commit.",
+    "Keep canonical v8 verifier/runtime/frontend/Rust/LLVM and strict v1-v7 refusals from 5fe; upstream five Core blobs and Rust subtree did not change relative to bdb.",
+    "Retain adaptive default profile and its automatic-selection refusal. Keep the owner queue adapter explicitly separate with its own schema, Linux x86-64 ABI, bounded total helper admission and empirical forecast scope.",
+    "Preserve 5fe fresh equivalence/totality, pending capacity, path pins, unknown-release accounting and cancellation commit protocol. Add mapping identity without weakening these gates.",
+    "Introduce an explicit at-most-once release mechanism for adaptive images and owner driver capabilities. Do not reuse an audit PASS from multiversion as proof for these different close paths.",
+    "Record owner automatic selection as queue-bound empirical forecast, not NDU incremental advantage. Preserve formal 8b experiment identity and all 48 negative episodes independently."
+  ],
+  "method": "Read exact Git/source bytes and tests; statically trace ownership, dispatch, mapping and exceptional cleanup. No project imports, native execution, compiler calls, tests, performance measurement or source edits.",
+  "not_claimed": [
+    "new merged source qualified",
+    "universal Rust safety/performance",
+    "Core owner or loan migration by the new adapter",
+    "seven-host HIA owner runtime support",
+    "NDU benefit inferred from owner forecasts",
+    "all native consumers mapping-bound",
+    "static exception paths reproduced during this review"
+  ],
+  "prepared_utc": "2026-10-28T06:38:46.188721+00:00",
+  "profile_conclusion": {
+    "admission": "Canonical verifier first, then all functions including unused helpers constrained to effect-free u64 signatures, scalar total operations and acyclic internal calls. Traps/resource operations/Loan or Owner signatures are rejected.",
+    "cancellation": "Cooperative queue stop records actual committed prefix without replay. It retains the persistent owner until explicit safe close; it does not provide Core async cancellation/unwind.",
+    "distinct_from_v8_core_loan_returns": true,
+    "limits": {
+      "acyclic_calls": true,
+      "cells": 65536,
+      "expanded_instruction_budget": 4096,
+      "functions": 16,
+      "queue_items": 128,
+      "queue_steps": 1000000000,
+      "retained_queues": 32,
+      "single_block_per_function": true
+    },
+    "owner_location": "Private trusted C adapter owns one u64 array; HIA sees only pure scalar state/delta values and returns one u64.",
+    "state_profile": "hepta.hia.owned-u64-transition-runtime.v1",
+    "state_switching": "Same native allocation remains live; selection requires no active call and no live adapter lease. This is fixed-layout scalar owner preservation, not stack/heap or Core Owner/Loan migration.",
+    "totality": "Syntactic totality of the declared straight-line acyclic helper subset is separate from hia_multiversion.PROVED_TOTAL_PROFILE and its fresh all-input SMT proof gate. Neither can authorize the other by sharing a status word.",
+    "v8_schema_handling": "The adapter state records the canonical core_schema. Scalar-only v8 compatibility needs a directed merged-source check; no returned-Loan program may inherit the scalar adapter privilege or be silently downgraded."
+  },
+  "required_targeted_validation": {
+    "existing_interaction_modules": [
+      "test_hia_adaptive",
+      "test_hia_returned_loans",
+      "test_hia_multiversion",
+      "test_hia_multiversion_totality",
+      "test_hia_native_retirement",
+      "test_hia_background_optimizer",
+      "test_hia_profile_integration",
+      "test_hia_scalar_totality"
+    ],
+    "new_controls": [
+      "Actual old loader reference plus fd reuse through multiversion: same exported name, different sealed file; refuse before any native probe. Missing /proc/self/maps and mismatched symbol mapping also refuse.",
+      "Owner driver dlclose success followed by fd-close exception, including real fd-number reuse: second close never invokes a stale driver function, dlclose or numeric fd; unknown remains pending.",
+      "Multiple adaptive images: first closes and next fails; repeated close never re-releases the first image. Independent fd release and pending accounting remain correct.",
+      "Live owner loan/active native queue reject close and switch; cooperative partial cancellation preserves exact committed prefix and terminal no-replay status.",
+      "v8 actual returned read/mut Loans and resource-bearing unused helpers remain refused by scalar/owner transition profiles; supported scalar schema identity stays explicit. Returned-loan native/Python/Rust contracts remain unchanged.",
+      "Existing path unlink/recreate, identity-pin close ambiguity, totality unknown/trap, and background cancellation/close controls remain passing after mapping integration."
+    ],
+    "new_upstream_modules": [
+      "test_hia_stateful",
+      "test_hia_native_mapping_identity"
+    ],
+    "scope": "Directed tests after fixes on the new merged source, followed by its own required integrated qualification. No new performance campaign is required to establish these safety/lifecycle corrections."
+  },
+  "schema": "hepta.hia.upstream-resource-compatibility-review.v1",
+  "source_inputs": {
+    "checkpoint/hepta/hia_multiversion.py": {
+      "bytes": 35371,
+      "commit": "5fead4df11e6157626773ea74c42a59b342f91a6",
+      "git_blob": "b14d9e734d6c8314879b45b717fe41cdcf187e67",
+      "path": "hepta/hia_multiversion.py",
+      "sha256": "54f46a815e561164a75b1b837973e806f14fbea308a6faf352eb49a00a9eaff0"
+    },
+    "checkpoint/hepta/hia_native_retirement.py": {
+      "bytes": 11159,
+      "commit": "5fead4df11e6157626773ea74c42a59b342f91a6",
+      "git_blob": "ed7a032c54bd3d7c00422cf0d29b4968081ba671",
+      "path": "hepta/hia_native_retirement.py",
+      "sha256": "d88df71d8cded9a1bce2179773cdbf95620d5dc7994661e4ad801bd3e634275f"
+    },
+    "checkpoint/hepta/hia_optimization.py": {
+      "bytes": 23753,
+      "commit": "5fead4df11e6157626773ea74c42a59b342f91a6",
+      "git_blob": "d11e30d078aa6d1cf67a28442de0e6a4683e765c",
+      "path": "hepta/hia_optimization.py",
+      "sha256": "3b6860897b60d370d72289ee6ca08aad89b0e159d019e797df85fb4061da3989"
+    },
+    "hepta/hia_adaptive.py": {
+      "bytes": 19568,
+      "commit": "d5a0bf0e42611309cbc6461b1a414b9f8ece254f",
+      "git_blob": "83ea96a4dfb96a0bca6d3fc0ab0ea6c419e7964c",
+      "path": "hepta/hia_adaptive.py",
+      "sha256": "5dccab7880d75c6d37389a1d8261e56a948b75d7dca3591f8cfb12e73194f892"
+    },
+    "hepta/hia_stateful.py": {
+      "bytes": 37926,
+      "commit": "d5a0bf0e42611309cbc6461b1a414b9f8ece254f",
+      "git_blob": "07875a5db257cb971bb4441e23783567000596d2",
+      "path": "hepta/hia_stateful.py",
+      "sha256": "8a3a0f6bd2068e6070b5f51f4be22cdf53090bb54abb8b84afaa80bdcc51b96e"
+    },
+    "hepta/native_mapping_identity.py": {
+      "bytes": 5363,
+      "commit": "d5a0bf0e42611309cbc6461b1a414b9f8ece254f",
+      "git_blob": "1d37b304bed9b1a252e3d1e172617711bf50523e",
+      "path": "hepta/native_mapping_identity.py",
+      "sha256": "23ae4a968e0f72ff378d0fd7db43aa9a1b8fc7a61d045ad872d8d81ab611f80a"
+    },
+    "tests/test_hia_native_mapping_identity.py": {
+      "bytes": 9810,
+      "commit": "d5a0bf0e42611309cbc6461b1a414b9f8ece254f",
+      "git_blob": "913fded203824500df9c749e4d822d677909180f",
+      "path": "tests/test_hia_native_mapping_identity.py",
+      "sha256": "3cdc7343b4a6979933f11afd768b2abf2c9966edf75abdf23aaa160623e61b37",
+      "source_url": "https://raw.githubusercontent.com/TrillionniumFoundation/Hepta/d5a0bf0e42611309cbc6461b1a414b9f8ece254f/tests/test_hia_native_mapping_identity.py",
+      "test_methods": [
+        "test_missing_descriptor_or_symbol_evidence_rejects",
+        "test_same_export_fd_reuse_rejects_old_mapping_and_normal_load_runs_new_code",
+        "test_missing_mapping_and_cached_driver_fail_closed_with_cleanup"
+      ]
+    },
+    "tests/test_hia_stateful.py": {
+      "bytes": 12810,
+      "commit": "d5a0bf0e42611309cbc6461b1a414b9f8ece254f",
+      "git_blob": "8bd0e01ae06b1715ccd0a3bfaf1902a97a77af4b",
+      "path": "tests/test_hia_stateful.py",
+      "sha256": "c579c9915aa6f28fdcd063666cd355326cbe2874eeb01e16449e6ded425aedb9",
+      "source_url": "https://raw.githubusercontent.com/TrillionniumFoundation/Hepta/d5a0bf0e42611309cbc6461b1a414b9f8ece254f/tests/test_hia_stateful.py",
+      "test_methods": [
+        "test_near_zero_cost_policy_charges_commit_before_restore_decision",
+        "test_finite_total_helpers_admitted_but_traps_cycles_resources_refuse",
+        "test_actual_ownership_switching_partial_native_cancel_and_negative_gain",
+        "test_whole_native_api_clock_keeps_audit_separate_and_retains_real_loss",
+        "test_alias_modes_bounds_and_queue_staleness_are_real_state_gates",
+        "test_failed_preparation_producer_receipts_and_incompatible_schema_keep_owner",
+        "test_sealed_images_and_admitted_rollback_preserve_actual_owner",
+        "test_host_exception_after_real_native_progress_is_terminal_without_replay",
+        "test_queue_hash_binds_copied_work_after_producer_mutates_during_admission"
+      ]
+    }
+  },
+  "status": "SOURCE_COMPATIBLE_WITH_REQUIRED_LIFECYCLE_FIXES_AND_TARGETED_VALIDATION",
+  "upstream_base_commit": "d5a0bf0e42611309cbc6461b1a414b9f8ece254f",
+  "upstream_core_comparison": {
+    "hepta/hia_program.py": {
+      "after_blob": "f438fccf6d6690fdf3a5c3a1d968ebd15008ae44",
+      "before_blob": "f438fccf6d6690fdf3a5c3a1d968ebd15008ae44",
+      "unchanged": true
+    },
+    "hepta/hia_program_llvm.py": {
+      "after_blob": "d0a665b0e3c53bb849e26233ca7ea9ee638a778f",
+      "before_blob": "d0a665b0e3c53bb849e26233ca7ea9ee638a778f",
+      "unchanged": true
+    },
+    "hepta/hia_program_runtime.py": {
+      "after_blob": "95d6fcd81be57033292a36c45414ee3005fcf088",
+      "before_blob": "95d6fcd81be57033292a36c45414ee3005fcf088",
+      "unchanged": true
+    },
+    "hepta/hia_program_source.py": {
+      "after_blob": "b51eb7a7ec53f2e1a7c931ec384dd6461af87e87",
+      "before_blob": "b51eb7a7ec53f2e1a7c931ec384dd6461af87e87",
+      "unchanged": true
+    },
+    "hepta/hia_schema.py": {
+      "after_blob": "64ce2258f5c0feaf2218dffea0707caedb1068c0",
+      "before_blob": "64ce2258f5c0feaf2218dffea0707caedb1068c0",
+      "unchanged": true
+    }
+  },
+  "upstream_prior_commit": "bdb0b39c99b7980b98cb3f9e07ba406cc20f0940",
+  "upstream_rust_comparison": {
+    "after_tree": "0535e15f3dabc41df56ff0b8aea05557a8d3227c",
+    "before_tree": "0535e15f3dabc41df56ff0b8aea05557a8d3227c",
+    "path": "rust/hia-core-shadow",
+    "unchanged": true
+  }
+}

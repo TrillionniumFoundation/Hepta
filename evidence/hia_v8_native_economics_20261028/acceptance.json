@@ -1,0 +1,194 @@
+{
+  "actual_hosts": {
+    "failed": 0,
+    "native_target": "generated Rust; separate local Linux x86-64 HIA LLVM execution",
+    "passed": 7,
+    "run_id": 40642078526
+  },
+  "components": {
+    "cli": {
+      "artifact_sha256": "74d9c9c4685859dcfab1aea64996ee2170f267e5fc5eee1812780b6ee2314a26",
+      "canonical_program_sha256": "beb3720c6a56642d6156218570a20e95de1f8d60d75014bd265b02ba14e3510b",
+      "commands": 6,
+      "evidence": "retained observer source loops/assertions, actual process success and completion count",
+      "native_case_denominator": "2 nonempty buffer sizes x 256 byte values x 2 branch choices",
+      "native_cases": 1024,
+      "native_rows_retained_individually": false,
+      "report_sha256": "04d34e40016f71d3ba7c63b92da170b6f5ec234f2d3d28e713414ee20ee54843",
+      "source_commit": "5fead4df11e6157626773ea74c42a59b342f91a6",
+      "source_sha256": "3b74007a76c0641aa7e5948fa207a034bc0811ea0ad628d8d11b0eee71958071"
+    },
+    "returned_loans": {
+      "native_failure_policy_observations": 15,
+      "native_oracle_controls": 2,
+      "native_successful_calls": 17920,
+      "negative_admissions": 43,
+      "observed_statuses": {
+        "budget_exceeded": 182,
+        "returned": 83,
+        "trapped": 13
+      },
+      "parity_observations": 278
+    },
+    "runtime": {
+      "background.json": {
+        "closed_snapshot_status": "native_and_identity_released",
+        "current_path_observation": {
+          "path": "/tmp/hia-background-qualification-6y_8kr9b/hia-multiversion-8sag2juu",
+          "status": "absent"
+        },
+        "pins": 3,
+        "report_sha256": "e04ab38c9ca39421ed1439328bc17669381263d6beea2bcfc878bfe5966f38e4",
+        "retirements": 2
+      },
+      "multiversion.json": {
+        "closed_snapshot_status": "native_and_identity_released",
+        "current_path_observation": {
+          "path": "/tmp/hia-generation-qualification-d0b9pnka/hia-multiversion-ybqlirlr",
+          "status": "absent"
+        },
+        "pins": 4,
+        "report_sha256": "aa0c34aa175e93e526aea02992705165d9b6735ba413995183bd39b5f2812f1f",
+        "retirements": 3
+      }
+    },
+    "stb": {
+      "claims": {
+        "all_stb_libraries_migrated": false,
+        "complete_c_component_in_declared_variants": true,
+        "cpp_migration": false,
+        "cross_host_results_inferred": false,
+        "original_implementation_linked_into_target": false,
+        "performance_or_migration_cost_improvement_proved": false,
+        "resource_owning_upstream_translated": false,
+        "source_equivalence_proved": false,
+        "unlisted_configurations_qualified": false
+      },
+      "resource_scope": {
+        "hia_interpreter": "zero heap budget; resource event counters must all remain zero on returns and traps",
+        "hia_native": "functional and trap observations; allocator counters not measured",
+        "native_counter_comparison": "unchanged around each six-function input group; only rows with allocation_probe=true",
+        "rust_native_counters": [
+          "allocation_attempts",
+          "successful_allocations",
+          "frees",
+          "live_allocations"
+        ],
+        "upstream_component": "borrow-free scalar arithmetic; no upstream owning resources or allocator failure API"
+      },
+      "scope": {
+        "active_project_declarations_per_variant": 12,
+        "agent_tokens": null,
+        "authored_adapter_bytes": 58,
+        "caller_pointer_or_resource_annotations": 0,
+        "declared_variants": {
+          "generic": [],
+          "truncating": [
+            "-DC_INTEGER_DIVISION_TRUNCATES"
+          ]
+        },
+        "disabled_source": [
+          "built-in STB_DIVIDE_TEST harness",
+          "STB_DIVIDE_TEST_FLOOR simulation",
+          "C_INTEGER_DIVISION_FLOORS path",
+          "C++ extern-C declaration wrapper"
+        ],
+        "disabled_source_policy": "complete bytes retained; not counted as active translated declarations",
+        "manual_contract": "32-bit C int, denominator nonzero and (INT_MIN,-1) excluded from all original-C calls",
+        "manual_review_hours": null,
+        "public_functions_per_variant": 6,
+        "unchanged_header_bytes": 14507,
+        "unchanged_header_lines": 433,
+        "upstream_body_edits": 0
+      },
+      "totals": {
+        "additional_ubsan_native_function_observations": 514872,
+        "distinct_inputs": 21453,
+        "input_configuration_pairs": 42906,
+        "interpreter_function_observations": 696,
+        "native_function_observations": 2059488,
+        "native_target_only_trap_processes": 48,
+        "ordinary_native_routes_include_repeated_original_and_target_calls": true,
+        "original_target_pair_executions": 171624
+      }
+    }
+  },
+  "evidence_archive": {
+    "bytes": 22013028,
+    "mode": 420,
+    "name": "raw-evidence.tar.xz",
+    "sha256": "f09e2be080250400728674efc441c256460ee9cdb5b464b956741cb7aa4c7501"
+  },
+  "full_qualification": {
+    "errors": 0,
+    "external_files": 244,
+    "failures": 0,
+    "gates_passed": 6,
+    "python_tests": 2887,
+    "rust_tests": 60,
+    "skipped": 0,
+    "source_and_external_unchanged": true,
+    "tracked_files": 3572
+  },
+  "general_live_owner_loan_stack_migration": false,
+  "global_optimality_established": false,
+  "limits": [
+    "The implementation is qualified only for explicitly declared finite profiles; no whole-language soundness or source/LLVM refinement theorem.",
+    "V8 native returned-loan execution is Linux x86-64; actual cross-host C component targets are generated Rust.",
+    "Trap and VM budget stops report live resources honestly; they do not establish asynchronous cancellation/unwinding cleanup.",
+    "HIA LLVM stb allocator counters are unavailable (null); generated Rust counters were actually observed.",
+    "The whole unchanged stb_divide component is C in two configurations, not arbitrary C++/resource-owning library migration.",
+    "Manual migration time, token cost, universal Rust performance advantage, NDU incremental value and optimization net profit are not established.",
+    "The frozen NDU experiment remains at source 8b0 with 48 complete episodes and zero publications.",
+    "Five old paths were observed recreated with other inodes; one bounded nonperformance diagnostic did not reproduce the event, and the cause remains undetermined.",
+    "Successful original NDU Cargo streams are unavailable; all retained identities, executed bytes, observations and cost records keep their exact origin."
+  ],
+  "ndu": {
+    "current_path_observation_limit": "48 close-time absences; five paths later recreated with other inodes; cause undetermined",
+    "episodes": 48,
+    "incremental_value_established": false,
+    "negative_result": {
+      "NDU_and_model_matched_arithmetic_both_stop_six_times": true,
+      "all_48_selected_original": true,
+      "direct_baseline_6_episode_sum_ns": 2715459131,
+      "ndu_cold_6_episode_sum_ns": 24873339562,
+      "ndu_cold_saving_against_direct_baseline_ns": -22157880431,
+      "ndu_increment_condition_met": false,
+      "ndu_warm_6_episode_sum_ns": 3637279312,
+      "ndu_warm_saving_against_direct_baseline_ns": -921820181
+    },
+    "protocol_sha256": "bdf110209ea714c807948c5dc572636994166ac2bc52eab877bcc5bbdd3d5bc2",
+    "publications": 0,
+    "source_commit": "8b0fd11dde9f13ac784b3579ec9930ae4832784d"
+  },
+  "parts": [
+    {
+      "bytes": 7000000,
+      "name": "raw-evidence.tar.xz.part01",
+      "sha256": "11e78ec668a2125659e342cbd09253020ed9821ba7f7f178b905774a0f979f19"
+    },
+    {
+      "bytes": 7000000,
+      "name": "raw-evidence.tar.xz.part02",
+      "sha256": "4dcf168bda46a8e25a42f5be46f2bbe29172b89cafb2a2ea611e225cbb82ec5d"
+    },
+    {
+      "bytes": 7000000,
+      "name": "raw-evidence.tar.xz.part03",
+      "sha256": "eb27c46ed6640091f025f42b57d2f20090f830e27e43bd90aa2b620236ccee61"
+    },
+    {
+      "bytes": 1013028,
+      "name": "raw-evidence.tar.xz.part04",
+      "sha256": "d76d657bc341bd69ea8657fbb0ee46b31763564c99de21164e646b3306f77a0a"
+    }
+  ],
+  "performance_cost_or_general_cpp_migration_proved": false,
+  "prepared_utc": "2026-10-28T06:35:34.084832+00:00",
+  "schema": "hepta.hia.v8-economics-evidence.v1",
+  "six_stages_closed": false,
+  "source_commit": "5fead4df11e6157626773ea74c42a59b342f91a6",
+  "source_tree": "5a5dbd5b42bb0b331a52d15e8ebf8ac5acd30a06",
+  "universal_rust_performance_advantage": false,
+  "whole_language_soundness_proved": false
+}
