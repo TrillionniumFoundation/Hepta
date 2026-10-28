@@ -105,6 +105,21 @@ path by itself is not a permanent identity guarantee.
 
 ## Command line
 
+The optimization commands have separate contracts:
+
+| Command | Candidate source | Required checker | Result |
+| --- | --- | --- | --- |
+| `fold-constants` | Whole-module constant folding | `verify-optimization` | Verified Core, optionally published to a new path |
+| `optimize` | Finite selected-function proposals ranked by the pinned native NDU bridge | `verify-translation` | Decision and selected Core, including abstention |
+| `optimize-guarded` | Counted-byte reduction, guard and invariants | `verify-guarded` | Verified proposal containing actual fast-path operations |
+
+The ranking command retains its required function, bridge, build-receipt,
+observations and objective arguments. It rejects guarded/whole-module policy
+and output options; changing flags cannot silently switch its meaning. The
+guarded command does not accept ranking bridge arguments and does not claim an
+NDU decision. `hia routes` publishes both the command contracts and the bounded
+algorithm profiles as descriptive metadata, which grants no admission.
+
 ```sh
 hepta hia lower input.hepta --output baseline.core.json
 hepta hia optimize-guarded baseline.core.json --output reduction.proposal.json

@@ -1,0 +1,18 @@
+module returned_record_views;
+struct Packet { data: Buffer<u8>, tag: u64 }
+fn view(value: read Buffer<u8>, choose: bool) -> read [u8] from value effects {} {
+    if choose { return read value; }
+    return read value;
+}
+fn edit(value: mut Buffer<u8>) -> mut [u8] from value effects {} {
+    return mut value;
+}
+pub fn probe(size: usize, value: u8, choose: bool) -> u8 effects {alloc,block,panic,write} {
+    let mut packet = Packet {data: buffer(size), tag: 9};
+    packet.data[0] = value;
+    let observed = edit(mut packet.data)[0];
+    packet.data[0] = observed ^ 90;
+    let answer = view(read packet.data, choose)[0];
+    drop(move packet);
+    return answer;
+}

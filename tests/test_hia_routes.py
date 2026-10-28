@@ -30,6 +30,48 @@ class RouteTests(unittest.TestCase):
         for row in inventory["historical_ir"]:
             self.assertFalse(row["independent_execution"])
 
+    def test_optimization_commands_have_explicit_distinct_contracts(self):
+        profiles = {p["command"]: p for p in route_inventory()["optimization_profiles"]}
+        self.assertEqual(profiles["optimize"]["verification_command"], "verify-translation")
+        self.assertEqual(profiles["fold-constants"]["verification_command"], "verify-optimization")
+        self.assertTrue(profiles["optimize"]["native_ndu"])
+        self.assertFalse(profiles["fold-constants"]["native_ndu"])
+        self.assertFalse(profiles["verify-translation"]["receipt_grants_admission"])
+        self.assertFalse(profiles["verify-optimization"]["receipt_grants_admission"])
+        self.assertEqual(profiles["optimize-guarded"]["verification_command"], "verify-guarded")
+        self.assertEqual(profiles["build-guarded"]["verification_command"], "verify-guarded")
+        self.assertFalse(profiles["optimize-guarded"]["native_ndu"])
+        self.assertFalse(profiles["verify-guarded"]["receipt_grants_admission"])
+        # A command never switches meaning when another mode's flags are used.
+        for argv in (["hia", "optimize", "unused.json", "--policy", "policy.json"],
+                     ["hia", "fold-constants", "unused.json", "--bridge", "bridge"]):
+            with self.subTest(argv=argv), contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit) as error:
+                    main(argv)
+                self.assertEqual(error.exception.code, 2)
+
+    def test_cli_options_cannot_reinterpret_ranking_guarded_or_source_routes(self):
+        ranking = ["hia", "optimize", "unused.json", "--function", "calculate",
+                   "--bridge", "bridge", "--bridge-build-receipt", "receipt.json",
+                   "--observations", "observations.json", "--objective", "objective.json"]
+        invocations = [
+            ranking + ["--policy", "policy.json"],
+            ranking + ["--output", "candidate.json"],
+            ["hia", "fold-constants", "unused.json", "--maximum", "16"],
+            ["hia", "optimize-guarded", "unused.json", "--bridge", "bridge"],
+            ["hia", "verify-guarded", "unused.json", "--candidate", "candidate.json",
+             "--function", "calculate"],
+            ["hia", "lower", "unused.hepta", "--clangxx", "clang++"],
+            ["hia", "import-cpp-project", "capture.json", "--variant", "unused"],
+            ["hia", "import-cpp-composed-matrix", "matrix.json", "--variant", "selected",
+             "--core-schema", "hepta.hia.program.v8"],
+        ]
+        for argv in invocations:
+            with self.subTest(argv=argv), contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit) as error:
+                    main(argv)
+                self.assertEqual(error.exception.code, 2)
+
     def test_source_and_both_legacy_routes_execute_one_value_model(self):
         source_program, checked, scalar = fixture(SCALAR)
         old = lower_executable_core(source_program, checked)
@@ -41,6 +83,51 @@ class RouteTests(unittest.TestCase):
         for core in inputs:
             with patch("hepta.parser.parse", side_effect=AssertionError("execution reparsed source")):
                 self.assertEqual(execute_core(core, "sum_rows", [5])["result"], 18)
+
+    def test_explicit_v8_source_route_keeps_returned_loans_and_cannot_override_wire_bytes(self):
+        source_path = Path(__file__).resolve().parents[1] / "examples/hia_returned_loans/returned_views.hepta"
+        source = source_path.read_text()
+        from hepta.hia_program_source import HIAProgramSourceRejected
+        # This branching helper needs explicit v8; the older projection-only
+        # source profile must keep refusing it rather than choosing a schema.
+        with self.assertRaises(HIAProgramSourceRejected):
+            admit_route("hepta-source", source)
+        legacy = admit_route("hepta-source", "pub fn identity(x:u8)->u8 effects{} { return x; }")
+        current = admit_route("hepta-source", source, core_schema="hepta.hia.program.v8")
+        self.assertEqual(legacy.as_dict()["schema"], "hepta.hia.program.v1")
+        self.assertEqual(current.as_dict()["schema"], "hepta.hia.program.v8")
+        functions = {f["name"]: f for f in current.as_dict()["functions"]}
+        self.assertEqual(functions["view"]["return_origins"], [functions["view"]["params"][0]["name"]])
+        self.assertEqual(functions["edit"]["return_origins"], [functions["edit"]["params"][0]["name"]])
+        calls = [op["attrs"]["function"] for b in functions["probe"]["blocks"] for op in b["ops"] if op["op"] == "call"]
+        self.assertEqual(calls, ["edit", "view"])
+        result = execute_route("hepta-source", source, "probe", [1, 42, True],
+                               context={"core_schema": "hepta.hia.program.v8"})
+        self.assertEqual(result["result"], 42 ^ 90)
+        self.assertEqual(result["resources"]["live_local_loans"], 0)
+        for route, payload in (("standalone-hia", current), ("legacy-executable", {}),
+                               ("legacy-scalar", {}), ("legacy-composite-v2", {})):
+            with self.assertRaisesRegex(RouteRejected, "cannot override"):
+                admit_route(route, payload, core_schema="hepta.hia.program.v1")
+
+    def test_cli_v8_lower_and_run_use_the_same_explicit_contract(self):
+        source = Path(__file__).resolve().parents[1] / "examples/hia_returned_loans/returned_views.hepta"
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "returned.json"
+            stream = io.StringIO()
+            with contextlib.redirect_stdout(stream):
+                self.assertEqual(main(["hia", "lower", str(source), "--core-schema",
+                    "hepta.hia.program.v8", "-o", str(output)]), 0)
+            self.assertEqual(json.loads(output.read_text())["schema"], "hepta.hia.program.v8")
+            stream = io.StringIO()
+            with contextlib.redirect_stdout(stream):
+                self.assertEqual(main(["hia", "run", str(output), "--function", "probe",
+                                       "--arguments", "[1,42,false]"]), 0)
+            report = json.loads(stream.getvalue())
+            self.assertEqual(report["result"], 42 ^ 90)
+            self.assertEqual(report["resources"]["live_owners"], 0)
+            with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                main(["hia", "lower", str(source), "--core-schema", "hepta.hia.program.v7"])
 
     def test_source_and_legacy_share_resource_and_failure_semantics(self):
         old = lower_executable_core(parse(OWNED, "owned.hepta"))
@@ -81,7 +168,7 @@ class RouteTests(unittest.TestCase):
             policy.write_text(json.dumps({**DEFAULT_POLICY, "timeout_ms": 0}))
             stream = io.StringIO()
             with contextlib.redirect_stdout(stream):
-                result = main(["hia", "optimize", str(source), "--policy", str(policy), "-o", str(output)])
+                result = main(["hia", "fold-constants", str(source), "--policy", str(policy), "-o", str(output)])
             self.assertEqual(result, 1)
             self.assertEqual(json.loads(stream.getvalue())["verification"]["status"], "timeout")
             self.assertFalse(output.exists())
@@ -109,6 +196,37 @@ class RouteTests(unittest.TestCase):
         self.assertEqual(report, execute_core(program, "calculate", [7]))
         with self.assertRaises(RouteRejected):
             admit_route("standalone-hia", program, clangxx="clang++")
+
+    def test_route_context_is_rejected_before_capture_or_source_access(self):
+        captured = ("cpp-project", "cpp-matrix", "cpp-composed-project", "cpp-composed-matrix")
+        overrides = {"source": "untrusted", "path": "other.hepta", "project_sha256": "0" * 64,
+                     "module": "other", "core_schema": "hepta.hia.program.v8"}
+        with patch("hepta.hia_routes.admit_captured_cpp", side_effect=AssertionError("capture must not start")):
+            for route in captured:
+                for name, value in overrides.items():
+                    with self.subTest(route=route, option=name):
+                        with self.assertRaisesRegex(RouteRejected, "E_HIA_ROUTE_CONTEXT"):
+                            admit_route(route, "missing-capture.json", **{name: value})
+        for route in ("standalone-hia", "hepta-source", "legacy-executable",
+                      "legacy-scalar", "legacy-composite-v2"):
+            for option in ({"clangxx": "clang++"}, {"variant": "selected"}):
+                with self.subTest(route=route, option=option):
+                    with self.assertRaisesRegex(RouteRejected, "capture options"):
+                        admit_route(route, b"invalid-before-admission", **option)
+
+    def test_captured_route_cannot_claim_or_force_another_core_schema(self):
+        from hepta.hia_schema import SCHEMA_V8
+        scalar = admit_route("hepta-source", "pub fn identity(x:u8)->u8 effects{} { return x; }",
+                             core_schema=SCHEMA_V8)
+        with patch("hepta.cpp_composed_project.lower_composed_project",
+                   return_value={"program": scalar, "declarations": []}):
+            program, ledger = admit_captured_cpp("cpp-composed-project", "capture.json")
+        self.assertEqual(program.as_dict()["schema"], SCHEMA_V8)
+        self.assertEqual(program.sha256, scalar.sha256)
+        self.assertEqual(ledger["program_sha256"], scalar.sha256)
+        # The route verifies the supplied Core and preserves its version; it
+        # does not grant arbitrary resource admission from capture metadata.
+        self.assertEqual(execute_route("standalone-hia", program, "identity", [27])["result"], 27)
 
 
 if __name__ == "__main__":

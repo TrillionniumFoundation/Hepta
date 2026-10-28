@@ -118,7 +118,7 @@ optimality, universal speedup or general resource-state migration is claimed.
 ## Reproduce the actual native qualification
 
 Linux Python must expose actual memfd sealing constants; their absence fails
-closed. The qualification used the host `/usr/bin/python3`, pinned Z3 4.13.4 and
+closed. The historical PR #325 qualification used the host `/usr/bin/python3`, pinned Z3 4.13.4 and
 Clang 20. It did not substitute an unsealed file for a missing capability.
 
 ```sh
@@ -154,3 +154,8 @@ The unit suite additionally checks possible-trap/owner rejection, complete ABI
 compatibility, typed input boundaries, stale generation measurements and actual
 descriptor closure/reopening. These finite checks are distinct from whole-
 runtime refinement and do not qualify arbitrary production workloads.
+
+The integrated implementation pins Z3 4.15.4 (package 4.15.4.0) for both proof
+profiles, preserving runtime solver-version and identity checks. Historical
+results above are not automatically attributed to that new solver or source
+tree; the integrated collector requires a fresh execution.

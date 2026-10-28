@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import copy
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -193,13 +194,24 @@ def bounded_json_wire(value, maximum, *, ensure_ascii=True, sort_keys=True):
                             _bounded_json_string_size(key, maximum, ensure_ascii)
                             wire_key = key
                         else:
-                            # Avoid unbounded decimal materialization for
-                            # pathological in-memory integer object keys.
-                            if type(key) is int and key.bit_length() > maximum * 4:
-                                _reject("JSON key exceeds numeric byte budget")
-                            # Match JSONEncoder's spelling for int, float,
-                            # bool and None, including nonfinite rejection.
-                            wire_key = json.dumps(key, allow_nan=False)
+                            # Match CPython's object-key spelling without
+                            # invoking an encoder during the preflight.
+                            # Exact types above exclude user conversion hooks;
+                            # bool must be handled before integer conversion.
+                            if type(key) is bool:
+                                wire_key = "true" if key else "false"
+                            elif key is None:
+                                wire_key = "null"
+                            elif type(key) is int:
+                                # Refuse excessive decimal materialization
+                                # before asking the builtin for its digits.
+                                if key.bit_length() > maximum * 4:
+                                    _reject("JSON key exceeds numeric byte budget")
+                                wire_key = int.__repr__(key)
+                            else:  # the only remaining admitted type is float
+                                if not math.isfinite(key):
+                                    _reject("nonfinite JSON object key")
+                                wire_key = float.__repr__(key)
                             if len(wire_key) + 2 > maximum:
                                 _reject("JSON key exceeds byte budget")
                         if wire_key in wire_keys:

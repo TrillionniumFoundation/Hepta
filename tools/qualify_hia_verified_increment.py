@@ -21,19 +21,22 @@ if str(ROOT) not in sys.path:
 
 MODULES = (
     "tests.test_core_unification", "tests.test_hia_program", "tests.test_hia_program_tools",
+    "tests.test_hia_inmemory_json_key_collisions", "tests.test_hia_inmemory_surrogate_wire",
     "tests.test_hia_program_source", "tests.test_hia_program_llvm",
     "tests.test_hia_schema_unification", "tests.test_hia_core_upgrade",
     "tests.test_hia_schema_collision", "tests.test_hia_schema_binding_audit",
     "tests.test_hia_allocation_normalization", "tests.test_hia_empty_owner_native",
     "tests.test_hia_native_side_effects", "tests.test_hia_recursive_chain",
     "tests.test_cpp_composed_migrate", "tests.test_cpp_scoped_ownership_migration",
-    "tests.test_hia_optimization", "tests.test_hia_routes", "tests.test_hia_ndu",
-    "tests.test_hia_ndu_loop", "tests.test_hia_adaptive",
+    "tests.test_hia_optimization", "tests.test_hia_profile_integration",
+    "tests.test_hia_routes", "tests.test_hia_ndu",
+    "tests.test_hia_ndu_loop", "tests.test_hia_ndu_bridge_isolation", "tests.test_hia_adaptive",
     "tests.test_hia_optimizer_bench", "tests.test_hia_agent_holdout",
     "tests.test_hia_guarded_optimization", "tests.test_hia_ndu_graph",
     "tests.test_cpp_composed_project", "tests.test_hia_stateful",
     "tests.test_hia_native_mapping_identity",
     "tests.test_hia_next_evaluation",
+    "tests.test_hia_recursive_ndu_builder",
 )
 
 

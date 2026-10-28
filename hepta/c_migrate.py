@@ -40,6 +40,17 @@ class MigrationRejected(ValueError):
         super().__init__(message)
 
 
+def reject_function_type_attributes(node: dict) -> None:
+    """Type-level ABI attributes need qualification even without Attr children."""
+    for field in ("qualType", "desugaredQualType"):
+        spelling = node.get("type", {}).get(field, "")
+        if re.search(r"\b__attribute__\s*\(", spelling):
+            raise MigrationRejected(
+                "E_C_ATTRIBUTE",
+                "Function type attributes need separate ABI qualification",
+            )
+
+
 def _run(args: list[str], *, input_text: str | None = None) -> str:
     try:
         proc = run_bounded(args, input_text=input_text, timeout=30,
@@ -524,6 +535,7 @@ def _stmt(node: dict, args: dict[str, str], model: dict, ret: str, depth: int = 
 
 
 def _function(decl: dict, model: dict) -> dict:
+    reject_function_type_attributes(decl)
     name = decl.get("name", "")
     if not _IDENT.fullmatch(name) or name.startswith("__"):
         raise MigrationRejected("E_C_NAME", "Unsupported C function identifier")

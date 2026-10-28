@@ -32,7 +32,7 @@ their actual adapters; inventory inclusion does not widen their profiles.
 
 Install the explicit optional dependency with
 `python -m pip install -e '.[optimization]'`. The qualified profile uses
-`z3-solver==4.13.4.0` (Z3 reports `4.13.4`). A missing or different solver cannot
+`z3-solver==4.15.4.0` (Z3 reports `4.15.4`). A missing or different solver cannot
 produce a verified optimization.
 
 The public entry point is:
@@ -108,7 +108,7 @@ LLVM can already fold many of these expressions.
 
 ```sh
 hepta hia verify-optimization baseline.json --candidate proposed.json
-hepta hia optimize baseline.json --output folded.json
+hepta hia fold-constants baseline.json --output folded.json
 hepta hia build-optimized baseline.json --candidate folded.json \
   --clang clang-20 --output candidate.so
 ```

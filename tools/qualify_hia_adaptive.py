@@ -202,6 +202,11 @@ def qualify(directory, *, clang="clang"):
         if runtime is not None:
             report["final"] = runtime.snapshot()
             runtime.close()
+            report["post_close"] = runtime.snapshot()
+            cleanup = report["post_close"]["cleanup"]
+            if not cleanup["owned_native_release_complete"] or cleanup["pending_resource_count"]:
+                report["ok"] = False
+                report["close_error"] = "native release remains unknown or pending"
     (work / "qualification.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
     return report
 

@@ -11,9 +11,16 @@ on:
       - codex/hepta-p4-p6-guardrails-20261025
       - assistant/hepta-p0-p7-semantic-budget-20261025
       - implement/hia-unified-native-20261026
+      - codex/hia-ndu-verified-optimization-20261027
+      - codex/hia-ndu-bounded-pipeline-20261027
+      - codex/hia-contract-integration-20261027
   pull_request:
     branches:
       - main
+      - codex/hia-p0-p7-convergence-20261027
+      - codex/hia-ndu-verified-optimization-20261027
+      - codex/hia-ndu-bounded-pipeline-20261027
+      - codex/hia-contract-integration-20261027
   workflow_dispatch:
 
 # Qualify the PR head, not GitHub's synthetic merge commit. Different source
@@ -28,7 +35,9 @@ permissions:
 jobs:
   release-qualification:
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    # Two full regression passes plus the separate pinned finite Rust profile.
+    # Individual proof/search budgets and all zero-skip acceptance gates stay fixed.
+    timeout-minutes: 75
     env:
       HEPTA_QUALIFICATION_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
@@ -48,8 +57,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Verification archive dependency
-        run: python -m pip install zstandard
+      - name: Verification archive and pinned SMT dependencies
+        run: python -m pip install zstandard z3-solver==4.15.4.0
       - name: Native compilers and required namespace runtime
         run: |
           sudo apt-get update
@@ -122,6 +131,14 @@ jobs:
           report = toolchain_info(selected)
           Path("artifacts/selected-rustc.json").write_text(json.dumps(report, indent=2) + "\n")
           PY
+      - name: Install the separate finite graph Rust profile
+        shell: bash
+        run: |
+          rustup toolchain install 1.95.0 --profile minimal
+          printf 'FINITE_NDU_RUSTC=%s\nFINITE_NDU_CARGO=%s\n' \
+            "$(rustup which --toolchain 1.95.0 rustc)" \
+            "$(rustup which --toolchain 1.95.0 cargo)" >> "$GITHUB_ENV"
+          # The main compiler and recursive profile remain the pinned 1.90.0.
       - name: Fetch the locked Rust shadow dependencies before offline qualification
         shell: bash
         run: |
@@ -129,6 +146,67 @@ jobs:
           test -x "$hepta_cargo"
           "$hepta_cargo" --version
           "$hepta_cargo" fetch --locked --manifest-path rust/hia-core-shadow/Cargo.toml
+      - name: Build the original pinned NDU evaluator in an isolated workspace
+        shell: bash
+        run: |
+          hepta_ndu_checkout="$RUNNER_TEMP/hepta-ndu-source"
+          hepta_ndu_build="$RUNNER_TEMP/hepta-ndu-build"
+          hepta_ndu_commit=$(python -c 'import json; print(json.load(open("rust/hia-ndu-bridge/upstream.json"))["commit"])')
+          git init "$hepta_ndu_checkout"
+          git -C "$hepta_ndu_checkout" remote add origin https://github.com/TrillionniumFoundation/hepta-private-ci.git
+          git -C "$hepta_ndu_checkout" config remote.origin.promisor true
+          git -C "$hepta_ndu_checkout" config remote.origin.partialclonefilter blob:none
+          git -C "$hepta_ndu_checkout" -c protocol.version=2 fetch --filter=blob:none --depth=1 origin "$hepta_ndu_commit"
+          test "$(git -C "$hepta_ndu_checkout" rev-parse FETCH_HEAD)" = "$hepta_ndu_commit"
+          CARGO_TARGET_DIR="$RUNNER_TEMP/hepta-ndu-target" python tools/build_hia_ndu_bridge.py \
+            --upstream "$hepta_ndu_checkout" --output "$hepta_ndu_build" \
+            > "$RUNNER_TEMP/hepta-ndu-build.stdout.log" 2> "$RUNNER_TEMP/hepta-ndu-build.stderr.log"
+          printf 'HEPTA_NDU_BRIDGE=%s\nHEPTA_NDU_BUILD=%s\nHEPTA_NDU_UPSTREAM=%s\n' \
+            "$RUNNER_TEMP/hepta-ndu-target/debug/hia-ndu-bridge" "$hepta_ndu_build" "$hepta_ndu_checkout" >> "$GITHUB_ENV"
+      - name: Build the separately pinned recursive NDU bridge
+        shell: bash
+        run: |
+          hepta_recursive_checkout="$RUNNER_TEMP/hepta-recursive-ndu-source"
+          hepta_recursive_build="$RUNNER_TEMP/hepta-recursive-ndu-build"
+          hepta_recursive_commit=2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b
+          git init "$hepta_recursive_checkout"
+          git -C "$hepta_recursive_checkout" remote add origin https://github.com/TrillionniumFoundation/hepta-private-ci.git
+          git -C "$hepta_recursive_checkout" config remote.origin.promisor true
+          git -C "$hepta_recursive_checkout" config remote.origin.partialclonefilter blob:none
+          git -C "$hepta_recursive_checkout" -c protocol.version=2 fetch --filter=blob:none --depth=1 origin "$hepta_recursive_commit"
+          git -C "$hepta_recursive_checkout" sparse-checkout set --no-cone \
+            /codex-rs/Cargo.toml /codex-rs/hepta-ndu/ /codex-rs/hepta-types/ \
+            /codex-rs/hepta-contracts/ /tools/hia-ndu-bridge/
+          git -C "$hepta_recursive_checkout" checkout --detach FETCH_HEAD
+          test "$(git -C "$hepta_recursive_checkout" rev-parse HEAD)" = "$hepta_recursive_commit"
+          CARGO_INCREMENTAL=0 CARGO_PROFILE_RELEASE_DEBUG=0 python tools/build_hia_recursive_ndu_bridge.py \
+            --ndu-source "$hepta_recursive_checkout" --expected-source "$hepta_recursive_commit" \
+            --cargo "$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/bin/cargo" --rustc "$RUSTC" \
+            --output "$hepta_recursive_build" --target-dir "$RUNNER_TEMP/hepta-recursive-ndu-target"
+          printf 'HEPTA_RECURSIVE_NDU_BRIDGE=%s\nHEPTA_RECURSIVE_NDU_IDENTITY=%s\n' \
+            "$hepta_recursive_build/native/hepta-hia-ndu-bridge" "$hepta_recursive_build/identity.json" >> "$GITHUB_ENV"
+      - name: Build the independent finite graph evaluator
+        shell: bash
+        run: |
+          hepta_finite_checkout="$RUNNER_TEMP/hepta-finite-ndu-source"
+          hepta_finite_build="$RUNNER_TEMP/hepta-finite-ndu-build"
+          hepta_finite_commit=4b6391e116949af0c7e59776baead67271856bdb
+          git init "$hepta_finite_checkout"
+          git -C "$hepta_finite_checkout" remote add origin https://github.com/TrillionniumFoundation/hepta-private-ci.git
+          git -C "$hepta_finite_checkout" config remote.origin.promisor true
+          git -C "$hepta_finite_checkout" config remote.origin.partialclonefilter blob:none
+          git -C "$hepta_finite_checkout" -c protocol.version=2 fetch --filter=blob:none --depth=1 origin "$hepta_finite_commit"
+          git -C "$hepta_finite_checkout" sparse-checkout set --no-cone \
+            /codex-rs/Cargo.toml /codex-rs/hepta-ndu/ /codex-rs/hepta-types/ \
+            /codex-rs/hepta-contracts/ /tools/hia-ndu-bridge/
+          git -C "$hepta_finite_checkout" checkout --detach FETCH_HEAD
+          test "$(git -C "$hepta_finite_checkout" rev-parse HEAD)" = "$hepta_finite_commit"
+          CARGO_INCREMENTAL=0 CARGO_PROFILE_RELEASE_DEBUG=0 python tools/build_hia_recursive_ndu_bridge.py \
+            --ndu-source "$hepta_finite_checkout" --expected-source "$hepta_finite_commit" \
+            --cargo "$FINITE_NDU_CARGO" --rustc "$FINITE_NDU_RUSTC" \
+            --output "$hepta_finite_build" --target-dir "$RUNNER_TEMP/hepta-finite-ndu-target"
+          printf 'HEPTA_FINITE_NDU_BRIDGE=%s\nHEPTA_FINITE_NDU_IDENTITY=%s\n' \
+            "$hepta_finite_build/native/hepta-hia-ndu-bridge" "$hepta_finite_build/identity.json" >> "$GITHUB_ENV"
       - name: Install SHA-256-locked Lean and QEMU tools
         run: python tools/bootstrap_verification.py
       - name: Export verification tools for every qualification step
@@ -144,9 +222,12 @@ jobs:
           mkdir -p "$hepta_gate_tools"
           ln -s "$hepta_qemu" "$hepta_gate_tools/qemu-aarch64"
           ln -s "$hepta_linker" "$hepta_gate_tools/ld.lld"
-          printf 'LEAN=%s\nCLANG=%s\nCC=%s\n' "$hepta_lean" /usr/lib/llvm-20/bin/clang /usr/bin/gcc >> "$GITHUB_ENV"
+          printf 'LEAN=%s\nCLANG=%s\nCLANGXX=%s\nCC=%s\n' "$hepta_lean" /usr/lib/llvm-20/bin/clang /usr/lib/llvm-20/bin/clang++ /usr/bin/gcc >> "$GITHUB_ENV"
           printf 'HEPTA_LLD=%s\nHEPTA_LLVM_READOBJ=%s\nHEPTA_QEMU_AARCH64=%s\nHEPTA_QEMU_RISCV64=%s\n' \
             "$hepta_linker" /usr/lib/llvm-20/bin/llvm-readobj "$hepta_qemu" /usr/bin/qemu-riscv64 >> "$GITHUB_ENV"
+          # Full discovery builds the actual Rust oracle. Keep those generated
+          # files outside the source inventory; source drift must still fail.
+          printf 'CARGO_TARGET_DIR=%s\n' "$RUNNER_TEMP/hepta-shadow-target" >> "$GITHUB_ENV"
           printf '%s\n' "$hepta_gate_tools" "$(dirname "$hepta_lean")" >> "$GITHUB_PATH"
       - name: Run all current native and experiment qualification gates
         run: >-
@@ -170,6 +251,15 @@ jobs:
             --qemu-riscv64 /usr/bin/qemu-riscv64 \
             --qemu-system-arm /usr/bin/qemu-system-arm \
             --cxx /usr/bin/g++
+      - name: Qualify proof-gated NDU and finite background/native mechanisms
+        if: ${{ !cancelled() }}
+        run: >-
+          python tools/qualify_hia_ndu_pipeline.py
+          --output-directory artifacts/hia-ndu
+          --clang /usr/lib/llvm-20/bin/clang
+          --bridge "$HEPTA_NDU_BRIDGE"
+          --bridge-build-receipt "$HEPTA_NDU_BUILD/build-receipt.json"
+          --upstream "$HEPTA_NDU_UPSTREAM"
       - name: Preserve failures and all raw evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -178,4 +268,10 @@ jobs:
           path: |
             artifacts/
             evidence/
+            ${{ runner.temp }}/hepta-ndu-build/build-receipt.json
+            ${{ runner.temp }}/hepta-ndu-target/debug/hia-ndu-bridge
+            ${{ runner.temp }}/hepta-ndu-build.stdout.log
+            ${{ runner.temp }}/hepta-ndu-build.stderr.log
+            ${{ runner.temp }}/hepta-recursive-ndu-build/
+            ${{ runner.temp }}/hepta-finite-ndu-build/
           if-no-files-found: warn

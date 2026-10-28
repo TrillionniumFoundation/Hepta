@@ -1,6 +1,6 @@
 """Actual Rust byte-owner execution against canonical Python operations/ledgers.
 
-This finite single-block shadow is not production admission or native LLVM
+These finite single-block fixtures are not production admission or native LLVM
 qualification. Every positive source passes the Python Core verifier first.
 """
 from __future__ import annotations
@@ -15,7 +15,7 @@ from hepta.hia_program import HIAProgramRejected, verify_program
 from hepta.hia_program_runtime import (
     HIAProgramBudgetExceeded, HIAProgramTrap, execute_program,
 )
-from tests.test_hia_program import b, c, f, i, m, ret, resource_program, joined_loan_program
+from tests.test_hia_program import b, c, f, i, m, ret, resource_program
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "rust" / "hia-core-shadow" / "Cargo.toml"
@@ -203,30 +203,32 @@ class RustByteOwnerVmParity(unittest.TestCase):
         bulk = resource_program()
         bulk["schema"] = "hepta.hia.program.v2"
         bulk["functions"][0]["blocks"][0]["ops"].insert(
-            2, i("buffer.fill", ["writer", "value"]))
+            2, i("buffer.fill.future", ["writer", "value"]))
         variants.append((bulk, "owned", [4, 7]))
-        recursive = resource_program()
-        recursive["functions"][0]["blocks"][0]["ops"].insert(
-            1, i("call", ["n", "value"], [("recursive", "u8")], function="owned"))
-        variants.append((recursive, "owned", [4, 7]))
+        # Additional functions and resource CFG/calls are now supported by
+        # bounded-cfg-byte-owner-v2, and bulk/chain operations by v3. Reject a genuinely unsupported
+        # operation in an uncalled private helper before executing the entry.
         hidden = resource_program()
+        hidden["schema"] = "hepta.hia.program.v2"
         hidden["exports"] = ["owned"]
-        hidden["functions"].append(f("hidden", [], [], [], [b("hidden_entry", [], [], ret())]))
+        hidden["functions"].append(f("hidden", [("view", "mutbuf"), ("byte", "u8")],
+                                    [], ["write"], [
+            b("hidden_entry", [("view", "mutbuf"), ("byte", "u8")],
+              [i("buffer.fill.future", ["view", "byte"])], ret())]))
         variants.append((hidden, "owned", [4, 7]))
-        variants.append((joined_loan_program(), "join", [True]))
         for source, entry, args in variants:
-            raw = verify_program(source).canonical_bytes
+            with self.assertRaises(HIAProgramRejected):
+                verify_program(source)
+            raw = json.dumps(source).encode()
             result = self.raw_run(raw, entry, args, fail=1)
             self.assertNotEqual(result.returncode, 0)
             self.assertTrue(result.stderr.startswith(b"E_HIA_RUST_UNSUPPORTED:"), result.stderr)
             self.assertEqual(result.stdout, b"")
-        chain = (ROOT / "examples/hia_recursive_chain/core_v7.json").read_bytes()
         nominal = (ROOT / "examples/hia_program/generic_owned_enum.hia").read_bytes()
         verify_program(nominal)
-        # Primitive chain reaches the execution profile and is unsupported;
-        # a raw nominal document is outside the existing strict Rust schema.
+        # A raw nominal document remains outside the strict Rust schema;
+        # canonical Python lowering is required before primitive execution.
         for raw, entry, error in (
-            (chain, "chain_probe", b"E_HIA_RUST_UNSUPPORTED:"),
             (nominal, "probe", b"E_HIA_FORMAT:"),
         ):
             result = self.raw_run(raw, entry, [])

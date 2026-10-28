@@ -8,6 +8,7 @@ import importlib.util
 import os
 from pathlib import Path
 import shutil
+import sys
 import tempfile
 import threading
 from types import SimpleNamespace
@@ -19,7 +20,10 @@ from hepta.hia_stateful import OwnedAdaptiveRuntime, _Work
 from tools.qualify_hia_stateful import programs, qualify, measure_fresh_deployment
 
 CLANG = os.environ.get("CLANG", "/usr/bin/clang-20")
-NATIVE = shutil.which(CLANG) and hasattr(fcntl, "F_SEAL_WRITE") and importlib.util.find_spec("z3") is not None
+NATIVE = (sys.platform == "linux" and shutil.which(CLANG) and hasattr(os, "memfd_create")
+          and importlib.util.find_spec("z3") is not None)
+# Missing Python seal constants do not justify skipping the actual Linux
+# runtime. Its fixed-UAPI sealing and loaded-mapping checks must pass readback.
 
 class OwnedProfileTests(unittest.TestCase):
     def test_near_zero_cost_policy_charges_commit_before_restore_decision(self):

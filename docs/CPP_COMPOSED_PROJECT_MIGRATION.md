@@ -20,6 +20,12 @@ resources exactly once in reverse construction order. Allocation refusal and
 exceptions during partial construction still clean up the successfully
 constructed fields.
 
+This fixture was authored for the finite project profile. Its complete source
+and declaration inventory is the acceptance denominator; it is not an upstream
+third-party C++ library. The separate complete `stb_divide.h` C component and
+its host qualification keep their own provenance and do not qualify this C++
+runtime or its native target.
+
 The compilation database has four commands: two source units in each of two
 macro configurations. The configurations change both the initialization mask
 and the arithmetic weight. They are captured, translated, compiled and executed
@@ -60,6 +66,34 @@ mangled symbols, binary exception ABI and arbitrary C++ binary compatibility
 are not preserved. Compatibility with an existing C++ binary would require an
 explicit reviewed boundary outside this profile.
 
+## Captured routes and version selection
+
+The public entry point captures every declared configuration before publishing
+one selected Core:
+
+```sh
+hepta hia import-cpp-composed-matrix examples/cpp/composed_project_migration/matrix.json \
+  --clangxx /path/to/clang++-20 --variant five_weight \
+  --output selected.core.json --report capture.json
+```
+
+`import-cpp-composed-project` accepts one captured compilation database. The
+existing leaf-owner profile uses `import-cpp-project` or `import-cpp-matrix`.
+Matrix routes require an exact declared `--variant`; all variants must verify,
+including those not selected for output. Project routes reject a matrix-only
+variant option. The report preserves every variant's Core digest and complete
+declaration dispositions, and records that capture itself executes no native
+program.
+
+These adapters finish at `hepta.hia_program.verify_program`. Their API rejects
+source, path, module, project-digest and Core-schema overrides before capture;
+other routes reject the capture-only compiler and variant options. The
+`--core-schema` option remains exclusive to `hia lower`, where the supported
+default source contract and explicit v8 returned-loan contract stay distinct.
+A captured document's actual Core version is verified and retained, never
+implicitly changed to grant another resource profile. Captured C++ by-value
+owner support does not authorize arbitrary v8 returned-loan source migration.
+
 ## Real native qualification
 
 Run:
@@ -95,3 +129,6 @@ source features.
 Finite native observations and source checking do not constitute a formal proof
 of general C++ equivalence. This gate makes no performance or universal memory
 safety claim and does not measure portability beyond the executed native target.
+The retained upstream experiment receipts describe their original source
+identities. A later integrated implementation requires its own execution
+evidence; old observations are not relabeled as a new source qualification.

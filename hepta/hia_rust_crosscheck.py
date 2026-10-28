@@ -140,8 +140,10 @@ def _validate_report(raw: bytes, profile: str, checked):
                      else "v7_chain_owner_loan_cfg_checked")
     expected_claims = {
         **(_SCALAR_CLAIMS if profile == "scalar" else _OWNED_CLAIMS),
-        version_claim: body["schema"] == "hepta.hia.program.v7",
+        version_claim: body["schema"] in {"hepta.hia.program.v7", "hepta.hia.program.v8"},
     }
+    if profile == "owned" and body["schema"] == "hepta.hia.program.v8":
+        expected_claims["explicit_parameter_returned_loan_checked"] = True
     _exact_keys(report["claims"], set(expected_claims), "shadow safety claims")
     for name, wanted in expected_claims.items():
         if report["claims"][name] is not wanted:
@@ -248,8 +250,9 @@ def crosscheck_rust_shadow(program, executable: str | Path, *, executable_sha256
     if type(timeout) not in (int, float) or not 0 < timeout <= 15:
         _reject("shadow subprocess timeout must be in (0, 15] seconds")
     checked = verify_program(program)
-    if checked.as_dict()["schema"] not in {f"hepta.hia.program.v{version}" for version in range(1, 8)}:
-        _reject("the pinned Rust shadow profiles support only primitive v1..v7")
+    maximum = 8 if profile == "owned" else 7
+    if checked.as_dict()["schema"] not in {f"hepta.hia.program.v{version}" for version in range(1, maximum + 1)}:
+        _reject(f"the pinned Rust {profile} shadow supports only primitive v1..v{maximum}")
     raw_exe = _verified_executable_bytes(Path(executable), executable_sha256)
     with tempfile.TemporaryDirectory(prefix="hepta-hia-rust-shadow-") as root:
         destination = Path(root) / "shadow"

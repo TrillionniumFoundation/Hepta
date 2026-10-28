@@ -172,12 +172,12 @@ class CompilerGraphBoundaryTests(unittest.TestCase):
         self.assertIsNone(arithmetic_choice(bundle, remaining_ns=1000 * MS, completion_ns=1))
 
 
-@unittest.skipUnless(os.environ.get("HEPTA_NDU_IDENTITY"), "requires a built original native NDU bridge")
+@unittest.skipUnless(os.environ.get("HEPTA_FINITE_NDU_IDENTITY") and os.environ.get("HEPTA_FINITE_NDU_BRIDGE"),
+                     "requires the separate finite-graph native source/tool profile")
 class NativeFiniteGraphTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        path = Path(os.environ["HEPTA_NDU_IDENTITY"])
-        cls.bridge = NduBridge(json.loads(path.read_bytes())["binary"], path)
+        cls.bridge = NduBridge.from_finite_environment()
 
     def test_original_ndu_plans_two_batches_then_replans_and_stops(self):
         request = fixture()
@@ -209,9 +209,10 @@ class NativeFiniteGraphTests(unittest.TestCase):
         self.assertTrue(any("HardConstraintViolation" in row["reasons"] for row in response["rejected"]))
 
 
-_IDENTITY = os.environ.get("HEPTA_NDU_IDENTITY")
+_IDENTITY = os.environ.get("HEPTA_FINITE_NDU_IDENTITY")
 _CLANG = os.environ.get("HEPTA_CLANG") or shutil.which("clang-20") or shutil.which("clang")
-_FULL_READY = bool(_IDENTITY and _CLANG and importlib.util.find_spec("z3"))
+_FULL_READY = bool(_IDENTITY and os.environ.get("HEPTA_FINITE_NDU_BRIDGE")
+                   and _CLANG and importlib.util.find_spec("z3"))
 
 
 @unittest.skipUnless(_FULL_READY, "requires original NDU identity, pinned Z3 and Clang for actual compiler graph")

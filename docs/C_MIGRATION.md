@@ -56,9 +56,11 @@ The database's compiler command is parsed as data; it is never executed through
 a shell. The explicitly selected Clang performs preprocessing and AST capture.
 Compiler wrappers, response files, plugin flags and unknown options are
 rejected. Accepted compile standards are explicit C99, C11 and C17. Includes
-and macro definitions are preserved; output, optimization and diagnostic flags
-that do not belong to this semantic frontend invocation are recorded with the
-reason for omission. Semantic options such as `-fwrapv` are not silently
+and macro definitions are preserved. Optimization, PIC, `-fno-builtin` and
+`-pedantic-errors` options remain ordered semantic inputs because driver flags
+can change preprocessing or function semantics. Supported output and diagnostic
+flags that do not belong to this semantic frontend invocation are recorded with
+the reason for omission. Semantic options such as `-fwrapv` are not silently
 discarded. Multiple configurations for one source must be qualified in separate
 complete database runs.
 
@@ -113,16 +115,17 @@ the overall bundle still has to pass the frontend and requested native gate.
 | C construct | Current handling |
 | --- | --- |
 | Scalar parameters and returns | Fixed-width integers, `size_t`, supported floats and bool, with captured C promotions and explicit conversions. |
-| Automatic locals | Require an initializer; mutable Hepta locals preserve reassignment. Shadowed source names receive distinct generated names. |
-| Control flow | `if`/`else`, `while`, explicit `for` initialization/condition/increment, return and expression statements. |
+| Automatic locals | Ordinary scalar locals require an initializer or a successful all-path definite-assignment check before an unobservable safe initializer is introduced. Pointer/record-view profiles retain separate initialization rules. Mutable Hepta locals preserve reassignment; shadowed source names receive distinct generated names. |
+| Control flow | `if`/`else`, `while`, `for` with optional initialization and mandatory condition/increment, lazy pure scalar conditional values, the separately admitted conditional-return slice profile, and supported statement-position comma sequencing. |
 | Function calls | Direct calls to definitions captured in the project; static functions receive per-unit names. Missing external implementations reject. |
 | Ordinary structs | Complete named records with supported value fields, generated `repr(C)`, field access and complete initialization. |
 | Integer arithmetic | Unsigned add/subtract/multiply use modular operations. Signed overflow is not given a new C-defined meaning; generated checked operations may fail outside C-defined inputs. |
 | Pointers with lengths | Explicit read or mutable slice contracts; safe-core indexing and a separately marked unsafe ABI bridge. |
+| Opt-in checked cursors | The record-view profile also accepts cursor-only modules with no records and complete slice contracts; local cursors are scalar offsets into borrowed storage. |
 | Allocation | One nonescaping byte owner with the exact guarded malloc/calloc pattern below. |
 
 Unsupported constructs reject rather than generating placeholders. These
-include uninitialized locals, arbitrary local pointers or arrays, pointer
+include locals that may be read before assignment, arbitrary local pointers or arrays, pointer
 arithmetic/reassignment, function pointers, variadics, unresolved external
 functions, static/thread-local/global storage, unions, packed/attributed or
 bitfield records, incomplete records, `goto`, `break`, `continue`, `switch`,
@@ -335,3 +338,28 @@ complete inventory, counts and elapsed times. Reviewable generated sources
 retain the upstream terms alongside them. These tests establish this finite
 qualification result; they do not prove all inputs equivalent, ownership
 inference for arbitrary void pointers, or broad low-cost library migration.
+
+## Generic musl comparison component
+
+The fixed musl 1.2.5 `memcmp.c` and `bcmp.c` component adds unchanged real
+upstream source with read-only byte cursors, an omitted loop initializer,
+sequenced comma increments and a lazy scalar conditional return. Its explicit
+platform adapters and four pointer annotations are separate from the 319 bytes
+of original algorithm source. Both complete functions and all five active
+declarations per configuration are translated. Actual GCC, Clang and generated
+Hepta native routes execute the same corpus under captured `-O0` and `-O2`
+component configurations.
+
+See [C_MUSL_COMPARE.md](C_MUSL_COMPARE.md) for provenance, exact acceptance
+denominators, retained resource/failure observations, refusals and reproduction.
+This gate covers the selected generic component on the executed host; it does
+not qualify the full libc, its architecture assembly, or standalone HIA LLVM
+slice lowering.
+
+## Complete six-function stb_divide library component
+
+The unchanged v0.94 single-header library is now translated in two complete
+macro configurations. The qualifier retains all original bytes, all 12 active
+declarations in each build, generated Hepta/HIA/native artifacts and actual C
+callers. See `C_STB_DIVIDE.md` for the separate source, AST, functional, resource,
+trap and platform denominators, including the actual C++ profile refusal.

@@ -34,6 +34,21 @@ destruction. Native work prevents borrowing, switching and destruction. Mutating
 a cell after submitting a queue invalidates that queue through its state
 revision. No unchecked alias escapes through the public API.
 
+Closing revokes the active image and driver callables before attempting native
+release. Loader references and file descriptors each receive at most one close
+attempt. A reported error may occur after release, so its outcome remains
+`unknown` in the detached cleanup snapshot and a numeric fd is never retried.
+Failed candidate cleanup also occupies the finite loaded-image budget. A closed
+dispatcher is therefore distinct from `owned_native_release_complete`.
+
+The owner is freed before unloading its driver, and the final native ledger is
+read and cached while the driver is still loaded. If owner free reports an
+unknown outcome, the runtime does not retry free or read that owner; it retains
+the driver reference and fd and records both pending capabilities. Repeated
+close and snapshots cannot invoke an unloaded driver. This owner adapter and
+its checked Python leases remain separate from HIA v8 Core returned Loans and
+from the scalar multiversion runtime's path-identity pin protocol.
+
 ## Total scalar code and deployment authority
 
 The owned adapter accepts one to sixteen pure scalar functions with one block

@@ -1,137 +1,151 @@
 #!/usr/bin/env python3
-"""Build the original private-ci NDU crates and bind source/tool/binary identity.
+"""Build the HIA transport against exact original NDU Rust source bytes.
 
-This script never edits the native crates or downloads a replacement evaluator.
-The standalone bridge lock is generated once; subsequent builds use --locked.
+The source checkout is read-only. A separate workspace excludes unrelated
+monorepo members and dev-only dependencies; all three production src trees
+are copied from the pinned Git object and independently inventoried.
 """
-
 from __future__ import annotations
 
 import argparse
-import hashlib
+from hashlib import sha256
+import io
 import json
 import os
 from pathlib import Path
-import resource
 import shutil
 import subprocess
-import time
+import tarfile
+import tomllib
+
+ROOT = Path(__file__).resolve().parents[1]
+ADAPTER = ROOT / "rust/hia-ndu-bridge"
 
 
-def run(argv: list[str], *, cwd: Path, env: dict[str, str]) -> str:
-    completed = subprocess.run(argv, cwd=cwd, env=env, text=True, capture_output=True)
-    if completed.returncode:
-        raise RuntimeError(f"{argv[0]} failed ({completed.returncode}):\n{completed.stderr}")
-    return completed.stdout.strip()
+def _quote(value):
+    return json.dumps(value)
 
 
-def source_inventory(root: Path, paths: list[Path]) -> tuple[str, dict[str, str]]:
-    inventory = {str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest()
-                 for path in sorted(set(paths))}
-    digest = hashlib.sha256(json.dumps(inventory, sort_keys=True,
-                                      separators=(",", ":")).encode()).hexdigest()
-    return digest, inventory
+def build(checkout, output, *, cargo="cargo"):
+    checkout, output = Path(checkout).resolve(), Path(output).resolve()
+    if output.exists():
+        raise ValueError("build output must be a new directory")
+    locked = json.loads((ADAPTER / "upstream.json").read_text())
+    commit = locked["commit"]
+    observed = subprocess.check_output(["git", "rev-parse", commit + "^{commit}"], cwd=checkout, text=True).strip()
+    if observed != commit:
+        raise ValueError("upstream commit identity mismatch")
+    paths = ["codex-rs/" + name for name in locked["crates"]]
+    archive = subprocess.check_output(["git", "archive", commit, *paths, "codex-rs/Cargo.toml"], cwd=checkout)
+    output.mkdir(parents=True)
+    inventory, original_manifests = {}, {}
+    with tarfile.open(fileobj=io.BytesIO(archive)) as package:
+        for item in package:
+            if not item.isfile():
+                if item.isdir():
+                    continue
+                raise ValueError("unsupported upstream archive member")
+            rel = Path(item.name)
+            if rel.is_absolute() or ".." in rel.parts or rel.parts[0] != "codex-rs":
+                raise ValueError("unsafe upstream archive path")
+            data = package.extractfile(item).read()
+            inventory[item.name] = sha256(data).hexdigest()
+            if item.name == "codex-rs/Cargo.toml":
+                upstream_workspace = tomllib.loads(data.decode())["workspace"]
+                continue
+            destination = output / Path(*rel.parts[1:])
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes(data)
+            if destination.name == "Cargo.toml" and len(rel.parts) == 3:
+                original_manifests[rel.parts[1]] = tomllib.loads(data.decode())
+    required = set()
+    for name, manifest in original_manifests.items():
+        # Original Rust source is unchanged; this manifest contains precisely
+        # the original production dependencies, not upstream dev/test targets.
+        lines = ["[package]", f"name = {_quote(manifest['package']['name'])}",
+                 'version = "0.0.0"', 'edition = "2024"', 'license = "Apache-2.0"',
+                 "autobins = false", "autotests = false", "autoexamples = false", "",
+                 "[lib]", f"name = {_quote(manifest['lib']['name'])}", 'path = "src/lib.rs"',
+                 "doctest = false", "", "[features]"]
+        for feature, values in manifest.get("features", {}).items():
+            lines.append(feature + " = " + json.dumps(values))
+        lines += ["", "[dependencies]"]
+        for dep, spec in manifest.get("dependencies", {}).items():
+            if "path" in spec:
+                lines.append(dep + " = { path = " + _quote(spec["path"]) + " }")
+            elif spec.get("workspace"):
+                required.add(dep)
+                extra = (", features = " + json.dumps(spec["features"])) if spec.get("features") else ""
+                lines.append(dep + " = { workspace = true" + extra + " }")
+            else:
+                raise ValueError("unreviewed upstream dependency specification")
+        (output/name/"Cargo.toml").write_text("\n".join(lines)+"\n")
+    workspace = ['[workspace]', 'resolver = "2"', 'members = ["hia-ndu-bridge", "hepta-ndu", "hepta-contracts", "hepta-types"]',
+                 '', '[workspace.dependencies]']
+    for dep in sorted(required):
+        spec = upstream_workspace["dependencies"][dep]
+        if isinstance(spec, str):
+            workspace.append(dep+" = "+_quote(spec))
+        elif set(spec) <= {"version", "features", "default-features"}:
+            fields = [key+" = "+json.dumps(value) for key,value in spec.items()]
+            workspace.append(dep+" = { "+", ".join(fields)+" }")
+        else:
+            raise ValueError("upstream non-registry dependency requires explicit review")
+    workspace += ['', '[profile.dev]', 'debug = 0', 'incremental = false']
+    (output/"Cargo.toml").write_text("\n".join(workspace)+"\n")
+    shutil.copytree(ADAPTER, output/"hia-ndu-bridge")
+    committed_lock = ADAPTER/"Cargo.lock"
+    if not committed_lock.is_file():
+        raise ValueError("a committed isolated Cargo.lock is required")
+    shutil.copy2(committed_lock, output/"Cargo.lock")
+    adapter_files = {str(p.relative_to(ADAPTER)): sha256(p.read_bytes()).hexdigest()
+                     for p in sorted(ADAPTER.rglob("*")) if p.is_file()}
+    # Include embedded fixtures and generated manifests, not just Rust src/.
+    build_inputs = {str(p.relative_to(output)): sha256(p.read_bytes()).hexdigest()
+                    for p in sorted(output.rglob("*")) if p.is_file()}
+    env = dict(os.environ, CARGO_INCREMENTAL="0", CARGO_PROFILE_DEV_DEBUG="0")
+    command = [cargo, "build", "--manifest-path", str(output/"Cargo.toml"), "-p", "hia-ndu-bridge", "--locked"]
+    subprocess.run(command, env=env, check=True)
+    binary = Path(env.get("CARGO_TARGET_DIR", output/"target"))/"debug/hia-ndu-bridge"
+    # Re-read every original non-manifest byte after the build, including
+    # include_str! fixtures, independently of the checkout and compiler.
+    for name, digest in inventory.items():
+        rel = Path(name)
+        replaced_manifest = (name == "codex-rs/Cargo.toml"
+                             or len(rel.parts) == 3 and rel.name == "Cargo.toml")
+        if not replaced_manifest and sha256((output/Path(*rel.parts[1:])).read_bytes()).hexdigest() != digest:
+            raise ValueError("upstream input changed during build")
+    for name, digest in build_inputs.items():
+        if sha256((output/name).read_bytes()).hexdigest() != digest:
+            raise ValueError("isolated build input changed during build")
+    for name, digest in adapter_files.items():
+        if sha256((ADAPTER/name).read_bytes()).hexdigest() != digest:
+            raise ValueError("adapter source changed during build")
+    report = {"schema":"hepta.hia.ndu-build.v1", "upstream":locked,
+              "original_source_files":inventory, "original_rust_sources_unchanged":True,
+              "all_original_non_manifest_inputs_unchanged":True,
+              "adapter_files":adapter_files, "build_inputs":build_inputs,
+              "build_inputs_unchanged":True, "locked_dependencies":True,
+              "isolated_production_manifests":True, "binary":str(binary),
+              "binary_sha256":sha256(binary.read_bytes()).hexdigest(),
+              "cargo_lock_sha256":sha256((output/"Cargo.lock").read_bytes()).hexdigest(),
+              "cargo_version":subprocess.check_output([cargo,"--version"],text=True).strip(),
+              "rustc_version":subprocess.check_output(["rustc","-vV"],text=True).strip(),
+              "builder_sha256":sha256(Path(__file__).read_bytes()).hexdigest(),
+              "build_environment":{k:env.get(k,"") for k in ("RUSTFLAGS","CARGO_ENCODED_RUSTFLAGS","CARGO_BUILD_TARGET")},
+              "production_activation":False}
+    (output/"build-receipt.json").write_text(json.dumps(report,indent=2)+"\n")
+    return report
 
 
-def build(args: argparse.Namespace) -> Path:
-    started, cpu = time.monotonic_ns(), time.process_time_ns()
-    children = resource.getrusage(resource.RUSAGE_CHILDREN)
-    root = args.ndu_source.resolve(strict=True)
-    bridge = root / "tools/hia-ndu-bridge"
-    output = args.output.resolve()
-    output.mkdir(parents=True, exist_ok=True)
-    target = args.target_dir.resolve() if getattr(args, "target_dir", None) else output / "target"
-    target_preexisting = target.exists()
-    cargo = str(args.cargo.resolve(strict=True))
-    rustc = str(args.rustc.resolve(strict=True))
-    env = dict(os.environ)
-    env["RUSTC"] = rustc
-    env["CARGO_TARGET_DIR"] = str(target)
-    if args.cargo_home:
-        env["CARGO_HOME"] = str(args.cargo_home.resolve())
-    env["PATH"] = os.pathsep.join([str(Path(cargo).parent), str(Path(rustc).parent), env.get("PATH", "")])
-    commit = run(["git", "rev-parse", "HEAD"], cwd=root, env=env)
-    if args.expected_source and commit != args.expected_source:
-        raise RuntimeError("source commit differs from the requested pin")
-    compiler = run([rustc, "--version"], cwd=root, env=env)
-    if not (bridge / "Cargo.lock").exists():
-        command = [cargo, "generate-lockfile", "--manifest-path", str(bridge / "Cargo.toml")]
-        if args.offline:
-            command.append("--offline")
-        run(command, cwd=bridge, env=env)
-    native_paths = [root / "codex-rs/Cargo.toml"]
-    for name in ("hepta-ndu", "hepta-types", "hepta-contracts"):
-        crate = root / "codex-rs" / name
-        native_paths.append(crate / "Cargo.toml")
-        native_paths.extend((crate / "src").rglob("*.rs"))
-    native_digest, native_inventory = source_inventory(root, native_paths)
-    bridge_paths = [bridge / "Cargo.toml", bridge / "Cargo.lock", *(bridge / "src").rglob("*.rs")]
-    bridge_digest, bridge_inventory = source_inventory(root, bridge_paths)
-    env.update(HEPTA_NDU_SOURCE_COMMIT=commit, HEPTA_NDU_SOURCE_DIGEST=native_digest,
-               HEPTA_NDU_BRIDGE_DIGEST=bridge_digest, HEPTA_NDU_RUSTC=compiler)
-    command = [cargo, "build", "--release", "--locked", "--manifest-path", str(bridge / "Cargo.toml")]
-    if args.offline:
-        command.append("--offline")
-    run(command, cwd=bridge, env=env)
-    name = "hepta-hia-ndu-bridge.exe" if os.name == "nt" else "hepta-hia-ndu-bridge"
-    built_binary = target / "release" / name
-    built_sha256 = hashlib.sha256(built_binary.read_bytes()).hexdigest()
-    binary = built_binary
-    if target != output / "target":
-        # A caller may place reproducible Cargo cache in temporary storage. Keep
-        # the admitted executable in the durable output and bind both copies.
-        binary = output / "native" / name
-        binary.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(built_binary, binary)
-        binary.chmod(0o755)
-        if hashlib.sha256(binary.read_bytes()).hexdigest() != built_sha256:
-            raise RuntimeError("published executable differs from the Cargo output")
-    identity = json.loads(run([str(binary), "--identity"], cwd=bridge, env=env))
-    if identity.get("source_digest") != native_digest or identity.get("bridge_digest") != bridge_digest:
-        raise RuntimeError("built executable has stale source identity")
-    # Detect concurrent source changes while Cargo was compiling.
-    if source_inventory(root, native_paths)[0] != native_digest or source_inventory(root, bridge_paths)[0] != bridge_digest:
-        raise RuntimeError("source changed during compilation")
-    manifest = {"schema": "hepta.hia.ndu.build.v1", "binary": str(binary),
-                "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(),
-                "identity": identity, "native_sources": native_inventory,
-                "bridge_sources": bridge_inventory, "build_command": command,
-                "cargo_target_dir": str(target), "built_binary": str(built_binary),
-                "built_binary_sha256": built_sha256,
-                "build_tools": {"builder_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-                                "cargo_sha256": hashlib.sha256(Path(cargo).read_bytes()).hexdigest(),
-                                "rustc_sha256": hashlib.sha256(Path(rustc).read_bytes()).hexdigest()},
-                "native_source_repository": "https://github.com/TrillionniumFoundation/hepta-private-ci",
-                "authority": "DENY_ALL", "safety_certificate": False}
-    after_children = resource.getrusage(resource.RUSAGE_CHILDREN)
-    manifest["build_cost"] = {
-        "wall_ns": time.monotonic_ns() - started,
-        "parent_cpu_ns": time.process_time_ns() - cpu,
-        "child_cpu_ns": round(1e9 * ((after_children.ru_utime - children.ru_utime) +
-                                      (after_children.ru_stime - children.ru_stime))),
-        "target_cache": "existing" if target_preexisting else "empty",
-        "dependency_cache": "caller supplied; downloads charged if incurred",
-        "scope": "source admission, inventory, cargo, binary admission; excludes this manifest write and process startup",
-        "fully_cold_machine_claim": False,
-    }
-    target = output / "identity.json"
-    target.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
-    return target
-
-
-def main() -> None:
+def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--ndu-source", type=Path, required=True)
-    parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--target-dir", type=Path,
-                        help="optional reproducible Cargo cache; admitted binary is copied into output/native")
-    parser.add_argument("--cargo", type=Path, required=True)
-    parser.add_argument("--rustc", type=Path, required=True)
-    parser.add_argument("--cargo-home", type=Path)
-    parser.add_argument("--expected-source")
-    parser.add_argument("--offline", action="store_true")
+    parser.add_argument("--upstream",required=True,type=Path)
+    parser.add_argument("--output",required=True,type=Path)
+    parser.add_argument("--cargo",default="cargo")
     args = parser.parse_args()
-    print(build(args))
+    result = build(args.upstream,args.output,cargo=args.cargo)
+    print(json.dumps({key:result[key] for key in ("binary","binary_sha256","original_rust_sources_unchanged")},indent=2))
 
 
 if __name__ == "__main__":

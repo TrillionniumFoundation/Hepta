@@ -1,4 +1,4 @@
-//! Conservative Rust shadow of HIA v1-v7 Owner/Loan control-flow semantics.
+//! Conservative Rust shadow of HIA v1-v8 Owner/Loan control-flow semantics.
 //! Python verify_program is the sole executable admission authority.
 //! This shadow checks finite byte/chain ownership and borrowed-head loans,
 //! not dynamic heap correctness, arbitrary pointer provenance, native LLVM,
@@ -39,12 +39,17 @@ fn params(v: &Value) -> R<Vec<Param>> {
     Ok(out)
 }
 #[derive(Clone, PartialEq, Eq)]
-struct Cap { ty: String, root: String, parent: Option<String>, external: bool }
+struct Cap {
+    ty: String, root: String, parent: Option<String>, external: bool,
+    // Entry parameter identity, never replaced by a CFG's SSA spelling.
+    origin: Option<String>,
+}
 type Caps = BTreeMap<String, Cap>;
 #[derive(Clone)]
 struct FunctionSig {
     params: Vec<Param>,
     returns: Vec<String>,
+    return_origins: Vec<Option<String>>,
     effects: BTreeSet<String>,
 }
 struct Flow {
@@ -107,6 +112,7 @@ impl Flow {
             return failure("E_HIA_LOAN", "invalid loan permission");
         }
         let root = self.cap(name)?.root.clone();
+        let origin = self.cap(name)?.origin.clone();
         let mut ancestors = BTreeSet::from([name.to_owned()]);
         let mut parent = self.cap(name)?.parent.clone();
         while let Some(n) = parent {
@@ -123,7 +129,7 @@ impl Flow {
         }
         self.caps.insert(output.into(), Cap {
             ty: if mutable { "mutbuf" } else { "readbuf" }.into(),
-            root, parent: Some(name.into()), external: false,
+            root, parent: Some(name.into()), external: false, origin,
         });
         Ok(())
     }
@@ -359,13 +365,13 @@ impl Flow {
             "buffer.new" | "buffer.try_new" => {
                 let n = output[0].name.clone();
                 self.caps.insert(n.clone(), Cap {
-                    ty: "buffer".into(), root: n, parent: None, external: false,
+                    ty: "buffer".into(), root: n, parent: None, external: false, origin: None,
                 });
             }
             "chain.empty" => {
                 let n = output[0].name.clone();
                 self.caps.insert(n.clone(), Cap {
-                    ty: "chain".into(), root: n, parent: None, external: false,
+                    ty: "chain".into(), root: n, parent: None, external: false, origin: None,
                 });
             }
             "chain.try_push" | "chain.pop" => {
@@ -374,7 +380,7 @@ impl Flow {
                     if is_owner(&p.ty) {
                         self.caps.insert(p.name.clone(), Cap {
                             ty: p.ty.clone(), root: p.name.clone(), parent: None,
-                            external: false,
+                            external: false, origin: None,
                         });
                     }
                 }
@@ -390,19 +396,30 @@ impl Flow {
                 self.caps.remove(&args[0]);
                 let n = output[0].name.clone();
                 self.caps.insert(n.clone(), Cap {
-                    ty: actual[0].into(), root: n, parent: None, external: false,
+                    ty: actual[0].into(), root: n, parent: None, external: false, origin: None,
                 });
             }
             "call" => {
                 for (name, ty) in args.iter().zip(actual.iter()) {
                     if is_owner(ty) { self.caps.remove(name); }
                 }
-                for p in &output {
+                let callee = ident(&o["attrs"]["function"])?;
+                let sig = &signatures[&callee];
+                for (index, p) in output.iter().enumerate() {
                     if is_owner(&p.ty) {
                         self.caps.insert(p.name.clone(), Cap {
                             ty: p.ty.clone(), root: p.name.clone(), parent: None,
-                            external: false,
+                            external: false, origin: None,
                         });
+                    } else if matches!(p.ty.as_str(), "readbuf" | "mutbuf") {
+                        let origin = sig.return_origins[index].as_ref().ok_or_else(|| VerifyError {
+                            code: "E_HIA_LOAN", detail: "borrowed return requires origin".into()
+                        })?;
+                        let position = sig.params.iter().position(|p| &p.name == origin)
+                            .ok_or_else(|| VerifyError {
+                                code: "E_HIA_LOAN", detail: "unknown returned-loan origin".into()
+                            })?;
+                        self.borrow(&args[position], &p.name, p.ty == "mutbuf", false)?;
                     }
                 }
             }
@@ -411,6 +428,7 @@ impl Flow {
         Ok(())
     }
     fn finish(&mut self, term: &Value, results: &[String],
+              return_origins: &[Option<String>],
               declared: &BTreeSet<String>) -> R<()> {
         let op = string(&term["op"], "terminator")?;
         if op == "branch" && self.ty(&ident(&term["cond"])?)? != "bool" {
@@ -430,6 +448,21 @@ impl Flow {
                 }
             }
             for n in consumed { self.caps.remove(&n); }
+            for (index, (n, t)) in vals.iter().zip(&types).enumerate() {
+                if matches!(t.as_str(), "readbuf" | "mutbuf") {
+                    let cap = self.cap(n)?.clone();
+                    let root = self.cap(&cap.root)?;
+                    let origin = return_origins[index].as_ref();
+                    if !root.external || cap.origin.as_ref() != origin ||
+                        root.origin.as_ref() != origin ||
+                        !(cap.parent.is_none() || cap.parent.as_deref() == Some(cap.root.as_str())) {
+                        return failure("E_HIA_LOAN", "returned loan must directly derive from declared borrowed parameter");
+                    }
+                    self.access(n, t == "mutbuf")?;
+                    if !cap.external { self.caps.remove(n); }
+                    self.required.insert("read".into());
+                }
+            }
             if self.caps.values().any(|c| !c.external) {
                 return failure("E_HIA_RESOURCE", "normal return leaks local resource");
             }
@@ -474,13 +507,59 @@ impl Flow {
             };
             caps.insert(p.name.clone(), Cap {
                 ty: cap.ty.clone(), root: root.clone(), parent, external: cap.external,
+                origin: cap.origin.clone(),
             });
         }
         Ok(caps)
     }
 }
+fn function_object(f: &Value, version: u8) -> R<&serde_json::Map<String, Value>> {
+    let fields: &[&str] = if version >= 8 && f.get("return_origins").is_some() {
+        &["name", "params", "returns", "return_origins", "effects", "entry", "blocks"]
+    } else { &["name", "params", "returns", "effects", "entry", "blocks"] };
+    object(f, fields, "function")
+}
+
+fn returned_origins(f: &Value, formal: &[Param], results: &[String], version: u8)
+    -> R<Vec<Option<String>>> {
+    let views = results.iter().filter(|t| matches!(t.as_str(), "readbuf" | "mutbuf")).count();
+    if (views > 0 && version < 8) || views > 1 ||
+        (views > 0 && results.iter().any(|t| is_owner(t))) {
+        return failure("E_HIA_LOAN", "unsupported borrowed return signature");
+    }
+    let origins = match f.get("return_origins") {
+        None => vec![Value::Null; results.len()],
+        Some(v) => array(v, "return origins")?.to_vec(),
+    };
+    if origins.len() != results.len() {
+        return failure("E_HIA_LOAN", "return origins must match results");
+    }
+    let mut out = Vec::new();
+    for (t, origin) in results.iter().zip(origins.iter()) {
+        if matches!(t.as_str(), "readbuf" | "mutbuf") {
+            let Some(name) = origin.as_str() else {
+                return failure("E_HIA_LOAN", "borrowed return requires explicit parameter origin");
+            };
+            let Some(p) = formal.iter().find(|p| p.name == name) else {
+                return failure("E_HIA_LOAN", "unknown returned-loan origin");
+            };
+            if !matches!(p.ty.as_str(), "readbuf" | "mutbuf") ||
+                (t == "mutbuf" && p.ty != "mutbuf") {
+                return failure("E_HIA_LOAN", "returned-loan origin permission mismatch");
+            }
+            out.push(Some(name.into()));
+        } else {
+            if !origin.is_null() {
+                return failure("E_HIA_LOAN", "non-loan result cannot declare borrowed origin");
+            }
+            out.push(None);
+        }
+    }
+    Ok(out)
+}
+
 fn check_function(f: &Value, version: u8, signatures: &BTreeMap<String, FunctionSig>) -> R<usize> {
-    let function = object(f, &["name", "params", "returns", "effects", "entry", "blocks"], "function")?;
+    let function = function_object(f, version)?;
     let n = ident(&function["name"])?;
     if matches!(n.as_str(), "abort"|"calloc"|"malloc"|"free"|"memcpy"|"memmove"|"memset") {
         return failure("E_HIA_NAME", "reserved native symbol");
@@ -489,12 +568,13 @@ fn check_function(f: &Value, version: u8, signatures: &BTreeMap<String, Function
     let mut results = Vec::new();
     for v in array(&function["returns"], "returns")? {
         let t = valid_type(v)?;
-        if matches!(t.as_str(), "readbuf"|"mutbuf") {
+        if version < 8 && matches!(t.as_str(), "readbuf"|"mutbuf") {
             return failure("E_HIA_LOAN", "escaping loan unsupported");
         }
         results.push(t);
     }
     let declared = effects(&function["effects"])?;
+    let origins = &signatures[&n].return_origins;
     let entry = ident(&function["entry"])?;
     let blocks = array(&function["blocks"], "blocks")?;
     if blocks.is_empty() || blocks.len() > super::MAX_BLOCKS {
@@ -563,7 +643,8 @@ fn check_function(f: &Value, version: u8, signatures: &BTreeMap<String, Function
     let initial: Caps = formal.iter().filter(|p| is_cap(&p.ty))
         .map(|p| (p.name.clone(), Cap {
             ty: p.ty.clone(), root: p.name.clone(),
-            parent: None, external: !is_owner(&p.ty)
+            parent: None, external: !is_owner(&p.ty),
+            origin: (version >= 8 && !is_owner(&p.ty)).then(|| p.name.clone()),
         })).collect();
     let mut incoming: BTreeMap<String, Caps> = BTreeMap::from([(entry.clone(), initial)]);
     let mut pending = VecDeque::from([entry]);
@@ -575,7 +656,7 @@ fn check_function(f: &Value, version: u8, signatures: &BTreeMap<String, Function
         for instr in array(&b["ops"], "operations")? {
             flow.instr(instr, version, signatures)?;
         }
-        flow.finish(&b["term"], &results, &declared)?;
+        flow.finish(&b["term"], &results, origins, &declared)?;
         for e in term_edges(&b["term"])? {
             let new = flow.forward(&e.args, &ps[&e.target])?;
             if let Some(prior) = incoming.get(&e.target) {
@@ -603,7 +684,7 @@ pub(super) fn verify_owned(input: &[u8]) -> R<Value> {
     if !matches!(schema, "hepta.hia.program.v1" | "hepta.hia.program.v2" |
         "hepta.hia.program.v3" | "hepta.hia.program.v4" |
         "hepta.hia.program.v5" | "hepta.hia.program.v6" |
-        "hepta.hia.program.v7") {
+        "hepta.hia.program.v7" | "hepta.hia.program.v8") {
         return failure("E_HIA_SCHEMA", "unsupported/ambiguous ISA version");
     }
     let version = match schema {
@@ -614,6 +695,7 @@ pub(super) fn verify_owned(input: &[u8]) -> R<Value> {
         "hepta.hia.program.v5" => 5,
         "hepta.hia.program.v6" => 6,
         "hepta.hia.program.v7" => 7,
+        "hepta.hia.program.v8" => 8,
         _ => return failure("E_HIA_SCHEMA", "unsupported ISA version"),
     };
     ident(&top["module"])?;
@@ -623,7 +705,7 @@ pub(super) fn verify_owned(input: &[u8]) -> R<Value> {
     }
     let mut signatures = BTreeMap::<String, FunctionSig>::new();
     for f in fs {
-        let obj = object(f, &["name", "params", "returns", "effects", "entry", "blocks"], "function")?;
+        let obj = function_object(f, version)?;
         let n = ident(&obj["name"])?;
         let args = params(&obj["params"])?;
         for p in &args { check_chain_type(version, &p.ty)?; }
@@ -631,13 +713,14 @@ pub(super) fn verify_owned(input: &[u8]) -> R<Value> {
         for t in array(&obj["returns"], "call return types")? {
             let ty = valid_type(t)?;
             check_chain_type(version, &ty)?;
-            if matches!(ty.as_str(), "readbuf" | "mutbuf") {
+            if version < 8 && matches!(ty.as_str(), "readbuf" | "mutbuf") {
                 return failure("E_HIA_LOAN", "callee may not return borrowed view");
             }
             returns.push(ty);
         }
         let effects = effects(&obj["effects"])?;
-        if signatures.insert(n, FunctionSig { params: args, returns, effects }).is_some() {
+        let return_origins = returned_origins(f, &args, &returns, version)?;
+        if signatures.insert(n, FunctionSig { params: args, returns, return_origins, effects }).is_some() {
             return failure("E_HIA_NAME", "duplicate function");
         }
     }
@@ -662,7 +745,7 @@ pub(super) fn verify_owned(input: &[u8]) -> R<Value> {
         count += check_function(f, version, &signatures)?;
     }
     let digest = Sha256::digest(&canonical);
-    Ok(json!({
+    let mut report = json!({
         "schema": "hepta.hia.rust-owner-shadow.v1",
         "ok": true,
         "program_sha256": format!("{digest:x}"),
@@ -672,7 +755,7 @@ pub(super) fn verify_owned(input: &[u8]) -> R<Value> {
             "cross_block_owner_loan_state_checked": true,
             "v2_v6_bulk_byte_opcode_types_loans_and_effects_checked": true,
             "interprocedural_resource_calls_checked": true,
-            "v7_chain_owner_loan_cfg_checked": version == 7,
+            "v7_chain_owner_loan_cfg_checked": version >= 7,
             "v7_chain_native_semantics_proved": false,
             "recursion_or_stack_bounds_proved": false,
             "general_memory_provenance_proved": false,
@@ -682,5 +765,9 @@ pub(super) fn verify_owned(input: &[u8]) -> R<Value> {
             "native_execution_qualified": false,
             "rust_is_production_admission_authority": false
         }
-    }))
+    });
+    if version >= 8 {
+        report["claims"]["explicit_parameter_returned_loan_checked"] = json!(true);
+    }
+    Ok(report)
 }

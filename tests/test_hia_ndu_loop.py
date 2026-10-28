@@ -37,19 +37,21 @@ class LoopBoundaryTests(unittest.TestCase):
             self.assertEqual(list(root.rglob("*.so")), [])
 
 
-_IDENTITY = os.environ.get("HEPTA_NDU_IDENTITY")
+_IDENTITY = os.environ.get("HEPTA_RECURSIVE_NDU_IDENTITY")
+_BRIDGE = os.environ.get("HEPTA_RECURSIVE_NDU_BRIDGE")
 _CLANG = os.environ.get("HEPTA_CLANG") or shutil.which("clang-20") or shutil.which("clang")
-_READY = bool(_IDENTITY and _CLANG and importlib.util.find_spec("z3"))
+_READY = bool(_IDENTITY and _BRIDGE and _CLANG and importlib.util.find_spec("z3"))
 
 
-@unittest.skipUnless(_READY, "requires HEPTA_NDU_IDENTITY, Z3 and Clang for actual native execution")
+@unittest.skipUnless(_READY, "requires recursive NDU identity/binary, Z3 and Clang for actual native execution")
 class NativeFiniteLoopTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.temporary = tempfile.TemporaryDirectory()
         cls.root = Path(cls.temporary.name) / "run"
         cls.protocol = dict(PROTOCOL, groups=1, calls=31, training_sizes=[7, 19], holdout_sizes=[11])
-        cls.result = qualify(cls.root, identity=_IDENTITY, clang=_CLANG, protocol=cls.protocol)
+        cls.result = qualify(cls.root, identity=_IDENTITY, executable=_BRIDGE,
+                             clang=_CLANG, protocol=cls.protocol)
         cls.bank = json.loads((cls.root / "BANK.json").read_bytes())
         cls.faults = json.loads((cls.root / "FAULTS.json").read_bytes())
 
@@ -96,8 +98,7 @@ class NativeFiniteLoopTests(unittest.TestCase):
         admission = row["current_candidate_admission"]
         first = dict(row["initial"], outer_wall_ns=4_280_000)
         observed = deepcopy(row["forecast"]["support_evidence"]["completed_steps"])
-        manifest = json.loads(Path(_IDENTITY).read_bytes())
-        bridge = NduBridge(manifest["binary"], _IDENTITY)
+        bridge = NduBridge.from_environment()
         requests, responses = [], []
         # This is a protocol regression, not a performance measurement: only a
         # past cost changes; the current code, future estimates and budget agree.

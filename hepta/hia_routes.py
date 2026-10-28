@@ -25,7 +25,7 @@ _CPP_ROUTES = frozenset({"cpp-project", "cpp-matrix", "cpp-composed-project", "c
 def route_inventory():
     """Detached, versioned route metadata, including explicit nonroutes."""
     inputs = [
-        {"route": "standalone-hia", "input": "primitive v1-v7 / composite v1-v2",
+        {"route": "standalone-hia", "input": "primitive v1-v8 / composite v1-v2",
          "adapter": "hepta.hia_program.verify_program", "admission": "supported",
          "origin_required": False},
         {"route": "hepta-source", "input": "checked finite Hepta source profile",
@@ -73,7 +73,7 @@ def route_inventory():
         {"backend": "interpreter", "entry": "hepta.core.execute_core", "same_standalone_core": True,
          "scope": "reverified values, traps, effects and resource CFG; evaluator budgets separate"},
         {"backend": "direct-llvm", "entry": "hepta.core.build_core", "same_standalone_core": True,
-         "scope": "x86-64 Linux shared/object; AArch64/RV64 objects require separate execution qualification"},
+         "scope": "x86-64 Linux shared/object through v8; AArch64/RV64 v1-v7 objects require separate execution qualification; v8 rejects on those targets"},
         {"backend": "rust-shadow", "entry": "hepta.hia_rust_crosscheck.crosscheck_rust_shadow",
          "same_standalone_core": "finite profile only", "scope": "independent comparison, never deployment authority"},
         {"backend": "legacy-rust", "entry": "hepta.backend", "same_standalone_core": False,
@@ -92,6 +92,33 @@ def route_inventory():
     ]
     result = {"schema": "hepta.hia.routes.v1", "inputs": inputs, "source_languages": sources,
               "historical_ir": historical, "backends": backends, "versions": schema_registry(),
+              "optimization_profiles": [
+                  {"command": "verify-translation", "checker": "hepta.hia_translation_validation.validate_translation",
+                   "scope": "selected public scalar function; full acyclic values and first traps",
+                   "success": "proved", "other_outcomes": ["disproved", "unknown"],
+                   "resource_or_call_rewrites": False, "receipt_grants_admission": False},
+                  {"command": "verify-optimization", "checker": "hepta.hia_optimization.verify_optimization",
+                   "scope": "whole module; unchanged CFG, interfaces and ordered resource/call skeleton",
+                   "success": "verified", "other_outcomes": ["rejected", "unknown", "timeout"],
+                   "resource_or_call_rewrites": False, "receipt_grants_admission": False},
+                  {"command": "fold-constants", "proposal": "whole-module constant folding",
+                   "verification_command": "verify-optimization", "native_ndu": False,
+                   "publication": "checked Core only; explicit output path"},
+                  {"command": "optimize", "proposal": "finite selected-function recipes",
+                   "verification_command": "verify-translation", "native_ndu": True,
+                   "publication": "decision and selected Core; no native publication"},
+                  {"command": "build-optimized", "verification_command": "verify-optimization",
+                   "publication": "fresh checked native artifact bound to actual source and target"},
+                  {"command": "verify-guarded", "checker": "hepta.hia_guarded_optimization.verify_guarded_optimization",
+                   "scope": "inductively proved guarded reduction and complete original fallback",
+                   "success": "verified", "other_outcomes": ["rejected", "unknown", "timeout"],
+                   "resource_or_call_rewrites": False, "receipt_grants_admission": False},
+                  {"command": "optimize-guarded", "proposal": "bounded counted-byte reduction with explicit guard",
+                   "verification_command": "verify-guarded", "native_ndu": False,
+                   "publication": "checked proposal only; explicit output path"},
+                  {"command": "build-guarded", "verification_command": "verify-guarded",
+                   "publication": "fresh guarded native artifact with complete original fallback"},
+              ],
               "optimizations": optimizations,
               "authority": "hepta.hia_program.verify_program",
               "claims": {"implicit_fallback_allowed": False, "all_source_languages_implemented": False,
@@ -139,14 +166,16 @@ def admit_captured_cpp(route, payload, *, clangxx="clang++", variant=None):
 
 
 def admit_route(route, payload, *, source=None, path=None, project_sha256=None, module=None,
-                clangxx=None, variant=None):
+                core_schema=None, clangxx=None, variant=None):
     """Perform the named import and reverify the resulting actual operations."""
     if route in _CPP_ROUTES:
-        if any(value is not None for value in (source, path, project_sha256, module)):
-            raise RouteRejected("E_HIA_ROUTE_CONTEXT: capture accepts no origin override")
+        if any(value is not None for value in (source, path, project_sha256, module, core_schema)):
+            raise RouteRejected("E_HIA_ROUTE_CONTEXT: capture accepts no origin or Core schema override")
         return admit_captured_cpp(route, payload, clangxx=clangxx or "clang++", variant=variant)[0]
     if route not in _ADMITTED:
         raise RouteRejected("E_HIA_ROUTE_UNSUPPORTED: no executable adapter for " + str(route))
+    if core_schema is not None and route != "hepta-source":
+        raise RouteRejected("E_HIA_ROUTE_CONTEXT: a source Core schema cannot override submitted or historical bytes")
     if clangxx is not None or variant is not None:
         raise RouteRejected("E_HIA_ROUTE_CONTEXT: capture options require a captured C++ route")
     if route == "standalone-hia":
@@ -158,7 +187,8 @@ def admit_route(route, payload, *, source=None, path=None, project_sha256=None, 
             raise RouteRejected("E_HIA_ROUTE_CONTEXT: source text must be the payload")
         from .hia_program_source import lower_source
         text = payload.decode("utf-8") if isinstance(payload, bytes) else payload
-        program = lower_source(text, path=path or "<hia-route-source>", module=module)
+        options = {} if core_schema is None else {"core_schema": core_schema}
+        program = lower_source(text, path=path or "<hia-route-source>", module=module, **options)
     elif route == "legacy-composite-v2":
         if any(value is not None for value in (source, path, project_sha256, module)):
             raise RouteRejected("E_HIA_ROUTE_CONTEXT: nominal adapter accepts only its explicit document")

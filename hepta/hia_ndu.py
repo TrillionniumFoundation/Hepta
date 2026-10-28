@@ -19,6 +19,12 @@ from typing import Any
 Q32 = 1 << 32
 REQUEST_SCHEMA = "hepta.hia.ndu.request.v1"
 MAX_REQUEST_BYTES = 1_048_576
+RECURSIVE_BRIDGE_ENV = "HEPTA_RECURSIVE_NDU_BRIDGE"
+RECURSIVE_IDENTITY_ENV = "HEPTA_RECURSIVE_NDU_IDENTITY"
+FINITE_BRIDGE_ENV = "HEPTA_FINITE_NDU_BRIDGE"
+FINITE_IDENTITY_ENV = "HEPTA_FINITE_NDU_IDENTITY"
+FINITE_SOURCE_PIN = "4b6391e116949af0c7e59776baead67271856bdb"
+FINITE_RUSTC_VERSION = "1.95.0"
 
 
 class NduBridgeError(ValueError):
@@ -267,6 +273,49 @@ class NduBridge:
     The identity manifest is a locally trusted build input. Hash checks detect
     drift; they do not provide remote attestation or defend a hostile build host.
     """
+
+    @classmethod
+    def from_environment(cls, *, timeout: float = 10.0):
+        """Load only the explicitly configured recursive protocol and identity.
+
+        The candidate-ranking bridge has a different protocol and build receipt.
+        Its HEPTA_NDU_* variables are deliberately not fallback configuration.
+        """
+        executable = os.environ.get(RECURSIVE_BRIDGE_ENV)
+        manifest = os.environ.get(RECURSIVE_IDENTITY_ENV)
+        if not executable or not manifest:
+            raise NduBridgeError(
+                f"{RECURSIVE_BRIDGE_ENV} and {RECURSIVE_IDENTITY_ENV} are required")
+        return cls(executable, manifest, timeout=timeout)
+
+    @classmethod
+    def for_finite_profile(cls, executable: str | os.PathLike[str],
+                           identity_manifest: str | os.PathLike[str], *, timeout: float = 10.0):
+        """Admit the separately pinned finite-graph source/tool profile.
+
+        Its dotted wire schema is shared with the older recursive bridge, but
+        sharing a schema does not make their source or compiler identities
+        interchangeable. This check adds no proof or deployment authority.
+        """
+        manifest = _read_json(Path(identity_manifest).resolve(strict=True).read_bytes())
+        identity = manifest.get("identity", {})
+        if (manifest.get("schema") != "hepta.hia.ndu.build.v1" or not isinstance(identity, dict)
+                or identity.get("source_commit") != FINITE_SOURCE_PIN
+                or not str(identity.get("rustc", "")).startswith(f"rustc {FINITE_RUSTC_VERSION} ")):
+            raise NduBridgeError("finite NDU requires its exact source pin and Rust 1.95.0 build identity")
+        bridge = cls(executable, identity_manifest, timeout=timeout)
+        if bridge.manifest != manifest:
+            raise NduBridgeError("finite NDU build identity changed during admission")
+        return bridge
+
+    @classmethod
+    def from_finite_environment(cls, *, timeout: float = 10.0):
+        """Use only the finite pair, with no ranking, recursive or legacy fallback."""
+        executable = os.environ.get(FINITE_BRIDGE_ENV)
+        manifest = os.environ.get(FINITE_IDENTITY_ENV)
+        if not executable or not manifest:
+            raise NduBridgeError(f"{FINITE_BRIDGE_ENV} and {FINITE_IDENTITY_ENV} are required")
+        return cls.for_finite_profile(executable, manifest, timeout=timeout)
 
     def __init__(self, executable: str | os.PathLike[str],
                  identity_manifest: str | os.PathLike[str], *, timeout: float = 10.0):

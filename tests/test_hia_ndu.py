@@ -37,14 +37,15 @@ def request(*plans):
             "candidates": [plan("abstain", [0]), *plans]}
 
 
-@unittest.skipUnless(os.environ.get("HEPTA_NDU_IDENTITY"),
-                     "set HEPTA_NDU_IDENTITY to run real native NDU integration")
+@unittest.skipUnless(os.environ.get("HEPTA_RECURSIVE_NDU_IDENTITY")
+                     and os.environ.get("HEPTA_RECURSIVE_NDU_BRIDGE"),
+                     "set HEPTA_RECURSIVE_NDU_IDENTITY and HEPTA_RECURSIVE_NDU_BRIDGE for native recursion")
 class NativeNduIntegrationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.manifest_path = Path(os.environ["HEPTA_NDU_IDENTITY"])
+        cls.manifest_path = Path(os.environ["HEPTA_RECURSIVE_NDU_IDENTITY"])
         cls.manifest = json.loads(cls.manifest_path.read_text())
-        cls.bridge = NduBridge(cls.manifest["binary"], cls.manifest_path)
+        cls.bridge = NduBridge.from_environment()
 
     def test_native_hard_resource_risk_filters_precede_value(self):
         result = self.bridge.evaluate(request(

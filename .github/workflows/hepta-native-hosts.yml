@@ -2,9 +2,9 @@ name: Hepta actual host ABI qualification
 
 on:
   push:
-    branches: [feat/hepta-safe-migration-agent-20261024, dot/hepta-p0-p1-semantic-bridge-20261025, dot/hepta-p0-p7-integration-20261025]
+    branches: [feat/hepta-safe-migration-agent-20261024, dot/hepta-p0-p1-semantic-bridge-20261025, dot/hepta-p0-p7-integration-20261025, codex/hia-ndu-verified-optimization-20261027, codex/hia-ndu-bounded-pipeline-20261027, codex/hia-contract-integration-20261027]
   pull_request:
-    branches: [main]
+    branches: [main, codex/hia-p0-p7-convergence-20261027, codex/hia-ndu-verified-optimization-20261027, codex/hia-ndu-bounded-pipeline-20261027, codex/hia-contract-integration-20261027]
   workflow_dispatch:
 
 permissions:
@@ -74,6 +74,9 @@ jobs:
           cat > artifacts/native-host.json <<'JSON'
           {"schema":"hepta.native-host.v2","status":"failed","error":"Native host setup or execution did not finish; inspect retained setup/test logs.","requested_compiler":"${{ matrix.cc }}","requested_family":"${{ matrix.cc_family }}","claims":{"cross_host_results_inferred":false}}
           JSON
+          cat > artifacts/stb-divide-host.json <<'JSON'
+          {"schema":"hepta.c-stb-divide-qualification.v1","ok":false,"status":"failed","error":"Complete component setup or execution did not finish; inspect retained setup and component logs.","claims":{"cross_host_results_inferred":false,"cpp_migration":false}}
+          JSON
           git rev-parse HEAD > artifacts/native-host-setup.log
       - uses: actions/setup-python@v5
         with:
@@ -108,7 +111,7 @@ jobs:
               $captured[$Matches[1]] = $Matches[2]
             }
           }
-          foreach ($required in @('PATH', 'INCLUDE', 'LIB', 'LIBPATH')) {
+          foreach ($required in @('PATH', 'INCLUDE', 'LIB', 'LIBPATH', 'VCToolsInstallDir')) {
             if (-not $captured.ContainsKey($required)) { throw "VsDevCmd did not provide $required" }
           }
           foreach ($name in $allowed) {
@@ -117,6 +120,13 @@ jobs:
               "$name=$($captured[$name])" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
             }
           }
+          # Git Bash prepends its own tools to PATH. Resolve the installed x64
+          # Microsoft linker from the captured VS environment, not Get-Command.
+          $linker = Join-Path -Path $captured['VCToolsInstallDir'] -ChildPath 'bin\Hostx64\x64\link.exe'
+          if (-not (Test-Path -LiteralPath $linker -PathType Leaf)) { throw 'The captured VS x64 linker is required' }
+          $linker = (Resolve-Path -LiteralPath $linker).Path
+          "HEPTA_HOST_LINKER=$linker" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          "rust-linker=$linker`nrust-linker-sha256=$((Get-FileHash -LiteralPath $linker -Algorithm SHA256).Hash.ToLowerInvariant())" | Out-File artifacts/native-host-setup.log -Append -Encoding utf8
           "cl.exe=$((Get-Command cl.exe -ErrorAction Stop).Source)" | Out-File artifacts/native-host-setup.log -Append -Encoding utf8
       - name: Check adapter and failed-report contracts
         shell: bash
@@ -130,6 +140,26 @@ jobs:
             --cc "$HEPTA_HOST_CC" --cc-family "$HEPTA_HOST_CC_FAMILY" \
             --expected-system '${{ matrix.system }}' --expected-machine '${{ matrix.machine }}' \
             --output artifacts/native-host.json
+      - name: Execute the complete frozen stb_divide C component on this actual host
+        shell: bash
+        run: |
+          linker_args=()
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            test -n "$HEPTA_HOST_LINKER"
+            linker_args=(--linker "$HEPTA_HOST_LINKER")
+          fi
+          set +e
+          python tools/qualify_c_stb_divide.py \
+            --clang clang --rustc "$(rustup which --toolchain 1.90.0 rustc)" \
+            "${linker_args[@]}" \
+            --cc "$HEPTA_HOST_CC" --cc-family "$HEPTA_HOST_CC_FAMILY" \
+            --expected-system '${{ matrix.system }}' --expected-machine '${{ matrix.machine }}' \
+            --output-directory artifacts/stb-divide-host 2>&1 | tee artifacts/stb-divide-host.log
+          stb_status=${PIPESTATUS[0]}
+          if [ -f artifacts/stb-divide-host/qualification.json ]; then
+            cp artifacts/stb-divide-host/qualification.json artifacts/stb-divide-host.json
+          fi
+          exit "$stb_status"
       - name: Retain actual host evidence, including failures
         if: always()
         uses: actions/upload-artifact@v4
@@ -139,4 +169,7 @@ jobs:
             artifacts/native-host.json
             artifacts/native-host-setup.log
             artifacts/native-host-adapter-tests.log
+            artifacts/stb-divide-host.json
+            artifacts/stb-divide-host.log
+            artifacts/stb-divide-host/
           if-no-files-found: error

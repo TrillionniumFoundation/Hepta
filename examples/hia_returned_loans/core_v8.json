@@ -1,0 +1,366 @@
+{
+  "schema": "hepta.hia.program.v8",
+  "module": "standalone_test",
+  "functions": [
+    {
+      "name": "leaf",
+      "params": [
+        {
+          "name": "p",
+          "type": "mutbuf"
+        },
+        {
+          "name": "choose",
+          "type": "bool"
+        }
+      ],
+      "returns": [
+        "mutbuf"
+      ],
+      "effects": [
+        "read"
+      ],
+      "entry": "entry",
+      "blocks": [
+        {
+          "id": "entry",
+          "params": [
+            {
+              "name": "p",
+              "type": "mutbuf"
+            },
+            {
+              "name": "choose",
+              "type": "bool"
+            }
+          ],
+          "ops": [],
+          "term": {
+            "op": "ret",
+            "values": [
+              "p"
+            ]
+          }
+        }
+      ],
+      "return_origins": [
+        "p"
+      ]
+    },
+    {
+      "name": "loan",
+      "params": [
+        {
+          "name": "p",
+          "type": "mutbuf"
+        },
+        {
+          "name": "choose",
+          "type": "bool"
+        }
+      ],
+      "returns": [
+        "mutbuf"
+      ],
+      "effects": [
+        "read"
+      ],
+      "entry": "entry",
+      "blocks": [
+        {
+          "id": "entry",
+          "params": [
+            {
+              "name": "p",
+              "type": "mutbuf"
+            },
+            {
+              "name": "choose",
+              "type": "bool"
+            }
+          ],
+          "ops": [
+            {
+              "op": "call",
+              "args": [
+                "p",
+                "choose"
+              ],
+              "out": [
+                {
+                  "name": "relayed",
+                  "type": "mutbuf"
+                }
+              ],
+              "attrs": {
+                "function": "leaf"
+              }
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "relayed"
+            ]
+          }
+        }
+      ],
+      "return_origins": [
+        "p"
+      ]
+    },
+    {
+      "name": "probe",
+      "params": [
+        {
+          "name": "size",
+          "type": "usize"
+        },
+        {
+          "name": "byte",
+          "type": "u8"
+        },
+        {
+          "name": "condition",
+          "type": "bool"
+        }
+      ],
+      "returns": [
+        "u8"
+      ],
+      "effects": [
+        "alloc",
+        "read",
+        "write",
+        "trap"
+      ],
+      "entry": "entry",
+      "blocks": [
+        {
+          "id": "entry",
+          "params": [
+            {
+              "name": "size",
+              "type": "usize"
+            },
+            {
+              "name": "byte",
+              "type": "u8"
+            },
+            {
+              "name": "condition",
+              "type": "bool"
+            }
+          ],
+          "ops": [
+            {
+              "op": "buffer.new",
+              "args": [
+                "size"
+              ],
+              "out": [
+                {
+                  "name": "owner",
+                  "type": "buffer"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "zero",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "borrow.mut",
+              "args": [
+                "owner"
+              ],
+              "out": [
+                {
+                  "name": "init",
+                  "type": "mutbuf"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "buffer.store",
+              "args": [
+                "init",
+                "zero",
+                "byte"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "loan.end",
+              "args": [
+                "init"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "borrow.mut",
+              "args": [
+                "owner"
+              ],
+              "out": [
+                {
+                  "name": "parent",
+                  "type": "mutbuf"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "call",
+              "args": [
+                "parent",
+                "condition"
+              ],
+              "out": [
+                {
+                  "name": "child",
+                  "type": "mutbuf"
+                }
+              ],
+              "attrs": {
+                "function": "loan"
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "mask",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 90
+              }
+            },
+            {
+              "op": "bit.xor",
+              "args": [
+                "byte",
+                "mask"
+              ],
+              "out": [
+                {
+                  "name": "changed",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "buffer.store",
+              "args": [
+                "child",
+                "zero",
+                "changed"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "borrow.read",
+              "args": [
+                "child"
+              ],
+              "out": [
+                {
+                  "name": "grandchild",
+                  "type": "readbuf"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "buffer.load",
+              "args": [
+                "grandchild",
+                "zero"
+              ],
+              "out": [
+                {
+                  "name": "inside",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "loan.end",
+              "args": [
+                "grandchild"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "loan.end",
+              "args": [
+                "child"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "buffer.load",
+              "args": [
+                "parent",
+                "zero"
+              ],
+              "out": [
+                {
+                  "name": "after",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "loan.end",
+              "args": [
+                "parent"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "owner.drop",
+              "args": [
+                "owner"
+              ],
+              "out": [],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "after"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "exports": [
+    "probe"
+  ]
+}

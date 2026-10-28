@@ -1,5 +1,7 @@
 """Real separately compiled owner transfer, inventory, ODR and matrix boundaries."""
 from __future__ import annotations
+import contextlib
+import io
 import json
 import os
 from pathlib import Path
@@ -88,6 +90,37 @@ class ComposedProjectTests(unittest.TestCase):
         path.write_text(json.dumps(document))
         with self.assertRaises(ValueError):
             self.lower()
+
+    def test_cli_captured_matrix_binds_all_variants_and_publishes_actual_core(self):
+        from hepta.cli import main
+        from hepta.core import execute_core
+        from hepta.hia_program import verify_program
+        output, ledger_path = self.root / "selected.core.json", self.root / "capture.json"
+        stream = io.StringIO()
+        with contextlib.redirect_stdout(stream):
+            code = main(["hia", "import-cpp-composed-matrix", str(self.project / "matrix.json"),
+                         "--clangxx", CLANGXX, "--variant", "five_weight",
+                         "--output", str(output), "--report", str(ledger_path)])
+        self.assertEqual(code, 0, stream.getvalue())
+        core = verify_program(output.read_bytes())
+        ledger = json.loads(ledger_path.read_text())
+        variants = {row["name"]: row for row in ledger["variants"]}
+        self.assertEqual(set(variants), {"three_weight", "five_weight"})
+        self.assertEqual(core.sha256, variants["five_weight"]["program_sha256"])
+        self.assertTrue(all(row["unconverted_declarations"] == [] for row in variants.values()))
+        self.assertTrue(all("program" not in row for row in variants.values()))
+        self.assertEqual(ledger["admission_authority"], "hepta.hia_program.verify_program")
+        self.assertFalse(ledger["native_executed"])
+        # Real Clang capture and generated Core run through the public CLI;
+        # native source/target comparison remains the separate full qualifier.
+        entry, = sorted(core.scalar_entrypoints)
+        lowered = {row["name"] for row in variants["five_weight"]["source_lowering"]["functions"]
+                   if row["status"] == "lowered"}
+        self.assertIn(entry, lowered)
+        early = execute_core(core, entry, [3, 4, 7, 0, 0, 1])
+        self.assertEqual(early["result"], 2001)
+        self.assertEqual(early["resources"]["live_owners"], 0)
+        self.assertEqual(early["resources"]["live_local_loans"], 0)
 
 if __name__ == "__main__":
     unittest.main()

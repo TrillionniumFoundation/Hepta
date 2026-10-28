@@ -265,6 +265,7 @@ def _pin_native_artifact(path: Path):
     """
     original, identity = _read_regular_artifact(path)
     fd = None
+    transferred = False
     try:
         # Keep the module importable on non-Linux hosts; the execution path
         # itself still refuses anything except qualified Linux.
@@ -276,19 +277,30 @@ def _pin_native_artifact(path: Path):
             if count <= 0:
                 _reject("sealed native snapshot write made no progress")
             remaining = remaining[count:]
-        expected_seals = (fcntl.F_SEAL_WRITE | fcntl.F_SEAL_GROW |
-                          fcntl.F_SEAL_SHRINK | fcntl.F_SEAL_SEAL)
-        fcntl.fcntl(fd, fcntl.F_ADD_SEALS, expected_seals)
+        # Python built against older headers can omit these names even when
+        # the running Linux kernel supports sealing. Linux UAPI defines
+        # F_LINUX_SPECIFIC_BASE=1024 (asm-generic/fcntl.h), ADD/GET_SEALS as
+        # base+9/base+10 and these four bits as 0x1/0x2/0x4/0x8 (linux/fcntl.h).
+        # Only symbol lookup falls back: the real kernel operations and exact
+        # byte/required-seal readback remain mandatory, with no unsealed path.
+        expected_seals = (getattr(fcntl, "F_SEAL_WRITE", 0x0008)
+                          | getattr(fcntl, "F_SEAL_GROW", 0x0004)
+                          | getattr(fcntl, "F_SEAL_SHRINK", 0x0002)
+                          | getattr(fcntl, "F_SEAL_SEAL", 0x0001))
+        fcntl.fcntl(fd, getattr(fcntl, "F_ADD_SEALS", 1033), expected_seals)
         if (os.fstat(fd).st_size != len(original) or
-                fcntl.fcntl(fd, fcntl.F_GET_SEALS) & expected_seals != expected_seals or
+                fcntl.fcntl(fd, getattr(fcntl, "F_GET_SEALS", 1034)) & expected_seals != expected_seals or
                 os.pread(fd, len(original), 0) != original):
             _reject("sealed executable-byte snapshot differs from source")
+        transferred = True
         return original, identity, fd
     except (OSError, AttributeError, ImportError) as exc:
         raise HIADifferentialRejected("E_HIA_DIFFERENTIAL: sealed executable snapshot unavailable") from exc
     finally:
         # Ownership of a successfully sealed descriptor transfers to caller.
-        if fd is not None and sys.exc_info()[0] is not None:
+        # sys.exc_info() also reports an exception handled by the caller. An
+        # outer except block must not close a successfully transferred fd.
+        if fd is not None and not transferred:
             os.close(fd)
 
 

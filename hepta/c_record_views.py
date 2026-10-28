@@ -14,7 +14,8 @@ import re
 
 from .c_allocation import peel, nodes
 from .c_migrate import MigrationRejected
-from .c_translation import CTranslator, Expression, INTEGER, NUMBER, cast, ident, truth
+from .c_translation import (CTranslator, Expression, INTEGER, NUMBER, cast, ident,
+                            reject_adjusted_pointer_parameter, truth)
 
 
 class CRecordViewTranslator(CTranslator):
@@ -77,14 +78,17 @@ class CRecordViewTranslator(CTranslator):
                 ident(extent["length_field"])
                 fields[field] = dict(extent)
             self.views[name] = fields
-        if not self.views:
-            raise MigrationRejected("E_C_VIEW_CONTRACT", "At least one record view is required")
         value_functions = {}
         for name, specification in contracts["functions"].items():
             ident(name)
             if not isinstance(specification, dict) or set(specification) != {"slices", "records"} or not isinstance(specification["records"], dict):
                 raise MigrationRejected("E_C_VIEW_CONTRACT", "Each function requires exact slices/records maps")
             value_functions[name] = {"slices": specification["slices"]}
+        if not self.views and (not value_functions
+                or any(specification["records"] for specification in contracts["functions"].values())
+                or not any(specification["slices"] for specification in contracts["functions"].values())):
+            raise MigrationRejected("E_C_VIEW_CONTRACT",
+                                    "A cursor-only profile needs explicit slices and no record contracts")
         self.value_contracts = {"schema": "hepta.c-contracts.v1", "functions": value_functions}
         super().__init__(capture, self.value_contracts)
         self.contracts = copy.deepcopy(contracts)
@@ -147,6 +151,10 @@ class CRecordViewTranslator(CTranslator):
                 except MigrationRejected:
                     pass
             if record_type and record_type.startswith("C_") and record_type[2:] in self.views:
+                # Check the original pointer declarator before replacing its
+                # type with scalar state for the shared signature checker.
+                # Array-parameter entry effects survive Clang's type decay.
+                reject_adjusted_pointer_parameter(child)
                 pname = child.get("name", "")
                 selectors = [selector for selector in (pname, str(ordinal)) if selector in contract["records"]]
                 if len(selectors) != 1:
@@ -439,7 +447,7 @@ class CRecordViewTranslator(CTranslator):
             fn["inventory"].update(status="function_converted", reason=None)
             reports.append({k: v for k, v in fn.items() if k not in {"body", "node", "inventory", "model", "shape"}})
             reports[-1]["params"] = [{k: v for k, v in p.items() if k != "id"} for p in fn["params"]]
-        return "\n\n".join(pieces) + "\n", self.bridge(), reports
+        return "\n\n".join(pieces + self.expression_helpers) + "\n", self.bridge(), reports
 
     def bridge(self):
         pieces = ["// Caller-unsafe original C ABI. Initialized live disjoint storage is an external obligation.",

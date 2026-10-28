@@ -27,7 +27,7 @@ if __package__ in {None, ""}:
 
 from hepta.hia_guarded_optimization import (build_guarded_native,
     guarded_checker_identity, propose_guarded_reduction, verify_guarded_optimization)
-from hepta.hia_ndu import NduBridge, finite_plan_request
+from hepta.hia_ndu import FINITE_RUSTC_VERSION, FINITE_SOURCE_PIN, NduBridge, finite_plan_request
 from hepta.hia_optimization import (DEFAULT_POLICY, OptimizationRejected,
     build_optimized_native, verify_optimization)
 from hepta.hia_program_source import lower_source
@@ -48,6 +48,8 @@ PROTOCOL = {
     "light_control": "complete additive finite-horizon dynamic programming, replanned after actual observations",
     "control_encoding": "fixed/light avoid native request/event serialization; same graph and path cap",
     "native_control": "original NDU recursive utility and feasibility/Pareto evaluation",
+    "native_profile": {"source_pin": FINITE_SOURCE_PIN, "rustc": FINITE_RUSTC_VERSION,
+                       "environment": "HEPTA_FINITE_NDU_BRIDGE/HEPTA_FINITE_NDU_IDENTITY"},
     "cost_model": "per-size calibration median scaled by observed same-state wall ratios",
     "recompilation": "every changed state reproposes and independently proves/builds new bytes",
     "decision_value": "future increments; historical costs remain in the total ledger",
@@ -442,7 +444,7 @@ def qualify(output, *, identity, clang, protocol=None):
     repository = Path(__file__).resolve().parents[1]
     start, shared, controller_setup = time.monotonic_ns(), [], {"light": [], "ndu": []}
     source_paths = sorted((repository / "hepta").glob("*.py")) + [Path(__file__),
-        repository / "tools/qualify_hia_ndu_loop.py", repository / "tools/build_hia_ndu_bridge.py",
+        repository / "tools/qualify_hia_ndu_loop.py", repository / "tools/build_hia_recursive_ndu_bridge.py",
         repository / "tests/test_hia_ndu_graph.py", repository / "experiments/hia_optimizer_eval/kernels.hepta"]
     source_identity = {}
     for source in source_paths:
@@ -463,7 +465,8 @@ def qualify(output, *, identity, clang, protocol=None):
     save(root / "BASE.json", base.as_dict())
     manifest = json.loads(Path(identity).read_bytes())
     save(root / "NATIVE_BUILD_IDENTITY.json", manifest)
-    bridge = measured("native.admission", controller_setup["ndu"], lambda: NduBridge(manifest["binary"], identity))
+    bridge = measured("native.admission", controller_setup["ndu"],
+                      lambda: NduBridge.for_finite_profile(manifest["binary"], identity))
     (root / "driver.c").write_text(DRIVER)
     driver = root / "driver"
     def build_driver():

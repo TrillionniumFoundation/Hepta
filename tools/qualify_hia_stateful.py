@@ -62,7 +62,10 @@ def _require(value, message):
 
 def source_bindings():
     return {str(path.relative_to(ROOT)): sha256(path.read_bytes()).hexdigest()
-            for path in (ROOT / "hepta/hia_stateful.py", ROOT / "hepta/hia_adaptive.py", Path(__file__))}
+            for path in (ROOT / "hepta/hia_stateful.py", ROOT / "hepta/hia_adaptive.py",
+                         ROOT / "hepta/native_mapping_identity.py", ROOT / "hepta/hia_native_differential.py",
+                         ROOT / "hepta/elf_shared_abi.py", ROOT / "hepta/native_tool_identity.py",
+                         Path(__file__))}
 
 
 def measure_fresh_deployment(directory, *, clang="clang", steps):
@@ -97,6 +100,7 @@ def measure_fresh_deployment(directory, *, clang="clang", steps):
                   "driver": runtime._driver_receipt}
     finally:
         runtime.close()
+        final_cleanup = runtime.snapshot()["cleanup"]
     finished = time.monotonic_ns()
     audit_wall = audit_finished - audit_started
     deployment_wall = finished - started - audit_wall
@@ -118,6 +122,9 @@ def measure_fresh_deployment(directory, *, clang="clang", steps):
     _require(deployment_wall >= execution["deployment_cost_ns"], "Whole API envelope cannot be smaller than its measured internal intervals")
     report["deployment_net_positive"] = report["outer_wall"]["measured_net_ns"] > 0
     report["final_native_ledger"] = runtime._final_ledger
+    report["final_cleanup"] = final_cleanup
+    _require(final_cleanup["owned_native_release_complete"] and final_cleanup["pending_resource_count"] == 0,
+             "Performance native handles remain unknown or pending")
     _require(runtime._final_ledger["live"] == 0
              and runtime._final_ledger["allocations"] == runtime._final_ledger["frees"], "Performance owner cleanup failed")
     return report
@@ -251,6 +258,10 @@ def qualify(directory, *, clang="clang", performance_steps=0):
                                                               steps=performance_steps)
         runtime.close()
         report["final_native_ledger"] = runtime._final_ledger
+        report["final_cleanup"] = runtime.snapshot()["cleanup"]
+        _require(report["final_cleanup"]["owned_native_release_complete"]
+                 and report["final_cleanup"]["pending_resource_count"] == 0,
+                 "Final native handles remain unknown or pending")
         _require(runtime._final_ledger["live"] == 0 and runtime._final_ledger["allocations"] == runtime._final_ledger["frees"],
                  "Final native owners were not released exactly once")
         _require(source_bindings() == report["source_bindings"], "Runtime or qualification source changed during execution")
@@ -268,6 +279,10 @@ def qualify(directory, *, clang="clang", performance_steps=0):
         if runtime is not None:
             try:
                 runtime.close()
+                report["final_cleanup"] = runtime.snapshot()["cleanup"]
+                if (not report["final_cleanup"]["owned_native_release_complete"]
+                        or report["final_cleanup"]["pending_resource_count"]):
+                    report["ok"] = False
             except Exception as error:
                 report["close_error"] = repr(error)
                 report["ok"] = False

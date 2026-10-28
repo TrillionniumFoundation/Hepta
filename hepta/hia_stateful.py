@@ -19,7 +19,8 @@ import subprocess
 import tempfile
 import time
 
-from .hia_adaptive import AdaptiveRejected, AdaptiveRuntime, _digest, _identity, _TOTAL
+from .hia_adaptive import (AdaptiveRejected, AdaptiveRuntime, _digest, _identity,
+                           _TOTAL, _NativeRelease)
 from .hia_program import verify_program
 from .hia_native_differential import _pin_native_artifact
 from .native_tool_identity import digest_executable
@@ -109,7 +110,7 @@ def _u64(value):
     return value
 
 
-def _driver(directory, clang):
+def _driver(directory, clang, *, on_release=None):
     compiler = Path(shutil.which(clang) or clang).resolve(strict=True)
     identity = digest_executable(compiler)
     source, output = directory / "owned-driver.c", directory / "owned-driver.so"
@@ -124,12 +125,15 @@ def _driver(directory, clang):
             raise AdaptiveRejected("E_STATE_DRIVER: " + built.stderr[:2000])
         actual, _, fd = _pin_native_artifact(staged)
     library = None
+    release = _NativeRelease(None, fd)
     try:
         inventory = inspect_owned_shared_elf(actual, tuple(sorted(_EXPORTS)))
         if digest_executable(compiler) != identity:
             raise AdaptiveRejected("E_STATE_DRIVER: compiler changed")
         library = ctypes.CDLL("/proc/self/fd/" + str(fd), mode=os.RTLD_LOCAL | os.RTLD_NOW)
+        release.library = library
         functions = {name: getattr(library, name) for name in sorted(_EXPORTS)}
+        release.functions = functions
         try:
             loaded_mapping = verify_loaded_symbols(fd, functions)
         except NativeMappingRejected as error:
@@ -153,13 +157,12 @@ def _driver(directory, clang):
         return library, fd, {"source_sha256": sha256(_DRIVER_SOURCE.encode()).hexdigest(),
                              "artifact_sha256": sha256(actual).hexdigest(), "compiler_sha256": identity,
                              "command": argv, "binary_inventory": inventory, "loaded_mapping": loaded_mapping}
-    except BaseException:
-        try:
-            if library is not None:
-                import _ctypes
-                _ctypes.dlclose(library._handle)
-        finally:
-            os.close(fd)
+    except BaseException as error:
+        if on_release is None:
+            release.attempt()
+        else:
+            on_release(release)
+        error.native_cleanup = release.snapshot()
         raise
 
 
@@ -255,6 +258,10 @@ class OwnedAdaptiveRuntime(AdaptiveRuntime):
         values = tuple(_u64(value) for value in values)
         self._state = None
         self._driver = None
+        self._driver_release = None
+        self._owner_release = {"attempted": False, "status": "not_acquired"}
+        self._final_ledger = None
+        self._final_ledger_error = None
         self._loans = {}
         self._queues = {}
         self._revision = 0
@@ -264,10 +271,14 @@ class OwnedAdaptiveRuntime(AdaptiveRuntime):
             if len(self._images["baseline"].state["params"]) != 2:
                 raise AdaptiveRejected("E_STATE_ABI: transition requires exactly state and delta u64 arguments")
             started = time.monotonic_ns()
-            self._driver, self._driver_fd, self._driver_receipt = _driver(self._root, clang)
+            self._driver, self._driver_fd, self._driver_receipt = _driver(self._root, clang,
+                on_release=lambda release: self._record_release("owner-driver", release))
+            self._driver_release = _NativeRelease(self._driver, self._driver_fd,
+                {name: getattr(self._driver, name) for name in _EXPORTS})
             self._state = self._driver.hs_new(len(values), 0)
             if not self._state:
                 raise AdaptiveRejected("E_STATE_ALLOCATION: native owner allocation failed")
+            self._owner_release = {"attempted": False, "status": "owned"}
             self._size = len(values)
             self._owner_id = secrets.token_hex(16)
             self._allocation_address = int(self._driver.hs_identity(self._state))
@@ -316,7 +327,22 @@ class OwnedAdaptiveRuntime(AdaptiveRuntime):
                           persistent_owner_switching_supported=True,
                           general_heap_or_stack_migration_supported=False,
                           crash_recovery_or_external_transaction_exactly_once=False,
-                          native_ledger=self._ledger() if self._driver else None)
+                          native_ledger=self._ledger() if self._driver else
+                              json.loads(json.dumps(self._final_ledger)))
+            owner_pending = self._owner_release["status"] == "unknown"
+            driver_blocked = (self._driver_release is not None and owner_pending
+                              and not self._driver_release.attempted)
+            result["cleanup"].update(
+                owner_release=json.loads(json.dumps(self._owner_release)),
+                owner_release_retry_permitted=False,
+                driver_release=self._driver_release.snapshot() if self._driver_release else None,
+                driver_release_blocked_by_owner_uncertainty=driver_blocked,
+                final_ledger_error=json.loads(json.dumps(self._final_ledger_error)))
+            result["cleanup"]["pending_resource_count"] += int(owner_pending) + int(driver_blocked)
+            result["cleanup"]["owned_native_release_complete"] = (
+                result["cleanup"]["owned_native_release_complete"]
+                and self._owner_release["status"] in {"freed", "not_acquired"}
+                and (self._driver_release is None or self._driver_release.complete))
             return result
 
     def _ledger(self):
@@ -697,12 +723,27 @@ class OwnedAdaptiveRuntime(AdaptiveRuntime):
             if self._loans:
                 raise AdaptiveRejected("E_STATE_BUSY: live aliases prevent owner destruction")
             super().close()
-            if self._driver:
-                if self._state:
-                    self._driver.hs_free(self._state)
-                    self._state = None
-                self._final_ledger = self._ledger()
-                import _ctypes
-                _ctypes.dlclose(self._driver._handle)
-                os.close(self._driver_fd)
-                self._driver = None
+            if self._driver is None:
+                return
+            driver, state = self._driver, self._state
+            # Revoke active access even if free/dlclose/close reports an
+            # ambiguous outcome. No later snapshot or close may call this DLL.
+            self._driver = self._state = None
+            self._driver_fd = None
+            if state:
+                self._owner_release = {"attempted": True, "status": "unknown"}
+                try:
+                    driver.hs_free(state)
+                    self._owner_release["status"] = "freed"
+                except BaseException as error:
+                    self._owner_release["error"] = _NativeRelease._unknown(error)["error"]
+                    # The owner may still exist. Keep its driver's loader
+                    # reference and fd alive, without replaying free or reading
+                    # a potentially freed pointer. The pending state is final.
+                    return
+            try:
+                self._final_ledger = {name: int(getattr(driver, "hs_" + name)())
+                    for name in ("live", "allocations", "frees", "refusals")}
+            except BaseException as error:
+                self._final_ledger_error = _NativeRelease._unknown(error)["error"]
+            self._record_release("owner-driver", self._driver_release)

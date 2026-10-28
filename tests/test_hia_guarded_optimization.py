@@ -2,8 +2,11 @@
 from __future__ import annotations
 
 import copy
+import contextlib
 import ctypes
 import hashlib
+import io
+import json
 import os
 from pathlib import Path
 import shutil
@@ -145,6 +148,56 @@ class GuardedProofTests(unittest.TestCase):
             else:
                 proposed["base_sha256"] = "0" * 64
             self.assertEqual(verify_guarded_optimization(self.base, proposed)["status"], "rejected", mutation)
+
+    def test_cli_guarded_proposal_and_fresh_verification_preserve_command_boundaries(self):
+        from hepta.cli import main
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source, proposal = root / "base.json", root / "guarded.json"
+            source.write_text(json.dumps(self.base.as_dict()))
+            stream = io.StringIO()
+            with contextlib.redirect_stdout(stream):
+                code = main(["hia", "optimize-guarded", str(source), "--maximum", "16",
+                             "--output", str(proposal)])
+            self.assertEqual(code, 0, stream.getvalue())
+            created = json.loads(stream.getvalue())
+            self.assertEqual(created["verification"]["status"], "verified")
+            self.assertEqual(json.loads(proposal.read_text())["schema"],
+                             "hepta.hia.guarded-reduction-proposal.v1")
+            stream = io.StringIO()
+            with contextlib.redirect_stdout(stream):
+                code = main(["hia", "verify-guarded", str(source), "--candidate", str(proposal)])
+            self.assertEqual(code, 0, stream.getvalue())
+            self.assertEqual(json.loads(stream.getvalue())["status"], "verified")
+            # A proof receipt is not the proposal containing actual operations.
+            receipt = root / "receipt.json"
+            receipt.write_text(json.dumps(created["verification"]))
+            stream = io.StringIO()
+            with contextlib.redirect_stdout(stream):
+                code = main(["hia", "verify-guarded", str(source), "--candidate", str(receipt)])
+            self.assertNotEqual(code, 0)
+            self.assertNotEqual(json.loads(stream.getvalue()).get("status"), "verified")
+
+    def test_cli_unproved_guarded_candidate_never_publishes_proposal_or_native(self):
+        from hepta.cli import main
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source, policy = root / "base.json", root / "timeout.json"
+            proposed, native = root / "never.json", root / "never.so"
+            candidate = root / "candidate.json"
+            source.write_text(json.dumps(self.base.as_dict()))
+            candidate.write_text(json.dumps(self.proposal))
+            policy.write_text(json.dumps({**DEFAULT_POLICY, "timeout_ms": 0}))
+            for argv in (["hia", "optimize-guarded", str(source), "--policy", str(policy),
+                          "--output", str(proposed)],
+                         ["hia", "build-guarded", str(source), "--policy", str(policy),
+                          "--candidate", str(candidate), "--output", str(native)]):
+                with self.subTest(action=argv[1]), contextlib.redirect_stdout(io.StringIO()):
+                    with patch("hepta.hia_program_llvm.build_program_native",
+                               side_effect=AssertionError("unproved candidate compiled")):
+                        self.assertNotEqual(main(argv), 0)
+                self.assertFalse(proposed.exists())
+                self.assertFalse(native.exists())
 
 
 @unittest.skipUnless(z3 is not None and shutil.which(os.environ.get("CLANG", "clang")),

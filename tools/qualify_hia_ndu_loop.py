@@ -469,7 +469,7 @@ def faults(base, root, driver, clang, bank, ledger):
             "ledger": ledger}
 
 
-def qualify(output, *, identity, clang, protocol=None):
+def qualify(output, *, identity, clang, protocol=None, executable=None):
     protocol = dict(PROTOCOL if protocol is None else protocol)
     root = Path(output).resolve()
     root.mkdir(parents=True, exist_ok=False)
@@ -482,7 +482,7 @@ def qualify(output, *, identity, clang, protocol=None):
             "started_utc": datetime.now(timezone.utc).isoformat()}
     save(root / "HOST.json", host)
     repository = Path(__file__).resolve().parents[1]
-    source_paths = ["tools/qualify_hia_ndu_loop.py", "tools/build_hia_ndu_bridge.py",
+    source_paths = ["tools/qualify_hia_ndu_loop.py", "tools/build_hia_recursive_ndu_bridge.py",
                     "tests/test_hia_ndu.py", "tests/test_hia_ndu_loop.py"]
     source_paths.extend(str(path.relative_to(repository)) for path in sorted((repository / "hepta").glob("*.py")))
     source_identity = {}
@@ -498,7 +498,8 @@ def qualify(output, *, identity, clang, protocol=None):
     save(root / "BASE.json", base)
     manifest = json.loads(Path(identity).read_text())
     save(root / "NATIVE_BUILD_IDENTITY.json", manifest)
-    bridge = measured("study.native-bridge-admission", ledger, lambda: NduBridge(manifest["binary"], identity))
+    bridge = measured("study.native-bridge-admission", ledger,
+                      lambda: NduBridge(executable or manifest["binary"], identity))
     (root / "driver.c").write_text(DRIVER)
     driver = root / "driver"
     def build_driver():
@@ -575,9 +576,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--identity", type=Path, required=True)
+    parser.add_argument("--bridge", type=Path,
+                        help="Exact recursive bridge; defaults to the explicitly supplied identity manifest")
     parser.add_argument("--clang", default="clang")
     args = parser.parse_args()
-    result = qualify(args.output, identity=args.identity, clang=args.clang)
+    result = qualify(args.output, identity=args.identity, executable=args.bridge, clang=args.clang)
     print(json.dumps({key: result[key] for key in ("all_actual_outputs_correct", "median_net_cost_ns",
           "ndu_descriptive_cost_lower_than_selected_fixed", "ndu_descriptive_cost_lower_than_light")}, indent=2))
     if not result["all_episodes_completed"]:

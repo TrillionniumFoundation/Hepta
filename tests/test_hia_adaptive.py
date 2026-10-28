@@ -5,6 +5,7 @@ import copy
 import fcntl
 import importlib.util
 import os
+import platform
 from pathlib import Path
 import shutil
 import tempfile
@@ -14,8 +15,13 @@ from hepta.hia_adaptive import AdaptiveRejected, AdaptiveRuntime, _profile
 from tools.qualify_hia_adaptive import programs, qualify
 
 CLANG = os.environ.get("CLANG", "/usr/bin/clang-20")
-NATIVE = (shutil.which(CLANG) and hasattr(fcntl, "F_SEAL_WRITE")
+NATIVE = (shutil.which(CLANG) and platform.system() == "Linux"
+          and platform.machine().lower() in {"x86_64", "amd64"}
+          and hasattr(os, "memfd_create")
           and importlib.util.find_spec("z3") is not None)
+# Python need not export every Linux UAPI seal name. The runtime's shared
+# pinning path must actually add and read back kernel seals; failure there is
+# a failed native test, not a reason to skip this entire suite.
 
 
 class AdaptiveProfileTests(unittest.TestCase):

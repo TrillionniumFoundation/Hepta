@@ -24,7 +24,7 @@ SCHEMA = "hepta.hia.optimization-verification.v1"
 POLICY_SCHEMA = "hepta.hia.optimization-policy.v1"
 TARGETS = frozenset({"x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu",
                      "riscv64-unknown-linux-gnu"})
-PINNED_Z3_VERSION = "4.13.4"
+PINNED_Z3_VERSION = "4.15.4"
 PURE = frozenset({"const", "select", "int.cast", "int.neg.checked", "bit.not",
                   "bit.and", "bit.or", "bit.xor", "bool.not", "bool.and", "bool.or",
                   *[f"compare.{x}" for x in ("eq", "ne", "lt", "le", "gt", "ge")],

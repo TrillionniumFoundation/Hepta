@@ -1,5 +1,9 @@
 # HIA / NDU：七项实施增量与验收结果
 
+本文保留该次实现和实验的历史结果。整合树中两套原生 NDU 桥的当前构建入口、
+独立环境变量及收据协议见 [双桥契约](HIA_NDU_BRIDGES.md)；历史实验原始记录未改写，
+下文的 201 项测试及性能样本不自动归属于整合树。
+
 本轮交付了可执行实现、真实原生资格、对照实验和失败证据。**七项总验收尚未全部通过**：NDU 净收益、Rust 性能非劣、Agent 正确维护优势以及盈利的自动适应，都不能由本轮结果确认。
 
 实现基于集成源码 `3db07aa877ab1a5fc00560d7037e6efbc884fc1f`，保留 PR #324 的 JSON wire 边界修复。原生 NDU 使用独立提交
@@ -26,7 +30,7 @@
 ```sh
 hepta hia routes
 hepta hia verify-optimization baseline.json --candidate candidate.json
-hepta hia optimize baseline.json --output folded.json
+hepta hia fold-constants baseline.json --output folded.json
 hepta hia build-optimized baseline.json --candidate folded.json \
   --clang clang-20 --output candidate.so
 ```

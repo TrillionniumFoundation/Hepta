@@ -458,7 +458,23 @@ class _Machine:
             self.tick()
             term = block["term"]
             if term["op"] == "ret":
-                return [env[name] for name in term["values"]]
+                values = [env[name] for name in term["values"]]
+                for index, origin in enumerate(fn.get("return_origins", [])):
+                    if origin is None:
+                        continue
+                    position = next(i for i, p in enumerate(fn["params"]) if p["name"] == origin)
+                    parent, view = arguments[position], values[index]
+                    if not isinstance(parent, _View) or not isinstance(view, _View):
+                        raise HIAProgramRejected("returned loan lacks runtime view origin", "E_HIA_RUNTIME_INVARIANT")
+                    _underlying(parent); _underlying(view)
+                    if view is parent:
+                        # Returning a parameter creates a child, never gives the
+                        # caller permission to end its original argument loan.
+                        values[index] = _View(parent, fn["returns"][index] == "mutbuf")
+                        self.loans_started += 1
+                    elif view.parent is not parent:
+                        raise HIAProgramRejected("returned loan has a local/incorrect parent", "E_HIA_RUNTIME_INVARIANT")
+                return values
             if term["op"] == "trap":
                 raise HIAProgramTrap(term["code"], "explicit core trap")
             edge = term if term["op"] == "jump" else term["then"] if env[term["cond"]] else term["else"]

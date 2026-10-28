@@ -14,7 +14,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from hepta.c_migrate import MigrationRejected, migrate_c_project
+from hepta.c_migrate import MigrationRejected, migrate_c, migrate_c_project
 from hepta.c_project import capture_project, verify_capture
 
 
@@ -50,6 +50,67 @@ class CProjectMigrationTests(unittest.TestCase):
         self.assertFalse(self.output.exists())
         self.assertIn(code, [item["code"] for item in report["diagnostics"]], report)
         return report
+
+    def test_function_type_abi_attributes_reject_without_publication(self):
+        target = subprocess.run(
+            [self.clang, "-dumpmachine"],
+            check=True, capture_output=True, text=True, timeout=30,
+        ).stdout.strip()
+        if not target.startswith("x86_64"):
+            self.skipTest("This calling-convention counterexample requires x86_64")
+
+        source = (
+            "__attribute__((ms_abi)) "
+            "unsigned int probe(unsigned int x) { return x + 2u; }\n"
+        )
+        self.project({"input.c": source}, flags=["-O0"])
+
+        # Keep the original ABI in the caller. Default-C ctypes would be invalid.
+        caller = self.root / "original-caller.c"
+        caller.write_text(
+            "__attribute__((ms_abi)) unsigned int probe(unsigned int);\n"
+            "int main(void) { return probe(7u) == 9u ? 0 : 1; }\n",
+            encoding="utf-8",
+        )
+        executable = self.root / "original-caller"
+        subprocess.run(
+            [self.clang, "-std=c11", "-O0", "input.c",
+             caller.name, "-o", str(executable)],
+            cwd=self.root, check=True, capture_output=True, text=True, timeout=60,
+        )
+        subprocess.run(
+            [str(executable)],
+            cwd=self.root, check=True, capture_output=True, text=True, timeout=30,
+        )
+
+        report = self.migrate()
+        self.assertFalse(report["ok"], report)
+        self.assertFalse(self.output.exists())
+        self.assertIn(
+            "E_C_ATTRIBUTE", [row["code"] for row in report["diagnostics"]], report
+        )
+
+        strict_output = self.root / "strict.hepta"
+        strict = migrate_c(self.root / "input.c", strict_output, clang=self.clang)
+        self.assertFalse(strict["ok"], strict)
+        self.assertFalse(strict_output.exists())
+        self.assertIn(
+            "E_C_ATTRIBUTE", [row["code"] for row in strict["rejected"]], strict
+        )
+
+        # Ordinary C ABI remains admitted. Attribute-looking comments are harmless.
+        self.project({
+            "input.c": (
+                "/* __attribute__((ms_abi)) is only comment text here. */\n"
+                "unsigned int probe(unsigned int x) { return x + 2u; }\n"
+            )
+        }, flags=["-O0"])
+        plain = self.migrate()
+        self.assertTrue(plain["ok"], plain)
+        plain_strict = migrate_c(
+            self.root / "input.c", strict_output, clang=self.clang
+        )
+        self.assertTrue(plain_strict["ok"], plain_strict)
 
     def test_capture_includes_flags_headers_and_rejects_changed_inputs(self):
         (self.root / "inc.h").write_text("#define LOCAL_FACTOR 3\n")
@@ -261,7 +322,7 @@ class CProjectMigrationTests(unittest.TestCase):
         self.assertEqual(result["native_validation"], "not_run")
 
     def test_uninitialized_local_and_unsupported_continue_are_rejected(self):
-        self.rejected("int f(int x){int y; y=x;return y;}", "E_C_LOCAL")
+        self.rejected("int f(int x){int y; if(x)y=x;return y;}", "E_C_UNINITIALIZED")
         self.rejected("int f(int x){while(x>0){--x;continue;}return x;}", "E_C_STATEMENT")
 
     def test_pointer_requires_explicit_contract(self):

@@ -39,8 +39,12 @@ def verify_loaded_symbols(fd, symbols):
     try:
         import fcntl
         initial = os.fstat(fd)
-        required = fcntl.F_SEAL_WRITE | fcntl.F_SEAL_GROW | fcntl.F_SEAL_SHRINK | fcntl.F_SEAL_SEAL
-        seals = fcntl.fcntl(fd, fcntl.F_GET_SEALS)
+        # Linux UAPI values, also used by the artifact-sealing path. A Python
+        # build may omit these names while the running kernel supports them;
+        # the actual kernel readback remains mandatory and fail-closed.
+        required = 0x0008 | 0x0004 | 0x0002 | 0x0001
+        get_seals = getattr(fcntl, "F_GET_SEALS", 1034)
+        seals = fcntl.fcntl(fd, get_seals)
         if not stat.S_ISREG(initial.st_mode) or initial.st_size <= 0 or seals & required != required:
             reject("native descriptor is not a fully sealed nonempty regular file")
         expected_device = (os.major(initial.st_dev), os.minor(initial.st_dev))
@@ -86,7 +90,7 @@ def verify_loaded_symbols(fd, symbols):
             reject("native entry has no unique identity-matched executable mapping")
         final = os.fstat(fd)
         if ((final.st_dev, final.st_ino, final.st_size) != (initial.st_dev, initial.st_ino, initial.st_size)
-                or fcntl.fcntl(fd, fcntl.F_GET_SEALS) & required != required):
+                or fcntl.fcntl(fd, get_seals) & required != required):
             reject("sealed descriptor changed during mapping admission")
         return {"schema": "hepta.native.loaded-symbol-identity.v1",
                 "device_major": expected_device[0], "device_minor": expected_device[1],
