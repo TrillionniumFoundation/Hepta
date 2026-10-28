@@ -15,6 +15,7 @@ on:
       - codex/hia-ndu-bounded-pipeline-20261027
       - codex/hia-contract-integration-20261027
       - codex/hia-v8-blocker-convergence-20261027
+      - dot/hepta-ci-runner-context-20261028
   pull_request:
     branches:
       - main
@@ -39,10 +40,14 @@ jobs:
     timeout-minutes: 180
     env:
       HEPTA_QUALIFICATION_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-      CARGO_HOME: ${{ runner.temp }}/hepta-cargo-home
-      CARGO_TARGET_DIR: ${{ runner.temp }}/hepta-cargo-target
       RUSTC: ${{ github.workspace }}/../toolchains/rust-1.90.0/bin/rustc
     steps:
+      - name: Configure runner-scoped Cargo directories
+        shell: bash
+        run: |
+          # The runner context is unavailable in job-level env expressions.
+          printf 'CARGO_HOME=%s\nCARGO_TARGET_DIR=%s\n' \
+            "$RUNNER_TEMP/hepta-cargo-home" "$RUNNER_TEMP/hepta-cargo-target" >> "$GITHUB_ENV"
       - name: Checkout frozen source snapshot
         uses: actions/checkout@v4
         with:

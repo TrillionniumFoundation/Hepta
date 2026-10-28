@@ -5,6 +5,7 @@ on:
     branches:
       - codex/hia-contract-integration-20261027
       - codex/hia-v8-blocker-convergence-20261027
+      - dot/hepta-ci-runner-context-20261028
   pull_request:
     paths:
       - 'hepta/**'
@@ -33,9 +34,13 @@ jobs:
       CLANG: /usr/bin/clang-20
       CLANGXX: /usr/bin/clang++-20
       PYTHONDONTWRITEBYTECODE: '1'
-      CARGO_HOME: ${{ runner.temp }}/hepta-verified-cargo-home
-      CARGO_TARGET_DIR: ${{ runner.temp }}/hepta-verified-cargo-target
     steps:
+      - name: Configure runner-scoped Cargo directories
+        shell: bash
+        run: |
+          # The runner context is unavailable in job-level env expressions.
+          printf 'CARGO_HOME=%s\nCARGO_TARGET_DIR=%s\n' \
+            "$RUNNER_TEMP/hepta-verified-cargo-home" "$RUNNER_TEMP/hepta-verified-cargo-target" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.HEPTA_SOURCE_SHA }}
