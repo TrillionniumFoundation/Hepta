@@ -18,6 +18,7 @@ import threading
 import time
 
 from .hia_native_differential import _pin_native_artifact
+from .native_mapping_identity import NativeMappingRejected, verify_loaded_symbols
 from .hia_optimization import (DEFAULT_POLICY, build_optimized_native,
                                checker_identity, verify_optimization)
 from .hia_program import verify_program
@@ -42,6 +43,7 @@ def _digest(value):
 def _identity():
     return _digest({"runtime": sha256(Path(__file__).read_bytes()).hexdigest(),
                     "pinning": sha256(Path(__file__).with_name("hia_native_differential.py").read_bytes()).hexdigest(),
+                    "mapping": sha256(Path(__file__).with_name("native_mapping_identity.py").read_bytes()).hexdigest(),
                     "optimization": checker_identity(), "native": _implementation_hash()})
 
 
@@ -81,6 +83,7 @@ class _Image:
     function: object
     preparation_ns: int
     receipt: dict
+    loaded_mapping: dict
 
 
 def _load_image(program, state, path, receipt, started):
@@ -94,15 +97,21 @@ def _load_image(program, state, path, receipt, started):
             raise AdaptiveRejected("E_ADAPT_ARTIFACT: actual executable bytes do not match the internal build")
         library = ctypes.CDLL("/proc/self/fd/" + str(fd), mode=os.RTLD_LOCAL | os.RTLD_NOW)
         function = getattr(library, state["entry"])
+        try:
+            loaded_mapping = verify_loaded_symbols(fd, {state["entry"]: function})
+        except NativeMappingRejected as error:
+            raise AdaptiveRejected("E_ADAPT_MAPPING: resolved native code does not match its sealed artifact") from error
         function.argtypes = [ctypes.c_uint64] * len(state["params"])
         function.restype = ctypes.c_uint64
         return _Image(program, state, path, native["artifact_sha256"], fd, library,
-                      function, time.monotonic_ns() - started, receipt)
-    except Exception:
-        if library is not None:
-            import _ctypes
-            _ctypes.dlclose(library._handle)
-        os.close(fd)
+                      function, time.monotonic_ns() - started, receipt, loaded_mapping)
+    except BaseException:
+        try:
+            if library is not None:
+                import _ctypes
+                _ctypes.dlclose(library._handle)
+        finally:
+            os.close(fd)
         raise
 
 
@@ -113,6 +122,9 @@ class AdaptiveRuntime:
     not implemented: the fully charged finite shadow experiment cannot repay
     itself. Automatic requests conservatively retain the current version.
     """
+    def _admit_profile(self, document):
+        return _profile(document)
+
     def __init__(self, base, directory, *, clang="clang", policy=None):
         started = time.monotonic_ns()
         self._identity = _identity()
@@ -122,7 +134,7 @@ class AdaptiveRuntime:
         if self._root.exists() or self._root.is_symlink():
             raise AdaptiveRejected("E_ADAPT_PATH: a new private build directory is required")
         self._root.mkdir(mode=0o700, parents=True)
-        checked, state = _profile(base)
+        checked, state = self._admit_profile(base)
         if self._policy.get("target") != state["target"]:
             raise AdaptiveRejected("E_ADAPT_TARGET: runtime only executes the qualified host ABI")
         path = self._root / "baseline.so"
@@ -185,7 +197,7 @@ class AdaptiveRuntime:
         path = self._root / (token + ".so")
         image = None
         try:
-            checked, state = _profile(candidate)
+            checked, state = self._admit_profile(candidate)
             if state != base.state:
                 raise AdaptiveRejected("E_ADAPT_STATE: complete state schema or ABI differs")
             receipt = build_optimized_native(base.program, checked, path, policy=self._policy, clang=self._clang)

@@ -13,6 +13,7 @@ import json
 import os
 from pathlib import Path
 import resource
+import shutil
 import subprocess
 import time
 
@@ -39,12 +40,13 @@ def build(args: argparse.Namespace) -> Path:
     bridge = root / "tools/hia-ndu-bridge"
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
-    target_preexisting = (output / "target").exists()
+    target = args.target_dir.resolve() if getattr(args, "target_dir", None) else output / "target"
+    target_preexisting = target.exists()
     cargo = str(args.cargo.resolve(strict=True))
     rustc = str(args.rustc.resolve(strict=True))
     env = dict(os.environ)
     env["RUSTC"] = rustc
-    env["CARGO_TARGET_DIR"] = str(output / "target")
+    env["CARGO_TARGET_DIR"] = str(target)
     if args.cargo_home:
         env["CARGO_HOME"] = str(args.cargo_home.resolve())
     env["PATH"] = os.pathsep.join([str(Path(cargo).parent), str(Path(rustc).parent), env.get("PATH", "")])
@@ -71,7 +73,19 @@ def build(args: argparse.Namespace) -> Path:
     if args.offline:
         command.append("--offline")
     run(command, cwd=bridge, env=env)
-    binary = output / "target/release" / ("hepta-hia-ndu-bridge.exe" if os.name == "nt" else "hepta-hia-ndu-bridge")
+    name = "hepta-hia-ndu-bridge.exe" if os.name == "nt" else "hepta-hia-ndu-bridge"
+    built_binary = target / "release" / name
+    built_sha256 = hashlib.sha256(built_binary.read_bytes()).hexdigest()
+    binary = built_binary
+    if target != output / "target":
+        # A caller may place reproducible Cargo cache in temporary storage. Keep
+        # the admitted executable in the durable output and bind both copies.
+        binary = output / "native" / name
+        binary.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(built_binary, binary)
+        binary.chmod(0o755)
+        if hashlib.sha256(binary.read_bytes()).hexdigest() != built_sha256:
+            raise RuntimeError("published executable differs from the Cargo output")
     identity = json.loads(run([str(binary), "--identity"], cwd=bridge, env=env))
     if identity.get("source_digest") != native_digest or identity.get("bridge_digest") != bridge_digest:
         raise RuntimeError("built executable has stale source identity")
@@ -82,6 +96,8 @@ def build(args: argparse.Namespace) -> Path:
                 "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(),
                 "identity": identity, "native_sources": native_inventory,
                 "bridge_sources": bridge_inventory, "build_command": command,
+                "cargo_target_dir": str(target), "built_binary": str(built_binary),
+                "built_binary_sha256": built_sha256,
                 "build_tools": {"builder_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                                 "cargo_sha256": hashlib.sha256(Path(cargo).read_bytes()).hexdigest(),
                                 "rustc_sha256": hashlib.sha256(Path(rustc).read_bytes()).hexdigest()},
@@ -107,6 +123,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--ndu-source", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--target-dir", type=Path,
+                        help="optional reproducible Cargo cache; admitted binary is copied into output/native")
     parser.add_argument("--cargo", type=Path, required=True)
     parser.add_argument("--rustc", type=Path, required=True)
     parser.add_argument("--cargo-home", type=Path)

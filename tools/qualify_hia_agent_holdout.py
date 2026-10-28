@@ -14,6 +14,7 @@ import copy
 import hashlib
 import json
 from pathlib import Path
+import re
 import subprocess
 import sys
 import time
@@ -29,17 +30,23 @@ from tools.provider_adapter.llama_cpp_engine import canonical, file_identity
 PROTOCOL = "hepta.hia.single-model-withheld-inputs.v1"
 LIMIT = 512
 HIDDEN_PAIRS = 64
+HIDDEN_SEED = 0x48504132
 
 
-def bindings():
+def bindings(extra_source_paths=()):
     result = batch.bindings()
     result[str(Path(__file__).relative_to(ROOT))] = file_identity(__file__)["sha256"]
+    for name in extra_source_paths:
+        path = (ROOT / name).resolve(strict=True)
+        result[str(path.relative_to(ROOT))] = file_identity(path)["sha256"]
     return result
 
 
-def tasks():
+def tasks(seed=HIDDEN_SEED):
+    if type(seed) is not int or not 0 <= seed < 2**32:
+        raise ValueError("E_HOLDOUT_SEED")
     result = copy.deepcopy(batch.fixtures())
-    state = 0x48504132
+    state = seed
     pairs = []
     for _ in range(HIDDEN_PAIRS):
         state = (1664525 * state + 1013904223) % 2**32
@@ -63,21 +70,36 @@ def write(path, value):
 
 
 def run(*, output_dir, binary, model, model_sha256, clang="/usr/bin/clang-20",
-        rustc="/tmp/hepta-ai-rust-1.90.0/bin/rustc", threads=4, controls_only=False):
+        rustc="/tmp/hepta-ai-rust-1.90.0/bin/rustc", threads=4, controls_only=False,
+        model_metadata=None, model_index=0, withheld_seed=HIDDEN_SEED,
+        protocol_id=PROTOCOL, extra_source_paths=()):
     experiment_started = time.monotonic_ns()
     out = Path(output_dir).absolute(); out.mkdir(parents=True, exist_ok=False)
-    fixtures, initial = tasks(), bindings()
+    binding_fn = lambda: bindings(extra_source_paths)
+    fixtures, initial = tasks(withheld_seed), binding_fn()
     model_info = {"id": "locked_local_model", "family": "single local model; no cross-model generalization",
                   "path": str(Path(model).absolute()), "sha256": model_sha256,
                   "provenance": "caller-supplied local GGUF identified by exact bytes"}
+    if model_metadata is not None:
+        required = {"id", "family", "repository", "revision", "sha256", "bytes", "provenance"}
+        if (type(model_metadata) is not dict or not required.issubset(model_metadata)
+                or type(model_metadata["id"]) is not str
+                or re.fullmatch(r"[a-z][a-z0-9_]{0,63}", model_metadata["id"]) is None
+                or model_metadata["sha256"] != model_sha256):
+            raise ValueError("E_HOLDOUT_MODEL_METADATA")
+        model_info.update(copy.deepcopy(model_metadata), path=str(Path(model).absolute()))
+    if type(model_index) is not int or not 0 <= model_index <= 16:
+        raise ValueError("E_HOLDOUT_MODEL_INDEX")
     require_model = file_identity(model)
-    if require_model["sha256"] != model_sha256:
+    if (require_model["sha256"] != model_sha256 or
+            (model_metadata is not None and require_model["bytes"] != model_metadata["bytes"])):
         raise ValueError("E_HOLDOUT_MODEL_HASH")
-    plan = {"schema": PROTOCOL, "source_bindings": initial, "tasks": fixtures, "arms": list(ARMS),
+    plan = {"schema": protocol_id, "source_bindings": initial, "tasks": fixtures, "arms": list(ARMS),
             "model": model_info, "runtime": file_identity(binary), "clang": file_identity(clang), "rustc": file_identity(rustc),
             "max_new_tokens": LIMIT, "attempts_per_cell": 1, "threads": threads, "greedy": True, "seed": 0,
-            "json_constraint": "object syntax only; no task-specific answer grammar", "scheduled_cells": scheduled_cells(fixtures, 0),
+            "json_constraint": "object syntax only; no task-specific answer grammar", "scheduled_cells": scheduled_cells(fixtures, model_index),
             "test_inputs_in_prompts": False, "additional_withheld_pairs_per_task": HIDDEN_PAIRS,
+            "withheld_lcg_seed": withheld_seed, "model_index": model_index,
             "task_origin": "existing four two-helper arithmetic maintenance compositions; new withheld input cases, not new task families",
             "success_rule": "both helpers repaired, unchanged caller, actual native output matches every independent case",
             "primary_comparison": "HIA query vs Rust query under same model/budget; successful tasks and all request token/time costs",
@@ -114,21 +136,21 @@ def run(*, output_dir, binary, model, model_sha256, clang="/usr/bin/clang-20",
             {"site": i, "changes": {"op" if language == "hia" else "replacement": "const" if language == "hia" else "0"}}
             for i in range(2)]}).decode()) for language in ("hia", "rust")]
         model_started = time.monotonic_ns()
-        model_report = _run_model(model_info, 0, fixtures, out, binary, clang, rustc, threads, initial,
+        model_report = _run_model(model_info, model_index, fixtures, out, binary, clang, rustc, threads, initial,
                                   json_object=True, prompt_fn=batch.prompt, parse_fn=batch.parse_response,
-                                  native_fn=batch.native, bindings_fn=bindings, response_limit=LIMIT, preflight_formats=formats)
+                                  native_fn=batch.native, bindings_fn=binding_fn, response_limit=LIMIT, preflight_formats=formats)
         model_execution_wall_ns = time.monotonic_ns() - model_started
     tools_stable = all(file_identity(path) == plan[name] for name, path in (("runtime", binary), ("clang", clang), ("rustc", rustc)))
-    source_stable = bindings() == initial
+    source_stable = binding_fn() == initial
     complete = bool(model_report and model_report["status"] == "completed" and source_stable and tools_stable and
                     len(model_report["completed_cells"]) == 16 and not model_report["unresolved_requests"])
-    report = {"schema": PROTOCOL, "status": "completed" if complete else "development_controls_only" if controls_only and controls_ok else "incomplete",
+    report = {"schema": protocol_id, "status": "completed" if complete else "development_controls_only" if controls_only and controls_ok else "incomplete",
               "plan_sha256": plan["sha256"], "native_controls": len(controls), "native_controls_passed": sum(c["passed"] for c in controls),
               "native_controls_wall_ns": controls_ns, "source_unchanged": source_stable, "tools_unchanged": tools_stable,
               "model_execution_wall_ns": model_execution_wall_ns,
               "model_execution_cost_scope": "startup, model/runtime hashing, probes, all task attempts, native evaluations and shutdown",
               "model_report": model_report, "claims": plan["claims"], "limitations": [plan["task_origin"], *plan["cost_exclusions"],
-                  "one small quantized model and one attempt per cell", "tests are withheld from prompts, not a secret dataset",
+                  "one fixed quantized model per invocation and one attempt per cell", "tests are withheld from prompts, not a secret dataset",
                   "four paired tasks cannot establish a population productivity effect"]}
     if model_report:
         report["single_model_descriptive_criteria"] = batch.criteria(model_report["summary"], complete)

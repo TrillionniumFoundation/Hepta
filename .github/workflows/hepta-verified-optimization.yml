@@ -5,12 +5,18 @@ on:
     paths:
       - 'hepta/**'
       - 'tests/test_hia_*'
+      - 'tests/test_core_unification.py'
+      - 'tests/test_cpp_composed_migrate.py'
       - 'tests/test_cpp_scoped_ownership_migration.py'
+      - 'tests/test_cpp_composed_project.py'
       - 'tools/qualify_hia_*'
       - 'tools/build_hia_ndu_bridge.py'
       - 'tools/qualify_cpp_scoped_ownership.py'
+      - 'tools/qualify_cpp_composed_project.py'
       - 'examples/cpp/scoped_ownership_migration/**'
+      - 'examples/cpp/composed_project_migration/**'
       - 'experiments/hia_optimizer_eval/**'
+      - 'experiments/hia_verified_integration/**'
       - 'pyproject.toml'
       - '.github/workflows/hepta-verified-optimization.yml'
   workflow_dispatch:
@@ -24,7 +30,7 @@ jobs:
     timeout-minutes: 35
     env:
       HEPTA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-      NDU_SOURCE_SHA: 2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b
+      NDU_SOURCE_SHA: 4b6391e116949af0c7e59776baead67271856bdb
       CLANG: /usr/bin/clang-20
       CLANGXX: /usr/bin/clang++-20
       PYTHONDONTWRITEBYTECODE: '1'
@@ -56,8 +62,11 @@ jobs:
       - name: Install the pinned Rust toolchain
         run: |
           rustup toolchain install 1.90.0 --profile minimal
+          rustup toolchain install 1.95.0 --profile minimal
           echo "RUSTC=$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_ENV"
-          echo "CARGO=$(rustup which --toolchain 1.90.0 cargo)" >> "$GITHUB_ENV"
+          echo "HEPTA_RUSTC=$(rustup which --toolchain 1.95.0 rustc)" >> "$GITHUB_ENV"
+          echo "NDU_RUSTC=$(rustup which --toolchain 1.95.0 rustc)" >> "$GITHUB_ENV"
+          echo "CARGO=$(rustup which --toolchain 1.95.0 cargo)" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
           repository: TrillionniumFoundation/hepta-private-ci
@@ -74,17 +83,20 @@ jobs:
       - name: Build the original native NDU bridge with exact source identity
         run: |
           python tools/build_hia_ndu_bridge.py --ndu-source ndu-source \
-            --expected-source "$NDU_SOURCE_SHA" --cargo "$CARGO" --rustc "$RUSTC" \
+            --expected-source "$NDU_SOURCE_SHA" --cargo "$CARGO" --rustc "$NDU_RUSTC" \
             --output "$RUNNER_TEMP/hia-ndu"
           echo "HEPTA_NDU_IDENTITY=$RUNNER_TEMP/hia-ndu/identity.json" >> "$GITHUB_ENV"
       - name: Run actual native integration and regression gates without skipped tests
         run: |
           python tools/qualify_hia_verified_increment.py --output artifacts/verified-optimization/regression
+          python experiments/hia_verified_integration/next_20261028/qualify_guarded_cli.py artifacts/verified-optimization/guarded-cli
       - name: Retain real finite NDU loop and migration/runtime evidence
         run: |
           python tools/qualify_hia_ndu_loop.py --identity "$HEPTA_NDU_IDENTITY" --clang "$CLANG" --output artifacts/verified-optimization/ndu-loop
           python tools/qualify_cpp_scoped_ownership.py --workdir artifacts/verified-optimization/cpp-scoped --clangxx "$CLANGXX" --clang "$CLANG" --rustc "$RUSTC" --cc gcc
           python tools/qualify_hia_adaptive.py --workdir artifacts/verified-optimization/adaptive --clang "$CLANG"
+          python tools/qualify_cpp_composed_project.py --workdir artifacts/verified-optimization/cpp-composed-project --clangxx "$CLANGXX" --clang "$CLANG" --cc gcc
+          python tools/qualify_hia_stateful.py --workdir artifacts/verified-optimization/owned-state --clang "$CLANG"
       - name: Retain all completed and failed evidence
         if: always()
         uses: actions/upload-artifact@v4

@@ -27,6 +27,15 @@ separate Buffer/owned-ADT/Result/borrow/cleanup profile to LLVM on Linux x86-64.
 Both require a native Rust reference check; neither silently falls back to
 Rust machine-code generation. Hosted task/I/O runtimes remain outside LLVM.
 
+The standalone optimization path now includes
+[independently proved guarded reductions](docs/HIA_GUARDED_OPTIMIZATION.md),
+[captured multi-unit C++ owner transfer](docs/CPP_COMPOSED_PROJECT_MIGRATION.md),
+and [verified version switching with a persistent native owner](docs/HIA_OWNED_STATE_RUNTIME.md).
+The [registered follow-up evaluation](experiments/hia_optimizer_eval/next_20261028/README.md)
+keeps original HIA, strong native baselines, actual model maintenance tasks,
+upgrades and all optimization costs visible. These finite implementations and
+measurements do not grant a universal safety, performance or productivity claim.
+
 ## Implemented capabilities
 
 The table describes the union of the explicitly qualified profiles in this

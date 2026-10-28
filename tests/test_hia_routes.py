@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 from hepta.cli import main
 from hepta.executable_core import lower_executable_core
-from hepta.hia_routes import RouteRejected, admit_route, execute_route, route_inventory
+from hepta.hia_routes import RouteRejected, admit_route, admit_captured_cpp, execute_route, route_inventory
 from hepta.hia_program_runtime import HIAProgramTrap
 from hepta.parser import parse
 from tests.test_core_unification import OWNED, SCALAR
@@ -85,6 +85,30 @@ class RouteTests(unittest.TestCase):
             self.assertEqual(result, 1)
             self.assertEqual(json.loads(stream.getvalue())["verification"]["status"], "timeout")
             self.assertFalse(output.exists())
+
+    def test_captured_matrix_verifies_unselected_variant_before_admission(self):
+        captured = {"variants": [{"name": "selected", "program": constant_program()},
+                                  {"name": "other", "program": {"schema": "untrusted-receipt"}}]}
+        with patch("hepta.cpp_composed_project.lower_composed_matrix", return_value=captured):
+            with self.assertRaises(ValueError):
+                admit_captured_cpp("cpp-composed-matrix", "captured.json", variant="selected")
+        with self.assertRaises(RouteRejected):
+            admit_route("cpp-composed-project", "captured.json", source="override")
+        with self.assertRaises(RouteRejected):
+            admit_captured_cpp("cpp-composed-project", "captured.json", variant="unused")
+
+    def test_captured_routes_execute_the_same_core_and_never_trust_a_receipt(self):
+        def lower(*args, **kwargs):
+            return {"program": constant_program(), "declarations": []}
+        with patch("hepta.cpp_composed_project.lower_composed_project", side_effect=lower):
+            program, ledger = admit_captured_cpp("cpp-composed-project", "capture.json")
+            report = execute_route("cpp-composed-project", "capture.json", "calculate", [7])
+        self.assertEqual(ledger["program_sha256"], program.sha256)
+        self.assertFalse(ledger["native_executed"])
+        from hepta.core import execute_core
+        self.assertEqual(report, execute_core(program, "calculate", [7]))
+        with self.assertRaises(RouteRejected):
+            admit_route("standalone-hia", program, clangxx="clang++")
 
 
 if __name__ == "__main__":
