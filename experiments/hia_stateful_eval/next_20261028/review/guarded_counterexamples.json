@@ -1,0 +1,110 @@
+{
+  "unrelated_guard_cannot_bound_effect_length": {
+    "schema": "hepta.hia.guarded-optimization-verification.v1",
+    "status": "rejected",
+    "target": "x86_64-unknown-linux-gnu",
+    "policy": {
+      "schema": "hepta.hia.optimization-policy.v1",
+      "target": "x86_64-unknown-linux-gnu",
+      "timeout_ms": 30000,
+      "max_scalar_operations": 4096,
+      "max_obligations": 1024,
+      "preconditions": []
+    },
+    "checker_sha256": "6c6df88ddca7e8ed64eff8adb26f0bc434cac63f180bdedb2091dd2db1a66acf",
+    "obligations": [
+      {
+        "function": "barrier_length",
+        "kind": "guard_establishes_entry",
+        "result": "unsat",
+        "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |barrier_length.entry:n| () (_ BitVec 64))\n(assert\n (let (($x7 (bvule |barrier_length.entry:n| (_ bv16 64))))\n(and $x7 (not (and (bvule ((_ zero_extend 64) |barrier_length.entry:n|) (_ bv16 128)))))))\n(check-sat)\n",
+        "smt2_sha256": "9cc18967a734e047520fb4450cc52cb275eeef96fd78930b23a9952eb7794ec6"
+      },
+      {
+        "function": "barrier_length",
+        "block": "entry",
+        "operation": 3,
+        "kind": "removed_check_cannot_trap",
+        "result": "sat",
+        "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |barrier_length.entry.effect:0:extent| () (_ BitVec 64))\n(declare-fun |barrier_length.entry.input:n| () (_ BitVec 64))\n(assert\n (let ((?x14 ((_ zero_extend 0) |barrier_length.entry.effect:0:extent|)))\n(let ((?x34 (bvadd ?x14 (_ bv1 64))))\n(let (($x40 (and (distinct (bvadd ((_ zero_extend 64) ?x14) ((_ zero_extend 64) (_ bv1 64))) ((_ zero_extend 64) ?x34)) true)))\n(let ((?x46 (ite $x40 1 0)))\n(let (($x56 (= 0 0)))\n(let ((?x51 (ite $x56 ?x46 0)))\n(let (($x11 (and (bvule ((_ zero_extend 64) |barrier_length.entry.input:n|) (_ bv16 128)))))\n(and $x11 $x56 (and (distinct ?x51 0) true))))))))))\n(check-sat)\n",
+        "smt2_sha256": "ed9beff5bc2c5ac8c6a967f8825484db469b0ee9c24463c71112b403d95cf682",
+        "counterexample": {
+          "barrier_length.entry.input:n": "0",
+          "barrier_length.entry.effect:0:extent": "18446744073709551615"
+        }
+      }
+    ],
+    "claims": {
+      "deployment_authority": false,
+      "backend_refinement_proved": false,
+      "whole_language_soundness_proved": false,
+      "performance_qualified": false
+    },
+    "base_sha256": "1976a5f116e482121b686153bc79aa90ec57989e2fa916cd8ffb23678261ff7d",
+    "candidate_sha256": "d92b53e9baedf72740e13fcdb71a34840d94b88fbc4eafac1fc793533d25a911",
+    "fast_core_sha256": "6f6d80a624728fb95e8aacd70cc49ae5d011dceb8d650a77418c6a6103b1492c",
+    "proposal_sha256": "497f89dd70462cc093be0acf88d4def14e83bcc2eea27b00161eba59aa05b3ab",
+    "preconditions": [
+      {
+        "function": "barrier_length",
+        "argument": "n",
+        "maximum": 16
+      }
+    ],
+    "changes": [
+      {
+        "function": "barrier_length",
+        "block": "entry",
+        "operation": 3
+      }
+    ],
+    "target_constraints": {
+      "triple": "x86_64-unknown-linux-gnu",
+      "foreign_abi": "unchanged scalar C exports",
+      "guard_before_effects": true,
+      "original_fallback": true
+    },
+    "resource_delta": {
+      "peak_live_bytes_change_under_core_model": null,
+      "allocation_failure_sequence_preserved": false,
+      "ordered_resource_instructions_unchanged": true,
+      "resource_trace_equivalence_checked": false,
+      "code_size_and_compile_cost_may_increase": true,
+      "vm_steps_preserved": false
+    },
+    "solver": {
+      "name": "Z3",
+      "version": "4.13.4",
+      "binding_sha256": "093e8f2a92070c5b60a6f50e91e799a79123ba8573a2df64f1b31c01edd86b39",
+      "library_path": "/tmp/hepta-next-z3-20261028/z3/lib/libz3.so",
+      "library_sha256": "89456c35d2deb579a6a73f012d366148baa54d750f547069b89d86ee616d89cb"
+    },
+    "reason": "an invariant or no-overflow counterexample exists",
+    "elapsed_ns": 199559521,
+    "verification_sha256": "d2c3c3e36d97cf3fc5ca9904b04c2db55a9c7a342820be1af107588b0b86e512"
+  },
+  "prefixed_parameter_alpha_collision_fails_closed": {
+    "schema": "hepta.hia.guarded-optimization-verification.v1",
+    "status": "rejected",
+    "target": "x86_64-unknown-linux-gnu",
+    "policy": {
+      "schema": "hepta.hia.optimization-policy.v1",
+      "target": "x86_64-unknown-linux-gnu",
+      "timeout_ms": 30000,
+      "max_scalar_operations": 4096,
+      "max_obligations": 1024,
+      "preconditions": []
+    },
+    "checker_sha256": "6c6df88ddca7e8ed64eff8adb26f0bc434cac63f180bdedb2091dd2db1a66acf",
+    "obligations": [],
+    "claims": {
+      "deployment_authority": false,
+      "backend_refinement_proved": false,
+      "whole_language_soundness_proved": false,
+      "performance_qualified": false
+    },
+    "reason": "guarded admission failed: E_HIA_SSA: SSA value gf_x is defined more than once",
+    "elapsed_ns": 2376353,
+    "verification_sha256": "53a9eb2348bcd8557b715e8d88b7e4bd96cd7e2a33dd217763d3708607c4ba94"
+  }
+}

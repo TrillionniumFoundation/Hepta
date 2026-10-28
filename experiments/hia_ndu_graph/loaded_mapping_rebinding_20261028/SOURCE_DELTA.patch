@@ -1,0 +1,105 @@
+--- archive/hepta/hia_adaptive.py
++++ current/hepta/hia_adaptive.py
+@@ -18,6 +18,7 @@
+ import time
+ 
+ from .hia_native_differential import _pin_native_artifact
++from .native_mapping_identity import NativeMappingRejected, verify_loaded_symbols
+ from .hia_optimization import (DEFAULT_POLICY, build_optimized_native,
+                                checker_identity, verify_optimization)
+ from .hia_program import verify_program
+@@ -42,6 +43,7 @@
+ def _identity():
+     return _digest({"runtime": sha256(Path(__file__).read_bytes()).hexdigest(),
+                     "pinning": sha256(Path(__file__).with_name("hia_native_differential.py").read_bytes()).hexdigest(),
++                    "mapping": sha256(Path(__file__).with_name("native_mapping_identity.py").read_bytes()).hexdigest(),
+                     "optimization": checker_identity(), "native": _implementation_hash()})
+ 
+ 
+@@ -81,6 +83,7 @@
+     function: object
+     preparation_ns: int
+     receipt: dict
++    loaded_mapping: dict
+ 
+ 
+ def _load_image(program, state, path, receipt, started):
+@@ -94,15 +97,21 @@
+             raise AdaptiveRejected("E_ADAPT_ARTIFACT: actual executable bytes do not match the internal build")
+         library = ctypes.CDLL("/proc/self/fd/" + str(fd), mode=os.RTLD_LOCAL | os.RTLD_NOW)
+         function = getattr(library, state["entry"])
++        try:
++            loaded_mapping = verify_loaded_symbols(fd, {state["entry"]: function})
++        except NativeMappingRejected as error:
++            raise AdaptiveRejected("E_ADAPT_MAPPING: resolved native code does not match its sealed artifact") from error
+         function.argtypes = [ctypes.c_uint64] * len(state["params"])
+         function.restype = ctypes.c_uint64
+         return _Image(program, state, path, native["artifact_sha256"], fd, library,
+-                      function, time.monotonic_ns() - started, receipt)
+-    except Exception:
+-        if library is not None:
+-            import _ctypes
+-            _ctypes.dlclose(library._handle)
+-        os.close(fd)
++                      function, time.monotonic_ns() - started, receipt, loaded_mapping)
++    except BaseException:
++        try:
++            if library is not None:
++                import _ctypes
++                _ctypes.dlclose(library._handle)
++        finally:
++            os.close(fd)
+         raise
+ 
+ 
+--- archive/hepta/hia_stateful.py
++++ current/hepta/hia_stateful.py
+@@ -23,6 +23,7 @@
+ from .hia_program import verify_program
+ from .hia_native_differential import _pin_native_artifact
+ from .native_tool_identity import digest_executable
++from .native_mapping_identity import NativeMappingRejected, verify_loaded_symbols
+ from .elf_shared_abi import inspect_owned_shared_elf
+ 
+ STATE_PROFILE = "hepta.hia.owned-u64-transition-runtime.v1"
+@@ -128,6 +129,11 @@
+         if digest_executable(compiler) != identity:
+             raise AdaptiveRejected("E_STATE_DRIVER: compiler changed")
+         library = ctypes.CDLL("/proc/self/fd/" + str(fd), mode=os.RTLD_LOCAL | os.RTLD_NOW)
++        functions = {name: getattr(library, name) for name in sorted(_EXPORTS)}
++        try:
++            loaded_mapping = verify_loaded_symbols(fd, functions)
++        except NativeMappingRejected as error:
++            raise AdaptiveRejected("E_STATE_DRIVER_MAPPING: loaded driver differs from its sealed artifact") from error
+         pointer, word = ctypes.c_void_p, ctypes.c_uint64
+         signatures = {
+             "hs_new": ([word, ctypes.c_uint], pointer), "hs_clone": ([pointer], pointer),
+@@ -138,7 +144,7 @@
+             **{name: ([], word) for name in ("hs_live", "hs_allocations", "hs_frees", "hs_refusals")},
+         }
+         for name, (args, result) in signatures.items():
+-            function = getattr(library, name)
++            function = functions[name]
+             function.argtypes, function.restype = args, result
+         with source.open("x") as audit:
+             audit.write(_DRIVER_SOURCE)
+@@ -146,12 +152,14 @@
+             audit.write(actual)
+         return library, fd, {"source_sha256": sha256(_DRIVER_SOURCE.encode()).hexdigest(),
+                              "artifact_sha256": sha256(actual).hexdigest(), "compiler_sha256": identity,
+-                             "command": argv, "binary_inventory": inventory}
++                             "command": argv, "binary_inventory": inventory, "loaded_mapping": loaded_mapping}
+     except BaseException:
+-        if library is not None:
+-            import _ctypes
+-            _ctypes.dlclose(library._handle)
+-        os.close(fd)
++        try:
++            if library is not None:
++                import _ctypes
++                _ctypes.dlclose(library._handle)
++        finally:
++            os.close(fd)
+         raise
+ 
+ 
