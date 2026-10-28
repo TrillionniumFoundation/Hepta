@@ -29,9 +29,12 @@ COMPOSITE_SCHEMA = "hepta.hia.composite.v1"
 COMPOSITE_PROFILE = "nominal-products-enums-cooperative-tasks-over-closed-ssa-v6"
 COMPOSITE_SCHEMA_V2 = "hepta.hia.composite.v2"
 COMPOSITE_PROFILE_V2 = "nominal-products-enums-cooperative-tasks-over-closed-ssa-v7"
+COMPOSITE_SCHEMA_V3 = "hepta.hia.composite.v3"
+COMPOSITE_PROFILE_V3 = "nominal-partial-records-enums-cooperative-tasks-over-closed-ssa-v7"
 COMPOSITE_PROFILES = MappingProxyType({
     COMPOSITE_SCHEMA: COMPOSITE_PROFILE,
     COMPOSITE_SCHEMA_V2: COMPOSITE_PROFILE_V2,
+    COMPOSITE_SCHEMA_V3: COMPOSITE_PROFILE_V3,
 })
 COMPOSITE_SCHEMAS = frozenset(COMPOSITE_PROFILES)
 LEGACY_COMPOSITE_SCHEMA = SCHEMA_V2
@@ -44,6 +47,14 @@ LEGACY_COMPOSITE_OPERATIONS = frozenset({
     "task.join", "task.close",
 })
 COMPOSITE_OPERATIONS = LEGACY_COMPOSITE_OPERATIONS | {"record.borrow"}
+PARTIAL_RECORD_OPERATIONS = frozenset({
+    "record.begin", "record.take", "record.insert", "record.finish", "record.abandon",
+})
+COMPOSITE_OPERATIONS_BY_SCHEMA = MappingProxyType({
+    COMPOSITE_SCHEMA: COMPOSITE_OPERATIONS,
+    COMPOSITE_SCHEMA_V2: COMPOSITE_OPERATIONS,
+    COMPOSITE_SCHEMA_V3: COMPOSITE_OPERATIONS | PARTIAL_RECORD_OPERATIONS,
+})
 
 PRIMITIVE_PROFILES = MappingProxyType({
     SCHEMA: PROFILE, SCHEMA_V2: PROFILE_V2, SCHEMA_V3: PROFILE_V3,
@@ -67,7 +78,8 @@ def profile_for_schema(schema: str) -> str:
 
 def composite_core_schema(schema: str) -> str:
     """Existing nominal inputs retain their exact original primitive grammar."""
-    return {COMPOSITE_SCHEMA: SCHEMA_V6, COMPOSITE_SCHEMA_V2: SCHEMA_V7}[schema]
+    return {COMPOSITE_SCHEMA: SCHEMA_V6, COMPOSITE_SCHEMA_V2: SCHEMA_V7,
+            COMPOSITE_SCHEMA_V3: SCHEMA_V7}[schema]
 
 
 def supports_feature(schema: str, feature: str) -> bool:
@@ -92,7 +104,7 @@ def schema_registry() -> dict:
         "composite_versions": [
             {"schema": schema, "profile": profile,
              "normalizes_to": composite_core_schema(schema),
-             "nominal_operations": sorted(COMPOSITE_OPERATIONS)}
+             "nominal_operations": sorted(COMPOSITE_OPERATIONS_BY_SCHEMA[schema])}
             for schema, profile in COMPOSITE_PROFILES.items()
         ],
         "legacy_nominal": {"schema": LEGACY_COMPOSITE_SCHEMA,

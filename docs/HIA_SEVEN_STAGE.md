@@ -21,12 +21,12 @@ call absent from the interpreter's resource ledger.
 | Stage | Integrated implementation and executable evidence | Remaining obligation before the complete goal can pass |
 | --- | --- | --- |
 | P0. Single semantics | Shared `hia_schema` registry and public discovery command; distinct nominal namespace; primitive v1–v7 grammar rules; explicit legacy adapter; normalization, editing, interpretation and native code use reverified Core | Every frontend/backend must use the same registry; incompatible and ambiguous legacy inputs must reject; existing correctness regressions remain required |
-| P1. Resources and memory | Generic products/enums, local stored/reborrowed loans, direct record-field borrowing, fallible allocation and cooperative cancellation compose with bulk/move/swap/offset/range memory operations; v7 adds recursive buffer chains | General typed places and layouts, initialization, escaping stored borrows, arbitrary recursive heap ADTs, concurrent scheduling and channels remain unsupported |
+| P1. Resources and memory | Generic products/enums, local stored/reborrowed loans, direct record-field borrowing, fallible allocation and cooperative cancellation compose with bulk/move/swap/offset/range memory operations; v7 adds recursive buffer chains; composite v3 adds explicit partial-record initialization, field movement and reinitialization over that same primitive v7 | General address-based typed places/layouts and initialization, escaping stored borrows, arbitrary recursive heap ADTs, concurrent scheduling and channels remain unsupported |
 | P2. Core to native | Source adapters feed independent Core admission; native/interpreter controls cover scalar, control, ownership and failure paths; Rust shadow supplies independently implemented finite checks; selected Core has a Lean operational model | Return/trap/effect/resource correspondence must hold for every admitted construct; selected theorems do not prove Python export, LLVM refinement, optimization premises or whole-compiler soundness |
 | P3. C migration | Compilation-database partitions and complete active-declaration dispositions; finite standalone HIA modules plus upstream Ring-Buffer through contracted safe Hepta/Rust migration | Arbitrary C, unlisted macro configurations, inferred resource contracts and migration labor cost are unqualified; record-view migration is not standalone HIA lowering |
-| P4. C++ reuse and migration | Owner/template native paths and separate multi-object RAII bridges; vector/deque and two nlohmann/json releases exercise copied-value dependencies, reverse destruction and publication after cleanup | General templates/STL and arbitrary object models remain open; ABI, lifetime, safety and equivalence require separate evidence; foreign noexcept termination is not recovery |
+| P4. C++ reuse and migration | Owner/template native paths and separate multi-object RAII bridges; selected captured Clang `if constexpr` instances lower only their evaluated branches with complete-pattern ODR checks; vector/deque and two nlohmann/json releases exercise copied-value dependencies, reverse destruction and publication after cleanup | General templates/STL and arbitrary object models remain open; selected object lifecycles and general constant-evaluation contexts are not enabled by branch selection; ABI, lifetime, safety and equivalence require separate evidence; foreign noexcept termination is not recovery |
 | P5. CPU/GPU performance | Frozen 63-sample CPU performance protocol with earlier failed studies retained | Representative applications, same-semantics layout/vector gains, robust performance distributions and actual GPU execution remain required; no universal Rust superiority follows |
-| P6. Agent-native development | Semantic editing, bounded context, snapshot checks, whole-module revalidation and frozen task/interface experiment protocols | Full diagnostics, sound incremental validation and real-model task/budget comparisons must establish success or cost benefit; scripted fixtures do not establish model productivity |
+| P6. Agent-native development | Semantic editing, bounded context, snapshot checks, full public-consumer revalidation and primitive v1–v7 local incremental sessions with exact body/callee-interface dependencies; frozen task/interface experiment protocols | Full diagnostics, additional semantic profiles for incremental validation and real-model task/budget comparisons must establish success or cost benefit; reduced static body-check work and scripted fixtures do not establish model productivity |
 | P7. Hardware and production | Linux x86-64 execution; AArch64 and RV64GC LP64D execution under QEMU; historical Cortex-M4 Rust/BSP regression remains separate | Physical boards, MMIO/IRQ/DMA, real workloads, sustained operation, resource boundaries and fault recovery require actual execution evidence |
 
 “Static” means checked before execution for the admitted finite language.
@@ -110,3 +110,28 @@ plan, rather than whichever branch head later happens to be current.
 No credential, physical device, unavailable host, or model family is inferred
 from a local toolchain. QEMU execution is labeled as QEMU execution. A failed
 performance or productivity gate is an engineering result and must be reported.
+
+## Follow-up qualification profiles
+
+The original 19-gate collector keeps its existing denominator. New independent
+qualification tools record their own frozen inputs, commands and outcomes;
+their existence is not a claim that they have run:
+
+```sh
+python tools/qualify_hia_partial_records.py \
+  --clang /absolute/path/to/clang \
+  --rust-vm /absolute/path/to/hia-core-shadow \
+  --output-directory /tmp/hepta-partial-records-new
+python tools/qualify_cpp_constexpr.py \
+  --clang /absolute/path/to/clang --clangxx /absolute/path/to/clang++ \
+  --output-directory /tmp/hepta-cpp-constexpr-new
+```
+
+The partial-record profile compares nominal Python execution, independently
+admitted primitive Python execution, the independent Rust VM and real LLVM
+native execution, including allocator order and deliberately incorrect native
+controls. The constexpr profile compares defined unsigned inputs against the
+separately built original C++ library and a standalone HIA object with no
+original C++ implementation linked into the target. These remain finite
+profiles, separate from whole-language refinement, performance, model benefit,
+GPU and physical-board qualification.
