@@ -215,6 +215,17 @@ impl<'a> Machine<'a> {
         let by_name: BTreeMap<&str, &Value> = blocks.iter()
             .map(|b| (b["id"].as_str().unwrap_or(""), b)).collect();
         let mut current = function["entry"].as_str().ok_or(Halt::Internal)?;
+        let (args, formals) = if let Some(memory) = self.memory.as_mut() {
+            memory.enter_call(&function["params"], args)?
+        } else { (args, Vec::new()) };
+        let return_bindings: BTreeMap<&str, RuntimeValue> = if function["returns"]
+            .as_array().ok_or(Halt::Internal)?.iter()
+            .any(|ty| matches!(ty.as_str(), Some("readbuf" | "mutbuf"))) {
+            function["params"].as_array().ok_or(Halt::Internal)?.iter().zip(&args)
+                .filter(|(p, _)| matches!(p["type"].as_str(), Some("readbuf" | "mutbuf")))
+                .map(|(p, value)| Ok((p["name"].as_str().ok_or(Halt::Internal)?, value.clone())))
+                .collect::<Exec<_>>()?
+        } else { BTreeMap::new() };
         let mut env = bind(&function["params"], args)?;
         loop {
             let block = *by_name.get(current).ok_or(Halt::Internal)?;
@@ -282,7 +293,25 @@ impl<'a> Machine<'a> {
             self.tick()?;
             let term = &block["term"];
             match term["op"].as_str().ok_or(Halt::Internal)? {
-                "ret" => return resolve(&env, &term["values"]),
+                "ret" => {
+                    let mut values = resolve(&env, &term["values"])?;
+                    if !return_bindings.is_empty() {
+                        let origins = function["return_loans"].as_array().ok_or(Halt::Internal)?;
+                        for ((ty, origin), value) in function["returns"].as_array()
+                            .ok_or(Halt::Internal)?.iter().zip(origins).zip(&mut values) {
+                            if matches!(ty.as_str(), Some("readbuf" | "mutbuf")) {
+                                let parent = return_bindings.get(origin.as_str().ok_or(Halt::Internal)?)
+                                    .ok_or(Halt::Internal)?;
+                                *value = self.memory.as_mut().ok_or(Halt::Internal)?
+                                    .return_loan(value, parent, ty == "mutbuf")?;
+                            }
+                        }
+                    }
+                    if let Some(memory) = self.memory.as_mut() {
+                        memory.leave_call(&formals)?;
+                    }
+                    return Ok(values);
+                }
                 "trap" => {
                     let code = term["code"].as_str().ok_or(Halt::Internal)?;
                     return match code {
@@ -322,8 +351,8 @@ pub fn execute_scalar(input: &[u8], function: &str, arguments: &[Value],
 
 /// Opt-in finite byte-owner execution in the SAME Machine as scalar execution.
 /// Verified CFG/loops and internal scalar/owner/loan calls share one ledger.
-/// Public entry/return remains scalar. v7 chains and versioned bulk operations
-/// share the byte allocation/loan ledger; nominal input must be lowered first.
+/// Public entry/return remains scalar. v7/v8 chains, bulk operations and v8
+/// parameter-bound loan returns share one ledger and one execution Machine.
 /// Static ownership admission still comes from the existing verify_owned.
 pub fn execute_owned(input: &[u8], function: &str, arguments: &[Value],
                      max_steps: u64, max_heap_bytes: u64,
@@ -345,7 +374,7 @@ fn owned_execution_profile(document: &Value) -> R<bool> {
     // Check every function, including nonexported helpers that this execution
     // would not call. No hidden unsupported signature or opcode suffix can be
     // laundered through an early return, failure injection, or small budget.
-    let mut extended = false;
+    let mut chain = false;
     for function in functions {
         let mut types: Vec<&Value> = function["params"].as_array().unwrap()
             .iter().map(|p| &p["type"]).collect();
@@ -358,7 +387,7 @@ fn owned_execution_profile(document: &Value) -> R<bool> {
             for op in block["ops"].as_array().unwrap() {
                 types.extend(op["out"].as_array().unwrap().iter().map(|p| &p["type"]));
                 let opcode = op["op"].as_str().unwrap();
-                extended |= ByteMemory::extended(opcode);
+                chain |= ByteMemory::chain_operation(opcode);
                 let scalar = matches!(opcode,
                     "const" | "int.add.checked" | "int.sub.checked" | "int.mul.checked" |
                     "int.add.wrap" | "int.sub.wrap" | "int.mul.wrap" | "int.div.checked" |
@@ -372,13 +401,13 @@ fn owned_execution_profile(document: &Value) -> R<bool> {
             }
         }
         for ty in types {
-            extended |= ty == "chain";
+            chain |= ty == "chain";
             if !matches!(ty.as_str(), Some("buffer" | "readbuf" | "mutbuf" | "chain")) {
                 super::scalar(ty)?;
             }
         }
     }
-    Ok(extended)
+    Ok(chain)
 }
 
 fn execute(input: &[u8], function: &str, arguments: &[Value], max_steps: u64,
@@ -388,7 +417,7 @@ fn execute(input: &[u8], function: &str, arguments: &[Value], max_steps: u64,
     }
     let verification = if owned_policy.is_some() { verify_owned(input)? } else { verify(input)? };
     let (document, _) = decode_hia(input)?;
-    let extended = if owned_policy.is_some() { owned_execution_profile(&document)? } else { false };
+    let chain = if owned_policy.is_some() { owned_execution_profile(&document)? } else { false };
     let functions = document["functions"].as_array().ok_or_else(|| super::VerifyError {
         code: "E_HIA_FORMAT", detail: "missing verified function inventory".into(),
     })?;
@@ -446,9 +475,13 @@ fn execute(input: &[u8], function: &str, arguments: &[Value], max_steps: u64,
     });
     if let Some(memory) = machine.memory.as_ref() {
         report["schema"] = json!("hepta.hia.rust-byte-owner-execution.v1");
-        report["profile"] = json!(if extended { "bounded-cfg-owned-memory-v3" }
-                                  else { "bounded-cfg-byte-owner-v2" });
-        report["resources"] = memory.report(document["schema"] == "hepta.hia.program.v7");
+        let loan_returns = document["schema"] == "hepta.hia.program.v8";
+        report["profile"] = json!(if chain {
+            "bounded-cfg-owned-memory-v5"
+        } else if loan_returns {
+            "bounded-cfg-byte-owner-loan-returns-v4"
+        } else { "bounded-cfg-byte-owner-bulk-v3" });
+        report["resources"] = memory.report(loan_returns || document["schema"] == "hepta.hia.program.v7");
         report["max_heap_bytes"] = json!(owned_policy.unwrap().0);
         report["allocation_fail_at"] = json!(owned_policy.unwrap().1);
         report["claims"] = json!({
@@ -458,14 +491,25 @@ fn execute(input: &[u8], function: &str, arguments: &[Value], max_steps: u64,
             "scalar_public_entry_and_results_only": true,
             "verified_resource_cfg_execution": true,
             "interprocedural_byte_owner_and_loan_execution": true,
-            "chain_and_bulk_execution": extended,
-            "interprocedural_chain_execution": extended,
+            "chain_and_bulk_execution": false,
+            "versioned_bulk_byte_execution": true,
+            "chain_execution": false,
             "general_resource_execution": false,
             "production_admission_authorized": false,
             "whole_language_soundness_proved": false,
             "native_backend_refinement_proved": false,
             "abi_or_hardware_qualified": false
         });
+        if loan_returns {
+            report["claims"]["parameter_bound_returned_loans_execution"] = json!(true);
+        }
+        if chain {
+            report["claims"]["chain_and_bulk_execution"] = json!(true);
+            report["claims"]["chain_execution"] = json!(true);
+            report["claims"]["interprocedural_chain_execution"] = json!(true);
+            report["claims"]["separate_logical_and_storage_identities"] = json!(true);
+            report["claims"]["distinct_call_formal_loan_identities"] = json!(true);
+        }
     }
     match result {
         Ok(values) => {

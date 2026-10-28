@@ -83,16 +83,24 @@ live owner/loan/state migration. The runtime's actual Linux sealing/readback
 checks remain mandatory even when Python lacks named `fcntl` constants; test
 readiness now reflects Linux/memfd capability instead of those Python names.
 
-The subsequent resource increment extends the same Rust Machine with canonical
-bulk operations and v7 chains, including stopped destructor ledgers. It retains
-the v2 byte-only report and uses an explicit v3 execution profile for extended
-modules; see [HIA_RUST_OWNED_MEMORY_VM_20261028.md](HIA_RUST_OWNED_MEMORY_VM_20261028.md).
-Source returned projection borrows still use the existing checked inlining;
-primitive cross-call Loan returns remain rejected.
+The subsequent resource increment and v8 consumer convergence now share the
+same Rust Machine for canonical bulk operations, chains and parameter-bound
+returned loans, including stopped destructor ledgers. No-chain v1–v7 uses
+`bounded-cfg-byte-owner-bulk-v3`, no-chain v8 uses
+`bounded-cfg-byte-owner-loan-returns-v4`, and chain-bearing v7/v8 uses the
+explicit `bounded-cfg-owned-memory-v5` execution profile. These remain finite
+independent shadows; canonical Python Core still owns production admission.
+See [HIA_RUST_RETURNED_CHAINS_V8.md](HIA_RUST_RETURNED_CHAINS_V8.md) for the
+typed resource roots, distinct call-formal identities and return-origin rules.
 
-Captured C source spelling, semantic driver dependencies and decayed array/
-function-attribute ABI refusals are now checked before translation, including
-the record-view route. [C_MUSL_COMPARE.md](C_MUSL_COMPARE.md) describes migration
+Captured C source spelling, semantic driver dependencies and function-attribute
+ABI refusals are checked before translation, including the record-view route.
+Original parameter types now come from the selected Clang's serialized AST and
+its actual matching-installation libclang reader. Bound fixed/incomplete array
+parameters can enter the declared pointer-contract subset; VLA entry effects,
+unmodeled types and mismatched physical declaration bindings refuse.
+[C_ORIGINAL_PARAMETER_TYPES.md](C_ORIGINAL_PARAMETER_TYPES.md) records that
+frontend trust boundary. [C_MUSL_COMPARE.md](C_MUSL_COMPARE.md) describes migration
 of two unchanged, complete musl 1.2.5 comparison components. Its finite native
 oracle and authored platform/contract adapters do not imply a whole-libc build
 or general C++ translation. The existing C++ reuse and ownership gates remain.
@@ -108,6 +116,7 @@ rewinding data. Heap/loan/stack migration and profitability remain unestablished
 `tools/qualify_hia_integrated.py` is the local single-run acceptance entrypoint.
 It requires the exact committed `--expected-head`, a clean tree and all tracked
 files materialized. It checks actual compiler/solver/emulator/tool identities,
+the loaded original-type reader and its worker bytes,
 real Linux sealing, both upstream Git inventories and native bridge replies,
 the Rust crate, and exactly one full verbose Python discovery with zero skips.
 Critical module coverage is a view of that same discovery, not another test

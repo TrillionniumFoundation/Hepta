@@ -1,4 +1,4 @@
-# Rust owned-memory execution: finite v3 scope
+# Rust owned-memory execution: finite v5 scope
 
 The existing Rust `--owned-run` Machine now executes the canonical bulk-memory
 operations in primitive HIA v2–v7 and recursive chains in v7. The canonical
@@ -8,10 +8,11 @@ successful execution grants no production or native-backend authority.
 
 ## Report compatibility and admission
 
-Modules containing a chain type or a bulk/chain instruction select
-`bounded-cfg-owned-memory-v3`. Byte-only modules retain
-`bounded-cfg-byte-owner-v2`, including their existing ledger key set for the
-selected primitive version. Both use report schema
+Modules containing a chain type or instruction select
+`bounded-cfg-owned-memory-v5`. Modules without chains retain
+`bounded-cfg-byte-owner-bulk-v3` (v1–v7) or
+`bounded-cfg-byte-owner-loan-returns-v4` (v8), including the existing ledger
+key set for the selected primitive version. These profiles use report schema
 `hepta.hia.rust-byte-owner-execution.v1` and the same Machine, owner/loan maps,
 call frames and allocation-failure counter.
 
@@ -63,12 +64,14 @@ end, a shared projection observation and final owning-record destruction.
 The existing `generic_owners.hepta` and migrated `OwnedBytes` fixtures also
 execute through the real source frontend and both VMs.
 
-This is **source-level projection inlining**. The primitive contract still
-rejects function results of `readbuf`/`mutbuf`, including uncalled helpers.
-No primitive cross-call Loan return is introduced. The current source profile
+This is **source-level projection inlining**. Primitive v1–v7 still reject
+function results of `readbuf`/`mutbuf`, including uncalled helpers. The distinct
+primitive v8 contract permits original-parameter/direct-child loan returns;
+its chain composition uses the same Machine under the
+[v5 profile](HIA_RUST_RETURNED_CHAINS_V8.md). The current source profile
 also rejects stored local returned borrows, nonprojection helper bodies,
 explicit lifetime returns and borrowing a returned temporary as an assignment
-place. A future broader contract needs explicit lifetime/root relations across
+place. A broader source contract needs explicit lifetime/root relations across
 the frontend, verifier, interpreter and native consumers.
 
 Existing nominal record/enum/task input is accepted by canonical Python

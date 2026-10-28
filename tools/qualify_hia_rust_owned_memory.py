@@ -69,8 +69,8 @@ def qualify():
               and before == after)
     executable = getattr(RustOwnedMemoryParity, "executable", None)
     return {
-        "schema": "hepta.hia.rust-owned-memory-qualification.v1",
-        "profile": "bounded-cfg-owned-memory-v3",
+        "schema": "hepta.hia.rust-owned-memory-qualification.v2",
+        "profile": "bounded-cfg-owned-memory-v5",
         "started_utc": started, "finished_utc": datetime.now(timezone.utc).isoformat(),
         "ok": passed,
         "status": "finite_owned_memory_parity_passed" if passed else "finite_owned_memory_not_qualified",

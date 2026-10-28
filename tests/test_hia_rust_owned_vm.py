@@ -206,10 +206,10 @@ class RustByteOwnerVmParity(unittest.TestCase):
             2, i("buffer.fill.future", ["writer", "value"]))
         variants.append((bulk, "owned", [4, 7]))
         # Additional functions and resource CFG/calls are now supported by
-        # bounded-cfg-byte-owner-v2, and bulk/chain operations by v3. Reject a genuinely unsupported
-        # operation in an uncalled private helper before executing the entry.
+        # the byte-owner v3 profile, with chain modules under v5. Reject an
+        # unknown operation in an uncalled private helper before entry execution.
         hidden = resource_program()
-        hidden["schema"] = "hepta.hia.program.v2"
+        hidden["schema"] = "hepta.hia.program.v7"
         hidden["exports"] = ["owned"]
         hidden["functions"].append(f("hidden", [("view", "mutbuf"), ("byte", "u8")],
                                     [], ["write"], [

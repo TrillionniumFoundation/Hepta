@@ -1,4 +1,4 @@
-/* Finite RV64GC / LP64D Linux userspace qualification runtime.
+/* Finite RV64GC / LP64D and AArch64 Linux userspace qualification runtime.
  * 64 independent 4096-byte slots, no concurrency, realloc or production claim.
  * This code runs under QEMU; it is not physical-board or device evidence.
  */
@@ -7,8 +7,8 @@ typedef __UINT8_TYPE__ hepta_u8;
 typedef __UINT32_TYPE__ hepta_u32;
 typedef __UINT64_TYPE__ hepta_u64;
 typedef __UINTPTR_TYPE__ hepta_uintptr;
-#if !defined(__riscv) || __riscv_xlen != 64 || !defined(__riscv_float_abi_double)
-#error requires RV64 LP64D
+#if !defined(__aarch64__) && (!defined(__riscv) || __riscv_xlen != 64 || !defined(__riscv_float_abi_double))
+#error requires AArch64 or RV64 LP64D
 #endif
 #if !defined(__BYTE_ORDER__) || __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
 #error requires little endian
@@ -23,14 +23,32 @@ static volatile hepta_u32 failure_countdown;
 static volatile hepta_u32 peak_outstanding, outstanding;
 static volatile hepta_u32 successful_allocations, releases, denied_allocations;
 static volatile hepta_u32 null_frees;
+/* Requested payload bytes, separate from the observer's fixed backing arena. */
+static hepta_size requested_sizes[HEPTA_SLOTS];
+static volatile hepta_size live_bytes, peak_bytes;
+
+#ifdef HEPTA_RETURNED_LOAN_OBSERVER
+static void report_abort(void);
+#endif
 
 __attribute__((noreturn)) static void hepta_exit(hepta_u32 code) {
+#if defined(__aarch64__)
+    register long x0 __asm__("x0") = (long)code;
+    register long x8 __asm__("x8") = 93;
+    __asm__ volatile("svc 0" : : "r"(x0), "r"(x8) : "memory");
+#else
     register long a0 __asm__("a0") = (long)code;
     register long a7 __asm__("a7") = 93;
     __asm__ volatile("ecall" : : "r"(a0), "r"(a7) : "memory");
+#endif
     __builtin_unreachable();
 }
-__attribute__((noreturn)) void abort(void) { hepta_exit(134); }
+__attribute__((noreturn)) void abort(void) {
+#ifdef HEPTA_RETURNED_LOAN_OBSERVER
+    report_abort();
+#endif
+    hepta_exit(134);
+}
 __attribute__((noinline)) void *malloc(hepta_size n) {
     if (failure_countdown && --failure_countdown == 0) {
         ++denied_allocations;
@@ -43,6 +61,9 @@ __attribute__((noinline)) void *malloc(hepta_size n) {
     for (hepta_size i = 0; i < HEPTA_SLOTS; ++i) {
         if (!occupied[i]) {
             occupied[i] = 1;
+            requested_sizes[i] = n;
+            live_bytes += n;
+            if (live_bytes > peak_bytes) peak_bytes = live_bytes;
             ++outstanding;
             if (outstanding > peak_outstanding) peak_outstanding = outstanding;
             ++successful_allocations;
@@ -58,6 +79,8 @@ __attribute__((noinline)) void free(void *p) {
         if (p == (void *)arenas[i]) {
             if (!occupied[i] || !outstanding) abort();
             occupied[i] = 0;
+            live_bytes -= requested_sizes[i];
+            requested_sizes[i] = 0;
             --outstanding;
             ++releases;
             return;
@@ -122,12 +145,21 @@ static void write_values(const char *prefix, const hepta_u64 *values, hepta_size
         while (n) text[used++] = digits[--n];
         text[used++] = i + 1 == count ? '\n' : ' ';
     }
+#if defined(__aarch64__)
+    register long x0 __asm__("x0") = 1;
+    register const char *x1 __asm__("x1") = text;
+    register hepta_size x2 __asm__("x2") = used;
+    register long x8 __asm__("x8") = 64;
+    __asm__ volatile("svc 0" : "+r"(x0) : "r"(x1), "r"(x2), "r"(x8) : "memory");
+    if (x0 != (long)used) hepta_exit(90);
+#else
     register long a0 __asm__("a0") = 1;
     register const char *a1 __asm__("a1") = text;
     register hepta_size a2 __asm__("a2") = used;
     register long a7 __asm__("a7") = 64;
     __asm__ volatile("ecall" : "+r"(a0) : "r"(a1), "r"(a2), "r"(a7) : "memory");
     if (a0 != (long)used) hepta_exit(90);
+#endif
 }
 static void write_resources(void) {
     hepta_u64 values[] = {successful_allocations, releases, outstanding,

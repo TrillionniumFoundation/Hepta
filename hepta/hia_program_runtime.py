@@ -458,7 +458,24 @@ class _Machine:
             self.tick()
             term = block["term"]
             if term["op"] == "ret":
-                return [env[name] for name in term["values"]]
+                values = [env[name] for name in term["values"]]
+                bindings = {p["name"]: a for p, a in zip(fn["params"], arguments)}
+                for index, (typ, origin) in enumerate(zip(fn["returns"], fn.get("return_loans", [None] * len(values)))):
+                    if typ not in {"readbuf", "mutbuf"}:
+                        continue
+                    value, parent = values[index], bindings[origin]
+                    _underlying(value)
+                    if (not isinstance(value, _View) or not isinstance(parent, _View)
+                            or typ == "mutbuf" and (not value.mutable or not parent.mutable)):
+                        raise HIAProgramRejected("returned view permission invariant", "E_HIA_RUNTIME_INVARIANT")
+                    if value is parent:
+                        # Forwarding must not expose one consumable runtime view
+                        # as both the caller's parent and its returned child.
+                        values[index] = _View(parent, typ == "mutbuf")
+                        self.loans_started += 1
+                    elif value.parent is not parent:
+                        raise HIAProgramRejected("returned view origin invariant", "E_HIA_RUNTIME_INVARIANT")
+                return values
             if term["op"] == "trap":
                 raise HIAProgramTrap(term["code"], "explicit core trap")
             edge = term if term["op"] == "jump" else term["then"] if env[term["cond"]] else term["else"]

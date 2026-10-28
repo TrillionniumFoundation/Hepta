@@ -177,6 +177,9 @@ if fn(None,None,n)!=0: raise AssertionError(name)
                 raise AssertionError((name, mode, process.returncode, process.stderr))
             rows.append({"function": name, "case": mode, "expected_exit": expected,
                          "exit_code": process.returncode, "original_c_executed": False,
+                         "process": {"argv": process.args, "cwd": str(Path.cwd()),
+                                     "returncode": process.returncode,
+                                     "stdout": process.stdout, "stderr": process.stderr},
                          "scope": "generated_bridge_policy_not_a_general_C_library_contract"})
     return rows
 

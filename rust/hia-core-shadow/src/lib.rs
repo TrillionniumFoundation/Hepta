@@ -1,7 +1,9 @@
 //! Conservative Rust shadow checker for the existing standalone HIA Program ISA.
 //! This crate is NOT the language admission authority: the canonical Python
 //! verify_program remains mandatory until semantic refinement is demonstrated.
-//! Only the source-independent, resource-free scalar SSA subprofile is accepted.
+//! The default profile is resource-free scalar SSA; the explicit owned profile
+//! independently checks finite byte/chain graphs and v8 parameter loan returns.
+//! The opt-in execution Machine has explicit finite byte-owner/chain profiles.
 //! Every unsupported feature rejects instead of being interpreted as safe.
 #![forbid(unsafe_code)]
 

@@ -240,7 +240,9 @@ def qualification_plan(output, *, python, clang, cc, rustc, cargo, qemu_aarch64,
 
 
 def qualify(output, *, clang, cc, rustc, cargo, qemu_aarch64, qemu_riscv64,
-            qemu_system_arm, linker, lean, cxx):
+            qemu_system_arm, linker, lean, cxx, unit_timeout_seconds=1800):
+    if type(unit_timeout_seconds) is not int or not 1 <= unit_timeout_seconds <= 3600:
+        raise ValueError("unit timeout must be an integer in 1..3600 seconds")
     output = Path(output).absolute()
     if output.exists() or output.is_symlink():
         raise ValueError("output directory must be new")
@@ -256,6 +258,7 @@ def qualify(output, *, clang, cc, rustc, cargo, qemu_aarch64, qemu_riscv64,
     report = {"schema": "hepta.hia.unified-qualification.v3", "git_commit": commit["stdout"].strip(),
         "compiler_tree_sha256": compiler_hash(), "source_snapshot_before": before,
         "temporary_directory": tempfile.gettempdir(),
+        "unit_timeout_seconds": unit_timeout_seconds,
         "started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "planned_gates": [name for name, _, _ in plan], "gates": [],
         "full_six_deliverables_complete": False,
@@ -300,9 +303,11 @@ def qualify(output, *, clang, cc, rustc, cargo, qemu_aarch64, qemu_riscv64,
             os.environ.update(environment)
             for name, argv, evidence in plan:
                 print(json.dumps({"gate": name, "status": "running"}), flush=True)
-                executed = _command(argv)
+                timeout = unit_timeout_seconds if name == "unit_regression" else 1800
+                executed = _command(argv, timeout=timeout)
                 row = {k: v for k, v in executed.items() if k not in {"stdout", "stderr"}}
                 row["name"], row["passed"] = name, False
+                row["timeout_seconds"] = timeout
                 for channel in ("stdout", "stderr"):
                     raw = executed[channel].encode()
                     logfile = output / (name + "." + channel + ".log")
@@ -365,10 +370,15 @@ def main():
     parser.add_argument("--linker", required=True)
     parser.add_argument("--lean", required=True)
     parser.add_argument("--cxx", default=shutil.which("g++") or "g++")
+    parser.add_argument("--unit-timeout-seconds", type=int, default=1800,
+                        help="full unit regression timeout, in 1..3600 seconds")
     args = parser.parse_args()
+    if not 1 <= args.unit_timeout_seconds <= 3600:
+        parser.error("--unit-timeout-seconds must be in 1..3600")
     result = qualify(args.output_directory, clang=args.clang, cc=args.cc, rustc=args.rustc, cargo=args.cargo,
                      qemu_aarch64=args.qemu_aarch64, qemu_riscv64=args.qemu_riscv64,
-                     qemu_system_arm=args.qemu_system_arm, linker=args.linker, lean=args.lean, cxx=args.cxx)
+                     qemu_system_arm=args.qemu_system_arm, linker=args.linker, lean=args.lean,
+                     cxx=args.cxx, unit_timeout_seconds=args.unit_timeout_seconds)
     print(json.dumps({key: result[key] for key in ("ok", "status", "passed_gates", "completed_gates", "unchanged_source", "full_seven_deliverables_complete")}))
     return 0 if result["ok"] else 1
 

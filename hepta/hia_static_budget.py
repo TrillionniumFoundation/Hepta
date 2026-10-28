@@ -18,6 +18,61 @@ SCHEMA = "hepta.hia.static-budget.v1"
 _ALLOWED_CORE_SCHEMAS = frozenset(f"hepta.hia.program.v{version}" for version in range(1, 7))
 _ALLOCATOR_OPS = frozenset({"buffer.new", "buffer.try_new", "owner.drop"})
 
+# These are audited operational profiles, not the current schema registry's
+# open-ended feature set. A returned v8 loan creates/transfers a view at an
+# existing ret event: it neither invokes a function nor adds a VM tick or HIA
+# payload allocation. Recursive chain destruction, however, can perform an
+# input-dependent number of ticks/frees inside one owner.drop.
+_V8_SCHEMA = "hepta.hia.program.v8"
+_V8_BYTE_TYPES = frozenset({
+    "i8", "i16", "i32", "i64", "isize", "u8", "u16", "u32", "u64", "usize",
+    "bool", "unit", "buffer", "readbuf", "mutbuf",
+})
+_V8_BYTE_OPS = frozenset({
+    "const", "int.cast", "int.neg.checked", "select",
+    "bool.not", "bool.and", "bool.or",
+    "bit.and", "bit.or", "bit.xor", "bit.not",
+    "compare.eq", "compare.ne", "compare.lt", "compare.le", "compare.gt", "compare.ge",
+    "int.add.checked", "int.sub.checked", "int.mul.checked",
+    "int.add.wrap", "int.sub.wrap", "int.mul.wrap",
+    "int.div.checked", "int.rem.checked", "int.shl.checked", "int.shr.checked",
+    "buffer.new", "buffer.try_new", "buffer.len", "borrow.read", "borrow.mut",
+    "loan.end", "owner.move", "owner.drop", "buffer.load", "buffer.store",
+    "buffer.fill", "buffer.copy", "buffer.move_within", "buffer.swap",
+    "buffer.copy_range", "buffer.fill_range", "call",
+})
+_V8_CHAIN_OPS = frozenset({
+    "chain.empty", "chain.try_push", "chain.pop", "chain.is_empty",
+    "chain.head_read", "chain.head_mut",
+})
+
+
+def _audit_v8_resource_profile(document: dict, *, allow_chain: bool) -> None:
+    """Check the entire already-verified module against one reviewed domain.
+
+    This never replaces Core's alias, origin, CFG or effect validation. The
+    explicit inventory also covers uncalled private functions, declarations
+    and outputs, so a dynamically sized chain cannot hide behind owner.drop.
+    """
+    if document.get("schema") != _V8_SCHEMA:
+        _reject("E_HIA_BUDGET_PROFILE", "returned-loan resource profile requires primitive v8")
+    types = _V8_BYTE_TYPES | ({"chain"} if allow_chain else set())
+    operations = _V8_BYTE_OPS | (_V8_CHAIN_OPS if allow_chain else set())
+    for fn in document["functions"]:
+        declared = [p["type"] for p in fn["params"]] + fn["returns"]
+        for block in fn["blocks"]:
+            declared.extend(p["type"] for p in block["params"])
+            if block["term"]["op"] not in {"ret", "trap", "jump", "branch"}:
+                _reject("E_HIA_BUDGET_PROFILE", "unreviewed v8 terminator")
+            for instruction in block["ops"]:
+                if instruction["op"] not in operations:
+                    _reject("E_HIA_BUDGET_PROFILE",
+                            f"{fn['name']}: opcode lacks this v8 resource-event review")
+                declared.extend(p["type"] for p in instruction["out"])
+        if any(typ not in types for typ in declared):
+            _reject("E_HIA_BUDGET_PROFILE",
+                    f"{fn['name']}: resource type lacks this v8 resource-event review")
+
 
 class HIAStaticBudgetRejected(ValueError):
     """A Core input lacks a finite structural bound or exceeds the policy."""
@@ -98,7 +153,7 @@ def _bound_function(fn: dict, calculated: dict[str, dict]) -> dict:
 
 
 def qualify_vm_call_depth(program, *, max_call_depth: int) -> dict:
-    """Prove ONLY root-inclusive synchronous HIA VM frames in v1..v7.
+    """Bound ONLY root-inclusive synchronous HIA VM frames in v1..v8.
 
     The canonical executable Core is fully reverified. The direct call graph
     is closed and statically named. A cyclic call graph is rejected; CFG loops
@@ -106,7 +161,9 @@ def qualify_vm_call_depth(program, *, max_call_depth: int) -> dict:
 
     This intentionally does NOT count allocator interactions, VM ticks,
     recursive-chain destruction, native stack bytes, task stacks, or CPU time.
-    Those quantities must never inherit this narrow v7 certificate.
+    Those quantities must never inherit this narrow frame certificate.
+    V8 has a distinct receipt: returned-loan processing has been reviewed
+    independently of the old tick/allocation and native admission profiles.
     """
     from .hia_program import verify_program
 
@@ -116,9 +173,12 @@ def qualify_vm_call_depth(program, *, max_call_depth: int) -> dict:
     checked = verify_program(program)
     document = checked.as_dict()
     # Keep exact admitted ISA identities; a future version must be audited.
-    if document["schema"] not in (set(_ALLOWED_CORE_SCHEMAS) | {"hepta.hia.program.v7"}):
+    returned_loans = document["schema"] == _V8_SCHEMA
+    if returned_loans:
+        _audit_v8_resource_profile(document, allow_chain=True)
+    elif document["schema"] not in (set(_ALLOWED_CORE_SCHEMAS) | {"hepta.hia.program.v7"}):
         _reject("E_HIA_BUDGET_PROFILE",
-                "synchronous VM frame budget requires an audited primitive v1..v7 Core")
+                "synchronous VM frame budget requires an audited primitive v1..v8 Core")
     functions = document["functions"]
     named = {fn["name"]: fn for fn in functions}
     edges = {
@@ -159,6 +219,11 @@ def qualify_vm_call_depth(program, *, max_call_depth: int) -> dict:
             "whole_language_soundness_proved": False,
         },
     }
+    if returned_loans:
+        report["schema"] = "hepta.hia.vm-call-depth-budget.v2"
+        report["profile"] = "parameter-loan-synchronous-frames-v8"
+        report["claims"]["canonical_return_origins_reverified"] = True
+        report["claims"]["returned_view_creation_adds_synchronous_frames"] = False
     raw = json.dumps(report, sort_keys=True, separators=(",", ":"),
                      ensure_ascii=False, allow_nan=False).encode("utf-8")
     report["sha256"] = sha256(raw).hexdigest()
@@ -184,7 +249,10 @@ def analyze_static_budget(program, *, max_allocator_interactions=None,
     _limit(max_live_heap_bytes, "max_live_heap_bytes")
     checked = verify_program(program)
     document = checked.as_dict()
-    if document["schema"] not in _ALLOWED_CORE_SCHEMAS:
+    returned_loans = document["schema"] == _V8_SCHEMA
+    if returned_loans:
+        _audit_v8_resource_profile(document, allow_chain=False)
+    elif document["schema"] not in _ALLOWED_CORE_SCHEMAS:
         _reject("E_HIA_BUDGET_PROFILE", "this analyzer supports primitive v1..v6; recursive-chain budgets need separate invariants")
     functions = document["functions"]
     by_name = {fn["name"]: fn for fn in functions}
@@ -231,6 +299,14 @@ def analyze_static_budget(program, *, max_allocator_interactions=None,
                          "native_cpu_time_or_rss_proved": False,
                          "full_source_to_core_refinement_proved": False,
                          "whole_language_soundness_proved": False}}
+    if returned_loans:
+        result["schema"] = "hepta.hia.static-budget.v2"
+        result["profile"] = "acyclic-byte-owner-parameter-loans-v8"
+        result["core_schema"] = document["schema"]
+        result["input_sha256"] = checked.input_sha256
+        result["claims"]["canonical_return_origins_reverified"] = True
+        result["claims"]["recursive_chain_costs_bounded"] = False
+        result["claims"]["runtime_view_storage_or_native_stack_bounded"] = False
     if max_live_heap_bytes is not None:
         result["limits"]["max_live_heap_bytes"] = max_live_heap_bytes
         result["claims"]["requested_live_payload_bytes_upper_bounded"] = True

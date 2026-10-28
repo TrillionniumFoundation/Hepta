@@ -591,8 +591,14 @@ def main(argv=None) -> int:
             output_json(result)
             return 0 if result["ok"] else 1
         if args.command == "migrate-c-project":
-            from .c_migrate import migrate_c_project
-            contracts = json.loads(Path(args.contracts).read_bytes()) if args.contracts else None
+            from .c_migrate import MigrationRejected, migrate_c_project
+            from .c_contracts import load_contracts
+            try:
+                contracts = load_contracts(args.contracts) if args.contracts else None
+            except MigrationRejected as exc:
+                output_json({"ok": False, "status": "rejected",
+                             "diagnostics": [{"code": exc.code, "message": str(exc)}]})
+                return 1
             result = migrate_c_project(args.database, args.output, contracts=contracts,
                                        clang=args.clang, rustc=args.rustc,
                                        verify_native=not args.frontend_only)

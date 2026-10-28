@@ -97,7 +97,8 @@ class RustOwnedMemoryParity(unittest.TestCase):
         built = subprocess.run(["cargo", "build", "--locked", "--offline", "--message-format=json",
                                 "--manifest-path", str(MANIFEST)], cwd=ROOT,
                                capture_output=True, text=True, timeout=240)
-        cls.build = {"returncode": built.returncode, "stdout": built.stdout, "stderr": built.stderr}
+        cls.build = {"argv": built.args, "cwd": str(ROOT), "returncode": built.returncode,
+                     "stdout": built.stdout, "stderr": built.stderr}
         if built.returncode:
             raise AssertionError("Actual Rust build failed:\n" + built.stderr)
         paths = [item["executable"] for line in built.stdout.splitlines()
@@ -162,9 +163,16 @@ class RustOwnedMemoryParity(unittest.TestCase):
         rust = json.loads(raw["stdout"])
         row["rust"] = rust
         self.assertEqual(rust["program_sha256"], checked.sha256)
-        extended = any(op["op"] in EXTENDED for fn in checked.as_dict()["functions"]
-                       for block in fn["blocks"] for op in block["ops"])
-        expected_profile = "bounded-cfg-owned-memory-v3" if extended else "bounded-cfg-byte-owner-v2"
+        document = checked.as_dict()
+        chain = any("chain" in fn["returns"] or any(p["type"] == "chain" for p in fn["params"])
+                    or any(p["type"] == "chain" for block in fn["blocks"] for p in block["params"])
+                    or any(op["op"].startswith("chain.") or any(p["type"] == "chain" for p in op["out"])
+                           for block in fn["blocks"] for op in block["ops"])
+                    for fn in document["functions"])
+        expected_profile = ("bounded-cfg-owned-memory-v5" if chain
+                            else "bounded-cfg-byte-owner-loan-returns-v4"
+                            if document["schema"] == "hepta.hia.program.v8"
+                            else "bounded-cfg-byte-owner-bulk-v3")
         self.assertEqual(rust["profile"], expected_profile)
         for key in ("status", "steps", "resources"):
             self.assertEqual(rust[key], python[key], key)

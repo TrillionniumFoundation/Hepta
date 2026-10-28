@@ -1,7 +1,7 @@
 # HIA standalone programs: normative executable profiles
 
 This document defines the independently checked primitive
-`hepta.hia.program.v1` through `hepta.hia.program.v7` profiles and the distinct
+`hepta.hia.program.v1` through `hepta.hia.program.v8` profiles and the distinct
 structural nominal input namespaces `hepta.hia.composite.v1` and
 `hepta.hia.composite.v2`. Their
 executable admission authority is `hepta.hia_program.verify_core` (also exposed
@@ -94,11 +94,12 @@ verification. Primitive schemas remain exact, cumulative capabilities:
 | `hepta.hia.program.v5` | Copy with source and destination offsets | Original v5 bytes |
 | `hepta.hia.program.v6` | Fill a checked subrange | Original v6 bytes |
 | `hepta.hia.program.v7` | Runtime-sized linear chains of owned byte buffers | Original v7 bytes |
+| `hepta.hia.program.v8` | Parameter-bound internal returned loans | Original v8 bytes |
 | `hepta.hia.composite.v1` | Generic nominal products, enums, stored local loans and cooperative tasks over all v6 operations | Independently checked primitive v6 normalization |
 | `hepta.hia.composite.v2` | The same nominal operations over v7, including primitive chain fields and task state | Independently checked primitive v7 normalization |
 
 The registry deliberately distinguishes `CANONICAL_CORE_SCHEMA` (v6, the
-existing composite-v1 normalization target) from `LATEST_CORE_SCHEMA` (v7).
+existing composite-v1 normalization target) from `LATEST_CORE_SCHEMA` (v8).
 `composite_core_schema(input_schema)` selects the exact target; no consumer
 may replace that selection with an unconditional latest-version upgrade.
 The registry's legacy singular `composite` entry describes v1; the full
@@ -142,7 +143,10 @@ C wrappers additionally require at most one scalar result.
 
 The example above illustrates fields only: a real program must have at least
 one function. A function has exactly `name`, `params`, `returns`, `effects`,
-`entry`, and `blocks`. A parameter is `{"name":"value","type":"u32"}`.
+`entry`, and `blocks`. Primitive v8 additionally permits `return_loans`, an
+arity-matched list binding borrowed results to original loan parameters and
+using `null` at nonloan positions. See [the v8 contract](HIA_PARAMETER_LOAN_RETURNS_V8.md).
+A parameter is `{"name":"value","type":"u32"}`.
 `returns` is an ordered list of types, including an empty list for no result.
 Each block has exactly `id`, `params`, `ops`, and `term`.
 
@@ -282,8 +286,9 @@ stored capabilities in the executable CFG; it does not enable arbitrary
 source-level lifetime records, self-referential objects or escaping borrows.
 
 Owned call arguments are consumed. Borrowed call arguments remain with the
-caller and last for that call. A callee cannot end its caller's loan or return
-borrowed parameters. Aliased exclusive arguments reject. Owned results may
+caller. A callee cannot end its caller's loan. Primitive v1–v7 prohibit borrowed
+results. Primitive v8 admits declared parameter-bound results: the caller gets
+a child loan and its parent remains suspended until that child ends. Aliased exclusive arguments reject. Owned results may
 return; returning an owner with outstanding loans rejects. Multiple internal
 results are permitted.
 
@@ -331,7 +336,7 @@ standalone ISA:
 | `core.from_executable_core` / `from_scalar_core` | Primitive v1 | Explicit source-authenticated conversion of the admitted historical envelope subset |
 | `hia_program_source.lower_c_multi_owner` and the source migrations passed through `lower_program` | Primitive v1 | Their actual generated Hepta must fit the same source frontend; successful legacy C/C++ migration alone does not establish this |
 | `cpp_project_migrate` / `hia import-cpp-project` | Primitive v1 | Captured, actually instantiated scalar C++ template bodies and supported declarations, via the same checked source frontend |
-| Direct primitive JSON | The declared v1–v7 | Every operation, edge and resource obligation is independently checked |
+| Direct primitive JSON | The declared v1–v8 | Every operation, edge and resource obligation is independently checked |
 | Direct composite JSON | v1 → primitive v6; v2 → primitive v7 | Structural elaboration of the respective nominal grammar, followed by full primitive checking |
 
 Version support by the verifier does not silently increase a producer's source
@@ -524,13 +529,14 @@ does not automatically qualify every analyzer or shadow implementation:
 
 | Consumer | Accepted scope | Meaning of acceptance |
 | --- | --- | --- |
-| Python `verify_core`, direct interpreter and direct LLVM | Primitive v1–v7; composite v1/v2 via their exact normalization | Static executable admission; interpreter/native operations still obey dynamic checks and their separate runtime/target limits |
-| `hia_static_budget.analyze_static_budget` | Its finite acyclic primitive v1–v6 profile | Structural VM-tick, allocator-interaction and call-depth bounds, with an optional requested-live-payload bound; rejects v7 |
-| `hia_heap_bound` | Its audited primitive v1–v6 live-heap profiles, including bounded same-block owner lifetimes in admitted CFG cycles | A bound on requested live payload bytes; rejects v7, unsupported allocator cycles and ownership flows |
-| `hia_static_budget.qualify_vm_call_depth` | Primitive v1–v7 with a closed acyclic call graph; CFG loops may remain | Root-inclusive synchronous VM frames only; no tick, allocation, recursive-chain destruction cost, native stack-byte, CPU-time or RSS bound |
+| Python `verify_core`, direct interpreter and direct LLVM | Primitive v1–v8; composite v1/v2 via their exact normalization | Static executable admission; interpreter/native operations still obey dynamic checks and their separate runtime/target limits |
+| `hia_static_budget.analyze_static_budget` | Original finite acyclic primitive v1–v6 profile; separate byte-owner v8 profile | Structural VM-tick, allocator-interaction and call-depth bounds. v8 uses receipt v2, excludes chains, and does not silently inherit the old optional heap/native meaning; v7 remains unsupported |
+| Legacy `hia_heap_bound.analyze_constant_live_heap` / `qualify_live_heap_budget` | Audited primitive v1–v6 live-heap profiles, including bounded same-block owner lifetimes in admitted CFG cycles | Requested live payload bytes; rejects v7/v8 and unsupported allocator cycles/ownership flows |
+| `hia_heap_bound.qualify_entry_live_heap_budget` | Separate v8 public-scalar-entry, byte-owner borrowed-call profile | Total requested live payload for that entry; private summaries count only additional local payload. Rejects chain, recursive calls, owner-valued call boundaries and unknown allocation extents |
+| `hia_static_budget.qualify_vm_call_depth` | Primitive v1–v8 with a closed acyclic call graph; CFG loops may remain | Root-inclusive synchronous VM frames only; v8 uses receipt v2. No tick, allocation, recursive-chain destruction cost, native stack-byte, CPU-time or RSS bound |
 | Rust shadow default checker and `--scalar-run` | Resource-free scalar subset of primitive v1–v7 | Independent finite scalar checking/execution; rejects owner, loan and chain programs |
-| Rust `--owned-shadow` | Primitive v1–v7 typed owner/loan CFG subset, including v7 chain transitions | Opt-in static cross-check; no chain runtime, native refinement proof or production admission authority |
-| Rust `--owned-run` | Primitive v1–v7 resource CFG/loops, internal owner/loan/chain calls, byte operations, version-correct bulk operations and v7 chains; scalar public entry/results | Byte-only modules retain `bounded-cfg-byte-owner-v2`; bulk/chain modules select `bounded-cfg-owned-memory-v3` on the same shared ledger and step/live-byte/32-frame limits. Nominal resources/tasks require canonical lowering; primitive Loan returns remain rejected. No production authority; see [finite execution profiles](HIA_RUST_OWNED_MEMORY_VM_20261028.md) |
+| Rust `--owned-shadow` | Primitive v1–v8 typed owner/loan CFG subset, including chain transitions and v8 parameter-bound returned loans | Opt-in independent static cross-check; v8 receipt v2. Static acceptance is separate from an execution profile, native refinement proof and production admission authority |
+| Rust `--owned-run` | Primitive v1–v8 resource CFG/loops, internal owner/loan/chain calls, versioned bulk operations, chains and v8 parameter-bound returned loans; scalar public entry/results | Modules without chains retain `bounded-cfg-byte-owner-bulk-v3` (v1–v7) or `bounded-cfg-byte-owner-loan-returns-v4` (v8). Chain modules use `bounded-cfg-owned-memory-v5` in the same Machine with shared step/live-byte/32-frame limits. Direct nominal input and production authority remain outside this scope; see [returned chain execution](HIA_RUST_RETURNED_CHAINS_V8.md) |
 
 The Rust routes consume primitive Core, so nominal input must first undergo
 the canonical normalization. The Python verifier remains mandatory for
@@ -538,6 +544,8 @@ standalone/native admission. See
 [HIA_RUST_V7_CHAIN_SHADOW_20261027.md](HIA_RUST_V7_CHAIN_SHADOW_20261027.md) for
 the exact chain shadow scope. Analyzer acceptance and Rust shadow success do
 not replace a target execution receipt or extend a source frontend.
+The distinct [v8 budget contracts](HIA_V8_RESOURCE_BUDGETS.md) explain the
+external-root versus local-payload distinction and each preserved refusal.
 
 The native backend exposes only functions with integer/Boolean parameters and
 at most one scalar result as external C wrappers; a unit result maps to void,
@@ -546,6 +554,10 @@ multi-result functions are internal LLVM functions. Small signed/unsigned
 integer and Boolean ABI extension rules are target-specific. Cross-target
 object generation, emulator execution and physical hardware acceptance are
 separate qualifications; a host success cannot qualify a new target.
+The finite [v8 returned-loan cross-target qualifier](HIA_RETURNED_LOAN_CROSS_EXECUTION.md)
+links the direct objects with a bounded runtime and executes AArch64 and RV64
+under QEMU, retaining allocator and trap observations. This does not alter the
+object-only cross-target publication API or establish physical-device timing.
 
 The direct LLVM emitter has separate per-version profiles for these targets:
 
@@ -555,7 +567,7 @@ The direct LLVM emitter has separate per-version profiles for these targets:
 | `aarch64-unknown-linux-gnu` | Object only | ELF64 AArch64; shared-library publication rejects |
 | `riscv64-unknown-linux-gnu` | Object only | ELF64 RV64GC / LP64D, explicit `-march=rv64gc -mabi=lp64d`, reviewed ELF flags; shared-library publication rejects |
 
-These targets admit primitive v1–v7 through the same standalone verification
+These targets admit primitive v1–v8 through the same standalone verification
 entry, including version-correct composite normalization. LP64D names the
 RISC-V ABI and does not introduce floating-point HIA operations. The checked
 source bridge in `hia_source_bridge.py` still admits only its x86-64/AArch64

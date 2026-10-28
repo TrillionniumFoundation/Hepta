@@ -144,6 +144,8 @@ class RustByteOwnerCfgParity(unittest.TestCase):
         built = subprocess.run(["cargo", "build", "--locked", "--offline", "--message-format=json",
                                 "--manifest-path", str(MANIFEST)],
                                cwd=ROOT, capture_output=True, text=True, timeout=240)
+        cls.build = {"argv": built.args, "cwd": str(ROOT), "returncode": built.returncode,
+                     "stdout": built.stdout, "stderr": built.stderr}
         if built.returncode:
             raise AssertionError("Rust build failed:\n" + built.stderr[-6000:])
         paths = [item["executable"] for line in built.stdout.splitlines()
@@ -177,7 +179,7 @@ class RustByteOwnerCfgParity(unittest.TestCase):
                                      max_heap_bytes=heap, allocation_fail_at=fail, max_call_depth=32)
         except (HIAProgramTrap, HIAProgramBudgetExceeded) as stopped:
             python = stopped.report
-        self.assertEqual(rust["profile"], "bounded-cfg-byte-owner-v2")
+        self.assertEqual(rust["profile"], getattr(self, "execution_profile", "bounded-cfg-byte-owner-bulk-v3"))
         self.assertEqual(rust["program_sha256"], canonical.sha256)
         for field in ("status", "steps", "resources"):
             self.assertEqual(rust[field], python[field], field)
@@ -194,7 +196,9 @@ class RustByteOwnerCfgParity(unittest.TestCase):
         type(self).sources[canonical.sha256] = canonical.as_dict()
         type(self).observations.append({"entry": entry, "arguments": arguments,
             "policy": {"max_steps": steps, "max_heap_bytes": heap, "allocation_fail_at": fail,
-                       "max_call_depth": 32}, "rust": rust, "python": python})
+                       "max_call_depth": 32}, "rust": rust, "python": python,
+            "rust_process": {"argv": result.args, "cwd": str(ROOT), "returncode": result.returncode,
+                             "stdout": result.stdout.decode(), "stderr": result.stderr.decode()}})
         return rust
 
     def test_loop_carried_owner_loan_values_and_failure_branch(self):

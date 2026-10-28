@@ -246,18 +246,26 @@ def bounded_json_wire(value, maximum, *, ensure_ascii=True, sort_keys=True):
         raise HIAEditRejected("E_HIA_EDIT: invalid bounded JSON") from exc
 
 
+def function_signature(function, *, include_return_loans=False):
+    """Detached presentation/interface view of an already verified function."""
+    result = {key: copy.deepcopy(function[key]) for key in ("name", "params", "returns", "effects")}
+    if include_return_loans:
+        result["return_loans"] = copy.deepcopy(function.get("return_loans", [None] * len(function["returns"])))
+    return result
+
+
 def inspect_program(document):
     from .hia_program import verify_program
     verified = verify_program(document)
     data = verified.as_dict()
     return {
-        "schema": "hepta.hia.inspect.v1", "ok": True,
+        "schema": ("hepta.hia.inspect.v2" if data["schema"] == "hepta.hia.program.v8"
+                   else "hepta.hia.inspect.v1"), "ok": True,
         "program_sha256": verified.sha256, "module": data["module"],
         "input_sha256": getattr(verified, "input_sha256", verified.sha256),
         "normalization": getattr(verified, "normalization_report", None),
         "functions": [{
-            "name": fn["name"], "params": fn["params"],
-            "returns": fn["returns"], "effects": fn["effects"],
+            **function_signature(fn, include_return_loans=data["schema"] == "hepta.hia.program.v8"),
             "blocks": [{"id": block["id"], "params": block["params"],
                         "operations": [{"index": index, **operation}
                                        for index, operation in enumerate(block["ops"])],
@@ -367,9 +375,9 @@ def apply_program_patch(document, request):
     # This rechecks the *whole resulting module*, including all callers and
     # resource obligations.  Neither a valid base nor a digest can waive it.
     verified = verify_program(candidate)
-    before = {f["name"]: (f["params"], f["returns"], f["effects"])
+    before = {f["name"]: function_signature(f, include_return_loans=True)
               for f in original.as_dict()["functions"]}
-    after = {f["name"]: (f["params"], f["returns"], f["effects"])
+    after = {f["name"]: function_signature(f, include_return_loans=True)
              for f in verified.as_dict()["functions"]}
     changed = sorted(name for name in set(before) | set(after)
                      if before.get(name) != after.get(name))

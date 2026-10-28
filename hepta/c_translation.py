@@ -12,7 +12,8 @@ from pathlib import Path
 import re
 
 from .c_migrate import MigrationRejected, reject_function_type_attributes
-from .c_project import captured_source_argument, invoke
+from .c_contracts import snapshot_contracts
+from .c_project import _read_dependency, captured_source_argument, digest, invoke
 
 
 INTEGER = {f"{s}{w}" for s in ("u", "i") for w in (8, 16, 32, 64)} | {"usize", "isize"}
@@ -26,27 +27,88 @@ def ident(name: str) -> str:
     return name
 
 
-def reject_adjusted_pointer_parameter(node: dict) -> None:
-    """Refuse C array parameter decay before a pointer slice contract is admitted.
+def _physical_source_files(tree: dict, directory: Path) -> dict[int, str | None]:
+    """Resolve the actual Clang dump's globally elided physical filenames.
 
-    Clang's qualType turns 'T data[++n]' into 'T *' and discards the
-    parameter-entry increment. Only the direct declarator ending at its
-    declared name is supported; array suffixes and macro-ambiguous locations
-    require an independent source-semantic lowering, not a slice contract.
+    JSONNodeDumper writes locations in JSON order and shares LastLocFilename
+    across loc/range and macro spelling/expansion locations. includedFrom and
+    presumedFile are diagnostic information, not physical filename updates.
+    Keep an out-of-band map: do not rewrite or add claims to the captured AST.
     """
-    loc = node.get("loc")
-    span = node.get("range")
+    current = None
+    result = {}
+    pending = [tree]
+    while pending:
+        value = pending.pop()
+        if isinstance(value, dict):
+            if "offset" in value and "tokLen" in value:
+                if "file" in value:
+                    filename = value["file"]
+                    if type(filename) is not str or not filename or "\0" in filename:
+                        raise MigrationRejected("E_C_SOURCE_LOCATION", "Invalid physical source filename")
+                    current = str((directory / filename).resolve())
+                result[id(value)] = current
+            pending.extend(reversed(list(value.values())))
+        elif isinstance(value, list):
+            pending.extend(reversed(value))
+    return result
+
+
+def _parameter_source_form(node: dict, source: bytes) -> str:
+    """Classify finite physical spelling; this alone does not admit an array."""
+    loc, span = node.get("loc"), node.get("range")
+    begin = span.get("begin") if isinstance(span, dict) else None
     end = span.get("end") if isinstance(span, dict) else None
-    if not isinstance(loc, dict) or not isinstance(end, dict):
+    if (not isinstance(loc, dict) or not isinstance(begin, dict)
+            or not isinstance(end, dict) or type(source) is not bytes):
         raise MigrationRejected("E_C_PARAMETER_DECLARATOR", "Parameter source location is not available")
-    for position in (loc, end):
-        if (type(position.get("offset")) is not int or position["offset"] < 0
+    for position in (begin, loc, end):
+        if ("spellingLoc" in position or "expansionLoc" in position
+                or type(position.get("offset")) is not int or position["offset"] < 0
                 or type(position.get("tokLen")) is not int or position["tokLen"] <= 0):
-            raise MigrationRejected("E_C_PARAMETER_DECLARATOR",
-                                    "Ambiguous or expanded parameter declarator")
-    if (loc["offset"], loc["tokLen"]) != (end["offset"], end["tokLen"]):
-        raise MigrationRejected("E_C_PARAMETER_DECLARATOR",
-                                "Array or trailing parameter syntax is not a plain pointer")
+            raise MigrationRejected("E_C_PARAMETER_DECLARATOR", "Ambiguous or expanded parameter declarator")
+    start, name_start, finish = begin["offset"], loc["offset"], end["offset"] + end["tokLen"]
+    name = node.get("name")
+    if (type(name) is not str or not IDENTIFIER.fullmatch(name)
+            or not 0 <= start < name_start < name_start + loc["tokLen"] <= finish <= len(source)
+            or source[name_start:name_start + loc["tokLen"]] != name.encode("ascii")):
+        raise MigrationRejected("E_C_PARAMETER_DECLARATOR", "Parameter location does not identify its captured source spelling")
+
+    def clean(value):
+        value = value.replace(b"\\\r\n", b"").replace(b"\\\n", b"")
+        if b"\\" in value or b"??" in value:
+            raise MigrationRejected("E_C_PARAMETER_DECLARATOR", "Unqualified parameter source escape")
+        return re.sub(rb"/\*.*?\*/|//[^\r\n]*(?:\r?\n|$)", b" ", value, flags=re.S)
+
+    prefix = clean(source[start:name_start])
+    names = rb"[A-Za-z_][A-Za-z_0-9]*(?:\s+[A-Za-z_][A-Za-z_0-9]*)*"
+    if (loc["offset"], loc["tokLen"]) == (end["offset"], end["tokLen"]):
+        if re.fullmatch(rb"\s*" + names + rb"\s*\*\s*", prefix):
+            return "pointer"
+    else:
+        suffix = clean(source[name_start + loc["tokLen"]:finish])
+        if (re.fullmatch(rb"\s*" + names + rb"\s+", prefix)
+                and re.fullmatch(rb"\s*\[[A-Za-z_0-9\s()+*/%<>&|^~?:!\-]*\]\s*", suffix)
+                and not re.search(rb"\b(?:static|const|volatile|restrict|_Atomic|typeof|__typeof__)\b", suffix)):
+            return "array"
+    raise MigrationRejected("E_C_PARAMETER_DECLARATOR",
+                            "Parameter needs direct pointer or qualified fixed/incomplete array spelling; computed types are unsupported")
+
+
+def reject_adjusted_pointer_parameter(node: dict, source: bytes, original_type: dict | None = None) -> None:
+    """Admit array decay only with independently bound original-type evidence.
+
+    Direct physical type-name/pointer spelling preserves the previous finite
+    guard. Fixed/incomplete array spelling additionally needs a verified original
+    array shape; VLA, typeof, macro-ambiguous and cross-file declarators do not
+    acquire admission through an adjusted pointer type or a caller contract.
+    """
+    form = _parameter_source_form(node, source)
+    if form == "array" and (type(original_type) is not dict
+            or original_type.get("name") != node.get("name")
+            or original_type.get("state") != "fixed"
+            or original_type.get("shape", {}).get("kind") not in {"ConstantArray", "IncompleteArray"}):
+        raise MigrationRejected("E_C_PARAMETER_DECLARATOR", "Array parameter requires bound fixed original array type")
 
 
 def width(typ: str) -> int:
@@ -97,7 +159,7 @@ def truth(expr: Expression) -> Expression:
 class CTranslator:
     def __init__(self, capture: dict, contracts: dict | None = None):
         self.capture = capture
-        self.contracts = contracts or {"schema": "hepta.c-contracts.v1", "functions": {}}
+        self.contracts = snapshot_contracts(contracts)
         if self.contracts.get("schema") != "hepta.c-contracts.v1" or set(self.contracts) != {"schema", "functions"} or not isinstance(self.contracts["functions"], dict):
             raise MigrationRejected("E_C_CONTRACT", "Expected hepta.c-contracts.v1 with functions")
         self.inventory: list[dict] = []
@@ -111,6 +173,64 @@ class CTranslator:
         self.bindings: dict[str, Expression] = {}
         self.binding_modes: dict[str, str] = {}
         self.counter = 0
+        self.original_type_receipts: list[dict] = []
+        self.parameter_sources: dict[str, bytes] = {}
+        self.physical_source_files: dict[int, str | None] = {}
+
+    def check_parameter_sources(self, node: dict, item: dict) -> None:
+        """Bind finite spelling before any type adaptation or array admission."""
+        pointers = [child for child in node.get("inner", [])
+                    if child.get("kind") == "ParmVarDecl"
+                    and re.fullmatch(r"(const\s+)?([^*]+?)\s*\*", child.get("type", {}).get("qualType", ""))]
+        if not pointers:
+            return
+        path = item["file"]
+        for parameter in pointers:
+            span = parameter.get("range")
+            positions = [parameter.get("loc"),
+                         span.get("begin") if isinstance(span, dict) else None,
+                         span.get("end") if isinstance(span, dict) else None]
+            if any(not isinstance(position, dict)
+                   or self.physical_source_files.get(id(position)) != path
+                   for position in positions):
+                raise MigrationRejected("E_C_PARAMETER_DECLARATOR",
+                                        "Parameter spelling crosses physical files or lacks a bound physical source")
+        if path not in self.parameter_sources:
+            dependency = next((part for part in self.capture["dependencies"] if part["path"] == path), None)
+            source = _read_dependency(Path(path))
+            if dependency is None or digest(source) != dependency["sha256"]:
+                raise MigrationRejected("E_C_BUILD_CHANGED", "Parameter spelling differs from captured dependency")
+            self.parameter_sources[path] = source
+        for parameter in pointers:
+            _parameter_source_form(parameter, self.parameter_sources[path])
+
+    def capture_original_types(self):
+        from .c_parameter_types import original_parameter_types
+
+        for config in self.capture["configurations"]:
+            declarations = [(node, item) for unit, node, item in self.declarations
+                            if unit == config["index"] and node["kind"] == "FunctionDecl"]
+            if declarations:
+                self.original_type_receipts.append(original_parameter_types(
+                    self.capture, config, declarations, self.physical_source_files))
+
+    def check_parameter_declarators(self, node: dict, item: dict, unit: int) -> None:
+        receipts = [receipt for receipt in self.original_type_receipts if receipt["unit"] == unit]
+        rows = [row for receipt in receipts for row in receipt["functions"]
+                if (row["declaration"]["file"], row["declaration"]["offset"], row["declaration"]["name"])
+                == (item["file"], item["offset"], node["name"])]
+        if len(rows) != 1:
+            raise MigrationRejected("E_C_ORIGINAL_TYPE", "Missing or ambiguous original function type binding")
+        row = rows[0]
+        for original in [row["result"], *row["parameters"]]:
+            if original["state"] != "fixed":
+                code = "E_C_VLA_PARAMETER" if original["state"] == "variable" else "E_C_ORIGINAL_TYPE"
+                raise MigrationRejected(code, "Unmodeled original type for " + node["name"]
+                                        + ": " + original["spelling"])
+        parameters = [child for child in node.get("inner", []) if child.get("kind") == "ParmVarDecl"]
+        for parameter, original in zip(parameters, row["parameters"]):
+            if re.fullmatch(r"(const\s+)?([^*]+?)\s*\*", parameter.get("type", {}).get("qualType", "")):
+                reject_adjusted_pointer_parameter(parameter, self.parameter_sources[item["file"]], original)
 
     def typ(self, data: dict | str, *, model: dict | None = None) -> str:
         qual = data if isinstance(data, str) else data.get("qualType", "")
@@ -159,11 +279,11 @@ class CTranslator:
                                      captured_source_argument(config)], directory))
             if tree.get("kind") != "TranslationUnitDecl":
                 raise MigrationRejected("E_C_AST", "Clang did not produce a translation unit")
-            active_file = None
+            source_files = _physical_source_files(tree, directory)
+            self.physical_source_files.update(source_files)
             for node in tree.get("inner", []):
                 loc = self._position(node)
-                if loc.get("file"):
-                    active_file = str((directory / loc["file"]).resolve())
+                active_file = source_files.get(id(loc))
                 kind, name = node.get("kind", "unknown"), node.get("name", "<anonymous>")
                 user = active_file in config["local_dependencies"] and not node.get("isImplicit")
                 item = {"unit": config["index"], "kind": kind, "name": name,
@@ -171,6 +291,10 @@ class CTranslator:
                         "status": "pending" if user else "system_or_compiler_declaration",
                         "reason": None if user else "recorded_dependency_outside_translated_project_declarations"}
                 self.inventory.append(item)
+                if active_file is None and not node.get("isImplicit"):
+                    item.update(status="rejected", reason="untraceable_physical_source")
+                    deferred_errors.append(("E_C_SOURCE_LOCATION", "Declaration has no bound physical source file"))
+                    continue
                 if not user:
                     continue
                 if loc.get("offset") is None:
@@ -196,6 +320,15 @@ class CTranslator:
         if deferred_errors:
             code, message = deferred_errors[0]
             raise MigrationRejected(code, message)
+        # Preserve the physical source guard before the independent original-type
+        # probe or the record-view adapter can reinterpret adjusted parameters.
+        for _, node, item in self.declarations:
+            if node["kind"] == "FunctionDecl":
+                try:
+                    self.check_parameter_sources(node, item)
+                except MigrationRejected as error:
+                    item.update(status="rejected", reason=error.code)
+                    raise
         # Register aliases before field types, including typedef struct aliases.
         unresolved = [(node, item) for _, node, item in self.declarations if node["kind"] == "TypedefDecl"]
         for _ in range(len(unresolved) + 1):
@@ -238,6 +371,7 @@ class CTranslator:
                 raise MigrationRejected("E_C_RECORD", "Conflicting struct layout in listed configurations")
             self.records[name] = fields
             item.update(status="record_converted", reason=None)
+        self.capture_original_types()
         models_by_unit = {config["index"]: config["model"] for config in self.capture["configurations"]}
         for unit, node, item in self.declarations:
             if node["kind"] != "FunctionDecl":
@@ -247,7 +381,12 @@ class CTranslator:
             model = models_by_unit[unit]
             name = ident(node["name"])
             key = f"local_{unit}_{name}" if node.get("storageClass") == "static" else name
-            signature = self.signature(node, key, unit, model)
+            try:
+                self.check_parameter_declarators(node, item, unit)
+                signature = self.signature(node, key, unit, model)
+            except MigrationRejected as exc:
+                item.update(status="rejected", reason=exc.code)
+                raise
             body = next((child for child in node.get("inner", []) if child.get("kind") == "CompoundStmt"), None)
             if key in self.functions:
                 previous = self.functions[key]
@@ -296,7 +435,6 @@ class CTranslator:
             raw = child["type"]["qualType"]
             pointer = re.fullmatch(r"(const\s+)?([^*]+?)\s*\*", raw)
             if pointer:
-                reject_adjusted_pointer_parameter(child)
                 # C prototypes may legally use different parameter names from
                 # their implementation. Ordinal selectors remain unambiguous.
                 selectors = [key for key in (pname, str(len(params))) if key in contract["slices"]]

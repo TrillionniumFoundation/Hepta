@@ -1,4 +1,4 @@
-"""Standalone HIA v1-v7: closed, typed SSA blocks with checked resource flow.
+"""Standalone HIA v1-v8: closed, typed SSA blocks with checked resource flow.
 
 The authority is this program's operations, not a source file, producer hash,
 claim, or source-checker receipt.  Blocks are closed: all incoming values are
@@ -23,8 +23,8 @@ import re
 from .hia_json_preflight import preflight_hia_json
 from .hia_schema import (
     COMPOSITE_SCHEMA, COMPOSITE_SCHEMAS, PRIMITIVE_SCHEMAS, PROFILE, PROFILE_V2, PROFILE_V3,
-    PROFILE_V4, PROFILE_V5, PROFILE_V6, PROFILE_V7, SCHEMA, SCHEMA_V2, SCHEMA_V3,
-    SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, profile_for_schema, supports_feature,
+    PROFILE_V4, PROFILE_V5, PROFILE_V6, PROFILE_V7, PROFILE_V8, SCHEMA, SCHEMA_V2, SCHEMA_V3,
+    SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, profile_for_schema, supports_feature,
 )
 WORD_BITS = 64
 WIDTHS = {**{f"{s}{n}": n for s in ("i", "u") for n in (8, 16, 32, 64)},
@@ -304,6 +304,7 @@ class VerifiedProgram:
                            "backend_refinement_proved": False,
                            "foreign_code_supported": False,
                            "escaping_loans_supported": False,
+                           "parameter_bound_loan_returns_supported": supports_feature(data["schema"], "parameter_loan_returns"),
                            "concurrency_supported": False,
                            "nominal_products_and_enums_checked": checked.structured_bytes is not None,
                            "local_stored_loan_identity_checked": checked.structured_bytes is not None,
@@ -321,6 +322,9 @@ class _Capability:
     root: str
     parent: str | None = None
     external: bool = False
+    # Original function parameter identity, independent of CFG SSA renaming.
+    # Only functions with v8 borrowed results track this extra restriction.
+    origin: str | None = None
 
 
 def _parameters(value, where):
@@ -375,8 +379,11 @@ def _edges(term):
     _reject("unknown terminator", "E_HIA_CFG")
 
 
-def _function_shape(fn, *, recursive_chain=False):
-    _keys(fn, {"name", "params", "returns", "effects", "entry", "blocks"}, "function")
+def _function_shape(fn, *, recursive_chain=False, parameter_loan_returns=False):
+    fields = {"name", "params", "returns", "effects", "entry", "blocks"}
+    if parameter_loan_returns and type(fn) is dict and "return_loans" in fn:
+        fields.add("return_loans")
+    _keys(fn, fields, "function")
     name = _ident(fn["name"], "function")
     if name in _RESERVED_FUNCTIONS:
         _reject("function collides with native runtime symbol", "E_HIA_NAME")
@@ -385,8 +392,20 @@ def _function_shape(fn, *, recursive_chain=False):
         _reject("returns must be a list", "E_HIA_TYPE")
     for typ in fn["returns"]:
         _type(typ)
-        if typ in {"readbuf", "mutbuf"}:
-            _reject("call loans may not escape in v1", "E_HIA_LOAN")
+        if typ in {"readbuf", "mutbuf"} and not parameter_loan_returns:
+            _reject("call loans require the v8 parameter-return contract", "E_HIA_LOAN")
+    if parameter_loan_returns:
+        origins = fn.get("return_loans", [None] * len(fn["returns"]))
+        if type(origins) is not list or len(origins) != len(fn["returns"]):
+            _reject("return_loans must match the return arity", "E_HIA_LOAN")
+        parameters = {p["name"]: p["type"] for p in fn["params"]}
+        for typ, origin in zip(fn["returns"], origins):
+            if typ not in {"readbuf", "mutbuf"}:
+                if origin is not None:
+                    _reject("nonloan result requires a null return_loans entry", "E_HIA_LOAN")
+            elif (type(origin) is not str or parameters.get(origin) not in {"readbuf", "mutbuf"}
+                  or typ == "mutbuf" and parameters[origin] != "mutbuf"):
+                _reject("borrowed result must name an input loan with sufficient permission", "E_HIA_LOAN")
     effects = fn["effects"]
     if (type(effects) is not list or any(type(e) is not str or e not in EFFECTS for e in effects)
             or len(effects) != len(set(effects))):
@@ -507,7 +526,8 @@ class _BlockCheck:
                   if cap.root == root and name not in allowed_ancestors]
         if mutable and others or not mutable and any(c.typ == "mutbuf" for c in others):
             _reject("conflicting live borrow", "E_HIA_LOAN")
-        self.caps[output] = _Capability("mutbuf" if mutable else "readbuf", root, source)
+        self.caps[output] = _Capability("mutbuf" if mutable else "readbuf", root, source,
+                                        origin=self.caps[source].origin)
 
     def instruction(self, ins):
         op, args, out, attrs = ins["op"], ins["args"], ins["out"], ins["attrs"]
@@ -773,9 +793,12 @@ class _BlockCheck:
             for name, typ in zip(args, actual):
                 if typ in OWNERS:
                     del self.caps[name]
-            for name, typ in zip(names, types):
+            bindings = {p["name"]: a for p, a in zip(callee["params"], args)}
+            for name, typ, origin in zip(names, types, callee.get("return_loans", [None] * len(types))):
                 if typ in OWNERS:
                     self.caps[name] = _Capability(typ, name)
+                elif typ in {"readbuf", "mutbuf"}:
+                    self.borrow(bindings[origin], name, typ == "mutbuf")
         self.env.update(zip(names, types))
 
     def transfer(self, edge, target):
@@ -799,7 +822,7 @@ class _BlockCheck:
             if cap.root not in remap or cap.parent is not None and cap.parent not in remap:
                 _reject("loan must travel with its owner/parent capability", "E_HIA_LOAN")
             result[param["name"]] = _Capability(cap.typ, remap[cap.root],
-                remap[cap.parent] if cap.parent is not None else None, cap.external)
+                remap[cap.parent] if cap.parent is not None else None, cap.external, cap.origin)
         return result
 
     def finish(self):
@@ -811,6 +834,19 @@ class _BlockCheck:
             types = [self.value(n) for n in names]
             if types != self.fn["returns"]:
                 _reject("return type/arity mismatch", "E_HIA_TYPE")
+            loans = [n for n, t in zip(names, types) if t in {"readbuf", "mutbuf"}]
+            if len(loans) != len(set(loans)):
+                _reject("same loan capability returned twice", "E_HIA_LOAN")
+            for name, typ, origin in zip(names, types, self.fn.get("return_loans", [None] * len(types))):
+                if typ not in {"readbuf", "mutbuf"}:
+                    continue
+                cap = self.caps[name]
+                parent = self.caps.get(cap.parent)
+                if (cap.origin != origin or self.children(name)
+                        or not (cap.external or parent is not None and parent.external)):
+                    _reject("returned loan must be its declared parameter or a direct child", "E_HIA_LOAN")
+            for name in loans:
+                del self.caps[name]
             owners = [n for n, t in zip(names, types) if t in OWNERS]
             if len(owners) != len(set(owners)):
                 _reject("same owner returned twice", "E_HIA_RESOURCE")
@@ -862,7 +898,8 @@ def verify_program(program) -> VerifiedProgram:
         _reject("invalid function inventory", "E_HIA_FORMAT")
     functions, block_maps = {}, {}
     for fn in data["functions"]:
-        blocks = _function_shape(fn, recursive_chain=supports_feature(data["schema"], "recursive_chain"))
+        blocks = _function_shape(fn, recursive_chain=supports_feature(data["schema"], "recursive_chain"),
+                                 parameter_loan_returns=supports_feature(data["schema"], "parameter_loan_returns"))
         if fn["name"] in functions:
             _reject("duplicate function", "E_HIA_NAME")
         functions[fn["name"]], block_maps[fn["name"]] = fn, blocks
@@ -878,7 +915,10 @@ def verify_program(program) -> VerifiedProgram:
                 _reject("public exports cannot carry resource descriptors", "E_HIA_TYPE")
     for fn in functions.values():
         blocks = block_maps[fn["name"]]
-        initial = {p["name"]: _Capability(p["type"], p["name"], external=p["type"] not in OWNERS)
+        track_origins = supports_feature(data["schema"], "parameter_loan_returns") and any(
+            typ in {"readbuf", "mutbuf"} for typ in fn["returns"])
+        initial = {p["name"]: _Capability(p["type"], p["name"], external=p["type"] not in OWNERS,
+                                         origin=p["name"] if track_origins and p["type"] not in OWNERS else None)
                    for p in fn["params"] if p["type"] in RESOURCES}
         incoming = {fn["entry"]: initial}
         pending = deque([fn["entry"]])

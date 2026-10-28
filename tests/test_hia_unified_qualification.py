@@ -245,7 +245,7 @@ class UnifiedQualificationWorkflowTests(unittest.TestCase):
             qemu_riscv64="/usr/bin/qemu-riscv64",
             qemu_system_arm="/usr/bin/qemu-system-arm",
             linker=tools + "rust-1.90.0/lib/rustlib/x86_64-unknown-linux-gnu/bin/rust-lld",
-            lean=tools + "lean-4.19.0/bin/lean", cxx="/usr/bin/g++")
+            lean=tools + "lean-4.19.0/bin/lean", cxx="/usr/bin/g++", unit_timeout_seconds=3600)
 
         # The unified v7 candidate adds an independently executed RV64 gate.
         # Keep its required emulator argument when integrating older workflow

@@ -9,7 +9,8 @@ from __future__ import annotations
 import copy
 
 from .hia_program import HIAProgramRejected, WIDTHS, integer_range, verify_program
-from .hia_translation_validation import MAX_BLOCKS, MAX_OPERATIONS, _OutsideProfile, _profile
+from .hia_translation_validation import (MAX_BLOCKS, MAX_OPERATIONS, QUALIFIED_CORE_SCHEMAS,
+                                        _OutsideProfile, _profile)
 
 
 def _reject(message):
@@ -68,6 +69,8 @@ def propose_guarded_specializations(document, *, function, assumptions, max_cand
     if type(assumptions) is not list or not 1 <= len(assumptions) <= 8:
         _reject("one to eight explicit scalar assumptions are required")
     before = verify_program(document)
+    if before.structured_bytes is not None or before.as_dict()["schema"] not in QUALIFIED_CORE_SCHEMAS:
+        _reject("specialization requires the qualified primitive v1-v7 proof profile")
     if type(function) is not str or function not in before.scalar_entrypoints:
         _reject("function must name a public scalar entrypoint")
     original = before.as_dict()

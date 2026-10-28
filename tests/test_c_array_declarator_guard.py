@@ -37,13 +37,13 @@ class CArrayParameterGuardTests(unittest.TestCase):
         suffix = ") { return n; }\n"
         pointer = self.parameter(prefix + "*data" + suffix)
         self.assertEqual(pointer["type"]["qualType"], "const unsigned int *")
-        reject_adjusted_pointer_parameter(pointer)
+        reject_adjusted_pointer_parameter(pointer, self.source.read_bytes())
         for declarator in ("data[]", "data[4]", "data[n]", "data[++n]", "data[static n]"):
             with self.subTest(declarator=declarator):
                 param = self.parameter(prefix + declarator + suffix)
                 self.assertEqual(param["type"]["qualType"], pointer["type"]["qualType"])
                 with self.assertRaises(MigrationRejected) as error:
-                    reject_adjusted_pointer_parameter(param)
+                    reject_adjusted_pointer_parameter(param, self.source.read_bytes())
                 self.assertEqual(error.exception.code, "E_C_PARAMETER_DECLARATOR")
 
     def test_macro_expansion_and_missing_locations_refuse(self):
@@ -52,7 +52,7 @@ class CArrayParameterGuardTests(unittest.TestCase):
             "unsigned int probe(unsigned int n, const unsigned int VLA_PARAM) { return n; }\n"
         )
         with self.assertRaises(MigrationRejected) as error:
-            reject_adjusted_pointer_parameter(macro)
+            reject_adjusted_pointer_parameter(macro, self.source.read_bytes())
         self.assertEqual(error.exception.code, "E_C_PARAMETER_DECLARATOR")
         direct = self.parameter("unsigned int probe(unsigned int n, const unsigned int *data) { return n; }")
         for edit in (lambda node: node.pop("loc"),
@@ -61,7 +61,7 @@ class CArrayParameterGuardTests(unittest.TestCase):
             altered = copy.deepcopy(direct)
             edit(altered)
             with self.assertRaises(MigrationRejected) as error:
-                reject_adjusted_pointer_parameter(altered)
+                reject_adjusted_pointer_parameter(altered, self.source.read_bytes())
             self.assertEqual(error.exception.code, "E_C_PARAMETER_DECLARATOR")
 
     def test_caller_entry_side_effect_survives_warning_suppression(self):
@@ -92,13 +92,15 @@ class CArrayParameterGuardTests(unittest.TestCase):
         database = self.root / "compile_commands.json"
         database.write_text(json.dumps([{
             "directory": str(self.root), "file": "input.c",
-            "arguments": [self.clang, "-std=c11", "-Werror", "-c", "input.c", "-o", "input.o"],
+            # The captured driver allowlist does not admit -Werror=vla.
+            # Its warning-suppression control is executed separately above.
+            "arguments": [self.clang, "-std=c11", "-c", "input.c", "-o", "input.o"],
         }]), encoding="utf-8")
         output = self.root / "translated"
         report = migrate_c_project(database, output, contracts=contracts, clang=self.clang)
         self.assertFalse(report["ok"], report)
         self.assertFalse(output.exists())
-        self.assertIn("E_C_PARAMETER_DECLARATOR", [row["code"] for row in report["diagnostics"]], report)
+        self.assertIn("E_C_VLA_PARAMETER", [row["code"] for row in report["diagnostics"]], report)
 
         # Ordinary source pointer with the same explicit slice contract remains valid.
         self.source.write_text(
@@ -135,7 +137,7 @@ class CArrayParameterGuardTests(unittest.TestCase):
         report = migrate_c_project(database, output, contracts=contracts, clang=self.clang)
         self.assertFalse(report["ok"], report)
         self.assertFalse(output.exists())
-        self.assertIn("E_C_PARAMETER_DECLARATOR", [d["code"] for d in report["diagnostics"]])
+        self.assertIn("E_C_VLA_PARAMETER", [d["code"] for d in report["diagnostics"]])
         self.source.write_text(prefix +
             'unsigned int probe(unsigned int n, const struct View *value) { return n; }\n')
         positive = migrate_c_project(database, output, contracts=contracts, clang=self.clang)

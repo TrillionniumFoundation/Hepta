@@ -19,6 +19,27 @@ and unmodeled flags reject. Duplicate configurations reject when imported into
 one standalone artifact; the explicit matrix entry point below keeps them in
 separate artifacts.
 
+Accepted optimization (`-O0`/`-O1`/`-O2`/`-O3`/`-Os`/`-Oz`) and PIC
+(`-fPIC`/`-fpic`) options remain in the captured frontend argument order because
+they change compiler-provided preprocessing macros. This applies equally to
+dependency discovery, AST selection, replay and original native comparison
+builds. A later comparison command must not override the captured mode with a
+new `-O2` or `-fPIC`. Old captures that omitted these semantic options must be
+recaptured; a resealed receipt cannot authorize a different active source tree.
+The shared C/C++ capture also preserves `-pedantic-errors`, which can change
+Clang's `__has_extension` builtin operator without changing its ordinary `-dM`
+macro dump. It is a source-selection option, not an omitted diagnostic-only flag.
+
+The original source operand and working directory also remain part of the
+selected source semantics. A normalized absolute file identity must not replace
+the original relative or symlink spelling in dependency, preprocessing, AST or
+native comparison commands. Otherwise quoted includes can select another header,
+and already-supported concrete template arguments such as
+`sizeof(__FILE__) + sizeof(__BASE_FILE__)` can instantiate different functions.
+The shared command parser recovers the operand from the bound original argv;
+response-file, stdin and option-like operands still reject. Older captures that
+rewrote this spelling require recapture, even after resealing their hashes.
+
 This capture describes the listed build only. It does not establish that every
 possible platform, macro configuration or dependency version has been listed.
 

@@ -21,6 +21,7 @@ from .hia_program import SCALARS, WIDTHS, HIAProgramRejected, verify_program
 
 
 SCHEMA = "hepta.hia.optimization-verification.v1"
+QUALIFIED_CORE_SCHEMAS = frozenset("hepta.hia.program.v" + str(version) for version in range(1, 8))
 POLICY_SCHEMA = "hepta.hia.optimization-policy.v1"
 TARGETS = frozenset({"x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu",
                      "riscv64-unknown-linux-gnu"})
@@ -252,6 +253,8 @@ def verify_optimization(base, candidate, policy=None):
     report.update(base_sha256=original.sha256, candidate_sha256=revised.sha256,
                   base_input_sha256=original.input_sha256, candidate_input_sha256=revised.input_sha256)
     left, right = original.as_dict(), revised.as_dict()
+    if left["schema"] not in QUALIFIED_CORE_SCHEMAS or right["schema"] not in QUALIFIED_CORE_SCHEMAS:
+        return finish("unknown", "Core schema outside qualified primitive v1-v7 optimization profile")
     if _skeleton(left) != _skeleton(right):
         return finish("unknown", "CFG, interface, ordered effects or resource operations differ")
     report["resource_delta"] = {"ordered_resource_operations_preserved": True,

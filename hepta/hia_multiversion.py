@@ -12,10 +12,13 @@ from collections import deque
 import ctypes
 from dataclasses import dataclass
 from hashlib import sha256
+import json
 import os
 from pathlib import Path
 import platform
+import re
 import stat
+from statistics import median
 import tempfile
 import threading
 import time
@@ -24,9 +27,13 @@ from .elf_shared_abi import inspect_owned_shared_elf
 from .hia_program import integer_range, scalar_value_valid, verify_program
 from .hia_program_llvm import TARGET, build_program_native, emit_program_llvm
 from .hia_program_runtime import execute_program
+from .hia_translation_validation import QUALIFIED_CORE_SCHEMAS
 
 
 PROFILE = "hepta.hia.scalar-multiversion.linux-x86_64.v1"
+MEASUREMENT_SCHEMA = "hepta.hia.native-publication-measurement.v1"
+MEASUREMENT_POLICY = "paired-native-artifact-cost-v1"
+_DECISION_RESERVE_NS = 2_000_000_000
 _CTYPES = {"bool": ctypes.c_bool, "i8": ctypes.c_int8, "u8": ctypes.c_uint8,
            "i16": ctypes.c_int16, "u16": ctypes.c_uint16,
            "i32": ctypes.c_int32, "u32": ctypes.c_uint32,
@@ -48,6 +55,103 @@ class MultiversionRejected(ValueError):
 
 def _reject(message):
     raise MultiversionRejected("E_HIA_MULTIVERSION: " + message)
+
+
+def _measurement_snapshot(value):
+    """Capture a strict, detached finite host measurement; it grants no proof.
+
+    The fixed identity/noise rules are selectively adapted from PR #333's
+    measurement policy, not its incompatible NDU transport or dispatcher.
+    Samples are never removed, replaced or statistically certified here.
+    """
+    fields = {"schema", "before_sha256", "after_sha256", "before_artifact_sha256",
+              "after_artifact_sha256", "workload_sha256", "function", "calls_per_sample",
+              "horizon_calls", "search_cost_ns", "maximum_search_ns", "samples"}
+    if (type(value) is not dict or any(type(key) is not str for key in value)
+            or set(value) != fields):
+        _reject("measurement requires the exact native-publication envelope")
+    frozen = {key: value[key] for key in fields - {"samples"}}
+    if type(frozen["schema"]) is not str or frozen["schema"] != MEASUREMENT_SCHEMA:
+        _reject("measurement schema is not qualified")
+    for key in ("before_sha256", "after_sha256", "before_artifact_sha256",
+                "after_artifact_sha256", "workload_sha256"):
+        if type(frozen[key]) is not str or re.fullmatch(r"[0-9a-f]{64}", frozen[key]) is None:
+            _reject("measurement has an invalid " + key)
+    if type(frozen["function"]) is not str or not frozen["function"] or len(frozen["function"]) > 256:
+        _reject("measurement must name one bounded exported function")
+    for key, low, high in (("calls_per_sample", 1, 64_000_000),
+                           ("horizon_calls", 1, 1_000_000_000_000),
+                           ("search_cost_ns", 0, 3_600_000_000_000),
+                           ("maximum_search_ns", 1, 3_600_000_000_000)):
+        if type(frozen[key]) is not int or not low <= frozen[key] <= high:
+            _reject("measurement has an out-of-range exact integer: " + key)
+    raw_samples = value["samples"]
+    if type(raw_samples) is not list or not 15 <= len(raw_samples) <= 63 or len(raw_samples) % 2 != 1:
+        _reject("measurement requires 15..63 odd paired samples")
+    samples = tuple(raw_samples)
+    if not 15 <= len(samples) <= 63 or len(samples) % 2 != 1:
+        _reject("measurement sample sequence changed during capture")
+    frozen["samples"] = []
+    for sample in samples:
+        if (type(sample) is not dict or any(type(key) is not str for key in sample)
+                or set(sample) != {"baseline_ns", "candidate_ns"}):
+            _reject("measurement sample requires exactly baseline_ns and candidate_ns")
+        pair = {key: sample[key] for key in ("baseline_ns", "candidate_ns")}
+        if any(type(number) is not int or not 1 <= number <= 60_000_000_000 for number in pair.values()):
+            _reject("measurement samples require bounded positive exact nanoseconds")
+        frozen["samples"].append(pair)
+    return frozen
+
+
+def _assess_measurement(measurement, *, prepare_ns):
+    """Fixed conservative policy, not timing attestation or Core admission."""
+    baseline = [row["baseline_ns"] for row in measurement["samples"]]
+    candidate = [row["candidate_ns"] for row in measurement["samples"]]
+    med_b, med_c = int(median(baseline)), int(median(candidate))
+    mad_b = int(median([abs(v - med_b) for v in baseline]))
+    mad_c = int(median([abs(v - med_c) for v in candidate]))
+    savings = [b - c for b, c in zip(baseline, candidate)]
+    saving = int(median(savings))
+    saving_mad = int(median([abs(v - saving) for v in savings]))
+    reasons = []
+    changed = measurement["before_artifact_sha256"] != measurement["after_artifact_sha256"]
+    if not changed:
+        reasons.append("identical_native_artifacts")
+    for label, mad, mid in (("baseline", mad_b, med_b), ("candidate", mad_c, med_c)):
+        if mad * 1_000_000 > 50_000 * mid:
+            reasons.append(label + "_timing_noise")
+    if saving <= 0 or saving * 1_000_000 < 20_000 * med_b:
+        reasons.append("insufficient_measured_gain")
+    if saving <= 3 * saving_mad:
+        reasons.append("paired_saving_not_above_noise_margin")
+    actual_cost = measurement["search_cost_ns"] + prepare_ns
+    charged_cost = actual_cost + _DECISION_RESERVE_NS
+    if charged_cost > measurement["maximum_search_ns"]:
+        reasons.append("search_cost_budget")
+    count, horizon = measurement["calls_per_sample"], measurement["horizon_calls"]
+    projected_b = (med_b * horizon + count - 1) // count
+    projected_c = (med_c * horizon + count - 1) // count + charged_cost
+    if not 1 <= projected_b <= 10**18 or not 1 <= projected_c <= 10**18:
+        _reject("measurement projected cost exceeds the finite policy range")
+    if projected_c >= projected_b:
+        reasons.append("experiment_cost_not_recovered")
+    packed = json.dumps(measurement, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+    return {"schema": "hepta.hia.native-publication-admission.v1", "profile": MEASUREMENT_POLICY,
+            "measurement_sha256": sha256(packed).hexdigest(), "eligible": not reasons,
+            "reasons": reasons, "samples": len(baseline), "calls_per_sample": count,
+            "horizon_calls": horizon, "workload_sha256": measurement["workload_sha256"],
+            "function": measurement["function"], "native_artifact_changed": changed,
+            "maximum_mad_ppm": 50_000, "minimum_gain_ppm": 20_000,
+            "baseline_median_ns": med_b, "candidate_median_ns": med_c,
+            "baseline_mad_ns": mad_b, "candidate_mad_ns": mad_c,
+            "paired_saving_median_ns": saving, "paired_saving_mad_ns": saving_mad,
+            "observed_search_cost_ns": measurement["search_cost_ns"], "actual_prepare_ns": prepare_ns,
+            "observed_cost_ns": actual_cost, "decision_reserve_ns": _DECISION_RESERVE_NS,
+            "charged_cost_ns": charged_cost, "maximum_search_ns": measurement["maximum_search_ns"],
+            "projected_baseline_total_ns": projected_b, "projected_candidate_total_ns": projected_c,
+            "claims": {"measurements_independently_attested": False, "projection_is_workload_assumption": True,
+                       "statistical_confidence_proved": False, "sample_trimming_or_adaptive_repeats": False,
+                       "core_authority_granted": False, "general_performance_improvement_proved": False}}
 
 
 class PublicationCancellation:
@@ -117,6 +221,8 @@ def _admissible(document):
     """Reverify exact bytes, then close the extra total/native-callable profile."""
     program = verify_program(document)
     data = program.as_dict()
+    if program.structured_bytes is not None or data["schema"] not in QUALIFIED_CORE_SCHEMAS:
+        _reject("native lifecycle requires the qualified primitive v1-v7 proof profile")
     functions = data["functions"]
     if not 1 <= len(functions) <= _MAX_FUNCTIONS:
         _reject("finite profile requires one to sixteen functions")
@@ -443,7 +549,7 @@ class ScalarMultiversionRuntime:
             return state.info
 
     def publish_if_current(self, candidate, expected_generation, *, expected_epoch,
-                           max_prepare_ns, cancellation, preparation_started_ns=None):
+                           max_prepare_ns, cancellation, preparation_started_ns=None, measurement=None):
         """Conditionally select after a fresh proof/build and an actual cost gate.
 
         The expected generation AND epoch bind the incumbent snapshot, including
@@ -451,8 +557,17 @@ class ScalarMultiversionRuntime:
         earlier monotonic handoff timestamp) through the final preselection
         check; waiting for a competing writer is included. Prepared but
         unselected artifacts are disposed.
+
+        An optional strict native measurement binds samples to both Core and
+        actual artifact identities. It can only refuse publication: the same
+        all-input proof, fresh native build, cancellation and CAS remain required.
+        Its cost starts at this call; an earlier handoff is deliberately refused
+        so pre-entry search and preparation cannot be ambiguously double counted.
         """
         started = time.perf_counter_ns()
+        measured = _measurement_snapshot(measurement) if measurement is not None else None
+        if measured is not None and preparation_started_ns is not None:
+            _reject("measured publication cannot use an earlier preparation handoff")
         if (type(expected_generation) is not int or expected_generation < 0
                 or type(expected_epoch) is not int or expected_epoch < 0
                 or type(max_prepare_ns) is not int or not 0 <= max_prepare_ns < 2**63
@@ -490,6 +605,18 @@ class ScalarMultiversionRuntime:
                 program, abi = _admissible(candidate)
                 if abi != self._abi:
                     _reject("candidate scalar ABI differs from the immutable baseline")
+                if measured is not None:
+                    with self._lock:
+                        check_current()
+                        current = self._states[self._current].info
+                        if (measured["before_sha256"] != current.program_sha256
+                                or measured["after_sha256"] != program.sha256
+                                or measured["before_artifact_sha256"] != current.artifact_sha256
+                                or measured["function"] not in {entry.function for entry in abi}):
+                            _reject("measurement does not bind current Core, candidate, artifact and export")
+                    early = _assess_measurement(measured, prepare_ns=time.perf_counter_ns() - started)
+                    if not early["eligible"]:
+                        _reject("native measurement refused publication: " + ",".join(early["reasons"]))
                 _prove(self._baseline, program, abi, self._timeout)
                 check_preparation()
                 state = self._prepare(program, number, len(abi))
@@ -505,6 +632,14 @@ class ScalarMultiversionRuntime:
                     if prepare_ns > max_prepare_ns:
                         _reject("actual preparation budget exceeded before selection")
                     previous = self._states[self._current]
+                    admission = None
+                    if measured is not None:
+                        if (measured["before_artifact_sha256"] != previous.info.artifact_sha256
+                                or measured["after_artifact_sha256"] != state.info.artifact_sha256):
+                            _reject("measurement native identity differs from the actual freshly built artifacts")
+                        admission = _assess_measurement(measured, prepare_ns=prepare_ns)
+                        if not admission["eligible"]:
+                            _reject("native measurement refused publication: " + ",".join(admission["reasons"]))
                     cancellation._committed = True
                     self._states[number] = state
                     self._current = number
@@ -517,8 +652,11 @@ class ScalarMultiversionRuntime:
                     if not previous.info.baseline:
                         previous.retired = True
                         self._collect(previous)
-                return {"generation": state.info.as_dict(), "selection_epoch": epoch,
-                        "prepare_ns": prepare_ns, "max_prepare_ns": max_prepare_ns}
+                result = {"generation": state.info.as_dict(), "selection_epoch": epoch,
+                          "prepare_ns": prepare_ns, "max_prepare_ns": max_prepare_ns}
+                if measured is not None:
+                    result["measurement_admission"] = admission
+                return result
             except BaseException:
                 if state is not None and not published:
                     _unload(state.library, state.functions, state.fd)

@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - codex/hia-contract-integration-20261027
+      - codex/hia-v8-blocker-convergence-20261027
   pull_request:
     paths:
       - 'hepta/**'
@@ -32,6 +33,8 @@ jobs:
       CLANG: /usr/bin/clang-20
       CLANGXX: /usr/bin/clang++-20
       PYTHONDONTWRITEBYTECODE: '1'
+      CARGO_HOME: ${{ runner.temp }}/hepta-verified-cargo-home
+      CARGO_TARGET_DIR: ${{ runner.temp }}/hepta-verified-cargo-target
     steps:
       - uses: actions/checkout@v4
         with:
@@ -55,7 +58,7 @@ jobs:
           sudo install -m 0644 "$RUNNER_TEMP/hepta-llvm.asc" /usr/share/keyrings/hepta-llvm.asc
           printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hepta-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hepta-llvm20.list
           sudo apt-get update
-          sudo apt-get install --yes clang-20 libclang-rt-20-dev llvm-20 lld-20
+          sudo apt-get install --yes clang-20 libclang-20-dev libclang-rt-20-dev llvm-20 lld-20
           printf '%s\n' /usr/lib/llvm-20/bin >> "$GITHUB_PATH"
       - name: Install the pinned Rust toolchain
         run: |
@@ -102,7 +105,9 @@ jobs:
             "$hepta_ranking_checkout" >> "$GITHUB_ENV"
       - name: Run actual native integration and regression gates without skipped tests
         run: |
-          python tools/qualify_hia_verified_increment.py --output artifacts/verified-optimization/regression
+          "$CARGO" fetch --locked --manifest-path rust/hia-core-shadow/Cargo.toml
+          CARGO_TARGET_DIR="$RUNNER_TEMP/hia-shadow-target" CARGO_NET_OFFLINE=true \
+            python tools/qualify_hia_verified_increment.py --output artifacts/verified-optimization/regression
       - name: Retain real finite NDU loop and migration/runtime evidence
         run: |
           python tools/qualify_hia_ndu_loop.py --identity "$HEPTA_RECURSIVE_NDU_IDENTITY" \

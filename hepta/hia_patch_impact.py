@@ -11,7 +11,7 @@ from hashlib import sha256
 import json
 
 from .hia_program import verify_program
-from .hia_program_tools import apply_program_patch
+from .hia_program_tools import apply_program_patch, function_signature
 
 SCHEMA = "hepta.hia.patch-impact.v1"
 MAX_FUNCTIONS = 1024
@@ -81,7 +81,7 @@ def _incoming(functions):
 
 
 def _interface(functions):
-    return {name: _canonical([fn["params"], fn["returns"], fn["effects"]])
+    return {name: _canonical(function_signature(fn, include_return_loans=True))
             for name, fn in functions.items()}
 
 

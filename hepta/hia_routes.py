@@ -23,8 +23,10 @@ _ADMITTED = frozenset({"standalone-hia", "hepta-source", "legacy-executable",
 
 def route_inventory():
     """Detached, versioned route metadata, including explicit nonroutes."""
+    versions = schema_registry()
+    latest = versions["latest_core_schema"].rsplit(".", 1)[-1]
     inputs = [
-        {"route": "standalone-hia", "input": "primitive v1-v7 / composite v1-v2",
+        {"route": "standalone-hia", "input": "primitive v1-" + latest + " / composite v1-v2",
          "adapter": "hepta.hia_program.verify_program", "admission": "supported",
          "origin_required": False},
         {"route": "hepta-source", "input": "checked finite Hepta source profile",
@@ -78,14 +80,14 @@ def route_inventory():
          "scope": "source/Resource IR profile; must explicitly lower to HIA to use standalone authority"},
     ]
     result = {"schema": "hepta.hia.routes.v1", "inputs": inputs, "source_languages": sources,
-              "historical_ir": historical, "backends": backends, "versions": schema_registry(),
+              "historical_ir": historical, "backends": backends, "versions": versions,
               "optimization_profiles": [
                   {"command": "verify-translation", "checker": "hepta.hia_translation_validation.validate_translation",
-                   "scope": "selected public scalar function; full acyclic values and first traps",
+                   "scope": "primitive v1-v7; selected public scalar function; full acyclic values and first traps",
                    "success": "proved", "other_outcomes": ["disproved", "unknown"],
                    "resource_or_call_rewrites": False, "receipt_grants_admission": False},
                   {"command": "verify-optimization", "checker": "hepta.hia_optimization.verify_optimization",
-                   "scope": "whole module; unchanged CFG, interfaces and ordered resource/call skeleton",
+                   "scope": "primitive v1-v7; whole module; unchanged CFG, interfaces and ordered resource/call skeleton",
                    "success": "verified", "other_outcomes": ["rejected", "unknown", "timeout"],
                    "resource_or_call_rewrites": False, "receipt_grants_admission": False},
                   {"command": "fold-constants", "proposal": "whole-module constant folding",
