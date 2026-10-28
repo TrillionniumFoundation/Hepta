@@ -1,0 +1,208 @@
+--- historical/hepta/hia_adaptive.py
++++ current/hepta/hia_adaptive.py
+@@ -18,6 +18,7 @@
+ import time
+ 
+ from .hia_native_differential import _pin_native_artifact
++from .native_mapping_identity import NativeMappingRejected, verify_loaded_symbols
+ from .hia_optimization import (DEFAULT_POLICY, build_optimized_native,
+                                checker_identity, verify_optimization)
+ from .hia_program import verify_program
+@@ -42,6 +43,7 @@
+ def _identity():
+     return _digest({"runtime": sha256(Path(__file__).read_bytes()).hexdigest(),
+                     "pinning": sha256(Path(__file__).with_name("hia_native_differential.py").read_bytes()).hexdigest(),
++                    "mapping": sha256(Path(__file__).with_name("native_mapping_identity.py").read_bytes()).hexdigest(),
+                     "optimization": checker_identity(), "native": _implementation_hash()})
+ 
+ 
+@@ -81,6 +83,7 @@
+     function: object
+     preparation_ns: int
+     receipt: dict
++    loaded_mapping: dict
+ 
+ 
+ def _load_image(program, state, path, receipt, started):
+@@ -94,15 +97,21 @@
+             raise AdaptiveRejected("E_ADAPT_ARTIFACT: actual executable bytes do not match the internal build")
+         library = ctypes.CDLL("/proc/self/fd/" + str(fd), mode=os.RTLD_LOCAL | os.RTLD_NOW)
+         function = getattr(library, state["entry"])
++        try:
++            loaded_mapping = verify_loaded_symbols(fd, {state["entry"]: function})
++        except NativeMappingRejected as error:
++            raise AdaptiveRejected("E_ADAPT_MAPPING: resolved native code does not match its sealed artifact") from error
+         function.argtypes = [ctypes.c_uint64] * len(state["params"])
+         function.restype = ctypes.c_uint64
+         return _Image(program, state, path, native["artifact_sha256"], fd, library,
+-                      function, time.monotonic_ns() - started, receipt)
+-    except Exception:
+-        if library is not None:
+-            import _ctypes
+-            _ctypes.dlclose(library._handle)
+-        os.close(fd)
++                      function, time.monotonic_ns() - started, receipt, loaded_mapping)
++    except BaseException:
++        try:
++            if library is not None:
++                import _ctypes
++                _ctypes.dlclose(library._handle)
++        finally:
++            os.close(fd)
+         raise
+ 
+ 
+--- historical/hepta/hia_stateful.py
++++ current/hepta/hia_stateful.py
+@@ -23,6 +23,7 @@
+ from .hia_program import verify_program
+ from .hia_native_differential import _pin_native_artifact
+ from .native_tool_identity import digest_executable
++from .native_mapping_identity import NativeMappingRejected, verify_loaded_symbols
+ from .elf_shared_abi import inspect_owned_shared_elf
+ 
+ STATE_PROFILE = "hepta.hia.owned-u64-transition-runtime.v1"
+@@ -128,6 +129,11 @@
+         if digest_executable(compiler) != identity:
+             raise AdaptiveRejected("E_STATE_DRIVER: compiler changed")
+         library = ctypes.CDLL("/proc/self/fd/" + str(fd), mode=os.RTLD_LOCAL | os.RTLD_NOW)
++        functions = {name: getattr(library, name) for name in sorted(_EXPORTS)}
++        try:
++            loaded_mapping = verify_loaded_symbols(fd, functions)
++        except NativeMappingRejected as error:
++            raise AdaptiveRejected("E_STATE_DRIVER_MAPPING: loaded driver differs from its sealed artifact") from error
+         pointer, word = ctypes.c_void_p, ctypes.c_uint64
+         signatures = {
+             "hs_new": ([word, ctypes.c_uint], pointer), "hs_clone": ([pointer], pointer),
+@@ -138,7 +144,7 @@
+             **{name: ([], word) for name in ("hs_live", "hs_allocations", "hs_frees", "hs_refusals")},
+         }
+         for name, (args, result) in signatures.items():
+-            function = getattr(library, name)
++            function = functions[name]
+             function.argtypes, function.restype = args, result
+         with source.open("x") as audit:
+             audit.write(_DRIVER_SOURCE)
+@@ -146,12 +152,14 @@
+             audit.write(actual)
+         return library, fd, {"source_sha256": sha256(_DRIVER_SOURCE.encode()).hexdigest(),
+                              "artifact_sha256": sha256(actual).hexdigest(), "compiler_sha256": identity,
+-                             "command": argv, "binary_inventory": inventory}
++                             "command": argv, "binary_inventory": inventory, "loaded_mapping": loaded_mapping}
+     except BaseException:
+-        if library is not None:
+-            import _ctypes
+-            _ctypes.dlclose(library._handle)
+-        os.close(fd)
++        try:
++            if library is not None:
++                import _ctypes
++                _ctypes.dlclose(library._handle)
++        finally:
++            os.close(fd)
+         raise
+ 
+ 
+--- historical/hepta/native_mapping_identity.py
++++ current/hepta/native_mapping_identity.py
+@@ -0,0 +1,100 @@
++"""Bind resolved native entry addresses to the exact sealed Linux file object.
++
++The dynamic loader may retain a pathname cache after its numeric memfd has
++closed. Reusing /proc/self/fd/N can consequently return a previous library.
++Hashing the new descriptor alone does not identify the code returned by dlsym.
++This local admission check requires every resolved entry to be in a nonwritable
++executable mapping of the still-open, fully sealed descriptor. It does not grant
++authority to serialized evidence or defend a malicious Python host/kernel.
++"""
++from __future__ import annotations
++
++import ctypes
++import os
++import stat
++import sys
++
++_MAX_MAPS_BYTES = 16 * 1024 * 1024
++
++
++class NativeMappingRejected(ValueError):
++    pass
++
++
++def verify_loaded_symbols(fd, symbols):
++    """Observe actual loaded entries before any native function is invoked.
++
++    The caller retains both the descriptor and its own dlopen reference until
++    all native calls finish. No mutable publication pathname or memfd display
++    name is used as identity. Missing kernel evidence is a refusal.
++    """
++    def reject(reason):
++        raise NativeMappingRejected("E_NATIVE_MAPPING: " + reason)
++
++    if sys.platform != "linux" or type(fd) is not int or fd < 0:
++        reject("qualified Linux descriptor required")
++    if (type(symbols) is not dict or not 1 <= len(symbols) <= 128
++            or any(type(name) is not str or not name or len(name) > 512 for name in symbols)):
++        reject("bounded explicit native symbol set required")
++    try:
++        import fcntl
++        initial = os.fstat(fd)
++        required = fcntl.F_SEAL_WRITE | fcntl.F_SEAL_GROW | fcntl.F_SEAL_SHRINK | fcntl.F_SEAL_SEAL
++        seals = fcntl.fcntl(fd, fcntl.F_GET_SEALS)
++        if not stat.S_ISREG(initial.st_mode) or initial.st_size <= 0 or seals & required != required:
++            reject("native descriptor is not a fully sealed nonempty regular file")
++        expected_device = (os.major(initial.st_dev), os.minor(initial.st_dev))
++        addresses = {}
++        for name, function in symbols.items():
++            if not isinstance(function, ctypes._CFuncPtr):
++                reject("resolved entry is not a native function")
++            address = ctypes.cast(function, ctypes.c_void_p).value
++            if not address:
++                reject("resolved native entry has a null address")
++            addresses[name] = address
++        with open("/proc/self/maps", "rb") as handle:
++            contents = handle.read(_MAX_MAPS_BYTES + 1)
++        if len(contents) > _MAX_MAPS_BYTES:
++            reject("process mapping inventory exceeds its bound")
++        matches = {name: [] for name in symbols}
++        for line in contents.splitlines():
++            fields = line.split(None, 5)
++            if len(fields) < 5:
++                reject("incomplete kernel mapping record")
++            bounds = fields[0].split(b"-")
++            device = fields[3].split(b":")
++            if len(bounds) != 2 or len(device) != 2:
++                reject("unrecognized kernel mapping record")
++            lower, upper = (int(value, 16) for value in bounds)
++            offset = int(fields[2], 16)
++            major, minor = (int(value, 16) for value in device)
++            inode = int(fields[4], 10)
++            permissions = fields[1].decode("ascii")
++            if not 0 <= lower < upper or offset < 0 or major < 0 or minor < 0 or inode < 0:
++                reject("invalid kernel mapping interval or identity")
++            for name, address in addresses.items():
++                if lower <= address < upper:
++                    if permissions != "r-xp":
++                        reject("native entry is not in a private nonwritable executable mapping")
++                    if (major, minor) != expected_device or inode != initial.st_ino:
++                        reject("native entry maps a different file object; retained loader mapping refused")
++                    file_offset = offset + address - lower
++                    if not 0 <= file_offset < initial.st_size:
++                        reject("native entry lies outside the sealed file bytes")
++                    matches[name].append({"file_offset": file_offset, "permissions": permissions})
++        if any(len(rows) != 1 for rows in matches.values()):
++            reject("native entry has no unique identity-matched executable mapping")
++        final = os.fstat(fd)
++        if ((final.st_dev, final.st_ino, final.st_size) != (initial.st_dev, initial.st_ino, initial.st_size)
++                or fcntl.fcntl(fd, fcntl.F_GET_SEALS) & required != required):
++            reject("sealed descriptor changed during mapping admission")
++        return {"schema": "hepta.native.loaded-symbol-identity.v1",
++                "device_major": expected_device[0], "device_minor": expected_device[1],
++                "inode": initial.st_ino, "file_bytes": initial.st_size, "seals": seals,
++                "symbols": {name: rows[0] for name, rows in matches.items()},
++                "basis": "actual entry address in kernel executable mapping of the sealed descriptor",
++                "serialized_evidence_is_authority": False}
++    except NativeMappingRejected:
++        raise
++    except (OSError, ValueError, TypeError, AttributeError, ImportError, OverflowError) as error:
++        raise NativeMappingRejected("E_NATIVE_MAPPING: unable to establish actual loaded file identity") from error

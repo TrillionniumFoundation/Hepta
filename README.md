@@ -36,6 +36,14 @@ keeps original HIA, strong native baselines, actual model maintenance tasks,
 upgrades and all optimization costs visible. These finite implementations and
 measurements do not grant a universal safety, performance or productivity claim.
 
+The [second-round seven-part acceptance report](docs/HIA_NDU_CONTINUATION_20261028.md)
+records the actual 264-test integration gate, native code and resource checks,
+strong baseline comparisons, completed model-task coverage and retained negative
+results. Its [machine-readable acceptance ledger](experiments/hia_verified_integration/next_20261028/acceptance.json)
+separates implemented scope, finite correctness, scientific advantage and open
+repository CI gates. Passing a test suite does not satisfy an unpassed performance,
+NDU net-benefit or agent-productivity criterion.
+
 ## Implemented capabilities
 
 The table describes the union of the explicitly qualified profiles in this

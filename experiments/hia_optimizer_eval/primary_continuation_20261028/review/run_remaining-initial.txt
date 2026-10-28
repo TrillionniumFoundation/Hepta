@@ -1,0 +1,280 @@
+#!/usr/bin/env python3
+"""Supplement only primary cells never attempted by the frozen original run.
+
+Added after a Granite transport timeout stopped the original outer loop. The
+attempted prefix, all original reports, and the failed scientific gate remain
+unchanged. Frozen prompts, parsers, native evaluation and budgets are imported.
+"""
+from __future__ import annotations
+
+import argparse
+import copy
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import sys
+import time
+
+ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT))
+from experiments.hia_optimizer_eval.next_20261028.run_agent import validate_registration
+from experiments.hia_optimizer_eval.upgrade_continuation_20261028 import run_remaining as runtime_checks
+from tools import qualify_hia_batch_study as frozen
+from tools import qualify_hia_agent_holdout as holdout
+from tools.qualify_hia_edit_study import scheduled_cells
+from tools.provider_adapter.llama_cpp_engine import LlamaCppEngine, canonical, file_identity
+
+SCHEMA = "hepta.hia.primary-unstarted-cell-continuation.v1"
+
+
+def read(path):
+    return json.loads(Path(path).read_bytes())
+
+
+def save(path, value):
+    path = Path(path); path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("xb") as stream:
+        stream.write(canonical(value) + b"\n")
+
+
+def current_sources(expected):
+    return {name: file_identity(ROOT / name)["sha256"] for name in expected}
+
+
+def canonical_output(previous, output):
+    expected = Path(previous).resolve(strict=True).parent / "primary-continuation"
+    if Path(output).resolve() != expected or expected.exists():
+        raise ValueError("only one never-created canonical primary-continuation is allowed")
+    return expected
+
+
+def pending_cells(plan, model_report, previous):
+    order, rows = plan["scheduled_cells"], model_report["rows"]
+    ids, attempted = [cell["id"] for cell in order], [row["id"] for row in rows]
+    if len(ids) != 16 or len(set(ids)) != 16 or attempted != ids[:len(attempted)]:
+        raise ValueError("original attempts must be the fixed registered prefix")
+    model_root = Path(previous) / model_report["model"]["id"]
+    requests = {path.name.removesuffix(".request.json"): read(path)
+                for path in model_root.glob("*.request.json")}
+    if set(requests) != set(attempted) or any(not row.get("attempt_started") for row in rows):
+        raise ValueError("original cell request artifacts disagree with attempted prefix")
+    transports = sorted((model_root / "engine").glob("transport-*.request.json"))
+    if len(transports) != model_report["requests_started"]:
+        raise ValueError("actual transport request count differs")
+    transported = []
+    for index, path in enumerate(transports):
+        messages = read(path)["messages"]
+        matches = [key for key, value in requests.items() if value["messages"] == messages]
+        if index < 2:
+            if matches:
+                raise ValueError("preflight unexpectedly duplicates a scored request")
+        else:
+            if len(matches) != 1:
+                raise ValueError("transport request cannot be bound to one attempted cell")
+            transported.append(matches[0])
+    if transported != attempted:
+        raise ValueError("transported cells, including incomplete responses, differ from prefix")
+    return copy.deepcopy(order[len(attempted):])
+
+
+def prior_costs(previous, original):
+    model = original["model_report"]
+    root = previous / model["model"]["id"]
+    transports = [(path, read(path)) for path in sorted((root / "engine").glob("transport-*.request.json"))]
+    rows = []
+    for row in model["rows"]:
+        path = root / (row["id"] + ".request.json")
+        matches = [(source, value) for source, value in transports if value["messages"] == read(path)["messages"]]
+        usage = row.get("generation", {}).get("usage")
+        rows.append({"cell": row["id"], "original_state": row["state"],
+            "request": file_identity(path), "transport": file_identity(matches[0][0]) if len(matches) == 1 else None,
+            "known_input_tokens": len(matches[0][1]["payload"]["prompt"]) if len(matches) == 1 else None,
+            "validated_output_tokens": usage["output_tokens"] if usage else None,
+            "usage_complete": usage is not None, "measured_inference_ns": row.get("inference_ns")})
+    log = root / "engine/server.log"
+    counters = re.findall(r"n_gen\s*=\s*(\d+)", log.read_text())
+    return {"experiment_wall_ns": original["experiment_wall_ns"],
+        "model_execution_wall_ns": original["model_execution_wall_ns"],
+        "native_controls_wall_ns": original["native_controls_wall_ns"],
+        "requests_started_including_probes": model["requests_started"],
+        "responses_received_including_probes": model["responses_received"],
+        "probe_usage": [item["usage"] for item in model["preflight"]], "cells": rows,
+        "total_validated_output_tokens": sum(row["validated_output_tokens"] for row in rows)
+            if all(row["usage_complete"] for row in rows) else None,
+        "total_measured_task_inference_ns": sum(row["measured_inference_ns"] for row in rows)
+            if all(row["measured_inference_ns"] is not None for row in rows) else None,
+        "last_partial_server_generation_counter": int(counters[-1]) if counters else None,
+        "partial_counter_scope": "Observed server n_gen only; not a completed response or a substitute for unknown usage.",
+        "server_log": file_identity(log), "missing_original_counter_sums_are_not_zero_cost": True}
+
+
+def run_cell(cell, task, folder, engine, clang, rustc, sources):
+    folder.mkdir(exist_ok=False)
+    if current_sources(sources) != sources:
+        raise RuntimeError("frozen source drift before primary continuation request")
+    row = {**cell, "attempt_started": True, "attempts": 1, "accepted": False, "ok": False,
+           "state": "inference_started", "manual_time_ns": None, "original_cell_retried": False,
+           "usage_complete": False, "input_tokens": None, "output_tokens": None}
+    messages = [{"role": "user", "content": frozen.prompt(task, cell["arm"])}]
+    save(folder / "request.json", {"messages": messages, "limit": 512, "wall_seconds": 180})
+    started = time.monotonic_ns(); count_before = engine.generation_count
+    try:
+        response = engine.generate(messages, limit=512, wall_seconds=180)
+    except Exception as error:
+        row.update(state="budget_timeout" if isinstance(error, TimeoutError) else "generation_error",
+                   error={"type": type(error).__name__, "message": str(error)},
+                   request_wall_ns=time.monotonic_ns() - started,
+                   completion_requests_started=engine.generation_count - count_before,
+                   known_input_tokens=runtime_checks.transport_input_count(engine)
+                       if engine.generation_count > count_before else None)
+        save(folder / "CELL.json", row)
+        return row, False
+    save(folder / "response.json", response)
+    row.update(generation={"usage": response["usage"]}, input_tokens=response["usage"]["input_tokens"],
+               output_tokens=response["usage"]["output_tokens"], usage_complete=True,
+               inference_ns=response["wall_nanoseconds"], request_wall_ns=time.monotonic_ns() - started,
+               completion_requests_started=engine.generation_count - count_before)
+    evaluation_started = time.monotonic_ns()
+    usable = True
+    try:
+        candidate = frozen.parse_response(task, cell["arm"], response["text"])
+    except ValueError as error:
+        row.update(state="response_rejected", error={"type": type(error).__name__, "message": str(error)})
+    else:
+        row["accepted"] = True
+        native = frozen.native(task, candidate, "hia" if cell["arm"].startswith("hia") else "rust",
+                               folder / "candidate", clang, rustc)
+        row.update(native=native, state=native["status"], ok=native["ok"])
+        usable = native["status"] != "infrastructure_error"
+    row["evaluation_ns"] = time.monotonic_ns() - evaluation_started
+    save(folder / "CELL.json", row)
+    return row, usable
+
+
+def run(previous, output):
+    started = time.monotonic_ns()
+    previous = Path(previous).resolve(strict=True); output = canonical_output(previous, output)
+    original_plan, original = read(previous / "plan.json"), read(previous / "report.json")
+    model_report = original["model_report"]; model = model_report["model"]; identity = model_report["identity"]
+    validate_registration()
+    sources = original_plan["source_bindings"]
+    if current_sources(sources) != sources or canonical(original_plan["tasks"]) != canonical(holdout.tasks(original_plan["withheld_lcg_seed"])):
+        raise ValueError("original frozen sources or fixtures differ")
+    if original_plan["scheduled_cells"] != scheduled_cells(original_plan["tasks"], original_plan["model_index"]):
+        raise ValueError("original registered schedule differs")
+    if (original_plan["max_new_tokens"] != 512 or original_plan["attempts_per_cell"] != 1
+            or original_plan["threads"] != 4 or original_plan["seed"] != 0 or not original_plan["greedy"]):
+        raise ValueError("original primary budget differs")
+    if (original["native_controls"] != 32 or original["native_controls_passed"] != 32
+            or not original["source_unchanged"] or not original["tools_unchanged"]
+            or len(model_report["preflight"]) != 2 or not all(item["ok"] for item in model_report["preflight"])):
+        raise ValueError("original controls, preflights or identities failed")
+    if not identity.get("available") or not identity.get("model_unchanged") or not identity.get("runtime_unchanged"):
+        raise ValueError("original runtime/model identity failed")
+    tools = {"binary": original_plan["runtime"], "clang": original_plan["clang"], "rustc": original_plan["rustc"]}
+    if any(file_identity(item["path"]) != item for item in tools.values()):
+        raise ValueError("original tools differ")
+    if file_identity(model["path"]) != identity["model"] or any(file_identity(item["path"]) != item for item in identity["runtime_files"]):
+        raise ValueError("original model/runtime bytes differ")
+    if os.environ.get("LLAMA_ARG_REPACK") != "0":
+        raise ValueError("approved no-repack environment required")
+    pending = pending_cells(original_plan, model_report, previous)
+    if not pending:
+        raise ValueError("there are no never-attempted primary cells")
+    output.mkdir(parents=True, exist_ok=False)
+    helper_identity = file_identity(runtime_checks.__file__)
+    plan = {"schema": SCHEMA, "original_plan": file_identity(previous / "plan.json"),
+        "original_report": file_identity(previous / "report.json"), "source_bindings": sources,
+        "continuation_source": file_identity(__file__), "shared_runtime_checks_source": helper_identity,
+        "model": model, "tools": tools, "runtime_files": identity["runtime_files"],
+        "runtime_environment": {"LLAMA_ARG_REPACK": "0"},
+        "runtime_amendment": file_identity(ROOT / "experiments/hia_optimizer_eval/next_20261028/RUNTIME_AMENDMENT.json"),
+        "original_order": original_plan["scheduled_cells"], "pending_cells": pending,
+        "skipped_attempted_prefix": [row["id"] for row in model_report["rows"]],
+        "initial_prompt_sha256": {cell["id"]: hashlib.sha256(frozen.prompt(next(task for task in original_plan["tasks"] if task["id"] == cell["task"]), cell["arm"]).encode()).hexdigest() for cell in pending},
+        "budget": {"attempts_per_cell": 1, "max_new_tokens": 512, "completion_timeout_seconds": 180,
+                   "context": 8192, "threads": 4, "seed": 0, "greedy": True},
+        "native_case_counts": {task["id"]: len(task["cases"]) for task in original_plan["tasks"]},
+        "added_after_original_registration": True, "no_test_feedback_to_model": True,
+        "original_scientific_gate_passed": False, "manual_time_ns": None}
+    save(output / "PLAN.json", plan)
+    save(output / "SOURCE.json", {"sha256": plan["continuation_source"]["sha256"], "text": Path(__file__).read_text(),
+                                  "runtime_helper_sha256": helper_identity["sha256"]})
+    result = {"schema": SCHEMA, "status": "incomplete", "cells": [], "engines": [],
+              "previous_costs": prior_costs(previous, original), "manual_time_ns": None,
+              "preparation_wall_ns": time.monotonic_ns() - started,
+              "plan_sha256": file_identity(output / "PLAN.json")["sha256"]}
+    engine = None
+    def close_engine():
+        nonlocal engine
+        if engine is None:
+            return
+        close_started = time.monotonic_ns(); engine.close()
+        result["engines"][-1].update(requests_started=engine.generation_count,
+            responses_received=engine.response_count, final_identity=engine.verify_final_identity(),
+            shutdown_and_identity_wall_ns=time.monotonic_ns() - close_started)
+        engine = None
+    try:
+        tasks = {task["id"]: task for task in original_plan["tasks"]}
+        for cell in pending:
+            if current_sources(sources) != sources or file_identity(runtime_checks.__file__) != helper_identity:
+                raise RuntimeError("frozen source/helper drift before cell")
+            if engine is None:
+                engine_started = time.monotonic_ns()
+                engine = LlamaCppEngine(binary=tools["binary"]["path"], model=model["path"],
+                    model_sha256=model["sha256"], output_dir=output / ("engine-" + str(len(result["engines"]))),
+                    threads=4, context=8192, json_object=True)
+                result["engines"].append({"directory": str(engine.output), "startup_wall_ns": time.monotonic_ns() - engine_started})
+                if engine.runtime_identity != identity["runtime_files"] or engine.model_identity != identity["model"]:
+                    raise RuntimeError("actual complete runtime/model identity differs before first request")
+                result["engines"][-1]["runtime_condition"] = runtime_checks.observe_condition(engine)
+            row, usable = run_cell(cell, tasks[cell["task"]], output / cell["id"], engine,
+                                   tools["clang"]["path"], tools["rustc"]["path"], sources)
+            result["cells"].append(row)
+            print(json.dumps({"primary_continuation": cell["id"], "state": row["state"], "ok": row["ok"],
+                              "usage_complete": row["usage_complete"]}), flush=True)
+            if not usable:
+                close_engine()
+        result["status"] = "all_previously_unstarted_cells_attempted"
+    except Exception as error:
+        result["diagnostic"] = {"type": type(error).__name__, "message": str(error)}
+    finally:
+        try:
+            close_engine()
+        except Exception as error:
+            result["shutdown_or_identity_error"] = {"type": type(error).__name__, "message": str(error)}
+        result["source_unchanged"] = current_sources(sources) == sources
+        result["tools_unchanged"] = all(file_identity(item["path"]) == item for item in tools.values())
+        result["original_plan_unchanged"] = file_identity(previous / "plan.json") == plan["original_plan"]
+        result["original_report_unchanged"] = file_identity(previous / "report.json") == plan["original_report"]
+        result["continuation_source_unchanged"] = file_identity(__file__) == plan["continuation_source"]
+        result["helper_source_unchanged"] = file_identity(runtime_checks.__file__) == helper_identity
+        result["all_original_cells_attempted"] = [row["id"] for row in model_report["rows"] + result["cells"]] == [cell["id"] for cell in original_plan["scheduled_cells"]]
+        result["integrity_valid"] = all(result[key] for key in ("source_unchanged", "tools_unchanged", "original_plan_unchanged",
+            "original_report_unchanged", "continuation_source_unchanged", "helper_source_unchanged")) and all(
+            item.get("final_identity", {}).get("model_unchanged") and item.get("final_identity", {}).get("runtime_unchanged")
+            and item.get("runtime_condition", {}).get("condition_matches") for item in result["engines"])
+        result["execution_record_valid"] = (result["all_original_cells_attempted"] and result["integrity_valid"]
+            and "diagnostic" not in result and "shutdown_or_identity_error" not in result)
+        if not result["execution_record_valid"]:
+            result["status"] = "invalid_or_incomplete_continuation_execution"
+        result["original_scientific_gate_passed"] = False
+        result["experiment_wall_ns"] = time.monotonic_ns() - started
+        result["combined_primary_phase_wall_ns"] = original["experiment_wall_ns"] + result["experiment_wall_ns"]
+        result["cost_scope"] = "run() entry through final identity checks, before final JSON write; outer process time is recorded separately; human/tool construction time unmeasured"
+        save(output / "RESULT.json", result)
+    return result
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--previous", required=True); parser.add_argument("--output", required=True)
+    result = run(**vars(parser.parse_args()))
+    print(json.dumps({key: result[key] for key in ("status", "all_original_cells_attempted", "execution_record_valid", "experiment_wall_ns")}), flush=True)
+    return 0 if result["execution_record_valid"] else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,212 @@
+{
+  "access_limits": {
+    "official_public_html_job_pages": "Eight single HTTP 200 reads of public summary/annotations only. Raw page SHA-256 and normalized visible annotation text retained; no login or protected log access.",
+    "page_chrome_not_actions": "The generic Re-running jobs text in HTML is page UI, not an action performed by this observation.",
+    "prior_protected_log_403_retried": false,
+    "protected_job_log_requests_this_observation": 0,
+    "public_annotation_api_http_403": "Unauthenticated API rate limit exceeded, eight single requests, not retried."
+  },
+  "actions": {
+    "local_compilation": 0,
+    "model_requests": 0,
+    "remote_mutations": 0,
+    "source_edits": 0,
+    "workflow_reruns": 0
+  },
+  "all_jobs_completed": true,
+  "blocking_conclusion": "failure",
+  "blocking_run_id": 40632653912,
+  "blocking_status": "completed",
+  "claims": {
+    "all_failures_attributed_to_our_changes": false,
+    "bridge_ci_success_substitutes_for_required_ci": false,
+    "fixture_expect_lint_failure_attributed_to_changed_line": true,
+    "full_required_ci_passed": false
+  },
+  "conclusion_counts": {
+    "cancelled": 10,
+    "failure": 7,
+    "skipped": 4,
+    "success": 16
+  },
+  "difference_from_prior_35_job_observation": "Two terminal fan-in jobs were subsequently created: Windows test aggregate 122651850457 and CI required 122652038382.",
+  "failed_jobs": [
+    {
+      "annotation_evidence": "PUBLIC_JOB_ANNOTATIONS.json",
+      "completed_at": "2026-10-28T04:34:40Z",
+      "diagnosis": "Run cargo-deny failed. Public annotations give only an Ubuntu runner migration notice; dependency/advisory/license cause remains unknown.",
+      "diagnosis_classification": "unknown",
+      "failed_steps": [
+        {
+          "conclusion": "failure",
+          "name": "Run cargo-deny",
+          "number": 6
+        }
+      ],
+      "id": 122633256681,
+      "name": "cargo-deny / cargo-deny",
+      "started_at": "2026-10-28T04:32:52Z",
+      "url": "https://github.com/TrillionniumFoundation/hepta-private-ci/actions/runs/40632653912/job/122633256681"
+    },
+    {
+      "annotation_evidence": "PUBLIC_JOB_ANNOTATIONS.json",
+      "completed_at": "2026-10-28T05:19:14Z",
+      "diagnosis": "Windows shard 1 failed with exit 3; named target //codex-rs/core:core-unit-tests. Individual test diagnostic unavailable.",
+      "diagnosis_classification": "failed_target_known_root_cause_unknown",
+      "failed_steps": [
+        {
+          "conclusion": "failure",
+          "name": "bazel test shard",
+          "number": 6
+        }
+      ],
+      "id": 122633256970,
+      "name": "Bazel / Bazel test on windows-latest for x86_64-pc-windows-msvc shard 1/4",
+      "started_at": "2026-10-28T04:33:59Z",
+      "url": "https://github.com/TrillionniumFoundation/hepta-private-ci/actions/runs/40632653912/job/122633256970"
+    },
+    {
+      "annotation_evidence": "PUBLIC_JOB_ANNOTATIONS.json",
+      "completed_at": "2026-10-28T05:28:51Z",
+      "diagnosis": "Windows shard 3 failed with exit 3; named target //codex-rs/tui:tui-unit-tests. Individual test diagnostic unavailable.",
+      "diagnosis_classification": "failed_target_known_root_cause_unknown",
+      "failed_steps": [
+        {
+          "conclusion": "failure",
+          "name": "bazel test shard",
+          "number": 6
+        }
+      ],
+      "id": 122633256978,
+      "name": "Bazel / Bazel test on windows-latest for x86_64-pc-windows-msvc shard 3/4",
+      "started_at": "2026-10-28T04:33:02Z",
+      "url": "https://github.com/TrillionniumFoundation/hepta-private-ci/actions/runs/40632653912/job/122633256978"
+    },
+    {
+      "annotation_evidence": "PUBLIC_JOB_ANNOTATIONS.json",
+      "completed_at": "2026-10-28T05:24:27Z",
+      "diagnosis": "Ubuntu Clippy rejected expect() on Result in hepta-fleet/src/authority_port.rs:197:9, whose call chain ends with our new expect at line 210. This is a concrete defect in the prior fixture fix.",
+      "diagnosis_classification": "changed_line_lint_failure_confirmed",
+      "failed_steps": [
+        {
+          "conclusion": "failure",
+          "name": "bazel build --config=clippy lint targets",
+          "number": 4
+        }
+      ],
+      "id": 122633257034,
+      "name": "Bazel / Bazel clippy on ubuntu-24.04 for x86_64-unknown-linux-gnu",
+      "started_at": "2026-10-28T04:34:19Z",
+      "url": "https://github.com/TrillionniumFoundation/hepta-private-ci/actions/runs/40632653912/job/122633257034"
+    },
+    {
+      "annotation_evidence": "PUBLIC_JOB_ANNOTATIONS.json",
+      "completed_at": "2026-10-28T05:17:26Z",
+      "diagnosis": "Windows shard 2 failed with exit 3; named targets //codex-rs/app-server:app-server-unit-tests, //codex-rs/exec:exec-all-test, //codex-rs/app-server:app-server-all-test. Individual test diagnostics unavailable.",
+      "diagnosis_classification": "failed_target_known_root_cause_unknown",
+      "failed_steps": [
+        {
+          "conclusion": "failure",
+          "name": "bazel test shard",
+          "number": 6
+        }
+      ],
+      "id": 122633257071,
+      "name": "Bazel / Bazel test on windows-latest for x86_64-pc-windows-msvc shard 2/4",
+      "started_at": "2026-10-28T04:34:15Z",
+      "url": "https://github.com/TrillionniumFoundation/hepta-private-ci/actions/runs/40632653912/job/122633257071"
+    },
+    {
+      "annotation_evidence": "PUBLIC_JOB_ANNOTATIONS.json",
+      "completed_at": "2026-10-28T05:34:48Z",
+      "diagnosis": "Windows shard aggregate failed in Confirm Windows Bazel test shards passed with exit 1; this is dependency aggregation, not an independently diagnosed test defect.",
+      "diagnosis_classification": "aggregation_failure",
+      "failed_steps": [
+        {
+          "conclusion": "failure",
+          "name": "Confirm Windows Bazel test shards passed",
+          "number": 2
+        }
+      ],
+      "id": 122651850457,
+      "name": "Bazel / Bazel test on windows-latest for x86_64-pc-windows-msvc",
+      "started_at": "2026-10-28T05:34:44Z",
+      "url": "https://github.com/TrillionniumFoundation/hepta-private-ci/actions/runs/40632653912/job/122651850457"
+    },
+    {
+      "annotation_evidence": "PUBLIC_JOB_ANNOTATIONS.json",
+      "completed_at": "2026-10-28T05:35:28Z",
+      "diagnosis": "CI required failed in Require successful applicable dependencies with exit 1; the overall required gate is not satisfied.",
+      "diagnosis_classification": "aggregation_failure",
+      "failed_steps": [
+        {
+          "conclusion": "failure",
+          "name": "Require successful applicable dependencies",
+          "number": 3
+        }
+      ],
+      "id": 122652038382,
+      "name": "CI required",
+      "started_at": "2026-10-28T05:35:19Z",
+      "url": "https://github.com/TrillionniumFoundation/hepta-private-ci/actions/runs/40632653912/job/122652038382"
+    }
+  ],
+  "head_sha": "4b6391e116949af0c7e59776baead67271856bdb",
+  "head_tree_sha": "c89b55bed0ed75c3fbd54ba51e1e66a115aa747f",
+  "macos_clippy": {
+    "completed_at": "2026-10-28T05:34:59Z",
+    "conclusion": "cancelled",
+    "diagnosis": "Public annotation explicitly states the 1h0m0s maximum execution time was exceeded and the clippy operation was cancelled. No successful macOS validation of the fixture fix is established.",
+    "id": 122633257157,
+    "name": "Bazel / Bazel clippy on macos-15 for aarch64-apple-darwin",
+    "started_at": "2026-10-28T04:34:28Z",
+    "url": "https://github.com/TrillionniumFoundation/hepta-private-ci/actions/runs/40632653912/job/122633257157"
+  },
+  "observed_at": "2026-10-28 05:47:09 UTC",
+  "other_workflows": [
+    {
+      "conclusion": "success",
+      "id": 40632653904,
+      "jobs_url": "https://api.github.com/repos/TrillionniumFoundation/hepta-private-ci/actions/runs/40632653904/jobs",
+      "logs_url": "https://api.github.com/repos/TrillionniumFoundation/hepta-private-ci/actions/runs/40632653904/logs",
+      "name": "Hepta architecture convergence",
+      "run_number": 18924,
+      "status": "completed",
+      "workflow_id": 344551465
+    },
+    {
+      "conclusion": "failure",
+      "id": 40632653912,
+      "jobs_url": "https://api.github.com/repos/TrillionniumFoundation/hepta-private-ci/actions/runs/40632653912/jobs",
+      "logs_url": "https://api.github.com/repos/TrillionniumFoundation/hepta-private-ci/actions/runs/40632653912/logs",
+      "name": "blocking-ci",
+      "run_number": 32115,
+      "status": "completed",
+      "workflow_id": 336746106
+    },
+    {
+      "conclusion": "success",
+      "id": 40632653917,
+      "jobs_url": "https://api.github.com/repos/TrillionniumFoundation/hepta-private-ci/actions/runs/40632653917/jobs",
+      "logs_url": "https://api.github.com/repos/TrillionniumFoundation/hepta-private-ci/actions/runs/40632653917/logs",
+      "name": "HIA native NDU bridge",
+      "run_number": 2,
+      "status": "completed",
+      "workflow_id": 399006339
+    },
+    {
+      "conclusion": "success",
+      "id": 40632653880,
+      "jobs_url": "https://api.github.com/repos/TrillionniumFoundation/hepta-private-ci/actions/runs/40632653880/jobs",
+      "logs_url": "https://api.github.com/repos/TrillionniumFoundation/hepta-private-ci/actions/runs/40632653880/logs",
+      "name": "v8-canary",
+      "run_number": 31934,
+      "status": "completed",
+      "workflow_id": 336746138
+    }
+  ],
+  "repository": "TrillionniumFoundation/hepta-private-ci",
+  "run_attempt": 1,
+  "schema": "hepta.ci.terminal-observation.v1",
+  "total_jobs": 37
+}

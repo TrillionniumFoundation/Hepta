@@ -30,7 +30,7 @@ jobs:
     timeout-minutes: 35
     env:
       HEPTA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-      NDU_SOURCE_SHA: 4b6391e116949af0c7e59776baead67271856bdb
+      NDU_SOURCE_SHA: dc984bb3b3cb21259f838a31f67a7c2983ea9510
       CLANG: /usr/bin/clang-20
       CLANGXX: /usr/bin/clang++-20
       PYTHONDONTWRITEBYTECODE: '1'
@@ -90,6 +90,10 @@ jobs:
         run: |
           python tools/qualify_hia_verified_increment.py --output artifacts/verified-optimization/regression
           python experiments/hia_verified_integration/next_20261028/qualify_guarded_cli.py artifacts/verified-optimization/guarded-cli
+      - name: Validate model fault recovery controls
+        run: |
+          python -m unittest discover -s experiments/hia_optimizer_eval/upgrade_continuation_20261028 -p 'test_*.py' -v
+          python -m unittest discover -s experiments/hia_optimizer_eval/primary_continuation_20261028 -p 'test_*.py' -v
       - name: Retain real finite NDU loop and migration/runtime evidence
         run: |
           python tools/qualify_hia_ndu_loop.py --identity "$HEPTA_NDU_IDENTITY" --clang "$CLANG" --output artifacts/verified-optimization/ndu-loop

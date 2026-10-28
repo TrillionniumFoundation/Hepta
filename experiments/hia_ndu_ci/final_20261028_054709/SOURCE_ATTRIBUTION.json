@@ -1,0 +1,12 @@
+{
+  "annotation_job_id": 122633257034,
+  "before_commit": "2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b",
+  "before_sha256": "72b4e86e8adfcdff4edc62507458e64da8489dd7be4dd476c91638777ef4eb83",
+  "diagnosis": "The fixture edit replaced unwrap with expect; the terminal Ubuntu Clippy annotation rejects expect on Result at this same call chain. This change did not satisfy the repository lint gate.",
+  "diff": "--- 2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b/codex-rs/hepta-fleet/src/authority_port.rs\n+++ 4b6391e116949af0c7e59776baead67271856bdb/codex-rs/hepta-fleet/src/authority_port.rs\n@@ -207,7 +207,7 @@\n                     accelerator_millis: 1_000,\n                 },\n             })\n-            .unwrap();\n+            .expect(\"admit the fleet authority test host\");\n         ledger\n     }\n \n",
+  "head_commit": "4b6391e116949af0c7e59776baead67271856bdb",
+  "head_sha256": "8186c278ebfab8618170d3110415739adcd3a5732ee78deab9dbbbc4f3fe8ba3",
+  "head_url": "https://github.com/TrillionniumFoundation/hepta-private-ci/blob/4b6391e116949af0c7e59776baead67271856bdb/codex-rs/hepta-fleet/src/authority_port.rs#L195-L211",
+  "path": "codex-rs/hepta-fleet/src/authority_port.rs",
+  "schema": "hepta.ci.pinned-source-attribution.v1"
+}

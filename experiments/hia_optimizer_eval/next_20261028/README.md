@@ -4,6 +4,36 @@ This directory contains the next experiment protocol, executable evaluation
 code, and subsequently retained evidence. Earlier results remain unchanged.
 No new measurement is claimed until its raw execution record exists.
 
+## Retained outcomes
+
+- [The performance readout](benchmark-results.md) retains all 98 observations
+  and 1,260 finite correctness checks. Quality passed; the unchanged strong
+  baseline noninferiority gate failed. Guarded HIA improved over original HIA
+  without establishing superiority to optimized Rust/C/C++.
+- [The Chinese Agent report](AGENT_FINAL_RESULTS.md) and
+  [machine-readable results](AGENT_FINAL_RESULTS.json) cover all 32 primary
+  cells and all eight separate upgrade cells. Primary successes were 5/32;
+  upgrade successes were 0/8. There were 50 actual completion requests and
+  47 responses. Three timed-out output usages remain unknown, not zero.
+- Original qualification status and supplemental coverage are distinct.
+  Original Qwen upgrade and Granite primary loops stopped after timeouts;
+  independently reviewed continuation tools executed only their never-started
+  suffixes. Already-attempted cells were never retried, and original gates
+  remain failed. See the [upgrade continuation](../upgrade_continuation_20261028/README.md)
+  and [primary continuation](../primary_continuation_20261028/README.md).
+- [Response diagnosis](AGENT_RESPONSE_DIAGNOSIS.md) records that all 12 complete
+  upgrade responses omitted the required top-level `files` wrapper. They were
+  rejected before candidate compilation. No response was repaired or rescored
+  to create a successful upgrade.
+
+The first two model-server starts were killed during loading before any
+completion request. `RUNTIME_AMENDMENT.json` records the pre-answer change to
+`LLAMA_ARG_REPACK=0`, applied equally to both families; the actual owned PIDs
+are bound in `RUNTIME_AMENDMENT_APPLIED.json`. The original failure, readiness,
+downloads, archive costs and all unmeasured-cost limits remain visible.
+Original large archives and verified member manifests remain unchanged when
+publication requires byte-exact multipart transport.
+
 ## Performance comparison
 
 The unchanged `kernels.hepta`, `kernels.rs`, `kernels.c`, and `kernels.cpp`
@@ -109,6 +139,8 @@ there is no family substitution or repeat invocation for the same model.
 Each actual model phase uses `run --output-dir PATH --model-id ID
 --model-path GGUF --binary LLAMA_SERVER --clang CLANG --rustc RUSTC`.
 Run Qwen first and Granite second. Use the same Z3/LLVM environment as above.
+The executed follow-up additionally sets `LLAMA_ARG_REPACK=0` for both models;
+this runtime condition is an explicit amendment, not an unchanged default.
 A `summarize --output-dir PATH` call writes the cross-family report.
 The environment must see the same task-owned model tmpfs for download and
 execution. No evaluation tool downloads or substitutes models.
