@@ -149,6 +149,26 @@ MSVC toolchain. Windows uses its established Visual Studio environment and the
 real `LoadLibrary`/`GetProcAddress` ABI boundary; Unix hosts use `dlopen`/`dlsym`.
 The job retains the original and generated binaries as well as reports and logs.
 
+Windows additionally requires an explicit Rust linker. The workflow obtains
+`bin\Hostx64\x64\link.exe` from the `VCToolsInstallDir` captured by `VsDevCmd`,
+checks that file exists and records its SHA-256. The collector independently
+binds its absolute resolved path, regular executable bytes and readable `/?`
+help probe, requiring the Microsoft linker
+banner. Both normal variants and the wrong-code negative library use the same
+initial identity. The backend checks its hash before and after every Rust build;
+an observed change rejects that build before publishing its artifact. Explicit
+paths are passed as structured `rustc -C linker=...` arguments, without a shell.
+The optional argument leaves existing default linker discovery unchanged on
+other routes. Identity checks do not attest toolchain correctness or contain an
+adversarial build host.
+
+This requirement follows an actual failure on source `322be9b`: both Windows
+jobs successfully captured and translated all 12 active generic declarations,
+then Rust selected Git's GNU `link.exe` from Bash's PATH and failed to build the
+DLL. Those failures remain unqualified. The explicit-linker change requires
+fresh actual Windows CI; local GCC and authored mutation fixtures only verify
+selection and rejection behavior on their execution host.
+
 A declared workflow step is not a remote execution result. Until a particular
 job completes successfully on the integrated source revision, that host's new
 component gate remains unqualified. The older seven-host ABI results do not
@@ -175,6 +195,12 @@ For the local complete two-compiler/two-target observation and UBSan audit,
 add `--additional-cc /path/to/clang --additional-cc-family clang --hia-native
 --audit-original-ub`. On other hosts choose the measured compiler family and host
 identity, and omit the Linux-specific additions.
+
+On Windows, also pass `--linker 'C:\path\to\VC\Tools\MSVC\version\bin\Hostx64\x64\link.exe'`
+from the established Visual Studio x64 environment. Do not resolve this argument
+from Bash's `PATH`. `rust_linker` in the qualification report and
+`linker_identity` in all three Rust build receipts retain the actual probe and
+before/after digest bindings.
 
 The output directory must be new. `qualification.json` retains failures as well
 as successful runs, source-before/after identities, actual compiler identities,

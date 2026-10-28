@@ -111,7 +111,7 @@ jobs:
               $captured[$Matches[1]] = $Matches[2]
             }
           }
-          foreach ($required in @('PATH', 'INCLUDE', 'LIB', 'LIBPATH')) {
+          foreach ($required in @('PATH', 'INCLUDE', 'LIB', 'LIBPATH', 'VCToolsInstallDir')) {
             if (-not $captured.ContainsKey($required)) { throw "VsDevCmd did not provide $required" }
           }
           foreach ($name in $allowed) {
@@ -120,6 +120,13 @@ jobs:
               "$name=$($captured[$name])" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
             }
           }
+          # Git Bash prepends its own tools to PATH. Resolve the installed x64
+          # Microsoft linker from the captured VS environment, not Get-Command.
+          $linker = Join-Path -Path $captured['VCToolsInstallDir'] -ChildPath 'bin\Hostx64\x64\link.exe'
+          if (-not (Test-Path -LiteralPath $linker -PathType Leaf)) { throw 'The captured VS x64 linker is required' }
+          $linker = (Resolve-Path -LiteralPath $linker).Path
+          "HEPTA_HOST_LINKER=$linker" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          "rust-linker=$linker`nrust-linker-sha256=$((Get-FileHash -LiteralPath $linker -Algorithm SHA256).Hash.ToLowerInvariant())" | Out-File artifacts/native-host-setup.log -Append -Encoding utf8
           "cl.exe=$((Get-Command cl.exe -ErrorAction Stop).Source)" | Out-File artifacts/native-host-setup.log -Append -Encoding utf8
       - name: Check adapter and failed-report contracts
         shell: bash
@@ -136,9 +143,15 @@ jobs:
       - name: Execute the complete frozen stb_divide C component on this actual host
         shell: bash
         run: |
+          linker_args=()
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            test -n "$HEPTA_HOST_LINKER"
+            linker_args=(--linker "$HEPTA_HOST_LINKER")
+          fi
           set +e
           python tools/qualify_c_stb_divide.py \
             --clang clang --rustc "$(rustup which --toolchain 1.90.0 rustc)" \
+            "${linker_args[@]}" \
             --cc "$HEPTA_HOST_CC" --cc-family "$HEPTA_HOST_CC_FAMILY" \
             --expected-system '${{ matrix.system }}' --expected-machine '${{ matrix.machine }}' \
             --output-directory artifacts/stb-divide-host 2>&1 | tee artifacts/stb-divide-host.log

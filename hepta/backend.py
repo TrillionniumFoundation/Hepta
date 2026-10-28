@@ -535,10 +535,41 @@ def toolchain_info(rustc: str) -> dict:
             "sysroot_discovery": "verified_compiler_prefix" if sysroot else "compiler_default"}
 
 
+def linker_info(explicit: str) -> dict:
+    """Bind one caller-selected absolute linker without consulting PATH.
+
+    The probe and digest identify the selected tool; they do not prove its
+    correctness or defend an adversarial build host. Consumers may additionally
+    require a particular family, as the actual Windows component gate does.
+    """
+    from .clang_capture import run_bounded
+    try:
+        if not isinstance(explicit, str) or not explicit or not Path(explicit).is_absolute():
+            raise ValueError("explicit linker must be an absolute path")
+        path = Path(explicit).resolve(strict=True)
+        if not os.access(path, os.X_OK):
+            raise ValueError("selected linker is not executable")
+        before = digest_executable(path)
+        command = [str(path), "/?" if path.name.casefold() == "link.exe" else "--version"]
+        probe = run_bounded(command, timeout=15, stdout_limit=65536, stderr_limit=65536)
+        after = digest_executable(path)
+        if (before != after or not os.access(path, os.X_OK) or probe.returncode
+                or not (probe.stdout.strip() or probe.stderr.strip())):
+            raise ValueError("selected linker changed or its identity probe failed")
+        return {"path": str(path), "executable_sha256": after,
+                "selection": "explicit_absolute_path_not_PATH",
+                "probe": {"argv": command, "returncode": probe.returncode,
+                          "stdout": probe.stdout, "stderr": probe.stderr},
+                "unchanged_after_probe": True}
+    except (OSError, RuntimeError, ValueError) as exc:
+        raise HeptaError(Diagnostic("E_LINKER_IDENTITY", "Cannot bind the explicit native linker",
+                                    notes=[str(exc)], phase="backend")) from exc
+
+
 def compile_rust(source: str, *, rustc: str | None = None, target: str | None = None,
                  crate_type: str = "rlib", output: str | Path | None = None,
                  check_only: bool = False, optimize: bool = True, link_args: list[str] | None = None,
-                 debug_info: bool = False) -> dict:
+                 debug_info: bool = False, linker: str | None = None) -> dict:
     compiler = find_rustc(rustc)
     info = toolchain_info(compiler)
     # Rust normally discovers its sysroot through its executable location.
@@ -546,8 +577,10 @@ def compile_rust(source: str, *, rustc: str | None = None, target: str | None = 
     # Keep the conventional-prefix check narrow; nonstandard host wrappers
     # retain their existing compiler-managed sysroot discovery.
     sysroot = info["sysroot"]
-    linker = None
-    if (target is None and not check_only and not link_args
+    explicit_linker = linker_info(linker) if linker is not None else None
+    if explicit_linker is not None:
+        linker = explicit_linker["path"]
+    elif (target is None and not check_only and not link_args
             and crate_type in {"bin", "cdylib", "dylib", "proc-macro"}
             and not shutil.which("cc")):
         # On Debian-like hosts cc can be an /etc/alternatives symlink. Do not
@@ -599,10 +632,19 @@ def compile_rust(source: str, *, rustc: str | None = None, target: str | None = 
             flags.append("sysroot=" + sysroot)
         if linker:
             flags.append("linker=" + linker)
+        if explicit_linker is not None:
+            try:
+                if (digest_executable(linker) != explicit_linker["executable_sha256"]
+                        or not os.access(linker, os.X_OK)):
+                    raise ToolIdentityRejected("explicit linker bytes changed before compilation")
+            except ToolIdentityRejected as exc:
+                raise HeptaError(Diagnostic("E_LINKER_IDENTITY", "Explicit linker changed before compilation",
+                                            notes=[str(exc)], phase="backend")) from exc
         try:
             p = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
         except subprocess.TimeoutExpired:
-            return {"ok": False, "status": "unknown", "diagnostics": [{"code": "E_BACKEND_TIMEOUT", "message": "rustc exceeded 120 seconds", "phase": "backend"}], "toolchain": info}
+            return {"ok": False, "status": "unknown", "diagnostics": [{"code": "E_BACKEND_TIMEOUT", "message": "rustc exceeded 120 seconds", "phase": "backend"}],
+                    "toolchain": info, "linker": linker, "linker_identity": explicit_linker}
         diagnostics = []
         for line in p.stderr.splitlines():
             try:
@@ -623,7 +665,19 @@ def compile_rust(source: str, *, rustc: str | None = None, target: str | None = 
                   "crate_type": crate_type, "rust_sha256": sha256(source.encode()), "check_only": check_only,
                   "rustc_crate_type": native_type,
                   "sysroot": str(sysroot) if sysroot else None, "linker": linker,
-                  "link_args": link_args or []}
+                  "linker_identity": explicit_linker, "link_args": link_args or []}
+        if explicit_linker is not None:
+            try:
+                after = digest_executable(linker)
+                if after != explicit_linker["executable_sha256"] or not os.access(linker, os.X_OK):
+                    raise ToolIdentityRejected("explicit linker bytes changed during compilation")
+                explicit_linker["sha256_after_compilation"] = after
+                explicit_linker["unchanged_after_compilation"] = True
+            except ToolIdentityRejected as exc:
+                explicit_linker["unchanged_after_compilation"] = False
+                result.update(ok=False, status="rejected")
+                result["diagnostics"].append({"code": "E_LINKER_IDENTITY", "message": str(exc), "phase": "backend"})
+                return result
         if debug_info:
             result["debug_info"] = retained_debug
         if p.returncode == 0 and (not native_out.is_file() or native_out.stat().st_size == 0):

@@ -59,6 +59,7 @@ CRITICAL_MODULES = {
     "rust_resource_execution": ("test_hia_rust_owned_vm", "test_hia_rust_owned_cfg",
                                  "test_hia_rust_owned_memory", "test_hia_rust_migration",
                                  "test_hia_returned_loans"),
+    "rust_native_tool_selection": ("test_linker_selection",),
     "captured_c_source_and_component_migration": ("test_c_project_source_arguments",
         "test_c_project_semantic_flags", "test_c_array_declarator_guard", "test_c_cursor_control",
         "test_c_scalar_control", "test_c_project_dependencies"),

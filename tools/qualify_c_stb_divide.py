@@ -24,7 +24,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from hepta.backend import compile_rust, emit_rust
+from hepta.backend import compile_rust, emit_rust, linker_info
 from hepta.c_migrate import migrate_c_project
 from hepta.c_project import captured_source_argument, invoke, verify_capture
 from hepta.checker import check
@@ -32,6 +32,7 @@ from hepta.clang_capture import run_bounded
 from hepta.hia_program import execute_program, verify_program
 from hepta.hia_program_runtime import HIAProgramTrap
 from hepta.hia_program_source import lower_source
+from hepta.native_tool_identity import digest_executable
 from hepta.parser import parse
 from tools.validate_native_host import (COMPILER_PROBE, check_compiler_version,
     compiler_probe_command, msvc_version, parse_compiler_probe)
@@ -319,8 +320,44 @@ def replay_rows(path, cases):
     return count
 
 
+def select_rust_linker(selected, system):
+    """Bind an explicit tool; actual Windows requires the installed MSVC linker.
+
+    The workflow derives that path from its captured VCToolsInstallDir, never
+    from the Bash PATH. A readable banner is an identity check, not toolchain
+    attestation; correctness still requires the real native executions below.
+    """
+    if selected is None:
+        if system == "Windows":
+            raise ValueError("Windows qualification requires an explicit Visual Studio --linker")
+        return None
+    identity = linker_info(selected)
+    banner = identity["probe"]["stdout"] + identity["probe"]["stderr"]
+    if system == "Windows" and ("Microsoft" not in banner or "Incremental Linker Version" not in banner):
+        raise ValueError("Windows qualification requires the actual Microsoft Incremental Linker")
+    return identity
+
+
+def compile_bound_rust(source, *, rustc, output, linker_identity):
+    """All positive and wrong-code Rust targets share one initial tool identity."""
+    if linker_identity is not None:
+        if digest_executable(linker_identity["path"]) != linker_identity["executable_sha256"]:
+            raise ValueError("Selected Rust linker changed between component builds")
+    built = compile_rust(source, rustc=rustc, crate_type="cdylib", output=output,
+        linker=linker_identity["path"] if linker_identity is not None else None)
+    if linker_identity is not None and built["ok"]:
+        observed = built.get("linker_identity") or {}
+        if (observed.get("path") != linker_identity["path"]
+                or observed.get("executable_sha256") != linker_identity["executable_sha256"]
+                or observed.get("unchanged_after_compilation") is not True):
+            built.update(ok=False, status="rejected")
+            built.setdefault("diagnostics", []).append({"code": "E_LINKER_IDENTITY",
+                "message": "Rust build did not preserve the component's bound linker", "phase": "backend"})
+    return built
+
+
 def qualify(output, *, clang, rustc, cc, cc_family, additional_cc=None, hia_native=False, audit_original_ub=False,
-            expected_system=None, expected_machine=None):
+            expected_system=None, expected_machine=None, linker=None):
     output = Path(output).resolve()
     output.mkdir(parents=True, exist_ok=False)
     started = time.monotonic()
@@ -343,6 +380,7 @@ def qualify(output, *, clang, rustc, cc, cc_family, additional_cc=None, hia_nati
             raise ValueError("This additional HIA LLVM collector requires actual Linux x86-64")
         if audit_original_ub and host[0] != "Linux":
             raise ValueError("The additional original-C UBSan audit is qualified on Linux only")
+        report["rust_linker"] = select_rust_linker(linker, host[0])
         report["upstream"] = verify_upstream()
         report["scope"] = {"unchanged_header_bytes": 14507, "unchanged_header_lines": 433,
             "public_functions_per_variant": 6, "active_project_declarations_per_variant": 12,
@@ -416,7 +454,8 @@ def qualify(output, *, clang, rustc, cc, cc_family, additional_cc=None, hia_nati
             target = work / ("translated" + suffix)
             rust_source = (work / "translated/generated.rs").read_text() + ALLOCATION_PROBE
             (work / "instrumented-generated.rs").write_text(rust_source)
-            item["rust_build"] = compile_rust(rust_source, rustc=rustc, crate_type="cdylib", output=target)
+            item["rust_build"] = compile_bound_rust(rust_source, rustc=rustc, output=target,
+                linker_identity=report["rust_linker"])
             if not item["rust_build"]["ok"]:
                 raise ValueError("Generated Rust native target failed")
             source = (work / "translated/source.hepta").read_text()
@@ -525,7 +564,8 @@ def qualify(output, *, clang, rustc, cc, cc_family, additional_cc=None, hia_nati
         wrong_path = output / ("wrong" + suffix)
         wrong_rust = emit_rust(wrong_program, wrong_checked, crate_type="cdylib") + ALLOCATION_PROBE
         (output / "wrong.rs").write_text(wrong_rust)
-        report["wrong_build"] = compile_rust(wrong_rust, rustc=rustc, crate_type="cdylib", output=wrong_path)
+        report["wrong_build"] = compile_bound_rust(wrong_rust, rustc=rustc, output=wrong_path,
+            linker_identity=report["rust_linker"])
         if not report["wrong_build"]["ok"]:
             raise ValueError("Wrong-code native build failed before functional rejection")
         wrong = command([executables[0], wrong_path, output / "inputs.txt", output / "wrong.tsv"], output, report["processes"], expected=2)
@@ -610,6 +650,7 @@ def main():
     parser.add_argument("--output-directory", type=Path, required=True)
     parser.add_argument("--clang", default="clang")
     parser.add_argument("--rustc", required=True)
+    parser.add_argument("--linker", help="Absolute native linker path; required for actual Windows qualification")
     parser.add_argument("--cc", default="gcc")
     parser.add_argument("--cc-family", choices=("gcc", "clang", "msvc"), default="gcc")
     parser.add_argument("--additional-cc")
@@ -625,7 +666,7 @@ def main():
         cc_family=args.cc_family,
         additional_cc=(args.additional_cc, args.additional_cc_family) if args.additional_cc else None,
         hia_native=args.hia_native, audit_original_ub=args.audit_original_ub,
-        expected_system=args.expected_system, expected_machine=args.expected_machine)
+        expected_system=args.expected_system, expected_machine=args.expected_machine, linker=args.linker)
     print(json.dumps({"ok": report["ok"], "status": report["status"], "seconds": report["seconds"],
                       "report": str(args.output_directory / "qualification.json"), "error": report.get("error")}, indent=2))
     return 0 if report["ok"] else 1
