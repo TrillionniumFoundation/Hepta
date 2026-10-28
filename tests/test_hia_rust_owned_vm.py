@@ -201,9 +201,7 @@ class RustByteOwnerVmParity(unittest.TestCase):
     def test_unsupported_whole_program_refuses_before_any_execution(self):
         variants = []
         unsupported = resource_program()
-        unsupported["schema"] = "hepta.hia.program.v7"
-        unsupported["functions"][0]["blocks"][0]["ops"][2:2] = [
-            i("chain.empty", out=[("chain", "chain")]), i("owner.drop", ["chain"])]
+        unsupported["functions"][0]["blocks"][0]["ops"][2:2] = [i("foreign.unknown")]
         variants.append((unsupported, "owned", [4, 7]))
         # Uncalled code is still checked; an allocation trap in the entry
         # cannot hide an unsupported instruction in a different function.
@@ -215,18 +213,16 @@ class RustByteOwnerVmParity(unittest.TestCase):
         hidden["functions"].append(extra)
         variants.append((hidden, "owned", [4, 7]))
         for source, entry, args in variants:
-            raw = verify_program(source).canonical_bytes
-            result = self.raw_run(raw, entry, args, fail=1)
+            with self.assertRaises(HIAProgramRejected):
+                verify_program(source)
+            result = self.raw_run(json.dumps(source).encode(), entry, args, fail=1)
             self.assertNotEqual(result.returncode, 0)
             self.assertTrue(result.stderr.startswith(b"E_HIA_RUST_UNSUPPORTED:"), result.stderr)
             self.assertEqual(result.stdout, b"")
-        chain = (ROOT / "examples/hia_recursive_chain/core_v7.json").read_bytes()
         nominal = (ROOT / "examples/hia_program/generic_owned_enum.hia").read_bytes()
         verify_program(nominal)
-        # Primitive chain reaches the execution profile and is unsupported;
-        # a raw nominal document is outside the existing strict Rust schema.
+        # Raw nominal input stays outside the strict Rust primitive schema.
         for raw, entry, error in (
-            (chain, "chain_probe", b"E_HIA_RUST_UNSUPPORTED:"),
             (nominal, "probe", b"E_HIA_FORMAT:"),
         ):
             result = self.raw_run(raw, entry, [])

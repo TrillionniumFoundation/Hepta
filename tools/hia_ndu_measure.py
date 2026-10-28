@@ -10,6 +10,7 @@ but their paid wall time is retained for the caller's amortization decision.
 from __future__ import annotations
 
 import base64
+from contextlib import nullcontext
 import hashlib
 import json
 from pathlib import Path
@@ -305,7 +306,7 @@ def _summarize(report, expected, samples, iterations):
 
 def measure_pair(baseline: VerifiedProgram, candidate: VerifiedProgram, entry: str,
                  cases: list[list[int]], *, clang="clang", samples=31,
-                 iterations=10_000, timeout=30) -> dict:
+                 iterations=10_000, timeout=30, artifact_directory=None) -> dict:
     """Measure once; the caller decides whether any paid optimization is useful.
 
     ``iterations`` repeats the complete case list, so calls_per_sample is
@@ -343,7 +344,14 @@ def measure_pair(baseline: VerifiedProgram, candidate: VerifiedProgram, entry: s
                             "timed_calls_total": 2 * samples * iterations * len(frozen_cases),
                             "untimed_correctness_calls": 2 * len(frozen_cases)}
         expected = _timed(report, "validation_ns", lambda: _observe_interpreters(report, programs, entry, frozen_cases))
-        with tempfile.TemporaryDirectory(prefix="hepta-ndu-pair-") as temporary:
+        if artifact_directory is None:
+            artifact_context = tempfile.TemporaryDirectory(prefix="hepta-ndu-pair-")
+        else:
+            retained = Path(artifact_directory).absolute()
+            retained.mkdir(parents=True, exist_ok=False)
+            report["retained_artifact_directory"] = str(retained)
+            artifact_context = nullcontext(str(retained))
+        with artifact_context as temporary:
             directory = Path(temporary)
             libraries = []
             for role, program in zip(("baseline", "candidate"), programs):
@@ -382,6 +390,12 @@ def measure_pair(baseline: VerifiedProgram, candidate: VerifiedProgram, entry: s
                 _require(_sha(path.read_bytes()) == report["native"][role]["artifact_sha256"], "native bytes changed during measurement")
             _require(digest_executable(driver) == report["driver"]["artifact_sha256"], "driver changed during measurement")
             _require(digest_executable(tool["path"]) == tool["sha256"], "compiler changed during measurement")
+            if artifact_directory is not None:
+                report["retained_artifacts"] = [
+                    {"role": role, "path": str(path), "bytes": path.stat().st_size,
+                     "sha256": digest_executable(path)}
+                    for role, path in [*zip(("baseline", "candidate"), libraries), ("driver", driver)]]
+                report["claims"]["binary_artifacts_retained"] = True
         report.update(ok=True, status="finite_pair_measured_no_selection_authority")
     except Exception as error:
         report["diagnostics"].append({"type": type(error).__name__, "code": getattr(error, "code", None), "message": str(error)})

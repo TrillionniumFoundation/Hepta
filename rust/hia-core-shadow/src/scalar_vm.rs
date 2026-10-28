@@ -30,6 +30,7 @@ enum RuntimeValue {
     Scalar(Value),
     Owner(u64),
     Loan(u64),
+    Chain(u64),
 }
 impl RuntimeValue {
     fn scalar(&self) -> Exec<&Value> {
@@ -231,14 +232,22 @@ impl<'a> Machine<'a> {
                         let signature = *self.functions.get(callee).ok_or(Halt::Internal)?;
                         for (index, parameter) in signature["params"].as_array()
                             .ok_or(Halt::Internal)?.iter().enumerate() {
-                            if parameter["type"] == "buffer" {
-                                memory.free_owner(operands.get(index).ok_or(Halt::Internal)?)?;
+                            if matches!(parameter["type"].as_str(), Some("buffer" | "chain")) {
+                                memory.free_owned(operands.get(index).ok_or(Halt::Internal)?)?;
                                 let consumed = op["args"][index].as_str().ok_or(Halt::Internal)?;
                                 env.remove(consumed).ok_or(Halt::Internal)?;
                             }
                         }
                     }
                     self.invoke(callee, operands, depth + 1)?
+                } else if op_name == "owner.drop" && matches!(operands.first(), Some(RuntimeValue::Chain(_))) {
+                    let mut head = self.memory.as_mut().ok_or(Halt::Internal)?
+                        .consume_chain(operands.first().ok_or(Halt::Internal)?)?;
+                    while let Some(id) = head {
+                        self.tick()?;
+                        head = self.memory.as_mut().ok_or(Halt::Internal)?.drop_chain_node(id)?;
+                    }
+                    Vec::new()
                 } else if ByteMemory::supports(op_name) {
                     self.memory.as_mut().ok_or(Halt::Internal)?.operation(op_name, &operands)?
                 } else {
@@ -248,15 +257,20 @@ impl<'a> Machine<'a> {
                 };
                 let parameters = op["out"].as_array().ok_or(Halt::Internal)?;
                 if parameters.len() != outputs.len() { return Err(Halt::Internal); }
-                if matches!(op_name, "owner.move" | "owner.drop" | "loan.end") {
-                    let consumed = op["args"][0].as_str().ok_or(Halt::Internal)?;
-                    env.remove(consumed).ok_or(Halt::Internal)?;
+                let consumed_count = match op_name {
+                    "chain.try_push" => 2,
+                    "owner.move" | "owner.drop" | "loan.end" | "chain.pop" => 1,
+                    _ => 0,
+                };
+                for argument in op["args"].as_array().ok_or(Halt::Internal)?.iter().take(consumed_count) {
+                    env.remove(argument.as_str().ok_or(Halt::Internal)?).ok_or(Halt::Internal)?;
                 }
                 for (parameter, value) in parameters.iter().zip(outputs) {
                     let ty = parameter["type"].as_str().ok_or(Halt::Internal)?;
                     match &value {
                         RuntimeValue::Scalar(v) if valid_constant(ty, v) => {}
                         RuntimeValue::Owner(_) if ty == "buffer" => {}
+                        RuntimeValue::Chain(_) if ty == "chain" => {}
                         RuntimeValue::Loan(id) if self.memory.as_ref()
                             .is_some_and(|m| m.loan_type(*id) == Some(ty)) => {}
                         _ => return Err(Halt::Internal),
@@ -311,7 +325,7 @@ pub fn execute_scalar(input: &[u8], function: &str, arguments: &[Value],
 
 /// Opt-in finite byte-owner execution in the SAME Machine as scalar execution.
 /// Byte owners, loans, resource calls and CFG; scalar public entry/return only.
-/// Bulk byte operations are admitted; chain operations remain outside it.
+/// Bulk byte operations and v7 recursive buffer chains are admitted.
 /// Static ownership admission still comes from the existing verify_owned.
 pub fn execute_owned(input: &[u8], function: &str, arguments: &[Value],
                      max_steps: u64, max_heap_bytes: u64,
@@ -331,7 +345,7 @@ fn owned_execution_profile(document: &Value) -> R<()> {
         code: "E_HIA_RUST_UNSUPPORTED", detail: "missing function inventory".into(),
     })?;
     let check_type = |ty: &Value| -> R<()> {
-        if matches!(ty.as_str(), Some("buffer" | "readbuf" | "mutbuf")) { return Ok(()); }
+        if matches!(ty.as_str(), Some("buffer" | "readbuf" | "mutbuf" | "chain")) { return Ok(()); }
         super::scalar(ty).map(|_| ())
     };
     for function in functions {
@@ -417,7 +431,7 @@ fn execute(input: &[u8], function: &str, arguments: &[Value], max_steps: u64,
     });
     if let Some(memory) = machine.memory.as_ref() {
         report["schema"] = json!("hepta.hia.rust-byte-owner-execution.v1");
-        report["profile"] = json!("cfg-call-byte-owner-bulk-v3");
+        report["profile"] = json!("cfg-call-byte-owner-chain-v4");
         report["resources"] = memory.report(document["schema"] == "hepta.hia.program.v7");
         report["max_heap_bytes"] = json!(owned_policy.unwrap().0);
         report["allocation_fail_at"] = json!(owned_policy.unwrap().1);
@@ -428,6 +442,8 @@ fn execute(input: &[u8], function: &str, arguments: &[Value], max_steps: u64,
             "scalar_public_entry_only": true,
             "byte_owner_cfg_and_calls": true,
             "byte_owner_bulk_memory": true,
+            "v7_recursive_buffer_chain_execution": true,
+            "general_recursive_adts": false,
             "general_resource_execution": false,
             "production_admission_authorized": false,
             "whole_language_soundness_proved": false,

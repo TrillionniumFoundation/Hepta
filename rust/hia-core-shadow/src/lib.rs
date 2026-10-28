@@ -1,8 +1,9 @@
 //! Conservative Rust shadow checker for the existing standalone HIA Program ISA.
 //! This crate is NOT the language admission authority: the canonical Python
 //! verify_program remains mandatory until semantic refinement is demonstrated.
-//! Only the source-independent, resource-free scalar SSA subprofile is accepted.
-//! Every unsupported feature rejects instead of being interpreted as safe.
+//! Default admission accepts only the resource-free scalar SSA subprofile.
+//! Explicit owned modes verify/execute finite byte-owner and v7 chain profiles.
+//! Unsupported features reject instead of being interpreted as safe.
 #![forbid(unsafe_code)]
 
 use std::collections::{BTreeMap, BTreeSet};

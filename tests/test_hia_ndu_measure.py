@@ -77,6 +77,35 @@ class NativePairAdmissionTests(unittest.TestCase):
 
 @unittest.skipUnless(NATIVE, "Actual Clang20+ Linux x86-64 is required")
 class NativePairExecutionTests(unittest.TestCase):
+    def test_retained_artifacts_are_the_actual_measured_bytes_and_previous_paths_refuse(self):
+        baseline, candidate = pair()
+        with tempfile.TemporaryDirectory(prefix="hia-pair-retention-") as temporary:
+            directory = Path(temporary) / "actual"
+            result = measure_pair(baseline, candidate, "swap_candidate", [[5, 0, 4, 0]],
+                                  clang=CLANG, samples=15, iterations=1,
+                                  artifact_directory=directory)
+            self.assertTrue(result["ok"], result["diagnostics"])
+            self.assertTrue(result["claims"]["binary_artifacts_retained"])
+            self.assertEqual({row["role"] for row in result["retained_artifacts"]},
+                             {"baseline", "candidate", "driver"})
+            previous = {}
+            for row in result["retained_artifacts"]:
+                path = Path(row["path"])
+                self.assertEqual(path.parent, directory)
+                raw = path.read_bytes()
+                self.assertEqual(len(raw), row["bytes"])
+                self.assertEqual(hashlib.sha256(raw).hexdigest(), row["sha256"])
+                expected = result["driver"] if row["role"] == "driver" else result["native"][row["role"]]
+                self.assertEqual(expected["artifact_sha256"], row["sha256"])
+                previous[path] = raw
+            refused = measure_pair(baseline, candidate, "swap_candidate", [[5, 0, 4, 0]],
+                                   clang=CLANG, samples=15, iterations=1,
+                                   artifact_directory=directory)
+            self.assertFalse(refused["ok"])
+            self.assertEqual(refused["native"], {})
+            self.assertFalse(refused["claims"]["binary_artifacts_retained"])
+            self.assertEqual(previous, {path: path.read_bytes() for path in previous})
+
     def test_actual_native_pair_checks_every_case_and_retains_uncensored_clocks(self):
         baseline, candidate = pair()
         cases = [[5, 0, 4, 0], [5, 0, 4, 4], [5, 2, 2, 2], [5, 1, 3, 1]]

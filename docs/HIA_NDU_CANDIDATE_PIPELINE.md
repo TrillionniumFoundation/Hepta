@@ -14,13 +14,13 @@ admission path retained the baseline when improvement was not established.
 
 | Component | Responsibility | Boundary |
 | --- | --- | --- |
-| `hepta.hia_ndu.prepare_candidate` | Verify immutable baseline, bind a strict plan, reproduce `byte-swap.v1` or `full-view-fill-loop.v1`, reverify exact candidate | Primitive v1–v6; scalar public entry; arbitrary type-safe edits are refused |
+| `hepta.hia_ndu.prepare_candidate` | Verify immutable baseline, bind a strict plan, reproduce one of the three registered rules below, reverify exact candidate | Primitive v1–v6; scalar public entry; arbitrary type-safe edits are refused |
 | `observe_semantics` | Compare actual interpreter results, trap codes and complete resource ledgers, including injected allocation failure | Finite corpus; instruction budget equivalence and foreign effects are excluded |
-| `tools.hia_ndu_measure.measure_pair` | Compile both Cores through the current LLVM consumer; check each native result; retain paired C-loop timings | Linux x86-64, `(usize, usize, usize, usize) -> u8`, 1–64 cases |
+| `tools.hia_ndu_measure.measure_pair` | Compile both Cores through the current LLVM consumer; check each native result; retain paired C-loop timings and optionally the actual measured binaries | Linux x86-64, `(usize, usize, usize, usize) -> u8`, 1–64 cases |
 | `rust/hia-ndu-bridge` | Call the actual upstream V2 evaluator with required abstain, explicit utility/aggregation rules and resource ceilings | Host-supplied evidence; authority remains `DENY_ALL` |
 | `tools/qualify_hia_ndu.py` | Produce the transformation, validation, artifact, measurement and decision record | No production admission or code installation |
 | `hepta.hia_version_dispatch.LocalVersionDispatcher` | Explicit host-controlled staging, generation CAS and pinning of actual interpreter calls | Separate interpreter-only lifecycle experiment; no automatic NDU activation |
-| `hepta.hia_native_version_dispatch.NativeVersionDispatcher` | Actual background Clang compilation, sealed native images, isolated child calls, generation CAS, drain and rollback | Separate Linux x86-64 scalar ABI lifecycle; baseline/exact swap only; no automatic NDU activation or external-state migration |
+| `hepta.hia_native_version_dispatch.NativeVersionDispatcher` | Actual background Clang compilation, sealed native images, isolated child calls, generation CAS, drain and rollback | Separate Linux x86-64 scalar ABI lifecycle; baseline or exact selected registered rewrite; no automatic NDU activation or external-state migration |
 
 The existing Core language and verifier remain the semantic authority. This
 adapter accepts only the exact registered rewrite of the frozen baseline.
@@ -28,11 +28,19 @@ An imported candidate is reverified and compared byte-for-byte with the
 locally reproduced result. A model's assertion, score, or `proved` flag is
 not an admissibility certificate.
 
-Both registered passes have finite structural contracts. They are not general
-semantic equivalence provers. Composite and primitive v7 inputs remain outside
-this adapter's contract. The separate public byte-swap API preserves v7 and
-rejects composite input instead of erasing its structured identity. This does
-not expand NDU admission automatically.
+All three registered passes have finite structural contracts. They are not
+general semantic equivalence provers.
+
+| Registered pass | Exact admitted change |
+| --- | --- |
+| `byte-swap.v1` | Replace the checked two-load/two-store swap of one mutable view with `buffer.swap` |
+| `full-view-fill-loop.v1` | Replace a closed zero-to-view-length, unit-stride byte-store loop with `buffer.fill` |
+| `checked-unsigned-reduction.v1` | Replace an exact zero-initialized unsigned checked-add counting loop with checked multiplication |
+
+Composite and primitive v7 inputs remain outside this NDU adapter's contract.
+The separate public byte-swap and checked-reduction APIs preserve v7 and refuse
+composite input instead of erasing its structured identity. Their wider public
+API support does not expand NDU admission automatically.
 
 The fill-loop rule recognizes an actual zero-to-length, unit-stride loop over
 the same exclusive byte view, with an invariant byte and no other body effects.
@@ -40,6 +48,32 @@ It preserves the length computation and replaces only the admitted loop with
 `buffer.fill`, then reverifies the complete result. It excludes instruction-step
 budget, host interruption and host allocation-failure equivalence. See the
 [registered rule contract](HIA_FULL_VIEW_FILL_LOOP.md) for the exact constraints.
+
+The checked-reduction rule requires count, invariant addend, index and sum at
+the same unsigned type. It verifies the complete loop body, every incoming
+edge, zero initial index/sum, unit stride and unchanged carried values. The
+body has no memory operation, call or resource event. Nondecreasing partial
+sums overflow exactly when the mathematical product does; a taken index
+increment stays within the count's type. Successful final index and sum values
+are preserved even when they escape the loop. Surrounding ownership and loan
+operations keep their original order.
+
+`formal/HiaCheckedReduction.lean` gives an independent arithmetic model with
+universal theorems for complete checked outcomes, overflow agreement and the
+index bound. Its controls also reject a changed initial sum and a missing
+overflow guard. Those theorems do not verify the Python matcher, Core CFG or
+resource semantics, LLVM lowering, native ABI or backend refinement. Step
+budgets and host interruption remain excluded from the transformation's
+equivalence claim. See [the checked-reduction contract](HIA_CHECKED_UNSIGNED_REDUCTION.md).
+
+The native dispatcher additionally offers an explicit diagnostic loan profile.
+It binds observations to selected Core borrow/end locations in the actual
+version images, allowing a finite activation/rollback/drain experiment while
+an old native call is waiting within that loan interval. Diagnostic images
+have additional observations and are excluded from ordinary execution and
+performance comparison. This does not introduce callbacks, external borrowed
+addresses, shared-state migration or persistent workers. See
+[native version dispatch](HIA_NATIVE_VERSION_DISPATCH_20261027.md).
 
 ## Building the actual upstream evaluator
 
@@ -88,10 +122,21 @@ python3 tools/qualify_hia_ndu.py \
   --output /new/path/qualification.json
 ```
 
-Optional `--negative-cases` adds a bounded JSON list of trap-inducing argument
-lists to interpreter validation. It does not execute trap cases inside the
+Optional `--negative-cases` adds a bounded JSON list of failure and boundary
+controls to interpreter validation. It does not execute trap cases inside the
 native timing process. Independent native trap/allocator qualifications remain
 necessary and are not replaced by this performance instrument.
+
+Optional `--artifact-directory /new/path/native-artifacts` retains the actual
+baseline library, candidate library and C driver from that measurement. The
+directory must be new. Successful measurements record each retained file's
+byte count and SHA-256 after the normal before/after execution identity checks.
+Core/LLVM text, compiler identities, driver source, raw observations and costs
+remain in the report. Partial build or execution failures leave available
+files and diagnostics in the retained directory without claiming a successful
+artifact set. Without this option, the temporary binaries are cleaned after
+execution; their measurement-time hashes cannot later substitute for reopening
+those deleted files.
 
 For the fill-loop candidate use `--pass-id full-view-fill-loop.v1`,
 `--program examples/hia_ndu/fill_loop.json`,
@@ -100,6 +145,26 @@ For the fill-loop candidate use `--pass-id full-view-fill-loop.v1`,
 `--entry fill_probe`. The supplied experiment protocol fixes the run count,
 corpus, budget and thresholds before measurement; see
 `experiments/hia_ndu_native_20261027/README.md`.
+
+For the checked-reduction candidate use `--pass-id checked-unsigned-reduction.v1`,
+`--program examples/hia_ndu/checked_reduction.json`,
+`--cases examples/hia_ndu/checked_reduction_cases.json`,
+`--negative-cases examples/hia_ndu/checked_reduction_negative_cases.json`, and
+`--entry reduction_probe`. The separately committed
+[checked-reduction experiment](../experiments/hia_checked_reduction_20261027/README.md)
+fixes exactly two attempts, the same 18-case corpus, 31 pairs and 50,000 complete
+corpus repetitions per side. Each attempt schedules 55,800,000 timed native
+calls and 36 untimed correctness calls, retains the measured binaries and
+rehashes them in the coordinator. The 5% MAD ceiling, 2% relative margin,
+three-MAD paired-saving condition, 60-second search admission ceiling,
+two-second decision reserve and 100-million-call horizon stay fixed before
+timing. All failed, noisy, regressive and no-change outcomes must be retained.
+The older fill/swap protocol and its results remain unchanged.
+
+This new corpus is an authored arithmetic mechanism, not an unchanged external
+application's hot function. An accepted mechanism gain would still leave
+industrial P4 acceptance open. Neither the protocol nor artifact inequality
+is an observed performance result.
 
 NDU evaluation generations start at 1 because that is the upstream type's
 contract. Local dispatch generations start at 0 and belong to a different
@@ -209,7 +274,7 @@ tests into a proof, override a host rejection, or grant execution authority.
 
 ## Qualification status
 
-This work establishes an executable, reproducible integration path for two
+This work establishes an executable, reproducible integration path for three
 finite compiler passes. It does not close the entire P0–P7 roadmap. In particular:
 
 - General typed-place/layout/concurrency semantics and arbitrary resource
@@ -220,7 +285,8 @@ finite compiler passes. It does not close the entire P0–P7 roadmap. In particu
   superiority to Rust or an industrial hot function's repeatable net benefit.
 - General C/C++ translation, automatic contract recovery, migration labor and
   bridge maintenance costs remain unqualified.
-- Interpreter and isolated-child native version pinning do not establish
+- Interpreter and isolated-child native version pinning, including the
+  instrumented observation of selected native loan intervals, do not establish
   in-process patching, external-state migration, callback lifetime safety or
   distributed rollback.
 - Physical targets, long-lived complex-resource workloads and independent

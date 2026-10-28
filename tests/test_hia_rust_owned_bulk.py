@@ -202,7 +202,7 @@ class RustOwnedBulkParity(unittest.TestCase):
                heap=16 * 1024 * 1024, fail=None):
         report = owned_tests.RustByteOwnerVmParity.parity(
             self, document, entry, args, steps=steps, heap=heap, fail=fail)
-        self.assertEqual(report["profile"], "cfg-call-byte-owner-bulk-v3")
+        self.assertEqual(report["profile"], "cfg-call-byte-owner-chain-v4")
         self.assertTrue(report["claims"]["byte_owner_bulk_memory"])
         return report
 

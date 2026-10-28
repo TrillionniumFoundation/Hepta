@@ -1,5 +1,11 @@
 # Executed Rust byte-owner shadow: finite profile
 
+The earlier `cfg-call-byte-owner-bulk-v3` profile has been superseded by
+`cfg-call-byte-owner-chain-v4`. The same Machine now executes primitive v7
+recursive buffer chains, with iterative destruction and shared allocation/loan
+ledgers; see [the chain extension](HIA_RUST_CHAIN_VM_20261027.md). Historical
+execution results below retain their original source and profile scope.
+
 The existing Rust scalar `Machine` now has an explicitly enabled, bounded byte
 storage component. `--owned-run` executes a finite primitive HIA buffer/loan
 profile after the existing `verify_owned` admission check. This does not change
@@ -34,10 +40,11 @@ allocation failure is still rejected before any instruction executes.
 | `buffer.swap` | v4 checks both offsets before either write, including identical-offset swaps |
 | `buffer.copy_range`, `buffer.fill_range` | v5/v6 checked offsets and lengths; zero-length ranges still require valid endpoints |
 | `call` | Consumes owner arguments, preserves allocation identity and binds independent formal loan witnesses |
+| `chain.empty`, `chain.try_push`, `chain.pop`, `chain.is_empty` | v7 chain ownership, 24-byte node allocation, failure-preserving tail/payload transfer and checked consumption |
+| `chain.head_read`, `chain.head_mut` | v7 head-payload loans; empty heads trap and live loans block chain consumption |
 
-The existing scalar operation implementation is reused. Chain operations and
-types, public resource entry/return types, and direct
-nominal/composite documents are outside
+The existing scalar operation implementation is reused. Public resource
+entry/return types and direct nominal/composite documents remain outside
 this execution profile. Primitive operations outside the profile produce
 `E_HIA_RUST_UNSUPPORTED`. A direct nominal document fails the existing strict
 primitive-schema check with `E_HIA_FORMAT`; no new schema fallback is installed.
@@ -87,23 +94,25 @@ injected allocation failure.
 
 Execution reports use the new schema
 `hepta.hia.rust-byte-owner-execution.v1` and profile
-`cfg-call-byte-owner-bulk-v3`. They include the source digest, entry function,
+`cfg-call-byte-owner-chain-v4`. They include the source digest, entry function,
 execution policy, status, steps, scalar values or error code, and the complete
 resource ledger. The general-resource, production-admission, whole-language,
 native-refinement, and ABI/hardware claims remain false.
 
 The ledger records allocations, frees, allocator attempts, owners created and
 dropped, live owners/bytes, peak bytes, loans started and ended, and live local
-loans. For v7, the canonical six chain counters are present and zero because no
-chain opcode is admitted.
+loans. For v7, the canonical six chain counters report created/consumed
+descriptors and created/dropped/live nodes. They remain zero in programs which
+do not execute chain operations.
 
-The `byte_owner_cfg_and_calls`, `byte_owner_bulk_memory`, and
-`scalar_public_entry_only` scope claims are
+The `byte_owner_cfg_and_calls`, `byte_owner_bulk_memory`,
+`v7_recursive_buffer_chain_execution` and `scalar_public_entry_only` scope claims are
 true; the old `single_block_scalar_entry_only` claim is false. The CLI and its
 finite heap/step limits remain compatible with the earlier byte-owner profile.
 Exactly 32 call frames are admitted; a thirty-third invocation stops before
 its entry tick. Unsupported content is rejected across the entire module,
-including an uncalled helper and any chain-typed signature.
+including an uncalled helper. A valid internal chain-typed signature is
+admitted; the external JSON entry still cannot carry its handles.
 
 Successful returns require the explicit resource ledger to be clean. A trap
 or exhausted budget reports the resources still live at that stop point,

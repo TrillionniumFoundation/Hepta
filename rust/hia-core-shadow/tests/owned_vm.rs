@@ -106,18 +106,12 @@ fn optional_failure_produces_real_empty_owner_and_zero_is_infallible() {
 #[test]
 fn unsupported_suffix_rejects_before_a_hiding_allocator_failure() {
     let mut source = roundtrip();
-    source["schema"] = json!("hepta.hia.program.v7");
     let ops = source["functions"][0]["blocks"][0]["ops"].as_array_mut().unwrap();
-    ops.insert(4, json!({"op":"chain.empty","args":[],
-        "out":[{"name":"unsupported","type":"chain"}],"attrs":{}}));
-    ops.insert(5, json!({"op":"owner.drop","args":["unsupported"],"out":[],"attrs":{}}));
+    ops.insert(4, json!({"op":"foreign.unknown","args":[],"out":[],"attrs":{}}));
     let raw = serde_json::to_vec(&source).unwrap();
-    assert!(verify_owned(&raw).is_ok());
+    assert!(verify_owned(&raw).is_err());
     let error = execute_owned(&raw, "probe", &[json!(4)], 100, 100, Some(1)).unwrap_err();
     assert_eq!(error.code, "E_HIA_RUST_UNSUPPORTED");
-    // The chain-typed result is rejected by the profile's type boundary
-    // before the operation whitelist or an allocator can be reached.
-    assert_eq!(error.detail, "Rust shadow checker only supports scalar values");
 }
 
 #[test]

@@ -529,14 +529,21 @@ does not automatically qualify every analyzer or shadow implementation:
 | `hia_heap_bound` | Its audited primitive v1–v6 live-heap profiles, including bounded same-block owner lifetimes in admitted CFG cycles | A bound on requested live payload bytes; rejects v7, unsupported allocator cycles and ownership flows |
 | `hia_static_budget.qualify_vm_call_depth` | Primitive v1–v7 with a closed acyclic call graph; CFG loops may remain | Root-inclusive synchronous VM frames only; no tick, allocation, recursive-chain destruction cost, native stack-byte, CPU-time or RSS bound |
 | Rust shadow default checker and `--scalar-run` | Resource-free scalar subset of primitive v1–v7 | Independent finite scalar checking/execution; rejects owner, loan and chain programs |
-| Rust `--owned-shadow` | Primitive v1–v7 typed owner/loan CFG subset, including v7 chain transitions | Opt-in static cross-check; no chain runtime, native refinement proof or production admission authority |
-| Rust `--owned-run` | Primitive v1–v7 byte-owner/loan operations, CFG/loops, bounded internal resource calls and the six v2–v6 bulk/move/swap/range operations; scalar public entry/results; profile `cfg-call-byte-owner-bulk-v3` | Explicit bounded execution with Python full-ledger differential checks and selected native allocator controls; no chain execution, direct nominal input, general refinement proof or production authority; see [finite execution profile](HIA_RUST_BYTE_OWNER_VM_20261027.md) |
+| Rust `--owned-shadow` | Primitive v1–v7 typed owner/loan CFG subset, including v7 chain transitions | Opt-in static cross-check; execution belongs to the separate `--owned-run` mode; no native refinement proof or production admission authority |
+| Rust `--owned-run` | Primitive v1–v7 byte-owner/loan operations, CFG/loops, bounded internal resource calls, the six v2–v6 bulk/move/swap/range operations and v7 recursive buffer chains; scalar public entry/results; profile `cfg-call-byte-owner-chain-v4` | Explicit bounded execution with Python full-ledger differential checks and selected native allocator controls; no direct nominal input, general recursive ADTs, general refinement proof or production authority; see [finite byte-owner execution](HIA_RUST_BYTE_OWNER_VM_20261027.md) and [the chain extension](HIA_RUST_CHAIN_VM_20261027.md) |
 
-The Rust routes consume primitive Core, so nominal input must first undergo
-the canonical normalization. The Python verifier remains mandatory for
+The Rust routes consume primitive Core. Raw nominal/composite documents are
+rejected; canonical normalization must occur first, followed by independent
+Rust admission of the resulting primitive bytes. Comparing that normalized
+Core does not independently prove its nominal elaborator. The owned execution
+profile admits at most 1,000,000 steps, 32 root-inclusive call frames and 16 MiB
+of language heap bytes. Its chain nodes charge 24 bytes to that same heap and
+failure sequence; iterative destruction charges one step per node. Host map
+bookkeeping is outside the language heap ledger, and stopped execution does
+not invent destructor cleanup. The Python verifier remains mandatory for
 standalone/native admission. See
 [HIA_RUST_V7_CHAIN_SHADOW_20261027.md](HIA_RUST_V7_CHAIN_SHADOW_20261027.md) for
-the exact chain shadow scope. Analyzer acceptance and Rust shadow success do
+the static chain shadow scope. Analyzer acceptance and Rust shadow success do
 not replace a target execution receipt or extend a source frontend.
 
 The native backend exposes only functions with integer/Boolean parameters and
@@ -748,13 +755,36 @@ conclusions; the latter remains unestablished even if the finite comparison
 criteria pass. The plan also records that the full-versus-query comparison
 changes context and representation together.
 
-The integrated frozen-source run is `tools/qualify_hia_unified.py`. Its frozen
-plan identifies the exact regression, standalone resource/target, migration,
+The integrated frozen-source run is `tools/qualify_hia_unified.py`, which emits
+`hepta.hia.unified-qualification.v4`. Its frozen plan identifies the exact
+regression, standalone resource/target, migration,
 historical-path, formal and performance gates selected by that implementation.
 Inspect that plan and each actual result; a registered ISA or target is not
 qualified merely by appearing in this document. The runner retains each
 command/log, refuses to count skipped tests as a complete pass, and compares
-source snapshots before/after. The performance protocol uses 63 samples and
+source snapshots before/after.
+
+The full unit inventory runs through `tools/qualify_hia_unit.py` in isolated
+module processes with two workers. Every independently discovered test ID must
+start and finish exactly once. Module receipts, actual process exits and
+terminal unittest counts are replayed against fresh source discovery; skips,
+expected failures, incomplete runs and missing modules prevent qualification.
+No failed module is retried by the collector. This is a complete discovery
+matrix when it passes, not a single-process full-suite execution. The scoped
+per-module deadline is cooperative at tool polls and test boundaries; its
+outer process-group bound does not guarantee cleanup of child-created sessions.
+
+The source inventory excludes the two exact generated Cargo output roots
+`rust/hia-core-shadow/target/` and `rust/hia-ndu-bridge/target/`; other source
+directories named `target` remain inventoried. Locally exported NDU upstream
+dependency inputs under `rust/hia-ndu-bridge/upstream/` and the accompanying
+`build-provenance.json` are separately identified by path and content hash.
+They participate in source-snapshot equality but are not files from the tested
+Hepta commit. Selected executable and build-receipt identities belong to the
+corresponding tool/evaluator evidence; excluding a generated output directory
+does not qualify its contents.
+
+The performance protocol uses 63 samples and
 executes after the functional gates; the model study runs separately to avoid
 concurrent load.
 Its `full_seven_deliverables_complete` and historical

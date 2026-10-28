@@ -1,6 +1,8 @@
 # One candidate, 35 explicit native, hosted and Rust shadow gates
 
-`tools/qualify_hia_unified.py` emits `hepta.hia.unified-qualification.v3`.
+`tools/qualify_hia_unified.py` now emits `hepta.hia.unified-qualification.v4`.
+This document keeps its existing path so earlier links remain valid. Historical
+v3 receipts retain their original single-process unit gate and are not relabelled.
 The current plan contains **35 gates**: the earlier 24-gate converged plan,
 ten existing hosted/native/formal/application gates, and one independently
 reported Agent-query mechanism gate. All run against the same unchanged,
@@ -8,8 +10,9 @@ committed source tree. The native and Rust convergence gates include:
 
 | Gate | Actual execution | Success condition |
 | --- | --- | --- |
+| `unit_regression` | Complete source discovery, every module in a fresh process, two workers; no retries | Independent discovery equals every actual discovered/started/finished ID, with zero skips, expected failures, errors or failures |
 | `rust_shadow_cargo` | The pinned Cargo and Rust compiler build and execute the real shadow crate tests, locked and offline | Nonempty complete test results, zero failures, ignored tests or filters, and successful process exit |
-| `rust_shadow_parity` | The Python-to-Rust scalar, owned-verifier, call, chain, scalar VM, finite byte-owner VM and exact-binary crosscheck tests | A completed nonempty unittest report with zero skips, failures and errors |
+| `rust_shadow_parity` | The Python-to-Rust scalar, owned-verifier, call, chain, scalar VM, byte-owner/bulk/chain VM and exact-binary crosscheck tests | A completed nonempty unittest report with zero skips, failures and errors |
 | `agent_query_semantics` | Existing single/batch queries, transitive/CFG/control slices, display identity and untrusted-render controls | A completed nonempty unittest report with zero skips, failures and errors; this is mechanical qualification, not an AI-model productivity trial |
 | `cpp_composed_implementation_llvm` | Actual Clang AST migration of the supported composed-owner C++ implementations, direct LLVM compilation and native lifecycle controls | Fresh report, successful exit, and the existing `cpp_composed_to_llvm` replay validator |
 | `llvm_local_stored_views` | Actual source-bound LLVM, Rust and C local-view execution and negative controls | Fresh report, successful exit, and the existing local-view replay validator |
@@ -77,6 +80,29 @@ Pass the selected executable with `--cargo /absolute/path/to/cargo`. The collect
 makes the same Cargo available to Python's real crosscheck tests, exports the
 selected `RUSTC`, enforces offline Cargo execution, and places build outputs under
 the evidence directory. It restores the caller's environment even after failure.
+
+V4 also refuses new untracked implementation or test files. Its snapshot records
+separately the optional local NDU upstream export and generated build provenance;
+those dependency inputs are not claimed to belong to the Hepta Git commit.
+Only the two exact Cargo output roots beneath `rust/hia-core-shadow/target` and
+`rust/hia-ndu-bridge/target` are omitted as generated build products. An arbitrary
+source directory named `target` remains in the source inventory.
+
+The complete unit gate no longer applies the old 1,800-second aggregate kill to
+all tests. `tools/qualify_hia_unit.py` freezes the complete ID set and schedules
+modules by descending discovered case count, with alphabetical ties. Each child
+records the actual ID at start and finish, terminal unittest counts and complete
+bounded logs. A 600-second cooperative deadline is checked at tool polls and
+test boundaries; the parent has a 900-second process-group bound. A child-created
+session is outside that process-group cleanup guarantee. This is explicitly a
+partitioned regression, not a single-process full-suite run or a performance
+experiment. Every failed module remains in the final matrix and is not retried.
+
+Replay uses independent source discovery, strict duplicate-free JSON, bound
+child/log files and consistent summary counts. Omitting an entire module and
+recomputing the aggregate cannot pass. Fresh start records, immutable per-gate
+checkpoints and an interruption/final report preserve completed observations.
+A partial checkpoint never qualifies the complete plan.
 The qualification workflow installs pinned Cargo and fetches dependencies before
 entering this offline phase.
 
@@ -127,7 +153,7 @@ protocol tests rather than native qualification evidence; the frozen 35-gate
 run must still execute each real producer.
 
 The schema continues to report `full_six_deliverables_complete=false` and
-`full_seven_deliverables_complete=false`. The Rust byte-owner execution gate is
+`full_seven_deliverables_complete=false`. The Rust byte-owner/chain execution gate is
 a finite resource VM; it does not qualify general resource execution or change
 production admission authority.
 General recursive ADTs, universal C/C++ migration, real-model productivity,

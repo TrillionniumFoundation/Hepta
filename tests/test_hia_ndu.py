@@ -123,6 +123,23 @@ class CandidatePlanTests(unittest.TestCase):
             with self.subTest(plan_value=bad), self.assertRaises(HIANDURejected):
                 prepare_candidate(self.source, plan)
 
+    def test_checked_reduction_registry_reproduces_exact_candidate_and_trap_order(self):
+        from hepta.hia_checked_reduction_opt import PASS_ID as REDUCTION_PASS
+        from tests.test_hia_checked_reduction_opt import reduction_probe_program
+        source = reduction_probe_program()
+        plan = make_plan(source, entry="reduction_probe", pass_id=REDUCTION_PASS)
+        candidate = prepare_candidate(source, plan)
+        self.assertEqual(candidate.replacements, 1)
+        self.assertEqual(candidate.candidate_id, "checked_reduction")
+        observed = observe_semantics(candidate, [[0, 7, 9, 3], [16, 11, 32, 17], [512, 13, 5, 255]],
+                                     negative_cases=[[2, (1 << 64) - 1, 0, 0],
+                                                     [2, (1 << 64) - 1, 0, 256],
+                                                     [0, 0, 0, 256]])
+        self.assertTrue(observed["ok"], observed)
+        wrong_rule = make_plan(source, entry="reduction_probe")
+        with self.assertRaisesRegex(HIANDURejected, "differs from"):
+            prepare_candidate(source, wrong_rule, candidate_bytes=candidate.candidate.canonical_bytes)
+
 
 class MeasurementPolicyTests(unittest.TestCase):
     def setUp(self):
@@ -359,6 +376,21 @@ class FrozenProtocolReportTests(unittest.TestCase):
                 self.assertTrue(result["complete"], result["errors"])
                 self.assertTrue(result["measurement_complete"])
                 self.assertFalse(result["stop_protocol"])
+
+    def test_reduction_protocol_is_fixed_and_matches_its_actual_inputs(self):
+        from hashlib import sha256
+        protocol = json.loads((ROOT / "experiments/hia_checked_reduction_20261027/protocol.json").read_text())
+        self.assertTrue(protocol["retain_native_artifacts"])
+        self.assertEqual((protocol["samples"], protocol["iterations"], len(protocol["runs"])), (31, 50000, 2))
+        self.assertFalse(protocol["repeats_until_pass"])
+        for item in protocol["input_files"]:
+            self.assertEqual(sha256((ROOT / item["path"]).read_bytes()).hexdigest(), item["sha256"])
+        for spec in protocol["runs"]:
+            cases = json.loads((ROOT / spec["cases"]).read_text())
+            expected = self.runner._protocol_expectations(protocol, spec, cases)
+            self.assertEqual(expected["counts"]["timed_calls_total"], 55_800_000)
+            self.assertEqual(expected["counts"]["untimed_correctness_calls"], 36)
+            self.assertEqual(expected["objective"]["maximum_mad_ppm"], 50_000)
 
     def test_each_objective_reserve_and_native_call_budget_drift_stops_protocol(self):
         spec = self.protocol["runs"][0]
