@@ -32,11 +32,12 @@ permissions:
 jobs:
   verified-native:
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 60
     env:
       HEPTA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       RECURSIVE_NDU_SOURCE_SHA: 2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b
       FINITE_NDU_SOURCE_SHA: 4b6391e116949af0c7e59776baead67271856bdb
+      STREAM_NDU_SOURCE_SHA: c4a1bbed3a39beba43a6abf1a18b6f75c5725c21
       CLANG: /usr/bin/clang-20
       CLANGXX: /usr/bin/clang++-20
       PYTHONDONTWRITEBYTECODE: '1'
@@ -127,6 +128,28 @@ jobs:
           printf 'HEPTA_FINITE_NDU_BRIDGE=%s\nHEPTA_FINITE_NDU_IDENTITY=%s\n' \
             "$RUNNER_TEMP/hia-finite-ndu/native/hepta-hia-ndu-bridge" \
             "$RUNNER_TEMP/hia-finite-ndu/identity.json" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v4
+        with:
+          repository: TrillionniumFoundation/hepta-private-ci
+          ref: ${{ env.STREAM_NDU_SOURCE_SHA }}
+          path: stream-ndu-source
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /codex-rs/Cargo.toml
+            /codex-rs/hepta-ndu/
+            /codex-rs/hepta-types/
+            /codex-rs/hepta-contracts/
+            /tools/hia-ndu-bridge/
+      - name: Build the separately pinned persistent stream evaluator
+        run: |
+          CARGO_INCREMENTAL=0 CARGO_PROFILE_RELEASE_DEBUG=0 python tools/build_hia_recursive_ndu_bridge.py \
+            --ndu-source stream-ndu-source --expected-source "$STREAM_NDU_SOURCE_SHA" \
+            --cargo "$CARGO" --rustc "$RUSTC" --output "$RUNNER_TEMP/hia-stream-ndu" \
+            --target-dir "$RUNNER_TEMP/hia-stream-ndu-target"
+          printf 'HEPTA_NDU_STREAM_BRIDGE=%s\nHEPTA_NDU_STREAM_IDENTITY=%s\n' \
+            "$RUNNER_TEMP/hia-stream-ndu/native/hepta-hia-ndu-bridge" \
+            "$RUNNER_TEMP/hia-stream-ndu/identity.json" >> "$GITHUB_ENV"
       - name: Build the separate ranking NDU protocol for combined contract tests
         run: |
           hepta_ranking_checkout="$RUNNER_TEMP/hepta-ranking-ndu-source"
@@ -167,6 +190,7 @@ jobs:
             artifacts/verified-optimization
             ${{ runner.temp }}/hia-recursive-ndu/
             ${{ runner.temp }}/hia-finite-ndu/
+            ${{ runner.temp }}/hia-stream-ndu/
             ${{ runner.temp }}/hepta-ranking-ndu-build/build-receipt.json
             ${{ runner.temp }}/hepta-ranking-ndu-target/debug/hia-ndu-bridge
             ${{ runner.temp }}/hepta-ranking-ndu-build.stdout.log

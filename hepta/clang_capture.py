@@ -34,6 +34,11 @@ class CaptureResult:
     returncode: int
     stdout: str
     stderr: str
+    # Optional raw streams preserve CRLF and exact bytes for evidence writers.
+    # Text consumers retain their original normalized UTF-8 interface. These
+    # byte fields are never automatically inserted into public JSON reports.
+    raw_stdout: bytes | None = None
+    raw_stderr: bytes | None = None
 
 
 @dataclass(frozen=True)
@@ -157,9 +162,10 @@ def run_bounded(
                 raise CaptureRejected("E_CAPTURE_OUTPUT_SIZE", "Compiler output exceeded byte budget")
             output_file.seek(0)
             error_file.seek(0)
+            raw_stdout, raw_stderr = output_file.read(), error_file.read()
             return CaptureResult(
-                proc.returncode, _decode(output_file.read(), "stdout"),
-                _decode(error_file.read(), "stderr"),
+                proc.returncode, _decode(raw_stdout, "stdout"),
+                _decode(raw_stderr, "stderr"), raw_stdout, raw_stderr,
             )
         except CaptureRejected as error:
             failure = error

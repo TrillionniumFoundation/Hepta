@@ -25,6 +25,25 @@ from hepta.hia_native_differential import (
 @unittest.skipUnless(platform.system() == "Linux" and hasattr(os, "memfd_create"),
                      "requires actual Linux memfd sealing")
 class SealingCompatibilityTests(unittest.TestCase):
+    def test_outer_exception_does_not_close_a_successfully_transferred_snapshot(self):
+        # A caller can prepare fallback code while handling another failure.
+        # sys.exc_info() then describes that outer exception, not a failure of
+        # this successful pin operation; the returned descriptor stays owned.
+        payload = b"snapshot acquired by an exception handler"
+        with tempfile.TemporaryDirectory(prefix="hia-pin-exception-context-") as temporary:
+            source = Path(temporary) / "snapshot.bin"
+            source.write_bytes(payload)
+            try:
+                raise ValueError("unrelated caller failure")
+            except ValueError:
+                original, identity, descriptor = _pin_native_artifact(source)
+                try:
+                    self.assertEqual(os.pread(descriptor, len(payload), 0), payload)
+                    self.assertEqual(original, payload)
+                    _check_artifact_unchanged(source, original, identity)
+                finally:
+                    os.close(descriptor)
+
     def test_missing_python_constant_names_still_require_actual_kernel_seals(self):
         import fcntl
         payload = b"finite native snapshot bytes\x00\xff"

@@ -1,0 +1,130 @@
+name: Hepta real upstream C++ host qualification
+
+on:
+  push:
+    branches: [codex/hia-next-closure-20261028, codex/hia-contract-integration-20261027, codex/hia-migration-closure-20261028]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  upstream-cpp-host:
+    name: ${{ matrix.os }} / ${{ matrix.machine }} / ${{ matrix.family }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-24.04, system: Linux, machine: x86_64, cxx: g++, family: gcc}
+          - {os: ubuntu-24.04, system: Linux, machine: x86_64, cxx: clang++, family: clang}
+          - {os: ubuntu-24.04-arm, system: Linux, machine: aarch64, cxx: g++, family: gcc}
+          - {os: ubuntu-24.04-arm, system: Linux, machine: aarch64, cxx: clang++, family: clang}
+          - {os: macos-15, system: Darwin, machine: aarch64, cxx: clang++, family: clang}
+          - {os: windows-2025, system: Windows, machine: x86_64, cxx: clang++, family: clang}
+          - {os: windows-2025, system: Windows, machine: x86_64, cxx: cl.exe, family: msvc}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    env:
+      HEPTA_QUALIFICATION_HEAD_SHA: ${{ github.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEPTA_QUALIFICATION_HEAD_SHA }}
+      - name: Retain failed setup state before installing tools
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          echo '{"schema":"hepta.cpp-upstream-host.v1","ok":false,"status":"setup_failed","claims":{"actual_reported_host_executed":false}}' > artifacts/cpp-upstream-host.json
+          git rev-parse HEAD > artifacts/native-host-setup.log
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Bind exact source and native Rust
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$HEPTA_QUALIFICATION_HEAD_SHA"
+          rustup toolchain install 1.90.0 --profile minimal 2>&1 | tee -a artifacts/native-host-setup.log
+      - name: Establish the actual Visual Studio and Windows SDK environment
+        if: matrix.system == 'Windows'
+        shell: pwsh
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          if (-not (Test-Path -LiteralPath $vswhere)) { throw 'System vswhere.exe is required' }
+          $installDir = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if ($LASTEXITCODE -ne 0 -or -not $installDir) { throw 'An installed Microsoft C++ x64 toolchain is required' }
+          $devcmd = Join-Path -Path ($installDir.Trim()) -ChildPath 'Common7\Tools\VsDevCmd.bat'
+          if (-not (Test-Path -LiteralPath $devcmd)) { throw 'Installed VsDevCmd.bat is required' }
+          "vswhere=$vswhere`nVsDevCmd=$devcmd`narchitecture=x64/host_x64" | Out-File artifacts/native-host-setup.log -Append -Encoding utf8
+          $environmentLines = & $env:ComSpec /d /s /c "`"$devcmd`" -no_logo -arch=x64 -host_arch=x64 && set"
+          if ($LASTEXITCODE -ne 0) {
+            $environmentLines | Where-Object { $_ -notmatch '^[^=]+=' } | Out-File artifacts/native-host-setup.log -Append -Encoding utf8
+            throw 'VsDevCmd failed; see retained setup log'
+          }
+          # Import only compiler/SDK search paths into this job, never print the
+          # complete environment captured by cmd.exe or alter machine settings.
+          $allowed = @('PATH', 'INCLUDE', 'LIB', 'LIBPATH', 'VCToolsInstallDir', 'VCINSTALLDIR', 'VSINSTALLDIR', 'WindowsSdkDir', 'WindowsSDKVersion', 'UniversalCRTSdkDir', 'UCRTVersion')
+          $captured = @{}
+          foreach ($line in $environmentLines) {
+            if ($line -match '^([^=]+)=(.*)$' -and $allowed -contains $Matches[1]) {
+              $captured[$Matches[1]] = $Matches[2]
+            }
+          }
+          foreach ($required in @('PATH', 'INCLUDE', 'LIB', 'LIBPATH', 'VCToolsInstallDir')) {
+            if (-not $captured.ContainsKey($required)) { throw "VsDevCmd did not provide $required" }
+          }
+          foreach ($name in $allowed) {
+            if ($captured.ContainsKey($name)) {
+              [Environment]::SetEnvironmentVariable($name, $captured[$name], 'Process')
+              "$name=$($captured[$name])" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+            }
+          }
+          # Git Bash prepends its own tools to PATH. Resolve the installed x64
+          # Microsoft linker from the captured VS environment, not Get-Command.
+          $linker = Join-Path -Path $captured['VCToolsInstallDir'] -ChildPath 'bin\Hostx64\x64\link.exe'
+          if (-not (Test-Path -LiteralPath $linker -PathType Leaf)) { throw 'The captured VS x64 linker is required' }
+          $linker = (Resolve-Path -LiteralPath $linker).Path
+          "HEPTA_HOST_LINKER=$linker" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          "rust-linker=$linker`nrust-linker-sha256=$((Get-FileHash -LiteralPath $linker -Algorithm SHA256).Hash.ToLowerInvariant())" | Out-File artifacts/native-host-setup.log -Append -Encoding utf8
+          "cl.exe=$((Get-Command cl.exe -ErrorAction Stop).Source)" | Out-File artifacts/native-host-setup.log -Append -Encoding utf8
+      - name: Check C++ host identity and evidence refusal contracts
+        shell: bash
+        run: |
+          python -m unittest tests.test_cpp_upstream_host -v 2>&1 | tee artifacts/cpp-upstream-host-tests.log
+      - name: Execute unchanged upstream C++ versions through compiled Hepta
+        shell: bash
+        run: |
+          linker_args=()
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            test -n "$HEPTA_HOST_LINKER"
+            linker_args=(--linker "$HEPTA_HOST_LINKER")
+          fi
+          set +e
+          python tools/qualify_cpp_upstream_host.py \
+            --output-directory artifacts/cpp-upstream-host \
+            --cxx '${{ matrix.cxx }}' --cxx-family '${{ matrix.family }}' \
+            --rustc "$(rustup which --toolchain 1.90.0 rustc)" \
+            "${linker_args[@]}" \
+            --expected-system '${{ matrix.system }}' --expected-machine '${{ matrix.machine }}' \
+            2>&1 | tee artifacts/cpp-upstream-host.log
+          cpp_status=${PIPESTATUS[0]}
+          if [ -f artifacts/cpp-upstream-host/qualification.json ]; then
+            cp artifacts/cpp-upstream-host/qualification.json artifacts/cpp-upstream-host.json
+          fi
+          exit "$cpp_status"
+      - name: Retain original host files and failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpp-upstream-${{ matrix.os }}-${{ matrix.family }}-${{ env.HEPTA_QUALIFICATION_HEAD_SHA }}
+          path: |
+            artifacts/native-host-setup.log
+            artifacts/cpp-upstream-host-tests.log
+            artifacts/cpp-upstream-host.log
+            artifacts/cpp-upstream-host.json
+            artifacts/cpp-upstream-host/
+          if-no-files-found: error

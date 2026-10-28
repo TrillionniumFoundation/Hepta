@@ -1,0 +1,113 @@
+{
+  "schema": "hepta.hia.ndu.net-value.protocol.v1",
+  "source_baseline": "63971f5fbf992be0ace9c1949ec0dd9c3ede7a21",
+  "native_source_pin": "c4a1bbed3a39beba43a6abf1a18b6f75c5725c21",
+  "native_rustc": "1.90.0",
+  "groups": 3,
+  "controller_keys": 4,
+  "controller_repetitions": 8,
+  "controller_profiles": [
+    "identical-retries",
+    "changed-generation"
+  ],
+  "controller_arms": [
+    "fixed-reuse",
+    "dp-reuse",
+    "native-oneshot",
+    "native-stream-rehash",
+    "native-stream-sealed",
+    "native-stream-sealed-cache"
+  ],
+  "application_arms": [
+    "fixed",
+    "dp",
+    "native-stream-sealed"
+  ],
+  "application_profiles": {
+    "stable-reuse": {
+      "module_sizes": [
+        [
+          1021,
+          1021,
+          1021,
+          1021,
+          1021,
+          1021
+        ]
+      ],
+      "compile_credits": 1
+    },
+    "changing-load": {
+      "module_sizes": [
+        [
+          31,
+          31,
+          8191,
+          8191,
+          31,
+          8191
+        ]
+      ],
+      "compile_credits": 1
+    },
+    "shared-budget": {
+      "module_sizes": [
+        [
+          31,
+          31,
+          8191,
+          8191,
+          31,
+          31
+        ],
+        [
+          8191,
+          8191,
+          31,
+          31,
+          8191,
+          8191
+        ]
+      ],
+      "compile_credits": 1
+    }
+  },
+  "calls": 131101,
+  "workload_selection": "Chosen before this study runs, using the previously published negative graph results to include finite application work above controller-only scale. No outcomes from the new workload are used for protocol selection.",
+  "training_seed": 17,
+  "holdout_seed": 113,
+  "calibration_repetitions": 3,
+  "calibration_sizes": [
+    31,
+    1021,
+    8191
+  ],
+  "guard_limits": {
+    "guard-small": 128,
+    "guard-wide": 16384
+  },
+  "episode_budget_ns": 60000000000,
+  "completion_value_ns": 120000000000,
+  "controller_timeout_s": 10,
+  "cache_entries": 8,
+  "cache_payload_bytes": 8388608,
+  "resource_scope": "Actual optimizer build-attempt credits, consumed before a candidate build and never refunded, shared across modules for the entire episode. Mandatory initial baseline builds and common calibration remain fully charged wall costs but are outside the optimizer-attempt quota. This is not a CPU-time, RSS, GPU-memory, or concurrent execution bound.",
+  "candidate_scope": "All stationary remaining-suffix target assignments for the declared one or two modules under the same shared compile-credit budget; exact multiple-choice budget DP and NDU enumeration cover the same finite set. No universal or arbitrary temporal-policy optimum is claimed.",
+  "fixed_control": "Strong complete budget-DP plan committed after identical initial probes; immutable artifacts may be reused by every arm. No future observed timing is supplied.",
+  "dp_control": "Recompute the complete multiple-choice budget DP after completed observations; no native request serialization requirement.",
+  "ndu_control": "Unchanged native recursive utility and feasibility/Pareto evaluator. Any exact tie uses the registered deterministic plan key within the returned frontier. No score or digest is a proof.",
+  "cost_scope": "All current calibration, proof, compilation, native admission, request construction, controller calls, artifact checks, execution, intermediate evidence writes, cache cleanup and session shutdown. Common setup charged once per standalone arm. Native identity admission is charged to native arms. An outer receipt covering builder process startup through final manifest write binds the actual empty-target build and is additionally charged once to every native arm's cold total. Warm totals exclude only that native build.",
+  "measurement_scope": "Three groups on one named host. Six application epochs demonstrate finite reuse only. No indefinite lifetime or statistical superiority claim.",
+  "wrapper_cost": "All residual outer dispatch and final source-check time is conservatively charged once to every native standalone arm, including shared portions. Final aggregate encoding/archival remains excluded.",
+  "sample_exclusion": "none; failed, refused and timed-out attempts retained with their incurred cost",
+  "acceptance": "All admitted outputs and budgets correct, compile-credit bounds preserved, and native full standalone cold total lower than both fixed and complete DP across all registered application profiles. Controller-overhead savings are a separate mechanism observation.",
+  "prior_negative_evidence": "All prior 48-episode, round3 full-cost and exact-request-reuse failures remain unchanged.",
+  "excluded_costs": [
+    "toolchain installation",
+    "preexisting dependency source cache acquisition",
+    "final aggregate report encoding and archival"
+  ],
+  "default_cache_enabled": false,
+  "authority": "DENY_ALL",
+  "safety_certificate": false
+}

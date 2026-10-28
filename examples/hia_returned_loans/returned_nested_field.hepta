@@ -1,0 +1,33 @@
+module returned_nested_field;
+struct Pair { left: Buffer<u8>, right: Buffer<u8> }
+struct Packet { prefix: u64, payload: Pair, suffix: u64 }
+
+fn view(value: read Packet, choose: bool) -> read [u8] from value effects {} {
+    if choose { return read value.payload.right; }
+    return read value.payload.right;
+}
+
+fn edit(value: mut Packet, choose: bool) -> mut [u8] from value effects {write,panic} {
+    value.prefix = wrapping_add(value.prefix, 1);
+    value.payload.right[0] = value.payload.right[0] ^ 90;
+    if choose { return mut value.payload.right; }
+    return mut value.payload.right;
+}
+
+pub fn probe(size: usize, byte: u8, choose: bool) -> u8 effects {alloc,block,panic,write} {
+    let mut packet = Packet {
+        prefix: 7,
+        payload: Pair {left: buffer(size), right: buffer(size)},
+        suffix: 11
+    };
+    packet.payload.left[0] = 41;
+    packet.payload.right[0] = byte;
+    let before = view(read packet, choose)[0];
+    assert(before == byte);
+    let answer = edit(mut packet, choose)[0];
+    assert(packet.prefix == 8);
+    assert(packet.suffix == 11);
+    assert(packet.payload.left[0] == 41);
+    drop(move packet);
+    return answer;
+}

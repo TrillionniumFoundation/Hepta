@@ -23,6 +23,7 @@ from .hia_optimization import (DEFAULT_POLICY, build_optimized_native,
                                checker_identity, verify_optimization)
 from .hia_program import verify_program
 from .hia_program_llvm import _implementation_hash
+from .hia_prepared import _issue, _reuse
 
 PROFILE = "hepta.hia.adaptive-empty-state-u64.v1"
 _TOTAL = frozenset({"const", "select", "bit.not", "bit.and", "bit.or", "bit.xor",
@@ -45,6 +46,7 @@ def _identity():
     return _digest({"runtime": sha256(Path(__file__).read_bytes()).hexdigest(),
                     "pinning": sha256(Path(__file__).with_name("hia_native_differential.py").read_bytes()).hexdigest(),
                     "mapping": sha256(Path(__file__).with_name("native_mapping_identity.py").read_bytes()).hexdigest(),
+                    "prepared": sha256(Path(__file__).with_name("hia_prepared.py").read_bytes()).hexdigest(),
                     "optimization": checker_identity(), "native": _implementation_hash()})
 
 
@@ -166,6 +168,8 @@ def _load_image(program, state, path, receipt, started, *, on_release=None):
             loaded_mapping = verify_loaded_symbols(fd, {state["entry"]: function})
         except NativeMappingRejected as error:
             raise AdaptiveRejected("E_ADAPT_MAPPING: resolved native code does not match its sealed artifact") from error
+        loaded_mapping["checker_sha256"] = sha256(
+            Path(__file__).with_name("native_mapping_identity.py").read_bytes()).hexdigest()
         function.argtypes = [ctypes.c_uint64] * len(state["params"])
         function.restype = ctypes.c_uint64
         return _Image(program, state, path, native["artifact_sha256"], fd, library,
@@ -208,6 +212,8 @@ class AdaptiveRuntime:
         self._shadow_calls = self._event_count = 0
         self._closed = False
         self._images = {}
+        self._admissions = {}
+        self._admission_scope = secrets.token_hex(16)
         self._measurements = {}
         self._events = deque(maxlen=4096)
         self._event_counts = Counter()
@@ -215,12 +221,27 @@ class AdaptiveRuntime:
         self._native_release_history = deque(maxlen=64)
         self._preparing_tokens = set()
         self._current = "baseline"
-        self._images[self._current] = _load_image(checked, state, path, receipt, started,
-            on_release=lambda release: self._record_release("baseline", release))
-        if _identity() != self._identity:
-            self.close()
-            raise AdaptiveRejected("E_ADAPT_STALE: implementation changed during baseline admission")
-        self._event("baseline_loaded", token="baseline", artifact_sha256=receipt["native"]["artifact_sha256"])
+        image = None
+        try:
+            image = _load_image(checked, state, path, receipt, started,
+                on_release=lambda release: self._record_release("baseline", release))
+            admission = _issue(image, parent=None, implementation=self._identity,
+                               policy=self._policy, scope=self._admission_scope)
+            if _identity() != self._identity:
+                raise AdaptiveRejected("E_ADAPT_STALE: implementation changed during baseline admission")
+            self._images[self._current] = image
+            self._admissions[self._current] = admission
+            self._event("baseline_loaded", token="baseline", artifact_sha256=receipt["native"]["artifact_sha256"])
+        except BaseException:
+            # __init__ has not returned: no caller owns this native image yet.
+            # Even failed dictionary publication or event recording must release
+            # the successfully loaded image exactly once.
+            self._images.clear()
+            self._admissions.clear()
+            self._closed = True
+            if image is not None:
+                self._retire_image("baseline", image)
+            raise
 
     def _event(self, kind, **fields):
         self._event_count += 1
@@ -249,6 +270,17 @@ class AdaptiveRuntime:
                     "measurement_mode": "conservative_shadow_only",
                     "state_schema": json.loads(json.dumps(image.state)) if image else None,
                     "state_sha256": _digest(image.state) if image else None,
+                    # Retain each admitted image's own kernel observation;
+                    # a state/ABI hash cannot stand in for its loaded mapping.
+                    # This detached copy is evidence, never a capability.
+                    "native_images": {token: {
+                        "core_sha256": admitted.program.sha256,
+                        "artifact_sha256": admitted.artifact_sha256,
+                        "state_sha256": _digest(admitted.state),
+                        "loaded_mapping": json.loads(json.dumps(admitted.loaded_mapping)),
+                        "mapping_observation": "native_admission_before_first_call",
+                        "serialized_evidence_is_authority": False,
+                    } for token, admitted in self._images.items()},
                     "event_count": self._event_count, "event_counts": dict(self._event_counts),
                     "raw_events_dropped": self._event_count - len(self._events),
                     "events": json.loads(json.dumps(list(self._events))),
@@ -284,14 +316,16 @@ class AdaptiveRuntime:
 
     def prepare(self, candidate):
         started = time.monotonic_ns()
+        image = None
+        committed = False
         with self._lock:
             self._open()
             if len(self._images) + self._preparing + len(self._pending_native_releases) >= _MAX_IMAGES:
                 raise AdaptiveRejected("E_ADAPT_BUDGET: sixteen loaded versions maximum")
             base = self._images[self._current]
+            parent_proof = self._admissions[self._current]
             self._preparing += 1
         token, reserved = None, False
-        image = None
         try:
             token = secrets.token_hex(16)
             with self._lock:
@@ -309,17 +343,39 @@ class AdaptiveRuntime:
                 on_release=lambda release: self._record_release(token, release))
             if _identity() != self._identity:
                 raise AdaptiveRejected("E_ADAPT_STALE: implementation changed during candidate admission")
+            admission = _issue(image, parent=parent_proof, implementation=self._identity,
+                               policy=self._policy, scope=self._admission_scope)
             with self._lock:
                 self._open()
-                self._images[token] = image
-                self._event("prepared", token=token, artifact_sha256=image.artifact_sha256,
-                            preparation_ns=image.preparation_ns)
+                try:
+                    self._images[token] = image
+                    self._admissions[token] = admission
+                    self._event("prepared", token=token, artifact_sha256=image.artifact_sha256,
+                                preparation_ns=image.preparation_ns)
+                    committed = True
+                except BaseException:
+                    # Roll back while still holding the lock: another caller
+                    # must never select a partially published or disposed image.
+                    committed = False
+                    self._images.pop(token, None)
+                    self._admissions.pop(token, None)
+                    raise
             return token
         except BaseException as error:
-            if image is not None:
+            if image is not None and not committed:
                 self._retire_image(token, image)
             with self._lock:
-                self._event("prepare_rejected", reason=str(error), elapsed_ns=time.monotonic_ns() - started)
+                try:
+                    # If interruption occurs only after a complete publication,
+                    # the runtime retains ownership and its sixteen-image cap.
+                    # It may already be observed by another thread; do not free
+                    # a committed image behind that thread's function pointer.
+                    self._event("prepare_return_interrupted" if committed else "prepare_rejected",
+                                reason=str(error), elapsed_ns=time.monotonic_ns() - started)
+                except BaseException:
+                    # Diagnostics must not replace the original failure after
+                    # native ownership has already been resolved.
+                    pass
             raise
         finally:
             with self._lock:
@@ -456,8 +512,12 @@ class AdaptiveRuntime:
         if _identity() != self._identity or candidate.state != base.state:
             reason = "stale_implementation_or_state"
         else:
-            proof = verify_optimization(base.program, candidate.program, self._policy)
-            reason = None if proof["status"] == "verified" else "equivalence_" + proof["status"]
+            try:
+                proof = _reuse(self._admissions[current], base, self._admissions[token], candidate,
+                               implementation=self._identity, policy=self._policy, scope=self._admission_scope)
+                reason = None
+            except (ValueError, KeyError):
+                reason = "prepared_equivalence_binding_changed"
         with self._lock:
             self._open()
             if self._active or self._generation != epoch or self._current != current:
@@ -468,6 +528,10 @@ class AdaptiveRuntime:
             # bytes does not reopen the mutable publication pathname.
             if sha256(os.pread(candidate.fd, os.fstat(candidate.fd).st_size, 0)).hexdigest() != candidate.artifact_sha256:
                 reason = "loaded_artifact_changed"
+            try:
+                verify_loaded_symbols(candidate.fd, {candidate.state["entry"]: candidate.function})
+            except NativeMappingRejected:
+                reason = "loaded_function_mapping_changed"
             selection_ns = time.monotonic_ns() - started
             if reason:
                 self._event("selection_refused", token=token, reason=reason, selection_cost_ns=selection_ns)
@@ -476,13 +540,15 @@ class AdaptiveRuntime:
             self._generation += 1
             self._event("selected", token=token, previous=current, mode=mode,
                         selection_cost_ns=time.monotonic_ns() - started,
+                        proof_reuse=proof,
                         performance_claim=False)
-            return {"selected": True, "current": token, "previous": current, "mode": mode}
+            return {"selected": True, "current": token, "previous": current, "mode": mode,
+                    "proof_reuse": proof}
 
     @staticmethod
     def _dispose(image):
-        # No function pointer escapes the dispatcher. Caller holds the lock at
-        # active==0, so native code cannot still be executing during dlclose.
+        # The image is unpublished, or the caller holds the lock at active==0.
+        # No function pointer escapes the dispatcher or executes during dlclose.
         image.function = image.library = image.fd = None
         return image.release.attempt()
 
@@ -495,6 +561,7 @@ class AdaptiveRuntime:
             images = tuple(self._images.items())
             self._images.clear()
             self._measurements.clear()
+            self._admissions.clear()
             self._closed = True
             for token, image in images:
                 self._retire_image(token, image)
