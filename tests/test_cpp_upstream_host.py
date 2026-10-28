@@ -85,7 +85,7 @@ class CppUpstreamHostTests(unittest.TestCase):
 
     def test_wrong_expected_host_stops_before_any_tool_runs(self):
         with tempfile.TemporaryDirectory() as td, patch('tools.qualify_cpp_upstream_host.platform.system', return_value='Linux'), \
-                patch('tools.qualify_cpp_upstream_host.subprocess.run') as run:
+                patch('tools.qualify_cpp_upstream_host._run') as run:
             report = qualify(Path(td) / 'rejected', expected_system='Windows')
             self.assertFalse(report['ok'])
             self.assertFalse(report['claims']['actual_reported_host_executed'])
