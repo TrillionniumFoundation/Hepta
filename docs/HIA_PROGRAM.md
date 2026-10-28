@@ -2,14 +2,14 @@
 
 This document defines the independently checked primitive
 `hepta.hia.program.v1` through `hepta.hia.program.v7` profiles and the distinct
-structural nominal input namespaces `hepta.hia.composite.v1` and `.v2`. Their
+structural nominal input namespaces `hepta.hia.composite.v1`, `.v2` and `.v3`. Their
 executable admission authority is `hepta.hia_program.verify_core` (also exposed
 as `hepta.core.verify_core` and `verify_program`). The direct interpreter and
 LLVM backend consume the same immutable, reverified program bytes. No original
 Hepta, C, C++, Rust or assembly source is required to admit or execute this
 program. A caller-provided hash, proof claim or producer receipt grants no
 additional permission. Composite v1 input is structurally elaborated into
-primitive v6; composite v2 elaborates into primitive v7. That complete core
+primitive v6; composite v2 and v3 elaborate into primitive v7. That complete core
 is independently rechecked. It is not admitted by
 a source-language checker or a producer's assertion.
 
@@ -71,6 +71,7 @@ verification. Primitive schemas remain exact, cumulative capabilities:
 | `hepta.hia.program.v7` | Dynamically allocated linear buffer chains | Original v7 bytes |
 | `hepta.hia.composite.v1` | Generic nominal products, enums, stored local loans and cooperative tasks over all v6 operations | Independently checked primitive v6 normalization |
 | `hepta.hia.composite.v2` | The same nominal operations over all v7 operations, including owned chains | Independently checked primitive v7 normalization |
+| `hepta.hia.composite.v3` | Explicit partial-record initialization states, field movement and reinitialization over v7 | Independently checked primitive v7 normalization |
 
 `canonical_core_schema` retains the v6 normalization target of composite v1;
 `latest_core_schema` identifies v7. These fields do not request an automatic
@@ -335,17 +336,21 @@ resolves overloads by declaration identity, and accounts for every active
 declaration. `tools/qualify_cpp_project_hia.py` separately checks original C++,
 the interpreter and direct HIA native output. See `CPP_PROJECT_HIA.md` for the
 finite profile, ODR checks and explicit ABI/equivalence limits.
+Concrete `if constexpr` selections with captured Boolean conditions additionally
+retain complete template-pattern ODR identities and discarded-branch
+dispositions. Their separate defined-input native corpus is documented in
+[CPP_CONSTEXPR_MIGRATION.md](CPP_CONSTEXPR_MIGRATION.md).
 
 ## Nominal products, enums and cooperative tasks
 
-The standalone `hepta.hia.composite.v1` or `.v2` input has exactly `schema`, `module`,
+The standalone `hepta.hia.composite.v1`, `.v2` or `.v3` input has exactly `schema`, `module`,
 `types`, and `functions`. It automatically exports original scalar-signature
 functions. An explicit narrower export list can be expressed in its normalized
 primitive Core; the nominal input itself does not accept `exports`.
 Function/block/instruction
 structure follows the primitive grammar; composite v1 admits primitive v1
-through v6 instructions, and composite v2 additionally admits v7 chains.
-Only composite v2 reserves `chain` as a primitive type; an existing composite
+through v6 instructions, and composite v2/v3 additionally admit v7 chains.
+Composite v2/v3 reserve `chain` as a primitive type; an existing composite
 v1 nominal definition or generic parameter with that name retains its meaning.
 All instructions remain subject to their checked resource rules. Parameter,
 result and instruction-output types may additionally name declared nominal
@@ -386,6 +391,24 @@ A record can therefore contain two owners while one is read and the other is
 mutated by checked bulk-memory instructions. Borrowing an aggregate field
 recursively is outside this operation's finite profile.
 
+Composite v3 additionally accepts explicit partial-record types, such as
+`{"partial":{"name":"Pair","args":["buffer","usize"]},"initialized":["first"]}`.
+The base must be a finite nominal record; present fields occur exactly once
+in declaration order. `record.begin`, `record.take`, `record.insert`,
+`record.finish` and `record.abandon` construct, move, initialize, complete and
+close these states. Only initialized fields may be read/borrowed, only absent
+fields may be inserted, and `abandon` requires an empty initialized set.
+Cleanup of present fields is explicit, including error and task-cancel paths.
+Every partial state carries a real zero-length Owner token so even a state
+without payload fields remains linear in the independently checked Core.
+Absent fields have no primitive slot or invented value. Taking an owning
+field emits actual primitive owner moves; a live loan therefore blocks it.
+Ordinary non-linear records retain scalar-copy behavior, while partial states
+are always linear. The exact wire grammar, token events, borrowing limits and
+layout budgets are defined in [HIA_PARTIAL_RECORDS_V3.md](HIA_PARTIAL_RECORDS_V3.md).
+These types and operations are rejected under composite v1/v2; v3 does not
+change those versions' canonical normalization or add a primitive instruction.
+
 `enum.make` selects a declared variant. Inactive owner slots are real
 zero-length owners with no allocator call, so every control-flow edge can
 account for them. `enum.tag` observes the tag without consuming the enum.
@@ -421,7 +444,7 @@ assumptions remain the same as the primitive core.
 
 `verify_core` elaborates composite input, verifies every primitive operation/edge and stores
 the canonical core for that input version: v6 for composite v1, v7 for composite
-v2. A `VerifiedProgram` may additionally retain canonical composite
+v2/v3. A `VerifiedProgram` may additionally retain canonical composite
 bytes for audit identity. Public consumers re-elaborate such retained bytes
 and require exact core equality; a forged origin/core pair rejects even if a
 caller recomputes a digest. `input_sha256` and `program_sha256` distinguish the
@@ -546,6 +569,9 @@ python -m hepta hia import-cpp-project /absolute/path/to/compile_commands.json \
   --clangxx clang++ --output /tmp/cpp-project.hia --report /tmp/cpp-capture.json
 python tools/qualify_hia_program_composite.py --clang clang \
   --workdir /tmp/hia-composite-qualified
+python -m hepta hia verify examples/hia_program/partial_record.hia
+python -m hepta hia run examples/hia_program/partial_record.hia \
+  --function replace --arguments '[7]'
 ```
 
 Performance protocol `hepta.hia.program.perf.v3` builds in a fixed-length
@@ -586,6 +612,19 @@ The complete resulting module is reverified, including all callers, effects,
 control flow and resource obligations. Changed interfaces are reported.
 Successful patch validation establishes static validity, not preservation of
 behavior; task-specific independent tests still decide whether an edit is right.
+
+The separate `hia_incremental.IncrementalVerifier` API provides process-local
+editing sessions for primitive v1–v7. Each candidate still passes strict
+decoding and the complete module/CFG/SSA shape checks. A previously verified
+body is reused only when its exact bytes and every direct callee's immutable
+parameter/return/effect interface are unchanged under the same verifier policy.
+Its `apply_patch` method uses the existing patch grammar and updates the saved
+baseline only after verification and interface-policy checks both succeed.
+Reports explicitly distinguish reused bodies from newly checked bodies. Nominal
+inputs and structured/Core bindings take the full path; all ordinary public
+edit, execution, LLVM and publication paths retain full verification.
+This is a static-admission work reduction, not behavior equivalence or measured
+model productivity. See [HIA_INCREMENTAL_VERIFICATION.md](HIA_INCREMENTAL_VERIFICATION.md).
 
 ### Bounded agent editing views
 

@@ -1,0 +1,246 @@
+{
+  "all_p0_p7_stages_complete": false,
+  "claims": {
+    "all_19_gates_requalified": false,
+    "arbitrary_c_cpp_migration_qualified": false,
+    "gpu_executed": false,
+    "llvm_refinement_proved": false,
+    "merged": false,
+    "physical_board_executed": false,
+    "real_model_productivity_benefit_proved": false,
+    "remote_ci_completion_claimed": false,
+    "rust_performance_superiority_proved": false,
+    "whole_language_soundness_proved": false
+  },
+  "closed_in_this_increment": [
+    {
+      "id": "P1_PARTIAL_RECORD_TYPESTATES",
+      "scope": "finite nominal records over primitive v7",
+      "status": "implemented_and_executed"
+    },
+    {
+      "id": "P1_UNUSED_PARTIAL_DECLARATIONS",
+      "scope": "six exact original counterexamples; symbolic generic constraints and work limits",
+      "status": "rejected_with_regressions"
+    },
+    {
+      "id": "P1_TWO_LIVE_PAYLOAD_CANCELLATION_ORDER",
+      "scope": "four explicit cleanup/cooperative cancellation modes, fixed 32 inputs",
+      "status": "native_observed_and_wrong_order_controls_detected"
+    },
+    {
+      "id": "P4_CAPTURED_CONSTEXPR",
+      "scope": "closed captured Clang shape and defined unsigned concrete instances",
+      "status": "implemented_and_native_differential_passed"
+    },
+    {
+      "id": "P4_FULL_PATTERN_AND_MEMBER_IDENTITY",
+      "scope": "cross-file template conflict and stable local-member binding controls",
+      "status": "fixed_and_regression_passed"
+    },
+    {
+      "id": "P6_LOCAL_INCREMENTAL_ADMISSION",
+      "scope": "locally verified primitive v1-v7 snapshots; public consumers still fully check",
+      "status": "implemented_and_regression_passed"
+    }
+  ],
+  "delivery_source": {
+    "documentation_only_differences": [
+      "docs/HIA_INCREMENTAL_VERIFICATION.md"
+    ],
+    "executable_source_tests_examples_tools_changed_after_validation": false,
+    "expected_snapshot_sha256": "02048763eb93a39418e5ae2b64f3b1ce8acae9bb92dccb45cdd95f70a6f57e22",
+    "full_suite_relabelled_to_delivery_commit": false
+  },
+  "finite_native_qualifications": {
+    "cpp_constexpr": {
+      "cases": 80,
+      "constexpr_selections": 13,
+      "native_result_calls": 160,
+      "original_cpp_implementation_linked_in_target": false,
+      "report": "native/cpp-constexpr.json",
+      "template_instances": 7,
+      "translation_units": 2
+    },
+    "partial_records": {
+      "budget_cases": 11,
+      "budget_returns": 1,
+      "budget_stops": 10,
+      "cases": 94,
+      "native_negative_controls": 2,
+      "positive_native_executions": 188,
+      "production_compile_api_used": true,
+      "report": "native/partial-records.json"
+    },
+    "two_owner_cancellation": {
+      "negative_native_executions": 4,
+      "positive_native_executions": 64,
+      "positive_native_two_live_payload_observations": 24,
+      "production_compile_api_used": false,
+      "python_executions": 64,
+      "report": "native/two-owner-cancel.json",
+      "requests": 32,
+      "route": "Public reverified emit_program_llvm; captured direct Clang -O3 object compilation and object inspection.",
+      "rust_executions": 32
+    }
+  },
+  "historical_evidence_rule": "Earlier successes, failures, regressions and interrupted attempts retain their actual source identities.",
+  "integrated_validation": {
+    "completion": "integrated/execution-completion.json",
+    "metadata_and_build_preflights_counted_as_tests": false,
+    "python_command_seconds": 2191.86941035201,
+    "python_errors": 0,
+    "python_failures": 0,
+    "python_footer_seconds": 2187.813,
+    "python_skips": 0,
+    "python_tests": 2548,
+    "python_unique_methods": 2548,
+    "rust_command_seconds": 1.2230908470082795,
+    "rust_failed": 0,
+    "rust_harnesses": 9,
+    "rust_ignored": 0,
+    "rust_passed": 54,
+    "source_unchanged": true,
+    "status": "passed",
+    "tools_unchanged": true
+  },
+  "original_108762ba_archive_included": false,
+  "prior_review": "../p0_p7_original_type_followup/current-status.json",
+  "raw_model_payload_included": false,
+  "review_pr": "https://github.com/TrillionniumFoundation/Hepta/pull/338",
+  "schema": "hepta.audit.p0-p7-partial-records-incremental-status.v1",
+  "source_identity_rule": "Executed d942 implementation, later documentation clarification and evidence publication are separately identified.",
+  "stages": [
+    {
+      "complete": false,
+      "id": "P0",
+      "implemented_scope": [
+        "Shared schema registry, explicit legacy adapter, reverified public Core admission; no newly confirmed semantic fork in the declared profile.",
+        "Composite v3 has a distinct namespace; existing v1/v2 fingerprints and exact admission boundaries remain regression obligations."
+      ],
+      "name": "single semantics",
+      "remaining_conditions": [
+        "Continue same-version registry/admission/backend agreement for each added feature; no whole-language refinement follows from registry agreement."
+      ],
+      "status": "qualified_for_declared_profile"
+    },
+    {
+      "complete": false,
+      "id": "P1",
+      "implemented_scope": [
+        "Current Owner/Loan/Drop, CFG/calls, local stored loans, generic products/enums, byte ranges, recursive buffer chains and cooperative cancellation have finite executable profiles.",
+        "Composite v3 adds linear partial-record construction, field movement/reinitialization and declaration constraints, normalized to primitive v7.",
+        "94-case production-path qualification and a separate 32-case two-live-payload cleanup/cancellation qualification passed on the exact executed implementation."
+      ],
+      "name": "resources and memory",
+      "remaining_conditions": [
+        "General typed addresses/layouts and address-based partial initialization",
+        "Escaping stored loans and arbitrary recursive heap ADTs",
+        "Concurrent scheduling, atomics and channels in the same standalone Core"
+      ],
+      "status": "partial"
+    },
+    {
+      "complete": false,
+      "id": "P2",
+      "implemented_scope": [
+        "Independent Rust primitive v1-v7 resource execution implemented; component tests and native controls passed on dfdf944f.",
+        "Execution report has distinct v2 schema; prior input versions and resource ledger meanings preserved.",
+        "New partial-record Core agrees across nominal/Core Python, the retained independent Rust VM and actual LLVM execution for the fixed corpora.",
+        "Missing-free, wrong-value and wrong-release-order controls demonstrate independent rejection of those observable mismatches."
+      ],
+      "name": "Core to native",
+      "remaining_conditions": [
+        "End-to-end source/normalization/Core/LLVM semantic refinement for every claimed construct",
+        "Proof that native optimization assumptions follow from admitted semantics",
+        "Whole-language soundness and all-target correspondence"
+      ],
+      "status": "partial"
+    },
+    {
+      "complete": false,
+      "id": "P3",
+      "implemented_scope": [
+        "Defined VLA entry-effect counterexample reproduced and closed by fail-closed original-type admission.",
+        "Complete active declaration dispositions and explicit pointer/slice contracts in selected Clang profiles.",
+        "Actual ff88d4cd native migration and upstream resource matrix gates passed."
+      ],
+      "name": "automatic C migration",
+      "remaining_conditions": [
+        "General compiler/build configuration and pointer/provenance semantics",
+        "Arbitrary C translation and automatically established contracts",
+        "Representative full-project migration cost evidence"
+      ],
+      "status": "partial"
+    },
+    {
+      "complete": false,
+      "id": "P4",
+      "implemented_scope": [
+        "Selected value classes, owner protocols, template instances and multi-object bridges have bounded execution evidence.",
+        "Captured concrete C++20 constexpr selection with complete template-pattern and stable local-member identity checks.",
+        "80 defined boundary cases and 160 original-C++/standalone-HIA native calls agree; target links no original C++ implementation."
+      ],
+      "name": "C++ reuse and migration",
+      "remaining_conditions": [
+        "General object model, templates/STL and direct implementation migration",
+        "ABI/lifetime/safety/equivalence qualification beyond selected profiles",
+        "General exception boundaries and recoverable destructor/allocation failure"
+      ],
+      "status": "partial"
+    },
+    {
+      "complete": false,
+      "id": "P5",
+      "implemented_scope": [
+        "Historical frozen CPU run retained all 63 samples and correctness/resource controls."
+      ],
+      "name": "CPU and GPU performance",
+      "remaining_conditions": [
+        "Historical CPU gate is measurement_inconclusive: 9 of 9 relative-MAD groups exceed 5 percent",
+        "Representative same-semantics applications and sustained distributions",
+        "Device address-space/synchronization/backend implementation and actual GPU execution"
+      ],
+      "status": "not_qualified"
+    },
+    {
+      "complete": false,
+      "id": "P6",
+      "implemented_scope": [
+        "Semantic edits, bounded context, snapshot checks, whole-module revalidation and real finite model trials exist.",
+        "Bounded process-local incremental primitive v1-v7 checking implemented; structured/unsupported/policy-changed inputs fall back to full verification.",
+        "Development comparison: 957 candidates, 56 accepted and 901 rejected, no full/incremental outcome/byte/diagnostic differences."
+      ],
+      "name": "agent-native development",
+      "remaining_conditions": [
+        "Complete diagnostics and broader dependency contracts as the language grows",
+        "Representative independent maintenance tasks under equal declared budgets",
+        "Actual success/cost benefit: prior real-model trials did not pass their benefit criteria"
+      ],
+      "status": "not_qualified"
+    },
+    {
+      "complete": false,
+      "id": "P7",
+      "implemented_scope": [
+        "Linux x86-64 native and selected AArch64/RV64 QEMU paths exist; Cortex-M4 BSP/QEMU evidence remains a separate profile."
+      ],
+      "name": "hardware and production",
+      "remaining_conditions": [
+        "Physical MMIO/IRQ/DMA ownership/coherence and recovery",
+        "Long-running real workloads with measured resource boundaries",
+        "Additional actual platform/ABI execution; QEMU does not substitute for a physical board"
+      ],
+      "status": "not_qualified"
+    }
+  ],
+  "tested_implementation": {
+    "changed_paths": 24,
+    "commit": "d942f18b07c8811aa1418b6f67fabc23212317d1",
+    "new_paths": 15,
+    "source_files": 1065,
+    "source_snapshot_sha256": "4a64e1a353585d0ee88985e4942c008bd82ec1482be7ce1158a60f24f550e8db",
+    "tree": "44823c1858d52e9043edebb83f2414d91087d743"
+  },
+  "whole_project_blockers_closed": false
+}

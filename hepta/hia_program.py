@@ -447,6 +447,13 @@ def _function_shape(fn, *, recursive_chain=False):
     return by_id
 
 
+@dataclass(frozen=True, slots=True)
+class _FunctionInterface:
+    params: tuple[str, ...]
+    returns: tuple[str, ...]
+    effects: frozenset[str]
+
+
 class _BlockCheck:
     def __init__(self, fn, block, capabilities, functions, *, bulk_memory=False, inplace_memory=False, byte_swap=False, offset_copy=False, range_fill=False, recursive_chain=False):
         self.fn, self.block, self.functions = fn, block, functions
@@ -719,11 +726,10 @@ class _BlockCheck:
             if callee_name not in self.functions:
                 _reject("unknown callee", "E_HIA_CALL")
             callee = self.functions[callee_name]
-            if len(args) != len(callee["params"]):
+            if len(args) != len(callee.params):
                 _reject("call arity mismatch", "E_HIA_CALL")
             used_owners, views = set(), []
-            for name, typ, param in zip(args, actual, callee["params"]):
-                formal = param["type"]
+            for name, typ, formal in zip(args, actual, callee.params):
                 if typ != formal and not (formal == "readbuf" and typ == "mutbuf"):
                     _reject("call argument type mismatch", "E_HIA_CALL")
                 if typ in OWNERS:
@@ -737,8 +743,8 @@ class _BlockCheck:
                     if any(r == root and (m or formal == "mutbuf") for r, m in views):
                         _reject("aliased exclusive call arguments", "E_HIA_LOAN")
                     views.append((root, formal == "mutbuf"))
-            expected = callee["returns"]
-            self.required.update(callee["effects"])
+            expected = list(callee.returns)
+            self.required.update(callee.effects)
         else:
             _reject(f"unsupported opcode {op}", "E_HIA_OPCODE")
         if op not in {"const", "int.cast", "call"}:
@@ -822,6 +828,89 @@ class _BlockCheck:
             _reject(f"missing effects {sorted(self.required - set(self.fn['effects']))}", "E_HIA_EFFECT")
 
 
+def _primitive_structure(data):
+    """Check all global declarations, shapes and exports in original order.
+
+    This pass is never cached by the incremental verifier. It visits every
+    function, block, operation shape, SSA definition and CFG edge.
+    """
+    fields = {"schema", "module", "functions"}
+    if type(data) is dict and "exports" in data:
+        fields.add("exports")
+    _keys(data, fields, "program")
+    if type(data["schema"]) is not str or data["schema"] not in PRIMITIVE_SCHEMAS:
+        _reject("unsupported program schema", "E_HIA_SCHEMA")
+    _ident(data["module"], "module")
+    if type(data["functions"]) is not list or not 1 <= len(data["functions"]) <= MAX_FUNCTIONS:
+        _reject("invalid function inventory", "E_HIA_FORMAT")
+    functions, block_maps = {}, {}
+    for fn in data["functions"]:
+        blocks = _function_shape(fn, recursive_chain=supports_feature(data["schema"], "recursive_chain"))
+        if fn["name"] in functions:
+            _reject("duplicate function", "E_HIA_NAME")
+        functions[fn["name"]], block_maps[fn["name"]] = fn, blocks
+    if "exports" in data:
+        _names(data["exports"], "explicit scalar exports")
+        if len(data["exports"]) != len(set(data["exports"])):
+            _reject("duplicate explicit scalar export", "E_HIA_NAME")
+        for name in data["exports"]:
+            if name not in functions:
+                _reject("explicit export names a missing function", "E_HIA_CALL")
+            fn = functions[name]
+            if any(p["type"] not in SCALARS for p in fn["params"]) or any(t not in SCALARS for t in fn["returns"]):
+                _reject("public exports cannot carry resource descriptors", "E_HIA_TYPE")
+    return functions, block_maps
+
+
+def _function_interfaces(functions):
+    """Only these immutable facts cross a function-verification boundary."""
+    return {name: _FunctionInterface(
+                tuple(p["type"] for p in fn["params"]),
+                tuple(fn["returns"]), frozenset(fn["effects"]))
+            for name, fn in functions.items()}
+
+
+def _verify_function(schema, fn, blocks, interfaces):
+    """Verify one closed body using only its bytes and callee interfaces.
+
+    The finite incremental contract is deliberately structural: callee bodies,
+    global storage, external declarations and caller verification receipts are
+    absent from the argument types. New cross-function/global obligations must
+    invalidate this contract and use full verification until modeled.
+    """
+    initial = {p["name"]: _Capability(p["type"], p["name"], external=p["type"] not in OWNERS)
+               for p in fn["params"] if p["type"] in RESOURCES}
+    incoming = {fn["entry"]: initial}
+    pending = deque([fn["entry"]])
+    processed = set()
+    while pending:
+        ident = pending.popleft()
+        if ident in processed:
+            continue
+        processed.add(ident)
+        block = blocks[ident]
+        check = _BlockCheck(fn, block, incoming[ident], interfaces,
+                            bulk_memory=supports_feature(schema, "bulk_memory"),
+                            inplace_memory=supports_feature(schema, "inplace_memory"),
+                            byte_swap=supports_feature(schema, "byte_swap"),
+                            offset_copy=supports_feature(schema, "offset_copy"),
+                            range_fill=supports_feature(schema, "range_fill"),
+                            recursive_chain=supports_feature(schema, "recursive_chain"))
+        for ins in block["ops"]:
+            check.instruction(ins)
+        check.finish()
+        for edge in _edges(block["term"]):
+            target = edge["target"]
+            state = check.transfer(edge, blocks[target])
+            if target in incoming and incoming[target] != state:
+                _reject("predecessors disagree on loan origins/permissions", "E_HIA_LOAN")
+            if target not in incoming:
+                incoming[target] = state
+                pending.append(target)
+    if processed != set(blocks):
+        _reject("not all blocks were checked", "E_HIA_CFG")
+
+
 def verify_program(program) -> VerifiedProgram:
     """Check standalone operations and every CFG edge; no source/hash authority.
 
@@ -848,64 +937,10 @@ def verify_program(program) -> VerifiedProgram:
         _reject("historical nominal v2 requires import_legacy_composite_v2; "
                 "the primitive v2 namespace cannot infer a producer profile",
                 "E_HIA_VERSION_COLLISION")
-    fields = {"schema", "module", "functions"}
-    if type(data) is dict and "exports" in data:
-        fields.add("exports")
-    _keys(data, fields, "program")
-    if type(data["schema"]) is not str or data["schema"] not in PRIMITIVE_SCHEMAS:
-        _reject("unsupported program schema", "E_HIA_SCHEMA")
-    _ident(data["module"], "module")
-    if type(data["functions"]) is not list or not 1 <= len(data["functions"]) <= MAX_FUNCTIONS:
-        _reject("invalid function inventory", "E_HIA_FORMAT")
-    functions, block_maps = {}, {}
-    for fn in data["functions"]:
-        blocks = _function_shape(fn, recursive_chain=supports_feature(data["schema"], "recursive_chain"))
-        if fn["name"] in functions:
-            _reject("duplicate function", "E_HIA_NAME")
-        functions[fn["name"]], block_maps[fn["name"]] = fn, blocks
-    if "exports" in data:
-        _names(data["exports"], "explicit scalar exports")
-        if len(data["exports"]) != len(set(data["exports"])):
-            _reject("duplicate explicit scalar export", "E_HIA_NAME")
-        for name in data["exports"]:
-            if name not in functions:
-                _reject("explicit export names a missing function", "E_HIA_CALL")
-            fn = functions[name]
-            if any(p["type"] not in SCALARS for p in fn["params"]) or any(t not in SCALARS for t in fn["returns"]):
-                _reject("public exports cannot carry resource descriptors", "E_HIA_TYPE")
+    functions, block_maps = _primitive_structure(data)
+    interfaces = _function_interfaces(functions)
     for fn in functions.values():
-        blocks = block_maps[fn["name"]]
-        initial = {p["name"]: _Capability(p["type"], p["name"], external=p["type"] not in OWNERS)
-                   for p in fn["params"] if p["type"] in RESOURCES}
-        incoming = {fn["entry"]: initial}
-        pending = deque([fn["entry"]])
-        processed = set()
-        while pending:
-            ident = pending.popleft()
-            if ident in processed:
-                continue
-            processed.add(ident)
-            block = blocks[ident]
-            check = _BlockCheck(fn, block, incoming[ident], functions,
-                                bulk_memory=supports_feature(data["schema"], "bulk_memory"),
-                                inplace_memory=supports_feature(data["schema"], "inplace_memory"),
-                                byte_swap=supports_feature(data["schema"], "byte_swap"),
-                                offset_copy=supports_feature(data["schema"], "offset_copy"),
-                                range_fill=supports_feature(data["schema"], "range_fill"),
-                                recursive_chain=supports_feature(data["schema"], "recursive_chain"))
-            for ins in block["ops"]:
-                check.instruction(ins)
-            check.finish()
-            for edge in _edges(block["term"]):
-                target = edge["target"]
-                state = check.transfer(edge, blocks[target])
-                if target in incoming and incoming[target] != state:
-                    _reject("predecessors disagree on loan origins/permissions", "E_HIA_LOAN")
-                if target not in incoming:
-                    incoming[target] = state
-                    pending.append(target)
-        if processed != set(blocks):
-            _reject("not all blocks were checked", "E_HIA_CFG")
+        _verify_function(data["schema"], fn, block_maps[fn["name"]], interfaces)
     return VerifiedProgram(raw)
 
 

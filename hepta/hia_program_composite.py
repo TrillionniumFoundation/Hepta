@@ -18,9 +18,9 @@ from dataclasses import dataclass
 
 from .hia_program import (EFFECTS, MAX_BLOCKS, MAX_FUNCTIONS, OWNERS, BYTE_RESOURCES, RESOURCES, SCALARS,
                           TYPES, _ident, _keys, _names, _reject)
-from .hia_schema import (CANONICAL_CORE_SCHEMA, COMPOSITE_OPERATIONS,
+from .hia_schema import (CANONICAL_CORE_SCHEMA, COMPOSITE_OPERATIONS_BY_SCHEMA,
                          COMPOSITE_PROFILE, COMPOSITE_SCHEMA, COMPOSITE_SCHEMAS,
-                         COMPOSITE_SCHEMA_V2, composite_core_schema,
+                         COMPOSITE_SCHEMA_V3, composite_core_schema,
                          LEGACY_COMPOSITE_OPERATIONS)
 
 SCHEMA = COMPOSITE_SCHEMA
@@ -33,6 +33,7 @@ MAX_FIELDS = 64
 MAX_VARIANTS = 32
 MAX_GENERATED_NAMES = 8192
 MAX_ELABORATED_VALUE_SLOTS = 32768
+MAX_PARTIAL_DECLARATION_STEPS = 32768
 _PREFIX = "h2internal_"
 
 
@@ -55,6 +56,7 @@ class _Type:
     poll: str | None = None
     cancel: str | None = None
     linear: bool = False
+    record: object = None
 
     @property
     def has_loans(self):
@@ -64,7 +66,7 @@ class _Type:
     def owns(self):
         if self.kind == "primitive":
             return self.key in OWNERS
-        if self.kind == "task":
+        if self.kind in {"task", "partial_record"}:
             return True
         if self.kind == "record":
             return any(t.owns for _, t in self.fields)
@@ -72,11 +74,16 @@ class _Type:
 
 
 class _Types:
-    def __init__(self, definitions, *, recursive_chain=False):
+    def __init__(self, definitions, *, recursive_chain=False, partial_records=False):
         if type(definitions) is not list or len(definitions) > MAX_DEFINITIONS:
             _reject("invalid nominal type inventory", "E_HIA_LIMIT")
         self.definitions, self.cache, self.active = {}, {}, set()
         self.recursive_chain = recursive_chain
+        self.partial_records = partial_records
+        self.declared_partials = []
+        self.collecting_declarations = True
+        self.partial_declaration_steps = 0
+        self.known_loan_cache = {}
         self.primitive_types = TYPES if recursive_chain else TYPES - {"chain"}
         for item in definitions:
             if type(item) is not dict or type(item.get("kind")) is not str:
@@ -141,8 +148,11 @@ class _Types:
                                 if type(ref) is str and ref in self.definitions and ref not in item["params"]:
                                     found.add(ref)
                                 elif type(ref) is dict:
-                                    found.add(ref["name"])
-                                    references.extend(ref["args"])
+                                    if "partial" in ref:
+                                        references.append(ref["partial"])
+                                    else:
+                                        found.add(ref["name"])
+                                        references.extend(ref["args"])
                         elif key in {"fields", "variants"}:
                             pending.append(child)
                 elif type(node) is list:
@@ -162,6 +172,17 @@ class _Types:
             visited.add(name)
         for name in graph:
             visit(name)
+        self.collecting_declarations = False
+        # A declaration does not become well formed merely because lowering
+        # erases it unused. Concrete partial references must satisfy the same
+        # constraints as instruction/signature references. Symbolic generic
+        # applications retain unknown loan-free obligations for instantiation,
+        # but may not hide an already known stored loan.
+        for ref, params in self.declared_partials:
+            if not self._has_parameters(ref, params):
+                self.resolve(ref)
+            elif self._known_loans(ref["partial"], {name: None for name in params}):
+                _reject("partial record fields may not contain stored loans", "E_HIA_LOAN")
 
     def _fields(self, fields, params):
         if type(fields) is not list or len(fields) > MAX_FIELDS:
@@ -188,6 +209,33 @@ class _Types:
             if ref not in self.definitions or self.definitions[ref]["params"]:
                 _reject("unknown or unapplied nominal type", "E_HIA_TYPE")
             return
+        if type(ref) is dict and "partial" in ref:
+            if not self.partial_records:
+                # Preserve the old schemas' exact malformed-reference category.
+                _keys(ref, {"name", "args"}, "generic type reference")
+            _keys(ref, {"partial", "initialized"}, "partial record type")
+            initialized = ref["initialized"]
+            if type(initialized) is not list or len(initialized) > MAX_FIELDS:
+                _reject("invalid partial-record field inventory", "E_HIA_LIMIT")
+            for name in initialized:
+                _name(name, "initialized record field")
+            if len(initialized) != len(set(initialized)):
+                _reject("duplicate initialized record field", "E_HIA_INIT")
+            self._reference(ref["partial"], params, depth + 1)
+            base = ref["partial"]
+            name = base if type(base) is str else base.get("name")
+            # A naked parameter has no record-kind constraint in this version.
+            # Generic applications such as Box<T> have a known declaration;
+            # their remaining loan-free condition is rechecked on resolution.
+            if ((type(base) is str and name in params) or name not in self.definitions
+                    or self.definitions[name]["kind"] != "record"):
+                _reject("partial type requires a declared nominal record", "E_HIA_TYPE")
+            fields = [field["name"] for field in self.definitions[name]["fields"]]
+            if [field for field in fields if field in set(initialized)] != initialized:
+                _reject("initialized fields must exist in declaration order", "E_HIA_INIT")
+            if self.collecting_declarations:
+                self.declared_partials.append((ref, frozenset(params)))
+            return
         _keys(ref, {"name", "args"}, "generic type reference")
         name = _name(ref["name"], "generic type name")
         args = ref["args"]
@@ -196,6 +244,76 @@ class _Types:
             _reject("generic type arity mismatch", "E_HIA_TYPE")
         for arg in args:
             self._reference(arg, params, depth + 1)
+
+    def _has_parameters(self, ref, params):
+        self._partial_declaration_step()
+        if type(ref) is str:
+            return ref in params
+        if "partial" in ref:
+            return self._has_parameters(ref["partial"], params)
+        return any(self._has_parameters(arg, params) for arg in ref["args"])
+
+    def _partial_declaration_step(self):
+        # Symbolic generic declarations can repeat a still-unknown leaf many
+        # times without instantiating a concrete flat layout. Bound that work
+        # independently, rather than relying on the eventual layout limit.
+        self.partial_declaration_steps += 1
+        if self.partial_declaration_steps > MAX_PARTIAL_DECLARATION_STEPS:
+            _reject("partial declaration analysis budget exceeded", "E_HIA_LIMIT")
+
+    def _known_loans(self, ref, bindings, depth=0):
+        """Follow symbolic type arguments without choosing a fake instance.
+
+        Each bound argument carries its original lexical environment. None is
+        an unknown type parameter, not a claim that the parameter is loan-free.
+        Concrete resolution independently checks every eventual instantiation.
+        """
+        self._partial_declaration_step()
+        if depth > MAX_TYPE_DEPTH:
+            _reject("nominal layout nesting exceeds budget", "E_HIA_LIMIT")
+        key = (self._symbolic_reference(ref, bindings), depth)
+        if key not in self.known_loan_cache:
+            self.known_loan_cache[key] = self._known_loans_uncached(ref, bindings, depth)
+        return self.known_loan_cache[key]
+
+    def _symbolic_reference(self, ref, bindings, depth=0):
+        """Memo key for the known-loan predicate, not a concrete type instance."""
+        self._partial_declaration_step()
+        if depth > 2 * MAX_TYPE_DEPTH:
+            _reject("symbolic type argument nesting exceeds budget", "E_HIA_LIMIT")
+        if type(ref) is str:
+            if ref in bindings:
+                bound = bindings[ref]
+                return (("unknown",) if bound is None else
+                        self._symbolic_reference(bound[0], bound[1], depth + 1))
+            return ("type", ref)
+        if "partial" in ref:
+            return ("partial", self._symbolic_reference(ref["partial"], bindings, depth + 1),
+                    tuple(ref["initialized"]))
+        return ("application", ref["name"], tuple(self._symbolic_reference(arg, bindings, depth + 1)
+                                                  for arg in ref["args"]))
+
+    def _known_loans_uncached(self, ref, bindings, depth):
+        if type(ref) is str:
+            if ref in bindings:
+                bound = bindings[ref]
+                return False if bound is None else self._known_loans(bound[0], bound[1], depth)
+            if ref in self.primitive_types:
+                return ref in {"readbuf", "mutbuf"}
+            name, args = ref, []
+        elif "partial" in ref:
+            return self._known_loans(ref["partial"], bindings, depth + 1)
+        else:
+            name, args = ref["name"], ref["args"]
+        item = self.definitions[name]
+        nested = {param: (arg, bindings) for param, arg in zip(item["params"], args)}
+        if item["kind"] == "record":
+            children = [field["type"] for field in item["fields"]]
+        elif item["kind"] == "enum":
+            children = [field["type"] for variant in item["variants"] for field in variant["fields"]]
+        else:
+            children = [item["state"], item["result"]]
+        return any(self._known_loans(child, nested, depth + 1) for child in children)
 
     def resolve(self, ref, bindings=None, depth=0):
         bindings = bindings or {}
@@ -206,6 +324,9 @@ class _Types:
         if type(ref) is str and ref in self.primitive_types:
             return _Type(ref, "primitive", (ref,), linear=ref in RESOURCES)
         self._reference(ref, set(bindings))
+        if type(ref) is dict and "partial" in ref:
+            base = self.resolve(ref["partial"], bindings, depth + 1)
+            return self.partial_record(base, ref["initialized"])
         if type(ref) is str:
             name, args = ref, []
         else:
@@ -252,6 +373,28 @@ class _Types:
         self.cache[key] = typ
         return typ
 
+    def partial_record(self, base, initialized):
+        """A structural typestate whose missing fields have no primitive slot."""
+        if not self.partial_records or base.kind != "record":
+            _reject("partial type requires a nominal record in composite v3", "E_HIA_TYPE")
+        if base.has_loans:
+            _reject("partial record fields may not contain stored loans", "E_HIA_LOAN")
+        selected = set(initialized)
+        fields = tuple((name, typ) for name, typ in base.fields if name in selected)
+        if tuple(name for name, _ in fields) != tuple(initialized):
+            _reject("initialized fields must exist in declaration order", "E_HIA_INIT")
+        key = "partial<" + base.key + ";" + ",".join(initialized) + ">"
+        if key in self.cache:
+            return self.cache[key]
+        if len(self.cache) + len(self.active) >= MAX_INSTANTIATIONS:
+            _reject("generic/partial instantiation budget exceeded", "E_HIA_LIMIT")
+        flat = ("buffer",) + tuple(p for _, typ in fields for p in typ.flat)
+        if len(flat) > MAX_FLAT_FIELDS:
+            _reject("flattened partial-record layout exceeds budget", "E_HIA_LIMIT")
+        typ = _Type(key, "partial_record", flat, fields=fields, linear=True, record=base)
+        self.cache[key] = typ
+        return typ
+
 
 @dataclass
 class _Value:
@@ -292,8 +435,11 @@ class _Elaborator:
             _reject("legacy nominal adapter only targets composite v1", "E_HIA_SCHEMA")
         _name(document["module"], "module")
         self.document, self.serial, self.value_slots = document, 0, 0
-        self.nominal_operations = LEGACY_COMPOSITE_OPERATIONS if legacy else COMPOSITE_OPERATIONS
-        self.types = _Types(document["types"], recursive_chain=document["schema"] == COMPOSITE_SCHEMA_V2)
+        self.nominal_operations = (LEGACY_COMPOSITE_OPERATIONS if legacy else
+                                   COMPOSITE_OPERATIONS_BY_SCHEMA[document["schema"]])
+        self.types = _Types(document["types"],
+                            recursive_chain=document["schema"] != SCHEMA,
+                            partial_records=document["schema"] == COMPOSITE_SCHEMA_V3)
         functions = document["functions"]
         if type(functions) is not list or not 1 <= len(functions) <= MAX_FUNCTIONS:
             _reject("invalid nominal function inventory", "E_HIA_FORMAT")
@@ -579,6 +725,33 @@ class _Elaborator:
                     _reject("nominal output type/arity mismatch", "E_HIA_TYPE")
                 return [name for name, _ in declared]
 
+            def record_field(item, field):
+                _name(field, "projected record field")
+                if item.typ.kind not in {"record", "partial_record"}:
+                    _reject("field access requires a record", "E_HIA_TYPE")
+                offset = 1 if item.typ.kind == "partial_record" else 0
+                for name, typ in item.typ.fields:
+                    if name == field:
+                        return offset, typ
+                    offset += len(typ.flat)
+                if (item.typ.kind == "partial_record"
+                        and field in dict(item.typ.record.fields)):
+                    _reject("use of an uninitialized record field", "E_HIA_INIT")
+                _reject("unknown nominal field", "E_HIA_TYPE")
+
+            def move_field(names, typ):
+                # Actual owner moves make a borrowed field fail the independent
+                # primitive checker; a structural alias must not evade it.
+                moved = []
+                for name, part in zip(names, typ.flat):
+                    if part in OWNERS:
+                        fresh = self.fresh()
+                        ops.append(_ins("owner.move", [name], [(fresh, part)]))
+                        moved.append(fresh)
+                    else:
+                        moved.append(name)
+                return tuple(moved)
+
             def live_required():
                 return {name for name, item in env.items()
                         if item.typ.linear and not item.consumed and not item.external}
@@ -610,7 +783,80 @@ class _Elaborator:
                 op, args, attrs = ins["op"], ins["args"], ins["attrs"]
                 actual = [value(name) for name in args]
                 declared = self.parameters(ins["out"])
-                if op == "record.make":
+                if op == "record.begin":
+                    _keys(attrs, set(), op)
+                    if (actual or len(declared) != 1
+                            or declared[0][1].kind != "partial_record"):
+                        _reject("record.begin requires one empty partial-record output", "E_HIA_TYPE")
+                    out, typ = declared[0]
+                    if typ.fields:
+                        _reject("record.begin cannot initialize a field", "E_HIA_INIT")
+                    env[out] = _Value(typ, self.zeros(("buffer",), ops))
+                elif op == "record.take":
+                    _keys(attrs, {"field"}, op)
+                    if len(actual) != 1 or actual[0].typ.kind not in {"record", "partial_record"}:
+                        _reject("record.take requires one record", "E_HIA_TYPE")
+                    item = actual[0]
+                    offset, typ = record_field(item, attrs["field"])
+                    base = item.typ.record if item.typ.kind == "partial_record" else item.typ
+                    remainder = self.types.partial_record(base,
+                        [field for field, _ in item.typ.fields if field != attrs["field"]])
+                    out, rest = outputs(ins, [typ, remainder])
+                    consume(args[0])
+                    token = item.names[:1] if item.typ.kind == "partial_record" else self.zeros(("buffer",), ops)
+                    selected = item.names[offset:offset + len(typ.flat)]
+                    env[out] = _Value(typ, move_field(selected, typ))
+                    before = item.names[1:offset] if item.typ.kind == "partial_record" else item.names[:offset]
+                    env[rest] = _Value(remainder, token + before + item.names[offset + len(typ.flat):])
+                elif op == "record.insert":
+                    _keys(attrs, {"field"}, op)
+                    if len(actual) != 2 or actual[0].typ.kind != "partial_record":
+                        _reject("record.insert requires partial record and field value", "E_HIA_TYPE")
+                    item, supplied = actual
+                    _name(attrs["field"], "initialized record field")
+                    base = item.typ.record
+                    all_fields = dict(base.fields)
+                    if attrs["field"] not in all_fields:
+                        _reject("unknown nominal field", "E_HIA_TYPE")
+                    if attrs["field"] in dict(item.typ.fields):
+                        _reject("record field is already initialized", "E_HIA_INIT")
+                    if supplied.typ != all_fields[attrs["field"]]:
+                        _reject("inserted record field type differs", "E_HIA_TYPE")
+                    initialized = set(dict(item.typ.fields)) | {attrs["field"]}
+                    typ = self.types.partial_record(base,
+                        [field for field, _ in base.fields if field in initialized])
+                    out = outputs(ins, [typ])[0]
+                    consume(args[0])
+                    consume(args[1])
+                    fields, offset = {}, 1
+                    for field, field_type in item.typ.fields:
+                        fields[field] = item.names[offset:offset + len(field_type.flat)]
+                        offset += len(field_type.flat)
+                    fields[attrs["field"]] = supplied.names
+                    env[out] = _Value(typ, item.names[:1] + tuple(
+                        name for field, _ in typ.fields for name in fields[field]))
+                elif op == "record.finish":
+                    _keys(attrs, set(), op)
+                    if len(actual) != 1 or actual[0].typ.kind != "partial_record":
+                        _reject("record.finish requires one partial record", "E_HIA_TYPE")
+                    item = actual[0]
+                    if item.typ.fields != item.typ.record.fields:
+                        _reject("record.finish requires every field initialized", "E_HIA_INIT")
+                    out = outputs(ins, [item.typ.record])[0]
+                    consume(args[0])
+                    ops.append(_ins("owner.drop", item.names[:1]))
+                    env[out] = _Value(item.typ.record, item.names[1:])
+                elif op == "record.abandon":
+                    _keys(attrs, set(), op)
+                    if len(actual) != 1 or actual[0].typ.kind != "partial_record":
+                        _reject("record.abandon requires one partial record", "E_HIA_TYPE")
+                    item = actual[0]
+                    if item.typ.fields:
+                        _reject("record.abandon requires every field moved out", "E_HIA_INIT")
+                    outputs(ins, [])
+                    consume(args[0])
+                    ops.append(_ins("owner.drop", item.names[:1]))
+                elif op == "record.make":
                     _keys(attrs, set(), op)
                     if len(declared) != 1 or declared[0][1].kind != "record":
                         _reject("record.make needs one nominal record output", "E_HIA_TYPE")
@@ -634,48 +880,32 @@ class _Elaborator:
                         offset += len(typ.flat)
                 elif op == "record.get":
                     _keys(attrs, {"field"}, op)
-                    if len(actual) != 1 or actual[0].typ.kind != "record":
+                    if len(actual) != 1 or actual[0].typ.kind not in {"record", "partial_record"}:
                         _reject("record.get requires a record", "E_HIA_TYPE")
-                    _name(attrs["field"], "projected field")
-                    offset, found = 0, False
-                    for field, typ in actual[0].typ.fields:
-                        if field == attrs["field"]:
-                            if typ.linear:
-                                _reject("linear fields require consuming record.unpack", "E_HIA_RESOURCE")
-                            name = outputs(ins, [typ])[0]
-                            env[name] = _Value(typ, actual[0].names[offset:offset + len(typ.flat)])
-                            found = True
-                            break
-                        offset += len(typ.flat)
-                    if not found:
-                        _reject("unknown nominal field", "E_HIA_TYPE")
+                    offset, typ = record_field(actual[0], attrs["field"])
+                    if typ.linear:
+                        _reject("linear fields require consuming record.unpack/take", "E_HIA_RESOURCE")
+                    name = outputs(ins, [typ])[0]
+                    env[name] = _Value(typ, actual[0].names[offset:offset + len(typ.flat)])
                 elif op == "record.borrow":
                     # Borrow the *original* primitive field capability. The
                     # aggregate remains live; there is no copied owner or
                     # forged descriptor, and the primitive checker enforces
                     # exclusivity, parent suspension and eventual loan end.
                     _keys(attrs, {"field", "mode"}, op)
-                    if len(actual) != 1 or actual[0].typ.kind != "record":
+                    if len(actual) != 1 or actual[0].typ.kind not in {"record", "partial_record"}:
                         _reject("record.borrow requires a record", "E_HIA_TYPE")
-                    _name(attrs["field"], "borrowed field")
                     if type(attrs["mode"]) is not str or attrs["mode"] not in {"read", "mut"}:
                         _reject("record.borrow mode must be read or mut", "E_HIA_LOAN")
-                    offset, found = 0, False
-                    for field, typ in actual[0].typ.fields:
-                        if field == attrs["field"]:
-                            if typ.kind != "primitive" or typ.key not in BYTE_RESOURCES:
-                                _reject("record.borrow requires a primitive owner/view field",
-                                        "E_HIA_TYPE")
-                            loan_type = self.types.resolve("mutbuf" if attrs["mode"] == "mut" else "readbuf")
-                            name = outputs(ins, [loan_type])[0]
-                            env[name] = _Value(loan_type, (name,))
-                            ops.append(_ins("borrow." + attrs["mode"],
-                                            [actual[0].names[offset]], [(name, loan_type.key)]))
-                            found = True
-                            break
-                        offset += len(typ.flat)
-                    if not found:
-                        _reject("unknown nominal borrowed field", "E_HIA_TYPE")
+                    offset, typ = record_field(actual[0], attrs["field"])
+                    if typ.kind != "primitive" or typ.key not in BYTE_RESOURCES:
+                        _reject("record.borrow requires a primitive owner/view field",
+                                "E_HIA_TYPE")
+                    loan_type = self.types.resolve("mutbuf" if attrs["mode"] == "mut" else "readbuf")
+                    name = outputs(ins, [loan_type])[0]
+                    env[name] = _Value(loan_type, (name,))
+                    ops.append(_ins("borrow." + attrs["mode"],
+                                    [actual[0].names[offset]], [(name, loan_type.key)]))
                 elif op == "enum.make":
                     _keys(attrs, {"variant"}, op)
                     if len(declared) != 1 or declared[0][1].kind != "enum":

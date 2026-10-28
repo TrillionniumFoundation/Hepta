@@ -116,7 +116,7 @@ extern "C" unsigned int unsigned_entry(unsigned int x) noexcept { return n::sele
             ("throwing", "unsigned f(unsigned x) {return x;}", "E_CPP_PROJECT_PROFILE"),
             ("default", "unsigned f(unsigned x=7u) noexcept {return x;}", "E_CPP_PROJECT_PROFILE"),
             ("pack", 'template<class... T> unsigned f(T... x) noexcept {return 7u;} extern "C" unsigned g(unsigned x) noexcept {return f(x);}', "E_CPP_PROJECT_PROFILE"),
-            ("if_constexpr", 'template<class T> T f(T x) noexcept {if constexpr (sizeof(T)==4) return x; else return x+x;} extern "C" unsigned g(unsigned x) noexcept {return f(x);}', "E_CPP_PROJECT_PROFILE"),
+            ("if_constexpr_init", 'template<class T> T f(T x) noexcept {if constexpr (constexpr unsigned n=sizeof(T); n==4) return x; else return x+x;} extern "C" unsigned g(unsigned x) noexcept {return f(x);}', "E_CPP_PROJECT_CONSTEXPR"),
         ]
         for label, source, code in examples:
             with self.subTest(case=label):
