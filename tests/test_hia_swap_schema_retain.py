@@ -1,7 +1,7 @@
 """A safe v4 swap peephole must never downgrade live v5/v6 memory opcodes."""
 from __future__ import annotations
 
-from hepta.hia_program import SCHEMA_V5, SCHEMA_V6, verify_program
+from hepta.hia_program import HIAProgramRejected, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, verify_program
 from hepta.hia_program_runtime import execute_program
 from hepta.hia_program_llvm import emit_program_llvm, PROFILE_V5, PROFILE_V6
 from hepta.hia_swap_opt import rewrite_byte_swap
@@ -37,6 +37,33 @@ def with_swap(program, loan):
 
 
 class SchemaRetainingSwapTests(unittest.TestCase):
+    def test_v7_keeps_its_version_and_independent_chain_operations(self):
+        from tests.test_hia_swap_opt import source_program
+        from tests.test_hia_program import i
+        source = source_program()
+        source["schema"] = SCHEMA_V7
+        ops = source["functions"][0]["blocks"][0]["ops"]
+        ops[:0] = [i("chain.empty", out=[("empty_chain", "chain")]),
+                   i("owner.drop", ["empty_chain"])]
+        before = verify_program(source)
+        optimized = rewrite_byte_swap(before)
+        self.assertEqual(optimized.replacements, 1)
+        self.assertEqual(optimized.program.as_dict()["schema"], SCHEMA_V7)
+        self.assertEqual(optimized.program.as_dict()["functions"][0]["blocks"][0]["ops"][:2], ops[:2])
+        self.assertEqual(execute_program(before, "swap_candidate", [5, 0, 4, 0])["resources"],
+                         execute_program(optimized.program, "swap_candidate", [5, 0, 4, 0])["resources"])
+        self.assertEqual(execute_program(optimized.program, "swap_candidate", [5, 0, 4, 0])["result"], 55)
+
+    def test_structured_identity_is_not_silently_erased(self):
+        from hepta.hia_schema import COMPOSITE_SCHEMA
+        from tests.test_hia_swap_opt import source_program
+        source = source_program()
+        source.update(schema=COMPOSITE_SCHEMA, types=[])
+        composite = verify_program(source)
+        self.assertIsNotNone(composite.structured_bytes)
+        with self.assertRaisesRegex(HIAProgramRejected, "primitive Core identity"):
+            rewrite_byte_swap(composite)
+
     def test_v5_keeps_distinct_owner_copy(self):
         before = verify_program(with_swap(copy_program(), "writer"))
         optimized = rewrite_byte_swap(before)

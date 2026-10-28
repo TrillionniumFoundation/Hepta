@@ -12,6 +12,7 @@ from pathlib import Path
 import re
 
 from .c_migrate import MigrationRejected
+from .c_contracts import snapshot_contracts
 from .c_project import captured_source_argument, invoke
 
 
@@ -74,7 +75,7 @@ def truth(expr: Expression) -> Expression:
 class CTranslator:
     def __init__(self, capture: dict, contracts: dict | None = None):
         self.capture = capture
-        self.contracts = contracts or {"schema": "hepta.c-contracts.v1", "functions": {}}
+        self.contracts = snapshot_contracts(contracts)
         if self.contracts.get("schema") != "hepta.c-contracts.v1" or set(self.contracts) != {"schema", "functions"} or not isinstance(self.contracts["functions"], dict):
             raise MigrationRejected("E_C_CONTRACT", "Expected hepta.c-contracts.v1 with functions")
         self.inventory: list[dict] = []

@@ -13,17 +13,23 @@ from pathlib import Path
 import re
 from statistics import median
 from time import perf_counter_ns
+from types import MappingProxyType
 
 from .clang_capture import run_bounded
 from .hia_program import VerifiedProgram, verify_program
 from .hia_program_runtime import HIAProgramBudgetExceeded, HIAProgramTrap, execute_program
 from .hia_schema import SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6
 from .hia_swap_opt import rewrite_byte_swap
+from .hia_fill_loop_opt import PASS_ID as FILL_LOOP_PASS_ID, rewrite_full_view_fill_loop
 from .native_tool_identity import digest_executable
 
 UPSTREAM_COMMIT = "f8c9419df6ddeb36ff8b522a50219981fb8d9345"
 PLAN_SCHEMA = "hepta.hia.ndu-plan.v1"
 PASS_ID = "byte-swap.v1"
+_REWRITES = MappingProxyType({PASS_ID: rewrite_byte_swap,
+                             FILL_LOOP_PASS_ID: rewrite_full_view_fill_loop})
+_CANDIDATE_IDS = MappingProxyType({PASS_ID: "byte_swap", FILL_LOOP_PASS_ID: "fill_loop"})
+REGISTERED_PASSES = tuple(_REWRITES)
 DECISION_RESERVE_NS = 2_000_000_000
 _SCHEMAS = {SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6}
 _HEX = re.compile(r"[0-9a-f]{64}")
@@ -82,10 +88,12 @@ def read_json(payload, *, limit=1_048_576):
         raise HIANDURejected("E_HIA_NDU: invalid protocol JSON") from exc
 
 
-def make_plan(baseline, *, entry, generation=1, horizon_calls=100_000_000):
+def make_plan(baseline, *, entry, generation=1, horizon_calls=100_000_000, pass_id=PASS_ID):
     checked = verify_program(baseline)
+    if type(pass_id) is not str or pass_id not in _REWRITES:
+        _reject("unregistered transformation")
     return {"schema": PLAN_SCHEMA, "baseline_sha256": checked.sha256,
-            "pass_id": PASS_ID, "entry": entry, "generation": generation,
+            "pass_id": pass_id, "entry": entry, "generation": generation,
             "objective": {"horizon_calls": horizon_calls,
                           "maximum_live_bytes": 16 * 1024 * 1024,
                           "maximum_artifact_bytes": 64 * 1024 * 1024,
@@ -121,19 +129,24 @@ class PreparedCandidate:
     def plan_sha256(self):
         return sha256(self.plan_bytes).hexdigest()
 
+    @property
+    def candidate_id(self):
+        return _CANDIDATE_IDS[self.plan["pass_id"]]
+
 
 def prepare_candidate(baseline, plan, *, candidate_bytes=None):
     """Reverify both programs and reproduce the exact registered transformation.
 
     A caller's nominal VerifiedProgram or "feasible" flag is not a witness.
-    Composite/v7 programs are deliberately outside this first adapter, avoiding
-    schema downgrade or loss of structured-interface identity in the old pass.
+    Composite/v7 programs remain outside this adapter's registered contract.
+    The public byte-swap API separately preserves v7 and rejects composites.
     """
     checked = verify_program(baseline)
     if checked.structured_bytes is not None or checked.as_dict()["schema"] not in _SCHEMAS:
         _reject("the candidate adapter supports primitive v1-v6 only")
     _object(plan, ("schema", "baseline_sha256", "pass_id", "entry", "generation", "objective"), "plan")
-    if plan["schema"] != PLAN_SCHEMA or plan["pass_id"] != PASS_ID:
+    if (plan["schema"] != PLAN_SCHEMA or type(plan["pass_id"]) is not str
+            or plan["pass_id"] not in _REWRITES):
         _reject("unregistered plan schema or transformation")
     if _digest(plan["baseline_sha256"], "baseline identity") != checked.sha256:
         _reject("stale baseline identity")
@@ -141,7 +154,7 @@ def prepare_candidate(baseline, plan, *, candidate_bytes=None):
         _reject("a scalar public entry is required")
     _integer(plan["generation"], 1, (1 << 63) - 1, "generation")
     _objective(plan["objective"])
-    rewrite = rewrite_byte_swap(checked)
+    rewrite = _REWRITES[plan["pass_id"]](checked)
     candidate = verify_program(rewrite.program.canonical_bytes)
     if candidate_bytes is not None:
         if type(candidate_bytes) is not bytes:
@@ -152,7 +165,8 @@ def prepare_candidate(baseline, plan, *, candidate_bytes=None):
     return PreparedCandidate(checked, candidate, canonical(plan), rewrite.replacements)
 
 
-def assess_samples(raw_samples, *, calls_per_sample, objective, search_cost_ns):
+def assess_samples(raw_samples, *, calls_per_sample, objective, search_cost_ns,
+                   baseline_artifact_sha256=None, candidate_artifact_sha256=None):
     """Conservative measurement policy; this is not a statistical proof.
 
     Raw samples are never trimmed. The median saving must exceed three median
@@ -177,6 +191,14 @@ def assess_samples(raw_samples, *, calls_per_sample, objective, search_cost_ns):
     saving = int(median(savings))
     saving_mad = int(median([abs(v - saving) for v in savings]))
     reasons = []
+    identity_checked = baseline_artifact_sha256 is not None or candidate_artifact_sha256 is not None
+    native_changed = None
+    if identity_checked:
+        baseline_identity = _digest(baseline_artifact_sha256, "baseline artifact identity")
+        candidate_identity = _digest(candidate_artifact_sha256, "candidate artifact identity")
+        native_changed = baseline_identity != candidate_identity
+        if not native_changed:
+            reasons.append("identical_native_artifacts")
     for label, mad, mid in (("baseline", deviations_b, med_b), ("candidate", deviations_c, med_c)):
         if mad * 1_000_000 > objective["maximum_mad_ppm"] * mid:
             reasons.append(label + "_timing_noise")
@@ -194,8 +216,10 @@ def assess_samples(raw_samples, *, calls_per_sample, objective, search_cost_ns):
     _integer(projected_c, 1, 1_000_000_000_000_000_000, "projected candidate cost")
     if projected_c >= projected_b:
         reasons.append("experiment_cost_not_recovered")
-    return {"schema": "hepta.hia.ndu-measurement-policy.v1", "eligible": not reasons,
+    return {"schema": "hepta.hia.ndu-measurement-policy.v2", "eligible": not reasons,
             "reasons": reasons, "samples": len(raw_samples), "calls_per_sample": calls_per_sample,
+            "native_artifact_identity_checked": identity_checked,
+            "native_artifact_changed": native_changed,
             "baseline_median_ns": med_b, "candidate_median_ns": med_c,
             "baseline_mad_ns": deviations_b, "candidate_mad_ns": deviations_c,
             "paired_saving_median_ns": saving, "paired_saving_mad_ns": saving_mad,

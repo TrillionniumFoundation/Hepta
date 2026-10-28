@@ -14,6 +14,7 @@ import re
 
 from .c_allocation import peel, nodes
 from .c_migrate import MigrationRejected
+from .c_contracts import snapshot_contracts
 from .c_translation import CTranslator, Expression, INTEGER, NUMBER, cast, ident, truth
 
 
@@ -59,6 +60,7 @@ class CRecordViewTranslator(CTranslator):
         return semantic(old) == semantic(node)
 
     def __init__(self, capture: dict, contracts: dict):
+        contracts = snapshot_contracts(contracts)
         if (set(contracts) != {"schema", "records", "functions"}
                 or contracts.get("schema") != "hepta.c-record-views.v1"
                 or not isinstance(contracts["records"], dict)
@@ -87,7 +89,7 @@ class CRecordViewTranslator(CTranslator):
             value_functions[name] = {"slices": specification["slices"]}
         self.value_contracts = {"schema": "hepta.c-contracts.v1", "functions": value_functions}
         super().__init__(capture, self.value_contracts)
-        self.contracts = copy.deepcopy(contracts)
+        self.contracts = contracts
         self.slice_bindings = {}
         self.record_bindings = {}
         self.pending_locals = {}

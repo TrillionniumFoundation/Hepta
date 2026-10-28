@@ -14,12 +14,13 @@ admission path retained the baseline when improvement was not established.
 
 | Component | Responsibility | Boundary |
 | --- | --- | --- |
-| `hepta.hia_ndu.prepare_candidate` | Verify immutable baseline, bind a strict plan, reproduce `byte-swap.v1`, reverify exact candidate | Primitive v1–v6; scalar public entry; arbitrary type-safe edits are refused |
+| `hepta.hia_ndu.prepare_candidate` | Verify immutable baseline, bind a strict plan, reproduce `byte-swap.v1` or `full-view-fill-loop.v1`, reverify exact candidate | Primitive v1–v6; scalar public entry; arbitrary type-safe edits are refused |
 | `observe_semantics` | Compare actual interpreter results, trap codes and complete resource ledgers, including injected allocation failure | Finite corpus; instruction budget equivalence and foreign effects are excluded |
 | `tools.hia_ndu_measure.measure_pair` | Compile both Cores through the current LLVM consumer; check each native result; retain paired C-loop timings | Linux x86-64, `(usize, usize, usize, usize) -> u8`, 1–64 cases |
 | `rust/hia-ndu-bridge` | Call the actual upstream V2 evaluator with required abstain, explicit utility/aggregation rules and resource ceilings | Host-supplied evidence; authority remains `DENY_ALL` |
 | `tools/qualify_hia_ndu.py` | Produce the transformation, validation, artifact, measurement and decision record | No production admission or code installation |
 | `hepta.hia_version_dispatch.LocalVersionDispatcher` | Explicit host-controlled staging, generation CAS and pinning of actual interpreter calls | Separate interpreter-only lifecycle experiment; no automatic NDU activation |
+| `hepta.hia_native_version_dispatch.NativeVersionDispatcher` | Actual background Clang compilation, sealed native images, isolated child calls, generation CAS, drain and rollback | Separate Linux x86-64 scalar ABI lifecycle; baseline/exact swap only; no automatic NDU activation or external-state migration |
 
 The existing Core language and verifier remain the semantic authority. This
 adapter accepts only the exact registered rewrite of the frozen baseline.
@@ -27,11 +28,18 @@ An imported candidate is reverified and compared byte-for-byte with the
 locally reproduced result. A model's assertion, score, or `proved` flag is
 not an admissibility certificate.
 
-The byte-swap pass is a finite local transformation, not a general semantic
-equivalence prover. Composite and primitive v7 inputs are refused by this
-adapter because its registered contract does not cover structured identity
-or the old pass's version-upgrade behavior. This does not remove those
-versions from the rest of Hepta.
+Both registered passes have finite structural contracts. They are not general
+semantic equivalence provers. Composite and primitive v7 inputs remain outside
+this adapter's contract. The separate public byte-swap API preserves v7 and
+rejects composite input instead of erasing its structured identity. This does
+not expand NDU admission automatically.
+
+The fill-loop rule recognizes an actual zero-to-length, unit-stride loop over
+the same exclusive byte view, with an invariant byte and no other body effects.
+It preserves the length computation and replaces only the admitted loop with
+`buffer.fill`, then reverifies the complete result. It excludes instruction-step
+budget, host interruption and host allocation-failure equivalence. See the
+[registered rule contract](HIA_FULL_VIEW_FILL_LOOP.md) for the exact constraints.
 
 ## Building the actual upstream evaluator
 
@@ -85,6 +93,14 @@ lists to interpreter validation. It does not execute trap cases inside the
 native timing process. Independent native trap/allocator qualifications remain
 necessary and are not replaced by this performance instrument.
 
+For the fill-loop candidate use `--pass-id full-view-fill-loop.v1`,
+`--program examples/hia_ndu/fill_loop.json`,
+`--cases examples/hia_ndu/fill_loop_cases.json`,
+`--negative-cases examples/hia_ndu/fill_loop_negative_cases.json`, and
+`--entry fill_probe`. The supplied experiment protocol fixes the run count,
+corpus, budget and thresholds before measurement; see
+`experiments/hia_ndu_native_20261027/README.md`.
+
 NDU evaluation generations start at 1 because that is the upstream type's
 contract. Local dispatch generations start at 0 and belong to a different
 host state machine. The evaluator generation is not a dispatcher CAS value.
@@ -110,15 +126,27 @@ feasible for NDU:
 
 1. Exact candidate reproduction, Core verification and finite semantic checks.
 2. Actual native results matching the Python VM run for each corresponding
-   Core on every timing input. Both runs use the same Python implementation;
-   this path does not dynamically execute the swap candidate in the Rust VM.
-3. Baseline and candidate median absolute deviation (MAD) at most 5% of each
+   Core on every timing input. This qualification CLI itself uses Python plus
+   native observations. Separate `test_hia_rust_owned_bulk` checks execute both
+   swap and fill-loop candidates in the independent Rust VM; those scoped tests
+   are additional evidence, not a third backend inside this measurement CLI.
+3. Actual native artifact hashes must differ. Policy v2 records
+   `identical_native_artifacts` and refuses eligibility when the complete
+   native bytes are equal, even if noisy timing appears favorable. Artifact
+   inequality alone establishes no behavioral or performance improvement.
+4. Baseline and candidate median absolute deviation (MAD) at most 5% of each
    median, or a tighter declared threshold.
-4. A positive paired median saving exceeding three paired-saving MADs and
+5. A positive paired median saving exceeding three paired-saving MADs and
    the declared relative margin (2% by default).
-5. Projected runtime savings over the declared call horizon exceeding the
+6. Projected runtime savings over the declared call horizon exceeding the
    measured search cost and a reserved two seconds for the decision path.
-6. NDU's actual hard-feasibility and resource checks admitting the candidate.
+7. NDU's actual hard-feasibility and resource checks admitting the candidate.
+
+The measurement policy report is `hepta.hia.ndu-measurement-policy.v2`.
+The qualification path supplies both actual artifact hashes. Direct arithmetic
+unit tests may omit both; their report then explicitly says native identity was
+not checked and does not constitute native candidate qualification. Historical
+v1 reports remain unchanged.
 
 These are conservative engineering filters, **not statistical confidence
 intervals or a proof of expected future gain**. Workload distribution and the
@@ -181,8 +209,8 @@ tests into a proof, override a host rejection, or grant execution authority.
 
 ## Qualification status
 
-This work establishes an executable, reproducible integration path for one
-finite compiler pass. It does not close the entire P0–P7 roadmap. In particular:
+This work establishes an executable, reproducible integration path for two
+finite compiler passes. It does not close the entire P0–P7 roadmap. In particular:
 
 - General typed-place/layout/concurrency semantics and arbitrary resource
   models still require their own language and proof obligations.
@@ -192,11 +220,13 @@ finite compiler pass. It does not close the entire P0–P7 roadmap. In particula
   superiority to Rust or an industrial hot function's repeatable net benefit.
 - General C/C++ translation, automatic contract recovery, migration labor and
   bridge maintenance costs remain unqualified.
-- Interpreter version pinning does not establish native hot swapping,
-  external-state migration, callback lifetime safety or distributed rollback.
+- Interpreter and isolated-child native version pinning do not establish
+  in-process patching, external-state migration, callback lifetime safety or
+  distributed rollback.
 - Physical targets, long-lived complex-resource workloads and independent
   Agent productivity experiments require additional executions.
 
 See [the Core consumer contract](HIA_PROGRAM.md),
 [local version dispatch](HIA_LOCAL_VERSION_DISPATCH_20261027.md), and
+[native version dispatch](HIA_NATIVE_VERSION_DISPATCH_20261027.md), and
 [the integration acceptance boundaries](HIA_SEVEN_STAGE.md).

@@ -10,7 +10,8 @@ import tempfile
 import time
 import unittest
 
-from hepta.clang_capture import CaptureRejected, run_bounded
+from hepta.clang_capture import (CaptureRejected, run_bounded,
+                                 scoped_capture_deadline)
 
 
 class CaptureBudgets(unittest.TestCase):
@@ -51,6 +52,54 @@ class CaptureBudgets(unittest.TestCase):
             run_bounded([sys.executable, '-c', 'import time;time.sleep(10)'], timeout=.15)
         self.assertEqual(e.exception.code, 'E_CAPTURE_TIMEOUT')
         self.assertLess(time.monotonic() - start, 2)
+
+    def test_elapsed_scope_does_not_preempt_python_or_launch_another_tool(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            marker = Path(temporary) / "unexpected-child"
+            with scoped_capture_deadline(.02) as deadline:
+                time.sleep(.04)
+                # No signal interrupts arbitrary Python; the next tool check
+                # observes expiry before constructing a child process.
+                reached_boundary = True
+                with self.assertRaises(CaptureRejected) as caught:
+                    run_bounded([sys.executable, "-c",
+                                 f"from pathlib import Path; Path({str(marker)!r}).touch()"])
+            self.assertTrue(reached_boundary)
+            self.assertTrue(deadline.expired)
+            self.assertEqual(caught.exception.code, "E_CAPTURE_TOTAL_DEADLINE")
+            self.assertIsNone(caught.exception.capture)
+            self.assertFalse(marker.exists())
+        # The expired context is gone; it cannot poison a subsequent caller.
+        result = run_bounded([sys.executable, "-c", "print('restored')"], timeout=3)
+        self.assertEqual((result.returncode, result.stdout), (0, "restored\n"))
+
+    def test_nested_disabled_or_later_deadline_cannot_extend_outer_scope(self):
+        for inner_seconds in (None, 10):
+            with self.subTest(inner_seconds=inner_seconds):
+                with scoped_capture_deadline(.25) as outer:
+                    with scoped_capture_deadline(inner_seconds) as inner:
+                        with self.assertRaises(CaptureRejected) as caught:
+                            run_bounded([sys.executable, "-c", "import time; time.sleep(10)"], timeout=5)
+                self.assertTrue(outer.expired)
+                self.assertFalse(inner.expired)
+                self.assertEqual(caught.exception.code, "E_CAPTURE_TOTAL_DEADLINE")
+                self.assertIsNotNone(caught.exception.capture)
+                self.assertIsNotNone(caught.exception.capture.returncode)
+
+    def test_scope_exit_records_unpolled_expiry_and_restores_outer_scope(self):
+        with scoped_capture_deadline(3) as outer:
+            with scoped_capture_deadline(.02) as inner:
+                time.sleep(.04)
+            self.assertTrue(inner.expired)
+            result = run_bounded([sys.executable, "-c", "print('outer remains active')"], timeout=2)
+            self.assertEqual(result.returncode, 0)
+        self.assertFalse(outer.expired)
+
+    def test_invalid_scoped_deadline_does_not_replace_context(self):
+        for invalid in (float("nan"), float("inf"), float("-inf"), True, 0, -1, 3601, "1"):
+            with self.subTest(seconds=repr(invalid)), self.assertRaises(ValueError):
+                with scoped_capture_deadline(invalid):
+                    self.fail("invalid deadline entered a scope")
 
     def test_invalid_timeout_budgets_reject_before_launch(self):
         for invalid in (float("nan"), float("inf"), float("-inf"),

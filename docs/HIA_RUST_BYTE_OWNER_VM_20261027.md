@@ -29,10 +29,14 @@ allocation failure is still rejected before any instruction executes.
 | `loan.end` | Ends the local loan after its children have ended |
 | `owner.move`, `owner.drop` | Consumes the old SSA name; move preserves storage identity; drop records explicit cleanup |
 | `buffer.load`, `buffer.store` | Checked `usize` offset and `u8` value, with bounds traps |
+| `buffer.fill`, `buffer.copy` | v2 full-owner fill and distinct-owner prefix copy |
+| `buffer.move_within` | v3 checked in-place movement with overlap-safe memmove behavior |
+| `buffer.swap` | v4 checks both offsets before either write, including identical-offset swaps |
+| `buffer.copy_range`, `buffer.fill_range` | v5/v6 checked offsets and lengths; zero-length ranges still require valid endpoints |
 | `call` | Consumes owner arguments, preserves allocation identity and binds independent formal loan witnesses |
 
 The existing scalar operation implementation is reused. Chain operations and
-types, bulk buffer operations, public resource entry/return types, and direct
+types, public resource entry/return types, and direct
 nominal/composite documents are outside
 this execution profile. Primitive operations outside the profile produce
 `E_HIA_RUST_UNSUPPORTED`. A direct nominal document fails the existing strict
@@ -41,6 +45,18 @@ primitive-schema check with `E_HIA_FORMAT`; no new schema fallback is installed.
 Resource handles cannot be supplied or returned through JSON. Runtime owner
 and loan maps supplement the existing static admission check; they are not a
 replacement verifier or a second source of language rules.
+
+Bulk memory operations use the same owner and loan identities as byte access.
+Range validation uses offset/extent subtraction before calculating an end
+offset, so extreme `usize` values trap without arithmetic wraparound. Every
+source and destination range is checked before modifying storage. Empty ranges
+at an owner's end are admitted, while offsets beyond the end still trap even
+when the length is zero. Copy requires distinct roots; move uses safe Rust
+`copy_within` for either overlap direction. Distinct-root copies obtain disjoint
+map entries through a safe double-ended iterator, without moving owners or
+allocating a temporary proportional to the copy length. These operations do
+not add language allocations, frees, or loan transitions. Host allocation and
+out-of-memory behavior are not a cross-implementation equivalence guarantee.
 
 Each borrowed call formal receives a distinct runtime identity and the exact
 permission in its signature. Two readonly formals may alias a mutable caller
@@ -71,7 +87,7 @@ injected allocation failure.
 
 Execution reports use the new schema
 `hepta.hia.rust-byte-owner-execution.v1` and profile
-`cfg-call-byte-owner-v2`. They include the source digest, entry function,
+`cfg-call-byte-owner-bulk-v3`. They include the source digest, entry function,
 execution policy, status, steps, scalar values or error code, and the complete
 resource ledger. The general-resource, production-admission, whole-language,
 native-refinement, and ABI/hardware claims remain false.
@@ -81,7 +97,8 @@ dropped, live owners/bytes, peak bytes, loans started and ended, and live local
 loans. For v7, the canonical six chain counters are present and zero because no
 chain opcode is admitted.
 
-The `byte_owner_cfg_and_calls` and `scalar_public_entry_only` scope claims are
+The `byte_owner_cfg_and_calls`, `byte_owner_bulk_memory`, and
+`scalar_public_entry_only` scope claims are
 true; the old `single_block_scalar_entry_only` claim is false. The CLI and its
 finite heap/step limits remain compatible with the earlier byte-owner profile.
 Exactly 32 call frames are admitted; a thirty-third invocation stops before
@@ -167,6 +184,25 @@ borrowed calls, aliased readonly formals, allocator failures and recursive
 call-depth stops. Their native test independently links emitted LLVM objects
 with an instrumented C allocator. Fresh command results belong in the current
 source-bound execution record; historical counts are not reused.
+
+The later `tests/test_hia_rust_owned_bulk.py` extends the actual executable
+comparison to all six v2-v6 byte operations. A separate list model computes a
+weighted checksum so byte ordering and untouched ranges remain observable.
+It checks small offset domains, both copy allocation orders, overlapping
+moves, empty ranges, extreme offsets, readonly and aliased-loan refusals,
+formal readonly siblings sharing a mutable caller view, allocation failure,
+and every step boundary of two borrowed-call fixtures. The previously
+registered byte-swap baseline and its exact candidate are now both executed
+by the independent Rust VM. Their different instruction counts are preserved;
+this does not assert step-budget equivalence across the rewrite.
+
+The bulk native test compiles the exact combined Core through the LLVM emitter
+and links a separate C driver that observes allocator attempts, successful
+allocations, frees, live allocations, return values and actual aborts. It
+includes bounds failures and injected allocation failures. These are finite
+observations, not an all-input equivalence proof. Old unsupported-operation
+tests now use still-unsupported chain operations rather than newly admitted
+bulk operations; chain and raw nominal rejection remain required.
 
 No result here establishes general resource execution, chain execution,
 unwinding semantics, LLVM refinement, broad target support, or production

@@ -4,7 +4,7 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass
 
-from .hia_program import SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, VerifiedProgram, verify_program
+from .hia_program import HIAProgramRejected, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, VerifiedProgram, verify_program
 
 
 @dataclass(frozen=True)
@@ -59,11 +59,13 @@ def _match(a, b, c, d, uses):
 def rewrite_byte_swap(program) -> ByteSwapOptimization:
     """Rewrite only a proven finite local pattern; reverify the entire result.
 
-    This accepts HIA v1-v6, preserves all interfaces/effects/other operations,
+    This accepts primitive HIA v1-v7, preserves all interfaces/effects/other operations,
     and has no reliance on caller-supplied optimization/equivalence claims.
     It does not certify LLVM/refinement or unspecified source C/C++ behavior.
     """
     base = verify_program(program)
+    if base.structured_bytes is not None:
+        raise HIAProgramRejected("swap rewrite requires primitive Core identity", "E_HIA_OPT_PROFILE")
     data = base.as_dict()
     replacements = 0
     for function in data["functions"]:
@@ -85,9 +87,9 @@ def rewrite_byte_swap(program) -> ByteSwapOptimization:
             block["ops"] = result
     if replacements:
         # The byte.swap opcode first exists in v4. Upgrading an older schema
-        # is required, but downgrading v5/v6 would invalidate their independent
+        # is required, but downgrading v5/v6/v7 would invalidate their independent
         # bulk-memory opcodes or silently change the authenticated version.
-        if data["schema"] not in {SCHEMA_V4, SCHEMA_V5, SCHEMA_V6}:
+        if data["schema"] not in {SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7}:
             data["schema"] = SCHEMA_V4
         checked = verify_program(data)
     else:

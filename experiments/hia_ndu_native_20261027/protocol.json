@@ -1,0 +1,80 @@
+{
+  "cooperative_deadline": {
+    "asynchronous_signal": false,
+    "enforcement": "tool_poll_and_phase_boundary",
+    "hard_kill_deadline": false,
+    "seconds": 120
+  },
+  "horizon_calls": 100000000,
+  "input_files": [
+    {
+      "path": "examples/hia_ndu/fill_loop.json",
+      "sha256": "62d17530c470a8d0dfbfc8573a64a9c215d2293042617beb47443a252a579abf"
+    },
+    {
+      "path": "examples/hia_ndu/fill_loop_cases.json",
+      "sha256": "f40a004748b7c73897e77a7e2b08812c3f36169fb4418aaaae3c535bc22b1871"
+    },
+    {
+      "path": "examples/hia_ndu/fill_loop_negative_cases.json",
+      "sha256": "43f6d2938550b0cb154a32565ac9d58dc8ab8f6f0fa563639a24c2ec329506de"
+    },
+    {
+      "path": "examples/hia_ndu/byte_swap.json",
+      "sha256": "297b8be8e1061b0a91eb3bc79f1eaeda69d6c28fc3b94a27c5ccfe064210d9cd"
+    },
+    {
+      "path": "examples/hia_ndu/byte_swap_cases.json",
+      "sha256": "620e55d31e4f696d950002c9f3c121aa707eba2aed14ae2117e1a3c39a092281"
+    }
+  ],
+  "iterations": 10000,
+  "native_timed_calls": {
+    "per_fill_search": 9920000,
+    "swap_control": 12400000
+  },
+  "repeats_until_pass": false,
+  "runs": [
+    {
+      "case_count": 16,
+      "cases": "examples/hia_ndu/fill_loop_cases.json",
+      "entry": "fill_probe",
+      "id": "fill-loop-1",
+      "negative_cases": "examples/hia_ndu/fill_loop_negative_cases.json",
+      "pass_id": "full-view-fill-loop.v1",
+      "program": "examples/hia_ndu/fill_loop.json",
+      "timed_calls_budget": "per_fill_search"
+    },
+    {
+      "case_count": 16,
+      "cases": "examples/hia_ndu/fill_loop_cases.json",
+      "entry": "fill_probe",
+      "id": "fill-loop-2",
+      "negative_cases": "examples/hia_ndu/fill_loop_negative_cases.json",
+      "pass_id": "full-view-fill-loop.v1",
+      "program": "examples/hia_ndu/fill_loop.json",
+      "timed_calls_budget": "per_fill_search"
+    },
+    {
+      "case_count": 20,
+      "cases": "examples/hia_ndu/byte_swap_cases.json",
+      "entry": "swap_candidate",
+      "id": "swap-control",
+      "pass_id": "byte-swap.v1",
+      "program": "examples/hia_ndu/byte_swap.json",
+      "timed_calls_budget": "swap_control"
+    }
+  ],
+  "samples": 31,
+  "schema": "hepta.hia.ndu-frozen-protocol.v1",
+  "selection_of_favorable_rounds": false,
+  "thresholds": {
+    "decision_reserve_ns": 2000000000,
+    "maximum_artifact_bytes": 67108864,
+    "maximum_live_bytes": 16777216,
+    "maximum_mad_ppm": 50000,
+    "maximum_search_ns": 60000000000,
+    "minimum_gain_ppm": 20000,
+    "require_different_native_artifacts": true
+  }
+}

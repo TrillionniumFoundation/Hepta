@@ -194,7 +194,7 @@ class RustOwnedCfgParity(unittest.TestCase):
             self.assertEqual(rust["error"]["code"], python["error"]["code"])
         self.assertTrue(rust["claims"]["finite_byte_owner_execution"])
         self.assertTrue(rust["claims"]["byte_owner_cfg_and_calls"])
-        self.assertEqual(rust["profile"], "cfg-call-byte-owner-v2")
+        self.assertEqual(rust["profile"], "cfg-call-byte-owner-bulk-v3")
         for claim in ("production_admission_authorized", "whole_language_soundness_proved",
                       "native_backend_refinement_proved", "general_resource_execution"):
             self.assertFalse(rust["claims"][claim])

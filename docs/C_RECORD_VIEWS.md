@@ -63,6 +63,10 @@ extent is the unsigned `buffer_mask` field plus one:
 
 That fragment illustrates the schema; a complete module contract must describe
 every captured function. The frozen fixture contains the complete contract.
+Both migration CLIs use the [bounded contract intake](C_MIGRATION.md#unambiguous-bounded-resource-contract-intake):
+duplicate keys, including conflicting read/mutable access declarations, reject
+before compilation. The API freezes a detached checked graph and records its
+canonical identity. These are authored obligations, not inferred contracts.
 The supported record has one primitive buffer pointer and primitive scalar
 state. Its extent expression is an unsigned field plus zero or one. A function
 may take one such record by pointer and additional primitive slice/scalar
@@ -151,7 +155,8 @@ The qualification builds the complete original module with independent GCC,
 builds the migrated module with the pinned Rust reference backend, and checks:
 
 - 16,384 state transitions across capacities 1, 2, 4, 8, 16, 32, 64 and 256;
-  65,544 paired native API calls, including 543 null/zero-length buffer calls
+  65,544 paired native API comparisons, comprising 65,544 original-C entries
+  and 65,544 translated entries (131,088 total native entries), including 543 null/zero-length buffer pairs
   for the frozen default seed. All nine functions are executed.
 - Return values, every scalar state field, every backing-buffer byte, output
   sentinels, unchanged input storage and backing-pointer identity, against both
@@ -178,13 +183,34 @@ allocation/startup are outside the timed loops. Actual regressions are retained.
 One shared host, GCC `-O2` versus Hepta's Rust `-O3` reference path, and no LTO or
 affinity control do not establish universal parity or superiority.
 
+`migration_disposition` separates the function and declaration denominators:
+nine converted function bodies, zero untranslated C bodies behind bridges,
+zero rejected/unaccounted bodies, and 22 active declarations with their exact
+dispositions. Nine generated original-C ABI wrappers call those nine converted
+bodies; they do not add nine more functions to the conversion denominator.
+One translation unit, one active header and one listed compilation command are
+covered. The license, upstream README, caller contract and compilation database
+each have explicit input dispositions. This complete pinned module is not a
+measurement of a production application's or the whole C ecosystem's migration
+rate; inactive branches and unlisted configurations remain outside scope.
+
 The report contains generated core/bridge line counts, elapsed migration and
 qualification time, original compiler identity, complete source snapshots
-before/after, input hashes, native builds and measured costs. Human review
-hours, model tokens and total migration labor remain unmeasured (`null`), not
-zero. Actual model runs remain zero. Intermediate qualification checkpoints
-are retained when a later step fails, and source changes during the run reject
-qualification. Generated derivatives retain the upstream license and notice.
+before/after, input hashes and native builds. Automatic stage costs distinguish
+wall time, coordinator CPU time, and completed child-process user/system CPU
+time. Contract authoring, human review and maintenance hours remain unmeasured
+(`null`), as do model tokens; actual model runs remain zero. The recorded tool
+duration is not the total migration labor or a maintenance-cost estimate.
+
+The output report must be a new path. Its inode is reserved before compiler
+work; existing success, failure or partial reports are never overwritten. Each
+report gets a new `<report-name>.generated/` directory rather than sharing a
+fixed generated-source destination. The exact authored `contracts.json`, its
+raw digest, generated core/bridge, migration receipt, compilation database,
+upstream license and notice are retained. Intermediate checkpoints retain later
+failures and interrupts. They are flushed writes, not a crash-atomic archive.
+A changed output pathname is rejected, and source changes during the run reject
+qualification. Use a fresh output name for every attempt, including retries.
 
 ## Independent audit findings retained
 

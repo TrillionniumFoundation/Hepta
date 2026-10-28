@@ -311,7 +311,7 @@ pub fn execute_scalar(input: &[u8], function: &str, arguments: &[Value],
 
 /// Opt-in finite byte-owner execution in the SAME Machine as scalar execution.
 /// Byte owners, loans, resource calls and CFG; scalar public entry/return only.
-/// Chain and bulk operations remain outside this finite execution profile.
+/// Bulk byte operations are admitted; chain operations remain outside it.
 /// Static ownership admission still comes from the existing verify_owned.
 pub fn execute_owned(input: &[u8], function: &str, arguments: &[Value],
                      max_steps: u64, max_heap_bytes: u64,
@@ -417,7 +417,7 @@ fn execute(input: &[u8], function: &str, arguments: &[Value], max_steps: u64,
     });
     if let Some(memory) = machine.memory.as_ref() {
         report["schema"] = json!("hepta.hia.rust-byte-owner-execution.v1");
-        report["profile"] = json!("cfg-call-byte-owner-v2");
+        report["profile"] = json!("cfg-call-byte-owner-bulk-v3");
         report["resources"] = memory.report(document["schema"] == "hepta.hia.program.v7");
         report["max_heap_bytes"] = json!(owned_policy.unwrap().0);
         report["allocation_fail_at"] = json!(owned_policy.unwrap().1);
@@ -427,6 +427,7 @@ fn execute(input: &[u8], function: &str, arguments: &[Value], max_steps: u64,
             "single_block_scalar_entry_only": false,
             "scalar_public_entry_only": true,
             "byte_owner_cfg_and_calls": true,
+            "byte_owner_bulk_memory": true,
             "general_resource_execution": false,
             "production_admission_authorized": false,
             "whole_language_soundness_proved": false,

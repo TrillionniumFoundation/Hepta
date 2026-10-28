@@ -6,15 +6,19 @@ actual pinned Rust evaluator and native compiler; no mock supplies a pass.
 from __future__ import annotations
 
 import copy
+import importlib.util
 import json
 import os
 from pathlib import Path
 import tempfile
+import signal
+import sys
+import time
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-from hepta.clang_capture import run_bounded
+from hepta.clang_capture import CaptureRejected, run_bounded, scoped_capture_deadline
 from hepta.hia_ndu import (HIANDURejected, assess_samples, invoke_ndu, make_plan,
                           observe_semantics, prepare_candidate)
 from hepta.hia_program import verify_program
@@ -94,6 +98,31 @@ class CandidatePlanTests(unittest.TestCase):
         self.assertTrue(any(row["baseline"].get("trap_code") == "bounds"
                             for row in observed["observations"]))
 
+    def test_fill_loop_plan_binds_the_registered_rule(self):
+        from hepta.hia_fill_loop_opt import PASS_ID as FILL_PASS
+        from tests.test_hia_fill_loop_opt import fill_loop_program
+        source = fill_loop_program()
+        plan = make_plan(source, entry="fill_probe", pass_id=FILL_PASS)
+        candidate = prepare_candidate(source, plan)
+        self.assertEqual(candidate.replacements, 1)
+        self.assertEqual(candidate.candidate_id, "fill_loop")
+        self.assertEqual(candidate.plan["pass_id"], FILL_PASS)
+        observed = observe_semantics(candidate, [[1, 7, 0, 0], [32, 173, 31, 17]],
+                                     negative_cases=[[0, 7, 0, 0], [4, 7, 4, 0], [4, 256, 0, 0]])
+        self.assertTrue(observed["ok"])
+        wrong_rule = make_plan(source, entry="fill_probe")
+        with self.assertRaisesRegex(HIANDURejected, "differs from"):
+            prepare_candidate(source, wrong_rule, candidate_bytes=candidate.candidate.canonical_bytes)
+
+    def test_rule_identifiers_are_closed_and_exact_strings(self):
+        for bad in ([], {}, True, "full-view-fill-loop.v2", "model-derived"):
+            with self.subTest(value=bad), self.assertRaises(HIANDURejected):
+                make_plan(self.source, entry="swap_candidate", pass_id=bad)
+            plan = copy.deepcopy(self.plan)
+            plan["pass_id"] = bad
+            with self.subTest(plan_value=bad), self.assertRaises(HIANDURejected):
+                prepare_candidate(self.source, plan)
+
 
 class MeasurementPolicyTests(unittest.TestCase):
     def setUp(self):
@@ -138,8 +167,95 @@ class MeasurementPolicyTests(unittest.TestCase):
                 self.assess([(1_000_000, 500_000)] * 31)
             self.objective = original
 
+    def test_identical_native_bytes_cannot_turn_favorable_noise_into_gain(self):
+        samples = [{"baseline_ns": 1_000_000, "candidate_ns": 500_000}] * 31
+        ordinary = assess_samples(samples, calls_per_sample=1000, objective=self.objective,
+                                  search_cost_ns=0, baseline_artifact_sha256="a" * 64,
+                                  candidate_artifact_sha256="b" * 64)
+        duplicate = assess_samples(samples, calls_per_sample=1000, objective=self.objective,
+                                   search_cost_ns=0, baseline_artifact_sha256="a" * 64,
+                                   candidate_artifact_sha256="a" * 64)
+        self.assertTrue(ordinary["eligible"])
+        self.assertFalse(duplicate["eligible"])
+        self.assertEqual(duplicate["reasons"], ["identical_native_artifacts"])
+        self.assertTrue(duplicate["native_artifact_identity_checked"])
+        self.assertFalse(duplicate["native_artifact_changed"])
+        self.assertEqual(duplicate["schema"], "hepta.hia.ndu-measurement-policy.v2")
+
+    def test_partial_or_invalid_native_identity_is_not_a_comparison(self):
+        samples = [{"baseline_ns": 1_000_000, "candidate_ns": 500_000}] * 31
+        for before, after in (("a" * 64, None), (None, "b" * 64), ("0" * 64, "b" * 64),
+                              (True, "b" * 64), ("a" * 64, "B" * 64)):
+            with self.subTest(before=before, after=after), self.assertRaises(HIANDURejected):
+                assess_samples(samples, calls_per_sample=1000, objective=self.objective,
+                               search_cost_ns=0, baseline_artifact_sha256=before,
+                               candidate_artifact_sha256=after)
+
 
 class EvidencePublicationTests(unittest.TestCase):
+    @unittest.skipUnless(os.name == "posix", "POSIX process-group cleanup required")
+    def test_cooperative_deadline_reaps_separate_process_group_and_retains_output(self):
+        from tools.qualify_hia_ndu import cooperative_deadline
+        started = time.monotonic()
+        with cooperative_deadline(1) as deadline:
+            with self.assertRaises(CaptureRejected) as caught:
+                run_bounded([sys.executable, "-c",
+                    "import os,sys,time; print('started',os.getpid(),os.getpgrp(),os.getsid(0),flush=True);"
+                    "print('partial stderr',file=sys.stderr,flush=True); time.sleep(30)"], timeout=20)
+        self.assertTrue(deadline["expired"])
+        self.assertEqual(deadline["enforcement"], "tool_poll_and_phase_boundary")
+        self.assertFalse(deadline["asynchronous_signal"])
+        self.assertLess(time.monotonic() - started, 8)
+        self.assertEqual(caught.exception.code, "E_CAPTURE_TOTAL_DEADLINE")
+        capture = caught.exception.capture
+        self.assertIsNotNone(capture)
+        self.assertEqual(capture.returncode, -signal.SIGKILL)
+        self.assertTrue(capture.stdout.startswith(b"started "))
+        pid, group, session = map(int, capture.stdout.split()[1:])
+        self.assertEqual((group, session), (pid, pid))
+        self.assertNotEqual(group, os.getpgrp())
+        self.assertEqual(capture.stderr, b"partial stderr\n")
+        self.assertEqual(capture.stdout_total_bytes, len(capture.stdout))
+        self.assertEqual(capture.stderr_total_bytes, len(capture.stderr))
+        with self.assertRaises(ProcessLookupError):
+            os.kill(pid, 0)
+
+    def test_phase_boundary_deadline_fails_actual_qualifier_before_measurement(self):
+        from tools.qualify_hia_ndu import qualify
+        source = source_program()
+        plan = make_plan(source, entry="swap_candidate")
+        with scoped_capture_deadline(.02) as deadline:
+            time.sleep(.04)
+            report = qualify(source, plan, [[5, 0, 4, 0]], bridge=BRIDGE,
+                             expected_bridge_sha256="a" * 64)
+        self.assertTrue(deadline.expired)
+        self.assertFalse(report["ok"])
+        self.assertEqual(report["status"], "failed_closed_no_change")
+        self.assertEqual(report["diagnostics"][0]["code"], "E_CAPTURE_TOTAL_DEADLINE")
+        self.assertNotIn("measurement", report)
+
+    def test_cooperative_deadline_retains_partial_measurement_capture(self):
+        from tools.hia_ndu_measure import _events, _process
+        from tools.qualify_hia_ndu import cooperative_deadline
+        # The event is a parser/capture control emitted by a real child. It is
+        # not a native timing observation and cannot establish any gain.
+        event = {"kind": "sample", "pair": 0, "position": 0, "backend": "baseline",
+                 "elapsed_ns": 100, "process_cpu_ns": 80, "checksum": 7}
+        child = "import time; print(" + repr(json.dumps(event)) + ",flush=True); time.sleep(30)"
+        report = {"processes": [], "correctness": {}}
+        with tempfile.TemporaryDirectory() as temporary:
+            with cooperative_deadline(1) as deadline:
+                row = _process(report, "deadline_capture_control", [sys.executable, "-c", child],
+                               Path(temporary), timeout=20)
+        self.assertTrue(deadline["expired"])
+        self.assertEqual(row["capture_error"], "E_CAPTURE_TOTAL_DEADLINE")
+        self.assertEqual(json.loads(row["stdout"]), event)
+        _events(report, row)
+        self.assertEqual(report["raw_events"], [event])
+        self.assertEqual(len(report["raw_samples"]), 1)
+        self.assertEqual(report["raw_samples"][0]["baseline_ns"], 100)
+        self.assertNotIn("candidate_ns", report["raw_samples"][0])
+
     def arguments(self, output):
         return ["qualify_hia_ndu", "--program", str(ROOT / "examples/hia_ndu/byte_swap.json"),
                 "--cases", str(ROOT / "examples/hia_ndu/byte_swap_cases.json"),
@@ -169,6 +285,135 @@ class EvidencePublicationTests(unittest.TestCase):
             self.assertFalse(report["ok"])
             self.assertEqual(report["status"], "interrupted_no_change")
             self.assertFalse(report["activated"])
+
+    def test_cli_rejects_late_return_even_without_a_tool_poll(self):
+        from tools.qualify_hia_ndu import main
+        # An injected publication-control result is not native performance or
+        # evaluator evidence. The elapsed clock and CLI rejection are real.
+        def late_result(*args, **kwargs):
+            time.sleep(1.05)
+            return {"ok": True, "status": "completed_candidate_advised",
+                    "decision": "candidate_advised", "activated": False, "diagnostics": []}
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "report.json"
+            arguments = self.arguments(output) + ["--deadline-seconds", "1"]
+            with patch("sys.argv", arguments), patch("tools.qualify_hia_ndu.qualify", side_effect=late_result):
+                self.assertEqual(main(), 1)
+            report = json.loads(output.read_text())
+            self.assertFalse(report["ok"])
+            self.assertEqual((report["status"], report["decision"]), ("failed_closed_no_change", "no_change"))
+            self.assertTrue(report["cooperative_deadline"]["expired"])
+            self.assertFalse(report["cooperative_deadline"]["asynchronous_signal"])
+            self.assertEqual(report["diagnostics"][-1]["code"], "E_CAPTURE_TOTAL_DEADLINE")
+
+
+class FrozenProtocolReportTests(unittest.TestCase):
+    """Synthetic report controls only; these are not performance evidence."""
+
+    @classmethod
+    def setUpClass(cls):
+        path = ROOT / "experiments/hia_ndu_native_20261027/run_frozen.py"
+        spec = importlib.util.spec_from_file_location("hia_frozen_report_controls", path)
+        cls.runner = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cls.runner)
+        cls.protocol = json.loads(path.with_name("protocol.json").read_text())
+
+    def control(self, spec):
+        cases = json.loads((ROOT / spec["cases"]).read_text())
+        source = verify_program((ROOT / spec["program"]).read_bytes())
+        plan = make_plan(source, entry=spec["entry"], pass_id=spec["pass_id"],
+                         horizon_calls=self.protocol["horizon_calls"])
+        samples, iterations = self.protocol["samples"], self.protocol["iterations"]
+        rows = [{"pair": index, "baseline_ns": 2_000_000, "candidate_ns": 1_000_000}
+                for index in range(samples)]
+        counts = {"cases": len(cases), "paired_samples": samples,
+                  "calls_per_sample": iterations * len(cases),
+                  "timed_calls_total": 2 * samples * iterations * len(cases),
+                  "untimed_correctness_calls": 2 * len(cases)}
+        assessment = assess_samples(rows, calls_per_sample=counts["calls_per_sample"],
+                                    objective=plan["objective"], search_cost_ns=1,
+                                    baseline_artifact_sha256="1" * 64, candidate_artifact_sha256="2" * 64)
+        report = {"schema": "hepta.hia.ndu-qualification.v1", "status": "completed_no_change",
+                  "ok": True, "decision": "no_change", "activated": False, "plan": plan,
+                  "costs": {"total_paid_wall_ns": 1}, "diagnostics": [],
+                  "budget_enforcement": {"decision_reserve_ns": assessment["decision_reserve_ns"]},
+                  "cooperative_deadline": {**self.protocol["cooperative_deadline"], "expired": False},
+                  "assessment": assessment,
+                  "measurement": {"ok": True, "status": "finite_pair_measured_no_selection_authority",
+                                  "protocol": {"samples": samples, "iterations": iterations,
+                                               "sample_trimming": False, "adaptive_repetition": False},
+                                  "input": {"entry": spec["entry"], "cases": cases},
+                                  "counts": counts, "raw_samples": rows,
+                                  "native": {"baseline": {"artifact_sha256": "1" * 64},
+                                             "candidate": {"artifact_sha256": "2" * 64}}}}
+        return report, cases
+
+    def check(self, report, spec, cases, returncode=0):
+        return self.runner.check_report(report, self.protocol, spec, cases=cases, returncode=returncode)
+
+    def test_fixed_reports_match_actual_plan_defaults_and_each_case_inventory(self):
+        for spec in self.protocol["runs"]:
+            with self.subTest(run=spec["id"]):
+                report, cases = self.control(spec)
+                result = self.check(report, spec, cases)
+                self.assertTrue(result["complete"], result["errors"])
+                self.assertTrue(result["measurement_complete"])
+                self.assertFalse(result["stop_protocol"])
+
+    def test_each_objective_reserve_and_native_call_budget_drift_stops_protocol(self):
+        spec = self.protocol["runs"][0]
+        original, cases = self.control(spec)
+        paths = [("plan", "objective", key) for key in original["plan"]["objective"]]
+        paths += [("budget_enforcement", "decision_reserve_ns"), ("assessment", "decision_reserve_ns")]
+        paths += [("measurement", "protocol", key) for key in ("samples", "iterations")]
+        paths += [("measurement", "counts", key) for key in original["measurement"]["counts"]]
+        for path in paths:
+            changed = copy.deepcopy(original)
+            cursor = changed
+            for key in path[:-1]:
+                cursor = cursor[key]
+            cursor[path[-1]] += 1
+            with self.subTest(field=".".join(path)):
+                result = self.check(changed, spec, cases)
+                self.assertFalse(result["complete"])
+                self.assertTrue(result["stop_protocol"])
+                self.assertTrue(result["errors"])
+
+    def test_expired_truncated_missing_or_changed_case_report_cannot_complete(self):
+        spec = self.protocol["runs"][0]
+        original, cases = self.control(spec)
+        for mode in ("expired", "truncated", "case_bytes", "missing", "exit_code"):
+            changed = copy.deepcopy(original)
+            if mode == "expired":
+                changed["cooperative_deadline"]["expired"] = True
+            elif mode == "truncated":
+                changed["measurement"]["raw_samples"].pop()
+            elif mode == "case_bytes":
+                changed["measurement"]["input"]["cases"][0][1] += 1
+            elif mode == "missing":
+                changed = None
+            with self.subTest(mode=mode):
+                result = self.check(changed, spec, cases, returncode=1 if mode == "exit_code" else 0)
+                self.assertFalse(result["complete"])
+                self.assertFalse(result["measurement_complete"])
+                self.assertTrue(result["stop_protocol"])
+
+    def test_final_failed_attempt_is_retained_without_inventing_completed_measurement(self):
+        spec = self.protocol["runs"][0]
+        report, cases = self.control(spec)
+        report.update(ok=False, status="failed_closed_no_change",
+                      diagnostics=[{"type": "CaptureRejected", "code": "E_CAPTURE_TIMEOUT"}])
+        del report["measurement"]
+        del report["assessment"]
+        result = self.check(report, spec, cases, returncode=1)
+        self.assertTrue(result["complete"], result["errors"])
+        self.assertFalse(result["measurement_complete"])
+        self.assertFalse(result["stop_protocol"])
+        self.assertEqual(result["outcome"], "completed_failed_closed_attempt")
+        del report["costs"]["total_paid_wall_ns"]
+        incomplete = self.check(report, spec, cases, returncode=1)
+        self.assertFalse(incomplete["complete"])
+        self.assertTrue(incomplete["stop_protocol"])
 
 
 @unittest.skipUnless(BRIDGE.is_file(), "build the pinned real NDU bridge to execute integration tests")
@@ -259,8 +504,27 @@ class ActualNDUBridgeTests(unittest.TestCase):
         self.assertTrue(report["claims"]["real_ndu_evaluator_executed"])
         self.assertFalse(report["activated"])
         self.assertIn("experiment_cost_not_recovered", report["assessment"]["reasons"])
+        self.assertIn("identical_native_artifacts", report["assessment"]["reasons"])
         self.assertEqual(report["ndu"]["response"]["advisory_recommendation"], "abstain")
         self.assertEqual(len(report["measurement"]["raw_samples"]), 15)
+
+    @unittest.skipUnless(Path("/usr/bin/clang-20").is_file(), "Clang 20 native integration")
+    def test_registered_fill_loop_reaches_actual_ndu_with_exact_candidate_identity(self):
+        from hepta.hia_fill_loop_opt import PASS_ID as FILL_PASS
+        from tests.test_hia_fill_loop_opt import fill_loop_program
+        from tools.qualify_hia_ndu import qualify
+        source = fill_loop_program()
+        plan = make_plan(source, entry="fill_probe", pass_id=FILL_PASS, horizon_calls=1)
+        report = qualify(source, plan, [[7, 173, 6, 93]], negative_cases=[[7, 173, 7, 93]],
+                         bridge=BRIDGE, expected_bridge_sha256=digest_executable(BRIDGE),
+                         clang="/usr/bin/clang-20", samples=15, iterations=2)
+        self.assertTrue(report["ok"], report["diagnostics"])
+        self.assertEqual(report["decision"], "no_change")
+        self.assertEqual(report["candidate"]["relation"], "exact_reproduced_fill_loop")
+        self.assertEqual([candidate["id"] for candidate in report["ndu"]["request"]["candidates"]],
+                         ["abstain", "fill_loop"])
+        self.assertTrue(report["claims"]["real_ndu_evaluator_executed"])
+        self.assertFalse(report["activated"])
 
 
 if __name__ == "__main__":

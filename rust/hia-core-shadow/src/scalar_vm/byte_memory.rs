@@ -40,7 +40,9 @@ impl ByteMemory {
     pub(super) fn supports(op: &str) -> bool {
         matches!(op, "buffer.new" | "buffer.try_new" | "buffer.len" |
             "borrow.read" | "borrow.mut" | "loan.end" |
-            "owner.move" | "owner.drop" | "buffer.load" | "buffer.store")
+            "owner.move" | "owner.drop" | "buffer.load" | "buffer.store" |
+            "buffer.fill" | "buffer.copy" | "buffer.move_within" |
+            "buffer.swap" | "buffer.copy_range" | "buffer.fill_range")
     }
 
     pub(super) fn loan_type(&self, id: u64) -> Option<&'static str> {
@@ -184,6 +186,39 @@ impl ByteMemory {
         value.scalar()?.as_u64().ok_or(Halt::Internal)
     }
 
+    fn range(offset: u64, count: u64, extent: usize) -> Exec<std::ops::Range<usize>> {
+        let size = extent as u64;
+        // Check even empty ranges: len..len is valid, (len + 1).. is not.
+        // No addition or subtraction may overflow before the bounds trap.
+        if offset > size || count > size - offset { return Err(Halt::Trap("bounds")); }
+        let start = usize::try_from(offset).map_err(|_| Halt::Internal)?;
+        let length = usize::try_from(count).map_err(|_| Halt::Internal)?;
+        Ok(start..start + length)
+    }
+
+    fn copy(&mut self, destination: u64, source: u64,
+            destination_offset: u64, source_offset: u64, count: u64) -> Exec<()> {
+        if destination == source { return Err(Halt::Internal); }
+        let destination_size = self.owners.get(&destination).ok_or(Halt::Internal)?.len();
+        let source_size = self.owners.get(&source).ok_or(Halt::Internal)?.len();
+        let dst = Self::range(destination_offset, count, destination_size)?;
+        let src = Self::range(source_offset, count, source_size)?;
+        if count == 0 { return Ok(()); }
+
+        // The static loan checker requires distinct live owner roots. A
+        // BTreeMap double-ended mutable iterator yields disjoint references
+        // without unsafe pointers, moving owners, or O(count) scratch storage.
+        let mut owners = self.owners.range_mut(destination.min(source)..=destination.max(source));
+        let (first_id, first) = owners.next().ok_or(Halt::Internal)?;
+        let (_, last) = owners.next_back().ok_or(Halt::Internal)?;
+        if *first_id == destination {
+            first[dst].copy_from_slice(&last[src]);
+        } else {
+            last[dst].copy_from_slice(&first[src]);
+        }
+        Ok(())
+    }
+
     pub(super) fn operation(&mut self, op: &str, args: &[RuntimeValue]) -> Exec<Vec<RuntimeValue>> {
         let first = args.first().ok_or(Halt::Internal)?;
         match op {
@@ -232,6 +267,57 @@ impl ByteMemory {
                     Ok(vec![])
                 } else { Ok(vec![RuntimeValue::Scalar(json!(data[index]))]) }
             }
+            "buffer.fill" | "buffer.fill_range" => {
+                let root = self.access(first, true)?;
+                let data = self.owners.get_mut(&root).ok_or(Halt::Internal)?;
+                let (range, value_index) = if op == "buffer.fill" {
+                    (0..data.len(), 1)
+                } else {
+                    let offset = Self::unsigned(args.get(1).ok_or(Halt::Internal)?)?;
+                    let count = Self::unsigned(args.get(2).ok_or(Halt::Internal)?)?;
+                    (Self::range(offset, count, data.len())?, 3)
+                };
+                let byte = Self::unsigned(args.get(value_index).ok_or(Halt::Internal)?)?;
+                data[range].fill(u8::try_from(byte).map_err(|_| Halt::Internal)?);
+                Ok(vec![])
+            }
+            "buffer.copy" | "buffer.copy_range" => {
+                let destination = self.access(first, true)?;
+                let source = self.access(args.get(1).ok_or(Halt::Internal)?, false)?;
+                let (destination_offset, source_offset, count) = if op == "buffer.copy" {
+                    (0, 0, Self::unsigned(args.get(2).ok_or(Halt::Internal)?)?)
+                } else {
+                    (Self::unsigned(args.get(2).ok_or(Halt::Internal)?)?,
+                     Self::unsigned(args.get(3).ok_or(Halt::Internal)?)?,
+                     Self::unsigned(args.get(4).ok_or(Halt::Internal)?)?)
+                };
+                self.copy(destination, source, destination_offset, source_offset, count)?;
+                Ok(vec![])
+            }
+            "buffer.move_within" => {
+                let root = self.access(first, true)?;
+                let destination = Self::unsigned(args.get(1).ok_or(Halt::Internal)?)?;
+                let source = Self::unsigned(args.get(2).ok_or(Halt::Internal)?)?;
+                let count = Self::unsigned(args.get(3).ok_or(Halt::Internal)?)?;
+                let data = self.owners.get_mut(&root).ok_or(Halt::Internal)?;
+                let dst = Self::range(destination, count, data.len())?;
+                let src = Self::range(source, count, data.len())?;
+                // copy_within has memmove semantics for both overlap directions.
+                data.copy_within(src, dst.start);
+                Ok(vec![])
+            }
+            "buffer.swap" => {
+                let root = self.access(first, true)?;
+                let left = Self::unsigned(args.get(1).ok_or(Halt::Internal)?)?;
+                let right = Self::unsigned(args.get(2).ok_or(Halt::Internal)?)?;
+                let data = self.owners.get_mut(&root).ok_or(Halt::Internal)?;
+                if left >= data.len() as u64 || right >= data.len() as u64 {
+                    return Err(Halt::Trap("bounds"));
+                }
+                data.swap(usize::try_from(left).map_err(|_| Halt::Internal)?,
+                          usize::try_from(right).map_err(|_| Halt::Internal)?);
+                Ok(vec![])
+            }
             _ => Err(Halt::Internal),
         }
     }
@@ -260,5 +346,49 @@ impl ByteMemory {
             }
         }
         report
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn scalar(value: u64) -> RuntimeValue { RuntimeValue::Scalar(json!(value)) }
+
+    #[test]
+    fn invalid_bulk_ranges_do_not_partially_write_storage() {
+        let mut memory = ByteMemory::new(1024, None);
+        let source = memory.new_owner(vec![1, 2, 3, 4]);
+        let destination = memory.new_owner(vec![9, 8, 7, 6]);
+        let reader = memory.borrow(&source, false).unwrap_or_else(|_| panic!("reader"));
+        let writer = memory.borrow(&destination, true).unwrap_or_else(|_| panic!("writer"));
+        let before = memory.owners.clone();
+        for (opcode, operands) in [
+            ("buffer.copy", vec![writer.clone(), reader.clone(), scalar(5)]),
+            ("buffer.copy_range", vec![writer.clone(), reader.clone(), scalar(1), scalar(2), scalar(3)]),
+            ("buffer.move_within", vec![writer.clone(), scalar(0), scalar(3), scalar(2)]),
+            ("buffer.fill_range", vec![writer.clone(), scalar(3), scalar(2), scalar(0)]),
+            ("buffer.swap", vec![writer.clone(), scalar(0), scalar(u64::MAX)]),
+        ] {
+            assert!(matches!(memory.operation(opcode, &operands), Err(Halt::Trap("bounds"))));
+            assert_eq!(memory.owners, before, "{opcode} wrote before validating every range");
+        }
+    }
+
+    #[test]
+    fn copy_uses_selected_roots_without_touching_intervening_owner() {
+        let mut memory = ByteMemory::new(1024, None);
+        let first = memory.new_owner(vec![1, 2, 3, 4]);
+        let middle = memory.new_owner(vec![91, 92]);
+        let last = memory.new_owner(vec![5, 6, 7, 8]);
+        let a = memory.root(&first).unwrap_or_else(|_| panic!("first"));
+        let b = memory.root(&last).unwrap_or_else(|_| panic!("last"));
+        let untouched = memory.root(&middle).unwrap_or_else(|_| panic!("middle"));
+        memory.copy(b, a, 1, 0, 3).unwrap_or_else(|_| panic!("ascending copy"));
+        assert_eq!(memory.owners[&b], [5, 1, 2, 3]);
+        memory.copy(a, b, 0, 1, 3).unwrap_or_else(|_| panic!("descending copy"));
+        assert_eq!(memory.owners[&a], [1, 2, 3, 4]);
+        assert_eq!(memory.owners[&untouched], [91, 92]);
+        assert!(matches!(memory.copy(a, a, 0, 0, 0), Err(Halt::Internal)));
     }
 }

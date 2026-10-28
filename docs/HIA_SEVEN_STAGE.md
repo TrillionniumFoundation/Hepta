@@ -60,11 +60,12 @@ in the example above.
 Within primitive v1–v7, the default Rust checker and `--scalar-run` accept
 only resource-free scalar programs. `--owned-shadow` statically checks the
 typed owner/loan CFG subset, including v7 chain transitions. `--owned-run`
-executes the finite `cfg-call-byte-owner-v2` profile: byte-owner/loan operations,
-CFG/loops and bounded internal resource calls, with scalar public entry/results.
+executes the finite `cfg-call-byte-owner-bulk-v3` profile: byte-owner/loan operations,
+CFG/loops, bounded internal resource calls and the six v2–v6 fill/copy/move/swap/range
+operations, with scalar public entry/results.
 Python/Rust checks compare complete resource ledgers, steps, results and stop
 codes; selected LLVM/native allocator controls are separate execution evidence.
-Bulk operations, chain operations/types and direct nominal input remain outside
+Chain operations/types and direct nominal input remain outside
 this runtime profile. Python Core remains the standalone/native admission authority;
 these scoped checks do not prove general resource safety or backend refinement.
 See the [consumer support table](HIA_PROGRAM.md) and
