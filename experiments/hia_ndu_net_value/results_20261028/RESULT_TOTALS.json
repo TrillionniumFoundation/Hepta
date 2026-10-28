@@ -1,0 +1,235 @@
+{
+  "all_application_outputs_and_budgets_admitted": true,
+  "application_profile_cost_scope": "Each profile independently charges the full common registration/calibration and native identity/residual/build costs once per applicable standalone arm; do not sum these tables to obtain the combined-workload total",
+  "application_profile_totals": {
+    "changing-load": {
+      "all_application_outputs_and_budgets_admitted": true,
+      "complete_registered_groups": true,
+      "full_cost_advantage": false,
+      "standalone_cold_ns": {
+        "dp": 28914086826,
+        "fixed": 30879911880,
+        "native-stream-sealed": 75537256288
+      },
+      "standalone_warm_ns": {
+        "dp": 28914086826,
+        "fixed": 30879911880,
+        "native-stream-sealed": 27926389724
+      }
+    },
+    "shared-budget": {
+      "all_application_outputs_and_budgets_admitted": true,
+      "complete_registered_groups": true,
+      "full_cost_advantage": false,
+      "standalone_cold_ns": {
+        "dp": 43881307822,
+        "fixed": 43472299168,
+        "native-stream-sealed": 90304573424
+      },
+      "standalone_warm_ns": {
+        "dp": 43881307822,
+        "fixed": 43472299168,
+        "native-stream-sealed": 42693706860
+      }
+    },
+    "stable-reuse": {
+      "all_application_outputs_and_budgets_admitted": true,
+      "complete_registered_groups": true,
+      "full_cost_advantage": false,
+      "standalone_cold_ns": {
+        "dp": 23865143330,
+        "fixed": 24705402739,
+        "native-stream-sealed": 72317384279
+      },
+      "standalone_warm_ns": {
+        "dp": 23865143330,
+        "fixed": 24705402739,
+        "native-stream-sealed": 24706517715
+      }
+    }
+  },
+  "application_totals": {
+    "standalone_cold_ns": {
+      "dp": 62726821748,
+      "fixed": 65123897557,
+      "native-stream-sealed": 108978729241
+    },
+    "standalone_warm_ns": {
+      "dp": 62726821748,
+      "fixed": 65123897557,
+      "native-stream-sealed": 61367862677
+    }
+  },
+  "authority": "DENY_ALL",
+  "common_application_calibration_ns_once_per_standalone_arm": 16224820246,
+  "common_source_registration_ns_once_per_standalone_arm": 742037869,
+  "controller_correct": true,
+  "controller_totals": {
+    "standalone_cold_ns": {
+      "dp-reuse": 790014935,
+      "fixed-reuse": 772639244,
+      "native-oneshot": 49683820563,
+      "native-stream-rehash": 49445993308,
+      "native-stream-sealed": 48893809935,
+      "native-stream-sealed-cache": 49181697438
+    },
+    "standalone_warm_ns": {
+      "dp-reuse": 790014935,
+      "fixed-reuse": 772639244,
+      "native-oneshot": 2072953999,
+      "native-stream-rehash": 1835126744,
+      "native-stream-sealed": 1282943371,
+      "native-stream-sealed-cache": 1570830874
+    }
+  },
+  "default_cache_enabled": false,
+  "host": {
+    "affinity": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "cpu_count": 9,
+    "platform": "Linux-6.18.55-x86_64-with-glibc2.39",
+    "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]"
+  },
+  "layer": "all",
+  "native_build_cost": {
+    "child_cpu_ns": 117388311000,
+    "dependency_cache": "caller supplied; downloads charged if incurred",
+    "fully_cold_machine_claim": false,
+    "parent_cpu_ns": 445568843,
+    "scope": "source/blob admission, inventory, cargo, raw command evidence, binary/tool admission; excludes this manifest write and process startup",
+    "target_cache": "empty",
+    "wall_ns": 47499186430
+  },
+  "native_complete_build_wall_ns": 47610866564,
+  "native_identity_setup_ns_once_per_native_arm": 476007,
+  "outer_dispatch_and_final_source_check_ns_conservatively_charged_to_each_native_arm": 12041689,
+  "previous_negative_results_replaced": false,
+  "protocol": {
+    "acceptance": "All admitted outputs and budgets correct, compile-credit bounds preserved, and native full standalone cold total lower than both fixed and complete DP across all registered application profiles. Controller-overhead savings are a separate mechanism observation.",
+    "application_arms": [
+      "fixed",
+      "dp",
+      "native-stream-sealed"
+    ],
+    "application_profiles": {
+      "changing-load": {
+        "compile_credits": 1,
+        "module_sizes": [
+          [
+            31,
+            31,
+            8191,
+            8191,
+            31,
+            8191
+          ]
+        ]
+      },
+      "shared-budget": {
+        "compile_credits": 1,
+        "module_sizes": [
+          [
+            31,
+            31,
+            8191,
+            8191,
+            31,
+            31
+          ],
+          [
+            8191,
+            8191,
+            31,
+            31,
+            8191,
+            8191
+          ]
+        ]
+      },
+      "stable-reuse": {
+        "compile_credits": 1,
+        "module_sizes": [
+          [
+            1021,
+            1021,
+            1021,
+            1021,
+            1021,
+            1021
+          ]
+        ]
+      }
+    },
+    "authority": "DENY_ALL",
+    "cache_entries": 8,
+    "cache_payload_bytes": 8388608,
+    "calibration_repetitions": 3,
+    "calibration_sizes": [
+      31,
+      1021,
+      8191
+    ],
+    "calls": 131101,
+    "candidate_scope": "All stationary remaining-suffix target assignments for the declared one or two modules under the same shared compile-credit budget; exact multiple-choice budget DP and NDU enumeration cover the same finite set. No universal or arbitrary temporal-policy optimum is claimed.",
+    "completion_value_ns": 120000000000,
+    "controller_arms": [
+      "fixed-reuse",
+      "dp-reuse",
+      "native-oneshot",
+      "native-stream-rehash",
+      "native-stream-sealed",
+      "native-stream-sealed-cache"
+    ],
+    "controller_keys": 4,
+    "controller_profiles": [
+      "identical-retries",
+      "changed-generation"
+    ],
+    "controller_repetitions": 8,
+    "controller_timeout_s": 10,
+    "cost_scope": "All current calibration, proof, compilation, native admission, request construction, controller calls, artifact checks, execution, intermediate evidence writes, cache cleanup and session shutdown. Common setup charged once per standalone arm. Native identity admission is charged to native arms. An outer receipt covering builder process startup through final manifest write binds the actual empty-target build and is additionally charged once to every native arm's cold total. Warm totals exclude only that native build.",
+    "default_cache_enabled": false,
+    "dp_control": "Recompute the complete multiple-choice budget DP after completed observations; no native request serialization requirement.",
+    "episode_budget_ns": 60000000000,
+    "excluded_costs": [
+      "toolchain installation",
+      "preexisting dependency source cache acquisition",
+      "final aggregate report encoding and archival"
+    ],
+    "fixed_control": "Strong complete budget-DP plan committed after identical initial probes; immutable artifacts may be reused by every arm. No future observed timing is supplied.",
+    "groups": 3,
+    "guard_limits": {
+      "guard-small": 128,
+      "guard-wide": 16384
+    },
+    "holdout_seed": 113,
+    "measurement_scope": "Three groups on one named host. Six application epochs demonstrate finite reuse only. No indefinite lifetime or statistical superiority claim.",
+    "native_rustc": "1.90.0",
+    "native_source_pin": "c4a1bbed3a39beba43a6abf1a18b6f75c5725c21",
+    "ndu_control": "Unchanged native recursive utility and feasibility/Pareto evaluator. Any exact tie uses the registered deterministic plan key within the returned frontier. No score or digest is a proof.",
+    "prior_negative_evidence": "All prior 48-episode, round3 full-cost and exact-request-reuse failures remain unchanged.",
+    "resource_scope": "Actual optimizer build-attempt credits, consumed before a candidate build and never refunded, shared across modules for the entire episode. Mandatory initial baseline builds and common calibration remain fully charged wall costs but are outside the optimizer-attempt quota. This is not a CPU-time, RSS, GPU-memory, or concurrent execution bound.",
+    "safety_certificate": false,
+    "sample_exclusion": "none; failed, refused and timed-out attempts retained with their incurred cost",
+    "schema": "hepta.hia.ndu.net-value.protocol.v1",
+    "source_baseline": "63971f5fbf992be0ace9c1949ec0dd9c3ede7a21",
+    "training_seed": 17,
+    "workload_selection": "Chosen before this study runs, using the previously published negative graph results to include finite application work above controller-only scale. No outcomes from the new workload are used for protocol selection.",
+    "wrapper_cost": "All residual outer dispatch and final source-check time is conservatively charged once to every native standalone arm, including shared portions. Final aggregate encoding/archival remains excluded."
+  },
+  "registered_full_cost_advantage": false,
+  "safety_certificate": false,
+  "schema": "hepta.hia.ndu.net-value.result.v1",
+  "source_commit": "96bc1b4598a8469b0d44b09e7e97d4705cac2cc5",
+  "source_unchanged": true,
+  "statistical_superiority_established": false
+}
