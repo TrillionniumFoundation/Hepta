@@ -17,6 +17,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import threading
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from hepta.migration_ir import Expr, Function, IRValidationError, Stmt, check_function, emit_function, function_hash  # noqa: E402
@@ -168,6 +169,66 @@ def _read_bounded_source(source: Path) -> bytes:
         return stream.read(_MAX_SOURCE_BYTES + 1)
 
 
+
+def _run_bounded_ast(args: list[str], *, timeout: float = 20,
+                     max_stdout_bytes: int = 8_000_000) -> subprocess.CompletedProcess:
+    """Bound *captured* Clang AST and diagnostics while draining both pipes.
+
+    Checking len(subprocess.run(..., capture_output=True).stdout) is too late:
+    the entire AST already occupies memory. Reject as soon as stdout exceeds
+    the budget, kill the producer, and retain at most 4 KiB of stderr.
+    """
+    max_stderr_bytes = 4096
+    with subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
+        stdout = bytearray()
+        stderr = bytearray()
+        over_budget = threading.Event()
+        stream_errors: list[Exception] = []
+
+        def drain(pipe, buf: bytearray, cap: int, *, reject_overflow: bool = False) -> None:
+            try:
+                with pipe:
+                    while chunk := pipe.read(65_536):
+                        remaining = max(0, cap - len(buf))
+                        buf.extend(chunk[:remaining])
+                        if reject_overflow and len(chunk) > remaining:
+                            over_budget.set()
+                            proc.kill()
+                            return
+            except ProcessLookupError:
+                pass  # The producer may have exited between the read and kill.
+            except OSError as exc:
+                stream_errors.append(exc)
+                try:
+                    proc.kill()
+                except ProcessLookupError:
+                    pass
+
+        readers = (
+            threading.Thread(target=drain, args=(proc.stdout, stdout, max_stdout_bytes),
+                             kwargs={"reject_overflow": True}, daemon=True),
+            threading.Thread(target=drain, args=(proc.stderr, stderr, max_stderr_bytes),
+                             daemon=True),
+        )
+        for reader in readers:
+            reader.start()
+        try:
+            returncode = proc.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait()
+            raise
+        finally:
+            for reader in readers:
+                reader.join(timeout=1)
+        if any(reader.is_alive() for reader in readers) or stream_errors:
+            raise UnsupportedC("Clang output capture failed")
+        if over_budget.is_set():
+            raise UnsupportedC("Clang AST exceeds 8 MB output limit")
+        return subprocess.CompletedProcess(args, returncode, bytes(stdout), bytes(stderr))
+
+
+
 def migrate(source: Path, output: Path, report: Path, clang: str = "clang", verify_native: bool = False, rustc: str | None = None) -> dict:
     # Enforce the CLI path-isolation gate for direct library callers as well.
     # Otherwise a rejected conversion can overwrite the original C source
@@ -210,11 +271,11 @@ def migrate(source: Path, output: Path, report: Path, clang: str = "clang", veri
                                  capture_output=True, timeout=10, check=True).stdout
         if not re.search(rb"(?m)^#define __SIZEOF_INT__ 4$", defines) or not re.search(rb"(?m)^#define __CHAR_BIT__ 8$", defines):
             raise UnsupportedC("the Clang target's int/char width is unsupported")
-        run = subprocess.run([clang, "-x", "c", "-std=c11", "-Wall", "-Wextra", "-Werror",
-                              "-pedantic-errors", "-Wno-newline-eof", "-fsyntax-only", "-Xclang", "-ast-dump=json",
-                              "-fno-color-diagnostics", str(source.resolve())],
-                             capture_output=True, timeout=20, check=False)
-        if run.returncode or len(run.stdout) > 8_000_000:
+        run = _run_bounded_ast([clang, "-x", "c", "-std=c11", "-Wall", "-Wextra", "-Werror",
+                                "-pedantic-errors", "-Wno-newline-eof", "-fsyntax-only",
+                                "-Xclang", "-ast-dump=json", "-fno-color-diagnostics",
+                                str(source.resolve())])
+        if run.returncode:
             raise UnsupportedC("Clang rejected source or AST exceeds size limit: " + run.stderr.decode("utf-8", "replace")[:600])
         tree = json.loads(run.stdout)
         nodes = [node for node in tree.get("inner", []) if node.get("loc", {}).get("offset") is not None]
