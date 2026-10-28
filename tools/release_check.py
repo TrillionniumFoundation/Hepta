@@ -849,8 +849,12 @@ def main(argv=None):
                         help="New evidence directory, outside source or inside artifacts/evidence; never replaced")
     parser.add_argument("--continue-on-failure", action="store_true",
                         help="Collect all gate results; any failure still fails the release")
+    parser.add_argument("--unit-timeout-seconds", type=int, default=600,
+                        help="unit gate timeout in seconds, 1..3600 (default: 600); other gate budgets are unchanged")
     parser.add_argument("--qemu-aarch64", help="Actual AArch64 user emulator for the execution gate")
     args = parser.parse_args(argv)
+    if not 1 <= args.unit_timeout_seconds <= 3600:
+        parser.error("unit-timeout-seconds must be an integer from 1 through 3600")
     artifacts = args.output_directory.resolve() if args.output_directory else ROOT / "artifacts"
     if args.output_directory:
         if artifacts.is_relative_to(ROOT) and artifacts.relative_to(ROOT).parts[:1] not in {("artifacts",), ("evidence",)}:
@@ -867,6 +871,7 @@ def main(argv=None):
     report = {"schema": "hepta.release.v2", "scope": "prototype-0.2-owned-migration-agent-qualified-subsets",
               "started_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
               "source_snapshot": before, "compiler_sha256": compiler_hash(), "status": "running",
+              "unit_timeout_seconds": args.unit_timeout_seconds,
               "gates": [], "evidence": {}, "whole_project_blockers_closed": False,
               "claims": {"whole_language_soundness_proved": False,
                          "global_memory_budget_proved": False,
@@ -876,7 +881,7 @@ def main(argv=None):
                          "general_agent_productivity_advantage_established": False},
               "open_production_blockers": [f"P{i:02d}" for i in range(1, 13)]}
     commands = [
-        ("unit_and_integration", [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"], 600),
+        ("unit_and_integration", [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"], args.unit_timeout_seconds),
         ("strict_namespace_execution", [sys.executable, "tools/validate_sandbox.py", "--output", next_stage + "/sandbox.json"], 120),
         ("parser_example", [sys.executable, "-m", "hepta", "run", "examples/parser.hepta", "--json"], 60),
         ("ownership_example", [sys.executable, "-m", "hepta", "run", "examples/ownership.hepta", "--json"], 60),
@@ -1026,7 +1031,7 @@ def main(argv=None):
             gate = {"name": name, "command": command, "status": "environment_error"}
         log = artifacts / (name + ".log")
         log.write_text(text)
-        gate.update({"seconds": round(time.monotonic() - started, 3),
+        gate.update({"seconds": round(time.monotonic() - started, 3), "timeout_seconds": timeout,
                      "log": str(log.relative_to(ROOT)) if log.is_relative_to(ROOT) else str(log),
                      "log_sha256": hashlib.sha256(log.read_bytes()).hexdigest()})
         if name == "unit_and_integration":

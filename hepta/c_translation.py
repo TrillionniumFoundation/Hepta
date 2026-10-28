@@ -88,6 +88,7 @@ class CTranslator:
         self.bindings: dict[str, Expression] = {}
         self.binding_modes: dict[str, str] = {}
         self.counter = 0
+        self.original_type_receipts: list[dict] = []
 
     def typ(self, data: dict | str, *, model: dict | None = None) -> str:
         qual = data if isinstance(data, str) else data.get("qualType", "")
@@ -225,6 +226,8 @@ class CTranslator:
             name = ident(node["name"])
             key = f"local_{unit}_{name}" if node.get("storageClass") == "static" else name
             signature = self.signature(node, key, unit, model)
+            if any(parameter["pointer"] for parameter in signature["params"]):
+                self.check_original_parameter_types(node, item, unit)
             body = next((child for child in node.get("inner", []) if child.get("kind") == "CompoundStmt"), None)
             if key in self.functions:
                 previous = self.functions[key]
@@ -252,6 +255,32 @@ class CTranslator:
         for _, node, item in self.declarations:
             if item["status"] == "prototype_pending":
                 item.update(status="prototype_resolved", reason=None)
+
+    def check_original_parameter_types(self, node, inventory, unit):
+        """Do not erase VLA entry effects hidden by C parameter adjustment."""
+        from .c_parameter_types import original_parameter_types
+
+        receipts = [receipt for receipt in self.original_type_receipts if receipt["unit"] == unit]
+        if not receipts:
+            config = next(config for config in self.capture["configurations"] if config["index"] == unit)
+            declarations = [(decl, item) for declaration_unit, decl, item in self.declarations
+                            if declaration_unit == unit and decl["kind"] == "FunctionDecl"]
+            receipt = original_parameter_types(self.capture, config, declarations)
+            self.original_type_receipts.append(receipt)
+        else:
+            receipt = receipts[0]
+        rows = [row for row in receipt["functions"]
+                if (row["declaration"]["file"], row["declaration"]["offset"], row["declaration"]["name"])
+                == (inventory["file"], inventory["offset"], node["name"])]
+        if len(rows) != 1:
+            raise MigrationRejected("E_C_ORIGINAL_TYPE", "Missing or ambiguous original parameter type binding")
+        for parameter in rows[0]["parameters"]:
+            if parameter["state"] != "fixed":
+                code = "E_C_VLA_PARAMETER" if parameter["state"] == "variable" else "E_C_ORIGINAL_TYPE"
+                inventory.update(status="rejected", reason=code)
+                raise MigrationRejected(code, "Unmodeled original parameter type for "
+                                        + node["name"] + "." + parameter["name"]
+                                        + ": " + parameter["spelling"])
 
     def signature(self, node: dict, key: str, unit: int, model: dict) -> dict:
         reject_function_type_attributes(node)

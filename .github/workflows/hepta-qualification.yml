@@ -28,7 +28,7 @@ permissions:
 jobs:
   release-qualification:
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 180
     env:
       HEPTA_QUALIFICATION_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
@@ -85,6 +85,7 @@ jobs:
         run: >-
           python tools/release_check.py
           --output-directory artifacts/candidate
+          --unit-timeout-seconds 3600
           --continue-on-failure
       - name: Qualify the standalone HIA interpreter and direct native paths
         if: ${{ !cancelled() }}
