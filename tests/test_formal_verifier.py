@@ -232,8 +232,15 @@ class FormalNativeEvidenceTests(unittest.TestCase):
                 proc = real_run(argv, **kwargs)
                 executed.append(argv)
                 if argv[1] == "--version":
-                    with copied.open("ab") as stream:
+                    # Linux may retain an executable mapping after --version;
+                    # writing that inode in place can raise ETXTBSY. Replace the
+                    # pinned path atomically, preserving the real post-probe
+                    # identity-drift negative test rather than mocking a hash.
+                    staged = copied.with_name("lean-mutated")
+                    shutil.copy2(copied, staged)
+                    with staged.open("ab") as stream:
                         stream.write(b"changed after actual pinned version probe")
+                    staged.replace(copied)
                 return proc
 
             output = root / "result.json"
