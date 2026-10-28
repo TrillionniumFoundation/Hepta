@@ -218,6 +218,46 @@ class LinkerSelectionTests(unittest.TestCase):
             component.select_rust_linker(self.gcc, "Windows")
         self.assertIsNone(component.select_rust_linker(None, "Linux"))
 
+    def test_observed_windows_help_rule_is_narrow_simulated_protocol_not_native_windows(self):
+        # The two CI reports supply this protocol shape. This pure helper test
+        # does not execute MSVC, select a Windows linker or qualify Windows ABI.
+        path = r"C:\Program Files\VS\VC\Tools\MSVC\14.51.36231\bin\Hostx64\x64\link.exe"
+        banner = "Microsoft (R) Incremental Linker Version 14.51.36260.0"
+        usage = " usage: LINK [options] [files] [@commandfile]"
+        observed = dict(system="nt", path=path, argv=[path, "/?"], returncode=1100,
+            stdout=banner + "\nCopyright (C) Microsoft Corporation.  All rights reserved.\n\n" + usage + "\n", stderr="")
+        self.assertEqual(backend._linker_probe_acceptance(**observed),
+            "observed_windows_msvc_14.51.36260.0_help_exit_1100_identity_only")
+        changed_path = path.replace("link.exe", "other.exe")
+        for update in [dict(system="posix"), dict(path="link.exe",argv=["link.exe","/?"]),
+                       dict(path=changed_path,argv=[changed_path,"/?"]), dict(argv=[path,"--version"]),
+                       dict(returncode=1101), dict(returncode=1), dict(stderr="warning"), dict(stderr=" "),
+                       dict(stdout=usage), dict(stdout=banner), dict(stdout=""),
+                       dict(stdout=observed["stdout"].replace("14.51.36260.0", "14.50.0.0")),
+                       dict(stdout=observed["stdout"] + "fatal error LNK1100\n")]:
+            with self.subTest(update=update):
+                self.assertIsNone(backend._linker_probe_acceptance(**(observed | update)))
+
+    def test_simulated_rustc_exit_1100_remains_a_compilation_failure(self):
+        # Exit-code fault injection only; normal tool identity probes remain
+        # real. A help-probe allowance cannot admit a rustc/link failure.
+        original = backend.subprocess.run
+
+        def compiler_status(argv, **kwargs):
+            if argv[1:] == ["-vV"]:
+                return original(argv, **kwargs)
+            return subprocess.CompletedProcess(argv, 1100, "", "injected native compilation failure")
+
+        destination = self.directory / "existing"
+        destination.write_bytes(b"previous verified artifact")
+        with mock.patch.object(backend.subprocess, "run", side_effect=compiler_status):
+            result = backend.compile_rust("fn main() {}", rustc=self.rustc, crate_type="bin",
+                output=destination, linker=self.gcc)
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["status"], "rejected")
+        self.assertNotIn("artifact", result)
+        self.assertEqual(destination.read_bytes(), b"previous verified artifact")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -178,6 +178,26 @@ failure receipt is an accepted linker identity. This closes an observability
 gap exposed by source `6b005ca`, whose two Windows reports retained only the
 generic binding-error message and cannot establish the underlying probe cause.
 
+The two actual Windows jobs on diagnostic source `613c031` then observed the
+same stable Microsoft linker `14.51.36260.0` printing complete `/?` help with
+exit status **1100**, empty stderr and executable SHA-256
+`a8c42e25c91ca2453e1110540ac08f0fc12d7539454a11b9af8baeecb469837d` before and after
+the probe. The identity protocol recognizes only that observed version on a
+real Windows host, at a selected absolute `link.exe` path, with exactly `/?`,
+the complete version banner and `usage: LINK [options] [files] [@commandfile]`,
+empty stderr and unchanged executable bytes. Other nonzero statuses, versions,
+hosts, filenames or malformed help remain rejected. `probe_acceptance_policy`
+names this empirical rule; the receipt preserves the actual **1100** status.
+
+This is a bounded help-identity observation from those two CI jobs. It is not an
+official guarantee about all MSVC versions or a successful link result.
+[Microsoft's linker reference](https://learn.microsoft.com/en-us/cpp/build/reference/linking?view=msvc-170)
+defines a successful link as exit status zero, while
+[LINK output documentation](https://learn.microsoft.com/en-us/cpp/build/reference/link-output?view=msvc-170)
+describes banner and usage output. Actual Rust compilation, ABI execution,
+functional comparisons and negative controls retain their existing success and
+rejection requirements. An actual compilation returning 1100 still fails.
+
 A declared workflow step is not a remote execution result. Until a particular
 job completes successfully on the integrated source revision, that host's new
 component gate remains unqualified. The older seven-host ABI results do not

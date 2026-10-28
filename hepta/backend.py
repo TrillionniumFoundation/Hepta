@@ -9,7 +9,7 @@ import hashlib
 import json
 import os
 from dataclasses import asdict, fields, is_dataclass
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 import shutil
 import subprocess
 import tempfile
@@ -535,6 +535,28 @@ def toolchain_info(rustc: str) -> dict:
             "sysroot_discovery": "verified_compiler_prefix" if sysroot else "compiler_default"}
 
 
+def _linker_probe_acceptance(*, system: str, path: str, argv: list[str],
+                             returncode: int, stdout: str, stderr: str) -> str | None:
+    """Identity protocol only, never a successful native compilation result.
+
+    Two actual Windows CI jobs observed this exact MSVC version printing its
+    complete help with status 1100. No other nonzero status, host or tool version
+    is qualified by those observations. The caller separately binds tool bytes.
+    """
+    if returncode == 0 and (stdout.strip() or stderr.strip()):
+        return "zero_exit_readable_identity"
+    selected = PureWindowsPath(path)
+    if (system == "nt" and selected.is_absolute()
+            and selected.name.casefold() == "link.exe" and argv == [path, "/?"]
+            and returncode == 1100 and stderr == ""
+            and stdout.splitlines()
+            and stdout.splitlines()[0] == "Microsoft (R) Incremental Linker Version 14.51.36260.0"
+            and "usage: LINK [options] [files] [@commandfile]" in {line.strip() for line in stdout.splitlines()}
+            and "fatal error" not in stdout.lower() and "error lnk" not in stdout.lower()):
+        return "observed_windows_msvc_14.51.36260.0_help_exit_1100_identity_only"
+    return None
+
+
 def linker_info(explicit: str) -> dict:
     """Bind one caller-selected absolute linker without consulting PATH.
 
@@ -567,11 +589,14 @@ def linker_info(explicit: str) -> dict:
         after = digest_executable(path)
         evidence["sha256_after_probe"] = after
         evidence["stage"] = "probe_acceptance"
-        if (before != after or not os.access(path, os.X_OK) or probe.returncode
-                or not (probe.stdout.strip() or probe.stderr.strip())):
+        policy = _linker_probe_acceptance(system=os.name, path=str(path), argv=command,
+            returncode=probe.returncode, stdout=probe.stdout, stderr=probe.stderr)
+        evidence["probe_acceptance_policy"] = policy
+        if before != after or not os.access(path, os.X_OK) or policy is None:
             raise ValueError("selected linker changed or its identity probe failed")
         return {"path": str(path), "executable_sha256": after,
                 "selection": "explicit_absolute_path_not_PATH",
+                "probe_acceptance_policy": policy,
                 "probe": {"argv": command, "returncode": probe.returncode,
                           "stdout": probe.stdout, "stderr": probe.stderr},
                 "unchanged_after_probe": True}
