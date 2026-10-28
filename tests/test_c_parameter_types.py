@@ -380,15 +380,22 @@ class OriginalTypeEmissionProcessTests(unittest.TestCase):
         folder = self.root / "compiler fixture with spaces"
         folder.mkdir()
         child = folder / "child script.py"
-        child.write_text("import json,sys\nfrom pathlib import Path\n"
+        child.write_text("import ctypes,json,os,sys\nfrom pathlib import Path\n"
                          "Path(sys.argv[1]).write_text(json.dumps(sys.argv[3:]))\n"
-                         "print('actual compiler stdout')\n"
-                         "print('actual compiler stderr',file=sys.stderr)\n"
+                         "print('actual compiler stdout',flush=True)\n"
+                         "print('actual compiler stderr',file=sys.stderr,flush=True)\n"
+                         "if os.name == 'nt':\n"
+                         "    exit_process=ctypes.WinDLL('kernel32',use_last_error=True).ExitProcess\n"
+                         "    exit_process.argtypes=[ctypes.c_uint32]\n"
+                         "    exit_process.restype=None\n"
+                         "    exit_process(int(sys.argv[2]))\n"
                          "raise SystemExit(int(sys.argv[2]))\n")
         wrapper = ("import runpy,sys; worker=runpy.run_path(sys.argv[1]); "
                    "raise SystemExit(worker['_wait_for_ast_compiler'](sys.argv[2:]))")
         arguments = ['input with spaces.c', '-DNAME="quoted value"', 'literal trailing\\']
-        for status in (0, 23):
+        statuses = ((0, 23, 0x7fffffff, 0x80000000, 0xc0000409, 0xc0000005, 0xffffffff)
+                    if os.name == "nt" else (0, 23, 127, 255))
+        for status in statuses:
             with self.subTest(status=status):
                 output = folder / (str(status) + " output.ast")
                 result = run_bounded([sys.executable, "-I", "-c", wrapper,
@@ -412,17 +419,21 @@ class OriginalTypeEmissionProcessTests(unittest.TestCase):
 
     def test_windows_dispatch_waits_with_inherited_io_and_no_exec_or_shell(self):
         request = self.request()
-        process = Mock()
-        process.wait.return_value = 23
-        windows = SimpleNamespace(name="nt", execv=Mock())
-        with patch.object(parameter_types, "os", windows), \
-                patch.object(parameter_types.subprocess, "Popen", return_value=process) as launch:
-            with self.assertRaises(SystemExit) as stopped:
-                parameter_types._emit_ast(request)
-        self.assertEqual(stopped.exception.code, 23)
-        launch.assert_called_once_with(request["argv"], shell=False)
-        process.wait.assert_called_once_with()
-        windows.execv.assert_not_called()
+        for actual, forwarded in ((23, 23), (0x80000000, -2147483648),
+                                  (0xc0000409, -1073740791),
+                                  (0xc0000005, -1073741819), (0xffffffff, -1)):
+            with self.subTest(actual=actual):
+                process = Mock()
+                process.wait.return_value = actual
+                windows = SimpleNamespace(name="nt", execv=Mock())
+                with patch.object(parameter_types, "os", windows), \
+                        patch.object(parameter_types.subprocess, "Popen", return_value=process) as launch:
+                    with self.assertRaises(SystemExit) as stopped:
+                        parameter_types._emit_ast(request)
+                self.assertEqual(stopped.exception.code, forwarded)
+                launch.assert_called_once_with(request["argv"], shell=False)
+                process.wait.assert_called_once_with()
+                windows.execv.assert_not_called()
 
     def test_stale_tool_or_command_identity_is_rejected_before_launch(self):
         for field in ("compiler", "worker", "python", "directory", "argv"):

@@ -33,6 +33,35 @@ class CaptureBudgets(unittest.TestCase):
         p = run_bounded([sys.executable, '-c', 'import sys; sys.exit(7)'], timeout=3)
         self.assertEqual(p.returncode, 7)
 
+    def test_real_exit_status_and_streams_are_preserved(self):
+        # ExitProcess accepts an actual unsigned DWORD. SystemExit in the test
+        # child would reproduce the launcher's conversion before we could test
+        # its propagation. POSIX exercises its real ordinary exit-code contract
+        # here; that branch does not qualify Windows high-bit statuses.
+        codes = ((0, 7, 0x7fffffff, 0x80000000, 0xc0000409, 0xc0000005, 0xffffffff)
+                 if os.name == 'nt' else (0, 7, 127, 128, 255))
+        command = (
+            "import os, sys\n"
+            "code = int(sys.argv[1])\n"
+            "print(f'stdout-before-exit:{code}', flush=True)\n"
+            "print(f'stderr-before-exit:{code}', file=sys.stderr, flush=True)\n"
+            "if os.name == 'nt':\n"
+            "    import ctypes\n"
+            "    exit_process = ctypes.WinDLL('kernel32', use_last_error=True).ExitProcess\n"
+            "    exit_process.argtypes = [ctypes.c_uint32]\n"
+            "    exit_process.restype = None\n"
+            "    exit_process(code)\n"
+            "    raise AssertionError('ExitProcess unexpectedly returned')\n"
+            "os._exit(code)\n"
+        )
+        for code in codes:
+            with self.subTest(platform=os.name, exit_code=f'0x{code:08x}'):
+                result = run_bounded([sys.executable, '-c', command, str(code)], timeout=5)
+                self.assertIs(type(result.returncode), int)
+                self.assertEqual(result.returncode, code)
+                self.assertEqual(result.stdout, f'stdout-before-exit:{code}\n')
+                self.assertEqual(result.stderr, f'stderr-before-exit:{code}\n')
+
     def test_launch_failure_cannot_start_the_requested_command(self):
         with tempfile.TemporaryDirectory() as tmp:
             marker = Path(tmp) / 'must-not-start.txt'

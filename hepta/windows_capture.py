@@ -222,7 +222,10 @@ def _child() -> int:
 
 if __name__ == "__main__":
     try:
-        raise SystemExit(_child())
+        # CPython 3.11 converts SystemExit through a C long, which is signed
+        # 32-bit on Windows. Preserve a high-bit DWORD's bit pattern instead
+        # of overflowing that conversion to -1. Keep _child's wait result raw.
+        raise SystemExit(ctypes.c_int32(_child()).value)
     except Exception as error:
         print(f"Windows compiler launcher failed: {error}", file=sys.stderr)
         raise SystemExit(1)

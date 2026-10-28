@@ -28,6 +28,13 @@ process tests. macOS then refused the original-type worker's address-space
 limit, while both Windows workers reached the strict AST command/budget
 comparison and refused it. These are later, independently retained failures.
 
+The `75244d3392b3520b78a9ae791b0f895355d0c466` run passed all seven
+original-type preflights and the complete component on macOS and four Linux
+jobs. Both Windows component runs then reached the first target-only trap:
+the retained stdout contained `ENTERED_SAFE_TARGET`, the Rust panic reported
+division by zero, and capture recorded `0xffffffff`. These observations do not
+satisfy the trap exit-status contract and remain failures at that source head.
+
 ## Toolchain identity
 
 On macOS, `/usr/bin/clang` is a developer-tool shim. The host preflight executes
@@ -61,6 +68,14 @@ Windows, passing an argument list to `Popen` without a shell. It inherits the
 outer capture's file-backed standard handles and process job. The worker's
 actual exit code is preserved. POSIX retains its existing `execv` path and
 mandatory address-space/file-size limits, with the platform policy below.
+
+Both Windows wait-and-exit layers forward the signed 32-bit representation of
+the returned DWORD. CPython 3.11's `SystemExit` handler converts through C
+`long`; passing an unsigned high-bit DWORD directly overflows Windows' signed
+32-bit `long` and loses the original status. Signed forwarding keeps the exact
+32 bits observed by the outer process. This does not classify any additional
+exit code as a successful trap: the component's status allowlist and exact
+entry marker remain unchanged.
 
 The outer capture owns a Windows Job Object with `KILL_ON_JOB_CLOSE`. A small
 trusted Python launcher waits on a private inherited pipe. The parent assigns
@@ -116,6 +131,13 @@ then be absent after normal return, nonzero return, timeout and output refusal.
 The workflow retains its raw test stream. Linux observations do not qualify the
 Windows Job Object path.
 
+An actual `ExitProcess` regression checks ordinary and high-bit DWORD statuses
+and both output streams on Windows. The separately retained
+`OriginalTypeEmissionProcessTests` exercise the AST wait helper through real
+child processes, including those statuses, argument quoting and bounded failed
+AST diagnostics. POSIX runs exercise actual ordinary exit codes; they do not
+qualify the Windows status representation. Both groups run on each host.
+
 The host workflow separately retains the selected compiler/reader preflight and
 the complete component's native differential evidence. Only successful actual
 host executions at the published source head close the corresponding host
@@ -129,5 +151,6 @@ proof is implied.
 - [Apple: command-line developer tools and xcrun](https://developer.apple.com/library/archive/technotes/tn2339/_index.html)
 - [Microsoft: Job Objects, inherited membership, nested jobs and termination](https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects)
 - [Python 3.11: subprocess argument lists and inherited handle lists](https://docs.python.org/3.11/library/subprocess.html)
+- [CPython 3.11.9: SystemExit conversion through C long](https://github.com/python/cpython/blob/v3.11.9/Python/pythonrun.c)
 - [Apple XNU 11417.101.15: Mach task information ABI](https://github.com/apple-oss-distributions/xnu/blob/e3723e1f17661b24996789d8afc084c0c3303b26/osfmk/mach/task_info.h)
 - [Apple XNU 11417.101.15: resource-limit validation](https://github.com/apple-oss-distributions/xnu/blob/e3723e1f17661b24996789d8afc084c0c3303b26/bsd/kern/kern_resource.c)

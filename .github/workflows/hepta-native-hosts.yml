@@ -150,6 +150,13 @@ jobs:
           python -m unittest tests.test_clang_capture -v 2>&1 | tee artifacts/clang-capture-tests.log
           capture_status=${PIPESTATUS[0]}
           exit "$capture_status"
+      - name: Check serialized-AST process status and argument forwarding on this host
+        shell: bash
+        run: |
+          set +e
+          python -m unittest tests.test_c_parameter_types.OriginalTypeEmissionProcessTests -v 2>&1 | tee artifacts/original-type-process-tests.log
+          process_status=${PIPESTATUS[0]}
+          exit "$process_status"
       - name: Resolve capture Clang and check actual original array parameter types
         shell: bash
         run: |
@@ -193,6 +200,7 @@ jobs:
             artifacts/native-host-setup.log
             artifacts/native-host-adapter-tests.log
             artifacts/clang-capture-tests.log
+            artifacts/original-type-process-tests.log
             artifacts/original-type-preflight.json
             artifacts/original-type-preflight.log
             artifacts/original-type-preflight/

@@ -341,7 +341,11 @@ def _wait_for_ast_compiler(argv):
     unchanged compiler deadline and terminates the complete process tree.
     """
     process = subprocess.Popen(argv, shell=False)
-    return process.wait()
+    status = process.wait()
+    # CPython 3.11 converts SystemExit through C long, which is signed 32-bit
+    # on Windows. Forward the DWORD's signed representation so a real NTSTATUS
+    # is not replaced by the overflow result -1 (observed as 0xffffffff).
+    return ctypes.c_int32(status).value if os.name == "nt" else status
 
 
 def _limits():
