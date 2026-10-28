@@ -9,6 +9,23 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 import hashlib
 import json
+import re
+
+from .lexer import KEYWORDS
+
+
+# Enforce the C pilot's strict public-name policy at the IR boundary too.
+# The Clang importer checks names, but IR is a public, independently callable API.
+_ASCII_PILOT_IDENT = re.compile(r"[A-Za-z][A-Za-z_0-9]*\Z", re.ASCII)
+_RESERVED_PILOT_IDENT = KEYWORDS | frozenset({
+    "wrapping_add", "wrapping_sub", "wrapping_mul", "len", "assert", "main",
+})
+
+
+def _require_pilot_identifier(value: str) -> None:
+    if (not isinstance(value, str) or not _ASCII_PILOT_IDENT.fullmatch(value)
+            or value in _RESERVED_PILOT_IDENT):
+        raise IRValidationError("invalid or reserved migration IR identifier")
 
 
 NUMERIC = frozenset({"i32", "u32"})
@@ -92,10 +109,12 @@ def _block(body: tuple[Stmt, ...], names: dict[str, str], result: str) -> set[st
 
 
 def check_function(function: Function) -> frozenset[str]:
+    _require_pilot_identifier(function.name)
     if function.result not in NUMERIC or not function.body:
         raise IRValidationError("unsupported result or empty function")
     names: dict[str, str] = {}
     for name, ty in function.params:
+        _require_pilot_identifier(name)
         if name in names or ty not in NUMERIC:
             raise IRValidationError("duplicate or unsupported parameter")
         names[name] = ty
