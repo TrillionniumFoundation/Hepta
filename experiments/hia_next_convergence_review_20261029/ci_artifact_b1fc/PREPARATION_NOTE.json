@@ -1,0 +1,11 @@
+{
+  "schema": "hepta.ci.review-preparation-note.v1",
+  "issue": "An initial metadata-display probe assumed the previous nested artifact wrapper; b1fc instead preserves the raw GitHub artifact object and a separate downloader receipt. The display probe stopped with KeyError: artifact before inspecting ZIP members.",
+  "producer_observation_failure": false,
+  "actual_review_driver_runs_before_correction": 0,
+  "source_ledger_or_metadata_modified": false,
+  "resolution": "A new standard-library stage driver reads the two original records directly and compares actual ZIP size/SHA, GitHub digest/size/head and downloader path/id/size/SHA. It invokes existing source/reference checks once per applicable scope; prior review code is unchanged.",
+  "source_review_first_run_passed": true,
+  "source_review_sha256": "e307838b2db86a7b4022453ea8389f59705edb3565b0cb7fd59b25fb4d8c5221",
+  "model_native_compiler_tokenizer_solver_test_network_executions": 0
+}

@@ -53,7 +53,24 @@ V8、V9分别运行19项实际原生参考；verified-native有761个不同测�
 NDU observations，均无跳过。两个套件与安全契约有重叠，三者并集是792个不同ID，
 不是独立统计样本。完整GitHub原始artifact已下载，ZIP摘要与GitHub元数据一致，
 两轮原始artifact均已独立复核；参考控制的模型请求、tokenizer和Agent成功数均为0。
-新增V10协议、来源与CI selector需在新的统一来源上再次验证，不继承7511结果。
+新增V10协议、来源与CI selector已在公开统一来源
+`b1fc801320c1ea8d0bca4708721cad49fd591c58`（本地`ed795862`、同树
+`9c638e9506eaa08ee59c8901ebb2a44378f93af4`）完成自己的两条CI：
+
+- [source/application 40861350818](https://github.com/TrillionniumFoundation/Hepta/actions/runs/40861350818)：
+  37安全契约、262个不同回归ID、449/449 obligations、实际迁移/静态payload/IR PGO
+  准备与资源拒绝、35+3项旧控制、9项节点事务，以及V8/V9/V10分别19项native参考。
+- [verified-native 40861350834](https://github.com/TrillionniumFoundation/Hepta/actions/runs/40861350834)：
+  774个不同测试ID、81个不同模块、0失败/错误/跳过、36项实际native NDU observations。
+
+独立审查逐项核对两个完整artifact、4330个不同Git blob路径、449项原始lowering记录
+和5个负控。三版reference snapshots分别170/176/189个文件；每版核对19个ELF、
+8个object、8个Core以及54个public/472个hidden案例观察。57条profile记录使用同一
+19-cell注册表，模型成功/tokenizer/generation均0，不算57个独立任务。
+source/broad重叠242、source/safety重叠7、broad/safety重叠24、三者重叠5；
+三套并集为805个不同test IDs，不意味着统计独立。原始ZIP摘要与GitHub元数据一致。
+这次CI的代码主体固定为b1fc801；后续报告、台账和CI审查文件记录该次运行，
+不重新命名原始实验或把记录提交当成新的实测。
 重叠测试不相加；旧绿色也不覆盖新组合。模型资格仍按其原始冻结来源独立记录。
 
 ## 2. 可检查的安全与资源规格
