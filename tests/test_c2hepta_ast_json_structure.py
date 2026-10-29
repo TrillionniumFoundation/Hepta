@@ -92,6 +92,74 @@ class ClangAstJsonStructure(unittest.TestCase):
     def test_invalid_utf8_json_fails_with_report(self):
         self.assert_rejected_without_output(bytes([0xff]), "Clang AST JSON malformed or excessively nested")
 
+
+    @staticmethod
+    def _synthetic_valid_ast():
+        """A small valid Clang-shaped scalar function, mutated by negative cases."""
+        return {"kind": "TranslationUnitDecl", "inner": [{
+            "kind": "FunctionDecl", "loc": {"offset": 4}, "name": "f",
+            "type": {"qualType": "int (int)"},
+            "inner": [
+                {"kind": "ParmVarDecl", "name": "x", "type": {"qualType": "int"}},
+                {"kind": "CompoundStmt", "inner": [{
+                    "kind": "ReturnStmt", "inner": [{
+                        "kind": "DeclRefExpr", "type": {"qualType": "int"},
+                        "referencedDecl": {"kind": "ParmVarDecl", "name": "x"},
+                    }],
+                }]},
+            ],
+        }]}
+
+    def test_synthetic_ast_positive_control(self):
+        result = self.import_mock_ast(json.dumps(self._synthetic_valid_ast()).encode())
+        self.assertEqual(result["status"], "converted", result)
+        self.assertEqual(result["frontend_validation"], "passed")
+        self.assertTrue(self.output.is_file())
+
+    def test_corrupted_type_metadata_never_escapes_as_python_exception(self):
+        for bad in ([], {"qualType": []}):
+            with self.subTest(bad=bad):
+                tree = self._synthetic_valid_ast()
+                tree["inner"][0]["type"] = bad
+                self.assert_rejected_without_output(
+                    json.dumps(tree).encode(), "Clang AST type metadata has invalid shape")
+
+    def test_corrupted_ast_child_nodes_reject_before_recursive_lowering(self):
+        for bad in (None, {}):
+            with self.subTest(bad=bad):
+                tree = self._synthetic_valid_ast()
+                tree["inner"][0]["inner"][1]["inner"] = [bad]
+                self.assert_rejected_without_output(
+                    json.dumps(tree).encode(), "Clang AST child node has invalid shape")
+
+    def test_corrupted_expression_metadata_rejects_with_report(self):
+        for field, bad, reason in (
+            ("referencedDecl", [], "Clang AST referenced declaration has invalid shape"),
+            ("type", [], "Clang AST type metadata has invalid shape"),
+        ):
+            with self.subTest(field=field):
+                tree = self._synthetic_valid_ast()
+                expr = tree["inner"][0]["inner"][1]["inner"][0]["inner"][0]
+                expr[field] = bad
+                self.assert_rejected_without_output(json.dumps(tree).encode(), reason)
+
+    def test_corrupted_name_storage_and_cast_reject_with_report(self):
+        cases = (
+            ("name", [], "Clang AST node name has invalid shape"),
+            ("storageClass", [], "Clang AST storage class has invalid shape"),
+        )
+        for field, bad, reason in cases:
+            with self.subTest(field=field):
+                tree = self._synthetic_valid_ast()
+                tree["inner"][0][field] = bad
+                self.assert_rejected_without_output(json.dumps(tree).encode(), reason)
+        tree = self._synthetic_valid_ast()
+        ret = tree["inner"][0]["inner"][1]["inner"][0]["inner"]
+        ret[0] = {"kind": "ImplicitCastExpr", "type": {"qualType": "int"},
+                  "castKind": [], "inner": [ret[0]]}
+        self.assert_rejected_without_output(
+            json.dumps(tree).encode(), "Clang AST cast kind has invalid shape")
+
     def test_real_clang_scalar_positive_control(self):
         self.assertIsNotNone(shutil.which("clang"), "real Clang required for migration acceptance")
         result = migrate(self.source, self.output, self.report, clang="clang")
