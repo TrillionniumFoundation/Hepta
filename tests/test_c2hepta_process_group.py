@@ -84,5 +84,39 @@ class ClangProcessGroupTermination(unittest.TestCase):
         self.assertEqual(result.stdout.strip(), b"ok")
 
 
+    def test_exited_wrapper_cannot_leave_descendant_holding_capture_pipes(self):
+        # The wrapper exits cleanly, but its child inherits the stdout/stderr
+        # capture pipes. The importer must not merely reject the open pipes:
+        # it must kill the original POSIX process group before returning.
+        with tempfile.TemporaryDirectory(prefix="hepta-clang-orphan-pipes-") as temp:
+            root = Path(temp)
+            ready = root / "child-ready"
+            survived = root / "child-survived"
+            shell = (
+                f"printf ready > {shlex.quote(str(ready))}; "
+                "sleep 2.5; "
+                f"printf survived > {shlex.quote(str(survived))}"
+            )
+            wrapper = (
+                "import pathlib, subprocess, time\n"
+                f"subprocess.Popen(['/bin/sh', '-c', {shell!r}], stdin=subprocess.DEVNULL)\n"
+                "deadline = time.monotonic() + 3\n"
+                f"while not pathlib.Path({str(ready)!r}).exists() and time.monotonic() < deadline:\n"
+                "    time.sleep(0.01)\n"
+            )
+            try:
+                with self.assertRaisesRegex(UnsupportedC, "output capture failed"):
+                    _run_bounded_ast(
+                        [sys.executable, "-c", wrapper],
+                        context="probe", max_stdout_bytes=64, timeout=5,
+                    )
+                self.assertTrue(ready.is_file(), "compiler child never initialized")
+            finally:
+                # A finite child lifetime bounds the old implementation's
+                # Popen-context pipe-close hang without leaving an orphan.
+                time.sleep(0.4)
+            self.assertFalse(survived.exists(), "exited wrapper left a live compiler child")
+
+
 if __name__ == "__main__":
     unittest.main()
