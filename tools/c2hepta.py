@@ -6,6 +6,7 @@ Intentionally rejects anything outside a narrow pure-scalar, C11 subset.
 from __future__ import annotations
 
 import argparse
+import contextlib
 from dataclasses import asdict
 import hashlib
 import json
@@ -13,6 +14,7 @@ import math
 import os
 from pathlib import Path
 import re
+import secrets
 import shutil
 import signal
 import stat
@@ -143,7 +145,32 @@ def _function(node: dict) -> Function:
     return result
 
 
-def _atomic_write(path: Path, content: str) -> None:
+def _atomic_write(path: Path, content: str, *, directory_fd: int | None = None) -> None:
+    if directory_fd is not None:
+        # Never resolve this absolute path again during publication. A rename
+        # of its canonical parent followed by a symlink can redirect pathname
+        # based tempfile/replace into the admitted source directory. Both the
+        # temporary inode and final rename must be relative to the same
+        # pre-Clang directory descriptor. This is a POSIX-only security gate.
+        temporary = ".hepta-migration-" + secrets.token_hex(16)
+        descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL
+                             | getattr(os, "O_NOFOLLOW", 0),
+                             0o600, dir_fd=directory_fd)
+        try:
+            with os.fdopen(descriptor, "w", encoding="utf-8") as out:
+                out.write(content)
+                out.flush()
+                os.fsync(out.fileno())
+            os.replace(temporary, path.name, src_dir_fd=directory_fd,
+                       dst_dir_fd=directory_fd)
+        finally:
+            try:
+                os.unlink(temporary, dir_fd=directory_fd)
+            except FileNotFoundError:
+                pass
+        return
+
+    # Non-POSIX fallback is not qualified against hostile directory renames.
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(prefix=".hepta-migration-", dir=str(path.parent))
     try:
@@ -359,7 +386,35 @@ def _probe_clang(args: list[str], *, label: str, max_stdout_bytes: int = 16_384)
 
 
 
-def migrate(source: Path, output: Path, report: Path, clang: str = "clang", verify_native: bool = False, rustc: str | None = None) -> dict:
+def _pin_artifact_parent(path: Path) -> int:
+    """Open a canonical artifact parent once, before running external Clang."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    flags = (os.O_RDONLY | getattr(os, "O_DIRECTORY", 0)
+             | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0))
+    return os.open(path.parent, flags)
+
+
+def migrate(source: Path, output: Path, report: Path, clang: str = "clang",
+            verify_native: bool = False, rustc: str | None = None) -> dict:
+    # Refuse aliases before creating directories or launching subprocesses.
+    resolved = (source.resolve(), output.resolve(), report.resolve())
+    if len(set(resolved)) != 3:
+        raise UnsupportedC("source, output and report paths must be distinct")
+    if os.name != "posix":
+        return _migrate_impl(source, output, report, clang, verify_native, rustc)
+    with contextlib.ExitStack() as resources:
+        fds = []
+        for destination in resolved[1:]:
+            directory_fd = _pin_artifact_parent(destination)
+            resources.callback(os.close, directory_fd)
+            fds.append(directory_fd)
+        return _migrate_impl(source, output, report, clang, verify_native, rustc,
+                             publication_fds=(fds[0], fds[1]))
+
+
+def _migrate_impl(source: Path, output: Path, report: Path, clang: str = "clang",
+                  verify_native: bool = False, rustc: str | None = None,
+                  publication_fds: tuple[int, int] | None = None) -> dict:
     # Enforce the CLI path-isolation gate for direct library callers as well.
     # Otherwise a rejected conversion can overwrite the original C source
     # when the report path aliases it (including through a parent symlink).
@@ -475,7 +530,7 @@ def migrate(source: Path, output: Path, report: Path, clang: str = "clang", veri
             info["backend_validation"] = "passed"
         if output.resolve() != admitted_output or report.resolve() != admitted_report:
             raise UnsupportedC("output or report path binding changed during conversion")
-        _atomic_write(admitted_output, emitted)
+        _atomic_write(admitted_output, emitted, directory_fd=(publication_fds[0] if publication_fds else None))
         info.update(status="converted", safety="static_memory_safe_scalar_subset",
                     output_sha256=hashlib.sha256(emitted.encode()).hexdigest(),
                     note="This is a finite syntax translation, NOT a proof of semantic equivalence, native compilation, or whole-language soundness.")
@@ -484,7 +539,7 @@ def migrate(source: Path, output: Path, report: Path, clang: str = "clang", veri
     if report.is_symlink():
         raise ValueError("refusing to overwrite a symlink report path")
     # Never follow a rebound parent alias when publishing a rejection report.
-    _atomic_write(admitted_report, json.dumps(info, sort_keys=True, indent=2) + "\n")
+    _atomic_write(admitted_report, json.dumps(info, sort_keys=True, indent=2) + "\n", directory_fd=(publication_fds[1] if publication_fds else None))
     return info
 
 
