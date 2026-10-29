@@ -387,10 +387,19 @@ def migrate(source: Path, output: Path, report: Path, clang: str = "clang", veri
                                label="predefined macros", max_stdout_bytes=512_000)
         if not re.search(rb"(?m)^#define __SIZEOF_INT__ 4$", defines) or not re.search(rb"(?m)^#define __CHAR_BIT__ 8$", defines):
             raise UnsupportedC("the Clang target's int/char width is unsupported")
-        run = _run_bounded_ast([clang, "-x", "c", "-std=c11", "-Wall", "-Wextra", "-Werror",
-                                "-pedantic-errors", "-Wno-newline-eof", "-fsyntax-only",
-                                "-Xclang", "-ast-dump=json", "-fno-color-diagnostics",
-                                str(source.resolve())])
+        # Compile the exact admitted bytes, not the live input pathname.
+        # A source can change and then be restored while Clang reads it (ABA),
+        # defeating the pre/post SHA-256 comparison despite changing the AST.
+        # Preprocessor directives are excluded by this strict migration subset,
+        # so staging the source in a private temporary directory does not
+        # discard supported relative-include semantics.
+        with tempfile.TemporaryDirectory(prefix="hepta-c2hepta-source-") as snapshot_dir:
+            frozen_source = Path(snapshot_dir) / "admitted.c"
+            frozen_source.write_bytes(original)
+            run = _run_bounded_ast([clang, "-x", "c", "-std=c11", "-Wall", "-Wextra", "-Werror",
+                                    "-pedantic-errors", "-Wno-newline-eof", "-fsyntax-only",
+                                    "-Xclang", "-ast-dump=json", "-fno-color-diagnostics",
+                                    str(frozen_source)])
         if run.returncode:
             raise UnsupportedC("Clang rejected source or AST exceeds size limit: " + run.stderr.decode("utf-8", "replace")[:600])
         tree = _load_clang_ast(run.stdout)
