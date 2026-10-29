@@ -34,7 +34,6 @@ jobs:
       CLANG: /usr/bin/clang-20
       CLANGXX: /usr/bin/clang++-20
       PYTHONDONTWRITEBYTECODE: '1'
-      HEPTA_EVIDENCE_DIR: ${{ runner.temp }}/hepta-six-outcomes
     steps:
       - uses: actions/checkout@v4
         with:
@@ -61,7 +60,9 @@ jobs:
           rustup toolchain install 1.90.0 --profile minimal
           echo "RUSTC=$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_ENV"
           dirname "$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_PATH"
-          mkdir -p "$HEPTA_EVIDENCE_DIR" "$RUNNER_TEMP/hepta-six-cargo-home" "$RUNNER_TEMP/hepta-six-cargo-target"
+          hepta_evidence_dir="$RUNNER_TEMP/hepta-six-outcomes"
+          mkdir -p "$hepta_evidence_dir" "$RUNNER_TEMP/hepta-six-cargo-home" "$RUNNER_TEMP/hepta-six-cargo-target"
+          echo "HEPTA_EVIDENCE_DIR=$hepta_evidence_dir" >> "$GITHUB_ENV"
           echo "CARGO_HOME=$RUNNER_TEMP/hepta-six-cargo-home" >> "$GITHUB_ENV"
           echo "CARGO_TARGET_DIR=$RUNNER_TEMP/hepta-six-cargo-target" >> "$GITHUB_ENV"
       - name: Fetch locked Rust shadow dependencies before offline native checks
