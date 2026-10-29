@@ -46,6 +46,37 @@ class ClangPreprocessingEscapes(unittest.TestCase):
                 self.assertFalse(output.exists())
                 self.assertEqual(json.loads(report.read_text())["status"], "rejected")
 
+    def test_predefined_compiler_macros_are_not_accepted_as_plain_scalar_c(self):
+        # No #define or other directive is needed for these compiler-provided
+        # names to expand. They must not silently enter a no-preprocessing
+        # source subset through a Clang AST that contains only integer nodes.
+        self.assertIsNotNone(shutil.which("clang"), "real Clang required")
+        for macro in ("__LINE__", "__STDC__", "__COUNTER__", "__SIZEOF_INT__"):
+            with self.subTest(macro=macro), tempfile.TemporaryDirectory(
+                prefix="hepta-predefined-macro-"
+            ) as temp:
+                root = Path(temp)
+                source, output, report = root / "in.c", root / "out.hepta", root / "report.json"
+                source.write_text(
+                    f"int identity(int x) {{ return x + {macro}; }}\n", encoding="utf-8")
+                result = migrate(source, output, report, clang="clang")
+                self.assertEqual(result["status"], "rejected", result)
+                self.assertIn("predefined compiler identifiers", result["reason"])
+                self.assertFalse(output.exists())
+                self.assertEqual(json.loads(report.read_text())["status"], "rejected")
+
+    def test_internal_underscores_without_predefined_identifiers_remain_valid(self):
+        self.assertIsNotNone(shutil.which("clang"), "real Clang required")
+        with tempfile.TemporaryDirectory(prefix="hepta-predefined-positive-") as temp:
+            root = Path(temp)
+            source, output, report = root / "in.c", root / "out.hepta", root / "report.json"
+            source.write_text(
+                "int add_one(int user_value) { return user_value + 1; }\n", encoding="utf-8")
+            result = migrate(source, output, report, clang="clang")
+            self.assertEqual(result["status"], "converted", result)
+            self.assertIn('export "C" fn add_one', output.read_text())
+            self.assertEqual(json.loads(report.read_text())["status"], "converted")
+
     def test_normal_scalar_function_and_comments_remain_supported(self):
         self.assertIsNotNone(shutil.which("clang"), "real Clang required")
         with tempfile.TemporaryDirectory(prefix="hepta-preprocessor-positive-") as temp:
