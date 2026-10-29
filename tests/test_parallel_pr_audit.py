@@ -187,15 +187,15 @@ class AuditTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             output = pathlib.Path(directory) / "audit.json"
             script = (
-                "import importlib.util, resource, signal\\n"
-                f"spec = importlib.util.spec_from_file_location('audit_parallel_prs', {str(MODULE_PATH)!r})\\n"
-                "mod = importlib.util.module_from_spec(spec)\\n"
-                "spec.loader.exec_module(mod)\\n"
-                "mod.audit = lambda base, candidates: {'large': 'x' * 1000000}\\n"
-                "signal.signal(signal.SIGXFSZ, signal.SIG_IGN)\\n"
-                "resource.setrlimit(resource.RLIMIT_FSIZE, (4096, 4096))\\n"
+                "import importlib.util, resource, signal\n"
+                f"spec = importlib.util.spec_from_file_location('audit_parallel_prs', {str(MODULE_PATH)!r})\n"
+                "mod = importlib.util.module_from_spec(spec)\n"
+                "spec.loader.exec_module(mod)\n"
+                "mod.audit = lambda base, candidates: {'large': 'x' * 1000000}\n"
+                "signal.signal(signal.SIGXFSZ, signal.SIG_IGN)\n"
+                "resource.setrlimit(resource.RLIMIT_FSIZE, (4096, 4096))\n"
                 f"assert mod.main(['--base', {A!r}, '--candidate', 'left={B}', "
-                f"'--candidate', 'right={C}', '--output', {str(output)!r}]) == 2\\n"
+                f"'--candidate', 'right={C}', '--output', {str(output)!r}]) == 2\n"
             )
             run = subprocess.run([sys.executable, "-c", script],
                                  capture_output=True, text=True, timeout=10)
@@ -213,7 +213,7 @@ class AuditTests(unittest.TestCase):
             with patch.object(module, "audit", return_value={"ok": True}):
                 self.assertEqual(module.main(args), 0)
             self.assertEqual(output.read_text(encoding="utf-8"),
-                             '{\\n  "ok": true\\n}\\n')
+                             '{\n  "ok": true\n}\n')
 
 
 if __name__ == "__main__":
