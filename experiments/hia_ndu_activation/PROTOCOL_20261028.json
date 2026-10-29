@@ -1,0 +1,51 @@
+{
+  "schema": "hepta.hia.ndu.activation.protocol.v1",
+  "source_baseline": "2f49151ab9d8812eeb02ac2056f224f140099d76",
+  "native_source_pin": "c4a1bbed3a39beba43a6abf1a18b6f75c5725c21",
+  "native_rustc": "1.90.0",
+  "groups": 3,
+  "calls": 65539,
+  "training_seed": 17,
+  "holdout_seed": 113,
+  "calibration_repetitions": 3,
+  "calibration_sizes": [127, 4093, 32749],
+  "guard_limits": {"guard-small": 128, "guard-wide": 65536},
+  "modules": ["byte_sum", "packet_xor"],
+  "arms": ["fixed", "dp", "native-stream-sealed"],
+  "application_profiles": {
+    "stable-reuse": {
+      "modules": ["byte_sum"],
+      "module_sizes": [[32749,32749,32749,32749,32749,32749,32749,32749]],
+      "compile_credits": 1
+    },
+    "changing-load": {
+      "modules": ["packet_xor"],
+      "module_sizes": [[127,4093,32749,32749,127,4093,32749,32749]],
+      "compile_credits": 1
+    },
+    "shared-budget": {
+      "modules": ["byte_sum","packet_xor"],
+      "module_sizes": [[32749,32749,4093,127,32749,4093,127,32749],[4093,32749,32749,4093,127,32749,32749,127]],
+      "compile_credits": 1
+    }
+  },
+  "episode_budget_ns": 180000000000,
+  "completion_value_ns": 240000000000,
+  "controller_timeout_s": 10,
+  "calibration_order": "For each repetition and size, rotate and alternate all module/target pairs; retain every sample. No candidate-wise contiguous timing blocks.",
+  "forecast": "Median fresh-proof plus execution outer-wall cost at the exact module/target/size, with the same mandatory proof in calibration and delivery. Completed observations replace only that exact cell; no small-input ratio is extrapolated to another size, target, or module. One-time construction is priced separately.",
+  "fixed_control": "Complete finite budget-DP plan committed after identical initial baseline probes; reuse that target assignment throughout the episode.",
+  "dp_control": "Complete multiple-choice DP over the same finite stationary remaining-suffix target assignments. Recompute after completed observations.",
+  "ndu_control": "Unchanged native recursive utility and feasibility/Pareto evaluator over exactly those assignments; same initial bank, registered inputs, observation interface and build-attempt budget. Each executing arm sees its own completed observations, not another arm's future timings. Post-run audit gives complete DP the exact model passed to every NDU request. Registered plan-key tie resolution only within returned frontier.",
+  "resource_scope": "One consumable compilation-attempt credit per episode shared across semantic modules, consumed before a candidate build and never refunded. Mandatory initial baseline builds and common calibration are charged wall costs outside this optimization-attempt quota. This is not a process memory or CPU-time bound.",
+  "activation_acceptance": "At least one real NDU candidate build and correctly executed candidate output; semantic modules must have different Core hashes. Shared-budget competition additionally requires two individually predicted-profitable module options competing for the single credit, a feasible exact-DP-equivalent NDU selection, and one actual candidate build in that episode. None of these implies net benefit.",
+  "economic_acceptance": "All outputs and attempt budgets admitted, and NDU complete cold standalone cost below both strong fixed and complete finite DP in every registered profile. No post-hoc acceptance change, sample exclusion or old result replacement.",
+  "cost_scope": "Current common source/registration, driver and candidate builds, interleaved calibration, native identity admission, proposal/proof/compilation, fresh artifact checks, request construction, NDU session work, actual execution, evidence writes and shutdown. The exact empty-target outer native-build envelope is charged once to each NDU standalone deployment. Warm totals omit only that build. Residual dispatch/source recheck cost is conservatively charged to each native arm.",
+  "analysis_scope": "Post-run selection-regret and activation analysis is reported separately and excluded from strategy wall totals; it receives no execution authority and changes no observations.",
+  "excluded_costs": ["toolchain installation", "acquisition of preexisting dependency source caches", "outer Python process startup/imports/argparse", "post-run analysis and final aggregate encoding/archival", "human engineering outside the registered driver"],
+  "sample_exclusion": "none; failed, refused and timed-out attempts retained with their incurred cost",
+  "measurement_scope": "Three finite groups on the available nonexclusive Linux host. These are two small kernels, not a representative application or a verified dot-host result. No statistical or universal superiority claim.",
+  "previous_negative_results_replaced": false,
+  "authority": "DENY_ALL",
+  "safety_certificate": false
+}

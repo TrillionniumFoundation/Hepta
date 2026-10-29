@@ -1,0 +1,82 @@
+{
+  "schema": "hepta.agent.primitive-public-repair.independent-review.v1",
+  "reviewer": "safety_closure_next",
+  "implementation_author_and_test_runner": "agent_closure_next",
+  "reviewed_initial_commit": "13bc60891943781ef3d36f334d3bfcb68c607c06",
+  "reviewed_final_commit": "f695384324d2de784f727d349bd67891f7f45bd3",
+  "reviewed_final_tree": "51d9ec7c83724eb537ecc63fec7b06591eeb1b46",
+  "method": "Independent static source/protocol review and verification of frozen source/Git blobs and producer lightweight-test log.",
+  "source_sha256": {
+    "experiments/hia_agent_factorial_v4_20261028/evaluator.py": "803539a061d83bac027e2436d7b215ef806ae0e0f056e4feee959bbeae98c256",
+    "experiments/hia_agent_factorial_v4_20261028/fixtures.py": "fdfc1f4cc76dac255954aa1a0ec0d992b713ed4c82c94c2ec951c78f72a3b23a",
+    "experiments/hia_agent_factorial_v4_20261028/calibration.py": "41754ac45524ac6e9abc08ad2b88f480e3f515bb4a27a3fe63de008872e44939",
+    "experiments/hia_agent_factorial_v4_20261028/PROTOCOL.json": "49ef4446e555ffc3c119d8fc41e9b4e743ec2c6976a191578246e6eabdce44d3",
+    "experiments/hia_agent_factorial_v5_20261028/engine.py": "deaaf288480ced5f5aadaeae9c8c09a334a30760e9e1376b93b3db627028ca0f",
+    "experiments/hia_agent_factorial_v5_20261028/prompts.py": "ac2f0ef4612b6da94a85e86849bf39c75e2a3b889c9adcc505da64723e2bdaf1",
+    "experiments/hia_agent_factorial_v5_20261028/PROTOCOL.json": "d8b51de6395e1ac206516635b66134ca9f58047d74c200634fa091a2bef59662",
+    "experiments/hia_agent_factorial_v6_20261028/prompts.py": "d34bf5e633bf779f413a1e8f9f912e32310286fba322dab60d845a338de32a8d",
+    "experiments/hia_agent_factorial_v6_20261028/PROTOCOL.json": "c720f59cb9e9f07744599c8279f09f871f981a94ad5f5d9b9b25c4b68e716ff5",
+    "experiments/hia_agent_factorial_v6_20261028/README.md": "4181055512bc0df2dd3ffd5f044d7413ab87255942c2517971b02dc31302c2fb",
+    "tests/test_hia_agent_primitive_into.py": "1b4234a4f4d1fab351d53cf6dd12872ad720b379e5494252e498ea48dd378e85",
+    "tests/test_hia_agent_factorial.py": "0601ac1a201b51e944739771cdd7434a5b54bea0a5b20dd6bd7d0730b1a6dd4c",
+    "tests/test_hia_agent_repair.py": "8592c3f2c6e6f4a5036c47bf9146fc42a7761d44ed54af28ca4c28cb96853a9e",
+    "tools/qualify_hia_agent_primitive_repair.py": "6cfb724cc33a137e9caf7d3209b86aa7290d1cd898daa16da8f79f2f79a34070",
+    "tools/qualify_hia_agent_repair.py": "eaef7c227d05e1f202d5e5d12670792a7b019c622d4f36efb2fdfb542172e469",
+    "tools/qualify_hia_agent_factorial.py": "0d4af8442ca82f8312e5e22f9c7b41282681b09f2332044487e76048df73cb97",
+    "tools/provider_adapter/llama_cpp_engine.py": "7ebcf1012d2e39f1cd5eefad4b9a1c2fd701b444666bc66765681568632bfbb1"
+  },
+  "legacy_pipeline_files_byte_identical_to_9c9cfac": [
+    "experiments/hia_agent_factorial_v4_20261028/fixtures.py",
+    "experiments/hia_agent_factorial_v4_20261028/calibration.py",
+    "experiments/hia_agent_factorial_v4_20261028/PROTOCOL.json",
+    "experiments/hia_agent_factorial_v5_20261028/engine.py",
+    "experiments/hia_agent_factorial_v5_20261028/prompts.py",
+    "experiments/hia_agent_factorial_v5_20261028/PROTOCOL.json",
+    "tools/qualify_hia_agent_repair.py",
+    "tools/qualify_hia_agent_factorial.py"
+  ],
+  "confirmed_finding": {
+    "id": "primitive-receiver-macro-substitution",
+    "problem": "Lexical $x.into() could be mistaken for scalar header parameter x while a local macro substituted Vec receiver buf. A method-name metavariable could also construct into without a literal .into call.",
+    "examples": [
+      "macro_rules! vec { ($x:ident) => { $x.into() }; } ... vec![buf]",
+      "macro_rules! vec { ($len:ident) => { buf.$len() }; } ... vec![into]"
+    ],
+    "fix": "Every opt-in Rust file rejects macro_rules and dollar-sign metavariables before locating literal into sites or taking the no-sites early return.",
+    "regression": "Two complete owner-file counterexamples and no-literal-into counterexamples in test_macro_expansion_cannot_substitute_a_container_receiver.",
+    "status": "closed before any v6 inference",
+    "earlier_29_test_run_is_final_profile_qualification": false
+  },
+  "reviewed_boundaries": [
+    "Default primitive_parameter_into=False remains at legacy call sites; new rules are an explicit prospective profile, and historical answers are not reclassified.",
+    "Literal into requires a bare unshadowed scalar header parameter and zero arguments. Fields, expressions, containers, custom trait/impl declarations, extra imports and arbitrary methods remain excluded by the combined gates.",
+    "Actual target conversion validity remains the job of real rustc. The source model supplied is copied unchanged; strip_check removes only the unscored outer self-check field.",
+    "Public feedback pairs existing public arguments with existing public expected/observed values and unchanged real diagnostics and aggregate contract verdicts.",
+    "The sole repair-feedback call follows public execution. Hidden execution happens only after public success and unconditionally ends the cell before another inference request.",
+    "Full/query share edit authority within each language; all four main arms use three submissions, 2048 maximum output tokens, 8192 context tokens and 300 seconds per request, with common native execution limits.",
+    "The 7B choice and simultaneous profile/feedback changes are disclosed adaptive follow-up. Main requires fresh v6 calibration; old v5 eligibility is not imported.",
+    "Partial SSE output remains a lower bound, not a complete response; timeouts end the cell instead of granting extra repair requests."
+  ],
+  "producer_lightweight_tests": {
+    "passed": 30,
+    "failed": 0,
+    "skipped": 0,
+    "source_unchanged": true,
+    "model_requests": 0,
+    "native_compilations": 0,
+    "receipt": "PRODUCER_TESTS.json",
+    "log": "PRODUCER_TESTS.log"
+  },
+  "reviewer_reran_tests": false,
+  "reviewer_model_requests": 0,
+  "reviewer_native_compilations": 0,
+  "reviewer_performance_samples": 0,
+  "pending": "The separate real-rustc/native profile controls and fresh v6 calibration/main have not been executed by this review. Their future evidence needs its own source/command/result binding.",
+  "review_result": "The independently found macro-substitution bypass is closed in the final source; no other substantive new authority, feedback, historical-reclassification or budget issue was found in this inspection.",
+  "limits": [
+    "A finite lexical admission profile is not a general Rust parser or hostile-compiler sandbox.",
+    "This review is not a language-soundness proof or an Agent-productivity result.",
+    "Legacy source files outside the opt-in branch retain their older behavior; the new macro guard does not retroactively strengthen or rescore old runs.",
+    "Changes from v5 cannot be attributed independently to language, model capability, conversion support or feedback."
+  ]
+}

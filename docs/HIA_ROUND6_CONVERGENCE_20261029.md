@@ -1,0 +1,206 @@
+# HIA round6: one-source convergence and explicit qualification
+
+This integration combines the finite implementation contracts developed in
+Draft PRs #358, #359 and #360, together with the later scalar C importer guards.
+It continues the existing HIA Core, source frontend, canonical verifier,
+interpreter, independent Rust Machine and LLVM/native route. It does not add a
+second language or let an optimizer replace the verifier.
+
+## Frozen inputs and preserved history
+
+| Input | Exact source | Included work |
+| --- | --- | --- |
+| #359 | `70179fcc54e2195f9966ca3f98428a6540d50a41` | Composite v4 returned loans, common NDU response admission, native publication/retirement and worker interruption ownership; Windows frozen-input byte preservation |
+| #358 | `1669ddc05a918e7c01b17e9262d4461130d44aaa` | Local source views and unit enums, bounded independent Rust execution, strict raw Git/source and canonical matrix identities, eight integrated gates, native CPU-feature and failure evidence |
+| #360 | `7511d99b80511b33082a76d71109adf4ecdb1395` | Captured C project views, selected scalar LLVM validation, entry-payload analysis, finite prepared artifact leases, stronger application/Agent/NDU protocols and their original negative evidence |
+| C importer audit #370 | `9ff581fe84f8042213269e88be33d5d94e4c416c` | Selected importer and adversarial-test changes for bounded AST/probes, strict AST JSON, process cleanup, frozen source ABA and anchored artifact directories |
+
+The C audit predates the integrated Core tree; only its relevant importer and
+test changes are ported. Its older whole-repository workflow and subprocess
+implementation are not replacements for the integrated implementation. The
+shared bounded subprocess contract and the captured-source contract remain in
+use. Tests must exercise the actual resulting implementation and preserve the
+attacks, rather than treating a textual merge as qualification.
+
+Integration review also identified shared capture defects: reaping a leader
+before its final process-group signal loses its numeric identity reservation;
+a swallowed reap timeout cannot certify cleanup; a size check followed by an
+unbounded read does not retain a strict memory-read bound. The shared capture
+fix retains the POSIX group identity through the last owned group signal,
+rejects an uncertain reap, and checks reads capped at each stream limit plus
+one byte. Linux retains the unreaped compiler leader. The Darwin follow-up
+retains a live private group guardian and transfers the compiler's real exit
+status through a bounded private channel before terminating that group.
+Windows retains its existing Job Object owner. These controls do not establish
+a sandbox, a process-wide memory/disk bound, or that a parent can reap arbitrary
+grandchildren.
+
+Historical reports retain their source commits, protocols, timestamps and
+denominators. They are not results for this new combination. The #359 source
+remains unchanged and its recovered CI evidence is published independently.
+Its previous local-only full/component/supervisor records were lost during
+workspace maintenance; this integration makes no claim that the missing local
+full qualification completed or passed.
+
+## Semantic and admission boundaries
+
+Composite v4 elaborates to primitive v8 and retains returned-loan origins from
+parameters or record fields. Owners, enums, tasks and partially initialized
+records do not become loan anchors. Source local views and unit enums use the
+existing Core forms; the newly combined frontend is checked together with the
+verifier, interpreter and applicable independent/native routes.
+
+The safety contract has **25 capabilities and 146 unique selected tests**.
+The canonical protocol digest is
+`56fc05759a228951a2f6a633ec338593283d7c730171c0d8ca54491f917abdc2`.
+The prior 100 selectors remain present. The five added boundaries cover
+selected scalar LLVM validation, finite entry-payload analysis, captured C
+project views, prepared artifact ownership and prospective optimization-cost
+attribution. A matrix is a reviewable implementation contract, not a general
+soundness theorem or an executable admission receipt.
+
+Resource legality, functional preservation and native artifact identity remain
+separate checks. A candidate with unknown or refuted behavior validation is not
+automatically admitted. NDU is a bounded proposal/selection mechanism and gains
+no proof authority from a cost estimate, model response or serialized receipt.
+
+The prepared artifact session supports the registered single scalar
+`full_lifecycle(usize, u32) -> u64` workload within primitive v1–v7 on the declared
+Linux x86-64 profile. It reuses internally issued proofs and sealed images under
+bounded leases. Each invocation still uses a fresh child process. It does not
+add persistent owner/loan state, composite v4 hot replacement or general
+cross-version state migration. Uncertain descriptor releases retain charged
+debt and cannot be retried using the same numeric descriptor.
+
+## Qualification on this source
+
+The branch `codex/hia-round6-convergence-20261029` selects the explicit
+`integrated` workflow profile. Other branches retain the existing `full`
+release profile. The profile is recorded beside the expected and actual source
+commit, and a source mismatch fails before the profile is exported.
+
+The integrated profile provisions the existing locked tools and all four
+separately identified native NDU bridges. It executes the existing eight-gate
+qualifier, including one complete Python discovery pass, the actual Rust crate,
+native tool/kernel identity probes and critical-module coverage. It then runs
+the complete canonical safety matrix. Missing tools, skipped tests, failures,
+source drift or external input drift prevent qualification. Artifact session
+native tests are explicitly enabled in both CI and the direct qualifier.
+
+Both integrated and application qualification create clean sibling worktrees
+from the exact expected commit. Build caches, upstream checkouts and reports
+remain outside those source inventories. Application identity reports use the
+same external output directory that the workflow uploads. Existing legacy
+release gates are not removed, but they are not executed or claimed by the
+integrated-only profile. The profile avoids repeating the complete regression
+pass three times; it does not replace discovery with selected tests.
+
+Integrated CI retains source/tool identities, complete execution records and
+console streams. Its upload paths exclude upstream checkout directories,
+native NDU bridge binaries and Cargo targets. Failures remain artifacts.
+Separate host workflows execute the existing seven C/ABI profiles and seven
+C++ library profiles on their actual OS/compiler/architecture combinations.
+These are two seven-job matrices, not fourteen different architectures.
+Branch push triggers the integrated, migration and two host workflows. The
+application and verified-optimization workflows are triggered by the new Draft
+PR's changed paths; their start depends on that PR being created successfully.
+
+The macOS jobs use Python 3.13 so that the actual non-reaping `os.waitid`
+interface is available; Linux and Windows retain Python 3.11 in these host
+matrices. [CPython documents macOS support from 3.13](https://docs.python.org/3.13/library/os.html#os.waitid).
+The capture runner checks the actual interface and refuses unsupported POSIX
+environments instead of falling back to a reaping poll. This is an explicit
+host-tool requirement, not inferred evidence that the macOS jobs have passed.
+
+The first published combined source,
+`0f78511cde0985d3dba4436ef5bd1b4caee82364`, actually failed the
+[macOS C host job](https://github.com/TrillionniumFoundation/Hepta/actions/runs/40865726318/job/123419903193)
+and [macOS C++ host job](https://github.com/TrillionniumFoundation/Hepta/actions/runs/40865726366/job/123419902760).
+In both retained reports Clang had exited with status zero, but final group
+termination was refused. Those reports omitted the underlying OS error number;
+their precise errno is not retrospectively inferred. Apple XNU's
+[reviewed group-signalling implementation](https://github.com/apple-oss-distributions/xnu/blob/43a90889846e00bfb5cf1d255cdc0a701a1e05a4/bsd/kern/kern_sig.c)
+filters zombie members and can return `EPERM` when no eligible member is found.
+That behavior is consistent with the observation but does not make `EPERM`
+safe to ignore: the same refusal can also indicate an unsignalable member.
+
+The Darwin follow-up therefore uses a live group owner, preserves the actual
+compiler status separately from the guardian's status, and retains cleanup
+error details. It does not turn a failed signal, missing status frame or
+uncertain reap into a successful capture. The original failing CI remains
+evidence for `0f78511`; local Linux execution of the guardian mechanism does
+not establish successful Darwin execution. Only the corrected source's actual
+host jobs can establish that result.
+
+The same source's
+[verified-optimization job](https://github.com/TrillionniumFoundation/Hepta/actions/runs/40865793338/job/123420129446)
+ran 764 regression methods and retained five failures, zero errors and zero
+skips, with unchanged source bytes. All five failures came from the unique-owner
+C++ project path: its streaming AST producer reaped the compiler with `wait()`
+before calling the now stricter shared group terminator. The ownership refusal
+prevented that path from reaching its native positive case and four intended
+semantic refusals. The repair retains the complete streaming census, observes
+the compiler without reaping before final group termination, and publishes its
+receipt only after complete framing, valid exit status and confirmed cleanup.
+Premature generator closure or a cleanup refusal cannot leave a success receipt.
+The original five-second wait after observed stdout EOF is retained through
+non-reaping observation, bounded also by the earlier complete-census deadline.
+The Darwin guardian closes its own standard descriptors after starting the
+compiler, so it cannot hide an EOF produced while that compiler is still alive.
+The old five failures remain attributed to `0f78511`; they are not NDU cost or
+whole-language semantic results.
+
+The original combined source's complete integrated run also finished as a
+failure. It executed 3,872 regression methods with six failures, one error and
+zero skips; its Rust resource-crate gate passed. The canonical safety run
+executed all 146 selectors, with 145 passes and one failure. The source and
+external-input identities remained stable. In addition to the five streaming
+consumer failures above, the recorded issues were a generic `rust-lld` driver
+invocation in the actual masked-CPU LTO test and an `ESRCH` race in a test's
+numeric `/proc` process observation.
+
+The LTO test now gives that same configured linker a private `ld.lld` invocation
+name, used by both its version probe and Clang's full-LTO links. It records the
+original binary identity and keeps the alias outside the retained evidence
+tree. Actual CPU masking, wrong-code/signal controls and result assertions are
+preserved. The process fixture now acquires a Linux pidfd before cleanup,
+checks direct-child reaping through the owned process and `waitpid`, and keeps
+its surviving-writer barrier. It does not interpret arbitrary OS errors as
+proof of cleanup. These invocation and fixture repairs require fresh
+qualification; they do not convert the original failed run into a pass.
+
+The [retained local validation package](https://github.com/TrillionniumFoundation/Hepta/blob/584047ce30e706a687283691026b51d9a24958f9/evidence/hia_round6_local_20261029/README.md)
+records the 171 distinct focused methods on local `dc7b451` / tree `6f2fd62`,
+including the full source inventory and original intermediate failures. It is
+not relabelled as a qualification of later repairs. The
+[independent recovered round5 CI package](https://github.com/TrillionniumFoundation/Hepta/blob/999c63cae7a3143050a1ac71b66f5e040e489ab1/evidence/hia_round5_recovered_20261029/README.md)
+continues to identify source `70179fcc` and its own historical outcomes.
+
+The local workflow checks execute real shell fixtures for profile selection,
+source mismatch, clean worktrees, retained failure exit codes and external
+identity copies. Those fixture checks do not qualify a compiler or native
+artifact. Current-source native results must come from the corresponding
+actual CI executions; a previous green run is not inherited.
+
+## Six closure conditions remain distinct
+
+| Track | This integration makes reviewable | Still required before broad closure |
+| --- | --- | --- |
+| 1. One semantic contract | One combined frontend/Core/registry/checker/runtime tree and strict eight-gate identity | Actual combined-source qualification; broader frontend/backend refinement |
+| 2. Resources and Rust differential | Returned loans, composite resources, bounded invocation/depth and refusal cases in one source | Execution over the declared combined subset; broader ownership, concurrency and cancellation semantics |
+| 3. Optimization behavior | Separate legality, selected all-input equivalence checks, negative controls and admission identity | Proof coverage outside the finite scalar/guarded profiles and through final native code |
+| 4. NDU incremental value | Same-budget protocols, shared artifact-reuse eligibility, strong DP/fixed controls and preserved negative results | Positive measured net value over the preregistered controls; no such result is claimed here |
+| 5. C/C++ migration and ABI | Real captured project routes, anchored C intake/output, foreign-library reuse and actual host jobs | General translation, foreign safety obligations, platform coverage and measured engineering cost |
+| 6. Runtime/instruction optimization | Finite generation/lease/cancellation/release rules and independently validated candidate search | Positive net gain, broader state compatibility and complete resource-lifetime evidence |
+
+The original prepared-reuse study remains negative: its registered warm costs
+were 208.131606 s for strong fixed, 212.495324 s for complete finite DP, and
+237.767684 s for NDU. All 148 NDU decisions matched the DP optimum for that
+finite model; this did not produce a measured controller advantage. Shared
+proof/image reuse cannot be attributed to NDU. These observations belong to
+`b53d61cd3cdb522ccd718f3fdc7cd62d1d5964a2`, not this integration.
+
+The existing CRC application median improvement also did not meet the combined
+P99/RSS gate. No universal Rust performance superiority, arbitrary C++ safety,
+absolute resource safety, whole-language proof or global instruction optimum
+is established by the integration or by a green CI run.

@@ -1,0 +1,130 @@
+{
+  "advantage_gate": "Capability-qualified and complete stable-source 16-cell cohort with complete token usage; HIA query must pass all four hidden task gates, succeed at least as often as Rust query, consume no more task input+output tokens than Rust query, and consume fewer tokens than HIA full without reducing successes. Report within-language and between-language contrasts separately; this is descriptive, not population statistical superiority.",
+  "arms": [
+    "hia_full",
+    "hia_query",
+    "rust_full",
+    "rust_query"
+  ],
+  "budget": {
+    "hia_vm_heap_bytes": 256,
+    "hia_vm_steps": 10000,
+    "max_hia_blocks_per_function": 16,
+    "max_hia_operations_per_function": 128,
+    "native_address_space_bytes": 268435456,
+    "native_cpu_seconds": 2,
+    "native_wall_seconds": 5
+  },
+  "calibration": {
+    "attempts_per_problem": 3,
+    "first_response_gate_retroactively_changed": false,
+    "main_successes_include_calibration": false,
+    "max_output_tokens": 2048,
+    "problems": [
+      "json_scalar_reasoning",
+      "two_file_signature_repair",
+      "owner_flow_repair"
+    ],
+    "solutions_in_prompts": false,
+    "wall_seconds": 300
+  },
+  "cell_order": "Rotate the four arms by task index; one chosen model for all 16 main cells. No model switching or task substitution in the cohort.",
+  "claims": {
+    "all_resource_failures_cleanup_guaranteed": false,
+    "compiler_os_hardware_verified": false,
+    "general_agent_productivity_proved": false,
+    "general_language_advantage_proved": false,
+    "whole_project_migration_proved": false
+  },
+  "costs": [
+    "calibration and rejected model selection",
+    "all main requests including failures",
+    "input/output token IDs and unknown usage",
+    "runtime/model hashing and process startup/shutdown",
+    "compilation and native/VM validation",
+    "automatic repair attempts",
+    "source identity checks",
+    "reference and hostile controls",
+    "download receipts",
+    "whole-run wall time",
+    "self-check tokens and all public-feedback repairs in calibration and main",
+    "received partial output token lower bounds and unknown residual usage"
+  ],
+  "edit_authority": "Both interfaces may replace the same complete provider and consumer definitions. No answer inventory, gold function body, hidden case, or hidden expected value is put in model prompts or decoder schemas.",
+  "editable_files_per_cell": 2,
+  "execution_location": "Available shared development host, not verified dot. LOCAL_RUNTIME_NOT_OBSERVABLE.",
+  "feedback": "Only real compiler/admission diagnostics and existing public cases; at most two automatic repairs per cell. Each request receives the unchanged original prompt plus only the most recent response and public feedback. Hidden checks are terminal after the first public pass; never shown to inference.",
+  "full_context": "All four physical source files, including unchanged audit_tag and utility definitions. An independent provider-probe harness is compiler instrumentation, not an editable project file.",
+  "generation": {
+    "attempts_per_cell": 3,
+    "cache_prompt": false,
+    "context_tokens": 8192,
+    "max_output_tokens": 2048,
+    "seed": 0,
+    "temperature": 0,
+    "threads": 4,
+    "wall_seconds": 300
+  },
+  "hia_file_scope": "Four source files are assembled into one verified HIA Core module; this is not independent HIA object-module linking.",
+  "hidden_random_cases_per_task": 24,
+  "hidden_seed": 1213216308,
+  "historical_results_immutable": true,
+  "model_selection": {
+    "eligibility": "All three unchanged baseline task gates must pass within three public-feedback submissions. Choose the first eligible pinned model. Main is forbidden unless one qualifies. This is workflow competence, not first-response competence.",
+    "main_task_or_prompt_changes_after_calibration": false,
+    "order": [
+      "qwen_coder1_5b",
+      "qwen_coder7b"
+    ],
+    "selection_bias": "This is an adaptively selected local model, not an unbiased sample of agents or model families."
+  },
+  "models": [
+    {
+      "bytes": 1117320768,
+      "filename": "qwen2.5-coder-1.5b-instruct-q4_k_m.gguf",
+      "id": "qwen_coder1_5b",
+      "repository": "Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF",
+      "revision": "f86cb2c1fa58255f8052cc32aeede1b7482d4361",
+      "sha256": "cc324af070c2ecbfd324a30884d2f951a7ff756aba85cb811a6ec436933bb046"
+    },
+    {
+      "bytes": 4683073536,
+      "filename": "qwen2.5-coder-7b-instruct-q4_k_m.gguf",
+      "id": "qwen_coder7b",
+      "repository": "Qwen/Qwen2.5-Coder-7B-Instruct-GGUF",
+      "revision": "13fb94bfda8c8cf22497dc57b78f391a9acb426a",
+      "sha256": "509287f78cb4d4cf6b3843734733b914b2c158e43e22a7f4bf5e963800894d3c"
+    }
+  ],
+  "performance_timing_qualified": false,
+  "predecessor": "hia_agent_factorial_v4_20261028; all failures and first-response gate remain immutable",
+  "project_files": 4,
+  "query_context": "Exact editable definitions plus unchanged function signatures and call/effect interface summary; omitted definitions are retained and reverified.",
+  "resource_execution": "Actual bounded native execution and independently recorded HIA VM ownership/loan observations; resource observations are not whole-compiler proofs.",
+  "runtime": {
+    "archive": "llama-b11669-bin-ubuntu-x64.tar.gz",
+    "bytes": 17851611,
+    "environment": {
+      "LLAMA_ARG_REPACK": "0"
+    },
+    "release": "b11669",
+    "repository": "ggml-org/llama.cpp",
+    "sha256": "cf07c1c112d709bd67e522017471de57ed0ec8bea031d732c5422351c07f65ac"
+  },
+  "schema": "hepta.agent.factorial-public-repair.v5",
+  "selection_scope": "Adaptive follow-up selected after seeing v4 errors; not an unbiased pipeline or model sample.",
+  "self_check": "Syntax-only JSON check string preceding files, at most1536 characters, generic requirement review, unscored and with no source-edit authority; no answer inventory or hidden cases.",
+  "tasks": [
+    "saturating_score",
+    "wide_span_upgrade",
+    "owned_byte_return",
+    "owner_pair_replace"
+  ],
+  "timeout": "A timeout ends that cell and retains unknown output usage; stop the owned model process and start a fresh one for the next distinct cell. Never relabel a missing response as zero tokens or retry a timed-out cell.",
+  "transport": "Owned Unix-socket llama.cpp b11669 SSE; exact input IDs and received output IDs retained before EOF. Partial output is a lower bound, complete total is null without a validated final event.",
+  "unmeasured_costs": [
+    "human and tool-development labor",
+    "model training",
+    "upstream integration"
+  ]
+}

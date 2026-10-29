@@ -1,0 +1,1 @@
+use crate::api; pub fn provider_probe(a:u32,b:u32,c:u32)->u64 { let _=c; let buf=vec![0u8;((a&7)+1) as usize]; let out=api::touch(buf,b as u8); let value=(out[0] as u64)+4096*(out.len() as u64); drop(out); value }

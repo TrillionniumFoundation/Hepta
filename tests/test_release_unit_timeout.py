@@ -132,8 +132,11 @@ class ReleaseUnitTimeoutTests(unittest.TestCase):
         self.assertEqual(len(report["gates"]), len(report["planned_gates"]))
         unified = workflow_argv(text, "/unexecuted/workflow-checkout")
         self.assertEqual(unified[unified.index("--unit-timeout-seconds") + 1], "3600")
+        # The separate integrated qualifier adds a third complete regression
+        # pass. Its job watchdog covers that pass without changing either
+        # existing unit budget or the native gates collected above.
         self.assertEqual([line for line in text.splitlines() if line.startswith("    timeout-minutes:")],
-                         ["    timeout-minutes: 180"])
+                         ["    timeout-minutes: 240"])
 
 
 if __name__ == "__main__":

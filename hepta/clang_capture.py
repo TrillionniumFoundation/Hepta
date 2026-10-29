@@ -2,9 +2,12 @@
 
 Stdin/stdout/stderr are file-backed, so even a noisy child cannot force an
 unbounded in-memory communicate() buffer. A poller checks output quotas while
-Clang is active. POSIX commands own a process group. Windows commands start
-behind a gate assigned to a kill-on-close Job Object before compiler launch.
-Those descendants are terminated on failure, timeout and parent completion.
+Clang is active. POSIX commands retain an unreaped leader until their one group
+termination attempt, then require a confirmed leader reap. Darwin uses a live
+private guardian and a fixed-size compiler status channel. Windows commands
+start behind a gate assigned to a kill-on-close Job Object before launch.
+Final stream reads have independent bounds: a group signal does not establish
+that every descendant has already stopped or that this parent can reap it.
 
 This is a process budget, not a sandbox: privileged children, child-created
 sessions and filesystem side effects are outside this control mechanism.
@@ -17,8 +20,12 @@ import os
 from pathlib import Path
 import signal
 import subprocess
+import sys
 import tempfile
 import time
+
+
+_DARWIN = sys.platform == "darwin"
 
 
 class CaptureRejected(ValueError):
@@ -57,8 +64,64 @@ class CaptureFailure:
     stderr_total_bytes: int
 
 
+def _require_posix_ownership() -> None:
+    """Require the actual non-reaping interface before launching a child.
+
+    CPython exposes waitid on macOS from 3.13 onward. Do not substitute a
+    reaping poll on older/unsupported hosts. The trusted caller must keep the
+    default SIGCHLD disposition and must not independently reap our children.
+    """
+    if (not callable(getattr(os, "waitid", None))
+            or not callable(getattr(os, "killpg", None))
+            or any(not hasattr(os, name) for name in
+                   ("P_PID", "WEXITED", "WNOWAIT", "WNOHANG",
+                    "CLD_EXITED", "CLD_KILLED", "CLD_DUMPED"))):
+        raise CaptureRejected("E_CAPTURE_OWNERSHIP",
+                              "POSIX compiler capture requires waitid(WNOWAIT); macOS CPython requires 3.13+")
+    if signal.getsignal(signal.SIGCHLD) != signal.SIG_DFL:
+        raise CaptureRejected("E_CAPTURE_OWNERSHIP", "Default SIGCHLD disposition is required")
+    try:
+        # Our own PID cannot be our child. ECHILD checks support for these
+        # flags without waiting for or consuming another caller's child.
+        os.waitid(os.P_PID, os.getpid(), os.WEXITED | os.WNOWAIT | os.WNOHANG)
+    except ChildProcessError:
+        return
+    except OSError as error:
+        raise CaptureRejected("E_CAPTURE_OWNERSHIP", "Non-reaping child observation unavailable") from error
+    raise CaptureRejected("E_CAPTURE_OWNERSHIP", "Could not confirm non-reaping child observation")
+
+
+def _posix_observe(proc: subprocess.Popen[bytes]):
+    """Observe only this still-owned child, without releasing its PID."""
+    if proc.returncode is not None:
+        raise CaptureRejected("E_CAPTURE_OWNERSHIP", "Compiler leader was already reaped")
+    try:
+        info = os.waitid(os.P_PID, proc.pid, os.WEXITED | os.WNOWAIT | os.WNOHANG)
+    except OSError as error:
+        raise CaptureRejected("E_CAPTURE_OWNERSHIP", "Compiler leader ownership is no longer confirmed") from error
+    if info is not None and info.si_pid != proc.pid:
+        raise CaptureRejected("E_CAPTURE_OWNERSHIP", "Child observation names another process")
+    return info
+
+
+def _child_exited(proc: subprocess.Popen[bytes], job) -> bool:
+    if os.name == "posix":
+        info = _posix_observe(proc)
+        # Some Darwin versions also report stopped children for WEXITED.
+        # A stop is not completion; the existing deadline still applies.
+        exited = info is not None and info.si_code in {os.CLD_EXITED, os.CLD_KILLED, os.CLD_DUMPED}
+        if job is not None:
+            if exited:
+                raise CaptureRejected("E_CAPTURE_GUARDIAN", "Darwin guardian exited before owned termination")
+            return job.poll_status()
+        return exited
+    # The existing Windows Job Object retains ownership independently of PID.
+    return proc.poll() is not None
+
+
 def _terminate(proc: subprocess.Popen[bytes], job=None) -> None:
-    if job is not None:
+    """One owned termination attempt; only the direct child is reaped here."""
+    if job is not None and os.name == "nt":
         try:
             if job.cleanup(proc):
                 return
@@ -67,21 +130,54 @@ def _terminate(proc: subprocess.Popen[bytes], job=None) -> None:
             reason = "Windows compiler job cleanup failed: " + str(error)
         job.retain(proc)
         raise CaptureRejected("E_CAPTURE_CLEANUP", reason)
-    # start_new_session=True gives this child its own group on POSIX.
-    # The parent may have exited while one of its descendants is still alive.
+    group_error = None
+    guardian_exited = False
     if os.name == "posix":
+        # Check that our original leader remains waitable before using its
+        # numeric PGID. No wait/poll/kill method may reap it before this signal.
+        observed = _posix_observe(proc)
+        guardian_exited = (job is not None and observed is not None and
+                          observed.si_code in {os.CLD_EXITED, os.CLD_KILLED, os.CLD_DUMPED})
         try:
             os.killpg(proc.pid, signal.SIGKILL)
+        except ProcessLookupError as error:
+            # A terminal, unreaped leader can outlive an empty process group
+            # on a supported host. A missing group for a live leader cannot
+            # be reported as successful cleanup.
+            if job is not None or observed is None or observed.si_code not in {
+                    os.CLD_EXITED, os.CLD_KILLED, os.CLD_DUMPED}:
+                group_error = error
+        except OSError as error:
+            group_error = error
+    try:
+        # The final group signal has already been attempted. Popen.kill may
+        # now reap a terminal leader; it preserves that original exit status.
+        try:
+            proc.kill()
         except ProcessLookupError:
             pass
-    try:
-        proc.kill()
-    except ProcessLookupError:
-        pass
-    try:
         proc.wait(timeout=3)
-    except subprocess.TimeoutExpired:
-        pass
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise CaptureRejected("E_CAPTURE_CLEANUP", f"Compiler leader reap was not confirmed: {error}") from error
+    if group_error is not None:
+        raise CaptureRejected("E_CAPTURE_CLEANUP",
+                              f"Compiler process-group termination failed: errno={group_error.errno}; {group_error}") from group_error
+    if job is not None and (guardian_exited or proc.returncode != -signal.SIGKILL):
+        raise CaptureRejected("E_CAPTURE_GUARDIAN", "Darwin guardian did not remain alive until owned termination")
+
+
+def _compiler_returncode(proc, job) -> int | None:
+    # The guardian's Popen.returncode always remains its actual OS wait status.
+    return job.returncode if os.name == "posix" and job is not None else proc.returncode
+
+
+def _read_final(stream, limit: int) -> bytes:
+    # A child/descendant write can race the preceding fstat even after a group
+    # signal. Never make the in-memory allocation depend on a stable file size.
+    data = stream.read(limit + 1)
+    if len(data) > limit:
+        raise CaptureRejected("E_CAPTURE_OUTPUT_SIZE", "Compiler output grew beyond byte budget")
+    return data
 
 
 def _decode(data: bytes, stream: str) -> str:
@@ -122,6 +218,10 @@ def run_bounded(
         raise CaptureRejected("E_CAPTURE_INPUT", "Compiler stdin must be UTF-8 text") from exc
     if len(payload) > stdin_limit:
         raise CaptureRejected("E_CAPTURE_INPUT_SIZE", "Compiler stdin exceeds byte budget")
+    if os.name == "posix":
+        _require_posix_ownership()
+    elif os.name != "nt":
+        raise CaptureRejected("E_CAPTURE_OWNERSHIP", "Unsupported compiler process owner")
 
     with (tempfile.TemporaryFile() as input_file,
           tempfile.TemporaryFile() as output_file,
@@ -134,6 +234,10 @@ def run_bounded(
                 from .windows_capture import launch
                 proc, job = launch(argv, cwd=cwd, stdin=input_file,
                                    stdout=output_file, stderr=error_file)
+            elif _DARWIN:
+                from .darwin_capture import launch
+                proc, job = launch(argv, cwd=cwd, stdin=input_file,
+                                   stdout=output_file, stderr=error_file)
             else:
                 proc = subprocess.Popen(
                     argv, cwd=cwd, stdin=input_file, stdout=output_file,
@@ -144,45 +248,55 @@ def run_bounded(
             raise CaptureRejected("E_CAPTURE_EXEC", "Compiler launch failed: " + str(exc)) from exc
         deadline = time.monotonic() + timeout
         failure = None
-        cleanup_complete = False
+        interruption = None
+        cleanup_attempted = False
         try:
-            while proc.poll() is None:
+            if os.name == "posix" and job is not None:
+                job.raise_startup_error()
+            while not _child_exited(proc, job):
                 if (os.fstat(output_file.fileno()).st_size > stdout_limit
                         or os.fstat(error_file.fileno()).st_size > stderr_limit):
                     raise CaptureRejected("E_CAPTURE_OUTPUT_SIZE", "Compiler exceeded stdout/stderr byte budget")
                 if time.monotonic() >= deadline:
                     raise CaptureRejected("E_CAPTURE_TIMEOUT", "Compiler exceeded wall-time budget")
                 time.sleep(min(.01, max(.001, deadline - time.monotonic())))
-            # Parent exit does not mean descendants have exited.
+            # Consume permission to signal before cleanup can reap the leader
+            # or fail after an effect. Never retry a numeric group identity.
+            cleanup_attempted = True
             _terminate(proc, job)
-            cleanup_complete = True
             stdout_size = os.fstat(output_file.fileno()).st_size
             stderr_size = os.fstat(error_file.fileno()).st_size
             if stdout_size > stdout_limit or stderr_size > stderr_limit:
                 raise CaptureRejected("E_CAPTURE_OUTPUT_SIZE", "Compiler output exceeded byte budget")
             output_file.seek(0)
             error_file.seek(0)
-            raw_stdout, raw_stderr = output_file.read(), error_file.read()
+            raw_stdout = _read_final(output_file, stdout_limit)
+            raw_stderr = _read_final(error_file, stderr_limit)
             return CaptureResult(
-                proc.returncode, _decode(raw_stdout, "stdout"),
+                _compiler_returncode(proc, job), _decode(raw_stdout, "stdout"),
                 _decode(raw_stderr, "stderr"), raw_stdout, raw_stderr,
             )
         except CaptureRejected as error:
             failure = error
             raise
+        except BaseException as error:
+            interruption = error
+            raise
         finally:
             cleanup_failure = None
             try:
-                # Normal completion already disposed the owned group/job before
-                # reading outputs. Do not signal that numeric group again after
-                # ownership ended; macOS can refuse the repeated killpg. Initial
-                # cleanup failures still propagate and retain Windows owners.
-                if not cleanup_complete:
+                # A failed cleanup may already have signalled/reaped. Preserve
+                # that failure and never retry its numeric process group. The
+                # Windows owner retains pending jobs through its existing API.
+                if not cleanup_attempted:
+                    cleanup_attempted = True
                     _terminate(proc, job)
             except CaptureRejected as error:
                 cleanup_failure = error
                 if failure is not None:
-                    failure.capture_error = str(error)
+                    failure.capture_error = f"{error.code}: {error}"
+                elif interruption is not None:
+                    interruption.add_note(f"Cleanup refused: {error.code}: {error}")
             if failure is not None:
                 try:
                     stdout_size = os.fstat(output_file.fileno()).st_size
@@ -190,13 +304,28 @@ def run_bounded(
                     output_file.seek(0)
                     error_file.seek(0)
                     failure.capture = CaptureFailure(
-                        tuple(argv), proc.returncode,
+                        tuple(argv), _compiler_returncode(proc, job),
                         output_file.read(stdout_limit), error_file.read(stderr_limit),
                         stdout_size, stderr_size,
                     )
                 except OSError as error:
                     # Preserve the original rejection/code even when the
-                    # capture files themselves cannot be read.
-                    failure.capture_error = str(error)
-            if cleanup_failure is not None and failure is None:
+                    # capture files themselves cannot be read. A later read
+                    # failure must not erase an earlier cleanup refusal.
+                    previous = failure.capture_error
+                    failure.capture_error = (f"{previous}; capture evidence: {error}"
+                                             if previous else str(error))
+            if os.name == "posix" and job is not None:
+                try:
+                    job.close()
+                except OSError as error:
+                    close_failure = CaptureRejected("E_CAPTURE_CLEANUP", f"Darwin status descriptor close failed: {error}")
+                    if failure is not None:
+                        previous = failure.capture_error
+                        failure.capture_error = (f"{previous}; {close_failure}" if previous else str(close_failure))
+                    elif interruption is not None:
+                        interruption.add_note(f"Cleanup refused: {close_failure.code}: {close_failure}")
+                    elif cleanup_failure is None:
+                        cleanup_failure = close_failure
+            if cleanup_failure is not None and failure is None and interruption is None:
                 raise cleanup_failure

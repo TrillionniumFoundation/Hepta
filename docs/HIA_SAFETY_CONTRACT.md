@@ -12,17 +12,51 @@ exclusions, and links it to existing executable boundary regressions. Run it
 from the repository root with the qualified Clang, Rust and Z3 environment:
 
 ```sh
-python tools/qualify_hia_safety_contract.py --output /tmp/hia-safety/report.json
+HEPTA_RUN_ARTIFACT_SESSION=1 python tools/qualify_hia_safety_contract.py --output /tmp/hia-safety/report.json
 ```
 
 The output path must be new. The runner rejects registry drift, unresolved
 entrypoints, missing tests, test skips, failures and source changes during the
-run. It records per-test outcomes, source hashes, tool identities and the
+run. The runner also pins the canonical identity of this reviewed matrix before
+resolving any dynamic entrypoint. Removing capabilities, substituting tests or
+changing scope, exclusions or trust assumptions cannot qualify as the same
+protocol. A deliberate protocol revision requires reviewing and updating the
+matrix and its independent identity in the runner together. This identity fixes
+the qualification scope; it is not a semantic proof or program admission token.
+It records per-test outcomes, source hashes, tool identities and the
 remaining unproved claims. A passing report means the selected regressions
 passed on those bytes and that host. It is not a soundness or refinement proof.
 The runner does not replace or wrap the Core verifier and does not admit an
 otherwise rejected program. Adding a future schema requires a deliberate
 matrix review; it cannot inherit these guarantees merely by changing a version.
+
+Integrated qualification explicitly enables the mandatory Linux native
+artifact-session regressions before starting its fresh test processes. Direct
+CLI use and CI use the same requirement. Missing tools or a skipped selected
+test cannot count as a passed gate. The configuration regression that checks
+this activation does not itself execute a native workload.
+
+The integrated qualifier separately binds its main working tree to the original
+committed source. It enumerates all paths and regular-file modes from the exact
+SHA-1 HEAD tree with Git replacement objects disabled. Each stable file read
+computes both SHA-256 and the Git blob identity over its actual raw bytes; the
+blob must equal that tree entry, and the owner's executable bit must match.
+`assume-unchanged`, `skip-worktree`, a clean status, or `core.fileMode=false`
+cannot substitute different bytes or modes. Missing files, nonregular tree or
+working members, unsafe/duplicate paths and changes during an identity read
+are rejected. Hints on unchanged bytes remain accepted. This is a source-input
+identity check, not authentication of a hostile host or a refinement theorem.
+
+The reviewed matrix also includes the finite filecheck research target and
+native-failure boundaries. Its full-LTO IR retains the actual C frontend's CPU
+and complete positive/negative feature attributes; a real masked-x86 emulator
+checks the reproduced refusal and successful bound route. Differential and
+maintenance workers preserve actual signal status and partial progress in a
+failed parent qualification report. The linker and emulator identities are
+recorded, and integrated qualification binds the emulator before and after.
+These checks preserve all previous selectors and do not change production
+admission or the `no_change` policy. See
+[the detailed contract](HIA_FILECHECK_NATIVE_TARGET_AND_FAILURES.md).
 
 ## Typed state and instruction obligations
 
@@ -92,8 +126,8 @@ tests for the relevant ownership, alias, join and return cases.
 | Composite v2 | Nominal operations with the v7 resource grammar | Normalizes to primitive v7 |
 | Composite v3 | Explicit partially initialized record states | Normalizes to primitive v7; no implicit v8 returned-loan extension |
 | Composite v4 | V3 operations plus primitive loan results from declared original parameter/record-field paths | Normalizes to primitive v8; only incoming loan-only parameters may anchor results; no borrowed aggregate results or loans retained by partial/task state |
-| Hepta source | Finite checked scalar/record/Result profiles and closed specialization; v1 by default or explicit v8 | No stored returned borrows, general foreign calls or hidden Rust/C fallback |
-| Independent Rust shadow | Separately closed scalar, byte-owner, returned-loan and owned-chain Machine profiles | Independent finite comparison; never production admission or deployment authority |
+| Hepta source | Finite checked scalar/record/Result profiles, concrete unit enums, local byte-view records and closed specialization; v1 by default or explicit v8 | Local views follow the lexical Resource IR profile; no stored returned borrows, general foreign calls or hidden Rust/C fallback |
+| Independent Rust shadow | Separately closed scalar, byte-owner, returned-loan and owned-chain Machine profiles, with invocation-bound outcomes and stopped ledgers | Independent finite comparison; execution v2 binds root-inclusive depth 1–32, while legacy/v1 stay at 32; never production admission or deployment authority |
 | Direct LLVM | Native code from immutable reverified HIA | Compiler, runtime and platform remain trusted; full Core-to-native refinement is not proved |
 
 The JSON matrix includes the exact profile strings and features from
@@ -101,6 +135,16 @@ The JSON matrix includes the exact profile strings and features from
 trusted: consumers recheck their actual bytes. Source/compiler adapters also
 preserve public-entry eligibility. Flattening a record into scalars does not
 grant a new public scalar C ABI.
+
+Source unit enums have 1–32 concrete payload-free variants and lower to existing
+`u32` tags and CFG branches. Their original nominal signatures still restrict
+public scalar entries. Local view records contain one direct byte-slice
+reference and at most four scalar labels; view parameters, returns and nesting
+remain excluded. These source additions do not reinterpret composite v3 or
+replace composite v4's separately declared parameter-field return origins.
+The invocation-bound Rust execution profiles compare the full outcomes and
+stopped resource ledgers within their own finite budgets. They do not silently
+replace the larger budgets accepted by the Python execution APIs.
 
 ## Execution boundaries
 
@@ -131,6 +175,17 @@ allocation work, termination or CPU time. Unknown extents, unreviewed opcodes,
 recursive call graphs and unsupported resource boundaries must remain unknown
 or rejected by the relevant analysis. They cannot become zero or an imported
 caller promise.
+
+The separate `hepta.hia.entry-payload-analysis.v1` profile accepts primitive v1
+with a public scalar entry and checks every function against its closed opcode
+inventory. It requires an acyclic call graph and preceding same-block constant
+allocation sizes. CFG cycles may access resources only when their complete
+call closure contains no allocator opcode. It conservatively adds allocation
+sites across branches and syntactic call sites. Since the scalar entry has no
+incoming private owners, cumulative requested payload also bounds live logical
+payload on every finite trace prefix. This is not a tight peak, a termination
+or cleanup theorem, or a bound on private incoming owners. It does not enlarge
+the acceptance domain of any older budget or native admission consumer.
 
 Static payload accounting excludes allocator metadata, fragmentation, native
 stack bytes, foreign allocations, the Python interpreter, compiler memory and
@@ -168,6 +223,19 @@ failed background worker closes admission and settles its accepted Futures;
 an already committed publication remains owned by the runtime. These host
 transitions do not establish arbitrary asynchronous language unwinding.
 
+`PreparedArtifactSession` adds a separate finite research owner for internally
+proved and built sealed images. Its supported entry is one nonrecursive
+primitive v1–v7 `full_lifecycle(usize, u32) -> u64` checksum function on Linux
+x86-64. Every invocation runs in a fresh child; no owner or loan persists across
+invocations. Private proof ancestry, implementation, solver, policy, compiler
+and sealed-image identity remain bound during reuse. Leases keep their image
+and parent alive, failed transactional publication restores visibility and
+accounting, and uncertain descriptor release remains charged without retrying
+a potentially reused number. Its caps cover retained images and canonical
+metadata; they exclude Python overhead, build temporaries and child process
+memory. This profile does not admit foreign receipts, v8 resource-state
+migration or arbitrary hot replacement.
+
 The one-shot NDU bridge, persistent session and optional response cache use
 [one versioned advisory response contract](HIA_NDU_RESPONSE_CONTRACT.md).
 Malformed identities, typed request bindings, candidate partitions and path
@@ -177,10 +245,32 @@ bindings; it does not recompute utility, establish globally optimal policy,
 authenticate an input proof digest or authorize code admission. The cache
 remains opt-in and downstream proof/build gates remain independent.
 
+The prospective prepared-reuse comparison protocol separately checks equal
+proof policies and runtime limits, full-cost accounting, admitted opportunity
+controls and the exact candidate that was selected, built and observed. Actual
+cell-specific timing feedback updates an additive finite allocation model;
+the complete-DP control receives the same model and shared compile-credit
+constraint. Internal proof reuse is available to all arms. Protocol regression
+inputs are constructed controls, not fresh performance measurements. Prior
+experiments retain their original source identities and negative outcomes;
+historical controller build time cannot be relabeled as a newly measured cold
+run. No NDU algorithm benefit or global instruction optimum follows from a
+passing protocol check.
+
 Scalar C migration additionally bounds source reads, public IR structure and
 emitted parser depth and isolates source, output and report paths. Oversized
 input prefixes are not represented as full source identities. These controls
 do not infer foreign pointer obligations or expand the admitted C/C++ grammar.
+
+The captured C project-view route lowers selected record/slice bodies with
+explicit frozen contracts into the existing source checker and primitive Core.
+It separately accounts for authored Hepta clients that own the storage and
+call the migrated borrowed interfaces. Capture identity is rechecked after
+lowering, and only the checked scalar public entries are exported. This route
+does not compile a hidden Rust bridge, link the original C implementation into
+the target, infer foreign obligations or preserve a foreign record/pointer ABI.
+Its selected native application and failure-path comparisons remain finite
+evidence on the host that actually executed them.
 
 ## Source/Core/native refinement and the trusted base
 
@@ -194,9 +284,16 @@ Three distinct questions must remain visible:
    including first observable trap and prescribed resource/effect structure.
    Unknown, timeout or refuted obligations cannot authorize optimized builds.
    This does not prove every possible transformation or global optimality.
-3. Does the emitted native code implement every Core behavior? Actual native
-   comparisons and allocator observations provide finite evidence. A complete
-   Core-to-LLVM-to-machine-code refinement theorem is not established.
+3. Does the emitted native code implement every Core behavior? The selected
+   scalar lowering validator compares an actual internal LLVM body and its
+   acyclic scalar call closure with the existing Core SMT encoder. Within its
+   bounded instruction grammar, an `unsat` result establishes the encoded
+   value/abort correspondence and absence of modeled LLVM poison. Unknown
+   syntax, loops, recursion and solver uncertainty cannot inherit that result.
+   This does not prove the encoders' own correspondence to their complete
+   languages, public wrappers, C ABI or machine-code generation. Actual native
+   comparisons and allocator observations provide additional finite evidence.
+   A complete Core-to-LLVM-to-machine-code refinement theorem remains absent.
 
 The trusted base includes the Python parser/checker/elaborator and operational
 code, proof encoders and pinned solver, LLVM emitter and Clang/LLVM/linker,

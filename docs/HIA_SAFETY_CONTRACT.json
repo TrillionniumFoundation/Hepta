@@ -56,16 +56,32 @@
       "exclusions": [
         "source-to-Core refinement not proved",
         "no stored lifetime returns or general borrowed-record returns",
-        "no foreign calls, inline assembly, threads or implicit legacy backend fallback"
+        "no foreign calls, inline assembly, threads or implicit legacy backend fallback",
+        "no payload, generic or recursive source enums; scalarization does not authorize an enum C ABI"
       ],
       "guarantee": "checked_source_and_reverified_core",
       "id": "source_lowering",
       "regression_selectors": [
         "tests.test_hia_program_source.HIASourceTests.test_removed_drop_cannot_be_resealed_into_valid_hia",
         "tests.test_hia_program_source.HIASourceTests.test_unmodeled_source_never_falls_back_to_foreign_or_rust_execution",
-        "tests.test_hia_returned_loans.ReturnedLoanSemantics.test_record_field_path_changes_local_origins_and_stored_borrows_reject"
+        "tests.test_hia_returned_loans.ReturnedLoanSemantics.test_record_field_path_changes_local_origins_and_stored_borrows_reject",
+        "tests.test_hia_source_local_views.HIASourceLocalViewTests.test_local_views_enter_same_core_and_preserve_shared_aliases",
+        "tests.test_hia_source_local_views.HIASourceLocalViewTests.test_mutable_views_move_drop_and_rejoin_each_loop",
+        "tests.test_hia_source_local_views.HIASourceLocalViewTests.test_existing_invalid_aliases_and_escaping_storage_still_reject",
+        "tests.test_hia_source_local_views.HIASourceLocalViewTests.test_removed_loan_end_rejected_by_canonical_core",
+        "tests.test_hia_source_local_views.HIASourceLocalViewRust.test_actual_rust_machine_matches_values_loans_failures_and_every_step",
+        "tests.test_hia_source_local_views.HIASourceLocalViewNative.test_source_rust_and_canonical_llvm_execute_same_finite_inputs",
+        "tests.test_hia_source_local_views.HIASourceLocalViewNative.test_actual_allocator_failure_preserves_local_view_cleanup",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumTests.test_existing_source_checker_resource_ir_and_same_core_all_accept",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumTests.test_source_route_and_public_execution_reject_erased_enum_helpers",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumTests.test_32_variant_boundary_and_unused_unsupported_declarations",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumTests.test_type_match_abi_and_complex_storage_refusals_remain_closed",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumRust.test_actual_rust_same_core_values_stops_failures_and_invalid_tags",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumNative.test_actual_source_rust_core_llvm_values_and_public_symbol_boundary",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumNative.test_actual_allocator_failure_returns_enum_error_and_cleans_owners",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumNative.test_actual_native_invalid_primitive_tag_traps"
       ],
-      "scope": "default primitive v1; explicit v8; finite checked scalars, records, Result and closed specialization"
+      "scope": "default primitive v1; explicit v8; finite checked scalars, records, Result and closed specialization; finite local byte-view records through the existing lexical Resource IR checker and canonical primitive v1/v8; concrete enums with 1..32 unit variants use existing u32 tags and CFG while original nominal signatures restrict public scalar entries"
     },
     {
       "entrypoints": [
@@ -191,7 +207,8 @@
     },
     {
       "entrypoints": [
-        "hepta.hia_program_llvm.build_program_native"
+        "hepta.hia_program_llvm.build_program_native",
+        "tools.hia_filecheck_target_profile.bind_native_target_profile"
       ],
       "exclusions": [
         "Core-to-LLVM refinement not proved",
@@ -202,24 +219,39 @@
       "id": "native_lowering",
       "regression_selectors": [
         "tests.test_hia_program_llvm.StandaloneHIANativeTests.test_owned_allocation_moves_loans_and_normal_error_cleanup",
-        "tests.test_hia_program_llvm.StandaloneHIANativeTests.test_allocator_observer_rejects_compiled_leak_with_correct_return_values"
+        "tests.test_hia_program_llvm.StandaloneHIANativeTests.test_allocator_observer_rejects_compiled_leak_with_correct_return_values",
+        "tests.test_hia_filecheck_target_profile.FilecheckTargetProfileTests.test_masked_cpu_lto_preserves_complete_frontend_feature_policy"
       ],
-      "scope": "direct LLVM from immutable reverified HIA; Linux x86-64 native execution; other target qualification is separate"
+      "scope": "direct LLVM from immutable reverified HIA; Linux x86-64 native execution; other target qualification is separate; filecheck research full-LTO IR explicitly retains the same C frontend CPU and complete positive/negative feature policy, with actual masked-x86 CPU refusal and success controls"
     },
     {
       "entrypoints": [
-        "hepta.hia_rust_crosscheck.crosscheck_rust_shadow"
+        "hepta.hia_rust_crosscheck.crosscheck_rust_shadow",
+        "hepta.hia_rust_crosscheck.crosscheck_rust_execution",
+        "hepta.hia_rust_crosscheck.crosscheck_rust_execution_v2"
       ],
       "exclusions": [
         "no deployment authority",
-        "agreement is not refinement or whole-language soundness"
+        "agreement is not refinement or whole-language soundness",
+        "not a transparent replacement for Python production budgets up to 256 frames, 10000000 ticks or 1 GiB payload"
       ],
       "guarantee": "independent_finite_comparison_only",
       "id": "independent_shadow",
       "regression_selectors": [
-        "tests.test_hia_rust_owned_vm.RustByteOwnerVmParity.test_wrong_types_exports_and_illegal_loans_cannot_enter_machine"
+        "tests.test_hia_rust_owned_vm.RustByteOwnerVmParity.test_wrong_types_exports_and_illegal_loans_cannot_enter_machine",
+        "tests.test_hia_rust_execution_crosscheck.RustExecutionCrosscheck.test_changed_request_is_rejected_even_when_rehashed_and_same_result",
+        "tests.test_hia_rust_execution_crosscheck.RustExecutionCrosscheck.test_complete_report_types_capabilities_and_stopped_ledger_are_checked",
+        "tests.test_hia_rust_execution_crosscheck.RustExecutionCrosscheck.test_return_trap_heap_and_every_step_stop_keep_exact_ledgers",
+        "tests.test_hia_rust_transport_lifecycle.RustShadowTransportLifecycle.test_exited_leader_with_inherited_pipe_reaps_descendant_on_deadline",
+        "tests.test_hia_rust_transport_lifecycle.RustShadowTransportLifecycle.test_success_nonzero_and_stderr_reap_descendant_before_returning",
+        "tests.test_hia_rust_bound_depth.RustBoundDepthParity.test_all_depths_have_root_inclusive_scalar_boundaries_and_exact_ticks",
+        "tests.test_hia_rust_bound_depth.RustBoundDepthParity.test_recursive_returned_loans_and_chain_transfers_keep_stopped_owners",
+        "tests.test_hia_rust_bound_depth.RustBoundDepthParity.test_v1_and_legacy_reports_stay_fixed_at_32_for_every_schema",
+        "tests.test_hia_rust_bound_depth.RustBoundDepthParity.test_raw_policy_requires_exact_shape_types_bounds_and_json",
+        "tests.test_hia_rust_bound_depth.RustBoundDepthParity.test_invalid_raw_core_and_typed_arguments_cannot_hide_behind_depth_one",
+        "tests.test_hia_rust_bound_depth.RustBoundDepthParity.test_rehashed_policy_or_result_tampering_and_cross_version_replays_reject"
       ],
-      "scope": "Rust closed byte-owner/returned-loan/owned-chain Machine profiles"
+      "scope": "Rust closed byte-owner/returned-loan/owned-chain Machine profiles; fresh invocation-bound Python/Rust comparison of scalar public entries, full outcomes and stopped resource ledgers; Linux process-group ownership retained through bounded cleanup; v2 explicitly binds root-inclusive call depth 1..32 to the same Machine, with legacy/v1 fixed at 32"
     },
     {
       "entrypoints": [
@@ -280,7 +312,9 @@
     {
       "entrypoints": [
         "hepta.c_migrate.migrate_c_project",
-        "hepta.cpp_unique_project.lower_unique_project"
+        "hepta.cpp_unique_project.lower_unique_project",
+        "tools.c2hepta.migrate",
+        "hepta.migration_ir.check_function"
       ],
       "exclusions": [
         "caller-supplied pointer extent/provenance/lifetime obligations are not inferred or proved",
@@ -291,9 +325,14 @@
       "id": "ffi_contracts",
       "regression_selectors": [
         "tests.test_c_contract_identity.CContractIdentityTests.test_slice_length_rejects_parameter_position_drift_in_either_unit_order",
-        "tests.test_c_contract_identity.CContractIdentityTests.test_initializer_source_rejects_parameter_position_drift"
+        "tests.test_c_contract_identity.CContractIdentityTests.test_initializer_source_rejects_parameter_position_drift",
+        "tests.test_c2hepta_bounded_capture.C2HeptaCompilerCapture.test_every_clang_stage_enforces_stdout_budget_while_running",
+        "tests.test_c2hepta_bounded_capture.C2HeptaCompilerCapture.test_successful_query_also_reaps_its_descendant",
+        "tests.test_c2hepta_bounded_capture.C2HeptaCompilerCapture.test_query_timeout_reaps_its_descendant",
+        "tests.test_c2hepta_bounded_capture.C2HeptaCompilerCapture.test_original_c_and_emitted_hepta_have_matching_native_results",
+        "tests.test_cpp_upstream_host.CppUpstreamHostTests.test_windows_autocrlf_checkout_preserves_locked_upstream_bytes"
       ],
-      "scope": "finite captured C/C++ profiles with complete selected declaration/configuration census"
+      "scope": "finite captured C/C++ profiles with complete selected declaration/configuration census; bounded scalar C pilot inputs, compiler capture and independent migration IR admission; frozen C++ upstream bytes are preserved through actual autocrlf checkout controls, separately from native host execution"
     },
     {
       "entrypoints": [
@@ -359,6 +398,168 @@
         "tests.test_c2hepta_bounded_source.C2HeptaBoundedSource.test_guarded_migration_executes_original_and_generated_native_code"
       ],
       "scope": "finite scalar C importer and public migration IR: bounded source reads, typed names/literals/structure/parser expansion, source-output-report path isolation and actual native scalar comparison"
+    },
+    {
+      "entrypoints": [
+        "tools.qualify_hia_safety_contract.validate_contract",
+        "tools.qualify_hia_integrated._source_state",
+        "tools.qualify_hia_filecheck.Trial.run"
+      ],
+      "exclusions": [
+        "no program admission authority",
+        "no authentication of a hostile host or maintainer",
+        "no soundness or refinement proof",
+        "native validation process isolation is not a hostile-code sandbox or complete signal cleanup theorem"
+      ],
+      "guarantee": "reviewed_qualification_protocol",
+      "id": "qualification_protocol_integrity",
+      "regression_selectors": [
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_removing_each_reviewed_capability_is_refused",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_removing_each_boundary_regression_is_refused",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_stateful_python_containers_cannot_reduce_the_hashed_selection",
+        "tests.test_hia_integrated_inputs.IntegratedInputIdentityTests.test_commit_and_blob_replacements_cannot_relabel_different_source",
+        "tests.test_hia_integrated_workflow.IntegratedWorkflowContractTests.test_actual_cli_receives_all_four_native_profiles_and_external_paths",
+        "tests.test_hia_integrated_workflow.IntegratedWorkflowContractTests.test_real_shell_preserves_failure_and_qualifies_a_clean_exact_sibling",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_workflow_checkout_and_license_inputs_are_bound_to_actual_bytes",
+        "tests.test_hia_source_head_identity.SourceHeadIdentityTests.test_index_hints_cannot_hide_modified_bytes_before_first_snapshot",
+        "tests.test_hia_source_head_identity.SourceHeadIdentityTests.test_mode_changes_cannot_hide_behind_core_filemode_false",
+        "tests.test_hia_filecheck_native_isolation.FilecheckNativeIsolationTests.test_sigill_differential_preserves_failed_report_context_and_partial_progress",
+        "tests.test_hia_filecheck_native_isolation.FilecheckNativeIsolationTests.test_sigabrt_maintenance_preserves_failed_report_context_and_partial_progress",
+        "tests.test_hia_integrated_inputs.IntegratedInputIdentityTests.test_qualification_environment_enables_native_artifact_session_in_fresh_child"
+      ],
+      "scope": "exact reviewed capability/test/assumption matrix; dynamic resolution uses only the canonical bytes whose independent identity passed; original Git object identity ignores replacement refs; integrated source snapshots enumerate the exact HEAD tree and verify every regular file's raw Git blob bytes and executable bit independently of index hints or core.fileMode; CI passes four explicit native profiles and preserves qualification failure from a clean exact source; workflow, checkout and frozen C++ license/notice bytes participate in before/after safety input identity; finite filecheck validation workers retain signal failures, partial invocation progress and host/tool context in a failed qualification report; integrated qualification explicitly enables the mandatory native artifact-session regressions in fresh test processes and restores the caller environment afterward"
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_scalar_lowering_check.verify_scalar_lowering"
+      ],
+      "exclusions": [
+        "no proof that either encoder implements its entire source semantics",
+        "no LLVM-to-machine-code, public wrapper ABI, resource or concurrency refinement theorem",
+        "loops, recursion, unknown LLVM syntax and solver uncertainty do not inherit verification",
+        "reports grant no build or publication authority"
+      ],
+      "guarantee": "proved_only_within_declared_solver_profile",
+      "id": "selected_scalar_lowering",
+      "regression_selectors": [
+        "tests.test_hia_scalar_lowering_check.HiaScalarLoweringCheck.test_acyclic_cfg_phi_and_reordered_entry",
+        "tests.test_hia_scalar_lowering_check.HiaScalarLoweringCheck.test_calls_use_actual_callee_body_and_abort_paths",
+        "tests.test_hia_scalar_lowering_check.HiaScalarLoweringCheck.test_actual_checked_signed_unsigned_and_casts",
+        "tests.test_hia_scalar_lowering_check.HiaScalarLoweringCheck.test_mutated_recursive_llvm_call_is_refused",
+        "tests.test_hia_scalar_lowering_check.HiaScalarLoweringCheck.test_unit_parameters_are_not_native_inputs",
+        "tests.test_hia_scalar_lowering_check.HiaScalarLoweringCheck.test_loop_cannot_inherit_acyclic_proof",
+        "tests.test_hia_scalar_lowering_check.HiaScalarLoweringCheck.test_missing_divide_guard_exposes_poison",
+        "tests.test_hia_scalar_lowering_check.HiaScalarLoweringCheck.test_unknown_llvm_flags_cannot_inherit_a_proof",
+        "tests.test_hia_scalar_lowering_check.HiaScalarLoweringCheck.test_oversized_llvm_width_and_literal_refuse_before_smt_allocation",
+        "tests.test_hia_scalar_lowering_check.HiaScalarLoweringCheck.test_abort_runtime_override_cannot_inherit_termination_assumption",
+        "tests.test_hia_scalar_lowering_check.HiaScalarLoweringCheck.test_unknown_solver_result_is_never_verified"
+      ],
+      "scope": "selected internal scalar Core function and acyclic call closure; at most 16 functions and 128 operations; parses actual emitted LLVM values, guards, abort paths and poison conditions against the scalar SMT encoder; only unsat reports verified"
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_heap_bound.analyze_entry_payload_bound"
+      ],
+      "exclusions": [
+        "no termination, destructor completion, exact peak, private incoming owner extent or native process-memory bound",
+        "no implicit acceptance of new Core schemas, opcodes or dynamic allocation sizes",
+        "this report does not widen historical resource-budget consumers or grant native runtime or optimizer admission"
+      ],
+      "guarantee": "recomputed_from_actual_core",
+      "id": "entry_payload_analysis",
+      "regression_selectors": [
+        "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests.test_actual_legacy_core_has_three_requests_and_32_byte_bound",
+        "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests.test_branch_sum_is_conservative_and_does_not_claim_tight_peak",
+        "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests.test_owner_returns_and_moves_transfer_payload_without_reallocating",
+        "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests.test_resource_access_and_borrowed_calls_in_cycle_need_no_new_payload",
+        "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests.test_direct_allocator_in_cycle_refuses_even_zero_size",
+        "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests.test_transitive_allocator_call_in_cycle_refuses",
+        "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests.test_recursive_call_graph_refuses_including_unused_definition",
+        "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests.test_dynamic_allocation_size_refuses",
+        "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests.test_cross_block_constant_does_not_inherit_an_unproved_extent",
+        "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests.test_forged_verified_program_rechecks_owner_linear_flow",
+        "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests.test_unknown_opcode_and_foreign_allocator_refuse",
+        "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests.test_future_verifier_cannot_silently_expand_closed_payload_profile",
+        "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests.test_trap_and_failing_required_allocation_keep_prefix_bound",
+        "tests.test_hia_entry_payload_bound.EntryPayloadBoundTests.test_historical_admission_is_not_widened_by_the_new_analysis"
+      ],
+      "scope": "separate primitive-v1 public-scalar-entry analysis; reverify the entire closed module, require an acyclic call graph and preceding same-block constant allocation sizes, and allow CFG cycles only when their call closure contains no allocator opcode; conservative cumulative requested payload also bounds live logical payload on every finite trace prefix"
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_program_source.lower_c_project_views"
+      ],
+      "exclusions": [
+        "no general C/C++ translation or source-equivalence proof",
+        "no inferred pointer provenance, extent, initialization, lifetime or concurrency obligations",
+        "internal scalarization does not preserve C record layout or admit a foreign pointer/record ABI",
+        "authored Hepta clients are not counted as translated upstream bodies; native host results remain host-specific"
+      ],
+      "guarantee": "checked_translation_with_foreign_obligations",
+      "id": "captured_c_project_views",
+      "regression_selectors": [
+        "tests.test_hia_c_project_views.HIAProjectViewsTests.test_real_body_inventory_and_original_ast_bytes_are_retained",
+        "tests.test_hia_c_project_views.HIAProjectViewsTests.test_vm_native_queue_application_and_all_refusal_cleanups",
+        "tests.test_hia_c_project_views.HIAProjectViewsTests.test_native_invalid_cursor_aborts_before_any_pointer_access",
+        "tests.test_hia_c_project_views.HIAProjectViewsTests.test_source_body_changes_are_retranslated_and_missing_drop_refuses",
+        "tests.test_hia_c_project_views.HIAProjectViewsTests.test_resource_capabilities_do_not_escape_public_c_abi"
+      ],
+      "scope": "captured C record/slice project bodies translated with explicit frozen foreign contracts into the existing source checker and immutable primitive Core; separately authored owned-storage clients are counted separately; captured source identity is rechecked and only admitted scalar entries are exported"
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_artifact_session.PreparedArtifactSession.prepare_base",
+        "hepta.hia_artifact_session.PreparedArtifactSession.prepare_guarded",
+        "hepta.hia_artifact_session.PreparedArtifactSession.lease",
+        "hepta.hia_artifact_session.PreparedArtifactSession.close"
+      ],
+      "exclusions": [
+        "no receipt import, foreign image admission or advice-derived proof authority",
+        "no persistent owners/loans, primitive-v8 state migration or arbitrary hot replacement",
+        "retained byte limits exclude Python overhead, build temporaries, native child heap/stack and process RSS",
+        "no arbitrary asynchronous unwinding or repeated interruption during recovery; uncertain native release is not numerically retried",
+        "shared proof reuse does not demonstrate NDU algorithm benefit or a new performance result"
+      ],
+      "guarantee": "host_enforced_scoped_admission",
+      "id": "prepared_artifact_ownership",
+      "regression_selectors": [
+        "tests.test_hia_artifact_session.PreparedArtifactSessionTests.test_independent_proof_once_then_actual_native_reuse_without_new_solver",
+        "tests.test_hia_artifact_session.PreparedArtifactSessionTests.test_serialized_receipt_foreign_token_and_changed_core_cannot_authorize",
+        "tests.test_hia_artifact_session.PreparedArtifactSessionTests.test_receipt_mutation_is_detected_before_native_execution",
+        "tests.test_hia_artifact_session.PreparedArtifactSessionTests.test_source_or_policy_drift_permanently_refuses_reuse",
+        "tests.test_hia_artifact_session.PreparedArtifactSessionTests.test_entry_byte_lease_and_execution_limits_refuse_without_extra_build",
+        "tests.test_hia_artifact_session.PreparedArtifactSessionTests.test_close_preserves_existing_lease_and_parent_until_it_finishes",
+        "tests.test_hia_artifact_session.PreparedArtifactSessionTests.test_close_racing_actual_child_execution_never_releases_its_image",
+        "tests.test_hia_artifact_session.PreparedArtifactSessionTests.test_cancellation_during_build_never_mints_a_prepared_token",
+        "tests.test_hia_artifact_session.PreparedArtifactSessionTests.test_uncertain_retirement_is_charged_and_never_retries_reused_fd",
+        "tests.test_hia_artifact_session.PreparedArtifactSessionTests.test_distinct_read_and_memfd_failures_keep_distinct_debt_and_block_more_entries",
+        "tests.test_hia_artifact_session.PreparedArtifactSessionTests.test_publication_interruption_rolls_back_parent_counters_and_visibility"
+      ],
+      "scope": "Linux x86-64 research session for one nonrecursive v1-v7 full_lifecycle(usize,u32)->u64 checksum function; only internally proved and built sealed images receive private proof ancestry; finite entry, retained-byte, lease and execution limits include unresolved release debt; child execution retains its image and parent, and failed transactional publication rolls back visibility and accounting"
+    },
+    {
+      "entrypoints": [
+        "tools.qualify_hia_ndu_prepared_reuse.validate_protocol",
+        "tools.qualify_hia_ndu_prepared_reuse.totals",
+        "tools.qualify_hia_ndu_prepared_reuse.opportunity_analysis",
+        "tools.qualify_hia_ndu_prepared_reuse.competition_attribution"
+      ],
+      "exclusions": [
+        "protocol controls use constructed observations and are not fresh native performance measurements",
+        "no statistical superiority, NDU algorithm benefit or nonseparable global instruction optimum",
+        "actual cell-specific timing feedback still feeds an additive finite allocation model; shared proof reuse is available to every arm",
+        "old negative results retain their original source identity and are not replaced or promoted by a protocol pass",
+        "cost data and advice grant no Core, build or publication authority"
+      ],
+      "guarantee": "finite_execution_evidence",
+      "id": "prospective_ndu_cost_accounting",
+      "regression_selectors": [
+        "tests.test_hia_ndu_prepared_reuse.PreparedReuseProtocolTests.test_explicit_policy_and_equal_limits_are_bound_for_both_protocols",
+        "tests.test_hia_ndu_prepared_reuse.PreparedReuseProtocolTests.test_historical_cost_never_becomes_a_new_cold_measurement",
+        "tests.test_hia_ndu_prepared_reuse.PreparedReuseProtocolTests.test_actual_opportunity_requires_both_complete_admitted_pairs",
+        "tests.test_hia_ndu_prepared_reuse.PreparedReuseProtocolTests.test_competition_requires_exact_actual_target_build_output_and_inputs"
+      ],
+      "scope": "prospectively fixed finite comparison protocol with the same proof policy and artifact limits for fixed, complete-DP and native-advisory arms; historical build cost remains separately labeled; claimed competition requires matching admitted control pairs, exact decision inputs, selected candidate build and observed correct output"
     }
   ],
   "judgment": {

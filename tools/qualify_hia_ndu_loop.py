@@ -179,7 +179,8 @@ class EpisodeBudget:
                                                   self.remaining_ns() // 1_000_000))
 
 
-def execute_sample(driver, library, *, expected_artifact_sha256, n, calls, seed, multiplier=13, timeout=10):
+def execute_sample(driver, library, *, expected_artifact_sha256, n, calls, seed, multiplier=13, timeout=10,
+                   checksum_oracle=None):
     started = time.monotonic_ns()
     original_path = str(library)
     try:
@@ -220,7 +221,10 @@ def execute_sample(driver, library, *, expected_artifact_sha256, n, calls, seed,
     if result.returncode:
         return dict(row, status="failed")
     measured_output = json.loads(result.stdout)
-    expected = oracle(n, calls, seed, multiplier)
+    # The default preserves the original experiment. Heterogeneous research
+    # workloads supply an independent, explicitly registered checksum oracle;
+    # they must not relabel a wrong result from this executor after the fact.
+    expected = (checksum_oracle or oracle)(n, calls, seed, multiplier)
     row["outer_wall_ns"] = time.monotonic_ns() - started
     return dict(row, **measured_output, expected_checksum=expected, multiplier=multiplier,
                 status="measured" if measured_output["checksum"] == expected else "wrong-output")

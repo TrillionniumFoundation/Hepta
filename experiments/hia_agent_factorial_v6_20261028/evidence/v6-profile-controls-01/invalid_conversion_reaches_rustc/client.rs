@@ -1,0 +1,1 @@
+use crate::api; pub fn entrypoint(a:u32,b:u32,c:u32)->u64 { let small:u8=c.into(); api::span(a,b).wrapping_add(small as u64) }
