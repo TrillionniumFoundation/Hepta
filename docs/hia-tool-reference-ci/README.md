@@ -25,14 +25,16 @@ Run on a clean committed checkout, with output outside the checkout:
   --rustc /path/to/rustc
 ```
 
-The default is `--study-version v8`. To bind the separate V9 source/protocol,
-use `--study-version v9` and a distinct output directory. The finite selector
+The default is `--study-version v8`. To bind the separate V9 or V10 source/protocol,
+use `--study-version v9` or `--study-version v10` and a distinct output directory. The finite selector
 resolves one support module for the entire run and passes it explicitly through
 source snapshots, the registry, sessions and all identity boundaries. It never
-rebinds a module global; a later V8 invocation cannot inherit V9 state. Both
+rebinds a module global; a later V8 invocation cannot inherit V9 or V10 state. All
 versions reuse the same unchanged reference builder and validation/evaluation
 implementation. Receipts record `study_version`, `study_protocol_schema` and
-the selected protocol's actual SHA-256. Selecting V9 is not model qualification.
+the selected protocol's actual SHA-256. Selecting another version is not model qualification.
+V10 CI also requires no model, template server, or tokenizer execution; its
+real capacity and qualification remain separate, source-bound stages.
 
 The existing native evaluator requires its normal Linux file-seal support and
 working compiler toolchains. No GGUF, inference runtime, tokenizer executable,

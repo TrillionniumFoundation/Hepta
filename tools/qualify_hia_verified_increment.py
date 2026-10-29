@@ -64,6 +64,7 @@ MODULES = (
     "tests.test_hia_agent_structured",
     "tests.test_hia_agent_toolstudy",
     "tests.test_hia_agent_toolstudy_v9",
+    "tests.test_hia_agent_toolstudy_v10",
     "tests.test_hia_agent_tool_references",
 )
 
@@ -91,6 +92,7 @@ def inventory():
                    "experiments/hia_agent_structured_v7_20261029",
                    "experiments/hia_agent_toolstudy_v8_20261029",
                    "experiments/hia_agent_toolstudy_v9_20261029",
+                   "experiments/hia_agent_toolstudy_v10_20261029",
                    "tests/fixtures/hia_payload_bound"):
         paths += [path for path in (ROOT / folder).rglob("*") if path.is_file()
                   and "__pycache__" not in path.parts]

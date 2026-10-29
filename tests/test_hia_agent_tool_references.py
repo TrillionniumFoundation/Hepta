@@ -203,8 +203,8 @@ class ToolReferenceTests(unittest.TestCase):
         source.assert_not_called()
         tools.assert_not_called()
 
-    def test_v9_profile_binds_its_protocol_and_cannot_pollute_default_v8(self):
-        for version in ("v9", "v8"):
+    def test_selected_profiles_bind_protocols_without_polluting_default_v8(self):
+        for version in ("v10", "v9", "v8"):
             with self.subTest(version=version):
                 selected = control.select_study(version)
                 self.assertEqual(len(control.registered_cells(study_support=selected)), 19)
@@ -218,22 +218,26 @@ class ToolReferenceTests(unittest.TestCase):
                 self.assertFalse(result["model_qualified"])
         self.assertIs(control.select_study("v8"), control.support)
 
-    def test_v9_source_binding_cannot_fall_back_to_v8(self):
-        selected = control.select_study("v9")
-        with patch.object(selected, "bindings", return_value={"selected-v9.py": "v9-hash"}) as selected_read:
-            with patch.object(control.support, "bindings", side_effect=AssertionError("wrong V8 bindings")):
-                bound = control.source_bindings(study_support=selected)
-        selected_read.assert_called_once_with()
-        self.assertEqual(bound["selected-v9.py"], "v9-hash")
-        self.assertTrue(all(name in bound for name in control.EXTRA_SOURCE))
+    def test_selected_source_binding_cannot_fall_back_to_v8(self):
+        for version in ("v10", "v9"):
+            with self.subTest(version=version):
+                selected = control.select_study(version)
+                with patch.object(selected, "bindings", return_value={"selected.py": version}) as selected_read:
+                    with patch.object(control.support, "bindings", side_effect=AssertionError("wrong V8 bindings")):
+                        bound = control.source_bindings(study_support=selected)
+                selected_read.assert_called_once_with()
+                self.assertEqual(bound["selected.py"], version)
+                self.assertTrue(all(name in bound for name in control.EXTRA_SOURCE))
 
-    def test_v9_reference_uses_selected_session_with_shared_unchanged_validator(self):
-        selected = control.select_study("v9")
-        with patch.object(control.support, "session_for", side_effect=AssertionError("wrong V8 session")):
-            result, *_, validate, execute = self.evaluate_mock(study_support=selected)
-        validate.assert_called_once()
-        execute.assert_called_once()
-        self.assertTrue(result["passed"])
+    def test_selected_reference_uses_selected_session_with_shared_unchanged_validator(self):
+        for version in ("v10", "v9"):
+            with self.subTest(version=version):
+                selected = control.select_study(version)
+                with patch.object(control.support, "session_for", side_effect=AssertionError("wrong V8 session")):
+                    result, *_, validate, execute = self.evaluate_mock(study_support=selected)
+                validate.assert_called_once()
+                execute.assert_called_once()
+                self.assertTrue(result["passed"])
 
 
 if __name__ == "__main__":

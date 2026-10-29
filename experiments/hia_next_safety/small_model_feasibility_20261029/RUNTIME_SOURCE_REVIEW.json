@@ -1,0 +1,121 @@
+{
+  "schema": "hepta.small_model_feasibility.runtime_source.v1",
+  "scope": "read-only official source inspection; no runtime binary, tokenizer or model invocation",
+  "repo": "ggml-org/llama.cpp",
+  "release": {
+    "tag": "b11669",
+    "commit": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
+    "published_at": "2026-10-15T16:10:46Z",
+    "prerelease": true,
+    "asset": [
+      {
+        "name": "llama-b11669-bin-ubuntu-x64.tar.gz",
+        "size": 17851611,
+        "digest": "sha256:cf07c1c112d709bd67e522017471de57ed0ec8bea031d732c5422351c07f65ac",
+        "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11669/llama-b11669-bin-ubuntu-x64.tar.gz"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "url": "https://github.com/ggml-org/llama.cpp/blob/620d2225cc436ab0b001e3200e590e3b286ef9ab/src/models/qwen3.cpp",
+      "path": "src/models/qwen3.cpp",
+      "commit": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
+      "blob_sha1": "bf7e622fb9d456c2a782ebff0b45e86fe79d5aff",
+      "read_lines": [
+        1,
+        14
+      ],
+      "excerpt": "#include \"models.h\"\n\nvoid llama_model_qwen3::load_arch_hparams(llama_model_loader & ml) {\n    ml.get_key(LLM_KV_ATTENTION_LAYERNORM_RMS_EPS, hparams.f_norm_rms_eps);\n\n    switch (hparams.n_layer()) {\n        case 28: type = hparams.n_embd == 1024 ? LLM_TYPE_0_6B : LLM_TYPE_1_7B; break;\n        case 36: type = hparams.n_embd == 2560 ? LLM_TYPE_4B : LLM_TYPE_8B; break;\n        case 40: type = LLM_TYPE_14B; break;\n        case 64: type = LLM_TYPE_32B; break;\n        default: type = LLM_TYPE_UNKNOWN;\n    }\n}\n"
+    },
+    {
+      "url": "https://github.com/ggml-org/llama.cpp/blob/b11669/src/llama-model.cpp",
+      "ref": "b11669",
+      "blob_sha1": "ded790b2b86d9a437600d6554a0e202f9e43a1a3",
+      "excerpt": [
+        {
+          "line": 113,
+          "text": "        case LLM_ARCH_QWEN3:"
+        },
+        {
+          "line": 114,
+          "text": "            return new llama_model_qwen3(params);"
+        },
+        {
+          "line": 329,
+          "text": "        case LLM_ARCH_QWEN35:"
+        },
+        {
+          "line": 330,
+          "text": "            return new llama_model_qwen35(params);"
+        },
+        {
+          "line": 2109,
+          "text": "            case LLM_ARCH_QWEN3:"
+        },
+        {
+          "line": 2111,
+          "text": "            case LLM_ARCH_QWEN35:"
+        },
+        {
+          "line": 3543,
+          "text": "        case LLM_ARCH_QWEN3:"
+        },
+        {
+          "line": 3619,
+          "text": "        case LLM_ARCH_QWEN35:"
+        }
+      ]
+    },
+    {
+      "url": "https://github.com/ggml-org/llama.cpp/blob/b11669/src/CMakeLists.txt",
+      "ref": "b11669",
+      "blob_sha1": "97250c2e885645386702f516d1f00ff2c9b121f2",
+      "excerpt": [
+        {
+          "line": 9,
+          "text": "file(GLOB LLAMA_MODELS_SOURCES \"models/*.cpp\")"
+        }
+      ]
+    },
+    {
+      "url": "https://github.com/ggml-org/llama.cpp/blob/b11669/tools/server/README.md",
+      "ref": "b11669",
+      "blob_sha1": "4e4472ec24bd0822be30e327aecd549cc15a2bc8",
+      "excerpt": [
+        {
+          "line": 8,
+          "text": " * LLM inference of F16 and quantized models on GPU and CPU"
+        },
+        {
+          "line": 50,
+          "text": "| `-c, --ctx-size N` | size of the prompt context (default: 0, 0 = loaded from model)<br/>(env: LLAMA_ARG_CTX_SIZE) |"
+        },
+        {
+          "line": 71,
+          "text": "| `-ctk, --cache-type-k TYPE` | KV cache data type for K<br/>allowed values: f32, f16, bf16, q8_0, q4_0, q4_1, iq4_nl, q5_0, q5_1<br/>(default: f16)<br/>(env: LLAMA_ARG_CACHE_TYPE_K) |"
+        },
+        {
+          "line": 72,
+          "text": "| `-ctv, --cache-type-v TYPE` | KV cache data type for V<br/>allowed values: f32, f16, bf16, q8_0, q4_0, q4_1, iq4_nl, q5_0, q5_1<br/>(default: f16)<br/>(env: LLAMA_ARG_CACHE_TYPE_V) |"
+        },
+        {
+          "line": 181,
+          "text": "| `--mmproj-auto, --no-mmproj, --no-mmproj-auto` | whether to use multimodal projector file (if available), useful when using -hf (default: enabled)<br/>(env: LLAMA_ARG_MMPROJ_AUTO) |"
+        },
+        {
+          "line": 217,
+          "text": "| `--chat-template-kwargs STRING` | sets additional params for the json template parser, must be a valid json object string, e.g. '{\"key1\":\"value1\",\"key2\":\"value2\"}'<br/>(env: LLAMA_ARG_CHAT_TEMPLATE_KWARGS) |"
+        },
+        {
+          "line": 239,
+          "text": "| `--chat-template JINJA_TEMPLATE` | set custom jinja chat template (default: template taken from model's metadata)<br/>if suffix/prefix are specified, template will be disabled<br/>only commonly used templates are accepted (unless --jinja is set before this flag):<br/>list of built-in templates:<br/>bailing, bailing-think, bailing2, chatglm3, chatglm4, chatml, command-r, deepseek, deepseek-ocr, deepseek2, deepseek3, exaone-moe, exaone3, exaone4, falcon3, gemma, gigachat, glmedge, gpt-oss, granite, granite-4.0, granite-4.1, grok-2, hunyuan-dense, hunyuan-moe, hunyuan-vl, kimi-k2, llama2, llama2-sys, llama2-sys-bos, llama2-sys-strip, llama3, llama4, megrez, minicpm, mistral-v1, mistral-v3, mistral-v3-tekken, mistral-v7, mistral-v7-tekken, monarch, openchat, orion, pangu-embedded, phi3, phi4, rwkv-world, seed_oss, smolvlm, solar-open, vicuna, vicuna-orca, yandex, zephyr<br/>(env: LLAMA_ARG_CHAT_TEMPLATE) |"
+        },
+        {
+          "line": 1349,
+          "text": "`chat_template_kwargs`: Allows sending additional parameters to the json templating system. For example: `{\"enable_thinking\": false}`"
+        }
+      ]
+    }
+  ]
+}

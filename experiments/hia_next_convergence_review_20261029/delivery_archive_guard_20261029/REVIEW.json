@@ -1,0 +1,44 @@
+{
+  "schema": "hepta.delivery-archive.guard-fix-review.v1",
+  "original_script_sha256": "efa3dac7b74da3a5c27fd7390d16680196611665eae7511cea31be75eefa2123",
+  "installed_script_path": "/tmp/hepta-next-build-delivery-archive.py",
+  "installed_script_sha256": "b7ce40151486d247658efb600418146292739e125dbbb20f1f22b4595d6d6a90",
+  "installed_script_bytes": 16258,
+  "fixture_receipt_sha256": "b7dc0a2073cbe8a18bb8d278319b0b272fba3ba6f4083024d8f611ee55bb4bf1",
+  "fixture_count": 36,
+  "all_fixtures_passed": true,
+  "closed_findings": [
+    "Every fixed/glob/extra directory uses one walk that rejects root and descendant .git markers, symlink roots/ancestors/descendants, and nonregular files. Explicit evidence subdirectories inside the project remain allowed; their Git root is not recursively copied.",
+    "The before-v8 phase rejects v7/v8/v9/v10 filename and raw-directory components, including direct extra-path additions.",
+    "All collected candidates undergo bounded regular-file reads, weight name and GGUF magic checks, download-request naming/structure checks, and signed/bearer URL text checks before ZIP creation. A second content/identity check rejects changed candidates."
+  ],
+  "model_weight_scope": {
+    "explicitly_denied_root": "/tmp/hepta-next-model-qwen3-4b-20261029",
+    "suffixes": [
+      "gguf and temporary variants",
+      "ggml and temporary variants",
+      "safetensors and temporary variants"
+    ],
+    "GGUF_header_rejected_under_other_extensions": true,
+    "maximum_candidate_bytes": 134217728
+  },
+  "negative_fixture_values_disclosed": false,
+  "model_request_evidence_not_blanket_excluded": true,
+  "public_acquisition_outcome_receipts_preserved": true,
+  "malformed_failure_evidence_not_redacted_or_deleted": true,
+  "producer_files_or_old_archives_modified": false,
+  "packer_main_executed": false,
+  "actual_evidence_directories_prescanned": false,
+  "native_model_tokenizer_compiler_executions": 0,
+  "new_archives_created": 0,
+  "uploads_or_transfer_attempts": 0,
+  "previous_library_auto_review_rejection_still_effective": true,
+  "limits": [
+    "This fixes the candidate-selection/preflight guard boundary; it does not approve an upload.",
+    "Validation used 36 tiny synthetic checks and AST ordering only, as enumerated in the fixture receipt; no real archive was built or replayed.",
+    "Unknown opaque binary content and nested archives/bundles retain separate content review; the text classifier is not proof that all arbitrary bytes are nonsensitive.",
+    "Filesystem identity checks assume a cooperative task workspace; they are not a general hostile-host or privileged adversary proof."
+  ],
+  "original_script_retained": "/tmp/hepta-next-delivery-guard-review-20261029/ORIGINAL_BUILD_DELIVERY_ARCHIVE.py",
+  "development_01_preserved": true
+}

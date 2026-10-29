@@ -45,6 +45,9 @@ def select_study(study_version):
     if study_version == "v9":
         from experiments.hia_agent_toolstudy_v9_20261029 import support as next_support
         return next_support
+    if study_version == "v10":
+        from experiments.hia_agent_toolstudy_v10_20261029 import support as next_support
+        return next_support
     raise ValueError("E_TOOL_REFERENCES_STUDY_VERSION")
 
 
@@ -212,7 +215,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("output", "clang", "rustc"):
         parser.add_argument("--" + name, required=True)
-    parser.add_argument("--study-version", choices=("v8", "v9"), default="v8")
+    parser.add_argument("--study-version", choices=("v8", "v9", "v10"), default="v8")
     result = run(**vars(parser.parse_args()))
     print(json.dumps({key: result[key] for key in ("complete", "attempted_count", "passed", "model_requests", "capacity_qualified", "model_qualified")}))
     return 0 if result["complete"] else 1
