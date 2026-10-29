@@ -292,5 +292,65 @@ class AuditTests(unittest.TestCase):
             self.assertEqual(output.read_text(encoding="utf-8"), expected)
 
 
+    def _synthetic_audit(self, base_count, candidates):
+        """Build small exact-commit trees with controlled change/overlap multiplicity."""
+        base_paths = [f"file_{i}.txt" for i in range(base_count)]
+        trees = {A: b"".join(b"100644 blob " + A.encode() + b"\t" +
+                             path.encode() + b"\0" for path in base_paths)}
+        for head, paths in candidates.items():
+            trees[head] = b"".join(b"100644 blob " + head.encode() + b"\t" +
+                                   path.encode() + b"\0" for path in paths)
+
+        def fake_git(*args):
+            if args[0] == "cat-file":
+                return b""
+            if args[0] == "rev-parse":
+                return args[1][:40].encode() + b"\n"
+            if args[0] == "merge-base":
+                return A.encode() + b"\n"
+            if args[0] == "ls-tree":
+                return trees[args[-1]]
+            raise AssertionError(args)
+
+        with patch.object(module, "git", side_effect=fake_git):
+            return module.audit(A, {f"pr{i}": head for i, head in enumerate(candidates)})
+
+    def test_aggregate_tree_budget_rejects_many_small_trees(self):
+        # Each ls-tree output fits the per-command cap. Aggregate must still
+        # reject before retaining unbounded numbers of candidate trees.
+        with patch.object(module, "_MAX_AUDIT_TREE_ENTRIES", 20, create=True):
+            with self.assertRaisesRegex(ValueError, "aggregate tree"):
+                self._synthetic_audit(7, {B: [f"file_{i}.txt" for i in range(7)],
+                                          C: [f"file_{i}.txt" for i in range(7)]})
+            report = self._synthetic_audit(
+                6, {B: [f"file_{i}.txt" for i in range(6)],
+                    C: [f"file_{i}.txt" for i in range(6)]})
+            self.assertFalse(report["automatic_merge_approved"])
+
+    def test_aggregate_change_budget_rejects_many_disjoint_changes(self):
+        # Two individually small candidate changes still exceed the combined
+        # work budget. The exact boundary stays admissible.
+        candidates = {B: [f"left_{i}.txt" for i in range(6)],
+                      C: [f"right_{i}.txt" for i in range(6)]}
+        with patch.object(module, "_MAX_AUDIT_CHANGE_ENTRIES", 11, create=True):
+            with self.assertRaisesRegex(ValueError, "aggregate changes"):
+                self._synthetic_audit(0, candidates)
+        with patch.object(module, "_MAX_AUDIT_CHANGE_ENTRIES", 12, create=True):
+            self.assertEqual(sum(len(x) for x in
+                                 self._synthetic_audit(0, candidates)["changes"].values()), 12)
+
+    def test_aggregate_overlap_budget_rejects_pairwise_multiplication(self):
+        # Three heads sharing four modified paths create 12 overlapping
+        # references despite each tree being only four paths long.
+        candidates = {sha: [f"file_{i}.txt" for i in range(4)]
+                      for sha in (B, C, "d" * 40)}
+        with patch.object(module, "_MAX_AUDIT_OVERLAP_ENTRIES", 11, create=True):
+            with self.assertRaisesRegex(ValueError, "aggregate overlaps"):
+                self._synthetic_audit(4, candidates)
+        with patch.object(module, "_MAX_AUDIT_OVERLAP_ENTRIES", 12, create=True):
+            report = self._synthetic_audit(4, candidates)
+            self.assertEqual(sum(len(x["shared_paths"]) for x in report["overlaps"]), 12)
+
+
 if __name__ == "__main__":
     unittest.main()
