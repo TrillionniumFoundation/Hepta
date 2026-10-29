@@ -66,12 +66,12 @@ class AuditTests(unittest.TestCase):
                 "pathlib.Path(sys.argv[1]).write_text('survived')"
             )
             binary.write_text(
-                f"#!{sys.executable}\\n"
-                "import subprocess,sys\\n"
+                f"#!{sys.executable}\n"
+                "import subprocess,sys\n"
                 f"subprocess.Popen([sys.executable, '-c', {child_code!r}, {str(marker)!r}], "
-                "stdin=subprocess.DEVNULL)\\n"
-                "sys.stdout.buffer.write(b'x' * 8192)\\n"
-                "sys.stdout.buffer.flush()\\n",
+                "stdin=subprocess.DEVNULL)\n"
+                "sys.stdout.buffer.write(b'x' * 8192)\n"
+                "sys.stdout.buffer.flush()\n",
                 encoding="utf-8",
             )
             binary.chmod(0o755)
