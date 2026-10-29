@@ -32,7 +32,13 @@ prepared image 复用接续现有私有证明边界；HIA Agent 编辑也必须�
 
 以上路径均位于 `experiments/`。源文件、协议、输入、工具、原始响应和构建身份分别绑定。
 同树发布记录与实际 CI 观察分别保存在本轮 publication / CI ledger；历史结果不直接
-验收后来的组合。新增实现和审查仍需在完整集成来源上经过相应检查。
+验收后来的组合。新增实现和审查必须在完整集成来源上经过相应检查。
+
+已发布的 `97aa97110be8fd307503dce3baca9499f8bb0da4`（与本地 `c576e94` 同树）
+通过了两套独立记录的集成CI：source/application为37项安全契约、213项回归、
+449/449 lowering obligations、实际payload和IR PGO准备、35+3项既有参考控制及9项
+真实节点事务；verified-native为756项回归、0跳过及36项native NDU observations。
+重叠测试不相加为独立分母。这些结果属于该明确来源，不覆盖尚未冻结的新V8模型研究。
 
 ## 2. 可检查的安全与资源规格
 

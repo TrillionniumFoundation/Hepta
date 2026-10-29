@@ -1,6 +1,6 @@
 {
   "schema": "hepta.hia.next-ci-observation.v1",
-  "observation_time_utc": "2026-10-29 01:10:50 UTC",
+  "observation_time_utc": "2026-10-29 01:30:21 UTC",
   "runs": [
     {
       "id": 40790911988,
@@ -58,17 +58,6 @@
       "html_url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/40791974095"
     },
     {
-      "id": 40798246314,
-      "name": "HIA verified optimization and native NDU integration",
-      "event": "pull_request",
-      "head_sha": "d929de4b48649dfe86aef6fd1c2a2497e50ef023",
-      "status": "in_progress",
-      "conclusion": null,
-      "created_at": "2026-10-29T01:05:25Z",
-      "updated_at": "2026-10-29T01:05:29Z",
-      "html_url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/40798246314"
-    },
-    {
       "id": 40798246243,
       "name": "HIA six-outcome source and application gates",
       "event": "pull_request",
@@ -89,6 +78,39 @@
       "created_at": "2026-10-29T01:05:22Z",
       "updated_at": "2026-10-29T01:10:34Z",
       "html_url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/40798240171"
+    },
+    {
+      "id": 40798246314,
+      "name": "HIA verified optimization and native NDU integration",
+      "event": "pull_request",
+      "head_sha": "d929de4b48649dfe86aef6fd1c2a2497e50ef023",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-29T01:05:25Z",
+      "updated_at": "2026-10-29T01:16:21Z",
+      "html_url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/40798246314"
+    },
+    {
+      "id": 40799386146,
+      "name": "HIA six-outcome source and application gates",
+      "event": "pull_request",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "97aa97110be8fd307503dce3baca9499f8bb0da4",
+      "created_at": "2026-10-29T01:16:15Z",
+      "updated_at": "2026-10-29T01:20:34Z",
+      "html_url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/40799386146"
+    },
+    {
+      "id": 40799386159,
+      "name": "HIA verified optimization and native NDU integration",
+      "event": "pull_request",
+      "head_sha": "97aa97110be8fd307503dce3baca9499f8bb0da4",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-29T01:16:15Z",
+      "updated_at": "2026-10-29T01:29:01Z",
+      "html_url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/40799386159"
     }
   ],
   "verified_observations": [
@@ -159,12 +181,49 @@
       "agent_native_controls": 35,
       "agent_primitive_into_native_controls": 3,
       "passed": true
+    },
+    {
+      "run_id": 40798246314,
+      "job_id": 123199828340,
+      "head_sha": "d929de4b48649dfe86aef6fd1c2a2497e50ef023",
+      "regression_tests": 735,
+      "skipped": 0,
+      "native_ndu_observations": 36,
+      "passed": true
+    },
+    {
+      "run_id": 40799386146,
+      "job_id": 123203555677,
+      "head_sha": "97aa97110be8fd307503dce3baca9499f8bb0da4",
+      "safety_contract_tests": 37,
+      "regression_tests": 213,
+      "skipped": 0,
+      "scalar_obligations": 449,
+      "scalar_verified": 449,
+      "scalar_unknown": 0,
+      "scalar_refuted": 0,
+      "legacy_migration_prepared": true,
+      "irpgo_profiles_and_allocation_refusal_prepared": true,
+      "actual_payload_analysis_completed": true,
+      "agent_native_controls": 35,
+      "agent_primitive_into_native_controls": 3,
+      "agent_real_node_native_controls": 9,
+      "passed": true
+    },
+    {
+      "run_id": 40799386159,
+      "job_id": 123203556099,
+      "head_sha": "97aa97110be8fd307503dce3baca9499f8bb0da4",
+      "regression_tests": 756,
+      "skipped": 0,
+      "native_ndu_observations": 36,
+      "passed": true
     }
   ],
   "qualification_limits": [
     "CI preparation is not performance measurement",
     "Results belong to the listed actual public heads, not later commits",
     "Overlapping regression groups must not be summed as independent tests",
-    "Current source/application CI includes prepared-session, IR PGO, primitive conversion and payload checks; its full verified-native companion remains separately tracked."
+    "The reviewed node-interface implementation has separate green source/application and verified-native CI on 97aa971; later model study sources require their own qualification."
   ]
 }

@@ -38,7 +38,7 @@ MODULES = (
     "tests.test_hia_ndu_loop", "tests.test_hia_ndu_bridge_isolation", "tests.test_hia_adaptive",
     "tests.test_hia_optimizer_bench", "tests.test_hia_agent_holdout",
     "tests.test_hia_guarded_optimization", "tests.test_hia_ndu_graph",
-    "tests.test_hia_ndu_cache", "tests.test_hia_returned_loans",
+    "tests.test_hia_ndu_cache",
     "tests.test_cpp_upstream_host", "tests.test_cpp_contract_capture",
     "tests.test_cpp_composed_project", "tests.test_hia_stateful",
     "tests.test_hia_native_mapping_identity",
@@ -62,6 +62,8 @@ MODULES = (
     "tests.test_hia_agent_primitive_into",
     "tests.test_hia_entry_payload_bound",
     "tests.test_hia_agent_structured",
+    "tests.test_hia_agent_toolstudy",
+    "tests.test_hia_agent_tool_references",
 )
 
 
@@ -86,6 +88,7 @@ def inventory():
                    "experiments/hia_agent_factorial_v5_20261028",
                    "experiments/hia_agent_factorial_v6_20261028",
                    "experiments/hia_agent_structured_v7_20261029",
+                   "experiments/hia_agent_toolstudy_v8_20261029",
                    "tests/fixtures/hia_payload_bound"):
         paths += [path for path in (ROOT / folder).rglob("*") if path.is_file()
                   and "__pycache__" not in path.parts]
@@ -93,6 +96,8 @@ def inventory():
 
 
 def run(output):
+    if len(MODULES) != len(set(MODULES)):
+        raise ValueError("duplicate integration test module")
     destination = Path(output).resolve()
     destination.mkdir(parents=True, exist_ok=False)
     before = inventory()
