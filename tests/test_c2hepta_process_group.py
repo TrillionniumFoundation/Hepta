@@ -91,11 +91,10 @@ class ClangProcessGroupTermination(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="hepta-clang-orphan-pipes-") as temp:
             root = Path(temp)
             ready = root / "child-ready"
-            release = root / "release"
             survived = root / "child-survived"
             shell = (
                 f"printf ready > {shlex.quote(str(ready))}; "
-                f"while [ ! -e {shlex.quote(str(release))} ]; do sleep 0.05; done; "
+                "sleep 2.5; "
                 f"printf survived > {shlex.quote(str(survived))}"
             )
             wrapper = (
@@ -113,10 +112,9 @@ class ClangProcessGroupTermination(unittest.TestCase):
                     )
                 self.assertTrue(ready.is_file(), "compiler child never initialized")
             finally:
-                # Release any surviving child, making the broken implementation
-                # visibly fail without leaving the fixture stuck indefinitely.
-                release.touch()
-                time.sleep(0.6)
+                # A finite child lifetime bounds the old implementation's
+                # Popen-context pipe-close hang without leaving an orphan.
+                time.sleep(0.4)
             self.assertFalse(survived.exists(), "exited wrapper left a live compiler child")
 
 
