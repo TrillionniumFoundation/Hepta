@@ -233,6 +233,14 @@ def _run_bounded_ast(args: list[str], *, timeout: float = 20,
             for reader in readers:
                 reader.join(timeout=1)
         if any(reader.is_alive() for reader in readers) or stream_errors:
+            # A wrapper may have exited while same-group children still hold
+            # inherited capture pipes open. Killing only the exited parent
+            # cannot release blocked readers; closing pipes while they read
+            # can also hang the Popen context manager. Terminate the entire
+            # original group, then let the reader threads observe EOF.
+            terminate_tree()
+            for reader in readers:
+                reader.join(timeout=1)
             raise UnsupportedC("Clang output capture failed")
         if over_budget.is_set():
             if context == "AST":
