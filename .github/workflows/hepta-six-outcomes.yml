@@ -34,6 +34,7 @@ jobs:
       CLANG: /usr/bin/clang-20
       CLANGXX: /usr/bin/clang++-20
       PYTHONDONTWRITEBYTECODE: '1'
+      HEPTA_EVIDENCE_DIR: ${{ runner.temp }}/hepta-six-outcomes
     steps:
       - uses: actions/checkout@v4
         with:
@@ -60,17 +61,17 @@ jobs:
           rustup toolchain install 1.90.0 --profile minimal
           echo "RUSTC=$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_ENV"
           dirname "$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_PATH"
-          mkdir -p artifacts/six-outcomes "$RUNNER_TEMP/hepta-six-cargo-home" "$RUNNER_TEMP/hepta-six-cargo-target"
+          mkdir -p "$HEPTA_EVIDENCE_DIR" "$RUNNER_TEMP/hepta-six-cargo-home" "$RUNNER_TEMP/hepta-six-cargo-target"
           echo "CARGO_HOME=$RUNNER_TEMP/hepta-six-cargo-home" >> "$GITHUB_ENV"
           echo "CARGO_TARGET_DIR=$RUNNER_TEMP/hepta-six-cargo-target" >> "$GITHUB_ENV"
       - name: Fetch locked Rust shadow dependencies before offline native checks
         run: cargo fetch --locked --manifest-path rust/hia-core-shadow/Cargo.toml
       - name: Execute the checkable safety boundary
-        run: python tools/qualify_hia_safety_contract.py --output artifacts/six-outcomes/safety.json
+        run: python tools/qualify_hia_safety_contract.py --output "$HEPTA_EVIDENCE_DIR/safety.json"
       - name: Run finite source and application regressions without skips
         run: |
           python - <<'PY'
-          import json, pathlib, unittest
+          import json, os, pathlib, unittest
           names = ['tests.test_c_contract_identity', 'tests.test_hia_round3_routes',
                    'tests.test_hia_narrowing', 'tests.test_hia_prepared',
                    'tests.test_hia_adaptive_retirement', 'tests.test_hia_filecheck',
@@ -86,22 +87,22 @@ jobs:
           result = unittest.TextTestRunner(verbosity=2).run(suite)
           record = dict(tests=result.testsRun, failures=len(result.failures),
                         errors=len(result.errors), skipped=len(result.skipped))
-          pathlib.Path('artifacts/six-outcomes/regression.json').write_text(json.dumps(record, indent=2)+'\n')
+          (pathlib.Path(os.environ['HEPTA_EVIDENCE_DIR']) / 'regression.json').write_text(json.dumps(record, indent=2)+'\n')
           if not result.wasSuccessful() or result.skipped:
               raise SystemExit(1)
           PY
       - name: Execute real C migration, lifetime, maintenance and LTO/PGO preparation
-        run: python tools/qualify_hia_filecheck.py --prepare-only --output artifacts/six-outcomes/filecheck
+        run: python tools/qualify_hia_filecheck.py --prepare-only --output "$HEPTA_EVIDENCE_DIR/filecheck"
       - name: Validate selected scalar lowering for all typed inputs
-        run: python tools/qualify_hia_scalar_lowering.py --expected-head "$HEPTA_SOURCE_SHA" --output artifacts/six-outcomes/scalar-lowering
+        run: python tools/qualify_hia_scalar_lowering.py --expected-head "$HEPTA_SOURCE_SHA" --output "$HEPTA_EVIDENCE_DIR/scalar-lowering"
       - name: Prepare actual legacy record-view Core migration and strong baseline builds
-        run: python tools/qualify_hia_legacy_queue.py --prepare-only --output artifacts/six-outcomes/legacy-queue
+        run: python tools/qualify_hia_legacy_queue.py --prepare-only --output "$HEPTA_EVIDENCE_DIR/legacy-queue"
       - name: Execute actual Agent experiment reference and hostile controls
-        run: python tools/qualify_hia_agent_factorial.py controls --output artifacts/six-outcomes/agent-controls --clang "$CLANG" --rustc "$RUSTC"
+        run: python tools/qualify_hia_agent_factorial.py controls --output "$HEPTA_EVIDENCE_DIR/agent-controls" --clang "$CLANG" --rustc "$RUSTC"
       - name: Retain completed and failed observations
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: hia-six-outcomes-${{ env.HEPTA_SOURCE_SHA }}
-          path: artifacts/six-outcomes
+          path: ${{ env.HEPTA_EVIDENCE_DIR }}
           if-no-files-found: error

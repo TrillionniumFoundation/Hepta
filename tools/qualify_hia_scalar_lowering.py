@@ -108,7 +108,8 @@ def qualify(output, expected_head):
     head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     status = subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT, text=True)
     if head != expected_head or status:
-        raise ValueError("qualification requires the exact clean expected source")
+        raise ValueError("qualification requires the exact clean expected source; "
+                         f"expected={expected_head}, observed={head}, status={status!r}")
     output.mkdir(parents=True, exist_ok=False)
     before = _source()
     started = time.monotonic_ns()
