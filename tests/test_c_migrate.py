@@ -61,7 +61,11 @@ class ClangMigrationTests(unittest.TestCase):
         self.c.write_text("int shared = 7; int f(int x) {return x + shared;}\n")
         result = migrate_c(self.c, self.hepta)
         self.assertFalse(result["ok"])
-        self.assertIn("E_C_REF", [x["code"] for x in result["rejected"]])
+        # Whole-translation-unit rejection precedes individual reference lowering.
+        # E_C_TOPLEVEL is the safe, explicit rejection for this global variable.
+        self.assertEqual(result["status"], "rejected")
+        self.assertEqual(result["converted"], [])
+        self.assertIn("E_C_TOPLEVEL", [x["code"] for x in result["rejected"]])
         self.assertFalse(self.hepta.exists())
 
     def test_unsupported_cast_rejected_without_writing(self):
