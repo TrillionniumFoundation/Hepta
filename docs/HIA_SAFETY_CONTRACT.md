@@ -17,12 +17,40 @@ python tools/qualify_hia_safety_contract.py --output /tmp/hia-safety/report.json
 
 The output path must be new. The runner rejects registry drift, unresolved
 entrypoints, missing tests, test skips, failures and source changes during the
-run. It records per-test outcomes, source hashes, tool identities and the
+run. The runner also pins the canonical identity of this reviewed matrix before
+resolving any dynamic entrypoint. Removing capabilities, substituting tests or
+changing scope, exclusions or trust assumptions cannot qualify as the same
+protocol. A deliberate protocol revision requires reviewing and updating the
+matrix and its independent identity in the runner together. This identity fixes
+the qualification scope; it is not a semantic proof or program admission token.
+It records per-test outcomes, source hashes, tool identities and the
 remaining unproved claims. A passing report means the selected regressions
 passed on those bytes and that host. It is not a soundness or refinement proof.
 The runner does not replace or wrap the Core verifier and does not admit an
 otherwise rejected program. Adding a future schema requires a deliberate
 matrix review; it cannot inherit these guarantees merely by changing a version.
+
+The integrated qualifier separately binds its main working tree to the original
+committed source. It enumerates all paths and regular-file modes from the exact
+SHA-1 HEAD tree with Git replacement objects disabled. Each stable file read
+computes both SHA-256 and the Git blob identity over its actual raw bytes; the
+blob must equal that tree entry, and the owner's executable bit must match.
+`assume-unchanged`, `skip-worktree`, a clean status, or `core.fileMode=false`
+cannot substitute different bytes or modes. Missing files, nonregular tree or
+working members, unsafe/duplicate paths and changes during an identity read
+are rejected. Hints on unchanged bytes remain accepted. This is a source-input
+identity check, not authentication of a hostile host or a refinement theorem.
+
+The reviewed matrix also includes the finite filecheck research target and
+native-failure boundaries. Its full-LTO IR retains the actual C frontend's CPU
+and complete positive/negative feature attributes; a real masked-x86 emulator
+checks the reproduced refusal and successful bound route. Differential and
+maintenance workers preserve actual signal status and partial progress in a
+failed parent qualification report. The linker and emulator identities are
+recorded, and integrated qualification binds the emulator before and after.
+These checks preserve all previous selectors and do not change production
+admission or the `no_change` policy. See
+[the detailed contract](HIA_FILECHECK_NATIVE_TARGET_AND_FAILURES.md).
 
 ## Typed state and instruction obligations
 
@@ -92,7 +120,7 @@ tests for the relevant ownership, alias, join and return cases.
 | Composite v2 | Nominal operations with the v7 resource grammar | Normalizes to primitive v7 |
 | Composite v3 | Explicit partially initialized record states | Normalizes to primitive v7; no implicit v8 returned-loan extension |
 | Hepta source | Finite checked scalar/record/Result profiles and closed specialization; v1 by default or explicit v8 | No stored returned borrows, general foreign calls or hidden Rust/C fallback |
-| Independent Rust shadow | Separately closed scalar, byte-owner, returned-loan and owned-chain Machine profiles | Independent finite comparison; never production admission or deployment authority |
+| Independent Rust shadow | Separately closed scalar, byte-owner, returned-loan and owned-chain Machine profiles; explicit language frames; versioned v3 budgets up to 256 frames, ten million ticks and 1 GiB logical payload | The same Machine retains v1/v2 limits. Finite v3 controls execute all depths, deep stopped ledgers, ten million allowed ticks and a 16 MiB plus one byte allocation; successful 1 GiB allocation, RSS bounds, complete Python API parity and production authority remain unproved |
 | Direct LLVM | Native code from immutable reverified HIA | Compiler, runtime and platform remain trusted; full Core-to-native refinement is not proved |
 
 The JSON matrix includes the exact profile strings and features from

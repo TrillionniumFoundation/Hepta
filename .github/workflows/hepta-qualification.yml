@@ -3,6 +3,7 @@ name: Hepta qualified full gates
 on:
   push:
     branches:
+      - codex/hia-core-closure-20261028
       - feat/hepta-p0-p1-verified-ir-20261024
       - feat/hepta-agent-safe-cfg-cpp-20261024
       - feat/hepta-safe-migration-agent-20261024
@@ -37,9 +38,9 @@ permissions:
 jobs:
   release-qualification:
     runs-on: ubuntu-24.04
-    # Two full regression passes plus the independently pinned finite Rust profile.
+    # Three full regression passes plus the independently pinned finite Rust profile.
     # This job watchdog does not change individual proof/search or zero-skip gates.
-    timeout-minutes: 180
+    timeout-minutes: 240
     env:
       HEPTA_QUALIFICATION_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       RUSTC: ${{ github.workspace }}/../toolchains/rust-1.90.0/bin/rustc
@@ -219,6 +220,28 @@ jobs:
             --output "$hepta_finite_build" --target-dir "$RUNNER_TEMP/hepta-finite-ndu-target"
           printf 'HEPTA_FINITE_NDU_BRIDGE=%s\nHEPTA_FINITE_NDU_IDENTITY=%s\n' \
             "$hepta_finite_build/native/hepta-hia-ndu-bridge" "$hepta_finite_build/identity.json" >> "$GITHUB_ENV"
+      - name: Build the separately pinned persistent stream NDU bridge
+        shell: bash
+        run: |
+          hepta_stream_checkout="$RUNNER_TEMP/hepta-stream-ndu-source"
+          hepta_stream_build="$RUNNER_TEMP/hepta-stream-ndu-build"
+          hepta_stream_commit=c4a1bbed3a39beba43a6abf1a18b6f75c5725c21
+          git init "$hepta_stream_checkout"
+          git -C "$hepta_stream_checkout" remote add origin https://github.com/TrillionniumFoundation/hepta-private-ci.git
+          git -C "$hepta_stream_checkout" config remote.origin.promisor true
+          git -C "$hepta_stream_checkout" config remote.origin.partialclonefilter blob:none
+          git -C "$hepta_stream_checkout" -c protocol.version=2 fetch --filter=blob:none --depth=1 origin "$hepta_stream_commit"
+          git -C "$hepta_stream_checkout" sparse-checkout set --no-cone \
+            /codex-rs/Cargo.toml /codex-rs/hepta-ndu/ /codex-rs/hepta-types/ \
+            /codex-rs/hepta-contracts/ /tools/hia-ndu-bridge/
+          git -C "$hepta_stream_checkout" checkout --detach FETCH_HEAD
+          test "$(git -C "$hepta_stream_checkout" rev-parse HEAD)" = "$hepta_stream_commit"
+          CARGO_INCREMENTAL=0 CARGO_PROFILE_RELEASE_DEBUG=0 python tools/build_hia_recursive_ndu_bridge.py \
+            --ndu-source "$hepta_stream_checkout" --expected-source "$hepta_stream_commit" \
+            --cargo "$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/bin/cargo" --rustc "$RUSTC" \
+            --output "$hepta_stream_build" --target-dir "$RUNNER_TEMP/hepta-stream-ndu-target"
+          printf 'HEPTA_NDU_STREAM_BRIDGE=%s\nHEPTA_NDU_STREAM_IDENTITY=%s\n' \
+            "$hepta_stream_build/native/hepta-hia-ndu-bridge" "$hepta_stream_build/identity.json" >> "$GITHUB_ENV"
       - name: Install SHA-256-locked Lean and QEMU tools
         run: python tools/bootstrap_verification.py
       - name: Export verification tools for every qualification step
@@ -274,6 +297,46 @@ jobs:
           --bridge "$HEPTA_NDU_BRIDGE"
           --bridge-build-receipt "$HEPTA_NDU_BUILD/build-receipt.json"
           --upstream "$HEPTA_NDU_UPSTREAM"
+      - name: Qualify all eight integrated gates from a clean exact source
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Earlier gates retain reports in their checkout. Use the same exact
+          # commit in a clean sibling so those observations cannot become input
+          # drift or be discarded. The sibling keeps the installed toolchain paths.
+          hepta_integrated_source="$GITHUB_WORKSPACE/../hepta-integrated-source"
+          git --no-replace-objects worktree add --detach \
+            "$hepta_integrated_source" "$HEPTA_QUALIFICATION_HEAD_SHA" \
+            > "$RUNNER_TEMP/hepta-integrated-worktree.log" 2>&1
+          test "$(git --no-replace-objects -C "$hepta_integrated_source" rev-parse HEAD)" = "$HEPTA_QUALIFICATION_HEAD_SHA"
+          test -z "$(git --no-replace-objects -C "$hepta_integrated_source" status --porcelain --untracked-files=all)"
+          cd "$hepta_integrated_source"
+          # Locked dependencies were fetched into the isolated CARGO_HOME above.
+          # The qualifier executes Cargo offline and reuses only this external cache.
+          python tools/qualify_hia_integrated.py \
+            --output-directory "$RUNNER_TEMP/hepta-integrated" \
+            --expected-head "$HEPTA_QUALIFICATION_HEAD_SHA" \
+            --clang /usr/lib/llvm-20/bin/clang \
+            --cargo "$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/bin/cargo" \
+            --cargo-target-dir "$RUNNER_TEMP/hepta-cargo-target" \
+            --rustc "$RUSTC" \
+            --ranking-bridge "$HEPTA_NDU_BRIDGE" \
+            --ranking-build-receipt "$HEPTA_NDU_BUILD/build-receipt.json" \
+            --ranking-upstream "$HEPTA_NDU_UPSTREAM" \
+            --recursive-bridge "$HEPTA_RECURSIVE_NDU_BRIDGE" \
+            --recursive-identity "$HEPTA_RECURSIVE_NDU_IDENTITY" \
+            --recursive-upstream "$RUNNER_TEMP/hepta-recursive-ndu-source" \
+            --finite-bridge "$HEPTA_FINITE_NDU_BRIDGE" \
+            --finite-identity "$HEPTA_FINITE_NDU_IDENTITY" \
+            --finite-upstream "$RUNNER_TEMP/hepta-finite-ndu-source" \
+            --stream-bridge "$HEPTA_NDU_STREAM_BRIDGE" \
+            --stream-identity "$HEPTA_NDU_STREAM_IDENTITY" \
+            --stream-upstream "$RUNNER_TEMP/hepta-stream-ndu-source" \
+            --finite-cargo "$FINITE_NDU_CARGO" \
+            --finite-rustc "$FINITE_NDU_RUSTC" \
+            --timeout 3600 \
+            2>&1 | tee "$RUNNER_TEMP/hepta-integrated.log"
       - name: Preserve failures and all raw evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -288,4 +351,8 @@ jobs:
             ${{ runner.temp }}/hepta-ndu-build.stderr.log
             ${{ runner.temp }}/hepta-recursive-ndu-build/
             ${{ runner.temp }}/hepta-finite-ndu-build/
+            ${{ runner.temp }}/hepta-stream-ndu-build/
+            ${{ runner.temp }}/hepta-integrated/
+            ${{ runner.temp }}/hepta-integrated.log
+            ${{ runner.temp }}/hepta-integrated-worktree.log
           if-no-files-found: warn

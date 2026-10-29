@@ -148,6 +148,9 @@ static int32_t spawn_child(void) {
     return 7;
 }
 int32_t fork_and_stall(void) {
+    /* Deliberate pre-fork initialization/scheduling time. The syscall refusal
+       control must not depend on reaching fork within the timeout-only budget. */
+    usleep(350000);
     int32_t value = spawn_child();
     sleep(4);
     return value;
@@ -159,7 +162,11 @@ int32_t stall_only(void) { sleep(3); return 7; }
             subprocess.run(["clang", "-O0", "-shared", "-fPIC",
                             str(c_source), "-o", str(library)],
                            check=True, timeout=30)
-            for symbol, timeout in (("fork_and_stall", 0.2),
+            # The refusal controls need the normal observation window to reach
+            # fork. The separate non-forking control retains the short deadline.
+            # In particular, the deliberate 350ms prelude above exceeds 200ms;
+            # timeout cannot accidentally stand in for the required SIGSYS.
+            for symbol, timeout in (("fork_and_stall", 3.0),
                                     ("fork_and_return", 3.0),
                                     ("stall_only", 0.2)):
                 with self.subTest(symbol=symbol):

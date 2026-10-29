@@ -9,7 +9,7 @@ the common, unconverted host and from the independently written baselines.
 from __future__ import annotations
 
 import argparse
-import ctypes
+from contextlib import ExitStack
 import hashlib
 import json
 import math
@@ -18,6 +18,7 @@ from pathlib import Path
 import platform
 import random
 import shutil
+import signal
 import statistics
 import subprocess
 import sys
@@ -33,11 +34,17 @@ from hepta.hia_program import execute_program, verify_program
 from hepta.hia_program_llvm import build_program_native, emit_program_llvm
 from hepta.hia_program_source import lower_c_multi_owner
 from hepta.elf_shared_abi import inspect_owned_shared_elf
+from tools.hia_filecheck_target_profile import (bind_native_target_profile,
+    elf_linker_driver, elf_linker_version_argv)
 
 FIXTURE = ROOT / "examples/hia_filecheck"
 PROTOCOL_PATH = ROOT / "experiments/hia_filecheck/PROTOCOL_20261028.json"
 PROTOCOL = json.loads(PROTOCOL_PATH.read_text())
 SOURCES = ("checksum.c", "chunk.c")
+NATIVE_WORKER = ROOT / "tools/hia_filecheck_native_worker.py"
+TARGET_PROFILE_HELPER = ROOT / "tools/hia_filecheck_target_profile.py"
+NATIVE_REQUEST_SCHEMA = "hepta.hia.filecheck.native-validation.v1"
+NATIVE_ABI = {"parameters": ["size_t", "u64", "u32", "u32"], "result": "u64"}
 
 
 def digest(path):
@@ -61,8 +68,73 @@ def identity(path):
 
 
 def source_bindings():
-    paths = [Path(__file__), PROTOCOL_PATH, *FIXTURE.iterdir(), *sorted((ROOT / "hepta").glob("*.py"))]
+    paths = [Path(__file__), NATIVE_WORKER, TARGET_PROFILE_HELPER, PROTOCOL_PATH,
+             *FIXTURE.iterdir(), *sorted((ROOT / "hepta").glob("*.py"))]
     return {str(p.relative_to(ROOT)): digest(p) for p in paths if p.is_file()}
+
+
+def native_progress(stdout, request):
+    """Validate an ordered prefix, retaining completed cases after child death."""
+    result = {"completed_cases": [], "calls_returned": 0, "pending_call": None,
+              "complete": False, "error": None}
+    events = []
+    for line in stdout.splitlines():
+        try:
+            events.append(json.loads(line))
+        except (ValueError, TypeError) as error:
+            result["error"] = "invalid worker JSON: " + str(error)
+            break
+    position = 0
+
+    def take():
+        nonlocal position
+        if position == len(events):
+            return None
+        event = events[position]
+        position += 1
+        return event
+
+    try:
+        ready = take()
+        if ready is None:
+            return result
+        require(ready == {"event": "ready", "libraries": request["libraries"], "abi": NATIVE_ABI},
+                "worker ready identity differs")
+        for index, arguments in enumerate(request["arguments"]):
+            values = {}
+            for library in request["libraries"]:
+                arm = library["arm"]
+                call = take()
+                if call is None:
+                    return result
+                expected = {"event": "call", "index": index, "arm": arm, "arguments": arguments}
+                require(type(call) is dict and type(call.get("index")) is int
+                        and type(call.get("arguments")) is list
+                        and all(type(value) is int for value in call["arguments"])
+                        and call == expected, "worker call order or arguments differ")
+                result["pending_call"] = expected
+                returned = take()
+                if returned is None:
+                    return result
+                require(type(returned) is dict and set(returned) == {"event", "index", "arm", "result"}
+                        and returned["event"] == "returned" and type(returned["index"]) is int
+                        and returned["index"] == index and returned["arm"] == arm
+                        and type(returned["result"]) is int and 0 <= returned["result"] < (1 << 64),
+                        "invalid worker result")
+                values[arm] = returned["result"]
+                result["pending_call"] = None
+                result["calls_returned"] += 1
+            result["completed_cases"].append(values)
+        complete = take()
+        if complete is None:
+            return result
+        require(complete == {"event": "complete", "calls": result["calls_returned"]}
+                and type(complete["calls"]) is int and position == len(events),
+                "worker completion differs")
+        result["complete"] = result["error"] is None
+    except (ValueError, TypeError, KeyError) as error:
+        result["error"] = str(error)
+    return result
 
 
 def corpus(seed, length):
@@ -165,6 +237,7 @@ class Trial:
                        "resource_cases": [], "samples": [], "claims": dict(PROTOCOL["claims"])}
         self.libraries = {}
         self.runtime_images = {}
+        self.linker_contexts = ExitStack()
         self.project = self.out / "project"
         shutil.copytree(FIXTURE, self.project)
 
@@ -176,17 +249,67 @@ class Trial:
             p = subprocess.run(argv, cwd=self.out, text=True, capture_output=True,
                                timeout=timeout, env=env)
             row.update(returncode=p.returncode, stdout=p.stdout, stderr=p.stderr)
+            if p.returncode < 0:
+                row["signal"] = signal.Signals(-p.returncode).name
         except subprocess.TimeoutExpired as error:
+            def text(value):
+                return value.decode("utf-8", errors="replace") if isinstance(value, bytes) else (value or "")
             row.update(returncode=None, timed_out=True,
-                       stdout=str(error.stdout or ""), stderr=str(error.stderr or ""))
+                       stdout=text(error.stdout), stderr=text(error.stderr))
             raise
         finally:
             row["wall_ns"] = time.perf_counter_ns() - begin
             self.report["commands"].append(row)
             with (self.out / "processes.jsonl").open("a") as stream:
                 stream.write(json.dumps(row, separators=(",", ":")) + "\n")
-        require(row["returncode"] == expected, stage + " failed: " + row["stderr"][-4000:])
+        require(row["returncode"] == expected,
+                stage + " failed: returncode=" + str(row["returncode"]) +
+                (" signal=" + row["signal"] if "signal" in row else "") + " " + row["stderr"][-4000:])
         return row
+
+    def native_context(self):
+        context = {"schema": "hepta.hia.filecheck.native-context.v1",
+                   "worker": identity(NATIVE_WORKER), "python": identity(sys.executable),
+                   "python_version": sys.version,
+                   **{key: self.report.get(key) for key in
+                      ("protocol", "protocol_sha256", "source_bindings", "git", "git_status", "host",
+                       "tools", "inputs", "builds", "artifacts")}}
+        path = self.out / "native-validation-context.json"
+        write(path, context)
+        self.report["native_validation_context"] = identity(path)
+
+    def native_validation(self, phase, libraries, arguments):
+        """Run a finite correctness phase outside this report-owning process."""
+        require(phase in ("differential", "maintenance"), "unknown native correctness phase")
+        request = {"schema": NATIVE_REQUEST_SCHEMA, "libraries": [], "arguments": arguments}
+        for arm, path, symbol in libraries:
+            actual = identity(path)
+            require(actual == self.runtime_images[str(path)], "actual library changed before validation")
+            request["libraries"].append({"arm": arm, "symbol": symbol, **actual})
+        request_path = self.out / (phase + "-worker-request.json")
+        write(request_path, request)
+        report = {"request": identity(request_path), "worker": identity(NATIVE_WORKER),
+                  "python": identity(sys.executable), "command_index": len(self.report["commands"])}
+        self.report.setdefault("native_validation", {})[phase] = report
+        try:
+            self.command([sys.executable, "-B", NATIVE_WORKER, "--request", request_path],
+                         "native_" + phase + "_validation")
+        finally:
+            index = report["command_index"]
+            if len(self.report["commands"]) > index:
+                row = self.report["commands"][index]
+                for name in ("stdout", "stderr"):
+                    path = self.out / (phase + "-worker." + name + (".jsonl" if name == "stdout" else ".log"))
+                    path.write_text(row.get(name, ""))
+                    report[name] = identity(path)
+                report.update({key: row[key] for key in ("returncode", "signal", "timed_out") if key in row})
+                report["progress"] = native_progress(row.get("stdout", ""), request)
+                report["artifacts_unchanged"] = all(identity(path) == self.runtime_images[str(path)]
+                                                      for _, path, _ in libraries)
+        require(report.get("artifacts_unchanged") is True, "library changed during native validation")
+        progress = report["progress"]
+        require(progress["complete"] and progress["error"] is None, "incomplete native validation: " + str(progress["error"]))
+        return progress["completed_cases"]
 
     def application(self, arm, algorithm, file="held-out.bin", *, env=None, alternate=None, stage="application"):
         library = self.libraries[arm]
@@ -245,7 +368,8 @@ class Trial:
 
     def build(self):
         for name, path in self.tools.items():
-            version = self.command([path, "--version"], "tool_identity")
+            argv = elf_linker_version_argv(path) if name == "linker" else [path, "--version"]
+            version = self.command(argv, "tool_identity")
             self.report.setdefault("tools", {})[name] = {**identity(path), "version": version["stdout"]}
         self.report["host"] = {"platform": platform.platform(), "machine": platform.machine(),
                                "cpu_count": os.cpu_count(), "exclusive_host": False}
@@ -272,15 +396,23 @@ class Trial:
         begin = time.perf_counter_ns()
         receipt = build_program_native(self.core, self.libraries["hia_default"], clang=self.tools["clang"])
         self.report["builds"]["hia_default"] = {"wall_ns": time.perf_counter_ns() - begin, "receipt": receipt}
-        self.flags = ["-O3", "-flto=full", "-fuse-ld=" + self.tools["linker"], "-march=native", "-fPIC", "-shared"]
-        row = self.command([self.tools["clang"], *self.flags, self.out / "migration/program.ll",
+        linker, self.report["linker_driver"] = self.linker_contexts.enter_context(
+            elf_linker_driver(self.tools["linker"]))
+        self.flags = ["-O3", "-flto=full", "-fuse-ld=" + linker, "-march=native", "-fPIC", "-shared"]
+        bound_ir, profile = bind_native_target_profile(
+            (self.out / "migration/program.ll").read_text(), clang=self.tools["clang"], flags=self.flags,
+            directory=self.out / "native-target-profile", command=self.command)
+        bound_path = self.out / "migration/program.native.ll"
+        bound_path.write_text(bound_ir)
+        row = self.command([self.tools["clang"], *self.flags, bound_path,
                             "-o", self.libraries["hia_native_lto"]], "hia_research_native_build")
         # This research build is independently inspected; it is not substituted
         # for a default backend receipt with different flags.
         inventory = inspect_owned_shared_elf(self.libraries["hia_native_lto"].read_bytes(),
                                              emit_program_llvm(self.core).exports)
         self.report["builds"]["hia_native_lto"] = {"wall_ns": row["wall_ns"], "binary_inventory": inventory,
-            "default_backend_receipt": False, "scope": "research build of freshly verified exact emitted IR"}
+            "default_backend_receipt": False, "scope": "research build of freshly verified IR with the actual native frontend target profile",
+            "target_profile": profile, "bound_ir": identity(bound_path)}
         self.rust_flags = ["--edition=2021", "--crate-type=cdylib", "-Copt-level=3", "-Clto=fat",
                            "-Ccodegen-units=1", "-Cpanic=abort", "-Ctarget-cpu=native"]
         for label in ("c", "cpp", "rust"):
@@ -334,22 +466,23 @@ class Trial:
         row["wall_ns"] = time.perf_counter_ns() - begin
 
     def differential(self):
-        libraries = {}
-        for arm, path in self.libraries.items():
-            library = ctypes.CDLL(str(path))
-            fn = getattr(library, "c_checksum_chunk" if arm.startswith("hia") else "checksum_chunk")
-            fn.argtypes = [ctypes.c_size_t, ctypes.c_ulonglong, ctypes.c_uint, ctypes.c_uint]
-            fn.restype = ctypes.c_ulonglong
-            libraries[arm] = fn
-        rows = []
+        libraries = [(arm, path, "c_checksum_chunk" if arm.startswith("hia") else "checksum_chunk")
+                     for arm, path in self.libraries.items()]
+        inputs = list(cases())
         ledger = self.out / "differential.jsonl"
-        for case in cases():
-            observed = {arm: int(fn(*case["arguments"])) for arm, fn in libraries.items()}
-            row = {**case, "observed": observed}
-            rows.append(row)
-            with ledger.open("a") as stream:
-                stream.write(json.dumps(row, separators=(",", ":")) + "\n")
-            require(all(value == case["expected"] for value in observed.values()), "native ABI differential failed")
+        rows = []
+        try:
+            observations = self.native_validation("differential", libraries, [case["arguments"] for case in inputs])
+        finally:
+            progress = self.report.get("native_validation", {}).get("differential", {}).get("progress", {})
+            rows = [{**inputs[index], "observed": observed}
+                    for index, observed in enumerate(progress.get("completed_cases", []))]
+            with ledger.open("x") as stream:
+                for row in rows:
+                    stream.write(json.dumps(row, separators=(",", ":")) + "\n")
+        require(len(observations) == len(inputs) and
+                all(all(value == case["expected"] for value in observed.values())
+                    for case, observed in zip(inputs, observations)), "native ABI differential failed")
         self.report["differential"] = {"cases": len(rows), "routes": len(libraries),
             "native_calls": len(rows) * len(libraries), "ledger": identity(ledger)}
 
@@ -407,20 +540,25 @@ unsigned long long checksum_chunk_v2(size_t count, unsigned long long packed,
         original = self.out / "maintenance-c.so"
         self.command([self.tools["clang"], "-std=c11", *self.flags,
                       *[project / name for name in (*SOURCES, "api_v2.c")], "-o", original], "maintenance_original_build")
-        observations = []
+        inputs = []
         for algorithm, polynomial in ((1, 0xedb88320), (2, 0x82f63b78), (0, None), (3, None)):
             args = [8, int.from_bytes(b"12345678", "little"), 0xffffffff, algorithm]
             expected = 3 << 32 if polynomial is None else update(args[2], b"12345678", polynomial)
-            values = {}
-            for route, path, symbol in (("c", original, "checksum_chunk_v2"), ("hia", output, "c_checksum_chunk_v2")):
-                fn = getattr(ctypes.CDLL(str(path)), symbol)
-                fn.argtypes = [ctypes.c_size_t, ctypes.c_ulonglong, ctypes.c_uint, ctypes.c_uint]
-                fn.restype = ctypes.c_ulonglong
-                values[route] = int(fn(*args))
-            observations.append({"arguments": args, "expected": expected, "values": values})
-            with (self.out / "maintenance-cases.jsonl").open("a") as stream:
-                stream.write(json.dumps(observations[-1], separators=(",", ":")) + "\n")
-            require(all(value == expected for value in values.values()), "maintenance ABI upgrade failed")
+            inputs.append({"arguments": args, "expected": expected})
+        libraries = [("c", original, "checksum_chunk_v2"), ("hia", output, "c_checksum_chunk_v2")]
+        self.runtime_images.update({str(path): identity(path) for _, path, _ in libraries})
+        try:
+            values = self.native_validation("maintenance", libraries, [case["arguments"] for case in inputs])
+        finally:
+            progress = self.report.get("native_validation", {}).get("maintenance", {}).get("progress", {})
+            observations = [{**inputs[index], "values": observed}
+                            for index, observed in enumerate(progress.get("completed_cases", []))]
+            with (self.out / "maintenance-cases.jsonl").open("x") as stream:
+                for observation in observations:
+                    stream.write(json.dumps(observation, separators=(",", ":")) + "\n")
+        require(len(values) == len(inputs) and
+                all(all(value == case["expected"] for value in observed.values())
+                    for case, observed in zip(inputs, values)), "maintenance ABI upgrade failed")
         # Exercise the upgraded ABI in the same real file-reading application.
         full = []
         for algorithm, name in ((1, "ieee"), (2, "castagnoli")):
@@ -489,14 +627,16 @@ unsigned long long checksum_chunk_v2(size_t count, unsigned long long packed,
     def run(self, *, prepare_only=False):
         begin = time.perf_counter_ns()
         try:
-            self.build()
-            self.differential()
-            self.resources()
-            self.maintenance()
-            if not prepare_only:
-                self.measure()
-            self.verify_artifacts()
-            require(source_bindings() == self.report["source_bindings"], "source changed during qualification")
+            with self.linker_contexts:
+                self.build()
+                self.native_context()
+                self.differential()
+                self.resources()
+                self.maintenance()
+                if not prepare_only:
+                    self.measure()
+                self.verify_artifacts()
+                require(source_bindings() == self.report["source_bindings"], "source changed during qualification")
             self.report.update(ok=True, status="prepared_not_measured" if prepare_only else "completed",
                                prepare_only=prepare_only)
         except Exception as error:

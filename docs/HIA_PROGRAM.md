@@ -70,10 +70,12 @@ representations have different responsibilities:
 Historical Rust reference, C emission, source LLVM, C/C++ retained-library
 bridges, local stored-view and task/I/O composition paths keep their own
 contracts and qualification evidence. A successful source-path test is not
-evidence that its construct has a standalone encoding. In particular,
-source-native stored-view lowering does not establish that
-`hia_program_source` can lower the same record view to standalone HIA, and
-source runtime task/I/O support does not add I/O to the cooperative task Core.
+evidence that its construct has a standalone encoding. The explicit
+[local byte-view source profile](HIA_SOURCE_LOCAL_VIEWS.md) now reuses the
+existing Resource IR admission and lowers its concrete values and lexical
+loan transitions to primitive Core. Other stored-lifetime layouts and source
+runtime task/I/O remain separate; source I/O support does not add I/O to the
+cooperative task Core.
 The local-view C/LLVM emitters also check layouts against verified Resource IR
 types. These existing metadata and Drop-plan consumers must be preserved;
 they do not turn the abstract resource graph into an alternative standalone
@@ -333,8 +335,8 @@ standalone ISA:
 
 | Producer | Current emitted program | Scope boundary |
 | --- | --- | --- |
-| `hia lower` / `hia_program_source.lower_source` / `lower_program`, with the default `core_schema` | Primitive v1 | Checked source scalars, closed specialization, scalarized records, byte owners and built-in `Result`; immediate borrowed projection helpers are inlined; no source-to-chain, nominal/task or stored-lifetime-record lowering |
-| The same source entrypoints with `--core-schema hepta.hia.program.v8` / `core_schema="hepta.hia.program.v8"` | Primitive v8 | The same finite source layout profile, with real internal calls and canonical `return_loans` for a byte-view result bound to one explicit incoming borrowed parameter, including one stable nested byte field of a concrete record; no stored-lifetime or public borrowed-result ABI |
+| `hia lower` / `hia_program_source.lower_source` / `lower_program`, with the default `core_schema` | Primitive v1 | Checked source scalars, closed specialization, scalarized records, byte owners, built-in `Result`, and the explicit local single-byte-slice view profile; immediate borrowed projection helpers are inlined; no source-to-chain, nominal/task or interprocedural stored-region lowering |
+| The same source entrypoints with `--core-schema hepta.hia.program.v8` / `core_schema="hepta.hia.program.v8"` | Primitive v8 | The same finite source layout and local-view profile, with real internal calls and canonical `return_loans` for a byte-view result bound to one explicit incoming borrowed parameter, including one stable nested byte field of a concrete record; no stored-region return or public borrowed-result ABI |
 | `core.from_executable_core` / `from_scalar_core` | Primitive v1 | Explicit source-authenticated conversion of the admitted historical envelope subset |
 | `hia_program_source.lower_c_multi_owner` and the source migrations passed through `lower_program` | Primitive v1 | Their actual generated Hepta must fit the same source frontend; successful legacy C/C++ migration alone does not establish this |
 | `cpp_project_migrate` / `hia import-cpp-project` | Primitive v1 | Captured, actually instantiated scalar C++ template bodies and supported declarations, via the same checked source frontend |
@@ -382,9 +384,9 @@ functions and calls. Each borrowed result must have one declared incoming
 an explicitly borrowed concrete record parameter as its origin; the producer emits
 the canonical `return_loans` binding and the Core verifier checks the actual
 return paths, caller aliases and resource transitions. The helper body remains
-subject to the finite source profile. Stored lifetime returns, stored-reference
-layouts and general borrowed-record returns are not admitted by
-this source adapter. Both source versions preserve the public scalar-entry
+subject to the finite source profile. Stored lifetime returns, general
+stored-reference layouts and borrowed-record returns remain outside the
+explicit local-view subset. Both source versions preserve the public scalar-entry
 eligibility recorded before scalarization; a flattened aggregate or borrowed
 signature does not acquire a public scalar C ABI. This explicit source choice
 does not change composite v3's primitive v7 normalization.

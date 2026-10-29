@@ -2,13 +2,14 @@ name: HIA six-outcome source and application gates
 
 on:
   push:
-    branches: [codex/hia-six-outcomes-20261028]
+    branches: [codex/hia-core-closure-20261028, codex/hia-six-outcomes-20261028]
   pull_request:
     paths:
       - 'hepta/**'
       - 'tests/test_hia_*'
       - 'tests/test_c_contract_identity.py'
       - 'tools/qualify_hia_*'
+      - 'tools/hia_filecheck_*'
       - 'docs/HIA_SAFETY_CONTRACT*'
       - 'examples/hia_filecheck/**'
       - 'experiments/hia_agent_factorial_v4_20261028/**'
@@ -49,7 +50,7 @@ jobs:
           sudo install -m 0644 "$RUNNER_TEMP/hepta-six-llvm.asc" /usr/share/keyrings/hepta-six-llvm.asc
           printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hepta-six-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hepta-six-llvm.list
           sudo apt-get update
-          sudo apt-get install --yes clang-20 libclang-20-dev libclang-rt-20-dev llvm-20 lld-20
+          sudo apt-get install --yes clang-20 libclang-20-dev libclang-rt-20-dev llvm-20 lld-20 qemu-user
           printf '%s\n' /usr/lib/llvm-20/bin >> "$GITHUB_PATH"
           rustup toolchain install 1.90.0 --profile minimal
           echo "RUSTC=$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_ENV"
@@ -68,7 +69,16 @@ jobs:
           names = ['tests.test_c_contract_identity', 'tests.test_hia_round3_routes',
                    'tests.test_hia_narrowing', 'tests.test_hia_prepared',
                    'tests.test_hia_adaptive_retirement', 'tests.test_hia_filecheck',
-                   'tests.test_hia_agent_factorial']
+                   'tests.test_hia_filecheck_target_profile', 'tests.test_hia_filecheck_native_isolation',
+                   'tests.test_hia_agent_factorial', 'tests.test_hia_safety_protocol',
+                   'tests.test_hia_integrated_inputs', 'tests.test_hia_integrated_workflow',
+                   'tests.test_hia_source_local_views', 'tests.test_hia_rust_execution_crosscheck',
+                   'tests.test_hia_source_unit_enums', 'tests.test_hia_rust_bound_depth',
+                   'tests.test_hia_rust_transport_lifecycle', 'tests.test_cpp_upstream_host',
+                   'tests.test_c2hepta_api_path_isolation', 'tests.test_c2hepta_bounded_source',
+                   'tests.test_c2hepta_bounded_capture', 'tests.test_migration_ir_identifier_guard',
+                   'tests.test_migration_ir_literal_guard', 'tests.test_migration_ir_structural_budget',
+                   'tests.test_migration_ir_neg_payload_guard', 'tests.test_migration_ir_parser_budget']
           suite = unittest.defaultTestLoader.loadTestsFromNames(names)
           result = unittest.TextTestRunner(verbosity=2).run(suite)
           record = dict(tests=result.testsRun, failures=len(result.failures),
