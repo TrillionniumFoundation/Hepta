@@ -30,7 +30,8 @@ if "--version" in sys.argv:
     if mode == "version_overflow":
         sys.stdout.buffer.write(b"v" * 2000000)
     elif mode == "version_failure":
-        sys.stderr.buffer.write(b"e" * 300000)
+        # Stay below the stderr budget to isolate the nonzero-exit path.
+        sys.stderr.buffer.write(b"e" * 300)
         sys.exit(9)
     elif mode == "version_empty":
         pass
