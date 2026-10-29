@@ -1,0 +1,157 @@
+{"group": 0, "profile": "short-lived", "arm": "fixed", "admitted": true, "candidate_builds": 0, "wall_ns": 6790037261}
+{"group": 0, "profile": "short-lived", "arm": "dp", "admitted": true, "candidate_builds": 0, "wall_ns": 1143587698}
+{"group": 0, "profile": "short-lived", "arm": "native-stream-sealed", "admitted": true, "candidate_builds": 0, "wall_ns": 1312254728}
+{"group": 0, "profile": "stable-reuse", "arm": "dp", "admitted": true, "candidate_builds": 0, "wall_ns": 985168432}
+{"group": 0, "profile": "stable-reuse", "arm": "native-stream-sealed", "admitted": true, "candidate_builds": 0, "wall_ns": 1019006494}
+{"group": 0, "profile": "stable-reuse", "arm": "fixed", "admitted": true, "candidate_builds": 0, "wall_ns": 572913609}
+{"group": 0, "profile": "changing-load", "arm": "native-stream-sealed", "admitted": true, "candidate_builds": 0, "wall_ns": 948875142}
+{"group": 0, "profile": "changing-load", "arm": "fixed", "admitted": true, "candidate_builds": 0, "wall_ns": 792067298}
+{"group": 0, "profile": "changing-load", "arm": "dp", "admitted": true, "candidate_builds": 0, "wall_ns": 767932092}
+{"group": 0, "profile": "shared-budget", "arm": "fixed", "admitted": true, "candidate_builds": 0, "wall_ns": 1738625820}
+{"group": 0, "profile": "shared-budget", "arm": "dp", "admitted": true, "candidate_builds": 0, "wall_ns": 1741202673}
+{"group": 0, "profile": "shared-budget", "arm": "native-stream-sealed", "admitted": true, "candidate_builds": 0, "wall_ns": 1524825977}
+{"post_run_control": "byte_sum", "arm": "opportunity-base", "admitted": true, "wall_ns": 768676640}
+{"post_run_control": "byte_sum", "arm": "opportunity-candidate", "admitted": true, "wall_ns": 1155764728}
+{"post_run_control": "packet_xor", "arm": "opportunity-candidate", "admitted": true, "wall_ns": 1534407181}
+{"post_run_control": "packet_xor", "arm": "opportunity-base", "admitted": true, "wall_ns": 917718379}
+{
+  "source_commit": "b53d61cd3cdb522ccd718f3fdc7cd62d1d5964a2",
+  "source_unchanged": true,
+  "all_application_outputs_budgets_and_release_admitted": true,
+  "ndu_warm_net_benefit_all_profiles": false,
+  "application_totals": {
+    "standalone_current_warm_ns": {
+      "fixed": 35013469659,
+      "dp": 29757716566,
+      "native-stream-sealed": 30011143114
+    },
+    "current_warm_plus_historical_controller_build_ns": {
+      "fixed": 35013469659,
+      "dp": 29757716566,
+      "native-stream-sealed": 62144341153
+    },
+    "new_cold_controller_build_measured": false,
+    "ndu_warm_observed_below_fixed_and_dp": false
+  },
+  "application_profile_totals": {
+    "short-lived": {
+      "standalone_current_warm_ns": {
+        "fixed": 31909862932,
+        "dp": 26263413369,
+        "native-stream-sealed": 26518435501
+      },
+      "current_warm_plus_historical_controller_build_ns": {
+        "fixed": 31909862932,
+        "dp": 26263413369,
+        "native-stream-sealed": 58651633540
+      },
+      "new_cold_controller_build_measured": false,
+      "ndu_warm_observed_below_fixed_and_dp": false,
+      "all_outputs_budgets_and_release_admitted": true,
+      "ndu_warm_net_benefit_gate": false
+    },
+    "stable-reuse": {
+      "standalone_current_warm_ns": {
+        "fixed": 25692739280,
+        "dp": 26104994103,
+        "native-stream-sealed": 26225187267
+      },
+      "current_warm_plus_historical_controller_build_ns": {
+        "fixed": 25692739280,
+        "dp": 26104994103,
+        "native-stream-sealed": 58358385306
+      },
+      "new_cold_controller_build_measured": false,
+      "ndu_warm_observed_below_fixed_and_dp": false,
+      "all_outputs_budgets_and_release_admitted": true,
+      "ndu_warm_net_benefit_gate": false
+    },
+    "changing-load": {
+      "standalone_current_warm_ns": {
+        "fixed": 25911892969,
+        "dp": 25887757763,
+        "native-stream-sealed": 26155055915
+      },
+      "current_warm_plus_historical_controller_build_ns": {
+        "fixed": 25911892969,
+        "dp": 25887757763,
+        "native-stream-sealed": 58288253954
+      },
+      "new_cold_controller_build_measured": false,
+      "ndu_warm_observed_below_fixed_and_dp": false,
+      "all_outputs_budgets_and_release_admitted": true,
+      "ndu_warm_net_benefit_gate": false
+    },
+    "shared-budget": {
+      "standalone_current_warm_ns": {
+        "fixed": 26858451491,
+        "dp": 26861028344,
+        "native-stream-sealed": 26731006750
+      },
+      "current_warm_plus_historical_controller_build_ns": {
+        "fixed": 26858451491,
+        "dp": 26861028344,
+        "native-stream-sealed": 58864204789
+      },
+      "new_cold_controller_build_measured": false,
+      "ndu_warm_observed_below_fixed_and_dp": true,
+      "all_outputs_budgets_and_release_admitted": true,
+      "ndu_warm_net_benefit_gate": false
+    }
+  },
+  "opportunity_analysis": {
+    "modules": {
+      "byte_sum": {
+        "target": "guard-small",
+        "both_real_controls_admitted": true,
+        "base_wall_ns": 768676640,
+        "candidate_wall_ns": 1155764728,
+        "observed_net_saving_ns": -387088088,
+        "positive_observed_net_saving": false
+      },
+      "packet_xor": {
+        "target": "guard-small",
+        "both_real_controls_admitted": true,
+        "base_wall_ns": 917718379,
+        "candidate_wall_ns": 1534407181,
+        "observed_net_saving_ns": -616688802,
+        "positive_observed_net_saving": false
+      }
+    },
+    "two_observed_positive_amortized_opportunities": false,
+    "statistical_benefit_established": false,
+    "scope": "One complete real baseline/candidate control pair per semantic module, including own preparation and cleanup; no universal or statistical guarantee.",
+    "exact_ndu_competition_attribution": [
+      {
+        "group": 0,
+        "epoch": 0,
+        "opportunity_targets": {
+          "byte_sum": {
+            "target": "guard-small",
+            "new_build_credits": 1,
+            "predicted_net_saving_ns": -1137650115,
+            "verified": true
+          },
+          "packet_xor": {
+            "target": "guard-small",
+            "new_build_credits": 1,
+            "predicted_net_saving_ns": -1091297904,
+            "verified": true
+          }
+        },
+        "selected_targets": [
+          "base",
+          "base"
+        ],
+        "exact_dp_plan": [
+          "base",
+          "base"
+        ],
+        "same_exact_dp_selection": true,
+        "actual_matching_candidate_build_and_output": false,
+        "two_exact_targets_competed_for_one_credit": false
+      }
+    ],
+    "ndu_competition_on_observed_profitable_candidates": false
+  }
+}

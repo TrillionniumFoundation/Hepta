@@ -1,0 +1,1 @@
+pub fn span(a:u32,b:u32)->u64 { (a as u64)+3*(b as u64) }

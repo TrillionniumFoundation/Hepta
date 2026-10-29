@@ -1183,3 +1183,222 @@ def qualify_finite_entry_live_heap_budget(program, function: str, arguments, *,
                      ensure_ascii=False, allow_nan=False).encode("utf-8")
     report["sha256"] = sha256(raw).hexdigest()
     return report
+
+
+# This profile counts newly requested payload over a complete entry invocation,
+# instead of tracking the live extent of each owner. It deliberately does NOT
+# extend any historical/native admission above. Resource-accessing loops are
+# permitted only when their entire call closure has no allocator opcode.
+_ENTRY_PAYLOAD_V1_SCALARS = frozenset({
+    "i8", "i16", "i32", "i64", "isize", "u8", "u16", "u32", "u64", "usize",
+    "bool", "unit",
+})
+_ENTRY_PAYLOAD_V1_TYPES = _ENTRY_PAYLOAD_V1_SCALARS | {"buffer", "readbuf", "mutbuf"}
+_ENTRY_PAYLOAD_V1_ALLOCATORS = frozenset({"buffer.new", "buffer.try_new"})
+_ENTRY_PAYLOAD_V1_OPS = frozenset({
+    "const", "int.cast", "int.neg.checked", "select",
+    "bool.not", "bool.and", "bool.or", "bit.and", "bit.or", "bit.xor", "bit.not",
+    "compare.eq", "compare.ne", "compare.lt", "compare.le", "compare.gt", "compare.ge",
+    "int.add.checked", "int.sub.checked", "int.mul.checked",
+    "int.add.wrap", "int.sub.wrap", "int.mul.wrap", "int.div.checked", "int.rem.checked",
+    "int.shl.checked", "int.shr.checked", "buffer.new", "buffer.try_new", "buffer.len",
+    "borrow.read", "borrow.mut", "loan.end", "owner.move", "owner.drop",
+    "buffer.load", "buffer.store", "call",
+})
+
+
+def _payload_components(edges: dict[str, set[str]]) -> list[list[str]]:
+    """Exact CFG SCCs, with iterative traversals bounded by the verified graph.
+
+    Merely keeping Kahn's unremoved nodes would incorrectly label a cycle's
+    acyclic exit as cyclic. Kosaraju's two traversals distinguish that exit.
+    Neither traversal consumes Python call-stack depth proportional to the CFG.
+    """
+    seen, finished = set(), []
+    reverse = {name: set() for name in edges}
+    for source, targets in edges.items():
+        for target in targets:
+            reverse[target].add(source)
+    for start in sorted(edges):
+        if start in seen:
+            continue
+        seen.add(start)
+        stack = [(start, iter(sorted(edges[start])))]
+        while stack:
+            name, targets = stack[-1]
+            target = next(targets, None)
+            if target is None:
+                finished.append(name)
+                stack.pop()
+            elif target not in seen:
+                seen.add(target)
+                stack.append((target, iter(sorted(edges[target]))))
+    seen, components = set(), []
+    for start in reversed(finished):
+        if start in seen:
+            continue
+        seen.add(start)
+        pending, component = [start], []
+        while pending:
+            name = pending.pop()
+            component.append(name)
+            for source in sorted(reverse[name]):
+                if source not in seen:
+                    seen.add(source)
+                    pending.append(source)
+        components.append(sorted(component))
+    return sorted(components)
+
+
+def analyze_entry_payload_bound(program, function: str) -> dict:
+    """Bound v1 scalar-entry allocation requests and logical byte payload.
+
+    Reverify the actual Core; audit every definition against a closed v1
+    inventory; reject recursion, nonlocal/dynamic sizes and allocator-bearing
+    operations/calls in CFG cycles. Each remaining allocating block executes
+    at most once per invocation. Sum all branch sites and callee summaries,
+    counting each syntactic call site separately. No branch feasibility,
+    termination, destructor completion or incoming private-owner extent is
+    assumed. A scalar entry starts without external owners, so live payload
+    is at most the cumulative requested payload at every finite trace prefix.
+
+    This is a checkable structural analysis conditional on the canonical Core
+    checker and its operational semantics, not a language-soundness theorem or
+    a native optimization/installation authority. Existing budget admissions
+    retain their previous acceptance domains.
+    """
+    from hashlib import sha256
+    import json
+    from .hia_static_budget import HIAStaticBudgetRejected
+
+    checked = verify_program(program)
+    document = checked.as_dict()
+    if (document["schema"] != "hepta.hia.program.v1"
+            or checked.structured_bytes is not None):
+        raise HIAHeapBoundRejected("E_HIA_BUDGET_PROFILE",
+                                   "entry payload analysis requires primitive Core v1")
+    functions = {fn["name"]: fn for fn in document["functions"]}
+    if (type(function) is not str or function not in checked.scalar_entrypoints
+            or function not in functions
+            or any(p["type"] not in _ENTRY_PAYLOAD_V1_SCALARS
+                   for p in functions[function]["params"])
+            or any(t not in _ENTRY_PAYLOAD_V1_SCALARS
+                   for t in functions[function]["returns"])):
+        raise HIAHeapBoundRejected("E_HIA_BUDGET_INPUT",
+                                   "payload bound requires an admitted public scalar entry")
+    calls = {}
+    for name, fn in functions.items():
+        calls[name] = set()
+        declared = [p["type"] for p in fn["params"]] + fn["returns"]
+        for block in fn["blocks"]:
+            declared.extend(p["type"] for p in block["params"])
+            if block["term"]["op"] not in {"ret", "trap", "jump", "branch"}:
+                raise HIAHeapBoundRejected("E_HIA_BUDGET_PROFILE", "unreviewed v1 terminator")
+            for ins in block["ops"]:
+                if ins["op"] not in _ENTRY_PAYLOAD_V1_OPS:
+                    raise HIAHeapBoundRejected("E_HIA_BUDGET_PROFILE",
+                                               f"{name}: unreviewed v1 payload opcode")
+                declared.extend(p["type"] for p in ins["out"])
+                if ins["op"] == "call":
+                    calls[name].add(ins["attrs"]["function"])
+        if any(typ not in _ENTRY_PAYLOAD_V1_TYPES for typ in declared):
+            raise HIAHeapBoundRejected("E_HIA_BUDGET_PROFILE", f"{name}: unreviewed v1 type")
+    # Validate the whole module, including unused private definitions. No
+    # producer purity flag/effect declaration substitutes for examining bodies.
+    try:
+        order = _dag(list(functions), calls, "entry payload call graph")
+    except HIAStaticBudgetRejected as error:
+        raise HIAHeapBoundRejected(error.code, str(error)) from error
+    summaries = {}
+    for name in reversed(order):
+        fn = functions[name]
+        edges = {block["id"]: {edge["target"] for edge in _paths(block["term"])}
+                 for block in fn["blocks"]}
+        cyclic = [part for part in _payload_components(edges)
+                  if len(part) > 1 or part[0] in edges[part[0]]]
+        cycle_nodes = {node for part in cyclic for node in part}
+        op_count = requests = requested_bytes = 0
+        has_allocator, blocks = False, []
+        for block in fn["blocks"]:
+            constants, allocation_sites, call_sites = {}, [], []
+            for index, ins in enumerate(block["ops"]):
+                opcode = ins["op"]
+                if opcode == "const" and ins["out"][0]["type"] == "usize":
+                    constants[ins["out"][0]["name"]] = (index, ins["attrs"]["value"])
+                elif opcode in _ENTRY_PAYLOAD_V1_ALLOCATORS:
+                    if block["id"] in cycle_nodes:
+                        _reject(f"{name}/{block['id']}: allocator opcode in a CFG cycle")
+                    extent = constants.get(ins["args"][0])
+                    if extent is None or type(extent[1]) is not int or not 0 <= extent[1] <= MAX_REQUEST:
+                        _reject(f"{name}/{block['id']}: allocation size needs an earlier same-block "
+                                "const usize in 0..2^63-1")
+                    const_index, size = extent
+                    has_allocator = True
+                    op_count += 1
+                    # The existing Core runtime skips the allocator for size 0.
+                    requests += int(size > 0)
+                    requested_bytes += size
+                    allocation_sites.append({"op_index": index, "opcode": opcode,
+                                             "size_value": ins["args"][0],
+                                             "const_op_index": const_index,
+                                             "constant_bytes": size})
+                elif opcode == "call":
+                    callee = ins["attrs"]["function"]
+                    child = summaries[callee]
+                    if block["id"] in cycle_nodes and child["contains_allocator_opcode"]:
+                        _reject(f"{name}/{block['id']}: CFG cycle calls allocator-bearing {callee}")
+                    has_allocator |= child["contains_allocator_opcode"]
+                    for key in ("max_allocation_op_executions", "max_nonzero_allocation_requests",
+                                "max_cumulative_requested_payload_bytes"):
+                        # Cyclic calls can execute unboundedly, but their
+                        # independently calculated allocation summaries are 0.
+                        if block["id"] in cycle_nodes and child["bounds"][key] != 0:
+                            _reject(f"{name}/{block['id']}: nonzero cyclic call payload summary")
+                    op_count += child["bounds"]["max_allocation_op_executions"]
+                    requests += child["bounds"]["max_nonzero_allocation_requests"]
+                    requested_bytes += child["bounds"]["max_cumulative_requested_payload_bytes"]
+                    call_sites.append({"op_index": index, "function": callee})
+            blocks.append({"block": block["id"], "successors": sorted(edges[block["id"]]),
+                           "cyclic": block["id"] in cycle_nodes,
+                           "allocation_sites": allocation_sites, "call_sites": call_sites})
+        summaries[name] = {
+            "function": name, "entry_block": fn["entry"],
+            "contains_allocator_opcode": has_allocator,
+            "bounds": {"max_allocation_op_executions": op_count,
+                       "max_nonzero_allocation_requests": requests,
+                       "max_cumulative_requested_payload_bytes": requested_bytes},
+            "cyclic_components": cyclic, "blocks": blocks,
+        }
+    entry_bounds = dict(summaries[function]["bounds"])
+    entry_bounds["max_live_payload_bytes"] = entry_bounds["max_cumulative_requested_payload_bytes"]
+    report = {
+        "schema": "hepta.hia.entry-payload-analysis.v1",
+        "profile": "primitive-v1-local-constant-allocation-free-cycles",
+        "status": "checked_static_payload_bound_not_runtime_admission",
+        "core_schema": document["schema"], "core_sha256": checked.sha256,
+        "input_sha256": checked.input_sha256, "function": function,
+        "entry_bounds": entry_bounds,
+        "call_graph": {name: sorted(calls[name]) for name in sorted(calls)},
+        "callee_first_order": list(reversed(order)),
+        "function_summaries": [summaries[name] for name in sorted(summaries)],
+        "claims": {
+            "canonical_core_reverified": True,
+            "entire_module_closed_v1_profile_checked": True,
+            "all_typed_scalar_inputs_and_allocation_outcomes": True,
+            "finite_trace_prefixes_including_trap_and_budget_stop": True,
+            "private_summaries_count_only_new_requests": True,
+            "owner_transfer_not_counted_as_new_allocation": True,
+            "branch_feasibility_or_tightest_bound_proved": False,
+            "private_external_owner_extents_bounded": False,
+            "termination_or_cleanup_after_abort_proved": False,
+            "free_calls_vm_ticks_or_owner_metadata_bounded": False,
+            "native_stack_allocator_overhead_or_rss_bounded": False,
+            "source_or_native_backend_refinement_proved": False,
+            "whole_language_soundness_proved": False,
+            "native_runtime_or_optimizer_admission_authority": False,
+        },
+    }
+    raw = json.dumps(report, sort_keys=True, separators=(",", ":"),
+                     ensure_ascii=False, allow_nan=False).encode("utf-8")
+    report["sha256"] = sha256(raw).hexdigest()
+    return report

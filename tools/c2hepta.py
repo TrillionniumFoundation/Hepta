@@ -13,14 +13,19 @@ import os
 from pathlib import Path
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from hepta.migration_ir import Expr, Function, IRValidationError, Stmt, check_function, emit_function, function_hash  # noqa: E402
+from hepta.clang_capture import CaptureRejected, run_bounded  # noqa: E402
 
 TYPES = {"int": "i32", "unsigned int": "u32"}
+_MAX_SOURCE_BYTES = 256_000
+_MAX_AST_BYTES = 8_000_000
+_MAX_DIAGNOSTIC_BYTES = 64_000
 IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z_0-9]*\Z", re.ASCII)
 RESERVED = frozenset({"module", "import", "fn", "pub", "extern", "export", "effects", "resources", "as", "let", "mut", "take", "move", "read", "unsafe", "struct", "enum", "match", "if", "else", "return", "for", "while", "true", "false", "wrapping_add", "wrapping_sub", "wrapping_mul", "len", "assert", "main"})
 
@@ -152,14 +157,37 @@ def _atomic_write(path: Path, content: str) -> None:
             os.unlink(tmp)
 
 
+def _read_bounded_source(source: Path) -> bytes:
+    """Read at most the declared source budget plus one byte.
+
+    Open non-blocking so an untrusted FIFO path cannot stall before fstat;
+    only regular files are admitted. Use the same bounded read for initial
+    admission and the post-Clang source-identity recheck.
+    """
+    flags = os.O_RDONLY | getattr(os, "O_NONBLOCK", 0)
+    with os.fdopen(os.open(source, flags), "rb") as stream:
+        if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+            raise UnsupportedC("C input must be a regular file")
+        return stream.read(_MAX_SOURCE_BYTES + 1)
+
+
 def migrate(source: Path, output: Path, report: Path, clang: str = "clang", verify_native: bool = False, rustc: str | None = None) -> dict:
+    # Enforce the CLI path-isolation gate for direct library callers as well.
+    # Otherwise a rejected conversion can overwrite the original C source
+    # when the report path aliases it (including through a parent symlink).
+    resolved = (source.resolve(), output.resolve(), report.resolve())
+    if len(set(resolved)) != 3:
+        raise UnsupportedC("source, output and report paths must be distinct")
     try:
-        original = source.read_bytes()
+        original = _read_bounded_source(source)
         read_error = None
-    except OSError as exc:
+    except (OSError, UnsupportedC) as exc:
         original = None
         read_error = str(exc)
-    digest = hashlib.sha256(original).hexdigest() if original is not None else None
+    # An oversized file was sampled only up to the explicit admission cap.
+    # Never publish a prefix digest as the complete source identity.
+    digest = (hashlib.sha256(original).hexdigest()
+              if original is not None and len(original) <= _MAX_SOURCE_BYTES else None)
     info = {"schema": "hepta.c2hepta.v0", "source": str(source.resolve()),
             "source_sha256": digest, "status": "rejected", "safety": "not_qualified",
             "functions": [], "frontend_validation": "not_run", "backend_validation": "not_run", "clang": "not_run"}
@@ -167,7 +195,7 @@ def migrate(source: Path, output: Path, report: Path, clang: str = "clang", veri
     try:
         if read_error is not None:
             raise UnsupportedC("cannot read C input: " + read_error)
-        if len(original) > 256_000:
+        if len(original) > _MAX_SOURCE_BYTES:
             raise UnsupportedC("pilot input limit is 256 KB")
         if output.is_symlink() or report.is_symlink():
             raise UnsupportedC("symlink output/report paths are not accepted")
@@ -177,20 +205,40 @@ def migrate(source: Path, output: Path, report: Path, clang: str = "clang", veri
             raise UnsupportedC("preprocessor directives/macros require a future source model")
         if not shutil.which(clang):
             raise UnsupportedC("clang executable unavailable")
-        version = subprocess.run([clang, "--version"], capture_output=True, text=True, timeout=10, check=True)
+        version = run_bounded([clang, "--version"], timeout=10,
+                              stdout_limit=64_000, stderr_limit=_MAX_DIAGNOSTIC_BYTES)
+        if version.returncode or not version.stdout.splitlines():
+            raise UnsupportedC("Clang version probe failed")
         info["clang"] = version.stdout.splitlines()[0]
-        target = subprocess.run([clang, "-dumpmachine"], capture_output=True, text=True, timeout=10, check=True)
+        target = run_bounded([clang, "-dumpmachine"], timeout=10,
+                             stdout_limit=64_000, stderr_limit=_MAX_DIAGNOSTIC_BYTES)
+        if target.returncode or not target.stdout.strip():
+            raise UnsupportedC("Clang target probe failed")
         info["target"] = target.stdout.strip()
-        defines = subprocess.run([clang, "-std=c11", "-dM", "-E", "-x", "c", "-"], input=b"",
-                                 capture_output=True, timeout=10, check=True).stdout
-        if not re.search(rb"(?m)^#define __SIZEOF_INT__ 4$", defines) or not re.search(rb"(?m)^#define __CHAR_BIT__ 8$", defines):
+        macros = run_bounded([clang, "-std=c11", "-dM", "-E", "-x", "c", "-"],
+                             input_text="", timeout=10, stdout_limit=256_000,
+                             stderr_limit=_MAX_DIAGNOSTIC_BYTES)
+        if macros.returncode:
+            raise UnsupportedC("Clang target-width probe failed")
+        defines = macros.stdout
+        if not re.search(r"(?m)^#define __SIZEOF_INT__ 4$", defines) or not re.search(r"(?m)^#define __CHAR_BIT__ 8$", defines):
             raise UnsupportedC("the Clang target's int/char width is unsupported")
-        run = subprocess.run([clang, "-x", "c", "-std=c11", "-Wall", "-Wextra", "-Werror",
-                              "-pedantic-errors", "-Wno-newline-eof", "-fsyntax-only", "-Xclang", "-ast-dump=json",
-                              "-fno-color-diagnostics", str(source.resolve())],
-                             capture_output=True, timeout=20, check=False)
-        if run.returncode or len(run.stdout) > 8_000_000:
-            raise UnsupportedC("Clang rejected source or AST exceeds size limit: " + run.stderr.decode("utf-8", "replace")[:600])
+        # The source path is mutable, even if a later re-read has the same
+        # digest (A -> B -> A). Give Clang the exact admitted bytes via its
+        # bounded stdin. This scalar profile already excludes includes and
+        # preprocessor directives, so it needs no source-directory search.
+        # File-backed capture enforces output budgets before materializing
+        # an AST in Python and terminates the owned compiler process group.
+        source_text = original.decode("utf-8")
+        info["clang_input"] = {"transport": "captured_source_stdin",
+                               "sha256": digest, "bytes": len(original)}
+        run = run_bounded([clang, "-x", "c", "-std=c11", "-Wall", "-Wextra", "-Werror",
+                           "-pedantic-errors", "-Wno-newline-eof", "-fsyntax-only", "-Xclang", "-ast-dump=json",
+                           "-fno-color-diagnostics", "-"],
+                          input_text=source_text, timeout=20, stdin_limit=_MAX_SOURCE_BYTES,
+                          stdout_limit=_MAX_AST_BYTES, stderr_limit=_MAX_DIAGNOSTIC_BYTES)
+        if run.returncode:
+            raise UnsupportedC("Clang rejected source: " + run.stderr[:600])
         tree = json.loads(run.stdout)
         nodes = [node for node in tree.get("inner", []) if node.get("loc", {}).get("offset") is not None]
         if not nodes:
@@ -213,7 +261,7 @@ def migrate(source: Path, output: Path, report: Path, clang: str = "clang", veri
                 info["functions"].append({"name": label, "status": "unsupported", "reason": str(exc)})
         if any(item["status"] != "converted" for item in info["functions"]):
             raise UnsupportedC("one or more declarations unsupported; no partial source emitted")
-        if hashlib.sha256(source.read_bytes()).hexdigest() != digest:
+        if hashlib.sha256(_read_bounded_source(source)).hexdigest() != digest:
             raise UnsupportedC("source changed during conversion")
         emitted = "module c2hepta_generated;\n\n" + "\n\n".join(emit_function(fn) for fn in converted) + "\n"
         # Check syntax/types against the actual Hepta frontend when it is installed.
@@ -243,6 +291,8 @@ def migrate(source: Path, output: Path, report: Path, clang: str = "clang", veri
                     note="This is a finite syntax translation, NOT a proof of semantic equivalence, native compilation, or whole-language soundness.")
     except (UnsupportedC, IRValidationError, OSError, subprocess.SubprocessError, ValueError) as exc:
         info["reason"] = str(exc)
+        if isinstance(exc, CaptureRejected):
+            info["capture_error"] = exc.code
     if report.is_symlink():
         raise ValueError("refusing to overwrite a symlink report path")
     _atomic_write(report, json.dumps(info, sort_keys=True, indent=2) + "\n")

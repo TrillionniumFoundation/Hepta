@@ -1,0 +1,1 @@
+use crate::api; pub fn entrypoint(a:u32,b:u32,c:u32)->u64 { let left=vec![0u8;((a&7)+1) as usize]; let right=vec![0u8;((b&7)+1) as usize]; let out=api::replace(left,((c&7)+1) as usize); let value=(16)*(out.len() as u64)+(right.len() as u64); drop(out); drop(right); value }

@@ -1,0 +1,52 @@
+test_cancellation_during_build_never_mints_a_prepared_token (tests.test_hia_artifact_session.PreparedArtifactSessionTests.test_cancellation_during_build_never_mints_a_prepared_token) ... ok
+test_changed_publication_path_does_not_replace_sealed_admission (tests.test_hia_artifact_session.PreparedArtifactSessionTests.test_changed_publication_path_does_not_replace_sealed_admission) ... ok
+test_close_preserves_existing_lease_and_parent_until_it_finishes (tests.test_hia_artifact_session.PreparedArtifactSessionTests.test_close_preserves_existing_lease_and_parent_until_it_finishes) ... ERROR
+test_close_racing_actual_child_execution_never_releases_its_image (tests.test_hia_artifact_session.PreparedArtifactSessionTests.test_close_racing_actual_child_execution_never_releases_its_image) ... ok
+test_entry_byte_lease_and_execution_limits_refuse_without_extra_build (tests.test_hia_artifact_session.PreparedArtifactSessionTests.test_entry_byte_lease_and_execution_limits_refuse_without_extra_build) ... ok
+test_foreign_or_unverified_program_and_copy_do_not_expand_authority (tests.test_hia_artifact_session.PreparedArtifactSessionTests.test_foreign_or_unverified_program_and_copy_do_not_expand_authority) ... ok
+test_independent_proof_once_then_actual_native_reuse_without_new_solver (tests.test_hia_artifact_session.PreparedArtifactSessionTests.test_independent_proof_once_then_actual_native_reuse_without_new_solver) ... ERROR
+test_receipt_mutation_is_detected_before_native_execution (tests.test_hia_artifact_session.PreparedArtifactSessionTests.test_receipt_mutation_is_detected_before_native_execution) ... ok
+test_serialized_receipt_foreign_token_and_changed_core_cannot_authorize (tests.test_hia_artifact_session.PreparedArtifactSessionTests.test_serialized_receipt_foreign_token_and_changed_core_cannot_authorize) ... ok
+test_source_or_policy_drift_permanently_refuses_reuse (tests.test_hia_artifact_session.PreparedArtifactSessionTests.test_source_or_policy_drift_permanently_refuses_reuse) ... ok
+test_two_semantic_programs_and_fallback_keep_their_own_identity (tests.test_hia_artifact_session.PreparedArtifactSessionTests.test_two_semantic_programs_and_fallback_keep_their_own_identity) ... ok
+test_uncertain_read_fd_close_during_pinning_has_an_owner_and_no_retry (tests.test_hia_artifact_session.PreparedArtifactSessionTests.test_uncertain_read_fd_close_during_pinning_has_an_owner_and_no_retry) ... ok
+test_uncertain_retirement_is_charged_and_never_retries_reused_fd (tests.test_hia_artifact_session.PreparedArtifactSessionTests.test_uncertain_retirement_is_charged_and_never_retries_reused_fd) ... ok
+
+======================================================================
+ERROR: test_close_preserves_existing_lease_and_parent_until_it_finishes (tests.test_hia_artifact_session.PreparedArtifactSessionTests.test_close_preserves_existing_lease_and_parent_until_it_finishes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/hepta-next-ndu-20261028/tests/test_hia_artifact_session.py", line 154, in test_close_preserves_existing_lease_and_parent_until_it_finishes
+    candidate = owner.prepare_guarded(base["token"], propose_guarded_reduction(self.base, maximum=128))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/hepta-next-ndu-20261028/hepta/hia_artifact_session.py", line 274, in prepare_guarded
+    return self._prepare(None, base_token, proposal, cancellation, max_prepare_ns)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/hepta-next-ndu-20261028/hepta/hia_artifact_session.py", line 323, in _prepare
+    proof = _issue(image, parent=parent.proof if parent else None,
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/hepta-next-ndu-20261028/hepta/hia_prepared.py", line 53, in _issue
+    raise ValueError("E_PREPARED_PROOF: internal proof/build bindings are incomplete")
+ValueError: E_PREPARED_PROOF: internal proof/build bindings are incomplete
+
+======================================================================
+ERROR: test_independent_proof_once_then_actual_native_reuse_without_new_solver (tests.test_hia_artifact_session.PreparedArtifactSessionTests.test_independent_proof_once_then_actual_native_reuse_without_new_solver)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/hepta-next-ndu-20261028/tests/test_hia_artifact_session.py", line 68, in test_independent_proof_once_then_actual_native_reuse_without_new_solver
+    candidate = owner.prepare_guarded(base["token"], proposal)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/hepta-next-ndu-20261028/hepta/hia_artifact_session.py", line 274, in prepare_guarded
+    return self._prepare(None, base_token, proposal, cancellation, max_prepare_ns)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/hepta-next-ndu-20261028/hepta/hia_artifact_session.py", line 323, in _prepare
+    proof = _issue(image, parent=parent.proof if parent else None,
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/hepta-next-ndu-20261028/hepta/hia_prepared.py", line 53, in _issue
+    raise ValueError("E_PREPARED_PROOF: internal proof/build bindings are incomplete")
+ValueError: E_PREPARED_PROOF: internal proof/build bindings are incomplete
+
+----------------------------------------------------------------------
+Ran 13 tests in 8.587s
+
+FAILED (errors=2)

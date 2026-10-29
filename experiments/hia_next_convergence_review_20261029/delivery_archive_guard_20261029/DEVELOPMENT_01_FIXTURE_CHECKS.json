@@ -1,0 +1,262 @@
+{
+  "schema": "hepta.delivery-archive.guard-synthetic-checks.v1",
+  "source_sha256": "c04fcdf3a0c1bc7db1c0c612fab34858204bf22608faf35585c55fe94017d546",
+  "source_bytes": 15937,
+  "fixtures": [
+    {
+      "name": "plain_evidence_directory",
+      "expected": "accepted",
+      "passed": true
+    },
+    {
+      "name": "git_file",
+      "expected": "rejected",
+      "observed_category": "live-checkout-root",
+      "passed": true,
+      "matching_values_disclosed": false
+    },
+    {
+      "name": "git_dir",
+      "expected": "rejected",
+      "observed_category": "live-checkout-root",
+      "passed": true,
+      "matching_values_disclosed": false
+    },
+    {
+      "name": "nested_git_file/child",
+      "expected": "rejected",
+      "observed_category": "live-checkout-root",
+      "passed": true,
+      "matching_values_disclosed": false
+    },
+    {
+      "name": "nested_git_dir/child",
+      "expected": "rejected",
+      "observed_category": "live-checkout-root",
+      "passed": true,
+      "matching_values_disclosed": false
+    },
+    {
+      "name": "root_directory_symlink",
+      "expected": "rejected",
+      "observed_category": "symlink-path-component",
+      "passed": true,
+      "matching_values_disclosed": false
+    },
+    {
+      "name": "file_symlink",
+      "expected": "rejected",
+      "observed_category": "symlink-path-component",
+      "passed": true,
+      "matching_values_disclosed": false
+    },
+    {
+      "name": "descendant_directory_symlink",
+      "expected": "rejected",
+      "observed_category": "symlink-path-component",
+      "passed": true,
+      "matching_values_disclosed": false
+    },
+    {
+      "name": "ancestor_directory_symlink",
+      "expected": "rejected",
+      "observed_category": "symlink-path-component",
+      "passed": true,
+      "matching_values_disclosed": false
+    },
+    {
+      "name": "weights.gguf",
+      "expected": "rejected",
+      "observed_category": "model-weight-filename",
+      "passed": true,
+      "matching_values_disclosed": false
+    },
+    {
+      "name": "weights.gguf.partial",
+      "expected": "rejected",
+      "observed_category": "model-weight-filename",
+      "passed": true,
+      "matching_values_disclosed": false
+    },
+    {
+      "name": "weights.gguf.download.json",
+      "expected": "rejected",
+      "observed_category": "model-weight-filename",
+      "passed": true,
+      "matching_values_disclosed": false
+    },
+    {
+      "name": "weights.safetensors",
+      "expected": "rejected",
+      "observed_category": "model-weight-filename",
+      "passed": true,
+      "matching_values_disclosed": false
+    },
+    {
+      "name": "GGUF_magic_under_other_extension",
+      "expected": "rejected",
+      "observed_category": "GGUF-payload-magic",
+      "passed": true,
+      "matching_values_disclosed": false
+    },
+    {
+      "name": "explicit_protected_model_directory",
+      "expected": "rejected",
+      "observed_category": "protected-model-directory",
+      "passed": true,
+      "matching_values_disclosed": false
+    },
+    {
+      "name": "bounded_member_read",
+      "expected": "rejected",
+      "observed_category": "member-exceeds-preflight-budget",
+      "passed": true,
+      "matching_values_disclosed": false
+    },
+    {
+      "name": "FIFO_rejected_without_blocking",
+      "expected": "rejected",
+      "observed_category": "non-regular-file",
+      "passed": true,
+      "matching_values_disclosed": false
+    },
+    {
+      "name": "downloader_request_filename",
+      "expected": "rejected",
+      "observed_category": "downloader-request-json-filename",
+      "passed": true,
+      "matching_values_disclosed": false
+    },
+    {
+      "name": "downloader_request_structure",
+      "expected": "rejected",
+      "observed_category": "downloader-request-json-structure",
+      "passed": true,
+      "matching_values_disclosed": false
+    },
+    {
+      "name": "request_name_and_URL",
+      "expected": "rejected",
+      "observed_category": "downloader-request-json-structure",
+      "passed": true,
+      "matching_values_disclosed": false
+    },
+    {
+      "name": "signed_URL_JSON",
+      "expected": "rejected",
+      "observed_category": "signed-or-bearer-download-url",
+      "passed": true,
+      "matching_values_disclosed": false
+    },
+    {
+      "name": "signed_URL_JSON_escaped",
+      "expected": "rejected",
+      "observed_category": "signed-or-bearer-download-url",
+      "passed": true,
+      "matching_values_disclosed": false
+    },
+    {
+      "name": "signed_URL_percent_encoded",
+      "expected": "rejected",
+      "observed_category": "signed-or-bearer-download-url",
+      "passed": true,
+      "matching_values_disclosed": false
+    },
+    {
+      "name": "signed_URL_HTML_escaped",
+      "expected": "rejected",
+      "observed_category": "signed-or-bearer-download-url",
+      "passed": true,
+      "matching_values_disclosed": false
+    },
+    {
+      "name": "bearer_query_variant",
+      "expected": "rejected",
+      "observed_category": "signed-or-bearer-download-url",
+      "passed": true,
+      "matching_values_disclosed": false
+    },
+    {
+      "name": "URL_userinfo_credential",
+      "expected": "rejected",
+      "observed_category": "url-userinfo-credential",
+      "passed": true,
+      "matching_values_disclosed": false
+    },
+    {
+      "name": "public_acquisition_outcome_preserved",
+      "expected": "accepted",
+      "passed": true
+    },
+    {
+      "name": "model_transport_request_preserved",
+      "expected": "accepted",
+      "passed": true
+    },
+    {
+      "name": "malformed_failure_evidence_preserved",
+      "expected": "accepted",
+      "passed": true
+    },
+    {
+      "name": "old_phase_excludes_v7",
+      "passed": true,
+      "old_phase_included": false,
+      "new_phase_included": true
+    },
+    {
+      "name": "old_phase_excludes_v8",
+      "passed": true,
+      "old_phase_included": false,
+      "new_phase_included": true
+    },
+    {
+      "name": "old_phase_excludes_v9",
+      "passed": true,
+      "old_phase_included": false,
+      "new_phase_included": true
+    },
+    {
+      "name": "old_phase_excludes_v10",
+      "passed": true,
+      "old_phase_included": false,
+      "new_phase_included": true
+    },
+    {
+      "name": "all_candidate_preflight_refuses_signed_text",
+      "expected": "rejected",
+      "observed_category": "signed-or-bearer-download-url",
+      "passed": true,
+      "matching_values_disclosed": false
+    },
+    {
+      "name": "post_preflight_change_rejected",
+      "expected": "rejected",
+      "observed_category": "candidate-changed-after-preflight",
+      "passed": true,
+      "matching_values_disclosed": false
+    },
+    {
+      "name": "packer_source_itself_is_text_admissible",
+      "expected": "accepted",
+      "passed": true
+    }
+  ],
+  "fixture_count": 36,
+  "passed": true,
+  "packer_main_executed": false,
+  "actual_evidence_directories_scanned": 0,
+  "model_weight_bytes_read": 0,
+  "native_model_tokenizer_compiler_executions": 0,
+  "archive_constructor_calls": 0,
+  "archives_created": 0,
+  "uploads": 0,
+  "AST_preflight_precedes_first_ZIP_constructor": true,
+  "old_archive_or_producer_evidence_modified": false,
+  "limits": [
+    "Only tiny synthetic temporary fixtures exercise the guards.",
+    "No end-to-end archive was generated or newly approved for transfer.",
+    "Candidate text URL classification is a conservative preflight, not a proof about arbitrary opaque binary content.",
+    "Opaque nested archives/bundles retain their separately required content review."
+  ]
+}

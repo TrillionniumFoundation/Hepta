@@ -1,0 +1,35 @@
+[
+  {
+    "path": "tools/tokenize/tokenize.cpp",
+    "revision": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
+    "url": "https://github.com/ggml-org/llama.cpp/blob/620d2225cc436ab0b001e3200e590e3b286ef9ab/tools/tokenize/tokenize.cpp",
+    "blob_sha1": "77b33c4a465779f75c06130939902c816d88aa6e",
+    "read_lines": [
+      147,
+      202
+    ],
+    "excerpt": "    llama_model * model = llama_model_load_from_file(params.model.path.c_str(), model_params);\n    if (!model) {\n        LOG_ERR(\"error: could not load model from file '%s'.\\n\", params.model.path.c_str());\n        return 1;\n    }\n\n    const llama_vocab * vocab = llama_model_get_vocab(model);\n\n    llama_context_params ctx_params = llama_context_default_params();\n    llama_context * ctx = llama_init_from_model(model, ctx_params);\n    if (!ctx) {\n        LOG_ERR(\"error: could not create context.\\n\");\n        return 1;\n    }\n\n    // read entire prompt from stdin?\n    if (params.tokenize_stdin) {\n        std::stringstream stdin_buffer;\n        stdin_buffer << std::cin.rdbuf();\n        if (std::cin.fail()) {\n            LOG_ERR(\"error: could not read the entire standard input.\\n\");\n            return 1;\n        }\n\n        prompt = stdin_buffer.str();\n\n        // stdin is not seen by common_params_parse(), so apply escape handling\n        // here to match the behavior of -p/--prompt and -f/--file.\n        if (params.escape) {\n            string_process_escapes(prompt);\n        }\n    }\n\n    const bool model_wants_add_bos = llama_vocab_get_add_bos(vocab);\n    const bool add_bos      = model_wants_add_bos && !params.tokenize_no_bos;\n    const bool parse_special = params.parse_special;\n\n    std::vector<llama_token> tokens;\n    tokens = common_tokenize(vocab, prompt, add_bos, parse_special);\n\n    if (params.tokenize_ids) {\n        printf(\"[\");\n    }\n\n    for (int i = 0; i < (int) tokens.size(); i++) {\n        if (params.tokenize_ids) {\n            if (i > 0) {\n                printf(\", \");\n            }\n            printf(\"%d\", tokens[i]);\n        } else {\n            bool invalid_utf8 = false;\n            printf(\"%6d -> '\", tokens[i]);\n            write_utf8_cstr_to_stdout(common_token_to_piece(ctx, tokens[i]).c_str(), invalid_utf8);\n            if (invalid_utf8) {\n                printf(\"' (utf-8 decode failure)\\n\");"
+  },
+  {
+    "path": "common/arg.cpp",
+    "revision": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
+    "url": "https://github.com/ggml-org/llama.cpp/blob/620d2225cc436ab0b001e3200e590e3b286ef9ab/common/arg.cpp",
+    "blob_sha1": "8b302d5d77f0af164dd1aa57b64322a0e92aec7b",
+    "read_lines": [
+      1397,
+      1410
+    ],
+    "excerpt": "common_params_context common_params_parser_init(common_params & params, llama_example ex, void(*print_usage)(int, char **)) {\n    // per-example default params\n    // we define here to make sure it's included in llama-gen-docs\n    if (ex == LLAMA_EXAMPLE_COMPLETION) {\n        params.use_jinja = false;   // disable jinja by default\n    } else if (ex == LLAMA_EXAMPLE_MTMD) {\n        params.use_jinja = false;   // disable jinja by default\n        params.sampling.temp = 0.2; // lower temp by default for better quality\n    } else if (ex == LLAMA_EXAMPLE_SERVER) {\n        params.n_parallel = -1;     // auto by default\n    } else if (ex == LLAMA_EXAMPLE_TOKENIZE) {\n        params.parse_special = true; // parse special tokens by default, like the old tokenize tool\n    } else if (ex == LLAMA_EXAMPLE_TTS) {\n        params.out_file = \"output.wav\";"
+  },
+  {
+    "path": "common/common.h",
+    "revision": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
+    "url": "https://github.com/ggml-org/llama.cpp/blob/620d2225cc436ab0b001e3200e590e3b286ef9ab/common/common.h",
+    "blob_sha1": "2cd6e2ec9858a91837746b8c392d59fbd2e18829",
+    "read_lines": [
+      569,
+      574
+    ],
+    "excerpt": "    bool prompt_cache_all  = false; // save user input and generations to prompt cache\n    bool prompt_cache_ro   = false; // open the prompt cache read-only and do not update it\n\n    bool escape            = true;  // escape \"\\n\", \"\\r\", \"\\t\", \"\\'\", \"\\\"\", and \"\\\\\"\n    bool multiline_input   = false; // reverse the usage of `\\`\n    bool simple_io         = false; // improves compatibility with subprocesses and limited consoles"
+  }
+]

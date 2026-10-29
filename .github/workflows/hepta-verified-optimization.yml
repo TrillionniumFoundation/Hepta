@@ -22,6 +22,9 @@ on:
       - 'examples/cpp/composed_project_migration/**'
       - 'experiments/hia_optimizer_eval/**'
       - 'experiments/hia_verified_integration/**'
+      - 'experiments/hia_agent_toolstudy_v8_20261029/**'
+      - 'experiments/hia_agent_toolstudy_v9_20261029/**'
+      - 'experiments/hia_agent_toolstudy_v10_20261029/**'
       - 'pyproject.toml'
       - '.github/workflows/hepta-verified-optimization.yml'
   workflow_dispatch:
@@ -34,6 +37,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
+      HEPTA_RUN_ARTIFACT_SESSION: '1'
       HEPTA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       RECURSIVE_NDU_SOURCE_SHA: 2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b
       FINITE_NDU_SOURCE_SHA: 4b6391e116949af0c7e59776baead67271856bdb

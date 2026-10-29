@@ -1,0 +1,1 @@
+pub fn replace(buf:Vec<u8>,n:usize)->Vec<u8> { drop(buf); vec![0u8;(n+1)] }

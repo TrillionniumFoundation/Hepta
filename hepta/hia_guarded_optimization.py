@@ -284,7 +284,8 @@ def verify_guarded_optimization(base, proposal, policy=None):
     started = time.monotonic_ns()
     policy = _policy({**DEFAULT_POLICY, "timeout_ms": 30000} if policy is None else policy)
     report = {"schema": VERIFY_SCHEMA, "status": "unknown", "target": policy["target"],
-              "policy": policy, "checker_sha256": guarded_checker_identity(), "obligations": [],
+              "policy": policy, "policy_sha256": _digest(policy),
+              "checker_sha256": guarded_checker_identity(), "obligations": [],
               "claims": {"deployment_authority": False, "backend_refinement_proved": False,
                          "whole_language_soundness_proved": False, "performance_qualified": False}}
 

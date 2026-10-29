@@ -1,0 +1,1 @@
+use crate::api; pub fn entrypoint(a:u32,b:u32,c:u32)->u64 { api::span(a, b) as u64 + c }

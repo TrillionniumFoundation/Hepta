@@ -1,0 +1,104 @@
+{
+  "schema": "hepta.agent.small-model-feasibility.v1",
+  "observed_at": "2026-10-29T04:10:29.191008+00:00",
+  "classification": "read-only feasibility and prospective design; not model qualification",
+  "selection": "one root-selected candidate; no further candidate screening after this decision",
+  "selection_inputs": "public model cards, publisher metadata, runtime source and resource constraints; no task answers or edited candidate solutions inspected for selection",
+  "model": {
+    "repo": "Qwen/Qwen3-4B-Instruct-2507",
+    "official_metadata_revision": "cdbee75f17c01a7cc42f958dc650907174af0554",
+    "license": "apache-2.0",
+    "private": false,
+    "gated": false,
+    "mode": "non-thinking only, per official model card"
+  },
+  "quantized_artifact": {
+    "publisher_repo": "unsloth/Qwen3-4B-Instruct-2507-GGUF",
+    "revision": "a06e946bb6b655725eafa393f4a9745d460374c9",
+    "filename": "Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+    "bytes": 2497281120,
+    "sha256": "3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597",
+    "git_lfs_pointer_blob_sha1": "681d7d0d2c24530e22ca6c3f2ef14fbe254f17ae",
+    "download_url": "https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF/resolve/a06e946bb6b655725eafa393f4a9745d460374c9/Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+    "declared_base_model": [
+      "Qwen/Qwen3-4B-Instruct-2507"
+    ],
+    "license": "apache-2.0",
+    "private": false,
+    "gated": false
+  },
+  "provenance_limits": [
+    "The exact GGUF bytes have not been downloaded or hashed locally. The expected byte count and SHA256 were read independently from public LFS pointer and model API metadata.",
+    "Unsloth identifies the upstream model, but this review did not establish a reproducible quantization build from any particular upstream revision. The fixed official config/template revision must not be presented as a proven quantization input revision.",
+    "The new artifact must pass actual b11669 loading, embedded-template comparison and tokenizer-ID controls before generation."
+  ],
+  "memory_estimate": {
+    "context": 8192,
+    "sequence_count": 1,
+    "kv_types": [
+      "f16",
+      "f16"
+    ],
+    "formula": "2 * 36 layers * 8192 tokens * 8 KV heads * 128 head dimensions * 2 bytes",
+    "kv_bytes": 1207959552,
+    "weights_plus_kv_bytes": 3705240672,
+    "weights_plus_kv_gib": 3.4507742822170258,
+    "bound_kind": "component-size estimate, not an RSS or peak-memory upper bound",
+    "excluded": [
+      "compute and batch buffers",
+      "runtime state and libraries",
+      "tokenizer and graph allocations",
+      "OS and other concurrent processes",
+      "page-cache and allocator accounting differences"
+    ]
+  },
+  "environment_observation": {
+    "observed_at": "2026-10-29T04:06:51.190065+00:00",
+    "cgroup_memory_max_bytes": 8589934592,
+    "cgroup_memory_current_bytes": 8287039488,
+    "tmp_available_bytes": 1814286336,
+    "context": "V9 still active; a transient observation, not a capacity gate or stable performance measurement"
+  },
+  "frozen_v9_source": {
+    "commit": "ef9fbafabe9db52a5e59220f1738d5842ac164cc",
+    "status": "",
+    "read_files": [
+      {
+        "path": "experiments/hia_agent_toolstudy_v8_20261029/prompts.py",
+        "sha256": "925b8bf78c1b1b6714df696fbf9ac5907bc2602dd8fb86138b0199335cc93fa5"
+      },
+      {
+        "path": "experiments/hia_agent_toolstudy_v8_20261029/engine.py",
+        "sha256": "e0ddead864a9108c419d6800644ed9b3532ccdc0086681c6093ec87f60bb1a72"
+      },
+      {
+        "path": "experiments/hia_agent_toolstudy_v9_20261029/prompts.py",
+        "sha256": "3e8630f11e61eff18fe08f90513a6ee870dc09f69e380c0269210e24df7805cd"
+      }
+    ]
+  },
+  "next_study_constraints": [
+    "Do not modify V9 or inherit its capacity or qualification.",
+    "One new model candidate only. Root owns disk preparation and acquisition after V9 has exited; no parallel weight download or load.",
+    "Keep V9 task initial prompts, messages, references, validators, node interfaces, decoder and generation/repair/tool budgets unchanged.",
+    "The new plain-role template may remove only the Qwen2 automatic default-system prefix, matching the fixed official Qwen3 template. Bind model/config/template/tokenizer/runtime identities explicitly.",
+    "Compare actual owned-server apply-template output and exact tokenizer IDs for every fresh capacity case; require all 19 references and public/terminal-hidden/resource controls.",
+    "Fresh qualification is required before main. Failure retains all costs and does not authorize task-prompt adjustment or another model search.",
+    "The existing greedy 8192-context/1536-output profile differs from the model-card recommended sampling/output recipe. Capacity and capability under the fixed budget remain empirical questions."
+  ],
+  "review_actions": {
+    "model_weight_bytes_downloaded": 0,
+    "model_generation_requests": 0,
+    "tokenizer_invocations": 0,
+    "native_builds": 0,
+    "v9_files_modified": 0,
+    "current_experiment_source_modified": 0
+  },
+  "unverified": [
+    "Actual selected GGUF loading in the existing b11669 binary",
+    "Actual GGUF template matching the fixed official template",
+    "All new tokenizer capacities and reference gates",
+    "Peak RSS, allocation and CPU throughput under the fixed configuration",
+    "Fresh qualification success and comparative language/Agent efficacy"
+  ]
+}

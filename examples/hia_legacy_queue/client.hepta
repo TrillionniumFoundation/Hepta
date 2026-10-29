@@ -1,0 +1,62 @@
+// Authored integration client, counted separately from imported C bodies.
+// Original Ring-Buffer and musl functions are generated from captured Clang AST.
+export "C" fn legacy_checksum_chunk(count: usize, packed: u64, state: u32,
+                                    polynomial: u32) -> u64 effects {alloc, block, panic, write} {
+    if count == 0 { return state as u64; }
+    if count > 8 { return 4294967296; }
+    let ring_result = try_buffer(16);
+    match move ring_result {
+        Result::Err(error) => { return 8589934592; },
+        Result::Ok(ring_storage) => {
+            let mut storage = move ring_storage;
+            let input_result = try_buffer(8);
+            match move input_result {
+                Result::Err(error) => { drop(move storage); return 8589934592; },
+                Result::Ok(input_storage) => {
+                    let mut input = move input_storage;
+                    let output_result = try_buffer(8);
+                    match move output_result {
+                        Result::Err(error) => {
+                            drop(move input); drop(move storage); return 8589934592;
+                        },
+                        Result::Ok(output_storage) => {
+                            let mut output = move output_storage;
+                            let mut index: usize = 0;
+                            while index < count {
+                                input[index] = (packed >> ((index * 8) as u64)) as u8;
+                                index = index + 1;
+                            }
+                            let mut ring = C_ring_buffer_t {
+                                f_buffer_mask: 0, f_tail_index: 0, f_head_index: 0,
+                            };
+                            c_ring_buffer_init(mut ring, mut storage, 0, 16);
+                            assert(c_ring_buffer_is_empty(read ring, read storage) == 1);
+                            c_ring_buffer_queue_arr(mut ring, mut storage, read input, 0, count);
+                            assert(c_ring_buffer_num_items(read ring, read storage) == count);
+                            assert(c_ring_buffer_is_full(read ring, read storage) == 0);
+                            assert(c_ring_buffer_peek(mut ring, mut storage, mut output, 0, 0) == 1);
+                            assert(output[0] == input[0]);
+                            assert(c_ring_buffer_dequeue_arr(mut ring, mut storage, mut output, 0, count) == count);
+                            assert(c_memcmp(read input, 0, read output, 0, count) == 0);
+                            assert(c_bcmp(read input, 0, read output, 0, count) == 0);
+                            let mut value = state;
+                            index = 0;
+                            while index < count {
+                                value = c_checksum_byte(value, output[index], polynomial);
+                                index = index + 1;
+                            }
+                            c_ring_buffer_queue(mut ring, mut storage, input[0]);
+                            assert(c_ring_buffer_dequeue(mut ring, mut storage, mut output, 0) == 1);
+                            assert(output[0] == input[0]);
+                            assert(c_ring_buffer_is_empty(read ring, read storage) == 1);
+                            drop(move output);
+                            drop(move input);
+                            drop(move storage);
+                            return value as u64;
+                        },
+                    }
+                },
+            }
+        },
+    }
+}
