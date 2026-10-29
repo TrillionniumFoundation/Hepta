@@ -23,6 +23,12 @@ _MAX_GIT_TREE_BYTES = 32_000_000
 _MAX_GIT_SMALL_BYTES = 4096
 _MAX_GIT_STDERR_BYTES = 4096
 _MAX_REPORT_BYTES = 32_000_000
+# Aggregate limits bound expansion *before* any serialized-report rejection.
+# These are operational audit limits, not evidence of full-process RSS isolation.
+_MAX_AUDIT_TREE_ENTRIES = 200_000
+_MAX_AUDIT_TREE_PATH_BYTES = 32_000_000
+_MAX_AUDIT_CHANGE_ENTRIES = 200_000
+_MAX_AUDIT_OVERLAP_ENTRIES = 200_000
 
 SHA = re.compile(r"[0-9a-fA-F]{40}\Z")
 LABEL = re.compile(r"[A-Za-z][A-Za-z0-9_-]{0,63}\Z")
@@ -177,20 +183,43 @@ def audit(base: str, candidates: dict[str, str]) -> dict:
         ancestor = git("merge-base", base, head).decode("ascii").strip()
         if ancestor != base:
             raise ValueError(label + ": expected base is not a candidate ancestor")
-    trees = {"base": tree_entries(base)}
-    trees.update((label, tree_entries(head)) for label, head in heads.items())
+    # A per-Git-command 32-MB cap is not a per-audit cap: up to 16 heads
+    # can each be retained in memory. Account for every retained tree and
+    # its path bytes before constructing any repeated comparison structures.
+    trees: dict[str, dict] = {}
+    total_tree_entries = 0
+    total_tree_path_bytes = 0
+    for label, commit in [("base", base), *heads.items()]:
+        listing = tree_entries(commit)
+        total_tree_entries += len(listing)
+        total_tree_path_bytes += sum(len(os.fsencode(path)) + 64 for path in listing)
+        if (total_tree_entries > _MAX_AUDIT_TREE_ENTRIES or
+                total_tree_path_bytes > _MAX_AUDIT_TREE_PATH_BYTES):
+            raise ValueError("aggregate tree input budget exceeded")
+        trees[label] = listing
+
     changes: dict[str, dict] = {}
+    total_changes = 0
     for label in heads:
         old, new = trees["base"], trees[label]
-        changes[label] = {path: {"base": old.get(path), "candidate": new.get(path)}
-                          for path in sorted(old.keys() | new.keys())
-                          if old.get(path) != new.get(path)}
+        changed = {path: {"base": old.get(path), "candidate": new.get(path)}
+                   for path in sorted(old.keys() | new.keys())
+                   if old.get(path) != new.get(path)}
+        total_changes += len(changed)
+        if total_changes > _MAX_AUDIT_CHANGE_ENTRIES:
+            raise ValueError("aggregate changes budget exceeded")
+        changes[label] = changed
+
     ancestry = {}
     overlaps = []
+    total_overlap_entries = 0
     labels = sorted(heads)
     for index, left in enumerate(labels):
         for right in labels[index + 1:]:
             common = sorted(changes[left].keys() & changes[right].keys())
+            total_overlap_entries += len(common)
+            if total_overlap_entries > _MAX_AUDIT_OVERLAP_ENTRIES:
+                raise ValueError("aggregate overlaps budget exceeded")
             same = [path for path in common if trees[left].get(path) == trees[right].get(path)]
             different = [path for path in common if trees[left].get(path) != trees[right].get(path)]
             mergebase = git("merge-base", heads[left], heads[right]).decode("ascii").strip()
