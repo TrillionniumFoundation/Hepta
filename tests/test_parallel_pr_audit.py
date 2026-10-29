@@ -262,5 +262,35 @@ class AuditTests(unittest.TestCase):
             self.assertEqual(list(trusted.iterdir()), [],
                              "refused audit leaked its pinned staging artifact")
 
+
+    def test_oversized_json_report_refused_without_publishing_artifact(self):
+        # A valid but large branch comparison must not generate an unlimited
+        # audit report or expose a partially qualified output file.
+        with tempfile.TemporaryDirectory() as directory:
+            output = pathlib.Path(directory) / "audit.json"
+            args = ["--base", A, "--candidate", "left=" + B,
+                    "--candidate", "right=" + C, "--output", str(output)]
+            with patch.object(module, "audit", return_value={"paths": ["x" * 256] * 16}), \
+                 patch.object(module, "_MAX_REPORT_BYTES", 512, create=True):
+                self.assertEqual(module.main(args), 2)
+            self.assertEqual(list(pathlib.Path(directory).iterdir()), [],
+                             "oversized audit leaked a report or staging file")
+
+    def test_json_report_budget_accepts_exact_encoded_size(self):
+        # The budget is on serialized bytes including the terminating newline,
+        # not merely the number of dictionary entries.
+        import json
+        report = {"scope": "approved subset", "verified": False}
+        expected = json.dumps(report, sort_keys=True, indent=2) + "\n"
+        with tempfile.TemporaryDirectory() as directory:
+            output = pathlib.Path(directory) / "audit.json"
+            args = ["--base", A, "--candidate", "left=" + B,
+                    "--candidate", "right=" + C, "--output", str(output)]
+            with patch.object(module, "audit", return_value=report), \
+                 patch.object(module, "_MAX_REPORT_BYTES", len(expected.encode("utf-8")), create=True):
+                self.assertEqual(module.main(args), 0)
+            self.assertEqual(output.read_text(encoding="utf-8"), expected)
+
+
 if __name__ == "__main__":
     unittest.main()
