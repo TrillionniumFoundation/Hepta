@@ -48,7 +48,7 @@ elif "-dM" in sys.argv:
         print("#define __SIZEOF_INT__ 4")
         print("#define __CHAR_BIT__ 8")
 else:
-    print("{}")
+    print("{{}}")
 """, encoding="utf-8")
         executable.chmod(0o755)
         return str(executable)
