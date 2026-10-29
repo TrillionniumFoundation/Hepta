@@ -1,0 +1,648 @@
+{
+  "audit_import": {
+    "donor": "a14291c804814c83d69a2def9e8df442d2091d62",
+    "files_byte_identical": [
+      "hepta/migration_ir.py",
+      "tools/c2hepta.py",
+      "tests/test_c2hepta_api_path_isolation.py",
+      "tests/test_c2hepta_bounded_source.py",
+      "tests/test_migration_ir_identifier_guard.py",
+      "tests/test_migration_ir_literal_guard.py",
+      "tests/test_migration_ir_neg_payload_guard.py",
+      "tests/test_migration_ir_parser_budget.py",
+      "tests/test_migration_ir_structural_budget.py"
+    ],
+    "import_commit": "8508232acb41e30dac8d8ebe312a7350178595f0",
+    "later_snapshot_fixes_not_relabelled": true
+  },
+  "audit_script_sha256": "918acff128ef8be38fbaef348f958888a84a84d358c09fc4bd2d9d908c7c20fb",
+  "canonical_boundaries_byte_equal_to_round_base": {
+    "hepta/hia_json_preflight.py": "53c6b189ed6210f7cf6fdb75c042ed6db7c10dba9254083270cd2903e3f7f4f2",
+    "hepta/hia_prepared.py": "bf0285705531f3950aaec6c2f31ac60fe13a354079a2218239676d7b619afe87",
+    "hepta/hia_program.py": "30a593c6810119ff29cc479559a826f38981230b40ce26fe08cccd1fec72fbc9",
+    "hepta/hia_program_llvm.py": "1bc377c2a871f8c0a0cb0f32b7ba45d6fb71cca9f45d98fed9ddef7c730686c9",
+    "hepta/hia_program_runtime.py": "76389227b6067be695813fc6578d6caf7186e46f1e3535f1a62d214959407a53",
+    "hepta/hia_schema.py": "fc6dda7d10165d6358eb00a4f44d1651f400a782da70477711f77d052f8a4abe",
+    "hepta/hia_static_budget.py": "4d19d39680d195a174b28e3a11e7b0c866dea05cd07641e4301dc7139e2e2cfe"
+  },
+  "command": [
+    "/tmp/hepta-six-venv/bin/python",
+    "/tmp/hepta-convergence-evidence-audit.py",
+    "--root",
+    "/tmp/hepta-next-convergence-review-20261029",
+    "--output",
+    "/tmp/hepta-convergence-93b1c80-evidence-formal-01.json"
+  ],
+  "concatenated_rust_execution_records": 96,
+  "elapsed_ns": 6189489188,
+  "environment": "shared-cloud-scratch-not-verified-user-dot",
+  "findings": [
+    {
+      "correction_inspected_not_executed_here": true,
+      "corrective_commit": "1468550226bfe199b97b9d845f2983829d105936",
+      "description": "Frozen six-outcome and verified-increment suites omitted the new entry payload tests and six-outcome paths/actual CLI; follow-up binds tests, fixture and clean-source CLI.",
+      "found_at": "93b1c8002c2a41573080cca41a279a0a0fa4e915",
+      "id": "payload-profile-ci-wiring",
+      "status": "closed_by_independent_followup"
+    }
+  ],
+  "finished_utc": "2026-10-29T01:09:01.295735+00:00",
+  "fragment_datasets": [
+    {
+      "index": "experiments/hia_legacy_queue/irpgo_results_20261029/processes/INDEX.json",
+      "nodes": 524,
+      "original_raw_compared": true,
+      "original_source": "/tmp/hepta-next-irpgo-processes.json",
+      "parts": 24,
+      "records": 596,
+      "retained_canonical_sha256": "b8d877869ab961b3fd31eb3a8535a5a1d56dff8c68676678c2f5f32ca6b77e57",
+      "retained_json_bytes": 1064605,
+      "string_part_groups": 1
+    },
+    {
+      "index": "experiments/hia_legacy_queue/irpgo_results_20261029/qualification/INDEX.json",
+      "nodes": 806,
+      "original_raw_compared": true,
+      "original_source": "/tmp/hepta-next-legacy-irpgo-formal-01/qualification.json",
+      "parts": 23,
+      "records": 806,
+      "retained_canonical_sha256": "d1bbc146f31abdae494f3995a0edafa5feba60957e2efd33de59a4fe24c830f5",
+      "retained_json_bytes": 968022,
+      "string_part_groups": 0
+    },
+    {
+      "index": "experiments/hia_legacy_queue/irpgo_results_20261029/raw_inventory/INDEX.json",
+      "nodes": 1,
+      "original_raw_compared": true,
+      "original_source": "/tmp/hepta-next-irpgo-RAW_FILES.json",
+      "parts": 1,
+      "records": 1,
+      "retained_canonical_sha256": "409af358bb17952c6d6747bcda79d16c33a799f72bb1c15082d3625dadbf68c4",
+      "retained_json_bytes": 38350,
+      "string_part_groups": 0
+    },
+    {
+      "index": "experiments/hia_legacy_queue/results_20261028/processes/INDEX.json",
+      "nodes": 358,
+      "original_raw_compared": true,
+      "original_source": "/tmp/hepta-next-legacy-processes.json",
+      "parts": 13,
+      "records": 429,
+      "retained_canonical_sha256": "2e290233d43d3cee6ce228b28de2b0ae4a4e9544cb143e8c8dd71751c6bf0841",
+      "retained_json_bytes": 562476,
+      "string_part_groups": 1
+    },
+    {
+      "index": "experiments/hia_legacy_queue/results_20261028/qualification/INDEX.json",
+      "nodes": 591,
+      "original_raw_compared": true,
+      "original_source": "/tmp/hepta-next-legacy-formal-01/qualification.json",
+      "parts": 10,
+      "records": 591,
+      "retained_canonical_sha256": "49aea0cddd6d1b07d52904ff2b6674210af666162e424fb7f5294a8564ce0d83",
+      "retained_json_bytes": 439248,
+      "string_part_groups": 0
+    },
+    {
+      "index": "experiments/hia_legacy_queue/results_20261028/raw_inventory/INDEX.json",
+      "nodes": 1,
+      "original_raw_compared": true,
+      "original_source": "/tmp/hepta-next-legacy-RAW_FILES.json",
+      "parts": 1,
+      "records": 1,
+      "retained_canonical_sha256": "59e9947fdedd8edfca2b6051017778310c62d6ed8b43ee4429cedad9bb4be97f",
+      "retained_json_bytes": 29310,
+      "string_part_groups": 0
+    },
+    {
+      "index": "experiments/hia_ndu_activation/results_20261028/calibration/INDEX.json",
+      "nodes": 45,
+      "original_raw_compared": true,
+      "original_source": "/tmp/hepta-next-ndu-activation-formal-01/calibration/BANK.json",
+      "parts": 9,
+      "records": 45,
+      "retained_canonical_sha256": "3cdfdd8d169c432fdf82e2c6fbb28c4a5ab4f47669eab60d12d0d093a131957b",
+      "retained_json_bytes": 379298,
+      "string_part_groups": 0
+    },
+    {
+      "index": "experiments/hia_ndu_activation/results_20261028/raw_inventory/INDEX.json",
+      "nodes": 656,
+      "original_raw_compared": true,
+      "original_source": "/tmp/hepta-next-ndu-RAW_FILES.json",
+      "parts": 3,
+      "records": 656,
+      "retained_canonical_sha256": "46e1499124f911ac5753a3eb70de5cbd0c334c19c09e66f72fbc7a19c356f185",
+      "retained_json_bytes": 111375,
+      "string_part_groups": 0
+    },
+    {
+      "index": "experiments/hia_ndu_activation/results_20261028/result/INDEX.json",
+      "nodes": 536,
+      "original_raw_compared": true,
+      "original_source": "/tmp/hepta-next-ndu-activation-formal-01/RESULT.json",
+      "parts": 72,
+      "records": 536,
+      "retained_canonical_sha256": "fb1eb6dd0795b77688fce392360f4e55ad85be872e3d56d92a50c6feff045a7c",
+      "retained_json_bytes": 2635134,
+      "string_part_groups": 0
+    },
+    {
+      "index": "experiments/hia_ndu_prepared_reuse/results_20261029/calibration/INDEX.json",
+      "nodes": 54,
+      "original_raw_compared": true,
+      "original_source": "/tmp/hepta-next-ndu-prepared-formal-01/calibration/BANK.json",
+      "parts": 11,
+      "records": 54,
+      "retained_canonical_sha256": "dfff76070b1ce0ce3ccdff71de14203e2357c1ab6144f52b5288815402b2e2d8",
+      "retained_json_bytes": 440819,
+      "string_part_groups": 0
+    },
+    {
+      "index": "experiments/hia_ndu_prepared_reuse/results_20261029/raw_inventory/INDEX.json",
+      "nodes": 3195,
+      "original_raw_compared": true,
+      "original_source": "/tmp/hepta-next-ndu-prepared-RAW_FILES.json",
+      "parts": 15,
+      "records": 3195,
+      "retained_canonical_sha256": "7d9ef8be08a6d33fe542b8a1e5f7e2e8c2916b86aee06e711fbabb7695b079a9",
+      "retained_json_bytes": 549403,
+      "string_part_groups": 0
+    },
+    {
+      "index": "experiments/hia_ndu_prepared_reuse/results_20261029/result/INDEX.json",
+      "nodes": 1063,
+      "original_raw_compared": true,
+      "original_source": "/tmp/hepta-next-ndu-prepared-formal-01/RESULT.json",
+      "parts": 62,
+      "records": 1063,
+      "retained_canonical_sha256": "90d983ba9d58d2521743b13cea4f663b8425963a1d68faa5c0ac04fb0d172f90",
+      "retained_json_bytes": 2579407,
+      "string_part_groups": 0
+    }
+  ],
+  "index_snapshots": [
+    {
+      "path": "experiments/hia_legacy_queue/irpgo_results_20261029/INDEX.json",
+      "sha256": "27bb5f0c82c3bfb925a3f136e36c079bc0c60e3613dcf8118d7f600752a99b4a"
+    },
+    {
+      "path": "experiments/hia_legacy_queue/irpgo_results_20261029/processes/INDEX.json",
+      "sha256": "492e36c0db8d4ec50dd288745744a4de7541c25adfd63a1941880f3cb7b8bcf8"
+    },
+    {
+      "path": "experiments/hia_legacy_queue/irpgo_results_20261029/qualification/INDEX.json",
+      "sha256": "01e1610cc9a9e91078433467f7ab4720edc371411d7e4d788f03c33445443a8b"
+    },
+    {
+      "path": "experiments/hia_legacy_queue/irpgo_results_20261029/raw_inventory/INDEX.json",
+      "sha256": "9bc2d7076721575414a596fb8aa37da36ff982bc727fc5bca4d9f686a2eb8868"
+    },
+    {
+      "path": "experiments/hia_legacy_queue/results_20261028/INDEX.json",
+      "sha256": "f40bc18604a5870fccf462a4366335fc860112a3ed08ba7b034ee1624b49e8f5"
+    },
+    {
+      "path": "experiments/hia_legacy_queue/results_20261028/processes/INDEX.json",
+      "sha256": "a30a04c9ac8fa89f7f37512f2757288018d72203d3a63afa09d12423b24e7c3c"
+    },
+    {
+      "path": "experiments/hia_legacy_queue/results_20261028/qualification/INDEX.json",
+      "sha256": "4cc76721e89fc958b2c8245da5272da88a812e0cac8cf3bc1f6d3f6c94ef22c1"
+    },
+    {
+      "path": "experiments/hia_legacy_queue/results_20261028/raw_inventory/INDEX.json",
+      "sha256": "1ac61b6c5691d47e5dfe65e14cebafb1bb21acecd0216ba43b04b4d9f36bec8d"
+    },
+    {
+      "path": "experiments/hia_legacy_queue/rust_shadow_20261029/INDEX.json",
+      "sha256": "ef49b307ae90b16f702eecdc5ed1fc6e0fe3d3ef944e43c4c4d63b1fea8809c5"
+    },
+    {
+      "path": "experiments/hia_ndu_activation/results_20261028/INDEX.json",
+      "sha256": "aa366b0aa39857b920743e34b1d059f92cb2e1a3b21606c2335158061d46c5da"
+    },
+    {
+      "path": "experiments/hia_ndu_activation/results_20261028/calibration/INDEX.json",
+      "sha256": "1ed4f45be869357f68a1c6284315b5e98785ecf3feae7938f8759e81d3d81de9"
+    },
+    {
+      "path": "experiments/hia_ndu_activation/results_20261028/raw_inventory/INDEX.json",
+      "sha256": "e8eb84c28018c1c5726f9696bec847b7d4bcc458685c724852b9aec4c8dd64ae"
+    },
+    {
+      "path": "experiments/hia_ndu_activation/results_20261028/result/INDEX.json",
+      "sha256": "9a427e1b992bd9489062ad54f5e53827d6c52b4251af9bc86082f220802dcba0"
+    },
+    {
+      "path": "experiments/hia_ndu_prepared_reuse/results_20261029/INDEX.json",
+      "sha256": "b91693d227ffd3eefad5fcfc434eb2a8984397b7dc54f3b6a7e6d0a823736fe1"
+    },
+    {
+      "path": "experiments/hia_ndu_prepared_reuse/results_20261029/calibration/INDEX.json",
+      "sha256": "39e4e96e1a28604f98ca8b577bab192862e93f1874bf9aae548214fa8a08459c"
+    },
+    {
+      "path": "experiments/hia_ndu_prepared_reuse/results_20261029/raw_inventory/INDEX.json",
+      "sha256": "d0ad9306e413a9a788f3ecee45dfba30e5eba7aa8c0317844836405328c2f329"
+    },
+    {
+      "path": "experiments/hia_ndu_prepared_reuse/results_20261029/result/INDEX.json",
+      "sha256": "322d3c9999b968ff13e4a486c24cc86530056cdd5e562b5c00bd4aa3aa4e0fb4"
+    },
+    {
+      "path": "experiments/hia_next_safety/agent_v6_review_20261029/INDEX.json",
+      "sha256": "8ca71325b0e7e52c486b6551dc90618a080d51378c8ab99536fec551f4472748"
+    },
+    {
+      "path": "experiments/hia_next_safety/artifact_review_20261029/INDEX.json",
+      "sha256": "34b265c9dd0783565b5dfaefc21834b2adcbf601b94cfd5cf0633b7e3a2905e1"
+    },
+    {
+      "path": "experiments/hia_next_safety/irpgo_review_20261029/INDEX.json",
+      "sha256": "a86251ba3bdfd1a775d96e741748db91effaa6dfe16f965ee672d955eab890cb"
+    },
+    {
+      "path": "experiments/hia_next_safety/payload_review_20261029/INDEX.json",
+      "sha256": "ac285a349a7a8427f52cc727616f002835b531139eed2b47d95362e2c08d92cc"
+    },
+    {
+      "path": "experiments/hia_next_safety/results_20261028/INDEX.json",
+      "sha256": "b60e97547f73072e116a81397fc980bca3dc3f7eb94253511fc234d1a0f71f90"
+    }
+  ],
+  "indexed_file_checks": {
+    "count": 772,
+    "ordered_checks_canonical_sha256": "aced0012c1119e15422485c43d810d57c6a450ebc53ab49e82bef2878bc4d45b",
+    "retained_bytes": 14329335,
+    "unique_paths": 772
+  },
+  "limitations": [],
+  "limits": [
+    "Hashes and Git object equality establish byte provenance, not producer authenticity or compiler correctness.",
+    "Original raw JSON is compared when the retained absolute source remains available; absence is recorded.",
+    "Model weights, installed toolchains, complete raw native archives and remote CI are not independently requalified by this compact-evidence pass.",
+    "No model, native compiler, kernel, optimizer, solver matrix or performance experiment is executed by this audit.",
+    "152 lightweight regressions have a separate source-bound run receipt; earlier producer native/solver/model observations retain their original commits.",
+    "Negative performance/NDU/Agent gates are not upgraded by metadata or source compatibility checks."
+  ],
+  "model_requests": 0,
+  "native_builds": 0,
+  "ndu_summary_reconciliation": [
+    {
+      "claimed_new_performance_advantage": false,
+      "common_summary_fields_equal": [
+        "all_application_outputs_and_budgets_admitted",
+        "application_profile_totals",
+        "application_totals",
+        "authority",
+        "different_semantic_core_hashes",
+        "driver_unchanged",
+        "module_core_sha256",
+        "native_complete_build_wall_ns",
+        "registered_full_cost_advantage",
+        "safety_certificate",
+        "source_commit",
+        "source_unchanged",
+        "statistical_superiority_established",
+        "tool_inputs_unchanged"
+      ],
+      "group": "hia_ndu_activation/results_20261028",
+      "native_policy_outputs": 324,
+      "policy_episodes": 27
+    },
+    {
+      "claimed_new_performance_advantage": false,
+      "common_summary_fields_equal": [
+        "all_application_outputs_budgets_and_release_admitted",
+        "application_profile_totals",
+        "application_totals",
+        "authority",
+        "different_semantic_core_hashes",
+        "driver_unchanged",
+        "historical_controller_build_source_commit",
+        "historical_controller_build_wall_ns",
+        "module_core_sha256",
+        "ndu_warm_net_benefit_all_profiles",
+        "new_cold_controller_build_measured",
+        "new_cold_net_benefit_qualified",
+        "observed_total_driver_ns_before_final_encoding",
+        "opportunity_analysis",
+        "post_run_opportunity_controls_wall_ns",
+        "prior_negative_results_replaced",
+        "purpose",
+        "safety_certificate",
+        "source_commit",
+        "source_unchanged",
+        "statistical_superiority_established",
+        "tool_inputs_unchanged"
+      ],
+      "group": "hia_ndu_prepared_reuse/results_20261029",
+      "native_policy_outputs": 618,
+      "policy_episodes": 24
+    }
+  ],
+  "performance_experiments": 0,
+  "python": {
+    "executable": "/tmp/hepta-six-venv/bin/python",
+    "sha256": "fa67443527ed9647f760d807e2a38f26340757123e643c4639cf273ed15d5ea7",
+    "version": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]"
+  },
+  "reviewed_source_commit": "93b1c8002c2a41573080cca41a279a0a0fa4e915",
+  "same_actual_core": {
+    "bytes": 143935,
+    "fixture": "tests/fixtures/hia_payload_bound/legacy_core.hia.json",
+    "migration_reports": [
+      "experiments/hia_legacy_queue/irpgo_results_20261029/qualification/INDEX.json",
+      "experiments/hia_legacy_queue/results_20261028/qualification/INDEX.json"
+    ],
+    "no_new_native_or_payload_execution": true,
+    "payload_analysis_sha256": "6c0c089d9ca3576af82f809bbd3209bc5e9c4fbf9d3e813a2461ae53b0726ca6",
+    "payload_bound": {
+      "max_allocation_op_executions": 3,
+      "max_cumulative_requested_payload_bytes": 32,
+      "max_live_payload_bytes": 32,
+      "max_nonzero_allocation_requests": 3
+    },
+    "rust_shadow_sha256": "1044e28ea68a18d6a0681cff9cd5f835e26e91c9a669dab01256b9592f64ca51",
+    "sha256": "1044e28ea68a18d6a0681cff9cd5f835e26e91c9a669dab01256b9592f64ca51"
+  },
+  "same_tree_mappings": [
+    {
+      "evidence": "experiments/hia_legacy_queue/results_20261028/SUMMARY.json",
+      "execution_source_not_relabelled": true,
+      "measured_source": "ccd423bc9ee22888fec5d23f993978f2c0f51b57",
+      "public_alias": "e629d92d82752244edf11c3ae5a0c477a64e9252",
+      "tree": "26695834a49be88dae42a41a2954954f721c7066"
+    },
+    {
+      "evidence": "experiments/hia_next_safety/results_20261028/SOURCE.json",
+      "execution_source_not_relabelled": true,
+      "measured_source": "ccd423bc9ee22888fec5d23f993978f2c0f51b57",
+      "public_alias": "e629d92d82752244edf11c3ae5a0c477a64e9252",
+      "tree": "26695834a49be88dae42a41a2954954f721c7066"
+    }
+  ],
+  "scalar_obligations_retained_not_rerun": 449,
+  "schema": "hepta.hia.closure-evidence-audit.v1",
+  "snapshot": {
+    "commit": "93b1c8002c2a41573080cca41a279a0a0fa4e915",
+    "status": "",
+    "tree": "5224a89507c257ec23092eba7ffc41aee1d496ed"
+  },
+  "snapshot_unchanged": true,
+  "source_bindings": [
+    {
+      "evidence": "experiments/hia_ndu_activation/results_20261028/REGISTRATION.json",
+      "historical_results_not_relabelled": true,
+      "later_integrated_bytes_differ": [
+        "hepta/c_record_views.py",
+        "hepta/c_translation.py",
+        "hepta/hia_guarded_optimization.py",
+        "hepta/hia_heap_bound.py",
+        "hepta/hia_native_differential.py",
+        "hepta/hia_program_source.py",
+        "hepta/migration_ir.py"
+      ],
+      "source_commit": "b8d83ef67eb350d7497934828b06698d909d61e5",
+      "source_files_checked": 149,
+      "source_tree": "5bef84239abb86d11c8f4927d3e199f5e84b73cf"
+    },
+    {
+      "evidence": "experiments/hia_ndu_prepared_reuse/results_20261029/REGISTRATION.json",
+      "historical_results_not_relabelled": true,
+      "later_integrated_bytes_differ": [
+        "hepta/c_record_views.py",
+        "hepta/c_translation.py",
+        "hepta/hia_heap_bound.py",
+        "hepta/hia_program_source.py",
+        "hepta/migration_ir.py"
+      ],
+      "source_commit": "b53d61cd3cdb522ccd718f3fdc7cd62d1d5964a2",
+      "source_files_checked": 151,
+      "source_tree": "928464600a6523010719b6ff1dbfcb82a4b9ef76"
+    },
+    {
+      "evidence": "experiments/hia_legacy_queue/irpgo_results_20261029/qualification/INDEX.json",
+      "historical_results_not_relabelled": true,
+      "later_integrated_bytes_differ": [
+        "hepta/hia_guarded_optimization.py",
+        "hepta/hia_heap_bound.py",
+        "hepta/hia_native_differential.py"
+      ],
+      "source_commit": "6191eca3e896473707306fb8fb98d9b7b6f187bb",
+      "source_files_checked": 179,
+      "source_tree": "f5e68db60015176011869e341ae69f857a7c8fbf"
+    },
+    {
+      "evidence": "experiments/hia_legacy_queue/results_20261028/qualification/INDEX.json",
+      "historical_results_not_relabelled": true,
+      "later_integrated_bytes_differ": [
+        "hepta/hia_guarded_optimization.py",
+        "hepta/hia_heap_bound.py",
+        "hepta/hia_native_differential.py",
+        "tools/qualify_hia_legacy_queue.py"
+      ],
+      "source_commit": "ccd423bc9ee22888fec5d23f993978f2c0f51b57",
+      "source_files_checked": 176,
+      "source_tree": "26695834a49be88dae42a41a2954954f721c7066"
+    },
+    {
+      "evidence": "experiments/hia_next_safety/results_20261028/REGISTRATION.json",
+      "historical_results_not_relabelled": true,
+      "later_integrated_bytes_differ": [
+        "tools/qualify_hia_scalar_lowering.py"
+      ],
+      "source_commit": "ccd423bc9ee22888fec5d23f993978f2c0f51b57",
+      "source_files_checked": 7,
+      "source_tree": "26695834a49be88dae42a41a2954954f721c7066"
+    },
+    {
+      "evidence": "experiments/hia_next_safety/artifact_review_20261029/REVIEW.json",
+      "historical_results_not_relabelled": true,
+      "later_integrated_bytes_differ": [],
+      "source_commit": "3c547848a4e9e488b42de631bb29ba039c489093",
+      "source_files_checked": 12,
+      "source_tree": "13de2cb992997dbbe7f22366ede013a83dc5fe47"
+    },
+    {
+      "evidence": "experiments/hia_next_safety/agent_v6_review_20261029/REVIEW.json",
+      "historical_results_not_relabelled": true,
+      "later_integrated_bytes_differ": [],
+      "source_commit": "f695384324d2de784f727d349bd67891f7f45bd3",
+      "source_files_checked": 17,
+      "source_tree": "51d9ec7c83724eb537ecc63fec7b06591eeb1b46"
+    },
+    {
+      "evidence": "experiments/hia_next_safety/payload_review_20261029/REVIEW.json",
+      "historical_results_not_relabelled": true,
+      "later_integrated_bytes_differ": [],
+      "source_commit": "d246aecf3cd1b96e818bd4e53ffe0408fb1fbd93",
+      "source_files_checked": 11,
+      "source_tree": "e9288f21ad676a7084a78da03d780518d75f1a12"
+    },
+    {
+      "evidence": "experiments/hia_next_payload_bound/legacy-analysis.json",
+      "historical_results_not_relabelled": true,
+      "later_integrated_bytes_differ": [],
+      "source_commit": "d246aecf3cd1b96e818bd4e53ffe0408fb1fbd93",
+      "source_files_checked": 8,
+      "source_tree": "e9288f21ad676a7084a78da03d780518d75f1a12"
+    },
+    {
+      "evidence": "experiments/hia_legacy_queue/rust_shadow_20261029/RESULT.json",
+      "historical_results_not_relabelled": true,
+      "later_integrated_bytes_differ": [],
+      "source_commit": "a1e14e2364eab8c6697187157f30d70291c1309c",
+      "source_files_checked": 7,
+      "source_tree": "2a48ad62602334101f8fd5d25b244b483528366d"
+    },
+    {
+      "evidence": "experiments/hia_agent_factorial_v4_20261028/results_20261028/SOURCE_IDENTITIES.json",
+      "historical_results_not_relabelled": true,
+      "later_integrated_bytes_differ": [
+        "experiments/hia_agent_factorial_v4_20261028/evaluator.py",
+        "hepta/c_record_views.py",
+        "hepta/c_translation.py",
+        "hepta/clang_capture.py",
+        "hepta/cli.py",
+        "hepta/cpp_contracts.py",
+        "hepta/hia_adaptive.py",
+        "hepta/hia_guarded_optimization.py",
+        "hepta/hia_heap_bound.py",
+        "hepta/hia_native_differential.py",
+        "hepta/hia_ndu.py",
+        "hepta/hia_program_source.py",
+        "hepta/hia_routes.py",
+        "hepta/hia_stateful.py",
+        "hepta/migration_ir.py",
+        "tools/qualify_hia_agent_factorial.py"
+      ],
+      "source_commit": "68cbd79ac61224a08be1f3ec2f3026ef0881745e",
+      "source_files_checked": 140,
+      "source_tree": "ad647d6dee8ee79d8b971164970daba49a693123"
+    },
+    {
+      "evidence": "experiments/hia_agent_factorial_v5_20261028/evidence/v5-qwen1_5b-01/PLAN.json",
+      "historical_results_not_relabelled": true,
+      "later_integrated_bytes_differ": [
+        "experiments/hia_agent_factorial_v4_20261028/evaluator.py",
+        "hepta/c_record_views.py",
+        "hepta/c_translation.py",
+        "hepta/hia_guarded_optimization.py",
+        "hepta/hia_heap_bound.py",
+        "hepta/hia_native_differential.py",
+        "hepta/hia_program_source.py",
+        "hepta/migration_ir.py",
+        "tools/qualify_hia_agent_repair.py"
+      ],
+      "source_commit": "ebb80bb8c1918d6e8df4fab09370bed8a65dc55b",
+      "source_files_checked": 149,
+      "source_tree": "8a8f1140e775a89381d98adfeb69112b2d65638d"
+    },
+    {
+      "evidence": "experiments/hia_agent_factorial_v5_20261028/evidence/v5-qwen1_5b-03/PLAN.json",
+      "historical_results_not_relabelled": true,
+      "later_integrated_bytes_differ": [
+        "experiments/hia_agent_factorial_v4_20261028/evaluator.py",
+        "hepta/c_record_views.py",
+        "hepta/c_translation.py",
+        "hepta/hia_guarded_optimization.py",
+        "hepta/hia_heap_bound.py",
+        "hepta/hia_native_differential.py",
+        "hepta/hia_program_source.py",
+        "hepta/migration_ir.py",
+        "tools/qualify_hia_agent_repair.py"
+      ],
+      "source_commit": "9f555cbb9c0bc1f40381586f6149f64f0e9088c4",
+      "source_files_checked": 149,
+      "source_tree": "3fc8511fcf5ecb518ae599d6aad57ee0f2c69b56"
+    },
+    {
+      "evidence": "experiments/hia_agent_factorial_v5_20261028/evidence/v5-qwen1_5b-04/PLAN.json",
+      "historical_results_not_relabelled": true,
+      "later_integrated_bytes_differ": [
+        "experiments/hia_agent_factorial_v4_20261028/evaluator.py",
+        "hepta/c_record_views.py",
+        "hepta/c_translation.py",
+        "hepta/hia_guarded_optimization.py",
+        "hepta/hia_heap_bound.py",
+        "hepta/hia_native_differential.py",
+        "hepta/hia_program_source.py",
+        "hepta/migration_ir.py"
+      ],
+      "source_commit": "9c9cfaccb4eff5fa5d62e3c9f33efdaf50b3c70e",
+      "source_files_checked": 150,
+      "source_tree": "c5539be16e3248a389d15ae11458f2c3db08aceb"
+    },
+    {
+      "evidence": "experiments/hia_agent_factorial_v5_20261028/evidence/v5-qwen7b-01/PLAN.json",
+      "historical_results_not_relabelled": true,
+      "later_integrated_bytes_differ": [
+        "experiments/hia_agent_factorial_v4_20261028/evaluator.py",
+        "hepta/c_record_views.py",
+        "hepta/c_translation.py",
+        "hepta/hia_guarded_optimization.py",
+        "hepta/hia_heap_bound.py",
+        "hepta/hia_native_differential.py",
+        "hepta/hia_program_source.py",
+        "hepta/migration_ir.py"
+      ],
+      "source_commit": "9c9cfaccb4eff5fa5d62e3c9f33efdaf50b3c70e",
+      "source_files_checked": 150,
+      "source_tree": "c5539be16e3248a389d15ae11458f2c3db08aceb"
+    }
+  ],
+  "summary": {
+    "fragment_datasets": 12,
+    "fragment_records": 7973,
+    "independent_producer_native_or_model_tests_rerun": false,
+    "original_json_files_compared": 12,
+    "original_source_bindings": 1455,
+    "scientific_gates_upgraded": false,
+    "source_groups": 15
+  },
+  "v4_transport_original_strings_verified": 11,
+  "v5_main_untouched": {
+    "main_cells_started": 0,
+    "main_model_requests": 0,
+    "qualified_language_or_agent_efficiency_claim": false
+  },
+  "v5_manifest": {
+    "all_inventory_records": 1024,
+    "included_files_checked": 418,
+    "not_duplicated_into_git": 606
+  },
+  "v5_recorded_costs_recomputed": {
+    "all_v5_model_run_totals": {
+      "experiment_wall_ns": 1612593904963,
+      "human_repairs": 0,
+      "known_input_tokens": 23108,
+      "known_output_tokens": 4501,
+      "requests": 28,
+      "responses": 28,
+      "total_tokens": 27609,
+      "unknown_usage_requests": 0
+    },
+    "diagnostic_and_prebinding_totals": {
+      "experiment_wall_ns": 261708085761,
+      "human_repairs": 0,
+      "known_input_tokens": 10629,
+      "known_output_tokens": 1386,
+      "requests": 13,
+      "responses": 13,
+      "total_tokens": 12015,
+      "unknown_usage_requests": 0
+    },
+    "formal_totals": {
+      "experiment_wall_ns": 1350885819202,
+      "human_repairs": 0,
+      "known_input_tokens": 12479,
+      "known_output_tokens": 3115,
+      "requests": 15,
+      "responses": 15,
+      "total_tokens": 15594,
+      "unknown_usage_requests": 0
+    }
+  }
+}

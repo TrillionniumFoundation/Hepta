@@ -1,6 +1,6 @@
 {
   "schema": "hepta.hia.next-ci-observation.v1",
-  "observation_time_utc": "2026-10-29 01:02:29 UTC",
+  "observation_time_utc": "2026-10-29 01:10:50 UTC",
   "runs": [
     {
       "id": 40790911988,
@@ -56,6 +56,39 @@
       "created_at": "2026-10-29T00:07:36Z",
       "updated_at": "2026-10-29T00:23:07Z",
       "html_url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/40791974095"
+    },
+    {
+      "id": 40798246314,
+      "name": "HIA verified optimization and native NDU integration",
+      "event": "pull_request",
+      "head_sha": "d929de4b48649dfe86aef6fd1c2a2497e50ef023",
+      "status": "in_progress",
+      "conclusion": null,
+      "created_at": "2026-10-29T01:05:25Z",
+      "updated_at": "2026-10-29T01:05:29Z",
+      "html_url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/40798246314"
+    },
+    {
+      "id": 40798246243,
+      "name": "HIA six-outcome source and application gates",
+      "event": "pull_request",
+      "head_sha": "d929de4b48649dfe86aef6fd1c2a2497e50ef023",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-29T01:05:25Z",
+      "updated_at": "2026-10-29T01:09:41Z",
+      "html_url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/40798246243"
+    },
+    {
+      "id": 40798240171,
+      "name": "HIA six-outcome source and application gates",
+      "event": "push",
+      "head_sha": "d929de4b48649dfe86aef6fd1c2a2497e50ef023",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-29T01:05:22Z",
+      "updated_at": "2026-10-29T01:10:34Z",
+      "html_url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/40798240171"
     }
   ],
   "verified_observations": [
@@ -108,12 +141,30 @@
         "2026-10-29T00:22:34.6704033Z   \"passed\": true",
         "2026-10-29T00:22:37.6696197Z {\"passed\": true, \"native_observations\": 36, \"error\": null}"
       ]
+    },
+    {
+      "run_id": 40798246243,
+      "job_id": 123199827932,
+      "head_sha": "d929de4b48649dfe86aef6fd1c2a2497e50ef023",
+      "safety_contract_tests": 37,
+      "regression_tests": 192,
+      "skipped": 0,
+      "scalar_obligations": 449,
+      "scalar_verified": 449,
+      "scalar_unknown": 0,
+      "scalar_refuted": 0,
+      "legacy_migration_prepared": true,
+      "irpgo_profiles_and_allocation_refusal_prepared": true,
+      "actual_payload_analysis_completed": true,
+      "agent_native_controls": 35,
+      "agent_primitive_into_native_controls": 3,
+      "passed": true
     }
   ],
   "qualification_limits": [
     "CI preparation is not performance measurement",
     "Results belong to the listed actual public heads, not later commits",
     "Overlapping regression groups must not be summed as independent tests",
-    "The newer IR PGO and prepared-session additions require their own integrated rerun"
+    "Current source/application CI includes prepared-session, IR PGO, primitive conversion and payload checks; its full verified-native companion remains separately tracked."
   ]
 }

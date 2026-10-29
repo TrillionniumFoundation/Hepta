@@ -1,0 +1,166 @@
+{
+  "schema": "hepta.hia.next-six-outcomes-blockers.v1",
+  "all_blockers_closed": false,
+  "report_authority": "DENY_ALL",
+  "safety_certificate": false,
+  "scope": "Existing HIA Core, explicit finite profiles, actual migration, NDU and Agent observations",
+  "status_policy": "Closed refers only to the named checked profile. Failed or unevaluated research claims remain open; test counts and reference controls cannot substitute for them.",
+  "blocks": [
+    {
+      "id": "source-snapshot-and-bounded-intake",
+      "status": "closed_in_declared_profile",
+      "evidence": [
+        "docs/HIA_NEXT_SAFETY_CLOSURE_20261028.md",
+        "experiments/hia_next_safety/results_20261028"
+      ],
+      "closed_condition": "Captured bytes are actually supplied to Clang; bounded process capture and path/IR guards pass their concrete counterexamples.",
+      "excluded": "Filesystem containment or correctness of a compromised compiler"
+    },
+    {
+      "id": "selected-scalar-lowering-and-cursor-spec",
+      "status": "closed_in_declared_profile",
+      "evidence": [
+        "experiments/hia_next_safety/results_20261028"
+      ],
+      "closed_condition": "449/449 registered obligations verified, 0 unknown/refuted; independent signed/unsigned cursor arithmetic checks and mutation controls pass.",
+      "excluded": "All programs, memory, loops, concurrency, LLVM optimization and final machine code"
+    },
+    {
+      "id": "actual-core-logical-payload-bound",
+      "status": "closed_in_declared_profile",
+      "evidence": [
+        "experiments/hia_next_payload_bound",
+        "docs/HIA_ENTRY_PAYLOAD_INDEPENDENT_REVIEW_20261029.md"
+      ],
+      "core_sha256": "1044e28ea68a18d6a0681cff9cd5f835e26e91c9a669dab01256b9592f64ca51",
+      "closed_condition": "Fresh scalar entry: at most 3 allocator visits/nonzero requests and 32 bytes cumulative/live logical payload; 19 tests and independent graph accounting, plus integrated source re-execution.",
+      "excluded": "RSS, allocator overhead, metadata, stack, termination, concurrency, abort cleanup or native refinement"
+    },
+    {
+      "id": "prepared-artifact-ownership-and-proof-reuse",
+      "status": "closed_in_declared_profile",
+      "evidence": [
+        "experiments/hia_next_safety/artifact_review_20261029",
+        "experiments/hia_ndu_prepared_reuse/results_20261029"
+      ],
+      "closed_condition": "Actual internal proof/sealed-image admission with bounded leases, transactional publication, retained unknown-close debt, bounded compiler identity; 24/24 native lifecycle regressions and all formal episode releases pass.",
+      "excluded": "External receipt admission, arbitrary kernels or general native safety theorem"
+    },
+    {
+      "id": "actual-multifile-c-component-vertical-slice",
+      "status": "closed_in_declared_profile",
+      "evidence": [
+        "experiments/hia_legacy_queue/results_20261028",
+        "experiments/hia_legacy_queue/rust_shadow_20261029",
+        "experiments/hia_legacy_queue/irpgo_results_20261029"
+      ],
+      "closed_condition": "11 upstream bodies/3 source TUs, separate authored CRC TU and client, native differences, lifecycle failures, scalar ABI and maintenance cases pass.",
+      "excluded": "Original pointer/record ABI preservation, arbitrary C++ libraries or measured human migration cost"
+    },
+    {
+      "id": "combined-source-ci",
+      "status": "awaiting_current_source_ci",
+      "evidence": [
+        "experiments/hia_next_closure/CI_OBSERVATIONS_20261029.json"
+      ],
+      "last_observed_green_public_source": "bf171ca07ecff1235ed6d1e4d92859d091839ef3",
+      "current_published_source": "d929de4b48649dfe86aef6fd1c2a2497e50ef023",
+      "closed_condition": "Required suites pass on the actual final integrated source with no skipped mandatory tests; old green results cannot qualify the new head.",
+      "current_source_application_ci_passed": true,
+      "current_source_application_run_id": 40798246243,
+      "current_verified_native_run_id": 40798246314,
+      "structured_interface_source_requires_its_own_integrated_ci": true
+    },
+    {
+      "id": "actual-structured-agent-transaction-interface",
+      "status": "implementation_reviewed_capacity_pending",
+      "closed_condition": "Real node operations, source/query/policy binding, bounded parsing, atomic refusal and native admission controls on a final frozen source, followed by actual tokenizer capacity checks.",
+      "excluded": "Rebranding a full-function replacement as node editing or repairing a model answer",
+      "implementation_source": "677a15928c1dd3b236c7bee8cf4b3e6041177f6c",
+      "evidence": [
+        "docs/hia-structured-review/REVIEW_20261029.md",
+        "experiments/hia_next_safety/structured_review_20261029"
+      ],
+      "controls": {
+        "static_tests": 51,
+        "new_interface_tests": 21,
+        "existing_profile_transport_tests": 30,
+        "native_transactions": 9,
+        "accepted": 5,
+        "expected_refusals": 4,
+        "model_requests": 0
+      }
+    },
+    {
+      "id": "agent-capable-baseline-and-matched-main",
+      "status": "open_negative_qualification",
+      "evidence": [
+        "experiments/hia_agent_factorial_v5_20261028/evidence",
+        "experiments/hia_agent_factorial_v6_20261028/evidence"
+      ],
+      "latest_completed_qualification": {
+        "source": "f695384324d2de784f727d349bd67891f7f45bd3",
+        "correct_tasks": 1,
+        "total_tasks": 3,
+        "requests": 8,
+        "known_tokens": 8609,
+        "unknown_usage_requests": 0,
+        "main_requests": 0
+      },
+      "closed_condition": "A separately preregistered capable model/interface qualifies before the matched four-arm main; all requested correctness, resource, token/time, intervention and maintenance metrics are retained."
+    },
+    {
+      "id": "ndu-positive-opportunities-and-net-benefit",
+      "status": "open_negative_measurement",
+      "evidence": [
+        "experiments/hia_ndu_prepared_reuse/README.md"
+      ],
+      "gates": {
+        "two_observed_positive_amortized_opportunities": false,
+        "ndu_competition_on_observed_profitable_candidates": false,
+        "ndu_warm_net_benefit_all_profiles": false,
+        "statistical_superiority_established": false
+      },
+      "closed_condition": "Actual profitable opportunities and lower complete cost than both strong fixed and complete DP under registered equal information/budgets, with appropriate cold/reuse/change/competition evidence.",
+      "excluded": "Model-only DP agreement, shared runtime engineering savings or fabricated/synthetic profitable opportunities"
+    },
+    {
+      "id": "application-performance-and-physical-resource-advantage",
+      "status": "open_negative_measurement",
+      "evidence": [
+        "experiments/hia_legacy_queue/irpgo_results_20261029"
+      ],
+      "gates": {
+        "performance_advantage_gate": false,
+        "performance_and_rss_gate": false
+      },
+      "closed_condition": "Preselected HIA candidate passes the registered compound gates against strong semantic/algorithm/layout-matched C/C++/Rust LTO/PGO baselines on the actual application, retaining all costs and samples.",
+      "excluded": "Post-hoc weaker reference selection or a universal conclusion from this shared host"
+    },
+    {
+      "id": "whole-language-soundness-and-translation-refinement",
+      "status": "open_unproved",
+      "closed_condition": "Separate checkable soundness and source-to-Core/Core-to-native refinement arguments covering the claimed type, lifetime, failure, cancellation, recursion, concurrency and foreign-memory domains.",
+      "excluded": "Rust implementation language, unit tests or selected scalar SMT checks as substitutes"
+    },
+    {
+      "id": "general-c-cpp-ecosystem-migration-cost-and-abi",
+      "status": "open_unestablished",
+      "closed_condition": "Representative actual C++ components, original ABI/lifetime/callback boundaries, real maintenance tasks and complete measured migration cost across claimed target platforms.",
+      "excluded": "The bounded C vertical slice as evidence of arbitrary C++ conversion"
+    },
+    {
+      "id": "unrestricted-global-instruction-optimality",
+      "status": "not_a_supported_general_guarantee",
+      "closed_condition": "A finite declared search space, objective, resource budget and environment model with checkable feasibility and an optimality certificate or explicitly bounded regret.",
+      "excluded": "Claiming actual universal global optimality for unrestricted programs from NDU or finite-DP agreement"
+    }
+  ],
+  "measurement_environment": "Shared cloud development host; not a dedicated performance machine or an observed user dot",
+  "unmeasured_costs": [
+    "human implementation and review labor",
+    "complete migration/maintenance labor",
+    "model training",
+    "future production monitoring and recovery"
+  ]
+}

@@ -61,6 +61,7 @@ MODULES = (
     "tests.test_hia_legacy_irpgo",
     "tests.test_hia_agent_primitive_into",
     "tests.test_hia_entry_payload_bound",
+    "tests.test_hia_agent_structured",
 )
 
 
@@ -84,6 +85,7 @@ def inventory():
                    "experiments/hia_ndu_activation", "experiments/hia_ndu_prepared_reuse",
                    "experiments/hia_agent_factorial_v5_20261028",
                    "experiments/hia_agent_factorial_v6_20261028",
+                   "experiments/hia_agent_structured_v7_20261029",
                    "tests/fixtures/hia_payload_bound"):
         paths += [path for path in (ROOT / folder).rglob("*") if path.is_file()
                   and "__pycache__" not in path.parts]
