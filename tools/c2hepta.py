@@ -9,6 +9,7 @@ import argparse
 from dataclasses import asdict
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -269,8 +270,21 @@ def _load_clang_ast(data: bytes) -> dict:
             obj[key] = value
         return obj
 
+    def reject_nonfinite_constant(value: str) -> None:
+        # json.loads accepts NaN/Infinity by default, unlike strict JSON.
+        raise ValueError("non-finite Clang AST JSON constant")
+
+    def finite_json_float(value: str) -> float:
+        parsed = float(value)
+        # A valid JSON number such as 1e9999 also overflows to infinity.
+        if not math.isfinite(parsed):
+            raise ValueError("non-finite Clang AST JSON number")
+        return parsed
+
     try:
-        tree = json.loads(data, object_pairs_hook=unique_object)
+        tree = json.loads(data, object_pairs_hook=unique_object,
+                          parse_constant=reject_nonfinite_constant,
+                          parse_float=finite_json_float)
     except UnsupportedC:
         raise
     except (ValueError, UnicodeError, RecursionError) as exc:
