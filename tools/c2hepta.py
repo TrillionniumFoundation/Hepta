@@ -459,6 +459,15 @@ def _migrate_impl(source: Path, output: Path, report: Path, clang: str = "clang"
         if (any(marker in original for marker in (b"#", b"%:", b"??=", b"??/"))
                 or re.search(rb"\\[ \t]*\r?\n", original)):
             raise UnsupportedC("preprocessor directives/macros require a future source model")
+        # Compiler predefined macros expand without any #define directive.
+        # __LINE__, __COUNTER__, __STDC__ and target-dependent symbols can
+        # become innocent-looking integer literals in the Clang AST, despite
+        # this pilot having no preprocessing/provenance model. Under strict
+        # C11, leading-underscore identifiers are implementation-reserved;
+        # conservatively reject them even in comments/string data instead of
+        # accepting hidden macro expansion as direct source translation.
+        if re.search(rb"(?<![A-Za-z_0-9])_[A-Za-z_0-9]*", original):
+            raise UnsupportedC("predefined compiler identifiers require a future source model")
         if not shutil.which(clang):
             raise UnsupportedC("clang executable unavailable")
         version = _probe_clang([clang, "--version"], label="version")
