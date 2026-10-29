@@ -216,5 +216,51 @@ class AuditTests(unittest.TestCase):
                              '{\n  "ok": true\n}\n')
 
 
+    def test_report_parent_symlink_rebinding_cannot_publish_forged_evidence(self):
+        # Real path adversary: after staging a legitimate report, retarget
+        # its directory symlink immediately before hard-link publication.
+        # An unpinned source/destination can publish attacker bytes and
+        # leave the legitimate staging file orphaned while returning 0.
+        if os.name != "posix" or os.link not in os.supports_dir_fd:
+            self.skipTest("POSIX dir_fd hard-link operations required")
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            trusted = root / "trusted"
+            attacker = root / "attacker"
+            trusted.mkdir()
+            attacker.mkdir()
+            alias = root / "alias"
+            alias.symlink_to(trusted, target_is_directory=True)
+            output = alias / "audit.json"
+            original_link = os.link
+            switched = []
+
+            def redirect_at_publication(source, destination, **kwargs):
+                # The old two-path link resolves both paths *after* the
+                # attacker switches the directory. A same-basename forged
+                # staging file makes the attack succeed, not merely error.
+                if not kwargs.get("src_dir_fd"):
+                    (attacker / pathlib.Path(source).name).write_text(
+                        '{"forged":true}\n', encoding="utf-8")
+                alias.unlink()
+                alias.symlink_to(attacker, target_is_directory=True)
+                switched.append(True)
+                return original_link(source, destination, **kwargs)
+
+            argv = ["--base", A, "--candidate", "left=" + B,
+                    "--candidate", "right=" + C, "--output", str(output)]
+            with patch.object(module, "audit", return_value={"ok": True}), patch.object(
+                module.os, "link", side_effect=redirect_at_publication
+            ):
+                result = module.main(argv)
+            self.assertTrue(switched, "publication attack hook did not execute")
+            self.assertEqual(result, 2, "rebinding was wrongly accepted as a valid audit")
+            self.assertFalse((attacker / "audit.json").exists(),
+                             "attacker-controlled forged report was published")
+            self.assertFalse((trusted / "audit.json").exists(),
+                             "refused audit must not leave a qualified report")
+            self.assertEqual(list(trusted.iterdir()), [],
+                             "refused audit leaked its pinned staging artifact")
+
 if __name__ == "__main__":
     unittest.main()
