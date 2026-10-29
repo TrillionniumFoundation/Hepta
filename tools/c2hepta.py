@@ -366,6 +366,9 @@ def migrate(source: Path, output: Path, report: Path, clang: str = "clang", veri
     resolved = (source.resolve(), output.resolve(), report.resolve())
     if len(set(resolved)) != 3:
         raise UnsupportedC("source, output and report paths must be distinct")
+    # Pin artifact destinations at admission: a parent symlink may be
+    # rebound during the compiler run to alias the original C source.
+    admitted_output, admitted_report = resolved[1:]
     try:
         original = _read_bounded_source(source)
         read_error = None
@@ -470,7 +473,9 @@ def migrate(source: Path, output: Path, report: Path, clang: str = "clang", veri
             if not analysis.report.get("ok"):
                 raise UnsupportedC("native Hepta validation did not pass: " + repr(analysis.report.get("diagnostics", []))[:1500])
             info["backend_validation"] = "passed"
-        _atomic_write(output, emitted)
+        if output.resolve() != admitted_output or report.resolve() != admitted_report:
+            raise UnsupportedC("output or report path binding changed during conversion")
+        _atomic_write(admitted_output, emitted)
         info.update(status="converted", safety="static_memory_safe_scalar_subset",
                     output_sha256=hashlib.sha256(emitted.encode()).hexdigest(),
                     note="This is a finite syntax translation, NOT a proof of semantic equivalence, native compilation, or whole-language soundness.")
@@ -478,7 +483,8 @@ def migrate(source: Path, output: Path, report: Path, clang: str = "clang", veri
         info["reason"] = str(exc)
     if report.is_symlink():
         raise ValueError("refusing to overwrite a symlink report path")
-    _atomic_write(report, json.dumps(info, sort_keys=True, indent=2) + "\n")
+    # Never follow a rebound parent alias when publishing a rejection report.
+    _atomic_write(admitted_report, json.dumps(info, sort_keys=True, indent=2) + "\n")
     return info
 
 
