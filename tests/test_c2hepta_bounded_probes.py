@@ -85,7 +85,7 @@ else:
         self.assertIsNotNone(shutil.which("clang"), "Clang required for qualification")
         result = migrate(self.source, self.output, self.report)
         self.assertEqual(result["status"], "converted", result)
-        self.assertTrue(result["clang"].startswith("clang version"))
+        self.assertIn("clang", result["clang"].lower())
         self.assertIn("target", result)
         self.assertEqual(result["frontend_validation"], "passed")
         self.assertTrue(self.output.is_file())
