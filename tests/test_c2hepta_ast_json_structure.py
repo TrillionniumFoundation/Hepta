@@ -89,6 +89,16 @@ class ClangAstJsonStructure(unittest.TestCase):
             with self.subTest(payload=payload):
                 self.assert_rejected_without_output(payload, reason)
 
+    def test_nonfinite_json_numbers_fail_closed_before_lowering(self):
+        # CPython accepts NaN/Infinity and overflowing exponents by default,
+        # but these are not finite JSON values and are not valid Clang AST.
+        valid = json.dumps(self._synthetic_valid_ast()).encode("utf-8")
+        for token in (b"NaN", b"Infinity", b"-Infinity", b"1e9999"):
+            with self.subTest(token=token):
+                payload = valid[:-1] + b', "untrusted_number": ' + token + b"}"
+                self.assert_rejected_without_output(
+                    payload, "Clang AST JSON malformed or excessively nested")
+
     def test_invalid_utf8_json_fails_with_report(self):
         self.assert_rejected_without_output(bytes([0xff]), "Clang AST JSON malformed or excessively nested")
 
