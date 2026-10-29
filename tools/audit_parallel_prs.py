@@ -11,6 +11,7 @@ import argparse
 import json
 import os
 import re
+import signal
 import subprocess
 import sys
 import threading
@@ -56,15 +57,21 @@ def git(*args: str) -> bytes:
     env = {**os.environ, "GIT_NO_REPLACE_OBJECTS": "1"}
     cap = _MAX_GIT_TREE_BYTES if args and args[0] == "ls-tree" else _MAX_GIT_SMALL_BYTES
     with subprocess.Popen(["git", "--no-pager", *args], stdout=subprocess.PIPE,
-                          stderr=subprocess.PIPE, env=env) as proc:
+                          stderr=subprocess.PIPE, env=env,
+                          start_new_session=(os.name == "posix")) as proc:
         stdout = bytearray()
         stderr = bytearray()
         over_budget: list[str] = []
         stream_errors: list[Exception] = []
 
         def kill() -> None:
+            # Git wrappers may leave inherited-pipe children after their leader
+            # exits. Own a private POSIX group and reap all same-group workers.
             try:
-                proc.kill()
+                if os.name == "posix":
+                    os.killpg(proc.pid, signal.SIGKILL)
+                else:
+                    proc.kill()
             except ProcessLookupError:
                 pass
 
@@ -107,6 +114,8 @@ def git(*args: str) -> bytes:
                              ",".join(over_budget))
         if stream_errors or any(reader.is_alive() for reader in readers):
             kill()
+            for reader in readers:
+                reader.join(timeout=1)
             raise RuntimeError("git output capture failed")
         if proc.returncode:
             raise RuntimeError("git " + " ".join(args[:2]) + " failed: " +
