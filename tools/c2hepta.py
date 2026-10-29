@@ -277,10 +277,15 @@ def _load_clang_ast(data: bytes) -> dict:
             if "inner" in value:
                 if not isinstance(value["inner"], list):
                     raise UnsupportedC("Clang AST child array has invalid shape")
-                if any(not isinstance(node, dict) or
-                       not isinstance(node.get("kind"), str)
-                       for node in value["inner"]):
-                    raise UnsupportedC("Clang AST child node has invalid shape")
+                for node in value["inner"]:
+                    if not isinstance(node, dict):
+                        # Preserve the public rejection reason for malformed
+                        # translation-unit children from the prior gate.
+                        if value is tree:
+                            raise UnsupportedC("Clang AST top-level child has invalid shape")
+                        raise UnsupportedC("Clang AST child node has invalid shape")
+                    if not isinstance(node.get("kind"), str):
+                        raise UnsupportedC("Clang AST child node has invalid shape")
             if "kind" in value and not isinstance(value["kind"], str):
                 raise UnsupportedC("Clang AST node kind has invalid shape")
             if "type" in value:
