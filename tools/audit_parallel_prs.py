@@ -15,6 +15,7 @@ import signal
 import subprocess
 import sys
 import threading
+import tempfile
 
 _MAX_GIT_TREE_BYTES = 32_000_000
 _MAX_GIT_SMALL_BYTES = 4096
@@ -242,9 +243,23 @@ def main(argv=None) -> int:
             candidates[label] = sha
         report = audit(args.base, candidates)
         payload = json.dumps(report, sort_keys=True, indent=2) + "\n"
-        # O_CREAT|O_EXCL refuses existing outputs including dangling symlinks.
-        with open(args.output, "x", encoding="utf-8") as stream:
-            stream.write(payload)
+        # Stage a fully written report in the destination filesystem. Hard-link
+        # publication has O_EXCL-like semantics even for dangling symlinks:
+        # an existing report can never be overwritten, and a failed write
+        # never exposes a truncated report at the requested output path.
+        # If hard links are unsupported, reject instead of falling back to a
+        # non-atomic publication that could be mistaken for qualified evidence.
+        directory = os.path.dirname(os.path.abspath(args.output))
+        fd, staging = tempfile.mkstemp(prefix=".hepta-integration-audit-",
+                                       suffix=".tmp", dir=directory)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as stream:
+                stream.write(payload)
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.link(staging, args.output)
+        finally:
+            os.unlink(staging)
         print(payload, end="")
         return 0
     except (ValueError, RuntimeError, OSError, subprocess.TimeoutExpired) as error:

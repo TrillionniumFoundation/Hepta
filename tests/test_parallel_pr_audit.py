@@ -178,5 +178,43 @@ class AuditTests(unittest.TestCase):
             self.assertFalse(r["whole_project_blockers_closed"])
 
 
+    def test_failed_report_write_never_exposes_partial_artifact(self):
+        # A real OS file-size limit forces a short/failed write after a report
+        # file has been created. Failed reports must never become visible at
+        # the requested output path, even as truncated JSON.
+        if os.name != "posix":
+            self.skipTest("POSIX RLIMIT_FSIZE required")
+        with tempfile.TemporaryDirectory() as directory:
+            output = pathlib.Path(directory) / "audit.json"
+            script = (
+                "import importlib.util, resource, signal\n"
+                f"spec = importlib.util.spec_from_file_location('audit_parallel_prs', {str(MODULE_PATH)!r})\n"
+                "mod = importlib.util.module_from_spec(spec)\n"
+                "spec.loader.exec_module(mod)\n"
+                "mod.audit = lambda base, candidates: {'large': 'x' * 1000000}\n"
+                "signal.signal(signal.SIGXFSZ, signal.SIG_IGN)\n"
+                "resource.setrlimit(resource.RLIMIT_FSIZE, (4096, 4096))\n"
+                f"assert mod.main(['--base', {A!r}, '--candidate', 'left={B}', "
+                f"'--candidate', 'right={C}', '--output', {str(output)!r}]) == 2\n"
+            )
+            run = subprocess.run([sys.executable, "-c", script],
+                                 capture_output=True, text=True, timeout=10)
+            self.assertEqual(run.returncode, 0, run.stderr)
+            self.assertFalse(output.exists(),
+                             "failed report publication left a truncated JSON artifact")
+            self.assertEqual(list(pathlib.Path(directory).iterdir()), [],
+                             "failed report publication leaked a staging artifact")
+
+    def test_successful_report_publication_is_complete(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = pathlib.Path(directory) / "audit.json"
+            args = ["--base", A, "--candidate", "left=" + B,
+                    "--candidate", "right=" + C, "--output", str(output)]
+            with patch.object(module, "audit", return_value={"ok": True}):
+                self.assertEqual(module.main(args), 0)
+            self.assertEqual(output.read_text(encoding="utf-8"),
+                             '{\n  "ok": true\n}\n')
+
+
 if __name__ == "__main__":
     unittest.main()
