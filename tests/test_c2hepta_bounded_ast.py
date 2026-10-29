@@ -28,14 +28,12 @@ class BoundedClangAstCapture(unittest.TestCase):
                 "import sys; sys.stdout.buffer.write(b'x' * 4000000)",
             ], max_stdout_bytes=4096)
 
-    def test_stderr_is_drained_but_not_retained_unbounded(self):
-        completed = _run_bounded_ast([
-            sys.executable, "-c",
-            "import sys; sys.stdout.write('{}'); sys.stderr.write('z' * 1000000)",
-        ], max_stdout_bytes=4096)
-        self.assertEqual(completed.returncode, 0)
-        self.assertEqual(completed.stdout, b"{}")
-        self.assertEqual(len(completed.stderr), 4096)
+    def test_stderr_overflow_is_rejected_not_just_discarded(self):
+        with self.assertRaisesRegex(UnsupportedC, "stderr exceeds 4 KiB"):
+            _run_bounded_ast([
+                sys.executable, "-c",
+                "import sys; sys.stdout.write('{}'); sys.stderr.write('z' * 1000000)",
+            ], max_stdout_bytes=4096)
 
     def test_timeout_kills_ast_producer(self):
         with self.assertRaises(subprocess.TimeoutExpired):
