@@ -232,6 +232,57 @@ def _run_bounded_ast(args: list[str], *, timeout: float = 20,
         return subprocess.CompletedProcess(args, returncode, bytes(stdout), bytes(stderr))
 
 
+_MAX_AST_JSON_NESTING = 128
+_MAX_AST_JSON_CONTAINERS = 100_000
+
+
+def _load_clang_ast(data: bytes) -> dict:
+    """Reject ambiguous, deeply nested, or malformed bounded AST JSON.
+
+    A bounded stdout byte count alone is not a shape/recursion budget: an
+    alternate Clang executable can produce JSON that raises RecursionError
+    or non-JSON object shapes that escape the normal rejection report.
+    This guard runs before recursively translating Clang AST expressions.
+    """
+    def unique_object(pairs):
+        obj = {}
+        for key, value in pairs:
+            if key in obj:
+                raise UnsupportedC("Clang AST JSON contains duplicate keys")
+            obj[key] = value
+        return obj
+
+    try:
+        tree = json.loads(data, object_pairs_hook=unique_object)
+    except UnsupportedC:
+        raise
+    except (ValueError, UnicodeError, RecursionError) as exc:
+        raise UnsupportedC("Clang AST JSON malformed or excessively nested") from exc
+    if (not isinstance(tree, dict) or tree.get("kind") != "TranslationUnitDecl"
+            or not isinstance(tree.get("inner"), list)):
+        raise UnsupportedC("Clang AST translation unit has invalid shape")
+
+    pending = [(tree, 0)]
+    examined = 0
+    while pending:
+        value, depth = pending.pop()
+        examined += 1
+        if depth > _MAX_AST_JSON_NESTING or examined > _MAX_AST_JSON_CONTAINERS:
+            raise UnsupportedC("Clang AST JSON structural budget exceeded")
+        if isinstance(value, dict):
+            if "inner" in value and not isinstance(value["inner"], list):
+                raise UnsupportedC("Clang AST child array has invalid shape")
+            if "kind" in value and not isinstance(value["kind"], str):
+                raise UnsupportedC("Clang AST node kind has invalid shape")
+            children = value.values()
+        else:
+            children = value
+        for child in children:
+            if isinstance(child, (dict, list)):
+                pending.append((child, depth + 1))
+    return tree
+
+
 def _probe_clang(args: list[str], *, label: str, max_stdout_bytes: int = 16_384) -> bytes:
     """Apply bounded capture to *all* Clang probes, not only AST emission.
 
@@ -298,8 +349,16 @@ def migrate(source: Path, output: Path, report: Path, clang: str = "clang", veri
                                 str(source.resolve())])
         if run.returncode:
             raise UnsupportedC("Clang rejected source or AST exceeds size limit: " + run.stderr.decode("utf-8", "replace")[:600])
-        tree = json.loads(run.stdout)
-        nodes = [node for node in tree.get("inner", []) if node.get("loc", {}).get("offset") is not None]
+        tree = _load_clang_ast(run.stdout)
+        nodes = []
+        for node in tree["inner"]:
+            if not isinstance(node, dict):
+                raise UnsupportedC("Clang AST top-level child has invalid shape")
+            loc = node.get("loc", {})
+            if not isinstance(loc, dict):
+                raise UnsupportedC("Clang AST source location has invalid shape")
+            if loc.get("offset") is not None:
+                nodes.append(node)
         if not nodes:
             raise UnsupportedC("no source definitions")
         seen: set[str] = set()
