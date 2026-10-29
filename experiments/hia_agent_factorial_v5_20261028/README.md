@@ -52,3 +52,9 @@ the recorded tool identities. The first diagnostic run exposed a bundled
 Python build without `F_ADD_SEALS`; it is retained as infrastructure-incomplete,
 including its five actual responses, and cannot qualify a model. No integer
 constant is guessed and no sealing requirement is relaxed to accommodate it.
+
+The imported v4 fixture protocol is also a bound input: its hidden seed is read
+by the unchanged fixture builder. V5 refuses a mismatch between the two declared
+seeds or case counts. The earlier 9f555cb calibration predates this transitive
+binding fix and is retained separately; it cannot replace qualification on the
+corrected source. Tasks, prompts, response budgets and outcomes are unchanged.

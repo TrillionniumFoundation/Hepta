@@ -56,6 +56,11 @@ MODULES = (
     "tests.test_hia_scalar_lowering_check", "tests.test_hia_cursor_math",
     "tests.test_hia_c_project_views", "tests.test_hia_ndu_activation",
     "tests.test_hia_agent_repair",
+    "tests.test_hia_artifact_session", "tests.test_hia_native_pinning",
+    "tests.test_hia_ndu_prepared_reuse",
+    "tests.test_hia_legacy_irpgo",
+    "tests.test_hia_agent_primitive_into",
+    "tests.test_hia_entry_payload_bound",
 )
 
 
@@ -76,7 +81,10 @@ def inventory():
     paths += [ROOT / (name.replace(".", "/") + ".py") for name in MODULES]
     for folder in ("examples/hia_legacy_queue", "tests/fixtures/c_migration/ring_buffer",
                    "tests/fixtures/c_migration/musl_compare", "experiments/hia_legacy_queue",
-                   "experiments/hia_ndu_activation", "experiments/hia_agent_factorial_v5_20261028"):
+                   "experiments/hia_ndu_activation", "experiments/hia_ndu_prepared_reuse",
+                   "experiments/hia_agent_factorial_v5_20261028",
+                   "experiments/hia_agent_factorial_v6_20261028",
+                   "tests/fixtures/hia_payload_bound"):
         paths += [path for path in (ROOT / folder).rglob("*") if path.is_file()
                   and "__pycache__" not in path.parts]
     return {str(path.relative_to(ROOT)): sha256(path.read_bytes()).hexdigest() for path in sorted(set(paths))}

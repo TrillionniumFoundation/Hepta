@@ -33,8 +33,49 @@ def rust_type(typ):
     return "Vec<u8>" if typ == "buffer" else typ
 
 
-def rust_admit(task, files, enforce_contract=True):
+def _primitive_parameter_into(source):
+    """A narrow syntax witness; actual target conversion is still rustc's job.
+
+    Only an unshadowed declared scalar parameter may receive .into(). Neither
+    container receivers, closures, complex binding patterns nor custom traits
+    enter through this optional study profile. No source bytes are rewritten.
+    """
+    # The old lexical macro scan recognizes calls, but macro_rules definitions
+    # place a name between '!' and '{'. Reject definitions/metavariables before
+    # inspecting literal method sites so expansion cannot hide the receiver.
+    if "$" in source or re.search(r"\bmacro_rules\b", source):
+        raise ValueError("E_FACTORIAL_PRIMITIVE_INTO: macro definitions and metavariables are outside this profile")
+    sites = list(re.finditer(r"\.\s*into\s*\(", source))
+    if not sites:
+        return
+    declaration = re.search(r"\bfn\s+[A-Za-z_][A-Za-z_0-9]*\s*\(([^()]*)\)", source)
+    if declaration is None or "|" in source:
+        raise ValueError("E_FACTORIAL_PRIMITIVE_INTO: closed function header and no closure/bar syntax required")
+    scalars = set()
+    for parameter in declaration[1].split(","):
+        found = re.fullmatch(r"\s*(?:mut\s+)?([A-Za-z_][A-Za-z_0-9]*)\s*:\s*(u8|u16|u32|u64|usize|bool)\s*", parameter)
+        if found:
+            scalars.add(found[1])
+    receivers = set()
+    for site in sites:
+        before = source[:site.start()]
+        receiver = re.search(r"([A-Za-z_][A-Za-z_0-9]*)\s*$", before)
+        if (receiver is None or receiver[1] not in scalars
+                or before[:receiver.start()].rstrip().endswith(".")):
+            raise ValueError("E_FACTORIAL_PRIMITIVE_INTO: receiver must be a declared scalar parameter")
+        if re.match(r"\s*\)", source[site.end():]) is None:
+            raise ValueError("E_FACTORIAL_PRIMITIVE_INTO: into takes no arguments")
+        receivers.add(receiver[1])
+    for binding in re.finditer(r"\blet\b", source):
+        match = re.match(r"\s+(?:mut\s+)?([A-Za-z_][A-Za-z_0-9]*)\s*(?=[:=;])", source[binding.end():])
+        if match is None or match[1] in receivers:
+            raise ValueError("E_FACTORIAL_PRIMITIVE_INTO: simple bindings only and receiver parameters may not be shadowed")
+
+
+def rust_admit(task, files, enforce_contract=True, *, primitive_parameter_into=False):
     """Exact disclosed finite syntax, followed by real rustc type checking."""
+    if type(primitive_parameter_into) is not bool:
+        raise ValueError("E_FACTORIAL_RUST_PROFILE")
     owned = task["provider"] in {"touch", "replace"}
     normalized = {}
     for name, source in files.items():
@@ -70,12 +111,15 @@ def rust_admit(task, files, enforce_contract=True):
         body = re.sub(r"\bvec\s*!\s*\[", "vector_macro[", body)
         if "::" in body or re.search(r"[)}\]]\s*\(|\.\s*[0-9]+\s*\(", body):
             raise ValueError("E_FACTORIAL_RUST_PATH_OR_CALLABLE")
+        if primitive_parameter_into:
+            _primitive_parameter_into(text)
+        methods = set(fixtures.RUST_METHODS) | ({"into"} if primitive_parameter_into else set())
         for match in re.finditer(r"\b([A-Za-z_][A-Za-z_0-9]*)\s*\(", body):
             word, prefix = match[1], body[:match.start()].rstrip()
             if re.search(r"\bfn$", prefix):
                 continue
             if prefix.endswith("."):
-                if word not in fixtures.RUST_METHODS or (word == "len" and not owned):
+                if word not in methods or (word == "len" and not owned):
                     raise ValueError("E_FACTORIAL_RUST_METHOD: " + word)
             elif word not in {"provider_call", "if", "return", "let"} | ({"drop"} if owned else set()):
                 raise ValueError("E_FACTORIAL_RUST_CALL: " + word)
@@ -94,7 +138,7 @@ def rust_admit(task, files, enforce_contract=True):
             raise ValueError("E_FACTORIAL_ENTRY_INTERFACE")
 
 
-def parse_files(task, language, text, *, enforce_contract=True):
+def parse_files(task, language, text, *, enforce_contract=True, primitive_parameter_into=False):
     if type(text) is not str or len(text.encode()) > 65536:
         raise ValueError("E_FACTORIAL_RESPONSE_SIZE")
     decoded = decode_json(text)
@@ -108,7 +152,9 @@ def parse_files(task, language, text, *, enforce_contract=True):
                "replacement_sha256": hashlib.sha256(canonical(files)).hexdigest(),
                "unchanged_files_sha256": hashlib.sha256(canonical(task["unchanged_" + language])).hexdigest()}
     if language == "rust":
-        rust_admit(task, files, enforce_contract)
+        rust_admit(task, files, enforce_contract, primitive_parameter_into=primitive_parameter_into)
+        if primitive_parameter_into:
+            receipt["rust_conversion_profile"] = "unshadowed_declared_scalar_parameter_into_v1"
         return copy.deepcopy(files), receipt
     if any(type(value) is not dict for value in files.values()):
         raise ValueError("E_FACTORIAL_HIA_FUNCTION_OBJECT")
@@ -235,12 +281,12 @@ println!("{{}} {{}} {{}} {{}} {{}} {{}} {{}} {{}} {{}} {{}} {{}} {{}} {{}} {{}}"
 '''
 
 
-def build(task, language, text, folder, clang, rustc, *, enforce_contract=True):
+def build(task, language, text, folder, clang, rustc, *, enforce_contract=True, primitive_parameter_into=False):
     folder = Path(folder); folder.mkdir(parents=True, exist_ok=False)
     started = time.monotonic_ns()
     record = {"language": language, "task": task["id"], "folder": str(folder), "native_built": False, "status": "response_rejected"}
     try:
-        parsed, receipt = parse_files(task, language, text, enforce_contract=enforce_contract)
+        parsed, receipt = parse_files(task, language, text, enforce_contract=enforce_contract, primitive_parameter_into=primitive_parameter_into)
         record.update(receipt=receipt, status="compile_rejected")
         binary = folder / "candidate"
         compiler = file_identity(clang if language == "hia" else rustc)

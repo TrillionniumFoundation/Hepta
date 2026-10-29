@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import ctypes
+from hashlib import sha256
 import json
 import os
 from pathlib import Path
@@ -25,6 +26,7 @@ from hepta.elf_shared_abi import inspect_owned_shared_elf
 from hepta.hia_program import execute_program, verify_program
 from hepta.hia_program_llvm import build_program_native, emit_program_llvm
 from hepta.hia_program_source import lower_c_project_views
+from hepta.native_tool_identity import update_stable_regular_hash
 from tools.qualify_hia_filecheck import (Trial, RESOURCE_HARNESS, cases, checksum,
     corpus, digest, identity, order, quantile, require, update, write)
 from tools.qualify_c_ring_buffer import verify_upstream as verify_ring
@@ -40,6 +42,7 @@ ENTRY = "legacy_checksum_chunk"
 def source_bindings():
     paths = [Path(__file__), PROTOCOL_PATH,
              ROOT / "tools/qualify_hia_filecheck.py",
+             ROOT / "experiments/hia_filecheck/PROTOCOL_20261028.json",
              ROOT / "tools/qualify_c_ring_buffer.py",
              ROOT / "tools/qualify_c_musl_compare.py",
              *FIXTURE.iterdir(), *sorted((ROOT / "hepta").glob("*.py")),
@@ -77,22 +80,51 @@ def compile_database(project, directory, sources=SOURCES):
     return database
 
 
+def generated_program_identity(core, directory):
+    """Bind consumed generated files to this exact independently verified Core.
+
+    These are trusted-host build checks, not a sealed compiler-input or native
+    refinement certificate. The existing stable reader rejects path drift,
+    nonregular files and sizes larger than the regenerated expected bytes.
+    """
+    expected = {"core": ("program.hia.json", core.canonical_bytes),
+                "llvm": ("program.ll", emit_program_llvm(core).text.encode("utf-8"))}
+    observed = {}
+    for label, (name, content) in expected.items():
+        path = Path(directory) / name
+        actual = sha256()
+        update_stable_regular_hash(actual, path, max_bytes=len(content))
+        require(actual.hexdigest() == sha256(content).hexdigest(),
+                "generated " + label + " differs from the same verified Core")
+        observed[label] = {"path": str(path.absolute()), "bytes": len(content),
+                           "sha256": actual.hexdigest()}
+    return observed
+
+
 class LegacyTrial(Trial):
+    protocol = PROTOCOL
+    protocol_path = PROTOCOL_PATH
+    schema = "hepta.hia.legacy-queue.qualification.v1"
+    performance_arm = "hia_native_lto"
+    source_bindings = staticmethod(source_bindings)
+
     def __init__(self, directory, *, clang, clangxx, rustc, profdata, linker):
+        initialization_started = time.perf_counter_ns()
         self.out = Path(directory).absolute()
         require(not self.out.exists(), "new evidence directory required")
         self.out.mkdir(parents=True)
         self.tools = {key: str(Path(shutil.which(value) or value).absolute())
                       for key, value in dict(clang=clang, clangxx=clangxx, rustc=rustc,
                                              profdata=profdata, linker=linker).items()}
-        self.report = {"schema": "hepta.hia.legacy-queue.qualification.v1", "ok": False,
-            "protocol": PROTOCOL, "protocol_sha256": digest(PROTOCOL_PATH),
-            "source_bindings": source_bindings(), "commands": [], "builds": {},
-            "resource_cases": [], "samples": [], "claims": dict(PROTOCOL["claims"])}
+        self.report = {"schema": self.schema, "ok": False,
+            "protocol": self.protocol, "protocol_sha256": digest(self.protocol_path),
+            "source_bindings": self.source_bindings(), "commands": [], "builds": {},
+            "resource_cases": [], "samples": [], "claims": dict(self.protocol["claims"])}
         self.project = self.out / "project"
         self.contracts = populate_project(self.project)
         self.libraries, self.runtime_images = {}, {}
         self.application_serial = 0
+        self.report["initialization_wall_ns"] = time.perf_counter_ns() - initialization_started
 
     def capture(self, project, directory, sources=SOURCES, *, contracts=None):
         begin = time.perf_counter_ns()
@@ -124,6 +156,7 @@ class LegacyTrial(Trial):
             "declaration_inventory_complete": migrated["declaration_inventory_complete"],
             "program_sha256": core.sha256, "capture": identity(directory / "capture.json"),
             "migration": identity(directory / "migration.json"),
+            "generated_program": generated_program_identity(core, directory),
             "wall_ns": time.perf_counter_ns()-begin, "fresh_admission_wall_ns": admission,
             "manual_migrated_body_edits": 0, "human_effort_measured": False,
             "claims": migrated["claims"]}
@@ -138,7 +171,7 @@ class LegacyTrial(Trial):
         receipt = self.out / f"rss-{self.application_serial:04}.json"
         self.application_serial += 1
         argv = [self.out / "rss-supervisor", receipt, self.out / "filecheck", library, ENTRY,
-                self.out / file, str(PROTOCOL["algorithms"][algorithm])]
+                self.out / file, str(self.protocol["algorithms"][algorithm])]
         if alternate is not None:
             argv.append(alternate)
         row = self.command(argv, stage, env=env)
@@ -162,9 +195,9 @@ class LegacyTrial(Trial):
         tracked = set(self.command(["git", "-C", ROOT, "ls-files"], "source_identity")["stdout"].splitlines())
         self.report["source_files_tracked"] = set(self.report["source_bindings"]).issubset(tracked)
         self.report["inputs"] = {}
-        for name, spec in (("training.bin", PROTOCOL["training"]), ("held-out.bin", PROTOCOL["held_out"])):
+        for name, spec in (("training.bin", self.protocol["training"]), ("held-out.bin", self.protocol["held_out"])):
             data = corpus(spec["seed"], spec["bytes"]); (self.out/name).write_bytes(data)
-            self.report["inputs"][name] = {**identity(self.out/name), "checksums": {key: checksum(data, poly) for key, poly in PROTOCOL["algorithms"].items()}}
+            self.report["inputs"][name] = {**identity(self.out/name), "checksums": {key: checksum(data, poly) for key, poly in self.protocol["algorithms"].items()}}
         for source, output, extra in (("app_driver.c", "filecheck", ["-ldl"]), ("rss_supervisor.c", "rss-supervisor", [])):
             self.command([self.tools["clang"], "-std=c11", "-O3", "-Wall", "-Wextra", "-Werror",
                           self.project/source, *extra, "-o", self.out/output], "host_build")
@@ -172,20 +205,39 @@ class LegacyTrial(Trial):
         self.supervisor_identity = identity(self.out/"rss-supervisor")
         self.report["supervisor"] = self.supervisor_identity
         self.core, self.report["migration"] = self.capture(self.project, self.out/"migration")
-        self.libraries = {name: self.out/(name+".so") for name in PROTOCOL["arms"]}
+        self.libraries = {name: self.out/(name+".so") for name in self.protocol["arms"]}
         begin = time.perf_counter_ns()
         receipt = build_program_native(self.core, self.libraries["hia_default"], clang=self.tools["clang"])
         self.report["builds"]["hia_default"] = {"wall_ns": time.perf_counter_ns()-begin, "receipt": receipt}
         self.flags = ["-O3", "-flto=full", "-fuse-ld="+self.tools["linker"], "-march=native", "-fPIC", "-shared", "-Wl,-Bsymbolic-functions"]
+        begin = time.perf_counter_ns()
+        generated = self.require_core_ir()
         row = self.command([self.tools["clang"], *self.flags, self.out/"migration/program.ll", "-o", self.libraries["hia_native_lto"]], "hia_research_native_build")
-        self.report["builds"]["hia_native_lto"] = {"wall_ns": row["wall_ns"], "default_backend_receipt": False,
-            "binary_inventory": inspect_owned_shared_elf(self.libraries["hia_native_lto"].read_bytes(), emit_program_llvm(self.core).exports)}
+        self.require_core_ir()
+        inventory = inspect_owned_shared_elf(self.libraries["hia_native_lto"].read_bytes(), emit_program_llvm(self.core).exports)
+        self.report["builds"]["hia_native_lto"] = {"wall_ns": time.perf_counter_ns()-begin,
+            "compiler_wall_ns": row["wall_ns"], "default_backend_receipt": False,
+            "generated_program": generated, "binary_inventory": inventory}
         self.rust_flags = ["--edition=2021", "--crate-type=cdylib", "-Copt-level=3", "-Clto=fat", "-Ccodegen-units=1", "-Cpanic=abort", "-Ctarget-cpu=native"]
         for label in ("c", "cpp", "rust"):
             self.baseline(label, pgo=False); self.baseline(label, pgo=True)
+        self.extra_builds()
         self.report["artifacts"] = {name: identity(path) for name, path in self.libraries.items()}
         self.report["artifacts"]["host_driver"] = self.driver_identity
         self.runtime_images.update({str(path): identity(path) for path in self.libraries.values()})
+
+    def extra_builds(self):
+        """A separately registered trial may add arms before the artifact seal."""
+
+    def require_core_ir(self):
+        observed = generated_program_identity(self.core, self.out / "migration")
+        require(observed == self.report["migration"]["generated_program"],
+                "generated Core/LLVM identity changed after capture")
+        return observed
+
+    def verify_artifacts(self):
+        super().verify_artifacts()
+        self.require_core_ir()
 
     def build_reference(self, label, output, extra, stage):
         if label == "rust":
@@ -217,7 +269,7 @@ class LegacyTrial(Trial):
             self.runtime_images[str(instrumented)]=identity(instrumented)
             final=self.libraries[arm]; self.libraries[arm]=instrumented
             try:
-                record["training"]=[self.application(arm,algo,"training.bin",env=dict(os.environ,LLVM_PROFILE_FILE=str(profiles/(algo+"-%p.profraw"))),stage="profile_training") for algo in PROTOCOL["algorithms"]]
+                record["training"]=[self.application(arm,algo,"training.bin",env=dict(os.environ,LLVM_PROFILE_FILE=str(profiles/(algo+"-%p.profraw"))),stage="profile_training") for algo in self.protocol["algorithms"]]
             finally:
                 self.libraries[arm]=final
             raw=sorted(profiles.glob("*.profraw")); require(len(raw)==2,"two actual profiles required")
@@ -251,8 +303,8 @@ class LegacyTrial(Trial):
             inputs=[obj] if label=="hia" else [*[self.project/name for name in SOURCES],self.project/"client.c"]
             self.command([self.tools["clang"],"-std=c11","-DNDEBUG","-funsigned-char","-O2","-fno-builtin","-DENTRY="+ENTRY,
                           self.out/"resource_harness.c",*inputs,*wrap,"-o",self.out/("resource_"+label)],"resource_observer_build")
-        for case in list(cases())[:PROTOCOL["resource_cases"]]:
-            for refusal in PROTOCOL["allocation_refusal_indices"]:
+        for case in list(cases())[:self.protocol["resource_cases"]]:
+            for refusal in self.protocol["allocation_refusal_indices"]:
                 vm=execute_program(self.core,ENTRY,case["arguments"],allocation_fail_at=refusal or None)
                 stats=vm["resources"]
                 expected=dict(result=vm["result"],attempts=stats["allocation_attempts"],allocations=stats["allocations"],frees=stats["frees"],live=0)
@@ -272,7 +324,7 @@ class LegacyTrial(Trial):
         rows=[]
         for algorithm in (0,1,2,3):
             for state,byte in ((0,0),(0xffffffff,255),(12345,49)):
-                expected=state if algorithm not in (1,2) else update(state,bytes([byte]),list(PROTOCOL["algorithms"].values())[algorithm-1])
+                expected=state if algorithm not in (1,2) else update(state,bytes([byte]),self.protocol["algorithms"]["ieee" if algorithm==1 else "castagnoli"])
                 values={}
                 for label,path,symbol in (("c",original,"checksum_byte_v2"),("hia",native,"c_checksum_byte_v2")):
                     fn=getattr(ctypes.CDLL(str(path)),symbol);fn.argtypes=[ctypes.c_uint,ctypes.c_ubyte,ctypes.c_uint];fn.restype=ctypes.c_uint
@@ -285,9 +337,9 @@ class LegacyTrial(Trial):
 
     def measure(self):
         require(not self.report["git_status"] and self.report["source_files_tracked"],"formal measurement requires clean committed source")
-        require(source_bindings()==self.report["source_bindings"],"source drift before measurement")
+        require(self.source_bindings()==self.report["source_bindings"],"source drift before measurement")
         self.verify_artifacts()
-        for group,algorithm,arm in order():
+        for group,algorithm,arm in self.sample_order():
             self.report["samples"].append({"group":group,"algorithm":algorithm,"arm":arm,**self.application(arm,algorithm,stage="measured_application")})
         alternate=self.out/"hia-switch-copy.so";shutil.copyfile(self.libraries["hia_default"],alternate)
         self.report["switch_recovery"]={}
@@ -296,23 +348,29 @@ class LegacyTrial(Trial):
             require(row["observation"]["switches"]==int(name=="successful_switch") and row["observation"]["refused_switches"]==int(name=="rejected_switch"),"switch path missing")
             self.report["switch_recovery"][name]=row
         summary={}
-        for algorithm in PROTOCOL["algorithms"]:
+        for algorithm in self.protocol["algorithms"]:
             table={}
-            for arm in PROTOCOL["arms"]:
+            for arm in self.protocol["arms"]:
                 rows=[r for r in self.report["samples"] if r["algorithm"]==algorithm and r["arm"]==arm]
-                require(len(rows)==PROTOCOL["paired_groups"],"incomplete sample matrix")
+                require(len(rows)==self.protocol["paired_groups"],"incomplete sample matrix")
                 runtime=statistics.median(r["process_wall_ns"] for r in rows)
                 batches=[ns for r in rows for ns in r["observation"]["batch_ns"]]
-                table[arm]={"median_process_wall_ns":runtime,"mib_per_second":PROTOCOL["held_out"]["bytes"]*1e9/runtime/2**20,
+                table[arm]={"median_process_wall_ns":runtime,"mib_per_second":self.protocol["held_out"]["bytes"]*1e9/runtime/2**20,
                     "batch_p95_ns":quantile(batches,.95),"batch_p99_ns":quantile(batches,.99),
                     "child_wait4_peak_rss_kib_median":statistics.median(r["memory"]["child_wait4_ru_maxrss_kib"] for r in rows),"samples":len(rows)}
             strong=min((a for a in table if not a.startswith("hia")),key=lambda a:table[a]["median_process_wall_ns"])
             summary[algorithm]={"arms":table,"fastest_strong_reference":strong,
-                "hia_runtime_ratio":table["hia_native_lto"]["median_process_wall_ns"]/table[strong]["median_process_wall_ns"],
-                "hia_p99_ratio":table["hia_native_lto"]["batch_p99_ns"]/table[strong]["batch_p99_ns"]}
+                "hia_runtime_ratio":table[self.performance_arm]["median_process_wall_ns"]/table[strong]["median_process_wall_ns"],
+                "hia_p99_ratio":table[self.performance_arm]["batch_p99_ns"]/table[strong]["batch_p99_ns"]}
         self.report["summary"]=summary
         self.report["performance_advantage_gate"]=all(r["hia_runtime_ratio"]<=1 and r["hia_p99_ratio"]<=1 for r in summary.values())
         self.report["samples_excluded"]=0
+
+    def sample_order(self):
+        # Original sampler remains bound to the original registered matrix.
+        from tools.qualify_hia_filecheck import PROTOCOL as old
+        require(all(self.protocol[k]==old[k] for k in ("arms","algorithms","paired_groups")),"shared sampler protocol mismatch")
+        return order()
 
     def run(self, *, prepare_only=False):
         begin=time.perf_counter_ns()
@@ -320,18 +378,20 @@ class LegacyTrial(Trial):
             # Shared corpus/ordering helpers are admitted only when the two
             # independently registered protocol fields are exactly the same.
             from tools.qualify_hia_filecheck import PROTOCOL as old
-            require(all(PROTOCOL[k]==old[k] for k in ("arms","algorithms","paired_groups","differential_cases")),"shared sampler protocol mismatch")
+            require(all(self.protocol[k]==old[k] for k in ("algorithms","differential_cases")),"shared oracle protocol mismatch")
             self.build();self.differential();self.resources();self.maintenance()
             if not prepare_only:self.measure()
             self.verify_artifacts()
-            require(source_bindings()==self.report["source_bindings"],"source changed during qualification")
+            require(self.source_bindings()==self.report["source_bindings"],"source changed during qualification")
             require(identity(self.out/"rss-supervisor")==self.supervisor_identity,"supervisor changed")
             require(identity(sys.executable)=={k:self.report["python"][k] for k in ("path","bytes","sha256")},"Python changed")
             self.report.update(ok=True,status="prepared_not_measured" if prepare_only else "completed",prepare_only=prepare_only)
         except Exception as error:
             self.report.update(ok=False,status="failed",error={"type":type(error).__name__,"message":str(error)})
         finally:
-            self.report["whole_qualification_wall_ns"]=time.perf_counter_ns()-begin
+            self.report["run_wall_ns"]=time.perf_counter_ns()-begin
+            self.report["whole_qualification_wall_ns"]=(self.report["initialization_wall_ns"]
+                                                         + self.report["run_wall_ns"])
             for row in self.report["commands"]:row.pop("stdout",None);row.pop("stderr",None)
             if (self.out/"processes.jsonl").exists():self.report["process_ledger"]=identity(self.out/"processes.jsonl")
             write(self.out/"qualification.json",self.report)

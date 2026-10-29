@@ -53,11 +53,16 @@ def runtime_preflight():
 
 
 def protocol():
-    return json.loads((HERE / "PROTOCOL.json").read_text())
+    value = json.loads((HERE / "PROTOCOL.json").read_text())
+    inherited = json.loads((fixtures.HERE / "PROTOCOL.json").read_text())
+    for field in ("hidden_seed", "hidden_random_cases_per_task"):
+        if value[field] != inherited[field]:
+            raise ValueError("E_REPAIR_FIXTURE_PROTOCOL_DRIFT: " + field)
+    return value
 
 
 def bindings():
-    paths = sorted([*ROOT.joinpath("hepta").rglob("*.py"), *HERE.glob("*.py"), *fixtures.HERE.glob("*.py"), HERE / "PROTOCOL.json",
+    paths = sorted([*ROOT.joinpath("hepta").rglob("*.py"), *HERE.glob("*.py"), *fixtures.HERE.glob("*.py"), HERE / "PROTOCOL.json", fixtures.HERE / "PROTOCOL.json",
                     Path(__file__).resolve(), ROOT / "tools/provider_adapter/llama_cpp_engine.py"])
     return {str(p.relative_to(ROOT)): file_identity(p)["sha256"] for p in paths}
 

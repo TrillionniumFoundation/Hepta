@@ -16,7 +16,12 @@ on:
       - 'examples/hia_legacy_queue/**'
       - 'experiments/hia_legacy_queue/**'
       - 'experiments/hia_agent_factorial_v5_20261028/**'
+      - 'experiments/hia_agent_factorial_v6_20261028/**'
       - 'experiments/hia_ndu_activation/**'
+      - 'experiments/hia_ndu_prepared_reuse/**'
+      - 'experiments/hia_next_payload_bound/**'
+      - 'tests/fixtures/hia_payload_bound/**'
+      - 'tools/analyze_hia_entry_payload.py'
       - 'tests/test_c2hepta*'
       - 'tests/test_migration_ir*'
       - '.github/workflows/hepta-six-outcomes.yml'
@@ -34,6 +39,7 @@ jobs:
       CLANG: /usr/bin/clang-20
       CLANGXX: /usr/bin/clang++-20
       PYTHONDONTWRITEBYTECODE: '1'
+      HEPTA_RUN_ARTIFACT_SESSION: '1'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -83,6 +89,11 @@ jobs:
                    'tests.test_migration_ir_parser_budget', 'tests.test_migration_ir_structural_budget',
                    'tests.test_hia_scalar_lowering_check', 'tests.test_hia_cursor_math',
                    'tests.test_hia_c_project_views',
+                   'tests.test_hia_artifact_session', 'tests.test_hia_native_pinning',
+                   'tests.test_hia_ndu_prepared_reuse',
+                   'tests.test_hia_legacy_irpgo',
+                   'tests.test_hia_agent_primitive_into',
+                   'tests.test_hia_entry_payload_bound',
                    'tests.test_hia_ndu_activation.ActivationForecastTests']
           suite = unittest.defaultTestLoader.loadTestsFromNames(names)
           result = unittest.TextTestRunner(verbosity=2).run(suite)
@@ -96,10 +107,16 @@ jobs:
         run: python tools/qualify_hia_filecheck.py --prepare-only --output "$HEPTA_EVIDENCE_DIR/filecheck"
       - name: Validate selected scalar lowering for all typed inputs
         run: python tools/qualify_hia_scalar_lowering.py --expected-head "$HEPTA_SOURCE_SHA" --output "$HEPTA_EVIDENCE_DIR/scalar-lowering"
+      - name: Check the actual migration Core payload bound without native admission
+        run: python tools/analyze_hia_entry_payload.py tests/fixtures/hia_payload_bound/legacy_core.hia.json legacy_checksum_chunk --require-clean-source --output "$HEPTA_EVIDENCE_DIR/legacy-core-payload.json"
       - name: Prepare actual legacy record-view Core migration and strong baseline builds
         run: python tools/qualify_hia_legacy_queue.py --prepare-only --output "$HEPTA_EVIDENCE_DIR/legacy-queue"
+      - name: Validate actual IR PGO counters and allocation refusal after optimization
+        run: python tools/qualify_hia_legacy_irpgo.py --prepare-only --output "$HEPTA_EVIDENCE_DIR/legacy-irpgo"
       - name: Execute actual Agent experiment reference and hostile controls
         run: python tools/qualify_hia_agent_factorial.py controls --output "$HEPTA_EVIDENCE_DIR/agent-controls" --clang "$CLANG" --rustc "$RUSTC"
+      - name: Validate primitive conversion with actual rustc and unchanged legacy refusal
+        run: python tools/qualify_hia_agent_primitive_repair.py profile-controls --output "$HEPTA_EVIDENCE_DIR/agent-v6-profile-controls" --clang "$CLANG" --rustc "$RUSTC"
       - name: Retain completed and failed observations
         if: always()
         uses: actions/upload-artifact@v4

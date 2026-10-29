@@ -21,6 +21,18 @@ def final():
 
 
 class RepairTransportTests(unittest.TestCase):
+    def test_transitive_fixture_protocol_is_bound(self):
+        path = study.fixtures.HERE / "PROTOCOL.json"
+        key = str(path.relative_to(study.ROOT))
+        before = study.bindings()
+        self.assertIn(key, before)
+        original = study.file_identity
+        def changed(candidate):
+            value = original(candidate)
+            return {**value, "sha256": "changed"} if candidate == path else value
+        with patch.object(study, "file_identity", side_effect=changed):
+            self.assertNotEqual(before, study.bindings())
+
     def test_actual_sealing_or_explicit_unsupported_interpreter(self):
         if type(getattr(study.fcntl, "F_ADD_SEALS", None)) is not int:
             with self.assertRaisesRegex(RuntimeError, "PYTHON_SEAL_API"):
