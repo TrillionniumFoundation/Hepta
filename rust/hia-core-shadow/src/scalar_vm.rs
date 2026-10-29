@@ -195,6 +195,7 @@ struct Machine<'a> {
     functions: BTreeMap<&'a str, &'a Value>,
     steps: u64,
     limit: u64,
+    max_call_depth: u32,
     memory: Option<ByteMemory>,
 }
 impl<'a> Machine<'a> {
@@ -205,9 +206,9 @@ impl<'a> Machine<'a> {
     fn invoke(&mut self, name: &str, args: Vec<RuntimeValue>, depth: u32) -> Exec<Vec<RuntimeValue>> {
         // Canonical Python uses a zero-based depth and a root-inclusive
         // frame limit: depth >= max_call_depth rejects BEFORE its entry tick.
-        // With MAX_CALL_DEPTH=32 there are exactly 32 admitted frames
-        // (depth 0..31), not 33. A one-call recursion stops after 64 ticks.
-        if depth >= MAX_CALL_DEPTH { return Err(Halt::Budget("calls")); }
+        // The legacy policy admits exactly 32 frames (depth 0..31), not 33.
+        // Bound v2 may select a smaller limit without changing frame lifecycle.
+        if depth >= self.max_call_depth { return Err(Halt::Budget("calls")); }
         // Copy the lifetime-qualified reference, never clone an 8 MiB function
         // at each recursive call. The source document lives for this Machine.
         let function: &'a Value = *self.functions.get(name).ok_or(Halt::Internal)?;
@@ -347,7 +348,7 @@ impl<'a> Machine<'a> {
 /// This is NOT an alternative native final-use authorization or refinement proof.
 pub fn execute_scalar(input: &[u8], function: &str, arguments: &[Value],
                       max_steps: u64) -> R<Value> {
-    execute(input, function, arguments, max_steps, None)
+    execute(input, function, arguments, max_steps, None, MAX_CALL_DEPTH)
 }
 
 /// Opt-in finite byte-owner execution in the SAME Machine as scalar execution.
@@ -362,7 +363,7 @@ pub fn execute_owned(input: &[u8], function: &str, arguments: &[Value],
         return failure("E_HIA_BUDGET_POLICY", "owned heap/failure policy outside finite profile");
     }
     execute(input, function, arguments, max_steps,
-            Some((max_heap_bytes, allocation_fail_at)))
+            Some((max_heap_bytes, allocation_fail_at)), MAX_CALL_DEPTH)
 }
 
 /// Bind one actual independent execution to its complete caller request.
@@ -374,6 +375,46 @@ pub fn execute_owned(input: &[u8], function: &str, arguments: &[Value],
 pub fn execute_owned_bound(input: &[u8], function: &str, arguments: &[Value],
                            max_steps: u64, max_heap_bytes: u64,
                            allocation_fail_at: Option<u64>) -> R<Value> {
+    check_bound_arguments(arguments)?;
+    let execution = execute_owned(input, function, arguments, max_steps,
+                                  max_heap_bytes, allocation_fail_at)?;
+    bind_execution(execution, function, arguments, max_heap_bytes, allocation_fail_at, 1)
+}
+
+/// Explicit bounded policy for the same Machine; no legacy policy upgrade.
+/// All four JSON policy fields are mandatory, with exact integer/null types.
+/// The existing bounded/duplicate-safe decoder runs before any VM execution.
+pub fn execute_owned_bound_v2(input: &[u8], function: &str, arguments: &[Value],
+                              policy_input: &[u8]) -> R<Value> {
+    const MAX_POLICY_BYTES: usize = 1024;
+    if policy_input.len() > MAX_POLICY_BYTES {
+        return failure("E_HIA_BUDGET_POLICY", "bound v2 policy exceeds 1024 bytes");
+    }
+    let (policy, _) = decode_hia(policy_input)?;
+    let fields = super::object(&policy,
+        &["max_steps", "max_heap_bytes", "allocation_fail_at", "max_call_depth"],
+        "bound v2 policy")?;
+    let integer = |name: &str| fields[name].as_u64().ok_or_else(|| super::VerifyError {
+        code: "E_HIA_BUDGET_POLICY", detail: format!("{name} must be an exact unsigned integer"),
+    });
+    let max_steps = integer("max_steps")?;
+    let max_heap_bytes = integer("max_heap_bytes")?;
+    let max_call_depth = integer("max_call_depth")?;
+    let allocation_fail_at = if fields["allocation_fail_at"].is_null() {
+        None
+    } else { Some(integer("allocation_fail_at")?) };
+    if !(1..=MAX_STEPS).contains(&max_steps) || max_heap_bytes > MAX_OWNED_HEAP_BYTES
+        || !(1..=u64::from(MAX_CALL_DEPTH)).contains(&max_call_depth)
+        || allocation_fail_at == Some(0) {
+        return failure("E_HIA_BUDGET_POLICY", "bound v2 policy outside existing finite limits");
+    }
+    check_bound_arguments(arguments)?;
+    let execution = execute(input, function, arguments, max_steps,
+        Some((max_heap_bytes, allocation_fail_at)), max_call_depth as u32)?;
+    bind_execution(execution, function, arguments, max_heap_bytes, allocation_fail_at, 2)
+}
+
+fn check_bound_arguments(arguments: &[Value]) -> R<()> {
     if arguments.len() > super::MAX_SCALAR_ARGS || arguments.iter().any(|value| {
         !matches!(value, Value::Number(_) | Value::Bool(_) | Value::Null)
     }) {
@@ -385,26 +426,29 @@ pub fn execute_owned_bound(input: &[u8], function: &str, arguments: &[Value],
     if encoded_arguments.len() > super::MAX_SCALAR_ARGS_BYTES {
         return failure("E_HIA_INPUT", "bound execution arguments exceed the wire budget");
     }
-    let execution = execute_owned(input, function, arguments, max_steps,
-                                  max_heap_bytes, allocation_fail_at)?;
+    Ok(())
+}
+
+fn bind_execution(execution: Value, function: &str, arguments: &[Value],
+                  max_heap_bytes: u64, allocation_fail_at: Option<u64>, version: u8) -> R<Value> {
     let request = json!({
-        "schema": "hepta.hia.rust-execution-request.v1",
+        "schema": format!("hepta.hia.rust-execution-request.v{version}"),
         "program_sha256": execution["program_sha256"],
         "function": function,
         "arguments": arguments,
         "mode": "owned",
         "policy": {
-            "max_steps": max_steps,
+            "max_steps": execution["max_steps"],
             "max_heap_bytes": max_heap_bytes,
             "allocation_fail_at": allocation_fail_at,
-            "max_call_depth": MAX_CALL_DEPTH,
+            "max_call_depth": execution["max_call_depth"],
         },
     });
     let canonical_request = serde_json::to_vec(&request).map_err(|error| super::VerifyError {
         code: "E_HIA_INPUT", detail: error.to_string(),
     })?;
     Ok(json!({
-        "schema": "hepta.hia.rust-bound-execution.v1",
+        "schema": format!("hepta.hia.rust-bound-execution.v{version}"),
         "request_sha256": format!("{:x}", Sha256::digest(canonical_request)),
         "request": request,
         "execution": execution,
@@ -458,7 +502,7 @@ fn owned_execution_profile(document: &Value) -> R<bool> {
 }
 
 fn execute(input: &[u8], function: &str, arguments: &[Value], max_steps: u64,
-           owned_policy: Option<(u64, Option<u64>)>) -> R<Value> {
+           owned_policy: Option<(u64, Option<u64>)>, max_call_depth: u32) -> R<Value> {
     if !(1..=MAX_STEPS).contains(&max_steps) {
         return failure("E_HIA_BUDGET_POLICY", "max_steps outside bounded Rust oracle profile");
     }
@@ -499,7 +543,7 @@ fn execute(input: &[u8], function: &str, arguments: &[Value], max_steps: u64,
     }) {
         return failure("E_HIA_INPUT", "entry arguments do not match exact scalar types");
     }
-    let mut machine = Machine { functions: by_name, steps: 0, limit: max_steps,
+    let mut machine = Machine { functions: by_name, steps: 0, limit: max_steps, max_call_depth,
         memory: owned_policy.map(|(heap, fail)| ByteMemory::new(heap, fail)) };
     let result = machine.invoke(function,
         arguments.iter().cloned().map(RuntimeValue::Scalar).collect(), 0);
@@ -510,7 +554,7 @@ fn execute(input: &[u8], function: &str, arguments: &[Value], max_steps: u64,
         "program_sha256": verification["program_sha256"],
         "steps": machine.steps,
         "max_steps": max_steps,
-        "max_call_depth": MAX_CALL_DEPTH,
+        "max_call_depth": max_call_depth,
         "claims": {
             "finite_scalar_execution": true,
             "all_owner_and_memory_opcodes_refused": true,

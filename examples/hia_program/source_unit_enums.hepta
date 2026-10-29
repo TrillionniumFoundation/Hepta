@@ -1,0 +1,114 @@
+module source_unit_enums;
+
+enum BuildError { Empty, AboveLimit, AllocationFailed }
+enum Phase { Cold, Warm, Done }
+enum Only { Here }
+struct Selection<T> { phase: T, rounds: usize }
+struct Packet { bytes: Buffer<u8>, phase: Phase, tag: u64 }
+
+fn identity<T>(value: T) -> T effects {} { return value; }
+
+fn error_score(error: BuildError) -> u64 effects {} {
+    match error {
+        BuildError::Empty => { return 101; },
+        BuildError::AboveLimit => { return 202; },
+        BuildError::AllocationFailed => { return 303; },
+    }
+}
+
+fn phase_score(phase: read Phase) -> u64 effects {} {
+    match phase {
+        Phase::Cold => { return 4; },
+        Phase::Warm => { return 17; },
+        Phase::Done => { return 29; },
+    }
+}
+
+fn next_phase(phase: mut Phase) -> Unit effects {write} {
+    match phase {
+        Phase::Cold => { phase = Phase::Warm; },
+        Phase::Warm => { phase = Phase::Done; },
+        Phase::Done => { phase = Phase::Cold; },
+    }
+}
+
+export "C" fn cycle_case(rounds: usize) -> u64 effects {panic,write} {
+    let mut phase = identity::<Phase>(Phase::Cold);
+    let mut total: u64 = 0;
+    for i in 0..rounds {
+        next_phase(mut phase);
+        total = total + phase_score(read phase);
+    }
+    return total;
+}
+
+export "C" fn record_case(rounds: usize) -> u64 effects {panic,write} {
+    let mut state = Selection::<Phase> {phase: Phase::Cold, rounds: rounds};
+    let original = state;
+    for i in 0..rounds { next_phase(mut state.phase); }
+    return phase_score(read state.phase) + phase_score(read original.phase) + state.rounds as u64;
+}
+
+fn make_phase(choice: u8) -> Phase effects {} {
+    if choice == 0 { return Phase::Cold; }
+    if choice == 1 { return Phase::Warm; }
+    return Phase::Done;
+}
+
+fn pick(counter: mut u32, choice: u8) -> Phase effects {panic,write} {
+    counter = counter + 1;
+    return make_phase(choice);
+}
+
+export "C" fn once_case(choice: u8) -> u64 effects {panic,write} {
+    let mut counter: u32 = 0;
+    let mut answer: u64 = 0;
+    match pick(mut counter, choice) {
+        Phase::Cold => { answer = 4; },
+        Phase::Warm => { answer = 17; },
+        Phase::Done => { answer = 29; },
+    }
+    return counter as u64 * 1000 + answer;
+}
+
+export "C" fn only_case() -> u64 effects {} {
+    match Only::Here { Only::Here => { return 99; }, }
+}
+
+fn make_packet(size: usize, byte: u8) -> Result<Packet, BuildError>
+effects {alloc,block,panic,write} {
+    if size == 0 { return Result::Err(BuildError::Empty); }
+    if size > 8 { return Result::Err(BuildError::AboveLimit); }
+    match try_buffer(size) {
+        Result::Ok(bytes) => {
+            let mut packet = Packet {bytes: move bytes, phase: Phase::Warm, tag: 40};
+            packet.bytes[0] = byte;
+            return Result::Ok(move packet);
+        },
+        Result::Err(code) => { return Result::Err(BuildError::AllocationFailed); },
+    }
+}
+
+export "C" fn packet_case(size: usize, byte: u8, cancel: u8) -> u64
+effects {alloc,block,panic,write} {
+    let guard = buffer(3);
+    match make_packet(size, byte) {
+        Result::Ok(packet) => {
+            if cancel != 0 {
+                drop(move packet);
+                drop(move guard);
+                return 900;
+            }
+            let answer = len(packet.bytes) as u64 + packet.bytes[0] as u64
+                       + phase_score(read packet.phase) + packet.tag;
+            drop(move packet);
+            drop(move guard);
+            return answer;
+        },
+        Result::Err(error) => {
+            let answer = error_score(error);
+            drop(move guard);
+            return answer;
+        },
+    }
+}

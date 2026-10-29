@@ -7,7 +7,8 @@ records are scalarized, and concrete Results use a tag and both payloads.  An
 inactive buffer payload is a real empty owner which is explicitly consumed.
 
 The profile is deliberately bounded: integer/Boolean values, concrete records,
-byte buffers, concrete Results, direct calls and structured control flow.
+byte buffers, concrete Results, finite unit enums, direct calls and structured
+control flow. Unit enums use declaration-ordered u32 tags and checked CFG arms.
 Closed generic calls/records are specialized as AST nodes before CFG lowering.
 Finite local byte-view records reuse the existing independently checked
 Resource IR profile. Foreign code, tasks, escaping stored references, floats
@@ -26,6 +27,7 @@ from .ast import Expr, Function, MatchArm, Program, Stmt, Type
 from .checker import check
 from .parser import parse
 from .hia_program import HIAProgramRejected, VerifiedProgram, verify_program
+from .hia_program_composite import MAX_VARIANTS
 from .hia_schema import SCHEMA as SCHEMA_V1, SCHEMA_V8
 
 
@@ -35,6 +37,17 @@ class HIAProgramSourceRejected(ValueError):
 
 def _reject(message: str) -> None:
     raise HIAProgramSourceRejected("E_HIA_SOURCE: " + message)
+
+
+def _unit_enums(program):
+    """Use the existing finite enum limit without admitting payload layouts."""
+    result = {}
+    for enum in program.enums:
+        if (enum.type_params or not 1 <= len(enum.variants) <= MAX_VARIANTS
+                or any(variant.fields for variant in enum.variants)):
+            _reject(f"source enums require 1..{MAX_VARIANTS} concrete unit variants without payloads or generics")
+        result[enum.name] = tuple(variant.name for variant in enum.variants)
+    return result
 
 
 class _Specialize:
@@ -48,7 +61,8 @@ class _Specialize:
         self.program, self.checked = program, checked
         self.functions = {fn.name: fn for fn in program.functions}
         self.records = {record.name: record for record in program.structs}
-        self.names = set(self.functions) | set(self.records)
+        self.unit_enums = _unit_enums(program)
+        self.names = set(self.functions) | set(self.records) | set(self.unit_enums)
         self.instances, self.record_instances = {}, {}
         self.pending, self.output, self.output_records, self.inventory = [], [], [], []
 
@@ -118,8 +132,8 @@ class _Specialize:
             args = ()
         elif expr.kind == "variant":
             checked_type = self.checked.expr_types.get(id(expr))
-            if checked_type is None or checked_type.name != "Result":
-                _reject("only builtin Result is supported during generic specialization")
+            if checked_type is None or checked_type.name not in {"Result", *self.unit_enums}:
+                _reject("only builtin Result and concrete unit enums support generic specialization")
             args = self.typ(checked_type, mapping).args
         return replace(expr, value=value, children=children, type_args=args)
 
@@ -212,6 +226,7 @@ class _Lower:
         self.core_schema = core_schema
         self.module = module or program.name
         self.structs = {s.name: s for s in program.structs}
+        self.unit_enums = _unit_enums(program)
         self.functions = {f.name: f for f in program.functions}
         self.serial = self.value_serial = self.block_serial = 0
         self.blocks: list[dict] = []
@@ -321,6 +336,8 @@ class _Lower:
             return []
         if typ.name in _SCALARS and not typ.args:
             return [((), typ.name)]
+        if typ.name in self.unit_enums and not typ.args:
+            return [((), "u32")]
         if typ.name in {"Buffer", "slice"} and typ.args == (Type("u8"),):
             if typ.name == "slice" and mode not in {"read", "mut"}:
                 _reject("a slice requires an explicit borrowed parameter")
@@ -632,6 +649,14 @@ class _Lower:
                     elif value.loans or value.origin is not None:
                         _reject("stored view labels must be independent scalar values")
             return state, self.value(state, typ, atoms, types, loans=loans)
+        if expr.kind == "variant" and typ.name in self.unit_enums:
+            variants = self.unit_enums[typ.name]
+            if (expr.value.get("enum") != typ.name or expr.value.get("variant") not in variants
+                    or expr.children or expr.type_args):
+                _reject("unit enum construction requires one declared payload-free variant")
+            tag = variants.index(expr.value["variant"])
+            return state, self.value(state, typ, self.emit(state, "const", types=["u32"],
+                                                         attrs={"value": tag}))
         if expr.kind == "variant" and typ.name == "Result":
             if expr.value.get("enum") != "Result" or expr.value.get("variant") not in {"Ok", "Err"} or len(expr.children) != 1:
                 _reject("only concrete one-payload Results are supported")
@@ -850,6 +875,38 @@ class _Lower:
             self.restore_scope(state, before)
         return state
 
+    def match_unit_enum(self, state, result, arms):
+        """Evaluate once, carry existing capabilities, and reject invalid tags.
+
+        Nominal identity is checked in fresh source; the executable form uses
+        the same primitive comparison/branch operations as composite enums.
+        The last variant also has an explicit comparison, so an invalid Core
+        tag cannot silently select that source arm.
+        """
+        typ = self.get(state, result).typ
+        variants = self.unit_enums[typ.name]
+        cases = {arm.pattern.variant: arm for arm in arms}
+        if (len(arms) != len(variants) or set(cases) != set(variants)
+                or any(arm.pattern.enum_name != typ.name or arm.pattern.bindings for arm in arms)):
+            _reject("unit enum match requires every declared variant exactly once without bindings")
+        keys = set(state.env.values()) | state.keep
+        state.prune(keys | {result})
+        branches = []
+        for index, variant in enumerate(variants):
+            tag = self.const(state, "u32", index)
+            condition = self.emit(state, "compare.eq", [self.scalar(state, result),
+                                  self.scalar(state, tag)], ["bool"])[0]
+            state.prune(keys | {result})
+            yes, yes_spec, _ = self.new_block(state)
+            no, no_spec, _ = self.new_block(state)
+            self.branch(state, condition, yes, yes_spec, no, no_spec)
+            yes = self.scoped(cases[variant].body, yes)
+            if yes is not None:
+                branches.append(yes)
+            state = no
+        state.block["term"] = {"op": "trap", "code": "user"}
+        return self.merge(branches, keys)
+
     def sequence(self, statements: list[Stmt], state: _State) -> _State | None:
         for stmt in statements:
             if state is None:
@@ -957,8 +1014,11 @@ class _Lower:
             elif stmt.kind == "match":
                 state, result = self.expr(state, d["expr"])
                 value = self.get(state, result)
+                if value.typ.name in self.unit_enums:
+                    state = self.match_unit_enum(state, result, d["arms"])
+                    continue
                 if value.typ.name != "Result":
-                    _reject("only concrete Result matching is supported")
+                    _reject("only concrete Result and unit enum matching are supported")
                 arms = {arm.pattern.variant: arm for arm in d["arms"]}
                 if set(arms) != {"Ok", "Err"} or len(d["arms"]) != 2:
                     _reject("Result match requires both variants exactly once")
@@ -1062,8 +1122,8 @@ class _Lower:
     def lower(self):
         if not self.checked.ok or self.checked.assumptions:
             _reject("checked source without foreign assumptions is required")
-        if self.program.imports or self.program.enums or len(self.functions) > 128:
-            _reject("one bounded module with concrete records and builtin Result is required")
+        if self.program.imports or len(self.functions) > 128:
+            _reject("one bounded module with concrete records, unit enums and builtin Result is required")
         for record in self.program.structs:
             self.layout(Type(record.name, lifetimes=("_",)) if record.name in self.local_views
                         else Type(record.name))
@@ -1157,7 +1217,7 @@ def _prepare(program):
         and all(p.mode == "value" and scalar(p.type) for p in fn.params)))
     instances = []
     if any(fn.type_params for fn in program.functions) or any(record.type_params for record in program.structs):
-        if (program.imports or program.enums or fresh.assumptions
+        if (program.imports or fresh.assumptions
                 or any(fn.lifetime_params or fn.return_lifetime or fn.extern_c
                        or fn.effects - {"alloc", "block", "panic", "write"} for fn in program.functions)
                 or any(record.lifetime_params for record in program.structs)):
@@ -1207,6 +1267,10 @@ def source_report(source: str, *, path="<hia-source>", module: str | None = None
                 "interprocedural_stored_regions": False,
                 "returned_call_storage": False,
             },
+            "unit_enums": {"declarations": {name: list(variants)
+                                            for name, variants in lowering.unit_enums.items()},
+                           "tag_type": "u32", "payloads_or_generic_enums": False,
+                           "public_enum_abi": False},
             "functions": [{"name": fn.name, "status": ("template_specialized" if fn.name in specialized else "template_uninstantiated")
                            if fn.type_params else "lowered" if fn.name in emitted else "inlined_borrow_projection"}
                           for fn in program.functions],

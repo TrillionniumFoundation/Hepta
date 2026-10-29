@@ -34,7 +34,7 @@ CONTRACT = ROOT / "docs/HIA_SAFETY_CONTRACT.json"
 # caller can remove capabilities/tests and still obtain the same qualification
 # status for a weaker matrix. Deliberate protocol changes must review and update
 # this identity together with the contract and its boundary tests.
-REVIEWED_CONTRACT_SHA256 = "2f80ec47babde69b344d47f79a1ff4eb656029fa0aa061e37d5ceaa961cbd234"
+REVIEWED_CONTRACT_SHA256 = "7fc57f0a64bf8a28db3e112f778161dba230608c909e2e4a17589a8edfc56cd2"
 _UNPROVED = frozenset({"whole_language_soundness_proved", "source_to_core_refinement_proved",
     "core_to_native_refinement_proved", "global_optimality_proved", "absolute_resource_safety_proved",
     "general_concurrent_memory_safety_proved", "native_process_memory_bound_proved",
@@ -130,6 +130,11 @@ def source_inventory():
     prefixes = ("hepta/", "tests/", "tools/", "examples/", "rust/hia-core-shadow/")
     suffixes = {".py", ".json", ".hepta", ".rs", ".toml", ".lock", ".c", ".cpp", ".h", ".hpp"}
     paths = {ROOT / name for name in tracked if name.startswith(prefixes) and Path(name).suffix in suffixes}
+    # Workflow argv, checkout attributes and upstream licenses/notices are
+    # executable qualification inputs even when their suffix is not source code.
+    paths.update(ROOT / name for name in tracked
+                 if name == ".gitattributes" or name.startswith(
+                     (".github/workflows/", "tests/fixtures/cpp_upgrade/")))
     # Include the new contract and runner even before the first local commit.
     paths.update({CONTRACT, Path(__file__), ROOT / "docs/HIA_SAFETY_CONTRACT.md"})
     return {str(path.relative_to(ROOT)): digest(path) for path in sorted(paths)}

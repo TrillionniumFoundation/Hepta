@@ -374,11 +374,11 @@ def _execution_claims(body):
     return profile, claims
 
 
-def _validate_execution(raw, request, body, python):
+def _validate_execution(raw, request, body, python, *, protocol_version=1):
     envelope = _report_line(raw, MAX_EXECUTION_OUTPUT_BYTES)
     _exact_keys(envelope, {"schema", "request", "request_sha256", "execution"},
                 "bound execution envelope")
-    if (envelope["schema"] != "hepta.hia.rust-bound-execution.v1"
+    if (envelope["schema"] != f"hepta.hia.rust-bound-execution.v{protocol_version}"
             or _canonical(envelope["request"]) != _canonical(request)
             or envelope["request_sha256"] != sha256(_canonical(request)).hexdigest()):
         _reject("Rust execution does not bind the exact Core, entry, arguments and policy")
@@ -416,12 +416,38 @@ def crosscheck_rust_execution(program, function: str, arguments: list,
     The existing Python verifier stays authoritative. This API is not a receipt
     importer, a native executor, a whole-language proof or an authority switch.
     """
+    return _crosscheck_rust_execution(program, function, arguments, executable,
+        executable_sha256=executable_sha256, max_steps=max_steps, max_heap_bytes=max_heap_bytes,
+        allocation_fail_at=allocation_fail_at, timeout=timeout, max_call_depth=32, protocol_version=1)
+
+
+def crosscheck_rust_execution_v2(program, function: str, arguments: list,
+                                 executable: str | Path, *, executable_sha256: str,
+                                 max_call_depth: int, max_steps: int = 100_000,
+                                 max_heap_bytes: int = 1024 * 1024,
+                                 allocation_fail_at: int | None = None, timeout: float = 8.0):
+    """Compare a v2 invocation with an explicit root-inclusive depth in 1..32.
+
+    This separate API never upgrades the fixed-depth v1 contract. It freshly
+    executes both existing VMs; no imported receipt acquires admission rights.
+    Step/heap limits and the scalar public boundary remain the same as v1.
+    """
+    return _crosscheck_rust_execution(program, function, arguments, executable,
+        executable_sha256=executable_sha256, max_steps=max_steps, max_heap_bytes=max_heap_bytes,
+        allocation_fail_at=allocation_fail_at, timeout=timeout, max_call_depth=max_call_depth,
+        protocol_version=2)
+
+
+def _crosscheck_rust_execution(program, function, arguments, executable, *,
+                               executable_sha256, max_steps, max_heap_bytes,
+                               allocation_fail_at, timeout, max_call_depth, protocol_version):
     from .hia_program import SCALARS, scalar_value_valid, verify_program
     from .hia_program_runtime import HIAProgramBudgetExceeded, HIAProgramTrap, execute_program
 
     if (type(timeout) not in (int, float) or not 0 < timeout <= 15
             or type(max_steps) is not int or not 1 <= max_steps <= 1_000_000
             or type(max_heap_bytes) is not int or not 0 <= max_heap_bytes <= 16 * 1024 * 1024
+            or type(max_call_depth) is not int or not 1 <= max_call_depth <= 32
             or allocation_fail_at is not None and
                (type(allocation_fail_at) is not int or not 1 <= allocation_fail_at <= (1 << 64) - 1)):
         _reject("execution policy is outside the finite Rust contract")
@@ -448,8 +474,8 @@ def crosscheck_rust_execution(program, function: str, arguments: list,
             any(ty not in SCALARS for ty in entry["returns"])):
         _reject("execution arguments/results do not match the exact scalar boundary")
     policy = {"max_steps": max_steps, "max_heap_bytes": max_heap_bytes,
-              "allocation_fail_at": allocation_fail_at, "max_call_depth": 32}
-    request = {"schema": "hepta.hia.rust-execution-request.v1", "mode": "owned",
+              "allocation_fail_at": allocation_fail_at, "max_call_depth": max_call_depth}
+    request = {"schema": f"hepta.hia.rust-execution-request.v{protocol_version}", "mode": "owned",
                "program_sha256": checked.sha256, "function": function,
                "arguments": arguments, "policy": policy}
     raw_exe = _verified_executable_bytes(Path(executable), executable_sha256)
@@ -457,15 +483,17 @@ def crosscheck_rust_execution(program, function: str, arguments: list,
         python = execute_program(checked, function, arguments, **policy)
     except (HIAProgramTrap, HIAProgramBudgetExceeded) as stopped:
         python = stopped.report
-    argv = ["--owned-run-bound", function, argument_wire.decode("ascii"), str(max_steps),
-            str(max_heap_bytes), "none" if allocation_fail_at is None else str(allocation_fail_at)]
+    argv = (["--owned-run-bound", function, argument_wire.decode("ascii"), str(max_steps),
+             str(max_heap_bytes), "none" if allocation_fail_at is None else str(allocation_fail_at)]
+            if protocol_version == 1 else
+            ["--owned-run-bound-v2", function, argument_wire.decode("ascii"), _canonical(policy).decode("ascii")])
     stdout, stderr, returncode = _run_pinned_shadow(
         raw_exe, argv, checked.canonical_bytes, timeout, maximum_output=MAX_EXECUTION_OUTPUT_BYTES)
     if returncode != 0 or stderr:
         _reject("Rust execution rejected the request or emitted unexpected diagnostics")
-    envelope = _validate_execution(stdout, request, body, python)
+    envelope = _validate_execution(stdout, request, body, python, protocol_version=protocol_version)
     return {
-        "schema": "hepta.hia.rust-execution-crosscheck.v1",
+        "schema": f"hepta.hia.rust-execution-crosscheck.v{protocol_version}",
         "status": "execution_corroborated_not_authority",
         "input_sha256": checked.input_sha256, "core_sha256": checked.sha256,
         "shadow_executable_sha256": executable_sha256,

@@ -14,6 +14,16 @@ fn main() -> ExitCode {
     let result = match args.as_slice() {
         [] => hia_core_shadow::verify(&input),
         [flag] if flag == "--owned-shadow" => hia_core_shadow::verify_owned(&input),
+        [mode, function, arguments, policy] if mode == "--owned-run-bound-v2" => {
+            match hia_core_shadow::decode_scalar_arguments(arguments) {
+                Ok(values) => hia_core_shadow::execute_owned_bound_v2(
+                    &input, function, &values, policy.as_bytes()),
+                Err(error) => {
+                    eprintln!("{error}");
+                    return ExitCode::FAILURE;
+                }
+            }
+        },
         [mode, function, arguments] | [mode, function, arguments, _, _, _]
             if mode == "--owned-run" || mode == "--owned-run-bound" => {
             let policy = if args.len() == 6 {
@@ -64,7 +74,7 @@ fn main() -> ExitCode {
             }
         },
         _ => {
-            eprintln!("E_HIA_RUST_UNSUPPORTED: expected no args, --owned-shadow, --scalar-run FUNCTION JSON_ARGS [MAX_STEPS], or --owned-run/--owned-run-bound FUNCTION JSON_ARGS [MAX_STEPS MAX_HEAP_BYTES FAIL_AT|none]");
+            eprintln!("E_HIA_RUST_UNSUPPORTED: expected no args, --owned-shadow, --scalar-run FUNCTION JSON_ARGS [MAX_STEPS], --owned-run/--owned-run-bound FUNCTION JSON_ARGS [MAX_STEPS MAX_HEAP_BYTES FAIL_AT|none], or --owned-run-bound-v2 FUNCTION JSON_ARGS JSON_POLICY");
             return ExitCode::FAILURE;
         }
     };

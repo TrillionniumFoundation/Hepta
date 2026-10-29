@@ -1,7 +1,10 @@
 """Native-host identity and finite upstream observation refusal contracts."""
 import copy
+import os
 from pathlib import Path
+import shutil
 import struct
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -9,7 +12,7 @@ from unittest.mock import patch
 from hepta.c_migrate import MigrationRejected
 from hepta.cpp_host_toolchain import parse_probe
 from tools.qualify_cpp_upstream_host import check_observation, inspect_executable, qualify
-from tools.qualify_cpp_upgrade import expected_rows, locked_libraries
+from tools.qualify_cpp_upgrade import FIXTURES, expected_rows, locked_libraries
 
 
 class CppUpstreamHostTests(unittest.TestCase):
@@ -40,6 +43,58 @@ class CppUpstreamHostTests(unittest.TestCase):
 
     def test_complete_upstream_original_bytes_and_licenses_are_pinned(self):
         self.assertEqual([r['version'] for r in locked_libraries()], ['3.11.3', '3.12.0'])
+
+    def test_windows_autocrlf_checkout_preserves_locked_upstream_bytes(self):
+        # Exercise actual Git checkout conversion on every host. This is an
+        # input-identity test; it does not simulate Windows C++ execution.
+        attributes = (Path(__file__).resolve().parents[1] / '.gitattributes').read_bytes()
+        original = {p.relative_to(FIXTURES): p.read_bytes()
+                    for p in FIXTURES.rglob('*') if p.is_file()}
+        for protected, selected in [(False, b''), (True, attributes)]:
+            with self.subTest(protected=protected), tempfile.TemporaryDirectory(prefix='hepta-cpp-checkout-') as td:
+                base = Path(td)
+                seed, checkout = base / 'seed', base / 'checkout'
+                seed.mkdir()
+                shutil.copytree(FIXTURES, seed / 'tests/fixtures/cpp_upgrade')
+                (seed / '.gitattributes').write_bytes(selected)
+                empty_config = base / 'empty-git-config'
+                empty_config.write_bytes(b'')
+                env = dict(os.environ, GIT_CONFIG_NOSYSTEM='1',
+                           GIT_CONFIG_GLOBAL=str(empty_config), GIT_ATTR_NOSYSTEM='1')
+                def git(cwd, *arguments):
+                    process = subprocess.run(['git', '-C', str(cwd), *arguments],
+                                             env=env, capture_output=True, timeout=30)
+                    self.assertEqual(process.returncode, 0,
+                                     (process.stdout + process.stderr).decode(errors='replace'))
+                    return process.stdout
+                git(seed, 'init', '--quiet')
+                git(seed, 'config', 'user.name', 'Upstream checkout fixture')
+                git(seed, 'config', 'user.email', 'fixture@example.invalid')
+                git(seed, '-c', 'core.autocrlf=false', '-c', 'core.safecrlf=false', 'add', '.')
+                git(seed, 'commit', '--quiet', '-m', 'original upstream bytes')
+                git(base, 'clone', '--quiet', '--no-hardlinks', '--config', 'core.autocrlf=true',
+                    str(seed), str(checkout))
+                self.assertEqual(git(checkout, 'config', '--get', 'core.autocrlf').strip(), b'true')
+                directory = checkout / 'tests/fixtures/cpp_upgrade'
+                if not protected:
+                    # Reproduce the old Windows preflight failure. Do not
+                    # normalize changed bytes or relax the pinned SHA values.
+                    self.assertNotEqual((directory / '3.11.3/json.hpp').read_bytes(),
+                                        original[Path('3.11.3/json.hpp')])
+                    with self.assertRaisesRegex(ValueError, 'upstream header content differs'):
+                        locked_libraries(directory)
+                    continue
+                self.assertEqual([row['version'] for row in locked_libraries(directory)],
+                                 ['3.11.3', '3.12.0'])
+                for relative, raw in original.items():
+                    self.assertEqual((directory / relative).read_bytes(), raw, str(relative))
+                for name, error in [('3.11.3/json.hpp', 'upstream header content differs'),
+                                    ('3.11.3/LICENSE.MIT', 'license identity differs')]:
+                    path = directory / name
+                    path.write_bytes(original[Path(name)] + b'changed')
+                    with self.assertRaisesRegex(ValueError, error):
+                        locked_libraries(directory)
+                    path.write_bytes(original[Path(name)])
 
     def test_observation_keeps_registry_retention_separate_from_completed_owners(self):
         check_observation(self.observed(), '3.12.0')

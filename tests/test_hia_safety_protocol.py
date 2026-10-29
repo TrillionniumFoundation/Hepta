@@ -1,6 +1,9 @@
 """A reduced test selection must not inherit the reviewed safety qualification."""
 from copy import deepcopy
 import json
+from pathlib import Path
+import subprocess
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -105,6 +108,40 @@ class ReviewedSafetyProtocolTests(unittest.TestCase):
         with patch.object(safety, "schema_registry", return_value={"unreviewed": registry}):
             with self.assertRaisesRegex(ValueError, "E_SAFETY_REGISTRY"):
                 safety.validate_contract(self.contract)
+
+    def test_workflow_checkout_and_license_inputs_are_bound_to_actual_bytes(self):
+        controls = (".gitattributes", ".github/workflows/hepta-qualification.yml",
+                    ".github/workflows/hepta-six-outcomes.yml",
+                    "tests/fixtures/cpp_upgrade/vendor/LICENSE.MIT",
+                    "tests/fixtures/cpp_upgrade/NOTICE.md")
+        required = ("docs/HIA_SAFETY_CONTRACT.json", "docs/HIA_SAFETY_CONTRACT.md",
+                    "tools/qualify_hia_safety_contract.py", "hepta/input.py")
+        with tempfile.TemporaryDirectory(prefix="hepta-safety-inputs-") as directory:
+            root = Path(directory)
+            for name in (*controls, *required):
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(b"original qualification input\n")
+            for command in (["git", "init", "--quiet", str(root)],
+                            ["git", "-C", str(root), "add", "."]):
+                subprocess.run(command, check=True, capture_output=True, timeout=10)
+            with patch.object(safety, "ROOT", root), \
+                    patch.object(safety, "CONTRACT", root / "docs/HIA_SAFETY_CONTRACT.json"), \
+                    patch.object(safety, "__file__", str(root / "tools/qualify_hia_safety_contract.py")):
+                before = safety.source_inventory()
+                self.assertTrue(set(controls) <= set(before))
+                for name in controls:
+                    with self.subTest(input=name):
+                        path = root / name
+                        original = path.read_bytes()
+                        path.write_bytes(original + b"changed after qualification began\n")
+                        after = safety.source_inventory()
+                        self.assertEqual(set(before), set(after))
+                        self.assertNotEqual(before[name], after[name])
+                        self.assertEqual({k: v for k, v in before.items() if k != name},
+                                         {k: v for k, v in after.items() if k != name})
+                        path.write_bytes(original)
+                self.assertEqual(safety.source_inventory(), before)
 
 
 if __name__ == "__main__":

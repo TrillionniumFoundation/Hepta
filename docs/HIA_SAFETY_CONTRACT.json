@@ -56,7 +56,8 @@
       "exclusions": [
         "source-to-Core refinement not proved",
         "no stored lifetime returns or general borrowed-record returns",
-        "no foreign calls, inline assembly, threads or implicit legacy backend fallback"
+        "no foreign calls, inline assembly, threads or implicit legacy backend fallback",
+        "no payload, generic or recursive source enums; scalarization does not authorize an enum C ABI"
       ],
       "guarantee": "checked_source_and_reverified_core",
       "id": "source_lowering",
@@ -70,9 +71,17 @@
         "tests.test_hia_source_local_views.HIASourceLocalViewTests.test_removed_loan_end_rejected_by_canonical_core",
         "tests.test_hia_source_local_views.HIASourceLocalViewRust.test_actual_rust_machine_matches_values_loans_failures_and_every_step",
         "tests.test_hia_source_local_views.HIASourceLocalViewNative.test_source_rust_and_canonical_llvm_execute_same_finite_inputs",
-        "tests.test_hia_source_local_views.HIASourceLocalViewNative.test_actual_allocator_failure_preserves_local_view_cleanup"
+        "tests.test_hia_source_local_views.HIASourceLocalViewNative.test_actual_allocator_failure_preserves_local_view_cleanup",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumTests.test_existing_source_checker_resource_ir_and_same_core_all_accept",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumTests.test_source_route_and_public_execution_reject_erased_enum_helpers",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumTests.test_32_variant_boundary_and_unused_unsupported_declarations",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumTests.test_type_match_abi_and_complex_storage_refusals_remain_closed",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumRust.test_actual_rust_same_core_values_stops_failures_and_invalid_tags",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumNative.test_actual_source_rust_core_llvm_values_and_public_symbol_boundary",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumNative.test_actual_allocator_failure_returns_enum_error_and_cleans_owners",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumNative.test_actual_native_invalid_primitive_tag_traps"
       ],
-      "scope": "default primitive v1; explicit v8; finite checked scalars, records, Result and closed specialization; finite local byte-view records through the existing lexical Resource IR checker and canonical primitive v1/v8"
+      "scope": "default primitive v1; explicit v8; finite checked scalars, records, Result and closed specialization; finite local byte-view records through the existing lexical Resource IR checker and canonical primitive v1/v8; concrete enums with 1..32 unit variants use existing u32 tags and CFG while original nominal signatures restrict public scalar entries"
     },
     {
       "entrypoints": [
@@ -195,11 +204,13 @@
     {
       "entrypoints": [
         "hepta.hia_rust_crosscheck.crosscheck_rust_shadow",
-        "hepta.hia_rust_crosscheck.crosscheck_rust_execution"
+        "hepta.hia_rust_crosscheck.crosscheck_rust_execution",
+        "hepta.hia_rust_crosscheck.crosscheck_rust_execution_v2"
       ],
       "exclusions": [
         "no deployment authority",
-        "agreement is not refinement or whole-language soundness"
+        "agreement is not refinement or whole-language soundness",
+        "not a transparent replacement for Python production budgets up to 256 frames, 10000000 ticks or 1 GiB payload"
       ],
       "guarantee": "independent_finite_comparison_only",
       "id": "independent_shadow",
@@ -209,9 +220,15 @@
         "tests.test_hia_rust_execution_crosscheck.RustExecutionCrosscheck.test_complete_report_types_capabilities_and_stopped_ledger_are_checked",
         "tests.test_hia_rust_execution_crosscheck.RustExecutionCrosscheck.test_return_trap_heap_and_every_step_stop_keep_exact_ledgers",
         "tests.test_hia_rust_transport_lifecycle.RustShadowTransportLifecycle.test_exited_leader_with_inherited_pipe_reaps_descendant_on_deadline",
-        "tests.test_hia_rust_transport_lifecycle.RustShadowTransportLifecycle.test_success_nonzero_and_stderr_reap_descendant_before_returning"
+        "tests.test_hia_rust_transport_lifecycle.RustShadowTransportLifecycle.test_success_nonzero_and_stderr_reap_descendant_before_returning",
+        "tests.test_hia_rust_bound_depth.RustBoundDepthParity.test_all_depths_have_root_inclusive_scalar_boundaries_and_exact_ticks",
+        "tests.test_hia_rust_bound_depth.RustBoundDepthParity.test_recursive_returned_loans_and_chain_transfers_keep_stopped_owners",
+        "tests.test_hia_rust_bound_depth.RustBoundDepthParity.test_v1_and_legacy_reports_stay_fixed_at_32_for_every_schema",
+        "tests.test_hia_rust_bound_depth.RustBoundDepthParity.test_raw_policy_requires_exact_shape_types_bounds_and_json",
+        "tests.test_hia_rust_bound_depth.RustBoundDepthParity.test_invalid_raw_core_and_typed_arguments_cannot_hide_behind_depth_one",
+        "tests.test_hia_rust_bound_depth.RustBoundDepthParity.test_rehashed_policy_or_result_tampering_and_cross_version_replays_reject"
       ],
-      "scope": "Rust closed byte-owner/returned-loan/owned-chain Machine profiles; fresh invocation-bound Python/Rust comparison of scalar public entries, full outcomes and stopped resource ledgers; Linux process-group ownership retained through bounded cleanup"
+      "scope": "Rust closed byte-owner/returned-loan/owned-chain Machine profiles; fresh invocation-bound Python/Rust comparison of scalar public entries, full outcomes and stopped resource ledgers; Linux process-group ownership retained through bounded cleanup; v2 explicitly binds root-inclusive call depth 1..32 to the same Machine, with legacy/v1 fixed at 32"
     },
     {
       "entrypoints": [
@@ -289,9 +306,10 @@
         "tests.test_c2hepta_bounded_capture.C2HeptaCompilerCapture.test_every_clang_stage_enforces_stdout_budget_while_running",
         "tests.test_c2hepta_bounded_capture.C2HeptaCompilerCapture.test_successful_query_also_reaps_its_descendant",
         "tests.test_c2hepta_bounded_capture.C2HeptaCompilerCapture.test_query_timeout_reaps_its_descendant",
-        "tests.test_c2hepta_bounded_capture.C2HeptaCompilerCapture.test_original_c_and_emitted_hepta_have_matching_native_results"
+        "tests.test_c2hepta_bounded_capture.C2HeptaCompilerCapture.test_original_c_and_emitted_hepta_have_matching_native_results",
+        "tests.test_cpp_upstream_host.CppUpstreamHostTests.test_windows_autocrlf_checkout_preserves_locked_upstream_bytes"
       ],
-      "scope": "finite captured C/C++ profiles with complete selected declaration/configuration census; bounded scalar C pilot inputs, compiler capture and independent migration IR admission"
+      "scope": "finite captured C/C++ profiles with complete selected declaration/configuration census; bounded scalar C pilot inputs, compiler capture and independent migration IR admission; frozen C++ upstream bytes are preserved through actual autocrlf checkout controls, separately from native host execution"
     },
     {
       "entrypoints": [
@@ -307,9 +325,13 @@
       "regression_selectors": [
         "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_removing_each_reviewed_capability_is_refused",
         "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_removing_each_boundary_regression_is_refused",
-        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_stateful_python_containers_cannot_reduce_the_hashed_selection"
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_stateful_python_containers_cannot_reduce_the_hashed_selection",
+        "tests.test_hia_integrated_inputs.IntegratedInputIdentityTests.test_commit_and_blob_replacements_cannot_relabel_different_source",
+        "tests.test_hia_integrated_workflow.IntegratedWorkflowContractTests.test_actual_cli_receives_all_four_native_profiles_and_external_paths",
+        "tests.test_hia_integrated_workflow.IntegratedWorkflowContractTests.test_real_shell_preserves_failure_and_qualifies_a_clean_exact_sibling",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_workflow_checkout_and_license_inputs_are_bound_to_actual_bytes"
       ],
-      "scope": "exact reviewed capability/test/assumption matrix; dynamic resolution uses only the canonical bytes whose independent identity passed"
+      "scope": "exact reviewed capability/test/assumption matrix; dynamic resolution uses only the canonical bytes whose independent identity passed; original Git object identity ignores replacement refs; CI passes four explicit native profiles and preserves qualification failure from a clean exact source; workflow, checkout and frozen C++ license/notice bytes participate in before/after safety input identity"
     }
   ],
   "judgment": {

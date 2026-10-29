@@ -100,3 +100,7 @@ authority. Finite comparison does not prove whole-language soundness, arbitrary
 lifetimes, general cancellation/concurrency, native/LLVM refinement, physical
 device behavior or process RSS. P2 production-authority qualification and the
 complete P7 correspondence obligations remain open.
+
+The separate [bound v2 depth policy](HIA_RUST_BOUND_DEPTH_V2.md) can explicitly
+select 1–32 root-inclusive frames. It does not change the fixed-depth v1
+command, API or report contract described here.
