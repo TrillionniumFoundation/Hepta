@@ -450,7 +450,14 @@ def _migrate_impl(source: Path, output: Path, report: Path, clang: str = "clang"
             raise UnsupportedC("symlink output/report paths are not accepted")
         if source.suffix != ".c":
             raise UnsupportedC("only C11 .c translation units are supported")
-        if re.search(rb"(?m)^\s*#", original):
+        # This pilot has no preprocessing model. C11 also spells '#' as
+        # '%:' (digraph), accepts a directive after a leading comment, and
+        # line splicing can assemble a directive marker across source lines.
+        # Rather than emulate C translation phases incompletely, refuse all
+        # possible marker bytes and splices, even inside comments/strings.
+        # This deliberately narrows the accepted scalar subset.
+        if (any(marker in original for marker in (b"#", b"%:", b"??=", b"??/"))
+                or re.search(rb"\\[ \t]*\r?\n", original)):
             raise UnsupportedC("preprocessor directives/macros require a future source model")
         if not shutil.which(clang):
             raise UnsupportedC("clang executable unavailable")
