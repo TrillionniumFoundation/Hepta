@@ -160,6 +160,40 @@ class ClangAstJsonStructure(unittest.TestCase):
         self.assert_rejected_without_output(
             json.dumps(tree).encode(), "Clang AST cast kind has invalid shape")
 
+    def test_unhashable_binary_opcode_fails_closed_with_report(self):
+        # JSON permits array/object opcodes, but the scalar importer must not
+        # try hashing them in an operator membership test.
+        for bad in ([], {"spoof": "+"}):
+            with self.subTest(opcode=bad):
+                tree = self._synthetic_valid_ast()
+                return_expr = tree["inner"][0]["inner"][1]["inner"][0]["inner"]
+                original_ref = return_expr[0]
+                return_expr[0] = {
+                    "kind": "BinaryOperator", "type": {"qualType": "int"},
+                    "opcode": bad, "inner": [
+                        original_ref,
+                        {"kind": "IntegerLiteral", "type": {"qualType": "int"}, "value": "1"},
+                    ],
+                }
+                self.assert_rejected_without_output(
+                    json.dumps(tree).encode(), "Clang AST opcode has invalid shape")
+
+    def test_string_binary_opcode_still_converts(self):
+        tree = self._synthetic_valid_ast()
+        return_expr = tree["inner"][0]["inner"][1]["inner"][0]["inner"]
+        original_ref = return_expr[0]
+        return_expr[0] = {
+            "kind": "BinaryOperator", "type": {"qualType": "int"},
+            "opcode": "+", "inner": [
+                original_ref,
+                {"kind": "IntegerLiteral", "type": {"qualType": "int"}, "value": "1"},
+            ],
+        }
+        result = self.import_mock_ast(json.dumps(tree).encode())
+        self.assertEqual(result["status"], "converted", result)
+        self.assertEqual(result["frontend_validation"], "passed")
+        self.assertTrue(self.output.is_file())
+
     def test_real_clang_scalar_positive_control(self):
         self.assertIsNotNone(shutil.which("clang"), "real Clang required for migration acceptance")
         result = migrate(self.source, self.output, self.report, clang="clang")

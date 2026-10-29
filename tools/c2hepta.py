@@ -297,7 +297,8 @@ def _load_clang_ast(data: bytes) -> dict:
                 raise UnsupportedC("Clang AST referenced declaration has invalid shape")
             for field, label in (("name", "node name"),
                                  ("storageClass", "storage class"),
-                                 ("castKind", "cast kind")):
+                                 ("castKind", "cast kind"),
+                                 ("opcode", "opcode")):
                 if field in value and not isinstance(value[field], str):
                     raise UnsupportedC("Clang AST " + label + " has invalid shape")
             children = value.values()
