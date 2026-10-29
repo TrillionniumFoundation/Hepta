@@ -1,0 +1,59 @@
+{
+  "actual_bound_comparisons": 242,
+  "actual_native_processes": 242,
+  "backend_refinement_proved": false,
+  "binary_sha256": "816c42ad810cde27023cc433169137a456d0a7423a43a5459193d7bd8adcc5a8",
+  "binary_unchanged": true,
+  "limitations": [
+    "finite independently selected fixtures only",
+    "no new build or CI run",
+    "does not establish complete production parity or universal semantic equivalence",
+    "collector expected-failure fix 52653db is separate from this efb2fea runtime review"
+  ],
+  "new_production_admission": false,
+  "ok": true,
+  "prelaunch_refusals": 33,
+  "scope": [
+    "mutual and sibling scalar calls with multi-value continuations",
+    "exact tick prefixes across returns and multi-loan returns",
+    "selected depth boundaries including root-inclusive 256",
+    "strict Python types and original nominal/export eligibility",
+    "same-input v1/v2/v3 full-report equality within legacy limits"
+  ],
+  "source_commit": "efb2fea1de2855b2669593660d787b98fc966aa6",
+  "source_tree": "a7fd0ceaa1a595da393608ac5a79ececb2aed7ef",
+  "source_unchanged": true,
+  "status": "finite_independent_review_passed",
+  "whole_language_soundness_proved": false,
+  "review_report_sha256": "2837e23207744df8119227e38123a1a2d96a060554e7905d2e3b424da81ec6dc",
+  "actual_process_journal_sha256": "9fa37f6703be36e2904d7155451a8d4af79666144467b4faa1699bd8fb7b9c14",
+  "initial_fixture_failure": {
+    "source": "initial-review-fixture.py",
+    "stderr": "initial-fixture-ssa-error.stderr.log",
+    "kind": "independent audit fixture reused SSA a across two blocks; checker correctly rejected before native execution",
+    "implementation_modified": false
+  },
+  "runtime_findings": [],
+  "static_review": [
+    {
+      "area": "frame continuation",
+      "reviewed": "enter_frame checks root-inclusive depth before entry tick; invoke increments operation cursor before suspension; pending call binds outputs on return; branch resets cursor"
+    },
+    {
+      "area": "resource ledger",
+      "reviewed": "owner transfer occurs before child admission; formal scopes and return-origin bindings remain with frame; successful return performs return_loan then leave_call; trap/budget does not synthesize cleanup"
+    },
+    {
+      "area": "policy compatibility",
+      "reviewed": "v1/v2 keep 32 / 1000000 / 16777216 ceilings and existing envelopes; v3 is explicit distinct mode and same Machine"
+    },
+    {
+      "area": "strict types",
+      "reviewed": "raw decoder exact integers and field set; Python exact numeric/list types; original nominal/scalar/export eligibility checked before executable admission"
+    },
+    {
+      "area": "qualification expected failures",
+      "reviewed": "root independently found expectedFailures acceptance in original collector; core_next addressed separately at 52653dbc182ff400c95f7cda771800e9961c3c83; not claimed fixed by this original-runtime review"
+    }
+  ]
+}

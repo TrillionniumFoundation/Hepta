@@ -1,4 +1,18 @@
-# Original CI artifact recovery after workspace cleanup
+# Hepta Core continuation evidence
+
+## Explicit-frame continuation on public source `699de39`
+
+The [component collection](next-699de39/README.md) preserves the explicit Rust frame implementation, versioned bound-v3 policy, strict result collector, independent native differential review, and the original CI failures with their finite repairs. Its [archive](next-699de39/hia_core_next_components_20261029.tar.gz) is 8,461,568 bytes, SHA-256 `c255ce520b57f0ee1adf0085ae0fdbb266202934cd8ad9262d4c8bfd81f0b6d0`, containing 486 members. The [receipt](next-699de39/archive-receipt.json) and [member inventory](next-699de39/retention.json) bind the original bytes and distinct component source identities.
+
+The [publication receipt](next-699de39/source-publication-699de39.json) binds local `421ae80` and public [`699de39a8e92e0f083df316ecc5333fb3ecf8571`](https://github.com/TrillionniumFoundation/Hepta/commit/699de39a8e92e0f083df316ecc5333fb3ecf8571) to the same tree `592b6114f659fb18b13ad3fa5ed5e213ecdb92b5`. Component executions are not presented as qualification of a different commit. The new exact-source safety and integrated records are published as a separate continuation after completion.
+
+At this component-publication checkpoint, the exact public source has passed its local 95-method safety contract; the full local eight-gate run is in progress. The archived official CI snapshot is explicitly fixed to 2026-10-29 11:15:39 UTC, with seven ABI and seven C++ host jobs successful, both source/application jobs successful, and NDU/full release still running. This collection contains metadata for the new CI jobs, without claiming their artifact contents have been audited.
+
+Python remains production authority. Optimization policy remains `no_change`; all eight broad P0–P7 stages retain open obligations. Publication of raw evidence does not close general semantics, human productivity, physical-device or refinement-proof requirements.
+
+---
+
+## Original CI artifact recovery after workspace cleanup
 
 This directory restores original GitHub Actions bytes after automatic workspace cleanup interrupted evidence publication. It records recovery and read-only consistency checks. It is **not a new execution qualification**, and recovered observations retain their original source commits.
 
