@@ -2,11 +2,15 @@
 from __future__ import annotations
 
 import ctypes
+import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
+from unittest import mock
 
 from hepta.migration_ir import Expr, Function, IRValidationError, Stmt, check_function, emit_function
 from tools.c2hepta import migrate
@@ -109,6 +113,41 @@ class C2HeptaImport(unittest.TestCase):
         self.assertEqual(self.convert("int f(int x){return x;} ")["status"], "rejected")
         self.assertTrue(self.out.is_symlink())
         self.assertFalse((self.path / "missing.hepta").exists())
+
+    def test_oversized_sparse_input_rejected_before_unbounded_read(self):
+        # A regular 1 GiB sparse file must not be materialized in Python
+        # memory merely to discover it exceeds the 256 KB source budget.
+        with self.src.open("wb") as stream:
+            stream.truncate(1 << 30)
+        with mock.patch.object(Path, "read_bytes", side_effect=AssertionError(
+                "unbounded Path.read_bytes must never run on this input")):
+            result = migrate(self.src, self.out, self.report)
+        self.assertEqual(result["status"], "rejected", result)
+        self.assertIn("input limit", result["reason"])
+        self.assertFalse(self.out.exists())
+        self.assertTrue(self.report.exists())
+
+    @unittest.skipUnless(os.name == "posix" and hasattr(os, "mkfifo"),
+                         "POSIX named pipes required")
+    def test_fifo_input_is_rejected_without_blocking_for_writer(self):
+        fifo = self.path / "untrusted.c"
+        os.mkfifo(fifo)
+        code = (
+            "import json, sys\n"
+            "from pathlib import Path\n"
+            "from tools.c2hepta import migrate\n"
+            "result = migrate(Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3]))\n"
+            "print(json.dumps(result))\n"
+        )
+        run = subprocess.run(
+            [sys.executable, "-c", code, str(fifo), str(self.out), str(self.report)],
+            cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True,
+            timeout=3, check=True)
+        result = json.loads(run.stdout)
+        self.assertEqual(result["status"], "rejected", result)
+        self.assertIn("regular file", result["reason"])
+        self.assertFalse(self.out.exists())
+        self.assertTrue(self.report.exists())
 
     def test_native_gate_without_frontend_fails_closed(self):
         self.src.write_text("int f(int x){return x;}", encoding="utf-8")
