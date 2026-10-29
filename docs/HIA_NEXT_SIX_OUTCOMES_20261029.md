@@ -29,6 +29,7 @@ prepared image 复用接续现有私有证明边界；HIA Agent 编辑也必须�
 | Agent v6 正式资格验证 | `f695384324d2de784f727d349bd67891f7f45bd3` | `hia_agent_factorial_v6_20261028/evidence` |
 | 实际 Core 静态 payload 分析 | `d246aecf3cd1b96e818bd4e53ffe0408fb1fbd93` | `hia_next_payload_bound` |
 | 真实节点事务最终工程控制 | `677a15928c1dd3b236c7bee8cf4b3e6041177f6c` | `hia_next_safety/structured_review_20261029` |
+| V8真实节点容量与模型资格 | `33c46cdef12c60faf0c1dbef02ea20caa3ad7d56` | `hia_agent_toolstudy_v8_20261029/evidence` |
 
 以上路径均位于 `experiments/`。源文件、协议、输入、工具、原始响应和构建身份分别绑定。
 同树发布记录与实际 CI 观察分别保存在本轮 publication / CI ledger；历史结果不直接
@@ -37,8 +38,15 @@ prepared image 复用接续现有私有证明边界；HIA Agent 编辑也必须�
 已发布的 `97aa97110be8fd307503dce3baca9499f8bb0da4`（与本地 `c576e94` 同树）
 通过了两套独立记录的集成CI：source/application为37项安全契约、213项回归、
 449/449 lowering obligations、实际payload和IR PGO准备、35+3项既有参考控制及9项
-真实节点事务；verified-native为756项回归、0跳过及36项native NDU observations。
-重叠测试不相加为独立分母。这些结果属于该明确来源，不覆盖尚未冻结的新V8模型研究。
+真实节点事务；verified-native为756次测试执行、0跳过及36项native NDU observations。
+旧综合测试清单重复列入了`tests.test_hia_returned_loans`，该模块的31项测试运行了两次；
+756不能作为756个独立测试的分母。`79d7bb4`删除重复项，并使重复模块成为显式错误，
+同时接入13项V8研究工具回归、12项参考入口回归及19项实际native参考检查。
+与其同树的公开来源`fc4a63e8a5064c6f054a67ea2fe8dd56cbcb37a4`已通过自身两套CI：
+source/application为37安全契约、238回归、449/449 obligations，以及全部19原生参考；
+verified-native为750次测试执行、0跳过和36项native NDU observations。
+完整GitHub原始artifact已下载，ZIP摘要与GitHub元数据一致，后续V9再单独验证。
+重叠测试不相加；旧绿色也不覆盖新组合。模型资格仍按其原始冻结来源独立记录。
 
 ## 2. 可检查的安全与资源规格
 
@@ -147,9 +155,45 @@ profile/transport 控制；9/9真实工程控制包括5个接受与4个预期拒
 native 观察，5个接受案例另做 terminal hidden 观察；均不计为模型成功。
 HIA基底必须是已验证Core，Rust仅支持有限ASCII语法，四文件维护也不是长期生产维护。
 
-新模型资格和四臂主实验仍需独立注册与实际 tokenizer 容量审计，不能继承 v6 资格或
-把工程参考控制当成 Agent 成功。初始及修复提示、完整正确参考答案必须在所有条件中
-容纳于相同的预定上下文/生成预算，参考答案不能进入模型请求。
+### V8：真实工具容量通过，模型资格仍未通过
+
+`33c46cd`冻结了4任务×4臂的真实full/node研究，以及独立的3项资格门。
+固定Qwen2.5-Coder 7B Q4_K_M、8192上下文、每次1536输出、最多3次提交；
+所有完整请求用实际模板和tokenizer再次检查容量。推理主程序、模型及伴随库身份
+跨capacity、qualification、main绑定，先前资格不能继承。
+
+正式生成前，19/19人写参考控制通过真实编译、public、资源及terminal hidden；
+此阶段generation为0。最长初始请求2758 tokens，最长正确参考1059 tokens，
+实际修复控制输入加完整输出预留最多5001；登记allocation envelope加输出预留
+最多7238/8192。最后一个数字不是任意BPE串的数学上界，仍依赖每次实际容量检查。
+参考答案未加入模型请求，参考控制也不计为模型成功。
+
+| V8资格任务 | 提交次数 | 正确任务 | input tokens | output tokens | 实际结果 |
+| --- | ---: | ---: | ---: | ---: | --- |
+| 标量修复 | 2 | 1 | 3574 | 188 | 首次真实rustc拒绝`u64 + u32`；第二次通过public、hidden和资源检查 |
+| 多文件API升级 | 3 | 0 | 7505 | 2370 | 三次完整回答逐字相同；将完整函数填入类型节点，均在编译前拒绝 |
+| 所有权修复 | 3 | 0 | 7935 | 840 | 三次完整回答逐字相同；将语句填入表达式片段，均在编译前拒绝 |
+| 合计 | 8 | 1/3 | 19014 | 3398 | fresh资格为false |
+
+8/8响应完整，合计22412 tokens，unknown usage、代码截断、诊断裁剪及人工修复均为0。
+生成包装调用wall time合计2015.920246400 s（不是纯模型计算时间），
+注册实验wall time为2059.597590950 s；
+模型、工具和来源未变化，owned server已退出。两项失败任务没有执行hidden。
+实际调用main入口得到`E_TOOLSTUDY_NO_QUALIFIED_MODEL`，发生在输出目录和engine
+创建前：main为0/16 cells、0模型请求；该拒绝检查另花5.690141661 s。
+capacity/reference阶段另记录64.003405956 s，三个已记录阶段合计2129.291138567 s；
+这仍不包括工具开发、模型取得、归档或人力成本。
+**没有HIA模型对照结果，不能从本轮推断HIA或Rust的开发效率优势。**
+
+V5全部保留尝试、V6和V8合计44请求、58630 known tokens、4468.549152374 s
+注册实验wall time。这个合计不包括V4残留未知成本、人力、模型取得/训练、参考控制和
+工具开发，也不是完整项目成本。
+
+独立后续审查还发现通用batch契约没有充分说明“ID唯一”和“Rust同文件spans不可
+重叠”。这影响工具说明的公平性，应前瞻补齐；但V8实际失败先发生于已披露的
+type/expression片段规则，尚未进入overlap检查。不能据此重判失败、自动修复模型
+答案或声称补充两句话必然成功。最小修订另行登记，旧V8协议、原始响应、资格和成本
+保持不变；新来源仍须重新审查容量和fresh资格。
 
 ## 6. 公平应用性能与资源
 
@@ -158,14 +202,18 @@ frontend PGO与IR PGO，以及 Rust LTO/PGO。训练、held-out输入、算法�
 实际正的 ENTRY block counters、编译输入/Core字节绑定、O3/LTO资源观察器和成本范围
 均经过独立审查；开发阶段的失败和旧O2观察保留原归属。
 
-| 算法 | HIA IRPGO median | 最强对照 median | HIA/对照时间 | P99比值 | RSS比值 |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| CRC | 38.715538 ms | C LTO 41.916362 ms | 0.923638 | 1.101488 | 1.036675 |
-| IEEE | 41.845892 ms | C IRPGO 38.572544 ms | 1.084862 | 1.310353 | 1.071782 |
+| 算法 | 方案 | 吞吐 MiB/s | 整进程median ms | 批次P95 μs | 批次P99 μs | RSS KiB |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| CRC | HIA IRPGO | 51.659757 | 38.715538 | 155.316 | 300.052 | 1696 |
+| CRC | 最强对照C LTO | 47.714906 | 41.916362 | 152.416 | 272.406 | 1636 |
+| IEEE | HIA IRPGO | 47.795260 | 41.845892 | 163.037 | 308.714 | 1732 |
+| IEEE | 最强对照C IRPGO | 51.851267 | 38.572544 | 123.845 | 235.596 | 1616 |
 
 这里的 median 是整个 workload process 的 wall time；P99 是汇集的、每批最多4096 bytes
 的处理时长，不能解释为生产服务请求P99。RSS列是7次 child `wait4` 峰值的中位数之比，
 不是全程序静态峰值或跨所有运行的最大值。原始各次峰值均保留。
+CRC的HIA/对照时间、P99和RSS比值分别为0.923638、1.101488、1.036675；
+IEEE分别为1.084862、1.310353、1.071782。吞吐由同一实际处理字节数和进程wall time计算。
 
 CRC median 有较低观测值，但两种算法没有同时通过 latency/RSS 复合门槛，
 `performance_and_rss_gate=false`。报告不会事后换成较弱的参考来把结果改成阳性。
@@ -173,6 +221,11 @@ CRC median 有较低观测值，但两种算法没有同时通过 latency/RSS �
 1.003022127 s，Rust PGO准备7.188470515 s。该timer不含外层Python启动/import、工具链
 安装、归档与人工工作。旧实验遗漏 constructor 的 cost scope
 单独明确保留，未补造未测量的时长。
+
+另保留实际切换和失败回退观察：成功切换一次，`switch_ns=89995`；拒绝一次切换后
+继续有效baseline，`switch_ns=52927`，最终checksum保持正确。两条观察的监控计时
+分别为2987 ns、3316 ns。这是本地具体路径的单次计时，不是生产切换延迟分布，
+也没有测出进程崩溃后的服务恢复时间或长期监控成本。
 
 全部本地测量发生在共享开发主机，结果不提供普遍或统计性能优势，也不说明真实生产服务
 的长期P95/P99、设备协议或所有硬件 ABI 已得到验证。硬件/资源优势与安全边界分别验收。

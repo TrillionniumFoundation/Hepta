@@ -1,0 +1,15 @@
+--- a/experiments/hia_agent_toolstudy_v8_20261029/prompts.py
++++ b/experiments/hia_agent_toolstudy_v8_20261029/prompts.py
+@@ -48,10 +48,10 @@
+     else:
+         if query is None or query["language"]!=language:
+             raise ValueError("actual structured tool query required")
+-        rules=('Every Rust edit uses changes:{"text":"complete replacement fragment"}. Rust replacements are complete expression or type fragments. Preserve unselected syntax; include explicit parentheses when needed to keep surrounding precedence. Parameter/return types are read-only unless policy is migrate.'
++        rules=('Every Rust edit uses changes:{"text":"complete replacement fragment"}. For a type node, text is only one allowed type expression; for an expression node, text is only one complete expression. Rust edit spans in the same file must be disjoint: choose a parent expression or its descendants, never both. Preserve unselected syntax; include explicit parentheses when needed to keep surrounding precedence. Parameter/return types are read-only unless policy is migrate.'
+                if language=="rust" else
+                "HIA replacements are instruction fields op/args/out/attrs, terminators, or explicitly enabled signature/block parameter types. Inserts use complete operation objects with op,args,out,attrs; delete is true by itself. All edits apply atomically and the complete program is reverified.")
+-        text=("Use the real structured edit tool. Return ONLY JSON {\"edits\":[{\"node\":\"an actual node ID from the source catalogue\",\"changes\":{}}]}. No fences or prose. One to sixteen node edits; no whole files or whole functions.\n"
++        text=("Use the real structured edit tool. Return ONLY JSON {\"edits\":[{\"node\":\"an actual node ID from the source catalogue\",\"changes\":{}}]}. No fences or prose. One to sixteen node edits; every node ID appears at most once. No whole files or whole functions.\n"
+               +task["specification"]+"\nThe task's references to files mean their editable symbols; this interface accepts node edits only.\n"+rules
+               +"\nPublic examples [arguments,[entrypoint,provider_probe]]: "+canonical(list(zip(task["public_cases"],task["public_expected"]))).decode()
+               +"\nComplete public source node catalogue:\n"+render_nodes(query,task))

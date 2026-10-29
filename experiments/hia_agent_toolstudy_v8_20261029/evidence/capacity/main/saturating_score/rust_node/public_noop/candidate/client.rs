@@ -1,0 +1,1 @@
+use crate::api; pub fn entrypoint(a:u32,b:u32,c:u32)->u64 { (api::saturating_sum(a,b) as u64)*7+(c&3) as u64 }

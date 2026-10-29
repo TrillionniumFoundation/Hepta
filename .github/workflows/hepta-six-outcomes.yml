@@ -19,6 +19,7 @@ on:
       - 'experiments/hia_agent_factorial_v6_20261028/**'
       - 'experiments/hia_agent_structured_v7_20261029/**'
       - 'experiments/hia_agent_toolstudy_v8_20261029/**'
+      - 'experiments/hia_agent_toolstudy_v9_20261029/**'
       - 'experiments/hia_ndu_activation/**'
       - 'experiments/hia_ndu_prepared_reuse/**'
       - 'experiments/hia_next_payload_bound/**'
@@ -98,6 +99,7 @@ jobs:
                    'tests.test_hia_entry_payload_bound',
                    'tests.test_hia_agent_structured',
                    'tests.test_hia_agent_toolstudy',
+                   'tests.test_hia_agent_toolstudy_v9',
                    'tests.test_hia_agent_tool_references',
                    'tests.test_hia_ndu_activation.ActivationForecastTests']
           suite = unittest.defaultTestLoader.loadTestsFromNames(names)
@@ -126,6 +128,8 @@ jobs:
         run: python tools/qualify_hia_structured_controls.py --output "$HEPTA_EVIDENCE_DIR/agent-node-controls" --clang "$CLANG" --rustc "$RUSTC"
       - name: Execute all registered full and node native reference controls
         run: python tools/qualify_hia_agent_tool_references.py --output "$HEPTA_EVIDENCE_DIR/agent-tool-native-references" --clang "$CLANG" --rustc "$RUSTC"
+      - name: Execute the separately bound V9 native reference controls
+        run: python tools/qualify_hia_agent_tool_references.py --study-version v9 --output "$HEPTA_EVIDENCE_DIR/agent-tool-native-references-v9" --clang "$CLANG" --rustc "$RUSTC"
       - name: Retain completed and failed observations
         if: always()
         uses: actions/upload-artifact@v4

@@ -41,22 +41,25 @@ class ToolReferenceTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "CELL_REGISTRY"):
                 control.registered_cells()
 
-    def evaluate_mock(self, *, arm="rust_node", public=None, hidden=None):
+    def evaluate_mock(self, *, arm="rust_node", public=None, hidden=None, study_support=None):
+        chosen = control.support if study_support is None else study_support
         value = task()
         session = Mock()
         query = {"source_revision": "original", "query_sha256": "captured-query"}
         session.query.return_value = query
         answer = {"edits": [{"node": "original-node", "changes": {"text": "explicit reference"}}]}
         with tempfile.TemporaryDirectory() as tmp, ExitStack() as stack:
-            stack.enter_context(patch.object(control.support, "session_for", return_value=session))
+            create_session = stack.enter_context(patch.object(chosen, "session_for", return_value=session))
             builder = stack.enter_context(patch.object(control.references, "reference", return_value=answer))
             validate = stack.enter_context(patch.object(control.validation, "evaluate", return_value=public_result() if public is None else public))
             execute = stack.enter_context(patch.object(control.evaluator, "execute", return_value=observation() if hidden is None else hidden))
             # Any accidental subprocess entry would fail, even in a mock test.
             process = stack.enter_context(patch("subprocess.Popen", side_effect=AssertionError("no native/model/tokenizer process in mock controls")))
-            result = control.evaluate_reference(value, arm, Path(tmp) / "case", "unused-clang", "unused-rustc")
+            result = control.evaluate_reference(value, arm, Path(tmp) / "case", "unused-clang", "unused-rustc",
+                                                study_support=chosen)
             inputs = json.loads((Path(tmp) / "case" / "INPUT.json").read_text())
             process.assert_not_called()
+            create_session.assert_called_once_with(value, arm, "unused-clang", "unused-rustc")
             return result, inputs, value, session, query, answer, builder, validate, execute
 
     def test_node_reference_is_passed_verbatim_to_existing_validation(self):
@@ -99,23 +102,33 @@ class ToolReferenceTests(unittest.TestCase):
                 validate.assert_called_once()
                 execute.assert_called_once()
 
-    def run_mock(self, *, row_results=None, source_read=None, tools_read=None):
+    def run_mock(self, *, row_results=None, source_read=None, tools_read=None, study_version="v8"):
+        chosen = control.select_study(study_version)
         cells = [("main", {"id": "mock" + str(index)}, "rust_node") for index in range(19)]
         source, tools = {"bound.py": "source"}, {"clang": {"sha256": "tool"}}
         with tempfile.TemporaryDirectory() as tmp, ExitStack() as stack:
-            stack.enter_context(patch.object(control, "clean_source", return_value=("frozen-mock", source)))
-            stack.enter_context(patch.object(control, "source_bindings", side_effect=source_read or (lambda: source)))
+            clean = stack.enter_context(patch.object(control, "clean_source", return_value=("frozen-mock", source)))
+            def bound_source(*, study_support):
+                self.assertIs(study_support, chosen)
+                return source_read() if source_read else source
+            stack.enter_context(patch.object(control, "source_bindings", side_effect=bound_source))
             stack.enter_context(patch.object(control, "tool_identities", side_effect=tools_read or (lambda *_: tools)))
-            stack.enter_context(patch.object(control, "registered_cells", return_value=cells))
-            stack.enter_context(patch.object(control.support, "snapshot"))
+            registry = stack.enter_context(patch.object(control, "registered_cells", return_value=cells))
+            snapshot = stack.enter_context(patch.object(chosen, "snapshot"))
             evaluate = stack.enter_context(patch.object(control, "evaluate_reference", side_effect=row_results,
                                                         return_value={"passed": True, "mock_only": True}))
             process = stack.enter_context(patch("subprocess.Popen", side_effect=AssertionError("no process in wrapper mock controls")))
             with redirect_stdout(io.StringIO()):
-                result = control.run(output=Path(tmp) / "output", clang="unused-clang", rustc="unused-rustc")
+                result = control.run(output=Path(tmp) / "output", clang="unused-clang", rustc="unused-rustc",
+                                     study_version=study_version)
             retained = json.loads((Path(tmp) / "output" / "REFERENCES.json").read_text())
             self.assertEqual(result, retained)
             process.assert_not_called()
+            clean.assert_called_once_with(study_support=chosen)
+            registry.assert_called_once_with(study_support=chosen)
+            snapshot.assert_called_once_with(Path(tmp) / "output", source)
+            for call in evaluate.call_args_list:
+                self.assertIs(call.kwargs["study_support"], chosen)
             return result, evaluate
 
     def test_complete_mock_run_requires_all_nineteen_and_never_claims_qualification(self):
@@ -182,6 +195,45 @@ class ToolReferenceTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "OUTPUT"):
                 control.run(output=control.ROOT / "artifacts" / "forbidden", clang="unused", rustc="unused")
         source.assert_not_called()
+
+    def test_unknown_study_is_rejected_before_any_source_or_output_work(self):
+        with patch.object(control, "clean_source") as source, patch.object(control, "tool_identities") as tools:
+            with self.assertRaisesRegex(ValueError, "STUDY_VERSION"):
+                control.run(output="unused", clang="unused", rustc="unused", study_version="latest")
+        source.assert_not_called()
+        tools.assert_not_called()
+
+    def test_v9_profile_binds_its_protocol_and_cannot_pollute_default_v8(self):
+        for version in ("v9", "v8"):
+            with self.subTest(version=version):
+                selected = control.select_study(version)
+                self.assertEqual(len(control.registered_cells(study_support=selected)), 19)
+                result, _ = self.run_mock(study_version=version)
+                self.assertEqual(result["study_version"], version)
+                self.assertEqual(result["study_protocol_schema"], "hepta.agent.real-node-toolstudy." + version)
+                self.assertEqual(result["protocol_sha256"], control.evaluator.file_identity(selected.HERE / "PROTOCOL.json")["sha256"])
+                self.assertTrue(result["complete"])
+                self.assertEqual(result["passed"], 19)
+                self.assertFalse(result["capacity_qualified"])
+                self.assertFalse(result["model_qualified"])
+        self.assertIs(control.select_study("v8"), control.support)
+
+    def test_v9_source_binding_cannot_fall_back_to_v8(self):
+        selected = control.select_study("v9")
+        with patch.object(selected, "bindings", return_value={"selected-v9.py": "v9-hash"}) as selected_read:
+            with patch.object(control.support, "bindings", side_effect=AssertionError("wrong V8 bindings")):
+                bound = control.source_bindings(study_support=selected)
+        selected_read.assert_called_once_with()
+        self.assertEqual(bound["selected-v9.py"], "v9-hash")
+        self.assertTrue(all(name in bound for name in control.EXTRA_SOURCE))
+
+    def test_v9_reference_uses_selected_session_with_shared_unchanged_validator(self):
+        selected = control.select_study("v9")
+        with patch.object(control.support, "session_for", side_effect=AssertionError("wrong V8 session")):
+            result, *_, validate, execute = self.evaluate_mock(study_support=selected)
+        validate.assert_called_once()
+        execute.assert_called_once()
+        self.assertTrue(result["passed"])
 
 
 if __name__ == "__main__":

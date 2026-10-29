@@ -6,7 +6,7 @@ edit adapters. It has no model, server, or tokenizer argument, starts no
 inference process, and performs no tokenizer capacity check. Its distinct
 receipt schema is `hepta.agent.real-node.native-references.v1`.
 
-The wrapper leaves every existing V8 experiment file and protocol unchanged.
+The wrapper leaves every existing V8 and V9 experiment file and protocol unchanged.
 It reuses the registered cell order, source-derived queries, original reference
 builder, `validation.evaluate`, and the existing `evaluator.execute`. The
 three qualification fixtures and sixteen four-arm main fixtures retain their
@@ -24,6 +24,15 @@ Run on a clean committed checkout, with output outside the checkout:
   --clang /path/to/clang \
   --rustc /path/to/rustc
 ```
+
+The default is `--study-version v8`. To bind the separate V9 source/protocol,
+use `--study-version v9` and a distinct output directory. The finite selector
+resolves one support module for the entire run and passes it explicitly through
+source snapshots, the registry, sessions and all identity boundaries. It never
+rebinds a module global; a later V8 invocation cannot inherit V9 state. Both
+versions reuse the same unchanged reference builder and validation/evaluation
+implementation. Receipts record `study_version`, `study_protocol_schema` and
+the selected protocol's actual SHA-256. Selecting V9 is not model qualification.
 
 The existing native evaluator requires its normal Linux file-seal support and
 working compiler toolchains. No GGUF, inference runtime, tokenizer executable,
@@ -67,7 +76,7 @@ Every receipt explicitly records:
 - `agent_successes = 0`;
 - `capacity_qualified = false` and `model_qualified = false`.
 
-Even 19/19 native reference successes cannot satisfy V8's model qualification,
+Even 19/19 native reference successes cannot satisfy either model qualification,
 authorize the four-arm model main, demonstrate tokenizer capacity, or establish
 Agent productivity. The positive controls are engineering evidence for the
 recorded integration source. They are not a performance experiment, a language
@@ -81,6 +90,9 @@ reference forwarding, failed-build/public gates, hidden resource/artifact
 failure, whole-run failure accounting, source drift, post-row identity read
 failure, and refusal to write CI output into the clean checkout. Mock executions
 explicitly disallow subprocess creation.
+Additional selection controls reject unknown versions before work, require V9's
+actual source/protocol/session selection, and check V9 followed by default V8
+without global-state contamination. All reference/model distinctions remain.
 
 Those tests validate wrapper orchestration only. They cannot be reported as
 19 native successes. The actual compiler/native reference executions are left

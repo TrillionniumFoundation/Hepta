@@ -1,0 +1,105 @@
+{
+  "schema": "hepta.hia.root-report-readonly-review.v1",
+  "reviewer": "ndu_closure_next",
+  "completed_utc": "2026-10-29T03:48:55.719784+00:00",
+  "reviewed_files": [
+    {
+      "path": "docs/HIA_NEXT_SIX_OUTCOMES_20261029.md",
+      "bytes": 17302,
+      "sha256": "52df25ab70d5ec5ee81d8d90e0085af7f17a1ce961fd8c9369045cc38ce02f50"
+    },
+    {
+      "path": "experiments/hia_next_closure/BLOCKERS_20261029.json",
+      "bytes": 11857,
+      "sha256": "dd20b7a91ed06941b45440207b52a355e2ca8f265e4171e8dcf0d5a455c79d9b"
+    },
+    {
+      "path": "experiments/hia_next_closure/CI_OBSERVATIONS_20261029.json",
+      "bytes": 8414,
+      "sha256": "755531735e9c77814f99c6dd009dd0bcefa7048dc5558415cc66f702206112ef"
+    },
+    {
+      "path": "experiments/hia_next_closure/SOURCE_PUBLICATIONS_20261029.json",
+      "bytes": 1588,
+      "sha256": "c54e3110274b277f51d40cfcce3a7edb7afdcbd695ea145bb4094adb77d70129"
+    }
+  ],
+  "initial_pre_v8_report_sha256": "6320c8f49c3dd70fde7e2a98e9fb7825046ca11f8875f6d505a7236248e81fd8",
+  "initial_pre_v8_blockers_sha256": "45f526d65023acf0a9378659d470ce63cdf76f4d3df3ca1340d9d50126484aa7",
+  "reviewed_v8_result_sha256": "7f411804f0c161b5ffbc7d54d4065504074e0a3e2acfafac1ba4b1fe009567fe",
+  "historical_ci_module_inventory": [
+    {
+      "commit": "e629d92d82752244edf11c3ae5a0c477a64e9252",
+      "inventory_source_sha256": "77f39598bef141004f955f40508d27e3415fe9e2d714c3527bac0f0fb5b7b242",
+      "entries": 71,
+      "unique_module_names": 70,
+      "duplicate_modules": {
+        "tests.test_hia_returned_loans": 2
+      }
+    },
+    {
+      "commit": "bf171ca07ecff1235ed6d1e4d92859d091839ef3",
+      "inventory_source_sha256": "77f39598bef141004f955f40508d27e3415fe9e2d714c3527bac0f0fb5b7b242",
+      "entries": 71,
+      "unique_module_names": 70,
+      "duplicate_modules": {
+        "tests.test_hia_returned_loans": 2
+      }
+    },
+    {
+      "commit": "d929de4b48649dfe86aef6fd1c2a2497e50ef023",
+      "inventory_source_sha256": "46372d8cb705f24a3d0abfcfc518b5df56071a6736b728b7966c9d2b5c7c9bf2",
+      "entries": 77,
+      "unique_module_names": 76,
+      "duplicate_modules": {
+        "tests.test_hia_returned_loans": 2
+      }
+    },
+    {
+      "commit": "97aa97110be8fd307503dce3baca9499f8bb0da4",
+      "inventory_source_sha256": "f01fff9f6d64e3cefefe7b2433f594429e61bab26e027b31fa36efb4a5c197e2",
+      "entries": 78,
+      "unique_module_names": 77,
+      "duplicate_modules": {
+        "tests.test_hia_returned_loans": 2
+      }
+    },
+    {
+      "commit": "79d7bb4891eca97546f08ff8abe5a0d1e50380ff",
+      "inventory_source_sha256": "d484394934f928d6f9a93dbc372a3e9226e5355d208c8c6c2283a97690bf317d",
+      "entries": 79,
+      "unique_module_names": 79,
+      "duplicate_modules": {}
+    }
+  ],
+  "returned_loans_static_test_methods_at_97aa": 31,
+  "recommendations": [
+    {
+      "id": "historical-test-count-kind",
+      "finding": "All four historical verified-native sources inspected repeat tests.test_hia_returned_loans. Their 668/735/756 counts are executions, not demonstrated unique IDs. The source/application suites have their own inventory and must not be indiscriminately decremented.",
+      "minimal_revision": "Retain historical values; annotate verified-native count semantics and 31 known repeated executions in CI observations. Keep new integrated CI tied to its actual head/run and do not combine it with historical denominators.",
+      "root_report_already_mentions_756_duplicate": true,
+      "full_unique_test_ID_set_independently_proved": false
+    },
+    {
+      "id": "known-v8-capacity-cost",
+      "finding": "Capacity/reference execution has a recorded 64.003405956 seconds in addition to 2059.597590950-second qualification and 5.690141661-second main refusal. The sum of these recorded phases is 2129.291138567 seconds, not complete project cost.",
+      "minimal_revision": "Report the capacity/reference timer or the explicitly scoped three-phase sum; keep the known 44-request/58630-token V5/V6/V8 generation ledger separate.",
+      "capacity_timer_present_at_this_read": true
+    }
+  ],
+  "supported_current_claims": [
+    "V8 is 8 complete requests, 19014 input + 3398 output =22412, fresh 1/3 and main0; no HIA model comparison",
+    "API and owner failure attribution is disclosed type/expression fragment rejection, separately from the prospective overlap-disclosure issue",
+    "Original33c46cd capacity/reference checks are engineering scope; later integrated19-reference CI does not rerun the model or replace original result attribution",
+    "Whole-language soundness, general C/C++ migration cost, NDU benefit and strong performance/resource superiority remain unestablished"
+  ],
+  "scope_limits": [
+    "No remoteCI polling or new measurements were performed",
+    "No native/model/tokenizer/compilation/tests were run",
+    "Old module inventory was inspected statically; exact unique unittest IDs across all modules were not executed or reconstructed",
+    "Root files were read while parent was editing; all conclusions are tied to the recorded read digests",
+    "No root file was modified; recommendations were sent to parent for minimal edits"
+  ],
+  "source_model_test_or_scientific_gates_modified": false
+}
