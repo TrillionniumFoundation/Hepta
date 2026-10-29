@@ -58,7 +58,7 @@ class ClangPreprocessingEscapes(unittest.TestCase):
                 root = Path(temp)
                 source, output, report = root / "in.c", root / "out.hepta", root / "report.json"
                 source.write_text(
-                    f"int identity(int x) {{ return x + {macro}; }}\\n", encoding="utf-8")
+                    f"int identity(int x) {{ return x + {macro}; }}\n", encoding="utf-8")
                 result = migrate(source, output, report, clang="clang")
                 self.assertEqual(result["status"], "rejected", result)
                 self.assertIn("predefined compiler identifiers", result["reason"])
@@ -71,7 +71,7 @@ class ClangPreprocessingEscapes(unittest.TestCase):
             root = Path(temp)
             source, output, report = root / "in.c", root / "out.hepta", root / "report.json"
             source.write_text(
-                "int add_one(int user_value) { return user_value + 1; }\\n", encoding="utf-8")
+                "int add_one(int user_value) { return user_value + 1; }\n", encoding="utf-8")
             result = migrate(source, output, report, clang="clang")
             self.assertEqual(result["status"], "converted", result)
             self.assertIn('export "C" fn add_one', output.read_text())
