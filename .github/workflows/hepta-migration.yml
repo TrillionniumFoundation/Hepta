@@ -3,7 +3,12 @@ on:
   push:
     branches:
       - dot/hsir-c2hepta-p0-p3-20261024
+      - audit/hepta-p3-pinned-rustc-ci-20261029
+  pull_request:
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 concurrency:
   group: hepta-migration-${{ github.ref }}
@@ -12,16 +17,31 @@ concurrency:
 jobs:
   migration-and-frontend:
     runs-on: ubuntu-24.04
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Verify compilers
+      - name: Install checksum-locked native Rust 1.90.0
+        run: |
+          python3 tools/bootstrap_toolchain.py --prefix "$RUNNER_TEMP/hepta-rust-1.90.0" --targets
+          echo "RUSTC=$RUNNER_TEMP/hepta-rust-1.90.0/bin/rustc" >> "$GITHUB_ENV"
+      - name: Verify actual compiler identities
         run: |
           python3 --version
           clang --version
           gcc --version
+          "$RUSTC" -vV
+          python3 - <<'PY'
+          import os
+          from hepta.backend import find_rustc, toolchain_info
+          actual = find_rustc()
+          assert os.path.samefile(actual, os.environ["RUSTC"]), "native compiler selection changed"
+          info = toolchain_info(actual)
+          assert info["host"] == "x86_64-unknown-linux-gnu", info
+          print("Verified pinned native rustc:", info["version"])
+          PY
       - name: Run c2hepta and HSIR suite
         run: python3 -m unittest discover -s tests -p test_c2hepta.py -v
       - name: Run entire Python test suite
