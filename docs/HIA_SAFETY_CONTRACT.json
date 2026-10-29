@@ -186,7 +186,8 @@
     },
     {
       "entrypoints": [
-        "hepta.hia_program_llvm.build_program_native"
+        "hepta.hia_program_llvm.build_program_native",
+        "tools.hia_filecheck_target_profile.bind_native_target_profile"
       ],
       "exclusions": [
         "Core-to-LLVM refinement not proved",
@@ -197,9 +198,10 @@
       "id": "native_lowering",
       "regression_selectors": [
         "tests.test_hia_program_llvm.StandaloneHIANativeTests.test_owned_allocation_moves_loans_and_normal_error_cleanup",
-        "tests.test_hia_program_llvm.StandaloneHIANativeTests.test_allocator_observer_rejects_compiled_leak_with_correct_return_values"
+        "tests.test_hia_program_llvm.StandaloneHIANativeTests.test_allocator_observer_rejects_compiled_leak_with_correct_return_values",
+        "tests.test_hia_filecheck_target_profile.FilecheckTargetProfileTests.test_masked_cpu_lto_preserves_complete_frontend_feature_policy"
       ],
-      "scope": "direct LLVM from immutable reverified HIA; Linux x86-64 native execution; other target qualification is separate"
+      "scope": "direct LLVM from immutable reverified HIA; Linux x86-64 native execution; other target qualification is separate; filecheck research full-LTO IR explicitly retains the same C frontend CPU and complete positive/negative feature policy, with actual masked-x86 CPU refusal and success controls"
     },
     {
       "entrypoints": [
@@ -314,12 +316,14 @@
     {
       "entrypoints": [
         "tools.qualify_hia_safety_contract.validate_contract",
-        "tools.qualify_hia_integrated._source_state"
+        "tools.qualify_hia_integrated._source_state",
+        "tools.qualify_hia_filecheck.Trial.run"
       ],
       "exclusions": [
         "no program admission authority",
         "no authentication of a hostile host or maintainer",
-        "no soundness or refinement proof"
+        "no soundness or refinement proof",
+        "native validation process isolation is not a hostile-code sandbox or complete signal cleanup theorem"
       ],
       "guarantee": "reviewed_qualification_protocol",
       "id": "qualification_protocol_integrity",
@@ -332,9 +336,11 @@
         "tests.test_hia_integrated_workflow.IntegratedWorkflowContractTests.test_real_shell_preserves_failure_and_qualifies_a_clean_exact_sibling",
         "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_workflow_checkout_and_license_inputs_are_bound_to_actual_bytes",
         "tests.test_hia_source_head_identity.SourceHeadIdentityTests.test_index_hints_cannot_hide_modified_bytes_before_first_snapshot",
-        "tests.test_hia_source_head_identity.SourceHeadIdentityTests.test_mode_changes_cannot_hide_behind_core_filemode_false"
+        "tests.test_hia_source_head_identity.SourceHeadIdentityTests.test_mode_changes_cannot_hide_behind_core_filemode_false",
+        "tests.test_hia_filecheck_native_isolation.FilecheckNativeIsolationTests.test_sigill_differential_preserves_failed_report_context_and_partial_progress",
+        "tests.test_hia_filecheck_native_isolation.FilecheckNativeIsolationTests.test_sigabrt_maintenance_preserves_failed_report_context_and_partial_progress"
       ],
-      "scope": "exact reviewed capability/test/assumption matrix; dynamic resolution uses only the canonical bytes whose independent identity passed; original Git object identity ignores replacement refs; integrated source snapshots enumerate the exact HEAD tree and verify every regular file's raw Git blob bytes and executable bit independently of index hints or core.fileMode; CI passes four explicit native profiles and preserves qualification failure from a clean exact source; workflow, checkout and frozen C++ license/notice bytes participate in before/after safety input identity"
+      "scope": "exact reviewed capability/test/assumption matrix; dynamic resolution uses only the canonical bytes whose independent identity passed; original Git object identity ignores replacement refs; integrated source snapshots enumerate the exact HEAD tree and verify every regular file's raw Git blob bytes and executable bit independently of index hints or core.fileMode; CI passes four explicit native profiles and preserves qualification failure from a clean exact source; workflow, checkout and frozen C++ license/notice bytes participate in before/after safety input identity; finite filecheck validation workers retain signal failures, partial invocation progress and host/tool context in a failed qualification report"
     }
   ],
   "judgment": {

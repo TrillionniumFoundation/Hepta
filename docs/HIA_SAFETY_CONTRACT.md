@@ -41,6 +41,17 @@ working members, unsafe/duplicate paths and changes during an identity read
 are rejected. Hints on unchanged bytes remain accepted. This is a source-input
 identity check, not authentication of a hostile host or a refinement theorem.
 
+The reviewed matrix also includes the finite filecheck research target and
+native-failure boundaries. Its full-LTO IR retains the actual C frontend's CPU
+and complete positive/negative feature attributes; a real masked-x86 emulator
+checks the reproduced refusal and successful bound route. Differential and
+maintenance workers preserve actual signal status and partial progress in a
+failed parent qualification report. The linker and emulator identities are
+recorded, and integrated qualification binds the emulator before and after.
+These checks preserve all previous selectors and do not change production
+admission or the `no_change` policy. See
+[the detailed contract](HIA_FILECHECK_NATIVE_TARGET_AND_FAILURES.md).
+
 ## Typed state and instruction obligations
 
 The following judgment names the state already checked by the implementation:

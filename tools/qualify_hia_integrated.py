@@ -61,6 +61,8 @@ CRITICAL_MODULES = {
     "exact_native_advisory_reuse": ("test_hia_ndu_cache",),
     "sealed_ndu_stream_net_value": ("test_hia_ndu_session", "test_hia_ndu_net_value"),
     "real_cpp_host_contract": ("test_cpp_upstream_host", "test_cpp_contract_capture"),
+    "filecheck_research_target_and_signal_boundaries": ("test_hia_filecheck_target_profile",
+                                                        "test_hia_filecheck_native_isolation"),
     "native_runtime_lifecycles": ("test_hia_multiversion", "test_hia_background_optimizer",
                                   "test_hia_adaptive", "test_hia_scalar_state",
                                   "test_hia_multiversion_totality", "test_hia_native_retirement",
@@ -262,6 +264,7 @@ def _tool_gate(options, output):
         "llvm_readobj": os.environ.get("HEPTA_LLVM_READOBJ", "llvm-readobj"),
         "qemu_aarch64": os.environ.get("HEPTA_QEMU_AARCH64", "qemu-aarch64"),
         "qemu_riscv64": os.environ.get("HEPTA_QEMU_RISCV64", "qemu-riscv64"),
+        "qemu_x86_64": os.environ.get("HEPTA_QEMU_X86_64", "qemu-x86_64"),
         "qemu_system_arm": "qemu-system-arm",
         "lean": os.environ.get("LEAN", str(ROOT.parent / "toolchains/lean-4.19.0/bin/lean")),
     }
@@ -590,7 +593,8 @@ def qualify(options):
         report["configured_environment"] = configured
         report["inherited_tool_environment"] = {name: os.environ.get(name) for name in (
             "CARGO_HOME", "LD_LIBRARY_PATH", "CPLUS_INCLUDE_PATH", "CPATH", "LEAN",
-            "HEPTA_LLD", "HEPTA_LLVM_READOBJ", "HEPTA_QEMU_AARCH64", "HEPTA_QEMU_RISCV64")}
+            "HEPTA_LLD", "HEPTA_LLVM_READOBJ", "HEPTA_QEMU_AARCH64", "HEPTA_QEMU_RISCV64",
+            "HEPTA_QEMU_X86_64")}
         commands = [
             ("rust_resource_crate", [str(options.cargo), "test", "--locked", "--offline", "--manifest-path",
                                      "rust/hia-core-shadow/Cargo.toml"], "cargo"),

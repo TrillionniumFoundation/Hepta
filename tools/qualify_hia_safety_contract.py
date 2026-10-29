@@ -34,7 +34,7 @@ CONTRACT = ROOT / "docs/HIA_SAFETY_CONTRACT.json"
 # caller can remove capabilities/tests and still obtain the same qualification
 # status for a weaker matrix. Deliberate protocol changes must review and update
 # this identity together with the contract and its boundary tests.
-REVIEWED_CONTRACT_SHA256 = "287ebeef28eb46b8211af487ec672cea8cbcee4831f759a722d0ea1aac7ba6e4"
+REVIEWED_CONTRACT_SHA256 = "0d1c3cc239b56804225c1d900d098e35881bb5fe9a3e11fe3000e3e70dfb951e"
 _UNPROVED = frozenset({"whole_language_soundness_proved", "source_to_core_refinement_proved",
     "core_to_native_refinement_proved", "global_optimality_proved", "absolute_resource_safety_proved",
     "general_concurrent_memory_safety_proved", "native_process_memory_bound_proved",
@@ -149,7 +149,9 @@ def environment_identity():
     tools = {}
     for label, selector in (("clang", os.environ.get("CLANG", "clang")),
                             ("rustc", os.environ.get("RUSTC", "rustc")),
-                            ("cargo", os.environ.get("CARGO", "cargo"))):
+                            ("cargo", os.environ.get("CARGO", "cargo")),
+                            ("lld", os.environ.get("HEPTA_LLD", "ld.lld")),
+                            ("qemu_x86_64", os.environ.get("HEPTA_QEMU_X86_64", "qemu-x86_64"))):
         path = shutil.which(selector)
         tools[label] = ({"path": path, "sha256": digest(path), "version": command([path, "--version"])}
                         if path else {"path": None, "status": "missing"})

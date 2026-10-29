@@ -20,6 +20,8 @@ identities. This increment does not repeat or relabel them.
 | P7 qualification scope | The reviewed safety matrix has an independent canonical identity and is resolved from the checked immutable bytes | Removing capabilities/tests or changing assumptions cannot inherit the reviewed qualification. This is protocol integrity, not a semantic theorem |
 | P7 committed source identity | Every main-source snapshot enumerates the original exact HEAD tree and compares each regular working file's raw Git blob identity and executable bit | Index hints, replacement refs and `core.fileMode=false` cannot relabel changed bytes or modes as the original source; this does not authenticate a hostile host |
 | P7 external inputs | The persistent NDU stream is a fourth explicitly pinned native dependency, with actual persistent/one-shot controls and before/after external inventories | Synthetic identity probes establish no NDU optimization gain or publication authority |
+| P6/P7 research native target | The filecheck research IR retains the actual C frontend CPU and complete positive/negative feature policy through full LTO | Controlled masked-CPU execution checks this finite path; the default backend receipt and `no_change` optimization policy remain separate |
+| P7 native failure retention | Differential and maintenance validation run in finite workers so actual signal failures retain progress and a failed qualification report | This does not establish hostile-code isolation or normal resource cleanup after a signal |
 
 Detailed implementation contracts:
 
@@ -30,6 +32,7 @@ Detailed implementation contracts:
 - [Rust subprocess ownership and cleanup](HIA_RUST_SHADOW_PROCESS_OWNERSHIP.md)
 - [Migration input and compiler-process boundaries](P0_P4_MIGRATION_BOUNDARIES_20261028.md)
 - [Reviewed safety contract](HIA_SAFETY_CONTRACT.md)
+- [Research target policy and native failure retention](HIA_FILECHECK_NATIVE_TARGET_AND_FAILURES.md)
 
 The C migration integration selects the existing fixes from #349, #350, #351,
 #353, #354, #355 and #356, whose final source is
@@ -108,9 +111,9 @@ the final always-run upload retains the integrated raw records and stream build
 identity alongside the existing native records. The wider job watchdog allows
 the additional full regression pass without removing or weakening earlier gates.
 These are CI execution requirements, not a claim that an unobserved host run has
-already passed. The separately invoked safety contract currently selects 77
+already passed. The separately invoked safety contract currently selects 80
 unique regression methods across 16 capability rows under its canonical hash.
-The prior 75 selectors remain present; the two additions reject pre-snapshot
+The prior 77 selectors remain present; their source-identity additions reject pre-snapshot
 byte changes hidden by either index hint and executable-bit changes hidden by
 `core.fileMode=false`. The integrated source inventory comes from the raw exact
 HEAD tree, independently of the index. A single bounded read computes SHA-256
@@ -126,6 +129,21 @@ Its before/after input inventory includes tracked workflow files, checkout
 attributes and all frozen C++ upgrade inputs, including licenses and notices.
 These controls participate in source stability even when their suffix is not
 one of the language-source suffixes.
+
+The subsequent three matrix additions cover actual masked-x86 target-policy
+execution and retained `SIGILL`/`SIGABRT` failures in the filecheck validation
+workers. Their original motivating failure remains attached to `3d5401c`.
+Explicit C frontend target attributes prevent the reproduced raw-IR full-LTO
+loss of disabled features without dropping LTO or downgrading the native arm.
+The x86 emulator is an explicit actual-tool identity in integrated qualification.
+Neither a controlled CPU reproduction nor a later passing host run establishes
+the missing CPU identity of the original failed CI runner.
+
+The old workflow watchdog assertion is aligned with the already declared
+240-minute job budget for three complete regression passes. Individual
+3,600-second unit budgets, native gate collection and failure acceptance remain
+unchanged. The original complete run that rejected the stale 180-minute
+assertion is retained as a failed run, not a source-qualified success.
 
 ## Broad P0–P7 closure remains open
 
