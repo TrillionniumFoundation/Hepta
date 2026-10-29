@@ -149,6 +149,33 @@ class C2HeptaImport(unittest.TestCase):
         self.assertFalse(self.out.exists())
         self.assertTrue(self.report.exists())
 
+    def test_clang_must_compile_hash_bound_source_snapshot(self):
+        # Model a path swap during Clang's AST invocation, followed by a
+        # restore before the importer's final source-digest recheck.
+        # Compiling the path would accept attacker's code while attributing
+        # its output to the original source hash.
+        original = "int safe(int x){return x;}\\n".replace("\\n", "\n")
+        replacement = "int evil(int x){return x+1;}\\n".replace("\\n", "\n")
+        self.src.write_text(original, encoding="utf-8")
+        actual_run = subprocess.run
+
+        def swap_during_ast(command, *args, **kwargs):
+            if "-ast-dump=json" not in command:
+                return actual_run(command, *args, **kwargs)
+            self.src.write_text(replacement, encoding="utf-8")
+            try:
+                return actual_run(command, *args, **kwargs)
+            finally:
+                self.src.write_text(original, encoding="utf-8")
+
+        with mock.patch("tools.c2hepta.subprocess.run", side_effect=swap_during_ast):
+            result = migrate(self.src, self.out, self.report)
+        self.assertEqual(result["status"], "converted", result)
+        self.assertEqual([item["name"] for item in result["functions"]], ["safe"])
+        self.assertIn("fn safe(", self.out.read_text())
+        self.assertNotIn("fn evil(", self.out.read_text())
+        self.assertEqual(result["source_sha256"], __import__("hashlib").sha256(original.encode()).hexdigest())
+
     def test_native_gate_without_frontend_fails_closed(self):
         self.src.write_text("int f(int x){return x;}", encoding="utf-8")
         result = migrate(self.src, self.out, self.report, verify_native=True, rustc="/no/such/rustc")
