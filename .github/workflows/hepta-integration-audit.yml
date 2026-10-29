@@ -1,0 +1,20 @@
+name: P0 integration Git capture audit
+on:
+  push:
+    branches:
+      - audit/hepta-p0-git-tree-stream-budget-20261029
+  pull_request:
+    paths:
+      - tools/audit_parallel_prs.py
+      - tests/test_parallel_pr_audit.py
+      - .github/workflows/hepta-integration-audit.yml
+  workflow_dispatch:
+
+jobs:
+  git-capture-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run bounded-Git audit tests
+        run: python -m unittest discover -s tests -p test_parallel_pr_audit.py -v
