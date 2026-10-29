@@ -7,9 +7,12 @@ records are scalarized, and concrete Results use a tag and both payloads.  An
 inactive buffer payload is a real empty owner which is explicitly consumed.
 
 The profile is deliberately bounded: integer/Boolean values, concrete records,
-byte buffers, concrete Results, direct calls and structured control flow.
+byte buffers, concrete Results, finite unit enums, direct calls and structured
+control flow. Unit enums use declaration-ordered u32 tags and checked CFG arms.
 Closed generic calls/records are specialized as AST nodes before CFG lowering.
-Foreign code, tasks, stored references, floats and unbounded specialization reject.
+Finite local byte-view records reuse the existing independently checked
+Resource IR profile. Foreign code, tasks, escaping stored references, floats
+and unbounded specialization reject.
 Scalarization is an internal calling convention, not a C aggregate ABI claim.
 Public scalar entries are selected from the original declarations before
 specialization or scalarization and retained in the verified Core exports.
@@ -24,6 +27,7 @@ from .ast import Expr, Function, MatchArm, Program, Stmt, Type
 from .checker import check
 from .parser import parse
 from .hia_program import HIAProgramRejected, VerifiedProgram, verify_program
+from .hia_program_composite import MAX_VARIANTS
 from .hia_schema import SCHEMA as SCHEMA_V1, SCHEMA_V8
 
 
@@ -33,6 +37,17 @@ class HIAProgramSourceRejected(ValueError):
 
 def _reject(message: str) -> None:
     raise HIAProgramSourceRejected("E_HIA_SOURCE: " + message)
+
+
+def _unit_enums(program):
+    """Use the existing finite enum limit without admitting payload layouts."""
+    result = {}
+    for enum in program.enums:
+        if (enum.type_params or not 1 <= len(enum.variants) <= MAX_VARIANTS
+                or any(variant.fields for variant in enum.variants)):
+            _reject(f"source enums require 1..{MAX_VARIANTS} concrete unit variants without payloads or generics")
+        result[enum.name] = tuple(variant.name for variant in enum.variants)
+    return result
 
 
 class _Specialize:
@@ -46,7 +61,8 @@ class _Specialize:
         self.program, self.checked = program, checked
         self.functions = {fn.name: fn for fn in program.functions}
         self.records = {record.name: record for record in program.structs}
-        self.names = set(self.functions) | set(self.records)
+        self.unit_enums = _unit_enums(program)
+        self.names = set(self.functions) | set(self.records) | set(self.unit_enums)
         self.instances, self.record_instances = {}, {}
         self.pending, self.output, self.output_records, self.inventory = [], [], [], []
 
@@ -116,8 +132,8 @@ class _Specialize:
             args = ()
         elif expr.kind == "variant":
             checked_type = self.checked.expr_types.get(id(expr))
-            if checked_type is None or checked_type.name != "Result":
-                _reject("only builtin Result is supported during generic specialization")
+            if checked_type is None or checked_type.name not in {"Result", *self.unit_enums}:
+                _reject("only builtin Result and concrete unit enums support generic specialization")
             args = self.typ(checked_type, mapping).args
         return replace(expr, value=value, children=children, type_args=args)
 
@@ -210,6 +226,7 @@ class _Lower:
         self.core_schema = core_schema
         self.module = module or program.name
         self.structs = {s.name: s for s in program.structs}
+        self.unit_enums = _unit_enums(program)
         self.functions = {f.name: f for f in program.functions}
         self.serial = self.value_serial = self.block_serial = 0
         self.blocks: list[dict] = []
@@ -219,6 +236,32 @@ class _Lower:
         self.return_origin_leaves: dict[str, int] = {}
         self.source_map: list[dict] = []
         self.exports = tuple(exports)
+        self.local_views = self.checked_local_views()
+
+    def checked_local_views(self):
+        """Reuse the existing local-view admission, then emit ordinary Core.
+
+        Resource IR owns the declaration and lexical-lifetime subset; this
+        adapter does not invent a second stored-region checker. Primitive
+        Core additionally checks the actual emitted owner/loan transitions.
+        The source profile has one direct byte-slice reference and at most
+        four scalar labels, with no view parameters, returns or nesting.
+        """
+        from .borrowed_storage import contains_storage
+        if not any(record.lifetime_params or any(
+                contains_storage(member.type, self.structs, {})
+                for member in record.fields) for record in self.program.structs):
+            return {}
+        from .resource_ir import ResourceIRError
+        from .resource_lowering import lower_resource_ir
+        try:
+            # This existing public lowerer verifies its fresh resource graph.
+            lower_resource_ir(self.program, self.checked)
+        except ResourceIRError as exc:
+            _reject("local borrowed-view resource profile rejected: " + str(exc))
+        return {record.name: next((member.name, member.type.name[4:])
+                    for member in record.fields if member.type.name in {"ref_read", "ref_mut"})
+                for record in self.program.structs if record.lifetime_params}
 
     def fresh(self, prefix="v") -> str:
         self.serial += 1
@@ -275,12 +318,26 @@ class _Lower:
         return selected[0]
 
     def layout(self, typ: Type, mode="value", seen=()) -> list[tuple[tuple[str, ...], str]]:
+        if typ.name in self.local_views:
+            if typ.args or typ.length is not None or typ.lifetimes != ("_",) or mode != "value":
+                _reject("stored byte views are confined to inferred local record values")
+            borrowed_field, permission = self.local_views[typ.name]
+            result = []
+            for member in self.structs[typ.name].fields:
+                if member.name == borrowed_field:
+                    result.append(((member.name,), "readbuf" if permission == "read" else "mutbuf"))
+                else:
+                    result.extend(((member.name, *path), leaf)
+                                  for path, leaf in self.layout(member.type))
+            return result
         if typ.lifetimes or typ.length is not None:
             _reject("stored references and fixed-array layouts are outside this profile")
         if typ.name == "Unit" and not typ.args:
             return []
         if typ.name in _SCALARS and not typ.args:
             return [((), typ.name)]
+        if typ.name in self.unit_enums and not typ.args:
+            return [((), "u32")]
         if typ.name in {"Buffer", "slice"} and typ.args == (Type("u8"),):
             if typ.name == "slice" and mode not in {"read", "mut"}:
                 _reject("a slice requires an explicit borrowed parameter")
@@ -356,6 +413,37 @@ class _Lower:
         parents, value.borrow_parents = value.borrow_parents, []
         for parent in reversed(parents):
             self.end_loans(state, parent)
+
+    def end_local_views(self, state, departing, *, retained=()):
+        """End shared lexical aliases only after their final local binding.
+
+        Shared copies name the same primitive capability, not new reborrows
+        that would suspend the original. Mutable views must be explicitly
+        moved/dropped; no implicit destructor is added for them.
+        """
+        departing, retained = set(departing), set(retained)
+        retained_loans = {loan for key in retained if key in state.values
+                          for loan in state.values[key].loans}
+        ended = set()
+        for key in sorted(departing, reverse=True):
+            value = state.values.get(key)
+            if value is None or value.typ.name not in self.local_views:
+                continue
+            if self.local_views[value.typ.name][1] == "mut" and value.loans:
+                _reject("exclusive local views require explicit move/drop before scope exit")
+            for loan in reversed(list(value.loans)):
+                if loan not in retained_loans and loan not in ended:
+                    self.emit(state, "loan.end", [loan])
+                    self.consume(state, loan)
+                    ended.add(loan)
+            if key not in retained:
+                value.atoms = [None] * len(value.atoms)
+                value.loans = []
+
+    def restore_scope(self, state, before):
+        self.end_local_views(state, set(state.env.values()) - set(before.values()),
+                             retained=before.values())
+        state.env = before
 
     def new_block(self, state: _State, keys=None) -> tuple[_State, list[tuple[int, int]], list[str]]:
         self.block_serial += 1
@@ -441,9 +529,10 @@ class _Lower:
                 _reject("field projection requires a concrete record")
             offset = 0
             for member in record.fields:
-                count = len(self.layout(member.type))
+                reference = base.name in self.local_views and member.type.name in {"ref_read", "ref_mut"}
+                count = 1 if reference else len(self.layout(member.type))
                 if member.name == expr.value:
-                    return key, indices[offset:offset + count], member.type
+                    return key, indices[offset:offset + count], member.type.args[0] if reference else member.type
                 offset += count
         _reject("borrow and assignment places must be local records or fields")
 
@@ -503,6 +592,8 @@ class _Lower:
             origin = state.env[expr.value]
             value = self.get(state, origin)
             self.source_access(state, origin, range(len(value.atoms)))
+            if value.typ.name in self.local_views:
+                return state, origin
             return state, self.value(state, typ, value.atoms, value.types)
         if expr.kind == "field":
             root = expr
@@ -540,11 +631,32 @@ class _Lower:
             for name, child in zip(expr.value["fields"], expr.children):
                 state, key = self.expr(state, child)
                 parts[name] = key
-            atoms, types = [], []
+            atoms, types, loans = [], [], []
             for member in self.structs[typ.name].fields:
                 value = self.get(state, parts[member.name])
                 atoms += value.atoms; types += value.types
-            return state, self.value(state, typ, atoms, types)
+                if typ.name in self.local_views:
+                    if member.name == self.local_views[typ.name][0]:
+                        # Keep the first local-view source subset to a named
+                        # byte origin. Returned-call parent stacks have their
+                        # own v8 contract and are not silently stored here.
+                        if len(value.loans) != 1 or value.borrow_parents:
+                            _reject("stored local views require one direct named byte loan")
+                        loans.extend(value.loans)
+                        value.loans = []
+                        value.origin = None
+                        value.borrow_mode = None
+                    elif value.loans or value.origin is not None:
+                        _reject("stored view labels must be independent scalar values")
+            return state, self.value(state, typ, atoms, types, loans=loans)
+        if expr.kind == "variant" and typ.name in self.unit_enums:
+            variants = self.unit_enums[typ.name]
+            if (expr.value.get("enum") != typ.name or expr.value.get("variant") not in variants
+                    or expr.children or expr.type_args):
+                _reject("unit enum construction requires one declared payload-free variant")
+            tag = variants.index(expr.value["variant"])
+            return state, self.value(state, typ, self.emit(state, "const", types=["u32"],
+                                                         attrs={"value": tag}))
         if expr.kind == "variant" and typ.name == "Result":
             if expr.value.get("enum") != "Result" or expr.value.get("variant") not in {"Ok", "Err"} or len(expr.children) != 1:
                 _reject("only concrete one-payload Results are supported")
@@ -562,6 +674,18 @@ class _Lower:
             # The signed minimum literal is not a representable positive value.
             if mode == "-" and expr.children[0].kind == "int":
                 return state, self.const(state, typ.name, -expr.children[0].value)
+            if mode == "move" and typ.name in self.local_views:
+                child = expr.children[0]
+                state, key = self.expr(state, child)
+                original = self.get(state, key)
+                if self.local_views[typ.name][1] == "read" or child.kind == "struct":
+                    return state, key
+                if child.kind != "name":
+                    _reject("exclusive local views move only as whole named values")
+                result = self.value(state, typ, original.atoms, original.types, loans=original.loans)
+                original.atoms = [None] * len(original.atoms)
+                original.loans = []
+                return state, result
             state, key = self.expr(state, expr.children[0])
             value = self.get(state, key)
             if mode == "move":
@@ -645,6 +769,12 @@ class _Lower:
             if len(arguments) != 1:
                 _reject("wrong owner release arity")
             value = self.get(state, arguments[0])
+            if value.typ.name in self.local_views:
+                if name != "drop" or self.local_views[value.typ.name][1] != "mut":
+                    _reject("only explicit drop consumes an exclusive stored local view")
+                self.end_loans(state, arguments[0])
+                value.atoms = [None] * len(value.atoms)
+                return state, self.value(state, Type("Unit"), [])
             for atom, leaf in zip(list(value.atoms), value.types):
                 if leaf == "buffer":
                     self.emit(state, "owner.drop", [atom]); self.consume(state, atom)
@@ -742,8 +872,40 @@ class _Lower:
         before = dict(state.env)
         state = self.sequence(statements, state)
         if state is not None:
-            state.env = before
+            self.restore_scope(state, before)
         return state
+
+    def match_unit_enum(self, state, result, arms):
+        """Evaluate once, carry existing capabilities, and reject invalid tags.
+
+        Nominal identity is checked in fresh source; the executable form uses
+        the same primitive comparison/branch operations as composite enums.
+        The last variant also has an explicit comparison, so an invalid Core
+        tag cannot silently select that source arm.
+        """
+        typ = self.get(state, result).typ
+        variants = self.unit_enums[typ.name]
+        cases = {arm.pattern.variant: arm for arm in arms}
+        if (len(arms) != len(variants) or set(cases) != set(variants)
+                or any(arm.pattern.enum_name != typ.name or arm.pattern.bindings for arm in arms)):
+            _reject("unit enum match requires every declared variant exactly once without bindings")
+        keys = set(state.env.values()) | state.keep
+        state.prune(keys | {result})
+        branches = []
+        for index, variant in enumerate(variants):
+            tag = self.const(state, "u32", index)
+            condition = self.emit(state, "compare.eq", [self.scalar(state, result),
+                                  self.scalar(state, tag)], ["bool"])[0]
+            state.prune(keys | {result})
+            yes, yes_spec, _ = self.new_block(state)
+            no, no_spec, _ = self.new_block(state)
+            self.branch(state, condition, yes, yes_spec, no, no_spec)
+            yes = self.scoped(cases[variant].body, yes)
+            if yes is not None:
+                branches.append(yes)
+            state = no
+        state.block["term"] = {"op": "trap", "code": "user"}
+        return self.merge(branches, keys)
 
     def sequence(self, statements: list[Stmt], state: _State) -> _State | None:
         for stmt in statements:
@@ -753,9 +915,13 @@ class _Lower:
             if stmt.kind == "let":
                 state, value_key = self.expr(state, d["expr"])
                 value = self.get(state, value_key)
-                if value.loans or value.origin is not None:
+                local_view = value.typ.name in self.local_views
+                if local_view and d["name"] in state.env:
+                    _reject("local borrowed-view bindings may not shadow existing names")
+                if not local_view and (value.loans or value.origin is not None):
                     _reject("stored local borrows require the explicit lifetime profile")
-                key = self.value(state, value.typ, value.atoms, value.types)
+                key = self.value(state, value.typ, value.atoms, value.types,
+                                 loans=value.loans if local_view else ())
                 state.env[d["name"]] = key
             elif stmt.kind == "assign":
                 # Hepta's established assignment semantics evaluate the RHS
@@ -794,13 +960,18 @@ class _Lower:
                         old.atoms[index] = atom
             elif stmt.kind == "expr":
                 state, value = self.expr(state, d["expr"])
-                self.end_loans(state, value)
+                if state.values[value].typ.name in self.local_views:
+                    if value not in state.env.values():
+                        self.end_local_views(state, [value], retained=state.env.values())
+                else:
+                    self.end_loans(state, value)
             elif stmt.kind == "return":
                 state, value = self.expr(state, d.get("expr"))
                 result = list(self.get(state, value).atoms)
                 for key in self.mutable_parameters:
                     param = state.values[key]
                     result += [atom for atom, leaf in zip(param.atoms, param.types) if leaf not in _RESOURCE]
+                self.end_local_views(state, state.env.values())
                 state.block["term"] = {"op": "ret", "values": result}
                 state = None
             elif stmt.kind == "if":
@@ -843,8 +1014,11 @@ class _Lower:
             elif stmt.kind == "match":
                 state, result = self.expr(state, d["expr"])
                 value = self.get(state, result)
+                if value.typ.name in self.unit_enums:
+                    state = self.match_unit_enum(state, result, d["arms"])
+                    continue
                 if value.typ.name != "Result":
-                    _reject("only concrete Result matching is supported")
+                    _reject("only concrete Result and unit enum matching are supported")
                 arms = {arm.pattern.variant: arm for arm in d["arms"]}
                 if set(arms) != {"Ok", "Err"} or len(d["arms"]) != 2:
                     _reject("Result match requires both variants exactly once")
@@ -877,7 +1051,7 @@ class _Lower:
                     branch.env[arm.pattern.bindings[0]] = self.value(branch, payload_type, live_atoms, live_types)
                     branch = self.sequence(arm.body, branch)
                     if branch is not None:
-                        branch.env = original_env
+                        self.restore_scope(branch, original_env)
                         branches.append(branch)
                 state = self.merge(branches, keys)
             else:
@@ -935,6 +1109,7 @@ class _Lower:
             outputs = [atom for key in self.mutable_parameters
                        for atom, leaf in zip(state.values[key].atoms, state.values[key].types)
                        if leaf not in _RESOURCE]
+            self.end_local_views(state, state.env.values())
             state.block["term"] = {"op": "ret", "values": outputs}
         result = {"name": fn.name, "params": entry["params"],
                 "returns": self.signatures[fn.name]["returns"], "effects": [],
@@ -947,10 +1122,11 @@ class _Lower:
     def lower(self):
         if not self.checked.ok or self.checked.assumptions:
             _reject("checked source without foreign assumptions is required")
-        if self.program.imports or self.program.enums or len(self.functions) > 128:
-            _reject("one bounded module with concrete records and builtin Result is required")
+        if self.program.imports or len(self.functions) > 128:
+            _reject("one bounded module with concrete records, unit enums and builtin Result is required")
         for record in self.program.structs:
-            self.layout(Type(record.name))
+            self.layout(Type(record.name, lifetimes=("_",)) if record.name in self.local_views
+                        else Type(record.name))
         for fn in self.program.functions:
             if (fn.extern_c or fn.body is None or fn.type_params or fn.lifetime_params
                     or fn.effects - {"alloc", "block", "panic", "write"}):
@@ -1041,7 +1217,7 @@ def _prepare(program):
         and all(p.mode == "value" and scalar(p.type) for p in fn.params)))
     instances = []
     if any(fn.type_params for fn in program.functions) or any(record.type_params for record in program.structs):
-        if (program.imports or program.enums or fresh.assumptions
+        if (program.imports or fresh.assumptions
                 or any(fn.lifetime_params or fn.return_lifetime or fn.extern_c
                        or fn.effects - {"alloc", "block", "panic", "write"} for fn in program.functions)
                 or any(record.lifetime_params for record in program.structs)):
@@ -1077,13 +1253,24 @@ def source_report(source: str, *, path="<hia-source>", module: str | None = None
     """Describe the exact finite source adaptation without claiming refinement."""
     program = parse(source, path)
     concrete, checked, instances, exports = _prepare(program)
-    result = verify_program(_Lower(concrete, checked, module, exports=exports, core_schema=core_schema).lower())
+    lowering = _Lower(concrete, checked, module, exports=exports, core_schema=core_schema)
+    result = verify_program(lowering.lower())
     emitted = {fn["name"] for fn in result.as_dict()["functions"]}
     specialized = {row["template"] for row in instances if row["kind"] == "fn"}
     return {"schema": "hepta.hia-source-lowering.v1", "ok": True,
             "source_sha256": hashlib.sha256(source.encode()).hexdigest(),
             "program_sha256": result.sha256,
             "core_schema": core_schema,
+            "local_borrowed_views": {
+                "records": sorted(lowering.local_views),
+                "profile": "local_single_byte_slice_and_four_scalar_labels",
+                "interprocedural_stored_regions": False,
+                "returned_call_storage": False,
+            },
+            "unit_enums": {"declarations": {name: list(variants)
+                                            for name, variants in lowering.unit_enums.items()},
+                           "tag_type": "u32", "payloads_or_generic_enums": False,
+                           "public_enum_abi": False},
             "functions": [{"name": fn.name, "status": ("template_specialized" if fn.name in specialized else "template_uninstantiated")
                            if fn.type_params else "lowered" if fn.name in emitted else "inlined_borrow_projection"}
                           for fn in program.functions],
@@ -1098,6 +1285,63 @@ def source_report(source: str, *, path="<hia-source>", module: str | None = None
                        "source_text_required_for_execution": False,
                        "source_to_ir_refinement_proved": False,
                        "c_aggregate_abi_preserved_by_scalarization": False}}
+
+
+def lower_c_project_views(database, *, contracts, clang="clang", client_source="",
+                          retain_asts=False) -> dict:
+    """Lower a captured C record/slice project into the existing independent Core.
+
+    The same structural C translator and caller-supplied contracts are used as
+    the established migration route. No Rust bridge is compiled or admitted.
+    An optional, separately authored Hepta client can construct actual owned
+    storage and call the migrated borrowed interfaces. It is checked together
+    with the generated AST, and is accounted separately from migrated bodies.
+    Only the resulting scalar entries cross the public native ABI: arbitrary
+    foreign pointers do not become trusted Core loan descriptors.
+    """
+    from .c_contracts import contract_identity, snapshot_contracts
+    from .c_project import capture_project, verify_capture
+    from .c_record_views import CRecordViewTranslator
+
+    if type(client_source) is not str or len(client_source.encode("utf-8")) > 1024 * 1024:
+        _reject("project client must be bounded Hepta source text")
+    if type(retain_asts) is not bool:
+        _reject("AST retention must be an explicit Boolean")
+    frozen_contracts = snapshot_contracts(contracts)
+    capture = capture_project(database, clang=clang)
+    translator = CRecordViewTranslator(capture, frozen_contracts)
+    if retain_asts:
+        translator.retained_asts = {}
+    source, _unused_foreign_bridge, functions = translator.emit()
+    program = parse(source, "<captured-c-project-views>")
+    client = parse(client_source, "<authored-hia-client>")
+    if client.imports or client.enums:
+        _reject("project client must use the closed concrete source profile")
+    combined = replace(program, structs=[*program.structs, *client.structs],
+                       functions=[*program.functions, *client.functions])
+    verified = lower_program(combined)
+    verify_capture(capture)
+    project = [row for row in translator.inventory
+               if row["status"] != "system_or_compiler_declaration"]
+    return {"program": verified, "source": source, "client_source": client_source,
+            "functions": functions, "capture": capture,
+            "contracts": frozen_contracts, "contract_identity": contract_identity(frozen_contracts),
+            "declarations": translator.inventory,
+            "source_type_admission": translator.original_type_receipts,
+            "declaration_inventory_complete": translator.inventory_complete,
+            "active_project_declarations": len(project),
+            "translated_function_bodies": len(functions),
+            "authored_client_function_bodies": len(client.functions),
+            "raw_asts": translator.retained_asts,
+            "claims": {"structural_ast_translation": True,
+                       "independent_core_execution": True,
+                       "original_c_implementation_linked_into_target": False,
+                       "rust_backend_required": False,
+                       "foreign_pointer_abi_admitted": False,
+                       "c_record_layout_preserved_by_scalarization": False,
+                       "pointer_contracts_inferred": False,
+                       "source_equivalence_proved": False,
+                       "all_c_cpp_supported": False}}
 
 
 def lower_c_multi_owner(database, *, clang="clang") -> dict:

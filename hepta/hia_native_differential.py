@@ -411,7 +411,7 @@ def _require_exact_argument_arities(cases: dict, signatures: tuple[tuple[str, in
                 _reject(f"HIA ABI argument arity differs from verified function signature: {name} case {index}")
 
 
-def _read_regular_artifact(path: Path):
+def _read_regular_artifact(path: Path, *, maximum_bytes=None, close_owner=None):
     """Read exactly one no-follow regular-file inode, bounded before allocation.
 
     Opening with O_NONBLOCK prevents FIFOs/devices from blocking an admission
@@ -420,13 +420,18 @@ def _read_regular_artifact(path: Path):
     """
     if platform.system() != "Linux":
         _reject("native artifact identity pinning requires Linux")
+    maximum_bytes = _MAX_BYTES if maximum_bytes is None else maximum_bytes
+    if type(maximum_bytes) is not int or not 1 <= maximum_bytes <= _MAX_BYTES:
+        _reject("native artifact byte cap must fit the existing bounded reader")
+    if close_owner is not None and not callable(close_owner):
+        _reject("native artifact close owner must be an internal callable")
     try:
         fd = os.open(path, os.O_RDONLY | os.O_CLOEXEC | os.O_NONBLOCK | os.O_NOFOLLOW)
     except OSError as exc:
         raise HIADifferentialRejected("E_HIA_DIFFERENTIAL: cannot open no-follow native artifact") from exc
     try:
         before = os.fstat(fd)
-        if not stat.S_ISREG(before.st_mode) or not 0 < before.st_size <= _MAX_BYTES:
+        if not stat.S_ISREG(before.st_mode) or not 0 < before.st_size <= maximum_bytes:
             _reject("native artifact must be bounded regular file")
         chunks = []
         remaining = before.st_size + 1
@@ -448,17 +453,22 @@ def _read_regular_artifact(path: Path):
     except OSError as exc:
         raise HIADifferentialRejected("E_HIA_DIFFERENTIAL: native artifact read failed") from exc
     finally:
-        os.close(fd)
+        if close_owner is None:
+            os.close(fd)
+        else:
+            # An owning runtime can retain an uncertain close as budget debt.
+            # It receives this capability exactly once; the reader never retries.
+            close_owner(fd)
 
 
-def _pin_native_artifact(path: Path):
+def _pin_native_artifact(path: Path, *, maximum_bytes=None, close_owner=None):
     """Create a sealed Linux memfd from the exact identity-checked artifact.
 
     Native children load /proc/self/fd/<N>, not the mutable original pathname.
     If memfd sealing is unavailable, fail closed rather than weakening the
     differential's executable-byte identity guarantee.
     """
-    original, identity = _read_regular_artifact(path)
+    original, identity = _read_regular_artifact(path, maximum_bytes=maximum_bytes, close_owner=close_owner)
     fd = None
     transferred = False
     try:
@@ -496,7 +506,10 @@ def _pin_native_artifact(path: Path):
         # sys.exc_info() also reports an exception handled by the caller. An
         # outer except block must not close a successfully transferred fd.
         if fd is not None and not transferred:
-            os.close(fd)
+            if close_owner is None:
+                os.close(fd)
+            else:
+                close_owner(fd)
 
 
 def _check_artifact_unchanged(path: Path, original: bytes, identity) -> None:

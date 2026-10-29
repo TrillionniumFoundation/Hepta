@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "/tmp/hepta-next-agent-20261028/tools/qualify_hia_agent_repair.py", line 322, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/tmp/hepta-next-agent-20261028/tools/qualify_hia_agent_repair.py", line 313, in main
+    result = controls(args["output"], args["clang"], args["rustc"])
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/hepta-next-agent-20261028/tools/qualify_hia_agent_repair.py", line 56, in controls
+    observed = evaluator.execute(built, task, task["public_cases"] + task["hidden_cases"], task["public_expected"] + task["hidden_expected"]) if built["native_built"] else None
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/hepta-next-agent-20261028/experiments/hia_agent_factorial_v4_20261028/evaluator.py", line 340, in execute
+    fcntl.fcntl(descriptor, fcntl.F_ADD_SEALS, fcntl.F_SEAL_WRITE | fcntl.F_SEAL_SHRINK | fcntl.F_SEAL_GROW | fcntl.F_SEAL_SEAL)
+                            ^^^^^^^^^^^^^^^^^
+AttributeError: module 'fcntl' has no attribute 'F_ADD_SEALS'

@@ -3,6 +3,8 @@ name: Hepta qualified full gates
 on:
   push:
     branches:
+      - codex/hia-core-closure-20261028
+      - codex/hia-round6-convergence-20261029
       - feat/hepta-p0-p1-verified-ir-20261024
       - feat/hepta-agent-safe-cfg-cpp-20261024
       - feat/hepta-safe-migration-agent-20261024
@@ -37,11 +39,15 @@ permissions:
 jobs:
   release-qualification:
     runs-on: ubuntu-24.04
-    # Two full regression passes plus the independently pinned finite Rust profile.
+    # The existing full profile retains all three regression passes. The explicit
+    # round6 profile runs one complete integrated pass plus the canonical matrix.
     # This job watchdog does not change individual proof/search or zero-skip gates.
-    timeout-minutes: 180
+    timeout-minutes: 240
     env:
       HEPTA_QUALIFICATION_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      HEPTA_SOURCE_BRANCH: ${{ github.head_ref || github.ref_name }}
+      HEPTA_RUN_ARTIFACT_SESSION: '1'
+      PYTHONDONTWRITEBYTECODE: '1'
       RUSTC: ${{ github.workspace }}/../toolchains/rust-1.90.0/bin/rustc
     steps:
       - name: Configure isolated Cargo directories
@@ -60,11 +66,17 @@ jobs:
       - name: Record and verify the tested source head
         shell: bash
         run: |
+          set -euo pipefail
           actual_head=$(git rev-parse HEAD)
+          case "$HEPTA_SOURCE_BRANCH" in
+            codex/hia-round6-convergence-20261029) hepta_qualification_profile=integrated ;;
+            *) hepta_qualification_profile=full ;;
+          esac
           mkdir -p artifacts
-          printf '{"schema":"hepta.workflow-source.v1","expected_head_sha":"%s","checkout_head_sha":"%s","event_sha":"%s"}\n' \
-            "$HEPTA_QUALIFICATION_HEAD_SHA" "$actual_head" "$GITHUB_SHA" > artifacts/workflow-source.json
+          printf '{"schema":"hepta.workflow-source.v1","expected_head_sha":"%s","checkout_head_sha":"%s","event_sha":"%s","qualification_profile":"%s"}\n' \
+            "$HEPTA_QUALIFICATION_HEAD_SHA" "$actual_head" "$GITHUB_SHA" "$hepta_qualification_profile" > artifacts/workflow-source.json
           test "$actual_head" = "$HEPTA_QUALIFICATION_HEAD_SHA"
+          printf 'HEPTA_QUALIFICATION_PROFILE=%s\n' "$hepta_qualification_profile" >> "$GITHUB_ENV"
       - name: Python 3.11
         uses: actions/setup-python@v5
         with:
@@ -219,6 +231,28 @@ jobs:
             --output "$hepta_finite_build" --target-dir "$RUNNER_TEMP/hepta-finite-ndu-target"
           printf 'HEPTA_FINITE_NDU_BRIDGE=%s\nHEPTA_FINITE_NDU_IDENTITY=%s\n' \
             "$hepta_finite_build/native/hepta-hia-ndu-bridge" "$hepta_finite_build/identity.json" >> "$GITHUB_ENV"
+      - name: Build the separately pinned persistent stream NDU bridge
+        shell: bash
+        run: |
+          hepta_stream_checkout="$RUNNER_TEMP/hepta-stream-ndu-source"
+          hepta_stream_build="$RUNNER_TEMP/hepta-stream-ndu-build"
+          hepta_stream_commit=c4a1bbed3a39beba43a6abf1a18b6f75c5725c21
+          git init "$hepta_stream_checkout"
+          git -C "$hepta_stream_checkout" remote add origin https://github.com/TrillionniumFoundation/hepta-private-ci.git
+          git -C "$hepta_stream_checkout" config remote.origin.promisor true
+          git -C "$hepta_stream_checkout" config remote.origin.partialclonefilter blob:none
+          git -C "$hepta_stream_checkout" -c protocol.version=2 fetch --filter=blob:none --depth=1 origin "$hepta_stream_commit"
+          git -C "$hepta_stream_checkout" sparse-checkout set --no-cone \
+            /codex-rs/Cargo.toml /codex-rs/hepta-ndu/ /codex-rs/hepta-types/ \
+            /codex-rs/hepta-contracts/ /tools/hia-ndu-bridge/
+          git -C "$hepta_stream_checkout" checkout --detach FETCH_HEAD
+          test "$(git -C "$hepta_stream_checkout" rev-parse HEAD)" = "$hepta_stream_commit"
+          CARGO_INCREMENTAL=0 CARGO_PROFILE_RELEASE_DEBUG=0 python tools/build_hia_recursive_ndu_bridge.py \
+            --ndu-source "$hepta_stream_checkout" --expected-source "$hepta_stream_commit" \
+            --cargo "$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/bin/cargo" --rustc "$RUSTC" \
+            --output "$hepta_stream_build" --target-dir "$RUNNER_TEMP/hepta-stream-ndu-target"
+          printf 'HEPTA_NDU_STREAM_BRIDGE=%s\nHEPTA_NDU_STREAM_IDENTITY=%s\n' \
+            "$hepta_stream_build/native/hepta-hia-ndu-bridge" "$hepta_stream_build/identity.json" >> "$GITHUB_ENV"
       - name: Install SHA-256-locked Lean and QEMU tools
         run: python tools/bootstrap_verification.py
       - name: Export verification tools for every qualification step
@@ -242,13 +276,14 @@ jobs:
           printf 'CARGO_TARGET_DIR=%s\n' "$RUNNER_TEMP/hepta-cargo-target" >> "$GITHUB_ENV"
           printf '%s\n' "$hepta_gate_tools" "$(dirname "$hepta_lean")" >> "$GITHUB_PATH"
       - name: Run all current native and experiment qualification gates
+        if: ${{ success() && env.HEPTA_QUALIFICATION_PROFILE == 'full' }}
         run: >-
           python tools/release_check.py
           --output-directory artifacts/candidate
           --continue-on-failure
           --unit-timeout-seconds 3600
       - name: Qualify the standalone HIA interpreter and direct native paths
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && env.HEPTA_QUALIFICATION_PROFILE == 'full' }}
         shell: bash
         run: |
           export LEAN="$GITHUB_WORKSPACE/../toolchains/lean-4.19.0/bin/lean"
@@ -266,7 +301,7 @@ jobs:
             --cxx /usr/bin/g++ \
             --unit-timeout-seconds 3600
       - name: Qualify proof-gated NDU and finite background/native mechanisms
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && env.HEPTA_QUALIFICATION_PROFILE == 'full' }}
         run: >-
           python tools/qualify_hia_ndu_pipeline.py
           --output-directory artifacts/hia-ndu
@@ -274,8 +309,58 @@ jobs:
           --bridge "$HEPTA_NDU_BRIDGE"
           --bridge-build-receipt "$HEPTA_NDU_BUILD/build-receipt.json"
           --upstream "$HEPTA_NDU_UPSTREAM"
+      - name: Qualify all eight integrated gates from a clean exact source
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Earlier gates retain reports in their checkout. Use the same exact
+          # commit in a clean sibling so those observations cannot become input
+          # drift or be discarded. The sibling keeps the installed toolchain paths.
+          hepta_integrated_source="$GITHUB_WORKSPACE/../hepta-integrated-source"
+          git --no-replace-objects worktree add --detach \
+            "$hepta_integrated_source" "$HEPTA_QUALIFICATION_HEAD_SHA" \
+            > "$RUNNER_TEMP/hepta-integrated-worktree.log" 2>&1
+          test "$(git --no-replace-objects -C "$hepta_integrated_source" rev-parse HEAD)" = "$HEPTA_QUALIFICATION_HEAD_SHA"
+          test -z "$(git --no-replace-objects -C "$hepta_integrated_source" status --porcelain --untracked-files=all)"
+          cd "$hepta_integrated_source"
+          # Locked dependencies were fetched into the isolated CARGO_HOME above.
+          # The qualifier executes Cargo offline and reuses only this external cache.
+          python tools/qualify_hia_integrated.py \
+            --output-directory "$RUNNER_TEMP/hepta-integrated" \
+            --expected-head "$HEPTA_QUALIFICATION_HEAD_SHA" \
+            --clang /usr/lib/llvm-20/bin/clang \
+            --cargo "$GITHUB_WORKSPACE/../toolchains/rust-1.90.0/bin/cargo" \
+            --cargo-target-dir "$RUNNER_TEMP/hepta-cargo-target" \
+            --rustc "$RUSTC" \
+            --ranking-bridge "$HEPTA_NDU_BRIDGE" \
+            --ranking-build-receipt "$HEPTA_NDU_BUILD/build-receipt.json" \
+            --ranking-upstream "$HEPTA_NDU_UPSTREAM" \
+            --recursive-bridge "$HEPTA_RECURSIVE_NDU_BRIDGE" \
+            --recursive-identity "$HEPTA_RECURSIVE_NDU_IDENTITY" \
+            --recursive-upstream "$RUNNER_TEMP/hepta-recursive-ndu-source" \
+            --finite-bridge "$HEPTA_FINITE_NDU_BRIDGE" \
+            --finite-identity "$HEPTA_FINITE_NDU_IDENTITY" \
+            --finite-upstream "$RUNNER_TEMP/hepta-finite-ndu-source" \
+            --stream-bridge "$HEPTA_NDU_STREAM_BRIDGE" \
+            --stream-identity "$HEPTA_NDU_STREAM_IDENTITY" \
+            --stream-upstream "$RUNNER_TEMP/hepta-stream-ndu-source" \
+            --finite-cargo "$FINITE_NDU_CARGO" \
+            --finite-rustc "$FINITE_NDU_RUSTC" \
+            --timeout 3600 \
+            2>&1 | tee "$RUNNER_TEMP/hepta-integrated.log"
+      - name: Execute the canonical safety matrix from the exact integrated source
+        if: ${{ !cancelled() && env.HEPTA_QUALIFICATION_PROFILE == 'integrated' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/../hepta-integrated-source"
+          test "$(git --no-replace-objects rev-parse HEAD)" = "$HEPTA_QUALIFICATION_HEAD_SHA"
+          test -z "$(git --no-replace-objects status --porcelain --untracked-files=all)"
+          python tools/qualify_hia_safety_contract.py --output "$RUNNER_TEMP/hepta-integrated-safety.json" \
+            2>&1 | tee "$RUNNER_TEMP/hepta-integrated-safety.log"
       - name: Preserve failures and all raw evidence
-        if: always()
+        if: ${{ always() && env.HEPTA_QUALIFICATION_PROFILE != 'integrated' }}
         uses: actions/upload-artifact@v4
         with:
           name: hepta-release-evidence-${{ env.HEPTA_QUALIFICATION_HEAD_SHA }}
@@ -288,4 +373,34 @@ jobs:
             ${{ runner.temp }}/hepta-ndu-build.stderr.log
             ${{ runner.temp }}/hepta-recursive-ndu-build/
             ${{ runner.temp }}/hepta-finite-ndu-build/
+            ${{ runner.temp }}/hepta-stream-ndu-build/
+            ${{ runner.temp }}/hepta-integrated/
+            ${{ runner.temp }}/hepta-integrated.log
+            ${{ runner.temp }}/hepta-integrated-worktree.log
           if-no-files-found: warn
+      - name: Preserve integrated observations and source identities
+        if: ${{ always() && env.HEPTA_QUALIFICATION_PROFILE == 'integrated' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: hepta-integrated-evidence-${{ env.HEPTA_QUALIFICATION_HEAD_SHA }}
+          path: |
+            artifacts/workflow-source.json
+            artifacts/selected-rustc.json
+            artifacts/bwrap-profile.sha256
+            artifacts/sandbox-startup.json
+            ${{ runner.temp }}/hepta-ndu-build/build-receipt.json
+            ${{ runner.temp }}/hepta-ndu-build.stdout.log
+            ${{ runner.temp }}/hepta-ndu-build.stderr.log
+            ${{ runner.temp }}/hepta-recursive-ndu-build/identity.json
+            ${{ runner.temp }}/hepta-recursive-ndu-build/build-commands.json
+            ${{ runner.temp }}/hepta-finite-ndu-build/identity.json
+            ${{ runner.temp }}/hepta-finite-ndu-build/build-commands.json
+            ${{ runner.temp }}/hepta-stream-ndu-build/identity.json
+            ${{ runner.temp }}/hepta-stream-ndu-build/build-commands.json
+            ${{ runner.temp }}/hepta-integrated/*.json
+            ${{ runner.temp }}/hepta-integrated/*.log
+            ${{ runner.temp }}/hepta-integrated.log
+            ${{ runner.temp }}/hepta-integrated-worktree.log
+            ${{ runner.temp }}/hepta-integrated-safety.json
+            ${{ runner.temp }}/hepta-integrated-safety.log
+          if-no-files-found: error

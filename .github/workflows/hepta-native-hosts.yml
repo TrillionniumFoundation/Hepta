@@ -2,7 +2,7 @@ name: Hepta actual host ABI qualification
 
 on:
   push:
-    branches: [feat/hepta-safe-migration-agent-20261024, dot/hepta-p0-p1-semantic-bridge-20261025, dot/hepta-p0-p7-integration-20261025, codex/hia-ndu-verified-optimization-20261027, codex/hia-ndu-bounded-pipeline-20261027, codex/hia-contract-integration-20261027, codex/hia-v8-blocker-convergence-20261027, codex/hia-round5-*]
+    branches: [feat/hepta-safe-migration-agent-20261024, dot/hepta-p0-p1-semantic-bridge-20261025, dot/hepta-p0-p7-integration-20261025, codex/hia-ndu-verified-optimization-20261027, codex/hia-ndu-bounded-pipeline-20261027, codex/hia-contract-integration-20261027, codex/hia-v8-blocker-convergence-20261027, codex/hia-round5-*, codex/hia-core-closure-20261028, codex/hia-round6-convergence-20261029]
   pull_request:
     branches: [main, codex/hia-p0-p7-convergence-20261027, codex/hia-ndu-verified-optimization-20261027, codex/hia-ndu-bounded-pipeline-20261027, codex/hia-contract-integration-20261027]
   workflow_dispatch:
@@ -83,7 +83,9 @@ jobs:
           git rev-parse HEAD > artifacts/native-host-setup.log
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          # CPython exposes Darwin waitid(WNOWAIT) starting in 3.13.
+          # Capture must retain the leader until its final owned group signal.
+          python-version: ${{ matrix.system == 'Darwin' && '3.13' || '3.11' }}
       - name: Verify exact head and install the pinned native Rust version
         shell: bash
         run: |
@@ -150,6 +152,11 @@ jobs:
           python -m unittest tests.test_clang_capture -v 2>&1 | tee artifacts/clang-capture-tests.log
           capture_status=${PIPESTATUS[0]}
           exit "$capture_status"
+      - name: Check non-reaping POSIX leader and capture-read boundaries
+        if: ${{ matrix.system != 'Windows' }}
+        shell: bash
+        run: |
+          python -m unittest tests.test_clang_capture_ownership -v 2>&1 | tee artifacts/clang-capture-ownership-tests.log
       - name: Check serialized-AST process status and argument forwarding on this host
         shell: bash
         run: |

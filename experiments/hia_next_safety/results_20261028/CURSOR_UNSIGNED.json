@@ -1,0 +1,75 @@
+{
+  "arithmetic_spec_width": 66,
+  "claims": {
+    "native_backend_refinement_proved": false,
+    "pointer_provenance_or_allocation_validity_proved": false,
+    "selected_core_index_bounds_for_all_typed_inputs": true,
+    "source_to_core_refinement_proved": false,
+    "whole_language_soundness_proved": false
+  },
+  "core_sha256": "1044e28ea68a18d6a0681cff9cd5f835e26e91c9a669dab01256b9592f64ca51",
+  "function": "c_view_index_unsigned",
+  "input_domain_bits": 192,
+  "input_preconditions": [],
+  "lowering": {
+    "actual_emitter_output": true,
+    "blocks": 5,
+    "call_closure": [
+      "c_view_index_unsigned"
+    ],
+    "checker_sha256": "c7eaf61ee7fa893b5e64cb32f35568616fc7af87a4132d10cc0647dee540ba84",
+    "claims": {
+      "all_programs_of_this_profile_proved": false,
+      "c_abi_proved": false,
+      "core_encoder_correspondence_proved": false,
+      "llvm_parser_correspondence_proved": false,
+      "native_backend_refinement_proved": false,
+      "publication_authority": false,
+      "resource_or_concurrency_safety_proved": false,
+      "selected_body_all_input_value_and_abort_equivalence": true,
+      "selected_body_poison_unreachable": true,
+      "whole_language_soundness_proved": false
+    },
+    "core_return_paths": 1,
+    "core_sha256": "1044e28ea68a18d6a0681cff9cd5f835e26e91c9a669dab01256b9592f64ca51",
+    "function": "c_view_index_unsigned",
+    "function_index": 1,
+    "llvm_return_paths": 1,
+    "llvm_sha256": "32c061e5ce5ce9d55b1b216aa5b124bd0d0200bbd00666e23d027b682e09d750",
+    "operations": 6,
+    "query_sha256": "7142f87c0cc314de9c3549d0d5ddd61d8f9984b32cdc0c31514da5b5abb74c8b",
+    "schema": "hepta.hia.scalar-lowering-check.v1",
+    "smtlib": "(declare-fun arg7 () (_ BitVec 64))\n(declare-fun arg6 () (_ BitVec 64))\n(declare-fun arg8 () (_ BitVec 64))\n(assert (let ((a!1 (distinct (bvsub ((_ zero_extend 64) arg8) ((_ zero_extend 64) arg6))\n                     ((_ zero_extend 64) (bvsub arg8 arg6))))\n      (a!4 (xor (distinct (bvadd ((_ zero_extend 64) arg6)\n                                 ((_ zero_extend 64) arg7))\n                          ((_ zero_extend 64) (bvadd arg6 arg7)))\n                true))\n      (a!6 (and (and true (= 0 0)) (not (bvult arg6 arg8))))\n      (a!9 (not (bvult arg7 ((_ zero_extend 0) (bvsub arg8 arg6)))))\n      (a!11 (distinct (bvadd ((_ zero_extend 64) arg6)\n                             ((_ zero_extend 64) ((_ zero_extend 0) arg7)))\n                      ((_ zero_extend 64) (bvadd arg6 ((_ zero_extend 0) arg7))))))\n(let ((a!2 (and (and (and true (bvult arg6 arg8)) (xor a!1 true))\n                (not (bvult arg7 (bvsub arg8 arg6)))))\n      (a!3 (and (and (and true (bvult arg6 arg8)) (xor a!1 true))\n                (bvult arg7 (bvsub arg8 arg6))))\n      (a!7 (and (and (and true (= 0 0)) (bvult arg6 arg8))\n                (distinct (ite (= 0 0) (ite a!1 1 0) 0) 0)))\n      (a!8 (and (and (and true (= 0 0)) (bvult arg6 arg8))\n                (= (ite (= 0 0) (ite a!1 1 0) 0) 0))))\n(let ((a!5 (or false\n               (and true (not (bvult arg6 arg8)))\n               (and (and true (bvult arg6 arg8)) (not (xor a!1 true)))\n               a!2\n               (and a!3 (not a!4))))\n      (a!10 (and a!8 (bvult arg7 ((_ zero_extend 0) (bvsub arg8 arg6))))))\n(let ((a!12 (and a!10 (distinct (ite (= 0 0) (ite a!11 1 0) 0) 0)))\n      (a!14 (and a!10 (= (ite (= 0 0) (ite a!11 1 0) 0) 0))))\n(let ((a!13 (distinct a!5\n                      (or false\n                          (and true (distinct 0 0))\n                          (and a!6 (distinct 0 0))\n                          (and a!6 (= 0 0))\n                          a!7\n                          (and (and a!8 a!9) (distinct 0 0))\n                          (and (and a!8 a!9) (= 0 0))\n                          a!12)))\n      (a!15 (and a!14\n                 (and a!3 a!4)\n                 (distinct (bvadd arg6 ((_ zero_extend 0) arg7))\n                           (bvadd arg6 arg7)))))\n  (or false a!13 (distinct (or a!14) (or (and a!3 a!4))) a!15)))))))\n",
+    "solver": {
+      "binding_sha256": "47a3218e5e032a0d5b3ea0fdd581a721d1cb64f2ab7b7320549a8e2f41c86f61",
+      "library_path": "/tmp/hepta-six-venv/lib/python3.12/site-packages/z3/lib/libz3.so",
+      "library_sha256": "56d9977b9276bcb8cda9973a14058fcaa9f3bfee14ed57408b9faacd76d4d8f3",
+      "name": "Z3",
+      "version": "4.15.4"
+    },
+    "solver_result": "unsat",
+    "solver_wall_ns": 268291,
+    "status": "verified",
+    "verified": true
+  },
+  "math_checker_sha256": "e1ddc101f6638653440a837c98d7c78b28c78ea3009ada4bc5dbe2c8c91d4ac9",
+  "query_sha256": "c26ede372a463563cd94a4bf5552c87b941d0ffa2180c4efd868c2fb73008676",
+  "schema": "hepta.hia.cursor-math-check.v1",
+  "signature": [
+    "usize",
+    "u64",
+    "usize"
+  ],
+  "smtlib": "(declare-fun arg7 () (_ BitVec 64))\n(declare-fun arg6 () (_ BitVec 64))\n(declare-fun arg8 () (_ BitVec 64))\n(assert (let ((a!1 (and (and true (= 0 0)) (not (bvult arg6 arg8))))\n      (a!2 (ite (distinct (bvsub ((_ zero_extend 64) arg8)\n                                 ((_ zero_extend 64) arg6))\n                          ((_ zero_extend 64) (bvsub arg8 arg6)))\n                1\n                0))\n      (a!5 (not (bvult arg7 ((_ zero_extend 0) (bvsub arg8 arg6)))))\n      (a!7 (distinct (bvadd ((_ zero_extend 64) arg6)\n                            ((_ zero_extend 64) ((_ zero_extend 0) arg7)))\n                     ((_ zero_extend 64) (bvadd arg6 ((_ zero_extend 0) arg7)))))\n      (a!9 (and (bvsge (bvadd ((_ zero_extend 2) arg6) ((_ zero_extend 2) arg7))\n                       #b000000000000000000000000000000000000000000000000000000000000000000)\n                (bvslt (bvadd ((_ zero_extend 2) arg6) ((_ zero_extend 2) arg7))\n                       ((_ zero_extend 2) arg8))))\n      (a!12 (distinct (bvadd arg6 ((_ zero_extend 0) arg7))\n                      ((_ extract 63 0)\n                        (bvadd ((_ zero_extend 2) arg6)\n                               ((_ zero_extend 2) arg7))))))\n(let ((a!3 (and (and (and true (= 0 0)) (bvult arg6 arg8))\n                (distinct (ite (= 0 0) a!2 0) 0)))\n      (a!4 (and (and (and true (= 0 0)) (bvult arg6 arg8))\n                (= (ite (= 0 0) a!2 0) 0))))\n(let ((a!6 (and a!4 (bvult arg7 ((_ zero_extend 0) (bvsub arg8 arg6))))))\n(let ((a!8 (and a!6 (distinct (ite (= 0 0) (ite a!7 1 0) 0) 0)))\n      (a!11 (and a!6 (= (ite (= 0 0) (ite a!7 1 0) 0) 0))))\n(let ((a!10 (distinct (or false\n                          (and true (distinct 0 0))\n                          (and a!1 (distinct 0 0))\n                          (and a!1 (= 0 0))\n                          a!3\n                          (and (and a!4 a!5) (distinct 0 0))\n                          (and (and a!4 a!5) (= 0 0))\n                          a!8)\n                      (not a!9))))\n  (or a!10 (distinct (or a!11) a!9) (and a!11 a!12))))))))\n",
+  "solver": {
+    "binding_sha256": "47a3218e5e032a0d5b3ea0fdd581a721d1cb64f2ab7b7320549a8e2f41c86f61",
+    "library_path": "/tmp/hepta-six-venv/lib/python3.12/site-packages/z3/lib/libz3.so",
+    "library_sha256": "56d9977b9276bcb8cda9973a14058fcaa9f3bfee14ed57408b9faacd76d4d8f3",
+    "name": "Z3",
+    "version": "4.15.4"
+  },
+  "solver_wall_ns": 524538420,
+  "specification": "Return mathematical offset + index iff 0 <= offset + index < extent; otherwise abort.",
+  "status": "unsat",
+  "verified": true
+}

@@ -1,0 +1,1912 @@
+{
+  "analysis": {
+    "call_graph": {
+      "c_bcmp": [
+        "c_memcmp"
+      ],
+      "c_bool_to_int": [],
+      "c_checksum_byte": [],
+      "c_memcmp": [],
+      "c_ring_buffer_dequeue": [
+        "c_ring_buffer_is_empty",
+        "c_view_index_unsigned"
+      ],
+      "c_ring_buffer_dequeue_arr": [
+        "c_ring_buffer_dequeue",
+        "c_ring_buffer_is_empty"
+      ],
+      "c_ring_buffer_init": [],
+      "c_ring_buffer_is_empty": [
+        "c_bool_to_int"
+      ],
+      "c_ring_buffer_is_full": [
+        "c_bool_to_int"
+      ],
+      "c_ring_buffer_num_items": [],
+      "c_ring_buffer_peek": [
+        "c_ring_buffer_num_items",
+        "c_view_index_unsigned"
+      ],
+      "c_ring_buffer_queue": [
+        "c_ring_buffer_is_full",
+        "c_view_index_unsigned"
+      ],
+      "c_ring_buffer_queue_arr": [
+        "c_ring_buffer_queue",
+        "c_view_index_unsigned"
+      ],
+      "c_view_index_signed": [],
+      "c_view_index_unsigned": [],
+      "legacy_checksum_chunk": [
+        "c_bcmp",
+        "c_checksum_byte",
+        "c_memcmp",
+        "c_ring_buffer_dequeue",
+        "c_ring_buffer_dequeue_arr",
+        "c_ring_buffer_init",
+        "c_ring_buffer_is_empty",
+        "c_ring_buffer_is_full",
+        "c_ring_buffer_num_items",
+        "c_ring_buffer_peek",
+        "c_ring_buffer_queue",
+        "c_ring_buffer_queue_arr"
+      ]
+    },
+    "callee_first_order": [
+      "c_bool_to_int",
+      "c_view_index_unsigned",
+      "c_ring_buffer_is_full",
+      "c_ring_buffer_is_empty",
+      "c_ring_buffer_queue",
+      "c_ring_buffer_num_items",
+      "c_ring_buffer_dequeue",
+      "c_memcmp",
+      "c_ring_buffer_queue_arr",
+      "c_ring_buffer_peek",
+      "c_ring_buffer_init",
+      "c_ring_buffer_dequeue_arr",
+      "c_checksum_byte",
+      "c_bcmp",
+      "legacy_checksum_chunk",
+      "c_view_index_signed"
+    ],
+    "claims": {
+      "all_typed_scalar_inputs_and_allocation_outcomes": true,
+      "branch_feasibility_or_tightest_bound_proved": false,
+      "canonical_core_reverified": true,
+      "entire_module_closed_v1_profile_checked": true,
+      "finite_trace_prefixes_including_trap_and_budget_stop": true,
+      "free_calls_vm_ticks_or_owner_metadata_bounded": false,
+      "native_runtime_or_optimizer_admission_authority": false,
+      "native_stack_allocator_overhead_or_rss_bounded": false,
+      "owner_transfer_not_counted_as_new_allocation": true,
+      "private_external_owner_extents_bounded": false,
+      "private_summaries_count_only_new_requests": true,
+      "source_or_native_backend_refinement_proved": false,
+      "termination_or_cleanup_after_abort_proved": false,
+      "whole_language_soundness_proved": false
+    },
+    "core_schema": "hepta.hia.program.v1",
+    "core_sha256": "1044e28ea68a18d6a0681cff9cd5f835e26e91c9a669dab01256b9592f64ca51",
+    "entry_bounds": {
+      "max_allocation_op_executions": 3,
+      "max_cumulative_requested_payload_bytes": 32,
+      "max_live_payload_bytes": 32,
+      "max_nonzero_allocation_requests": 3
+    },
+    "function": "legacy_checksum_chunk",
+    "function_summaries": [
+      {
+        "blocks": [
+          {
+            "allocation_sites": [],
+            "block": "b20",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b21",
+              "b22"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b21",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b23",
+              "b24"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b22",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b23",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b25",
+              "b26"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b24",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b25",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b27",
+              "b28"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b26",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b27",
+            "call_sites": [
+              {
+                "function": "c_memcmp",
+                "op_index": 2
+              }
+            ],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b28",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          }
+        ],
+        "bounds": {
+          "max_allocation_op_executions": 0,
+          "max_cumulative_requested_payload_bytes": 0,
+          "max_nonzero_allocation_requests": 0
+        },
+        "contains_allocator_opcode": false,
+        "cyclic_components": [],
+        "entry_block": "b20",
+        "function": "c_bcmp"
+      },
+      {
+        "blocks": [
+          {
+            "allocation_sites": [],
+            "block": "b1",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b2",
+              "b3"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b2",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b3",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          }
+        ],
+        "bounds": {
+          "max_allocation_op_executions": 0,
+          "max_cumulative_requested_payload_bytes": 0,
+          "max_nonzero_allocation_requests": 0
+        },
+        "contains_allocator_opcode": false,
+        "cyclic_components": [],
+        "entry_block": "b1",
+        "function": "c_bool_to_int"
+      },
+      {
+        "blocks": [
+          {
+            "allocation_sites": [],
+            "block": "b29",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b30"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b30",
+            "call_sites": [],
+            "cyclic": true,
+            "successors": [
+              "b31",
+              "b32"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b31",
+            "call_sites": [],
+            "cyclic": true,
+            "successors": [
+              "b33",
+              "b34"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b32",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b33",
+            "call_sites": [],
+            "cyclic": true,
+            "successors": [
+              "b35"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b34",
+            "call_sites": [],
+            "cyclic": true,
+            "successors": [
+              "b35"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b35",
+            "call_sites": [],
+            "cyclic": true,
+            "successors": [
+              "b30"
+            ]
+          }
+        ],
+        "bounds": {
+          "max_allocation_op_executions": 0,
+          "max_cumulative_requested_payload_bytes": 0,
+          "max_nonzero_allocation_requests": 0
+        },
+        "contains_allocator_opcode": false,
+        "cyclic_components": [
+          [
+            "b30",
+            "b31",
+            "b33",
+            "b34",
+            "b35"
+          ]
+        ],
+        "entry_block": "b29",
+        "function": "c_checksum_byte"
+      },
+      {
+        "blocks": [
+          {
+            "allocation_sites": [],
+            "block": "b36",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b37",
+              "b38"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b37",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b39",
+              "b40"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b38",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b39",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b41",
+              "b42"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b40",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b41",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b43",
+              "b44"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b42",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b43",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b45"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b44",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b45",
+            "call_sites": [],
+            "cyclic": true,
+            "successors": [
+              "b46",
+              "b47"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b46",
+            "call_sites": [],
+            "cyclic": true,
+            "successors": [
+              "b48"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b47",
+            "call_sites": [],
+            "cyclic": true,
+            "successors": [
+              "b48"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b48",
+            "call_sites": [],
+            "cyclic": true,
+            "successors": [
+              "b49",
+              "b50"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b49",
+            "call_sites": [],
+            "cyclic": true,
+            "successors": [
+              "b51",
+              "b52"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b50",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b55",
+              "b56"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b51",
+            "call_sites": [],
+            "cyclic": true,
+            "successors": [
+              "b53",
+              "b54"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b52",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b53",
+            "call_sites": [],
+            "cyclic": true,
+            "successors": [
+              "b45"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b54",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b55",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b56",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          }
+        ],
+        "bounds": {
+          "max_allocation_op_executions": 0,
+          "max_cumulative_requested_payload_bytes": 0,
+          "max_nonzero_allocation_requests": 0
+        },
+        "contains_allocator_opcode": false,
+        "cyclic_components": [
+          [
+            "b45",
+            "b46",
+            "b47",
+            "b48",
+            "b49",
+            "b51",
+            "b53"
+          ]
+        ],
+        "entry_block": "b36",
+        "function": "c_memcmp"
+      },
+      {
+        "blocks": [
+          {
+            "allocation_sites": [],
+            "block": "b57",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b58",
+              "b59"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b58",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b60",
+              "b61"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b59",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b60",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b62",
+              "b63"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b61",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b62",
+            "call_sites": [
+              {
+                "function": "c_ring_buffer_is_empty",
+                "op_index": 1
+              }
+            ],
+            "cyclic": false,
+            "successors": [
+              "b64",
+              "b65"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b63",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b64",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b65",
+            "call_sites": [
+              {
+                "function": "c_view_index_unsigned",
+                "op_index": 7
+              }
+            ],
+            "cyclic": false,
+            "successors": []
+          }
+        ],
+        "bounds": {
+          "max_allocation_op_executions": 0,
+          "max_cumulative_requested_payload_bytes": 0,
+          "max_nonzero_allocation_requests": 0
+        },
+        "contains_allocator_opcode": false,
+        "cyclic_components": [],
+        "entry_block": "b57",
+        "function": "c_ring_buffer_dequeue"
+      },
+      {
+        "blocks": [
+          {
+            "allocation_sites": [],
+            "block": "b66",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b67",
+              "b68"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b67",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b69",
+              "b70"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b68",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b69",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b71",
+              "b72"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b70",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b71",
+            "call_sites": [
+              {
+                "function": "c_ring_buffer_is_empty",
+                "op_index": 1
+              }
+            ],
+            "cyclic": false,
+            "successors": [
+              "b73",
+              "b74"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b72",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b73",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b74",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b75"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b75",
+            "call_sites": [],
+            "cyclic": true,
+            "successors": [
+              "b76",
+              "b77"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b76",
+            "call_sites": [
+              {
+                "function": "c_ring_buffer_dequeue",
+                "op_index": 2
+              }
+            ],
+            "cyclic": true,
+            "successors": [
+              "b78"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b77",
+            "call_sites": [],
+            "cyclic": true,
+            "successors": [
+              "b78"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b78",
+            "call_sites": [],
+            "cyclic": true,
+            "successors": [
+              "b79",
+              "b80"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b79",
+            "call_sites": [],
+            "cyclic": true,
+            "successors": [
+              "b81",
+              "b82"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b80",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b81",
+            "call_sites": [],
+            "cyclic": true,
+            "successors": [
+              "b75"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b82",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          }
+        ],
+        "bounds": {
+          "max_allocation_op_executions": 0,
+          "max_cumulative_requested_payload_bytes": 0,
+          "max_nonzero_allocation_requests": 0
+        },
+        "contains_allocator_opcode": false,
+        "cyclic_components": [
+          [
+            "b75",
+            "b76",
+            "b77",
+            "b78",
+            "b79",
+            "b81"
+          ]
+        ],
+        "entry_block": "b66",
+        "function": "c_ring_buffer_dequeue_arr"
+      },
+      {
+        "blocks": [
+          {
+            "allocation_sites": [],
+            "block": "b83",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b84",
+              "b85"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b84",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b86",
+              "b87"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b85",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b86",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b88",
+              "b89"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b87",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b88",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b89",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          }
+        ],
+        "bounds": {
+          "max_allocation_op_executions": 0,
+          "max_cumulative_requested_payload_bytes": 0,
+          "max_nonzero_allocation_requests": 0
+        },
+        "contains_allocator_opcode": false,
+        "cyclic_components": [],
+        "entry_block": "b83",
+        "function": "c_ring_buffer_init"
+      },
+      {
+        "blocks": [
+          {
+            "allocation_sites": [],
+            "block": "b90",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b91",
+              "b92"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b91",
+            "call_sites": [
+              {
+                "function": "c_bool_to_int",
+                "op_index": 1
+              }
+            ],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b92",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          }
+        ],
+        "bounds": {
+          "max_allocation_op_executions": 0,
+          "max_cumulative_requested_payload_bytes": 0,
+          "max_nonzero_allocation_requests": 0
+        },
+        "contains_allocator_opcode": false,
+        "cyclic_components": [],
+        "entry_block": "b90",
+        "function": "c_ring_buffer_is_empty"
+      },
+      {
+        "blocks": [
+          {
+            "allocation_sites": [],
+            "block": "b93",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b94",
+              "b95"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b94",
+            "call_sites": [
+              {
+                "function": "c_bool_to_int",
+                "op_index": 3
+              }
+            ],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b95",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          }
+        ],
+        "bounds": {
+          "max_allocation_op_executions": 0,
+          "max_cumulative_requested_payload_bytes": 0,
+          "max_nonzero_allocation_requests": 0
+        },
+        "contains_allocator_opcode": false,
+        "cyclic_components": [],
+        "entry_block": "b93",
+        "function": "c_ring_buffer_is_full"
+      },
+      {
+        "blocks": [
+          {
+            "allocation_sites": [],
+            "block": "b96",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b97",
+              "b98"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b97",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b98",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          }
+        ],
+        "bounds": {
+          "max_allocation_op_executions": 0,
+          "max_cumulative_requested_payload_bytes": 0,
+          "max_nonzero_allocation_requests": 0
+        },
+        "contains_allocator_opcode": false,
+        "cyclic_components": [],
+        "entry_block": "b96",
+        "function": "c_ring_buffer_num_items"
+      },
+      {
+        "blocks": [
+          {
+            "allocation_sites": [],
+            "block": "b99",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b100",
+              "b101"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b100",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b102",
+              "b103"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b101",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b102",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b104",
+              "b105"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b103",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b104",
+            "call_sites": [
+              {
+                "function": "c_ring_buffer_num_items",
+                "op_index": 1
+              }
+            ],
+            "cyclic": false,
+            "successors": [
+              "b106",
+              "b107"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b105",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b106",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b107",
+            "call_sites": [
+              {
+                "function": "c_view_index_unsigned",
+                "op_index": 9
+              }
+            ],
+            "cyclic": false,
+            "successors": []
+          }
+        ],
+        "bounds": {
+          "max_allocation_op_executions": 0,
+          "max_cumulative_requested_payload_bytes": 0,
+          "max_nonzero_allocation_requests": 0
+        },
+        "contains_allocator_opcode": false,
+        "cyclic_components": [],
+        "entry_block": "b99",
+        "function": "c_ring_buffer_peek"
+      },
+      {
+        "blocks": [
+          {
+            "allocation_sites": [],
+            "block": "b108",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b109",
+              "b110"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b109",
+            "call_sites": [
+              {
+                "function": "c_ring_buffer_is_full",
+                "op_index": 1
+              }
+            ],
+            "cyclic": false,
+            "successors": [
+              "b111",
+              "b112"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b110",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b111",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b113"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b112",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b113"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b113",
+            "call_sites": [
+              {
+                "function": "c_view_index_unsigned",
+                "op_index": 6
+              }
+            ],
+            "cyclic": false,
+            "successors": []
+          }
+        ],
+        "bounds": {
+          "max_allocation_op_executions": 0,
+          "max_cumulative_requested_payload_bytes": 0,
+          "max_nonzero_allocation_requests": 0
+        },
+        "contains_allocator_opcode": false,
+        "cyclic_components": [],
+        "entry_block": "b108",
+        "function": "c_ring_buffer_queue"
+      },
+      {
+        "blocks": [
+          {
+            "allocation_sites": [],
+            "block": "b114",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b115",
+              "b116"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b115",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b117",
+              "b118"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b116",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b117",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b119",
+              "b120"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b118",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b119",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b121"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b120",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b121",
+            "call_sites": [],
+            "cyclic": true,
+            "successors": [
+              "b122",
+              "b123"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b122",
+            "call_sites": [
+              {
+                "function": "c_view_index_unsigned",
+                "op_index": 6
+              },
+              {
+                "function": "c_ring_buffer_queue",
+                "op_index": 9
+              }
+            ],
+            "cyclic": true,
+            "successors": [
+              "b121"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b123",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          }
+        ],
+        "bounds": {
+          "max_allocation_op_executions": 0,
+          "max_cumulative_requested_payload_bytes": 0,
+          "max_nonzero_allocation_requests": 0
+        },
+        "contains_allocator_opcode": false,
+        "cyclic_components": [
+          [
+            "b121",
+            "b122"
+          ]
+        ],
+        "entry_block": "b114",
+        "function": "c_ring_buffer_queue_arr"
+      },
+      {
+        "blocks": [
+          {
+            "allocation_sites": [],
+            "block": "b9",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b10",
+              "b11"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b10",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b12",
+              "b13"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b11",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b16",
+              "b17"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b12",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b14",
+              "b15"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b13",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b14",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b15",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b16",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b18",
+              "b19"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b17",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b18",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b19",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          }
+        ],
+        "bounds": {
+          "max_allocation_op_executions": 0,
+          "max_cumulative_requested_payload_bytes": 0,
+          "max_nonzero_allocation_requests": 0
+        },
+        "contains_allocator_opcode": false,
+        "cyclic_components": [],
+        "entry_block": "b9",
+        "function": "c_view_index_signed"
+      },
+      {
+        "blocks": [
+          {
+            "allocation_sites": [],
+            "block": "b4",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b5",
+              "b6"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b5",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b7",
+              "b8"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b6",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b7",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b8",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          }
+        ],
+        "bounds": {
+          "max_allocation_op_executions": 0,
+          "max_cumulative_requested_payload_bytes": 0,
+          "max_nonzero_allocation_requests": 0
+        },
+        "contains_allocator_opcode": false,
+        "cyclic_components": [],
+        "entry_block": "b4",
+        "function": "c_view_index_unsigned"
+      },
+      {
+        "blocks": [
+          {
+            "allocation_sites": [],
+            "block": "b124",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b125",
+              "b126"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b125",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b126",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b127",
+              "b128"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b127",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [
+              {
+                "const_op_index": 0,
+                "constant_bytes": 16,
+                "op_index": 1,
+                "opcode": "buffer.try_new",
+                "size_value": "v1528"
+              }
+            ],
+            "block": "b128",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b129",
+              "b130"
+            ]
+          },
+          {
+            "allocation_sites": [
+              {
+                "const_op_index": 1,
+                "constant_bytes": 8,
+                "op_index": 2,
+                "opcode": "buffer.try_new",
+                "size_value": "v1552"
+              }
+            ],
+            "block": "b129",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b131",
+              "b132"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b130",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [
+              {
+                "const_op_index": 1,
+                "constant_bytes": 8,
+                "op_index": 2,
+                "opcode": "buffer.try_new",
+                "size_value": "v1582"
+              }
+            ],
+            "block": "b131",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b133",
+              "b134"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b132",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b133",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b135"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b134",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b135",
+            "call_sites": [],
+            "cyclic": true,
+            "successors": [
+              "b136",
+              "b137"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b136",
+            "call_sites": [],
+            "cyclic": true,
+            "successors": [
+              "b135"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b137",
+            "call_sites": [
+              {
+                "function": "c_ring_buffer_init",
+                "op_index": 6
+              },
+              {
+                "function": "c_ring_buffer_is_empty",
+                "op_index": 9
+              }
+            ],
+            "cyclic": false,
+            "successors": [
+              "b138",
+              "b139"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b138",
+            "call_sites": [
+              {
+                "function": "c_ring_buffer_queue_arr",
+                "op_index": 3
+              },
+              {
+                "function": "c_ring_buffer_num_items",
+                "op_index": 7
+              }
+            ],
+            "cyclic": false,
+            "successors": [
+              "b140",
+              "b141"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b139",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b140",
+            "call_sites": [
+              {
+                "function": "c_ring_buffer_is_full",
+                "op_index": 1
+              }
+            ],
+            "cyclic": false,
+            "successors": [
+              "b142",
+              "b143"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b141",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b142",
+            "call_sites": [
+              {
+                "function": "c_ring_buffer_peek",
+                "op_index": 4
+              }
+            ],
+            "cyclic": false,
+            "successors": [
+              "b144",
+              "b145"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b143",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b144",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b146",
+              "b147"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b145",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b146",
+            "call_sites": [
+              {
+                "function": "c_ring_buffer_dequeue_arr",
+                "op_index": 3
+              }
+            ],
+            "cyclic": false,
+            "successors": [
+              "b148",
+              "b149"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b147",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b148",
+            "call_sites": [
+              {
+                "function": "c_memcmp",
+                "op_index": 4
+              }
+            ],
+            "cyclic": false,
+            "successors": [
+              "b150",
+              "b151"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b149",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b150",
+            "call_sites": [
+              {
+                "function": "c_bcmp",
+                "op_index": 4
+              }
+            ],
+            "cyclic": false,
+            "successors": [
+              "b152",
+              "b153"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b151",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b152",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b154"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b153",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b154",
+            "call_sites": [],
+            "cyclic": true,
+            "successors": [
+              "b155",
+              "b156"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b155",
+            "call_sites": [
+              {
+                "function": "c_checksum_byte",
+                "op_index": 3
+              }
+            ],
+            "cyclic": true,
+            "successors": [
+              "b154"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b156",
+            "call_sites": [
+              {
+                "function": "c_ring_buffer_queue",
+                "op_index": 5
+              },
+              {
+                "function": "c_ring_buffer_dequeue",
+                "op_index": 10
+              }
+            ],
+            "cyclic": false,
+            "successors": [
+              "b157",
+              "b158"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b157",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": [
+              "b159",
+              "b160"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b158",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b159",
+            "call_sites": [
+              {
+                "function": "c_ring_buffer_is_empty",
+                "op_index": 1
+              }
+            ],
+            "cyclic": false,
+            "successors": [
+              "b161",
+              "b162"
+            ]
+          },
+          {
+            "allocation_sites": [],
+            "block": "b160",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b161",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          },
+          {
+            "allocation_sites": [],
+            "block": "b162",
+            "call_sites": [],
+            "cyclic": false,
+            "successors": []
+          }
+        ],
+        "bounds": {
+          "max_allocation_op_executions": 3,
+          "max_cumulative_requested_payload_bytes": 32,
+          "max_nonzero_allocation_requests": 3
+        },
+        "contains_allocator_opcode": true,
+        "cyclic_components": [
+          [
+            "b135",
+            "b136"
+          ],
+          [
+            "b154",
+            "b155"
+          ]
+        ],
+        "entry_block": "b124",
+        "function": "legacy_checksum_chunk"
+      }
+    ],
+    "input_sha256": "1044e28ea68a18d6a0681cff9cd5f835e26e91c9a669dab01256b9592f64ca51",
+    "profile": "primitive-v1-local-constant-allocation-free-cycles",
+    "schema": "hepta.hia.entry-payload-analysis.v1",
+    "sha256": "6c0c089d9ca3576af82f809bbd3209bc5e9c4fbf9d3e813a2461ae53b0726ca6",
+    "status": "checked_static_payload_bound_not_runtime_admission"
+  },
+  "elapsed_seconds": 0.15295198199601145,
+  "environment": "shared-cloud-scratch-not-user-dot",
+  "finished_utc": "2026-10-29T01:01:49.548808+00:00",
+  "input_bytes": 143935,
+  "input_file_sha256": "1044e28ea68a18d6a0681cff9cd5f835e26e91c9a669dab01256b9592f64ca51",
+  "input_path": "/workspace/scratch/220b9d034358/Hepta/tests/fixtures/hia_payload_bound/legacy_core.hia.json",
+  "no_native_compilation_or_model_request": true,
+  "python": {
+    "executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "version": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]"
+  },
+  "schema": "hepta.hia.entry-payload-analysis-run.v1",
+  "source": {
+    "commit": "0d0164f957027ebe3c6949ff7e7910d62504cdbf",
+    "dependencies_sha256": {
+      "hepta/hia_heap_bound.py": "dbed5149bccd4f1b631700c2a08d8e1a80c4cb74e52b8c0bbbe118f1ade12872",
+      "hepta/hia_json_preflight.py": "53c6b189ed6210f7cf6fdb75c042ed6db7c10dba9254083270cd2903e3f7f4f2",
+      "hepta/hia_program.py": "30a593c6810119ff29cc479559a826f38981230b40ce26fe08cccd1fec72fbc9",
+      "hepta/hia_program_runtime.py": "76389227b6067be695813fc6578d6caf7186e46f1e3535f1a62d214959407a53",
+      "hepta/hia_program_tools.py": "d8b54aee8bb9f226fbcc0de61daa9bd70d29491c50f46242c3080b3a6ccfcd6d",
+      "hepta/hia_schema.py": "fc6dda7d10165d6358eb00a4f44d1651f400a782da70477711f77d052f8a4abe",
+      "hepta/hia_static_budget.py": "4d19d39680d195a174b28e3a11e7b0c866dea05cd07641e4301dc7139e2e2cfe",
+      "tools/analyze_hia_entry_payload.py": "3b3e567805532c4e2bfadb0c8db13fa280d2228f7aa8fb76b8ada0d2ee133a6e"
+    },
+    "status": "",
+    "tree": "8dc4953c14544c27105ecde646297648ae4ee44b"
+  },
+  "source_unchanged": true,
+  "status": "completed"
+}

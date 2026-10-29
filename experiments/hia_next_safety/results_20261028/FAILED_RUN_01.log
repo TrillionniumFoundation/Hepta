@@ -1,0 +1,18 @@
+Traceback (most recent call last):
+  File "/tmp/hepta-next-safety-20261028/tools/qualify_hia_scalar_lowering.py", line 171, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/tmp/hepta-next-safety-20261028/tools/qualify_hia_scalar_lowering.py", line 165, in main
+    report = qualify(args.output, args.expected_head)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/hepta-next-safety-20261028/tools/qualify_hia_scalar_lowering.py", line 101, in qualify
+    ir = emit_program_llvm(checked)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/hepta-next-safety-20261028/hepta/hia_program_llvm.py", line 790, in emit_program_llvm
+    text = emitter.render()
+           ^^^^^^^^^^^^^^^^
+  File "/tmp/hepta-next-safety-20261028/hepta/hia_program_llvm.py", line 749, in render
+    _reject("native profile requires between 1 and 128 scalar entrypoints")
+  File "/tmp/hepta-next-safety-20261028/hepta/hia_program_llvm.py", line 97, in _reject
+    raise HIAProgramLLVMRejected(code + ": " + message)
+hepta.hia_program_llvm.HIAProgramLLVMRejected: E_HIA_PROGRAM_LLVM: native profile requires between 1 and 128 scalar entrypoints
