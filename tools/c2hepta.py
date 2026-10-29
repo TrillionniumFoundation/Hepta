@@ -216,6 +216,7 @@ def _run_bounded_ast(args: list[str], *, timeout: float = 20,
         stdout = bytearray()
         stderr = bytearray()
         over_budget = threading.Event()
+        stderr_over_budget = threading.Event()
         stream_errors: list[Exception] = []
 
         def terminate_tree() -> None:
@@ -227,14 +228,14 @@ def _run_bounded_ast(args: list[str], *, timeout: float = 20,
             except ProcessLookupError:
                 pass
 
-        def drain(pipe, buf: bytearray, cap: int, *, reject_overflow: bool = False) -> None:
+        def drain(pipe, buf: bytearray, cap: int, *, overflow_event: threading.Event | None = None) -> None:
             try:
                 with pipe:
                     while chunk := pipe.read(65_536):
                         remaining = max(0, cap - len(buf))
                         buf.extend(chunk[:remaining])
-                        if reject_overflow and len(chunk) > remaining:
-                            over_budget.set()
+                        if overflow_event is not None and len(chunk) > remaining:
+                            overflow_event.set()
                             terminate_tree()
                             return
             except ProcessLookupError:
@@ -245,9 +246,9 @@ def _run_bounded_ast(args: list[str], *, timeout: float = 20,
 
         readers = (
             threading.Thread(target=drain, args=(proc.stdout, stdout, max_stdout_bytes),
-                             kwargs={"reject_overflow": True}, daemon=True),
+                             kwargs={"overflow_event": over_budget}, daemon=True),
             threading.Thread(target=drain, args=(proc.stderr, stderr, max_stderr_bytes),
-                             daemon=True),
+                             kwargs={"overflow_event": stderr_over_budget}, daemon=True),
         )
         for reader in readers:
             reader.start()
@@ -274,6 +275,8 @@ def _run_bounded_ast(args: list[str], *, timeout: float = 20,
             if context == "AST":
                 raise UnsupportedC("Clang AST exceeds 8 MB output limit")
             raise UnsupportedC("Clang probe output exceeds bounded capture limit")
+        if stderr_over_budget.is_set():
+            raise UnsupportedC("Clang stderr exceeds 4 KiB output limit")
         return subprocess.CompletedProcess(args, returncode, bytes(stdout), bytes(stderr))
 
 
