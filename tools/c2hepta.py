@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -152,11 +153,32 @@ def _atomic_write(path: Path, content: str) -> None:
             os.unlink(tmp)
 
 
+def _read_source_bounded(source: Path) -> bytes:
+    """Accept only regular C files; limit bytes before allocating input.
+
+    Nonblocking open prevents a caller-controlled .c FIFO from hanging before
+    fstat; O_NOFOLLOW rejects input symlinks on supporting platforms. fstat
+    checks the *opened* object, while a size-capped read protects against a
+    concurrently growing regular file (including the final source recheck).
+    """
+    flags = os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_NOFOLLOW", 0)
+    with os.fdopen(os.open(source, flags), "rb") as stream:
+        meta = os.fstat(stream.fileno())
+        if not stat.S_ISREG(meta.st_mode):
+            raise UnsupportedC("C input must be a regular file")
+        if meta.st_size > 256_000:
+            raise UnsupportedC("pilot input limit is 256 KB")
+        content = stream.read(256_001)
+        if len(content) > 256_000:
+            raise UnsupportedC("pilot input limit is 256 KB")
+        return content
+
+
 def migrate(source: Path, output: Path, report: Path, clang: str = "clang", verify_native: bool = False, rustc: str | None = None) -> dict:
     try:
-        original = source.read_bytes()
+        original = _read_source_bounded(source)
         read_error = None
-    except OSError as exc:
+    except (OSError, UnsupportedC) as exc:
         original = None
         read_error = str(exc)
     digest = hashlib.sha256(original).hexdigest() if original is not None else None
@@ -213,7 +235,7 @@ def migrate(source: Path, output: Path, report: Path, clang: str = "clang", veri
                 info["functions"].append({"name": label, "status": "unsupported", "reason": str(exc)})
         if any(item["status"] != "converted" for item in info["functions"]):
             raise UnsupportedC("one or more declarations unsupported; no partial source emitted")
-        if hashlib.sha256(source.read_bytes()).hexdigest() != digest:
+        if hashlib.sha256(_read_source_bounded(source)).hexdigest() != digest:
             raise UnsupportedC("source changed during conversion")
         emitted = "module c2hepta_generated;\n\n" + "\n\n".join(emit_function(fn) for fn in converted) + "\n"
         # Check syntax/types against the actual Hepta frontend when it is installed.
