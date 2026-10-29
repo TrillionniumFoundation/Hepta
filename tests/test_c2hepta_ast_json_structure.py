@@ -90,7 +90,7 @@ class ClangAstJsonStructure(unittest.TestCase):
                 self.assert_rejected_without_output(payload, reason)
 
     def test_invalid_utf8_json_fails_with_report(self):
-        self.assert_rejected_without_output(b"\\xff", "Clang AST JSON malformed or excessively nested")
+        self.assert_rejected_without_output(bytes([0xff]), "Clang AST JSON malformed or excessively nested")
 
     def test_real_clang_scalar_positive_control(self):
         self.assertIsNotNone(shutil.which("clang"), "real Clang required for migration acceptance")
