@@ -171,7 +171,8 @@ def _read_bounded_source(source: Path) -> bytes:
 
 
 def _run_bounded_ast(args: list[str], *, timeout: float = 20,
-                     max_stdout_bytes: int = 8_000_000) -> subprocess.CompletedProcess:
+                     max_stdout_bytes: int = 8_000_000,
+                     context: str = "AST") -> subprocess.CompletedProcess:
     """Bound *captured* Clang AST and diagnostics while draining both pipes.
 
     Checking len(subprocess.run(..., capture_output=True).stdout) is too late:
@@ -179,7 +180,8 @@ def _run_bounded_ast(args: list[str], *, timeout: float = 20,
     the budget, kill the producer, and retain at most 4 KiB of stderr.
     """
     max_stderr_bytes = 4096
-    with subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
+    with subprocess.Popen(args, stdin=subprocess.DEVNULL,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
         stdout = bytearray()
         stderr = bytearray()
         over_budget = threading.Event()
@@ -224,8 +226,27 @@ def _run_bounded_ast(args: list[str], *, timeout: float = 20,
         if any(reader.is_alive() for reader in readers) or stream_errors:
             raise UnsupportedC("Clang output capture failed")
         if over_budget.is_set():
-            raise UnsupportedC("Clang AST exceeds 8 MB output limit")
+            if context == "AST":
+                raise UnsupportedC("Clang AST exceeds 8 MB output limit")
+            raise UnsupportedC("Clang probe output exceeds bounded capture limit")
         return subprocess.CompletedProcess(args, returncode, bytes(stdout), bytes(stderr))
+
+
+def _probe_clang(args: list[str], *, label: str, max_stdout_bytes: int = 16_384) -> bytes:
+    """Apply bounded capture to *all* Clang probes, not only AST emission.
+
+    Version, target and predefined-macro probes run a configurable executable
+    before the AST pass. capture_output=True on any of these probes lets a
+    failing or adversarial compiler allocate stdout/stderr without limit.
+    """
+    run = _run_bounded_ast(args, timeout=10, max_stdout_bytes=max_stdout_bytes,
+                           context="probe")
+    if run.returncode:
+        raise UnsupportedC("Clang " + label + " probe failed: "
+                           + run.stderr.decode("utf-8", "replace")[:300])
+    if not run.stdout.strip():
+        raise UnsupportedC("Clang " + label + " probe returned empty output")
+    return run.stdout
 
 
 
@@ -263,12 +284,12 @@ def migrate(source: Path, output: Path, report: Path, clang: str = "clang", veri
             raise UnsupportedC("preprocessor directives/macros require a future source model")
         if not shutil.which(clang):
             raise UnsupportedC("clang executable unavailable")
-        version = subprocess.run([clang, "--version"], capture_output=True, text=True, timeout=10, check=True)
-        info["clang"] = version.stdout.splitlines()[0]
-        target = subprocess.run([clang, "-dumpmachine"], capture_output=True, text=True, timeout=10, check=True)
-        info["target"] = target.stdout.strip()
-        defines = subprocess.run([clang, "-std=c11", "-dM", "-E", "-x", "c", "-"], input=b"",
-                                 capture_output=True, timeout=10, check=True).stdout
+        version = _probe_clang([clang, "--version"], label="version")
+        info["clang"] = version.decode("utf-8", "replace").splitlines()[0]
+        target = _probe_clang([clang, "-dumpmachine"], label="target")
+        info["target"] = target.decode("utf-8", "replace").strip()
+        defines = _probe_clang([clang, "-std=c11", "-dM", "-E", "-x", "c", "-"],
+                               label="predefined macros", max_stdout_bytes=512_000)
         if not re.search(rb"(?m)^#define __SIZEOF_INT__ 4$", defines) or not re.search(rb"(?m)^#define __CHAR_BIT__ 8$", defines):
             raise UnsupportedC("the Clang target's int/char width is unsupported")
         run = _run_bounded_ast([clang, "-x", "c", "-std=c11", "-Wall", "-Wextra", "-Werror",
