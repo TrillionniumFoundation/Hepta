@@ -313,7 +313,8 @@
     },
     {
       "entrypoints": [
-        "tools.qualify_hia_safety_contract.validate_contract"
+        "tools.qualify_hia_safety_contract.validate_contract",
+        "tools.qualify_hia_integrated._source_state"
       ],
       "exclusions": [
         "no program admission authority",
@@ -329,9 +330,11 @@
         "tests.test_hia_integrated_inputs.IntegratedInputIdentityTests.test_commit_and_blob_replacements_cannot_relabel_different_source",
         "tests.test_hia_integrated_workflow.IntegratedWorkflowContractTests.test_actual_cli_receives_all_four_native_profiles_and_external_paths",
         "tests.test_hia_integrated_workflow.IntegratedWorkflowContractTests.test_real_shell_preserves_failure_and_qualifies_a_clean_exact_sibling",
-        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_workflow_checkout_and_license_inputs_are_bound_to_actual_bytes"
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_workflow_checkout_and_license_inputs_are_bound_to_actual_bytes",
+        "tests.test_hia_source_head_identity.SourceHeadIdentityTests.test_index_hints_cannot_hide_modified_bytes_before_first_snapshot",
+        "tests.test_hia_source_head_identity.SourceHeadIdentityTests.test_mode_changes_cannot_hide_behind_core_filemode_false"
       ],
-      "scope": "exact reviewed capability/test/assumption matrix; dynamic resolution uses only the canonical bytes whose independent identity passed; original Git object identity ignores replacement refs; CI passes four explicit native profiles and preserves qualification failure from a clean exact source; workflow, checkout and frozen C++ license/notice bytes participate in before/after safety input identity"
+      "scope": "exact reviewed capability/test/assumption matrix; dynamic resolution uses only the canonical bytes whose independent identity passed; original Git object identity ignores replacement refs; integrated source snapshots enumerate the exact HEAD tree and verify every regular file's raw Git blob bytes and executable bit independently of index hints or core.fileMode; CI passes four explicit native profiles and preserves qualification failure from a clean exact source; workflow, checkout and frozen C++ license/notice bytes participate in before/after safety input identity"
     }
   ],
   "judgment": {

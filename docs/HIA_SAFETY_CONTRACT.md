@@ -30,6 +30,17 @@ The runner does not replace or wrap the Core verifier and does not admit an
 otherwise rejected program. Adding a future schema requires a deliberate
 matrix review; it cannot inherit these guarantees merely by changing a version.
 
+The integrated qualifier separately binds its main working tree to the original
+committed source. It enumerates all paths and regular-file modes from the exact
+SHA-1 HEAD tree with Git replacement objects disabled. Each stable file read
+computes both SHA-256 and the Git blob identity over its actual raw bytes; the
+blob must equal that tree entry, and the owner's executable bit must match.
+`assume-unchanged`, `skip-worktree`, a clean status, or `core.fileMode=false`
+cannot substitute different bytes or modes. Missing files, nonregular tree or
+working members, unsafe/duplicate paths and changes during an identity read
+are rejected. Hints on unchanged bytes remain accepted. This is a source-input
+identity check, not authentication of a hostile host or a refinement theorem.
+
 ## Typed state and instruction obligations
 
 The following judgment names the state already checked by the implementation:

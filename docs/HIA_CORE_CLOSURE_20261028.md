@@ -18,6 +18,7 @@ identities. This increment does not repeat or relabel them.
 | P0/P4 migration intake | Existing #349–#356 IR/input fixes converge on this source; all scalar C pilot compiler queries use live bounded capture | CLI and direct API retain input/output separation, source and IR budgets, and whole-source refusal. The original scalar C profile remains limited |
 | P4 Windows frozen input | Git attributes preserve the original bytes of the locked C++ upgrade fixtures across autocrlf checkouts | The expected upstream hashes and all host-identity checks remain strict. A checkout reproduction is separate from actual Windows native execution |
 | P7 qualification scope | The reviewed safety matrix has an independent canonical identity and is resolved from the checked immutable bytes | Removing capabilities/tests or changing assumptions cannot inherit the reviewed qualification. This is protocol integrity, not a semantic theorem |
+| P7 committed source identity | Every main-source snapshot enumerates the original exact HEAD tree and compares each regular working file's raw Git blob identity and executable bit | Index hints, replacement refs and `core.fileMode=false` cannot relabel changed bytes or modes as the original source; this does not authenticate a hostile host |
 | P7 external inputs | The persistent NDU stream is a fourth explicitly pinned native dependency, with actual persistent/one-shot controls and before/after external inventories | Synthetic identity probes establish no NDU optimization gain or publication authority |
 
 Detailed implementation contracts:
@@ -107,8 +108,20 @@ the final always-run upload retains the integrated raw records and stream build
 identity alongside the existing native records. The wider job watchdog allows
 the additional full regression pass without removing or weakening earlier gates.
 These are CI execution requirements, not a claim that an unobserved host run has
-already passed. The separately invoked safety contract currently selects 75
+already passed. The separately invoked safety contract currently selects 77
 unique regression methods across 16 capability rows under its canonical hash.
+The prior 75 selectors remain present; the two additions reject pre-snapshot
+byte changes hidden by either index hint and executable-bit changes hidden by
+`core.fileMode=false`. The integrated source inventory comes from the raw exact
+HEAD tree, independently of the index. A single bounded read computes SHA-256
+and the matching Git blob identity for every regular tracked file, while
+retaining no-follow and before/open/after-read stability checks. Real temporary
+Git regressions also cover unchanged hinted files, clean before/after snapshots,
+later hidden changes, missing/nonregular members, raw tree paths, replacement
+objects and a mutation during the file read. Directory entries, including empty
+subtrees, participate in the same unsafe/duplicate path checks; only regular
+blobs enter the existing file-hash dictionary. These tests execute no integrated
+native gate by themselves and do not upgrade historical observations.
 Its before/after input inventory includes tracked workflow files, checkout
 attributes and all frozen C++ upgrade inputs, including licenses and notices.
 These controls participate in source stability even when their suffix is not
