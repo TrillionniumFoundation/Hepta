@@ -3,6 +3,8 @@ import importlib.util
 import os
 import pathlib
 import subprocess
+import sys
+import time
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -24,6 +26,32 @@ class AuditTests(unittest.TestCase):
             self.assertEqual(module.main(["--base", A, "--candidate", "p14=" + B,
                                           "--candidate", "p14=" + C,
                                           "--output", str(pathlib.Path(d) / "a.json")]), 2)
+
+    def test_git_tree_stdout_budget_kills_oversized_producer(self):
+        # A fake git executable emits more than the intentionally reduced
+        # audit budget, then remains alive. The auditor must reject promptly
+        # instead of waiting to capture its entire stdout in memory.
+        if os.name != "posix":
+            self.skipTest("POSIX executable shim required")
+        with tempfile.TemporaryDirectory() as directory:
+            binary = pathlib.Path(directory) / "git"
+            binary.write_text(
+                f"#!{sys.executable}\n"
+                "import sys, time\n"
+                "sys.stdout.buffer.write(b'x' * 8192)\n"
+                "sys.stdout.buffer.flush()\n"
+                "time.sleep(4)\n",
+                encoding="utf-8",
+            )
+            binary.chmod(0o755)
+            environment = {"PATH": directory + os.pathsep + os.environ.get("PATH", "")}
+            with patch.dict(os.environ, environment), patch.object(
+                module, "_MAX_GIT_TREE_BYTES", 4096, create=True
+            ):
+                started = time.monotonic()
+                with self.assertRaisesRegex(ValueError, "bounded|budget"):
+                    module.git("ls-tree", "-r", "-z", "--full-tree", A)
+                self.assertLess(time.monotonic() - started, 3.0)
 
     def test_truncated_tree_rejected(self):
         with patch.object(module, "git", return_value=b"100644 blob " + A.encode() + b"\ta.py"):
