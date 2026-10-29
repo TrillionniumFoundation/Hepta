@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+import select
 import shlex
 import subprocess
 import sys
@@ -94,11 +95,13 @@ class ClangProcessGroupTermination(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="hepta-clang-orphan-pipes-") as temp:
             root = Path(temp)
             ready = root / "child-ready"
+            ready_pending = root / "child-ready.pending"
             release = root / "release"
             parent_id = root / "wrapper-pid"
             survived = root / "child-survived"
             shell = (
-                f"printf '%s' \"$$\" > {shlex.quote(str(ready))}; "
+                f"printf '%s' \"$$\" > {shlex.quote(str(ready_pending))}; "
+                f"mv {shlex.quote(str(ready_pending))} {shlex.quote(str(ready))}; "
                 f"while [ ! -e {shlex.quote(str(release))} ]; do sleep 0.01; done; "
                 f"printf survived > {shlex.quote(str(survived))}; printf late-output"
             )
@@ -111,40 +114,46 @@ class ClangProcessGroupTermination(unittest.TestCase):
                 f"while not pathlib.Path({str(ready)!r}).exists() and time.monotonic() < deadline:\n"
                 "    time.sleep(0.01)\n"
             )
+            owners, child_handles = [], []
+            real_terminate = clang_capture._terminate
+
+            def observe_owned_children(process, job=None):
+                owners.append(process)
+                try:
+                    if sys.platform == "linux" and hasattr(os, "pidfd_open"):
+                        # Open while the exact namespace-local child is still
+                        # alive behind its barrier. An ambient /proc mount can
+                        # name another PID namespace, and numeric PIDs can recur.
+                        child_handles.append(os.pidfd_open(int(ready.read_text())))
+                finally:
+                    # A failed observation must not discard the real owner.
+                    real_terminate(process, job)
+
             try:
-                result = _run_bounded_ast(
-                    [sys.executable, "-c", wrapper], context="probe",
-                    max_stdout_bytes=64, timeout=5, input_text="admitted\r\n",
-                )
+                with patch.object(clang_capture, "_terminate", side_effect=observe_owned_children):
+                    result = _run_bounded_ast(
+                        [sys.executable, "-c", wrapper], context="probe",
+                        max_stdout_bytes=64, timeout=5, input_text="admitted\r\n",
+                    )
                 self.assertEqual(result.returncode, 0)
                 self.assertEqual(result.stdout, b"admitted\r\n")
                 self.assertEqual(result.stderr, b"")
                 self.assertTrue(ready.is_file(), "compiler child never initialized")
-                if Path("/proc").is_dir():
-                    self.assertFalse((Path("/proc") / parent_id.read_text()).exists(),
-                                     "capture leader was not reaped")
-                    child_status = Path("/proc") / ready.read_text() / "status"
-                    deadline = time.monotonic() + 1
-                    child_state = None
-                    while time.monotonic() < deadline:
-                        try:
-                            state = next(line for line in child_status.read_text().splitlines()
-                                         if line.startswith("State:"))
-                        except FileNotFoundError:
-                            child_state = None
-                            break
-                        child_state = state.split()[1]
-                        if child_state in {"Z", "X"}:
-                            break
-                        time.sleep(.01)
-                    if child_state is not None:
-                        self.assertIn(child_state, {"Z", "X"},
-                                      "compiler descendant still runs after capture returned")
+                self.assertEqual(len(owners), 1, "capture cleanup did not run exactly once")
+                self.assertIsNotNone(owners[0].returncode)
+                with self.assertRaises(ChildProcessError):
+                    os.waitpid(owners[0].pid, os.WNOHANG)
+                for handle in child_handles:
+                    poller = select.poll()
+                    poller.register(handle, select.POLLIN)
+                    self.assertTrue(poller.poll(2000), "owned compiler descendant remains live")
             finally:
                 # A broken implementation gets a finite chance to reveal a
                 # surviving writer, without leaving a waiting orphan behind.
                 release.touch()
                 time.sleep(.6)
+                for handle in child_handles:
+                    os.close(handle)
             self.assertFalse(survived.exists(), "exited wrapper left a live compiler child")
 
     def test_cleanup_failure_never_becomes_a_successful_capture(self):

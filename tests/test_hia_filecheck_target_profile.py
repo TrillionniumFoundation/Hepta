@@ -1,6 +1,6 @@
 """Actual finite x86 LTO feature binding; no original-host reconstruction."""
 from copy import deepcopy
-from hashlib import sha256
+from hashlib import file_digest, sha256
 import json
 import os
 from pathlib import Path
@@ -73,6 +73,29 @@ def frontend_ir(attributes=None, group="7"):
     return ('target triple = "x86_64-pc-linux-gnu"\n'
             'define i64 @' + target.PROBE_NAME + '(i64 %0) #' + group + ' {\n'
             '  ret i64 %0\n}\nattributes #' + group + ' = { ' + attributes + ' }\n')
+
+
+def _elf_lto_linker_profile(linker, alias_directory):
+    """Preserve the selected executable while giving generic LLD an ELF argv[0]."""
+    selected = Path(linker).absolute()
+    resolved = selected.resolve(strict=True)
+    invocation = selected
+    if selected.name in {"lld", "rust-lld"}:
+        # LLD dispatches on argv[0]; -Wl,-flavor,gnu need not be the first
+        # linker argument. Clang preserves an absolute -fuse-ld path. Keep
+        # this alias outside the retained evidence tree (no binary copies).
+        invocation = Path(alias_directory).absolute() / "ld.lld"
+        invocation.symlink_to(selected)
+        if not invocation.samefile(selected):
+            raise ValueError("ELF linker alias changed the selected executable")
+    with resolved.open("rb") as stream:
+        digest = file_digest(stream, "sha256").hexdigest()
+    return {"selected_invocation_path": str(selected),
+            "resolved_executable": str(resolved), "sha256": digest,
+            "invocation_path": str(invocation), "required_flavor": "gnu",
+            "alias_applied": invocation != selected,
+            "version_argv": [str(invocation), "--version"],
+            "driver_flags": ["-fuse-ld=" + str(invocation)]}
 
 
 class FilecheckTargetProfileTests(unittest.TestCase):
@@ -208,7 +231,8 @@ define i64 @public_entry(i64 %v) {
             tools[label] = str(Path(found).absolute())  # Keep ld.lld argv[0].
         commands, observations = [], {}
 
-        with tempfile.TemporaryDirectory(prefix="hepta-filecheck-target-") as tmp:
+        with tempfile.TemporaryDirectory(prefix="hepta-filecheck-target-") as tmp, \
+                tempfile.TemporaryDirectory(prefix="hepta-filecheck-lld-") as linker_tmp:
             root = Path(tmp)
 
             def command(argv, stage, *, timeout=30):
@@ -223,10 +247,12 @@ define i64 @public_entry(i64 %v) {
             try:
                 version = command([tools['clang'], '--version'], 'clang_version')
                 self.assertRegex(version['stdout'], r'clang version 20\.')
-                command([tools['linker'], '--version'], 'lld_version')
+                linker_profile = _elf_lto_linker_profile(tools['linker'], linker_tmp)
+                observations['linker_profile'] = linker_profile
+                command(linker_profile['version_argv'], 'lld_version')
                 command([tools['qemu'], '--version'], 'qemu_version')
                 disabled = ['-mno-' + name for name in sorted(target._DISABLED_CONTROL_FEATURES)]
-                flags = ['-O3', '-flto=full', '-fuse-ld=' + tools['linker'],
+                flags = ['-O3', '-flto=full', *linker_profile['driver_flags'],
                          '-march=znver4', *disabled, '-fPIC', '-shared']
                 bound, profile = target.bind_native_target_profile(MINI_IR, clang=tools['clang'],
                     flags=flags, directory=root / 'target-profile', command=command)

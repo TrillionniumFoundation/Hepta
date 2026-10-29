@@ -17,6 +17,7 @@ import subprocess
 import tempfile
 import time
 
+from . import clang_capture as _capture
 from .clang_capture import _terminate
 from .c_migrate import MigrationRejected
 
@@ -24,6 +25,7 @@ MAX_AST_BYTES = 384_000_000
 MAX_AST_VALUES = 6_000_000
 MAX_OBJECT_BYTES = 96_000_000
 MAX_AST_SECONDS = 120
+_EXIT_WAIT_SECONDS = 5
 _TOKENS = re.compile(rb'["\\{}\[\]]')
 
 
@@ -190,9 +192,17 @@ class _Objects:
 
 
 def stream_ast(arguments, *, cwd, source, receipt):
-    """Yield every top-level AST node; populate receipt only after full closure."""
+    """Yield every AST node; publish a receipt only after owned cleanup.
+
+    EOF and compiler completion are independent. Keep the process-group
+    leader owned until the one final termination attempt, including when a
+    caller stops iteration before the complete census has been consumed.
+    """
     if receipt:
         _reject("Capture receipt must start empty")
+    if os.name != "posix":
+        _reject("Complete AST streaming requires a POSIX process owner")
+    _capture._require_posix_ownership()
     digest, total = sha256(), 0
     framed = _Objects()
     start = time.perf_counter_ns()
@@ -203,29 +213,59 @@ def stream_ast(arguments, *, cwd, source, receipt):
                 _reject("Reference source exceeds budget")
             input_file.write(encoded)
         input_file.seek(0)
-        process = subprocess.Popen(arguments, cwd=cwd, stdin=input_file,
-                                   stdout=subprocess.PIPE, stderr=errors,
-                                   start_new_session=True)
+        owner = None
+        if _capture._DARWIN:
+            from .darwin_capture import launch
+            process, owner = launch(arguments, cwd=cwd, stdin=input_file,
+                                    stdout=subprocess.PIPE, stderr=errors)
+        else:
+            process = subprocess.Popen(arguments, cwd=cwd, stdin=input_file,
+                                       stdout=subprocess.PIPE, stderr=errors,
+                                       start_new_session=True)
+        cleanup_attempted = False
+        failure = None
         try:
+            if owner is not None:
+                owner.raise_startup_error()
             with selectors.DefaultSelector() as selector:
                 selector.register(process.stdout, selectors.EVENT_READ)
                 complete = False
-                while not complete:
-                    if (time.perf_counter_ns() - start) / 1e9 > MAX_AST_SECONDS:
+                eof_started_ns = None
+                while True:
+                    now = time.perf_counter_ns()
+                    if (now - start) / 1e9 > MAX_AST_SECONDS:
                         _reject("Complete AST capture timeout")
+                    if eof_started_ns is not None and (now - eof_started_ns) / 1e9 > _EXIT_WAIT_SECONDS:
+                        _reject("Compiler exit timeout after complete AST EOF")
                     if os.fstat(errors.fileno()).st_size > 1_000_000:
                         _reject("Clang error output exceeds budget")
+                    compiler_complete = _capture._child_exited(process, owner)
+                    if complete and compiler_complete:
+                        break
+                    if complete:
+                        # Closing stdout does not establish the exit status.
+                        # Keep observing without wait()/poll() releasing PID.
+                        time.sleep(0.01)
+                        continue
                     for _, _ in selector.select(0.1):
                         raw = os.read(process.stdout.fileno(), 65536)
                         if not raw:
                             complete = True
+                            eof_started_ns = time.perf_counter_ns()
+                            selector.unregister(process.stdout)
                             break
                         total += len(raw)
                         if total > MAX_AST_BYTES:
                             _reject("Complete AST byte budget exceeded")
                         digest.update(raw)
                         yield from framed.feed(raw)
-            code = process.wait(timeout=5)
+            # Consume permission before a cleanup that can fail after an
+            # effect. Never retry a potentially reused numeric process group.
+            cleanup_attempted = True
+            _terminate(process, owner)
+            code = _capture._compiler_returncode(process, owner)
+            if type(code) is not int:
+                _reject("Compiler terminal status was not confirmed")
             errors.seek(0)
             error_text = errors.read(1_000_001)
             if len(error_text) > 1_000_000:
@@ -233,16 +273,42 @@ def stream_ast(arguments, *, cwd, source, receipt):
             if code:
                 _reject("Clang returned " + str(code) + ": " + error_text.decode(errors="replace")[-6000:])
             framed.close()
-            receipt.update(sha256=digest.hexdigest(), bytes=total,
-                           top_level_objects=framed.objects, json_values=framed.values,
-                           byte_limit=MAX_AST_BYTES, value_limit=MAX_AST_VALUES,
-                           largest_subtree_limit=MAX_OBJECT_BYTES,
-                           timeout_seconds=MAX_AST_SECONDS,
-                           capture_and_census_wall_ns=time.perf_counter_ns() - start,
-                           complete_stream=True, raw_ast_retained=False,
-                           stderr_sha256=sha256(error_text).hexdigest())
+        except BaseException as error:
+            failure = error
+            raise
         finally:
-            process.stdout.close()
-            # The parent may have exited while a descendant retains the pipe.
-            # Match the existing bounded capture's whole-group cleanup.
-            _terminate(process)
+            cleanup_errors = []
+            if not cleanup_attempted:
+                cleanup_attempted = True
+                try:
+                    _terminate(process, owner)
+                except BaseException as error:
+                    cleanup_errors.append(error)
+            # These handles belong to this invocation even if process-group
+            # cleanup failed. A close failure must not skip another close.
+            for close in (process.stdout.close, owner.close if owner is not None else None):
+                if close is not None:
+                    try:
+                        close()
+                    except BaseException as error:
+                        cleanup_errors.append(error)
+            if cleanup_errors:
+                if failure is None or isinstance(failure, GeneratorExit):
+                    # generator.close() swallows GeneratorExit. A failed
+                    # cleanup must instead reach the caller as a refusal.
+                    primary = cleanup_errors[0]
+                    for error in cleanup_errors[1:]:
+                        primary.add_note(f"Additional cleanup failure: {type(error).__name__}: {error}")
+                    raise primary
+                for error in cleanup_errors:
+                    failure.add_note(f"Cleanup refused: {type(error).__name__}: {error}")
+    # Reaching this point also confirms selector, pipe, owner and tempfile
+    # closure. Early generator.close()/throw() never publishes a receipt.
+    receipt.update(sha256=digest.hexdigest(), bytes=total,
+                   top_level_objects=framed.objects, json_values=framed.values,
+                   byte_limit=MAX_AST_BYTES, value_limit=MAX_AST_VALUES,
+                   largest_subtree_limit=MAX_OBJECT_BYTES,
+                   timeout_seconds=MAX_AST_SECONDS,
+                   capture_and_census_wall_ns=time.perf_counter_ns() - start,
+                   complete_stream=True, raw_ast_retained=False,
+                   stderr_sha256=sha256(error_text).hexdigest())

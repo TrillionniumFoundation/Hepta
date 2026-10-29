@@ -42,7 +42,9 @@ class CaptureOwnershipTests(unittest.TestCase):
                     timeout=3)
                 self.assertEqual(result.returncode, code)
                 self.assertEqual(result.stdout, "owned\n")
-                self.assertEqual(observations, [(True, code)])
+                # Darwin retains a living private guardian, whose status is
+                # distinct from the compiler's private exit-status frame.
+                self.assertEqual(observations, [(True, None if capture._DARWIN else code)])
 
     def test_unconfirmed_wait_refuses_instead_of_returning_success(self):
         real_popen = subprocess.Popen
@@ -142,7 +144,7 @@ class CaptureOwnershipTests(unittest.TestCase):
                     capture.run_bounded([sys.executable, "-c", "raise SystemExit(7)"], timeout=3)
             self.assertEqual(caught.exception.code, "E_CAPTURE_CLEANUP")
             self.assertEqual(group_signals, [children[0][0].pid])
-            self.assertEqual(children[0][0].returncode, 7)
+            self.assertEqual(children[0][0].returncode, -signal.SIGKILL if capture._DARWIN else 7)
         finally:
             for proc, real_wait in children:
                 proc.wait = real_wait
@@ -153,6 +155,8 @@ class CaptureOwnershipTests(unittest.TestCase):
         signals = []
 
         def stolen_leader(proc, job=None):
+            if capture._DARWIN:
+                proc.kill()
             proc.wait(timeout=3)
             return real_terminate(proc, job)
 
@@ -180,7 +184,7 @@ class CaptureOwnershipTests(unittest.TestCase):
         self.assertIn("E_CAPTURE_CLEANUP: failure after actual cleanup",
                       caught.exception.capture_error)
         self.assertEqual(len(attempts), 1)
-        self.assertEqual(caught.exception.capture.returncode, -signal.SIGKILL)
+        self.assertEqual(caught.exception.capture.returncode, None if capture._DARWIN else -signal.SIGKILL)
 
     def test_missing_waitid_or_nondefault_sigchld_refuses_before_spawn(self):
         for target, replacement in ((capture.os, None), (capture.signal, signal.SIG_IGN)):
@@ -198,7 +202,7 @@ class CaptureOwnershipTests(unittest.TestCase):
             capture.run_bounded([sys.executable, "-c",
                 "import os,signal;os.kill(os.getpid(),signal.SIGSTOP)"], timeout=.15)
         self.assertEqual(caught.exception.code, "E_CAPTURE_TIMEOUT")
-        self.assertEqual(caught.exception.capture.returncode, -signal.SIGKILL)
+        self.assertEqual(caught.exception.capture.returncode, None if capture._DARWIN else -signal.SIGKILL)
 
 
 if __name__ == "__main__":

@@ -156,7 +156,9 @@ jobs:
         if: ${{ matrix.system != 'Windows' }}
         shell: bash
         run: |
-          python -m unittest tests.test_clang_capture_ownership -v 2>&1 | tee artifacts/clang-capture-ownership-tests.log
+          python -m unittest tests.test_clang_capture_ownership tests.test_darwin_capture \
+            tests.test_cpp_unique_capture.UniqueCaptureResourceTests.test_real_guardian_pipe_eof_preserves_compiler_status \
+            -v 2>&1 | tee artifacts/clang-capture-ownership-tests.log
       - name: Check serialized-AST process status and argument forwarding on this host
         shell: bash
         run: |
