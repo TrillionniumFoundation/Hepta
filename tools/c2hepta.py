@@ -270,10 +270,31 @@ def _load_clang_ast(data: bytes) -> dict:
         if depth > _MAX_AST_JSON_NESTING or examined > _MAX_AST_JSON_CONTAINERS:
             raise UnsupportedC("Clang AST JSON structural budget exceeded")
         if isinstance(value, dict):
-            if "inner" in value and not isinstance(value["inner"], list):
-                raise UnsupportedC("Clang AST child array has invalid shape")
+            # Syntax-valid JSON is not necessarily a Clang-shaped AST. These
+            # fields are dereferenced by the recursive scalar importer; a
+            # wrong container/value type must produce a rejection report,
+            # not an uncaught AttributeError, TypeError or KeyError.
+            if "inner" in value:
+                if not isinstance(value["inner"], list):
+                    raise UnsupportedC("Clang AST child array has invalid shape")
+                if any(not isinstance(node, dict) or
+                       not isinstance(node.get("kind"), str)
+                       for node in value["inner"]):
+                    raise UnsupportedC("Clang AST child node has invalid shape")
             if "kind" in value and not isinstance(value["kind"], str):
                 raise UnsupportedC("Clang AST node kind has invalid shape")
+            if "type" in value:
+                ty = value["type"]
+                if not isinstance(ty, dict) or (
+                        "qualType" in ty and not isinstance(ty["qualType"], str)):
+                    raise UnsupportedC("Clang AST type metadata has invalid shape")
+            if "referencedDecl" in value and not isinstance(value["referencedDecl"], dict):
+                raise UnsupportedC("Clang AST referenced declaration has invalid shape")
+            for field, label in (("name", "node name"),
+                                 ("storageClass", "storage class"),
+                                 ("castKind", "cast kind")):
+                if field in value and not isinstance(value[field], str):
+                    raise UnsupportedC("Clang AST " + label + " has invalid shape")
             children = value.values()
         else:
             children = value
