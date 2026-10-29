@@ -53,6 +53,37 @@ class AuditTests(unittest.TestCase):
                     module.git("ls-tree", "-r", "-z", "--full-tree", A)
                 self.assertLess(time.monotonic() - started, 3.0)
 
+    def test_git_overflow_reaps_inherited_pipe_descendant(self):
+        # The bounded leader may exit while a child still owns both pipes.
+        # A failed audit must not leave that producer running after refusal.
+        if os.name != "posix":
+            self.skipTest("POSIX process-group isolation required")
+        with tempfile.TemporaryDirectory() as directory:
+            marker = pathlib.Path(directory) / "survived.txt"
+            binary = pathlib.Path(directory) / "git"
+            child_code = (
+                "import pathlib,sys,time; time.sleep(0.65); "
+                "pathlib.Path(sys.argv[1]).write_text('survived')"
+            )
+            binary.write_text(
+                f"#!{sys.executable}\\n"
+                "import subprocess,sys\\n"
+                f"subprocess.Popen([sys.executable, '-c', {child_code!r}, {str(marker)!r}], "
+                "stdin=subprocess.DEVNULL)\\n"
+                "sys.stdout.buffer.write(b'x' * 8192)\\n"
+                "sys.stdout.buffer.flush()\\n",
+                encoding="utf-8",
+            )
+            binary.chmod(0o755)
+            environment = {"PATH": directory + os.pathsep + os.environ.get("PATH", "")}
+            with patch.dict(os.environ, environment), patch.object(
+                module, "_MAX_GIT_TREE_BYTES", 4096
+            ):
+                with self.assertRaisesRegex(ValueError, "bounded|budget"):
+                    module.git("ls-tree", "-r", "-z", "--full-tree", A)
+            time.sleep(0.9)
+            self.assertFalse(marker.exists(), "refused Git left an inherited-pipe child alive")
+
     def test_truncated_tree_rejected(self):
         with patch.object(module, "git", return_value=b"100644 blob " + A.encode() + b"\ta.py"):
             with self.assertRaisesRegex(ValueError, "truncated"):
