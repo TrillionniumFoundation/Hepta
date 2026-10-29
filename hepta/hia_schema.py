@@ -33,10 +33,13 @@ COMPOSITE_SCHEMA_V2 = "hepta.hia.composite.v2"
 COMPOSITE_PROFILE_V2 = "nominal-products-enums-cooperative-tasks-over-closed-ssa-v7"
 COMPOSITE_SCHEMA_V3 = "hepta.hia.composite.v3"
 COMPOSITE_PROFILE_V3 = "nominal-partial-records-enums-cooperative-tasks-over-closed-ssa-v7"
+COMPOSITE_SCHEMA_V4 = "hepta.hia.composite.v4"
+COMPOSITE_PROFILE_V4 = "nominal-partial-records-parameter-field-loan-returns-over-closed-ssa-v8"
 COMPOSITE_PROFILES = MappingProxyType({
     COMPOSITE_SCHEMA: COMPOSITE_PROFILE,
     COMPOSITE_SCHEMA_V2: COMPOSITE_PROFILE_V2,
     COMPOSITE_SCHEMA_V3: COMPOSITE_PROFILE_V3,
+    COMPOSITE_SCHEMA_V4: COMPOSITE_PROFILE_V4,
 })
 COMPOSITE_SCHEMAS = frozenset(COMPOSITE_PROFILES)
 LEGACY_COMPOSITE_SCHEMA = SCHEMA_V2
@@ -56,6 +59,7 @@ COMPOSITE_OPERATIONS_BY_SCHEMA = MappingProxyType({
     COMPOSITE_SCHEMA: COMPOSITE_OPERATIONS,
     COMPOSITE_SCHEMA_V2: COMPOSITE_OPERATIONS,
     COMPOSITE_SCHEMA_V3: COMPOSITE_OPERATIONS | PARTIAL_RECORD_OPERATIONS,
+    COMPOSITE_SCHEMA_V4: COMPOSITE_OPERATIONS | PARTIAL_RECORD_OPERATIONS,
 })
 
 PRIMITIVE_PROFILES = MappingProxyType({
@@ -81,7 +85,7 @@ def profile_for_schema(schema: str) -> str:
 def composite_core_schema(schema: str) -> str:
     """Existing nominal inputs retain their exact original primitive grammar."""
     return {COMPOSITE_SCHEMA: SCHEMA_V6, COMPOSITE_SCHEMA_V2: SCHEMA_V7,
-            COMPOSITE_SCHEMA_V3: SCHEMA_V7}[schema]
+            COMPOSITE_SCHEMA_V3: SCHEMA_V7, COMPOSITE_SCHEMA_V4: SCHEMA_V8}[schema]
 
 
 def supports_feature(schema: str, feature: str) -> bool:

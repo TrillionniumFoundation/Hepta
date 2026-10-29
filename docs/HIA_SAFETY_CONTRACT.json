@@ -86,6 +86,27 @@
     },
     {
       "entrypoints": [
+        "hepta.hia_program.verify_program"
+      ],
+      "exclusions": [
+        "no implicit v3 upgrade or borrowed aggregate results",
+        "no owners, enums, partial records or tasks as loan origins",
+        "no stored loans in partial/task state; no public borrowed-resource ABI",
+        "Rust independently checks normalized primitive bytes, not nominal elaboration; no source/backend refinement proof"
+      ],
+      "guarantee": "checked_elaboration_and_reverified_core",
+      "id": "nominal_parameter_field_loans",
+      "regression_selectors": [
+        "tests.test_hia_composite_returned_loans.CompositeReturnedLoans.test_nested_origins_bind_original_entry_slots_after_cfg_renaming",
+        "tests.test_hia_composite_returned_loans.CompositeReturnedLoans.test_missing_extra_forged_metadata_and_field_indices_refuse",
+        "tests.test_hia_composite_returned_loans.CompositeReturnedLoans.test_wrong_original_field_and_parent_conflicts_refuse_in_primitive_checker",
+        "tests.test_hia_composite_returned_loans.CompositeReturnedLoansRust.test_independent_rust_rejects_wrong_flat_origins_and_loan_conflicts",
+        "tests.test_hia_composite_returned_loans.CompositeReturnedLoansNative.test_actual_allocator_observations_and_wrong_native_control"
+      ],
+      "scope": "composite v4 primitive loan results bind original loan-only formal parameters and bounded record field paths to actual primitive v8 entry identities"
+    },
+    {
+      "entrypoints": [
         "hepta.hia_program.execute_program"
       ],
       "exclusions": [
@@ -273,6 +294,71 @@
         "tests.test_c_contract_identity.CContractIdentityTests.test_initializer_source_rejects_parameter_position_drift"
       ],
       "scope": "finite captured C/C++ profiles with complete selected declaration/configuration census"
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_ndu_response.validate_response",
+        "hepta.hia_ndu.NduBridge",
+        "hepta.hia_ndu_session.NduSession"
+      ],
+      "exclusions": [
+        "response checks do not recompute native utility or prove policy optimality",
+        "input proof digests and advisory replies do not grant Core, build or publication authority",
+        "cache remains opt-in; no new measured performance benefit"
+      ],
+      "guarantee": "finite_execution_evidence",
+      "id": "ndu_advisory_response",
+      "regression_selectors": [
+        "tests.test_hia_ndu_response.NativeResponseContractTests.test_malformed_actual_replies_refuse_with_and_without_caching",
+        "tests.test_hia_ndu_response.NativeResponseContractTests.test_malformed_retained_native_replies_refuse_without_fresh_native_fallback",
+        "tests.test_hia_ndu_response.NativeResponseContractTests.test_shared_validator_source_drift_invalidates_already_cached_native_advice",
+        "tests.test_hia_ndu_session.NativeNduSessionTests.test_malformed_inner_native_replies_close_reap_and_cannot_resume"
+      ],
+      "scope": "linear-q32.v1 advisory replies shared by one-shot bridge, persistent session, cache miss and cache hit; malformed sessions terminate and cached replies are rechecked"
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_multiversion.ScalarMultiversionRuntime.publish",
+        "hepta.hia_multiversion.ScalarMultiversionRuntime.publish_if_current",
+        "hepta.hia_multiversion.ScalarMultiversionRuntime.retry_cleanup",
+        "hepta.hia_background_optimizer.BackgroundOptimizer"
+      ],
+      "exclusions": [
+        "no arbitrary asynchronous source unwinding, process crash recovery or repeated interruption during recovery",
+        "unknown native release remains charged and is not numerically retried",
+        "lifecycle tests use synthetic cost observations and do not establish optimization benefit"
+      ],
+      "guarantee": "host_enforced_scoped_admission",
+      "id": "multiversion_interruption_ownership",
+      "regression_selectors": [
+        "tests.test_hia_publication_interruptions.NativeInterruptionTests.test_conditional_failure_after_insertion_does_not_leave_released_entry",
+        "tests.test_hia_publication_interruptions.NativeInterruptionTests.test_plain_postcommit_interruption_preserves_runtime_owner",
+        "tests.test_hia_publication_interruptions.NativeInterruptionTests.test_retirement_return_interruption_never_recloses_a_reused_descriptor",
+        "tests.test_hia_publication_interruptions.NativeInterruptionTests.test_retry_completes_interrupted_retirement_registration_before_release",
+        "tests.test_hia_publication_interruptions.NativeInterruptionTests.test_worker_interruption_settles_active_and_queued_futures",
+        "tests.test_hia_publication_interruptions.NativeInterruptionTests.test_postcommit_worker_failure_reports_committed_selection_without_replay",
+        "tests.test_hia_publication_interruptions.NativeInterruptionTests.test_token_cancel_interruption_before_future_transition_cannot_strand_job"
+      ],
+      "scope": "finite Linux x86-64 scalar publication and retirement handoffs; accepted background Futures settle after bounded worker/callback interruptions while committed images retain their runtime owner"
+    },
+    {
+      "entrypoints": [
+        "hepta.migration_ir.check_function"
+      ],
+      "exclusions": [
+        "no new C/C++ syntax or general pointer contract inference",
+        "an oversized input prefix is not a full source digest",
+        "Linux x86-64 execution does not qualify other native ABI hosts"
+      ],
+      "guarantee": "checked_translation_with_foreign_obligations",
+      "id": "bounded_scalar_migration",
+      "regression_selectors": [
+        "tests.test_c2hepta_api_path_isolation.MigrationPublicAPIPathIsolation.test_report_alias_source_is_rejected_even_on_failed_conversion",
+        "tests.test_c2hepta_bounded_source.C2HeptaBoundedSource.test_maximum_read_size_and_prefix_is_not_a_source_identity",
+        "tests.test_migration_ir_structural_budget.StructuralMigrationIRBudget.test_shared_dag_expansion_rejects_before_hashing",
+        "tests.test_c2hepta_bounded_source.C2HeptaBoundedSource.test_guarded_migration_executes_original_and_generated_native_code"
+      ],
+      "scope": "finite scalar C importer and public migration IR: bounded source reads, typed names/literals/structure/parser expansion, source-output-report path isolation and actual native scalar comparison"
     }
   ],
   "judgment": {
@@ -370,6 +456,31 @@
         "normalizes_to": "hepta.hia.program.v7",
         "profile": "nominal-partial-records-enums-cooperative-tasks-over-closed-ssa-v7",
         "schema": "hepta.hia.composite.v3"
+      },
+      {
+        "nominal_operations": [
+          "enum.make",
+          "enum.tag",
+          "record.abandon",
+          "record.begin",
+          "record.borrow",
+          "record.finish",
+          "record.get",
+          "record.insert",
+          "record.make",
+          "record.take",
+          "record.unpack",
+          "task.cancel",
+          "task.close",
+          "task.create",
+          "task.join",
+          "task.poll",
+          "task.start",
+          "task.state"
+        ],
+        "normalizes_to": "hepta.hia.program.v8",
+        "profile": "nominal-partial-records-parameter-field-loan-returns-over-closed-ssa-v8",
+        "schema": "hepta.hia.composite.v4"
       }
     ],
     "latest_core_schema": "hepta.hia.program.v8",

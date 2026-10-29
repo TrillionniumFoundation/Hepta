@@ -18,6 +18,12 @@ The existing composite v1/v2/v3 grammars continue normalizing to primitive v6/v7
 they do not silently gain this contract. Neither old upgrade adapter accepts v8
 input as an implicit downgrade.
 
+The separately versioned [composite v4](HIA_COMPOSITE_RETURNED_LOANS_V4.md)
+grammar maps bounded original-parameter/record-field origins to the actual
+flattened entry parameters of primitive v8. Its structured origin annotations
+are not an alternative spelling of primitive v8 annotations, and neither the
+source route nor the older composite grammars inherit that new wire format.
+
 A function that returns a view must carry `return_loans`, an array with exactly
 one element for each result. A borrowed result names an entry borrowed parameter;
 every scalar result has `null`. Each borrowed result carries its own declared origin. Multiple result capabilities

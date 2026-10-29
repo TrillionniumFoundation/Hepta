@@ -102,6 +102,13 @@ CRITICAL_MODULES = {
     "captured_c_source_and_component_migration": ("test_c_project_source_arguments",
         "test_c_project_semantic_flags", "test_c_array_declarator_guard", "test_c_cursor_control",
         "test_c_scalar_control", "test_c_project_dependencies"),
+    "nominal_parameter_field_loan_returns": ("test_hia_composite_returned_loans",),
+    "shared_ndu_response_contract": ("test_hia_ndu_response", "test_hia_ndu_session"),
+    "publication_interruption_ownership": ("test_hia_publication_interruptions",),
+    "bounded_scalar_migration": ("test_c2hepta_api_path_isolation", "test_c2hepta_bounded_source",
+        "test_migration_ir_identifier_guard", "test_migration_ir_literal_guard",
+        "test_migration_ir_structural_budget", "test_migration_ir_neg_payload_guard",
+        "test_migration_ir_parser_budget", "test_rustup_real_compiler_identity"),
 }
 
 
@@ -499,7 +506,8 @@ def qualify(options):
         report["configured_environment"] = configured
         report["inherited_tool_environment"] = {name: os.environ.get(name) for name in (
             "CARGO_HOME", "LD_LIBRARY_PATH", "CPLUS_INCLUDE_PATH", "CPATH", "LEAN",
-            "HEPTA_LLD", "HEPTA_LLVM_READOBJ", "HEPTA_QEMU_AARCH64", "HEPTA_QEMU_RISCV64")}
+            "HEPTA_LLD", "HEPTA_LLVM_READOBJ", "HEPTA_QEMU_AARCH64", "HEPTA_QEMU_RISCV64",
+            "HEPTA_NDU_STREAM_BRIDGE", "HEPTA_NDU_STREAM_IDENTITY")}
         commands = [
             ("rust_resource_crate", [str(options.cargo), "test", "--locked", "--offline", "--manifest-path",
                                      "rust/hia-core-shadow/Cargo.toml"], "cargo"),

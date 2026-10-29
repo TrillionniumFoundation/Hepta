@@ -25,6 +25,9 @@ jobs:
     timeout-minutes: 35
     env:
       HEPTA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      RECURSIVE_NDU_SOURCE_SHA: 2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b
+      FINITE_NDU_SOURCE_SHA: 4b6391e116949af0c7e59776baead67271856bdb
+      STREAM_NDU_SOURCE_SHA: c4a1bbed3a39beba43a6abf1a18b6f75c5725c21
       CLANG: /usr/bin/clang-20
       CLANGXX: /usr/bin/clang++-20
       PYTHONDONTWRITEBYTECODE: '1'
@@ -52,13 +55,91 @@ jobs:
           sudo apt-get install --yes clang-20 libclang-20-dev libclang-rt-20-dev llvm-20 lld-20
           printf '%s\n' /usr/lib/llvm-20/bin >> "$GITHUB_PATH"
           rustup toolchain install 1.90.0 --profile minimal
+          rustup toolchain install 1.95.0 --profile minimal
           echo "RUSTC=$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_ENV"
+          echo "CARGO=$(rustup which --toolchain 1.90.0 cargo)" >> "$GITHUB_ENV"
+          echo "FINITE_NDU_RUSTC=$(rustup which --toolchain 1.95.0 rustc)" >> "$GITHUB_ENV"
+          echo "FINITE_NDU_CARGO=$(rustup which --toolchain 1.95.0 cargo)" >> "$GITHUB_ENV"
           dirname "$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_PATH"
           mkdir -p artifacts/six-outcomes "$RUNNER_TEMP/hepta-six-cargo-home" "$RUNNER_TEMP/hepta-six-cargo-target"
           echo "CARGO_HOME=$RUNNER_TEMP/hepta-six-cargo-home" >> "$GITHUB_ENV"
           echo "CARGO_TARGET_DIR=$RUNNER_TEMP/hepta-six-cargo-target" >> "$GITHUB_ENV"
       - name: Fetch locked Rust shadow dependencies before offline native checks
         run: cargo fetch --locked --manifest-path rust/hia-core-shadow/Cargo.toml
+      - uses: actions/checkout@v4
+        with:
+          repository: TrillionniumFoundation/hepta-private-ci
+          ref: ${{ env.RECURSIVE_NDU_SOURCE_SHA }}
+          path: recursive-ndu-source
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /codex-rs/Cargo.toml
+            /codex-rs/hepta-ndu/
+            /codex-rs/hepta-types/
+            /codex-rs/hepta-contracts/
+            /tools/hia-ndu-bridge/
+      - name: Build the original recursive NDU bridge with exact source identity
+        run: |
+          CARGO_INCREMENTAL=0 CARGO_PROFILE_RELEASE_DEBUG=0 python tools/build_hia_recursive_ndu_bridge.py \
+            --ndu-source recursive-ndu-source --expected-source "$RECURSIVE_NDU_SOURCE_SHA" \
+            --cargo "$CARGO" --rustc "$RUSTC" --output "$RUNNER_TEMP/hia-recursive-ndu" \
+            --target-dir "$RUNNER_TEMP/hia-recursive-ndu-target"
+          printf 'HEPTA_RECURSIVE_NDU_BRIDGE=%s\nHEPTA_RECURSIVE_NDU_IDENTITY=%s\n' \
+            "$RUNNER_TEMP/hia-recursive-ndu/native/hepta-hia-ndu-bridge" \
+            "$RUNNER_TEMP/hia-recursive-ndu/identity.json" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v4
+        with:
+          repository: TrillionniumFoundation/hepta-private-ci
+          ref: ${{ env.FINITE_NDU_SOURCE_SHA }}
+          path: finite-ndu-source
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /codex-rs/Cargo.toml
+            /codex-rs/hepta-ndu/
+            /codex-rs/hepta-types/
+            /codex-rs/hepta-contracts/
+            /tools/hia-ndu-bridge/
+      - name: Build the separately pinned finite graph evaluator
+        run: |
+          CARGO_INCREMENTAL=0 CARGO_PROFILE_RELEASE_DEBUG=0 python tools/build_hia_recursive_ndu_bridge.py \
+            --ndu-source finite-ndu-source --expected-source "$FINITE_NDU_SOURCE_SHA" \
+            --cargo "$FINITE_NDU_CARGO" --rustc "$FINITE_NDU_RUSTC" \
+            --output "$RUNNER_TEMP/hia-finite-ndu" --target-dir "$RUNNER_TEMP/hia-finite-ndu-target"
+          printf 'HEPTA_FINITE_NDU_BRIDGE=%s\nHEPTA_FINITE_NDU_IDENTITY=%s\n' \
+            "$RUNNER_TEMP/hia-finite-ndu/native/hepta-hia-ndu-bridge" \
+            "$RUNNER_TEMP/hia-finite-ndu/identity.json" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v4
+        with:
+          repository: TrillionniumFoundation/hepta-private-ci
+          ref: ${{ env.STREAM_NDU_SOURCE_SHA }}
+          path: stream-ndu-source
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /codex-rs/Cargo.toml
+            /codex-rs/hepta-ndu/
+            /codex-rs/hepta-types/
+            /codex-rs/hepta-contracts/
+            /tools/hia-ndu-bridge/
+      - name: Build the separately pinned persistent stream evaluator
+        run: |
+          CARGO_INCREMENTAL=0 CARGO_PROFILE_RELEASE_DEBUG=0 python tools/build_hia_recursive_ndu_bridge.py \
+            --ndu-source stream-ndu-source --expected-source "$STREAM_NDU_SOURCE_SHA" \
+            --cargo "$CARGO" --rustc "$RUSTC" --output "$RUNNER_TEMP/hia-stream-ndu" \
+            --target-dir "$RUNNER_TEMP/hia-stream-ndu-target"
+          printf 'HEPTA_NDU_STREAM_BRIDGE=%s\nHEPTA_NDU_STREAM_IDENTITY=%s\n' \
+            "$RUNNER_TEMP/hia-stream-ndu/native/hepta-hia-ndu-bridge" \
+            "$RUNNER_TEMP/hia-stream-ndu/identity.json" >> "$GITHUB_ENV"
+      - name: Retain pinned NDU identities without private source or binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          for profile in recursive finite stream; do
+            cp "$RUNNER_TEMP/hia-$profile-ndu/identity.json" "artifacts/six-outcomes/ndu-$profile-identity.json"
+            cp "$RUNNER_TEMP/hia-$profile-ndu/build-commands.json" "artifacts/six-outcomes/ndu-$profile-build-commands.json"
+          done
       - name: Execute the checkable safety boundary
         run: python tools/qualify_hia_safety_contract.py --output artifacts/six-outcomes/safety.json
       - name: Run finite source and application regressions without skips

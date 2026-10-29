@@ -118,6 +118,12 @@ loans. Composite v3 normalizes to primitive v7: a v8 `return_loans` declaration
 inside this nominal input is rejected, never silently erased. The primitive v8
 verifier, VM and existing returned-loan execution path are unchanged.
 
+The later [composite v4](HIA_COMPOSITE_RETURNED_LOANS_V4.md) is an explicit new
+input profile targeting primitive v8. It permits primitive loan results with
+original-parameter/field contracts while retaining these partial-state rules.
+V3 bytes still normalize to v7 and reject the new annotations. Partial states,
+task state/results and borrowed aggregate results do not gain escaping loans.
+
 The existing synchronous-call-depth analyzer reverifies the actual normalized
 Core and bounds its closed call graph. For the qualification corpus it finds
 two frames for `partial_case` and four for `partial_task` and

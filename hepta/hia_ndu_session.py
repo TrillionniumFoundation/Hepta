@@ -231,6 +231,8 @@ class NduSession(NduBridge):
                 raise NduBridgeError("native session is closed")
             started = time.monotonic_ns()
             try:
+                # The shared bridge also validates the complete inner reply;
+                # a valid stream envelope alone cannot admit malformed advice.
                 result = super().evaluate(request)
                 self._verify_binary()
                 return result

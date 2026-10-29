@@ -12,22 +12,15 @@ from hashlib import sha256
 import json
 import os
 from pathlib import Path
-import re
 import stat
 import threading
 import time
 
-from .hia_ndu import MAX_REQUEST_BYTES, NduBridge, NduBridgeError, _read_json
+from .hia_ndu import MAX_REQUEST_BYTES, NduBridge, NduBridgeError, _read_json, _validate_response
 
 SCHEMA = "hepta.hia.ndu.exact-request-reuse.v1"
 _MAX_IDENTITY_BYTES = 4 * 1024 * 1024
 _MAX_RESPONSE_BYTES = 4 * MAX_REQUEST_BYTES
-_RESPONSE_KEYS = frozenset({"schema", "status", "request_digest", "objective_digest", "snapshot_digest",
-    "generation", "identity", "authority", "safety_certificate", "optimality_scope", "disposition",
-    "advisory_candidate_id", "evaluated_candidate_ids", "pareto_candidate_ids", "rejected",
-    "evaluation_digest", "evaluation_policy_digest", "utility_profile_digest", "paths"})
-_PATH_KEYS = frozenset({"id", "verification_digest", "support_digest", "values_q32",
-    "recursive_evidence_digest", "resource_cost_q32", "risk_q32", "projection_count"})
 
 
 def _wire(value):
@@ -60,91 +53,6 @@ def _identity_bytes(path):
     return data
 
 
-def _validate_response(response, request, payload, manifest):
-    if (type(response) is not dict or set(response) != _RESPONSE_KEYS
-            or response.get("schema") != "hepta.hia.ndu.response.v1"
-            or response.get("status") != "advisory"
-            or response.get("authority") != "DENY_ALL"
-            or response.get("safety_certificate") is not False
-            or response.get("optimality_scope") != "bounded-supplied-candidate-paths-only"
-            or type(response.get("generation")) is not int
-            or type(response.get("disposition")) is not str):
-        raise NduBridgeError("decision reuse: response schema or authority changed")
-    expected = {"objective_digest": request.get("objective_digest"),
-                "snapshot_digest": request.get("snapshot_digest"),
-                "generation": request.get("generation"),
-                "request_digest": sha256(payload).hexdigest(), "identity": manifest["identity"]}
-    if any(response.get(name) != value for name, value in expected.items()):
-        raise NduBridgeError("decision reuse: stale or foreign response bindings")
-    try:
-        inputs = {row["id"]: row for row in request["candidates"]}
-        candidates = set(inputs)
-        chosen = response["advisory_candidate_id"]
-        if chosen not in candidates | {None}:
-            raise NduBridgeError("decision reuse: response names an unknown candidate")
-        for name in ("evaluation_digest", "evaluation_policy_digest", "utility_profile_digest"):
-            value = response[name]
-            if type(value) is not str or not re.fullmatch("[0-9a-f]{64}", value) or value == "0" * 64:
-                raise NduBridgeError("decision reuse: malformed evaluation digest")
-        sets = {}
-        for name in ("evaluated_candidate_ids", "pareto_candidate_ids"):
-            values = response[name]
-            if (type(values) is not list or any(type(x) is not str for x in values)
-                    or len(values) != len(set(values)) or not set(values) <= candidates):
-                raise NduBridgeError("decision reuse: malformed candidate frontier")
-            sets[name] = set(values)
-        if not sets["pareto_candidate_ids"] <= sets["evaluated_candidate_ids"]:
-            raise NduBridgeError("decision reuse: foreign Pareto candidate")
-        if chosen is not None and chosen not in sets["pareto_candidate_ids"]:
-            raise NduBridgeError("decision reuse: selected candidate outside admitted frontier")
-        evaluated, frontier = sets["evaluated_candidate_ids"], sets["pareto_candidate_ids"]
-        disposition = response["disposition"]
-        consistent = {
-            "InfeasibleExplicitAbstain": evaluated == frontier == {"abstain"} and chosen == "abstain",
-            "UniqueParetoRecommendation": (len(frontier) == 1 and chosen in frontier
-                                            and evaluated != {"abstain"}),
-            "ParetoSetRequiresSlowPath": len(frontier) > 1 and chosen is None,
-        }
-        if not consistent.get(disposition, False):
-            raise NduBridgeError("decision reuse: disposition disagrees with selected frontier")
-        rejected = response["rejected"]
-        if type(rejected) is not list:
-            raise NduBridgeError("decision reuse: malformed rejection list")
-        denied = set()
-        for row in rejected:
-            if (type(row) is not dict or set(row) != {"id", "reasons"}
-                    or row["id"] not in candidates or row["id"] in denied
-                    or type(row["reasons"]) is not list or not row["reasons"]
-                    or any(type(x) is not str for x in row["reasons"])):
-                raise NduBridgeError("decision reuse: malformed rejection entry")
-            denied.add(row["id"])
-        if denied & sets["evaluated_candidate_ids"] or denied | sets["evaluated_candidate_ids"] != candidates:
-            raise NduBridgeError("decision reuse: incomplete evaluation partition")
-        paths = response["paths"]
-        if type(paths) is not list or len(paths) != len(candidates):
-            raise NduBridgeError("decision reuse: malformed path inventory")
-        seen = set()
-        for row in paths:
-            if (type(row) is not dict or set(row) != _PATH_KEYS or row["id"] not in candidates
-                    or row["id"] in seen):
-                raise NduBridgeError("decision reuse: malformed path entry")
-            seen.add(row["id"])
-            original = inputs[row["id"]]
-            if (type(row["resource_cost_q32"]) is not int or not 0 <= row["resource_cost_q32"] < (1 << 63)
-                    or type(row["risk_q32"]) is not int or not 0 <= row["risk_q32"] <= (1 << 32)):
-                raise NduBridgeError("decision reuse: path costs and risk must be exact bounded integers")
-            if any(row[name] != original[name] for name in ("verification_digest", "support_digest",
-                                                            "resource_cost_q32", "risk_q32")):
-                raise NduBridgeError("decision reuse: stale path bindings")
-            values, proof = row["values_q32"], row["recursive_evidence_digest"]
-            if (type(values) is not list or len(values) != len(original["events"]) + 1
-                    or any(type(v) is not int or not -(1 << 63) <= v < (1 << 63) for v in values)
-                    or type(row["projection_count"]) is not int or row["projection_count"] != 0
-                    or type(proof) is not str or not re.fullmatch("[0-9a-f]{64}", proof)
-                    or proof == "0" * 64):
-                raise NduBridgeError("decision reuse: malformed recursive path")
-    except (KeyError, TypeError) as error:
-        raise NduBridgeError("decision reuse: malformed request or response") from error
 
 
 class NduDecisionCache:
@@ -185,8 +93,9 @@ class NduDecisionCache:
 
     @staticmethod
     def _implementation_digest():
-        from . import hia_ndu, hia_ndu_session
-        paths = [Path(__file__), Path(hia_ndu.__file__), Path(hia_ndu_session.__file__)]
+        from . import hia_ndu, hia_ndu_response, hia_ndu_session
+        paths = [Path(__file__), Path(hia_ndu.__file__), Path(hia_ndu_response.__file__),
+                 Path(hia_ndu_session.__file__)]
         return sha256(_wire({path.name: sha256(path.read_bytes()).hexdigest()
                              for path in paths})).hexdigest()
 

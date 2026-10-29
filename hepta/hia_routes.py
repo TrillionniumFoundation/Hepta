@@ -28,7 +28,7 @@ def route_inventory():
     versions = schema_registry()
     latest = versions["latest_core_schema"].rsplit(".", 1)[-1]
     inputs = [
-        {"route": "standalone-hia", "input": "primitive v1-" + latest + " / composite v1-v3",
+        {"route": "standalone-hia", "input": "primitive v1-" + latest + " / composite v1-v4",
          "adapter": "hepta.hia_program.verify_program", "admission": "supported",
          "origin_required": False},
         {"route": "hepta-source", "input": "checked finite Hepta source profile",

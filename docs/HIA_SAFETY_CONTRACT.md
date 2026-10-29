@@ -91,6 +91,7 @@ tests for the relevant ownership, alias, join and return cases.
 | Composite v1 | Nominal records/enums and explicit cooperative tasks | Normalizes to primitive v6 |
 | Composite v2 | Nominal operations with the v7 resource grammar | Normalizes to primitive v7 |
 | Composite v3 | Explicit partially initialized record states | Normalizes to primitive v7; no implicit v8 returned-loan extension |
+| Composite v4 | V3 operations plus primitive loan results from declared original parameter/record-field paths | Normalizes to primitive v8; only incoming loan-only parameters may anchor results; no borrowed aggregate results or loans retained by partial/task state |
 | Hepta source | Finite checked scalar/record/Result profiles and closed specialization; v1 by default or explicit v8 | No stored returned borrows, general foreign calls or hidden Rust/C fallback |
 | Independent Rust shadow | Separately closed scalar, byte-owner, returned-loan and owned-chain Machine profiles | Independent finite comparison; never production admission or deployment authority |
 | Direct LLVM | Native code from immutable reverified HIA | Compiler, runtime and platform remain trusted; full Core-to-native refinement is not proved |
@@ -158,6 +159,28 @@ Selection still checks the actual sealed mapping and the safe-point generation.
 An interruption before transactional publication retires the unpublished image;
 an interruption after complete publication leaves that image owned by the
 runtime rather than unloading a capability another thread may observe.
+
+The scalar multiversion dispatcher also preserves ownership across the bounded
+publication and retirement interruptions in
+[the publication contract](HIA_PUBLICATION_INTERRUPTION.md). Retirement retries
+must finish detaching an unleased retired generation before releasing it. A
+failed background worker closes admission and settles its accepted Futures;
+an already committed publication remains owned by the runtime. These host
+transitions do not establish arbitrary asynchronous language unwinding.
+
+The one-shot NDU bridge, persistent session and optional response cache use
+[one versioned advisory response contract](HIA_NDU_RESPONSE_CONTRACT.md).
+Malformed identities, typed request bindings, candidate partitions and path
+records are refused consistently. A poisoned session is terminal and cache
+hits are revalidated. This checks the response envelope and its declared
+bindings; it does not recompute utility, establish globally optimal policy,
+authenticate an input proof digest or authorize code admission. The cache
+remains opt-in and downstream proof/build gates remain independent.
+
+Scalar C migration additionally bounds source reads, public IR structure and
+emitted parser depth and isolates source, output and report paths. Oversized
+input prefixes are not represented as full source identities. These controls
+do not infer foreign pointer obligations or expand the admitted C/C++ grammar.
 
 ## Source/Core/native refinement and the trusted base
 
