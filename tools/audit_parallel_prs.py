@@ -11,6 +11,7 @@ import argparse
 import json
 import os
 import re
+import secrets
 import signal
 import subprocess
 import sys
@@ -228,6 +229,94 @@ def audit(base: str, candidates: dict[str, str]) -> dict:
     }
 
 
+
+# Snapshot capability support before a test/adversary can replace os.link.
+_POSIX_REPORT_DIRFD = (
+    os.name == "posix"
+    and all(operation in os.supports_dir_fd
+            for operation in (os.open, os.link, os.unlink))
+)
+
+
+def publish_report(output: str, payload: str) -> None:
+    """Publish only complete evidence, bound to one admitted directory inode.
+
+    Source staging and destination publication use the same directory handle.
+    Re-resolving both pathnames through an attacker-swapped parent symlink
+    previously allowed a forged same-named temp file to become the report.
+    A changed directory binding refuses after removing any pinned publication.
+    This is not a security boundary against a writer *inside* that directory.
+    """
+    if output.endswith(os.sep) or os.path.basename(output) in ("", ".", ".."):
+        raise ValueError("Invalid report destination")
+    absolute = os.path.abspath(output)
+    directory = os.path.dirname(absolute)
+    filename = os.path.basename(absolute)
+    if os.name != "posix":
+        # Windows directory handles need a separate native implementation.
+        # Keep the old no-overwrite publication, without claiming pinning.
+        fd, staging = tempfile.mkstemp(prefix=".hepta-integration-audit-",
+                                       suffix=".tmp", dir=directory)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as stream:
+                stream.write(payload)
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.link(staging, absolute)
+        finally:
+            os.unlink(staging)
+        return
+
+    if not _POSIX_REPORT_DIRFD:
+        raise OSError("POSIX directory-fd report publication unavailable")
+
+    directory_fd = os.open(directory, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+    try:
+        admitted = os.fstat(directory_fd)
+        staging_name = None
+        for _ in range(16):
+            name = ".hepta-integration-audit-" + secrets.token_hex(16) + ".tmp"
+            try:
+                staging_fd = os.open(
+                    name, os.O_WRONLY | os.O_CREAT | os.O_EXCL
+                    | getattr(os, "O_NOFOLLOW", 0), 0o600,
+                    dir_fd=directory_fd)
+                staging_name = name
+                break
+            except FileExistsError:
+                continue
+        if staging_name is None:
+            raise OSError("Could not allocate unique audit report staging")
+
+        published = False
+        try:
+            with os.fdopen(staging_fd, "w", encoding="utf-8") as stream:
+                stream.write(payload)
+                stream.flush()
+                os.fsync(stream.fileno())
+
+            def require_admitted_directory() -> None:
+                current = os.stat(directory)
+                if ((current.st_dev, current.st_ino) !=
+                        (admitted.st_dev, admitted.st_ino)):
+                    raise ValueError("Report output directory rebound during publication")
+
+            require_admitted_directory()
+            os.link(staging_name, filename, src_dir_fd=directory_fd,
+                    dst_dir_fd=directory_fd, follow_symlinks=False)
+            published = True
+            require_admitted_directory()
+            os.fsync(directory_fd)
+        except BaseException:
+            if published:
+                os.unlink(filename, dir_fd=directory_fd)
+            raise
+        finally:
+            os.unlink(staging_name, dir_fd=directory_fd)
+    finally:
+        os.close(directory_fd)
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base", required=True)
@@ -243,23 +332,7 @@ def main(argv=None) -> int:
             candidates[label] = sha
         report = audit(args.base, candidates)
         payload = json.dumps(report, sort_keys=True, indent=2) + "\n"
-        # Stage a fully written report in the destination filesystem. Hard-link
-        # publication has O_EXCL-like semantics even for dangling symlinks:
-        # an existing report can never be overwritten, and a failed write
-        # never exposes a truncated report at the requested output path.
-        # If hard links are unsupported, reject instead of falling back to a
-        # non-atomic publication that could be mistaken for qualified evidence.
-        directory = os.path.dirname(os.path.abspath(args.output))
-        fd, staging = tempfile.mkstemp(prefix=".hepta-integration-audit-",
-                                       suffix=".tmp", dir=directory)
-        try:
-            with os.fdopen(fd, "w", encoding="utf-8") as stream:
-                stream.write(payload)
-                stream.flush()
-                os.fsync(stream.fileno())
-            os.link(staging, args.output)
-        finally:
-            os.unlink(staging)
+        publish_report(args.output, payload)
         print(payload, end="")
         return 0
     except (ValueError, RuntimeError, OSError, subprocess.TimeoutExpired) as error:
