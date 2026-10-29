@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import ctypes
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -154,8 +155,8 @@ class C2HeptaImport(unittest.TestCase):
         # restore before the importer's final source-digest recheck.
         # Compiling the path would accept attacker's code while attributing
         # its output to the original source hash.
-        original = "int safe(int x){return x;}\\n".replace("\\n", "\n")
-        replacement = "int evil(int x){return x+1;}\\n".replace("\\n", "\n")
+        original = "int safe(int x){return x;}\n"
+        replacement = "int evil(int x){return x+1;}\n"
         self.src.write_text(original, encoding="utf-8")
         actual_run = subprocess.run
 
@@ -174,7 +175,7 @@ class C2HeptaImport(unittest.TestCase):
         self.assertEqual([item["name"] for item in result["functions"]], ["safe"])
         self.assertIn("fn safe(", self.out.read_text())
         self.assertNotIn("fn evil(", self.out.read_text())
-        self.assertEqual(result["source_sha256"], __import__("hashlib").sha256(original.encode()).hexdigest())
+        self.assertEqual(result["source_sha256"], hashlib.sha256(original.encode()).hexdigest())
 
     def test_native_gate_without_frontend_fails_closed(self):
         self.src.write_text("int f(int x){return x;}", encoding="utf-8")
