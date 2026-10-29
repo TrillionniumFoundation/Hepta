@@ -14,7 +14,8 @@ identities. This increment does not repeat or relabel them.
 | P0/P1 source convergence | Finite local shared/mutable byte-view records lower to the existing primitive v1/v8 Core | The existing source/Resource IR checks establish the declared local lifetime subset; canonical Core admission checks emitted ownership and loans. No view parameters/returns, arbitrary stored lifetimes, new opcode or second VM |
 | P0/P1 finite enums | Concrete enums with 1–32 unit variants, including Copy record fields and Result errors, lower to the existing u32/CFG operations | Fresh nominal checking, exhaustive matching and original public-entry restrictions remain required; payload, generic and recursive enums and enum C ABI remain excluded |
 | P2/P7 independent execution | An opt-in Rust envelope binds the actual Core, entry, typed arguments and policy; a public development API freshly executes and compares both VMs | Complete outcomes, ticks and stopped resource ledgers must agree. Python remains production authority; imported success metadata cannot grant admission |
-| P2 explicit depth policy | A separate v2 envelope binds a required root-inclusive call-depth policy in 1–32 to the same Machine; v1 remains fixed at 32 | Actual recursion, loans, chains and stopped ledgers are compared under that policy. The larger Python production budgets and production authority switch are not qualified |
+| P2 explicit depth policy | A separate v2 envelope binds a required root-inclusive call-depth policy in 1–32 to the same Machine; v1 remains fixed at 32 | Actual recursion, loans, chains and stopped ledgers are compared under that policy. v3 has a separate finite contract; neither protocol grants production authority |
+| P2 explicit frames and v3 budgets | One Machine and ByteMemory ledger now use explicit language frames; v3 accepts up to 256 frames, ten million ticks and 1 GiB logical payload | Finite controls execute every depth, deep returned loans and chains, ten million allowed ticks and a 16 MiB plus one byte allocation. Successful 1 GiB allocation, RSS bounds, complete API parity and production authority are not established |
 | P0/P4 migration intake | Existing #349–#356 IR/input fixes converge on this source; all scalar C pilot compiler queries use live bounded capture | CLI and direct API retain input/output separation, source and IR budgets, and whole-source refusal. The original scalar C profile remains limited |
 | P4 Windows frozen input | Git attributes preserve the original bytes of the locked C++ upgrade fixtures across autocrlf checkouts | The expected upstream hashes and all host-identity checks remain strict. A checkout reproduction is separate from actual Windows native execution |
 | P7 qualification scope | The reviewed safety matrix has an independent canonical identity and is resolved from the checked immutable bytes | Removing capabilities/tests or changing assumptions cannot inherit the reviewed qualification. This is protocol integrity, not a semantic theorem |
@@ -29,6 +30,7 @@ Detailed implementation contracts:
 - [Finite source unit enums](HIA_SOURCE_UNIT_ENUMS.md)
 - [Bound Rust execution](HIA_RUST_BOUND_EXECUTION.md)
 - [Explicit finite Rust call-depth policy](HIA_RUST_BOUND_DEPTH_V2.md)
+- [Explicit frames and finite v3 budget policy](HIA_RUST_BOUND_BUDGET_V3.md)
 - [Rust subprocess ownership and cleanup](HIA_RUST_SHADOW_PROCESS_OWNERSHIP.md)
 - [Migration input and compiler-process boundaries](P0_P4_MIGRATION_BOUNDARIES_20261028.md)
 - [Reviewed safety contract](HIA_SAFETY_CONTRACT.md)
@@ -111,9 +113,13 @@ the final always-run upload retains the integrated raw records and stream build
 identity alongside the existing native records. The wider job watchdog allows
 the additional full regression pass without removing or weakening earlier gates.
 These are CI execution requirements, not a claim that an unobserved host run has
-already passed. The separately invoked safety contract currently selects 80
+already passed. The separately invoked safety contract currently selects 95
 unique regression methods across 16 capability rows under its canonical hash.
-The prior 77 selectors remain present; their source-identity additions reject pre-snapshot
+All prior 80 selectors remain present; eight actual v3 execution and refusal
+methods extend the existing independent-shadow row; two linker identity/cleanup
+methods and four strict qualification-result methods and the exact syscall/timeout control
+extend protocol integrity.
+Their source-identity additions reject pre-snapshot
 byte changes hidden by either index hint and executable-bit changes hidden by
 `core.fileMode=false`. The integrated source inventory comes from the raw exact
 HEAD tree, independently of the index. A single bounded read computes SHA-256
@@ -144,6 +150,15 @@ The old workflow watchdog assertion is aligned with the already declared
 3,600-second unit budgets, native gate collection and failure acceptance remain
 unchanged. The original complete run that rejected the stale 180-minute
 assertion is retained as a failed run, not a source-qualified success.
+
+The v3 module is required by integrated coverage and the reviewed safety
+contract. The same Machine executes all legacy and new envelopes; v1/v2 limits
+are unchanged. Complete outcomes, ticks, stopped ledgers, original nominal
+entry restrictions and cross-version replay refusal remain part of comparison.
+Raising a declared logical-byte ceiling does not establish successful allocation
+at that ceiling or a physical-memory bound. The Rust `u64` allocation-failure
+index and scalar argument transport remain narrower than the complete Python
+API, so the production switch still requires separate qualification.
 
 ## Broad P0–P7 closure remains open
 

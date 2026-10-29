@@ -49,6 +49,16 @@ and their final native behavior must pass the existing differential and
 resource checks. Compiler/loader/hardware correctness remains a trust
 assumption; a target-feature record is not a program admission token.
 
+Generic `lld` and `rust-lld` tool probes select `-flavor gnu` explicitly as
+the first argument. For actual Clang links, `elf_linker_driver` uses a temporary
+`ld.lld` spelling pointing to the same selected executable; Clang's later
+`-Wl` arguments cannot select the generic driver's first-argument mode. Both
+selected and alias identities are checked before and after the trial, and the
+alias is removed after success or failure. The trial's context remains alive
+through all finite validation phases. Identity or cleanup errors fail the
+trial. This changes the driver spelling while preserving the actual linker,
+full LTO, CPU features and optimization policy.
+
 ## Native validation failures remain observable
 
 Differential and maintenance validation execute their native calls in finite

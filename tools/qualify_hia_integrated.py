@@ -32,6 +32,7 @@ if str(ROOT) not in sys.path:
 from tools.qualify_hia_ndu_pipeline import _write
 from tools.qualify_hia_unified import _command, cargo_test_outcome, unittest_outcome
 from tools.release_check import _read_regular_evidence
+from tools.hia_filecheck_target_profile import elf_linker_version_argv
 
 SCHEMA = "hepta.hia.integrated-contract-qualification.v2"
 RECURSIVE_SOURCE = "2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b"
@@ -63,6 +64,7 @@ CRITICAL_MODULES = {
     "real_cpp_host_contract": ("test_cpp_upstream_host", "test_cpp_contract_capture"),
     "filecheck_research_target_and_signal_boundaries": ("test_hia_filecheck_target_profile",
                                                         "test_hia_filecheck_native_isolation"),
+    "native_syscall_and_timeout_controls": ("test_hia_native_child_limits",),
     "native_runtime_lifecycles": ("test_hia_multiversion", "test_hia_background_optimizer",
                                   "test_hia_adaptive", "test_hia_scalar_state",
                                   "test_hia_multiversion_totality", "test_hia_native_retirement",
@@ -78,9 +80,9 @@ CRITICAL_MODULES = {
     "source_local_views": ("test_hia_source_local_views",),
     "source_unit_enums": ("test_hia_source_unit_enums",),
     "rust_invocation_bound_execution": ("test_hia_rust_execution_crosscheck", "test_hia_rust_transport_lifecycle",
-                                        "test_hia_rust_bound_depth"),
+                                        "test_hia_rust_bound_depth", "test_hia_rust_budget_v3"),
     "reviewed_safety_protocol": ("test_hia_safety_protocol", "test_hia_integrated_inputs",
-                                 "test_hia_source_head_identity",
+                                 "test_hia_source_head_identity", "test_hia_rust_budget_qualification",
                                  "test_hia_integrated_workflow"),
     "scalar_c_pilot_admission": ("test_c2hepta_api_path_isolation", "test_c2hepta_bounded_source",
         "test_c2hepta_bounded_capture", "test_migration_ir_identifier_guard",
@@ -275,10 +277,8 @@ def _tool_gate(options, output):
         invocation = str(Path(shutil.which(str(value)) or str(value)).absolute())
         path = _resolve_tool(invocation)
         digest = _digest_file(path)
-        arguments = [invocation]
-        if name == "lld" and Path(invocation).name in {"lld", "rust-lld"}:
-            arguments += ["-flavor", "gnu"]
-        execution = _command([*arguments, "--version"], timeout=20)
+        arguments = elf_linker_version_argv(invocation) if name == "lld" else [invocation, "--version"]
+        execution = _command(arguments, timeout=20)
         tools[name] = {"invocation_path": invocation, "path": path,
                        "sha256": digest, "execution": execution}
         _write(output / (name + "-tool-probe.json"), tools[name])

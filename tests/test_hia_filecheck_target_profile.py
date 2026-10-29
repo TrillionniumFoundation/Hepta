@@ -1,5 +1,6 @@
 """Actual finite x86 LTO feature binding; no original-host reconstruction."""
 from copy import deepcopy
+from contextlib import ExitStack
 from hashlib import sha256
 import json
 import os
@@ -8,6 +9,7 @@ import platform
 import shutil
 import signal
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -157,7 +159,10 @@ define i64 @public_entry(i64 %v) {
         candidates = [base + ['-O0'], [value for value in base if value != '-flto=full'],
                       base + ['-fPIC'], base + ['@override.rsp'], base + ['-o', '/tmp/other-output'],
                       [value.replace('-march=native', '-march=x86-64') for value in base],
-                      base + ['-Xclang', '-target-feature', '+avx512f'], base + [True]]
+                      base + ['-Xclang', '-target-feature', '+avx512f'], base + [True],
+                      base + ['-Wl,-flavor,gnu'], base + ['-Wl,-flavor,darwin'],
+                      [value.replace('/usr/bin/ld.lld', '/usr/bin/rust-lld') for value in base],
+                      [value.replace('/usr/bin/ld.lld', '/usr/bin/lld') for value in base]]
         for candidate in candidates:
             with self.subTest(flags=candidate):
                 with self.assertRaisesRegex(ValueError, "E_HIA_FILECHECK_TARGET"):
@@ -168,7 +173,6 @@ define i64 @public_entry(i64 %v) {
         linker = shutil.which(os.environ.get('HEPTA_LLD', 'ld.lld'))
         self.assertIsNotNone(clang, 'actual Clang required')
         self.assertIsNotNone(linker, 'actual ELF LTO linker required')
-        flags = ['-O3', '-flto=full', '-fuse-ld=' + linker, '-march=native', '-fPIC', '-shared']
         rows = []
 
         def recorded(argv, stage, *, timeout):
@@ -179,7 +183,9 @@ define i64 @public_entry(i64 %v) {
             self.assertEqual(process.returncode, 0, process.stderr)
             return row
 
-        with tempfile.TemporaryDirectory(prefix='hepta-filecheck-profile-copy-') as tmp:
+        with tempfile.TemporaryDirectory(prefix='hepta-filecheck-profile-copy-') as tmp, \
+                target.elf_linker_driver(linker) as (driver, _):
+            flags = ['-O3', '-flto=full', '-fuse-ld=' + driver, '-march=native', '-fPIC', '-shared']
             output = Path(tmp) / 'profile'
             _, profile = target.bind_native_target_profile(MINI_IR, clang=clang, flags=flags,
                                                             directory=output, command=recorded)
@@ -195,6 +201,41 @@ define i64 @public_entry(i64 %v) {
             payload = {key: value for key, value in profile.items() if key != 'profile_sha256'}
             self.assertEqual(profile['profile_sha256'], sha256(target._wire(payload)).hexdigest())
 
+    def test_generic_elf_alias_uses_selected_bytes_and_cleans_up_after_body_failure(self):
+        selected = shutil.which(os.environ.get('HEPTA_LLD', 'ld.lld'))
+        self.assertIsNotNone(selected, 'actual ELF LTO linker required')
+        with tempfile.TemporaryDirectory(prefix='hepta-generic-lld-selection-') as tmp:
+            generic = Path(tmp) / 'rust-lld'
+            generic.symlink_to(Path(selected).resolve(strict=True))
+            with self.assertRaisesRegex(RuntimeError, 'finite body failure'):
+                with target.elf_linker_driver(generic) as (driver, receipt):
+                    process = subprocess.run([driver, '--version'], text=True, capture_output=True, timeout=10)
+                    self.assertEqual(process.returncode, 0, process.stderr)
+                    self.assertIn('LLD ', process.stdout)
+                    self.assertEqual(Path(driver).resolve(), Path(selected).resolve())
+                    raise RuntimeError('finite body failure')
+            self.assertTrue(receipt['unchanged'])
+            self.assertTrue(receipt['temporary_alias_removed'])
+            self.assertFalse(os.path.lexists(driver))
+            self.assertEqual(receipt['selected_before']['sha256'], receipt['driver_before']['sha256'])
+            self.assertEqual(generic.resolve(), Path(selected).resolve())
+
+    def test_changed_selected_linker_or_driver_alias_is_rejected_and_cleaned(self):
+        selected = shutil.which(os.environ.get('HEPTA_LLD', 'ld.lld'))
+        self.assertIsNotNone(selected, 'actual ELF LTO linker required')
+        for changed in ('selected', 'driver'):
+            with self.subTest(changed=changed), tempfile.TemporaryDirectory(prefix='hepta-lld-drift-') as tmp:
+                generic = Path(tmp) / 'rust-lld'
+                generic.symlink_to(Path(selected).resolve(strict=True))
+                with self.assertRaisesRegex(ValueError, 'changed during execution'):
+                    with target.elf_linker_driver(generic) as (driver, receipt):
+                        path = generic if changed == 'selected' else Path(driver)
+                        path.unlink()
+                        path.symlink_to(Path(sys.executable).resolve())
+                self.assertFalse(receipt['unchanged'])
+                self.assertTrue(receipt['temporary_alias_removed'])
+                self.assertFalse(os.path.lexists(driver))
+
     def test_masked_cpu_lto_preserves_complete_frontend_feature_policy(self):
         self.assertEqual(platform.system(), "Linux", "this is the declared Linux x86-64 research gate")
         self.assertIn(platform.machine(), {"x86_64", "AMD64"})
@@ -208,7 +249,9 @@ define i64 @public_entry(i64 %v) {
             tools[label] = str(Path(found).absolute())  # Keep ld.lld argv[0].
         commands, observations = [], {}
 
-        with tempfile.TemporaryDirectory(prefix="hepta-filecheck-target-") as tmp:
+        with tempfile.TemporaryDirectory(prefix="hepta-filecheck-target-") as tmp, \
+                tempfile.TemporaryDirectory(prefix="hepta-filecheck-lld-driver-") as driver_tmp, \
+                ExitStack() as linker_contexts:
             root = Path(tmp)
 
             def command(argv, stage, *, timeout=30):
@@ -223,10 +266,18 @@ define i64 @public_entry(i64 %v) {
             try:
                 version = command([tools['clang'], '--version'], 'clang_version')
                 self.assertRegex(version['stdout'], r'clang version 20\.')
-                command([tools['linker'], '--version'], 'lld_version')
+                command(target.elf_linker_version_argv(tools['linker']), 'lld_version')
                 command([tools['qemu'], '--version'], 'qemu_version')
+                # Exercise the generic dispatcher and argv[0]-selected ELF
+                # spellings against the same actual executable on every run.
+                alternate = Path(driver_tmp) / ('ld.lld' if Path(tools['linker']).name in {'lld', 'rust-lld'} else 'rust-lld')
+                alternate.symlink_to(Path(tools['linker']).resolve(strict=True))
+                command(target.elf_linker_version_argv(alternate), 'alternate_lld_version')
+                driver, driver_report = linker_contexts.enter_context(target.elf_linker_driver(tools['linker']))
+                alternate_driver, alternate_report = linker_contexts.enter_context(target.elf_linker_driver(alternate))
+                observations['linker_drivers'] = {'selected': driver_report, 'alternate': alternate_report}
                 disabled = ['-mno-' + name for name in sorted(target._DISABLED_CONTROL_FEATURES)]
-                flags = ['-O3', '-flto=full', '-fuse-ld=' + tools['linker'],
+                flags = ['-O3', '-flto=full', '-fuse-ld=' + driver,
                          '-march=znver4', *disabled, '-fPIC', '-shared']
                 bound, profile = target.bind_native_target_profile(MINI_IR, clang=tools['clang'],
                     flags=flags, directory=root / 'target-profile', command=command)
@@ -246,11 +297,17 @@ define i64 @public_entry(i64 %v) {
                 for label, source in (('raw', raw), ('bound', fixed), ('c', c)):
                     paths[label] = root / (label + '.so')
                     command([tools['clang'], *flags, source, '-o', paths[label]], label + '_build')
+                alternate_flags = ['-O3', '-flto=full', '-fuse-ld=' + alternate_driver,
+                                   '-march=znver4', *disabled, '-fPIC', '-shared']
+                self.assertEqual(target._frontend_flags(alternate_flags), target._frontend_flags(flags))
+                paths['alternate_bound'] = root / 'alternate_bound.so'
+                command([tools['clang'], *alternate_flags, fixed, '-o', paths['alternate_bound']],
+                        'alternate_bound_build')
                 (root / 'runner.c').write_text(RUNNER_C)
                 command([tools['clang'], '-std=c11', '-O2', '-Wall', '-Wextra', '-Werror',
                          root / 'runner.c', '-ldl', '-o', root / 'runner'], 'runner_build')
                 cpu = None
-                for label in ('raw', 'bound', 'c'):
+                for label in ('raw', 'bound', 'c', 'alternate_bound'):
                     counts = [1] if label == 'raw' else [0, 1, 2, 3, 4, (1 << 64) - 1]
                     observations[label] = []
                     for count in counts:
@@ -277,8 +334,13 @@ define i64 @public_entry(i64 %v) {
                 observations['cpu'] = cpu
                 observations['profile_sha256'] = profile['profile_sha256']
                 observations['binary_identities'] = {name: sha256(path.read_bytes()).hexdigest() for name, path in paths.items()}
+                observations['linker_invocations'] = {'selected': tools['linker'], 'alternate': str(alternate),
+                    'same_executable': Path(tools['linker']).resolve() == alternate.resolve(),
+                    'identity': target._file_identity(alternate)}
+                self.assertTrue(observations['linker_invocations']['same_executable'])
                 observations['original_ci_host_features_reconstructed'] = False
             finally:
+                linker_contexts.close()
                 payload = {'schema': 'hepta.filecheck-target-profile-regression.v1',
                            'observations': observations, 'commands': commands}
                 (root / 'execution.json').write_text(json.dumps(payload, sort_keys=True, indent=2) + '\n')

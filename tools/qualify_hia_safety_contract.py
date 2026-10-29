@@ -27,6 +27,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from hepta.hia_schema import schema_registry
+from tools.hia_filecheck_target_profile import elf_linker_version_argv
 
 CONTRACT = ROOT / "docs/HIA_SAFETY_CONTRACT.json"
 # This is the reviewed qualification protocol, not a program admission receipt.
@@ -34,7 +35,7 @@ CONTRACT = ROOT / "docs/HIA_SAFETY_CONTRACT.json"
 # caller can remove capabilities/tests and still obtain the same qualification
 # status for a weaker matrix. Deliberate protocol changes must review and update
 # this identity together with the contract and its boundary tests.
-REVIEWED_CONTRACT_SHA256 = "0d1c3cc239b56804225c1d900d098e35881bb5fe9a3e11fe3000e3e70dfb951e"
+REVIEWED_CONTRACT_SHA256 = "01dbcbee699def90fd3d3fe13211b861c564386625b13bfbf957ccc20232c1f3"
 _UNPROVED = frozenset({"whole_language_soundness_proved", "source_to_core_refinement_proved",
     "core_to_native_refinement_proved", "global_optimality_proved", "absolute_resource_safety_proved",
     "general_concurrent_memory_safety_proved", "native_process_memory_bound_proved",
@@ -153,7 +154,8 @@ def environment_identity():
                             ("lld", os.environ.get("HEPTA_LLD", "ld.lld")),
                             ("qemu_x86_64", os.environ.get("HEPTA_QEMU_X86_64", "qemu-x86_64"))):
         path = shutil.which(selector)
-        tools[label] = ({"path": path, "sha256": digest(path), "version": command([path, "--version"])}
+        argv = elf_linker_version_argv(path) if label == "lld" else [path, "--version"]
+        tools[label] = ({"path": path, "sha256": digest(path), "version": command(argv)}
                         if path else {"path": None, "status": "missing"})
     try:
         import z3

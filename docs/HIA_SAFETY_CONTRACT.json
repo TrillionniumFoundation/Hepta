@@ -207,12 +207,14 @@
       "entrypoints": [
         "hepta.hia_rust_crosscheck.crosscheck_rust_shadow",
         "hepta.hia_rust_crosscheck.crosscheck_rust_execution",
-        "hepta.hia_rust_crosscheck.crosscheck_rust_execution_v2"
+        "hepta.hia_rust_crosscheck.crosscheck_rust_execution_v2",
+        "hepta.hia_rust_crosscheck.crosscheck_rust_execution_v3"
       ],
       "exclusions": [
         "no deployment authority",
         "agreement is not refinement or whole-language soundness",
-        "not a transparent replacement for Python production budgets up to 256 frames, 10000000 ticks or 1 GiB payload"
+        "no complete Python production API parity: scalar public transport and u64 allocation-failure indices retain independent limits",
+        "logical payload budgets do not establish RSS bounds, successful 1 GiB allocation, asynchronous cancellation or complete unwind cleanup"
       ],
       "guarantee": "independent_finite_comparison_only",
       "id": "independent_shadow",
@@ -228,9 +230,17 @@
         "tests.test_hia_rust_bound_depth.RustBoundDepthParity.test_v1_and_legacy_reports_stay_fixed_at_32_for_every_schema",
         "tests.test_hia_rust_bound_depth.RustBoundDepthParity.test_raw_policy_requires_exact_shape_types_bounds_and_json",
         "tests.test_hia_rust_bound_depth.RustBoundDepthParity.test_invalid_raw_core_and_typed_arguments_cannot_hide_behind_depth_one",
-        "tests.test_hia_rust_bound_depth.RustBoundDepthParity.test_rehashed_policy_or_result_tampering_and_cross_version_replays_reject"
+        "tests.test_hia_rust_bound_depth.RustBoundDepthParity.test_rehashed_policy_or_result_tampering_and_cross_version_replays_reject",
+        "tests.test_hia_rust_budget_v3.RustBudgetV3Parity.test_all_256_depths_have_actual_returns_and_exact_call_stops",
+        "tests.test_hia_rust_budget_v3.RustBudgetV3Parity.test_deep_returned_loans_and_chains_keep_exact_stopped_ledgers",
+        "tests.test_hia_rust_budget_v3.RustBudgetV3Parity.test_ten_million_ticks_execute_and_old_step_limit_still_rejects",
+        "tests.test_hia_rust_budget_v3.RustBudgetV3Parity.test_larger_payload_is_allocated_and_heap_denial_precedes_host_allocation",
+        "tests.test_hia_rust_budget_v3.RustBudgetV3Parity.test_deep_step_stops_and_traps_retain_real_prefixes",
+        "tests.test_hia_rust_budget_v3.RustBudgetV3Parity.test_raw_policy_and_original_entry_admission_remain_strict",
+        "tests.test_hia_rust_budget_v3.RustBudgetV3Parity.test_v1_v2_reports_remain_unchanged_for_all_primitive_schemas",
+        "tests.test_hia_rust_budget_v3.RustBudgetV3Parity.test_rehashed_tampering_and_cross_protocol_replay_reject"
       ],
-      "scope": "Rust closed byte-owner/returned-loan/owned-chain Machine profiles; fresh invocation-bound Python/Rust comparison of scalar public entries, full outcomes and stopped resource ledgers; Linux process-group ownership retained through bounded cleanup; v2 explicitly binds root-inclusive call depth 1..32 to the same Machine, with legacy/v1 fixed at 32"
+      "scope": "Rust closed byte-owner/returned-loan/owned-chain Machine profiles; fresh invocation-bound Python/Rust comparison of scalar public entries, full outcomes and stopped resource ledgers; Linux process-group ownership retained through bounded cleanup; v2 explicitly binds root-inclusive call depth 1..32 to the same Machine, with legacy/v1 fixed at 32; a separate v3 protocol uses explicit language frames in the same Machine and one ByteMemory ledger, with ceilings of 256 frames, 10000000 ticks and 1 GiB logical payload; actual finite controls exercise every depth, deep stopped resources, ten million allowed ticks and 16 MiB plus one allocated byte; v1/v2 policy ceilings and envelopes remain unchanged"
     },
     {
       "entrypoints": [
@@ -317,7 +327,9 @@
       "entrypoints": [
         "tools.qualify_hia_safety_contract.validate_contract",
         "tools.qualify_hia_integrated._source_state",
-        "tools.qualify_hia_filecheck.Trial.run"
+        "tools.qualify_hia_filecheck.Trial.run",
+        "tools.hia_filecheck_target_profile.elf_linker_driver",
+        "tools.qualify_hia_rust_budget_v3.qualify"
       ],
       "exclusions": [
         "no program admission authority",
@@ -338,9 +350,16 @@
         "tests.test_hia_source_head_identity.SourceHeadIdentityTests.test_index_hints_cannot_hide_modified_bytes_before_first_snapshot",
         "tests.test_hia_source_head_identity.SourceHeadIdentityTests.test_mode_changes_cannot_hide_behind_core_filemode_false",
         "tests.test_hia_filecheck_native_isolation.FilecheckNativeIsolationTests.test_sigill_differential_preserves_failed_report_context_and_partial_progress",
-        "tests.test_hia_filecheck_native_isolation.FilecheckNativeIsolationTests.test_sigabrt_maintenance_preserves_failed_report_context_and_partial_progress"
+        "tests.test_hia_filecheck_native_isolation.FilecheckNativeIsolationTests.test_sigabrt_maintenance_preserves_failed_report_context_and_partial_progress",
+        "tests.test_hia_filecheck_target_profile.FilecheckTargetProfileTests.test_generic_elf_alias_uses_selected_bytes_and_cleans_up_after_body_failure",
+        "tests.test_hia_filecheck_target_profile.FilecheckTargetProfileTests.test_changed_selected_linker_or_driver_alias_is_rejected_and_cleaned",
+        "tests.test_hia_rust_budget_qualification.RustBudgetQualificationResultTests.test_complete_ordinary_success_is_the_only_positive_result",
+        "tests.test_hia_rust_budget_qualification.RustBudgetQualificationResultTests.test_late_expected_failure_cannot_promote_recorded_observations",
+        "tests.test_hia_rust_budget_qualification.RustBudgetQualificationResultTests.test_unexpected_success_is_explicitly_reported_and_rejected",
+        "tests.test_hia_rust_budget_qualification.RustBudgetQualificationResultTests.test_failures_errors_and_skips_cannot_satisfy_the_gate",
+        "tests.test_hia_native_child_limits.NativeChildHardLimitTests.test_worker_timeout_and_normal_exit_both_reap_forked_descendants"
       ],
-      "scope": "exact reviewed capability/test/assumption matrix; dynamic resolution uses only the canonical bytes whose independent identity passed; original Git object identity ignores replacement refs; integrated source snapshots enumerate the exact HEAD tree and verify every regular file's raw Git blob bytes and executable bit independently of index hints or core.fileMode; CI passes four explicit native profiles and preserves qualification failure from a clean exact source; workflow, checkout and frozen C++ license/notice bytes participate in before/after safety input identity; finite filecheck validation workers retain signal failures, partial invocation progress and host/tool context in a failed qualification report"
+      "scope": "exact reviewed capability/test/assumption matrix; dynamic resolution uses only the canonical bytes whose independent identity passed; original Git object identity ignores replacement refs; integrated source snapshots enumerate the exact HEAD tree and verify every regular file's raw Git blob bytes and executable bit independently of index hints or core.fileMode; CI passes four explicit native profiles and preserves qualification failure from a clean exact source; workflow, checkout and frozen C++ license/notice bytes participate in before/after safety input identity; finite filecheck validation workers retain signal failures, partial invocation progress and host/tool context in a failed qualification report; generic LLD uses an identity-checked temporary ELF driver spelling with cleanup on success or failure; finite v3 qualification rejects expected failures and unexpected successes as well as skipped, failed, errored or missing methods; syscall-refusal observations still require SIGSYS while a separate non-forking stall retains its short timeout and descendant-absence check"
     }
   ],
   "judgment": {

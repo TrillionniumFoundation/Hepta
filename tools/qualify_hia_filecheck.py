@@ -9,6 +9,7 @@ the common, unconverted host and from the independently written baselines.
 from __future__ import annotations
 
 import argparse
+from contextlib import ExitStack
 import hashlib
 import json
 import math
@@ -33,7 +34,8 @@ from hepta.hia_program import execute_program, verify_program
 from hepta.hia_program_llvm import build_program_native, emit_program_llvm
 from hepta.hia_program_source import lower_c_multi_owner
 from hepta.elf_shared_abi import inspect_owned_shared_elf
-from tools.hia_filecheck_target_profile import bind_native_target_profile
+from tools.hia_filecheck_target_profile import (bind_native_target_profile,
+    elf_linker_driver, elf_linker_version_argv)
 
 FIXTURE = ROOT / "examples/hia_filecheck"
 PROTOCOL_PATH = ROOT / "experiments/hia_filecheck/PROTOCOL_20261028.json"
@@ -235,6 +237,7 @@ class Trial:
                        "resource_cases": [], "samples": [], "claims": dict(PROTOCOL["claims"])}
         self.libraries = {}
         self.runtime_images = {}
+        self.linker_contexts = ExitStack()
         self.project = self.out / "project"
         shutil.copytree(FIXTURE, self.project)
 
@@ -365,7 +368,8 @@ class Trial:
 
     def build(self):
         for name, path in self.tools.items():
-            version = self.command([path, "--version"], "tool_identity")
+            argv = elf_linker_version_argv(path) if name == "linker" else [path, "--version"]
+            version = self.command(argv, "tool_identity")
             self.report.setdefault("tools", {})[name] = {**identity(path), "version": version["stdout"]}
         self.report["host"] = {"platform": platform.platform(), "machine": platform.machine(),
                                "cpu_count": os.cpu_count(), "exclusive_host": False}
@@ -392,7 +396,9 @@ class Trial:
         begin = time.perf_counter_ns()
         receipt = build_program_native(self.core, self.libraries["hia_default"], clang=self.tools["clang"])
         self.report["builds"]["hia_default"] = {"wall_ns": time.perf_counter_ns() - begin, "receipt": receipt}
-        self.flags = ["-O3", "-flto=full", "-fuse-ld=" + self.tools["linker"], "-march=native", "-fPIC", "-shared"]
+        linker, self.report["linker_driver"] = self.linker_contexts.enter_context(
+            elf_linker_driver(self.tools["linker"]))
+        self.flags = ["-O3", "-flto=full", "-fuse-ld=" + linker, "-march=native", "-fPIC", "-shared"]
         bound_ir, profile = bind_native_target_profile(
             (self.out / "migration/program.ll").read_text(), clang=self.tools["clang"], flags=self.flags,
             directory=self.out / "native-target-profile", command=self.command)
@@ -621,15 +627,16 @@ unsigned long long checksum_chunk_v2(size_t count, unsigned long long packed,
     def run(self, *, prepare_only=False):
         begin = time.perf_counter_ns()
         try:
-            self.build()
-            self.native_context()
-            self.differential()
-            self.resources()
-            self.maintenance()
-            if not prepare_only:
-                self.measure()
-            self.verify_artifacts()
-            require(source_bindings() == self.report["source_bindings"], "source changed during qualification")
+            with self.linker_contexts:
+                self.build()
+                self.native_context()
+                self.differential()
+                self.resources()
+                self.maintenance()
+                if not prepare_only:
+                    self.measure()
+                self.verify_artifacts()
+                require(source_bindings() == self.report["source_bindings"], "source changed during qualification")
             self.report.update(ok=True, status="prepared_not_measured" if prepare_only else "completed",
                                prepare_only=prepare_only)
         except Exception as error:
