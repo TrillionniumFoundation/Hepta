@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import io
 import os
 import re
 import secrets
@@ -21,6 +22,7 @@ import tempfile
 _MAX_GIT_TREE_BYTES = 32_000_000
 _MAX_GIT_SMALL_BYTES = 4096
 _MAX_GIT_STDERR_BYTES = 4096
+_MAX_REPORT_BYTES = 32_000_000
 
 SHA = re.compile(r"[0-9a-fA-F]{40}\Z")
 LABEL = re.compile(r"[A-Za-z][A-Za-z0-9_-]{0,63}\Z")
@@ -238,6 +240,31 @@ _POSIX_REPORT_DIRFD = (
 )
 
 
+
+def encode_report(report: dict) -> str:
+    """Bound serialized JSON bytes before any report/stdout publication.
+
+    Git tree capture is bounded per candidate, but comparing up to 16 heads
+    expands into repeated change, overlap and ancestry lists. A single
+    json.dumps(report) would allocate the entire expanded string first.
+    Stream encoder chunks into a capped in-memory buffer and reserve one byte
+    for the terminating newline. This does not bound audit()'s in-memory
+    comparison structures; those require an independent complexity budget.
+    """
+    remaining = _MAX_REPORT_BYTES - 1
+    if remaining < 0:
+        raise ValueError("Integration audit JSON exceeds serialized byte budget")
+    buffer = io.StringIO()
+    for chunk in json.JSONEncoder(sort_keys=True, indent=2).iterencode(report):
+        chunk_bytes = len(chunk.encode("utf-8"))
+        if chunk_bytes > remaining:
+            raise ValueError("Integration audit JSON exceeds serialized byte budget")
+        buffer.write(chunk)
+        remaining -= chunk_bytes
+    buffer.write("\n")
+    return buffer.getvalue()
+
+
 def publish_report(output: str, payload: str) -> None:
     """Publish only complete evidence, bound to one admitted directory inode.
 
@@ -331,7 +358,7 @@ def main(argv=None) -> int:
                 raise ValueError("Invalid or duplicate candidate label")
             candidates[label] = sha
         report = audit(args.base, candidates)
-        payload = json.dumps(report, sort_keys=True, indent=2) + "\n"
+        payload = encode_report(report)
         publish_report(args.output, payload)
         print(payload, end="")
         return 0
