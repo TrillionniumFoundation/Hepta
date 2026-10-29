@@ -209,8 +209,8 @@ def migrate(source: Path, output: Path, report: Path, clang: str = "clang", veri
             raise UnsupportedC("the Clang target's int/char width is unsupported")
         run = subprocess.run([clang, "-x", "c", "-std=c11", "-Wall", "-Wextra", "-Werror",
                               "-pedantic-errors", "-Wno-newline-eof", "-fsyntax-only", "-Xclang", "-ast-dump=json",
-                              "-fno-color-diagnostics", str(source.resolve())],
-                             capture_output=True, timeout=20, check=False)
+                              "-fno-color-diagnostics", "-"],
+                             input=original, capture_output=True, timeout=20, check=False)
         if run.returncode or len(run.stdout) > 8_000_000:
             raise UnsupportedC("Clang rejected source or AST exceeds size limit: " + run.stderr.decode("utf-8", "replace")[:600])
         tree = json.loads(run.stdout)
