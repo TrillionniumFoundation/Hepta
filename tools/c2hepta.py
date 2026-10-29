@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import signal
 import stat
 import subprocess
 import sys
@@ -173,19 +174,30 @@ def _read_bounded_source(source: Path) -> bytes:
 def _run_bounded_ast(args: list[str], *, timeout: float = 20,
                      max_stdout_bytes: int = 8_000_000,
                      context: str = "AST") -> subprocess.CompletedProcess:
-    """Bound *captured* Clang AST and diagnostics while draining both pipes.
+    """Bound captured compiler output, killing same-group descendants on POSIX.
 
-    Checking len(subprocess.run(..., capture_output=True).stdout) is too late:
-    the entire AST already occupies memory. Reject as soon as stdout exceeds
-    the budget, kill the producer, and retain at most 4 KiB of stderr.
+    The pipe limit alone cannot control a compiler wrapper that leaves worker
+    processes running after its parent exits. A separate POSIX session lets
+    overflow, timeout and pipe failure terminate that process group. Detached
+    children and other resource limits still require an external sandbox.
     """
     max_stderr_bytes = 4096
     with subprocess.Popen(args, stdin=subprocess.DEVNULL,
-                          stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                          start_new_session=(os.name == "posix")) as proc:
         stdout = bytearray()
         stderr = bytearray()
         over_budget = threading.Event()
         stream_errors: list[Exception] = []
+
+        def terminate_tree() -> None:
+            try:
+                if os.name == "posix":
+                    os.killpg(proc.pid, signal.SIGKILL)
+                else:
+                    proc.kill()
+            except ProcessLookupError:
+                pass
 
         def drain(pipe, buf: bytearray, cap: int, *, reject_overflow: bool = False) -> None:
             try:
@@ -195,16 +207,13 @@ def _run_bounded_ast(args: list[str], *, timeout: float = 20,
                         buf.extend(chunk[:remaining])
                         if reject_overflow and len(chunk) > remaining:
                             over_budget.set()
-                            proc.kill()
+                            terminate_tree()
                             return
             except ProcessLookupError:
                 pass  # The producer may have exited between the read and kill.
             except OSError as exc:
                 stream_errors.append(exc)
-                try:
-                    proc.kill()
-                except ProcessLookupError:
-                    pass
+                terminate_tree()
 
         readers = (
             threading.Thread(target=drain, args=(proc.stdout, stdout, max_stdout_bytes),
@@ -217,7 +226,7 @@ def _run_bounded_ast(args: list[str], *, timeout: float = 20,
         try:
             returncode = proc.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
-            proc.kill()
+            terminate_tree()
             proc.wait()
             raise
         finally:
