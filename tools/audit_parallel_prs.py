@@ -13,6 +13,11 @@ import os
 import re
 import subprocess
 import sys
+import threading
+
+_MAX_GIT_TREE_BYTES = 32_000_000
+_MAX_GIT_SMALL_BYTES = 4096
+_MAX_GIT_STDERR_BYTES = 4096
 
 SHA = re.compile(r"[0-9a-fA-F]{40}\Z")
 LABEL = re.compile(r"[A-Za-z][A-Za-z0-9_-]{0,63}\Z")
@@ -41,14 +46,72 @@ DIRECT_SEMANTIC_PATHS = frozenset({
 
 
 def git(*args: str) -> bytes:
-    # Fail on missing objects; no shell evaluation and no remote network reads.
+    """Bound stdout/stderr *while* Git runs, before loading a tree into RAM.
+
+    A post-subprocess 32 MB check is too late: capture_output=True can
+    allocate arbitrary memory when a tree is unexpectedly large. Limit even
+    diagnostic output, kill the producer on overflow, and retain the existing
+    60-second execution deadline. Short Git metadata commands need only 4 KiB.
+    """
     env = {**os.environ, "GIT_NO_REPLACE_OBJECTS": "1"}
-    proc = subprocess.run(["git", "--no-pager", *args], stdout=subprocess.PIPE,
-                          stderr=subprocess.PIPE, check=False, timeout=60, env=env)
-    if proc.returncode:
-        raise RuntimeError("git " + " ".join(args[:2]) + " failed: " +
-                           proc.stderr.decode("utf-8", "replace")[:500])
-    return proc.stdout
+    cap = _MAX_GIT_TREE_BYTES if args and args[0] == "ls-tree" else _MAX_GIT_SMALL_BYTES
+    with subprocess.Popen(["git", "--no-pager", *args], stdout=subprocess.PIPE,
+                          stderr=subprocess.PIPE, env=env) as proc:
+        stdout = bytearray()
+        stderr = bytearray()
+        over_budget: list[str] = []
+        stream_errors: list[Exception] = []
+
+        def kill() -> None:
+            try:
+                proc.kill()
+            except ProcessLookupError:
+                pass
+
+        def drain(pipe, buffer: bytearray, limit: int, label: str) -> None:
+            try:
+                with pipe:
+                    # read1 does not wait for EOF or for an entire 64-KiB
+                    # buffer before reporting an over-budget producer.
+                    while chunk := pipe.read1(65_536):
+                        remaining = max(0, limit - len(buffer))
+                        buffer.extend(chunk[:remaining])
+                        if len(chunk) > remaining:
+                            over_budget.append(label)
+                            kill()
+                            return
+            except (OSError, ValueError) as exc:
+                stream_errors.append(exc)
+                kill()
+
+        readers = (
+            threading.Thread(target=drain,
+                             args=(proc.stdout, stdout, cap, "stdout"), daemon=True),
+            threading.Thread(target=drain,
+                             args=(proc.stderr, stderr, _MAX_GIT_STDERR_BYTES, "stderr"),
+                             daemon=True),
+        )
+        for reader in readers:
+            reader.start()
+        try:
+            proc.wait(timeout=60)
+        except subprocess.TimeoutExpired:
+            kill()
+            proc.wait()
+            raise
+        finally:
+            for reader in readers:
+                reader.join(timeout=1)
+        if over_budget:
+            raise ValueError("git output exceeds bounded capture budget: " +
+                             ",".join(over_budget))
+        if stream_errors or any(reader.is_alive() for reader in readers):
+            kill()
+            raise RuntimeError("git output capture failed")
+        if proc.returncode:
+            raise RuntimeError("git " + " ".join(args[:2]) + " failed: " +
+                               bytes(stderr).decode("utf-8", "replace")[:500])
+        return bytes(stdout)
 
 
 def check_commit(sha: str) -> str:
