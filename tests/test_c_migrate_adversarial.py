@@ -28,6 +28,8 @@ class CMigrationAdversarial(unittest.TestCase):
         self.assertFalse(result["ok"], result)
         self.assertFalse(self.output.exists())
         self.assertIn(code, [item["code"] for item in result["rejected"]], result)
+        if code == "E_C_TOPLEVEL":
+            self.assertEqual(result["status"], "unsupported_source", result)
 
     def test_unused_global_must_not_be_silently_dropped(self):
         self.reject("int hidden = 7; int pure(int x){ return x + 1; }", "E_C_TOPLEVEL")
