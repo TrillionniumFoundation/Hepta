@@ -158,18 +158,17 @@ class C2HeptaImport(unittest.TestCase):
         original = "int safe(int x){return x;}\n"
         replacement = "int evil(int x){return x+1;}\n"
         self.src.write_text(original, encoding="utf-8")
-        actual_run = subprocess.run
+        from tools import c2hepta
+        actual_run = c2hepta._run_clang_ast_bounded
 
         def swap_during_ast(command, *args, **kwargs):
-            if "-ast-dump=json" not in command:
-                return actual_run(command, *args, **kwargs)
             self.src.write_text(replacement, encoding="utf-8")
             try:
                 return actual_run(command, *args, **kwargs)
             finally:
                 self.src.write_text(original, encoding="utf-8")
 
-        with mock.patch("tools.c2hepta.subprocess.run", side_effect=swap_during_ast):
+        with mock.patch("tools.c2hepta._run_clang_ast_bounded", side_effect=swap_during_ast):
             result = migrate(self.src, self.out, self.report)
         self.assertEqual(result["status"], "converted", result)
         self.assertEqual([item["name"] for item in result["functions"]], ["safe"])
