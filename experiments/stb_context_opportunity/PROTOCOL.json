@@ -1,0 +1,71 @@
+{
+  "schema": "hepta.stb-context-opportunity.protocol.v1",
+  "base_commit": "192d2cbba7e49bde3b03af73685ecf96f6fb1b05",
+  "scope": "Prospective real pinned stb_divide scalar kernel, synthetic full-int32 batch workload; not a production application trace or general Hepta speed claim.",
+  "upstream_stb_commit": "003501f6d7a8668ce8b6d875e34dd97ad0d5d5b5",
+  "libdivide_commit": "66190e9daa603cabe95d99f09fb79b5c186d0417",
+  "static_arms": [
+    "clang-stb-lto",
+    "gcc-stb-lto",
+    "clang-libdivide-scalar",
+    "clang-libdivide-branchfree",
+    "clang-libdivide-avx2",
+    "clang-libdivide-avx2-free",
+    "clang-libdivide-avx512",
+    "clang-libdivide-avx512-free",
+    "gcc-libdivide-scalar",
+    "gcc-libdivide-branchfree",
+    "gcc-libdivide-avx2",
+    "gcc-libdivide-avx2-free",
+    "gcc-libdivide-avx512",
+    "gcc-libdivide-avx512-free",
+    "rust-native-release",
+    "clang-stb-irpgo-lto",
+    "clang-libdivide-avx512-irpgo",
+    "clang-libdivide-avx512-free-irpgo"
+  ],
+  "development_seed": 9047281,
+  "training": [
+    {
+      "seed": 5151701,
+      "divisor": 1009
+    },
+    {
+      "seed": 5151703,
+      "divisor": 65521
+    },
+    {
+      "seed": 5151707,
+      "divisor": 4093
+    },
+    {
+      "seed": 5151709,
+      "divisor": 32749
+    }
+  ],
+  "training_repeats": 2,
+  "training_rounds": 4096,
+  "formal_seed": 113387891,
+  "formal_materialization": "Only after exact implementation, controls and this protocol are remotely committed. Seed declared before workload generation. Do not rerun or exclude failed attempts.",
+  "contexts": 3,
+  "count": 16384,
+  "rounds": 1048576,
+  "repeats": 24,
+  "warmup_rounds": 8,
+  "affinity_index": 4,
+  "max_wall_seconds": 1200,
+  "cell_timeout_seconds": 120,
+  "selection": "Top three static arms by complete summed training invocation cost before holdout materialization. First is primary, all three form a pointwise fastest envelope; no post-holdout candidate or baseline selection.",
+  "order": "Rotate [three preselected static arms, HIA] by context+repetition, pinned one allowed logical CPU. Shared host exclusivity not attested.",
+  "candidate": "One independently proved guarded constant-divisor specialization per context; same algorithm and compilation profile for every context, no performance-guided formal search.",
+  "costs": "Charge entire source identity, native tool probes, whole-library migration, all eighteen static builds including PGO training, baseline selection, proposal/proof/lowering/compile and preflight validation as conservative candidate preparation. Runtime comparisons include sealing, process startup, DSO load/switch, warmup, actual kernel, full-output observation, buffer/DSO/memfd cleanup. Retained evidence files are not live runtime resources; archive cost separate. Whole Python observation calls are timed, including artifact identity/hash and JSON parsing. Every remaining timed-phase orchestration/checkpoint cost is charged conservatively to the candidate. The savings reduction, final source/tool identity and affinity restoration are charged. A final actual wall-budget check gates every benefit claim. Human/AI engineering and earlier cached toolchain acquisition are unknown, so this is controller machine-time economics, not total project ROI.",
+  "benefit_gate": "All required executions correct with stable registered source, total pointwise static-envelope savings exceeds every charged preparation/final-identity cost, and each context has positive summed envelope savings. This is observed net wall time on actual measured horizon, not a statistical confidence or future guarantee.",
+  "safety_scope": "All 2^64 scalar input pairs preserve exact checked-divide behavior through exhaustive guard, including miss/failure cases. Selected internal LLVM bodies checked. Actual C batch bridge, inlining hint, LTO, machine code, kernel and hardware remain trusted/finite-tested. No owned resource operation is introduced.",
+  "frozen_previous_results_replaced": false,
+  "pgo_training": {
+    "count": 16384,
+    "rounds": 256,
+    "repeats": 1,
+    "tasks": "same four disclosed training contexts; separate from 4096-round baseline-selection training"
+  }
+}
