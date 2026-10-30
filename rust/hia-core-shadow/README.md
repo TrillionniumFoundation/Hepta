@@ -1,8 +1,13 @@
-# Independent finite HIA Rust shadow
+# Independent finite HIA Rust checks and execution
 
-The Python Core verifier remains the production admission authority. This crate
-is an independent checking and execution oracle, not a native backend or a
-whole-language safety proof.
+The Python Core verifier remains the default/source/nominal/native admission
+authority. This crate supplies independent checking and execution profiles.
+The explicit `--byte-dag-admit-run` route independently admits raw primitive
+byte-only acyclic Core, enforces a whole-module static policy, and runs the
+same immutable snapshot through the v4 Machine without Python semantic
+admission. Rust is the execution-admission authority for that named interpreter
+route alone. See [the raw byte-DAG contract](../../docs/HIA_RUST_BYTE_DAG_ADMISSION.md).
+Native refinement and whole-language authority remain separate qualifications.
 
 The separate `--owned-static-budget` mode independently computes conservative
 VM tick, allocator-interaction and synchronous-frame upper bounds for the

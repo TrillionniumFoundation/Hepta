@@ -1,11 +1,15 @@
 //! Conservative Rust shadow checker for the existing standalone HIA Program ISA.
-//! This crate is NOT the language admission authority: the canonical Python
-//! verify_program remains mandatory until semantic refinement is demonstrated.
+//! Default and native production admission still require Python verify_program.
+//! The explicit raw byte-DAG route alone owns admission for its Rust interpreter
+//! invocation; this does not replace source/nominal or whole-language authority.
 //! The default profile is resource-free scalar SSA; the explicit owned profile
 //! independently checks finite byte/chain graphs and v8 parameter loan returns.
 //! The opt-in execution Machine has explicit finite byte-owner/chain profiles.
 //! Every unsupported feature rejects instead of being interpreted as safe.
 #![forbid(unsafe_code)]
+
+mod byte_dag;
+pub use byte_dag::admit_and_run_byte_dag;
 
 use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};

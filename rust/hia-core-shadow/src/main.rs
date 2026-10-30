@@ -15,6 +15,17 @@ fn main() -> ExitCode {
         [] => hia_core_shadow::verify(&input),
         [flag] if flag == "--owned-shadow" => hia_core_shadow::verify_owned(&input),
         [flag] if flag == "--owned-static-budget" => hia_core_shadow::analyze_static_budget(&input),
+        [mode, function, arguments, static_policy, execution_policy]
+            if mode == "--byte-dag-admit-run" => {
+            match hia_core_shadow::decode_scalar_arguments(arguments) {
+                Ok(values) => hia_core_shadow::admit_and_run_byte_dag(
+                    &input, function, &values, static_policy.as_bytes(), execution_policy.as_bytes()),
+                Err(error) => {
+                    eprintln!("{error}");
+                    return ExitCode::FAILURE;
+                }
+            }
+        },
         [mode, function, arguments, policy]
             if matches!(mode.as_str(), "--owned-run-bound-v2" | "--owned-run-bound-v3" | "--owned-run-bound-v4") => {
             match hia_core_shadow::decode_scalar_arguments(arguments) {
@@ -82,7 +93,7 @@ fn main() -> ExitCode {
             }
         },
         _ => {
-            eprintln!("E_HIA_RUST_UNSUPPORTED: expected no args, --owned-shadow, --owned-static-budget, --scalar-run FUNCTION JSON_ARGS [MAX_STEPS], --owned-run/--owned-run-bound FUNCTION JSON_ARGS [MAX_STEPS MAX_HEAP_BYTES FAIL_AT|none], or --owned-run-bound-v2/v3/v4 FUNCTION JSON_ARGS JSON_POLICY");
+            eprintln!("E_HIA_RUST_UNSUPPORTED: expected no args, --owned-shadow, --owned-static-budget, --byte-dag-admit-run FUNCTION JSON_ARGS JSON_STATIC_POLICY JSON_V4_POLICY, --scalar-run FUNCTION JSON_ARGS [MAX_STEPS], --owned-run/--owned-run-bound FUNCTION JSON_ARGS [MAX_STEPS MAX_HEAP_BYTES FAIL_AT|none], or --owned-run-bound-v2/v3/v4 FUNCTION JSON_ARGS JSON_POLICY");
             return ExitCode::FAILURE;
         }
     };
