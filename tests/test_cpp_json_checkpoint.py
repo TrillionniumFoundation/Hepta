@@ -220,12 +220,20 @@ class JsonCheckpointProtocolTests(unittest.TestCase):
         def exit_after_frame(argv, **options):
             raw = response(options).raw_stdout
             script = "import os,resource,sys;resource.setrlimit(resource.RLIMIT_CORE,(0,0));sys.stdout.buffer.write(" + repr(raw) + ");sys.stdout.flush();os.abort()"
-            return run_bounded([sys.executable, "-I", "-c", script], **options)
+            # This control must actually reach os.abort(), not confuse a
+            # 3-second overloaded-runner startup timeout with SIGABRT. The
+            # separate partial-frame test below exercises the production
+            # 3-second timeout without widening JsonCheckpoint's budget.
+            return run_bounded([sys.executable, "-I", "-c", script],
+                               **{**options, "timeout": 12})
         with patch.object(checkpoint, "run_bounded", side_effect=exit_after_frame):
             observed = owner.execute(owner.prepare(1, 5, revision=0))
         self.assertEqual(observed["returncode"], -6)
+        self.assertEqual(observed["status"], "process_failed")
+        self.assertTrue(observed["direct_child_reaped"])
         self.assertGreater(observed["stdout"]["bytes"], 0)
         self.assertTrue(observed["state_preserved"])
+        self.assertTrue(observed["poisoned"])
         self.assertFalse(observed["committed"])
 
     @unittest.skipUnless(sys.platform == "linux", "qualified Linux process owner required")
