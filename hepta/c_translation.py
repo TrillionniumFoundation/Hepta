@@ -774,6 +774,24 @@ class CTranslator:
             if len(children) == 3:
                 out += [pad + "else {", *self.stmt(children[2], depth + 1), pad + "}"]
             return out
+        if kind == "DoStmt":
+            if len(children) != 2:
+                raise MigrationRejected("E_C_CONTROL", "Unexpected post-test loop AST")
+            body, predicate = children
+            condition = truth(self.expr(predicate))
+            if condition.side_effect:
+                raise MigrationRejected("E_C_EVALUATION_ORDER", "Mutating post-test conditions are unsupported")
+            # Generate the body once. Short-circuiting skips the first test;
+            # subsequent header visits occur after the preceding body. This
+            # keeps local declarations scoped to each iteration and a return
+            # skips the postcondition, including a potentially trapping one.
+            # Existing statement admission still refuses break/continue/goto.
+            self.counter += 1
+            first = "migration_do_first_" + str(self.counter)
+            return [f"{pad}let mut {first}: bool = true;",
+                    f"{pad}while {first} || {condition.text} {{",
+                    f"{pad}    {first} = false;",
+                    *self.stmt(body, depth + 1), pad + "}"]
         if kind == "ForStmt":
             if len(children) != 5 or children[1] or not all(children[i] for i in (2, 3, 4)):
                 raise MigrationRejected("E_C_FOR", "C for loops require an explicit condition and increment")

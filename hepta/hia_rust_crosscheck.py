@@ -182,7 +182,7 @@ def _require_shadow_process_ownership():
 
 
 def _run_bounded_shadow(cmd: list[str], payload: bytes, timeout: float,
-                        maximum_output=MAX_OUTPUT_BYTES):
+                        maximum_output=MAX_OUTPUT_BYTES, *, pass_fds=()):
     """Bound stdin/stdout/stderr in memory; do not spool child output to disk.
 
     Exact executable byte pinning is a separate precondition. This pump is not
@@ -196,7 +196,7 @@ def _run_bounded_shadow(cmd: list[str], payload: bytes, timeout: float,
     try:
         proc = subprocess.Popen(
             cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            start_new_session=True,
+            start_new_session=True, pass_fds=pass_fds,
             env={"LANG": "C", "LC_ALL": "C", "PYTHONIOENCODING": "utf-8"},
         )
         pipes = {"stdin": proc.stdin, "stdout": proc.stdout, "stderr": proc.stderr}
@@ -438,16 +438,38 @@ def crosscheck_rust_execution_v2(program, function: str, arguments: list,
         protocol_version=2)
 
 
+def crosscheck_rust_execution_v3(program, function: str, arguments: list,
+                                 executable: str | Path, *, executable_sha256: str,
+                                 max_call_depth: int = 256, max_steps: int = 1_000_000,
+                                 max_heap_bytes: int = 16 * 1024 * 1024,
+                                 allocation_fail_at: int | None = None, timeout: float = 30.0):
+    """Compare the Python evaluator's depth, step and logical-byte budgets.
+
+    This separate protocol uses the same Rust Machine with explicit call
+    frames, accepting up to 256 frames, ten million ticks and 1 GiB payload.
+    The scalar public boundary and u64 allocation-failure index remain finite;
+    Python remains production authority. Legacy v1/v2 policies stay unchanged.
+    The transport timeout bounds only the pinned Rust subprocess.
+    """
+    return _crosscheck_rust_execution(program, function, arguments, executable,
+        executable_sha256=executable_sha256, max_steps=max_steps, max_heap_bytes=max_heap_bytes,
+        allocation_fail_at=allocation_fail_at, timeout=timeout, max_call_depth=max_call_depth,
+        protocol_version=3)
+
+
 def _crosscheck_rust_execution(program, function, arguments, executable, *,
                                executable_sha256, max_steps, max_heap_bytes,
                                allocation_fail_at, timeout, max_call_depth, protocol_version):
     from .hia_program import SCALARS, scalar_value_valid, verify_program
     from .hia_program_runtime import HIAProgramBudgetExceeded, HIAProgramTrap, execute_program
 
-    if (type(timeout) not in (int, float) or not 0 < timeout <= 15
-            or type(max_steps) is not int or not 1 <= max_steps <= 1_000_000
-            or type(max_heap_bytes) is not int or not 0 <= max_heap_bytes <= 16 * 1024 * 1024
-            or type(max_call_depth) is not int or not 1 <= max_call_depth <= 32
+    step_ceiling, heap_ceiling, depth_ceiling, timeout_ceiling = (
+        (10_000_000, 1024 * 1024 * 1024, 256, 120) if protocol_version == 3 else
+        (1_000_000, 16 * 1024 * 1024, 32, 15))
+    if (type(timeout) not in (int, float) or not 0 < timeout <= timeout_ceiling
+            or type(max_steps) is not int or not 1 <= max_steps <= step_ceiling
+            or type(max_heap_bytes) is not int or not 0 <= max_heap_bytes <= heap_ceiling
+            or type(max_call_depth) is not int or not 1 <= max_call_depth <= depth_ceiling
             or allocation_fail_at is not None and
                (type(allocation_fail_at) is not int or not 1 <= allocation_fail_at <= (1 << 64) - 1)):
         _reject("execution policy is outside the finite Rust contract")
@@ -486,7 +508,8 @@ def _crosscheck_rust_execution(program, function, arguments, executable, *,
     argv = (["--owned-run-bound", function, argument_wire.decode("ascii"), str(max_steps),
              str(max_heap_bytes), "none" if allocation_fail_at is None else str(allocation_fail_at)]
             if protocol_version == 1 else
-            ["--owned-run-bound-v2", function, argument_wire.decode("ascii"), _canonical(policy).decode("ascii")])
+            [f"--owned-run-bound-v{protocol_version}", function,
+             argument_wire.decode("ascii"), _canonical(policy).decode("ascii")])
     stdout, stderr, returncode = _run_pinned_shadow(
         raw_exe, argv, checked.canonical_bytes, timeout, maximum_output=MAX_EXECUTION_OUTPUT_BYTES)
     if returncode != 0 or stderr:
