@@ -33,9 +33,12 @@ from .hia_translation_validation import QUALIFIED_CORE_SCHEMAS, _OutsideProfile,
 from .native_tool_identity import digest_executable
 
 PROFILE = "hepta.hia.finite-u32-fold-context.v1"
+MAP_REPEAT_PROFILE = "hepta.hia.finite-u32-map-repeat-context.v1"
 MAX_IMAGES = 8
 MAX_REQUESTS = 256
 MAX_CALLS = 65_536
+MAX_REPETITIONS = 4096
+MAX_EXECUTED_CALLS = 16_777_216
 MAX_TRACES = 4096
 MAX_PENDING_INPUT_BYTES = 1024 * 1024
 MAX_ORACLE_REFERENCES = 256
@@ -67,11 +70,17 @@ DRIVER = r'''#define _POSIX_C_SOURCE 200809L
 #include <stdlib.h>
 #include <string.h>
 #include <sys/resource.h>
+#include <time.h>
 typedef uint32_t (*kernel_t)(uint32_t, uint32_t);
-typedef struct { uint32_t id, image, mode, seed, parameter, begin, count; } request_t;
+typedef struct { uint32_t id, image, mode, seed, parameter, begin, count, repetitions; } request_t;
 static request_t requests[256];
 static uint32_t values[65536];
 static const char *trace;
+static uint64_t now(void) {
+    struct timespec t;
+    if (clock_gettime(CLOCK_MONOTONIC, &t)) exit(95);
+    return (uint64_t)t.tv_sec * UINT64_C(1000000000) + (uint64_t)t.tv_nsec;
+}
 static void limit(int resource, rlim_t n) {
     struct rlimit l = {n, n};
     if (setrlimit(resource, &l)) exit(83);
@@ -115,18 +124,23 @@ int main(int argc, char **argv) {
     for (unsigned i = 0; i < 64; ++i)
         if (!((trace[i] >= '0' && trace[i] <= '9') || (trace[i] >= 'a' && trace[i] <= 'f'))) return 84;
     uint32_t images = (uint32_t)argc - 2, count = number('\n'), total = 0;
+    uint64_t work = 0;
     if (!count || count > 256) return 84;
     for (uint32_t i = 0; i < count; ++i) {
         request_t *r = &requests[i];
         r->id = number(' '); r->image = number(' '); r->mode = number(' ');
         r->seed = number(' '); r->parameter = number(' '); r->count = number(' ');
-        if (r->image >= images || r->mode > 1 || (!r->mode && r->parameter)
+        r->repetitions = r->mode == 2 ? number(' ') : 1;
+        if (r->image >= images || r->mode > 2 || (!r->mode && r->parameter)
+            || (r->mode == 2 && r->seed) || !r->repetitions || r->repetitions > 4096
             || !r->count || r->count > 65536 - total) return 84;
+        work += (uint64_t)r->count * r->repetitions;
+        if (work > UINT64_C(16777216)) return 84;
         for (uint32_t j = 0; j < i; ++j) if (requests[j].id == r->id) return 84;
         r->begin = total;
         for (uint32_t j = 0; j < r->count; ++j) {
             uint32_t value = number(j + 1 == r->count ? '\n' : ' ');
-            if (r->mode && value > 255) return 84;
+            if (r->mode == 1 && value > 255) return 84;
             values[total++] = value;
         }
     }
@@ -156,16 +170,28 @@ int main(int argc, char **argv) {
         flush();
         uint32_t state = r->seed;
         uint64_t checksum = 0;
-        for (uint32_t j = 0; j < r->count; ++j) {
+        uint64_t kernel_start = r->mode == 2 ? now() : 0;
+        for (uint32_t repetition = 0; repetition < r->repetitions; ++repetition)
+          for (uint32_t j = 0; j < r->count; ++j) {
             uint32_t value = values[r->begin + j];
-            state = r->mode ? kernels[r->image](state ^ value, r->parameter)
+            state = r->mode == 2 ? kernels[r->image](value, r->parameter)
+                    : r->mode ? kernels[r->image](state ^ value, r->parameter)
                             : kernels[r->image](state, value);
             checksum = checksum * UINT64_C(1099511628211) + state;
         }
+        if (r->mode == 2) {
+            uint64_t kernel_ns = now() - kernel_start;
+            printf("{\"calls\":%" PRIu32 ",\"candidate\":%" PRIu32 ",\"checksum\":%" PRIu64
+               ",\"id\":%" PRIu32 ",\"kernel_ns\":%" PRIu64 ",\"kind\":\"result\",\"mode\":2,\"parameter\":%" PRIu32
+               ",\"repetitions\":%" PRIu32 ",\"seed\":0,\"seq\":%" PRIu32 ",\"state\":%" PRIu32 ",\"trace\":\"%s\"}\n",
+               r->count * r->repetitions, r->image, checksum, r->id, kernel_ns,
+               r->parameter, r->repetitions, i, state, trace);
+        } else {
         printf("{\"calls\":%" PRIu32 ",\"candidate\":%" PRIu32 ",\"checksum\":%" PRIu64
                ",\"id\":%" PRIu32 ",\"kind\":\"result\",\"mode\":%" PRIu32 ",\"parameter\":%" PRIu32 ",\"seed\":%" PRIu32 ",\"seq\":%" PRIu32
                ",\"state\":%" PRIu32 ",\"trace\":\"%s\"}\n",
                r->count, r->image, checksum, r->id, r->mode, r->parameter, r->seed, i, state, trace);
+        }
         flush();
         /* A later version can be selected only after this request returned. */
     }
@@ -312,22 +338,35 @@ class _Trace:
     sha256: str
 
 
-def _requests(requests, labels):
+def _parts(request):
+    """The two legacy request tuples remain byte-for-byte six-field records."""
+    return (*request, 1) if len(request) == 6 else request
+
+
+def _requests(requests, labels, *, allow_map_repeat=False):
     _require(type(requests) in {list, tuple} and 1 <= len(requests) <= MAX_REQUESTS,
              "bounded nonempty predeclared request sequence required")
     requests = tuple(requests)
     _require(1 <= len(requests) <= MAX_REQUESTS, "request inventory changed outside the finite bound")
-    normalized, ids, total = [], set(), 0
+    normalized, ids, total, work = [], set(), 0, 0
     for value in requests:
         _require(type(value) is dict, "exact request object required")
         value = dict(value)
-        _require(type(value.get("mode")) is str and value["mode"] in {"fold", "xor_fold"}, "explicit closed fold mode required")
+        _require(type(value.get("mode")) is str and value["mode"] in
+                 ({"fold", "xor_fold", "map_repeat"} if allow_map_repeat else {"fold", "xor_fold"}),
+                 "explicit closed fold/map mode and opt-in required")
         fields = {"id", "candidate", "seed", "values", "mode"}
-        if value["mode"] == "xor_fold":
+        if value["mode"] in {"xor_fold", "map_repeat"}:
             fields.add("parameter")
+        if value["mode"] == "map_repeat":
+            fields.add("repetitions")
         _require(set(value) == fields, "exact mode-specific request fields required")
         ident, label, seed, values = (value[key] for key in ("id", "candidate", "seed", "values"))
-        mode, parameter = (1, value["parameter"]) if value["mode"] == "xor_fold" else (0, 0)
+        mode, parameter = ((2, value["parameter"]) if value["mode"] == "map_repeat" else
+                           (1, value["parameter"]) if value["mode"] == "xor_fold" else (0, 0))
+        repetitions = value["repetitions"] if mode == 2 else 1
+        _require(type(repetitions) is int and 1 <= repetitions <= MAX_REPETITIONS
+                 and (mode != 2 or seed == 0), "map-repeat count/zero seed outside the finite profile")
         _require(type(ident) is int and 0 <= ident <= MASK32 and ident not in ids, "unique exact u32 request IDs required")
         _require(type(label) is str and label in labels, "request names an unadmitted candidate")
         _require(type(parameter) is int and 0 <= parameter <= MASK32, "exact fixed u32 parameter required")
@@ -335,34 +374,56 @@ def _requests(requests, labels):
                  and 1 <= len(values) <= MAX_CALLS - total, "request exceeds exact u32/cumulative call budget")
         values = tuple(values)
         _require(1 <= len(values) <= MAX_CALLS - total
-                 and all(type(v) is int and 0 <= v <= (255 if mode else MASK32) for v in values),
+                 and all(type(v) is int and 0 <= v <= (255 if mode == 1 else MASK32) for v in values),
                  "request exceeds exact byte/u32/cumulative call budget")
-        normalized.append((ident, labels.index(label), mode, seed, parameter, tuple(values)))
+        work += len(values) * repetitions
+        _require(work <= MAX_EXECUTED_CALLS, "cumulative executed-call budget exhausted")
+        row = (ident, labels.index(label), mode, seed, parameter, tuple(values))
+        normalized.append((*row, repetitions) if mode == 2 else row)
         ids.add(ident)
         total += len(values)
     return tuple(normalized), _payload(normalized)
 
 
 def _payload(normalized):
-    payload = str(len(normalized)) + "\n" + "".join(
-        " ".join(map(str, (ident, image, mode, seed, parameter, len(values), *values))) + "\n"
-        for ident, image, mode, seed, parameter, values in normalized)
+    rows = []
+    for request in normalized:
+        ident, image, mode, seed, parameter, values, repetitions = _parts(request)
+        rows.append(" ".join(map(str, (ident, image, mode, seed, parameter, len(values),
+                    *([repetitions] if mode == 2 else []), *values))) + "\n")
+    payload = str(len(normalized)) + "\n" + "".join(rows)
     _require(len(payload.encode("ascii")) <= MAX_INPUT_BYTES, "encoded trace exceeds input budget")
     return payload
 
 
 def _expected(requests, oracle):
     rows = []
-    for ident, image, mode, seed, parameter, values in requests:
+    for request in requests:
+        ident, image, mode, seed, parameter, values, repetitions = _parts(request)
         state, checksum = seed, 0
         for step, value in enumerate(values):
-            observed = _observation(oracle(state ^ value, parameter) if mode else oracle(state, value))
+            observed = _observation(oracle(value, parameter) if mode == 2 else
+                                    oracle(state ^ value, parameter) if mode else oracle(state, value))
             if observed["status"] == "trapped":
                 rows.append(("trapped", observed["code"], step))
                 break
             state = observed["values"][0]
             checksum = (checksum * 1099511628211 + state) & MASK64
         else:
+            if mode == 2:
+                # A repeated independent map has identical result blocks.  The
+                # checksum transform c -> c * p**n + block is composed exactly
+                # modulo 2**64. This saves trusted reference work for ALL arms;
+                # the native driver still executes every actual kernel call.
+                multiplier = pow(1099511628211, len(values), 1 << 64)
+                addend, combined, count = checksum, 0, repetitions
+                while count:
+                    if count & 1:
+                        combined = (combined * multiplier + addend) & MASK64
+                    addend = (addend * multiplier + addend) & MASK64
+                    multiplier = (multiplier * multiplier) & MASK64
+                    count >>= 1
+                checksum = combined
             rows.append(("returned", state, checksum))
     return tuple(rows)
 
@@ -400,10 +461,11 @@ class _OracleReferences:
         rows = []
         try:
             for request in requests:
-                _ident, _image, mode, seed, parameter, values = request
+                _ident, _image, mode, seed, parameter, values, repetitions = _parts(request)
                 lookup = time.monotonic_ns()
                 key = _wire({"namespace": namespace, "mode": mode, "seed": seed,
-                             "parameter": parameter, "values": values})
+                             "parameter": parameter, "values": values,
+                             **({"repetitions": repetitions} if mode == 2 else {})})
                 cached = self.entries.get(key)
                 self.lookup_wall_ns += time.monotonic_ns() - lookup
                 if cached is not None:
@@ -507,18 +569,23 @@ def _parse_prefix(raw, trace, images):
                 seq = len(completed)
                 _require(pending is None and not closed and not faulted and len(ready) == images
                          and seq < len(trace.requests), "unexpected request start")
-                ident, image, _mode, _seed, _parameter, _values = trace.requests[seq]
+                ident, image, _mode, _seed, _parameter, _values, _repetitions = _parts(trace.requests[seq])
                 _require(row == {"candidate": image, "id": ident, "kind": kind, "seq": seq, "trace": trace.sha256},
                          "request start differs from exact plan")
                 pending = seq
             elif kind == "result":
                 _require(pending is not None and not closed and not faulted, "result without matching start")
-                ident, image, mode, seed, parameter, values = trace.requests[pending]
+                ident, image, mode, seed, parameter, values, repetitions = _parts(trace.requests[pending])
                 wanted = trace.expected[pending]
-                _require(wanted[0] == "returned" and row == {"calls": len(values), "candidate": image,
+                extra = {}
+                if mode == 2:
+                    _require(type(row.get("kernel_ns")) is int and row["kernel_ns"] > 0,
+                             "independent map timing missing or invalid")
+                    extra = {"repetitions": repetitions, "kernel_ns": row["kernel_ns"]}
+                _require(wanted[0] == "returned" and row == {"calls": len(values) * repetitions, "candidate": image,
                          "checksum": wanted[2], "id": ident, "kind": kind, "mode": mode,
                          "parameter": parameter, "seed": seed, "seq": pending,
-                         "state": wanted[1], "trace": trace.sha256}, "native fold/checksum differs from oracle")
+                         "state": wanted[1], "trace": trace.sha256, **extra}, "native fold/checksum differs from oracle")
                 completed.append(row)
                 pending = None
             elif kind == "fault":
@@ -558,9 +625,12 @@ def _parse_prefix(raw, trace, images):
 class FiniteU32Bank:
     """In-process, nontransferable authority for a locally rebuilt finite bank."""
 
-    def __init__(self, construction, root, labels, oracle, report, *, reuse_oracle=False):
+    def __init__(self, construction, root, labels, oracle, report, *, reuse_oracle=False, allow_map_repeat=False):
         _require(construction is _CONSTRUCTION, "use build_bank; receipts and external images are not authority")
         _require(type(reuse_oracle) is bool, "exact oracle-reference opt-in required")
+        _require(type(allow_map_repeat) is bool, "exact map-repeat profile opt-in required")
+        self._allow_map_repeat = allow_map_repeat
+        self._profile_name = MAP_REPEAT_PROFILE if allow_map_repeat else PROFILE
         self._root, self._labels, self._oracle, self._report = root, labels, oracle, report
         self._reuse_oracle, self._oracle_references = reuse_oracle, None
         self._lock = threading.RLock()
@@ -628,10 +698,9 @@ class FiniteU32Bank:
             try:
                 self._open()
                 _require(len(self._tokens) < MAX_TRACES, "prepared trace budget exhausted")
-                requested, _initial_payload = _requests(requests, self._labels)
+                requested, _initial_payload = _requests(requests, self._labels, allow_map_repeat=self._allow_map_repeat)
                 images = tuple(sorted({r[1] for r in requested}))
-                normalized = tuple((ident, images.index(image), mode, seed, parameter, values)
-                                   for ident, image, mode, seed, parameter, values in requested)
+                normalized = tuple((request[0], images.index(request[1]), *request[2:]) for request in requested)
                 payload = _payload(normalized)
                 payload_bytes = len(payload.encode("ascii"))
                 _require(self._pending_input_bytes + payload_bytes <= MAX_PENDING_INPUT_BYTES,
@@ -644,7 +713,7 @@ class FiniteU32Bank:
                     expected = self._oracle_references.expected(normalized, self._oracle, namespace)
                 else:
                     expected = _expected(normalized, self._oracle)
-                digest = sha256(_wire({"profile": PROFILE, "bank": self._bank_sha256,
+                digest = sha256(_wire({"profile": self._profile_name, "bank": self._bank_sha256,
                                        "images": images, "requests": normalized, "expected": expected})).hexdigest()
                 token = object()
                 trace = _Trace(self, token, images, normalized, expected, payload, digest)
@@ -659,7 +728,7 @@ class FiniteU32Bank:
         enrolled = self._tokens.get(trace.token)
         _require(enrolled is not None and enrolled[0] is trace and trace.sha256 == enrolled[1]
                  and sha256(trace.payload.encode("ascii")).hexdigest() == enrolled[2]
-                 and sha256(_wire({"profile": PROFILE, "bank": self._bank_sha256,
+                 and sha256(_wire({"profile": self._profile_name, "bank": self._bank_sha256,
                                    "images": trace.images, "requests": trace.requests,
                                    "expected": trace.expected})).hexdigest() == trace.sha256,
                  "foreign, altered or consumed trace; replay forbidden")
@@ -712,7 +781,7 @@ class FiniteU32Bank:
             self._open()
             self._consume(trace)  # Consume before launch or any uncertain effect.
             child_environment = {"PATH": os.defpath, "LANG": "C", "LC_ALL": "C"}
-            row.update(profile=PROFILE, trace_sha256=trace.sha256, bank_sha256=self._bank_sha256,
+            row.update(profile=self._profile_name, trace_sha256=trace.sha256, bank_sha256=self._bank_sha256,
                        execution_attempted=False, replay_permitted=False, online_feedback=False,
                        persistent_hia_owners=[], persistent_hia_loans=[],
                        status="consumed-before-launch", requested=len(trace.requests),
@@ -832,7 +901,8 @@ class FiniteU32Bank:
                 _require(False, "descriptor release uncertain; no retry or success")
 
 
-def build_bank(baseline, candidates, directory, *, clang, cases, oracle, report=None, reuse_oracle=False):
+def build_bank(baseline, candidates, directory, *, clang, cases, oracle, report=None, reuse_oracle=False,
+               allow_map_repeat=False):
     """Build the exact closed bank locally; all imported receipts are excluded.
 
     ``oracle`` is trusted host code independently implementing one step.  It is
@@ -850,6 +920,7 @@ def build_bank(baseline, candidates, directory, *, clang, cases, oracle, report=
     row = {} if report is None else report
     _require(type(row) is dict, "report must be an ordinary dictionary")
     _require(type(reuse_oracle) is bool, "exact oracle-reference opt-in required")
+    _require(type(allow_map_repeat) is bool, "exact map-repeat profile opt-in required")
     _require(platform.system() == "Linux" and platform.machine().lower() in {"x86_64", "amd64"},
              "finite context currently requires actual Linux x86-64")
     root = checked_profile(baseline)
@@ -864,14 +935,20 @@ def build_bank(baseline, candidates, directory, *, clang, cases, oracle, report=
     directory = Path(directory)
     _require(directory.is_dir() and not any(directory.iterdir()), "new empty build directory required")
     labels = tuple(candidates)
-    row.update(profile=PROFILE, baseline_sha256=root.sha256, labels=list(labels), candidates={},
+    profile = MAP_REPEAT_PROFILE if allow_map_repeat else PROFILE
+    row.update(profile=profile, baseline_sha256=root.sha256, labels=list(labels), candidates={},
                serialized_receipts_authorize_execution=False, machine_code_semantics_proved=False,
                global_optimality_proved=False, economic_benefit_proved=False,
                abi={"function": "calculate", "params": ["u32", "u32"], "returns": ["u32"],
                     "calling_convention": "C-Linux-x86_64", "persistent_state": []})
     row["oracle_reference_reuse"] = {"enabled": reuse_oracle, "profile": ORACLE_REFERENCE_PROFILE,
         "trusted_deterministic_reference_required": reuse_oracle, "determinism_proved": False}
-    bank = FiniteU32Bank(_CONSTRUCTION, root, labels, oracle, row, reuse_oracle=reuse_oracle)
+    row["map_repeat"] = {"enabled": allow_map_repeat, "max_repetitions": MAX_REPETITIONS,
+                         "max_executed_calls_per_trace": MAX_EXECUTED_CALLS,
+                         "max_stored_u32_inputs_per_trace": MAX_CALLS,
+                         "unchanged_wall_seconds": WALL_SECONDS, "unchanged_cpu_seconds": CPU_SECONDS}
+    bank = FiniteU32Bank(_CONSTRUCTION, root, labels, oracle, row, reuse_oracle=reuse_oracle,
+                        allow_map_repeat=allow_map_repeat)
     try:
         images = []
         for label in labels:
@@ -884,7 +961,7 @@ def build_bank(baseline, candidates, directory, *, clang, cases, oracle, report=
         row["driver"] = driver
         bank._driver = bank._pin(driver["path"], driver["sha256"])
         bank._images = tuple(images)
-        row["bank_sha256"] = sha256(_wire({"profile": PROFILE, "root": root.sha256,
+        row["bank_sha256"] = sha256(_wire({"profile": profile, "root": root.sha256,
             "images": [[name, pin["sha256"]] for name, pin in zip(labels, images)],
             "driver": driver["sha256"], "implementation": bank._implementation,
             "oracle_reference_reuse": reuse_oracle})).hexdigest()
