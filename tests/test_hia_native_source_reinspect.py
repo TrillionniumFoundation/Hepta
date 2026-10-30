@@ -17,7 +17,7 @@ import unittest
 
 from hepta.hia_program import verify_program
 from hepta.hia_program_llvm import (TARGET, TARGET_AARCH64,
-                                    emit_program_llvm)
+                                    emit_program_llvm, native_host_profile)
 from hepta.hia_source_bridge import (HIAHeptaBridgeRejected,
                                      _reinspect_source_native_bytes)
 from hepta.elf_shared_abi import inspect_owned_shared_elf
@@ -55,11 +55,13 @@ _CLAIMS = {
 
 
 def receipt(ir, payload, path, *, kind, inventory):
+    host = native_host_profile()
     return {
         "schema": "hepta.hia.program.native.v1",
         "ok": True, "status": "native_compiled_not_executed",
         "profile": ir.profile, "target": ir.target,
         "kind": kind, "output": str(path),
+        "build_host": host, "cross_target_compilation": ir.target != host["target"],
         "core_sha256": ir.core_sha256, "llvm_ir_sha256": ir.sha256,
         "input_sha256": ir.input_sha256,
         "implementation_sha256": ir.implementation_sha256,
@@ -136,6 +138,54 @@ class HIASourceBinaryReinspectionTests(unittest.TestCase):
                         _reinspect_source_native_bytes(
                             data, ir, forged, target=TARGET, kind="shared", stage=path)
 
+    def test_host_receipt_and_cross_flag_require_exact_measured_identity(self):
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            path, data = self.build(root, "host", "int trusted(void) { return 7; }")
+            ir = emit_program_llvm(core(), target=TARGET)
+            inventory = inspect_owned_shared_elf(data, ir.exports)
+            honest = receipt(ir, data, path, kind="shared", inventory=inventory)
+            self.assertFalse(honest["cross_target_compilation"])
+            self.assertEqual(_reinspect_source_native_bytes(
+                data, ir, honest, target=TARGET, kind="shared", stage=path), inventory)
+            mutations = {
+                "missing_host": lambda r: r.pop("build_host"),
+                "missing_cross_flag": lambda r: r.pop("cross_target_compilation"),
+                "host_not_dict": lambda r: r.update(build_host=[]),
+                "missing_host_field": lambda r: r["build_host"].pop("abi"),
+                "unknown_host_field": lambda r: r["build_host"].update(unreviewed=True),
+                "wrong_architecture": lambda r: r["build_host"].update(normalized_machine="aarch64"),
+                "wrong_target": lambda r: r["build_host"].update(target=TARGET_AARCH64),
+                "wrong_system": lambda r: r["build_host"].update(system="Darwin"),
+                "float_integer_alias": lambda r: r["build_host"].update(pointer_bits=64.0),
+                "boolean_integer_alias": lambda r: r["build_host"].update(elf_machine=True),
+                "wrong_abi_width": lambda r: r["build_host"].update(long_bits=32),
+                "wrong_cross_flag": lambda r: r.update(cross_target_compilation=True),
+                "integer_boolean_alias": lambda r: r.update(cross_target_compilation=0),
+                "float_boolean_alias": lambda r: r.update(cross_target_compilation=0.0),
+            }
+            for label, mutation in mutations.items():
+                with self.subTest(case=label):
+                    forged = deepcopy(honest)
+                    mutation(forged)
+                    with self.assertRaisesRegex(HIAHeptaBridgeRejected, "E_HIA_HEPTA_BRIDGE"):
+                        _reinspect_source_native_bytes(
+                            data, ir, forged, target=TARGET, kind="shared", stage=path)
+            # Cross-target objects are supported, but the producer's shared
+            # library profile remains native Linux x86-64 only. Even mutually
+            # consistent host/cross claims cannot widen that separate boundary.
+            arm_host = {**honest["build_host"], "machine": "aarch64",
+                        "normalized_machine": "aarch64", "target": TARGET_AARCH64,
+                        "elf_machine": 183, "abi": "AAPCS64 LP64"}
+            forged = deepcopy(honest)
+            forged.update(build_host=arm_host, cross_target_compilation=True)
+            with patch("hepta.hia_program_llvm.native_host_profile", return_value=arm_host):
+                with self.assertRaisesRegex(HIAHeptaBridgeRejected, "host or cross-target"):
+                    _reinspect_source_native_bytes(
+                        data, ir, forged, target=TARGET, kind="shared", stage=path)
+
     def test_real_x86_and_aarch64_objects_and_unapproved_public_data(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
@@ -148,8 +198,16 @@ class HIASourceBinaryReinspectionTests(unittest.TestCase):
                     symbols = inspect_object_symbols(data, "ELF64", machine)
                     inventory = {key: sorted(value) for key, value in symbols.items()}
                     approved = receipt(ir, data, path, kind="object", inventory=inventory)
+                    self.assertIs(approved["cross_target_compilation"], target != TARGET)
                     self.assertEqual(_reinspect_source_native_bytes(
                         data, ir, approved, target=target, kind="object", stage=path), inventory)
+                    # A genuine cross-target object is not a native-host run.
+                    for flag in (target == TARGET, int(target != TARGET)):
+                        wrong_flag = deepcopy(approved)
+                        wrong_flag["cross_target_compilation"] = flag
+                        with self.assertRaisesRegex(HIAHeptaBridgeRejected, "host or cross-target"):
+                            _reinspect_source_native_bytes(
+                                data, ir, wrong_flag, target=target, kind="object", stage=path)
 
                     bad_path, bad = self.build(root, "extra_data_" + str(machine),
                                                "int unapproved=5; int trusted(void){return 7;}",

@@ -1,0 +1,94 @@
+name: HIA finite CRC context and static controls
+
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'tests/test_hia_*'
+      - 'tools/qualify_hia_crc_context.py'
+      - 'tools/qualify_hia_filecheck.py'
+      - 'examples/hia_filecheck/**'
+      - 'experiments/hia_crc_context/**'
+      - '.github/workflows/hepta-crc-context.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  finite-crc-context:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      HEPTA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      CLANG: /usr/bin/clang-20
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEPTA_SOURCE_SHA }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bind source and install the pinned solver
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/hia-crc-context-evidence"
+          printf '%s\n' '{"status":"qualification_not_completed","qualified":false}' > "$RUNNER_TEMP/hia-crc-context-evidence/STARTED.json"
+          test "$(git --no-replace-objects rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"
+          test -z "$(git --no-replace-objects status --porcelain --untracked-files=all)"
+          git rev-parse HEAD > "$RUNNER_TEMP/hia-crc-context-evidence/source-sha.txt"
+          python -m pip install -e '.[optimization,verification]'
+      - name: Install signed LLVM 20
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/hepta-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key
+          hepta_llvm_fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hepta-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')
+          test "$hepta_llvm_fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+          sudo install -m 0644 "$RUNNER_TEMP/hepta-llvm.asc" /usr/share/keyrings/hepta-llvm.asc
+          printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hepta-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hepta-llvm20.list
+          sudo apt-get update
+          sudo apt-get install --yes gcc clang-20 libclang-20-dev libclang-rt-20-dev
+          printf '%s\n' /usr/lib/llvm-20/bin >> "$GITHUB_PATH"
+          "$CLANG" --version > "$RUNNER_TEMP/hia-crc-context-evidence/clang-version.txt"
+      - name: Read back the earlier public preregistration
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/hia-crc-context-evidence/preregistered-protocol.json" \
+            https://raw.githubusercontent.com/TrillionniumFoundation/Hepta/2b2486744e0a7094e99c3d9a9d397381cc714c25/experiments/hia_crc_context/protocol_v1.json
+          printf '%s  %s\n' 75f5f0bef5b5c49020b14b83c7c1f9257f989c5f2f0b3a365f5b7ba858329948 \
+            "$RUNNER_TEMP/hia-crc-context-evidence/preregistered-protocol.json" | sha256sum --check
+          cmp experiments/hia_crc_context/protocol_v1.json "$RUNNER_TEMP/hia-crc-context-evidence/preregistered-protocol.json"
+          date -u +%FT%TZ > "$RUNNER_TEMP/hia-crc-context-evidence/preregistration-readback-utc.txt"
+      - name: Prepare exact clean source and execute boundary controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          git --no-replace-objects worktree add --detach "$RUNNER_TEMP/hepta-crc-context-clean-source" "$HEPTA_SOURCE_SHA"
+          cd "$RUNNER_TEMP/hepta-crc-context-clean-source"
+          test -z "$(git --no-replace-objects status --porcelain --untracked-files=all)"
+          python -m unittest -v tests.test_hia_bounded_unroll tests.test_hia_crc_kernel \
+            tests.test_hia_finite_context tests.test_clang_capture_environment tests.test_hia_crc_context_study \
+            > "$RUNNER_TEMP/hia-crc-context-evidence/controls.log" 2>&1
+      - name: Measure the frozen finite context comparison
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/hepta-crc-context-clean-source"
+          python tools/qualify_hia_crc_context.py --clang "$CLANG" --cc gcc \
+            --expected-source "$HEPTA_SOURCE_SHA" \
+            --output "$RUNNER_TEMP/hia-crc-context-evidence/study" \
+            > "$RUNNER_TEMP/hia-crc-context-evidence/study-summary.json"
+      - name: Retain every completed or failed observation
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-crc-context-${{ github.run_id }}
+          path: ${{ runner.temp }}/hia-crc-context-evidence/
+          if-no-files-found: error
+          retention-days: 30

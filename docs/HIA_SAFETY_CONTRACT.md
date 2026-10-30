@@ -58,6 +58,20 @@ These checks preserve all previous selectors and do not change production
 admission or the `no_change` policy. See
 [the detailed contract](HIA_FILECHECK_NATIVE_TARGET_AND_FAILURES.md).
 
+The next explicit profiles add caller-derived borrowed extent bounds, checked
+single-feedback scalar unfolding, actual native Linux C application hosts,
+finite sealed execution contexts and a CRC study with static coalesced
+controls. They retain every prior regression selector. Borrowed lengths remain
+intervals rather than assumed successful allocation sizes. Loop trip counts
+must be proved for all typed inputs before candidate equivalence is checked.
+Native contexts consume a finite plan once, load only referenced images and
+retain unresolved child/descriptor ownership instead of replaying work.
+See [borrowed extents](HIA_BORROWED_EXTENT_HEAP.md),
+[bounded unfolding and CRC](HIA_BOUNDED_UNROLL_AND_CRC.md), and
+[actual C native hosts](HIA_CAPTURED_C_NATIVE_HOSTS.md). Passing these scoped
+contracts does not close the universal safety, NDU incremental value or
+whole-program performance claims below.
+
 ## Typed state and instruction obligations
 
 The following judgment names the state already checked by the implementation:
@@ -201,6 +215,27 @@ process RSS. A resource receipt is replayed against the actual Core and
 numerical result; rehashing understated values does not make them authoritative.
 The separately audited v8 consumers do not upgrade older receipt consumers.
 
+The separate `hepta.hia.finite-entry-live-heap-admission.v2` contract composes
+already legal v8 owner transfers/returns with original-parameter returned loans
+for one exact scalar invocation. It retains caller-owned payload while a callee
+borrows it and reconnects each returned loan to the canonical actual argument.
+Unknown external extents stay unknown inside the callee. CFG and call cycles,
+chains and exhausted analysis limits remain refused. Legacy v7 invocation and
+v8 local-summary profiles keep their original scopes. See
+[the finite v8 contract](HIA_FINITE_V8_HEAP.md).
+
+The round7 matrix retains all 146 prior selected regressions, adds 22 initial
+selectors and three target-policy repair selectors, for 28 capabilities and
+171 unique selectors. The additions cover
+that finite v8 composition, captured C post-test loops and the separate two-u32
+guarded native opportunity profile. Its native experiment recomputes Core and
+selected LLVM proofs before compilation, binds the actual exported function
+bytes and retains each finite child's result. Unknown proofs cannot become
+economic negatives or admitted candidates. Neither a passing economic gate nor
+the compiled code's different hash grants NDU execution/publication authority.
+The predeclared demand is synthetic, and observed timing envelopes are not
+statistical confidence intervals or evidence of application benefit.
+
 Runtime admission is a different mechanism. The adaptive host caps its admitted
 native images, in-progress preparations and unresolved native release debts.
 The owned-state adapter has a finite state layout and bounded work queues.
@@ -325,3 +360,42 @@ refinement, global instruction optimality, absolute resource safety, general
 concurrent safety, process-memory bounds and Rust performance superiority
 explicitly unproved. A passing regression run is not allowed to promote any
 of those fields to true.
+
+### Legacy IR PGO target-policy repair
+
+The initial round-seven CI exposed a missing native feature binding in legacy
+research overrides. The canonical matrix now includes the actual masked-CPU
+legacy/IR-PGO/resource build control, bound-input/compiler drift refusal, and a
+supervised SIGILL diagnostic without retry. These three selectors supplement the
+initial 168 without removing any previous selector. All four native HIA research
+compilation paths consume the separately recorded, freshly checked bound IR;
+original Core and raw LLVM identities remain distinct. Compiler, runtime and
+hardware trust boundaries still apply.
+
+### Checked-source native receipt convergence
+
+The round-eight host extension added `build_host` and
+`cross_target_compilation` to the native producer's closed receipt. The older
+checked-source bridge still expected its previous field set, so a valid owned
+Hepta source could pass Rust checking and Clang compilation yet be refused at
+the source/native boundary. The complete regression run exposed this mismatch;
+the narrower optimization suite and canonical matrix did not yet select that
+existing source-path regression.
+
+The bridge now reobserves the actual host and checks every host field's exact
+primitive type and value. The cross-target field must be an actual boolean
+equal to the requested target's difference from the observed host target.
+Missing, extra, forged or incorrectly typed fields are rejected together with
+the existing Core, LLVM, compiler, artifact, export/import and publication
+checks. The established object/shared-library and target restrictions remain
+part of the same admission contract.
+
+Rejected checked-source qualification retains a bounded, detached JSON snapshot
+of the real builder diagnostics and exposes the first nested diagnostic in the
+ordinary exception text. Malformed or oversized diagnostic data cannot replace
+the original refusal. Diagnostic data grants no execution or publication
+authority. The two existing source-reinspection and v6 differential modules
+now participate in the verified regression and critical coverage group; their
+16 methods also extend the canonical matrix from 250 to 266 selectors without
+removing an earlier selector or capability. The actual owned-source path and
+host/cross-target forgery controls are required alongside the producer tests.

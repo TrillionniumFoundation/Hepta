@@ -94,10 +94,7 @@ class IRPGOTrial(LegacyTrial):
 
     def irpgo_build(self, label, output, flags, stage):
         if label == "hia":
-            self.require_core_ir()
-            self.command([self.tools["clang"], *self.flags, *flags,
-                          self.out/"migration/program.ll", "-o", output], stage)
-            self.require_core_ir()
+            self.build_native_ir(output, flags, stage)
         else:
             self.build_reference(label, output, flags, stage)
 
@@ -153,10 +150,7 @@ class IRPGOTrial(LegacyTrial):
         obj = self.out / "resource_hia_irpgo.o"
         profile = self.report["builds"]["hia_native_irpgo"]
         generated = self.require_core_ir()
-        self.command([self.tools["clang"], "-O3", "-flto=full", "-march=native", "-fPIC",
-                      *profile["use_flags"], "-c", self.out/"migration/program.ll", "-o", obj],
-                     "ir_pgo_resource_object")
-        self.require_core_ir()
+        self.build_native_ir(obj, profile["use_flags"], "ir_pgo_resource_object", object_file=True)
         exe = self.out / "resource_hia_irpgo"
         self.command([self.tools["clang"], "-O3", "-march=native", "-flto=full", "-fuse-ld="+self.tools["linker"],
                       "-std=c11", "-fno-builtin", "-DENTRY="+ENTRY,

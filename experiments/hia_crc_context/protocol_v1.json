@@ -1,0 +1,92 @@
+{
+  "arms": [
+    "fresh_child_baseline",
+    "coalesced_baseline",
+    "coalesced_ieee_only",
+    "coalesced_castagnoli_only",
+    "coalesced_poly_dispatch"
+  ],
+  "break_even": "If a mixed workload has positive gross observed lower-envelope saving, report ceil(cold_setup_ns / gross_saving_ns) only as a conditional amortization threshold. It is not measured net profit, production demand, an acceptance criterion or NDU superiority.",
+  "bytes_per_request": 1024,
+  "calls_per_trace": 65536,
+  "claims": {
+    "NDU_incremental_value_established": false,
+    "final_machine_code_refinement_proved": false,
+    "global_optimality": false,
+    "online_adaptive_policy": false,
+    "persistent_owner_state": false,
+    "production_trace": false,
+    "source_C_refinement_proved": false,
+    "whole_language_safety_proved": false
+  },
+  "context_limits": {
+    "address_space_bytes": 268435456,
+    "calls": 65536,
+    "contexts_per_bank": 4096,
+    "cpu_seconds": 3,
+    "images": 8,
+    "requests": 256,
+    "stdin_bytes": 1048576,
+    "stdout_bytes": 131072,
+    "unconsumed_trace_payload_bytes": 1048576,
+    "wall_seconds": 5
+  },
+  "cost_boundary": "Cold bank setup is measured from captured-source preparation through fresh source/kernel proofs, complete baseline and candidate proof/compile/native differential, driver build and sealed publication. All baseline and losing-candidate setup is charged once. This cold setup is the conservative optimization cost. The later 210 controlled performance observations, their trace preparation/oracles and serialization are evaluation overhead, retained separately and in complete-study wall; they are not silently labeled online NDU decision cost.",
+  "data": {
+    "generator": "tools.qualify_hia_filecheck.corpus",
+    "selection": "First 65536 bytes of each phase; 64 consecutive 1024-byte requests with independent CRC state. Both phase inputs fixed before timing. Seven trials repeat these same inputs; they are not seven independently sampled workloads.",
+    "training": {
+      "bytes": 65537,
+      "seed": 1282026
+    },
+    "validation": {
+      "bytes": 524325,
+      "seed": 27102026
+    }
+  },
+  "deadline_scope": "Acceptance deadline checked between bounded operations; not a hard global preemption guarantee. Individual children and solver queries retain separate fixed limits.",
+  "economic_gate": "On each workload and in both phases: minimum complete coalesced-static observation over all three static arms minus maximum poly-dispatch observation minus complete cold bank setup cost must be positive on this one finite trace. Distinct candidate code and correct complete lifecycles are required. This is a conservative cold finite-job gate against already-available static controls, not a claim that static build cost was zero in an independently constructed application. No future horizon or projected repetitions grant admission.",
+  "expected_observations": 210,
+  "id": "bounded-crc-context-20261029",
+  "kernel": {
+    "bit_steps": 8,
+    "canonical_sha256": {
+      "baseline": "ea7cfe182d4053d2cc82d0f3c3796cd5555eeeeb8a248053987761176a5f598a",
+      "castagnoli_guard": "18e2873fb24c82fb065fc07b968b675c8177d5f40f53dd5e4f67305edc8ea867",
+      "ieee_guard": "53d2796b9d988c253ad975aa9e90aeb2f12b264a61aba187800153784be58dac"
+    },
+    "polynomials": {
+      "castagnoli": 2197175160,
+      "ieee": 3988292384
+    },
+    "signature": "calculate(u32 combined_state_xor_byte, u32 polynomial) -> u32"
+  },
+  "max_study_wall_ns": 120000000000,
+  "metric": "Sum complete native context outer wall for the exact trace, from bounded child creation through load/calls/unload/exit and result validation. Fresh arm sums 64 complete child lifecycles. Full arm preparation + input hashing + Python oracle + result validation outer wall is also separately retained. No inner-loop timing is accepted as whole-path net gain.",
+  "ndu_followup": "This is an execution-context and fixed-policy study. NDU is not one of its five arms. A successful economic gate would only motivate a separately preregistered equal-budget native NDU versus complete enumeration and simple-search comparison; no advice, deployment or publication authority follows.",
+  "ordering": "Training then validation; workload order rotates by trial. Arm order rotates by trial plus workload index and reverses on odd trials.",
+  "proof_requirements": [
+    "fresh canonical resource verification",
+    "all-input bounded captured Core bridge, truncation edge UNSAT",
+    "all-input candidate value and first-trap equivalence",
+    "actual selected emitted LLVM proof",
+    "independent Python/VM/original C/native finite differential",
+    "sealed actual native images and bounded child lifetime"
+  ],
+  "purpose": "Finite execution-context reuse and guarded specialization opportunity, with coalesced static controls. No NDU superiority or production-demand assertion.",
+  "requests_per_trace": 64,
+  "reuse_attribution": "Fresh-child to coalesced-static savings measure execution-context batching only. They never establish NDU, specialization or global optimization value.",
+  "sampling": "No warmup, retry, automatic replay, outlier removal or omitted failed sample. Every attempted request and retained completed prefix remain evidence.",
+  "schema": "hepta.hia.crc-context-protocol.v1",
+  "seed_per_request": 4294967295,
+  "solver_timeout_ms": 10000,
+  "source_application": "examples/hia_filecheck/checksum.c via the real captured C frontend, separately proved finite loop-to-kernel bridge",
+  "static_control_policy": "The three coalesced static arms each load exactly one referenced image. Poly-dispatch loads only its referenced images and chooses the known polynomial guard at request boundaries. This fixed dispatch is an oracle-like strong control, not an online NDU policy.",
+  "target": "Linux x86_64 LP64; native current-host execution only",
+  "trials_per_phase": 7,
+  "workloads": [
+    "ieee",
+    "castagnoli",
+    "mixed_alternating"
+  ]
+}

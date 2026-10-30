@@ -1,0 +1,116 @@
+name: HIA captured C application on native Linux hosts
+
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'tests/test_hia_c_posttest_hosts.py'
+      - 'tests/test_c_project_do_while.py'
+      - 'tools/qualify_hia_c_posttest.py'
+      - 'tools/qualify_hia_legacy_queue.py'
+      - 'tools/qualify_hia_filecheck.py'
+      - 'examples/c/**'
+      - '.github/workflows/hepta-c-posttest-hosts.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  captured-c-native:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            machine: x86_64
+            package_arch: amd64
+          - runner: ubuntu-24.04-arm
+            machine: aarch64
+            package_arch: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    env:
+      HEPTA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      HEPTA_NATIVE_MACHINE: ${{ matrix.machine }}
+      HEPTA_PACKAGE_ARCH: ${{ matrix.package_arch }}
+      CLANG: /usr/bin/clang-20
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEPTA_SOURCE_SHA }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Record actual runner and exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/hia-c-posttest-host-evidence"
+          printf '%s\n' '{"schema":"hepta.hia.c-posttest-host-ci-started.v1","ok":false,"status":"qualification_not_completed"}' \
+            > "$RUNNER_TEMP/hia-c-posttest-host-evidence/STARTED.json"
+          test "$(git --no-replace-objects rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"
+          test -z "$(git --no-replace-objects status --porcelain --untracked-files=all)"
+          test "$(uname -m)" = "$HEPTA_NATIVE_MACHINE"
+          test "$(dpkg --print-architecture)" = "$HEPTA_PACKAGE_ARCH"
+          git --no-replace-objects rev-parse HEAD > "$RUNNER_TEMP/hia-c-posttest-host-evidence/source-sha.txt"
+          uname -a > "$RUNNER_TEMP/hia-c-posttest-host-evidence/uname.txt"
+          lscpu --json > "$RUNNER_TEMP/hia-c-posttest-host-evidence/lscpu.json"
+          cp /etc/os-release "$RUNNER_TEMP/hia-c-posttest-host-evidence/os-release.txt"
+          python -m pip install -e '.[verification]'
+      - name: Install signed LLVM 20 for the actual runner architecture
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/hepta-llvm.asc" \
+            https://apt.llvm.org/llvm-snapshot.gpg.key
+          hepta_llvm_fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hepta-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')
+          test "$hepta_llvm_fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+          sudo install -m 0644 "$RUNNER_TEMP/hepta-llvm.asc" /usr/share/keyrings/hepta-llvm.asc
+          printf 'deb [arch=%s signed-by=/usr/share/keyrings/hepta-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main\n' \
+            "$HEPTA_PACKAGE_ARCH" | sudo tee /etc/apt/sources.list.d/hepta-llvm20.list
+          sudo apt-get update
+          sudo apt-get install --yes gcc clang-20 libclang-20-dev libclang-rt-20-dev
+          printf '%s\n' /usr/lib/llvm-20/bin >> "$GITHUB_PATH"
+          dpkg-query --show gcc clang-20 libclang-20-dev libclang-rt-20-dev \
+            > "$RUNNER_TEMP/hia-c-posttest-host-evidence/packages.txt"
+          "$CLANG" --version > "$RUNNER_TEMP/hia-c-posttest-host-evidence/clang-version.txt"
+          "$CLANG" -dumpmachine > "$RUNNER_TEMP/hia-c-posttest-host-evidence/clang-target.txt"
+          gcc -dumpmachine > "$RUNNER_TEMP/hia-c-posttest-host-evidence/gcc-target.txt"
+      - name: Prepare the exact clean compiler source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git --no-replace-objects worktree add --detach "$RUNNER_TEMP/hepta-c-posttest-clean-source" "$HEPTA_SOURCE_SHA"
+          cd "$RUNNER_TEMP/hepta-c-posttest-clean-source"
+          test "$(git --no-replace-objects rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"
+          test -z "$(git --no-replace-objects status --porcelain --untracked-files=all)"
+          python -c 'import json,os; from tools.qualify_hia_c_posttest import require_native_host; print(json.dumps(require_native_host(os.environ["HEPTA_NATIVE_MACHINE"]),sort_keys=True))' \
+            > "$RUNNER_TEMP/hia-c-posttest-host-evidence/measured-host.json"
+      - name: Execute native target rejection and application controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/hepta-c-posttest-clean-source"
+          python -m unittest -v tests.test_hia_c_posttest_hosts \
+            > "$RUNNER_TEMP/hia-c-posttest-host-evidence/controls.log" 2>&1
+      - name: Qualify HIA LLVM and original C on the actual host
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/hepta-c-posttest-clean-source"
+          python tools/qualify_hia_c_posttest.py --clang "$CLANG" --cc gcc \
+            --native-host "$HEPTA_NATIVE_MACHINE" --expected-source "$HEPTA_SOURCE_SHA" \
+            --output "$RUNNER_TEMP/hia-c-posttest-host-evidence/qualification" \
+            > "$RUNNER_TEMP/hia-c-posttest-host-evidence/qualification-summary.json"
+      - name: Retain success and failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-c-posttest-native-${{ matrix.machine }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/hia-c-posttest-host-evidence/
+          if-no-files-found: error
+          retention-days: 30
