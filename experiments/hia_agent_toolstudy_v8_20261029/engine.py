@@ -53,8 +53,16 @@ class ToolStudyEngine(LlamaCppEngine):
         finally:
             self.service_calls.append({"endpoint": endpoint, "wall_ns": time.monotonic_ns()-started, "success": success})
 
-    def generate(self, messages, *, language, interface, limit=1536, wall_seconds=900):
+    def decoder_schema(self, language, interface, query=None):
+        # Query-bound decoding is a separately registered experiment. Existing
+        # V8--V11 callers retain their exact syntax-only grammar by default.
+        if query is not None:
+            raise ValueError("E_TOOLSTUDY_QUERY_DECODER_UNREGISTERED")
+        return response_schema(language, interface)
+
+    def generate(self, messages, *, language, interface, limit=1536, wall_seconds=900, query=None):
         self.last_usage_receipt = None
+        schema = self.decoder_schema(language, interface, query)
         rendered = self.request("/apply-template", {"messages": messages}).get("prompt")
         if type(rendered) is not str:
             raise ValueError("E_STREAM_TEMPLATE")
@@ -67,7 +75,6 @@ class ToolStudyEngine(LlamaCppEngine):
             "actual_generation_submitted": fits}) + b"\n")
         if not fits:
             raise BudgetFailure("E_TOOLSTUDY_CONTEXT: complete request plus full output reserve exceeds context; cell ends without truncation")
-        schema = response_schema(language, interface)
         payload = {"prompt": ids, "n_predict": limit, "temperature": 0, "seed": 0,
                    "top_k": 0, "top_p": 1, "min_p": 0, "repeat_penalty": 1,
                    "cache_prompt": False, "return_tokens": True, "stream": True,

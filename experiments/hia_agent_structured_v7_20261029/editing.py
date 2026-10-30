@@ -98,11 +98,17 @@ def checked_edits(expected, supplied_query, response):
         if type(edit) is not dict or set(edit) != {"node", "changes"}:
             reject("node edits require exactly node and changes")
         ident, changes = edit["node"], edit["changes"]
-        if type(ident) is not str or ident not in catalogue or ident in used:
-            reject("duplicate, unknown or unauthorized node")
+        if type(ident) is not str or ident not in catalogue:
+            reject("unknown or unauthorized node; select an ID from the captured public catalogue")
+        if ident in used:
+            reject("duplicate node " + repr(ident) + "; supply its changes once in the complete transaction")
         node = catalogue[ident]
         if type(changes) is not dict or not changes or not set(changes).issubset(node["fields"]):
-            reject("changes exceed the selected node fields")
+            received = sorted(changes) if type(changes) is dict else type(changes).__name__
+            reject("changes exceed the selected node fields: node=" + repr(ident)
+                   + "; received=" + repr(received) + "; allowed=" + repr(node["fields"])
+                   + ("; this node is read-only" if not node["fields"]
+                      else "; changes must be a nonempty object containing only these fields"))
         used.add(ident)
         result.append((copy.deepcopy(node), copy.deepcopy(changes)))
     return result
