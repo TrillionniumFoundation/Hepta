@@ -17,10 +17,11 @@ class RouteRejected(ValueError):
     pass
 
 
-_ADMITTED = frozenset({"standalone-hia", "hepta-source", "legacy-executable",
+_ADMITTED = frozenset({"standalone-hia", "agent-assembly", "hepta-source", "legacy-executable",
                        "legacy-scalar", "legacy-composite-v2"})
 _CPP_ROUTES = frozenset({"cpp-project", "cpp-matrix", "cpp-composed-project", "cpp-composed-matrix",
-                         "cpp-unique-project", "cpp-unique-matrix"})
+                         "cpp-unique-project", "cpp-unique-matrix",
+                         "cpp-unique-assignment-project", "cpp-unique-assignment-matrix"})
 
 
 def route_inventory():
@@ -29,6 +30,10 @@ def route_inventory():
         {"route": "standalone-hia", "input": "primitive v1-v7 / composite v1-v2",
          "adapter": "hepta.hia_program.verify_program", "admission": "supported",
          "origin_required": False},
+        {"route": "agent-assembly", "input": "hia-asm.v1 explicit primitive v6/v7",
+         "adapter": "hepta.hia_agent_assembly.assemble_program", "admission": "supported",
+         "origin_required": False, "implicit_schema_guessing": False,
+         "scope": "bounded typed syntax for the same checked Core; no second evaluator"},
         {"route": "hepta-source", "input": "checked finite Hepta source profile",
          "adapter": "hepta.hia_program_source.lower_source", "admission": "supported",
          "origin_required": True},
@@ -48,11 +53,15 @@ def route_inventory():
                        (" matrix" if route.endswith("matrix") else ""),
                        "adapter": "hepta.hia_routes.admit_captured_cpp", "admission": "supported",
                        "origin_required": True, "all_declared_configurations_verified": True,
-                       "scope": ("captured default-deleter std::unique_ptr<byte[]> wrapper with complete library census"
+                       "scope": ("captured default-deleter std::unique_ptr<byte[]> with guarded leaf and fieldwise composite move assignment"
+                                 if route.startswith("cpp-unique-assignment-") else
+                                 "captured default-deleter std::unique_ptr<byte[]> wrapper with complete library census"
                                  if route.startswith("cpp-unique-") else
                                  "finite leaf owner or composed by-value owner profile")})
     sources = [
         {"language": "Hepta", "path": "hepta-source -> standalone-hia", "scope": "finite checked source profile"},
+        {"language": "HIA assembly", "path": "agent-assembly -> standalone-hia",
+         "scope": "explicit primitive v6/v7 typed assembly; machine assembly input remains unsupported"},
         {"language": "C", "path": "migrate-c / migrate-c-project -> Hepta -> hepta-source",
          "scope": "each complete captured profile must pass standalone admission; general C pointers are not admitted"},
         {"language": "C++", "path": "migrate-cpp[-class|-owned|-composed] -> Hepta -> hepta-source",
@@ -119,7 +128,10 @@ def admit_captured_cpp(route, payload, *, clangxx="clang++", variant=None):
     matrix = route.endswith("matrix")
     if (matrix and type(variant) is not str) or (not matrix and variant is not None):
         raise RouteRejected("E_HIA_ROUTE_VARIANT: exactly one declared matrix variant is required")
-    if route.startswith("cpp-unique-"):
+    if route.startswith("cpp-unique-assignment-"):
+        from .cpp_unique_project import lower_unique_assignment_project, lower_unique_assignment_matrix
+        lower = lower_unique_assignment_matrix if matrix else lower_unique_assignment_project
+    elif route.startswith("cpp-unique-"):
         from .cpp_unique_project import lower_unique_project, lower_unique_matrix
         lower = lower_unique_matrix if matrix else lower_unique_project
     elif route.startswith("cpp-composed-"):
@@ -159,10 +171,14 @@ def admit_route(route, payload, *, source=None, path=None, project_sha256=None, 
         raise RouteRejected("E_HIA_ROUTE_UNSUPPORTED: no executable adapter for " + str(route))
     if clangxx is not None or variant is not None:
         raise RouteRejected("E_HIA_ROUTE_CONTEXT: capture options require a captured C++ route")
-    if route == "standalone-hia":
+    if route in {"standalone-hia", "agent-assembly"}:
         if any(value is not None for value in (source, path, project_sha256, module)):
             raise RouteRejected("E_HIA_ROUTE_CONTEXT: standalone bytes accept no source override")
-        program = verify_program(payload)
+        if route == "agent-assembly":
+            from .hia_agent_assembly import assemble_program
+            program = assemble_program(payload)
+        else:
+            program = verify_program(payload)
     elif route == "hepta-source":
         if source is not None or project_sha256 is not None:
             raise RouteRejected("E_HIA_ROUTE_CONTEXT: source text must be the payload")

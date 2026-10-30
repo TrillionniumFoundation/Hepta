@@ -62,7 +62,9 @@ def _require(value, message):
 
 def source_bindings():
     return {str(path.relative_to(ROOT)): sha256(path.read_bytes()).hexdigest()
-            for path in (ROOT / "hepta/hia_stateful.py", ROOT / "hepta/hia_adaptive.py", Path(__file__))}
+            for path in (ROOT / "hepta/hia_stateful.py", ROOT / "hepta/hia_adaptive.py",
+                         ROOT / "hepta/hia_continuation.py", ROOT / "hepta/hia_queue_commit.py",
+                         ROOT / "hepta/hia_prepared.py", Path(__file__))}
 
 
 def measure_fresh_deployment(directory, *, clang="clang", steps):

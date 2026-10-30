@@ -38,6 +38,10 @@ MODULES = (
     "tests.test_hia_narrowing", "tests.test_hia_narrowing_bench",
     "tests.test_cpp_unique_capture", "tests.test_cpp_unique_project",
     "tests.test_hia_round3_routes", "tests.test_hia_registered_followup",
+    "tests.test_hia_agent_assembly", "tests.test_hia_round4_routes",
+    "tests.test_hia_continuation", "tests.test_hia_ndu_sealed_identity",
+    "tests.test_hia_ndu_session_cost", "tests.test_cpp_unique_assignment_project",
+    "tests.test_hia_round4_bench",
 )
 
 
@@ -46,6 +50,7 @@ def inventory():
     paths += list((ROOT / "tools").rglob("*.py"))
     for folder in ("examples/cpp/composed_project_migration", "examples/cpp/scoped_ownership_migration",
                    "examples/cpp/unique_project_migration",
+                   "examples/cpp/unique_assignment_project_migration",
                    "experiments/hia_optimizer_eval/next_20261028",
                    "experiments/hia_optimizer_eval/round3_20261028",
                    "experiments/hia_ndu_graph_eval/round3_20261028",

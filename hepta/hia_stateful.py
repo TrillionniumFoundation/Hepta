@@ -100,6 +100,8 @@ uint64_t hs_refusals(void) { return atomic_load(&refusals); }
 
 def _adapter_identity():
     return _digest({"adapter": sha256(Path(__file__).read_bytes()).hexdigest(),
+                    "continuation": sha256(Path(__file__).with_name("hia_continuation.py").read_bytes()).hexdigest(),
+                    "queue_commit": sha256(Path(__file__).with_name("hia_queue_commit.py").read_bytes()).hexdigest(),
                     "scalar_runtime": _identity()})
 
 
@@ -258,6 +260,8 @@ class OwnedAdaptiveRuntime(AdaptiveRuntime):
         self._loans = {}
         self._queues = {}
         self._revision = 0
+        self._state_poisoned = False
+        self._cost_accounting_complete = True
         self._state_identity = _adapter_identity()
         super().__init__(base, directory, clang=clang, policy=policy)
         try:
@@ -295,7 +299,7 @@ class OwnedAdaptiveRuntime(AdaptiveRuntime):
 
     def _state_open(self):
         self._open()
-        if self._state is None or _adapter_identity() != self._state_identity:
+        if self._state_poisoned or self._state is None or _adapter_identity() != self._state_identity:
             raise AdaptiveRejected("E_STATE_STALE: owner unavailable or implementation changed")
 
     def _values(self, state=None):
@@ -314,6 +318,9 @@ class OwnedAdaptiveRuntime(AdaptiveRuntime):
                           automatic_profitable_selection_supported=True,
                           performance_policy="committed-queue-empirical-forecast-not-a-guarantee",
                           persistent_owner_switching_supported=True,
+                          cancelled_queue_continuation_supported=True,
+                          state_poisoned=self._state_poisoned,
+                          cost_accounting_complete=self._cost_accounting_complete,
                           general_heap_or_stack_migration_supported=False,
                           crash_recovery_or_external_transaction_exactly_once=False,
                           native_ledger=self._ledger() if self._driver else None)
@@ -476,7 +483,14 @@ class OwnedAdaptiveRuntime(AdaptiveRuntime):
             if row is None:
                 raise AdaptiveRejected("E_STATE_QUEUE: unknown queue token")
             return json.loads(json.dumps({"status": row["status"], "queue_sha256": row["sha256"],
-                                          "receipt": row["receipt"]}))
+                                          "receipt": row["receipt"],
+                                          "continued_by": row.get("continued_by"),
+                                          "continuation": row.get("continuation")}))
+
+    def continue_queue(self, token):
+        """Register only the unexecuted suffix of a cancelled live queue."""
+        from .hia_continuation import continue_owned_queue
+        return continue_owned_queue(self, token)
 
     def _apply_items(self, state, items, image):
         function = ctypes.cast(image.function, ctypes.c_void_p)
@@ -563,94 +577,8 @@ class OwnedAdaptiveRuntime(AdaptiveRuntime):
             raise
 
     def execute_committed(self, token, *, candidate=None, rounds=5, sample_limit=200000):
-        preparation_started = time.monotonic_ns()
-        with self._lock:
-            self._state_open()
-            row = self._queues.get(token)
-            if row is None or row["status"] != "submitted":
-                raise AdaptiveRejected("E_STATE_REPLAY: only a registered unexecuted queue may run")
-            if self._active or self._loans:
-                raise AdaptiveRejected("E_STATE_BUSY: native calls or aliases prevent queue execution")
-            if row["revision"] != self._revision or row["owner"] != self._owner_id:
-                row["status"] = "stale"
-                raise AdaptiveRejected("E_STATE_STALE: owner changed since work was committed")
-            candidate_cost = self._unamortized_preparation_ns
-            original, measurement, selected, reason = self._plan_queue(
-                row, candidate, rounds=rounds, sample_limit=sample_limit,
-                preparation_started=preparation_started, candidate_cost=candidate_cost)
-            queue_overhead = time.monotonic_ns() - preparation_started
-            row["status"] = "running"
-            self._unamortized_preparation_ns = 0
-            row["version"] = self._current
-            self._driver.hs_reset(self._state)
-            self._active += 1
-            image = self._images[self._current]
-            self._event("state_queue_started", token=token, steps=sum(item.iterations for item in row["items"]),
-                        selected=selected, reason=reason)
-        execution_started = time.monotonic_ns()
-        error = None
-        complete = False
-        try:
-            complete = self._apply_items(self._state, row["items"], image)
-        except BaseException as caught:
-            error = caught
-        finally:
-            execution_ns = time.monotonic_ns() - execution_started
-            finalization_started = time.monotonic_ns()
-            with self._lock:
-                progress = int(self._driver.hs_progress(self._state))
-                self._revision += progress
-                self._active -= 1
-                self._calls += progress
-                row["status"] = "failed" if error else "completed" if complete else "cancelled"
-                deployment = candidate_cost + queue_overhead + execution_ns
-                remaining = progress
-                item_observations = []
-                for index, item in enumerate(row["items"]):
-                    committed = min(remaining, item.iterations)
-                    item_observations.append({"item": index, "requested": item.iterations,
-                                              "committed": committed, "replayed": 0})
-                    remaining -= committed
-                receipt = {"schema": "hepta.hia.owned-queue-execution.v1", "queue": token,
-                           "queue_sha256": row["sha256"], "status": row["status"], "version": row["version"],
-                           "original_version": original, "automatic_selection": selected,
-                           "selection_reason": reason, "measurement": measurement,
-                           "committed_steps": sum(item.iterations for item in row["items"]),
-                           "executed_steps": progress, "replayed_steps": 0,
-                           "item_progress": item_observations,
-                           "unamortized_preparation_ns": candidate_cost,
-                           "preparation_includes_initial_baseline_driver_and_all_prepare_attempts": True,
-                           "calibration_verification_switch_ns": queue_overhead,
-                           "application_execution_ns": execution_ns, "deployment_cost_ns": deployment,
-                           "observed_net_against_baseline_forecast_ns":
-                               measurement["baseline_estimate_ns"] - deployment if measurement else None,
-                           "forecast_is_guaranteed": False, "owner_id": self._owner_id,
-                           "allocation_identity": self._allocation_identity,
-                           "final_values": list(self._values()), "native_ledger": self._ledger(),
-                           "error": repr(error) if error else None}
-                row["receipt"] = receipt
-                self._event("state_queue_finished", token=token, status=row["status"], progress=progress,
-                            selected=selected, replayed_steps=0)
-                finalization_ns = time.monotonic_ns() - finalization_started
-                receipt["commit_bookkeeping_ns"] = finalization_ns
-                receipt["deployment_cost_ns"] += finalization_ns
-                if measurement:
-                    receipt["observed_net_against_baseline_forecast_ns"] -= finalization_ns
-                # Final state reads, resource accounting and commit bookkeeping
-                # can consume a near-zero margin. Decide after charging them;
-                # any actual rollback remains an additional measured cost.
-                if selected and receipt["observed_net_against_baseline_forecast_ns"] <= 0:
-                    restore_started = time.monotonic_ns()
-                    restoration = self._restore_admitted(original)
-                    receipt["restored_after_forecast_loss"] = restoration["selected"]
-                    receipt["restoration_cost_ns"] = time.monotonic_ns() - restore_started
-                    receipt["deployment_cost_ns"] += receipt["restoration_cost_ns"]
-                    receipt["observed_net_against_baseline_forecast_ns"] -= receipt["restoration_cost_ns"]
-                self._cumulative_deployment_cost_ns += receipt["deployment_cost_ns"]
-                receipt["cumulative_deployment_cost_ns"] = self._cumulative_deployment_cost_ns
-        if error is not None:
-            raise error
-        return json.loads(json.dumps(receipt))
+        from .hia_queue_commit import execute_owned_queue
+        return execute_owned_queue(self, token, candidate=candidate, rounds=rounds, sample_limit=sample_limit)
 
     def audit_counterfactual(self, token):
         """Post-decision evaluation only; never authorizes a selection.

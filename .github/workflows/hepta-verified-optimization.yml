@@ -15,14 +15,19 @@ on:
       - 'tools/qualify_cpp_scoped_ownership.py'
       - 'tools/qualify_cpp_composed_project.py'
       - 'tools/qualify_cpp_unique_project.py'
+      - 'tools/qualify_cpp_unique_assignment_project.py'
       - 'examples/cpp/scoped_ownership_migration/**'
       - 'examples/cpp/composed_project_migration/**'
       - 'examples/cpp/unique_project_migration/**'
+      - 'examples/cpp/unique_assignment_project_migration/**'
       - 'experiments/hia_optimizer_eval/**'
       - 'experiments/hia_verified_integration/**'
       - 'experiments/hia_agent_matched_v3_20261028/**'
+      - 'experiments/hia_agent_assembly_v4_20261030/**'
+      - 'experiments/hia_ndu_session_eval/round4_20261030/**'
       - 'experiments/hia_ndu_graph_eval/round3_20261028/**'
       - 'experiments/hia_stateful_eval/round3_20261028/**'
+      - 'experiments/hia_stateful_eval/round4_20261030/**'
       - 'pyproject.toml'
       - '.github/workflows/hepta-verified-optimization.yml'
   workflow_dispatch:
@@ -104,6 +109,7 @@ jobs:
           python -m unittest discover -s experiments/hia_optimizer_eval/upgrade_continuation_20261028 -p 'test_*.py' -v
           python -m unittest discover -s experiments/hia_optimizer_eval/primary_continuation_20261028 -p 'test_*.py' -v
           python -m unittest discover -s experiments/hia_agent_matched_v3_20261028 -p 'test_*.py' -v
+          python -m unittest discover -s experiments/hia_agent_assembly_v4_20261030 -p 'test_*.py' -v
       - name: Retain real finite NDU loop and migration/runtime evidence
         run: |
           python tools/qualify_hia_ndu_loop.py --identity "$HEPTA_NDU_IDENTITY" --clang "$CLANG" --output artifacts/verified-optimization/ndu-loop
@@ -113,6 +119,9 @@ jobs:
           python tools/qualify_hia_stateful.py --workdir artifacts/verified-optimization/owned-state --clang "$CLANG"
           python tools/qualify_hia_narrowing.py --out artifacts/verified-optimization/narrowing --clang "$CLANG"
           python tools/qualify_cpp_unique_project.py --workdir artifacts/verified-optimization/cpp-unique-project --clangxx "$CLANGXX" --clang "$CLANG" --cc gcc
+          python tools/qualify_cpp_unique_assignment_project.py --workdir artifacts/verified-optimization/cpp-unique-assignment-project --clangxx "$CLANGXX" --clang "$CLANG" --cc gcc
+          python tools/qualify_hia_continuation.py --workdir artifacts/verified-optimization/owned-continuation --clang "$CLANG"
+          python tools/qualify_hia_agent_assembly.py --out artifacts/verified-optimization/agent-assembly --clang "$CLANG"
       - name: Retain all completed and failed evidence
         if: always()
         uses: actions/upload-artifact@v4
