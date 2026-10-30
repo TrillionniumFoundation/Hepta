@@ -1,0 +1,88 @@
+{
+  "functions": [
+    {
+      "blocks": [
+        {
+          "id": "entry",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 0
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "zero",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "x",
+                "zero"
+              ],
+              "attrs": {},
+              "op": "int.add.wrap",
+              "out": [
+                {
+                  "name": "a",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "a",
+                "y"
+              ],
+              "attrs": {},
+              "op": "int.add.wrap",
+              "out": [
+                {
+                  "name": "r",
+                  "type": "u64"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "x",
+              "type": "u64"
+            },
+            {
+              "name": "y",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "r"
+            ]
+          }
+        }
+      ],
+      "effects": [],
+      "entry": "entry",
+      "name": "calculate",
+      "params": [
+        {
+          "name": "x",
+          "type": "u64"
+        },
+        {
+          "name": "y",
+          "type": "u64"
+        }
+      ],
+      "returns": [
+        "u64"
+      ]
+    }
+  ],
+  "module": "adaptive_native",
+  "schema": "hepta.hia.program.v1"
+}

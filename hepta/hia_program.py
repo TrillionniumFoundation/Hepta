@@ -28,16 +28,12 @@ from .hia_schema import (
     PROFILE_V4, PROFILE_V5, PROFILE_V6, PROFILE_V7, PROFILE_V8, SCHEMA, SCHEMA_V2, SCHEMA_V3,
     SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, profile_for_schema, supports_feature,
 )
+from .hia_opcodes import (
+    BYTE_RESOURCES, EFFECTS, OWNERS, RESOURCES, SCALARS, TRAP_CODES, TYPES, WIDTHS,
+    TERMINATORS, OpcodeRejected, check_instruction, opcode_spec,
+    scalar_value_valid as _catalog_scalar_value_valid,
+)
 WORD_BITS = 64
-WIDTHS = {**{f"{s}{n}": n for s in ("i", "u") for n in (8, 16, 32, 64)},
-          "isize": 64, "usize": 64}
-SCALARS = frozenset(WIDTHS) | {"bool", "unit"}
-OWNERS = frozenset({"buffer", "chain"})
-BYTE_RESOURCES = frozenset({"buffer", "readbuf", "mutbuf"})
-RESOURCES = BYTE_RESOURCES | OWNERS
-TYPES = SCALARS | RESOURCES
-EFFECTS = frozenset({"alloc", "read", "write", "trap"})
-TRAP_CODES = frozenset({"user", "overflow", "division_by_zero", "bounds", "allocation"})
 _IDENT = re.compile(r"[A-Za-z_][A-Za-z_0-9]{0,127}\Z")
 _RESERVED_FUNCTIONS = frozenset({"abort", "calloc", "malloc", "free", "memcpy", "memmove", "memset"})
 MAX_BYTES = 8 * 1024 * 1024
@@ -86,14 +82,7 @@ def integer_range(typ):
 
 
 def scalar_value_valid(value, typ):
-    if typ in WIDTHS:
-        lo, hi = integer_range(typ)
-        return type(value) is int and lo <= value <= hi
-    if typ == "bool":
-        return type(value) is bool
-    if typ == "unit":
-        return value is None
-    return False
+    return _catalog_scalar_value_valid(value, typ)
 
 
 def _unique_pairs(pairs):
@@ -362,19 +351,18 @@ def _edges(term):
     if type(term) is not dict or type(term.get("op")) is not str:
         _reject("missing terminator", "E_HIA_CFG")
     op = term["op"]
+    if op not in TERMINATORS:
+        _reject("unknown terminator", "E_HIA_CFG")
+    _keys(term, TERMINATORS[op], op)
     if op == "jump":
-        _keys(term, {"op", "target", "args"}, "jump")
         return [_edge({"target": term["target"], "args": term["args"]})]
     if op == "branch":
-        _keys(term, {"op", "cond", "then", "else"}, "branch")
         _ident(term["cond"], "branch condition")
         return [_edge(term["then"]), _edge(term["else"])]
     if op == "ret":
-        _keys(term, {"op", "values"}, "return")
         _names(term["values"], "return values")
         return []
     if op == "trap":
-        _keys(term, {"op", "code"}, "trap")
         if type(term["code"]) is not str or term["code"] not in TRAP_CODES:
             _reject("unknown trap code", "E_HIA_CFG")
         return []
@@ -483,14 +471,9 @@ class _FunctionInterface:
 
 
 class _BlockCheck:
-    def __init__(self, fn, block, capabilities, functions, *, bulk_memory=False, inplace_memory=False, byte_swap=False, offset_copy=False, range_fill=False, recursive_chain=False):
+    def __init__(self, fn, block, capabilities, functions, *, schema):
         self.fn, self.block, self.functions = fn, block, functions
-        self.bulk_memory = bulk_memory
-        self.inplace_memory = inplace_memory
-        self.byte_swap = byte_swap
-        self.offset_copy = offset_copy
-        self.range_fill = range_fill
-        self.recursive_chain = recursive_chain
+        self.schema = schema
         self.env = {p["name"]: p["type"] for p in block["params"]}
         self.caps = dict(capabilities)
         self.required = set()
@@ -546,211 +529,35 @@ class _BlockCheck:
         op, args, out, attrs = ins["op"], ins["args"], ins["out"], ins["attrs"]
         actual = [self.value(a) for a in args]
         names, types = [o["name"] for o in out], [o["type"] for o in out]
-        expected = None
-        if op.startswith("chain.") and not self.recursive_chain:
-            _reject("recursive chain operations require HIA program v7", "E_HIA_OPCODE")
+        try:
+            spec = opcode_spec(op, self.schema)
+            self.required.update(check_instruction(spec, actual, types, attrs))
+        except OpcodeRejected as exc:
+            _reject(str(exc), exc.code)
 
-        def arity(n):
-            if len(args) != n:
-                _reject(f"{op}: wrong operand count", "E_HIA_TYPE")
-
-        def integer_binary():
-            arity(2)
-            if actual[0] not in WIDTHS or actual[0] != actual[1]:
-                _reject(f"{op}: same-width integer operands required", "E_HIA_TYPE")
-            return actual[0]
-
-        if op == "const":
-            _keys(attrs, {"value"}, op)
-            arity(0)
-            if len(out) != 1 or not scalar_value_valid(attrs["value"], types[0]):
-                _reject("constant must be an exactly typed scalar", "E_HIA_TYPE")
-            expected = types
-        elif op in {f"int.{a}.{m}" for a in ("add", "sub", "mul") for m in ("checked", "wrap")}:
-            expected = [integer_binary()]
-            if op.endswith("checked"):
-                self.required.add("trap")
-        elif op in {"int.div.checked", "int.rem.checked", "int.shl.checked", "int.shr.checked"}:
-            expected = [integer_binary()]
-            self.required.add("trap")
-        elif op in {"bit.and", "bit.or", "bit.xor"}:
-            expected = [integer_binary()]
-        elif op in {"bit.not", "int.neg.checked"}:
-            arity(1)
-            if actual[0] not in WIDTHS:
-                _reject("integer unary operand required", "E_HIA_TYPE")
-            expected = actual
-            if op == "int.neg.checked":
-                self.required.add("trap")
-        elif op.startswith("compare.") and op[8:] in {"eq", "ne", "lt", "le", "gt", "ge"}:
-            arity(2)
-            if (actual[0] != actual[1] or actual[0] not in WIDTHS
-                    and not (actual[0] == "bool" and op in {"compare.eq", "compare.ne"})):
-                _reject("comparison operands have incompatible types", "E_HIA_TYPE")
-            expected = ["bool"]
-        elif op in {"bool.not", "bool.and", "bool.or"}:
-            arity(1 if op == "bool.not" else 2)
-            if any(t != "bool" for t in actual):
-                _reject("boolean operands required", "E_HIA_TYPE")
-            expected = ["bool"]
-        elif op == "int.cast":
-            _keys(attrs, {"mode"}, op)
-            arity(1)
-            if (actual[0] not in WIDTHS or len(types) != 1 or types[0] not in WIDTHS
-                    or type(attrs["mode"]) is not str or attrs["mode"] not in {"checked", "wrap"}):
-                _reject("unsupported integer cast", "E_HIA_TYPE")
-            expected = types
-            if attrs["mode"] == "checked":
-                self.required.add("trap")
-        elif op == "select":
-            arity(3)
-            if actual[0] != "bool" or actual[1] != actual[2] or actual[1] not in SCALARS:
-                _reject("select is restricted to compatible scalar values", "E_HIA_TYPE")
-            expected = [actual[1]]
-        elif op in {"buffer.new", "buffer.try_new"}:
-            arity(1)
-            if actual != ["usize"]:
-                _reject("allocation size must be usize", "E_HIA_TYPE")
-            expected = ["buffer"] + (["bool"] if op == "buffer.try_new" else [])
-            self.required.add("alloc")
-            if op == "buffer.new":
-                self.required.add("trap")
-        elif op == "buffer.len":
-            arity(1)
-            if actual[0] not in BYTE_RESOURCES:
-                _reject("buffer length requires owner/view", "E_HIA_TYPE")
-            expected = ["usize"]
-        elif op == "chain.empty":
-            arity(0)
-            expected = ["chain"]
-        elif op == "chain.try_push":
-            arity(2)
-            if actual != ["chain", "buffer"]:
-                _reject("chain.try_push requires an owned tail and owned byte payload", "E_HIA_TYPE")
-            for name in args:
+        # The catalog selects the guards. These small context-dependent checks
+        # still inspect actual capabilities, never declarations or receipts.
+        for guard in spec.guards:
+            parts = guard.split(":")
+            rule = parts[0]
+            if rule == "callee_interface":
+                continue
+            name = args[int(parts[1])]
+            if rule == "free":
                 self.owner_free(name)
-            expected = ["chain", "buffer", "bool"]
-            self.required.add("alloc")
-        elif op == "chain.pop":
-            arity(1)
-            if actual != ["chain"]:
-                _reject("chain.pop requires an owned chain", "E_HIA_TYPE")
-            self.owner_free(args[0])
-            expected = ["chain", "buffer", "bool"]
-            self.required.add("alloc")
-        elif op == "chain.is_empty":
-            arity(1)
-            if actual != ["chain"]:
-                _reject("chain.is_empty requires an owned chain", "E_HIA_TYPE")
-            expected = ["bool"]
-        elif op in {"chain.head_read", "chain.head_mut"}:
-            arity(1)
-            if actual != ["chain"]:
-                _reject("chain head borrowing requires an owned chain", "E_HIA_TYPE")
-            expected = ["readbuf" if op == "chain.head_read" else "mutbuf"]
-            self.required.update({"read", "trap"})
-        elif op in {"borrow.read", "borrow.mut"}:
-            arity(1)
-            expected = ["readbuf" if op == "borrow.read" else "mutbuf"]
-        elif op == "loan.end":
-            arity(1)
-            if actual[0] not in {"readbuf", "mutbuf"}:
-                _reject("loan.end requires a view", "E_HIA_TYPE")
-            if self.caps[args[0]].external:
-                _reject("callee cannot end its caller's loan", "E_HIA_LOAN")
-            if self.children(args[0]):
-                _reject("end child loans before their parent", "E_HIA_LOAN")
-            expected = []
-        elif op in {"owner.move", "owner.drop"}:
-            arity(1)
-            self.owner_free(args[0])
-            expected = actual if op == "owner.move" else []
-            if op == "owner.drop":
-                self.required.add("alloc")
-        elif op == "buffer.load":
-            arity(2)
-            self.access(args[0])
-            if actual[1] != "usize":
-                _reject("buffer index must be usize", "E_HIA_TYPE")
-            expected = ["u8"]
-            self.required.update({"read", "trap"})
-        elif op == "buffer.store":
-            arity(3)
-            self.access(args[0], True)
-            if actual[1:] != ["usize", "u8"]:
-                _reject("store needs usize index and u8 value", "E_HIA_TYPE")
-            expected = []
-            self.required.update({"write", "trap"})
-        elif op == "buffer.fill":
-            if not self.bulk_memory:
-                _reject("bulk byte operations require HIA program v2", "E_HIA_OPCODE")
-            arity(2)
-            self.access(args[0], True)
-            if actual != ["mutbuf", "u8"]:
-                _reject("fill requires a mutable byte view and u8 value", "E_HIA_TYPE")
-            expected = []
-            self.required.add("write")
-        elif op == "buffer.copy":
-            if not self.bulk_memory:
-                _reject("bulk byte operations require HIA program v2", "E_HIA_OPCODE")
-            arity(3)
-            self.access(args[0], True)
-            self.access(args[1])
-            if actual != ["mutbuf", "readbuf", "usize"]:
-                _reject("copy requires distinct mutable/read byte views and usize length", "E_HIA_TYPE")
-            if self.caps[args[0]].root == self.caps[args[1]].root:
-                _reject("bulk copy aliases the destination owner", "E_HIA_LOAN")
-            expected = []
-            self.required.update({"read", "write", "trap"})
-        elif op == "buffer.move_within":
-            # v3: overlapping source/destination ranges in ONE uniquely
-            # borrowed allocation. Unlike v2 buffer.copy, this is memmove.
-            if not self.inplace_memory:
-                _reject("in-place overlapping move requires HIA program v3", "E_HIA_OPCODE")
-            arity(4)
-            self.access(args[0], True)
-            if actual != ["mutbuf", "usize", "usize", "usize"]:
-                _reject("in-place move requires mutbuf, dest, source, length as usize", "E_HIA_TYPE")
-            expected = []
-            self.required.update({"read", "write", "trap"})
-        elif op == "buffer.fill_range":
-            # v6: checked partial write under exactly one live mutable loan.
-            # Native and VM guard offset <= extent and count <= extent-offset
-            # before computing an address or performing any mutation.
-            if not self.range_fill:
-                _reject("range fill requires HIA program v6", "E_HIA_OPCODE")
-            arity(4)
-            self.access(args[0], True)
-            if actual != ["mutbuf", "usize", "usize", "u8"]:
-                _reject("fill_range needs mutbuf, offset, count, u8", "E_HIA_TYPE")
-            expected = []
-            self.required.update({"write", "trap"})
-        elif op == "buffer.copy_range":
-            # v5: checked offset memcpy between two *distinct* owner roots.
-            if not self.offset_copy:
-                _reject("offset copy requires HIA program v5", "E_HIA_OPCODE")
-            arity(5)
-            self.access(args[0], True)
-            self.access(args[1])
-            if actual != ["mutbuf", "readbuf", "usize", "usize", "usize"]:
-                _reject("copy_range needs mutable/read views and three usize offsets", "E_HIA_TYPE")
-            if self.caps[args[0]].root == self.caps[args[1]].root:
-                _reject("copy_range may not alias one owner", "E_HIA_LOAN")
-            expected = []
-            self.required.update({"read", "write", "trap"})
-        elif op == "buffer.swap":
-            # v4: two byte positions in ONE live uniquely borrowed owner.
-            # The runtime and LLVM must check BOTH bounds before mutation.
-            if not self.byte_swap:
-                _reject("byte swap requires HIA program v4", "E_HIA_OPCODE")
-            arity(3)
-            self.access(args[0], True)
-            if actual != ["mutbuf", "usize", "usize"]:
-                _reject("swap requires mutbuf, left, right as usize", "E_HIA_TYPE")
-            expected = []
-            self.required.update({"read", "write", "trap"})
-        elif op == "call":
-            _keys(attrs, {"function"}, op)
+            elif rule in {"read", "write"}:
+                self.access(name, rule == "write")
+            elif rule == "distinct":
+                if self.caps[name].root == self.caps[args[int(parts[2])]].root:
+                    _reject(op + " may not alias one owner", "E_HIA_LOAN")
+            elif rule == "end_local_loan":
+                if self.caps[name].external:
+                    _reject("callee cannot end its caller's loan", "E_HIA_LOAN")
+                if self.children(name):
+                    _reject("end child loans before their parent", "E_HIA_LOAN")
+            else:
+                _reject("unsupported catalog resource guard", "E_HIA_OPCODE")
+        if spec.resource_transition == "call":
             callee_name = _ident(attrs["function"], "callee")
             if callee_name not in self.functions:
                 _reject("unknown callee", "E_HIA_CALL")
@@ -772,36 +579,32 @@ class _BlockCheck:
                     if any(r == root and (m or formal == "mutbuf") for r, m in views):
                         _reject("aliased exclusive call arguments", "E_HIA_LOAN")
                     views.append((root, formal == "mutbuf"))
-            expected = list(callee.returns)
+            if types != list(callee.returns):
+                _reject(f"{op}: output types must be {list(callee.returns)}", "E_HIA_TYPE")
             self.required.update(callee.effects)
-        else:
-            _reject(f"unsupported opcode {op}", "E_HIA_OPCODE")
-        if op not in {"const", "int.cast", "call"}:
-            _keys(attrs, set(), op)
-        if types != expected:
-            _reject(f"{op}: output types must be {expected}", "E_HIA_TYPE")
 
         # Resource transitions happen only after all operand/output checks.
-        if op in {"buffer.new", "buffer.try_new"}:
+        transition = spec.resource_transition
+        if transition == "allocate":
             self.caps[names[0]] = _Capability("buffer", names[0])
-        elif op == "chain.empty":
+        elif transition == "empty_chain":
             self.caps[names[0]] = _Capability("chain", names[0])
-        elif op in {"chain.try_push", "chain.pop"}:
+        elif transition == "chain_transfer":
             for name in args:
                 del self.caps[name]
             for name, typ in zip(names, types):
                 if typ in OWNERS:
                     self.caps[name] = _Capability(typ, name)
-        elif op in {"chain.head_read", "chain.head_mut"}:
+        elif transition == "chain_borrow":
             self.borrow(args[0], names[0], op == "chain.head_mut", chain_head=True)
-        elif op in {"borrow.read", "borrow.mut"}:
+        elif transition == "borrow":
             self.borrow(args[0], names[0], op == "borrow.mut")
-        elif op in {"loan.end", "owner.drop"}:
+        elif transition in {"end_loan", "drop_owner"}:
             del self.caps[args[0]]
-        elif op == "owner.move":
+        elif transition == "move_owner":
             del self.caps[args[0]]
             self.caps[names[0]] = _Capability(actual[0], names[0])
-        elif op == "call":
+        elif transition == "call":
             for name, typ in zip(args, actual):
                 if typ in OWNERS:
                     del self.caps[name]
@@ -811,6 +614,8 @@ class _BlockCheck:
                     self.caps[name] = _Capability(typ, name)
                 elif typ in {"readbuf", "mutbuf"}:
                     self.borrow(bindings[origin], name, typ == "mutbuf")
+        elif transition != "none":
+            _reject("unsupported catalog resource transition", "E_HIA_OPCODE")
         self.env.update(zip(names, types))
 
     def transfer(self, edge, target):
@@ -940,13 +745,7 @@ def _verify_function(schema, fn, blocks, interfaces):
             continue
         processed.add(ident)
         block = blocks[ident]
-        check = _BlockCheck(fn, block, incoming[ident], interfaces,
-                            bulk_memory=supports_feature(schema, "bulk_memory"),
-                            inplace_memory=supports_feature(schema, "inplace_memory"),
-                            byte_swap=supports_feature(schema, "byte_swap"),
-                            offset_copy=supports_feature(schema, "offset_copy"),
-                            range_fill=supports_feature(schema, "range_fill"),
-                            recursive_chain=supports_feature(schema, "recursive_chain"))
+        check = _BlockCheck(fn, block, incoming[ident], interfaces, schema=schema)
         for ins in block["ops"]:
             check.instruction(ins)
         check.finish()

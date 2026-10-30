@@ -34,7 +34,7 @@ CONTRACT = ROOT / "docs/HIA_SAFETY_CONTRACT.json"
 # caller can remove capabilities/tests and still obtain the same qualification
 # status for a weaker matrix. Deliberate protocol changes must review and update
 # this identity together with the contract and its boundary tests.
-REVIEWED_CONTRACT_SHA256 = "3ff0362f995c8341ab75fa32c19cc6bb9fc5d1bc1bbe932ab00d45409ef62faa"
+REVIEWED_CONTRACT_SHA256 = "c843b3471351f34ab25538f2bd2c2401395872d4043995b003e9e887cdd535a4"
 _UNPROVED = frozenset({"whole_language_soundness_proved", "source_to_core_refinement_proved",
     "core_to_native_refinement_proved", "global_optimality_proved", "absolute_resource_safety_proved",
     "general_concurrent_memory_safety_proved", "native_process_memory_bound_proved",
@@ -86,9 +86,11 @@ def validate_contract(contract):
     # stateful list/dict subclasses; iterating the caller's object again could
     # otherwise select fewer regressions after its full matrix was hashed.
     contract = json.loads(canonical)
+    # The generated catalog uses immutable tuple fields in memory; JSON carries
+    # those arrays as lists. Compare the complete canonical wire bytes exactly.
     if (type(contract) is not dict or contract.get("schema") != "hepta.hia.safety-contract.v1"
             or contract.get("status") != "implementation_contract_with_finite_regression_evidence"
-            or contract.get("registry") != schema_registry()):
+            or wire(contract.get("registry")) != wire(schema_registry())):
         raise ValueError("E_SAFETY_REGISTRY: exact reviewed schema/profile registry required")
     claims = contract.get("unproved_claims", {})
     if set(claims) != _UNPROVED or any(value is not False for value in claims.values()):
@@ -98,8 +100,8 @@ def validate_contract(contract):
             or authority.get("external_receipts_grant_admission") is not False
             or authority.get("metadata_grants_admission") is not False):
         raise ValueError("E_SAFETY_AUTHORITY: only actual Core admission is authoritative")
-    if set(contract.get("boundaries", {})) != {"normal", "error", "trap", "cancel", "recursive", "concurrent"}:
-        raise ValueError("E_SAFETY_BOUNDARY: all six execution boundaries must remain explicit")
+    if set(contract.get("boundaries", {})) != {"normal", "error", "trap", "budget", "cancel", "crash", "recursive", "concurrent"}:
+        raise ValueError("E_SAFETY_BOUNDARY: all eight execution boundaries must remain explicit")
     rows, identifiers, selectors = contract.get("capabilities"), set(), set()
     if type(rows) is not list or not rows:
         raise ValueError("E_SAFETY_MATRIX: nonempty capability matrix required")

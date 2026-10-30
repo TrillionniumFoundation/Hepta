@@ -1,0 +1,222 @@
+test_batch_growth_after_capture_does_not_add_dispatches (tests.test_hia_adaptive_arguments.AdaptiveArgumentSnapshotTests.test_batch_growth_after_capture_does_not_add_dispatches) ... FAIL
+test_captured_rows_are_detached_and_exact_boundaries_survive (tests.test_hia_adaptive_arguments.AdaptiveArgumentSnapshotTests.test_captured_rows_are_detached_and_exact_boundaries_survive) ... ok
+test_growth_before_batch_capture_rejects_before_dispatch (tests.test_hia_adaptive_arguments.AdaptiveArgumentSnapshotTests.test_growth_before_batch_capture_rejects_before_dispatch) ... FAIL
+test_invalid_inputs_never_reach_dispatch (tests.test_hia_adaptive_arguments.AdaptiveArgumentSnapshotTests.test_invalid_inputs_never_reach_dispatch) ... ok
+test_post_check_mutation_cannot_enter_either_measurement_arm (tests.test_hia_adaptive_arguments.AdaptiveArgumentSnapshotTests.test_post_check_mutation_cannot_enter_either_measurement_arm) ... FAIL
+test_post_check_row_growth_cannot_change_arity (tests.test_hia_adaptive_arguments.AdaptiveArgumentSnapshotTests.test_post_check_row_growth_cannot_change_arity) ... FAIL
+test_post_check_scalar_mutation_cannot_reach_dispatch (tests.test_hia_adaptive_arguments.AdaptiveArgumentSnapshotTests.test_post_check_scalar_mutation_cannot_reach_dispatch) ... 
+  test_post_check_scalar_mutation_cannot_reach_dispatch (tests.test_hia_adaptive_arguments.AdaptiveArgumentSnapshotTests.test_post_check_scalar_mutation_cannot_reach_dispatch) (replacement=18446744073709551616) ... FAIL
+  test_post_check_scalar_mutation_cannot_reach_dispatch (tests.test_hia_adaptive_arguments.AdaptiveArgumentSnapshotTests.test_post_check_scalar_mutation_cannot_reach_dispatch) (replacement=-1) ... FAIL
+  test_post_check_scalar_mutation_cannot_reach_dispatch (tests.test_hia_adaptive_arguments.AdaptiveArgumentSnapshotTests.test_post_check_scalar_mutation_cannot_reach_dispatch) (replacement=True) ... FAIL
+test_row_growth_before_capture_is_rejected (tests.test_hia_adaptive_arguments.AdaptiveArgumentSnapshotTests.test_row_growth_before_capture_is_rejected) ... ok
+test_checked_argument_snapshot_reaches_actual_native_code (tests.test_hia_adaptive_snapshot_native.NativeInputSnapshotTests.test_checked_argument_snapshot_reaches_actual_native_code) ... 
+  test_checked_argument_snapshot_reaches_actual_native_code (tests.test_hia_adaptive_snapshot_native.NativeInputSnapshotTests.test_checked_argument_snapshot_reaches_actual_native_code) (replacement=18446744073709551616) ... FAIL
+  test_checked_argument_snapshot_reaches_actual_native_code (tests.test_hia_adaptive_snapshot_native.NativeInputSnapshotTests.test_checked_argument_snapshot_reaches_actual_native_code) (replacement=-1) ... FAIL
+  test_checked_argument_snapshot_reaches_actual_native_code (tests.test_hia_adaptive_snapshot_native.NativeInputSnapshotTests.test_checked_argument_snapshot_reaches_actual_native_code) (replacement=True) ... FAIL
+test_growth_after_queue_capture_cannot_add_native_work (tests.test_hia_adaptive_snapshot_native.NativeInputSnapshotTests.test_growth_after_queue_capture_cannot_add_native_work) ... FAIL
+test_growth_before_queue_capture_cannot_be_admitted (tests.test_hia_adaptive_snapshot_native.NativeInputSnapshotTests.test_growth_before_queue_capture_cannot_be_admitted) ... FAIL
+test_hidden_effectful_helper_cannot_enter_an_owned_native_version (tests.test_hia_adaptive_snapshot_native.NativeInputSnapshotTests.test_hidden_effectful_helper_cannot_enter_an_owned_native_version) ... ok
+test_initial_owner_growth_is_rejected_before_any_build (tests.test_hia_adaptive_snapshot_native.NativeInputSnapshotTests.test_initial_owner_growth_is_rejected_before_any_build) ... FAIL
+test_initial_owner_uses_captured_cells_after_producer_mutation (tests.test_hia_adaptive_snapshot_native.NativeInputSnapshotTests.test_initial_owner_uses_captured_cells_after_producer_mutation) ... ERROR
+
+======================================================================
+ERROR: test_initial_owner_uses_captured_cells_after_producer_mutation (tests.test_hia_adaptive_snapshot_native.NativeInputSnapshotTests.test_initial_owner_uses_captured_cells_after_producer_mutation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/hepta-safety-stage/native-original/tests/test_hia_adaptive_snapshot_native.py", line 94, in test_initial_owner_uses_captured_cells_after_producer_mutation
+    runtime = self.mutate_at_boundary(
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/hepta-safety-stage/native-original/tests/test_hia_adaptive_arguments.py", line 88, in mutate_at_boundary
+    return action()
+           ^^^^^^^^
+  File "/tmp/hepta-safety-stage/native-original/tests/test_hia_adaptive_snapshot_native.py", line 95, in <lambda>
+    lambda: OwnedAdaptiveRuntime(base, self.root / "captured-owner", values, clang=CLANG),
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/hepta-safety-stage/native-original/hepta/hia_stateful.py", line 260, in __init__
+    values = tuple(_u64(value) for value in values)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/hepta-safety-stage/native-original/hepta/hia_stateful.py", line 260, in <genexpr>
+    values = tuple(_u64(value) for value in values)
+                   ^^^^^^^^^^^
+  File "/tmp/hepta-safety-stage/native-original/hepta/hia_stateful.py", line 111, in _u64
+    raise AdaptiveRejected("E_STATE_VALUE: exact u64 required")
+hepta.hia_adaptive.AdaptiveRejected: E_STATE_VALUE: exact u64 required
+
+======================================================================
+FAIL: test_batch_growth_after_capture_does_not_add_dispatches (tests.test_hia_adaptive_arguments.AdaptiveArgumentSnapshotTests.test_batch_growth_after_capture_does_not_add_dispatches)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/hepta-safety-stage/native-original/tests/test_hia_adaptive_arguments.py", line 141, in test_batch_growth_after_capture_does_not_add_dispatches
+    self.assertEqual(result, [7])
+AssertionError: Lists differ: [7, 8, 9, 10] != [7]
+
+First list contains 3 additional elements.
+First extra element 1:
+8
+
+- [7, 8, 9, 10]
++ [7]
+
+======================================================================
+FAIL: test_growth_before_batch_capture_rejects_before_dispatch (tests.test_hia_adaptive_arguments.AdaptiveArgumentSnapshotTests.test_growth_before_batch_capture_rejects_before_dispatch)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/hepta-safety-stage/native-original/tests/test_hia_adaptive_arguments.py", line 152, in test_growth_before_batch_capture_rejects_before_dispatch
+    with self.assertRaisesRegex(adaptive.AdaptiveRejected, "bounded nonempty"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: AdaptiveRejected not raised
+
+======================================================================
+FAIL: test_post_check_mutation_cannot_enter_either_measurement_arm (tests.test_hia_adaptive_arguments.AdaptiveArgumentSnapshotTests.test_post_check_mutation_cannot_enter_either_measurement_arm)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/hepta-safety-stage/native-original/tests/test_hia_adaptive_arguments.py", line 129, in test_post_check_mutation_cannot_enter_either_measurement_arm
+    self.assertEqual(calls, [(7,), (7,)])
+AssertionError: Lists differ: [(18446744073709551616,), (18446744073709551616,)] != [(7,), (7,)]
+
+First differing element 0:
+(18446744073709551616,)
+(7,)
+
+- [(18446744073709551616,), (18446744073709551616,)]
++ [(7,), (7,)]
+
+======================================================================
+FAIL: test_post_check_row_growth_cannot_change_arity (tests.test_hia_adaptive_arguments.AdaptiveArgumentSnapshotTests.test_post_check_row_growth_cannot_change_arity)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/hepta-safety-stage/native-original/tests/test_hia_adaptive_arguments.py", line 119, in test_post_check_row_growth_cannot_change_arity
+    self.assertEqual(result, [7])
+AssertionError: Lists differ: [106] != [7]
+
+First differing element 0:
+106
+7
+
+- [106]
++ [7]
+
+======================================================================
+FAIL: test_post_check_scalar_mutation_cannot_reach_dispatch (tests.test_hia_adaptive_arguments.AdaptiveArgumentSnapshotTests.test_post_check_scalar_mutation_cannot_reach_dispatch) (replacement=18446744073709551616)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/hepta-safety-stage/native-original/tests/test_hia_adaptive_arguments.py", line 106, in test_post_check_scalar_mutation_cannot_reach_dispatch
+    self.assertEqual(result, [7])
+AssertionError: Lists differ: [18446744073709551616] != [7]
+
+First differing element 0:
+18446744073709551616
+7
+
+- [18446744073709551616]
++ [7]
+
+======================================================================
+FAIL: test_post_check_scalar_mutation_cannot_reach_dispatch (tests.test_hia_adaptive_arguments.AdaptiveArgumentSnapshotTests.test_post_check_scalar_mutation_cannot_reach_dispatch) (replacement=-1)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/hepta-safety-stage/native-original/tests/test_hia_adaptive_arguments.py", line 106, in test_post_check_scalar_mutation_cannot_reach_dispatch
+    self.assertEqual(result, [7])
+AssertionError: Lists differ: [-1] != [7]
+
+First differing element 0:
+-1
+7
+
+- [-1]
++ [7]
+
+======================================================================
+FAIL: test_post_check_scalar_mutation_cannot_reach_dispatch (tests.test_hia_adaptive_arguments.AdaptiveArgumentSnapshotTests.test_post_check_scalar_mutation_cannot_reach_dispatch) (replacement=True)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/hepta-safety-stage/native-original/tests/test_hia_adaptive_arguments.py", line 106, in test_post_check_scalar_mutation_cannot_reach_dispatch
+    self.assertEqual(result, [7])
+AssertionError: Lists differ: [1] != [7]
+
+First differing element 0:
+1
+7
+
+- [1]
++ [7]
+
+======================================================================
+FAIL: test_checked_argument_snapshot_reaches_actual_native_code (tests.test_hia_adaptive_snapshot_native.NativeInputSnapshotTests.test_checked_argument_snapshot_reaches_actual_native_code) (replacement=18446744073709551616)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/hepta-safety-stage/native-original/tests/test_hia_adaptive_snapshot_native.py", line 66, in test_checked_argument_snapshot_reaches_actual_native_code
+    self.assertEqual(result, [9])
+AssertionError: Lists differ: [2] != [9]
+
+First differing element 0:
+2
+9
+
+- [2]
++ [9]
+
+======================================================================
+FAIL: test_checked_argument_snapshot_reaches_actual_native_code (tests.test_hia_adaptive_snapshot_native.NativeInputSnapshotTests.test_checked_argument_snapshot_reaches_actual_native_code) (replacement=-1)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/hepta-safety-stage/native-original/tests/test_hia_adaptive_snapshot_native.py", line 66, in test_checked_argument_snapshot_reaches_actual_native_code
+    self.assertEqual(result, [9])
+AssertionError: Lists differ: [1] != [9]
+
+First differing element 0:
+1
+9
+
+- [1]
++ [9]
+
+======================================================================
+FAIL: test_checked_argument_snapshot_reaches_actual_native_code (tests.test_hia_adaptive_snapshot_native.NativeInputSnapshotTests.test_checked_argument_snapshot_reaches_actual_native_code) (replacement=True)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/hepta-safety-stage/native-original/tests/test_hia_adaptive_snapshot_native.py", line 66, in test_checked_argument_snapshot_reaches_actual_native_code
+    self.assertEqual(result, [9])
+AssertionError: Lists differ: [3] != [9]
+
+First differing element 0:
+3
+9
+
+- [3]
++ [9]
+
+======================================================================
+FAIL: test_growth_after_queue_capture_cannot_add_native_work (tests.test_hia_adaptive_snapshot_native.NativeInputSnapshotTests.test_growth_after_queue_capture_cannot_add_native_work)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/hepta-safety-stage/native-original/tests/test_hia_adaptive_snapshot_native.py", line 117, in test_growth_after_queue_capture_cannot_add_native_work
+    self.assertEqual(result["executed_steps"], 1)
+AssertionError: 129 != 1
+
+======================================================================
+FAIL: test_growth_before_queue_capture_cannot_be_admitted (tests.test_hia_adaptive_snapshot_native.NativeInputSnapshotTests.test_growth_before_queue_capture_cannot_be_admitted)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/hepta-safety-stage/native-original/tests/test_hia_adaptive_snapshot_native.py", line 129, in test_growth_before_queue_capture_cannot_be_admitted
+    with self.assertRaisesRegex(AdaptiveRejected, "one to 128"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: AdaptiveRejected not raised
+
+======================================================================
+FAIL: test_initial_owner_growth_is_rejected_before_any_build (tests.test_hia_adaptive_snapshot_native.NativeInputSnapshotTests.test_initial_owner_growth_is_rejected_before_any_build)
+----------------------------------------------------------------------
+hepta.hia_adaptive.AdaptiveRejected: E_STATE_ALLOCATION: native owner allocation failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/tmp/hepta-safety-stage/native-original/tests/test_hia_adaptive_snapshot_native.py", line 80, in test_initial_owner_growth_is_rejected_before_any_build
+    with self.assertRaisesRegex(AdaptiveRejected, "E_STATE_SIZE"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: "E_STATE_SIZE" does not match "E_STATE_ALLOCATION: native owner allocation failed"
+
+----------------------------------------------------------------------
+Ran 14 tests in 2.143s
+
+FAILED (failures=13, errors=1)

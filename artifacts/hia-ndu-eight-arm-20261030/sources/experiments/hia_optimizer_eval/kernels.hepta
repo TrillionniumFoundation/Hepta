@@ -1,0 +1,40 @@
+module optimizer_bench;
+
+export "C" fn full_lifecycle(size:usize,seed:u32)->u64 effects {alloc,block,panic,write} {
+    match try_buffer(size) {
+        Result::Err(code)=>{return 1000+(code as u64);},
+        Result::Ok(initial)=>{
+            let mut bytes=move initial;
+            for i in 0..size {bytes[i]=wrapping_add(i as u32,seed) as u8;}
+            let mut total:u64=0;
+            for i in 0..size {total=total+(bytes[i] as u64);}
+            drop(move bytes);
+            return total;
+        },
+    }
+}
+
+export "C" fn packet_xor(size:usize,seed:u32)->u64 effects {alloc,block,panic,write} {
+    match try_buffer(size) {
+        Result::Err(code)=>{return 1000+(code as u64);},
+        Result::Ok(initial)=>{
+            let mut first=move initial;
+            for i in 0..size {
+                first[i]=wrapping_add(wrapping_mul(i as u32,13),seed) as u8;
+            }
+            match try_buffer(size) {
+                Result::Err(code)=>{drop(move first);return 1000+(code as u64);},
+                Result::Ok(other)=>{
+                    let mut second=move other;
+                    for i in 0..size {
+                        second[i]=first[i]^(wrapping_add(i as u32,seed^90) as u8);
+                    }
+                    let mut total:u64=0;
+                    for i in 0..size {total=total+(second[i] as u64);}
+                    drop(move second);drop(move first);
+                    return total;
+                },
+            }
+        },
+    }
+}

@@ -263,6 +263,7 @@ cleanup; Linux sealing failure refuses execution. See
 | Semantic trap | Preserve the stopped VM ledger; native traps abort | Destructors running, recovery, or a cleanup completion theorem |
 | Evaluator budget stop | Distinguish resource/step/call-depth stop from a semantic trap and retain the stopped ledger | Source cancellation semantics or native enforcement of interpreter budgets |
 | Cooperative cancellation | Execute checked task/queue transitions and initialized-field cleanup at supported boundaries | Arbitrary asynchronous cancellation, preemption or signal-safe unwinding |
+| Process crash / forced termination | Reject an incomplete native observation; retain host cleanup ownership until termination and reap are confirmed; never reclassify a failed execution as a successful return | Guest destructor completion, a recoverable guest ledger, persistent-state consistency, restart safety or crash recovery |
 | Recursive call / chain | Maintain the admitted Core ownership rules; finite analyses may refuse the program | Universal termination, arbitrary chain bounds, or native stack-byte bounds |
 | Concurrent execution | Host adapters lock dispatch/state and require safe points and no conflicting state loans | A general language memory model for threads, shared mutable memory, atomics or MMIO |
 
@@ -271,6 +272,15 @@ program proving that its owners were cleanly released. Likewise, a VM returning
 a stopped resource ledger must not report those resources as normal-exit
 cleanup. The existing rejection and differential tests explicitly exercise
 these distinctions.
+
+These outcomes compose only through their declared interfaces. Normal and
+error-as-value returns transfer the checked resources. A caller cannot treat a
+budget stop as a fallible allocation result, a cancellation request as completed
+cleanup, or a reaped process as a successfully unwound guest. After an incomplete
+native observation the host's cleanup ledger describes process ownership, not
+the guest's resource ledger. No automatic retry may assume a partially executed
+operation had no effects; crash durability and replay require a separately
+qualified application protocol.
 
 ## Static resource bounds and runtime admission
 

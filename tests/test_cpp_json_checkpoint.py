@@ -217,14 +217,40 @@ class JsonCheckpointProtocolTests(unittest.TestCase):
     @unittest.skipUnless(sys.platform == "linux", "qualified Linux process owner required")
     def test_actual_complete_frame_followed_by_nonzero_exit_cannot_commit(self):
         owner = checkpoint.JsonCheckpoint(fake_image(), [1, 2, 3])
+        frames = []
         def exit_after_frame(argv, **options):
             raw = response(options).raw_stdout
-            script = "import os,resource,sys;resource.setrlimit(resource.RLIMIT_CORE,(0,0));sys.stdout.buffer.write(" + repr(raw) + ");sys.stdout.flush();os.abort()"
+            frames.append(raw)
+            self.assertEqual(options["timeout"], 3)
+            # Linux piped core collectors ignore RLIMIT_CORE. Disable dumping
+            # in this controlled child before publishing its frame, while
+            # retaining a real SIGABRT and the unchanged supervisor deadline.
+            script = (
+                "import ctypes,os,resource,sys\n"
+                "prctl=ctypes.CDLL(None,use_errno=True).prctl\n"
+                "prctl.argtypes=[ctypes.c_int]+[ctypes.c_ulong]*4\n"
+                "prctl.restype=ctypes.c_int\n"
+                "if prctl(4,0,0,0,0)!=0: raise OSError(ctypes.get_errno(),'PR_SET_DUMPABLE failed')\n"
+                "if prctl(3,0,0,0,0)!=0: raise RuntimeError('PR_GET_DUMPABLE must report zero')\n"
+                "resource.setrlimit(resource.RLIMIT_CORE,(0,0))\n"
+                "sys.stdout.buffer.write(" + repr(raw) + ")\n"
+                "sys.stdout.flush()\n"
+                "os.abort()\n"
+            )
             return run_bounded([sys.executable, "-I", "-c", script], **options)
-        with patch.object(checkpoint, "run_bounded", side_effect=exit_after_frame):
-            observed = owner.execute(owner.prepare(1, 5, revision=0))
+        request = owner.prepare(1, 5, revision=0)
+        with patch.object(checkpoint, "run_bounded", side_effect=exit_after_frame) as launch:
+            observed = owner.execute(request)
+            for action in (lambda: owner.prepare(1, 5, revision=0), lambda: owner.execute(request)):
+                with self.assertRaises(checkpoint.CheckpointRejected):
+                    action()
+            launch.assert_called_once()
         self.assertEqual(observed["returncode"], -6)
-        self.assertGreater(observed["stdout"]["bytes"], 0)
+        self.assertEqual(len(frames), 1)
+        self.assertEqual(observed["stdout"], {"base64": base64.b64encode(frames[0]).decode(),
+                         "bytes": len(frames[0]), "sha256": hashlib.sha256(frames[0]).hexdigest()})
+        self.assertEqual(observed["status"], "process_failed")
+        self.assertTrue(observed["direct_child_reaped"] and observed["poisoned"])
         self.assertTrue(observed["state_preserved"])
         self.assertFalse(observed["committed"])
 

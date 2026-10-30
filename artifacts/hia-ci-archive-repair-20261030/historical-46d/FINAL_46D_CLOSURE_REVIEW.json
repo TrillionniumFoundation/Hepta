@@ -1,0 +1,161 @@
+{
+  "schema": "hepta.final-head.closure-review.v1",
+  "head_sha": "46d88bd18b1b3dadb246e92eb22c49fe44ec2d72",
+  "source_tree": "5d99211867c7b3a091dfc07c44366bbfe2b73cdb",
+  "run_id": 41039944858,
+  "job_id": 124010003014,
+  "url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/41039944858/job/124010003014",
+  "conclusion": "success",
+  "observed_utc": "2026-10-30T10:30:29.965845+00:00",
+  "artifact": {
+    "id": 12969589413,
+    "path": "/workspace/scratch/793cbcdf54ed/ci-triage-20261030/hia-closure-46d88bd.zip",
+    "bytes": 2192133,
+    "sha256": "41dce186f26a985bb428005a528ca03f8b83299993228584aa8741ea2242e2d7",
+    "official_digest_verified": true
+  },
+  "report_hashes": {
+    "UNIT_RESULT.json": "679488a5e2ddc64cc220dfbb250e8618ab479d0bcf011a01ba158f444ce46996",
+    "register-safety/qualification.json": "554db3c0d32bebdbcaf1bf3e061e9e759d85b69023579aab73804c4f2c6f2dc6",
+    "optimization-resource-contract.json": "99e7cc27442ba9f670eb8572fe05b0de21212bc2378fecb9a95bb16594caf70d",
+    "cpp-callback/qualification.json": "9b0928573ee52a2993187c9f63ec0dcc64c9227c64def0e7926586d958374073",
+    "call-expansion/RESULT.json": "3c51bafa6407350967d669d5e9eafb720253783675a3b930a9895cc3a283e2aa"
+  },
+  "bound_source_files_crosschecked_to_current_exact_commit": {
+    "register_safety": 14,
+    "resource_contract": 15
+  },
+  "instruction_catalog_present_in_both_source_bindings": true,
+  "unit_tests": {
+    "status": "passed",
+    "tests_run": 174,
+    "failures": 0,
+    "errors": 0,
+    "skipped": [],
+    "expected_failures": []
+  },
+  "register_safety": {
+    "ok": true,
+    "status": "passed",
+    "theorems": 14,
+    "negative_controls": 3,
+    "vm_cases": 272,
+    "lean_binary_sha256": "92c3d35b5bfaa5e0fea413a775d504cf46cd95e1345df61c2274f76779e7e023",
+    "claims": {
+      "actual_before_after_core_reverified": true,
+      "all_well_formed_selected_register_programs_total": true,
+      "backend_or_machine_code_refinement_proved": false,
+      "exact_register_growth_proved": true,
+      "exporter_or_python_verifier_refinement_proved": false,
+      "generic_dead_literal_removal_preserves_value": true,
+      "resource_lifetimes_or_cancellation_proved": false,
+      "selected_rewrite_all_u32_arguments_proved_in_imported_model": true,
+      "whole_language_soundness_proved": false
+    },
+    "limitations": [
+      "The mathematical machine admits straight-line u32 literals and wrapping add/sub with positional registers.",
+      "The generic proof establishes defined register reads, total execution and exact logical register growth, not heap or process memory bounds.",
+      "The selected actual Core has two u32 parameters, one u32 return and one block; its final unused literal is removed.",
+      "Exported Core mapping and production Python checking are re-executed and byte-bound, but their refinement is not machine-proved.",
+      "LLVM, native machine code, ownership, borrowing, traps, FFI, concurrency and cancellation remain outside these theorems.",
+      "A deleted instruction changes evaluator tick counts; this proof does not preserve budget-stop behavior.",
+      "Lean's pinned kernel, standard-library support and host are trusted; retained JSON is not an attestation of an untrusted producer."
+    ]
+  },
+  "resource_contract": {
+    "ok": true,
+    "exit_cases": 4,
+    "budget_difference_cases": 2,
+    "rejection_cases": 3,
+    "regressions": {
+      "passed": true,
+      "skipped": 0,
+      "tests_run": 13
+    },
+    "claims": {
+      "exact_budget_stop_equivalence": false,
+      "fixed_actual_exit_and_resource_observations_passed": true,
+      "general_cancellation_or_host_failure_cleanup_proved": false,
+      "native_resource_bounds_proved": false,
+      "whole_language_soundness_proved": false
+    }
+  },
+  "cpp_callback": {
+    "ok": true,
+    "source_bindings_unchanged": true,
+    "variants": [
+      {
+        "name": "three_weight",
+        "case_count": 1185
+      },
+      {
+        "name": "five_weight",
+        "case_count": 1185
+      }
+    ],
+    "allocation_high_water_ok": true,
+    "performance_observation_ok": true,
+    "claims": {
+      "all_builds_in_declared_matrix_executed": true,
+      "arbitrary_callback_or_pointer_escape_supported": false,
+      "callback_body_and_failure_paths_translated": true,
+      "closed_synchronous_callback_implementation_migrated": true,
+      "cpp_class_or_mangled_abi_preserved": false,
+      "general_cpp_ownership_supported": false,
+      "original_cpp_objects_in_target": false,
+      "performance_qualified": true,
+      "performance_scope": "generated_success_error_and_cancellation_workloads_only",
+      "scalar_c_abi_preserved": true,
+      "source_equivalence_formally_proved": false
+    }
+  },
+  "call_expansion": {
+    "status": "passed",
+    "sources_unchanged": true,
+    "component_input_unchanged": true,
+    "profiles": [
+      {
+        "name": "loop",
+        "native_observations": 20,
+        "semantic_cases": 10,
+        "vm_failure_injection_cases": 8
+      },
+      {
+        "name": "guarded_loop",
+        "native_observations": 20,
+        "semantic_cases": 10,
+        "vm_failure_injection_cases": 8
+      },
+      {
+        "name": "composite",
+        "native_observations": 10,
+        "semantic_cases": 5,
+        "vm_failure_injection_cases": 8
+      },
+      {
+        "name": "borrowed",
+        "native_observations": 6,
+        "semantic_cases": 3,
+        "vm_failure_injection_cases": 6
+      },
+      {
+        "name": "captured_cpp_component",
+        "native_observations": 1728,
+        "semantic_cases": 864,
+        "vm_failure_injection_cases": 8
+      }
+    ],
+    "native_observations": 1784,
+    "claims": {
+      "backend_refinement_proved": false,
+      "performance_qualified": false,
+      "safety_theorem": false
+    }
+  },
+  "optional_native_ndu": {
+    "requested": false,
+    "job_id": 124013867307,
+    "conclusion": "skipped",
+    "native_qualification_claimed": false
+  }
+}

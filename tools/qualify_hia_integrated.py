@@ -41,6 +41,7 @@ EXPECTED_GATE_NAMES = ("actual_tools_and_linux_seals", "ranking_bridge_identity"
                        "recursive_bridge_identity", "finite_bridge_identity", "stream_bridge_identity",
                        "rust_resource_crate", "full_regression", "merge_and_profile_coverage")
 CRITICAL_MODULES = {
+    "bounded_native_invocation_snapshots": ("test_hia_adaptive_arguments", "test_hia_adaptive_snapshot_native"),
     "wire_rejection": ("test_hia_inmemory_json_key_collisions", "test_hia_inmemory_surrogate_wire",
                        "test_hia_program_tools"),
     "cpp_lexical_ownership": ("test_cpp_scoped_ownership_migration", "test_cpp_composed_migrate",
@@ -157,6 +158,15 @@ CRITICAL_MODULES = {
     "bounded_native_execution_context": ("test_hia_finite_context", "test_clang_capture_environment",
         "test_hia_finite_context_reentrancy", "test_hia_finite_context_map_repeat"),
     "crc_static_control_cost_accounting": ("test_hia_crc_context_study",),
+    "immutable_runtime_invocation": ("test_hia_runtime_argument_snapshot",),
+    "rust_sealed_execution_and_api_parity": ("test_hia_rust_executable_custody",
+        "test_hia_rust_budget_v3", "test_hia_rust_api_v4"),
+    "ranking_shared_budget_and_execution_custody": ("test_hia_ndu_optimizer_budget",
+        "test_hia_ndu_optimizer_transport"),
+    "captured_c_loop_jumps_and_preprocessor_refusal": ("test_c2hepta_preprocessor_guard",
+        "test_hia_c_loop_jumps", "test_hia_c_do_while", "test_hia_c_loop_migration_qualification"),
+    "prepared_narrowed_four_arm_controls": ("test_hia_ndu_narrowed_controls",
+        "test_hia_artifact_narrowing"),
     "independent_rust_structural_bounds": ("test_hia_rust_static_budget",),
     "independent_rust_byte_dag_admission": ("test_hia_rust_byte_dag",),
     "independent_rust_finite_entry_heap": ("test_hia_rust_finite_heap",),

@@ -39,8 +39,10 @@
     "metadata_grants_admission": false
   },
   "boundaries": {
+    "budget": "VM step, requested-live-payload and call-depth limits stop evaluation with a stopped resource ledger; they are not semantic traps, allocator failure results or source cancellation. Native code does not inherit evaluator quotas.",
     "cancel": "Composite tasks and the owned-state queue implement explicit cooperative transitions. A VM budget stop, process signal, or host interruption is not a general source cancellation/unwind operation.",
     "concurrent": "Core excludes arbitrary threads, shared mutable memory, atomics and MMIO. Host dispatcher locks and safe-point checks do not establish a general concurrent-language memory model.",
+    "crash": "An incomplete or forcibly terminated native observation is rejected. The host retains process-cleanup ownership until termination/reap is confirmed, and a later reap cannot turn the failed observation into a successful return. Guest cleanup, guest resource ledgers, persistent-state recovery and replay safety are not established.",
     "error": "Errors represented as values use the same checked normal-return rules. A failed fallible allocation still produces a logical empty owner that must be consumed.",
     "normal": "Local owned resources and loans must be consumed or transferred through a checked signature; explicit v8 returned loans retain parameter origins and suspend callers until children end.",
     "recursive": "Core recursive calls and finite owned chains are separate from static finite-budget profiles. Native recursion/stack bounds and universal termination are not established.",
@@ -652,56 +654,6 @@
     },
     {
       "entrypoints": [
-        "hepta.hia_ndu_optimizer.rank_candidates"
-      ],
-      "exclusions": [
-        "solver timeouts are admission limits, not physical worst-case execution-time bounds",
-        "a profitable ranking estimate is not complete native publication or workload profitability evidence",
-        "NDU recommendation does not replace fresh equivalence proof or grant deployment authority"
-      ],
-      "guarantee": "host_enforced_scoped_admission",
-      "id": "shared_optimizer_proof_budget",
-      "regression_selectors": [
-        "tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_each_solver_timeout_uses_remaining_budget_including_paid_search",
-        "tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_all_candidates_share_one_cap_and_losing_search_costs",
-        "tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_native_budget_overrun_does_not_start_a_second_solver",
-        "tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_native_cost_exhausting_possible_gain_does_not_start_a_second_solver",
-        "tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_less_than_one_solver_millisecond_never_rounds_the_budget_up",
-        "tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_final_proof_overshoot_still_preserves_incumbent",
-        "tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_exact_budget_exhaustion_is_not_reported_as_an_overrun",
-        "tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_final_proof_may_finish_exactly_at_cap_if_net_margin_remains",
-        "tests.test_hia_ndu_optimizer_budget.RealProofBudgetTests.test_real_proofs_preserve_all_input_equivalence_and_reject_wrong_candidate",
-        "tests.test_hia_ndu_optimizer_budget.RealProofBudgetTests.test_unsupported_loop_remains_unknown_and_cannot_reach_final_proof",
-        "tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_less_than_one_profitable_millisecond_does_not_start_a_solver",
-        "tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_native_remainder_cannot_be_rounded_up_for_the_final_solver"
-      ],
-      "scope": "Every candidate and the final selected fresh proof consume one shared elapsed-cost cap and possible net saving; each solver receives the remaining integer-millisecond allowance; exhausted native ranking cost refuses before another solver; actual overshoot keeps the incumbent. Budget branch controls use deterministic clocks; separate native ranking regressions execute the pinned original NDU evaluator."
-    },
-    {
-      "entrypoints": [
-        "hepta.hia_x86_search.search_bounded_affine_candidates",
-        "hepta.hia_x86_search.build_candidate"
-      ],
-      "exclusions": [
-        "minimum is within the unchanged closed 146-recipe grammar, not all ISA programs",
-        "model equivalence is not compiler-to-machine-code refinement or a runtime performance proof",
-        "unknown or an empty equivalent set has no minimum certificate; a serialized receipt never authorizes execution"
-      ],
-      "guarantee": "proved_only_within_declared_solver_profile",
-      "id": "bounded_affine_finite_byte_minimum",
-      "regression_selectors": [
-        "tests.test_hia_x86_bounded_affine.TargetDomainTests.test_legacy_grammar_corpus_and_frozen_protocol_are_unchanged",
-        "tests.test_hia_x86_bounded_affine.BoundedAffineProofTests.test_all_ten_targets_have_146_decided_proofs_and_a_nine_byte_minimum",
-        "tests.test_hia_x86_bounded_affine.BoundedAffineProofTests.test_unrepresented_affine_target_has_no_minimum_certificate",
-        "tests.test_hia_x86_bounded_affine.BoundedAffineProofTests.test_one_unknown_keeps_all_outcomes_but_denies_certificate_and_qualification",
-        "tests.test_hia_x86_bounded_affine.BoundedAffineProofTests.test_affine_candidate_for_different_target_fails_fresh_proof_before_compiler",
-        "tests.test_hia_x86_bounded_affine.BoundedAffineNativeTests.test_all_ten_targets_build_through_existing_byte_gate_and_run_native_edges",
-        "tests.test_hia_x86_bounded_affine.BoundedAffineNativeTests.test_actual_llvm_can_use_shorter_code_outside_the_frozen_grammar"
-      ],
-      "scope": "All-input u64 modular a*x+b, a in {-1,0,1,2,3,4}, b in [-16,16]; enumerate every existing recipe and require every proof decided; minimize encoded bytes including ret with stable-ID tie breaking; the distinct ten-target qualifier freezes every selection before native builds/timings and preserves a shorter LLVM result if observed."
-    },
-    {
-      "entrypoints": [
         "hepta.hia_heap_bound.qualify_finite_entry_live_heap_budget_v8"
       ],
       "exclusions": [
@@ -751,13 +703,15 @@
     {
       "entrypoints": [
         "hepta.c_translation.CTranslator.stmt",
-        "hepta.c_definite_assignment.check_definite_assignment"
+        "hepta.c_definite_assignment.check_definite_assignment",
+        "hepta.c_loop_control.lower_loop_jumps"
       ],
       "exclusions": [
-        "goto, labels and switch remain rejected; mutating post-test conditions require a separately qualified sequencing model",
+        "goto, switch, mutating postconditions, unsupported evaluation order and expansions beyond the declared control-lowering budget are rejected",
         "not arbitrary C undefined behavior inference or source refinement proof",
         "real project route changes the explicitly authored checksum integration TU; locked upstream implementations are unchanged",
-        "host evidence is limited to each actual executed profile; no general C++ ABI or engineering-cost claim"
+        "host evidence is limited to each actual executed profile; no general C++ ABI or engineering-cost claim",
+        "goto, labels and switch remain rejected; mutating post-test conditions require a separately qualified sequencing model"
       ],
       "guarantee": "checked_translation_with_foreign_obligations",
       "id": "captured_c_post_test_loops",
@@ -765,14 +719,19 @@
         "tests.test_c_project_do_while.CapturedDoWhileTests.test_initial_false_condition_still_executes_one_body",
         "tests.test_c_project_do_while.CapturedDoWhileTests.test_body_assignment_is_available_to_first_condition_and_exit",
         "tests.test_c_project_do_while.CapturedDoWhileTests.test_missing_first_iteration_assignment_and_initial_read_reject",
-        "tests.test_c_project_do_while.CapturedDoWhileTests.test_unstructured_control_remains_refused",
+        "tests.test_c_project_do_while.CapturedDoWhileTests.test_nested_scopes_and_jump_control_preserve_defined_values",
+        "tests.test_c_project_do_while.CapturedDoWhileTests.test_goto_and_switch_remain_refused",
+        "tests.test_c_project_do_while.CapturedDoWhileTests.test_mutating_condition_remains_refused",
+        "tests.test_c_project_do_while.CapturedDoWhileTests.test_unbraced_body_uses_the_same_posttest_semantics",
+        "tests.test_c_project_do_while.CapturedDoWhileTests.test_side_effectful_condition_call_is_not_silently_admitted",
+        "tests.test_c_project_do_while.CapturedDoWhileTests.test_budget_stop_retains_actual_live_caller_resource_ledger",
         "tests.test_c_project_do_while.CapturedDoWhileTests.test_first_body_trap_is_not_hidden_by_false_condition",
         "tests.test_c_project_do_while.CapturedDoWhileTests.test_cursor_post_test_never_skips_invalid_empty_range",
         "tests.test_c_project_do_while.CapturedDoWhileApplicationTests.test_existing_upstream_queue_and_compare_application_post_test_maintenance",
-        "tests.test_c_project_do_while.CapturedDoWhileTests.test_structured_scopes_and_single_statement_body_use_shared_lowerer",
-        "tests.test_c_project_do_while.CapturedDoWhileTests.test_mutating_condition_remains_refused"
+        "tests.test_c_project_do_while.CapturedDoWhileTests.test_unstructured_control_remains_refused",
+        "tests.test_c_project_do_while.CapturedDoWhileTests.test_structured_scopes_and_single_statement_body_use_shared_lowerer"
       ],
-      "scope": "Captured C scalar/record-view projects with pure post-test conditions; one shared loop-control lowerer handles braced or single-statement bodies, local declarations, structured nested loops, nearest-loop break/continue and returns. The body executes before the first condition; normal, break and continue initialization exits remain separate."
+      "scope": "Captured C scalar/record-view projects with structured braced or unbraced do-while bodies, lexical declarations, nested loops, return and nearest-loop break/continue, and admitted pure conditions. The first body executes before its condition, break/return bypass that condition, continue reaches it, and definite assignment is checked separately across normal/break/continue exits."
     },
     {
       "entrypoints": [
@@ -939,6 +898,92 @@
         "tests.test_hia_crc_context_study.CRCContextStudyTests.test_dirty_source_refuses_before_capture_compiler_or_native_measurement"
       ],
       "scope": "Publicly preregistered 210-observation generated-application CRC study with fresh-child, three static coalesced controls and fixed polynomial dispatch, complete child lifecycles, separate cold setup/evaluation ledgers and no projected-profit admission."
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_program.execute_program"
+      ],
+      "exclusions": [
+        "not arbitrary-object thread safety",
+        "does not establish an end-to-end compiler proof"
+      ],
+      "guarantee": "host_enforced_scoped_admission",
+      "id": "immutable_scalar_invocation",
+      "regression_selectors": [
+        "tests.test_hia_runtime_argument_snapshot.ArgumentSnapshotTests.test_out_of_range_replacement_cannot_escape_typed_return",
+        "tests.test_hia_runtime_argument_snapshot.ArgumentSnapshotTests.test_mutation_cannot_turn_heap_stop_into_a_success",
+        "tests.test_hia_runtime_argument_snapshot.ArgumentSnapshotTests.test_mutation_cannot_hide_the_admitted_allocator_failure"
+      ],
+      "scope": "An exact list or tuple is copied once before scalar validation; the same immutable argument snapshot is used by the Python Core evaluator."
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_native_differential.qualify_checked_hia_source",
+        "hepta.hia_native_differential.retry_pending_native_cleanup"
+      ],
+      "exclusions": [
+        "no guest destructor or guest-ledger recovery claim",
+        "no persistent-state crash consistency or automatic replay",
+        "finite observer controls are not a whole-device fault qualification"
+      ],
+      "guarantee": "host_enforced_scoped_admission",
+      "id": "incomplete_native_observation",
+      "regression_selectors": [
+        "tests.test_hia_native_cleanup.NativeCleanupOwnershipTests.test_real_native_timeout_is_killed_reaped_and_never_counted_as_return",
+        "tests.test_hia_native_cleanup.NativeCleanupOwnershipTests.test_timeout_with_withheld_reap_stays_failed_after_recovery",
+        "tests.test_hia_native_cleanup.NativeCleanupOwnershipTests.test_discarded_exception_cannot_discard_owner_or_admit_another_child"
+      ],
+      "scope": "Actual Linux native observer timeout/SIGKILL, retained cleanup ownership and refusal to reclassify a failed observation after a later reap."
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_ndu_optimizer.rank_candidates"
+      ],
+      "exclusions": [
+        "solver timeouts are admission limits, not physical worst-case execution-time bounds",
+        "a profitable ranking estimate is not complete native publication or workload profitability evidence",
+        "NDU recommendation does not replace fresh equivalence proof or grant deployment authority"
+      ],
+      "guarantee": "host_enforced_scoped_admission",
+      "id": "shared_optimizer_proof_budget",
+      "regression_selectors": [
+        "tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_each_solver_timeout_uses_remaining_budget_including_paid_search",
+        "tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_all_candidates_share_one_cap_and_losing_search_costs",
+        "tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_native_budget_overrun_does_not_start_a_second_solver",
+        "tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_native_cost_exhausting_possible_gain_does_not_start_a_second_solver",
+        "tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_less_than_one_solver_millisecond_never_rounds_the_budget_up",
+        "tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_final_proof_overshoot_still_preserves_incumbent",
+        "tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_exact_budget_exhaustion_is_not_reported_as_an_overrun",
+        "tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_final_proof_may_finish_exactly_at_cap_if_net_margin_remains",
+        "tests.test_hia_ndu_optimizer_budget.RealProofBudgetTests.test_real_proofs_preserve_all_input_equivalence_and_reject_wrong_candidate",
+        "tests.test_hia_ndu_optimizer_budget.RealProofBudgetTests.test_unsupported_loop_remains_unknown_and_cannot_reach_final_proof",
+        "tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_less_than_one_profitable_millisecond_does_not_start_a_solver",
+        "tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_native_remainder_cannot_be_rounded_up_for_the_final_solver"
+      ],
+      "scope": "Every candidate and the final selected fresh proof consume one shared elapsed-cost cap and possible net saving; each solver receives the remaining integer-millisecond allowance; exhausted native ranking cost refuses before another solver; actual overshoot keeps the incumbent. Budget branch controls use deterministic clocks; separate native ranking regressions execute the pinned original NDU evaluator."
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_x86_search.search_bounded_affine_candidates",
+        "hepta.hia_x86_search.build_candidate"
+      ],
+      "exclusions": [
+        "minimum is within the unchanged closed 146-recipe grammar, not all ISA programs",
+        "model equivalence is not compiler-to-machine-code refinement or a runtime performance proof",
+        "unknown or an empty equivalent set has no minimum certificate; a serialized receipt never authorizes execution"
+      ],
+      "guarantee": "proved_only_within_declared_solver_profile",
+      "id": "bounded_affine_finite_byte_minimum",
+      "regression_selectors": [
+        "tests.test_hia_x86_bounded_affine.TargetDomainTests.test_legacy_grammar_corpus_and_frozen_protocol_are_unchanged",
+        "tests.test_hia_x86_bounded_affine.BoundedAffineProofTests.test_all_ten_targets_have_146_decided_proofs_and_a_nine_byte_minimum",
+        "tests.test_hia_x86_bounded_affine.BoundedAffineProofTests.test_unrepresented_affine_target_has_no_minimum_certificate",
+        "tests.test_hia_x86_bounded_affine.BoundedAffineProofTests.test_one_unknown_keeps_all_outcomes_but_denies_certificate_and_qualification",
+        "tests.test_hia_x86_bounded_affine.BoundedAffineProofTests.test_affine_candidate_for_different_target_fails_fresh_proof_before_compiler",
+        "tests.test_hia_x86_bounded_affine.BoundedAffineNativeTests.test_all_ten_targets_build_through_existing_byte_gate_and_run_native_edges",
+        "tests.test_hia_x86_bounded_affine.BoundedAffineNativeTests.test_actual_llvm_can_use_shorter_code_outside_the_frozen_grammar"
+      ],
+      "scope": "All-input u64 modular a*x+b, a in {-1,0,1,2,3,4}, b in [-16,16]; enumerate every existing recipe and require every proof decided; minimize encoded bytes including ret with stable-ID tie breaking; the distinct ten-target qualifier freezes every selection before native builds/timings and preserves a shorter LLVM result if observed."
     },
     {
       "entrypoints": [
@@ -1401,6 +1446,37 @@
         "tests.test_hia_finite_context_timed_fold.TimedXorFoldTests.test_same_xor_recurrence_without_repetition_or_byte_budget_extension"
       ],
       "scope": "Explicit allow_timed_xor_fold=True selects hepta.hia.finite-u32-timed-xor-fold-context.v1 and timed_xor_fold wire mode 3. It uses the same byte XOR recurrence, single repetition, finite calls, sealed images, one-use trace, reference validation and child cleanup as the existing context. Actual CLOCK_MONOTONIC observations surround the C fold loop, including loads, indirect calls, checksum and loop overhead. The event must contain a positive exact integer timer and the complete matching result; missing/unknown/malformed timing or failed prefix cannot qualify. All eight CRC study arms and common reference priming select the same new mode."
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_adaptive.AdaptiveRuntime._arguments",
+        "hepta.hia_stateful.OwnedAdaptiveRuntime.__init__",
+        "hepta.hia_stateful.OwnedAdaptiveRuntime.submit_queue"
+      ],
+      "exclusions": [
+        "rows are captured sequentially; no atomic multi-row snapshot or general shared-memory theorem",
+        "the scalar and owned adapters still reject unmodeled foreign effects and resource-bearing Core interfaces",
+        "line-trace scheduling controls producer interleavings in regression tests; only the explicit native suite executes compiled artifacts"
+      ],
+      "guarantee": "checked_on_every_admission",
+      "id": "bounded_native_invocation_snapshots",
+      "regression_selectors": [
+        "tests.test_hia_adaptive_arguments.AdaptiveArgumentSnapshotTests.test_post_check_scalar_mutation_cannot_reach_dispatch",
+        "tests.test_hia_adaptive_arguments.AdaptiveArgumentSnapshotTests.test_post_check_row_growth_cannot_change_arity",
+        "tests.test_hia_adaptive_arguments.AdaptiveArgumentSnapshotTests.test_post_check_mutation_cannot_enter_either_measurement_arm",
+        "tests.test_hia_adaptive_arguments.AdaptiveArgumentSnapshotTests.test_batch_growth_after_capture_does_not_add_dispatches",
+        "tests.test_hia_adaptive_arguments.AdaptiveArgumentSnapshotTests.test_growth_before_batch_capture_rejects_before_dispatch",
+        "tests.test_hia_adaptive_arguments.AdaptiveArgumentSnapshotTests.test_row_growth_before_capture_is_rejected",
+        "tests.test_hia_adaptive_arguments.AdaptiveArgumentSnapshotTests.test_invalid_inputs_never_reach_dispatch",
+        "tests.test_hia_adaptive_arguments.AdaptiveArgumentSnapshotTests.test_captured_rows_are_detached_and_exact_boundaries_survive",
+        "tests.test_hia_adaptive_snapshot_native.NativeInputSnapshotTests.test_checked_argument_snapshot_reaches_actual_native_code",
+        "tests.test_hia_adaptive_snapshot_native.NativeInputSnapshotTests.test_initial_owner_growth_is_rejected_before_any_build",
+        "tests.test_hia_adaptive_snapshot_native.NativeInputSnapshotTests.test_initial_owner_uses_captured_cells_after_producer_mutation",
+        "tests.test_hia_adaptive_snapshot_native.NativeInputSnapshotTests.test_growth_after_queue_capture_cannot_add_native_work",
+        "tests.test_hia_adaptive_snapshot_native.NativeInputSnapshotTests.test_growth_before_queue_capture_cannot_be_admitted",
+        "tests.test_hia_adaptive_snapshot_native.NativeInputSnapshotTests.test_hidden_effectful_helper_cannot_enter_an_owned_native_version"
+      ],
+      "scope": "Exact built-in scalar batches, initial owner cells and submitted work-item inventories are captured with finite sentinel slices before validation. Execution uses the validated snapshots; caller growth cannot exceed batch, arity, 65536-cell or 128-item admission bounds. Real native tests retain original function pointers, owner allocation/free ledgers and committed queue progress."
     }
   ],
   "judgment": {
@@ -1525,6 +1601,1107 @@
         "schema": "hepta.hia.composite.v4"
       }
     ],
+    "instruction_catalog": {
+      "admission_authority": "hepta.hia_program.verify_program",
+      "backend_scope": "VM and direct LLVM have separate supported-target/entry-ABI checks; catalog inclusion grants no native entry ABI",
+      "catalog_sha256": "dd6fc836b5e71db165dcf81bfcdd233fda25dc6888f720dcc472dcdcf986ee54",
+      "conditional_effects": {
+        "call": "all callee effects",
+        "int.cast": "checked mode requires trap"
+      },
+      "core_schema": "hepta.hia.program.v8",
+      "function_contract": {
+        "return_loans": "explicit formal-name/null per return; parameter origin checked"
+      },
+      "generated_checker_scope": "opcode/version, operand/result signatures, attributes, effects, named resource guards",
+      "instructions": [
+        {
+          "attributes": [
+            "value"
+          ],
+          "effects": [],
+          "guards": [],
+          "name": "const",
+          "operands": [],
+          "resource_transition": "none",
+          "results": [
+            "declared:scalar"
+          ],
+          "semantic_rule": "exact_scalar_literal",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "trap"
+          ],
+          "guards": [],
+          "name": "int.add.checked",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "=0"
+          ],
+          "semantic_rule": "integer_add_checked",
+          "since": 1,
+          "traps": [
+            "overflow"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "int.add.wrap",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "=0"
+          ],
+          "semantic_rule": "integer_add_wrap",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "trap"
+          ],
+          "guards": [],
+          "name": "int.sub.checked",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "=0"
+          ],
+          "semantic_rule": "integer_sub_checked",
+          "since": 1,
+          "traps": [
+            "overflow"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "int.sub.wrap",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "=0"
+          ],
+          "semantic_rule": "integer_sub_wrap",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "trap"
+          ],
+          "guards": [],
+          "name": "int.mul.checked",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "=0"
+          ],
+          "semantic_rule": "integer_mul_checked",
+          "since": 1,
+          "traps": [
+            "overflow"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "int.mul.wrap",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "=0"
+          ],
+          "semantic_rule": "integer_mul_wrap",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "trap"
+          ],
+          "guards": [],
+          "name": "int.div.checked",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "=0"
+          ],
+          "semantic_rule": "integer_div_checked",
+          "since": 1,
+          "traps": [
+            "division_by_zero",
+            "overflow"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "trap"
+          ],
+          "guards": [],
+          "name": "int.rem.checked",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "=0"
+          ],
+          "semantic_rule": "integer_rem_checked",
+          "since": 1,
+          "traps": [
+            "division_by_zero",
+            "overflow"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "trap"
+          ],
+          "guards": [],
+          "name": "int.shl.checked",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "=0"
+          ],
+          "semantic_rule": "integer_shl_checked",
+          "since": 1,
+          "traps": [
+            "overflow"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "trap"
+          ],
+          "guards": [],
+          "name": "int.shr.checked",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "=0"
+          ],
+          "semantic_rule": "integer_shr_checked",
+          "since": 1,
+          "traps": [
+            "overflow"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "bit.and",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "=0"
+          ],
+          "semantic_rule": "bit_and",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "bit.or",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "=0"
+          ],
+          "semantic_rule": "bit_or",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "bit.xor",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "=0"
+          ],
+          "semantic_rule": "bit_xor",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "bit.not",
+          "operands": [
+            "integer"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "=0"
+          ],
+          "semantic_rule": "bit_not",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "trap"
+          ],
+          "guards": [],
+          "name": "int.neg.checked",
+          "operands": [
+            "integer"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "=0"
+          ],
+          "semantic_rule": "integer_neg_checked",
+          "since": 1,
+          "traps": [
+            "overflow"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "compare.eq",
+          "operands": [
+            "equality",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "bool"
+          ],
+          "semantic_rule": "compare_eq",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "compare.ne",
+          "operands": [
+            "equality",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "bool"
+          ],
+          "semantic_rule": "compare_ne",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "compare.lt",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "bool"
+          ],
+          "semantic_rule": "compare_lt",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "compare.le",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "bool"
+          ],
+          "semantic_rule": "compare_le",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "compare.gt",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "bool"
+          ],
+          "semantic_rule": "compare_gt",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "compare.ge",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "bool"
+          ],
+          "semantic_rule": "compare_ge",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "bool.not",
+          "operands": [
+            "bool"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "bool"
+          ],
+          "semantic_rule": "bool_not",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "bool.and",
+          "operands": [
+            "bool",
+            "bool"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "bool"
+          ],
+          "semantic_rule": "bool_and",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "bool.or",
+          "operands": [
+            "bool",
+            "bool"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "bool"
+          ],
+          "semantic_rule": "bool_or",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [
+            "mode"
+          ],
+          "effects": [],
+          "guards": [],
+          "name": "int.cast",
+          "operands": [
+            "integer"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "declared:integer"
+          ],
+          "semantic_rule": "integer_cast_mode",
+          "since": 1,
+          "traps": [
+            "overflow_when_checked"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "select",
+          "operands": [
+            "bool",
+            "scalar",
+            "=1"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "=1"
+          ],
+          "semantic_rule": "scalar_select",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "alloc",
+            "trap"
+          ],
+          "guards": [],
+          "name": "buffer.new",
+          "operands": [
+            "usize"
+          ],
+          "resource_transition": "allocate",
+          "results": [
+            "buffer"
+          ],
+          "semantic_rule": "zeroed_byte_allocation",
+          "since": 1,
+          "traps": [
+            "allocation"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "alloc"
+          ],
+          "guards": [],
+          "name": "buffer.try_new",
+          "operands": [
+            "usize"
+          ],
+          "resource_transition": "allocate",
+          "results": [
+            "buffer",
+            "bool"
+          ],
+          "semantic_rule": "zeroed_byte_allocation_or_empty_owner_false",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "buffer.len",
+          "operands": [
+            "bytes"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "usize"
+          ],
+          "semantic_rule": "byte_extent",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "chain.empty",
+          "operands": [],
+          "resource_transition": "empty_chain",
+          "results": [
+            "chain"
+          ],
+          "semantic_rule": "empty_chain",
+          "since": 7,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "alloc"
+          ],
+          "guards": [
+            "free:0",
+            "free:1"
+          ],
+          "name": "chain.try_push",
+          "operands": [
+            "chain",
+            "buffer"
+          ],
+          "resource_transition": "chain_transfer",
+          "results": [
+            "chain",
+            "buffer",
+            "bool"
+          ],
+          "semantic_rule": "push_or_return_owned_inputs",
+          "since": 7,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "alloc"
+          ],
+          "guards": [
+            "free:0"
+          ],
+          "name": "chain.pop",
+          "operands": [
+            "chain"
+          ],
+          "resource_transition": "chain_transfer",
+          "results": [
+            "chain",
+            "buffer",
+            "bool"
+          ],
+          "semantic_rule": "pop_or_empty_payload_false",
+          "since": 7,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "chain.is_empty",
+          "operands": [
+            "chain"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "bool"
+          ],
+          "semantic_rule": "chain_empty_test",
+          "since": 7,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "read",
+            "trap"
+          ],
+          "guards": [],
+          "name": "chain.head_read",
+          "operands": [
+            "chain"
+          ],
+          "resource_transition": "chain_borrow",
+          "results": [
+            "readbuf"
+          ],
+          "semantic_rule": "shared_head_loan",
+          "since": 7,
+          "traps": [
+            "bounds"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "read",
+            "trap"
+          ],
+          "guards": [],
+          "name": "chain.head_mut",
+          "operands": [
+            "chain"
+          ],
+          "resource_transition": "chain_borrow",
+          "results": [
+            "mutbuf"
+          ],
+          "semantic_rule": "exclusive_head_loan",
+          "since": 7,
+          "traps": [
+            "bounds"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "borrow.read",
+          "operands": [
+            "bytes"
+          ],
+          "resource_transition": "borrow",
+          "results": [
+            "readbuf"
+          ],
+          "semantic_rule": "shared_loan",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "borrow.mut",
+          "operands": [
+            "mutable_source"
+          ],
+          "resource_transition": "borrow",
+          "results": [
+            "mutbuf"
+          ],
+          "semantic_rule": "exclusive_loan",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [
+            "end_local_loan:0"
+          ],
+          "name": "loan.end",
+          "operands": [
+            "view"
+          ],
+          "resource_transition": "end_loan",
+          "results": [],
+          "semantic_rule": "end_local_childless_loan",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [
+            "free:0"
+          ],
+          "name": "owner.move",
+          "operands": [
+            "owner"
+          ],
+          "resource_transition": "move_owner",
+          "results": [
+            "=0"
+          ],
+          "semantic_rule": "move_unborrowed_owner",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "alloc"
+          ],
+          "guards": [
+            "free:0"
+          ],
+          "name": "owner.drop",
+          "operands": [
+            "owner"
+          ],
+          "resource_transition": "drop_owner",
+          "results": [],
+          "semantic_rule": "release_unborrowed_owner",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "read",
+            "trap"
+          ],
+          "guards": [
+            "read:0"
+          ],
+          "name": "buffer.load",
+          "operands": [
+            "view",
+            "usize"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "u8"
+          ],
+          "semantic_rule": "checked_byte_load",
+          "since": 1,
+          "traps": [
+            "bounds"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "write",
+            "trap"
+          ],
+          "guards": [
+            "write:0"
+          ],
+          "name": "buffer.store",
+          "operands": [
+            "mutbuf",
+            "usize",
+            "u8"
+          ],
+          "resource_transition": "none",
+          "results": [],
+          "semantic_rule": "checked_byte_store",
+          "since": 1,
+          "traps": [
+            "bounds"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "write"
+          ],
+          "guards": [
+            "write:0"
+          ],
+          "name": "buffer.fill",
+          "operands": [
+            "mutbuf",
+            "u8"
+          ],
+          "resource_transition": "none",
+          "results": [],
+          "semantic_rule": "fill_entire_view",
+          "since": 2,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "read",
+            "write",
+            "trap"
+          ],
+          "guards": [
+            "write:0",
+            "read:1",
+            "distinct:0:1"
+          ],
+          "name": "buffer.copy",
+          "operands": [
+            "mutbuf",
+            "readbuf",
+            "usize"
+          ],
+          "resource_transition": "none",
+          "results": [],
+          "semantic_rule": "checked_disjoint_copy",
+          "since": 2,
+          "traps": [
+            "bounds"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "read",
+            "write",
+            "trap"
+          ],
+          "guards": [
+            "write:0"
+          ],
+          "name": "buffer.move_within",
+          "operands": [
+            "mutbuf",
+            "usize",
+            "usize",
+            "usize"
+          ],
+          "resource_transition": "none",
+          "results": [],
+          "semantic_rule": "checked_overlap_memmove",
+          "since": 3,
+          "traps": [
+            "bounds"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "read",
+            "write",
+            "trap"
+          ],
+          "guards": [
+            "write:0"
+          ],
+          "name": "buffer.swap",
+          "operands": [
+            "mutbuf",
+            "usize",
+            "usize"
+          ],
+          "resource_transition": "none",
+          "results": [],
+          "semantic_rule": "check_both_indices_before_swap",
+          "since": 4,
+          "traps": [
+            "bounds"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "read",
+            "write",
+            "trap"
+          ],
+          "guards": [
+            "write:0",
+            "read:1",
+            "distinct:0:1"
+          ],
+          "name": "buffer.copy_range",
+          "operands": [
+            "mutbuf",
+            "readbuf",
+            "usize",
+            "usize",
+            "usize"
+          ],
+          "resource_transition": "none",
+          "results": [],
+          "semantic_rule": "checked_disjoint_offset_copy",
+          "since": 5,
+          "traps": [
+            "bounds"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "write",
+            "trap"
+          ],
+          "guards": [
+            "write:0"
+          ],
+          "name": "buffer.fill_range",
+          "operands": [
+            "mutbuf",
+            "usize",
+            "usize",
+            "u8"
+          ],
+          "resource_transition": "none",
+          "results": [],
+          "semantic_rule": "check_complete_range_before_fill",
+          "since": 6,
+          "traps": [
+            "bounds"
+          ]
+        },
+        {
+          "attributes": [
+            "function"
+          ],
+          "effects": [],
+          "guards": [
+            "callee_interface"
+          ],
+          "name": "call",
+          "operands": null,
+          "resource_transition": "call",
+          "results": null,
+          "semantic_rule": "checked_callee_and_parameter_loan_contract",
+          "since": 1,
+          "traps": []
+        }
+      ],
+      "not_generated_or_proved": [
+        "CFG ownership algorithm",
+        "interpreter",
+        "LLVM lowering",
+        "machine code"
+      ],
+      "profile": "closed-ssa-parameter-loan-returns-64-v8",
+      "resource_checks": "all guards, transitions, exact CFG joins and return cleanup remain mandatory",
+      "safety_certificate": false,
+      "schema": "hepta.hia.opcode-catalog.v1",
+      "signature_rules": {
+        "=N": "same type as zero-based operand N",
+        "declared:T": "explicit result type in group T",
+        "null": "arity/types/effects determined by verified callee interface"
+      },
+      "terminators": [
+        {
+          "fields": [
+            "op",
+            "values"
+          ],
+          "name": "ret"
+        },
+        {
+          "fields": [
+            "op",
+            "target",
+            "args"
+          ],
+          "name": "jump"
+        },
+        {
+          "fields": [
+            "op",
+            "cond",
+            "then",
+            "else"
+          ],
+          "name": "branch"
+        },
+        {
+          "fields": [
+            "op",
+            "code"
+          ],
+          "name": "trap"
+        }
+      ],
+      "type_groups": {
+        "bytes": [
+          "buffer",
+          "mutbuf",
+          "readbuf"
+        ],
+        "equality": [
+          "bool",
+          "i16",
+          "i32",
+          "i64",
+          "i8",
+          "isize",
+          "u16",
+          "u32",
+          "u64",
+          "u8",
+          "usize"
+        ],
+        "integer": [
+          "i16",
+          "i32",
+          "i64",
+          "i8",
+          "isize",
+          "u16",
+          "u32",
+          "u64",
+          "u8",
+          "usize"
+        ],
+        "mutable_source": [
+          "buffer",
+          "mutbuf"
+        ],
+        "owner": [
+          "buffer",
+          "chain"
+        ],
+        "scalar": [
+          "bool",
+          "i16",
+          "i32",
+          "i64",
+          "i8",
+          "isize",
+          "u16",
+          "u32",
+          "u64",
+          "u8",
+          "unit",
+          "usize"
+        ],
+        "view": [
+          "mutbuf",
+          "readbuf"
+        ]
+      },
+      "types": [
+        "bool",
+        "buffer",
+        "chain",
+        "i16",
+        "i32",
+        "i64",
+        "i8",
+        "isize",
+        "mutbuf",
+        "readbuf",
+        "u16",
+        "u32",
+        "u64",
+        "u8",
+        "unit",
+        "usize"
+      ],
+      "word_bits": 64
+    },
     "latest_core_schema": "hepta.hia.program.v8",
     "legacy_nominal": {
       "explicit_adapter": "import_legacy_composite_v2",

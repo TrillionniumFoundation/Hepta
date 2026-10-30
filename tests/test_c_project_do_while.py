@@ -219,6 +219,41 @@ class CapturedDoWhileTests(unittest.TestCase):
         ledger = caught.exception.report["resources"]
         self.assertEqual((ledger["live_owners"], ledger["frees"]), (1, 0))
 
+    def test_nested_scopes_and_jump_control_preserve_defined_values(self):
+        bodies = (
+            ("unsigned x=a;a=x+1;", (1, 3)),
+            ("{unsigned a=1;a++;}", (0, 2)),
+            ("do{a++;}while(a<n);", (3, 3)),
+            ("for(unsigned x=0;x<n;x++){a++;}", (3, 5)),
+            ("if(a)break;a++;", (1, 2)),
+            ("if(a)continue;a++;", (1, 2)),
+            ("if(a)return a;a++;", (1, 2)),
+        )
+        for body, expected in bodies:
+            with self.subTest(body=body):
+                source = f'unsigned probe(unsigned a,unsigned n){{do{{{body}}}while(0);return a;}}'
+                report, work, _ = self.capture(source)
+                self.assertTrue(report["ok"], report)
+                core = self.core(work)
+                for a, value in zip((0, 2), expected):
+                    self.assertEqual(execute_program(core, "probe", [a, 3])["result"], value)
+
+
+    def test_goto_and_switch_remain_refused(self):
+        for body in ("goto end;", "switch(a){case 0:a++;}"):
+            with self.subTest(body=body):
+                source = f'unsigned probe(unsigned a,unsigned n){{do{{{body}}}while(a<n);end:return a;}}'
+                report, work, _ = self.capture(source)
+                self.assertFalse(report["ok"], report)
+                self.assertIn("E_C_STATEMENT", {row["code"] for row in report["diagnostics"]}, report)
+                self.assertFalse((work / "translated").exists())
+
+
+    def test_unbraced_body_uses_the_same_posttest_semantics(self):
+        self.differential('unsigned probe(unsigned a,unsigned n){do a++;while(a<n);return a;}',
+                          [(0, 0, 1), (0, 3, 3), (7, 3, 8)])
+
+
 
 class CapturedDoWhileApplicationTests(unittest.TestCase):
     def test_existing_upstream_queue_and_compare_application_post_test_maintenance(self):

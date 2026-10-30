@@ -30,6 +30,7 @@ from hepta.hia_guarded_optimization import (build_guarded_native,
     guarded_checker_identity, propose_guarded_reduction, verify_guarded_optimization)
 from hepta.hia_ndu import FINITE_RUSTC_VERSION, FINITE_SOURCE_PIN, NduBridge, finite_plan_request
 from hepta.hia_ndu_cache import NduDecisionCache
+from hepta.hia_planning import compact_finite_plan_request, exact_finite_plan
 from hepta.hia_narrowing import (propose_guarded_narrowing, build_guarded_narrowed_native,
                                   chain_checker_identity)
 from hepta.hia_optimization import (DEFAULT_POLICY, OptimizationRejected,
@@ -381,8 +382,9 @@ def run_episode(arm, group, base, bank, root, driver, bridge, clang, protocol, d
                         remaining_ns=remaining, decision_ns=decision_costs.get(arm, 0),
                         protocol=protocol, snapshot=snapshot, generation=batch + 1)
                     response, reuse_receipt = None, None
-                    if arm == "ndu":
-                        bundle = graph_bundle(bank, **inputs)
+                    if arm in {"ndu", "ndu-compact"}:
+                        bundle = (graph_bundle(bank, **inputs) if arm == "ndu" else
+                                  compact_finite_plan_request(**graph_fields(bank, **inputs)))
                         previous_timeout = bridge.timeout
                         try:
                             bridge.timeout = min(previous_timeout, budget.remaining_ns() / 1e9)
@@ -390,6 +392,11 @@ def run_episode(arm, group, base, bank, root, driver, bridge, clang, protocol, d
                                 bundle, bridge, decision_cache=decision_cache)
                         finally:
                             bridge.timeout = previous_timeout
+                    elif arm == "q32-dp":
+                        bundle = exact_finite_plan(**graph_fields(bank, **inputs))
+                        # Same admission/tie policy, but no native receipt is
+                        # manufactured for the Python exact-profile control.
+                        selected = selected_native_plan(bundle, bundle["advice"])
                     elif arm in {"light", "fixed-best-plan"}:
                         bundle = light_bundle(bank, **inputs)
                         selected = arithmetic_choice(bundle, remaining_ns=remaining,
@@ -499,6 +506,12 @@ def qualify(output, *, identity, clang, protocol=None, decision_cache_entries=0)
 
 def _qualify(output, *, identity, clang, protocol, decision_cache_entries, cleanup):
     protocol = deepcopy(PROTOCOL if protocol is None else protocol)
+    arms = tuple(protocol.get("arms", ARMS))
+    if (len(arms) != len(set(arms)) or not set(ARMS) <= set(arms)
+            or not set(arms) <= set(ARMS) | {"ndu-compact", "q32-dp"}):
+        raise ValueError("Arms must preserve the six existing controls; optional arms are ndu-compact and q32-dp")
+    native_arms = tuple(arm for arm in arms if arm in {"ndu", "ndu-compact"})
+    measured_controls = ("light", *( ("q32-dp",) if "q32-dp" in arms else () ), *native_arms)
     transport = protocol.get("native_transport", "oneshot")
     if transport not in {"oneshot", "stream"}:
         raise ValueError("Unknown native NDU transport")
@@ -513,7 +526,7 @@ def _qualify(output, *, identity, clang, protocol, decision_cache_entries, clean
     root = Path(output).resolve()
     root.mkdir(parents=True, exist_ok=False)
     repository = Path(__file__).resolve().parents[1]
-    start, shared, controller_setup = time.monotonic_ns(), [], {"light": [], "ndu": []}
+    start, shared, controller_setup = time.monotonic_ns(), [], {arm: [] for arm in measured_controls}
     source_paths = sorted((repository / "hepta").glob("*.py")) + [Path(__file__),
         repository / "tools/qualify_hia_ndu_loop.py", repository / "tools/build_hia_recursive_ndu_bridge.py",
         repository / "tests/test_hia_ndu_graph.py", repository / "experiments/hia_optimizer_eval/kernels.hepta"]
@@ -540,15 +553,17 @@ def _qualify(output, *, identity, clang, protocol, decision_cache_entries, clean
     if transport == "stream":
         from hepta.hia_ndu_session import NduSession
         bridge_factory = NduSession.for_stream_profile
-    bridge = measured("native.admission", controller_setup["ndu"],
-                      lambda: bridge_factory(manifest["binary"], identity))
-    if transport == "stream":
-        cleanup.callback(bridge.close)
-    decision_cache = (measured("native.exact-reuse-admission", controller_setup["ndu"],
-        lambda: NduDecisionCache(bridge, max_entries=decision_cache_entries))
-        if decision_cache_entries else None)
-    if decision_cache is not None:
-        cleanup.callback(decision_cache.close)
+    bridges, decision_caches = {}, {}
+    for arm in native_arms:
+        bridges[arm] = measured("native.admission", controller_setup[arm],
+                                lambda: bridge_factory(manifest["binary"], identity))
+        if transport == "stream":
+            cleanup.callback(bridges[arm].close)
+        decision_caches[arm] = (measured("native.exact-reuse-admission", controller_setup[arm],
+            lambda: NduDecisionCache(bridges[arm], max_entries=decision_cache_entries))
+            if decision_cache_entries else None)
+        if decision_caches[arm] is not None:
+            cleanup.callback(decision_caches[arm].close)
     (root / "driver.c").write_text(DRIVER)
     driver = root / "driver"
     def build_driver():
@@ -564,18 +579,19 @@ def _qualify(output, *, identity, clang, protocol, decision_cache_entries, clean
     faults = measured("failure-probes.all", shared, lambda: failure_probes(base, bank, root, driver, protocol, []))
     save(root / "FAULTS.json", faults)
     decision_costs = {}
-    for arm in ("light", "ndu"):
+    for arm in measured_controls:
         def sample_control():
             inputs = dict(current="base", remaining_sizes=protocol["batch_sizes"],
                 observations=[], remaining_ns=protocol["episode_budget_ns"], decision_ns=0,
                 protocol=protocol, snapshot=digest({"calibration": bank["bank_sha256"], "arm": arm}), generation=1)
-            if arm == "ndu":
-                bundle = graph_bundle(bank, **inputs)
-                # Calibrate an actual native miss. Identical calibration
-                # requests must not make future changed snapshots appear to
-                # have the cheaper cache-hit cost, or require a unique plan
-                # before the decision-cost forecast itself has been measured.
-                return bridge.evaluate(bundle["request"])
+            if arm in native_arms:
+                bundle = (graph_bundle(bank, **inputs) if arm == "ndu" else
+                          compact_finite_plan_request(**graph_fields(bank, **inputs)))
+                # Forecast an actual native miss for EACH representation.
+                # Repeated calibration snapshots do not get cache-hit credit.
+                return bridges[arm].evaluate(bundle["request"])
+            if arm == "q32-dp":
+                return exact_finite_plan(**graph_fields(bank, **inputs))["advice"]
             bundle = light_bundle(bank, **inputs)
             return arithmetic_choice(bundle, remaining_ns=protocol["episode_budget_ns"],
                                      completion_ns=protocol["completion_value_ns"])
@@ -586,14 +602,15 @@ def _qualify(output, *, identity, clang, protocol, decision_cache_entries, clean
     save(root / "CONTROLLER_SETUP.json", {"ledger": controller_setup, "forecast_decision_ns": decision_costs})
     episodes = []
     for group in range(protocol["groups"]):
-        shift = group % len(ARMS)
-        order = ARMS[shift:] + ARMS[:shift]
+        shift = group % len(arms)
+        order = arms[shift:] + arms[:shift]
         if group % 2:
             order = order[::-1]
         for arm in order:
             before = time.monotonic_ns()
-            row = run_episode(arm, group, base, bank, root, driver, bridge, clang, protocol, decision_costs,
-                              decision_cache=decision_cache)
+            row = run_episode(arm, group, base, bank, root, driver,
+                              bridges.get(arm, bridges["ndu"]), clang, protocol, decision_costs,
+                              decision_cache=decision_caches.get(arm))
             outer = time.monotonic_ns() - before
             # Attribute the full per-arm evidence encoding/write to that arm.
             # Native receipts are larger; charging their serialization to shared
@@ -606,42 +623,48 @@ def _qualify(output, *, identity, clang, protocol, decision_cache_entries, clean
             row["net_utility_ns"] = (protocol["completion_value_ns"] if row["completion_admitted"] else 0) - outer
             row["reported_cost_scope"] = "outer observed episode, including its full evidence encoding/write; this aggregate report's final write excluded"
             episodes.append(row)
-    reuse_state = (measured("native.exact-reuse-close", controller_setup["ndu"], decision_cache.close)
-                   if decision_cache else None)
+    reuse_states = {arm: measured("native.exact-reuse-close", controller_setup[arm], cache.close)
+                    for arm, cache in decision_caches.items() if cache is not None}
+    reuse_state = reuse_states.get("ndu")
     if any(sha256((repository / name).read_bytes()).hexdigest() != expected for name, expected in source_identity.items()):
         raise RuntimeError("source changed during graph measurement; retain the attempt without qualification")
-    session = None
+    session, sessions = None, {}
     if transport == "stream":
-        measured("native.shutdown", controller_setup["ndu"], bridge.close)
-        session = measured("native.snapshot", controller_setup["ndu"], bridge.snapshot)
+        for arm in native_arms:
+            measured("native.shutdown", controller_setup[arm], bridges[arm].close)
+            sessions[arm] = measured("native.snapshot", controller_setup[arm], bridges[arm].snapshot)
+        session = sessions["ndu"]
     study_ns = time.monotonic_ns() - start
-    costs = {arm: [r["net_cost_ns"] for r in episodes if r["arm"] == arm] for arm in ARMS}
+    costs = {arm: [r["net_cost_ns"] for r in episodes if r["arm"] == arm] for arm in arms}
     medians = {arm: statistics.median(values) for arm, values in costs.items()}
-    controller_ns = {arm: sum(row["wall_ns"] for row in controller_setup.get(arm, [])) for arm in ARMS}
+    controller_ns = {arm: sum(row["wall_ns"] for row in controller_setup.get(arm, [])) for arm in arms}
     common_ns = study_ns - sum(r["episode_wall_ns"] for r in episodes) - sum(controller_ns.values())
     build_cost = manifest.get("build_cost")
     valid_build_cost = (type(build_cost) is dict and type(build_cost.get("wall_ns")) is int
                         and build_cost["wall_ns"] >= 0 and build_cost.get("target_cache") == "empty")
     build_ns = build_cost["wall_ns"] if valid_build_cost else 0
-    own_ns = {arm: controller_ns[arm] + (build_ns if arm == "ndu" else 0) for arm in ARMS}
-    amortized = {arm: medians[arm] + (common_ns + own_ns[arm]) / len(costs[arm]) for arm in ARMS}
+    own_ns = {arm: controller_ns[arm] + (build_ns if arm in native_arms else 0) for arm in arms}
+    amortized = {arm: medians[arm] + (common_ns + own_ns[arm]) / len(costs[arm]) for arm in arms}
     complete = valid_build_cost
     all_completed = all(r["completion_admitted"] for r in episodes)
     result = {"schema": "hepta.hia.ndu.graph.result.v1", "protocol_sha256": digest(protocol),
         "host": host, "source_identity": source_identity, "native_identity": manifest["identity"],
         "native_binary_sha256": manifest["binary_sha256"], "driver": driver_identity,
         "native_transport": transport, "native_session": session,
+        "native_sessions": sessions,
         "bank_sha256": bank["bank_sha256"], "exact_advisory_reuse": reuse_state,
+        "exact_advisory_reuse_by_arm": reuse_states,
         "shared_setup_ledger": shared,
         "controller_setup_ledger": controller_setup, "shared_setup_wall_ns": common_ns,
         "setup_accounting": {"common_once_per_standalone_strategy": True,
-            "native_build_charged_to": "ndu", "native_build_cost": build_cost,
+            "native_build_charged_to": "ndu" if native_arms == ("ndu",) else list(native_arms),
+            "native_build_cost": build_cost,
             "controller_setup_ns": controller_ns, "cost_complete_within_scope": complete,
             "scope": "reported native build plus source/proof/calibration/control/compiler/loader/workload wall time",
             "excluded": ["toolchain installation", "preexisting dependency cache acquisition",
                          "build process startup and final manifest write", "final aggregate report write"]},
         "episodes": episodes, "median_episode_cost_ns": medians, "median_amortized_cost_ns": amortized,
-        "standalone_total_cost_ns": {arm: common_ns + own_ns[arm] + sum(costs[arm]) for arm in ARMS},
+        "standalone_total_cost_ns": {arm: common_ns + own_ns[arm] + sum(costs[arm]) for arm in arms},
         "all_episodes_completed": all_completed,
         "all_outputs_correct": all(len(r["observations"]) == len(protocol["batch_sizes"]) + 1
                                    and all(s["status"] == "measured" for s in r["observations"]) for r in episodes),

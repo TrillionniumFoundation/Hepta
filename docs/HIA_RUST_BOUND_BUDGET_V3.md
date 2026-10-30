@@ -1,15 +1,22 @@
 # Bound Rust v3: evaluator budgets on explicit call frames
 
-## Convergence provenance
+## Current combined baseline
 
-The explicit-frame implementation and its v3 execution corpus originate in
-PR #358, commit `699de39a8e92e0f083df316ecc5333fb3ecf8571`. This continuation
-integrates the resource implementation onto PR #372's combined Core source
-`9fa9e957a9ebc7b34b4018fd4b83d863ebbc717b`. The combined capability matrix
-retains its existing 25 capabilities and all 146 selectors, adding the eight
-v3 execution controls and four qualification-result controls. The critical
-module inventory includes both new modules. Historical results retain their
-original source identity; this composition requires its own execution checks.
+This convergence joins catalog `192d2cbba7e49bde3b03af73685ecf96f6fb1b05`
+and P0-P7 `953fa62dee5aa563551d57b1374ab95b6d548b45` over their common
+ancestor `2cc9fb3b92a7306d2f5aae316c99e8364be700f9`. Both historical
+lineages remain in Git. See `HIA_RUST_INTEGRATION_REVIEW_20261030.md` for
+the scoped implementation review and exact-lock execution evidence. Historical
+results never qualify the combined source automatically.
+
+## Integration provenance
+
+This integration ports the reviewed explicit-frame and bound-v3/v4 implementation
+from PR #394, `95a67fb487da981e1941ec0d44c7f4305a22e6d6`, onto the round8
+base from PR #395, `2cc9fb3b92a7306d2f5aae316c99e8364be700f9`.
+The existing Core registry, production verifier and round8 host contracts remain
+in force. Qualification must bind the resulting combined source; historical
+results from either branch do not qualify this composition.
 
 The baseline gap is reproducible with `depth_boundary()` from
 `tests.test_hia_rust_scalar_vm`: `execute_program(..., "bounded", [32],
@@ -99,14 +106,14 @@ timeout ceiling.
 ```sh
 cargo test --locked --offline --manifest-path rust/hia-core-shadow/Cargo.toml
 python -m unittest tests.test_hia_rust_budget_v3 tests.test_hia_rust_bound_depth tests.test_hia_rust_execution_crosscheck -v
-python tools/qualify_hia_rust_budget_v3.py --expected-head COMMIT --output-directory /tmp/new-bound-v3-report
 ```
 
-The frozen-source collector refuses a changed test denominator, skips, failed
-methods, source drift, tool drift and executable drift. It retains actual build
-output, exact requests, both full execution reports and pinned-process output;
-deliberately replayed bytes occur only in refusal tests. Existing v1/v2 cases
-and the Rust crate regressions are separate, overlapping checks.
+The integration must execute every selected method with zero skips or failed
+methods and bind its reports to the combined source and actual executable.
+The tests retain actual build output, exact requests, both full execution reports
+and pinned-process output in their class observations; deliberately replayed
+bytes occur only in refusal tests. Existing v1/v2 cases and the Rust crate
+regressions are separate, overlapping checks.
 
 The new corpus executes all 256 depth policies at unbounded-recursion and
 finite-return boundaries, including deep returned mutable loans and owned and

@@ -521,6 +521,11 @@ def execute_program(program, function, arguments, *, max_steps=1_000_000,
             or allocation_fail_at is not None and
                (type(allocation_fail_at) is not int or allocation_fail_at < 1)):
         raise HIAProgramRejected("invalid entry arguments/evaluator limits", "E_HIA_INPUT")
+    # Validate and execute one immutable invocation. The caller may mutate an
+    # exact list while scalar validation runs; rereading it after validation
+    # could substitute an untyped value, change arity or alter an allocation
+    # extent. Admitted scalar values themselves are immutable built-ins.
+    arguments = tuple(arguments)
     if function not in checked.scalar_entrypoints:
         raise HIAProgramRejected("nominal/internal signatures are not public scalar entries", "E_HIA_INPUT")
     machine = _Machine(checked, max_steps, max_heap_bytes, allocation_fail_at, max_call_depth)
@@ -532,7 +537,7 @@ def execute_program(program, function, arguments, *, max_steps=1_000_000,
     if any(not scalar_value_valid(a, p["type"]) for p, a in zip(fn["params"], arguments)):
         raise HIAProgramRejected("entry arguments are not exactly typed machine values", "E_HIA_INPUT")
     try:
-        values = machine.invoke(fn, list(arguments))
+        values = machine.invoke(fn, arguments)
     except HIAProgramTrap as exc:
         exc.report = machine.report(function, "trapped", error=exc)
         raise

@@ -1,0 +1,83 @@
+{
+  "author_targeted_evidence": {
+    "complete_new_commit_gate_proved_by_this_run": false,
+    "errors": 0,
+    "failures": 0,
+    "log_sha256": "73d5c08dd94717a0eb02434f8e1388697f2abfd7468488d2dec0177b3111f8f7",
+    "passed": 32,
+    "report_sha256": "3d622afeecb901adc71a9c05a44e2a825f8918018745a7d039a4e070a25865d9",
+    "same_method_repetitions_are_not_32_distinct_selectors": true,
+    "same_test_repetitions": 32,
+    "skips": 0,
+    "source_committed_at_run": false,
+    "wall_ns": 719102497
+  },
+  "blocking_findings": [],
+  "changes": {
+    "abort_fixture": {
+      "actual_os_abort_retained": true,
+      "complete_stdout_base64_length_and_sha256_asserted": true,
+      "ctypes_argument_widths_and_return_type_explicit": true,
+      "exact_sigabrt_minus_six_assertion_retained": true,
+      "further_prepare_and_execute_rejected": true,
+      "pr_set_dumpable_zero_runs_in_same_child_before_output": true,
+      "pr_set_result_checked_and_pr_get_dumpable_zero_verified": true,
+      "process_failed_direct_child_reaped_poisoned_asserted": true,
+      "scope": "A controlled real Linux Python child emits a valid worker response then performs actual os.abort; this is process/checkpoint protocol evidence, not a new C++ library migration experiment.",
+      "single_launch_asserted": true,
+      "state_preserved_and_uncommitted_asserted": true,
+      "test_semantic_strength_reduced": false,
+      "three_second_deadline_retained_and_asserted": true
+    },
+    "workflow": {
+      "added_modules": [
+        "tests.test_hia_opcode_catalog",
+        "tests.test_hia_schema_unification",
+        "tests.test_hia_routes"
+      ],
+      "canonical_selectors_changed": false,
+      "errors_skips_expected_failures_count_drift_rejected": true,
+      "existing_current_methods": 33,
+      "new_test_methods": 0,
+      "placement_before_cargo_fetch_has_no_new_cargo_dependency": true,
+      "tee_pipeline_uses_pipefail": true
+    }
+  },
+  "decision": "approve_test_fixture_and_existing_suite_workflow_changes",
+  "diagnostic_limits": {
+    "ci_core_pattern_recorded": false,
+    "fix_removes_known_external_core_collection_dependency": true,
+    "historical_failed_receipts_must_remain_unchanged": true,
+    "observed_ci_failure": "551 passed, one fixture assertion observed -9 instead of -6 at the existing approximately three-second deadline.",
+    "original_failure_does_not_by_itself_prove_complete_frame_or_abort_was_reached": true,
+    "piped_core_handler_is_only_a_possible_mechanism": true
+  },
+  "documentation_basis": [
+    {
+      "file": "/tmp/hepta-abort-docs/core.5.html",
+      "sha256": "2ac9c97e327dbfc157af8376b4d79224c8f57ea6b4fa7506ecc0e31a8bcb82ac"
+    },
+    {
+      "file": "/tmp/hepta-abort-docs/PR_SET_DUMPABLE.2const.html",
+      "sha256": "8336e5a50cf8c3d4e7f717d44f6ce4c5959397a9c4427f3a1898a0dba1e7220c"
+    }
+  ],
+  "production_review": {
+    "checkpoint_checks_wait_status_before_parsing_or_commit": true,
+    "dumpability_does_not_replace_signal_or_bypass_capture": true,
+    "nonzero_child_exit_remains_process_failed_and_poisoned": true,
+    "production_rust_tools_and_safety_contract_unchanged_from_base": true,
+    "supervisor_ownership_uses_waitid_killpg_wait_not_ptrace": true,
+    "timeout_remains_capture_refused_without_commit": true
+  },
+  "review_base_commit": "8a45d2f153cbe5200ee8567d67f2176ce63ba8a6",
+  "reviewed_file_sha256": {
+    ".github/workflows/hepta-six-track-convergence.yml": "a6dd5ae935281009c834b1cf2b81fb716c6a50f553b49520f5a56503a1b51d4b",
+    "tests/test_cpp_json_checkpoint.py": "3df0e77fc2dc0d38ac93cf90b7e52a55d08c85bca681611caf6036d3a51da1fd"
+  },
+  "reviewer": "language_theory",
+  "reviewer_new_experiments": 0,
+  "reviewer_source_edits": 0,
+  "schema": "hepta.abort-fixture.independent-review.v1",
+  "subsequent_ci_and_full_suite_results_not_assumed": true
+}

@@ -65,7 +65,8 @@ def source_bindings():
             for path in (ROOT / "hepta/hia_stateful.py", ROOT / "hepta/hia_adaptive.py",
                          ROOT / "hepta/native_mapping_identity.py", ROOT / "hepta/hia_native_differential.py",
                          ROOT / "hepta/elf_shared_abi.py", ROOT / "hepta/native_tool_identity.py",
-                         Path(__file__))}
+                         ROOT / "hepta/hia_continuation.py", ROOT / "hepta/hia_queue_commit.py",
+                         ROOT / "hepta/hia_prepared.py", Path(__file__))}
 
 
 def measure_fresh_deployment(directory, *, clang="clang", steps):

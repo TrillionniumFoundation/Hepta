@@ -137,7 +137,7 @@ def _implementation_hash():
     """Bind the actual verifier/emitter and the native boundary helpers."""
     digest = sha256()
     root = Path(__file__).parent
-    for name in ("hia_schema.py", "hia_program.py", "hia_program_composite.py", "hia_program_llvm.py", "artifact_publication.py",
+    for name in ("hia_schema.py", "hia_program.py", "hia_opcodes.py", "hia_program_composite.py", "hia_program_llvm.py", "artifact_publication.py",
                  "clang_capture.py", "elf_shared_abi.py", "object_symbols.py",
                  "object_structure.py", "native_tool_identity.py"):
         content = (root / name).read_bytes()
@@ -781,6 +781,16 @@ class _Emitter:
         bodies = [_FunctionEmitter(self, fn, index).render()
                   for index, fn in enumerate(self.document["functions"])]
         wrappers = [self.wrapper(fn, index) for index, fn in enumerate(self.document["functions"])]
+        if "exports" in self.document:
+            # An explicit export list is a complete public interface contract.
+            # The Core interpreter admits scalar signatures (including unit
+            # parameters and multiple results) outside this native C ABI. Do
+            # not silently publish the representable subset of that interface.
+            # Implicit legacy discovery retains its documented narrower ABI.
+            missing = set(self.document["exports"]) - set(self.exports)
+            if missing:
+                _reject("explicit exports have signatures outside the native C ABI: "
+                        + ", ".join(sorted(missing)), "E_HIA_PROGRAM_ABI")
         if not 1 <= len(self.exports) <= 128:
             _reject("native profile requires between 1 and 128 scalar entrypoints")
         # Call-site nobuiltin alone does not stop LLVM 20's declaration-level

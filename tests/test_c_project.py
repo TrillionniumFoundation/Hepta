@@ -16,6 +16,9 @@ from unittest.mock import patch
 
 from hepta.c_migrate import MigrationRejected, migrate_c, migrate_c_project
 from hepta.c_project import capture_project, verify_capture
+from hepta.hia_program import execute_program
+from hepta.hia_program_llvm import build_program_native
+from hepta.hia_program_source import lower_source
 
 
 FIXTURE = Path(__file__).parent / "fixtures/c_migration/native"
@@ -321,6 +324,41 @@ class CProjectMigrationTests(unittest.TestCase):
         self.assertFalse(result["claims"]["source_equivalence_proved"])
         self.assertEqual(result["native_validation"], "not_run")
 
+    def test_uninitialized_local_is_rejected(self):
+        self.rejected("int f(int x){int y; if(x)y=x;return y;}", "E_C_UNINITIALIZED")
+
+    def test_while_continue_is_frontend_checked_and_preserves_defined_values(self):
+        self.project({"input.c": "int f(int x){while(x>0){--x;continue;}return x;}"})
+        report = self.migrate()
+        self.assertTrue(report["ok"], report.get("diagnostics"))
+        self.assertEqual(report["status"], "frontend_checked_not_native_qualified")
+        self.assertEqual(report["native_validation"], "not_run")
+        self.assertEqual(report["differential_execution"], "not_run")
+        self.assertFalse(report["claims"]["source_equivalence_proved"])
+        self.assertFalse(report["claims"]["whole_language_soundness_proved"])
+
+        # This finite differential is separate from the frontend-only report.
+        # Negative inputs never enter the body; positive inputs decrement to
+        # zero without signed overflow, including across the continue edge.
+        core = lower_source((self.output / "source.hepta").read_text())
+        hia_path, original_path = self.root / "continue-hia.so", self.root / "continue-c.so"
+        build_program_native(core, hia_path, clang=self.clang)
+        compiled = subprocess.run(
+            [self.clang, "-std=c11", "-O2", "-shared", "-fPIC",
+             str(self.root / "input.c"), "-o", str(original_path)],
+            capture_output=True, text=True, timeout=60,
+        )
+        self.assertEqual(compiled.returncode, 0, compiled.stderr)
+        original = ctypes.CDLL(str(original_path)).f
+        translated = ctypes.CDLL(str(hia_path)).c_f
+        for function in (original, translated):
+            function.argtypes, function.restype = [ctypes.c_int32], ctypes.c_int32
+        for value in (-(1 << 31), -17, -1, 0, 1, 2, 17, 255):
+            with self.subTest(value=value):
+                expected = min(value, 0)
+                self.assertEqual(original(value), expected)
+                self.assertEqual(translated(value), expected)
+                self.assertEqual(execute_program(core, "c_f", [value])["result"], expected)
     def test_uninitialized_local_and_continue_before_assignment_are_rejected(self):
         self.rejected("int f(int x){int y; if(x)y=x;return y;}", "E_C_UNINITIALIZED")
         self.rejected("int f(int x){int y;do{if(x)continue;y=1;}while(0);return y;}", "E_C_UNINITIALIZED")

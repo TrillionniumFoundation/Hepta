@@ -1,0 +1,270 @@
+rustc 1.95.0 (59807616e 2026-04-14)
+binary: rustc
+commit-hash: 59807616e1fa2540724bfbac14d7976d7e4a3860
+commit-date: 2026-04-14
+host: x86_64-unknown-linux-gnu
+release: 1.95.0
+LLVM version: 22.1.2
+
+Command: cargo test --locked --offline --manifest-path /tmp/hepta-safety-stage/rust-review/exact-lock-run/rust/hia-core-shadow/Cargo.toml
+
+   Compiling typenum v1.20.1
+   Compiling zmij v1.0.23
+   Compiling serde_json v1.0.154
+   Compiling memchr v2.8.3
+   Compiling generic-array v0.14.7
+   Compiling itoa v1.0.18
+   Compiling cfg-if v1.0.5
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling digest v0.10.7
+   Compiling sha2 v0.10.9
+   Compiling hia-core-shadow v0.1.0 (/tmp/hepta-safety-stage/rust-review/exact-lock-run/rust/hia-core-shadow)
+    Finished `test` profile [unoptimized] target(s) in 5.92s
+     Running unittests src/lib.rs (/workspace/scratch/8ca82272aad7/rust-target/debug/deps/hia_core_shadow-3057244a1882044d)
+
+running 17 tests
+test finite_heap::scalars::tests::exact_u64_overflow_and_signed_minimum_traps_never_supply_false_size_facts ... ok
+test scalar_vm::byte_memory::abort_cleanup::tests::insufficient_reservation_is_not_cleanup_and_preserves_the_entire_prefix ... ok
+test scalar_vm::byte_memory::abort_cleanup::tests::alias_formals_children_and_empty_owners_discharge_in_actual_parent_order ... ok
+test scalar_vm::byte_memory::abort_cleanup::tests::normal_return_is_not_repaired_and_chain_inventory_stays_outside_profile ... ok
+test scalar_vm::byte_memory::tests::copy_checks_both_extents_and_distinct_roots_before_writing ... ok
+test scalar_vm::byte_memory::abort_cleanup::tests::returned_formal_materialization_is_counted_as_one_local_borrow ... ok
+test finite_heap::scalars::tests::casts_shifts_and_negation_cover_all_representable_values_in_partition_intervals ... ok
+test scalar_vm::byte_memory::tests::all_bulk_bounds_are_checked_before_writes_and_copy_crosses_scratch_chunks ... ok
+test scalar_vm::byte_memory::abort_cleanup::tests::malformed_root_parent_and_formal_counter_never_become_a_cleanup_success ... ok
+test scalar_vm::byte_memory::tests::formal_forward_and_direct_child_rebind_to_actual_without_counter_inflation ... ok
+test scalar_vm::byte_memory::tests::head_reborrow_keeps_shape_frozen_and_pop_recovers_exact_payload ... ok
+test scalar_vm::byte_memory::tests::numeric_chain_and_byte_ids_never_alias_provenance_or_payload_extent ... ok
+test scalar_vm::byte_memory::tests::overlapping_move_is_memmove_and_failed_ranges_do_not_partially_mutate ... ok
+test scalar_vm::byte_memory::tests::shared_call_alias_reads_do_not_enable_parent_writes_or_early_end ... ok
+test scalar_vm::byte_memory::tests::multi_chunk_copy_preserves_exact_bytes_and_resource_ledger ... ok
+test scalar_vm::byte_memory::tests::mutable_child_still_suspends_parent_reads_and_writes ... ok
+test finite_heap::scalars::tests::interval_operations_cover_every_value_in_signed_and_unsigned_byte_partitions ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+
+     Running unittests src/main.rs (/workspace/scratch/8ca82272aad7/rust-target/debug/deps/hia_core_shadow-313406a70802faa5)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/bound_execution.rs (/workspace/scratch/8ca82272aad7/rust-target/debug/deps/bound_execution-899b49bae6cec9e3)
+
+running 2 tests
+test budget_stop_is_bound_but_invalid_module_never_gets_an_envelope ... ok
+test request_binding_wraps_the_actual_legacy_execution ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/bound_execution_v2.rs (/workspace/scratch/8ca82272aad7/rust-target/debug/deps/bound_execution_v2-00a8f89bfd9743b4)
+
+running 4 tests
+test a_small_depth_never_hides_a_bad_unused_function ... ok
+test raw_policy_rejects_missing_unknown_and_inexact_fields ... ok
+test v2_does_not_change_or_relabel_legacy_execution_or_bound_v1 ... ok
+test every_explicit_depth_stops_before_the_next_frame_entry_tick ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/bound_execution_v3.rs (/workspace/scratch/8ca82272aad7/rust-target/debug/deps/bound_execution_v3-7233f0263e67deb3)
+
+running 4 tests
+test early_stop_cannot_hide_an_invalid_unused_function ... ok
+test policy_shape_integer_tokens_and_new_upper_bounds_remain_strict ... ok
+test all_256_language_depths_work_on_a_fixed_small_host_stack ... ok
+test wider_step_budget_is_executed_and_old_protocols_still_reject_it ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.72s
+
+     Running tests/bound_execution_v4.rs (/workspace/scratch/8ca82272aad7/rust-target/debug/deps/bound_execution_v4-34a57629195bfd14)
+
+running 5 tests
+test early_policy_stop_does_not_hide_invalid_unused_core ... ok
+test noncanonical_indices_ambiguous_json_and_exact_wire_overflow_reject ... ok
+test wide_indices_retain_every_digit_without_low_word_injection ... ok
+test exact_small_indices_zero_owners_and_stops_keep_real_ledger ... ok
+test all_legacy_versions_keep_their_original_report_types_and_policy_limits ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running tests/byte_dag.rs (/workspace/scratch/8ca82272aad7/rust-target/debug/deps/byte_dag-4e6a63bb8aeb165d)
+
+running 8 tests
+test hidden_cycles_chains_invalid_ownership_and_nominal_schemas_never_run ... ok
+test lower_runtime_budgets_preserve_stopped_prefix_and_never_invent_cleanup ... ok
+test raw_static_policy_has_exact_types_fields_duplicates_and_wire_boundaries ... ok
+test private_entries_and_resource_capabilities_cannot_cross_public_boundary ... ok
+test one_below_any_limit_and_over_budget_private_functions_refuse_admission ... ok
+test actual_cli_admits_and_executes_without_any_python_in_path ... ok
+test raw_snapshot_static_limits_and_exact_runtime_policy_are_all_request_bound ... ok
+test every_primitive_version_admits_exact_limits_and_preserves_complete_v4_observation ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+     Running tests/calls.rs (/workspace/scratch/8ca82272aad7/rust-target/debug/deps/calls-297364c25fb9f37d)
+
+running 6 tests
+test cannot_drop_moved_result_twice ... ok
+test caller_must_cover_callee_effects ... ok
+test accepts_typed_owner_return_from_internal_call ... ok
+test exclusive_mutable_call_arguments_must_not_share_root ... ok
+test owner_return_requires_new_result_capability ... ok
+test call_rejects_unknown_callee_or_forged_effects ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/chain.rs (/workspace/scratch/8ca82272aad7/rust-target/debug/deps/chain-5503eedb13904da1)
+
+running 7 tests
+test chain_across_internal_calls_and_scalar_only_exports ... ok
+test chain_descriptor_cannot_masquerade_as_raw_byte_owner ... ok
+test chain_drop_is_linear_and_effects_are_explicit ... ok
+test branch_join_preserves_only_owner_identity_not_predecessor_names ... ok
+test head_loan_blocks_move_pop_drop_and_additional_mutable_head ... ok
+test v7_resource_profile_is_strictly_opt_in_and_safety_claims_remain_false ... ok
+test real_recursive_chain_project_fixture_is_accepted_as_single_closed_module ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/finite_heap.rs (/workspace/scratch/8ca82272aad7/rust-target/debug/deps/finite_heap-03e6a8b0dea390f9)
+
+running 4 tests
+test invalid_limits_or_inexact_arguments_cannot_mint_a_heap_report ... ok
+test analysis_only_proves_unexecuted_extent_and_refuses_smaller_policy_before_vm ... ok
+test whole_snapshot_exact_arguments_and_all_three_policies_are_bound_to_request ... ok
+test optional_static_heap_preserves_full_v4_ledger_and_legacy_static_contract ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/json_budget.rs (/workspace/scratch/8ca82272aad7/rust-target/debug/deps/json_budget-78e2c0631c8a405c)
+
+running 4 tests
+test duplicate_keys_still_reject_before_their_value ... ok
+test depth_is_checked_before_the_disallowed_leaf ... ok
+test nested_object_values_share_the_array_budget ... ok
+test exact_node_limit_reaches_schema_check_but_next_value_never_decodes ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.33s
+
+     Running tests/json_integer_tokens.rs (/workspace/scratch/8ca82272aad7/rust-target/debug/deps/json_integer_tokens-2038ef73d84b9c7d)
+
+running 4 tests
+test scalar_argument_tokens_use_the_same_integer_contract ... ok
+test negative_zero_never_waives_duplicate_or_depth_admission ... ok
+test float_and_malformed_spellings_still_reject_in_raw_core ... ok
+test negative_zero_is_integer_zero_in_each_primitive_schema ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/owned.rs (/workspace/scratch/8ca82272aad7/rust-target/debug/deps/owned-56ae531a5c612e23)
+
+running 10 tests
+test absent_effect_rejects ... ok
+test cannot_duplicate_owner_across_block_edge ... ok
+test duplicate_keys_and_unknown_proof_claim_reject ... ok
+test cannot_drop_root_with_live_loan ... ok
+test cannot_access_suspended_parent_loan ... ok
+test real_owner_and_loan_can_cross_cfg_block ... ok
+test type_correct_cfg_join_cannot_change_loan_root ... ok
+test double_drop_and_reborrow_after_end_reject ... ok
+test v5_range_copy_proves_distinct_roots_before_admission ... ok
+test versioned_bulk_memory_requires_live_mutable_loan_and_declared_effects ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/owned_vm.rs (/workspace/scratch/8ca82272aad7/rust-target/debug/deps/owned_vm-6a97ffa261bd3cb7)
+
+running 5 tests
+test unsupported_suffix_rejects_before_a_hiding_allocator_failure ... ok
+test successful_roundtrip_has_exact_resource_ledger_and_no_authority_promotion ... ok
+test optional_failure_produces_real_empty_owner_and_zero_is_infallible ... ok
+test scalar_entry_boundary_and_policy_are_not_capability_constructors ... ok
+test heap_budget_is_not_allocation_failure_and_trap_does_not_claim_drop ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/returned_chains.rs (/workspace/scratch/8ca82272aad7/rust-target/debug/deps/returned_chains-9333f5dd20226ba6)
+
+running 3 tests
+test uncalled_invalid_origin_and_live_chain_mutation_reject_before_budget ... ok
+test failed_chain_header_retains_empty_chain_and_real_source_prefix ... ok
+test chain_head_forward_and_child_use_versioned_single_machine_profile ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+     Running tests/returned_loans.rs (/workspace/scratch/8ca82272aad7/rust-target/debug/deps/returned_loans-e4bad4e55f22c82e)
+
+running 7 tests
+test alternate_return_origin_wire_is_rejected_before_execution_budgets ... ok
+test actual_recursive_example_returns_child_once_and_retains_parent_until_end ... ok
+test frozen_parent_and_hidden_illegal_helper_reject_before_budgets ... ok
+test returned_child_survives_two_call_returns_then_original_parent_resumes ... ok
+test stopped_recursive_borrow_keeps_the_actual_owner_and_caller_loan ... ok
+test old_version_labels_cannot_authorize_new_returned_loans ... ok
+test v8_contract_is_required_and_never_backported_to_older_grammar ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/returned_record_fields.rs (/workspace/scratch/8ca82272aad7/rust-target/debug/deps/returned_record_fields-1a4a5d798061e3ce)
+
+running 3 tests
+test sibling_or_scalar_origin_cannot_be_authorized_by_source_metadata ... ok
+test nested_nonfirst_field_and_mutable_scalar_writeback_execute ... ok
+test interrupted_record_keeps_the_actual_unreleased_resources ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.43s
+
+     Running tests/scalar_vm.rs (/workspace/scratch/8ca82272aad7/rust-target/debug/deps/scalar_vm-6cb08d4b9a1622fd)
+
+running 11 tests
+test recursion_is_bounded_independently_of_step_budget ... ok
+test invalid_program_or_wrong_type_cannot_enter_oracle ... ok
+test checked_and_wrapping_u64_arithmetic_are_distinct ... ok
+test signed_division_and_remainder_truncate_toward_zero ... ok
+test explicit_scalar_exports_are_verified_and_private_entries_refused ... ok
+test v7_scalar_instructions_retain_v6_semantics_without_resource_admission ... ok
+test signed_shift_arithmetic_and_count_traps ... ok
+test finite_recursion_respects_root_inclusive_call_frame_limit ... ok
+test phi_block_arguments_and_loop_step_budget ... ok
+test scalar_cli_argument_decoder_is_bounded_before_untrusted_value_materialization ... ok
+test signed_minimum_division_and_remainder_trap_for_each_width ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/shadow.rs (/workspace/scratch/8ca82272aad7/rust-target/debug/deps/shadow-7a2a75fd3833cfe4)
+
+running 9 tests
+test rejects_resource_isa_without_claiming_safety ... ok
+test rejects_unknown_versions_and_unknown_keys ... ok
+test rejects_cfg_jump_to_entry_and_unreachable_blocks ... ok
+test rejects_wrong_effect_type_and_nonlocal_ssa ... ok
+test rejects_integer_bool_confusion_and_duplicate_ssa ... ok
+test valid_v7_chain_program_is_not_a_scalar_program ... ok
+test accepts_scalar_ssa_in_all_known_envelopes ... ok
+test rejects_duplicate_fields_floats_and_nonfinite_payload ... ok
+test accepts_explicit_phi_arguments_and_checks_edge_types ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/static_budget.rs (/workspace/scratch/8ca82272aad7/rust-target/debug/deps/static_budget-2c9810777f390f5b)
+
+running 8 tests
+test invalid_resource_graph_is_not_qualified_by_an_empty_public_entry ... ok
+test a_trap_never_promises_cleanup_and_unreachable_suffix_cost_is_still_conservative ... ok
+test direct_and_mutual_recursion_are_refused_before_any_bounded_claim ... ok
+test hidden_cfg_cycle_and_hidden_chain_declaration_are_not_ignored ... ok
+test repeated_calls_add_each_entry_and_callee_body_but_depth_uses_maximum ... ok
+test branch_metrics_are_independent_maxima_not_an_exact_feasible_path_claim ... ok
+test zero_and_failed_allocations_still_receive_conservative_interaction_counts ... ok
+test finite_exponential_cost_is_not_wrapped_into_a_small_bound ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+   Doc-tests hia_core_shadow
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

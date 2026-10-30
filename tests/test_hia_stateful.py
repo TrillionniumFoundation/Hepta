@@ -1,6 +1,7 @@
 """Real exclusive state, leases, committed queues and finite pure transitions."""
 from __future__ import annotations
 import copy
+from collections import Counter, deque
 import errno
 import fcntl
 from hashlib import sha256
@@ -45,6 +46,7 @@ class OwnedProfileTests(unittest.TestCase):
         runtime._apply_items = lambda *args: True
         runtime._values, runtime._ledger = lambda: (0,), lambda: {}
         runtime._event = lambda *args, **kw: None
+        runtime._event_count, runtime._event_counts, runtime._events = 0, Counter(), deque(maxlen=4096)
         restored = []
         runtime._restore_admitted = lambda token: restored.append(token) or {"selected": True}
         with patch("hepta.hia_stateful.time.monotonic_ns", side_effect=[0, 10, 20, 30, 40, 60, 70, 80]):

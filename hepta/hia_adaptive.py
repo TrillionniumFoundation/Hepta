@@ -387,12 +387,25 @@ class AdaptiveRuntime:
     def _arguments(vectors, arity):
         if type(vectors) is not list or not 1 <= len(vectors) <= _MAX_BATCH:
             raise AdaptiveRejected("E_ADAPT_ARGUMENT: bounded nonempty native call batch required")
+        # The caller can mutate exact built-in lists from another thread. Take
+        # bounded snapshots before validation, then dispatch only the captured
+        # scalar values. The extra element detects overlength without copying
+        # an unbounded batch grown after the first length check.
+        frozen = tuple(vectors[:_MAX_BATCH + 1])
+        if not 1 <= len(frozen) <= _MAX_BATCH:
+            raise AdaptiveRejected("E_ADAPT_ARGUMENT: bounded nonempty native call batch required")
         copied = []
-        for args in vectors:
-            if (type(args) not in {list, tuple} or len(args) != arity
+        for args in frozen:
+            if type(args) not in {list, tuple}:
+                raise AdaptiveRejected("E_ADAPT_ARGUMENT: exact u64 argument domain required")
+            # Rows are captured sequentially, not atomically as one nested
+            # transaction. Each row checked here is exactly the row used by
+            # call_many and measure, even if its producer later changes it.
+            args = tuple(args[:arity + 1])
+            if (len(args) != arity
                     or any(type(v) is not int or not 0 <= v < 2**64 for v in args)):
                 raise AdaptiveRejected("E_ADAPT_ARGUMENT: exact u64 argument domain required")
-            copied.append(tuple(args))
+            copied.append(args)
         return copied
 
     def call(self, *args):

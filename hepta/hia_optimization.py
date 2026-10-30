@@ -50,7 +50,7 @@ def _digest(value):
 
 def checker_identity():
     digest = sha256()
-    for name in ("hia_optimization.py", "hia_program.py", "hia_schema.py",
+    for name in ("hia_optimization.py", "hia_program.py", "hia_opcodes.py", "hia_schema.py",
                  "hia_program_composite.py", "hia_json_preflight.py",
                  "hia_program_runtime.py", "hia_bounded_memory.py"):
         digest.update(name.encode() + b"\0" + Path(__file__).with_name(name).read_bytes() + b"\0")

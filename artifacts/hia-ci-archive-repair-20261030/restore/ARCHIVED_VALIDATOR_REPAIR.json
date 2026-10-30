@@ -1,0 +1,55 @@
+{
+  "schema": "hepta.ci.archived-validator-repair.v1",
+  "base_commit": "46d88bd18b1b3dadb246e92eb22c49fe44ec2d72",
+  "workflow": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/41039944835",
+  "job_id": 124010002765,
+  "failure": {
+    "step": 20,
+    "exception": "ImportError: Start directory is not importable",
+    "directory": "experiments/hia_optimizer_eval/upgrade_continuation_20261028",
+    "log_file": "46d-verified-job124010002765.log",
+    "log_sha256": "a3ecf00680c5f56a53f384464c07714730c6f2f19ba513686341b38f23b5335c"
+  },
+  "root_cause": "The three archived directories were in the confirmed common ancestor and unchanged in #400; #399 deleted all 49 entries. Integration retained the deletions while including #400 workflow and v4 dependencies that still require the validators. This is a dependency closure omission in branch convergence, not publication tree loss.",
+  "ancestry": {
+    "common_ancestor": "0e1f5dd9bf0f54c492d96bd5dd1ae52e8c804997",
+    "branch_399": "e0ab595468d67bcf95485eacd22cea8ff332520c",
+    "branch_400": "1bdb305fc5c6706c0e41ed66a4d43772c297d00e",
+    "ancestor_entries": 49,
+    "branch_399_entries": 0,
+    "branch_400_entries": 49,
+    "branch_399_deleted_entries": 49,
+    "branch_400_changes": 0,
+    "exact_deleting_commit_not_resolved": true,
+    "note": "Local branch clone is shallow. Exact Git endpoint trees and GitHub-confirmed merge base establish these file changes without attributing intent."
+  },
+  "restoration": {
+    "files": 12,
+    "bytes": 133205,
+    "source": "1bdb305fc5c6706c0e41ed66a4d43772c297d00e",
+    "all_file_bytes_exact_original_blobs": true,
+    "manifest": "ARCHIVED_VALIDATOR_RESTORE_MANIFEST.json",
+    "manifest_sha256": "13e9d8f5d3c88fc972726e6aa62279107331de917b8548a6075883ce9b5a34fe",
+    "existing_production_sources_or_workflow_changed": false,
+    "historical_model_results_regenerated": false
+  },
+  "validation": {
+    "isolated_result": "ARCHIVED_VALIDATOR_ISOLATED_RESULT.json",
+    "applied_result": "ARCHIVED_VALIDATOR_APPLIED_RESULT.json",
+    "suite_counts": [
+      3,
+      4,
+      12,
+      20,
+      24,
+      11
+    ],
+    "total_tests": 74,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "real_model_requests": 0,
+    "passed": true
+  },
+  "generated_at_utc": "2026-10-30T10:52:31.074951+00:00"
+}

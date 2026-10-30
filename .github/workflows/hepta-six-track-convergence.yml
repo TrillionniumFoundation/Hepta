@@ -1,0 +1,220 @@
+name: HIA six-track convergence
+
+on:
+  push:
+    branches: [work/hia-six-track-convergence-20261030-8ca82272]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: hia-six-track-${{ github.sha }}
+  cancel-in-progress: false
+
+env:
+  PYTHONDONTWRITEBYTECODE: '1'
+  PYTHONUNBUFFERED: '1'
+  CLANG: /usr/bin/clang-20
+  CLANGXX: /usr/bin/clang++-20
+  HEPTA_CLANG: /usr/bin/clang-20
+  HEPTA_RUN_ARTIFACT_SESSION: '1'
+  CARGO_PROFILE_DEV_DEBUG: '0'
+  CARGO_PROFILE_TEST_DEBUG: '0'
+  CARGO_INCREMENTAL: '0'
+  CARGO_BUILD_JOBS: '2'
+
+jobs:
+  semantic-and-native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bind the exact source and prepare isolated evidence
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain)"
+          mkdir -p "$RUNNER_TEMP/six-track-evidence"
+          printf 'SIX_EVIDENCE=%s\n' "$RUNNER_TEMP/six-track-evidence" >> "$GITHUB_ENV"
+          printf 'CARGO_HOME=%s\nCARGO_TARGET_DIR=%s\n' "$RUNNER_TEMP/six-cargo" "$RUNNER_TEMP/six-rust-target" >> "$GITHUB_ENV"
+          git show --no-patch --format=fuller HEAD > "$RUNNER_TEMP/six-track-evidence/commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$RUNNER_TEMP/six-track-evidence/tree.txt"
+          python -m pip install -e '.[optimization]' zstandard==0.25.0
+      - name: Install the signed LLVM 20 profile and cross-execution tools
+        run: |
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key
+          test "$(gpg --show-keys --with-colons "$RUNNER_TEMP/llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+          sudo install -m 0644 "$RUNNER_TEMP/llvm.asc" /usr/share/keyrings/hepta-six-llvm.asc
+          printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hepta-six-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hepta-six-llvm.list
+          sudo apt-get update
+          sudo apt-get install --yes clang-20 libclang-20-dev libclang-rt-20-dev llvm-20 lld-20 qemu-user build-essential
+          printf '%s\n' /usr/lib/llvm-20/bin >> "$GITHUB_PATH"
+      - name: Install both explicit Rust profiles
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.90.0 --profile minimal
+          rustup toolchain install 1.95.0 --profile minimal
+          # The production Rust backend admits only 1.90.0. The independent
+          # crate gate and separately pinned finite NDU build use 1.95.0.
+          printf 'RUSTC=%s\nCARGO=%s\n' "$(rustup which --toolchain 1.90.0 rustc)" "$(rustup which --toolchain 1.90.0 cargo)" >> "$GITHUB_ENV"
+          printf 'HIA_CRATE_RUSTC=%s\nHIA_CRATE_CARGO=%s\nHIA_CRATE_RUSTDOC=%s\n' "$(rustup which --toolchain 1.95.0 rustc)" "$(rustup which --toolchain 1.95.0 cargo)" "$(rustup which --toolchain 1.95.0 rustdoc)" >> "$GITHUB_ENV"
+          dirname "$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_PATH"
+      - name: Catalog and exact-lock independent Rust
+        run: |
+          set -euo pipefail
+          python tools/generate_hia_catalog.py --check
+          python - <<'PY' 2>&1 | tee "$SIX_EVIDENCE/catalog-routes.log"
+          import unittest
+          names = ['tests.test_hia_opcode_catalog', 'tests.test_hia_schema_unification', 'tests.test_hia_routes']
+          suite = unittest.defaultTestLoader.loadTestsFromNames(names)
+          planned = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          assert result.wasSuccessful() and not result.skipped and not result.expectedFailures
+          assert result.testsRun == planned and planned > 0
+          PY
+          "$HIA_CRATE_CARGO" fetch --locked --manifest-path rust/hia-core-shadow/Cargo.toml
+          # rustdoc otherwise resolves through the production 1.90 PATH even
+          # when Cargo and RUSTC are explicitly 1.95. Keep all crate artifacts
+          # separate from the production backend's target directory as well.
+          RUSTC="$HIA_CRATE_RUSTC" RUSTDOC="$HIA_CRATE_RUSTDOC" CARGO_TARGET_DIR="$RUNNER_TEMP/six-rust195-target" \
+            "$HIA_CRATE_CARGO" test --locked --offline --manifest-path rust/hia-core-shadow/Cargo.toml 2>&1 | tee "$SIX_EVIDENCE/rust-tests.log"
+      - name: Build all three distinct NDU profiles required by the reviewed matrix
+        run: |
+          set -euo pipefail
+          for ndu_spec in \
+            recursive:2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b:backend \
+            finite:4b6391e116949af0c7e59776baead67271856bdb:finite \
+            stream:c4a1bbed3a39beba43a6abf1a18b6f75c5725c21:backend; do
+            IFS=: read -r ndu_profile ndu_pin ndu_toolchain <<< "$ndu_spec"
+            ndu_source="$RUNNER_TEMP/six-$ndu_profile-source"
+            ndu_output="$SIX_EVIDENCE/ndu-$ndu_profile"
+            mkdir -p "$ndu_source"
+            git -C "$ndu_source" init --quiet
+            git -C "$ndu_source" remote add origin https://github.com/TrillionniumFoundation/hepta-private-ci.git
+            git -C "$ndu_source" sparse-checkout init --cone
+            git -C "$ndu_source" sparse-checkout set codex-rs/hepta-ndu codex-rs/hepta-contracts codex-rs/hepta-types tools/hia-ndu-bridge
+            git -C "$ndu_source" fetch --depth=1 --filter=blob:none origin "$ndu_pin"
+            git -C "$ndu_source" checkout --detach FETCH_HEAD
+            ndu_cargo="$CARGO"
+            ndu_rustc="$RUSTC"
+            if [ "$ndu_toolchain" = finite ]; then
+              ndu_cargo="$HIA_CRATE_CARGO"
+              ndu_rustc="$HIA_CRATE_RUSTC"
+            fi
+            CARGO_PROFILE_RELEASE_DEBUG=0 python tools/build_hia_recursive_ndu_bridge.py \
+              --ndu-source "$ndu_source" --expected-source "$ndu_pin" \
+              --cargo "$ndu_cargo" --rustc "$ndu_rustc" --output "$ndu_output" \
+              --target-dir "$RUNNER_TEMP/six-$ndu_profile-target"
+            case "$ndu_profile" in
+              recursive)
+                printf 'HEPTA_RECURSIVE_NDU_BRIDGE=%s\nHEPTA_RECURSIVE_NDU_IDENTITY=%s\n' "$ndu_output/native/hepta-hia-ndu-bridge" "$ndu_output/identity.json" >> "$GITHUB_ENV" ;;
+              finite)
+                printf 'HEPTA_FINITE_NDU_BRIDGE=%s\nHEPTA_FINITE_NDU_IDENTITY=%s\n' "$ndu_output/native/hepta-hia-ndu-bridge" "$ndu_output/identity.json" >> "$GITHUB_ENV" ;;
+              stream)
+                printf 'HEPTA_NDU_STREAM_BRIDGE=%s\nHEPTA_NDU_STREAM_IDENTITY=%s\n' "$ndu_output/native/hepta-hia-ndu-bridge" "$ndu_output/identity.json" >> "$GITHUB_ENV" ;;
+            esac
+          done
+      - name: Complete reviewed safety matrix without skipped selectors
+        run: python tools/qualify_hia_safety_contract.py --output "$SIX_EVIDENCE/safety-contract.json"
+      - name: New C++ and stateful planning regression suites
+        run: |
+          set -euo pipefail
+          python - <<'PY' 2>&1 | tee "$SIX_EVIDENCE/new-regressions.log"
+          import unittest
+          names = ['tests.test_cpp_gsl_final_action', 'tests.test_hia_ndu_stateful', 'tests.test_hia_agent_maintenance']
+          suite = unittest.defaultTestLoader.loadTestsFromNames(names)
+          planned = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          assert result.wasSuccessful() and not result.skipped and not result.expectedFailures
+          assert result.testsRun == planned and planned > 0
+          PY
+      - name: Independently execute real GSL versions and migrated code
+        run: |
+          python tools/qualify_cpp_gsl_final_action.py --clang "$CLANG" --cxx g++ --cc gcc --output "$SIX_EVIDENCE/gsl"
+          python tools/qualify_hia_ndu_stateful.py --mode controls --output "$SIX_EVIDENCE/ndu-controls"
+      - name: Require unchanged source
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git diff --exit-code
+          git diff --cached --exit-code
+      - name: Retain passed and failed evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-six-track-semantic-${{ github.sha }}
+          path: ${{ runner.temp }}/six-track-evidence
+          if-no-files-found: error
+
+  native-ndu:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Prepare pinned dependencies and original NDU source
+        run: |
+          python -m pip install -e '.[optimization]'
+          rustup toolchain install 1.95.0 --profile minimal
+          printf 'RUSTC=%s\nCARGO=%s\n' "$(rustup which --toolchain 1.95.0 rustc)" "$(rustup which --toolchain 1.95.0 cargo)" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/six-ndu-evidence" "$RUNNER_TEMP/ndu-source"
+          git -C "$RUNNER_TEMP/ndu-source" init
+          git -C "$RUNNER_TEMP/ndu-source" remote add origin https://github.com/TrillionniumFoundation/hepta-private-ci.git
+          git -C "$RUNNER_TEMP/ndu-source" sparse-checkout init --cone
+          git -C "$RUNNER_TEMP/ndu-source" sparse-checkout set codex-rs/hepta-ndu codex-rs/hepta-contracts codex-rs/hepta-types tools/hia-ndu-bridge
+          git -C "$RUNNER_TEMP/ndu-source" fetch --depth=1 --filter=blob:none origin c4a1bbed3a39beba43a6abf1a18b6f75c5725c21
+          git -C "$RUNNER_TEMP/ndu-source" checkout --detach FETCH_HEAD
+      - name: Build the original bridge with source and tool custody
+        run: |
+          python - <<'PY'
+          import hashlib, json, os, subprocess, sys, time
+          from pathlib import Path
+          temporary = Path(os.environ['RUNNER_TEMP'])
+          evidence = temporary / 'six-ndu-evidence'
+          pin = 'c4a1bbed3a39beba43a6abf1a18b6f75c5725c21'
+          argv = [sys.executable, 'tools/build_hia_recursive_ndu_bridge.py',
+                  '--ndu-source', str(temporary / 'ndu-source'), '--expected-source', pin,
+                  '--cargo', os.environ['CARGO'], '--rustc', os.environ['RUSTC'],
+                  '--output', str(evidence / 'bridge'), '--target-dir', str(temporary / 'six-ndu-target')]
+          started = time.monotonic_ns()
+          completed = subprocess.run(argv, capture_output=True)
+          elapsed = time.monotonic_ns() - started
+          (evidence / 'build.stdout').write_bytes(completed.stdout)
+          (evidence / 'build.stderr').write_bytes(completed.stderr)
+          binary = evidence / 'bridge/native/hepta-hia-ndu-bridge'
+          envelope = {'schema': 'hepta.hia.ndu.stateful-native-build-cost.v1',
+                      'native_source_commit': pin, 'argv': argv, 'exit_code': completed.returncode,
+                      'observed_outer_wall_ns': elapsed,
+                      'binary_sha256': hashlib.sha256(binary.read_bytes()).hexdigest() if binary.is_file() else None,
+                      'source_retrieval_included': False, 'fully_cold_machine_claim': False}
+          (evidence / 'build-envelope.json').write_text(json.dumps(envelope, indent=2) + '\n')
+          raise SystemExit(completed.returncode)
+          PY
+      - name: Compare actual native NDU with independent controls
+        run: |
+          python tools/qualify_hia_ndu_stateful.py --mode native --expected-head "$GITHUB_SHA" \
+            --bridge "$RUNNER_TEMP/six-ndu-evidence/bridge/native/hepta-hia-ndu-bridge" \
+            --identity "$RUNNER_TEMP/six-ndu-evidence/bridge/identity.json" \
+            --build-envelope "$RUNNER_TEMP/six-ndu-evidence/build-envelope.json" \
+            --output "$RUNNER_TEMP/six-ndu-evidence/qualification"
+      - name: Retain native evidence including negative value results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-six-track-ndu-${{ github.sha }}
+          path: ${{ runner.temp }}/six-ndu-evidence
+          if-no-files-found: error

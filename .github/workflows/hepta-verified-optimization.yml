@@ -25,6 +25,20 @@ on:
       - 'experiments/hia_verified_integration/**'
       - 'experiments/hia_agent_toolstudy_v8_20261029/**'
       - 'experiments/hia_agent_toolstudy_v9_20261029/**'
+      - 'tools/qualify_cpp_unique_project.py'
+      - 'tools/qualify_cpp_unique_assignment_project.py'
+      - 'examples/cpp/unique_project_migration/**'
+      - 'examples/cpp/unique_assignment_project_migration/**'
+      - 'experiments/hia_agent_matched_v3_20261028/**'
+      - 'experiments/hia_agent_assembly_v4_20261030/**'
+      - 'experiments/hia_agent_assembly_v4_readout_20261030/**'
+      - 'experiments/hia_agent_assembly_recovery_20261030/**'
+      - 'experiments/hia_ndu_session_eval/round4_20261030/**'
+      - 'experiments/hia_ndu_graph_eval/round3_20261028/**'
+      - 'artifacts/hia-ndu-*/**'
+      - 'evidence/hia_five_deliverables_20261030/**'
+      - 'experiments/hia_stateful_eval/round3_20261028/**'
+      - 'experiments/hia_stateful_eval/round4_20261030/**'
       - 'pyproject.toml'
       - '.github/workflows/hepta-verified-optimization.yml'
   workflow_dispatch:
@@ -44,6 +58,7 @@ jobs:
       STREAM_NDU_SOURCE_SHA: c4a1bbed3a39beba43a6abf1a18b6f75c5725c21
       CLANG: /usr/bin/clang-20
       CLANGXX: /usr/bin/clang++-20
+      HEPTA_CLANG: /usr/bin/clang-20
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
       - name: Configure isolated Cargo directories
@@ -68,6 +83,7 @@ jobs:
           test -z "$(git status --porcelain)"
           mkdir -p artifacts/verified-optimization
           git rev-parse HEAD > artifacts/verified-optimization/source-sha.txt
+          git rev-parse 'HEAD^{tree}' > artifacts/verified-optimization/source-tree.txt
           python -m pip install -e '.[optimization,verification]'
       - name: Install the existing signed LLVM 20 profile
         run: |
@@ -171,6 +187,29 @@ jobs:
           printf 'HEPTA_NDU_BRIDGE=%s\nHEPTA_NDU_BUILD=%s\nHEPTA_NDU_UPSTREAM=%s\n' \
             "$RUNNER_TEMP/hepta-ranking-ndu-target/debug/hia-ndu-bridge" "$hepta_ranking_build" \
             "$hepta_ranking_checkout" >> "$GITHUB_ENV"
+      - name: Require native Q32 planning and numeric boundary tests without skips
+        run: |
+          python - <<'PY'
+          import json, unittest
+          from pathlib import Path
+          out = Path('artifacts/verified-optimization/planning-boundaries')
+          out.mkdir()
+          names = ['tests.test_hia_planning', 'tests.test_hia_planning_boundaries']
+          suite = unittest.defaultTestLoader.loadTestsFromNames(names)
+          expected = suite.countTestCases()
+          with (out / 'tests.log').open('w') as log:
+              result = unittest.TextTestRunner(stream=log, verbosity=2).run(suite)
+          passed = (expected > 0 and result.testsRun == expected and
+                    result.wasSuccessful() and not result.skipped and not result.expectedFailures)
+          record = {'schema': 'hepta.native-planning.ci.v1', 'modules': names,
+                    'expected_tests': expected, 'tests_run': result.testsRun,
+                    'failures': len(result.failures), 'errors': len(result.errors),
+                    'skipped': len(result.skipped), 'expected_failures': len(result.expectedFailures),
+                    'passed': passed}
+          (out / 'RESULT.json').write_text(json.dumps(record, indent=2) + '\n')
+          print(json.dumps(record))
+          raise SystemExit(0 if passed else 1)
+          PY
       - name: Run actual native integration and regression gates without skipped tests
         run: |
           "$CARGO" fetch --locked --manifest-path rust/hia-core-shadow/Cargo.toml
@@ -201,6 +240,14 @@ jobs:
           cd "$RUNNER_TEMP/hepta-round7-clean-source"
           python tools/qualify_hia_c_posttest.py --clang "$CLANG" --expected-source "$HEPTA_SOURCE_SHA" \
             --output "$GITHUB_WORKSPACE/artifacts/verified-optimization/c-posttest"
+      - name: Run archived qualification validators
+        run: |
+          python -m unittest discover -s experiments/hia_optimizer_eval/upgrade_continuation_20261028 -p 'test_*.py' -v
+          python -m unittest discover -s experiments/hia_optimizer_eval/primary_continuation_20261028 -p 'test_*.py' -v
+          python -m unittest discover -s experiments/hia_agent_matched_v3_20261028 -p 'test_*.py' -v
+          python -m unittest discover -s experiments/hia_agent_assembly_v4_20261030 -p 'test_*.py' -v
+          python -m unittest discover -s experiments/hia_agent_assembly_v4_readout_20261030 -p 'test_*.py' -v
+          python -m unittest discover -s experiments/hia_agent_assembly_recovery_20261030 -p 'test_*.py' -v
       - name: Retain real finite NDU loop and migration/runtime evidence
         run: |
           python tools/qualify_hia_ndu_loop.py --identity "$HEPTA_RECURSIVE_NDU_IDENTITY" \
@@ -209,6 +256,11 @@ jobs:
           python tools/qualify_hia_adaptive.py --workdir artifacts/verified-optimization/adaptive --clang "$CLANG"
           python tools/qualify_cpp_composed_project.py --workdir artifacts/verified-optimization/cpp-composed-project --clangxx "$CLANGXX" --clang "$CLANG" --cc gcc
           python tools/qualify_hia_stateful.py --workdir artifacts/verified-optimization/owned-state --clang "$CLANG"
+          python tools/qualify_hia_narrowing.py --out artifacts/verified-optimization/narrowing --clang "$CLANG"
+          python tools/qualify_cpp_unique_project.py --workdir artifacts/verified-optimization/cpp-unique-project --clangxx "$CLANGXX" --clang "$CLANG" --cc gcc
+          python tools/qualify_cpp_unique_assignment_project.py --workdir artifacts/verified-optimization/cpp-unique-assignment-project --clangxx "$CLANGXX" --clang "$CLANG" --cc gcc
+          python tools/qualify_hia_continuation.py --workdir artifacts/verified-optimization/owned-continuation --clang "$CLANG"
+          python tools/qualify_hia_agent_assembly.py --out artifacts/verified-optimization/agent-assembly --clang "$CLANG"
       - name: Retain all completed and failed evidence
         if: always()
         uses: actions/upload-artifact@v4

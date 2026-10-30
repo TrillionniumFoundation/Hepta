@@ -1,0 +1,147 @@
+{
+  "schema": "hepta.agent.assembly-recovery.protocol.v1",
+  "study_id": "hia-agent-assembly-recovery-20261030-v1",
+  "launch_marker": "[HEPTA_AGENT_RECOVERY_20261030_V1]",
+  "repository": "TrillionniumFoundation/Hepta",
+  "branch": "codex/hia-ndu-verified-optimization-20261027",
+  "original_study": "experiments/hia_agent_assembly_v4_20261030",
+  "original_registration_sha256": "7f9665d5ea3575c04d903960c0e685ab88326a34b26fbc00ef54d115ea9049b9",
+  "original_cohort_sha256": "ce7c034128910ea98006e88e760abeb03375393e64b4c1eb54a5d657b3a277b5",
+  "original_source_archive": {
+    "path": "experiments/hia_agent_assembly_v4_readout_20261030/frozen-source-01.tar.xz",
+    "bytes": 1460624,
+    "sha256": "6fc1a7a0e0fff208e83c99e5b08e9363ebc351e957614cf0c13fb727b032d39d"
+  },
+  "original_status": {
+    "planned_cells": 24,
+    "attempted_cells": 15,
+    "qwen_complete_valid": true,
+    "qwen_successes": 0,
+    "qwen_cells": 12,
+    "granite_complete_valid": false,
+    "granite_attempted_cells": 3,
+    "granite_unattempted_cells": 9,
+    "granite_stop": "RemoteDisconnected during the third cell; original infrastructure policy halted the cohort"
+  },
+  "interpretation": {
+    "kind": "Separately registered exploratory replication on a fresh hosted CI VM",
+    "tasks_and_previous_results_already_seen": true,
+    "unseen_tasks_or_projects": false,
+    "causal_memory_effect_claim": false,
+    "original_observations_replaced_or_rescored": false,
+    "original_and_replication_cells_pooled": false,
+    "general_agent_advantage_claim": false,
+    "note": "Source and prompts remain fixed, but host, preparation, interpreter and compiler identities are recorded anew. A changed outcome cannot isolate a memory effect or repair the original incomplete study."
+  },
+  "frozen_execution": {
+    "source_bindings": "Exactly the original 31 registered Python source hashes; reject any drift before copying, registration, each model and final readout",
+    "prompts_schemas_fixtures": "Exactly the original prompt/schema inventory and canonical fixtures",
+    "models": "Both original fixed official GGUF sizes, revisions and SHA-256 values, in original order",
+    "runtime": "The original fixed llama.cpp b11669 archive SHA-256",
+    "cells": "Complete two-family by four-task by three-arm plan; no suffix resume, replacement or selective family",
+    "model_order": [
+      "qwen_coder1_5b",
+      "granite2b"
+    ],
+    "threads": 4,
+    "context_tokens": 8192,
+    "maximum_output_tokens": 2048,
+    "entire_generate_wall_seconds": 180,
+    "attempts_per_cell": 2,
+    "runtime_environment": {
+      "LLAMA_ARG_REPACK": "0"
+    },
+    "unchanged": "All original source admission, native provider requirements, public/hidden feedback rules, per-cell hard timeout, owned-process restart, identity checks and descriptive gates"
+  },
+  "resource_admission": {
+    "minimum_effective_cpus": 4,
+    "minimum_mem_available_bytes": 4294967296,
+    "minimum_cgroup_headroom_bytes": 4294967296,
+    "cpu": "Minimum of affinity and every visible finite cgroup CPU quota",
+    "memory": "Host MemAvailable and every visible finite cgroup memory.max minus memory.current must each meet the threshold",
+    "unlimited": "Explicit max means no limit at that node. A missing limit interface is accepted only at a proven visible hierarchy root or where parent/child controller metadata proves that controller inactive; unknown cases reject.",
+    "points": [
+      "before installation and downloads",
+      "before non-generative model capacity checks",
+      "before each complete model family"
+    ],
+    "failure": "Retain the observation and stop before any next completion; do not lower the threshold, change resources or automatically retry",
+    "scope": "Observed admission conditions, not hardware isolation, a guaranteed bound throughout a run, or remote attestation",
+    "unsupported_hierarchies": "Any v1 or hybrid membership is explicitly rejected rather than treating unknown CPU or memory limits as unlimited."
+  },
+  "qualification": {
+    "reference_controls": 36,
+    "reference_actual_native_builds_and_executions": 24,
+    "reference_expected_source_or_compile_refusals": 12,
+    "hostile_native_controls": 9,
+    "original_orchestration_controls": 20,
+    "tokenizer_capacity_models": 2,
+    "pre_registration_model_completions": 0,
+    "controls_are_model_answers": false,
+    "toolchains": "Signed LLVM 20 repository and Rust 1.95.0; actual compiler identities bound by fresh controls and reused unchanged in both families"
+  },
+  "execution": {
+    "host": "A fresh GitHub-hosted ubuntu-24.04 x86_64 VM",
+    "workflow": ".github/workflows/hepta-agent-recovery.yml",
+    "job_timeout_minutes": 300,
+    "wrapper_deadline_seconds": 16200,
+    "artifact_reserve_minutes": 30,
+    "wrapper_deadline_interpretation": "An outer infrastructure safety deadline, never a model success or an implicit shorter accepted per-request budget. If exhausted, clean only owned process groups, retain the incomplete cohort, and use the reserved interval for finalization/upload.",
+    "launch": "Push to the specified branch whose current head commit message contains the unique marker exactly once, or explicit workflow_dispatch with that exact marker; GITHUB_RUN_ATTEMPT must be 1",
+    "automatic_retry": false,
+    "on_infrastructure_failure": "Stop the entire new cohort, preserve all raw evidence and unattempted cells; do not append or restart",
+    "owned_processes_only": true,
+    "no_local_recovery_completions": true,
+    "cross_run_single_use": "One fixed workflow concurrency group serializes push and dispatch. Before any model preparation, read and retain current run and every bounded workflow-history API response. Only the earliest eligible marker push or dispatch on the registered branch qualifies; earlier failed, cancelled, queued or ambiguous dispatch runs consume the study. Missing metadata, repeated attempts, incomplete pagination, or reaching 1000 entries refuses. No status-dependent retry.",
+    "finalization_deadline_seconds": 1200,
+    "upload_staging_deadline_seconds": 300,
+    "deadline_origin": "The 270-minute inference/preparation deadline is measured from the first bootstrap monotonic timestamp when available, so checkout and Python setup consume that budget. Finalization has an independent 20-minute budget and staging five minutes. The 30-minute reserve is an operational target; hard job cancellation or upload/provider failures can still truncate retention and must be reported.",
+    "process_cleanup_scope": "Every wrapper child owns a new process group, with waitid(WNOWAIT) retaining its PID until the group is signalled and the direct owner reaped. Original llama servers inherit that group. The frozen HIA object compiler may create an independent bounded Clang session; outer kills cannot prove every descendant closed. Preserve actual engine.close receipts and unknown shutdowns; incomplete cohorts remain ineligible and final fresh-VM disposal is the containment boundary."
+  },
+  "costs": {
+    "measured": [
+      "bootstrap to executor interval",
+      "installation subprocess wall and child CPU/maxRSS",
+      "fixed downloads and identities",
+      "runtime extraction and identities",
+      "source copy and checks",
+      "fresh native/orchestration/capacity controls",
+      "new registrations",
+      "all model outer runs",
+      "all original nested inference/validation/identity/restart intervals",
+      "readout and diagnosis",
+      "archive and complete member readback",
+      "bounded regular-file artifact staging and per-file readback"
+    ],
+    "unknown": [
+      "runner provisioning before bootstrap",
+      "provider action internals",
+      "human engineering time",
+      "complete economic cost",
+      "artifact upload until separately observed by CI"
+    ],
+    "nesting": "Parent intervals include children. Parallel or nested times are not added twice. Missing usage stays null."
+  },
+  "evidence": {
+    "retain": [
+      "both registrations and protocols",
+      "complete source snapshot",
+      "all preparation logs and failures",
+      "original-byte requests and responses",
+      "all raw cells and native artifacts",
+      "owned-server identity/startup/shutdown logs",
+      "whole-model and cohort terminal records",
+      "resource observations",
+      "readout and diagnosis",
+      "complete archive/member manifests",
+      "actual recovery helper/workflow source and original definitions even on early qualification failure"
+    ],
+    "exclude": [
+      "GGUF weights",
+      "downloaded third-party runtime archive and extracted runtime",
+      "tool installation packages"
+    ],
+    "artifact_upload_on_failure": true,
+    "upload_scope": "Only the separately staged bounded regular-file copy is uploaded. Model weights, downloaded runtime/tool payloads and symlinks are refused; partial staging includes explicit rejected-path/failure receipts. Finalizer failure does not authorize model or archive retries."
+  }
+}

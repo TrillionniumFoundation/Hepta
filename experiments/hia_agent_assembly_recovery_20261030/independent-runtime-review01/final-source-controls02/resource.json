@@ -1,0 +1,1626 @@
+{
+  "passed": true,
+  "rows": [
+    {
+      "actual": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cgroup": {
+          "cpu_quota_fraction": [
+            4,
+            1
+          ],
+          "levels": [
+            {
+              "controllers": [
+                "cpu",
+                "memory"
+              ],
+              "cpu.max": "max 100000",
+              "memory.current": 1073741824,
+              "memory.max": "max",
+              "parent_subtree_control": [
+                "cpu",
+                "memory"
+              ],
+              "path": "/sys/fs/cgroup/parent/child"
+            },
+            {
+              "controllers": [
+                "cpu",
+                "memory"
+              ],
+              "cpu.max": "400000 100000",
+              "headroom_bytes": 4294967296,
+              "memory.current": 4294967296,
+              "memory.max": "8589934592",
+              "parent_subtree_control": [
+                "cpu",
+                "memory"
+              ],
+              "path": "/sys/fs/cgroup/parent"
+            },
+            {
+              "controllers": [
+                "cpu",
+                "memory"
+              ],
+              "cpu.max": "root-unlimited",
+              "cpu.max_missing_reason": "visible_hierarchy_root_has_no_limit_interface",
+              "memory.current": null,
+              "memory.max": "root-unlimited",
+              "memory.max_missing_reason": "visible_hierarchy_root_has_no_limit_interface",
+              "parent_subtree_control": null,
+              "path": "/sys/fs/cgroup"
+            }
+          ],
+          "membership": "/parent/child",
+          "memory_headroom_bytes": 4294967296,
+          "memory_limit_state": "finite",
+          "mount_point": "/sys/fs/cgroup",
+          "mount_root": "/",
+          "version": 2
+        },
+        "cgroup_membership_text": "0::/parent/child\n",
+        "cpu_count": 8,
+        "effective_cpus": 4.0,
+        "eligible": true,
+        "errors": [],
+        "host_memory_bytes": {
+          "MemAvailable": 8589934592,
+          "MemTotal": 17179869184
+        },
+        "machine": "x86_64",
+        "minimum_effective_cpus": 4,
+        "minimum_free_bytes": 4294967296,
+        "system": "Linux"
+      },
+      "case": "exact_4_cpu_4GiB_parent_threshold",
+      "expected_eligible": true,
+      "input": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cpu_count": 8,
+        "files": {
+          "/sys/fs/cgroup/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/child/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/child/cpu.max": "max 100000",
+          "/sys/fs/cgroup/parent/child/memory.current": "1073741824",
+          "/sys/fs/cgroup/parent/child/memory.max": "max",
+          "/sys/fs/cgroup/parent/cpu.max": "400000 100000",
+          "/sys/fs/cgroup/parent/memory.current": "4294967296",
+          "/sys/fs/cgroup/parent/memory.max": "8589934592"
+        },
+        "membership": "0::/parent/child\n",
+        "meminfo": "MemTotal: 16777216 kB\nMemAvailable: 8388608 kB\n",
+        "mountinfo": "29 23 0:26 / /sys/fs/cgroup rw - cgroup2 cgroup rw\n"
+      },
+      "passed": true
+    },
+    {
+      "actual": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cgroup": {
+          "cpu_quota_fraction": [
+            7,
+            2
+          ],
+          "levels": [
+            {
+              "controllers": [
+                "cpu",
+                "memory"
+              ],
+              "cpu.max": "max 100000",
+              "memory.current": 1073741824,
+              "memory.max": "max",
+              "parent_subtree_control": [
+                "cpu",
+                "memory"
+              ],
+              "path": "/sys/fs/cgroup/parent/child"
+            },
+            {
+              "controllers": [
+                "cpu",
+                "memory"
+              ],
+              "cpu.max": "350000 100000",
+              "headroom_bytes": 4294967296,
+              "memory.current": 4294967296,
+              "memory.max": "8589934592",
+              "parent_subtree_control": [
+                "cpu",
+                "memory"
+              ],
+              "path": "/sys/fs/cgroup/parent"
+            },
+            {
+              "controllers": [
+                "cpu",
+                "memory"
+              ],
+              "cpu.max": "root-unlimited",
+              "cpu.max_missing_reason": "visible_hierarchy_root_has_no_limit_interface",
+              "memory.current": null,
+              "memory.max": "root-unlimited",
+              "memory.max_missing_reason": "visible_hierarchy_root_has_no_limit_interface",
+              "parent_subtree_control": null,
+              "path": "/sys/fs/cgroup"
+            }
+          ],
+          "membership": "/parent/child",
+          "memory_headroom_bytes": 4294967296,
+          "memory_limit_state": "finite",
+          "mount_point": "/sys/fs/cgroup",
+          "mount_root": "/",
+          "version": 2
+        },
+        "cgroup_membership_text": "0::/parent/child\n",
+        "cpu_count": 8,
+        "effective_cpus": 3.5,
+        "eligible": false,
+        "errors": [
+          "recorded CPU or memory availability is below the fixed threshold"
+        ],
+        "host_memory_bytes": {
+          "MemAvailable": 8589934592,
+          "MemTotal": 17179869184
+        },
+        "machine": "x86_64",
+        "minimum_effective_cpus": 4,
+        "minimum_free_bytes": 4294967296,
+        "system": "Linux"
+      },
+      "case": "fractional_3_5_cpu_parent_refused",
+      "expected_eligible": false,
+      "input": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cpu_count": 8,
+        "files": {
+          "/sys/fs/cgroup/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/child/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/child/cpu.max": "max 100000",
+          "/sys/fs/cgroup/parent/child/memory.current": "1073741824",
+          "/sys/fs/cgroup/parent/child/memory.max": "max",
+          "/sys/fs/cgroup/parent/cpu.max": "350000 100000",
+          "/sys/fs/cgroup/parent/memory.current": "4294967296",
+          "/sys/fs/cgroup/parent/memory.max": "8589934592"
+        },
+        "membership": "0::/parent/child\n",
+        "meminfo": "MemTotal: 16777216 kB\nMemAvailable: 8388608 kB\n",
+        "mountinfo": "29 23 0:26 / /sys/fs/cgroup rw - cgroup2 cgroup rw\n"
+      },
+      "passed": true
+    },
+    {
+      "actual": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cgroup": {
+          "cpu_quota_fraction": [
+            3,
+            1
+          ],
+          "levels": [
+            {
+              "controllers": [
+                "cpu",
+                "memory"
+              ],
+              "cpu.max": "300000 100000",
+              "memory.current": 1073741824,
+              "memory.max": "max",
+              "parent_subtree_control": [
+                "cpu",
+                "memory"
+              ],
+              "path": "/sys/fs/cgroup/parent/child"
+            },
+            {
+              "controllers": [
+                "cpu",
+                "memory"
+              ],
+              "cpu.max": "400000 100000",
+              "headroom_bytes": 4294967296,
+              "memory.current": 4294967296,
+              "memory.max": "8589934592",
+              "parent_subtree_control": [
+                "cpu",
+                "memory"
+              ],
+              "path": "/sys/fs/cgroup/parent"
+            },
+            {
+              "controllers": [
+                "cpu",
+                "memory"
+              ],
+              "cpu.max": "root-unlimited",
+              "cpu.max_missing_reason": "visible_hierarchy_root_has_no_limit_interface",
+              "memory.current": null,
+              "memory.max": "root-unlimited",
+              "memory.max_missing_reason": "visible_hierarchy_root_has_no_limit_interface",
+              "parent_subtree_control": null,
+              "path": "/sys/fs/cgroup"
+            }
+          ],
+          "membership": "/parent/child",
+          "memory_headroom_bytes": 4294967296,
+          "memory_limit_state": "finite",
+          "mount_point": "/sys/fs/cgroup",
+          "mount_root": "/",
+          "version": 2
+        },
+        "cgroup_membership_text": "0::/parent/child\n",
+        "cpu_count": 8,
+        "effective_cpus": 3.0,
+        "eligible": false,
+        "errors": [
+          "recorded CPU or memory availability is below the fixed threshold"
+        ],
+        "host_memory_bytes": {
+          "MemAvailable": 8589934592,
+          "MemTotal": 17179869184
+        },
+        "machine": "x86_64",
+        "minimum_effective_cpus": 4,
+        "minimum_free_bytes": 4294967296,
+        "system": "Linux"
+      },
+      "case": "child_quota_below_parent_refused",
+      "expected_eligible": false,
+      "input": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cpu_count": 8,
+        "files": {
+          "/sys/fs/cgroup/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/child/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/child/cpu.max": "300000 100000",
+          "/sys/fs/cgroup/parent/child/memory.current": "1073741824",
+          "/sys/fs/cgroup/parent/child/memory.max": "max",
+          "/sys/fs/cgroup/parent/cpu.max": "400000 100000",
+          "/sys/fs/cgroup/parent/memory.current": "4294967296",
+          "/sys/fs/cgroup/parent/memory.max": "8589934592"
+        },
+        "membership": "0::/parent/child\n",
+        "meminfo": "MemTotal: 16777216 kB\nMemAvailable: 8388608 kB\n",
+        "mountinfo": "29 23 0:26 / /sys/fs/cgroup rw - cgroup2 cgroup rw\n"
+      },
+      "passed": true
+    },
+    {
+      "actual": {
+        "affinity": [
+          0,
+          1,
+          2
+        ],
+        "cgroup": {
+          "cpu_quota_fraction": [
+            4,
+            1
+          ],
+          "levels": [
+            {
+              "controllers": [
+                "cpu",
+                "memory"
+              ],
+              "cpu.max": "max 100000",
+              "memory.current": 1073741824,
+              "memory.max": "max",
+              "parent_subtree_control": [
+                "cpu",
+                "memory"
+              ],
+              "path": "/sys/fs/cgroup/parent/child"
+            },
+            {
+              "controllers": [
+                "cpu",
+                "memory"
+              ],
+              "cpu.max": "400000 100000",
+              "headroom_bytes": 4294967296,
+              "memory.current": 4294967296,
+              "memory.max": "8589934592",
+              "parent_subtree_control": [
+                "cpu",
+                "memory"
+              ],
+              "path": "/sys/fs/cgroup/parent"
+            },
+            {
+              "controllers": [
+                "cpu",
+                "memory"
+              ],
+              "cpu.max": "root-unlimited",
+              "cpu.max_missing_reason": "visible_hierarchy_root_has_no_limit_interface",
+              "memory.current": null,
+              "memory.max": "root-unlimited",
+              "memory.max_missing_reason": "visible_hierarchy_root_has_no_limit_interface",
+              "parent_subtree_control": null,
+              "path": "/sys/fs/cgroup"
+            }
+          ],
+          "membership": "/parent/child",
+          "memory_headroom_bytes": 4294967296,
+          "memory_limit_state": "finite",
+          "mount_point": "/sys/fs/cgroup",
+          "mount_root": "/",
+          "version": 2
+        },
+        "cgroup_membership_text": "0::/parent/child\n",
+        "cpu_count": 8,
+        "effective_cpus": 3.0,
+        "eligible": false,
+        "errors": [
+          "recorded CPU or memory availability is below the fixed threshold"
+        ],
+        "host_memory_bytes": {
+          "MemAvailable": 8589934592,
+          "MemTotal": 17179869184
+        },
+        "machine": "x86_64",
+        "minimum_effective_cpus": 4,
+        "minimum_free_bytes": 4294967296,
+        "system": "Linux"
+      },
+      "case": "affinity_three_refused",
+      "expected_eligible": false,
+      "input": {
+        "affinity": [
+          0,
+          1,
+          2
+        ],
+        "cpu_count": 8,
+        "files": {
+          "/sys/fs/cgroup/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/child/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/child/cpu.max": "max 100000",
+          "/sys/fs/cgroup/parent/child/memory.current": "1073741824",
+          "/sys/fs/cgroup/parent/child/memory.max": "max",
+          "/sys/fs/cgroup/parent/cpu.max": "400000 100000",
+          "/sys/fs/cgroup/parent/memory.current": "4294967296",
+          "/sys/fs/cgroup/parent/memory.max": "8589934592"
+        },
+        "membership": "0::/parent/child\n",
+        "meminfo": "MemTotal: 16777216 kB\nMemAvailable: 8388608 kB\n",
+        "mountinfo": "29 23 0:26 / /sys/fs/cgroup rw - cgroup2 cgroup rw\n"
+      },
+      "passed": true
+    },
+    {
+      "actual": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cgroup": {
+          "cpu_quota_fraction": [
+            4,
+            1
+          ],
+          "levels": [
+            {
+              "controllers": [
+                "cpu",
+                "memory"
+              ],
+              "cpu.max": "max 100000",
+              "memory.current": 1073741824,
+              "memory.max": "max",
+              "parent_subtree_control": [
+                "cpu",
+                "memory"
+              ],
+              "path": "/sys/fs/cgroup/parent/child"
+            },
+            {
+              "controllers": [
+                "cpu",
+                "memory"
+              ],
+              "cpu.max": "400000 100000",
+              "headroom_bytes": 4294967296,
+              "memory.current": 4294967296,
+              "memory.max": "8589934592",
+              "parent_subtree_control": [
+                "cpu",
+                "memory"
+              ],
+              "path": "/sys/fs/cgroup/parent"
+            },
+            {
+              "controllers": [
+                "cpu",
+                "memory"
+              ],
+              "cpu.max": "root-unlimited",
+              "cpu.max_missing_reason": "visible_hierarchy_root_has_no_limit_interface",
+              "memory.current": null,
+              "memory.max": "root-unlimited",
+              "memory.max_missing_reason": "visible_hierarchy_root_has_no_limit_interface",
+              "parent_subtree_control": null,
+              "path": "/sys/fs/cgroup"
+            }
+          ],
+          "membership": "/parent/child",
+          "memory_headroom_bytes": 4294967296,
+          "memory_limit_state": "finite",
+          "mount_point": "/sys/fs/cgroup",
+          "mount_root": "/",
+          "version": 2
+        },
+        "cgroup_membership_text": "0::/parent/child\n",
+        "cpu_count": 3,
+        "effective_cpus": 3.0,
+        "eligible": false,
+        "errors": [
+          "recorded CPU or memory availability is below the fixed threshold"
+        ],
+        "host_memory_bytes": {
+          "MemAvailable": 8589934592,
+          "MemTotal": 17179869184
+        },
+        "machine": "x86_64",
+        "minimum_effective_cpus": 4,
+        "minimum_free_bytes": 4294967296,
+        "system": "Linux"
+      },
+      "case": "cpu_count_three_refused",
+      "expected_eligible": false,
+      "input": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cpu_count": 3,
+        "files": {
+          "/sys/fs/cgroup/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/child/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/child/cpu.max": "max 100000",
+          "/sys/fs/cgroup/parent/child/memory.current": "1073741824",
+          "/sys/fs/cgroup/parent/child/memory.max": "max",
+          "/sys/fs/cgroup/parent/cpu.max": "400000 100000",
+          "/sys/fs/cgroup/parent/memory.current": "4294967296",
+          "/sys/fs/cgroup/parent/memory.max": "8589934592"
+        },
+        "membership": "0::/parent/child\n",
+        "meminfo": "MemTotal: 16777216 kB\nMemAvailable: 8388608 kB\n",
+        "mountinfo": "29 23 0:26 / /sys/fs/cgroup rw - cgroup2 cgroup rw\n"
+      },
+      "passed": true
+    },
+    {
+      "actual": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cgroup": {
+          "cpu_quota_fraction": [
+            4,
+            1
+          ],
+          "levels": [
+            {
+              "controllers": [
+                "cpu",
+                "memory"
+              ],
+              "cpu.max": "max 100000",
+              "memory.current": 1073741824,
+              "memory.max": "max",
+              "parent_subtree_control": [
+                "cpu",
+                "memory"
+              ],
+              "path": "/sys/fs/cgroup/parent/child"
+            },
+            {
+              "controllers": [
+                "cpu",
+                "memory"
+              ],
+              "cpu.max": "400000 100000",
+              "headroom_bytes": 3221225472,
+              "memory.current": 5368709120,
+              "memory.max": "8589934592",
+              "parent_subtree_control": [
+                "cpu",
+                "memory"
+              ],
+              "path": "/sys/fs/cgroup/parent"
+            },
+            {
+              "controllers": [
+                "cpu",
+                "memory"
+              ],
+              "cpu.max": "root-unlimited",
+              "cpu.max_missing_reason": "visible_hierarchy_root_has_no_limit_interface",
+              "memory.current": null,
+              "memory.max": "root-unlimited",
+              "memory.max_missing_reason": "visible_hierarchy_root_has_no_limit_interface",
+              "parent_subtree_control": null,
+              "path": "/sys/fs/cgroup"
+            }
+          ],
+          "membership": "/parent/child",
+          "memory_headroom_bytes": 3221225472,
+          "memory_limit_state": "finite",
+          "mount_point": "/sys/fs/cgroup",
+          "mount_root": "/",
+          "version": 2
+        },
+        "cgroup_membership_text": "0::/parent/child\n",
+        "cpu_count": 8,
+        "effective_cpus": 4.0,
+        "eligible": false,
+        "errors": [
+          "recorded CPU or memory availability is below the fixed threshold"
+        ],
+        "host_memory_bytes": {
+          "MemAvailable": 8589934592,
+          "MemTotal": 17179869184
+        },
+        "machine": "x86_64",
+        "minimum_effective_cpus": 4,
+        "minimum_free_bytes": 4294967296,
+        "system": "Linux"
+      },
+      "case": "parent_headroom_3GiB_refused",
+      "expected_eligible": false,
+      "input": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cpu_count": 8,
+        "files": {
+          "/sys/fs/cgroup/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/child/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/child/cpu.max": "max 100000",
+          "/sys/fs/cgroup/parent/child/memory.current": "1073741824",
+          "/sys/fs/cgroup/parent/child/memory.max": "max",
+          "/sys/fs/cgroup/parent/cpu.max": "400000 100000",
+          "/sys/fs/cgroup/parent/memory.current": "5368709120",
+          "/sys/fs/cgroup/parent/memory.max": "8589934592"
+        },
+        "membership": "0::/parent/child\n",
+        "meminfo": "MemTotal: 16777216 kB\nMemAvailable: 8388608 kB\n",
+        "mountinfo": "29 23 0:26 / /sys/fs/cgroup rw - cgroup2 cgroup rw\n"
+      },
+      "passed": true
+    },
+    {
+      "actual": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cgroup": {
+          "cpu_quota_fraction": [
+            4,
+            1
+          ],
+          "levels": [
+            {
+              "controllers": [
+                "cpu",
+                "memory"
+              ],
+              "cpu.max": "max 100000",
+              "headroom_bytes": 3221225472,
+              "memory.current": 1073741824,
+              "memory.max": "4294967296",
+              "parent_subtree_control": [
+                "cpu",
+                "memory"
+              ],
+              "path": "/sys/fs/cgroup/parent/child"
+            },
+            {
+              "controllers": [
+                "cpu",
+                "memory"
+              ],
+              "cpu.max": "400000 100000",
+              "headroom_bytes": 4294967296,
+              "memory.current": 4294967296,
+              "memory.max": "8589934592",
+              "parent_subtree_control": [
+                "cpu",
+                "memory"
+              ],
+              "path": "/sys/fs/cgroup/parent"
+            },
+            {
+              "controllers": [
+                "cpu",
+                "memory"
+              ],
+              "cpu.max": "root-unlimited",
+              "cpu.max_missing_reason": "visible_hierarchy_root_has_no_limit_interface",
+              "memory.current": null,
+              "memory.max": "root-unlimited",
+              "memory.max_missing_reason": "visible_hierarchy_root_has_no_limit_interface",
+              "parent_subtree_control": null,
+              "path": "/sys/fs/cgroup"
+            }
+          ],
+          "membership": "/parent/child",
+          "memory_headroom_bytes": 3221225472,
+          "memory_limit_state": "finite",
+          "mount_point": "/sys/fs/cgroup",
+          "mount_root": "/",
+          "version": 2
+        },
+        "cgroup_membership_text": "0::/parent/child\n",
+        "cpu_count": 8,
+        "effective_cpus": 4.0,
+        "eligible": false,
+        "errors": [
+          "recorded CPU or memory availability is below the fixed threshold"
+        ],
+        "host_memory_bytes": {
+          "MemAvailable": 8589934592,
+          "MemTotal": 17179869184
+        },
+        "machine": "x86_64",
+        "minimum_effective_cpus": 4,
+        "minimum_free_bytes": 4294967296,
+        "system": "Linux"
+      },
+      "case": "child_headroom_3GiB_refused",
+      "expected_eligible": false,
+      "input": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cpu_count": 8,
+        "files": {
+          "/sys/fs/cgroup/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/child/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/child/cpu.max": "max 100000",
+          "/sys/fs/cgroup/parent/child/memory.current": "1073741824",
+          "/sys/fs/cgroup/parent/child/memory.max": "4294967296",
+          "/sys/fs/cgroup/parent/cpu.max": "400000 100000",
+          "/sys/fs/cgroup/parent/memory.current": "4294967296",
+          "/sys/fs/cgroup/parent/memory.max": "8589934592"
+        },
+        "membership": "0::/parent/child\n",
+        "meminfo": "MemTotal: 16777216 kB\nMemAvailable: 8388608 kB\n",
+        "mountinfo": "29 23 0:26 / /sys/fs/cgroup rw - cgroup2 cgroup rw\n"
+      },
+      "passed": true
+    },
+    {
+      "actual": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cgroup": {
+          "cpu_quota_fraction": [
+            4,
+            1
+          ],
+          "levels": [
+            {
+              "controllers": [
+                "cpu",
+                "memory"
+              ],
+              "cpu.max": "max 100000",
+              "memory.current": 1073741824,
+              "memory.max": "max",
+              "parent_subtree_control": [
+                "cpu",
+                "memory"
+              ],
+              "path": "/sys/fs/cgroup/parent/child"
+            },
+            {
+              "controllers": [
+                "cpu",
+                "memory"
+              ],
+              "cpu.max": "400000 100000",
+              "headroom_bytes": -1073741824,
+              "memory.current": 9663676416,
+              "memory.max": "8589934592",
+              "parent_subtree_control": [
+                "cpu",
+                "memory"
+              ],
+              "path": "/sys/fs/cgroup/parent"
+            },
+            {
+              "controllers": [
+                "cpu",
+                "memory"
+              ],
+              "cpu.max": "root-unlimited",
+              "cpu.max_missing_reason": "visible_hierarchy_root_has_no_limit_interface",
+              "memory.current": null,
+              "memory.max": "root-unlimited",
+              "memory.max_missing_reason": "visible_hierarchy_root_has_no_limit_interface",
+              "parent_subtree_control": null,
+              "path": "/sys/fs/cgroup"
+            }
+          ],
+          "membership": "/parent/child",
+          "memory_headroom_bytes": -1073741824,
+          "memory_limit_state": "finite",
+          "mount_point": "/sys/fs/cgroup",
+          "mount_root": "/",
+          "version": 2
+        },
+        "cgroup_membership_text": "0::/parent/child\n",
+        "cpu_count": 8,
+        "effective_cpus": 4.0,
+        "eligible": false,
+        "errors": [
+          "recorded CPU or memory availability is below the fixed threshold"
+        ],
+        "host_memory_bytes": {
+          "MemAvailable": 8589934592,
+          "MemTotal": 17179869184
+        },
+        "machine": "x86_64",
+        "minimum_effective_cpus": 4,
+        "minimum_free_bytes": 4294967296,
+        "system": "Linux"
+      },
+      "case": "negative_headroom_refused",
+      "expected_eligible": false,
+      "input": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cpu_count": 8,
+        "files": {
+          "/sys/fs/cgroup/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/child/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/child/cpu.max": "max 100000",
+          "/sys/fs/cgroup/parent/child/memory.current": "1073741824",
+          "/sys/fs/cgroup/parent/child/memory.max": "max",
+          "/sys/fs/cgroup/parent/cpu.max": "400000 100000",
+          "/sys/fs/cgroup/parent/memory.current": "9663676416",
+          "/sys/fs/cgroup/parent/memory.max": "8589934592"
+        },
+        "membership": "0::/parent/child\n",
+        "meminfo": "MemTotal: 16777216 kB\nMemAvailable: 8388608 kB\n",
+        "mountinfo": "29 23 0:26 / /sys/fs/cgroup rw - cgroup2 cgroup rw\n"
+      },
+      "passed": true
+    },
+    {
+      "actual": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cgroup": {
+          "cpu_quota_fraction": [
+            4,
+            1
+          ],
+          "levels": [
+            {
+              "controllers": [
+                "cpu",
+                "memory"
+              ],
+              "cpu.max": "max 100000",
+              "memory.current": 1073741824,
+              "memory.max": "max",
+              "parent_subtree_control": [
+                "cpu",
+                "memory"
+              ],
+              "path": "/sys/fs/cgroup/parent/child"
+            },
+            {
+              "controllers": [
+                "cpu",
+                "memory"
+              ],
+              "cpu.max": "400000 100000",
+              "headroom_bytes": 4294967296,
+              "memory.current": 4294967296,
+              "memory.max": "8589934592",
+              "parent_subtree_control": [
+                "cpu",
+                "memory"
+              ],
+              "path": "/sys/fs/cgroup/parent"
+            },
+            {
+              "controllers": [
+                "cpu",
+                "memory"
+              ],
+              "cpu.max": "root-unlimited",
+              "cpu.max_missing_reason": "visible_hierarchy_root_has_no_limit_interface",
+              "memory.current": null,
+              "memory.max": "root-unlimited",
+              "memory.max_missing_reason": "visible_hierarchy_root_has_no_limit_interface",
+              "parent_subtree_control": null,
+              "path": "/sys/fs/cgroup"
+            }
+          ],
+          "membership": "/parent/child",
+          "memory_headroom_bytes": 4294967296,
+          "memory_limit_state": "finite",
+          "mount_point": "/sys/fs/cgroup",
+          "mount_root": "/",
+          "version": 2
+        },
+        "cgroup_membership_text": "0::/parent/child\n",
+        "cpu_count": 8,
+        "effective_cpus": 4.0,
+        "eligible": false,
+        "errors": [
+          "recorded CPU or memory availability is below the fixed threshold"
+        ],
+        "host_memory_bytes": {
+          "MemAvailable": 3221225472
+        },
+        "machine": "x86_64",
+        "minimum_effective_cpus": 4,
+        "minimum_free_bytes": 4294967296,
+        "system": "Linux"
+      },
+      "case": "host_available_3GiB_refused",
+      "expected_eligible": false,
+      "input": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cpu_count": 8,
+        "files": {
+          "/sys/fs/cgroup/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/child/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/child/cpu.max": "max 100000",
+          "/sys/fs/cgroup/parent/child/memory.current": "1073741824",
+          "/sys/fs/cgroup/parent/child/memory.max": "max",
+          "/sys/fs/cgroup/parent/cpu.max": "400000 100000",
+          "/sys/fs/cgroup/parent/memory.current": "4294967296",
+          "/sys/fs/cgroup/parent/memory.max": "8589934592"
+        },
+        "membership": "0::/parent/child\n",
+        "meminfo": "MemAvailable: 3145728 kB\n",
+        "mountinfo": "29 23 0:26 / /sys/fs/cgroup rw - cgroup2 cgroup rw\n"
+      },
+      "passed": true
+    },
+    {
+      "actual": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cgroup_membership_text": "0::/parent/child\n",
+        "cpu_count": 8,
+        "eligible": false,
+        "errors": [
+          "ValueError: MemAvailable is unknown"
+        ],
+        "machine": "x86_64",
+        "minimum_effective_cpus": 4,
+        "minimum_free_bytes": 4294967296,
+        "system": "Linux"
+      },
+      "case": "host_memory_unknown_refused",
+      "expected_eligible": false,
+      "input": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cpu_count": 8,
+        "files": {
+          "/sys/fs/cgroup/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/child/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/child/cpu.max": "max 100000",
+          "/sys/fs/cgroup/parent/child/memory.current": "1073741824",
+          "/sys/fs/cgroup/parent/child/memory.max": "max",
+          "/sys/fs/cgroup/parent/cpu.max": "400000 100000",
+          "/sys/fs/cgroup/parent/memory.current": "4294967296",
+          "/sys/fs/cgroup/parent/memory.max": "8589934592"
+        },
+        "membership": "0::/parent/child\n",
+        "meminfo": "MemTotal: 16777216 kB\n",
+        "mountinfo": "29 23 0:26 / /sys/fs/cgroup rw - cgroup2 cgroup rw\n"
+      },
+      "passed": true
+    },
+    {
+      "actual": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cgroup_membership_text": "0::/parent/child\n",
+        "cpu_count": 8,
+        "eligible": false,
+        "errors": [
+          "ValueError: duplicate memory field"
+        ],
+        "machine": "x86_64",
+        "minimum_effective_cpus": 4,
+        "minimum_free_bytes": 4294967296,
+        "system": "Linux"
+      },
+      "case": "duplicate_available_refused",
+      "expected_eligible": false,
+      "input": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cpu_count": 8,
+        "files": {
+          "/sys/fs/cgroup/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/child/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/child/cpu.max": "max 100000",
+          "/sys/fs/cgroup/parent/child/memory.current": "1073741824",
+          "/sys/fs/cgroup/parent/child/memory.max": "max",
+          "/sys/fs/cgroup/parent/cpu.max": "400000 100000",
+          "/sys/fs/cgroup/parent/memory.current": "4294967296",
+          "/sys/fs/cgroup/parent/memory.max": "8589934592"
+        },
+        "membership": "0::/parent/child\n",
+        "meminfo": "MemAvailable: 8388608 kB\nMemAvailable: 8388608 kB\n",
+        "mountinfo": "29 23 0:26 / /sys/fs/cgroup rw - cgroup2 cgroup rw\n"
+      },
+      "passed": true
+    },
+    {
+      "actual": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cgroup_membership_text": "5:cpu,cpuacct:/v1\n4:memory:/v1\n0::/parent/child\n",
+        "cpu_count": 8,
+        "eligible": false,
+        "errors": [
+          "ValueError: hybrid or cgroup-v1 membership is unsupported"
+        ],
+        "host_memory_bytes": {
+          "MemAvailable": 8589934592,
+          "MemTotal": 17179869184
+        },
+        "machine": "x86_64",
+        "minimum_effective_cpus": 4,
+        "minimum_free_bytes": 4294967296,
+        "system": "Linux"
+      },
+      "case": "hybrid_membership_refused",
+      "expected_eligible": false,
+      "input": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cpu_count": 8,
+        "files": {
+          "/sys/fs/cgroup/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/child/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/child/cpu.max": "max 100000",
+          "/sys/fs/cgroup/parent/child/memory.current": "1073741824",
+          "/sys/fs/cgroup/parent/child/memory.max": "max",
+          "/sys/fs/cgroup/parent/cpu.max": "400000 100000",
+          "/sys/fs/cgroup/parent/memory.current": "4294967296",
+          "/sys/fs/cgroup/parent/memory.max": "8589934592"
+        },
+        "membership": "5:cpu,cpuacct:/v1\n4:memory:/v1\n0::/parent/child\n",
+        "meminfo": "MemTotal: 16777216 kB\nMemAvailable: 8388608 kB\n",
+        "mountinfo": "29 23 0:26 / /sys/fs/cgroup rw - cgroup2 cgroup rw\n"
+      },
+      "passed": true
+    },
+    {
+      "actual": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cgroup_membership_text": "0::/parent/child\n",
+        "cpu_count": 8,
+        "eligible": false,
+        "errors": [
+          "ValueError: unknown missing cgroup interface: /sys/fs/cgroup/parent/child/cpu.max"
+        ],
+        "host_memory_bytes": {
+          "MemAvailable": 8589934592,
+          "MemTotal": 17179869184
+        },
+        "machine": "x86_64",
+        "minimum_effective_cpus": 4,
+        "minimum_free_bytes": 4294967296,
+        "system": "Linux"
+      },
+      "case": "missing_enabled_child_cpu_interface_refused",
+      "expected_eligible": false,
+      "input": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cpu_count": 8,
+        "files": {
+          "/sys/fs/cgroup/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/child/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/child/memory.current": "1073741824",
+          "/sys/fs/cgroup/parent/child/memory.max": "max",
+          "/sys/fs/cgroup/parent/cpu.max": "400000 100000",
+          "/sys/fs/cgroup/parent/memory.current": "4294967296",
+          "/sys/fs/cgroup/parent/memory.max": "8589934592"
+        },
+        "membership": "0::/parent/child\n",
+        "meminfo": "MemTotal: 16777216 kB\nMemAvailable: 8388608 kB\n",
+        "mountinfo": "29 23 0:26 / /sys/fs/cgroup rw - cgroup2 cgroup rw\n"
+      },
+      "passed": true
+    },
+    {
+      "actual": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cgroup": {
+          "cpu_quota_fraction": [
+            4,
+            1
+          ],
+          "levels": [
+            {
+              "controllers": [],
+              "cpu.max": "inactive",
+              "cpu.max_missing_reason": "controller_inactive_at_this_node",
+              "memory.current": null,
+              "memory.max": "inactive",
+              "memory.max_missing_reason": "controller_inactive_at_this_node",
+              "parent_subtree_control": [],
+              "path": "/sys/fs/cgroup/parent/child"
+            },
+            {
+              "controllers": [
+                "cpu",
+                "memory"
+              ],
+              "cpu.max": "400000 100000",
+              "headroom_bytes": 4294967296,
+              "memory.current": 4294967296,
+              "memory.max": "8589934592",
+              "parent_subtree_control": [
+                "cpu",
+                "memory"
+              ],
+              "path": "/sys/fs/cgroup/parent"
+            },
+            {
+              "controllers": [
+                "cpu",
+                "memory"
+              ],
+              "cpu.max": "root-unlimited",
+              "cpu.max_missing_reason": "visible_hierarchy_root_has_no_limit_interface",
+              "memory.current": null,
+              "memory.max": "root-unlimited",
+              "memory.max_missing_reason": "visible_hierarchy_root_has_no_limit_interface",
+              "parent_subtree_control": null,
+              "path": "/sys/fs/cgroup"
+            }
+          ],
+          "membership": "/parent/child",
+          "memory_headroom_bytes": 4294967296,
+          "memory_limit_state": "finite",
+          "mount_point": "/sys/fs/cgroup",
+          "mount_root": "/",
+          "version": 2
+        },
+        "cgroup_membership_text": "0::/parent/child\n",
+        "cpu_count": 8,
+        "effective_cpus": 4.0,
+        "eligible": true,
+        "errors": [],
+        "host_memory_bytes": {
+          "MemAvailable": 8589934592,
+          "MemTotal": 17179869184
+        },
+        "machine": "x86_64",
+        "minimum_effective_cpus": 4,
+        "minimum_free_bytes": 4294967296,
+        "system": "Linux"
+      },
+      "case": "inactive_child_interfaces_with_bound_parent",
+      "expected_eligible": true,
+      "input": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cpu_count": 8,
+        "files": {
+          "/sys/fs/cgroup/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.subtree_control": "",
+          "/sys/fs/cgroup/parent/child/cgroup.controllers": "",
+          "/sys/fs/cgroup/parent/cpu.max": "400000 100000",
+          "/sys/fs/cgroup/parent/memory.current": "4294967296",
+          "/sys/fs/cgroup/parent/memory.max": "8589934592"
+        },
+        "membership": "0::/parent/child\n",
+        "meminfo": "MemTotal: 16777216 kB\nMemAvailable: 8388608 kB\n",
+        "mountinfo": "29 23 0:26 / /sys/fs/cgroup rw - cgroup2 cgroup rw\n"
+      },
+      "passed": true
+    },
+    {
+      "actual": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cgroup_membership_text": "0::/parent/child\n",
+        "cpu_count": 8,
+        "eligible": false,
+        "errors": [
+          "ValueError: invalid cpu.max"
+        ],
+        "host_memory_bytes": {
+          "MemAvailable": 8589934592,
+          "MemTotal": 17179869184
+        },
+        "machine": "x86_64",
+        "minimum_effective_cpus": 4,
+        "minimum_free_bytes": 4294967296,
+        "system": "Linux"
+      },
+      "case": "malformed_zero_period_refused",
+      "expected_eligible": false,
+      "input": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cpu_count": 8,
+        "files": {
+          "/sys/fs/cgroup/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/child/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/child/cpu.max": "max 100000",
+          "/sys/fs/cgroup/parent/child/memory.current": "1073741824",
+          "/sys/fs/cgroup/parent/child/memory.max": "max",
+          "/sys/fs/cgroup/parent/cpu.max": "max 0",
+          "/sys/fs/cgroup/parent/memory.current": "4294967296",
+          "/sys/fs/cgroup/parent/memory.max": "8589934592"
+        },
+        "membership": "0::/parent/child\n",
+        "meminfo": "MemTotal: 16777216 kB\nMemAvailable: 8388608 kB\n",
+        "mountinfo": "29 23 0:26 / /sys/fs/cgroup rw - cgroup2 cgroup rw\n"
+      },
+      "passed": true
+    },
+    {
+      "actual": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cgroup_membership_text": "0::/parent/child\n",
+        "cpu_count": 8,
+        "eligible": false,
+        "errors": [
+          "ValueError: invalid memory.current"
+        ],
+        "host_memory_bytes": {
+          "MemAvailable": 8589934592,
+          "MemTotal": 17179869184
+        },
+        "machine": "x86_64",
+        "minimum_effective_cpus": 4,
+        "minimum_free_bytes": 4294967296,
+        "system": "Linux"
+      },
+      "case": "malformed_memory_current_refused",
+      "expected_eligible": false,
+      "input": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cpu_count": 8,
+        "files": {
+          "/sys/fs/cgroup/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/child/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/child/cpu.max": "max 100000",
+          "/sys/fs/cgroup/parent/child/memory.current": "1073741824",
+          "/sys/fs/cgroup/parent/child/memory.max": "max",
+          "/sys/fs/cgroup/parent/cpu.max": "400000 100000",
+          "/sys/fs/cgroup/parent/memory.current": "unknown",
+          "/sys/fs/cgroup/parent/memory.max": "8589934592"
+        },
+        "membership": "0::/parent/child\n",
+        "meminfo": "MemTotal: 16777216 kB\nMemAvailable: 8388608 kB\n",
+        "mountinfo": "29 23 0:26 / /sys/fs/cgroup rw - cgroup2 cgroup rw\n"
+      },
+      "passed": true
+    },
+    {
+      "actual": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cgroup_membership_text": "0::/parent/child\n",
+        "cpu_count": 8,
+        "eligible": false,
+        "errors": [
+          "ValueError: unambiguous visible cgroup-v2 mount required"
+        ],
+        "host_memory_bytes": {
+          "MemAvailable": 8589934592,
+          "MemTotal": 17179869184
+        },
+        "machine": "x86_64",
+        "minimum_effective_cpus": 4,
+        "minimum_free_bytes": 4294967296,
+        "system": "Linux"
+      },
+      "case": "ambiguous_visible_mount_refused",
+      "expected_eligible": false,
+      "input": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cpu_count": 8,
+        "files": {
+          "/sys/fs/cgroup/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/child/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/child/cpu.max": "max 100000",
+          "/sys/fs/cgroup/parent/child/memory.current": "1073741824",
+          "/sys/fs/cgroup/parent/child/memory.max": "max",
+          "/sys/fs/cgroup/parent/cpu.max": "400000 100000",
+          "/sys/fs/cgroup/parent/memory.current": "4294967296",
+          "/sys/fs/cgroup/parent/memory.max": "8589934592"
+        },
+        "membership": "0::/parent/child\n",
+        "meminfo": "MemTotal: 16777216 kB\nMemAvailable: 8388608 kB\n",
+        "mountinfo": "29 23 0:26 / /sys/fs/cgroup rw - cgroup2 cgroup rw\n30 23 0:26 / /other/cgroup rw - cgroup2 cgroup rw\n"
+      },
+      "passed": true
+    },
+    {
+      "actual": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cgroup_membership_text": "0::/parent/child\n",
+        "cpu_count": 8,
+        "eligible": false,
+        "errors": [
+          "ValueError: the registered native runtime requires Linux x86_64"
+        ],
+        "machine": "aarch64",
+        "minimum_effective_cpus": 4,
+        "minimum_free_bytes": 4294967296,
+        "system": "Linux"
+      },
+      "case": "unsupported_architecture_refused",
+      "expected_eligible": false,
+      "input": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cpu_count": 8,
+        "files": {
+          "/sys/fs/cgroup/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/cgroup.subtree_control": "cpu memory",
+          "/sys/fs/cgroup/parent/child/cgroup.controllers": "cpu memory",
+          "/sys/fs/cgroup/parent/child/cpu.max": "max 100000",
+          "/sys/fs/cgroup/parent/child/memory.current": "1073741824",
+          "/sys/fs/cgroup/parent/child/memory.max": "max",
+          "/sys/fs/cgroup/parent/cpu.max": "400000 100000",
+          "/sys/fs/cgroup/parent/memory.current": "4294967296",
+          "/sys/fs/cgroup/parent/memory.max": "8589934592"
+        },
+        "machine": "aarch64",
+        "membership": "0::/parent/child\n",
+        "meminfo": "MemTotal: 16777216 kB\nMemAvailable: 8388608 kB\n",
+        "mountinfo": "29 23 0:26 / /sys/fs/cgroup rw - cgroup2 cgroup rw\n"
+      },
+      "passed": true
+    }
+  ],
+  "schema": "hepta.agent.recovery.resource-review.v2",
+  "scope": "pure fake kernel metadata; 0 network/model/native runs; visible-hierarchy observation only",
+  "source_sha256": "921d579c8a9be97fa114b5cb68d1d00d0e6ff46ce054695cecb62c2d87acc0a6",
+  "source_unchanged": true
+}

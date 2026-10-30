@@ -77,7 +77,37 @@ MODULES = (
     "tests.test_hia_crc_context_study",
     "tests.test_hia_native_source_reinspect",
     "tests.test_hia_v6_differential",
+    "tests.test_hia_runtime_argument_snapshot",
+    "tests.test_hia_rust_executable_custody",
+    "tests.test_hia_rust_budget_v3",
+    "tests.test_hia_rust_api_v4",
+    "tests.test_hia_ndu_optimizer_budget",
+    "tests.test_hia_ndu_optimizer_transport",
+    "tests.test_c2hepta_preprocessor_guard",
+    "tests.test_hia_c_loop_jumps",
+    "tests.test_hia_c_do_while",
+    "tests.test_hia_c_loop_migration_qualification",
+    "tests.test_hia_ndu_narrowed_controls",
+    "tests.test_hia_artifact_narrowing",
+    "tests.test_hia_agent_assembly", "tests.test_hia_round4_routes",
+    "tests.test_hia_continuation", "tests.test_hia_ndu_sealed_identity",
+    "tests.test_hia_ndu_session_cost", "tests.test_cpp_unique_assignment_project",
+    "tests.test_hia_round4_bench",
+    "tests.test_hia_opcode_catalog", "tests.test_hia_optimization_contract",
+    "tests.test_hia_register_safety.RegisterSafetyInputTests",
+    "tests.test_ring_maintenance_qualification", "tests.test_hia_agent_public_tools",
+    "tests.test_hia_ndu_convergence", "tests.test_hia_ndu_converged_holdout",
 )
+
+
+def selector_source(selector):
+    """Bind the source module for a unittest module/class/method selector."""
+    parts = selector.split(".")
+    for end in range(len(parts), 0, -1):
+        path = ROOT.joinpath(*parts[:end]).with_suffix(".py")
+        if path.is_file():
+            return path
+    raise ValueError("unresolved integration test source: " + selector)
 
 
 def inventory():
@@ -85,6 +115,7 @@ def inventory():
     paths += list((ROOT / "tools").rglob("*.py"))
     for folder in ("examples/cpp/composed_project_migration", "examples/cpp/scoped_ownership_migration",
                    "examples/cpp/unique_project_migration",
+                   "examples/cpp/unique_assignment_project_migration",
                    "experiments/hia_optimizer_eval/next_20261028",
                    "experiments/hia_optimizer_eval/round3_20261028",
                    "experiments/hia_ndu_graph_eval/round3_20261028",
@@ -94,7 +125,7 @@ def inventory():
                   and (not folder.startswith("experiments/") or
                        path.suffix in {".py", ".c"} or path.name in {"PROTOCOL.json", "FIXTURES.json", "REGISTRATION.json",
                                                             "ADMISSION_CONTROLS.json"})]
-    paths += [ROOT / (name.replace(".", "/") + ".py") for name in MODULES]
+    paths += [selector_source(name) for name in MODULES]
     for folder in ("examples/hia_legacy_queue", "tests/fixtures/c_migration/ring_buffer",
                    "tests/fixtures/c_migration/musl_compare", "experiments/hia_legacy_queue",
                    "experiments/hia_ndu_activation", "experiments/hia_ndu_prepared_reuse",

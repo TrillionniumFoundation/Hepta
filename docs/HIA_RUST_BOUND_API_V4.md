@@ -1,12 +1,22 @@
 # Bound Rust v4: exact finite API-domain extension
 
+## Current combined baseline
+
+This convergence joins catalog `192d2cbba7e49bde3b03af73685ecf96f6fb1b05`
+and P0-P7 `953fa62dee5aa563551d57b1374ab95b6d548b45` over their common
+ancestor `2cc9fb3b92a7306d2f5aae316c99e8364be700f9`. Both historical
+lineages remain in Git. See `HIA_RUST_INTEGRATION_REVIEW_20261030.md` for
+the scoped implementation review and exact-lock execution evidence. Historical
+results never qualify the combined source automatically.
+
 ## Integration lineage
 
-This implementation reuses the bounded v4 work from PR #390, exact source
-`adbe4a1168a84d0696749ef54f933994b5dc554c`, on the combined HIA source from
-PR #389, `865a4626910efbc882cad47a7816e9aa276a9600`. Qualification must bind
-the resulting integration commit; neither branch's historical results qualify
-the new source. The existing Core registry and production verifier are retained.
+This integration ports the reviewed v4 work from PR #394, exact source
+`95a67fb487da981e1941ec0d44c7f4305a22e6d6`, onto the round8 base from
+PR #395, `2cc9fb3b92a7306d2f5aae316c99e8364be700f9`. Qualification must
+bind the resulting integration commit; neither branch's historical results
+qualify the new source. The existing Core registry and production verifier
+are retained.
 
 ## Scope
 
@@ -34,8 +44,10 @@ observed = crosscheck_rust_execution_v4(
 
 The API accepts only exact built-in `list` and `tuple` containers. Both represent
 the same ordered argument sequence and normalize to the same JSON array; their
-request digests are identical when the values and policies agree. This follows
-the production evaluator's explicit `list(arguments)` conversion. Subclasses,
+request digests are identical when the values and policies agree. This preserves
+the production evaluator's ordered scalar invocation. That evaluator now
+freezes one immutable tuple before arity and type validation, so concurrent
+caller-list mutation cannot change the executed invocation. Subclasses,
 generators, fabricated resource descriptors, and inexact scalar values are
 rejected. Original nominal/public-entry eligibility is still enforced before
 execution; flattening a nominal type cannot authorize a new public entry.
@@ -101,7 +113,7 @@ and resource ledgers are not upgraded by the new entrypoint.
 ```sh
 cargo test --locked --offline --manifest-path rust/hia-core-shadow/Cargo.toml
 python -m unittest tests.test_hia_rust_api_v4 -v
-python tools/qualify_hia_rust_api_v4.py --expected-head COMMIT --output-directory /tmp/new-bound-v4-report
+
 ```
 
 The finite corpus executes list/tuple equivalence through primitive v1–v8,
@@ -112,11 +124,11 @@ duplicate/ambiguous policy JSON and an invalid unused helper hidden behind a
 small budget. Consumer controls reject rehashed changed policy and cross-version
 replays. Legacy v1/v2/v3 results are actually compared on the same Machine.
 
-The collector fixes all eight selected methods and requires zero failures,
-errors, skips, expected failures or unexpected successes. It retains the actual
-native process outputs, exact requests, complete dual reports, source/tool/binary
-identities and explicit remaining limits. Refused oversized policies are
-negative controls, not accepted executions or extra successful tasks.
+The integration must execute all eight selected methods with zero failures,
+errors or skips and bind its reports to the actual source and executable.
+The tests retain native process outputs, exact requests and complete dual
+reports in their class observations. Refused oversized policies are negative
+controls, not accepted executions or extra successful tasks.
 
 The scalar boundary still limits arguments to 8192 values and 128 KiB. Python
 owns nominal normalization and production admission. General memory/provenance,

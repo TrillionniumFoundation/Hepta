@@ -1,0 +1,3032 @@
+{
+  "candidate_core_sha256": "77465ccc1eea5e7440a5e3f730ab62aa6a2dfa6114235a04ff358935234833d0",
+  "claims": {
+    "actual_before_after_core_reverified": true,
+    "all_well_formed_selected_register_programs_total": true,
+    "backend_or_machine_code_refinement_proved": false,
+    "exact_register_growth_proved": true,
+    "exporter_or_python_verifier_refinement_proved": false,
+    "generic_dead_literal_removal_preserves_value": true,
+    "resource_lifetimes_or_cancellation_proved": false,
+    "selected_rewrite_all_u32_arguments_proved_in_imported_model": true,
+    "whole_language_soundness_proved": false
+  },
+  "generated_lean_sha256": "0f8634c18d319c4438acdbfa60763d328e256328710fb4b0fbdd6e0b178c39b1",
+  "input_sha256": "a9c68fe8c85e1db5609bd6487e2d1a1fc0487d004a5b54f98db570c5dd6bce50",
+  "lean_binary_sha256": "92c3d35b5bfaa5e0fea413a775d504cf46cd95e1345df61c2274f76779e7e023",
+  "limitations": [
+    "The mathematical machine admits straight-line u32 literals and wrapping add/sub with positional registers.",
+    "The generic proof establishes defined register reads, total execution and exact logical register growth, not heap or process memory bounds.",
+    "The selected actual Core has two u32 parameters, one u32 return and one block; its final unused literal is removed.",
+    "Exported Core mapping and production Python checking are re-executed and byte-bound, but their refinement is not machine-proved.",
+    "LLVM, native machine code, ownership, borrowing, traps, FFI, concurrency and cancellation remain outside these theorems.",
+    "A deleted instruction changes evaluator tick counts; this proof does not preserve budget-stop behavior.",
+    "Lean's pinned kernel, standard-library support and host are trusted; retained JSON is not an attestation of an untrusted producer."
+  ],
+  "negative_controls": [
+    {
+      "candidate_core_sha256": "77465ccc1eea5e7440a5e3f730ab62aa6a2dfa6114235a04ff358935234833d0",
+      "generated_lean_sha256": "676407ba2e02be951f064f86998e552635e0baa4ebc8adb6b022b88672ac29f7",
+      "name": "off_by_one_register_guard",
+      "output_sha256": "ace90b2bb522bc435d3377ffa7fb7f47a7fc40449c14732ac059acdd53bf1324",
+      "returncode": 1,
+      "source_core_sha256": "bf5e911f445e77d0d7462433ddd72030e9e7eef38e42857fb1ca25bd54823030",
+      "status": "rejected_as_expected",
+      "stderr": "",
+      "stdout": "/workspace/scratch/793cbcdf54ed/Hepta/artifacts/hia-core-contracts-20261030/register-safety/off_by_one_register_guard.lean:95:58: error: application type mismatch\n  read_defined registers left valid.left\nargument\n  valid.left\nhas type\n  left \u2264 registers.length : Prop\nbut is expected to have type\n  left < registers.length : Prop\n/workspace/scratch/793cbcdf54ed/Hepta/artifacts/hia-core-contracts-20261030/register-safety/off_by_one_register_guard.lean:96:60: error: application type mismatch\n  read_defined registers right valid.right\nargument\n  valid.right\nhas type\n  right \u2264 registers.length : Prop\nbut is expected to have type\n  right < registers.length : Prop\n/workspace/scratch/793cbcdf54ed/Hepta/artifacts/hia-core-contracts-20261030/register-safety/off_by_one_register_guard.lean:99:58: error: application type mismatch\n  read_defined registers left valid.left\nargument\n  valid.left\nhas type\n  left \u2264 registers.length : Prop\nbut is expected to have type\n  left < registers.length : Prop\n/workspace/scratch/793cbcdf54ed/Hepta/artifacts/hia-core-contracts-20261030/register-safety/off_by_one_register_guard.lean:100:60: error: application type mismatch\n  read_defined registers right valid.right\nargument\n  valid.right\nhas type\n  right \u2264 registers.length : Prop\nbut is expected to have type\n  right < registers.length : Prop\n'HiaSelectedCore.candidate_well_formed' depends on axioms: [propext]\n'HiaSelectedCore.dead_literal_preserves' depends on axioms: [propext, sorryAx, Quot.sound]\n'HiaSelectedCore.evaluate_total' depends on axioms: [propext, sorryAx, Quot.sound]\n'HiaSelectedCore.executeOne_total' depends on axioms: [propext, sorryAx, Quot.sound]\n'HiaSelectedCore.execute_total' depends on axioms: [propext, sorryAx, Quot.sound]\n'HiaSelectedCore.read_append_existing' depends on axioms: [propext]\n'HiaSelectedCore.read_defined' depends on axioms: [propext]\n'HiaSelectedCore.run_append' depends on axioms: [propext]\n'HiaSelectedCore.run_total' depends on axioms: [propext, sorryAx, Quot.sound]\n'HiaSelectedCore.selected_candidate_total' depends on axioms: [propext, sorryAx, Quot.sound]\n'HiaSelectedCore.selected_rewrite_equivalent' depends on axioms: [propext, sorryAx, Quot.sound]\n'HiaSelectedCore.selected_source_total' depends on axioms: [propext, sorryAx, Quot.sound]\n'HiaSelectedCore.source_is_dead_extension' depends on axioms: [propext]\n'HiaSelectedCore.source_well_formed' depends on axioms: [propext]\n",
+      "theorems": {
+        "candidate_well_formed": [
+          "propext"
+        ],
+        "dead_literal_preserves": [
+          "propext",
+          "sorryAx",
+          "Quot.sound"
+        ],
+        "evaluate_total": [
+          "propext",
+          "sorryAx",
+          "Quot.sound"
+        ],
+        "executeOne_total": [
+          "propext",
+          "sorryAx",
+          "Quot.sound"
+        ],
+        "execute_total": [
+          "propext",
+          "sorryAx",
+          "Quot.sound"
+        ],
+        "read_append_existing": [
+          "propext"
+        ],
+        "read_defined": [
+          "propext"
+        ],
+        "run_append": [
+          "propext"
+        ],
+        "run_total": [
+          "propext",
+          "sorryAx",
+          "Quot.sound"
+        ],
+        "selected_candidate_total": [
+          "propext",
+          "sorryAx",
+          "Quot.sound"
+        ],
+        "selected_rewrite_equivalent": [
+          "propext",
+          "sorryAx",
+          "Quot.sound"
+        ],
+        "selected_source_total": [
+          "propext",
+          "sorryAx",
+          "Quot.sound"
+        ],
+        "source_is_dead_extension": [
+          "propext"
+        ],
+        "source_well_formed": [
+          "propext"
+        ]
+      }
+    },
+    {
+      "candidate_core_sha256": "77465ccc1eea5e7440a5e3f730ab62aa6a2dfa6114235a04ff358935234833d0",
+      "generated_lean_sha256": "f63162788321833c7042cae1b17a7835a5356d63607a5e0548d4af5088c743ce",
+      "name": "dead_literal_changes_result",
+      "output_sha256": "03d85e31e89a8d0a46a1d3a4a7af8316e8c9d4e46d7afb1fbe0d55e771f70607",
+      "returncode": 1,
+      "source_core_sha256": "bf5e911f445e77d0d7462433ddd72030e9e7eef38e42857fb1ca25bd54823030",
+      "status": "rejected_as_expected",
+      "stderr": "",
+      "stdout": "/workspace/scratch/793cbcdf54ed/Hepta/artifacts/hia-core-contracts-20261030/register-safety/dead_literal_changes_result.lean:159:100: error: unsolved goals\nprogram : Program\narguments : List Word\nvalue : Word\nvalid : WellFormed program arguments.length\nfinal : List Word\nran : run program.code arguments = some final\nfinalLength : final.length = arguments.length + program.code.length\nresultValid : program.result < final.length\ntailRan : run [Operation.literal value] final = some (final ++ [value])\n\u22a2 read (final ++ [value]) (program.result + 1) = read (final ++ [value]) program.result\n/workspace/scratch/793cbcdf54ed/Hepta/artifacts/hia-core-contracts-20261030/register-safety/dead_literal_changes_result.lean:180:82: error: tactic 'rfl' failed, the left-hand side\n  sourceProgram\nis not definitionally equal to the right-hand side\n  appendDeadLiteral candidateProgram 99#32\n\u22a2 sourceProgram = appendDeadLiteral candidateProgram 99#32\n'HiaSelectedCore.candidate_well_formed' depends on axioms: [propext]\n'HiaSelectedCore.dead_literal_preserves' depends on axioms: [propext, sorryAx, Quot.sound]\n'HiaSelectedCore.evaluate_total' depends on axioms: [propext, Quot.sound]\n'HiaSelectedCore.executeOne_total' depends on axioms: [propext, Quot.sound]\n'HiaSelectedCore.execute_total' depends on axioms: [propext, Quot.sound]\n'HiaSelectedCore.read_append_existing' depends on axioms: [propext]\n'HiaSelectedCore.read_defined' depends on axioms: [propext]\n'HiaSelectedCore.run_append' depends on axioms: [propext]\n'HiaSelectedCore.run_total' depends on axioms: [propext, Quot.sound]\n'HiaSelectedCore.selected_candidate_total' depends on axioms: [propext, Quot.sound]\n'HiaSelectedCore.selected_rewrite_equivalent' depends on axioms: [propext, sorryAx, Quot.sound]\n'HiaSelectedCore.selected_source_total' depends on axioms: [propext, Quot.sound]\n'HiaSelectedCore.source_is_dead_extension' depends on axioms: [propext, sorryAx]\n'HiaSelectedCore.source_well_formed' depends on axioms: [propext]\n",
+      "theorems": {
+        "candidate_well_formed": [
+          "propext"
+        ],
+        "dead_literal_preserves": [
+          "propext",
+          "sorryAx",
+          "Quot.sound"
+        ],
+        "evaluate_total": [
+          "propext",
+          "Quot.sound"
+        ],
+        "executeOne_total": [
+          "propext",
+          "Quot.sound"
+        ],
+        "execute_total": [
+          "propext",
+          "Quot.sound"
+        ],
+        "read_append_existing": [
+          "propext"
+        ],
+        "read_defined": [
+          "propext"
+        ],
+        "run_append": [
+          "propext"
+        ],
+        "run_total": [
+          "propext",
+          "Quot.sound"
+        ],
+        "selected_candidate_total": [
+          "propext",
+          "Quot.sound"
+        ],
+        "selected_rewrite_equivalent": [
+          "propext",
+          "sorryAx",
+          "Quot.sound"
+        ],
+        "selected_source_total": [
+          "propext",
+          "Quot.sound"
+        ],
+        "source_is_dead_extension": [
+          "propext",
+          "sorryAx"
+        ],
+        "source_well_formed": [
+          "propext"
+        ]
+      }
+    },
+    {
+      "candidate_core_sha256": "9640f3d334eab8801322babc09cc9ff3c3e28d53d589f92698a662019fa2b575",
+      "generated_lean_sha256": "692f0ba4b68718733ab77e9401c5327822b549b628988cac71cecf88e15e575e",
+      "name": "actual_candidate_add_becomes_sub",
+      "output_sha256": "c286aa508a967ffdf40629cc281f7d4115a28521cabfdd057197659e8c3ae3cb",
+      "returncode": 1,
+      "source_core_sha256": "bf5e911f445e77d0d7462433ddd72030e9e7eef38e42857fb1ca25bd54823030",
+      "status": "rejected_as_expected",
+      "stderr": "",
+      "stdout": "/workspace/scratch/793cbcdf54ed/Hepta/artifacts/hia-core-contracts-20261030/register-safety/actual_candidate_add_becomes_sub.lean:180:82: error: tactic 'rfl' failed, the left-hand side\n  sourceProgram\nis not definitionally equal to the right-hand side\n  appendDeadLiteral candidateProgram 99#32\n\u22a2 sourceProgram = appendDeadLiteral candidateProgram 99#32\n'HiaSelectedCore.candidate_well_formed' depends on axioms: [propext]\n'HiaSelectedCore.dead_literal_preserves' depends on axioms: [propext, Quot.sound]\n'HiaSelectedCore.evaluate_total' depends on axioms: [propext, Quot.sound]\n'HiaSelectedCore.executeOne_total' depends on axioms: [propext, Quot.sound]\n'HiaSelectedCore.execute_total' depends on axioms: [propext, Quot.sound]\n'HiaSelectedCore.read_append_existing' depends on axioms: [propext]\n'HiaSelectedCore.read_defined' depends on axioms: [propext]\n'HiaSelectedCore.run_append' depends on axioms: [propext]\n'HiaSelectedCore.run_total' depends on axioms: [propext, Quot.sound]\n'HiaSelectedCore.selected_candidate_total' depends on axioms: [propext, Quot.sound]\n'HiaSelectedCore.selected_rewrite_equivalent' depends on axioms: [propext, sorryAx, Quot.sound]\n'HiaSelectedCore.selected_source_total' depends on axioms: [propext, Quot.sound]\n'HiaSelectedCore.source_is_dead_extension' depends on axioms: [propext, sorryAx]\n'HiaSelectedCore.source_well_formed' depends on axioms: [propext]\n",
+      "theorems": {
+        "candidate_well_formed": [
+          "propext"
+        ],
+        "dead_literal_preserves": [
+          "propext",
+          "Quot.sound"
+        ],
+        "evaluate_total": [
+          "propext",
+          "Quot.sound"
+        ],
+        "executeOne_total": [
+          "propext",
+          "Quot.sound"
+        ],
+        "execute_total": [
+          "propext",
+          "Quot.sound"
+        ],
+        "read_append_existing": [
+          "propext"
+        ],
+        "read_defined": [
+          "propext"
+        ],
+        "run_append": [
+          "propext"
+        ],
+        "run_total": [
+          "propext",
+          "Quot.sound"
+        ],
+        "selected_candidate_total": [
+          "propext",
+          "Quot.sound"
+        ],
+        "selected_rewrite_equivalent": [
+          "propext",
+          "sorryAx",
+          "Quot.sound"
+        ],
+        "selected_source_total": [
+          "propext",
+          "Quot.sound"
+        ],
+        "source_is_dead_extension": [
+          "propext",
+          "sorryAx"
+        ],
+        "source_well_formed": [
+          "propext"
+        ]
+      }
+    }
+  ],
+  "ok": true,
+  "positive": {
+    "output_sha256": "75880852f5c0f42c043b868a04c0e4047eb42b39c5fdfc0355c293dc738b4ad3",
+    "returncode": 0,
+    "stderr": "",
+    "stdout": "'HiaSelectedCore.candidate_well_formed' depends on axioms: [propext]\n'HiaSelectedCore.dead_literal_preserves' depends on axioms: [propext, Quot.sound]\n'HiaSelectedCore.evaluate_total' depends on axioms: [propext, Quot.sound]\n'HiaSelectedCore.executeOne_total' depends on axioms: [propext, Quot.sound]\n'HiaSelectedCore.execute_total' depends on axioms: [propext, Quot.sound]\n'HiaSelectedCore.read_append_existing' depends on axioms: [propext]\n'HiaSelectedCore.read_defined' depends on axioms: [propext]\n'HiaSelectedCore.run_append' depends on axioms: [propext]\n'HiaSelectedCore.run_total' depends on axioms: [propext, Quot.sound]\n'HiaSelectedCore.selected_candidate_total' depends on axioms: [propext, Quot.sound]\n'HiaSelectedCore.selected_rewrite_equivalent' depends on axioms: [propext, Quot.sound]\n'HiaSelectedCore.selected_source_total' depends on axioms: [propext, Quot.sound]\n'HiaSelectedCore.source_is_dead_extension' depends on axioms: [propext]\n'HiaSelectedCore.source_well_formed' depends on axioms: [propext]\n"
+  },
+  "schema": "hepta.hia.register-safety.v1",
+  "selected_input_domain_size": "18446744073709551616",
+  "source_core_sha256": "bf5e911f445e77d0d7462433ddd72030e9e7eef38e42857fb1ca25bd54823030",
+  "source_identity": {
+    "formal/HiaRegisterSafety.lean": "40f10041a8031f5f459d30229d42528b2f990d88c0035b5c6d31d76608f7b10a",
+    "formal/HiaSelectedCore.lean": "6e3ead9a3b3dc54a9a0aaa1748b4efc3274bbe8a24387fdc5702cb2ef7059b4d",
+    "formal/proof-dependencies.txt": "77616e1c541092ffc3f6c32b02cf37746bef0466732c381e99e28de1b23310fa",
+    "formal/toolchain-lock.json": "af6824b79535fcf144ff823444649ef218b8af84a211cb2e9fa3082629003036",
+    "hepta/hia_bounded_memory.py": "3413e3f7dfb77b7672eba6b99b1a2320cb6bd61c3842f37976ee4507ed1a4a3d",
+    "hepta/hia_json_preflight.py": "53c6b189ed6210f7cf6fdb75c042ed6db7c10dba9254083270cd2903e3f7f4f2",
+    "hepta/hia_opcodes.py": "88075bb92905e2873de21d96341b1442d1235e0f092ec3937193435b4534a5ec",
+    "hepta/hia_program.py": "5352d6b1e3906d4ab72f2a94c005cab15f1550d845549e63275402ee7d51ea1a",
+    "hepta/hia_program_composite.py": "ef86ca2ce6973c8ec2042b0853fbda5fca345e575c784cd751ca3670ea6e3a11",
+    "hepta/hia_program_runtime.py": "1cf20b990a2f803c5613c0f51107d4470fb9ed09f0c4531a765d63075e0c86ea",
+    "hepta/hia_schema.py": "b6bd0864fbe2a90e8f2f705da1d81c8b1afae001d8608f54f8f1fca477cdf253",
+    "tools/evidence_checks.py": "720a9f55e73e3af3467918efabf0db8b5ff85da8ab07c3efd115d8b1423bd3d7",
+    "tools/qualify_hia_register_safety.py": "ff7f4ab4a7d221120f592108ce07838e2a61202d4c1a344cf3e78a9e164487ef",
+    "tools/qualify_hia_selected_formal.py": "1d6b601e8927a54495555fbd6daf85758fd50ff9905c93c9475d9f4f4f289202"
+  },
+  "status": "passed",
+  "support_manifest_sha256": "71579207c54095efa4d808d9a076274a1831735e746256bedb027b16645028a4",
+  "theorems": {
+    "candidate_well_formed": [
+      "propext"
+    ],
+    "dead_literal_preserves": [
+      "propext",
+      "Quot.sound"
+    ],
+    "evaluate_total": [
+      "propext",
+      "Quot.sound"
+    ],
+    "executeOne_total": [
+      "propext",
+      "Quot.sound"
+    ],
+    "execute_total": [
+      "propext",
+      "Quot.sound"
+    ],
+    "read_append_existing": [
+      "propext"
+    ],
+    "read_defined": [
+      "propext"
+    ],
+    "run_append": [
+      "propext"
+    ],
+    "run_total": [
+      "propext",
+      "Quot.sound"
+    ],
+    "selected_candidate_total": [
+      "propext",
+      "Quot.sound"
+    ],
+    "selected_rewrite_equivalent": [
+      "propext",
+      "Quot.sound"
+    ],
+    "selected_source_total": [
+      "propext",
+      "Quot.sound"
+    ],
+    "source_is_dead_extension": [
+      "propext"
+    ],
+    "source_well_formed": [
+      "propext"
+    ]
+  },
+  "vm_cases": [
+    {
+      "arguments": [
+        0,
+        0
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 0,
+      "source_steps": 7,
+      "source_value": 0
+    },
+    {
+      "arguments": [
+        0,
+        1
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 1,
+      "source_steps": 7,
+      "source_value": 1
+    },
+    {
+      "arguments": [
+        0,
+        2
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2,
+      "source_steps": 7,
+      "source_value": 2
+    },
+    {
+      "arguments": [
+        0,
+        16
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 16,
+      "source_steps": 7,
+      "source_value": 16
+    },
+    {
+      "arguments": [
+        0,
+        17
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 17,
+      "source_steps": 7,
+      "source_value": 17
+    },
+    {
+      "arguments": [
+        0,
+        18
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 18,
+      "source_steps": 7,
+      "source_value": 18
+    },
+    {
+      "arguments": [
+        0,
+        65535
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 65535,
+      "source_steps": 7,
+      "source_value": 65535
+    },
+    {
+      "arguments": [
+        0,
+        65536
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 65536,
+      "source_steps": 7,
+      "source_value": 65536
+    },
+    {
+      "arguments": [
+        0,
+        2147483647
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147483647,
+      "source_steps": 7,
+      "source_value": 2147483647
+    },
+    {
+      "arguments": [
+        0,
+        2147483648
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147483648,
+      "source_steps": 7,
+      "source_value": 2147483648
+    },
+    {
+      "arguments": [
+        0,
+        4294967294
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 4294967294,
+      "source_steps": 7,
+      "source_value": 4294967294
+    },
+    {
+      "arguments": [
+        0,
+        4294967295
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 4294967295,
+      "source_steps": 7,
+      "source_value": 4294967295
+    },
+    {
+      "arguments": [
+        1,
+        0
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 1,
+      "source_steps": 7,
+      "source_value": 1
+    },
+    {
+      "arguments": [
+        1,
+        1
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2,
+      "source_steps": 7,
+      "source_value": 2
+    },
+    {
+      "arguments": [
+        1,
+        2
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 3,
+      "source_steps": 7,
+      "source_value": 3
+    },
+    {
+      "arguments": [
+        1,
+        16
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 17,
+      "source_steps": 7,
+      "source_value": 17
+    },
+    {
+      "arguments": [
+        1,
+        17
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 18,
+      "source_steps": 7,
+      "source_value": 18
+    },
+    {
+      "arguments": [
+        1,
+        18
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 19,
+      "source_steps": 7,
+      "source_value": 19
+    },
+    {
+      "arguments": [
+        1,
+        65535
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 65536,
+      "source_steps": 7,
+      "source_value": 65536
+    },
+    {
+      "arguments": [
+        1,
+        65536
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 65537,
+      "source_steps": 7,
+      "source_value": 65537
+    },
+    {
+      "arguments": [
+        1,
+        2147483647
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147483648,
+      "source_steps": 7,
+      "source_value": 2147483648
+    },
+    {
+      "arguments": [
+        1,
+        2147483648
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147483649,
+      "source_steps": 7,
+      "source_value": 2147483649
+    },
+    {
+      "arguments": [
+        1,
+        4294967294
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 4294967295,
+      "source_steps": 7,
+      "source_value": 4294967295
+    },
+    {
+      "arguments": [
+        1,
+        4294967295
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 0,
+      "source_steps": 7,
+      "source_value": 0
+    },
+    {
+      "arguments": [
+        2,
+        0
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2,
+      "source_steps": 7,
+      "source_value": 2
+    },
+    {
+      "arguments": [
+        2,
+        1
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 3,
+      "source_steps": 7,
+      "source_value": 3
+    },
+    {
+      "arguments": [
+        2,
+        2
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 4,
+      "source_steps": 7,
+      "source_value": 4
+    },
+    {
+      "arguments": [
+        2,
+        16
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 18,
+      "source_steps": 7,
+      "source_value": 18
+    },
+    {
+      "arguments": [
+        2,
+        17
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 19,
+      "source_steps": 7,
+      "source_value": 19
+    },
+    {
+      "arguments": [
+        2,
+        18
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 20,
+      "source_steps": 7,
+      "source_value": 20
+    },
+    {
+      "arguments": [
+        2,
+        65535
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 65537,
+      "source_steps": 7,
+      "source_value": 65537
+    },
+    {
+      "arguments": [
+        2,
+        65536
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 65538,
+      "source_steps": 7,
+      "source_value": 65538
+    },
+    {
+      "arguments": [
+        2,
+        2147483647
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147483649,
+      "source_steps": 7,
+      "source_value": 2147483649
+    },
+    {
+      "arguments": [
+        2,
+        2147483648
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147483650,
+      "source_steps": 7,
+      "source_value": 2147483650
+    },
+    {
+      "arguments": [
+        2,
+        4294967294
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 0,
+      "source_steps": 7,
+      "source_value": 0
+    },
+    {
+      "arguments": [
+        2,
+        4294967295
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 1,
+      "source_steps": 7,
+      "source_value": 1
+    },
+    {
+      "arguments": [
+        16,
+        0
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 16,
+      "source_steps": 7,
+      "source_value": 16
+    },
+    {
+      "arguments": [
+        16,
+        1
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 17,
+      "source_steps": 7,
+      "source_value": 17
+    },
+    {
+      "arguments": [
+        16,
+        2
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 18,
+      "source_steps": 7,
+      "source_value": 18
+    },
+    {
+      "arguments": [
+        16,
+        16
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 32,
+      "source_steps": 7,
+      "source_value": 32
+    },
+    {
+      "arguments": [
+        16,
+        17
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 33,
+      "source_steps": 7,
+      "source_value": 33
+    },
+    {
+      "arguments": [
+        16,
+        18
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 34,
+      "source_steps": 7,
+      "source_value": 34
+    },
+    {
+      "arguments": [
+        16,
+        65535
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 65551,
+      "source_steps": 7,
+      "source_value": 65551
+    },
+    {
+      "arguments": [
+        16,
+        65536
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 65552,
+      "source_steps": 7,
+      "source_value": 65552
+    },
+    {
+      "arguments": [
+        16,
+        2147483647
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147483663,
+      "source_steps": 7,
+      "source_value": 2147483663
+    },
+    {
+      "arguments": [
+        16,
+        2147483648
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147483664,
+      "source_steps": 7,
+      "source_value": 2147483664
+    },
+    {
+      "arguments": [
+        16,
+        4294967294
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 14,
+      "source_steps": 7,
+      "source_value": 14
+    },
+    {
+      "arguments": [
+        16,
+        4294967295
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 15,
+      "source_steps": 7,
+      "source_value": 15
+    },
+    {
+      "arguments": [
+        17,
+        0
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 17,
+      "source_steps": 7,
+      "source_value": 17
+    },
+    {
+      "arguments": [
+        17,
+        1
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 18,
+      "source_steps": 7,
+      "source_value": 18
+    },
+    {
+      "arguments": [
+        17,
+        2
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 19,
+      "source_steps": 7,
+      "source_value": 19
+    },
+    {
+      "arguments": [
+        17,
+        16
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 33,
+      "source_steps": 7,
+      "source_value": 33
+    },
+    {
+      "arguments": [
+        17,
+        17
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 34,
+      "source_steps": 7,
+      "source_value": 34
+    },
+    {
+      "arguments": [
+        17,
+        18
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 35,
+      "source_steps": 7,
+      "source_value": 35
+    },
+    {
+      "arguments": [
+        17,
+        65535
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 65552,
+      "source_steps": 7,
+      "source_value": 65552
+    },
+    {
+      "arguments": [
+        17,
+        65536
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 65553,
+      "source_steps": 7,
+      "source_value": 65553
+    },
+    {
+      "arguments": [
+        17,
+        2147483647
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147483664,
+      "source_steps": 7,
+      "source_value": 2147483664
+    },
+    {
+      "arguments": [
+        17,
+        2147483648
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147483665,
+      "source_steps": 7,
+      "source_value": 2147483665
+    },
+    {
+      "arguments": [
+        17,
+        4294967294
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 15,
+      "source_steps": 7,
+      "source_value": 15
+    },
+    {
+      "arguments": [
+        17,
+        4294967295
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 16,
+      "source_steps": 7,
+      "source_value": 16
+    },
+    {
+      "arguments": [
+        18,
+        0
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 18,
+      "source_steps": 7,
+      "source_value": 18
+    },
+    {
+      "arguments": [
+        18,
+        1
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 19,
+      "source_steps": 7,
+      "source_value": 19
+    },
+    {
+      "arguments": [
+        18,
+        2
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 20,
+      "source_steps": 7,
+      "source_value": 20
+    },
+    {
+      "arguments": [
+        18,
+        16
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 34,
+      "source_steps": 7,
+      "source_value": 34
+    },
+    {
+      "arguments": [
+        18,
+        17
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 35,
+      "source_steps": 7,
+      "source_value": 35
+    },
+    {
+      "arguments": [
+        18,
+        18
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 36,
+      "source_steps": 7,
+      "source_value": 36
+    },
+    {
+      "arguments": [
+        18,
+        65535
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 65553,
+      "source_steps": 7,
+      "source_value": 65553
+    },
+    {
+      "arguments": [
+        18,
+        65536
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 65554,
+      "source_steps": 7,
+      "source_value": 65554
+    },
+    {
+      "arguments": [
+        18,
+        2147483647
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147483665,
+      "source_steps": 7,
+      "source_value": 2147483665
+    },
+    {
+      "arguments": [
+        18,
+        2147483648
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147483666,
+      "source_steps": 7,
+      "source_value": 2147483666
+    },
+    {
+      "arguments": [
+        18,
+        4294967294
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 16,
+      "source_steps": 7,
+      "source_value": 16
+    },
+    {
+      "arguments": [
+        18,
+        4294967295
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 17,
+      "source_steps": 7,
+      "source_value": 17
+    },
+    {
+      "arguments": [
+        65535,
+        0
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 65535,
+      "source_steps": 7,
+      "source_value": 65535
+    },
+    {
+      "arguments": [
+        65535,
+        1
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 65536,
+      "source_steps": 7,
+      "source_value": 65536
+    },
+    {
+      "arguments": [
+        65535,
+        2
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 65537,
+      "source_steps": 7,
+      "source_value": 65537
+    },
+    {
+      "arguments": [
+        65535,
+        16
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 65551,
+      "source_steps": 7,
+      "source_value": 65551
+    },
+    {
+      "arguments": [
+        65535,
+        17
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 65552,
+      "source_steps": 7,
+      "source_value": 65552
+    },
+    {
+      "arguments": [
+        65535,
+        18
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 65553,
+      "source_steps": 7,
+      "source_value": 65553
+    },
+    {
+      "arguments": [
+        65535,
+        65535
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 131070,
+      "source_steps": 7,
+      "source_value": 131070
+    },
+    {
+      "arguments": [
+        65535,
+        65536
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 131071,
+      "source_steps": 7,
+      "source_value": 131071
+    },
+    {
+      "arguments": [
+        65535,
+        2147483647
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147549182,
+      "source_steps": 7,
+      "source_value": 2147549182
+    },
+    {
+      "arguments": [
+        65535,
+        2147483648
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147549183,
+      "source_steps": 7,
+      "source_value": 2147549183
+    },
+    {
+      "arguments": [
+        65535,
+        4294967294
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 65533,
+      "source_steps": 7,
+      "source_value": 65533
+    },
+    {
+      "arguments": [
+        65535,
+        4294967295
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 65534,
+      "source_steps": 7,
+      "source_value": 65534
+    },
+    {
+      "arguments": [
+        65536,
+        0
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 65536,
+      "source_steps": 7,
+      "source_value": 65536
+    },
+    {
+      "arguments": [
+        65536,
+        1
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 65537,
+      "source_steps": 7,
+      "source_value": 65537
+    },
+    {
+      "arguments": [
+        65536,
+        2
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 65538,
+      "source_steps": 7,
+      "source_value": 65538
+    },
+    {
+      "arguments": [
+        65536,
+        16
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 65552,
+      "source_steps": 7,
+      "source_value": 65552
+    },
+    {
+      "arguments": [
+        65536,
+        17
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 65553,
+      "source_steps": 7,
+      "source_value": 65553
+    },
+    {
+      "arguments": [
+        65536,
+        18
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 65554,
+      "source_steps": 7,
+      "source_value": 65554
+    },
+    {
+      "arguments": [
+        65536,
+        65535
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 131071,
+      "source_steps": 7,
+      "source_value": 131071
+    },
+    {
+      "arguments": [
+        65536,
+        65536
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 131072,
+      "source_steps": 7,
+      "source_value": 131072
+    },
+    {
+      "arguments": [
+        65536,
+        2147483647
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147549183,
+      "source_steps": 7,
+      "source_value": 2147549183
+    },
+    {
+      "arguments": [
+        65536,
+        2147483648
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147549184,
+      "source_steps": 7,
+      "source_value": 2147549184
+    },
+    {
+      "arguments": [
+        65536,
+        4294967294
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 65534,
+      "source_steps": 7,
+      "source_value": 65534
+    },
+    {
+      "arguments": [
+        65536,
+        4294967295
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 65535,
+      "source_steps": 7,
+      "source_value": 65535
+    },
+    {
+      "arguments": [
+        2147483647,
+        0
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147483647,
+      "source_steps": 7,
+      "source_value": 2147483647
+    },
+    {
+      "arguments": [
+        2147483647,
+        1
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147483648,
+      "source_steps": 7,
+      "source_value": 2147483648
+    },
+    {
+      "arguments": [
+        2147483647,
+        2
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147483649,
+      "source_steps": 7,
+      "source_value": 2147483649
+    },
+    {
+      "arguments": [
+        2147483647,
+        16
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147483663,
+      "source_steps": 7,
+      "source_value": 2147483663
+    },
+    {
+      "arguments": [
+        2147483647,
+        17
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147483664,
+      "source_steps": 7,
+      "source_value": 2147483664
+    },
+    {
+      "arguments": [
+        2147483647,
+        18
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147483665,
+      "source_steps": 7,
+      "source_value": 2147483665
+    },
+    {
+      "arguments": [
+        2147483647,
+        65535
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147549182,
+      "source_steps": 7,
+      "source_value": 2147549182
+    },
+    {
+      "arguments": [
+        2147483647,
+        65536
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147549183,
+      "source_steps": 7,
+      "source_value": 2147549183
+    },
+    {
+      "arguments": [
+        2147483647,
+        2147483647
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 4294967294,
+      "source_steps": 7,
+      "source_value": 4294967294
+    },
+    {
+      "arguments": [
+        2147483647,
+        2147483648
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 4294967295,
+      "source_steps": 7,
+      "source_value": 4294967295
+    },
+    {
+      "arguments": [
+        2147483647,
+        4294967294
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147483645,
+      "source_steps": 7,
+      "source_value": 2147483645
+    },
+    {
+      "arguments": [
+        2147483647,
+        4294967295
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147483646,
+      "source_steps": 7,
+      "source_value": 2147483646
+    },
+    {
+      "arguments": [
+        2147483648,
+        0
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147483648,
+      "source_steps": 7,
+      "source_value": 2147483648
+    },
+    {
+      "arguments": [
+        2147483648,
+        1
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147483649,
+      "source_steps": 7,
+      "source_value": 2147483649
+    },
+    {
+      "arguments": [
+        2147483648,
+        2
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147483650,
+      "source_steps": 7,
+      "source_value": 2147483650
+    },
+    {
+      "arguments": [
+        2147483648,
+        16
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147483664,
+      "source_steps": 7,
+      "source_value": 2147483664
+    },
+    {
+      "arguments": [
+        2147483648,
+        17
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147483665,
+      "source_steps": 7,
+      "source_value": 2147483665
+    },
+    {
+      "arguments": [
+        2147483648,
+        18
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147483666,
+      "source_steps": 7,
+      "source_value": 2147483666
+    },
+    {
+      "arguments": [
+        2147483648,
+        65535
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147549183,
+      "source_steps": 7,
+      "source_value": 2147549183
+    },
+    {
+      "arguments": [
+        2147483648,
+        65536
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147549184,
+      "source_steps": 7,
+      "source_value": 2147549184
+    },
+    {
+      "arguments": [
+        2147483648,
+        2147483647
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 4294967295,
+      "source_steps": 7,
+      "source_value": 4294967295
+    },
+    {
+      "arguments": [
+        2147483648,
+        2147483648
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 0,
+      "source_steps": 7,
+      "source_value": 0
+    },
+    {
+      "arguments": [
+        2147483648,
+        4294967294
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147483646,
+      "source_steps": 7,
+      "source_value": 2147483646
+    },
+    {
+      "arguments": [
+        2147483648,
+        4294967295
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147483647,
+      "source_steps": 7,
+      "source_value": 2147483647
+    },
+    {
+      "arguments": [
+        4294967294,
+        0
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 4294967294,
+      "source_steps": 7,
+      "source_value": 4294967294
+    },
+    {
+      "arguments": [
+        4294967294,
+        1
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 4294967295,
+      "source_steps": 7,
+      "source_value": 4294967295
+    },
+    {
+      "arguments": [
+        4294967294,
+        2
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 0,
+      "source_steps": 7,
+      "source_value": 0
+    },
+    {
+      "arguments": [
+        4294967294,
+        16
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 14,
+      "source_steps": 7,
+      "source_value": 14
+    },
+    {
+      "arguments": [
+        4294967294,
+        17
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 15,
+      "source_steps": 7,
+      "source_value": 15
+    },
+    {
+      "arguments": [
+        4294967294,
+        18
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 16,
+      "source_steps": 7,
+      "source_value": 16
+    },
+    {
+      "arguments": [
+        4294967294,
+        65535
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 65533,
+      "source_steps": 7,
+      "source_value": 65533
+    },
+    {
+      "arguments": [
+        4294967294,
+        65536
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 65534,
+      "source_steps": 7,
+      "source_value": 65534
+    },
+    {
+      "arguments": [
+        4294967294,
+        2147483647
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147483645,
+      "source_steps": 7,
+      "source_value": 2147483645
+    },
+    {
+      "arguments": [
+        4294967294,
+        2147483648
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147483646,
+      "source_steps": 7,
+      "source_value": 2147483646
+    },
+    {
+      "arguments": [
+        4294967294,
+        4294967294
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 4294967292,
+      "source_steps": 7,
+      "source_value": 4294967292
+    },
+    {
+      "arguments": [
+        4294967294,
+        4294967295
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 4294967293,
+      "source_steps": 7,
+      "source_value": 4294967293
+    },
+    {
+      "arguments": [
+        4294967295,
+        0
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 4294967295,
+      "source_steps": 7,
+      "source_value": 4294967295
+    },
+    {
+      "arguments": [
+        4294967295,
+        1
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 0,
+      "source_steps": 7,
+      "source_value": 0
+    },
+    {
+      "arguments": [
+        4294967295,
+        2
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 1,
+      "source_steps": 7,
+      "source_value": 1
+    },
+    {
+      "arguments": [
+        4294967295,
+        16
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 15,
+      "source_steps": 7,
+      "source_value": 15
+    },
+    {
+      "arguments": [
+        4294967295,
+        17
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 16,
+      "source_steps": 7,
+      "source_value": 16
+    },
+    {
+      "arguments": [
+        4294967295,
+        18
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 17,
+      "source_steps": 7,
+      "source_value": 17
+    },
+    {
+      "arguments": [
+        4294967295,
+        65535
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 65534,
+      "source_steps": 7,
+      "source_value": 65534
+    },
+    {
+      "arguments": [
+        4294967295,
+        65536
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 65535,
+      "source_steps": 7,
+      "source_value": 65535
+    },
+    {
+      "arguments": [
+        4294967295,
+        2147483647
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147483646,
+      "source_steps": 7,
+      "source_value": 2147483646
+    },
+    {
+      "arguments": [
+        4294967295,
+        2147483648
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2147483647,
+      "source_steps": 7,
+      "source_value": 2147483647
+    },
+    {
+      "arguments": [
+        4294967295,
+        4294967294
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 4294967293,
+      "source_steps": 7,
+      "source_value": 4294967293
+    },
+    {
+      "arguments": [
+        4294967295,
+        4294967295
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 4294967294,
+      "source_steps": 7,
+      "source_value": 4294967294
+    },
+    {
+      "arguments": [
+        2087570001,
+        2327672282
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 120274987,
+      "source_steps": 7,
+      "source_value": 120274987
+    },
+    {
+      "arguments": [
+        1523278963,
+        1467013715
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2990292678,
+      "source_steps": 7,
+      "source_value": 2990292678
+    },
+    {
+      "arguments": [
+        4083313579,
+        939461875
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 727808158,
+      "source_steps": 7,
+      "source_value": 727808158
+    },
+    {
+      "arguments": [
+        2660488036,
+        4098222939
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2463743679,
+      "source_steps": 7,
+      "source_value": 2463743679
+    },
+    {
+      "arguments": [
+        1664761177,
+        1322420039
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2987181216,
+      "source_steps": 7,
+      "source_value": 2987181216
+    },
+    {
+      "arguments": [
+        1683078042,
+        1385453594
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 3068531636,
+      "source_steps": 7,
+      "source_value": 3068531636
+    },
+    {
+      "arguments": [
+        300683463,
+        3229507884
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 3530191347,
+      "source_steps": 7,
+      "source_value": 3530191347
+    },
+    {
+      "arguments": [
+        637080426,
+        1380129124
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2017209550,
+      "source_steps": 7,
+      "source_value": 2017209550
+    },
+    {
+      "arguments": [
+        1582741564,
+        1451913639
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 3034655203,
+      "source_steps": 7,
+      "source_value": 3034655203
+    },
+    {
+      "arguments": [
+        4012369879,
+        668678887
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 386081470,
+      "source_steps": 7,
+      "source_value": 386081470
+    },
+    {
+      "arguments": [
+        1688291636,
+        1695317183
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 3383608819,
+      "source_steps": 7,
+      "source_value": 3383608819
+    },
+    {
+      "arguments": [
+        2297279162,
+        960053506
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 3257332668,
+      "source_steps": 7,
+      "source_value": 3257332668
+    },
+    {
+      "arguments": [
+        548023381,
+        705752792
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 1253776173,
+      "source_steps": 7,
+      "source_value": 1253776173
+    },
+    {
+      "arguments": [
+        3089335057,
+        2774667280
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 1569035041,
+      "source_steps": 7,
+      "source_value": 1569035041
+    },
+    {
+      "arguments": [
+        4291590633,
+        3082914149
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 3079537486,
+      "source_steps": 7,
+      "source_value": 3079537486
+    },
+    {
+      "arguments": [
+        348830539,
+        343354428
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 692184967,
+      "source_steps": 7,
+      "source_value": 692184967
+    },
+    {
+      "arguments": [
+        44212151,
+        2257809261
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2302021412,
+      "source_steps": 7,
+      "source_value": 2302021412
+    },
+    {
+      "arguments": [
+        208336256,
+        247364264
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 455700520,
+      "source_steps": 7,
+      "source_value": 455700520
+    },
+    {
+      "arguments": [
+        3929738414,
+        793444708
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 428215826,
+      "source_steps": 7,
+      "source_value": 428215826
+    },
+    {
+      "arguments": [
+        1513680647,
+        2117266445
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 3630947092,
+      "source_steps": 7,
+      "source_value": 3630947092
+    },
+    {
+      "arguments": [
+        928421122,
+        1907685248
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2836106370,
+      "source_steps": 7,
+      "source_value": 2836106370
+    },
+    {
+      "arguments": [
+        2370529305,
+        743138196
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 3113667501,
+      "source_steps": 7,
+      "source_value": 3113667501
+    },
+    {
+      "arguments": [
+        2961653840,
+        1643158179
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 309844723,
+      "source_steps": 7,
+      "source_value": 309844723
+    },
+    {
+      "arguments": [
+        3811839616,
+        4165960127
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 3682832447,
+      "source_steps": 7,
+      "source_value": 3682832447
+    },
+    {
+      "arguments": [
+        571377184,
+        4107162667
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 383572555,
+      "source_steps": 7,
+      "source_value": 383572555
+    },
+    {
+      "arguments": [
+        2927198117,
+        3585144971
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2217375792,
+      "source_steps": 7,
+      "source_value": 2217375792
+    },
+    {
+      "arguments": [
+        1315057086,
+        3257508755
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 277598545,
+      "source_steps": 7,
+      "source_value": 277598545
+    },
+    {
+      "arguments": [
+        682339023,
+        3029529341
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 3711868364,
+      "source_steps": 7,
+      "source_value": 3711868364
+    },
+    {
+      "arguments": [
+        2260749641,
+        1976328463
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 4237078104,
+      "source_steps": 7,
+      "source_value": 4237078104
+    },
+    {
+      "arguments": [
+        1571325357,
+        3154953402
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 431311463,
+      "source_steps": 7,
+      "source_value": 431311463
+    },
+    {
+      "arguments": [
+        3777856848,
+        363880828
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 4141737676,
+      "source_steps": 7,
+      "source_value": 4141737676
+    },
+    {
+      "arguments": [
+        3353130681,
+        2537433179
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 1595596564,
+      "source_steps": 7,
+      "source_value": 1595596564
+    },
+    {
+      "arguments": [
+        1795661977,
+        1960397955
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 3756059932,
+      "source_steps": 7,
+      "source_value": 3756059932
+    },
+    {
+      "arguments": [
+        2671146214,
+        1562803042
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 4233949256,
+      "source_steps": 7,
+      "source_value": 4233949256
+    },
+    {
+      "arguments": [
+        2489208802,
+        939794055
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 3429002857,
+      "source_steps": 7,
+      "source_value": 3429002857
+    },
+    {
+      "arguments": [
+        678742770,
+        1534651736
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2213394506,
+      "source_steps": 7,
+      "source_value": 2213394506
+    },
+    {
+      "arguments": [
+        2904399164,
+        3202177109
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 1811608977,
+      "source_steps": 7,
+      "source_value": 1811608977
+    },
+    {
+      "arguments": [
+        3867475630,
+        3818524191
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 3391032525,
+      "source_steps": 7,
+      "source_value": 3391032525
+    },
+    {
+      "arguments": [
+        1283884227,
+        3241554058
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 230470989,
+      "source_steps": 7,
+      "source_value": 230470989
+    },
+    {
+      "arguments": [
+        3682347065,
+        758028882
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 145408651,
+      "source_steps": 7,
+      "source_value": 145408651
+    },
+    {
+      "arguments": [
+        2909732181,
+        487619752
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 3397351933,
+      "source_steps": 7,
+      "source_value": 3397351933
+    },
+    {
+      "arguments": [
+        958260545,
+        3913328595
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 576621844,
+      "source_steps": 7,
+      "source_value": 576621844
+    },
+    {
+      "arguments": [
+        3334259362,
+        1237603122
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 276895188,
+      "source_steps": 7,
+      "source_value": 276895188
+    },
+    {
+      "arguments": [
+        2399103547,
+        3625846472
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 1729982723,
+      "source_steps": 7,
+      "source_value": 1729982723
+    },
+    {
+      "arguments": [
+        186786716,
+        1939130720
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2125917436,
+      "source_steps": 7,
+      "source_value": 2125917436
+    },
+    {
+      "arguments": [
+        3579400571,
+        329542987
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 3908943558,
+      "source_steps": 7,
+      "source_value": 3908943558
+    },
+    {
+      "arguments": [
+        1498223545,
+        3090886694
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 294142943,
+      "source_steps": 7,
+      "source_value": 294142943
+    },
+    {
+      "arguments": [
+        3527631493,
+        3247537951
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2480202148,
+      "source_steps": 7,
+      "source_value": 2480202148
+    },
+    {
+      "arguments": [
+        1071493754,
+        1659295901
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2730789655,
+      "source_steps": 7,
+      "source_value": 2730789655
+    },
+    {
+      "arguments": [
+        3534586773,
+        3053625252
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2293244729,
+      "source_steps": 7,
+      "source_value": 2293244729
+    },
+    {
+      "arguments": [
+        4279271426,
+        2750917929
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2735222059,
+      "source_steps": 7,
+      "source_value": 2735222059
+    },
+    {
+      "arguments": [
+        2889963126,
+        1386012262
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 4275975388,
+      "source_steps": 7,
+      "source_value": 4275975388
+    },
+    {
+      "arguments": [
+        1877209689,
+        3693485036
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 1275727429,
+      "source_steps": 7,
+      "source_value": 1275727429
+    },
+    {
+      "arguments": [
+        2528959403,
+        2776415379
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 1010407486,
+      "source_steps": 7,
+      "source_value": 1010407486
+    },
+    {
+      "arguments": [
+        2315538035,
+        2238940436
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 259511175,
+      "source_steps": 7,
+      "source_value": 259511175
+    },
+    {
+      "arguments": [
+        440869616,
+        3475468580
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 3916338196,
+      "source_steps": 7,
+      "source_value": 3916338196
+    },
+    {
+      "arguments": [
+        1881887453,
+        444366255
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2326253708,
+      "source_steps": 7,
+      "source_value": 2326253708
+    },
+    {
+      "arguments": [
+        3665771602,
+        2671039050
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2041843356,
+      "source_steps": 7,
+      "source_value": 2041843356
+    },
+    {
+      "arguments": [
+        2254953259,
+        276532334
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2531485593,
+      "source_steps": 7,
+      "source_value": 2531485593
+    },
+    {
+      "arguments": [
+        2918431887,
+        837408562
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 3755840449,
+      "source_steps": 7,
+      "source_value": 3755840449
+    },
+    {
+      "arguments": [
+        378507449,
+        3561156888
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 3939664337,
+      "source_steps": 7,
+      "source_value": 3939664337
+    },
+    {
+      "arguments": [
+        2661497093,
+        1207280645
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 3868777738,
+      "source_steps": 7,
+      "source_value": 3868777738
+    },
+    {
+      "arguments": [
+        36452691,
+        2816660235
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2853112926,
+      "source_steps": 7,
+      "source_value": 2853112926
+    },
+    {
+      "arguments": [
+        4227635801,
+        72494755
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 5163260,
+      "source_steps": 7,
+      "source_value": 5163260
+    },
+    {
+      "arguments": [
+        2079766594,
+        3312099901
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 1096899199,
+      "source_steps": 7,
+      "source_value": 1096899199
+    },
+    {
+      "arguments": [
+        756249037,
+        1634987735
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2391236772,
+      "source_steps": 7,
+      "source_value": 2391236772
+    },
+    {
+      "arguments": [
+        2138267695,
+        1485624707
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 3623892402,
+      "source_steps": 7,
+      "source_value": 3623892402
+    },
+    {
+      "arguments": [
+        1976692843,
+        4051698065
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 1733423612,
+      "source_steps": 7,
+      "source_value": 1733423612
+    },
+    {
+      "arguments": [
+        1543156715,
+        718311182
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2261467897,
+      "source_steps": 7,
+      "source_value": 2261467897
+    },
+    {
+      "arguments": [
+        4188959763,
+        3849188440
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 3743180907,
+      "source_steps": 7,
+      "source_value": 3743180907
+    },
+    {
+      "arguments": [
+        1848844947,
+        1050232124
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2899077071,
+      "source_steps": 7,
+      "source_value": 2899077071
+    },
+    {
+      "arguments": [
+        1898612756,
+        3621668036
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 1225313496,
+      "source_steps": 7,
+      "source_value": 1225313496
+    },
+    {
+      "arguments": [
+        3186078836,
+        2875814471
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 1766926011,
+      "source_steps": 7,
+      "source_value": 1766926011
+    },
+    {
+      "arguments": [
+        234907848,
+        4135563130
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 75503682,
+      "source_steps": 7,
+      "source_value": 75503682
+    },
+    {
+      "arguments": [
+        4191172443,
+        3307222459
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 3203427606,
+      "source_steps": 7,
+      "source_value": 3203427606
+    },
+    {
+      "arguments": [
+        1845266607,
+        1193952305
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 3039218912,
+      "source_steps": 7,
+      "source_value": 3039218912
+    },
+    {
+      "arguments": [
+        3364022772,
+        4253628196
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 3322683672,
+      "source_steps": 7,
+      "source_value": 3322683672
+    },
+    {
+      "arguments": [
+        419680454,
+        822961356
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 1242641810,
+      "source_steps": 7,
+      "source_value": 1242641810
+    },
+    {
+      "arguments": [
+        3365925642,
+        1445655260
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 516613606,
+      "source_steps": 7,
+      "source_value": 516613606
+    },
+    {
+      "arguments": [
+        3593695420,
+        1823797570
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 1122525694,
+      "source_steps": 7,
+      "source_value": 1122525694
+    },
+    {
+      "arguments": [
+        4203542353,
+        2423817739
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2332392796,
+      "source_steps": 7,
+      "source_value": 2332392796
+    },
+    {
+      "arguments": [
+        790392204,
+        3670387553
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 165812461,
+      "source_steps": 7,
+      "source_value": 165812461
+    },
+    {
+      "arguments": [
+        2124009061,
+        1975413413
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 4099422474,
+      "source_steps": 7,
+      "source_value": 4099422474
+    },
+    {
+      "arguments": [
+        2494275970,
+        1337217301
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 3831493271,
+      "source_steps": 7,
+      "source_value": 3831493271
+    },
+    {
+      "arguments": [
+        427160413,
+        3254298906
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 3681459319,
+      "source_steps": 7,
+      "source_value": 3681459319
+    },
+    {
+      "arguments": [
+        1768012883,
+        200390824
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 1968403707,
+      "source_steps": 7,
+      "source_value": 1968403707
+    },
+    {
+      "arguments": [
+        3514032590,
+        1349704262
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 568769556,
+      "source_steps": 7,
+      "source_value": 568769556
+    },
+    {
+      "arguments": [
+        1415687496,
+        242317450
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 1658004946,
+      "source_steps": 7,
+      "source_value": 1658004946
+    },
+    {
+      "arguments": [
+        3962286485,
+        2195016720
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 1862335909,
+      "source_steps": 7,
+      "source_value": 1862335909
+    },
+    {
+      "arguments": [
+        1045759573,
+        1722857916
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2768617489,
+      "source_steps": 7,
+      "source_value": 2768617489
+    },
+    {
+      "arguments": [
+        1187224290,
+        2860242920
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 4047467210,
+      "source_steps": 7,
+      "source_value": 4047467210
+    },
+    {
+      "arguments": [
+        42291555,
+        2522669152
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2564960707,
+      "source_steps": 7,
+      "source_value": 2564960707
+    },
+    {
+      "arguments": [
+        3105033211,
+        1525429267
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 335495182,
+      "source_steps": 7,
+      "source_value": 335495182
+    },
+    {
+      "arguments": [
+        1746504948,
+        2372401938
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 4118906886,
+      "source_steps": 7,
+      "source_value": 4118906886
+    },
+    {
+      "arguments": [
+        336843447,
+        1819606103
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2156449550,
+      "source_steps": 7,
+      "source_value": 2156449550
+    },
+    {
+      "arguments": [
+        243710456,
+        988469456
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 1232179912,
+      "source_steps": 7,
+      "source_value": 1232179912
+    },
+    {
+      "arguments": [
+        1328104002,
+        2083415153
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 3411519155,
+      "source_steps": 7,
+      "source_value": 3411519155
+    },
+    {
+      "arguments": [
+        674292604,
+        1407888056
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2082180660,
+      "source_steps": 7,
+      "source_value": 2082180660
+    },
+    {
+      "arguments": [
+        1767784331,
+        369788306
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2137572637,
+      "source_steps": 7,
+      "source_value": 2137572637
+    },
+    {
+      "arguments": [
+        1714354940,
+        186915474
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 1901270414,
+      "source_steps": 7,
+      "source_value": 1901270414
+    },
+    {
+      "arguments": [
+        1467604167,
+        610253584
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2077857751,
+      "source_steps": 7,
+      "source_value": 2077857751
+    },
+    {
+      "arguments": [
+        2002858914,
+        3141968548
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 849860166,
+      "source_steps": 7,
+      "source_value": 849860166
+    },
+    {
+      "arguments": [
+        4209326357,
+        2423034624
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2337393685,
+      "source_steps": 7,
+      "source_value": 2337393685
+    },
+    {
+      "arguments": [
+        1429801984,
+        4093366744
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 1228201432,
+      "source_steps": 7,
+      "source_value": 1228201432
+    },
+    {
+      "arguments": [
+        1988704716,
+        3797023069
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 1490760489,
+      "source_steps": 7,
+      "source_value": 1490760489
+    },
+    {
+      "arguments": [
+        2758641685,
+        4014545743
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2478220132,
+      "source_steps": 7,
+      "source_value": 2478220132
+    },
+    {
+      "arguments": [
+        4175701904,
+        2815021134
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2695755742,
+      "source_steps": 7,
+      "source_value": 2695755742
+    },
+    {
+      "arguments": [
+        2022016000,
+        431014866
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2453030866,
+      "source_steps": 7,
+      "source_value": 2453030866
+    },
+    {
+      "arguments": [
+        3581379776,
+        74222144
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 3655601920,
+      "source_steps": 7,
+      "source_value": 3655601920
+    },
+    {
+      "arguments": [
+        345905002,
+        3013664752
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 3359569754,
+      "source_steps": 7,
+      "source_value": 3359569754
+    },
+    {
+      "arguments": [
+        798135058,
+        1510240915
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2308375973,
+      "source_steps": 7,
+      "source_value": 2308375973
+    },
+    {
+      "arguments": [
+        2256056170,
+        1954522459
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 4210578629,
+      "source_steps": 7,
+      "source_value": 4210578629
+    },
+    {
+      "arguments": [
+        378690864,
+        4101907521
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 185631089,
+      "source_steps": 7,
+      "source_value": 185631089
+    },
+    {
+      "arguments": [
+        1587374283,
+        3147774523
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 440181510,
+      "source_steps": 7,
+      "source_value": 440181510
+    },
+    {
+      "arguments": [
+        2279214158,
+        1668950375
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 3948164533,
+      "source_steps": 7,
+      "source_value": 3948164533
+    },
+    {
+      "arguments": [
+        2824112727,
+        3626453569
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2155599000,
+      "source_steps": 7,
+      "source_value": 2155599000
+    },
+    {
+      "arguments": [
+        163368216,
+        746400877
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 909769093,
+      "source_steps": 7,
+      "source_value": 909769093
+    },
+    {
+      "arguments": [
+        3160957184,
+        2174387898
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 1040377786,
+      "source_steps": 7,
+      "source_value": 1040377786
+    },
+    {
+      "arguments": [
+        1715493668,
+        2831570974
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 252097346,
+      "source_steps": 7,
+      "source_value": 252097346
+    },
+    {
+      "arguments": [
+        2997693691,
+        2641294424
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 1344020819,
+      "source_steps": 7,
+      "source_value": 1344020819
+    },
+    {
+      "arguments": [
+        533484767,
+        2301038043
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2834522810,
+      "source_steps": 7,
+      "source_value": 2834522810
+    },
+    {
+      "arguments": [
+        957085573,
+        3923040846
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 585159123,
+      "source_steps": 7,
+      "source_value": 585159123
+    },
+    {
+      "arguments": [
+        3745825083,
+        3416673241
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 2867531028,
+      "source_steps": 7,
+      "source_value": 2867531028
+    },
+    {
+      "arguments": [
+        1729467880,
+        3681111844
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 1115612428,
+      "source_steps": 7,
+      "source_value": 1115612428
+    },
+    {
+      "arguments": [
+        1972723343,
+        1485630571
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 3458353914,
+      "source_steps": 7,
+      "source_value": 3458353914
+    },
+    {
+      "arguments": [
+        594883436,
+        601553727
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 1196437163,
+      "source_steps": 7,
+      "source_value": 1196437163
+    },
+    {
+      "arguments": [
+        789938090,
+        3366663407
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 4156601497,
+      "source_steps": 7,
+      "source_value": 4156601497
+    },
+    {
+      "arguments": [
+        341595285,
+        3945153295
+      ],
+      "candidate_steps": 6,
+      "candidate_value": 4286748580,
+      "source_steps": 7,
+      "source_value": 4286748580
+    }
+  ]
+}

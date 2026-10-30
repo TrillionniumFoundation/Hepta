@@ -28,7 +28,7 @@ ROOT = Path(__file__).resolve().parents[1]
 _SOURCES = ("hepta/hia_background_optimizer.py", "hepta/hia_multiversion.py",
             "hepta/hia_native_retirement.py", "hepta/native_mapping_identity.py",
             "hepta/hia_ndu_optimizer.py", "hepta/hia_translation_validation.py",
-            "hepta/hia_program.py", "hepta/hia_program_runtime.py", "hepta/hia_program_llvm.py",
+            "hepta/hia_program.py", "hepta/hia_opcodes.py", "hepta/hia_program_runtime.py", "hepta/hia_program_llvm.py",
             "hepta/elf_shared_abi.py", "tools/build_hia_ndu_bridge.py",
             "tools/qualify_hia_background_optimizer.py", "rust/hia-ndu-bridge/upstream.json",
             "rust/hia-ndu-bridge/Cargo.toml", "rust/hia-ndu-bridge/Cargo.lock",

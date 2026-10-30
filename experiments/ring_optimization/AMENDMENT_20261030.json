@@ -1,0 +1,58 @@
+{
+  "changed_json_fields": [
+    "/held_out_seed"
+  ],
+  "created_utc": "2026-10-30T09:28:56.097057+00:00",
+  "development_observations": {
+    "evidence_path": "DEVELOPMENT_EVIDENCE_20261030.tar.gz",
+    "evidence_sha256": "198c7994b5e333c7c4ac519d54b336fb1f09439c97d76c53b44b69e9d42feb35",
+    "full_report_sha256": "6a3298991c4a5a2dc7dcebbdc2b162806c475e4ced1514ccf52fbc9afe531ef0",
+    "historical_summary_bytes_preserved": true,
+    "net_benefit_upper_bound_seconds": -6.7680123649624875,
+    "original_summary_archive_basename": "text-evidence.tar.gz",
+    "result_path": "DEVELOPMENT_RESULT_20261030.json",
+    "selected_strong_static_arm": "clang_native_irpgo_lto",
+    "source_head": "87f3787ed789aec30893ab9ee017a2e813aa8418",
+    "status": "development_only_not_formal_heldout_evidence"
+  },
+  "development_protocol": {
+    "held_out_seed": 2097394567,
+    "path": "DEVELOPMENT_PROTOCOL_20261030.json",
+    "sha256": "ab89037c618a092bd4ad97d7b7465656763e743d85b856eeeea757332dacc663"
+  },
+  "execution_commitment": {
+    "candidate_or_protocol_tuning_after_formal_observation_allowed": false,
+    "failure_policy": "Retain the first formal attempt and report its status; do not change seed, candidates, budgets or metrics to obtain a favorable result.",
+    "formal_attempts_allowed": 1,
+    "rerun_due_to_negative_result_allowed": false,
+    "run_before_remote_source_registration": false
+  },
+  "formal_protocol": {
+    "held_out_seed": 3698156298,
+    "path": "PROTOCOL_20261030.json",
+    "sha256": "f9f7464cec9134e3b16300f453a96df98dbb4e127babda12b3d7816d5efc7618"
+  },
+  "reason": "The development execution observed the previous held-out seed; those observations cannot be reused as an unseen formal workload.",
+  "schema": "hepta.ring-optimization.amendment.v1",
+  "seed_selection": "One OS-random 32-bit draw; no trace generated and no candidate or benchmark executed with the new seed before remote source registration.",
+  "test_isolation": {
+    "existing_assertions_preserved": true,
+    "fixture": "Self-contained unit protocol with previously observed development seeds; no live formal protocol read in this trace-generation test.",
+    "held_out_seed": 2097394567,
+    "path": "tests/test_ring_optimization_qualification.py",
+    "reason": "Ordinary unit tests and CI must not materialize the registered formal heldout before the single formal attempt.",
+    "runner_candidate_budget_and_metrics_unchanged": true,
+    "test": "test_training_and_heldout_are_distinct_replayable_inputs",
+    "training_seed": 1708132849
+  },
+  "unchanged": [
+    "candidate implementations and compiler flags",
+    "training seed and training repeats",
+    "strong static baselines",
+    "profile definitions and record counts",
+    "held-out repeats and paired groups",
+    "baseline-selection rule",
+    "metrics and full campaign cost accounting",
+    "runner and host source"
+  ]
+}

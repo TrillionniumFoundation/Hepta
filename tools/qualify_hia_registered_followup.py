@@ -122,6 +122,10 @@ def runtime_sample(directory, *, clang, profile):
         require(execution["executed_steps"] == sum(i["iterations"] for i in items)
                 and execution["replayed_steps"] == 0, "Committed queue progress/replay mismatch")
         snapshot = runtime.snapshot()
+        require(execution.get("cost_accounting_complete") is True
+                and snapshot.get("cost_accounting_complete") is True
+                and snapshot.get("state_poisoned") is False,
+                "Runtime cost/progress accounting is incomplete; no net-benefit qualification")
         record = {"profile": profile, "execution": execution, "audit": audit, "snapshot": snapshot,
                   "builds": {key: image.receipt for key, image in runtime._images.items()},
                   "driver": runtime._driver_receipt}

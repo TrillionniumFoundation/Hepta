@@ -19,6 +19,7 @@ from .c_project import capture_project, invoke, verify_capture
 from .c_project_matrix import capture_project_matrix, verify_project_matrix
 from .c_translation import CTranslator
 from .cpp_unique_capture import stream_ast
+from .cpp_unique_assignment import UniqueAssignmentTranslator
 from .cpp_composed_migrate import _children, _qual, _name, _reject, _without_usage, LIMITS
 from .cpp_composed_project import _ProjectTranslator, _decls
 from .cpp_owned_migrate import _nodes, _normalized
@@ -27,6 +28,7 @@ from .pipeline import analyze, compiler_hash
 
 
 PROFILE = "cpp20-captured-unique-byte-array-default-deleter-v1"
+ASSIGNMENT_PROFILE = "cpp20-captured-unique-byte-array-move-assignment-v1"
 MAX_DECLARATIONS = 120_000
 UNIQUE_LEAF = r'''#include <memory>
 class OwnedBytes {
@@ -63,6 +65,22 @@ unsigned long long hepta_contract_use(unsigned long size, unsigned char value, u
     } catch (...) { return 0; }
 }
 '''
+
+UNIQUE_ASSIGNMENT_LEAF = UNIQUE_LEAF.replace(
+    "    OwnedBytes& operator=(OwnedBytes&&) = delete;",
+    """    OwnedBytes& operator=(OwnedBytes&& other) noexcept {
+        if (this != &other) {
+            data_ = static_cast<std::unique_ptr<unsigned char[]>&&>(other.data_);
+            size_ = other.size_;
+            other.size_ = 0;
+        }
+        return *this;
+    }""").replace(
+    "        return second.size() + second.data()[index] + second.get(index);",
+    """        OwnedBytes destination(size, reject);
+        destination = static_cast<OwnedBytes&&>(second);
+        destination = static_cast<OwnedBytes&&>(destination);
+        return destination.size() + destination.data()[index] + destination.get(index);""")
 
 
 def _canonical(value):
@@ -250,7 +268,7 @@ def _unique_shape(leaf, external):
     return {"external_signatures": symbols, "leaf": _without_usage(normalized)}
 
 
-def _capture_lower(capture):
+def _capture_lower(capture, *, move_assignment=False):
     before = compiler_hash()
     compiler = capture["compiler"]["path"]
     if not re.search(r"clang version (?:2[0-9]|[3-9][0-9])\.", capture["compiler"]["version"]):
@@ -276,7 +294,7 @@ def _capture_lower(capture):
             shape = current_shape
         elif shape != current_shape:
             _reject("Owner definition differs between translation units", "E_CPP_UNIQUE_ODR")
-        source = UNIQUE_LEAF.replace("OwnedBytes", leaf["name"])
+        source = (UNIQUE_ASSIGNMENT_LEAF if move_assignment else UNIQUE_LEAF).replace("OwnedBytes", leaf["name"])
         reference_config = _reference_config(config)
         actual_standard = _standard_snapshot(compiler, config)
         reference_standard = _standard_snapshot(compiler, reference_config, source=source)
@@ -345,11 +363,14 @@ def _capture_lower(capture):
         (helpers if parameters and _qual(parameters[0]) == composite["name"] else entries).append(function)
     if len(entries) != 1 or not 1 <= len(helpers) <= 8 or len({unit for unit, _, _ in definitions.values()}) < 2:
         _reject("One scalar entry and actual separately defined owner consumers are required")
-    translator = _ProjectTranslator({"kind": "TranslationUnitDecl", "inner": [leaf, composite, *functions]},
-                                    leaf, composite, entries[0], helpers)
+    translator_class = UniqueAssignmentTranslator if move_assignment else _ProjectTranslator
+    translator = translator_class({"kind": "TranslationUnitDecl", "inner": [leaf, composite, *functions]},
+                                  leaf, composite, entries[0], helpers)
     source, translated = translator.translate()
     if translator.stats["cross_unit_owner_transfers"] == 0:
         _reject("Project contains no actual owner transfer")
+    if move_assignment and translator.stats["owner_move_assignments"] == 0:
+        _reject("Move-assignment profile requires an actual distinct-owner replacement", "E_CPP_UNIQUE_ASSIGNMENT")
     for config, active, _, _ in units:
         for top, file in active:
             definition = top["kind"] != "FunctionDecl" or any(child.get("kind") == "CompoundStmt" for child in _children(top))
@@ -367,7 +388,8 @@ def _capture_lower(capture):
                 if role is None:
                     _reject("Active declaration has no disposition", "E_CPP_UNIQUE_INVENTORY")
                 if role == "exact_leaf_protocol":
-                    role = "exact_unique_array_default_deleter_contract"
+                    role = ("exact_unique_array_guarded_move_assignment_contract" if move_assignment
+                            else "exact_unique_array_default_deleter_contract")
                 inventory.append({"unit": config["index"], "file": file, "kind": node["kind"],
                                   "name": node.get("name"), "path": list(path), "status": role,
                                   "canonical_id": identity})
@@ -378,7 +400,8 @@ def _capture_lower(capture):
     verify_capture(capture)
     if compiler_hash() != before:
         _reject("Compiler changed during unique-array capture")
-    return {"schema": "hepta.cpp-unique-project-migration.v1", "profile": PROFILE, "ok": True,
+    return {"schema": "hepta.cpp-unique-project-migration.v1",
+            "profile": ASSIGNMENT_PROFILE if move_assignment else PROFILE, "ok": True,
             "program": program, "source": source, "capture": capture, "declarations": inventory,
             "standard_library_declarations": library, "standard_library_expansion": standard_receipts,
             "ast_capture": ast_receipts, "reference_ast_capture": expected_ast,
@@ -401,6 +424,9 @@ def _capture_lower(capture):
                        "standard_library_contract_is_trusted": True,
                        "standard_library_implementation_migrated": False,
                        "custom_deleters_supported": False, "pointer_escape_supported": False,
+                       "sequenced_complete_owner_move_assignment": move_assignment,
+                       "self_move_preserves_owner": move_assignment,
+                       "reset_or_release_supported": False,
                        "native_execution_qualified": False, "unlisted_builds_qualified": False}}
 
 
@@ -413,6 +439,22 @@ def lower_unique_matrix(manifest, *, clangxx="clang++"):
     variants = [{"name": row["name"], **_capture_lower(row["capture"])} for row in capture["variants"]]
     verify_project_matrix(capture)
     return {"schema": "hepta.cpp-unique-project-matrix.v1", "profile": PROFILE,
+            "ok": True, "capture": capture, "variants": variants,
+            "all_declared_variants_translated_separately": True,
+            "original_cpp_objects_in_translated_targets": False,
+            "unlisted_builds_qualified": False, "native_execution_qualified": False}
+
+
+def lower_unique_assignment_project(database, *, clangxx="clang++"):
+    return _capture_lower(capture_project(database, clang=clangxx, language="c++"), move_assignment=True)
+
+
+def lower_unique_assignment_matrix(manifest, *, clangxx="clang++"):
+    capture = capture_project_matrix(manifest, clang=clangxx, language="c++")
+    variants = [{"name": row["name"], **_capture_lower(row["capture"], move_assignment=True)}
+                for row in capture["variants"]]
+    verify_project_matrix(capture)
+    return {"schema": "hepta.cpp-unique-project-matrix.v1", "profile": ASSIGNMENT_PROFILE,
             "ok": True, "capture": capture, "variants": variants,
             "all_declared_variants_translated_separately": True,
             "original_cpp_objects_in_translated_targets": False,
