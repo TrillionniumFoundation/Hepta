@@ -14,7 +14,7 @@ import re
 
 # The migration IR can also be called without the C importer. Only validated
 # ASCII Hepta symbol spellings may be interpolated into emitted source.
-_SYMBOL = re.compile(r"[A-Za-z][A-Za-z0-9_]*\\Z", re.ASCII)
+_SYMBOL = re.compile(r"[A-Za-z][A-Za-z0-9_]*\Z", re.ASCII)
 _RESERVED = frozenset({
     "module", "import", "fn", "pub", "extern", "export", "effects", "resources",
     "as", "let", "mut", "take", "move", "read", "unsafe", "struct", "enum",
