@@ -52,12 +52,25 @@ controller, cleanup and failed-attempt costs are retained. Common costs are
 charged once per standalone arm. The pinned NDU build's original actual cost
 is shown separately; no new cold build is claimed.
 
-`qualification` uses 24 actual calls per candidate. It is correctness evidence
-and does not run the economic campaign. `study` freshly repeats all preparation
+`qualification` uses 24 actual calls per candidate and checks the actual pinned
+stream controller on three declared protocol cases: a unique path, an exact
+tie and literal abstention when no path fits. Those probe costs are synthetic,
+explicitly unmeasured values, and no application plan is executed by the probe.
+Raw requests, native responses and session cleanup are retained. This is
+correctness evidence and does not run the economic campaign.
+
+`study` freshly repeats all preparation
 before the registered 24 calibration deliveries and 160 policy/control
-deliveries: **3,087,007,744 actual kernel calls**. It retains failed or slow
+deliveries: **3,087,007,744 registered delivery kernel calls**. The separate
+preparation differential checks make another 64 native calls per candidate
+image (256 for the four-image bank, plus 64 for the fresh baseline-only bank).
+They are reported separately, including unknown counts on partial failure;
+their actual cost is already in the preparation ledger. The study retains failed or slow
 observations, stops on an incomplete gate and never retries a sample. The
 protocol allows no result-driven budget, input, candidate or arm changes.
+Required finalization, identity rechecks and post-policy analysis must also fit
+the unchanged 900-second study bound. An overrun during these stages or the
+initial result write keeps every observation and cost but fails qualification.
 
 ```sh
 python tools/qualify_hia_stb_ndu.py --stage qualification \

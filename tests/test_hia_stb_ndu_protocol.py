@@ -68,6 +68,33 @@ class StbProtocolTests(unittest.TestCase):
             self.assertIn("error", observed)
             self.assertGreater(observed["delivery_ns"], 0)
 
+    def test_required_finalization_cost_cannot_cross_budget_and_still_qualify(self):
+        report = {"qualified": True, "status": "all-registered-deliveries-completed",
+                  "ledger": [{"label": "source_after", "wall_ns": 8}], "episodes": [{"complete": True}]}
+        p = {"study_budget_ns": 100}
+        self.assertTrue(study.final_budget(report, p, 100))
+        self.assertTrue(report["qualified"])
+        self.assertFalse(study.final_budget(report, p, 101))
+        self.assertFalse(report["qualified"])
+        self.assertEqual(report["status"], "study-budget-exceeded")
+        self.assertEqual(report["ledger"], [{"label": "source_after", "wall_ns": 8}])
+        self.assertEqual(report["episodes"], [{"complete": True}])
+        self.assertFalse(study.final_budget(report, p, 103, result_encoding_observed=True))
+        self.assertTrue(report["study_budget"]["initial_result_encoding_included"])
+        self.assertEqual(report["budget_overrun"]["wall_ns"], 103)
+
+    def test_preparation_native_calls_are_separate_and_unknown_is_not_zero(self):
+        report = {"stage": "study", "bank": {"candidates": {label: {
+            "native_differential": {"cases_executed": 64}} for label in study.LABELS}}}
+        partial = study.preparation_native_calls(report)
+        self.assertEqual(partial["known_calls"], 256)
+        self.assertIsNone(partial["total_calls"])
+        self.assertFalse(partial["complete"])
+        report["baseline_bank"] = {"candidates": {"baseline": {"native_differential": {"cases_executed": 64}}}}
+        complete = study.preparation_native_calls(report)
+        self.assertTrue(complete["complete"])
+        self.assertEqual(complete["total_calls"], 320)
+
     def test_source_binding_checks_raw_blobs_and_does_not_admit_dirty_tree(self):
         with patch.object(study.subprocess, "check_output", side_effect=[b"a" * 40 + b"\n", b" M source\n"]):
             with self.assertRaisesRegex(ValueError, "clean checkout"):
@@ -75,8 +102,8 @@ class StbProtocolTests(unittest.TestCase):
 
     def test_actual_native_protocol_is_bounded_and_does_not_call_dp_online(self):
         # A transport-contract unit double only; it is never used in a study
-        # or called an actual NDU observation. The real protocol probe is a
-        # separate native test and economic samples require RecordedSession.
+        # or called an actual NDU observation. The separate qualification
+        # stage executes its real protocol probe through RecordedSession.
         p = study.protocol()
         m = {"costs": [{label: 10 + i for i, label in enumerate(study.LABELS)}] * 3,
              "remaining_ns": 1000, "support_sha256": "b" * 64,

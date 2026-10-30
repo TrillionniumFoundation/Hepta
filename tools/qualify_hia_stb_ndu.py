@@ -31,7 +31,6 @@ from hepta.hia_ndu_session import STREAM_SOURCE_PIN
 from hepta.hia_stb_specialization import LABELS, candidates, capture, edge_cases, oracle
 from hepta.hia_program import verify_program
 from hepta.hia_optimization import _solver_identity
-from hepta.native_tool_identity import digest_executable
 from tools.qualify_hia_integrated import _digest_file
 from tools.qualify_hia_ndu_loop import EpisodeBudget, measured
 from tools.qualify_hia_ndu_net_value import RecordedSession
@@ -116,7 +115,7 @@ def sources(expected_head):
     prefixes = ["hepta", "tools", "tests/fixtures/c_migration/stb_divide",
                 "experiments/hia_stb_ndu_20261030", "rust/hia-ndu-bridge",
                 "tests/test_hia_scalar_call_validation.py", "tests/test_hia_stb_specialization.py",
-                "tests/test_hia_finite_context_map_repeat.py"]
+                "tests/test_hia_finite_context_map_repeat.py", "tests/test_hia_stb_ndu_protocol.py"]
     entries = git("ls-tree", "-r", "--full-tree", "-z", head, "--", *prefixes)
     result = {}
     for raw in entries.split(b"\0")[:-1]:
@@ -291,6 +290,106 @@ def native_plan(m, p, generation, bridge):
                              "frontier_tie_rule_used": tie, "model": m}
 
 
+def native_protocol_probe(bank_report, p, manifest, identity_path, directory):
+    """Exercise actual transport/ranking with declared, non-measured costs.
+
+    This correctness probe supplies the freshly admitted bank identities, but
+    never executes an application plan or estimates a performance advantage.
+    The economic study has its own fresh sessions and measured calibration.
+    """
+    directory.mkdir()
+    started, bridge, ledger = time.monotonic_ns(), None, []
+    report = {"schema": "hepta.hia.stb-ndu.native-protocol-probe.v1",
+              "qualified": False, "ledger": ledger, "observations": [],
+              "costs_are_measured_application_estimates": False,
+              "application_plan_executed": False, "economic_study_executed": False,
+              "authority": "DENY_ALL", "safety_certificate": False}
+    support = digest({"bank_sha256": bank_report["bank_sha256"], "scope": "protocol-correctness-only"})
+    proofs = {label: digest(bank_report["candidates"][label]["translation"]) for label in LABELS}
+    preferred = ("guard_8", "guard_10", "guard_8_10")
+    unique = [{label: (1 if label == preferred[i] else 8 + j) * 1000000
+               for j, label in enumerate(LABELS)} for i in range(3)]
+    tied = [{label: 2000000 for label in LABELS} for _ in range(3)]
+    try:
+        bridge = measured("native.startup", ledger, lambda: RecordedSession(manifest["binary"],
+            identity_path, directory / "stream", timeout=p["controller_timeout_s"], image_check="sealed"))
+        for generation, (name, costs, remaining) in enumerate((
+                ("unique-path", unique, 1000000000), ("exact-tie", tied, 1000000000),
+                ("literal-abstention", unique, 0)), 1):
+            model_value = {"costs": costs, "remaining_ns": remaining,
+                           "support_sha256": support, "proofs": proofs}
+            row = {"case": name, "model": model_value, "passed": False}
+            report["observations"].append(row)
+            if remaining:
+                chosen, evidence = measured(name, ledger, lambda: native_plan(model_value, p, generation, bridge))
+                # An independent post-response correctness assertion only.
+                expected = light_dp(model_value)
+                row.update(chosen=chosen, evidence=evidence, independent_expected=expected,
+                           passed=chosen == expected)
+            else:
+                try:
+                    measured(name, ledger, lambda: native_plan(model_value, p, generation, bridge))
+                except ValueError as error:
+                    response = json.loads(bridge._last_received_frame)["response"]
+                    row.update(error={"type": type(error).__name__, "message": str(error)}, response=response,
+                               passed=response["advisory_candidate_id"] == "abstain")
+            require(row["passed"], "actual native protocol correctness probe failed: " + name)
+        report["qualified"] = True
+    except BaseException as error:
+        report["error"] = {"type": type(error).__name__, "message": str(error)}
+    finally:
+        if bridge is not None:
+            try:
+                measured("native.shutdown", ledger, bridge.close)
+                report["native_session"] = bridge.snapshot()
+                require(report["native_session"]["closed"] is True
+                        and bridge._process is not None and bridge._process.poll() is not None,
+                        "native correctness-probe process did not terminate")
+                report["native_session"]["process_exited"] = True
+            except BaseException as error:
+                report.update(qualified=False, cleanup_error={"type": type(error).__name__, "message": str(error)})
+        report["wall_ns"] = time.monotonic_ns() - started
+        save(directory / "PROBE.json", report)
+    require(report["qualified"], "actual native correctness probe did not qualify")
+    return report
+
+
+def final_budget(report, p, wall_ns, *, result_encoding_observed=False):
+    """Never qualify an over-budget finalizer; keep all incurred observations."""
+    within = type(wall_ns) is int and 0 <= wall_ns <= p["study_budget_ns"]
+    report["study_budget"] = {"limit_ns": p["study_budget_ns"], "observed_wall_ns": wall_ns,
+        "within_limit": within, "required_cleanup_and_identity_checks_included": True,
+        "post_policy_analysis_included_if_run": True,
+        "initial_result_encoding_included": result_encoding_observed,
+        "outer_startup_and_final_terminal_write": "separately measured by the external process receipt"}
+    if not within:
+        report["qualified"] = False
+        report["budget_overrun"] = {"kind": "study_wall_budget_exceeded", "wall_ns": wall_ns,
+                                    "limit_ns": p["study_budget_ns"]}
+        report["status"] = "study-budget-exceeded"
+    return within
+
+
+def preparation_native_calls(report):
+    """Native differential calls are additional to registered deliveries."""
+    expected = [("bank", LABELS)]
+    if report["stage"] == "study":
+        expected.append(("baseline_bank", ("baseline",)))
+    rows = []
+    for name, labels in expected:
+        for label in labels:
+            evidence = report.get(name, {}).get("candidates", {}).get(label, {}).get("native_differential", {})
+            count = evidence.get("cases_executed")
+            known = type(count) is int and count >= 0
+            rows.append({"bank": name, "candidate": label, "calls": count if known else None,
+                         "evidence_status": evidence.get("status")})
+    complete = all(row["calls"] is not None for row in rows)
+    return {"scope": "candidate preparation native differential calls only; not VM or SMT evaluations",
+            "rows": rows, "complete": complete,
+            "known_calls": sum(row["calls"] for row in rows if row["calls"] is not None),
+            "total_calls": sum(row["calls"] for row in rows) if complete else None}
+
+
 def episode(arm, group, bank, bank_report, calibration, vectors, p, manifest, identity_path, directory):
     directory.mkdir()
     started, ledger, observations, decisions, bridge = time.monotonic_ns(), [], [], [], None
@@ -411,8 +510,10 @@ def qualify(*, output, expected_head, clang, identity_path, stage):
             report["tiny"] = [run("qualification." + target, lambda target=target, index=index:
                 deliver(bank, p, vectors[0], p["parameters"][index % 3], target, out / "tiny", index, tiny=True))
                 for index, target in enumerate(LABELS)]
+            report["native_protocol_probe"] = run("qualification.native_protocol", lambda:
+                native_protocol_probe(bank_report, p, manifest, identity_path, out / "native-protocol"))
             report.update(status="correctness-qualified", qualified=True, economic_study_executed=False,
-                          native_controller_executed=False)
+                          native_controller_executed=True)
         else:
             report["reference_bank"] = run("reference.prepare", lambda: prepare_references(bank, vectors, p, out))
             calibration = report["calibration"] = run("calibration", lambda: calibrate(bank, vectors, p, out / "calibration"))
@@ -461,7 +562,9 @@ def qualify(*, output, expected_head, clang, identity_path, stage):
             and report.get("frontend_libraries_after") == report.get("frontend_libraries_before")
             and "source_before" in report)
         report["qualified"] = report["qualified"] and report["identities_unchanged"]
+        report["preparation_native_calls"] = preparation_native_calls(report)
         report["wall_ns_before_analysis_and_final_encoding"] = time.monotonic_ns() - started
+        final_budget(report, p, report["wall_ns_before_analysis_and_final_encoding"])
         if stage == "study" and report["qualified"]:
             try:
                 report["analysis"] = measured("post-policy.analysis", ledger, lambda: analyze(report, p))
@@ -469,7 +572,15 @@ def qualify(*, output, expected_head, clang, identity_path, stage):
                 report["analysis_error"] = {"type": type(error).__name__, "message": str(error)}
                 report["qualified"] = False
         report["wall_ns_before_final_encoding"] = time.monotonic_ns() - started
+        final_budget(report, p, report["wall_ns_before_final_encoding"])
         save(out / "RESULT.json", report)
+        persisted_wall_ns = time.monotonic_ns() - started
+        if persisted_wall_ns > p["study_budget_ns"]:
+            # If the first terminal write itself crosses the bound, retain its
+            # cost and overwrite only this new run's terminal summary as failed.
+            # Nothing previously observed is discarded or rerun.
+            final_budget(report, p, persisted_wall_ns, result_encoding_observed=True)
+            save(out / "RESULT.json", report)
     return report
 
 
@@ -515,6 +626,8 @@ def analyze(report, p):
         "candidate_opportunity_is_NDU_increment": False,
         "statistical_superiority_established": False,
         "actual_kernel_calls": p["expected_actual_kernel_calls"],
+        "actual_kernel_calls_scope": "registered calibration plus policy/baseline deliveries only",
+        "additional_preparation_native_calls": report["preparation_native_calls"],
         "final_encoding_and_outer_startup": "see actual external process receipt; not assigned zero"}
 
 
