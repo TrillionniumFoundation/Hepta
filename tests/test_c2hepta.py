@@ -211,6 +211,46 @@ class C2HeptaImport(unittest.TestCase):
         self.assertFalse(self.out.exists())
         self.assertTrue(self.report.exists())
 
+    def test_clang_metadata_probes_stop_oversized_producers(self):
+        # All pre-AST Clang probes are user-configurable executables too.
+        # A 16 MiB version/target/macro producer must be stopped before it
+        # completes, rather than captured wholesale by subprocess.run.
+        self.src.write_text("int safe(int x){return x;}\\n", encoding="utf-8")
+        for attack_phase in ("version", "target", "defines"):
+            with self.subTest(phase=attack_phase):
+                marker = self.path / ("finished-" + attack_phase)
+                fake_clang = self.path / ("clang-probe-" + attack_phase)
+                fake_clang.write_text(
+                    f"#!{sys.executable}\\n"
+                    "import pathlib, sys, time\\n"
+                    f"attack_phase = {attack_phase!r}\\n"
+                    f"marker = pathlib.Path({str(marker)!r})\\n"
+                    "args = sys.argv[1:]\\n"
+                    "phase = ('version' if '--version' in args else\\n"
+                    "         'target' if '-dumpmachine' in args else\\n"
+                    "         'defines' if '-dM' in args else 'ast')\\n"
+                    "if phase == attack_phase:\\n"
+                    "    if phase == 'version': print('clang version 19.0.0', flush=True)\\n"
+                    "    if phase == 'target': print('x86_64-unknown-linux-gnu', flush=True)\\n"
+                    "    if phase == 'defines': print('#define __SIZEOF_INT__ 4\\\\n#define __CHAR_BIT__ 8', flush=True)\\n"
+                    "    for _ in range(256):\\n"
+                    "        sys.stdout.buffer.write(b'X' * 65536)\\n"
+                    "        sys.stdout.buffer.flush()\\n"
+                    "        time.sleep(0.002)\\n"
+                    "    marker.write_text('oversized probe finished')\\n"
+                    "elif phase == 'version': print('clang version 19.0.0')\\n"
+                    "elif phase == 'target': print('x86_64-unknown-linux-gnu')\\n"
+                    "elif phase == 'defines': print('#define __SIZEOF_INT__ 4\\\\n#define __CHAR_BIT__ 8')\\n"
+                    "else: print('{\\\"inner\\\": []}')\\n",
+                    encoding="utf-8",
+                )
+                fake_clang.chmod(0o700)
+                result = migrate(self.src, self.out, self.report, clang=str(fake_clang))
+                self.assertEqual(result["status"], "rejected", result)
+                self.assertFalse(marker.exists(), "oversized Clang metadata producer finished before rejection")
+                self.assertFalse(self.out.exists())
+                self.assertTrue(self.report.exists())
+
     def test_native_gate_without_frontend_fails_closed(self):
         self.src.write_text("int f(int x){return x;}", encoding="utf-8")
         result = migrate(self.src, self.out, self.report, verify_native=True, rustc="/no/such/rustc")
