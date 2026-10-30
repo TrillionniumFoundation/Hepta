@@ -1,0 +1,28 @@
+// Authored scalar client. The separately captured musl body is unchanged.
+export "C" fn strncmp_probe(n: usize, left_word: u64, right_word: u64) -> i32 effects {alloc, block, panic, write} {
+    if n > 8 { return -259; }
+    let first: Result<Buffer<u8>, u8> = try_buffer(n);
+    match move first {
+        Result::Err(first_error) => { return -257; },
+        Result::Ok(first_storage) => {
+            let mut left: Buffer<u8> = move first_storage;
+            let second: Result<Buffer<u8>, u8> = try_buffer(n);
+            match move second {
+                Result::Err(second_error) => { drop(move left); return -258; },
+                Result::Ok(second_storage) => {
+                    let mut right: Buffer<u8> = move second_storage;
+                    let mut index: usize = 0;
+                    while index < n {
+                        left[index] = (left_word >> ((index as u64) * 8)) as u8;
+                        right[index] = (right_word >> ((index as u64) * 8)) as u8;
+                        index = index + 1;
+                    }
+                    let compared: i32 = c_strncmp(read left, 0, read right, 0, n as u64);
+                    drop(move right);
+                    drop(move left);
+                    return compared;
+                },
+            }
+        },
+    }
+}
