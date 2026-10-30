@@ -560,6 +560,78 @@
         "tests.test_hia_ndu_prepared_reuse.PreparedReuseProtocolTests.test_competition_requires_exact_actual_target_build_output_and_inputs"
       ],
       "scope": "prospectively fixed finite comparison protocol with the same proof policy and artifact limits for fixed, complete-DP and native-advisory arms; historical build cost remains separately labeled; claimed competition requires matching admitted control pairs, exact decision inputs, selected candidate build and observed correct output"
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_heap_bound.qualify_finite_entry_live_heap_budget_v8"
+      ],
+      "exclusions": [
+        "not a change to Core/Rust execution semantics or legacy budget profiles",
+        "no chain, cyclic or recursive resource analysis; external loan lengths remain unknown inside callees",
+        "not allocator overhead, RSS, native stack, unwind, automatic optimization admission or a whole-language proof"
+      ],
+      "guarantee": "recomputed_from_actual_core",
+      "id": "finite_v8_owner_loan_payload",
+      "regression_selectors": [
+        "tests.test_hia_finite_v8_heap.FiniteV8HeapTests.test_mixed_owner_and_returned_loan_calls_get_a_new_explicit_bound",
+        "tests.test_hia_finite_v8_heap.FiniteV8HeapTests.test_legacy_admissions_keep_their_exact_version_and_boundary",
+        "tests.test_hia_finite_v8_heap.FiniteV8HeapTests.test_wrong_origins_early_parent_end_and_hidden_bad_helper_reject_first",
+        "tests.test_hia_finite_v8_heap.FiniteV8HeapTests.test_unknown_profiles_cycles_and_analysis_work_limits_refuse",
+        "tests.test_hia_finite_v8_heap.FiniteV8HeapRust.test_actual_rust_matches_mixed_owner_loans_failure_cancel_and_each_stop",
+        "tests.test_hia_finite_v8_heap.FiniteV8HeapRust.test_actual_rust_asymmetric_reordered_returns_keep_the_larger_root",
+        "tests.test_hia_finite_v8_heap.FiniteV8HeapRust.test_invalid_origins_and_early_parent_end_reject_independently",
+        "tests.test_hia_finite_v8_heap.FiniteV8HeapNative.test_native_success_failure_and_cancellation_obey_actual_allocator_bound"
+      ],
+      "scope": "Exact scalar entry invocations of canonical primitive v8 (including composite v4 elaborations); acyclic CFG/call graphs; byte owner transfer/returns plus original-parameter returned loans; requested live payload, VM ticks and allocator-event bounds."
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_guarded_batch.checked_profile",
+        "hepta.hia_guarded_batch.build_candidate",
+        "hepta.hia_guarded_batch.assess_opportunities"
+      ],
+      "exclusions": [
+        "not the full_lifecycle PreparedArtifactSession ABI or persistent resource state",
+        "exported code-byte inequality is not a final-machine-code proof",
+        "observed envelopes are not statistical confidence intervals; synthetic demand is not an application trace",
+        "an economic gate gives no NDU safety, publication or deployment authority and no performance superiority claim"
+      ],
+      "guarantee": "proved_only_within_declared_solver_profile",
+      "id": "guarded_u32_native_opportunity",
+      "regression_selectors": [
+        "tests.test_hia_guarded_batch.GuardedBatchTests.test_unknown_or_refuted_proof_never_reaches_emitter_or_compiler",
+        "tests.test_hia_guarded_batch.GuardedBatchTests.test_old_checksum_abi_and_widened_return_are_rejected",
+        "tests.test_hia_guarded_batch.GuardedBatchTests.test_identical_machine_code_and_total_cost_each_prevent_positive_gate",
+        "tests.test_hia_guarded_batch.GuardedBatchTests.test_validation_regression_missing_or_duplicate_sample_cannot_be_trimmed",
+        "tests.test_hia_guarded_batch.GuardedBatchTests.test_uncertain_descriptor_close_is_not_retried_or_certified",
+        "tests.test_hia_guarded_batch.GuardedBatchTests.test_real_removed_guard_has_counterexample_and_cannot_compile",
+        "tests.test_hia_guarded_batch.GuardedBatchNativeTests.test_real_proofs_distinct_code_abi_traps_and_sealed_child_driver"
+      ],
+      "scope": "Separate Linux x86-64 calculate(u32,u32)->u32 checked-division batch profile; canonical resource legality, recomputed all-input value/first-trap SMT and selected LLVM proof precede native compilation; finite child execution and frozen synthetic economic opportunity gate."
+    },
+    {
+      "entrypoints": [
+        "hepta.c_translation.CTranslator.stmt",
+        "hepta.c_definite_assignment.check_definite_assignment"
+      ],
+      "exclusions": [
+        "body declarations, nested do/for, return, break, continue, goto and switch are rejected",
+        "not arbitrary C undefined behavior inference or source refinement proof",
+        "real project route changes the explicitly authored checksum integration TU; locked upstream implementations are unchanged",
+        "host evidence is limited to each actual executed profile; no general C++ ABI or engineering-cost claim"
+      ],
+      "guarantee": "checked_translation_with_foreign_obligations",
+      "id": "captured_c_post_test_loops",
+      "regression_selectors": [
+        "tests.test_c_project_do_while.CapturedDoWhileTests.test_initial_false_condition_still_executes_one_body",
+        "tests.test_c_project_do_while.CapturedDoWhileTests.test_body_assignment_is_available_to_first_condition_and_exit",
+        "tests.test_c_project_do_while.CapturedDoWhileTests.test_missing_first_iteration_assignment_and_initial_read_reject",
+        "tests.test_c_project_do_while.CapturedDoWhileTests.test_nested_scopes_and_jump_control_remain_refused",
+        "tests.test_c_project_do_while.CapturedDoWhileTests.test_first_body_trap_is_not_hidden_by_false_condition",
+        "tests.test_c_project_do_while.CapturedDoWhileTests.test_cursor_post_test_never_skips_invalid_empty_range",
+        "tests.test_c_project_do_while.CapturedDoWhileApplicationTests.test_existing_upstream_queue_and_compare_application_post_test_maintenance"
+      ],
+      "scope": "Captured C scalar/record-view projects with braced do-while bodies, outer scalar or cursor state and pure conditions; the body executes once before the first condition and all-path initialization reaches that condition and exit."
     }
   ],
   "judgment": {

@@ -140,6 +140,9 @@ CRITICAL_MODULES = {
         "test_c2hepta_bounded_probes", "test_c2hepta_canonical_directory_swap",
         "test_c2hepta_frozen_source_aba", "test_c2hepta_process_group",
         "test_c2hepta_guard_convergence"),
+    "guarded_native_opportunity_admission": ("test_hia_guarded_batch",),
+    "finite_v8_owner_and_returned_loan_payload": ("test_hia_finite_v8_heap",),
+    "captured_c_post_test_loop_semantics": ("test_c_project_do_while",),
 }
 
 

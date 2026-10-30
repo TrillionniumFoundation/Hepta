@@ -783,6 +783,33 @@ class CTranslator:
                 raise MigrationRejected("E_C_EVALUATION_ORDER", "Mutating loop conditions are unsupported")
             return initial + [f"{pad}while {condition.text} {{", *self.stmt(children[4], depth + 1),
                               *self.stmt(children[3], depth + 1), pad + "}"]
+        if kind == "DoStmt":
+            if len(children) != 2 or children[0].get("kind") != "CompoundStmt":
+                raise MigrationRejected("E_C_DO_SHAPE", "Do loop requires a braced body and one condition")
+            # A post-test loop executes its body before the first condition.
+            # Keep one lexical body instead of duplicating declarations, cursor
+            # advances or nested loops. Existing source lowering checks every
+            # iteration and resource edge of the resulting ordinary while.
+            pending = [children[0]]
+            while pending:
+                part = pending.pop()
+                if part.get("kind") in {"DeclStmt", "DoStmt", "ForStmt"}:
+                    raise MigrationRejected("E_C_DO_SCOPE",
+                        "Post-test loop declarations and nested do/for scopes need separate qualification")
+                if part.get("kind") in {"BreakStmt", "ContinueStmt", "GotoStmt",
+                                        "IndirectGotoStmt", "ReturnStmt", "SwitchStmt"}:
+                    raise MigrationRejected("E_C_DO_CONTROL",
+                        "Post-test loop jumps and terminating bodies require a separate control-flow model")
+                pending.extend(child for child in part.get("inner", []) if isinstance(child, dict))
+            self.counter += 1
+            active = "c_do_active_" + str(self.counter)
+            body = self.stmt(children[0], depth + 1)
+            condition = truth(self.expr(children[1]))
+            if condition.side_effect:
+                raise MigrationRejected("E_C_EVALUATION_ORDER", "Mutating do-loop conditions require explicit sequencing")
+            return [f"{pad}let mut {active}: bool = true;",
+                    f"{pad}while {active} {{", *body,
+                    f"{pad}    {active} = {condition.text};", pad + "}"]
         if kind in {"BinaryOperator", "CompoundAssignOperator"} and len(children) == 2:
             if kind == "BinaryOperator" and node.get("opcode") == ",":
                 # The C comma operator introduces a sequence point. Only

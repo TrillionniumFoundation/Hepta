@@ -586,7 +586,7 @@ def _function(fn: dict, functions: dict[str, dict], calculated: dict[str, int], 
         order = _dag(list(blocks), edges, f"{fn['name']} heap control flow")
     except ValueError as exc:
         if invocation is not None:
-            # The v7 invocation profile requires every CFG to be a DAG. It
+            # Both finite invocation profiles require every CFG to be a DAG. They
             # must not inherit either of the historical cyclic heap profiles.
             raise
         # Preserve the canonical DAG rejection for malformed dependencies,
@@ -724,7 +724,7 @@ def _function(fn: dict, functions: dict[str, dict], calculated: dict[str, int], 
             elif op in {"buffer.new", "buffer.try_new"}:
                 size = _span(known.get(args[0]))
                 if invocation is not None and size is not None and size.lo > MAX_REQUEST:
-                    # Canonical v7's object-size guard runs before the heap
+                    # Canonical v7/v8's object-size guard runs before the heap
                     # policy or allocator attempt. For the ENTIRE interval
                     # above that guard, try_new returns a real empty owner
                     # plus false; new traps without creating an owner. Keep
@@ -800,7 +800,8 @@ def _function(fn: dict, functions: dict[str, dict], calculated: dict[str, int], 
                                 _reject(f"{fn['name']}/{name}: returned owner lacks a bounded extent")
                             owner[output["name"]] = bound
                         elif output["type"] in {"readbuf", "mutbuf"}:
-                            _reject(f"{fn['name']}/{name}: v7 invocation cannot return a loan")
+                            if not invocation.parameter_loan_returns or bound is not None:
+                                _reject(f"{fn['name']}/{name}: invocation cannot return this loan")
                         elif bound is not None:
                             known[output["name"]] = bound
                     # Independent per-position joins may overestimate correlated
@@ -813,7 +814,8 @@ def _function(fn: dict, functions: dict[str, dict], calculated: dict[str, int], 
                     _reject(f"{fn['name']}/{name}: callee heap bound not available")
                 elif invocation is None:
                     peak = max(peak, _local_payload_bytes(owner) + calculated[child["name"]])
-                if invocation is None and borrowed_local_peaks:
+                if ((invocation is None and borrowed_local_peaks)
+                        or invocation is not None and invocation.parameter_loan_returns):
                     bindings = {p["name"]: argument for p, argument in zip(child["params"], args)}
                     # Canonical Core has already checked all return origins,
                     # permissions and parent suspension. Reuse that declared
@@ -851,7 +853,16 @@ def _function(fn: dict, functions: dict[str, dict], calculated: dict[str, int], 
                             _reject(f"{fn['name']}/{name}: returned owner has no bounded root")
                         values.append(owner[value])
                     elif typ in {"readbuf", "mutbuf"}:
-                        _reject(f"{fn['name']}/{name}: v7 borrowed returns are unsupported")
+                        # A v8 returned view is tied to an original borrowed
+                        # formal by canonical admission. Its payload is still
+                        # retained by the caller, so it contributes no newly
+                        # owned result extent. Do not turn that UNKNOWN formal
+                        # extent into zero or an independently supplied size.
+                        root = loans.get(value)
+                        if (not invocation.parameter_loan_returns or root is None
+                                or root not in owner or owner[root] is not None):
+                            _reject(f"{fn['name']}/{name}: returned loan lacks an external formal root")
+                        values.append(None)
                     else:
                         values.append(known.get(value))
                 if returned is None:
@@ -898,14 +909,15 @@ _FINITE_MAX_ANALYSIS_DEPTH = 64
 class _FiniteInvocationAnalysis:
     """Bounded context specialization of the same interval/owner transfer.
 
-    The canonical verifier and the static v7 profile have already checked the
+    The canonical verifier and the selected v7/v8 profile have already checked the
     entire module and both graphs. Exact abstract arguments form the memo key;
     private owned extents come only from that caller's proved live roots.
     These independent limits also cover acyclic programs with exponentially
     many distinct call contexts. Hitting a limit is UNKNOWN, never a bound.
     """
-    def __init__(self, functions):
+    def __init__(self, functions, *, parameter_loan_returns=False):
         self.functions = functions
+        self.parameter_loan_returns = parameter_loan_returns
         self.cache = {}
         self.contexts = self.transfer_steps = self.depth = self.peak_depth = 0
 
@@ -1095,11 +1107,36 @@ def qualify_finite_entry_live_heap_budget(program, function: str, arguments, *,
     The exact scalar arguments are part of the certificate, not a claim over
     every input value or arbitrary external resource extents.
     """
+    return _qualify_finite_entry_live_heap_budget(
+        program, function, arguments, max_live_heap_bytes=max_live_heap_bytes,
+        parameter_loan_returns=False)
+
+
+def qualify_finite_entry_live_heap_budget_v8(program, function: str, arguments, *,
+                                            max_live_heap_bytes: int) -> dict:
+    """Bound one exact v8 invocation with owned and parameter-loan returns.
+
+    This separate contract composes already legal v8 resource transitions; it
+    adds no Core operation or execution rule. Moving an owner into a call
+    removes it from the caller's sum before adding the callee's peak. Incoming
+    borrowed roots stay counted in that caller. Every returned loan reconnects
+    to its canonical return_loans actual, including after nested calls and CFG
+    renaming. The selected entry must remain scalar and all module CFG/call
+    graphs must be acyclic and chain-free. Legacy v7 invocation and v8 local
+    summary admissions retain their original versions and scope.
+    """
+    return _qualify_finite_entry_live_heap_budget(
+        program, function, arguments, max_live_heap_bytes=max_live_heap_bytes,
+        parameter_loan_returns=True)
+
+
+def _qualify_finite_entry_live_heap_budget(program, function, arguments, *,
+                                          max_live_heap_bytes, parameter_loan_returns):
     from hashlib import sha256
     import json
     from .hia_program import scalar_value_valid
     from .hia_static_budget import (HIAStaticBudgetRejected, analyze_static_budget,
-                                    _audit_v7_byte_resource_profile)
+                                    _audit_v7_byte_resource_profile, _audit_v8_resource_profile)
 
     if (type(max_live_heap_bytes) is not int
             or not 0 <= max_live_heap_bytes <= MAX_REQUEST):
@@ -1108,7 +1145,10 @@ def qualify_finite_entry_live_heap_budget(program, function: str, arguments, *,
     checked = verify_program(program)
     document = checked.as_dict()
     try:
-        _audit_v7_byte_resource_profile(document)
+        if parameter_loan_returns:
+            _audit_v8_resource_profile(document, allow_chain=False)
+        else:
+            _audit_v7_byte_resource_profile(document)
         # Reuse the reviewed all-function per-op event audit and strict DAG
         # checks. In particular a pure scalar or block-scoped allocating cycle
         # cannot inherit the legacy live-heap-only acceptance here.
@@ -1130,7 +1170,7 @@ def qualify_finite_entry_live_heap_budget(program, function: str, arguments, *,
                    for param, value in zip(fn["params"], arguments))):
         raise HIAHeapBoundRejected("E_HIA_BUDGET_INPUT",
                                    "entry arguments are not exactly typed machine values")
-    analysis = _FiniteInvocationAnalysis(functions)
+    analysis = _FiniteInvocationAnalysis(functions, parameter_loan_returns=parameter_loan_returns)
     try:
         result = analysis.invoke(fn, arguments)
     except HIAStaticBudgetRejected as error:
@@ -1179,6 +1219,14 @@ def qualify_finite_entry_live_heap_budget(program, function: str, arguments, *,
             "whole_language_soundness_proved": False,
         },
     }
+    if parameter_loan_returns:
+        report["schema"] = "hepta.hia.finite-entry-live-heap-admission.v2"
+        report["profile"] = "acyclic-byte-owner-transfer-parameter-loans-v8"
+        report["claims"].update(
+            canonical_return_origins_reverified=True,
+            returned_loan_caller_roots_preserved=True,
+            borrowed_returns_allocate_payload=False,
+        )
     raw = json.dumps(report, sort_keys=True, separators=(",", ":"),
                      ensure_ascii=False, allow_nan=False).encode("utf-8")
     report["sha256"] = sha256(raw).hexdigest()

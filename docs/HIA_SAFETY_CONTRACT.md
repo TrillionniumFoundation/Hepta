@@ -193,6 +193,26 @@ process RSS. A resource receipt is replayed against the actual Core and
 numerical result; rehashing understated values does not make them authoritative.
 The separately audited v8 consumers do not upgrade older receipt consumers.
 
+The separate `hepta.hia.finite-entry-live-heap-admission.v2` contract composes
+already legal v8 owner transfers/returns with original-parameter returned loans
+for one exact scalar invocation. It retains caller-owned payload while a callee
+borrows it and reconnects each returned loan to the canonical actual argument.
+Unknown external extents stay unknown inside the callee. CFG and call cycles,
+chains and exhausted analysis limits remain refused. Legacy v7 invocation and
+v8 local-summary profiles keep their original scopes. See
+[the finite v8 contract](HIA_FINITE_V8_HEAP.md).
+
+The round7 matrix retains all 146 prior selected regressions and adds 22 scoped
+boundaries, for 28 capabilities and 168 unique selectors. The additions cover
+that finite v8 composition, captured C post-test loops and the separate two-u32
+guarded native opportunity profile. Its native experiment recomputes Core and
+selected LLVM proofs before compilation, binds the actual exported function
+bytes and retains each finite child's result. Unknown proofs cannot become
+economic negatives or admitted candidates. Neither a passing economic gate nor
+the compiled code's different hash grants NDU execution/publication authority.
+The predeclared demand is synthetic, and observed timing envelopes are not
+statistical confidence intervals or evidence of application benefit.
+
 Runtime admission is a different mechanism. The adaptive host caps its admitted
 native images, in-progress preparations and unresolved native release debts.
 The owned-state adapter has a finite state layout and bounded work queues.

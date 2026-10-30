@@ -177,6 +177,30 @@ jobs:
           CARGO_TARGET_DIR="$RUNNER_TEMP/hia-shadow-target" CARGO_NET_OFFLINE=true \
             python tools/qualify_hia_verified_increment.py --output artifacts/verified-optimization/regression
           python experiments/hia_verified_integration/next_20261028/qualify_guarded_cli.py artifacts/verified-optimization/guarded-cli
+      - name: Prepare exact clean source for guarded opportunity and post-test application
+        shell: bash
+        run: |
+          set -euo pipefail
+          git --no-replace-objects worktree add --detach "$RUNNER_TEMP/hepta-round7-clean-source" "$HEPTA_SOURCE_SHA"
+          cd "$RUNNER_TEMP/hepta-round7-clean-source"
+          test "$(git --no-replace-objects rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"
+          test -z "$(git --no-replace-objects status --porcelain --untracked-files=all)"
+      - name: Qualify the preregistered distinct-code opportunity
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/hepta-round7-clean-source"
+          python tools/qualify_hia_guarded_opportunity.py --clang "$CLANG" \
+            --expected-source "$HEPTA_SOURCE_SHA" \
+            --workdir "$GITHUB_WORKSPACE/artifacts/verified-optimization/guarded-opportunity"
+      - name: Qualify the captured post-test project on the exact source
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/hepta-round7-clean-source"
+          python tools/qualify_hia_c_posttest.py --clang "$CLANG" --expected-source "$HEPTA_SOURCE_SHA" \
+            --output "$GITHUB_WORKSPACE/artifacts/verified-optimization/c-posttest"
       - name: Retain real finite NDU loop and migration/runtime evidence
         run: |
           python tools/qualify_hia_ndu_loop.py --identity "$HEPTA_RECURSIVE_NDU_IDENTITY" \
