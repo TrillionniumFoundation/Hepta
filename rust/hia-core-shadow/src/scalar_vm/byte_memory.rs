@@ -2,7 +2,7 @@
 //! Static linear/loan admission belongs to the existing ownership verifier.
 use std::collections::{BTreeMap, BTreeSet};
 use serde_json::{json, Value};
-use super::{Exec, Halt, RuntimeValue};
+use super::{AllocationFailureIndex, Exec, Halt, RuntimeValue};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Root { Owner(u64), Chain(u64) }
@@ -263,7 +263,7 @@ pub(super) struct ByteMemory {
     chain_nodes_created: u64,
     chain_nodes_dropped: u64,
     max_heap: u64,
-    fail_at: Option<u64>,
+    fail_at: Option<AllocationFailureIndex>,
     attempts: u64,
     allocations: u64,
     frees: u64,
@@ -277,7 +277,7 @@ pub(super) struct ByteMemory {
 }
 
 impl ByteMemory {
-    pub(super) fn new(max_heap: u64, fail_at: Option<u64>) -> Self {
+    pub(super) fn new(max_heap: u64, fail_at: Option<AllocationFailureIndex>) -> Self {
         Self { owners: BTreeMap::new(), loans: BTreeMap::new(), max_heap, fail_at,
             chains: BTreeMap::new(), chain_nodes: BTreeMap::new(),
             chains_created: 0, chains_consumed: 0,
@@ -533,7 +533,7 @@ impl ByteMemory {
             return Err(Halt::Budget("heap"));
         }
         self.attempts += 1;
-        if self.fail_at != Some(self.attempts) {
+        if !self.fail_at.as_ref().is_some_and(|index| index.equals_counter(self.attempts)) {
             let length = usize::try_from(size).map_err(|_| Halt::Internal)?;
             let mut bytes = Vec::new();
             if bytes.try_reserve_exact(length).is_ok() {

@@ -5,6 +5,9 @@ Every proposal is reverified and compared with the incumbent by the independent
 translation validator. NDU is advisory; a selected proposal is proved again.
 The conservative cost includes all supplied search costs and this invocation's
 actual wall time. Native publication must additionally pay its preparation cost.
+Proof admission and solver timeouts use the shared remaining search budget and
+possible net saving. Solver/host overhead may still overshoot; final admission
+then keeps the incumbent. This is not a hard physical execution-time bound.
 """
 from __future__ import annotations
 
@@ -261,6 +264,8 @@ def rank_candidates(baseline, candidates, observations, *, function, bridge, obj
     Search costs include generation, compilation and measurement already incurred.
     Every row's search cost is charged once to the entire search, including losing
     candidates and baseline measurement. The incumbent ('abstain') already exists.
+    Every proof, including the final selected proof, shares that same cap. A
+    sub-millisecond allowance cannot launch the solver's minimum 1 ms timeout.
     """
     started = time.perf_counter_ns()
     before = verify_program(baseline)
@@ -328,18 +333,33 @@ def rank_candidates(baseline, candidates, observations, *, function, bridge, obj
         else:
             spent_lower = supplied_search_ns + time.perf_counter_ns() - started
             candidate_upper = (observed[cid]["runtime_ns"] + observed[cid]["uncertainty_ns"]) * calls
+            remaining_budget = cap - spent_lower
+            remaining_margin = base_lower * calls - candidate_upper - spent_lower
             # Already paid cost cannot decrease. These tests may refuse work,
             # never approve a candidate or claim behavioral equivalence.
             # Keep canonical admission and measurement bindings above, and the
             # real native advisory invocation below, even when all are pruned.
             report["preproof_cost_lower_bound_ns"] = spent_lower
-            if spent_lower > cap:
+            report["proof_remaining_budget_ns"] = remaining_budget
+            report["proof_remaining_margin_ns"] = remaining_margin
+            if remaining_budget <= 0:
                 report["reason"] = "search_budget_exhausted_before_proof"
-            elif candidate_upper + spent_lower >= base_lower * calls:
+            elif remaining_margin <= 0:
                 report["reason"] = "cost_dominated_before_proof"
+            elif remaining_budget < 1_000_000:
+                report["reason"] = "search_budget_insufficient_for_proof"
+            elif remaining_margin <= 1_000_000:
+                report["reason"] = "cost_margin_insufficient_for_proof"
             else:
-                proved, proof = _fresh_proof(before, program, function, timeout_ms)
+                # Round down and leave a strictly positive possible net margin;
+                # never turn a fractional millisecond into extra solver budget.
+                proof_timeout_ms = min(timeout_ms, remaining_budget // 1_000_000,
+                                       (remaining_margin - 1) // 1_000_000)
+                proof_started = time.perf_counter_ns()
+                proved, proof = _fresh_proof(before, program, function, proof_timeout_ms)
                 report.update(equivalence_proved=proved, proof=proof,
+                              proof_timeout_ms=proof_timeout_ms,
+                              proof_wall_ns=time.perf_counter_ns() - proof_started,
                               reason="proved" if proved else "behavior_not_proved")
                 if proved:
                     checked[cid] = program
@@ -365,12 +385,35 @@ def rank_candidates(baseline, candidates, observations, *, function, bridge, obj
     response, bridge_info = _native_rank(bridge, request, timeout_s=bridge_timeout_s)
     selected = response["advisory_recommendation"] or "abstain"
     final_proof, reason = None, "native_evaluator_abstained"
+    final_proof_admission = None
     if selected != "abstain":
         if selected not in checked:
             _reject("advisory result has no independently proved program")
-        proved, final_proof = _fresh_proof(before, checked[selected], function, timeout_ms)
-        if not proved:
-            selected, reason = "abstain", "selected_candidate_fresh_proof_failed"
+        spent_lower = supplied_search_ns + time.perf_counter_ns() - started
+        row = observed[selected]
+        remaining_budget = cap - spent_lower
+        remaining_margin = base_lower * calls - (row["runtime_ns"] + row["uncertainty_ns"]) * calls - spent_lower
+        final_proof_admission = {"candidate_id": selected, "spent_search_ns": spent_lower,
+                                 "remaining_budget_ns": remaining_budget,
+                                 "remaining_margin_ns": remaining_margin,
+                                 "solver_started": False}
+        if remaining_budget < 0:
+            selected, reason = "abstain", "actual_search_budget_exceeded"
+        elif remaining_margin <= 0:
+            selected, reason = "abstain", "no_robust_net_saving_after_search"
+        elif remaining_budget < 1_000_000:
+            selected, reason = "abstain", "selected_proof_budget_insufficient"
+        elif remaining_margin <= 1_000_000:
+            selected, reason = "abstain", "selected_proof_margin_insufficient"
+        else:
+            proof_timeout_ms = min(timeout_ms, remaining_budget // 1_000_000,
+                                   (remaining_margin - 1) // 1_000_000)
+            final_proof_admission.update(solver_started=True, timeout_ms=proof_timeout_ms)
+            proof_started = time.perf_counter_ns()
+            proved, final_proof = _fresh_proof(before, checked[selected], function, proof_timeout_ms)
+            final_proof_admission["wall_ns"] = time.perf_counter_ns() - proof_started
+            if not proved:
+                selected, reason = "abstain", "selected_candidate_fresh_proof_failed"
     actual_adapter_ns = time.perf_counter_ns() - started
     total_search_ns = supplied_search_ns + actual_adapter_ns
     margin = 0
@@ -394,6 +437,7 @@ def rank_candidates(baseline, candidates, observations, *, function, bridge, obj
                       "total_search_ns": total_search_ns, "search_at_native_rank_ns": search_at_rank,
                       "publication_preparation_included": False},
             "candidate_reports": candidate_reports, "selected_fresh_proof": final_proof,
+            "selected_proof_admission": final_proof_admission,
             "native_request": request, "request_sha256": sha256(_bytes(request)).hexdigest(),
             "native_response": response, "bridge": bridge_info,
             "claims": {"ndu_is_advisory": True, "unproved_candidate_admitted": False,

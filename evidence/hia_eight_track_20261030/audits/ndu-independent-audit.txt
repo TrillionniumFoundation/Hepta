@@ -1,0 +1,33 @@
+Independent NDU evidence audit: PASS
+Source: ab6d34613d1e2e90bbfc5081e0cd17354f1b8711
+1057/1057 checks passed; no native/timing reruns; no source or raw evidence edits.
+16/16 policy episodes admitted and cleaned; 256 policy observations; 6/6 post-run controls with 48 observations; 36 calibration observations.
+100 decision models reconstructed from the shared bank and each arm's own past only.
+32 native requests match independent Cartesian-enumeration optima exactly, with zero modeled regret.
+NDU/fixed/greedy: base/base at all 32 decisions per arm. DP: base/base 27 times, base/guarded-narrowed 5 times.
+DP group 1 alone spends one credit on packet_xor guarded-narrowed at epoch 1, uses it through epoch 5, and returns to base at epochs 6 and 7.
+
+Arm | warm ns | cold including empty-target NDU build ns
+fixed | 26848905503 | 26848905503
+feedback-greedy | 26635777327 | 26635777327
+dp | 27952875873 | 27952875873
+native-stream-sealed | 26665582954 | 48052913590
+
+Warm NDU minus feedback-greedy: 29805627 ns.
+Actual empty-target native build: 21387330636 ns. Warm and build-inclusive net-cost gates are both false.
+Common setup 11961014063 ns is charged once to every arm; residual 42079777 ns is charged only to NDU.
+Identical initial calibration, input trace, eligible-information rules, proof/session limits, one shared candidate credit and prepared-image reuse policy; no native decision cache.
+Own observed timings differ across arms. The 32 exact DP audits concern NDU's supplied models; they do not assert identical choices to the separate DP arm.
+
+Post-run base minus candidate wall ns (negative means the candidate costs more):
+byte_sum/guarded: -643163918
+byte_sum/guarded-narrowed: -782072989
+packet_xor/guarded: -1155374217
+packet_xor/guarded-narrowed: -1126148736
+
+The initial sandbox attempt remains intact: four NDU identity failures, zero native deliveries; its early-exit times are not benefits.
+Limits: shared host, four groups, supplied stationary suffix models only; no statistical/global/native-refinement claim; cold target is not a fully cold machine.
+Source/protocol/tool/build and raw native frame identities checked; all release ledgers close without debt.
+At audit time root has an untracked convergence document added after all campaigns; every registered source still matches ab6d346. This is evidence assembly state, not execution source drift.
+JSON contains exact counts, source hashes, episode summaries, preregistered cost exclusions and remaining scope limits.
+Issues: none
