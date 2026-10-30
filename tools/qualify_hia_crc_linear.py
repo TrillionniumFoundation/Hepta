@@ -15,6 +15,7 @@ from pathlib import Path
 import platform
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import time
@@ -59,7 +60,8 @@ def source_state(expected_head):
     require(not git("status", "--porcelain", "--untracked-files=all"), "clean source required")
     scope = ["hepta", "tools", "examples/hia_filecheck", "tests/test_hia_crc_linear.py",
              "tests/test_hia_crc_linear_qualification.py", "docs/HIA_CRC_LINEAR_PROPOSALS.md",
-             "experiments/hia_crc_linear_20261030"]
+             "tests/test_hia_crc_linear_economics.py", "experiments/hia_crc_linear_20261030",
+             "experiments/hia_crc_context"]
     files = {}
     for row in git("ls-tree", "-r", "--full-tree", "-z", head, "--", *scope).split(b"\0")[:-1]:
         metadata, name = row.split(b"\t", 1)
@@ -68,6 +70,10 @@ def source_state(expected_head):
         require(kind == "blob" and mode in {"100644", "100755"}
                 and all(p not in {"", ".", "..", ".git"} for p in name.split("/")),
                 "unsafe source member")
+        parent = ROOT
+        for part in name.split("/")[:-1]:
+            parent /= part
+            require(stat.S_ISDIR(parent.lstat().st_mode), "source parent is not an actual directory")
         files[name] = _digest_file(ROOT / name, expected_mode=mode, expected_blob=blob)
     require("hepta/hia_crc_linear.py" in files and str(Path(__file__).relative_to(ROOT)) in files,
             "proposal/runner absent from immutable tree")

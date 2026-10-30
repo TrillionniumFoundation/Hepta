@@ -90,3 +90,31 @@ frozen protocol, matched data and work, every necessary preparation and identity
 cost, and the full fixed candidate pool. Neither production demand, whole-file
 speedup, best-available CRC, hardware-CRC superiority, general C refinement nor
 machine-code refinement is claimed by this proposal lane.
+
+## Separate frozen economic comparison
+
+`experiments/hia_crc_linear_20261030/PROTOCOL.json` and
+`tools/qualify_hia_crc_linear_economics.py` retain the v3 input domain, seeds,
+two phases, two trials, three polynomial workloads, 16 requests of 256 bytes,
+and 300-second budget. The eight arms are fresh-child baseline, all six
+coalesced fixed candidates, and fixed known-polynomial dispatch to the two
+linear single-polynomial candidates. This gives 96 observations, 276 contexts,
+1,536 delivered requests and 393,216 actual byte-update calls. The complete six
+candidate pool remains the strong fixed baseline; no NDU arm is invented for
+this already statically expressible task.
+
+The cold charge is the complete observed study interval minus the sum of all
+full arm intervals. Every other measured preparation, verification, lookup,
+cleanup, identity and evidence cost stays charged. The dispatch cold comparison
+is the minimum host time over all six fixed versions minus the maximum dispatch
+host time minus this complete shared charge. The inner result requires a real
+outer execution receipt before a complete-cost acceptance claim; startup,
+final rewrite and shutdown are not silently zero.
+
+Each new candidate also reports its kernel and complete-host differences from
+the strongest legacy fixed controls, including all negative/fallback results.
+The native kernel timer covers the driver loop, calls and rolling evidence
+checksum; per-call differences are not isolated instruction latency. Positive
+kernel differences can produce conditional break-even call counts using the
+observed three-image preparation component or the full shared charge. Those
+ratios are hypotheses about future work, not measured net profit or demand.
