@@ -61,7 +61,11 @@ class ClangMigrationTests(unittest.TestCase):
         self.c.write_text("int shared = 7; int f(int x) {return x + shared;}\n")
         result = migrate_c(self.c, self.hepta)
         self.assertFalse(result["ok"])
-        self.assertIn("E_C_REF", [x["code"] for x in result["rejected"]])
+        self.assertEqual(result["status"], "unsupported_source")
+        # The stronger whole-translation-unit gate rejects the global itself
+        # before the function-body E_C_REF check. Never weaken that guard.
+        self.assertEqual([x["code"] for x in result["rejected"]], ["E_C_TOPLEVEL"])
+        self.assertIn("VarDecl", result["rejected"][0]["message"])
         self.assertFalse(self.hepta.exists())
 
     def test_unsupported_cast_rejected_without_writing(self):
