@@ -6,6 +6,7 @@ survive through the IR; the explicit znver4 mask is a regression control.
 """
 from __future__ import annotations
 
+from contextlib import contextmanager
 from hashlib import sha256
 import json
 import os
@@ -13,6 +14,7 @@ from pathlib import Path
 import re
 import shutil
 import stat
+import tempfile
 
 SCHEMA = "hepta.hia.filecheck-native-target-profile.v1"
 PROBE_NAME = "__hepta_filecheck_target_probe"
@@ -34,6 +36,49 @@ def _require(condition, message):
 
 def _wire(value):
     return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+
+
+def elf_linker_version_argv(linker):
+    """Preserve argv[0] and explicitly select ELF for a generic LLD driver."""
+    path = str(linker)
+    flavor = ["-flavor", "gnu"] if Path(path).name in {"lld", "rust-lld"} else []
+    return [path, *flavor, "--version"]
+
+
+@contextmanager
+def elf_linker_driver(linker):
+    """Use the same selected executable under an ELF argv[0] when necessary.
+
+    Clang passes its linker path through. LLD reads -flavor only in argv[1],
+    while Clang appends -Wl flags later, so a generic driver needs an ld.lld
+    spelling. The temporary symlink selects a mode, never a different binary.
+    """
+    selected = _file_identity(linker)
+    temporary = None
+    report = {"selected_before": selected, "temporary_alias": False}
+    try:
+        invocation = selected["invocation_path"]
+        if Path(invocation).name in {"lld", "rust-lld"}:
+            temporary = tempfile.TemporaryDirectory(prefix="hepta-elf-linker-")
+            alias = Path(temporary.name) / "ld.lld"
+            alias.symlink_to(selected["resolved_path"])
+            invocation = str(alias)
+            report["temporary_alias"] = True
+        driver = _file_identity(invocation)
+        _require(driver["resolved_path"] == selected["resolved_path"]
+                 and driver["sha256"] == selected["sha256"], "ELF spelling changed the selected linker")
+        report["driver_before"] = driver
+        try:
+            yield invocation, report
+        finally:
+            report["selected_after"] = _file_identity(linker)
+            report["driver_after"] = _file_identity(invocation)
+            report["unchanged"] = report["selected_after"] == selected and report["driver_after"] == driver
+            _require(report["unchanged"], "selected linker or ELF spelling changed during execution")
+    finally:
+        if temporary is not None:
+            temporary.cleanup()
+            report["temporary_alias_removed"] = not os.path.lexists(invocation)
 
 
 def _file_identity(path):
@@ -120,6 +165,8 @@ def _frontend_flags(flags):
     _require(len(march) == 1 and march[0] in {"-march=native", "-march=znver4"},
              "native research CPU or explicit znver4 regression control required")
     _require(len(linkers) == 1 and len(linkers[0]) > len("-fuse-ld="), "one explicit LTO linker required")
+    _require(Path(linkers[0][len("-fuse-ld="):]).name not in {"lld", "rust-lld"},
+             "Clang LTO requires an ELF linker driver spelling")
     for value in flags:
         _require(value in required or value in march or value in linkers
                  or (value.startswith("-mno-") and value[5:] in _DISABLED_CONTROL_FEATURES),

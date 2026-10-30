@@ -8,6 +8,7 @@ import platform
 import shutil
 import signal
 import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -181,7 +182,10 @@ define i64 @public_entry(i64 %v) {
         candidates = [base + ['-O0'], [value for value in base if value != '-flto=full'],
                       base + ['-fPIC'], base + ['@override.rsp'], base + ['-o', '/tmp/other-output'],
                       [value.replace('-march=native', '-march=x86-64') for value in base],
-                      base + ['-Xclang', '-target-feature', '+avx512f'], base + [True]]
+                      base + ['-Xclang', '-target-feature', '+avx512f'], base + [True],
+                      base + ['-Wl,-flavor,gnu'], base + ['-Wl,-flavor,darwin'],
+                      [value.replace('/usr/bin/ld.lld', '/usr/bin/rust-lld') for value in base],
+                      [value.replace('/usr/bin/ld.lld', '/usr/bin/lld') for value in base]]
         for candidate in candidates:
             with self.subTest(flags=candidate):
                 with self.assertRaisesRegex(ValueError, "E_HIA_FILECHECK_TARGET"):
@@ -192,7 +196,6 @@ define i64 @public_entry(i64 %v) {
         linker = shutil.which(os.environ.get('HEPTA_LLD', 'ld.lld'))
         self.assertIsNotNone(clang, 'actual Clang required')
         self.assertIsNotNone(linker, 'actual ELF LTO linker required')
-        flags = ['-O3', '-flto=full', '-fuse-ld=' + linker, '-march=native', '-fPIC', '-shared']
         rows = []
 
         def recorded(argv, stage, *, timeout):
@@ -203,7 +206,9 @@ define i64 @public_entry(i64 %v) {
             self.assertEqual(process.returncode, 0, process.stderr)
             return row
 
-        with tempfile.TemporaryDirectory(prefix='hepta-filecheck-profile-copy-') as tmp:
+        with tempfile.TemporaryDirectory(prefix='hepta-filecheck-profile-copy-') as tmp, \
+                target.elf_linker_driver(linker) as (driver, _):
+            flags = ['-O3', '-flto=full', '-fuse-ld=' + driver, '-march=native', '-fPIC', '-shared']
             output = Path(tmp) / 'profile'
             _, profile = target.bind_native_target_profile(MINI_IR, clang=clang, flags=flags,
                                                             directory=output, command=recorded)
@@ -218,6 +223,41 @@ define i64 @public_entry(i64 %v) {
             self.assertEqual(profile, saved)
             payload = {key: value for key, value in profile.items() if key != 'profile_sha256'}
             self.assertEqual(profile['profile_sha256'], sha256(target._wire(payload)).hexdigest())
+
+    def test_generic_elf_alias_uses_selected_bytes_and_cleans_up_after_body_failure(self):
+        selected = shutil.which(os.environ.get('HEPTA_LLD', 'ld.lld'))
+        self.assertIsNotNone(selected, 'actual ELF LTO linker required')
+        with tempfile.TemporaryDirectory(prefix='hepta-generic-lld-selection-') as tmp:
+            generic = Path(tmp) / 'rust-lld'
+            generic.symlink_to(Path(selected).resolve(strict=True))
+            with self.assertRaisesRegex(RuntimeError, 'finite body failure'):
+                with target.elf_linker_driver(generic) as (driver, receipt):
+                    process = subprocess.run([driver, '--version'], text=True, capture_output=True, timeout=10)
+                    self.assertEqual(process.returncode, 0, process.stderr)
+                    self.assertIn('LLD ', process.stdout)
+                    self.assertEqual(Path(driver).resolve(), Path(selected).resolve())
+                    raise RuntimeError('finite body failure')
+            self.assertTrue(receipt['unchanged'])
+            self.assertTrue(receipt['temporary_alias_removed'])
+            self.assertFalse(os.path.lexists(driver))
+            self.assertEqual(receipt['selected_before']['sha256'], receipt['driver_before']['sha256'])
+            self.assertEqual(generic.resolve(), Path(selected).resolve())
+
+    def test_changed_selected_linker_or_driver_alias_is_rejected_and_cleaned(self):
+        selected = shutil.which(os.environ.get('HEPTA_LLD', 'ld.lld'))
+        self.assertIsNotNone(selected, 'actual ELF LTO linker required')
+        for changed in ('selected', 'driver'):
+            with self.subTest(changed=changed), tempfile.TemporaryDirectory(prefix='hepta-lld-drift-') as tmp:
+                generic = Path(tmp) / 'rust-lld'
+                generic.symlink_to(Path(selected).resolve(strict=True))
+                with self.assertRaisesRegex(ValueError, 'changed during execution'):
+                    with target.elf_linker_driver(generic) as (driver, receipt):
+                        path = generic if changed == 'selected' else Path(driver)
+                        path.unlink()
+                        path.symlink_to(Path(sys.executable).resolve())
+                self.assertFalse(receipt['unchanged'])
+                self.assertTrue(receipt['temporary_alias_removed'])
+                self.assertFalse(os.path.lexists(driver))
 
     def test_masked_cpu_lto_preserves_complete_frontend_feature_policy(self):
         self.assertEqual(platform.system(), "Linux", "this is the declared Linux x86-64 research gate")
@@ -478,6 +518,7 @@ define i64 @public_entry(i64 %v) {
                 trial.require_native_ir()
             finally:
                 if trial is not None:
+                    trial.linker_contexts.close()
                     commands = trial.report['commands']
                 payload = {'schema': 'hepta.legacy-irpgo-target-regression.v1',
                     'performance_campaign': False, 'observations': observations, 'commands': commands}

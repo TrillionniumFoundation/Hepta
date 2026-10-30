@@ -58,6 +58,15 @@ These checks preserve all previous selectors and do not change production
 admission or the `no_change` policy. See
 [the detailed contract](HIA_FILECHECK_NATIVE_TARGET_AND_FAILURES.md).
 
+The current [Core/Rust convergence](HIA_CORE_RUST_CONVERGENCE.md) preserves
+all 277 reviewed selectors from the newer integration base and all 126 from
+the separately qualified raw-record lineage. Their union is 323 selectors;
+ten existing field-origin methods, one mixed-form control and six source
+provenance methods bring the current matrix to 340 selectors in 36
+capabilities. This is the reviewed selection, not a claim that 340 methods
+have executed on every source revision. Focused and full reports retain
+their actual commit identities and separate execution denominators.
+
 The next explicit profiles add caller-derived borrowed extent bounds, checked
 single-feedback scalar unfolding, actual native Linux C application hosts,
 finite sealed execution contexts and a CRC study with static coalesced

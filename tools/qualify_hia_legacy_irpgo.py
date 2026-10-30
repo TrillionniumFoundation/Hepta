@@ -152,7 +152,7 @@ class IRPGOTrial(LegacyTrial):
         generated = self.require_core_ir()
         self.build_native_ir(obj, profile["use_flags"], "ir_pgo_resource_object", object_file=True)
         exe = self.out / "resource_hia_irpgo"
-        self.command([self.tools["clang"], "-O3", "-march=native", "-flto=full", "-fuse-ld="+self.tools["linker"],
+        self.command([self.tools["clang"], "-O3", "-march=native", "-flto=full", "-fuse-ld="+self.linker_driver_path,
                       "-std=c11", "-fno-builtin", "-DENTRY="+ENTRY,
                       self.out/"resource_harness.c", obj, "-Wl,--wrap=malloc",
                       "-Wl,--wrap=calloc", "-Wl,--wrap=free", "-o", exe], "ir_pgo_resource_link")
