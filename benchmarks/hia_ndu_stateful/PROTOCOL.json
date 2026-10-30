@@ -1,0 +1,43 @@
+{
+  "schema": "hepta.hia.ndu.stateful-study.protocol.v1",
+  "native_source_commit": "c4a1bbed3a39beba43a6abf1a18b6f75c5725c21",
+  "cases": [
+    "delayed-payback",
+    "holding-delay",
+    "memory-exclusion",
+    "observed-refusal",
+    "prepared-separable",
+    "larger-preparation"
+  ],
+  "controls": [
+    "independent-exhaustive-oracle",
+    "independent-exact-resource-dp",
+    "strong-fixed-configuration-with-combined-variants",
+    "same-information-one-step-greedy",
+    "production-exact-q32-control"
+  ],
+  "native_arms": ["enumerate", "dynamic-frontier"],
+  "native_process_per_arm": 1,
+  "native_result_cache_entries": 0,
+  "actual_refusal_probe": "In native mode, submit two structurally accepted HIA u64 programs with add.wrap changed to sub.wrap to the existing translation validator. Require a real Z3 SAT counterexample replayed by the HIA interpreter; retain the receipt, charge actual observed proof-attempt time, then replan the same successor with every controller and both native arms.",
+  "image_check": "sealed",
+  "maximum_variants": 3,
+  "maximum_horizon": 4,
+  "model_cost_basis": "declared-model-only",
+  "same_information": "All controllers receive every preparation, holding, memory, status and future batch estimate.",
+  "combined_static_control": "Every feasible prepared subset is allowed; acquire it at the first batch and retain it.",
+  "strongest_control": "Independent exact resource DP and complete subset-sequence oracle, including all value ties.",
+  "native_scope": "The actual pinned original recursive-utility evaluator ranks supplied paths. The refusal probe executes the existing HIA verifier/solver/interpreter, but no successful generated native application is benchmarked.",
+  "cost_accounting": "Keep modeled nanoseconds separate from actual source admission, construction, controller, process startup, identity checks, IPC, response checks, shutdown and build wall times.",
+  "failed_attempts": "Retain failed attempts and partial evidence; native absence or failure never falls back to a Python imitation.",
+  "unsupported_enumeration": "Reject the entire uncompressed request above the original path bound; retain the refusal and its measured cost.",
+  "formal_source_gate": "Exact clean committed HEAD before and after; bind the protocol and every declared local compiler/transport input.",
+  "release_claims": {
+    "native_application_speedup_established": false,
+    "incremental_ndu_value_established": false,
+    "learned_fbsde_evaluated": false,
+    "unrestricted_global_optimality": false,
+    "safety_certificate": false,
+    "authority": "DENY_ALL"
+  }
+}

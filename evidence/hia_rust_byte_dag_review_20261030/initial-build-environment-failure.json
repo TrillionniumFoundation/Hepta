@@ -1,0 +1,11 @@
+{
+  "schema": "hepta.p2-review-environment-failure.v1",
+  "source_commit": "5622ab545256d21b9301caea0858185c52650578",
+  "cwd": "/workspace/scratch/f0c12f106c89/hepta-resource",
+  "command": "env PATH=/workspace/scratch/f0c12f106c89/toolchains/rust-1.90.0/bin:/usr/bin:/bin CARGO_TARGET_DIR=/workspace/scratch/f0c12f106c89/p2-review-target cargo build --locked --offline --manifest-path rust/hia-core-shadow/Cargo.toml --message-format=json",
+  "returncode": 101,
+  "tool_merged_output": "error: no matching package named `serde_json` found\nlocation searched: crates.io index\nrequired by package `hia-core-shadow v0.1.0 (/workspace/scratch/f0c12f106c89/hepta-resource/rust/hia-core-shadow)`\nAs a reminder, you're using offline mode (--offline) which can sometimes cause surprising resolution failures, if this error is too confusing you may wish to retry without `--offline`.\n",
+  "full_process_wall_time_measured": false,
+  "reason": "default Cargo cache did not contain the locked dependencies",
+  "corrected_by": "selecting the already populated /workspace/scratch/f0c12f106c89/toolchains/cargo-cache without changing Cargo.lock or network resolution"
+}

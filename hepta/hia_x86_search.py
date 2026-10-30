@@ -35,6 +35,8 @@ from .native_tool_identity import digest_executable
 
 SCHEMA = "hepta.hia.x86-finite-search.v1"
 PROFILE = "x86_64-sysv-u64-register-affine-146.v1"
+BOUNDED_AFFINE_SCHEMA = "hepta.hia.x86-bounded-affine-search.v1"
+BOUNDED_AFFINE_PROFILE = "u64-wrapping-affine-multipliers-minus1-to4-offsets-minus16-to16.v1"
 FUNCTION = "calculate"
 _MASK = (1 << 64) - 1
 _K = tuple(range(-16, 17))
@@ -119,6 +121,25 @@ def affine_program(offset=12):
     """The frozen finite specification is x+offset, wrapping modulo 2**64."""
     _require(type(offset) is int and -16 <= offset <= 16, "offset must be an integer in [-16,16]")
     return _program([_literal("k", offset), _operation("int.add.wrap", "x", "k", "result")], "result")
+
+
+def bounded_affine_program(multiplier, offset):
+    """Specify a*x+b modulo 2**64, without adding an encoder instruction.
+
+    The existing grammar does not represent every target in this bounded
+    domain. Search must decide every recipe and can legitimately find none.
+    The legacy x+offset constructor retains its original canonical bytes.
+    """
+    _require(type(multiplier) is int and multiplier in _M,
+             "multiplier must be an integer in {-1,0,1,2,3,4}")
+    _require(type(offset) is int and -16 <= offset <= 16,
+             "offset must be an integer in [-16,16]")
+    return _program([
+        _literal("multiplier", multiplier),
+        _operation("int.mul.wrap", "x", "multiplier", "scaled"),
+        _literal("offset", offset),
+        _operation("int.add.wrap", "scaled", "offset", "result"),
+    ], "result")
 
 
 def _model(recipe):
@@ -212,6 +233,25 @@ def search_affine_candidates(offset=12, *, timeout_ms=2000):
     """
     _require(type(timeout_ms) is int and 1 <= timeout_ms <= 60000, "invalid solver timeout")
     before = verify_program(affine_program(offset))
+    return _search_program(before, timeout_ms, {"offset": offset})
+
+
+def search_bounded_affine_candidates(multiplier, offset, *, timeout_ms=2000):
+    """Prove a byte minimum for a*x+b within the unchanged 146 recipes.
+
+    An unknown or an empty equivalent set yields no finite minimum. Native
+    construction still requires the existing independent fresh proof/byte gate.
+    """
+    _require(type(timeout_ms) is int and 1 <= timeout_ms <= 60000, "invalid solver timeout")
+    before = verify_program(bounded_affine_program(multiplier, offset))
+    result = _search_program(before, timeout_ms, {
+        "target_profile": BOUNDED_AFFINE_PROFILE, "multiplier": multiplier, "offset": offset})
+    result["schema"] = BOUNDED_AFFINE_SCHEMA
+    return result
+
+
+def _search_program(before, timeout_ms, target_fields):
+    """One exhaustive search implementation for the two explicit target APIs."""
     implementation_hash = _implementation_hash()
     rows, started = [], time.perf_counter_ns()
     for candidate in enumerate_candidates():
@@ -224,7 +264,7 @@ def search_affine_candidates(offset=12, *, timeout_ms=2000):
     unchanged = _implementation_hash() == implementation_hash
     minimum_proved = complete and selected is not None and unchanged
     return {"schema": SCHEMA, "profile": PROFILE, "grammar": json.loads(_wire(GRAMMAR)),
-            "grammar_sha256": sha256(_wire(GRAMMAR)).hexdigest(), "offset": offset,
+            "grammar_sha256": sha256(_wire(GRAMMAR)).hexdigest(), **target_fields,
             "baseline": before.as_dict(), "baseline_sha256": before.sha256,
             "implementation_sha256": implementation_hash, "source_inputs_unchanged": unchanged,
             "candidates": rows, "candidate_count": len(rows), "accepted_count": len(accepted),

@@ -1,0 +1,17 @@
+Traceback (most recent call last):
+  File "/workspace/scratch/f0c12f106c89/p4-evidence-staging-20261030/verify_evidence.py", line 414, in <module>
+    main()
+    ~~~~^^
+  File "/workspace/scratch/f0c12f106c89/p4-evidence-staging-20261030/verify_evidence.py", line 407, in main
+    result = verify(args.archive, args.manifest)
+  File "/workspace/scratch/f0c12f106c89/p4-evidence-staging-20261030/verify_evidence.py", line 364, in verify
+    audit = check_policies(root, report, raw)
+  File "/workspace/scratch/f0c12f106c89/p4-evidence-staging-20261030/verify_evidence.py", line 233, in check_policies
+    calls += check_delivery(root + '/calibration', index, row, inputs['-1']['values'], report, raw, 'bank', nonces, references)
+             ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/f0c12f106c89/p4-evidence-staging-20261030/verify_evidence.py", line 188, in check_delivery
+    require(bank['labels'][candidate_index] == observed['target'], 'candidate identity differs')
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/f0c12f106c89/p4-evidence-staging-20261030/verify_evidence.py", line 29, in require
+    raise ValueError(reason)
+ValueError: candidate identity differs

@@ -1,10 +1,23 @@
 # HIA safety contract and executable boundaries
 
 This contract describes the integrated implementation. It does not establish
-absolute safety or whole-language soundness. The production authority is
-`hepta.hia_program.verify_program`, applied to the actual immutable Core
-snapshot. A producer, an AI agent, NDU, a serialized receipt, and this document
-cannot confer admission or publication authority.
+absolute safety or whole-language soundness. Default, source/nominal and native
+consumers retain `hepta.hia_program.verify_program`, applied to the actual
+immutable Core snapshot. The separate `raw-byte-dag-v1` interpreter profile
+uses the independent Rust verifier, static limits and private admitted snapshot
+before its existing v4 Machine executes. It requires no Python semantic
+admission, but grants no default or native authority. A producer, an AI agent,
+NDU, a serialized receipt, and this document cannot confer admission or
+publication authority. See [the Rust profile](HIA_RUST_BYTE_DAG_ADMISSION.md).
+
+The separately selected `raw-byte-dag-finite-heap-v1` extends that private Rust
+path for primitive v7/v8 and one exact scalar invocation. An independent bounded
+abstract pass accounts for live payload, moved owners, caller-derived borrowed
+roots, returned loans, allocation failures and stopped prefixes before the same
+snapshot reaches the same Machine. Unknown extent, overflow and analysis work
+exhaustion reject. The older profile and default/native authority are unchanged;
+logical payload is not process RSS, native stack bytes or CPU time. See
+[the finite-entry contract](HIA_RUST_FINITE_ENTRY_HEAP.md).
 
 The companion [machine-readable matrix](HIA_SAFETY_CONTRACT.json) freezes the
 reviewed schema registry, names actual entrypoints, states each capability's
@@ -71,6 +84,79 @@ See [borrowed extents](HIA_BORROWED_EXTENT_HEAP.md),
 [actual C native hosts](HIA_CAPTURED_C_NATIVE_HOSTS.md). Passing these scoped
 contracts does not close the universal safety, NDU incremental value or
 whole-program performance claims below.
+
+The next reviewed additions retain all previous selectors. Oracle callbacks
+cannot reenter mutation of the same finite bank during trace preparation. The
+explicit `map_repeat` profile executes every independent native call under the
+same one-shot trace and child/release gates. A separate acyclic scalar-call SMT
+profile encodes the original caller/callee closure independently of proposed
+inlining and checks the first trap's code and order; the default call-free
+profile does not widen. The real `stb_divide` update contract distinguishes
+common defined-domain results, old C undefined behavior, successor witnesses
+and report tampering. The fixed-candidate/NDU study has strong fixed, feedback
+and exact finite planning controls and complete finalization budget checks.
+None of these protocol checks asserts an economic improvement.
+
+The V12 Agent decoder includes every publicly editable node and its allowed
+fields without choosing answer nodes or replacement values. Its precise public
+diagnostics and construction-failure cleanup are regression boundaries, not
+model qualification. Native/type/owner/resource/behavior validation and the
+fresh 3/3 gate remain authoritative; failed V11 results are unchanged. The
+updated matrix still explicitly leaves general Agent productivity, whole
+language safety, C-to-Core/native refinement and global optimality unproved.
+
+The next finite additions preserve every previous capability and selector.
+`raw-byte-dag-finite-heap-cleanup-v1` is an explicit additional Rust admission
+profile. It checks the whole byte-only DAG and exact-entry heap bound, then
+reserves a conservative cleanup journal before language execution. The same
+Machine retains the original stop and explicitly discharges invocation-owned
+loan children, call formals, parents and owners. The extra 32,768-action limit
+can reject a program accepted by the earlier finite-heap profile. This does
+not change default/source/nominal/native authority, repair normal returns, or
+guarantee cleanup after host OOM, panic or process termination. JSON reporting,
+allocator internals and OS release are outside the journal-capacity guarantee.
+See [the scoped cleanup contract](HIA_RUST_SCOPED_ABORT_CLEANUP.md).
+
+The foreign JSON checkpoint profile keeps a bounded integer-array state in
+the caller and executes the existing scoped C ABI in a sealed child image.
+Only a valid bound response, ordinary lifetime ledger and normal exit commit
+a new checkpoint. A caught exception or actual `noexcept` termination keeps
+the previous committed state; a separate explicit request may reconstruct it.
+Uncertain cleanup poisons the owner. A terminating C++ call remains a failed
+foreign call. This profile transfers no foreign pointer/handle, rolls back no
+external effect, and does not convert the foreign library into safe Core.
+
+The CRC addition proposes guarded parallel bit contributions in the existing
+Core and retains all three legacy candidates. The shared dual body satisfies
+the unchanged 128-operation selected-LLVM limit. Fresh capture, independent
+translation validation, emitted-LLVM checks and native execution are required.
+The separate eight-arm protocol preserves the previous v3 data and amount of
+work; it gives fixed controls the entire six-candidate pool and retains full
+preparation, execution, cache, identity and cleanup costs. Changed code or a
+faster kernel cannot substitute for an observed net improvement. Its task has
+no newly demonstrated planning advantage for NDU.
+
+V13 retains every public editable node while preserving selection-before-
+replacement order in the actual completion body. It checks the native GBNF
+returned for every public variant and uses only the already disclosed Rust
+type grammar. Generic specification/transaction guidance and public category
+diagnostics are explicit prompt changes. Reference JSON reordering is confined
+to capacity controls and cannot enter generation. A failed wire check retains
+actual usage without qualifying the attempt. Fresh capacity and 3/3 Rust-node
+qualification still precede the conditional main. These adaptive protocol
+regressions do not establish success by a real model or general productivity.
+
+The CRC timing protocol uses a separately selected `timed_xor_fold` mode.
+Legacy fold events contain no inner-loop timer, so they cannot supply the
+new diagnostic. Mode 3 records actual monotonic clocks around the unchanged
+C fold loop, including data loads, indirect calls, checksum and loop cost.
+It does not measure a pure LLVM body. All eight arms and common reference
+priming select this same mode; input, repetition and lifetime budgets do
+not grow. Missing or malformed timing and incomplete/trapped requests
+cannot become completed zero-cost observations. Old fold output and the
+separate map-repeat profile remain unchanged. The first timing interface
+mismatch was discovered before any economic run; its original protocol
+and already completed correctness records keep their source identities.
 
 ## Typed state and instruction obligations
 
@@ -159,6 +245,14 @@ replace composite v4's separately declared parameter-field return origins.
 The invocation-bound Rust execution profiles compare the full outcomes and
 stopped resource ledgers within their own finite budgets. They do not silently
 replace the larger budgets accepted by the Python execution APIs.
+The explicit v4 API additionally accepts ordered lists and tuples, and exact
+allocation-failure indices wider than u64, within the unchanged 1024-byte
+policy and scalar argument limits. The legacy/v1/v2/v3 wire contracts remain
+unchanged. Every shadow process executes a fully sealed image of the admitted
+executable bytes, retaining descriptor and process-group ownership through
+cleanup; Linux sealing failure refuses execution. See
+[the v4 API boundary](HIA_RUST_BOUND_API_V4.md) and
+[executable custody](HIA_RUST_EXECUTABLE_CUSTODY.md).
 
 ## Execution boundaries
 

@@ -1,0 +1,810 @@
+{
+  "audit_independence": {
+    "independent_implementation_proof": false,
+    "note": "The evidence-integration author implemented the migration/qualifier. The separately authored historical semantic/resource review is attributed and retained independently; this audit does not relabel itself or that older run as fresh final-source execution."
+  },
+  "blocking_findings_for_the_scoped_final_c_project_receipt": [],
+  "canonical_contract": {
+    "canonical_sha256": "0b1ad5b22c296d6ad5dfc2f6043b8394a89f44c8fc1ed999e3f517881c9aa850",
+    "file": {
+      "bytes": 57603,
+      "path": "hepta-hia/docs/HIA_SAFETY_CONTRACT.json",
+      "sha256": "b5a9dd706bb1c922b8ec2390c1c0caed277944b5c702bb22756d145eaf60e5b7"
+    },
+    "matrix_run_performed_by_this_audit": false,
+    "pin_matches": true,
+    "relevant_capability_ids": [
+      "captured_c_project_views",
+      "ffi_contracts",
+      "independent_shadow"
+    ],
+    "relevant_loop_regression_selectors": [
+      "tests.test_hia_c_loop_jumps.HIACLoopJumpTests.test_c_and_concrete_cpp_vm_and_direct_llvm_match_originals",
+      "tests.test_hia_c_loop_jumps.HIACLoopJumpTests.test_deferred_assignments_merge_actual_jump_exits",
+      "tests.test_hia_c_loop_jumps.HIACLoopJumpTests.test_break_continue_do_not_admit_uninitialized_reads",
+      "tests.test_hia_c_loop_jumps.HIACLoopJumpTests.test_switch_goto_and_mutating_conditions_remain_rejected",
+      "tests.test_hia_c_loop_jumps.HIACLoopJumpTests.test_wide_jump_sequence_rejects_bounded_expansion",
+      "tests.test_hia_c_loop_jumps.HIACLoopJumpTests.test_upstream_ring_maintenance_loop_jumps_reach_native_hia"
+    ],
+    "runner": {
+      "bytes": 13401,
+      "path": "hepta-hia/tools/qualify_hia_safety_contract.py",
+      "sha256": "0777a39cd216d0fac815244dbc08784f5fec2339ce00c7cb69d2ee1586c782c6"
+    },
+    "runner_pinned_sha256": "0b1ad5b22c296d6ad5dfc2f6043b8394a89f44c8fc1ed999e3f517881c9aa850",
+    "unproved_claims_preserved": {
+      "absolute_resource_safety_proved": false,
+      "core_to_native_refinement_proved": false,
+      "general_concurrent_memory_safety_proved": false,
+      "global_optimality_proved": false,
+      "native_process_memory_bound_proved": false,
+      "rust_performance_superiority_proved": false,
+      "source_to_core_refinement_proved": false,
+      "whole_language_soundness_proved": false
+    }
+  },
+  "cost_and_effort": {
+    "future_maintenance_cost_measured": false,
+    "human_effort_measured": false,
+    "interpretation": "40.649295740 seconds is one shared-host machine qualification workflow, including capture, compilation, validation and cleanup. project_preparation wall covers mechanical copy/patch work; it is not time spent designing contracts, writing clients, implementing the compiler, debugging, reviewing or authoring a maintenance change. manual_migrated_body_edits=0 does not mean zero human effort or zero-cost rewriting.",
+    "maintenance_authoring_effort_measured": false,
+    "performance_advantage_measured": false,
+    "source_of_measurements": "Existing final ab6d346 qualification report; no new measurements during this audit.",
+    "stage_wall_ns": {
+      "build_maintenance": 701146907,
+      "build_original": 754781424,
+      "capture_maintenance": 10669700786,
+      "capture_original": 10797092244,
+      "finite_validation": 17542782275,
+      "observer_build": 46951291,
+      "project_preparation": 10923027,
+      "source_and_tool_identity": 95907181,
+      "temporary_build_cleanup": 880555
+    },
+    "whole_qualification_wall_ns": 40649295740
+  },
+  "documentation_alignment": [
+    {
+      "finding": "Nearest-loop break/continue in existing while/for/do-while profiles, ordered for increment/postcondition, separate definite-assignment exits, unchanged captured AST evidence; no new Core instruction or general jump grammar.",
+      "sources": [
+        "docs/C_MIGRATION.md#structured-loop-jumps",
+        "docs/HIA_SAFETY_CONTRACT.json/capabilities/captured_c_project_views"
+      ],
+      "status": "consistent",
+      "topic": "new_control_flow"
+    },
+    {
+      "finding": "Final real-C-project receipt replays all four TU semantic flags/source operands/cwds and keeps explicit unchanged contracts. Its public interface is scalar; borrowed internals do not preserve a foreign record/pointer ABI or infer provenance/lifetime.",
+      "sources": [
+        "docs/HIA_SAFETY_CONTRACT.json/capabilities/ffi_contracts",
+        "docs/HIA_SAFETY_CONTRACT.json/capabilities/captured_c_project_views"
+      ],
+      "status": "consistent",
+      "topic": "source_and_foreign_obligations"
+    },
+    {
+      "finding": "Every final observed VM case returned normally, including allocation errors represented as values. Native allocator counters and VM ledgers agree for these cases. No trap cleanup, exception unwinding, cancellation, concurrency, termination or RSS guarantee follows.",
+      "sources": [
+        "docs/HIA_SAFETY_CONTRACT.json/boundaries",
+        "docs/HIA_SAFETY_CONTRACT.md#execution-boundaries"
+      ],
+      "status": "consistent_with_finite_normal_return_scope",
+      "topic": "normal_error_trap_boundaries"
+    },
+    {
+      "finding": "Core admission remains hepta.hia_program.verify_program over immutable actual bytes. The final migration qualifier does not execute Rust; copied reference.rs is source inventory only. Other Rust comparisons are finite independent evidence, never production admission/deployment authority.",
+      "sources": [
+        "docs/HIA_SAFETY_CONTRACT.json/authority",
+        "docs/HIA_SAFETY_CONTRACT.json/capabilities/independent_shadow"
+      ],
+      "status": "consistent",
+      "topic": "rust_authority"
+    },
+    {
+      "finding": "Original 11 unchanged upstream bodies plus authored checksum/client are separate from maintenance 10 unchanged upstream bodies plus one authored body patch. manual_migrated_body_edits=0 concerns generated-body edits and does not measure authoring or total migration cost.",
+      "sources": [
+        "docs/C_MIGRATION.md#structured-loop-jumps",
+        "tools/qualify_hia_c_loop_migration.py"
+      ],
+      "status": "consistent",
+      "topic": "original_maintenance_and_effort"
+    },
+    {
+      "finding": "The historical synthetic scalar review and current scalar loop test capture -O2 with relative source operands, then add -fPIC/-shared and absolute source operands to native reference commands. Their fixed unsigned source contains no preprocessing branches/includes/path builtins, but these runs are not full configuration/operand-preserving migration qualifications under the stricter documentation rule. Do not promote them to general C++ library/configuration coverage. The final real-C-project qualifier independently preserves the required C configuration.",
+      "sources": [
+        "docs/CPP_PROJECT_HIA.md#input-and-identity",
+        "validation-loop-review/review_loop_semantics.py",
+        "tests/test_hia_c_loop_jumps.py"
+      ],
+      "status": "explicit_evidence_limitation",
+      "topic": "historical_cpp_comparison_configuration"
+    },
+    {
+      "finding": "Mutating predicates remain refused by the general scalar profile; the established record-view sequenced-predicate rules remain supported. The independent 36-vector evidence observes this distinction.",
+      "sources": [
+        "docs/C_MIGRATION.md#structured-loop-jumps",
+        "validation-loop-review/record_views/summary.json"
+      ],
+      "status": "consistent_after_documentation_correction",
+      "topic": "record_view_predicates"
+    }
+  ],
+  "final_real_c_project_evidence": {
+    "abi": {
+      "foreign_pointer_abi_admitted": false,
+      "foreign_record_layout_preservation_claimed": false,
+      "interface_kind": "scalar C ABI only",
+      "public_entry": "legacy_checksum_chunk(size_t,u64,u32,u32) -> u64"
+    },
+    "changed_files": [
+      "client.c",
+      "client.hepta",
+      "ring/ringbuffer.c"
+    ],
+    "claims": {
+      "all_c_cpp_supported": false,
+      "backend_refinement_proved": false,
+      "fallback_used": false,
+      "finite_capability_and_resource_observations": true,
+      "runtime_performance_advantage_claimed": false,
+      "rust_codegen_used": false,
+      "source_equivalence_proved": false,
+      "whole_application_automatically_migrated": false
+    },
+    "compile_configuration": {
+      "compiler": {
+        "bytes": 132448,
+        "path": "/usr/lib/llvm-20/bin/clang",
+        "sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+        "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)\nTarget: x86_64-pc-linux-gnu\nThread model: posix\nInstalledDir: /usr/lib/llvm-20/bin\n"
+      },
+      "direct_llvm_note": "The separate LLVM backend receives retained/reverified Core-generated IR and its recorded -O3 -fPIC object flags; it does not reselect C source preprocessing. Actual compiler argv and IR hashes are retained.",
+      "native_c_replay": [
+        {
+          "cwd_preserved": true,
+          "only_object_destination_changed": true,
+          "semantic_arguments": [
+            "-std=c11",
+            "-DNDEBUG",
+            "-funsigned-char",
+            "-fno-builtin",
+            "-Icompare/platform",
+            "-O3"
+          ],
+          "source_operand": "ring/ringbuffer.c",
+          "variant": "original"
+        },
+        {
+          "cwd_preserved": true,
+          "only_object_destination_changed": true,
+          "semantic_arguments": [
+            "-std=c11",
+            "-DNDEBUG",
+            "-funsigned-char",
+            "-fno-builtin",
+            "-Icompare/platform",
+            "-O3"
+          ],
+          "source_operand": "compare/memcmp.c",
+          "variant": "original"
+        },
+        {
+          "cwd_preserved": true,
+          "only_object_destination_changed": true,
+          "semantic_arguments": [
+            "-std=c11",
+            "-DNDEBUG",
+            "-funsigned-char",
+            "-fno-builtin",
+            "-Icompare/platform",
+            "-O3"
+          ],
+          "source_operand": "compare/bcmp.c",
+          "variant": "original"
+        },
+        {
+          "cwd_preserved": true,
+          "only_object_destination_changed": true,
+          "semantic_arguments": [
+            "-std=c11",
+            "-DNDEBUG",
+            "-funsigned-char",
+            "-fno-builtin",
+            "-Icompare/platform",
+            "-O3"
+          ],
+          "source_operand": "checksum.c",
+          "variant": "original"
+        },
+        {
+          "cwd_preserved": true,
+          "only_object_destination_changed": true,
+          "semantic_arguments": [
+            "-std=c11",
+            "-DNDEBUG",
+            "-funsigned-char",
+            "-fno-builtin",
+            "-Icompare/platform",
+            "-O3"
+          ],
+          "source_operand": "ring/ringbuffer.c",
+          "variant": "maintenance"
+        },
+        {
+          "cwd_preserved": true,
+          "only_object_destination_changed": true,
+          "semantic_arguments": [
+            "-std=c11",
+            "-DNDEBUG",
+            "-funsigned-char",
+            "-fno-builtin",
+            "-Icompare/platform",
+            "-O3"
+          ],
+          "source_operand": "compare/memcmp.c",
+          "variant": "maintenance"
+        },
+        {
+          "cwd_preserved": true,
+          "only_object_destination_changed": true,
+          "semantic_arguments": [
+            "-std=c11",
+            "-DNDEBUG",
+            "-funsigned-char",
+            "-fno-builtin",
+            "-Icompare/platform",
+            "-O3"
+          ],
+          "source_operand": "compare/bcmp.c",
+          "variant": "maintenance"
+        },
+        {
+          "cwd_preserved": true,
+          "only_object_destination_changed": true,
+          "semantic_arguments": [
+            "-std=c11",
+            "-DNDEBUG",
+            "-funsigned-char",
+            "-fno-builtin",
+            "-Icompare/platform",
+            "-O3"
+          ],
+          "source_operand": "checksum.c",
+          "variant": "maintenance"
+        }
+      ],
+      "original_c_linked_into_hia_target": false,
+      "platform": "Linux x86-64 LP64; 64-bit size_t/pointers",
+      "rust_execution_observed": false,
+      "semantic_flags": [
+        "-std=c11",
+        "-DNDEBUG",
+        "-funsigned-char",
+        "-fno-builtin",
+        "-Icompare/platform",
+        "-O3"
+      ],
+      "source_operand_and_cwd_replay_verified": true
+    },
+    "foreign_obligations": [
+      "Declared extent and initialization contracts",
+      "Actual valid allocation provenance and lifetime",
+      "Source-defined arithmetic and shifts",
+      "No conflicting foreign access or concurrency guarantee",
+      "Trusted Clang frontend, Core/checker implementation, LLVM emitter/compiler/linker, allocator/runtime/OS/hardware"
+    ],
+    "header_and_contract_hashes_unchanged": true,
+    "input_domain_statement": "The maintained source keeps its original parameter types, headers, contracts, zero-count and oversized-count returns and allocation-error behavior. The finite input set is an observation domain, not a new restriction inserted to make the source pass.",
+    "maintenance_patch": {
+      "bytes": 1245,
+      "path": "final-validation/c-loop-migration/maintenance.patch",
+      "sha256": "01889d201ea823f91c14e70bc6ed96c420ee12682b792b7c766cca8307b14627"
+    },
+    "observation_matrix": {
+      "all_recorded_outputs_and_resource_expectations_match": true,
+      "cases_with_actual_allocator_refusal_per_native_or_vm_route": 48,
+      "cases_without_allocation_attempt_per_route": 32,
+      "counts": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "input_refusal_cases": 96,
+      "ledger": {
+        "bytes": 214016,
+        "path": "final-validation/c-loop-migration/cases.jsonl",
+        "sha256": "322d9971f7ed40f4ea75bda16f38b1fd1441a567f2a9e2045913975a4f600153"
+      },
+      "native_calls": 384,
+      "native_routes": [
+        "original C",
+        "maintenance C",
+        "original HIA direct LLVM",
+        "maintenance HIA direct LLVM"
+      ],
+      "packed_and_state_values": "Finite deterministic u64/u32 values retained for every input; not exhaustive scalar domains.",
+      "polynomials": [
+        2197175160,
+        3988292384
+      ],
+      "refusal_modes": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "unique_input_vectors": 24,
+      "vm_calls": 192,
+      "vm_routes": [
+        "original HIA",
+        "maintenance HIA"
+      ]
+    },
+    "origin_counts": {
+      "maintenance": {
+        "authored_client_function_bodies": 1,
+        "authored_maintenance_function_bodies": 1,
+        "authored_migrated_function_bodies": 1,
+        "manual_migrated_body_edits": 0,
+        "translated_implementation_bodies": 12,
+        "unchanged_upstream_function_bodies": 10
+      },
+      "original": {
+        "authored_client_function_bodies": 1,
+        "authored_maintenance_function_bodies": 0,
+        "authored_migrated_function_bodies": 1,
+        "manual_migrated_body_edits": 0,
+        "translated_implementation_bodies": 12,
+        "unchanged_upstream_function_bodies": 11
+      }
+    },
+    "origin_explanation": "Original imports contain nine ring functions and two generic musl comparison functions, plus one authored checksum implementation. The Hepta owned-storage client is authored separately. Maintenance changes only ring_buffer_queue_arr implementation and two attribution comments; it is not untouched upstream.",
+    "original_ast_jump_counts": {
+      "maintenance": {
+        "BreakStmt": 1,
+        "ContinueStmt": 1
+      },
+      "original": {
+        "BreakStmt": 0,
+        "ContinueStmt": 0
+      }
+    },
+    "original_function_type_inventory_equal_to_maintenance": true,
+    "qualification": {
+      "bytes": 233065,
+      "path": "final-validation/c-loop-migration/qualification.json",
+      "sha256": "db6488c9460d562a5737939e40cb009da33574f8b2a9636efd59772edda52bfb"
+    },
+    "resource_bounds": {
+      "application_storage": "16-byte ring storage, 8-byte input and 8-byte output on successful positive-count calls; allocation refusals return the existing error after releasing prior allocations.",
+      "native_memory_observation_scope": "Link-time malloc/calloc/free wrappers observe the application calls; they are not a process-wide RSS/allocator-internals measure.",
+      "native_observations": [
+        "application allocator attempts",
+        "successful allocations",
+        "frees",
+        "live allocation count",
+        "result"
+      ],
+      "not_established": [
+        "Whole-language safety",
+        "Source/Core/native refinement",
+        "Undefined C/C++ behavior equivalence",
+        "General exception/trap/cancellation cleanup",
+        "Universal termination",
+        "Native stack/process-memory or hardware/foreign-code safety"
+      ],
+      "observed_maximum_vm_requested_payload_bytes": 32,
+      "vm_observations": [
+        "same allocator counts/result",
+        "zero live owners and live bytes at return",
+        "zero local live loans and balanced started/ended loans"
+      ]
+    },
+    "retained_raw_clang_asts": 8,
+    "source_operands": [
+      "ring/ringbuffer.c",
+      "compare/memcmp.c",
+      "compare/bcmp.c",
+      "checksum.c"
+    ],
+    "source_sha": "ab6d34613d1e2e90bbfc5081e0cd17354f1b8711",
+    "source_tus_per_variant": 4,
+    "status": "completed_finite_capability_qualification",
+    "upstream_pins": {
+      "licenses": "Original ring LICENSE and musl COPYRIGHT retained in both copies.",
+      "musl_tag_commit": "0784374d561435f7c787a555aeab8ede699ed298",
+      "ring_commit": "8de8fff55a0baee4fef2a1c6a82d258a27c3c0ba"
+    }
+  },
+  "historical_independent_review": {
+    "fresh_execution_on_final_sha": false,
+    "manifest": {
+      "bytes": 2593,
+      "path": "validation-loop-review/manifest.sha256",
+      "sha256": "c5035f9a9f0c445282df45122abe85f61cf131ea7300a7c14c9789dd6b282f91"
+    },
+    "manifest_payload_files_verified": 29,
+    "owner_resource_review": {
+      "input_vectors": 40,
+      "native_failure_injection_executions": 0,
+      "ordinary_routes": [
+        "original C native",
+        "HIA direct LLVM native",
+        "HIA VM"
+      ],
+      "output_agreement": true,
+      "resource_ledger_scope": "VM only; native original/HIA ordinary return values were compared, not native allocator traces.",
+      "uninitialized_negative_sources": 6,
+      "uninitialized_rejection": "E_C_UNINITIALIZED",
+      "valid_source_support_boundary": {
+        "error": "E_HIA_SOURCE: source checking failed: both continuing branches must leave the same linear owners live; both continuing branches must leave the same linear owners live; unconsumed linear owner(s) on scope exit: owner_p_5",
+        "valid_path_dependent_owner_cleanup": "conservatively_rejected"
+      },
+      "vm_actual_refusal_executions": 70,
+      "vm_failure_index_executions": 80,
+      "zero_length_failure_index_controls_without_allocation": 10
+    },
+    "record_view_review": {
+      "additional_oracle": "Separately written arithmetic expectation",
+      "allocation_parity_claimed": false,
+      "input_vectors": 36,
+      "reason": "Original C wrapper uses a local byte array while the authored Hepta client uses a Buffer; this subreview checks values and VM resources, not native allocation-event parity.",
+      "routes": [
+        "original C native",
+        "HIA direct LLVM native",
+        "HIA VM"
+      ],
+      "vm_live_owners_zero": true,
+      "vm_loans_balanced": true
+    },
+    "relationship_limit": "Matching frontend Python syntax apart from docstrings does not turn historical backend executions into fresh final-source executions or prove equivalence.",
+    "review_report": {
+      "bytes": 1574,
+      "path": "validation-loop-review/review_report.json",
+      "sha256": "7aea9d7730cf857b4b3cbd74f3a6e863b8ab60db6eaadd5308d8cda83f9fd22f"
+    },
+    "reviewed_frontend_relationship_to_final_source": [
+      {
+        "current_sha256": "86d36f6acf2059568cbc16fa6fc5fd749114acdfca258688a2d2d33bf1535648",
+        "historical_sha256": "47dc8c536c397c2da303669147a6b6d2762648b47c73a5a8a290147deaefa0a9",
+        "path": "hepta/c_loop_control.py",
+        "python_ast_equal_after_docstring_removal": true,
+        "raw_bytes_identical": false
+      },
+      {
+        "current_sha256": "274c193f6754b92f2cc4fa95d604b782306ba53b746c6b2edf811e5f3f9cc62c",
+        "historical_sha256": "274c193f6754b92f2cc4fa95d604b782306ba53b746c6b2edf811e5f3f9cc62c",
+        "path": "hepta/c_definite_assignment.py",
+        "python_ast_equal_after_docstring_removal": true,
+        "raw_bytes_identical": true
+      },
+      {
+        "current_sha256": "1e3d12eabe2d9d615c2aa51733fb7adcaee0ee957890d99dbad71c513bb1a13c",
+        "historical_sha256": "1e3d12eabe2d9d615c2aa51733fb7adcaee0ee957890d99dbad71c513bb1a13c",
+        "path": "hepta/c_translation.py",
+        "python_ast_equal_after_docstring_removal": true,
+        "raw_bytes_identical": true
+      },
+      {
+        "current_sha256": "54657dd9e2f9e629672350a9bc5f17ff957d3f971d48f34598f67e0ee5a106b5",
+        "historical_sha256": "54657dd9e2f9e629672350a9bc5f17ff957d3f971d48f34598f67e0ee5a106b5",
+        "path": "hepta/c_record_views.py",
+        "python_ast_equal_after_docstring_removal": true,
+        "raw_bytes_identical": true
+      },
+      {
+        "current_sha256": "02de410179773ff78aaebed2d3ba5df559a6f98e39dd083c2c0a59b41364cc71",
+        "historical_sha256": "02de410179773ff78aaebed2d3ba5df559a6f98e39dd083c2c0a59b41364cc71",
+        "path": "hepta/cpp_project_migrate.py",
+        "python_ast_equal_after_docstring_removal": true,
+        "raw_bytes_identical": true
+      }
+    ],
+    "scalar": {
+      "all_observed_values_match": true,
+      "authored_programs": 12,
+      "complete_execution_values": 2880,
+      "complete_function_input_pairs": 480,
+      "cpp_scope": "Concrete scalar control-flow migration only. No C++ library, class, STL, destructor/RAII, exception or ABI-layout migration was exercised.",
+      "evidence_retention": "Original source, generated Hepta, vectors, full values, progress, compiler versions and Core hashes are retained. Raw captured AST/full Core and native libraries are not retained in this historical review bundle.",
+      "input_domain": "Authored unsigned-32 scalar functions explicitly bound loop counts; 30 boundary combinations and 10 fixed-seed vectors per program. The corresponding C++ source is extern C plus explicit noexcept scalar bodies.",
+      "inputs_per_program": 40,
+      "paths_per_pair": 6,
+      "reference_configuration_limit": "Capture uses -O2 and relative input.c/input.cpp. Original native references add -fPIC/-shared and absolute source spelling. Sources have no preprocessing branches, includes or source-path builtins; finite observations are retained, but complete compile-configuration identity is not claimed."
+    },
+    "source_provenance": {
+      "bytes": 1013,
+      "path": "validation-loop-review/provenance.json",
+      "sha256": "ab416e7f1406d8a528bbea1f1e4e5e3f442619c959d1d3911474bec97030a809"
+    },
+    "source_sha": "4867ebac68d80fbd7580ef16e0ba0ac882789ce9",
+    "verified_files": [
+      {
+        "bytes": 5679,
+        "path": "validation-loop-review/README.md",
+        "sha256": "41ca6426a49cde9699fbdf7b2ebecbcafe5a718d12a319086be60fcd8f04b233"
+      },
+      {
+        "bytes": 1932,
+        "path": "validation-loop-review/cases.json",
+        "sha256": "4669a2be558b1ca154aa2313219e969435286e542b78274ad201c6f52c5c2b80"
+      },
+      {
+        "bytes": 19766,
+        "path": "validation-loop-review/generated.hepta",
+        "sha256": "bf638e530abf2862c42099bd204709060bf7988879b40d8374516c092d92993d"
+      },
+      {
+        "bytes": 19754,
+        "path": "validation-loop-review/generated_cpp.hepta",
+        "sha256": "0ec26f4507dc00c7e55a4410aadd7f39442f8be88ad791f21287c326e3149a9f"
+      },
+      {
+        "bytes": 63172,
+        "path": "validation-loop-review/observations.jsonl",
+        "sha256": "44291b3ab539f1dcaf659c89df890d4a6194cf7283bd23b4f4a9cca64436d0bc"
+      },
+      {
+        "bytes": 218256,
+        "path": "validation-loop-review/progress.jsonl",
+        "sha256": "6205f476eba25ce94e67c97059b95ca807c4fb1d9e49ed875b3af696dc64dc70"
+      },
+      {
+        "bytes": 1013,
+        "path": "validation-loop-review/provenance.json",
+        "sha256": "ab416e7f1406d8a528bbea1f1e4e5e3f442619c959d1d3911474bec97030a809"
+      },
+      {
+        "bytes": 294,
+        "path": "validation-loop-review/record_views/client.hepta",
+        "sha256": "8f4fff8ec1aa5ffc963eb54cddf5fc042ff743e46cc22d1f4ffb590ca733b4f9"
+      },
+      {
+        "bytes": 450,
+        "path": "validation-loop-review/record_views/contracts.json",
+        "sha256": "8e0a40751cc4a749ea234377eaa9a74db7d34171781fcbc74d8bfc55d323a649"
+      },
+      {
+        "bytes": 2314,
+        "path": "validation-loop-review/record_views/generated.hepta",
+        "sha256": "d45d467b9fb197aa9e805dc9b672db5043be6896d611ef276f5efbe656c8c4e0"
+      },
+      {
+        "bytes": 131,
+        "path": "validation-loop-review/record_views/native_wrapper.c",
+        "sha256": "e8dbd4e8c60604fc545bbe416c526a7b232061e022dccbf81e1fc6d346cf2885"
+      },
+      {
+        "bytes": 15968,
+        "path": "validation-loop-review/record_views/observations.json",
+        "sha256": "26f243a0cf8b881c10c68f20979cc584e1413e68759e3247102ea396ecaabba4"
+      },
+      {
+        "bytes": 381,
+        "path": "validation-loop-review/record_views/source.c",
+        "sha256": "8736ce8f648a623807734d3284b7097a60dc191228320a03200851bad2142c30"
+      },
+      {
+        "bytes": 369,
+        "path": "validation-loop-review/record_views/summary.json",
+        "sha256": "a57adc6c2b4f02ab64874a36173057669baaae9346484641a5e2c6587a0262ed"
+      },
+      {
+        "bytes": 52372,
+        "path": "validation-loop-review/resources/owner_observations.json",
+        "sha256": "17e0d85a902ea0d9735f495f55e6310e0b4f7679e6ec38aefa5c55f1cb28a014"
+      },
+      {
+        "bytes": 418,
+        "path": "validation-loop-review/resources/owners.c",
+        "sha256": "2146fd23eeb6435c2cf816a555119910cf49ab874d818006c62fb87d36e77d6f"
+      },
+      {
+        "bytes": 2483,
+        "path": "validation-loop-review/resources/owners_generated.hepta",
+        "sha256": "040de5678aac389e4cfbcde88cf825eeebae115c32c1b225e0d033189ac5a68d"
+      },
+      {
+        "bytes": 306,
+        "path": "validation-loop-review/resources/path_dependent_cleanup.c",
+        "sha256": "094454493baf684d91ea725ea4660ce40454eb2bf122de8c900828aa9752cbfb"
+      },
+      {
+        "bytes": 453,
+        "path": "validation-loop-review/resources/summary.json",
+        "sha256": "5245474cb0b3fb871a99f4f2974a368e09ced33f18f194b30bebb506328bb004"
+      },
+      {
+        "bytes": 304,
+        "path": "validation-loop-review/resources/support_boundary.json",
+        "sha256": "e4fb27047cc46e3df0fe39bbdf6a8988db13ab5fab1bb59c8ebca49d8133f0ab"
+      },
+      {
+        "bytes": 849,
+        "path": "validation-loop-review/resources/uninitialized_results.json",
+        "sha256": "b2e58c06d2a323f9cd42a75e3fcb30049a444ea2b9086f94075d21d016aaeaa7"
+      },
+      {
+        "bytes": 853,
+        "path": "validation-loop-review/resources/uninitialized_sources.json",
+        "sha256": "9bc55a6212d78ab10eda2b0b04dc46dfca124c4cc8ac639111fe1c6b17ec7ce7"
+      },
+      {
+        "bytes": 3936,
+        "path": "validation-loop-review/review_loop_record_views.py",
+        "sha256": "e9808d2b3aacec42670fc7cbe37440f8f52ccc68a16454bc2b754a8597514534"
+      },
+      {
+        "bytes": 6344,
+        "path": "validation-loop-review/review_loop_resources.py",
+        "sha256": "6bb9f7e1e5c51c4016cf973dda2d45707bde05e3f436528c3010a6084821c5ab"
+      },
+      {
+        "bytes": 8770,
+        "path": "validation-loop-review/review_loop_semantics.py",
+        "sha256": "e814df86981c9065f3223f72ecdca41d3a97d8fa11a37ec3bacc904b197573e5"
+      },
+      {
+        "bytes": 1574,
+        "path": "validation-loop-review/review_report.json",
+        "sha256": "7aea9d7730cf857b4b3cbd74f3a6e863b8ab60db6eaadd5308d8cda83f9fd22f"
+      },
+      {
+        "bytes": 3410,
+        "path": "validation-loop-review/source.c",
+        "sha256": "ff47cf399588e7d092460894e82dfe5e876514ed9578d272f63b5eefb7500387"
+      },
+      {
+        "bytes": 3533,
+        "path": "validation-loop-review/source.cpp",
+        "sha256": "9a18a8c6343d2c2e9455cf3b489d1dec6ab632843208f8cbb4a6114795ad9a48"
+      },
+      {
+        "bytes": 503,
+        "path": "validation-loop-review/summary.json",
+        "sha256": "eb25f16b7dc0dc7511db6cc5b969d55b8e63272cd55a34b02fd7172cdf92e40f"
+      }
+    ]
+  },
+  "implementation": {
+    "commit": "ab6d34613d1e2e90bbfc5081e0cd17354f1b8711",
+    "tree": "a288101efd886ad55a1d1904f34b6d399164a793"
+  },
+  "new_admitted_syntax": {
+    "contexts": [
+      "ordinary compound bodies",
+      "existing supported if/else branches",
+      "nearest nested loop",
+      "existing supported non-compound bodies"
+    ],
+    "definite_assignment": "Normal, break and continue exits remain distinct; pre-test loops retain zero-iteration paths; a break/continue bypass cannot justify a later read; record-view initialization keeps its separate conservative rule.",
+    "depth_rejection_code": "E_C_CONTROL_LIMIT",
+    "existing_enclosing_forms": [
+      "while",
+      "for with optional initializer, explicit condition and explicit increment",
+      "do/while"
+    ],
+    "generated_statement_depth_limit": 64,
+    "lowering": "A distinct synthetic AST uses initialized unsigned local state and ordinary checked conditionals/loops; retained original Clang AST bytes still contain the source jumps.",
+    "new_constructs": [
+      "BreakStmt",
+      "ContinueStmt"
+    ],
+    "ordering": [
+      "for continue executes increment before the next condition",
+      "do continue reaches its postcondition",
+      "break skips the remaining body, for increment and subsequent/post condition",
+      "nested loops consume only their own jump exits"
+    ],
+    "profiles": [
+      "captured CTranslator project statements",
+      "CRecordViewTranslator project statements",
+      "recognized multi-owner C migration through the shared statement lowerer",
+      "concrete explicit-noexcept scalar C++20 project bodies through lower_cpp_project"
+    ],
+    "source_or_core_grammar_not_added": [
+      "No general goto/switch grammar",
+      "No new ordinary Hepta source break/continue keyword",
+      "No new Core instruction/schema"
+    ],
+    "unchanged_exclusions": [
+      "General C++ classes/STL/RAII/destructor/exception or mangled ABI support",
+      "Arbitrary foreign pointers and inferred pointer contracts",
+      "The separate strict minimal C and cpp-class migration profiles do not inherit every captured-project feature",
+      "General scalar mutating predicates remain rejected; record-view sequenced predicates retain their established rules"
+    ]
+  },
+  "new_benchmarks": 0,
+  "new_compilations": 0,
+  "new_test_executions": 0,
+  "ok": true,
+  "production_admission_authority": {
+    "admission": "hepta.hia_program.verify_program",
+    "external_receipts_grant_admission": false,
+    "input": "actual immutable canonical Core bytes; public VerifiedProgram objects are rechecked",
+    "metadata_grants_admission": false
+  },
+  "remaining_explicit_limits": [
+    "No general C++ historical-library migration claim",
+    "No universal automatic or zero-cost C/C++ rewriting claim",
+    "No whole-language or absolute resource-safety proof",
+    "No production Rust admission/deployment authority",
+    "No performance superiority or globally optimal instructions claim",
+    "Historical independent evidence retains its original source SHA and compilation-identity caveat"
+  ],
+  "repository_edits": false,
+  "schema": "hepta.migration.evidence-audit.v1",
+  "scope": "Read-only evidence integrity and claim-scope integration. No new compiler execution, tests, native workload or timing experiment was performed.",
+  "source_documents": [
+    {
+      "bytes": 31830,
+      "path": "hepta-hia/docs/C_MIGRATION.md",
+      "sha256": "4765d7266b95e70a67cf004eacf9c7b0063b2e378566d3b3bd617ef163cf71f3"
+    },
+    {
+      "bytes": 10631,
+      "path": "hepta-hia/docs/CPP_PROJECT_HIA.md",
+      "sha256": "0e35e598a6a3f44cb26b554b94fcdb1e81385df243acf7aec15803886b0366ed"
+    },
+    {
+      "bytes": 23914,
+      "path": "hepta-hia/docs/HIA_SAFETY_CONTRACT.md",
+      "sha256": "e33944c9528377f683f7a1c8c8e670b9ee3d6e18d9e0ceffd0cf580c2c7192c2"
+    },
+    {
+      "bytes": 57603,
+      "path": "hepta-hia/docs/HIA_SAFETY_CONTRACT.json",
+      "sha256": "b5a9dd706bb1c922b8ec2390c1c0caed277944b5c702bb22756d145eaf60e5b7"
+    },
+    {
+      "bytes": 13401,
+      "path": "hepta-hia/tools/qualify_hia_safety_contract.py",
+      "sha256": "0777a39cd216d0fac815244dbc08784f5fec2339ce00c7cb69d2ee1586c782c6"
+    },
+    {
+      "bytes": 22753,
+      "path": "hepta-hia/tools/qualify_hia_c_loop_migration.py",
+      "sha256": "26d52b272928087bacc8b6ea71c798a2dc2d1a165b57a55fc8fab6e348df7ad1"
+    },
+    {
+      "bytes": 15032,
+      "path": "hepta-hia/tests/test_hia_c_loop_jumps.py",
+      "sha256": "6291a99e3e69cbb3f9b16587e8de91a774b3796c7977cc0457e849c65d0d2f14"
+    }
+  ],
+  "status": "reviewed_with_explicit_scope_limitations",
+  "text_archive": {
+    "all_included_hashes_and_utf8_json_integrity_rechecked": true,
+    "binary_note": "Six locally built/executed ELF files are intentionally excluded from the text archive. Their local identities remain evidence; replay requires rebuilding. This audit JSON is a separate review artifact to archive alongside the existing whitelist/manifest.",
+    "binary_payloads_archived_or_remotely_available_by_this_manifest": false,
+    "excluded_binary_files": [
+      "c-loop-migration/maintenance/hia.o",
+      "c-loop-migration/maintenance/resource_c",
+      "c-loop-migration/maintenance/resource_hia",
+      "c-loop-migration/original/hia.o",
+      "c-loop-migration/original/resource_c",
+      "c-loop-migration/original/resource_hia"
+    ],
+    "included_bytes": 4634075,
+    "included_files": 82,
+    "manifest": {
+      "bytes": 19012,
+      "path": "final-validation/c-loop-migration-archive-manifest.json",
+      "sha256": "bf17c97aa825aa107b606dbdbc9d772cac3a9743eace97def6383e2a35a7c149"
+    },
+    "whitelist": {
+      "bytes": 4127,
+      "path": "final-validation/c-loop-migration-archive-files.txt",
+      "sha256": "9adfb48534b56a356097f8c5162ec6c57d2cd1030b1c38888dea6407e2a59f29"
+    }
+  }
+}

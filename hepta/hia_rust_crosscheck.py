@@ -387,6 +387,87 @@ def _canonical(value):
                       ensure_ascii=True, allow_nan=False).encode("ascii")
 
 
+_STATIC_BUDGET_PROFILE = "acyclic-byte-owner-v1-v8-u64-bounds"
+_STATIC_BUDGET_CLAIMS = {
+    "whole_module_independently_checked": True,
+    "byte_only_acyclic_cfg_and_call_graph_checked": True,
+    "per_metric_conservative_upper_bounds": True,
+    "exact_feasible_path_maxima_proved": False,
+    "u64_bound_overflow_rejected": True,
+    "live_heap_or_process_rss_bounded": False,
+    "native_time_or_stack_bytes_bounded": False,
+    "recursive_chain_costs_bounded": False,
+    "rust_is_production_admission_authority": False,
+    "whole_language_soundness_proved": False,
+    "native_backend_refinement_proved": False,
+}
+
+
+def crosscheck_rust_static_budget(program, executable: str | Path, *,
+                                  executable_sha256: str,
+                                  max_allocator_interactions=None,
+                                  max_vm_ticks=None, max_call_depth=None,
+                                  timeout: float = 8.0):
+    """Compare independent structural bounds for the whole byte-only Core.
+
+    The existing Python verifier and static analyzer remain mandatory. Rust
+    independently verifies the canonical module, rejects CFG/call cycles and
+    computes every function's ticks, allocator-interaction and frame bounds.
+    These are separate conservative maxima, not one achievable execution path.
+    No runtime, native time, heap/RSS, chain-cost or production-authority claim
+    follows. Bounds above u64 remain outside this explicit Rust profile.
+    """
+    from .hia_program import verify_program
+    from .hia_static_budget import analyze_static_budget
+
+    if type(timeout) not in (int, float) or not 0 < timeout <= 15:
+        _reject("static budget subprocess timeout must be in (0, 15] seconds")
+    checked = verify_program(program)
+    python = analyze_static_budget(checked,
+        max_allocator_interactions=max_allocator_interactions,
+        max_vm_ticks=max_vm_ticks, max_call_depth=max_call_depth)
+    raw_exe = _verified_executable_bytes(Path(executable), executable_sha256)
+    stdout, stderr, returncode = _run_pinned_shadow(
+        raw_exe, ["--owned-static-budget"], checked.canonical_bytes, timeout,
+        maximum_output=MAX_EXECUTION_OUTPUT_BYTES)
+    if returncode != 0 or stderr:
+        _reject("Rust static budget rejected the module or emitted unexpected diagnostics")
+    report = _report_line(stdout, MAX_EXECUTION_OUTPUT_BYTES)
+    expected = {
+        "schema": "hepta.hia.rust-static-budget.v1",
+        "profile": _STATIC_BUDGET_PROFILE,
+        "status": "conservative_structural_upper_bounds_not_authority",
+        "program_sha256": checked.sha256,
+        "core_schema": checked.as_dict()["schema"],
+        "functions": python["functions"],
+        "claims": _STATIC_BUDGET_CLAIMS,
+    }
+    # Complete canonical equality refuses both undercounts and unexplained
+    # looser bounds, missing/extra rows, bool-as-int values and changed claims.
+    # A future independently justified analysis rule needs its own profile.
+    if _canonical(report) != _canonical(expected):
+        _reject("Rust/Python static bounds differ in identity, inventory, metrics or claims")
+    return {
+        "schema": "hepta.hia.rust-static-budget-crosscheck.v1",
+        "status": "finite_budget_corroborated_not_authority",
+        "input_sha256": checked.input_sha256, "core_sha256": checked.sha256,
+        "shadow_executable_sha256": executable_sha256,
+        "python_report": python, "rust_report": report,
+        "claims": {
+            "python_canonical_core_checked": True,
+            "rust_module_and_static_bounds_independently_checked": True,
+            "complete_function_bound_inventory_compared": True,
+            "per_metric_conservative_upper_bounds": True,
+            "exact_feasible_path_maxima_proved": False,
+            "live_heap_or_process_rss_bounded": False,
+            "native_time_or_stack_bytes_bounded": False,
+            "rust_is_production_admission_authority": False,
+            "whole_language_soundness_proved": False,
+            "native_backend_refinement_proved": False,
+        },
+    }
+
+
 def _execution_claims(body):
     chain = any(
         "chain" in ([p["type"] for p in fn["params"]] + fn["returns"]

@@ -727,6 +727,62 @@ class CTranslator:
             self.loop_control_count += 1
         return lowered
 
+    def if_condition(self, node: dict, depth: int) -> tuple[list[str], Expression]:
+        """Sequence one scalar postfix update at an if full-expression boundary.
+
+        Only parentheses, logical negation and an implicit conversion to bool
+        may enclose the update.  Saving its old value before the existing
+        checked/wrapping statement update preserves both the condition value
+        and the completed side effect before either branch begins.  This does
+        not grant effectful arithmetic, short-circuit operands, loop tests or
+        aggregate/pointer lvalues a general expression-sequencing model.
+        The captured Clang AST is read without mutation.
+        """
+        current, wrappers = node, []
+        while len(current.get("inner", [])) == 1:
+            kind = current.get("kind")
+            if kind == "ParenExpr":
+                wrappers.append("paren")
+            elif kind == "UnaryOperator" and current.get("opcode") == "!":
+                wrappers.append("not")
+            elif kind == "ImplicitCastExpr" and current.get("castKind") == "IntegralToBoolean":
+                wrappers.append("bool")
+            else:
+                break
+            current = current["inner"][0]
+        if (current.get("kind") != "UnaryOperator"
+                or current.get("opcode") not in {"++", "--"}
+                or current.get("isPostfix") is not True
+                or len(current.get("inner", [])) != 1):
+            return [], truth(self.expr(node))
+        target = current["inner"][0]
+        while target.get("kind") == "ParenExpr" and len(target.get("inner", [])) == 1:
+            target = target["inner"][0]
+        reference = target.get("referencedDecl", {})
+        if (target.get("kind") != "DeclRefExpr"
+                or reference.get("kind") not in {"ParmVarDecl", "VarDecl"}
+                or reference.get("id") not in self.bindings):
+            raise MigrationRejected("E_C_IF_POSTFIX",
+                                    "Postfix if conditions require an initialized scalar local or parameter")
+        value = self.lvalue(target)
+        if value.typ not in INTEGER:
+            raise MigrationRejected("E_C_IF_POSTFIX",
+                                    "Postfix if conditions require a non-Boolean integer local or parameter")
+        # Reuse the existing promotion/narrowing and checked/wrapping rules.
+        # In particular i8/i16 still reject and signed overflow still traps;
+        # no claim is made about executions with undefined signed C overflow.
+        update = self.stmt(dict(current, inner=[target]), depth)
+        self.counter += 1
+        old = "migration_if_old_" + str(self.counter)
+        prefix = [f"{'    ' * depth}let {old}: {value.typ} = {value.text};", *update]
+        condition = Expression(old, value.typ)
+        for wrapper in reversed(wrappers):
+            if wrapper == "not":
+                condition = Expression(f"(!{truth(condition).text})", "bool")
+            elif wrapper == "bool":
+                condition = truth(condition)
+        return prefix, truth(condition)
+
     def stmt(self, node: dict, depth: int = 1) -> list[str]:
         lowered = self.loop_control(node, depth)
         if lowered is not None:
@@ -782,11 +838,12 @@ class CTranslator:
         if kind in {"IfStmt", "WhileStmt"}:
             if len(children) not in ({2, 3} if kind == "IfStmt" else {2}):
                 raise MigrationRejected("E_C_CONTROL", "Unexpected control-flow AST")
-            condition = truth(self.expr(children[0]))
+            prefix, condition = (self.if_condition(children[0], depth) if kind == "IfStmt"
+                                 else ([], truth(self.expr(children[0]))))
             if condition.side_effect:
                 raise MigrationRejected("E_C_EVALUATION_ORDER", "Mutating conditions are unsupported")
             keyword = "if" if kind == "IfStmt" else "while"
-            out = [f"{pad}{keyword} {condition.text} {{", *self.stmt(children[1], depth + 1), pad + "}"]
+            out = prefix + [f"{pad}{keyword} {condition.text} {{", *self.stmt(children[1], depth + 1), pad + "}"]
             if len(children) == 3:
                 out += [pad + "else {", *self.stmt(children[2], depth + 1), pad + "}"]
             return out

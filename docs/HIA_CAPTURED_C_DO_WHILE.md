@@ -8,23 +8,26 @@ rules remain mandatory.
 
 ## Execution and scope
 
-A fresh Boolean, initialized to `true`, drives one ordinary Hepta `while` loop.
-The body executes once before the first evaluation of the original condition;
-after each body the Boolean receives that condition. Only one body is emitted.
+A fresh first-iteration Boolean, initialized to `true`, short-circuits the
+condition of one ordinary Hepta `while` loop. The body resets it to `false`;
+subsequent loop headers evaluate the original postcondition. Only one body is emitted.
 The translation neither duplicates cursor movement nor reorders condition reads
 before the first body. The existing independent Core verifier, interpreter and
 LLVM backend consume the resulting program.
 
-This profile requires a braced body and a pure scalar condition. Local
-declarations within the body, nested `do`/`for`, `break`, `continue`, `goto`,
-`switch` and returns inside the body remain refusals. Conditional branches and
-existing pre-test loops without those forms are checked by their ordinary
-lowering. New names use a separate generated namespace. This is not a complete
-C control-flow implementation.
+The P0 convergence retains the newer shared structured-control lowerer from
+the eight-track candidate. Braced and single-statement bodies, local declarations,
+nested structured loops, nearest-loop `break`/`continue`, and returns use that
+one path. A return or break skips the postcondition; a continue reaches it.
+`goto`, labels, `switch`, and mutating post-test conditions remain refused.
+Generated names use a separate namespace. This is not a complete C control-flow
+implementation. The earlier round8 exclusions are historical and do not describe
+the converged implementation.
 
 For the captured value translator, the separate definite-assignment pass
-checks the first body using the incoming state, then checks the condition and
-successor using only assignments established on every reaching body path. An
+checks the first body using the incoming state, keeping normal, break and
+continue exits separate, then checks the condition and successor using only
+assignments established on every reaching path. An
 outer `while` or `for` can still execute zero times. Missing branch assignments,
 self-reads before first assignment and assignments made only by a possibly
 empty nested loop remain rejected. The record-view translator retains its more

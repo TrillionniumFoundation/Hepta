@@ -14,7 +14,7 @@ import re
 from hepta.hia_edit_batch import prepare_batch, apply_batch
 from hepta.hia_program import verify_program
 from hepta.hia_program_tools import apply_program_patch, bounded_json_wire, decode_json, function_signature
-from experiments.hia_agent_structured_v7_20261029.rust_syntax import parse_function, parsed_signature, validate_fragment
+from experiments.hia_agent_structured_v7_20261029.rust_syntax import SyntaxRejected, parse_function, parsed_signature, validate_fragment
 
 SCHEMA = "hepta.agent.structured-query.v1"
 RESPONSE_SCHEMA = "hepta.agent.structured-response.v1"
@@ -98,11 +98,17 @@ def checked_edits(expected, supplied_query, response):
         if type(edit) is not dict or set(edit) != {"node", "changes"}:
             reject("node edits require exactly node and changes")
         ident, changes = edit["node"], edit["changes"]
-        if type(ident) is not str or ident not in catalogue or ident in used:
-            reject("duplicate, unknown or unauthorized node")
+        if type(ident) is not str or ident not in catalogue:
+            reject("unknown or unauthorized node; select an ID from the captured public catalogue")
+        if ident in used:
+            reject("duplicate node " + repr(ident) + "; supply its changes once in the complete transaction")
         node = catalogue[ident]
         if type(changes) is not dict or not changes or not set(changes).issubset(node["fields"]):
-            reject("changes exceed the selected node fields")
+            received = sorted(changes) if type(changes) is dict else type(changes).__name__
+            reject("changes exceed the selected node fields: node=" + repr(ident)
+                   + "; received=" + repr(received) + "; allowed=" + repr(node["fields"])
+                   + ("; this node is read-only" if not node["fields"]
+                      else "; changes must be a nonempty object containing only these fields"))
         used.add(ident)
         result.append((copy.deepcopy(node), copy.deepcopy(changes)))
     return result
@@ -137,7 +143,15 @@ def propose_rust(files, query, response, *, editable_symbols, interface_policy="
     for node, changes in edits:
         if set(changes) != {"text"} or type(changes["text"]) is not str:
             reject("a Rust node requires one replacement text fragment")
-        validate_fragment(changes["text"], node["category"])
+        try:
+            validate_fragment(changes["text"], node["category"])
+        except SyntaxRejected as error:
+            # Only the selected public contract is added. Never suggest a
+            # replacement or echo arbitrary submitted source in diagnostics.
+            raise SyntaxRejected(str(error) + "; selected node=" + repr(node["id"])
+                                 + "; expected one complete " + node["category"]
+                                 + " fragment; original span=" + str(node["start"])
+                                 + ":" + str(node["end"])) from error
         replacements.setdefault(node["file"], []).append((node["start"], node["end"], changes["text"]))
     for name, spans in replacements.items():
         spans.sort()

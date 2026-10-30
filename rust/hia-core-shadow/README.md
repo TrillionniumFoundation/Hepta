@@ -1,8 +1,21 @@
-# Independent finite HIA Rust shadow
+# Independent finite HIA Rust checks and execution
 
-The Python Core verifier remains the production admission authority. This crate
-is an independent checking and execution oracle, not a native backend or a
-whole-language safety proof.
+The Python Core verifier remains the default/source/nominal/native admission
+authority. This crate supplies independent checking and execution profiles.
+The explicit `--byte-dag-admit-run` route independently admits raw primitive
+byte-only acyclic Core, enforces a whole-module static policy, and runs the
+same immutable snapshot through the v4 Machine without Python semantic
+admission. Rust is the execution-admission authority for that named interpreter
+route alone. See [the raw byte-DAG contract](../../docs/HIA_RUST_BYTE_DAG_ADMISSION.md).
+Native refinement and whole-language authority remain separate qualifications.
+
+The separate `--owned-static-budget` mode independently computes conservative
+VM tick, allocator-interaction and synchronous-frame upper bounds for the
+audited byte-only v1-v8 acyclic CFG/call profile. It reuses the owned verifier,
+refuses chains and overflowing bounds, and is compared against Python by
+`crosscheck_rust_static_budget`. This remains development corroboration, with
+no native time/RSS or production-authority claim. See
+[the static-bound contract](../../docs/HIA_RUST_STATIC_BUDGET.md).
 
 The opt-in bound-v3 and bound-v4 protocols reuse this same Machine and ByteMemory
 with explicit language call frames. V3 admits up to 256 root-inclusive frames,
@@ -23,6 +36,14 @@ The separate `--owned-run-bound-v2 FUNCTION JSON_ARGS JSON_POLICY` command
 selects an explicit depth in 1–32 on the same Machine. Its strict policy and
 fresh comparison API are documented in [bound depth v2](../../docs/HIA_RUST_BOUND_DEPTH_V2.md);
 legacy modes remain fixed at 32 and retain their existing reports.
+
+The separate `--owned-run-bound-v3 FUNCTION JSON_ARGS JSON_POLICY` command
+selects up to 256 root-inclusive frames, 10,000,000 ticks and 1 GiB of logical
+payload/node bytes on this same Machine. Calls use explicit language frames;
+the host Rust call stack does not grow with language recursion. The earlier
+v1/v2 policies remain unchanged. See [bound budget v3](../../docs/HIA_RUST_BOUND_BUDGET_V3.md)
+for the wire contract, actual allocation controls and the distinction between
+logical bytes, stopped resources, host memory and production authority.
 
 ## Byte-owner execution profile v3
 

@@ -390,8 +390,9 @@ class CRecordViewTranslator(CTranslator):
         if kind in {"IfStmt", "WhileStmt"}:
             if len(children) not in ({2, 3} if kind == "IfStmt" else {2}):
                 raise MigrationRejected("E_C_CONTROL", "Unexpected conditional AST")
-            condition = truth(self.expr(children[0]))
-            out = [f"{pad}{'if' if kind == 'IfStmt' else 'while'} {condition.text} {{", *self.stmt(children[1], depth + 1), pad + "}"]
+            prefix, condition = (self.if_condition(children[0], depth) if kind == "IfStmt"
+                                 else ([], truth(self.expr(children[0]))))
+            out = prefix + [f"{pad}{'if' if kind == 'IfStmt' else 'while'} {condition.text} {{", *self.stmt(children[1], depth + 1), pad + "}"]
             if len(children) == 3:
                 out += [pad + "else {", *self.stmt(children[2], depth + 1), pad + "}"]
             return out

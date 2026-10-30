@@ -246,4 +246,3 @@ class RustApiV4Parity(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

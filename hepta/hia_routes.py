@@ -1,8 +1,10 @@
-"""Explicit input and backend routes into the one standalone HIA authority.
+"""Explicit inputs, default adapters and independently scoped HIA execution.
 
 The inventory describes boundaries; it is not a safety or refinement receipt.
-Only admit_route executes an adapter, and every supported adapter ends in the
-same verify_program. Unsupported languages/IR/backend combinations fail closed.
+Every adapter accepted by admit_route ends in the same verify_program. The
+separate raw-byte-DAG Rust entry has its own bounded admission and execution
+contract; it cannot mint a Python VerifiedProgram or authorize native output.
+Unsupported languages/IR/backend combinations fail closed.
 """
 from __future__ import annotations
 
@@ -138,6 +140,62 @@ def route_inventory():
                    "publication": "fresh guarded native artifact with complete original fallback"},
               ],
               "optimizations": optimizations,
+              "independent_execution_profiles": [
+                  {"route": "rust-byte-dag", "profile": "raw-byte-dag-v1",
+                   "entry": "hepta.hia_rust_byte_dag.execute_rust_byte_dag",
+                   "rust_entry": "hia_core_shadow::admit_and_run_byte_dag",
+                   "scope": "raw primitive v1-v8; whole-module byte-only CFG/call DAG; exported scalar entry",
+                   "policies": "all-function static bounds and exact v4 runtime limits",
+                   "admission_authority": "independent Rust owned verifier and private admitted snapshot",
+                   "execution": "existing Rust v4 Machine on the same canonical snapshot",
+                   "python_semantic_admission_required": False,
+                   "default_admission_changed": False,
+                   "source_or_nominal_lowering": False,
+                   "native_execution_authorized": False,
+                   "receipt_grants_admission": False},
+                  {"route": "rust-byte-dag-finite-heap", "profile": "raw-byte-dag-finite-heap-v1",
+                   "entry": "hepta.hia_rust_byte_dag.execute_rust_byte_dag",
+                   "selection": "explicit max_static_live_heap_bytes integer; None retains raw-byte-dag-v1",
+                   "rust_entry": "hia_core_shadow::admit_and_run_byte_dag_heap",
+                   "scope": "raw primitive v7/v8; whole-module byte-only CFG/call DAG; exact scalar invocation with existing explicit/implicit export rules",
+                   "policies": "all-function structural bounds, exact-entry static live payload, and unchanged v4 runtime limits",
+                   "admission_authority": "independent Rust owned verifier, bounded abstract heap analysis and private admitted snapshot",
+                   "execution": "existing Rust v4 Machine on the same canonical snapshot",
+                   "python_semantic_admission_required": False,
+                   "execution_used_to_establish_heap_bound": False,
+                   "default_admission_changed": False,
+                   "source_or_nominal_lowering": False,
+                   "native_execution_authorized": False,
+                   "receipt_grants_admission": False},
+                  {"route": "rust-byte-dag-finite-heap-cleanup", "profile": "raw-byte-dag-finite-heap-cleanup-v1",
+                   "entry": "hepta.hia_rust_byte_dag.execute_rust_byte_dag",
+                   "selection": "explicit max_static_live_heap_bytes and max_cleanup_actions integers; omitted cleanup preserves prior stop semantics",
+                   "rust_entry": "hia_core_shadow::admit_and_run_byte_dag_heap_cleanup",
+                   "scope": "raw primitive v7/v8 byte-only whole-module DAG; exact private scalar invocation; no external resource, chain or foreign callback",
+                   "policies": "independent finite-entry heap bound plus static cleanup action reservation at most 32768; insufficient reservation refuses before language execution",
+                   "admission_authority": "independent Rust owned verifier, bounded heap/action analyses and private admitted snapshot",
+                   "execution": "same Rust v4 Machine with separate explicit loan/formal/owner discharge after a language trap or budget stop; original stop ledger retained",
+                   "python_semantic_admission_required": False,
+                   "execution_used_to_establish_heap_bound": False,
+                   "execution_used_to_establish_cleanup_bound": False,
+                   "default_admission_changed": False,
+                   "source_or_nominal_lowering": False,
+                   "native_execution_authorized": False,
+                   "host_oom_panic_or_termination_cleanup_guaranteed": False,
+                   "receipt_grants_admission": False},
+              ],
+              "foreign_process_profiles": [
+                  {"route": "cpp-json-checkpoint", "profile": "hepta.cpp-json-checkpoint.v1",
+                   "entry": "hepta.cpp_json_checkpoint.JsonCheckpoint",
+                   "scope": "Linux x86-64 sealed worker for the existing nlohmann/json 3.11.3/3.12.0 scoped C ABI; caller checkpoint of 1..64 integers in [-1000000,1000000]",
+                   "execution": "one-use revision-bound request; commit only after valid scalar result, ordinary resource ledger and normal exit; explicit fresh reconstruction after a caught exception, recognized noexcept termination, or bounded capture refusal with confirmed direct-child completion; other failures poison the owner",
+                   "core_admission_authorized": False,
+                   "foreign_library_rewritten": False,
+                   "foreign_memory_safety_proved": False,
+                   "external_side_effects_rolled_back": False,
+                   "automatic_retry": False,
+                   "receipt_grants_admission": False},
+              ],
               "authority": "hepta.hia_program.verify_program",
               "claims": {"implicit_fallback_allowed": False, "all_source_languages_implemented": False,
                          "source_to_core_refinement_proved": False, "backend_refinement_proved": False,

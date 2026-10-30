@@ -110,46 +110,45 @@ class CapturedDoWhileTests(unittest.TestCase):
                 self.assertIn("E_C_UNINITIALIZED", [row["code"] for row in report["diagnostics"]])
                 self.assertFalse((work / "translated").exists())
 
-    def test_nested_scopes_and_jump_control_preserve_defined_values(self):
+    def test_unstructured_control_remains_refused(self):
         bodies = (
-            ("unsigned x=a;a=x+1;", (1, 3)),
-            ("{unsigned a=1;a++;}", (0, 2)),
-            ("do{a++;}while(a<n);", (3, 3)),
-            ("for(unsigned x=0;x<n;x++){a++;}", (3, 5)),
-            ("if(a)break;a++;", (1, 2)),
-            ("if(a)continue;a++;", (1, 2)),
-            ("if(a)return a;a++;", (1, 2)),
+            "goto end;", "switch(a){case 0:a++;}",
+            "end:a++;",
         )
-        for body, expected in bodies:
+        for body in bodies:
             with self.subTest(body=body):
-                source = f'unsigned probe(unsigned a,unsigned n){{do{{{body}}}while(0);return a;}}'
-                report, work, _ = self.capture(source)
-                self.assertTrue(report["ok"], report)
-                core = self.core(work)
-                for a, value in zip((0, 2), expected):
-                    self.assertEqual(execute_program(core, "probe", [a, 3])["result"], value)
-
-    def test_goto_and_switch_remain_refused(self):
-        for body in ("goto end;", "switch(a){case 0:a++;}"):
-            with self.subTest(body=body):
-                source = f'unsigned probe(unsigned a,unsigned n){{do{{{body}}}while(a<n);end:return a;}}'
+                suffix = "end:return a;" if body == "goto end;" else "return a;"
+                source = f'unsigned probe(unsigned a,unsigned n){{do{{{body}}}while(a<n);{suffix}}}'
                 report, work, _ = self.capture(source)
                 self.assertFalse(report["ok"], report)
-                self.assertIn("E_C_STATEMENT", {row["code"] for row in report["diagnostics"]}, report)
+                self.assertTrue({"E_C_STATEMENT", "E_C_UNINITIALIZED_CONTROL"} &
+                                {row["code"] for row in report["diagnostics"]}, report)
                 self.assertFalse((work / "translated").exists())
 
-    def test_mutating_condition_remains_refused(self):
-        for source, code in (
-            ('unsigned probe(unsigned a,unsigned n){do{a++;}while(n--);return a;}', "E_C_UNARY"),
+    def test_structured_scopes_and_single_statement_body_use_shared_lowerer(self):
+        # These forms are now handled by the same retained 394 lowerer. The old
+        # 395 refusal cohort appended a label to every input, hiding whether
+        # the structured body itself was supported. Exercise label-free bodies
+        # against actual original C, generated Rust, Core VM and direct LLVM.
+        for body, cases in (
+            ("{unsigned x=a;a=x+1u;}", [(0, 0, 1), (0, 3, 3), (5, 2, 6)]),
+            ("a++;", [(0, 0, 1), (0, 3, 3), (5, 2, 6)]),
+            ("{for(unsigned x=0;x<2u;x++){a++;}if(a>=4u)break;}",
+             [(0, 0, 2), (0, 10, 4), (5, 2, 7)]),
+            ("{a++;if(a<n)continue;return a;}",
+             [(0, 0, 1), (0, 3, 3), (5, 2, 6)]),
+            ("{do{a++;}while(0);}", [(0, 0, 1), (0, 3, 3), (5, 2, 6)]),
         ):
-            report, work, _ = self.capture(source)
-            self.assertFalse(report["ok"], report)
-            self.assertIn(code, [row["code"] for row in report["diagnostics"]])
-            self.assertFalse((work / "translated").exists())
+            with self.subTest(body=body):
+                source = f'unsigned probe(unsigned a,unsigned n){{do {body}while(a<n);return a;}}'
+                self.differential(source, cases)
 
-    def test_unbraced_body_uses_the_same_posttest_semantics(self):
-        self.differential('unsigned probe(unsigned a,unsigned n){do a++;while(a<n);return a;}',
-                          [(0, 0, 1), (0, 3, 3), (7, 3, 8)])
+    def test_mutating_condition_remains_refused(self):
+        report, work, _ = self.capture(
+            'unsigned probe(unsigned a,unsigned n){do{a++;}while(n--);return a;}')
+        self.assertFalse(report["ok"], report)
+        self.assertIn("E_C_UNARY", [row["code"] for row in report["diagnostics"]])
+        self.assertFalse((work / "translated").exists())
 
     def test_side_effectful_condition_call_is_not_silently_admitted(self):
         source = ('unsigned mutate(unsigned *data,unsigned n){data[0]=data[0]+1u;return data[0];}'
@@ -219,6 +218,41 @@ class CapturedDoWhileTests(unittest.TestCase):
             execute_program(migrated["program"], "cursor_case", [0])
         ledger = caught.exception.report["resources"]
         self.assertEqual((ledger["live_owners"], ledger["frees"]), (1, 0))
+
+    def test_nested_scopes_and_jump_control_preserve_defined_values(self):
+        bodies = (
+            ("unsigned x=a;a=x+1;", (1, 3)),
+            ("{unsigned a=1;a++;}", (0, 2)),
+            ("do{a++;}while(a<n);", (3, 3)),
+            ("for(unsigned x=0;x<n;x++){a++;}", (3, 5)),
+            ("if(a)break;a++;", (1, 2)),
+            ("if(a)continue;a++;", (1, 2)),
+            ("if(a)return a;a++;", (1, 2)),
+        )
+        for body, expected in bodies:
+            with self.subTest(body=body):
+                source = f'unsigned probe(unsigned a,unsigned n){{do{{{body}}}while(0);return a;}}'
+                report, work, _ = self.capture(source)
+                self.assertTrue(report["ok"], report)
+                core = self.core(work)
+                for a, value in zip((0, 2), expected):
+                    self.assertEqual(execute_program(core, "probe", [a, 3])["result"], value)
+
+
+    def test_goto_and_switch_remain_refused(self):
+        for body in ("goto end;", "switch(a){case 0:a++;}"):
+            with self.subTest(body=body):
+                source = f'unsigned probe(unsigned a,unsigned n){{do{{{body}}}while(a<n);end:return a;}}'
+                report, work, _ = self.capture(source)
+                self.assertFalse(report["ok"], report)
+                self.assertIn("E_C_STATEMENT", {row["code"] for row in report["diagnostics"]}, report)
+                self.assertFalse((work / "translated").exists())
+
+
+    def test_unbraced_body_uses_the_same_posttest_semantics(self):
+        self.differential('unsigned probe(unsigned a,unsigned n){do a++;while(a<n);return a;}',
+                          [(0, 0, 1), (0, 3, 3), (7, 3, 8)])
+
 
 
 class CapturedDoWhileApplicationTests(unittest.TestCase):

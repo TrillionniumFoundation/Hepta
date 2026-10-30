@@ -1,0 +1,61 @@
+{
+  "schema": "hepta.p7-independent-review-resolution.v1",
+  "pre_fix_source_commit": "cce66214bb659e78dccd3df08da9d4f526380761",
+  "fixed_source_commit": "648dde4e4fe5752028ac004e01a3069fc37f6d0b",
+  "fixed_source_bindings": {
+    "experiments/hia_agent_toolstudy_v11_20261030/PROTOCOL.json": "0427e872247598af8325a0eaf7d97be1d7d281518558d3c0a02509ae935675aa",
+    "experiments/hia_agent_toolstudy_v11_20261030/support.py": "5cbee7c1018af11e4b72a739d1d42a92a1cf629944811450b5a851cf93a00898",
+    "experiments/hia_agent_toolstudy_v11_20261030/prompts.py": "4cb16e529e04f6c9ff4ba8f51e6c1ab10cb5dc68edbada2ead5d6a3eba872cbd",
+    "experiments/hia_agent_toolstudy_v11_20261030/engine.py": "60beb4feb8dd9b1e4bb8d9e3904cb84bcd9058ade34bd3d6fa749b63c2317040",
+    "experiments/hia_agent_toolstudy_v11_20261030/accounting.py": "91aba5e3ee86e6cd8f4d42652ac0939391a4254a295e3c4da9317df2023e7b8c",
+    "experiments/hia_agent_toolstudy_v11_20261030/runtime.py": "3fd477abbccbc635bb9aa4eb77640455b8a2e36d6b874fdd0c9f2f255e460727",
+    "experiments/hia_agent_toolstudy_v11_20261030/provenance/RUNTIME_MEMBERS.json": "3bf3805e63245ac06d434c03f8d91e9815788ff00377acbd94e43f7bd3325f92",
+    "tools/qualify_hia_agent_tool_capacity_v11.py": "0a837b2865644fbf168d9c46952d397ca0601d941f3251dd32c01a8f0514d64e",
+    "tools/qualify_hia_agent_toolstudy_v11.py": "f6d35c817d1e63ee8dd0e1b61a05ed4d38b10463a1cb27e75bb294afe626bd1b"
+  },
+  "unchanged_protocol_fields_checked": [
+    "runtime",
+    "arms",
+    "tasks",
+    "generation",
+    "history",
+    "budget",
+    "rust_conversion_profile",
+    "hidden_seed",
+    "hidden_random_cases_per_task",
+    "decoder",
+    "cell_order",
+    "advantage_gate",
+    "capacity_gate",
+    "public_feedback",
+    "rollback",
+    "tool_scope",
+    "timeout",
+    "qualification",
+    "model",
+    "official_template",
+    "model_template_options"
+  ],
+  "all_frozen_conditions_unchanged": true,
+  "findings": [
+    "runtime archive member pin was not enforced",
+    "capacity terminal evidence could be lost on final identity failure; related shutdown accounting/source re-read paths required protection"
+  ],
+  "resolution": "Both findings addressed and independent zero-model replay passed; no remaining blocking finding within reviewed scope.",
+  "capacity_fault_control_after_fix": {
+    "exception_propagated": false,
+    "plan_retained": true,
+    "capacity_retained": true,
+    "service_costs_retained": true,
+    "capacity_complete": false
+  },
+  "fixed_real_archive_members_checked": 40,
+  "arbitrary_python_runtime_refused": true,
+  "main_summary_uses_frozen_arms": true,
+  "actual_model_loads": 0,
+  "actual_model_requests": 0,
+  "actual_runtime_executables_invoked": 0,
+  "actual_qualification_granted": false,
+  "integration_head_qualified": false,
+  "review_controls_added_to_model_denominator": false
+}

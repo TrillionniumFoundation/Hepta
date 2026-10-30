@@ -133,4 +133,3 @@ fn early_policy_stop_does_not_hide_invalid_unused_core() {
     assert!(execute_owned_bound_v4(&serde_json::to_vec(&document).unwrap(), "allocate_release", &[json!(3)],
         &serde_json::to_vec(&selected).unwrap()).is_err());
 }
-

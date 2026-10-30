@@ -91,6 +91,36 @@ local build record, not remote attestation. The integrated qualification
 collector separately binds the exact committed Hepta tree; neither builder
 receipt alone claims that every integrated source file was tested.
 
+## One-shot ranking executable custody
+
+The ranking consumer retains the exact executable bytes checked against its
+build receipt. It copies those bytes into a Linux `memfd`, requires write,
+grow, shrink and seal seals, and checks both the seals and byte readback before
+executing `/proc/self/fd/<descriptor>`. It never executes the admitted source
+pathname. Replacing and then restoring that pathname between admission and
+execution cannot substitute a different program. The original source pathname
+is still rechecked after execution; a lasting change rejects the result.
+
+Both build-receipt and executable reads open with `O_NONBLOCK` and `O_NOFOLLOW`
+before checking the inode with `fstat`. A FIFO with no writer is refused without
+waiting for a writer. Reads are byte-bounded and compare inode metadata before
+and after reading. This does not establish a deadline for kernel/filesystem I/O.
+
+The existing bounded subprocess pump limits each captured output stream to
+1 MiB during execution, retains the leader with `waitid(WNOWAIT)`, and kills
+its process group before reaping that leader on success, rejection or timeout.
+The sealed descriptor remains owned until that cleanup finishes. Missing
+sealing or process-ownership support, failed cleanup, mismatched request/source
+identity and invalid advisory claims all refuse the result.
+
+This is executable custody for a trusted local bridge. It does not sandbox
+arbitrary hostile code, attest the dynamic loader or shared libraries, prevent
+an arbitrary trusted-parent memory modification, or prove NDU safety or global
+optimality. `tests.test_hia_ndu_optimizer_transport` uses real subprocess
+fixtures to reproduce pathname ABA and FIFO blocking, check sealed execution,
+and exercise overflow, timeout and response refusals. Those fixtures do not
+qualify an upstream NDU implementation; the separate native bridge tests do.
+
 ## Configure all three profiles in one process
 
 ```sh

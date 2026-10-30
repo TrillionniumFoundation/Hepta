@@ -257,6 +257,11 @@ class OwnedAdaptiveRuntime(AdaptiveRuntime):
         construction_started = time.monotonic_ns()
         if type(values) not in {list, tuple} or not 1 <= len(values) <= 65536:
             raise AdaptiveRejected("E_STATE_SIZE: one to 65536 u64 state cells required")
+        # Capture a bounded prefix before validating or allocating. Another
+        # thread may grow a caller-owned list after the first size check.
+        values = tuple(values[:65537])
+        if not 1 <= len(values) <= 65536:
+            raise AdaptiveRejected("E_STATE_SIZE: one to 65536 u64 state cells required")
         values = tuple(_u64(value) for value in values)
         self._state = None
         self._driver = None
@@ -462,6 +467,11 @@ class OwnedAdaptiveRuntime(AdaptiveRuntime):
     def submit_queue(self, items):
         started = time.monotonic_ns()
         if type(items) is not list or not 1 <= len(items) <= _MAX_ITEMS:
+            raise AdaptiveRejected("E_STATE_QUEUE: one to 128 explicit work items required")
+        # The producer does not hold this runtime's lock. Freeze the bounded
+        # outer sequence so later growth cannot add work beyond this contract.
+        items = tuple(items[:_MAX_ITEMS + 1])
+        if not 1 <= len(items) <= _MAX_ITEMS:
             raise AdaptiveRejected("E_STATE_QUEUE: one to 128 explicit work items required")
         with self._lock:
             self._state_open()

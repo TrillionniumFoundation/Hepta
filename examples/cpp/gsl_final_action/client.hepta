@@ -1,0 +1,43 @@
+// Authored integration client, not an automatically translated C++ client.
+// Actual upstream component bodies and the callback body are generated ahead
+// of this text. The C++ exception ABI is modeled here as explicit status exits.
+
+pub fn GslConsume(owner: take GslFinalAction, state: mut GslState, mode: u32) -> u64
+effects {alloc, block, panic, write} {
+    if mode == 1 { GslDestroy(move owner, mut state); return 2001; }
+    if mode == 2 { GslDestroy(move owner, mut state); return 2002; }
+    if mode == 3 {
+        let moved = GslMove(move owner);
+        GslDestroy(move moved, mut state);
+        return 2003;
+    }
+    if mode == 5 {
+        let nested = GslFinallyRvalue(9);
+        GslDestroy(move nested, mut state);
+        GslDestroy(move owner, mut state);
+        return 2005;
+    }
+    GslDestroy(move owner, mut state);
+    return 0;
+}
+
+pub export "C" fn migrated_case(seed: u64, tag: u64, mode: u32, field: u32) -> u64
+effects {alloc, block, panic, write} {
+    let mut state = GslState {trace: seed, calls: 0};
+    let mut status: u64 = 0;
+    if mode == 7 { status = 1007; }
+    else {
+        let owner = GslFinallyRvalue(tag);
+        if mode == 6 { GslDestroy(move owner, mut state); status = 1006; }
+        else {
+            if mode == 4 { GslDestroy(move owner, mut state); status = 1004; }
+            else {
+                let transferred = GslMove(move owner);
+                status = GslConsume(move transferred, mut state, mode);
+            }
+        }
+    }
+    if field == 0 { return state.trace; }
+    if field == 1 { return state.calls; }
+    return status;
+}

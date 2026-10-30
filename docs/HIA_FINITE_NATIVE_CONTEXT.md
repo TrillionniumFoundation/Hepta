@@ -89,11 +89,37 @@ parameter. This supports a separately qualified CRC byte-update kernel without
 adding arbitrary callbacks or expressions to the native driver. The byte
 sequence and polynomial are inputs, not inferred optimization assumptions.
 
+`build_bank(..., allow_timed_xor_fold=True)` explicitly selects the separate
+`hepta.hia.finite-u32-timed-xor-fold-context.v1` profile. It additionally accepts
+`mode="timed_xor_fold"` with the same byte inputs, seed and fixed parameter;
+wire mode 3 performs one pass, with the unchanged work and child limits. Its
+positive integer `kernel_ns` measures the native fold loop, including input
+loads, indirect calls, rolling checksum and loop overhead. A missing, zero,
+backwards or failed clock cannot yield an admitted completed timer. A trap
+retains only the actual completed-request prefix. Old mode 0/1 wire tuples and
+event fields remain unchanged. The timed opt-in and independent `map_repeat`
+opt-in are mutually exclusive; reference keys bind the exact mode, and no
+native execution or safety qualification is cached.
+
 Preparation snapshots the IDs, modes, parameters, seeds and values into
 immutable tuples. Later mutation of the caller's dictionaries or lists cannot
 alter the plan. The independent step oracle derives a final state and a
 wrapping u64 rolling checksum for each request. A trace digest binds all these
 values, the complete bank identity, and the exact selected image inventory.
+
+The trusted host oracle may read the bank's diagnostic state, but cannot
+reenter `prepare_trace`, `run`, `cancel` or `close` on that same bank while a
+preparation is active. The explicit preparation guard matters because the
+bank's reentrant lock alone allows same-thread callbacks. Without this guard,
+a callback could fill the pending-byte or trace quota after the outer check,
+or close descriptors and the reference cache before the outer trace is
+registered. Reentrant mutation rejects before any nested trace registration,
+child launch, token consumption or descriptor release. The oracle may catch
+that rejection and return its ordinary reference value. If it propagates an
+exception, including `BaseException`, the unregistered outer preparation is
+discarded and the guard is released; later valid preparation remains possible.
+This is a host-reference lifecycle boundary, not general foreign-callback,
+asynchronous cancellation or native failure recovery support.
 
 Only images actually referenced by this trace are passed to and loaded by the
 child. The driver uses dense local slots; the report binds each slot back to

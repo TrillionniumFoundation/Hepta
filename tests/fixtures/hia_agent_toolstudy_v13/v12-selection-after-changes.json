@@ -1,0 +1,61 @@
+{
+  "actual_grammar": "char ::= [^\"\\\\\\x7F\\x00-\\x1F] | [\\\\] ([\"\\\\bfnrt] | \"u\" [0-9a-fA-F]{4})\nedits ::= \"[\" space edits-item (\",\" space edits-item){0,15} space \"]\"\nedits-item ::= \"{\" space edits-item-changes-kv \",\" space edits-item-node-kv space \"}\"\nedits-item-changes ::= \"{\" space edits-item-changes-text-kv space \"}\"\nedits-item-changes-kv ::= \"\\\"changes\\\"\" space \":\" space edits-item-changes\nedits-item-changes-text-kv ::= \"\\\"text\\\"\" space \":\" space string\nedits-item-node ::= (\"\\\"api.rs/span/n10\\\"\" | \"\\\"api.rs/span/n11\\\"\" | \"\\\"api.rs/span/n3\\\"\" | \"\\\"api.rs/span/n4\\\"\" | \"\\\"api.rs/span/n5\\\"\" | \"\\\"api.rs/span/n6\\\"\" | \"\\\"api.rs/span/n7\\\"\" | \"\\\"api.rs/span/n8\\\"\" | \"\\\"api.rs/span/n9\\\"\" | \"\\\"client.rs/entrypoint/n4\\\"\" | \"\\\"client.rs/entrypoint/n5\\\"\" | \"\\\"client.rs/entrypoint/n6\\\"\" | \"\\\"client.rs/entrypoint/n7\\\"\")\nedits-item-node-kv ::= \"\\\"node\\\"\" space \":\" space edits-item-node\nedits-kv ::= \"\\\"edits\\\"\" space \":\" space edits\nroot ::= \"{\" space edits-kv space \"}\"\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}\nstring ::= \"\\\"\" char* \"\\\"\"\n",
+  "actual_model_output": "{\"edits\":[{\"changes\":{\"text\":\"(a as u64)+(b as u64)\"}, \"node\":\"api.rs/span/n4\"},{\"changes\":{\"text\":\"api::span(a,b)+c\"}, \"node\":\"client.rs/entrypoint/n5\"}]}",
+  "actual_schema": {
+    "additionalProperties": false,
+    "properties": {
+      "edits": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "changes": {
+              "additionalProperties": false,
+              "properties": {
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "text"
+              ],
+              "type": "object"
+            },
+            "node": {
+              "enum": [
+                "api.rs/span/n10",
+                "api.rs/span/n11",
+                "api.rs/span/n3",
+                "api.rs/span/n4",
+                "api.rs/span/n5",
+                "api.rs/span/n6",
+                "api.rs/span/n7",
+                "api.rs/span/n8",
+                "api.rs/span/n9",
+                "client.rs/entrypoint/n4",
+                "client.rs/entrypoint/n5",
+                "client.rs/entrypoint/n6",
+                "client.rs/entrypoint/n7"
+              ]
+            }
+          },
+          "required": [
+            "node",
+            "changes"
+          ],
+          "type": "object"
+        },
+        "maxItems": 16,
+        "minItems": 1,
+        "type": "array"
+      }
+    },
+    "required": [
+      "edits"
+    ],
+    "type": "object"
+  },
+  "request_sha256": "ad6033bf89ed0288a4de234d126dac261418f88942b8c85664404ea5251f4e69",
+  "response_sha256": "69b91f0a8ec4c9b91cf92e830bab962e41def8c95c539542ec3d99c5b59d1236",
+  "scope": "retained actual V12 grammar exposes changes-before-node; raw full records remain in V12 archive",
+  "source_commit": "44e34b7a9ecd6bf1b3ad6093d21bba10d2a18304"
+}

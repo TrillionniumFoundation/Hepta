@@ -1,5 +1,14 @@
 # Bound Rust v4: exact finite API-domain extension
 
+## Current combined baseline
+
+This convergence joins catalog `192d2cbba7e49bde3b03af73685ecf96f6fb1b05`
+and P0-P7 `953fa62dee5aa563551d57b1374ab95b6d548b45` over their common
+ancestor `2cc9fb3b92a7306d2f5aae316c99e8364be700f9`. Both historical
+lineages remain in Git. See `HIA_RUST_INTEGRATION_REVIEW_20261030.md` for
+the scoped implementation review and exact-lock execution evidence. Historical
+results never qualify the combined source automatically.
+
 ## Integration lineage
 
 This integration ports the reviewed v4 work from PR #394, exact source
@@ -104,6 +113,7 @@ and resource ledgers are not upgraded by the new entrypoint.
 ```sh
 cargo test --locked --offline --manifest-path rust/hia-core-shadow/Cargo.toml
 python -m unittest tests.test_hia_rust_api_v4 -v
+
 ```
 
 The finite corpus executes list/tuple equivalence through primitive v1–v8,

@@ -154,7 +154,7 @@ the overall bundle still has to pass the frontend and requested native gate.
 | --- | --- |
 | Scalar parameters and returns | Fixed-width integers, `size_t`, supported floats and bool, with captured C promotions and explicit conversions. |
 | Automatic locals | Ordinary scalar locals require an initializer or a successful all-path definite-assignment check before an unobservable safe initializer is introduced. Pointer/record-view profiles retain separate initialization rules. Mutable Hepta locals preserve reassignment; shadowed source names receive distinct generated names. |
-| Control flow | `if`/`else`, `while`, `for` with optional initialization and mandatory condition/increment, lazy pure scalar conditional values, the separately admitted conditional-return slice profile, and supported statement-position comma sequencing. |
+| Control flow | `if`/`else`, `while`, `do`/`while`, `for` with optional initialization and mandatory condition/increment, nearest-loop `break`/`continue`, lazy pure scalar conditional values, the separately admitted conditional-return slice profile, and supported statement-position comma sequencing. |
 | Function calls | Direct calls to definitions captured in the project; static functions receive per-unit names. Missing external implementations reject. |
 | Ordinary structs | Complete named records with supported value fields, generated `repr(C)`, field access and complete initialization. |
 | Integer arithmetic | Unsigned add/subtract/multiply use modular operations. Signed overflow is not given a new C-defined meaning; generated checked operations may fail outside C-defined inputs. |
@@ -166,8 +166,8 @@ Unsupported constructs reject rather than generating placeholders. These
 include locals that may be read before assignment, arbitrary local pointers or arrays, pointer
 arithmetic/reassignment, function pointers, variadics, unresolved external
 functions, static/thread-local/global storage, unions, packed/attributed or
-bitfield records, incomplete records, `goto`, `break`, `continue`, `switch`,
-`do` loops, inline assembly, atomics and volatile operations. Signed shifts,
+bitfield records, incomplete records, `goto`, `switch`, inline assembly,
+atomics and volatile operations. Signed shifts,
 implementation-defined signed narrowing, and float-to-integer conversions
 require another model. C++ is outside this profile.
 
@@ -176,6 +176,54 @@ including calls through scalar helper functions that transitively allocate.
 Explicitly initialized locals can sequence such calls. All generated functions
 use a conservative effect upper bound; an allocating project includes `alloc`
 and `block` in that bound. This is not a minimal-effect inference engine.
+
+### Structured loop jumps
+
+Captured `break` and `continue` in `while`, `for` and `do`/`while` bodies are
+lowered to initialized local scalar state and ordinary checked conditionals.
+The original captured Clang AST is retained unchanged; the synthetic lowering
+tree is not presented as compiler evidence. Nested loops own their own jump
+state. The whole suffix after a possible jump is guarded together so a local
+declaration retains its scope for later statements in that suffix. The generated
+structured source is limited to 64 statement levels; excessive jump expansion
+rejects with `E_C_CONTROL_LIMIT` before recursive source/IR consumption.
+
+`continue` in a `for` reaches its increment before the next condition;
+`continue` in a `do` reaches its postcondition. `break` skips the remaining body,
+the `for` increment and the next/post condition, including otherwise trapping
+operations. The generated code uses the existing HIA Core and direct LLVM
+backend. This is a structured lowering, not support for arbitrary jumps.
+
+The scalar definite-assignment check distinguishes normal, break and continue
+exits. A post-test loop cannot justify an initialized result if a break/continue
+path bypasses its assignment. Pre-test loops retain a possible zero-iteration
+path. Nested loop exits do not escape to the enclosing loop. Unknown control
+forms, unsafe reads and the existing arithmetic/foreign pointer limits still
+reject. The scalar profile still rejects mutating loop conditions; record-view
+translation retains its existing sequenced predicate rules. Record-view
+initialization retains its separate, more conservative same-scope rule.
+
+`tests/test_hia_c_loop_jumps.py` compares captured C and concrete `noexcept`
+C++ scalar bodies with both HIA VM and direct LLVM outputs, including skipped
+division traps and nested scopes. It also exercises an authored maintenance
+variant of the frozen upstream ring-buffer fixture; the frozen source,
+provenance and license stay unchanged. These are finite differential and
+resource observations, not a whole-language equivalence proof, a general C++
+claim or a performance result.
+
+`tools/qualify_hia_c_loop_migration.py --output OUT --source-sha FULL_SHA
+--clang clang-20` retains the unchanged imported application and an explicitly
+authored loop-maintenance variant, with upstream pins/licenses, exact patch,
+compilation databases, original Clang ASTs, generated Hepta/Core/LLVM and actual
+C/direct-LLVM commands. C objects use the same semantic flags, source operands
+and working directories as capture, including `-O3`; only the output paths
+change. A finite matrix compares both versions through native C, native HIA
+and the HIA VM, including allocation refusals and cleanup. Actual capture,
+build, validation and temporary-build cleanup wall costs are recorded. The
+entrypoint requires committed source, forbids Rust execution, keeps the
+authored client distinct from migrated bodies, and reports
+`human_effort_measured=false`. It is a capability receipt without performance,
+full-person-time or all-input equivalence claims.
 
 ## Pointer contracts and the C ABI boundary
 

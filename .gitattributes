@@ -7,4 +7,9 @@ experiments/hia_optimizer_eval/rebind/source_changes.diff -whitespace
 
 # Frozen upstream bytes and hashes must survive Windows checkout unchanged.
 tests/fixtures/c_migration/stb_divide/* -text
+tests/fixtures/c_migration/musl_strncmp/** -text
+tests/fixtures/c_migration/musl_strncmp_v1_2_6/** -text
 tests/fixtures/cpp_upgrade/** -text
+
+# Retain exact third-party model/runtime provenance, including original CRLF.
+experiments/hia_agent_toolstudy_v11_20261030/provenance/** -text -whitespace

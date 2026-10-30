@@ -109,4 +109,3 @@ fn early_stop_cannot_hide_an_invalid_unused_function() {
     assert!(execute_owned_bound_v3(&serde_json::to_vec(&source).unwrap(), "recur", &[],
         &serde_json::to_vec(&selected).unwrap()).is_err());
 }
-

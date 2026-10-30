@@ -112,4 +112,3 @@ def lower_loop_jumps(node: dict, serial: int) -> dict | None:
         increment = conditional("alive", [children[3]])
         lowered_children = [children[0], children[1], guarded_predicate, increment, lowered_body]
     return compound([declaration("alive"), {**node, "inner": lowered_children}])
-
