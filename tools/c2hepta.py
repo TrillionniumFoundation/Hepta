@@ -284,8 +284,14 @@ def migrate(source: Path, output: Path, report: Path, clang: str = "clang", veri
             raise UnsupportedC("symlink output/report paths are not accepted")
         if source.suffix != ".c":
             raise UnsupportedC("only C11 .c translation units are supported")
-        if re.search(rb"(?m)^\s*#", original):
-            raise UnsupportedC("preprocessor directives/macros require a future source model")
+        # C11 translation phases permit more than the literal '#' at a
+        # physical line start: %: is a hash digraph, ??= a trigraph, and
+        # escaped newlines can join tokens into an otherwise hidden directive.
+        # Reject these raw spellings anywhere (including comments) rather than
+        # claim a partial lexer can certify macro-free source provenance.
+        if (b"#" in original or b"%:" in original or b"??" in original
+                or re.search(rb"\\[ \t]*[\r\n]", original)):
+            raise UnsupportedC("preprocessor directives, alternate tokens or line splicing require a future source model")
         if not shutil.which(clang):
             raise UnsupportedC("clang executable unavailable")
         version = _run_clang_capture_bounded([clang, "--version"], b"",
