@@ -7,11 +7,127 @@ import os
 from pathlib import Path
 import shutil
 import signal
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
 
 from tools import qualify_hia_stb_divide_update as q
+
+
+class StbUpdateReadbackBindingTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        fixture = q.ROOT / "tests/fixtures/c_migration/stb_divide_vm_readback.json"
+        cls.samples = json.loads(fixture.read_text())["cases"]
+
+    def check(self, sample):
+        q.validate_vm_observation(sample["vm"], **{key: sample[key]
+            for key in ("program_sha256", "function", "arguments", "expected", "code")})
+
+    def test_archived_vm_samples_replay_without_launching_or_evaluating_code(self):
+        self.assertEqual(len(self.samples), 6)
+        with patch.object(q, "execute_program", side_effect=AssertionError("readback must not execute VM")), \
+             patch.object(q, "run_bounded", side_effect=AssertionError("readback must not launch child")):
+            for sample in self.samples:
+                self.check(sample)
+
+    def test_embedded_vm_identities_values_traps_and_cost_refuse_actual_record_mutations(self):
+        common = {
+            "wrong_program": lambda s: s["vm"]["observation"].update(program_sha256="0" * 64),
+            "wrong_input": lambda s: s["vm"]["observation"].update(input_sha256="0" * 64),
+            "wrong_function": lambda s: s["vm"]["observation"].update(function="other"),
+            "wrong_inner_status": lambda s: s["vm"]["observation"].update(status="unobserved"),
+            "wrong_outer_status": lambda s: s["vm"].update(status="unobserved"),
+            "negative_wall": lambda s: s["vm"].update(wall_ns=-1),
+            "boolean_wall": lambda s: s["vm"].update(wall_ns=True),
+            "boolean_step": lambda s: s["vm"]["observation"].update(steps=True),
+            "missing_ledger": lambda s: s["vm"]["observation"].update(resources={}),
+            "boolean_zero_ledger": lambda s: s["vm"]["observation"]["resources"].update(live_bytes=False),
+            "invented_proof": lambda s: s["vm"]["observation"]["claims"].update(backend_refinement_proved=True),
+            "bool_argument": lambda s: s.update(arguments=[True, 1]),
+            "wide_argument": lambda s: s.update(arguments=[q.MAX + 1, 1]),
+        }
+        for sample in self.samples:
+            extra = ({
+                "wrong_stable_code": lambda s: s["vm"]["observation"]["error"].update(code="unrelated"),
+                "wrong_outer_code": lambda s: s["vm"].update(code="unrelated"),
+                "trap_with_values": lambda s: s["vm"]["observation"].update(values=[123]),
+            } if sample["code"] else {
+                "wrong_values": lambda s: s["vm"]["observation"].update(values=[123]),
+                "bool_result": lambda s: s["vm"]["observation"].update(result=True),
+                "bool_values": lambda s: s["vm"]["observation"].update(values=[True]),
+                "return_with_error": lambda s: s["vm"]["observation"].update(error={"code": "overflow"}),
+            })
+            for name, change in {**common, **extra}.items():
+                with self.subTest(sample=sample["name"], mutation=name):
+                    changed = copy.deepcopy(sample)
+                    change(changed)
+                    with self.assertRaises(ValueError):
+                        self.check(changed)
+
+    def repository(self, directory):
+        root = Path(directory)
+        def git(*args):
+            return subprocess.check_output(["git", "-c", "user.name=Hepta test", "-c",
+                "user.email=hepta-test@example.invalid", *args], cwd=root, stderr=subprocess.PIPE)
+        git("init", "-q")
+        for name in q.SOURCE_FILES | {"hepta/semantic.py"}:
+            path = root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("# inert committed source-ledger fixture\n")
+        (root / ".gitignore").write_text("hepta/hidden.py\n")
+        git("add", ".")
+        git("commit", "-qm", "source ledger fixture")
+        return root, git
+
+    def test_hidden_worktree_byte_mode_or_link_drift_cannot_claim_exact_commit(self):
+        for kind in ("assume_unchanged", "skip_worktree", "ignored_extra", "mode", "symlink"):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory(prefix="stb-source-binding-") as directory:
+                root, git = self.repository(directory)
+                original = q.source_state(root)
+                q.validate_commit_source(original, original["head"], root=root, check_worktree=True)
+                path = root / "hepta/semantic.py"
+                if kind in {"assume_unchanged", "skip_worktree", "symlink"}:
+                    git("update-index", "--assume-unchanged" if kind == "assume_unchanged" else "--skip-worktree",
+                        "--", "hepta/semantic.py")
+                    if kind == "symlink":
+                        target = root / "tools/qualify_c_stb_divide.py"
+                        path.unlink()
+                        path.symlink_to(target)
+                    else:
+                        path.write_text("# modified executable bytes hidden from status\n")
+                elif kind == "ignored_extra":
+                    (root / "hepta/hidden.py").write_text("# ignored extra source module\n")
+                else:
+                    git("config", "core.filemode", "false")
+                    path.chmod(0o755)
+                changed = q.source_state(root)
+                self.assertEqual(changed["status"], "")
+                with self.assertRaises(ValueError):
+                    q.validate_commit_source(changed, changed["head"], root=root, check_worktree=True)
+                # A dirty/historical source ledger can be collected for testing;
+                # it is the explicit commit-qualification claim that is refused.
+                self.assertEqual(changed["head"], original["head"])
+
+    def test_commit_ledger_checks_raw_tree_and_complete_source_inventory(self):
+        with tempfile.TemporaryDirectory(prefix="stb-source-ledger-") as directory:
+            root, _git = self.repository(directory)
+            original = q.source_state(root)
+            q.validate_commit_source(original, original["head"], root=root)
+            for field in ("tree", "file_digest", "missing_file", "extra_file"):
+                with self.subTest(field=field):
+                    changed = copy.deepcopy(original)
+                    if field == "tree":
+                        changed["tree"] = "0" * 40
+                    elif field == "file_digest":
+                        changed["files"]["hepta/semantic.py"]["sha256"] = "0" * 64
+                    elif field == "missing_file":
+                        changed["files"].pop("hepta/semantic.py")
+                    else:
+                        changed["files"]["hepta/extra.py"] = changed["files"]["hepta/semantic.py"]
+                    with self.assertRaises(ValueError):
+                        q.validate_commit_source(changed, changed["head"], root=root)
 
 
 class StbUpdateProtocolTests(unittest.TestCase):
@@ -132,6 +248,11 @@ class StbUpdateNativeTests(unittest.TestCase):
             "duplicate_invalid_input": lambda r: r["versions"][0]["invalid_target_inputs"].__setitem__(1, r["versions"][0]["invalid_target_inputs"][0]),
             "invented_ffi_recovery": lambda r: r["claims"].update(foreign_noexcept_recovery_qualified=True),
             "development_promoted": lambda r: r.update(qualified_implementation_commit=True),
+            "wrong_vm_program": lambda r: r["versions"][0]["witnesses"][0]["vm"]["observation"].update(program_sha256="0" * 64),
+            "wrong_vm_function": lambda r: r["versions"][0]["witnesses"][0]["vm"]["observation"].update(function="other"),
+            "wrong_vm_trap": lambda r: r["versions"][0]["invalid_target_inputs"][0]["vm"]["observation"]["error"].update(code="overflow"),
+            "negative_vm_wall": lambda r: r["versions"][0]["witnesses"][0]["vm"].update(wall_ns=-1),
+            "wrong_successor_values": lambda r: r["versions"][1]["witnesses"][0]["vm"]["observation"].update(values=[123]),
         }
         for name, mutate in mutations.items():
             with self.subTest(name=name):
@@ -145,6 +266,26 @@ class StbUpdateNativeTests(unittest.TestCase):
             copied = Path(directory) / "copy"
             shutil.copytree(self.output, copied)
             self.assertTrue(q.validate_qualification(copied)["verified"])
+            for version, label in (("0.93", "common"), ("0.94", "successor-only")):
+                name = version + "/" + label + "-vm.jsonl"
+                path = copied / name
+                original = path.read_bytes()
+                for change in (
+                    lambda row: row["observation"].update(program_sha256="0" * 64),
+                    lambda row: row["observation"].update(function="other"),
+                    lambda row: row["observation"].update(values=[123]),
+                    lambda row: row.update(arguments=[True, 1]),
+                ):
+                    rows = [json.loads(line) for line in original.splitlines()]
+                    change(rows[0])
+                    path.write_text("".join(q.wire(row) + "\n" for row in rows))
+                    changed = copy.deepcopy(self.report)
+                    changed["retained_files"][name] = q.identity(path)
+                    # A new outer digest cannot bypass the frozen input or
+                    # embedded observation's Core/function/result binding.
+                    with self.assertRaises(ValueError):
+                        q.validate_qualification(copied, changed)
+                path.write_bytes(original)
             artifact = copied / "0.94/hia.so"
             data = artifact.read_bytes()
             artifact.write_bytes(bytes([data[0] ^ 1]) + data[1:])

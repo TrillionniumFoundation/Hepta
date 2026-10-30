@@ -18,6 +18,7 @@ import random
 import re
 import shutil
 import signal
+import stat
 import subprocess
 import sys
 import time
@@ -74,6 +75,17 @@ CLAIMS = {
     "arbitrary_c_cpp_maintenance_qualified": False, "foreign_noexcept_recovery_qualified": False,
     "native_allocator_counters_measured": False, "human_effort_measured": False,
     "complete_environment_attested": False, "performance_advantage_measured": False,
+}
+REQUIRED_SOURCE_FILES = {
+    "tools/qualify_hia_stb_divide_update.py", "tools/qualify_c_stb_divide.py",
+    "tools/qualify_hia_musl_strncmp.py", "tests/test_hia_stb_divide_update.py",
+}
+SOURCE_FILES = REQUIRED_SOURCE_FILES | {"tests/fixtures/c_migration/stb_divide_vm_readback.json"}
+SOURCE_PREFIXES = ("hepta/", "tests/fixtures/c_migration/stb_divide_v0_93/",
+                   "tests/fixtures/c_migration/stb_divide/")
+VM_RESOURCE_FIELDS = {
+    "allocations", "frees", "allocation_attempts", "owners_created", "owners_dropped",
+    "live_owners", "live_bytes", "peak_bytes", "loans_started", "loans_ended", "live_local_loans",
 }
 ORIGINAL_PROBE = r'''#include <stdio.h>
 #include <stdlib.h>
@@ -175,15 +187,86 @@ def cases():
     return [{"case": index, "a": a, "b": b, "expected": oracle(a, b)} for index, (a, b) in enumerate(pairs)]
 
 
-def source_state():
+def _source_path(name):
+    return name in SOURCE_FILES or name.startswith(SOURCE_PREFIXES)
+
+
+def source_state(root=None):
+    root = ROOT if root is None else Path(root)
     def git(*args):
-        return subprocess.check_output(["git", *args], cwd=ROOT, text=True).strip()
-    paths = [Path(__file__), ROOT / "tools/qualify_c_stb_divide.py", ROOT / "tools/qualify_hia_musl_strncmp.py",
-             ROOT / "tests/test_hia_stb_divide_update.py", *sorted((ROOT / "hepta").glob("*.py")),
-             *sorted(BASELINE.rglob("*")), *sorted(SUCCESSOR.rglob("*"))]
-    return {"head": git("rev-parse", "HEAD"), "tree": git("rev-parse", "HEAD^{tree}"),
+        return subprocess.check_output(["git", "--no-replace-objects", *args], cwd=root, text=True).strip()
+    paths = [*(root / name for name in sorted(SOURCE_FILES)),
+             *(p for prefix in SOURCE_PREFIXES for p in sorted((root / prefix).rglob("*"))
+               if "__pycache__" not in p.relative_to(root).parts)]
+    head = git("rev-parse", "HEAD")
+    return {"head": head, "tree": git("rev-parse", head + "^{tree}"),
             "status": git("status", "--porcelain", "--untracked-files=all"),
-            "files": {str(p.relative_to(ROOT)): identity(p) for p in paths if p.is_file()}}
+            "files": {str(p.relative_to(root)): identity(p) for p in paths if p.is_file()}}
+
+
+def validate_commit_source(snapshot, expected_head, *, root=None, check_worktree=False):
+    """Bind the source ledger to raw Git objects, not index cleanliness flags.
+
+    Historical readback uses the named commit's retained objects and does not
+    require the present checkout to be that commit. Development snapshots are
+    not passed here and may remain dirty. No archive or source code is executed.
+    """
+    root = ROOT if root is None else Path(root)
+    require(type(expected_head) is str and re.fullmatch(r"[0-9a-f]{40}", expected_head)
+            and snapshot["head"] == expected_head and snapshot["status"] == "", "exact clean source binding differs")
+    def git(*args, input=None):
+        try:
+            return subprocess.check_output(["git", "--no-replace-objects", *args], cwd=root,
+                                           input=input, stderr=subprocess.PIPE)
+        except subprocess.CalledProcessError as error:
+            raise ValueError("E_HIA_STB_UPDATE: retained source commit objects unavailable") from error
+    tree = git("rev-parse", expected_head + "^{tree}").decode().strip()
+    require(snapshot["tree"] == tree, "recorded source tree differs from raw commit")
+    entries = {}
+    for record in git("ls-tree", "-r", "-z", expected_head).split(b"\0"):
+        if not record:
+            continue
+        attributes, raw_name = record.split(b"\t", 1)
+        name = raw_name.decode("utf-8")
+        if not _source_path(name):
+            continue
+        require(not Path(name).is_absolute() and ".." not in Path(name).parts, "source commit path escapes closure")
+        mode, kind, blob = attributes.decode().split()
+        require(kind == "blob" and mode in {"100644", "100755"}, "source commit contains nonregular input")
+        entries[name] = (mode, blob)
+    require(REQUIRED_SOURCE_FILES <= set(entries) and type(snapshot["files"]) is dict
+            and set(snapshot["files"]) == set(entries), "source closure inventory differs from raw commit")
+    blobs = sorted({blob for _, blob in entries.values()})
+    raw = git("cat-file", "--batch", input=("\n".join(blobs) + "\n").encode())
+    identities = {}
+    offset = 0
+    for expected_blob in blobs:
+        end = raw.find(b"\n", offset)
+        require(end >= offset, "source object batch is incomplete")
+        header = raw[offset:end].decode().split()
+        require(len(header) == 3 and header[:2] == [expected_blob, "blob"], "source object batch identity differs")
+        size = int(header[2]); offset = end + 1
+        payload = raw[offset:offset + size]; offset += size
+        require(len(payload) == size and raw[offset:offset + 1] == b"\n"
+                and hashlib.sha1(b"blob " + str(size).encode() + b"\0" + payload).hexdigest() == expected_blob,
+                "raw source Git blob differs")
+        offset += 1
+        identities[expected_blob] = {"bytes": size, "sha256": hashlib.sha256(payload).hexdigest()}
+    require(offset == len(raw), "unexpected source object batch suffix")
+    expected_files = {name: identities[blob] for name, (_, blob) in entries.items()}
+    require(wire(snapshot["files"]) == wire(expected_files), "source ledger bytes differ from raw commit")
+    if check_worktree:
+        for name, (mode, _) in entries.items():
+            path = root / name
+            require(not any((root / Path(*Path(name).parts[:n])).is_symlink()
+                            for n in range(1, len(Path(name).parts) + 1)), "source path contains symlink")
+            try:
+                observed = path.lstat()
+            except FileNotFoundError as error:
+                raise ValueError("E_HIA_STB_UPDATE: missing committed source input") from error
+            require(stat.S_ISREG(observed.st_mode) and bool(observed.st_mode & 0o111) == (mode == "100755")
+                    and identity(path) == expected_files[name], "working source bytes or executable mode differ from raw commit")
+    return {"raw_tree": tree, "files_bound": len(entries)}
 
 
 def tools_state(clang, gcc):
@@ -251,6 +334,47 @@ def _vm(program, function, args):
     row["wall_ns"] = time.monotonic_ns() - started
     require(not any(row["observation"]["resources"].values()), "scalar component used resources")
     return row
+
+
+def validate_vm_observation(vm, *, program_sha256, function, arguments, expected=None, code=None):
+    """Check the existing VM wire and its fixed scalar invocation, without rerunning it.
+
+    The VM report has no arguments field. The containing matrix/witness row is
+    therefore checked against the frozen arguments before this function is
+    called; this is retained-record consistency, not a producer-authenticity
+    proof. Trap messages remain human diagnostics; stable codes are bound.
+    """
+    require(type(program_sha256) is str and re.fullmatch(r"[0-9a-f]{64}", program_sha256)
+            and function in FUNCTIONS and type(arguments) is list and len(arguments) == 2
+            and all(type(value) is int and MIN <= value <= MAX for value in arguments),
+            "VM invocation identity or exact i32 arguments differ")
+    status = "trapped" if code is not None else "returned"
+    require(type(vm) is dict and set(vm) == {"status", "observation", "wall_ns"} | ({"code"} if code else set())
+            and vm["status"] == status and type(vm["wall_ns"]) is int and vm["wall_ns"] >= 0,
+            "VM envelope status or measured cost differs")
+    observation = vm["observation"]
+    fixed = {"schema": "hepta.hia.program-execution.v1", "status": status,
+             "program_sha256": program_sha256, "input_sha256": program_sha256, "function": function,
+             "word_bits": 64, "source_used": False,
+             "claims": {"finite_core_execution": True, "whole_language_soundness_proved": False,
+                        "backend_refinement_proved": False}}
+    require(type(observation) is dict
+            and set(observation) == set(fixed) | {"steps", "resources"} | ({"error"} if code else {"values", "result"})
+            and wire({key: observation[key] for key in fixed}) == wire(fixed),
+            "embedded VM Core/function/status/claims identity differs")
+    require(type(observation["steps"]) is int and 1 <= observation["steps"] <= 1_000_000
+            and wire(observation["resources"]) == wire({field: 0 for field in VM_RESOURCE_FIELDS}),
+            "embedded VM ticks or exact scalar resource ledger differs")
+    if code is not None:
+        error = observation["error"]
+        require(code in {"overflow", "division_by_zero"} and vm["code"] == code
+                and type(error) is dict and set(error) == {"code", "message"}
+                and error["code"] == code and type(error["message"]) is str,
+                "embedded VM stable trap code differs")
+    else:
+        require(type(expected) is int and MIN <= expected <= MAX
+                and type(observation["result"]) is int and observation["result"] == expected
+                and wire(observation["values"]) == wire([expected]), "embedded VM exact i32 result/values differ")
 
 
 def _prepare_version(version, output, report, clang, gcc):
@@ -345,12 +469,15 @@ def qualify(output, *, clang, gcc, source_sha=None):
               "development_only": source_sha is None, "claims": json.loads(wire(CLAIMS)),
               "human_effort": None, "agent_tokens": None, "historical_results_relabelled": False}
     resolved = None
+    committed_source_checked = False
     try:
         report["source_before"] = source_state()
         require(platform.system() == "Linux" and platform.machine().lower() in {"x86_64", "amd64"}, "actual Linux x86-64 required")
         if source_sha is not None:
             require(re.fullmatch(r"[0-9a-f]{40}", source_sha) and report["source_before"]["head"] == source_sha
                     and report["source_before"]["status"] == "", "exact clean implementation commit required")
+            validate_commit_source(report["source_before"], source_sha, check_worktree=True)
+            committed_source_checked = True
         report["upstream_pins"] = verify_inputs()
         clang, gcc = (str(Path(shutil.which(value) or value).resolve(strict=True)) for value in (clang, gcc))
         resolved = (clang, gcc)
@@ -444,6 +571,8 @@ def qualify(output, *, clang, gcc, source_sha=None):
         try:
             report["source_after"] = source_state()
             require(report.get("source_before") == report["source_after"], "source changed during qualification")
+            if committed_source_checked:
+                validate_commit_source(report["source_after"], source_sha, check_worktree=True)
             if resolved:
                 report["tools_after"] = tools_state(*resolved)
                 require(report.get("tools_before") == report["tools_after"], "observed tools/loader inputs changed")
@@ -477,7 +606,7 @@ def validate_qualification(output, report=None):
     require(report["qualified_implementation_commit"] is (report["expected_source_head"] is not None)
             and report["development_only"] is (report["expected_source_head"] is None), "development run promoted")
     if report["qualified_implementation_commit"]:
-        require(report["source_before"]["head"] == report["expected_source_head"] and report["source_before"]["status"] == "", "clean source binding differs")
+        validate_commit_source(report["source_before"], report["expected_source_head"])
     retained = report["retained_files"]
     require(not any(p.is_symlink() for p in output.rglob("*")), "symlink is not retained evidence")
     require(type(retained) is dict and set(retained) == {str(p.relative_to(output)) for p in output.rglob("*")
@@ -516,15 +645,19 @@ def validate_qualification(output, report=None):
             " ".join(map(str, [case["a"], case["b"], *case["expected"]])) + "\n" for case in planned)
             and replay_rows(output / row["observations"], planned) == len(planned), "native input or observation rows differ")
 
-    def vm_matrix(path, planned, count):
+    def vm_matrix(path, planned, count, program_sha256):
         rows = [json.loads(line) for line in path.read_text().splitlines()]
         expected_vm = [(case, function, value) for case in planned for function, value in zip(FUNCTIONS, case["expected"])]
         require(type(count) is int and len(rows) == count == len(expected_vm), "VM matrix denominator differs")
         for observed, (case, function, value) in zip(rows, expected_vm):
-            require(observed["case"] == case["case"] and observed["function"] == function
-                    and observed["arguments"] == [case["a"], case["b"]] and observed["expected"] == value
-                    and observed["status"] == "returned" and observed["observation"]["result"] == value
-                    and not any(observed["observation"]["resources"].values()), "retained VM observation differs")
+            planned_fields = {"case": case["case"], "function": function,
+                              "arguments": [case["a"], case["b"]], "expected": value}
+            require(type(observed) is dict
+                    and set(observed) == set(planned_fields) | {"status", "observation", "wall_ns"}
+                    and wire({key: observed[key] for key in planned_fields}) == wire(planned_fields),
+                    "retained VM input row differs")
+            validate_vm_observation({key: observed[key] for key in ("status", "observation", "wall_ns")},
+                program_sha256=program_sha256, function=function, arguments=planned_fields["arguments"], expected=value)
 
     require([row["version"] for row in report["versions"]] == PROTOCOL["versions"], "version inventory differs")
     for row in report["versions"]:
@@ -534,6 +667,10 @@ def validate_qualification(output, report=None):
         require(active_bodies(json.loads((work / "raw-clang-ast.json").read_text())) == row["active_body_sha256"], "captured active bodies differ")
         program = verify_program((work / "program.hia.json").read_bytes())
         require(program.sha256 == row["core_sha256"] and identity(work / "hia.so") == row["hia_artifact"], "Core/native identity differs")
+        entries = {fn["name"]: fn for fn in program.as_dict()["functions"]}
+        require(set(FUNCTIONS) <= program.scalar_entrypoints
+                and all([p["type"] for p in entries[fn]["params"]] == ["i32", "i32"]
+                        and entries[fn]["returns"] == ["i32"] for fn in FUNCTIONS), "retained VM public scalar signature differs")
         build = json.loads((work / "native-build.json").read_text())
         migration = json.loads((work / "migration.json").read_text())
         require(build["ok"] is True and build["core_sha256"] == program.sha256
@@ -545,21 +682,25 @@ def validate_qualification(output, report=None):
                 and migration["coverage"]["status_counts"] == {"function_converted": 6, "prototype_resolved": 6}
                 and {fn["name"] for fn in migration["functions"]} == set(FUNCTIONS), "retained component migration differs")
         native_matrix(row["common_native"], version, "common", common)
-        vm_matrix(work / "common-vm.jsonl", common, row["common_vm_function_observations"])
+        vm_matrix(work / "common-vm.jsonl", common, row["common_vm_function_observations"], program.sha256)
         if version == "0.94":
             added = [{"case": i, "a": w["arguments"][0], "b": w["arguments"][1], "expected": oracle(*w["arguments"])}
                      for i, w in enumerate(WITNESSES)]
             native_matrix(row["successor_only_native"], version, "successor-only", added)
-            vm_matrix(work / "successor-only-vm.jsonl", added, row["successor_only_vm_function_observations"])
+            vm_matrix(work / "successor-only-vm.jsonl", added, row["successor_only_vm_function_observations"], program.sha256)
         require(len(row["witnesses"]) == len(WITNESSES) and len(row["invalid_target_inputs"]) == 12, "failure denominator differs")
         for observed, planned in zip(row["witnesses"], WITNESSES):
-            require({k: observed[k] for k in planned} == planned and observed["common_domain_equivalence_claimed"] is False, "old undefined input promoted")
+            require(wire({k: observed[k] for k in planned}) == wire(planned)
+                    and observed["common_domain_equivalence_claimed"] is False, "old undefined input promoted")
             process = processes[observed["original_c_process"]]
             require(process["argv"] == list(map(str, [original_root / version / "original-probe",
                 FUNCTIONS.index(planned["function"]), *planned["arguments"]])), "original probe command differs")
             expected = oracle(*planned["arguments"])[FUNCTIONS.index(planned["function"])]
-            require(observed["expected_successor_value"] == expected
-                    and not any(observed["vm"]["observation"]["resources"].values()), "successor oracle/resource observation differs")
+            require(type(observed["expected_successor_value"]) is int
+                    and observed["expected_successor_value"] == expected, "successor oracle observation differs")
+            validate_vm_observation(observed["vm"], program_sha256=program.sha256,
+                function=planned["function"], arguments=planned["arguments"], expected=expected,
+                code="overflow" if version == "0.93" else None)
             if version == "0.93":
                 trapped = processes[observed["hia_native_process"]]
                 require(observed["status"] == "original_c_undefined_hia_trapped" and process["returncode"] != 0
@@ -578,12 +719,14 @@ def validate_qualification(output, report=None):
                    for args, code in (([7, 0], "division_by_zero"), ([MIN, -1], "overflow"))]
         for observed, (index, function, args, code) in zip(row["invalid_target_inputs"], invalid):
             process = processes[observed["process"]]
-            require(observed["function"] == function and observed["arguments"] == args
+            require(observed["function"] == function and wire(observed["arguments"]) == wire(args)
                     and observed["original_c_called"] is False and observed["vm"]["status"] == "trapped"
                     and observed["vm"]["code"] == code and not any(observed["vm"]["observation"]["resources"].values())
                     and process["argv"] == list(map(str, [original_root / version / "harness", original_root / version / "hia.so", "--trap", index, *args]))
                     and process["returncode"] == -signal.SIGABRT and process["stdout"] == "ENTERED_SAFE_TARGET\n",
                     "invalid original C exposure or missing target trap")
+            validate_vm_observation(observed["vm"], program_sha256=program.sha256,
+                function=function, arguments=args, code=code)
     old, new = report["versions"]
     require(report["changed_active_functions"] == PROTOCOL["active_changed_functions"]
             == sorted(fn for fn in FUNCTIONS if old["active_body_sha256"][fn] != new["active_body_sha256"][fn])

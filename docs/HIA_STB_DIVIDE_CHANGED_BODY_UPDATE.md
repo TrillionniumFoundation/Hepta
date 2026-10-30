@@ -114,7 +114,16 @@ python tools/qualify_hia_stb_divide_update.py \
 The callable `qualify(..., source_sha=None)` is reserved for focused
 development tests and reports `development_only: true` and
 `qualified_implementation_commit: false`. A wrong or dirty explicit
-commit fails before compiler launches. Current source identities, fixture
+commit fails before compiler launches. Index cleanliness is not sufficient:
+the complete recorded source closure (all non-cache Hepta files, the three
+collector/helper modules, the qualification test module and its regression
+sample file when present in that commit, and both original
+fixture directories) is compared with the named commit's raw Git tree and
+blob bytes, with replacement objects disabled. Missing or extra source
+members, symlinks and executable-mode drift refuse a qualified run, including
+when index flags hide the change from `git status`. Development snapshots
+remain collectable without claiming an exact committed implementation.
+Current source identities, fixture
 identities, compiler executable identities, Python identity, and observed
 configured frontend loader inputs are checked before and after execution.
 The captured C projects are also rechecked. This is an observed input
@@ -140,11 +149,21 @@ The report gives those unmeasured quantities no numerical substitutes.
 rehashes every retained file, refuses symlinks and changed inventories,
 checks the pinned original headers, rebuilds the AST body projection,
 verifies the retained Core, and checks process/command bindings and all
-finite output rows. It executes no retained binary or generated source.
+finite output rows. Every common, successor-only, source-bug witness and
+invalid-input VM record must agree on canonical Core/input SHA, selected
+function, frozen exact `i32` arguments, inner/outer status, exact typed
+result/values or stable trap code, fixed claims, complete zero resource ledger,
+positive bounded ticks and a nonnegative integer elapsed time. The existing
+VM observation format has no arguments field, so arguments are bound through
+the containing fixed input/witness row; this is not an attestation against a
+hostile producer. Human trap messages do not replace the stable trap code.
+It executes no retained binary or generated source.
 It also works after the evidence directory is relocated: recorded absolute
 command paths are checked against the original recorded execution root,
-while retained bytes are read from the new root. It depends on the current
-repository's verifier and fixed fixtures; it is not a cryptographic proof
+while retained bytes are read from the new root. A claimed implementation
+commit is also checked against its existing raw Git tree/blobs, even if the
+current checkout is a later commit. It depends on the current repository's
+verifier, fixed fixtures and retained Git objects; it is not a cryptographic proof
 that a supplied self-authored receipt records a real execution.
 A failed collection readback marks the terminal qualification as failed.
 
