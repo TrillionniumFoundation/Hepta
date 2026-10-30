@@ -62,6 +62,25 @@ class HsirSafety(unittest.TestCase):
         self.assertIn('export "C" fn safe_add(', emit_function(valid))
 
 
+    def test_ir_rejects_overlong_decimal_literals_as_validation_errors(self):
+        # Direct consumers can supply an IR without passing through Clang.
+        # On Python 3.11+ int('9' * 5000) raises an unhandled ValueError
+        # instead of the promised IRValidationError rejection.
+        for digits in ("9" * 5000, "0" * 5000):
+            with self.subTest(first=digits[0]):
+                function = Function("f", (), "i32",
+                                    (Stmt("return", Expr("literal", "i32", digits)),))
+                with self.assertRaises(IRValidationError):
+                    check_function(function)
+
+        for spelling, ty in (("2147483647", "i32"), ("4294967295", "u32")):
+            with self.subTest(valid=spelling):
+                function = Function("f", (), ty,
+                                    (Stmt("return", Expr("literal", ty, spelling)),))
+                self.assertEqual(check_function(function), frozenset())
+
+
+
 class C2HeptaImport(unittest.TestCase):
     def setUp(self):
         self.assertTrue(shutil.which("clang"), "Clang is required for this migration test")

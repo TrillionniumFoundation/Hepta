@@ -67,7 +67,12 @@ def _expr(expr: Expr, names: dict[str, str]) -> set[str]:
             raise IRValidationError("variable not bound with the stated type")
         return set()
     if expr.kind == "literal":
-        if expr.args or expr.ty not in NUMERIC or not expr.value.isascii() or not expr.value.isdecimal():
+        # Scalar values need at most ten decimal digits. Reject overlong or
+        # malformed direct-IR input *before* Python's potentially expensive
+        # decimal-to-int conversion (which can raise a raw ValueError).
+        if (expr.args or expr.ty not in NUMERIC or not isinstance(expr.value, str)
+                or len(expr.value) > 10 or not expr.value.isascii()
+                or not expr.value.isdecimal()):
             raise IRValidationError("invalid integer literal")
         number = int(expr.value)
         high = 2**31 - 1 if expr.ty == "i32" else 2**32 - 1
