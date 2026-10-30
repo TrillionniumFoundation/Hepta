@@ -30,10 +30,11 @@ def instrumented_source(candidate):
 class RustVecAuditControls(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        from tools.qualify_hia_agent_public_tools import TASK_MODULE, protocol, task_for
-        cls.rustc = protocol()["rustc"]
-        if not Path(cls.rustc).is_file():
-            raise unittest.SkipTest("native audit controls require the registered Rust compiler")
+        from tools.qualify_hia_agent_public_tools import TASK_MODULE, task_for
+        from tests.test_hia_agent_public_tools import native_test_tool
+        cls.rustc = native_test_tool("rustc")
+        if cls.rustc is None:
+            raise unittest.SkipTest("native audit controls require an actual Rust compiler")
         cls.task = task_for("buffer_lane")
         cls.reference = TASK_MODULE.reference("buffer_lane", "rust")
         cls.pairs = TASK_MODULE.cases(cls.task, hidden=True)

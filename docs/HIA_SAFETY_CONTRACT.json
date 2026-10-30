@@ -987,6 +987,1107 @@
         "schema": "hepta.hia.composite.v4"
       }
     ],
+    "instruction_catalog": {
+      "admission_authority": "hepta.hia_program.verify_program",
+      "backend_scope": "VM and direct LLVM have separate supported-target/entry-ABI checks; catalog inclusion grants no native entry ABI",
+      "catalog_sha256": "dd6fc836b5e71db165dcf81bfcdd233fda25dc6888f720dcc472dcdcf986ee54",
+      "conditional_effects": {
+        "call": "all callee effects",
+        "int.cast": "checked mode requires trap"
+      },
+      "core_schema": "hepta.hia.program.v8",
+      "function_contract": {
+        "return_loans": "explicit formal-name/null per return; parameter origin checked"
+      },
+      "generated_checker_scope": "opcode/version, operand/result signatures, attributes, effects, named resource guards",
+      "instructions": [
+        {
+          "attributes": [
+            "value"
+          ],
+          "effects": [],
+          "guards": [],
+          "name": "const",
+          "operands": [],
+          "resource_transition": "none",
+          "results": [
+            "declared:scalar"
+          ],
+          "semantic_rule": "exact_scalar_literal",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "trap"
+          ],
+          "guards": [],
+          "name": "int.add.checked",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "=0"
+          ],
+          "semantic_rule": "integer_add_checked",
+          "since": 1,
+          "traps": [
+            "overflow"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "int.add.wrap",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "=0"
+          ],
+          "semantic_rule": "integer_add_wrap",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "trap"
+          ],
+          "guards": [],
+          "name": "int.sub.checked",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "=0"
+          ],
+          "semantic_rule": "integer_sub_checked",
+          "since": 1,
+          "traps": [
+            "overflow"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "int.sub.wrap",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "=0"
+          ],
+          "semantic_rule": "integer_sub_wrap",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "trap"
+          ],
+          "guards": [],
+          "name": "int.mul.checked",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "=0"
+          ],
+          "semantic_rule": "integer_mul_checked",
+          "since": 1,
+          "traps": [
+            "overflow"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "int.mul.wrap",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "=0"
+          ],
+          "semantic_rule": "integer_mul_wrap",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "trap"
+          ],
+          "guards": [],
+          "name": "int.div.checked",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "=0"
+          ],
+          "semantic_rule": "integer_div_checked",
+          "since": 1,
+          "traps": [
+            "division_by_zero",
+            "overflow"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "trap"
+          ],
+          "guards": [],
+          "name": "int.rem.checked",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "=0"
+          ],
+          "semantic_rule": "integer_rem_checked",
+          "since": 1,
+          "traps": [
+            "division_by_zero",
+            "overflow"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "trap"
+          ],
+          "guards": [],
+          "name": "int.shl.checked",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "=0"
+          ],
+          "semantic_rule": "integer_shl_checked",
+          "since": 1,
+          "traps": [
+            "overflow"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "trap"
+          ],
+          "guards": [],
+          "name": "int.shr.checked",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "=0"
+          ],
+          "semantic_rule": "integer_shr_checked",
+          "since": 1,
+          "traps": [
+            "overflow"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "bit.and",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "=0"
+          ],
+          "semantic_rule": "bit_and",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "bit.or",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "=0"
+          ],
+          "semantic_rule": "bit_or",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "bit.xor",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "=0"
+          ],
+          "semantic_rule": "bit_xor",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "bit.not",
+          "operands": [
+            "integer"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "=0"
+          ],
+          "semantic_rule": "bit_not",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "trap"
+          ],
+          "guards": [],
+          "name": "int.neg.checked",
+          "operands": [
+            "integer"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "=0"
+          ],
+          "semantic_rule": "integer_neg_checked",
+          "since": 1,
+          "traps": [
+            "overflow"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "compare.eq",
+          "operands": [
+            "equality",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "bool"
+          ],
+          "semantic_rule": "compare_eq",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "compare.ne",
+          "operands": [
+            "equality",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "bool"
+          ],
+          "semantic_rule": "compare_ne",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "compare.lt",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "bool"
+          ],
+          "semantic_rule": "compare_lt",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "compare.le",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "bool"
+          ],
+          "semantic_rule": "compare_le",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "compare.gt",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "bool"
+          ],
+          "semantic_rule": "compare_gt",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "compare.ge",
+          "operands": [
+            "integer",
+            "=0"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "bool"
+          ],
+          "semantic_rule": "compare_ge",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "bool.not",
+          "operands": [
+            "bool"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "bool"
+          ],
+          "semantic_rule": "bool_not",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "bool.and",
+          "operands": [
+            "bool",
+            "bool"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "bool"
+          ],
+          "semantic_rule": "bool_and",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "bool.or",
+          "operands": [
+            "bool",
+            "bool"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "bool"
+          ],
+          "semantic_rule": "bool_or",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [
+            "mode"
+          ],
+          "effects": [],
+          "guards": [],
+          "name": "int.cast",
+          "operands": [
+            "integer"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "declared:integer"
+          ],
+          "semantic_rule": "integer_cast_mode",
+          "since": 1,
+          "traps": [
+            "overflow_when_checked"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "select",
+          "operands": [
+            "bool",
+            "scalar",
+            "=1"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "=1"
+          ],
+          "semantic_rule": "scalar_select",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "alloc",
+            "trap"
+          ],
+          "guards": [],
+          "name": "buffer.new",
+          "operands": [
+            "usize"
+          ],
+          "resource_transition": "allocate",
+          "results": [
+            "buffer"
+          ],
+          "semantic_rule": "zeroed_byte_allocation",
+          "since": 1,
+          "traps": [
+            "allocation"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "alloc"
+          ],
+          "guards": [],
+          "name": "buffer.try_new",
+          "operands": [
+            "usize"
+          ],
+          "resource_transition": "allocate",
+          "results": [
+            "buffer",
+            "bool"
+          ],
+          "semantic_rule": "zeroed_byte_allocation_or_empty_owner_false",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "buffer.len",
+          "operands": [
+            "bytes"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "usize"
+          ],
+          "semantic_rule": "byte_extent",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "chain.empty",
+          "operands": [],
+          "resource_transition": "empty_chain",
+          "results": [
+            "chain"
+          ],
+          "semantic_rule": "empty_chain",
+          "since": 7,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "alloc"
+          ],
+          "guards": [
+            "free:0",
+            "free:1"
+          ],
+          "name": "chain.try_push",
+          "operands": [
+            "chain",
+            "buffer"
+          ],
+          "resource_transition": "chain_transfer",
+          "results": [
+            "chain",
+            "buffer",
+            "bool"
+          ],
+          "semantic_rule": "push_or_return_owned_inputs",
+          "since": 7,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "alloc"
+          ],
+          "guards": [
+            "free:0"
+          ],
+          "name": "chain.pop",
+          "operands": [
+            "chain"
+          ],
+          "resource_transition": "chain_transfer",
+          "results": [
+            "chain",
+            "buffer",
+            "bool"
+          ],
+          "semantic_rule": "pop_or_empty_payload_false",
+          "since": 7,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "chain.is_empty",
+          "operands": [
+            "chain"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "bool"
+          ],
+          "semantic_rule": "chain_empty_test",
+          "since": 7,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "read",
+            "trap"
+          ],
+          "guards": [],
+          "name": "chain.head_read",
+          "operands": [
+            "chain"
+          ],
+          "resource_transition": "chain_borrow",
+          "results": [
+            "readbuf"
+          ],
+          "semantic_rule": "shared_head_loan",
+          "since": 7,
+          "traps": [
+            "bounds"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "read",
+            "trap"
+          ],
+          "guards": [],
+          "name": "chain.head_mut",
+          "operands": [
+            "chain"
+          ],
+          "resource_transition": "chain_borrow",
+          "results": [
+            "mutbuf"
+          ],
+          "semantic_rule": "exclusive_head_loan",
+          "since": 7,
+          "traps": [
+            "bounds"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "borrow.read",
+          "operands": [
+            "bytes"
+          ],
+          "resource_transition": "borrow",
+          "results": [
+            "readbuf"
+          ],
+          "semantic_rule": "shared_loan",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [],
+          "name": "borrow.mut",
+          "operands": [
+            "mutable_source"
+          ],
+          "resource_transition": "borrow",
+          "results": [
+            "mutbuf"
+          ],
+          "semantic_rule": "exclusive_loan",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [
+            "end_local_loan:0"
+          ],
+          "name": "loan.end",
+          "operands": [
+            "view"
+          ],
+          "resource_transition": "end_loan",
+          "results": [],
+          "semantic_rule": "end_local_childless_loan",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [],
+          "guards": [
+            "free:0"
+          ],
+          "name": "owner.move",
+          "operands": [
+            "owner"
+          ],
+          "resource_transition": "move_owner",
+          "results": [
+            "=0"
+          ],
+          "semantic_rule": "move_unborrowed_owner",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "alloc"
+          ],
+          "guards": [
+            "free:0"
+          ],
+          "name": "owner.drop",
+          "operands": [
+            "owner"
+          ],
+          "resource_transition": "drop_owner",
+          "results": [],
+          "semantic_rule": "release_unborrowed_owner",
+          "since": 1,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "read",
+            "trap"
+          ],
+          "guards": [
+            "read:0"
+          ],
+          "name": "buffer.load",
+          "operands": [
+            "view",
+            "usize"
+          ],
+          "resource_transition": "none",
+          "results": [
+            "u8"
+          ],
+          "semantic_rule": "checked_byte_load",
+          "since": 1,
+          "traps": [
+            "bounds"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "write",
+            "trap"
+          ],
+          "guards": [
+            "write:0"
+          ],
+          "name": "buffer.store",
+          "operands": [
+            "mutbuf",
+            "usize",
+            "u8"
+          ],
+          "resource_transition": "none",
+          "results": [],
+          "semantic_rule": "checked_byte_store",
+          "since": 1,
+          "traps": [
+            "bounds"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "write"
+          ],
+          "guards": [
+            "write:0"
+          ],
+          "name": "buffer.fill",
+          "operands": [
+            "mutbuf",
+            "u8"
+          ],
+          "resource_transition": "none",
+          "results": [],
+          "semantic_rule": "fill_entire_view",
+          "since": 2,
+          "traps": []
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "read",
+            "write",
+            "trap"
+          ],
+          "guards": [
+            "write:0",
+            "read:1",
+            "distinct:0:1"
+          ],
+          "name": "buffer.copy",
+          "operands": [
+            "mutbuf",
+            "readbuf",
+            "usize"
+          ],
+          "resource_transition": "none",
+          "results": [],
+          "semantic_rule": "checked_disjoint_copy",
+          "since": 2,
+          "traps": [
+            "bounds"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "read",
+            "write",
+            "trap"
+          ],
+          "guards": [
+            "write:0"
+          ],
+          "name": "buffer.move_within",
+          "operands": [
+            "mutbuf",
+            "usize",
+            "usize",
+            "usize"
+          ],
+          "resource_transition": "none",
+          "results": [],
+          "semantic_rule": "checked_overlap_memmove",
+          "since": 3,
+          "traps": [
+            "bounds"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "read",
+            "write",
+            "trap"
+          ],
+          "guards": [
+            "write:0"
+          ],
+          "name": "buffer.swap",
+          "operands": [
+            "mutbuf",
+            "usize",
+            "usize"
+          ],
+          "resource_transition": "none",
+          "results": [],
+          "semantic_rule": "check_both_indices_before_swap",
+          "since": 4,
+          "traps": [
+            "bounds"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "read",
+            "write",
+            "trap"
+          ],
+          "guards": [
+            "write:0",
+            "read:1",
+            "distinct:0:1"
+          ],
+          "name": "buffer.copy_range",
+          "operands": [
+            "mutbuf",
+            "readbuf",
+            "usize",
+            "usize",
+            "usize"
+          ],
+          "resource_transition": "none",
+          "results": [],
+          "semantic_rule": "checked_disjoint_offset_copy",
+          "since": 5,
+          "traps": [
+            "bounds"
+          ]
+        },
+        {
+          "attributes": [],
+          "effects": [
+            "write",
+            "trap"
+          ],
+          "guards": [
+            "write:0"
+          ],
+          "name": "buffer.fill_range",
+          "operands": [
+            "mutbuf",
+            "usize",
+            "usize",
+            "u8"
+          ],
+          "resource_transition": "none",
+          "results": [],
+          "semantic_rule": "check_complete_range_before_fill",
+          "since": 6,
+          "traps": [
+            "bounds"
+          ]
+        },
+        {
+          "attributes": [
+            "function"
+          ],
+          "effects": [],
+          "guards": [
+            "callee_interface"
+          ],
+          "name": "call",
+          "operands": null,
+          "resource_transition": "call",
+          "results": null,
+          "semantic_rule": "checked_callee_and_parameter_loan_contract",
+          "since": 1,
+          "traps": []
+        }
+      ],
+      "not_generated_or_proved": [
+        "CFG ownership algorithm",
+        "interpreter",
+        "LLVM lowering",
+        "machine code"
+      ],
+      "profile": "closed-ssa-parameter-loan-returns-64-v8",
+      "resource_checks": "all guards, transitions, exact CFG joins and return cleanup remain mandatory",
+      "safety_certificate": false,
+      "schema": "hepta.hia.opcode-catalog.v1",
+      "signature_rules": {
+        "=N": "same type as zero-based operand N",
+        "declared:T": "explicit result type in group T",
+        "null": "arity/types/effects determined by verified callee interface"
+      },
+      "terminators": [
+        {
+          "fields": [
+            "op",
+            "values"
+          ],
+          "name": "ret"
+        },
+        {
+          "fields": [
+            "op",
+            "target",
+            "args"
+          ],
+          "name": "jump"
+        },
+        {
+          "fields": [
+            "op",
+            "cond",
+            "then",
+            "else"
+          ],
+          "name": "branch"
+        },
+        {
+          "fields": [
+            "op",
+            "code"
+          ],
+          "name": "trap"
+        }
+      ],
+      "type_groups": {
+        "bytes": [
+          "buffer",
+          "mutbuf",
+          "readbuf"
+        ],
+        "equality": [
+          "bool",
+          "i16",
+          "i32",
+          "i64",
+          "i8",
+          "isize",
+          "u16",
+          "u32",
+          "u64",
+          "u8",
+          "usize"
+        ],
+        "integer": [
+          "i16",
+          "i32",
+          "i64",
+          "i8",
+          "isize",
+          "u16",
+          "u32",
+          "u64",
+          "u8",
+          "usize"
+        ],
+        "mutable_source": [
+          "buffer",
+          "mutbuf"
+        ],
+        "owner": [
+          "buffer",
+          "chain"
+        ],
+        "scalar": [
+          "bool",
+          "i16",
+          "i32",
+          "i64",
+          "i8",
+          "isize",
+          "u16",
+          "u32",
+          "u64",
+          "u8",
+          "unit",
+          "usize"
+        ],
+        "view": [
+          "mutbuf",
+          "readbuf"
+        ]
+      },
+      "types": [
+        "bool",
+        "buffer",
+        "chain",
+        "i16",
+        "i32",
+        "i64",
+        "i8",
+        "isize",
+        "mutbuf",
+        "readbuf",
+        "u16",
+        "u32",
+        "u64",
+        "u8",
+        "unit",
+        "usize"
+      ],
+      "word_bits": 64
+    },
     "latest_core_schema": "hepta.hia.program.v8",
     "legacy_nominal": {
       "explicit_adapter": "import_legacy_composite_v2",

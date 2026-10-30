@@ -100,6 +100,16 @@ MODULES = (
 )
 
 
+def selector_source(selector):
+    """Bind the source module for a unittest module/class/method selector."""
+    parts = selector.split(".")
+    for end in range(len(parts), 0, -1):
+        path = ROOT.joinpath(*parts[:end]).with_suffix(".py")
+        if path.is_file():
+            return path
+    raise ValueError("unresolved integration test source: " + selector)
+
+
 def inventory():
     paths = list((ROOT / "hepta").glob("*.py")) + [Path(__file__)]
     paths += list((ROOT / "tools").rglob("*.py"))
@@ -115,7 +125,7 @@ def inventory():
                   and (not folder.startswith("experiments/") or
                        path.suffix in {".py", ".c"} or path.name in {"PROTOCOL.json", "FIXTURES.json", "REGISTRATION.json",
                                                             "ADMISSION_CONTROLS.json"})]
-    paths += [ROOT / (name.replace(".", "/") + ".py") for name in MODULES]
+    paths += [selector_source(name) for name in MODULES]
     for folder in ("examples/hia_legacy_queue", "tests/fixtures/c_migration/ring_buffer",
                    "tests/fixtures/c_migration/musl_compare", "experiments/hia_legacy_queue",
                    "experiments/hia_ndu_activation", "experiments/hia_ndu_prepared_reuse",

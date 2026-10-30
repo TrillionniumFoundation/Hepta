@@ -2,6 +2,11 @@
 from __future__ import annotations
 
 from pathlib import Path
+import json
+import os
+import shutil
+from types import SimpleNamespace
+from unittest.mock import patch
 import sys
 import tempfile
 import unittest
@@ -11,6 +16,36 @@ from hepta.hia_program_runtime import execute_program
 from tools import qualify_hia_agent_public_tools as study
 from tools.hia_agent_codex_transport import (CodexEvents, EventFailure, canonical,
     recover_reported_usage, run_owned)
+
+
+def native_test_tool(name):
+    """Choose an actual CI test tool without rewriting the frozen study profile."""
+    configured = os.environ.get({"rustc": "RUSTC", "clang": "CLANG"}[name])
+    if configured:
+        return shutil.which(configured)
+    return shutil.which(study.protocol()[name]) or shutil.which(name)
+
+
+NATIVE_TEST_TOOLS = {name: native_test_tool(name) for name in ("rustc", "clang")}
+
+
+def native_public_evaluation(task, language, folder, *, candidate):
+    """Exercise the unchanged native worker under explicit test-only tools.
+
+    The actual model runner still uses its committed protocol and exact freeze;
+    neither that protocol nor any registered experimental result is changed.
+    Owned-process transport is exercised by its separate boundary tests.
+    """
+    folder.mkdir(parents=True, exist_ok=False)
+    candidate_path = folder / "CANDIDATE.json"
+    candidate_path.write_bytes(canonical(candidate) + b"\n")
+    configuration = study.protocol()
+    configuration.update({name: path for name, path in NATIVE_TEST_TOOLS.items() if path})
+    options = SimpleNamespace(task=task["id"], language=language, mode="public",
+                              output=str(folder / "evaluation"), candidate=str(candidate_path), build=None)
+    with patch.object(study, "protocol", return_value=configuration):
+        study.evaluate_worker(options)
+    return json.loads((folder / "evaluation/RESULT.json").read_bytes())
 
 
 class PublicAgentProtocolTests(unittest.TestCase):
@@ -86,21 +121,21 @@ class PublicAgentProtocolTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"actual matching"):
             study.execute_hia_contract(candidate,task,[16,31])
 
-    @unittest.skipUnless(Path(study.protocol()["rustc"]).is_file(), "requires registered Rust compiler for native ABI negative")
+    @unittest.skipUnless(bool(NATIVE_TEST_TOOLS["rustc"]), "requires actual Rust compiler for native ABI negative")
     def test_numerically_correct_wrong_rust_signature_is_rejected_by_native_compiler(self):
         with tempfile.TemporaryDirectory() as temporary:
             # This candidate compiled and passed the old value-only wrapper.
             wrong = "fn target(x:u32,y:u32)->u64 { y.min(1000u32.saturating_sub(x)) as u64 }"
-            result = study.evaluate(study.task_for("quota_clip"), "rust", Path(temporary) / "wrong-signature", candidate=wrong)
+            result = native_public_evaluation(study.task_for("quota_clip"), "rust", Path(temporary) / "wrong-signature", candidate=wrong)
             self.assertFalse(result["accepted"])
             self.assertEqual(result["status"], "compile_rejected")
             self.assertFalse(result["hidden_evaluated"])
 
-    @unittest.skipUnless(Path(study.protocol()["rustc"]).is_file(), "requires registered Rust compiler for resource negative")
+    @unittest.skipUnless(bool(NATIVE_TEST_TOOLS["rustc"]), "requires actual Rust compiler for resource negative")
     def test_comment_scalar_shortcut_fails_actual_public_resource_audit(self):
         with tempfile.TemporaryDirectory() as temporary:
             wrong="fn target(x:u32,y:u32)->u32 { /* vec![0u8;1]; drop(fake); fake[0] */ 256*(x%17+1)+x.wrapping_add(y)%256 }"
-            result=study.evaluate(study.task_for("buffer_lane"),"rust",Path(temporary)/"comment-shortcut",candidate=wrong)
+            result=native_public_evaluation(study.task_for("buffer_lane"),"rust",Path(temporary)/"comment-shortcut",candidate=wrong)
             self.assertFalse(result["accepted"])
             self.assertEqual(result["status"],"cases_failed")
             self.assertFalse(result["resource_audit"]["accepted"])
@@ -114,8 +149,8 @@ class PublicAgentProtocolTests(unittest.TestCase):
         self.assertIsNone(study.summary(rows)["human_review_time_ns"])
         self.assertFalse(study.summary(rows)["general_productivity_proved"])
 
-    @unittest.skipUnless(Path(study.protocol()["rustc"]).is_file() and Path(study.protocol()["clang"]).is_file(),
-                         "requires registered native compilers for alpha-renamed interfaces")
+    @unittest.skipUnless(bool(NATIVE_TEST_TOOLS["rustc"]) and bool(NATIVE_TEST_TOOLS["clang"]),
+                         "requires actual native compilers for alpha-renamed interfaces")
     def test_parameter_alpha_renaming_preserves_both_actual_native_interfaces(self):
         import re
         def rename(value):
@@ -133,7 +168,7 @@ class PublicAgentProtocolTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             for language,candidate in (("hia",hia),("rust",rust)):
                 with self.subTest(language=language):
-                    observed=study.evaluate(task,language,Path(temporary)/language,candidate=candidate)
+                    observed=native_public_evaluation(task,language,Path(temporary)/language,candidate=candidate)
                     self.assertTrue(observed["accepted"],observed.get("error"))
 
 

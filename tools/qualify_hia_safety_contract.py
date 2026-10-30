@@ -34,7 +34,7 @@ CONTRACT = ROOT / "docs/HIA_SAFETY_CONTRACT.json"
 # caller can remove capabilities/tests and still obtain the same qualification
 # status for a weaker matrix. Deliberate protocol changes must review and update
 # this identity together with the contract and its boundary tests.
-REVIEWED_CONTRACT_SHA256 = "03bcc4af39c2467c1395eb685e9f8345bcaa790fabe5fed14b4a329a096a065d"
+REVIEWED_CONTRACT_SHA256 = "947467bc71562a6926ce1401eb4222e26ba867300554307252650c0d9ca674fb"
 _UNPROVED = frozenset({"whole_language_soundness_proved", "source_to_core_refinement_proved",
     "core_to_native_refinement_proved", "global_optimality_proved", "absolute_resource_safety_proved",
     "general_concurrent_memory_safety_proved", "native_process_memory_bound_proved",
@@ -86,9 +86,11 @@ def validate_contract(contract):
     # stateful list/dict subclasses; iterating the caller's object again could
     # otherwise select fewer regressions after its full matrix was hashed.
     contract = json.loads(canonical)
+    # The generated catalog uses immutable tuple fields in memory; JSON carries
+    # those arrays as lists. Compare the complete canonical wire bytes exactly.
     if (type(contract) is not dict or contract.get("schema") != "hepta.hia.safety-contract.v1"
             or contract.get("status") != "implementation_contract_with_finite_regression_evidence"
-            or contract.get("registry") != schema_registry()):
+            or wire(contract.get("registry")) != wire(schema_registry())):
         raise ValueError("E_SAFETY_REGISTRY: exact reviewed schema/profile registry required")
     claims = contract.get("unproved_claims", {})
     if set(claims) != _UNPROVED or any(value is not False for value in claims.values()):

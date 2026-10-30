@@ -75,16 +75,20 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes clang-20 libclang-rt-20-dev llvm-20 lld-20 build-essential
           printf '%s\n' /usr/lib/llvm-20/bin >> "$GITHUB_PATH"
+      - name: Install pinned Rust for native regression controls
+        run: |
+          rustup toolchain install 1.95.0 --profile minimal
+          printf 'RUSTC=%s\n' "$(rustup which --toolchain 1.95.0 rustc)" >> "$GITHUB_ENV"
       - name: Require actual tools and record the declared scope
         run: |
           python - <<'PY'
           import json, os, re, shutil, subprocess
           from pathlib import Path
           import z3
-          from hepta.hia_optimization import _solver_identity
-          assert z3.get_version_string() == '4.13.4'
+          from hepta.hia_optimization import PINNED_Z3_VERSION, _solver_identity
+          assert z3.get_version_string() == PINNED_Z3_VERSION, (z3.get_version_string(), PINNED_Z3_VERSION)
           versions = {}
-          for name in (os.environ['CLANG'], os.environ['CLANGXX'], 'gcc', 'g++', 'ld.lld'):
+          for name in (os.environ['CLANG'], os.environ['CLANGXX'], os.environ['RUSTC'], 'gcc', 'g++', 'ld.lld'):
               assert shutil.which(name), f'Missing required actual compiler: {name}'
               versions[name] = subprocess.check_output([name, '--version'], text=True)
           for name in (os.environ['CLANG'], os.environ['CLANGXX']):
@@ -293,7 +297,8 @@ jobs:
           import json, os, sys, unittest
           from pathlib import Path
           import z3
-          assert z3.get_version_string() == '4.13.4'
+          from hepta.hia_optimization import PINNED_Z3_VERSION
+          assert z3.get_version_string() == PINNED_Z3_VERSION, (z3.get_version_string(), PINNED_Z3_VERSION)
           assert Path(os.environ['HEPTA_FINITE_NDU_IDENTITY']).is_file()
           suites = ['tests.test_hia_planning', 'tests.test_hia_planning_boundaries', 'tests.test_hia_ndu_graph']
           suite = unittest.defaultTestLoader.loadTestsFromNames(suites)
