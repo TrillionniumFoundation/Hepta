@@ -93,6 +93,78 @@ class HsirSafety(unittest.TestCase):
         self.assertEqual(len(function_hash(ordinary)), 64)
 
 
+    def test_direct_ir_rejects_dataclass_and_tuple_subclass_spoofing(self):
+        # Frozen IR records and tuples are still extensible Python objects.
+        # Subclasses can change what validation sees versus source generation
+        # or provenance hashing. Public direct-IR APIs must reject them.
+        class NameSwap(Function):
+            def __getattribute__(self, field):
+                if field == "name":
+                    reads = object.__getattribute__(self, "_reads")
+                    object.__setattr__(self, "_reads", reads + 1)
+                    return "safe" if reads < 2 else "INJECTED_SOURCE_MARKER"
+                return object.__getattribute__(self, field)
+
+        class ParamSwap(tuple):
+            def __iter__(self):
+                reads = getattr(self, "reads", 0)
+                self.reads = reads + 1
+                values = (("x", "i32"),) if reads < 2 else (
+                    ("INJECTED_SOURCE_MARKER", "i32"),)
+                return iter(values)
+
+        class TupleSubclass(tuple):
+            pass
+
+        class ExprSubclass(Expr):
+            pass
+
+        class StmtSubclass(Stmt):
+            pass
+
+        literal = Expr("literal", "i32", "1")
+        terminal = Stmt("return", literal)
+
+        def spoofed_function():
+            fn = NameSwap("safe", (), "i32", (terminal,))
+            object.__setattr__(fn, "_reads", 0)
+            return fn
+
+        makers = (
+            ("mutable_record_identity", spoofed_function),
+            ("mutable_parameter_iteration",
+             lambda: Function("safe", ParamSwap((("x", "i32"),)),
+                              "i32", (terminal,))),
+            ("parameter_pair_subclass",
+             lambda: Function("safe", (TupleSubclass(("x", "i32")),),
+                              "i32", (terminal,))),
+            ("parameter_tuple_subclass",
+             lambda: Function("safe", TupleSubclass((("x", "i32"),)),
+                              "i32", (terminal,))),
+            ("function_body_tuple_subclass",
+             lambda: Function("safe", (), "i32", TupleSubclass((terminal,)))),
+            ("statement_subclass",
+             lambda: Function("safe", (), "i32", (StmtSubclass("return", literal),))),
+            ("expression_subclass",
+             lambda: Function("safe", (), "i32",
+                              (Stmt("return", ExprSubclass("literal", "i32", "1")),))),
+            ("expression_args_tuple_subclass",
+             lambda: Function("safe", (), "i32",
+                              (Stmt("return", Expr("literal", "i32", "1",
+                                                 TupleSubclass(()))),))),
+        )
+        for case, maker in makers:
+            for entry in (check_function, emit_function, function_hash):
+                with self.subTest(case=case, entry=entry.__name__):
+                    with self.assertRaises(IRValidationError):
+                        entry(maker())
+
+        ordinary = Function("safe", (), "i32", (terminal,))
+        self.assertEqual(check_function(ordinary), frozenset())
+        self.assertIn('export "C" fn safe(', emit_function(ordinary))
+        self.assertEqual(len(function_hash(ordinary)), 64)
+
+
     def test_direct_ir_untrusted_field_shapes_and_resource_budgets(self):
         # Direct IR callers must never leak raw Python shape/type errors or
         # serialize unbounded symbol/parameter data before reject-by-contract.
