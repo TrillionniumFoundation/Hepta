@@ -295,4 +295,8 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
         return report
     except (MigrationRejected, UnicodeError, json.JSONDecodeError) as exc:
         report["rejected"].append({"code": getattr(exc, "code", "E_C_INPUT"), "message": str(exc)})
+        # Whole-unit semantic rejection has the same status contract as a
+        # rejected function body; keep path/environment failures distinct.
+        if isinstance(exc, MigrationRejected) and exc.code == "E_C_TOPLEVEL":
+            report["status"] = "unsupported_source"
         return report
