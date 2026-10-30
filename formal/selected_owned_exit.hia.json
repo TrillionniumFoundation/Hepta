@@ -1,0 +1,336 @@
+{
+  "schema": "hepta.hia.program.v8",
+  "module": "selected_owned_exit",
+  "functions": [
+    {
+      "name": "make",
+      "params": [
+        {
+          "name": "extent",
+          "type": "usize"
+        }
+      ],
+      "returns": [
+        "buffer",
+        "bool"
+      ],
+      "effects": [
+        "alloc"
+      ],
+      "entry": "make_entry",
+      "blocks": [
+        {
+          "id": "make_entry",
+          "params": [
+            {
+              "name": "extent",
+              "type": "usize"
+            }
+          ],
+          "ops": [
+            {
+              "op": "buffer.try_new",
+              "args": [
+                "extent"
+              ],
+              "out": [
+                {
+                  "name": "made",
+                  "type": "buffer"
+                },
+                {
+                  "name": "ok",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "made",
+              "ok"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "run",
+      "params": [
+        {
+          "name": "size",
+          "type": "usize"
+        },
+        {
+          "name": "cancel",
+          "type": "bool"
+        },
+        {
+          "name": "abort",
+          "type": "bool"
+        }
+      ],
+      "returns": [
+        "u8"
+      ],
+      "effects": [
+        "alloc",
+        "trap"
+      ],
+      "entry": "entry",
+      "blocks": [
+        {
+          "id": "entry",
+          "params": [
+            {
+              "name": "size",
+              "type": "usize"
+            },
+            {
+              "name": "cancel",
+              "type": "bool"
+            },
+            {
+              "name": "abort",
+              "type": "bool"
+            }
+          ],
+          "ops": [
+            {
+              "op": "call",
+              "args": [
+                "size"
+              ],
+              "out": [
+                {
+                  "name": "owned",
+                  "type": "buffer"
+                },
+                {
+                  "name": "ok",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {
+                "function": "make"
+              }
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "ok",
+            "then": {
+              "target": "allocated",
+              "args": [
+                "owned",
+                "cancel",
+                "abort"
+              ]
+            },
+            "else": {
+              "target": "refused",
+              "args": [
+                "owned"
+              ]
+            }
+          }
+        },
+        {
+          "id": "allocated",
+          "params": [
+            {
+              "name": "allocated_owned",
+              "type": "buffer"
+            },
+            {
+              "name": "allocated_cancel",
+              "type": "bool"
+            },
+            {
+              "name": "allocated_abort",
+              "type": "bool"
+            }
+          ],
+          "ops": [],
+          "term": {
+            "op": "branch",
+            "cond": "allocated_cancel",
+            "then": {
+              "target": "cancelled",
+              "args": [
+                "allocated_owned"
+              ]
+            },
+            "else": {
+              "target": "not_cancelled",
+              "args": [
+                "allocated_owned",
+                "allocated_abort"
+              ]
+            }
+          }
+        },
+        {
+          "id": "not_cancelled",
+          "params": [
+            {
+              "name": "not_cancelled_owned",
+              "type": "buffer"
+            },
+            {
+              "name": "not_cancelled_abort",
+              "type": "bool"
+            }
+          ],
+          "ops": [],
+          "term": {
+            "op": "branch",
+            "cond": "not_cancelled_abort",
+            "then": {
+              "target": "trapped",
+              "args": [
+                "not_cancelled_owned"
+              ]
+            },
+            "else": {
+              "target": "finished",
+              "args": [
+                "not_cancelled_owned"
+              ]
+            }
+          }
+        },
+        {
+          "id": "refused",
+          "params": [
+            {
+              "name": "refused_owned",
+              "type": "buffer"
+            }
+          ],
+          "ops": [
+            {
+              "op": "owner.drop",
+              "args": [
+                "refused_owned"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "refused_code",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 1
+              }
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "refused_code"
+            ]
+          }
+        },
+        {
+          "id": "cancelled",
+          "params": [
+            {
+              "name": "cancelled_owned",
+              "type": "buffer"
+            }
+          ],
+          "ops": [
+            {
+              "op": "owner.drop",
+              "args": [
+                "cancelled_owned"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "cancelled_code",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 2
+              }
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "cancelled_code"
+            ]
+          }
+        },
+        {
+          "id": "finished",
+          "params": [
+            {
+              "name": "finished_owned",
+              "type": "buffer"
+            }
+          ],
+          "ops": [
+            {
+              "op": "owner.drop",
+              "args": [
+                "finished_owned"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "finished_code",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "finished_code"
+            ]
+          }
+        },
+        {
+          "id": "trapped",
+          "params": [
+            {
+              "name": "trapped_owned",
+              "type": "buffer"
+            }
+          ],
+          "ops": [],
+          "term": {
+            "op": "trap",
+            "code": "division_by_zero"
+          }
+        }
+      ]
+    }
+  ]
+}
