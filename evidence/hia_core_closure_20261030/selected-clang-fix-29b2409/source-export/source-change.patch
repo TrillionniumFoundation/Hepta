@@ -1,0 +1,114 @@
+diff --git a/.github/workflows/hepta-qualification.yml b/.github/workflows/hepta-qualification.yml
+index e82d7a13e28436e68e6f2d42677643bed00dc8a7..130ed7ea19e8d13cb0cca22beead3bcced9c8faf 100644
+--- a/.github/workflows/hepta-qualification.yml
++++ b/.github/workflows/hepta-qualification.yml
+@@ -272,7 +272,7 @@ jobs:
+           mkdir -p "$hepta_gate_tools"
+           ln -s "$hepta_qemu" "$hepta_gate_tools/qemu-aarch64"
+           ln -s "$hepta_linker" "$hepta_gate_tools/ld.lld"
+-          printf 'LEAN=%s\nCLANG=%s\nCLANGXX=%s\nCC=%s\n' "$hepta_lean" /usr/lib/llvm-20/bin/clang /usr/lib/llvm-20/bin/clang++ /usr/bin/gcc >> "$GITHUB_ENV"
++          printf 'LEAN=%s\nCLANG=%s\nHEPTA_CLANG=%s\nCLANGXX=%s\nCC=%s\n' "$hepta_lean" /usr/lib/llvm-20/bin/clang /usr/lib/llvm-20/bin/clang /usr/lib/llvm-20/bin/clang++ /usr/bin/gcc >> "$GITHUB_ENV"
+           printf 'HEPTA_LLD=%s\nHEPTA_LLVM_READOBJ=%s\nHEPTA_QEMU_AARCH64=%s\nHEPTA_QEMU_RISCV64=%s\n' \
+             "$hepta_linker" /usr/lib/llvm-20/bin/llvm-readobj "$hepta_qemu" /usr/bin/qemu-riscv64 >> "$GITHUB_ENV"
+           # Full discovery builds the actual Rust oracle. Keep those generated
+diff --git a/tests/test_hia_unified_qualification.py b/tests/test_hia_unified_qualification.py
+index 0239da3f9085181c3f38e77d4776acd505a4d0d3..088543c5fcb483bd69eceb57d72ffc8346b5ed50 100644
+--- a/tests/test_hia_unified_qualification.py
++++ b/tests/test_hia_unified_qualification.py
+@@ -91,6 +91,7 @@ class UnifiedQualificationSummaryTests(unittest.TestCase):
+             invocations.append(argv)
+             if argv[0] != "git":
+                 for key, value in {
++                    "CLANG": selected["clang"], "HEPTA_CLANG": selected["clang"],
+                     "CC": selected["cc"], "HEPTA_LLD": selected["linker"],
+                     "HEPTA_LLVM_READOBJ": "/tools/llvm-readobj",
+                     "HEPTA_QEMU_AARCH64": selected["qemu_aarch64"],
+@@ -119,7 +120,8 @@ class UnifiedQualificationSummaryTests(unittest.TestCase):
+         # These are collector protocol controls, not native qualification.
+         # A zero exit from a process cannot substitute for its missing report.
+         with tempfile.TemporaryDirectory() as directory, \
+-                patch.dict(os.environ, {"CARGO_NET_OFFLINE": "original", "PYTHONDONTWRITEBYTECODE": "old"}), \
++                patch.dict(os.environ, {"CARGO_NET_OFFLINE": "original", "PYTHONDONTWRITEBYTECODE": "old",
++                                        "CLANG": "/ambient/clang", "HEPTA_CLANG": "/ambient/other-clang"}), \
+                 patch("tools.qualify_hia_unified.snapshot", return_value={"sha256": "source"}), \
+                 patch("tools.qualify_hia_unified.compiler_hash", return_value="compiler"), \
+                 patch("tools.qualify_hia_unified._command", side_effect=completed), redirect_stdout(io.StringIO()):
+@@ -146,6 +148,28 @@ class UnifiedQualificationSummaryTests(unittest.TestCase):
+         self.assertFalse(report["ok"])
+         self.assertFalse(report["full_seven_deliverables_complete"])
+ 
++        def interrupted(argv, timeout=1800):
++            argv = list(map(str, argv))
++            if argv[0] == "git":
++                return dict(argv=argv, returncode=0, stdout="a" * 40 + "\n" if "rev-parse" in argv else "",
++                            stderr="", seconds=0.01)
++            self.assertEqual(os.environ.get("CLANG"), selected["clang"])
++            self.assertEqual(os.environ.get("HEPTA_CLANG"), selected["clang"])
++            raise RuntimeError("observed qualification command interruption")
++
++        # The newly synchronized key must also be restored when a real
++        # command boundary raises before any aggregate report is produced.
++        with tempfile.TemporaryDirectory() as directory, \
++                patch.dict(os.environ, {"CLANG": "/ambient/clang", "HEPTA_CLANG": "/ambient/other-clang"}), \
++                patch("tools.qualify_hia_unified.snapshot", return_value={"sha256": "source"}), \
++                patch("tools.qualify_hia_unified.compiler_hash", return_value="compiler"), \
++                patch("tools.qualify_hia_unified._command", side_effect=interrupted), redirect_stdout(io.StringIO()):
++            before, previous_cwd = dict(os.environ), Path.cwd()
++            with self.assertRaisesRegex(RuntimeError, "qualification command interruption"):
++                qualify(Path(directory) / "interrupted", **selected)
++            self.assertEqual(dict(os.environ), before)
++            self.assertEqual(Path.cwd(), previous_cwd)
++
+     def test_plan_keeps_hosted_denominators_compilers_and_timing_order_explicit(self):
+         plan = qualification_plan(Path("/evidence"), python="python", **SELECTED_TOOLS)
+         names = [name for name, _, _ in plan]
+diff --git a/tests/test_qualification_environment.py b/tests/test_qualification_environment.py
+index 8489172c36437dc39591908f8edc3a81a8ab6ff2..f7e56bbfe0866e7ad09d3a5a5b0ff8efda0f6b2b 100644
+--- a/tests/test_qualification_environment.py
++++ b/tests/test_qualification_environment.py
+@@ -1,9 +1,11 @@
+ """Exercise real workflow environment persistence without executing compilers."""
+ import importlib.util
++import json
+ import os
+ from pathlib import Path
+ import shutil
+ import subprocess
++import sys
+ import tempfile
+ import textwrap
+ import unittest
+@@ -84,11 +86,20 @@ class QualificationEnvironmentTests(unittest.TestCase):
+     def test_workflow_exports_actual_aliases_and_lean_to_both_following_steps(self):
+         with tempfile.TemporaryDirectory() as directory:
+             tools, env, exported, paths = self.fixture(directory)
++            env["HEPTA_CLANG"] = "/ambient/unused clang"
+             result = self.export(env)
+             self.assertEqual(result.returncode, 0, result.stderr)
+             following = self.next_step(env, exported, paths)
+             self.assertEqual(Path(following["LEAN"]).resolve(), tools["lean"])
+             self.assertEqual(following["CLANG"], "/usr/lib/llvm-20/bin/clang")
++            # Read the persisted environment in a real subsequent process.
++            # Both names must select the same compiler, even with a stale
++            # inherited native-graph override in the original environment.
++            child = subprocess.run([sys.executable, "-c",
++                "import json,os; print(json.dumps({k:os.environ.get(k) for k in ('CLANG','HEPTA_CLANG')}))"],
++                env=following, capture_output=True, text=True, timeout=10, check=True)
++            self.assertEqual(json.loads(child.stdout), {
++                "CLANG": following["CLANG"], "HEPTA_CLANG": following["CLANG"]})
+             for name in ("lean", "qemu-aarch64", "ld.lld"):
+                 resolved = shutil.which(name, path=following["PATH"])
+                 self.assertIsNotNone(resolved)
+diff --git a/tools/qualify_hia_unified.py b/tools/qualify_hia_unified.py
+index 193b7de7f6ddbbc82c0abe8ff198cd767209a567..c8e8c5aa9c9680e670f2fe22ff78c90ac138e4c4 100644
+--- a/tools/qualify_hia_unified.py
++++ b/tools/qualify_hia_unified.py
+@@ -288,7 +288,7 @@ def qualify(output, *, clang, cc, rustc, cargo, qemu_aarch64, qemu_riscv64,
+         "commands": [{"name": name, "argv": list(map(str, argv))} for name, argv, _ in plan]},
+         indent=2, sort_keys=True) + "\n").encode())
+     previous_cwd = Path.cwd()
+-    environment = {"RUSTC": rustc, "CLANG": clang, "CC": cc, "LEAN": lean,
++    environment = {"RUSTC": rustc, "CLANG": clang, "HEPTA_CLANG": clang, "CC": cc, "LEAN": lean,
+                    "HEPTA_LLD": linker,
+                    "HEPTA_LLVM_READOBJ": str(Path(clang).with_name("llvm-readobj")),
+                    "HEPTA_QEMU_AARCH64": qemu_aarch64, "HEPTA_QEMU_RISCV64": qemu_riscv64,
