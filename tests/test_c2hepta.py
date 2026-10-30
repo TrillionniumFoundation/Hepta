@@ -18,6 +18,50 @@ from tools.c2hepta import migrate
 
 
 class HsirSafety(unittest.TestCase):
+    def test_direct_ir_node_budget_rejects_before_scanning_overlong_children(self):
+        # A node budget must be checked before iterating untrusted tuples.
+        # Count generator-body steps instead of relying on wall-clock timing.
+        # This catches O(N) preflight scans even if they eventually reject.
+        leaf = Expr("literal", "i32", "1")
+        terminal = Stmt("return", leaf)
+        wide = 5000
+        examples = {
+            "function_body": Function("safe", (), "i32", (terminal,) * wide),
+            "expression_args": Function("safe", (), "i32", (
+                Stmt("return", Expr("neg", "i32", args=(leaf,) * wide)),)),
+            "statement_branch": Function("safe", (), "i32", (
+                Stmt("if", Expr("compare", "bool", "==", (leaf, leaf)),
+                     (terminal,) * wide, (terminal,)),)),
+        }
+
+        def require_bounded_rejection(function, consumer):
+            scanned = 0
+            prior_trace = sys.gettrace()
+
+            def count_scans(frame, event, arg):
+                nonlocal scanned
+                if (event == "line" and frame.f_code.co_name == "<genexpr>"
+                        and frame.f_code.co_filename.endswith("migration_ir.py")):
+                    scanned += 1
+                    if scanned > 512:
+                        raise AssertionError("IR node budget checked after scanning oversized children")
+                return count_scans
+
+            sys.settrace(count_scans)
+            try:
+                with self.assertRaises(IRValidationError):
+                    consumer(function)
+            finally:
+                sys.settrace(prior_trace)
+
+        for shape, function in examples.items():
+            for consumer in (check_function, emit_function, function_hash):
+                with self.subTest(shape=shape, consumer=consumer.__name__):
+                    require_bounded_rejection(function, consumer)
+
+        valid = Function("safe", (), "i32", (terminal,))
+        self.assertIn("fn safe(", emit_function(valid))
+
     def test_direct_ir_rejects_wrong_expr_stmt_positions(self):
         # The iterative budget walker must validate edge types, not just
         # node types. Otherwise well-formed Stmt records can masquerade as
