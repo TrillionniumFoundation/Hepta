@@ -166,6 +166,11 @@ CRITICAL_MODULES = {
     "captured_original_musl_postfix": ("test_c_postfix_if",),
     "bounded_oracle_reuse_and_diverse_cost_protocol": ("test_hia_finite_context_oracle_reuse",
                                                      "test_hia_crc_context_reuse_study"),
+    "independent_rust_scoped_abort_cleanup": ("test_hia_rust_scoped_cleanup",),
+    "finite_cpp_parent_checkpoint_reconstruction": ("test_cpp_json_checkpoint",),
+    "crc_parallel_bit_proposals_and_complete_cost_protocol": ("test_hia_crc_linear",
+        "test_hia_crc_linear_qualification", "test_hia_crc_linear_economics"),
+    "public_selection_first_agent_decoder": ("test_hia_agent_toolstudy_v13",),
 }
 
 

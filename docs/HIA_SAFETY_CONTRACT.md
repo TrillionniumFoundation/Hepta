@@ -105,6 +105,47 @@ fresh 3/3 gate remain authoritative; failed V11 results are unchanged. The
 updated matrix still explicitly leaves general Agent productivity, whole
 language safety, C-to-Core/native refinement and global optimality unproved.
 
+The next finite additions preserve every previous capability and selector.
+`raw-byte-dag-finite-heap-cleanup-v1` is an explicit additional Rust admission
+profile. It checks the whole byte-only DAG and exact-entry heap bound, then
+reserves a conservative cleanup journal before language execution. The same
+Machine retains the original stop and explicitly discharges invocation-owned
+loan children, call formals, parents and owners. The extra 32,768-action limit
+can reject a program accepted by the earlier finite-heap profile. This does
+not change default/source/nominal/native authority, repair normal returns, or
+guarantee cleanup after host OOM, panic or process termination. JSON reporting,
+allocator internals and OS release are outside the journal-capacity guarantee.
+See [the scoped cleanup contract](HIA_RUST_SCOPED_ABORT_CLEANUP.md).
+
+The foreign JSON checkpoint profile keeps a bounded integer-array state in
+the caller and executes the existing scoped C ABI in a sealed child image.
+Only a valid bound response, ordinary lifetime ledger and normal exit commit
+a new checkpoint. A caught exception or actual `noexcept` termination keeps
+the previous committed state; a separate explicit request may reconstruct it.
+Uncertain cleanup poisons the owner. A terminating C++ call remains a failed
+foreign call. This profile transfers no foreign pointer/handle, rolls back no
+external effect, and does not convert the foreign library into safe Core.
+
+The CRC addition proposes guarded parallel bit contributions in the existing
+Core and retains all three legacy candidates. The shared dual body satisfies
+the unchanged 128-operation selected-LLVM limit. Fresh capture, independent
+translation validation, emitted-LLVM checks and native execution are required.
+The separate eight-arm protocol preserves the previous v3 data and amount of
+work; it gives fixed controls the entire six-candidate pool and retains full
+preparation, execution, cache, identity and cleanup costs. Changed code or a
+faster kernel cannot substitute for an observed net improvement. Its task has
+no newly demonstrated planning advantage for NDU.
+
+V13 retains every public editable node while preserving selection-before-
+replacement order in the actual completion body. It checks the native GBNF
+returned for every public variant and uses only the already disclosed Rust
+type grammar. Generic specification/transaction guidance and public category
+diagnostics are explicit prompt changes. Reference JSON reordering is confined
+to capacity controls and cannot enter generation. A failed wire check retains
+actual usage without qualifying the attempt. Fresh capacity and 3/3 Rust-node
+qualification still precede the conditional main. These adaptive protocol
+regressions do not establish success by a real model or general productivity.
+
 ## Typed state and instruction obligations
 
 The following judgment names the state already checked by the implementation:

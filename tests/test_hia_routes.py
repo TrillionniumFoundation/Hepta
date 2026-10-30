@@ -22,7 +22,7 @@ from tests.test_hia_optimization import constant_program
 class RouteTests(unittest.TestCase):
     def test_independent_rust_profile_cannot_mint_default_or_native_admission(self):
         inventory = route_inventory()
-        profile, heap = inventory["independent_execution_profiles"]
+        profile, heap, cleanup = inventory["independent_execution_profiles"]
         self.assertEqual(profile["route"], "rust-byte-dag")
         self.assertEqual(profile["profile"], "raw-byte-dag-v1")
         module, name = profile["entry"].rsplit(".", 1)
@@ -49,6 +49,31 @@ class RouteTests(unittest.TestCase):
         with patch("hepta.hia_routes.verify_program", side_effect=AssertionError("must refuse first")):
             with self.assertRaisesRegex(RouteRejected, "E_HIA_ROUTE_UNSUPPORTED"):
                 admit_route(heap["route"], constant_program())
+        self.assertEqual(cleanup["route"], "rust-byte-dag-finite-heap-cleanup")
+        self.assertEqual(cleanup["profile"], "raw-byte-dag-finite-heap-cleanup-v1")
+        self.assertEqual(cleanup["rust_entry"], "hia_core_shadow::admit_and_run_byte_dag_heap_cleanup")
+        for key in ("python_semantic_admission_required", "execution_used_to_establish_heap_bound",
+                    "execution_used_to_establish_cleanup_bound", "default_admission_changed",
+                    "source_or_nominal_lowering", "native_execution_authorized",
+                    "host_oom_panic_or_termination_cleanup_guaranteed", "receipt_grants_admission"):
+            self.assertIs(cleanup[key], False)
+        with patch("hepta.hia_routes.verify_program", side_effect=AssertionError("must refuse first")):
+            with self.assertRaisesRegex(RouteRejected, "E_HIA_ROUTE_UNSUPPORTED"):
+                admit_route(cleanup["route"], constant_program())
+
+    def test_foreign_checkpoint_descriptor_cannot_become_core_or_rewrite_authority(self):
+        profile, = route_inventory()["foreign_process_profiles"]
+        self.assertEqual(profile["profile"], "hepta.cpp-json-checkpoint.v1")
+        module, name = profile["entry"].rsplit(".", 1)
+        self.assertTrue(callable(getattr(importlib.import_module(module), name)))
+        for key in ("core_admission_authorized", "foreign_library_rewritten", "foreign_memory_safety_proved",
+                    "external_side_effects_rolled_back", "automatic_retry", "receipt_grants_admission"):
+            self.assertIs(profile[key], False)
+        with patch("hepta.hia_routes.verify_program", side_effect=AssertionError("must refuse first")):
+            with self.assertRaisesRegex(RouteRejected, "E_HIA_ROUTE_UNSUPPORTED"):
+                admit_route(profile["route"], constant_program())
+        profile["core_admission_authorized"] = True
+        self.assertIs(route_inventory()["foreign_process_profiles"][0]["core_admission_authorized"], False)
 
     def test_versioned_inventory_has_all_languages_and_legacy_non_authorities(self):
         inventory = route_inventory()

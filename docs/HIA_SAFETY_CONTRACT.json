@@ -23,6 +23,16 @@
         "profile": "raw-byte-dag-finite-heap-v1",
         "python_semantic_admission_required": false,
         "scope": "raw primitive v7/v8 byte-only whole-module DAG; exact scalar invocation with conservatively bounded logical live payload; existing Rust v4 Machine"
+      },
+      {
+        "admission": "independent Rust owned verifier, finite-entry heap/action analyses and private admitted snapshot",
+        "default_admission_changed": false,
+        "entrypoint": "hepta.hia_rust_byte_dag.execute_rust_byte_dag",
+        "external_receipts_grant_admission": false,
+        "native_execution_authorized": false,
+        "profile": "raw-byte-dag-finite-heap-cleanup-v1",
+        "python_semantic_admission_required": false,
+        "scope": "raw v7/v8 private scalar byte-DAG invocation plus bounded explicit Machine discharge after a language stop"
       }
     ],
     "input": "actual immutable canonical Core bytes; public VerifiedProgram objects are rechecked",
@@ -34,7 +44,7 @@
     "error": "Errors represented as values use the same checked normal-return rules. A failed fallible allocation still produces a logical empty owner that must be consumed.",
     "normal": "Local owned resources and loans must be consumed or transferred through a checked signature; explicit v8 returned loans retain parameter origins and suspend callers until children end.",
     "recursive": "Core recursive calls and finite owned chains are separate from static finite-budget profiles. Native recursion/stack bounds and universal termination are not established.",
-    "trap": "The VM reports the stopped resource ledger. Native traps abort. No destructor recovery, exception unwinding, or cleanup completion theorem is claimed."
+    "trap": "Default VM profiles retain the stopped resource ledger and native traps abort. The explicit raw-byte-dag-finite-heap-cleanup-v1 profile separately reserves a bounded journal before execution and discharges actual invocation-owned byte loans/formals/owners after a language trap or budget stop, retaining both ledgers. This does not establish general unwinding, host panic/OOM/process-termination cleanup, or a source/native cleanup theorem."
   },
   "capabilities": [
     {
@@ -1220,6 +1230,149 @@
         "tests.test_hia_stb_specialization.StbOracleTests.test_unsigned_bit_pattern_inputs_map_to_signed_euclidean_math"
       ],
       "scope": "Fresh full-component source capture and independent scalar-call bridge produce baseline/guard8/guard10/dual-guard candidates under the unchanged 32-block/512-operation bank profile. Frozen same-input/budget/cache comparison includes strong precommitted fixed dispatch, feedback greedy, exact finite DP and the actual pinned NDU stream. All preparation, delivery, release, failure, post-analysis and terminal budget costs are retained with separate delivery/preparation call denominators."
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_rust_byte_dag.execute_rust_byte_dag",
+        "hepta.hia_rust_byte_cleanup.validate_cleanup",
+        "hepta.hia_routes.route_inventory"
+      ],
+      "exclusions": [
+        "Finite-heap admission alone does not grant cleanup admission; a reservation above the caller or fixed limit refuses before execution.",
+        "No external resources, chains, foreign code, callbacks, native publication or default/source/nominal authority switch.",
+        "The journal reservation is not a bound on JSON reporting, process RSS, CPU, host allocation failure, panic, process death or OS resource release.",
+        "An internal inventory/release inconsistency cannot qualify completed cleanup; no general unwinding, source/Core/native refinement or whole-language soundness theorem."
+      ],
+      "guarantee": "checked_on_every_admission",
+      "id": "independent_rust_scoped_abort_cleanup",
+      "regression_selectors": [
+        "tests.test_hia_rust_scoped_cleanup.RustScopedAbortCleanup.test_actual_alias_formals_parent_graph_has_exact_order_and_counters",
+        "tests.test_hia_rust_scoped_cleanup.RustScopedAbortCleanup.test_actual_fixed_analysis_context_depth_transfer_and_value_work_limits",
+        "tests.test_hia_rust_scoped_cleanup.RustScopedAbortCleanup.test_analysis_only_can_bound_unexecuted_large_requests_and_gate_before_vm",
+        "tests.test_hia_rust_scoped_cleanup.RustScopedAbortCleanup.test_branch_and_return_joins_keep_unselected_larger_owner",
+        "tests.test_hia_rust_scoped_cleanup.RustScopedAbortCleanup.test_empty_failed_owner_bounds_user_and_loaded_arithmetic_traps_are_real",
+        "tests.test_hia_rust_scoped_cleanup.RustScopedAbortCleanup.test_empty_owner_and_scalar_returns_are_intervals_not_success_samples",
+        "tests.test_hia_rust_scoped_cleanup.RustScopedAbortCleanup.test_every_tick_heap_and_call_stop_retains_prefix_then_discharge",
+        "tests.test_hia_rust_scoped_cleanup.RustScopedAbortCleanup.test_finite_heap_admission_does_not_imply_cleanup_reservation_admission",
+        "tests.test_hia_rust_scoped_cleanup.RustScopedAbortCleanup.test_heap_policy_exact_types_raw_bytes_and_public_scalar_boundary",
+        "tests.test_hia_rust_scoped_cleanup.RustScopedAbortCleanup.test_infallible_oversize_and_no_return_calls_keep_earlier_payload",
+        "tests.test_hia_rust_scoped_cleanup.RustScopedAbortCleanup.test_legacy_mode_keeps_the_exact_stop_ledger_without_implicit_cleanup",
+        "tests.test_hia_rust_scoped_cleanup.RustScopedAbortCleanup.test_no_python_semantic_modules_are_required_for_admission_or_refusal",
+        "tests.test_hia_rust_scoped_cleanup.RustScopedAbortCleanup.test_partial_initialization_and_task_failure_matrix_reuses_normalized_core",
+        "tests.test_hia_rust_scoped_cleanup.RustScopedAbortCleanup.test_rehashed_replay_wrong_bounds_policies_arguments_and_authority_reject",
+        "tests.test_hia_rust_scoped_cleanup.RustScopedAbortCleanup.test_reservation_boundary_and_malformed_policy_refuse_before_execution",
+        "tests.test_hia_rust_scoped_cleanup.RustScopedAbortCleanup.test_transfer_multi_return_alias_and_every_allocator_failure_keep_peak",
+        "tests.test_hia_rust_scoped_cleanup.RustScopedAbortCleanup.test_unknown_sizes_overflow_and_object_domain_crossing_never_become_zero",
+        "tests.test_hia_rust_scoped_cleanup.RustScopedAbortCleanup.test_v8_nested_returned_loans_mutability_and_cancel_keep_caller_roots",
+        "tests.test_hia_rust_scoped_cleanup.RustScopedAbortCleanup.test_v8_normalized_partial_records_and_tasks_preserve_failure_cleanup",
+        "tests.test_hia_rust_scoped_cleanup.RustScopedAbortCleanup.test_whole_module_cycles_chains_invalid_origins_and_nominal_inputs_refuse",
+        "tests.test_hia_routes.RouteTests.test_independent_rust_profile_cannot_mint_default_or_native_admission"
+      ],
+      "scope": "Explicit raw-byte-dag-finite-heap-cleanup-v1: independent whole-module v7/v8 byte-DAG/finite-entry heap admission, exact private scalar invocation, and conservative reservation of at most 32768 cleanup actions before language execution. On a language trap or runtime budget stop, the same Rust Machine audits the complete actual inventory, explicitly ends children and call-formal loans before parent loans and owners, and retains the original stop plus bounded journal and before/after ledgers. Normal return must already be clean."
+    },
+    {
+      "entrypoints": [
+        "hepta.cpp_json_checkpoint.JsonCheckpoint.prepare",
+        "hepta.cpp_json_checkpoint.JsonCheckpoint.execute",
+        "tools.qualify_cpp_json_checkpoint.qualify"
+      ],
+      "exclusions": [
+        "A foreign SIGABRT remains a failed foreign invocation; parent reconstruction is not C++ destructor recovery or in-process memory safety.",
+        "No general C++ rewrite, foreign pointer/handle transfer, arbitrary state migration, external side-effect rollback or automatic retry.",
+        "Existing bounded process ownership does not prove completion of arbitrary escaped descendants or complete host/environment closure.",
+        "Finite regression and audit receipts do not authorize Core admission, native publication, a new source version or general P3/P6 completion."
+      ],
+      "guarantee": "host_enforced_scoped_admission",
+      "id": "finite_cpp_parent_checkpoint_reconstruction",
+      "regression_selectors": [
+        "tests.test_cpp_json_checkpoint.JsonCheckpointNativeTests.test_actual_build_retains_scoped_abi_and_destructor_before_output",
+        "tests.test_cpp_json_checkpoint.JsonCheckpointNativeTests.test_embedded_raw_frame_binding_is_checked_without_rerunning_native",
+        "tests.test_cpp_json_checkpoint.JsonCheckpointNativeTests.test_readback_rejects_count_source_state_request_raw_or_scope_mutations",
+        "tests.test_cpp_json_checkpoint.JsonCheckpointNativeTests.test_real_immutable_worker_snapshot_survives_mutation_of_untrusted_copy_path",
+        "tests.test_cpp_json_checkpoint.JsonCheckpointNativeTests.test_real_two_versions_keep_every_foreign_failure_and_reconstruct_parent_state",
+        "tests.test_cpp_json_checkpoint.JsonCheckpointProtocolTests.test_actual_complete_frame_followed_by_nonzero_exit_cannot_commit",
+        "tests.test_cpp_json_checkpoint.JsonCheckpointProtocolTests.test_actual_timeout_keeps_partial_bytes_and_only_fresh_request_can_continue",
+        "tests.test_cpp_json_checkpoint.JsonCheckpointProtocolTests.test_cancelled_requests_still_consume_the_finite_lifetime_budget",
+        "tests.test_cpp_json_checkpoint.JsonCheckpointProtocolTests.test_changed_pending_request_is_rejected_without_execution",
+        "tests.test_cpp_json_checkpoint.JsonCheckpointProtocolTests.test_cleanup_uncertainty_poison_is_not_downgraded_by_partial_bytes",
+        "tests.test_cpp_json_checkpoint.JsonCheckpointProtocolTests.test_exact_input_domain_and_stale_revision_reject_before_launch",
+        "tests.test_cpp_json_checkpoint.JsonCheckpointProtocolTests.test_false_formal_source_identity_refuses_before_native_builder",
+        "tests.test_cpp_json_checkpoint.JsonCheckpointProtocolTests.test_identity_one_use_and_diagnostic_snapshots_do_not_grant_authority",
+        "tests.test_cpp_json_checkpoint.JsonCheckpointProtocolTests.test_interruption_retains_attempt_and_cost_and_requires_fail_closed_owner",
+        "tests.test_cpp_json_checkpoint.JsonCheckpointProtocolTests.test_malformed_wrong_stale_noisy_or_untyped_frames_never_commit",
+        "tests.test_cpp_json_checkpoint.JsonCheckpointProtocolTests.test_original_source_audit_accepts_docs_child_but_rejects_changed_raw_ledger",
+        "tests.test_cpp_json_checkpoint.JsonCheckpointProtocolTests.test_owner_request_and_image_cannot_be_deserialized_as_authority",
+        "tests.test_cpp_json_checkpoint.JsonCheckpointProtocolTests.test_publication_failure_preserves_commit_and_marks_same_history_poisoned",
+        "tests.test_cpp_json_checkpoint.JsonCheckpointProtocolTests.test_reentrant_mutation_is_refused_before_revising_or_reusing_a_request",
+        "tests.test_hia_routes.RouteTests.test_foreign_checkpoint_descriptor_cannot_become_core_or_rewrite_authority"
+      ],
+      "scope": "Existing nlohmann/json 3.11.3/3.12.0 scoped C ABI and Hepta consumer inside an immutable sealed Linux x86-64 worker. A caller owns 1..64 integers in [-1000000,1000000], with bounded lifetime requests, revision and nonce. State commits only after bound scalar correctness, ordinary lifetime ledger, complete valid response and normal child exit. Confirmed foreign failures preserve the committed checkpoint; a distinct explicit request may reconstruct it. Cleanup uncertainty poisons the owner."
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_crc_linear.candidates",
+        "tools.qualify_hia_crc_linear.qualify",
+        "tools.qualify_hia_crc_linear_economics.study"
+      ],
+      "exclusions": [
+        "Generated basis constants and proposal metadata are not proof or execution authority; every consumer must perform the original independent gates.",
+        "Filecheck is a repository-authored research application, not a newly migrated third-party CRC library or production demand trace.",
+        "Correctness, changed machine code, kernel timing and conditional break-even estimates do not establish net or whole-file performance improvement.",
+        "No NDU incremental-value, universal optimum, hardware-CRC superiority, source-C or final-machine-code refinement claim."
+      ],
+      "guarantee": "reviewed_qualification_protocol",
+      "id": "crc_parallel_bit_proposals_and_complete_cost_protocol",
+      "regression_selectors": [
+        "tests.test_hia_crc_linear.CRCLinearTests.test_all_six_candidates_preserve_legacy_pool_and_existing_bounds",
+        "tests.test_hia_crc_linear.CRCLinearTests.test_bad_shift_preserves_no_false_first_trap_qualification",
+        "tests.test_hia_crc_linear.CRCLinearTests.test_basis_uses_all_eight_steps_and_unsigned_boundaries",
+        "tests.test_hia_crc_linear.CRCLinearTests.test_erased_guard_cannot_claim_arbitrary_polynomial_equivalence",
+        "tests.test_hia_crc_linear.CRCLinearTests.test_every_actual_llvm_body_respects_unchanged_128_operation_gate",
+        "tests.test_hia_crc_linear.CRCLinearTests.test_fresh_all_u32_value_and_first_trap_translation",
+        "tests.test_hia_crc_linear.CRCLinearTests.test_guarded_and_arbitrary_fallback_values_and_known_crc",
+        "tests.test_hia_crc_linear.CRCLinearTests.test_wrong_basis_constant_is_disproved",
+        "tests.test_hia_crc_linear_economics.CRCLinearEconomicsTests.test_actual_outer_cost_is_required_and_can_reverse_inner_gate",
+        "tests.test_hia_crc_linear_economics.CRCLinearEconomicsTests.test_all_arms_deliver_the_same_crc_inputs_and_fixed_work",
+        "tests.test_hia_crc_linear_economics.CRCLinearEconomicsTests.test_exact_old_work_and_all_six_fixed_candidates_remain_registered",
+        "tests.test_hia_crc_linear_economics.CRCLinearEconomicsTests.test_failed_native_prefix_keeps_observed_work_and_cost",
+        "tests.test_hia_crc_linear_economics.CRCLinearEconomicsTests.test_kernel_gain_cannot_hide_host_loss_or_cold_preparation",
+        "tests.test_hia_crc_linear_economics.CRCLinearEconomicsTests.test_missing_duplicate_wrong_work_and_unknown_costs_are_rejected",
+        "tests.test_hia_crc_linear_economics.CRCLinearEconomicsTests.test_negative_gain_has_no_break_even_and_all_preparation_stays_charged",
+        "tests.test_hia_crc_linear_economics.CRCLinearEconomicsTests.test_outer_budget_overrun_cannot_grant_complete_cost_gate",
+        "tests.test_hia_crc_linear_economics.CRCLinearEconomicsTests.test_raw_write_failure_keeps_prefix_and_capture_in_terminal_observation",
+        "tests.test_hia_crc_linear_economics.CRCLinearEconomicsTests.test_strong_static_dual_is_included_in_dispatch_baseline",
+        "tests.test_hia_crc_linear_qualification.CRCLinearQualificationTests.test_cleanup_and_first_result_write_cannot_escape_deadline",
+        "tests.test_hia_crc_linear_qualification.CRCLinearQualificationTests.test_close_exception_preserves_acquired_counts_and_costs",
+        "tests.test_hia_crc_linear_qualification.CRCLinearQualificationTests.test_false_release_cannot_grant_qualification",
+        "tests.test_hia_crc_linear_qualification.CRCLinearQualificationTests.test_final_source_file_failure_retains_observations_and_report"
+      ],
+      "scope": "Untrusted GF(2) fixed-polynomial CRC proposals for the existing repo-authored Filecheck byte kernel, including both guarded singles and a shared-body dual within the unchanged 128-operation selected-LLVM bound. All three legacy candidates remain byte-identical and the full six-image pool remains available to fixed controls. Fresh original C capture, scalar all-input/first-trap translation validation, emitted-LLVM checking and sealed native controls precede an independent frozen eight-arm study with unchanged v3 work and complete cold cost accounting."
+    },
+    {
+      "entrypoints": [
+        "experiments.hia_agent_structured_v7_20261029.contracts_v2.response_schema",
+        "experiments.hia_agent_toolstudy_v13_20261030.engine.ToolStudyEngine.decoder_schema",
+        "experiments.hia_agent_toolstudy_v13_20261030.support.validate_qualification"
+      ],
+      "exclusions": [
+        "Schema order, public type syntax and generic prompts do not prove type/owner/resource/functional correctness or grant execution authority.",
+        "No reference-selected node or task-specific answer is used in the generation contract; failed attempts and complete/unknown usage remain retained.",
+        "Adaptive follow-up on prior failures; no independent holdout, public preregistration, real-model success or general Agent productivity claim follows from these regressions.",
+        "Legacy/full wire serialization and older protocol identities are retained; historical runs are not reclassified as V13 results."
+      ],
+      "guarantee": "reviewed_qualification_protocol",
+      "id": "public_selection_first_agent_decoder",
+      "regression_selectors": [
+        "tests.test_hia_agent_toolstudy_v13.SelectionFirstContractTests.test_actual_grammar_order_gate_requires_every_variant_and_rejects_missing_or_reversed",
+        "tests.test_hia_agent_toolstudy_v13.SelectionFirstContractTests.test_actual_reference_values_survive_grammar_order_rendering_all_19_controls",
+        "tests.test_hia_agent_toolstudy_v13.SelectionFirstContractTests.test_all_public_nodes_retained_and_rust_types_follow_public_language_only",
+        "tests.test_hia_agent_toolstudy_v13.SelectionFirstContractTests.test_generic_guidance_does_not_depend_on_references_or_hidden_task_fields",
+        "tests.test_hia_agent_toolstudy_v13.SelectionFirstContractTests.test_model_budget_task_and_strict_gates_unchanged_and_protocol_tamper_refused",
+        "tests.test_hia_agent_toolstudy_v13.SelectionFirstContractTests.test_retained_actual_v12_grammar_exposes_replacement_before_node",
+        "tests.test_hia_agent_toolstudy_v13.SelectionFirstContractTests.test_type_schema_refuses_declarations_but_expression_still_requires_real_parser",
+        "tests.test_hia_agent_toolstudy_v13.SelectionFirstContractTests.test_wire_preserves_schema_node_order_while_legacy_and_full_bytes_stay_exact"
+      ],
+      "scope": "V13 public-node-category-selection-first.v2 retains every public editable ID, selects the node before replacement in actual HTTP schema bytes, and checks the returned native GBNF for every public variant. Rust type replacements use only the existing public language type set; expressions remain untrusted. Generic whole-specification/transaction guidance and public category diagnostics are disclosed changes. Capacity-only reference rendering preserves values and never enters generation. Fresh capacity and 3/3 qualification remain mandatory before conditional main."
     }
   ],
   "judgment": {
@@ -1457,6 +1610,10 @@
     {
       "component": "host runtime and source/artifact identity mechanisms",
       "reason": "image admission, safe points, ownership ledger and dispatch"
+    },
+    {
+      "component": "Rust scoped-abort reservation/inventory audit/discharge and the explicit foreign parent-checkpoint protocol with fixed sealed worker",
+      "reason": "Separate finite implementation profiles only; logical journal preallocation is not general host resource safety, and the foreign worker, compiler, loader and existing process owner remain trusted."
     }
   ],
   "unproved_claims": {
