@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+defaults:
+  run:
+    shell: bash
+
 concurrency:
   group: hia-six-track-${{ github.sha }}
   cancel-in-progress: false
@@ -18,6 +22,7 @@ env:
   CLANG: /usr/bin/clang-20
   CLANGXX: /usr/bin/clang++-20
   HEPTA_CLANG: /usr/bin/clang-20
+  HEPTA_RUN_ARTIFACT_SESSION: '1'
   CARGO_PROFILE_DEV_DEBUG: '0'
   CARGO_PROFILE_TEST_DEBUG: '0'
   CARGO_INCREMENTAL: '0'
@@ -52,24 +57,68 @@ jobs:
           sudo install -m 0644 "$RUNNER_TEMP/llvm.asc" /usr/share/keyrings/hepta-six-llvm.asc
           printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hepta-six-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hepta-six-llvm.list
           sudo apt-get update
-          sudo apt-get install --yes clang-20 libclang-rt-20-dev llvm-20 lld-20 qemu-user build-essential
+          sudo apt-get install --yes clang-20 libclang-20-dev libclang-rt-20-dev llvm-20 lld-20 qemu-user build-essential
           printf '%s\n' /usr/lib/llvm-20/bin >> "$GITHUB_PATH"
-      - name: Install the pinned Rust compiler
+      - name: Install both explicit Rust profiles
         run: |
+          set -euo pipefail
+          rustup toolchain install 1.90.0 --profile minimal
           rustup toolchain install 1.95.0 --profile minimal
-          printf 'RUSTC=%s\nCARGO=%s\n' "$(rustup which --toolchain 1.95.0 rustc)" "$(rustup which --toolchain 1.95.0 cargo)" >> "$GITHUB_ENV"
-          dirname "$(rustup which --toolchain 1.95.0 rustc)" >> "$GITHUB_PATH"
+          # The production Rust backend admits only 1.90.0. The independent
+          # crate gate and separately pinned finite NDU build use 1.95.0.
+          printf 'RUSTC=%s\nCARGO=%s\n' "$(rustup which --toolchain 1.90.0 rustc)" "$(rustup which --toolchain 1.90.0 cargo)" >> "$GITHUB_ENV"
+          printf 'HIA_CRATE_RUSTC=%s\nHIA_CRATE_CARGO=%s\n' "$(rustup which --toolchain 1.95.0 rustc)" "$(rustup which --toolchain 1.95.0 cargo)" >> "$GITHUB_ENV"
+          dirname "$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_PATH"
       - name: Catalog and exact-lock independent Rust
         run: |
+          set -euo pipefail
           python tools/generate_hia_catalog.py --check
-          "$CARGO" test --locked --manifest-path rust/hia-core-shadow/Cargo.toml 2>&1 | tee "$SIX_EVIDENCE/rust-tests.log"
+          "$HIA_CRATE_CARGO" fetch --locked --manifest-path rust/hia-core-shadow/Cargo.toml
+          RUSTC="$HIA_CRATE_RUSTC" "$HIA_CRATE_CARGO" test --locked --offline --manifest-path rust/hia-core-shadow/Cargo.toml 2>&1 | tee "$SIX_EVIDENCE/rust-tests.log"
+      - name: Build all three distinct NDU profiles required by the reviewed matrix
+        run: |
+          set -euo pipefail
+          for ndu_spec in \
+            recursive:2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b:backend \
+            finite:4b6391e116949af0c7e59776baead67271856bdb:finite \
+            stream:c4a1bbed3a39beba43a6abf1a18b6f75c5725c21:backend; do
+            IFS=: read -r ndu_profile ndu_pin ndu_toolchain <<< "$ndu_spec"
+            ndu_source="$RUNNER_TEMP/six-$ndu_profile-source"
+            ndu_output="$SIX_EVIDENCE/ndu-$ndu_profile"
+            mkdir -p "$ndu_source"
+            git -C "$ndu_source" init --quiet
+            git -C "$ndu_source" remote add origin https://github.com/TrillionniumFoundation/hepta-private-ci.git
+            git -C "$ndu_source" sparse-checkout init --cone
+            git -C "$ndu_source" sparse-checkout set codex-rs/hepta-ndu codex-rs/hepta-contracts codex-rs/hepta-types tools/hia-ndu-bridge
+            git -C "$ndu_source" fetch --depth=1 --filter=blob:none origin "$ndu_pin"
+            git -C "$ndu_source" checkout --detach FETCH_HEAD
+            ndu_cargo="$CARGO"
+            ndu_rustc="$RUSTC"
+            if [ "$ndu_toolchain" = finite ]; then
+              ndu_cargo="$HIA_CRATE_CARGO"
+              ndu_rustc="$HIA_CRATE_RUSTC"
+            fi
+            CARGO_PROFILE_RELEASE_DEBUG=0 python tools/build_hia_recursive_ndu_bridge.py \
+              --ndu-source "$ndu_source" --expected-source "$ndu_pin" \
+              --cargo "$ndu_cargo" --rustc "$ndu_rustc" --output "$ndu_output" \
+              --target-dir "$RUNNER_TEMP/six-$ndu_profile-target"
+            case "$ndu_profile" in
+              recursive)
+                printf 'HEPTA_RECURSIVE_NDU_BRIDGE=%s\nHEPTA_RECURSIVE_NDU_IDENTITY=%s\n' "$ndu_output/native/hepta-hia-ndu-bridge" "$ndu_output/identity.json" >> "$GITHUB_ENV" ;;
+              finite)
+                printf 'HEPTA_FINITE_NDU_BRIDGE=%s\nHEPTA_FINITE_NDU_IDENTITY=%s\n' "$ndu_output/native/hepta-hia-ndu-bridge" "$ndu_output/identity.json" >> "$GITHUB_ENV" ;;
+              stream)
+                printf 'HEPTA_NDU_STREAM_BRIDGE=%s\nHEPTA_NDU_STREAM_IDENTITY=%s\n' "$ndu_output/native/hepta-hia-ndu-bridge" "$ndu_output/identity.json" >> "$GITHUB_ENV" ;;
+            esac
+          done
       - name: Complete reviewed safety matrix without skipped selectors
         run: python tools/qualify_hia_safety_contract.py --output "$SIX_EVIDENCE/safety-contract.json"
       - name: New C++ and stateful planning regression suites
         run: |
+          set -euo pipefail
           python - <<'PY' 2>&1 | tee "$SIX_EVIDENCE/new-regressions.log"
           import unittest
-          names = ['tests.test_cpp_gsl_final_action', 'tests.test_hia_ndu_stateful']
+          names = ['tests.test_cpp_gsl_final_action', 'tests.test_hia_ndu_stateful', 'tests.test_hia_agent_maintenance']
           suite = unittest.defaultTestLoader.loadTestsFromNames(names)
           planned = suite.countTestCases()
           result = unittest.TextTestRunner(verbosity=2).run(suite)

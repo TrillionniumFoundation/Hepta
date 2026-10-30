@@ -1,0 +1,116 @@
+test_batch_growth_after_capture_does_not_add_dispatches (argument_tests.AdaptiveArgumentSnapshotTests.test_batch_growth_after_capture_does_not_add_dispatches) ... FAIL
+test_captured_rows_are_detached_and_exact_boundaries_survive (argument_tests.AdaptiveArgumentSnapshotTests.test_captured_rows_are_detached_and_exact_boundaries_survive) ... ok
+test_growth_before_batch_capture_rejects_before_dispatch (argument_tests.AdaptiveArgumentSnapshotTests.test_growth_before_batch_capture_rejects_before_dispatch) ... FAIL
+test_invalid_inputs_never_reach_dispatch (argument_tests.AdaptiveArgumentSnapshotTests.test_invalid_inputs_never_reach_dispatch) ... ok
+test_post_check_mutation_cannot_enter_either_measurement_arm (argument_tests.AdaptiveArgumentSnapshotTests.test_post_check_mutation_cannot_enter_either_measurement_arm) ... FAIL
+test_post_check_row_growth_cannot_change_arity (argument_tests.AdaptiveArgumentSnapshotTests.test_post_check_row_growth_cannot_change_arity) ... FAIL
+test_post_check_scalar_mutation_cannot_reach_dispatch (argument_tests.AdaptiveArgumentSnapshotTests.test_post_check_scalar_mutation_cannot_reach_dispatch) ... 
+  test_post_check_scalar_mutation_cannot_reach_dispatch (argument_tests.AdaptiveArgumentSnapshotTests.test_post_check_scalar_mutation_cannot_reach_dispatch) (replacement=18446744073709551616) ... FAIL
+  test_post_check_scalar_mutation_cannot_reach_dispatch (argument_tests.AdaptiveArgumentSnapshotTests.test_post_check_scalar_mutation_cannot_reach_dispatch) (replacement=-1) ... FAIL
+  test_post_check_scalar_mutation_cannot_reach_dispatch (argument_tests.AdaptiveArgumentSnapshotTests.test_post_check_scalar_mutation_cannot_reach_dispatch) (replacement=True) ... FAIL
+test_row_growth_before_capture_is_rejected (argument_tests.AdaptiveArgumentSnapshotTests.test_row_growth_before_capture_is_rejected) ... ok
+
+======================================================================
+FAIL: test_batch_growth_after_capture_does_not_add_dispatches (argument_tests.AdaptiveArgumentSnapshotTests.test_batch_growth_after_capture_does_not_add_dispatches)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/hepta-safety-stage/tests/test_hia_adaptive_arguments.py", line 140, in test_batch_growth_after_capture_does_not_add_dispatches
+    self.assertEqual(result, [7])
+AssertionError: Lists differ: [7, 8, 9, 10] != [7]
+
+First list contains 3 additional elements.
+First extra element 1:
+8
+
+- [7, 8, 9, 10]
++ [7]
+
+======================================================================
+FAIL: test_growth_before_batch_capture_rejects_before_dispatch (argument_tests.AdaptiveArgumentSnapshotTests.test_growth_before_batch_capture_rejects_before_dispatch)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/hepta-safety-stage/tests/test_hia_adaptive_arguments.py", line 151, in test_growth_before_batch_capture_rejects_before_dispatch
+    with self.assertRaisesRegex(adaptive.AdaptiveRejected, "bounded nonempty"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: AdaptiveRejected not raised
+
+======================================================================
+FAIL: test_post_check_mutation_cannot_enter_either_measurement_arm (argument_tests.AdaptiveArgumentSnapshotTests.test_post_check_mutation_cannot_enter_either_measurement_arm)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/hepta-safety-stage/tests/test_hia_adaptive_arguments.py", line 128, in test_post_check_mutation_cannot_enter_either_measurement_arm
+    self.assertEqual(calls, [(7,), (7,)])
+AssertionError: Lists differ: [(18446744073709551616,), (18446744073709551616,)] != [(7,), (7,)]
+
+First differing element 0:
+(18446744073709551616,)
+(7,)
+
+- [(18446744073709551616,), (18446744073709551616,)]
++ [(7,), (7,)]
+
+======================================================================
+FAIL: test_post_check_row_growth_cannot_change_arity (argument_tests.AdaptiveArgumentSnapshotTests.test_post_check_row_growth_cannot_change_arity)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/hepta-safety-stage/tests/test_hia_adaptive_arguments.py", line 118, in test_post_check_row_growth_cannot_change_arity
+    self.assertEqual(result, [7])
+AssertionError: Lists differ: [106] != [7]
+
+First differing element 0:
+106
+7
+
+- [106]
++ [7]
+
+======================================================================
+FAIL: test_post_check_scalar_mutation_cannot_reach_dispatch (argument_tests.AdaptiveArgumentSnapshotTests.test_post_check_scalar_mutation_cannot_reach_dispatch) (replacement=18446744073709551616)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/hepta-safety-stage/tests/test_hia_adaptive_arguments.py", line 105, in test_post_check_scalar_mutation_cannot_reach_dispatch
+    self.assertEqual(result, [7])
+AssertionError: Lists differ: [18446744073709551616] != [7]
+
+First differing element 0:
+18446744073709551616
+7
+
+- [18446744073709551616]
++ [7]
+
+======================================================================
+FAIL: test_post_check_scalar_mutation_cannot_reach_dispatch (argument_tests.AdaptiveArgumentSnapshotTests.test_post_check_scalar_mutation_cannot_reach_dispatch) (replacement=-1)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/hepta-safety-stage/tests/test_hia_adaptive_arguments.py", line 105, in test_post_check_scalar_mutation_cannot_reach_dispatch
+    self.assertEqual(result, [7])
+AssertionError: Lists differ: [-1] != [7]
+
+First differing element 0:
+-1
+7
+
+- [-1]
++ [7]
+
+======================================================================
+FAIL: test_post_check_scalar_mutation_cannot_reach_dispatch (argument_tests.AdaptiveArgumentSnapshotTests.test_post_check_scalar_mutation_cannot_reach_dispatch) (replacement=True)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/hepta-safety-stage/tests/test_hia_adaptive_arguments.py", line 105, in test_post_check_scalar_mutation_cannot_reach_dispatch
+    self.assertEqual(result, [7])
+AssertionError: Lists differ: [1] != [7]
+
+First differing element 0:
+1
+7
+
+- [1]
++ [7]
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.009s
+
+FAILED (failures=7)
+{"mode": "original", "source_base_commit": "953fa62dee5aa563551d57b1374ab95b6d548b45", "source_sha256": "1db194dde0e4ea3a2b0b629c950312c488b506fe1f0b683a1a062f3f4d349384", "source_git_blob_sha1": "1b30383c47fbc2f1d3e100aa012126c6436f6f41", "test_sha256": "30f580b6e6c793a0540385aafc6dfaf9fab465053c1429b377816c4d648a0563", "execution_scope": "actual AST-extracted boundary and dispatch methods with Python call spies", "full_package_imported": false, "native_compiler_or_code_executed": false, "tests": 8, "failures": 7, "errors": 0, "skipped": 0, "passed": false, "failure_records": [{"test": "test_batch_growth_after_capture_does_not_add_dispatches (argument_tests.AdaptiveArgumentSnapshotTests.test_batch_growth_after_capture_does_not_add_dispatches)", "traceback": "Traceback (most recent call last):\n  File \"/tmp/hepta-safety-stage/tests/test_hia_adaptive_arguments.py\", line 140, in test_batch_growth_after_capture_does_not_add_dispatches\n    self.assertEqual(result, [7])\nAssertionError: Lists differ: [7, 8, 9, 10] != [7]\n\nFirst list contains 3 additional elements.\nFirst extra element 1:\n8\n\n- [7, 8, 9, 10]\n+ [7]\n"}, {"test": "test_growth_before_batch_capture_rejects_before_dispatch (argument_tests.AdaptiveArgumentSnapshotTests.test_growth_before_batch_capture_rejects_before_dispatch)", "traceback": "Traceback (most recent call last):\n  File \"/tmp/hepta-safety-stage/tests/test_hia_adaptive_arguments.py\", line 151, in test_growth_before_batch_capture_rejects_before_dispatch\n    with self.assertRaisesRegex(adaptive.AdaptiveRejected, \"bounded nonempty\"):\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: AdaptiveRejected not raised\n"}, {"test": "test_post_check_mutation_cannot_enter_either_measurement_arm (argument_tests.AdaptiveArgumentSnapshotTests.test_post_check_mutation_cannot_enter_either_measurement_arm)", "traceback": "Traceback (most recent call last):\n  File \"/tmp/hepta-safety-stage/tests/test_hia_adaptive_arguments.py\", line 128, in test_post_check_mutation_cannot_enter_either_measurement_arm\n    self.assertEqual(calls, [(7,), (7,)])\nAssertionError: Lists differ: [(18446744073709551616,), (18446744073709551616,)] != [(7,), (7,)]\n\nFirst differing element 0:\n(18446744073709551616,)\n(7,)\n\n- [(18446744073709551616,), (18446744073709551616,)]\n+ [(7,), (7,)]\n"}, {"test": "test_post_check_row_growth_cannot_change_arity (argument_tests.AdaptiveArgumentSnapshotTests.test_post_check_row_growth_cannot_change_arity)", "traceback": "Traceback (most recent call last):\n  File \"/tmp/hepta-safety-stage/tests/test_hia_adaptive_arguments.py\", line 118, in test_post_check_row_growth_cannot_change_arity\n    self.assertEqual(result, [7])\nAssertionError: Lists differ: [106] != [7]\n\nFirst differing element 0:\n106\n7\n\n- [106]\n+ [7]\n"}, {"test": "test_post_check_scalar_mutation_cannot_reach_dispatch (argument_tests.AdaptiveArgumentSnapshotTests.test_post_check_scalar_mutation_cannot_reach_dispatch) (replacement=18446744073709551616)", "traceback": "Traceback (most recent call last):\n  File \"/tmp/hepta-safety-stage/tests/test_hia_adaptive_arguments.py\", line 105, in test_post_check_scalar_mutation_cannot_reach_dispatch\n    self.assertEqual(result, [7])\nAssertionError: Lists differ: [18446744073709551616] != [7]\n\nFirst differing element 0:\n18446744073709551616\n7\n\n- [18446744073709551616]\n+ [7]\n"}, {"test": "test_post_check_scalar_mutation_cannot_reach_dispatch (argument_tests.AdaptiveArgumentSnapshotTests.test_post_check_scalar_mutation_cannot_reach_dispatch) (replacement=-1)", "traceback": "Traceback (most recent call last):\n  File \"/tmp/hepta-safety-stage/tests/test_hia_adaptive_arguments.py\", line 105, in test_post_check_scalar_mutation_cannot_reach_dispatch\n    self.assertEqual(result, [7])\nAssertionError: Lists differ: [-1] != [7]\n\nFirst differing element 0:\n-1\n7\n\n- [-1]\n+ [7]\n"}, {"test": "test_post_check_scalar_mutation_cannot_reach_dispatch (argument_tests.AdaptiveArgumentSnapshotTests.test_post_check_scalar_mutation_cannot_reach_dispatch) (replacement=True)", "traceback": "Traceback (most recent call last):\n  File \"/tmp/hepta-safety-stage/tests/test_hia_adaptive_arguments.py\", line 105, in test_post_check_scalar_mutation_cannot_reach_dispatch\n    self.assertEqual(result, [7])\nAssertionError: Lists differ: [1] != [7]\n\nFirst differing element 0:\n1\n7\n\n- [1]\n+ [7]\n"}], "error_records": []}
