@@ -84,11 +84,11 @@ def deliver(bank, p, payload, key, out, sample, primed, *, deadline=None):
     sample.update(phase=phase, trial=trial, workload=workload, arm=arm, status="started", contexts=[],
                   calls=0, completed_requests=0, kernel_ns=0, native_outer_wall_ns=0,
                   trace_preparation_wall_ns=0, loaded_candidates=[])
+    loaded = set()
     try:
         plan = requests(p, payload, workload, arm)
         save(out / "PLAN.json", plan)
         groups = [[row] for row in plan] if arm == "fresh_child_baseline" else [plan]
-        loaded = set()
         for index, group in enumerate(groups):
             if deadline is not None:
                 deadline.remaining_ns()
@@ -107,7 +107,6 @@ def deliver(bank, p, payload, key, out, sample, primed, *, deadline=None):
                     deadline.remaining_ns()
                 bank.run(trace, report=observed)
             finally:
-                save(out / f"{index:02d}.native.json", observed)
                 # Failed traces retain and account their actual decoded prefix.
                 # Missing measurements remain explicitly incomplete, not free.
                 results = observed.get("prefix", {}).get("completed_requests", [])
@@ -123,6 +122,16 @@ def deliver(bank, p, payload, key, out, sample, primed, *, deadline=None):
                 else:
                     sample.setdefault("unknown_native_measurements", []).append({"context": index, "field": "outer_wall_ns"})
                 loaded.update(row["candidate"] for row in observed.get("loaded_inventory", []))
+                try:
+                    save(out / f"{index:02d}.native.json", observed)
+                except BaseException as error:
+                    # A failed raw-file write cannot erase already acquired
+                    # work/cost. Retain the bounded in-memory capture in the
+                    # containing observation/RESULT and still fail the stage.
+                    sample.setdefault("native_persistence_errors", []).append({"context": index,
+                        "type": type(error).__name__, "message": str(error),
+                        "observed": copy.deepcopy(observed)})
+                    raise
             require(observed["status"] == "completed" and observed["prefix"]["complete"], "native trace incomplete")
             if deadline is not None:
                 deadline.remaining_ns()
@@ -131,6 +140,7 @@ def deliver(bank, p, payload, key, out, sample, primed, *, deadline=None):
         sample.update(status="failed", error={"type": type(error).__name__, "message": str(error)})
         raise
     finally:
+        sample["loaded_candidates"] = sorted(loaded)
         sample["arm_host_wall_ns"] = time.monotonic_ns() - started
         save(out / "OBSERVATION.json", sample)
         sample["arm_host_wall_ns"] = time.monotonic_ns() - started
@@ -227,7 +237,9 @@ def charge(analysis, p, whole_wall_ns, *, outer_verified=False):
     passed = result["new_exports_differ_from_every_legacy"] and all(
         row["cold_dispatch_net_over_all_six_fixed_ns"] > 0 for row in result["groups"])
     result["inner_cold_gate_passed"] = passed
-    result["complete_cost_cold_gate_passed"] = passed and outer_verified
+    within_budget = whole_wall_ns <= p["max_study_wall_ns"]
+    result["actual_outer_within_study_budget"] = within_budget if outer_verified else None
+    result["complete_cost_cold_gate_passed"] = passed and outer_verified and within_budget
     return result
 
 

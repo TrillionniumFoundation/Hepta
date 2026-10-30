@@ -8,6 +8,7 @@ from pathlib import Path
 import tempfile
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 from hepta.hia_crc_linear import LABELS, candidates
 from hepta.hia_program import verify_program
@@ -126,6 +127,20 @@ class CRCLinearEconomicsTests(unittest.TestCase):
                 self.assertIsNone(row["conditional_break_even_calls_full_charge"])
                 self.assertIsNone(row["conditional_break_even_calls_additional_three_image_component"])
 
+    def test_outer_budget_overrun_cannot_grant_complete_cost_gate(self):
+        p, samples, bank = fixture()
+        for row in samples:
+            if row["arm"] in study.STATIC:
+                row["arm_host_wall_ns"] = 10**12
+            if row["arm"] == "coalesced_poly_dispatch":
+                row.update(kernel_ns=50, native_outer_wall_ns=75, arm_host_wall_ns=100)
+        analysis = study.analyze(samples, p, bank)
+        self.assertGreater(analysis["delivered_host_sum_ns"], p["max_study_wall_ns"])
+        charged = study.charge(analysis, p, analysis["delivered_host_sum_ns"], outer_verified=True)
+        self.assertTrue(charged["inner_cold_gate_passed"])
+        self.assertFalse(charged["actual_outer_within_study_budget"])
+        self.assertFalse(charged["complete_cost_cold_gate_passed"])
+
     def test_failed_native_prefix_keeps_observed_work_and_cost(self):
         class FailedBank:
             def prepare_trace(self, plan):
@@ -151,6 +166,39 @@ class CRCLinearEconomicsTests(unittest.TestCase):
             self.assertEqual((retained["calls"], retained["kernel_ns"], retained["native_outer_wall_ns"]), (3, 100, 500))
             self.assertEqual(retained["status"], "failed")
             self.assertTrue((directory / "00.native.json").is_file())
+
+    def test_raw_write_failure_keeps_prefix_and_capture_in_terminal_observation(self):
+        class Bank:
+            def prepare_trace(self, plan):
+                return SimpleNamespace(sha256="b" * 64, images=(0,), expected=())
+
+            def oracle_reference_statistics(self):
+                return {"misses": 64, "capacity_bypasses": 0, "failed_computations": 0}
+
+            def run(self, trace, *, report):
+                report.update(status="completed", outer_wall_ns=500,
+                    prefix={"complete": True, "completed_requests": [{"calls": 3, "kernel_ns": 100}]},
+                    loaded_inventory=[{"candidate": "baseline"}], raw_stdout_base64="cmF3")
+
+        original_save = study.save
+
+        def fail_native(path, value):
+            if Path(path).name == "00.native.json":
+                raise OSError("injected raw-file persistence failure")
+            original_save(path, value)
+
+        p, row = study.protocol(), {}
+        with tempfile.TemporaryDirectory() as temporary, patch.object(study, "save", side_effect=fail_native):
+            directory = Path(temporary)
+            with self.assertRaisesRegex(OSError, "persistence"):
+                study.deliver(Bank(), p, bytes(4096), ("training", 0, "ieee", "coalesced_baseline"),
+                              directory, row, {"misses": 64})
+            retained = json.loads((directory / "OBSERVATION.json").read_bytes())
+            self.assertEqual((retained["calls"], retained["kernel_ns"], retained["native_outer_wall_ns"]), (3, 100, 500))
+            self.assertEqual(retained["loaded_candidates"], ["baseline"])
+            self.assertEqual(retained["status"], "failed")
+            self.assertEqual(retained["native_persistence_errors"][0]["observed"]["raw_stdout_base64"], "cmF3")
+            self.assertFalse((directory / "00.native.json").exists())
 
 
 if __name__ == "__main__":
