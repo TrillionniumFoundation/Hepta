@@ -161,17 +161,95 @@ class ExistingV6CoreDifferentialTests(unittest.TestCase):
                 self.assertEqual(
                     build.call_args.kwargs["static_resource_limits"], limits)
 
+    def test_rejected_source_builder_diagnostics_are_detached_and_never_authority(self):
+        from copy import deepcopy
+        report = {"ok": False, "status": "rejected",
+                  "claims": {"native_codegen_consumed_verified_hia_core": True},
+                  "diagnostics": [{"code": "E_HIA_HEPTA_BRIDGE", "message": "exact host receipt refused"}],
+                  "rust_reference": {"diagnostics": [{"code": "E_RUSTC", "message": "nested detail"}]}}
+        expected = deepcopy(report)
+        with (patch("hepta.hia_native_differential.platform.system", return_value="Linux"),
+              patch("hepta.hia_source_bridge.build_checked_hepta_hia_native", return_value=report),
+              patch("hepta.hia_native_differential._observe_native") as child):
+            with self.assertRaisesRegex(HIADifferentialRejected, "exact host receipt refused") as caught:
+                qualify_checked_hia_source("rejected.hepta", {"drop_case": [[]]})
+            child.assert_not_called()
+        first = caught.exception.build_diagnostics
+        self.assertTrue(first["diagnostic_only"])
+        self.assertFalse(first["authorizes_execution"])
+        self.assertEqual(first["snapshot_status"], "retained")
+        self.assertEqual(first["builder_report"], expected)
+        report["rust_reference"]["diagnostics"][0]["message"] = "caller mutation"
+        first["builder_report"]["diagnostics"][0]["message"] = "returned view mutation"
+        self.assertEqual(caught.exception.build_diagnostics["builder_report"], expected)
+
+    def test_malformed_or_over_budget_build_diagnostics_keep_the_original_refusal(self):
+        class Unprintable:
+            def __repr__(self):
+                raise AssertionError("diagnostic copying must not invoke object hooks")
+
+        cyclic = []
+        cyclic.append(cyclic)
+        deep = None
+        for _ in range(20):
+            deep = [deep]
+        for label, value in (("cycle", cyclic), ("depth", deep), ("items", [0] * 129),
+                             ("text", "x" * 16385), ("huge_integer", 1 << 129),
+                             ("nodes", [list(range(128)) for _ in range(9)]),
+                             ("total_text", ["x" * 16000] * 3),
+                             ("encoded_bytes", "\U0001f9e0" * 6000),
+                             ("nonfinite", float("nan")), ("object", Unprintable())):
+            with self.subTest(case=label):
+                report = {"ok": False, "diagnostics": [], "details": value}
+                with (patch("hepta.hia_native_differential.platform.system", return_value="Linux"),
+                      patch("hepta.hia_source_bridge.build_checked_hepta_hia_native", return_value=report),
+                      patch("hepta.hia_native_differential._observe_native") as child):
+                    with self.assertRaisesRegex(HIADifferentialRejected, "qualification rejected") as caught:
+                        qualify_checked_hia_source("rejected.hepta", {"drop_case": [[]]})
+                    child.assert_not_called()
+                self.assertEqual(caught.exception.build_diagnostics["snapshot_status"], "unavailable")
+                self.assertIsNone(caught.exception.build_diagnostics["builder_report"])
+                self.assertFalse(caught.exception.build_diagnostics["authorizes_execution"])
+
+    def test_diagnostic_allocation_failure_cannot_replace_qualification_rejection(self):
+        with (patch("hepta.hia_native_differential.platform.system", return_value="Linux"),
+              patch("hepta.hia_source_bridge.build_checked_hepta_hia_native", return_value={"ok": False}),
+              patch("hepta.hia_native_differential._bounded_build_diagnostics", side_effect=MemoryError),
+              patch("hepta.hia_native_differential._observe_native") as child):
+            with self.assertRaisesRegex(HIADifferentialRejected, "qualification rejected") as caught:
+                qualify_checked_hia_source("rejected.hepta", {"drop_case": [[]]})
+            child.assert_not_called()
+        self.assertEqual(caught.exception.build_diagnostics["snapshot_status"], "unavailable")
+
     @unittest.skipUnless(shutil.which(CLANG) and
                          (os.environ.get("RUSTC") or shutil.which("rustc")),
                          "pinned Rust and Clang20 required")
     def test_pinned_hepta_owned_source_to_single_core_native(self):
+        from hepta.hia_program_llvm import native_host_profile
+        from hepta.hia_source_bridge import build_checked_hepta_hia_native
+        observed_builds = []
+
+        def retain_real_build(*args, **kwargs):
+            report = build_checked_hepta_hia_native(*args, **kwargs)
+            observed_builds.append(report)
+            return report
+
         with tempfile.TemporaryDirectory(prefix="hia-v6-source-") as temp:
             src = Path(temp) / "owned.hepta"
             src.write_text(_SOURCE, encoding="utf-8")
-            report = qualify_checked_hia_source(
-                src, {"drop_case": [[]]}, profile="owned",
-                clang=CLANG, rustc=os.environ.get("RUSTC"),
-                static_resource_limits={"max_live_heap_bytes": 4})
+            # Keep the real formerly failing builder/qualifier path. This
+            # wrapper observes the unmodified producer receipt and never
+            # changes a field to satisfy source-facing reinspection.
+            with patch("hepta.hia_source_bridge.build_checked_hepta_hia_native", side_effect=retain_real_build):
+                report = qualify_checked_hia_source(
+                    src, {"drop_case": [[]]}, profile="owned",
+                    clang=CLANG, rustc=os.environ.get("RUSTC"),
+                    static_resource_limits={"max_live_heap_bytes": 4})
+            self.assertEqual(len(observed_builds), 1)
+            self.assertTrue(observed_builds[0]["ok"], observed_builds[0])
+            self.assertEqual(observed_builds[0]["native_backend"]["build_host"], native_host_profile())
+            self.assertIs(observed_builds[0]["native_backend"]["cross_target_compilation"], False)
+            self.assertTrue(observed_builds[0]["claims"]["source_native_binary_abi_rechecked"])
             self.assertTrue(report["claims"]["source_static_resource_budget_replayed"])
             self.assertEqual(report["static_resource_limits"], {"max_live_heap_bytes": 4})
             self.assertTrue(report["claims"]["native_compiled_from_program_verified"])

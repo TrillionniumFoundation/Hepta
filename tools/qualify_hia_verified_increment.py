@@ -75,6 +75,8 @@ MODULES = (
     "tests.test_hia_finite_context",
     "tests.test_clang_capture_environment",
     "tests.test_hia_crc_context_study",
+    "tests.test_hia_native_source_reinspect",
+    "tests.test_hia_v6_differential",
 )
 
 

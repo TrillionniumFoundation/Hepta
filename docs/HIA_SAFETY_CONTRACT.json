@@ -208,7 +208,9 @@
     {
       "entrypoints": [
         "hepta.hia_program_llvm.build_program_native",
-        "tools.hia_filecheck_target_profile.bind_native_target_profile"
+        "tools.hia_filecheck_target_profile.bind_native_target_profile",
+        "hepta.hia_source_bridge.build_checked_hepta_hia_native",
+        "hepta.hia_native_differential.qualify_checked_hia_source"
       ],
       "exclusions": [
         "Core-to-LLVM refinement not proved",
@@ -223,9 +225,25 @@
         "tests.test_hia_filecheck_target_profile.FilecheckTargetProfileTests.test_masked_cpu_lto_preserves_complete_frontend_feature_policy",
         "tests.test_hia_filecheck_target_profile.FilecheckTargetProfileTests.test_legacy_irpgo_overrides_preserve_masked_cpu_features",
         "tests.test_hia_legacy_irpgo.SameCoreBuildInputTests.test_changed_bound_ir_profile_and_compiler_refuse_before_build",
-        "tests.test_hia_legacy_irpgo.SupervisedChildFailureTests.test_actual_sigill_retains_failed_child_receipt_without_retry"
+        "tests.test_hia_legacy_irpgo.SupervisedChildFailureTests.test_actual_sigill_retains_failed_child_receipt_without_retry",
+        "tests.test_hia_native_source_reinspect.HIASourceBinaryReinspectionTests.test_real_shared_elf_matches_actual_bytes_and_rejects_forged_inventory",
+        "tests.test_hia_native_source_reinspect.HIASourceBinaryReinspectionTests.test_self_consistent_wrong_shared_export_or_import_is_not_authorized",
+        "tests.test_hia_native_source_reinspect.HIASourceBinaryReinspectionTests.test_host_receipt_and_cross_flag_require_exact_measured_identity",
+        "tests.test_hia_native_source_reinspect.HIASourceBinaryReinspectionTests.test_real_x86_and_aarch64_objects_and_unapproved_public_data",
+        "tests.test_hia_native_source_reinspect.HIASourceBinaryReinspectionTests.test_source_native_rejects_consistent_forged_compiler_artifact_before_publish",
+        "tests.test_hia_v6_differential.ExistingV6CoreDifferentialTests.test_actual_owned_core_verification_and_vm_observe_drop",
+        "tests.test_hia_v6_differential.ExistingV6CoreDifferentialTests.test_real_clang_transport_with_existing_verified_owner_vm",
+        "tests.test_hia_v6_differential.ExistingV6CoreDifferentialTests.test_wrong_hia_argument_count_refused_before_native_load",
+        "tests.test_hia_v6_differential.ExistingV6CoreDifferentialTests.test_missing_native_export_cannot_count_as_full_qualification",
+        "tests.test_hia_v6_differential.ExistingV6CoreDifferentialTests.test_core_abi_arity_rejects_before_native_child",
+        "tests.test_hia_v6_differential.ExistingV6CoreDifferentialTests.test_actual_executable_hia_llvm_matches_owner_vm",
+        "tests.test_hia_v6_differential.ExistingV6CoreDifferentialTests.test_source_static_budget_receipt_is_replayed_before_native_child",
+        "tests.test_hia_v6_differential.ExistingV6CoreDifferentialTests.test_rejected_source_builder_diagnostics_are_detached_and_never_authority",
+        "tests.test_hia_v6_differential.ExistingV6CoreDifferentialTests.test_malformed_or_over_budget_build_diagnostics_keep_the_original_refusal",
+        "tests.test_hia_v6_differential.ExistingV6CoreDifferentialTests.test_diagnostic_allocation_failure_cannot_replace_qualification_rejection",
+        "tests.test_hia_v6_differential.ExistingV6CoreDifferentialTests.test_pinned_hepta_owned_source_to_single_core_native"
       ],
-      "scope": "direct LLVM from immutable reverified HIA; Linux x86-64 native execution; other target qualification is separate; filecheck research full-LTO IR explicitly retains the same C frontend CPU and complete positive/negative feature policy, with actual masked-x86 CPU refusal and success controls; the legacy LTO, IR-PGO generation/use, and separate resource-observer object paths freshly bind and recheck the original Core/IR, bound IR, compiler, complete frontend CPU feature profile and declared flags; supervised native failures retain their actual child status without retry"
+      "scope": "direct LLVM from immutable reverified HIA; Linux x86-64 native execution; other target qualification is separate; filecheck research full-LTO IR explicitly retains the same C frontend CPU and complete positive/negative feature policy, with actual masked-x86 CPU refusal and success controls; the legacy LTO, IR-PGO generation/use, and separate resource-observer object paths freshly bind and recheck the original Core/IR, bound IR, compiler, complete frontend CPU feature profile and declared flags; supervised native failures retain their actual child status without retry; the checked Hepta-source bridge consumes the same closed native receipt, independently binds its measured build-host identity and exact cross-target boolean, and retains bounded diagnostic context on a rejected source qualification without granting execution authority"
     },
     {
       "entrypoints": [
