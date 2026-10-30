@@ -67,14 +67,18 @@ jobs:
           # The production Rust backend admits only 1.90.0. The independent
           # crate gate and separately pinned finite NDU build use 1.95.0.
           printf 'RUSTC=%s\nCARGO=%s\n' "$(rustup which --toolchain 1.90.0 rustc)" "$(rustup which --toolchain 1.90.0 cargo)" >> "$GITHUB_ENV"
-          printf 'HIA_CRATE_RUSTC=%s\nHIA_CRATE_CARGO=%s\n' "$(rustup which --toolchain 1.95.0 rustc)" "$(rustup which --toolchain 1.95.0 cargo)" >> "$GITHUB_ENV"
+          printf 'HIA_CRATE_RUSTC=%s\nHIA_CRATE_CARGO=%s\nHIA_CRATE_RUSTDOC=%s\n' "$(rustup which --toolchain 1.95.0 rustc)" "$(rustup which --toolchain 1.95.0 cargo)" "$(rustup which --toolchain 1.95.0 rustdoc)" >> "$GITHUB_ENV"
           dirname "$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_PATH"
       - name: Catalog and exact-lock independent Rust
         run: |
           set -euo pipefail
           python tools/generate_hia_catalog.py --check
           "$HIA_CRATE_CARGO" fetch --locked --manifest-path rust/hia-core-shadow/Cargo.toml
-          RUSTC="$HIA_CRATE_RUSTC" "$HIA_CRATE_CARGO" test --locked --offline --manifest-path rust/hia-core-shadow/Cargo.toml 2>&1 | tee "$SIX_EVIDENCE/rust-tests.log"
+          # rustdoc otherwise resolves through the production 1.90 PATH even
+          # when Cargo and RUSTC are explicitly 1.95. Keep all crate artifacts
+          # separate from the production backend's target directory as well.
+          RUSTC="$HIA_CRATE_RUSTC" RUSTDOC="$HIA_CRATE_RUSTDOC" CARGO_TARGET_DIR="$RUNNER_TEMP/six-rust195-target" \
+            "$HIA_CRATE_CARGO" test --locked --offline --manifest-path rust/hia-core-shadow/Cargo.toml 2>&1 | tee "$SIX_EVIDENCE/rust-tests.log"
       - name: Build all three distinct NDU profiles required by the reviewed matrix
         run: |
           set -euo pipefail
