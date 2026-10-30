@@ -150,8 +150,14 @@ protocol. It freshly migrates the same real upstream implementation, then builds
 
 The three authored API trace profiles are small transfers, bursts, and transfers
 near capacity. Each trace has 4,096 records. Training uses seed `1708132849` and
-four passes. After all final candidate identities are frozen, held-out generation
-uses seed `2097394567` and sixteen passes. All four arms execute the same held-out
+four passes. Development already observed seed `2097394567`; its protocol and
+negative result remain separately archived. The
+[registered amendment](../experiments/ring_optimization/AMENDMENT_20261030.json)
+changes only the formal held-out seed to `3698156298`, selected by one OS-random
+draw before its input generation or execution. The unit trace-generation test
+uses the fixed development seeds so ordinary CI cannot consume the new formal
+holdout. After all final candidate identities are frozen, formal held-out
+generation uses the new seed and sixteen passes. All four arms execute the same held-out
 bytes and independent byte/sentinel/checksum oracle. Five rotated/reversed paired
 groups produce 60 actual held-out processes and 983,040 transactions per arm.
 
@@ -176,7 +182,79 @@ Additional human effort, unavailable end-to-end refinement proof and final
 artifact publication costs are unknown and remain explicit. If that upper bound
 is nonpositive, those additional costs cannot turn the run into a net benefit.
 No unexecuted future call horizon is counted as an achieved saving. A negative
-result leaves the requested net-optimization gate open.
+result leaves the requested net-optimization gate open. This is an accounting
+upper bound on the observed finite campaign, not a statistical confidence bound.
+
+## Registered single-attempt results, 2026-10-30
+
+Both formal runs used remotely registered source commit
+`e223932a8bf25521db4204883af925dd64acc57a`. Before execution, the maintenance
+runner verified all 180 bound source files against that exact Git tree; the
+optimization runner verified all 183. Both also required unchanged source
+SHA-256 inventories at the end. The new formal held-out seed was executed once;
+there was no parameter change, replacement seed, or result-driven retry.
+
+### Maintenance and host result
+
+The [formal maintenance result](../experiments/ring_maintenance/RESULT_20261030.json)
+records 1,380 actual top-level process invocations and an 11.485-second
+instrumented qualification. That count is not the total of all compiler
+subprocesses or forked descendants in the operating system.
+Its two fresh migrations took 1.858 and 1.766 seconds. The real upstream
+`0xff` behavior change, original builds/clients, full API state observations,
+nine fault-isolation/recovery cases, six owner-resource cases and all three
+pthread profiles passed. Human hours remain unmeasured.
+
+| Host profile | Implementation | Whole-run median ms | Batch p99 µs | Median child peak RSS KiB | Maximum observed child peak RSS KiB |
+| --- | --- | ---: | ---: | ---: | ---: |
+| One thread | Original C, GCC `-O2` | 4.866 | 118.445 | 1,756 | 2,068 |
+| One thread | Migrated Hepta → Rust | 3.127 | 86.698 | 2,084 | 2,184 |
+| Four disjoint records | Original C, GCC `-O2` | 7.143 | 132.886 | 1,880 | 2,052 |
+| Four disjoint records | Migrated Hepta → Rust | 5.396 | 84.975 | 2,064 | 2,264 |
+| Four mutex-serialized threads | Original C, GCC `-O2` | 40.932 | 970.417 | 1,880 | 1,904 |
+| Four mutex-serialized threads | Migrated Hepta → Rust | 28.438 | 649.161 | 2,064 | 2,144 |
+
+These are the registered maintenance/host samples against the original-build
+control. The separate optimization decision uses the stronger static compilers
+and new traces described below. The host observations show increased RSS for
+the migrated arm even where its observed batch/runtime values are lower.
+
+### Strong-static optimization result
+
+The [formal optimization result](../experiments/ring_optimization/RESULT_20261030.json)
+contains 82 actual top-level process invocations, including 60 held-out
+invocations and real positive
+LLVM IR counters for all nine APIs. Every arm executed 983,040 held-out
+transactions. The frozen selection rule selected **Clang native LTO** as the
+strongest single static C arm in this run. All baseline samples, including
+IR-PGO and GCC, remain available in the result and receipt archive.
+
+| Accounting item | Formal observation |
+| --- | ---: |
+| Matched-group process-wall savings summed over the actual workload | +0.000103767 s |
+| All held-out process wall time across all four arms | 1.106630208 s |
+| Measured non-held-out campaign cost charged to the candidate | 6.465698658 s |
+| Net-benefit upper bound over the actual candidate workload | **−6.465594891 s** |
+| Human / complete refinement proof / final artifact publication costs | Unknown additional costs |
+
+The tiny positive sum of observed process-time differences is descriptive and
+does not establish a repeatable speedup on this shared host. It does not recover
+the measured preparation and verification costs. The requested net-benefit gate
+therefore remains **false**. No future amortization, NDU benefit, standalone HIA
+optimization, or universal performance advantage is inferred.
+
+### Published receipts
+
+The [maintenance receipt archive](../experiments/ring_maintenance/EVIDENCE_20261030.tar.gz)
+contains 4,260 retained textual/stream artifacts and is 918,639 bytes, SHA-256
+`129436aa33bb440da1fd2345640858098a64b8954316f6bd7319d511e841bcfd`.
+The [optimization receipt archive](../experiments/ring_optimization/EVIDENCE_20261030.tar.gz)
+contains 329 such artifacts and is 535,071 bytes, SHA-256
+`ae1a4668b02b21c194633c40c875d03e77bd96d0e373c6ad8f0c213dcffda22a`.
+Their manifests explicitly inventory the 21 and 14 omitted native/replayable
+binary artifacts. Full original reports and raw observations are retained.
+The development protocol, result and archive have `DEVELOPMENT_` filenames and
+are not pooled with these formal observations.
 
 ## Guarantee boundary
 
@@ -195,6 +273,11 @@ result leaves the requested net-optimization gate open.
 Use a fresh output pathname for every run. The tools reserve that pathname,
 retain failed attempts, and reject source changes during execution. For published
 evidence pass the exact committed source SHA with `--source-sha`.
+
+Replaying the published formal seed is a reproducibility check of already
+observed inputs. It is not another unseen-load experiment and must not be
+pooled with the registered single formal attempt. A genuinely new experiment
+requires a separately registered protocol and unused inputs.
 
 ```sh
 python3 -m unittest tests.test_ring_maintenance_qualification tests.test_ring_optimization_qualification -v

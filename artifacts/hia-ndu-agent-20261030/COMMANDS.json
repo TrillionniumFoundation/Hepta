@@ -1,0 +1,49 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "python3",
+        "tools/qualify_hia_ndu_converged_holdout.py",
+        "run",
+        "--output",
+        "/workspace/scratch/793cbcdf54ed/ndu-converged-holdout-run-01",
+        "--registration-commit",
+        "e223932a8bf25521db4204883af925dd64acc57a"
+      ],
+      "combined_output": "/workspace/scratch/793cbcdf54ed/ndu-converged-holdout-run-01.log",
+      "exit_code": 0,
+      "name": "ndu"
+    },
+    {
+      "argv": [
+        "python3",
+        "tools/qualify_hia_agent_public_tools.py",
+        "run",
+        "--output",
+        "/workspace/scratch/793cbcdf54ed/agent-public-tools-run-01",
+        "--review",
+        "experiments/agent_public_tools/INDEPENDENT_REVIEW.json",
+        "--registration-commit",
+        "e223932a8bf25521db4204883af925dd64acc57a"
+      ],
+      "combined_output": "/workspace/scratch/793cbcdf54ed/agent-public-tools-run-01.log",
+      "exit_code": 0,
+      "name": "agent"
+    }
+  ],
+  "cwd": "/workspace/scratch/793cbcdf54ed/Hepta",
+  "environment": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONPATH": "/workspace/scratch/cd43ab608057/hia-python-deps"
+  },
+  "execution_context": "Normal process/network context was approved; the sealed native identity check was not weakened to accommodate sandbox PID namespace differences.",
+  "nested_commands": "Actual per-request CLI/compiler/linker/native argv, raw streams and process ownership/cleanup receipts are retained inside the evidence archive.",
+  "no_concurrent_native_study": "Migration/strong-static study owner explicitly handed over the CPU window before NDU. Agent started only after NDU exited.",
+  "registration_commit": "e223932a8bf25521db4204883af925dd64acc57a",
+  "reproduction_note": "These are recorded commands, not an instruction to repeat registered holdout observations or replace their results.",
+  "schema": "hepta.hia.ndu-agent.commands.v1",
+  "sequence": [
+    "ndu",
+    "agent"
+  ]
+}

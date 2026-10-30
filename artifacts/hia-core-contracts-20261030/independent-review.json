@@ -1,0 +1,59 @@
+{
+  "claims": {
+    "complete_semantic_equivalence_proved": false,
+    "specified_cache_regression_fixed_and_replayed": true,
+    "whole_language_soundness_proved": false
+  },
+  "findings": [
+    {
+      "before_fix_evidence_limit": "Observed in the independent interactive review before the integration commit; no separate pre-fix source snapshot is claimed.",
+      "before_fix_observation": {
+        "fresh_verifier": "E_HIA_TYPE refusal",
+        "incremental_verifier": "reused cached constant body and accepted",
+        "literal": "const i32 65536",
+        "live_change": "rebind hia_opcodes.WIDTHS with i32 width 16",
+        "policy_invalidated": false
+      },
+      "fix": "Bind the actual opcode module width/type/effect/profile globals separately from imported Core aliases.",
+      "id": "catalog_width_alias_cache_invalidation",
+      "post_fix_actual_replay": {
+        "fresh_verifier": {
+          "accepted": false,
+          "error_code": "E_HIA_TYPE"
+        },
+        "incremental_verifier": {
+          "accepted": false,
+          "error_code": "E_HIA_TYPE"
+        },
+        "policy_invalidated": true
+      },
+      "regression": "tests.test_hia_opcode_catalog.OpcodeCatalogTests.test_cache_cannot_keep_literal_after_catalog_width_rebinding",
+      "scope": "In-process incremental checker cache; public consumers still reverify actual Core."
+    }
+  ],
+  "manual_comparison": {
+    "resource_rules": [
+      "owner_free before move/drop/call transfer",
+      "borrow permission and root exclusivity",
+      "suspended parents",
+      "external and child loan.end restrictions",
+      "copy/copy_range distinct roots",
+      "call owner uniqueness and mutable alias restrictions",
+      "v8 declared returned origins and caller-root rebinding",
+      "ordinary-return resource cleanup",
+      "CFG linearity and parent/root remapping"
+    ],
+    "result": "No additional weakening found by direct comparison against #399; this is a bounded review conclusion."
+  },
+  "original_commit": "e0ab595468d67bcf95485eacd22cea8ff332520c",
+  "reviewed_commit": "87f3787ed789aec30893ab9ee017a2e813aa8418",
+  "schema": "hepta.hia.independent-integration-review.v1",
+  "source_identity": {
+    "hepta/hia_agent_assembly.py": "0f50123394b1bd2d82f1a87657e66055443770361dade9c57329fa69336add27",
+    "hepta/hia_incremental.py": "9e1d02aec5f464f642cba9b7307112a3594e68c74384f76bbc8404e788a784de",
+    "hepta/hia_opcodes.py": "88075bb92905e2873de21d96341b1442d1235e0f092ec3937193435b4534a5ec",
+    "hepta/hia_program.py": "5352d6b1e3906d4ab72f2a94c005cab15f1550d845549e63275402ee7d51ea1a",
+    "hepta/hia_schema.py": "b6bd0864fbe2a90e8f2f705da1d81c8b1afae001d8608f54f8f1fca477cdf253",
+    "tests/test_hia_opcode_catalog.py": "c2b6dd36f61314d440cbae3ac93e8f242a609386e7cc47978247264d38bb6696"
+  }
+}
