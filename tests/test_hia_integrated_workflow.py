@@ -81,6 +81,21 @@ def environment(workspace, temporary, head):
 
 
 class IntegratedWorkflowContractTests(unittest.TestCase):
+    def test_raw_record_candidate_push_registers_full_and_both_host_gates(self):
+        branch = 'codex/hia-rust-record-normalization-20261030'
+        for filename in ('hepta-qualification.yml', 'hepta-native-hosts.yml', 'hepta-cpp-upstream-hosts.yml'):
+            source = (ROOT / '.github/workflows' / filename).read_text()
+            # These workflows use one fixed block or inline branch-list form;
+            # inspect the actual push stanza, not a branch name in a comment.
+            stanza = re.search(r'(?ms)^  push:\n(.*?)(?=^  [A-Za-z_]+:|\Z)', source)
+            self.assertIsNotNone(stanza, filename)
+            selected = stanza[1]
+            inline = re.search(r'^    branches: \[([^\]\n]*)\]$', selected, re.MULTILINE)
+            branches = ([part.strip() for part in inline[1].split(',')] if inline else
+                        re.findall(r'^      - ([A-Za-z0-9_./-]+)$', selected, re.MULTILINE))
+            self.assertEqual(branches.count(branch), 1, filename)
+            self.assertIn('codex/hia-core-closure-20261028', branches, filename)
+
     def test_actual_cli_receives_all_four_native_profiles_and_external_paths(self):
         workspace = Path('/unexecuted/source workspace')
         temporary = Path('/unexecuted/runner temp')

@@ -14,6 +14,14 @@ fn main() -> ExitCode {
     let result = match args.as_slice() {
         [] => hia_core_shadow::verify(&input),
         [flag] if flag == "--owned-shadow" => hia_core_shadow::verify_owned(&input),
+        [flag] if flag == "--composite-record-normalize" => hia_core_shadow::normalize_composite_records(&input),
+        [mode, function, arguments, policy] if mode == "--composite-record-run-bound-v1" => {
+            match hia_core_shadow::decode_scalar_arguments(arguments) {
+                Ok(values) => hia_core_shadow::execute_composite_records_bound(
+                    &input, function, &values, policy.as_bytes()),
+                Err(error) => { eprintln!("{error}"); return ExitCode::FAILURE; }
+            }
+        },
         [mode, function, arguments, policy]
             if matches!(mode.as_str(), "--owned-run-bound-v2" | "--owned-run-bound-v3" | "--owned-run-bound-v4") => {
             match hia_core_shadow::decode_scalar_arguments(arguments) {
@@ -81,7 +89,7 @@ fn main() -> ExitCode {
             }
         },
         _ => {
-            eprintln!("E_HIA_RUST_UNSUPPORTED: expected no args, --owned-shadow, --scalar-run FUNCTION JSON_ARGS [MAX_STEPS], --owned-run/--owned-run-bound FUNCTION JSON_ARGS [MAX_STEPS MAX_HEAP_BYTES FAIL_AT|none], or --owned-run-bound-v2/v3/v4 FUNCTION JSON_ARGS JSON_POLICY");
+            eprintln!("E_HIA_RUST_UNSUPPORTED: expected no args, --owned-shadow, --scalar-run FUNCTION JSON_ARGS [MAX_STEPS], --owned-run/--owned-run-bound FUNCTION JSON_ARGS [MAX_STEPS MAX_HEAP_BYTES FAIL_AT|none], --owned-run-bound-v2/v3/v4 FUNCTION JSON_ARGS JSON_POLICY, or explicit monomorphic Copy-record candidate --composite-record-normalize / --composite-record-run-bound-v1 FUNCTION JSON_ARGS JSON_POLICY (not general composite.v1)");
             return ExitCode::FAILURE;
         }
     };
