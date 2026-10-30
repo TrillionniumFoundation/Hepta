@@ -1,0 +1,144 @@
+{
+  "base_commit": "2cc9fb3b92a7306d2f5aae316c99e8364be700f9",
+  "blocking_findings": [],
+  "conclusion": "No unintended relaxation of the reviewed admission, uncertainty rejection, shared-budget or sealed-execution boundaries was identified in this diff. This conclusion is scoped to code review and the explicit limitations above.",
+  "confirmed": [
+    {
+      "contract_canonical_sha256": "03bcc4af39c2467c1395eb685e9f8345bcaa790fabe5fed14b4a329a096a065d",
+      "finding": "The matrix authority, exact Core registry and all eight unproved-claim values are unchanged. verify_program remains production admission authority over actual immutable Core; neither metadata nor external receipts grant admission. The independently pinned canonical contract hash matches the revised runner.",
+      "id": "authority_registry_and_claims"
+    },
+    {
+      "finding": "Capability rows grow from 33 to 35 and unique selected regressions from 266 to 277. The one removed selector asserted that all nested/jump do-loop control was unsupported; its replacement and additional refusal selectors accompany the deliberately declared structured-loop extension. Registration changes do not add a runtime admission path or turn skips into passed qualification.",
+      "id": "registration_scope",
+      "removed_selector": [
+        "tests.test_c_project_do_while.CapturedDoWhileTests.test_nested_scopes_and_jump_control_remain_refused"
+      ]
+    },
+    {
+      "finding": "NDU _fresh_proof accepts only the exact proved translation record and bindings; unproved candidates become hard violations. The selected candidate is freshly proved again. Guarded narrowing requires both independently verified stages, exact original/intermediate/final Core links, solver/checker identity and the shared chain deadline. unknown, timeout, refuted or changed bindings cannot reach the verified build/prepared-proof issuance path.",
+      "id": "unknown_and_proof_chain"
+    },
+    {
+      "finding": "All supplied candidate and incumbent search costs plus observed adapter cost share one cap. Each candidate and final proof timeout is rounded down against remaining budget and strictly positive possible saving; insufficient allowance refuses the solver. Native/adaptor or proof overrun retains the incumbent, and no positive net margin means no proposal admission. The API itself never publishes or executes the proposed program.",
+      "id": "shared_search_budget"
+    },
+    {
+      "finding": "The Rust shadow runner and finite NDU ranking transport retain the already verified bytes in a sealed memfd, verify complete seal/length/byte readback, execute through the inherited descriptor, and retain bounded subprocess input/output and cleanup behavior. Unavailable sealing and changed identity fail closed; there is no mutable-path fallback. The original persistent NDU session /proc executable-identity check is unchanged.",
+      "id": "sealed_execution"
+    },
+    {
+      "finding": "The narrowed session entry requires a live internal baseline, the same finite profile/quota reservations, actual proof/build, bound policy/checker/solver/compiler identity, sealed native image and private proof ancestry. It retains transactional publication rollback and charged unresolved release debt. No receipt-import or foreign-image admission was introduced.",
+      "id": "prepared_resource_custody"
+    },
+    {
+      "finding": "Rust v3/v4 are explicit opt-in protocols on the same verified Machine/ByteMemory. Legacy v1/v2 policy ceilings and report shapes remain separate. Consumers reverify through Python before execution and compare exact request, outcome, stopped resource ledger and claim fields. production_admission_authorized, rust_is_production_admission_authority, whole-language soundness, backend refinement and ABI/hardware qualification remain false.",
+      "id": "rust_stays_shadow"
+    },
+    {
+      "finding": "Python validates and executes the same tuple snapshot. The C acceptance expansion is deliberate and bounded: initialized loop-control flags, nearest-loop break/continue, separate normal/break/continue definite-assignment exits and a 64-level lowering cap. Unsupported switch/goto, mutating conditions and unmodeled evaluation order still reject; the strict scalar importer adds conservative preprocessing/macro refusal. These frontends still flow into the existing source/Core checks.",
+      "id": "invocation_and_c_frontend"
+    }
+  ],
+  "limitations": [
+    "This bounded static review is not a soundness proof, exhaustive security audit, release qualification, machine-code-refinement theorem or authority to publish an artifact.",
+    "The revised C frontend intentionally accepts additional structured control flow and Rust v3/v4 intentionally enlarge only their explicit shadow profiles. Unchanged Core authority does not mean every frontend acceptance set is unchanged.",
+    "The search cap is a proof/admission and accounting boundary, not a hard WCET limit. Native ranking has a separate subprocess timeout and host/solver overhead can overshoot; final admission then refuses. Native preparation/publication cost remains separately charged.",
+    "Sealing binds executable bytes under the declared trusted local host. Python, proof encoders/Z3, Clang/LLVM, dynamic loader/interpreter/libraries, OS and hardware remain trusted; Linux support and process-identity observability are required.",
+    "Prepared retained-byte/entry/lease/execution limits and VM logical payload/tick/frame limits do not bound compiler allocations, host overhead, all native heap/stack or process RSS. Trap/budget/crash outcomes do not imply guest unwinding or recoverable persistent state.",
+    "The high-level Rust summary table describes legacy v2 explicitly; the new v3/v4 documents and integrated regression registration carry their separate finite limits. No complete Python API parity should be inferred.",
+    "Passing this review cannot substitute for actual zero-skip qualification gates. Missing native-profile dependencies or a failed run remain failures until separately executed and reported against the frozen source.",
+    "The completed four-arm replication still has false warm and build-inclusive net-value gates, no unseen-workload qualification, no complete lifecycle qualification and no global-optimality claim; registration and correctness regressions cannot promote them."
+  ],
+  "program_admission_authorized": false,
+  "proof_scope_table": [
+    {
+      "boundary": "C/Hepta source -> Core",
+      "implemented_evidence": "Scoped source/capture checks, explicit foreign obligations, structural lowering and reverified resource-valid Core; finite original/VM/native comparisons.",
+      "not_established": "All-C/C++ behavior preservation, automatic inference of undefined behavior or foreign obligations, whole-source refinement, general historical ABI compatibility."
+    },
+    {
+      "boundary": "Core admission and execution",
+      "implemented_evidence": "Actual immutable program bytes, closed versioned schema/SSA/CFG/type/effect/owner/loan checks; explicit runtime traps, quotas and stopped ledgers.",
+      "not_established": "Machine-checked soundness/preservation/progress for the full language, absolute resource safety, native RSS or universal termination."
+    },
+    {
+      "boundary": "Core -> optimized Core",
+      "implemented_evidence": "Declared finite solver profiles require proved/verified obligations, correct hashes, effect/resource structure and first-trap conditions; guarded narrowing binds both stages.",
+      "not_established": "Every transformation, encoder correctness theorem, arbitrary loop/recursive reasoning or global instruction optimality."
+    },
+    {
+      "boundary": "Selected Core -> selected internal LLVM body",
+      "implemented_evidence": "The separate unchanged scalar-lowering checker accepts only UNSAT within its bounded scalar/acyclic-call grammar and modeled value/abort/poison obligations.",
+      "not_established": "All LLVM, public wrappers, C ABI, arbitrary resource/concurrency semantics or LLVM-to-machine-code refinement; this is not a blanket proof automatically attached to every native build."
+    },
+    {
+      "boundary": "Native artifact and Rust shadow",
+      "implemented_evidence": "Reverified Core, locally bound compiler/artifact identities, sealed executable custody and finite host observations; independent Rust comparisons remain advisory development evidence.",
+      "not_established": "A verified compiler/loader/OS/hardware chain, hostile-host attestation, production Rust authority or a safety certificate from a receipt or test pass."
+    }
+  ],
+  "release_qualification_granted": false,
+  "review_method": "Static source inspection and metadata/hash comparison only; no new runtime tests, timing experiments, source edits, program admissions or publication actions.",
+  "reviewed_files": [
+    "docs/HIA_RUST_BOUND_API_V4.md",
+    "docs/HIA_RUST_BOUND_BUDGET_V3.md",
+    "docs/HIA_RUST_EXECUTABLE_CUSTODY.md",
+    "docs/HIA_SAFETY_CONTRACT.json",
+    "docs/HIA_SAFETY_CONTRACT.md",
+    "experiments/hia_ndu_narrowed_candidates/IMPORT_ORIGIN_20261030.json",
+    "experiments/hia_ndu_narrowed_candidates/PROTOCOL_20261030.json",
+    "hepta/c_definite_assignment.py",
+    "hepta/c_loop_control.py",
+    "hepta/c_record_views.py",
+    "hepta/c_translation.py",
+    "hepta/hia_artifact_session.py",
+    "hepta/hia_narrowing.py",
+    "hepta/hia_ndu_optimizer.py",
+    "hepta/hia_program_runtime.py",
+    "hepta/hia_rust_crosscheck.py",
+    "rust/hia-core-shadow/README.md",
+    "rust/hia-core-shadow/src/lib.rs",
+    "rust/hia-core-shadow/src/main.rs",
+    "rust/hia-core-shadow/src/scalar_vm.rs",
+    "rust/hia-core-shadow/src/scalar_vm/byte_memory.rs",
+    "rust/hia-core-shadow/tests/bound_execution_v3.rs",
+    "rust/hia-core-shadow/tests/bound_execution_v4.rs",
+    "tests/test_c2hepta_preprocessor_guard.py",
+    "tests/test_c_project_do_while.py",
+    "tests/test_hia_artifact_narrowing.py",
+    "tests/test_hia_c_do_while.py",
+    "tests/test_hia_c_loop_jumps.py",
+    "tests/test_hia_c_loop_migration_qualification.py",
+    "tests/test_hia_ndu_narrowed_controls.py",
+    "tests/test_hia_ndu_optimizer_budget.py",
+    "tests/test_hia_ndu_optimizer_transport.py",
+    "tests/test_hia_runtime_argument_snapshot.py",
+    "tests/test_hia_rust_api_v4.py",
+    "tests/test_hia_rust_budget_v3.py",
+    "tests/test_hia_rust_executable_custody.py",
+    "tools/c2hepta.py",
+    "tools/qualify_hia_c_loop_migration.py",
+    "tools/qualify_hia_integrated.py",
+    "tools/qualify_hia_ndu_narrowed_candidates.py",
+    "tools/qualify_hia_safety_contract.py",
+    "tools/qualify_hia_verified_increment.py"
+  ],
+  "reviewed_utc": "2026-10-30T06:11:58.965618+00:00",
+  "safety_certificate": false,
+  "schema": "hepta.hia.final-independent-code-review.v1",
+  "scope": "Read-only targeted boundary review of the 42-file integration: code/diffs, consumer checks, qualification registrations and test intent. This reviewer also implemented the NDU/prepared-artifact import; this is not an organizationally independent audit of those authored files.",
+  "source_clean_at_review": true,
+  "source_commit": "60dfedc626b7ce3feaaa87ac16d711fe0cc8e9d3",
+  "supporting_unchanged_boundary_files": [
+    "hepta/hia_program.py",
+    "hepta/hia_schema.py",
+    "hepta/hia_program_llvm.py",
+    "hepta/hia_translation_validation.py",
+    "hepta/hia_scalar_lowering_check.py",
+    "hepta/hia_native_differential.py",
+    "hepta/hia_ndu_session.py",
+    "hepta/hia_prepared.py"
+  ],
+  "whole_language_soundness_proved": false
+}

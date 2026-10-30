@@ -1,0 +1,401 @@
+{
+  "bounded_interpretation": {
+    "established": "In this frozen interface, the model repeatedly proposed non-existent comparison names and the existing verifier correctly rejected them before public/native/hidden execution. The exact legal names were absent from the supplied HIA task material.",
+    "existing_mechanism_guidance": "Any future separately registered disclosure study should reuse the existing schema/route/inspection authority and documented verifier semantics; this diagnosis does not create another registry, change the current run or rerun failed cells.",
+    "not_established": [
+      "The HIA language lacks saturation/comparison capability. Existing same-freeze human controls already pass the task.",
+      "Changing only the opcode name would make each model answer correct; validation stopped at the first observed rejection.",
+      "The failure is entirely caused by either the model or the prompt. No counterfactual disclosure experiment was run.",
+      "A general or statistically established Rust-versus-HIA agent productivity ranking follows from this task."
+    ],
+    "plausible_contributor": "Opcode discoverability/presentation is an identified confound and a plausible contributor to this failure. The observation concerns the combined model, supplied interface and fixed repair budget."
+  },
+  "core_comparisons": {
+    "arity": 2,
+    "attributes": {},
+    "legal_opcodes": [
+      "compare.eq",
+      "compare.ne",
+      "compare.lt",
+      "compare.le",
+      "compare.gt",
+      "compare.ge"
+    ],
+    "not_aliases": [
+      "int.gt",
+      "int.lt",
+      "int.cmp.lt",
+      "cmp.lt"
+    ],
+    "operand_rule": "Operands have the same integer type; compare.eq/ne also admit bool. LLVM signed/unsigned ordering follows operand type.",
+    "result_types": [
+      "bool"
+    ],
+    "task_core_schema": "hepta.hia.program.v6",
+    "verifier_authority": "hepta.hia_program.verify_program"
+  },
+  "existing_discovery_mechanisms": [
+    {
+      "exists": true,
+      "legal_comparison_names_in_output": [],
+      "machine_readable": true,
+      "mechanism": "hepta.hia_schema.schema_registry()",
+      "schema": "hepta.hia.schema-registry.v1",
+      "scope": "Version/profile/feature compatibility and nominal operation names. It does not enumerate primitive comparison opcodes."
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "hepta",
+        "hia",
+        "routes"
+      ],
+      "exists": true,
+      "legal_comparison_names_in_output": [],
+      "machine_readable": true,
+      "mechanism": "python -m hepta hia routes",
+      "returncode": 0,
+      "schema": "hepta.hia.routes.v1",
+      "scope": "Existing input/source/backend/optimization routes plus schema registry. No primitive comparison-opcode catalogue in this output.",
+      "stdout_sha256": "03f5e84a04be7306b7a426445bd4c44549caa64d613863a14f5fa11efb09b59d"
+    },
+    {
+      "exists": true,
+      "machine_readable": true,
+      "mechanism": "hia inspect / hia edit-query / hia edit-batch-query",
+      "scope": "Return actual verified program instructions and selected source/SSA context; they reveal comparison names when those operations are already present. They do not enumerate all legal replacement opcodes absent from that source."
+    },
+    {
+      "comparison_names_present": [
+        "compare.eq",
+        "compare.ne",
+        "compare.lt",
+        "compare.le",
+        "compare.gt",
+        "compare.ge"
+      ],
+      "exists": true,
+      "machine_readable_as_python_data": true,
+      "mechanism": "hepta.hia_finite_actions._TOTAL and other audited profile opcode sets",
+      "scope": "Internal closed profiles for optimization/backend/resource checks, not a public complete per-schema primitive ISA descriptor."
+    },
+    {
+      "exists": true,
+      "mechanism": "docs/HIA_PROGRAM.md, Scalar instruction set",
+      "scope": "Already documents the exact comparison namespace and operand rules. These docs were not included in the frozen task messages."
+    }
+  ],
+  "feedback_to_running_model": false,
+  "freeze_sha256": "bd93c93e120b642a428888fd719a6ee6aa7effe2c8b000982b33463270604b35",
+  "human_control_evidence": [
+    {
+      "arm": "hia_full",
+      "correct": true,
+      "path": "/workspace/scratch/8245a7ab856a/agent-frontier-study/controls-02/main__saturating_score__hia_full/reference/evaluation/EVALUATION.json",
+      "sha256": "3374bd10d3d004b231ded955e944bfcf0f7c2c4b7ff04704d921c4c7ee7b3736"
+    },
+    {
+      "arm": "hia_node",
+      "correct": true,
+      "path": "/workspace/scratch/8245a7ab856a/agent-frontier-study/controls-02/main__saturating_score__hia_node/reference/evaluation/EVALUATION.json",
+      "sha256": "4739116650e3294900657a096349cb77d1cb951c06cc09331c5dfa4029aaff4a"
+    }
+  ],
+  "mode": "read_only_post_observation_diagnosis",
+  "model_calls_by_diagnosis": 0,
+  "observed_cells": [
+    {
+      "arm": "hia_full",
+      "attempts": [
+        {
+          "diagnostic": {
+            "message": "E_HIA_OPCODE: unsupported opcode int.gt",
+            "type": "HIAProgramRejected"
+          },
+          "evaluation_path": "/workspace/scratch/8245a7ab856a/agent-frontier-study/run-01/main__saturating_score__hia_full/attempt-0/validation/evaluation/EVALUATION.json",
+          "evaluation_sha256": "2386d690efc04e6c4694d9f534fe73989c80970af80bbbd706b27fbd7406ef9c",
+          "hidden_evaluated": false,
+          "index": 0,
+          "legal_comparison_names_in_request_messages": [],
+          "project_source_updated": false,
+          "public_cases_executed": 0,
+          "request_sha256": "dd8d9e7030704608a7287c6e98fdb87e93a413876bfa812c9e5fcfe2ba0349ff",
+          "status": "response_rejected"
+        },
+        {
+          "diagnostic": {
+            "message": "E_HIA_OPCODE: unsupported opcode int.lt",
+            "type": "HIAProgramRejected"
+          },
+          "evaluation_path": "/workspace/scratch/8245a7ab856a/agent-frontier-study/run-01/main__saturating_score__hia_full/attempt-1/validation/evaluation/EVALUATION.json",
+          "evaluation_sha256": "02bdcc2c087ba4eebeb4235b5180c5c17e2818d1d56c739cb44678936deeb65f",
+          "hidden_evaluated": false,
+          "index": 1,
+          "legal_comparison_names_in_request_messages": [],
+          "project_source_updated": false,
+          "public_cases_executed": 0,
+          "request_sha256": "b3ede9da63da6ca7c13b8272acc81903a301cb63e40a8bf361e665f1c8ccd2db",
+          "status": "response_rejected"
+        },
+        {
+          "diagnostic": {
+            "message": "E_HIA_OPCODE: unsupported opcode int.cmp.lt",
+            "type": "HIAProgramRejected"
+          },
+          "evaluation_path": "/workspace/scratch/8245a7ab856a/agent-frontier-study/run-01/main__saturating_score__hia_full/attempt-2/validation/evaluation/EVALUATION.json",
+          "evaluation_sha256": "843d57e9be1565704bf39f82220f68e567b9a2e2b96919f54b936ce0d0325e43",
+          "hidden_evaluated": false,
+          "index": 2,
+          "legal_comparison_names_in_request_messages": [],
+          "project_source_updated": false,
+          "public_cases_executed": 0,
+          "request_sha256": "3c730abbc9dee11ce6dcb234dcbc0bb4c34fa2df9c6ab102b981823ab82925a7",
+          "status": "response_rejected"
+        }
+      ],
+      "captured_query": {
+        "file_sha256": "608eddc94141787942fad35179a90ff9bc28bacb7c7f932610bb6badaeb657f1",
+        "legal_comparison_names_present": [],
+        "matches_frozen_query": true,
+        "path": "/workspace/scratch/8245a7ab856a/agent-frontier-study/run-01/main__saturating_score__hia_full/CAPTURED_QUERY.json",
+        "query_sha256": "2ba1fa9281d2c551d85ba2943448905f5382431110fdc2ee883e27ad94058a56"
+      },
+      "correct": false,
+      "hidden_evaluated": false,
+      "initial_prompt": {
+        "legal_comparison_names_present": [],
+        "matches_frozen_prompt": true,
+        "only_generic_comparison_rule_present": true,
+        "path": "/workspace/scratch/8245a7ab856a/agent-frontier-study/run-01/main__saturating_score__hia_full/INITIAL_PROMPT.txt",
+        "sha256": "882cc015a18199477acbbe96a490d0cd3c9403776cb5ae1ea4b5fd255569e27c"
+      },
+      "status": "public_repairs_exhausted"
+    },
+    {
+      "arm": "hia_node",
+      "attempts": [
+        {
+          "diagnostic": {
+            "message": "E_HIA_OPCODE: unsupported opcode int.gt",
+            "type": "HIAProgramRejected"
+          },
+          "evaluation_path": "/workspace/scratch/8245a7ab856a/agent-frontier-study/run-01/main__saturating_score__hia_node/attempt-0/validation/evaluation/EVALUATION.json",
+          "evaluation_sha256": "51b009e16e51d4f0997674861252f0438053f95c6105b1e42a6311ea2075702c",
+          "hidden_evaluated": false,
+          "index": 0,
+          "legal_comparison_names_in_request_messages": [],
+          "project_source_updated": false,
+          "public_cases_executed": 0,
+          "request_sha256": "1f92e0aaf301bb6744c77d4c04b53bf5ac99938ef544250056b98ce7146a304a",
+          "status": "response_rejected"
+        },
+        {
+          "diagnostic": {
+            "message": "E_HIA_OPCODE: unsupported opcode int.lt",
+            "type": "HIAProgramRejected"
+          },
+          "evaluation_path": "/workspace/scratch/8245a7ab856a/agent-frontier-study/run-01/main__saturating_score__hia_node/attempt-1/validation/evaluation/EVALUATION.json",
+          "evaluation_sha256": "b65b5815b031bfee7f01d62bfd19bc174fe2d583fe21e8e73f8d376267c4e66b",
+          "hidden_evaluated": false,
+          "index": 1,
+          "legal_comparison_names_in_request_messages": [],
+          "project_source_updated": false,
+          "public_cases_executed": 0,
+          "request_sha256": "7a069495fa90dc0431453586afbfbe4455e08a137644d917115002c4fb9315df",
+          "status": "response_rejected"
+        },
+        {
+          "diagnostic": {
+            "message": "E_HIA_OPCODE: unsupported opcode cmp.lt",
+            "type": "HIAProgramRejected"
+          },
+          "evaluation_path": "/workspace/scratch/8245a7ab856a/agent-frontier-study/run-01/main__saturating_score__hia_node/attempt-2/validation/evaluation/EVALUATION.json",
+          "evaluation_sha256": "f8f0b1440807dd74c6e9df1169926152826296f58da8f4dfbb67afaf814e35c5",
+          "hidden_evaluated": false,
+          "index": 2,
+          "legal_comparison_names_in_request_messages": [],
+          "project_source_updated": false,
+          "public_cases_executed": 0,
+          "request_sha256": "8f9ad10acf06b2b6206be6224295ce7fdaa90c1adc62e1a44949dd9cf705967e",
+          "status": "response_rejected"
+        }
+      ],
+      "captured_query": {
+        "file_sha256": "608eddc94141787942fad35179a90ff9bc28bacb7c7f932610bb6badaeb657f1",
+        "legal_comparison_names_present": [],
+        "matches_frozen_query": true,
+        "path": "/workspace/scratch/8245a7ab856a/agent-frontier-study/run-01/main__saturating_score__hia_node/CAPTURED_QUERY.json",
+        "query_sha256": "2ba1fa9281d2c551d85ba2943448905f5382431110fdc2ee883e27ad94058a56"
+      },
+      "correct": false,
+      "hidden_evaluated": false,
+      "initial_prompt": {
+        "legal_comparison_names_present": [],
+        "matches_frozen_prompt": true,
+        "only_generic_comparison_rule_present": true,
+        "path": "/workspace/scratch/8245a7ab856a/agent-frontier-study/run-01/main__saturating_score__hia_node/INITIAL_PROMPT.txt",
+        "sha256": "389bcdc16e6dbe48b32b72d5dc8846d61c90f051c19f2e92e2f08829cd122ff0"
+      },
+      "status": "public_repairs_exhausted"
+    },
+    {
+      "arm": "rust_full",
+      "attempts": [
+        {
+          "diagnostic": null,
+          "evaluation_path": "/workspace/scratch/8245a7ab856a/agent-frontier-study/run-01/main__saturating_score__rust_full/attempt-0/validation/evaluation/EVALUATION.json",
+          "evaluation_sha256": "4429e799ab3fb636f016c8e46578c4268b0bfbd48a8b22a596c58d5793819683",
+          "hidden_evaluated": true,
+          "index": 0,
+          "legal_comparison_names_in_request_messages": [],
+          "project_source_updated": true,
+          "public_cases_executed": 3,
+          "request_sha256": "b70f4b84fe6403cf3cc28b0b02eb77acc9010de6f0ca17e01ccda27ec50862b5",
+          "status": "correct"
+        }
+      ],
+      "captured_query": {
+        "file_sha256": "984accc7e6b22411acf5862c42fec05658d4e5ac34b66a3b1e7f7b07e8964d33",
+        "legal_comparison_names_present": [],
+        "matches_frozen_query": true,
+        "path": "/workspace/scratch/8245a7ab856a/agent-frontier-study/run-01/main__saturating_score__rust_full/CAPTURED_QUERY.json",
+        "query_sha256": "c6e1a8328c88f7953faf411b86f07326ff677506ac1fbfbfeed78035882a5c2c"
+      },
+      "correct": true,
+      "hidden_evaluated": true,
+      "initial_prompt": {
+        "legal_comparison_names_present": [],
+        "matches_frozen_prompt": true,
+        "only_generic_comparison_rule_present": false,
+        "path": "/workspace/scratch/8245a7ab856a/agent-frontier-study/run-01/main__saturating_score__rust_full/INITIAL_PROMPT.txt",
+        "sha256": "9a0db8e341ec9a1935b92abb9070ff7f174573c927e460b90ad58a463057dd93"
+      },
+      "status": "correct"
+    },
+    {
+      "arm": "rust_node",
+      "attempts": [
+        {
+          "diagnostic": null,
+          "evaluation_path": "/workspace/scratch/8245a7ab856a/agent-frontier-study/run-01/main__saturating_score__rust_node/attempt-0/validation/evaluation/EVALUATION.json",
+          "evaluation_sha256": "f82b9997c6ff1f30a51fd99f42c9ffaaa467cb7c5eb32fd167d0f3db0fb4cefb",
+          "hidden_evaluated": true,
+          "index": 0,
+          "legal_comparison_names_in_request_messages": [],
+          "project_source_updated": true,
+          "public_cases_executed": 3,
+          "request_sha256": "4fbd00e6ff6e302eb09d2f25a3bd7bc4ca9c7993878434a70d8fe8d91e2abd46",
+          "status": "correct"
+        }
+      ],
+      "captured_query": {
+        "file_sha256": "984accc7e6b22411acf5862c42fec05658d4e5ac34b66a3b1e7f7b07e8964d33",
+        "legal_comparison_names_present": [],
+        "matches_frozen_query": true,
+        "path": "/workspace/scratch/8245a7ab856a/agent-frontier-study/run-01/main__saturating_score__rust_node/CAPTURED_QUERY.json",
+        "query_sha256": "c6e1a8328c88f7953faf411b86f07326ff677506ac1fbfbfeed78035882a5c2c"
+      },
+      "correct": true,
+      "hidden_evaluated": true,
+      "initial_prompt": {
+        "legal_comparison_names_present": [],
+        "matches_frozen_prompt": true,
+        "only_generic_comparison_rule_present": false,
+        "path": "/workspace/scratch/8245a7ab856a/agent-frontier-study/run-01/main__saturating_score__rust_node/INITIAL_PROMPT.txt",
+        "sha256": "791fc0cc333145972e218e360b1644daa8a0d88b2614c851665ba747df7eb420"
+      },
+      "status": "correct"
+    }
+  ],
+  "presentation_findings": [
+    "Both HIA initial prompts say only comparisons return bool; neither provides any of the six legal comparison names.",
+    "Both captured source queries contain existing arithmetic/cast/bit/call nodes but no comparison instruction and no list of admissible comparison names. Their hashes match the pre-generation freeze.",
+    "No HIA request or repair message in these six attempts supplies a legal comparison name; public feedback identifies the rejected opcode but does not list legal alternatives.",
+    "The registered pilot wrapper forbids tool calls and repository/file inspection. Existing repository discovery mechanisms therefore were not available to the model as an interactive lookup during this pilot."
+  ],
+  "question": "Why were the saturating_score HIA cells rejected, and were the legal comparison names available in existing interfaces and frozen task messages?",
+  "schema": "hepta.agent-frontier-opcode-diagnosis.v1",
+  "source_commit": "60dfedc626b7ce3feaaa87ac16d711fe0cc8e9d3",
+  "source_prompt_query_or_answer_mutations": false,
+  "sources": [
+    {
+      "immutable_url": "https://github.com/TrillionniumFoundation/Hepta/blob/60dfedc626b7ce3feaaa87ac16d711fe0cc8e9d3/hepta/hia_program.py",
+      "path": "/workspace/scratch/8245a7ab856a/Hepta/hepta/hia_program.py",
+      "purpose": "_BlockCheck.instruction: comparison operand/result/attribute checks and E_HIA_OPCODE refusal",
+      "sha256": "410047b492d52f2d8c9504192d4180d1de55a9447730fd10edcd56426efac416"
+    },
+    {
+      "immutable_url": "https://github.com/TrillionniumFoundation/Hepta/blob/60dfedc626b7ce3feaaa87ac16d711fe0cc8e9d3/hepta/hia_program_runtime.py",
+      "path": "/workspace/scratch/8245a7ab856a/Hepta/hepta/hia_program_runtime.py",
+      "purpose": "Machine instruction comparison evaluation",
+      "sha256": "1cf20b990a2f803c5613c0f51107d4470fb9ed09f0c4531a765d63075e0c86ea"
+    },
+    {
+      "immutable_url": "https://github.com/TrillionniumFoundation/Hepta/blob/60dfedc626b7ce3feaaa87ac16d711fe0cc8e9d3/hepta/hia_program_llvm.py",
+      "path": "/workspace/scratch/8245a7ab856a/Hepta/hepta/hia_program_llvm.py",
+      "purpose": "LLVM icmp lowering chooses signedness from operand type",
+      "sha256": "e636ea6b496c00117d0735bcc25c3e8651f3ce0897760116e8b60176837cf957"
+    },
+    {
+      "immutable_url": "https://github.com/TrillionniumFoundation/Hepta/blob/60dfedc626b7ce3feaaa87ac16d711fe0cc8e9d3/hepta/hia_schema.py",
+      "path": "/workspace/scratch/8245a7ab856a/Hepta/hepta/hia_schema.py",
+      "purpose": "schema_registry: existing version/profile/features metadata",
+      "sha256": "6af2fe9bdee089747b03c3b877f7cc52f7c8ed2e12a62f971be1bb33e5132a8b"
+    },
+    {
+      "immutable_url": "https://github.com/TrillionniumFoundation/Hepta/blob/60dfedc626b7ce3feaaa87ac16d711fe0cc8e9d3/hepta/hia_routes.py",
+      "path": "/workspace/scratch/8245a7ab856a/Hepta/hepta/hia_routes.py",
+      "purpose": "route_inventory: existing CLI machine route inventory",
+      "sha256": "338d4a153d3e602657be2c874a231a522e0bd5c37141024235da8c65f19a994c"
+    },
+    {
+      "immutable_url": "https://github.com/TrillionniumFoundation/Hepta/blob/60dfedc626b7ce3feaaa87ac16d711fe0cc8e9d3/hepta/cli.py",
+      "path": "/workspace/scratch/8245a7ab856a/Hepta/hepta/cli.py",
+      "purpose": "existing hia routes/inspect/edit-query/edit-batch-query/lower commands",
+      "sha256": "b19d0fd24d99d5cda1a4c876552354237f63305dc6e4f5ffad63f2a30cc35fa3"
+    },
+    {
+      "immutable_url": "https://github.com/TrillionniumFoundation/Hepta/blob/60dfedc626b7ce3feaaa87ac16d711fe0cc8e9d3/hepta/hia_program_tools.py",
+      "path": "/workspace/scratch/8245a7ab856a/Hepta/hepta/hia_program_tools.py",
+      "purpose": "inspect_program: existing instructions of a submitted verified program",
+      "sha256": "d8b54aee8bb9f226fbcc0de61daa9bd70d29491c50f46242c3080b3a6ccfcd6d"
+    },
+    {
+      "immutable_url": "https://github.com/TrillionniumFoundation/Hepta/blob/60dfedc626b7ce3feaaa87ac16d711fe0cc8e9d3/hepta/hia_edit_query.py",
+      "path": "/workspace/scratch/8245a7ab856a/Hepta/hepta/hia_edit_query.py",
+      "purpose": "prepare_edit: exact existing SSA slice, not a catalogue of all legal replacement opcodes",
+      "sha256": "191f29e6d3e0db7f298f5097ca213339593710f0e92c5b9add80edcc952137e2"
+    },
+    {
+      "immutable_url": "https://github.com/TrillionniumFoundation/Hepta/blob/60dfedc626b7ce3feaaa87ac16d711fe0cc8e9d3/hepta/hia_finite_actions.py",
+      "path": "/workspace/scratch/8245a7ab856a/Hepta/hepta/hia_finite_actions.py",
+      "purpose": "_TOTAL: internal finite optimization profile, not whole-Core registry",
+      "sha256": "1a43781b3f5a24780f17867ec42b350b22266b26c2c3074ac0cc88789e9f1079"
+    },
+    {
+      "immutable_url": "https://github.com/TrillionniumFoundation/Hepta/blob/60dfedc626b7ce3feaaa87ac16d711fe0cc8e9d3/experiments/hia_agent_toolstudy_v9_20261029/prompts.py",
+      "path": "/workspace/scratch/8245a7ab856a/Hepta/experiments/hia_agent_toolstudy_v9_20261029/prompts.py",
+      "purpose": "frozen initial and public-repair presentation",
+      "sha256": "3e8630f11e61eff18fe08f90513a6ee870dc09f69e380c0269210e24df7805cd"
+    },
+    {
+      "immutable_url": "https://github.com/TrillionniumFoundation/Hepta/blob/60dfedc626b7ce3feaaa87ac16d711fe0cc8e9d3/experiments/hia_agent_structured_v7_20261029/editing.py",
+      "path": "/workspace/scratch/8245a7ab856a/Hepta/experiments/hia_agent_structured_v7_20261029/editing.py",
+      "purpose": "prepare_hia: editable existing nodes/insert sites/signatures",
+      "sha256": "4dbb1d92e2c336ae2ab7ca5da5bee36839dca6f2c2b86bdd0961ad278047a54e"
+    },
+    {
+      "immutable_url": "https://github.com/TrillionniumFoundation/Hepta/blob/60dfedc626b7ce3feaaa87ac16d711fe0cc8e9d3/experiments/hia_agent_factorial_v4_20261028/fixtures.py",
+      "path": "/workspace/scratch/8245a7ab856a/Hepta/experiments/hia_agent_factorial_v4_20261028/fixtures.py",
+      "purpose": "generic comparison rule in prompt; existing human reference uses compare.gt",
+      "sha256": "fdfc1f4cc76dac255954aa1a0ec0d992b713ed4c82c94c2ec951c78f72a3b23a"
+    },
+    {
+      "immutable_url": "https://github.com/TrillionniumFoundation/Hepta/blob/60dfedc626b7ce3feaaa87ac16d711fe0cc8e9d3/docs/HIA_PROGRAM.md",
+      "path": "/workspace/scratch/8245a7ab856a/Hepta/docs/HIA_PROGRAM.md",
+      "purpose": "Scalar instruction set already documents compare.eq/ne/lt/le/gt/ge",
+      "sha256": "c3ab87f78542463a3802a228c45f401b994887bb689d58ab05d9879002dde74c"
+    }
+  ]
+}
