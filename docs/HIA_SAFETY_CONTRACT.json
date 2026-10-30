@@ -1373,6 +1373,34 @@
         "tests.test_hia_agent_toolstudy_v13.SelectionFirstContractTests.test_wire_preserves_schema_node_order_while_legacy_and_full_bytes_stay_exact"
       ],
       "scope": "V13 public-node-category-selection-first.v2 retains every public editable ID, selects the node before replacement in actual HTTP schema bytes, and checks the returned native GBNF for every public variant. Rust type replacements use only the existing public language type set; expressions remain untrusted. Generic whole-specification/transaction guidance and public category diagnostics are disclosed changes. Capacity-only reference rendering preserves values and never enters generation. Fresh capacity and 3/3 qualification remain mandatory before conditional main."
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_finite_context.build_bank",
+        "hepta.hia_finite_context.FiniteU32Bank.prepare_trace",
+        "tools.qualify_hia_crc_linear_economics.study"
+      ],
+      "exclusions": [
+        "Legacy modes 0/1 retain their wire/result shapes and expose no kernel_ns field. Map-repeat mode 2 remains separately opt-in; the extended profile switches are mutually exclusive.",
+        "Timer observations are not pure LLVM-body time, CPU cycles, timing precision/independence proof, or native_outer_wall_ns substituted for unavailable loop timing.",
+        "A trap or incomplete request has no fabricated completed timer; completed-prefix accounting does not count unknown partial work as zero.",
+        "No additional repetition, input lifetime or resource budget, Core/native admission bypass, net improvement or NDU incremental-value claim."
+      ],
+      "guarantee": "host_enforced_scoped_admission",
+      "id": "explicit_timed_xor_fold_native_context",
+      "regression_selectors": [
+        "tests.test_hia_finite_context_timed_fold.TimedXorFoldNativeTests.test_actual_crc_legacy_and_timed_events_agree_and_invalid_byte_rejects_before_load",
+        "tests.test_hia_finite_context_timed_fold.TimedXorFoldNativeTests.test_actual_timed_trap_prefix_does_not_invent_a_completed_timer",
+        "tests.test_hia_finite_context_timed_fold.TimedXorFoldTests.test_actual_retained_legacy_event_has_no_kernel_timer",
+        "tests.test_hia_finite_context_timed_fold.TimedXorFoldTests.test_exact_opt_in_is_required_and_extended_profiles_are_mutually_exclusive",
+        "tests.test_hia_finite_context_timed_fold.TimedXorFoldTests.test_legacy_result_does_not_silently_accept_a_timer_field",
+        "tests.test_hia_finite_context_timed_fold.TimedXorFoldTests.test_legacy_wire_and_map_wire_are_unchanged",
+        "tests.test_hia_finite_context_timed_fold.TimedXorFoldTests.test_missing_unknown_zero_negative_and_extra_timing_fields_poison_without_replay",
+        "tests.test_hia_finite_context_timed_fold.TimedXorFoldTests.test_post_preparation_mode_mutation_is_not_execution_authority",
+        "tests.test_hia_finite_context_timed_fold.TimedXorFoldTests.test_reference_cache_separates_timed_mode_and_never_reuses_execution",
+        "tests.test_hia_finite_context_timed_fold.TimedXorFoldTests.test_same_xor_recurrence_without_repetition_or_byte_budget_extension"
+      ],
+      "scope": "Explicit allow_timed_xor_fold=True selects hepta.hia.finite-u32-timed-xor-fold-context.v1 and timed_xor_fold wire mode 3. It uses the same byte XOR recurrence, single repetition, finite calls, sealed images, one-use trace, reference validation and child cleanup as the existing context. Actual CLOCK_MONOTONIC observations surround the C fold loop, including loads, indirect calls, checksum and loop overhead. The event must contain a positive exact integer timer and the complete matching result; missing/unknown/malformed timing or failed prefix cannot qualify. All eight CRC study arms and common reference priming select the same new mode."
     }
   ],
   "judgment": {

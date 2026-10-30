@@ -146,6 +146,18 @@ actual usage without qualifying the attempt. Fresh capacity and 3/3 Rust-node
 qualification still precede the conditional main. These adaptive protocol
 regressions do not establish success by a real model or general productivity.
 
+The CRC timing protocol uses a separately selected `timed_xor_fold` mode.
+Legacy fold events contain no inner-loop timer, so they cannot supply the
+new diagnostic. Mode 3 records actual monotonic clocks around the unchanged
+C fold loop, including data loads, indirect calls, checksum and loop cost.
+It does not measure a pure LLVM body. All eight arms and common reference
+priming select this same mode; input, repetition and lifetime budgets do
+not grow. Missing or malformed timing and incomplete/trapped requests
+cannot become completed zero-cost observations. Old fold output and the
+separate map-repeat profile remain unchanged. The first timing interface
+mismatch was discovered before any economic run; its original protocol
+and already completed correctness records keep their source identities.
+
 ## Typed state and instruction obligations
 
 The following judgment names the state already checked by the implementation:

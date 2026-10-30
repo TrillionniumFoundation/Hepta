@@ -171,6 +171,7 @@ CRITICAL_MODULES = {
     "crc_parallel_bit_proposals_and_complete_cost_protocol": ("test_hia_crc_linear",
         "test_hia_crc_linear_qualification", "test_hia_crc_linear_economics"),
     "public_selection_first_agent_decoder": ("test_hia_agent_toolstudy_v13",),
+    "explicit_timed_xor_fold_native_context": ("test_hia_finite_context_timed_fold",),
 }
 
 
