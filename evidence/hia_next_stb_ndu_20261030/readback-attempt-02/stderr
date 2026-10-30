@@ -1,0 +1,21 @@
+Traceback (most recent call last):
+  File "/workspace/scratch/f0c12f106c89/p4-evidence-staging-20261030/verify_evidence.py", line 440, in <module>
+    main()
+    ~~~~^^
+  File "/workspace/scratch/f0c12f106c89/p4-evidence-staging-20261030/verify_evidence.py", line 433, in main
+    result = verify(args.archive, args.manifest)
+  File "/workspace/scratch/f0c12f106c89/p4-evidence-staging-20261030/verify_evidence.py", line 390, in verify
+    audit = check_policies(root, report, raw)
+  File "/workspace/scratch/f0c12f106c89/p4-evidence-staging-20261030/verify_evidence.py", line 276, in check_policies
+    calls += check_delivery(folder, index, observation, inputs[str(group)]['values'], report, raw,
+             ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        'baseline_bank' if arm == 'baseline-only' else 'bank', nonces, references)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/f0c12f106c89/p4-evidence-staging-20261030/verify_evidence.py", line 196, in check_delivery
+    require(plan['trace_sha256'] == native['trace_sha256'] == observed['trace_sha256']
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            and plan['trace_sha256'] not in nonces, 'reused/mismatched trace nonce')
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/f0c12f106c89/p4-evidence-staging-20261030/verify_evidence.py", line 31, in require
+    raise ValueError(reason)
+ValueError: reused/mismatched trace nonce

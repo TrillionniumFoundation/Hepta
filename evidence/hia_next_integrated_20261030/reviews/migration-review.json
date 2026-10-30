@@ -1,0 +1,256 @@
+{
+  "schema": "hepta.hia.next-delivery.migration-review.v1",
+  "reviewer": "hepta_audit",
+  "reviewed_utc": "2026-10-30T14:02:16.783639+00:00",
+  "review_scope": [
+    "P0 frozen CI evidence and ancestry",
+    "P3 migration denominators, source/VM binding and historical failures",
+    "P6 context lifecycle scope and actual footer",
+    "evidence references and non-claims",
+    "migration worktree and cache retention"
+  ],
+  "reviewed_report": {
+    "path": "/workspace/scratch/f0c12f106c89/hia-next-delivery-staging-20261030/HIA_NEXT_STRICT_RESULTS_20261030.md",
+    "bytes": 15990,
+    "sha256": "5a7b0f710b39c73addc670b06a5c74c1a0924b5a3d615d456b316fd87ed3dfb8"
+  },
+  "reviewed_report_state": "observed after root applied the two recorded wording corrections; this hash does not assert identity of an earlier draft",
+  "source_head": "44e34b7a9ecd6bf1b3ad6093d21bba10d2a18304",
+  "source_tree": "835555fb35dbdcf867724ef7a0bb1a6616270217",
+  "evidence_inputs": [
+    {
+      "path": "/workspace/scratch/f0c12f106c89/hia-ci-evidence-20261030/SUMMARY.json",
+      "bytes": 7537,
+      "sha256": "4dc9c7b500a884f3026b9971e6f010bc9085c10633af156daa51d01e3e341c32"
+    },
+    {
+      "path": "/workspace/scratch/f0c12f106c89/hia-ci-evidence-20261030/CI_PINS.json",
+      "bytes": 4314,
+      "sha256": "1095dc2596424c76bab4fc99cda4bcee50c70f0c415a7e54bf23327cf28b1a5e"
+    },
+    {
+      "path": "/workspace/scratch/f0c12f106c89/hia-ci-evidence-20261030/VERIFY.json",
+      "bytes": 22926,
+      "sha256": "3a73c7c51e9cb4a145288b9c07f7119c0bb8372312770f3ff31c54a59143beb6"
+    },
+    {
+      "path": "/workspace/scratch/f0c12f106c89/hia-ci-evidence-20261030/raw/final-api-run-44e34b7.json",
+      "bytes": 14839,
+      "sha256": "6536da27f21f3c7e7b5cc3dca0f630f7289206a9a8f5da755c9832760bd21ee3"
+    },
+    {
+      "path": "/workspace/scratch/f0c12f106c89/hia-ci-evidence-20261030/raw/api-artifacts-44e34b7.json",
+      "bytes": 916,
+      "sha256": "ca88d64779bf838f0092d9a296f234ad1266b8520689df257a8beb4fececb2d4"
+    },
+    {
+      "path": "/workspace/scratch/f0c12f106c89/hia-ci-evidence-20261030/raw/ci-44e34b7.zip",
+      "bytes": 1318884,
+      "sha256": "fd29bbd98ac293e51e1c2acc234d5ef0157333c634b6f390e2e95a6a356c8c6e"
+    },
+    {
+      "path": "/workspace/scratch/f0c12f106c89/hia-ci-evidence-20261030/raw/ci-73922c1.zip",
+      "bytes": 1289021,
+      "sha256": "c35156bb73812181801eca0ed5e171481999d619eb93aa4423bbc44c16199244"
+    },
+    {
+      "path": "/workspace/scratch/f0c12f106c89/p3-p6-integrated-44e34b7-evidence/SUMMARY.json",
+      "bytes": 13334,
+      "sha256": "57a7a1c4b21378b05cd1b741b8e1aebd426b12e36833b17e3e3e98d21313cb5d"
+    },
+    {
+      "path": "/workspace/scratch/f0c12f106c89/p3-p6-integrated-44e34b7-evidence/MANIFEST.json",
+      "bytes": 397243,
+      "sha256": "d15048f2f5c7dc0260f25752570fbdf925903f88139e138bc0ce28bc984f4cfa"
+    },
+    {
+      "path": "/workspace/scratch/f0c12f106c89/p3-p6-integrated-launches-20261030/INDEPENDENT_REVIEW.json",
+      "bytes": 9574,
+      "sha256": "b4e639c83aa746967d332a289681f05c086fb9a91dc359e802a39fc69ce36ced"
+    },
+    {
+      "path": "/workspace/scratch/f0c12f106c89/p3-p6-integrated-launches-20261030/run/p3/qualification/qualification.json",
+      "bytes": 1705528,
+      "sha256": "e23a911fa50e748b6ee2cf60bcc1d4488061507b79160f44739e438f406d2475"
+    },
+    {
+      "path": "/workspace/scratch/f0c12f106c89/p3-integrated-50c4067-evidence/SUMMARY.json",
+      "bytes": 15800,
+      "sha256": "66f0a1eb737e89e45b2df8b97c1c79efefb5cfa80ffdcfd2655389dd7b5166e0"
+    },
+    {
+      "path": "/workspace/scratch/f0c12f106c89/hepta-integration/tools/qualify_hia_stb_divide_update.py",
+      "bytes": 49816,
+      "sha256": "e9c772fe60106f275066897241f28037448776c6573c4ab169b00d5a1befe23b"
+    },
+    {
+      "path": "/workspace/scratch/f0c12f106c89/hepta-integration/hepta/hia_finite_context.py",
+      "bytes": 53870,
+      "sha256": "cfc25f34d7ffb3039365385931fb933b745e16d501093a8bc88bc1d17a615d82"
+    }
+  ],
+  "new_tests_native_model_or_project_code_executed": false,
+  "archives_extracted_or_modified": false,
+  "repository_modified": false,
+  "network_lookup_performed": false,
+  "changes_made_by_reviewer": "this new review JSON only; root owns all report revisions",
+  "findings": [
+    {
+      "id": "P0-RUST-HARNESS-COUNT",
+      "severity": "factual-wording",
+      "original_observed_phrase": "116 测试；21 个 test binaries",
+      "evidence": "The exact current CI rust_resource_crate-execution.json records 20 Running harness lines and one Doc-tests line, with 21 complete stdout result blocks summing to 116 tests. Zero-test blocks are included.",
+      "recommended_text": "116 测试；21 个结果块；20 个 Running harness 与 1 个 Doc-tests；包含零测试块。",
+      "resolution": "root correction observed in reviewed_report"
+    },
+    {
+      "id": "P3-VM-ARGUMENT-BINDING",
+      "severity": "scope-clarification",
+      "original_observed_phrase": "完整核对 VM 内外层 Core/input/function",
+      "evidence": "validate_vm_observation binds input_sha256 == program_sha256 to the Core document. The existing inner VM wire has no argument field. Exact typed i32 arguments are checked in the surrounding matrix/witness/invalid invocation records.",
+      "recommended_text": "核对 Core 输入文档摘要、函数与外层 typed 实参，并核对 VM 内外层状态、值或 trap、资源账本和成本；VM 内层没有独立实参字段，不能把其 Core 输入摘要称为实参哈希。",
+      "resolution": "root correction observed in reviewed_report"
+    }
+  ],
+  "remaining_blockers": [],
+  "reference_observations": [
+    {
+      "kind": "verified",
+      "detail": "Retained official run API, artifact API and the exact ZIP bind run 41061115481, completed/success, artifact 12982148935, size 1318884 and digest fd29bbd98ac293e51e1c2acc234d5ef0157333c634b6f390e2e95a6a356c8c6e to the frozen source."
+    },
+    {
+      "kind": "not_independently_reverified",
+      "detail": "Job ID 124080797698 is not present in the inspected run/artifact API receipts or CI package. No claim that this number is wrong; root may retain its jobs/check-run observation or omit the optional job number. Run/artifact/source conclusions do not depend on it."
+    },
+    {
+      "kind": "delivery_condition",
+      "detail": "The six evidence/hia_next_* repository paths are intended delivery-commit locations, distinct from the tested 44e source. Root will bind the final copy/publish mapping; this review does not claim those future paths already exist in 44e."
+    }
+  ],
+  "p0_checked": {
+    "merged_candidate_commit": "53717f78e5d3dd91e7d41776c326665fa702222c",
+    "merge_parent_count": 2,
+    "merge_is_ancestor_of_frozen_head": true,
+    "ci_run": 41061115481,
+    "artifact": 12982148935,
+    "gates_passed": 8,
+    "python_methods": 4266,
+    "python_errors": 0,
+    "python_failures": 0,
+    "python_skips": 0,
+    "python_outer_seconds": 1665.732013695,
+    "rust_tests": 116,
+    "rust_result_blocks": 21,
+    "rust_running_harnesses": 20,
+    "rust_doc_test_harnesses": 1,
+    "matrix_selectors": 447,
+    "matrix_capabilities": 45,
+    "matrix_wall_ns": 391799899017,
+    "old_matrix_selectors": 364,
+    "old_selectors_missing_in_current": [],
+    "critical_groups": 77,
+    "critical_unique_modules": 187,
+    "critical_unique_selectors": 1846,
+    "tracked_files": 6685,
+    "external_inputs": 440,
+    "counts_not_summed_as_unique_cases": true,
+    "ci_does_not_reclassify_economic_or_model_failures": true
+  },
+  "p3_checked": {
+    "host": "Linux x86-64 LP64, 32-bit C int",
+    "configuration": "-std=c11 -O2 -DC_INTEGER_DIVISION_TRUNCATES",
+    "upstream_versions": [
+      "0.93",
+      "0.94"
+    ],
+    "active_functions_per_version": 6,
+    "active_declarations_per_version": 12,
+    "changed_active_bodies": [
+      "stb_div_floor",
+      "stb_mod_eucl"
+    ],
+    "common_defined_domain_pairs": 119,
+    "common_native_function_observations": 2856,
+    "common_vm_function_observations": 1428,
+    "successor_only_native_observations": 48,
+    "successor_only_vm_observations": 24,
+    "witness_vm_observations": 8,
+    "invalid_target_native_processes": 24,
+    "invalid_target_vm_observations": 24,
+    "native_negative_controls": 2,
+    "old_ubsan_undefined_behavior_failures": 4,
+    "old_hia_overflow_terminations": 4,
+    "old_cpp_allocation_sites_per_version": 17,
+    "old_cpp_recovered_per_version": 14,
+    "old_cpp_sigabrt_per_version": 3,
+    "old_cpp_total_sigabrt": 6,
+    "general_cpp_rewrite_or_recovery_proved": false,
+    "original_c_linked_into_hia_target": false,
+    "complete_human_development_cost_known": false,
+    "all_input_refinement_proved": false
+  },
+  "p6_checked": {
+    "actual_footer": "Ran 46 tests in 21.623s\n\nOK",
+    "methods": 46,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "outer_p3_p6_wall_ns": 58838356302,
+    "methods_are_not_native_call_count": true,
+    "mutation_guard_before_state_changes": [
+      "prepare_trace",
+      "cancel",
+      "run",
+      "close"
+    ],
+    "preparing_flag_cleared_in_finally": true,
+    "diagnostic_reads_allowed": true,
+    "map_repeat_requires_explicit_finite_opt_in": true,
+    "one_shot_memory_token_freshness_proved_by_offline_evidence": false,
+    "general_foreign_callback_recovery_proved": false,
+    "performance_timing_qualified": false
+  },
+  "worktree": {
+    "path": "/workspace/scratch/f0c12f106c89/hepta-next-migration",
+    "head": "964593261439c564b54707eee4cb9c70514ccc8e",
+    "retained_branch": "work/hia-next-migration-20261030",
+    "git_status_including_all_untracked_and_matching_ignored": "",
+    "uncommitted_assets_observed": false,
+    "active_agent_work_in_this_tree": false,
+    "regular_file_bytes": 108469560,
+    "unique_allocated_bytes": 119058432,
+    "reconstructable_from_retained_branch": true,
+    "removed": false,
+    "all_raw_qualification_and_development_evidence_outside_worktree_preserved": true
+  },
+  "cache_observations": [
+    {
+      "path": "/workspace/scratch/f0c12f106c89/target-next-resource",
+      "apparent_file_bytes": 135085417,
+      "unique_inode_bytes": 119389701,
+      "unique_allocated_bytes": 119779328,
+      "no_active_owner_use_confirmed_by": "compiler_research",
+      "rebuildable": true,
+      "actual_executable_packaged": false,
+      "retained_actual_executable": {
+        "path": "/workspace/scratch/f0c12f106c89/target-next-resource/debug/hia-core-shadow",
+        "bytes": 4527792,
+        "sha256": "eca5c05c474471506dd375f17a4bb8e79bce8d5f7239934885d02e3a32dc685e"
+      },
+      "disposition": "root instructed retain; not removed. Rebuild cache eviction must not be described as lossless binary archival."
+    },
+    {
+      "path": "/workspace/scratch/f0c12f106c89/targets/hia-resource",
+      "apparent_file_bytes": 46585587,
+      "unique_allocated_bytes": 47243264,
+      "compiler_research_has_active_use": false,
+      "other_consumer_use_requires_root_confirmation": true,
+      "disposition": "root instructed retain; not removed"
+    },
+    {
+      "path": "/workspace/scratch/f0c12f106c89/toolchains/cargo-cache",
+      "disposition": "shared dependency cache retained; no deletion suggested"
+    }
+  ],
+  "status": "reviewed_no_remaining_P0_P3_P6_blocking_fact_error_after_observed_root_corrections"
+}

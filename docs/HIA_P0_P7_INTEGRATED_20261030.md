@@ -273,6 +273,20 @@ discovery；critical module coverage 是对应运行的子集，不增加测试�
 程序，也不替代完整 native/模型重跑。GGUF 权重及整套工具链没有随源码交付；
 其实际获取来源、字节身份、运行参数和边界保留在对应记录中。
 
-本轮 GitHub push 尚未完成：自动审批此前拒绝外部推送。分支
-`work/hia-p0-p7-integrated-20261030` 的 push 会自动触发已配置的 integrated CI，
-因此交付后需要确认这一具体远端写入及自动触发的运行；本地通过不能替代远端结果。
+以上正文保留此前 `50c4067` 实现及 `73922c1` 交付的历史范围。该次交付时
+外部推送曾被自动审批拒绝；此后的明确授权发布和实际远端资格已有独立回执。
+旧失败记录保留在新交付的 source-publication 目录，不能将当时的未发布状态
+继续解释为当前状态。
+
+## 后续状态：2026-10-30
+
+实现分支 `work/hia-p0-p7-integrated-20261030` 现为精确 `44e34b7`，
+[该提交远端完整 CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/41061115481)
+已 completed/success：4,266 Python 方法、116 Rust 测试、447 matrix selectors。
+后续资源、真实 C 升级迁移、NDU 和模型实验均保留各自精确源码身份；没有将
+此文历史结果改标为新实现结果。交付文档和证据另存 delivery 分支。
+
+[下一步完整报告](HIA_NEXT_STRICT_RESULTS_20261030.md) 与
+[结构化新结果](../evidence/hia_next_integrated_20261030/RESULT.json)
+给出当前 P0–P7 状态：工程回归通过，P4/P5 净收益和 P7 模型资格仍未通过，
+完整严格条件不能标为全部闭合。
