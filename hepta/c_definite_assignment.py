@@ -2,10 +2,11 @@
 
 This is a precondition for giving an otherwise uninitialized scalar local an
 unobservable zero initializer in safe Hepta. It is not C undefined-behavior
-inference: every possible structured path must assign before a read. Loops may
-execute zero times; a terminating branch does not reach its successor. Unknown
-control flow rejects. The ordinary expression lowerer still admits or rejects
-the operations themselves.
+inference: every possible structured path must assign before a read. Pre-test
+loops may execute zero times; a do-loop executes its body before its condition.
+A terminating branch does not reach its successor. Unknown control flow
+rejects. The ordinary expression lowerer still admits or rejects the operations
+themselves.
 """
 from __future__ import annotations
 
@@ -90,6 +91,15 @@ def check_definite_assignment(function, is_scalar):
             reads(children[0], assigned)
             stmt(children[1], assigned)
             return assigned
+        if kind == "DoStmt" and len(children) == 2:
+            # Every live path reaches the test only after one complete body.
+            # A body that returns on every path reaches neither the condition
+            # nor the successor. No new jump-control forms are admitted here.
+            after_body = stmt(children[0], assigned)
+            if after_body is None:
+                return None
+            reads(children[1], after_body)
+            return after_body
         if kind == "ForStmt" and len(children) == 5 and not children[1] and all(children[i] for i in (2, 3, 4)):
             if children[0]:
                 assigned = stmt(children[0], assigned)
@@ -124,4 +134,4 @@ def check_definite_assignment(function, is_scalar):
 
     stmt(body, {parameter["id"] for parameter in function["params"]})
     return {"deferred_scalar_initializers": len(deferred), "checked": True,
-            "policy": "all_structured_paths_assign_before_read; loops_may_execute_zero_times"}
+            "policy": "all_structured_paths_assign_before_read; pretest_loops_may_execute_zero_times; do_body_precedes_test"}

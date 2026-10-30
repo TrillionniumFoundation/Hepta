@@ -5,6 +5,7 @@ on:
     branches:
       - codex/hia-core-closure-20261028
       - codex/hia-round6-convergence-20261029
+      - work/hia-six-track-execution-20261030
       - feat/hepta-p0-p1-verified-ir-20261024
       - feat/hepta-agent-safe-cfg-cpp-20261024
       - feat/hepta-safe-migration-agent-20261024
@@ -70,6 +71,7 @@ jobs:
           actual_head=$(git rev-parse HEAD)
           case "$HEPTA_SOURCE_BRANCH" in
             codex/hia-round6-convergence-20261029) hepta_qualification_profile=integrated ;;
+            work/hia-six-track-execution-20261030) hepta_qualification_profile=integrated ;;
             *) hepta_qualification_profile=full ;;
           esac
           mkdir -p artifacts

@@ -8,15 +8,18 @@ actual wall time. Native publication must additionally pay its preparation cost.
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
 from hashlib import sha256
 import json
+import os
 from pathlib import Path
 import re
 import stat
-import subprocess
+import sys
 import time
 
 from .hia_program import verify_program
+from .hia_rust_crosscheck import HIARustCrosscheckRejected, _run_bounded_shadow
 from .hia_translation_validation import PROFILE as PROOF_PROFILE, SCHEMA as PROOF_SCHEMA, validate_translation
 
 SCHEMA = "hepta.hia.ndu-optimization.v1"
@@ -81,19 +84,82 @@ def _json(data):
 
 
 def _read_file(path, limit):
-    with path.open("rb") as stream:
-        before = stream.fileno()
-        import os
-        info = os.fstat(before)
+    """Read one bounded regular inode without blocking on an unwritten FIFO."""
+    if sys.platform != "linux":
+        _reject("native evaluator identity requires Linux")
+    fd = None
+    try:
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+        info = os.fstat(fd)
         if not stat.S_ISREG(info.st_mode) or not 0 < info.st_size <= limit:
             _reject("expected bounded regular file: " + str(path))
-        data = stream.read(limit + 1)
-        after = os.fstat(before)
-        if (info.st_size, info.st_mtime_ns, info.st_ctime_ns) != (after.st_size, after.st_mtime_ns, after.st_ctime_ns):
+        chunks = []
+        remaining = info.st_size + 1
+        while remaining:
+            chunk = os.read(fd, min(1024 * 1024, remaining))
+            if not chunk:
+                break
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        data = b"".join(chunks)
+        after = os.fstat(fd)
+        identity = lambda value: (value.st_dev, value.st_ino, value.st_size,
+                                  value.st_mtime_ns, value.st_ctime_ns)
+        if identity(info) != identity(after):
             _reject("file changed during read")
         if len(data) != info.st_size:
             _reject("file length changed during read")
         return data
+    except OSError as error:
+        raise OptimizationRejected("E_HIA_NDU: bounded regular file read failed") from error
+    finally:
+        if fd is not None:
+            os.close(fd)
+
+
+@dataclass(frozen=True)
+class _VerifiedBridgeImage:
+    path: Path
+    data: bytes
+
+
+def _seal_bridge_image(raw):
+    """Transfer ownership of a sealed descriptor for already-verified bytes.
+
+    No pathname is reopened here. A mutable-path ABA after build admission
+    therefore cannot replace the executable passed to the child. The trusted
+    host's interpreter/ELF loader and libraries remain outside this byte pin.
+    """
+    fd = None
+    transferred = False
+    try:
+        import fcntl
+        fd = os.memfd_create("hepta-ndu-ranking", os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING)
+        os.fchmod(fd, 0o700)
+        remaining = memoryview(raw)
+        while remaining:
+            count = os.write(fd, remaining)
+            if count <= 0:
+                _reject("sealed native snapshot write made no progress")
+            remaining = remaining[count:]
+        # Linux UAPI values also support Python built against older headers;
+        # the kernel operations and complete seal/byte readback are mandatory.
+        seals = (getattr(fcntl, "F_SEAL_WRITE", 0x0008)
+                 | getattr(fcntl, "F_SEAL_GROW", 0x0004)
+                 | getattr(fcntl, "F_SEAL_SHRINK", 0x0002)
+                 | getattr(fcntl, "F_SEAL_SEAL", 0x0001))
+        fcntl.fcntl(fd, getattr(fcntl, "F_ADD_SEALS", 1033), seals)
+        if (os.fstat(fd).st_size != len(raw)
+                or fcntl.fcntl(fd, getattr(fcntl, "F_GET_SEALS", 1034)) & seals != seals
+                or os.pread(fd, len(raw), 0) != raw):
+            _reject("sealed executable snapshot does not retain the admitted bytes and seals")
+        transferred = True
+        return fd
+    except (OSError, AttributeError, ImportError) as error:
+        raise OptimizationRejected("E_HIA_NDU: sealed executable snapshot unavailable") from error
+    finally:
+        if fd is not None and not transferred:
+            os.close(fd)
 
 
 def _bridge_identity(bridge):
@@ -122,29 +188,35 @@ def _bridge_identity(bridge):
     binary_sha = sha256(data).hexdigest()
     if binary_sha != receipt.get("binary_sha256"):
         _reject("bridge executable differs from the recorded build")
-    return binary, {"upstream_commit": locked["commit"], "binary_sha256": binary_sha,
-                    "build_receipt_sha256": sha256(receipt_bytes).hexdigest(),
-                    "build_inputs_sha256": _digest(receipt.get("build_inputs")),
-                    "source_attestation": "trusted_local_build_receipt"}
+    return _VerifiedBridgeImage(binary, data), {
+        "upstream_commit": locked["commit"], "binary_sha256": binary_sha,
+        "build_receipt_sha256": sha256(receipt_bytes).hexdigest(),
+        "build_inputs_sha256": _digest(receipt.get("build_inputs")),
+        "source_attestation": "trusted_local_build_receipt"}
 
 
 def _native_rank(bridge, request, *, timeout_s):
-    binary, identity = _bridge_identity(bridge)
+    image, identity = _bridge_identity(bridge)
     data = _bytes(request)
     if len(data) > 1024 * 1024:
         _reject("native request exceeds byte limit")
     try:
-        completed = subprocess.run([str(binary)], input=data, stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE, timeout=timeout_s, check=False)
-    except (OSError, subprocess.TimeoutExpired) as error:
+        fd = _seal_bridge_image(image.data)
+        try:
+            stdout, stderr, returncode = _run_bounded_shadow(
+                ["/proc/self/fd/" + str(fd)], data, timeout_s,
+                maximum_output=1024 * 1024 + 1, pass_fds=(fd,))
+        finally:
+            os.close(fd)
+    except (OSError, HIARustCrosscheckRejected) as error:
         _reject("native evaluator could not complete: " + str(error))
-    # The pinned bridge itself bounds input/candidates and its resulting output.
-    # This is a trusted local executable, not a sandbox for arbitrary binaries.
-    if completed.returncode or len(completed.stdout) > 1024 * 1024 or len(completed.stderr) > 1024 * 1024:
+    # The pump bounds output during execution and owns process-group cleanup.
+    # This remains a trusted local bridge, not a sandbox for arbitrary code.
+    if returncode or len(stdout) > 1024 * 1024 or len(stderr) > 1024 * 1024:
         _reject("native evaluator failed or exceeded output bounds")
-    if sha256(_read_file(binary, 128 * 1024 * 1024)).hexdigest() != identity["binary_sha256"]:
+    if sha256(_read_file(image.path, 128 * 1024 * 1024)).hexdigest() != identity["binary_sha256"]:
         _reject("native evaluator changed during invocation")
-    response = _json(completed.stdout)
+    response = _json(stdout)
     expected = {"schema": "hepta.hia.ndu-response.v1", "upstream_commit": identity["upstream_commit"],
                 "entry_point": "codex_hepta_ndu::evaluate_candidates_with_policy",
                 "objective_sha256": request["objective_sha256"], "generation": request["generation"],

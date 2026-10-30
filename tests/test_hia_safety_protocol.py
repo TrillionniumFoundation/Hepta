@@ -22,8 +22,9 @@ class ReviewedSafetyProtocolTests(unittest.TestCase):
         expected = sorted({selector for row in self.contract["capabilities"]
                            for selector in row["regression_selectors"]})
         # Retain the 100 reviewed source/Rust and v4/response/lifecycle
-        # boundaries, plus the reviewed migration/proof/reuse increments.
-        self.assertGreaterEqual(len(expected), 146)
+        # boundaries, migration/proof/reuse increments and the separate v3
+        # budget and normal-success qualification controls.
+        self.assertGreaterEqual(len(expected), 158)
         self.assertEqual(safety.validate_contract(self.contract), expected)
 
     def test_json_formatting_and_object_key_order_do_not_change_protocol(self):

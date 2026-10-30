@@ -214,6 +214,8 @@ raise SystemExit(int(os.environ['HEPTA_WORKFLOW_FIXTURE_EXIT']))
             head = git('rev-parse', 'HEAD')
             for branch, expected in [
                 ('codex/hia-round6-convergence-20261029', 'integrated'),
+                ('work/hia-six-track-execution-20261030', 'integrated'),
+                ('work/hia-six-track-execution-20261030-suffix', 'full'),
                 ('codex/hia-core-closure-20261028', 'full'),
                 ('codex/hia-round6-convergence-20261029-suffix', 'full'),
                 ('main', 'full'),

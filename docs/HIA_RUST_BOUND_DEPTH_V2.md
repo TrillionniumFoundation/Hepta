@@ -105,3 +105,7 @@ cover the production Python API's wider limits (256 frames, 10,000,000 steps,
 public resource-return ABI, complete refinement or whole-language soundness.
 The scope remains one Machine and the existing finite primitive resource
 profiles; P2 authority-switch qualification remains open.
+
+The separate [bound v3 budget contract](HIA_RUST_BOUND_BUDGET_V3.md) extends
+those three numeric ceilings using explicit language call frames. It does not
+upgrade the v2 request, report, API limits or authority described here.
