@@ -176,10 +176,12 @@ def _read_source_bounded(source: Path) -> bytes:
         return content
 
 
-def _run_clang_ast_bounded(command: list[str], source: bytes) -> subprocess.CompletedProcess:
-    """Stop an oversized Clang AST producer before its output is buffered.
+def _run_clang_capture_bounded(command: list[str], source: bytes, *,
+                               stdout_limit: int, stderr_limit: int,
+                               timeout_seconds: int) -> subprocess.CompletedProcess:
+    """Stop an oversized Clang subprocess before its output is buffered.
 
-    The 256 KB source limit does not bound Clang's JSON AST expansion.  Drain
+    Source length does not bound compiler or probe output. Drain
     both pipes concurrently with hard caps, feed stdin separately to keep the
     20-second deadline effective, and reap the private POSIX process group
     when the producer exceeds a cap or times out.  This is a subprocess pipe
@@ -226,14 +228,14 @@ def _run_clang_ast_bounded(command: list[str], source: bytes) -> subprocess.Comp
                 pass
 
         workers = (
-            threading.Thread(target=drain, args=(proc.stdout, stdout, 8_000_000, "stdout"), daemon=True),
-            threading.Thread(target=drain, args=(proc.stderr, stderr, 64_000, "stderr"), daemon=True),
+            threading.Thread(target=drain, args=(proc.stdout, stdout, stdout_limit, "stdout"), daemon=True),
+            threading.Thread(target=drain, args=(proc.stderr, stderr, stderr_limit, "stderr"), daemon=True),
             threading.Thread(target=feed_source, daemon=True),
         )
         for worker in workers:
             worker.start()
         try:
-            proc.wait(timeout=20)
+            proc.wait(timeout=timeout_seconds)
         except subprocess.TimeoutExpired:
             terminate()
             proc.wait()
@@ -242,13 +244,19 @@ def _run_clang_ast_bounded(command: list[str], source: bytes) -> subprocess.Comp
             for worker in workers:
                 worker.join(timeout=1)
         if exceeded:
-            raise UnsupportedC("Clang AST output exceeds bounded capture: " + ",".join(exceeded))
+            raise UnsupportedC("Clang output exceeds bounded capture: " + ",".join(exceeded))
         if stream_errors or any(worker.is_alive() for worker in workers):
             terminate()
             for worker in workers:
                 worker.join(timeout=1)
             raise UnsupportedC("Clang AST output capture failed")
         return subprocess.CompletedProcess(command, proc.returncode, bytes(stdout), bytes(stderr))
+
+
+def _run_clang_ast_bounded(command: list[str], source: bytes) -> subprocess.CompletedProcess:
+    """Bound both outputs of the AST compiler as well as its input deadline."""
+    return _run_clang_capture_bounded(command, source, stdout_limit=8_000_000,
+                                      stderr_limit=64_000, timeout_seconds=20)
 
 
 def migrate(source: Path, output: Path, report: Path, clang: str = "clang", verify_native: bool = False, rustc: str | None = None) -> dict:
@@ -276,12 +284,24 @@ def migrate(source: Path, output: Path, report: Path, clang: str = "clang", veri
             raise UnsupportedC("preprocessor directives/macros require a future source model")
         if not shutil.which(clang):
             raise UnsupportedC("clang executable unavailable")
-        version = subprocess.run([clang, "--version"], capture_output=True, text=True, timeout=10, check=True)
-        info["clang"] = version.stdout.splitlines()[0]
-        target = subprocess.run([clang, "-dumpmachine"], capture_output=True, text=True, timeout=10, check=True)
-        info["target"] = target.stdout.strip()
-        defines = subprocess.run([clang, "-std=c11", "-dM", "-E", "-x", "c", "-"], input=b"",
-                                 capture_output=True, timeout=10, check=True).stdout
+        version = _run_clang_capture_bounded([clang, "--version"], b"",
+                                             stdout_limit=16_000, stderr_limit=8_000,
+                                             timeout_seconds=10)
+        if version.returncode or not version.stdout.strip():
+            raise UnsupportedC("Clang version probe rejected")
+        info["clang"] = version.stdout.decode("utf-8", "replace").splitlines()[0]
+        target = _run_clang_capture_bounded([clang, "-dumpmachine"], b"",
+                                            stdout_limit=4_000, stderr_limit=8_000,
+                                            timeout_seconds=10)
+        if target.returncode or not target.stdout.strip():
+            raise UnsupportedC("Clang target probe rejected")
+        info["target"] = target.stdout.decode("utf-8", "replace").strip()
+        predefines = _run_clang_capture_bounded(
+            [clang, "-std=c11", "-dM", "-E", "-x", "c", "-"], b"",
+            stdout_limit=128_000, stderr_limit=8_000, timeout_seconds=10)
+        if predefines.returncode:
+            raise UnsupportedC("Clang predefined macro probe rejected")
+        defines = predefines.stdout
         if not re.search(rb"(?m)^#define __SIZEOF_INT__ 4$", defines) or not re.search(rb"(?m)^#define __CHAR_BIT__ 8$", defines):
             raise UnsupportedC("the Clang target's int/char width is unsupported")
         run = _run_clang_ast_bounded([clang, "-x", "c", "-std=c11", "-Wall", "-Wextra", "-Werror",
