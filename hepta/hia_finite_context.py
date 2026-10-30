@@ -34,6 +34,7 @@ from .native_tool_identity import digest_executable
 
 PROFILE = "hepta.hia.finite-u32-fold-context.v1"
 MAP_REPEAT_PROFILE = "hepta.hia.finite-u32-map-repeat-context.v1"
+TIMED_XOR_FOLD_PROFILE = "hepta.hia.finite-u32-timed-xor-fold-context.v1"
 MAX_IMAGES = 8
 MAX_REQUESTS = 256
 MAX_CALLS = 65_536
@@ -131,7 +132,7 @@ int main(int argc, char **argv) {
         r->id = number(' '); r->image = number(' '); r->mode = number(' ');
         r->seed = number(' '); r->parameter = number(' '); r->count = number(' ');
         r->repetitions = r->mode == 2 ? number(' ') : 1;
-        if (r->image >= images || r->mode > 2 || (!r->mode && r->parameter)
+        if (r->image >= images || r->mode > 3 || (!r->mode && r->parameter)
             || (r->mode == 2 && r->seed) || !r->repetitions || r->repetitions > 4096
             || !r->count || r->count > 65536 - total) return 84;
         work += (uint64_t)r->count * r->repetitions;
@@ -140,7 +141,7 @@ int main(int argc, char **argv) {
         r->begin = total;
         for (uint32_t j = 0; j < r->count; ++j) {
             uint32_t value = number(j + 1 == r->count ? '\n' : ' ');
-            if (r->mode == 1 && value > 255) return 84;
+            if ((r->mode == 1 || r->mode == 3) && value > 255) return 84;
             values[total++] = value;
         }
     }
@@ -170,7 +171,7 @@ int main(int argc, char **argv) {
         flush();
         uint32_t state = r->seed;
         uint64_t checksum = 0;
-        uint64_t kernel_start = r->mode == 2 ? now() : 0;
+        uint64_t kernel_start = (r->mode == 2 || r->mode == 3) ? now() : 0;
         for (uint32_t repetition = 0; repetition < r->repetitions; ++repetition)
           for (uint32_t j = 0; j < r->count; ++j) {
             uint32_t value = values[r->begin + j];
@@ -186,6 +187,14 @@ int main(int argc, char **argv) {
                ",\"repetitions\":%" PRIu32 ",\"seed\":0,\"seq\":%" PRIu32 ",\"state\":%" PRIu32 ",\"trace\":\"%s\"}\n",
                r->count * r->repetitions, r->image, checksum, r->id, kernel_ns,
                r->parameter, r->repetitions, i, state, trace);
+        } else if (r->mode == 3) {
+            uint64_t kernel_end = now();
+            if (kernel_end <= kernel_start) exit(95);
+            uint64_t kernel_ns = kernel_end - kernel_start;
+            printf("{\"calls\":%" PRIu32 ",\"candidate\":%" PRIu32 ",\"checksum\":%" PRIu64
+               ",\"id\":%" PRIu32 ",\"kernel_ns\":%" PRIu64 ",\"kind\":\"result\",\"mode\":3,\"parameter\":%" PRIu32
+               ",\"seed\":%" PRIu32 ",\"seq\":%" PRIu32 ",\"state\":%" PRIu32 ",\"trace\":\"%s\"}\n",
+               r->count, r->image, checksum, r->id, kernel_ns, r->parameter, r->seed, i, state, trace);
         } else {
         printf("{\"calls\":%" PRIu32 ",\"candidate\":%" PRIu32 ",\"checksum\":%" PRIu64
                ",\"id\":%" PRIu32 ",\"kind\":\"result\",\"mode\":%" PRIu32 ",\"parameter\":%" PRIu32 ",\"seed\":%" PRIu32 ",\"seq\":%" PRIu32
@@ -343,7 +352,9 @@ def _parts(request):
     return (*request, 1) if len(request) == 6 else request
 
 
-def _requests(requests, labels, *, allow_map_repeat=False):
+def _requests(requests, labels, *, allow_map_repeat=False, allow_timed_xor_fold=False):
+    _require(type(allow_map_repeat) is bool and type(allow_timed_xor_fold) is bool
+             and not (allow_map_repeat and allow_timed_xor_fold), "one exact explicit extended request profile required")
     _require(type(requests) in {list, tuple} and 1 <= len(requests) <= MAX_REQUESTS,
              "bounded nonempty predeclared request sequence required")
     requests = tuple(requests)
@@ -352,17 +363,22 @@ def _requests(requests, labels, *, allow_map_repeat=False):
     for value in requests:
         _require(type(value) is dict, "exact request object required")
         value = dict(value)
-        _require(type(value.get("mode")) is str and value["mode"] in
-                 ({"fold", "xor_fold", "map_repeat"} if allow_map_repeat else {"fold", "xor_fold"}),
-                 "explicit closed fold/map mode and opt-in required")
+        allowed = {"fold", "xor_fold"}
+        if allow_map_repeat:
+            allowed.add("map_repeat")
+        if allow_timed_xor_fold:
+            allowed.add("timed_xor_fold")
+        _require(type(value.get("mode")) is str and value["mode"] in allowed,
+                 "explicit closed fold/map/timed mode and opt-in required")
         fields = {"id", "candidate", "seed", "values", "mode"}
-        if value["mode"] in {"xor_fold", "map_repeat"}:
+        if value["mode"] in {"xor_fold", "map_repeat", "timed_xor_fold"}:
             fields.add("parameter")
         if value["mode"] == "map_repeat":
             fields.add("repetitions")
         _require(set(value) == fields, "exact mode-specific request fields required")
         ident, label, seed, values = (value[key] for key in ("id", "candidate", "seed", "values"))
-        mode, parameter = ((2, value["parameter"]) if value["mode"] == "map_repeat" else
+        mode, parameter = ((3, value["parameter"]) if value["mode"] == "timed_xor_fold" else
+                           (2, value["parameter"]) if value["mode"] == "map_repeat" else
                            (1, value["parameter"]) if value["mode"] == "xor_fold" else (0, 0))
         repetitions = value["repetitions"] if mode == 2 else 1
         _require(type(repetitions) is int and 1 <= repetitions <= MAX_REPETITIONS
@@ -374,7 +390,7 @@ def _requests(requests, labels, *, allow_map_repeat=False):
                  and 1 <= len(values) <= MAX_CALLS - total, "request exceeds exact u32/cumulative call budget")
         values = tuple(values)
         _require(1 <= len(values) <= MAX_CALLS - total
-                 and all(type(v) is int and 0 <= v <= (255 if mode == 1 else MASK32) for v in values),
+                 and all(type(v) is int and 0 <= v <= (255 if mode in {1, 3} else MASK32) for v in values),
                  "request exceeds exact byte/u32/cumulative call budget")
         work += len(values) * repetitions
         _require(work <= MAX_EXECUTED_CALLS, "cumulative executed-call budget exhausted")
@@ -582,6 +598,10 @@ def _parse_prefix(raw, trace, images):
                     _require(type(row.get("kernel_ns")) is int and row["kernel_ns"] > 0,
                              "independent map timing missing or invalid")
                     extra = {"repetitions": repetitions, "kernel_ns": row["kernel_ns"]}
+                elif mode == 3:
+                    _require(type(row.get("kernel_ns")) is int and row["kernel_ns"] > 0,
+                             "timed xor-fold timing missing or invalid")
+                    extra = {"kernel_ns": row["kernel_ns"]}
                 _require(wanted[0] == "returned" and row == {"calls": len(values) * repetitions, "candidate": image,
                          "checksum": wanted[2], "id": ident, "kind": kind, "mode": mode,
                          "parameter": parameter, "seed": seed, "seq": pending,
@@ -625,12 +645,17 @@ def _parse_prefix(raw, trace, images):
 class FiniteU32Bank:
     """In-process, nontransferable authority for a locally rebuilt finite bank."""
 
-    def __init__(self, construction, root, labels, oracle, report, *, reuse_oracle=False, allow_map_repeat=False):
+    def __init__(self, construction, root, labels, oracle, report, *, reuse_oracle=False, allow_map_repeat=False,
+                 allow_timed_xor_fold=False):
         _require(construction is _CONSTRUCTION, "use build_bank; receipts and external images are not authority")
         _require(type(reuse_oracle) is bool, "exact oracle-reference opt-in required")
         _require(type(allow_map_repeat) is bool, "exact map-repeat profile opt-in required")
+        _require(type(allow_timed_xor_fold) is bool and not (allow_map_repeat and allow_timed_xor_fold),
+                 "one exact explicit extended context profile required")
         self._allow_map_repeat = allow_map_repeat
-        self._profile_name = MAP_REPEAT_PROFILE if allow_map_repeat else PROFILE
+        self._allow_timed_xor_fold = allow_timed_xor_fold
+        self._profile_name = (TIMED_XOR_FOLD_PROFILE if allow_timed_xor_fold else
+                              MAP_REPEAT_PROFILE if allow_map_repeat else PROFILE)
         self._root, self._labels, self._oracle, self._report = root, labels, oracle, report
         self._reuse_oracle, self._oracle_references = reuse_oracle, None
         self._lock = threading.RLock()
@@ -698,7 +723,8 @@ class FiniteU32Bank:
             try:
                 self._open()
                 _require(len(self._tokens) < MAX_TRACES, "prepared trace budget exhausted")
-                requested, _initial_payload = _requests(requests, self._labels, allow_map_repeat=self._allow_map_repeat)
+                requested, _initial_payload = _requests(requests, self._labels, allow_map_repeat=self._allow_map_repeat,
+                                                        allow_timed_xor_fold=self._allow_timed_xor_fold)
                 images = tuple(sorted({r[1] for r in requested}))
                 normalized = tuple((request[0], images.index(request[1]), *request[2:]) for request in requested)
                 payload = _payload(normalized)
@@ -902,7 +928,7 @@ class FiniteU32Bank:
 
 
 def build_bank(baseline, candidates, directory, *, clang, cases, oracle, report=None, reuse_oracle=False,
-               allow_map_repeat=False):
+               allow_map_repeat=False, allow_timed_xor_fold=False):
     """Build the exact closed bank locally; all imported receipts are excluded.
 
     ``oracle`` is trusted host code independently implementing one step.  It is
@@ -921,6 +947,8 @@ def build_bank(baseline, candidates, directory, *, clang, cases, oracle, report=
     _require(type(row) is dict, "report must be an ordinary dictionary")
     _require(type(reuse_oracle) is bool, "exact oracle-reference opt-in required")
     _require(type(allow_map_repeat) is bool, "exact map-repeat profile opt-in required")
+    _require(type(allow_timed_xor_fold) is bool and not (allow_map_repeat and allow_timed_xor_fold),
+             "one exact explicit extended context profile required")
     _require(platform.system() == "Linux" and platform.machine().lower() in {"x86_64", "amd64"},
              "finite context currently requires actual Linux x86-64")
     root = checked_profile(baseline)
@@ -935,7 +963,8 @@ def build_bank(baseline, candidates, directory, *, clang, cases, oracle, report=
     directory = Path(directory)
     _require(directory.is_dir() and not any(directory.iterdir()), "new empty build directory required")
     labels = tuple(candidates)
-    profile = MAP_REPEAT_PROFILE if allow_map_repeat else PROFILE
+    profile = (TIMED_XOR_FOLD_PROFILE if allow_timed_xor_fold else
+               MAP_REPEAT_PROFILE if allow_map_repeat else PROFILE)
     row.update(profile=profile, baseline_sha256=root.sha256, labels=list(labels), candidates={},
                serialized_receipts_authorize_execution=False, machine_code_semantics_proved=False,
                global_optimality_proved=False, economic_benefit_proved=False,
@@ -947,8 +976,13 @@ def build_bank(baseline, candidates, directory, *, clang, cases, oracle, report=
                          "max_executed_calls_per_trace": MAX_EXECUTED_CALLS,
                          "max_stored_u32_inputs_per_trace": MAX_CALLS,
                          "unchanged_wall_seconds": WALL_SECONDS, "unchanged_cpu_seconds": CPU_SECONDS}
+    row["timed_xor_fold"] = {"enabled": allow_timed_xor_fold, "wire_mode": 3,
+        "repetitions": 1, "max_stored_bytes_per_trace": MAX_CALLS,
+        "timer_scope": "native xor-fold loop including input loads, indirect kernel calls, rolling checksum and loop overhead",
+        "unchanged_wall_seconds": WALL_SECONDS, "unchanged_cpu_seconds": CPU_SECONDS,
+        "legacy_mode_0_and_1_event_fields_unchanged": True}
     bank = FiniteU32Bank(_CONSTRUCTION, root, labels, oracle, row, reuse_oracle=reuse_oracle,
-                        allow_map_repeat=allow_map_repeat)
+                        allow_map_repeat=allow_map_repeat, allow_timed_xor_fold=allow_timed_xor_fold)
     try:
         images = []
         for label in labels:

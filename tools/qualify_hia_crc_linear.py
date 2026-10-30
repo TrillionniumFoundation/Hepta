@@ -27,7 +27,7 @@ if str(ROOT) not in sys.path:
 from hepta.clang_capture import run_bounded
 from hepta.hia_crc_kernel import POLYNOMIALS, kernel, step
 from hepta.hia_crc_linear import LABELS, candidates
-from hepta.hia_finite_context import build_bank
+from hepta.hia_finite_context import TIMED_XOR_FOLD_PROFILE, build_bank
 from hepta.hia_program import verify_program
 from tools.qualify_hia_crc_context import _capture_and_compare
 from tools.qualify_hia_integrated import _digest_file
@@ -59,8 +59,9 @@ def source_state(expected_head):
             "exact committed source required")
     require(not git("status", "--porcelain", "--untracked-files=all"), "clean source required")
     scope = ["hepta", "tools", "examples/hia_filecheck", "tests/test_hia_crc_linear.py",
-             "tests/test_hia_crc_linear_qualification.py", "docs/HIA_CRC_LINEAR_PROPOSALS.md",
+             "tests/test_hia_crc_linear_qualification.py", "docs/HIA_CRC_LINEAR_PROPOSALS.md", "docs/HIA_FINITE_NATIVE_CONTEXT.md",
              "tests/test_hia_crc_linear_economics.py", "experiments/hia_crc_linear_20261030",
+             "tests/test_hia_finite_context_timed_fold.py", "tests/fixtures/hia_crc_linear",
              "experiments/hia_crc_context"]
     files = {}
     for row in git("ls-tree", "-r", "--full-tree", "-z", head, "--", *scope).split(b"\0")[:-1]:
@@ -99,9 +100,9 @@ def edge_cases():
     return [[state, polynomial] for state in states for polynomial in polys]
 
 
-def finite_plan():
+def finite_plan(*, timed=False):
     """Each image really executes both target polynomials and a generic fallback."""
-    return [{"id": index * 3 + p, "candidate": label, "mode": "xor_fold",
+    return [{"id": index * 3 + p, "candidate": label, "mode": "timed_xor_fold" if timed else "xor_fold",
              "parameter": polynomial, "seed": 0xFFFFFFFF, "values": list(b"123456789")}
             for index, label in enumerate(LABELS)
             for p, polynomial in enumerate((*POLYNOMIALS, 0x12345678))]
@@ -129,7 +130,7 @@ def disassembly(bank_report, directory, objdump):
         "code_difference_proves_performance": False, "machine_code_refinement_proved": False}
 
 
-def qualify(*, output, expected_head, clang, cc, objdump):
+def qualify(*, output, expected_head, clang, cc, objdump, timed=False):
     started = time.monotonic_ns()
     directory = Path(output).resolve()
     require(directory != ROOT and ROOT not in directory.parents, "external new output directory required")
@@ -145,6 +146,8 @@ def qualify(*, output, expected_head, clang, cc, objdump):
             "final_machine_code_refinement_proved": False, "production_workload": False,
             "third_party_source_library": False, "deployment_authority": False}}
     bank = None
+    require(type(timed) is bool, "exact timing profile opt-in required")
+    report["timed_xor_fold"] = timed
     budget = EpisodeBudget(started, BUDGET_NS)
 
     def run(label, action):
@@ -168,9 +171,10 @@ def qualify(*, output, expected_head, clang, cc, objdump):
         images.mkdir()
         report["bank"] = {}
         bank = run("bank.prepare", lambda: build_bank(kernel(), pool, images, clang=clang,
-            cases=edge_cases(), oracle=step, report=report["bank"], reuse_oracle=True))
+            cases=edge_cases(), oracle=step, report=report["bank"], reuse_oracle=True,
+            allow_timed_xor_fold=timed))
         report["code_inspection"] = run("code.inspect", lambda: disassembly(report["bank"], images, objdump))
-        plan = finite_plan()
+        plan = finite_plan(timed=timed)
         trace = run("trace.prepare", lambda: bank.prepare_trace(plan))
         save(directory / "PLAN.json", {"requests": plan, "trace_sha256": trace.sha256, "expected": trace.expected})
         native = report["native"] = {}
@@ -180,6 +184,10 @@ def qualify(*, output, expected_head, clang, cc, objdump):
             save(directory / "NATIVE.json", native)
         require(native["status"] == "completed" and native["prefix"]["complete"], "finite native trace incomplete")
         observed = native["prefix"]["completed_requests"]
+        if timed:
+            require(native["profile"] == TIMED_XOR_FOLD_PROFILE
+                    and all(row["mode"] == 3 and type(row.get("kernel_ns")) is int
+                            and row["kernel_ns"] > 0 for row in observed), "actual timed fold event missing/invalid")
         require(len(observed) == 18 and sum(row["calls"] for row in observed) == 162,
                 "actual qualification request/call denominator differs")
         require(sum(row["native_differential"]["cases_executed"]
@@ -225,9 +233,10 @@ def main():
     parser.add_argument("--clang", default="clang")
     parser.add_argument("--cc", default="gcc")
     parser.add_argument("--objdump", default="objdump")
+    parser.add_argument("--timed-fold", action="store_true")
     options = parser.parse_args()
     result = qualify(output=options.output_directory, expected_head=options.expected_head,
-                     clang=options.clang, cc=options.cc, objdump=options.objdump)
+                     clang=options.clang, cc=options.cc, objdump=options.objdump, timed=options.timed_fold)
     print(json.dumps({"qualified": result["qualified"], "status": result["status"],
                       "wall_ns": result["wall_ns"], "economic_study_executed": False}, sort_keys=True))
     return 0 if result["qualified"] else 1

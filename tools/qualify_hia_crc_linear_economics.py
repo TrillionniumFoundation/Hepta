@@ -18,7 +18,7 @@ if str(ROOT) not in sys.path:
 
 from hepta.hia_crc_kernel import POLYNOMIALS, kernel, step
 from hepta.hia_crc_linear import LABELS, candidates
-from hepta.hia_finite_context import build_bank
+from hepta.hia_finite_context import TIMED_XOR_FOLD_PROFILE, build_bank
 from hepta.hia_program import verify_program
 from tools import qualify_hia_crc_context as historical
 from tools import qualify_hia_crc_context_reuse as reuse
@@ -27,7 +27,7 @@ from tools.qualify_hia_crc_linear import (disassembly, edge_cases, require, save
 from tools.qualify_hia_ndu_loop import EpisodeBudget, measured
 
 PROTOCOL = ROOT / "experiments/hia_crc_linear_20261030/PROTOCOL.json"
-PROTOCOL_SHA256 = "19b46aafdccf573cecd19311e7f2767026274bc180b002a4cb119d0a05716038"
+PROTOCOL_SHA256 = "d7fa8f5e580803d4a27b56d66f53b3fb04443527329f01c3a80cb54eb571e99d"
 STATIC = {"coalesced_baseline": "baseline", "coalesced_ieee_only": "ieee_guard",
           "coalesced_castagnoli_only": "castagnoli_guard",
           "coalesced_linear_ieee_only": "linear_ieee",
@@ -46,8 +46,12 @@ def protocol():
     inherited = ("data", "workloads", "trials_per_phase", "bytes_per_request", "requests_per_trace",
                  "calls_per_trace", "seed_per_request", "max_study_wall_ns", "context_limits", "reference_reuse")
     require(all(p[name] == old[name] for name in inherited), "historical data/work/lifetime/budget changed")
-    require(p["schema"] == "hepta.hia.crc-linear-economics.protocol.v1"
+    prior = p["measurement_contract_revision"]["prior_protocol"]
+    require(sha256((ROOT / prior["path"]).read_bytes()).hexdigest() == prior["sha256"], "pre-timing protocol bytes changed")
+    require(p["schema"] == "hepta.hia.crc-linear-economics.protocol.v2"
             and p["labels"] == list(LABELS) and p["arms"] == list(ARMS) and p["static_targets"] == STATIC
+            and p["execution_profile"] == {"profile": TIMED_XOR_FOLD_PROFILE,
+                "factory_opt_in": "allow_timed_xor_fold=True", "request_mode": "timed_xor_fold", "wire_mode": 3}
             and p["expected_observations"] == 96 and p["expected_native_contexts"] == 276
             and p["expected_delivered_requests"] == 1536 and p["expected_delivered_kernel_calls"] == 393216,
             "closed arm/count contract differs")
@@ -62,7 +66,7 @@ def requests(p, payload, workload, arm):
         label = ("baseline" if arm == "fresh_child_baseline" else STATIC[arm] if arm in STATIC else
                  "linear_ieee" if polynomial == POLYNOMIALS[0] else "linear_castagnoli")
         begin = index * p["bytes_per_request"]
-        rows.append({"id": index, "candidate": label, "mode": "xor_fold", "parameter": polynomial,
+        rows.append({"id": index, "candidate": label, "mode": "timed_xor_fold", "parameter": polynomial,
             "seed": p["seed_per_request"], "values": list(payload[begin:begin + p["bytes_per_request"]])})
     return rows
 
@@ -76,6 +80,19 @@ def prepare_data(p, out):
         path.write_bytes(raw)
         identities[phase] = {"path": str(path), "bytes": len(raw), "sha256": sha256(raw).hexdigest()}
     return data, {"identities": identities, "diversity": diversity}
+
+
+def prime_references(bank, p, data):
+    """Prime the exact timed mode; legacy mode-one references cannot stand in."""
+    rows = []
+    for phase in ("training", "validation"):
+        for workload in ("ieee", "castagnoli"):
+            started = time.monotonic_ns()
+            trace = bank.prepare_trace(requests(p, data[phase], workload, "coalesced_baseline"))
+            cancelled = bank.cancel(trace)
+            rows.append({"phase": phase, "workload": workload, "wire_mode": 3,
+                         "cancellation": cancelled, "wall_ns": time.monotonic_ns() - started})
+    return rows
 
 
 def deliver(bank, p, payload, key, out, sample, primed, *, deadline=None):
@@ -132,7 +149,11 @@ def deliver(bank, p, payload, key, out, sample, primed, *, deadline=None):
                         "type": type(error).__name__, "message": str(error),
                         "observed": copy.deepcopy(observed)})
                     raise
-            require(observed["status"] == "completed" and observed["prefix"]["complete"], "native trace incomplete")
+            require(observed["status"] == "completed" and observed["prefix"]["complete"]
+                    and observed.get("profile") == TIMED_XOR_FOLD_PROFILE
+                    and not sample.get("unknown_native_measurements")
+                    and all(row["mode"] == 3 and type(row.get("kernel_ns")) is int and row["kernel_ns"] > 0
+                            for row in observed["prefix"]["completed_requests"]), "timed native trace incomplete or invalid")
             if deadline is not None:
                 deadline.remaining_ns()
         sample.update(status="completed", loaded_candidates=sorted(loaded))
@@ -275,10 +296,10 @@ def study(*, output, expected_head, clang, cc, objdump):
         images.mkdir()
         report["bank"] = {}
         bank = run("bank.prepare", lambda: build_bank(kernel(), pool, images, clang=clang,
-            cases=edge_cases(), oracle=step, report=report["bank"], reuse_oracle=True))
+            cases=edge_cases(), oracle=step, report=report["bank"], reuse_oracle=True, allow_timed_xor_fold=True))
         report["code_inspection"] = run("code.inspect", lambda: disassembly(report["bank"], images, objdump))
         data, report["inputs"] = run("data.prepare", lambda: prepare_data(p, out))
-        report["reference_priming"] = run("reference.prime", lambda: reuse.prime_references(bank, p, data))
+        report["reference_priming"] = run("reference.prime", lambda: prime_references(bank, p, data))
         primed = report["reference_state_after_priming"] = bank.oracle_reference_statistics()
         require(primed["entries"] == 64 and primed["misses"] == 64 and primed["capacity_bypasses"] == 0
                 and primed["failed_computations"] == 0, "complete common reference set not primed")

@@ -66,6 +66,12 @@
   "deadline_scope": "300 seconds unchanged. Check before/after bounded stages and after cleanup, final identities, analysis and first result write; failed prefixes are retained without retry. This is an admission deadline, not a hard whole-process preemption theorem.",
   "dispatch": "Known polynomial chooses linear_ieee or linear_castagnoli at request boundaries. All six static alternatives, including linear_dual, remain in the strongest fixed baseline.",
   "economic_gate": "For both phases and all workloads: min complete host time over all six coalesced fixed candidates and both repeats minus max poly-dispatch host time minus the full shared non-delivery charge must be strictly positive. Exported new code must differ from all legacy exports. An inner gate is provisional until actual outer execution cost is incorporated.",
+  "execution_profile": {
+    "factory_opt_in": "allow_timed_xor_fold=True",
+    "profile": "hepta.hia.finite-u32-timed-xor-fold-context.v1",
+    "request_mode": "timed_xor_fold",
+    "wire_mode": 3
+  },
   "expected_delivered_kernel_calls": 393216,
   "expected_delivered_requests": 1536,
   "expected_native_contexts": 276,
@@ -75,7 +81,7 @@
     "sha256": "e3aa8c8cac5e9b6caa014660cd174232bd3dd4b84ae7206a2c2af1426888226b",
     "superseded": false
   },
-  "id": "crc-linear-unchanged-v3-work-20261030",
+  "id": "crc-linear-unchanged-v3-work-timed-fold-20261030",
   "kernel_diagnostic": "Report each of the three new static candidates against the minimum kernel time over all three legacy static candidates. Include all workloads, including fallback, and both phases; report per-call saving and negative values. No candidate or sample is discarded.",
   "labels": [
     "baseline",
@@ -86,7 +92,20 @@
     "linear_dual"
   ],
   "max_study_wall_ns": 300000000000,
-  "metric": "Primary observed cost is full arm_host_wall_ns: request construction, reference lookup, evidence and trace creation, native child lifecycle, validation and first observation write. kernel_ns is a nested diagnostic, not whole-file or end-to-end latency.",
+  "measurement_contract_revision": {
+    "detected_on_source": "3533b95c53d23de2d22c91fcc05cb601b8448eb3",
+    "economic_execution_started": false,
+    "legacy_compatibility": "Mode0/1 request tuples, wire bytes and result fields stay unchanged. Mode2 map_repeat remains separately opt-in. The two extended profiles are mutually exclusive.",
+    "prior_protocol": {
+      "path": "experiments/hia_crc_linear_20261030/PRE_TIMING_PROTOCOL.json",
+      "sha256": "19b46aafdccf573cecd19311e7f2767026274bc180b002a4cb119d0a05716038"
+    },
+    "reason": "Read-only audit of the retained real 7e69323 qualification showed that legacy xor_fold(mode1) does not expose kernel_ns. The pre-timing runner incorrectly assumed that map_repeat-only field. It was stopped before any economic run, not repaired by substituting native_outer time. This revision adds a separate explicit opt-in timed_xor_fold(mode3) with actual start/end clocks around the unchanged loop; all eight arms use it. The prior protocol/plan, prior qualification failure and every acquired development cost remain retained.",
+    "unchanged_budget": true,
+    "unchanged_lifetime": true,
+    "unchanged_work": true
+  },
+  "metric": "Primary observed cost is full arm_host_wall_ns: request construction, reference lookup, evidence and trace creation, native child lifecycle, validation and first observation write. kernel_ns measures the native fold loop including input loads, indirect calls, rolling checksum and loop overhead. It is a nested diagnostic, not pure LLVM-body time, whole-file latency or end-to-end latency.",
   "native_preparation_cases_per_candidate": 64,
   "ndu": "No NDU arm: known polynomial static dispatch and the full fixed pool already express this task. No artificial switching constraints or withheld candidate creates a controller advantage. Retain prior real-NDU same-model exact-DP result and negative incremental economics.",
   "ordering": "Training then validation; workload order rotates by trial. Arm order rotates by trial plus workload index and reverses on odd trials.",
@@ -102,7 +121,7 @@
   },
   "requests_per_trace": 16,
   "sampling": "No retry, native warmup, automatic replay, outlier removal or omitted attempted sample. Two trials reuse the same fixed synthetic inputs; envelopes are not statistical confidence intervals.",
-  "schema": "hepta.hia.crc-linear-economics.protocol.v1",
+  "schema": "hepta.hia.crc-linear-economics.protocol.v2",
   "seed_per_request": 4294967295,
   "selected_llvm_max_operations": 128,
   "solver_timeout_ms": 10000,

@@ -46,6 +46,7 @@ class CRCLinearEconomicsTests(unittest.TestCase):
         self.assertEqual(set(study.STATIC.values()), set(LABELS))
         self.assertIn("linear_dual", study.STATIC.values())
         self.assertEqual(len(list(study.historical.schedule(p))), 96)
+        self.assertEqual(p["execution_profile"]["request_mode"], "timed_xor_fold")
         self.assertEqual(sum(16 if key[3] == "fresh_child_baseline" else 1 for key in study.historical.schedule(p)), 276)
         for phase in ("training", "validation"):
             self.assertEqual(prior.phase_input(p, phase), prior.phase_input(old, phase))
@@ -58,6 +59,7 @@ class CRCLinearEconomicsTests(unittest.TestCase):
             semantic = lambda rows: [{k: v for k, v in row.items() if k != "candidate"} for row in rows]
             for arm in study.ARMS:
                 rows = study.requests(p, payload, workload, arm)
+                self.assertEqual({row["mode"] for row in rows}, {"timed_xor_fold"})
                 self.assertEqual(semantic(rows), semantic(baseline))
                 self.assertEqual(sum(len(row["values"]) for row in rows), 4096)
 

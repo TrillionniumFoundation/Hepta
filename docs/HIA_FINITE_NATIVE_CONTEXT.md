@@ -89,6 +89,18 @@ parameter. This supports a separately qualified CRC byte-update kernel without
 adding arbitrary callbacks or expressions to the native driver. The byte
 sequence and polynomial are inputs, not inferred optimization assumptions.
 
+`build_bank(..., allow_timed_xor_fold=True)` explicitly selects the separate
+`hepta.hia.finite-u32-timed-xor-fold-context.v1` profile. It additionally accepts
+`mode="timed_xor_fold"` with the same byte inputs, seed and fixed parameter;
+wire mode 3 performs one pass, with the unchanged work and child limits. Its
+positive integer `kernel_ns` measures the native fold loop, including input
+loads, indirect calls, rolling checksum and loop overhead. A missing, zero,
+backwards or failed clock cannot yield an admitted completed timer. A trap
+retains only the actual completed-request prefix. Old mode 0/1 wire tuples and
+event fields remain unchanged. The timed opt-in and independent `map_repeat`
+opt-in are mutually exclusive; reference keys bind the exact mode, and no
+native execution or safety qualification is cached.
+
 Preparation snapshots the IDs, modes, parameters, seeds and values into
 immutable tuples. Later mutation of the caller's dictionaries or lists cannot
 alter the plan. The independent step oracle derives a final state and a

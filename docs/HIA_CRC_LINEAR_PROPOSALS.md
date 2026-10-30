@@ -103,6 +103,19 @@ linear single-polynomial candidates. This gives 96 observations, 276 contexts,
 candidate pool remains the strong fixed baseline; no NDU arm is invented for
 this already statically expressible task.
 
+Before any economic execution at integrated source `3533b95c`, read-only audit
+of the actual `7e69323` qualification exposed a measurement-contract defect:
+legacy `xor_fold` events do not contain `kernel_ns`; only `map_repeat` had that
+field. The pre-timing protocol and exact bytes remain in
+`PRE_TIMING_PROTOCOL.json`. Version 2 uses the separate explicit
+`timed_xor_fold` profile (wire mode 3), with real clocks around the same native
+fold loop. All eight arms use it, and references are primed under mode 3. Old
+mode 0/1 wire tuples/results remain unchanged; map repetition is unchanged and
+its opt-in is mutually exclusive with timed fold. No native-outer duration or
+zero substitutes for an absent/invalid kernel timer. This repair changes the
+measurement contract, not inputs, call counts, lifetimes or the 300-second
+budget. The correctness qualifier exposes it through `--timed-fold`.
+
 The cold charge is the complete observed study interval minus the sum of all
 full arm intervals. Every other measured preparation, verification, lookup,
 cleanup, identity and evidence cost stays charged. The dispatch cold comparison
@@ -113,8 +126,9 @@ final rewrite and shutdown are not silently zero.
 
 Each new candidate also reports its kernel and complete-host differences from
 the strongest legacy fixed controls, including all negative/fallback results.
-The native kernel timer covers the driver loop, calls and rolling evidence
-checksum; per-call differences are not isolated instruction latency. Positive
+The `kernel_ns` field measures the native fold loop, including input loads,
+indirect calls, rolling evidence checksum and loop overhead; per-call
+differences are not isolated instruction latency. Positive
 kernel differences can produce conditional break-even call counts using the
 observed three-image preparation component or the full shared charge. Those
 ratios are hypotheses about future work, not measured net profit or demand.
