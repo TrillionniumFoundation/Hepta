@@ -38,6 +38,9 @@ MAX_REQUESTS = 256
 MAX_CALLS = 65_536
 MAX_TRACES = 4096
 MAX_PENDING_INPUT_BYTES = 1024 * 1024
+MAX_ORACLE_REFERENCES = 256
+MAX_ORACLE_REFERENCE_BYTES = 1024 * 1024
+ORACLE_REFERENCE_PROFILE = "hepta.hia.finite-u32-oracle-reference.v1"
 MAX_IMAGE_BYTES = 1024 * 1024
 MAX_INPUT_BYTES = 1024 * 1024
 MAX_OUTPUT_BYTES = 128 * 1024
@@ -364,6 +367,103 @@ def _expected(requests, oracle):
     return tuple(rows)
 
 
+class _OracleReferences:
+    """Bounded memoization of a trusted deterministic reference, never execution.
+
+    Exact canonical input bytes are dictionary keys, so hash collisions cannot
+    alias inputs. The bank/root/checker namespace is rechecked by the owner at
+    every preparation. IDs and candidate slots remain in the independently
+    consumed trace; all admitted candidates have been proved equal to its root.
+    """
+
+    def __init__(self, namespace):
+        started = time.monotonic_ns()
+        self.namespace = namespace
+        self.entries = {}
+        self.retained_bytes = self.peak_bytes = self.peak_entries = 0
+        self.hits = self.misses = self.bypasses = self.failed_computations = 0
+        self.lookup_wall_ns = self.compute_wall_ns = self.store_wall_ns = 0
+        self.reference_wall_ns = self.clear_wall_ns = self.retained_byte_ns = 0
+        self.closed = False
+        self.last_observation_ns = time.monotonic_ns()
+        self.creation_wall_ns = self.last_observation_ns - started
+
+    def _account_residence(self):
+        now = time.monotonic_ns()
+        self.retained_byte_ns += self.retained_bytes * (now - self.last_observation_ns)
+        self.last_observation_ns = now
+
+    def expected(self, requests, oracle, namespace):
+        _require(not self.closed and namespace == self.namespace,
+                 "oracle reference namespace changed or closed")
+        started = time.monotonic_ns()
+        rows = []
+        try:
+            for request in requests:
+                _ident, _image, mode, seed, parameter, values = request
+                lookup = time.monotonic_ns()
+                key = _wire({"namespace": namespace, "mode": mode, "seed": seed,
+                             "parameter": parameter, "values": values})
+                cached = self.entries.get(key)
+                self.lookup_wall_ns += time.monotonic_ns() - lookup
+                if cached is not None:
+                    self.hits += 1
+                    rows.append(cached)
+                    continue
+                self.misses += 1
+                compute = time.monotonic_ns()
+                try:
+                    expected = _expected((request,), oracle)[0]
+                except BaseException:
+                    self.failed_computations += 1
+                    raise
+                finally:
+                    self.compute_wall_ns += time.monotonic_ns() - compute
+                store = time.monotonic_ns()
+                retained = len(key) + len(_wire(expected))
+                self._account_residence()
+                if (len(self.entries) < MAX_ORACLE_REFERENCES
+                        and self.retained_bytes + retained <= MAX_ORACLE_REFERENCE_BYTES):
+                    self.entries[key] = expected
+                    self.retained_bytes += retained
+                    self.peak_bytes = max(self.peak_bytes, self.retained_bytes)
+                    self.peak_entries = max(self.peak_entries, len(self.entries))
+                else:
+                    # A full cache changes cost, never the expected value or
+                    # an execution budget. No eviction, replay or qualification.
+                    self.bypasses += 1
+                self.store_wall_ns += time.monotonic_ns() - store
+                rows.append(expected)
+            return tuple(rows)
+        finally:
+            self.reference_wall_ns += time.monotonic_ns() - started
+
+    def clear(self):
+        if not self.closed:
+            started = time.monotonic_ns()
+            self._account_residence()
+            self.entries.clear()
+            self.retained_bytes = 0
+            self.closed = True
+            self.clear_wall_ns += time.monotonic_ns() - started
+
+    def snapshot(self):
+        self._account_residence()
+        return {"enabled": True, "profile": ORACLE_REFERENCE_PROFILE,
+                "namespace_sha256": self.namespace, "closed": self.closed,
+                "entries": len(self.entries), "retained_canonical_bytes": self.retained_bytes,
+                "peak_entries": self.peak_entries, "peak_canonical_bytes": self.peak_bytes,
+                "max_entries": MAX_ORACLE_REFERENCES, "max_canonical_bytes": MAX_ORACLE_REFERENCE_BYTES,
+                "hits": self.hits, "misses": self.misses, "capacity_bypasses": self.bypasses,
+                "failed_computations": self.failed_computations,
+                "creation_wall_ns": self.creation_wall_ns, "lookup_wall_ns": self.lookup_wall_ns,
+                "compute_wall_ns": self.compute_wall_ns, "store_wall_ns": self.store_wall_ns,
+                "reference_wall_ns": self.reference_wall_ns, "clear_wall_ns": self.clear_wall_ns,
+                "retained_canonical_byte_ns": self.retained_byte_ns,
+                "storage_metric_is_rss": False, "determinism_proved": False,
+                "native_result_cache": False, "execution_authority": False}
+
+
 def _parse_prefix(raw, trace, images):
     """Validate complete canonical events; never promote an unfinished line.
 
@@ -458,9 +558,11 @@ def _parse_prefix(raw, trace, images):
 class FiniteU32Bank:
     """In-process, nontransferable authority for a locally rebuilt finite bank."""
 
-    def __init__(self, construction, root, labels, oracle, report):
+    def __init__(self, construction, root, labels, oracle, report, *, reuse_oracle=False):
         _require(construction is _CONSTRUCTION, "use build_bank; receipts and external images are not authority")
+        _require(type(reuse_oracle) is bool, "exact oracle-reference opt-in required")
         self._root, self._labels, self._oracle, self._report = root, labels, oracle, report
+        self._reuse_oracle, self._oracle_references = reuse_oracle, None
         self._lock = threading.RLock()
         self._pins, self._tokens = [], {}
         self._early_releases = []
@@ -522,7 +624,14 @@ class FiniteU32Bank:
             payload_bytes = len(payload.encode("ascii"))
             _require(self._pending_input_bytes + payload_bytes <= MAX_PENDING_INPUT_BYTES,
                      "pending trace input-byte budget exhausted")
-            expected = _expected(normalized, self._oracle)
+            if self._reuse_oracle:
+                namespace = sha256(_wire({"profile": ORACLE_REFERENCE_PROFILE, "bank": self._bank_sha256,
+                    "root": self._root.sha256, "implementation": self._implementation})).hexdigest()
+                if self._oracle_references is None:
+                    self._oracle_references = _OracleReferences(namespace)
+                expected = self._oracle_references.expected(normalized, self._oracle, namespace)
+            else:
+                expected = _expected(normalized, self._oracle)
             digest = sha256(_wire({"profile": PROFILE, "bank": self._bank_sha256,
                                    "images": images, "requests": normalized, "expected": expected})).hexdigest()
             token = object()
@@ -570,6 +679,13 @@ class FiniteU32Bank:
                     "pending_traces": sum(value is not None for value in self._tokens.values()),
                     "pending_input_bytes": self._pending_input_bytes, "max_traces": MAX_TRACES,
                     "max_pending_input_bytes": MAX_PENDING_INPUT_BYTES}
+
+    def oracle_reference_statistics(self):
+        """Copy of cost/storage observations; never source or trace authority."""
+        with self._lock:
+            return ({"enabled": self._reuse_oracle, "initialized": False,
+                     "execution_authority": False, "native_result_cache": False}
+                    if self._oracle_references is None else self._oracle_references.snapshot())
 
     def run(self, trace, *, report=None):
         """Consume once, keep exact failed prefixes, and never retry a child."""
@@ -672,11 +788,14 @@ class FiniteU32Bank:
             rows = [pin["release"].snapshot() if self._child_cleanup_uncertain else pin["release"].attempt()
                     for pin in reversed(self._pins)]
             early = [release.snapshot() for release in self._early_releases]
+            if self._oracle_references is not None:
+                self._oracle_references.clear()
             result = {"descriptors": rows, "complete": all(r["native_release_succeeded"] for r in rows),
                       "unpublished_descriptors": early,
                       "pending_traces_cancelled": cancelled, "pending_input_bytes": self._pending_input_bytes,
                       "pins_retained_for_uncertain_child": self._child_cleanup_uncertain,
-                      "retry_permitted": False, "wall_ns": time.monotonic_ns() - started}
+                       "retry_permitted": False, "wall_ns": time.monotonic_ns() - started,
+                       "oracle_references": self.oracle_reference_statistics()}
             result["complete"] = (result["complete"] and not self._child_cleanup_uncertain
                                   and all(r["native_release_succeeded"] for r in early))
             self._release_snapshot = result
@@ -696,7 +815,7 @@ class FiniteU32Bank:
                 _require(False, "descriptor release uncertain; no retry or success")
 
 
-def build_bank(baseline, candidates, directory, *, clang, cases, oracle, report=None):
+def build_bank(baseline, candidates, directory, *, clang, cases, oracle, report=None, reuse_oracle=False):
     """Build the exact closed bank locally; all imported receipts are excluded.
 
     ``oracle`` is trusted host code independently implementing one step.  It is
@@ -705,10 +824,15 @@ def build_bank(baseline, candidates, directory, *, clang, cases, oracle, report=
     Each candidate's equivalence to baseline and selected LLVM are separately
     recomputed before compilation.  All setup, oracle and final close work must
     be included by any future economic experiment, equally for every policy.
+    ``reuse_oracle=True`` explicitly chooses a deterministic trusted-reference
+    contract for this bank's lifetime. Only expected values are memoized, with
+    separate item/byte limits. It does not prove oracle purity, import another
+    bank's reference, cache a native result, or replenish consumed trace nonces.
     """
     started = time.monotonic_ns()
     row = {} if report is None else report
     _require(type(row) is dict, "report must be an ordinary dictionary")
+    _require(type(reuse_oracle) is bool, "exact oracle-reference opt-in required")
     _require(platform.system() == "Linux" and platform.machine().lower() in {"x86_64", "amd64"},
              "finite context currently requires actual Linux x86-64")
     root = checked_profile(baseline)
@@ -728,7 +852,9 @@ def build_bank(baseline, candidates, directory, *, clang, cases, oracle, report=
                global_optimality_proved=False, economic_benefit_proved=False,
                abi={"function": "calculate", "params": ["u32", "u32"], "returns": ["u32"],
                     "calling_convention": "C-Linux-x86_64", "persistent_state": []})
-    bank = FiniteU32Bank(_CONSTRUCTION, root, labels, oracle, row)
+    row["oracle_reference_reuse"] = {"enabled": reuse_oracle, "profile": ORACLE_REFERENCE_PROFILE,
+        "trusted_deterministic_reference_required": reuse_oracle, "determinism_proved": False}
+    bank = FiniteU32Bank(_CONSTRUCTION, root, labels, oracle, row, reuse_oracle=reuse_oracle)
     try:
         images = []
         for label in labels:
@@ -743,7 +869,8 @@ def build_bank(baseline, candidates, directory, *, clang, cases, oracle, report=
         bank._images = tuple(images)
         row["bank_sha256"] = sha256(_wire({"profile": PROFILE, "root": root.sha256,
             "images": [[name, pin["sha256"]] for name, pin in zip(labels, images)],
-            "driver": driver["sha256"], "implementation": bank._implementation})).hexdigest()
+            "driver": driver["sha256"], "implementation": bank._implementation,
+            "oracle_reference_reuse": reuse_oracle})).hexdigest()
         bank._bank_sha256 = row["bank_sha256"]
         bank._open()
         row["status"] = "prepared"
