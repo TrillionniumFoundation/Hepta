@@ -139,7 +139,7 @@ CRITICAL_MODULES = {
     "real_c_application_maintenance_and_pgo": ("test_hia_legacy_irpgo",),
     "bounded_agent_edits_and_reference_contract": ("test_hia_agent_primitive_into",
         "test_hia_agent_repair", "test_hia_agent_structured", "test_hia_agent_tool_references",
-        "test_hia_agent_toolstudy", "test_hia_agent_toolstudy_v9"),
+        "test_hia_agent_toolstudy", "test_hia_agent_toolstudy_v9", "test_hia_agent_toolstudy_v11"),
     "captured_scalar_source_snapshot": ("test_c2hepta_snapshot_capture",),
     "scalar_c_ast_capture_and_publication": ("test_c2hepta_artifact_parent_rebind",
         "test_c2hepta_ast_json_structure", "test_c2hepta_bounded_ast",
