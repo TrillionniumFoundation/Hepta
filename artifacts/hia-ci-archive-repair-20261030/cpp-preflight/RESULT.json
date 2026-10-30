@@ -1,0 +1,208 @@
+{
+  "all_passed": true,
+  "final_tracked_status": "",
+  "finished_utc": "2026-10-30T10:52:18.451548+00:00",
+  "runs": [
+    {
+      "case_count": 1121,
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "tools/qualify_cpp_scoped_ownership.py",
+        "--workdir",
+        "/dev/shm/hepta-convergence-793cbcdf54ed/cpp-postgate-46d88/cpp-scoped",
+        "--clangxx",
+        "/usr/bin/clang++-20",
+        "--clang",
+        "/usr/bin/clang-20",
+        "--rustc",
+        "/workspace/scratch/cd43ab608057/toolchains/rust-1.90.0/bin/rustc",
+        "--cc",
+        "gcc"
+      ],
+      "cwd": "/dev/shm/hepta-convergence-793cbcdf54ed/cpp-postgate-46d88/source",
+      "elapsed_ns": 3867523310,
+      "error": null,
+      "name": "cpp-scoped",
+      "negative_control_names": [
+        "destruction_order",
+        "leak"
+      ],
+      "qualification_ok": true,
+      "report": "cpp-scoped.qualification.json",
+      "report_sha256": "0f031e5002fc45d14eeacef57d621690355eb2dba6a0df0554129cdf22787687",
+      "returncode": 0,
+      "status": "scoped_native_ownership_qualified",
+      "variants": [],
+      "workdir": "/dev/shm/hepta-convergence-793cbcdf54ed/cpp-postgate-46d88/cpp-scoped"
+    },
+    {
+      "case_count": null,
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "tools/qualify_cpp_composed_project.py",
+        "--workdir",
+        "/dev/shm/hepta-convergence-793cbcdf54ed/cpp-postgate-46d88/cpp-composed-project",
+        "--clangxx",
+        "/usr/bin/clang++-20",
+        "--clang",
+        "/usr/bin/clang-20",
+        "--cc",
+        "gcc"
+      ],
+      "cwd": "/dev/shm/hepta-convergence-793cbcdf54ed/cpp-postgate-46d88/source",
+      "elapsed_ns": 6207999692,
+      "error": null,
+      "name": "cpp-composed-project",
+      "negative_control_names": [
+        "five_weight_missing_drop",
+        "three_weight_missing_drop"
+      ],
+      "qualification_ok": true,
+      "report": "cpp-composed-project.qualification.json",
+      "report_sha256": "abccc70726d34fe58007305cb7a2ca9c80a5e73531f2436a17ef09ef2d26fd52",
+      "returncode": 0,
+      "status": null,
+      "variants": [
+        {
+          "case_count": 437,
+          "name": "three_weight"
+        },
+        {
+          "case_count": 437,
+          "name": "five_weight"
+        }
+      ],
+      "workdir": "/dev/shm/hepta-convergence-793cbcdf54ed/cpp-postgate-46d88/cpp-composed-project"
+    },
+    {
+      "case_count": null,
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "tools/qualify_cpp_unique_project.py",
+        "--workdir",
+        "/dev/shm/hepta-convergence-793cbcdf54ed/cpp-postgate-46d88/cpp-unique-project",
+        "--clangxx",
+        "/usr/bin/clang++-20",
+        "--clang",
+        "/usr/bin/clang-20",
+        "--cc",
+        "gcc"
+      ],
+      "cwd": "/dev/shm/hepta-convergence-793cbcdf54ed/cpp-postgate-46d88/source",
+      "elapsed_ns": 72317828253,
+      "error": null,
+      "name": "cpp-unique-project",
+      "negative_control_names": [
+        "five_weight_missing_drop",
+        "three_weight_missing_drop"
+      ],
+      "qualification_ok": true,
+      "report": "cpp-unique-project.qualification.json",
+      "report_sha256": "30838daae6f4862a1c670983396caf70255afbe73eddd3a26c7af25458a13601",
+      "returncode": 0,
+      "status": null,
+      "variants": [
+        {
+          "case_count": 437,
+          "name": "three_weight"
+        },
+        {
+          "case_count": 437,
+          "name": "five_weight"
+        }
+      ],
+      "workdir": "/dev/shm/hepta-convergence-793cbcdf54ed/cpp-postgate-46d88/cpp-unique-project"
+    },
+    {
+      "case_count": null,
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "tools/qualify_cpp_unique_assignment_project.py",
+        "--workdir",
+        "/dev/shm/hepta-convergence-793cbcdf54ed/cpp-postgate-46d88/cpp-unique-assignment-project",
+        "--clangxx",
+        "/usr/bin/clang++-20",
+        "--clang",
+        "/usr/bin/clang-20",
+        "--cc",
+        "gcc"
+      ],
+      "cwd": "/dev/shm/hepta-convergence-793cbcdf54ed/cpp-postgate-46d88/source",
+      "elapsed_ns": 75329779522,
+      "error": null,
+      "name": "cpp-unique-assignment-project",
+      "negative_control_names": [
+        "five_weight_missing_drop",
+        "five_weight_wrong_assignment_cleanup_order",
+        "three_weight_missing_drop",
+        "three_weight_wrong_assignment_cleanup_order"
+      ],
+      "qualification_ok": true,
+      "report": "cpp-unique-assignment-project.qualification.json",
+      "report_sha256": "33d44247884980a40676e00b94c2a557ae47f4cbc370cb3f08e4086a20a0cc74",
+      "returncode": 0,
+      "status": null,
+      "variants": [
+        {
+          "case_count": 789,
+          "name": "three_weight"
+        },
+        {
+          "case_count": 789,
+          "name": "five_weight"
+        }
+      ],
+      "workdir": "/dev/shm/hepta-convergence-793cbcdf54ed/cpp-postgate-46d88/cpp-unique-assignment-project"
+    }
+  ],
+  "schema": "hepta.cpp-ci-postgate-replay.v1",
+  "scope": "Four existing step-21 CI qualifications; no formal-study rerun or changed budget.",
+  "source_bindings_unchanged": true,
+  "source_commit": "46d88bd18b1b3dadb246e92eb22c49fe44ec2d72",
+  "source_tree": "5d99211867c7b3a091dfc07c44366bbfe2b73cdb",
+  "started_utc": "2026-10-30T10:49:39.613839+00:00",
+  "toolchains": {
+    "clang": {
+      "command": [
+        "/usr/bin/clang-20",
+        "--version"
+      ],
+      "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)\nTarget: x86_64-pc-linux-gnu\nThread model: posix\nInstalledDir: /usr/lib/llvm-20/bin"
+    },
+    "clangxx": {
+      "command": [
+        "/usr/bin/clang++-20",
+        "--version"
+      ],
+      "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)\nTarget: x86_64-pc-linux-gnu\nThread model: posix\nInstalledDir: /usr/lib/llvm-20/bin"
+    },
+    "g++": {
+      "command": [
+        "g++",
+        "--version"
+      ],
+      "version": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+    },
+    "gcc": {
+      "command": [
+        "gcc",
+        "--version"
+      ],
+      "version": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+    },
+    "python": {
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "--version"
+      ],
+      "version": "Python 3.12.14"
+    },
+    "rustc": {
+      "command": [
+        "/workspace/scratch/cd43ab608057/toolchains/rust-1.90.0/bin/rustc",
+        "-vV"
+      ],
+      "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+    }
+  }
+}
