@@ -1,0 +1,66 @@
+module inih_component;
+
+// Extracted decisions plus an explicitly authored callback lease contract.
+
+export "C" fn hia_ini_bool_step(state: u32, byte: u32) -> u32 effects {} {
+    if state == 0 && byte == 48 { return 20; }
+    if state == 0 && byte == 49 { return 10; }
+    if state == 0 && byte == 102 { return 11; }
+    if state == 0 && byte == 110 { return 16; }
+    if state == 0 && byte == 111 { return 8; }
+    if state == 0 && byte == 116 { return 1; }
+    if state == 0 && byte == 121 { return 5; }
+    if state == 1 && byte == 114 { return 2; }
+    if state == 2 && byte == 117 { return 3; }
+    if state == 3 && byte == 101 { return 4; }
+    if state == 5 && byte == 101 { return 6; }
+    if state == 6 && byte == 115 { return 7; }
+    if state == 8 && byte == 102 { return 18; }
+    if state == 8 && byte == 110 { return 9; }
+    if state == 11 && byte == 97 { return 12; }
+    if state == 12 && byte == 108 { return 13; }
+    if state == 13 && byte == 115 { return 14; }
+    if state == 14 && byte == 101 { return 15; }
+    if state == 16 && byte == 111 { return 17; }
+    if state == 18 && byte == 102 { return 19; }
+    return 4294967295;
+}
+
+export "C" fn hia_ini_bool_finish(state: u32, fallback: u32) -> u32 effects {} {
+    if state == 4 { return 0; }
+    if state == 7 { return 1; }
+    if state == 9 { return 1; }
+    if state == 10 { return 1; }
+    if state == 15 { return 0; }
+    if state == 17 { return 0; }
+    if state == 19 { return 0; }
+    if state == 20 { return 0; }
+    if fallback != 0 { return 1; }
+    return 0;
+}
+
+export "C" fn hia_ini_error_kind(error: i32) -> u32 effects {panic} {
+    if error > 0 { return 1; }
+    if error == -2 { return 2; }
+    if error == -1 { return 3; }
+    if error == 0 { return 4; }
+    return 255;
+}
+
+export "C" fn hia_ini_callback_action(has_name: u32, has_value: u32, nonempty: u32) -> u32 effects {} {
+    if has_name == 0 { return 0; }
+    if nonempty != 0 {
+        if has_value != 0 { return 4; }
+        return 3;
+    }
+    if has_value != 0 { return 2; }
+    return 1;
+}
+
+export "C" fn hia_ini_lease_step(phase: u32, event: u32) -> u32 effects {} {
+    if phase == 0 && event == 0 { return 1; }
+    if phase == 1 && event == 1 { return 2; }
+    if phase == 2 && event == 2 { return 1; }
+    if phase == 1 && event == 3 { return 3; }
+    return 255;
+}

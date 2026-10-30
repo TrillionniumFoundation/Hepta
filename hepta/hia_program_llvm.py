@@ -30,6 +30,8 @@ from .elf_shared_abi import inspect_owned_shared_elf
 from .native_tool_identity import digest_executable
 from .object_symbols import inspect_object_symbols
 from .hia_schema import supports_feature
+from .hia_opcodes import WIDTHS as _WIDTHS
+from . import hia_semantic_kernel as semantic_kernel
 
 
 PROFILE = "hepta.hia.program.llvm-linux-x86_64.v1"
@@ -56,8 +58,6 @@ PROFILE_V8 = "hepta.hia.program.llvm-linux-x86_64-parameter-loan-returns.v8"
 PROFILE_AARCH64_V8 = "hepta.hia.program.llvm-linux-aarch64-parameter-loan-returns-object.v8"
 MAX_LLVM_BYTES = 16 * 1024 * 1024
 MAX_ARTIFACT_BYTES = 64 * 1024 * 1024
-_WIDTHS = {**{f"{sign}{bits}": bits for sign in ("i", "u")
-             for bits in (8, 16, 32, 64)}, "usize": 64, "isize": 64}
 _BUFFERS = {"buffer", "readbuf", "mutbuf"}
 _RUNTIME_NAMES = {"abort", "calloc", "free", "malloc", "memset", "memcpy", "memmove"}
 _IMPORTS = {"abort", "calloc", "free", "malloc", "memset", "memcpy", "memmove"}
@@ -137,7 +137,7 @@ def _implementation_hash():
     """Bind the actual verifier/emitter and the native boundary helpers."""
     digest = sha256()
     root = Path(__file__).parent
-    for name in ("hia_schema.py", "hia_program.py", "hia_opcodes.py", "hia_program_composite.py", "hia_program_llvm.py", "artifact_publication.py",
+    for name in ("hia_schema.py", "hia_program.py", "hia_opcodes.py", "hia_semantic_kernel.py", "hia_program_composite.py", "hia_program_llvm.py", "artifact_publication.py",
                  "clang_capture.py", "elf_shared_abi.py", "object_symbols.py",
                  "object_structure.py", "native_tool_identity.py"):
         content = (root / name).read_bytes()
@@ -228,6 +228,7 @@ class _FunctionEmitter:
         self.values = {}
         self.block_ids = {block["id"]: "b" + str(i)
                           for i, block in enumerate(function["blocks"])}
+        self.block_parameters = {block["id"]: block["params"] for block in function["blocks"]}
         self.param_ids = {}
         self.edges = []
         self.blocks = []
@@ -567,18 +568,20 @@ class _FunctionEmitter:
 
     def edge(self, target, arguments):
         name = "edge_" + str(len(self.edges))
-        values = [self.argument(arg) for arg in arguments]
+        values = semantic_kernel.parallel_edge_values(arguments, self.block_parameters[target], self.argument)
         self.edges.append((name, target, values))
         return name
 
     def terminal(self, term):
         op = term["op"]
         if op == "jump":
-            edge = self.edge(term["target"], term["args"])
+            successor, = semantic_kernel.successors(term)
+            edge = self.edge(successor["target"], successor["args"])
             self.line("br label %" + edge)
         elif op == "branch":
-            yes = self.edge(term["then"]["target"], term["then"]["args"])
-            no = self.edge(term["else"]["target"], term["else"]["args"])
+            yes_edge, no_edge = semantic_kernel.successors(term)
+            yes = self.edge(yes_edge["target"], yes_edge["args"])
+            no = self.edge(no_edge["target"], no_edge["args"])
             condition = self.argument(term["cond"])[0]
             self.line("br i1 " + condition + ", label %" + yes + ", label %" + no)
         elif op == "trap":
@@ -641,7 +644,7 @@ empty:
   %empty_result = insertvalue %hia.alloc zeroinitializer, i1 true, 1
   ret %hia.alloc %empty_result
 nonempty:
-  %valid = icmp ule i64 %length, 9223372036854775807
+  %valid = icmp ule i64 %length, HIA_MAX_OBJECT_BYTES
   br i1 %valid, label %allocate, label %failed
 allocate:
   br i1 %zero_bytes, label %zeroed, label %unread
@@ -664,7 +667,7 @@ ready:
 failed:
   ret %hia.alloc zeroinitializer
 }
-"""
+""".replace("HIA_MAX_OBJECT_BYTES", str(semantic_kernel.MAX_OBJECT_BYTES))
 
 
 _CHAIN_RUNTIME = r"""
@@ -673,7 +676,7 @@ _CHAIN_RUNTIME = r"""
 ; Its failure returns both unchanged, while success returns an empty fallback.
 define internal %hia.chain.result @__hia_chain_push(ptr %tail, %hia.buffer %payload) {
 entry:
-  %node = call ptr @malloc(i64 24) nobuiltin
+  %node = call ptr @malloc(i64 HIA_CHAIN_NODE_BYTES) nobuiltin
   %ok = icmp ne ptr %node, null
   br i1 %ok, label %ready, label %failed
 ready:
@@ -733,7 +736,7 @@ release_node:
 done:
   ret void
 }
-"""
+""".replace("HIA_CHAIN_NODE_BYTES", str(semantic_kernel.CHAIN_NODE_BYTES))
 
 
 class _Emitter:

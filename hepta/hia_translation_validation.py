@@ -41,6 +41,16 @@ _OPS = frozenset({
      for mode in ("checked", "wrap")}
   | {f"compare.{kind}" for kind in ("eq", "ne", "lt", "le", "gt", "ge")})
 
+# The local semantic source closure, including canonical admission and concrete
+# counterexample replay. A change to an imported rule must not retain the same
+# validator identity merely because this module's encoder text is unchanged.
+# Python, Z3 and the host remain trusted; this is not runtime attestation.
+_SEMANTIC_IMPLEMENTATION_INPUTS = (
+    "hia_translation_validation.py", "hia_program.py", "hia_schema.py",
+    "hia_opcodes.py", "hia_program_composite.py", "hia_json_preflight.py",
+    "hia_semantic_kernel.py", "hia_program_runtime.py", "hia_bounded_memory.py",
+)
+
 
 class _OutsideProfile(Exception):
     pass
@@ -52,7 +62,16 @@ def _z3_module():
 
 
 def _implementation_digest():
-    return sha256(Path(__file__).read_bytes()).hexdigest()
+    """Identify all local sources used for admission, encoding and replay.
+
+    Receipts still require actual Core verification and a fresh SMT query at
+    use. This fingerprint closes their provenance/freshness gap; it does not
+    turn recorded evidence into proof authority or add backend refinement.
+    """
+    digest = sha256(b"hepta.scalar-translation-semantic-sources.v1\0")
+    for name in _SEMANTIC_IMPLEMENTATION_INPUTS:
+        digest.update(name.encode() + b"\0" + Path(__file__).with_name(name).read_bytes() + b"\0")
+    return digest.hexdigest()
 
 
 def _receipt(function, timeout_ms):

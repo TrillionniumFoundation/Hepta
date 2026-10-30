@@ -13,6 +13,8 @@ from .hia_program import (HIAProgramRejected, OWNERS, RESOURCES, SCALARS, WIDTHS
                           integer_range, scalar_value_valid, verify_program)
 from .hia_bounded_memory import fill_bytes, move_bytes
 from .hia_schema import supports_feature
+from . import hia_semantic_kernel as semantic_kernel
+from .hia_semantic_kernel import CHAIN_NODE_BYTES
 
 
 class HIAProgramTrap(ArithmeticError):
@@ -62,9 +64,6 @@ class _Chain:
 # The native v7 object model has a 16-byte buffer descriptor and one 8-byte
 # successor pointer. Node storage is charged to the same live-byte budget as
 # user buffers, and consumes the same allocation-failure sequence.
-CHAIN_NODE_BYTES = 24
-
-
 def _underlying(value):
     seen = set()
     while isinstance(value, _View):
@@ -109,8 +108,8 @@ class _Machine:
         self.chain_nodes_created = self.chain_nodes_dropped = 0
 
     def tick(self):
-        self.steps += 1
-        if self.steps > self.max_steps:
+        self.steps, admitted = semantic_kernel.step_charge(self.steps, self.max_steps)
+        if not admitted:
             raise HIAProgramBudgetExceeded("steps", "finite step limit reached")
 
     def resources(self):
@@ -177,14 +176,15 @@ class _Machine:
     def allocate(self, size, optional):
         # Zero-size owners are real capabilities but require no allocator call,
         # cannot fail, and do not consume the deterministic failure injection.
-        if size == 0:
+        admission = semantic_kernel.allocation_admission(size, self.live_bytes, self.max_heap_bytes)
+        if admission == "empty":
             return self.new_owner(bytearray()), True
-        if size > (1 << 63) - 1:
+        if admission == "object_size":
             if optional:
                 return self.new_owner(bytearray()), False
             raise HIAProgramTrap("allocation", "allocation exceeds the 64-bit object-size model")
         # A host evaluator budget is not reported as a program malloc failure.
-        if size > self.max_heap_bytes - self.live_bytes:
+        if admission == "heap_budget":
             raise HIAProgramBudgetExceeded("heap", "finite live-byte limit reached")
         self.allocation_attempts += 1
         failed = self.allocation_fail_at == self.allocation_attempts
@@ -444,7 +444,7 @@ class _Machine:
         # Root invocation occupies frame 1 (depth=0), matching the static
         # max_call_depth budget. A limit of N admits exactly N live frames.
         # Refuse the (N+1)th BEFORE its call-entry tick or any side effect.
-        if depth >= self.max_call_depth:
+        if not semantic_kernel.call_entry_allowed(depth, self.max_call_depth):
             raise HIAProgramBudgetExceeded("calls", "finite call-depth limit reached")
         self.tick()
         blocks = {b["id"]: b for b in fn["blocks"]}
@@ -479,9 +479,10 @@ class _Machine:
                 return values
             if term["op"] == "trap":
                 raise HIAProgramTrap(term["code"], "explicit core trap")
-            edge = term if term["op"] == "jump" else term["then"] if env[term["cond"]] else term["else"]
+            edge = semantic_kernel.selected_successor(
+                term, env[term["cond"]] if term["op"] == "branch" else None)
             target = blocks[edge["target"]]
-            values = [env[name] for name in edge["args"]]
+            values = semantic_kernel.parallel_edge_values(edge["args"], target["params"], env.__getitem__)
             # All block inputs are evaluated simultaneously. Loop iterations
             # create new dynamic instances of the same static SSA names.
             env = {p["name"]: a for p, a in zip(target["params"], values)}
@@ -492,6 +493,7 @@ class _Machine:
                   "program_sha256": self.program.sha256, "function": function,
                   "input_sha256": self.program.input_sha256,
                   "steps": self.steps, "resources": self.resources(),
+                  "semantic_contract": semantic_kernel.contract(),
                   "word_bits": 64, "source_used": False,
                   "claims": {"finite_core_execution": True,
                              "whole_language_soundness_proved": False,

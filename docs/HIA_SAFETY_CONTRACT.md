@@ -401,3 +401,7 @@ now participate in the verified regression and critical coverage group; their
 16 methods also extend the canonical matrix from 250 to 266 selectors without
 removing an earlier selector or capability. The actual owned-source path and
 host/cross-target forgery controls are required alongside the producer tests.
+
+## Shared executable kernel increment
+
+The reviewed matrix now includes the production shared CFG/resource kernel, VM budget admission, live semantic-rule cache invalidation, and actual native C-ABI/allocator observations. See `HIA_SHARED_SEMANTIC_KERNEL.md` for exactly shared rules and remaining proof boundaries. All prior capability rows and universal-claim exclusions remain present; the matrix and its independent reviewed digest were updated together.

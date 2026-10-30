@@ -1,7 +1,7 @@
 {
   "admission_authority": "hepta.hia_program.verify_program",
   "backend_scope": "VM and direct LLVM have separate supported-target/entry-ABI checks; catalog inclusion grants no native entry ABI",
-  "catalog_sha256": "dd6fc836b5e71db165dcf81bfcdd233fda25dc6888f720dcc472dcdcf986ee54",
+  "catalog_sha256": "afc472231ddbd606bb98b89cc8ee6397915de048d564df5c263adffa1922d892",
   "conditional_effects": {
     "call": "all callee effects",
     "int.cast": "checked mode requires trap"
@@ -983,6 +983,49 @@
   "resource_checks": "all guards, transitions, exact CFG joins and return cleanup remain mandatory",
   "safety_certificate": false,
   "schema": "hepta.hia.opcode-catalog.v1",
+  "shared_semantic_contract": {
+    "budgets": {
+      "VM_call_depth": "root is frame one; rejection precedes entry tick",
+      "VM_live_bytes": "owned payload plus 24 bytes per chain node; excludes host allocator/Python/stack overhead",
+      "VM_step": "one per call entry, operation, terminator and destroyed chain node",
+      "native_limits": "not implied by VM limits; separately qualified runtime/policy required",
+      "zero_size_owner": "linear capability without allocator attempt or injected failure"
+    },
+    "cancellation": "explicit cooperative control flow and balanced normal return; no async/preemptive cleanup",
+    "chain_node_bytes": 24,
+    "claims": {
+      "asynchronous_cancellation_safe": false,
+      "backend_refinement_proved": false,
+      "complete_operational_semantics_generated": false,
+      "native_VM_budget_equivalence": false,
+      "shared_executable_rules": true,
+      "whole_language_soundness_proved": false
+    },
+    "implementation_sha256": "1f8c91e31673b324ab001e6e2dd398852c2d0f2ad77ccdfcb2b09f7a1a931a43",
+    "outcomes": {
+      "budget_exceeded": "analysis/evaluator stop, not a program trap or allocation failure",
+      "returned": "all local loans/owners discharged; includes failure-as-value and cooperative cancellation",
+      "trapped": "aborting program outcome; stopped resources reported; no destructor-cleanup claim"
+    },
+    "schema": "hepta.hia.semantic-kernel.v1",
+    "shared_production_rules": [
+      "ordered_CFG_successors",
+      "parallel_edge_values",
+      "linear_resource_edge_renaming",
+      "loan_conflict_and_suspension",
+      "normal_return_resource_balance",
+      "VM_step_call_and_allocation_admission"
+    ],
+    "trusted_boundary": [
+      "Python checker/kernel",
+      "composite elaborator",
+      "VM implementation",
+      "LLVM lowering",
+      "Clang/LLVM",
+      "allocator/OS/hardware",
+      "any admitted foreign wrapper"
+    ]
+  },
   "signature_rules": {
     "=N": "same type as zero-based operand N",
     "declared:T": "explicit result type in group T",

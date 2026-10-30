@@ -1,0 +1,152 @@
+name: HIA six-track implementation and prospective evidence
+
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'tests/**'
+      - 'tools/**'
+      - 'examples/cpp/inih_component/**'
+      - 'benchmarks/hia_portfolio_holdout/**'
+      - 'benchmarks/hia_agent_maintenance/**'
+      - 'experiments/hia_linux_interfaces/**'
+      - 'docs/HIA_SAFETY_CONTRACT*'
+      - '.github/actions/hepta-llvm20/**'
+      - '.github/workflows/hepta-six-track-advance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  HEPTA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+  CLANG: /usr/bin/clang-20
+  CLANGXX: /usr/bin/clang++-20
+  HEPTA_CLANG: /usr/bin/clang-20
+  PYTHONDONTWRITEBYTECODE: '1'
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  native-integration:
+    name: Shared semantics and actual interfaces / ${{ matrix.machine }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            machine: x86_64
+          - os: ubuntu-24.04-arm
+            machine: aarch64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEPTA_SOURCE_SHA }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pin source and dependencies
+        run: |
+          test "$(git rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"
+          test -z "$(git status --porcelain)"
+          mkdir -p "$RUNNER_TEMP/hepta-six"
+          git rev-parse HEAD > "$RUNNER_TEMP/hepta-six/source-sha.txt"
+          python -m pip install -e '.[optimization]'
+      - uses: ./.github/actions/hepta-llvm20
+      - name: Require current catalog and reviewed registry
+        run: |
+          python tools/generate_hia_catalog.py --check
+          python -m unittest tests.test_hia_safety_protocol -v
+      - name: Require production semantic and cache regressions
+        run: |
+          python -m unittest tests.test_hia_program tests.test_hia_program_composite tests.test_hia_incremental tests.test_hia_incremental_v8 tests.test_hia_opcode_catalog tests.test_hia_vm_call_depth tests.test_hia_runtime_argument_snapshot tests.test_hia_portfolio tests.test_hia_portfolio_holdout tests.test_cpp_inih_component tests.test_hia_agent_context tests.test_hia_agent_maintenance tests.test_hia_linux_interfaces -v
+          python tools/qualify_hia_semantic_kernel.py --require-native --output "$RUNNER_TEMP/hepta-six/semantic-kernel.json"
+      - name: Require proof to final machine-artifact binding
+        if: matrix.machine == 'x86_64'
+        run: python tools/qualify_hia_guarded_native_binding.py --require-native --output "$RUNNER_TEMP/hepta-six/guarded-native-binding.json"
+      - name: Require scalar receipt dependency identity and actual SMT replay
+        run: |
+          python -c 'import z3; assert z3.get_version_string() == "4.15.4"'
+          python -m unittest tests.test_hia_translation_identity -v
+      - name: Run independent real C++ versions and actual failure paths
+        run: python tools/qualify_cpp_inih_component.py --output-directory "$RUNNER_TEMP/hepta-six/inih-component" --cc gcc --cxx g++
+      - name: Qualify actual Hepta pthread and eventfd boundary on this host
+        run: python tools/qualify_hia_linux_interfaces.py --mode hepta --native-host '${{ matrix.machine }}' --cc gcc --clang "$CLANG" --output "$RUNNER_TEMP/hepta-six/linux-interfaces"
+      - name: Retain prospective Agent context controls and provider availability
+        run: python tools/qualify_hia_agent_maintenance.py --preflight-only --output "$RUNNER_TEMP/hepta-six/agent-maintenance"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hia-six-${{ matrix.machine }}-${{ env.HEPTA_SOURCE_SHA }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/hepta-six/
+          if-no-files-found: error
+
+  prospective-portfolio:
+    name: Registered candidate portfolio / original finite NDU
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      FINITE_NDU_SOURCE_SHA: 4b6391e116949af0c7e59776baead67271856bdb
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEPTA_SOURCE_SHA }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pin experiment before formal measurements
+        run: |
+          test "$(git rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"
+          test -z "$(git status --porcelain)"
+          mkdir -p "$RUNNER_TEMP/hepta-portfolio-evidence"
+          git rev-parse HEAD > "$RUNNER_TEMP/hepta-portfolio-evidence/registration-commit.txt"
+          python -m pip install -e '.[optimization]'
+          python -m unittest tests.test_hia_portfolio tests.test_hia_portfolio_holdout -v
+      - uses: ./.github/actions/hepta-llvm20
+      - name: Install pinned finite NDU toolchain
+        run: |
+          rustup toolchain install 1.95.0 --profile minimal
+          printf 'FINITE_CARGO=%s\n' "$(rustup which --toolchain 1.95.0 cargo)" >> "$GITHUB_ENV"
+          printf 'FINITE_RUSTC=%s\n' "$(rustup which --toolchain 1.95.0 rustc)" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/hepta-portfolio-cargo-home"
+          printf 'CARGO_HOME=%s\n' "$RUNNER_TEMP/hepta-portfolio-cargo-home" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v4
+        with:
+          repository: TrillionniumFoundation/hepta-private-ci
+          ref: ${{ env.FINITE_NDU_SOURCE_SHA }}
+          path: finite-ndu-source
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /codex-rs/Cargo.toml
+            /codex-rs/hepta-ndu/
+            /codex-rs/hepta-types/
+            /codex-rs/hepta-contracts/
+            /tools/hia-ndu-bridge/
+      - name: Measure the original empty-target build including manifest close
+        run: |
+          python tools/build_hia_portfolio_native.py --ndu-source finite-ndu-source \
+            --output "$RUNNER_TEMP/hepta-portfolio-evidence/native-build" \
+            --target-dir "$RUNNER_TEMP/hepta-portfolio-native-target" \
+            --cargo "$FINITE_CARGO" --rustc "$FINITE_RUSTC"
+      - name: Execute all registered arms and retain failures and negative gains
+        run: |
+          python tools/qualify_hia_portfolio_holdout.py \
+            --registration-commit "$HEPTA_SOURCE_SHA" --clang "$CLANG" \
+            --identity "$RUNNER_TEMP/hepta-portfolio-evidence/native-build/original/identity.json" \
+            --native-build-envelope "$RUNNER_TEMP/hepta-portfolio-evidence/native-build/OUTER.json" \
+            --output "$RUNNER_TEMP/hepta-portfolio-evidence/portfolio"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hia-six-portfolio-${{ env.HEPTA_SOURCE_SHA }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/hepta-portfolio-evidence/
+          if-no-files-found: error

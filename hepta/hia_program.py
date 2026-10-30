@@ -33,6 +33,8 @@ from .hia_opcodes import (
     TERMINATORS, OpcodeRejected, check_instruction, opcode_spec,
     scalar_value_valid as _catalog_scalar_value_valid,
 )
+from . import hia_semantic_kernel as semantic_kernel
+from .hia_semantic_kernel import Capability as _Capability
 WORD_BITS = 64
 _IDENT = re.compile(r"[A-Za-z_][A-Za-z_0-9]{0,127}\Z")
 _RESERVED_FUNCTIONS = frozenset({"abort", "calloc", "malloc", "free", "memcpy", "memmove", "memset"})
@@ -289,6 +291,7 @@ class VerifiedProgram:
                 "word_bits": WORD_BITS, "functions_checked": len(data["functions"]),
                 "blocks_checked": sum(len(f["blocks"]) for f in data["functions"]),
                 "source_required": False,
+                "semantic_contract": semantic_kernel.contract(),
                 "claims": {"typed_closed_ssa_checked": True,
                            "linear_resources_and_loan_provenance_checked": True,
                            "whole_language_soundness_proved": False,
@@ -305,17 +308,6 @@ class VerifiedProgram:
                            "recursive_heap_adts_supported": False,
                            "recursive_buffer_chains_supported": supports_feature(data["schema"], "recursive_chain"),
                            "preemptive_or_async_cancellation_supported": False}}
-
-
-@dataclass(frozen=True)
-class _Capability:
-    typ: str
-    root: str
-    parent: str | None = None
-    external: bool = False
-    # Original function parameter identity, independent of CFG SSA renaming.
-    # Only functions with v8 borrowed results track this extra restriction.
-    origin: str | None = None
 
 
 def _parameters(value, where):
@@ -354,19 +346,14 @@ def _edges(term):
     if op not in TERMINATORS:
         _reject("unknown terminator", "E_HIA_CFG")
     _keys(term, TERMINATORS[op], op)
-    if op == "jump":
-        return [_edge({"target": term["target"], "args": term["args"]})]
     if op == "branch":
         _ident(term["cond"], "branch condition")
-        return [_edge(term["then"]), _edge(term["else"])]
     if op == "ret":
         _names(term["values"], "return values")
-        return []
     if op == "trap":
         if type(term["code"]) is not str or term["code"] not in TRAP_CODES:
             _reject("unknown trap code", "E_HIA_CFG")
-        return []
-    _reject("unknown terminator", "E_HIA_CFG")
+    return [_edge(edge) for edge in semantic_kernel.successors(term)]
 
 
 def _function_shape(fn, *, recursive_chain=False, parameter_loan_returns=False):
@@ -486,44 +473,27 @@ class _BlockCheck:
             _reject(f"use of consumed resource {name}", "E_HIA_RESOURCE")
         return typ
 
+    def rule(self, function, *args, **kwargs):
+        try:
+            return function(*args, **kwargs)
+        except semantic_kernel.SemanticRejected as exc:
+            _reject(str(exc), exc.code)
+
     def children(self, name):
-        return [n for n, cap in self.caps.items() if cap.parent == name]
+        return semantic_kernel.children(self.caps, name)
 
     def ancestors(self, name):
-        out = set()
-        while self.caps[name].parent is not None:
-            name = self.caps[name].parent
-            if name in out or name not in self.caps:
-                _reject("invalid loan parent graph", "E_HIA_LOAN")
-            out.add(name)
-        return out
+        return self.rule(semantic_kernel.ancestors, self.caps, name)
 
     def owner_free(self, name):
-        if self.value(name) not in OWNERS:
-            _reject("operation requires an owner", "E_HIA_TYPE")
-        if any(cap.root == name and other != name for other, cap in self.caps.items()):
-            _reject("owner moved/dropped/returned while borrowed", "E_HIA_LOAN")
+        self.rule(semantic_kernel.require_owner_free, self.caps, name, self.value(name))
 
     def access(self, name, mutable=False):
-        typ = self.value(name)
-        if typ not in ({"mutbuf"} if mutable else {"readbuf", "mutbuf"}):
-            _reject("memory access requires appropriate view", "E_HIA_TYPE")
-        if self.children(name):
-            _reject("parent view is suspended until child loans end", "E_HIA_LOAN")
+        self.rule(semantic_kernel.require_access, self.caps, name, self.value(name), mutable)
 
     def borrow(self, source, output, mutable, *, chain_head=False):
-        typ = self.value(source)
-        allowed = {"chain"} if chain_head else ({"buffer", "mutbuf"} if mutable else BYTE_RESOURCES)
-        if typ not in allowed:
-            _reject("invalid borrow permission", "E_HIA_LOAN")
-        root = self.caps[source].root
-        allowed_ancestors = self.ancestors(source) | {source}
-        others = [cap for name, cap in self.caps.items()
-                  if cap.root == root and name not in allowed_ancestors]
-        if mutable and others or not mutable and any(c.typ == "mutbuf" for c in others):
-            _reject("conflicting live borrow", "E_HIA_LOAN")
-        self.caps[output] = _Capability("mutbuf" if mutable else "readbuf", root, source,
-                                        origin=self.caps[source].origin)
+        self.caps[output] = self.rule(semantic_kernel.borrowed_capability,
+            self.caps, source, self.value(source), mutable, chain_head=chain_head)
 
     def instruction(self, ins):
         op, args, out, attrs = ins["op"], ins["args"], ins["out"], ins["attrs"]
@@ -551,10 +521,7 @@ class _BlockCheck:
                 if self.caps[name].root == self.caps[args[int(parts[2])]].root:
                     _reject(op + " may not alias one owner", "E_HIA_LOAN")
             elif rule == "end_local_loan":
-                if self.caps[name].external:
-                    _reject("callee cannot end its caller's loan", "E_HIA_LOAN")
-                if self.children(name):
-                    _reject("end child loans before their parent", "E_HIA_LOAN")
+                self.rule(semantic_kernel.require_loan_end, self.caps, name)
             else:
                 _reject("unsupported catalog resource guard", "E_HIA_OPCODE")
         if spec.resource_transition == "call":
@@ -620,27 +587,9 @@ class _BlockCheck:
 
     def transfer(self, edge, target):
         arguments = edge["args"]
-        actual = [self.value(a) for a in arguments]
-        if actual != [p["type"] for p in target["params"]]:
-            _reject("edge values do not match block parameter types", "E_HIA_CFG")
-        resources = [a for a, t in zip(arguments, actual) if t in RESOURCES]
-        if len(resources) != len(set(resources)):
-            _reject("linear capability duplicated across an edge", "E_HIA_RESOURCE")
-        required = {name for name, cap in self.caps.items() if not cap.external}
-        if not required.issubset(resources):
-            _reject("edge drops a live owner or local loan", "E_HIA_RESOURCE")
-        remap = {a: p["name"] for a, p in zip(arguments, target["params"])
-                 if p["type"] in RESOURCES}
-        result = {}
-        for arg, param in zip(arguments, target["params"]):
-            if param["type"] not in RESOURCES:
-                continue
-            cap = self.caps[arg]
-            if cap.root not in remap or cap.parent is not None and cap.parent not in remap:
-                _reject("loan must travel with its owner/parent capability", "E_HIA_LOAN")
-            result[param["name"]] = _Capability(cap.typ, remap[cap.root],
-                remap[cap.parent] if cap.parent is not None else None, cap.external, cap.origin)
-        return result
+        actual = [self.value(name) for name in arguments]
+        return self.rule(semantic_kernel.transfer_capabilities,
+                         arguments, actual, target["params"], self.caps)
 
     def finish(self):
         term = self.block["term"]
@@ -651,27 +600,8 @@ class _BlockCheck:
             types = [self.value(n) for n in names]
             if types != self.fn["returns"]:
                 _reject("return type/arity mismatch", "E_HIA_TYPE")
-            loans = [n for n, t in zip(names, types) if t in {"readbuf", "mutbuf"}]
-            if len(loans) != len(set(loans)):
-                _reject("same loan capability returned twice", "E_HIA_LOAN")
-            for name, typ, origin in zip(names, types, self.fn.get("return_loans", [None] * len(types))):
-                if typ not in {"readbuf", "mutbuf"}:
-                    continue
-                cap = self.caps[name]
-                parent = self.caps.get(cap.parent)
-                if (cap.origin != origin or self.children(name)
-                        or not (cap.external or parent is not None and parent.external)):
-                    _reject("returned loan must be its declared parameter or a direct child", "E_HIA_LOAN")
-            for name in loans:
-                del self.caps[name]
-            owners = [n for n, t in zip(names, types) if t in OWNERS]
-            if len(owners) != len(set(owners)):
-                _reject("same owner returned twice", "E_HIA_RESOURCE")
-            for name in owners:
-                self.owner_free(name)
-                del self.caps[name]
-            if any(not cap.external for cap in self.caps.values()):
-                _reject("return leaves live owner/local loan", "E_HIA_RESOURCE")
+            self.caps = self.rule(semantic_kernel.require_clean_return,
+                names, types, self.fn.get("return_loans", [None] * len(types)), self.caps)
         elif term["op"] == "trap":
             self.required.add("trap")
         if not self.required.issubset(self.fn["effects"]):

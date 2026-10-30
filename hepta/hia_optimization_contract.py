@@ -27,7 +27,7 @@ LIMITS = ("max_allocator_interactions", "max_vm_ticks", "max_call_depth",
           "max_live_heap_bytes")
 SOURCE_FILES = (
     "hia_optimization_contract.py", "hia_call_expansion.py", "hia_optimization.py",
-    "hia_program.py", "hia_program_composite.py", "hia_schema.py", "hia_opcodes.py",
+    "hia_program.py", "hia_program_composite.py", "hia_schema.py", "hia_opcodes.py", "hia_semantic_kernel.py",
     "hia_json_preflight.py", "hia_static_budget.py", "hia_heap_bound.py",
     "hia_program_runtime.py", "hia_bounded_memory.py",
 )
