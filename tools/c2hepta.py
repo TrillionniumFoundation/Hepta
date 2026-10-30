@@ -310,8 +310,18 @@ def migrate(source: Path, output: Path, report: Path, clang: str = "clang", veri
                                      original)
         if run.returncode or len(run.stdout) > 8_000_000:
             raise UnsupportedC("Clang rejected source or AST exceeds size limit: " + run.stderr.decode("utf-8", "replace")[:600])
-        tree = json.loads(run.stdout)
-        nodes = [node for node in tree.get("inner", []) if node.get("loc", {}).get("offset") is not None]
+        try:
+            tree = json.loads(run.stdout)
+        except RecursionError as exc:
+            raise UnsupportedC("Clang AST JSON exceeds supported nesting depth") from exc
+        if not isinstance(tree, dict):
+            raise UnsupportedC("Clang AST JSON root is not an object")
+        entries = tree.get("inner", [])
+        if not isinstance(entries, list) or any(
+                not isinstance(node, dict) or not isinstance(node.get("loc", {}), dict)
+                for node in entries):
+            raise UnsupportedC("Clang AST JSON top-level node list is malformed")
+        nodes = [node for node in entries if node.get("loc", {}).get("offset") is not None]
         if not nodes:
             raise UnsupportedC("no source definitions")
         seen: set[str] = set()
