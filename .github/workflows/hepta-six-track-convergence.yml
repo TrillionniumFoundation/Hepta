@@ -73,6 +73,15 @@ jobs:
         run: |
           set -euo pipefail
           python tools/generate_hia_catalog.py --check
+          python - <<'PY' 2>&1 | tee "$SIX_EVIDENCE/catalog-routes.log"
+          import unittest
+          names = ['tests.test_hia_opcode_catalog', 'tests.test_hia_schema_unification', 'tests.test_hia_routes']
+          suite = unittest.defaultTestLoader.loadTestsFromNames(names)
+          planned = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          assert result.wasSuccessful() and not result.skipped and not result.expectedFailures
+          assert result.testsRun == planned and planned > 0
+          PY
           "$HIA_CRATE_CARGO" fetch --locked --manifest-path rust/hia-core-shadow/Cargo.toml
           # rustdoc otherwise resolves through the production 1.90 PATH even
           # when Cargo and RUSTC are explicitly 1.95. Keep all crate artifacts
