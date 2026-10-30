@@ -41,25 +41,29 @@ def basis(polynomial):
     return tuple(reversed(values))
 
 
-def _linear_block(polynomial, names, block_id):
+def _linear_block(polynomial, names, block_id, *, shared_basis=False):
     """Only pure u32/Boolean operations; constant shift count is exactly eight."""
-    params = [{"name": names("state"), "type": "u32"},
-              {"name": names("polynomial"), "type": "u32"}]
+    params = [{"name": names("state"), "type": "u32"}]
+    params += ([{"name": names(f"basis_arg_{i}"), "type": "u32"} for i in range(8)]
+               if shared_basis else [{"name": names("polynomial"), "type": "u32"}])
     state = params[0]["name"]
     zero, eight, upper = (names(part) for part in ("zero", "eight", "upper"))
     ops = [_op("const", [], zero, value=0), _op("const", [], eight, value=8),
            _op("int.shr.checked", [state, eight], upper)]
     contributions = [upper]
-    for index, value in enumerate(basis(polynomial)):
-        bit, low, odd, constant, contribution = (
-            names(f"{part}_{index}") for part in ("bit", "low", "odd", "basis", "part"))
+    values = (None,) * 8 if shared_basis else basis(polynomial)
+    for index, value in enumerate(values):
+        bit, low, odd, contribution = (
+            names(f"{part}_{index}") for part in ("bit", "low", "odd", "part"))
+        constant = params[index + 1]["name"] if shared_basis else names(f"basis_{index}")
         ops.extend([
             _op("const", [], bit, value=1 << index),
             _op("bit.and", [state, bit], low),
             _op("compare.ne", [low, zero], odd, "bool"),
-            _op("const", [], constant, value=value),
-            _op("select", [odd, constant, zero], contribution),
         ])
+        if not shared_basis:
+            ops.append(_op("const", [], constant, value=value))
+        ops.append(_op("select", [odd, constant, zero], contribution))
         contributions.append(contribution)
     level = 0
     while len(contributions) > 1:
@@ -77,30 +81,43 @@ def _linear_block(polynomial, names, block_id):
 
 
 def _guarded(polynomials):
-    value = kernel()
-    fn = value["functions"][0]
+    document = kernel()
+    fn = document["functions"][0]
     used_values = {p["name"] for p in fn["params"]}
     used_blocks = set()
     generic, generic_entry = _clone_blocks(fn, "crc_original", used_values, used_blocks)
     guard_ids = [_fresh("crc_guard", used_blocks) for _ in polynomials]
-    fast_ids = [_fresh("crc_linear", used_blocks) for _ in polynomials]
+    shared_basis = len(polynomials) > 1
+    fast_ids = [_fresh("crc_linear", used_blocks) for _ in range(1 if shared_basis else len(polynomials))]
     fast, guards = [], []
+    names = lambda stem: _fresh("crc_linear_" + stem, used_values)
+    if shared_basis:
+        fast.append(_linear_block(None, names, fast_ids[0], shared_basis=True))
     for index, polynomial in enumerate(polynomials):
-        names = lambda stem: _fresh("crc_linear_" + stem, used_values)
-        fast.append(_linear_block(polynomial, names, fast_ids[index]))
+        if not shared_basis:
+            fast.append(_linear_block(polynomial, names, fast_ids[index]))
         params = copy.deepcopy(fn["params"]) if index == 0 else [
             {"name": _fresh("crc_guard_arg", used_values), "type": "u32"} for _ in range(2)]
         constant = _fresh("crc_polynomial", used_values)
         condition = _fresh("crc_matches", used_values)
-        guards.append({"id": guard_ids[index], "params": params, "ops": [
+        operations = [
             _op("const", [], constant, value=polynomial),
             _op("compare.eq", [params[1]["name"], constant], condition, "bool"),
-        ], "term": {"op": "branch", "cond": condition,
-            "then": {"target": fast_ids[index], "args": [params[0]["name"], constant]},
+        ]
+        fast_args = [params[0]["name"], constant]
+        if shared_basis:
+            fast_args = [params[0]["name"]]
+            for basis_value in basis(polynomial):
+                argument = _fresh("crc_basis_argument", used_values)
+                operations.append(_op("const", [], argument, value=basis_value))
+                fast_args.append(argument)
+        guards.append({"id": guard_ids[index], "params": params, "ops": operations,
+            "term": {"op": "branch", "cond": condition,
+            "then": {"target": fast_ids[0] if shared_basis else fast_ids[index], "args": fast_args},
             "else": {"target": guard_ids[index + 1] if index + 1 < len(polynomials) else generic_entry,
                      "args": [p["name"] for p in params]}}})
     fn.update(entry=guard_ids[0], blocks=[*guards, *generic, *fast])
-    return checked_profile(value).as_dict()
+    return checked_profile(document).as_dict()
 
 
 def candidates():

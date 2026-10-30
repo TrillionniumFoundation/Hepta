@@ -9,7 +9,9 @@ from hepta.hia_crc_kernel import (POLYNOMIALS, candidates as legacy_candidates,
 from hepta.hia_crc_linear import LABELS, basis, candidates
 from hepta.hia_finite_context import checked_profile
 from hepta.hia_program import verify_program
+from hepta.hia_program_llvm import emit_program_llvm
 from hepta.hia_program_runtime import execute_program
+from hepta.hia_scalar_lowering_check import MAX_OPERATIONS, verify_scalar_lowering
 from hepta.hia_translation_validation import validate_translation
 
 
@@ -39,6 +41,17 @@ class CRCLinearTests(unittest.TestCase):
             self.assertTrue(receipt["claims"]["all_input_behavior_equivalence_proved"])
             self.assertTrue(receipt["claims"]["first_trap_code_preserved"])
 
+    def test_every_actual_llvm_body_respects_unchanged_128_operation_gate(self):
+        self.assertEqual(MAX_OPERATIONS, 128)
+        for name, document in candidates().items():
+            count = sum(len(b["ops"]) for b in document["functions"][0]["blocks"])
+            self.assertLessEqual(count, MAX_OPERATIONS, name)
+            emitted = emit_program_llvm(verify_program(document))
+            receipt = verify_scalar_lowering(document, function="calculate", llvm_text=emitted.text,
+                                             timeout_ms=10000)
+            self.assertEqual(receipt["status"], "verified", name)
+            self.assertEqual(receipt["llvm_sha256"], emitted.sha256)
+
     def test_guarded_and_arbitrary_fallback_values_and_known_crc(self):
         states = (0, 1, 0x7F, 0x80, 0xFF, 0x100, 0x80000000, 0xFFFFFFFF)
         polynomials = (*POLYNOMIALS, 0, 1, 0xFFFFFFFF, 0x80000000, 0x12345678)
@@ -66,7 +79,8 @@ class CRCLinearTests(unittest.TestCase):
     def test_erased_guard_cannot_claim_arbitrary_polynomial_equivalence(self):
         changed = candidates()["linear_dual"]
         entry = changed["functions"][0]["blocks"][0]
-        entry["ops"][-1].update(op="const", args=[], attrs={"value": True})
+        condition = next(op for op in entry["ops"] if op["out"][0]["name"] == entry["term"]["cond"])
+        condition.update(op="const", args=[], attrs={"value": True})
         verify_program(changed)
         receipt = validate_translation(kernel(), changed, function="calculate", timeout_ms=10000)
         self.assertEqual(receipt["status"], "disproved", receipt.get("reason"))

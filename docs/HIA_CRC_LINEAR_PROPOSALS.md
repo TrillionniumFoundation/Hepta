@@ -35,7 +35,8 @@ replace either side's original semantics in the independent validator. Every
 candidate requires a fresh all-input scalar translation check, including first
 trap observations, and a fresh check of the actual emitted LLVM. Unknown or
 timeout does not admit a candidate. The existing finite context retains its
-32-block/512-operation bounds, native limits, sealed byte identities, one-use
+32-block/512-operation bounds and the stricter existing 128-operation selected-
+LLVM bound, native limits, sealed byte identities, one-use
 traces, cleanup obligations and reference-cache limits.
 
 ## Complete candidate pool
@@ -47,7 +48,7 @@ traces, cleanup obligations and reference-cache limits.
 | `castagnoli_guard` | Unchanged legacy constant-polynomial specialization |
 | `linear_ieee` | Parallel IEEE body with original generic fallback |
 | `linear_castagnoli` | Parallel Castagnoli body with original generic fallback |
-| `linear_dual` | Both parallel bodies, both guards and one original fallback |
+| `linear_dual` | Two guards supply basis constants to one shared parallel body; one original fallback |
 
 Fixed policies have the complete pool, including the dual candidate. A later
 controller experiment may not withhold it to create an artificial advantage.
@@ -72,6 +73,16 @@ artifacts, symbol-only disassembly, raw context events, source/tool identities,
 all preparation and execution costs, failures and cleanup status. The complete
 300-second admission deadline includes final identity checks and the first
 result write. The qualification timers are not a speed comparison.
+
+The first real qualification on `2f7052c669353d1dd0fb3480923a63f165ae821d`
+was rejected: a duplicated dual fast body had 148 operations and exceeded the
+unchanged 128-operation selected-LLVM limit. The first five images had already
+completed their 64 native differential cases; all acquired cost and the failed
+result remain retained. The revised dual shares its pure linear structure and
+passes basis constants as block arguments, reducing it to 105 operations. The
+checker limit and the complete six-candidate pool are unchanged. This is a
+candidate representation fix followed by fresh qualification, not an omitted
+failed trial or a relaxation of admission.
 
 Code differences, functional equivalence and successful native qualification
 do not establish performance. An economic comparison needs a separate source-
