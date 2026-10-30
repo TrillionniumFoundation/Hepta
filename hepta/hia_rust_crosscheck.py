@@ -24,6 +24,7 @@ MAX_OUTPUT_BYTES = 32 * 1024
 MAX_EXECUTION_OUTPUT_BYTES = 512 * 1024
 MAX_ARGUMENT_BYTES = 128 * 1024
 MAX_ARGUMENTS = 8192
+MAX_EXECUTION_POLICY_BYTES = 1024
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
 
 _SCALAR_CLAIMS = {
@@ -392,7 +393,8 @@ def _validate_execution(raw, request, body, python, *, protocol_version=1):
     profile, claims = _execution_claims(body)
     policy = request["policy"]
     expected = {
-        "schema": "hepta.hia.rust-byte-owner-execution.v1", "status": status,
+        "schema": ("hepta.hia.rust-byte-owner-execution.v2" if protocol_version == 4 else
+                   "hepta.hia.rust-byte-owner-execution.v1"), "status": status,
         "function": request["function"], "program_sha256": request["program_sha256"],
         "steps": python["steps"], "profile": profile, "claims": claims,
         "resources": python["resources"], **policy,
@@ -457,6 +459,43 @@ def crosscheck_rust_execution_v3(program, function: str, arguments: list,
         protocol_version=3)
 
 
+def crosscheck_rust_execution_v4(program, function: str, arguments: list | tuple,
+                                 executable: str | Path, *, executable_sha256: str,
+                                 max_call_depth: int = 256, max_steps: int = 1_000_000,
+                                 max_heap_bytes: int = 16 * 1024 * 1024,
+                                 allocation_fail_at: int | None = None, timeout: float = 30.0):
+    """Compare ordered list/tuple inputs and exact positive failure indices.
+
+    V4 binds failure indices as canonical positive hexadecimal strings, so
+    integers beyond u64 retain their full value without decimal conversion.
+    The 1024-byte policy and existing scalar transport bounds remain explicit;
+    this is not complete Python API parity or a production-authority switch.
+    """
+    return _crosscheck_rust_execution(program, function, arguments, executable,
+        executable_sha256=executable_sha256, max_steps=max_steps, max_heap_bytes=max_heap_bytes,
+        allocation_fail_at=allocation_fail_at, timeout=timeout, max_call_depth=max_call_depth,
+        protocol_version=4)
+
+
+def _execution_wire_policy(policy, protocol_version):
+    if protocol_version != 4:
+        return policy
+    wire = dict(policy)
+    index = wire["allocation_fail_at"]
+    if index is not None:
+        # null and the quoted prefix "0x" both occupy four JSON bytes. The
+        # remaining budget is exactly the number of hexadecimal digits that
+        # fit; reject by bit_length before allocating an over-budget string.
+        wire["allocation_fail_at"] = None
+        available_digits = MAX_EXECUTION_POLICY_BYTES - len(_canonical(wire))
+        if (index.bit_length() + 3) // 4 > available_digits:
+            _reject("execution failure index exceeds the policy wire budget")
+        wire["allocation_fail_at"] = "0x" + format(index, "x")
+    if len(_canonical(wire)) > MAX_EXECUTION_POLICY_BYTES:
+        _reject("execution policy exceeds the wire budget")
+    return wire
+
+
 def _crosscheck_rust_execution(program, function, arguments, executable, *,
                                executable_sha256, max_steps, max_heap_bytes,
                                allocation_fail_at, timeout, max_call_depth, protocol_version):
@@ -464,16 +503,18 @@ def _crosscheck_rust_execution(program, function, arguments, executable, *,
     from .hia_program_runtime import HIAProgramBudgetExceeded, HIAProgramTrap, execute_program
 
     step_ceiling, heap_ceiling, depth_ceiling, timeout_ceiling = (
-        (10_000_000, 1024 * 1024 * 1024, 256, 120) if protocol_version == 3 else
+        (10_000_000, 1024 * 1024 * 1024, 256, 120) if protocol_version in (3, 4) else
         (1_000_000, 16 * 1024 * 1024, 32, 15))
     if (type(timeout) not in (int, float) or not 0 < timeout <= timeout_ceiling
             or type(max_steps) is not int or not 1 <= max_steps <= step_ceiling
             or type(max_heap_bytes) is not int or not 0 <= max_heap_bytes <= heap_ceiling
             or type(max_call_depth) is not int or not 1 <= max_call_depth <= depth_ceiling
             or allocation_fail_at is not None and
-               (type(allocation_fail_at) is not int or not 1 <= allocation_fail_at <= (1 << 64) - 1)):
+               (type(allocation_fail_at) is not int or allocation_fail_at < 1 or
+                protocol_version != 4 and allocation_fail_at > (1 << 64) - 1)):
         _reject("execution policy is outside the finite Rust contract")
-    if (type(arguments) is not list or len(arguments) > MAX_ARGUMENTS
+    argument_types = (list, tuple) if protocol_version == 4 else (list,)
+    if (type(arguments) not in argument_types or len(arguments) > MAX_ARGUMENTS
             or any(type(v) not in (int, bool, type(None)) or
                    type(v) is int and not -(1 << 63) <= v < (1 << 64) for v in arguments)):
         _reject("execution arguments must be bounded exact scalar values")
@@ -497,9 +538,10 @@ def _crosscheck_rust_execution(program, function, arguments, executable, *,
         _reject("execution arguments/results do not match the exact scalar boundary")
     policy = {"max_steps": max_steps, "max_heap_bytes": max_heap_bytes,
               "allocation_fail_at": allocation_fail_at, "max_call_depth": max_call_depth}
+    wire_policy = _execution_wire_policy(policy, protocol_version)
     request = {"schema": f"hepta.hia.rust-execution-request.v{protocol_version}", "mode": "owned",
                "program_sha256": checked.sha256, "function": function,
-               "arguments": arguments, "policy": policy}
+               "arguments": arguments, "policy": wire_policy}
     raw_exe = _verified_executable_bytes(Path(executable), executable_sha256)
     try:
         python = execute_program(checked, function, arguments, **policy)
@@ -509,7 +551,7 @@ def _crosscheck_rust_execution(program, function, arguments, executable, *,
              str(max_heap_bytes), "none" if allocation_fail_at is None else str(allocation_fail_at)]
             if protocol_version == 1 else
             [f"--owned-run-bound-v{protocol_version}", function,
-             argument_wire.decode("ascii"), _canonical(policy).decode("ascii")])
+             argument_wire.decode("ascii"), _canonical(wire_policy).decode("ascii")])
     stdout, stderr, returncode = _run_pinned_shadow(
         raw_exe, argv, checked.canonical_bytes, timeout, maximum_output=MAX_EXECUTION_OUTPUT_BYTES)
     if returncode != 0 or stderr:

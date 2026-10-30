@@ -35,7 +35,7 @@ CONTRACT = ROOT / "docs/HIA_SAFETY_CONTRACT.json"
 # caller can remove capabilities/tests and still obtain the same qualification
 # status for a weaker matrix. Deliberate protocol changes must review and update
 # this identity together with the contract and its boundary tests.
-REVIEWED_CONTRACT_SHA256 = "01dbcbee699def90fd3d3fe13211b861c564386625b13bfbf957ccc20232c1f3"
+REVIEWED_CONTRACT_SHA256 = "63fa204e63e71f80cfd718f16d460c5f3d6ea88b9cb761a816f511449b1a4038"
 _UNPROVED = frozenset({"whole_language_soundness_proved", "source_to_core_refinement_proved",
     "core_to_native_refinement_proved", "global_optimality_proved", "absolute_resource_safety_proved",
     "general_concurrent_memory_safety_proved", "native_process_memory_bound_proved",

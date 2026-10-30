@@ -208,12 +208,13 @@
         "hepta.hia_rust_crosscheck.crosscheck_rust_shadow",
         "hepta.hia_rust_crosscheck.crosscheck_rust_execution",
         "hepta.hia_rust_crosscheck.crosscheck_rust_execution_v2",
-        "hepta.hia_rust_crosscheck.crosscheck_rust_execution_v3"
+        "hepta.hia_rust_crosscheck.crosscheck_rust_execution_v3",
+        "hepta.hia_rust_crosscheck.crosscheck_rust_execution_v4"
       ],
       "exclusions": [
         "no deployment authority",
         "agreement is not refinement or whole-language soundness",
-        "no complete Python production API parity: scalar public transport and u64 allocation-failure indices retain independent limits",
+        "no complete Python production API parity: bounded scalar and 1024-byte policy transport remain; v1-v3 keep u64 failure indices, while v4 preserves exact wider hex values within its wire bound",
         "logical payload budgets do not establish RSS bounds, successful 1 GiB allocation, asynchronous cancellation or complete unwind cleanup"
       ],
       "guarantee": "independent_finite_comparison_only",
@@ -238,9 +239,17 @@
         "tests.test_hia_rust_budget_v3.RustBudgetV3Parity.test_deep_step_stops_and_traps_retain_real_prefixes",
         "tests.test_hia_rust_budget_v3.RustBudgetV3Parity.test_raw_policy_and_original_entry_admission_remain_strict",
         "tests.test_hia_rust_budget_v3.RustBudgetV3Parity.test_v1_v2_reports_remain_unchanged_for_all_primitive_schemas",
-        "tests.test_hia_rust_budget_v3.RustBudgetV3Parity.test_rehashed_tampering_and_cross_protocol_replay_reject"
+        "tests.test_hia_rust_budget_v3.RustBudgetV3Parity.test_rehashed_tampering_and_cross_protocol_replay_reject",
+        "tests.test_hia_rust_api_v4.RustApiV4Parity.test_tuple_list_and_wide_indices_bind_identical_invocations",
+        "tests.test_hia_rust_api_v4.RustApiV4Parity.test_allocation_order_loans_chains_and_step_stops_keep_exact_ledgers",
+        "tests.test_hia_rust_api_v4.RustApiV4Parity.test_exact_policy_wire_boundary_and_prelaunch_large_integer_refusal",
+        "tests.test_hia_rust_api_v4.RustApiV4Parity.test_native_policy_rejects_noncanonical_hex_and_ambiguous_json",
+        "tests.test_hia_rust_api_v4.RustApiV4Parity.test_python_exact_types_and_original_entry_eligibility_reject_before_launch",
+        "tests.test_hia_rust_api_v4.RustApiV4Parity.test_tiny_budget_or_wide_index_cannot_hide_invalid_unused_function",
+        "tests.test_hia_rust_api_v4.RustApiV4Parity.test_rehashed_policy_tampering_and_cross_protocol_replay_are_rejected",
+        "tests.test_hia_rust_api_v4.RustApiV4Parity.test_legacy_reports_and_refusal_contracts_remain_unchanged"
       ],
-      "scope": "Rust closed byte-owner/returned-loan/owned-chain Machine profiles; fresh invocation-bound Python/Rust comparison of scalar public entries, full outcomes and stopped resource ledgers; Linux process-group ownership retained through bounded cleanup; v2 explicitly binds root-inclusive call depth 1..32 to the same Machine, with legacy/v1 fixed at 32; a separate v3 protocol uses explicit language frames in the same Machine and one ByteMemory ledger, with ceilings of 256 frames, 10000000 ticks and 1 GiB logical payload; actual finite controls exercise every depth, deep stopped resources, ten million allowed ticks and 16 MiB plus one allocated byte; v1/v2 policy ceilings and envelopes remain unchanged"
+      "scope": "Rust closed byte-owner/returned-loan/owned-chain Machine profiles; fresh invocation-bound Python/Rust comparison of scalar public entries, full outcomes and stopped resource ledgers; Linux process-group ownership retained through bounded cleanup; v2 explicitly binds root-inclusive call depth 1..32 to the same Machine, with legacy/v1 fixed at 32; a separate v3 protocol uses explicit language frames in the same Machine and one ByteMemory ledger, with ceilings of 256 frames, 10000000 ticks and 1 GiB logical payload; actual finite controls exercise every depth, deep stopped resources, ten million allowed ticks and 16 MiB plus one allocated byte; v1/v2 policy ceilings and envelopes remain unchanged; separate v4 binds list/tuple ordered arguments and full canonical positive hexadecimal failure indices beyond u64 within a 1024-byte policy, retaining original v1-v3 envelopes, scalar restrictions and every stopped resource field"
     },
     {
       "entrypoints": [

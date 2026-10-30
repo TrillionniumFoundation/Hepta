@@ -17,6 +17,56 @@ const V3_MAX_STEPS: u64 = 10_000_000;
 const V3_MAX_CALL_DEPTH: u32 = 256;
 const V3_MAX_OWNED_HEAP_BYTES: u64 = 1024 * 1024 * 1024;
 
+// Failure injection only compares a positive integer with the allocation
+// counter; no big-integer arithmetic is needed. Wide retains every canonical
+// hexadecimal digit and denotes an integer strictly greater than u64::MAX.
+// It is not the absent-injection policy and is never clamped or truncated.
+#[derive(Clone)]
+enum AllocationFailureIndex {
+    Word(u64),
+    Wide(String),
+}
+
+impl AllocationFailureIndex {
+    fn from_hex(value: &Value) -> R<Self> {
+        let Some(encoded) = value.as_str() else {
+            return failure("E_HIA_BUDGET_POLICY", "v4 failure index must be null or canonical positive hex");
+        };
+        let Some(digits) = encoded.strip_prefix("0x") else {
+            return failure("E_HIA_BUDGET_POLICY", "v4 failure index requires lowercase 0x prefix");
+        };
+        if digits.is_empty() || digits.starts_with('0') || !digits.bytes().all(|byte| {
+            byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)
+        }) {
+            return failure("E_HIA_BUDGET_POLICY", "v4 failure index must be positive canonical lowercase hex");
+        }
+        if digits.len() <= 16 {
+            u64::from_str_radix(digits, 16).map(Self::Word).map_err(|_| super::VerifyError {
+                code: "E_HIA_BUDGET_POLICY", detail: "invalid hexadecimal failure index".into(),
+            })
+        } else {
+            Ok(Self::Wide(encoded.to_owned()))
+        }
+    }
+
+    fn equals_counter(&self, attempt: u64) -> bool {
+        match self {
+            Self::Word(index) => *index == attempt,
+            // Canonical positive values with more than 16 hex digits are
+            // strictly above every u64 counter value. This is exact integer
+            // equality, not a replacement by None or a budget projection.
+            Self::Wide(_) => false,
+        }
+    }
+
+    fn report_value(&self) -> Value {
+        match self {
+            Self::Word(index) => json!(index),
+            Self::Wide(encoded) => json!(encoded),
+        }
+    }
+}
+
 #[derive(Debug)]
 enum Halt {
     Trap(&'static str),
@@ -406,7 +456,8 @@ pub fn execute_owned(input: &[u8], function: &str, arguments: &[Value],
         return failure("E_HIA_BUDGET_POLICY", "owned heap/failure policy outside finite profile");
     }
     execute(input, function, arguments, max_steps,
-            Some((max_heap_bytes, allocation_fail_at)), MAX_CALL_DEPTH, MAX_STEPS)
+            Some((max_heap_bytes, allocation_fail_at.map(AllocationFailureIndex::Word))),
+            MAX_CALL_DEPTH, MAX_STEPS)
 }
 
 /// Bind one actual independent execution to its complete caller request.
@@ -421,7 +472,7 @@ pub fn execute_owned_bound(input: &[u8], function: &str, arguments: &[Value],
     check_bound_arguments(arguments)?;
     let execution = execute_owned(input, function, arguments, max_steps,
                                   max_heap_bytes, allocation_fail_at)?;
-    bind_execution(execution, function, arguments, max_heap_bytes, allocation_fail_at, 1)
+    bind_execution(execution, function, arguments, max_heap_bytes, json!(allocation_fail_at), 1)
 }
 
 /// Explicit bounded policy for the same Machine; no legacy policy upgrade.
@@ -438,6 +489,15 @@ pub fn execute_owned_bound_v2(input: &[u8], function: &str, arguments: &[Value],
 pub fn execute_owned_bound_v3(input: &[u8], function: &str, arguments: &[Value],
                               policy_input: &[u8]) -> R<Value> {
     execute_owned_bound_policy(input, function, arguments, policy_input, 3,
+        V3_MAX_STEPS, V3_MAX_OWNED_HEAP_BYTES, V3_MAX_CALL_DEPTH)
+}
+
+/// Exact positive failure indices beyond u64, with the same bounded Machine.
+/// The v4 wire uses canonical hexadecimal strings and keeps the finite policy
+/// byte limit. Legacy v1/v2/v3 integer policies and report shapes are unchanged.
+pub fn execute_owned_bound_v4(input: &[u8], function: &str, arguments: &[Value],
+                              policy_input: &[u8]) -> R<Value> {
+    execute_owned_bound_policy(input, function, arguments, policy_input, 4,
         V3_MAX_STEPS, V3_MAX_OWNED_HEAP_BYTES, V3_MAX_CALL_DEPTH)
 }
 
@@ -461,16 +521,27 @@ fn execute_owned_bound_policy(input: &[u8], function: &str, arguments: &[Value],
     let max_call_depth = integer("max_call_depth")?;
     let allocation_fail_at = if fields["allocation_fail_at"].is_null() {
         None
-    } else { Some(integer("allocation_fail_at")?) };
+    } else if version == 4 {
+        Some(AllocationFailureIndex::from_hex(&fields["allocation_fail_at"])?)
+    } else {
+        Some(AllocationFailureIndex::Word(integer("allocation_fail_at")?))
+    };
     if !(1..=step_ceiling).contains(&max_steps) || max_heap_bytes > heap_ceiling
         || !(1..=u64::from(depth_ceiling)).contains(&max_call_depth)
-        || allocation_fail_at == Some(0) {
+        || matches!(allocation_fail_at.as_ref(), Some(AllocationFailureIndex::Word(0))) {
         return failure("E_HIA_BUDGET_POLICY", format!("bound v{version} policy outside existing finite limits"));
     }
     check_bound_arguments(arguments)?;
-    let execution = execute(input, function, arguments, max_steps,
+    let mut execution = execute(input, function, arguments, max_steps,
         Some((max_heap_bytes, allocation_fail_at)), max_call_depth as u32, step_ceiling)?;
-    bind_execution(execution, function, arguments, max_heap_bytes, allocation_fail_at, version)
+    if version == 4 {
+        // The versioned report makes the exact hexadecimal policy type
+        // explicit; v1 report consumers are never silently upgraded.
+        execution["schema"] = json!("hepta.hia.rust-byte-owner-execution.v2");
+        execution["allocation_fail_at"] = fields["allocation_fail_at"].clone();
+    }
+    bind_execution(execution, function, arguments, max_heap_bytes,
+                   fields["allocation_fail_at"].clone(), version)
 }
 
 fn check_bound_arguments(arguments: &[Value]) -> R<()> {
@@ -489,7 +560,7 @@ fn check_bound_arguments(arguments: &[Value]) -> R<()> {
 }
 
 fn bind_execution(execution: Value, function: &str, arguments: &[Value],
-                  max_heap_bytes: u64, allocation_fail_at: Option<u64>, version: u8) -> R<Value> {
+                  max_heap_bytes: u64, allocation_fail_at: Value, version: u8) -> R<Value> {
     let request = json!({
         "schema": format!("hepta.hia.rust-execution-request.v{version}"),
         "program_sha256": execution["program_sha256"],
@@ -561,7 +632,7 @@ fn owned_execution_profile(document: &Value) -> R<bool> {
 }
 
 fn execute(input: &[u8], function: &str, arguments: &[Value], max_steps: u64,
-           owned_policy: Option<(u64, Option<u64>)>, max_call_depth: u32,
+           owned_policy: Option<(u64, Option<AllocationFailureIndex>)>, max_call_depth: u32,
            step_ceiling: u64) -> R<Value> {
     if !(1..=step_ceiling).contains(&max_steps) {
         return failure("E_HIA_BUDGET_POLICY", "max_steps outside bounded Rust oracle profile");
@@ -604,7 +675,7 @@ fn execute(input: &[u8], function: &str, arguments: &[Value], max_steps: u64,
         return failure("E_HIA_INPUT", "entry arguments do not match exact scalar types");
     }
     let mut machine = Machine { functions: by_name, steps: 0, limit: max_steps, max_call_depth,
-        memory: owned_policy.map(|(heap, fail)| ByteMemory::new(heap, fail)) };
+        memory: owned_policy.as_ref().map(|(heap, fail)| ByteMemory::new(*heap, fail.clone())) };
     let result = machine.invoke(function,
         arguments.iter().cloned().map(RuntimeValue::Scalar).collect());
     let mut report = json!({
@@ -633,8 +704,9 @@ fn execute(input: &[u8], function: &str, arguments: &[Value], max_steps: u64,
             "bounded-cfg-byte-owner-loan-returns-v4"
         } else { "bounded-cfg-byte-owner-bulk-v3" });
         report["resources"] = memory.report(loan_returns || document["schema"] == "hepta.hia.program.v7");
-        report["max_heap_bytes"] = json!(owned_policy.unwrap().0);
-        report["allocation_fail_at"] = json!(owned_policy.unwrap().1);
+        report["max_heap_bytes"] = json!(owned_policy.as_ref().unwrap().0);
+        report["allocation_fail_at"] = owned_policy.as_ref().unwrap().1.as_ref()
+            .map_or(Value::Null, AllocationFailureIndex::report_value);
         report["claims"] = json!({
             "finite_scalar_execution": true,
             "finite_byte_owner_execution": true,
