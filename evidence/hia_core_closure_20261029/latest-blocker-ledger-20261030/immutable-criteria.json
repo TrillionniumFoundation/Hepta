@@ -1,0 +1,137 @@
+{"schema":"hepta.hia.immutable-strict-criteria.v1","baseline_ledger_sha256":"6409d0c3e6de88b515c34c7227e028a5dfd11d53e4f81794ea57114f9966e7d0","obligations":[
+    {
+      "id": "P0.1",
+      "title": "全工程入口收敛",
+      "strict_close_acceptance": "按实际 CLI/API/backend 完整枚举入口与支持语义；为每条现有执行路径保留原资格并转换真实值、控制流、资源和外部效应到同一执行 Core，实际消费者仅使用重新准入的不可变 Core；逐入口执行成功、拒绝、错误与取消对照，不以 route 清单或删除支持面代替收敛。"
+    },
+    {
+      "id": "P0.2",
+      "title": "统一版本组合与前端行为合同",
+      "strict_close_acceptance": "给出所有现有语义的明确、无歧义归一化和版本迁移规则，保留 nominal 身份、原公开签名、错误/tick/resource 行为及拒绝条件；对各入口和后端在同一公开源码上实际验证组合，并将语义保持义务连接 P7。"
+    },
+    {
+      "id": "P1.1",
+      "title": "一般内存与 provenance",
+      "strict_close_acceptance": "实现并规定一般分配身份、有效范围、对齐、初始化、重用/失效与别名权限；覆盖每个准入和内存访问路径及 foreign 边界，实际拒绝 stale/OOB/权限/初始化反例，并证明规则与执行实现的对应。"
+    },
+    {
+      "id": "P1.2",
+      "title": "任意递归 ADT",
+      "strict_close_acceptance": "为任意递归 ADT 规定合法的间接布局、泛型实例化、构造/匹配/递归调用/释放和资源行为，并在 checker、源转换、两 VM 和各后端完整实现；覆盖互递归、嵌套 owner/loan、分配拒绝和深度/清理边界。固定 chain 样本扩容不满足此条件。"
+    },
+    {
+      "id": "P1.3",
+      "title": "完整部分初始化",
+      "strict_close_acceptance": "覆盖一般聚合、嵌套/动态/递归布局和借用字段的初始化、移出、重新初始化及跨分支/循环合流；定义每个失败点上已初始化子对象的清理规则，完成源/Core/VM/native 组合验收及非法读/双重释放反例。"
+    },
+    {
+      "id": "P1.4",
+      "title": "逃逸与外部生命周期",
+      "strict_close_acceptance": "实现跨函数/聚合存储/异步持有/foreign 持有和回调的生命周期关系、所有权释放责任与可验证失效条件；覆盖重借用、多返回 alias、跨调用保留和退出顺序，并对所有公开入口证明/执行同一合同。仅声明 retention=call_only 不构成证明。"
+    },
+    {
+      "id": "P1.5",
+      "title": "异步取消",
+      "strict_close_acceptance": "规定可中断点、取消与结果/所有权交接的竞争、不可中断 foreign 操作及取消完成条件；将全任务/I/O 路径统一入 Core，实际覆盖取消发生于所有持有资源阶段和竞争次序，并给出 cleanup/liveness 的相应实现与证明义务。"
+    },
+    {
+      "id": "P1.6",
+      "title": "完整错误清理",
+      "strict_close_acceptance": "明确并实现 allocation refusal、构造中途失败、trap、native 异常/信号、I/O 错误、取消与清理本身失败的资源责任；实际 fault injection 覆盖每个可失败转换与退出路径，保留未清债务，并证明正常/异常退出的完整资源不变量。若终止即放弃清理，必须仍保持此严格 blocker OPEN。"
+    },
+    {
+      "id": "P2.1",
+      "title": "完整 API 和输入域一致",
+      "strict_close_acceptance": "逐项记录生产 Python 接受/拒绝的全部语义与 API 域，解决真实差异并给出明确兼容策略；对原 schema、原公开资格、所有参数/预算/失败索引和错误结果实际做双实现验收，不能靠缩小生产域、只提高 metadata 上限或把预期拒绝算执行成功。"
+    },
+    {
+      "id": "P2.2",
+      "title": "Rust 生产准入与执行权威切换",
+      "strict_close_acceptance": "完成 Rust 对全部生产接受域、归一化、资源判断、错误路径及部署入口的实现；在冻结源码上执行完整回归、负例与各目标 qualification，独立审查语义与发布边界，提供实际生产调用链、故障拒绝和版本迁移证据。资格满足后才可改变 authority，不能先改状态字段。"
+    },
+    {
+      "id": "P2.3",
+      "title": "全入口后端资格与 refinement",
+      "strict_close_acceptance": "保持各 profile 原实际证据身份，在同一最终公开源码执行所需完整入口、平台、工具链与失败路径；把 checker/normalization/Machine/native 的全部行为对应接入 P7 证明。任何完整 API 或后端主张需实际覆盖其域，不能把 1 GiB admission 或有限差分变成全上界分配/RSS 证明。"
+    },
+    {
+      "id": "P3.1",
+      "title": "direct LLVM 一般公开 ABI",
+      "strict_close_acceptance": "实现所有要求公开类型的精确 ABI 分类、layout、calling convention、所有权转移和错误约定；用直接 LLVM 生成的实际对象在每个要求的 OS/架构/compiler 上执行独立双向调用、layout/类型/坏签名反例与资源观察。"
+    },
+    {
+      "id": "P3.2",
+      "title": "一般 callback、重入和线程",
+      "strict_close_acceptance": "统一规定 callback 签名、context 存活、跨线程调用/撤销、重入时 owner/loan 状态和析构竞争；在各要求原生平台执行真正回调、嵌套/跨对象重入、线程迁移和取消/销毁竞态，并完成一般并发内存与生命周期对应义务。"
+    },
+    {
+      "id": "P3.3",
+      "title": "外部生命周期与互操作责任",
+      "strict_close_acceptance": "对外部存储、allocator、保留借用、跨模块 handle、回调与延迟销毁建立可执行验证的身份/所有权/失效协议；覆盖错误、shutdown、module unload、竞争和重复释放，并验证真实 foreign 端遵守合同，而非将声明视为证明。"
+    },
+    {
+      "id": "P4.1",
+      "title": "完整历史库实现迁移",
+      "strict_close_acceptance": "选定真实历史库并冻结完整源/依赖/实现体 denominator；对全部可达及声明实现给出真实转换或显式且不伪装成已迁移的边界，补齐要求语义，迁移目标不得偷偷链接原实现；实际比对功能、ABI、资源、失败/异常与维护升级。完整用户范围仍不覆盖时保留 OPEN。"
+    },
+    {
+      "id": "P4.2",
+      "title": "全部构建配置与原工具语义",
+      "strict_close_acceptance": "完整列出历史项目真实支持的 build variants、宏、目标/编译器/依赖与生成步骤；每一项独立捕获、转换、原工具重放和 native differential，记录 unsupported/缺失项而不从分母删除，验证升级和新增配置不会静默漏译。"
+    },
+    {
+      "id": "P4.3",
+      "title": "人工迁移与长期维护成本",
+      "strict_close_acceptance": "预先定义完整人工/机器成本范围与可比较基线，让独立人员在真实历史库和维护/升级任务中记录实际投入、失败/返工、review 与恢复成本；保留原始过程、完成质量及未知成本，不能用自动执行秒数代替人时。"
+    },
+    {
+      "id": "P5.1",
+      "title": "当前版本独立真实任务资格",
+      "strict_close_acceptance": "在预注册协议下用实际有能力的固定模型/工作流先取得独立基线资格，再冻结当前源码、任务/隐藏正确性标准、工具权限和公平预算，实际完成具有代表性的真实代码/跨文件/所有权/维护任务对照；由独立评估验证质量，保留全部失败而不挑样或人工补答。"
+    },
+    {
+      "id": "P5.2",
+      "title": "有效提效结论与完整成本",
+      "strict_close_acceptance": "在当前资格通过的真实主任务上报告正确率、质量/回归、完成延迟、实际 token/工具/编译/人工成本及完整计划分母；把不成功、未知计费/超时与重复尝试计入，按预先标准证明所声称效率优势及不确定性，避免把机制通过或安全性当成功率。"
+    },
+    {
+      "id": "P6.1",
+      "title": "代表性吞吐与尾延迟资格",
+      "strict_close_acceptance": "在当前源码预注册代表性真实负载、强 C/C++/Rust 基线及 target/native/LTO/PGO 等公平配置、冷暖成本与负载条件；实际收集完整吞吐和端到端尾延迟样本、质量检查与全部失败，并达到事先标准后才可改变优化政策；保留未通过尝试。"
+    },
+    {
+      "id": "P6.2",
+      "title": "RSS 和完整进程资源",
+      "strict_close_acceptance": "对代表性成功/拒绝/长时运行和并发负载实际测量全进程/子进程 RSS、峰值及 allocator/foreign 开销，明确测量口径和缺失值；若声称普遍进程上界，还须实现覆盖全部分配来源的强制限额并建立与执行的对应证明，不能由 payload 账本换算。"
+    },
+    {
+      "id": "P6.3",
+      "title": "物理设备协议",
+      "strict_close_acceptance": "取得明确物理设备、固件/toolchain/driver 与接口身份，预先定义启动、I/O、IRQ、取消、资源、时序/尾延迟及故障/持续运行协议，在实际设备完整执行并保留原始观测；所需 DMA/GPU/NPU 范围各有实际支持与资格，模拟器结果不得补足缺失的设备实验。"
+    },
+    {
+      "id": "P7.1",
+      "title": "形式模型到实际 checker/资源状态的对应",
+      "strict_close_acceptance": "为生产 checker 接受域、实际类型/CFG/owner/loan/内存/错误/任务状态建立精确模型与表示关系，证明 admission 对应、preservation/progress 及安全不变量，覆盖实现边界和可信假设；用真正 proof checker 重放、依赖审计和错误实现负控绑定实际源码。"
+    },
+    {
+      "id": "P7.2",
+      "title": "完整 source→Core refinement",
+      "strict_close_acceptance": "为每个实际受支持的源入口/转换建立源与 Core 操作语义、状态关系和观察等价，覆盖正常/错误/trap/取消、资源与 foreign 假设；完成转换组合证明并绑定实际 lowering 实现。有限差分或最终 Core 合法性不能替代源 refinement。"
+    },
+    {
+      "id": "P7.3",
+      "title": "各实际后端 refinement",
+      "strict_close_acceptance": "对每个生产 backend 定义可观察行为与 target/ABI/memory/trap/allocator 假设，证明 Core 到发射 IR/对象及实际机器执行的对应或逐构建的有效验证，并覆盖所有版本/优化与外部边界；对编译器/OS/硬件的未证明假设明确留在 TCB。"
+    },
+    {
+      "id": "P7.4",
+      "title": "全语言健全性和未证明普遍主张",
+      "strict_close_acceptance": "完成 P0–P3 所需全语言语义与所有规则的组成性 soundness 证明；其余普遍主张各自仍须相应定理或适合该主张的实际证据，不能因全语言证明或工程 gate 通过而顺带升级。未经独立可重放依据，保持 exact false，不用阶段完成百分比、哈希或已跑测试数替代。"
+    },
+    {
+      "id": "P7.5",
+      "title": "最终同源发布验收和证据闭包",
+      "strict_close_acceptance": "在同一最终公开 SHA 完成全部要求的 8 gates 与必要 native/host/proof gates，零失败/跳过并核对完整 denominator、实际工具/外部输入、前后 raw Git blobs；保留原始命令/输出/失败和 artifact 审计。只更新有实测支持的观察，完成工程发布 gate 仍不自动关闭 P0–P7 的一般义务。"
+    }
+]}

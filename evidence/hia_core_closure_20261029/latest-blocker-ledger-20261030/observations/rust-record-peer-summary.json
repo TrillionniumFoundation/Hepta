@@ -1,0 +1,64 @@
+{
+  "all_native_inputs_raw_nominal_unfiltered": true,
+  "backend_refinement_proved": false,
+  "blocking_defects_found": [],
+  "counts": {
+    "actual_native_process_invocations": 13,
+    "address_space_bounded_fanout_refusals": 3,
+    "native_invocations_repeated_for_postprocessing_fix": 0,
+    "pre_erasure_type_ssa_refusals": 4,
+    "private_entry_refusals": 2,
+    "raw_executions_matched": 3,
+    "raw_normalizations_accepted": 1
+  },
+  "draft_findings_resolved": [
+    {
+      "id": "RR-EXPANSION-01",
+      "resolution": "Borrowed bindings and width counting precede flattened-name/result allocation; all3 distinct native fan-out paths refuse under128MiB child address-space cap."
+    },
+    {
+      "id": "RR-EXPANSION-02",
+      "resolution": "Frozen source charges entry parameter length before cloning function_params; no extra stress run added for this separately value-slot-bounded reorder."
+    }
+  ],
+  "exact_native_raw_normalization_matches_python": true,
+  "fanout_refusal_codes": {
+    "call": "E_HIA_CALL",
+    "edge": "E_HIA_TYPE",
+    "return": "E_HIA_LIMIT"
+  },
+  "finished_utc": "2026-10-30T01:58:41Z",
+  "full_P0_P7_closed": false,
+  "full_P2_closed": false,
+  "general_composite_support_claimed": false,
+  "general_rss_or_process_memory_bound_proved": false,
+  "no_github_writes": true,
+  "no_source_edits": true,
+  "ok": true,
+  "production_authority_switch": false,
+  "reviewer_postprocessing_failure": {
+    "classification": "v6 ledger-schema assumption in reviewer, not candidate failure",
+    "completion": "Original13 native outputs were digest-checked and compared to Python after fixing the reviewer assertion. No native replay.",
+    "original_exception": "KeyError live_chains",
+    "original_exec_returncode": 1,
+    "original_script_and_logs_retained": "../reviewer-development/attempt01"
+  },
+  "rust_processes_before_any_hepta_python_import": true,
+  "schema": "hepta.rust-copy-record-independent-review.v1",
+  "scope": "finite explicit Copy-record candidate independent controls; not a full126 inference, exhaustive bug-absence claim, or memory-bound theorem",
+  "source_before_after_equal": true,
+  "source_bytes": 281815352,
+  "source_commit": "505dd0435d48b687f97daba5dc9771c1473ba8a1",
+  "source_files": 4398,
+  "source_parent": "99cf106586509b08bb2b9890ed29cf042336d69e",
+  "source_tree": "2050ec5e447ae5191ac2e685ba463292b2d2d3fe",
+  "tool_and_binary_before_after_equal": true,
+  "used_rust_binary": {
+    "bytes": 4204464,
+    "git_blob_sha1": "61886340da9832c6feadf2b06a2935c3f83979ff",
+    "mode": "100755",
+    "path": "/workspace/scratch/b484d4086829/rust-records-independent-review/frozen-505dd043/binary/hia-core-shadow",
+    "sha256": "090ea31c9631aae744d8a72b3eb1f753bba1a36edf887d564145546865761362"
+  },
+  "whole_language_soundness_proved": false
+}
