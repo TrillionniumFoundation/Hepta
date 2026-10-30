@@ -159,7 +159,10 @@ int32_t stall_only(void) { sleep(3); return 7; }
             subprocess.run(["clang", "-O0", "-shared", "-fPIC",
                             str(c_source), "-o", str(library)],
                            check=True, timeout=30)
-            for symbol, timeout in (("fork_and_stall", 0.2),
+            # Both fork assertions must reach the real syscall after Python
+            # startup and filter installation. Keep the ordinary observer's
+            # startup allowance; only the non-forking stall tests a short stop.
+            for symbol, timeout in (("fork_and_stall", 3.0),
                                     ("fork_and_return", 3.0),
                                     ("stall_only", 0.2)):
                 with self.subTest(symbol=symbol):
