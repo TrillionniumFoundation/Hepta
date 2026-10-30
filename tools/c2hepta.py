@@ -13,9 +13,11 @@ import os
 from pathlib import Path
 import re
 import shutil
+import signal
 import stat
 import subprocess
 import sys
+import threading
 import tempfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -174,6 +176,81 @@ def _read_source_bounded(source: Path) -> bytes:
         return content
 
 
+def _run_clang_ast_bounded(command: list[str], source: bytes) -> subprocess.CompletedProcess:
+    """Stop an oversized Clang AST producer before its output is buffered.
+
+    The 256 KB source limit does not bound Clang's JSON AST expansion.  Drain
+    both pipes concurrently with hard caps, feed stdin separately to keep the
+    20-second deadline effective, and reap the private POSIX process group
+    when the producer exceeds a cap or times out.  This is a subprocess pipe
+    budget, not a whole-process CPU/RSS or compiler sandbox guarantee.
+    """
+    with subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                          stderr=subprocess.PIPE,
+                          start_new_session=(os.name == "posix")) as proc:
+        stdout = bytearray()
+        stderr = bytearray()
+        exceeded: list[str] = []
+        stream_errors: list[Exception] = []
+
+        def terminate() -> None:
+            try:
+                if os.name == "posix":
+                    os.killpg(proc.pid, signal.SIGKILL)
+                else:
+                    proc.kill()
+            except ProcessLookupError:
+                pass
+
+        def drain(pipe, output: bytearray, limit: int, name: str) -> None:
+            try:
+                with pipe:
+                    while chunk := pipe.read1(65_536):
+                        remaining = max(0, limit - len(output))
+                        output.extend(chunk[:remaining])
+                        if len(chunk) > remaining:
+                            exceeded.append(name)
+                            terminate()
+                            return
+            except (OSError, ValueError) as exc:
+                stream_errors.append(exc)
+                terminate()
+
+        def feed_source() -> None:
+            try:
+                with proc.stdin:
+                    proc.stdin.write(source)
+            except (BrokenPipeError, OSError):
+                # A failed compiler may close stdin before consuming source.
+                # Its return status and captured diagnostics decide rejection.
+                pass
+
+        workers = (
+            threading.Thread(target=drain, args=(proc.stdout, stdout, 8_000_000, "stdout"), daemon=True),
+            threading.Thread(target=drain, args=(proc.stderr, stderr, 64_000, "stderr"), daemon=True),
+            threading.Thread(target=feed_source, daemon=True),
+        )
+        for worker in workers:
+            worker.start()
+        try:
+            proc.wait(timeout=20)
+        except subprocess.TimeoutExpired:
+            terminate()
+            proc.wait()
+            raise
+        finally:
+            for worker in workers:
+                worker.join(timeout=1)
+        if exceeded:
+            raise UnsupportedC("Clang AST output exceeds bounded capture: " + ",".join(exceeded))
+        if stream_errors or any(worker.is_alive() for worker in workers):
+            terminate()
+            for worker in workers:
+                worker.join(timeout=1)
+            raise UnsupportedC("Clang AST output capture failed")
+        return subprocess.CompletedProcess(command, proc.returncode, bytes(stdout), bytes(stderr))
+
+
 def migrate(source: Path, output: Path, report: Path, clang: str = "clang", verify_native: bool = False, rustc: str | None = None) -> dict:
     try:
         original = _read_source_bounded(source)
@@ -207,10 +284,10 @@ def migrate(source: Path, output: Path, report: Path, clang: str = "clang", veri
                                  capture_output=True, timeout=10, check=True).stdout
         if not re.search(rb"(?m)^#define __SIZEOF_INT__ 4$", defines) or not re.search(rb"(?m)^#define __CHAR_BIT__ 8$", defines):
             raise UnsupportedC("the Clang target's int/char width is unsupported")
-        run = subprocess.run([clang, "-x", "c", "-std=c11", "-Wall", "-Wextra", "-Werror",
-                              "-pedantic-errors", "-Wno-newline-eof", "-fsyntax-only", "-Xclang", "-ast-dump=json",
-                              "-fno-color-diagnostics", "-"],
-                             input=original, capture_output=True, timeout=20, check=False)
+        run = _run_clang_ast_bounded([clang, "-x", "c", "-std=c11", "-Wall", "-Wextra", "-Werror",
+                                      "-pedantic-errors", "-Wno-newline-eof", "-fsyntax-only",
+                                      "-Xclang", "-ast-dump=json", "-fno-color-diagnostics", "-"],
+                                     original)
         if run.returncode or len(run.stdout) > 8_000_000:
             raise UnsupportedC("Clang rejected source or AST exceeds size limit: " + run.stderr.decode("utf-8", "replace")[:600])
         tree = json.loads(run.stdout)
