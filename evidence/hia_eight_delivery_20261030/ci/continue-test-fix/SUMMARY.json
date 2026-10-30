@@ -1,0 +1,176 @@
+{
+  "actual_green": {
+    "actual_ok_method_lines": 41,
+    "command": [
+      "/usr/bin/python3",
+      "-m",
+      "unittest",
+      "-v",
+      "tests.test_c_project",
+      "tests.test_hia_c_loop_jumps"
+    ],
+    "errors": 0,
+    "failures": 0,
+    "log_sha256": "06d7c8e24fd9ebfdde720eb3be8546cd99e26ed1f5d3b121a2fc228dfa7c08ee",
+    "loop_module_stable": true,
+    "reported_seconds": 151.66,
+    "returncode": 0,
+    "skipped": 0,
+    "test_source_stable": true,
+    "tests_run": 41
+  },
+  "actual_red": {
+    "command": [
+      "/usr/bin/python3",
+      "-m",
+      "unittest",
+      "-v",
+      "tests.test_c_project.CProjectMigrationTests.test_uninitialized_local_and_unsupported_continue_are_rejected"
+    ],
+    "errors": 0,
+    "failed_assertion": "old expectation that the unchanged while/continue input must be rejected",
+    "failures": 1,
+    "log_sha256": "d56c682f896b646bf0edb1de4ff25b5e3fb5de2af4328246cdf76c9aa8813535",
+    "reported_seconds": 2.794,
+    "returncode": 1,
+    "tests_run": 1
+  },
+  "base_commit": "1c13caeb08993fcbb2c4d64e6b10f22f3356c18f",
+  "branch": "test/hia-continue-ci-20261030",
+  "changed_files": [
+    "tests/test_c_project.py"
+  ],
+  "created_at_utc": "2026-10-30T07:36:54.303363+00:00",
+  "execution_limits": {
+    "candidate_native_executions_only_within_authorized_tests": true,
+    "ci_reruns_requested": 0,
+    "new_four_arm_performance_runs": 0,
+    "new_model_requests": 0,
+    "remote_push_performed": false
+  },
+  "file_sha256": "193d5fb08969b9ee164a43c1713231c5dbaa4347f940e0b83baf53e569ae95c7",
+  "fix_commit": "a5bb127019d57cb0afd9b3dd2c51df766a902e76",
+  "preserved_rejection_coverage": [
+    "All other original test_c_project methods remain unchanged, including typed model, capture identity, ABI, allocator, alias, signed narrowing and uninitialized-input refusals.",
+    "The complete unchanged loop_jumps module was executed, including unsupported goto/switch and mutating conditions, break/continue definite assignment, and E_C_CONTROL_LIMIT expansion rejection."
+  ],
+  "production_and_protocol_scope": {
+    "canonical_safety_contract_changed": false,
+    "loop_jumps_bytes_unchanged": true,
+    "loop_jumps_module_sha256": "6423f4163b7ff15dcef1c26b7d42e367b1ca43fd8d85f62da121c8be0aa4dfac",
+    "model_prompts_or_prior_raw_results_changed": false,
+    "production_implementation_changed": false,
+    "registry_changed": false,
+    "review_workspace_observed_head": "1c13caeb08993fcbb2c4d64e6b10f22f3356c18f",
+    "review_workspace_observed_status": "",
+    "runner_or_protocol_budget_changed": false,
+    "why_admission_is_not_weakened": "Only the stale assertion changed. Existing production checks and scoped admission flags remain unchanged; rejected forms retain their original tests. The finite native differential is separate from, and does not upgrade, the frontend-only migration report."
+  },
+  "reason": "The declared finite loop-control profile already admits the exact while/continue input. The old mixed test incorrectly required E_C_STATEMENT for that input, despite its actual frontend_checked_not_native_qualified result.",
+  "retained_files": [
+    {
+      "bytes": 10479,
+      "path": "baseline-failure.log",
+      "sha256": "d56c682f896b646bf0edb1de4ff25b5e3fb5de2af4328246cdf76c9aa8813535"
+    },
+    {
+      "bytes": 1221,
+      "path": "baseline-failure.json",
+      "sha256": "a1de8a730ee27249cb106cbfb3105a7bc85caa1058d17221540b99658f3169ba"
+    },
+    {
+      "bytes": 6848,
+      "path": "affected-modules.log",
+      "sha256": "06d7c8e24fd9ebfdde720eb3be8546cd99e26ed1f5d3b121a2fc228dfa7c08ee"
+    },
+    {
+      "bytes": 1415,
+      "path": "affected-modules.json",
+      "sha256": "3e002b58b12d3a11bd7917af1b8288e57b0f4b12af2d19ac3e290785ec86da4a"
+    },
+    {
+      "bytes": 1046,
+      "path": "affected-modules-started.json",
+      "sha256": "8cb908eb4747a3315f17b3bfc32ceb7a015b1bef05645167e0c408196ab5c370"
+    },
+    {
+      "bytes": 3649,
+      "path": "0001-align-continue-assertion.patch",
+      "sha256": "89df578fee3847ca6f986be40823c258afe9db34f38a850b0cf978cb0428ca8c"
+    },
+    {
+      "bytes": 640,
+      "path": "setup-missing-checkout.log",
+      "sha256": "da10ec341ca3f03bf475191b5413ee47c3cd87766586500109deac18ffbeb5d8"
+    },
+    {
+      "bytes": 458,
+      "path": "setup-missing-checkout.json",
+      "sha256": "52c5480957f851757f899fe0658307e05113ec24bd78c44f04785c3e0dedde63"
+    }
+  ],
+  "schema": "hepta.continue-assertion-test-fix.v1",
+  "setup_failures": [
+    {
+      "description": "The initial no-checkout worktree had not yet been populated; unittest import failed. This is not the semantic red result.",
+      "kind": "missing_sparse_checkout_files",
+      "retained_log": "setup-missing-checkout.log"
+    },
+    {
+      "description": "A wrapper retry refused to overwrite red.log before launching a child; the actual semantic reproduction uses the separate baseline-failure.log.",
+      "kind": "exclusive_log_path_already_existed"
+    }
+  ],
+  "suite_count_boundary": {
+    "affected_modules_observed_after": 41,
+    "expected_count_is_an_observation": false,
+    "expected_full_suite_methods_if_same_104_modules_selected": 1001,
+    "full_suite_rerun_performed": false,
+    "loop_jumps_methods": 6,
+    "prior_full_suite_1000_method_failure_retained": true,
+    "test_c_project_methods_after": 35,
+    "test_c_project_methods_before": 34
+  },
+  "test_changes": {
+    "differential_execution_asserted": "not_run",
+    "finite_defined_domain": "Negative and zero inputs do not enter the loop. Selected positive inputs decrement to zero without signed overflow. These eight inputs do not establish general equivalence.",
+    "finite_expected_values": [
+      -2147483648,
+      -17,
+      -1,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "finite_inputs": [
+      -2147483648,
+      -17,
+      -1,
+      0,
+      1,
+      2,
+      17,
+      255
+    ],
+    "finite_paths": [
+      "original C compiled by Clang",
+      "Core VM",
+      "direct HIA LLVM native"
+    ],
+    "frontend_status_asserted": "frontend_checked_not_native_qualified",
+    "native_validation_asserted": "not_run",
+    "new_methods": [
+      "test_uninitialized_local_is_rejected",
+      "test_while_continue_is_frontend_checked_and_preserves_defined_values"
+    ],
+    "old_combined_method": "test_uninitialized_local_and_unsupported_continue_are_rejected",
+    "source_equivalence_and_whole_language_soundness_asserted": false,
+    "unchanged_continue_source": "int f(int x){while(x>0){--x;continue;}return x;}",
+    "uninitialized_expected_diagnostic": "E_C_UNINITIALIZED",
+    "uninitialized_source": "int f(int x){int y; if(x)y=x;return y;}"
+  },
+  "tested_bytes_match_committed_bytes": true,
+  "worktree": "/workspace/scratch/8245a7ab856a/Hepta-ci-testfix"
+}

@@ -1,0 +1,263 @@
+{
+  "schema": "hepta.ci.readonly-final-observation.v1",
+  "observed_at_utc": "2026-10-30T07:25:48.996519+00:00",
+  "reviewer": "/root/ndu_repo_audit",
+  "current_head": "1c13caeb08993fcbb2c4d64e6b10f22f3356c18f",
+  "no_workflow_reruns_or_cancels": true,
+  "no_code_changes": true,
+  "no_new_model_or_native_executions": true,
+  "current_runs": [
+    {
+      "id": 41017484010,
+      "url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/41017484010",
+      "head_sha": "1c13caeb08993fcbb2c4d64e6b10f22f3356c18f",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "updated_at": "2026-10-30T07:12:10Z",
+      "name": "HIA six-outcome source and application gates",
+      "confirmed_log_observations": {
+        "safety_selectors_passed": 277,
+        "expected_safety_selectors": 277,
+        "source_stable": true,
+        "finite_source_application_regression_tests": 354,
+        "regression_status": "OK",
+        "selected_scalar_lowering_obligations": 449,
+        "selected_scalar_lowering_verified": 449,
+        "selected_scalar_lowering_unknown": 0,
+        "selected_scalar_lowering_refuted": 0,
+        "later_agent_controls_scope": "Human-reference and hostile controls only; their summaries explicitly state model_requests=0, capacity_qualified=false, model_qualified=false."
+      },
+      "records_directory": "/workspace/scratch/8245a7ab856a/run-evidence/final-ci-readonly-1c13/41017484010",
+      "artifact_not_downloaded_by_this_reviewer": {
+        "id": 12960198980,
+        "bytes": 62118935
+      }
+    },
+    {
+      "id": 41017484079,
+      "url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/41017484079",
+      "head_sha": "1c13caeb08993fcbb2c4d64e6b10f22f3356c18f",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "failure",
+      "updated_at": "2026-10-30T07:21:06Z",
+      "name": "HIA verified optimization and native NDU integration",
+      "regression": {
+        "tests": 1000,
+        "failures": 1,
+        "errors": 0,
+        "skipped": [],
+        "source_unchanged": true,
+        "passed": false,
+        "elapsed_ns": 1042690114483
+      },
+      "primary_failed_step": 15,
+      "primary_failure": {
+        "test": "test_uninitialized_local_and_unsupported_continue_are_rejected (tests.test_c_project.CProjectMigrationTests.test_uninitialized_local_and_unsupported_continue_are_rejected)",
+        "source_location": "tests/test_c_project.py:326",
+        "assertion": "while-local continue must be rejected with E_C_STATEMENT",
+        "submitted_c": "int f(int x){while(x>0){--x;continue;}return x;}",
+        "actual_result": {
+          "ok": true,
+          "status": "frontend_checked_not_native_qualified"
+        },
+        "interpretation": "The existing blanket rejection assertion conflicts with the newly admitted loop-control feature. This identifies the concrete failing assertion; validating or amending its intended contract is a separate change and has not been performed in this read-only investigation."
+      },
+      "secondary_failed_step": 18,
+      "secondary_failure": "The clean-source preparation step16 was skipped after step15 failed; step18 still executes under !cancelled() and its cd to the uncreated worktree fails. No successful post-test qualification is inferred.",
+      "later_steps_not_run": [
+        16,
+        17,
+        19
+      ],
+      "native_bridge_build_steps": {
+        "recursive": 9,
+        "finite": 11,
+        "stream": 13,
+        "ranking": 14,
+        "all_conclusions": "success"
+      },
+      "artifact": {
+        "id": 12960936827,
+        "bytes": 2057727,
+        "zip": {
+          "path": "/workspace/scratch/8245a7ab856a/run-evidence/final-ci-readonly-1c13/41017484079/artifact-12960936827.zip",
+          "bytes": 2057727,
+          "sha256": "ae4b637f1b2605170c41b063811da5adca82b874defdcd7210aeb8061952baa0"
+        },
+        "selectively_read_members": [
+          "Hepta/Hepta/artifacts/verified-optimization/regression/result.json",
+          "Hepta/Hepta/artifacts/verified-optimization/regression/tests.log"
+        ],
+        "all_members_extracted": false
+      },
+      "records_directory": "/workspace/scratch/8245a7ab856a/run-evidence/final-ci-readonly-1c13/41017484079",
+      "related_new_loop_control_results": [
+        {
+          "log_line": 825,
+          "text": "test_nested_scopes_and_jump_control_preserve_defined_values (tests.test_c_project_do_while.CapturedDoWhileTests.test_nested_scopes_and_jump_control_preserve_defined_values) ... ok"
+        },
+        {
+          "log_line": 980,
+          "text": "test_break_continue_do_not_admit_uninitialized_reads (tests.test_hia_c_loop_jumps.HIACLoopJumpTests.test_break_continue_do_not_admit_uninitialized_reads) ... ok"
+        },
+        {
+          "log_line": 981,
+          "text": "test_c_and_concrete_cpp_vm_and_direct_llvm_match_originals (tests.test_hia_c_loop_jumps.HIACLoopJumpTests.test_c_and_concrete_cpp_vm_and_direct_llvm_match_originals) ... ok"
+        },
+        {
+          "log_line": 982,
+          "text": "test_deferred_assignments_merge_actual_jump_exits (tests.test_hia_c_loop_jumps.HIACLoopJumpTests.test_deferred_assignments_merge_actual_jump_exits) ... ok"
+        },
+        {
+          "log_line": 983,
+          "text": "test_switch_goto_and_mutating_conditions_remain_rejected (tests.test_hia_c_loop_jumps.HIACLoopJumpTests.test_switch_goto_and_mutating_conditions_remain_rejected) ... ok"
+        },
+        {
+          "log_line": 984,
+          "text": "test_upstream_ring_maintenance_loop_jumps_reach_native_hia (tests.test_hia_c_loop_jumps.HIACLoopJumpTests.test_upstream_ring_maintenance_loop_jumps_reach_native_hia) ... ok"
+        },
+        {
+          "log_line": 985,
+          "text": "test_wide_jump_sequence_rejects_bounded_expansion (tests.test_hia_c_loop_jumps.HIACLoopJumpTests.test_wide_jump_sequence_rejects_bounded_expansion) ... ok"
+        }
+      ],
+      "contract_context": "The same failed run records all six tests.test_hia_c_loop_jumps cases and the updated nested-scope/jump-control do-while case as ok, including native/VM comparison and continued rejection of uninitialized reads, switch/goto/mutating conditions and excessive expansion. This corroborates the blanket continue-rejection test being inconsistent with the intentional finite profile expansion; it does not grant whole-language equivalence or change the failed workflow conclusion."
+    }
+  ],
+  "historical_run_separate": {
+    "id": 41013027389,
+    "url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/41013027389",
+    "head_sha": "37d3a317b77aeac8f42b8a727f0f123b4a46e49f",
+    "conclusion": "failure",
+    "updated_at": "2026-10-30T06:31:29Z",
+    "regression": {
+      "tests": 1000,
+      "failures": 1,
+      "errors": 0,
+      "skipped": [],
+      "source_unchanged": true,
+      "passed": false,
+      "elapsed_ns": 815722128795
+    },
+    "same_failed_test_as_current": true,
+    "does_not_substitute_for_current_head_result": true,
+    "artifact": {
+      "id": 12959291139,
+      "bytes": 2057711,
+      "zip": {
+        "path": "/workspace/scratch/8245a7ab856a/run-evidence/final-ci-readonly-1c13/history-41013027389/artifact-12959291139.zip",
+        "bytes": 2057711,
+        "sha256": "9ba4bea78a98a74ea7d503c179daf8b822199e9b9057eab66f70efa21f2f581e"
+      }
+    },
+    "records_directory": "/workspace/scratch/8245a7ab856a/run-evidence/final-ci-readonly-1c13/history-41013027389"
+  },
+  "limitations": [
+    "Run responses are decoded GitHub API observations and job responses are connector-normalized, not raw HTTP wire capture or independent runner attestation.",
+    "Current-head native NDU workflow remains failed; successful bridge builds and 999 nonfailing regression cases do not turn the whole job green.",
+    "The later missing-directory error is a dependent workflow failure; it is not evidence that its unexecuted C post-test qualification passed or failed semantically.",
+    "Six-outcome reference controls do not change the separately frozen actual-model pilot or its two observed main-cell failures.",
+    "No CI condition, original benchmark deadline, source contract, existing result or experimental stop rule was changed."
+  ],
+  "files": [
+    {
+      "path": "/workspace/scratch/8245a7ab856a/run-evidence/final-ci-readonly-1c13/41017484010/artifact-12960198980.api.json",
+      "bytes": 1037,
+      "sha256": "19b53240722994c36ab792766dbb430f3eb1f04e2b5cd683e27a167a0b039b9b"
+    },
+    {
+      "path": "/workspace/scratch/8245a7ab856a/run-evidence/final-ci-readonly-1c13/41017484010/artifact-12960198980.manifest.json",
+      "bytes": 2452716,
+      "sha256": "d93a9c7bb24b6121561a49876cef6c2249a3ae0143095a650e3fe69e6a84d324"
+    },
+    {
+      "path": "/workspace/scratch/8245a7ab856a/run-evidence/final-ci-readonly-1c13/41017484010/artifact-12960198980.tar.xz",
+      "bytes": 7583496,
+      "sha256": "535ab70d835bc493f1c97cf5e1213f96905475ad52e38b14c8d0351c7ccdca9c"
+    },
+    {
+      "path": "/workspace/scratch/8245a7ab856a/run-evidence/final-ci-readonly-1c13/41017484010/job-123936988138.log",
+      "bytes": 1358558,
+      "sha256": "950b7bb4d0b11f983aec16fb6c7f3c4b1a02750e847eafcaf5387ad73ed0a451"
+    },
+    {
+      "path": "/workspace/scratch/8245a7ab856a/run-evidence/final-ci-readonly-1c13/41017484010/jobs.json",
+      "bytes": 6113,
+      "sha256": "520cb47708dab165f43769639efc00344de2568710c579d5c7ba523b41538614"
+    },
+    {
+      "path": "/workspace/scratch/8245a7ab856a/run-evidence/final-ci-readonly-1c13/41017484010/run.json",
+      "bytes": 16040,
+      "sha256": "6f8ae1fc06929f65011758ba21e2c7663572eee770a2bb5884cc5d54cdc180f6"
+    },
+    {
+      "path": "/workspace/scratch/8245a7ab856a/run-evidence/final-ci-readonly-1c13/41017484079/artifact-12960936827.zip",
+      "bytes": 2057727,
+      "sha256": "ae4b637f1b2605170c41b063811da5adca82b874defdcd7210aeb8061952baa0"
+    },
+    {
+      "path": "/workspace/scratch/8245a7ab856a/run-evidence/final-ci-readonly-1c13/41017484079/job-123936988293.log",
+      "bytes": 111098,
+      "sha256": "2f39711c6e920b71a5dadf3cfa8da87d0fe8db1c92eaf975308b676c1ee24b94"
+    },
+    {
+      "path": "/workspace/scratch/8245a7ab856a/run-evidence/final-ci-readonly-1c13/41017484079/jobs.json",
+      "bytes": 4863,
+      "sha256": "2b73ba29073ed8b6f3f63a2d19193eb19494d08b691a895578cfe1525a161497"
+    },
+    {
+      "path": "/workspace/scratch/8245a7ab856a/run-evidence/final-ci-readonly-1c13/41017484079/result.json",
+      "bytes": 407046,
+      "sha256": "928a0c57922c5d14f25525899024ca6ae3ad0f23b908fa3ae3ee9c6289d8fb35"
+    },
+    {
+      "path": "/workspace/scratch/8245a7ab856a/run-evidence/final-ci-readonly-1c13/41017484079/run.json",
+      "bytes": 16053,
+      "sha256": "9883ef338124a22eb557c7daffbf5ff76ad939b66ba5dee6e50137b64a5c2ceb"
+    },
+    {
+      "path": "/workspace/scratch/8245a7ab856a/run-evidence/final-ci-readonly-1c13/41017484079/tests.log",
+      "bytes": 192641,
+      "sha256": "84c1473924894cda2479f6051e3bf4314483f381a5b9014135d36c02cda22d34"
+    },
+    {
+      "path": "/workspace/scratch/8245a7ab856a/run-evidence/final-ci-readonly-1c13/history-41013027389/artifact-12959291139.zip",
+      "bytes": 2057711,
+      "sha256": "9ba4bea78a98a74ea7d503c179daf8b822199e9b9057eab66f70efa21f2f581e"
+    },
+    {
+      "path": "/workspace/scratch/8245a7ab856a/run-evidence/final-ci-readonly-1c13/history-41013027389/job-123922957890.log",
+      "bytes": 111104,
+      "sha256": "bde2849749506ffa99c0af8036ac9505878a31baa38fc3758ea668bd4965a2df"
+    },
+    {
+      "path": "/workspace/scratch/8245a7ab856a/run-evidence/final-ci-readonly-1c13/history-41013027389/jobs.json",
+      "bytes": 4863,
+      "sha256": "b418bd156aa999786e2229baeaf9b21a67629ca67e1ea6df009511df03d85b27"
+    },
+    {
+      "path": "/workspace/scratch/8245a7ab856a/run-evidence/final-ci-readonly-1c13/history-41013027389/result.json",
+      "bytes": 407045,
+      "sha256": "0fd79e2fe45bfcd73b28fa5442b729e0e5c3cc01b85a204045f2c9ac21b46ed8"
+    },
+    {
+      "path": "/workspace/scratch/8245a7ab856a/run-evidence/final-ci-readonly-1c13/history-41013027389/run.json",
+      "bytes": 16744,
+      "sha256": "1486de8267d72286ffd8da032317470e87c79edd6c1481fbcb18e2cebc28f19c"
+    },
+    {
+      "path": "/workspace/scratch/8245a7ab856a/run-evidence/final-ci-readonly-1c13/history-41013027389/tests.log",
+      "bytes": 192640,
+      "sha256": "7268c982032a206836a12fe65d18327ae888e0bf30f06af925869b94e9abc21a"
+    },
+    {
+      "path": "/workspace/scratch/8245a7ab856a/run-evidence/final-ci-readonly-1c13/poll-history.json",
+      "bytes": 7391,
+      "sha256": "773a7cd8b01ac1c893fc190025d59d723b1f0f22b6d8524e018f74760992d241"
+    }
+  ],
+  "stored_bytes_before_summary": 17004886,
+  "directory_inventory_scope": "Hashes include all files already present in the shared evidence directory, including separately supplied six-outcome compressed artifact/manifest records. This reviewer downloaded only the two approximately 2 MiB native-NDU ZIPs and selectively read two members of each."
+}

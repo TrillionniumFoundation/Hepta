@@ -1,0 +1,129 @@
+{
+  "schema": "hepta.ci-continue-assertion-fix.independent-review.v1",
+  "reviewer": "/root/ndu_repo_audit",
+  "reviewed_at_utc": "2026-10-30T07:37:19.377337+00:00",
+  "decision": "approve_test_only_patch",
+  "decision_scope": "Accept this exact isolated test-only correction for review/publication. It is not full CI qualification, a benchmark rerun, or a replacement for the failed 1c13 run.",
+  "base_commit": "1c13caeb08993fcbb2c4d64e6b10f22f3356c18f",
+  "test_fix_commit": "a5bb127019d57cb0afd9b3dd2c51df766a902e76",
+  "parent_is_exact_base": true,
+  "worktree_clean": true,
+  "changed_files": [
+    "tests/test_c_project.py"
+  ],
+  "patch": {
+    "path": "/workspace/scratch/8245a7ab856a/run-evidence/ci-continue-assertion-fix/0001-align-continue-assertion.patch",
+    "sha256": "89df578fee3847ca6f986be40823c258afe9db34f38a850b0cf978cb0428ca8c",
+    "bytes": 3649
+  },
+  "reviewed_test_file": {
+    "path": "/workspace/scratch/8245a7ab856a/Hepta-ci-testfix/tests/test_c_project.py",
+    "sha256": "193d5fb08969b9ee164a43c1713231c5dbaa4347f940e0b83baf53e569ae95c7",
+    "bytes": 28451
+  },
+  "before_test_file_sha256": "6b8c2fb566024a62aa0976d127b7e20a24e0e5004531b3318be5f7d9b5abd9e1",
+  "blocking_findings": [],
+  "model_calls_by_reviewer": 0,
+  "native_workloads_or_tests_executed_by_reviewer": 0,
+  "full_ci_qualified_for_test_fix_commit": false,
+  "original_head_1c13_native_ndu_ci_still_failed": true,
+  "static_checks": {
+    "only_test_file_changed": true,
+    "production_compiler_runtime_backend_unchanged": true,
+    "workflow_protocol_budget_and_safety_contract_unchanged": true,
+    "all_other_existing_method_asts_unchanged": true,
+    "uninitialized_rejection_call_ast_identical": true,
+    "continue_c_fixture_byte_identical": true,
+    "old_combined_selector_not_referenced_by_safety_contract": true,
+    "safety_contract_raw_sha256": "35980a886b257bb148c416e5190e2c7c3699cdcc234c915a2555fc7df9f51af8",
+    "loop_jump_module_byte_identical": true,
+    "loop_jump_module_sha256": "6423f4163b7ff15dcef1c26b7d42e367b1ca43fd8d85f62da121c8be0aa4dfac",
+    "class_test_methods_before": 34,
+    "class_test_methods_after": 35,
+    "full_suite_count_note": "Splitting one combined method into two adds one method. With the same remaining modules, a future full suite is expected to contain 1001 rather than the previous failed 1000; that future suite was not executed by this reviewer."
+  },
+  "confirmed_behavior": [
+    "The existing E_C_UNINITIALIZED fixture and refusal helper assertions are retained unchanged in a dedicated test.",
+    "The exact previously failing while/continue fixture now has an explicit positive frontend test matching the already implemented finite loop-control profile.",
+    "The positive test preserves frontend_checked_not_native_qualified and checks native_validation=not_run, differential_execution=not_run, source_equivalence_proved=false and whole_language_soundness_proved=false before separate finite execution checks.",
+    "The same generated source is lowered through existing Core and direct LLVM helpers, and compiled original C, direct LLVM and VM results are each compared with min(x,0) for eight defined signed-i32 inputs.",
+    "No existing switch/goto/mutating-condition, uninitialized-read, excessive-expansion, ownership or ABI refusal test is deleted or changed. The original loop-jump module remains byte-identical and all six of its tests are present as ok in the actual targeted log."
+  ],
+  "finite_differential": {
+    "fixture": "int f(int x){while(x>0){--x;continue;}return x;}",
+    "inputs": [
+      -2147483648,
+      -17,
+      -1,
+      0,
+      1,
+      2,
+      17,
+      255
+    ],
+    "expected_results": [
+      -2147483648,
+      -17,
+      -1,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "paths": [
+      "original C compiled by Clang",
+      "Core VM",
+      "direct LLVM native artifact"
+    ],
+    "scope": "Eight defined inputs only. Negative inputs do not enter the loop; positive sampled inputs decrement to zero without signed overflow. This is not a proof over every source input or compiler lowering."
+  },
+  "actual_red": {
+    "receipt": {
+      "path": "/workspace/scratch/8245a7ab856a/run-evidence/ci-continue-assertion-fix/baseline-failure.json",
+      "sha256": "a1de8a730ee27249cb106cbfb3105a7bc85caa1058d17221540b99658f3169ba",
+      "bytes": 1221
+    },
+    "log": {
+      "path": "/workspace/scratch/8245a7ab856a/run-evidence/ci-continue-assertion-fix/baseline-failure.log",
+      "sha256": "d56c682f896b646bf0edb1de4ff25b5e3fb5de2af4328246cdf76c9aa8813535",
+      "bytes": 10479
+    },
+    "tests_run": 1,
+    "failures": 1,
+    "returncode": 1,
+    "failure_is_same_continue_assertion_as_remote_1c13": true,
+    "initial_sparse_worktree_import_failure_excluded_from_semantic_red": true
+  },
+  "actual_green": {
+    "receipt": {
+      "path": "/workspace/scratch/8245a7ab856a/run-evidence/ci-continue-assertion-fix/affected-modules.json",
+      "sha256": "3e002b58b12d3a11bd7917af1b8288e57b0f4b12af2d19ac3e290785ec86da4a",
+      "bytes": 1415
+    },
+    "log": {
+      "path": "/workspace/scratch/8245a7ab856a/run-evidence/ci-continue-assertion-fix/affected-modules.log",
+      "sha256": "06d7c8e24fd9ebfdde720eb3be8546cd99e26ed1f5d3b121a2fc228dfa7c08ee",
+      "bytes": 6848
+    },
+    "modules": [
+      "tests.test_c_project",
+      "tests.test_hia_c_loop_jumps"
+    ],
+    "tests_run": 41,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "reported_seconds": 151.66,
+    "wall_ns": 151993087575,
+    "returncode": 0,
+    "source_hash_bound": "193d5fb08969b9ee164a43c1713231c5dbaa4347f940e0b83baf53e569ae95c7",
+    "all_41_actual_log_lines_checked": true
+  },
+  "limitations": [
+    "This review reads the actual author-run red/green receipts and logs; it does not independently re-execute tests or attest an untrusted host.",
+    "The two targeted modules passing cannot be substituted for a fresh full-suite or workflow result on a5bb127. Original head1c13 failures and historical evidence remain unchanged.",
+    "The test-only patch does not change or requalify the frozen frontier-model pilot, NDU comparative experiment, CRC protocol/deadline, production authority or resource budget.",
+    "The separate step18 missing-worktree cascade in the failed workflow was not changed by this patch; a future upstream failure would still require honest reporting."
+  ]
+}

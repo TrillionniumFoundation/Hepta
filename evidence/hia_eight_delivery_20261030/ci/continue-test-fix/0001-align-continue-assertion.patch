@@ -1,0 +1,70 @@
+From a5bb127019d57cb0afd9b3dd2c51df766a902e76 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 30 Oct 2026 08:35:16 +0100
+Subject: [PATCH] test(c): align continue assertion with supported loop control
+
+---
+ tests/test_c_project.py | 39 +++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 37 insertions(+), 2 deletions(-)
+
+diff --git a/tests/test_c_project.py b/tests/test_c_project.py
+index 0de8cd9..281fa77 100644
+--- a/tests/test_c_project.py
++++ b/tests/test_c_project.py
+@@ -16,6 +16,9 @@ from unittest.mock import patch
+ 
+ from hepta.c_migrate import MigrationRejected, migrate_c, migrate_c_project
+ from hepta.c_project import capture_project, verify_capture
++from hepta.hia_program import execute_program
++from hepta.hia_program_llvm import build_program_native
++from hepta.hia_program_source import lower_source
+ 
+ 
+ FIXTURE = Path(__file__).parent / "fixtures/c_migration/native"
+@@ -321,9 +324,41 @@ class CProjectMigrationTests(unittest.TestCase):
+         self.assertFalse(result["claims"]["source_equivalence_proved"])
+         self.assertEqual(result["native_validation"], "not_run")
+ 
+-    def test_uninitialized_local_and_unsupported_continue_are_rejected(self):
++    def test_uninitialized_local_is_rejected(self):
+         self.rejected("int f(int x){int y; if(x)y=x;return y;}", "E_C_UNINITIALIZED")
+-        self.rejected("int f(int x){while(x>0){--x;continue;}return x;}", "E_C_STATEMENT")
++
++    def test_while_continue_is_frontend_checked_and_preserves_defined_values(self):
++        self.project({"input.c": "int f(int x){while(x>0){--x;continue;}return x;}"})
++        report = self.migrate()
++        self.assertTrue(report["ok"], report.get("diagnostics"))
++        self.assertEqual(report["status"], "frontend_checked_not_native_qualified")
++        self.assertEqual(report["native_validation"], "not_run")
++        self.assertEqual(report["differential_execution"], "not_run")
++        self.assertFalse(report["claims"]["source_equivalence_proved"])
++        self.assertFalse(report["claims"]["whole_language_soundness_proved"])
++
++        # This finite differential is separate from the frontend-only report.
++        # Negative inputs never enter the body; positive inputs decrement to
++        # zero without signed overflow, including across the continue edge.
++        core = lower_source((self.output / "source.hepta").read_text())
++        hia_path, original_path = self.root / "continue-hia.so", self.root / "continue-c.so"
++        build_program_native(core, hia_path, clang=self.clang)
++        compiled = subprocess.run(
++            [self.clang, "-std=c11", "-O2", "-shared", "-fPIC",
++             str(self.root / "input.c"), "-o", str(original_path)],
++            capture_output=True, text=True, timeout=60,
++        )
++        self.assertEqual(compiled.returncode, 0, compiled.stderr)
++        original = ctypes.CDLL(str(original_path)).f
++        translated = ctypes.CDLL(str(hia_path)).c_f
++        for function in (original, translated):
++            function.argtypes, function.restype = [ctypes.c_int32], ctypes.c_int32
++        for value in (-(1 << 31), -17, -1, 0, 1, 2, 17, 255):
++            with self.subTest(value=value):
++                expected = min(value, 0)
++                self.assertEqual(original(value), expected)
++                self.assertEqual(translated(value), expected)
++                self.assertEqual(execute_program(core, "c_f", [value])["result"], expected)
+ 
+     def test_pointer_requires_explicit_contract(self):
+         self.rejected("unsigned int f(const unsigned char *p,unsigned long n){return p[0];}", "E_C_POINTER_CONTRACT")
+-- 
+2.51.1
+

@@ -1,0 +1,1223 @@
+﻿2026-10-30T06:15:35.5886884Z Current runner version: '2.338.0'
+2026-10-30T06:15:35.5909422Z ##[group]Runner Image Provisioner
+2026-10-30T06:15:35.5910161Z Hosted Compute Agent
+2026-10-30T06:15:35.5910684Z Version: 20261021.618
+2026-10-30T06:15:35.5911239Z Commit: 21505ad2541d5be6135ed84fc33697146cf75b8e
+2026-10-30T06:15:35.5911931Z Build Date: 2026-10-21T00:45:21Z
+2026-10-30T06:15:35.5912519Z Worker ID: {a1488d4f-1b3d-41c3-8412-1f3e003577dd}
+2026-10-30T06:15:35.5913353Z Region: centralus
+2026-10-30T06:15:35.5913844Z Cloud: Azure
+2026-10-30T06:15:35.5914332Z ##[endgroup]
+2026-10-30T06:15:35.5915537Z ##[group]Operating System
+2026-10-30T06:15:35.5916065Z Ubuntu
+2026-10-30T06:15:35.5916548Z 24.04.5
+2026-10-30T06:15:35.5917006Z LTS
+2026-10-30T06:15:35.5917477Z ##[endgroup]
+2026-10-30T06:15:35.5917980Z ##[group]Runner Image
+2026-10-30T06:15:35.5918524Z Image: ubuntu-24.04
+2026-10-30T06:15:35.5919027Z Version: 20261025.353.1
+2026-10-30T06:15:35.5920168Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261025.353/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-30T06:15:35.5921455Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261025.353
+2026-10-30T06:15:35.5922281Z ##[endgroup]
+2026-10-30T06:15:35.5923451Z ##[group]GITHUB_TOKEN Permissions
+2026-10-30T06:15:35.5925345Z Contents: read
+2026-10-30T06:15:35.5925926Z Metadata: read
+2026-10-30T06:15:35.5926423Z ##[endgroup]
+2026-10-30T06:15:35.5928148Z Secret source: Actions
+2026-10-30T06:15:35.5928959Z Cache mode: write
+2026-10-30T06:15:35.5929611Z Prepare workflow directory
+2026-10-30T06:15:35.6346873Z Prepare all required actions
+2026-10-30T06:15:35.6384644Z Getting action download info
+2026-10-30T06:15:35.8676053Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-10-30T06:15:36.0323368Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-10-30T06:15:36.1467397Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-10-30T06:15:36.4029328Z Complete job name: verified-native
+2026-10-30T06:15:36.4696891Z ##[group]Run set -euo pipefail
+2026-10-30T06:15:36.4697411Z [36;1mset -euo pipefail[0m
+2026-10-30T06:15:36.4697947Z [36;1mhepta_cargo_home="$RUNNER_TEMP/hepta-verified-cargo-home"[0m
+2026-10-30T06:15:36.4698640Z [36;1mhepta_cargo_target="$RUNNER_TEMP/hepta-verified-cargo-target"[0m
+2026-10-30T06:15:36.4699290Z [36;1mmkdir -p "$hepta_cargo_home" "$hepta_cargo_target"[0m
+2026-10-30T06:15:36.4699858Z [36;1mprintf 'CARGO_HOME=%s\nCARGO_TARGET_DIR=%s\n' \[0m
+2026-10-30T06:15:36.4700453Z [36;1m  "$hepta_cargo_home" "$hepta_cargo_target" >> "$GITHUB_ENV"[0m
+2026-10-30T06:15:36.4721383Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-30T06:15:36.4722077Z env:
+2026-10-30T06:15:36.4722415Z   HEPTA_RUN_ARTIFACT_SESSION: 1
+2026-10-30T06:15:36.4723037Z   HEPTA_SOURCE_SHA: 37d3a317b77aeac8f42b8a727f0f123b4a46e49f
+2026-10-30T06:15:36.4723659Z   RECURSIVE_NDU_SOURCE_SHA: 2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b
+2026-10-30T06:15:36.4724336Z   FINITE_NDU_SOURCE_SHA: 4b6391e116949af0c7e59776baead67271856bdb
+2026-10-30T06:15:36.4724948Z   STREAM_NDU_SOURCE_SHA: c4a1bbed3a39beba43a6abf1a18b6f75c5725c21
+2026-10-30T06:15:36.4725646Z   CLANG: /usr/bin/clang-20
+2026-10-30T06:15:36.4726039Z   CLANGXX: /usr/bin/clang++-20
+2026-10-30T06:15:36.4726447Z   PYTHONDONTWRITEBYTECODE: 1
+2026-10-30T06:15:36.4726830Z ##[endgroup]
+2026-10-30T06:15:36.4989969Z ##[group]Run actions/checkout@v4
+2026-10-30T06:15:36.4990411Z with:
+2026-10-30T06:15:36.4990778Z   ref: 37d3a317b77aeac8f42b8a727f0f123b4a46e49f
+2026-10-30T06:15:36.4991249Z   persist-credentials: false
+2026-10-30T06:15:36.4991669Z   repository: TrillionniumFoundation/Hepta
+2026-10-30T06:15:36.4995244Z   token: ***
+2026-10-30T06:15:36.4995593Z   ssh-strict: true
+2026-10-30T06:15:36.4995948Z   ssh-user: git
+2026-10-30T06:15:36.4996278Z   clean: true
+2026-10-30T06:15:36.4996625Z   sparse-checkout-cone-mode: true
+2026-10-30T06:15:36.4997038Z   fetch-depth: 1
+2026-10-30T06:15:36.4997593Z   fetch-tags: false
+2026-10-30T06:15:36.4997939Z   show-progress: true
+2026-10-30T06:15:36.4998288Z   lfs: false
+2026-10-30T06:15:36.4998740Z   submodules: false
+2026-10-30T06:15:36.4999094Z   set-safe-directory: true
+2026-10-30T06:15:36.4999486Z   allow-unsafe-pr-checkout: false
+2026-10-30T06:15:36.4999878Z env:
+2026-10-30T06:15:36.5000202Z   HEPTA_RUN_ARTIFACT_SESSION: 1
+2026-10-30T06:15:36.5000706Z   HEPTA_SOURCE_SHA: 37d3a317b77aeac8f42b8a727f0f123b4a46e49f
+2026-10-30T06:15:36.5001326Z   RECURSIVE_NDU_SOURCE_SHA: 2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b
+2026-10-30T06:15:36.5001954Z   FINITE_NDU_SOURCE_SHA: 4b6391e116949af0c7e59776baead67271856bdb
+2026-10-30T06:15:36.5002556Z   STREAM_NDU_SOURCE_SHA: c4a1bbed3a39beba43a6abf1a18b6f75c5725c21
+2026-10-30T06:15:36.5003304Z   CLANG: /usr/bin/clang-20
+2026-10-30T06:15:36.5003690Z   CLANGXX: /usr/bin/clang++-20
+2026-10-30T06:15:36.5004089Z   PYTHONDONTWRITEBYTECODE: 1
+2026-10-30T06:15:36.5004585Z   CARGO_HOME: /home/runner/work/_temp/hepta-verified-cargo-home
+2026-10-30T06:15:36.5005232Z   CARGO_TARGET_DIR: /home/runner/work/_temp/hepta-verified-cargo-target
+2026-10-30T06:15:36.5005776Z ##[endgroup]
+2026-10-30T06:15:36.6939601Z Syncing repository: TrillionniumFoundation/Hepta
+2026-10-30T06:15:36.6941747Z ##[group]Getting Git version info
+2026-10-30T06:15:36.6942275Z Working directory is '/home/runner/work/Hepta/Hepta'
+2026-10-30T06:15:36.6943526Z [command]/usr/bin/git version
+2026-10-30T06:15:36.6995549Z git version 2.56.0
+2026-10-30T06:15:36.7013810Z ##[endgroup]
+2026-10-30T06:15:36.7030802Z Temporarily overriding HOME='/home/runner/work/_temp/6484ff79-7edd-45ec-9b7a-39778c5423e8' before making global git config changes
+2026-10-30T06:15:36.7032574Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-30T06:15:36.7034093Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-10-30T06:15:36.7075169Z Deleting the contents of '/home/runner/work/Hepta/Hepta'
+2026-10-30T06:15:36.7078846Z ##[group]Initializing the repository
+2026-10-30T06:15:36.7082540Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta
+2026-10-30T06:15:36.7151746Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-30T06:15:36.7152889Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-30T06:15:36.7154290Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-30T06:15:36.7155050Z hint: call:
+2026-10-30T06:15:36.7155370Z hint:
+2026-10-30T06:15:36.7155776Z hint: 	git config --global init.defaultBranch <name>
+2026-10-30T06:15:36.7156262Z hint:
+2026-10-30T06:15:36.7156710Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-30T06:15:36.7157415Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-30T06:15:36.7157971Z hint:
+2026-10-30T06:15:36.7158289Z hint: 	git branch -m <name>
+2026-10-30T06:15:36.7158660Z hint:
+2026-10-30T06:15:36.7159151Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-30T06:15:36.7163082Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/.git/
+2026-10-30T06:15:36.7172176Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-10-30T06:15:36.7215750Z ##[endgroup]
+2026-10-30T06:15:36.7216546Z ##[group]Disabling automatic garbage collection
+2026-10-30T06:15:36.7218718Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-30T06:15:36.7247378Z ##[endgroup]
+2026-10-30T06:15:36.7247962Z ##[group]Setting up auth
+2026-10-30T06:15:36.7254123Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-30T06:15:36.7286546Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-30T06:15:36.7591401Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-30T06:15:36.7641639Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-30T06:15:36.7854971Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-30T06:15:36.7892253Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-30T06:15:36.8097817Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-30T06:15:36.8141079Z ##[endgroup]
+2026-10-30T06:15:36.8141994Z ##[group]Fetching the repository
+2026-10-30T06:15:36.8151525Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin 37d3a317b77aeac8f42b8a727f0f123b4a46e49f
+2026-10-30T06:15:40.1635378Z From https://github.com/TrillionniumFoundation/Hepta
+2026-10-30T06:15:40.1636893Z  * branch            37d3a317b77aeac8f42b8a727f0f123b4a46e49f -> FETCH_HEAD
+2026-10-30T06:15:40.1644272Z ##[endgroup]
+2026-10-30T06:15:40.1645209Z ##[group]Determining the checkout info
+2026-10-30T06:15:40.1646418Z ##[endgroup]
+2026-10-30T06:15:40.1655814Z [command]/usr/bin/git sparse-checkout disable
+2026-10-30T06:15:40.1706069Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-30T06:15:40.1741189Z ##[group]Checking out the ref
+2026-10-30T06:15:40.1744526Z [command]/usr/bin/git checkout --progress --force 37d3a317b77aeac8f42b8a727f0f123b4a46e49f
+2026-10-30T06:15:40.7563559Z Note: switching to '37d3a317b77aeac8f42b8a727f0f123b4a46e49f'.
+2026-10-30T06:15:40.7563978Z 
+2026-10-30T06:15:40.7564198Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-30T06:15:40.7564669Z changes and commit them, and you can discard any commits you make in this
+2026-10-30T06:15:40.7565151Z state without impacting any branches by switching back to a branch.
+2026-10-30T06:15:40.7565501Z 
+2026-10-30T06:15:40.7565724Z If you want to create a new branch to retain commits you create, you may
+2026-10-30T06:15:40.7566176Z do so (now or later) by using -c with the switch command. Example:
+2026-10-30T06:15:40.7566418Z 
+2026-10-30T06:15:40.7566548Z   git switch -c <new-branch-name>
+2026-10-30T06:15:40.7566740Z 
+2026-10-30T06:15:40.7566872Z Or undo this operation with:
+2026-10-30T06:15:40.7567041Z 
+2026-10-30T06:15:40.7567144Z   git switch -
+2026-10-30T06:15:40.7567333Z 
+2026-10-30T06:15:40.7567602Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-30T06:15:40.7567906Z 
+2026-10-30T06:15:40.7568180Z HEAD is now at 37d3a31 Converge HIA execution custody, resource contracts, and migration qualification
+2026-10-30T06:15:40.7627147Z ##[endgroup]
+2026-10-30T06:15:40.7674638Z [command]/usr/bin/git log -1 --format=%H
+2026-10-30T06:15:40.7703606Z 37d3a317b77aeac8f42b8a727f0f123b4a46e49f
+2026-10-30T06:15:40.7710940Z ##[group]Removing auth
+2026-10-30T06:15:40.7714189Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-30T06:15:40.7747795Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-30T06:15:40.7959343Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-30T06:15:40.7988261Z http.https://github.com/.extraheader
+2026-10-30T06:15:40.7994086Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-30T06:15:40.8029199Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-30T06:15:40.8234415Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-30T06:15:40.8268146Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-30T06:15:40.8475256Z ##[endgroup]
+2026-10-30T06:15:40.8646045Z ##[group]Run actions/setup-python@v5
+2026-10-30T06:15:40.8646343Z with:
+2026-10-30T06:15:40.8646569Z   python-version: 3.12
+2026-10-30T06:15:40.8646818Z   check-latest: false
+2026-10-30T06:15:40.8649416Z   token: ***
+2026-10-30T06:15:40.8649651Z   update-environment: true
+2026-10-30T06:15:40.8649918Z   allow-prereleases: false
+2026-10-30T06:15:40.8650173Z   freethreaded: false
+2026-10-30T06:15:40.8650404Z env:
+2026-10-30T06:15:40.8650625Z   HEPTA_RUN_ARTIFACT_SESSION: 1
+2026-10-30T06:15:40.8650967Z   HEPTA_SOURCE_SHA: 37d3a317b77aeac8f42b8a727f0f123b4a46e49f
+2026-10-30T06:15:40.8651377Z   RECURSIVE_NDU_SOURCE_SHA: 2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b
+2026-10-30T06:15:40.8651807Z   FINITE_NDU_SOURCE_SHA: 4b6391e116949af0c7e59776baead67271856bdb
+2026-10-30T06:15:40.8652207Z   STREAM_NDU_SOURCE_SHA: c4a1bbed3a39beba43a6abf1a18b6f75c5725c21
+2026-10-30T06:15:40.8652580Z   CLANG: /usr/bin/clang-20
+2026-10-30T06:15:40.8652985Z   CLANGXX: /usr/bin/clang++-20
+2026-10-30T06:15:40.8653295Z   PYTHONDONTWRITEBYTECODE: 1
+2026-10-30T06:15:40.8653628Z   CARGO_HOME: /home/runner/work/_temp/hepta-verified-cargo-home
+2026-10-30T06:15:40.8654073Z   CARGO_TARGET_DIR: /home/runner/work/_temp/hepta-verified-cargo-target
+2026-10-30T06:15:40.8654434Z ##[endgroup]
+2026-10-30T06:15:40.9730877Z ##[group]Installed versions
+2026-10-30T06:15:40.9810848Z (node:2199) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-30T06:15:40.9811465Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-30T06:15:40.9812078Z Successfully set up CPython (3.12.15)
+2026-10-30T06:15:40.9812837Z ##[endgroup]
+2026-10-30T06:15:40.9990668Z ##[group]Run test "$(git rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"
+2026-10-30T06:15:40.9991069Z [36;1mtest "$(git rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"[0m
+2026-10-30T06:15:40.9991541Z [36;1mtest -z "$(git status --porcelain)"[0m
+2026-10-30T06:15:40.9992019Z [36;1mmkdir -p artifacts/verified-optimization[0m
+2026-10-30T06:15:40.9992597Z [36;1mgit rev-parse HEAD > artifacts/verified-optimization/source-sha.txt[0m
+2026-10-30T06:15:40.9993400Z [36;1mpython -m pip install -e '.[optimization,verification]'[0m
+2026-10-30T06:15:41.0026867Z shell: /usr/bin/bash -e {0}
+2026-10-30T06:15:41.0027133Z env:
+2026-10-30T06:15:41.0027357Z   HEPTA_RUN_ARTIFACT_SESSION: 1
+2026-10-30T06:15:41.0027666Z   HEPTA_SOURCE_SHA: 37d3a317b77aeac8f42b8a727f0f123b4a46e49f
+2026-10-30T06:15:41.0028050Z   RECURSIVE_NDU_SOURCE_SHA: 2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b
+2026-10-30T06:15:41.0028420Z   FINITE_NDU_SOURCE_SHA: 4b6391e116949af0c7e59776baead67271856bdb
+2026-10-30T06:15:41.0028845Z   STREAM_NDU_SOURCE_SHA: c4a1bbed3a39beba43a6abf1a18b6f75c5725c21
+2026-10-30T06:15:41.0029161Z   CLANG: /usr/bin/clang-20
+2026-10-30T06:15:41.0029406Z   CLANGXX: /usr/bin/clang++-20
+2026-10-30T06:15:41.0029650Z   PYTHONDONTWRITEBYTECODE: 1
+2026-10-30T06:15:41.0029949Z   CARGO_HOME: /home/runner/work/_temp/hepta-verified-cargo-home
+2026-10-30T06:15:41.0030333Z   CARGO_TARGET_DIR: /home/runner/work/_temp/hepta-verified-cargo-target
+2026-10-30T06:15:41.0030702Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:15:41.0031108Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-10-30T06:15:41.0031477Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:15:41.0031849Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:15:41.0032184Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:15:41.0059917Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-10-30T06:15:41.0060264Z ##[endgroup]
+2026-10-30T06:15:42.3456973Z Obtaining file:///home/runner/work/Hepta/Hepta
+2026-10-30T06:15:42.3468123Z   Installing build dependencies: started
+2026-10-30T06:15:43.0609311Z   Installing build dependencies: finished with status 'done'
+2026-10-30T06:15:43.0614081Z   Checking if build backend supports build_editable: started
+2026-10-30T06:15:43.3116938Z   Checking if build backend supports build_editable: finished with status 'done'
+2026-10-30T06:15:43.3123229Z   Getting requirements to build editable: started
+2026-10-30T06:15:43.7022367Z   Getting requirements to build editable: finished with status 'done'
+2026-10-30T06:15:43.7029533Z   Preparing editable metadata (pyproject.toml): started
+2026-10-30T06:15:44.0982897Z   Preparing editable metadata (pyproject.toml): finished with status 'done'
+2026-10-30T06:15:44.1943967Z Collecting z3-solver==4.15.4.0 (from hepta-language==0.2.0)
+2026-10-30T06:15:44.2680169Z   Downloading z3_solver-4.15.4.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (602 bytes)
+2026-10-30T06:15:44.2863728Z Downloading z3_solver-4.15.4.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (29.3 MB)
+2026-10-30T06:15:44.5816763Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 29.3/29.3 MB 114.0 MB/s  0:00:00
+2026-10-30T06:15:44.6038833Z Building wheels for collected packages: hepta-language
+2026-10-30T06:15:44.6045749Z   Building editable for hepta-language (pyproject.toml): started
+2026-10-30T06:15:45.0306302Z   Building editable for hepta-language (pyproject.toml): finished with status 'done'
+2026-10-30T06:15:45.0310127Z   Created wheel for hepta-language: filename=hepta_language-0.2.0-0.editable-py3-none-any.whl size=3137 sha256=cb57a2d726cba0976c9a62cbe5bb7176ac720f788bf96fb6f0d964bc24b4b675
+2026-10-30T06:15:45.0311599Z   Stored in directory: /tmp/pip-ephem-wheel-cache-vhqsw2pk/wheels/ad/53/f1/c045f74241edb05ebbcd6fb826c0b8cc44c46ec19ef72e61f0
+2026-10-30T06:15:45.0323441Z Successfully built hepta-language
+2026-10-30T06:15:45.0466292Z Installing collected packages: z3-solver, hepta-language
+2026-10-30T06:15:45.4530349Z 
+2026-10-30T06:15:45.4539470Z Successfully installed hepta-language-0.2.0 z3-solver-4.15.4.0
+2026-10-30T06:15:45.5036825Z ##[group]Run curl --fail --location --retry 3 --output "$RUNNER_TEMP/hepta-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key
+2026-10-30T06:15:45.5037615Z [36;1mcurl --fail --location --retry 3 --output "$RUNNER_TEMP/hepta-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key[0m
+2026-10-30T06:15:45.5038295Z [36;1mhepta_llvm_fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hepta-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')[0m
+2026-10-30T06:15:45.5038841Z [36;1mtest "$hepta_llvm_fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421[0m
+2026-10-30T06:15:45.5039279Z [36;1msudo install -m 0644 "$RUNNER_TEMP/hepta-llvm.asc" /usr/share/keyrings/hepta-llvm.asc[0m
+2026-10-30T06:15:45.5040008Z [36;1mprintf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hepta-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hepta-llvm20.list[0m
+2026-10-30T06:15:45.5040632Z [36;1msudo apt-get update[0m
+2026-10-30T06:15:45.5041049Z [36;1msudo apt-get install --yes clang-20 libclang-20-dev libclang-rt-20-dev llvm-20 lld-20[0m
+2026-10-30T06:15:45.5041450Z [36;1mprintf '%s\n' /usr/lib/llvm-20/bin >> "$GITHUB_PATH"[0m
+2026-10-30T06:15:45.5060474Z shell: /usr/bin/bash -e {0}
+2026-10-30T06:15:45.5060686Z env:
+2026-10-30T06:15:45.5060863Z   HEPTA_RUN_ARTIFACT_SESSION: 1
+2026-10-30T06:15:45.5061126Z   HEPTA_SOURCE_SHA: 37d3a317b77aeac8f42b8a727f0f123b4a46e49f
+2026-10-30T06:15:45.5061462Z   RECURSIVE_NDU_SOURCE_SHA: 2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b
+2026-10-30T06:15:45.5061794Z   FINITE_NDU_SOURCE_SHA: 4b6391e116949af0c7e59776baead67271856bdb
+2026-10-30T06:15:45.5062111Z   STREAM_NDU_SOURCE_SHA: c4a1bbed3a39beba43a6abf1a18b6f75c5725c21
+2026-10-30T06:15:45.5062397Z   CLANG: /usr/bin/clang-20
+2026-10-30T06:15:45.5062592Z   CLANGXX: /usr/bin/clang++-20
+2026-10-30T06:15:45.5062947Z   PYTHONDONTWRITEBYTECODE: 1
+2026-10-30T06:15:45.5063214Z   CARGO_HOME: /home/runner/work/_temp/hepta-verified-cargo-home
+2026-10-30T06:15:45.5063567Z   CARGO_TARGET_DIR: /home/runner/work/_temp/hepta-verified-cargo-target
+2026-10-30T06:15:45.5064067Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:15:45.5064403Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-10-30T06:15:45.5064730Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:15:45.5065025Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:15:45.5065315Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:15:45.5065622Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-10-30T06:15:45.5065883Z ##[endgroup]
+2026-10-30T06:15:45.5167242Z   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+2026-10-30T06:15:45.5167955Z                                  Dload  Upload   Total   Spent    Left  Speed
+2026-10-30T06:15:45.5168326Z 
+2026-10-30T06:15:45.5911713Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+2026-10-30T06:15:45.5912516Z 100  3167  100  3167    0     0  42479      0 --:--:-- --:--:-- --:--:-- 42797
+2026-10-30T06:15:45.5980376Z gpg: directory '/home/runner/.gnupg' created
+2026-10-30T06:15:45.5981696Z gpg: keybox '/home/runner/.gnupg/pubring.kbx' created
+2026-10-30T06:15:45.5996379Z gpg: /home/runner/.gnupg/trustdb.gpg: trustdb created
+2026-10-30T06:15:45.6129979Z deb [arch=amd64 signed-by=/usr/share/keyrings/hepta-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main
+2026-10-30T06:15:45.6734449Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2026-10-30T06:15:45.6988043Z Hit:2 http://azure.archive.ubuntu.com/ubuntu noble InRelease
+2026-10-30T06:15:45.6990823Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+2026-10-30T06:15:45.7036284Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+2026-10-30T06:15:45.7063549Z Get:6 https://packages.microsoft.com/ubuntu/24.04/prod noble InRelease [3600 B]
+2026-10-30T06:15:45.7093954Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+2026-10-30T06:15:45.7575866Z Get:7 https://apt.llvm.org/noble llvm-toolchain-noble-20 InRelease [5554 B]
+2026-10-30T06:15:45.8245649Z Get:8 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1408 kB]
+2026-10-30T06:15:45.8385699Z Get:9 http://azure.archive.ubuntu.com/ubuntu noble-updates/main Translation-en [311 kB]
+2026-10-30T06:15:45.8413559Z Get:10 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1708 kB]
+2026-10-30T06:15:45.8488193Z Get:11 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe Translation-en [343 kB]
+2026-10-30T06:15:45.8513937Z Get:12 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1813 kB]
+2026-10-30T06:15:45.8577486Z Get:13 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [412 kB]
+2026-10-30T06:15:45.8598677Z Get:14 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse Translation-en [14.3 kB]
+2026-10-30T06:15:45.8794200Z Get:15 https://packages.microsoft.com/ubuntu/24.04/prod noble/main amd64 Packages [682 kB]
+2026-10-30T06:15:45.8869620Z Get:16 https://packages.microsoft.com/ubuntu/24.04/prod noble/main arm64 Packages [617 kB]
+2026-10-30T06:15:45.9596170Z Get:17 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Packages [1146 kB]
+2026-10-30T06:15:45.9687144Z Get:18 http://azure.archive.ubuntu.com/ubuntu noble-security/main Translation-en [231 kB]
+2026-10-30T06:15:45.9694329Z Get:19 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Packages [1223 kB]
+2026-10-30T06:15:46.0156793Z Get:20 http://azure.archive.ubuntu.com/ubuntu noble-security/universe Translation-en [246 kB]
+2026-10-30T06:15:49.0720127Z Get:21 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 Packages [13.2 kB]
+2026-10-30T06:15:49.0720569Z Fetched 10.6 MB in 1s (11.6 MB/s)
+2026-10-30T06:15:49.8917565Z Reading package lists...
+2026-10-30T06:15:49.9242071Z Reading package lists...
+2026-10-30T06:15:50.1032148Z Building dependency tree...
+2026-10-30T06:15:50.1038730Z Reading state information...
+2026-10-30T06:15:50.2318312Z The following additional packages will be installed:
+2026-10-30T06:15:50.2323510Z   clang-tools-20 libclang-common-20-dev libclang-cpp20 libclang1-20 libllvm20
+2026-10-30T06:15:50.2326320Z   llvm-20-dev llvm-20-linker-tools llvm-20-runtime llvm-20-tools
+2026-10-30T06:15:50.2333984Z Suggested packages:
+2026-10-30T06:15:50.2334321Z   clang-20-doc wasi-libc llvm-20-doc
+2026-10-30T06:15:50.2503353Z The following NEW packages will be installed:
+2026-10-30T06:15:50.2504121Z   clang-20 clang-tools-20 libclang-20-dev libclang-common-20-dev
+2026-10-30T06:15:50.2506608Z   libclang-cpp20 libclang-rt-20-dev libclang1-20 lld-20 llvm-20 llvm-20-dev
+2026-10-30T06:15:50.2508022Z   llvm-20-linker-tools llvm-20-runtime llvm-20-tools
+2026-10-30T06:15:50.2511582Z The following packages will be upgraded:
+2026-10-30T06:15:50.2515130Z   libllvm20
+2026-10-30T06:15:50.3280765Z 1 upgraded, 13 newly installed, 0 to remove and 6 not upgraded.
+2026-10-30T06:15:50.3281222Z Need to get 174 MB of archives.
+2026-10-30T06:15:50.3281505Z After this operation, 1023 MB of additional disk space will be used.
+2026-10-30T06:15:50.3282101Z Get:1 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 libllvm20 amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [30.6 MB]
+2026-10-30T06:15:50.7235514Z Get:2 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 libclang-cpp20 amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [14.3 MB]
+2026-10-30T06:15:50.8218385Z Get:3 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 libclang-common-20-dev amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [780 kB]
+2026-10-30T06:15:50.8433290Z Get:4 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 llvm-20-linker-tools amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [1381 kB]
+2026-10-30T06:15:50.8804634Z Get:5 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 libclang1-20 amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [8379 kB]
+2026-10-30T06:15:50.9447979Z Get:6 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 clang-20 amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [121 kB]
+2026-10-30T06:15:50.9602318Z Get:7 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 clang-tools-20 amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [9631 kB]
+2026-10-30T06:15:51.0315457Z Get:8 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 libclang-20-dev amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [30.7 MB]
+2026-10-30T06:15:51.3497569Z Get:9 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 libclang-rt-20-dev amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [4740 kB]
+2026-10-30T06:15:51.3915801Z Get:10 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 lld-20 amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [1537 kB]
+2026-10-30T06:15:51.4155627Z Get:11 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 llvm-20-runtime amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [601 kB]
+2026-10-30T06:15:51.4337636Z Get:12 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 llvm-20 amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [19.8 MB]
+2026-10-30T06:15:51.5703020Z Get:13 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 llvm-20-tools amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [558 kB]
+2026-10-30T06:15:51.5880255Z Get:14 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 llvm-20-dev amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [51.0 MB]
+2026-10-30T06:15:52.3438689Z Fetched 174 MB in 2s (93.4 MB/s)
+2026-10-30T06:15:52.3838595Z (Reading database ... 
+2026-10-30T06:15:52.3839116Z (Reading database ... 5%
+2026-10-30T06:15:52.3839587Z (Reading database ... 10%
+2026-10-30T06:15:52.3839886Z (Reading database ... 15%
+2026-10-30T06:15:52.3840160Z (Reading database ... 20%
+2026-10-30T06:15:52.3840405Z (Reading database ... 25%
+2026-10-30T06:15:52.3840587Z (Reading database ... 30%
+2026-10-30T06:15:52.3840768Z (Reading database ... 35%
+2026-10-30T06:15:52.3840937Z (Reading database ... 40%
+2026-10-30T06:15:52.3841196Z (Reading database ... 45%
+2026-10-30T06:15:52.3841462Z (Reading database ... 50%
+2026-10-30T06:15:52.3865488Z (Reading database ... 55%
+2026-10-30T06:15:52.5041664Z (Reading database ... 60%
+2026-10-30T06:15:52.6050539Z (Reading database ... 65%
+2026-10-30T06:15:52.8532644Z (Reading database ... 70%
+2026-10-30T06:15:53.0600487Z (Reading database ... 75%
+2026-10-30T06:15:53.2019175Z (Reading database ... 80%
+2026-10-30T06:15:53.3023789Z (Reading database ... 85%
+2026-10-30T06:15:53.4614046Z (Reading database ... 90%
+2026-10-30T06:15:53.7176440Z (Reading database ... 95%
+2026-10-30T06:15:53.7176838Z (Reading database ... 100%
+2026-10-30T06:15:53.7177275Z (Reading database ... 215504 files and directories currently installed.)
+2026-10-30T06:15:53.7219699Z Preparing to unpack .../00-libllvm20_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-10-30T06:15:53.7336492Z Unpacking libllvm20:amd64 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) over (1:20.1.2-0ubuntu1~24.04.3) ...
+2026-10-30T06:15:54.8418022Z Selecting previously unselected package libclang-cpp20.
+2026-10-30T06:15:54.8539469Z Preparing to unpack .../01-libclang-cpp20_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-10-30T06:15:54.8546006Z Unpacking libclang-cpp20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-30T06:15:55.3633834Z Selecting previously unselected package libclang-common-20-dev:amd64.
+2026-10-30T06:15:55.3756654Z Preparing to unpack .../02-libclang-common-20-dev_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-10-30T06:15:55.3763759Z Unpacking libclang-common-20-dev:amd64 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-30T06:15:55.5157412Z Selecting previously unselected package llvm-20-linker-tools.
+2026-10-30T06:15:55.5279826Z Preparing to unpack .../03-llvm-20-linker-tools_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-10-30T06:15:55.5286393Z Unpacking llvm-20-linker-tools (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-30T06:15:55.5960439Z Selecting previously unselected package libclang1-20.
+2026-10-30T06:15:55.6082419Z Preparing to unpack .../04-libclang1-20_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-10-30T06:15:55.6089860Z Unpacking libclang1-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-30T06:15:55.9030869Z Selecting previously unselected package clang-20.
+2026-10-30T06:15:55.9153935Z Preparing to unpack .../05-clang-20_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-10-30T06:15:55.9159913Z Unpacking clang-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-30T06:15:55.9394908Z Selecting previously unselected package clang-tools-20.
+2026-10-30T06:15:55.9509611Z Preparing to unpack .../06-clang-tools-20_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-10-30T06:15:55.9516254Z Unpacking clang-tools-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-30T06:15:56.2956107Z Selecting previously unselected package libclang-20-dev.
+2026-10-30T06:15:56.3078496Z Preparing to unpack .../07-libclang-20-dev_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-10-30T06:15:56.3084795Z Unpacking libclang-20-dev (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-30T06:15:58.2816759Z Selecting previously unselected package libclang-rt-20-dev.
+2026-10-30T06:15:58.2944698Z Preparing to unpack .../08-libclang-rt-20-dev_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-10-30T06:15:58.2950203Z Unpacking libclang-rt-20-dev (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-30T06:15:58.6024330Z Selecting previously unselected package lld-20.
+2026-10-30T06:15:58.6151311Z Preparing to unpack .../09-lld-20_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-10-30T06:15:58.6158217Z Unpacking lld-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-30T06:15:58.6767319Z Selecting previously unselected package llvm-20-runtime.
+2026-10-30T06:15:58.6890485Z Preparing to unpack .../10-llvm-20-runtime_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-10-30T06:15:58.6896659Z Unpacking llvm-20-runtime (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-30T06:15:58.7408309Z Selecting previously unselected package llvm-20.
+2026-10-30T06:15:58.7528870Z Preparing to unpack .../11-llvm-20_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-10-30T06:15:58.7534377Z Unpacking llvm-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-30T06:15:59.4037003Z Selecting previously unselected package llvm-20-tools.
+2026-10-30T06:15:59.4161466Z Preparing to unpack .../12-llvm-20-tools_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-10-30T06:15:59.4167425Z Unpacking llvm-20-tools (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-30T06:15:59.5089746Z Selecting previously unselected package llvm-20-dev.
+2026-10-30T06:15:59.5215410Z Preparing to unpack .../13-llvm-20-dev_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-10-30T06:15:59.5223223Z Unpacking llvm-20-dev (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-30T06:16:01.9330945Z Setting up libclang-common-20-dev:amd64 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-30T06:16:01.9355013Z Setting up libclang-rt-20-dev (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-30T06:16:01.9371114Z Setting up libllvm20:amd64 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-30T06:16:01.9388049Z Setting up libclang1-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-30T06:16:01.9404217Z Setting up llvm-20-runtime (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-30T06:16:01.9430567Z Setting up lld-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-30T06:16:01.9447277Z Setting up llvm-20-linker-tools (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-30T06:16:01.9463078Z Setting up llvm-20-tools (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-30T06:16:01.9479423Z Setting up libclang-cpp20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-30T06:16:01.9494665Z Setting up llvm-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-30T06:16:01.9511207Z Setting up llvm-20-dev (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-30T06:16:01.9527442Z Setting up libclang-20-dev (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-30T06:16:01.9543426Z Setting up clang-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-30T06:16:01.9558748Z Setting up clang-tools-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-10-30T06:16:01.9578167Z Processing triggers for systemd (255.4-1ubuntu8.18) ...
+2026-10-30T06:16:01.9804820Z Processing triggers for man-db (2.12.0-4build2) ...
+2026-10-30T06:16:01.9823874Z Not building database; man-db/auto-update is not 'true'.
+2026-10-30T06:16:01.9833439Z Processing triggers for libc-bin (2.39-0ubuntu8.9) ...
+2026-10-30T06:16:02.6816873Z 
+2026-10-30T06:16:02.6817326Z Running kernel seems to be up-to-date.
+2026-10-30T06:16:02.6817549Z 
+2026-10-30T06:16:02.6817643Z No services need to be restarted.
+2026-10-30T06:16:02.6817792Z 
+2026-10-30T06:16:02.6817879Z No containers need to be restarted.
+2026-10-30T06:16:02.6818018Z 
+2026-10-30T06:16:02.6818122Z No user sessions are running outdated binaries.
+2026-10-30T06:16:02.6818284Z 
+2026-10-30T06:16:02.6818827Z No VM guests are running outdated hypervisor (qemu) binaries on this host.
+2026-10-30T06:16:03.4695795Z ##[group]Run rustup toolchain install 1.90.0 --profile minimal
+2026-10-30T06:16:03.4696177Z [36;1mrustup toolchain install 1.90.0 --profile minimal[0m
+2026-10-30T06:16:03.4696475Z [36;1mrustup toolchain install 1.95.0 --profile minimal[0m
+2026-10-30T06:16:03.4696808Z [36;1mecho "RUSTC=$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_ENV"[0m
+2026-10-30T06:16:03.4697212Z [36;1mecho "CARGO=$(rustup which --toolchain 1.90.0 cargo)" >> "$GITHUB_ENV"[0m
+2026-10-30T06:16:03.4697602Z [36;1mdirname "$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_PATH"[0m
+2026-10-30T06:16:03.4697993Z [36;1mecho "FINITE_NDU_RUSTC=$(rustup which --toolchain 1.95.0 rustc)" >> "$GITHUB_ENV"[0m
+2026-10-30T06:16:03.4698395Z [36;1mecho "FINITE_NDU_CARGO=$(rustup which --toolchain 1.95.0 cargo)" >> "$GITHUB_ENV"[0m
+2026-10-30T06:16:03.4719339Z shell: /usr/bin/bash -e {0}
+2026-10-30T06:16:03.4719549Z env:
+2026-10-30T06:16:03.4719714Z   HEPTA_RUN_ARTIFACT_SESSION: 1
+2026-10-30T06:16:03.4720012Z   HEPTA_SOURCE_SHA: 37d3a317b77aeac8f42b8a727f0f123b4a46e49f
+2026-10-30T06:16:03.4720352Z   RECURSIVE_NDU_SOURCE_SHA: 2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b
+2026-10-30T06:16:03.4720677Z   FINITE_NDU_SOURCE_SHA: 4b6391e116949af0c7e59776baead67271856bdb
+2026-10-30T06:16:03.4720983Z   STREAM_NDU_SOURCE_SHA: c4a1bbed3a39beba43a6abf1a18b6f75c5725c21
+2026-10-30T06:16:03.4721243Z   CLANG: /usr/bin/clang-20
+2026-10-30T06:16:03.4721439Z   CLANGXX: /usr/bin/clang++-20
+2026-10-30T06:16:03.4721653Z   PYTHONDONTWRITEBYTECODE: 1
+2026-10-30T06:16:03.4721912Z   CARGO_HOME: /home/runner/work/_temp/hepta-verified-cargo-home
+2026-10-30T06:16:03.4722250Z   CARGO_TARGET_DIR: /home/runner/work/_temp/hepta-verified-cargo-target
+2026-10-30T06:16:03.4722581Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:16:03.4723126Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-10-30T06:16:03.4723567Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:16:03.4723865Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:16:03.4724151Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:16:03.4724446Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-10-30T06:16:03.4724697Z ##[endgroup]
+2026-10-30T06:16:03.4837916Z info: syncing channel updates for 1.90.0-x86_64-unknown-linux-gnu
+2026-10-30T06:16:03.7558914Z info: latest update on 2025-09-18 for version 1.90.0 (1159e78c4 2025-09-14)
+2026-10-30T06:16:03.7560019Z info: downloading 3 components
+2026-10-30T06:16:10.4148888Z 
+2026-10-30T06:16:10.4218687Z   1.90.0-x86_64-unknown-linux-gnu installed - rustc 1.90.0 (1159e78c4 2025-09-14)
+2026-10-30T06:16:10.4219044Z 
+2026-10-30T06:16:10.4446153Z info: syncing channel updates for 1.95.0-x86_64-unknown-linux-gnu
+2026-10-30T06:16:10.6424889Z info: latest update on 2026-04-16 for version 1.95.0 (59807616e 2026-04-14)
+2026-10-30T06:16:10.6425302Z info: downloading 3 components
+2026-10-30T06:16:18.0307613Z 
+2026-10-30T06:16:18.0377173Z   1.95.0-x86_64-unknown-linux-gnu installed - rustc 1.95.0 (59807616e 2026-04-14)
+2026-10-30T06:16:18.0377562Z 
+2026-10-30T06:16:18.1502914Z ##[group]Run actions/checkout@v4
+2026-10-30T06:16:18.1503210Z with:
+2026-10-30T06:16:18.1503433Z   repository: TrillionniumFoundation/hepta-private-ci
+2026-10-30T06:16:18.1503718Z   ref: 2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b
+2026-10-30T06:16:18.1503963Z   path: recursive-ndu-source
+2026-10-30T06:16:18.1504343Z   persist-credentials: false
+2026-10-30T06:16:18.1504552Z   sparse-checkout-cone-mode: false
+2026-10-30T06:16:18.1505005Z   sparse-checkout: /codex-rs/Cargo.toml
+/codex-rs/hepta-ndu/
+/codex-rs/hepta-types/
+/codex-rs/hepta-contracts/
+/tools/hia-ndu-bridge/
+
+2026-10-30T06:16:18.1507663Z   token: ***
+2026-10-30T06:16:18.1507840Z   ssh-strict: true
+2026-10-30T06:16:18.1508011Z   ssh-user: git
+2026-10-30T06:16:18.1508174Z   clean: true
+2026-10-30T06:16:18.1508331Z   fetch-depth: 1
+2026-10-30T06:16:18.1508496Z   fetch-tags: false
+2026-10-30T06:16:18.1508667Z   show-progress: true
+2026-10-30T06:16:18.1508837Z   lfs: false
+2026-10-30T06:16:18.1508993Z   submodules: false
+2026-10-30T06:16:18.1509213Z   set-safe-directory: true
+2026-10-30T06:16:18.1509421Z   allow-unsafe-pr-checkout: false
+2026-10-30T06:16:18.1509623Z env:
+2026-10-30T06:16:18.1509784Z   HEPTA_RUN_ARTIFACT_SESSION: 1
+2026-10-30T06:16:18.1510033Z   HEPTA_SOURCE_SHA: 37d3a317b77aeac8f42b8a727f0f123b4a46e49f
+2026-10-30T06:16:18.1510358Z   RECURSIVE_NDU_SOURCE_SHA: 2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b
+2026-10-30T06:16:18.1510692Z   FINITE_NDU_SOURCE_SHA: 4b6391e116949af0c7e59776baead67271856bdb
+2026-10-30T06:16:18.1511024Z   STREAM_NDU_SOURCE_SHA: c4a1bbed3a39beba43a6abf1a18b6f75c5725c21
+2026-10-30T06:16:18.1511288Z   CLANG: /usr/bin/clang-20
+2026-10-30T06:16:18.1511478Z   CLANGXX: /usr/bin/clang++-20
+2026-10-30T06:16:18.1511677Z   PYTHONDONTWRITEBYTECODE: 1
+2026-10-30T06:16:18.1511928Z   CARGO_HOME: /home/runner/work/_temp/hepta-verified-cargo-home
+2026-10-30T06:16:18.1512382Z   CARGO_TARGET_DIR: /home/runner/work/_temp/hepta-verified-cargo-target
+2026-10-30T06:16:18.1513040Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:16:18.1513485Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-10-30T06:16:18.1514079Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:16:18.1514558Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:16:18.1514979Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:16:18.1515408Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-10-30T06:16:18.1515874Z   RUSTC: /home/runner/.rustup/toolchains/1.90.0-x86_64-unknown-linux-gnu/bin/rustc
+2026-10-30T06:16:18.1516410Z   CARGO: /home/runner/.rustup/toolchains/1.90.0-x86_64-unknown-linux-gnu/bin/cargo
+2026-10-30T06:16:18.1516934Z   FINITE_NDU_RUSTC: /home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc
+2026-10-30T06:16:18.1517580Z   FINITE_NDU_CARGO: /home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/cargo
+2026-10-30T06:16:18.1518039Z ##[endgroup]
+2026-10-30T06:16:18.2262218Z Syncing repository: TrillionniumFoundation/hepta-private-ci
+2026-10-30T06:16:18.2263393Z ##[group]Getting Git version info
+2026-10-30T06:16:18.2264072Z Working directory is '/home/runner/work/Hepta/Hepta/recursive-ndu-source'
+2026-10-30T06:16:18.2277084Z [command]/usr/bin/git version
+2026-10-30T06:16:18.2312671Z git version 2.56.0
+2026-10-30T06:16:18.2328217Z ##[endgroup]
+2026-10-30T06:16:18.2339384Z Temporarily overriding HOME='/home/runner/work/_temp/219e4683-2291-4f2a-8e97-d56bf89968b1' before making global git config changes
+2026-10-30T06:16:18.2340451Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-30T06:16:18.2344015Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta/recursive-ndu-source
+2026-10-30T06:16:18.2702240Z ##[group]Initializing the repository
+2026-10-30T06:16:18.2707992Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta/recursive-ndu-source
+2026-10-30T06:16:18.4589077Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-30T06:16:18.4589702Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-30T06:16:18.4590258Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-30T06:16:18.4590672Z hint: call:
+2026-10-30T06:16:18.4590955Z hint:
+2026-10-30T06:16:18.4591442Z hint: 	git config --global init.defaultBranch <name>
+2026-10-30T06:16:18.4591788Z hint:
+2026-10-30T06:16:18.4592128Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-30T06:16:18.4592617Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-30T06:16:18.4593207Z hint:
+2026-10-30T06:16:18.4593471Z hint: 	git branch -m <name>
+2026-10-30T06:16:18.4593760Z hint:
+2026-10-30T06:16:18.4594130Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-30T06:16:18.4594759Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/recursive-ndu-source/.git/
+2026-10-30T06:16:18.4601425Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/hepta-private-ci
+2026-10-30T06:16:18.6157962Z ##[endgroup]
+2026-10-30T06:16:18.6158524Z ##[group]Disabling automatic garbage collection
+2026-10-30T06:16:18.6174171Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-30T06:16:18.6209546Z ##[endgroup]
+2026-10-30T06:16:18.6209958Z ##[group]Setting up auth
+2026-10-30T06:16:18.6216375Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-30T06:16:18.6251827Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-30T06:16:18.6463361Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-30T06:16:18.6499859Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-30T06:16:18.6706874Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-30T06:16:18.6744147Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-30T06:16:18.6953816Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-30T06:16:18.8553955Z ##[endgroup]
+2026-10-30T06:16:18.8554456Z ##[group]Fetching the repository
+2026-10-30T06:16:18.8563822Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --filter=blob:none --depth=1 origin 2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b
+2026-10-30T06:16:19.9175043Z From https://github.com/TrillionniumFoundation/hepta-private-ci
+2026-10-30T06:16:19.9175851Z  * branch            2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b -> FETCH_HEAD
+2026-10-30T06:16:19.9186557Z ##[endgroup]
+2026-10-30T06:16:19.9186992Z ##[group]Determining the checkout info
+2026-10-30T06:16:19.9187335Z ##[endgroup]
+2026-10-30T06:16:19.9187618Z ##[group]Setting up sparse checkout
+2026-10-30T06:16:19.9189078Z [command]/usr/bin/git config core.sparseCheckout true
+2026-10-30T06:16:20.0346533Z [command]/usr/bin/git rev-parse --git-path info/sparse-checkout
+2026-10-30T06:16:20.0376824Z .git/info/sparse-checkout
+2026-10-30T06:16:20.0383584Z ##[endgroup]
+2026-10-30T06:16:20.0384064Z ##[group]Checking out the ref
+2026-10-30T06:16:20.0387158Z [command]/usr/bin/git checkout --progress --force 2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b
+2026-10-30T06:16:20.8000239Z Note: switching to '2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b'.
+2026-10-30T06:16:20.8000614Z 
+2026-10-30T06:16:20.8000876Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-30T06:16:20.8001469Z changes and commit them, and you can discard any commits you make in this
+2026-10-30T06:16:20.8003856Z state without impacting any branches by switching back to a branch.
+2026-10-30T06:16:20.8004247Z 
+2026-10-30T06:16:20.8004476Z If you want to create a new branch to retain commits you create, you may
+2026-10-30T06:16:20.8004914Z do so (now or later) by using -c with the switch command. Example:
+2026-10-30T06:16:20.8005120Z 
+2026-10-30T06:16:20.8005215Z   git switch -c <new-branch-name>
+2026-10-30T06:16:20.8005498Z 
+2026-10-30T06:16:20.8005587Z Or undo this operation with:
+2026-10-30T06:16:20.8005710Z 
+2026-10-30T06:16:20.8005809Z   git switch -
+2026-10-30T06:16:20.8005910Z 
+2026-10-30T06:16:20.8006076Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-30T06:16:20.8006310Z 
+2026-10-30T06:16:20.8006474Z HEAD is now at 2590c0c Add advisory HIA bridge to native NDU recursive evaluation
+2026-10-30T06:16:20.8007831Z ##[endgroup]
+2026-10-30T06:16:20.8050087Z [command]/usr/bin/git log -1 --format=%H
+2026-10-30T06:16:20.8078278Z 2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b
+2026-10-30T06:16:20.8086176Z ##[group]Removing auth
+2026-10-30T06:16:20.8089188Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-30T06:16:20.8123093Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-30T06:16:20.8342058Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-30T06:16:20.8369296Z http.https://github.com/.extraheader
+2026-10-30T06:16:20.8375981Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-30T06:16:20.8411774Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-30T06:16:20.8627943Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-30T06:16:20.8662248Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-30T06:16:20.8873382Z ##[endgroup]
+2026-10-30T06:16:20.8983138Z ##[group]Run CARGO_INCREMENTAL=0 CARGO_PROFILE_RELEASE_DEBUG=0 python tools/build_hia_recursive_ndu_bridge.py \
+2026-10-30T06:16:20.8983761Z [36;1mCARGO_INCREMENTAL=0 CARGO_PROFILE_RELEASE_DEBUG=0 python tools/build_hia_recursive_ndu_bridge.py \[0m
+2026-10-30T06:16:20.8984284Z [36;1m  --ndu-source recursive-ndu-source --expected-source "$RECURSIVE_NDU_SOURCE_SHA" \[0m
+2026-10-30T06:16:20.8984745Z [36;1m  --cargo "$CARGO" --rustc "$RUSTC" --output "$RUNNER_TEMP/hia-recursive-ndu" \[0m
+2026-10-30T06:16:20.8985115Z [36;1m  --target-dir "$RUNNER_TEMP/hia-recursive-ndu-target"[0m
+2026-10-30T06:16:20.8985475Z [36;1mprintf 'HEPTA_RECURSIVE_NDU_BRIDGE=%s\nHEPTA_RECURSIVE_NDU_IDENTITY=%s\n' \[0m
+2026-10-30T06:16:20.8985868Z [36;1m  "$RUNNER_TEMP/hia-recursive-ndu/native/hepta-hia-ndu-bridge" \[0m
+2026-10-30T06:16:20.8986231Z [36;1m  "$RUNNER_TEMP/hia-recursive-ndu/identity.json" >> "$GITHUB_ENV"[0m
+2026-10-30T06:16:20.9006384Z shell: /usr/bin/bash -e {0}
+2026-10-30T06:16:20.9006619Z env:
+2026-10-30T06:16:20.9006789Z   HEPTA_RUN_ARTIFACT_SESSION: 1
+2026-10-30T06:16:20.9007049Z   HEPTA_SOURCE_SHA: 37d3a317b77aeac8f42b8a727f0f123b4a46e49f
+2026-10-30T06:16:20.9007387Z   RECURSIVE_NDU_SOURCE_SHA: 2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b
+2026-10-30T06:16:20.9007722Z   FINITE_NDU_SOURCE_SHA: 4b6391e116949af0c7e59776baead67271856bdb
+2026-10-30T06:16:20.9008035Z   STREAM_NDU_SOURCE_SHA: c4a1bbed3a39beba43a6abf1a18b6f75c5725c21
+2026-10-30T06:16:20.9008299Z   CLANG: /usr/bin/clang-20
+2026-10-30T06:16:20.9008500Z   CLANGXX: /usr/bin/clang++-20
+2026-10-30T06:16:20.9008702Z   PYTHONDONTWRITEBYTECODE: 1
+2026-10-30T06:16:20.9008956Z   CARGO_HOME: /home/runner/work/_temp/hepta-verified-cargo-home
+2026-10-30T06:16:20.9009293Z   CARGO_TARGET_DIR: /home/runner/work/_temp/hepta-verified-cargo-target
+2026-10-30T06:16:20.9009620Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:16:20.9009947Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-10-30T06:16:20.9010280Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:16:20.9010570Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:16:20.9010998Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:16:20.9011287Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-10-30T06:16:20.9011639Z   RUSTC: /home/runner/.rustup/toolchains/1.90.0-x86_64-unknown-linux-gnu/bin/rustc
+2026-10-30T06:16:20.9012027Z   CARGO: /home/runner/.rustup/toolchains/1.90.0-x86_64-unknown-linux-gnu/bin/cargo
+2026-10-30T06:16:20.9012431Z   FINITE_NDU_RUSTC: /home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc
+2026-10-30T06:16:20.9013090Z   FINITE_NDU_CARGO: /home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/cargo
+2026-10-30T06:16:20.9013432Z ##[endgroup]
+2026-10-30T06:16:42.2655622Z /home/runner/work/_temp/hia-recursive-ndu/identity.json
+2026-10-30T06:16:42.2780205Z ##[group]Run actions/checkout@v4
+2026-10-30T06:16:42.2780419Z with:
+2026-10-30T06:16:42.2780633Z   repository: TrillionniumFoundation/hepta-private-ci
+2026-10-30T06:16:42.2780910Z   ref: 4b6391e116949af0c7e59776baead67271856bdb
+2026-10-30T06:16:42.2781169Z   path: finite-ndu-source
+2026-10-30T06:16:42.2781376Z   persist-credentials: false
+2026-10-30T06:16:42.2781589Z   sparse-checkout-cone-mode: false
+2026-10-30T06:16:42.2782042Z   sparse-checkout: /codex-rs/Cargo.toml
+/codex-rs/hepta-ndu/
+/codex-rs/hepta-types/
+/codex-rs/hepta-contracts/
+/tools/hia-ndu-bridge/
+
+2026-10-30T06:16:42.2784813Z   token: ***
+2026-10-30T06:16:42.2784986Z   ssh-strict: true
+2026-10-30T06:16:42.2785157Z   ssh-user: git
+2026-10-30T06:16:42.2785314Z   clean: true
+2026-10-30T06:16:42.2785471Z   fetch-depth: 1
+2026-10-30T06:16:42.2785638Z   fetch-tags: false
+2026-10-30T06:16:42.2785813Z   show-progress: true
+2026-10-30T06:16:42.2785985Z   lfs: false
+2026-10-30T06:16:42.2786139Z   submodules: false
+2026-10-30T06:16:42.2786344Z   set-safe-directory: true
+2026-10-30T06:16:42.2786547Z   allow-unsafe-pr-checkout: false
+2026-10-30T06:16:42.2786746Z env:
+2026-10-30T06:16:42.2786907Z   HEPTA_RUN_ARTIFACT_SESSION: 1
+2026-10-30T06:16:42.2787148Z   HEPTA_SOURCE_SHA: 37d3a317b77aeac8f42b8a727f0f123b4a46e49f
+2026-10-30T06:16:42.2787474Z   RECURSIVE_NDU_SOURCE_SHA: 2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b
+2026-10-30T06:16:42.2787799Z   FINITE_NDU_SOURCE_SHA: 4b6391e116949af0c7e59776baead67271856bdb
+2026-10-30T06:16:42.2788112Z   STREAM_NDU_SOURCE_SHA: c4a1bbed3a39beba43a6abf1a18b6f75c5725c21
+2026-10-30T06:16:42.2788371Z   CLANG: /usr/bin/clang-20
+2026-10-30T06:16:42.2788557Z   CLANGXX: /usr/bin/clang++-20
+2026-10-30T06:16:42.2788756Z   PYTHONDONTWRITEBYTECODE: 1
+2026-10-30T06:16:42.2789001Z   CARGO_HOME: /home/runner/work/_temp/hepta-verified-cargo-home
+2026-10-30T06:16:42.2789332Z   CARGO_TARGET_DIR: /home/runner/work/_temp/hepta-verified-cargo-target
+2026-10-30T06:16:42.2789661Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:16:42.2789977Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-10-30T06:16:42.2790291Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:16:42.2790585Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:16:42.2790872Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:16:42.2791156Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-10-30T06:16:42.2791510Z   RUSTC: /home/runner/.rustup/toolchains/1.90.0-x86_64-unknown-linux-gnu/bin/rustc
+2026-10-30T06:16:42.2791924Z   CARGO: /home/runner/.rustup/toolchains/1.90.0-x86_64-unknown-linux-gnu/bin/cargo
+2026-10-30T06:16:42.2792343Z   FINITE_NDU_RUSTC: /home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc
+2026-10-30T06:16:42.2792866Z   FINITE_NDU_CARGO: /home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/cargo
+2026-10-30T06:16:42.2793360Z   HEPTA_RECURSIVE_NDU_BRIDGE: /home/runner/work/_temp/hia-recursive-ndu/native/hepta-hia-ndu-bridge
+2026-10-30T06:16:42.2793819Z   HEPTA_RECURSIVE_NDU_IDENTITY: /home/runner/work/_temp/hia-recursive-ndu/identity.json
+2026-10-30T06:16:42.2794136Z ##[endgroup]
+2026-10-30T06:16:42.3459998Z Syncing repository: TrillionniumFoundation/hepta-private-ci
+2026-10-30T06:16:42.3466070Z ##[group]Getting Git version info
+2026-10-30T06:16:42.3466742Z Working directory is '/home/runner/work/Hepta/Hepta/finite-ndu-source'
+2026-10-30T06:16:42.3495593Z [command]/usr/bin/git version
+2026-10-30T06:16:42.3561553Z git version 2.56.0
+2026-10-30T06:16:42.3577062Z ##[endgroup]
+2026-10-30T06:16:42.3587845Z Temporarily overriding HOME='/home/runner/work/_temp/da8aa9bd-0413-4b38-9c63-a3e706a67601' before making global git config changes
+2026-10-30T06:16:42.3588815Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-30T06:16:42.3592455Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta/finite-ndu-source
+2026-10-30T06:16:42.3623425Z ##[group]Initializing the repository
+2026-10-30T06:16:42.3627286Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta/finite-ndu-source
+2026-10-30T06:16:42.3669277Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-30T06:16:42.3670120Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-30T06:16:42.3670821Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-30T06:16:42.3671248Z hint: call:
+2026-10-30T06:16:42.3671640Z hint:
+2026-10-30T06:16:42.3672087Z hint: 	git config --global init.defaultBranch <name>
+2026-10-30T06:16:42.3672617Z hint:
+2026-10-30T06:16:42.3673336Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-30T06:16:42.3674122Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-30T06:16:42.3674738Z hint:
+2026-10-30T06:16:42.3675181Z hint: 	git branch -m <name>
+2026-10-30T06:16:42.3675762Z hint:
+2026-10-30T06:16:42.3676313Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-30T06:16:42.3677180Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/finite-ndu-source/.git/
+2026-10-30T06:16:42.3680436Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/hepta-private-ci
+2026-10-30T06:16:42.3714103Z ##[endgroup]
+2026-10-30T06:16:42.3714628Z ##[group]Disabling automatic garbage collection
+2026-10-30T06:16:42.3717544Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-30T06:16:42.3748956Z ##[endgroup]
+2026-10-30T06:16:42.3749387Z ##[group]Setting up auth
+2026-10-30T06:16:42.3755840Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-30T06:16:42.3787128Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-30T06:16:42.4011201Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-30T06:16:42.4048025Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-30T06:16:42.4266259Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-30T06:16:42.4305031Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-30T06:16:42.4515209Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-30T06:16:42.4557234Z ##[endgroup]
+2026-10-30T06:16:42.4557720Z ##[group]Fetching the repository
+2026-10-30T06:16:42.4565473Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --filter=blob:none --depth=1 origin 4b6391e116949af0c7e59776baead67271856bdb
+2026-10-30T06:16:42.9438563Z From https://github.com/TrillionniumFoundation/hepta-private-ci
+2026-10-30T06:16:42.9439180Z  * branch            4b6391e116949af0c7e59776baead67271856bdb -> FETCH_HEAD
+2026-10-30T06:16:42.9448759Z ##[endgroup]
+2026-10-30T06:16:42.9449304Z ##[group]Determining the checkout info
+2026-10-30T06:16:42.9449638Z ##[endgroup]
+2026-10-30T06:16:42.9449922Z ##[group]Setting up sparse checkout
+2026-10-30T06:16:42.9451379Z [command]/usr/bin/git config core.sparseCheckout true
+2026-10-30T06:16:42.9489676Z [command]/usr/bin/git rev-parse --git-path info/sparse-checkout
+2026-10-30T06:16:42.9516002Z .git/info/sparse-checkout
+2026-10-30T06:16:42.9522174Z ##[endgroup]
+2026-10-30T06:16:42.9522626Z ##[group]Checking out the ref
+2026-10-30T06:16:42.9525870Z [command]/usr/bin/git checkout --progress --force 4b6391e116949af0c7e59776baead67271856bdb
+2026-10-30T06:16:43.8473309Z Note: switching to '4b6391e116949af0c7e59776baead67271856bdb'.
+2026-10-30T06:16:43.8473575Z 
+2026-10-30T06:16:43.8473995Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-30T06:16:43.8474384Z changes and commit them, and you can discard any commits you make in this
+2026-10-30T06:16:43.8474748Z state without impacting any branches by switching back to a branch.
+2026-10-30T06:16:43.8474966Z 
+2026-10-30T06:16:43.8475113Z If you want to create a new branch to retain commits you create, you may
+2026-10-30T06:16:43.8475489Z do so (now or later) by using -c with the switch command. Example:
+2026-10-30T06:16:43.8475683Z 
+2026-10-30T06:16:43.8475791Z   git switch -c <new-branch-name>
+2026-10-30T06:16:43.8475930Z 
+2026-10-30T06:16:43.8476012Z Or undo this operation with:
+2026-10-30T06:16:43.8476138Z 
+2026-10-30T06:16:43.8476207Z   git switch -
+2026-10-30T06:16:43.8476310Z 
+2026-10-30T06:16:43.8476476Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-30T06:16:43.8476712Z 
+2026-10-30T06:16:43.8476864Z HEAD is now at 4b6391e Set native bridge target directory in a runner step
+2026-10-30T06:16:43.8479890Z ##[endgroup]
+2026-10-30T06:16:43.8522539Z [command]/usr/bin/git log -1 --format=%H
+2026-10-30T06:16:43.8551610Z 4b6391e116949af0c7e59776baead67271856bdb
+2026-10-30T06:16:43.8559595Z ##[group]Removing auth
+2026-10-30T06:16:43.8563075Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-30T06:16:43.8596645Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-30T06:16:43.8812658Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-30T06:16:43.8841041Z http.https://github.com/.extraheader
+2026-10-30T06:16:43.8848336Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-30T06:16:43.8885650Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-30T06:16:43.9100738Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-30T06:16:43.9134926Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-30T06:16:43.9347226Z ##[endgroup]
+2026-10-30T06:16:43.9493320Z ##[group]Run CARGO_INCREMENTAL=0 CARGO_PROFILE_RELEASE_DEBUG=0 python tools/build_hia_recursive_ndu_bridge.py \
+2026-10-30T06:16:43.9494349Z [36;1mCARGO_INCREMENTAL=0 CARGO_PROFILE_RELEASE_DEBUG=0 python tools/build_hia_recursive_ndu_bridge.py \[0m
+2026-10-30T06:16:43.9495150Z [36;1m  --ndu-source finite-ndu-source --expected-source "$FINITE_NDU_SOURCE_SHA" \[0m
+2026-10-30T06:16:43.9495795Z [36;1m  --cargo "$FINITE_NDU_CARGO" --rustc "$FINITE_NDU_RUSTC" \[0m
+2026-10-30T06:16:43.9496450Z [36;1m  --output "$RUNNER_TEMP/hia-finite-ndu" --target-dir "$RUNNER_TEMP/hia-finite-ndu-target"[0m
+2026-10-30T06:16:43.9497168Z [36;1mprintf 'HEPTA_FINITE_NDU_BRIDGE=%s\nHEPTA_FINITE_NDU_IDENTITY=%s\n' \[0m
+2026-10-30T06:16:43.9497782Z [36;1m  "$RUNNER_TEMP/hia-finite-ndu/native/hepta-hia-ndu-bridge" \[0m
+2026-10-30T06:16:43.9498620Z [36;1m  "$RUNNER_TEMP/hia-finite-ndu/identity.json" >> "$GITHUB_ENV"[0m
+2026-10-30T06:16:43.9525362Z shell: /usr/bin/bash -e {0}
+2026-10-30T06:16:43.9525718Z env:
+2026-10-30T06:16:43.9525978Z   HEPTA_RUN_ARTIFACT_SESSION: 1
+2026-10-30T06:16:43.9526386Z   HEPTA_SOURCE_SHA: 37d3a317b77aeac8f42b8a727f0f123b4a46e49f
+2026-10-30T06:16:43.9526934Z   RECURSIVE_NDU_SOURCE_SHA: 2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b
+2026-10-30T06:16:43.9527484Z   FINITE_NDU_SOURCE_SHA: 4b6391e116949af0c7e59776baead67271856bdb
+2026-10-30T06:16:43.9528010Z   STREAM_NDU_SOURCE_SHA: c4a1bbed3a39beba43a6abf1a18b6f75c5725c21
+2026-10-30T06:16:43.9528451Z   CLANG: /usr/bin/clang-20
+2026-10-30T06:16:43.9528762Z   CLANGXX: /usr/bin/clang++-20
+2026-10-30T06:16:43.9529176Z   PYTHONDONTWRITEBYTECODE: 1
+2026-10-30T06:16:43.9529593Z   CARGO_HOME: /home/runner/work/_temp/hepta-verified-cargo-home
+2026-10-30T06:16:43.9530179Z   CARGO_TARGET_DIR: /home/runner/work/_temp/hepta-verified-cargo-target
+2026-10-30T06:16:43.9530718Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:16:43.9531249Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-10-30T06:16:43.9531784Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:16:43.9532244Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:16:43.9532888Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:16:43.9533377Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-10-30T06:16:43.9533967Z   RUSTC: /home/runner/.rustup/toolchains/1.90.0-x86_64-unknown-linux-gnu/bin/rustc
+2026-10-30T06:16:43.9534633Z   CARGO: /home/runner/.rustup/toolchains/1.90.0-x86_64-unknown-linux-gnu/bin/cargo
+2026-10-30T06:16:43.9535324Z   FINITE_NDU_RUSTC: /home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc
+2026-10-30T06:16:43.9535984Z   FINITE_NDU_CARGO: /home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/cargo
+2026-10-30T06:16:43.9536469Z   HEPTA_RECURSIVE_NDU_BRIDGE: /home/runner/work/_temp/hia-recursive-ndu/native/hepta-hia-ndu-bridge
+2026-10-30T06:16:43.9536961Z   HEPTA_RECURSIVE_NDU_IDENTITY: /home/runner/work/_temp/hia-recursive-ndu/identity.json
+2026-10-30T06:16:43.9537281Z ##[endgroup]
+2026-10-30T06:17:04.5588713Z /home/runner/work/_temp/hia-finite-ndu/identity.json
+2026-10-30T06:17:04.5715137Z ##[group]Run actions/checkout@v4
+2026-10-30T06:17:04.5715350Z with:
+2026-10-30T06:17:04.5715567Z   repository: TrillionniumFoundation/hepta-private-ci
+2026-10-30T06:17:04.5715847Z   ref: c4a1bbed3a39beba43a6abf1a18b6f75c5725c21
+2026-10-30T06:17:04.5716086Z   path: stream-ndu-source
+2026-10-30T06:17:04.5716283Z   persist-credentials: false
+2026-10-30T06:17:04.5716492Z   sparse-checkout-cone-mode: false
+2026-10-30T06:17:04.5716939Z   sparse-checkout: /codex-rs/Cargo.toml
+/codex-rs/hepta-ndu/
+/codex-rs/hepta-types/
+/codex-rs/hepta-contracts/
+/tools/hia-ndu-bridge/
+
+2026-10-30T06:17:04.5719579Z   token: ***
+2026-10-30T06:17:04.5719746Z   ssh-strict: true
+2026-10-30T06:17:04.5719930Z   ssh-user: git
+2026-10-30T06:17:04.5720092Z   clean: true
+2026-10-30T06:17:04.5720251Z   fetch-depth: 1
+2026-10-30T06:17:04.5720415Z   fetch-tags: false
+2026-10-30T06:17:04.5720585Z   show-progress: true
+2026-10-30T06:17:04.5720758Z   lfs: false
+2026-10-30T06:17:04.5720911Z   submodules: false
+2026-10-30T06:17:04.5721116Z   set-safe-directory: true
+2026-10-30T06:17:04.5721322Z   allow-unsafe-pr-checkout: false
+2026-10-30T06:17:04.5721521Z env:
+2026-10-30T06:17:04.5721683Z   HEPTA_RUN_ARTIFACT_SESSION: 1
+2026-10-30T06:17:04.5721930Z   HEPTA_SOURCE_SHA: 37d3a317b77aeac8f42b8a727f0f123b4a46e49f
+2026-10-30T06:17:04.5722284Z   RECURSIVE_NDU_SOURCE_SHA: 2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b
+2026-10-30T06:17:04.5722610Z   FINITE_NDU_SOURCE_SHA: 4b6391e116949af0c7e59776baead67271856bdb
+2026-10-30T06:17:04.5723116Z   STREAM_NDU_SOURCE_SHA: c4a1bbed3a39beba43a6abf1a18b6f75c5725c21
+2026-10-30T06:17:04.5723378Z   CLANG: /usr/bin/clang-20
+2026-10-30T06:17:04.5723581Z   CLANGXX: /usr/bin/clang++-20
+2026-10-30T06:17:04.5723941Z   PYTHONDONTWRITEBYTECODE: 1
+2026-10-30T06:17:04.5724192Z   CARGO_HOME: /home/runner/work/_temp/hepta-verified-cargo-home
+2026-10-30T06:17:04.5724528Z   CARGO_TARGET_DIR: /home/runner/work/_temp/hepta-verified-cargo-target
+2026-10-30T06:17:04.5724859Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:17:04.5725183Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-10-30T06:17:04.5725505Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:17:04.5725804Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:17:04.5726089Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:17:04.5726377Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-10-30T06:17:04.5726733Z   RUSTC: /home/runner/.rustup/toolchains/1.90.0-x86_64-unknown-linux-gnu/bin/rustc
+2026-10-30T06:17:04.5727119Z   CARGO: /home/runner/.rustup/toolchains/1.90.0-x86_64-unknown-linux-gnu/bin/cargo
+2026-10-30T06:17:04.5727534Z   FINITE_NDU_RUSTC: /home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc
+2026-10-30T06:17:04.5727985Z   FINITE_NDU_CARGO: /home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/cargo
+2026-10-30T06:17:04.5728471Z   HEPTA_RECURSIVE_NDU_BRIDGE: /home/runner/work/_temp/hia-recursive-ndu/native/hepta-hia-ndu-bridge
+2026-10-30T06:17:04.5728926Z   HEPTA_RECURSIVE_NDU_IDENTITY: /home/runner/work/_temp/hia-recursive-ndu/identity.json
+2026-10-30T06:17:04.5729355Z   HEPTA_FINITE_NDU_BRIDGE: /home/runner/work/_temp/hia-finite-ndu/native/hepta-hia-ndu-bridge
+2026-10-30T06:17:04.5729765Z   HEPTA_FINITE_NDU_IDENTITY: /home/runner/work/_temp/hia-finite-ndu/identity.json
+2026-10-30T06:17:04.5730067Z ##[endgroup]
+2026-10-30T06:17:04.6444356Z Syncing repository: TrillionniumFoundation/hepta-private-ci
+2026-10-30T06:17:04.6457465Z ##[group]Getting Git version info
+2026-10-30T06:17:04.6458338Z Working directory is '/home/runner/work/Hepta/Hepta/stream-ndu-source'
+2026-10-30T06:17:04.6488783Z [command]/usr/bin/git version
+2026-10-30T06:17:04.6531731Z git version 2.56.0
+2026-10-30T06:17:04.6548807Z ##[endgroup]
+2026-10-30T06:17:04.6560252Z Temporarily overriding HOME='/home/runner/work/_temp/b984009c-f562-4d78-82f6-9b9541524672' before making global git config changes
+2026-10-30T06:17:04.6561476Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-30T06:17:04.6565079Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta/stream-ndu-source
+2026-10-30T06:17:04.6595759Z ##[group]Initializing the repository
+2026-10-30T06:17:04.6599940Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta/stream-ndu-source
+2026-10-30T06:17:04.6642174Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-30T06:17:04.6643111Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-30T06:17:04.6643987Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-30T06:17:04.6644507Z hint: call:
+2026-10-30T06:17:04.6644738Z hint:
+2026-10-30T06:17:04.6645043Z hint: 	git config --global init.defaultBranch <name>
+2026-10-30T06:17:04.6645418Z hint:
+2026-10-30T06:17:04.6645776Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-30T06:17:04.6646388Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-30T06:17:04.6646854Z hint:
+2026-10-30T06:17:04.6647089Z hint: 	git branch -m <name>
+2026-10-30T06:17:04.6647362Z hint:
+2026-10-30T06:17:04.6647744Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-30T06:17:04.6648586Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/stream-ndu-source/.git/
+2026-10-30T06:17:04.6659306Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/hepta-private-ci
+2026-10-30T06:17:04.6693283Z ##[endgroup]
+2026-10-30T06:17:04.6693778Z ##[group]Disabling automatic garbage collection
+2026-10-30T06:17:04.6697276Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-30T06:17:04.6726232Z ##[endgroup]
+2026-10-30T06:17:04.6726689Z ##[group]Setting up auth
+2026-10-30T06:17:04.6732212Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-30T06:17:04.6762243Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-30T06:17:04.6986551Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-30T06:17:04.7022956Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-30T06:17:04.7251269Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-30T06:17:04.7292235Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-30T06:17:04.7501852Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-30T06:17:04.7543267Z ##[endgroup]
+2026-10-30T06:17:04.7543753Z ##[group]Fetching the repository
+2026-10-30T06:17:04.7550601Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --filter=blob:none --depth=1 origin c4a1bbed3a39beba43a6abf1a18b6f75c5725c21
+2026-10-30T06:17:05.2300901Z From https://github.com/TrillionniumFoundation/hepta-private-ci
+2026-10-30T06:17:05.2301506Z  * branch            c4a1bbed3a39beba43a6abf1a18b6f75c5725c21 -> FETCH_HEAD
+2026-10-30T06:17:05.2305594Z ##[endgroup]
+2026-10-30T06:17:05.2305945Z ##[group]Determining the checkout info
+2026-10-30T06:17:05.2307607Z ##[endgroup]
+2026-10-30T06:17:05.2307942Z ##[group]Setting up sparse checkout
+2026-10-30T06:17:05.2312133Z [command]/usr/bin/git config core.sparseCheckout true
+2026-10-30T06:17:05.2351020Z [command]/usr/bin/git rev-parse --git-path info/sparse-checkout
+2026-10-30T06:17:05.2377059Z .git/info/sparse-checkout
+2026-10-30T06:17:05.2383408Z ##[endgroup]
+2026-10-30T06:17:05.2383851Z ##[group]Checking out the ref
+2026-10-30T06:17:05.2387111Z [command]/usr/bin/git checkout --progress --force c4a1bbed3a39beba43a6abf1a18b6f75c5725c21
+2026-10-30T06:17:06.1831053Z Note: switching to 'c4a1bbed3a39beba43a6abf1a18b6f75c5725c21'.
+2026-10-30T06:17:06.1831467Z 
+2026-10-30T06:17:06.1831646Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-30T06:17:06.1832023Z changes and commit them, and you can discard any commits you make in this
+2026-10-30T06:17:06.1832411Z state without impacting any branches by switching back to a branch.
+2026-10-30T06:17:06.1832627Z 
+2026-10-30T06:17:06.1832922Z If you want to create a new branch to retain commits you create, you may
+2026-10-30T06:17:06.1833272Z do so (now or later) by using -c with the switch command. Example:
+2026-10-30T06:17:06.1833638Z 
+2026-10-30T06:17:06.1833756Z   git switch -c <new-branch-name>
+2026-10-30T06:17:06.1833970Z 
+2026-10-30T06:17:06.1834098Z Or undo this operation with:
+2026-10-30T06:17:06.1834268Z 
+2026-10-30T06:17:06.1834377Z   git switch -
+2026-10-30T06:17:06.1834511Z 
+2026-10-30T06:17:06.1834784Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-30T06:17:06.1835159Z 
+2026-10-30T06:17:06.1835391Z HEAD is now at c4a1bbe Add bounded persistent native NDU request sessions
+2026-10-30T06:17:06.1837241Z ##[endgroup]
+2026-10-30T06:17:06.1881042Z [command]/usr/bin/git log -1 --format=%H
+2026-10-30T06:17:06.1910389Z c4a1bbed3a39beba43a6abf1a18b6f75c5725c21
+2026-10-30T06:17:06.1919038Z ##[group]Removing auth
+2026-10-30T06:17:06.1921454Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-30T06:17:06.1956151Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-30T06:17:06.2175325Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-30T06:17:06.2203193Z http.https://github.com/.extraheader
+2026-10-30T06:17:06.2211769Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-30T06:17:06.2250026Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-30T06:17:06.2466784Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-30T06:17:06.2500382Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-30T06:17:06.2711399Z ##[endgroup]
+2026-10-30T06:17:06.2832708Z ##[group]Run CARGO_INCREMENTAL=0 CARGO_PROFILE_RELEASE_DEBUG=0 python tools/build_hia_recursive_ndu_bridge.py \
+2026-10-30T06:17:06.2834460Z [36;1mCARGO_INCREMENTAL=0 CARGO_PROFILE_RELEASE_DEBUG=0 python tools/build_hia_recursive_ndu_bridge.py \[0m
+2026-10-30T06:17:06.2834980Z [36;1m  --ndu-source stream-ndu-source --expected-source "$STREAM_NDU_SOURCE_SHA" \[0m
+2026-10-30T06:17:06.2835406Z [36;1m  --cargo "$CARGO" --rustc "$RUSTC" --output "$RUNNER_TEMP/hia-stream-ndu" \[0m
+2026-10-30T06:17:06.2835759Z [36;1m  --target-dir "$RUNNER_TEMP/hia-stream-ndu-target"[0m
+2026-10-30T06:17:06.2836107Z [36;1mprintf 'HEPTA_NDU_STREAM_BRIDGE=%s\nHEPTA_NDU_STREAM_IDENTITY=%s\n' \[0m
+2026-10-30T06:17:06.2836476Z [36;1m  "$RUNNER_TEMP/hia-stream-ndu/native/hepta-hia-ndu-bridge" \[0m
+2026-10-30T06:17:06.2836822Z [36;1m  "$RUNNER_TEMP/hia-stream-ndu/identity.json" >> "$GITHUB_ENV"[0m
+2026-10-30T06:17:06.2856156Z shell: /usr/bin/bash -e {0}
+2026-10-30T06:17:06.2856354Z env:
+2026-10-30T06:17:06.2856558Z   HEPTA_RUN_ARTIFACT_SESSION: 1
+2026-10-30T06:17:06.2856815Z   HEPTA_SOURCE_SHA: 37d3a317b77aeac8f42b8a727f0f123b4a46e49f
+2026-10-30T06:17:06.2857144Z   RECURSIVE_NDU_SOURCE_SHA: 2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b
+2026-10-30T06:17:06.2857482Z   FINITE_NDU_SOURCE_SHA: 4b6391e116949af0c7e59776baead67271856bdb
+2026-10-30T06:17:06.2857801Z   STREAM_NDU_SOURCE_SHA: c4a1bbed3a39beba43a6abf1a18b6f75c5725c21
+2026-10-30T06:17:06.2858063Z   CLANG: /usr/bin/clang-20
+2026-10-30T06:17:06.2858258Z   CLANGXX: /usr/bin/clang++-20
+2026-10-30T06:17:06.2858464Z   PYTHONDONTWRITEBYTECODE: 1
+2026-10-30T06:17:06.2858714Z   CARGO_HOME: /home/runner/work/_temp/hepta-verified-cargo-home
+2026-10-30T06:17:06.2859050Z   CARGO_TARGET_DIR: /home/runner/work/_temp/hepta-verified-cargo-target
+2026-10-30T06:17:06.2859375Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:17:06.2859696Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-10-30T06:17:06.2860013Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:17:06.2860309Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:17:06.2860592Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:17:06.2860884Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-10-30T06:17:06.2861238Z   RUSTC: /home/runner/.rustup/toolchains/1.90.0-x86_64-unknown-linux-gnu/bin/rustc
+2026-10-30T06:17:06.2861627Z   CARGO: /home/runner/.rustup/toolchains/1.90.0-x86_64-unknown-linux-gnu/bin/cargo
+2026-10-30T06:17:06.2862037Z   FINITE_NDU_RUSTC: /home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc
+2026-10-30T06:17:06.2862493Z   FINITE_NDU_CARGO: /home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/cargo
+2026-10-30T06:17:06.2863347Z   HEPTA_RECURSIVE_NDU_BRIDGE: /home/runner/work/_temp/hia-recursive-ndu/native/hepta-hia-ndu-bridge
+2026-10-30T06:17:06.2863855Z   HEPTA_RECURSIVE_NDU_IDENTITY: /home/runner/work/_temp/hia-recursive-ndu/identity.json
+2026-10-30T06:17:06.2864292Z   HEPTA_FINITE_NDU_BRIDGE: /home/runner/work/_temp/hia-finite-ndu/native/hepta-hia-ndu-bridge
+2026-10-30T06:17:06.2864878Z   HEPTA_FINITE_NDU_IDENTITY: /home/runner/work/_temp/hia-finite-ndu/identity.json
+2026-10-30T06:17:06.2865172Z ##[endgroup]
+2026-10-30T06:17:27.3285220Z /home/runner/work/_temp/hia-stream-ndu/identity.json
+2026-10-30T06:17:27.3379901Z ##[group]Run hepta_ranking_checkout="$RUNNER_TEMP/hepta-ranking-ndu-source"
+2026-10-30T06:17:27.3380331Z [36;1mhepta_ranking_checkout="$RUNNER_TEMP/hepta-ranking-ndu-source"[0m
+2026-10-30T06:17:27.3380685Z [36;1mhepta_ranking_build="$RUNNER_TEMP/hepta-ranking-ndu-build"[0m
+2026-10-30T06:17:27.3381193Z [36;1mhepta_ranking_commit=$(python -c 'import json; print(json.load(open("rust/hia-ndu-bridge/upstream.json"))["commit"])')[0m
+2026-10-30T06:17:27.3381639Z [36;1mgit init "$hepta_ranking_checkout"[0m
+2026-10-30T06:17:27.3382079Z [36;1mgit -C "$hepta_ranking_checkout" remote add origin https://github.com/TrillionniumFoundation/hepta-private-ci.git[0m
+2026-10-30T06:17:27.3382600Z [36;1mgit -C "$hepta_ranking_checkout" config remote.origin.promisor true[0m
+2026-10-30T06:17:27.3383294Z [36;1mgit -C "$hepta_ranking_checkout" config remote.origin.partialclonefilter blob:none[0m
+2026-10-30T06:17:27.3383876Z [36;1mgit -C "$hepta_ranking_checkout" -c protocol.version=2 fetch --filter=blob:none --depth=1 origin "$hepta_ranking_commit"[0m
+2026-10-30T06:17:27.3384427Z [36;1mtest "$(git -C "$hepta_ranking_checkout" rev-parse FETCH_HEAD)" = "$hepta_ranking_commit"[0m
+2026-10-30T06:17:27.3384918Z [36;1mCARGO_TARGET_DIR="$RUNNER_TEMP/hepta-ranking-ndu-target" python tools/build_hia_ndu_bridge.py \[0m
+2026-10-30T06:17:27.3385413Z [36;1m  --upstream "$hepta_ranking_checkout" --output "$hepta_ranking_build" --cargo "$CARGO" \[0m
+2026-10-30T06:17:27.3385935Z [36;1m  > "$RUNNER_TEMP/hepta-ranking-ndu-build.stdout.log" 2> "$RUNNER_TEMP/hepta-ranking-ndu-build.stderr.log"[0m
+2026-10-30T06:17:27.3386430Z [36;1mprintf 'HEPTA_NDU_BRIDGE=%s\nHEPTA_NDU_BUILD=%s\nHEPTA_NDU_UPSTREAM=%s\n' \[0m
+2026-10-30T06:17:27.3386908Z [36;1m  "$RUNNER_TEMP/hepta-ranking-ndu-target/debug/hia-ndu-bridge" "$hepta_ranking_build" \[0m
+2026-10-30T06:17:27.3387299Z [36;1m  "$hepta_ranking_checkout" >> "$GITHUB_ENV"[0m
+2026-10-30T06:17:27.3406192Z shell: /usr/bin/bash -e {0}
+2026-10-30T06:17:27.3406390Z env:
+2026-10-30T06:17:27.3406560Z   HEPTA_RUN_ARTIFACT_SESSION: 1
+2026-10-30T06:17:27.3406822Z   HEPTA_SOURCE_SHA: 37d3a317b77aeac8f42b8a727f0f123b4a46e49f
+2026-10-30T06:17:27.3407146Z   RECURSIVE_NDU_SOURCE_SHA: 2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b
+2026-10-30T06:17:27.3407471Z   FINITE_NDU_SOURCE_SHA: 4b6391e116949af0c7e59776baead67271856bdb
+2026-10-30T06:17:27.3407785Z   STREAM_NDU_SOURCE_SHA: c4a1bbed3a39beba43a6abf1a18b6f75c5725c21
+2026-10-30T06:17:27.3408065Z   CLANG: /usr/bin/clang-20
+2026-10-30T06:17:27.3408253Z   CLANGXX: /usr/bin/clang++-20
+2026-10-30T06:17:27.3408454Z   PYTHONDONTWRITEBYTECODE: 1
+2026-10-30T06:17:27.3408709Z   CARGO_HOME: /home/runner/work/_temp/hepta-verified-cargo-home
+2026-10-30T06:17:27.3409051Z   CARGO_TARGET_DIR: /home/runner/work/_temp/hepta-verified-cargo-target
+2026-10-30T06:17:27.3409378Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:17:27.3409702Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-10-30T06:17:27.3410022Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:17:27.3410308Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:17:27.3410590Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:17:27.3410872Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-10-30T06:17:27.3411231Z   RUSTC: /home/runner/.rustup/toolchains/1.90.0-x86_64-unknown-linux-gnu/bin/rustc
+2026-10-30T06:17:27.3411611Z   CARGO: /home/runner/.rustup/toolchains/1.90.0-x86_64-unknown-linux-gnu/bin/cargo
+2026-10-30T06:17:27.3412034Z   FINITE_NDU_RUSTC: /home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc
+2026-10-30T06:17:27.3412459Z   FINITE_NDU_CARGO: /home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/cargo
+2026-10-30T06:17:27.3413360Z   HEPTA_RECURSIVE_NDU_BRIDGE: /home/runner/work/_temp/hia-recursive-ndu/native/hepta-hia-ndu-bridge
+2026-10-30T06:17:27.3413963Z   HEPTA_RECURSIVE_NDU_IDENTITY: /home/runner/work/_temp/hia-recursive-ndu/identity.json
+2026-10-30T06:17:27.3414406Z   HEPTA_FINITE_NDU_BRIDGE: /home/runner/work/_temp/hia-finite-ndu/native/hepta-hia-ndu-bridge
+2026-10-30T06:17:27.3414822Z   HEPTA_FINITE_NDU_IDENTITY: /home/runner/work/_temp/hia-finite-ndu/identity.json
+2026-10-30T06:17:27.3415232Z   HEPTA_NDU_STREAM_BRIDGE: /home/runner/work/_temp/hia-stream-ndu/native/hepta-hia-ndu-bridge
+2026-10-30T06:17:27.3415635Z   HEPTA_NDU_STREAM_IDENTITY: /home/runner/work/_temp/hia-stream-ndu/identity.json
+2026-10-30T06:17:27.3416045Z ##[endgroup]
+2026-10-30T06:17:27.3747646Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-30T06:17:27.3748153Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-30T06:17:27.3748822Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-30T06:17:27.3749295Z hint: call:
+2026-10-30T06:17:27.3749514Z hint:
+2026-10-30T06:17:27.3749786Z hint: 	git config --global init.defaultBranch <name>
+2026-10-30T06:17:27.3750031Z hint:
+2026-10-30T06:17:27.3750261Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-30T06:17:27.3750645Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-30T06:17:27.3750949Z hint:
+2026-10-30T06:17:27.3751107Z hint: 	git branch -m <name>
+2026-10-30T06:17:27.3751342Z hint:
+2026-10-30T06:17:27.3751730Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-30T06:17:27.3752456Z Initialized empty Git repository in /home/runner/work/_temp/hepta-ranking-ndu-source/.git/
+2026-10-30T06:17:28.4474508Z From https://github.com/TrillionniumFoundation/hepta-private-ci
+2026-10-30T06:17:28.4475126Z  * branch            d3c2d760eca5065fc966820379c35c6e8d56e855 -> FETCH_HEAD
+2026-10-30T06:17:47.5976430Z ##[group]Run "$CARGO" fetch --locked --manifest-path rust/hia-core-shadow/Cargo.toml
+2026-10-30T06:17:47.5976900Z [36;1m"$CARGO" fetch --locked --manifest-path rust/hia-core-shadow/Cargo.toml[0m
+2026-10-30T06:17:47.5977308Z [36;1mCARGO_TARGET_DIR="$RUNNER_TEMP/hia-shadow-target" CARGO_NET_OFFLINE=true \[0m
+2026-10-30T06:17:47.5977821Z [36;1m  python tools/qualify_hia_verified_increment.py --output artifacts/verified-optimization/regression[0m
+2026-10-30T06:17:47.5978433Z [36;1mpython experiments/hia_verified_integration/next_20261028/qualify_guarded_cli.py artifacts/verified-optimization/guarded-cli[0m
+2026-10-30T06:17:47.5997906Z shell: /usr/bin/bash -e {0}
+2026-10-30T06:17:47.5998102Z env:
+2026-10-30T06:17:47.5998273Z   HEPTA_RUN_ARTIFACT_SESSION: 1
+2026-10-30T06:17:47.5998545Z   HEPTA_SOURCE_SHA: 37d3a317b77aeac8f42b8a727f0f123b4a46e49f
+2026-10-30T06:17:47.5998873Z   RECURSIVE_NDU_SOURCE_SHA: 2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b
+2026-10-30T06:17:47.5999251Z   FINITE_NDU_SOURCE_SHA: 4b6391e116949af0c7e59776baead67271856bdb
+2026-10-30T06:17:47.5999567Z   STREAM_NDU_SOURCE_SHA: c4a1bbed3a39beba43a6abf1a18b6f75c5725c21
+2026-10-30T06:17:47.5999845Z   CLANG: /usr/bin/clang-20
+2026-10-30T06:17:47.6000038Z   CLANGXX: /usr/bin/clang++-20
+2026-10-30T06:17:47.6000247Z   PYTHONDONTWRITEBYTECODE: 1
+2026-10-30T06:17:47.6000495Z   CARGO_HOME: /home/runner/work/_temp/hepta-verified-cargo-home
+2026-10-30T06:17:47.6000836Z   CARGO_TARGET_DIR: /home/runner/work/_temp/hepta-verified-cargo-target
+2026-10-30T06:17:47.6001165Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:17:47.6001486Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-10-30T06:17:47.6001801Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:17:47.6002095Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:17:47.6002387Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:17:47.6003087Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-10-30T06:17:47.6003445Z   RUSTC: /home/runner/.rustup/toolchains/1.90.0-x86_64-unknown-linux-gnu/bin/rustc
+2026-10-30T06:17:47.6003832Z   CARGO: /home/runner/.rustup/toolchains/1.90.0-x86_64-unknown-linux-gnu/bin/cargo
+2026-10-30T06:17:47.6004243Z   FINITE_NDU_RUSTC: /home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc
+2026-10-30T06:17:47.6004670Z   FINITE_NDU_CARGO: /home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/cargo
+2026-10-30T06:17:47.6005131Z   HEPTA_RECURSIVE_NDU_BRIDGE: /home/runner/work/_temp/hia-recursive-ndu/native/hepta-hia-ndu-bridge
+2026-10-30T06:17:47.6005584Z   HEPTA_RECURSIVE_NDU_IDENTITY: /home/runner/work/_temp/hia-recursive-ndu/identity.json
+2026-10-30T06:17:47.6006013Z   HEPTA_FINITE_NDU_BRIDGE: /home/runner/work/_temp/hia-finite-ndu/native/hepta-hia-ndu-bridge
+2026-10-30T06:17:47.6006442Z   HEPTA_FINITE_NDU_IDENTITY: /home/runner/work/_temp/hia-finite-ndu/identity.json
+2026-10-30T06:17:47.6006864Z   HEPTA_NDU_STREAM_BRIDGE: /home/runner/work/_temp/hia-stream-ndu/native/hepta-hia-ndu-bridge
+2026-10-30T06:17:47.6007286Z   HEPTA_NDU_STREAM_IDENTITY: /home/runner/work/_temp/hia-stream-ndu/identity.json
+2026-10-30T06:17:47.6007694Z   HEPTA_NDU_BRIDGE: /home/runner/work/_temp/hepta-ranking-ndu-target/debug/hia-ndu-bridge
+2026-10-30T06:17:47.6008073Z   HEPTA_NDU_BUILD: /home/runner/work/_temp/hepta-ranking-ndu-build
+2026-10-30T06:17:47.6008410Z   HEPTA_NDU_UPSTREAM: /home/runner/work/_temp/hepta-ranking-ndu-source
+2026-10-30T06:17:47.6008693Z ##[endgroup]
+2026-10-30T06:18:04.4178706Z E_HIA_SCHEMA_AUDIT: [Errno 17] File exists: '/tmp/tmpqe339i8k/audit.json'
+2026-10-30T06:18:04.4184241Z E_HIA_SCHEMA_AUDIT: E_HIA_SCHEMA_AUDIT: expected bounded ordinary source file
+2026-10-30T06:31:23.6414165Z incompatible_schema_label_requires_versioned_adapter
+2026-10-30T06:31:23.6417777Z Rust byte-owner bulk/Python full-ledger parity observations: 281
+2026-10-30T06:31:23.6418676Z Rust byte-owner CFG/Python full-ledger parity observations: 179
+2026-10-30T06:31:23.6419196Z Rust byte-owner/Python full-ledger parity observations: 124
+2026-10-30T06:31:23.6424773Z {"legacy_supervised_signal_execution": {"builds": [{"argv": ["/usr/bin/clang-20", "-std=c11", "-O2", "-Wall", "-Wextra", "-Werror", "/tmp/hepta-legacy-supervised-signal-tje5xzbl/signal.c", "-o", "/tmp/hepta-legacy-supervised-signal-tje5xzbl/filecheck"], "returncode": 0, "stderr": "", "stdout": ""}, {"argv": ["/usr/bin/clang-20", "-std=c11", "-O2", "-Wall", "-Wextra", "-Werror", "/home/runner/work/Hepta/Hepta/examples/hia_filecheck/rss_supervisor.c", "-o", "/tmp/hepta-legacy-supervised-signal-tje5xzbl/rss-supervisor"], "returncode": 0, "stderr": "", "stdout": ""}], "library_image_executed": false, "report": {"commands": [{"argv": ["/tmp/hepta-legacy-supervised-signal-tje5xzbl/rss-supervisor", "/tmp/hepta-legacy-supervised-signal-tje5xzbl/rss-0000.json", "/tmp/hepta-legacy-supervised-signal-tje5xzbl/filecheck", "/tmp/hepta-legacy-supervised-signal-tje5xzbl/unused-image", "legacy_checksum_chunk", "/tmp/hepta-legacy-supervised-signal-tje5xzbl/held-out.bin", "2197175160"], "cwd": "/tmp/hepta-legacy-supervised-signal-tje5xzbl", "returncode": 1, "stage": "actual_signal_control", "stderr": "", "stdout": "", "wall_ns": 60188754}], "failed_applications": [{"algorithm": "castagnoli", "arm": "signal_control", "child_signal_name": "SIGILL", "command_index": 0, "memory": {"child_exit_code": -1, "child_preexec_self_ru_maxrss_kib": 1400, "child_preexec_vm_hwm_kib": 1188, "child_preexec_vm_rss_kib": 1188, "child_signal": 4, "child_wait4_ru_maxrss_kib": 1400, "supervisor_self_ru_maxrss_kib": 598904, "supervisor_vm_hwm_kib": 1424, "supervisor_vm_rss_kib": 1424}, "memory_receipt": {"bytes": 274, "path": "/tmp/hepta-legacy-supervised-signal-tje5xzbl/rss-0000.json", "sha256": "5a195925f2ee56ccc365c7d9f78247ad3c31d5c9b39e3cb6c3bf041c0eeba036"}, "stage": "actual_signal_control"}], "inputs": {"held-out.bin": {"bytes": 7, "path": "/tmp/hepta-legacy-supervised-signal-tje5xzbl/held-out.bin", "sha256": "f16d05ec6b29248d2c61adb1e9263f78e4f7bace1b955014a2d17872cfe4064d"}}}, "retries": 0, "schema": "hepta.legacy-supervised-signal-regression.v1"}}
+2026-10-30T06:31:23.6430254Z Finite v8 Python/Rust parity observations: 103; bound v2 observations: 4; negative programs: 2
+2026-10-30T06:31:23.6430728Z Borrowed extent Python/Rust observations: 521; bound v2: 4; negative programs: 6
+2026-10-30T06:31:23.6431036Z {
+2026-10-30T06:31:23.6431183Z   "tests": 1000,
+2026-10-30T06:31:23.6431352Z   "failures": 1,
+2026-10-30T06:31:23.6431504Z   "errors": 0,
+2026-10-30T06:31:23.6431661Z   "skipped": [],
+2026-10-30T06:31:23.6431830Z   "source_unchanged": true,
+2026-10-30T06:31:23.6432027Z   "passed": false
+2026-10-30T06:31:23.6432184Z }
+2026-10-30T06:31:23.7686742Z ##[error]Process completed with exit code 1.
+2026-10-30T06:31:23.7737201Z ##[group]Run set -euo pipefail
+2026-10-30T06:31:23.7737454Z [36;1mset -euo pipefail[0m
+2026-10-30T06:31:23.7737684Z [36;1mcd "$RUNNER_TEMP/hepta-round7-clean-source"[0m
+2026-10-30T06:31:23.7738113Z [36;1mpython tools/qualify_hia_c_posttest.py --clang "$CLANG" --expected-source "$HEPTA_SOURCE_SHA" \[0m
+2026-10-30T06:31:23.7738582Z [36;1m  --output "$GITHUB_WORKSPACE/artifacts/verified-optimization/c-posttest"[0m
+2026-10-30T06:31:23.7757701Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-30T06:31:23.7757965Z env:
+2026-10-30T06:31:23.7758135Z   HEPTA_RUN_ARTIFACT_SESSION: 1
+2026-10-30T06:31:23.7758388Z   HEPTA_SOURCE_SHA: 37d3a317b77aeac8f42b8a727f0f123b4a46e49f
+2026-10-30T06:31:23.7758723Z   RECURSIVE_NDU_SOURCE_SHA: 2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b
+2026-10-30T06:31:23.7759051Z   FINITE_NDU_SOURCE_SHA: 4b6391e116949af0c7e59776baead67271856bdb
+2026-10-30T06:31:23.7759364Z   STREAM_NDU_SOURCE_SHA: c4a1bbed3a39beba43a6abf1a18b6f75c5725c21
+2026-10-30T06:31:23.7759674Z   CLANG: /usr/bin/clang-20
+2026-10-30T06:31:23.7759866Z   CLANGXX: /usr/bin/clang++-20
+2026-10-30T06:31:23.7760070Z   PYTHONDONTWRITEBYTECODE: 1
+2026-10-30T06:31:23.7760324Z   CARGO_HOME: /home/runner/work/_temp/hepta-verified-cargo-home
+2026-10-30T06:31:23.7760661Z   CARGO_TARGET_DIR: /home/runner/work/_temp/hepta-verified-cargo-target
+2026-10-30T06:31:23.7760988Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:31:23.7761307Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-10-30T06:31:23.7761621Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:31:23.7761914Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:31:23.7762201Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:31:23.7762488Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-10-30T06:31:23.7763048Z   RUSTC: /home/runner/.rustup/toolchains/1.90.0-x86_64-unknown-linux-gnu/bin/rustc
+2026-10-30T06:31:23.7763450Z   CARGO: /home/runner/.rustup/toolchains/1.90.0-x86_64-unknown-linux-gnu/bin/cargo
+2026-10-30T06:31:23.7763864Z   FINITE_NDU_RUSTC: /home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc
+2026-10-30T06:31:23.7764303Z   FINITE_NDU_CARGO: /home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/cargo
+2026-10-30T06:31:23.7764767Z   HEPTA_RECURSIVE_NDU_BRIDGE: /home/runner/work/_temp/hia-recursive-ndu/native/hepta-hia-ndu-bridge
+2026-10-30T06:31:23.7765224Z   HEPTA_RECURSIVE_NDU_IDENTITY: /home/runner/work/_temp/hia-recursive-ndu/identity.json
+2026-10-30T06:31:23.7765657Z   HEPTA_FINITE_NDU_BRIDGE: /home/runner/work/_temp/hia-finite-ndu/native/hepta-hia-ndu-bridge
+2026-10-30T06:31:23.7766070Z   HEPTA_FINITE_NDU_IDENTITY: /home/runner/work/_temp/hia-finite-ndu/identity.json
+2026-10-30T06:31:23.7766479Z   HEPTA_NDU_STREAM_BRIDGE: /home/runner/work/_temp/hia-stream-ndu/native/hepta-hia-ndu-bridge
+2026-10-30T06:31:23.7766890Z   HEPTA_NDU_STREAM_IDENTITY: /home/runner/work/_temp/hia-stream-ndu/identity.json
+2026-10-30T06:31:23.7767301Z   HEPTA_NDU_BRIDGE: /home/runner/work/_temp/hepta-ranking-ndu-target/debug/hia-ndu-bridge
+2026-10-30T06:31:23.7767857Z   HEPTA_NDU_BUILD: /home/runner/work/_temp/hepta-ranking-ndu-build
+2026-10-30T06:31:23.7768193Z   HEPTA_NDU_UPSTREAM: /home/runner/work/_temp/hepta-ranking-ndu-source
+2026-10-30T06:31:23.7768470Z ##[endgroup]
+2026-10-30T06:31:23.7806279Z /home/runner/work/_temp/29d14215-e759-4b25-9b03-aad18c67a573.sh: line 2: cd: /home/runner/work/_temp/hepta-round7-clean-source: No such file or directory
+2026-10-30T06:31:23.7809152Z ##[error]Process completed with exit code 1.
+2026-10-30T06:31:23.7862240Z ##[group]Run actions/upload-artifact@v4
+2026-10-30T06:31:23.7862464Z with:
+2026-10-30T06:31:23.7862910Z   name: hia-verified-optimization-37d3a317b77aeac8f42b8a727f0f123b4a46e49f
+2026-10-30T06:31:23.7864218Z   path: artifacts/verified-optimization
+/home/runner/work/_temp/hia-recursive-ndu/
+/home/runner/work/_temp/hia-finite-ndu/
+/home/runner/work/_temp/hia-stream-ndu/
+/home/runner/work/_temp/hepta-ranking-ndu-build/build-receipt.json
+/home/runner/work/_temp/hepta-ranking-ndu-target/debug/hia-ndu-bridge
+/home/runner/work/_temp/hepta-ranking-ndu-build.stdout.log
+/home/runner/work/_temp/hepta-ranking-ndu-build.stderr.log
+
+2026-10-30T06:31:23.7865397Z   if-no-files-found: error
+2026-10-30T06:31:23.7865595Z   compression-level: 6
+2026-10-30T06:31:23.7865776Z   overwrite: false
+2026-10-30T06:31:23.7865954Z   include-hidden-files: false
+2026-10-30T06:31:23.7866160Z env:
+2026-10-30T06:31:23.7866323Z   HEPTA_RUN_ARTIFACT_SESSION: 1
+2026-10-30T06:31:23.7866612Z   HEPTA_SOURCE_SHA: 37d3a317b77aeac8f42b8a727f0f123b4a46e49f
+2026-10-30T06:31:23.7866945Z   RECURSIVE_NDU_SOURCE_SHA: 2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b
+2026-10-30T06:31:23.7867270Z   FINITE_NDU_SOURCE_SHA: 4b6391e116949af0c7e59776baead67271856bdb
+2026-10-30T06:31:23.7867580Z   STREAM_NDU_SOURCE_SHA: c4a1bbed3a39beba43a6abf1a18b6f75c5725c21
+2026-10-30T06:31:23.7867843Z   CLANG: /usr/bin/clang-20
+2026-10-30T06:31:23.7868036Z   CLANGXX: /usr/bin/clang++-20
+2026-10-30T06:31:23.7868238Z   PYTHONDONTWRITEBYTECODE: 1
+2026-10-30T06:31:23.7868499Z   CARGO_HOME: /home/runner/work/_temp/hepta-verified-cargo-home
+2026-10-30T06:31:23.7882634Z   CARGO_TARGET_DIR: /home/runner/work/_temp/hepta-verified-cargo-target
+2026-10-30T06:31:23.7883143Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:31:23.7883487Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-10-30T06:31:23.7883821Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:31:23.7884118Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:31:23.7884411Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-30T06:31:23.7884701Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-10-30T06:31:23.7885050Z   RUSTC: /home/runner/.rustup/toolchains/1.90.0-x86_64-unknown-linux-gnu/bin/rustc
+2026-10-30T06:31:23.7885441Z   CARGO: /home/runner/.rustup/toolchains/1.90.0-x86_64-unknown-linux-gnu/bin/cargo
+2026-10-30T06:31:23.7885883Z   FINITE_NDU_RUSTC: /home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc
+2026-10-30T06:31:23.7886327Z   FINITE_NDU_CARGO: /home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/cargo
+2026-10-30T06:31:23.7886786Z   HEPTA_RECURSIVE_NDU_BRIDGE: /home/runner/work/_temp/hia-recursive-ndu/native/hepta-hia-ndu-bridge
+2026-10-30T06:31:23.7887242Z   HEPTA_RECURSIVE_NDU_IDENTITY: /home/runner/work/_temp/hia-recursive-ndu/identity.json
+2026-10-30T06:31:23.7887670Z   HEPTA_FINITE_NDU_BRIDGE: /home/runner/work/_temp/hia-finite-ndu/native/hepta-hia-ndu-bridge
+2026-10-30T06:31:23.7888077Z   HEPTA_FINITE_NDU_IDENTITY: /home/runner/work/_temp/hia-finite-ndu/identity.json
+2026-10-30T06:31:23.7888486Z   HEPTA_NDU_STREAM_BRIDGE: /home/runner/work/_temp/hia-stream-ndu/native/hepta-hia-ndu-bridge
+2026-10-30T06:31:23.7888889Z   HEPTA_NDU_STREAM_IDENTITY: /home/runner/work/_temp/hia-stream-ndu/identity.json
+2026-10-30T06:31:23.7889289Z   HEPTA_NDU_BRIDGE: /home/runner/work/_temp/hepta-ranking-ndu-target/debug/hia-ndu-bridge
+2026-10-30T06:31:23.7889666Z   HEPTA_NDU_BUILD: /home/runner/work/_temp/hepta-ranking-ndu-build
+2026-10-30T06:31:23.7890165Z   HEPTA_NDU_UPSTREAM: /home/runner/work/_temp/hepta-ranking-ndu-source
+2026-10-30T06:31:23.7890437Z ##[endgroup]
+2026-10-30T06:31:23.9260375Z (node:25180) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-30T06:31:23.9261083Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-30T06:31:23.9474657Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-10-30T06:31:23.9476973Z The least common ancestor is /home/runner/work. This will be the root directory of the artifact
+2026-10-30T06:31:23.9477695Z With the provided path, there will be 116 files uploaded
+2026-10-30T06:31:23.9480643Z Artifact name is valid!
+2026-10-30T06:31:23.9481283Z Root directory input is valid!
+2026-10-30T06:31:24.2193188Z Beginning upload of artifact content to blob storage
+2026-10-30T06:31:24.4455518Z (node:25180) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-10-30T06:31:24.8409519Z Uploaded bytes 2057711
+2026-10-30T06:31:24.8781277Z Finished uploading artifact content to blob storage!
+2026-10-30T06:31:24.8782128Z SHA256 digest of uploaded artifact zip is 9ba4bea78a98a74ea7d503c179daf8b822199e9b9057eab66f70efa21f2f581e
+2026-10-30T06:31:24.8784184Z Finalizing artifact upload
+2026-10-30T06:31:25.2952033Z Artifact hia-verified-optimization-37d3a317b77aeac8f42b8a727f0f123b4a46e49f.zip successfully finalized. Artifact ID 12959291139
+2026-10-30T06:31:25.2953601Z Artifact hia-verified-optimization-37d3a317b77aeac8f42b8a727f0f123b4a46e49f has been successfully uploaded! Final size is 2057711 bytes. Artifact ID is 12959291139
+2026-10-30T06:31:25.2958282Z Artifact download URL: https://github.com/TrillionniumFoundation/Hepta/actions/runs/41013027389/artifacts/12959291139
+2026-10-30T06:31:25.3159259Z Post job cleanup.
+2026-10-30T06:31:25.3854174Z [command]/usr/bin/git version
+2026-10-30T06:31:25.3892029Z git version 2.56.0
+2026-10-30T06:31:25.3924738Z Temporarily overriding HOME='/home/runner/work/_temp/caa10d3a-222c-4c7a-8b86-8955edbec113' before making global git config changes
+2026-10-30T06:31:25.3925744Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-30T06:31:25.3930634Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta/stream-ndu-source
+2026-10-30T06:31:25.3964891Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-30T06:31:25.3997313Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-30T06:31:25.4235978Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-30T06:31:25.4268107Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-30T06:31:25.4515711Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-30T06:31:25.4585066Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-30T06:31:25.4948905Z Post job cleanup.
+2026-10-30T06:31:25.5679445Z [command]/usr/bin/git version
+2026-10-30T06:31:25.5722076Z git version 2.56.0
+2026-10-30T06:31:25.5753098Z Temporarily overriding HOME='/home/runner/work/_temp/a26fdfb7-988d-4d49-9b16-81db62f8abac' before making global git config changes
+2026-10-30T06:31:25.5754191Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-30T06:31:25.5757677Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta/finite-ndu-source
+2026-10-30T06:31:25.5792830Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-30T06:31:25.5823623Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-30T06:31:25.6085031Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-30T06:31:25.6120396Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-30T06:31:25.6365820Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-30T06:31:25.6409745Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-30T06:31:25.6807778Z Post job cleanup.
+2026-10-30T06:31:25.7533414Z [command]/usr/bin/git version
+2026-10-30T06:31:25.7553144Z git version 2.56.0
+2026-10-30T06:31:25.7585408Z Temporarily overriding HOME='/home/runner/work/_temp/780b6c97-295a-432e-9463-a4340fb4f31e' before making global git config changes
+2026-10-30T06:31:25.7586255Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-30T06:31:25.7590835Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta/recursive-ndu-source
+2026-10-30T06:31:25.7624653Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-30T06:31:25.7681120Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-30T06:31:25.7924685Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-30T06:31:25.7959495Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-30T06:31:25.8216426Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-30T06:31:25.8263690Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-30T06:31:25.8620365Z Post job cleanup.
+2026-10-30T06:31:25.9357368Z [command]/usr/bin/git version
+2026-10-30T06:31:25.9394190Z git version 2.56.0
+2026-10-30T06:31:25.9426939Z Temporarily overriding HOME='/home/runner/work/_temp/93f7c619-7ddb-45ae-bdde-d6af691c9594' before making global git config changes
+2026-10-30T06:31:25.9427670Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-30T06:31:25.9432349Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-10-30T06:31:25.9466479Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-30T06:31:25.9498195Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-30T06:31:25.9771011Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-30T06:31:25.9806126Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-30T06:31:26.0054969Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-30T06:31:26.0092355Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-30T06:31:26.0450229Z Cleaning up orphan processes
+2026-10-30T06:31:26.0750601Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-python@v5, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

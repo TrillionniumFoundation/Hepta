@@ -1,0 +1,80 @@
+{
+  "schema": "hepta.hia.ci-addendum-status.v1",
+  "tested_head": "1c13caeb08993fcbb2c4d64e6b10f22f3356c18f",
+  "workflows": [
+    {
+      "run": 41017484034,
+      "name": "captured C native hosts",
+      "conclusion": "success",
+      "architectures": [
+        "x86_64",
+        "aarch64"
+      ],
+      "functional_cases_per_arch": 48,
+      "functional_calls_per_arch": 144,
+      "resource_cases_per_arch": 16,
+      "resource_calls_per_arch": 32
+    },
+    {
+      "run": 41017484010,
+      "name": "six outcomes and source applications",
+      "conclusion": "success",
+      "safety_selectors": 277,
+      "finite_regression_tests": 354,
+      "scalar_verified": 449,
+      "scalar_unknown": 0,
+      "scalar_refuted": 0,
+      "reference_agent_model_requests": 0
+    },
+    {
+      "run": 41017483894,
+      "name": "CRC finite context",
+      "conclusion": "failure",
+      "registered_wall_budget_ns": 120000000000,
+      "actual_wall_ns": 120642876251,
+      "expected_contexts": 2856,
+      "completed_contexts": 2194,
+      "expected_observations": 210,
+      "completed_observations": 164,
+      "partial_observations": 1
+    },
+    {
+      "run": 41017484079,
+      "name": "native NDU integration",
+      "conclusion": "failure",
+      "regression_tests": 1000,
+      "regression_failures": 1,
+      "regression_errors": 0,
+      "regression_skips": 0,
+      "primary_failure": "obsolete blanket continue rejection assertion",
+      "secondary_failure": "missing worktree after prerequisite preparation was skipped"
+    }
+  ],
+  "all_ci_passed_on_tested_head": false,
+  "test_correction": {
+    "schema": "hepta.continue-test-fix-publication.v1",
+    "local_commit": "a5bb127019d57cb0afd9b3dd2c51df766a902e76",
+    "published_commit": "e0ab595468d67bcf95485eacd22cea8ff332520c",
+    "parent": "1c13caeb08993fcbb2c4d64e6b10f22f3356c18f",
+    "git_tree_sha1": "d4ff4cff01ce8010bab0ae7a40da664d07188e0b",
+    "commit_identity_equal": false,
+    "tree_and_parent_identical": true,
+    "only_changed_path": "tests/test_c_project.py",
+    "test_file_sha256": "193d5fb08969b9ee164a43c1713231c5dbaa4347f940e0b83baf53e569ae95c7",
+    "production_implementation_changed": false,
+    "actual_validation_binding": "base commit plus stable candidate test file bytes; those exact tested bytes were subsequently committed",
+    "actual_targeted_tests": 41,
+    "actual_targeted_failures": 0,
+    "actual_targeted_errors": 0,
+    "actual_targeted_skips": 0,
+    "full_ci_qualification_inherited": false,
+    "prior_failed_ci_preserved": true
+  },
+  "source_to_core_refinement_proved": false,
+  "core_to_machine_refinement_proved": false,
+  "physical_target_board_qualified": false,
+  "positive_full_lifecycle_economics_qualified": false,
+  "all_user_acceptance_criteria_passed": false,
+  "release_qualified": false,
+  "scope": "Frozen head-specific observations. The test-only correction has actual targeted validation; unobserved later CI outcomes are not reported as passed."
+}
