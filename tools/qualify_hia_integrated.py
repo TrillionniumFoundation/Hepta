@@ -143,6 +143,11 @@ CRITICAL_MODULES = {
     "guarded_native_opportunity_admission": ("test_hia_guarded_batch",),
     "finite_v8_owner_and_returned_loan_payload": ("test_hia_finite_v8_heap",),
     "captured_c_post_test_loop_semantics": ("test_c_project_do_while",),
+    "finite_caller_borrowed_extents": ("test_hia_borrowed_extent_heap",),
+    "bounded_scalar_loop_equivalence": ("test_hia_bounded_unroll", "test_hia_crc_kernel"),
+    "captured_c_actual_native_targets": ("test_hia_c_posttest_hosts",),
+    "bounded_native_execution_context": ("test_hia_finite_context", "test_clang_capture_environment"),
+    "crc_static_control_cost_accounting": ("test_hia_crc_context_study",),
 }
 
 

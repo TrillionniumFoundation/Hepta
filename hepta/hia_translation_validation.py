@@ -397,7 +397,12 @@ def validate_translation(before, after, *, function=None, timeout_ms=2000):
             result["claims"]["first_trap_code_preserved"] = True
         elif verdict == z.sat:
             model = solver.model()
-            if model.eval(ltag).as_long() < 0 or model.eval(rtag).as_long() < 0:
+            # A SAT difference can be independent of some input bits (for
+            # example an unconditional first trap on only one side). Complete
+            # those inputs before reading either symbolic outcome tag, just as
+            # concrete() does for the independent interpreter replay below.
+            if (model.eval(ltag, model_completion=True).as_long() < 0
+                    or model.eval(rtag, model_completion=True).as_long() < 0):
                 result["reason"] = "incomplete_symbolic_execution"
                 return result
             arguments = [encoder.concrete(model, val, p["type"])

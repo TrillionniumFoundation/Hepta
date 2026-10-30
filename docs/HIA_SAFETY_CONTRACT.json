@@ -635,6 +635,172 @@
         "tests.test_c_project_do_while.CapturedDoWhileApplicationTests.test_existing_upstream_queue_and_compare_application_post_test_maintenance"
       ],
       "scope": "Captured C scalar/record-view projects with braced do-while bodies, outer scalar or cursor state and pure conditions; the body executes once before the first condition and all-path initialization reaches that condition and exit."
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_heap_bound.qualify_finite_entry_live_heap_budget_v8_with_borrowed_extents"
+      ],
+      "exclusions": [
+        "No external borrowed-size annotations or assumed exact successful allocation lengths.",
+        "No new opcode, Rust/VM semantics, chains, recursion, arbitrary resource input, native RSS or absolute safety proof.",
+        "Historical v1/v2 admission scope and receipts remain unchanged."
+      ],
+      "guarantee": "recomputed_from_actual_core",
+      "id": "finite_caller_borrowed_extents",
+      "regression_selectors": [
+        "tests.test_hia_borrowed_extent_heap.BorrowedExtentHeapTests.test_explicit_v3_closes_recorded_gap_and_legacy_apis_stay_strict",
+        "tests.test_hia_borrowed_extent_heap.BorrowedExtentHeapTests.test_nested_read_mut_borrows_owner_returns_failure_and_cancel",
+        "tests.test_hia_borrowed_extent_heap.BorrowedExtentHeapTests.test_different_borrowed_extents_are_distinct_memo_contexts",
+        "tests.test_hia_borrowed_extent_heap.BorrowedExtentHeapTests.test_shared_alias_payload_is_charged_once_and_reordered_origins_keep_size",
+        "tests.test_hia_borrowed_extent_heap.BorrowedExtentHeapTests.test_external_root_cfg_join_keeps_maximum_extent_without_return_authority",
+        "tests.test_hia_borrowed_extent_heap.BorrowedExtentHeapTests.test_fallible_and_zero_length_are_intervals_never_assumed_maxima",
+        "tests.test_hia_borrowed_extent_heap.BorrowedExtentHeapTests.test_nominal_partial_composite_and_tasks_use_existing_normalized_contract",
+        "tests.test_hia_borrowed_extent_heap.BorrowedExtentHeapTests.test_bad_origins_aliases_hidden_helpers_and_extent_annotations_reject_first",
+        "tests.test_hia_borrowed_extent_heap.BorrowedExtentHeapTests.test_public_resource_promises_unknown_lengths_and_uncertified_graphs_refuse",
+        "tests.test_hia_borrowed_extent_heap.BorrowedExtentHeapRust.test_actual_rust_nested_borrows_fail_cancel_and_every_step_stop",
+        "tests.test_hia_borrowed_extent_heap.BorrowedExtentHeapRust.test_actual_rust_alias_cache_origin_and_fallible_interval_cases",
+        "tests.test_hia_borrowed_extent_heap.BorrowedExtentHeapRust.test_actual_rust_partial_fields_tasks_and_closed_loans_before_cancel",
+        "tests.test_hia_borrowed_extent_heap.BorrowedExtentHeapRust.test_actual_rust_bound_transport_call_stops_preserve_live_resources",
+        "tests.test_hia_borrowed_extent_heap.BorrowedExtentHeapRust.test_invalid_resources_reject_in_both_parsers_even_with_immediate_stop",
+        "tests.test_hia_borrowed_extent_heap.BorrowedExtentHeapNative.test_actual_native_allocator_observes_borrow_contexts_failure_and_cleanup"
+      ],
+      "scope": "Separate v3 admission over existing primitive v8 and composite v4: exact scalar entry, finite acyclic calls/CFGs, caller-root-derived borrowed extent upper bounds, distinct memo contexts and caller-retained payload counted once."
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_bounded_unroll.propose_bounded_unroll",
+        "hepta.hia_bounded_unroll.validate_bounded_translation",
+        "hepta.hia_bounded_unroll.verify_bounded_translation_receipt",
+        "hepta.hia_crc_kernel.validate_source_bridge"
+      ],
+      "exclusions": [
+        "Graph copier, canonical verifier, SMT encoder and Z3 are trusted, not machine-proved.",
+        "No general loop/resource analysis, C frontend refinement, VM fuel equivalence or final machine-code proof.",
+        "Producer trip counts, proof receipts, unavailable solvers and timeouts grant no admission."
+      ],
+      "guarantee": "proved_only_within_declared_solver_profile",
+      "id": "bounded_scalar_feedback_equivalence",
+      "regression_selectors": [
+        "tests.test_hia_bounded_unroll.BoundedUnrollTests.test_actual_fixed_loop_all_inputs_and_independent_interpreter",
+        "tests.test_hia_bounded_unroll.BoundedUnrollTests.test_underestimated_bound_replayed_even_if_candidate_matches_truncation",
+        "tests.test_hia_bounded_unroll.BoundedUnrollTests.test_input_dependent_trip_count_cannot_borrow_a_sampled_bound",
+        "tests.test_hia_bounded_unroll.BoundedUnrollTests.test_zero_feedback_and_original_first_trap",
+        "tests.test_hia_bounded_unroll.BoundedUnrollTests.test_original_user_trap_cannot_hide_a_reachable_truncation_marker",
+        "tests.test_hia_bounded_unroll.BoundedUnrollTests.test_changed_value_rejected_after_independent_bound_success",
+        "tests.test_hia_bounded_unroll.BoundedUnrollTests.test_changed_first_trap_rejected",
+        "tests.test_hia_bounded_unroll.BoundedUnrollTests.test_other_functions_and_exports_must_remain_exact",
+        "tests.test_hia_bounded_unroll.BoundedUnrollTests.test_forged_and_stale_receipts_are_recomputed",
+        "tests.test_hia_bounded_unroll.BoundedUnrollTests.test_absent_solver_and_invalid_timeout_never_admit",
+        "tests.test_hia_bounded_unroll.BoundedUnrollTests.test_solver_unknown_never_falls_back_to_finite_samples",
+        "tests.test_hia_bounded_unroll.BoundedUnrollTests.test_acyclic_and_invalid_budgets_rejected",
+        "tests.test_hia_bounded_unroll.BoundedUnrollTests.test_multiple_feedback_edges_remain_outside_closed_profile",
+        "tests.test_hia_bounded_unroll.BoundedUnrollTests.test_unbounded_loop_never_authorized",
+        "tests.test_hia_crc_kernel.CRCKernelTests.test_known_vectors_and_canonical_vm",
+        "tests.test_hia_crc_kernel.CRCKernelTests.test_every_candidate_reproves_arbitrary_polynomial_generic_fallback",
+        "tests.test_hia_crc_kernel.CRCKernelTests.test_removed_guard_is_rejected_by_all_input_proof",
+        "tests.test_hia_crc_kernel.CRCKernelTests.test_oracle_rejects_non_u32",
+        "tests.test_hia_crc_kernel.CRCKernelTests.test_real_c_capture_bound_and_all_input_bridge_and_mutation"
+      ],
+      "scope": "Public v1-v7 scalar function with one DFS feedback edge; independently reconstructed finite unfolding and all-input unreachable-cut proof precede existing acyclic values/first-trap equivalence. CRC bridge structurally inlines the exact actual baseline Core and binds its digest."
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_program_llvm.native_host_profile",
+        "hepta.hia_program_llvm.native_driver_matches_host",
+        "tools.qualify_hia_c_posttest.qualify"
+      ],
+      "exclusions": [
+        "A host label, cross object or emulator run is not actual native host execution.",
+        "Shared native admission remains Linux x86_64; this does not add ARM shared admission.",
+        "Finite application/allocator observations do not establish whole C/C++ safety, general migration or universal performance."
+      ],
+      "guarantee": "checked_translation_with_foreign_obligations",
+      "id": "captured_c_actual_native_host_execution",
+      "regression_selectors": [
+        "tests.test_hia_c_posttest_hosts.HIAProgramNativeHostContractTests.test_clang_under_two_labels_is_not_an_independent_gnu_c_differential",
+        "tests.test_hia_c_posttest_hosts.HIAProgramNativeHostContractTests.test_driver_target_rejects_foreign_machine_ilp32_and_non_linux",
+        "tests.test_hia_c_posttest_hosts.HIAProgramNativeHostContractTests.test_host_rejects_wrong_os_unknown_machine_and_big_endian",
+        "tests.test_hia_c_posttest_hosts.HIAProgramNativeHostContractTests.test_host_rejects_llp64_and_ilp32_processes",
+        "tests.test_hia_c_posttest_hosts.HIAProgramNativeHostContractTests.test_requested_native_host_cannot_relabel_the_current_machine",
+        "tests.test_hia_c_posttest_hosts.HIAProgramNativeHostContractTests.test_native_host_protocol_does_not_relabel_the_legacy_v1_cohort",
+        "tests.test_hia_c_posttest_hosts.HIAProgramNativeHostContractTests.test_a_host_label_alone_cannot_admit_an_unmatched_compiler",
+        "tests.test_hia_c_posttest_hosts.HIAProgramNativeHostContractTests.test_aarch64_shared_and_forged_target_still_reject_before_tools",
+        "tests.test_hia_c_posttest_hosts.CapturedPostTestNativeHostTests.test_actual_hia_object_original_clang_gcc_vm_and_crc_agree",
+        "tests.test_hia_c_posttest_hosts.CapturedPostTestNativeHostTests.test_actual_native_allocation_refusal_and_cleanup_match_vm",
+        "tests.test_hia_c_posttest_hosts.CapturedPostTestNativeHostTests.test_compiled_driver_rejects_wrong_target_and_result_relabeling",
+        "tests.test_hia_c_posttest_hosts.CapturedPostTestNativeHostTests.test_wrong_machine_elf_and_objects_are_not_admitted_as_native_executables"
+      ],
+      "scope": "Separate explicit v2 captured C application qualification on actual Linux little-endian LP64 x86_64 or AArch64 host, native default driver match, HIA object plus fixed scalar driver, ELF/ABI probes and original GNU C/Clang/VM differentials."
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_finite_context.build_bank",
+        "hepta.hia_finite_context.FiniteU32Bank.prepare_trace",
+        "hepta.hia_finite_context.FiniteU32Bank.run",
+        "hepta.hia_finite_context.FiniteU32Bank.close",
+        "hepta.clang_capture.run_bounded"
+      ],
+      "exclusions": [
+        "Not general PreparedArtifactSession, online feedback, persistent owners/loans or state-layout migration.",
+        "CPU/address-space/output and capture deadlines are separate limits; leader reap can extend API wall time beyond capture timeout.",
+        "No malicious-native-code filesystem/network containment or whole-process memory theorem.",
+        "Native byte identity and finite oracle comparisons do not prove final machine-code semantics or economic benefit."
+      ],
+      "guarantee": "host_enforced_scoped_admission",
+      "id": "finite_native_u32_context_ownership",
+      "regression_selectors": [
+        "tests.test_hia_finite_context.FiniteContextTests.test_public_factory_requires_actual_source_profile_and_no_receipt_constructor",
+        "tests.test_hia_finite_context.FiniteContextTests.test_exact_request_modes_types_and_total_budget_before_launch",
+        "tests.test_hia_finite_context.FiniteContextTests.test_fold_and_xor_fold_are_explicit_immutable_and_bound",
+        "tests.test_hia_finite_context.FiniteContextTests.test_owner_cannot_be_copied_or_serialized",
+        "tests.test_hia_finite_context.FiniteContextTests.test_success_consumes_trace_and_requires_exact_whole_context_limits",
+        "tests.test_hia_finite_context.FiniteContextTests.test_static_and_dispatch_plans_load_only_referenced_images",
+        "tests.test_hia_finite_context.FiniteContextTests.test_input_snapshot_cancel_and_pending_budget_release",
+        "tests.test_hia_finite_context.FiniteContextTests.test_cancelled_and_consumed_nonces_still_count_towards_bank_cap",
+        "tests.test_hia_finite_context.FiniteContextTests.test_altered_trace_or_foreign_bank_cannot_launch",
+        "tests.test_hia_finite_context.FiniteContextTests.test_bad_canonical_records_do_not_promote_a_forged_completed_prefix",
+        "tests.test_hia_finite_context.FiniteContextTests.test_order_duplicate_trailing_and_changed_limit_events_cannot_pass",
+        "tests.test_hia_finite_context.FiniteContextTests.test_signal_keeps_completed_prefix_and_poison_prevents_any_replay",
+        "tests.test_hia_finite_context.FiniteContextTests.test_timeout_output_and_cleanup_failures_keep_raw_prefix_and_no_replay",
+        "tests.test_hia_finite_context.FiniteContextTests.test_partial_load_fault_closes_acquired_images_once_in_reverse_order",
+        "tests.test_hia_finite_context.FiniteContextTests.test_uncertain_descriptor_close_retains_debt_and_never_retries_number",
+        "tests.test_hia_finite_context.FiniteContextTests.test_unpublished_pin_close_uncertainty_is_retained_and_never_retried",
+        "tests.test_hia_finite_context.FiniteContextTests.test_uncertain_child_cleanup_retains_image_pins_after_close",
+        "tests.test_hia_finite_context.FiniteContextTests.test_diagnostic_depth_or_allocation_failure_cannot_erase_cleanup_debt",
+        "tests.test_hia_finite_context.FiniteContextTests.test_unknown_or_disproved_translation_cannot_emit_compile_or_execute",
+        "tests.test_hia_finite_context.FiniteContextTests.test_unverified_lowering_cannot_reach_compiler",
+        "tests.test_hia_finite_context.FiniteContextTests.test_bank_report_edits_are_not_execution_authority",
+        "tests.test_hia_finite_context.FiniteContextNativeTests.test_real_bank_context_switch_seals_limits_partial_load_and_first_trap_prefix",
+        "tests.test_clang_capture_environment.CaptureEnvironmentTests.test_invalid_or_unbounded_environment_is_rejected_before_launch",
+        "tests.test_clang_capture_environment.CaptureEnvironmentTests.test_explicit_environment_is_not_silently_ignored_by_other_backend",
+        "tests.test_clang_capture_environment.CaptureEnvironmentTests.test_default_inheritance_and_explicit_replacement_are_distinct",
+        "tests.test_clang_capture_environment.CaptureEnvironmentTests.test_caller_mutation_at_launch_cannot_change_the_environment_snapshot"
+      ],
+      "scope": "Closed Linux x86_64 calculate(u32,u32)->u32 scalar bank freshly proved and built before sealed publication; bounded preplanned fold/xor_fold traces consume once, load only referenced images, switch at completed request boundaries, retain exact prefixes and explicit uncertain cleanup debt. A bounded exact environment snapshot is passed only to the qualified Linux capture path; fixed native-child loader environment is independent of compiler/capture tool environment. Cleanup uncertainty is recorded before diagnostic parsing."
+    },
+    {
+      "entrypoints": [
+        "tools.qualify_hia_crc_context.protocol",
+        "tools.qualify_hia_crc_context.analyze",
+        "tools.qualify_hia_crc_context.qualify"
+      ],
+      "exclusions": [
+        "Constructed protocol tests are not native performance measurements.",
+        "Seven repeated trials are not seven independent workloads or a production trace.",
+        "Batching benefit, conditional break-even and a successful finite gate establish no NDU incremental value, online policy, deployment authority or global optimum."
+      ],
+      "guarantee": "finite_execution_evidence",
+      "id": "crc_context_static_controls_and_costs",
+      "regression_selectors": [
+        "tests.test_hia_crc_context_study.CRCContextStudyTests.test_frozen_protocol_controls_full_210_observations_and_2856_contexts",
+        "tests.test_hia_crc_context_study.CRCContextStudyTests.test_same_phase_bytes_modes_and_poly_sequence_for_every_arm",
+        "tests.test_hia_crc_context_study.CRCContextStudyTests.test_batching_gain_does_not_hide_cold_loss_or_become_ndu_evidence",
+        "tests.test_hia_crc_context_study.CRCContextStudyTests.test_positive_constructed_control_still_grants_no_execution_authority",
+        "tests.test_hia_crc_context_study.CRCContextStudyTests.test_strong_static_control_and_validation_regression_prevent_acceptance",
+        "tests.test_hia_crc_context_study.CRCContextStudyTests.test_missing_duplicate_relabelled_or_incomplete_observations_reject",
+        "tests.test_hia_crc_context_study.CRCContextStudyTests.test_dirty_source_refuses_before_capture_compiler_or_native_measurement"
+      ],
+      "scope": "Publicly preregistered 210-observation generated-application CRC study with fresh-child, three static coalesced controls and fixed polynomial dispatch, complete child lifecycles, separate cold setup/evaluation ledgers and no projected-profit admission."
     }
   ],
   "judgment": {

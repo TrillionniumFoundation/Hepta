@@ -194,11 +194,15 @@ def run_bounded(
     input_text: str | None = None, timeout: float = 30,
     stdout_limit: int = 32_000_000, stderr_limit: int = 1_000_000,
     stdin_limit: int = 1_000_000,
+    env: dict[str, str] | None = None,
 ) -> CaptureResult:
     """Run a real tool with wall-time/byte budgets and descendant cleanup.
 
-    Limits and tool invocation are caller-owned. No shell, environment rewrite,
-    network access control, or runtime filesystem containment is implied.
+    Limits and tool invocation are caller-owned.  The default environment is
+    inherited unchanged.  An explicit, bounded ordinary dictionary is supported
+    only by the qualified Linux direct-Popen path; it is snapshotted before
+    launch.  No shell, network access control, or filesystem containment is
+    implied, and passing an environment does not establish a native sandbox.
     """
     if (not isinstance(argv, list) or not argv
             or any(not isinstance(a, str) or not a or "\0" in a for a in argv)):
@@ -212,6 +216,27 @@ def run_bounded(
                    (stdout_limit, stderr_limit, stdin_limit))):
         raise CaptureRejected("E_CAPTURE_BUDGET",
                               "Capture limits must be nonnegative integer bytes and finite time in (0,3600]s")
+    launch_environment = {}
+    if env is not None:
+        if os.name != "posix" or sys.platform != "linux" or _DARWIN:
+            raise CaptureRejected("E_CAPTURE_ENV", "Explicit child environments require the qualified Linux direct-Popen path")
+        if type(env) is not dict or len(env) > 256:
+            raise CaptureRejected("E_CAPTURE_ENV", "Expected a bounded ordinary child environment dictionary")
+        snapshot = dict(env)
+        if len(snapshot) > 256:
+            raise CaptureRejected("E_CAPTURE_ENV", "Child environment exceeds the key budget")
+        budget = 131072
+        for key, value in snapshot.items():
+            if (type(key) is not str or type(value) is not str or not key or "=" in key
+                    or "\0" in key or "\0" in value or len(key) + len(value) + 2 > budget):
+                raise CaptureRejected("E_CAPTURE_ENV", "Invalid or oversized child environment entry")
+            try:
+                budget -= len(key.encode("utf-8")) + len(value.encode("utf-8")) + 2
+            except UnicodeError as error:
+                raise CaptureRejected("E_CAPTURE_ENV", "Child environment must have exact UTF-8 strings") from error
+            if budget < 0:
+                raise CaptureRejected("E_CAPTURE_ENV", "Child environment exceeds the byte budget")
+        launch_environment = {"env": snapshot}
     try:
         payload = b"" if input_text is None else input_text.encode("utf-8")
     except (AttributeError, UnicodeEncodeError) as exc:
@@ -243,6 +268,7 @@ def run_bounded(
                     argv, cwd=cwd, stdin=input_file, stdout=output_file,
                     stderr=error_file, shell=False,
                     start_new_session=(os.name == "posix"),
+                    **launch_environment,
                 )
         except OSError as exc:
             raise CaptureRejected("E_CAPTURE_EXEC", "Compiler launch failed: " + str(exc)) from exc
