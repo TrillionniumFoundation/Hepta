@@ -118,6 +118,42 @@ they are not converted to zero. The result is an instrumented accounting
 subtotal. It is not a complete global economic guarantee, a machine-code
 proof, real-application net gain, or unlimited-lifetime extrapolation.
 
+## Terminal accounting and interrupted builds
+
+`RESULT.json` is provisional. The runner writes it before taking the terminal
+wall and directory-size observation, so its actual encoding and write are in
+the observed budget. It reconciles all disjoint native/session/common timing
+regions to that measured wall. Every remaining coordination, prefix-analysis,
+source-inventory, hash and normal-report cost is a common charge, once to each
+standalone arm. The full-run residual is conservatively charged at every
+prefix; it is not an observed one-request or 32-request stopped trial.
+
+`FINAL_GATE.json` binds the actual result bytes/hash. Its exact encoded bytes
+and a fixed 2,048-byte positive `FINAL_COMPLETE.json` are included in the same
+96 MiB limit. Only after an actual post-gate directory/stat and monotonic check
+does the runner write the completion receipt. That receipt binds both hashes
+and records the additional observed gate-tail time, which is another equal
+common addend to every prefix arm. Admission requires that positive complete
+receipt; absence of a failure marker alone never proves a run finished.
+A final post-completion check also rejects time/byte overrun and preserves
+`FINAL_GATE_FAILURE.json`. The CLI returns failure in these cases. A stopped
+process with only a provisional result or gate cannot be frozen.
+
+The completion receipt cannot recursively measure its own preparation/write
+and process exit. These last operations remain an explicit unmeasured tail,
+not a zero-cost assumption. The CLI exposes a later observed wall/byte receipt
+for the external process record. This boundary limits total-economic claims;
+it does not remove any fixed budget or accept a known overrun.
+
+Build interruption also preserves evidence. The bounded runner retains the
+owned group leader without reaping it until it has terminated the group,
+drained the pipes and reaped the leader. Timeout, `KeyboardInterrupt` and other
+caught exceptions retain original observed stdout/stderr, EOF completeness,
+argv, elapsed time and cleanup status before propagation. A compiler target is
+removed only after cleanup is confirmed. The runner does not claim to contain
+a deliberately escaped process group. Tests exercise real child and descendant
+processes; no mocked process counts as a native planning observation.
+
 ## Commands
 
 Development uses already built native manifests and only the fixed

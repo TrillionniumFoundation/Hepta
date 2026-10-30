@@ -410,27 +410,28 @@ def cold_build_all(output, *, ndu_source, cargo, rustc, cargo_home, code_commit,
                 remaining = protocol()["max_study_wall_seconds"] - (time.monotonic_ns()-outer_started)/1e9
                 if remaining <= 0:
                     raise TimeoutError("overall deadline before NDU build")
-                completed, timed_out = run_bounded(command, cwd=ROOT, env=dict(os.environ), timeout=remaining)
-                (output / "native-builder.stdout").write_bytes(completed.stdout)
-                (output / "native-builder.stderr").write_bytes(completed.stderr)
-                write_json(output / "native-builder-process.json", {"argv": command,
-                    "returncode": completed.returncode, "timed_out": timed_out,
-                    "stdout_sha256": sha256(completed.stdout).hexdigest(),
-                    "stderr_sha256": sha256(completed.stderr).hexdigest()})
+                completed, timed_out = run_bounded(command, cwd=ROOT, env=dict(os.environ),
+                    timeout=remaining, receipt_prefix=output / "native-builder")
                 if completed.returncode or timed_out:
                     raise RuntimeError("original pinned NDU empty-target build failed")
                 manifest = build_output / "identity.json"
             finally:
                 clean_start = time.monotonic_ns()
-                if target.exists():
+                process_receipt_path = output / "native-builder.process.json"
+                process_receipt = json.loads(process_receipt_path.read_bytes()) if process_receipt_path.exists() else {}
+                cleanup_allowed = process_receipt.get("safe_target_cleanup") is True
+                if target.exists() and cleanup_allowed:
                     shutil.rmtree(target)
                 cleanup = time.monotonic_ns() - clean_start
                 if previous_jobs is None:
                     os.environ.pop("CARGO_BUILD_JOBS", None)
                 else:
                     os.environ["CARGO_BUILD_JOBS"] = previous_jobs
+                build_output.mkdir(exist_ok=True)
                 if build_output.exists():
                     write_json(build_output / "OUTER_BUILD.json", {
+                        "process_cleanup_confirmed": cleanup_allowed,
+                        "target_retained_due_to_unconfirmed_process_cleanup": target.exists(),
                         "total_build_and_cleanup_ns": time.monotonic_ns() - begin,
                         "target_cleanup_ns": cleanup, "target_cache": "empty", "build_jobs": 1,
                         "dependency_cache": "preinstalled; no acquisition charge inferred",
@@ -493,8 +494,185 @@ def prefix_accounting(rows, sessions, builds, journals, horizons, common_prepara
     return result
 
 
+def retained_bytes(directory):
+    return sum(p.stat().st_size for p in Path(directory).rglob("*") if p.is_file())
+
+
+def known_execution_cost(rows, sessions, common_finalization_ns):
+    common = sum(r["common_construction_ns"] + r["common_request_write_ns"]
+        + r.get("common_archive_checkpoint_ns", 0) + r.get("common_accounting_write_ns", 0)
+        + sum(a["arm_record_write_ns"] for a in r["arms"].values()) for r in rows)
+    arm_specific = sum(s["startup_outer_ns"] + (s["cleanup_outer_ns"] or 0)
+        for values in sessions.values() for s in values)
+    arm_specific += sum(a["evaluate_outer_ns"] + a["quality_check_ns"]
+        for r in rows for a in r["arms"].values())
+    return {"shared_component_ns": common + common_finalization_ns,
+            "all_arm_components_ns": arm_specific,
+            "sum_disjoint_components_ns": common + common_finalization_ns + arm_specific}
+
+
+def add_common_to_prefixes(prefixes, residual):
+    value = deepcopy(prefixes)
+    for row in value.values():
+        row["full_run_unallocated_assay_common_charge_ns"] = row.get("full_run_unallocated_assay_common_charge_ns", 0)+residual
+        row["full_run_common_charge_is_not_an_observed_short_trial"] = True
+        for arm in row["arms"].values():
+            arm["common_cost_ns"] += residual
+            arm["subtotal_excluding_unknown_acquisition_and_human_ns"] += residual
+            arm["common_unallocated_coordination_and_reporting_ns"] = arm.get("common_unallocated_coordination_and_reporting_ns", 0)+residual
+    return value
+
+
+def finalize_result(output, report, *, started, deadline_start, cfg,
+                    known_components_ns=0, retention_root=None):
+    """Close ordinary output, then fail closed on the actual terminal budget.
+
+    FINAL_GATE is authoritative only together with absence of a failure marker
+    and a successful post-write check. Its own tail cannot recursively contain
+    its own measurement; that boundary remains explicit, never priced at zero.
+    """
+    output = Path(output)
+    root = output if retention_root is None else Path(retention_root)
+    result_path = output / "RESULT.json"
+    gate_path = output / "FINAL_GATE.json"
+    failure_path = output / "FINAL_GATE_FAILURE.json"
+    completion_path = output / "FINAL_COMPLETE.json"
+    completion_bytes = 2048
+    report["result_is_provisional_until_final_gate"] = True
+    report["required_final_gate"] = gate_path.name
+    report["run_wall_through_result_preparation_ns"] = time.monotonic_ns()-started
+    write_begin = time.monotonic_ns()
+    write_json(result_path, report)
+    write_cost = time.monotonic_ns()-write_begin
+    result_sha = file_sha(result_path)
+    result_bytes = result_path.stat().st_size
+    size_before_gate = retained_bytes(root)
+    # All normal report encoding/writing, prefix analysis, source checks and
+    # directory/hash scans above are inside this observed interval.
+    boundary = time.monotonic_ns()
+    observed = boundary-started
+    residual = observed-known_components_ns
+    gate = {"schema": "hepta.ndu.terminal-budget-gate.v1", "ok": report.get("ok") is True,
+        "result_sha256": result_sha, "result_bytes": result_bytes,
+        "normal_result_serialization_and_write_ns": write_cost,
+        "observed_wall_ns": observed, "deadline_wall_ns": boundary-deadline_start,
+        "known_disjoint_components_ns": known_components_ns,
+        "common_unallocated_coordination_and_reporting_ns": residual,
+        "wall_reconciles_to_disjoint_components_plus_common": residual >= 0,
+        "prefix_accounting": add_common_to_prefixes(report.get("prefix_accounting", {}), residual),
+        "retained_bytes_before_gate": size_before_gate, "retained_bytes_including_gate": 0,
+        "retained_bytes_including_completion": 0, "completion_record_reserved_bytes": completion_bytes,
+        "gate_encoded_bytes": 0, "retention_root": str(root),
+        "limits": {"wall_seconds": cfg["max_study_wall_seconds"], "retained_bytes": cfg["max_retained_bytes"]},
+        "terminal_record_tail_is_measured_as_zero": False,
+        "gate_tail_accounting": "FINAL_COMPLETE records the additional observed common time through the post-gate check; add it equally to every prefix arm.",
+        "unmeasured_terminal_tail": ["FINAL_COMPLETE own preparation/encoding/write, its later check and process exit"],
+        "post_write_success_requires": "Actual stat and monotonic checks must pass before FINAL_COMPLETE is created; admission requires that positive bound receipt and no FINAL_GATE_FAILURE.",
+        "authority": "DENY_ALL", "safety_certificate": False}
+    if residual < 0 or gate["deadline_wall_ns"] > cfg["max_study_wall_seconds"]*1_000_000_000:
+        gate.update(ok=False, error="terminal accounting or wall limit failed")
+    # Include this exact final record's retained bytes without pretending to
+    # measure its own write. Iteration resolves decimal length changes only.
+    for _ in range(16):
+        raw = (json.dumps(gate, sort_keys=True, indent=2)+"\n").encode()
+        gate_total = size_before_gate+len(raw)
+        total = gate_total+completion_bytes
+        changed = (gate["gate_encoded_bytes"] != len(raw)
+                   or gate["retained_bytes_including_gate"] != gate_total
+                   or gate["retained_bytes_including_completion"] != total)
+        gate["gate_encoded_bytes"] = len(raw)
+        gate["retained_bytes_including_gate"] = gate_total
+        gate["retained_bytes_including_completion"] = total
+        if total > cfg["max_retained_bytes"] and gate.get("error") != "terminal retained-byte limit failed":
+            gate.update(ok=False, error="terminal retained-byte limit failed")
+            changed = True
+        if not changed:
+            break
+    else:
+        raise RuntimeError("terminal gate byte count did not stabilize")
+    try:
+        with gate_path.open("xb") as stream:
+            stream.write(raw)
+        actual_bytes = retained_bytes(root)
+        actual_wall = time.monotonic_ns()-deadline_start
+        if (actual_bytes != gate["retained_bytes_including_gate"]
+                or actual_bytes+completion_bytes > cfg["max_retained_bytes"]
+                or actual_wall > cfg["max_study_wall_seconds"]*1_000_000_000):
+            raise ValueError("post-write wall/retention gate failed")
+        completion = {"schema": "hepta.ndu.post-write-complete.v1", "ok": gate["ok"],
+            "post_gate_check_passed": True, "gate_sha256": file_sha(gate_path),
+            "result_sha256": result_sha, "observed_retained_bytes_after_gate": actual_bytes,
+            "observed_deadline_wall_ns_after_gate": actual_wall,
+            "additional_observed_common_ns_after_gate_boundary": actual_wall-gate["deadline_wall_ns"],
+            "prefix_accounting_requires_equal_additional_common_charge": True,
+            "completion_reserved_bytes": completion_bytes,
+            "retained_bytes_with_reserved_completion": actual_bytes+completion_bytes,
+            "completion_own_encoding_write_and_process_exit_unmeasured": True,
+            "terminal_tail_cost_is_zero": False}
+        completion_raw = json.dumps(completion, sort_keys=True, indent=2).encode()
+        if len(completion_raw)+1 > completion_bytes:
+            raise ValueError("fixed terminal completion receipt capacity exceeded")
+        with completion_path.open("xb") as stream:
+            stream.write(completion_raw+b" "*(completion_bytes-len(completion_raw)-1)+b"\n")
+        actual_bytes = retained_bytes(root)
+        actual_wall = time.monotonic_ns()-deadline_start
+        if (actual_bytes != gate["retained_bytes_including_completion"]
+                or actual_bytes > cfg["max_retained_bytes"]
+                or actual_wall > cfg["max_study_wall_seconds"]*1_000_000_000):
+            raise ValueError("post-completion wall/retention gate failed")
+    except BaseException as error:
+        failed = {"schema": "hepta.ndu.terminal-budget-failure.v1", "ok": False,
+            "error": type(error).__name__ + ": " + str(error), "gate_sha256": file_sha(gate_path) if gate_path.exists() else None,
+            "observed_wall_ns": time.monotonic_ns()-deadline_start,
+            "retained_bytes_before_failure_record": retained_bytes(root),
+            "failure_record_own_write_excluded": True, "no_retry_authorized": True}
+        write_json(failure_path, failed)
+        gate.update(ok=False, post_write_failure=failed)
+        if not isinstance(error, Exception):
+            raise
+    else:
+        # This actual later observation is returned to the CLI/outer caller;
+        # it is not falsely claimed to be inside the already-written gate.
+        gate["post_write_observation"] = {"ok": True, "actual_retained_bytes": actual_bytes,
+            "actual_deadline_wall_ns": actual_wall, "gate_sha256": file_sha(gate_path),
+            "completion_sha256": file_sha(completion_path)}
+        gate["prefix_accounting_with_completed_gate_tail"] = add_common_to_prefixes(
+            gate["prefix_accounting"], completion["additional_observed_common_ns_after_gate_boundary"])
+    return gate
+
+
+def admit_final_gate(result_path, cfg):
+    result_path = Path(result_path)
+    gate_path = result_path.with_name("FINAL_GATE.json")
+    completion_path = result_path.with_name("FINAL_COMPLETE.json")
+    if (result_path.with_name("FINAL_GATE_FAILURE.json").exists()
+            or not gate_path.exists() or not completion_path.exists()):
+        raise ValueError("a successful final post-write budget gate is required")
+    result = json.loads(result_path.read_bytes())
+    gate = json.loads(gate_path.read_bytes())
+    completion = json.loads(completion_path.read_bytes())
+    if (result.get("result_is_provisional_until_final_gate") is not True or gate.get("ok") is not True
+            or completion.get("ok") is not True or completion.get("post_gate_check_passed") is not True
+            or completion.get("gate_sha256") != file_sha(gate_path)
+            or completion.get("result_sha256") != file_sha(result_path)
+            or completion_path.stat().st_size != gate.get("completion_record_reserved_bytes")
+            or completion.get("retained_bytes_with_reserved_completion") != retained_bytes(result_path.parent)
+            or completion.get("observed_deadline_wall_ns_after_gate", float("inf")) > cfg["max_study_wall_seconds"]*1_000_000_000
+            or gate.get("result_sha256") != file_sha(result_path)
+            or gate.get("result_bytes") != result_path.stat().st_size
+            or gate.get("gate_encoded_bytes") != gate_path.stat().st_size
+            or gate.get("retained_bytes_including_completion") != retained_bytes(result_path.parent)
+            or gate["retained_bytes_including_completion"] > cfg["max_retained_bytes"]
+            or gate.get("deadline_wall_ns", float("inf")) > cfg["max_study_wall_seconds"]*1_000_000_000):
+        raise ValueError("final post-write budget gate or result binding differs")
+    gate["prefix_accounting_with_completed_gate_tail"] = add_common_to_prefixes(
+        gate["prefix_accounting"], completion["additional_observed_common_ns_after_gate_boundary"])
+    return gate
+
+
 def execute(manifests, output, *, phase, count, builds=None, registration=None,
-            outer_started=None, common_preparation_ns=0):
+            outer_started=None, common_preparation_ns=0, retention_root=None):
+    started = time.monotonic_ns()
     cfg = protocol()
     if phase not in planning.SEEDS or type(count) is not int or not 1 <= count <= cfg["decisions_per_arm"]:
         raise ValueError("invalid study phase/count")
@@ -503,7 +681,6 @@ def execute(manifests, output, *, phase, count, builds=None, registration=None,
     output = Path(output).absolute()
     output.mkdir(parents=True, exist_ok=False)
     sources = source_files()
-    started = time.monotonic_ns()
     deadline_start = started if outer_started is None else outer_started
     report = {"schema": SCHEMA, "ok": False, "phase": phase, "started_decisions": 0,
         "completed_decisions": 0, "requested_decisions_per_arm": count,
@@ -656,7 +833,8 @@ def execute(manifests, output, *, phase, count, builds=None, registration=None,
         report["common_archive_finalize_and_byte_audit_ns"] = time.monotonic_ns()-finalize_begin
         report["sessions"] = records
         report["journals"] = {name:j.snapshot() for name,j in journals.items()}
-        report["run_wall_ns"] = time.monotonic_ns()-started
+        report["known_execution_components"] = known_execution_cost(report["rows"], records,
+            report["common_archive_finalize_and_byte_audit_ns"] + report.get("source_recheck_ns", 0))
         report["prefix_accounting"] = prefix_accounting(
             [r for r in report["rows"] if len(r["arms"]) == 3], records, builds or {},
             report["journals"], cfg["horizons_to_report"], common_preparation_ns,
@@ -670,13 +848,13 @@ def execute(manifests, output, *, phase, count, builds=None, registration=None,
             report["stopped_partial_accounting_row"] = retained_rows[-1]
         if not report["ok"]:
             report["claims"] = {name: False for name in CLAIMS}
-        estimated_final = sum(p.stat().st_size for p in output.rglob("*") if p.is_file()) + len(json.dumps(report, sort_keys=True, indent=2).encode()) + 1
-        over_limit = estimated_final > cfg["max_retained_bytes"]
-        if over_limit:
-            report.update(ok=False, status="failed_no_rerun", error="final retained-byte budget exceeded")
-        write_json(output / "RESULT.json", report)
-        if over_limit:
-            raise ValueError("registered final retained-byte budget exceeded")
+        gate = finalize_result(output, report, started=started, deadline_start=deadline_start,
+            cfg=cfg, known_components_ns=report["known_execution_components"]["sum_disjoint_components_ns"],
+            retention_root=retention_root)
+        report["final_gate"] = gate
+        if gate.get("ok") is not True:
+            report.update(ok=False, status="failed_no_rerun", error="terminal budget gate failed")
+
     return report
 
 
@@ -699,11 +877,14 @@ def freeze(output, controls_result, development_result):
     if (controls.get("source_identity") != sources or controls.get("source_unchanged") is not True
             or development.get("source_identity") != sources or development.get("source_unchanged") is not True):
         raise ValueError("development controls must bind the current exact study sources")
+    admit_final_gate(development_result, cfg)
     assert_sources(sources, commit=source_commit)
     data = {"schema": "hepta.ndu.identical-inputs-continuation.freeze.v1",
         "code_commit": source_commit, "source_identity": sources,
         "protocol_sha256": file_sha(PROTOCOL), "native_source_pin": STREAM_SOURCE_PIN,
         "controls_sha256": file_sha(controls_result), "development_sha256": file_sha(development_result),
+        "development_final_gate_sha256": file_sha(development_result.with_name("FINAL_GATE.json")),
+        "development_final_completion_sha256": file_sha(development_result.with_name("FINAL_COMPLETE.json")),
         "formal_inputs_generated": 0, "formal_requests": 0, "model_requests": 0,
         "authority": "DENY_ALL", "safety_certificate": False}
     write_json(output, data)
@@ -742,6 +923,7 @@ def formal(args):
         "formal_started": True, "allow_rerun": False})
     output = Path(args.output).absolute()
     output.mkdir(parents=True, exist_ok=False)
+    costs, report = {}, None
     status = {"schema": SCHEMA, "ok": False, "phase": "formal",
               "registration": registration, "formal_inputs_generated_before_cold_build": 0}
     try:
@@ -749,19 +931,29 @@ def formal(args):
             cargo=args.cargo, rustc=args.rustc, cargo_home=args.cargo_home, code_commit=registration["code_commit"], outer_started=began)
         report = execute(manifests, output / "study", phase="formal", count=protocol()["decisions_per_arm"],
                          builds=costs, registration=registration, outer_started=began,
-                         common_preparation_ns=common_preparation_ns)
+                         common_preparation_ns=common_preparation_ns, retention_root=output)
         status.update(ok=report["ok"], status=report["status"], completed_decisions=report["completed_decisions"],
                       study_result_sha256=file_sha(output / "study/RESULT.json"))
     except BaseException as error:
         status.update(ok=False, status="failed_no_rerun", error=type(error).__name__ + ": " + str(error))
         raise
     finally:
-        status["outer_wall_including_cold_build_ns"] = time.monotonic_ns()-began
         status["source_unchanged"] = source_files() == registration["source_identity"]
-        if (not status["source_unchanged"] or status["outer_wall_including_cold_build_ns"] > protocol()["max_study_wall_seconds"]*1_000_000_000
-                or sum(p.stat().st_size for p in output.rglob("*") if p.is_file()) > protocol()["max_retained_bytes"]):
-            status.update(ok=False, status="failed_no_rerun", error="overall source/wall/retention gate failed")
-        write_json(output / "RESULT.json", status)
+        if not status["source_unchanged"]:
+            status.update(ok=False, status="failed_no_rerun", error="overall source gate failed")
+        if report is not None:
+            status["prefix_accounting"] = report["prefix_accounting"]
+        build_ns = sum(value.get("outer_total_build_and_cleanup_ns", value["total_build_and_cleanup_ns"])
+                       for value in costs.values())
+        execution_ns = 0 if report is None else report["known_execution_components"]["sum_disjoint_components_ns"]
+        status["known_outer_components"] = {"build_ns": build_ns,
+            "common_registration_ns": common_preparation_ns, "execution_components_ns": execution_ns}
+        gate = finalize_result(output, status, started=began, deadline_start=began, cfg=protocol(),
+            known_components_ns=build_ns+execution_ns+common_preparation_ns)
+        status["final_gate"] = gate
+        if gate.get("ok") is not True:
+            status.update(ok=False, status="failed_no_rerun", error="overall terminal budget gate failed")
+
     return status
 
 
@@ -791,7 +983,9 @@ def main(argv=None):
         controls = development_controls(manifests, base / "controls")
         result = execute(manifests, base / "matrix", phase="development", count=args.count)
         print(json.dumps({"ok": result["ok"], "controls": controls["case_count"],
-                          "decisions_per_arm": result["completed_decisions"]}))
+                          "decisions_per_arm": result["completed_decisions"],
+                          "final_post_write_observation": result["final_gate"].get("post_write_observation"),
+                          "final_gate_ok": result["final_gate"]["ok"]}))
         return 0 if result["ok"] else 2
     elif args.mode == "freeze":
         data = freeze(args.output, args.controls_result, args.development_result)
@@ -799,7 +993,9 @@ def main(argv=None):
         return 0
     else:
         result = formal(args)
-        print(json.dumps({"ok": result["ok"], "completed_decisions": result.get("completed_decisions")}))
+        print(json.dumps({"ok": result["ok"], "completed_decisions": result.get("completed_decisions"),
+            "final_post_write_observation": result["final_gate"].get("post_write_observation"),
+            "final_gate_ok": result["final_gate"]["ok"]}))
         return 0 if result["ok"] else 2
 
 

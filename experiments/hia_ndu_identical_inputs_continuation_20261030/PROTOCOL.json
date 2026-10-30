@@ -62,6 +62,9 @@
   "unmeasured_costs": [
     "Python interpreter bootstrap before instrumented entry",
     "toolchain/dependency acquisition",
-    "human engineering and review"
-  ]
+    "human engineering and review",
+    "Final positive-completion receipt preparation/write, its last budget check and process exit; outer process observation may measure this tail separately"
+  ],
+  "terminal_budget_gate": "RESULT is provisional. After its actual encoding/write, FINAL_GATE reconciles all observed disjoint cost components plus remaining common coordination/reporting time and includes its exact encoded size plus a fixed 2048-byte positive completion receipt. Real post-gate stat/monotonic checks precede FINAL_COMPLETE, which binds the original result and gate hashes and records the additionally observed common gate tail. Freeze requires the complete positive receipt, both bound files and no failure marker; post-completion stat/clock failure is also retained and rejects success. The final completion record cannot self-measure its own preparation/write and process exit; this tail is explicitly unknown, never zero. Full-run residual assay costs are conservatively common to every measured prefix and every arm, not claims of separately stopped short trials.",
+  "build_failure_retention": "Bounded builds keep sole leader-reaping ownership, observe WNOWAIT, terminate the owned process group and reap before target removal on timeout, KeyboardInterrupt and other caught BaseExceptions. Actual observed stdout/stderr bytes and cleanup/EOF status are persisted before reraising. Unconfirmed process cleanup retains the target and fails. Deliberate descendants escaping the original process group are outside this runner containment claim."
 }
