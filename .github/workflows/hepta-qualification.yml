@@ -6,6 +6,7 @@ on:
       - codex/hia-core-closure-20261028
       - codex/hia-round6-convergence-20261029
       - codex/hia-round7-opportunity-20261029
+      - codex/hia-round8-integration-20261029
       - feat/hepta-p0-p1-verified-ir-20261024
       - feat/hepta-agent-safe-cfg-cpp-20261024
       - feat/hepta-safe-migration-agent-20261024
@@ -41,7 +42,7 @@ jobs:
   release-qualification:
     runs-on: ubuntu-24.04
     # The existing full profile retains all three regression passes. The explicit
-    # round6/round7 profiles run one complete integrated pass plus the canonical matrix.
+    # round6/round7/round8 profiles run one integrated pass plus the canonical matrix.
     # This job watchdog does not change individual proof/search or zero-skip gates.
     timeout-minutes: 240
     env:
@@ -70,7 +71,7 @@ jobs:
           set -euo pipefail
           actual_head=$(git rev-parse HEAD)
           case "$HEPTA_SOURCE_BRANCH" in
-            codex/hia-round6-convergence-20261029|codex/hia-round7-opportunity-20261029) hepta_qualification_profile=integrated ;;
+            codex/hia-round6-convergence-20261029|codex/hia-round7-opportunity-20261029|codex/hia-round8-integration-20261029) hepta_qualification_profile=integrated ;;
             *) hepta_qualification_profile=full ;;
           esac
           mkdir -p artifacts

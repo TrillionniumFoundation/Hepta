@@ -7,17 +7,21 @@ borrow-checking gate, or C/Rust implementation fallback.  Its finite profile is
 byte-owner operations and v7 recursive chains. Linux x86-64 admits shared
 libraries/objects; AArch64 and RV64GC/LP64D admit objects only. Verification and
 finite native comparisons are not a compiler-refinement or soundness proof.
+Native Clang drivers run on measured Linux x86-64 or AArch64 LP64 hosts; an
+object built for another machine carries an explicit cross-compilation flag.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
 from hashlib import sha256
+import ctypes
 import os
 from pathlib import Path
 import platform
 import re
 import shutil
 import stat
+import sys
 import tempfile
 
 from .artifact_publication import publish_verified, verify_published, withdraw_own_link
@@ -95,6 +99,38 @@ class HIAProgramLLVMRejected(ValueError):
 
 def _reject(message, code="E_HIA_PROGRAM_LLVM"):
     raise HIAProgramLLVMRejected(code + ": " + message)
+
+
+def native_host_profile():
+    """Measure the admitted Linux host independently of the requested output.
+
+    Object emission may target another machine; this observation never grants
+    execution qualification. In particular an AArch64 object produced on an
+    x86 host is still a cross-compiled object, and AArch64 shared libraries are
+    outside the existing shared-ELF admission profile.
+    """
+    machine = platform.machine()
+    normalized = {"x86_64": "x86_64", "amd64": "x86_64",
+                  "aarch64": "aarch64", "arm64": "aarch64"}.get(machine.lower())
+    widths = {"pointer_bits": ctypes.sizeof(ctypes.c_void_p) * 8,
+              "size_t_bits": ctypes.sizeof(ctypes.c_size_t) * 8,
+              "long_bits": ctypes.sizeof(ctypes.c_long) * 8}
+    if (platform.system() != "Linux" or normalized is None
+            or sys.byteorder != "little" or any(value != 64 for value in widths.values())):
+        _reject("native profile requires a little-endian Linux x86-64 or AArch64 LP64 host")
+    return {"system": "Linux", "machine": machine, "normalized_machine": normalized,
+            "target": TARGET if normalized == "x86_64" else TARGET_AARCH64,
+            "elf_machine": 62 if normalized == "x86_64" else 183,
+            "abi": "SysV AMD64 LP64" if normalized == "x86_64" else "AAPCS64 LP64",
+            "byteorder": sys.byteorder, **widths}
+
+
+def native_driver_matches_host(default_target, host):
+    """Closed GNU/Linux driver identities; reject ILP32, Darwin and foreign hosts."""
+    architecture = {TARGET: "x86_64", TARGET_AARCH64: "aarch64"}.get(host.get("target"))
+    return architecture is not None and default_target in {
+        architecture + "-unknown-linux-gnu", architecture + "-pc-linux-gnu",
+        architecture + "-linux-gnu"}
 
 
 def _implementation_hash():
@@ -853,8 +889,9 @@ def compile_program_llvm(ir, *, program, output, clang="clang", kind="shared"):
         _reject("only shared libraries and relocatable objects are supported")
     if ir.target in {TARGET_AARCH64, TARGET_RISCV64} and kind != "object":
         _reject("cross-target builds produce relocatable objects; execution requires a separate target runtime")
-    if platform.system() != "Linux" or platform.machine() not in {"x86_64", "amd64"}:
-        _reject("native profile requires a Linux x86-64 host")
+    host = native_host_profile()
+    if kind == "shared" and host["target"] != TARGET:
+        _reject("shared-library admission still requires a Linux x86-64 host; use a relocatable object")
     found = shutil.which(clang)
     if found is None:
         _reject("actual Clang 20+ is required")
@@ -864,8 +901,8 @@ def compile_program_llvm(ir, *, program, output, clang="clang", kind="shared"):
     target = run_bounded([str(compiler), "-dumpmachine"], timeout=10, stdout_limit=65536, stderr_limit=65536)
     if (version.returncode or target.returncode
             or re.search(r"clang version (?:2[0-9]|[3-9][0-9])\.", version.stdout) is None
-            or target.stdout.strip() not in {TARGET, "x86_64-pc-linux-gnu"}):
-        _reject("expected an actual Clang 20+ Linux x86-64 driver")
+            or not native_driver_matches_host(target.stdout.strip(), host)):
+        _reject("expected an actual Clang 20+ GNU/Linux driver matching the measured native host")
     destination = Path(os.path.abspath(output))
     if destination.exists() or destination.is_symlink() or not destination.parent.is_dir():
         _reject("a new output path in an existing directory is required")
@@ -906,6 +943,7 @@ def compile_program_llvm(ir, *, program, output, clang="clang", kind="shared"):
     return {"schema": "hepta.hia.program.native.v1", "ok": True,
             "status": "native_compiled_not_executed", "profile": ir.profile, "target": ir.target,
             "kind": kind, "output": str(destination), "core_sha256": ir.core_sha256,
+            "build_host": host, "cross_target_compilation": ir.target != host["target"],
             "input_sha256": ir.input_sha256,
             "llvm_ir_sha256": ir.sha256, "implementation_sha256": ir.implementation_sha256,
             "artifact_sha256": published["sha256"], "artifact_bytes": published["bytes"],

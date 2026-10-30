@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from hashlib import sha256
 import json
+import math
 import os
 from pathlib import Path
 import platform
@@ -145,6 +146,87 @@ print(json.dumps({"value": int(f(*args))}, separators=(",", ":")), flush=True)
 
 class HIADifferentialRejected(ValueError):
     """Invalid corpus, corrupted source/artifact, or actual native divergence."""
+
+    @property
+    def build_diagnostics(self):
+        """Detached diagnostic data, never authority to execute a rejected build."""
+        payload = getattr(self, "_build_diagnostics_json", None)
+        return json.loads(payload) if payload is not None else None
+
+
+def _bounded_build_diagnostics(report):
+    """Copy ordinary bounded JSON without invoking arbitrary object hooks.
+
+    A rejected compiler report is explanatory data. Keeping it must not create
+    unbounded traversal, retain mutable caller aliases or replace the original
+    qualification refusal when a malformed report cannot be copied.
+    """
+    nodes, characters, active = 0, 0, set()
+
+    def copy(value, depth=0):
+        nonlocal nodes, characters
+        nodes += 1
+        if nodes > 1024 or depth > 12:
+            raise ValueError("diagnostic structure exceeds limit")
+        if value is None or type(value) is bool:
+            return value
+        if type(value) is int and value.bit_length() <= 128:
+            return value
+        if type(value) is float and math.isfinite(value):
+            return value
+        if type(value) is str:
+            characters += len(value)
+            if len(value) > 16384 or characters > 32768:
+                raise ValueError("diagnostic text exceeds limit")
+            return value
+        if type(value) not in {dict, list} or len(value) > 128 or id(value) in active:
+            raise ValueError("diagnostic value is not bounded ordinary JSON")
+        active.add(id(value))
+        try:
+            if type(value) is list:
+                return [copy(item, depth + 1) for item in value]
+            result = {}
+            for key, item in value.items():
+                if type(key) is not str or len(key) > 256:
+                    raise ValueError("diagnostic keys must be bounded strings")
+                result[copy(key, depth + 1)] = copy(item, depth + 1)
+            return result
+        finally:
+            active.remove(id(value))
+
+    detached = copy(report)
+    envelope = {"schema": "hepta.hia.rejected-source-build-diagnostics.v1",
+                "diagnostic_only": True, "authorizes_execution": False,
+                "snapshot_status": "retained", "builder_report": detached}
+    payload = json.dumps(envelope, sort_keys=True, separators=(",", ":"),
+                         ensure_ascii=True, allow_nan=False).encode("ascii")
+    if len(payload) > 65536:
+        raise ValueError("encoded diagnostic report exceeds limit")
+    return payload
+
+
+def _reject_checked_source_build(report):
+    message = "E_HIA_DIFFERENTIAL: checked source->Core native qualification rejected"
+    error = HIADifferentialRejected(message)
+    # Construct the refusal first. Diagnostic allocation/decoding failure must
+    # never replace it, and an unavailable snapshot is explicit to callers.
+    error._build_diagnostics_json = (
+        b'{"schema":"hepta.hia.rejected-source-build-diagnostics.v1",'
+        b'"diagnostic_only":true,"authorizes_execution":false,'
+        b'"snapshot_status":"unavailable","builder_report":null}')
+    try:
+        payload = _bounded_build_diagnostics(report)
+        detached = json.loads(payload)["builder_report"]
+        details = detached.get("diagnostics") if type(detached) is dict else None
+        if type(details) is list and details and type(details[0]) is dict:
+            detail = details[0].get("message")
+            if type(detail) is str:
+                error.args = (message + ": " + detail[:600],)
+        error._build_diagnostics_json = payload
+    except (ValueError, TypeError, OverflowError, RecursionError, MemoryError,
+            RuntimeError, UnicodeError):
+        pass
+    raise error
 
 
 _MAX_NATIVE_CHILDREN = 32
@@ -945,9 +1027,10 @@ def qualify_checked_hia_source(source: str | Path, cases: dict, *, profile="owne
                                                 clang=clang, locked=locked,
                                                 profile=profile, kind="shared",
                                                 static_resource_limits=static_resource_limits)
-        if (native.get("ok") is not True
-                or native.get("claims", {}).get("native_codegen_consumed_verified_hia_core") is not True):
-            _reject("checked source->Core native qualification rejected")
+        if (type(native) is not dict or native.get("ok") is not True
+                or type(native.get("claims")) is not dict
+                or native["claims"].get("native_codegen_consumed_verified_hia_core") is not True):
+            _reject_checked_source_build(native)
         analyzed = analyze_project(Path(source), backend="rust", native=False,
                                    crate_type="rlib", locked=locked)
         if (analyzed.report.get("ok") is not True or analyzed.program is None

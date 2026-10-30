@@ -142,7 +142,8 @@ def _reinspect_source_native_bytes(payload: bytes, ir, native: dict, *,
     that the foreign libc implementation is safe.
     """
     from .elf_shared_abi import inspect_owned_shared_elf
-    from .hia_program_llvm import TARGET, TARGET_AARCH64, _IMPORTS
+    from .hia_program_llvm import (TARGET, TARGET_AARCH64, _IMPORTS,
+                                   native_host_profile)
     from .object_symbols import inspect_object_symbols
 
     expected_claims = {
@@ -163,6 +164,7 @@ def _reinspect_source_native_bytes(payload: bytes, ir, native: dict, *,
         "core_sha256", "input_sha256", "llvm_ir_sha256", "implementation_sha256",
         "artifact_sha256", "artifact_bytes", "exports", "binary_inventory",
         "external_abi", "runtime_assumptions", "toolchain", "flags", "claims",
+        "build_host", "cross_target_compilation",
     }
     if (type(payload) is not bytes or not payload or type(native) is not dict
             or set(native) != expected_fields
@@ -185,6 +187,25 @@ def _reinspect_source_native_bytes(payload: bytes, ir, native: dict, *,
             or any(native["claims"][name] is not value
                    for name, value in expected_claims.items())):
         _reject("staged native receipt lacks exact Core profile or proof scope")
+    # The producer now records its measured host separately from the requested
+    # target. Reobserve it here: accepting those fields as assertions would let
+    # a caller relabel a cross-compiled object as a native-host observation.
+    # Exact primitive types matter; 64.0 is not the integer ABI width 64, and
+    # zero is not the boolean claim that compilation used the native target.
+    observed_host = native_host_profile()
+    reported_host = native["build_host"]
+    if (type(reported_host) is not dict
+            or set(reported_host) != set(observed_host)
+            or any(type(reported_host[key]) is not type(value)
+                   or reported_host[key] != value
+                   for key, value in observed_host.items())
+            or type(native["cross_target_compilation"]) is not bool
+            or native["cross_target_compilation"] is not
+                (target != observed_host["target"])
+            or (kind == "shared" and
+                (target != TARGET or observed_host["target"] != TARGET
+                 or native["cross_target_compilation"] is not False))):
+        _reject("staged native receipt host or cross-target identity differs from actual host")
     if kind == "shared" and target == TARGET:
         scanned = inspect_owned_shared_elf(payload, ir.exports)
     elif kind == "object" and target in {TARGET, TARGET_AARCH64}:
