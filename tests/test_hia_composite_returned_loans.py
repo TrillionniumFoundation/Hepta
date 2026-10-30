@@ -533,5 +533,49 @@ class CompositeReturnedLoansNative(unittest.TestCase):
                 temporary.cleanup()
 
 
+class CompositeOriginConvergenceTests(unittest.TestCase):
+    def test_mixed_primitive_and_field_origins_share_exact_core_and_refusals(self):
+        params = [("views", "Views"), ("direct", "readbuf"), ("which", "bool")]
+        helper = f("mixed", params, ["readbuf", "readbuf"], [], [
+            b("entry", params, [], branch("which", ("joined", "views", "direct"),
+                                         ("joined", "views", "direct"))),
+            b("joined", [("renamed", "Views"), ("alias", "readbuf")], [
+                i("record.unpack", ["renamed"], [("tag", "u16"), ("field", "readbuf")]),
+                i("borrow.read", ["field"], [("field_child", "readbuf")]),
+                i("borrow.read", ["alias"], [("direct_child", "readbuf")]),
+            ], ret("field_child", "direct_child")),
+        ])
+        helper["return_loans"] = [origin("views", "loan"), "direct"]
+        source = v4([record("Views", [("tag", "u16"), ("loan", "readbuf")])], helper)
+        checked = verify_core(source)
+        explicit = deepcopy(source)
+        explicit["functions"][0]["return_loans"][1] = origin("direct")
+        self.assertEqual(checked.canonical_bytes, verify_core(explicit).canonical_bytes)
+        self.assertEqual(checked.scalar_entrypoints, frozenset())
+        for annotations in (["views", "direct"], [origin("views", "loan"), "alias"],
+                            ["direct", origin("views", "loan")]):
+            changed = deepcopy(source)
+            changed["functions"][0]["return_loans"] = annotations
+            with self.subTest(annotations=annotations), self.assertRaises(HIAProgramRejected):
+                verify_core(changed)
+
+
+# Preserve the original public 13-method selector identities without changing
+# the newer field-origin fixtures or discovering the support classes twice.
+from tests import hia_composite_primitive_returns as _primitive_return_tests
+
+
+class CompositeReturnedLoanSemantics(_primitive_return_tests.CompositeReturnedLoanSemantics):
+    """Legacy primitive-formal origin syntax on the current elaborator."""
+
+
+class CompositeReturnedLoanRust(_primitive_return_tests.CompositeReturnedLoanRust):
+    """Original v4 corpus through the existing sealed Rust execution path."""
+
+
+class CompositeReturnedLoanNative(_primitive_return_tests.CompositeReturnedLoanNative):
+    """Original direct-LLVM scalar and allocator observations."""
+
+
 if __name__ == "__main__":
     unittest.main()

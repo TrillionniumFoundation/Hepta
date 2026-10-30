@@ -1,9 +1,11 @@
 """Exercise real workflow environment persistence without executing compilers."""
 import importlib.util
+import json
 import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import textwrap
 import unittest
@@ -84,11 +86,20 @@ class QualificationEnvironmentTests(unittest.TestCase):
     def test_workflow_exports_actual_aliases_and_lean_to_both_following_steps(self):
         with tempfile.TemporaryDirectory() as directory:
             tools, env, exported, paths = self.fixture(directory)
+            env["HEPTA_CLANG"] = "/ambient/unused clang"
             result = self.export(env)
             self.assertEqual(result.returncode, 0, result.stderr)
             following = self.next_step(env, exported, paths)
             self.assertEqual(Path(following["LEAN"]).resolve(), tools["lean"])
             self.assertEqual(following["CLANG"], "/usr/lib/llvm-20/bin/clang")
+            # Read the persisted environment in a real subsequent process.
+            # Both names must select the same compiler, even with a stale
+            # inherited native-graph override in the original environment.
+            child = subprocess.run([sys.executable, "-c",
+                "import json,os; print(json.dumps({k:os.environ.get(k) for k in ('CLANG','HEPTA_CLANG')}))"],
+                env=following, capture_output=True, text=True, timeout=10, check=True)
+            self.assertEqual(json.loads(child.stdout), {
+                "CLANG": following["CLANG"], "HEPTA_CLANG": following["CLANG"]})
             for name in ("lean", "qemu-aarch64", "ld.lld"):
                 resolved = shutil.which(name, path=following["PATH"])
                 self.assertIsNotNone(resolved)

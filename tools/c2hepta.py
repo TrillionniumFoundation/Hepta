@@ -193,10 +193,12 @@ def _read_bounded_source(source: Path) -> bytes:
     """Read at most the declared source budget plus one byte.
 
     Open non-blocking so an untrusted FIFO path cannot stall before fstat;
-    only regular files are admitted. Use the same bounded read for initial
-    admission and the post-Clang source-identity recheck.
+    only regular files are admitted. Refuse a terminal symlink at the actual
+    open, including a replacement after the caller's precheck. Use the same
+    bounded read for initial admission and the post-Clang identity recheck.
     """
-    flags = os.O_RDONLY | getattr(os, "O_NONBLOCK", 0)
+    flags = (os.O_RDONLY | getattr(os, "O_NONBLOCK", 0)
+             | getattr(os, "O_NOFOLLOW", 0))
     with os.fdopen(os.open(source, flags), "rb") as stream:
         if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
             raise UnsupportedC("C input must be a regular file")
@@ -386,7 +388,12 @@ def _migrate_impl(source: Path, output: Path, report: Path, clang: str,
     # different filesystem state to those descriptors.
     admitted_source, admitted_output, admitted_report = admitted_paths
     try:
-        original = _read_bounded_source(source)
+        if source.is_symlink():
+            raise UnsupportedC("symlink source paths are not accepted")
+        # A parent alias may change after admission. Read the same canonical
+        # pathname named in the receipt, not the mutable caller alias. This
+        # pins a pathname; it does not pin every ancestor directory or inode.
+        original = _read_bounded_source(admitted_source)
         read_error = None
     except (OSError, UnsupportedC) as exc:
         original = None
@@ -470,7 +477,7 @@ def _migrate_impl(source: Path, output: Path, report: Path, clang: str,
                 info["functions"].append({"name": label, "status": "unsupported", "reason": str(exc)})
         if any(item["status"] != "converted" for item in info["functions"]):
             raise UnsupportedC("one or more declarations unsupported; no partial source emitted")
-        if hashlib.sha256(_read_bounded_source(source)).hexdigest() != digest:
+        if hashlib.sha256(_read_bounded_source(admitted_source)).hexdigest() != digest:
             raise UnsupportedC("source changed during conversion")
         emitted = "module c2hepta_generated;\n\n" + "\n\n".join(emit_function(fn) for fn in converted) + "\n"
         # Check syntax/types against the actual Hepta frontend when it is installed.

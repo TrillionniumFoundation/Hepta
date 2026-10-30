@@ -288,7 +288,7 @@ def qualify(output, *, clang, cc, rustc, cargo, qemu_aarch64, qemu_riscv64,
         "commands": [{"name": name, "argv": list(map(str, argv))} for name, argv, _ in plan]},
         indent=2, sort_keys=True) + "\n").encode())
     previous_cwd = Path.cwd()
-    environment = {"RUSTC": rustc, "CLANG": clang, "CC": cc, "LEAN": lean,
+    environment = {"RUSTC": rustc, "CLANG": clang, "HEPTA_CLANG": clang, "CC": cc, "LEAN": lean,
                    "HEPTA_LLD": linker,
                    "HEPTA_LLVM_READOBJ": str(Path(clang).with_name("llvm-readobj")),
                    "HEPTA_QEMU_AARCH64": qemu_aarch64, "HEPTA_QEMU_RISCV64": qemu_riscv64,

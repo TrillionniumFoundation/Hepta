@@ -7,6 +7,7 @@ this trial has a separate prospective protocol and never replaces old samples.
 from __future__ import annotations
 
 import argparse
+from contextlib import ExitStack
 import ctypes
 from hashlib import sha256
 import json
@@ -33,7 +34,7 @@ from tools.qualify_hia_filecheck import (Trial, RESOURCE_HARNESS, cases, checksu
 from tools.qualify_c_ring_buffer import verify_upstream as verify_ring
 from tools.qualify_c_musl_compare import verify_upstream as verify_compare
 from tools.hia_filecheck_target_profile import (bind_native_target_profile,
-    _bind_attributes, _file_identity)
+    _bind_attributes, _file_identity, elf_linker_driver, elf_linker_version_argv)
 
 FIXTURE = ROOT / "examples/hia_legacy_queue"
 PROTOCOL_PATH = ROOT / "experiments/hia_legacy_queue/PROTOCOL_20261028.json"
@@ -127,6 +128,7 @@ class LegacyTrial(Trial):
         self.project = self.out / "project"
         self.contracts = populate_project(self.project)
         self.libraries, self.runtime_images = {}, {}
+        self.linker_contexts = ExitStack()
         self.application_serial = 0
         self.report["initialization_wall_ns"] = time.perf_counter_ns() - initialization_started
 
@@ -216,7 +218,8 @@ class LegacyTrial(Trial):
 
     def build(self):
         for name, path in self.tools.items():
-            version = self.command([path, "--version"], "tool_identity")
+            argv = elf_linker_version_argv(path) if name == "linker" else [path, "--version"]
+            version = self.command(argv, "tool_identity")
             self.report.setdefault("tools", {})[name] = {**identity(path), "version": version["stdout"]}
         self.report["host"] = {"platform": platform.platform(), "machine": platform.machine(),
             "exclusive_host": False, "dot_status": "LOCAL_RUNTIME_NOT_OBSERVABLE"}
@@ -240,7 +243,9 @@ class LegacyTrial(Trial):
         begin = time.perf_counter_ns()
         receipt = build_program_native(self.core, self.libraries["hia_default"], clang=self.tools["clang"])
         self.report["builds"]["hia_default"] = {"wall_ns": time.perf_counter_ns()-begin, "receipt": receipt}
-        self.flags = ["-O3", "-flto=full", "-fuse-ld="+self.tools["linker"], "-march=native", "-fPIC", "-shared", "-Wl,-Bsymbolic-functions"]
+        self.linker_driver_path, self.report["linker_driver"] = self.linker_contexts.enter_context(
+            elf_linker_driver(self.tools["linker"]))
+        self.flags = ["-O3", "-flto=full", "-fuse-ld="+self.linker_driver_path, "-march=native", "-fPIC", "-shared", "-Wl,-Bsymbolic-functions"]
         begin = time.perf_counter_ns()
         self.prepare_native_ir()
         generated = self.require_core_ir()
@@ -484,16 +489,17 @@ class LegacyTrial(Trial):
     def run(self, *, prepare_only=False):
         begin=time.perf_counter_ns()
         try:
-            # Shared corpus/ordering helpers are admitted only when the two
-            # independently registered protocol fields are exactly the same.
-            from tools.qualify_hia_filecheck import PROTOCOL as old
-            require(all(self.protocol[k]==old[k] for k in ("algorithms","differential_cases")),"shared oracle protocol mismatch")
-            self.build();self.differential();self.resources();self.maintenance()
-            if not prepare_only:self.measure()
-            self.verify_artifacts()
-            require(self.source_bindings()==self.report["source_bindings"],"source changed during qualification")
-            require(identity(self.out/"rss-supervisor")==self.supervisor_identity,"supervisor changed")
-            require(identity(sys.executable)=={k:self.report["python"][k] for k in ("path","bytes","sha256")},"Python changed")
+            with self.linker_contexts:
+                # Shared corpus/ordering helpers are admitted only when the two
+                # independently registered protocol fields are exactly the same.
+                from tools.qualify_hia_filecheck import PROTOCOL as old
+                require(all(self.protocol[k]==old[k] for k in ("algorithms","differential_cases")),"shared oracle protocol mismatch")
+                self.build();self.differential();self.resources();self.maintenance()
+                if not prepare_only:self.measure()
+                self.verify_artifacts()
+                require(self.source_bindings()==self.report["source_bindings"],"source changed during qualification")
+                require(identity(self.out/"rss-supervisor")==self.supervisor_identity,"supervisor changed")
+                require(identity(sys.executable)=={k:self.report["python"][k] for k in ("path","bytes","sha256")},"Python changed")
             self.report.update(ok=True,status="prepared_not_measured" if prepare_only else "completed",prepare_only=prepare_only)
         except Exception as error:
             self.report.update(ok=False,status="failed",error={"type":type(error).__name__,"message":str(error)})

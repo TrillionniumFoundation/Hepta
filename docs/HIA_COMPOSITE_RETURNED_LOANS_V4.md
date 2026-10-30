@@ -27,7 +27,7 @@ A v4 function may return primitive `readbuf` or `mutbuf` values. Its optional
 ]
 ```
 
-Each borrowed result requires an object with exactly `param` and `fields`.
+The object form has exactly `param` and `fields`.
 `param` names an original formal parameter, not a block-local alias, result
 name, generated name or numeric slot. `fields` is a list of ASCII record field
 names in outer-to-inner order. An empty list selects a direct primitive loan
@@ -35,6 +35,16 @@ parameter. Its length is bounded by the existing 32-level type-path limit.
 Integers, booleans, extra keys, missing names and unsupported path shapes
 reject. Every nonloan result requires `null`; omitting the array is equivalent
 to all null entries and therefore does not authorize a borrowed result.
+
+The original primitive-formal string annotation is also retained: `"writer"`
+is equivalent to `{"param":"writer","fields":[]}` only when `writer` is an
+original primitive `readbuf` or `mutbuf` parameter with sufficient permission.
+A record parameter's name alone is rejected, even if that record has one loan
+field or empty fields erase from its layout. Generated names and block-local
+aliases are not accepted. A function can mix these two explicit forms; both
+resolve through the same original-parameter and field-path checks before the
+existing primitive verifier checks their actual ancestry. Missing, malformed
+nonobject and invalid string origins retain the original `E_HIA_LOAN` refusal.
 
 The selected original parameter must be a primitive loan or a finite record
 without owning resources. A path traverses complete record fields only and

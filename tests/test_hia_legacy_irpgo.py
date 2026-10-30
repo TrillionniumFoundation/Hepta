@@ -6,6 +6,7 @@ control executes one deliberately signalled child. No timing campaign or
 model execution is performed.
 """
 from copy import deepcopy
+from contextlib import ExitStack
 import json
 import os
 from pathlib import Path
@@ -21,6 +22,7 @@ from hepta.hia_program_llvm import emit_program_llvm
 from tools.qualify_hia_legacy_irpgo import IRPGOTrial, inspect_ir_counters
 from tools.qualify_hia_legacy_queue import ENTRY, LegacyTrial, generated_program_identity
 from tools.qualify_hia_filecheck import identity
+from tools.hia_filecheck_target_profile import elf_linker_driver
 
 
 PROFILE = f"""Counters:
@@ -83,6 +85,8 @@ class SameCoreBuildInputTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
+        self.linker_contexts = ExitStack()
+        self.addCleanup(self.linker_contexts.close)
         self.out = Path(self.temporary.name)
         self.directory = self.out / "migration"
         self.directory.mkdir()
@@ -111,8 +115,9 @@ class SameCoreBuildInputTests(unittest.TestCase):
         linker = shutil.which(os.environ.get("HEPTA_LLD", "ld.lld"))
         self.assertIsNotNone(clang, "actual Clang required for native target binding")
         self.assertIsNotNone(linker, "actual LTO linker required")
+        driver, _ = self.linker_contexts.enter_context(elf_linker_driver(linker))
         trial.tools = {"clang": clang}
-        trial.flags = ["-O3", "-flto=full", "-fuse-ld=" + linker, "-march=native",
+        trial.flags = ["-O3", "-flto=full", "-fuse-ld=" + driver, "-march=native",
                        "-fPIC", "-shared", "-Wl,-Bsymbolic-functions"]
         trial.report = {"commands": [], "migration": {"generated_program": self.binding}}
         trial.prepare_native_ir()
