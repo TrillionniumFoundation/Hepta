@@ -9,6 +9,18 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 import hashlib
 import json
+import re
+
+
+# The migration IR can also be called without the C importer. Only validated
+# ASCII Hepta symbol spellings may be interpolated into emitted source.
+_SYMBOL = re.compile(r"[A-Za-z][A-Za-z0-9_]*\Z", re.ASCII)
+_RESERVED = frozenset({
+    "module", "import", "fn", "pub", "extern", "export", "effects", "resources",
+    "as", "let", "mut", "take", "move", "read", "unsafe", "struct", "enum",
+    "match", "if", "else", "return", "for", "while", "true", "false",
+    "wrapping_add", "wrapping_sub", "wrapping_mul", "len", "assert", "main",
+})
 
 
 NUMERIC = frozenset({"i32", "u32"})
@@ -18,6 +30,11 @@ COMPARISON = frozenset({"==", "!=", "<", "<=", ">", ">="})
 
 class IRValidationError(ValueError):
     pass
+
+
+def _check_symbol(name: str) -> None:
+    if not isinstance(name, str) or not _SYMBOL.fullmatch(name) or name in _RESERVED:
+        raise IRValidationError(f"unsupported Hepta migration IR identifier: {name!r}")
 
 
 @dataclass(frozen=True)
@@ -92,10 +109,12 @@ def _block(body: tuple[Stmt, ...], names: dict[str, str], result: str) -> set[st
 
 
 def check_function(function: Function) -> frozenset[str]:
+    _check_symbol(function.name)
     if function.result not in NUMERIC or not function.body:
         raise IRValidationError("unsupported result or empty function")
     names: dict[str, str] = {}
     for name, ty in function.params:
+        _check_symbol(name)
         if name in names or ty not in NUMERIC:
             raise IRValidationError("duplicate or unsupported parameter")
         names[name] = ty

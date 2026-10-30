@@ -42,6 +42,26 @@ class HsirSafety(unittest.TestCase):
         self.assertIn("wrapping_add", emit_function(fn))
 
 
+    def test_ir_api_rejects_untrusted_function_and_parameter_identifiers(self):
+        # Independent HSIR callers must not bypass the C importer's identifier
+        # checks and inject arbitrary source fragments through emit_function().
+        body = (Stmt("return", Expr("literal", "i32", "1")),)
+        for unsafe in ("main", "module", "__LINE__", "x y",
+                       "safe() { return 1; } //", "café"):
+            with self.subTest(function=unsafe):
+                fn = Function(unsafe, (), "i32", body)
+                with self.assertRaises(IRValidationError):
+                    emit_function(fn)
+            with self.subTest(parameter=unsafe):
+                fn = Function("safe", ((unsafe, "i32"),), "i32",
+                              (Stmt("return", Expr("var", "i32", unsafe)),))
+                with self.assertRaises(IRValidationError):
+                    emit_function(fn)
+        valid = Function("safe_add", (("arg_1", "i32"),), "i32",
+                         (Stmt("return", Expr("var", "i32", "arg_1")),))
+        self.assertIn('export "C" fn safe_add(', emit_function(valid))
+
+
 class C2HeptaImport(unittest.TestCase):
     def setUp(self):
         self.assertTrue(shutil.which("clang"), "Clang is required for this migration test")
