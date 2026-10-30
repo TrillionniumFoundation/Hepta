@@ -265,6 +265,29 @@ class C2HeptaImport(unittest.TestCase):
                 self.assertFalse(self.out.exists())
                 self.assertTrue(self.report.exists())
 
+    def test_malformed_clang_ast_envelopes_fail_closed_with_evidence(self):
+        # An untrusted Clang executable can emit bounded but invalid JSON AST.
+        # Neither a non-object root nor extreme nesting may crash migration
+        # before a rejection report is published.
+        self.src.write_text("int safe(int x){return x;}\n", encoding="utf-8")
+        deeply_nested = b'{"inner":[' + (b'[' * 12000) + b'0' + (b']' * 12000) + b']}'
+        for label, payload in (
+            ("non_object_root", b"[]"),
+            ("non_list_nodes", b'{"inner":null}'),
+            ("non_object_node", b'{"inner":[7]}'),
+            ("excessive_nesting", deeply_nested),
+        ):
+            with self.subTest(case=label):
+                self.out.unlink(missing_ok=True)
+                self.report.unlink(missing_ok=True)
+                fake = subprocess.CompletedProcess(["clang"], 0, payload, b"")
+                with mock.patch("tools.c2hepta._run_clang_ast_bounded", return_value=fake):
+                    result = migrate(self.src, self.out, self.report)
+                self.assertEqual(result["status"], "rejected", result)
+                self.assertFalse(self.out.exists())
+                self.assertTrue(self.report.exists())
+                self.assertEqual(json.loads(self.report.read_text())["status"], "rejected")
+
     def test_native_gate_without_frontend_fails_closed(self):
         self.src.write_text("int f(int x){return x;}", encoding="utf-8")
         result = migrate(self.src, self.out, self.report, verify_native=True, rustc="/no/such/rustc")
