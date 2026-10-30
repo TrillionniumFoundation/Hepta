@@ -13,7 +13,7 @@ import tempfile
 import unittest
 from unittest import mock
 
-from hepta.migration_ir import Expr, Function, IRValidationError, Stmt, check_function, emit_function
+from hepta.migration_ir import Expr, Function, IRValidationError, Stmt, check_function, emit_function, function_hash
 from tools.c2hepta import migrate
 
 
@@ -60,6 +60,41 @@ class HsirSafety(unittest.TestCase):
         valid = Function("safe_add", (("arg_1", "i32"),), "i32",
                          (Stmt("return", Expr("var", "i32", "arg_1")),))
         self.assertIn('export "C" fn safe_add(', emit_function(valid))
+
+
+    def test_deep_ir_trees_fail_closed_before_recursive_validation_or_hashing(self):
+        # Independent IR consumers do not pass through Clang's JSON parser.
+        # A deeply nested but otherwise type-correct function must raise the
+        # documented validation exception, not a raw RecursionError in the
+        # checker, source emitter, or provenance hasher.
+        for shape in ("expression", "conditional"):
+            with self.subTest(shape=shape):
+                variable = Expr("var", "i32", "x")
+                if shape == "expression":
+                    expr = variable
+                    for _ in range(1500):
+                        expr = Expr("neg", "i32", args=(expr,))
+                    body = (Stmt("return", expr),)
+                else:
+                    condition = Expr("compare", "bool", "==",
+                                     (variable, Expr("literal", "i32", "0")))
+                    body = (Stmt("return", variable),)
+                    for _ in range(1500):
+                        body = (Stmt("if", condition, body,
+                                     (Stmt("return", Expr("literal", "i32", "0")),)),)
+                function = Function("deep", (("x", "i32"),), "i32", body)
+                for entry in (check_function, emit_function, function_hash):
+                    with self.subTest(entry=entry.__name__):
+                        with self.assertRaisesRegex(IRValidationError, "depth|budget"):
+                            entry(function)
+
+        expr = Expr("var", "i32", "x")
+        for _ in range(24):
+            expr = Expr("neg", "i32", args=(expr,))
+        ordinary = Function("ordinary", (("x", "i32"),), "i32",
+                            (Stmt("return", expr),))
+        self.assertIn('export "C" fn ordinary(', emit_function(ordinary))
+        self.assertEqual(len(function_hash(ordinary)), 64)
 
 
     def test_ir_rejects_overlong_decimal_literals_as_validation_errors(self):
