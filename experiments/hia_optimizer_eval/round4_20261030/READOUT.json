@@ -1,0 +1,191 @@
+{
+  "all14_gate_passed": false,
+  "audit": "ROOT_NUMERIC_AUDIT.json",
+  "backends": 8,
+  "batch_p99_mandatory": true,
+  "batch_samples_per_arm_per_kernel": 217,
+  "break_even_vs_hia_original_only": [
+    {
+      "extra_production_preparation_ns": 5965143060,
+      "guaranteed": false,
+      "kernel": "full_lifecycle",
+      "point_calls": 641461,
+      "point_saved_ns_per_call": 9299.319304435483
+    },
+    {
+      "extra_production_preparation_ns": 5965143060,
+      "guaranteed": false,
+      "kernel": "packet_xor",
+      "point_calls": 575016,
+      "point_saved_ns_per_call": 10373.890120967742
+    }
+  ],
+  "claims": {
+    "exclusive_physical_hardware": false,
+    "global_optimality": false,
+    "performance_retimed": false,
+    "prior_results_replaced_or_rescored": false,
+    "real_application_coverage": false,
+    "strong_performance_acceptance_established": false,
+    "universal_performance_superiority": false,
+    "whole_economic_cost_measured": false,
+    "whole_toolchain_soundness": false
+  },
+  "comparisons_passed": 4,
+  "comparisons_total": 14,
+  "correctness_observations": 1536,
+  "environment": {
+    "allowed_cpus": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "exclusive_cpu": false,
+    "load_before": [
+      9.50244140625,
+      6.78173828125,
+      4.509765625
+    ],
+    "platform": "Linux-6.18.55-x86_64-with-glibc2.39",
+    "selected_cpu": 0
+  },
+  "experiment_costs": {
+    "all_child_command_wall_ns": 20715817306,
+    "candidate_preparation_fresh_proofs_included": true,
+    "dependency_acquisition_and_manual_engineering_time_ns": null,
+    "final_report_write_included": false,
+    "interval_policy": "nested command/phase times are not added to whole-experiment time",
+    "pgo_training_rebuild_included": true,
+    "shared_hia_frontend_wall_ns": 46683204,
+    "source_snapshot_wall_ns": 42282219,
+    "whole_experiment_wall_ns": 37125838604
+  },
+  "failed_component_counts": {
+    "empirical_p95_batch_ratio": 1,
+    "empirical_p99_batch_ratio": 6,
+    "paired_time_ratio_upper95": 6
+  },
+  "groups": 7,
+  "independent_audit_passed": true,
+  "interpretation": "All measurements passed the registered quality checks, but the mandatory all14 and strong10 noninferiority gates failed. Faster point estimates do not replace confidence/tail gates.",
+  "largest_batch_p99_ratio": {
+    "baseline": "cpp_pgo_lto",
+    "batch_p99_gate_passed": false,
+    "component_gates": {
+      "empirical_p95_batch_ratio": true,
+      "empirical_p95_request_ratio": true,
+      "empirical_p99_batch_ratio": false,
+      "empirical_p99_request_ratio": true,
+      "paired_time_ratio_upper95": false,
+      "peak_rss_ratio": true
+    },
+    "empirical_p95_batch_ratio": 1.0725534991930583,
+    "empirical_p95_request_ratio": 0.7613784135240572,
+    "empirical_p99_batch_ratio": 3.0433772177053378,
+    "empirical_p99_request_ratio": 0.6316113559761473,
+    "failed_components": [
+      "paired_time_ratio_upper95",
+      "empirical_p99_batch_ratio"
+    ],
+    "kernel": "full_lifecycle",
+    "noninferiority_thresholds_passed": false,
+    "paired_time_geomean_ratio": 0.942173175677851,
+    "paired_time_ratio_upper95": 1.3240403359931188,
+    "peak_rss_ratio": 0.452991452991453
+  },
+  "original_candidate_base_commit": "4fcc2c3735f3637932edd13ded814880743723f5",
+  "passing_comparisons": [
+    {
+      "baseline": "hia_original",
+      "kernel": "full_lifecycle"
+    },
+    {
+      "baseline": "hia_original",
+      "kernel": "packet_xor"
+    },
+    {
+      "baseline": "rust_o3_lto",
+      "kernel": "packet_xor"
+    },
+    {
+      "baseline": "cpp_o3_lto",
+      "kernel": "packet_xor"
+    }
+  ],
+  "production_preparation_ns_by_arm": {
+    "c_o3_lto": 297710996,
+    "c_pgo_lto": 481700570,
+    "cpp_o3_lto": 595649260,
+    "cpp_pgo_lto": 1603699763,
+    "hia_guarded": 6458262450,
+    "hia_narrowed": 6736501785,
+    "hia_original": 771358725,
+    "rust_o3_lto": 4796069166
+  },
+  "quality_passed": true,
+  "raw_report_sha256": "3077ded0984956b129fcad3b416062176085f634d88e139149ee2269c33d1ce0",
+  "registration_sha256": "2f0a8ebc338b2fbed58c44ae1887d85fce2bb68dd48084f838cca6052a2467b8",
+  "request_samples_per_arm_per_kernel": 1799,
+  "rust_comparisons": [
+    {
+      "baseline": "rust_o3_lto",
+      "batch_p99_gate_passed": true,
+      "component_gates": {
+        "empirical_p95_batch_ratio": false,
+        "empirical_p95_request_ratio": true,
+        "empirical_p99_batch_ratio": true,
+        "empirical_p99_request_ratio": true,
+        "paired_time_ratio_upper95": false,
+        "peak_rss_ratio": true
+      },
+      "empirical_p95_batch_ratio": 1.122789695521576,
+      "empirical_p95_request_ratio": 0.7858683668088778,
+      "empirical_p99_batch_ratio": 0.8684419300269581,
+      "empirical_p99_request_ratio": 0.4930304333527284,
+      "failed_components": [
+        "paired_time_ratio_upper95",
+        "empirical_p95_batch_ratio"
+      ],
+      "kernel": "full_lifecycle",
+      "noninferiority_thresholds_passed": false,
+      "paired_time_geomean_ratio": 0.8689974939242991,
+      "paired_time_ratio_upper95": 1.2102550080948211,
+      "peak_rss_ratio": 0.8060836501901141
+    },
+    {
+      "baseline": "rust_o3_lto",
+      "batch_p99_gate_passed": true,
+      "component_gates": {
+        "empirical_p95_batch_ratio": true,
+        "empirical_p95_request_ratio": true,
+        "empirical_p99_batch_ratio": true,
+        "empirical_p99_request_ratio": true,
+        "paired_time_ratio_upper95": true,
+        "peak_rss_ratio": true
+      },
+      "empirical_p95_batch_ratio": 0.6135359868218223,
+      "empirical_p95_request_ratio": 0.579290826589325,
+      "empirical_p99_batch_ratio": 0.9606555175416827,
+      "empirical_p99_request_ratio": 0.6835910023972553,
+      "failed_components": [],
+      "kernel": "packet_xor",
+      "noninferiority_thresholds_passed": true,
+      "paired_time_geomean_ratio": 0.6611650941707887,
+      "paired_time_ratio_upper95": 0.8067444420305796,
+      "peak_rss_ratio": 0.8303249097472925
+    }
+  ],
+  "samples": 112,
+  "schema": "hepta.hia.optimizer-bench.round4-readout.v1",
+  "source_base_commit": "0e1f5dd9bf0f54c492d96bd5dd1ae52e8c804997",
+  "status": "completed_noninferiority_failed",
+  "strong10_gate_passed": false,
+  "strong_comparisons_passed": 2,
+  "strong_comparisons_total": 10
+}

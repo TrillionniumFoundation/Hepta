@@ -48,10 +48,19 @@ def main(argv=None) -> int:
     hia = sub.add_parser("hia", help="Independent typed HIA program verification, execution and native compilation")
     hia_actions = hia.add_subparsers(dest="hia_action", required=True)
     hia_actions.add_parser("routes", help="Exact source, historical IR and backend compatibility inventory")
+    from .hia_schema import LATEST_CORE_SCHEMA, PRIMITIVE_PROFILES
+    catalog_parser = hia_actions.add_parser("catalog", help="Complete generated instruction and resource contract for an exact Core version")
+    catalog_parser.add_argument("--schema", choices=tuple(PRIMITIVE_PROFILES), default=LATEST_CORE_SCHEMA)
+    for action in ("import-assembly", "render-assembly", "check-assembly"):
+        h = hia_actions.add_parser(action, help="Explicit typed HIA assembly over the same checked Core")
+        h.add_argument("input", help="HIA assembly text; render-assembly accepts checked Core JSON")
+        if action != "check-assembly":
+            h.add_argument("--output", "-o", help="New output file; existing files are never replaced")
     for action in ("verify", "inspect", "run", "emit", "build", "lower", "patch", "normalize",
                    "impact", "import-executable", "import-scalar", "import-cpp-project",
                    "import-cpp-matrix", "import-cpp-composed-project", "import-cpp-composed-matrix",
                    "import-cpp-unique-project", "import-cpp-unique-matrix",
+                   "import-cpp-unique-assignment-project", "import-cpp-unique-assignment-matrix",
                    "import-composite-v2", "upgrade-v7",
                    "edit-query", "edit-apply", "edit-batch-query", "edit-batch-apply",
                    "verify-translation", "optimize", "verify-optimization",
@@ -81,6 +90,7 @@ def main(argv=None) -> int:
         if action in {"emit", "build", "lower", "patch", "normalize", "import-executable", "import-scalar",
                       "import-cpp-project", "import-cpp-matrix", "import-cpp-composed-project", "import-cpp-composed-matrix",
                       "import-cpp-unique-project", "import-cpp-unique-matrix",
+                      "import-cpp-unique-assignment-project", "import-cpp-unique-assignment-matrix",
                       "import-composite-v2", "upgrade-v7",
                       "edit-query", "edit-apply", "edit-batch-query", "edit-batch-apply",
                       "fold-constants", "build-optimized", "optimize-guarded", "build-guarded",
@@ -98,10 +108,12 @@ def main(argv=None) -> int:
         if action in {"optimize-guarded", "optimize-guarded-narrowed"}:
             h.add_argument("--maximum", type=int, help="Runtime byte-count guard; the complete original fallback remains")
         if action in {"import-cpp-project", "import-cpp-matrix", "import-cpp-composed-project", "import-cpp-composed-matrix",
-                      "import-cpp-unique-project", "import-cpp-unique-matrix"}:
+                      "import-cpp-unique-project", "import-cpp-unique-matrix",
+                      "import-cpp-unique-assignment-project", "import-cpp-unique-assignment-matrix"}:
             h.add_argument("--clangxx", default="clang++")
             h.add_argument("--report", help="New file for the complete capture and declaration ledger")
-        if action in {"import-cpp-matrix", "import-cpp-composed-matrix", "import-cpp-unique-matrix"}:
+        if action in {"import-cpp-matrix", "import-cpp-composed-matrix", "import-cpp-unique-matrix",
+                      "import-cpp-unique-assignment-matrix"}:
             h.add_argument("--variant", required=True, help="Exact declared variant to publish after all builds verify")
         if action == "import-composite-v2":
             h.add_argument("--report", help="New file for explicit legacy import and reverification provenance")
@@ -304,6 +316,45 @@ def main(argv=None) -> int:
             if args.hia_action == "routes":
                 output_json(route_inventory())
                 return 0
+            if args.hia_action == "catalog":
+                from .hia_opcodes import opcode_catalog
+                output_json(opcode_catalog(args.schema))
+                return 0
+            if args.hia_action in {"import-assembly", "render-assembly", "check-assembly"}:
+                from .hia_agent_assembly import render_assembly, diagnose_assembly
+                raw = read_bounded(args.input)
+                if args.hia_action == "check-assembly":
+                    result = diagnose_assembly(raw)
+                    output_json(result)
+                    return 0 if result["accepted"] else 1
+                if args.hia_action == "import-assembly":
+                    program = admit_route("agent-assembly", raw)
+                    output_json(publish_program(program, args.output) if args.output else program.as_dict())
+                    return 0
+                program = admit_route("standalone-hia", raw)
+                text = render_assembly(program)
+                if args.output:
+                    from .artifact_publication import publish_verified
+                    target = Path(args.output).absolute()
+                    if target.exists() or target.is_symlink():
+                        raise ValueError("Assembly output must be a new file")
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    if target.parent.resolve() != target.parent:
+                        raise ValueError("Assembly output parent must not traverse a symlink")
+                    with tempfile.TemporaryDirectory(prefix=".hepta-assembly-", dir=target.parent) as temporary:
+                        stage = Path(temporary) / "program.hiaasm"
+                        payload = text.encode("utf-8")
+                        with stage.open("xb") as stream:
+                            stream.write(payload)
+                            stream.flush()
+                            os.fsync(stream.fileno())
+                        receipt = publish_verified(stage, target, payload)
+                    output_json({"schema": "hepta.hia.assembly-output.v1", "ok": True,
+                                 "output": str(target), "core_sha256": program.sha256,
+                                 "publication": receipt, "deployment_authority": False})
+                else:
+                    print(text, end="")
+                return 0
             if args.hia_action == "import-composite-v2":
                 from .hia_core_upgrade import import_legacy_composite_v2
                 program, report = import_legacy_composite_v2(read_bounded(args.input))
@@ -315,7 +366,8 @@ def main(argv=None) -> int:
                 return 0
             if args.hia_action in {"import-cpp-matrix", "import-cpp-composed-matrix",
                                    "import-cpp-project", "import-cpp-composed-project",
-                                   "import-cpp-unique-project", "import-cpp-unique-matrix"}:
+                                   "import-cpp-unique-project", "import-cpp-unique-matrix",
+                                   "import-cpp-unique-assignment-project", "import-cpp-unique-assignment-matrix"}:
                 program, migrated = admit_captured_cpp(args.hia_action.removeprefix("import-"), args.input,
                     clangxx=args.clangxx, variant=getattr(args, "variant", None))
                 if args.report:

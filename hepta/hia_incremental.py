@@ -21,12 +21,13 @@ from weakref import WeakKeyDictionary
 
 from . import hia_program as core
 from . import hia_schema as registry
+from . import hia_opcodes as opcodes
 from .hia_program_tools import (HIAEditRejected, _check_patch_interface,
                                 _prepare_program_patch)
 
 REPORT_SCHEMA = "hepta.hia.incremental-verification.v1"
 PATCH_REPORT_SCHEMA = "hepta.hia.incremental-patch-result.v1"
-DEPENDENCY_CONTRACT = "closed-body-and-direct-callee-interface.v2"
+DEPENDENCY_CONTRACT = "closed-body-and-direct-callee-interface.v3"
 # An added primitive version never opts itself into cached admission merely by
 # appearing in the shared registry. Its dependency contract must be reviewed.
 _SCHEMAS = frozenset(f"hepta.hia.program.v{v}" for v in range(1, 9))
@@ -61,7 +62,7 @@ def _policy():
                     for name, value in sorted(vars(core._BlockCheck).items())
                     if callable(value))
     constants = _wire({
-        "word_bits": core.WORD_BITS, "widths": core.WIDTHS,
+        "word_bits": core.WORD_BITS, "widths": dict(core.WIDTHS),
         "scalars": sorted(core.SCALARS), "owners": sorted(core.OWNERS),
         "byte_resources": sorted(core.BYTE_RESOURCES),
         "resources": sorted(core.RESOURCES), "types": sorted(core.TYPES),
@@ -71,10 +72,26 @@ def _policy():
         "limits": [core.MAX_BYTES, core.MAX_NODES, core.MAX_DEPTH,
                    core.MAX_FUNCTIONS, core.MAX_BLOCKS],
         "registry": registry.schema_registry(),
+        "terminator_fields": dict(core.TERMINATORS),
+        # Imported aliases may diverge after a module reload/rebinding. Bind
+        # the globals actually read by the generated checker as well as core's
+        # aliases; otherwise a stale body could outlive changed literal bounds.
+        "opcode_constants": {
+            "widths": dict(opcodes.WIDTHS), "scalars": sorted(opcodes.SCALARS),
+            "owners": sorted(opcodes.OWNERS), "byte_resources": sorted(opcodes.BYTE_RESOURCES),
+            "resources": sorted(opcodes.RESOURCES), "types": sorted(opcodes.TYPES),
+            "effects": sorted(opcodes.EFFECTS), "traps": sorted(opcodes.TRAP_CODES),
+            "profiles": dict(opcodes.PRIMITIVE_PROFILES),
+        },
     })
     imported_helpers = tuple((helper, getattr(helper, "__code__", None))
-                             for helper in (core.supports_feature, core.preflight_hia_json))
-    return (DEPENDENCY_CONTRACT, functions, methods, constants, imported_helpers)
+                             for helper in (core.supports_feature, core.preflight_hia_json,
+                                            core.opcode_spec, core.check_instruction,
+                                            core._catalog_scalar_value_valid))
+    opcode_functions = tuple((name, value, getattr(value, "__code__", None))
+                             for name, value in sorted(vars(opcodes).items())
+                             if callable(value) and getattr(value, "__module__", None) == opcodes.__name__)
+    return (DEPENDENCY_CONTRACT, functions, methods, constants, imported_helpers, opcode_functions)
 
 
 @dataclass(frozen=True, slots=True)

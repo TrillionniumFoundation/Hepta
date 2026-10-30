@@ -1,0 +1,53 @@
+{
+  "schema": "hepta.hia.agent-public-tools.v1",
+  "study_kind": "prospective authored-task pilot, not a population productivity estimate",
+  "model": "gpt-6.1-sol",
+  "arms": [
+    "hia",
+    "rust"
+  ],
+  "tasks": [
+    "quota_clip",
+    "rotate_lane",
+    "weighted_prefix",
+    "buffer_lane"
+  ],
+  "task_order": "listed order; reverse language order on odd task indices",
+  "public_rpc": [
+    "catalog",
+    "check",
+    "final"
+  ],
+  "max_requests_per_cell": 6,
+  "max_public_checks_per_cell": 3,
+  "max_request_wall_seconds": 180,
+  "max_cell_wall_seconds": 720,
+  "max_experiment_wall_seconds": 2700,
+  "cleanup_reserve_seconds": 10,
+  "max_reported_input_tokens_per_request": 40000,
+  "max_charged_output_tokens_per_request": 14000,
+  "max_charged_tokens_per_cell": 180000,
+  "token_accounting": "All five provider fields retained. Cached input is a subset, not added twice. Conservative charged tokens = input + output + reasoning output; provider overlap is not claimed exact. Limits are checked after execution, not pretended hard pre-generation caps. Unknown or exceeded usage ends the cell and retains costs.",
+  "generation_policy": "Each RPC response is a fresh ephemeral CLI call with the complete public conversation. Direct CLI tools are forbidden; public JSON RPC tools are actually executed by the runner. No model or prompt search after freeze. Provider routing, weights, cache and sampling are inherited and not independently attested.",
+  "hidden_policy": "Hidden cases and independent oracle outputs never enter any model request or public response. Hidden execution happens once, after final public acceptance, and is terminal even on failure. This is a task-information boundary, not a claim of OS hermeticity against malicious generated code.",
+  "task_provenance": "Four newly authored task contracts and independent arithmetic oracles. Not earlier pilot tasks and not external representative task sampling. Author-written positive and bad controls are not model results.",
+  "human_review": "No human answer edits. Record active harness/control work separately; human review time is unknown unless a reviewer provides a measured receipt. No human-cost advantage is accepted while that field is unknown.",
+  "success_gate": "All 8 cells attempted on identical frozen files; complete request usage; native execution matches every hidden oracle; public tool availability verified before generation. A descriptive HIA advantage additionally needs no fewer successes and strictly fewer total charged tokens AND total cell wall time than Rust, with no more failed check repairs. This small pilot never proves general productivity.",
+  "codex": "/opt/codex/bin/codex",
+  "clang": "/usr/lib/llvm-20/bin/clang",
+  "rustc": "/workspace/scratch/8245a7ab856a/build/toolchains/rust-1.95.0/bin/rustc",
+  "transport": {
+    "stdout_limit_bytes": 16777216,
+    "stderr_limit_bytes": 4194304,
+    "max_jsonl_line_bytes": 1048576
+  },
+  "registered_startup_warnings": [
+    "Codex is ignoring 1 unrecognized configuration setting. Check for typos or deprecated settings.\n  user (/root/.codex/config.toml): `features.experimental_use_rmcp_client` is ignored.",
+    "`[features].imagegenext` is deprecated. Use `[features].image_generation` instead. (Enable it with `--enable image_generation` or `[features].image_generation` in config.toml. See https://developers.openai.com/codex/config-basic#feature-flags for details.)",
+    "Codex is ignoring 1 unrecognized configuration setting. Check for typos or deprecated settings.\n  user (/root/.codex/config.toml): `features.experimental_use_rmcp_client` is ignored.",
+    "Under-development features enabled: local_thread_store_compression. Under-development features are incomplete and may behave unpredictably. To suppress this warning, set `suppress_unstable_features_warning = true` in /root/.codex/config.toml."
+  ],
+  "previous_negative_results_replaced": false,
+  "resource_task_admission": "buffer_lane HIA requires actual VM allocate/store/load/drop witnesses plus zero live owners/loans on every public and terminal hidden case, with values matching the independent oracle. Rust uses the disclosed safe audited Vec wrapper backed by std::vec::Vec, native indexed-access/readback/explicit-release events and exact scalar signature. This is selected-API evidence, not whole-process allocator or machine-instruction proof. Source-token presence is not resource evidence.",
+  "implementation_freedom": "weighted_prefix accepts any implementation of its mathematical contract; no unverifiable source-token loop requirement. The four mathematical tasks and all public/hidden inputs are unchanged from the unpublished first registration."
+}

@@ -70,7 +70,7 @@ PROTOCOL = {
     "claims": {"online_learning": False, "global_optimality": False, "general_ndu_advantage": False},
 }
 INPUTS = (
-    "hepta/hia_specialization.py", "hepta/hia_program.py", "hepta/hia_program_runtime.py",
+    "hepta/hia_specialization.py", "hepta/hia_program.py", "hepta/hia_opcodes.py", "hepta/hia_program_runtime.py",
     "hepta/hia_program_llvm.py", "hepta/hia_translation_validation.py", "hepta/hia_ndu_optimizer.py",
     "hepta/hia_multiversion.py", "hepta/hia_background_optimizer.py", "hepta/hia_native_differential.py",
     "hepta/elf_shared_abi.py", "hepta/clang_capture.py", "hepta/native_mapping_identity.py", "tools/qualify_hia_specialization.py",

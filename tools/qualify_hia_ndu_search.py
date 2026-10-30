@@ -50,7 +50,7 @@ PROTOCOL = {
 }
 INPUTS = (
     "hepta/hia_finite_actions.py", "hepta/hia_translation_validation.py",
-    "hepta/hia_program.py", "hepta/hia_program_runtime.py", "hepta/hia_program_llvm.py",
+    "hepta/hia_program.py", "hepta/hia_opcodes.py", "hepta/hia_program_runtime.py", "hepta/hia_program_llvm.py",
     "hepta/hia_ndu_optimizer.py", "tools/qualify_hia_ndu_search.py",
 )
 

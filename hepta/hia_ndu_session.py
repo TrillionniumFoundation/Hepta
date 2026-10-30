@@ -88,6 +88,8 @@ class NduSession(NduBridge):
         if image_check not in IMAGE_CHECK_PROFILES:
             raise NduBridgeError("unknown sealed-image checking profile")
         self._image_check = image_check
+        self._image_identity_checks = 0
+        self._cleanup_errors = []
         self.executable = Path(executable).resolve(strict=True)
         self.identity_manifest = Path(identity_manifest).resolve(strict=True)
         self.timeout = timeout
@@ -101,6 +103,10 @@ class NduSession(NduBridge):
         self._manifest_raw = raw_manifest
         self._manifest_canonical = _manifest_wire(self.manifest)
         self._admitted_binary_sha256 = self.manifest.get("binary_sha256")
+        # Freeze the fields used in observational receipts independently of the
+        # caller-mutable manifest. The complete original file is also checked.
+        self._binary_sha256 = self._admitted_binary_sha256
+        self._identity_bytes = self._encode_identity(self.manifest.get("identity"))
         try:
             raw, _, self._fd = _pin_native_artifact(self.executable)
             if sha256(raw).hexdigest() != self._admitted_binary_sha256:
@@ -124,8 +130,18 @@ class NduSession(NduBridge):
             self._verify_binary()
             self.startup_cost_ns = time.monotonic_ns() - started
         except BaseException:
-            self.close()
+            self._close_after_failure()
             raise
+
+    @staticmethod
+    def _encode_identity(identity):
+        try:
+            if type(identity) is not dict:
+                raise NduBridgeError("native identity must be an object")
+            return json.dumps(identity, sort_keys=True, separators=(",", ":"),
+                              allow_nan=False).encode()
+        except (TypeError, ValueError, UnicodeError) as error:
+            raise NduBridgeError("native manifest identity is invalid") from error
 
     def _verify_binary(self):
         if self._closed or self._fd is None or self._process is None or self._process.poll() is not None:
@@ -134,14 +150,18 @@ class NduSession(NduBridge):
             if (self.identity_manifest != self._manifest_path
                     or _manifest_wire(self.manifest) != self._manifest_canonical
                     or _manifest_bytes(self._manifest_path) != self._manifest_raw):
-                raise NduBridgeError("native session build identity drift")
+                raise NduBridgeError("native session build identity drift: manifest bindings changed after admission")
         except (OSError, TypeError, ValueError) as error:
             raise NduBridgeError("native session build identity drift: " + str(error)) from error
-        current = os.fstat(self._fd)
+        try:
+            current = os.fstat(self._fd)
+            seals = fcntl.fcntl(self._fd, _GET_SEALS)
+        except OSError as error:
+            raise NduBridgeError("sealed executable descriptor is unavailable") from error
         if not stat.S_ISREG(current.st_mode) or (current.st_dev, current.st_ino, current.st_size) != (
                 self._pinned_stat.st_dev, self._pinned_stat.st_ino, self._pinned_stat.st_size):
             raise NduBridgeError("sealed executable descriptor changed")
-        if fcntl.fcntl(self._fd, _GET_SEALS) & _SEALS != _SEALS:
+        if seals & _SEALS != _SEALS:
             raise NduBridgeError("sealed executable seals changed")
         # The initial digest and kernel readback bind the admitted bytes. These
         # four irreversible seals prevent write/grow/shrink/seal removal, while
@@ -157,6 +177,7 @@ class NduSession(NduBridge):
             raise NduBridgeError("actual native process executable identity is unavailable") from error
         if (loaded.st_dev, loaded.st_ino) != (current.st_dev, current.st_ino):
             raise NduBridgeError("actual native process executes a different image")
+        self._image_identity_checks += 1
 
     def _exchange(self, payload):
         deadline = time.monotonic() + self.timeout
@@ -237,7 +258,7 @@ class NduSession(NduBridge):
                 self._verify_binary()
                 return result
             except BaseException:
-                self.close()
+                self._close_after_failure()
                 raise
             finally:
                 self._request_costs_ns.append(time.monotonic_ns() - started)
@@ -248,36 +269,59 @@ class NduSession(NduBridge):
                     "pid": self._process.pid if self._process else None, "requests": self._sequence,
                     "startup_cost_ns": getattr(self, "startup_cost_ns", None),
                     "request_costs_ns": list(self._request_costs_ns),
-                    "binary_sha256": self.manifest.get("binary_sha256"),
+                    "binary_sha256": self._binary_sha256,
+                    "identity": json.loads(self._identity_bytes),
                     "image_check_profile": self._image_check,
                     "initial_full_digest_verified": True,
-                    "identity": dict(self.manifest.get("identity", {})),
+                    "image_identity_checks": self._image_identity_checks,
+                    "content_binding": ("sealed-bytes-verified-once; inode-seals-process-checked-per-request"
+                        if self._image_check == "sealed" else
+                        "sealed-bytes-rehashed; inode-seals-process-checked-per-request"),
+                    "cleanup_errors": list(self._cleanup_errors),
                     "stderr": self._stderr.decode("utf-8", "replace"),
                     "authority": "DENY_ALL", "safety_certificate": False}
+
+    def _close_after_failure(self):
+        # A cleanup diagnostic must not replace the rejection or cancellation
+        # that caused it. close() still releases the parent's fd in its finally.
+        try:
+            self.close()
+        except BaseException as error:
+            self._cleanup_errors.append(type(error).__name__ + ": " + str(error))
 
     def close(self):
         with self._lock:
             if self._closed:
                 return
             self._closed = True
-            if self._process is not None:
-                if self._process.stdin:
-                    self._process.stdin.close()
-                try:
-                    self._process.wait(timeout=min(self.timeout, 2.0))
-                except subprocess.TimeoutExpired:
-                    self._process.terminate()
+            try:
+                if self._process is not None:
                     try:
-                        self._process.wait(timeout=2.0)
-                    except subprocess.TimeoutExpired:
-                        self._process.kill()
-                        self._process.wait()
-                for stream in (self._process.stdout, self._process.stderr):
-                    if stream:
-                        stream.close()
-            if self._fd is not None:
-                os.close(self._fd)
-                self._fd = None
+                        if self._process.stdin:
+                            self._process.stdin.close()
+                    finally:
+                        try:
+                            self._process.wait(timeout=2.0)
+                        except subprocess.TimeoutExpired:
+                            self._process.terminate()
+                            try:
+                                self._process.wait(timeout=2.0)
+                            except subprocess.TimeoutExpired:
+                                self._process.kill()
+                                self._process.wait()
+            finally:
+                try:
+                    if self._process is not None:
+                        try:
+                            if self._process.stdout:
+                                self._process.stdout.close()
+                        finally:
+                            if self._process.stderr:
+                                self._process.stderr.close()
+                finally:
+                    if self._fd is not None:
+                        fd, self._fd = self._fd, None
+                        os.close(fd)
 
     def __enter__(self):
         return self

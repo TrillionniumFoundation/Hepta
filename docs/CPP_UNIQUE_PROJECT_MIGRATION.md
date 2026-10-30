@@ -32,6 +32,11 @@ move assignment, pointer escape, virtual dispatch, arbitrary templates, and
 C++ object-layout/exception ABI preservation are outside this profile. Such
 source changes are rejected instead of receiving an implicit foreign bridge.
 
+A separate [move-assignment profile](CPP_UNIQUE_MOVE_ASSIGNMENT.md) admits a
+checked self-move guard, defaulted memberwise assignment and complete sequenced
+owner replacement. Its entry points and fixture are separate; this original
+profile does not silently broaden its contract.
+
 ## Complete capture and the standard-library boundary
 
 Including `<memory>` produces hundreds of megabytes of Clang JSON in the

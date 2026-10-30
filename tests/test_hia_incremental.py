@@ -288,13 +288,12 @@ class HIAIncrementalTests(unittest.TestCase):
         self.assertEqual(report["functions_body_reused"], [])
 
     def test_imported_feature_helper_code_change_cannot_reuse_an_old_pass(self):
-        doc = {"schema": "hepta.hia.program.v2", "module": "feature_policy",
-               "exports": [], "functions": [f("bulk", [], [], ["alloc", "write"], [
-                   b("entry", [], [c("size", "usize", 1),
-                       i("buffer.try_new", ["size"], [("owner", "buffer"), ("ok", "bool")]),
-                       i("borrow.mut", ["owner"], [("view", "mutbuf")]),
-                       c("byte", "u8", 7), i("buffer.fill", ["view", "byte"]),
-                       i("loan.end", ["view"]), i("owner.drop", ["owner"])], ret())])]}
+        # Opcode availability now belongs to the catalog. Recursive type
+        # grammar still uses this imported feature helper and must invalidate.
+        doc = {"schema": "hepta.hia.program.v7", "module": "feature_policy",
+               "exports": [], "functions": [f("chain", [], [], ["alloc"], [
+                   b("entry", [], [i("chain.empty", [], [("owner", "chain")]),
+                       i("owner.drop", ["owner"])], ret())])]}
         session = IncrementalVerifier(doc)
         original_digest = session.base_sha256
         helper = core.supports_feature
@@ -305,7 +304,7 @@ class HIAIncrementalTests(unittest.TestCase):
             helper.__code__ = deny_features.__code__
             self.assertIs(core.supports_feature, helper)
             full = outcome(core.verify_program, doc)
-            self.assertEqual(full[0:2], ("rejected", "E_HIA_OPCODE"))
+            self.assertEqual(full[0:2], ("rejected", "E_HIA_TYPE"))
             self.assertEqual(outcome(session.verify, doc), full)
             self.assertEqual(session.base_sha256, original_digest)
             self.assertEqual(session.last_report["mode"], "full")

@@ -317,7 +317,7 @@ def qualify(workdir, *, clang="clang", clangxx="clang++", cc="cc", cxx="c++"):
                   "source_equivalence_proved": False, "backend_refinement_proved": False,
                   "rust_performance_parity_proved": False, "human_labor_reduction_measured": False}}
     implementation = [ROOT / "hepta" / name for name in
-                      ("hia_program.py", "hia_program_runtime.py", "hia_program_source.py", "hia_program_llvm.py",
+                      ("hia_program.py", "hia_opcodes.py", "hia_program_runtime.py", "hia_program_source.py", "hia_program_llvm.py",
                        "ast.py", "parser.py", "checker.py", "modules.py", "c_project.py", "c_translation.py",
                        "cpp_class_migrate.py", "cpp_owned_migrate.py")]
     implementation.append(Path(__file__).resolve())

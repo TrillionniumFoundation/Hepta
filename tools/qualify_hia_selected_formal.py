@@ -54,7 +54,7 @@ LIMITS = [
 SPECIFICATION = "for all x,y : BitVec 32, result = x + y modulo 2^32"
 SOURCE_FILES = (
     "formal/HiaSelectedCore.lean", "formal/toolchain-lock.json", "formal/proof-dependencies.txt",
-    "tools/qualify_hia_selected_formal.py", "hepta/hia_program.py", "hepta/hia_schema.py",
+    "tools/qualify_hia_selected_formal.py", "hepta/hia_program.py", "hepta/hia_opcodes.py", "hepta/hia_schema.py",
     "hepta/hia_program_runtime.py", "hepta/hia_bounded_memory.py", "tools/evidence_checks.py",
 )
 

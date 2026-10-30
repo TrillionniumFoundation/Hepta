@@ -32,7 +32,7 @@ def _reject(message):
 
 def checker_identity():
     digest = sha256()
-    for name in ("hia_bounded_unroll.py", "hia_translation_validation.py", "hia_program.py"):
+    for name in ("hia_bounded_unroll.py", "hia_translation_validation.py", "hia_program.py", "hia_opcodes.py"):
         digest.update(name.encode() + b"\0" + Path(__file__).with_name(name).read_bytes() + b"\0")
     return digest.hexdigest()
 

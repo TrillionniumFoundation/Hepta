@@ -261,6 +261,23 @@ class _Translator:
         return ["HeptaComposite_drop(move " + value["emitted"] + ");"
                 for value in reversed(list(env.values())) if value["type"] == "owner" and value["alive"]]
 
+    def extension_statement(self, node, env, *, context, const, nested, scope_depth):
+        """An independently checked profile may add one complete statement.
+
+        The original composed-owner profile admits no extension. Subclasses
+        must update the same ownership environment used by all exit cleanup.
+        """
+        return None
+
+    def assignment_specials(self, assignments):
+        if {_qual(n) for n in assignments} != {f"{self.class_name} &(const {self.class_name} &)",
+                                               f"{self.class_name} &({self.class_name} &&)"}:
+            _reject("Both copy and move assignment must be explicitly deleted")
+        return [(node, _qual(node), "deleted_assignment") for node in assignments]
+
+    def additional_helpers(self):
+        return ""
+
     def statements(self, statements, env, *, context, returns, const=False, depth=1,
                    constructor_fields=(), catch=None, nested=False,
                    scope_ids=None, scope_depth=0):
@@ -404,7 +421,11 @@ class _Translator:
                     env[variable["id"]] = {"type": typ, "cpp_type": _qual(variable), "source_name": name, "emitted": emitted, "alive": True}
                     lines.append(indent + f"let {emitted}: {typ} = {value};"); self.stats["scalar_locals"] += 1
             else:
-                _reject("Unsupported statement: " + str(kind), "E_CPP_COMPOSED_STATEMENT")
+                extension = self.extension_statement(node, env, context=context, const=const,
+                                                     nested=nested, scope_depth=scope_depth)
+                if extension is None:
+                    _reject("Unsupported statement: " + str(kind), "E_CPP_COMPOSED_STATEMENT")
+                lines += [indent + line for line in extension]
         if nested:
             locals_ = {ident: value for ident, value in env.items() if ident not in scope_ids}
             lines += [indent + line for line in self.cleanup(locals_)]
@@ -457,10 +478,8 @@ class _Translator:
                 _reject("Unconverted class member: " + str(kind), "E_CPP_COMPOSED_INVENTORY")
         if not 2 <= len(self.fields) <= 4 or (len(constructors), len(moves), len(copies), len(assignments), len(destructors)) != (1, 1, 1, 2, 1) or not 1 <= len(ordinary) <= 16:
             _reject("Need 2..4 fields, one fallible/move constructor, deleted copy/assignments and default destructor")
-        if {_qual(n) for n in assignments} != {f"{self.class_name} &(const {self.class_name} &)", f"{self.class_name} &({self.class_name} &&)"}:
-            _reject("Both copy and move assignment must be explicitly deleted")
         special = [(copies[0], f"void (const {self.class_name} &)", "deleted_copy")]
-        special += [(node, _qual(node), "deleted_assignment") for node in assignments]
+        special += self.assignment_specials(assignments)
         for node, signature, role in special:
             self.guard(node)
             if (node.get("explicitlyDeleted") is not True or _qual(node) != signature or len(_children(node)) != 1
@@ -487,6 +506,7 @@ class _Translator:
         rendered += "pub fn HeptaComposite_move(owner: take HeptaComposite) -> HeptaComposite effects {} { return move owner; }\n\n"
         rendered += "pub fn HeptaComposite_drop(owner: take HeptaComposite) -> Unit effects {alloc, block} {\n"
         rendered += "\n".join("    HeptaLeaf_drop(move owner." + f["emitted"] + ");" for f in reversed(list(self.fields.values()))) + "\n}\n\n"
+        rendered += self.additional_helpers()
         signature = ", ".join(p["emitted"] + ": " + p["type"] for p in self.ctor_params.values())
         rendered += f"pub fn HeptaComposite_new({signature}) -> Result<HeptaComposite, u8> {EFFECTS} {{\n"
         rendered += "\n".join(self.constructor(ctor, ctor_body)) + "\n}\n\n"

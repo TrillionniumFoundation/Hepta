@@ -1,0 +1,138 @@
+hia-asm.v1 hepta.hia.program.v6 optimizer_bench
+fn full_lifecycle(arg1:usize,arg2:u32) -> (u64) effects(alloc,read,trap,write) entry(b1)
+block b1(arg1:usize,arg2:u32)
+  v3:buffer,v4:bool = buffer.try_new(arg1)
+  v5:u8 = const() {"value":1}
+  branch v4 b2(arg1,arg2,v4,v3,v5) b3(arg1,arg2,v4,v3,v5)
+block b2(p6:usize,p7:u32,p8:bool,p9:buffer,p10:u8)
+  v16:buffer = owner.move(p9)
+  v17:usize = const() {"value":0}
+  jump b4(p6,p7,v16,p6,v17)
+block b3(p11:usize,p12:u32,p13:bool,p14:buffer,p15:u8)
+  _ = owner.drop(p14)
+  v68:u64 = const() {"value":1000}
+  v69:u64 = int.cast(p15) {"mode":"wrap"}
+  v70:u64 = int.add.checked(v68,v69)
+  ret(v70)
+block b4(p18:usize,p19:u32,p20:buffer,p21:usize,p22:usize)
+  v23:bool = compare.lt(p22,p21)
+  branch v23 b5(p18,p19,p20,p21,p22) b6(p18,p19,p20,p21,p22)
+block b5(p24:usize,p25:u32,p26:buffer,p27:usize,p28:usize)
+  v34:u32 = int.cast(p28) {"mode":"wrap"}
+  v35:u32 = int.add.wrap(v34,p25)
+  v36:u8 = int.cast(v35) {"mode":"wrap"}
+  v37:mutbuf = borrow.mut(p26)
+  _ = buffer.store(v37,p28,v36)
+  _ = loan.end(v37)
+  v38:usize = const() {"value":1}
+  v39:usize = int.add.checked(p28,v38)
+  jump b4(p24,p25,p26,p27,v39)
+block b6(p29:usize,p30:u32,p31:buffer,p32:usize,p33:usize)
+  v40:u64 = const() {"value":0}
+  v41:usize = const() {"value":0}
+  jump b7(p29,p30,p31,v40,p29,v41)
+block b7(p42:usize,p43:u32,p44:buffer,p45:u64,p46:usize,p47:usize)
+  v48:bool = compare.lt(p47,p46)
+  branch v48 b8(p42,p43,p44,p45,p46,p47) b9(p42,p43,p44,p45,p46,p47)
+block b8(p49:usize,p50:u32,p51:buffer,p52:u64,p53:usize,p54:usize)
+  v61:readbuf = borrow.read(p51)
+  v62:u8 = buffer.load(v61,p54)
+  _ = loan.end(v61)
+  v63:u64 = int.cast(v62) {"mode":"wrap"}
+  v64:u64 = int.add.checked(p52,v63)
+  v65:usize = const() {"value":1}
+  v66:usize = int.add.checked(p54,v65)
+  jump b7(p49,p50,p51,v64,p53,v66)
+block b9(p55:usize,p56:u32,p57:buffer,p58:u64,p59:usize,p60:usize)
+  v67:buffer = owner.move(p57)
+  _ = owner.drop(v67)
+  ret(p58)
+end
+fn packet_xor(arg71:usize,arg72:u32) -> (u64) effects(alloc,read,trap,write) entry(b10)
+block b10(arg71:usize,arg72:u32)
+  v73:buffer,v74:bool = buffer.try_new(arg71)
+  v75:u8 = const() {"value":1}
+  branch v74 b11(arg71,arg72,v74,v73,v75) b12(arg71,arg72,v74,v73,v75)
+block b11(p76:usize,p77:u32,p78:bool,p79:buffer,p80:u8)
+  v86:buffer = owner.move(p79)
+  v87:usize = const() {"value":0}
+  jump b13(p76,p77,v86,p76,v87)
+block b12(p81:usize,p82:u32,p83:bool,p84:buffer,p85:u8)
+  _ = owner.drop(p84)
+  v195:u64 = const() {"value":1000}
+  v196:u64 = int.cast(p85) {"mode":"wrap"}
+  v197:u64 = int.add.checked(v195,v196)
+  ret(v197)
+block b13(p88:usize,p89:u32,p90:buffer,p91:usize,p92:usize)
+  v93:bool = compare.lt(p92,p91)
+  branch v93 b14(p88,p89,p90,p91,p92) b15(p88,p89,p90,p91,p92)
+block b14(p94:usize,p95:u32,p96:buffer,p97:usize,p98:usize)
+  v104:u32 = int.cast(p98) {"mode":"wrap"}
+  v105:u32 = const() {"value":13}
+  v106:u32 = int.mul.wrap(v104,v105)
+  v107:u32 = int.add.wrap(v106,p95)
+  v108:u8 = int.cast(v107) {"mode":"wrap"}
+  v109:mutbuf = borrow.mut(p96)
+  _ = buffer.store(v109,p98,v108)
+  _ = loan.end(v109)
+  v110:usize = const() {"value":1}
+  v111:usize = int.add.checked(p98,v110)
+  jump b13(p94,p95,p96,p97,v111)
+block b15(p99:usize,p100:u32,p101:buffer,p102:usize,p103:usize)
+  v112:buffer,v113:bool = buffer.try_new(p99)
+  v114:u8 = const() {"value":1}
+  branch v113 b16(p99,p100,p101,v113,v112,v114) b17(p99,p100,p101,v113,v112,v114)
+block b16(p115:usize,p116:u32,p117:buffer,p118:bool,p119:buffer,p120:u8)
+  v127:buffer = owner.move(p119)
+  v128:usize = const() {"value":0}
+  jump b18(p115,p116,p117,v127,p115,v128)
+block b17(p121:usize,p122:u32,p123:buffer,p124:bool,p125:buffer,p126:u8)
+  _ = owner.drop(p125)
+  v191:buffer = owner.move(p123)
+  _ = owner.drop(v191)
+  v192:u64 = const() {"value":1000}
+  v193:u64 = int.cast(p126) {"mode":"wrap"}
+  v194:u64 = int.add.checked(v192,v193)
+  ret(v194)
+block b18(p129:usize,p130:u32,p131:buffer,p132:buffer,p133:usize,p134:usize)
+  v135:bool = compare.lt(p134,p133)
+  branch v135 b19(p129,p130,p131,p132,p133,p134) b20(p129,p130,p131,p132,p133,p134)
+block b19(p136:usize,p137:u32,p138:buffer,p139:buffer,p140:usize,p141:usize)
+  v148:readbuf = borrow.read(p138)
+  v149:u8 = buffer.load(v148,p141)
+  _ = loan.end(v148)
+  v150:u32 = int.cast(p141) {"mode":"wrap"}
+  v151:u32 = const() {"value":90}
+  v152:u32 = bit.xor(p137,v151)
+  v153:u32 = int.add.wrap(v150,v152)
+  v154:u8 = int.cast(v153) {"mode":"wrap"}
+  v155:u8 = bit.xor(v149,v154)
+  v156:mutbuf = borrow.mut(p139)
+  _ = buffer.store(v156,p141,v155)
+  _ = loan.end(v156)
+  v157:usize = const() {"value":1}
+  v158:usize = int.add.checked(p141,v157)
+  jump b18(p136,p137,p138,p139,p140,v158)
+block b20(p142:usize,p143:u32,p144:buffer,p145:buffer,p146:usize,p147:usize)
+  v159:u64 = const() {"value":0}
+  v160:usize = const() {"value":0}
+  jump b21(p142,p143,p144,p145,v159,p142,v160)
+block b21(p161:usize,p162:u32,p163:buffer,p164:buffer,p165:u64,p166:usize,p167:usize)
+  v168:bool = compare.lt(p167,p166)
+  branch v168 b22(p161,p162,p163,p164,p165,p166,p167) b23(p161,p162,p163,p164,p165,p166,p167)
+block b22(p169:usize,p170:u32,p171:buffer,p172:buffer,p173:u64,p174:usize,p175:usize)
+  v183:readbuf = borrow.read(p172)
+  v184:u8 = buffer.load(v183,p175)
+  _ = loan.end(v183)
+  v185:u64 = int.cast(v184) {"mode":"wrap"}
+  v186:u64 = int.add.checked(p173,v185)
+  v187:usize = const() {"value":1}
+  v188:usize = int.add.checked(p175,v187)
+  jump b21(p169,p170,p171,p172,v186,p174,v188)
+block b23(p176:usize,p177:u32,p178:buffer,p179:buffer,p180:u64,p181:usize,p182:usize)
+  v189:buffer = owner.move(p179)
+  _ = owner.drop(v189)
+  v190:buffer = owner.move(p178)
+  _ = owner.drop(v190)
+  ret(p180)
+end

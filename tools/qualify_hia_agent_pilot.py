@@ -27,7 +27,7 @@ from tools.provider_adapter.local_model_service import TransformersEngine, runti
 
 ARMS = ("hia_full_json", "hia_semantic_patch", "rust_full_function", "rust_semantic_expression")
 RUST_EDIT_SCHEMA = "hepta.rust.expression-edit.v1"
-BINDINGS = ("hepta/hia_program.py", "hepta/hia_program_runtime.py", "hepta/hia_program_llvm.py",
+BINDINGS = ("hepta/hia_program.py", "hepta/hia_opcodes.py", "hepta/hia_program_runtime.py", "hepta/hia_program_llvm.py",
             "hepta/hia_program_tools.py", "tools/qualify_hia_agent_pilot.py")
 
 

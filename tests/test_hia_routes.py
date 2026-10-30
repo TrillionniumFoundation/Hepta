@@ -21,7 +21,7 @@ from tests.test_hia_optimization import constant_program
 class RouteTests(unittest.TestCase):
     def test_versioned_inventory_has_all_languages_and_legacy_non_authorities(self):
         inventory = route_inventory()
-        self.assertEqual({"Hepta", "C", "C++", "C++ compilation database", "Rust", "TypeScript",
+        self.assertEqual({"Hepta", "HIA assembly", "C", "C++", "C++ compilation database", "Rust", "TypeScript",
                           "Python", "Go", "assembly"},
                          {row["language"] for row in inventory["source_languages"]})
         self.assertFalse(inventory["claims"]["metadata_grants_admission"])
