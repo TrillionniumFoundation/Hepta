@@ -127,5 +127,45 @@ class CMigrationAdversarial(unittest.TestCase):
         self.assertFalse(self.output.exists())
 
 
+    def test_source_growth_during_clang_does_not_trigger_unbounded_reread(self):
+        # Clang already parsed the original file when a noncooperating writer
+        # replaces it with an oversize source. Rechecks must be size-bounded.
+        self.source.write_text("int f(int x){return x;}\n", encoding="utf-8")
+        from hepta.c_migrate import _run as actual_run
+
+        def run_then_grow(args, **kwargs):
+            result = actual_run(args, **kwargs)
+            if "-ast-dump=json" in args:
+                self.source.write_bytes(b"x" * 256_001)
+            return result
+
+        with patch("hepta.c_migrate._run", side_effect=run_then_grow), \
+             patch("hepta.c_migrate.Path.read_bytes",
+                   side_effect=AssertionError("unbounded post-Clang source read")):
+            result = migrate_c(self.source, self.output)
+        self.assertFalse(result["ok"], result)
+        self.assertIn("E_C_SOURCE_RACE", [x["code"] for x in result["rejected"]], result)
+        self.assertFalse(self.output.exists())
+
+    def test_source_growth_during_frontend_does_not_trigger_unbounded_reread(self):
+        # This exercises the second (prepublication) freshness check.
+        self.source.write_text("int f(int x){return x;}\n", encoding="utf-8")
+        from hepta.checker import check as actual_check
+
+        def check_then_grow(*args, **kwargs):
+            result = actual_check(*args, **kwargs)
+            self.source.write_bytes(b"x" * 256_001)
+            return result
+
+        with patch("hepta.checker.check", side_effect=check_then_grow), \
+             patch("hepta.c_migrate.Path.read_bytes",
+                   side_effect=AssertionError("unbounded prepublication source read")):
+            result = migrate_c(self.source, self.output)
+        self.assertFalse(result["ok"], result)
+        self.assertIn("E_C_SOURCE_RACE", [x["code"] for x in result["rejected"]], result)
+        self.assertFalse(self.output.exists())
+        self.assertEqual(list(self.root.glob(".hepta-migrate-*")), [])
+
+
 if __name__ == "__main__":
     unittest.main()
