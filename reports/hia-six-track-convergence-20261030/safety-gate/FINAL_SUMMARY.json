@@ -1,0 +1,223 @@
+{
+  "attempt": "canonical-safety-8a45d2f1-attempt2",
+  "exit_code": 0,
+  "status": "passed",
+  "tests_run": 552,
+  "expected_tests": 552,
+  "test_status_counts": {
+    "passed": 552
+  },
+  "source_stable": true,
+  "head_before": {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "stdout": "8a45d2f153cbe5200ee8567d67f2176ce63ba8a6\n"
+  },
+  "head_after": {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "stdout": "8a45d2f153cbe5200ee8567d67f2176ce63ba8a6\n"
+  },
+  "source_status_before": {
+    "argv": [
+      "git",
+      "status",
+      "--porcelain"
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "source_status_after": {
+    "argv": [
+      "git",
+      "status",
+      "--porcelain",
+      "--untracked-files=all"
+    ],
+    "cwd": "/dev/shm/hepta-safety-frozen-sparse-bdd2425",
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "reviewed_contract_sha256": "c843b3471351f34ab25538f2bd2c2401395872d4043995b003e9e887cdd535a4",
+  "source_inventory_paths": 1159,
+  "wall_ns": 606044280227,
+  "claims": {
+    "absolute_resource_safety_proved": false,
+    "all_selected_boundary_regressions_passed_without_skips": true,
+    "core_to_native_refinement_proved": false,
+    "general_concurrent_memory_safety_proved": false,
+    "global_optimality_proved": false,
+    "metadata_grants_admission": false,
+    "native_process_memory_bound_proved": false,
+    "rust_performance_superiority_proved": false,
+    "source_to_core_refinement_proved": false,
+    "whole_language_soundness_proved": false
+  },
+  "environment": {
+    "complete_transitive_toolchain_or_sysroot_closure_proved": false,
+    "environment": {
+      "CARGO_HOME": "/tmp/pq-r3-cargo",
+      "CARGO_NET_OFFLINE": "true",
+      "CARGO_TARGET_DIR": "/dev/shm/hepta-safety-shadow-target",
+      "CPATH": null,
+      "LD_AUDIT": null,
+      "LD_LIBRARY_PATH": null,
+      "LD_PRELOAD": null,
+      "LIBRARY_PATH": null,
+      "PATH": "/dev/shm/hepta-rust190/bin:/workspace/scratch/8ca82272aad7/clang20/usr/lib/llvm-20/bin:/dev/shm/hepta-safety-tools/bin:/root/.codex/tmp/arg0-linux/codex-arg07AktYH:/opt/codex/codex-path:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/override:/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/fallback",
+      "PYTHONPATH": "/workspace/scratch/8ca82272aad7/python-deps",
+      "RUSTFLAGS": null
+    },
+    "host": {
+      "machine": "x86_64",
+      "system": "Linux"
+    },
+    "python": {
+      "executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+      "sha256": "fa67443527ed9647f760d807e2a38f26340757123e643c4639cf273ed15d5ea7",
+      "version": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]"
+    },
+    "solver": {
+      "binding_sha256": "47a3218e5e032a0d5b3ea0fdd581a721d1cb64f2ab7b7320549a8e2f41c86f61",
+      "library_path": "/workspace/scratch/8ca82272aad7/python-deps/z3/lib/libz3.so",
+      "library_sha256": "56d9977b9276bcb8cda9973a14058fcaa9f3bfee14ed57408b9faacd76d4d8f3",
+      "name": "Z3",
+      "version": "4.15.4"
+    },
+    "tools": {
+      "cargo": {
+        "path": "/dev/shm/hepta-rust190/bin/cargo",
+        "sha256": "51de284e8bb0d03dcee595a0fb1cb3a952fe9e7e4b953a8b1467b7f71725b561",
+        "version": {
+          "argv": [
+            "/dev/shm/hepta-rust190/bin/cargo",
+            "--version"
+          ],
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "cargo 1.90.0 (840b83a10 2025-07-30)\n"
+        }
+      },
+      "clang": {
+        "path": "/workspace/scratch/8ca82272aad7/clang20/usr/bin/clang-20",
+        "sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+        "version": {
+          "argv": [
+            "/workspace/scratch/8ca82272aad7/clang20/usr/bin/clang-20",
+            "--version"
+          ],
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)\nTarget: x86_64-pc-linux-gnu\nThread model: posix\nInstalledDir: /workspace/scratch/8ca82272aad7/clang20/usr/lib/llvm-20/bin\n"
+        }
+      },
+      "lld": {
+        "path": "/workspace/scratch/8ca82272aad7/clang20/usr/lib/llvm-20/bin/ld.lld",
+        "sha256": "6c0bb94b169bf8905ecf427c59ef98ff565a3b86028846c5618aaa860913dee8",
+        "version": {
+          "argv": [
+            "/workspace/scratch/8ca82272aad7/clang20/usr/lib/llvm-20/bin/ld.lld",
+            "--version"
+          ],
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "Ubuntu LLD 20.1.8 (compatible with GNU linkers)\n"
+        }
+      },
+      "qemu_x86_64": {
+        "path": "/dev/shm/hepta-safety-tools/bin/qemu-x86_64",
+        "sha256": "90181b5552cd1a0b60d8edcc9f1cf8e38647579ef697d3155e2b6150e8fbcee0",
+        "version": {
+          "argv": [
+            "/dev/shm/hepta-safety-tools/bin/qemu-x86_64",
+            "--version"
+          ],
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "qemu-x86_64 version 8.2.2 (Debian 1:8.2.2+ds-0ubuntu1.18)\nCopyright (c) 2003-2023 Fabrice Bellard and the QEMU Project developers\n"
+        }
+      },
+      "rustc": {
+        "path": "/dev/shm/hepta-rust190/bin/rustc",
+        "sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+        "version": {
+          "argv": [
+            "/dev/shm/hepta-rust190/bin/rustc",
+            "--version"
+          ],
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "rustc 1.90.0 (1159e78c4 2025-09-14)\n"
+        }
+      }
+    }
+  },
+  "raw_report_sha256": "a25e07026ab31edfa40e8863fb5c20ea62d312d2c08d76076ed293d1e82cc776",
+  "raw_combined_log_sha256": "1fec8ca503e472f3027e741cf3232624ba6ae645f018aed99a663fb20d3e5b63",
+  "invocation": [
+    "bash",
+    "/tmp/hepta-six-track-ci-stage/run_canonical_safety.sh",
+    "/tmp/hepta-six-track-ci-stage/canonical-safety-8a45d2f1-attempt2.json"
+  ],
+  "stream_capture": "stdout and stderr were redirected together at invocation; they are not retrospectively separated",
+  "source_command_log_format": [
+    {
+      "raw_file": "recursive-source-commands.json",
+      "raw_sha256": "f5bd524f18ec198fc50e7e5225fcf39630162ff7cc61d2ba642b127843c1f404",
+      "actual_format": "json_array_followed_by_literal_backslash_n",
+      "strict_json_valid": false,
+      "strict_json_error": {
+        "message": "Extra data",
+        "line": 73,
+        "column": 2,
+        "position": 1362
+      },
+      "trailing_bytes_decimal": [
+        92,
+        110
+      ],
+      "original_bytes_preserved": true,
+      "derived_file": "recursive-source-commands.parsed.json",
+      "derived_sha256": "c3f49ee9640e8c39b3079c90db8d76c8e5965fefea1499a57aa499372ba78e9f",
+      "derived_format": "valid_json_array",
+      "derived_entries": 6,
+      "derived_transformation": "Remove exactly the final two literal bytes 0x5c 0x6e; preserve every preceding byte. No command values or experimental results are changed."
+    },
+    {
+      "raw_file": "finite-source-commands.json",
+      "raw_sha256": "32c8f2ddef8cda81dd553a17a1e7c7f09dc788423010858f14ba4bc589eaf9b8",
+      "actual_format": "json_array_followed_by_literal_backslash_n",
+      "strict_json_valid": false,
+      "strict_json_error": {
+        "message": "Extra data",
+        "line": 73,
+        "column": 2,
+        "position": 1355
+      },
+      "trailing_bytes_decimal": [
+        92,
+        110
+      ],
+      "original_bytes_preserved": true,
+      "derived_file": "finite-source-commands.parsed.json",
+      "derived_sha256": "04a200d09d5421d9ce3f8e63883df8ae297a24d2241b576cf2babead0dd0e87a",
+      "derived_format": "valid_json_array",
+      "derived_entries": 6,
+      "derived_transformation": "Remove exactly the final two literal bytes 0x5c 0x6e; preserve every preceding byte. No command values or experimental results are changed."
+    }
+  ],
+  "checkout_scope": "Independent clean sparse Git worktree at the recorded HEAD; every selected source input is included, plus exact matching retained experiment inputs present in the shared checkout. The second run additionally includes seven original tracked provenance files restored from exact pinned Git objects, as documented separately. Unrelated unavailable historical artifacts were excluded. No selectors, tests, or frozen source were modified.",
+  "tool_scope": "Production backend and canonical Rust parity checks use Rust 1.90.0. Recursive bridge uses 1.90.0; finite and retained stream bridges use 1.95.0. Dedicated independent Rust crate 121-test evidence is a separate prior run, not this report."
+}

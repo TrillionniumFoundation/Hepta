@@ -1,0 +1,114 @@
+{
+  "schema": "hepta.ci.failure-observation.v1",
+  "derived_from_unmodified_original_evidence": true,
+  "run": {
+    "id": 41093887756,
+    "url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/41093887756",
+    "head_sha": "8a45d2f153cbe5200ee8567d67f2176ce63ba8a6",
+    "head_tree": "19d3f6451df4818c5118fb9859840534abd9b7b7",
+    "status": "completed",
+    "conclusion": "failure",
+    "created_at": "2026-10-30T16:53:04Z",
+    "updated_at": "2026-10-30T17:23:19Z",
+    "run_attempt": 1
+  },
+  "source_commit": "8a45d2f153cbe5200ee8567d67f2176ce63ba8a6",
+  "source_head_stable": true,
+  "source_stable": true,
+  "source_input_count": 1159,
+  "source_input_maps_equal": true,
+  "source_initial_status_clean": true,
+  "semantic_and_native": "failure",
+  "native_ndu": "success",
+  "expected_selectors": 552,
+  "tests_run": 552,
+  "counts": {
+    "passed": 551,
+    "failed": 1,
+    "errors": 0,
+    "skipped": 0
+  },
+  "capabilities": 53,
+  "capabilities_passed": 52,
+  "qualifier_wall_ns": 667988992157,
+  "failures": [
+    {
+      "selector": "tests.test_cpp_json_checkpoint.JsonCheckpointProtocolTests.test_actual_complete_frame_followed_by_nonzero_exit_cannot_commit",
+      "status": "failed",
+      "wall_ns": 3003265403
+    }
+  ],
+  "failure_traceback": "FAIL: test_actual_complete_frame_followed_by_nonzero_exit_cannot_commit (tests.test_cpp_json_checkpoint.JsonCheckpointProtocolTests.test_actual_complete_frame_followed_by_nonzero_exit_cannot_commit)",
+  "failed_assertion": {
+    "expected_returncode": -6,
+    "observed_returncode": -9,
+    "observed_minus9_does_not_by_itself_establish_root_cause": true,
+    "subsequent_frame_and_state_assertions_reached": false
+  },
+  "skipped_following_steps": [
+    {
+      "name": "New C++ and stateful planning regression suites",
+      "number": 10
+    },
+    {
+      "name": "Independently execute real GSL versions and migrated code",
+      "number": 11
+    },
+    {
+      "name": "Require unchanged source",
+      "number": 12
+    }
+  ],
+  "additional_31_regressions_executed_in_this_ci_run": false,
+  "gsl_qualification_executed_in_this_ci_run": false,
+  "workflow_final_source_step_executed": false,
+  "earlier_passed_gate_steps": [
+    {
+      "name": "Set up job",
+      "number": 1
+    },
+    {
+      "name": "Run actions/checkout@v4",
+      "number": 2
+    },
+    {
+      "name": "Run actions/setup-python@v5",
+      "number": 3
+    },
+    {
+      "name": "Bind the exact source and prepare isolated evidence",
+      "number": 4
+    },
+    {
+      "name": "Install the signed LLVM 20 profile and cross-execution tools",
+      "number": 5
+    },
+    {
+      "name": "Install both explicit Rust profiles",
+      "number": 6
+    },
+    {
+      "name": "Catalog and exact-lock independent Rust",
+      "number": 7
+    },
+    {
+      "name": "Build all three distinct NDU profiles required by the reviewed matrix",
+      "number": 8
+    }
+  ],
+  "artifact": {
+    "id": 12997550720,
+    "filename": "semantic-41093887756-12997550720.zip",
+    "bytes": 1328077,
+    "sha256": "9e0c590502e2e43e9d69c3a1fb44ac369fd75fa15c397df1e7c8ae9b6d234b52",
+    "github_digest_verified": true,
+    "safety_report_sha256": "3c2ad7e390decd8f5fd03d3b8cb7a5925188acf458d427b37284756d06028e19",
+    "zip_crc_verified": true
+  },
+  "claims": {
+    "whole_cloud_run_passed": false,
+    "local_552_pass_relabels_or_supersedes_cloud_failure": false,
+    "cloud_core_pattern_captured": false,
+    "core_dump_root_cause_proved": false
+  }
+}

@@ -1,0 +1,243 @@
+{
+  "all_input_equivalence_proved": false,
+  "case_vectors_are_reused_across_versions_and_controls": true,
+  "claims": {
+    "arbitrary_callable_or_pointer_lifetimes_supported": false,
+    "full_semantic_equivalence_proved": false,
+    "general_cpp_exceptions_translated": false,
+    "general_cpp_migration": false,
+    "migration_speedup_claimed": false,
+    "whole_gsl_migrated": false
+  },
+  "component": "microsoft/GSL gsl::final_action<GslCallback>",
+  "cost": {
+    "authored_integration_client_bytes_as_reported": 1604,
+    "fully_cold_machine_claim": false,
+    "generated_component_bytes_as_reported": 1074,
+    "gsl_outer_process_wall_ns": 3782893692,
+    "gsl_qualification_wall_seconds": 3.6922006130007503,
+    "human_seconds": null,
+    "human_seconds_status": "not_measured",
+    "migration_speedup_claimed": false,
+    "outer_and_inner_are_nested_not_additive": true,
+    "source_acquisition_included_in_gsl_outer": false,
+    "tool_installation_included_in_gsl_outer": false,
+    "total_project_cost_known": false
+  },
+  "external_runner": {
+    "archived_path": "inputs/hepta_env.py",
+    "hash_captured_at_archival": true,
+    "observed_role": "The actual wrapper named in the original envelope argv; its source bytes are preserved without expanding or collecting inherited environment values.",
+    "original_path": "/workspace/scratch/8ca82272aad7/hepta_env.py",
+    "runner_hash_present_in_original_outer_envelope": false,
+    "rust_environment": "The wrapper exposes a Rust 1.95 path, but GSL's recorded compile/link commands use the explicit Clang/GCC/G++ path. The separate Rust 1.90 installation is not the GSL backend.",
+    "sha256": "48b0d210788c1777efdbdab2823138313959b7e84404667fff87db8631e97d71"
+  },
+  "gsl_used_rust_1_90": false,
+  "limits": [
+    "Small RAII specialization: value/move constructors, destructor, instantiated finally factories and one authored synchronous closed callback body.",
+    "The authored C++ test clients and explicit-status Hepta integration client are not automatically translated.",
+    "No general C++ exception ABI, arbitrary callable/capture lifetime inference, complete standard library or whole GSL migration is established.",
+    "The compiler, Clang AST/type instantiation, captured host standard-library move/forward/exchange semantics and stated target layout remain trusted.",
+    "416 reused differential vectors and negative controls are executable evidence, not an all-input refinement proof or general migration-cost estimate."
+  ],
+  "native_tools_actually_used_by_gsl": {
+    "cc": {
+      "bytes": 1023032,
+      "path": "/usr/bin/x86_64-linux-gnu-gcc-13",
+      "sha256": "6117c52522997d2aaccb2b52b3c6bf42c0a6c5edb1d718431fed6b2fc5fec234"
+    },
+    "clang": {
+      "bytes": 132448,
+      "path": "/workspace/scratch/8ca82272aad7/clang20/usr/lib/llvm-20/bin/clang",
+      "sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe"
+    },
+    "cxx": {
+      "bytes": 1027128,
+      "path": "/usr/bin/x86_64-linux-gnu-g++-13",
+      "sha256": "52f1ddb33fe78b9441e0f42e9cd22c571f1101938e046c8a26582494e041cc73"
+    }
+  },
+  "negative_controls": {
+    "changed_actual_callback": {
+      "case_count": 416,
+      "new_multiplier": 37,
+      "passed": true
+    },
+    "duplicate_owner": {
+      "detected": true,
+      "diagnostics": [
+        {
+          "code": "E_USE_AFTER_MOVE",
+          "message": "place owner is moved or partially initialized",
+          "notes": [],
+          "phase": "check",
+          "span": {
+            "column": 71,
+            "end": 1510,
+            "line": 34,
+            "path": "<input>",
+            "start": 1505
+          }
+        }
+      ]
+    },
+    "lost_owner": {
+      "detected": true,
+      "diagnostics": [
+        {
+          "code": "E_LINEAR_UNCONSUMED",
+          "message": "unconsumed linear owner(s) on return: owner.token",
+          "notes": [
+            "consume resource values with release/drop/take/return or consuming match, and task handles with join/cancel_and_join, on every normal exit"
+          ],
+          "phase": "check",
+          "span": {
+            "column": 20,
+            "end": 1466,
+            "line": 34,
+            "path": "<input>",
+            "start": 1454
+          }
+        }
+      ]
+    },
+    "wrong_but_linear": {
+      "detected": true,
+      "hepta_and_core_resource_checks_passed": true,
+      "mismatch_count": 325
+    }
+  },
+  "original_receipts_modified": false,
+  "qualification_ok": true,
+  "schema": "hepta.gsl-qualification-archive-summary.v1",
+  "scope": "three real upstream class methods, instantiated finally factory, one authored closed callback body",
+  "separate_rust_1_90_restoration_evidence": {
+    "c_project_first_attempt_exit_code": 1,
+    "c_project_outer_wall_ns": null,
+    "c_project_second_attempt_exit_code": 0,
+    "installation_and_smoke_costs_added_to_gsl": false,
+    "installation_exit_code": 0,
+    "installation_span_clock": "difference of recorded started_at/finished_at wall timestamps; no monotonic or whole-restoration timing claim",
+    "installation_span_seconds_from_recorded_wall_timestamps": 11.77387523651123,
+    "native_smoke_compile_and_execution_passed": true,
+    "retry_reason": "First attempt omitted the real unsuffixed LLVM bin directory from PATH; no source or tool identity was changed.",
+    "role": "Independent environment/toolchain restoration and a separate native C-project test; not used to compile/link the GSL experiment.",
+    "rust_toolchain_binaries_included": false,
+    "rustc": {
+      "executable_sha256": "e6abf55ab1859e7c990be77fd593f51661ea99fb2fde626ae9f4108aaa34e7fa",
+      "host": "x86_64-unknown-linux-gnu",
+      "path": "/dev/shm/hepta-rust190/bin/rustc",
+      "sysroot": "/dev/shm/hepta-rust190",
+      "sysroot_discovery": "verified_compiler_prefix",
+      "version": "rustc 1.90.0 (1159e78c4 2025-09-14)\nbinary: rustc\ncommit-hash: 1159e78c4747b02ef996e55082b704c09b970588\ncommit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.90.0\nLLVM version: 20.1.8"
+    },
+    "smoke_output": "rust190-native-ok\n"
+  },
+  "source_binding_verification": {
+    "cases_raw_sha256_matches_report": true,
+    "declared_input_hashes_match_exact_14fe_git_blobs": true,
+    "original_and_migrated_binary_hashes_match_report": true,
+    "report_raw_sha256_matches_outer_envelope": true,
+    "upstream_header_license_sha256_and_git_blob_sha1_verified": true
+  },
+  "source_commit": "14fe263fd8b65cb9bab019212e03a18550436cf0",
+  "source_repository": "https://github.com/TrillionniumFoundation/Hepta",
+  "versions": {
+    "3.1.0": {
+      "case_count": 416,
+      "factory_categories": [
+        "rvalue"
+      ],
+      "hepta_and_independent_core_checked": true,
+      "migrated_binary_sha256": "33d9dc70690d74dcc33b7874dfddbea7ae1dd46bc6a8dd5cb1994b02af4ff23a",
+      "migrated_factory_nonconst_lvalue": {
+        "available": false,
+        "diagnostics": [
+          {
+            "code": "E_UNKNOWN_FUNCTION",
+            "message": "unknown function GslFinallyLvalue",
+            "notes": [],
+            "phase": "check",
+            "span": {
+              "column": 17,
+              "end": 1327,
+              "line": 29,
+              "path": "<input>",
+              "start": 1306
+            }
+          }
+        ]
+      },
+      "migrated_linked_cpp_objects": [],
+      "native_original_matches_oracle": true,
+      "original_binary_sha256": "f0f42c3cba147ce4c36f3cd5cf450288dd783a1d9e36485622e3e6c4dec871e8",
+      "original_factory_nonconst_lvalue": "compile_rejected_reference_binding",
+      "scope": {
+        "authored_not_translated": "C++ test clients and explicit-status Hepta integration client",
+        "authored_translated": "GslCallback::operator() scalar body",
+        "factory": "actual rvalue instantiation; 4.0 also captures and lowers nonconst-lvalue instantiation",
+        "general_callable_lifetime_inference": false,
+        "general_templates_or_exceptions_supported": false,
+        "standard_library_implementation_migrated": false,
+        "upstream": "gsl::final_action<GslCallback> value/move constructors and destructor"
+      },
+      "standalone_migration_matches_oracle": true,
+      "statistics": {
+        "authored_callback_bodies_translated": 1,
+        "callback_assignments_translated": 2,
+        "upstream_factory_instantiations_translated": 1,
+        "upstream_method_bodies_translated": 3
+      },
+      "trusted_contracts": [
+        "Clang 20 C++20 parsing and type instantiation",
+        "captured host standard-library std::move, std::forward and std::exchange semantics",
+        "trivial GslCallback move/copy/destruction, 8-bit bytes and 64-bit unsigned long long",
+        "one synchronous callback state binding in the authored closed client"
+      ],
+      "upstream_commit": "0f6dbc9e2915ef5c16830f3fa3565738de2a9230"
+    },
+    "4.0.0": {
+      "case_count": 416,
+      "factory_categories": [
+        "nonconst_lvalue",
+        "rvalue"
+      ],
+      "hepta_and_independent_core_checked": true,
+      "migrated_binary_sha256": "7781ba6339e7a90238fcfe284beaca308faca3bdd7bccfb501b6b6d66750bc0f",
+      "migrated_factory_nonconst_lvalue": {
+        "available": true,
+        "case_count": 416,
+        "diagnostics": [],
+        "independent_original_and_migrated_match": true
+      },
+      "migrated_linked_cpp_objects": [],
+      "native_original_matches_oracle": true,
+      "original_binary_sha256": "f0f42c3cba147ce4c36f3cd5cf450288dd783a1d9e36485622e3e6c4dec871e8",
+      "original_factory_nonconst_lvalue": "compiles_and_runs_once",
+      "scope": {
+        "authored_not_translated": "C++ test clients and explicit-status Hepta integration client",
+        "authored_translated": "GslCallback::operator() scalar body",
+        "factory": "actual rvalue instantiation; 4.0 also captures and lowers nonconst-lvalue instantiation",
+        "general_callable_lifetime_inference": false,
+        "general_templates_or_exceptions_supported": false,
+        "standard_library_implementation_migrated": false,
+        "upstream": "gsl::final_action<GslCallback> value/move constructors and destructor"
+      },
+      "standalone_migration_matches_oracle": true,
+      "statistics": {
+        "authored_callback_bodies_translated": 1,
+        "callback_assignments_translated": 2,
+        "upstream_factory_instantiations_translated": 2,
+        "upstream_method_bodies_translated": 3
+      },
+      "trusted_contracts": [
+        "Clang 20 C++20 parsing and type instantiation",
+        "captured host standard-library std::move, std::forward and std::exchange semantics",
+        "trivial GslCallback move/copy/destruction, 8-bit bytes and 64-bit unsigned long long",
+        "one synchronous callback state binding in the authored closed client"
+      ],
+      "upstream_commit": "a3534567187d2edc428efd3f13466ff75fe5805c"
+    }
+  }
+}
