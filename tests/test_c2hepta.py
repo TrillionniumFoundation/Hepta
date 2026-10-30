@@ -373,6 +373,8 @@ class HsirSafety(unittest.TestCase):
 
         self.assertEqual(emit_expr(Expr("literal", "i32", "17")), "(17 as i32)")
         self.assertEqual(
+            emit_expr(Expr("var", "i32", "arg"), bindings=(("arg", "i32"),)), "arg")
+        self.assertEqual(
             emit_expr(Expr("compare", "bool", "==", (scalar, scalar))),
             "((1 as i32) == (1 as i32))")
 
