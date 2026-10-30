@@ -7,6 +7,11 @@ primitive capabilities.  Enum inactive owner slots are real empty owners and
 are consumed on every case edge.  Local stored loans keep their original
 primitive identity; no integer or raw pointer can manufacture a loan.
 
+Composite v4 carries primitive parameter-bound return annotations through the
+same elaborator into primitive v8. Aggregate stored-loan results and loans in
+partial states remain prohibited; the primitive verifier checks actual origins
+and owner/parent/child suspension after all nominal aliases are expanded.
+
 Tasks use an explicit cooperative state machine.  A poll executes only when
 requested, cancellation runs a checked state-consuming function exactly once,
 and a completed result must be taken.  There are no background threads,
@@ -20,7 +25,7 @@ from .hia_program import (EFFECTS, MAX_BLOCKS, MAX_FUNCTIONS, OWNERS, BYTE_RESOU
                           TYPES, _ident, _keys, _names, _reject)
 from .hia_schema import (CANONICAL_CORE_SCHEMA, COMPOSITE_OPERATIONS_BY_SCHEMA,
                          COMPOSITE_PROFILE, COMPOSITE_SCHEMA, COMPOSITE_SCHEMAS,
-                         COMPOSITE_SCHEMA_V3, composite_core_schema,
+                         COMPOSITE_SCHEMA_V3, COMPOSITE_SCHEMA_V4, composite_core_schema,
                          LEGACY_COMPOSITE_OPERATIONS)
 
 SCHEMA = COMPOSITE_SCHEMA
@@ -435,18 +440,22 @@ class _Elaborator:
             _reject("legacy nominal adapter only targets composite v1", "E_HIA_SCHEMA")
         _name(document["module"], "module")
         self.document, self.serial, self.value_slots = document, 0, 0
+        self.parameter_loan_returns = document["schema"] == COMPOSITE_SCHEMA_V4
         self.nominal_operations = (LEGACY_COMPOSITE_OPERATIONS if legacy else
                                    COMPOSITE_OPERATIONS_BY_SCHEMA[document["schema"]])
         self.types = _Types(document["types"],
                             recursive_chain=document["schema"] != SCHEMA,
-                            partial_records=document["schema"] == COMPOSITE_SCHEMA_V3)
+                            partial_records=document["schema"] in {COMPOSITE_SCHEMA_V3, COMPOSITE_SCHEMA_V4})
         functions = document["functions"]
         if type(functions) is not list or not 1 <= len(functions) <= MAX_FUNCTIONS:
             _reject("invalid nominal function inventory", "E_HIA_FORMAT")
-        self.functions, self.signatures = {}, {}
+        self.functions, self.signatures, self.return_loans = {}, {}, {}
         self.helpers, self.helper_names = [], {}
         for fn in functions:
-            _keys(fn, {"name", "params", "returns", "effects", "entry", "blocks"}, "function")
+            fields = {"name", "params", "returns", "effects", "entry", "blocks"}
+            if self.parameter_loan_returns and type(fn) is dict and "return_loans" in fn:
+                fields.add("return_loans")
+            _keys(fn, fields, "function")
             name = _name(fn["name"], "function")
             if name in self.functions:
                 _reject("duplicate nominal function", "E_HIA_NAME")
@@ -454,8 +463,25 @@ class _Elaborator:
             if type(fn["returns"]) is not list:
                 _reject("function returns must be a list", "E_HIA_TYPE")
             returns = tuple(self.types.resolve(t) for t in fn["returns"])
-            if any(t.has_loans for t in returns):
+            if any(t.has_loans and (not self.parameter_loan_returns or t.kind != "primitive")
+                   for t in returns):
                 _reject("stored loans may not escape a function", "E_HIA_LOAN")
+            if self.parameter_loan_returns:
+                origins = fn.get("return_loans", [None] * len(returns))
+                if type(origins) is not list or len(origins) != len(returns):
+                    _reject("nominal return_loans must match the return arity", "E_HIA_LOAN")
+                parameters = dict(params)
+                for typ, origin in zip(returns, origins):
+                    if typ.kind != "primitive" or typ.key not in {"readbuf", "mutbuf"}:
+                        if origin is not None:
+                            _reject("nonloan nominal result requires a null return_loans entry", "E_HIA_LOAN")
+                    elif (type(origin) is not str or origin not in parameters
+                          or parameters[origin].kind != "primitive"
+                          or parameters[origin].key not in {"readbuf", "mutbuf"}
+                          or typ.key == "mutbuf" and parameters[origin].key != "mutbuf"):
+                        _reject("nominal borrowed result must name a primitive input loan with sufficient permission",
+                                "E_HIA_LOAN")
+                self.return_loans[name] = tuple(origins)
             effects = fn["effects"]
             if (type(effects) is not list or any(type(e) is not str or e not in EFFECTS for e in effects)
                     or len(set(effects)) != len(effects)):
@@ -1094,9 +1120,17 @@ class _Elaborator:
                     cursor += width
             else:
                 _reject("unknown nominal terminator", "E_HIA_CFG")
-        return {"name": fn["name"], "params": flattened[fn["entry"]],
-                "returns": [p for t in self.signatures[fn["name"]][1] for p in t.flat],
-                "effects": fn["effects"], "entry": fn["entry"], "blocks": result}
+        lowered = {"name": fn["name"], "params": flattened[fn["entry"]],
+                   "returns": [p for t in self.signatures[fn["name"]][1] for p in t.flat],
+                   "effects": fn["effects"], "entry": fn["entry"], "blocks": result}
+        if self.parameter_loan_returns:
+            # Primitive borrowed formals retain their original names when
+            # flattened. A nominal owner/partial result contributes only null
+            # positions, including its private linear token. No aggregate
+            # field name or source annotation can manufacture a loan origin.
+            lowered["return_loans"] = [origin for typ, origin in zip(
+                self.signatures[fn["name"]][1], self.return_loans[fn["name"]]) for _ in typ.flat]
+        return lowered
 
     def lower(self):
         functions = [self.function(fn) for fn in self.document["functions"]]

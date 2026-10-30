@@ -102,6 +102,41 @@
     },
     {
       "entrypoints": [
+        "hepta.hia_program_composite.elaborate_program",
+        "hepta.hia_program.verify_program",
+        "hepta.hia_program_runtime.execute_program",
+        "hepta.hia_rust_crosscheck.crosscheck_rust_execution_v4",
+        "hepta.hia_program_llvm.build_program_native"
+      ],
+      "exclusions": [
+        "composite v1/v2/v3 retain their existing normalization and refusal contracts",
+        "aggregate stored-loan results and loan-containing partial states remain rejected",
+        "not general memory, provenance, recursive ADTs, partial initialization, external lifetimes or asynchronous cancellation",
+        "not a new high-level source, raw Rust nominal input, callback, reentrant or threaded ABI profile",
+        "not complete cleanup on trap, budget stop or host failure",
+        "not all historical routes unified, Rust production authority, performance improvement or backend refinement proof"
+      ],
+      "guarantee": "checked_elaboration_and_reverified_core",
+      "id": "composite_partial_returned_loans",
+      "regression_selectors": [
+        "tests.test_hia_composite_returned_loans.CompositeReturnedLoanSemantics.test_explicit_profile_preserves_legacy_normalization_and_rejections",
+        "tests.test_hia_composite_returned_loans.CompositeReturnedLoanSemantics.test_partial_borrow_return_end_take_restore_with_cfg_and_recursion",
+        "tests.test_hia_composite_returned_loans.CompositeReturnedLoanSemantics.test_partial_result_expands_null_origins_before_named_primitive_loan",
+        "tests.test_hia_composite_returned_loans.CompositeReturnedLoanSemantics.test_contract_shape_permission_and_generated_name_origins_reject",
+        "tests.test_hia_composite_returned_loans.CompositeReturnedLoanSemantics.test_stored_loan_results_partial_fields_and_nominal_origins_reject",
+        "tests.test_hia_composite_returned_loans.CompositeReturnedLoanSemantics.test_independent_core_rejects_owner_motion_parent_end_and_wrong_origin",
+        "tests.test_hia_composite_returned_loans.CompositeReturnedLoanSemantics.test_uninitialized_finish_and_local_owner_escape_remain_rejected",
+        "tests.test_hia_composite_returned_loans.CompositeReturnedLoanSemantics.test_public_scalar_entries_and_unused_invalid_functions_stay_closed",
+        "tests.test_hia_composite_returned_loans.CompositeReturnedLoanRust.test_actual_same_machine_partial_fields_return_forms_and_flat_results",
+        "tests.test_hia_composite_returned_loans.CompositeReturnedLoanRust.test_exact_stopped_prefixes_allocation_failure_and_recursive_depth",
+        "tests.test_hia_composite_returned_loans.CompositeReturnedLoanRust.test_raw_core_rejection_and_original_nominal_entry_before_launch",
+        "tests.test_hia_composite_returned_loans.CompositeReturnedLoanNative.test_actual_llvm_calls_all_return_forms_and_expanded_partial_result",
+        "tests.test_hia_composite_returned_loans.CompositeReturnedLoanNative.test_actual_allocator_normal_and_failed_initialized_prefix_cleanup"
+      ],
+      "scope": "explicit composite v4 preserves nominal partial-record typestates while mapping primitive parameter-bound result annotations to existing v8; actual Python and independent Rust same-Machine stopped ledgers and Linux x86-64 direct-LLVM scalar execution are finite observations"
+    },
+    {
+      "entrypoints": [
         "hepta.hia_program.execute_program"
       ],
       "exclusions": [
@@ -466,6 +501,31 @@
         "normalizes_to": "hepta.hia.program.v7",
         "profile": "nominal-partial-records-enums-cooperative-tasks-over-closed-ssa-v7",
         "schema": "hepta.hia.composite.v3"
+      },
+      {
+        "nominal_operations": [
+          "enum.make",
+          "enum.tag",
+          "record.abandon",
+          "record.begin",
+          "record.borrow",
+          "record.finish",
+          "record.get",
+          "record.insert",
+          "record.make",
+          "record.take",
+          "record.unpack",
+          "task.cancel",
+          "task.close",
+          "task.create",
+          "task.join",
+          "task.poll",
+          "task.start",
+          "task.state"
+        ],
+        "normalizes_to": "hepta.hia.program.v8",
+        "profile": "nominal-partial-records-parameter-loan-returns-over-closed-ssa-v8",
+        "schema": "hepta.hia.composite.v4"
       }
     ],
     "latest_core_schema": "hepta.hia.program.v8",

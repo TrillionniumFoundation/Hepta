@@ -1,0 +1,418 @@
+{
+  "schema": "hepta.hia.composite.v4",
+  "module": "composite_partial_returned_loans",
+  "types": [
+    {
+      "name": "Pair",
+      "params": [],
+      "kind": "record",
+      "fields": [
+        {
+          "name": "first",
+          "type": "buffer"
+        },
+        {
+          "name": "second",
+          "type": "usize"
+        }
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "name": "partial_and_view",
+      "params": [
+        {
+          "name": "state",
+          "type": {
+            "partial": "Pair",
+            "initialized": [
+              "second"
+            ]
+          }
+        },
+        {
+          "name": "input",
+          "type": "readbuf"
+        }
+      ],
+      "returns": [
+        {
+          "partial": "Pair",
+          "initialized": [
+            "second"
+          ]
+        },
+        "readbuf"
+      ],
+      "effects": [],
+      "entry": "entry",
+      "blocks": [
+        {
+          "id": "entry",
+          "params": [
+            {
+              "name": "state",
+              "type": {
+                "partial": "Pair",
+                "initialized": [
+                  "second"
+                ]
+              }
+            },
+            {
+              "name": "input",
+              "type": "readbuf"
+            }
+          ],
+          "ops": [
+            {
+              "op": "borrow.read",
+              "args": [
+                "input"
+              ],
+              "out": [
+                {
+                  "name": "child",
+                  "type": "readbuf"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "state",
+              "child"
+            ]
+          }
+        }
+      ],
+      "return_loans": [
+        null,
+        "input"
+      ]
+    },
+    {
+      "name": "partial_result",
+      "params": [
+        {
+          "name": "byte",
+          "type": "u8"
+        }
+      ],
+      "returns": [
+        "u8"
+      ],
+      "effects": [
+        "alloc",
+        "read",
+        "write",
+        "trap"
+      ],
+      "entry": "entry",
+      "blocks": [
+        {
+          "id": "entry",
+          "params": [
+            {
+              "name": "byte",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "one",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 1
+              }
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "zero",
+                  "type": "usize"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "buffer.new",
+              "args": [
+                "one"
+              ],
+              "out": [
+                {
+                  "name": "owner",
+                  "type": "buffer"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "record.begin",
+              "args": [],
+              "out": [
+                {
+                  "name": "owner_empty",
+                  "type": {
+                    "partial": "Pair",
+                    "initialized": []
+                  }
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "record.insert",
+              "args": [
+                "owner_empty",
+                "owner"
+              ],
+              "out": [
+                {
+                  "name": "retained",
+                  "type": {
+                    "partial": "Pair",
+                    "initialized": [
+                      "first"
+                    ]
+                  }
+                }
+              ],
+              "attrs": {
+                "field": "first"
+              }
+            },
+            {
+              "op": "record.borrow",
+              "args": [
+                "retained"
+              ],
+              "out": [
+                {
+                  "name": "writer",
+                  "type": "mutbuf"
+                }
+              ],
+              "attrs": {
+                "field": "first",
+                "mode": "mut"
+              }
+            },
+            {
+              "op": "buffer.store",
+              "args": [
+                "writer",
+                "zero",
+                "byte"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "loan.end",
+              "args": [
+                "writer"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "record.borrow",
+              "args": [
+                "retained"
+              ],
+              "out": [
+                {
+                  "name": "parent",
+                  "type": "readbuf"
+                }
+              ],
+              "attrs": {
+                "field": "first",
+                "mode": "read"
+              }
+            },
+            {
+              "op": "record.begin",
+              "args": [],
+              "out": [
+                {
+                  "name": "tag_empty",
+                  "type": {
+                    "partial": "Pair",
+                    "initialized": []
+                  }
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "record.insert",
+              "args": [
+                "tag_empty",
+                "one"
+              ],
+              "out": [
+                {
+                  "name": "tag",
+                  "type": {
+                    "partial": "Pair",
+                    "initialized": [
+                      "second"
+                    ]
+                  }
+                }
+              ],
+              "attrs": {
+                "field": "second"
+              }
+            },
+            {
+              "op": "call",
+              "args": [
+                "tag",
+                "parent"
+              ],
+              "out": [
+                {
+                  "name": "returned_state",
+                  "type": {
+                    "partial": "Pair",
+                    "initialized": [
+                      "second"
+                    ]
+                  }
+                },
+                {
+                  "name": "returned",
+                  "type": "readbuf"
+                }
+              ],
+              "attrs": {
+                "function": "partial_and_view"
+              }
+            },
+            {
+              "op": "buffer.load",
+              "args": [
+                "returned",
+                "zero"
+              ],
+              "out": [
+                {
+                  "name": "answer",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "loan.end",
+              "args": [
+                "returned"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "loan.end",
+              "args": [
+                "parent"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "record.take",
+              "args": [
+                "returned_state"
+              ],
+              "out": [
+                {
+                  "name": "tag_value",
+                  "type": "usize"
+                },
+                {
+                  "name": "empty_tag",
+                  "type": {
+                    "partial": "Pair",
+                    "initialized": []
+                  }
+                }
+              ],
+              "attrs": {
+                "field": "second"
+              }
+            },
+            {
+              "op": "record.abandon",
+              "args": [
+                "empty_tag"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "record.take",
+              "args": [
+                "retained"
+              ],
+              "out": [
+                {
+                  "name": "final",
+                  "type": "buffer"
+                },
+                {
+                  "name": "empty_owner",
+                  "type": {
+                    "partial": "Pair",
+                    "initialized": []
+                  }
+                }
+              ],
+              "attrs": {
+                "field": "first"
+              }
+            },
+            {
+              "op": "owner.drop",
+              "args": [
+                "final"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "record.abandon",
+              "args": [
+                "empty_owner"
+              ],
+              "out": [],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "answer"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

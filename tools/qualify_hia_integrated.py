@@ -77,6 +77,7 @@ CRITICAL_MODULES = {
     "raw_rust_integer_admission": ("test_hia_rust_raw_integer",),
     "partial_record_states": ("test_hia_partial_record", "test_hia_partial_record_scenarios",
                               "test_hia_partial_finite_bounds"),
+    "composite_partial_returned_loans": ("test_hia_composite_returned_loans",),
     "source_local_views": ("test_hia_source_local_views",),
     "source_unit_enums": ("test_hia_source_unit_enums",),
     "rust_invocation_bound_execution": ("test_hia_rust_execution_crosscheck", "test_hia_rust_transport_lifecycle",

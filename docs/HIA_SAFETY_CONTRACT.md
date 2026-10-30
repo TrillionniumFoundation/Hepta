@@ -52,6 +52,16 @@ These checks preserve all previous selectors and do not change production
 admission or the `no_change` policy. See
 [the detailed contract](HIA_FILECHECK_NATIVE_TARGET_AND_FAILURES.md).
 
+The explicit [composite v4 adapter](HIA_COMPOSITE_RETURNED_LOANS_V4.md) adds a
+separate reviewed capability for partial-record typestates composed with
+primitive parameter-bound returned loans. Its 13 methods extend the retained
+103-method matrix to 116 unique selections. Original v1–v3 nominal profiles
+keep their existing targets and refusals. The new profile uses the same
+elaborator, primitive v8 checker and Rust Machine, while aggregate stored-loan
+returns, loan-containing partial states and public resource ABI remain
+excluded. Actual LLVM execution is a separate finite test obligation; emitted
+IR and build receipts alone do not satisfy it.
+
 ## Typed state and instruction obligations
 
 The following judgment names the state already checked by the implementation:
@@ -119,6 +129,7 @@ tests for the relevant ownership, alias, join and return cases.
 | Composite v1 | Nominal records/enums and explicit cooperative tasks | Normalizes to primitive v6 |
 | Composite v2 | Nominal operations with the v7 resource grammar | Normalizes to primitive v7 |
 | Composite v3 | Explicit partially initialized record states | Normalizes to primitive v7; no implicit v8 returned-loan extension |
+| Composite v4 | The same nominal partial states composed with primitive parameter-origin returned views | Normalizes to primitive v8; loan origins must name original primitive borrowed formals; stored-loan aggregate returns and partial fields remain forbidden |
 | Hepta source | Finite checked scalar/record/Result profiles and closed specialization; v1 by default or explicit v8 | No stored returned borrows, general foreign calls or hidden Rust/C fallback |
 | Independent Rust shadow | Separately closed scalar, byte-owner, returned-loan and owned-chain Machine profiles; explicit language frames; versioned v3 budgets up to 256 frames, ten million ticks and 1 GiB logical payload; v4 binds ordered list/tuple arguments and exact positive hex failure indices beyond u64 | The same Machine retains v1–v3 contracts. V4 keeps its 1024-byte policy and bounded scalar transport. Finite v3 controls execute all depths, deep stopped ledgers, ten million allowed ticks and a 16 MiB plus one byte allocation; successful 1 GiB allocation, RSS bounds, complete Python API parity and production authority remain unproved |
 | Direct LLVM | Native code from immutable reverified HIA | Compiler, runtime and platform remain trusted; full Core-to-native refinement is not proved |
