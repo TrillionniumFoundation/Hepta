@@ -15,6 +15,12 @@ import re
 # The migration IR can also be called without the C importer. Only validated
 # ASCII Hepta symbol spellings may be interpolated into emitted source.
 _SYMBOL = re.compile(r"[A-Za-z][A-Za-z0-9_]*\Z", re.ASCII)
+_MAX_IR_TEXT_CHARS = 128
+_MAX_IR_PARAMS = 64
+
+
+def _bounded_text(value: object) -> bool:
+    return isinstance(value, str) and len(value) <= _MAX_IR_TEXT_CHARS
 _RESERVED = frozenset({
     "module", "import", "fn", "pub", "extern", "export", "effects", "resources",
     "as", "let", "mut", "take", "move", "read", "unsafe", "struct", "enum",
@@ -33,7 +39,7 @@ class IRValidationError(ValueError):
 
 
 def _check_symbol(name: str) -> None:
-    if not isinstance(name, str) or not _SYMBOL.fullmatch(name) or name in _RESERVED:
+    if not _bounded_text(name) or not _SYMBOL.fullmatch(name) or name in _RESERVED:
         raise IRValidationError(f"unsupported Hepta migration IR identifier: {name!r}")
 
 
@@ -122,8 +128,16 @@ _MAX_IR_NODES = 4096
 
 
 def _check_structure_budget(function: Function) -> None:
-    if not isinstance(function, Function) or not isinstance(function.body, tuple):
+    if (not isinstance(function, Function) or not isinstance(function.body, tuple)
+            or not isinstance(function.params, tuple)
+            or len(function.params) > _MAX_IR_PARAMS
+            or not _bounded_text(function.name)
+            or not _bounded_text(function.result)):
         raise IRValidationError("invalid migration IR function structure")
+    for parameter in function.params:
+        if (not isinstance(parameter, tuple) or len(parameter) != 2
+                or not all(_bounded_text(field) for field in parameter)):
+            raise IRValidationError("invalid migration IR parameter structure")
 
     pending: list[tuple[Expr | Stmt, int]] = [(node, 1) for node in function.body]
     if len(pending) > _MAX_IR_NODES:
@@ -135,8 +149,12 @@ def _check_structure_budget(function: Function) -> None:
         if visited > _MAX_IR_NODES or depth > _MAX_IR_DEPTH:
             raise IRValidationError("migration IR depth or node budget exceeded")
         if isinstance(node, Expr):
+            if not all(_bounded_text(field) for field in (node.kind, node.ty, node.value)):
+                raise IRValidationError("invalid migration IR expression fields")
             children = node.args
         elif isinstance(node, Stmt):
+            if not _bounded_text(node.kind):
+                raise IRValidationError("invalid migration IR statement kind")
             if not isinstance(node.then_body, tuple) or not isinstance(node.else_body, tuple):
                 raise IRValidationError("invalid migration IR statement branches")
             children = (node.expr,) + node.then_body + node.else_body

@@ -62,6 +62,43 @@ class HsirSafety(unittest.TestCase):
         self.assertIn('export "C" fn safe_add(', emit_function(valid))
 
 
+    def test_direct_ir_untrusted_field_shapes_and_resource_budgets(self):
+        # Direct IR callers must never leak raw Python shape/type errors or
+        # serialize unbounded symbol/parameter data before reject-by-contract.
+        body = (Stmt("return", Expr("literal", "i32", "1")),)
+        bad = (
+            ("malformed_parameter", Function("f", (("x",),), "i32", body)),
+            ("non_string_parameter_type", Function("f", (("x", []),), "i32", body)),
+            ("non_tuple_parameters", Function("f", [["x", "i32"]], "i32", body)),
+            ("unhashable_return_type", Function("f", (), [], body)),
+            ("unhashable_variable", Function("f", (("x", "i32"),), "i32",
+                (Stmt("return", Expr("var", "i32", [])),))),
+            ("unhashable_operator", Function("f", (), "i32",
+                (Stmt("return", Expr("arith", "i32", [],
+                    (Expr("literal", "i32", "1"), Expr("literal", "i32", "2")))),))),
+            ("unhashable_expr_kind", Function("f", (), "i32",
+                (Stmt("return", Expr([], "i32", "1")),))),
+            ("too_many_parameters", Function("f",
+                tuple((f"p{i}", "i32") for i in range(130)), "i32", body)),
+            ("oversized_function_symbol", Function("f" * 129, (), "i32", body)),
+            ("oversized_parameter_symbol", Function("f",
+                (("x" * 129, "i32"),), "i32", body)),
+            ("oversized_variable_text", Function("f", (), "i32",
+                (Stmt("return", Expr("var", "i32", "x" * 129)),))),
+        )
+        for case, fn in bad:
+            for entry in (check_function, emit_function, function_hash):
+                with self.subTest(case=case, entry=entry.__name__):
+                    with self.assertRaises(IRValidationError):
+                        entry(fn)
+
+        # Exact limits remain usable; valid direct IR still round-trips.
+        good = Function("f" * 128,
+            tuple((f"p{i}", "i32") for i in range(64)), "i32", body)
+        self.assertEqual(check_function(good), frozenset())
+        self.assertIn('export "C" fn', emit_function(good))
+        self.assertEqual(len(function_hash(good)), 64)
+
     def test_deep_ir_trees_fail_closed_before_recursive_validation_or_hashing(self):
         # Independent IR consumers do not pass through Clang's JSON parser.
         # A deeply nested but otherwise type-correct function must raise the
