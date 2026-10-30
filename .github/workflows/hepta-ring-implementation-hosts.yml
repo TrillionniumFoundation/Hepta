@@ -65,6 +65,31 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes clang-20 libclang-20-dev llvm-20 lld-20 build-essential
           printf '%s\n' /usr/lib/llvm-20/bin >> "$GITHUB_PATH"
+      - name: Record the actual default driver and selected linker identity
+        shell: bash
+        run: |
+          python - <<'PYCODE'
+          from hashlib import sha256
+          import json, os, shutil, subprocess
+          from pathlib import Path
+          out = Path(os.environ['RUNNER_TEMP']) / 'ring-implementation-evidence'
+          selected = subprocess.check_output(['gcc', '-print-prog-name=ld'], text=True).strip()
+          resolved = Path(shutil.which(selected) or selected).resolve(strict=True)
+          driver = subprocess.run(['gcc', '-v'], capture_output=True, text=True, check=True)
+          linker = subprocess.run([str(resolved), '--version'], capture_output=True, text=True, check=True)
+          probe_argv = ['gcc', '-v', '-x', 'c', '-', '-o', str(out / 'default-link-probe')]
+          probe = subprocess.run(probe_argv, input='int main(void) { return 0; }\n',
+                                 capture_output=True, text=True, check=True)
+          (out / 'default-link-probe.stdout').write_text(probe.stdout)
+          (out / 'default-link-probe.stderr').write_text(probe.stderr)
+          receipt = {'source': os.environ['HEPTA_SOURCE_SHA'], 'selected': selected,
+                     'resolved': str(resolved), 'sha256': sha256(resolved.read_bytes()).hexdigest(),
+                     'driver_version': driver.stdout + driver.stderr,
+                     'linker_version': linker.stdout + linker.stderr, 'probe_argv': probe_argv,
+                     'probe_returncode': probe.returncode,
+                     'scope': 'GCC default linker identity and actual verbose probe; original build argv retained separately; no syscall trace or verified backend claim.'}
+          (out / 'LINKER_IDENTITY.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          PYCODE
       - name: Require actual native adapter controls without skipped tests
         shell: bash
         run: |
@@ -109,3 +134,4 @@ jobs:
           name: hia-ring-implementation-${{ matrix.machine }}-${{ env.HEPTA_SOURCE_SHA }}
           path: ${{ runner.temp }}/ring-implementation-evidence
           if-no-files-found: error
+          include-hidden-files: true

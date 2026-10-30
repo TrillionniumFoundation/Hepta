@@ -1,0 +1,18 @@
+[package]
+name = "hepta-prospective-native-controls"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+publish = false
+
+[workspace]
+
+[dependencies]
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.154"
+sha2 = "=0.10.9"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true

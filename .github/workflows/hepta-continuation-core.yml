@@ -27,6 +27,8 @@ jobs:
       HEPTA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       PYTHONDONTWRITEBYTECODE: '1'
       PYTHONUNBUFFERED: '1'
+      CLANG: /usr/bin/clang-20
+      HEPTA_CLANG: /usr/bin/clang-20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -42,6 +44,17 @@ jobs:
           mkdir -p "$RUNNER_TEMP/continuation-core"
           python -m pip install -e '.[optimization]' zstandard==0.25.0
           python tools/bootstrap_verification.py --lean-only --directory "$RUNNER_TEMP/continuation-tools"
+      - name: Install the required signed native LLVM profile
+        shell: bash
+        run: |
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/hepta-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key
+          hepta_llvm_fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hepta-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')
+          test "$hepta_llvm_fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+          sudo install -m 0644 "$RUNNER_TEMP/hepta-llvm.asc" /usr/share/keyrings/hepta-llvm.asc
+          printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hepta-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hepta-llvm20.list
+          sudo apt-get update
+          sudo apt-get install --yes clang-20 libclang-20-dev llvm-20 lld-20 build-essential
+          printf '%s\n' /usr/lib/llvm-20/bin >> "$GITHUB_PATH"
       - name: Recheck the shared catalog and meaningful boundary controls without skips
         run: |
           python tools/generate_hia_catalog.py --check
@@ -61,7 +74,8 @@ jobs:
                     and not result.skipped and not result.expectedFailures)
           report = {'source': os.environ['HEPTA_SOURCE_SHA'], 'suites': suites,
                     'planned': count, 'run': result.testsRun, 'failures': len(result.failures),
-                    'errors': len(result.errors), 'skipped': len(result.skipped), 'passed': passed}
+                    'errors': len(result.errors), 'skipped': len(result.skipped),
+                    'skip_reasons': [[str(test), reason] for test, reason in result.skipped], 'passed': passed}
           (output / 'UNIT_RESULT.json').write_text(json.dumps(report, indent=2) + '\n')
           print(json.dumps(report))
           raise SystemExit(0 if passed else 1)
@@ -91,3 +105,4 @@ jobs:
           name: hia-continuation-core-${{ env.HEPTA_SOURCE_SHA }}
           path: ${{ runner.temp }}/continuation-core
           if-no-files-found: error
+          include-hidden-files: true
