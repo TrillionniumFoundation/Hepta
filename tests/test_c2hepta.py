@@ -108,6 +108,22 @@ class C2HeptaImport(unittest.TestCase):
                 self.assertFalse(self.out.exists())
                 self.assertEqual(json.loads(self.report.read_text())["status"], "rejected")
 
+    def test_builtin_numeric_macros_cannot_bypass_macro_free_gate(self):
+        # Predefined macros expand even without a # directive. Clang's AST
+        # presents plain IntegerLiteral nodes, hiding macro provenance.
+        sources = (
+            "int source_line(void){return __LINE__;}\n",
+            "int expansion_counter(void){return __COUNTER__;}\n",
+        )
+        for source in sources:
+            with self.subTest(source=source):
+                self.out.unlink(missing_ok=True)
+                result = self.convert(source)
+                self.assertEqual(result["status"], "rejected", result)
+                self.assertIn("preprocessor", result.get("reason", ""))
+                self.assertFalse(self.out.exists())
+                self.assertEqual(json.loads(self.report.read_text())["status"], "rejected")
+
     def test_deterministic_ir_and_fail_closed_stale_output(self):
         a = self.convert("int increment(int x){return x + 1;}")
         self.assertEqual(a["status"], "converted")
