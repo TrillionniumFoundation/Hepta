@@ -189,6 +189,26 @@ def _function(decl: dict, model: dict) -> dict:
     return {"name": name, "source": source, "params": args, "returns": ret}
 
 
+def _read_bounded_source(src: Path, *, recheck: bool) -> bytes:
+    """Bound *every* source read, not just the first size check.
+
+    Files can grow between Clang analysis, frontend validation and publication.
+    A recheck of an oversize file is a source race, not an initial size error.
+    """
+    try:
+        with src.open("rb") as stream:
+            source = stream.read(256_001)
+    except OSError as exc:
+        raise MigrationRejected("E_C_SOURCE_RACE",
+                                "C source unavailable during bounded read") from exc
+    if len(source) > 256_000:
+        code = "E_C_SOURCE_RACE" if recheck else "E_C_SIZE"
+        message = ("C source exceeded 256 KB during conversion" if recheck
+                   else "Pilot source exceeds 256 KB")
+        raise MigrationRejected(code, message)
+    return source
+
+
 def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> dict:
     """Return explicit migration evidence; never write a partial conversion."""
     src, dest = Path(path).resolve(), Path(output).absolute()
@@ -200,17 +220,7 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
         if (src == dest or not src.is_file() or src.suffix != ".c"
                 or dest.suffix != ".hepta" or dest.is_symlink()):
             raise MigrationRejected("E_C_PATH", "Require existing .c source and distinct non-symlink .hepta destination")
-        # The input is untrusted and may be much larger than the pilot limit.
-        # Read at most one byte past the limit, rather than allocating the
-        # whole file before discovering the oversize condition.
-        try:
-            with src.open("rb") as stream:
-                source = stream.read(256_001)
-        except OSError as exc:
-            raise MigrationRejected("E_C_SOURCE_RACE",
-                                    "C source unavailable during bounded read") from exc
-        if len(source) > 256_000:
-            raise MigrationRejected("E_C_SIZE", "Pilot source exceeds 256 KB")
+        source = _read_bounded_source(src, recheck=False)
         report["source_sha256"] = hashlib.sha256(source).hexdigest()
         model = _data_model(clang)
         report["target_model"] = model
@@ -261,7 +271,7 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
             report["status"] = "unsupported_source"
             return report
         program = "module c_migrated;\n\n" + "\n".join(x["source"] for x in translated)
-        if src.read_bytes() != source:
+        if _read_bounded_source(src, recheck=True) != source:
             raise MigrationRejected("E_C_SOURCE_RACE", "C source changed during Clang analysis")
         from .checker import check
         from .parser import parse
@@ -286,13 +296,9 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
             # Frontend checks may take time after the earlier source check.
             # Reject any change before publication, including same-size edits.
             # This narrows but cannot eliminate noncooperative writer races.
-            try:
-                if src.read_bytes() != source:
-                    raise MigrationRejected("E_C_SOURCE_RACE",
-                                            "C source changed before publication")
-            except OSError as exc:
+            if _read_bounded_source(src, recheck=True) != source:
                 raise MigrationRejected("E_C_SOURCE_RACE",
-                                        "C source unavailable before publication") from exc
+                                        "C source changed before publication")
             # Atomic same-filesystem hard-link publication: the completely
             # written, fsynced staged inode becomes visible in one operation.
             # os.link fails without replacing a concurrent existing name.
