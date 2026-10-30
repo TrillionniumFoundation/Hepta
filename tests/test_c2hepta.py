@@ -365,6 +365,44 @@ class C2HeptaImport(unittest.TestCase):
                 self.assertEqual(self.out.read_text(encoding="utf-8"), "previous output\n")
                 self.assertEqual(self.report.read_text(encoding="utf-8"), "previous receipt\n")
 
+    @unittest.skipUnless(os.name == "posix", "POSIX directory symlinks required")
+    def test_parent_symlink_rebinding_cannot_redirect_publication(self):
+        # Caller may supply a parent directory alias that initially resolves
+        # into an approved location. An adversary must not redirect the final
+        # translated source and receipt by rebinding that alias during Clang.
+        self.src.write_text("int safe(int x){return x;}\n", encoding="utf-8")
+        admitted = self.path / "admitted"
+        redirected = self.path / "redirected"
+        admitted.mkdir()
+        redirected.mkdir()
+        alias = self.path / "selected"
+        alias.symlink_to(admitted, target_is_directory=True)
+        output = alias / "safe.hepta"
+        receipt = alias / "receipt.json"
+
+        from tools import c2hepta
+        actual_ast = c2hepta._run_clang_ast_bounded
+        rebound = []
+
+        def rebind_during_clang(*args, **kwargs):
+            alias.unlink()
+            alias.symlink_to(redirected, target_is_directory=True)
+            rebound.append(True)
+            return actual_ast(*args, **kwargs)
+
+        with mock.patch("tools.c2hepta._run_clang_ast_bounded",
+                        side_effect=rebind_during_clang):
+            result = migrate(self.src, output, receipt)
+
+        self.assertTrue(rebound, "the directory attack was not exercised")
+        self.assertEqual(result["status"], "converted", result)
+        self.assertTrue((admitted / "safe.hepta").is_file())
+        self.assertTrue((admitted / "receipt.json").is_file())
+        self.assertFalse((redirected / "safe.hepta").exists())
+        self.assertFalse((redirected / "receipt.json").exists())
+        self.assertEqual(json.loads((admitted / "receipt.json").read_text())["status"],
+                         "converted")
+
     def test_native_gate_without_frontend_fails_closed(self):
         self.src.write_text("int f(int x){return x;}", encoding="utf-8")
         result = migrate(self.src, self.out, self.report, verify_native=True, rustc="/no/such/rustc")
