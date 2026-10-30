@@ -3,14 +3,15 @@
 This document defines the independently checked primitive
 `hepta.hia.program.v1` through `hepta.hia.program.v8` profiles and the distinct
 structural nominal input namespaces `hepta.hia.composite.v1`,
-`hepta.hia.composite.v2` and `hepta.hia.composite.v3`. Their
+`hepta.hia.composite.v2`, `hepta.hia.composite.v3` and `hepta.hia.composite.v4`. Their
 executable admission authority is `hepta.hia_program.verify_core` (also exposed
 as `hepta.core.verify_core` and `verify_program`). The direct interpreter and
 LLVM backend consume the same immutable, reverified program bytes. No original
 Hepta, C, C++, Rust or assembly source is required to admit or execute this
 program. A caller-provided hash, proof claim or producer receipt grants no
 additional permission. Composite v1 input is structurally elaborated into
-primitive v6; composite v2/v3 inputs are elaborated into primitive v7. In all cases
+primitive v6; composite v2/v3 inputs are elaborated into primitive v7;
+composite v4 inputs are elaborated into primitive v8. In all cases
 the complete resulting core is independently rechecked. Admission does not
 depend on a source-language checker or a producer's assertion.
 
@@ -100,13 +101,14 @@ verification. Primitive schemas remain exact, cumulative capabilities:
 | `hepta.hia.composite.v1` | Generic nominal products, enums, stored local loans and cooperative tasks over all v6 operations | Independently checked primitive v6 normalization |
 | `hepta.hia.composite.v2` | The same nominal operations over v7, including primitive chain fields and task state | Independently checked primitive v7 normalization |
 | `hepta.hia.composite.v3` | Explicit linear partial-record initialized-field states over the v2 capabilities | Independently checked primitive v7 normalization |
+| `hepta.hia.composite.v4` | Existing nominal/partial states composed with primitive parameter-bound returned loans | Independently checked primitive v8 normalization |
 
 The registry deliberately distinguishes `CANONICAL_CORE_SCHEMA` (v6, the
 existing composite-v1 normalization target) from `LATEST_CORE_SCHEMA` (v8).
 `composite_core_schema(input_schema)` selects the exact target; no consumer
 may replace that selection with an unconditional latest-version upgrade.
 The registry's legacy singular `composite` entry describes v1; the full
-`composite_versions` list describes all three versions. Primitive input retains
+`composite_versions` list describes all four versions. Primitive input retains
 its declared version and canonical identity during ordinary verification.
 Explicit `hia upgrade-v7` changes the schema only after checking the old and
 new programs; it does not add operations or prove source/native equivalence.
@@ -439,14 +441,20 @@ Its library compatibility results are not implementation-migration results.
 
 ## Nominal products, enums and cooperative tasks
 
-Standalone `hepta.hia.composite.v1`, `hepta.hia.composite.v2` and
-`hepta.hia.composite.v3` inputs have
+Standalone `hepta.hia.composite.v1` through `hepta.hia.composite.v4` inputs have
 exactly `schema`, `module`, `types`, and `functions`. Each automatically exports
 original scalar-signature functions. An explicit narrower export list can be expressed in its normalized
 primitive Core; the nominal input itself does not accept `exports`.
 Function/block/instruction
 structure follows the primitive grammar. Composite v1 admits primitive v1
-through v6 instructions; composite v2/v3 admit v1 through v7. Their checked
+through v6 instructions; composite v2/v3 admit v1 through v7; composite v4 admits
+v1 through v8. Composite v4 also permits `return_loans` on each declared
+function, with one entry per nominal result. Only a primitive `readbuf` or
+`mutbuf` result may have a non-null origin, and that origin must name an original
+primitive borrowed formal with sufficient permission. Every other nominal
+result contributes null annotations for each flattened primitive leaf,
+including partial-state tokens. Stored-loan aggregate returns remain forbidden.
+See [the explicit v4 contract](HIA_COMPOSITE_RETURNED_LOANS_V4.md). Their checked
 resource rules still apply. Parameter,
 result and instruction-output types may additionally name declared nominal
 types. A generic application is `{"name":"Pair","args":["buffer","usize"]}`.

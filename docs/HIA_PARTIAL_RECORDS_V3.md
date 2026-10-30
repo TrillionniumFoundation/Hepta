@@ -9,6 +9,12 @@ This is a structural initialization model, not an address-based uninitialized
 allocation API. A missing field has no primitive slot and no invented value.
 There are no new LLVM assumptions or unchecked memory instructions.
 
+The separate [composite v4 input profile](HIA_COMPOSITE_RETURNED_LOANS_V4.md)
+composes these same partial states with primitive parameter-bound returned
+loans by lowering to existing primitive v8. It does not change v3's v7 target,
+acceptance/refusal behavior or canonical bytes. The restrictions in this
+document continue to define the v3 contract.
+
 ## Exact wire types and operations
 
 A partial type has exactly two fields:
