@@ -18,13 +18,13 @@ if str(ROOT) not in sys.path:
 
 from experiments.hia_agent_factorial_v4_20261028 import evaluator
 from experiments.hia_agent_toolstudy_v8_20261029 import budget, references, validation
-from experiments.hia_agent_toolstudy_v11_20261030 import prompts, support
+from experiments.hia_agent_toolstudy_v11_20261030 import accounting, prompts, support
 from experiments.hia_agent_toolstudy_v11_20261030.engine import ToolStudyEngine
 from tools.provider_adapter.llama_cpp_engine import canonical, file_identity
 from tools.qualify_hia_agent_primitive_repair import runtime_preflight
 
 
-def verify_cli_tokens(tokenizer, model, text, expected, *, special, receipt):
+def verify_cli_tokens(tokenizer, model, text, expected, *, special, receipt, records=None):
     """Retain exact independent tokenizer input/IDs/cost; never normalize IDs."""
     argv = [tokenizer, "--model", model, "--stdin", "--ids", "--offline", "--no-escape"]
     if not special:
@@ -33,7 +33,9 @@ def verify_cli_tokens(tokenizer, model, text, expected, *, special, receipt):
     record = {"argv": argv, "input_sha256": hashlib.sha256(text.encode()).hexdigest(),
               "input_utf8_bytes": len(text.encode()), "server_token_ids": expected,
               "server_add_special": special, "server_parse_special": True,
-              "model_generation_requests": 0, "matched": False}
+              "model_generation_requests": 0, "matched": False, "receipt_path": str(receipt)}
+    if records is not None:
+        records.append(record)  # Retain this call even if its evidence write fails.
     try:
         proc = subprocess.run(argv, input=text.encode(), capture_output=True, timeout=30, check=False)
         record.update(returncode=proc.returncode, stdout=proc.stdout.decode(), stderr=proc.stderr.decode())
@@ -67,6 +69,7 @@ def run(*, output, binary, tokenizer, model, clang, rustc):
     support.snapshot(root, source); evaluator.save(root / "PLAN.json", plan)
     engine = None
     rows = []
+    cli_call_records = []
     result = {**plan, "rows": rows, "complete": False}
     try:
         engine = ToolStudyEngine(binary=binary, model=model, model_sha256=chosen["sha256"],
@@ -108,7 +111,7 @@ def run(*, output, binary, tokenizer, model, clang, rustc):
                     evaluator.save(folder / (name + ".json"), {"messages": items, "rendered_prompt": rendered,
                                    "input_token_ids": ids, "reserved_output_tokens": generation["max_output_tokens"]})
                     verify_cli_tokens(tokenizer, model, rendered, ids, special=True,
-                                      receipt=folder / (name + ".cli.json"))
+                                      receipt=folder / (name + ".cli.json"), records=cli_call_records)
                     return len(ids)
 
                 initial_tokens = count_request(prompts.messages(initial), "INITIAL")
@@ -116,7 +119,7 @@ def run(*, output, binary, tokenizer, model, clang, rustc):
                 # Check the independent pinned tokenizer against the owned
                 # server on EVERY complete reference response, not estimates.
                 cli_record = verify_cli_tokens(tokenizer, model, answer_text, answer_ids, special=False,
-                                               receipt=folder / "REFERENCE_TOKENS.json")
+                                               receipt=folder / "REFERENCE_TOKENS.json", records=cli_call_records)
                 cli_ids = cli_record["cli_token_ids"]
                 repair, repair_receipt = budget.repair_messages(initial, noop_text, noop_result["feedback"],
                                                                 engine.tokenize, cfg["history"])
@@ -153,26 +156,44 @@ def run(*, output, binary, tokenizer, model, clang, rustc):
     except Exception as exc:
         result["error"] = {"type": type(exc).__name__, "message": str(exc)}
     finally:
+        result["engine_exited"] = False
         if engine is not None:
-            try:
-                result["engine_identity_after"] = engine.verify_final_identity()
-            finally:
-                engine.close()
-            result["engine_exited"] = engine.process.poll() is not None
-            result["model_requests"] = engine.generation_count
-            evaluator.save(root / "TOKENIZER_SERVICE_CALLS.json", engine.service_calls)
-        result["source_unchanged"] = support.bindings() == source
-        result["tools_unchanged"] = all(file_identity(value["path"]) == value for value in tools.values())
-        result["model_unchanged"] = file_identity(model) == chosen["file"]
-        cli_receipts = sorted([*root.rglob("*.cli.json"), *root.rglob("REFERENCE_TOKENS.json")])
-        cli_records = [json.loads(path.read_text()) for path in cli_receipts]
+            result["engine_finalization"] = {}
+            record = accounting.finish_engine(engine, result["engine_finalization"], evaluator.save,
+                                               root / "TOKENIZER_SERVICE_CALLS.json")
+            result["engine_identity_after"] = record["identity"]
+            result["engine_exited"] = record["exited"]
+            result["model_requests"] = record["requests"]
+        accounting.final_identities(result, source_check=lambda: support.bindings() == source,
+                                    tools_check=lambda: support.tool_identities(binary, tokenizer, clang, rustc) == tools,
+                                    model_check=lambda: file_identity(model) == chosen["file"])
+        cli_audits = []
+        for retained in cli_call_records:
+            name = retained["receipt_path"]
+            audit = {"path": name}; cli_audits.append(audit)
+            value = accounting.measure(audit, "raw_record", lambda: json.loads(Path(name).read_text()))
+            accounting.measure(audit, "identity", lambda: file_identity(name))
+            # Full raw tokenizer records stay in their original files. These
+            # final audit rows retain readable partial costs and any failures.
+            audit.pop("raw_record", None)
+            audit["matched"] = retained.get("matched") is True
+            wall = retained.get("wall_ns")
+            audit["wall_ns"] = wall if type(wall) is int and wall >= 0 else None
+            audit["complete"] = bool(not audit.get("finalization_errors") and audit["identity"] is not None
+                                      and audit["wall_ns"] is not None and value == retained)
         result["independent_cli_tokenizer"] = {
-            "calls": len(cli_records), "wall_ns": sum(item["wall_ns"] for item in cli_records),
-            "all_matched": bool(cli_records) and all(item["matched"] for item in cli_records),
-            "receipts": [file_identity(path) for path in cli_receipts], "model_generation_requests": 0}
+            "calls": len(cli_audits), "wall_ns": (sum(item["wall_ns"] for item in cli_audits)
+                if all(item["wall_ns"] is not None for item in cli_audits) else None),
+            "known_wall_ns": sum(item["wall_ns"] for item in cli_audits if item["wall_ns"] is not None),
+            "all_matched": bool(cli_audits) and all(item["complete"] and item["matched"] for item in cli_audits),
+            "receipts": [item["identity"] for item in cli_audits if item["identity"] is not None],
+            "receipt_audits": cli_audits, "retained_call_records": cli_call_records,
+            "model_generation_requests": 0}
         result["experiment_wall_ns"] = time.monotonic_ns() - started
-        result["complete"] = bool(result["complete"] and result.get("engine_exited") and result["model_requests"] == 0
-                                  and all(result[key] for key in ("source_unchanged", "tools_unchanged", "model_unchanged"))
+        result["complete"] = bool(result["complete"] and result.get("engine_exited") is True and result["model_requests"] == 0
+                                  and result.get("engine_finalization", {}).get("complete") is True
+                                  and not result.get("finalization_errors")
+                                  and all(result[key] is True for key in ("source_unchanged", "tools_unchanged", "model_unchanged"))
                                   and result["independent_cli_tokenizer"]["calls"] == cfg["tokenizer_controls"]["independent_cli_calls"]
                                   and result["independent_cli_tokenizer"]["all_matched"])
         evaluator.save(root / "CAPACITY.json", result)

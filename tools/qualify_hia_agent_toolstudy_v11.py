@@ -16,31 +16,24 @@ if str(ROOT) not in sys.path:
 
 from experiments.hia_agent_factorial_v4_20261028 import evaluator
 from experiments.hia_agent_toolstudy_v8_20261029 import budget, validation
-from experiments.hia_agent_toolstudy_v11_20261030 import prompts, support
+from experiments.hia_agent_toolstudy_v11_20261030 import accounting, prompts, support
 from experiments.hia_agent_toolstudy_v11_20261030.engine import ToolStudyEngine
 from tools.provider_adapter.llama_cpp_engine import file_identity
 from tools.qualify_hia_agent_primitive_repair import runtime_preflight
 
 
-def summarize(cells, selection):
+def summarize(cells, selection, *, arms=None):
     groups = {}
-    for arm in support.protocol()["arms"]:
+    for arm in support.protocol()["arms"] if arms is None else arms:
         rows = [cell for cell in cells if cell["arm"] == arm]
         attempts = [attempt for row in rows for attempt in row["attempts"]]
-        known = [attempt["usage"] for attempt in attempts if attempt.get("usage")]
-        partial = [attempt["partial_usage"] for attempt in attempts if attempt.get("partial_usage")]
         requests = sum(attempt.get("actual_generation_requested", False) for attempt in attempts)
-        complete = requests == len(known)
+        usage = accounting.usage_summary(attempts, requests)
+        complete = usage["complete_usage"]
         correct = sum(row["correct"] for row in rows)
-        input_tokens = sum(u["input_tokens"] for u in known) + sum(u["input_tokens"] for u in partial)
-        output_tokens = sum(u["output_tokens"] for u in known)
         groups[arm] = {"planned_cells": 4, "attempted_cells": len(rows), "correct": correct,
-                       "requests": requests, "submissions": len(attempts), "complete_usage": complete,
-                       "unknown_usage_requests": requests-len(known), "known_input_tokens": input_tokens,
-                       "known_output_tokens": output_tokens,
-                       "partial_output_token_lower_bound": sum(u["observed_output_token_lower_bound"] for u in partial),
-                       "total_tokens": input_tokens+output_tokens if complete else None,
-                       "tokens_per_correct_cell": (input_tokens+output_tokens)/correct if complete and correct else None,
+                       **usage, "submissions": len(attempts),
+                       "tokens_per_correct_cell": usage["total_tokens"]/correct if complete and correct else None,
                        "automatic_repairs": sum(max(0, len(row["attempts"])-1) for row in rows),
                        "hidden_failures": sum(row["status"] == "hidden_failed" for row in rows),
                        "request_wall_ns": sum(attempt.get("request_wall_ns", 0) for attempt in attempts),
@@ -91,25 +84,23 @@ def run(*, stage, output, model, binary, tokenizer, clang, rustc, capacity, cali
               "plan_sha256": file_identity(root / "PLAN.json")["sha256"], "selection": selection,
               "cells": [], "engines": [], "human_answer_repairs": 0, "status": "incomplete"}
     engine = None
+    planned_cells = support.cells(stage)
 
     def close_engine():
         nonlocal engine
         if engine is None:
             return
-        record = {"folder": str(engine.output), "requests": engine.generation_count, "responses": engine.response_count,
-                  "preparations": engine.preparation_count, "service_calls": engine.service_calls}
-        try:
-            record["identity"] = engine.verify_final_identity()
-        finally:
-            before = time.monotonic_ns(); engine.close(); record["shutdown_ns"] = time.monotonic_ns()-before
-            record["exited"] = engine.process.poll() is not None
-            evaluator.save(engine.output / "SERVICE_CALLS.json", engine.service_calls)
-            result["engines"].append(record); engine = None
-        if not record["exited"] or not all(record["identity"][key] for key in ("model_unchanged", "runtime_unchanged")):
+        owned = engine
+        record = {}
+        # Register the cost record before a fallible identity, close or save.
+        result["engines"].append(record)
+        engine = None
+        accounting.finish_engine(owned, record, evaluator.save, owned.output / "SERVICE_CALLS.json")
+        if record.get("complete") is not True:
             raise RuntimeError("E_TOOLSTUDY_ENGINE_IDENTITY_OR_SHUTDOWN")
 
     try:
-        for task, prompt_arm in support.cells(stage):
+        for task, prompt_arm in planned_cells:
             cell_started = time.monotonic_ns()
             if support.bindings() != source:
                 raise RuntimeError("E_TOOLSTUDY_SOURCE_DRIFT")
@@ -198,7 +189,7 @@ def run(*, stage, output, model, binary, tokenizer, clang, rustc, capacity, cali
             evaluator.save(folder / "CELL.json", row)
             boundary = {"source_unchanged": support.bindings() == source,
                         "model_unchanged": file_identity(model) == chosen["file"],
-                        "tools_unchanged": all(file_identity(value["path"]) == value for value in tools.values())}
+                        "tools_unchanged": support.tool_identities(binary, tokenizer, clang, rustc) == tools}
             evaluator.save(folder / "BOUNDARY.json", boundary)
             if not all(boundary.values()):
                 raise RuntimeError("E_TOOLSTUDY_BOUNDARY_IDENTITY")
@@ -207,34 +198,32 @@ def run(*, stage, output, model, binary, tokenizer, clang, rustc, capacity, cali
     except Exception as exc:
         result["error"] = {"type": type(exc).__name__, "message": str(exc)}
     finally:
+        if result["cells"] and "cell_wall_ns" not in result["cells"][-1]:
+            result["cells"][-1]["cell_wall_ns"] = time.monotonic_ns()-cell_started
+            result["cells"][-1]["cell_ended_in_exception"] = True
         try:
             close_engine()
         except Exception as exc:
             result.update(status="incomplete", shutdown_error=str(exc))
-        result["source_unchanged"] = support.bindings() == source
-        result["tools_unchanged"] = all(file_identity(value["path"]) == value for value in tools.values())
-        result["model_unchanged"] = file_identity(model) == chosen["file"]
-        result["valid_observation"] = bool(result["status"] == "all_cells_attempted" and len(result["cells"]) == len(support.cells(stage))
-                                           and all(result[key] for key in ("source_unchanged", "tools_unchanged", "model_unchanged")))
+        accounting.final_identities(result, source_check=lambda: support.bindings() == source,
+                                    tools_check=lambda: support.tool_identities(binary, tokenizer, clang, rustc) == tools,
+                                    model_check=lambda: file_identity(model) == chosen["file"])
+        result["valid_observation"] = bool(result["status"] == "all_cells_attempted" and len(result["cells"]) == len(planned_cells)
+                                           and not result.get("finalization_errors")
+                                           and all(item.get("complete") is True for item in result["engines"])
+                                           and all(result[key] is True for key in ("source_unchanged", "tools_unchanged", "model_unchanged")))
         attempts = [attempt for cell in result["cells"] for attempt in cell["attempts"]]
-        known = [attempt["usage"] for attempt in attempts if attempt.get("usage")]
-        partials = [attempt["partial_usage"] for attempt in attempts if attempt.get("partial_usage")]
-        result["requests"] = sum(engine["requests"] for engine in result["engines"])
-        result["responses"] = sum(engine["responses"] for engine in result["engines"])
-        result["unknown_usage_requests"] = result["requests"]-result["responses"]
-        result["known_input_tokens"] = sum(u["input_tokens"] for u in known) + sum(u["input_tokens"] for u in partials)
-        result["known_output_tokens"] = sum(u["output_tokens"] for u in known)
-        result["partial_output_token_lower_bound"] = sum(u["observed_output_token_lower_bound"] for u in partials)
-        result["total_tokens"] = result["known_input_tokens"]+result["known_output_tokens"] if not result["unknown_usage_requests"] else None
+        result["responses"] = accounting.counter_sum(result["engines"], "responses")
+        result.update(accounting.usage_summary(attempts, accounting.counter_sum(result["engines"], "requests")))
         result["calibration_eligible"] = bool(stage == "calibration" and result["valid_observation"]
                                               and all(cell["correct"] for cell in result["cells"])
                                               and all(attempt.get("usage") is not None for attempt in attempts)
-                                              and result["unknown_usage_requests"] == 0)
+                                              and result["complete_usage"] is True)
         result["first_submission_correct"] = sum(cell["correct"] and len(cell["attempts"]) == 1 for cell in result["cells"])
         result["validation_calls"] = sum("evaluation" in attempt for attempt in attempts)
         result["terminal_hidden_calls"] = sum(cell["hidden_evaluated"] for cell in result["cells"])
         if stage == "main":
-            result["summary"] = summarize(result["cells"], selection)
+            result["summary"] = summarize(result["cells"], selection, arms=cfg["arms"])
             result["summary"]["descriptive_advantage_gate"] &= result["valid_observation"]
         result["experiment_wall_ns"] = time.monotonic_ns()-started
         evaluator.save(root / "RESULT.json", result)

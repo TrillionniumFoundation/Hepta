@@ -9,7 +9,7 @@ import sys
 
 from experiments.hia_agent_factorial_v4_20261028 import calibration, fixtures
 from experiments.hia_agent_structured_v7_20261029.session import ValidatedTaskSession
-from experiments.hia_agent_toolstudy_v11_20261030 import prompts
+from experiments.hia_agent_toolstudy_v11_20261030 import prompts, runtime
 from tools.provider_adapter.llama_cpp_engine import canonical, file_identity
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -78,7 +78,8 @@ def bindings():
              ROOT / "tools/qualify_hia_agent_toolstudy.py", ROOT / "tools/qualify_hia_agent_tool_capacity.py",
              ROOT / "tools/qualify_hia_agent_primitive_repair.py", ROOT / "tools/provider_adapter/llama_cpp_engine.py",
              ROOT / "tests/test_hia_agent_toolstudy.py", ROOT / "tests/test_hia_agent_toolstudy_v9.py",
-             ROOT / "tests/test_hia_agent_toolstudy_v11.py", *(p for p in HERE.joinpath("provenance").rglob("*") if p.is_file())]
+             ROOT / "tests/test_hia_agent_toolstudy_v11.py", ROOT / "tests/test_hia_agent_toolstudy_v11_failures.py",
+             *(p for p in HERE.joinpath("provenance").rglob("*") if p.is_file())]
     for directory in ("hia_agent_toolstudy_v9_20261029", "hia_agent_toolstudy_v8_20261029", "hia_agent_structured_v7_20261029", "hia_agent_factorial_v4_20261028",
                       "hia_agent_factorial_v5_20261028", "hia_agent_factorial_v6_20261028"):
         folder = ROOT / "experiments" / directory
@@ -128,18 +129,9 @@ def check_model(model):
 
 
 def tool_identities(binary, tokenizer, clang, rustc):
-    identities = {name: file_identity(path) for name, path in (("binary", binary), ("tokenizer", tokenizer),
-                  ("clang", clang), ("rustc", rustc), ("python", sys.executable))}
-    # Match the owned engine's actual runtime companion inventory, and include
-    # the tokenizer's directory too. A new process may not silently establish
-    # a different library baseline between capacity, qualification and main.
-    companions = set()
-    for name in ("binary", "tokenizer"):
-        directory = Path(identities[name]["path"]).parent
-        companions.update(directory.glob("*.so*"))
-        companions.update(directory.glob("*.dll"))
-    for path in sorted(companions):
-        identities["runtime_companion:" + str(path)] = file_identity(path)
+    identities = runtime.verify_runtime(binary, tokenizer)
+    identities.update({name: file_identity(path) for name, path in
+                       (("clang", clang), ("rustc", rustc), ("python", sys.executable))})
     return identities
 
 
@@ -158,6 +150,10 @@ def validate_capacity(record, *, tools, model):
             or record.get("independent_cli_tokenizer", {}).get("all_matched") is not True
             or record.get("model_requests") != 0
             or record.get("engine_exited") is not True
+            or record.get("engine_finalization", {}).get("complete") is not True
+            or record.get("engine_identity_after", {}).get("model_unchanged") is not True
+            or record.get("engine_identity_after", {}).get("runtime_unchanged") is not True
+            or bool(record.get("finalization_errors"))
             or not all(row.get("passed") is True and row.get("reference_passed_all_gates") is True
                        and row.get("capacity_passed") is True and row.get("template_exact_match") is True
                        and row.get("tokenizer_ids_match") is True

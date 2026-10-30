@@ -12,6 +12,42 @@ It is **not publicly preregistered**. The integrated source commit that actually
 runs must remain clean and unchanged through capacity, qualification and main.
 An intermediate child-branch commit is not evidence of a later integrated run.
 
+## Integrity review before any model execution
+
+Independent review of the first V11 source found that runtime helpers could
+establish an arbitrary initial hash baseline, and that exceptions in final
+identity or shutdown checks could prevent the terminal report from being
+saved. These are repaired prospectively before any model load or generation.
+The initial source remains in Git history; the actual later run must bind the
+repaired integrated source and perform fresh controls.
+
+`runtime.py` now enforces the exact server, tokenizer and all local shared
+library members from the already pinned b11669 archive: 40 entries, consisting
+of 30 regular files and ten symlinks. Independent and implementing reviewers
+both rehashed the 17,851,611-byte archive and every selected member. Executable
+roles, the complete companion filename set, regular/symlink type, link target,
+resolved directory, payload byte count and SHA-256 must match. Python or an
+arbitrary helper cannot establish a replacement runtime baseline. This does
+not attest mapped libraries outside the archive: the system loader, external
+library search, OS and hardware remain part of the trusted environment.
+
+`accounting.py` registers engine counters and service records before identity,
+close or evidence writes. Each finalization operation is isolated and timed;
+failure or a returned false identity keeps the result incomplete. Per-phase
+source/tool/model rechecks run independently, and terminal reports retain the
+measurements even if a file disappears. CLI costs are retained in memory as
+soon as each call starts, so a later receipt-file error cannot erase that call.
+Main summarization uses the already frozen protocol, rather than rereading a
+file whose failure was just reported.
+
+Missing counters stay unknown. A validated terminal SSE receipt can retain
+exact cost after response-file persistence fails, but it cannot turn that
+failed submission into a model success or qualification. A usage record and
+its duplicate terminal receipt are counted once. Incomplete streams retain
+known input and output lower bounds with an unavailable total. Fault-injection
+tests load no model and cover false identities, thrown identity/close errors,
+deleted source/tool/model files, receipt persistence failure and partial SSE.
+
 ## Candidate and provenance
 
 The measured artifact is **Unsloth's Q4_K_M GGUF**, not a Qwen-published GGUF or

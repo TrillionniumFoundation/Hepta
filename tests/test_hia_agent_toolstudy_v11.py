@@ -1,5 +1,6 @@
 """One new model binding; unchanged tasks, budgets, source gates and costs."""
 import copy
+import ast
 import inspect
 import json
 from pathlib import Path
@@ -113,15 +114,21 @@ class ToolStudyV11Tests(unittest.TestCase):
                     support.validate_qualification({"schema": "hepta.agent.real-node-toolstudy." + version, "calibration_eligible": True},
                                                    tools={}, model={}, capacity_sha256="unused")
 
-    def test_capacity_control_flow_is_v10_with_new_identity_only(self):
-        original = (support.HERE / "provenance/V10_CAPACITY_SOURCE.py.txt").read_text()
-        expected = original.replace("hia_agent_toolstudy_v10_20261029", "hia_agent_toolstudy_v11_20261030").replace(
-            "v10", "v11").replace("V10", "V11").replace("import json\nimport json\n", "import json\n")
-        self.assertEqual(expected, (support.ROOT / "tools/qualify_hia_agent_tool_capacity_v11.py").read_text())
-        original = (support.HERE / "provenance/V10_STUDY_SOURCE.py.txt").read_text()
-        expected = original.replace("hia_agent_toolstudy_v10_20261029", "hia_agent_toolstudy_v11_20261030").replace(
-            "v10", "v11").replace("V10", "V11")
-        self.assertEqual(expected, (support.ROOT / "tools/qualify_hia_agent_toolstudy_v11.py").read_text())
+    def test_v10_task_generation_validation_and_budget_calls_are_unchanged(self):
+        # V11's reviewed deviations are runtime identity and failure-cost
+        # retention. Check the calls that define the actual task experiment,
+        # not byte equality of deliberately repaired finalization code.
+        protected = {"validation.evaluate", "evaluator.execute", "engine.generate", "budget.repair_messages",
+                     "prompts.prompt", "prompts.messages", "support.session_for", "session.query",
+                     "support.validate_capacity", "support.validate_qualification", "range"}
+        def calls(text):
+            return [ast.dump(node, include_attributes=False) for node in ast.walk(ast.parse(text))
+                    if isinstance(node, ast.Call) and ast.unparse(node.func) in protected]
+        for baseline, current in (("V10_CAPACITY_SOURCE.py.txt", "qualify_hia_agent_tool_capacity_v11.py"),
+                                  ("V10_STUDY_SOURCE.py.txt", "qualify_hia_agent_toolstudy_v11.py")):
+            with self.subTest(source=current):
+                self.assertEqual(calls((support.HERE / "provenance" / baseline).read_text()),
+                                 calls((support.ROOT / "tools" / current).read_text()))
 
     def test_complete_usage_is_required_even_if_summary_claims_three_successes(self):
         model = support.PINNED_MODEL
