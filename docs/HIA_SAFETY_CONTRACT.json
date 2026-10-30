@@ -6,8 +6,10 @@
     "metadata_grants_admission": false
   },
   "boundaries": {
+    "budget": "VM step, requested-live-payload and call-depth limits stop evaluation with a stopped resource ledger; they are not semantic traps, allocator failure results or source cancellation. Native code does not inherit evaluator quotas.",
     "cancel": "Composite tasks and the owned-state queue implement explicit cooperative transitions. A VM budget stop, process signal, or host interruption is not a general source cancellation/unwind operation.",
     "concurrent": "Core excludes arbitrary threads, shared mutable memory, atomics and MMIO. Host dispatcher locks and safe-point checks do not establish a general concurrent-language memory model.",
+    "crash": "An incomplete or forcibly terminated native observation is rejected. The host retains process-cleanup ownership until termination/reap is confirmed, and a later reap cannot turn the failed observation into a successful return. Guest cleanup, guest resource ledgers, persistent-state recovery and replay safety are not established.",
     "error": "Errors represented as values use the same checked normal-return rules. A failed fallible allocation still produces a logical empty owner that must be consumed.",
     "normal": "Local owned resources and loans must be consumed or transferred through a checked signature; explicit v8 returned loans retain parameter origins and suspend callers until children end.",
     "recursive": "Core recursive calls and finite owned chains are separate from static finite-budget profiles. Native recursion/stack bounds and universal termination are not established.",
@@ -633,10 +635,11 @@
     {
       "entrypoints": [
         "hepta.c_translation.CTranslator.stmt",
-        "hepta.c_definite_assignment.check_definite_assignment"
+        "hepta.c_definite_assignment.check_definite_assignment",
+        "hepta.c_loop_control.lower_loop_jumps"
       ],
       "exclusions": [
-        "body declarations, nested do/for, return, break, continue, goto and switch are rejected",
+        "goto, switch, mutating postconditions, unsupported evaluation order and expansions beyond the declared control-lowering budget are rejected",
         "not arbitrary C undefined behavior inference or source refinement proof",
         "real project route changes the explicitly authored checksum integration TU; locked upstream implementations are unchanged",
         "host evidence is limited to each actual executed profile; no general C++ ABI or engineering-cost claim"
@@ -647,12 +650,17 @@
         "tests.test_c_project_do_while.CapturedDoWhileTests.test_initial_false_condition_still_executes_one_body",
         "tests.test_c_project_do_while.CapturedDoWhileTests.test_body_assignment_is_available_to_first_condition_and_exit",
         "tests.test_c_project_do_while.CapturedDoWhileTests.test_missing_first_iteration_assignment_and_initial_read_reject",
-        "tests.test_c_project_do_while.CapturedDoWhileTests.test_nested_scopes_and_jump_control_remain_refused",
+        "tests.test_c_project_do_while.CapturedDoWhileTests.test_nested_scopes_and_jump_control_preserve_defined_values",
+        "tests.test_c_project_do_while.CapturedDoWhileTests.test_goto_and_switch_remain_refused",
+        "tests.test_c_project_do_while.CapturedDoWhileTests.test_mutating_condition_remains_refused",
+        "tests.test_c_project_do_while.CapturedDoWhileTests.test_unbraced_body_uses_the_same_posttest_semantics",
+        "tests.test_c_project_do_while.CapturedDoWhileTests.test_side_effectful_condition_call_is_not_silently_admitted",
+        "tests.test_c_project_do_while.CapturedDoWhileTests.test_budget_stop_retains_actual_live_caller_resource_ledger",
         "tests.test_c_project_do_while.CapturedDoWhileTests.test_first_body_trap_is_not_hidden_by_false_condition",
         "tests.test_c_project_do_while.CapturedDoWhileTests.test_cursor_post_test_never_skips_invalid_empty_range",
         "tests.test_c_project_do_while.CapturedDoWhileApplicationTests.test_existing_upstream_queue_and_compare_application_post_test_maintenance"
       ],
-      "scope": "Captured C scalar/record-view projects with braced do-while bodies, outer scalar or cursor state and pure conditions; the body executes once before the first condition and all-path initialization reaches that condition and exit."
+      "scope": "Captured C scalar/record-view projects with structured braced or unbraced do-while bodies, lexical declarations, nested loops, return and nearest-loop break/continue, and admitted pure conditions. The first body executes before its condition, break/return bypass that condition, continue reaches it, and definite assignment is checked separately across normal/break/continue exits."
     },
     {
       "entrypoints": [
@@ -819,6 +827,42 @@
         "tests.test_hia_crc_context_study.CRCContextStudyTests.test_dirty_source_refuses_before_capture_compiler_or_native_measurement"
       ],
       "scope": "Publicly preregistered 210-observation generated-application CRC study with fresh-child, three static coalesced controls and fixed polynomial dispatch, complete child lifecycles, separate cold setup/evaluation ledgers and no projected-profit admission."
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_program.execute_program"
+      ],
+      "exclusions": [
+        "not arbitrary-object thread safety",
+        "does not establish an end-to-end compiler proof"
+      ],
+      "guarantee": "host_enforced_scoped_admission",
+      "id": "immutable_scalar_invocation",
+      "regression_selectors": [
+        "tests.test_hia_runtime_argument_snapshot.ArgumentSnapshotTests.test_out_of_range_replacement_cannot_escape_typed_return",
+        "tests.test_hia_runtime_argument_snapshot.ArgumentSnapshotTests.test_mutation_cannot_turn_heap_stop_into_a_success",
+        "tests.test_hia_runtime_argument_snapshot.ArgumentSnapshotTests.test_mutation_cannot_hide_the_admitted_allocator_failure"
+      ],
+      "scope": "An exact list or tuple is copied once before scalar validation; the same immutable argument snapshot is used by the Python Core evaluator."
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_native_differential.qualify_checked_hia_source",
+        "hepta.hia_native_differential.retry_pending_native_cleanup"
+      ],
+      "exclusions": [
+        "no guest destructor or guest-ledger recovery claim",
+        "no persistent-state crash consistency or automatic replay",
+        "finite observer controls are not a whole-device fault qualification"
+      ],
+      "guarantee": "host_enforced_scoped_admission",
+      "id": "incomplete_native_observation",
+      "regression_selectors": [
+        "tests.test_hia_native_cleanup.NativeCleanupOwnershipTests.test_real_native_timeout_is_killed_reaped_and_never_counted_as_return",
+        "tests.test_hia_native_cleanup.NativeCleanupOwnershipTests.test_timeout_with_withheld_reap_stays_failed_after_recovery",
+        "tests.test_hia_native_cleanup.NativeCleanupOwnershipTests.test_discarded_exception_cannot_discard_owner_or_admit_another_child"
+      ],
+      "scope": "Actual Linux native observer timeout/SIGKILL, retained cleanup ownership and refusal to reclassify a failed observation after a later reap."
     }
   ],
   "judgment": {

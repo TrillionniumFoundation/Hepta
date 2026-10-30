@@ -291,6 +291,13 @@ def _load_clang_ast(data: bytes) -> dict:
         if depth > _MAX_AST_JSON_NESTING or examined > _MAX_AST_JSON_CONTAINERS:
             raise UnsupportedC("Clang AST JSON structural budget exceeded")
         if isinstance(value, dict):
+            # Builtin macros such as __LINE__ need no source directive, so
+            # lexical directive rejection alone cannot enforce this importer's
+            # no-macro subset. Clang retains expansion provenance in locations;
+            # refuse it instead of silently treating expanded values as source
+            # literals. The project capture importer has a separate contract.
+            if "spellingLoc" in value or "expansionLoc" in value:
+                raise UnsupportedC("C macro expansion requires a future source model")
             # Syntax-valid JSON is not necessarily a Clang-shaped AST. These
             # fields are dereferenced by the recursive scalar importer; a
             # wrong container/value type must produce a rejection report,
@@ -401,8 +408,13 @@ def _migrate_impl(source: Path, output: Path, report: Path, clang: str,
             raise UnsupportedC("symlink output/report paths are not accepted")
         if source.suffix != ".c":
             raise UnsupportedC("only C11 .c translation units are supported")
-        if re.search(rb"(?m)^\s*#", original):
-            raise UnsupportedC("preprocessor directives/macros require a future source model")
+        # C11 translation phases recognize the %: hash digraph, trigraphs,
+        # comment-prefixed directives, and escaped physical line endings.
+        # Reject the raw forms conservatively, including inside comments;
+        # this strict scalar importer does not model preprocessing provenance.
+        if (b"#" in original or b"%:" in original or b"??" in original
+                or re.search(rb"\\[ \t]*[\r\n]", original)):
+            raise UnsupportedC("preprocessor directives, alternate tokens or line splicing require a future source model")
         if not shutil.which(clang):
             raise UnsupportedC("clang executable unavailable")
         version = _probe_clang([clang, "--version"], label="version")

@@ -13,6 +13,59 @@ use byte_memory::ByteMemory;
 const MAX_STEPS: u64 = 1_000_000;
 const MAX_CALL_DEPTH: u32 = 32;
 const MAX_OWNED_HEAP_BYTES: u64 = 16 * 1024 * 1024;
+const V3_MAX_STEPS: u64 = 10_000_000;
+const V3_MAX_CALL_DEPTH: u32 = 256;
+const V3_MAX_OWNED_HEAP_BYTES: u64 = 1024 * 1024 * 1024;
+
+// Failure injection only compares a positive integer with the allocation
+// counter; no big-integer arithmetic is needed. Wide retains every canonical
+// hexadecimal digit and denotes an integer strictly greater than u64::MAX.
+// It is not the absent-injection policy and is never clamped or truncated.
+#[derive(Clone)]
+enum AllocationFailureIndex {
+    Word(u64),
+    Wide(String),
+}
+
+impl AllocationFailureIndex {
+    fn from_hex(value: &Value) -> R<Self> {
+        let Some(encoded) = value.as_str() else {
+            return failure("E_HIA_BUDGET_POLICY", "v4 failure index must be null or canonical positive hex");
+        };
+        let Some(digits) = encoded.strip_prefix("0x") else {
+            return failure("E_HIA_BUDGET_POLICY", "v4 failure index requires lowercase 0x prefix");
+        };
+        if digits.is_empty() || digits.starts_with('0') || !digits.bytes().all(|byte| {
+            byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)
+        }) {
+            return failure("E_HIA_BUDGET_POLICY", "v4 failure index must be positive canonical lowercase hex");
+        }
+        if digits.len() <= 16 {
+            u64::from_str_radix(digits, 16).map(Self::Word).map_err(|_| super::VerifyError {
+                code: "E_HIA_BUDGET_POLICY", detail: "invalid hexadecimal failure index".into(),
+            })
+        } else {
+            Ok(Self::Wide(encoded.to_owned()))
+        }
+    }
+
+    fn equals_counter(&self, attempt: u64) -> bool {
+        match self {
+            Self::Word(index) => *index == attempt,
+            // Canonical positive values with more than 16 hex digits are
+            // strictly above every u64 counter value. This is exact integer
+            // equality, not a replacement by None or a budget projection.
+            Self::Wide(_) => false,
+        }
+    }
+
+    fn report_value(&self) -> Value {
+        match self {
+            Self::Word(index) => json!(index),
+            Self::Wide(encoded) => json!(encoded),
+        }
+    }
+}
 
 #[derive(Debug)]
 enum Halt {
@@ -198,17 +251,31 @@ struct Machine<'a> {
     max_call_depth: u32,
     memory: Option<ByteMemory>,
 }
+// Language calls live in an explicit stack. A larger language depth must not
+// consume one Rust host frame per call, including in unoptimized/test builds.
+// Dropping a suspended frame only drops handles: stopped execution retains
+// the actual owners, loans and chain nodes in the Machine's one memory ledger.
+struct Frame<'a> {
+    function: &'a Value,
+    blocks: BTreeMap<&'a str, &'a Value>,
+    current: &'a str,
+    next_operation: usize,
+    env: BTreeMap<String, RuntimeValue>,
+    formals: Vec<u64>,
+    return_bindings: BTreeMap<&'a str, RuntimeValue>,
+    pending_call: Option<&'a Value>,
+}
 impl<'a> Machine<'a> {
     fn tick(&mut self) -> Exec<()> {
         self.steps += 1;
         if self.steps > self.limit { Err(Halt::Budget("steps")) } else { Ok(()) }
     }
-    fn invoke(&mut self, name: &str, args: Vec<RuntimeValue>, depth: u32) -> Exec<Vec<RuntimeValue>> {
+    fn enter_frame(&mut self, name: &str, args: Vec<RuntimeValue>, depth: usize) -> Exec<Frame<'a>> {
         // Canonical Python uses a zero-based depth and a root-inclusive
         // frame limit: depth >= max_call_depth rejects BEFORE its entry tick.
         // The legacy policy admits exactly 32 frames (depth 0..31), not 33.
-        // Bound v2 may select a smaller limit without changing frame lifecycle.
-        if depth >= self.max_call_depth { return Err(Halt::Budget("calls")); }
+        // All versioned policies use the same entry and lifecycle rules.
+        if depth >= self.max_call_depth as usize { return Err(Halt::Budget("calls")); }
         // Copy the lifetime-qualified reference, never clone an 8 MiB function
         // at each recursive call. The source document lives for this Machine.
         let function: &'a Value = *self.functions.get(name).ok_or(Halt::Internal)?;
@@ -216,7 +283,7 @@ impl<'a> Machine<'a> {
         let blocks = function["blocks"].as_array().ok_or(Halt::Internal)?;
         let by_name: BTreeMap<&str, &Value> = blocks.iter()
             .map(|b| (b["id"].as_str().unwrap_or(""), b)).collect();
-        let mut current = function["entry"].as_str().ok_or(Halt::Internal)?;
+        let current = function["entry"].as_str().ok_or(Halt::Internal)?;
         let (args, formals) = if let Some(memory) = self.memory.as_mut() {
             memory.enter_call(&function["params"], args)?
         } else { (args, Vec::new()) };
@@ -228,14 +295,53 @@ impl<'a> Machine<'a> {
                 .map(|(p, value)| Ok((p["name"].as_str().ok_or(Halt::Internal)?, value.clone())))
                 .collect::<Exec<_>>()?
         } else { BTreeMap::new() };
-        let mut env = bind(&function["params"], args)?;
+        let env = bind(&function["params"], args)?;
+        Ok(Frame { function, blocks: by_name, current, next_operation: 0,
+            env, formals, return_bindings, pending_call: None })
+    }
+
+    fn finish_operation(&self, frame: &mut Frame<'a>, op: &Value,
+                        outputs: Vec<RuntimeValue>) -> Exec<()> {
+        let op_name = op["op"].as_str().ok_or(Halt::Internal)?;
+        let parameters = op["out"].as_array().ok_or(Halt::Internal)?;
+        if parameters.len() != outputs.len() { return Err(Halt::Internal); }
+        if matches!(op_name, "owner.move" | "owner.drop" | "loan.end") {
+            let consumed = op["args"][0].as_str().ok_or(Halt::Internal)?;
+            frame.env.remove(consumed).ok_or(Halt::Internal)?;
+        }
+        if matches!(op_name, "chain.try_push" | "chain.pop") {
+            for name in op["args"].as_array().ok_or(Halt::Internal)? {
+                frame.env.remove(name.as_str().ok_or(Halt::Internal)?).ok_or(Halt::Internal)?;
+            }
+        }
+        for (parameter, value) in parameters.iter().zip(outputs) {
+            let ty = parameter["type"].as_str().ok_or(Halt::Internal)?;
+            match &value {
+                RuntimeValue::Scalar(v) if valid_constant(ty, v) => {}
+                RuntimeValue::Owner(_) if ty == "buffer" => {}
+                RuntimeValue::Chain(id) if ty == "chain" && self.memory.as_ref()
+                    .is_some_and(|m| m.live_chain(*id)) => {}
+                RuntimeValue::Loan(id) if self.memory.as_ref()
+                    .is_some_and(|m| m.loan_type(*id) == Some(ty)) => {}
+                _ => return Err(Halt::Internal),
+            }
+            frame.env.insert(parameter["name"].as_str().ok_or(Halt::Internal)?.into(), value);
+        }
+        Ok(())
+    }
+
+    fn invoke(&mut self, name: &str, args: Vec<RuntimeValue>) -> Exec<Vec<RuntimeValue>> {
+        let mut frame = self.enter_frame(name, args, 0)?;
+        let mut suspended: Vec<Frame<'a>> = Vec::new();
         loop {
-            let block = *by_name.get(current).ok_or(Halt::Internal)?;
-            for op in block["ops"].as_array().ok_or(Halt::Internal)? {
+            let block = *frame.blocks.get(frame.current).ok_or(Halt::Internal)?;
+            let operations = block["ops"].as_array().ok_or(Halt::Internal)?;
+            if let Some(op) = operations.get(frame.next_operation) {
                 self.tick()?;
+                frame.next_operation += 1;
                 let op_name = op["op"].as_str().ok_or(Halt::Internal)?;
-                let operands = resolve(&env, &op["args"])?;
-                let outputs = if op_name == "call" {
+                let operands = resolve(&frame.env, &op["args"])?;
+                if op_name == "call" {
                     let callee = op["attrs"]["function"].as_str().ok_or(Halt::Internal)?;
                     // Transfer owning arguments before entering the callee,
                     // exactly as the canonical VM does. Borrowed arguments
@@ -244,12 +350,17 @@ impl<'a> Machine<'a> {
                     for (name, value) in op["args"].as_array().ok_or(Halt::Internal)?
                         .iter().zip(&operands) {
                         if matches!(value, RuntimeValue::Owner(_) | RuntimeValue::Chain(_)) {
-                            env.remove(name.as_str().ok_or(Halt::Internal)?)
+                            frame.env.remove(name.as_str().ok_or(Halt::Internal)?)
                                 .ok_or(Halt::Internal)?;
                         }
                     }
-                    self.invoke(callee, operands, depth + 1)?
-                } else if op_name == "owner.drop" && matches!(operands.first(), Some(RuntimeValue::Chain(_))) {
+                    let child = self.enter_frame(callee, operands, suspended.len() + 1)?;
+                    frame.pending_call = Some(op);
+                    suspended.push(frame);
+                    frame = child;
+                    continue;
+                }
+                let outputs = if op_name == "owner.drop" && matches!(operands.first(), Some(RuntimeValue::Chain(_))) {
                     // Canonical destruction consumes the chain descriptor
                     // before ticking once for each node. A stopped destructor
                     // retains the remaining byte owners/nodes in the ledger.
@@ -267,42 +378,20 @@ impl<'a> Machine<'a> {
                         .collect::<Exec<Vec<_>>>()?;
                     opcode_results(op, &scalars)?.into_iter().map(RuntimeValue::Scalar).collect()
                 };
-                let parameters = op["out"].as_array().ok_or(Halt::Internal)?;
-                if parameters.len() != outputs.len() { return Err(Halt::Internal); }
-                if matches!(op_name, "owner.move" | "owner.drop" | "loan.end") {
-                    let consumed = op["args"][0].as_str().ok_or(Halt::Internal)?;
-                    env.remove(consumed).ok_or(Halt::Internal)?;
-                }
-                if matches!(op_name, "chain.try_push" | "chain.pop") {
-                    for name in op["args"].as_array().ok_or(Halt::Internal)? {
-                        env.remove(name.as_str().ok_or(Halt::Internal)?).ok_or(Halt::Internal)?;
-                    }
-                }
-                for (parameter, value) in parameters.iter().zip(outputs) {
-                    let ty = parameter["type"].as_str().ok_or(Halt::Internal)?;
-                    match &value {
-                        RuntimeValue::Scalar(v) if valid_constant(ty, v) => {}
-                        RuntimeValue::Owner(_) if ty == "buffer" => {}
-                        RuntimeValue::Chain(id) if ty == "chain" && self.memory.as_ref()
-                            .is_some_and(|m| m.live_chain(*id)) => {}
-                        RuntimeValue::Loan(id) if self.memory.as_ref()
-                            .is_some_and(|m| m.loan_type(*id) == Some(ty)) => {}
-                        _ => return Err(Halt::Internal),
-                    }
-                    env.insert(parameter["name"].as_str().ok_or(Halt::Internal)?.into(), value);
-                }
+                self.finish_operation(&mut frame, op, outputs)?;
+                continue;
             }
             self.tick()?;
             let term = &block["term"];
             match term["op"].as_str().ok_or(Halt::Internal)? {
                 "ret" => {
-                    let mut values = resolve(&env, &term["values"])?;
-                    if !return_bindings.is_empty() {
-                        let origins = function["return_loans"].as_array().ok_or(Halt::Internal)?;
-                        for ((ty, origin), value) in function["returns"].as_array()
+                    let mut values = resolve(&frame.env, &term["values"])?;
+                    if !frame.return_bindings.is_empty() {
+                        let origins = frame.function["return_loans"].as_array().ok_or(Halt::Internal)?;
+                        for ((ty, origin), value) in frame.function["returns"].as_array()
                             .ok_or(Halt::Internal)?.iter().zip(origins).zip(&mut values) {
                             if matches!(ty.as_str(), Some("readbuf" | "mutbuf")) {
-                                let parent = return_bindings.get(origin.as_str().ok_or(Halt::Internal)?)
+                                let parent = frame.return_bindings.get(origin.as_str().ok_or(Halt::Internal)?)
                                     .ok_or(Halt::Internal)?;
                                 *value = self.memory.as_mut().ok_or(Halt::Internal)?
                                     .return_loan(value, parent, ty == "mutbuf")?;
@@ -310,9 +399,12 @@ impl<'a> Machine<'a> {
                         }
                     }
                     if let Some(memory) = self.memory.as_mut() {
-                        memory.leave_call(&formals)?;
+                        memory.leave_call(&frame.formals)?;
                     }
-                    return Ok(values);
+                    let Some(mut caller) = suspended.pop() else { return Ok(values); };
+                    let call = caller.pending_call.take().ok_or(Halt::Internal)?;
+                    self.finish_operation(&mut caller, call, values)?;
+                    frame = caller;
                 }
                 "trap" => {
                     let code = term["code"].as_str().ok_or(Halt::Internal)?;
@@ -327,16 +419,17 @@ impl<'a> Machine<'a> {
                 }
                 "jump" | "branch" => {
                     let edge = if term["op"] == "jump" { term }
-                        else if boolean(lookup(&env, &term["cond"])?.scalar()?)? {
+                        else if boolean(lookup(&frame.env, &term["cond"])?.scalar()?)? {
                             &term["then"]
                         } else { &term["else"] };
-                    let values = resolve(&env, &edge["args"])?;
+                    let values = resolve(&frame.env, &edge["args"])?;
                     let target = edge["target"].as_str().ok_or(Halt::Internal)?;
-                    let destination = *by_name.get(target).ok_or(Halt::Internal)?;
+                    let destination = *frame.blocks.get(target).ok_or(Halt::Internal)?;
                     // Simultaneously assign all block arguments, including
                     // loop backedge values. No stale SSA values can leak in.
-                    env = bind(&destination["params"], values)?;
-                    current = target;
+                    frame.env = bind(&destination["params"], values)?;
+                    frame.current = target;
+                    frame.next_operation = 0;
                 }
                 _ => return Err(Halt::Internal),
             }
@@ -348,7 +441,7 @@ impl<'a> Machine<'a> {
 /// This is NOT an alternative native final-use authorization or refinement proof.
 pub fn execute_scalar(input: &[u8], function: &str, arguments: &[Value],
                       max_steps: u64) -> R<Value> {
-    execute(input, function, arguments, max_steps, None, MAX_CALL_DEPTH)
+    execute(input, function, arguments, max_steps, None, MAX_CALL_DEPTH, MAX_STEPS)
 }
 
 /// Opt-in finite byte-owner execution in the SAME Machine as scalar execution.
@@ -363,7 +456,8 @@ pub fn execute_owned(input: &[u8], function: &str, arguments: &[Value],
         return failure("E_HIA_BUDGET_POLICY", "owned heap/failure policy outside finite profile");
     }
     execute(input, function, arguments, max_steps,
-            Some((max_heap_bytes, allocation_fail_at)), MAX_CALL_DEPTH)
+            Some((max_heap_bytes, allocation_fail_at.map(AllocationFailureIndex::Word))),
+            MAX_CALL_DEPTH, MAX_STEPS)
 }
 
 /// Bind one actual independent execution to its complete caller request.
@@ -378,7 +472,7 @@ pub fn execute_owned_bound(input: &[u8], function: &str, arguments: &[Value],
     check_bound_arguments(arguments)?;
     let execution = execute_owned(input, function, arguments, max_steps,
                                   max_heap_bytes, allocation_fail_at)?;
-    bind_execution(execution, function, arguments, max_heap_bytes, allocation_fail_at, 1)
+    bind_execution(execution, function, arguments, max_heap_bytes, json!(allocation_fail_at), 1)
 }
 
 /// Explicit bounded policy for the same Machine; no legacy policy upgrade.
@@ -386,14 +480,39 @@ pub fn execute_owned_bound(input: &[u8], function: &str, arguments: &[Value],
 /// The existing bounded/duplicate-safe decoder runs before any VM execution.
 pub fn execute_owned_bound_v2(input: &[u8], function: &str, arguments: &[Value],
                               policy_input: &[u8]) -> R<Value> {
+    execute_owned_bound_policy(input, function, arguments, policy_input, 2,
+        MAX_STEPS, MAX_OWNED_HEAP_BYTES, MAX_CALL_DEPTH)
+}
+
+/// Opt-in production-sized evaluator budgets on the same explicit-frame
+/// Machine. This does not grant production admission or upgrade v1/v2 limits.
+pub fn execute_owned_bound_v3(input: &[u8], function: &str, arguments: &[Value],
+                              policy_input: &[u8]) -> R<Value> {
+    execute_owned_bound_policy(input, function, arguments, policy_input, 3,
+        V3_MAX_STEPS, V3_MAX_OWNED_HEAP_BYTES, V3_MAX_CALL_DEPTH)
+}
+
+/// Exact positive failure indices beyond u64, with the same bounded Machine.
+/// The v4 wire uses canonical hexadecimal strings and keeps the finite policy
+/// byte limit. Legacy v1/v2/v3 integer policies and report shapes are unchanged.
+pub fn execute_owned_bound_v4(input: &[u8], function: &str, arguments: &[Value],
+                              policy_input: &[u8]) -> R<Value> {
+    execute_owned_bound_policy(input, function, arguments, policy_input, 4,
+        V3_MAX_STEPS, V3_MAX_OWNED_HEAP_BYTES, V3_MAX_CALL_DEPTH)
+}
+
+fn execute_owned_bound_policy(input: &[u8], function: &str, arguments: &[Value],
+                              policy_input: &[u8], version: u8,
+                              step_ceiling: u64, heap_ceiling: u64,
+                              depth_ceiling: u32) -> R<Value> {
     const MAX_POLICY_BYTES: usize = 1024;
     if policy_input.len() > MAX_POLICY_BYTES {
-        return failure("E_HIA_BUDGET_POLICY", "bound v2 policy exceeds 1024 bytes");
+        return failure("E_HIA_BUDGET_POLICY", format!("bound v{version} policy exceeds 1024 bytes"));
     }
     let (policy, _) = decode_hia(policy_input)?;
     let fields = super::object(&policy,
         &["max_steps", "max_heap_bytes", "allocation_fail_at", "max_call_depth"],
-        "bound v2 policy")?;
+        &format!("bound v{version} policy"))?;
     let integer = |name: &str| fields[name].as_u64().ok_or_else(|| super::VerifyError {
         code: "E_HIA_BUDGET_POLICY", detail: format!("{name} must be an exact unsigned integer"),
     });
@@ -402,16 +521,27 @@ pub fn execute_owned_bound_v2(input: &[u8], function: &str, arguments: &[Value],
     let max_call_depth = integer("max_call_depth")?;
     let allocation_fail_at = if fields["allocation_fail_at"].is_null() {
         None
-    } else { Some(integer("allocation_fail_at")?) };
-    if !(1..=MAX_STEPS).contains(&max_steps) || max_heap_bytes > MAX_OWNED_HEAP_BYTES
-        || !(1..=u64::from(MAX_CALL_DEPTH)).contains(&max_call_depth)
-        || allocation_fail_at == Some(0) {
-        return failure("E_HIA_BUDGET_POLICY", "bound v2 policy outside existing finite limits");
+    } else if version == 4 {
+        Some(AllocationFailureIndex::from_hex(&fields["allocation_fail_at"])?)
+    } else {
+        Some(AllocationFailureIndex::Word(integer("allocation_fail_at")?))
+    };
+    if !(1..=step_ceiling).contains(&max_steps) || max_heap_bytes > heap_ceiling
+        || !(1..=u64::from(depth_ceiling)).contains(&max_call_depth)
+        || matches!(allocation_fail_at.as_ref(), Some(AllocationFailureIndex::Word(0))) {
+        return failure("E_HIA_BUDGET_POLICY", format!("bound v{version} policy outside existing finite limits"));
     }
     check_bound_arguments(arguments)?;
-    let execution = execute(input, function, arguments, max_steps,
-        Some((max_heap_bytes, allocation_fail_at)), max_call_depth as u32)?;
-    bind_execution(execution, function, arguments, max_heap_bytes, allocation_fail_at, 2)
+    let mut execution = execute(input, function, arguments, max_steps,
+        Some((max_heap_bytes, allocation_fail_at)), max_call_depth as u32, step_ceiling)?;
+    if version == 4 {
+        // The versioned report makes the exact hexadecimal policy type
+        // explicit; v1 report consumers are never silently upgraded.
+        execution["schema"] = json!("hepta.hia.rust-byte-owner-execution.v2");
+        execution["allocation_fail_at"] = fields["allocation_fail_at"].clone();
+    }
+    bind_execution(execution, function, arguments, max_heap_bytes,
+                   fields["allocation_fail_at"].clone(), version)
 }
 
 fn check_bound_arguments(arguments: &[Value]) -> R<()> {
@@ -430,7 +560,7 @@ fn check_bound_arguments(arguments: &[Value]) -> R<()> {
 }
 
 fn bind_execution(execution: Value, function: &str, arguments: &[Value],
-                  max_heap_bytes: u64, allocation_fail_at: Option<u64>, version: u8) -> R<Value> {
+                  max_heap_bytes: u64, allocation_fail_at: Value, version: u8) -> R<Value> {
     let request = json!({
         "schema": format!("hepta.hia.rust-execution-request.v{version}"),
         "program_sha256": execution["program_sha256"],
@@ -502,8 +632,9 @@ fn owned_execution_profile(document: &Value) -> R<bool> {
 }
 
 fn execute(input: &[u8], function: &str, arguments: &[Value], max_steps: u64,
-           owned_policy: Option<(u64, Option<u64>)>, max_call_depth: u32) -> R<Value> {
-    if !(1..=MAX_STEPS).contains(&max_steps) {
+           owned_policy: Option<(u64, Option<AllocationFailureIndex>)>, max_call_depth: u32,
+           step_ceiling: u64) -> R<Value> {
+    if !(1..=step_ceiling).contains(&max_steps) {
         return failure("E_HIA_BUDGET_POLICY", "max_steps outside bounded Rust oracle profile");
     }
     let verification = if owned_policy.is_some() { verify_owned(input)? } else { verify(input)? };
@@ -544,9 +675,9 @@ fn execute(input: &[u8], function: &str, arguments: &[Value], max_steps: u64,
         return failure("E_HIA_INPUT", "entry arguments do not match exact scalar types");
     }
     let mut machine = Machine { functions: by_name, steps: 0, limit: max_steps, max_call_depth,
-        memory: owned_policy.map(|(heap, fail)| ByteMemory::new(heap, fail)) };
+        memory: owned_policy.as_ref().map(|(heap, fail)| ByteMemory::new(*heap, fail.clone())) };
     let result = machine.invoke(function,
-        arguments.iter().cloned().map(RuntimeValue::Scalar).collect(), 0);
+        arguments.iter().cloned().map(RuntimeValue::Scalar).collect());
     let mut report = json!({
         "schema": "hepta.hia.rust-scalar-execution.v1",
         "status": "unknown",
@@ -573,8 +704,9 @@ fn execute(input: &[u8], function: &str, arguments: &[Value], max_steps: u64,
             "bounded-cfg-byte-owner-loan-returns-v4"
         } else { "bounded-cfg-byte-owner-bulk-v3" });
         report["resources"] = memory.report(loan_returns || document["schema"] == "hepta.hia.program.v7");
-        report["max_heap_bytes"] = json!(owned_policy.unwrap().0);
-        report["allocation_fail_at"] = json!(owned_policy.unwrap().1);
+        report["max_heap_bytes"] = json!(owned_policy.as_ref().unwrap().0);
+        report["allocation_fail_at"] = owned_policy.as_ref().unwrap().1.as_ref()
+            .map_or(Value::Null, AllocationFailureIndex::report_value);
         report["claims"] = json!({
             "finite_scalar_execution": true,
             "finite_byte_owner_execution": true,

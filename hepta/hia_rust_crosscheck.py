@@ -16,7 +16,6 @@ import signal
 import stat
 import subprocess
 import sys
-import tempfile
 import time
 
 MAX_EXECUTABLE_BYTES = 32 * 1024 * 1024
@@ -24,6 +23,7 @@ MAX_OUTPUT_BYTES = 32 * 1024
 MAX_EXECUTION_OUTPUT_BYTES = 512 * 1024
 MAX_ARGUMENT_BYTES = 128 * 1024
 MAX_ARGUMENTS = 8192
+MAX_EXECUTION_POLICY_BYTES = 1024
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
 
 _SCALAR_CLAIMS = {
@@ -182,7 +182,7 @@ def _require_shadow_process_ownership():
 
 
 def _run_bounded_shadow(cmd: list[str], payload: bytes, timeout: float,
-                        maximum_output=MAX_OUTPUT_BYTES):
+                        maximum_output=MAX_OUTPUT_BYTES, *, pass_fds=()):
     """Bound stdin/stdout/stderr in memory; do not spool child output to disk.
 
     Exact executable byte pinning is a separate precondition. This pump is not
@@ -196,7 +196,7 @@ def _run_bounded_shadow(cmd: list[str], payload: bytes, timeout: float,
     try:
         proc = subprocess.Popen(
             cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            start_new_session=True,
+            start_new_session=True, pass_fds=pass_fds,
             env={"LANG": "C", "LC_ALL": "C", "PYTHONIOENCODING": "utf-8"},
         )
         pipes = {"stdin": proc.stdin, "stdout": proc.stdout, "stderr": proc.stderr}
@@ -284,22 +284,65 @@ def _run_bounded_shadow(cmd: list[str], payload: bytes, timeout: float,
     return bytes(collected["stdout"]), bytes(collected["stderr"]), proc.returncode
 
 
+def _seal_shadow_image(raw_exe):
+    """Own immutable admitted bytes through execution, without reopening a path.
+
+    The child still trusts its interpreter/ELF loader and shared libraries.
+    Sealing this image does not sandbox arbitrary code or grant proof authority.
+    """
+    if type(raw_exe) is not bytes or not 0 < len(raw_exe) <= MAX_EXECUTABLE_BYTES:
+        _reject("shadow executable must be bounded immutable bytes")
+    fd = None
+    transferred = False
+    try:
+        import fcntl
+        if not callable(getattr(os, "memfd_create", None)):
+            _reject("sealed shadow executable support unavailable")
+        fd = os.memfd_create("hepta-hia-rust-shadow", os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING)
+        os.fchmod(fd, 0o700)
+        remaining = memoryview(raw_exe)
+        while remaining:
+            written = os.write(fd, remaining)
+            if written <= 0:
+                _reject("sealed shadow executable write made no progress")
+            remaining = remaining[written:]
+        # These Linux UAPI constants also work with older Python headers.
+        seals = (getattr(fcntl, "F_SEAL_WRITE", 0x0008)
+                 | getattr(fcntl, "F_SEAL_GROW", 0x0004)
+                 | getattr(fcntl, "F_SEAL_SHRINK", 0x0002)
+                 | getattr(fcntl, "F_SEAL_SEAL", 0x0001))
+        fcntl.fcntl(fd, getattr(fcntl, "F_ADD_SEALS", 1033), seals)
+        if (os.fstat(fd).st_size != len(raw_exe)
+                or fcntl.fcntl(fd, getattr(fcntl, "F_GET_SEALS", 1034)) & seals != seals
+                or os.pread(fd, len(raw_exe), 0) != raw_exe):
+            _reject("sealed shadow executable bytes or seals differ")
+        transferred = True
+        return fd
+    except (OSError, AttributeError, ImportError) as exc:
+        raise HIARustCrosscheckRejected(
+            "E_HIA_RUST_CROSSCHECK: sealed shadow executable unavailable"
+        ) from exc
+    finally:
+        if fd is not None and not transferred:
+            os.close(fd)
+
+
 def _run_pinned_shadow(raw_exe, arguments, payload, timeout, *,
                        maximum_output=MAX_OUTPUT_BYTES):
-    """Reuse the exact verified bytes for both static and execution protocols."""
-    with tempfile.TemporaryDirectory(prefix="hepta-hia-rust-shadow-") as root:
-        destination = Path(root) / "shadow"
-        fd = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC, 0o700)
+    """Retain the sealed executable until the owned process group is settled."""
+    fd = _seal_shadow_image(raw_exe)
+    try:
+        return _run_bounded_shadow([f"/proc/self/fd/{fd}", *arguments], payload, timeout,
+                                   maximum_output=maximum_output, pass_fds=(fd,))
+    finally:
+        # Close once, after the runner's owned cleanup. Never retry a numeric
+        # descriptor when its first release might already have consumed it.
         try:
-            with os.fdopen(fd, "wb", closefd=False) as dest:
-                dest.write(raw_exe)
-                dest.flush()
-                os.fsync(dest.fileno())
-            os.fchmod(fd, 0o700)
-        finally:
             os.close(fd)
-        return _run_bounded_shadow([str(destination), *arguments], payload, timeout,
-                                   maximum_output=maximum_output)
+        except OSError as exc:
+            raise HIARustCrosscheckRejected(
+                "E_HIA_RUST_CROSSCHECK: sealed shadow descriptor release unconfirmed"
+            ) from exc
 
 
 def crosscheck_rust_shadow(program, executable: str | Path, *, executable_sha256: str,
@@ -392,7 +435,8 @@ def _validate_execution(raw, request, body, python, *, protocol_version=1):
     profile, claims = _execution_claims(body)
     policy = request["policy"]
     expected = {
-        "schema": "hepta.hia.rust-byte-owner-execution.v1", "status": status,
+        "schema": ("hepta.hia.rust-byte-owner-execution.v2" if protocol_version == 4 else
+                   "hepta.hia.rust-byte-owner-execution.v1"), "status": status,
         "function": request["function"], "program_sha256": request["program_sha256"],
         "steps": python["steps"], "profile": profile, "claims": claims,
         "resources": python["resources"], **policy,
@@ -438,20 +482,81 @@ def crosscheck_rust_execution_v2(program, function: str, arguments: list,
         protocol_version=2)
 
 
+def crosscheck_rust_execution_v3(program, function: str, arguments: list,
+                                 executable: str | Path, *, executable_sha256: str,
+                                 max_call_depth: int = 256, max_steps: int = 1_000_000,
+                                 max_heap_bytes: int = 16 * 1024 * 1024,
+                                 allocation_fail_at: int | None = None, timeout: float = 30.0):
+    """Compare the Python evaluator's depth, step and logical-byte budgets.
+
+    This separate protocol uses the same Rust Machine with explicit call
+    frames, accepting up to 256 frames, ten million ticks and 1 GiB payload.
+    The scalar public boundary and u64 allocation-failure index remain finite;
+    Python remains production authority. Legacy v1/v2 policies stay unchanged.
+    The transport timeout bounds only the pinned Rust subprocess.
+    """
+    return _crosscheck_rust_execution(program, function, arguments, executable,
+        executable_sha256=executable_sha256, max_steps=max_steps, max_heap_bytes=max_heap_bytes,
+        allocation_fail_at=allocation_fail_at, timeout=timeout, max_call_depth=max_call_depth,
+        protocol_version=3)
+
+
+def crosscheck_rust_execution_v4(program, function: str, arguments: list | tuple,
+                                 executable: str | Path, *, executable_sha256: str,
+                                 max_call_depth: int = 256, max_steps: int = 1_000_000,
+                                 max_heap_bytes: int = 16 * 1024 * 1024,
+                                 allocation_fail_at: int | None = None, timeout: float = 30.0):
+    """Compare ordered list/tuple inputs and exact positive failure indices.
+
+    V4 binds failure indices as canonical positive hexadecimal strings, so
+    integers beyond u64 retain their full value without decimal conversion.
+    The 1024-byte policy and existing scalar transport bounds remain explicit;
+    this is not complete Python API parity or a production-authority switch.
+    """
+    return _crosscheck_rust_execution(program, function, arguments, executable,
+        executable_sha256=executable_sha256, max_steps=max_steps, max_heap_bytes=max_heap_bytes,
+        allocation_fail_at=allocation_fail_at, timeout=timeout, max_call_depth=max_call_depth,
+        protocol_version=4)
+
+
+def _execution_wire_policy(policy, protocol_version):
+    if protocol_version != 4:
+        return policy
+    wire = dict(policy)
+    index = wire["allocation_fail_at"]
+    if index is not None:
+        # null and the quoted prefix "0x" both occupy four JSON bytes. The
+        # remaining budget is exactly the number of hexadecimal digits that
+        # fit; reject by bit_length before allocating an over-budget string.
+        wire["allocation_fail_at"] = None
+        available_digits = MAX_EXECUTION_POLICY_BYTES - len(_canonical(wire))
+        if (index.bit_length() + 3) // 4 > available_digits:
+            _reject("execution failure index exceeds the policy wire budget")
+        wire["allocation_fail_at"] = "0x" + format(index, "x")
+    if len(_canonical(wire)) > MAX_EXECUTION_POLICY_BYTES:
+        _reject("execution policy exceeds the wire budget")
+    return wire
+
+
 def _crosscheck_rust_execution(program, function, arguments, executable, *,
                                executable_sha256, max_steps, max_heap_bytes,
                                allocation_fail_at, timeout, max_call_depth, protocol_version):
     from .hia_program import SCALARS, scalar_value_valid, verify_program
     from .hia_program_runtime import HIAProgramBudgetExceeded, HIAProgramTrap, execute_program
 
-    if (type(timeout) not in (int, float) or not 0 < timeout <= 15
-            or type(max_steps) is not int or not 1 <= max_steps <= 1_000_000
-            or type(max_heap_bytes) is not int or not 0 <= max_heap_bytes <= 16 * 1024 * 1024
-            or type(max_call_depth) is not int or not 1 <= max_call_depth <= 32
+    step_ceiling, heap_ceiling, depth_ceiling, timeout_ceiling = (
+        (10_000_000, 1024 * 1024 * 1024, 256, 120) if protocol_version in (3, 4) else
+        (1_000_000, 16 * 1024 * 1024, 32, 15))
+    if (type(timeout) not in (int, float) or not 0 < timeout <= timeout_ceiling
+            or type(max_steps) is not int or not 1 <= max_steps <= step_ceiling
+            or type(max_heap_bytes) is not int or not 0 <= max_heap_bytes <= heap_ceiling
+            or type(max_call_depth) is not int or not 1 <= max_call_depth <= depth_ceiling
             or allocation_fail_at is not None and
-               (type(allocation_fail_at) is not int or not 1 <= allocation_fail_at <= (1 << 64) - 1)):
+               (type(allocation_fail_at) is not int or allocation_fail_at < 1 or
+                protocol_version != 4 and allocation_fail_at > (1 << 64) - 1)):
         _reject("execution policy is outside the finite Rust contract")
-    if (type(arguments) is not list or len(arguments) > MAX_ARGUMENTS
+    argument_types = (list, tuple) if protocol_version == 4 else (list,)
+    if (type(arguments) not in argument_types or len(arguments) > MAX_ARGUMENTS
             or any(type(v) not in (int, bool, type(None)) or
                    type(v) is int and not -(1 << 63) <= v < (1 << 64) for v in arguments)):
         _reject("execution arguments must be bounded exact scalar values")
@@ -475,9 +580,10 @@ def _crosscheck_rust_execution(program, function, arguments, executable, *,
         _reject("execution arguments/results do not match the exact scalar boundary")
     policy = {"max_steps": max_steps, "max_heap_bytes": max_heap_bytes,
               "allocation_fail_at": allocation_fail_at, "max_call_depth": max_call_depth}
+    wire_policy = _execution_wire_policy(policy, protocol_version)
     request = {"schema": f"hepta.hia.rust-execution-request.v{protocol_version}", "mode": "owned",
                "program_sha256": checked.sha256, "function": function,
-               "arguments": arguments, "policy": policy}
+               "arguments": arguments, "policy": wire_policy}
     raw_exe = _verified_executable_bytes(Path(executable), executable_sha256)
     try:
         python = execute_program(checked, function, arguments, **policy)
@@ -486,7 +592,8 @@ def _crosscheck_rust_execution(program, function, arguments, executable, *,
     argv = (["--owned-run-bound", function, argument_wire.decode("ascii"), str(max_steps),
              str(max_heap_bytes), "none" if allocation_fail_at is None else str(allocation_fail_at)]
             if protocol_version == 1 else
-            ["--owned-run-bound-v2", function, argument_wire.decode("ascii"), _canonical(policy).decode("ascii")])
+            [f"--owned-run-bound-v{protocol_version}", function,
+             argument_wire.decode("ascii"), _canonical(wire_policy).decode("ascii")])
     stdout, stderr, returncode = _run_pinned_shadow(
         raw_exe, argv, checked.canonical_bytes, timeout, maximum_output=MAX_EXECUTION_OUTPUT_BYTES)
     if returncode != 0 or stderr:

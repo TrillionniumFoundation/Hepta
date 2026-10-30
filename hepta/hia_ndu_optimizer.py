@@ -5,18 +5,24 @@ Every proposal is reverified and compared with the incumbent by the independent
 translation validator. NDU is advisory; a selected proposal is proved again.
 The conservative cost includes all supplied search costs and this invocation's
 actual wall time. Native publication must additionally pay its preparation cost.
+Proof admission and solver timeouts use the shared remaining search budget and
+possible net saving. Solver/host overhead may still overshoot; final admission
+then keeps the incumbent. This is not a hard physical execution-time bound.
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
 from hashlib import sha256
 import json
+import os
 from pathlib import Path
 import re
 import stat
-import subprocess
+import sys
 import time
 
 from .hia_program import verify_program
+from .hia_rust_crosscheck import HIARustCrosscheckRejected, _run_bounded_shadow
 from .hia_translation_validation import PROFILE as PROOF_PROFILE, SCHEMA as PROOF_SCHEMA, validate_translation
 
 SCHEMA = "hepta.hia.ndu-optimization.v1"
@@ -81,19 +87,82 @@ def _json(data):
 
 
 def _read_file(path, limit):
-    with path.open("rb") as stream:
-        before = stream.fileno()
-        import os
-        info = os.fstat(before)
+    """Read one bounded regular inode without blocking on an unwritten FIFO."""
+    if sys.platform != "linux":
+        _reject("native evaluator identity requires Linux")
+    fd = None
+    try:
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+        info = os.fstat(fd)
         if not stat.S_ISREG(info.st_mode) or not 0 < info.st_size <= limit:
             _reject("expected bounded regular file: " + str(path))
-        data = stream.read(limit + 1)
-        after = os.fstat(before)
-        if (info.st_size, info.st_mtime_ns, info.st_ctime_ns) != (after.st_size, after.st_mtime_ns, after.st_ctime_ns):
+        chunks = []
+        remaining = info.st_size + 1
+        while remaining:
+            chunk = os.read(fd, min(1024 * 1024, remaining))
+            if not chunk:
+                break
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        data = b"".join(chunks)
+        after = os.fstat(fd)
+        identity = lambda value: (value.st_dev, value.st_ino, value.st_size,
+                                  value.st_mtime_ns, value.st_ctime_ns)
+        if identity(info) != identity(after):
             _reject("file changed during read")
         if len(data) != info.st_size:
             _reject("file length changed during read")
         return data
+    except OSError as error:
+        raise OptimizationRejected("E_HIA_NDU: bounded regular file read failed") from error
+    finally:
+        if fd is not None:
+            os.close(fd)
+
+
+@dataclass(frozen=True)
+class _VerifiedBridgeImage:
+    path: Path
+    data: bytes
+
+
+def _seal_bridge_image(raw):
+    """Transfer ownership of a sealed descriptor for already-verified bytes.
+
+    No pathname is reopened here. A mutable-path ABA after build admission
+    therefore cannot replace the executable passed to the child. The trusted
+    host's interpreter/ELF loader and libraries remain outside this byte pin.
+    """
+    fd = None
+    transferred = False
+    try:
+        import fcntl
+        fd = os.memfd_create("hepta-ndu-ranking", os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING)
+        os.fchmod(fd, 0o700)
+        remaining = memoryview(raw)
+        while remaining:
+            count = os.write(fd, remaining)
+            if count <= 0:
+                _reject("sealed native snapshot write made no progress")
+            remaining = remaining[count:]
+        # Linux UAPI values also support Python built against older headers;
+        # the kernel operations and complete seal/byte readback are mandatory.
+        seals = (getattr(fcntl, "F_SEAL_WRITE", 0x0008)
+                 | getattr(fcntl, "F_SEAL_GROW", 0x0004)
+                 | getattr(fcntl, "F_SEAL_SHRINK", 0x0002)
+                 | getattr(fcntl, "F_SEAL_SEAL", 0x0001))
+        fcntl.fcntl(fd, getattr(fcntl, "F_ADD_SEALS", 1033), seals)
+        if (os.fstat(fd).st_size != len(raw)
+                or fcntl.fcntl(fd, getattr(fcntl, "F_GET_SEALS", 1034)) & seals != seals
+                or os.pread(fd, len(raw), 0) != raw):
+            _reject("sealed executable snapshot does not retain the admitted bytes and seals")
+        transferred = True
+        return fd
+    except (OSError, AttributeError, ImportError) as error:
+        raise OptimizationRejected("E_HIA_NDU: sealed executable snapshot unavailable") from error
+    finally:
+        if fd is not None and not transferred:
+            os.close(fd)
 
 
 def _bridge_identity(bridge):
@@ -122,29 +191,35 @@ def _bridge_identity(bridge):
     binary_sha = sha256(data).hexdigest()
     if binary_sha != receipt.get("binary_sha256"):
         _reject("bridge executable differs from the recorded build")
-    return binary, {"upstream_commit": locked["commit"], "binary_sha256": binary_sha,
-                    "build_receipt_sha256": sha256(receipt_bytes).hexdigest(),
-                    "build_inputs_sha256": _digest(receipt.get("build_inputs")),
-                    "source_attestation": "trusted_local_build_receipt"}
+    return _VerifiedBridgeImage(binary, data), {
+        "upstream_commit": locked["commit"], "binary_sha256": binary_sha,
+        "build_receipt_sha256": sha256(receipt_bytes).hexdigest(),
+        "build_inputs_sha256": _digest(receipt.get("build_inputs")),
+        "source_attestation": "trusted_local_build_receipt"}
 
 
 def _native_rank(bridge, request, *, timeout_s):
-    binary, identity = _bridge_identity(bridge)
+    image, identity = _bridge_identity(bridge)
     data = _bytes(request)
     if len(data) > 1024 * 1024:
         _reject("native request exceeds byte limit")
     try:
-        completed = subprocess.run([str(binary)], input=data, stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE, timeout=timeout_s, check=False)
-    except (OSError, subprocess.TimeoutExpired) as error:
+        fd = _seal_bridge_image(image.data)
+        try:
+            stdout, stderr, returncode = _run_bounded_shadow(
+                ["/proc/self/fd/" + str(fd)], data, timeout_s,
+                maximum_output=1024 * 1024 + 1, pass_fds=(fd,))
+        finally:
+            os.close(fd)
+    except (OSError, HIARustCrosscheckRejected) as error:
         _reject("native evaluator could not complete: " + str(error))
-    # The pinned bridge itself bounds input/candidates and its resulting output.
-    # This is a trusted local executable, not a sandbox for arbitrary binaries.
-    if completed.returncode or len(completed.stdout) > 1024 * 1024 or len(completed.stderr) > 1024 * 1024:
+    # The pump bounds output during execution and owns process-group cleanup.
+    # This remains a trusted local bridge, not a sandbox for arbitrary code.
+    if returncode or len(stdout) > 1024 * 1024 or len(stderr) > 1024 * 1024:
         _reject("native evaluator failed or exceeded output bounds")
-    if sha256(_read_file(binary, 128 * 1024 * 1024)).hexdigest() != identity["binary_sha256"]:
+    if sha256(_read_file(image.path, 128 * 1024 * 1024)).hexdigest() != identity["binary_sha256"]:
         _reject("native evaluator changed during invocation")
-    response = _json(completed.stdout)
+    response = _json(stdout)
     expected = {"schema": "hepta.hia.ndu-response.v1", "upstream_commit": identity["upstream_commit"],
                 "entry_point": "codex_hepta_ndu::evaluate_candidates_with_policy",
                 "objective_sha256": request["objective_sha256"], "generation": request["generation"],
@@ -189,6 +264,8 @@ def rank_candidates(baseline, candidates, observations, *, function, bridge, obj
     Search costs include generation, compilation and measurement already incurred.
     Every row's search cost is charged once to the entire search, including losing
     candidates and baseline measurement. The incumbent ('abstain') already exists.
+    Every proof, including the final selected proof, shares that same cap. A
+    sub-millisecond allowance cannot launch the solver's minimum 1 ms timeout.
     """
     started = time.perf_counter_ns()
     before = verify_program(baseline)
@@ -256,18 +333,33 @@ def rank_candidates(baseline, candidates, observations, *, function, bridge, obj
         else:
             spent_lower = supplied_search_ns + time.perf_counter_ns() - started
             candidate_upper = (observed[cid]["runtime_ns"] + observed[cid]["uncertainty_ns"]) * calls
+            remaining_budget = cap - spent_lower
+            remaining_margin = base_lower * calls - candidate_upper - spent_lower
             # Already paid cost cannot decrease. These tests may refuse work,
             # never approve a candidate or claim behavioral equivalence.
             # Keep canonical admission and measurement bindings above, and the
             # real native advisory invocation below, even when all are pruned.
             report["preproof_cost_lower_bound_ns"] = spent_lower
-            if spent_lower > cap:
+            report["proof_remaining_budget_ns"] = remaining_budget
+            report["proof_remaining_margin_ns"] = remaining_margin
+            if remaining_budget <= 0:
                 report["reason"] = "search_budget_exhausted_before_proof"
-            elif candidate_upper + spent_lower >= base_lower * calls:
+            elif remaining_margin <= 0:
                 report["reason"] = "cost_dominated_before_proof"
+            elif remaining_budget < 1_000_000:
+                report["reason"] = "search_budget_insufficient_for_proof"
+            elif remaining_margin <= 1_000_000:
+                report["reason"] = "cost_margin_insufficient_for_proof"
             else:
-                proved, proof = _fresh_proof(before, program, function, timeout_ms)
+                # Round down and leave a strictly positive possible net margin;
+                # never turn a fractional millisecond into extra solver budget.
+                proof_timeout_ms = min(timeout_ms, remaining_budget // 1_000_000,
+                                       (remaining_margin - 1) // 1_000_000)
+                proof_started = time.perf_counter_ns()
+                proved, proof = _fresh_proof(before, program, function, proof_timeout_ms)
                 report.update(equivalence_proved=proved, proof=proof,
+                              proof_timeout_ms=proof_timeout_ms,
+                              proof_wall_ns=time.perf_counter_ns() - proof_started,
                               reason="proved" if proved else "behavior_not_proved")
                 if proved:
                     checked[cid] = program
@@ -293,12 +385,35 @@ def rank_candidates(baseline, candidates, observations, *, function, bridge, obj
     response, bridge_info = _native_rank(bridge, request, timeout_s=bridge_timeout_s)
     selected = response["advisory_recommendation"] or "abstain"
     final_proof, reason = None, "native_evaluator_abstained"
+    final_proof_admission = None
     if selected != "abstain":
         if selected not in checked:
             _reject("advisory result has no independently proved program")
-        proved, final_proof = _fresh_proof(before, checked[selected], function, timeout_ms)
-        if not proved:
-            selected, reason = "abstain", "selected_candidate_fresh_proof_failed"
+        spent_lower = supplied_search_ns + time.perf_counter_ns() - started
+        row = observed[selected]
+        remaining_budget = cap - spent_lower
+        remaining_margin = base_lower * calls - (row["runtime_ns"] + row["uncertainty_ns"]) * calls - spent_lower
+        final_proof_admission = {"candidate_id": selected, "spent_search_ns": spent_lower,
+                                 "remaining_budget_ns": remaining_budget,
+                                 "remaining_margin_ns": remaining_margin,
+                                 "solver_started": False}
+        if remaining_budget < 0:
+            selected, reason = "abstain", "actual_search_budget_exceeded"
+        elif remaining_margin <= 0:
+            selected, reason = "abstain", "no_robust_net_saving_after_search"
+        elif remaining_budget < 1_000_000:
+            selected, reason = "abstain", "selected_proof_budget_insufficient"
+        elif remaining_margin <= 1_000_000:
+            selected, reason = "abstain", "selected_proof_margin_insufficient"
+        else:
+            proof_timeout_ms = min(timeout_ms, remaining_budget // 1_000_000,
+                                   (remaining_margin - 1) // 1_000_000)
+            final_proof_admission.update(solver_started=True, timeout_ms=proof_timeout_ms)
+            proof_started = time.perf_counter_ns()
+            proved, final_proof = _fresh_proof(before, checked[selected], function, proof_timeout_ms)
+            final_proof_admission["wall_ns"] = time.perf_counter_ns() - proof_started
+            if not proved:
+                selected, reason = "abstain", "selected_candidate_fresh_proof_failed"
     actual_adapter_ns = time.perf_counter_ns() - started
     total_search_ns = supplied_search_ns + actual_adapter_ns
     margin = 0
@@ -322,6 +437,7 @@ def rank_candidates(baseline, candidates, observations, *, function, bridge, obj
                       "total_search_ns": total_search_ns, "search_at_native_rank_ns": search_at_rank,
                       "publication_preparation_included": False},
             "candidate_reports": candidate_reports, "selected_fresh_proof": final_proof,
+            "selected_proof_admission": final_proof_admission,
             "native_request": request, "request_sha256": sha256(_bytes(request)).hexdigest(),
             "native_response": response, "bridge": bridge_info,
             "claims": {"ndu_is_advisory": True, "unproved_candidate_admitted": False,

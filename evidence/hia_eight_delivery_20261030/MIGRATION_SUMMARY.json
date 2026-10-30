@@ -1,0 +1,447 @@
+{
+  "c_migration": {
+    "build_preservation_scope": "Recorded compile_commands flags, cwd and source operands were preserved; these are authored qualification configurations, not the full upstream project build systems.",
+    "claims": {
+      "all_c_cpp_supported": false,
+      "backend_refinement_proved": false,
+      "fallback_used": false,
+      "finite_capability_and_resource_observations": true,
+      "runtime_performance_advantage_claimed": false,
+      "rust_codegen_used": false,
+      "source_equivalence_proved": false,
+      "whole_application_automatically_migrated": false
+    },
+    "core_to_native_refinement_proved": false,
+    "exit_code": 0,
+    "human_effort_measured": false,
+    "human_review_hours": null,
+    "is_upstream_release_upgrade": false,
+    "maintenance": {
+      "changed_files": [
+        "client.c",
+        "client.hepta",
+        "ring/ringbuffer.c"
+      ],
+      "comment_only_changes": [
+        "client.c",
+        "client.hepta"
+      ],
+      "domain": "same Linux LP64 unsigned-char C11 NDEBUG configuration and explicit pointer contracts; public entry size_t,u64,u32,u32 -> u64",
+      "domain_limits": "finite checks do not prove all-input equivalence; valid pointer/extent assumptions, arithmetic and unsupported-source rejection remain required",
+      "maintenance_scope": "authored loop-jump patch to one imported body; not untouched upstream",
+      "modified_implementation_bodies": [
+        "ring_buffer_queue_arr"
+      ],
+      "original_project_scope": "unchanged frozen ring/musl imports plus separately authored adapters and clients"
+    },
+    "migrations": {
+      "maintenance": {
+        "authored_client_function_bodies": 1,
+        "authored_maintenance_function_bodies": 1,
+        "authored_migrated_function_bodies": 1,
+        "declaration_inventory_complete": true,
+        "human_effort_measured": false,
+        "manual_migrated_body_edits": 0,
+        "source_tus": 4,
+        "translated_implementation_bodies": 12,
+        "unchanged_upstream_function_bodies": 10
+      },
+      "original": {
+        "authored_client_function_bodies": 1,
+        "authored_maintenance_function_bodies": 0,
+        "authored_migrated_function_bodies": 1,
+        "declaration_inventory_complete": true,
+        "human_effort_measured": false,
+        "manual_migrated_body_edits": 0,
+        "source_tus": 4,
+        "translated_implementation_bodies": 12,
+        "unchanged_upstream_function_bodies": 11
+      }
+    },
+    "ok": true,
+    "source_to_core_refinement_proved": false,
+    "status": "completed_finite_capability_qualification",
+    "validation": {
+      "completed_cases": 96,
+      "input_cases": 24,
+      "ledger": {
+        "bytes": 213996,
+        "path": "/workspace/scratch/8245a7ab856a/hepta-final-evidence/c-loop-migration/cases.jsonl",
+        "sha256": "54a205dd535a10bf413b37dc5f91668c7a57b16a4f302d43fa1e809fd97d6e07"
+      },
+      "native_calls": 384,
+      "pending_case": null,
+      "refusal_modes": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "runtime_cleanup_observed": "allocation attempts, successes, frees, live owners and balanced loans; process wall includes cleanup, individual free time is not isolated",
+      "vm_calls": 192
+    },
+    "whole_qualification_wall_seconds": 40.838200187
+  },
+  "cpp_upgrade": {
+    "claims": {
+      "actual_ai_model_runs": 0,
+      "foreign_library_rewritten": false,
+      "foreign_memory_safety_proved": false,
+      "general_upgrade_compatibility_proved": false,
+      "hermetic_toolchain_lock": false,
+      "total_development_cost_measured": false
+    },
+    "core_to_native_refinement_proved": false,
+    "exit_code": 0,
+    "is_cpp_library_rewrite": false,
+    "is_upstream_release_upgrade": true,
+    "negative_controls": {
+      "incompatible_signature_output_published": false,
+      "incompatible_signature_status": "rejected",
+      "status": "passed",
+      "wrong_implementation_exit_code": 2,
+      "wrong_implementation_first_mismatch": {
+        "direct_status": 0,
+        "direct_value": -1000000,
+        "hepta_status": 0,
+        "hepta_value": -999999,
+        "id": 0,
+        "live_delta": 0
+      }
+    },
+    "ok": true,
+    "protocol_id": "hepta.cpp-upgrade-json.v3",
+    "recovery_limit": "Each version observed 14 caught/recovered allocation-refusal sites and 3 foreign-noexcept std::bad_alloc SIGABRT sites; the latter are recovery_qualified=false. Passed fixture status does not mean all allocation failures recover.",
+    "route": "C caller -> Hepta consumer compiled via Rust backend -> generated C++ bridge -> unchanged C++ library and adapter",
+    "source_to_core_refinement_proved": false,
+    "status": "passed",
+    "upgrade": {
+      "agent_tokens": null,
+      "authored_initial_adapter_lines": 33,
+      "authored_initial_contract_lines": 104,
+      "authored_initial_hepta_lines": 8,
+      "c_boundary_executed_on_both_versions": true,
+      "c_export_symbols_equal": true,
+      "contract_changes": 0,
+      "cost_scope": "one unchanged-consumer upstream upgrade; wall times include actual tool executions, not initial development effort",
+      "from": "3.11.3",
+      "generated_identity_equal": true,
+      "hepta_caller_changes": 0,
+      "human_review_hours": null,
+      "source_files_patched": [],
+      "source_lines_changed": 0,
+      "to": "3.12.0"
+    },
+    "versions": [
+      {
+        "all_allocation_failure_paths_recovered": false,
+        "all_case_live_deltas_zero": true,
+        "all_direct_and_hepta_status_values_equal": true,
+        "calibration": {
+          "allocation_sites": 17,
+          "live_delta": 0,
+          "value": 9,
+          "version": "3.11.3"
+        },
+        "case_rows": 98,
+        "cost": {
+          "bridge_generation_seconds": 3.703586189993075,
+          "cpp_compile_link_seconds": 7.028862690000096,
+          "dependency_observation_seconds": 0.23164745998656144,
+          "failure_observation_seconds": 0.0321821450124844,
+          "hepta_check_and_build_seconds": 0.14221286599786254,
+          "native_case_execution_seconds": 0.002608387003419921,
+          "total_seconds": 11.323447058995953
+        },
+        "fault_sites": [
+          {
+            "exit_code": 0,
+            "recovery_qualified": true,
+            "site": 1,
+            "status": "caught_and_recovered"
+          },
+          {
+            "exit_code": 0,
+            "recovery_qualified": true,
+            "site": 2,
+            "status": "caught_and_recovered"
+          },
+          {
+            "exit_code": 0,
+            "recovery_qualified": true,
+            "site": 3,
+            "status": "caught_and_recovered"
+          },
+          {
+            "exit_code": 0,
+            "recovery_qualified": true,
+            "site": 4,
+            "status": "caught_and_recovered"
+          },
+          {
+            "exit_code": 0,
+            "recovery_qualified": true,
+            "site": 5,
+            "status": "caught_and_recovered"
+          },
+          {
+            "exit_code": 0,
+            "recovery_qualified": true,
+            "site": 6,
+            "status": "caught_and_recovered"
+          },
+          {
+            "exit_code": 0,
+            "recovery_qualified": true,
+            "site": 7,
+            "status": "caught_and_recovered"
+          },
+          {
+            "exit_code": 0,
+            "recovery_qualified": true,
+            "site": 8,
+            "status": "caught_and_recovered"
+          },
+          {
+            "exit_code": 0,
+            "recovery_qualified": true,
+            "site": 9,
+            "status": "caught_and_recovered"
+          },
+          {
+            "exit_code": 0,
+            "recovery_qualified": true,
+            "site": 10,
+            "status": "caught_and_recovered"
+          },
+          {
+            "exit_code": 0,
+            "recovery_qualified": true,
+            "site": 11,
+            "status": "caught_and_recovered"
+          },
+          {
+            "exit_code": 0,
+            "recovery_qualified": true,
+            "site": 12,
+            "status": "caught_and_recovered"
+          },
+          {
+            "exit_code": 0,
+            "recovery_qualified": true,
+            "site": 13,
+            "status": "caught_and_recovered"
+          },
+          {
+            "exit_code": 0,
+            "recovery_qualified": true,
+            "site": 14,
+            "status": "caught_and_recovered"
+          },
+          {
+            "exit_code": -6,
+            "recovery_qualified": false,
+            "site": 15,
+            "status": "foreign_noexcept_termination"
+          },
+          {
+            "exit_code": -6,
+            "recovery_qualified": false,
+            "site": 16,
+            "status": "foreign_noexcept_termination"
+          },
+          {
+            "exit_code": -6,
+            "recovery_qualified": false,
+            "site": 17,
+            "status": "foreign_noexcept_termination"
+          }
+        ],
+        "fault_status_counts": {
+          "caught_and_recovered": 14,
+          "foreign_noexcept_termination": 3
+        },
+        "ordinary_live_delta": 0,
+        "pointer_guards": 2,
+        "status": "passed",
+        "upstream": {
+          "bytes": 919975,
+          "header": "3.11.3/json.hpp",
+          "license": "3.11.3/LICENSE.MIT",
+          "license_sha256": "86b998c792894ccb911a1cb7994f7a9652894e7a094c0b5e45be2f553f45cf14",
+          "license_url": "https://raw.githubusercontent.com/nlohmann/json/v3.11.3/LICENSE.MIT",
+          "sha256": "9bea4c8066ef4a1c206b2be5a36302f8926f7fdc6087af5d20b417d0cf103ea6",
+          "source_url": "https://github.com/nlohmann/json/releases/download/v3.11.3/json.hpp",
+          "version": "3.11.3"
+        },
+        "version": "3.11.3"
+      },
+      {
+        "all_allocation_failure_paths_recovered": false,
+        "all_case_live_deltas_zero": true,
+        "all_direct_and_hepta_status_values_equal": true,
+        "calibration": {
+          "allocation_sites": 17,
+          "live_delta": 0,
+          "value": 9,
+          "version": "3.12.0"
+        },
+        "case_rows": 98,
+        "cost": {
+          "bridge_generation_seconds": 3.720973060997494,
+          "cpp_compile_link_seconds": 6.915802428993629,
+          "dependency_observation_seconds": 0.1395045240133186,
+          "failure_observation_seconds": 0.030413916989346035,
+          "hepta_check_and_build_seconds": 0.12795183699927293,
+          "native_case_execution_seconds": 0.0030343600010382943,
+          "total_seconds": 11.099228418002895
+        },
+        "fault_sites": [
+          {
+            "exit_code": 0,
+            "recovery_qualified": true,
+            "site": 1,
+            "status": "caught_and_recovered"
+          },
+          {
+            "exit_code": 0,
+            "recovery_qualified": true,
+            "site": 2,
+            "status": "caught_and_recovered"
+          },
+          {
+            "exit_code": 0,
+            "recovery_qualified": true,
+            "site": 3,
+            "status": "caught_and_recovered"
+          },
+          {
+            "exit_code": 0,
+            "recovery_qualified": true,
+            "site": 4,
+            "status": "caught_and_recovered"
+          },
+          {
+            "exit_code": 0,
+            "recovery_qualified": true,
+            "site": 5,
+            "status": "caught_and_recovered"
+          },
+          {
+            "exit_code": 0,
+            "recovery_qualified": true,
+            "site": 6,
+            "status": "caught_and_recovered"
+          },
+          {
+            "exit_code": 0,
+            "recovery_qualified": true,
+            "site": 7,
+            "status": "caught_and_recovered"
+          },
+          {
+            "exit_code": 0,
+            "recovery_qualified": true,
+            "site": 8,
+            "status": "caught_and_recovered"
+          },
+          {
+            "exit_code": 0,
+            "recovery_qualified": true,
+            "site": 9,
+            "status": "caught_and_recovered"
+          },
+          {
+            "exit_code": 0,
+            "recovery_qualified": true,
+            "site": 10,
+            "status": "caught_and_recovered"
+          },
+          {
+            "exit_code": 0,
+            "recovery_qualified": true,
+            "site": 11,
+            "status": "caught_and_recovered"
+          },
+          {
+            "exit_code": 0,
+            "recovery_qualified": true,
+            "site": 12,
+            "status": "caught_and_recovered"
+          },
+          {
+            "exit_code": 0,
+            "recovery_qualified": true,
+            "site": 13,
+            "status": "caught_and_recovered"
+          },
+          {
+            "exit_code": 0,
+            "recovery_qualified": true,
+            "site": 14,
+            "status": "caught_and_recovered"
+          },
+          {
+            "exit_code": -6,
+            "recovery_qualified": false,
+            "site": 15,
+            "status": "foreign_noexcept_termination"
+          },
+          {
+            "exit_code": -6,
+            "recovery_qualified": false,
+            "site": 16,
+            "status": "foreign_noexcept_termination"
+          },
+          {
+            "exit_code": -6,
+            "recovery_qualified": false,
+            "site": 17,
+            "status": "foreign_noexcept_termination"
+          }
+        ],
+        "fault_status_counts": {
+          "caught_and_recovered": 14,
+          "foreign_noexcept_termination": 3
+        },
+        "ordinary_live_delta": 0,
+        "pointer_guards": 2,
+        "status": "passed",
+        "upstream": {
+          "bytes": 953436,
+          "header": "3.12.0/json.hpp",
+          "license": "3.12.0/LICENSE.MIT",
+          "license_sha256": "46a65cffd1ea955132d95a8dd921640714a8d6b537d2e4e482d31145ae95b603",
+          "license_url": "https://raw.githubusercontent.com/nlohmann/json/v3.12.0/LICENSE.MIT",
+          "sha256": "aaf127c04cb31c406e5b04a63f1ae89369fccde6d8fa7cdda1ed4f32dfc5de63",
+          "source_url": "https://github.com/nlohmann/json/releases/download/v3.12.0/json.hpp",
+          "version": "3.12.0"
+        },
+        "version": "3.12.0"
+      }
+    ]
+  },
+  "evidence_consistency": {
+    "c_retained_named_artifacts_checked": 40,
+    "c_source_bindings_checked": 187,
+    "cpp_retained_artifacts_checked": 36,
+    "cpp_source_inputs_checked": 11,
+    "scope": "Current file/hash consistency only; no authenticated third-party receipt, compiler refinement proof or hermetic toolchain claim."
+  },
+  "reported_at_utc": "2026-10-30T06:02:40.330923+00:00",
+  "reports": {
+    "c_migration": {
+      "bytes": 238090,
+      "path": "/workspace/scratch/8245a7ab856a/hepta-final-evidence/c-loop-migration/qualification.json",
+      "sha256": "cf14d6a4eb853825a3ae8d7ed8fe17d0e7f8cb7e2045373615cf09a6f0aebe49"
+    },
+    "cpp_upgrade": {
+      "bytes": 1297025,
+      "path": "/workspace/scratch/8245a7ab856a/hepta-final-evidence/cpp-upgrade.json",
+      "sha256": "9b8b8d1de6356be769cc7f057fd3c7082a1ce47d2e7c8348d423f849bd9eb0c0"
+    }
+  },
+  "schema": "hepta.integration.migration-results-summary.v1",
+  "source_commit": "60dfedc626b7ce3feaaa87ac16d711fe0cc8e9d3",
+  "source_tracked_tree_clean_after": true
+}

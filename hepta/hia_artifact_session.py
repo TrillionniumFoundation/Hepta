@@ -29,6 +29,8 @@ from .hia_adaptive import _NativeRelease
 from .hia_guarded_optimization import (
     _compose, _freeze, build_guarded_native, guarded_checker_identity)
 from .hia_multiversion import PublicationCancellation
+from .hia_narrowing import (
+    _freeze_chain, build_guarded_narrowed_native, chain_checker_identity)
 from .hia_native_differential import _pin_native_artifact
 from .hia_optimization import _policy, _solver_identity, build_optimized_native
 from .hia_prepared import _issue, _matches, _reuse
@@ -59,7 +61,8 @@ def _identity():
              "hia_native_differential.py", "hia_multiversion.py", "native_tool_identity.py")
     return sha256(_wire({"files": {name: sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
                                     for name in files},
-        "guarded_checker": guarded_checker_identity(), "native_emitter": _implementation_hash()})).hexdigest()
+        "guarded_checker": guarded_checker_identity(), "chain_checker": chain_checker_identity(),
+        "native_emitter": _implementation_hash()})).hexdigest()
 
 
 def _profile(program):
@@ -291,7 +294,18 @@ class PreparedArtifactSession:
     def prepare_guarded(self, base_token, proposal, *, cancellation=None, max_prepare_ns=120_000_000_000):
         return self._prepare(None, base_token, proposal, cancellation, max_prepare_ns)
 
-    def _prepare(self, program, base_token, proposal, cancellation, max_prepare_ns):
+    def prepare_guarded_narrowed(self, base_token, proposal, *, cancellation=None,
+                                max_prepare_ns=120_000_000_000):
+        """Independently prove both stages before issuing one bounded lease entry.
+
+        The immutable baseline remains the proof ancestor. This does not admit
+        an externally supplied proof, an unguarded narrowing, or a foreign DSO.
+        """
+        return self._prepare(None, base_token, proposal, cancellation, max_prepare_ns,
+                             guarded_narrowed=True)
+
+    def _prepare(self, program, base_token, proposal, cancellation, max_prepare_ns,
+                 *, guarded_narrowed=False):
         started = time.monotonic_ns()
         if cancellation is None:
             cancellation = PublicationCancellation()
@@ -310,14 +324,20 @@ class PreparedArtifactSession:
                 deadline()
                 if cancellation.committed():
                     _reject("cancellation owner already committed another preparation")
+                if guarded_narrowed and base_token is None:
+                    _reject("guarded-narrowed preparation requires an internal baseline token")
                 parent = None
                 if base_token is not None:
                     parent = self._entries.get(base_token) if type(base_token) is str else None
                     if parent is None or parent.retired or parent.parent is not None:
                         _reject("guarded preparation requires a live internal baseline token")
                     self._validate_entry(parent, parent.generation)
-                    original, fast, frozen = _freeze(parent.image.program, proposal)
-                    checked, state = _profile(_compose(original, fast, frozen))
+                    if guarded_narrowed:
+                        original, _, candidate, frozen = _freeze_chain(parent.image.program, proposal)
+                        checked, state = _profile(candidate)
+                    else:
+                        original, fast, frozen = _freeze(parent.image.program, proposal)
+                        checked, state = _profile(_compose(original, fast, frozen))
                     program = original
                 else:
                     checked, state = _profile(program)
@@ -331,8 +351,11 @@ class PreparedArtifactSession:
             try:
                 path = self._directory / f"generation-{generation}.so"
                 self._proof_attempts += 1
-                receipt = (build_optimized_native(program, checked, path, policy=self._policy, clang=self._clang)
-                           if parent is None else build_guarded_native(program, frozen, path, policy=self._policy, clang=self._clang))
+                if parent is None:
+                    receipt = build_optimized_native(program, checked, path, policy=self._policy, clang=self._clang)
+                else:
+                    builder = build_guarded_narrowed_native if guarded_narrowed else build_guarded_native
+                    receipt = builder(program, frozen, path, policy=self._policy, clang=self._clang)
                 deadline()
                 if path.stat().st_size > self._limits["artifact"]:
                     _reject("self-built artifact exceeds the reserved size")

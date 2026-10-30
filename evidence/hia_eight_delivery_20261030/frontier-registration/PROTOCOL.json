@@ -1,0 +1,113 @@
+{
+  "budgets": {
+    "attempts_per_cell": 3,
+    "charged_output_tokens_per_request": 4096,
+    "charged_tokens_per_cell": 100000,
+    "cleanup_reserve_seconds": 10,
+    "experiment_wall_seconds": 1800,
+    "observed_input_tokens_per_request": 32768,
+    "request_wall_seconds": 180
+  },
+  "configuration_policy": "Preserve existing user configuration, rules, hooks and authenticated CLI behavior. Do not read/copy credential files, disable rules/hooks or override reasoning/sampling. An observed tool event is terminal and disqualifies the cell; absence of tool events is not proof of physical inability to read files.",
+  "controls": "Before any task generation, run all 19 unchanged human references through actual public/native/resource/hidden evaluator and reject 19 dummy malformed responses. These controls test engineering interfaces only, not token capacity, model success or model eligibility. Independent exact-freeze review must allow generation.",
+  "cost_scope": {
+    "benchmark_cost": "All attempts, failed/partial calls, raw CLI-reported usage, conservative budget charges, native validation and wall time retained; incomplete usage is never zeroed.",
+    "bootstrap_actual_requests": 2,
+    "bootstrap_receipt": "bootstrap/BOOTSTRAP.json",
+    "bootstrap_unknown_usage_requests": 1,
+    "complete_service_lifecycle_cost_known": false,
+    "general_productivity_proved": false,
+    "human_labor_measured": false,
+    "performance_timing_qualified": false,
+    "preparation_costs_are_model_successes": false,
+    "prices_reported": false,
+    "statistical_advantage_claimed": false
+  },
+  "event_policy": "Complete event allowlist. Only exact pre-turn registered CLI warnings are allowed with their registered multiplicities. Only agent_message items otherwise. Tool, unknown item/event, failed turn, malformed/unknown usage or multiple final messages is terminal; preserve raw output and known/unknown cost.",
+  "historical_eligibility_inherited": false,
+  "historical_results_reclassified": false,
+  "model": {
+    "backend_route_version": "unknown",
+    "cli_version_observed": "0.166.0-alpha.1",
+    "exact_alias_is_not_weight_hash": true,
+    "observed_prior_header_alias": "gpt-6.1-sol",
+    "observed_prior_header_provider": "openai",
+    "observed_prior_header_reasoning_effort": "none",
+    "per_request_model_attestation": false,
+    "provider_caching": "uncontrolled; raw cached/cache-write fields retained",
+    "requested_alias": "gpt-6.1-sol",
+    "sampling_settings": "unknown; inherited user/provider configuration, not overridden",
+    "underlying_weights_version": "unknown"
+  },
+  "model_cwd_root": "/workspace/scratch/8245a7ab856a/agent-frontier-model-cwds",
+  "qualification_rule": "Fresh same-freeze three-of-three qualification requires correct public/native/resource and terminal-hidden gates, complete known within-budget usage, no forbidden event and unchanged source/pilot/tool identities. Human references and bootstrap READY do not count.",
+  "registered_startup_warnings": [
+    "Codex is ignoring 1 unrecognized configuration setting. Check for typos or deprecated settings.\n  user (/root/.codex/config.toml): `features.experimental_use_rmcp_client` is ignored.",
+    "`[features].imagegenext` is deprecated. Use `[features].image_generation` instead. (Enable it with `--enable image_generation` or `[features].image_generation` in config.toml. See https://developers.openai.com/codex/config-basic#feature-flags for details.)",
+    "Codex is ignoring 1 unrecognized configuration setting. Check for typos or deprecated settings.\n  user (/root/.codex/config.toml): `features.experimental_use_rmcp_client` is ignored.",
+    "Under-development features enabled: local_thread_store_compression. Under-development features are incomplete and may behave unpredictably. To suppress this warning, set `suppress_unstable_features_warning = true` in /root/.codex/config.toml."
+  ],
+  "registration_timing": "Freeze protocol, runner, controls and identities before every benchmark/task generation. Two earlier READY bootstrap requests already occurred and their costs remain separate, one with unknown detailed usage.",
+  "request_wrapper": "Answer this fixed coding task using only the conversation supplied below. Return only the JSON requested by its last user message, with no Markdown fences or commentary. Do not call any tool, execute a command, read a file, inspect a repository, browse, or obtain reference answers. The JSON array below represents the complete task conversation; preserve its task constraints. This request does not ask you to disable or bypass existing user rules or hooks.",
+  "reuse": {
+    "hidden_evaluation": "Current v4 execute with frozen hidden cases/seed unchanged; hidden execution is terminal on success or failure, never used as repair feedback.",
+    "initial_prompts": "Byte-identical current V9 prompts.prompt output, captured before requests and hash bound; CLI transport wraps the unchanged message array as one user request. This is a separate runtime presentation.",
+    "public_evaluation": "Current V8 validation.evaluate and v4 native/resource evaluator unchanged.",
+    "repair_interface": "Exact current V9 prompts.messages(initial, complete_previous_response, actual_public_feedback). Complete previous answer and public feedback retained; no host answer repair, code truncation or public case removal. No provider tokenizer available, so no V9 tokenizer-based clipping or capacity proof is claimed.",
+    "session": "Current V9 support.session_for and v7 ValidatedTaskSession. One original captured query per cell; no rebase, partial install or answer merging."
+  },
+  "runtime_argv": [
+    "codex",
+    "exec",
+    "--json",
+    "--ephemeral",
+    "--sandbox",
+    "read-only",
+    "--skip-git-repo-check",
+    "-m",
+    "gpt-6.1-sol",
+    "-"
+  ],
+  "schema": "hepta.agent-frontier-prospective-pilot.v1",
+  "source_commit": "60dfedc626b7ce3feaaa87ac16d711fe0cc8e9d3",
+  "stopping_rule": "Qualification fail-fast: at first terminal failed qualification cell (including exhaustion of three total attempts: one initial plus at most two public repairs), stop the entire qualification; main remains unstarted. No same-task prompt tuning, model substitution, rerun or additional candidate follows failure. In main, ordinary public/hidden failures remain scored in fixed order without rerunning that cell; protocol/runtime/identity/global-budget failure stops the run and preserves the incomplete denominator.",
+  "study_reason": "Distinct actually available authenticated OpenAI Codex runtime and observed gpt-6.1-sol alias after separately retained local Qwen negative studies; one prospective candidate, no model search.",
+  "tasks": {
+    "arms": [
+      "hia_full",
+      "hia_node",
+      "rust_full",
+      "rust_node"
+    ],
+    "main": [
+      "saturating_score",
+      "wide_span_upgrade",
+      "owned_byte_return",
+      "owner_pair_replace"
+    ],
+    "main_cells": 16,
+    "order": "Exact current V9 support.cells order: listed qualification order, four main arms rotated by task index.",
+    "qualification": [
+      "json_scalar_reasoning",
+      "two_file_signature_repair",
+      "owner_flow_repair"
+    ],
+    "qualification_arm": "rust_node",
+    "qualification_stage": "calibration"
+  },
+  "token_budget_semantics": "Provider-reported usage, checked after execution. No claimed pre-generation hard token/context cap and no independent tokenizer proof. charged_output=reported output_tokens+reasoning_output_tokens conservatively; possible overlap is not called exact total. charged_cell=input_tokens+charged_output. Cached tokens are retained as a reported subset and never added twice. All five usage fields must be complete nonnegative integers. Any over-budget or unknown usage ends cell with all consumed costs retained.",
+  "tools": {
+    "clang": "/usr/lib/llvm-20/bin/clang",
+    "codex": "/opt/codex/bin/codex",
+    "python": "/usr/bin/python3",
+    "rustc": "/workspace/scratch/7844475e7f0c/toolchains/rust-1.90.0/bin/rustc"
+  },
+  "transport": {
+    "max_jsonl_line_bytes": 1048576,
+    "over_limit": "Kill owned group, retain bounded raw prefix and observed byte counts, mark incomplete/unknown; never admit truncated evidence.",
+    "stderr_limit_bytes": 4194304,
+    "stdout_limit_bytes": 16777216
+  },
+  "wall_budget_semantics": "Monotonic deadline limits each owned model process group to at most 180 seconds and limits all owned calls to remaining 1800-second experiment time, reserving 10 seconds for cleanup. Kill owned group before reaping leader; retain raw partial streams, timeout and actual cleanup wall. Native evaluation workers are separately owned groups under the same remaining deadline.",
+  "working_directory_policy": "Fresh empty directory outside the source/evidence trees for each request. No references, hidden cases, answer artifacts or task files copied there. Existing ancestor/user instructions may still load; this is disclosed ambient context, not a hermetic model environment."
+}

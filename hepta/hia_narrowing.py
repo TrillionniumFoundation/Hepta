@@ -221,6 +221,7 @@ def _freeze(base, proposal):
 
 def _report(schema, identity, policy):
     return {"schema": schema, "status": "unknown", "policy": policy,
+            "policy_sha256": _digest(policy),
             "target": policy["target"], "checker_sha256": identity,
             "claims": {"deployment_authority": False, "backend_refinement_proved": False,
                        "whole_language_soundness_proved": False, "performance_qualified": False}}
