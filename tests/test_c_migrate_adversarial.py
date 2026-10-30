@@ -102,5 +102,30 @@ class CMigrationAdversarial(unittest.TestCase):
         self.assertEqual(list(self.root.glob(".hepta-migrate-*")), [])
 
 
+    def test_oversized_source_rejected_before_unbounded_read(self):
+        # A caller may point the converter at an arbitrarily large file.
+        # Do not load the entire file merely to discover it exceeds 256 KB.
+        self.source.write_bytes(b"x" * 256_001)
+        with patch("hepta.c_migrate.Path.read_bytes",
+                   side_effect=AssertionError("unbounded source read")):
+            result = migrate_c(self.source, self.output)
+        self.assertFalse(result["ok"], result)
+        self.assertIn("E_C_SIZE",
+                      [item["code"] for item in result["rejected"]], result)
+        self.assertFalse(self.output.exists())
+
+    def test_source_read_error_is_controlled_rejection(self):
+        # Revalidate read access at use; a file may become unreadable
+        # after is_file(), and the public API must not leak an OSError.
+        self.source.write_text("int f(int x){return x;}\\n", encoding="utf-8")
+        with patch("hepta.c_migrate.Path.open",
+                   side_effect=PermissionError("simulated read denial")):
+            result = migrate_c(self.source, self.output)
+        self.assertFalse(result["ok"], result)
+        self.assertIn("E_C_SOURCE_RACE",
+                      [item["code"] for item in result["rejected"]], result)
+        self.assertFalse(self.output.exists())
+
+
 if __name__ == "__main__":
     unittest.main()

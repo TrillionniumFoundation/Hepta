@@ -200,7 +200,15 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
         if (src == dest or not src.is_file() or src.suffix != ".c"
                 or dest.suffix != ".hepta" or dest.is_symlink()):
             raise MigrationRejected("E_C_PATH", "Require existing .c source and distinct non-symlink .hepta destination")
-        source = src.read_bytes()
+        # The input is untrusted and may be much larger than the pilot limit.
+        # Read at most one byte past the limit, rather than allocating the
+        # whole file before discovering the oversize condition.
+        try:
+            with src.open("rb") as stream:
+                source = stream.read(256_001)
+        except OSError as exc:
+            raise MigrationRejected("E_C_SOURCE_RACE",
+                                    "C source unavailable during bounded read") from exc
         if len(source) > 256_000:
             raise MigrationRejected("E_C_SIZE", "Pilot source exceeds 256 KB")
         report["source_sha256"] = hashlib.sha256(source).hexdigest()
