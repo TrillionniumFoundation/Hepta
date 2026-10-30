@@ -214,8 +214,10 @@ raise SystemExit(int(os.environ['HEPTA_WORKFLOW_FIXTURE_EXIT']))
             head = git('rev-parse', 'HEAD')
             for branch, expected in [
                 ('codex/hia-round6-convergence-20261029', 'integrated'),
+                ('codex/hia-round7-opportunity-20261029', 'integrated'),
                 ('codex/hia-core-closure-20261028', 'full'),
                 ('codex/hia-round6-convergence-20261029-suffix', 'full'),
+                ('codex/hia-round7-opportunity-20261029-suffix', 'full'),
                 ('main', 'full'),
             ]:
                 with self.subTest(branch=branch):

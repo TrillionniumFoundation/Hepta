@@ -1,0 +1,80 @@
+{
+  "actions": [
+    "baseline",
+    "guard_denominator_8",
+    "guard_denominator_10"
+  ],
+  "candidate_selection_scope": "At most one specialized module may be selected from the common finite bank. All actual bank generation/proof/compile/qualification/measurement costs are charged before assessing any prospective gain. This selection slot is not a claim that qualification compiled only one candidate.",
+  "claims": {
+    "NDU_superiority_established": false,
+    "final_machine_code_equivalence_proved": false,
+    "global_optimality_established": false,
+    "persistent_owner_state": false,
+    "production_demand_established": false
+  },
+  "cost_boundary": "Wall time from frozen protocol write through complete candidate generation, proofs, selected LLVM checks, compilation, pinning, Python oracles, native VM differential, training and validation. Includes baseline and failed candidates. Includes child startup/load/guard/cleanup in the recorded outer sample wall. Output serialization, process startup/imports and tool installation are reported as excluded.",
+  "demand_provenance": "Prospective synthetic research horizon, fixed before first native observation. No application trace or user production demand is claimed.",
+  "expected_calls_per_module": 100000000,
+  "formula": "((x // denominator) + (x % denominator)) mod 2**32; denominator zero traps before division",
+  "function": "calculate",
+  "generator": {
+    "generic_denominator_addend": 1,
+    "generic_denominator_modulus": 251,
+    "hot_choice": "iteration index mod 10 < 9",
+    "u32_increment": 1013904223,
+    "u32_multiplier": 1664525
+  },
+  "iterations_per_batch": 200000,
+  "max_optimization_wall_ns": 60000000000,
+  "max_selected_specializations": 1,
+  "measurement_order": "Rotate candidate order by trial; reverse on odd trials. Training then validation. No discarded samples or automatic retry.",
+  "modules": [
+    {
+      "hot_denominator": 8,
+      "hot_denominator_ratio": 10,
+      "hot_numerator": 9,
+      "id": "hot8"
+    },
+    {
+      "hot_denominator": 10,
+      "hot_denominator_ratio": 10,
+      "hot_numerator": 9,
+      "id": "hot10"
+    }
+  ],
+  "opportunity_gate": "At least two module-specific, native-code-distinct specializations must have positive conservative savings on both training and independent validation after the complete measured search cost, within the common wall budget. Only then is a separate NDU/complete-enumeration comparison informative.",
+  "parameters": [
+    "u32",
+    "u32"
+  ],
+  "profile": "linux-x86_64-u32-two-argument-checked-division-v1",
+  "returns": [
+    "u32"
+  ],
+  "schema": "hepta.hia.guarded-opportunity-protocol.v1",
+  "tool_requirements": {
+    "clang_major_minimum": 20,
+    "target": "x86_64-unknown-linux-gnu",
+    "z3_solver": "4.15.4.0"
+  },
+  "training_seeds": [
+    26701,
+    26702,
+    26703,
+    26704,
+    26705,
+    26706,
+    26707
+  ],
+  "uncertainty": "Minimum baseline batch minus maximum candidate batch, divided by exact iteration count; conservative observed envelope, not a statistical confidence bound.",
+  "validation_seeds": [
+    36701,
+    36702,
+    36703,
+    36704,
+    36705,
+    36706,
+    36707
+  ],
+  "warmup_iterations": 10000
+}

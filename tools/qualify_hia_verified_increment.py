@@ -65,6 +65,9 @@ MODULES = (
     "tests.test_hia_agent_toolstudy",
     "tests.test_hia_agent_toolstudy_v9",
     "tests.test_hia_agent_tool_references",
+    "tests.test_hia_guarded_batch",
+    "tests.test_hia_finite_v8_heap",
+    "tests.test_c_project_do_while",
 )
 
 
@@ -94,6 +97,7 @@ def inventory():
                    "tests/fixtures/hia_payload_bound"):
         paths += [path for path in (ROOT / folder).rglob("*") if path.is_file()
                   and "__pycache__" not in path.parts]
+    paths += list((ROOT / "experiments/hia_guarded_opportunity").glob("*.json"))
     return {str(path.relative_to(ROOT)): sha256(path.read_bytes()).hexdigest() for path in sorted(set(paths))}
 
 

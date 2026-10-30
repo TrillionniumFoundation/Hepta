@@ -23,7 +23,7 @@ class ReviewedSafetyProtocolTests(unittest.TestCase):
                            for selector in row["regression_selectors"]})
         # Retain the 100 reviewed source/Rust and v4/response/lifecycle
         # boundaries, plus the reviewed migration/proof/reuse increments.
-        self.assertGreaterEqual(len(expected), 146)
+        self.assertGreaterEqual(len(expected), 171)
         self.assertEqual(safety.validate_contract(self.contract), expected)
 
     def test_json_formatting_and_object_key_order_do_not_change_protocol(self):

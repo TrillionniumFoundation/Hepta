@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 import platform
 import shutil
+import signal
 import statistics
 import sys
 import time
@@ -31,6 +32,8 @@ from tools.qualify_hia_filecheck import (Trial, RESOURCE_HARNESS, cases, checksu
     corpus, digest, identity, order, quantile, require, update, write)
 from tools.qualify_c_ring_buffer import verify_upstream as verify_ring
 from tools.qualify_c_musl_compare import verify_upstream as verify_compare
+from tools.hia_filecheck_target_profile import (bind_native_target_profile,
+    _bind_attributes, _file_identity)
 
 FIXTURE = ROOT / "examples/hia_legacy_queue"
 PROTOCOL_PATH = ROOT / "experiments/hia_legacy_queue/PROTOCOL_20261028.json"
@@ -42,6 +45,7 @@ ENTRY = "legacy_checksum_chunk"
 def source_bindings():
     paths = [Path(__file__), PROTOCOL_PATH,
              ROOT / "tools/qualify_hia_filecheck.py",
+             ROOT / "tools/hia_filecheck_target_profile.py",
              ROOT / "experiments/hia_filecheck/PROTOCOL_20261028.json",
              ROOT / "tools/qualify_c_ring_buffer.py",
              ROOT / "tools/qualify_c_musl_compare.py",
@@ -174,7 +178,34 @@ class LegacyTrial(Trial):
                 self.out / file, str(self.protocol["algorithms"][algorithm])]
         if alternate is not None:
             argv.append(alternate)
-        row = self.command(argv, stage, env=env)
+        try:
+            row = self.command(argv, stage, env=env)
+        except Exception as error:
+            # The supervisor returns 1 after a signalled child, so the outer
+            # process status alone loses the actual native failure. Preserve
+            # its receipt without converting a failed command into success.
+            failed = {"stage": stage, "arm": arm, "algorithm": algorithm,
+                      "command_index": len(self.report["commands"]) - 1}
+            self.report.setdefault("failed_applications", []).append(failed)
+            try:
+                receipt_hash = sha256()
+                update_stable_regular_hash(receipt_hash, receipt, max_bytes=4096)
+                payload = receipt.read_bytes()
+                require(len(payload) <= 4096 and sha256(payload).hexdigest() == receipt_hash.hexdigest(),
+                        "failed child receipt changed during read")
+                memory = json.loads(payload)
+                require(type(memory) is dict and all(type(memory.get(key)) is int
+                        for key in ("child_exit_code", "child_signal")), "invalid failed child receipt")
+                failed.update(memory=memory, memory_receipt={"path": str(receipt),
+                              "bytes": len(payload), "sha256": receipt_hash.hexdigest()})
+            except Exception as receipt_error:
+                failed["receipt_error"] = {"type": type(receipt_error).__name__, "message": str(receipt_error)}
+            child_signal = failed.get("memory", {}).get("child_signal", 0)
+            if child_signal in {member.value for member in signal.Signals} and child_signal > 0:
+                failed["child_signal_name"] = signal.Signals(child_signal).name
+                raise ValueError(str(error) + "; child_signal=" + failed["child_signal_name"]
+                                 + " (" + str(child_signal) + ")") from error
+            raise
         observed, memory = json.loads(row["stdout"]), json.loads(receipt.read_text())
         require(observed["checksum"] == expected["checksums"][algorithm] and observed["bytes"] == expected["bytes"], "application output mismatch")
         require(observed["calls"] == (expected["bytes"]+7)//8 and len(observed["batch_ns"]) == (expected["bytes"]+4095)//4096, "missing work")
@@ -211,13 +242,15 @@ class LegacyTrial(Trial):
         self.report["builds"]["hia_default"] = {"wall_ns": time.perf_counter_ns()-begin, "receipt": receipt}
         self.flags = ["-O3", "-flto=full", "-fuse-ld="+self.tools["linker"], "-march=native", "-fPIC", "-shared", "-Wl,-Bsymbolic-functions"]
         begin = time.perf_counter_ns()
+        self.prepare_native_ir()
         generated = self.require_core_ir()
-        row = self.command([self.tools["clang"], *self.flags, self.out/"migration/program.ll", "-o", self.libraries["hia_native_lto"]], "hia_research_native_build")
-        self.require_core_ir()
+        row = self.build_native_ir(self.libraries["hia_native_lto"], [], "hia_research_native_build")
         inventory = inspect_owned_shared_elf(self.libraries["hia_native_lto"].read_bytes(), emit_program_llvm(self.core).exports)
         self.report["builds"]["hia_native_lto"] = {"wall_ns": time.perf_counter_ns()-begin,
             "compiler_wall_ns": row["wall_ns"], "default_backend_receipt": False,
-            "generated_program": generated, "binary_inventory": inventory}
+            "generated_program": generated, "binary_inventory": inventory,
+            "bound_ir": self.report["native_target_binding"]["bound_ir"],
+            "target_profile_sha256": self.report["native_target_binding"]["profile"]["profile_sha256"]}
         self.rust_flags = ["--edition=2021", "--crate-type=cdylib", "-Copt-level=3", "-Clto=fat", "-Ccodegen-units=1", "-Cpanic=abort", "-Ctarget-cpu=native"]
         for label in ("c", "cpp", "rust"):
             self.baseline(label, pgo=False); self.baseline(label, pgo=True)
@@ -235,9 +268,85 @@ class LegacyTrial(Trial):
                 "generated Core/LLVM identity changed after capture")
         return observed
 
+    def prepare_native_ir(self):
+        """Retain raw Core/IR and a separately bound research derivative.
+
+        The shared adapter already checks the complete native frontend policy.
+        Only this trial's one known link-only option is omitted from its probe;
+        instrumentation/profile-use flags are added later to the real build.
+        """
+        generated = self.require_core_ir()
+        require(self.flags.count("-Wl,-Bsymbolic-functions") == 1,
+                "one declared legacy symbol-binding link option required")
+        capture_flags = [flag for flag in self.flags if flag != "-Wl,-Bsymbolic-functions"]
+        directory = self.out / "native-target-profile"
+        bound, profile = bind_native_target_profile(emit_program_llvm(self.core).text,
+            clang=self.tools["clang"], flags=capture_flags, directory=directory, command=self.command)
+        path = self.out / "migration/program.native.ll"
+        path.write_text(bound)
+        binding = {"schema": "hepta.hia.legacy-native-target-binding.v1",
+            "generated_program": generated, "research_flags": list(self.flags),
+            "capture_flags": capture_flags, "profile": profile, "bound_ir": identity(path),
+            "derivation_artifacts": [identity(directory / name) for name in
+                ("target_probe.c", "target_probe.ll", "capture.json", "profile.json")],
+            "default_backend_receipt": False, "native_refinement_proved": False}
+        # Internal immutable snapshot, not authority imported from a receipt.
+        self._native_binding = json.dumps(binding, sort_keys=True, separators=(",", ":")).encode()
+        self.report["native_target_binding"] = binding
+        self.require_native_ir()
+        return binding
+
+    def require_native_ir(self):
+        generated = self.require_core_ir()
+        require(hasattr(self, "_native_binding"), "native target binding was not freshly captured")
+        binding = json.loads(self._native_binding)
+        require(self.report.get("native_target_binding") == binding
+                and list(self.flags) == binding["research_flags"]
+                and generated == binding["generated_program"], "native target binding changed")
+        profile = binding["profile"]
+        require(_file_identity(self.tools["clang"]) == profile["compiler"],
+                "native compiler changed after target capture")
+        expected, functions = _bind_attributes(emit_program_llvm(self.core).text, profile)
+        require(sha256(expected.encode()).hexdigest() == profile["bound_ir_sha256"]
+                and functions == profile["bound_functions"], "bound IR derivation differs")
+        for item in (binding["bound_ir"], *binding["derivation_artifacts"]):
+            actual = sha256()
+            update_stable_regular_hash(actual, item["path"], max_bytes=item["bytes"])
+            require(actual.hexdigest() == item["sha256"], "native target artifact changed: " + item["path"])
+        require(binding["bound_ir"]["sha256"] == profile["bound_ir_sha256"], "bound IR identity differs")
+        return {"generated_program": generated, "bound_ir": binding["bound_ir"],
+                "target_profile_sha256": profile["profile_sha256"], "compiler": profile["compiler"]}
+
+    def build_native_ir(self, output, extra, stage, *, object_file=False):
+        """All research HIA compile paths consume the same checked derivative."""
+        before = self.require_native_ir()
+        require(type(extra) in {list, tuple} and all(type(flag) is str for flag in extra)
+                and type(object_file) is bool, "explicit research build flags required")
+        extra = list(extra)
+        profile_use = (len(extra) == 3 and extra[0].startswith("-fprofile-use=")
+            and len(extra[0]) > len("-fprofile-use=") and "\x00" not in extra[0]
+            and extra[1:] == ["-Werror=profile-instr-out-of-date", "-Werror=profile-instr-unprofiled"])
+        require(not extra or extra == ["-fprofile-generate"] or profile_use,
+                "only the declared profile-generation/use flags may extend native target policy")
+        flags = list(self.flags)
+        if object_file:
+            flags = [flag for flag in flags if flag not in {"-shared", "-Wl,-Bsymbolic-functions"}
+                     and not flag.startswith("-fuse-ld=")]
+        build = {"stage": stage, "output": str(output), "object_file": object_file,
+                 "flags": flags + extra + (["-c"] if object_file else []),
+                 "input_before": before}
+        self.report.setdefault("research_ir_builds", []).append(build)
+        try:
+            return self.command([self.tools["clang"], *build["flags"], before["bound_ir"]["path"],
+                                 "-o", output], stage)
+        finally:
+            build["command_index"] = len(self.report["commands"]) - 1
+            build["input_after"] = self.require_native_ir()
+
     def verify_artifacts(self):
         super().verify_artifacts()
         self.require_core_ir()
+        self.require_native_ir()
 
     def build_reference(self, label, output, extra, stage):
         if label == "rust":

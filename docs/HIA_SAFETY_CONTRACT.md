@@ -193,6 +193,27 @@ process RSS. A resource receipt is replayed against the actual Core and
 numerical result; rehashing understated values does not make them authoritative.
 The separately audited v8 consumers do not upgrade older receipt consumers.
 
+The separate `hepta.hia.finite-entry-live-heap-admission.v2` contract composes
+already legal v8 owner transfers/returns with original-parameter returned loans
+for one exact scalar invocation. It retains caller-owned payload while a callee
+borrows it and reconnects each returned loan to the canonical actual argument.
+Unknown external extents stay unknown inside the callee. CFG and call cycles,
+chains and exhausted analysis limits remain refused. Legacy v7 invocation and
+v8 local-summary profiles keep their original scopes. See
+[the finite v8 contract](HIA_FINITE_V8_HEAP.md).
+
+The round7 matrix retains all 146 prior selected regressions, adds 22 initial
+selectors and three target-policy repair selectors, for 28 capabilities and
+171 unique selectors. The additions cover
+that finite v8 composition, captured C post-test loops and the separate two-u32
+guarded native opportunity profile. Its native experiment recomputes Core and
+selected LLVM proofs before compilation, binds the actual exported function
+bytes and retains each finite child's result. Unknown proofs cannot become
+economic negatives or admitted candidates. Neither a passing economic gate nor
+the compiled code's different hash grants NDU execution/publication authority.
+The predeclared demand is synthetic, and observed timing envelopes are not
+statistical confidence intervals or evidence of application benefit.
+
 Runtime admission is a different mechanism. The adaptive host caps its admitted
 native images, in-progress preparations and unresolved native release debts.
 The owned-state adapter has a finite state layout and bounded work queues.
@@ -317,3 +338,14 @@ refinement, global instruction optimality, absolute resource safety, general
 concurrent safety, process-memory bounds and Rust performance superiority
 explicitly unproved. A passing regression run is not allowed to promote any
 of those fields to true.
+
+### Legacy IR PGO target-policy repair
+
+The initial round-seven CI exposed a missing native feature binding in legacy
+research overrides. The canonical matrix now includes the actual masked-CPU
+legacy/IR-PGO/resource build control, bound-input/compiler drift refusal, and a
+supervised SIGILL diagnostic without retry. These three selectors supplement the
+initial 168 without removing any previous selector. All four native HIA research
+compilation paths consume the separately recorded, freshly checked bound IR;
+original Core and raw LLVM identities remain distinct. Compiler, runtime and
+hardware trust boundaries still apply.
