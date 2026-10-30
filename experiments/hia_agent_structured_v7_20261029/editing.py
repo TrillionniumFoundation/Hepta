@@ -14,7 +14,7 @@ import re
 from hepta.hia_edit_batch import prepare_batch, apply_batch
 from hepta.hia_program import verify_program
 from hepta.hia_program_tools import apply_program_patch, bounded_json_wire, decode_json, function_signature
-from experiments.hia_agent_structured_v7_20261029.rust_syntax import parse_function, parsed_signature, validate_fragment
+from experiments.hia_agent_structured_v7_20261029.rust_syntax import SyntaxRejected, parse_function, parsed_signature, validate_fragment
 
 SCHEMA = "hepta.agent.structured-query.v1"
 RESPONSE_SCHEMA = "hepta.agent.structured-response.v1"
@@ -143,7 +143,15 @@ def propose_rust(files, query, response, *, editable_symbols, interface_policy="
     for node, changes in edits:
         if set(changes) != {"text"} or type(changes["text"]) is not str:
             reject("a Rust node requires one replacement text fragment")
-        validate_fragment(changes["text"], node["category"])
+        try:
+            validate_fragment(changes["text"], node["category"])
+        except SyntaxRejected as error:
+            # Only the selected public contract is added. Never suggest a
+            # replacement or echo arbitrary submitted source in diagnostics.
+            raise SyntaxRejected(str(error) + "; selected node=" + repr(node["id"])
+                                 + "; expected one complete " + node["category"]
+                                 + " fragment; original span=" + str(node["start"])
+                                 + ":" + str(node["end"])) from error
         replacements.setdefault(node["file"], []).append((node["start"], node["end"], changes["text"]))
     for name, spans in replacements.items():
         spans.sort()

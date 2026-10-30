@@ -1,0 +1,30 @@
+{
+  "schema": "hepta.agent.upstream-wire-order-review.v1",
+  "repository": "ggml-org/llama.cpp",
+  "commit": "620d2225cc436ab0b001e3200e590e3b286ef9ab",
+  "sources": [
+    {
+      "path": "common/json.cpp",
+      "url": "https://github.com/ggml-org/llama.cpp/blob/620d2225cc436ab0b001e3200e590e3b286ef9ab/common/json.cpp",
+      "observed_characters": 14613,
+      "finding": "The common JSON wrapper uses nlohmann ordered_json; input object insertion order is retained."
+    },
+    {
+      "path": "common/json-schema.cpp",
+      "url": "https://github.com/ggml-org/llama.cpp/blob/620d2225cc436ab0b001e3200e590e3b286ef9ab/common/json-schema.cpp",
+      "observed_characters": 20930,
+      "finding": "Object schema construction appends properties in the order returned by the properties object iterator."
+    },
+    {
+      "path": "common/json-schema-to-grammar.cpp",
+      "url": "https://github.com/ggml-org/llama.cpp/blob/620d2225cc436ab0b001e3200e590e3b286ef9ab/common/json-schema-to-grammar.cpp",
+      "observed_characters": 43518,
+      "finding": "Object grammar emits required properties first in their collected order, followed by optional properties."
+    }
+  ],
+  "actual_v12_source": "44e34b7a9ecd6bf1b3ad6093d21bba10d2a18304",
+  "actual_v12_grammar_retained": "tests/fixtures/hia_agent_toolstudy_v13/v12-selection-after-changes.json",
+  "inference": "Sorting the actual completion request reverses the intended node/changes order. Preserving declared schema order permits target selection before replacement.",
+  "model_quality_improvement_established_by_source_review": false,
+  "server_order_must_also_be_checked_in_each_actual_v13_response": true
+}

@@ -60,6 +60,12 @@ class ToolStudyEngine(LlamaCppEngine):
             raise ValueError("E_TOOLSTUDY_QUERY_DECODER_UNREGISTERED")
         return response_schema(language, interface)
 
+    def completion_body(self, payload):
+        # The historical profiles retain their exact sorted JSON bytes.
+        # A separately registered profile may preserve schema-property order;
+        # the b11669 grammar compiler treats that order as generation order.
+        return canonical(payload)
+
     def generate(self, messages, *, language, interface, limit=1536, wall_seconds=900, query=None):
         self.last_usage_receipt = None
         schema = self.decoder_schema(language, interface, query)
@@ -102,7 +108,7 @@ class ToolStudyEngine(LlamaCppEngine):
             if pid != self.process.pid or uid != os.geteuid():
                 raise RuntimeError("E_STREAM_OWNER_IDENTITY")
             connection.sock = sock
-            connection.request("POST", "/completion", body=canonical(payload),
+            connection.request("POST", "/completion", body=self.completion_body(payload),
                                headers={"Content-Type": "application/json"})
             response = connection.getresponse()
             if response.status != 200 or "text/event-stream" not in response.getheader("Content-Type", ""):
