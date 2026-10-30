@@ -1,0 +1,1563 @@
+{
+  "schema": "hepta.five-deliverables.callback-readout.v1",
+  "raw_report_sha256": "865f19e74f67427af3438d07b178c8f5f01a23c1cf9d2ac7ae98d78c7395c987",
+  "ok": true,
+  "compiler_sha256": "53212a3a91c572de11f5f23448111fe74a91fb72288f7f44c0d6e16c413343a5",
+  "costs": {
+    "child_max_peak_rss_kib": 198688,
+    "human_engineering_seconds": null,
+    "migration_wall_ns": 96898858629,
+    "performance_comparison_performed": true,
+    "process_peak_rss_kib": 198688,
+    "qualification_wall_ns": 120566576173
+  },
+  "source_bindings": {
+    "examples/cpp/callback_project_migration/compile_commands.json": "d4a475faf6588a00afc8b7a75aa252c135de131c0732bbae456f4c2360400627",
+    "examples/cpp/callback_project_migration/consume.cpp": "9ed8dccfb9316595ec073ebc717237adfce2a3429e790a7aacb92fc99fa3b32d",
+    "examples/cpp/callback_project_migration/entry.cpp": "676da040592bf3586352794cb409dcf5f1ffe45eb1d742c8b1eb07b64fd9737e",
+    "examples/cpp/callback_project_migration/matrix.json": "04d1b83e67018124a7a8f1edae59653cec239aba15ac128224a5e0eb18acded1",
+    "examples/cpp/callback_project_migration/metrics_harness.c": "fbab5a72517533ffdfe4e57de0b55703002567ba8e0479854dda11cc628ad5e4",
+    "examples/cpp/callback_project_migration/owners.h": "4cd370403bced71b4546bf130b4e07da6aef0682bd0a7a334571719a4e1ad4ea",
+    "examples/cpp/composed_migration/harness.c": "b15f44e458dfb33870056ca424fb58f1f31d294d205d1d8c7305886ea95212d5",
+    "hepta/cpp_callback_project.py": "d0b537331b1bc9304807e7b16d77f159dc36f646276621250186d54edc437f98",
+    "hepta/cpp_composed_migrate.py": "eb6fe0092edd60cd33ed66cf7902362d850210551d72fe0df623d0beb534c83d",
+    "hepta/cpp_composed_project.py": "b0d22ec5baeabb1576d0452e7b95fecbbc2a4695180bc2581428ad4af63c3295",
+    "hepta/cpp_owned_migrate.py": "293ebbce2f8d59ee6aa2217dd388b39faaaea51180300bd6fea860240f818b83",
+    "hepta/cpp_unique_capture.py": "c98a16565751fda30a72e21f744f5c9704fe942849920eb403c284bae45d0642",
+    "hepta/cpp_unique_project.py": "340bf7cd37888ac1fee8af29e52248cd679ffa7f5ec24de298ef1b2ccc561048",
+    "tools/evidence_checks.py": "720a9f55e73e3af3467918efabf0db8b5ff85da8ab07c3efd115d8b1423bd3d7",
+    "tools/qualify_cpp_callback_project.py": "ef813cb12ae4014b23549a691d493023ca6dcc62cb2c41faaa2adc5849ace128",
+    "tools/qualify_cpp_unique_project.py": "b086d518a846613eec7008b1a2cd7b42d6d9a72f1a03b44db9999a5dfeb075da",
+    "tools/validate_cpp_composed.py": "fb5050bff0328a822326a1ce43ee732345f7814452f9641369ff0a75e77f4675",
+    "tools/validate_cpp_owned.py": "0f19c994faa2274bee375ae029a300f3d02c3a2a46cb17344452b9ae2dbcc4f6"
+  },
+  "source_bindings_unchanged": true,
+  "migration_coverage": {
+    "borrowed_callback_definitions": 1,
+    "captured_project_free_function_definitions": 3,
+    "external_cxx_standard_library_bodies_migrated": 0,
+    "general_cpp_source_coverage_percentage": null,
+    "human_engineering_seconds": null,
+    "human_time_not_inferred_from_wall_clock": true,
+    "implemented_free_function_definitions": 3,
+    "manual_profile_implementation_required": true,
+    "original_cpp_bridge_functions_in_target": 0
+  },
+  "claims": {
+    "all_builds_in_declared_matrix_executed": true,
+    "arbitrary_callback_or_pointer_escape_supported": false,
+    "callback_body_and_failure_paths_translated": true,
+    "closed_synchronous_callback_implementation_migrated": true,
+    "cpp_class_or_mangled_abi_preserved": false,
+    "general_cpp_ownership_supported": false,
+    "original_cpp_objects_in_target": false,
+    "performance_qualified": true,
+    "performance_scope": "generated_success_error_and_cancellation_workloads_only",
+    "scalar_c_abi_preserved": true,
+    "source_equivalence_formally_proved": false
+  },
+  "negative_controls": {
+    "five_weight_missing_drop": {
+      "artifact_exists": false,
+      "diagnostic": "E_HIA_RESOURCE: return leaves live owner/local loan",
+      "rejected": true
+    },
+    "five_weight_wrong_callback_error": {
+      "artifact_sha256": "5ec5f3bc8f9d1c032e8f6c0580e5a97a4f65f62c8055e64532b51fa75bc7dcef",
+      "build": {
+        "artifact_bytes": 2040,
+        "artifact_sha256": "f501397bc157b2c06838a57c9bf743e132329bba8679146d69a4716b78dfbaaa",
+        "binary_inventory": {
+          "defined": [
+            "composed_case",
+            "translated_run"
+          ],
+          "undefined": [
+            "calloc",
+            "free",
+            "memset"
+          ]
+        },
+        "claims": {
+          "backend_refinement_proved": false,
+          "c_codegen_used": false,
+          "cross_target_execution_qualified": false,
+          "fallback_used": false,
+          "foreign_buffer_entrypoints_exposed": false,
+          "native_execution_qualified": false,
+          "rust_codegen_used": false,
+          "rust_reference_required": false,
+          "source_ast_required": false,
+          "standalone_core_reverified": true,
+          "whole_language_soundness_proved": false
+        },
+        "core_sha256": "eea565fe6fa61c2065f7619103ef10b99c8dc91c7b254a9e547b4d42ac4a1ed9",
+        "exports": [
+          "composed_case",
+          "translated_run"
+        ],
+        "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+        "flags": [
+          "--target=x86_64-unknown-linux-gnu",
+          "-x",
+          "ir",
+          "-O3",
+          "-fPIC",
+          "-c"
+        ],
+        "implementation_sha256": "2fb00238de25fe42eacd48d8e677720406b30db51ff7793bd74dc01b6112fc7d",
+        "input_sha256": "eea565fe6fa61c2065f7619103ef10b99c8dc91c7b254a9e547b4d42ac4a1ed9",
+        "kind": "object",
+        "llvm_ir_sha256": "6305798aa464c7bd1ac3a573889ae60b134f7ecaffec9ae11b7b258bdd5faf36",
+        "ok": true,
+        "output": "/tmp/hepta-five-integrated-20261030-02/callback/five_weight/wrong_callback_error.o",
+        "profile": "hepta.hia.program.llvm-linux-x86_64.v1",
+        "runtime_assumptions": [
+          "Linux LP64 target with 64-bit pointers and size_t",
+          "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+          "C malloc returns null or a fresh nonaliasing allocation of the requested size; bytes are initialized before read or remain unobserved",
+          "C free accepts a live allocation from calloc or malloc, or null",
+          "abort terminates execution; no cleanup after traps is promised",
+          "native compiler, linker, loader, libc and host hardware are trusted"
+        ],
+        "schema": "hepta.hia.program.native.v1",
+        "status": "native_compiled_not_executed",
+        "target": "x86_64-unknown-linux-gnu",
+        "toolchain": {
+          "default_target": "x86_64-pc-linux-gnu",
+          "path": "/workspace/scratch/5567a9db5cf4/toolchains/llvm20/usr/lib/llvm-20/bin/clang",
+          "sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+          "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+        }
+      },
+      "commands": [
+        {
+          "command": [
+            "gcc",
+            "-std=c11",
+            "-O2",
+            "-fno-lto",
+            "-fno-builtin-calloc",
+            "-fno-builtin-malloc",
+            "-fno-builtin-free",
+            "-Wl,--wrap=calloc",
+            "-Wl,--wrap=malloc",
+            "-Wl,--wrap=free",
+            "-I/tmp/hepta-five-integrated-20261030-02/callback/five_weight",
+            "/tmp/hepta-five-integrated-20261030-02/source/examples/cpp/composed_migration/harness.c",
+            "/tmp/hepta-five-integrated-20261030-02/callback/five_weight/wrong_callback_error.o",
+            "-o",
+            "/tmp/hepta-five-integrated-20261030-02/callback/five_weight/wrong_callback_error"
+          ],
+          "returncode": 0,
+          "status": "completed",
+          "stderr": "",
+          "stderr_bytes": 0,
+          "stderr_bytes_base64": "",
+          "stderr_bytes_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout": "",
+          "stdout_bytes": 0,
+          "stdout_bytes_base64": "",
+          "stdout_bytes_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "detected": true,
+      "execution": {
+        "command": [
+          "/tmp/hepta-five-integrated-20261030-02/callback/five_weight/wrong_callback_error"
+        ],
+        "returncode": 2,
+        "status": "completed",
+        "stderr": "",
+        "stderr_bytes": 0,
+        "stderr_bytes_base64": "",
+        "stderr_bytes_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"ok\":false,\"failure\":\"value\",\"case\":298,\"expected\":4001,\"actual\":4002}\n",
+        "stdout_bytes": 72,
+        "stdout_bytes_base64": "eyJvayI6ZmFsc2UsImZhaWx1cmUiOiJ2YWx1ZSIsImNhc2UiOjI5OCwiZXhwZWN0ZWQiOjQwMDEsImFjdHVhbCI6NDAwMn0K",
+        "stdout_bytes_sha256": "43f3e423ea8a178a496f27572d06232e41f3bd8155a1692422e1aa6b4d003a94",
+        "stdout_sha256": "43f3e423ea8a178a496f27572d06232e41f3bd8155a1692422e1aa6b4d003a94"
+      },
+      "resource_check_passed": true,
+      "scope": "deliberately_mutated_qualification_fixture",
+      "source_sha256": "3c5ca74830b08329d7fd6591aa7b23117b6110b06d92d719296328d4edc9499d"
+    },
+    "five_weight_wrong_cancellation_result": {
+      "artifact_sha256": "56a573e6e45cf61cd7d8e4c06591471f5b836d4a1272e0e316dfb840a82749c6",
+      "build": {
+        "artifact_bytes": 2040,
+        "artifact_sha256": "f893a639df10bba6d4a4695620f6310045483f89fb5fc45600c2baede16058c0",
+        "binary_inventory": {
+          "defined": [
+            "composed_case",
+            "translated_run"
+          ],
+          "undefined": [
+            "calloc",
+            "free",
+            "memset"
+          ]
+        },
+        "claims": {
+          "backend_refinement_proved": false,
+          "c_codegen_used": false,
+          "cross_target_execution_qualified": false,
+          "fallback_used": false,
+          "foreign_buffer_entrypoints_exposed": false,
+          "native_execution_qualified": false,
+          "rust_codegen_used": false,
+          "rust_reference_required": false,
+          "source_ast_required": false,
+          "standalone_core_reverified": true,
+          "whole_language_soundness_proved": false
+        },
+        "core_sha256": "2532b487e813c60ccf42687aa7b63254e412a01f381a67e40bc95cf1ef1eea5e",
+        "exports": [
+          "composed_case",
+          "translated_run"
+        ],
+        "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+        "flags": [
+          "--target=x86_64-unknown-linux-gnu",
+          "-x",
+          "ir",
+          "-O3",
+          "-fPIC",
+          "-c"
+        ],
+        "implementation_sha256": "2fb00238de25fe42eacd48d8e677720406b30db51ff7793bd74dc01b6112fc7d",
+        "input_sha256": "2532b487e813c60ccf42687aa7b63254e412a01f381a67e40bc95cf1ef1eea5e",
+        "kind": "object",
+        "llvm_ir_sha256": "ac2d0e6e695b6a36952a621da09a3f44f88bb6234ba23fb683fd4f60bb31f582",
+        "ok": true,
+        "output": "/tmp/hepta-five-integrated-20261030-02/callback/five_weight/wrong_cancellation_result.o",
+        "profile": "hepta.hia.program.llvm-linux-x86_64.v1",
+        "runtime_assumptions": [
+          "Linux LP64 target with 64-bit pointers and size_t",
+          "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+          "C malloc returns null or a fresh nonaliasing allocation of the requested size; bytes are initialized before read or remain unobserved",
+          "C free accepts a live allocation from calloc or malloc, or null",
+          "abort terminates execution; no cleanup after traps is promised",
+          "native compiler, linker, loader, libc and host hardware are trusted"
+        ],
+        "schema": "hepta.hia.program.native.v1",
+        "status": "native_compiled_not_executed",
+        "target": "x86_64-unknown-linux-gnu",
+        "toolchain": {
+          "default_target": "x86_64-pc-linux-gnu",
+          "path": "/workspace/scratch/5567a9db5cf4/toolchains/llvm20/usr/lib/llvm-20/bin/clang",
+          "sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+          "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+        }
+      },
+      "commands": [
+        {
+          "command": [
+            "gcc",
+            "-std=c11",
+            "-O2",
+            "-fno-lto",
+            "-fno-builtin-calloc",
+            "-fno-builtin-malloc",
+            "-fno-builtin-free",
+            "-Wl,--wrap=calloc",
+            "-Wl,--wrap=malloc",
+            "-Wl,--wrap=free",
+            "-I/tmp/hepta-five-integrated-20261030-02/callback/five_weight",
+            "/tmp/hepta-five-integrated-20261030-02/source/examples/cpp/composed_migration/harness.c",
+            "/tmp/hepta-five-integrated-20261030-02/callback/five_weight/wrong_cancellation_result.o",
+            "-o",
+            "/tmp/hepta-five-integrated-20261030-02/callback/five_weight/wrong_cancellation_result"
+          ],
+          "returncode": 0,
+          "status": "completed",
+          "stderr": "",
+          "stderr_bytes": 0,
+          "stderr_bytes_base64": "",
+          "stderr_bytes_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout": "",
+          "stdout_bytes": 0,
+          "stdout_bytes_base64": "",
+          "stdout_bytes_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "detected": true,
+      "execution": {
+        "command": [
+          "/tmp/hepta-five-integrated-20261030-02/callback/five_weight/wrong_cancellation_result"
+        ],
+        "returncode": 2,
+        "status": "completed",
+        "stderr": "",
+        "stderr_bytes": 0,
+        "stderr_bytes_base64": "",
+        "stderr_bytes_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"ok\":false,\"failure\":\"value\",\"case\":7,\"expected\":2002,\"actual\":2004}\n",
+        "stdout_bytes": 70,
+        "stdout_bytes_base64": "eyJvayI6ZmFsc2UsImZhaWx1cmUiOiJ2YWx1ZSIsImNhc2UiOjcsImV4cGVjdGVkIjoyMDAyLCJhY3R1YWwiOjIwMDR9Cg==",
+        "stdout_bytes_sha256": "877c4427af7b5ebd157ee395588bdb5b8e9690cc4059e9d90a7f9b4382cdb103",
+        "stdout_sha256": "877c4427af7b5ebd157ee395588bdb5b8e9690cc4059e9d90a7f9b4382cdb103"
+      },
+      "resource_check_passed": true,
+      "scope": "deliberately_mutated_qualification_fixture",
+      "source_sha256": "4f4725b2ba927ddf8c769826717199cda51060a155c552f2d7e24e0e655a71c5"
+    },
+    "five_weight_wrong_owner_cleanup_order": {
+      "artifact_sha256": "e47f15d036160584f2ee712c71199fefc47997c9b09e8a7962a813222645fa2e",
+      "build": {
+        "artifact_bytes": 2072,
+        "artifact_sha256": "7704fa95004781169677b420eec0c0be15ca12988e287060c7c24fcab70b269b",
+        "binary_inventory": {
+          "defined": [
+            "composed_case",
+            "translated_run"
+          ],
+          "undefined": [
+            "calloc",
+            "free",
+            "memset"
+          ]
+        },
+        "claims": {
+          "backend_refinement_proved": false,
+          "c_codegen_used": false,
+          "cross_target_execution_qualified": false,
+          "fallback_used": false,
+          "foreign_buffer_entrypoints_exposed": false,
+          "native_execution_qualified": false,
+          "rust_codegen_used": false,
+          "rust_reference_required": false,
+          "source_ast_required": false,
+          "standalone_core_reverified": true,
+          "whole_language_soundness_proved": false
+        },
+        "core_sha256": "9c2f6bf39676cbbe18c6a79bd7877c8b2ca8b721b8fa0597e2a4e5b0f1ce58da",
+        "exports": [
+          "composed_case",
+          "translated_run"
+        ],
+        "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+        "flags": [
+          "--target=x86_64-unknown-linux-gnu",
+          "-x",
+          "ir",
+          "-O3",
+          "-fPIC",
+          "-c"
+        ],
+        "implementation_sha256": "2fb00238de25fe42eacd48d8e677720406b30db51ff7793bd74dc01b6112fc7d",
+        "input_sha256": "9c2f6bf39676cbbe18c6a79bd7877c8b2ca8b721b8fa0597e2a4e5b0f1ce58da",
+        "kind": "object",
+        "llvm_ir_sha256": "3b3a21b1c1b1908ff81957810966352bcb38ac873cd847df495e04cb413429fb",
+        "ok": true,
+        "output": "/tmp/hepta-five-integrated-20261030-02/callback/five_weight/wrong_owner_cleanup_order.o",
+        "profile": "hepta.hia.program.llvm-linux-x86_64.v1",
+        "runtime_assumptions": [
+          "Linux LP64 target with 64-bit pointers and size_t",
+          "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+          "C malloc returns null or a fresh nonaliasing allocation of the requested size; bytes are initialized before read or remain unobserved",
+          "C free accepts a live allocation from calloc or malloc, or null",
+          "abort terminates execution; no cleanup after traps is promised",
+          "native compiler, linker, loader, libc and host hardware are trusted"
+        ],
+        "schema": "hepta.hia.program.native.v1",
+        "status": "native_compiled_not_executed",
+        "target": "x86_64-unknown-linux-gnu",
+        "toolchain": {
+          "default_target": "x86_64-pc-linux-gnu",
+          "path": "/workspace/scratch/5567a9db5cf4/toolchains/llvm20/usr/lib/llvm-20/bin/clang",
+          "sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+          "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+        }
+      },
+      "commands": [
+        {
+          "command": [
+            "gcc",
+            "-std=c11",
+            "-O2",
+            "-fno-lto",
+            "-fno-builtin-calloc",
+            "-fno-builtin-malloc",
+            "-fno-builtin-free",
+            "-Wl,--wrap=calloc",
+            "-Wl,--wrap=malloc",
+            "-Wl,--wrap=free",
+            "-I/tmp/hepta-five-integrated-20261030-02/callback/five_weight",
+            "/tmp/hepta-five-integrated-20261030-02/source/examples/cpp/composed_migration/harness.c",
+            "/tmp/hepta-five-integrated-20261030-02/callback/five_weight/wrong_owner_cleanup_order.o",
+            "-o",
+            "/tmp/hepta-five-integrated-20261030-02/callback/five_weight/wrong_owner_cleanup_order"
+          ],
+          "returncode": 0,
+          "status": "completed",
+          "stderr": "",
+          "stderr_bytes": 0,
+          "stderr_bytes_base64": "",
+          "stderr_bytes_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout": "",
+          "stdout_bytes": 0,
+          "stdout_bytes_base64": "",
+          "stdout_bytes_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "detected": true,
+      "execution": {
+        "command": [
+          "/tmp/hepta-five-integrated-20261030-02/callback/five_weight/wrong_owner_cleanup_order"
+        ],
+        "returncode": 3,
+        "status": "completed",
+        "stderr": "",
+        "stderr_bytes": 0,
+        "stderr_bytes_base64": "",
+        "stderr_bytes_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"ok\":false,\"failure\":\"lifecycle\",\"case\":0,\"allocated\":2,\"freed\":2,\"live\":0,\"refusals\":0,\"trace\":\"93c206462e7ec205\",\"expected_trace\":\"77d0eeadbf3251a5\"}\n",
+        "stdout_bytes": 153,
+        "stdout_bytes_base64": "eyJvayI6ZmFsc2UsImZhaWx1cmUiOiJsaWZlY3ljbGUiLCJjYXNlIjowLCJhbGxvY2F0ZWQiOjIsImZyZWVkIjoyLCJsaXZlIjowLCJyZWZ1c2FscyI6MCwidHJhY2UiOiI5M2MyMDY0NjJlN2VjMjA1IiwiZXhwZWN0ZWRfdHJhY2UiOiI3N2QwZWVhZGJmMzI1MWE1In0K",
+        "stdout_bytes_sha256": "81c05f8d79fbee51501531571cd6627e584b13bd4332807ae2b51b67710e0d50",
+        "stdout_sha256": "81c05f8d79fbee51501531571cd6627e584b13bd4332807ae2b51b67710e0d50"
+      },
+      "resource_check_passed": true,
+      "scope": "deliberately_mutated_qualification_fixture",
+      "source_sha256": "8cf53ad57cdcc169434852b7aa39ef1431e0709f55c0200d07feb967b2bfad2a"
+    },
+    "three_weight_missing_drop": {
+      "artifact_exists": false,
+      "diagnostic": "E_HIA_RESOURCE: return leaves live owner/local loan",
+      "rejected": true
+    },
+    "three_weight_wrong_callback_error": {
+      "artifact_sha256": "5dc38d39ae77c3b66437e1039dd22ee53854e69f7715a4b1f6807dc4941bed49",
+      "build": {
+        "artifact_bytes": 2040,
+        "artifact_sha256": "a53a270b9f3441a888ed58b0ddd76b11886d601c6ab1b0eb27001449a0371e73",
+        "binary_inventory": {
+          "defined": [
+            "composed_case",
+            "translated_run"
+          ],
+          "undefined": [
+            "calloc",
+            "free",
+            "memset"
+          ]
+        },
+        "claims": {
+          "backend_refinement_proved": false,
+          "c_codegen_used": false,
+          "cross_target_execution_qualified": false,
+          "fallback_used": false,
+          "foreign_buffer_entrypoints_exposed": false,
+          "native_execution_qualified": false,
+          "rust_codegen_used": false,
+          "rust_reference_required": false,
+          "source_ast_required": false,
+          "standalone_core_reverified": true,
+          "whole_language_soundness_proved": false
+        },
+        "core_sha256": "d10e41cceb0fce7443283280fe2ff318c0b6e34f9fb307c8a4db39671db8940d",
+        "exports": [
+          "composed_case",
+          "translated_run"
+        ],
+        "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+        "flags": [
+          "--target=x86_64-unknown-linux-gnu",
+          "-x",
+          "ir",
+          "-O3",
+          "-fPIC",
+          "-c"
+        ],
+        "implementation_sha256": "2fb00238de25fe42eacd48d8e677720406b30db51ff7793bd74dc01b6112fc7d",
+        "input_sha256": "d10e41cceb0fce7443283280fe2ff318c0b6e34f9fb307c8a4db39671db8940d",
+        "kind": "object",
+        "llvm_ir_sha256": "bd2a96f5b2901c5d9f57a5eeb0920e2e967152ef8e018d753149aa1cdd844472",
+        "ok": true,
+        "output": "/tmp/hepta-five-integrated-20261030-02/callback/three_weight/wrong_callback_error.o",
+        "profile": "hepta.hia.program.llvm-linux-x86_64.v1",
+        "runtime_assumptions": [
+          "Linux LP64 target with 64-bit pointers and size_t",
+          "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+          "C malloc returns null or a fresh nonaliasing allocation of the requested size; bytes are initialized before read or remain unobserved",
+          "C free accepts a live allocation from calloc or malloc, or null",
+          "abort terminates execution; no cleanup after traps is promised",
+          "native compiler, linker, loader, libc and host hardware are trusted"
+        ],
+        "schema": "hepta.hia.program.native.v1",
+        "status": "native_compiled_not_executed",
+        "target": "x86_64-unknown-linux-gnu",
+        "toolchain": {
+          "default_target": "x86_64-pc-linux-gnu",
+          "path": "/workspace/scratch/5567a9db5cf4/toolchains/llvm20/usr/lib/llvm-20/bin/clang",
+          "sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+          "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+        }
+      },
+      "commands": [
+        {
+          "command": [
+            "gcc",
+            "-std=c11",
+            "-O2",
+            "-fno-lto",
+            "-fno-builtin-calloc",
+            "-fno-builtin-malloc",
+            "-fno-builtin-free",
+            "-Wl,--wrap=calloc",
+            "-Wl,--wrap=malloc",
+            "-Wl,--wrap=free",
+            "-I/tmp/hepta-five-integrated-20261030-02/callback/three_weight",
+            "/tmp/hepta-five-integrated-20261030-02/source/examples/cpp/composed_migration/harness.c",
+            "/tmp/hepta-five-integrated-20261030-02/callback/three_weight/wrong_callback_error.o",
+            "-o",
+            "/tmp/hepta-five-integrated-20261030-02/callback/three_weight/wrong_callback_error"
+          ],
+          "returncode": 0,
+          "status": "completed",
+          "stderr": "",
+          "stderr_bytes": 0,
+          "stderr_bytes_base64": "",
+          "stderr_bytes_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout": "",
+          "stdout_bytes": 0,
+          "stdout_bytes_base64": "",
+          "stdout_bytes_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "detected": true,
+      "execution": {
+        "command": [
+          "/tmp/hepta-five-integrated-20261030-02/callback/three_weight/wrong_callback_error"
+        ],
+        "returncode": 2,
+        "status": "completed",
+        "stderr": "",
+        "stderr_bytes": 0,
+        "stderr_bytes_base64": "",
+        "stderr_bytes_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"ok\":false,\"failure\":\"value\",\"case\":298,\"expected\":4001,\"actual\":4002}\n",
+        "stdout_bytes": 72,
+        "stdout_bytes_base64": "eyJvayI6ZmFsc2UsImZhaWx1cmUiOiJ2YWx1ZSIsImNhc2UiOjI5OCwiZXhwZWN0ZWQiOjQwMDEsImFjdHVhbCI6NDAwMn0K",
+        "stdout_bytes_sha256": "43f3e423ea8a178a496f27572d06232e41f3bd8155a1692422e1aa6b4d003a94",
+        "stdout_sha256": "43f3e423ea8a178a496f27572d06232e41f3bd8155a1692422e1aa6b4d003a94"
+      },
+      "resource_check_passed": true,
+      "scope": "deliberately_mutated_qualification_fixture",
+      "source_sha256": "6886692917d92fba4023963de9be8eaabc285d4a20e0443b3e26a397fa27f94c"
+    },
+    "three_weight_wrong_cancellation_result": {
+      "artifact_sha256": "3e4e850f770ca9422e002ac2039ea06827fed6aad5c2b1a98fe11130c141b7b3",
+      "build": {
+        "artifact_bytes": 2040,
+        "artifact_sha256": "35a60e5fba6e026897d42922d72d4dfb055a50cb4260f88f9db83d87af682e1d",
+        "binary_inventory": {
+          "defined": [
+            "composed_case",
+            "translated_run"
+          ],
+          "undefined": [
+            "calloc",
+            "free",
+            "memset"
+          ]
+        },
+        "claims": {
+          "backend_refinement_proved": false,
+          "c_codegen_used": false,
+          "cross_target_execution_qualified": false,
+          "fallback_used": false,
+          "foreign_buffer_entrypoints_exposed": false,
+          "native_execution_qualified": false,
+          "rust_codegen_used": false,
+          "rust_reference_required": false,
+          "source_ast_required": false,
+          "standalone_core_reverified": true,
+          "whole_language_soundness_proved": false
+        },
+        "core_sha256": "acc150387f9834d1b4790ea44137d0eee9d7d7d0b360b8facd31f148a19e7784",
+        "exports": [
+          "composed_case",
+          "translated_run"
+        ],
+        "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+        "flags": [
+          "--target=x86_64-unknown-linux-gnu",
+          "-x",
+          "ir",
+          "-O3",
+          "-fPIC",
+          "-c"
+        ],
+        "implementation_sha256": "2fb00238de25fe42eacd48d8e677720406b30db51ff7793bd74dc01b6112fc7d",
+        "input_sha256": "acc150387f9834d1b4790ea44137d0eee9d7d7d0b360b8facd31f148a19e7784",
+        "kind": "object",
+        "llvm_ir_sha256": "867136ffe9100acd806499bcdcf6a4411f737ea5829204849ec0098ba7ab3465",
+        "ok": true,
+        "output": "/tmp/hepta-five-integrated-20261030-02/callback/three_weight/wrong_cancellation_result.o",
+        "profile": "hepta.hia.program.llvm-linux-x86_64.v1",
+        "runtime_assumptions": [
+          "Linux LP64 target with 64-bit pointers and size_t",
+          "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+          "C malloc returns null or a fresh nonaliasing allocation of the requested size; bytes are initialized before read or remain unobserved",
+          "C free accepts a live allocation from calloc or malloc, or null",
+          "abort terminates execution; no cleanup after traps is promised",
+          "native compiler, linker, loader, libc and host hardware are trusted"
+        ],
+        "schema": "hepta.hia.program.native.v1",
+        "status": "native_compiled_not_executed",
+        "target": "x86_64-unknown-linux-gnu",
+        "toolchain": {
+          "default_target": "x86_64-pc-linux-gnu",
+          "path": "/workspace/scratch/5567a9db5cf4/toolchains/llvm20/usr/lib/llvm-20/bin/clang",
+          "sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+          "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+        }
+      },
+      "commands": [
+        {
+          "command": [
+            "gcc",
+            "-std=c11",
+            "-O2",
+            "-fno-lto",
+            "-fno-builtin-calloc",
+            "-fno-builtin-malloc",
+            "-fno-builtin-free",
+            "-Wl,--wrap=calloc",
+            "-Wl,--wrap=malloc",
+            "-Wl,--wrap=free",
+            "-I/tmp/hepta-five-integrated-20261030-02/callback/three_weight",
+            "/tmp/hepta-five-integrated-20261030-02/source/examples/cpp/composed_migration/harness.c",
+            "/tmp/hepta-five-integrated-20261030-02/callback/three_weight/wrong_cancellation_result.o",
+            "-o",
+            "/tmp/hepta-five-integrated-20261030-02/callback/three_weight/wrong_cancellation_result"
+          ],
+          "returncode": 0,
+          "status": "completed",
+          "stderr": "",
+          "stderr_bytes": 0,
+          "stderr_bytes_base64": "",
+          "stderr_bytes_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout": "",
+          "stdout_bytes": 0,
+          "stdout_bytes_base64": "",
+          "stdout_bytes_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "detected": true,
+      "execution": {
+        "command": [
+          "/tmp/hepta-five-integrated-20261030-02/callback/three_weight/wrong_cancellation_result"
+        ],
+        "returncode": 2,
+        "status": "completed",
+        "stderr": "",
+        "stderr_bytes": 0,
+        "stderr_bytes_base64": "",
+        "stderr_bytes_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"ok\":false,\"failure\":\"value\",\"case\":7,\"expected\":2002,\"actual\":2004}\n",
+        "stdout_bytes": 70,
+        "stdout_bytes_base64": "eyJvayI6ZmFsc2UsImZhaWx1cmUiOiJ2YWx1ZSIsImNhc2UiOjcsImV4cGVjdGVkIjoyMDAyLCJhY3R1YWwiOjIwMDR9Cg==",
+        "stdout_bytes_sha256": "877c4427af7b5ebd157ee395588bdb5b8e9690cc4059e9d90a7f9b4382cdb103",
+        "stdout_sha256": "877c4427af7b5ebd157ee395588bdb5b8e9690cc4059e9d90a7f9b4382cdb103"
+      },
+      "resource_check_passed": true,
+      "scope": "deliberately_mutated_qualification_fixture",
+      "source_sha256": "aa652af746bbe65f2d137e8bd261276f755804cd18a69cf00c27ae1dd9b1c4d4"
+    },
+    "three_weight_wrong_owner_cleanup_order": {
+      "artifact_sha256": "64259752a98c238f810e01367a4c1f8fc4475752208f37e6bbf79ece94497ebe",
+      "build": {
+        "artifact_bytes": 2072,
+        "artifact_sha256": "36df187d69c64f9ef5cf0d4c5c11ad582a29036ee502c733e33bb0c97a276b48",
+        "binary_inventory": {
+          "defined": [
+            "composed_case",
+            "translated_run"
+          ],
+          "undefined": [
+            "calloc",
+            "free",
+            "memset"
+          ]
+        },
+        "claims": {
+          "backend_refinement_proved": false,
+          "c_codegen_used": false,
+          "cross_target_execution_qualified": false,
+          "fallback_used": false,
+          "foreign_buffer_entrypoints_exposed": false,
+          "native_execution_qualified": false,
+          "rust_codegen_used": false,
+          "rust_reference_required": false,
+          "source_ast_required": false,
+          "standalone_core_reverified": true,
+          "whole_language_soundness_proved": false
+        },
+        "core_sha256": "920b3a41e8cf4ec186e0777d590974093d1c858690fc9c6975fb36b168cb9c53",
+        "exports": [
+          "composed_case",
+          "translated_run"
+        ],
+        "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+        "flags": [
+          "--target=x86_64-unknown-linux-gnu",
+          "-x",
+          "ir",
+          "-O3",
+          "-fPIC",
+          "-c"
+        ],
+        "implementation_sha256": "2fb00238de25fe42eacd48d8e677720406b30db51ff7793bd74dc01b6112fc7d",
+        "input_sha256": "920b3a41e8cf4ec186e0777d590974093d1c858690fc9c6975fb36b168cb9c53",
+        "kind": "object",
+        "llvm_ir_sha256": "53c86c9841739c2ee486dc5a2553ddcbbc6c1d99e5efad177f5dce2abb7cdfcc",
+        "ok": true,
+        "output": "/tmp/hepta-five-integrated-20261030-02/callback/three_weight/wrong_owner_cleanup_order.o",
+        "profile": "hepta.hia.program.llvm-linux-x86_64.v1",
+        "runtime_assumptions": [
+          "Linux LP64 target with 64-bit pointers and size_t",
+          "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+          "C malloc returns null or a fresh nonaliasing allocation of the requested size; bytes are initialized before read or remain unobserved",
+          "C free accepts a live allocation from calloc or malloc, or null",
+          "abort terminates execution; no cleanup after traps is promised",
+          "native compiler, linker, loader, libc and host hardware are trusted"
+        ],
+        "schema": "hepta.hia.program.native.v1",
+        "status": "native_compiled_not_executed",
+        "target": "x86_64-unknown-linux-gnu",
+        "toolchain": {
+          "default_target": "x86_64-pc-linux-gnu",
+          "path": "/workspace/scratch/5567a9db5cf4/toolchains/llvm20/usr/lib/llvm-20/bin/clang",
+          "sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+          "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+        }
+      },
+      "commands": [
+        {
+          "command": [
+            "gcc",
+            "-std=c11",
+            "-O2",
+            "-fno-lto",
+            "-fno-builtin-calloc",
+            "-fno-builtin-malloc",
+            "-fno-builtin-free",
+            "-Wl,--wrap=calloc",
+            "-Wl,--wrap=malloc",
+            "-Wl,--wrap=free",
+            "-I/tmp/hepta-five-integrated-20261030-02/callback/three_weight",
+            "/tmp/hepta-five-integrated-20261030-02/source/examples/cpp/composed_migration/harness.c",
+            "/tmp/hepta-five-integrated-20261030-02/callback/three_weight/wrong_owner_cleanup_order.o",
+            "-o",
+            "/tmp/hepta-five-integrated-20261030-02/callback/three_weight/wrong_owner_cleanup_order"
+          ],
+          "returncode": 0,
+          "status": "completed",
+          "stderr": "",
+          "stderr_bytes": 0,
+          "stderr_bytes_base64": "",
+          "stderr_bytes_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout": "",
+          "stdout_bytes": 0,
+          "stdout_bytes_base64": "",
+          "stdout_bytes_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "detected": true,
+      "execution": {
+        "command": [
+          "/tmp/hepta-five-integrated-20261030-02/callback/three_weight/wrong_owner_cleanup_order"
+        ],
+        "returncode": 3,
+        "status": "completed",
+        "stderr": "",
+        "stderr_bytes": 0,
+        "stderr_bytes_base64": "",
+        "stderr_bytes_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"ok\":false,\"failure\":\"lifecycle\",\"case\":0,\"allocated\":2,\"freed\":2,\"live\":0,\"refusals\":0,\"trace\":\"93c206462e7ec205\",\"expected_trace\":\"77d0eeadbf3251a5\"}\n",
+        "stdout_bytes": 153,
+        "stdout_bytes_base64": "eyJvayI6ZmFsc2UsImZhaWx1cmUiOiJsaWZlY3ljbGUiLCJjYXNlIjowLCJhbGxvY2F0ZWQiOjIsImZyZWVkIjoyLCJsaXZlIjowLCJyZWZ1c2FscyI6MCwidHJhY2UiOiI5M2MyMDY0NjJlN2VjMjA1IiwiZXhwZWN0ZWRfdHJhY2UiOiI3N2QwZWVhZGJmMzI1MWE1In0K",
+        "stdout_bytes_sha256": "81c05f8d79fbee51501531571cd6627e584b13bd4332807ae2b51b67710e0d50",
+        "stdout_sha256": "81c05f8d79fbee51501531571cd6627e584b13bd4332807ae2b51b67710e0d50"
+      },
+      "resource_check_passed": true,
+      "scope": "deliberately_mutated_qualification_fixture",
+      "source_sha256": "7297c61b513fe15129f122e94822b399c535ed6fd3c70b0e13cd66432c5dd6ae"
+    }
+  },
+  "variants": [
+    {
+      "name": "three_weight",
+      "case_count": 1185,
+      "families": {
+        "allocation_refusal_1": 325,
+        "allocation_refusal_2": 254,
+        "callback_error_then_owner_cleanup": 11,
+        "callback_read_then_owner_cleanup": 14,
+        "cancel_after_owner_transfer": 31,
+        "cancel_before_owner_transfer": 31,
+        "composite_constructor_rejection": 130,
+        "leaf_constructor_rejection_1": 222,
+        "leaf_constructor_rejection_2": 127,
+        "range_error_before_callback": 40
+      },
+      "expected": {
+        "allocations": 932,
+        "cases": 1185,
+        "frees": 932,
+        "live": 0,
+        "observations_fnv64": "5e22c1a7cf33ac6b",
+        "ok": true,
+        "refusals": 579
+      },
+      "translation_statistics": {
+        "borrowed_callback_calls": 1,
+        "closed_callback_bindings": 1,
+        "cross_unit_owner_transfers": 1,
+        "if_statements": 7,
+        "owner_constructions": 1,
+        "owner_moves": 2,
+        "scalar_expressions": 124,
+        "scalar_locals": 1,
+        "source_returns": 10
+      },
+      "original_cpp_link_inputs": []
+    },
+    {
+      "name": "five_weight",
+      "case_count": 1185,
+      "families": {
+        "allocation_refusal_1": 325,
+        "allocation_refusal_2": 254,
+        "callback_error_then_owner_cleanup": 11,
+        "callback_read_then_owner_cleanup": 14,
+        "cancel_after_owner_transfer": 31,
+        "cancel_before_owner_transfer": 31,
+        "composite_constructor_rejection": 130,
+        "leaf_constructor_rejection_1": 222,
+        "leaf_constructor_rejection_2": 127,
+        "range_error_before_callback": 40
+      },
+      "expected": {
+        "allocations": 932,
+        "cases": 1185,
+        "frees": 932,
+        "live": 0,
+        "observations_fnv64": "20ccd0a2cefe321c",
+        "ok": true,
+        "refusals": 579
+      },
+      "translation_statistics": {
+        "borrowed_callback_calls": 1,
+        "closed_callback_bindings": 1,
+        "cross_unit_owner_transfers": 1,
+        "if_statements": 7,
+        "owner_constructions": 1,
+        "owner_moves": 2,
+        "scalar_expressions": 124,
+        "scalar_locals": 1,
+        "source_returns": 10
+      },
+      "original_cpp_link_inputs": []
+    }
+  ],
+  "performance": [
+    {
+      "name": "three_weight",
+      "binary_bytes": {
+        "cpp": 17456,
+        "cpp_lto": 10632,
+        "hia": 16472
+      },
+      "binary_sha256": {
+        "cpp": "2ffa957997159c273d157d4af2ea49035b6ee9a062ad68c4d15cbad48d2e6ed0",
+        "cpp_lto": "ca5eea1fd1031f8ceb3be646905ced75b1dd29c664e386ca0bd4885432d55342",
+        "hia": "2678a271dbae1175aa26c2943cf79e18ec16ed8553a695b0e35cbebf313b2a53"
+      },
+      "workloads": [
+        {
+          "amortization": {
+            "baseline": "already_built_cpp_lto",
+            "charge": "entire_measured_two_variant_migration_plus_this_hia_build_and_link",
+            "estimated_calls_to_amortize": 4854649106,
+            "estimated_net_savings_at_measured_call_count_ns": -97160226447.0,
+            "human_contract_work_included": false,
+            "measured_candidate_calls": 1000000,
+            "runtime_savings_per_call_ns": 20.017974999999993,
+            "unknown_future_reuse_guaranteed": false,
+            "upfront_wall_ns": 97180244422
+          },
+          "cpp_lto_over_hia_time_ratio": 1.2597624840373303,
+          "cpp_over_hia_time_ratio": 4.620839989717452,
+          "iterations": 200000,
+          "median_elapsed_ns": {
+            "cpp": 71218798,
+            "cpp_lto": 19416117,
+            "hia": 15412522
+          },
+          "median_ns_per_call": {
+            "cpp": 356.09399,
+            "cpp_lto": 97.080585,
+            "hia": 77.06261
+          },
+          "name": "success",
+          "repeats": 5,
+          "samples": {
+            "cpp": [
+              {
+                "digest": "5152b43ba4b65a38",
+                "elapsed_ns": 68534396,
+                "family": 0,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "5152b43ba4b65a38",
+                "elapsed_ns": 76329198,
+                "family": 0,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "5152b43ba4b65a38",
+                "elapsed_ns": 71218798,
+                "family": 0,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "5152b43ba4b65a38",
+                "elapsed_ns": 76775188,
+                "family": 0,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "5152b43ba4b65a38",
+                "elapsed_ns": 61216525,
+                "family": 0,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              }
+            ],
+            "cpp_lto": [
+              {
+                "digest": "5152b43ba4b65a38",
+                "elapsed_ns": 19416117,
+                "family": 0,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "5152b43ba4b65a38",
+                "elapsed_ns": 19948382,
+                "family": 0,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "5152b43ba4b65a38",
+                "elapsed_ns": 18888173,
+                "family": 0,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "5152b43ba4b65a38",
+                "elapsed_ns": 15959505,
+                "family": 0,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "5152b43ba4b65a38",
+                "elapsed_ns": 20540956,
+                "family": 0,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              }
+            ],
+            "hia": [
+              {
+                "digest": "5152b43ba4b65a38",
+                "elapsed_ns": 19934061,
+                "family": 0,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "5152b43ba4b65a38",
+                "elapsed_ns": 14927033,
+                "family": 0,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "5152b43ba4b65a38",
+                "elapsed_ns": 19626056,
+                "family": 0,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "5152b43ba4b65a38",
+                "elapsed_ns": 15412522,
+                "family": 0,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "5152b43ba4b65a38",
+                "elapsed_ns": 11029949,
+                "family": 0,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              }
+            ]
+          }
+        },
+        {
+          "amortization": {
+            "baseline": "already_built_cpp_lto",
+            "charge": "entire_measured_two_variant_migration_plus_this_hia_build_and_link",
+            "estimated_calls_to_amortize": 1587650217,
+            "estimated_net_savings_at_measured_call_count_ns": -97119034312.0,
+            "human_contract_work_included": false,
+            "measured_candidate_calls": 1000000,
+            "runtime_savings_per_call_ns": 61.21011,
+            "unknown_future_reuse_guaranteed": false,
+            "upfront_wall_ns": 97180244422
+          },
+          "cpp_lto_over_hia_time_ratio": 1.598279643671892,
+          "cpp_over_hia_time_ratio": 4.304827964367189,
+          "iterations": 200000,
+          "median_elapsed_ns": {
+            "cpp": 88085562,
+            "cpp_lto": 32704062,
+            "hia": 20462040
+          },
+          "median_ns_per_call": {
+            "cpp": 440.42781,
+            "cpp_lto": 163.52031,
+            "hia": 102.3102
+          },
+          "name": "errors_and_cancellation",
+          "repeats": 5,
+          "samples": {
+            "cpp": [
+              {
+                "digest": "6ffd8e352f89c947",
+                "elapsed_ns": 70610475,
+                "family": 1,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "6ffd8e352f89c947",
+                "elapsed_ns": 61624312,
+                "family": 1,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "6ffd8e352f89c947",
+                "elapsed_ns": 99815945,
+                "family": 1,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "6ffd8e352f89c947",
+                "elapsed_ns": 88085562,
+                "family": 1,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "6ffd8e352f89c947",
+                "elapsed_ns": 107407389,
+                "family": 1,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              }
+            ],
+            "cpp_lto": [
+              {
+                "digest": "6ffd8e352f89c947",
+                "elapsed_ns": 32704062,
+                "family": 1,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "6ffd8e352f89c947",
+                "elapsed_ns": 35907952,
+                "family": 1,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "6ffd8e352f89c947",
+                "elapsed_ns": 40733283,
+                "family": 1,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "6ffd8e352f89c947",
+                "elapsed_ns": 24233396,
+                "family": 1,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "6ffd8e352f89c947",
+                "elapsed_ns": 24930370,
+                "family": 1,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              }
+            ],
+            "hia": [
+              {
+                "digest": "6ffd8e352f89c947",
+                "elapsed_ns": 19747115,
+                "family": 1,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "6ffd8e352f89c947",
+                "elapsed_ns": 15304579,
+                "family": 1,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "6ffd8e352f89c947",
+                "elapsed_ns": 22755645,
+                "family": 1,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "6ffd8e352f89c947",
+                "elapsed_ns": 20462040,
+                "family": 1,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "6ffd8e352f89c947",
+                "elapsed_ns": 20546775,
+                "family": 1,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              }
+            ]
+          }
+        }
+      ],
+      "cpp_benchmark_build_wall_ns": 1712338303,
+      "cpp_lto_benchmark_build_wall_ns": 2138540419,
+      "hia_benchmark_build_wall_ns": 252658057,
+      "hia_benchmark_link_wall_ns": 28727736
+    },
+    {
+      "name": "five_weight",
+      "binary_bytes": {
+        "cpp": 17456,
+        "cpp_lto": 10632,
+        "hia": 16472
+      },
+      "binary_sha256": {
+        "cpp": "20577f115b281379cff2cf0c845ac43976365a1b09990fce98dec05c42b2a490",
+        "cpp_lto": "b69a9c71d8468c1afea77fbb86a92c128af1512a6a483ba2bc4f2a6795f55744",
+        "hia": "2c779debc972cfeaec369c018dc974ff1e8d655b606273c9733090a6e5e5b4e5"
+      },
+      "workloads": [
+        {
+          "amortization": {
+            "baseline": "already_built_cpp_lto",
+            "charge": "entire_measured_two_variant_migration_plus_this_hia_build_and_link",
+            "estimated_calls_to_amortize": 3421542431,
+            "estimated_net_savings_at_measured_call_count_ns": -97731977759.0,
+            "human_contract_work_included": false,
+            "measured_candidate_calls": 1000000,
+            "runtime_savings_per_call_ns": 28.572069999999997,
+            "unknown_future_reuse_guaranteed": false,
+            "upfront_wall_ns": 97760549829
+          },
+          "cpp_lto_over_hia_time_ratio": 1.4870483005427715,
+          "cpp_over_hia_time_ratio": 4.828726966389624,
+          "iterations": 200000,
+          "median_elapsed_ns": {
+            "cpp": 56654227,
+            "cpp_lto": 17447160,
+            "hia": 11732746
+          },
+          "median_ns_per_call": {
+            "cpp": 283.271135,
+            "cpp_lto": 87.2358,
+            "hia": 58.66373
+          },
+          "name": "success",
+          "repeats": 5,
+          "samples": {
+            "cpp": [
+              {
+                "digest": "3550a16f471473ea",
+                "elapsed_ns": 47190458,
+                "family": 0,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "3550a16f471473ea",
+                "elapsed_ns": 74681594,
+                "family": 0,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "3550a16f471473ea",
+                "elapsed_ns": 56654227,
+                "family": 0,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "3550a16f471473ea",
+                "elapsed_ns": 49454986,
+                "family": 0,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "3550a16f471473ea",
+                "elapsed_ns": 57496324,
+                "family": 0,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              }
+            ],
+            "cpp_lto": [
+              {
+                "digest": "3550a16f471473ea",
+                "elapsed_ns": 16883729,
+                "family": 0,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "3550a16f471473ea",
+                "elapsed_ns": 14653537,
+                "family": 0,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "3550a16f471473ea",
+                "elapsed_ns": 17447160,
+                "family": 0,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "3550a16f471473ea",
+                "elapsed_ns": 18205956,
+                "family": 0,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "3550a16f471473ea",
+                "elapsed_ns": 24849486,
+                "family": 0,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              }
+            ],
+            "hia": [
+              {
+                "digest": "3550a16f471473ea",
+                "elapsed_ns": 11048877,
+                "family": 0,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "3550a16f471473ea",
+                "elapsed_ns": 13093215,
+                "family": 0,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "3550a16f471473ea",
+                "elapsed_ns": 13569938,
+                "family": 0,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "3550a16f471473ea",
+                "elapsed_ns": 11248822,
+                "family": 0,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "3550a16f471473ea",
+                "elapsed_ns": 11732746,
+                "family": 0,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              }
+            ]
+          }
+        },
+        {
+          "amortization": {
+            "baseline": "already_built_cpp_lto",
+            "charge": "entire_measured_two_variant_migration_plus_this_hia_build_and_link",
+            "estimated_calls_to_amortize": 1539035729,
+            "estimated_net_savings_at_measured_call_count_ns": -97697029179.0,
+            "human_contract_work_included": false,
+            "measured_candidate_calls": 1000000,
+            "runtime_savings_per_call_ns": 63.52065,
+            "unknown_future_reuse_guaranteed": false,
+            "upfront_wall_ns": 97760549829
+          },
+          "cpp_lto_over_hia_time_ratio": 1.664193915033821,
+          "cpp_over_hia_time_ratio": 4.292514092540756,
+          "iterations": 200000,
+          "median_elapsed_ns": {
+            "cpp": 82103518,
+            "cpp_lto": 31831270,
+            "hia": 19127140
+          },
+          "median_ns_per_call": {
+            "cpp": 410.51759,
+            "cpp_lto": 159.15635,
+            "hia": 95.6357
+          },
+          "name": "errors_and_cancellation",
+          "repeats": 5,
+          "samples": {
+            "cpp": [
+              {
+                "digest": "2694822da4b033ef",
+                "elapsed_ns": 69689396,
+                "family": 1,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "2694822da4b033ef",
+                "elapsed_ns": 94703834,
+                "family": 1,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "2694822da4b033ef",
+                "elapsed_ns": 82103518,
+                "family": 1,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "2694822da4b033ef",
+                "elapsed_ns": 86732440,
+                "family": 1,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "2694822da4b033ef",
+                "elapsed_ns": 69461679,
+                "family": 1,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              }
+            ],
+            "cpp_lto": [
+              {
+                "digest": "2694822da4b033ef",
+                "elapsed_ns": 32940527,
+                "family": 1,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "2694822da4b033ef",
+                "elapsed_ns": 32873228,
+                "family": 1,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "2694822da4b033ef",
+                "elapsed_ns": 30116789,
+                "family": 1,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "2694822da4b033ef",
+                "elapsed_ns": 31831270,
+                "family": 1,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "2694822da4b033ef",
+                "elapsed_ns": 25762964,
+                "family": 1,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              }
+            ],
+            "hia": [
+              {
+                "digest": "2694822da4b033ef",
+                "elapsed_ns": 14751232,
+                "family": 1,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "2694822da4b033ef",
+                "elapsed_ns": 19127140,
+                "family": 1,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "2694822da4b033ef",
+                "elapsed_ns": 19602181,
+                "family": 1,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "2694822da4b033ef",
+                "elapsed_ns": 11560853,
+                "family": 1,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              },
+              {
+                "digest": "2694822da4b033ef",
+                "elapsed_ns": 23086834,
+                "family": 1,
+                "iterations": 200000,
+                "peak_rss_kib": null
+              }
+            ]
+          }
+        }
+      ],
+      "cpp_benchmark_build_wall_ns": 2001510470,
+      "cpp_lto_benchmark_build_wall_ns": 2099788955,
+      "hia_benchmark_build_wall_ns": 842885204,
+      "hia_benchmark_link_wall_ns": 18805996
+    }
+  ],
+  "allocation_high_water": [
+    {
+      "name": "three_weight",
+      "expected": {
+        "allocations": 932,
+        "cases": 1185,
+        "frees": 932,
+        "live": 0,
+        "max_live_bytes": 1764,
+        "max_live_owners": 2,
+        "observations_fnv64": "5e22c1a7cf33ac6b",
+        "ok": true,
+        "refusals": 579
+      },
+      "cpp": {
+        "ok": true,
+        "cases": 1185,
+        "observations_fnv64": "5e22c1a7cf33ac6b",
+        "allocations": 932,
+        "frees": 932,
+        "refusals": 579,
+        "live": 0,
+        "max_live_bytes": 1764,
+        "max_live_owners": 2
+      },
+      "hia": {
+        "ok": true,
+        "cases": 1185,
+        "observations_fnv64": "5e22c1a7cf33ac6b",
+        "allocations": 932,
+        "frees": 932,
+        "refusals": 579,
+        "live": 0,
+        "max_live_bytes": 1764,
+        "max_live_owners": 2
+      }
+    },
+    {
+      "name": "five_weight",
+      "expected": {
+        "allocations": 932,
+        "cases": 1185,
+        "frees": 932,
+        "live": 0,
+        "max_live_bytes": 1764,
+        "max_live_owners": 2,
+        "observations_fnv64": "20ccd0a2cefe321c",
+        "ok": true,
+        "refusals": 579
+      },
+      "cpp": {
+        "ok": true,
+        "cases": 1185,
+        "observations_fnv64": "20ccd0a2cefe321c",
+        "allocations": 932,
+        "frees": 932,
+        "refusals": 579,
+        "live": 0,
+        "max_live_bytes": 1764,
+        "max_live_owners": 2
+      },
+      "hia": {
+        "ok": true,
+        "cases": 1185,
+        "observations_fnv64": "20ccd0a2cefe321c",
+        "allocations": 932,
+        "frees": 932,
+        "refusals": 579,
+        "live": 0,
+        "max_live_bytes": 1764,
+        "max_live_owners": 2
+      }
+    }
+  ]
+}
