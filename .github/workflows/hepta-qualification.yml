@@ -272,7 +272,7 @@ jobs:
           mkdir -p "$hepta_gate_tools"
           ln -s "$hepta_qemu" "$hepta_gate_tools/qemu-aarch64"
           ln -s "$hepta_linker" "$hepta_gate_tools/ld.lld"
-          printf 'LEAN=%s\nCLANG=%s\nCLANGXX=%s\nCC=%s\n' "$hepta_lean" /usr/lib/llvm-20/bin/clang /usr/lib/llvm-20/bin/clang++ /usr/bin/gcc >> "$GITHUB_ENV"
+          printf 'LEAN=%s\nCLANG=%s\nHEPTA_CLANG=%s\nCLANGXX=%s\nCC=%s\n' "$hepta_lean" /usr/lib/llvm-20/bin/clang /usr/lib/llvm-20/bin/clang /usr/lib/llvm-20/bin/clang++ /usr/bin/gcc >> "$GITHUB_ENV"
           printf 'HEPTA_LLD=%s\nHEPTA_LLVM_READOBJ=%s\nHEPTA_QEMU_AARCH64=%s\nHEPTA_QEMU_RISCV64=%s\n' \
             "$hepta_linker" /usr/lib/llvm-20/bin/llvm-readobj "$hepta_qemu" /usr/bin/qemu-riscv64 >> "$GITHUB_ENV"
           # Full discovery builds the actual Rust oracle. Keep those generated

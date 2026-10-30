@@ -91,6 +91,7 @@ class UnifiedQualificationSummaryTests(unittest.TestCase):
             invocations.append(argv)
             if argv[0] != "git":
                 for key, value in {
+                    "CLANG": selected["clang"], "HEPTA_CLANG": selected["clang"],
                     "CC": selected["cc"], "HEPTA_LLD": selected["linker"],
                     "HEPTA_LLVM_READOBJ": "/tools/llvm-readobj",
                     "HEPTA_QEMU_AARCH64": selected["qemu_aarch64"],
@@ -119,7 +120,8 @@ class UnifiedQualificationSummaryTests(unittest.TestCase):
         # These are collector protocol controls, not native qualification.
         # A zero exit from a process cannot substitute for its missing report.
         with tempfile.TemporaryDirectory() as directory, \
-                patch.dict(os.environ, {"CARGO_NET_OFFLINE": "original", "PYTHONDONTWRITEBYTECODE": "old"}), \
+                patch.dict(os.environ, {"CARGO_NET_OFFLINE": "original", "PYTHONDONTWRITEBYTECODE": "old",
+                                        "CLANG": "/ambient/clang", "HEPTA_CLANG": "/ambient/other-clang"}), \
                 patch("tools.qualify_hia_unified.snapshot", return_value={"sha256": "source"}), \
                 patch("tools.qualify_hia_unified.compiler_hash", return_value="compiler"), \
                 patch("tools.qualify_hia_unified._command", side_effect=completed), redirect_stdout(io.StringIO()):
@@ -145,6 +147,28 @@ class UnifiedQualificationSummaryTests(unittest.TestCase):
             self.assertIn("evidence_error", gates[name])
         self.assertFalse(report["ok"])
         self.assertFalse(report["full_seven_deliverables_complete"])
+
+        def interrupted(argv, timeout=1800):
+            argv = list(map(str, argv))
+            if argv[0] == "git":
+                return dict(argv=argv, returncode=0, stdout="a" * 40 + "\n" if "rev-parse" in argv else "",
+                            stderr="", seconds=0.01)
+            self.assertEqual(os.environ.get("CLANG"), selected["clang"])
+            self.assertEqual(os.environ.get("HEPTA_CLANG"), selected["clang"])
+            raise RuntimeError("observed qualification command interruption")
+
+        # The newly synchronized key must also be restored when a real
+        # command boundary raises before any aggregate report is produced.
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.dict(os.environ, {"CLANG": "/ambient/clang", "HEPTA_CLANG": "/ambient/other-clang"}), \
+                patch("tools.qualify_hia_unified.snapshot", return_value={"sha256": "source"}), \
+                patch("tools.qualify_hia_unified.compiler_hash", return_value="compiler"), \
+                patch("tools.qualify_hia_unified._command", side_effect=interrupted), redirect_stdout(io.StringIO()):
+            before, previous_cwd = dict(os.environ), Path.cwd()
+            with self.assertRaisesRegex(RuntimeError, "qualification command interruption"):
+                qualify(Path(directory) / "interrupted", **selected)
+            self.assertEqual(dict(os.environ), before)
+            self.assertEqual(Path.cwd(), previous_cwd)
 
     def test_plan_keeps_hosted_denominators_compilers_and_timing_order_explicit(self):
         plan = qualification_plan(Path("/evidence"), python="python", **SELECTED_TOOLS)
