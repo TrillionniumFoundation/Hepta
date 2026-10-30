@@ -340,6 +340,13 @@ def migrate(source: Path, output: Path, report: Path, clang: str = "clang", veri
                                           "effects": sorted(check_function(fn)), "ir": asdict(fn)})
             except (UnsupportedC, IRValidationError) as exc:
                 info["functions"].append({"name": label, "status": "unsupported", "reason": str(exc)})
+            except (TypeError, AttributeError, KeyError, RecursionError) as exc:
+                # A compiler-supplied JSON node can have invalid nested shapes
+                # even when the top-level envelope is well formed. Fail closed
+                # and preserve an explicit rejection receipt instead of crashing.
+                info["functions"].append({
+                    "name": label, "status": "unsupported",
+                    "reason": "malformed Clang AST function node: " + type(exc).__name__})
         if any(item["status"] != "converted" for item in info["functions"]):
             raise UnsupportedC("one or more declarations unsupported; no partial source emitted")
         if hashlib.sha256(_read_source_bounded(source)).hexdigest() != digest:
