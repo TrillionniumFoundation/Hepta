@@ -22,6 +22,14 @@ fn main() -> ExitCode {
                 Err(error) => { eprintln!("{error}"); return ExitCode::FAILURE; }
             }
         },
+        [mode, function, arguments, static_policy, heap_policy, cleanup_policy, execution_policy]
+            if mode == "--byte-dag-heap-cleanup-admit-run" => {
+            match hia_core_shadow::decode_scalar_arguments(arguments) {
+                Ok(values) => hia_core_shadow::admit_and_run_byte_dag_heap_cleanup(&input, function, &values,
+                    static_policy.as_bytes(),heap_policy.as_bytes(),cleanup_policy.as_bytes(),execution_policy.as_bytes()),
+                Err(error) => { eprintln!("{error}"); return ExitCode::FAILURE; }
+            }
+        },
         [mode, function, arguments, static_policy, heap_policy, execution_policy]
             if mode == "--byte-dag-heap-admit-run" => {
             match hia_core_shadow::decode_scalar_arguments(arguments) {
@@ -115,6 +123,11 @@ fn main() -> ExitCode {
     match result {
         Ok(report) => {
             println!("{report}");
+            if report["schema"] == "hepta.hia.rust-byte-dag-heap-cleanup-run.v1"
+                && report["status"] == "cleanup_failed" {
+                eprintln!("E_HIA_CLEANUP_INTERNAL: cleanup failed; original stop and cleanup prefix retained in stdout");
+                return ExitCode::FAILURE;
+            }
             ExitCode::SUCCESS
         }
         Err(e) => {

@@ -9,7 +9,8 @@
 #![forbid(unsafe_code)]
 
 mod byte_dag;
-pub use byte_dag::{admit_and_run_byte_dag, admit_and_run_byte_dag_heap};
+pub use byte_dag::{admit_and_run_byte_dag, admit_and_run_byte_dag_heap,
+                  admit_and_run_byte_dag_heap_cleanup};
 mod finite_heap;
 pub use finite_heap::analyze_finite_entry_heap;
 

@@ -19,6 +19,7 @@ MAX_CORE_BYTES = 8 * 1024 * 1024
 MAX_REPORT_BYTES = 8 * 1024 * 1024
 PROFILE = "raw-byte-dag-v1"
 HEAP_PROFILE = "raw-byte-dag-finite-heap-v1"
+CLEANUP_PROFILE = "raw-byte-dag-finite-heap-cleanup-v1"
 _METRICS = {"max_allocator_interactions", "max_vm_ticks", "max_call_depth"}
 _CLAIMS = {
     "raw_primitive_core_admitted_by_rust": True,
@@ -246,15 +247,20 @@ def _validate_report(raw, request, body):
     # contain a long scalar return list in addition to two bound request copies.
     preflight_hia_json(raw.decode("utf-8"), max_nodes=1048576, max_depth=64)
     report = _transport._report_line(raw, MAX_REPORT_BYTES)
-    heap_mode = request["profile"] == HEAP_PROFILE
+    cleanup_mode = request["profile"] == CLEANUP_PROFILE
+    heap_mode = request["profile"] in {HEAP_PROFILE, CLEANUP_PROFILE}
     _keys(report, {"schema", "profile", "status", "request_sha256", "request",
-                   "static_budget", "runtime", "claims"} | ({"heap_bound"} if heap_mode else set()),
+                   "static_budget", "runtime", "claims"} | ({"heap_bound"} if heap_mode else set())
+          | ({"cleanup_bound", "cleanup"} if cleanup_mode else set()),
           "byte-DAG envelope")
     claims = {**_CLAIMS, **({"finite_entry_live_payload_limit_checked_before_execution": True}
-                          if heap_mode else {})}
+                          if heap_mode else {}),
+              **({"scoped_cleanup_reservation_checked_before_execution": True,
+                  "scoped_cleanup_completed": True} if cleanup_mode else {})}
     _equal({k: report[k] for k in ("schema", "profile", "status", "request_sha256", "request", "claims")}, {
-        "schema": ("hepta.hia.rust-byte-dag-heap-run.v1" if heap_mode else "hepta.hia.rust-byte-dag-run.v1"),
-        "profile": HEAP_PROFILE if heap_mode else PROFILE,
+        "schema": ("hepta.hia.rust-byte-dag-heap-cleanup-run.v1" if cleanup_mode else
+                   "hepta.hia.rust-byte-dag-heap-run.v1" if heap_mode else "hepta.hia.rust-byte-dag-run.v1"),
+        "profile": request["profile"],
         "status": "admitted_and_observed", "request": request,
         "request_sha256": sha256(_canonical(request)).hexdigest(), "claims": claims,
     }, "raw byte-DAG request/authority binding")
@@ -291,6 +297,9 @@ def _validate_report(raw, request, body):
     _validate_runtime(report["runtime"], request, body, entry_bound)
     if heap_mode:
         _validate_heap_report(report["heap_bound"], request, body, budget, entry_bound, report["runtime"])
+    if cleanup_mode:
+        from .hia_rust_byte_cleanup import validate_cleanup
+        validate_cleanup(report, request, body, entry_bound)
     return report
 
 
@@ -299,7 +308,8 @@ def execute_rust_byte_dag(raw_core: bytes, function: str, arguments: list | tupl
                          static_policy: dict, max_steps: int = 1_000_000,
                          max_heap_bytes: int = 16 * 1024 * 1024, max_call_depth: int = 256,
                          allocation_fail_at: int | None = None, timeout: float = 30.0,
-                         max_static_live_heap_bytes: int | None = None):
+                         max_static_live_heap_bytes: int | None = None,
+                         max_cleanup_actions: int | None = None):
     """Run the actual pinned Rust binary as this raw byte-DAG mode's authority.
 
     static_policy requires all three unsigned u64 metrics and applies to every
@@ -313,6 +323,14 @@ def execute_rust_byte_dag(raw_core: bytes, function: str, arguments: list | tupl
     stop prefixes without executing the Machine to establish the bound. The
     default None preserves raw-byte-dag-v1. This does not bound RSS or authorize
     a native backend, source lowering or imported resource extents.
+
+    max_cleanup_actions additionally selects raw-byte-dag-finite-heap-cleanup-v1.
+    It requires the finite heap gate and a separate bounded reservation before
+    execution. The same Machine explicitly discharges its private invocation's
+    loans and owners after a language trap/budget stop. Original runtime status,
+    ticks and resources remain the pre-cleanup prefix; the separate cleanup
+    journal and after-ledger report observed release. This is neither a host
+    panic/OOM guarantee nor an upgrade to any legacy profile.
 
     The executable pin, loader/libraries/kernel and caller process are trusted.
     Exact request checks reject stale/cross-policy replies; they are not a
@@ -329,6 +347,11 @@ def execute_rust_byte_dag(raw_core: bytes, function: str, arguments: list | tupl
     if max_static_live_heap_bytes is not None and (
             type(max_static_live_heap_bytes) is not int or not 0 <= max_static_live_heap_bytes < 1 << 63):
         _reject("static live heap limit requires an exact integer in 0..2^63-1")
+    if max_cleanup_actions is not None:
+        from .hia_rust_byte_cleanup import MAX_CLEANUP_ACTIONS
+        if (max_static_live_heap_bytes is None or type(max_cleanup_actions) is not int
+                or not 0 <= max_cleanup_actions <= MAX_CLEANUP_ACTIONS):
+            _reject("scoped cleanup requires finite heap admission and an exact bounded action limit")
     if type(function) is not str or re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{0,127}", function) is None:
         _reject("function must be a bounded ASCII entry name")
     if (type(arguments) not in (list, tuple) or len(arguments) > _transport.MAX_ARGUMENTS
@@ -351,17 +374,23 @@ def execute_rust_byte_dag(raw_core: bytes, function: str, arguments: list | tupl
             "max_call_depth": max_call_depth, "allocation_fail_at": allocation_fail_at,
         }, 4)
         heap_mode = max_static_live_heap_bytes is not None
-        request = {"schema": ("hepta.hia.rust-byte-dag-heap-request.v1" if heap_mode
+        cleanup_mode = max_cleanup_actions is not None
+        request = {"schema": ("hepta.hia.rust-byte-dag-heap-cleanup-request.v1" if cleanup_mode else
+                              "hepta.hia.rust-byte-dag-heap-request.v1" if heap_mode
                               else "hepta.hia.rust-byte-dag-request.v1"),
-            "profile": HEAP_PROFILE if heap_mode else PROFILE,
+            "profile": CLEANUP_PROFILE if cleanup_mode else HEAP_PROFILE if heap_mode else PROFILE,
             "input_sha256": sha256(raw_core).hexdigest(), "program_sha256": program_sha256,
             "function": function, "arguments": arguments, "static_policy": static_policy,
             "execution_policy": policy}
-        launch_arguments = ["--byte-dag-heap-admit-run" if heap_mode else "--byte-dag-admit-run",
+        launch_arguments = ["--byte-dag-heap-cleanup-admit-run" if cleanup_mode else
+                            "--byte-dag-heap-admit-run" if heap_mode else "--byte-dag-admit-run",
             function, argument_wire.decode("ascii"), _canonical(static_policy).decode("ascii")]
         if heap_mode:
             request["heap_policy"] = {"max_live_heap_bytes": max_static_live_heap_bytes}
             launch_arguments.append(_canonical(request["heap_policy"]).decode("ascii"))
+        if cleanup_mode:
+            request["cleanup_policy"] = {"max_cleanup_actions": max_cleanup_actions}
+            launch_arguments.append(_canonical(request["cleanup_policy"]).decode("ascii"))
         launch_arguments.append(_canonical(policy).decode("ascii"))
         raw_executable = _transport._verified_executable_bytes(Path(executable), executable_sha256)
         stdout, stderr, returncode = _transport._run_pinned_shadow(raw_executable, launch_arguments,
@@ -374,6 +403,7 @@ def execute_rust_byte_dag(raw_core: bytes, function: str, arguments: list | tupl
         if isinstance(exc, HIARustByteDagRejected):
             raise
         raise HIARustByteDagRejected("E_HIA_RUST_BYTE_DAG: process or response contract rejected") from exc
-    return {"schema": ("hepta.hia.rust-byte-dag-heap-invocation.v1" if heap_mode
+    return {"schema": ("hepta.hia.rust-byte-dag-heap-cleanup-invocation.v1" if cleanup_mode else
+                       "hepta.hia.rust-byte-dag-heap-invocation.v1" if heap_mode
                        else "hepta.hia.rust-byte-dag-invocation.v1"),
             "executable_sha256": executable_sha256, "rust_report": report}

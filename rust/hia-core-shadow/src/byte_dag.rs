@@ -11,6 +11,7 @@ use super::{analyze_finite_entry_heap, analyze_static_budget, array, decode_hia,
 
 const PROFILE: &str = "raw-byte-dag-v1";
 const HEAP_PROFILE: &str = "raw-byte-dag-finite-heap-v1";
+const CLEANUP_PROFILE: &str = "raw-byte-dag-finite-heap-cleanup-v1";
 const MAX_STATIC_POLICY_BYTES: usize = 1024;
 const METRICS: [&str; 3] = ["max_allocator_interactions", "max_vm_ticks", "max_call_depth"];
 
@@ -24,6 +25,7 @@ struct AdmittedByteDag {
     static_policy: Value,
     static_budget: Value,
     heap_bound: Option<Value>,
+    cleanup_bound: Option<Value>,
 }
 
 impl AdmittedByteDag {
@@ -55,7 +57,7 @@ impl AdmittedByteDag {
             }
         }
         Ok(Self { canonical_core, input_sha256: format!("{:x}", Sha256::digest(input)),
-                  static_policy, static_budget, heap_bound: None })
+                  static_policy, static_budget, heap_bound: None, cleanup_bound: None })
     }
 
     fn admit_heap(mut self, function: &str, arguments: &[Value], policy: &[u8]) -> R<Self> {
@@ -63,6 +65,58 @@ impl AdmittedByteDag {
         // rechecks the same immutable whole Core and every finite graph.
         self.heap_bound = Some(analyze_finite_entry_heap(
             &self.canonical_core, function, arguments, policy)?);
+        Ok(self)
+    }
+
+    fn admit_cleanup(mut self, policy: &[u8]) -> R<Self> {
+        if policy.len() > MAX_STATIC_POLICY_BYTES {
+            return failure("E_HIA_CLEANUP_POLICY", "cleanup policy exceeds 1024 bytes");
+        }
+        let (policy, _) = decode_hia(policy)?;
+        let fields = object(&policy, &["max_cleanup_actions"], "cleanup policy")?;
+        let limit = fields["max_cleanup_actions"].as_u64().ok_or_else(||super::VerifyError {
+            code:"E_HIA_CLEANUP_POLICY",detail:"cleanup actions require an exact unsigned integer".into(),
+        })?;
+        if limit > super::scalar_vm::MAX_ABORT_CLEANUP_ACTIONS {
+            return failure("E_HIA_CLEANUP_POLICY", "cleanup action limit exceeds finite profile");
+        }
+        let Some(heap) = self.heap_bound.as_ref() else {
+            return failure("E_HIA_CLEANUP_PROFILE", "cleanup requires independent finite entry heap admission");
+        };
+        let (core, _) = decode_hia(&self.canonical_core)?;
+        let max_formals = array(&core["functions"],"cleanup functions")?.iter()
+            .map(|f|f["params"].as_array().unwrap().iter()
+                .filter(|p|matches!(p["type"].as_str(),Some("readbuf"|"mutbuf"))).count() as u64)
+            .max().unwrap_or(0);
+        let ticks = heap["max_vm_ticks"].as_u64().unwrap();
+        let allocator = heap["max_allocator_interactions"].as_u64().unwrap();
+        // Every new/try_new produces at most one owner, including empty failed
+        // owners. Every source borrow consumes a tick. Every call-entry tick
+        // creates at most max_formals extra witnesses. Returned loans rebind
+        // existing witnesses; they do not allocate a new runtime identity.
+        let bound = max_formals.checked_add(1).and_then(|n|n.checked_mul(ticks))
+            .and_then(|n|n.checked_add(allocator)).ok_or_else(||super::VerifyError {
+                code:"E_HIA_CLEANUP_BOUND",detail:"static cleanup action bound overflows u64".into(),
+            })?;
+        if bound > limit {
+            return failure("E_HIA_CLEANUP_EXCEEDED", "cleanup reservation does not cover every admitted execution prefix");
+        }
+        self.cleanup_bound = Some(json!({
+            "schema":"hepta.hia.scoped-abort-cleanup-bound.v1",
+            "program_sha256":self.static_budget["program_sha256"],
+            "function":heap["function"], "arguments":heap["arguments"],
+            "max_allocator_interactions":allocator, "max_vm_ticks":ticks,
+            "max_borrowed_parameters":max_formals,
+            "action_bound":bound, "limit_actions":limit,
+            "fixed_action_limit":super::scalar_vm::MAX_ABORT_CLEANUP_ACTIONS,
+            "claims":{
+                "independent_static_reservation_before_execution":true,
+                "every_allocator_outcome_including_empty_owner_counted":true,
+                "call_formal_witnesses_counted_separately":true,
+                "runtime_observation_used_to_establish_bound":false,
+                "process_rss_or_cpu_bound_proved":false,
+            }
+        }));
         Ok(self)
     }
 
@@ -75,12 +129,21 @@ impl AdmittedByteDag {
         // Preserve the complete v4 policy/parser/external scalar boundary and
         // runtime semantics, including early stops and retained resource ledgers.
         // Reverification here is deliberate: no unchecked Machine API is added.
-        let runtime = execute_owned_bound_v4(
-            &self.canonical_core, function, arguments, execution_policy_input)?;
+        let (runtime, cleanup) = if let Some(bound) = &self.cleanup_bound {
+            let (runtime,cleanup) = super::scalar_vm::execute_owned_bound_v4_scoped(
+                &self.canonical_core,function,arguments,execution_policy_input,
+                bound["action_bound"].as_u64().unwrap())?;
+            (runtime,Some(cleanup))
+        } else {
+            (execute_owned_bound_v4(&self.canonical_core, function, arguments,
+                execution_policy_input)?,None)
+        };
         let bounded_heap = self.heap_bound.is_some();
-        let profile = if bounded_heap { HEAP_PROFILE } else { PROFILE };
+        let scoped_cleanup = self.cleanup_bound.is_some();
+        let profile = if scoped_cleanup { CLEANUP_PROFILE } else if bounded_heap { HEAP_PROFILE } else { PROFILE };
         let mut request = json!({
-            "schema": if bounded_heap { "hepta.hia.rust-byte-dag-heap-request.v1" }
+            "schema": if scoped_cleanup { "hepta.hia.rust-byte-dag-heap-cleanup-request.v1" }
+                      else if bounded_heap { "hepta.hia.rust-byte-dag-heap-request.v1" }
                       else { "hepta.hia.rust-byte-dag-request.v1" }, "profile": profile,
             "input_sha256": self.input_sha256,
             "program_sha256": self.static_budget["program_sha256"],
@@ -95,11 +158,15 @@ impl AdmittedByteDag {
                 return failure("E_HIA_BUDGET_GRAPH", "Machine prefix escaped finite heap admission");
             }
         }
+        if let Some(bound) = &self.cleanup_bound {
+            request["cleanup_policy"] = json!({"max_cleanup_actions":bound["limit_actions"]});
+        }
         let canonical_request = serde_json::to_vec(&request).map_err(|error| super::VerifyError {
             code: "E_HIA_INPUT", detail: error.to_string(),
         })?;
         let mut report = json!({
-            "schema": if bounded_heap { "hepta.hia.rust-byte-dag-heap-run.v1" }
+            "schema": if scoped_cleanup { "hepta.hia.rust-byte-dag-heap-cleanup-run.v1" }
+                      else if bounded_heap { "hepta.hia.rust-byte-dag-heap-run.v1" }
                       else { "hepta.hia.rust-byte-dag-run.v1" }, "profile": profile,
             "status": "admitted_and_observed",
             "request_sha256": format!("{:x}", Sha256::digest(canonical_request)),
@@ -124,6 +191,14 @@ impl AdmittedByteDag {
             report["heap_bound"] = heap;
             report["claims"]["finite_entry_live_payload_limit_checked_before_execution"] = json!(true);
         }
+        if let (Some(bound),Some(cleanup)) = (self.cleanup_bound,cleanup) {
+            let completed = cleanup["status"] == "completed" || cleanup["status"] == "not_needed";
+            if !completed { report["status"] = json!("cleanup_failed"); }
+            report["cleanup_bound"] = bound;
+            report["cleanup"] = cleanup;
+            report["claims"]["scoped_cleanup_reservation_checked_before_execution"] = json!(true);
+            report["claims"]["scoped_cleanup_completed"] = json!(completed);
+        }
         Ok(report)
     }
 }
@@ -147,5 +222,18 @@ pub fn admit_and_run_byte_dag_heap(input: &[u8], function: &str, arguments: &[Va
     static_policy_input: &[u8], heap_policy_input: &[u8], execution_policy_input: &[u8]) -> R<Value> {
     AdmittedByteDag::admit(input, static_policy_input)?
         .admit_heap(function, arguments, heap_policy_input)?
+        .run(function, arguments, execution_policy_input)
+}
+
+/// Explicit whole-invocation byte-owner cleanup on language trap/budget stop.
+/// Original prefix observations and legacy profile semantics remain unchanged.
+/// A cleanup-internal failure retains both ledgers/journal with cleanup_failed;
+/// callers MUST check status, and the CLI returns nonzero for that report.
+pub fn admit_and_run_byte_dag_heap_cleanup(input: &[u8], function: &str, arguments: &[Value],
+    static_policy_input: &[u8], heap_policy_input: &[u8], cleanup_policy_input: &[u8],
+    execution_policy_input: &[u8]) -> R<Value> {
+    AdmittedByteDag::admit(input, static_policy_input)?
+        .admit_heap(function, arguments, heap_policy_input)?
+        .admit_cleanup(cleanup_policy_input)?
         .run(function, arguments, execution_policy_input)
 }

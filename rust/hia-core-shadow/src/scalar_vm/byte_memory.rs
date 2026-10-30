@@ -4,6 +4,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde_json::{json, Value};
 use super::{AllocationFailureIndex, Exec, Halt, RuntimeValue};
 
+mod abort_cleanup;
+pub(super) use abort_cleanup::AbortReservation;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Root { Owner(u64), Chain(u64) }
 

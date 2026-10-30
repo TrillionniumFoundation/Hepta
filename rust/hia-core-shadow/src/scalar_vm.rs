@@ -8,7 +8,10 @@ use sha2::{Digest, Sha256};
 use super::{decode_hia, failure, int_bits, valid_constant, verify, verify_owned, R};
 
 mod byte_memory;
-use byte_memory::ByteMemory;
+use byte_memory::{ByteMemory, AbortReservation};
+
+// Logical release/journal records, not host allocator, CPU or RSS limits.
+pub(crate) const MAX_ABORT_CLEANUP_ACTIONS: u64 = 32_768;
 
 const MAX_STEPS: u64 = 1_000_000;
 const MAX_CALL_DEPTH: u32 = 32;
@@ -501,10 +504,31 @@ pub fn execute_owned_bound_v4(input: &[u8], function: &str, arguments: &[Value],
         V3_MAX_STEPS, V3_MAX_OWNED_HEAP_BYTES, V3_MAX_CALL_DEPTH)
 }
 
+// Only the private admitted byte-DAG path supplies this precomputed bound.
+// This still reuses the whole verifier and exact v4 policy/public boundary.
+pub(crate) fn execute_owned_bound_v4_scoped(input: &[u8], function: &str,
+    arguments: &[Value], policy_input: &[u8], cleanup_bound: u64) -> R<(Value, Value)> {
+    let (runtime, cleanup) = execute_owned_bound_policy_inner(input, function, arguments,
+        policy_input, 4, V3_MAX_STEPS, V3_MAX_OWNED_HEAP_BYTES, V3_MAX_CALL_DEPTH,
+        Some(cleanup_bound))?;
+    let cleanup = cleanup.ok_or_else(|| super::VerifyError {
+        code:"E_HIA_CLEANUP_INTERNAL",detail:"scoped Machine omitted cleanup observation".into(),
+    })?;
+    Ok((runtime, cleanup))
+}
+
 fn execute_owned_bound_policy(input: &[u8], function: &str, arguments: &[Value],
                               policy_input: &[u8], version: u8,
                               step_ceiling: u64, heap_ceiling: u64,
                               depth_ceiling: u32) -> R<Value> {
+    execute_owned_bound_policy_inner(input,function,arguments,policy_input,version,
+        step_ceiling,heap_ceiling,depth_ceiling,None).map(|(runtime,_)|runtime)
+}
+
+fn execute_owned_bound_policy_inner(input: &[u8], function: &str, arguments: &[Value],
+                              policy_input: &[u8], version: u8,
+                              step_ceiling: u64, heap_ceiling: u64,
+                              depth_ceiling: u32, cleanup_bound: Option<u64>) -> R<(Value, Option<Value>)> {
     const MAX_POLICY_BYTES: usize = 1024;
     if policy_input.len() > MAX_POLICY_BYTES {
         return failure("E_HIA_BUDGET_POLICY", format!("bound v{version} policy exceeds 1024 bytes"));
@@ -532,16 +556,18 @@ fn execute_owned_bound_policy(input: &[u8], function: &str, arguments: &[Value],
         return failure("E_HIA_BUDGET_POLICY", format!("bound v{version} policy outside existing finite limits"));
     }
     check_bound_arguments(arguments)?;
-    let mut execution = execute(input, function, arguments, max_steps,
-        Some((max_heap_bytes, allocation_fail_at)), max_call_depth as u32, step_ceiling)?;
+    let (mut execution, cleanup) = execute_inner(input, function, arguments, max_steps,
+        Some((max_heap_bytes, allocation_fail_at)), max_call_depth as u32, step_ceiling,
+        cleanup_bound)?;
     if version == 4 {
         // The versioned report makes the exact hexadecimal policy type
         // explicit; v1 report consumers are never silently upgraded.
         execution["schema"] = json!("hepta.hia.rust-byte-owner-execution.v2");
         execution["allocation_fail_at"] = fields["allocation_fail_at"].clone();
     }
-    bind_execution(execution, function, arguments, max_heap_bytes,
-                   fields["allocation_fail_at"].clone(), version)
+    let runtime = bind_execution(execution, function, arguments, max_heap_bytes,
+                   fields["allocation_fail_at"].clone(), version)?;
+    Ok((runtime, cleanup))
 }
 
 fn check_bound_arguments(arguments: &[Value]) -> R<()> {
@@ -634,6 +660,13 @@ fn owned_execution_profile(document: &Value) -> R<bool> {
 fn execute(input: &[u8], function: &str, arguments: &[Value], max_steps: u64,
            owned_policy: Option<(u64, Option<AllocationFailureIndex>)>, max_call_depth: u32,
            step_ceiling: u64) -> R<Value> {
+    execute_inner(input,function,arguments,max_steps,owned_policy,max_call_depth,
+        step_ceiling,None).map(|(runtime,_)|runtime)
+}
+
+fn execute_inner(input: &[u8], function: &str, arguments: &[Value], max_steps: u64,
+           owned_policy: Option<(u64, Option<AllocationFailureIndex>)>, max_call_depth: u32,
+           step_ceiling: u64, cleanup_bound: Option<u64>) -> R<(Value, Option<Value>)> {
     if !(1..=step_ceiling).contains(&max_steps) {
         return failure("E_HIA_BUDGET_POLICY", "max_steps outside bounded Rust oracle profile");
     }
@@ -674,6 +707,13 @@ fn execute(input: &[u8], function: &str, arguments: &[Value], max_steps: u64,
     }) {
         return failure("E_HIA_INPUT", "entry arguments do not match exact scalar types");
     }
+    if cleanup_bound.is_some() && (owned_policy.is_none() || chain
+        || !matches!(document["schema"].as_str(),Some("hepta.hia.program.v7"|"hepta.hia.program.v8"))) {
+        return failure("E_HIA_CLEANUP_PROFILE","cleanup requires admitted v7/v8 byte-owner DAG");
+    }
+    // Reserve before Machine creation/invocation. A rejected reservation cannot
+    // perform even an entry tick or language allocation.
+    let cleanup = cleanup_bound.map(AbortReservation::reserve).transpose()?;
     let mut machine = Machine { functions: by_name, steps: 0, limit: max_steps, max_call_depth,
         memory: owned_policy.as_ref().map(|(heap, fail)| ByteMemory::new(*heap, fail.clone())) };
     let result = machine.invoke(function,
@@ -757,5 +797,12 @@ fn execute(input: &[u8], function: &str, arguments: &[Value], max_steps: u64,
         Err(Halt::Internal) => return failure(
             "E_HIA_RUST_RUNTIME", "verified HIA instruction could not be interpreted"),
     };
-    Ok(report)
+    // Preserve the exact original stop, policy, steps and pre-cleanup ledger.
+    // Cleanup occurs while this same Machine's private memory remains alive.
+    let cleanup = if let Some(reservation) = cleanup {
+        Some(machine.memory.as_mut().ok_or_else(|| super::VerifyError {
+            code:"E_HIA_CLEANUP_INTERNAL",detail:"scoped Machine lost its resource ledger".into(),
+        })?.abort_cleanup(reservation, report["status"] != "returned"))
+    } else { None };
+    Ok((report, cleanup))
 }
