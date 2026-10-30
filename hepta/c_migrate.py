@@ -25,6 +25,9 @@ _CMP = {"==", "!=", "<", "<=", ">", ">="}
 _CASTS = {"LValueToRValue", "NoOp"}
 
 
+_AST_RECURSION_LIMIT = 128
+
+
 class MigrationRejected(ValueError):
     def __init__(self, code: str, message: str):
         self.code = code
@@ -79,7 +82,10 @@ def _decl_type(node: dict, model: dict) -> str:
     return _typ(t.get("qualType", ""), model)
 
 
-def _expr(node: dict, args: dict[str, str], model: dict, expected: str) -> tuple[str, str]:
+def _expr(node: dict, args: dict[str, str], model: dict, expected: str,
+          *, _visit_depth: int = 0) -> tuple[str, str]:
+    if _visit_depth >= _AST_RECURSION_LIMIT:
+        raise MigrationRejected("E_C_AST_DEPTH", "C expression nesting exceeds migration limit")
     kind = node.get("kind")
     inner = node.get("inner", [])
     if kind in {"ImplicitCastExpr", "ParenExpr"}:
@@ -90,10 +96,10 @@ def _expr(node: dict, args: dict[str, str], model: dict, expected: str) -> tuple
             if cast == "IntegralCast" and inner[0].get("kind") == "IntegerLiteral" and _decl_type(node, model) == expected:
                 # Only compile-time constants provably representable in the target
                 # type may undergo automatic widening/promotion in this pilot.
-                return _expr(inner[0], args, model, expected)
+                return _expr(inner[0], args, model, expected, _visit_depth=_visit_depth + 1)
             if cast not in _CASTS:
                 raise MigrationRejected("E_C_CAST", "C integer/pointer casts require a checked target representation")
-        return _expr(inner[0], args, model, expected)
+        return _expr(inner[0], args, model, expected, _visit_depth=_visit_depth + 1)
     if kind == "IntegerLiteral":
         try:
             value = int(node["value"])
@@ -114,7 +120,7 @@ def _expr(node: dict, args: dict[str, str], model: dict, expected: str) -> tuple
             raise MigrationRejected("E_C_PROMOTION", "C integer promotions require a separate checked lowering")
         return name, expected
     if kind == "UnaryOperator" and node.get("opcode") in {"+", "-"} and len(inner) == 1:
-        rendered, typ = _expr(inner[0], args, model, expected)
+        rendered, typ = _expr(inner[0], args, model, expected, _visit_depth=_visit_depth + 1)
         if node["opcode"] == "-" and expected.startswith("u"):
             raise MigrationRejected("E_C_UNSIGNED_NEG", "Unsigned negation needs modular-C semantics")
         return f"({node['opcode']}{rendered})", typ
@@ -124,15 +130,15 @@ def _expr(node: dict, args: dict[str, str], model: dict, expected: str) -> tuple
             # C comparisons yield int, whereas Hepta comparisons yield bool.
             # This expression is only consumed as a statement condition.
             lhs_type = _decl_type(inner[0], model)
-            left, _ = _expr(inner[0], args, model, lhs_type)
-            right, _ = _expr(inner[1], args, model, lhs_type)
+            left, _ = _expr(inner[0], args, model, lhs_type, _visit_depth=_visit_depth + 1)
+            right, _ = _expr(inner[1], args, model, lhs_type, _visit_depth=_visit_depth + 1)
             return f"({left} {op} {right})", "bool"
         if op not in _ARITH | _BITS:
             raise MigrationRejected("E_C_OPERATOR", f"Unsupported C operator: {op}")
         if op in _BITS and expected.startswith("i"):
             raise MigrationRejected("E_C_BITWISE", "Signed C bitwise operations require target-specific semantics")
-        left, _ = _expr(inner[0], args, model, expected)
-        right, _ = _expr(inner[1], args, model, expected)
+        left, _ = _expr(inner[0], args, model, expected, _visit_depth=_visit_depth + 1)
+        right, _ = _expr(inner[1], args, model, expected, _visit_depth=_visit_depth + 1)
         if op in _ARITH and expected.startswith("u"):
             builtin = {"+": "wrapping_add", "-": "wrapping_sub", "*": "wrapping_mul"}[op]
             return f"{builtin}({left}, {right})", expected
@@ -140,12 +146,15 @@ def _expr(node: dict, args: dict[str, str], model: dict, expected: str) -> tuple
     raise MigrationRejected("E_C_EXPRESSION", f"Unsupported C expression: {kind}")
 
 
-def _stmt(node: dict, args: dict[str, str], model: dict, ret: str, depth: int = 1) -> list[str]:
+def _stmt(node: dict, args: dict[str, str], model: dict, ret: str, depth: int = 1,
+          *, _visit_depth: int = 0) -> list[str]:
+    if _visit_depth >= _AST_RECURSION_LIMIT:
+        raise MigrationRejected("E_C_AST_DEPTH", "C statement nesting exceeds migration limit")
     indent = "    " * depth
     kind = node.get("kind")
     children = node.get("inner", [])
     if kind == "CompoundStmt":
-        return [line for child in children for line in _stmt(child, args, model, ret, depth)]
+        return [line for child in children for line in _stmt(child, args, model, ret, depth, _visit_depth=_visit_depth + 1)]
     if kind == "ReturnStmt" and len(children) == 1:
         expression, typ = _expr(children[0], args, model, ret)
         if typ != ret:
@@ -156,11 +165,11 @@ def _stmt(node: dict, args: dict[str, str], model: dict, ret: str, depth: int = 
         if typ != "bool":
             raise MigrationRejected("E_C_CONDITION", "C integer truthiness requires an explicit checked conversion")
         result = [f"{indent}if {cond} {{"]
-        result.extend(_stmt(children[1], args, model, ret, depth + 1))
+        result.extend(_stmt(children[1], args, model, ret, depth + 1, _visit_depth=_visit_depth + 1))
         result.append(f"{indent}}}")
         if len(children) == 3:
             result.append(f"{indent}else {{")
-            result.extend(_stmt(children[2], args, model, ret, depth + 1))
+            result.extend(_stmt(children[2], args, model, ret, depth + 1, _visit_depth=_visit_depth + 1))
             result.append(f"{indent}}}")
         return result
     raise MigrationRejected("E_C_STATEMENT", f"Unsupported C statement: {kind}")
@@ -236,7 +245,10 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
         report["target_model"] = model
         ast_json = _run([clang, "-std=c11", "-fsyntax-only", "-Werror",
                         "-Xclang", "-ast-dump=json", str(src)])
-        root = json.loads(ast_json)
+        try:
+            root = json.loads(ast_json)
+        except RecursionError as exc:
+            raise MigrationRejected("E_C_AST_DEPTH", "Clang AST JSON nesting exceeds parser limit") from exc
         if root.get("kind") != "TranslationUnitDecl":
             raise MigrationRejected("E_C_AST", "Clang did not return a translation unit")
         declarations = []
