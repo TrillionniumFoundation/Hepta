@@ -70,6 +70,10 @@ jobs:
       - name: Require proof to final machine-artifact binding
         if: matrix.machine == 'x86_64'
         run: python tools/qualify_hia_guarded_native_binding.py --require-native --output "$RUNNER_TEMP/hepta-six/guarded-native-binding.json"
+      - name: Require scalar receipt dependency identity and actual SMT replay
+        run: |
+          python -c 'import z3; assert z3.get_version_string() == "4.15.4"'
+          python -m unittest tests.test_hia_translation_identity -v
       - name: Run independent real C++ versions and actual failure paths
         run: python tools/qualify_cpp_inih_component.py --output-directory "$RUNNER_TEMP/hepta-six/inih-component" --cc gcc --cxx g++
       - name: Qualify actual Hepta pthread and eventfd boundary on this host

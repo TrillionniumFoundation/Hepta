@@ -1,5 +1,7 @@
 """New author controls and absent-provider evidence are not model observations."""
 from copy import deepcopy
+from collections import Counter
+from hashlib import sha256
 import json
 from pathlib import Path
 import sys
@@ -16,6 +18,74 @@ from tools.qualify_hia_agent_maintenance import (
 
 
 class FreshMaintenanceTests(unittest.TestCase):
+    def test_actual_failed_startup_raw_replays_only_exact_registered_warnings(self):
+        from tools.hia_agent_codex_transport import CodexEvents, EventFailure
+        protocol = json.loads(PROTOCOL_PATH.read_bytes())
+        amendment = protocol["amendments"][-1]
+        raw = (PROTOCOL_PATH.parents[2] / amendment["raw_fixture"]).read_bytes()
+        self.assertEqual(sha256(raw).hexdigest(),
+                         "006bf62e8d9d462fcb419ee49a53212ef77ce038e466775bc8bc6f1dd4e95f63")
+        self.assertEqual(sha256(raw).hexdigest(), amendment["raw_fixture_sha256"])
+        lines = raw.splitlines()
+        parser = CodexEvents(protocol["registered_startup_warnings"])
+        for line in lines:
+            parser.line(line)
+        self.assertEqual(len(protocol["registered_startup_warnings"]), 4)
+        self.assertEqual(sorted(Counter(protocol["registered_startup_warnings"]).values()), [1, 1, 2])
+        self.assertEqual(parser.warning_counts, dict(Counter(protocol["registered_startup_warnings"])))
+        self.assertEqual((parser.thread_count, parser.turn_count), (1, 1))
+        self.assertEqual(parser.messages, [])
+        self.assertIsNone(parser.usage)
+        self.assertTrue(parser.unknown_usage)
+        # Replaying an actual startup failure never manufactures a model
+        # answer or known usage; original attempt01 remains ineligible.
+        with self.assertRaisesRegex(EventFailure, "INCOMPLETE_RESPONSE_OR_USAGE"):
+            parser.complete()
+        original = CodexEvents([])
+        original.line(lines[0])
+        with self.assertRaisesRegex(EventFailure, "TOOL_OR_UNREGISTERED_ITEM"):
+            original.line(lines[1])
+
+    def test_actual_startup_warning_registry_rejects_unknown_excess_and_late_items(self):
+        from tools.hia_agent_codex_transport import CodexEvents, EventFailure
+        protocol = json.loads(PROTOCOL_PATH.read_bytes())
+        amendment = protocol["amendments"][-1]
+        events = [json.loads(line) for line in
+                  (PROTOCOL_PATH.parents[2] / amendment["raw_fixture"]).read_bytes().splitlines()]
+        thread, warning, turn = events[0], events[1], events[-1]
+        unknown = deepcopy(warning)
+        unknown["item"]["message"] += " unregistered suffix"
+        malformed = deepcopy(warning)
+        malformed["item"]["accepted"] = True
+        cases = {
+            "unknown": [thread, unknown],
+            "third_occurrence_of_two_allowed": [thread, warning, warning, warning],
+            "known_warning_after_turn": [thread, turn, warning],
+            "known_warning_before_thread": [warning],
+            "malformed_known_warning": [thread, malformed],
+            "tool_event": [thread, turn, {"type": "item.completed", "item": {
+                "id": "tool", "type": "command_execution", "command": "forbidden"}}],
+        }
+        for label, stream in cases.items():
+            with self.subTest(label=label), self.assertRaises(EventFailure):
+                parser = CodexEvents(protocol["registered_startup_warnings"])
+                for event in stream:
+                    parser.line(wire(event))
+
+    def test_warning_amendment_preserves_original_tasks_model_scoring_and_budgets(self):
+        protocol = json.loads(PROTOCOL_PATH.read_bytes())
+        protected = {key: value for key, value in protocol.items() if key not in {
+            "registered_startup_warnings", "pre_generation_cli_observation", "amendments"}}
+        expected = "846981cff1b157b3570fb66ed1451df10289160bac9df727cfd96c10c9a62a3d"
+        self.assertEqual(sha256(wire(protected)).hexdigest(), expected)
+        amendment = protocol["amendments"][-1]
+        self.assertEqual(amendment["unchanged_protocol_fields_sha256"], expected)
+        self.assertEqual(amendment["original_registration_commit"],
+                         "03c8205271dc5e8f9c5cad806e46056bffe2bc02")
+        self.assertFalse(amendment["failed_attempt_replaced"])
+        self.assertFalse(amendment["complete_usage_observed"])
+        self.assertEqual(amendment["complete_answers"], 0)
+
     def test_new_positive_and_negative_controls_run_actual_bounded_vm(self):
         for task in TASK_MODULE.TASKS:
             with self.subTest(task=task["id"]):

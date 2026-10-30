@@ -21,7 +21,12 @@
   "max_charged_output_tokens_per_request": 14000,
   "max_charged_tokens_per_cell": 180000,
   "transport": {"stdout_limit_bytes": 16777216, "stderr_limit_bytes": 4194304, "max_jsonl_line_bytes": 1048576},
-  "registered_startup_warnings": [],
+  "registered_startup_warnings": [
+    "Codex is ignoring 1 unrecognized configuration setting. Check for typos or deprecated settings.\n  user (/root/.codex/config.toml): `features.experimental_use_rmcp_client` is ignored.",
+    "`[features].imagegenext` is deprecated. Use `[features].image_generation` instead. (Enable it with `--enable image_generation` or `[features].image_generation` in config.toml. See https://developers.openai.com/codex/config-basic#feature-flags for details.)",
+    "Codex is ignoring 1 unrecognized configuration setting. Check for typos or deprecated settings.\n  user (/root/.codex/config.toml): `features.experimental_use_rmcp_client` is ignored.",
+    "Under-development features enabled: local_thread_store_compression. Under-development features are incomplete and may behave unpredictably. To suppress this warning, set `suppress_unstable_features_warning = true` in /root/.codex/config.toml."
+  ],
   "registered_provider_executable": {
     "observed_path": "/opt/codex/bin/codex",
     "cli_version": "codex-cli 0.166.0-alpha.1",
@@ -32,8 +37,25 @@
     "exec_help_exit": 0,
     "required_argv_supported": ["--json", "--ephemeral", "--sandbox read-only", "--skip-git-repo-check", "-m MODEL", "- (stdin)"],
     "observed_stderr": "WARNING: proceeding, even though we could not create PATH aliases: Read-only file system (os error 30)\n",
-    "handling": "This actual help/version warning is stderr and is retained as bounded raw stderr, not relabelled as a JSONL startup event. No stdout JSONL warnings have been observed; their registered whitelist remains empty. No model was invoked by these help/version probes."
+    "handling": "The original help/version probes observed only this stderr warning and did not exercise actual exec startup. At original registration no stdout JSONL warning had been observed, so its whitelist was empty. The subsequent failed formal attempt observed the four exact pre-turn stdout warning items now recorded by the separate amendment. The stderr warning remains bounded raw stderr; it is not relabelled as a JSONL event. Help/version probes invoked no model; the failed formal attempt is retained and is not relabelled as a pre-generation probe."
   },
+  "amendments": [
+    {
+      "id": "hia-agent-maintenance-startup-warning-amendment-20261030-01",
+      "original_registration_commit": "03c8205271dc5e8f9c5cad806e46056bffe2bc02",
+      "retained_failed_attempt": "agent-maintenance-formal-03c-attempt01",
+      "failed_attempt_replaced": false,
+      "observed_cells": 4,
+      "provider_launch_attempts": 4,
+      "complete_answers": 0,
+      "complete_usage_observed": false,
+      "inference_cost_claim": "unknown; all raw streams also contain turn.started after the warnings, so no no-inference or zero-cost claim is made",
+      "scope": "Only the exact three observed stdout startup-warning messages with maximum multiplicities 2,1,1. Existing parser still requires item.completed/error/id/message after thread.started and before turn.started. Unknown, excess, malformed, after-turn warnings and tool events continue to reject. Task/model/representation/score/budgets/provider identity/usage admission are unchanged. Publish a new exact registration before retry; preserve the original failed run.",
+      "raw_fixture": "benchmarks/hia_agent_maintenance/registration-history/03c82052-attempt01-startup.stdout.jsonl",
+      "raw_fixture_sha256": "006bf62e8d9d462fcb419ee49a53212ef77ce038e466775bc8bc6f1dd4e95f63",
+      "unchanged_protocol_fields_sha256": "846981cff1b157b3570fb66ed1451df10289160bac9df727cfd96c10c9a62a3d"
+    }
+  ],
   "max_model_responses_per_cell": 8,
   "hidden_policy": "Fresh deterministic hidden cases and independent oracles never enter model prompts or feedback. One terminal hidden evaluation follows final public acceptance. Failed hidden checks cannot cause retry or prompt adjustment.",
   "resource_policy": "returned_view_byte requires actual VM allocation, matching owner/index/value store and read, release of that owner and zero live owners/loans on each selected case; static opcode presence is insufficient",
