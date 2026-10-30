@@ -260,7 +260,7 @@ class C2HeptaImport(unittest.TestCase):
                 )
                 fake_clang.chmod(0o700)
                 result = migrate(self.src, self.out, self.report, clang=str(fake_clang))
-                self.assertEqual(result["status"], "rejected", result)
+                self.assertEqual(result["status"], "rejected", result.get("reason", ""))
                 self.assertFalse(marker.exists(), "unbounded Clang preflight was allowed to finish")
                 self.assertFalse(self.out.exists())
                 self.assertTrue(self.report.exists())
