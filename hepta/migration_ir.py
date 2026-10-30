@@ -143,6 +143,8 @@ def _check_structure_budget(function: Function) -> None:
                 or not all(_bounded_text(field) for field in parameter)):
             raise IRValidationError("invalid migration IR parameter structure")
 
+    if any(type(node) is not Stmt for node in function.body):
+        raise IRValidationError("invalid migration IR function statement types")
     pending: list[tuple[Expr | Stmt, int]] = [(node, 1) for node in function.body]
     if len(pending) > _MAX_IR_NODES:
         raise IRValidationError("migration IR node budget exceeded")
@@ -155,12 +157,18 @@ def _check_structure_budget(function: Function) -> None:
         if type(node) is Expr:
             if not all(_bounded_text(field) for field in (node.kind, node.ty, node.value)):
                 raise IRValidationError("invalid migration IR expression fields")
+            if type(node.args) is not tuple or any(type(child) is not Expr for child in node.args):
+                raise IRValidationError("invalid migration IR expression child types")
             children = node.args
         elif type(node) is Stmt:
             if not _bounded_text(node.kind):
                 raise IRValidationError("invalid migration IR statement kind")
             if type(node.then_body) is not tuple or type(node.else_body) is not tuple:
                 raise IRValidationError("invalid migration IR statement branches")
+            if (type(node.expr) is not Expr
+                    or any(type(child) is not Stmt for child in node.then_body)
+                    or any(type(child) is not Stmt for child in node.else_body)):
+                raise IRValidationError("invalid migration IR statement child types")
             children = (node.expr,) + node.then_body + node.else_body
         else:
             raise IRValidationError("invalid migration IR tree node")
