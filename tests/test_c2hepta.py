@@ -269,7 +269,7 @@ class C2HeptaImport(unittest.TestCase):
         # An untrusted Clang executable can emit bounded but invalid JSON AST.
         # Neither a non-object root nor extreme nesting may crash migration
         # before a rejection report is published.
-        self.src.write_text("int safe(int x){return x;}\\n", encoding="utf-8")
+        self.src.write_text("int safe(int x){return x;}\n", encoding="utf-8")
         deeply_nested = b'{"inner":[' + (b'[' * 12000) + b'0' + (b']' * 12000) + b']}'
         for label, payload in (
             ("non_object_root", b"[]"),
