@@ -262,20 +262,26 @@ def _run_clang_ast_bounded(command: list[str], source: bytes) -> subprocess.Comp
 def migrate(source: Path, output: Path, report: Path, clang: str = "clang", verify_native: bool = False, rustc: str | None = None) -> dict:
     # Direct callers must get the same destination-identity protection as CLI.
     # Reject before any source, output, or receipt is replaced.
-    # Admit destination paths once. Reuse their canonical spellings for
-    # publication: a caller-controlled parent symlink may be rebound while
-    # Clang is running. This pins path names, not ancestor directory inodes.
-    admitted_output, admitted_report = output.resolve(), report.resolve()
-    if len({source.resolve(), admitted_output, admitted_report}) != 3:
+    # Admit all three physical path spellings once. Both source bytes and
+    # their receipt must bind the same source identity even if a caller's
+    # parent-directory symlink is rebound while Clang is running.
+    # This pins path names, not ancestor directory inodes.
+    admitted_source, admitted_output, admitted_report = (
+        source.resolve(), output.resolve(), report.resolve())
+    if len({admitted_source, admitted_output, admitted_report}) != 3:
         raise ValueError("source, output and report paths must be distinct")
     try:
-        original = _read_source_bounded(source)
+        # Resolving the physical source path must not silently begin accepting
+        # direct input symlinks that O_NOFOLLOW previously rejected.
+        if source.is_symlink():
+            raise UnsupportedC("C input symlink is not accepted")
+        original = _read_source_bounded(admitted_source)
         read_error = None
     except (OSError, UnsupportedC) as exc:
         original = None
         read_error = str(exc)
     digest = hashlib.sha256(original).hexdigest() if original is not None else None
-    info = {"schema": "hepta.c2hepta.v0", "source": str(source.resolve()),
+    info = {"schema": "hepta.c2hepta.v0", "source": str(admitted_source),
             "source_sha256": digest, "status": "rejected", "safety": "not_qualified",
             "functions": [], "frontend_validation": "not_run", "backend_validation": "not_run", "clang": "not_run"}
     converted: list[Function] = []
@@ -368,7 +374,7 @@ def migrate(source: Path, output: Path, report: Path, clang: str = "clang", veri
                     "reason": "malformed Clang AST function node: " + type(exc).__name__})
         if any(item["status"] != "converted" for item in info["functions"]):
             raise UnsupportedC("one or more declarations unsupported; no partial source emitted")
-        if hashlib.sha256(_read_source_bounded(source)).hexdigest() != digest:
+        if hashlib.sha256(_read_source_bounded(admitted_source)).hexdigest() != digest:
             raise UnsupportedC("source changed during conversion")
         emitted = "module c2hepta_generated;\n\n" + "\n\n".join(emit_function(fn) for fn in converted) + "\n"
         # Check syntax/types against the actual Hepta frontend when it is installed.
