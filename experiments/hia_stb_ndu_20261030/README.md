@@ -72,6 +72,17 @@ Required finalization, identity rechecks and post-policy analysis must also fit
 the unchanged 900-second study bound. An overrun during these stages or the
 initial result write keeps every observation and cost but fails qualification.
 
+The first formal run at `f7cc87218a101b4b2c715e3fdd2e9d42a7f7fd8b`
+completed every registered delivery but remained failed because the analysis
+read its own unfinished `measured` ledger entry. That run, its negative
+observations and its actual 145,660 ns failed analysis cost are retained. The
+repair freezes only completed policy costs before entering the measured
+analysis; missing or unknown costs still reject. A bounded projection of the
+actual record exercises the real wrapper and all cost outputs in regression.
+Offline reconstruction is a separate sidecar, never a change to the failed
+run's qualification. Any subsequent formal run is an explicitly identified
+software-defect revalidation with the same inputs, candidate set and protocol.
+
 ```sh
 python tools/qualify_hia_stb_ndu.py --stage qualification \
   --output /absolute/new-qualification --expected-head FULL_COMMIT \

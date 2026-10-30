@@ -115,7 +115,8 @@ def sources(expected_head):
     prefixes = ["hepta", "tools", "tests/fixtures/c_migration/stb_divide",
                 "experiments/hia_stb_ndu_20261030", "rust/hia-ndu-bridge",
                 "tests/test_hia_scalar_call_validation.py", "tests/test_hia_stb_specialization.py",
-                "tests/test_hia_finite_context_map_repeat.py", "tests/test_hia_stb_ndu_protocol.py"]
+                "tests/test_hia_finite_context_map_repeat.py", "tests/test_hia_stb_ndu_protocol.py",
+                "tests/fixtures/hia_stb_ndu"]
     entries = git("ls-tree", "-r", "--full-tree", "-z", head, "--", *prefixes)
     result = {}
     for raw in entries.split(b"\0")[:-1]:
@@ -567,7 +568,7 @@ def qualify(*, output, expected_head, clang, identity_path, stage):
         final_budget(report, p, report["wall_ns_before_analysis_and_final_encoding"])
         if stage == "study" and report["qualified"]:
             try:
-                report["analysis"] = measured("post-policy.analysis", ledger, lambda: analyze(report, p))
+                report["analysis"] = analyze_measured(report, p)
             except BaseException as error:
                 report["analysis_error"] = {"type": type(error).__name__, "message": str(error)}
                 report["qualified"] = False
@@ -584,16 +585,72 @@ def qualify(*, output, expected_head, clang, identity_path, stage):
     return report
 
 
-def analyze(report, p):
+def analyze_measured(report, p):
+    # measured() appends its own running row before calling the operation.
+    # Capture the CLOSED policy costs first, so analysis never reads its own
+    # unfinished duration. Its actual cost still closes in the full ledger.
+    cost_ledger = tuple(dict(row) for row in report["ledger"])
+    report["analysis_cost_ledger_sha256"] = digest(cost_ledger)
+    return measured("post-policy.analysis", report["ledger"],
+                    lambda: analyze(report, p, cost_ledger=cost_ledger))
+
+
+def analyze(report, p, *, cost_ledger):
     episodes = report["episodes"]
     require(len(episodes) == p["expected_policy_episodes"] + p["expected_baseline_episodes"]
             and all(r["complete"] for r in episodes), "complete registered episode denominator required")
+    expected_episodes = {(group, arm) for group in range(p["groups"]) for arm in (*ARMS, "baseline-only")}
+    require({(row["group"], row["arm"]) for row in episodes} == expected_episodes,
+            "every registered group/arm must occur exactly once")
+    for row in episodes:
+        require(type(row["group"]) is int and len(row["observations"]) == len(p["trace"])
+                and type(row["wall_ns"]) is int and 0 <= row["wall_ns"] <= p["episode_budget_ns"],
+                "episode delivery or complete wall denominator differs")
+        for index, observed in enumerate(row["observations"]):
+            require(observed["epoch"] == index and observed["parameter"] == p["trace"][index]
+                    and observed["target"] in LABELS and observed["status"] == "completed"
+                    and type(observed["calls"]) is int and observed["calls"] == p["calls_per_request"]
+                    and type(observed["delivery_ns"]) is int and 0 <= observed["delivery_ns"] <= row["wall_ns"],
+                    "registered delivery identity, count or actual cost differs")
+    calibration = report["calibration"]["rows"]
+    require(len(calibration) == p["expected_calibration_deliveries"]
+            and {(row["repetition"], row["parameter"], row["target"]) for row in calibration} == {
+                (repeat, parameter, label) for repeat in range(p["calibration_repetitions"])
+                for parameter in p["parameters"] for label in LABELS}
+            and all(row["status"] == "completed" and type(row["calls"]) is int
+                    and row["calls"] == p["calls_per_request"] for row in calibration),
+            "complete candidate/parameter calibration denominator required")
     require(sum(sum(x["calls"] for x in r["observations"]) for r in episodes)
-            + sum(x["calls"] for x in report["calibration"]["rows"]) == p["expected_actual_kernel_calls"],
+            + sum(x["calls"] for x in calibration) == p["expected_actual_kernel_calls"],
             "actual work denominator differs")
-    costs = {}
-    for row in report["ledger"]:
+    costs, counts, previous_end = {}, {}, None
+    for row in cost_ledger:
+        require(type(row.get("label")) is str and row["label"] != "post-policy.analysis"
+                and row.get("status") == "completed"
+                and all(type(row.get(key)) is int and row[key] >= 0
+                        for key in ("started_monotonic_ns", "wall_ns", "parent_cpu_ns", "child_cpu_ns")),
+                "policy cost snapshot must contain only closed, known nonnegative measured stages")
+        require(previous_end is None or row["started_monotonic_ns"] >= previous_end,
+                "policy cost stages overlap or are out of order")
+        previous_end = row["started_monotonic_ns"] + row["wall_ns"]
         costs[row["label"]] = costs.get(row["label"], 0) + row["wall_ns"]
+        counts[row["label"]] = counts.get(row["label"], 0) + 1
+    required_once = ("source.before", "solver.before", "frontend_libraries.before", "source.capture_and_bridge",
+        "candidate.generate", "candidate.prepare_bank", "candidate.distinct_code", "input.construct",
+        "reference.prepare", "calibration", "baseline.prepare_bank", "baseline.reference", "bank.close",
+        "baseline_bank.close", "source_after", "tools_after", "solver_after", "frontend_libraries_after")
+    require(all(counts.get(label) == 1 for label in required_once)
+            and all(counts.get("episode." + arm) == p["groups"] for arm in (*ARMS, "baseline-only")),
+            "required preparation, episode or finalization cost stage missing or duplicated")
+    episode_costs = [row for row in cost_ledger if row["label"].startswith("episode.")]
+    require(len(episode_costs) == len(episodes) and all(
+        cost["label"] == "episode." + row["arm"] and cost["wall_ns"] >= row["wall_ns"]
+        for cost, row in zip(episode_costs, episodes)), "episode costs do not match their actual execution order")
+    require(type(report["wall_ns_before_analysis_and_final_encoding"]) is int
+            and sum(costs.values()) <= report["wall_ns_before_analysis_and_final_encoding"],
+            "closed measured stages exceed the complete pre-analysis wall")
+    require(type(report["historical_native_build_ns"]) is int and report["historical_native_build_ns"] > 0,
+            "known actual native build allocation required")
     baseline_specific = sum(costs.get(k, 0) for k in ("baseline.prepare_bank", "baseline.reference", "baseline_bank.close"))
     search_specific = sum(costs.get(k, 0) for k in ("candidate.generate", "candidate.prepare_bank", "candidate.distinct_code",
                                                   "reference.prepare", "calibration", "bank.close"))
@@ -608,6 +665,9 @@ def analyze(report, p):
     audit = []
     for row in episodes:
         if row["arm"] == "native-ndu":
+            require(len(row["decisions"]) == len(p["trace"])
+                    and [decision["epoch"] for decision in row["decisions"]] == list(range(len(p["trace"]))),
+                    "complete native decision denominator required")
             for decision in row["decisions"]:
                 expected = light_dp(decision["model"])
                 audit.append({"group": row["group"], "epoch": decision["epoch"],
@@ -615,6 +675,7 @@ def analyze(report, p):
                     "same_choice": decision["chosen"] == expected,
                     "modeled_regret_ns": None if expected is None else decision["chosen"]["cost_ns"] - expected["cost_ns"]})
     return {"standalone_measured_ns": totals, "baseline_only_standalone_ns": baseline,
+        "closed_policy_cost_ledger_sha256": digest(cost_ledger),
         "common_charged_once_per_arm_ns": common, "complete_search_preparation_ns": search_specific,
         "baseline_only_preparation_ns": baseline_specific, "native_build_inclusive_ns": native_cold,
         "historical_native_build_allocation_ns": report["historical_native_build_ns"],
