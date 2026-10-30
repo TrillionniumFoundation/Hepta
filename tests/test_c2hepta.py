@@ -62,6 +62,37 @@ class HsirSafety(unittest.TestCase):
         self.assertIn('export "C" fn safe_add(', emit_function(valid))
 
 
+    def test_direct_ir_rejects_str_subclass_format_spoofing(self):
+        # str subclasses pass regex/type-set checks using their underlying
+        # bytes, but f-string emission invokes attacker-controlled __format__.
+        # The JSON hasher instead serializes the harmless base str value.
+        class FormatSpoof(str):
+            def __format__(self, format_spec):
+                return "INJECTED_SOURCE_MARKER"
+
+        literal = (Stmt("return", Expr("literal", "i32", "1")),)
+        cases = (
+            ("function", Function(FormatSpoof("safe"), (), "i32", literal)),
+            ("result", Function("safe", (), FormatSpoof("i32"), literal)),
+            ("parameter", Function("safe", ((FormatSpoof("x"), "i32"),),
+                                   "i32", (Stmt("return", Expr("var", "i32", "x")),))),
+            ("expression_type", Function("safe", (), "i32",
+                (Stmt("return", Expr("literal", FormatSpoof("i32"), "1")),))),
+            ("literal", Function("safe", (), "i32",
+                (Stmt("return", Expr("literal", "i32", FormatSpoof("1"))),))),
+        )
+        for case, function in cases:
+            for entry in (check_function, emit_function, function_hash):
+                with self.subTest(case=case, entry=entry.__name__):
+                    with self.assertRaises(IRValidationError):
+                        entry(function)
+
+        ordinary = Function("safe", (), "i32", literal)
+        self.assertEqual(check_function(ordinary), frozenset())
+        self.assertIn('export "C" fn safe(', emit_function(ordinary))
+        self.assertEqual(len(function_hash(ordinary)), 64)
+
+
     def test_direct_ir_untrusted_field_shapes_and_resource_budgets(self):
         # Direct IR callers must never leak raw Python shape/type errors or
         # serialize unbounded symbol/parameter data before reject-by-contract.

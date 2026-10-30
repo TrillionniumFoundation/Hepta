@@ -20,7 +20,9 @@ _MAX_IR_PARAMS = 64
 
 
 def _bounded_text(value: object) -> bool:
-    return isinstance(value, str) and len(value) <= _MAX_IR_TEXT_CHARS
+    # Exact built-in strings only: a str subclass may override __format__ and
+    # emit different code than the bytes checked or hashed by the IR validator.
+    return type(value) is str and len(value) <= _MAX_IR_TEXT_CHARS
 _RESERVED = frozenset({
     "module", "import", "fn", "pub", "extern", "export", "effects", "resources",
     "as", "let", "mut", "take", "move", "read", "unsafe", "struct", "enum",
