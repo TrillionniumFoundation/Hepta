@@ -154,6 +154,10 @@ CRITICAL_MODULES = {
     "captured_c_actual_native_targets": ("test_hia_c_posttest_hosts",),
     "bounded_native_execution_context": ("test_hia_finite_context", "test_clang_capture_environment"),
     "crc_static_control_cost_accounting": ("test_hia_crc_context_study",),
+    "independent_rust_structural_bounds": ("test_hia_rust_static_budget",),
+    "captured_original_musl_postfix": ("test_c_postfix_if",),
+    "bounded_oracle_reuse_and_diverse_cost_protocol": ("test_hia_finite_context_oracle_reuse",
+                                                     "test_hia_crc_context_reuse_study"),
 }
 
 
