@@ -1,0 +1,168 @@
+{
+  "admission": "same finite scalar admission for all semantic programs; compact syntax translates exact primitive Core and then uses the unchanged whole-program patch/source gate; acyclic HIA <=16 blocks and <=128 operations per function; no extra functions/resources; sealed native CPU2s AS256MiB wall5s",
+  "attempts_per_cell": 2,
+  "cache_prompt": false,
+  "cell_order": "rotate [hia,assembly,rust] by (task_index+model_index) mod 3 for each listed task",
+  "cells_per_family": 12,
+  "cohort_integrity": "exact unique task/stratum/arm/model descriptors and complete boundary identity costs; missing cost is null; cohort rebinds model/source/tools/runtime/registration and recomputes gates from retained cells",
+  "context_condition": "full two-file workspace in all three arms; JSON HIA and compact HIA have byte-identical canonical starting Core; no query/context advantage",
+  "context_tokens": 8192,
+  "costs": [
+    "all inference requests and responses",
+    "all failed submissions",
+    "validated input/output token IDs and unknown timeout usage",
+    "request wall time",
+    "compilation/public/hidden validation",
+    "automatic repair count",
+    "model hash/startup/shutdown and process restart",
+    "reference controls",
+    "whole model process and cohort",
+    "model download",
+    "archive creation",
+    "compact source parsing and verification",
+    "runtime archive download/extraction",
+    "frozen source preparation"
+  ],
+  "feedback": "one compile/Core-check diagnostic plus three actual public cases, provider observations and expected public values; no manual repair",
+  "gates": {
+    "cross_family": "both fixed model families pass the same stratum; no model/task swapping or exclusions after outputs",
+    "interpretation": "finite descriptive pilot; not population statistical superiority, general language superiority, or complete economic-cost accounting",
+    "per_family_per_stratum": "all paired cells attempted and complete usage; compact HIA succeeds in both tasks; compact HIA successes >= Rust; compact HIA total tokens <= Rust; submissions <= Rust; complete compilation/public/hidden/identity validation ns <= Rust",
+    "representation_contribution": "same descriptive gate comparing compact HIA against byte-identical-Core JSON HIA; reported separately from Rust comparison"
+  },
+  "greedy": true,
+  "hidden": {
+    "boundary_a": [
+      0,
+      1,
+      2,
+      31,
+      65535,
+      65536,
+      2147483647,
+      4294967295
+    ],
+    "boundary_b": [
+      0,
+      1,
+      2,
+      7,
+      65535,
+      4294967295
+    ],
+    "boundary_c": [
+      0,
+      255,
+      257,
+      4294967295
+    ],
+    "counts": {
+      "average_floor_stamp": 255,
+      "clamped_delta_bias": 254,
+      "floor_multiple_v2": 256,
+      "stride_span_v2": 254
+    },
+    "feedback": "never supplied to inference; execute once after first public pass; hidden failure terminal",
+    "lcg_increment": 12345,
+    "lcg_modulus": 4294967296,
+    "lcg_multiplier": 1103515245,
+    "lcg_seed": 1800022483,
+    "order": "one state across tasks; three draws per case; remove duplicate/public cases",
+    "random_cases_per_task": 64
+  },
+  "information_matching": "same mathematical requirement, original program semantics, provider obligations, public cases, hidden oracle, tool access and per-attempt budgets; representation-specific syntax instructions charged in actual token usage",
+  "infrastructure_policy": "source/model/runtime/tool drift or native infrastructure failure invalidates the observation and halts; no substituted identity or retest-to-pass",
+  "languages": [
+    "hia",
+    "assembly",
+    "rust"
+  ],
+  "manual_labor_time_ns": null,
+  "manual_repair_count": 0,
+  "max_output_tokens": 2048,
+  "model_order": [
+    "qwen_coder1_5b",
+    "granite2b"
+  ],
+  "models": [
+    {
+      "bytes": 1117320768,
+      "family": "Qwen2.5-Coder",
+      "filename": "qwen2.5-coder-1.5b-instruct-q4_k_m.gguf",
+      "id": "qwen_coder1_5b",
+      "parameters_label": "1.5B",
+      "provenance": "official repository metadata captured before inference; different model size from previous 7B trial",
+      "repository": "Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF",
+      "revision": "f86cb2c1fa58255f8052cc32aeede1b7482d4361",
+      "sha256": "cc324af070c2ecbfd324a30884d2f951a7ff756aba85cb811a6ec436933bb046"
+    },
+    {
+      "bytes": 1545303328,
+      "family": "IBM-Granite3.3",
+      "filename": "granite-3.3-2b-instruct-Q4_K_M.gguf",
+      "id": "granite2b",
+      "parameters_label": "2B",
+      "provenance": "same fixed official bytes retained from prior trial; new tasks and protocol",
+      "repository": "ibm-granite/granite-3.3-2b-instruct-GGUF",
+      "revision": "7cdf86ccd1f1bb3491c9b7017b033f2e51367397",
+      "sha256": "ac71e9e32c0bea919b409c5918f69ca74339854b0319c5065e4e9fb6d95c4852"
+    }
+  ],
+  "parent_evidence_commit": "0e1f5dd9bf0f54c492d96bd5dd1ae52e8c804997",
+  "pre_registration_hostile_native_controls": 9,
+  "profile_correction": "Rust prompt enumerates the actual closed method whitelist; old v3 prompt/observations remain frozen",
+  "provider_obligations": "the submitted provider must independently return the required value, consumer must invoke it once with original a,b; Rust trusted native wrapper counter and direct native call; HIA actual same-Core VM trace plus separate native entrypoint, not a native HIA counter",
+  "public_cases_per_task": 3,
+  "reference_controls_are_model_answers": false,
+  "reference_controls_per_family": 36,
+  "registered_before_any_new_model_response": true,
+  "request_wall_scope": "hard elapsed 180s for the entire generate call, including template/tokenization, request/response I/O and decoder validation; Linux main-thread SIGALRM, no existing timer or blocked signal; socket timeout alone is insufficient",
+  "request_wall_seconds": 180,
+  "response": "strict common files object; HIA JSON function objects; compact HIA and Rust complete source strings; exact filenames/content types only in output grammar; no reference operations/answers supplied",
+  "runtime": {
+    "archive": "llama-b11669-bin-ubuntu-x64.tar.gz",
+    "bytes": 17851611,
+    "release": "b11669",
+    "repository": "ggml-org/llama.cpp",
+    "sha256": "cf07c1c112d709bd67e522017471de57ed0ec8bea031d732c5422351c07f65ac"
+  },
+  "runtime_environment": {
+    "LLAMA_ARG_REPACK": "0"
+  },
+  "schema": "hepta.agent.assembly-maintenance-upgrade.protocol.v4",
+  "scope_limits": [
+    "two small quantized model families",
+    "full-context two-file arithmetic tasks",
+    "no query-vs-full comparison",
+    "no large project or external caller corpus",
+    "no general OS sandbox",
+    "compiler/linker/OS/hardware remain trusted",
+    "complete implicit system-library dependency closure not claimed",
+    "previous experiments are immutable and not rescored",
+    "compact assembly is deterministic syntax, not an optimizer or safety proof",
+    "two task-specific full function files are jointly checked under an explicit immutable manifest",
+    "byte length is not token usage",
+    "new outcomes do not rescore previous model responses"
+  ],
+  "seed": 0,
+  "strata": {
+    "maintenance": [
+      "average_floor_stamp",
+      "clamped_delta_bias"
+    ],
+    "upgrade": [
+      "stride_span_v2",
+      "floor_multiple_v2"
+    ]
+  },
+  "task_origin": "four new finite mathematical maintenance/upgrade tasks and new hidden seed; explicitly follows old negative diagnosis; no unseen project-population claim",
+  "tasks": [
+    "average_floor_stamp",
+    "clamped_delta_bias",
+    "stride_span_v2",
+    "floor_multiple_v2"
+  ],
+  "threads": 4,
+  "timeout_policy": "timeout terminates that cell without an extra submission; retain raw partial evidence and unknown output usage; close and identity-check the owned server, start a new owned server before the next distinct cell; no suffix abort from a single transport timeout",
+  "tool_development_time_ns": null
+}

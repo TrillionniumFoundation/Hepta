@@ -95,10 +95,12 @@ def supports_feature(schema: str, feature: str) -> bool:
 
 def schema_registry() -> dict:
     """Detached machine-readable compatibility metadata for tools and agents."""
+    from .hia_opcodes import opcode_catalog
     return {
         "schema": "hepta.hia.schema-registry.v1",
         "canonical_core_schema": CANONICAL_CORE_SCHEMA,
         "latest_core_schema": LATEST_CORE_SCHEMA,
+        "instruction_catalog": opcode_catalog(),
         "primitive": [
             {"schema": schema, "profile": profile,
              "features": sorted(PRIMITIVE_FEATURES[schema])}

@@ -1,0 +1,182 @@
+{
+  "passed": true,
+  "records": [
+    {
+      "actual": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cgroup": {
+          "cpu_quota_fraction": null,
+          "levels": [
+            {
+              "controllers": [],
+              "cpu.max": "root-unlimited",
+              "cpu.max_missing_reason": "visible_hierarchy_root_has_no_limit_interface",
+              "memory.current": null,
+              "memory.max": "root-unlimited",
+              "memory.max_missing_reason": "visible_hierarchy_root_has_no_limit_interface",
+              "parent_subtree_control": null,
+              "path": "/sys/fs/cgroup"
+            }
+          ],
+          "membership": "/",
+          "memory_headroom_bytes": null,
+          "memory_limit_state": "no_visible_finite_limit",
+          "mount_point": "/sys/fs/cgroup",
+          "mount_root": "/",
+          "version": 2
+        },
+        "cgroup_membership_text": "0::/\n",
+        "cpu_count": 8,
+        "effective_cpus": 8.0,
+        "eligible": true,
+        "errors": [],
+        "host_memory_bytes": {
+          "MemAvailable": 8589934592,
+          "MemTotal": 17179869184
+        },
+        "machine": "x86_64",
+        "minimum_effective_cpus": 4,
+        "minimum_free_bytes": 4294967296,
+        "system": "Linux"
+      },
+      "case": "unified_unbounded_root",
+      "expected_eligible": true,
+      "passed": true
+    },
+    {
+      "actual": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cgroup_membership_text": "5:cpu,cpuacct:/limited\n4:memory:/limited\n0::/\n",
+        "cpu_count": 8,
+        "eligible": false,
+        "errors": [
+          "ValueError: hybrid or cgroup-v1 membership is unsupported"
+        ],
+        "host_memory_bytes": {
+          "MemAvailable": 8589934592,
+          "MemTotal": 17179869184
+        },
+        "machine": "x86_64",
+        "minimum_effective_cpus": 4,
+        "minimum_free_bytes": 4294967296,
+        "system": "Linux"
+      },
+      "case": "hybrid_v1_cpu_memory_must_refuse",
+      "expected_eligible": false,
+      "passed": true
+    },
+    {
+      "accepted": true,
+      "case": "regular_and_internal_symlink",
+      "expected_accepted": true,
+      "failure": null,
+      "failure_or_success_cost_retained": true,
+      "passed": true,
+      "retained_passed": true
+    },
+    {
+      "accepted": false,
+      "case": "parent_path_refused",
+      "expected_accepted": false,
+      "failure": {
+        "message": "unsafe runtime member path",
+        "type": "ValueError"
+      },
+      "failure_or_success_cost_retained": true,
+      "passed": true,
+      "retained_passed": false
+    },
+    {
+      "accepted": false,
+      "case": "absolute_path_refused",
+      "expected_accepted": false,
+      "failure": {
+        "message": "unsafe runtime member path",
+        "type": "ValueError"
+      },
+      "failure_or_success_cost_retained": true,
+      "passed": true,
+      "retained_passed": false
+    },
+    {
+      "accepted": false,
+      "case": "escaping_symlink_refused",
+      "expected_accepted": false,
+      "failure": {
+        "message": "'bin/libx.so' would link to '/tmp/hepta-recovery-review-qqy37hnz/outside', which is outside the destination",
+        "type": "LinkOutsideDestinationError"
+      },
+      "failure_or_success_cost_retained": true,
+      "passed": true,
+      "retained_passed": false
+    },
+    {
+      "accepted": false,
+      "case": "duplicate_normalized_path_refused",
+      "expected_accepted": false,
+      "failure": {
+        "message": "duplicate runtime member path",
+        "type": "ValueError"
+      },
+      "failure_or_success_cost_retained": true,
+      "passed": true,
+      "retained_passed": false
+    },
+    {
+      "accepted": false,
+      "case": "special_device_refused",
+      "expected_accepted": false,
+      "failure": {
+        "message": "special runtime archive member is forbidden",
+        "type": "ValueError"
+      },
+      "failure_or_success_cost_retained": true,
+      "passed": true,
+      "retained_passed": false
+    },
+    {
+      "accepted": false,
+      "case": "member_limit_refused",
+      "expected_accepted": false,
+      "failure": {
+        "message": "runtime member-count bound exceeded",
+        "type": "ValueError"
+      },
+      "failure_or_success_cost_retained": true,
+      "passed": true,
+      "retained_passed": false
+    }
+  ],
+  "schema": "hepta.agent.recovery.bounded-io-review.v1",
+  "scope": {
+    "actual_downloads": 0,
+    "member_limit_refusal_does_not_prove_early_iteration_bound": true,
+    "model_calls": 0,
+    "native_program_runs": 0,
+    "performance_measurement": false,
+    "synthetic_small_archives_only": true
+  },
+  "sources": {
+    "resource_gate.py": "921d579c8a9be97fa114b5cb68d1d00d0e6ff46ce054695cecb62c2d87acc0a6",
+    "run_recovery.py": "3f5b7c4ae3468b7358ffbe21e806ff9c3ab19f781ba0aac3a6c6eb4fec9e2444"
+  },
+  "sources_unchanged_during_review": true
+}

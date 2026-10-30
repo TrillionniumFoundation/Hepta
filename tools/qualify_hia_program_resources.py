@@ -31,7 +31,7 @@ REPORT_SCHEMA = "hepta.hia.resource-qualification.v1"
 SOURCE_FIXTURE = "examples/cpp/owned_migration/expected.hepta"
 TEST_MODULES = ("tests.test_hia_program", "tests.test_hia_program_tools",
                 "tests.test_hia_program_llvm")
-INPUT_FILES = ("hepta/hia_program.py", "hepta/hia_program_runtime.py",
+INPUT_FILES = ("hepta/hia_program.py", "hepta/hia_opcodes.py", "hepta/hia_program_runtime.py",
                "hepta/hia_program_source.py", "hepta/hia_program_llvm.py",
                "hepta/hia_program_tools.py", "hepta/core.py",
                "tests/test_hia_program.py", "tests/test_hia_program_tools.py",

@@ -68,15 +68,17 @@ def source_bindings():
             if path.is_file()}
 
 
-def qualify(directory, *, clangxx="clang++", clang="clang", cc="gcc"):
+def _qualify(directory, *, clangxx, clang, cc, example, translate_matrix,
+             vectors_for_variant, bindings_for_run, schema, extra_claims=None,
+             extra_native_controls=None):
     work = Path(directory).absolute()
     if work.exists():
         raise ValueError("A new project qualification directory is required")
     work.mkdir(parents=True)
     begin = time.perf_counter_ns()
     start = compiler_hash()
-    bound_sources = source_bindings()
-    report = {"schema": "hepta.cpp-unique-project-native-qualification.v1", "ok": False,
+    bound_sources = bindings_for_run()
+    report = {"schema": schema, "ok": False,
               "compiler_sha256": start, "source_bindings": bound_sources,
               "variants": [], "negative_controls": {},
               "costs": {"migration_wall_ns": None, "qualification_wall_ns": None,
@@ -84,12 +86,12 @@ def qualify(directory, *, clangxx="clang++", clang="clang", cc="gcc"):
               "claims": {"original_cpp_objects_in_target": False, "scalar_c_abi_preserved": True,
                          "cpp_class_or_mangled_abi_preserved": False, "all_builds_in_declared_matrix_executed": False,
                          "general_cpp_ownership_supported": False, "source_equivalence_formally_proved": False,
-                         "performance_qualified": False}}
+                         "performance_qualified": False, **(extra_claims or {})}}
     try:
         project = work / "project"
-        shutil.copytree(EXAMPLE, project)
+        shutil.copytree(example, project)
         migration_start = time.perf_counter_ns()
-        migrated = lower_unique_matrix(project / "matrix.json", clangxx=clangxx)
+        migrated = translate_matrix(project / "matrix.json", clangxx=clangxx)
         report["costs"]["migration_wall_ns"] = time.perf_counter_ns() - migration_start
         report["capture"] = migrated["capture"]
         report["project_inputs"] = {path.name: _identity(path) for path in project.iterdir() if path.is_file()}
@@ -99,7 +101,7 @@ def qualify(directory, *, clangxx="clang++", clang="clang", cc="gcc"):
             row = {"name": name, "migration": {key: value for key, value in variant.items() if key != "program"},
                    "reference": {"commands": []}, "standalone_hia": {"original_cpp_link_inputs": [], "commands": []}}
             report["variants"].append(row)
-            vectors = cases(name); expected = observation_oracle(vectors)
+            vectors = vectors_for_variant(name); expected = observation_oracle(vectors)
             row.update(case_count=len(vectors), expected=expected, families=dict(Counter(v["family"] for v in vectors)))
             (target / "cases.json").write_text(json.dumps(vectors, indent=2) + "\n")
             (target / "cases.h").write_text(case_sources(vectors)[0])
@@ -163,9 +165,12 @@ def qualify(directory, *, clangxx="clang++", clang="clang", cc="gcc"):
                 require(not refused_path.exists(), "Unsafe target was partially published")
             else:
                 raise ValueError("Missing linear owner drop was accepted")
+            if extra_native_controls is not None:
+                report["negative_controls"].update(extra_native_controls(
+                    name=name, target=target, source=source, clang=clang, cc=cc))
         report["claims"]["all_builds_in_declared_matrix_executed"] = True
         require(compiler_hash() == start, "Compiler changed during project qualification")
-        require(source_bindings() == bound_sources, "Qualifier, migration adapter or declared project changed during qualification")
+        require(bindings_for_run() == bound_sources, "Qualifier, migration adapter or declared project changed during qualification")
         report["source_bindings_unchanged"] = True
         report["ok"] = True
     except Exception as error:
@@ -175,6 +180,13 @@ def qualify(directory, *, clangxx="clang++", clang="clang", cc="gcc"):
                             child_max_peak_rss_kib=resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss)
     (work / "qualification.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
     return report
+
+
+def qualify(directory, *, clangxx="clang++", clang="clang", cc="gcc"):
+    return _qualify(directory, clangxx=clangxx, clang=clang, cc=cc, example=EXAMPLE,
+                    translate_matrix=lower_unique_matrix, vectors_for_variant=cases,
+                    bindings_for_run=source_bindings,
+                    schema="hepta.cpp-unique-project-native-qualification.v1")
 
 
 def main():

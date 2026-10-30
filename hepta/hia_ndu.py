@@ -97,7 +97,7 @@ def finite_plan_request(*, objective_digest: str, snapshot_digest: str, generati
                         transitions: list[dict[str, Any]], batch_costs_ns: dict[str, list[int]],
                         remaining_budget_ns: int, completion_value_ns: int,
                         decision_cost_ns: int, observations: list[dict[str, Any]],
-                        max_paths: int = 127) -> dict[str, Any]:
+                        max_paths: int = 127, search: str = "enumerate") -> dict[str, Any]:
     """Enumerate an explicitly bounded graph and ask native NDU to rank paths.
 
     Each state binds a source and upstream verification digest. Each transition
@@ -106,6 +106,11 @@ def finite_plan_request(*, objective_digest: str, snapshot_digest: str, generati
     charged again against literal abstention. A stop path closes optimization
     while still delivering every remaining batch. Other paths execute only their
     first action before the caller measures and replans.
+
+    ``search="dynamic-frontier"`` uses the exact, profile-specific compression
+    in :mod:`hepta.hia_planning` before sending genuine paths to native NDU. It
+    retains every best feasible path for each first action, including all ties;
+    it rejects if that complete witness set still exceeds the wire capacity.
 
     This is enumeration/transport, not proof verification or a learned cost
     model. The caller must independently verify any chosen code before loading
@@ -143,6 +148,8 @@ def finite_plan_request(*, objective_digest: str, snapshot_digest: str, generati
     bounded_int(remaining_budget_ns, "remaining budget")
     bounded_int(completion_value_ns, "completion value")
     bounded_int(decision_cost_ns, "future decision cost")
+    if type(search) is not str or search not in {"enumerate", "dynamic-frontier", "dynamic-light"}:
+        fail("unsupported finite-graph search strategy")
     if type(max_paths) is not int or not 1 <= max_paths <= 127:
         fail("max_paths must reserve one native slot for abstention")
     stable_id(initial_state)
@@ -250,7 +257,28 @@ def finite_plan_request(*, objective_digest: str, snapshot_digest: str, generati
                       "verification_sha256": edge["verification_sha256"]}
             walk(edge["target"], batch + 1, prefix + [action])
 
-    walk(initial_state, 0, [])
+    search_evidence = None
+    if search == "enumerate":
+        walk(initial_state, 0, [])
+    else:
+        from .hia_planning import _compact_finite_actions
+        actions, search_evidence = _compact_finite_actions(
+            graph, remaining_budget_ns, max_paths=max_paths)
+        for path in actions:
+            add(path)
+        support["candidate_search"] = search_evidence
+        encoded_support = json.dumps(support, sort_keys=True, separators=(",", ":"),
+                                     allow_nan=False).encode()
+        if len(encoded_support) > MAX_REQUEST_BYTES:
+            fail("complete search evidence exceeds 1 MiB")
+        support_digest = hashlib.sha256(encoded_support).hexdigest()
+    if search == "dynamic-light":
+        from .hia_planning import _exact_plan_advice
+        return {"plans": plans, "support_evidence": support, "graph_sha256": sha(graph),
+                "enumeration_complete": False, "search_complete": True, "search": search,
+                "search_evidence": search_evidence,
+                "advice": _exact_plan_advice(plans, completion_value_ns),
+                "native_evaluation": False, "authority": "DENY_ALL", "safety_certificate": False}
     candidates = []
     for plan in plans.values():
         events = []
@@ -273,7 +301,8 @@ def finite_plan_request(*, objective_digest: str, snapshot_digest: str, generati
                "risk_unit": "probability", "risk_ceiling_q32": Q32,
                "resource_budget_q32": remaining_budget_ns * Q32 // 1000, "candidates": candidates}
     return {"request": request, "plans": plans, "support_evidence": support,
-            "graph_sha256": sha(graph), "enumeration_complete": True,
+            "graph_sha256": sha(graph), "enumeration_complete": search == "enumerate",
+            "search_complete": True, "search": search, "search_evidence": search_evidence,
             "authority": "DENY_ALL", "safety_certificate": False}
 
 

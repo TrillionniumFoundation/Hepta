@@ -48,7 +48,7 @@ PROTOCOL = {
     "timing_decides_admission": False, "global_optimality_established": False,
 }
 INPUTS = (
-    "hepta/hia_x86_search.py", "hepta/hia_translation_validation.py", "hepta/hia_program.py",
+    "hepta/hia_x86_search.py", "hepta/hia_translation_validation.py", "hepta/hia_program.py", "hepta/hia_opcodes.py",
     "hepta/hia_program_runtime.py", "hepta/hia_program_llvm.py", "hepta/elf_shared_abi.py",
     "hepta/artifact_publication.py", "hepta/clang_capture.py", "hepta/native_tool_identity.py",
     "tools/qualify_hia_ndu_search.py", "tools/qualify_hia_x86_search.py",

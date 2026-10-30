@@ -1,0 +1,61 @@
+{
+  "schema": "hepta.ci.late-verified-observation.v1",
+  "observed_utc": "2026-10-30T10:15:05.594411+00:00",
+  "head_sha": "000acac3c357430ca062957ba288756a8d89e147",
+  "run_id": 41036215329,
+  "job_id": 123997569156,
+  "url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/41036215329/job/123997569156",
+  "conclusion": "failure",
+  "native_planning": {
+    "schema": "hepta.native-planning.ci.v1",
+    "modules": [
+      "tests.test_hia_planning",
+      "tests.test_hia_planning_boundaries"
+    ],
+    "expected_tests": 20,
+    "tests_run": 20,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "expected_failures": 0,
+    "passed": true
+  },
+  "regression": {
+    "tests": 1117,
+    "failures": 0,
+    "errors": 0,
+    "skipped": [
+      [
+        "test_all_eight_arms_execute_and_keep_sealed_artifacts_and_resource_gates (tests.test_hia_ndu_convergence.ConvergedNativeGraphTests.test_all_eight_arms_execute_and_keep_sealed_artifacts_and_resource_gates)",
+        "requires actual stream identity, Clang and Z3"
+      ],
+      [
+        "test_native_representations_have_distinct_owned_sessions_and_caches (tests.test_hia_ndu_convergence.ConvergedNativeGraphTests.test_native_representations_have_distinct_owned_sessions_and_caches)",
+        "requires actual stream identity, Clang and Z3"
+      ]
+    ],
+    "passed": false,
+    "elapsed_ns": 1130413556754,
+    "source_unchanged": true
+  },
+  "root_cause": "The workflow exported CLANG but not HEPTA_CLANG; two actual native ConvergedNativeGraphTests require the latter and were skipped. The zero-skip gate refused correctly.",
+  "secondary_failure": "The missing clean worktree at step19 is a cascade after source preparation was skipped; it is not the original cause.",
+  "artifact": {
+    "id": 12969660786,
+    "local_path": "/workspace/scratch/793cbcdf54ed/ci-triage-20261030/hia-verified-000ac.zip",
+    "bytes": 2061325,
+    "sha256": "ba6e182e37928199ee2f69aafc7280aea6ce5f7c1e82073aedc4a075ee549295",
+    "official_digest_verified": true
+  },
+  "raw_job_log": {
+    "path": "/workspace/scratch/793cbcdf54ed/ci-triage-20261030/000ac-verified-job123997569156.log",
+    "sha256": "8cdf77f067d9e4bd346c23970b8bd5da2c175b4dc551973f64981225ebe1e87e"
+  },
+  "frozen_publication_snapshot_not_modified": true,
+  "minimal_fix": {
+    "path": ".github/workflows/hepta-verified-optimization.yml",
+    "change": "Add HEPTA_CLANG: /usr/bin/clang-20 beside the unchanged CLANG entry.",
+    "actual_local_verification": "VERIFIED_ENV_REPAIR.json",
+    "tests_or_zero_skip_gate_weakened": false
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "schema": "hepta.ring-maintenance.protocol.v1",
+  "frozen_before_execution": true,
+  "upstream_repository": "https://github.com/AndersKaloer/Ring-Buffer",
+  "upstream_before": "1468e24fc55986d7c432d1d26115e3b28f985fe0",
+  "upstream_after": "8de8fff55a0baee4fef2a1c6a82d258a27c3c0ba",
+  "upstream_change": "Original upstream PR 17 fixes 0xff versus EOF in examples/tail.c; ringbuffer.c/h and examples/Makefile do not change",
+  "migration": "Actual ringbuffer implementation translation to checked Hepta then Rust C ABI library, with caller-authored existing record/view contracts",
+  "capture_flags": ["-std=c11", "-DNDEBUG", "-funsigned-char", "-O2"],
+  "upstream_build": ["make", "all", "tail"],
+  "build_integration": "Unmodified Makefile and C clients; CC wrapper substitutes the translated implementation library for exactly ringbuffer.c",
+  "differential_seed": 30102026,
+  "differential_steps_per_capacity": 256,
+  "tail_case_seed": 3095731,
+  "tail_random_cases": 64,
+  "concurrency_profiles": [
+    {"name": "one_thread", "threads": 1, "shared": false},
+    {"name": "four_disjoint_records", "threads": 4, "shared": false},
+    {"name": "four_mutex_serialized_threads", "threads": 4, "shared": true}
+  ],
+  "paired_groups": 7,
+  "batches_per_thread": 128,
+  "transactions_per_batch": 128,
+  "timing": "CLOCK_MONOTONIC_RAW wall time for complete 128-transaction batches, including mutex wait for the shared profile",
+  "rss": "Fresh C fork/exec supervisor uses wait4 child ru_maxrss, retaining supervisor and child pre-exec floors",
+  "faults": ["null_record", "misaligned_record", "record_buffer_overlap", "output_buffer_overlap", "input_buffer_overlap", "extent_overflow", "bad_index", "null_storage", "zero_capacity"],
+  "recovery": "Each invalid foreign call executes in its own child; parent waits for SIGABRT and performs a valid roundtrip after each fault",
+  "claims": {
+    "original_upstream_build_executed": false,
+    "real_upstream_upgrade_executed": false,
+    "finite_host_abi_concurrency_and_recovery_observed": false,
+    "standalone_hia_core_abi": false,
+    "source_or_backend_equivalence_proved": false,
+    "all_original_project_code_rewritten": false,
+    "thread_safety_without_caller_synchronization": false,
+    "physical_board_or_device_io": false,
+    "performance_advantage": false,
+    "human_labor_savings": false
+  },
+  "limitations": [
+    "Small existing upstream C project and one actual upstream change, not a production C++ application",
+    "The maintained upstream change is in the original C caller; translated ringbuffer bodies do not change",
+    "Original public header inline helpers may remain inlined in unchanged C clients; dynamic host qualification calls all nine exported migrated functions",
+    "NDEBUG unsigned-char implementation capture is explicit; valid original signed-char C clients are empirically qualified on x86_64 SysV only",
+    "Caller guarantees foreign pointer readability, extent, lifetime, and synchronization",
+    "Separate records or an external pthread mutex; no lock-free shared ownership or race proof",
+    "Shared nonexclusive Linux x86_64 host; descriptive batch-tail and RSS samples, no speedup gate",
+    "No AArch64, RISC-V, GPU, MMIO, DMA, ISR, WCET or physical-device observation",
+    "Machine wall/CPU stages measured; human authoring/review/maintenance hours remain unknown"
+  ]
+}

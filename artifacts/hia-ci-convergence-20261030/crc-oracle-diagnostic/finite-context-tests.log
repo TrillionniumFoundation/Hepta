@@ -1,0 +1,55 @@
+test_real_bank_context_switch_seals_limits_partial_load_and_first_trap_prefix (tests.test_hia_finite_context.FiniteContextNativeTests.test_real_bank_context_switch_seals_limits_partial_load_and_first_trap_prefix) ... ERROR
+test_altered_trace_or_foreign_bank_cannot_launch (tests.test_hia_finite_context.FiniteContextTests.test_altered_trace_or_foreign_bank_cannot_launch) ... ok
+test_bad_canonical_records_do_not_promote_a_forged_completed_prefix (tests.test_hia_finite_context.FiniteContextTests.test_bad_canonical_records_do_not_promote_a_forged_completed_prefix) ... ok
+test_bank_report_edits_are_not_execution_authority (tests.test_hia_finite_context.FiniteContextTests.test_bank_report_edits_are_not_execution_authority) ... ok
+test_cancelled_and_consumed_nonces_still_count_towards_bank_cap (tests.test_hia_finite_context.FiniteContextTests.test_cancelled_and_consumed_nonces_still_count_towards_bank_cap) ... ok
+test_diagnostic_depth_or_allocation_failure_cannot_erase_cleanup_debt (tests.test_hia_finite_context.FiniteContextTests.test_diagnostic_depth_or_allocation_failure_cannot_erase_cleanup_debt) ... ok
+test_exact_request_modes_types_and_total_budget_before_launch (tests.test_hia_finite_context.FiniteContextTests.test_exact_request_modes_types_and_total_budget_before_launch) ... ok
+test_fold_and_xor_fold_are_explicit_immutable_and_bound (tests.test_hia_finite_context.FiniteContextTests.test_fold_and_xor_fold_are_explicit_immutable_and_bound) ... ok
+test_input_snapshot_cancel_and_pending_budget_release (tests.test_hia_finite_context.FiniteContextTests.test_input_snapshot_cancel_and_pending_budget_release) ... ok
+test_integer_oracle_observations_are_exact_fresh_and_need_no_json_roundtrip (tests.test_hia_finite_context.FiniteContextTests.test_integer_oracle_observations_are_exact_fresh_and_need_no_json_roundtrip) ... ok
+test_oracle_still_runs_for_each_step_and_keeps_the_first_trap_prefix (tests.test_hia_finite_context.FiniteContextTests.test_oracle_still_runs_for_each_step_and_keeps_the_first_trap_prefix) ... ok
+test_order_duplicate_trailing_and_changed_limit_events_cannot_pass (tests.test_hia_finite_context.FiniteContextTests.test_order_duplicate_trailing_and_changed_limit_events_cannot_pass) ... ok
+test_owner_cannot_be_copied_or_serialized (tests.test_hia_finite_context.FiniteContextTests.test_owner_cannot_be_copied_or_serialized) ... ok
+test_partial_load_fault_closes_acquired_images_once_in_reverse_order (tests.test_hia_finite_context.FiniteContextTests.test_partial_load_fault_closes_acquired_images_once_in_reverse_order) ... ok
+test_public_factory_requires_actual_source_profile_and_no_receipt_constructor (tests.test_hia_finite_context.FiniteContextTests.test_public_factory_requires_actual_source_profile_and_no_receipt_constructor) ... ok
+test_signal_keeps_completed_prefix_and_poison_prevents_any_replay (tests.test_hia_finite_context.FiniteContextTests.test_signal_keeps_completed_prefix_and_poison_prevents_any_replay) ... ok
+test_static_and_dispatch_plans_load_only_referenced_images (tests.test_hia_finite_context.FiniteContextTests.test_static_and_dispatch_plans_load_only_referenced_images) ... ok
+test_success_consumes_trace_and_requires_exact_whole_context_limits (tests.test_hia_finite_context.FiniteContextTests.test_success_consumes_trace_and_requires_exact_whole_context_limits) ... ok
+test_timeout_output_and_cleanup_failures_keep_raw_prefix_and_no_replay (tests.test_hia_finite_context.FiniteContextTests.test_timeout_output_and_cleanup_failures_keep_raw_prefix_and_no_replay) ... ok
+test_uncertain_child_cleanup_retains_image_pins_after_close (tests.test_hia_finite_context.FiniteContextTests.test_uncertain_child_cleanup_retains_image_pins_after_close) ... ok
+test_uncertain_descriptor_close_retains_debt_and_never_retries_number (tests.test_hia_finite_context.FiniteContextTests.test_uncertain_descriptor_close_retains_debt_and_never_retries_number) ... ok
+test_unknown_or_disproved_translation_cannot_emit_compile_or_execute (tests.test_hia_finite_context.FiniteContextTests.test_unknown_or_disproved_translation_cannot_emit_compile_or_execute) ... ok
+test_unpublished_pin_close_uncertainty_is_retained_and_never_retried (tests.test_hia_finite_context.FiniteContextTests.test_unpublished_pin_close_uncertainty_is_retained_and_never_retried) ... ok
+test_unverified_lowering_cannot_reach_compiler (tests.test_hia_finite_context.FiniteContextTests.test_unverified_lowering_cannot_reach_compiler) ... ok
+
+======================================================================
+ERROR: test_real_bank_context_switch_seals_limits_partial_load_and_first_trap_prefix (tests.test_hia_finite_context.FiniteContextNativeTests.test_real_bank_context_switch_seals_limits_partial_load_and_first_trap_prefix)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/793cbcdf54ed/Hepta/hepta/clang_capture.py", line 267, in run_bounded
+    proc = subprocess.Popen(
+           ^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1026, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1955, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: '/proc/5/fd/7'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/scratch/793cbcdf54ed/Hepta/tests/test_hia_finite_context.py", line 534, in test_real_bank_context_switch_seals_limits_partial_load_and_first_trap_prefix
+    observation = bank.run(trace)
+                  ^^^^^^^^^^^^^^^
+  File "/workspace/scratch/793cbcdf54ed/Hepta/hepta/hia_finite_context.py", line 601, in run
+    result = run_bounded(command, input_text=trace.payload, timeout=WALL_SECONDS,
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/793cbcdf54ed/Hepta/hepta/clang_capture.py", line 274, in run_bounded
+    raise CaptureRejected("E_CAPTURE_EXEC", "Compiler launch failed: " + str(exc)) from exc
+hepta.clang_capture.CaptureRejected: Compiler launch failed: [Errno 2] No such file or directory: '/proc/5/fd/7'
+
+----------------------------------------------------------------------
+Ran 24 tests in 1.764s
+
+FAILED (errors=1)

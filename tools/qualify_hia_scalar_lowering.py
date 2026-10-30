@@ -99,7 +99,7 @@ def _write(path, value):
 
 def _source():
     names = ["hepta/hia_scalar_lowering_check.py", "tools/qualify_hia_scalar_lowering.py",
-             "hepta/hia_program.py", "hepta/hia_program_runtime.py", "hepta/hia_program_llvm.py",
+             "hepta/hia_program.py", "hepta/hia_opcodes.py", "hepta/hia_program_runtime.py", "hepta/hia_program_llvm.py",
              "hepta/hia_optimization.py", "hepta/hia_schema.py"]
     return {name: sha256((ROOT / name).read_bytes()).hexdigest() for name in names}
 

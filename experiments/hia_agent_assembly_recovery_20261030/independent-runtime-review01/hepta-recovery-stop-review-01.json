@@ -1,0 +1,210 @@
+{
+  "cases": [
+    {
+      "command_receipt": {
+        "argv": [
+          "fake-child"
+        ],
+        "automatic_retry": false,
+        "child_maxrss_kib": 768,
+        "child_system_seconds": 0.0,
+        "child_user_seconds": 0.0,
+        "effective_outer_timeout_seconds": 0.25,
+        "maxrss_scope": "cumulative high-water mark of this wrapper's completed children; not a sum",
+        "name": "fake",
+        "owned_pid_and_process_group": 49173,
+        "returncode": 0,
+        "started_unix_ns": 1793328224137895970,
+        "timeout_seconds": 0.25,
+        "wall_ns": 617561
+      },
+      "events": [
+        {
+          "action": "wait",
+          "already_reaped": false,
+          "timeout": 0.25
+        }
+      ],
+      "name": "success",
+      "observed_error": null,
+      "passed": false,
+      "requires_group_cleanup_before_reap_on_every_exit": true,
+      "start_new_session": true
+    },
+    {
+      "command_receipt": {
+        "argv": [
+          "fake-child"
+        ],
+        "automatic_retry": false,
+        "child_maxrss_kib": 768,
+        "child_system_seconds": 0.0,
+        "child_user_seconds": 0.0,
+        "effective_outer_timeout_seconds": 0.25,
+        "error": {
+          "message": "subprocess failed: fake",
+          "type": "RuntimeError"
+        },
+        "maxrss_scope": "cumulative high-water mark of this wrapper's completed children; not a sum",
+        "name": "fake",
+        "owned_group_cleanup": {
+          "direct_owner_exited": true,
+          "group": 49173,
+          "signals_sent": [
+            15,
+            9
+          ],
+          "wall_ns": 46078
+        },
+        "owned_pid_and_process_group": 49173,
+        "returncode": 1,
+        "started_unix_ns": 1793328224139516673,
+        "timeout_seconds": 0.25,
+        "wall_ns": 566807
+      },
+      "events": [
+        {
+          "action": "wait",
+          "already_reaped": false,
+          "timeout": 0.25
+        },
+        {
+          "action": "poll",
+          "already_reaped": true
+        },
+        {
+          "action": "killpg",
+          "group": 49173,
+          "owner_already_reaped": true,
+          "signal": 15
+        },
+        {
+          "action": "wait",
+          "already_reaped": true,
+          "timeout": 5
+        },
+        {
+          "action": "killpg",
+          "group": 49173,
+          "owner_already_reaped": true,
+          "signal": 9
+        },
+        {
+          "action": "wait",
+          "already_reaped": true,
+          "timeout": 5
+        },
+        {
+          "action": "poll",
+          "already_reaped": true
+        },
+        {
+          "action": "poll",
+          "already_reaped": true
+        }
+      ],
+      "name": "failure",
+      "observed_error": {
+        "message": "subprocess failed: fake",
+        "type": "RuntimeError"
+      },
+      "passed": false,
+      "requires_group_cleanup_before_reap_on_every_exit": true,
+      "start_new_session": true
+    },
+    {
+      "command_receipt": {
+        "argv": [
+          "fake-child"
+        ],
+        "automatic_retry": false,
+        "child_maxrss_kib": 768,
+        "child_system_seconds": 0.0,
+        "child_user_seconds": 0.0,
+        "effective_outer_timeout_seconds": 0.25,
+        "error": {
+          "message": "Command '['fake-child']' timed out after 0.25 seconds",
+          "type": "TimeoutExpired"
+        },
+        "maxrss_scope": "cumulative high-water mark of this wrapper's completed children; not a sum",
+        "name": "fake",
+        "owned_group_cleanup": {
+          "direct_owner_exited": true,
+          "group": 49173,
+          "signals_sent": [
+            15,
+            9
+          ],
+          "wall_ns": 43795
+        },
+        "owned_pid_and_process_group": 49173,
+        "returncode": null,
+        "started_unix_ns": 1793328224142603479,
+        "timeout_seconds": 0.25,
+        "wall_ns": 654716
+      },
+      "events": [
+        {
+          "action": "wait",
+          "already_reaped": false,
+          "timeout": 0.25
+        },
+        {
+          "action": "poll",
+          "already_reaped": false
+        },
+        {
+          "action": "killpg",
+          "group": 49173,
+          "owner_already_reaped": false,
+          "signal": 15
+        },
+        {
+          "action": "wait",
+          "already_reaped": false,
+          "timeout": 5
+        },
+        {
+          "action": "killpg",
+          "group": 49173,
+          "owner_already_reaped": true,
+          "signal": 9
+        },
+        {
+          "action": "wait",
+          "already_reaped": true,
+          "timeout": 5
+        },
+        {
+          "action": "poll",
+          "already_reaped": true
+        },
+        {
+          "action": "poll",
+          "already_reaped": true
+        }
+      ],
+      "name": "timeout",
+      "observed_error": {
+        "message": "Command '['fake-child']' timed out after 0.25 seconds",
+        "type": "TimeoutExpired"
+      },
+      "passed": false,
+      "requires_group_cleanup_before_reap_on_every_exit": true,
+      "start_new_session": true
+    }
+  ],
+  "count": 3,
+  "interpretation": "Original reviewed failure preserved; mocked child identity/order only, not an OS containment qualification",
+  "model_completions": 0,
+  "native_executions": 0,
+  "passed": 0,
+  "real_signals": 0,
+  "real_subprocesses": 0,
+  "schema": "hepta.independent.pure-recovery-stop-review.v1",
+  "source": {
+    "path": "experiments/hia_agent_assembly_recovery_20261030/run_recovery.py",
+    "sha256": "17af664a769cd03e0472b754def4726cf3029611a6fa803fce34a733e1a95b15"
+  },
+  "source_unchanged": true
+}

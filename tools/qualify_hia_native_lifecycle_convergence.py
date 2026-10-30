@@ -58,7 +58,7 @@ PROTOCOL = {
 }
 _BINDINGS = ("hepta/hia_multiversion.py", "hepta/hia_scalar_state.py", "hepta/hia_specialization.py",
              "hepta/hia_native_retirement.py", "hepta/native_mapping_identity.py",
-             "hepta/hia_translation_validation.py", "hepta/hia_program.py", "hepta/hia_program_runtime.py",
+             "hepta/hia_translation_validation.py", "hepta/hia_program.py", "hepta/hia_opcodes.py", "hepta/hia_program_runtime.py",
              "hepta/hia_program_llvm.py", "tools/qualify_hia_native_lifecycle_convergence.py")
 
 

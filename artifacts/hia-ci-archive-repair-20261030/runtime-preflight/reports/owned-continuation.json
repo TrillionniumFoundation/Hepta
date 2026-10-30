@@ -1,0 +1,1045 @@
+{
+  "builds": {
+    "a30fd4d8868c0e146a7385ffe8066c18": {
+      "binding_sha256": "379ca65df690697848b7c77c06d32b9d19fe1e0b2784dfb8fbe92ad9eb5ae2df",
+      "claims": {
+        "backend_refinement_proved": false,
+        "final_artifact_bound": true,
+        "performance_qualified": false,
+        "unverified_candidate_published": false
+      },
+      "native": {
+        "artifact_bytes": 15112,
+        "artifact_sha256": "8eb37407afcff35c1e741f67e9f58c71102f4596123ea0ee1a8ab7e52904d188",
+        "binary_inventory": {
+          "claims": {
+            "backend_refinement_proven": false,
+            "binary_abi_observed": true,
+            "native_execution_proven": false,
+            "whole_language_memory_safety_proven": false
+          },
+          "dynamic_exports": [
+            "add_step",
+            "transition"
+          ],
+          "format": "ELF64",
+          "kind": "ET_DYN",
+          "machine": 62,
+          "schema": "hepta.elf-shared-abi.v1",
+          "source_exports_rechecked": true,
+          "unresolved_imports": [
+            "_ITM_deregisterTMCloneTable",
+            "_ITM_registerTMCloneTable",
+            "__cxa_finalize",
+            "__gmon_start__"
+          ]
+        },
+        "build_host": {
+          "abi": "SysV AMD64 LP64",
+          "byteorder": "little",
+          "elf_machine": 62,
+          "long_bits": 64,
+          "machine": "x86_64",
+          "normalized_machine": "x86_64",
+          "pointer_bits": 64,
+          "size_t_bits": 64,
+          "system": "Linux",
+          "target": "x86_64-unknown-linux-gnu"
+        },
+        "claims": {
+          "backend_refinement_proved": false,
+          "c_codegen_used": false,
+          "cross_target_execution_qualified": false,
+          "fallback_used": false,
+          "foreign_buffer_entrypoints_exposed": false,
+          "native_execution_qualified": false,
+          "rust_codegen_used": false,
+          "rust_reference_required": false,
+          "source_ast_required": false,
+          "standalone_core_reverified": true,
+          "whole_language_soundness_proved": false
+        },
+        "core_sha256": "9438c0a91d9d83f85aa9a6852c8ea52e06217ddeb979f296bcceb44abe0e983e",
+        "cross_target_compilation": false,
+        "exports": [
+          "add_step",
+          "transition"
+        ],
+        "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+        "flags": [
+          "--target=x86_64-unknown-linux-gnu",
+          "-x",
+          "ir",
+          "-O3",
+          "-fPIC",
+          "-shared"
+        ],
+        "implementation_sha256": "62c63e4bd4a0b0770d72263eba61e6f74bfd0c89ca71d8442e8a3d077fb7125c",
+        "input_sha256": "9438c0a91d9d83f85aa9a6852c8ea52e06217ddeb979f296bcceb44abe0e983e",
+        "kind": "shared",
+        "llvm_ir_sha256": "3057db0c939fab7027f020ded81144ca23be00427633a865b3a1656d4baa9f05",
+        "ok": true,
+        "output": "/dev/shm/hepta-step21-46d88/evidence/owned-continuation/runtime/a30fd4d8868c0e146a7385ffe8066c18.so",
+        "profile": "hepta.hia.program.llvm-linux-x86_64.v1",
+        "runtime_assumptions": [
+          "Linux LP64 target with 64-bit pointers and size_t",
+          "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+          "C malloc returns null or a fresh nonaliasing allocation of the requested size; bytes are initialized before read or remain unobserved",
+          "C free accepts a live allocation from calloc or malloc, or null",
+          "abort terminates execution; no cleanup after traps is promised",
+          "native compiler, linker, loader, libc and host hardware are trusted"
+        ],
+        "schema": "hepta.hia.program.native.v1",
+        "status": "native_compiled_not_executed",
+        "target": "x86_64-unknown-linux-gnu",
+        "toolchain": {
+          "default_target": "x86_64-pc-linux-gnu",
+          "path": "/usr/lib/llvm-20/bin/clang",
+          "sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+          "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+        }
+      },
+      "schema": "hepta.hia.optimized-native.v1",
+      "status": "verified_core_native_bound",
+      "verification": {
+        "base_input_sha256": "bcaab59da26abfa6026c6408502a01ea838da28a49f87bce6ab3625b9f135892",
+        "base_sha256": "bcaab59da26abfa6026c6408502a01ea838da28a49f87bce6ab3625b9f135892",
+        "candidate_input_sha256": "9438c0a91d9d83f85aa9a6852c8ea52e06217ddeb979f296bcceb44abe0e983e",
+        "candidate_sha256": "9438c0a91d9d83f85aa9a6852c8ea52e06217ddeb979f296bcceb44abe0e983e",
+        "checker_sha256": "b0cb492f351b4c08adef5a1e11dc9e6aae93a463561578e8ab97ff72c99a9234",
+        "claims": {
+          "all_scalar_inputs_in_declared_widths": true,
+          "arbitrary_rewrites_supported": false,
+          "backend_refinement_proved": false,
+          "cfg_and_resource_protocol_preserved": true,
+          "core_scalar_effect_equivalence_checked": true,
+          "deployment_authority": false,
+          "native_execution_qualified": false,
+          "whole_language_soundness_proved": false
+        },
+        "elapsed_ns": 75078702,
+        "obligations": [
+          {
+            "block": "entry",
+            "function": "add_step",
+            "observed": [
+              "r"
+            ],
+            "result": "unsat",
+            "segment": 0,
+            "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f0.b0.input:y| () (_ BitVec 64))\n(declare-fun |f0.b0.input:x| () (_ BitVec 64))\n(assert\n (let ((?x13 (bvadd |f0.b0.input:x| |f0.b0.input:y|)))\n(let ((?x10 (bvand |f0.b0.input:x| |f0.b0.input:y|)))\n(let ((?x11 (bvmul ?x10 (_ bv2 64))))\n(let ((?x9 (bvxor |f0.b0.input:x| |f0.b0.input:y|)))\n(let ((?x12 (bvadd ?x9 ?x11)))\n(let (($x14 (and (distinct ?x12 ?x13) true)))\n(let (($x15 (or $x14)))\n(let (($x17 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x17 $x17 $x15)))))))))))\n(check-sat)\n",
+            "smt2_sha256": "4062ad9a858ccf38b96a7174d285183b0fb5677650b1b455bd79a88d5a2bcfa1"
+          },
+          {
+            "block": "entry",
+            "function": "transition",
+            "observed": [
+              "x",
+              "y"
+            ],
+            "result": "unsat",
+            "segment": 0,
+            "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b0.input:y| () (_ BitVec 64))\n(declare-fun |f1.b0.input:x| () (_ BitVec 64))\n(assert\n (let (($x114 (and (distinct |f1.b0.input:y| |f1.b0.input:y|) true)))\n(let (($x113 (and (distinct |f1.b0.input:x| |f1.b0.input:x|) true)))\n(let (($x115 (or $x113 $x114)))\n(let (($x17 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x17 $x17 $x115)))))))\n(check-sat)\n",
+            "smt2_sha256": "4771e4daafa271528f6a95d4b3e6128fca82026653df4d3b34579601677c08b8"
+          },
+          {
+            "block": "entry",
+            "function": "transition",
+            "observed": [
+              "a",
+              "y"
+            ],
+            "result": "unsat",
+            "segment": 1,
+            "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b0.input:y| () (_ BitVec 64))\n(declare-fun |f1.b0.effect:0:a| () (_ BitVec 64))\n(assert\n (let (($x114 (and (distinct |f1.b0.input:y| |f1.b0.input:y|) true)))\n(let (($x41 (and (distinct |f1.b0.effect:0:a| |f1.b0.effect:0:a|) true)))\n(let (($x42 (or $x41 $x114)))\n(let (($x17 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x17 $x17 $x42)))))))\n(check-sat)\n",
+            "smt2_sha256": "a2a2b02231818efab43286f87c6d90a7fbb78c753accd00ea5c5804b423da0e8"
+          },
+          {
+            "block": "entry",
+            "function": "transition",
+            "observed": [
+              "b",
+              "y"
+            ],
+            "result": "unsat",
+            "segment": 2,
+            "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b0.input:y| () (_ BitVec 64))\n(declare-fun |f1.b0.effect:1:b| () (_ BitVec 64))\n(assert\n (let (($x114 (and (distinct |f1.b0.input:y| |f1.b0.input:y|) true)))\n(let (($x8 (and (distinct |f1.b0.effect:1:b| |f1.b0.effect:1:b|) true)))\n(let (($x10 (or $x8 $x114)))\n(let (($x17 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x17 $x17 $x10)))))))\n(check-sat)\n",
+            "smt2_sha256": "f73921621c631d49b6d708e0abd4fb53244a9ae3bd31de0d485e7727602ebdea"
+          },
+          {
+            "block": "entry",
+            "function": "transition",
+            "observed": [
+              "c",
+              "y"
+            ],
+            "result": "unsat",
+            "segment": 3,
+            "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b0.input:y| () (_ BitVec 64))\n(declare-fun |f1.b0.effect:2:c| () (_ BitVec 64))\n(assert\n (let (($x114 (and (distinct |f1.b0.input:y| |f1.b0.input:y|) true)))\n(let (($x5 (and (distinct |f1.b0.effect:2:c| |f1.b0.effect:2:c|) true)))\n(let (($x117 (or $x5 $x114)))\n(let (($x17 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x17 $x17 $x117)))))))\n(check-sat)\n",
+            "smt2_sha256": "9b02666cb00b9def05bc859d053e1b0a2845e918f68fd521308cf8ef064135a4"
+          },
+          {
+            "block": "entry",
+            "function": "transition",
+            "observed": [
+              "r"
+            ],
+            "result": "unsat",
+            "segment": 4,
+            "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b0.effect:3:r| () (_ BitVec 64))\n(assert\n (let (($x113 (and (distinct |f1.b0.effect:3:r| |f1.b0.effect:3:r|) true)))\n(let (($x44 (or $x113)))\n(let (($x17 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x17 $x17 $x44))))))\n(check-sat)\n",
+            "smt2_sha256": "3c27aeac6291ef583249a123b8aa47c176476ec7f37fe84b47755ca018fbd782"
+          }
+        ],
+        "policy": {
+          "max_obligations": 1024,
+          "max_scalar_operations": 4096,
+          "preconditions": [],
+          "schema": "hepta.hia.optimization-policy.v1",
+          "target": "x86_64-unknown-linux-gnu",
+          "timeout_ms": 5000
+        },
+        "policy_sha256": "664fed7c955263598614407633f581c9424740ee7bc31c689cf10186503b1142",
+        "preconditions": [],
+        "reason": "all compositional scalar/effect/trap obligations are UNSAT",
+        "resource_delta": {
+          "after": {
+            "call": 4
+          },
+          "allocation_failure_sequence_preserved_under_core_model": true,
+          "before": {
+            "call": 4
+          },
+          "native_cost_change_measured": false,
+          "ordered_resource_operations_preserved": true,
+          "peak_live_bytes_change_under_core_model": 0,
+          "resource_trace_equivalence_checked": true,
+          "vm_tick_count_preserved": false
+        },
+        "schema": "hepta.hia.optimization-verification.v1",
+        "solver": {
+          "binding_sha256": "47a3218e5e032a0d5b3ea0fdd581a721d1cb64f2ab7b7320549a8e2f41c86f61",
+          "library_path": "/workspace/scratch/cd43ab608057/hia-python-deps/z3/lib/libz3.so",
+          "library_sha256": "56d9977b9276bcb8cda9973a14058fcaa9f3bfee14ed57408b9faacd76d4d8f3",
+          "name": "Z3",
+          "version": "4.15.4"
+        },
+        "status": "verified",
+        "structural_preconditions": [
+          "both inputs pass canonical core admission",
+          "identical signatures, CFG edges and ordered resource/call operations",
+          "all scalar inputs in their declared finite widths; no asserted input assumptions"
+        ],
+        "target": "x86_64-unknown-linux-gnu",
+        "target_constraints": {
+          "foreign_abi": "scalar-only exports",
+          "optimization_budget": "policy deadline and obligation/operation limits",
+          "pointer_width": 64,
+          "resources": "preserve exact modeled trace",
+          "triple": "x86_64-unknown-linux-gnu"
+        },
+        "verification_sha256": "8b9cedf11db5bddb5a807f803c82807be110752a5a157bccc999c295e2f4b770"
+      }
+    },
+    "baseline": {
+      "binding_sha256": "c0988fc44abb9f7d21ef817b17014a756a670dce53f0b58649cb0aa0e50be475",
+      "claims": {
+        "backend_refinement_proved": false,
+        "final_artifact_bound": true,
+        "performance_qualified": false,
+        "unverified_candidate_published": false
+      },
+      "native": {
+        "artifact_bytes": 15112,
+        "artifact_sha256": "a5adf3044b659d4d37d3e9b26f1ba38265eef3bf76e18b64471b37e6a0ab5a1c",
+        "binary_inventory": {
+          "claims": {
+            "backend_refinement_proven": false,
+            "binary_abi_observed": true,
+            "native_execution_proven": false,
+            "whole_language_memory_safety_proven": false
+          },
+          "dynamic_exports": [
+            "add_step",
+            "transition"
+          ],
+          "format": "ELF64",
+          "kind": "ET_DYN",
+          "machine": 62,
+          "schema": "hepta.elf-shared-abi.v1",
+          "source_exports_rechecked": true,
+          "unresolved_imports": [
+            "_ITM_deregisterTMCloneTable",
+            "_ITM_registerTMCloneTable",
+            "__cxa_finalize",
+            "__gmon_start__"
+          ]
+        },
+        "build_host": {
+          "abi": "SysV AMD64 LP64",
+          "byteorder": "little",
+          "elf_machine": 62,
+          "long_bits": 64,
+          "machine": "x86_64",
+          "normalized_machine": "x86_64",
+          "pointer_bits": 64,
+          "size_t_bits": 64,
+          "system": "Linux",
+          "target": "x86_64-unknown-linux-gnu"
+        },
+        "claims": {
+          "backend_refinement_proved": false,
+          "c_codegen_used": false,
+          "cross_target_execution_qualified": false,
+          "fallback_used": false,
+          "foreign_buffer_entrypoints_exposed": false,
+          "native_execution_qualified": false,
+          "rust_codegen_used": false,
+          "rust_reference_required": false,
+          "source_ast_required": false,
+          "standalone_core_reverified": true,
+          "whole_language_soundness_proved": false
+        },
+        "core_sha256": "bcaab59da26abfa6026c6408502a01ea838da28a49f87bce6ab3625b9f135892",
+        "cross_target_compilation": false,
+        "exports": [
+          "add_step",
+          "transition"
+        ],
+        "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+        "flags": [
+          "--target=x86_64-unknown-linux-gnu",
+          "-x",
+          "ir",
+          "-O3",
+          "-fPIC",
+          "-shared"
+        ],
+        "implementation_sha256": "62c63e4bd4a0b0770d72263eba61e6f74bfd0c89ca71d8442e8a3d077fb7125c",
+        "input_sha256": "bcaab59da26abfa6026c6408502a01ea838da28a49f87bce6ab3625b9f135892",
+        "kind": "shared",
+        "llvm_ir_sha256": "19fafb175994febba5c0f1cdd84c62fb9aa31cf02e4c05748542a51bfdc6ff46",
+        "ok": true,
+        "output": "/dev/shm/hepta-step21-46d88/evidence/owned-continuation/runtime/baseline.so",
+        "profile": "hepta.hia.program.llvm-linux-x86_64.v1",
+        "runtime_assumptions": [
+          "Linux LP64 target with 64-bit pointers and size_t",
+          "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+          "C malloc returns null or a fresh nonaliasing allocation of the requested size; bytes are initialized before read or remain unobserved",
+          "C free accepts a live allocation from calloc or malloc, or null",
+          "abort terminates execution; no cleanup after traps is promised",
+          "native compiler, linker, loader, libc and host hardware are trusted"
+        ],
+        "schema": "hepta.hia.program.native.v1",
+        "status": "native_compiled_not_executed",
+        "target": "x86_64-unknown-linux-gnu",
+        "toolchain": {
+          "default_target": "x86_64-pc-linux-gnu",
+          "path": "/usr/lib/llvm-20/bin/clang",
+          "sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+          "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+        }
+      },
+      "schema": "hepta.hia.optimized-native.v1",
+      "status": "verified_core_native_bound",
+      "verification": {
+        "base_input_sha256": "bcaab59da26abfa6026c6408502a01ea838da28a49f87bce6ab3625b9f135892",
+        "base_sha256": "bcaab59da26abfa6026c6408502a01ea838da28a49f87bce6ab3625b9f135892",
+        "candidate_input_sha256": "bcaab59da26abfa6026c6408502a01ea838da28a49f87bce6ab3625b9f135892",
+        "candidate_sha256": "bcaab59da26abfa6026c6408502a01ea838da28a49f87bce6ab3625b9f135892",
+        "checker_sha256": "b0cb492f351b4c08adef5a1e11dc9e6aae93a463561578e8ab97ff72c99a9234",
+        "claims": {
+          "all_scalar_inputs_in_declared_widths": true,
+          "arbitrary_rewrites_supported": false,
+          "backend_refinement_proved": false,
+          "cfg_and_resource_protocol_preserved": true,
+          "core_scalar_effect_equivalence_checked": true,
+          "deployment_authority": false,
+          "native_execution_qualified": false,
+          "whole_language_soundness_proved": false
+        },
+        "elapsed_ns": 135663453,
+        "obligations": [
+          {
+            "block": "entry",
+            "function": "add_step",
+            "observed": [
+              "r"
+            ],
+            "result": "unsat",
+            "segment": 0,
+            "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f0.b0.input:y| () (_ BitVec 64))\n(declare-fun |f0.b0.input:x| () (_ BitVec 64))\n(assert\n (let ((?x10 (bvand |f0.b0.input:x| |f0.b0.input:y|)))\n(let ((?x11 (bvmul ?x10 (_ bv2 64))))\n(let ((?x9 (bvxor |f0.b0.input:x| |f0.b0.input:y|)))\n(let ((?x12 (bvadd ?x9 ?x11)))\n(let (($x13 (and (distinct ?x12 ?x12) true)))\n(let (($x14 (or $x13)))\n(let (($x16 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x16 $x16 $x14))))))))))\n(check-sat)\n",
+            "smt2_sha256": "1c693f8cc8f13bc16677443d27516e92a8f22aca89570f78ee986c12520e0d01"
+          },
+          {
+            "block": "entry",
+            "function": "transition",
+            "observed": [
+              "x",
+              "y"
+            ],
+            "result": "unsat",
+            "segment": 0,
+            "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b0.input:y| () (_ BitVec 64))\n(declare-fun |f1.b0.input:x| () (_ BitVec 64))\n(assert\n (let (($x45 (and (distinct |f1.b0.input:y| |f1.b0.input:y|) true)))\n(let (($x44 (and (distinct |f1.b0.input:x| |f1.b0.input:x|) true)))\n(let (($x46 (or $x44 $x45)))\n(let (($x16 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x16 $x16 $x46)))))))\n(check-sat)\n",
+            "smt2_sha256": "d8bd62600adeeeb8abddfe39c877e03c4270dcbbdab0c1ed33335f17e7d1814a"
+          },
+          {
+            "block": "entry",
+            "function": "transition",
+            "observed": [
+              "a",
+              "y"
+            ],
+            "result": "unsat",
+            "segment": 1,
+            "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b0.input:y| () (_ BitVec 64))\n(declare-fun |f1.b0.effect:0:a| () (_ BitVec 64))\n(assert\n (let (($x45 (and (distinct |f1.b0.input:y| |f1.b0.input:y|) true)))\n(let (($x28 (and (distinct |f1.b0.effect:0:a| |f1.b0.effect:0:a|) true)))\n(let (($x26 (or $x28 $x45)))\n(let (($x16 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x16 $x16 $x26)))))))\n(check-sat)\n",
+            "smt2_sha256": "9689fff36c087be2cb9c0698e88f0623223968ad09152277c5d696395d877f0a"
+          },
+          {
+            "block": "entry",
+            "function": "transition",
+            "observed": [
+              "b",
+              "y"
+            ],
+            "result": "unsat",
+            "segment": 2,
+            "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b0.input:y| () (_ BitVec 64))\n(declare-fun |f1.b0.effect:1:b| () (_ BitVec 64))\n(assert\n (let (($x45 (and (distinct |f1.b0.input:y| |f1.b0.input:y|) true)))\n(let (($x8 (and (distinct |f1.b0.effect:1:b| |f1.b0.effect:1:b|) true)))\n(let (($x10 (or $x8 $x45)))\n(let (($x16 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x16 $x16 $x10)))))))\n(check-sat)\n",
+            "smt2_sha256": "a3b10aa293f01d7f632e80c3b04a60e42ce9a1d4ef4e05fa4c68bdad2aa677ec"
+          },
+          {
+            "block": "entry",
+            "function": "transition",
+            "observed": [
+              "c",
+              "y"
+            ],
+            "result": "unsat",
+            "segment": 3,
+            "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b0.input:y| () (_ BitVec 64))\n(declare-fun |f1.b0.effect:2:c| () (_ BitVec 64))\n(assert\n (let (($x45 (and (distinct |f1.b0.input:y| |f1.b0.input:y|) true)))\n(let (($x5 (and (distinct |f1.b0.effect:2:c| |f1.b0.effect:2:c|) true)))\n(let (($x48 (or $x5 $x45)))\n(let (($x16 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x16 $x16 $x48)))))))\n(check-sat)\n",
+            "smt2_sha256": "abe4152113b3120878baa5b6744e109181c73160a65fa32b77dcd23939fa0ec7"
+          },
+          {
+            "block": "entry",
+            "function": "transition",
+            "observed": [
+              "r"
+            ],
+            "result": "unsat",
+            "segment": 4,
+            "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |f1.b0.effect:3:r| () (_ BitVec 64))\n(assert\n (let (($x44 (and (distinct |f1.b0.effect:3:r| |f1.b0.effect:3:r|) true)))\n(let (($x20 (or $x44)))\n(let (($x16 (= 0 0)))\n(or (and (distinct 0 0) true) (and $x16 $x16 $x20))))))\n(check-sat)\n",
+            "smt2_sha256": "d9c4354a290363113ff42566dfd2a0679c6b50a48ea1a00ea3494753af172912"
+          }
+        ],
+        "policy": {
+          "max_obligations": 1024,
+          "max_scalar_operations": 4096,
+          "preconditions": [],
+          "schema": "hepta.hia.optimization-policy.v1",
+          "target": "x86_64-unknown-linux-gnu",
+          "timeout_ms": 5000
+        },
+        "policy_sha256": "664fed7c955263598614407633f581c9424740ee7bc31c689cf10186503b1142",
+        "preconditions": [],
+        "reason": "all compositional scalar/effect/trap obligations are UNSAT",
+        "resource_delta": {
+          "after": {
+            "call": 4
+          },
+          "allocation_failure_sequence_preserved_under_core_model": true,
+          "before": {
+            "call": 4
+          },
+          "native_cost_change_measured": false,
+          "ordered_resource_operations_preserved": true,
+          "peak_live_bytes_change_under_core_model": 0,
+          "resource_trace_equivalence_checked": true,
+          "vm_tick_count_preserved": false
+        },
+        "schema": "hepta.hia.optimization-verification.v1",
+        "solver": {
+          "binding_sha256": "47a3218e5e032a0d5b3ea0fdd581a721d1cb64f2ab7b7320549a8e2f41c86f61",
+          "library_path": "/workspace/scratch/cd43ab608057/hia-python-deps/z3/lib/libz3.so",
+          "library_sha256": "56d9977b9276bcb8cda9973a14058fcaa9f3bfee14ed57408b9faacd76d4d8f3",
+          "name": "Z3",
+          "version": "4.15.4"
+        },
+        "status": "verified",
+        "structural_preconditions": [
+          "both inputs pass canonical core admission",
+          "identical signatures, CFG edges and ordered resource/call operations",
+          "all scalar inputs in their declared finite widths; no asserted input assumptions"
+        ],
+        "target": "x86_64-unknown-linux-gnu",
+        "target_constraints": {
+          "foreign_abi": "scalar-only exports",
+          "optimization_budget": "policy deadline and obligation/operation limits",
+          "pointer_width": 64,
+          "resources": "preserve exact modeled trace",
+          "triple": "x86_64-unknown-linux-gnu"
+        },
+        "verification_sha256": "a678d6e295753488cc2c0166fc20d05b978039331f7a6502b06f452be3b19949"
+      }
+    }
+  },
+  "cancellation": "injected at real native-call boundary after actual registered prefix",
+  "cancelled_prefix": 6,
+  "controls": {
+    "actual_cancelled_prefix": true,
+    "actual_suffix_and_complete_oracle": true,
+    "actual_verified_version_switch": true,
+    "all_native_resources_released": true,
+    "exact_registered_suffix": true,
+    "original_replay_refused": true,
+    "same_owner_and_allocation": true,
+    "second_continuation_refused": true,
+    "sources_unchanged": true,
+    "suffix_counterfactual_agrees": true
+  },
+  "counterfactual": {
+    "application_work_replayed": false,
+    "audit_experiment_cost_ns": 19970,
+    "baseline_native_execution_ns": 6560,
+    "decision_authority": false,
+    "deployment_cost_ns": 6728372,
+    "final_state_matches": true,
+    "measured_deployment_net_ns": -6721812,
+    "queue_sha256": "f5157cca4f7a266276d16b8609347e5bd936b4d0e94e56b3124b15fe40ebbcb7",
+    "schema": "hepta.hia.owned-queue-counterfactual.v1",
+    "total_experiment_cost_ns": 6748342
+  },
+  "crash_recovery_supported": false,
+  "driver": {
+    "artifact_sha256": "4fa981f8e43610be4910de756bafc2579da9fe0a1b30e6c5d51938c15306e045",
+    "binary_inventory": {
+      "claims": {
+        "backend_refinement_proven": false,
+        "binary_abi_observed": true,
+        "native_execution_proven": false,
+        "whole_language_memory_safety_proven": false
+      },
+      "dynamic_exports": [
+        "hs_allocations",
+        "hs_apply",
+        "hs_cancel",
+        "hs_clone",
+        "hs_free",
+        "hs_frees",
+        "hs_identity",
+        "hs_live",
+        "hs_new",
+        "hs_progress",
+        "hs_read",
+        "hs_refusals",
+        "hs_reset",
+        "hs_write"
+      ],
+      "format": "ELF64",
+      "kind": "ET_DYN",
+      "machine": 62,
+      "schema": "hepta.elf-shared-abi.v1",
+      "source_exports_rechecked": true,
+      "unresolved_imports": [
+        "_ITM_deregisterTMCloneTable",
+        "_ITM_registerTMCloneTable",
+        "__cxa_finalize",
+        "__gmon_start__",
+        "calloc",
+        "free",
+        "memcpy"
+      ]
+    },
+    "command": [
+      "/usr/lib/llvm-20/bin/clang",
+      "-std=c11",
+      "-O3",
+      "-fPIC",
+      "-shared",
+      "-x",
+      "c",
+      "-",
+      "-o",
+      "/dev/shm/hepta-step21-46d88/evidence/owned-continuation/runtime/.owned-driver-zsuozu5c/driver.so"
+    ],
+    "compiler_sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+    "loaded_mapping": {
+      "basis": "actual entry address in kernel executable mapping of the sealed descriptor",
+      "device_major": 0,
+      "device_minor": 1,
+      "file_bytes": 16040,
+      "inode": 6730,
+      "schema": "hepta.native.loaded-symbol-identity.v1",
+      "seals": 15,
+      "serialized_evidence_is_authority": false,
+      "symbols": {
+        "hs_allocations": {
+          "file_offset": 5088,
+          "permissions": "r-xp"
+        },
+        "hs_apply": {
+          "file_offset": 4880,
+          "permissions": "r-xp"
+        },
+        "hs_cancel": {
+          "file_offset": 5040,
+          "permissions": "r-xp"
+        },
+        "hs_clone": {
+          "file_offset": 4576,
+          "permissions": "r-xp"
+        },
+        "hs_free": {
+          "file_offset": 4768,
+          "permissions": "r-xp"
+        },
+        "hs_frees": {
+          "file_offset": 5104,
+          "permissions": "r-xp"
+        },
+        "hs_identity": {
+          "file_offset": 4816,
+          "permissions": "r-xp"
+        },
+        "hs_live": {
+          "file_offset": 5072,
+          "permissions": "r-xp"
+        },
+        "hs_new": {
+          "file_offset": 4400,
+          "permissions": "r-xp"
+        },
+        "hs_progress": {
+          "file_offset": 5056,
+          "permissions": "r-xp"
+        },
+        "hs_read": {
+          "file_offset": 4832,
+          "permissions": "r-xp"
+        },
+        "hs_refusals": {
+          "file_offset": 5120,
+          "permissions": "r-xp"
+        },
+        "hs_reset": {
+          "file_offset": 4864,
+          "permissions": "r-xp"
+        },
+        "hs_write": {
+          "file_offset": 4848,
+          "permissions": "r-xp"
+        }
+      }
+    },
+    "source_sha256": "e70cf7daf7752886d862dfb9ecae08a21db4fe025db64ba67d4821803b3cdce3"
+  },
+  "elapsed_ns": 702148783,
+  "events": [
+    {
+      "artifact_sha256": "a5adf3044b659d4d37d3e9b26f1ba38265eef3bf76e18b64471b37e6a0ab5a1c",
+      "event": "baseline_loaded",
+      "generation": 0,
+      "monotonic_ns": 55983774870145,
+      "token": "baseline"
+    },
+    {
+      "allocation_identity": "79cdf324bc8ddf8f06a96aff716b9319fb804486a45510f0a955d1bcbb404f8b",
+      "cells": 2,
+      "event": "state_owner_created",
+      "generation": 0,
+      "monotonic_ns": 55983872747666,
+      "owner_id": "9cbf2de7e51569c8036d6b88eb0f7717"
+    },
+    {
+      "artifact_sha256": "8eb37407afcff35c1e741f67e9f58c71102f4596123ea0ee1a8ab7e52904d188",
+      "event": "prepared",
+      "generation": 0,
+      "monotonic_ns": 55984133252683,
+      "preparation_ns": 257816468,
+      "token": "a30fd4d8868c0e146a7385ffe8066c18"
+    },
+    {
+      "event": "state_queue_started",
+      "generation": 0,
+      "monotonic_ns": 55984136493752,
+      "reason": "no_candidate",
+      "selected": false,
+      "steps": 40,
+      "token": "96eb1a893b1f98d429209a1038364c4a"
+    },
+    {
+      "event": "state_queue_finished",
+      "generation": 0,
+      "monotonic_ns": 55984136533391,
+      "progress": 6,
+      "replayed_steps": 0,
+      "selected": false,
+      "status": "cancelled",
+      "token": "96eb1a893b1f98d429209a1038364c4a"
+    },
+    {
+      "event": "selected",
+      "generation": 1,
+      "mode": "explicit",
+      "monotonic_ns": 55984141004265,
+      "performance_claim": false,
+      "previous": "baseline",
+      "proof_reuse": {
+        "base_depth": 0,
+        "base_proof_sha256": "a678d6e295753488cc2c0166fc20d05b978039331f7a6502b06f452be3b19949",
+        "base_sha256": "bcaab59da26abfa6026c6408502a01ea838da28a49f87bce6ab3625b9f135892",
+        "candidate_depth": 1,
+        "candidate_proof_sha256": "8b9cedf11db5bddb5a807f803c82807be110752a5a157bccc999c295e2f4b770",
+        "candidate_sha256": "9438c0a91d9d83f85aa9a6852c8ea52e06217ddeb979f296bcceb44abe0e983e",
+        "new_solver_call": false,
+        "proof_source": "successful-internal-admission-only",
+        "root_core_sha256": "bcaab59da26abfa6026c6408502a01ea838da28a49f87bce6ab3625b9f135892",
+        "schema": "hepta.hia.prepared-equivalence-use.v1",
+        "serialized_receipt_authority": false
+      },
+      "selection_cost_ns": 3755322,
+      "token": "a30fd4d8868c0e146a7385ffe8066c18"
+    },
+    {
+      "allocation_identity": "79cdf324bc8ddf8f06a96aff716b9319fb804486a45510f0a955d1bcbb404f8b",
+      "event": "state_version_switched",
+      "generation": 1,
+      "monotonic_ns": 55984141014340,
+      "owner_id": "9cbf2de7e51569c8036d6b88eb0f7717"
+    },
+    {
+      "child": "980c27ce59d08ee2f83c54cb02a357a4",
+      "committed_prefix": 6,
+      "event": "state_queue_continued",
+      "generation": 1,
+      "monotonic_ns": 55984142629036,
+      "parent": "96eb1a893b1f98d429209a1038364c4a",
+      "remaining_steps": 34
+    },
+    {
+      "event": "state_queue_started",
+      "generation": 1,
+      "monotonic_ns": 55984148265169,
+      "reason": "no_candidate",
+      "selected": false,
+      "steps": 34,
+      "token": "980c27ce59d08ee2f83c54cb02a357a4"
+    },
+    {
+      "event": "state_queue_finished",
+      "generation": 1,
+      "monotonic_ns": 55984148306640,
+      "progress": 34,
+      "replayed_steps": 0,
+      "selected": false,
+      "status": "completed",
+      "token": "980c27ce59d08ee2f83c54cb02a357a4"
+    }
+  ],
+  "external_effect_replay_authority": false,
+  "final_native_ledger": {
+    "allocations": 4,
+    "frees": 4,
+    "live": 0,
+    "refusals": 0
+  },
+  "passed": true,
+  "performance_advantage_established": false,
+  "prefix": {
+    "allocation_identity": "79cdf324bc8ddf8f06a96aff716b9319fb804486a45510f0a955d1bcbb404f8b",
+    "application_execution_ns": 17015,
+    "automatic_selection": false,
+    "calibration_verification_switch_ns": 913406,
+    "commit_bookkeeping_ns": 20911,
+    "committed_steps": 40,
+    "continuation": null,
+    "cost_accounting_complete": true,
+    "cumulative_deployment_cost_ns": 683112186,
+    "deployment_cost_ns": 683112186,
+    "diagnostic_errors": [],
+    "error": null,
+    "executed_steps": 6,
+    "final_values": [
+      323,
+      17
+    ],
+    "forecast_is_guaranteed": false,
+    "item_progress": [
+      {
+        "committed": 6,
+        "item": 0,
+        "replayed": 0,
+        "requested": 17
+      },
+      {
+        "committed": 0,
+        "item": 1,
+        "replayed": 0,
+        "requested": 23
+      }
+    ],
+    "measurement": null,
+    "native_ledger": {
+      "allocations": 2,
+      "frees": 0,
+      "live": 2,
+      "refusals": 0
+    },
+    "observed_net_against_baseline_forecast_ns": null,
+    "original_version": "baseline",
+    "owner_id": "9cbf2de7e51569c8036d6b88eb0f7717",
+    "preparation_includes_initial_baseline_driver_and_all_prepare_attempts": true,
+    "queue": "96eb1a893b1f98d429209a1038364c4a",
+    "queue_sha256": "27cda8b1d1ff19dd8069282a070e5414d52a3048bad35fc1f19814c0c6689308",
+    "replayed_steps": 0,
+    "schema": "hepta.hia.owned-queue-execution.v1",
+    "selection_reason": "no_candidate",
+    "status": "cancelled",
+    "unamortized_preparation_ns": 682160854,
+    "version": "baseline"
+  },
+  "safety_certificate": false,
+  "schema": "hepta.hia.owned-continuation.qualification.v1",
+  "source_sha256": {
+    "hepta/__init__.py": "8448813083e33f38f96474d5c3b3b690284fcf9c1ca939c33683618b419031b2",
+    "hepta/__main__.py": "935a1c1166b0c1ea35a82256345000bf2c73ded718d77773bc27a71ecce28f7d",
+    "hepta/agent_contract_diff.py": "4c418ca2649bdcb9a41c6825a22fa8b4ee3bf07caceaa479774215203882b9a1",
+    "hepta/agent_semantics.py": "8f28e59630f096e5591a2ab6028dbd08ff5625a0c64d9dd7d8f83987b0cfac3a",
+    "hepta/artifact_publication.py": "44416fe2b5d3f3d29bbb006c592b34bf32ac59c249de995a31fe7976393ed915",
+    "hepta/ast.py": "e69d7d8782a84d3998c747a61420b98fc7a321ec2617284ee3c2c1c66b807af3",
+    "hepta/backend.py": "5b24460db1943905487c56dbf010460733d1b6fa5eb83510d98a09fb41edfa99",
+    "hepta/borrowed_storage.py": "6303b6734c0e35b6080fb696909babfb6866bdd6ce6706c636141cbe021d6b8c",
+    "hepta/c_aliases.py": "bc6c0533fff674f20d64619c50afb81a07375c37f158bf17ea7034026e25baf9",
+    "hepta/c_allocation.py": "e11ad48fa7e2af3fd9d0ec3932f002277bbdf44c0d164593432c5965bfd686d0",
+    "hepta/c_backend.py": "888c1e4cf747bb6ab0aee20c1d8caeb2ba22ce38ebcce8537fd423f98cf8ef09",
+    "hepta/c_contracts.py": "96a990c3b11d6b94940445199dba257bd051e742e1b07856683d85e0c209b106",
+    "hepta/c_definite_assignment.py": "274c193f6754b92f2cc4fa95d604b782306ba53b746c6b2edf811e5f3f9cc62c",
+    "hepta/c_import.py": "e5a311752896068f79df1932173b2c8f89ca8d35d3d2159d7c166e54044f0b33",
+    "hepta/c_loop_control.py": "a2ee2e5b65ff7d5d1b0937630c61f822dece96af85c0c9b723f16c1b84577bb8",
+    "hepta/c_migrate.py": "9fb25b78da28894c9afa96d1723a57f1ddb3c38f5a90883386064dc69cc809ca",
+    "hepta/c_migration_project.py": "e2316b2830fc09aa0bc32dd9cf67ed6414c7aee176cb60fae95d8124ef5d8464",
+    "hepta/c_parameter_types.py": "5e3f736b9efda38cd45de7266fa00277668ae450b17159e413dca8cff1453896",
+    "hepta/c_project.py": "e35322f0ec626a6e6618d8d24caf2bbc4f095d9fa0a518d250667ba9de654e7d",
+    "hepta/c_project_matrix.py": "15102f57605d0aa53545e54d2dd08a5dff5329eaab3a056ae58b18f243b5b99c",
+    "hepta/c_record_views.py": "54657dd9e2f9e629672350a9bc5f17ff957d3f971d48f34598f67e0ee5a106b5",
+    "hepta/c_resource_matrix.py": "9c31d0dac213024b2d99c5cca10797630a97be8d2f640836e3a961ff187dd7a1",
+    "hepta/c_scalar_matrix.py": "c7419502d04595b13c16d537ed0b13f60a99ba3733bbc311beabbfac95ad1252",
+    "hepta/c_translation.py": "1e3d12eabe2d9d615c2aa51733fb7adcaee0ee957890d99dbad71c513bb1a13c",
+    "hepta/cfg.py": "e894c48e3244e1d6403e1adfe4e9872fb44cb469660eb52728c1247deecd05c1",
+    "hepta/cfg_analysis.py": "f8eebfb37dda89a3c7eaf332183ccdbfe10033a9009bf4e9b392f09cf7073599",
+    "hepta/checker.py": "83fa87f5098f2bef27265e5d810a70d9cf4625b816b8550a6a7b6d713005240a",
+    "hepta/clang_capture.py": "6934e8a2f2dc0c53c135f590dce48811d14482d4c1b9c30cd5083505bd93ea6a",
+    "hepta/cli.py": "288bc4b0efabd0c9d123716c6155f8041ae32866bfd580dfc8492de5c2c87bb1",
+    "hepta/concurrent_ir.py": "938ecc5d879b36e4c7190cd32a5be3a9105b5d954ccd622e83cbec667f474d3c",
+    "hepta/concurrent_lowering.py": "946dab7ade7f71464a86defcf3424060a0c9499526c452e994ef1ac0b847b25b",
+    "hepta/core.py": "89e8acdd5f3b34f767c974fe50f8a39d4b60518b41acce972a9b89f91e93a45e",
+    "hepta/cpp2hepta.py": "2402418e3a5e33f2d9b5b16289ec3fcd9c706bf492d034adfc701c0b94864ba1",
+    "hepta/cpp_bridge.py": "d6e60271306a37b74a231e9130660c5d2843b8f7b3cbcba26487fbb09b016dda",
+    "hepta/cpp_callback_project.py": "d0b537331b1bc9304807e7b16d77f159dc36f646276621250186d54edc437f98",
+    "hepta/cpp_class_migrate.py": "dc03c3994e2f65e7ffa5f862faaf0d86b4ba0d79fbd97ffb1355397d660b9bd2",
+    "hepta/cpp_composed_migrate.py": "eb6fe0092edd60cd33ed66cf7902362d850210551d72fe0df623d0beb534c83d",
+    "hepta/cpp_composed_project.py": "b0d22ec5baeabb1576d0452e7b95fecbbc2a4695180bc2581428ad4af63c3295",
+    "hepta/cpp_contracts.py": "d4375d1b458a0755580e8e3a93ed466fc3a95400ce5b030ff19b5f749a67bda8",
+    "hepta/cpp_host_toolchain.py": "6bafbf40f4759b9ad49057a70724b488dcab6050301578a5619cef87416017dd",
+    "hepta/cpp_owned_migrate.py": "293ebbce2f8d59ee6aa2217dd388b39faaaea51180300bd6fea860240f818b83",
+    "hepta/cpp_project_migrate.py": "02de410179773ff78aaebed2d3ba5df559a6f98e39dd083c2c0a59b41364cc71",
+    "hepta/cpp_scoped.py": "385452e0139403c15c316b0f1b76a3ad63d79c82d86619ba61abed3ba5d7d104",
+    "hepta/cpp_unique_assignment.py": "d3ade4d7c11f890612a8da7fbfa4f227221f6ab32269765f36d5034414918bf8",
+    "hepta/cpp_unique_capture.py": "1952ec3867e23f5d63cbb5c85713e14ed8eb4d9de583be2cb017f87f40bb1e02",
+    "hepta/cpp_unique_project.py": "340bf7cd37888ac1fee8af29e52248cd679ffa7f5ec24de298ef1b2ccc561048",
+    "hepta/darwin_capture.py": "e7d081c40a9f85c7b77e7d46ed16177e82a05c424f15507f968238b0e250699c",
+    "hepta/debug_info.py": "e30097582366ae3a5f4bae5e545b77046e0b4d8b4f2a2b34abc691de20c61d20",
+    "hepta/elf_shared_abi.py": "f9afbaa95a3aa5a9163546da42b601d3ac98648d8da68e6122008e381177ed02",
+    "hepta/executable_core.py": "bc26bc4a3f45664f07602ae4a78d30ef5cfaf710143d96a0a0de61f96b3df43e",
+    "hepta/executable_core_qualify.py": "1189a814592b41d075fb7bee403986c332342676a32ccaecc8ae85af5f195b8f",
+    "hepta/executable_core_runtime.py": "81b9cb0e50bfd66b034cdfff11ed3912e9d4d19e5a1da5c44d453871fe49aebb",
+    "hepta/flow_ir.py": "b0e57a7593d12e27e41c873f6d520c0a3cc929446b0d7df5b565223b93af074a",
+    "hepta/hia_adaptive.py": "1db194dde0e4ea3a2b0b629c950312c488b506fe1f0b683a1a062f3f4d349384",
+    "hepta/hia_agent_assembly.py": "0f50123394b1bd2d82f1a87657e66055443770361dade9c57329fa69336add27",
+    "hepta/hia_artifact_session.py": "efe979907a7af77059bf4b329b1925b9061e357b490b8ec56f33557eb3b9a449",
+    "hepta/hia_background_optimizer.py": "c5c59142aa865ad33ef4633c4355b3d95cf74e2a373147a7ebdb3fca6ad40117",
+    "hepta/hia_bounded_memory.py": "3413e3f7dfb77b7672eba6b99b1a2320cb6bd61c3842f37976ee4507ed1a4a3d",
+    "hepta/hia_bounded_unroll.py": "377132569a07f7424a18cc3d2a905c377c2d7262711abe2d5fb7da66af1982af",
+    "hepta/hia_bundle_atomic.py": "38ba6928e122ae358b641275e1045c8916a05c2f242aab41ec5c5a91963b93c0",
+    "hepta/hia_call_expansion.py": "c40c66c21ce8e5f16cde75258debb521ef0b09abf455200b6e3573ce69f17079",
+    "hepta/hia_continuation.py": "0b6bbb1455bbf895a6a569754f259e93516fbc90eb30bb55a241f07d8a1546df",
+    "hepta/hia_core.py": "dc9fbacdc8cef16be85397a1beade3a353b93d19cb37a95700a4327777d3dc03",
+    "hepta/hia_core_upgrade.py": "550608c7b654c0af45cda8f122230188c1989069fda2dac4e05c285f7ce77570",
+    "hepta/hia_crc_kernel.py": "5ee0c37280bf4bee6c8b6c3254220ba89c36d14ad8ca9e8c83b296d230a8468c",
+    "hepta/hia_economic_search.py": "39bf5582cb348103c7d1b75ae7a24bd1688c27848a0a2d394e73f7c6adbd0be4",
+    "hepta/hia_edit_batch.py": "7aedff21b35289f3bed175db833fb13a5947a0c1491a54ab318af1f89732b949",
+    "hepta/hia_edit_query.py": "191f29e6d3e0db7f298f5097ca213339593710f0e92c5b9add80edcc952137e2",
+    "hepta/hia_finite_actions.py": "1a43781b3f5a24780f17867ec42b350b22266b26c2c3074ac0cc88789e9f1079",
+    "hepta/hia_finite_context.py": "f9fe48edf917cc8eeabc10134a4f849df44aa0c563a2709dee22146346ba379a",
+    "hepta/hia_guarded_batch.py": "03ddf6d99fab1decf12307d32ae10432874e9fc8460acbacca0db308e93ad90d",
+    "hepta/hia_guarded_optimization.py": "d9ed038f366ca3fb753f4c6722c2549d6944296aaf67b856d3d830a38cf3e4c3",
+    "hepta/hia_heap_bound.py": "62dbb3e9335350b415a2da8808b2b87048407343001ba6668ab2023f4ea0cce1",
+    "hepta/hia_incremental.py": "9e1d02aec5f464f642cba9b7307112a3594e68c74384f76bbc8404e788a784de",
+    "hepta/hia_inductive.py": "66eb6077d727b15b7f206c9f87bb30b5fa50b7befa7757caca7f79ab1334f6ce",
+    "hepta/hia_json_preflight.py": "53c6b189ed6210f7cf6fdb75c042ed6db7c10dba9254083270cd2903e3f7f4f2",
+    "hepta/hia_l1_receipt.py": "e7cdd8654d789ce6525390c7f8a813a394683aaff6569e633e0e422d4b501c6f",
+    "hepta/hia_migrate.py": "62446f8c263dbe1b93a1767063c25e1998846eecfcaa680139ddf484a6d8ec42",
+    "hepta/hia_multiversion.py": "1f04d6f5e5db7ce56f155e9490061b436aa2d529fee54f1120c66a2e7ddf62ee",
+    "hepta/hia_narrowing.py": "4fc04713b5b981d666dbfbf543f9f26a52ad9b428f80e619031e5038835bb083",
+    "hepta/hia_native_differential.py": "8c9729731def7d31e7950f186bde1aa065e16c389a0e364331700cb0d3bf652e",
+    "hepta/hia_native_retirement.py": "d88df71d8cded9a1bce2179773cdbf95620d5dc7994661e4ad801bd3e634275f",
+    "hepta/hia_ndu.py": "affa916479adc7d9c232a24b247f10d6c52fe03363fbba4e13711726eb5b961d",
+    "hepta/hia_ndu_cache.py": "2d6865a449b6e448d8cc2731517bb0be94061aa4b8b9adb2874834703d60cc36",
+    "hepta/hia_ndu_optimizer.py": "abc988f4cd973a3bd23bf385e07bb62728a99ca4597966c7a4b6c23efc6653fb",
+    "hepta/hia_ndu_response.py": "3c1951bbedc53940727660c683ddd2bba4fe1c6b5ea164f5ee5eca17a8d8a948",
+    "hepta/hia_ndu_session.py": "0090cd022e81f3e4eaef32ae26ca3a59be0913471c2a8764203ff799f214f4e5",
+    "hepta/hia_opcodes.py": "88075bb92905e2873de21d96341b1442d1235e0f092ec3937193435b4534a5ec",
+    "hepta/hia_optimization.py": "365a99237e004aa373ba7490182c23401c9ee7a08b0308e65d6c1bff166625a7",
+    "hepta/hia_optimization_contract.py": "06943bfe8d0dec9673df2c0d780d3d5cd673bbb5306ba175e4b825fface9a540",
+    "hepta/hia_oracle.py": "3726e6a2bbfb0d54ff75cae1d162a36e49f4caa183f121927dc0b81c3c77622d",
+    "hepta/hia_patch_impact.py": "b61710dc320c4b65206a2e6efed67ac525e900a782886be6c289e8acc681e3a1",
+    "hepta/hia_planning.py": "4eec407232fc664fe36612ea95ad42af74ef23f42205f6b02a0c81e1fbe80a0f",
+    "hepta/hia_prepared.py": "bf0285705531f3950aaec6c2f31ac60fe13a354079a2218239676d7b619afe87",
+    "hepta/hia_program.py": "5352d6b1e3906d4ab72f2a94c005cab15f1550d845549e63275402ee7d51ea1a",
+    "hepta/hia_program_aarch64.py": "8bf11c81854eb74c4962ca4f0b046802021a9fd07deb33baddd61f85d43e9716",
+    "hepta/hia_program_composite.py": "ef86ca2ce6973c8ec2042b0853fbda5fca345e575c784cd751ca3670ea6e3a11",
+    "hepta/hia_program_llvm.py": "3d29e045b6aea94fa059e29541325f72306e3bcb4e7bec534d8fdcd6a8a87f21",
+    "hepta/hia_program_runtime.py": "1cf20b990a2f803c5613c0f51107d4470fb9ed09f0c4531a765d63075e0c86ea",
+    "hepta/hia_program_source.py": "2909fd95aa8be6435f8ba50d19a8d7cbeca962ea92abde98d14311636a8cf970",
+    "hepta/hia_program_tools.py": "d8b54aee8bb9f226fbcc0de61daa9bd70d29491c50f46242c3080b3a6ccfcd6d",
+    "hepta/hia_queue_commit.py": "806b6ac2de9f5cb23991fa74461f235b7ea85a61009fb7eade88c5ad4232c813",
+    "hepta/hia_routes.py": "984ec41ad37b5a4f385a8663803e789164aeea917a4a578d45ad3c33242007fa",
+    "hepta/hia_rust_crosscheck.py": "90b7f940b6a5578712bfb6c1da833853a04ce4ab810b8b0eef39021a0d50ffb8",
+    "hepta/hia_scalar_lowering_check.py": "5b34e7ccb91bfde0bbd042a749dd5532ad2119ad43e1ac8f18b03861b1cdfa87",
+    "hepta/hia_scalar_state.py": "f8951828b9d12b1e9fa658dd06bd7dac61d7b20d5bc5e44c4f66f3a8ca484beb",
+    "hepta/hia_scalar_totality.py": "5aad6654264e656f08658bd870eeeac4c8118971f7a500ee53e338d92559a26d",
+    "hepta/hia_schema.py": "b6bd0864fbe2a90e8f2f705da1d81c8b1afae001d8608f54f8f1fca477cdf253",
+    "hepta/hia_source_bridge.py": "1652e26c02471de8c590d01c5fe3149112bdc6c3aaddcfbeed6a60fb376c3496",
+    "hepta/hia_specialization.py": "3d87cd790dd41a8011c725de3cd0bb5e06be2492ba9aaa2a81c0d045ab704fbf",
+    "hepta/hia_stateful.py": "2139b86cb0470f731d1d25217cb7df0d3490fae6c9d95abce9f5c41d5aafb236",
+    "hepta/hia_static_budget.py": "4d19d39680d195a174b28e3a11e7b0c866dea05cd07641e4301dc7139e2e2cfe",
+    "hepta/hia_swap_opt.py": "136c3c5f79921c65256da5ae74e48177ca7579268cb7bbd02648b3bae806dce1",
+    "hepta/hia_translation_validation.py": "5164d208754ab381ea27a221c2def55d9b1ecc5d53cd01160dda89b53b4bec04",
+    "hepta/hia_x86_search.py": "bd23b750a27e66a07aab1480b2b1852b812bf5fb8eae43c03f2843796beb37c3",
+    "hepta/hmir.py": "3b3146355a08dcde3a6959626d98d5c8d7813445ca4621d2b03fdfb11dcbc896",
+    "hepta/hsir.py": "5b99d1f6dbb3e8658073457a0ace99898270be4aacccfa0cce4fbe09d14562dd",
+    "hepta/lexer.py": "8138278341afc789f744bf89a752723a96b530043a37596f943f3d4e464ff153",
+    "hepta/llvm_ir_profile.py": "732f8a337ab6f49724001f3ec218486f7146777350a6e778ed87e22a5a487bc5",
+    "hepta/llvm_owned_aarch64.py": "81c7d78c5a1a62b01abc5f7e6b6cf53425653f3ff967e08c4290c3f9bf88d008",
+    "hepta/llvm_owned_backend.py": "6df3e7cd9ce30fc99362b64c10be7a5767d7933d69dfee9509c7777d5cd4bfb8",
+    "hepta/llvm_owned_pipeline.py": "23f92e9eb3f320a066d452921a94452c63e424a74c1988091ced03e9baf64140",
+    "hepta/llvm_ssa_backend.py": "7b1d7b4b6d7d0b79744846875d15d000f533fe87419838f584a7f147b252ad89",
+    "hepta/llvm_ssa_pipeline.py": "b37ec82d74372227e649cb0dcd15b5ea39a5b732e9cb8cd34651d81a92f7bdad",
+    "hepta/llvm_ssa_target.py": "8172da1fd5cfcb4d5658de12f64acaf25cebebb8589e57a1579dffde4a773d1b",
+    "hepta/migration_ir.py": "6320d124d4a16eab04ef96f8879111747a23c4fe77b4707fe2f28730784653bb",
+    "hepta/modules.py": "c933a5ab29a1a54b5b36e0e0b2554ce250db3303a559c742fddf2b65fcf0fcea",
+    "hepta/native_local_views.py": "a5ff9e9e78684b979d341e751f0011b9c4e8d65f1ee72b290721ef86dbbcc54c",
+    "hepta/native_mapping_identity.py": "e85114ea20081dc97ccca299e80a954c3c2165de63d22b776948a1c4001ff010",
+    "hepta/native_resource_gate.py": "d6abcb7e7b1009aea8a8474388e80e1d9740957dfc2e242c4520260f23b93800",
+    "hepta/native_tool_identity.py": "0a67117d44d32154c0743a7111fd96170891386d0bd0164ae2955cc793846810",
+    "hepta/object_structure.py": "4fb0b3d962e4b7f6ba508257bf605f4403d402e4f3d7e05cffa084b91651f5a8",
+    "hepta/object_symbols.py": "aff81d724d08ed4a8c3189e3370f75e234daa010ec9e9855aedc1019d55a693f",
+    "hepta/owned_aarch64_link.py": "c1a6cc39d91805bcbbab841955455dd9db253cae29ae48c6e53a6b648ce3e193",
+    "hepta/owned_aarch64_runtime.py": "15aaa76b5f11e9aba8d76b1154a7bb62bb9962942b708dc9698a72b640ac3322",
+    "hepta/owned_drop_plan.py": "9519ec27c5e47baca77a68503bcd23e38c915f589257a8da7c733a5c6f6f7a25",
+    "hepta/owned_target_layout.py": "8045dcdcae41afe7f7e661cfd9844d12bf7cb4343361e0d10a56050544e5bbe4",
+    "hepta/packages.py": "f8a6f1beedcec4c11dbd544c2c60521f8aab40aac4a05a558d5c6a05dc14bb5f",
+    "hepta/parser.py": "b3cc04259c953d112e1ffbf4482b380cbb15fdd994a5924507dd1d11d5c0c5cf",
+    "hepta/pipeline.py": "9528ea5d7004c3e06fb005d1ef85741934fd1a7667787b166992499c3eaa6ef0",
+    "hepta/protocol.py": "7c4e9c6b71391f34662bd161864cdac63b90574f65dd77e9489a3820299c6972",
+    "hepta/protocol_v3.py": "ffcae884ccb4a0d32b1736bc272a92678ad8b37b7bc7c677107b84c693cbd903",
+    "hepta/resource_ir.py": "7ee06325c766682542334c2c76e876a4d1d50a86c993f91378f36edfaf7ab146",
+    "hepta/resource_lowering.py": "62d63f966b2f2e61540ae6719e8aeecefec9ee9dee65a920f6ba74dd370f3eb9",
+    "hepta/resource_source.py": "f0a4abccfdee9be5f05d54932ba51e9cbd6f448c5c778b36a8e49f3dd61392ad",
+    "hepta/runtime_concurrency.py": "e264aab58d9c0d970e5e9bcb107883d7174957b19a2c87e685c79bbc54dc0287",
+    "hepta/runtime_io.py": "ec87bedf99e209f6f7a5ae356457bd8f74a89bf92a9e6f2ce357c1619f33e8a4",
+    "hepta/runtime_task_io.py": "cf82d44afb4926b080a4b39c5660d3ef49544936f22981ce0478e8f05cbe79ca",
+    "hepta/runtime_task_tree.py": "5659b2484961124df1d38a528294f31f4540436d8f9a0c9b26e97d8b0cecbc27",
+    "hepta/scalar_host_abi.py": "63952a33c26d97e1d918086f9cdb342d32af19cc57b0cd37aab431cff5f512e0",
+    "hepta/semantic_ir.py": "040ecbe4715a4fa20edb719c987960bbff48b1ae59e82a23c08e78954bc389ef",
+    "hepta/source_map.py": "7a602a7728da1729c0a625eac04acbb0cd47ccf17788c5a31f20f292e3b736f8",
+    "hepta/ssa.py": "78f39afff1b89b359c6ce8d824a938712f4f4fa5ab10046d468d637000d75c67",
+    "hepta/ssa_reaching.py": "02a01024f3049c8d4cb40f191d2554f31ae1a971aef93cbdb786789431efbe34",
+    "hepta/ssa_verify.py": "fdf0272cacbe51819314af63defdd8b666e7aa93683cfd8df7ad7ec6b89ff510",
+    "hepta/static_resource_contracts.py": "fe16fb363b21cfc6f380f8e712ee6e087347fa36bbbeaba45d810c64b4c7ad01",
+    "hepta/windows_capture.py": "0daadfd048cdf08d31344cd2485e78ef3efaac4055850f0ea13501e813414baa",
+    "hepta/workspace.py": "68eb4d6d3aeb04e917b9e8f604f928c53420ee8070cd6d45987949e67a88d1ef",
+    "tools/qualify_hia_continuation.py": "b2bf794b0090375cde014940a37ea8ea0258828d63f97de231fe360d3bef66c8",
+    "tools/qualify_hia_stateful.py": "1de619bb8567bf17f795c1922e332ee688c2694c4154da3f6bb0121f41c6077a"
+  },
+  "suffix": {
+    "allocation_identity": "79cdf324bc8ddf8f06a96aff716b9319fb804486a45510f0a955d1bcbb404f8b",
+    "application_execution_ns": 16544,
+    "automatic_selection": false,
+    "calibration_verification_switch_ns": 651587,
+    "commit_bookkeeping_ns": 22773,
+    "committed_steps": 34,
+    "continuation": {
+      "external_effect_replay_authority": false,
+      "parent_executed_steps": 6,
+      "parent_queue": "96eb1a893b1f98d429209a1038364c4a",
+      "parent_queue_sha256": "27cda8b1d1ff19dd8069282a070e5414d52a3048bad35fc1f19814c0c6689308",
+      "prior_executed_steps": 6,
+      "remaining_steps": 34,
+      "root_queue": "96eb1a893b1f98d429209a1038364c4a",
+      "root_queue_sha256": "27cda8b1d1ff19dd8069282a070e5414d52a3048bad35fc1f19814c0c6689308",
+      "same_live_owner": true
+    },
+    "cost_accounting_complete": true,
+    "cumulative_deployment_cost_ns": 689840558,
+    "deployment_cost_ns": 6728372,
+    "diagnostic_errors": [],
+    "error": null,
+    "executed_steps": 34,
+    "final_values": [
+      895,
+      661
+    ],
+    "forecast_is_guaranteed": false,
+    "item_progress": [
+      {
+        "committed": 11,
+        "item": 0,
+        "replayed": 0,
+        "requested": 11
+      },
+      {
+        "committed": 23,
+        "item": 1,
+        "replayed": 0,
+        "requested": 23
+      }
+    ],
+    "measurement": null,
+    "native_ledger": {
+      "allocations": 2,
+      "frees": 0,
+      "live": 2,
+      "refusals": 0
+    },
+    "observed_net_against_baseline_forecast_ns": null,
+    "original_version": "a30fd4d8868c0e146a7385ffe8066c18",
+    "owner_id": "9cbf2de7e51569c8036d6b88eb0f7717",
+    "preparation_includes_initial_baseline_driver_and_all_prepare_attempts": true,
+    "queue": "980c27ce59d08ee2f83c54cb02a357a4",
+    "queue_sha256": "f5157cca4f7a266276d16b8609347e5bd936b4d0e94e56b3124b15fe40ebbcb7",
+    "replayed_steps": 0,
+    "schema": "hepta.hia.owned-queue-execution.v1",
+    "selection_reason": "no_candidate",
+    "status": "completed",
+    "unamortized_preparation_ns": 6037468,
+    "version": "a30fd4d8868c0e146a7385ffe8066c18"
+  },
+  "switched": {
+    "current": "a30fd4d8868c0e146a7385ffe8066c18",
+    "mode": "explicit",
+    "previous": "baseline",
+    "proof_reuse": {
+      "base_depth": 0,
+      "base_proof_sha256": "a678d6e295753488cc2c0166fc20d05b978039331f7a6502b06f452be3b19949",
+      "base_sha256": "bcaab59da26abfa6026c6408502a01ea838da28a49f87bce6ab3625b9f135892",
+      "candidate_depth": 1,
+      "candidate_proof_sha256": "8b9cedf11db5bddb5a807f803c82807be110752a5a157bccc999c295e2f4b770",
+      "candidate_sha256": "9438c0a91d9d83f85aa9a6852c8ea52e06217ddeb979f296bcceb44abe0e983e",
+      "new_solver_call": false,
+      "proof_source": "successful-internal-admission-only",
+      "root_core_sha256": "bcaab59da26abfa6026c6408502a01ea838da28a49f87bce6ab3625b9f135892",
+      "schema": "hepta.hia.prepared-equivalence-use.v1",
+      "serialized_receipt_authority": false
+    },
+    "selected": true
+  }
+}

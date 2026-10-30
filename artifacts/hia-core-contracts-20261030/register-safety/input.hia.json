@@ -1,0 +1,21 @@
+{
+  "schema": "hepta.hia.program.v6",
+  "module": "selected_u32_dead_literal",
+  "functions": [{
+    "name": "add_with_dead_literal",
+    "params": [{"name": "left", "type": "u32"}, {"name": "right", "type": "u32"}],
+    "returns": ["u32"], "effects": [], "entry": "entry",
+    "blocks": [{
+      "id": "entry",
+      "params": [{"name": "left", "type": "u32"}, {"name": "right", "type": "u32"}],
+      "ops": [
+        {"op": "int.add.wrap", "args": ["left", "right"], "out": [{"name": "sum", "type": "u32"}], "attrs": {}},
+        {"op": "const", "args": [], "out": [{"name": "bias", "type": "u32"}], "attrs": {"value": 17}},
+        {"op": "int.add.wrap", "args": ["sum", "bias"], "out": [{"name": "biased", "type": "u32"}], "attrs": {}},
+        {"op": "int.sub.wrap", "args": ["biased", "bias"], "out": [{"name": "restored", "type": "u32"}], "attrs": {}},
+        {"op": "const", "args": [], "out": [{"name": "unused", "type": "u32"}], "attrs": {"value": 99}}
+      ],
+      "term": {"op": "ret", "values": ["restored"]}
+    }]
+  }]
+}
