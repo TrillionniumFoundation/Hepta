@@ -91,14 +91,22 @@ class C2HeptaImport(unittest.TestCase):
                 self.assertEqual(self.convert(code)["status"], "rejected")
 
     def test_c_digraph_directive_cannot_bypass_macro_rejection(self):
-        # C99/C11's %: digraph is the same preprocessing token as '#'.
-        # The byte-only ^\\s*# filter silently misses this real directive.
-        # Do not claim the strict no-preprocessor safety subset as converted.
-        result = self.convert("%:define STEP 1\nint step(int x){return x + STEP;}\n")
-        self.assertEqual(result["status"], "rejected", result)
-        self.assertIn("preprocessor", result.get("reason", ""))
-        self.assertFalse(self.out.exists())
-        self.assertEqual(json.loads(self.report.read_text())["status"], "rejected")
+        # C11 preprocessing recognizes %: as '#', including after comments
+        # and after line splicing. Both are absent from a ^\s*# byte check.
+        directives = (
+            "%:define STEP 1\nint step(int x){return x + STEP;}\n",
+            "/* comment */ %:define STEP 1\nint step(int x){return x + STEP;}\n",
+            "%\\\n:define STEP 1\nint step(int x){return x + STEP;}\n",
+            "??=define STEP 1\nint step(int x){return x + STEP;}\n",
+        )
+        for code in directives:
+            with self.subTest(directive=repr(code.splitlines()[0])):
+                self.out.unlink(missing_ok=True)
+                result = self.convert(code)
+                self.assertEqual(result["status"], "rejected", result)
+                self.assertIn("preprocessor", result.get("reason", ""))
+                self.assertFalse(self.out.exists())
+                self.assertEqual(json.loads(self.report.read_text())["status"], "rejected")
 
     def test_deterministic_ir_and_fail_closed_stale_output(self):
         a = self.convert("int increment(int x){return x + 1;}")
