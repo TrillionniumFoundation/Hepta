@@ -62,8 +62,11 @@ The current [Core/Rust convergence](HIA_CORE_RUST_CONVERGENCE.md) preserves
 all 277 reviewed selectors from the newer integration base and all 126 from
 the separately qualified raw-record lineage. Their union is 323 selectors;
 ten existing field-origin methods, one mixed-form control and six source
-provenance methods bring the current matrix to 340 selectors in 36
-capabilities. This is the reviewed selection, not a claim that 340 methods
+provenance methods brought that matrix to 340 selectors in 36 capabilities.
+The existing `source_lowering` capability now additionally selects nine
+returned-call local-view methods, preserving all 340 original selectors and
+every existing guarantee. The resulting union has 349 selectors in the same
+36 capabilities. This is the reviewed selection, not a claim that 349 methods
 have executed on every source revision. Focused and full reports retain
 their actual commit identities and separate execution denominators.
 

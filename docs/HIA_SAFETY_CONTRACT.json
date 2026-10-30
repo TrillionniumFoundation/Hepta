@@ -59,7 +59,8 @@
         "source-to-Core refinement not proved",
         "no stored lifetime returns or general borrowed-record returns",
         "no foreign calls, inline assembly, threads or implicit legacy backend fallback",
-        "no payload, generic or recursive source enums; scalarization does not authorize an enum C ABI"
+        "no payload, generic or recursive source enums; scalarization does not authorize an enum C ABI",
+        "stored returned calls require one same-mode direct byte formal and scalar value arguments; nested call/view origins, aggregate borrowed formals and multiple borrowed formals remain excluded"
       ],
       "guarantee": "checked_source_and_reverified_core",
       "id": "source_lowering",
@@ -81,9 +82,18 @@
         "tests.test_hia_source_unit_enums.HIASourceUnitEnumRust.test_actual_rust_same_core_values_stops_failures_and_invalid_tags",
         "tests.test_hia_source_unit_enums.HIASourceUnitEnumNative.test_actual_source_rust_core_llvm_values_and_public_symbol_boundary",
         "tests.test_hia_source_unit_enums.HIASourceUnitEnumNative.test_actual_allocator_failure_returns_enum_error_and_cleans_owners",
-        "tests.test_hia_source_unit_enums.HIASourceUnitEnumNative.test_actual_native_invalid_primitive_tag_traps"
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumNative.test_actual_native_invalid_primitive_tag_traps",
+        "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViews.test_checked_resource_profile_enters_existing_v8_without_source_reparse",
+        "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViews.test_copy_move_branches_loops_and_each_early_exit_keep_parent_until_last_alias",
+        "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViews.test_fallible_paths_and_each_step_prefix_preserve_actual_resource_ledger",
+        "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViews.test_original_checker_and_finite_origin_storage_export_limits_still_reject",
+        "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViews.test_actual_core_rejects_parent_owner_and_cfg_corruptions",
+        "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViewsRust.test_actual_same_rust_machine_matches_values_loans_failures_and_every_step",
+        "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViewsRust.test_raw_rust_refuses_the_same_five_emitted_capability_corruptions",
+        "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViewsNative.test_direct_llvm_executes_actual_source_selected_scalar_exports",
+        "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViewsNative.test_actual_llvm_allocator_failure_keeps_returned_view_cleanup"
       ],
-      "scope": "default primitive v1; explicit v8; finite checked scalars, records, Result and closed specialization; finite local byte-view records through the existing lexical Resource IR checker and canonical primitive v1/v8; concrete enums with 1..32 unit variants use existing u32 tags and CFG while original nominal signatures restrict public scalar entries"
+      "scope": "default primitive v1; explicit v8; finite checked scalars, records, Result and closed specialization; finite local byte-view records through the existing lexical Resource IR checker and canonical primitive v1/v8; concrete enums with 1..32 unit variants use existing u32 tags and CFG while original nominal signatures restrict public scalar entries; explicit v8 also composes one same-mode returned byte loan with a local View, preserving the parent capability through shared copies, exclusive moves, CFG edges and lexical/explicit ends"
     },
     {
       "entrypoints": [

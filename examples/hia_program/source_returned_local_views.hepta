@@ -1,0 +1,118 @@
+module source_returned_local_views;
+
+struct Read<'a> { tag: u64, data: read 'a [u8], count: u64 }
+struct Edit<'a> { data: mut 'a [u8], tag: u64 }
+struct Pair { left: Buffer<u8>, right: Buffer<u8> }
+
+fn shared_origin(data: read [u8]) -> read [u8] from data effects {} {
+    return read data;
+}
+
+fn mutable_origin(data: mut [u8], tag: u64) -> mut [u8] from data effects {} {
+    return mut data;
+}
+
+fn shared_read(data: read [u8], early: bool) -> u64 effects {panic} {
+    let first = Read {tag: 9, data: read shared_origin(read data), count: len(data) as u64};
+    let mut copied = first;
+    copied.tag = 17;
+    let mut total = first.tag + copied.tag + copied.count;
+    if true {
+        let nested = first;
+        total = total + nested.tag;
+        if early { return total; }
+    }
+    if len(first.data) > 0 { total = total + copied.data[0] as u64; }
+    return total;
+}
+
+export "C" fn shared_case(n: usize, byte: u8, early: u8) -> u64
+    effects {alloc,block,panic,write} {
+    match try_buffer(n) {
+        Result::Err(error) => { return 1000 + error as u64; },
+        Result::Ok(acquired) => {
+            let mut data = move acquired;
+            if n > 0 { data[0] = byte; }
+            let result = shared_read(read data, early != 0);
+            drop(move data);
+            return result;
+        }
+    }
+}
+
+export "C" fn mutable_case(n: usize, byte: u8, rounds: usize) -> u64
+    effects {alloc,block,panic,write} {
+    let mut data = buffer(n);
+    let mut total: u64 = 0;
+    for i in 0..rounds {
+        let first = Edit {data: mut mutable_origin(mut data, i as u64), tag: i as u64};
+        let mut moved = move first;
+        if n > 0 { moved.data[0] = wrapping_add(byte, i as u8); }
+        moved.tag = moved.tag + 1;
+        total = total + moved.tag;
+        drop(move moved);
+    }
+    if n > 0 { total = total + data[0] as u64; }
+    drop(move data);
+    return total;
+}
+
+export "C" fn branch_case(n: usize, byte: u8, choose: u8) -> u64
+    effects {alloc,block,panic,write} {
+    let mut pair = Pair {left: buffer(n), right: buffer(n + 1)};
+    let mut total: u64 = 0;
+    if choose != 0 {
+        let mut edit = Edit {data: mut mutable_origin(mut pair.left, 11), tag: 11};
+        let first = Read {tag: 5, data: read shared_origin(read pair.right), count: 3};
+        let copied = first;
+        if n > 0 { edit.data[0] = byte; }
+        total = edit.tag + copied.tag + len(copied.data) as u64;
+        drop(move edit);
+    } else {
+        let first = Read {tag: 7, data: read shared_origin(read pair.left), count: 2};
+        total = first.tag + len(first.data) as u64;
+    }
+    if n > 0 { total = total + pair.left[0] as u64; }
+    drop(move pair);
+    return total;
+}
+
+fn fallible_read(data: read [u8], n: usize) -> u64 effects {alloc,block,panic} {
+    let view = Read {tag: 40, data: read shared_origin(read data), count: len(data) as u64};
+    match try_buffer(n) {
+        Result::Err(error) => { return view.tag + error as u64; },
+        Result::Ok(scratch) => {
+            let size = len(scratch) as u64;
+            drop(move scratch);
+            return view.tag + view.count + size;
+        }
+    }
+}
+
+export "C" fn failure_case(n: usize) -> u64 effects {alloc,block,panic} {
+    let data = buffer(3);
+    let result = fallible_read(read data, n);
+    drop(move data);
+    return result;
+}
+
+fn mutable_early(data: mut [u8], early: bool) -> u64 effects {panic,write} {
+    let first = Edit {data: mut mutable_origin(mut data, 5), tag: 5};
+    let mut moved = move first;
+    if early {
+        drop(move moved);
+        return 5;
+    }
+    if len(moved.data) > 0 { moved.data[0] = 17; }
+    let answer = moved.tag;
+    drop(move moved);
+    return answer + 1;
+}
+
+export "C" fn mutable_early_case(early: u8) -> u64 effects {alloc,block,panic,write} {
+    let mut data = buffer(1);
+    let answer = mutable_early(mut data, early != 0);
+    let byte = data[0] as u64;
+    drop(move data);
+    return answer + byte;
+}

@@ -46,7 +46,9 @@ An enum field occupies one scalar slot; it does not become an owner or a loan.
 Overlapping mutable/read source arguments remain subject to the existing
 source-access check. Local borrowed-view declarations and their scalar-label
 restriction are unchanged: an enum is not silently admitted as a stored-view
-label, nor are returned loans allowed to escape into stored values.
+label. Returned-call byte loans may be held only by the bounded v8 local-view
+composition described in [local views](HIA_SOURCE_LOCAL_VIEWS.md); escaping
+stored values and arbitrary lifetime composition remain rejected.
 
 ## Result and cleanup
 
