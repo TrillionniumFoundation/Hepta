@@ -1,0 +1,315 @@
+name: HIA intelligent assembly closure
+
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'tests/test_hia_*'
+      - 'tests/test_cpp_callback_project.py'
+      - 'tools/qualify_hia_*'
+      - 'tools/qualify_cpp_*'
+      - 'tools/build_hia_ndu_bridge.py'
+      - 'examples/cpp/callback_project_migration/**'
+      - 'experiments/hia_five_deliverables_20261030/**'
+      - 'evidence/hia_five_deliverables_20261030/**'
+      - 'artifacts/hia-ndu-*/**'
+      - 'docs/HIA_FIVE_DELIVERABLES_20261030.md'
+      - 'pyproject.toml'
+      - '.github/workflows/hepta-intelligent-assembly-closure.yml'
+  workflow_dispatch:
+    inputs:
+      run_native_ndu:
+        description: 'Build the pinned original NDU and require actual native qualification'
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  HEPTA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+  CLANG: /usr/bin/clang-20
+  CLANGXX: /usr/bin/clang++-20
+  HEPTA_CLANG: /usr/bin/clang-20
+  PYTHONDONTWRITEBYTECODE: '1'
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  closure-core:
+    name: Core, callback migration and chained proofs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      NATIVE_NDU_REQUESTED: ${{ github.event_name == 'workflow_dispatch' && inputs.run_native_ndu }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEPTA_SOURCE_SHA }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bind the exact source and install pinned Z3
+        run: |
+          test "$(git rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"
+          test -z "$(git status --porcelain)"
+          mkdir -p artifacts/intelligent-assembly
+          git rev-parse HEAD > artifacts/intelligent-assembly/source-sha.txt
+          git rev-parse 'HEAD^{tree}' > artifacts/intelligent-assembly/source-tree.txt
+          python -m pip install -e '.[optimization]'
+          python -m pip freeze > artifacts/intelligent-assembly/python-packages.txt
+      - name: Install the existing signed LLVM 20 profile
+        run: |
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/hepta-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key
+          hepta_llvm_fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hepta-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')
+          test "$hepta_llvm_fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+          sudo install -m 0644 "$RUNNER_TEMP/hepta-llvm.asc" /usr/share/keyrings/hepta-llvm.asc
+          printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hepta-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hepta-llvm20.list
+          sudo apt-get update
+          sudo apt-get install --yes clang-20 libclang-rt-20-dev llvm-20 lld-20 build-essential
+          printf '%s\n' /usr/lib/llvm-20/bin >> "$GITHUB_PATH"
+      - name: Require actual tools and record the declared scope
+        run: |
+          python - <<'PY'
+          import json, os, re, shutil, subprocess
+          from pathlib import Path
+          import z3
+          from hepta.hia_optimization import _solver_identity
+          assert z3.get_version_string() == '4.13.4'
+          versions = {}
+          for name in (os.environ['CLANG'], os.environ['CLANGXX'], 'gcc', 'g++', 'ld.lld'):
+              assert shutil.which(name), f'Missing required actual compiler: {name}'
+              versions[name] = subprocess.check_output([name, '--version'], text=True)
+          for name in (os.environ['CLANG'], os.environ['CLANGXX']):
+              assert re.search(r'\bclang version 20\.', versions[name]), versions[name]
+          report = {
+              'source_sha': os.environ['HEPTA_SOURCE_SHA'],
+              'solver': _solver_identity(z3), 'tool_versions': versions,
+              'native_ndu': 'separate_requested_job' if os.environ['NATIVE_NDU_REQUESTED'] == 'true' else 'not_qualified',
+              'relative_performance_is_a_pass_condition': False,
+          }
+          Path('artifacts/intelligent-assembly/SCOPE.json').write_text(json.dumps(report, indent=2) + '\n')
+          PY
+      - name: Run the declared unit suites with zero skipped tests
+        run: |
+          python - <<'PY' 2>&1 | tee artifacts/intelligent-assembly/unit-tests.log
+          import json, sys, unittest
+          from pathlib import Path
+          suites = [
+              'tests.test_hia_semantics_contract',
+              'tests.test_hia_call_expansion',
+              'tests.test_cpp_callback_project',
+              'tests.test_hia_planning.FiniteCompressionTests',
+              'tests.test_hia_ndu_graph.FiniteGraphTests',
+              'tests.test_hia_ndu_graph.CompilerGraphBoundaryTests',
+          ]
+          suite = unittest.defaultTestLoader.loadTestsFromNames(suites)
+          def identifiers(node):
+              for test in node:
+                  if isinstance(test, unittest.TestSuite):
+                      yield from identifiers(test)
+                  else:
+                      yield test.id()
+          planned = list(identifiers(suite))
+          result = unittest.TextTestRunner(stream=sys.stdout, verbosity=2).run(suite)
+          passed = (result.wasSuccessful() and not result.skipped and not result.expectedFailures
+                    and result.testsRun == len(planned) and result.testsRun > 0)
+          report = {'status': 'passed' if passed else 'failed', 'suites': suites, 'planned': planned,
+                    'tests_run': result.testsRun, 'failures': len(result.failures), 'errors': len(result.errors),
+                    'skipped': [(t.id(), why) for t, why in result.skipped],
+                    'expected_failures': [(t.id(), why) for t, why in result.expectedFailures],
+                    'native_ndu_tests': 'outside_this_suite; separate_native_ndu_job_required'}
+          Path('artifacts/intelligent-assembly/UNIT_RESULT.json').write_text(json.dumps(report, indent=2) + '\n')
+          raise SystemExit(0 if passed else 1)
+          PY
+      - name: Qualify actual C++ callback implementation migration
+        run: |
+          python tools/qualify_cpp_callback_project.py \
+            --workdir artifacts/intelligent-assembly/cpp-callback \
+            --clang "$CLANG" --clangxx "$CLANGXX" --cc gcc \
+            --iterations 50000 --repeats 3
+      - name: Qualify call expansion and chained proofs on the migrated Core
+        run: |
+          python tools/qualify_hia_call_expansion.py \
+            --output artifacts/intelligent-assembly/call-expansion \
+            --clang "$CLANG" \
+            --component-core artifacts/intelligent-assembly/cpp-callback/three_weight/standalone.core.json
+      - name: Require completed evidence and unchanged tracked source
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path('artifacts/intelligent-assembly')
+          unit = json.loads((root / 'UNIT_RESULT.json').read_bytes())
+          callback = json.loads((root / 'cpp-callback/qualification.json').read_bytes())
+          expansion = json.loads((root / 'call-expansion/RESULT.json').read_bytes())
+          assert unit['status'] == 'passed' and unit['skipped'] == []
+          assert callback['ok'] is True, callback.get('error')
+          assert {row['name'] for row in callback['variants']} == {'three_weight', 'five_weight'}
+          assert callback['allocation_high_water']['ok'] is True
+          assert callback['performance']['ok'] is True
+          assert expansion['status'] == 'passed'
+          assert expansion['sources_unchanged'] is True and expansion['component_input_unchanged'] is True
+          assert {row['name'] for row in expansion['profiles']} == {
+              'loop', 'guarded_loop', 'composite', 'borrowed', 'captured_cpp_component'}
+          cases = sum(row['case_count'] for row in callback['variants'])
+          observations = sum(row['native_observations'] for row in expansion['profiles'])
+          with Path(os.environ['GITHUB_STEP_SUMMARY']).open('a') as summary:
+              summary.write(f'### Core closure evidence\n\nSource: `{os.environ["HEPTA_SOURCE_SHA"]}`.\n\n'
+                            f'{unit["tests_run"]} unit tests, zero skips; {cases} callback cases per implementation; '
+                            f'{observations} native call-expansion observations.\n\n'
+                            'C++ `-O3` and `-O3 -flto` measurements are descriptive; no relative speed gate. '
+                            'Native NDU qualification belongs to the separate optional job.\n')
+          PY
+          test "$(git rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"
+          git diff --exit-code
+          git diff --cached --exit-code
+      - name: Retain completed and failed core evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-closure-core-${{ env.HEPTA_SOURCE_SHA }}
+          path: artifacts/intelligent-assembly
+          if-no-files-found: error
+
+  native-ndu:
+    name: Optional original native NDU qualification
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_native_ndu }}
+    needs: closure-core
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      NDU_SOURCE_SHA: c4a1bbed3a39beba43a6abf1a18b6f75c5725c21
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEPTA_SOURCE_SHA }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bind the source and install the qualified solver
+        run: |
+          test "$(git rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"
+          test -z "$(git status --porcelain)"
+          mkdir -p artifacts/intelligent-assembly-native
+          git rev-parse HEAD > artifacts/intelligent-assembly-native/source-sha.txt
+          git rev-parse 'HEAD^{tree}' > artifacts/intelligent-assembly-native/source-tree.txt
+          python -m pip install -e '.[optimization]'
+          python -m pip freeze > artifacts/intelligent-assembly-native/python-packages.txt
+      - name: Install the existing signed LLVM 20 and pinned Rust profiles
+        run: |
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/hepta-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key
+          hepta_llvm_fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hepta-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')
+          test "$hepta_llvm_fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+          sudo install -m 0644 "$RUNNER_TEMP/hepta-llvm.asc" /usr/share/keyrings/hepta-llvm.asc
+          printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hepta-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hepta-llvm20.list
+          sudo apt-get update
+          sudo apt-get install --yes clang-20 libclang-rt-20-dev llvm-20 lld-20 build-essential
+          printf '%s\n' /usr/lib/llvm-20/bin >> "$GITHUB_PATH"
+          rustup toolchain install 1.95.0 --profile minimal
+          echo "NDU_RUSTC=$(rustup which --toolchain 1.95.0 rustc)" >> "$GITHUB_ENV"
+          echo "CARGO=$(rustup which --toolchain 1.95.0 cargo)" >> "$GITHUB_ENV"
+      - name: Checkout the original NDU source at the existing pin
+        uses: actions/checkout@v4
+        with:
+          repository: TrillionniumFoundation/hepta-private-ci
+          ref: ${{ env.NDU_SOURCE_SHA }}
+          path: ndu-source
+          token: ${{ secrets.HEPTA_NDU_READ_TOKEN || github.token }}
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /codex-rs/Cargo.toml
+            /codex-rs/hepta-ndu/
+            /codex-rs/hepta-types/
+            /codex-rs/hepta-contracts/
+            /tools/hia-ndu-bridge/
+      - name: Build and require the actual native source identity
+        run: |
+          python tools/build_hia_ndu_bridge.py --ndu-source ndu-source \
+            --expected-source "$NDU_SOURCE_SHA" --cargo "$CARGO" --rustc "$NDU_RUSTC" \
+            --output "$RUNNER_TEMP/hia-closure-ndu"
+          echo "HEPTA_NDU_IDENTITY=$RUNNER_TEMP/hia-closure-ndu/identity.json" >> "$GITHUB_ENV"
+          echo "HEPTA_NDU_STREAM_IDENTITY=$RUNNER_TEMP/hia-closure-ndu/identity.json" >> "$GITHUB_ENV"
+      - name: Run native graph and compression suites without skipped tests
+        run: |
+          python - <<'PY' 2>&1 | tee artifacts/intelligent-assembly-native/unit-tests.log
+          import json, os, sys, unittest
+          from pathlib import Path
+          import z3
+          assert z3.get_version_string() == '4.13.4'
+          assert Path(os.environ['HEPTA_NDU_IDENTITY']).is_file()
+          suites = ['tests.test_hia_planning', 'tests.test_hia_planning_boundaries', 'tests.test_hia_ndu_graph']
+          suite = unittest.defaultTestLoader.loadTestsFromNames(suites)
+          planned = suite.countTestCases()
+          result = unittest.TextTestRunner(stream=sys.stdout, verbosity=2).run(suite)
+          passed = (result.wasSuccessful() and not result.skipped and not result.expectedFailures
+                    and result.testsRun == planned and planned > 0)
+          report = {'status': 'passed' if passed else 'failed', 'suites': suites,
+                    'planned_count': planned, 'tests_run': result.testsRun,
+                    'failures': len(result.failures), 'errors': len(result.errors),
+                    'skipped': [(t.id(), why) for t, why in result.skipped],
+                    'expected_failures': [(t.id(), why) for t, why in result.expectedFailures]}
+          Path('artifacts/intelligent-assembly-native/UNIT_RESULT.json').write_text(json.dumps(report, indent=2) + '\n')
+          raise SystemExit(0 if passed else 1)
+          PY
+      - name: Compare full and compressed graphs through both actual native transports
+        run: |
+          python tools/qualify_hia_ndu_compression.py --identity "$HEPTA_NDU_IDENTITY" \
+            --output artifacts/intelligent-assembly-native/compression-oneshot --repetitions 3 --transport oneshot
+          python tools/qualify_hia_ndu_compression.py --identity "$HEPTA_NDU_STREAM_IDENTITY" \
+            --output artifacts/intelligent-assembly-native/compression-stream --repetitions 3 --transport stream
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          for name in ('compression-oneshot', 'compression-stream'):
+              result = json.loads((Path('artifacts/intelligent-assembly-native') / name / 'RESULT.json').read_bytes())
+              assert result['native']['status'] == 'executed', result['native']
+              assert result['native_differential_count'] > 0
+              assert result['cost_complete_for_declared_controller_scope'] is True
+              assert result['authority'] == 'DENY_ALL' and result['safety_certificate'] is False
+          PY
+      - name: Execute all original compiler-graph controls plus compression and exact Q32
+        run: |
+          python - <<'PY'
+          import os
+          from copy import deepcopy
+          from pathlib import Path
+          from tools.qualify_hia_ndu_graph import PROTOCOL, qualify
+          protocol = deepcopy(PROTOCOL)
+          protocol['arms'].extend(['ndu-compact', 'q32-dp'])
+          protocol['native_transport'] = 'stream'
+          result = qualify(Path('artifacts/intelligent-assembly-native/compiler-graph'),
+                           identity=os.environ['HEPTA_NDU_STREAM_IDENTITY'], clang=os.environ['CLANG'], protocol=protocol)
+          assert result['all_episodes_completed'] is True
+          assert result['all_outputs_correct'] is True
+          assert result['all_actual_budgets_passed'] is True
+          assert result['setup_accounting']['cost_complete_within_scope'] is True
+          assert {row['arm'] for row in result['episodes']} == set(protocol['arms'])
+          assert result['authority'] == 'DENY_ALL' and result['safety_certificate'] is False
+          with Path(os.environ['GITHUB_STEP_SUMMARY']).open('a') as summary:
+              summary.write('### Original native NDU evidence\n\n'
+                            f'Source: `{os.environ["HEPTA_SOURCE_SHA"]}`; NDU: `{os.environ["NDU_SOURCE_SHA"]}`.\n\n'
+                            'Actual native one-shot and stream compression comparisons completed; '
+                            f'{len(result["episodes"])} compiler-graph episodes passed correctness and registered budgets. '
+                            'Relative cost comparisons are descriptive and do not determine pass/fail.\n')
+          PY
+          test "$(git rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"
+          git diff --exit-code
+          git diff --cached --exit-code
+      - name: Retain completed and failed native evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-closure-native-ndu-${{ env.HEPTA_SOURCE_SHA }}
+          path: |
+            artifacts/intelligent-assembly-native
+            ${{ runner.temp }}/hia-closure-ndu/identity.json
+            ${{ runner.temp }}/hia-closure-ndu/target/release/hepta-hia-ndu-bridge
+          if-no-files-found: error
