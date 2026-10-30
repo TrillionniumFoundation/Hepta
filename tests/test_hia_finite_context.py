@@ -79,6 +79,51 @@ def result(rows, returncode=0):
 
 
 class FiniteContextTests(unittest.TestCase):
+    def test_integer_oracle_observations_are_exact_fresh_and_need_no_json_roundtrip(self):
+        with patch.object(fc, "_wire", side_effect=AssertionError("redundant integer encoding")), \
+             patch.object(fc.json, "loads", side_effect=AssertionError("redundant integer decoding")):
+            for value in (0, 1, 2**31, fc.MASK32):
+                left, right = fc._observation(value), fc._observation(value)
+                self.assertEqual(left, {"status": "returned", "values": [value]})
+                self.assertIsNot(left, right)
+                self.assertIsNot(left["values"], right["values"])
+                left["values"].clear()
+                self.assertEqual(right, {"status": "returned", "values": [value]})
+        class IntSubclass(int):
+            pass
+        for value in (-1, fc.MASK32 + 1, True, False, 0.0, IntSubclass(1), None):
+            with self.subTest(value=value), self.assertRaises(fc.FiniteContextRejected):
+                fc._observation(value)
+        original = {"status": "returned", "values": [7]}
+        snapshot = fc._observation(original)
+        original["values"][0] = 9
+        self.assertEqual(snapshot, {"status": "returned", "values": [7]})
+        trap = {"status": "trapped", "code": "overflow"}
+        self.assertEqual(fc._observation(trap), trap)
+        self.assertIsNot(fc._observation(trap), trap)
+        for value in ({"status": "returned", "values": [True]},
+                      {"status": "returned", "values": [fc.MASK32 + 1]},
+                      {"status": "returned", "values": [0], "extra": 0},
+                      {"status": "trapped", "code": "unknown-trap"}):
+            with self.subTest(value=value), self.assertRaises(fc.FiniteContextRejected):
+                fc._observation(value)
+
+    def test_oracle_still_runs_for_each_step_and_keeps_the_first_trap_prefix(self):
+        calls = []
+        def repeated(state, value):
+            calls.append((state, value))
+            return 0
+        self.assertEqual(fc._expected(((1, 0, 0, 0, 0, (1, 1, 1)),), repeated),
+                         (("returned", 0, 0),))
+        self.assertEqual(calls, [(0, 1), (0, 1), (0, 1)])
+        calls.clear()
+        def trap(state, value):
+            calls.append((state, value))
+            return {"status": "trapped", "code": "overflow"} if value == 2 else state + value
+        self.assertEqual(fc._expected(((1, 0, 0, 7, 0, (1, 2, 3)),), trap),
+                         (("trapped", "overflow", 1),))
+        self.assertEqual(calls, [(7, 1), (8, 2)])
+
     def test_public_factory_requires_actual_source_profile_and_no_receipt_constructor(self):
         fc.checked_profile(shift_program())
         with self.assertRaisesRegex(fc.FiniteContextRejected, "use build_bank"):

@@ -54,14 +54,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Bind the exact source and install pinned Z3
+      - name: Bind the exact source and install pinned verification dependencies
         run: |
           test "$(git rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"
           test -z "$(git status --porcelain)"
           mkdir -p artifacts/intelligent-assembly
           git rev-parse HEAD > artifacts/intelligent-assembly/source-sha.txt
           git rev-parse 'HEAD^{tree}' > artifacts/intelligent-assembly/source-tree.txt
-          python -m pip install -e '.[optimization]'
+          python -m pip install -e '.[optimization]' zstandard==0.25.0
           python -m pip freeze > artifacts/intelligent-assembly/python-packages.txt
       - name: Verify the retained qualification and model evidence bytes
         run: python evidence/hia_five_deliverables_20261030/VERIFY.py

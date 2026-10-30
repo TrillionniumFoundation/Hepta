@@ -226,7 +226,9 @@ def checked_profile(document):
 
 def _observation(value):
     if type(value) is int:
-        value = {"status": "returned", "values": [value]}
+        _require(0 <= value <= MASK32, "invalid oracle u32 result")
+        # This fresh canonical shape needs no JSON round trip for every step.
+        return {"status": "returned", "values": [value]}
     _require(type(value) is dict, "oracle must return an exact u32 or a canonical observation")
     if value.get("status") == "returned":
         _require(set(value) == {"status", "values"} and type(value["values"]) is list
