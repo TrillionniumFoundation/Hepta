@@ -39,6 +39,7 @@ Canonical safety matrix 保留两边能力及回归，并对范围有变化的 p
 | 捕获 C 项目 | 实际 Clang AST、构建参数、依赖及 foreign contracts → 已有 source/Core 路径 | 本轮新增完整 if 条件中的有限 postfix 顺序求值；未支持的控制和指针语义明确拒绝 |
 | 捕获 C++ 项目 | 已有 concrete leaf/composed/unique-owner 项目与配置矩阵路径 | 只覆盖已实现的有限类、所有权、调用与 ABI 约束，不是任意 C++ 迁移器 |
 | 独立 Rust shadow/预算分析 | 原始 primitive Core → Rust owned verifier、Machine 和独立 DAG 预算 | 与默认生产选路区分；Python/Rust 差分不能自行授权 native |
+| 独立 Rust byte-DAG 执行 | 原始 primitive v1–v8 字节 → Rust 全模块验证、逐函数静态限额、同快照 v4 Machine | `raw-byte-dag-v1` 模式由 Rust 独立准入；拒绝 cycles/chains/source/nominal，不产生 Python VerifiedProgram 或 native 授权 |
 | direct LLVM | 重新验证的 Core → 已有 LLVM emitter → 实际 compiler/linker/产物复核 | backend、目标 ABI、host 环境及执行证据各自限定范围 |
 | NDU 建议 | 原始 pinned Rust bridges、有限候选/路径规划 | 建议不授予 Core 准入、资源证明或生产发布权 |
 
@@ -53,8 +54,8 @@ Rust、TypeScript、Python、Go 和任意汇编源码还没有通用 Hepta front
 | --- | --- | --- |
 | P0 | 双亲合并、单一 post-test 路径、完整 safety matrix 与 integrated coverage | 最终冻结源码上的完整 qualification，不能替代为开发日志或旧 CI |
 | P1 | Rust 独立 byte-DAG 静态上界：每函数 ticks、allocator interactions、root-inclusive depth | 活跃 heap/RSS、循环/递归/chain 上界、异常恢复、完整 source→Core→native refinement |
-| P2 | 对现有 Rust raw verifier/Machine 的有限独立准入选路继续收口 | 默认完整生产准入切换必须有其完整范围的独立验证及差分证据；不能改一个标签就算完成 |
-| P3 | 原始 musl `strncmp` 保持源字节，通过捕获、Core、LLVM、VM 和 allocation-refusal 纵向验证 | 任意 C/C++、大型 C++ 真实版本变更、完整人力成本和长期维护优势 |
+| P2 | 实现 `execute_rust_byte_dag`，无需 Python 语义准入；私有 Rust 快照绑定全模块检查、静态政策和实际执行 | 有限模式仍须最终整体验证；默认/source/nominal/native 完整范围的权威切换尚未完成 |
+| P3 | 原始 musl 1.2.5 `strncmp` 保持源字节，通过捕获、Core、LLVM、VM 和 allocation-refusal 纵向验证；对真实 1.2.6 再次迁移并执行 | 后续 release 的函数体相同，不能证明语义变更维护；任意 C/C++、大型 C++ 版本变更、完整人力成本和长期维护优势未完成 |
 | P4 | 有界 oracle reference 复用；完整执行/查找/证据/冷准备成本比较 | 多样真实热点上，计入必要成本后的正收益 |
 | P5 | 保留强 static controls、相同输入与 reference 条件，以及 NDU 四类 pinned native identity | 本轮 CRC 五臂没有 NDU；不能把上下文合并或共享缓存收益归给 NDU |
 | P6 | 复用结果与 trace nonce/实际执行分离，身份漂移、trap、poison、关闭和两种存储上限的负控制 | 通用活跃调用、foreign callback、持久状态迁移、回收和恢复范围仍须扩大 |
@@ -72,8 +73,23 @@ Rust、TypeScript、Python、Go 和任意汇编源码还没有通用 Hepta front
 依赖外部 binary pin 的工具仍须信任其真实来源；攻击者自选一个 hash 并不能把
 任意 executable 变成可信 checker。
 
-详见 `HIA_RUST_STATIC_BUDGET.md`、`HIA_C_POSTFIX_CONDITIONS.md` 和
+详见 `HIA_RUST_STATIC_BUDGET.md`、`HIA_RUST_BYTE_DAG_ADMISSION.md`、
+`HIA_C_POSTFIX_CONDITIONS.md` 和
 `HIA_FINITE_ORACLE_REFERENCE_REUSE.md`。
+
+## 原始 C 库和后续发行版
+
+musl 1.2.5 与 1.2.6 的官方归档分别核验并重新捕获；两版 `strncmp.c` 都是
+同一份 220-byte 原始函数体，`COPYRIGHT` 确有变化。每版实际执行 1,158 个
+输入/分配失败组合，包含 2,316 次 C/Hepta native 执行和 1,158 次 VM 执行。
+原始 C 代码、迁移结果、资源账本、编译/进程状态、源码快照和首次工具链失败
+保存在 `evidence/hia_musl_strncmp_20261030/`，可离线重算归档清单和观测比较。
+
+这些运行各自绑定原实现提交 `46534e04ec874bd5681b9f38914e210c2ef813be` 和
+维护工具提交 `f82d016e08431bf9c16d12a613bfab6151103d8a`。后续合并不改标这些
+证据的来源。此例采用明确的 LP64、`-funsigned-char` 和受限 owned-storage
+适配；不能泛化为默认 signed-char ABI 或任意裸指针兼容。报告分别列出已测
+自动化耗时、开发记录和未测人力，未知成本没有填成零。
 
 ## CRC 实验的来源与负结果
 

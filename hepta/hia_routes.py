@@ -1,8 +1,10 @@
-"""Explicit input and backend routes into the one standalone HIA authority.
+"""Explicit inputs, default adapters and independently scoped HIA execution.
 
 The inventory describes boundaries; it is not a safety or refinement receipt.
-Only admit_route executes an adapter, and every supported adapter ends in the
-same verify_program. Unsupported languages/IR/backend combinations fail closed.
+Every adapter accepted by admit_route ends in the same verify_program. The
+separate raw-byte-DAG Rust entry has its own bounded admission and execution
+contract; it cannot mint a Python VerifiedProgram or authorize native output.
+Unsupported languages/IR/backend combinations fail closed.
 """
 from __future__ import annotations
 
@@ -129,6 +131,20 @@ def route_inventory():
                    "publication": "fresh guarded native artifact with complete original fallback"},
               ],
               "optimizations": optimizations,
+              "independent_execution_profiles": [
+                  {"route": "rust-byte-dag", "profile": "raw-byte-dag-v1",
+                   "entry": "hepta.hia_rust_byte_dag.execute_rust_byte_dag",
+                   "rust_entry": "hia_core_shadow::admit_and_run_byte_dag",
+                   "scope": "raw primitive v1-v8; whole-module byte-only CFG/call DAG; exported scalar entry",
+                   "policies": "all-function static bounds and exact v4 runtime limits",
+                   "admission_authority": "independent Rust owned verifier and private admitted snapshot",
+                   "execution": "existing Rust v4 Machine on the same canonical snapshot",
+                   "python_semantic_admission_required": False,
+                   "default_admission_changed": False,
+                   "source_or_nominal_lowering": False,
+                   "native_execution_authorized": False,
+                   "receipt_grants_admission": False},
+              ],
               "authority": "hepta.hia_program.verify_program",
               "claims": {"implicit_fallback_allowed": False, "all_source_languages_implemented": False,
                          "source_to_core_refinement_proved": False, "backend_refinement_proved": False,

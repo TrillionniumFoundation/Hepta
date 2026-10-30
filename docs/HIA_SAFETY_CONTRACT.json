@@ -1,7 +1,20 @@
 {
   "authority": {
     "admission": "hepta.hia_program.verify_program",
+    "admission_scope": "default/source/nominal Core admission and native consumers",
     "external_receipts_grant_admission": false,
+    "independent_execution_profiles": [
+      {
+        "admission": "independent Rust owned verifier and private admitted snapshot",
+        "default_admission_changed": false,
+        "entrypoint": "hepta.hia_rust_byte_dag.execute_rust_byte_dag",
+        "external_receipts_grant_admission": false,
+        "native_execution_authorized": false,
+        "profile": "raw-byte-dag-v1",
+        "python_semantic_admission_required": false,
+        "scope": "raw primitive v1-v8 byte-only whole-module CFG/call DAG; existing Rust v4 Machine"
+      }
+    ],
     "input": "actual immutable canonical Core bytes; public VerifiedProgram objects are rechecked",
     "metadata_grants_admission": false
   },
@@ -990,6 +1003,36 @@
         "tests.test_hia_crc_context_reuse_study.CRCReferenceStudyTests.test_dirty_source_refuses_before_any_capture_proof_build_or_context"
       ],
       "scope": "Explicit opt-in bank-local deterministic reference reuse under root/checker/image identity; 256-entry and 1-MiB canonical input+outcome bounds, separate lookup/compute/storage/release cost records, and actual independent consumed trace/native execution on every request. Frozen v2 zero-prefix defect remains recorded; v3 uses domain-separated deterministic diverse inputs and preserves the same five arms and cold cost gate."
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_rust_byte_dag.execute_rust_byte_dag",
+        "hepta.hia_routes.route_inventory"
+      ],
+      "exclusions": [
+        "default/source/nominal/native admission is unchanged; no Python VerifiedProgram or native publication authority",
+        "no chains, CFG/call cycles, foreign code, unknown opcodes or unsupported schemas",
+        "no source/Core/native refinement, whole-language soundness, successful-return or unwind theorem",
+        "structural VM-event/allocator-interaction/frame bounds do not bound process RSS, native time or hardware latency",
+        "binary pin provenance, loader/libraries, kernel and caller transport remain trusted; receipts are not imported admission objects"
+      ],
+      "guarantee": "checked_on_every_admission",
+      "id": "independent_rust_byte_dag_admission",
+      "regression_selectors": [
+        "tests.test_hia_rust_byte_dag.RustByteDagAdmission.test_all_primitive_versions_preserve_full_v4_results_and_exact_failure_indices",
+        "tests.test_hia_rust_byte_dag.RustByteDagAdmission.test_raw_entry_works_when_all_python_semantic_imports_are_unavailable",
+        "tests.test_hia_rust_byte_dag.RustByteDagAdmission.test_raw_format_and_negative_zero_bind_the_original_snapshot",
+        "tests.test_hia_rust_byte_dag.RustByteDagAdmission.test_complete_differential_covers_branches_calls_multi_returns_and_stops",
+        "tests.test_hia_rust_byte_dag.RustByteDagAdmission.test_bulk_byte_operations_and_scalar_result_boundaries_use_the_same_machine",
+        "tests.test_hia_rust_byte_dag.RustByteDagAdmission.test_static_limit_boundary_applies_to_hidden_functions_before_execution",
+        "tests.test_hia_rust_byte_dag.RustByteDagAdmission.test_unknown_scope_and_invalid_hidden_resources_refuse_with_actual_rust",
+        "tests.test_hia_rust_byte_dag.RustByteDagAdmission.test_native_and_transport_policies_keep_exact_types_and_public_boundary",
+        "tests.test_hia_rust_byte_dag.RustByteDagAdmission.test_wide_policy_wire_limit_and_pin_are_enforced_before_process_start",
+        "tests.test_hia_rust_byte_dag.RustByteDagAdmission.test_rehashed_request_replay_protocol_changes_and_claim_promotions_reject",
+        "tests.test_hia_rust_byte_dag.RustByteDagAdmission.test_caller_mutation_and_complete_large_inventory_do_not_rebind_snapshot",
+        "tests.test_hia_routes.RouteTests.test_independent_rust_profile_cannot_mint_default_or_native_admission"
+      ],
+      "scope": "Explicit raw-byte-dag-v1 interpreter profile: original primitive v1-v8 bytes independently checked by Rust for all definitions, exact ownership/loans/types/SSA/effects, byte-only acyclic CFG/calls and per-function static limits, then the same private canonical snapshot executes in the existing v4 Machine with an exactly bound runtime policy. Python supplies bounded wire/actual pinned sealed process transport, not semantic admission."
     }
   ],
   "judgment": {
@@ -1206,7 +1249,11 @@
   "trusted_computing_base": [
     {
       "component": "Python source checker, Core parser/verifier, normalization and operational implementations",
-      "reason": "production admission and execution definitions; not mechanically proved sound"
+      "reason": "default/source/nominal admission and Python execution definitions; not mechanically proved sound"
+    },
+    {
+      "component": "independent Rust owned verifier, byte-DAG analyzer, private admitted snapshot, v4 Machine and pinned executable/transport",
+      "reason": "semantic admission and actual execution for raw-byte-dag-v1 only; finite independent differential evidence is not a whole-language soundness proof"
     },
     {
       "component": "proof encoder and pinned SMT solver",

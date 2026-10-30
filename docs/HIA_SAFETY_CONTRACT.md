@@ -1,10 +1,14 @@
 # HIA safety contract and executable boundaries
 
 This contract describes the integrated implementation. It does not establish
-absolute safety or whole-language soundness. The production authority is
-`hepta.hia_program.verify_program`, applied to the actual immutable Core
-snapshot. A producer, an AI agent, NDU, a serialized receipt, and this document
-cannot confer admission or publication authority.
+absolute safety or whole-language soundness. Default, source/nominal and native
+consumers retain `hepta.hia_program.verify_program`, applied to the actual
+immutable Core snapshot. The separate `raw-byte-dag-v1` interpreter profile
+uses the independent Rust verifier, static limits and private admitted snapshot
+before its existing v4 Machine executes. It requires no Python semantic
+admission, but grants no default or native authority. A producer, an AI agent,
+NDU, a serialized receipt, and this document cannot confer admission or
+publication authority. See [the Rust profile](HIA_RUST_BYTE_DAG_ADMISSION.md).
 
 The companion [machine-readable matrix](HIA_SAFETY_CONTRACT.json) freezes the
 reviewed schema registry, names actual entrypoints, states each capability's

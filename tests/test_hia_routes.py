@@ -2,6 +2,7 @@
 from __future__ import annotations
 import contextlib
 import io
+import importlib
 import json
 from pathlib import Path
 import tempfile
@@ -19,6 +20,26 @@ from tests.test_hia_optimization import constant_program
 
 
 class RouteTests(unittest.TestCase):
+    def test_independent_rust_profile_cannot_mint_default_or_native_admission(self):
+        inventory = route_inventory()
+        profile, = inventory["independent_execution_profiles"]
+        self.assertEqual(profile["route"], "rust-byte-dag")
+        self.assertEqual(profile["profile"], "raw-byte-dag-v1")
+        module, name = profile["entry"].rsplit(".", 1)
+        self.assertTrue(callable(getattr(importlib.import_module(module), name)))
+        self.assertEqual(inventory["authority"], "hepta.hia_program.verify_program")
+        for key in ("python_semantic_admission_required", "default_admission_changed",
+                    "source_or_nominal_lowering", "native_execution_authorized",
+                    "receipt_grants_admission"):
+            self.assertIs(profile[key], False)
+        # A descriptor/report is not an alternate constructor of VerifiedProgram.
+        with patch("hepta.hia_routes.verify_program", side_effect=AssertionError("must refuse first")):
+            with self.assertRaisesRegex(RouteRejected, "E_HIA_ROUTE_UNSUPPORTED"):
+                admit_route(profile["route"], constant_program())
+        profile["native_execution_authorized"] = True
+        self.assertIs(route_inventory()["independent_execution_profiles"][0]
+                      ["native_execution_authorized"], False)
+
     def test_versioned_inventory_has_all_languages_and_legacy_non_authorities(self):
         inventory = route_inventory()
         self.assertEqual({"Hepta", "C", "C++", "C++ compilation database", "Rust", "TypeScript",
