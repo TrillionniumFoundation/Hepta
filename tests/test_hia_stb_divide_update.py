@@ -82,12 +82,19 @@ class StbUpdateReadbackBindingTests(unittest.TestCase):
         return root, git
 
     def test_hidden_worktree_byte_mode_or_link_drift_cannot_claim_exact_commit(self):
-        for kind in ("assume_unchanged", "skip_worktree", "ignored_extra", "mode", "symlink"):
+        for kind in ("assume_unchanged", "skip_worktree", "ignored_extra", "mode", "owner_execute", "symlink"):
             with self.subTest(kind=kind), tempfile.TemporaryDirectory(prefix="stb-source-binding-") as directory:
                 root, git = self.repository(directory)
-                original = q.source_state(root)
-                q.validate_commit_source(original, original["head"], root=root, check_worktree=True)
                 path = root / "hepta/semantic.py"
+                if kind == "owner_execute":
+                    path.chmod(0o755)
+                    git("add", "hepta/semantic.py")
+                    git("commit", "-qm", "record Git executable mode")
+                    # Git tracks owner execute, not group/other permission bits.
+                    path.chmod(0o700)
+                original = q.source_state(root)
+                self.assertEqual(original["status"], "")
+                q.validate_commit_source(original, original["head"], root=root, check_worktree=True)
                 if kind in {"assume_unchanged", "skip_worktree", "symlink"}:
                     git("update-index", "--assume-unchanged" if kind == "assume_unchanged" else "--skip-worktree",
                         "--", "hepta/semantic.py")
@@ -101,7 +108,7 @@ class StbUpdateReadbackBindingTests(unittest.TestCase):
                     (root / "hepta/hidden.py").write_text("# ignored extra source module\n")
                 else:
                     git("config", "core.filemode", "false")
-                    path.chmod(0o755)
+                    path.chmod(0o655 if kind == "owner_execute" else 0o755)
                 changed = q.source_state(root)
                 self.assertEqual(changed["status"], "")
                 with self.assertRaises(ValueError):

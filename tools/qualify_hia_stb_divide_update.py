@@ -264,7 +264,7 @@ def validate_commit_source(snapshot, expected_head, *, root=None, check_worktree
                 observed = path.lstat()
             except FileNotFoundError as error:
                 raise ValueError("E_HIA_STB_UPDATE: missing committed source input") from error
-            require(stat.S_ISREG(observed.st_mode) and bool(observed.st_mode & 0o111) == (mode == "100755")
+            require(stat.S_ISREG(observed.st_mode) and bool(observed.st_mode & stat.S_IXUSR) == (mode == "100755")
                     and identity(path) == expected_files[name], "working source bytes or executable mode differ from raw commit")
     return {"raw_tree": tree, "files_bound": len(entries)}
 
