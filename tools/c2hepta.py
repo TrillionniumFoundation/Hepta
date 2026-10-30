@@ -262,7 +262,11 @@ def _run_clang_ast_bounded(command: list[str], source: bytes) -> subprocess.Comp
 def migrate(source: Path, output: Path, report: Path, clang: str = "clang", verify_native: bool = False, rustc: str | None = None) -> dict:
     # Direct callers must get the same destination-identity protection as CLI.
     # Reject before any source, output, or receipt is replaced.
-    if len({source.resolve(), output.resolve(), report.resolve()}) != 3:
+    # Admit destination paths once. Reuse their canonical spellings for
+    # publication: a caller-controlled parent symlink may be rebound while
+    # Clang is running. This pins path names, not ancestor directory inodes.
+    admitted_output, admitted_report = output.resolve(), report.resolve()
+    if len({source.resolve(), admitted_output, admitted_report}) != 3:
         raise ValueError("source, output and report paths must be distinct")
     try:
         original = _read_source_bounded(source)
@@ -383,7 +387,7 @@ def migrate(source: Path, output: Path, report: Path, clang: str = "clang", veri
             if not analysis.report.get("ok"):
                 raise UnsupportedC("native Hepta validation did not pass: " + repr(analysis.report.get("diagnostics", []))[:1500])
             info["backend_validation"] = "passed"
-        _atomic_write(output, emitted)
+        _atomic_write(admitted_output, emitted)
         info.update(status="converted", safety="static_memory_safe_scalar_subset",
                     output_sha256=hashlib.sha256(emitted.encode()).hexdigest(),
                     note="This is a finite syntax translation, NOT a proof of semantic equivalence, native compilation, or whole-language soundness.")
@@ -391,7 +395,7 @@ def migrate(source: Path, output: Path, report: Path, clang: str = "clang", veri
         info["reason"] = str(exc)
     if report.is_symlink():
         raise ValueError("refusing to overwrite a symlink report path")
-    _atomic_write(report, json.dumps(info, sort_keys=True, indent=2) + "\n")
+    _atomic_write(admitted_report, json.dumps(info, sort_keys=True, indent=2) + "\n")
     return info
 
 
