@@ -179,7 +179,7 @@ def route_inventory():
                   {"route": "cpp-json-checkpoint", "profile": "hepta.cpp-json-checkpoint.v1",
                    "entry": "hepta.cpp_json_checkpoint.JsonCheckpoint",
                    "scope": "Linux x86-64 sealed worker for the existing nlohmann/json 3.11.3/3.12.0 scoped C ABI; caller checkpoint of 1..64 integers in [-1000000,1000000]",
-                   "execution": "one-use revision-bound request; commit parent state only after valid scalar result, ordinary resource ledger and normal child exit; explicit fresh reconstruction after a confirmed failure",
+                   "execution": "one-use revision-bound request; commit only after valid scalar result, ordinary resource ledger and normal exit; explicit fresh reconstruction after a caught exception, recognized noexcept termination, or bounded capture refusal with confirmed direct-child completion; other failures poison the owner",
                    "core_admission_authorized": False,
                    "foreign_library_rewritten": False,
                    "foreign_memory_safety_proved": False,
