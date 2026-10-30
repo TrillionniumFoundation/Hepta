@@ -28,6 +28,8 @@ on:
       - 'experiments/hia_agent_assembly_recovery_20261030/**'
       - 'experiments/hia_ndu_session_eval/round4_20261030/**'
       - 'experiments/hia_ndu_graph_eval/round3_20261028/**'
+      - 'artifacts/hia-ndu-*/**'
+      - 'evidence/hia_five_deliverables_20261030/**'
       - 'experiments/hia_stateful_eval/round3_20261028/**'
       - 'experiments/hia_stateful_eval/round4_20261030/**'
       - 'pyproject.toml'
@@ -102,6 +104,29 @@ jobs:
             --output "$RUNNER_TEMP/hia-ndu"
           echo "HEPTA_NDU_IDENTITY=$RUNNER_TEMP/hia-ndu/identity.json" >> "$GITHUB_ENV"
           echo "HEPTA_NDU_STREAM_IDENTITY=$RUNNER_TEMP/hia-ndu/identity.json" >> "$GITHUB_ENV"
+      - name: Require native Q32 planning and numeric boundary tests without skips
+        run: |
+          python - <<'PY'
+          import json, unittest
+          from pathlib import Path
+          out = Path('artifacts/verified-optimization/planning-boundaries')
+          out.mkdir()
+          names = ['tests.test_hia_planning', 'tests.test_hia_planning_boundaries']
+          suite = unittest.defaultTestLoader.loadTestsFromNames(names)
+          expected = suite.countTestCases()
+          with (out / 'tests.log').open('w') as log:
+              result = unittest.TextTestRunner(stream=log, verbosity=2).run(suite)
+          passed = (expected > 0 and result.testsRun == expected and
+                    result.wasSuccessful() and not result.skipped and not result.expectedFailures)
+          record = {'schema': 'hepta.native-planning.ci.v1', 'modules': names,
+                    'expected_tests': expected, 'tests_run': result.testsRun,
+                    'failures': len(result.failures), 'errors': len(result.errors),
+                    'skipped': len(result.skipped), 'expected_failures': len(result.expectedFailures),
+                    'passed': passed}
+          (out / 'RESULT.json').write_text(json.dumps(record, indent=2) + '\n')
+          print(json.dumps(record))
+          raise SystemExit(0 if passed else 1)
+          PY
       - name: Run actual native integration and regression gates without skipped tests
         run: |
           python tools/qualify_hia_verified_increment.py --output artifacts/verified-optimization/regression

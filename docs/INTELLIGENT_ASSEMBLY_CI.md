@@ -3,7 +3,10 @@
 The new `.github/workflows/hepta-intelligent-assembly-closure.yml` is an additional
 gate for the current semantics, callback implementation migration, call expansion,
 chained guarded proofs, and finite planning work. The existing verified-optimization
-workflow remains unchanged.
+workflow retains its earlier native qualification steps and adds the complete
+`test_hia_planning` and `test_hia_planning_boundaries` modules with the original
+native bridge, requiring zero skips. Its path filters also include the new NDU
+and five-deliverable evidence directories.
 
 ## Required core job
 
@@ -48,8 +51,8 @@ The native job uses the existing source pin
 `TrillionniumFoundation/hepta-private-ci`, Rust 1.95.0, and
 `tools/build_hia_ndu_bridge.py`. It builds the original crates in a new target
 directory and admits their actual source/tool/binary identity. The optional
-repository secret `HEPTA_NDU_READ_TOKEN` can supply read access to the private
-source; otherwise checkout uses the workflow token. Lack of access or a failed
+repository secret `HEPTA_NDU_READ_TOKEN` can supply repository read access;
+otherwise checkout uses the workflow token. Lack of access or a failed
 build fails a requested native job. There is no substitute evaluator or
 `continue-on-error` path.
 
@@ -92,3 +95,13 @@ alone is insufficient when optional dependency checks can skip native tests.
 These finite qualifications and checked transformation rules do not establish
 whole-language soundness, backend refinement, unrestricted C++ coverage, or
 unrestricted global optimality.
+## Retained evidence integrity
+
+The five-deliverable evidence publication adds a byte-integrity gate to the
+core job. `evidence/hia_five_deliverables_20261030/VERIFY.py` checks the committed
+file index before native qualification. It never executes archived binaries
+and does not turn a historical measurement into a fresh experiment. The
+existing verified-native workflow also watches the new NDU/evidence paths,
+so publishing those records requests a check on that exact PR head. The
+implementation commit's successful CI remains a separately identified
+observation; later commits are not inferred to have passed.

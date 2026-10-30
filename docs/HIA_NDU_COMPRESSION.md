@@ -272,3 +272,68 @@ preserved file. It restores the exact baseline `kernels.hepta` from commit
 restored local worktree. The same source identity is retained with both pilot
 archives. Execution-source drift is rejected by the original measurement
 boundary rather than excused by unchanged performance results.
+
+## Addendum — independent 11-test numeric boundary gate, 2026-10-30
+
+The earlier nine-test planning snapshot and its retained pilot results remain
+unchanged. The read-only numerical probes described above have subsequently
+been made into a **separate automated regression module**,
+[`tests/test_hia_planning_boundaries.py`](../tests/test_hia_planning_boundaries.py).
+These are eleven additional test methods in their own gate, not a retrospective
+increase in the old snapshot's test count or a replacement for its measurements.
+The production `hia_ndu.py` and `hia_planning.py` implementations were unchanged.
+
+The [recorded gate result](../artifacts/hia-ndu-numeric-boundaries-20261030/GATE.json)
+reports **11 tests, zero skips, exit code 0, unchanged source and 12 actual native
+subprocess invocations**. The invocation count includes one identity handshake
+and eleven evaluation requests; two of those evaluation requests are the
+expected full-request refusals below. Test count, invocation count and successful
+native response count are therefore different quantities. All replies and
+refusals came from the original native executable; the recording wrapper only
+retains the actual subprocess bytes and returns them unchanged to `NduBridge`.
+
+| Boundary group | Tests | Retained fixtures and observations |
+| --- | ---: | --- |
+| Inclusive maximum terminal, inclusive minimum utility, equal terminal/cost tie | 3 | [Upper terminal](../artifacts/hia-ndu-numeric-boundaries-20261030/upper-terminal-zero-cost.json), [lower utility](../artifacts/hia-ndu-numeric-boundaries-20261030/lower-utility-at-budget.json), [zero-value tie](../artifacts/hia-ndu-numeric-boundaries-20261030/equal-terminal-and-cost.json) |
+| Multiple phases at the maximum budget, including per-event Q32 flooring | 2 | [Four large phases](../artifacts/hia-ndu-numeric-boundaries-20261030/four-large-phases.json), [nonintegral conversion](../artifacts/hia-ndu-numeric-boundaries-20261030/nonintegral-q32-phases.json) |
+| Unaffordable later decision and no affordable delivery path | 2 | [Later decision](../artifacts/hia-ndu-numeric-boundaries-20261030/unaffordable-later-decision.json), [literal abstention](../artifacts/hia-ndu-numeric-boundaries-20261030/all-delivery-over-budget.json) |
+| Full wire request rejects while its feasible compressed request succeeds | 2 | [i64 resource overflow](../artifacts/hia-ndu-numeric-boundaries-20261030/full-i64-overflow.json), [utility projection](../artifacts/hia-ndu-numeric-boundaries-20261030/full-utility-projection.json) |
+| Both public entries reject an input of `10^12 + 1`, before native evaluation | 2 | [Budget bound](../artifacts/hia-ndu-numeric-boundaries-20261030/remaining_budget_ns-out-of-profile.json), [terminal bound](../artifacts/hia-ndu-numeric-boundaries-20261030/completion_value_ns-out-of-profile.json) |
+
+For every admitted compressed request, the gate compares the original native
+reply against exact-Q32 advice: complete Pareto IDs, advisory ID and disposition
+must match, all native projection counts must be zero, and resource/utility
+values must stay within their declared domains. `authority` remains `DENY_ALL`
+and `safety_certificate` remains false. The two full-request failures are
+positive regression expectations, not unexpected failures hidden from a passing
+summary. They preserve the documented distinction between candidate-level
+winning-frontier equivalence and whole-request acceptance equivalence. The
+fixtures have declared synthetic costs; this gate makes no performance or
+future-cost prediction claim.
+
+The [source recheck](../artifacts/hia-ndu-numeric-boundaries-20261030/SOURCE_RECHECK.json),
+[scope](../artifacts/hia-ndu-numeric-boundaries-20261030/SCOPE.json),
+[original build identity](../artifacts/hia-ndu-numeric-boundaries-20261030/NATIVE_BUILD_IDENTITY.json),
+[command](../artifacts/hia-ndu-numeric-boundaries-20261030/COMMAND.json) and
+[member hashes](../artifacts/hia-ndu-numeric-boundaries-20261030/INDEX.json)
+bind the evidence. A separate
+[frozen-source replay](../artifacts/hia-ndu-numeric-boundaries-20261030/frozen-source-reproduction/GATE.json)
+also passed the same eleven tests with zero skips and twelve recorded native
+invocations; it is retained as a replay, not pooled into a new test denominator.
+
+Reproduce the frozen gate using a fresh output directory and an actual original
+native build identity:
+
+```sh
+python artifacts/hia-ndu-numeric-boundaries-20261030/REPRODUCE.py \
+  --identity /path/to/original-native-build-identity.json \
+  --output /new/numeric-boundary-evidence
+```
+
+The replay verifies the retained source hashes before import and fails if the
+count is not eleven, any test is skipped, execution fails, or the source changes.
+The plain unittest module intentionally skips when `HEPTA_NDU_IDENTITY` is absent;
+such a run is not native qualification. This addendum records the new automated
+boundary gate without changing the earlier nine-test snapshot, controller
+timings, seven/eight-arm pilot outcomes, or their stated negative net-benefit
+conclusion.

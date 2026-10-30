@@ -63,6 +63,8 @@ jobs:
           git rev-parse 'HEAD^{tree}' > artifacts/intelligent-assembly/source-tree.txt
           python -m pip install -e '.[optimization]'
           python -m pip freeze > artifacts/intelligent-assembly/python-packages.txt
+      - name: Verify the retained qualification and model evidence bytes
+        run: python evidence/hia_five_deliverables_20261030/VERIFY.py
       - name: Install the existing signed LLVM 20 profile
         run: |
           curl --fail --location --retry 3 --output "$RUNNER_TEMP/hepta-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key
