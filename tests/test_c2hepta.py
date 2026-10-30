@@ -211,6 +211,60 @@ class C2HeptaImport(unittest.TestCase):
         self.assertFalse(self.out.exists())
         self.assertTrue(self.report.exists())
 
+    def test_clang_preflight_probes_stop_oversized_output_early(self):
+        # The C source and AST are bounded, but a caller-provided Clang
+        # executable can also flood stdout/stderr during identity/predefine
+        # probes. A preflight budget must kill the producer before it finishes.
+        real_clang = shutil.which("clang")
+        for mode in ("version", "target", "defines", "stderr"):
+            with self.subTest(probe=mode):
+                self.src.write_text("int safe(int x){return x;}\n", encoding="utf-8")
+                self.out.unlink(missing_ok=True)
+                self.report.unlink(missing_ok=True)
+                marker = self.path / f"preflight-finished-{mode}"
+                fake_clang = self.path / f"clang-preflight-{mode}"
+                fake_clang.write_text(
+                    f"#!{sys.executable}\n"
+                    "import os, pathlib, sys, time\n"
+                    f"mode = {mode!r}\n"
+                    f"marker = {str(marker)!r}\n"
+                    f"real_clang = {real_clang!r}\n"
+                    "args = sys.argv[1:]\n"
+                    "phase = ('version' if '--version' in args else\n"
+                    "         'target' if '-dumpmachine' in args else\n"
+                    "         'defines' if '-dM' in args else 'ast')\n"
+                    "if phase == mode or (mode == 'stderr' and phase == 'version'):\n"
+                    "    if phase == 'version':\n"
+                    "        sys.stdout.buffer.write(b'clang version 19.0.0\\n')\n"
+                    "    elif phase == 'target':\n"
+                    "        sys.stdout.buffer.write(b'x86_64-unknown-linux-gnu\\n')\n"
+                    "    else:\n"
+                    "        sys.stdout.buffer.write(b'#define __SIZEOF_INT__ 4\\n#define __CHAR_BIT__ 8\\n')\n"
+                    "    sys.stdout.buffer.flush()\n"
+                    "    stream = sys.stderr.buffer if mode == 'stderr' else sys.stdout.buffer\n"
+                    "    for _ in range(64):\n"
+                    "        stream.write(b'X' * 65536)\n"
+                    "        stream.flush()\n"
+                    "        time.sleep(0.002)\n"
+                    "    pathlib.Path(marker).write_text('unbounded preflight finished')\n"
+                    "elif phase == 'version':\n"
+                    "    print('clang version 19.0.0')\n"
+                    "elif phase == 'target':\n"
+                    "    print('x86_64-unknown-linux-gnu')\n"
+                    "elif phase == 'defines':\n"
+                    "    print('#define __SIZEOF_INT__ 4')\n"
+                    "    print('#define __CHAR_BIT__ 8')\n"
+                    "else:\n"
+                    "    os.execv(real_clang, [real_clang] + args)\n",
+                    encoding="utf-8",
+                )
+                fake_clang.chmod(0o700)
+                result = migrate(self.src, self.out, self.report, clang=str(fake_clang))
+                self.assertEqual(result["status"], "rejected", result)
+                self.assertFalse(marker.exists(), "unbounded Clang preflight was allowed to finish")
+                self.assertFalse(self.out.exists())
+                self.assertTrue(self.report.exists())
+
     def test_native_gate_without_frontend_fails_closed(self):
         self.src.write_text("int f(int x){return x;}", encoding="utf-8")
         result = migrate(self.src, self.out, self.report, verify_native=True, rustc="/no/such/rustc")
