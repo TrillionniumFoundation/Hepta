@@ -4,9 +4,12 @@ from __future__ import annotations
 import copy
 import ctypes
 import hashlib
+import json
 import os
 from pathlib import Path
 import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -412,13 +415,24 @@ class ExpandedGuardTests(unittest.TestCase):
             self.assertEqual(receipt["native"]["core_sha256"], proof["candidate_sha256"])
             self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), receipt["native"]["artifact_sha256"])
             self.assertNotEqual(proof["intermediate_sha256"], proof["candidate_sha256"])
-            from hepta.hia_native_differential import _pin_native_artifact, _observe_native
+            from hepta.hia_native_differential import _pin_native_artifact
             original, identity, descriptor = _pin_native_artifact(path)
             try:
                 self.assertEqual(hashlib.sha256(original).hexdigest(), receipt["native"]["artifact_sha256"])
-                for n in (0, 16, 17, 1025):
-                    observed = _observe_native(path, "run", "u64", [n], timeout=3.0, pinned_fd=descriptor)
-                    self.assertEqual(observed, ("value", sum(k % 256 for k in range(n))))
+                cases = [0, 16, 17, 1025]
+                worker = ("import ctypes,json,resource,sys\n"
+                    "resource.setrlimit(resource.RLIMIT_CORE,(0,0))\n"
+                    "resource.setrlimit(resource.RLIMIT_CPU,(2,2))\n"
+                    "resource.setrlimit(resource.RLIMIT_AS,(256*1024**2,256*1024**2))\n"
+                    "f=ctypes.CDLL(sys.argv[1]).run\n"
+                    "f.argtypes=[ctypes.c_uint64];f.restype=ctypes.c_uint64\n"
+                    "print(json.dumps([f(n) for n in json.loads(sys.argv[2])]))\n")
+                observed = subprocess.run([sys.executable, "-I", "-S", "-c", worker,
+                    "/proc/self/fd/" + str(descriptor), json.dumps(cases)], pass_fds=(descriptor,),
+                    env={"LC_ALL": "C"}, capture_output=True, timeout=5)
+                self.assertEqual(observed.returncode, 0, observed.stderr)
+                self.assertFalse(observed.stderr)
+                self.assertEqual(json.loads(observed.stdout), [sum(k % 256 for k in range(n)) for n in cases])
             finally:
                 os.close(descriptor)
 
