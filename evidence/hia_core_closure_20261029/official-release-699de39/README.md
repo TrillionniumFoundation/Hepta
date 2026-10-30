@@ -1,7 +1,7 @@
 # Official full-release raw evidence publication
 
-The actual official artifact for source `699de39a8e92e0f083df316ecc5333fb3ecf8571` is 344,601,243 bytes, SHA-256 `0bd04d40b4a88be8f244d93d6adfb6460680ddc0b1c03e4524c9a02c6bbb613e`. Its complete bytes were downloaded and validated before splitting. All 7,619 ZIP members were read with CRC checks.
+The official artifact for source `699de39a8e92e0f083df316ecc5333fb3ecf8571` is 344,601,243 bytes, SHA-256 `0bd04d40b4a88be8f244d93d6adfb6460680ddc0b1c03e4524c9a02c6bbb613e`. Complete original bytes and all 7,619 ZIP member CRCs were checked before publication.
 
-This is an intermediate raw-byte publication checkpoint: **10 of 83 ordered parts** have been anchored. `raw-parts.json` describes the complete original ZIP; `raw-upload-checkpoint.json` explicitly records which parts are present at this commit. This checkpoint does not yet claim all original bytes are public. Final current-source content audit records are published separately after their own freeze.
+**20 of 83 ordered raw parts** are anchored at this checkpoint. `raw-parts.json` describes the complete original ZIP; `raw-upload-checkpoint.json` records the actual published part set. The original whole ZIP is not yet completely published at this checkpoint.
 
-The original official run is [40862645318](https://github.com/TrillionniumFoundation/Hepta/actions/runs/40862645318). It is distinct from the recovered local runs. Python production authority, `no_change`, and the broad P0–P7 obligations are unchanged.
+The official [run 40862645318](https://github.com/TrillionniumFoundation/Hepta/actions/runs/40862645318) is separate from the recovered local runs. Its frozen current-source content-audit metadata is published in a separate update. Python production authority, `no_change`, and the broad P0–P7 OPEN obligations are unchanged.
