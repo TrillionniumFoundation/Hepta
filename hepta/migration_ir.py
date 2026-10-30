@@ -143,6 +143,11 @@ def _check_structure_budget(function: Function) -> None:
                 or not all(_bounded_text(field) for field in parameter)):
             raise IRValidationError("invalid migration IR parameter structure")
 
+    # Reject oversized tuples in O(1) before inspecting any child. A linear
+    # type scan before this gate would make the declared node budget a poor
+    # CPU bound for a direct caller-supplied IR.
+    if len(function.body) > _MAX_IR_NODES:
+        raise IRValidationError("migration IR node budget exceeded")
     if any(type(node) is not Stmt for node in function.body):
         raise IRValidationError("invalid migration IR function statement types")
     pending: list[tuple[Expr | Stmt, int]] = [(node, 1) for node in function.body]
@@ -157,7 +162,11 @@ def _check_structure_budget(function: Function) -> None:
         if type(node) is Expr:
             if not all(_bounded_text(field) for field in (node.kind, node.ty, node.value)):
                 raise IRValidationError("invalid migration IR expression fields")
-            if type(node.args) is not tuple or any(type(child) is not Expr for child in node.args):
+            if type(node.args) is not tuple:
+                raise IRValidationError("invalid migration IR expression child types")
+            if len(node.args) > _MAX_IR_NODES - visited - len(pending):
+                raise IRValidationError("migration IR node budget exceeded")
+            if any(type(child) is not Expr for child in node.args):
                 raise IRValidationError("invalid migration IR expression child types")
             children = node.args
         elif type(node) is Stmt:
@@ -165,6 +174,8 @@ def _check_structure_budget(function: Function) -> None:
                 raise IRValidationError("invalid migration IR statement kind")
             if type(node.then_body) is not tuple or type(node.else_body) is not tuple:
                 raise IRValidationError("invalid migration IR statement branches")
+            if 1 + len(node.then_body) + len(node.else_body) > _MAX_IR_NODES - visited - len(pending):
+                raise IRValidationError("migration IR node budget exceeded")
             if (type(node.expr) is not Expr
                     or any(type(child) is not Stmt for child in node.then_body)
                     or any(type(child) is not Stmt for child in node.else_body)):
