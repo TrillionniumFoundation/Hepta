@@ -32,16 +32,26 @@ class MigrationRejected(ValueError):
 
 
 def _run(args: list[str], *, input_text: str | None = None) -> str:
+    # Clang can expand a small C source into a very large AST or diagnostic
+    # stream. subprocess.run(capture_output=True) first materializes the
+    # *whole* output in RAM, so its post-hoc size check is not a memory bound.
+    # File-backed capture limits parent-process memory before any decoding.
     try:
-        proc = subprocess.run(args, input=input_text, capture_output=True, text=True,
-                              timeout=30, check=False)
+        with tempfile.TemporaryFile() as stdout, tempfile.TemporaryFile() as stderr:
+            proc = subprocess.run(args, input=input_text, stdout=stdout, stderr=stderr,
+                                  text=True, timeout=30, check=False)
+            if proc.returncode:
+                stderr.seek(0, os.SEEK_END)
+                stderr.seek(max(0, stderr.tell() - 5_000))
+                reason = stderr.read().decode("utf-8", errors="replace")
+                raise MigrationRejected("E_CLANG_REJECT", reason or "Clang exited with failure")
+            stdout.seek(0, os.SEEK_END)
+            if stdout.tell() > 32_000_000:
+                raise MigrationRejected("E_CLANG_SIZE", "Clang AST output exceeds 32 MB")
+            stdout.seek(0)
+            return stdout.read().decode("utf-8")
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise MigrationRejected("E_CLANG_ENV", str(exc)) from exc
-    if proc.returncode:
-        raise MigrationRejected("E_CLANG_REJECT", proc.stderr[-5000:] or "Clang exited with failure")
-    if len(proc.stdout) > 32_000_000:
-        raise MigrationRejected("E_CLANG_SIZE", "Clang AST output exceeds 32 MB")
-    return proc.stdout
 
 
 def _data_model(clang: str) -> dict:
