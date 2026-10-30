@@ -1,0 +1,793 @@
+diff --git a/.github/workflows/hepta-native-hosts.yml b/.github/workflows/hepta-native-hosts.yml
+index 3e4e9bf2cfbab83671628172f1e39db664b5fdf7..e82c981e5256e7321266dfc40180e21f1900c38d 100644
+--- a/.github/workflows/hepta-native-hosts.yml
++++ b/.github/workflows/hepta-native-hosts.yml
+@@ -136,10 +136,15 @@ jobs:
+       - name: Check adapter and failed-report contracts
+         shell: bash
+         run: |
+-          python -m unittest tests.test_native_host_evidence -v 2>&1 | tee artifacts/native-host-adapter-tests.log
++          python -m unittest tests.test_native_host_evidence tests.test_native_host_artifact_retention -v 2>&1 | tee artifacts/native-host-adapter-tests.log
+       - name: Execute both C profiles, three ill-typed declarations, and a compiled wrong echo
+         shell: bash
+         run: |
++          # Preserve the original setup placeholder before the producer creates
++          # its new report. The producer never overwrites an earlier result.
++          test ! -e artifacts/native-host-setup-placeholder.json
++          test ! -L artifacts/native-host-setup-placeholder.json
++          mv artifacts/native-host.json artifacts/native-host-setup-placeholder.json
+           python tools/validate_native_host.py \
+             --rustc "$(rustup which --toolchain 1.90.0 rustc)" \
+             --cc "$HEPTA_HOST_CC" --cc-family "$HEPTA_HOST_CC_FAMILY" \
+@@ -206,6 +211,8 @@ jobs:
+           name: native-${{ matrix.os }}-${{ matrix.cc_family }}-${{ env.HEPTA_QUALIFICATION_HEAD_SHA }}
+           path: |
+             artifacts/native-host.json
++            artifacts/native-host-setup-placeholder.json
++            artifacts/native-host-artifacts/
+             artifacts/native-host-setup.log
+             artifacts/native-host-adapter-tests.log
+             artifacts/clang-capture-tests.log
+diff --git a/docs/NATIVE_HOSTS.md b/docs/NATIVE_HOSTS.md
+index 66d016683a4c02aa69cdc1edfce160c8e642986e..2b7e43fd51faebf7d1f545dc4de0a5d997458180 100644
+--- a/docs/NATIVE_HOSTS.md
++++ b/docs/NATIVE_HOSTS.md
+@@ -79,6 +79,42 @@ with unqualified raw observations, including the failing command and available
+ bounded stdout/stderr. Historical v1 files are left intact; they cannot serve
+ as fresh v2 compiler-family qualification.
+ 
++Each CLI attempt requires a **fresh output JSON path**. An existing report is
++left intact, including if another writer creates it while qualification is
++running. A report named `native-host-gcc.json` owns a new sibling directory
++`native-host-gcc-artifacts`. Existing artifact directories and files are not
++overwritten. Use a different output name or directory for a new attempt.
++
++The CLI retains the four actual binary artifacts before the temporary build
++directory is removed:
++
++| Role | Retained file |
++| --- | --- |
++| Hepta/Rust object linked into the C drivers | `matrix.o` or `matrix.obj` |
++| Unoptimized native C driver | `host-matrix-O0` or `host-matrix-O0.exe` |
++| Optimized native C driver | `host-matrix-O2` or `host-matrix-O2.exe` |
++| Compiled wrong-echo control | `wrong` or `wrong.exe` |
++
++`retained_binary_artifacts` binds each file to its original build path, role,
++size, SHA-256 and ordinary permission bits. Each binary is a nonempty regular
++file bounded to 16 MiB. The driver hashes are checked before and after actual
++execution; the final CLI admission reads the retained copies again and binds
++them to the original Rust-object, successful-driver and wrong-control hashes.
++A hash, file, mode or directory mismatch cannot produce a passing report.
++Compiled files are copied before execution, so a subsequent launch, execution,
++type-control or report validation failure retains the available original bytes
++under `unqualified_observations`, with a failed qualification result. Partial
++retention does not establish a completed ABI matrix.
++
++The existing Python `run_host` API keeps its optional temporary behavior unless
++`artifact_directory` is supplied. `validate_report` checks any supplied
++retention metadata against the matrix. `validate_retained_binaries(report,
++directory=...)` additionally reads the actual files; an explicit mapped
++directory can verify a restored archive without rewriting the recorded
++producer paths. The CLI requires its own canonical destination and always
++performs the actual-file check. Historical reports without retained bytes are
++not upgraded to this retention claim.
++
+ `.github/workflows/hepta-native-hosts.yml` requests separate native jobs on
+ Linux x86-64 and AArch64 for both GCC and Clang, Windows x86-64 for Microsoft
+ `cl.exe` and Clang separately, and macOS AArch64 for Clang. On Windows it uses
+@@ -91,6 +127,10 @@ environment is never printed and no machine settings are changed.
+ Jobs check out the exact PR head, retain distinct per-compiler artifacts and
+ do not cancel one another on failure. An initial failed result and setup log
+ also survive an interrupted setup, before the qualification tool can run.
++Immediately before invocation, the workflow preserves that initial result as
++`native-host-setup-placeholder.json`, allowing the producer to create its fresh
++`native-host.json`. The artifact upload includes both the original placeholder
++and the four retained binaries, including partial binaries from failed runs.
+ The workflow is an execution request. Only a successfully executed, retained
+ v2 report qualifies its actual host/compiler pair. This driver's development
+ machine is Linux: its GCC/Clang runs and adapter tests do not constitute an
+diff --git a/tests/test_native_host_artifact_retention.py b/tests/test_native_host_artifact_retention.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..75673f4bf556b65c1c1a18d666db6d7a13c31e83
+--- /dev/null
++++ b/tests/test_native_host_artifact_retention.py
+@@ -0,0 +1,409 @@
++"""Artifact custody protocol controls; fake bytes here are never native qualification."""
++from __future__ import annotations
++
++import contextlib
++import copy
++import hashlib
++import io
++import json
++import os
++from pathlib import Path, PureWindowsPath
++import shutil
++import stat
++import sys
++import tempfile
++from types import SimpleNamespace
++import unittest
++from unittest.mock import patch
++
++from hepta.clang_capture import CaptureResult
++from tools import validate_native_host as module
++
++
++CLANG_PROBE = ("HEPTA_CC_FAMILY clang\nHEPTA_CC_VERSION 20 1 8\n"
++               "HEPTA_CC_SYSTEM Linux\nHEPTA_CC_MACHINE x86_64\nHEPTA_C_STANDARD 201112L\n")
++ROLES = ("rust_object", "driver_O0", "driver_O2", "wrong_echo")
++PAYLOADS = {role: b"fixture-only; never compiled or executed\x00" + role.encode() for role in ROLES}
++
++
++def digest(data):
++    return hashlib.sha256(data).hexdigest()
++
++
++class NativeHostArtifactRetentionTests(unittest.TestCase):
++    def fixture(self, root, *, directory=None):
++        """Independent report bindings plus actual small, distinct fake files."""
++        origin = root / "temporary originals"
++        origin.mkdir()
++        destination = directory or root / "retained artifacts"
++        retained = module._new_retention(destination)
++        system = "Windows" if os.name == "nt" else "Linux"
++        names = (("matrix.obj", "host-matrix-O0.exe", "host-matrix-O2.exe", "wrong.exe")
++                 if system == "Windows" else ("matrix.o", "host-matrix-O0", "host-matrix-O2", "wrong"))
++        for role, name in zip(ROLES, names):
++            path = origin / name
++            path.write_bytes(PAYLOADS[role])
++            path.chmod(0o644 if role == "rust_object" else 0o755)
++            module._retain_binary(retained, path, role, digest(PAYLOADS[role]))
++        retained["complete"] = True
++        report = {
++            "schema": module.SCHEMA, "status": "passed", "host": {"system": system},
++            "native_object": {"artifact": str((origin / names[0]).resolve()),
++                              "artifact_sha256": digest(PAYLOADS["rust_object"]),
++                              "artifact_bytes": len(PAYLOADS["rust_object"])},
++            "executable_sha256s": [digest(PAYLOADS["driver_O0"]), digest(PAYLOADS["driver_O2"])],
++            "negative_control": {"artifact_sha256": digest(PAYLOADS["wrong_echo"])},
++            "retained_binary_artifacts": retained,
++        }
++        return report, origin, destination
++
++    def test_four_copies_bind_actual_bytes_modes_and_original_report_identities(self):
++        with tempfile.TemporaryDirectory() as temporary:
++            report, origin, destination = self.fixture(Path(temporary))
++            retained = report["retained_binary_artifacts"]
++            self.assertEqual(retained["directory"], str(destination.resolve()))
++            self.assertEqual(len(retained["files"]), 4)
++            self.assertEqual({row["role"] for row in retained["files"]}, set(ROLES))
++            for row in retained["files"]:
++                source, target = origin / row["name"], destination / row["name"]
++                self.assertEqual(target.read_bytes(), PAYLOADS[row["role"]])
++                self.assertEqual(row["original_path"], str(source.resolve()))
++                self.assertEqual(row["bytes"], len(PAYLOADS[row["role"]]))
++                self.assertEqual(row["sha256"], digest(PAYLOADS[row["role"]]))
++                self.assertEqual(row["mode"], stat.S_IMODE(source.stat().st_mode))
++                self.assertEqual(stat.S_IMODE(target.stat().st_mode), row["mode"])
++            module.validate_retained_binaries(report)
++            module.validate_retained_binaries(report, directory=destination)
++            # The original run_host temporary directory really disappears.
++            shutil.rmtree(origin)
++            module.validate_retained_binaries(report)
++            module.validate_retained_binaries(report, directory=destination)
++
++    def test_manifest_single_faults_cannot_claim_complete_bound_artifacts(self):
++        with tempfile.TemporaryDirectory() as temporary:
++            report, _, _ = self.fixture(Path(temporary))
++            def first(value):
++                return value["retained_binary_artifacts"]["files"][0]
++            mutations = {
++                "missing": lambda value: value["retained_binary_artifacts"]["files"].pop(),
++                "duplicate": lambda value: value["retained_binary_artifacts"]["files"].append(copy.deepcopy(first(value))),
++                "duplicate_role": lambda value: value["retained_binary_artifacts"]["files"][1].update(role="rust_object"),
++                "unknown_role": lambda value: first(value).update(role="foreign_binary"),
++                "wrong_name": lambda value: first(value).update(name="other.o"),
++                "path_escape": lambda value: first(value).update(name="../matrix.o"),
++                "absolute_name": lambda value: first(value).update(name="/tmp/matrix.o"),
++                "wrong_origin": lambda value: first(value).update(original_path=str(Path(temporary) / "other" / "matrix.o")),
++                "wrong_hash": lambda value: first(value).update(sha256="0" * 64),
++                "wrong_object_bytes": lambda value: first(value).update(bytes=first(value)["bytes"] + 1),
++                "bool_bytes": lambda value: first(value).update(bytes=True),
++                "oversize_bytes": lambda value: first(value).update(bytes=module.MAX_NATIVE_BINARY_BYTES + 1),
++                "special_mode": lambda value: first(value).update(mode=0o4755),
++                "negative_mode": lambda value: first(value).update(mode=-1),
++                "bool_mode": lambda value: first(value).update(mode=True),
++                "incomplete": lambda value: value["retained_binary_artifacts"].update(complete=False),
++                "non_boolean_complete": lambda value: value["retained_binary_artifacts"].update(complete=1),
++                "wrong_object_reference": lambda value: value["native_object"].update(artifact_sha256="1" * 64),
++                "wrong_driver_reference": lambda value: value["executable_sha256s"].reverse(),
++                "wrong_negative_reference": lambda value: value["negative_control"].update(artifact_sha256="2" * 64),
++            }
++            for name, change in mutations.items():
++                with self.subTest(fault=name):
++                    value = copy.deepcopy(report)
++                    change(value)
++                    with self.assertRaises(ValueError):
++                        module.validate_retained_binaries(value)
++
++    def test_restored_archive_directory_preserves_original_path_bindings(self):
++        with tempfile.TemporaryDirectory() as temporary:
++            root = Path(temporary)
++            report, origin, directory = self.fixture(root)
++            original = copy.deepcopy(report)
++            restored = root / "restored elsewhere"
++            shutil.move(str(directory), restored)
++            shutil.rmtree(origin)
++            module.validate_retained_binaries(report, directory=restored)
++            self.assertEqual(report, original)
++            self.assertFalse(directory.exists())
++
++    def test_windows_origin_binding_uses_windows_path_rules_without_host_inference(self):
++        # This exercises manifest spelling only, not Windows/MSVC execution.
++        with tempfile.TemporaryDirectory() as temporary:
++            report, _, _ = self.fixture(Path(temporary))
++            report["host"]["system"] = "Windows"
++            origin = PureWindowsPath("C:/Temp Folder/original")
++            names = ("matrix.obj", "host-matrix-O0.exe", "host-matrix-O2.exe", "wrong.exe")
++            report["native_object"]["artifact"] = str(origin / names[0])
++            retained = report["retained_binary_artifacts"]
++            retained["directory"] = str(PureWindowsPath("C:/Artifact Folder/native-artifacts"))
++            for row, name in zip(retained["files"], names):
++                row["name"], row["original_path"] = name, str(origin / name)
++            module.validate_retained_binaries(report)
++            for wrong in ("C:\\Other\\host-matrix-O0.exe", "C:\\Temp Folder\\original\\host-matrix-O2.exe",
++                          "C:\\Temp Folder\\original\\host-matrix-O0"):
++                with self.subTest(origin=wrong):
++                    invalid = copy.deepcopy(report)
++                    invalid["retained_binary_artifacts"]["files"][1]["original_path"] = wrong
++                    with self.assertRaises(ValueError):
++                        module.validate_retained_binaries(invalid)
++
++    def test_actual_readback_rejects_tamper_missing_nonregular_and_changed_mode(self):
++        for fault in ("tamper", "missing", "directory", "mode"):
++            with self.subTest(fault=fault), tempfile.TemporaryDirectory() as temporary:
++                report, _, destination = self.fixture(Path(temporary))
++                target = destination / report["retained_binary_artifacts"]["files"][1]["name"]
++                original_mode = stat.S_IMODE(target.stat().st_mode)
++                if fault == "tamper":
++                    data = target.read_bytes()
++                    target.write_bytes(bytes([data[0] ^ 1]) + data[1:])
++                elif fault == "missing":
++                    target.unlink()
++                elif fault == "directory":
++                    target.unlink()
++                    target.mkdir()
++                else:
++                    # Writable/read-only is portable, including Windows chmod.
++                    target.chmod(0o444)
++                    self.assertNotEqual(stat.S_IMODE(target.stat().st_mode), original_mode)
++                try:
++                    with self.assertRaises((OSError, ValueError)):
++                        module.validate_retained_binaries(report, directory=destination)
++                finally:
++                    if fault == "mode":
++                        target.chmod(original_mode)
++
++    def test_wrong_source_hash_refuses_before_copy_or_manifest_publication(self):
++        with tempfile.TemporaryDirectory() as temporary:
++            root = Path(temporary)
++            source = root / "matrix.o"
++            source.write_bytes(PAYLOADS["rust_object"])
++            retained = module._new_retention(root / "retained")
++            with self.assertRaises(ValueError):
++                module._retain_binary(retained, source, "rust_object", "0" * 64)
++            self.assertEqual(retained["files"], [])
++            self.assertFalse(retained["complete"])
++            self.assertEqual(list((root / "retained").iterdir()), [])
++
++    def test_nonregular_and_oversize_sources_are_refused_without_destination_bytes(self):
++        with tempfile.TemporaryDirectory() as temporary:
++            root = Path(temporary)
++            retained = module._new_retention(root / "retained")
++            directory = root / "not-a-binary"
++            directory.mkdir()
++            with self.assertRaises((OSError, ValueError)):
++                module._retain_binary(retained, directory, "rust_object", "0" * 64)
++            oversize = root / "matrix.o"
++            with oversize.open("wb") as stream:
++                stream.truncate(module.MAX_NATIVE_BINARY_BYTES + 1)
++            # The expected hash is correct: rejection must be about the bound,
++            # not an accidental digest mismatch on the sparse zero-filled file.
++            expected = hashlib.sha256()
++            remaining = module.MAX_NATIVE_BINARY_BYTES + 1
++            zeroes = bytes(65536)
++            while remaining:
++                size = min(remaining, len(zeroes))
++                expected.update(zeroes[:size])
++                remaining -= size
++            with self.assertRaises(ValueError):
++                module._retain_binary(retained, oversize, "rust_object", expected.hexdigest())
++            # Symlink creation can require privileges on Windows. Directory
++            # and bound controls above always run; a creatable link is tested
++            # as a real filesystem link, never represented as native evidence.
++            target = root / "real-source"
++            target.write_bytes(PAYLOADS["rust_object"])
++            link = root / "linked-source"
++            try:
++                os.symlink(target, link)
++            except (OSError, NotImplementedError):
++                self.assertFalse(link.exists())
++            else:
++                with self.assertRaises((OSError, ValueError)):
++                    module._retain_binary(retained, link, "rust_object", digest(PAYLOADS["rust_object"]))
++            self.assertEqual(retained["files"], [])
++            self.assertEqual(list((root / "retained").iterdir()), [])
++
++    def test_existing_retention_directory_and_destination_are_not_overwritten(self):
++        with tempfile.TemporaryDirectory() as temporary:
++            root = Path(temporary)
++            directory = root / "retained"
++            retained = module._new_retention(directory)
++            sentinel = directory / "matrix.o"
++            sentinel.write_bytes(b"existing evidence must survive")
++            source = root / "matrix.o"
++            source.write_bytes(PAYLOADS["rust_object"])
++            with self.assertRaises((OSError, ValueError)):
++                module._new_retention(directory)
++            with self.assertRaises((OSError, ValueError)):
++                module._retain_binary(retained, source, "rust_object", digest(source.read_bytes()))
++            self.assertEqual(sentinel.read_bytes(), b"existing evidence must survive")
++            self.assertEqual(retained["files"], [])
++            self.assertFalse(retained["complete"])
++
++    def test_later_copy_failure_preserves_prior_bytes_with_incomplete_metadata(self):
++        with tempfile.TemporaryDirectory() as temporary:
++            root = Path(temporary)
++            retained = module._new_retention(root / "retained")
++            source = root / "matrix.o"
++            source.write_bytes(PAYLOADS["rust_object"])
++            module._retain_binary(retained, source, "rust_object", digest(source.read_bytes()))
++            before = copy.deepcopy(retained)
++            next_source = root / "host-matrix-O0"
++            next_source.write_bytes(PAYLOADS["driver_O0"])
++            (root / "retained" / "host-matrix-O0").mkdir()
++            with self.assertRaises((OSError, ValueError)):
++                module._retain_binary(retained, next_source, "driver_O0", digest(next_source.read_bytes()))
++            self.assertEqual(retained, before)
++            self.assertFalse(retained["complete"])
++            self.assertEqual((root / "retained" / "matrix.o").read_bytes(), PAYLOADS["rust_object"])
++
++    def test_cli_execution_failure_retains_partial_objects_without_qualification(self):
++        # All compiler/native subprocess outcomes below are protocol fixtures.
++        # The production run_host and CLI failure path themselves are exercised.
++        def rust_object(_source, **kwargs):
++            output = Path(kwargs["output"])
++            output.write_bytes(PAYLOADS["rust_object"])
++            return {"ok": True, "artifact": str(output.resolve()),
++                    "artifact_sha256": digest(PAYLOADS["rust_object"]),
++                    "artifact_bytes": len(PAYLOADS["rust_object"])}
++
++        commands = []
++        def compiler(argv, **_kwargs):
++            commands.append(list(argv))
++            if argv[-1] == "--version":
++                return CaptureResult(0, "clang version 20.1.8\n", "")
++            if argv[-1] == "-dumpmachine":
++                return CaptureResult(0, "x86_64-unknown-linux-gnu\n", "")
++            if "-E" in argv:
++                return CaptureResult(0, CLANG_PROBE, "")
++            if "-o" in argv:
++                output = Path(argv[argv.index("-o") + 1])
++                self.assertEqual(output.name, "host-matrix-O0")
++                output.write_bytes(PAYLOADS["driver_O0"])
++                return CaptureResult(0, "", "")
++            self.assertEqual(len(argv), 1)
++            self.assertEqual(Path(argv[0]).name, "host-matrix-O0")
++            return CaptureResult(17, "", "fixture execution failed after successful build")
++
++        with tempfile.TemporaryDirectory() as temporary:
++            output = Path(temporary) / "native-report.json"
++            with (patch.object(sys, "argv", ["validate_native_host.py", "--cc", "clang", "--cc-family", "clang", "--output", str(output)]),
++                  patch.object(module.shutil, "which", return_value=sys.executable),
++                  patch.object(module.platform, "system", return_value="Linux"),
++                  patch.object(module.platform, "machine", return_value="x86_64"),
++                  patch.object(module, "run_bounded", side_effect=compiler),
++                  patch.object(module, "analyze", return_value=SimpleNamespace(report={"ok": True}, program=None, rust="fixture")),
++                  patch.object(module, "emit_header", return_value="/* protocol fixture */\n"),
++                  patch.object(module, "compile_rust", side_effect=rust_object),
++                  contextlib.redirect_stdout(io.StringIO())):
++                self.assertEqual(module.main(), 1)
++            report = json.loads(output.read_text())
++            self.assertEqual(report["status"], "failed")
++            self.assertNotIn("actual_reported_host_executed", report["claims"])
++            observed = report["unqualified_observations"]
++            retained = observed["retained_binary_artifacts"]
++            self.assertFalse(retained["complete"])
++            self.assertEqual({row["role"] for row in retained["files"]}, {"rust_object", "driver_O0"})
++            self.assertEqual(Path(retained["directory"]), output.with_name(output.stem + "-artifacts").resolve())
++            self.assertEqual(observed["commands"][-1]["returncode"], 17)
++            for row in retained["files"]:
++                self.assertEqual((Path(retained["directory"]) / row["name"]).read_bytes(), PAYLOADS[row["role"]])
++                self.assertFalse(Path(row["original_path"]).exists())
++            self.assertEqual(len(commands), 5)
++
++    def test_cli_actual_retention_readback_failure_cannot_pass_or_erase_originals(self):
++        with tempfile.TemporaryDirectory() as temporary:
++            root = Path(temporary)
++            output = root / "native-report.json"
++            directory = output.with_name(output.stem + "-artifacts")
++            report, _, _ = self.fixture(root, directory=directory)
++            report["commands"] = []
++            report["claims"] = {"actual_reported_host_executed": True}
++            # Deliberately tamper after the candidate says all four were copied.
++            tampered = directory / report["retained_binary_artifacts"]["files"][2]["name"]
++            tampered.write_bytes(b"changed after candidate creation")
++            with (patch.object(sys, "argv", ["validate_native_host.py", "--output", str(output)]),
++                  patch.object(module, "run_host", return_value=report) as runner,
++                  patch.object(module, "validate_report") as abi_validator,
++                  contextlib.redirect_stdout(io.StringIO())):
++                self.assertEqual(module.main(), 1)
++            runner.assert_called_once()
++            abi_validator.assert_called_once_with(report)
++            self.assertEqual(Path(runner.call_args.kwargs["artifact_directory"]), directory)
++            failed = json.loads(output.read_text())
++            self.assertEqual(failed["status"], "failed")
++            self.assertNotIn("actual_reported_host_executed", failed["claims"])
++            self.assertIn("retained_binary_artifacts", failed["unqualified_observations"])
++            self.assertEqual(tampered.read_bytes(), b"changed after candidate creation")
++            self.assertEqual(len(list(directory.iterdir())), 4)
++
++    def test_cli_existing_success_report_and_artifacts_are_never_replaced(self):
++        with tempfile.TemporaryDirectory() as temporary:
++            root = Path(temporary)
++            output = root / "native-report.json"
++            old_report = b'{"status":"passed","original":"preserve exact bytes"}\n'
++            output.write_bytes(old_report)
++            directory = output.with_name(output.stem + "-artifacts")
++            directory.mkdir()
++            sentinel = directory / "matrix.o"
++            sentinel.write_bytes(b"previous attempt original artifact")
++            with (patch.object(sys, "argv", ["validate_native_host.py", "--output", str(output)]),
++                  patch.object(module.shutil, "which", return_value=sys.executable),
++                  patch.object(module, "run_bounded", side_effect=AssertionError("no compiler process may start")) as invoke,
++                  contextlib.redirect_stdout(io.StringIO())):
++                try:
++                    result = module.main()
++                except (OSError, ValueError):
++                    pass
++                else:
++                    self.assertEqual(result, 1)
++            invoke.assert_not_called()
++            self.assertEqual(output.read_bytes(), old_report)
++            self.assertEqual(sentinel.read_bytes(), b"previous attempt original artifact")
++
++    def test_cli_requires_its_own_manifest_directory_even_when_copy_bytes_match(self):
++        with tempfile.TemporaryDirectory() as temporary:
++            root = Path(temporary)
++            output = root / "native-report.json"
++            directory = output.with_name(output.stem + "-artifacts")
++            report, _, _ = self.fixture(root, directory=directory)
++            report["retained_binary_artifacts"]["directory"] = str((root / "different attempt").resolve())
++            # Offline restoration explicitly chooses a local mapping. A fresh
++            # CLI qualification must bind the directory it actually produced.
++            module.validate_retained_binaries(report, directory=directory)
++            with (patch.object(sys, "argv", ["validate_native_host.py", "--output", str(output)]),
++                  patch.object(module, "run_host", return_value=report),
++                  patch.object(module, "validate_report"),
++                  contextlib.redirect_stdout(io.StringIO())):
++                self.assertEqual(module.main(), 1)
++            failed = json.loads(output.read_text())
++            self.assertEqual(failed["status"], "failed")
++            self.assertNotIn("actual_reported_host_executed", failed["claims"])
++            self.assertEqual(len(list(directory.iterdir())), 4)
++
++    def test_cli_exclusive_report_write_preserves_a_concurrent_output(self):
++        with tempfile.TemporaryDirectory() as temporary:
++            root = Path(temporary)
++            output = root / "native-report.json"
++            directory = output.with_name(output.stem + "-artifacts")
++            report, _, _ = self.fixture(root, directory=directory)
++            original_validator = module.validate_retained_binaries
++            competing_report = b'{"original":"concurrent writer"}\n'
++            def validate_then_publish(value, *, directory=None):
++                original_validator(value, directory=directory)
++                output.write_bytes(competing_report)
++            with (patch.object(sys, "argv", ["validate_native_host.py", "--output", str(output)]),
++                  patch.object(module, "run_host", return_value=report),
++                  patch.object(module, "validate_report"),
++                  patch.object(module, "validate_retained_binaries", side_effect=validate_then_publish),
++                  contextlib.redirect_stdout(io.StringIO())):
++                try:
++                    result = module.main()
++                except (OSError, ValueError):
++                    pass
++                else:
++                    self.assertEqual(result, 1)
++            self.assertEqual(output.read_bytes(), competing_report)
++            self.assertEqual(len(list(directory.iterdir())), 4)
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/tests/test_native_host_evidence.py b/tests/test_native_host_evidence.py
+index 204a067a0b0ae7f8ecc9247a7c1321108a303573..f5e9a1b770c1b6c4d55f2bcadbf9a408a55cafa2 100644
+--- a/tests/test_native_host_evidence.py
++++ b/tests/test_native_host_evidence.py
+@@ -94,6 +94,11 @@ class NativeHostFailureEvidenceTests(TestCase):
+         # returns a candidate report to the post-execution validator.
+         with tempfile.TemporaryDirectory() as tmp:
+             dest = Path(tmp) / "report.json"
++            def object_fixture(source, *, output, **kwargs):
++                # Protocol bytes only; this fixture does not execute rustc.
++                data = b"mock Rust object for the later MSVC command failure"
++                Path(output).write_bytes(data)
++                return {"ok": True, "artifact_sha256": module.sha(data), "artifact_bytes": len(data)}
+             with (patch.object(sys, "argv", ["validate_native_host.py", "--cc", "cl", "--cc-family", "msvc", "--output", str(dest)]),
+                   patch.object(module.shutil, "which", return_value=sys.executable),
+                   patch.object(module.platform, "system", return_value="Windows"),
+@@ -102,7 +107,7 @@ class NativeHostFailureEvidenceTests(TestCase):
+                          CaptureResult(2, "matrix.c\nerror C2143: deliberate compile failure\n", "")]),
+                   patch.object(module, "analyze", return_value=SimpleNamespace(report={"ok": True}, program=None, rust="")),
+                   patch.object(module, "emit_header", return_value="/* unit fixture */\n"),
+-                  patch.object(module, "compile_rust", return_value={"ok": True})):
++                  patch.object(module, "compile_rust", side_effect=object_fixture)):
+                 with contextlib.redirect_stdout(io.StringIO()):
+                     self.assertEqual(module.main(), 1)
+             report = json.loads(dest.read_text(encoding="utf-8"))
+@@ -114,6 +119,11 @@ class NativeHostFailureEvidenceTests(TestCase):
+             self.assertIn("/Od", trace["commands"][-1]["argv"])
+             self.assertEqual(trace["commands"][-1]["returncode"], 2)
+             self.assertIn("deliberate compile failure", trace["commands"][-1]["stdout"])
++            retained = trace["retained_binary_artifacts"]
++            self.assertFalse(retained["complete"])
++            self.assertEqual([entry["role"] for entry in retained["files"]], ["rust_object"])
++            self.assertEqual((Path(retained["directory"]) / "matrix.obj").read_bytes(),
++                             b"mock Rust object for the later MSVC command failure")
+ 
+ 
+     def test_real_temp_directory_canonicalizes_like_native_artifact(self):
+diff --git a/tools/validate_native_host.py b/tools/validate_native_host.py
+index b8e89d14bb4de0e33034abba56dc34f712e0a9ef..bf88bb55d42137013b1a9babf059b508bc6e7190 100644
+--- a/tools/validate_native_host.py
++++ b/tools/validate_native_host.py
+@@ -17,6 +17,7 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
+ import platform
+ import re
+ import shutil
++import stat
+ import subprocess
+ import sys
+ import tempfile
+@@ -34,6 +35,8 @@ SEED, SHAPES, VALUES = 20261025, 36, 3
+ SCHEMA = "hepta.native-host.v2"
+ FAMILIES = ("gcc", "clang", "msvc")
+ PROFILES = ("O0", "O2")
++MAX_NATIVE_BINARY_BYTES = 16 * 1024 * 1024
++RETAINED_BINARY_ROLES = ("rust_object", "driver_O0", "driver_O2", "wrong_echo")
+ 
+ # This file is preprocessed, not compiled or executed. Check __clang__ first:
+ # clang targeting Windows defines _MSC_VER too, and is not Microsoft cl.exe.
+@@ -77,6 +80,98 @@ def sha(data):
+     return hashlib.sha256(data).hexdigest()
+ 
+ 
++def _new_retention(directory):
++    directory = Path(directory)
++    # A new attempt must not replace a previous attempt's original bytes.
++    directory.mkdir(parents=True, exist_ok=False)
++    return {"directory": str(directory.resolve(strict=True)), "complete": False, "files": []}
++
++
++def _read_native_binary(path):
++    path = Path(path)
++    require(not path.is_symlink(), "native binary must not be a symbolic link")
++    flags = (os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
++             | getattr(os, "O_NONBLOCK", 0))
++    descriptor = os.open(path, flags)
++    with os.fdopen(descriptor, "rb") as stream:
++        before = os.fstat(stream.fileno())
++        require(stat.S_ISREG(before.st_mode) and 0 < before.st_size <= MAX_NATIVE_BINARY_BYTES,
++                "native binary must be a bounded nonempty regular file")
++        mode = stat.S_IMODE(before.st_mode)
++        require(0 <= mode <= 0o777, "native binary has unsupported permission bits")
++        data = stream.read(MAX_NATIVE_BINARY_BYTES + 1)
++        after = os.fstat(stream.fileno())
++        identity = lambda value: (value.st_dev, value.st_ino, value.st_size, value.st_mode,
++                                  value.st_mtime_ns, value.st_ctime_ns)
++        require(identity(before) == identity(after) and len(data) == before.st_size,
++                "native binary changed during retention")
++    return data, mode
++
++
++def _retain_binary(retention, source, role, expected_sha):
++    if retention is None:
++        return
++    require(role in RETAINED_BINARY_ROLES and is_sha(expected_sha), "invalid retained binary identity")
++    require(not any(item["role"] == role for item in retention["files"]), "duplicate retained binary role")
++    source = Path(source)
++    data, mode = _read_native_binary(source)
++    require(sha(data) == expected_sha, "retained binary differs from the executed artifact")
++    destination = Path(retention["directory"]) / source.name
++    # Exclusive creation also rejects an existing link or an earlier artifact.
++    with destination.open("xb") as stream:
++        stream.write(data)
++    os.chmod(destination, mode)
++    copied, copied_mode = _read_native_binary(destination)
++    require(copied == data and copied_mode == mode, "retained binary copy differs")
++    retention["files"].append({"role": role, "name": source.name, "original_path": str(source),
++                               "bytes": len(data), "sha256": expected_sha, "mode": mode})
++
++
++def validate_retained_binaries(report, *, directory=None):
++    """Bind four retained binaries to the original matrix; optionally read their bytes.
++
++    ``directory`` can explicitly map a restored archive to a new local directory.
++    The original producer's paths remain unchanged in the report.
++    """
++    retention = report.get("retained_binary_artifacts")
++    require(isinstance(retention, dict) and set(retention) == {"directory", "complete", "files"}
++            and text(retention["directory"]) and retention["complete"] is True,
++            "complete native binary retention is required")
++    files = retention["files"]
++    require(isinstance(files, list) and len(files) == 4, "four native binaries must be retained")
++    host, native, negative, hashes = (report.get("host", {}), report.get("native_object", {}),
++                                     report.get("negative_control", {}), report.get("executable_sha256s"))
++    require(isinstance(host, dict) and host.get("system") in {"Windows", "Darwin", "Linux"}
++            and isinstance(native, dict) and text(native.get("artifact"))
++            and isinstance(negative, dict) and isinstance(hashes, list) and len(hashes) == 2,
++            "native retention has no original artifact identities")
++    path_type = PureWindowsPath if host["system"] == "Windows" else PurePosixPath
++    original = path_type(native["artifact"])
++    extension = ".exe" if host["system"] == "Windows" else ""
++    origins = [original, original.parent / ("host-matrix-O0" + extension),
++               original.parent / ("host-matrix-O2" + extension), original.parent / ("wrong" + extension)]
++    expected_hashes = [native.get("artifact_sha256"), *hashes, negative.get("artifact_sha256")]
++    require(all(is_sha(value) for value in expected_hashes), "original native binary hashes are missing")
++    mapped = None
++    if directory is not None:
++        mapped = Path(directory)
++        require(mapped.is_dir() and not mapped.is_symlink(), "retained directory is not an ordinary directory")
++    for index, (entry, role, origin, digest) in enumerate(zip(files, RETAINED_BINARY_ROLES, origins, expected_hashes)):
++        require(isinstance(entry, dict)
++                and set(entry) == {"role", "name", "original_path", "bytes", "sha256", "mode"}
++                and entry["role"] == role and entry["name"] == origin.name
++                and entry["original_path"] == str(origin) and entry["sha256"] == digest
++                and type(entry["bytes"]) is int and 0 < entry["bytes"] <= MAX_NATIVE_BINARY_BYTES
++                and type(entry["mode"]) is int and 0 <= entry["mode"] <= 0o777,
++                "retained binary metadata differs from the original matrix")
++        if index == 0:
++            require(entry["bytes"] == native.get("artifact_bytes"), "retained object size differs")
++        if mapped is not None:
++            data, mode = _read_native_binary(mapped / entry["name"])
++            require(len(data) == entry["bytes"] and sha(data) == digest and mode == entry["mode"],
++                    "retained native binary bytes or mode differ")
++
++
+ def compiler_probe_command(compiler, driver, probe):
+     if driver == "msvc":
+         return [str(compiler), "/nologo", "/std:c11", "/EP", "/Tc" + str(probe)]
+@@ -164,7 +259,7 @@ def type_oracle_controls(header):
+ 
+ 
+ def run_host(*, cc=None, cc_family="auto", rustc=None, expected_system=None, expected_machine=None,
+-             observations=None):
++             observations=None, artifact_directory=None):
+     system, machine = platform.system(), platform.machine().lower()
+     normalized = {"amd64": "x86_64", "arm64": "aarch64"}.get(machine, machine)
+     if expected_system is not None and system != expected_system:
+@@ -182,6 +277,9 @@ def run_host(*, cc=None, cc_family="auto", rustc=None, expected_system=None, exp
+     observations = {} if observations is None else observations
+     observations.update({"commands": commands, "c_compiler": {"path": compiler, "binary_sha256": compiler_sha,
+                                                               "requested_family": cc_family}})
++    retention = _new_retention(artifact_directory) if artifact_directory is not None else None
++    if retention is not None:
++        observations["retained_binary_artifacts"] = retention
+     def run(argv, *, positive=True):
+         argv = list(map(str, argv))
+         start = time.monotonic()
+@@ -248,21 +346,26 @@ def run_host(*, cc=None, cc_family="auto", rustc=None, expected_system=None, exp
+         object_file = directory / ("matrix.obj" if system == "Windows" else "matrix.o")
+         observations["native_object_artifact"] = str(object_file)
+         native = compile_rust(analysis.rust + "\n" + probes, rustc=rustc, crate_type="obj", output=object_file)
++        observations["native_object"] = native
+         if not native["ok"]:
+             raise RuntimeError(json.dumps(native))
++        _retain_binary(retention, object_file, "rust_object", native.get("artifact_sha256"))
+         executions = []
+         observations["executions"] = executions
+         executable_hashes = []
+         for profile in PROFILES:
+             executable = directory / ("host-matrix-" + profile + (".exe" if system == "Windows" else ""))
+             run(c_compile_command(compiler, family, cfile, executable, profile=profile, rust_object=object_file))
++            built_hash = sha(_read_native_binary(executable)[0])
++            _retain_binary(retention, executable, "driver_" + profile, built_hash)
+             executed = run([executable])
++            require(sha(_read_native_binary(executable)[0]) == built_hash, "native driver changed during execution")
+             observed = json.loads(executed.stdout)
+             if observed != {"status": "passed", "foreign_calls": denominator["expected_foreign_calls_per_run"]}:
+                 raise ValueError("Actual host ABI denominator differs")
+             executions.append({"optimization": optimization_flag(family, profile), "layout_checked": True,
+                                "returncode": executed.returncode, "observed": observed})
+-            executable_hashes.append(sha(executable.read_bytes()))
++            executable_hashes.append(built_hash)
+         type_controls = []
+         observations["type_negative_controls"] = type_controls
+         try:
+@@ -285,13 +388,18 @@ def run_host(*, cc=None, cc_family="auto", rustc=None, expected_system=None, exp
+         cfile.write_text(wrong, encoding="utf-8", newline="\n")
+         bad_executable = directory / ("wrong" + (".exe" if system == "Windows" else ""))
+         run(c_compile_command(compiler, family, cfile, bad_executable, rust_object=object_file))
++        bad_hash = sha(_read_native_binary(bad_executable)[0])
++        _retain_binary(retention, bad_executable, "wrong_echo", bad_hash)
+         wrong_run = run([bad_executable], positive=False)
++        require(sha(_read_native_binary(bad_executable)[0]) == bad_hash, "wrong-echo binary changed during execution")
+         if wrong_run.returncode == 0:
+             raise ValueError("The actual host oracle accepted the wrong C implementation")
+         negative = {"name": "compiled_wrong_c_echo", "source_sha256": sha(wrong.encode()),
+-                    "artifact_sha256": sha(bad_executable.read_bytes()), "returncode": wrong_run.returncode,
++                    "artifact_sha256": bad_hash, "returncode": wrong_run.returncode,
+                     "status": "rejected_as_expected"}
+         observations["negative_control"] = negative
++        if retention is not None:
++            retention["complete"] = True
+     if compiler_hash() != before:
+         raise ValueError("Compiler changed while qualifying the host")
+     require(sha(Path(compiler).read_bytes()) == compiler_sha, "C compiler changed while qualifying the host")
+@@ -305,6 +413,7 @@ def run_host(*, cc=None, cc_family="auto", rustc=None, expected_system=None, exp
+             "layout_probes_sha256": sha(probes.encode()), "frontend": analysis.report,
+             "native_object": native, "executions": executions, "executable_sha256s": executable_hashes,
+             "negative_control": negative, "type_negative_controls": type_controls, "commands": commands,
++            **({"retained_binary_artifacts": retention} if retention is not None else {}),
+             "claims": {"actual_reported_host_executed": True, "cross_host_results_inferred": False,
+                        "physical_board_executed": False, "gpu_device_executed": False,
+                        "all_abi_features_qualified": False},
+@@ -443,6 +552,8 @@ def validate_report(report):
+             and commands[-2]["returncode"] == 0 and commands[-1]["argv"] == [str(bad_executable)]
+             and commands[-1]["returncode"] == negative["returncode"] and "v_scalar0_0" in commands[-1]["stderr"],
+             "wrong echo must fail its actual native assertion, not fail to launch")
++    if "retained_binary_artifacts" in report:
++        validate_retained_binaries(report)
+ 
+ 
+ def main():
+@@ -455,13 +566,23 @@ def main():
+     parser.add_argument("--expected-machine", choices=["x86_64", "aarch64"])
+     parser.add_argument("--output", type=Path, default=ROOT / "artifacts/native-host.json")
+     args = parser.parse_args()
++    if args.output.exists() or args.output.is_symlink():
++        print(json.dumps({"status": "failed", "output": str(args.output),
++                          "error": "The native host report already exists; use a fresh output path."}))
++        return 1
++    artifact_directory = args.output.parent / (args.output.stem + "-artifacts")
+     observed = None
+     attempt = {}
+     try:
+         report = run_host(cc=args.cc, cc_family=args.cc_family, rustc=args.rustc, expected_system=args.expected_system,
+-                          expected_machine=args.expected_machine, observations=attempt)
++                          expected_machine=args.expected_machine, observations=attempt,
++                          artifact_directory=artifact_directory)
+         observed = report
+         validate_report(report)
++        retained = report.get("retained_binary_artifacts")
++        require(isinstance(retained, dict) and retained.get("directory") == str(artifact_directory.resolve()),
++                "retained binary directory differs from the requested destination")
++        validate_retained_binaries(report, directory=artifact_directory)
+     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as exc:
+         report = {"schema": SCHEMA, "status": "failed", "error": str(exc),
+                   "host": {"system": platform.system(), "machine": platform.machine()},
+@@ -474,13 +595,21 @@ def main():
+                 "commands": observed.get("commands", []),
+                 "c_compiler": observed.get("c_compiler"),
+                 "native_object_artifact": observed.get("native_object_artifact") or observed.get("native_object", {}).get("artifact"),
++                "native_object": observed.get("native_object"),
+                 "executions": observed.get("executions"),
+                 "type_negative_controls": observed.get("type_negative_controls"),
+                 "negative_control": observed.get("negative_control"),
+                 "source_sha256": observed.get("source_sha256"),
++                "retained_binary_artifacts": observed.get("retained_binary_artifacts"),
+             }
+-    args.output.parent.mkdir(parents=True, exist_ok=True)
+-    args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
++    try:
++        args.output.parent.mkdir(parents=True, exist_ok=True)
++        with args.output.open("x", encoding="utf-8", newline="\n") as stream:
++            stream.write(json.dumps(report, indent=2, sort_keys=True) + "\n")
++    except OSError as exc:
++        print(json.dumps({"status": "failed", "output": str(args.output),
++                          "error": "Cannot publish a fresh native host report: " + str(exc)}))
++        return 1
+     print(json.dumps({"status": report["status"], "output": str(args.output), "error": report.get("error")}))
+     return 0 if report["status"] == "passed" else 1
+ 
