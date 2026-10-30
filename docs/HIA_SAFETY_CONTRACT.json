@@ -13,6 +13,16 @@
         "profile": "raw-byte-dag-v1",
         "python_semantic_admission_required": false,
         "scope": "raw primitive v1-v8 byte-only whole-module CFG/call DAG; existing Rust v4 Machine"
+      },
+      {
+        "admission": "independent Rust owned verifier, static graph policy, finite-entry abstract heap analysis and private admitted snapshot",
+        "default_admission_changed": false,
+        "entrypoint": "hepta.hia_rust_byte_dag.execute_rust_byte_dag",
+        "external_receipts_grant_admission": false,
+        "native_execution_authorized": false,
+        "profile": "raw-byte-dag-finite-heap-v1",
+        "python_semantic_admission_required": false,
+        "scope": "raw primitive v7/v8 byte-only whole-module DAG; exact scalar invocation with conservatively bounded logical live payload; existing Rust v4 Machine"
       }
     ],
     "input": "actual immutable canonical Core bytes; public VerifiedProgram objects are rechecked",
@@ -986,23 +996,28 @@
       "guarantee": "host_enforced_scoped_admission",
       "id": "finite_context_deterministic_oracle_reuse",
       "regression_selectors": [
-        "tests.test_hia_finite_context_oracle_reuse.OracleReferenceTests.test_default_does_not_cache_and_opt_in_is_an_exact_boolean",
-        "tests.test_hia_finite_context_oracle_reuse.OracleReferenceTests.test_same_semantics_reuses_reference_but_every_trace_launch_is_independent",
+        "tests.test_hia_crc_context_reuse_study.CRCReferenceStudyTests.test_all_arms_have_identical_public_inputs_and_reference_rule",
+        "tests.test_hia_crc_context_reuse_study.CRCReferenceStudyTests.test_dirty_source_refuses_before_any_capture_proof_build_or_context",
+        "tests.test_hia_crc_context_reuse_study.CRCReferenceStudyTests.test_missing_host_cost_missing_sample_and_unpriced_setup_reject",
+        "tests.test_hia_crc_context_reuse_study.CRCReferenceStudyTests.test_native_only_win_cannot_hide_host_lookup_and_evidence_cost",
+        "tests.test_hia_crc_context_reuse_study.CRCReferenceStudyTests.test_new_complete_matrix_and_old_protocol_are_independent",
+        "tests.test_hia_crc_context_reuse_study.CRCReferenceStudyTests.test_v2_zero_prefix_is_disclosed_and_v3_has_32_distinct_nonzero_chunks",
+        "tests.test_hia_finite_context_oracle_reuse.OracleReferenceNativeTests.test_two_real_children_reuse_only_the_reference",
         "tests.test_hia_finite_context_oracle_reuse.OracleReferenceTests.test_all_semantic_inputs_and_bank_namespace_are_bound",
         "tests.test_hia_finite_context_oracle_reuse.OracleReferenceTests.test_checker_drift_and_unadmitted_candidates_reject_before_cache_hit",
+        "tests.test_hia_finite_context_oracle_reuse.OracleReferenceTests.test_default_does_not_cache_and_opt_in_is_an_exact_boolean",
+        "tests.test_hia_finite_context_oracle_reuse.OracleReferenceTests.test_failed_oracle_result_is_never_cached",
         "tests.test_hia_finite_context_oracle_reuse.OracleReferenceTests.test_first_trap_position_is_preserved_and_cancel_does_not_reuse_nonce",
         "tests.test_hia_finite_context_oracle_reuse.OracleReferenceTests.test_item_limit_and_byte_limit_each_force_computation_without_storage",
-        "tests.test_hia_finite_context_oracle_reuse.OracleReferenceTests.test_failed_oracle_result_is_never_cached",
         "tests.test_hia_finite_context_oracle_reuse.OracleReferenceTests.test_native_failure_still_poisons_owner_even_after_reference_hit",
-        "tests.test_hia_finite_context_oracle_reuse.OracleReferenceNativeTests.test_two_real_children_reuse_only_the_reference",
-        "tests.test_hia_crc_context_reuse_study.CRCReferenceStudyTests.test_new_complete_matrix_and_old_protocol_are_independent",
-        "tests.test_hia_crc_context_reuse_study.CRCReferenceStudyTests.test_all_arms_have_identical_public_inputs_and_reference_rule",
-        "tests.test_hia_crc_context_reuse_study.CRCReferenceStudyTests.test_v2_zero_prefix_is_disclosed_and_v3_has_32_distinct_nonzero_chunks",
-        "tests.test_hia_crc_context_reuse_study.CRCReferenceStudyTests.test_native_only_win_cannot_hide_host_lookup_and_evidence_cost",
-        "tests.test_hia_crc_context_reuse_study.CRCReferenceStudyTests.test_missing_host_cost_missing_sample_and_unpriced_setup_reject",
-        "tests.test_hia_crc_context_reuse_study.CRCReferenceStudyTests.test_dirty_source_refuses_before_any_capture_proof_build_or_context"
+        "tests.test_hia_finite_context_oracle_reuse.OracleReferenceTests.test_same_semantics_reuses_reference_but_every_trace_launch_is_independent",
+        "tests.test_hia_finite_context_reentrancy.OracleReentrancyNativeTests.test_real_bank_rejects_callback_mutation_before_tokens_pins_or_child_are_consumed",
+        "tests.test_hia_finite_context_reentrancy.OracleReentrancyNativeTests.test_real_production_byte_quota_cannot_be_overbooked_during_reference_computation",
+        "tests.test_hia_finite_context_reentrancy.OracleReentrancyTests.test_baseexception_does_not_leave_preparation_active_or_register_a_trace",
+        "tests.test_hia_finite_context_reentrancy.OracleReentrancyTests.test_diagnostics_and_caught_reentry_do_not_turn_reference_hits_into_execution",
+        "tests.test_hia_finite_context_reentrancy.OracleReentrancyTests.test_nested_preparation_cannot_overbook_trace_cap_or_replenish_consumed_nonce"
       ],
-      "scope": "Explicit opt-in bank-local deterministic reference reuse under root/checker/image identity; 256-entry and 1-MiB canonical input+outcome bounds, separate lookup/compute/storage/release cost records, and actual independent consumed trace/native execution on every request. Frozen v2 zero-prefix defect remains recorded; v3 uses domain-separated deterministic diverse inputs and preserves the same five arms and cold cost gate."
+      "scope": "Explicit opt-in bank-local deterministic reference reuse under root/checker/image identity; 256-entry and 1-MiB canonical input+outcome bounds, separate lookup/compute/storage/release cost records, and actual independent consumed trace/native execution on every request. Frozen v2 zero-prefix defect remains recorded; v3 uses domain-separated deterministic diverse inputs and preserves the same five arms and cold cost gate. During oracle preparation, same-bank prepare/run/cancel/close reentrancy rejects before any mutation; diagnostics remain readable and propagated BaseException releases the guard without registering a trace."
     },
     {
       "entrypoints": [
@@ -1033,6 +1048,171 @@
         "tests.test_hia_routes.RouteTests.test_independent_rust_profile_cannot_mint_default_or_native_admission"
       ],
       "scope": "Explicit raw-byte-dag-v1 interpreter profile: original primitive v1-v8 bytes independently checked by Rust for all definitions, exact ownership/loans/types/SSA/effects, byte-only acyclic CFG/calls and per-function static limits, then the same private canonical snapshot executes in the existing v4 Machine with an exactly bound runtime policy. Python supplies bounded wire/actual pinned sealed process transport, not semantic admission."
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_rust_byte_dag.execute_rust_byte_dag"
+      ],
+      "exclusions": [
+        "No source/nominal/native authority promotion or imported proof authority; old raw-byte-dag-v1 unchanged.",
+        "Unknown or overflowing extents, chains, cycles, unsupported resources and work-limit exhaustion refuse.",
+        "No universal input bound, successful-return/cleanup promise, process RSS/CPU/stack-byte bound or whole-language refinement theorem."
+      ],
+      "guarantee": "checked_on_every_admission",
+      "id": "independent_rust_finite_entry_heap",
+      "regression_selectors": [
+        "tests.test_hia_rust_finite_heap.RustFiniteHeapAdmission.test_actual_fixed_analysis_context_depth_transfer_and_value_work_limits",
+        "tests.test_hia_rust_finite_heap.RustFiniteHeapAdmission.test_analysis_only_can_bound_unexecuted_large_requests_and_gate_before_vm",
+        "tests.test_hia_rust_finite_heap.RustFiniteHeapAdmission.test_branch_and_return_joins_keep_unselected_larger_owner",
+        "tests.test_hia_rust_finite_heap.RustFiniteHeapAdmission.test_empty_owner_and_scalar_returns_are_intervals_not_success_samples",
+        "tests.test_hia_rust_finite_heap.RustFiniteHeapAdmission.test_every_tick_stop_heap_stop_and_call_stop_is_bounded_without_unwind",
+        "tests.test_hia_rust_finite_heap.RustFiniteHeapAdmission.test_heap_policy_exact_types_raw_bytes_and_public_scalar_boundary",
+        "tests.test_hia_rust_finite_heap.RustFiniteHeapAdmission.test_infallible_oversize_and_no_return_calls_keep_earlier_payload",
+        "tests.test_hia_rust_finite_heap.RustFiniteHeapAdmission.test_no_python_semantic_modules_are_required_for_admission_or_refusal",
+        "tests.test_hia_rust_finite_heap.RustFiniteHeapAdmission.test_partial_initialization_and_task_failure_matrix_reuses_normalized_core",
+        "tests.test_hia_rust_finite_heap.RustFiniteHeapAdmission.test_rehashed_replay_wrong_bounds_policies_arguments_and_authority_reject",
+        "tests.test_hia_rust_finite_heap.RustFiniteHeapAdmission.test_transfer_multi_return_alias_and_every_allocator_failure_keep_peak",
+        "tests.test_hia_rust_finite_heap.RustFiniteHeapAdmission.test_unknown_sizes_overflow_and_object_domain_crossing_never_become_zero",
+        "tests.test_hia_rust_finite_heap.RustFiniteHeapAdmission.test_v8_nested_returned_loans_mutability_and_cancel_keep_caller_roots",
+        "tests.test_hia_rust_finite_heap.RustFiniteHeapAdmission.test_v8_normalized_partial_records_and_tasks_preserve_failure_cleanup",
+        "tests.test_hia_rust_finite_heap.RustFiniteHeapAdmission.test_whole_module_cycles_chains_invalid_origins_and_nominal_inputs_refuse"
+      ],
+      "scope": "Explicit raw-byte-dag-finite-heap-v1: independently verify all raw v7/v8 definitions and DAG policies, then abstractly bound logical live payload for one exact scalar invocation before the same private snapshot enters the Rust v4 Machine. Owner transfer, caller-derived shared roots, parameter-origin returned loans, failed empty owners, both CFG edges and stop prefixes are included; work limits are enforced before continued analysis."
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_scalar_call_validation.validate_scalar_calls"
+      ],
+      "exclusions": [
+        "No memory/resource/foreign/indirect/recursive call proof.",
+        "Unknown solver, malformed closure, unknown callee or budget exhaustion grants no approval.",
+        "Core equivalence is not C source refinement, native machine-code refinement, runtime authority or global optimality."
+      ],
+      "guarantee": "proved_only_within_declared_solver_profile",
+      "id": "scalar_acyclic_direct_call_first_trap_translation",
+      "regression_selectors": [
+        "tests.test_hia_scalar_call_validation.ScalarCallValidationTests.test_actual_direct_calls_and_inline_proposal_prove_first_traps",
+        "tests.test_hia_scalar_call_validation.ScalarCallValidationTests.test_all_finite_closure_and_expansion_limits_fail_closed",
+        "tests.test_hia_scalar_call_validation.ScalarCallValidationTests.test_callee_mutation_is_encoded_from_actual_callee_bytes",
+        "tests.test_hia_scalar_call_validation.ScalarCallValidationTests.test_declared_resource_effects_never_enter_scalar_call_profile",
+        "tests.test_hia_scalar_call_validation.ScalarCallValidationTests.test_first_trap_code_and_call_position_are_observations",
+        "tests.test_hia_scalar_call_validation.ScalarCallValidationTests.test_inliner_is_not_called_by_the_independent_encoder",
+        "tests.test_hia_scalar_call_validation.ScalarCallValidationTests.test_invalid_timeout_is_not_repaired_or_clamped",
+        "tests.test_hia_scalar_call_validation.ScalarCallValidationTests.test_legacy_validator_still_rejects_calls",
+        "tests.test_hia_scalar_call_validation.ScalarCallValidationTests.test_solver_unknown_never_becomes_equivalence",
+        "tests.test_hia_scalar_call_validation.ScalarCallValidationTests.test_two_calls_keep_the_call_results_and_live_caller_values",
+        "tests.test_hia_scalar_call_validation.ScalarCallValidationTests.test_unknown_callee_and_recursion_cannot_be_admitted",
+        "tests.test_hia_scalar_call_validation.ScalarCallValidationTests.test_wrong_inline_return_is_replayed_as_a_real_counterexample"
+      ],
+      "scope": "Separate pure scalar direct-call SMT profile: independently encode the original caller/callee closure and a proposed candidate, comparing all typed-input return values and first-trap code/order. At most 16 functions, 32 closure blocks, 512 operations and 32 symbolic call expansions per side; the default call-free TV is unchanged."
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_finite_context.build_bank",
+        "hepta.hia_finite_context.FiniteU32Bank.prepare_trace"
+      ],
+      "exclusions": [
+        "Old fold/xor_fold wire formats remain; map_repeat requires an exact opt-in boolean.",
+        "No native observation cache or trace replay; unknown child/descriptor state remains quarantined.",
+        "No persistent language resource state, concurrent mutation, arbitrary foreign callback recovery or machine-code theorem."
+      ],
+      "guarantee": "host_enforced_scoped_admission",
+      "id": "finite_independent_map_repeat_context",
+      "regression_selectors": [
+        "tests.test_hia_finite_context_map_repeat.MapRepeatTests.test_actual_call_count_repeat_and_timing_receipt_mutations_reject",
+        "tests.test_hia_finite_context_map_repeat.MapRepeatTests.test_cache_binds_repetitions_and_does_not_cache_native_calls_or_nonces",
+        "tests.test_hia_finite_context_map_repeat.MapRepeatTests.test_first_pass_trap_does_not_become_completed_repetitions",
+        "tests.test_hia_finite_context_map_repeat.MapRepeatTests.test_legacy_modes_keep_six_fields_and_wire_bytes",
+        "tests.test_hia_finite_context_map_repeat.MapRepeatTests.test_new_profile_requires_exact_explicit_opt_in",
+        "tests.test_hia_finite_context_map_repeat.MapRepeatTests.test_post_preparation_repeat_mutation_is_not_replay_authority",
+        "tests.test_hia_finite_context_map_repeat.MapRepeatTests.test_reference_composition_matches_literal_independent_map",
+        "tests.test_hia_finite_context_map_repeat.MapRepeatTests.test_repetition_and_total_actual_work_caps_are_independent_of_input_storage",
+        "tests.test_hia_finite_context_map_repeat.MapRepeatTests.test_seed_fields_and_exact_input_types_remain_closed"
+      ],
+      "scope": "Explicit map_repeat profile for independently evaluated u32 bit-pattern inputs under the same freshly checked bank, sealed images, exact consumed nonce, child limits and cleanup ledger. At most 65536 stored inputs, 4096 repetitions and 16777216 actually executed calls per trace. Reference checksum repetition uses exact modular composition; every native call still executes."
+    },
+    {
+      "entrypoints": [
+        "tools.qualify_hia_stb_divide_update.qualify",
+        "tools.qualify_hia_stb_divide_update.validate_qualification"
+      ],
+      "exclusions": [
+        "Finite LP64 C11 fixture and authored input corpus only; old C undefined behavior is never cross-version equality evidence.",
+        "No general cheap C/C++ rewrite, C source refinement proof, general hardware ABI coverage or long-term human maintenance-cost result.",
+        "Historical C++ foreign noexcept terminations and all previous failures remain unmodified."
+      ],
+      "guarantee": "finite_execution_evidence",
+      "id": "real_stb_changed_body_update",
+      "regression_selectors": [
+        "tests.test_hia_stb_divide_update.StbUpdateNativeTests.test_actual_stale_and_resource_legal_wrong_targets_fail_native_observation",
+        "tests.test_hia_stb_divide_update.StbUpdateNativeTests.test_complete_changed_component_recaptured_to_distinct_core_and_direct_llvm",
+        "tests.test_hia_stb_divide_update.StbUpdateNativeTests.test_old_undefined_failures_and_successor_defined_returns_keep_separate_denominators",
+        "tests.test_hia_stb_divide_update.StbUpdateNativeTests.test_readback_refuses_promoted_failures_counts_sources_or_unrelated_processes",
+        "tests.test_hia_stb_divide_update.StbUpdateNativeTests.test_readback_rehashes_actual_artifact_in_relocated_evidence",
+        "tests.test_hia_stb_divide_update.StbUpdateProtocolTests.test_complete_original_headers_have_distinct_fixed_git_identities_and_licenses",
+        "tests.test_hia_stb_divide_update.StbUpdateProtocolTests.test_frozen_common_domain_and_old_undefined_witnesses_are_disjoint",
+        "tests.test_hia_stb_divide_update.StbUpdateProtocolTests.test_wrong_source_head_fails_before_compilers_and_retains_terminal_cost",
+        "tests.test_hia_stb_divide_update.StbUpdateReadbackBindingTests.test_archived_vm_samples_replay_without_launching_or_evaluating_code",
+        "tests.test_hia_stb_divide_update.StbUpdateReadbackBindingTests.test_commit_ledger_checks_raw_tree_and_complete_source_inventory",
+        "tests.test_hia_stb_divide_update.StbUpdateReadbackBindingTests.test_embedded_vm_identities_values_traps_and_cost_refuse_actual_record_mutations",
+        "tests.test_hia_stb_divide_update.StbUpdateReadbackBindingTests.test_hidden_worktree_byte_mode_or_link_drift_cannot_claim_exact_commit"
+      ],
+      "scope": "Real complete stb_divide v0.93/v0.94 captured with C_INTEGER_DIVISION_TRUNCATES; existing project migrator/source/Core/direct LLVM paths cover six active functions and twelve declarations. Common defined-domain behavior is separate from four old UBSan failures and their successor defined witnesses, HIA-only invalid inputs and actual stale/wrong target controls; retained reports must bind source and every VM/native observation."
+    },
+    {
+      "entrypoints": [
+        "experiments.hia_agent_structured_v7_20261029.contracts.response_schema",
+        "experiments.hia_agent_toolstudy_v12_20261030.engine.ToolStudyEngine.decoder_schema"
+      ],
+      "exclusions": [
+        "Decoder syntax cannot admit type/owner/resource correctness, duplicate/overlapping edits, functional behavior or native execution.",
+        "References only validate capacity; no selected-answer IDs or replacement values are used to construct the decoder.",
+        "Adaptive same-task follow-up; no model qualification, main success, independent productivity replication or general language advantage is implied by this matrix."
+      ],
+      "guarantee": "reviewed_qualification_protocol",
+      "id": "public_catalogue_agent_node_decoder",
+      "regression_selectors": [
+        "tests.test_hia_agent_toolstudy_v12.PublicNodeContractTests.test_all_19_reference_shapes_remain_representable_and_initial_prompts_unchanged",
+        "tests.test_hia_agent_toolstudy_v12.PublicNodeContractTests.test_all_public_editable_ids_and_fields_are_present_without_reference_selection",
+        "tests.test_hia_agent_toolstudy_v12.PublicNodeContractTests.test_decoder_keeps_values_open_and_does_not_admit_duplicate_overlapping_or_whole_function_edits",
+        "tests.test_hia_agent_toolstudy_v12.PublicNodeContractTests.test_decoder_metadata_write_failure_closes_started_owner_before_constructor_escapes",
+        "tests.test_hia_agent_toolstudy_v12.PublicNodeContractTests.test_diagnostic_reports_only_received_and_allowed_public_fields",
+        "tests.test_hia_agent_toolstudy_v12.PublicNodeContractTests.test_legacy_decoder_defaults_and_full_grammars_are_unchanged",
+        "tests.test_hia_agent_toolstudy_v12.PublicNodeContractTests.test_protocol_retains_model_generation_budgets_tasks_and_all_admission_requirements",
+        "tests.test_hia_agent_toolstudy_v12.PublicNodeContractTests.test_readonly_ids_empty_changes_extra_fields_and_wrong_field_types_reject",
+        "tests.test_hia_agent_toolstudy_v12.PublicNodeContractTests.test_stale_or_altered_query_and_language_mismatch_fail_before_generation"
+      ],
+      "scope": "Query-sealed syntax contract includes every public editable Rust/HIA node ID and its declared field types, excludes read-only nodes and extra fields, and leaves replacement values open. Public rejection diagnostics identify allowed/received fields. V12 keeps the same model, initial task text, generation/history budgets, whole-candidate gates and fresh 3/3 admission to the conditional main; constructor failure closes any owned service."
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_stb_specialization.capture",
+        "tools.qualify_hia_stb_ndu.qualify"
+      ],
+      "exclusions": [
+        "No economic gain follows from protocol correctness or same-model DP agreement.",
+        "No C undefined-input equality, production demand, statistical superiority or universal optimum claim.",
+        "NDU remains advisory; no receipt or controller response grants execution authority."
+      ],
+      "guarantee": "reviewed_qualification_protocol",
+      "id": "real_stb_matched_candidate_and_ndu_protocol",
+      "regression_selectors": [
+        "tests.test_hia_stb_ndu_protocol.StbProtocolTests.test_actual_native_protocol_is_bounded_and_does_not_call_dp_online",
+        "tests.test_hia_stb_ndu_protocol.StbProtocolTests.test_complete_work_denominator_and_unseen_input_domains",
+        "tests.test_hia_stb_ndu_protocol.StbProtocolTests.test_exact_ties_do_not_prefer_an_arbitrary_native_id",
+        "tests.test_hia_stb_ndu_protocol.StbProtocolTests.test_failed_native_prefix_is_retained_without_replay",
+        "tests.test_hia_stb_ndu_protocol.StbProtocolTests.test_feedback_cannot_read_another_arm_or_unobserved_validation_timing",
+        "tests.test_hia_stb_ndu_protocol.StbProtocolTests.test_independent_dp_agrees_with_exhaustive_supplied_finite_paths",
+        "tests.test_hia_stb_ndu_protocol.StbProtocolTests.test_preparation_native_calls_are_separate_and_unknown_is_not_zero",
+        "tests.test_hia_stb_ndu_protocol.StbProtocolTests.test_required_finalization_cost_cannot_cross_budget_and_still_qualify",
+        "tests.test_hia_stb_ndu_protocol.StbProtocolTests.test_source_binding_checks_raw_blobs_and_does_not_admit_dirty_tree",
+        "tests.test_hia_stb_specialization.StbCapturedNativeTests.test_actual_native_bank_keeps_full_width_map_and_repeat_counts",
+        "tests.test_hia_stb_specialization.StbCapturedNativeTests.test_all_candidates_keep_the_existing_structural_budget_and_all_input_gate",
+        "tests.test_hia_stb_specialization.StbCapturedNativeTests.test_exact_captured_closure_is_proved_without_modifying_upstream",
+        "tests.test_hia_stb_specialization.StbCapturedNativeTests.test_removed_runtime_guard_is_not_a_trusted_input_assumption",
+        "tests.test_hia_stb_specialization.StbOracleTests.test_unsigned_bit_pattern_inputs_map_to_signed_euclidean_math"
+      ],
+      "scope": "Fresh full-component source capture and independent scalar-call bridge produce baseline/guard8/guard10/dual-guard candidates under the unchanged 32-block/512-operation bank profile. Frozen same-input/budget/cache comparison includes strong precommitted fixed dispatch, feedback greedy, exact finite DP and the actual pinned NDU stream. All preparation, delivery, release, failure, post-analysis and terminal budget costs are retained with separate delivery/preparation call denominators."
     }
   ],
   "judgment": {
@@ -1252,8 +1432,8 @@
       "reason": "default/source/nominal admission and Python execution definitions; not mechanically proved sound"
     },
     {
-      "component": "independent Rust owned verifier, byte-DAG analyzer, private admitted snapshot, v4 Machine and pinned executable/transport",
-      "reason": "semantic admission and actual execution for raw-byte-dag-v1 only; finite independent differential evidence is not a whole-language soundness proof"
+      "component": "independent Rust owned verifier, byte-DAG analyzer, bounded finite-entry live-payload analyzer, private admitted snapshot, v4 Machine and pinned executable/transport",
+      "reason": "semantic admission and actual execution for raw-byte-dag-v1 and raw-byte-dag-finite-heap-v1; the latter additionally trusts the bounded abstract live-payload analyzer; finite independent differential evidence is not a whole-language soundness or refinement proof"
     },
     {
       "component": "proof encoder and pinned SMT solver",

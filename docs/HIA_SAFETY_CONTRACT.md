@@ -10,6 +10,15 @@ admission, but grants no default or native authority. A producer, an AI agent,
 NDU, a serialized receipt, and this document cannot confer admission or
 publication authority. See [the Rust profile](HIA_RUST_BYTE_DAG_ADMISSION.md).
 
+The separately selected `raw-byte-dag-finite-heap-v1` extends that private Rust
+path for primitive v7/v8 and one exact scalar invocation. An independent bounded
+abstract pass accounts for live payload, moved owners, caller-derived borrowed
+roots, returned loans, allocation failures and stopped prefixes before the same
+snapshot reaches the same Machine. Unknown extent, overflow and analysis work
+exhaustion reject. The older profile and default/native authority are unchanged;
+logical payload is not process RSS, native stack bytes or CPU time. See
+[the finite-entry contract](HIA_RUST_FINITE_ENTRY_HEAP.md).
+
 The companion [machine-readable matrix](HIA_SAFETY_CONTRACT.json) freezes the
 reviewed schema registry, names actual entrypoints, states each capability's
 exclusions, and links it to existing executable boundary regressions. Run it
@@ -75,6 +84,26 @@ See [borrowed extents](HIA_BORROWED_EXTENT_HEAP.md),
 [actual C native hosts](HIA_CAPTURED_C_NATIVE_HOSTS.md). Passing these scoped
 contracts does not close the universal safety, NDU incremental value or
 whole-program performance claims below.
+
+The next reviewed additions retain all previous selectors. Oracle callbacks
+cannot reenter mutation of the same finite bank during trace preparation. The
+explicit `map_repeat` profile executes every independent native call under the
+same one-shot trace and child/release gates. A separate acyclic scalar-call SMT
+profile encodes the original caller/callee closure independently of proposed
+inlining and checks the first trap's code and order; the default call-free
+profile does not widen. The real `stb_divide` update contract distinguishes
+common defined-domain results, old C undefined behavior, successor witnesses
+and report tampering. The fixed-candidate/NDU study has strong fixed, feedback
+and exact finite planning controls and complete finalization budget checks.
+None of these protocol checks asserts an economic improvement.
+
+The V12 Agent decoder includes every publicly editable node and its allowed
+fields without choosing answer nodes or replacement values. Its precise public
+diagnostics and construction-failure cleanup are regression boundaries, not
+model qualification. Native/type/owner/resource/behavior validation and the
+fresh 3/3 gate remain authoritative; failed V11 results are unchanged. The
+updated matrix still explicitly leaves general Agent productivity, whole
+language safety, C-to-Core/native refinement and global optimality unproved.
 
 ## Typed state and instruction obligations
 
