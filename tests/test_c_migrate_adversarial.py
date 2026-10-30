@@ -102,6 +102,53 @@ class CMigrationAdversarial(unittest.TestCase):
         self.assertEqual(list(self.root.glob(".hepta-migrate-*")), [])
 
 
+    def test_clang_stdout_limit_does_not_capture_full_output_in_ram(self):
+        # Clang AST JSON can grow far beyond the 256 KiB C source size.
+        # A post-communicate length check cannot undo subprocess.run's
+        # in-memory capture. Require file-backed output before checking size.
+        import subprocess
+        from hepta.c_migrate import MigrationRejected, _run
+
+        def oversized_result(command, **kwargs):
+            self.assertFalse(kwargs.get("capture_output"), kwargs)
+            self.assertIn("stdout", kwargs)
+            self.assertIn("stderr", kwargs)
+            # Sparse 32 MB+ output file; no 32 MB allocation in this test.
+            kwargs["stdout"].truncate(32_000_001)
+            return subprocess.CompletedProcess(command, 0)
+
+        with patch("hepta.c_migrate.subprocess.run", side_effect=oversized_result):
+            with self.assertRaises(MigrationRejected) as rejected:
+                _run(["clang", "-ast-dump=json"])
+        self.assertEqual(rejected.exception.code, "E_CLANG_SIZE")
+
+    def test_clang_stderr_tail_is_bounded_without_memory_capture(self):
+        import subprocess
+        from hepta.c_migrate import MigrationRejected, _run
+
+        def failed_result(command, **kwargs):
+            self.assertFalse(kwargs.get("capture_output"), kwargs)
+            self.assertIn("stderr", kwargs)
+            kwargs["stderr"].write(b"x" * 20_000 + b"fatal: rejected")
+            return subprocess.CompletedProcess(command, 1)
+
+        with patch("hepta.c_migrate.subprocess.run", side_effect=failed_result):
+            with self.assertRaises(MigrationRejected) as rejected:
+                _run(["clang", "-bad-option"])
+        self.assertEqual(rejected.exception.code, "E_CLANG_REJECT")
+        self.assertLessEqual(len(str(rejected.exception)), 5_000)
+        self.assertTrue(str(rejected.exception).endswith("fatal: rejected"))
+
+    def test_clang_subprocess_stdin_remains_supported(self):
+        import sys
+        from hepta.c_migrate import _run
+
+        output = _run([sys.executable, "-c",
+                       "import sys; sys.stdout.write(sys.stdin.read().upper())"],
+                      input_text="hello")
+        self.assertEqual(output, "HELLO")
+
+
     def test_oversized_source_rejected_before_unbounded_read(self):
         # A caller may point the converter at an arbitrarily large file.
         # Do not load the entire file merely to discover it exceeds 256 KB.
