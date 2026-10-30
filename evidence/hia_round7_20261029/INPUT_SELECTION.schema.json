@@ -1,0 +1,280 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:hepta:hia-round7:input-selection:v1",
+  "title": "Frozen explicit public round-seven evidence selection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "source_commit",
+    "source_tree",
+    "public_evidence_only",
+    "file_count",
+    "bytes",
+    "files",
+    "public_ci_zips",
+    "evidence_inputs"
+  ],
+  "properties": {
+    "schema": {
+      "const": "hepta.hia-round7.input-selection.v1"
+    },
+    "source_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "source_tree": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "public_evidence_only": {
+      "const": true
+    },
+    "created_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "file_count": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100000
+    },
+    "bytes": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967296
+    },
+    "files": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100000,
+      "items": {
+        "$ref": "#/$defs/file"
+      }
+    },
+    "public_ci_zips": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/zip"
+      }
+    },
+    "evidence_inputs": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100000,
+      "items": {
+        "$ref": "#/$defs/evidence_input"
+      }
+    }
+  },
+  "$defs": {
+    "file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "component",
+        "relative",
+        "archive_path",
+        "bytes",
+        "sha256",
+        "evidence_input"
+      ],
+      "properties": {
+        "component": {
+          "enum": [
+            "evidence",
+            "guarded-development",
+            "resource-review"
+          ]
+        },
+        "relative": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "archive_path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 536870912
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "evidence_input": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,79}$"
+        }
+      }
+    },
+    "zip": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "archive_path",
+        "artifact_id",
+        "run_id",
+        "run_attempt",
+        "workflow_profile",
+        "workflow_path",
+        "source_commit",
+        "source_tree"
+      ],
+      "properties": {
+        "archive_path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "artifact_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9223372036854775807
+        },
+        "run_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9223372036854775807
+        },
+        "run_attempt": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "workflow_profile": {
+          "type": "string"
+        },
+        "workflow_path": {
+          "type": "string"
+        },
+        "source_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "source_tree": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "workflow_profile": {
+              "const": "native-hosts"
+            },
+            "workflow_path": {
+              "const": ".github/workflows/hepta-native-hosts.yml"
+            }
+          }
+        },
+        {
+          "properties": {
+            "workflow_profile": {
+              "const": "cpp-upstream-hosts"
+            },
+            "workflow_path": {
+              "const": ".github/workflows/hepta-cpp-upstream-hosts.yml"
+            }
+          }
+        },
+        {
+          "properties": {
+            "workflow_profile": {
+              "const": "migration"
+            },
+            "workflow_path": {
+              "const": ".github/workflows/hepta-migration.yml"
+            }
+          }
+        },
+        {
+          "properties": {
+            "workflow_profile": {
+              "const": "integrated"
+            },
+            "workflow_path": {
+              "const": ".github/workflows/hepta-qualification.yml"
+            }
+          }
+        },
+        {
+          "properties": {
+            "workflow_profile": {
+              "const": "six-outcome"
+            },
+            "workflow_path": {
+              "const": ".github/workflows/hepta-six-outcomes.yml"
+            }
+          }
+        }
+      ]
+    },
+    "evidence_input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "source_commit",
+        "source_tree",
+        "qualification_status",
+        "description"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,79}$"
+        },
+        "kind": {
+          "enum": [
+            "final-source-execution",
+            "historical-execution",
+            "development",
+            "review",
+            "publication-metadata",
+            "toolchain-receipt",
+            "mixed-provenance"
+          ]
+        },
+        "source_commit": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "source_tree": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "qualification_status": {
+          "enum": [
+            "passed",
+            "failed",
+            "incomplete",
+            "mixed",
+            "not-qualification"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
