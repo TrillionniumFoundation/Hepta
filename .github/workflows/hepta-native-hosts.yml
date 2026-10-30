@@ -2,7 +2,7 @@ name: Hepta actual host ABI qualification
 
 on:
   push:
-    branches: [codex/hia-rust-record-normalization-20261030, codex/hia-core-rust-convergence-20261030, feat/hepta-safe-migration-agent-20261024, dot/hepta-p0-p1-semantic-bridge-20261025, dot/hepta-p0-p7-integration-20261025, codex/hia-ndu-verified-optimization-20261027, codex/hia-ndu-bounded-pipeline-20261027, codex/hia-contract-integration-20261027, codex/hia-v8-blocker-convergence-20261027, codex/hia-round5-*, codex/hia-core-closure-20261028, codex/hia-round6-convergence-20261029, codex/hia-round7-opportunity-20261029, codex/hia-round8-integration-20261029]
+    branches: [codex/hia-nested-views-native-retention-20261030, codex/hia-rust-record-normalization-20261030, codex/hia-core-rust-convergence-20261030, feat/hepta-safe-migration-agent-20261024, dot/hepta-p0-p1-semantic-bridge-20261025, dot/hepta-p0-p7-integration-20261025, codex/hia-ndu-verified-optimization-20261027, codex/hia-ndu-bounded-pipeline-20261027, codex/hia-contract-integration-20261027, codex/hia-v8-blocker-convergence-20261027, codex/hia-round5-*, codex/hia-core-closure-20261028, codex/hia-round6-convergence-20261029, codex/hia-round7-opportunity-20261029, codex/hia-round8-integration-20261029]
   pull_request:
     branches: [main, codex/hia-p0-p7-convergence-20261027, codex/hia-ndu-verified-optimization-20261027, codex/hia-ndu-bounded-pipeline-20261027, codex/hia-contract-integration-20261027]
   workflow_dispatch:
@@ -136,10 +136,15 @@ jobs:
       - name: Check adapter and failed-report contracts
         shell: bash
         run: |
-          python -m unittest tests.test_native_host_evidence -v 2>&1 | tee artifacts/native-host-adapter-tests.log
+          python -m unittest tests.test_native_host_evidence tests.test_native_host_artifact_retention -v 2>&1 | tee artifacts/native-host-adapter-tests.log
       - name: Execute both C profiles, three ill-typed declarations, and a compiled wrong echo
         shell: bash
         run: |
+          # Preserve the original setup placeholder before the producer creates
+          # its new report. The producer never overwrites an earlier result.
+          test ! -e artifacts/native-host-setup-placeholder.json
+          test ! -L artifacts/native-host-setup-placeholder.json
+          mv artifacts/native-host.json artifacts/native-host-setup-placeholder.json
           python tools/validate_native_host.py \
             --rustc "$(rustup which --toolchain 1.90.0 rustc)" \
             --cc "$HEPTA_HOST_CC" --cc-family "$HEPTA_HOST_CC_FAMILY" \
@@ -206,6 +211,8 @@ jobs:
           name: native-${{ matrix.os }}-${{ matrix.cc_family }}-${{ env.HEPTA_QUALIFICATION_HEAD_SHA }}
           path: |
             artifacts/native-host.json
+            artifacts/native-host-setup-placeholder.json
+            artifacts/native-host-artifacts/
             artifacts/native-host-setup.log
             artifacts/native-host-adapter-tests.log
             artifacts/clang-capture-tests.log

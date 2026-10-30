@@ -66,17 +66,24 @@ fails source checking. The accepted construction uses the existing v8 call and
 return-loan origin contract. Its helper has exactly one byte-slice or byte-buffer
 borrowed formal, with the same read/mut mode as the stored field and return;
 all other formals are ordinary scalar values. The actual origin is a direct
-named byte owner, borrowed parameter or ordinary owner-record field. Nested
-returned-call arguments, local-view origins, aggregate borrowed formals,
-multiple borrowed formals and permission changes remain outside this source
-increment. View parameters/returns and named lifetime escape remain refused.
+named byte owner, borrowed parameter or ordinary owner-record field, or another
+returned call satisfying those same requirements. Every level has an explicit
+matching `read` or `mut`; the terminal argument is a direct named byte place.
+For example, `Read {data: read bytes(read bytes(read data)), tag: 7}` composes
+two existing calls. Local-view origins, aggregate borrowed formals, multiple
+borrowed formals and permission changes at any level remain outside this
+source increment. View parameters/returns and named lifetime escape remain
+refused. Non-View stored returned values and immediate nested borrowed-call
+arguments retain their previous profiles.
 
-The argument loan and returned child remain distinct primitive capabilities.
-The producer retains the hidden parent value while a View or shared copy holds
-the child, and includes both capabilities in ordinary CFG interfaces. A shared
-copy aliases this complete obligation; an exclusive move transfers it and
+The argument loan and every returned child remain distinct primitive capabilities.
+The producer retains each actual argument parent while a View or shared copy
+holds the final child, and includes the complete linear chain in ordinary CFG
+interfaces. It recursively checks the selected origin calls; the shape of an
+unrelated capability is insufficient to enter this source path. A shared copy
+aliases this complete obligation; an exclusive move transfers it and
 invalidates the old value. The final shared alias, or explicit exclusive drop,
-ends the returned child before its argument parent. Ending an inner shared
+ends the deepest returned child and then each ancestor in reverse order. Ending an inner shared
 copy preserves the obligations of retained outer copies. Source and Core
 verification continue to reject owner release, frozen exclusive-parent reborrow and
 inconsistent branch resource states. No implicit exclusive cleanup is added
@@ -97,8 +104,8 @@ the existing resource-alias rules.
 
 Shared views end at lexical scope exit and before each normal/early return.
 Ending an inner copy does not end a loan still held by an outer copy. The last
-local alias emits one `loan.end` for a direct-origin view, or the returned child
-and then its parent for the bounded v8 returned-call case. This is the existing
+local alias emits one `loan.end` for a direct-origin view, or the returned children
+and then their terminal parent for the bounded v8 returned-call case. This is the existing
 conservative lexical profile, not Rust nonlexical lifetime inference.
 
 Mutable local views remain affine. A whole-local `move` transfers the producer's
@@ -113,6 +120,12 @@ Construction evaluates fields in source order. A scalar initializer following
 a mutable reference cannot access its borrowed origin while that loan is live.
 Disjoint named owner fields may be borrowed independently. Branches, loops and
 Result arms retain their normal exact resource-state joins.
+
+Every call evaluates its arguments left to right, including scalar arguments
+before and after a nested origin. A scalar call before that origin therefore
+keeps its allocation attempt ahead of the nested call. The existing source
+byte limit, parser nesting limit, concrete specialization budgets and Core
+verification remain in force; this adaptation adds no unbounded compile mode.
 
 ## Executed values and cleanup boundaries
 
@@ -130,6 +143,21 @@ Its 33-request corpus uses only the existing v8 source route. The native C
 surface remains the five source-selected scalar wrappers; borrowed helpers
 and View descriptors are internal.
 
+`examples/hia_program/source_nested_returned_views.hepta` composes two or three
+returned calls in the same cases, including a nonfirst borrowed formal and
+disjoint ordinary owner fields. Its test corpus adds `ordering_case()` and
+`stamp(3)` to the 33 requests, for 35 requests. The existing scalar-export
+selection admits those seven scalar functions; all borrowed helpers remain
+internal. The nested construction does not add an aggregate or borrowed ABI.
+
+`ordering_case()` performs four allocation attempts in a fixed order: result
+owner, scalar prefix, nested mutable origin, scalar suffix. The normal result
+is `15`; refusing attempt 2, 3 or 4 gives `113`, `61` or `109`, respectively.
+These distinct values expose argument reordering. The LLVM allocator observer
+tests those actual failures and the two `failure_case(7)` outcomes below.
+The three failed attempts still create and consume the existing empty logical
+owner slots. Successful returns leave no owner, requested payload or local loan.
+
 For `failure_case(7)`, the normal path returns `50`, with two allocations/frees,
 peak requested payload `10` bytes, and no remaining owner or loan. A refused
 second allocation returns `41`, with one allocation/free and peak requested
@@ -146,6 +174,7 @@ are not process RSS or allocator metadata measurements.
 ```sh
 python -m unittest -v tests.test_hia_source_local_views
 python -m unittest -v tests.test_hia_source_returned_local_views
+python -m unittest -v tests.test_hia_source_nested_returned_views
 python -m unittest -v tests.test_hia_program_source tests.test_hia_source_partial \
   tests.test_hia_returned_loans tests.test_hia_source_exports tests.test_hia_routes
 ```
@@ -170,6 +199,19 @@ the five actual generated invalid programs. Eighteen
 source controls retain the alias, mode, shape, default-storage and export
 boundaries. Development, frozen-source and public-source observations must
 retain their separate source identities; registration alone is not execution.
+
+The nested module has ten selected methods. Six Python methods cover the
+unchanged source/ResourceIR admission, values and CFG cleanup, argument order,
+stopped ledgers, fourteen source refusals and the existing compile limits, and
+six actual emitted-Core corruptions. The corruptions end a root or intermediate
+ancestor too soon, drop its owner, add a balanced conflicting reborrow from an
+exclusive middle ancestor, omit an intermediate end, or swap intermediate
+ancestors on one CFG edge. A balanced shared neighbour remains accepted.
+Two Rust methods compare full ledgers and submit the six invalid raw programs
+to the same Machine; two LLVM methods execute the scalar corpus and the real
+allocator observer. The former single-layer nested-call refusal is now an
+accepted source control, while a source/ResourceIR-legal nested permission
+conversion remains a profile refusal. No old selector was removed.
 
 Actual toolchains are required for Rust/native methods; skips cannot qualify
 them. These finite checks do not establish general provenance, source-to-Core

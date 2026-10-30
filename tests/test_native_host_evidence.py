@@ -94,6 +94,11 @@ class NativeHostFailureEvidenceTests(TestCase):
         # returns a candidate report to the post-execution validator.
         with tempfile.TemporaryDirectory() as tmp:
             dest = Path(tmp) / "report.json"
+            def object_fixture(source, *, output, **kwargs):
+                # Protocol bytes only; this fixture does not execute rustc.
+                data = b"mock Rust object for the later MSVC command failure"
+                Path(output).write_bytes(data)
+                return {"ok": True, "artifact_sha256": module.sha(data), "artifact_bytes": len(data)}
             with (patch.object(sys, "argv", ["validate_native_host.py", "--cc", "cl", "--cc-family", "msvc", "--output", str(dest)]),
                   patch.object(module.shutil, "which", return_value=sys.executable),
                   patch.object(module.platform, "system", return_value="Windows"),
@@ -102,7 +107,7 @@ class NativeHostFailureEvidenceTests(TestCase):
                          CaptureResult(2, "matrix.c\nerror C2143: deliberate compile failure\n", "")]),
                   patch.object(module, "analyze", return_value=SimpleNamespace(report={"ok": True}, program=None, rust="")),
                   patch.object(module, "emit_header", return_value="/* unit fixture */\n"),
-                  patch.object(module, "compile_rust", return_value={"ok": True})):
+                  patch.object(module, "compile_rust", side_effect=object_fixture)):
                 with contextlib.redirect_stdout(io.StringIO()):
                     self.assertEqual(module.main(), 1)
             report = json.loads(dest.read_text(encoding="utf-8"))
@@ -114,6 +119,11 @@ class NativeHostFailureEvidenceTests(TestCase):
             self.assertIn("/Od", trace["commands"][-1]["argv"])
             self.assertEqual(trace["commands"][-1]["returncode"], 2)
             self.assertIn("deliberate compile failure", trace["commands"][-1]["stdout"])
+            retained = trace["retained_binary_artifacts"]
+            self.assertFalse(retained["complete"])
+            self.assertEqual([entry["role"] for entry in retained["files"]], ["rust_object"])
+            self.assertEqual((Path(retained["directory"]) / "matrix.obj").read_bytes(),
+                             b"mock Rust object for the later MSVC command failure")
 
 
     def test_real_temp_directory_canonicalizes_like_native_artifact(self):

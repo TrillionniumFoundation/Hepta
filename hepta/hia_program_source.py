@@ -597,9 +597,10 @@ class _Lower:
 
         This only selects an existing v8 call. The unchanged source checker,
         Resource IR and primitive Core verifier establish their own contracts.
-        A single direct byte argument gives exactly one local parent and one
-        returned child; recursive stored views and nested argument calls remain
-        outside this explicit frontend profile.
+        Each call has one same-mode byte origin. That origin is either a
+        direct byte place or another such returned call. The existing call
+        keeps every parent capability; no new Core loan operation is needed.
+        Stored local Views and aggregate origins remain outside this profile.
         """
         call = expression.children[0]
         fn = self.functions.get(call.value)
@@ -616,20 +617,35 @@ class _Lower:
         origin_index = fn.params.index(borrowed[0])
         argument = call.children[origin_index]
         if (argument.kind != "unary" or argument.value != mode or len(argument.children) != 1
-                or argument.children[0].kind not in {"name", "field"}):
-            _reject("stored returned-call origin must be a direct named byte place")
-        root, indices, _ = self.place(state, argument.children[0])
-        original = self.get(state, root)
-        if original.typ.name in self.local_views or len(indices) != 1:
-            _reject("stored returned calls cannot nest local views or aggregate origins")
-        state, key = self.call(state, call)
+                or argument.children[0].kind not in {"name", "field", "call"}):
+            _reject("stored returned-call origin must be a named byte place or same-mode returned call")
+        if argument.children[0].kind == "call":
+            # Keep the ordinary left-to-right argument order, including
+            # scalar arguments before and after the nested origin. Only this
+            # checked View-field path prepares a nested borrowed argument.
+            arguments = []
+            for index, child in enumerate(call.children):
+                if index == origin_index:
+                    state, argument_key = self.returned_view_field(state, child, mode)
+                else:
+                    state, argument_key = self.expr(state, child)
+                arguments.append(argument_key)
+            state, key = self.call(state, call, arguments=arguments)
+        else:
+            root, indices, _ = self.place(state, argument.children[0])
+            original = self.get(state, root)
+            if original.typ.name in self.local_views or len(indices) != 1:
+                _reject("stored returned calls cannot nest local views or aggregate origins")
+            state, key = self.call(state, call)
         value = self.get(state, key)
         if len(value.borrow_parents) != 1:
             _reject("stored returned call lacks its unique parent capability")
         parent = self.get(state, value.borrow_parents[0])
-        if (len(value.atoms) != 1 or len(parent.atoms) != 1 or parent.borrow_parents
-                or parent.loans != parent.atoms or value.loans != parent.loans + value.atoms):
-            _reject("stored returned call must retain exactly its parent and returned child")
+        if (len(value.atoms) != 1 or len(parent.atoms) != 1
+                or value.types != parent.types or parent.loans[-1:] != parent.atoms
+                or value.loans != parent.loans + value.atoms
+                or len(set(value.loans)) != len(value.loans)):
+            _reject("stored returned call must retain its complete linear parent and child stack")
         return state, key
 
     def expr(self, state: _State, expr: Expr | None) -> tuple[_State, int]:
@@ -682,12 +698,14 @@ class _Lower:
             _reject("missing checked record field")
         if expr.kind == "struct":
             parts = {}
+            returned_fields = set()
             for name, child in zip(expr.value["fields"], expr.children):
                 view = self.local_views.get(typ.name)
                 if (self.core_schema == SCHEMA_V8 and view is not None
                         and name == view[0] and child.kind == "unary" and child.value == view[1]
                         and len(child.children) == 1 and child.children[0].kind == "call"):
                     state, key = self.returned_view_field(state, child, view[1])
+                    returned_fields.add(name)
                 else:
                     state, key = self.expr(state, child)
                 parts[name] = key
@@ -697,8 +715,9 @@ class _Lower:
                 atoms += value.atoms; types += value.types
                 if typ.name in self.local_views:
                     if member.name == self.local_views[typ.name][0]:
-                        returned = (self.core_schema == SCHEMA_V8
-                                    and len(value.loans) == 2 and len(value.borrow_parents) == 1)
+                        # Provenance is the freshly checked call-chain path
+                        # above, not the shape of an arbitrary loan value.
+                        returned = member.name in returned_fields
                         if not returned and (len(value.loans) != 1 or value.borrow_parents):
                             _reject("stored local views require one direct named byte loan")
                         loans.extend(value.loans)
@@ -813,12 +832,13 @@ class _Lower:
             return self.call(state, expr)
         _reject("unsupported source expression " + expr.kind)
 
-    def call(self, state, expr):
+    def call(self, state, expr, *, arguments=None):
         typ, name = self.typ(expr), expr.value
-        arguments = []
-        for child in expr.children:
-            state, key = self.expr(state, child)
-            arguments.append(key)
+        if arguments is None:
+            arguments = []
+            for child in expr.children:
+                state, key = self.expr(state, child)
+                arguments.append(key)
         if name in {"buffer", "try_buffer"}:
             if len(arguments) != 1:
                 _reject("wrong buffer arity")
