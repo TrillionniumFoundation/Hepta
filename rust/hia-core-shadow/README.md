@@ -4,6 +4,14 @@ The Python Core verifier remains the production admission authority. This crate
 is an independent checking and execution oracle, not a native backend or a
 whole-language safety proof.
 
+The separate `--owned-static-budget` mode independently computes conservative
+VM tick, allocator-interaction and synchronous-frame upper bounds for the
+audited byte-only v1-v8 acyclic CFG/call profile. It reuses the owned verifier,
+refuses chains and overflowing bounds, and is compared against Python by
+`crosscheck_rust_static_budget`. This remains development corroboration, with
+no native time/RSS or production-authority claim. See
+[the static-bound contract](../../docs/HIA_RUST_STATIC_BUDGET.md).
+
 For an exact invocation comparison, `--owned-run-bound` wraps the same Machine
 report with a canonical request binding the Core, entry, arguments and policy.
 The Python `crosscheck_rust_execution` API checks both full execution outcomes
