@@ -84,9 +84,9 @@ candidate exists. See [the native opportunity contract](HIA_GUARDED_U32_OPPORTUN
 
 ## One-source qualification
 
-The reviewed matrix has 28 capabilities and 168 unique selected regressions,
+The reviewed matrix has 28 capabilities and 171 unique selected regressions,
 including every one of the previous 146. Its canonical identity is
-`334ceab75039dc8ffcfdbbb5c337c064365a2df9945f526b8dcc537fb566011c`.
+`599376c85ed5570fc0073f95f97a5245bda133a306dfb95296678d810a9377e8`.
 The integrated inventory adds the resource, captured post-test and guarded
 batch modules to the existing mandatory full-discovery coverage.
 
@@ -112,3 +112,28 @@ async unwind, universal performance superiority over Rust, profitable general
 hot replacement and global instruction optimality remain unproved. NDU keeps
 proposal/advisory authority only. Resource legality, behavior preservation,
 native identity, measured cost and publication are separate decisions.
+
+## Repair discovered by actual six-outcome CI
+
+The initial public round-seven source
+`e6b10e9b74c6585f9dba18a78a31cf8f36c071c5` failed legacy IR-PGO training in
+[run 40984938152](https://github.com/TrillionniumFoundation/Hepta/actions/runs/40984938152).
+The retained supervisor observed SIGILL, while the same job's actual Clang native
+profile disabled AVX-512 and the unbound HIA instrumented DSO contained AVX-512
+instructions. The failed run did not retain a fault program counter; static
+inspection and the masked-CPU regression are separate evidence.
+
+Legacy LTO, IR-PGO instrumentation, IR-PGO use and the separate resource-observer
+object build now share the existing native target-profile binding. The complete
+positive and negative CPU feature policy is captured by the actual compiler.
+Original Core/raw LLVM, bound LLVM, compiler identity, derived profile files and
+declared compilation flags are checked before and after each research build.
+Only the known shared-link symbol-binding flag is omitted from the frontend
+probe; instrumentation and profile-use flags retain their narrow explicit forms.
+Native child failure details are preserved and the failed command is not retried.
+
+The initial failed CI and its valid local/hosted negative opportunity studies
+remain evidence of that earlier source. A repair must qualify under its own
+commit identity; earlier observations do not become passing results for the
+repair. The preregistered guarded protocol, synthetic demand and cost rules stay
+unchanged.

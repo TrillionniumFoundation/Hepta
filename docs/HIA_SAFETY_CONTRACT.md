@@ -202,8 +202,9 @@ chains and exhausted analysis limits remain refused. Legacy v7 invocation and
 v8 local-summary profiles keep their original scopes. See
 [the finite v8 contract](HIA_FINITE_V8_HEAP.md).
 
-The round7 matrix retains all 146 prior selected regressions and adds 22 scoped
-boundaries, for 28 capabilities and 168 unique selectors. The additions cover
+The round7 matrix retains all 146 prior selected regressions, adds 22 initial
+selectors and three target-policy repair selectors, for 28 capabilities and
+171 unique selectors. The additions cover
 that finite v8 composition, captured C post-test loops and the separate two-u32
 guarded native opportunity profile. Its native experiment recomputes Core and
 selected LLVM proofs before compilation, binds the actual exported function
@@ -337,3 +338,14 @@ refinement, global instruction optimality, absolute resource safety, general
 concurrent safety, process-memory bounds and Rust performance superiority
 explicitly unproved. A passing regression run is not allowed to promote any
 of those fields to true.
+
+### Legacy IR PGO target-policy repair
+
+The initial round-seven CI exposed a missing native feature binding in legacy
+research overrides. The canonical matrix now includes the actual masked-CPU
+legacy/IR-PGO/resource build control, bound-input/compiler drift refusal, and a
+supervised SIGILL diagnostic without retry. These three selectors supplement the
+initial 168 without removing any previous selector. All four native HIA research
+compilation paths consume the separately recorded, freshly checked bound IR;
+original Core and raw LLVM identities remain distinct. Compiler, runtime and
+hardware trust boundaries still apply.

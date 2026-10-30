@@ -10,6 +10,7 @@ import signal
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from tools import hia_filecheck_target_profile as target
 
@@ -315,6 +316,178 @@ define i64 @public_entry(i64 %v) {
                     shutil.copytree(root, destination)
                 # Keep the measured negative control in ordinary suite logs too.
                 print(json.dumps({'filecheck_target_profile_execution': payload}, sort_keys=True))
+
+
+    def test_legacy_irpgo_overrides_preserve_masked_cpu_features(self):
+        """Exercise the overridden Legacy and IR-PGO paths, including its object.
+
+        This small execution control is not a new performance campaign. The
+        ordinary Legacy build still performs real capture, default compilation,
+        native profile capture and native LTO. Other-language arms are omitted
+        only from this regression fixture; the qualification protocol is intact.
+        """
+        from hepta.hia_program import execute_program
+        from tools.qualify_hia_filecheck import RESOURCE_HARNESS
+        from tools.qualify_hia_legacy_queue import LegacyTrial, ENTRY
+        from tools.qualify_hia_legacy_irpgo import IRPGOTrial, inspect_ir_counters
+
+        self.assertEqual(platform.system(), 'Linux')
+        self.assertIn(platform.machine(), {'x86_64', 'AMD64'})
+        selected = {}
+        for name, variable, fallback in (
+                ('clang', 'CLANG', 'clang'), ('clangxx', 'CLANGXX', 'clang++'),
+                ('rustc', 'RUSTC', 'rustc'), ('profdata', 'HEPTA_PROFDATA', 'llvm-profdata'),
+                ('linker', 'HEPTA_LLD', 'ld.lld'), ('qemu', 'HEPTA_QEMU_X86_64', 'qemu-x86_64')):
+            found = shutil.which(os.environ.get(variable, fallback))
+            self.assertIsNotNone(found, 'actual required tool missing: ' + variable)
+            selected[name] = str(Path(found).absolute())
+        disabled = ['-mno-' + name for name in sorted(target._DISABLED_CONTROL_FEATURES)]
+        protocol = deepcopy(IRPGOTrial.protocol)
+        protocol['arms'] = ['hia_default', 'hia_native_lto']
+
+        class MaskedTrial(IRPGOTrial):
+            def baseline(self, label, *, pgo):
+                pass  # The controlled fixture has only its two HIA build arms.
+
+            def extra_builds(self):
+                pass  # Call the actual IR-PGO build overrides explicitly below.
+
+            def prepare_native_ir(self):
+                position = self.flags.index('-march=native')
+                self.flags[position:position + 1] = ['-march=znver4', *disabled]
+                return super().prepare_native_ir()
+
+            def command(self, argv, stage, **kwargs):
+                if stage == 'ir_pgo_resource_execution':
+                    argv = [selected['qemu'], '-cpu', 'Haswell-v4', *argv]
+                return super().command(argv, stage, **kwargs)
+
+        MaskedTrial.protocol = protocol
+        observations, commands = {}, []
+        with tempfile.TemporaryDirectory(prefix='hepta-legacy-irpgo-target-') as tmp, \
+                tempfile.TemporaryDirectory(prefix='hepta-legacy-irpgo-lld-') as alias:
+            root = Path(tmp)
+            trial = None
+            try:
+                linker = _elf_lto_linker_profile(selected['linker'], alias)
+                trial = MaskedTrial(root / 'trial', clang=selected['clang'], clangxx=selected['clangxx'],
+                    rustc=selected['rustc'], profdata=selected['profdata'], linker=linker['invocation_path'])
+                trial.build()  # The real LegacyTrial override consumes bound IR.
+                binding = trial.report['native_target_binding']
+                self.assertIn('tools/hia_filecheck_target_profile.py', trial.report['source_bindings'])
+                self.assertEqual(binding['profile']['target_cpu'], 'znver4')
+                self.assertIn('-avx512f', binding['profile']['signed_features'])
+                self.assertIn('-avx512vl', binding['profile']['signed_features'])
+                self.assertNotIn('-Wl,-Bsymbolic-functions', binding['capture_flags'])
+                self.assertIn('-Wl,-Bsymbolic-functions', binding['research_flags'])
+                original_ir = (trial.out / 'migration/program.ll').read_bytes()
+                self.assertNotIn(b'"target-features"', original_ir)
+
+                raw = trial.out / 'raw-ir-instrumented.so'
+                trial.command([selected['clang'], *trial.flags, '-fprofile-generate',
+                    trial.out / 'migration/program.ll', '-o', raw], 'masked_raw_control_build')
+                instrumented = trial.out / 'bound-ir-instrumented.so'
+                trial.irpgo_build('hia', instrumented, ['-fprofile-generate'], 'masked_ir_profile_build')
+
+                runner = RUNNER_C.replace('typedef uint32_t (*probe_fn)(uint64_t);',
+                    'typedef uint64_t (*probe_fn)(uint64_t, uint64_t, uint32_t, uint32_t);')
+                runner = runner.replace('"feature_probe"', '"' + ENTRY + '"')
+                runner = runner.replace('uint32_t result = fn(strtoull(argv[2], NULL, 10));',
+                    'uint64_t result = fn(strtoull(argv[2], NULL, 10), UINT64_C(0x0123456789abcdef), UINT32_MAX, UINT32_C(0xedb88320));')
+                runner = runner.replace('printf("{\\"result\\":%u}\\n", result);',
+                    'printf("{\\"result\\":%llu}\\n", (unsigned long long)result);')
+                self.assertIn('"{\\"result\\":%llu}\\n"', runner)
+                (trial.out / 'runner.c').write_text(runner)
+                trial.command([selected['clang'], '-std=c11', '-O2', '-Wall', '-Wextra', '-Werror',
+                    trial.out / 'runner.c', '-ldl', '-o', trial.out / 'runner'], 'masked_runner_build')
+                profiles = trial.out / 'bound-profiles'
+                profiles.mkdir()
+                raw_profiles = trial.out / 'raw-profiles'
+                raw_profiles.mkdir()
+
+                def observe(label, path, counts, directory=None):
+                    observed = observations.setdefault(label, [])
+                    for count in counts:
+                        argv = [selected['qemu'], '-cpu', 'Haswell-v4', str(trial.out / 'runner'), str(path), str(count)]
+                        environment = dict(os.environ)
+                        if directory is not None:
+                            environment['LLVM_PROFILE_FILE'] = str(directory / (str(count) + '-%p.profraw'))
+                        process = subprocess.run(argv, cwd=trial.out, capture_output=True,
+                                                 text=True, timeout=30, env=environment)
+                        row = {'argv': argv, 'count': count, 'returncode': process.returncode,
+                               'stdout': process.stdout, 'stderr': process.stderr}
+                        observed.append(row)
+                        lines = [json.loads(line) for line in process.stdout.splitlines()]
+                        self.assertTrue(lines, row)
+                        self.assertEqual(lines[0], {'avx2': 1, 'avx512f': 0, 'avx512dq': 0, 'avx512vl': 0, 'xcr0': 7})
+                        if label == 'raw_control':
+                            self.assertEqual(process.returncode, -signal.SIGILL, row)
+                        else:
+                            expected = execute_program(trial.core, ENTRY,
+                                [count, 0x0123456789abcdef, 0xffffffff, 0xedb88320])['result']
+                            self.assertEqual(process.returncode, 0, row)
+                            self.assertEqual(lines[1], {'result': expected})
+
+                observe('raw_control', raw, [1], raw_profiles)
+                observe('legacy_native_lto', trial.libraries['hia_native_lto'], [0, 1, 8, 9])
+                observe('instrumented', instrumented, [0, 1, 8, 9], profiles)
+                raw_profiles = sorted(profiles.glob('*.profraw'))
+                self.assertEqual(len(raw_profiles), 4)
+                self.assertTrue(all(path.stat().st_size for path in raw_profiles))
+                merged = profiles / 'training.profdata'
+                trial.command([selected['profdata'], 'merge', '-o', merged, *raw_profiles], 'masked_profile_merge')
+                shown = trial.command([selected['profdata'], 'show', '--all-functions', '--counts', merged],
+                                      'masked_profile_counters')['stdout']
+                observations['actual_counters'] = inspect_ir_counters(shown)
+                use = ['-fprofile-use=' + str(merged), '-Werror=profile-instr-out-of-date', '-Werror=profile-instr-unprofiled']
+                final = trial.out / 'bound-ir-profile-use.so'
+                trial.irpgo_build('hia', final, use, 'masked_ir_profile_use_build')
+                observe('profile_use', final, [0, 1, 8, 9])
+
+                # Invoke the real IR-PGO resource override on four allocation
+                # refusal cases. Its inherited default observer is separately
+                # covered; no full performance/application matrix is repeated.
+                (trial.out / 'resource_harness.c').write_text(RESOURCE_HARNESS)
+                arguments = [8, 0x0123456789abcdef, 0xffffffff, 0xedb88320]
+                trial.report['builds']['hia_native_irpgo'] = {'use_flags': use}
+                trial.report['resource_cases'] = [{'arguments': arguments, 'refuse_at': refusal,
+                    'vm': execute_program(trial.core, ENTRY, arguments, allocation_fail_at=refusal or None),
+                    'native': {}} for refusal in (0, 1, 2, 3)]
+                with patch.object(LegacyTrial, 'resources'):
+                    trial.resources()
+                observations['resource_cases'] = trial.report['resource_cases']
+                self.assertEqual((trial.out / 'migration/program.ll').read_bytes(), original_ir)
+                builds = trial.report['research_ir_builds']
+                self.assertEqual([build['stage'] for build in builds], ['hia_research_native_build',
+                    'masked_ir_profile_build', 'masked_ir_profile_use_build', 'ir_pgo_resource_object'])
+                for build in builds:
+                    self.assertEqual(build['input_before'], build['input_after'])
+                    self.assertEqual(build['input_before']['bound_ir'], binding['bound_ir'])
+                    argv = trial.report['commands'][build['command_index']]['argv']
+                    self.assertIn(binding['bound_ir']['path'], argv)
+                    self.assertNotIn(str(trial.out / 'migration/program.ll'), argv)
+                    self.assertEqual(build['input_before']['compiler']['sha256'], binding['profile']['compiler']['sha256'])
+                object_flags = builds[-1]['flags']
+                self.assertIn('-c', object_flags)
+                self.assertNotIn('-shared', object_flags)
+                self.assertNotIn('-Wl,-Bsymbolic-functions', object_flags)
+                self.assertFalse(any(flag.startswith('-fuse-ld=') for flag in object_flags))
+                observations['binding'] = binding
+                observations['research_ir_builds'] = builds
+                observations['original_failed_host_reconstructed'] = False
+                trial.require_native_ir()
+            finally:
+                if trial is not None:
+                    commands = trial.report['commands']
+                payload = {'schema': 'hepta.legacy-irpgo-target-regression.v1',
+                    'performance_campaign': False, 'observations': observations, 'commands': commands}
+                (root / 'execution.json').write_text(json.dumps(payload, indent=2, sort_keys=True) + '\n')
+                retained = os.environ.get('HEPTA_FILECHECK_TARGET_EVIDENCE')
+                if retained:
+                    destination = Path(retained) / 'legacy-irpgo-masked-cpu'
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copytree(root, destination)
+                print(json.dumps({'legacy_irpgo_target_profile_execution': payload}, sort_keys=True))
 
 
 if __name__ == "__main__":

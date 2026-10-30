@@ -220,9 +220,12 @@
       "regression_selectors": [
         "tests.test_hia_program_llvm.StandaloneHIANativeTests.test_owned_allocation_moves_loans_and_normal_error_cleanup",
         "tests.test_hia_program_llvm.StandaloneHIANativeTests.test_allocator_observer_rejects_compiled_leak_with_correct_return_values",
-        "tests.test_hia_filecheck_target_profile.FilecheckTargetProfileTests.test_masked_cpu_lto_preserves_complete_frontend_feature_policy"
+        "tests.test_hia_filecheck_target_profile.FilecheckTargetProfileTests.test_masked_cpu_lto_preserves_complete_frontend_feature_policy",
+        "tests.test_hia_filecheck_target_profile.FilecheckTargetProfileTests.test_legacy_irpgo_overrides_preserve_masked_cpu_features",
+        "tests.test_hia_legacy_irpgo.SameCoreBuildInputTests.test_changed_bound_ir_profile_and_compiler_refuse_before_build",
+        "tests.test_hia_legacy_irpgo.SupervisedChildFailureTests.test_actual_sigill_retains_failed_child_receipt_without_retry"
       ],
-      "scope": "direct LLVM from immutable reverified HIA; Linux x86-64 native execution; other target qualification is separate; filecheck research full-LTO IR explicitly retains the same C frontend CPU and complete positive/negative feature policy, with actual masked-x86 CPU refusal and success controls"
+      "scope": "direct LLVM from immutable reverified HIA; Linux x86-64 native execution; other target qualification is separate; filecheck research full-LTO IR explicitly retains the same C frontend CPU and complete positive/negative feature policy, with actual masked-x86 CPU refusal and success controls; the legacy LTO, IR-PGO generation/use, and separate resource-observer object paths freshly bind and recheck the original Core/IR, bound IR, compiler, complete frontend CPU feature profile and declared flags; supervised native failures retain their actual child status without retry"
     },
     {
       "entrypoints": [
