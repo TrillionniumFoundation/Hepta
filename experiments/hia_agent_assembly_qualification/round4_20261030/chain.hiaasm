@@ -1,0 +1,170 @@
+hia-asm.v1 hepta.hia.program.v7 recursive_chain
+fn build_chain(n:usize) -> (chain,bool) effects(alloc,read,write,trap) entry(entry)
+block entry(n:usize)
+  initial:chain = chain.empty()
+  zero:usize = const() {"value":0}
+  jump loop(initial,zero,n)
+block loop(tail:chain,index:usize,limit:usize)
+  more:bool = compare.lt(index,limit)
+  branch more allocate(tail,index,limit) complete(tail)
+block allocate(alloc_tail:chain,alloc_index:usize,alloc_limit:usize)
+  one:usize = const() {"value":1}
+  payload:buffer,payload_ok:bool = buffer.try_new(one)
+  branch payload_ok fill(alloc_tail,payload,alloc_index,alloc_limit) payload_error(alloc_tail,payload)
+block fill(fill_tail:chain,fill_payload:buffer,fill_index:usize,fill_limit:usize)
+  writer:mutbuf = borrow.mut(fill_payload)
+  position:usize = const() {"value":0}
+  byte:u8 = int.cast(fill_index) {"mode":"wrap"}
+  _ = buffer.store(writer,position,byte)
+  _ = loan.end(writer)
+  pushed:chain,remainder:buffer,push_ok:bool = chain.try_push(fill_tail,fill_payload)
+  _ = owner.drop(remainder)
+  step:usize = const() {"value":1}
+  next_index:usize = int.add.checked(fill_index,step)
+  branch push_ok loop(pushed,next_index,fill_limit) node_error(pushed)
+block payload_error(payload_error_tail:chain,empty_payload:buffer)
+  _ = owner.drop(empty_payload)
+  payload_false:bool = const() {"value":false}
+  ret(payload_error_tail,payload_false)
+block node_error(node_error_tail:chain)
+  node_false:bool = const() {"value":false}
+  ret(node_error_tail,node_false)
+block complete(complete_tail:chain)
+  completed:bool = const() {"value":true}
+  ret(complete_tail,completed)
+end
+fn drain_chain(owned:chain) -> (u64) effects(alloc,read,trap) entry(entry)
+block entry(owned:chain)
+  sum_zero:u64 = const() {"value":0}
+  jump drain(owned,sum_zero)
+block drain(rest:chain,sum:u64)
+  next:chain,item:buffer,present:bool = chain.pop(rest)
+  branch present add(next,item,sum) done(next,item,sum)
+block add(add_rest:chain,add_item:buffer,add_sum:u64)
+  reader:readbuf = borrow.read(add_item)
+  offset:usize = const() {"value":0}
+  value:u8 = buffer.load(reader,offset)
+  _ = loan.end(reader)
+  wide:u64 = int.cast(value) {"mode":"wrap"}
+  added:u64 = int.add.wrap(add_sum,wide)
+  _ = owner.drop(add_item)
+  jump drain(add_rest,added)
+block done(done_rest:chain,empty_item:buffer,total:u64)
+  _ = owner.drop(empty_item)
+  _ = owner.drop(done_rest)
+  ret(total)
+end
+fn chain_checksum(count:usize) -> (u64) effects(alloc,read,write,trap) entry(entry)
+block entry(count:usize)
+  built:chain,all_ok:bool = call(count) {"function":"build_chain"}
+  total:u64 = call(built) {"function":"drain_chain"}
+  fine:u64 = const() {"value":0}
+  failed:u64 = const() {"value":1000000}
+  code:u64 = select(all_ok,fine,failed)
+  result:u64 = int.add.wrap(total,code)
+  ret(result)
+end
+fn chain_cancel(count:usize) -> (bool) effects(alloc,read,write,trap) entry(entry)
+block entry(count:usize)
+  built:chain,all_ok:bool = call(count) {"function":"build_chain"}
+  moved:chain = owner.move(built)
+  _ = owner.drop(moved)
+  ret(all_ok)
+end
+fn chain_head_update(count:usize) -> (u64) effects(alloc,read,write,trap) entry(entry)
+block entry(count:usize)
+  built:chain,all_ok:bool = call(count) {"function":"build_chain"}
+  empty:bool = chain.is_empty(built)
+  branch empty none(built) some(built)
+block none(none_chain:chain)
+  _ = owner.drop(none_chain)
+  none_zero:u64 = const() {"value":0}
+  ret(none_zero)
+block some(some_chain:chain)
+  writer:mutbuf = chain.head_mut(some_chain)
+  child:readbuf = borrow.read(writer)
+  zero:usize = const() {"value":0}
+  before:u8 = buffer.load(child,zero)
+  _ = loan.end(child)
+  replacement:u8 = const() {"value":255}
+  count_one:usize = const() {"value":1}
+  _ = buffer.fill_range(writer,zero,count_one,replacement)
+  _ = loan.end(writer)
+  total:u64 = call(some_chain) {"function":"drain_chain"}
+  ret(total)
+end
+fn chain_empty_pop() -> (bool) effects(alloc) entry(entry)
+block entry()
+  empty:chain = chain.empty()
+  rest:chain,item:buffer,present:bool = chain.pop(empty)
+  _ = owner.drop(rest)
+  _ = owner.drop(item)
+  ret(present)
+end
+fn chain_empty_head() -> (u8) effects(alloc,read,trap) entry(entry)
+block entry()
+  empty:chain = chain.empty()
+  reader:readbuf = chain.head_read(empty)
+  zero:usize = const() {"value":0}
+  value:u8 = buffer.load(reader,zero)
+  _ = loan.end(reader)
+  _ = owner.drop(empty)
+  ret(value)
+end
+fn chain_empty_payloads(count:usize) -> (bool) effects(alloc,trap) entry(entry)
+block entry(count:usize)
+  empty:chain = chain.empty()
+  zero:usize = const() {"value":0}
+  jump loop(empty,zero,count)
+block loop(tail:chain,index:usize,limit:usize)
+  more:bool = compare.lt(index,limit)
+  branch more push(tail,index,limit) done(tail)
+block push(push_tail:chain,push_index:usize,push_limit:usize)
+  payload_size:usize = const() {"value":0}
+  payload:buffer,payload_ok:bool = buffer.try_new(payload_size)
+  pushed:chain,fallback:buffer,ok:bool = chain.try_push(push_tail,payload)
+  _ = owner.drop(fallback)
+  one:usize = const() {"value":1}
+  next:usize = int.add.checked(push_index,one)
+  branch ok loop(pushed,next,push_limit) error(pushed)
+block done(done_chain:chain)
+  _ = owner.drop(done_chain)
+  yes:bool = const() {"value":true}
+  ret(yes)
+block error(error_chain:chain)
+  _ = owner.drop(error_chain)
+  no:bool = const() {"value":false}
+  ret(no)
+end
+fn chain_recover(count:usize) -> (u64) effects(alloc,read,write,trap) entry(entry)
+block entry(count:usize)
+  tail:chain,built:bool = call(count) {"function":"build_chain"}
+  one:usize = const() {"value":1}
+  payload:buffer = buffer.new(one)
+  writer:mutbuf = borrow.mut(payload)
+  zero:usize = const() {"value":0}
+  byte:u8 = const() {"value":73}
+  _ = buffer.store(writer,zero,byte)
+  _ = loan.end(writer)
+  after:chain,fallback:buffer,ok:bool = chain.try_push(tail,payload)
+  branch ok success(after,fallback) failure(after,fallback)
+block success(success_chain:chain,empty_fallback:buffer)
+  _ = owner.drop(empty_fallback)
+  success_tail:chain,recovered:buffer,present:bool = chain.pop(success_chain)
+  success_code:u64 = const() {"value":0}
+  jump observe(success_tail,recovered,success_code)
+block failure(failure_tail:chain,retained:buffer)
+  failure_code:u64 = const() {"value":1000000}
+  jump observe(failure_tail,retained,failure_code)
+block observe(observe_tail:chain,observe_payload:buffer,code:u64)
+  reader:readbuf = borrow.read(observe_payload)
+  position:usize = const() {"value":0}
+  value:u8 = buffer.load(reader,position)
+  _ = loan.end(reader)
+  _ = owner.drop(observe_payload)
+  wide:u64 = int.cast(value) {"mode":"wrap"}
+  tail_sum:u64 = call(observe_tail) {"function":"drain_chain"}
+  sum:u64 = int.add.wrap(tail_sum,wide)
+  result:u64 = int.add.wrap(sum,code)
+  ret(result)
+end

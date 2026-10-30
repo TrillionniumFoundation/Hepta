@@ -1,0 +1,117 @@
+{
+  "schema": "hepta.hia.round4.ci-audit-preparation.v1",
+  "status": "statically_prepared_not_executed",
+  "script": "/tmp/hepta-round4-audit-ci.py",
+  "evidence_modes": {
+    "legacy-source-checkpoint": {
+      "cli": "omit --require-final-byte-evidence",
+      "scope": "The historical 812c4339 artifact may lack direct tree/native NDU body evidence; each absence is explicitly unavailable and unverified."
+    },
+    "final-byte-evidence": {
+      "cli": "--require-final-byte-evidence",
+      "requires": [
+        "Actual source-tree.txt member bytes match the expected tree ID.",
+        "Actual uploaded hia-ndu/target/release/hepta-hia-ndu-bridge member exists.",
+        "Its complete read byte count matches ZIP metadata, it has ELF magic, and SHA256 matches manifest.binary_sha256 plus built_binary_sha256 when present."
+      ],
+      "missing_or_mismatched_evidence_fails": true,
+      "native_program_executed": false
+    }
+  },
+  "actual_zip_metadata_only": {
+    "path": "/workspace/scratch/5567a9db5cf4/round4-validation/source-ci-812c4339.zip",
+    "bytes": 6508169,
+    "expected_sha256_from_coordinator": "4b44617af8a86977684587a9d2a6191a842ddd1dc2d9e8ca46c250988990d667",
+    "member_count": 459,
+    "uncompressed_bytes": 154038202,
+    "duplicate_member_names": false,
+    "observed_result_prefix": "Hepta/Hepta/artifacts/verified-optimization/",
+    "observed_native_ndu_manifest": "_temp/hia-ndu/identity.json",
+    "member_payloads_read_during_preparation": 0
+  },
+  "expected_commit": "812c4339f749d3a6d7856ab34f5b788bcc674e33",
+  "expected_tree": "14a1d45746176aef57586aceee0b86d5b9943b58",
+  "already_observed_from_separate_decoded_job_log": {
+    "path": "experiments/hia_verified_integration/round4_20261030/source-ci-812c4339/decoded-job.log",
+    "tests": 386,
+    "failures": 0,
+    "errors": 0,
+    "skipped": [],
+    "source_unchanged": true,
+    "regression_passed": true,
+    "assignment_variant_case_counts": [789, 789],
+    "continuation_all_printed_controls": true,
+    "assembly_status": "qualified_native",
+    "assembly_vm_pairs": 81,
+    "assembly_native_observations": 24,
+    "does_not_replace_actual_zip_member_readback": true
+  },
+  "mandatory_result_paths_relative_to_observed_prefix": [
+    "regression/result.json",
+    "guarded-cli/result.json",
+    "narrowing-cli/RESULT.json",
+    "ndu-loop/RESULT.json",
+    "cpp-scoped/qualification.json",
+    "adaptive/qualification.json",
+    "cpp-composed-project/qualification.json",
+    "owned-state/qualification.json",
+    "narrowing/RESULT.json",
+    "cpp-unique-project/qualification.json",
+    "cpp-unique-assignment-project/qualification.json",
+    "owned-continuation/RESULT.json",
+    "agent-assembly/RESULT.json"
+  ],
+  "exact_known_required_fields": {
+    "regression": [
+      "schema", "git_base", "git_worktree_status", "modules", "source_sha256",
+      "tests", "failures", "errors", "skipped", "failure_details",
+      "source_unchanged", "passed", "log_sha256"
+    ],
+    "continuation": [
+      "schema", "passed", "controls", "cancelled_prefix", "source_sha256",
+      "prefix", "suffix", "switched", "builds", "final_native_ledger"
+    ],
+    "assembly": [
+      "schema", "passed", "status", "native_requested", "sources_unchanged",
+      "representations", "vm_observations", "native_observations", "negative_control",
+      "model_completion_requests", "agent_advantage_qualified", "deployment_authority",
+      "safety_certificate", "files"
+    ],
+    "cpp_assignment": [
+      "schema", "ok", "source_bindings", "source_bindings_unchanged", "compiler_sha256",
+      "variants", "negative_controls", "claims.all_builds_in_declared_matrix_executed",
+      "variants[].migration.unconverted_declarations",
+      "variants[].migration.translation_statistics",
+      "variants[].migration.declarations",
+      "variants[].migration.standard_library_declarations",
+      "variants[].reference.execution", "variants[].standalone_hia.execution",
+      "variants[].expected", "variants[].standalone_hia.artifact"
+    ]
+  },
+  "required_checks": [
+    "Actual source-sha.txt bytes and regression git_base equal expected commit.",
+    "Local immutable Git commit object hashes to expected commit and binds expected tree; tree object bytes also hash correctly.",
+    "All recorded source bindings match immutable commit blobs; regression inventory and module list match the frozen qualifier definition.",
+    "Every declared round4 continuation/assembly/assignment/routes/sealed-identity/session-cost test is present as ok in the actual regression log.",
+    "Every required result is present with its known exact schema and positive implementation status; missing, malformed, errored or skipped results fail.",
+    "Continuation actual native prefix, version change, same owner, exact suffix, independent arithmetic, zero replay, known costs and balanced resources.",
+    "Assembly canonical representations, 81 VM pairs, 24 native values, refusal of unknown opcode, source bindings and actual archived native bytes.",
+    "Both assignment variants, complete declaration accounting, native/reference/oracle agreement, actual target bytes, missing-drop rejection and executed wrong-order lifecycle negative controls.",
+    "Selected ZIP members are fully read for CRC and SHA; no filesystem extraction or archive program execution.",
+    "All failed report fields, failed episodes, failed observations, missing evidence and audit errors are retained in the new output."
+  ],
+  "remaining_unknown_until_authorized_member_readback": [
+    "Actual source-sha.txt member payload; its path and 41-byte size are known only from the central directory.",
+    "Actual report JSON payload values, before/after claims, source bindings, artifact receipts and failure details.",
+    "Native artifact byte hashes and per-member CRC outcomes.",
+    "Whether all frozen-source regression log entries meet the exact observed unittest format."
+  ],
+  "known_limits": [
+    "The historical 812c4339 artifact has no direct CI tree receipt. Git commit/tree correlation is reported separately. The later final workflow adds source-tree.txt; final mode requires its actual member bytes.",
+    "The standalone continuation CLI defaults to prefix 6/40. Cross-item prefix 22/40 is covered by the actual regression test, not an invented second standalone output directory.",
+    "The historical 812c4339 upload contains the native NDU build identity manifest without its executable. Legacy mode leaves the body unavailable. The later final workflow uploads the executable; final mode requires matching actual ELF bytes.",
+    "Run/job terminal status needs the separately retained GitHub metadata and decoded log; artifact readout alone does not establish it.",
+    "Passing implementation evidence does not change performance, NDU economics or Agent study gates.",
+    "Complete member payload reading, decompression and script execution remain deferred until the coordinator confirms all model work has ended."
+  ]
+}

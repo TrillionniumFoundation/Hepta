@@ -24,6 +24,8 @@ on:
       - 'experiments/hia_verified_integration/**'
       - 'experiments/hia_agent_matched_v3_20261028/**'
       - 'experiments/hia_agent_assembly_v4_20261030/**'
+      - 'experiments/hia_agent_assembly_v4_readout_20261030/**'
+      - 'experiments/hia_agent_assembly_recovery_20261030/**'
       - 'experiments/hia_ndu_session_eval/round4_20261030/**'
       - 'experiments/hia_ndu_graph_eval/round3_20261028/**'
       - 'experiments/hia_stateful_eval/round3_20261028/**'
@@ -60,6 +62,7 @@ jobs:
           test -z "$(git status --porcelain)"
           mkdir -p artifacts/verified-optimization
           git rev-parse HEAD > artifacts/verified-optimization/source-sha.txt
+          git rev-parse 'HEAD^{tree}' > artifacts/verified-optimization/source-tree.txt
           python -m pip install -e '.[optimization]'
       - name: Install the existing signed LLVM 20 profile
         run: |
@@ -110,6 +113,8 @@ jobs:
           python -m unittest discover -s experiments/hia_optimizer_eval/primary_continuation_20261028 -p 'test_*.py' -v
           python -m unittest discover -s experiments/hia_agent_matched_v3_20261028 -p 'test_*.py' -v
           python -m unittest discover -s experiments/hia_agent_assembly_v4_20261030 -p 'test_*.py' -v
+          python -m unittest discover -s experiments/hia_agent_assembly_v4_readout_20261030 -p 'test_*.py' -v
+          python -m unittest discover -s experiments/hia_agent_assembly_recovery_20261030 -p 'test_*.py' -v
       - name: Retain real finite NDU loop and migration/runtime evidence
         run: |
           python tools/qualify_hia_ndu_loop.py --identity "$HEPTA_NDU_IDENTITY" --clang "$CLANG" --output artifacts/verified-optimization/ndu-loop
@@ -130,4 +135,5 @@ jobs:
           path: |
             artifacts/verified-optimization
             ${{ runner.temp }}/hia-ndu/identity.json
+            ${{ runner.temp }}/hia-ndu/target/release/hepta-hia-ndu-bridge
           if-no-files-found: error

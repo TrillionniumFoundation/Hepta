@@ -1,0 +1,144 @@
+name: Hepta Agent exploratory recovery 20261030
+
+on:
+  push:
+    branches:
+      - codex/hia-ndu-verified-optimization-20261027
+  workflow_dispatch:
+    inputs:
+      launch_marker:
+        description: "Exact one-use study marker; a new workflow run cannot retry a consumed study"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+# Serialize this study across both entry points. The executor also reads the
+# complete bounded Actions history and refuses every later eligible launch,
+# including a previous failed, cancelled or queued marker/dispatch run.
+concurrency:
+  group: hepta-agent-assembly-recovery-20261030-v1
+  cancel-in-progress: false
+
+jobs:
+  complete-exploratory-replication:
+    if: >-
+      github.run_attempt == 1 &&
+      github.repository == 'TrillionniumFoundation/Hepta' &&
+      github.ref_name == 'codex/hia-ndu-verified-optimization-20261027' &&
+      ((github.event_name == 'push' &&
+        contains(github.event.head_commit.message, '[HEPTA_AGENT_RECOVERY_20261030_V1]')) ||
+       (github.event_name == 'workflow_dispatch' &&
+        inputs.launch_marker == '[HEPTA_AGENT_RECOVERY_20261030_V1]'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      LLAMA_ARG_REPACK: "0"
+    steps:
+      - name: Retain bootstrap identity before checkout and tool preparation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B - <<'PY'
+          import json, os, pathlib, time
+          destination = pathlib.Path(os.environ["RUNNER_TEMP"]) / "hepta-agent-recovery-evidence"
+          destination.mkdir(exist_ok=False)
+          value = {"schema": "hepta.agent.assembly-recovery.bootstrap.v1",
+                   "started_unix_ns": time.time_ns(), "started_monotonic_ns": time.monotonic_ns(),
+                   "provisioning_before_this_point_ns": None,
+                   "environment": {key: os.environ.get(key) for key in (
+                       "GITHUB_SHA", "GITHUB_RUN_ID", "GITHUB_RUN_ATTEMPT", "GITHUB_EVENT_NAME",
+                       "GITHUB_REF_NAME", "RUNNER_ENVIRONMENT", "RUNNER_OS", "RUNNER_ARCH", "ImageOS", "ImageVersion")}}
+          with (destination / "BOOTSTRAP.json").open("x") as stream:
+              json.dump(value, stream, indent=2, sort_keys=True)
+              stream.write("\n")
+          PY
+
+      - name: Checkout exact launch commit without persistent credentials
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Prepare Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Qualify once, register independently, run both complete model families
+        env:
+          HEPTA_RECOVERY_GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B experiments/hia_agent_assembly_recovery_20261030/run_recovery.py run \
+            --output "${RUNNER_TEMP}/hepta-agent-recovery-evidence"
+
+      - name: Always retain partial observations and audit available raw evidence
+        if: always()
+        timeout-minutes: 25
+        shell: bash
+        run: |
+          set -euo pipefail
+          if test -f experiments/hia_agent_assembly_recovery_20261030/run_recovery.py; then
+            set +e
+            python3 -B experiments/hia_agent_assembly_recovery_20261030/run_recovery.py finalize \
+              --output "${RUNNER_TEMP}/hepta-agent-recovery-evidence"
+            hepta_finalize_status=$?
+            set -e
+            if ! test -d "${RUNNER_TEMP}/hepta-agent-recovery-artifact"; then
+              # Last-resort receipts only. Never claim this is a complete raw
+              # archive, and never retry inference or a failed finalizer.
+              python3 -B - <<'PY'
+          import json, os, pathlib, shutil, time
+          root = pathlib.Path(os.environ["RUNNER_TEMP"])
+          source = root / "hepta-agent-recovery-evidence"
+          output = root / "hepta-agent-recovery-artifact"
+          output.mkdir(exist_ok=False)
+          retained = []
+          for name in ("BOOTSTRAP.json", "RUN_START.json", "TERMINAL.json", "FINALIZE_START.json", "FINALIZE.json", "ARTIFACT_INVENTORY_FAILURE.json"):
+              path = source / name
+              if path.is_file() and not path.is_symlink() and path.stat().st_size <= 8 * 1024**2:
+                  shutil.copyfile(path, output / name)
+                  retained.append(name)
+          value = {"status": "finalizer_failed_before_staging", "complete_raw_evidence_retained": False,
+                   "complete_valid_coverage": False, "retained_receipts": retained, "recorded_unix_ns": time.time_ns()}
+          with (output / "FINALIZATION_UNAVAILABLE.json").open("x") as stream:
+              json.dump(value, stream, indent=2, sort_keys=True)
+              stream.write("\n")
+          PY
+            fi
+            exit "$hepta_finalize_status"
+          else
+            # A checkout failure must still expose bootstrap and its missing
+            # executable, without pretending that registration or inference ran.
+            python3 -B - <<'PY'
+          import json, os, pathlib, shutil, time
+          root = pathlib.Path(os.environ["RUNNER_TEMP"])
+          output = root / "hepta-agent-recovery-artifact"
+          output.mkdir(exist_ok=False)
+          source = root / "hepta-agent-recovery-evidence" / "BOOTSTRAP.json"
+          if source.is_file() and not source.is_symlink():
+              shutil.copyfile(source, output / "BOOTSTRAP.json")
+          value = {"status": "preparation_failed", "reason": "checkout did not provide the registered executor",
+                   "model_completions": 0, "complete_valid_coverage": False, "recorded_unix_ns": time.time_ns()}
+          with (output / "FINALIZATION_UNAVAILABLE.json").open("x") as stream:
+              json.dump(value, stream, indent=2, sort_keys=True)
+              stream.write("\n")
+          PY
+            exit 1
+          fi
+
+      - name: Always upload the bounded regular-file evidence copy
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hepta-agent-recovery-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/hepta-agent-recovery-artifact/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30

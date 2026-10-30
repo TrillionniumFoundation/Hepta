@@ -1,0 +1,700 @@
+{
+  "cases": [
+    {
+      "command_receipt": {
+        "argv": [
+          "fake-child"
+        ],
+        "automatic_retry": false,
+        "child_maxrss_kib": 768,
+        "child_system_seconds": 0.0,
+        "child_user_seconds": 0.0,
+        "effective_outer_timeout_seconds": 10,
+        "maxrss_scope": "cumulative high-water mark of this wrapper's completed children; not a sum",
+        "name": "fake",
+        "owned_group_cleanup": {
+          "all_engine_shutdown_receipts": null,
+          "direct_owner_reaped": true,
+          "errors": [],
+          "group": 49173,
+          "scope": "Signal only the newly created group before reaping its owner; this does not prove every descendant exited or synthesize engine.close receipts",
+          "signals_sent": [
+            9
+          ],
+          "unreaped_owner_anchor": true,
+          "wall_ns": 36725
+        },
+        "owned_pid_and_process_group": 49173,
+        "returncode": 0,
+        "started_unix_ns": 1793328547470214283,
+        "timeout_seconds": 10,
+        "unreaped_owner_status": {
+          "si_code": 1,
+          "si_pid": 49173,
+          "si_status": 0
+        },
+        "wall_ns": 1123039
+      },
+      "events": [
+        {
+          "action": "waitid",
+          "already_reaped": false,
+          "flags": 16777221,
+          "pid": 49173,
+          "which": 1
+        },
+        {
+          "action": "killpg",
+          "group": 49173,
+          "owner_already_reaped": false,
+          "signal": 9
+        },
+        {
+          "action": "wait",
+          "already_reaped": false,
+          "timeout": 5
+        }
+      ],
+      "expected_error": null,
+      "name": "success",
+      "observed_error": null,
+      "passed": true,
+      "start_new_session": true
+    },
+    {
+      "command_receipt": {
+        "argv": [
+          "fake-child"
+        ],
+        "automatic_retry": false,
+        "child_maxrss_kib": 768,
+        "child_system_seconds": 0.0,
+        "child_user_seconds": 0.0,
+        "effective_outer_timeout_seconds": 10,
+        "error": {
+          "message": "subprocess or owned-group cleanup failed: fake",
+          "type": "RuntimeError"
+        },
+        "maxrss_scope": "cumulative high-water mark of this wrapper's completed children; not a sum",
+        "name": "fake",
+        "owned_group_cleanup": {
+          "all_engine_shutdown_receipts": null,
+          "direct_owner_reaped": true,
+          "errors": [],
+          "group": 49173,
+          "scope": "Signal only the newly created group before reaping its owner; this does not prove every descendant exited or synthesize engine.close receipts",
+          "signals_sent": [
+            9
+          ],
+          "unreaped_owner_anchor": true,
+          "wall_ns": 180416
+        },
+        "owned_pid_and_process_group": 49173,
+        "returncode": 7,
+        "started_unix_ns": 1793328547481707326,
+        "timeout_seconds": 10,
+        "unreaped_owner_status": {
+          "si_code": 1,
+          "si_pid": 49173,
+          "si_status": 7
+        },
+        "wall_ns": 2045733
+      },
+      "events": [
+        {
+          "action": "waitid",
+          "already_reaped": false,
+          "flags": 16777221,
+          "pid": 49173,
+          "which": 1
+        },
+        {
+          "action": "killpg",
+          "group": 49173,
+          "owner_already_reaped": false,
+          "signal": 9
+        },
+        {
+          "action": "wait",
+          "already_reaped": false,
+          "timeout": 5
+        }
+      ],
+      "expected_error": "RuntimeError",
+      "name": "failure",
+      "observed_error": {
+        "message": "subprocess or owned-group cleanup failed: fake",
+        "type": "RuntimeError"
+      },
+      "passed": true,
+      "start_new_session": true
+    },
+    {
+      "command_receipt": {
+        "argv": [
+          "fake-child"
+        ],
+        "automatic_retry": false,
+        "child_maxrss_kib": 768,
+        "child_system_seconds": 0.0,
+        "child_user_seconds": 0.0,
+        "effective_outer_timeout_seconds": 0,
+        "error": {
+          "message": "Command '['fake-child']' timed out after 0 seconds",
+          "type": "TimeoutExpired"
+        },
+        "maxrss_scope": "cumulative high-water mark of this wrapper's completed children; not a sum",
+        "name": "fake",
+        "owned_group_cleanup": {
+          "all_engine_shutdown_receipts": null,
+          "direct_owner_reaped": true,
+          "errors": [],
+          "group": 49173,
+          "scope": "Signal only the newly created group before reaping its owner; this does not prove every descendant exited or synthesize engine.close receipts",
+          "signals_sent": [
+            9
+          ],
+          "unreaped_owner_anchor": true,
+          "wall_ns": 33970
+        },
+        "owned_pid_and_process_group": 49173,
+        "returncode": -9,
+        "started_unix_ns": 1793328547485873402,
+        "timeout_seconds": 0,
+        "wall_ns": 2090038
+      },
+      "events": [
+        {
+          "action": "waitid",
+          "already_reaped": false,
+          "flags": 16777221,
+          "pid": 49173,
+          "which": 1
+        },
+        {
+          "action": "killpg",
+          "group": 49173,
+          "owner_already_reaped": false,
+          "signal": 9
+        },
+        {
+          "action": "wait",
+          "already_reaped": false,
+          "timeout": 5
+        }
+      ],
+      "expected_error": "TimeoutExpired",
+      "name": "timeout",
+      "observed_error": {
+        "message": "Command '['fake-child']' timed out after 0 seconds",
+        "type": "TimeoutExpired"
+      },
+      "passed": true,
+      "start_new_session": true
+    },
+    {
+      "command_receipt": {
+        "argv": [
+          "fake-child"
+        ],
+        "automatic_retry": false,
+        "child_maxrss_kib": 768,
+        "child_system_seconds": 0.0,
+        "child_user_seconds": 0.0,
+        "effective_outer_timeout_seconds": 10,
+        "error": {
+          "message": "mock cancellation",
+          "type": "KeyboardInterrupt"
+        },
+        "maxrss_scope": "cumulative high-water mark of this wrapper's completed children; not a sum",
+        "name": "fake",
+        "owned_group_cleanup": {
+          "all_engine_shutdown_receipts": null,
+          "direct_owner_reaped": true,
+          "errors": [],
+          "group": 49173,
+          "scope": "Signal only the newly created group before reaping its owner; this does not prove every descendant exited or synthesize engine.close receipts",
+          "signals_sent": [
+            9
+          ],
+          "unreaped_owner_anchor": true,
+          "wall_ns": 27441
+        },
+        "owned_pid_and_process_group": 49173,
+        "returncode": -9,
+        "started_unix_ns": 1793328547489505489,
+        "timeout_seconds": 10,
+        "wall_ns": 586136
+      },
+      "events": [
+        {
+          "action": "waitid",
+          "already_reaped": false,
+          "flags": 16777221,
+          "pid": 49173,
+          "which": 1
+        },
+        {
+          "action": "killpg",
+          "group": 49173,
+          "owner_already_reaped": false,
+          "signal": 9
+        },
+        {
+          "action": "wait",
+          "already_reaped": false,
+          "timeout": 5
+        }
+      ],
+      "expected_error": "KeyboardInterrupt",
+      "name": "interrupt",
+      "observed_error": {
+        "message": "mock cancellation",
+        "type": "KeyboardInterrupt"
+      },
+      "passed": true,
+      "start_new_session": true
+    },
+    {
+      "command_receipt": {
+        "argv": [
+          "fake-child"
+        ],
+        "automatic_retry": false,
+        "child_maxrss_kib": 768,
+        "child_system_seconds": 0.0,
+        "child_user_seconds": 0.0,
+        "effective_outer_timeout_seconds": 10,
+        "error": {
+          "message": "mock: another observer reaped the child",
+          "type": "ChildProcessError"
+        },
+        "maxrss_scope": "cumulative high-water mark of this wrapper's completed children; not a sum",
+        "name": "fake",
+        "owned_group_cleanup": {
+          "all_engine_shutdown_receipts": null,
+          "direct_owner_reaped": true,
+          "errors": [
+            {
+              "message": "owner PID was reaped elsewhere; numeric group was not signalled",
+              "operation": "ownership",
+              "type": "UnknownOwnership"
+            }
+          ],
+          "group": 49173,
+          "scope": "Signal only the newly created group before reaping its owner; this does not prove every descendant exited or synthesize engine.close receipts",
+          "signals_sent": [],
+          "unreaped_owner_anchor": false,
+          "wall_ns": 8052
+        },
+        "owned_pid_and_process_group": 49173,
+        "returncode": 0,
+        "started_unix_ns": 1793328547491966967,
+        "timeout_seconds": 10,
+        "wall_ns": 980218
+      },
+      "events": [
+        {
+          "action": "waitid",
+          "already_reaped": false,
+          "flags": 16777221,
+          "pid": 49173,
+          "which": 1
+        },
+        {
+          "action": "wait",
+          "already_reaped": true,
+          "timeout": 5
+        }
+      ],
+      "expected_error": "ChildProcessError",
+      "name": "external_reap",
+      "observed_error": {
+        "message": "mock: another observer reaped the child",
+        "type": "ChildProcessError"
+      },
+      "passed": true,
+      "start_new_session": true
+    },
+    {
+      "command_receipt": {
+        "argv": [
+          "fake-child"
+        ],
+        "automatic_retry": false,
+        "child_maxrss_kib": 768,
+        "child_system_seconds": 0.0,
+        "child_user_seconds": 0.0,
+        "effective_outer_timeout_seconds": 0,
+        "error": {
+          "message": "Command '['fake-child']' timed out after 0 seconds",
+          "type": "TimeoutExpired"
+        },
+        "maxrss_scope": "cumulative high-water mark of this wrapper's completed children; not a sum",
+        "name": "fake",
+        "owned_group_cleanup": {
+          "all_engine_shutdown_receipts": null,
+          "direct_owner_reaped": true,
+          "errors": [
+            {
+              "message": "mock cleanup denied",
+              "operation": "kill_owned_group",
+              "type": "PermissionError"
+            }
+          ],
+          "group": 49173,
+          "scope": "Signal only the newly created group before reaping its owner; this does not prove every descendant exited or synthesize engine.close receipts",
+          "signals_sent": [],
+          "unreaped_owner_anchor": true,
+          "wall_ns": 35433
+        },
+        "owned_pid_and_process_group": 49173,
+        "returncode": -9,
+        "started_unix_ns": 1793328547494426592,
+        "timeout_seconds": 0,
+        "wall_ns": 1106425
+      },
+      "events": [
+        {
+          "action": "waitid",
+          "already_reaped": false,
+          "flags": 16777221,
+          "pid": 49173,
+          "which": 1
+        },
+        {
+          "action": "killpg",
+          "group": 49173,
+          "owner_already_reaped": false,
+          "signal": 9
+        },
+        {
+          "action": "wait",
+          "already_reaped": false,
+          "timeout": 5
+        }
+      ],
+      "expected_error": "TimeoutExpired",
+      "name": "timeout_signal_error",
+      "observed_error": {
+        "message": "Command '['fake-child']' timed out after 0 seconds",
+        "type": "TimeoutExpired"
+      },
+      "passed": true,
+      "start_new_session": true
+    },
+    {
+      "command_receipt": {
+        "argv": [
+          "fake-child"
+        ],
+        "automatic_retry": false,
+        "child_maxrss_kib": 768,
+        "child_system_seconds": 0.0,
+        "child_user_seconds": 0.0,
+        "effective_outer_timeout_seconds": 10,
+        "error": {
+          "message": "subprocess or owned-group cleanup failed: fake",
+          "type": "RuntimeError"
+        },
+        "maxrss_scope": "cumulative high-water mark of this wrapper's completed children; not a sum",
+        "name": "fake",
+        "owned_group_cleanup": {
+          "all_engine_shutdown_receipts": null,
+          "direct_owner_reaped": true,
+          "errors": [
+            {
+              "message": "mock cleanup denied",
+              "operation": "kill_owned_group",
+              "type": "PermissionError"
+            }
+          ],
+          "group": 49173,
+          "scope": "Signal only the newly created group before reaping its owner; this does not prove every descendant exited or synthesize engine.close receipts",
+          "signals_sent": [],
+          "unreaped_owner_anchor": true,
+          "wall_ns": 34451
+        },
+        "owned_pid_and_process_group": 49173,
+        "returncode": 0,
+        "started_unix_ns": 1793328547498569093,
+        "timeout_seconds": 10,
+        "unreaped_owner_status": {
+          "si_code": 1,
+          "si_pid": 49173,
+          "si_status": 0
+        },
+        "wall_ns": 2860747
+      },
+      "events": [
+        {
+          "action": "waitid",
+          "already_reaped": false,
+          "flags": 16777221,
+          "pid": 49173,
+          "which": 1
+        },
+        {
+          "action": "killpg",
+          "group": 49173,
+          "owner_already_reaped": false,
+          "signal": 9
+        },
+        {
+          "action": "wait",
+          "already_reaped": false,
+          "timeout": 5
+        }
+      ],
+      "expected_error": "RuntimeError",
+      "name": "signal_error",
+      "observed_error": {
+        "message": "subprocess or owned-group cleanup failed: fake",
+        "type": "RuntimeError"
+      },
+      "passed": true,
+      "start_new_session": true
+    },
+    {
+      "command_receipt": {
+        "argv": [
+          "fake-child"
+        ],
+        "automatic_retry": false,
+        "child_maxrss_kib": 768,
+        "child_system_seconds": 0.0,
+        "child_user_seconds": 0.0,
+        "effective_outer_timeout_seconds": 10,
+        "error": {
+          "message": "subprocess or owned-group cleanup failed: fake",
+          "type": "RuntimeError"
+        },
+        "maxrss_scope": "cumulative high-water mark of this wrapper's completed children; not a sum",
+        "name": "fake",
+        "owned_group_cleanup": {
+          "all_engine_shutdown_receipts": null,
+          "direct_owner_reaped": false,
+          "errors": [
+            {
+              "message": "Command '['fake-child']' timed out after 5 seconds",
+              "operation": "reap_owner",
+              "type": "TimeoutExpired"
+            }
+          ],
+          "group": 49173,
+          "scope": "Signal only the newly created group before reaping its owner; this does not prove every descendant exited or synthesize engine.close receipts",
+          "signals_sent": [
+            9
+          ],
+          "unreaped_owner_anchor": true,
+          "wall_ns": 46578
+        },
+        "owned_pid_and_process_group": 49173,
+        "returncode": null,
+        "started_unix_ns": 1793328547504639562,
+        "timeout_seconds": 10,
+        "unreaped_owner_status": {
+          "si_code": 1,
+          "si_pid": 49173,
+          "si_status": 0
+        },
+        "wall_ns": 1317767
+      },
+      "events": [
+        {
+          "action": "waitid",
+          "already_reaped": false,
+          "flags": 16777221,
+          "pid": 49173,
+          "which": 1
+        },
+        {
+          "action": "killpg",
+          "group": 49173,
+          "owner_already_reaped": false,
+          "signal": 9
+        },
+        {
+          "action": "wait",
+          "already_reaped": false,
+          "timeout": 5
+        }
+      ],
+      "expected_error": "RuntimeError",
+      "name": "reap_timeout",
+      "observed_error": {
+        "message": "subprocess or owned-group cleanup failed: fake",
+        "type": "RuntimeError"
+      },
+      "passed": true,
+      "start_new_session": true
+    },
+    {
+      "command_receipt": {
+        "argv": [
+          "fake-child"
+        ],
+        "automatic_retry": false,
+        "child_maxrss_kib": 768,
+        "child_system_seconds": 0.0,
+        "child_user_seconds": 0.0,
+        "effective_outer_timeout_seconds": 10,
+        "error": {
+          "message": "mock owner receipt write failed",
+          "type": "OSError"
+        },
+        "maxrss_scope": "cumulative high-water mark of this wrapper's completed children; not a sum",
+        "name": "fake",
+        "owned_group_cleanup": {
+          "all_engine_shutdown_receipts": null,
+          "direct_owner_reaped": true,
+          "errors": [],
+          "group": 49173,
+          "scope": "Signal only the newly created group before reaping its owner; this does not prove every descendant exited or synthesize engine.close receipts",
+          "signals_sent": [
+            9
+          ],
+          "unreaped_owner_anchor": true,
+          "wall_ns": 67700
+        },
+        "owned_pid_and_process_group": 49173,
+        "returncode": 0,
+        "started_unix_ns": 1793328547508144682,
+        "timeout_seconds": 10,
+        "wall_ns": 3102164
+      },
+      "events": [
+        {
+          "action": "killpg",
+          "group": 49173,
+          "owner_already_reaped": false,
+          "signal": 9
+        },
+        {
+          "action": "wait",
+          "already_reaped": false,
+          "timeout": 5
+        }
+      ],
+      "expected_error": "OSError",
+      "name": "owner_record_error",
+      "observed_error": {
+        "message": "mock owner receipt write failed",
+        "type": "OSError"
+      },
+      "passed": true,
+      "start_new_session": true
+    },
+    {
+      "command_receipt": {
+        "argv": [
+          "fake-child"
+        ],
+        "automatic_retry": false,
+        "child_maxrss_kib": 768,
+        "child_system_seconds": 0.0,
+        "child_user_seconds": 0.0,
+        "effective_outer_timeout_seconds": 10,
+        "error": {
+          "message": "mock spawn failed",
+          "type": "OSError"
+        },
+        "maxrss_scope": "cumulative high-water mark of this wrapper's completed children; not a sum",
+        "name": "fake",
+        "returncode": null,
+        "started_unix_ns": 1793328547514599560,
+        "timeout_seconds": 10,
+        "wall_ns": 716789
+      },
+      "events": [],
+      "expected_error": "OSError",
+      "name": "spawn_error",
+      "observed_error": {
+        "message": "mock spawn failed",
+        "type": "OSError"
+      },
+      "passed": true,
+      "start_new_session": true
+    },
+    {
+      "command_receipt": {
+        "argv": [
+          "fake-child"
+        ],
+        "automatic_retry": false,
+        "child_maxrss_kib": 768,
+        "child_system_seconds": 0.0,
+        "child_user_seconds": 0.0,
+        "effective_outer_timeout_seconds": 0.05,
+        "maxrss_scope": "cumulative high-water mark of this wrapper's completed children; not a sum",
+        "name": "fake",
+        "owned_group_cleanup": {
+          "all_engine_shutdown_receipts": null,
+          "direct_owner_reaped": true,
+          "errors": [],
+          "group": 49173,
+          "scope": "Signal only the newly created group before reaping its owner; this does not prove every descendant exited or synthesize engine.close receipts",
+          "signals_sent": [
+            9
+          ],
+          "unreaped_owner_anchor": true,
+          "wall_ns": 41952
+        },
+        "owned_pid_and_process_group": 49173,
+        "returncode": 0,
+        "started_unix_ns": 1793328547518855079,
+        "timeout_seconds": 10,
+        "unreaped_owner_status": {
+          "si_code": 1,
+          "si_pid": 49173,
+          "si_status": 0
+        },
+        "wall_ns": 2038632
+      },
+      "events": [
+        {
+          "action": "waitid",
+          "already_reaped": false,
+          "flags": 16777221,
+          "pid": 49173,
+          "which": 1
+        },
+        {
+          "action": "killpg",
+          "group": 49173,
+          "owner_already_reaped": false,
+          "signal": 9
+        },
+        {
+          "action": "wait",
+          "already_reaped": false,
+          "timeout": 5
+        }
+      ],
+      "expected_error": null,
+      "name": "outer_budget",
+      "observed_error": null,
+      "passed": true,
+      "start_new_session": true
+    }
+  ],
+  "count": 11,
+  "earlier_failure_evidence": "/tmp/hepta-recovery-stop-review-01.json",
+  "limits": [
+    "Internal frozen HIA Clang capture opens its own session; outer group cleanup does not prove those descendants exited.",
+    "Unknown engine close receipts stay null; forced outer termination is not qualified complete coverage.",
+    "Fresh hosted VM teardown is the final containment boundary after an outer infrastructure failure."
+  ],
+  "model_completions": 0,
+  "native_executions": 0,
+  "passed": 11,
+  "real_signals": 0,
+  "real_subprocesses": 0,
+  "schema": "hepta.independent.pure-recovery-stop-review.v2",
+  "scope": "Mocked owner identity/cleanup order and failure accounting, not real OS process-group isolation",
+  "source": {
+    "path": "experiments/hia_agent_assembly_recovery_20261030/run_recovery.py",
+    "sha256": "dc817b75ca6464f17c00aa21ed8806a33afa321cb36ce47c4826e9c512c2c0ab"
+  },
+  "source_unchanged": true
+}

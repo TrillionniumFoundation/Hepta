@@ -62,6 +62,25 @@ gate, including one actual automatic rollback; their aggregate measured net savi
 was 4.417590258 seconds. Broader companion CI failed. Complete seven-track
 acceptance remains false.
 
+The [fourth-round implementation and evidence report](docs/HIA_ROUND4_20261030.md)
+adds [typed compact HIA assembly](docs/HIA_AGENT_ASSEMBLY.md),
+[captured unique-owner move assignment](docs/CPP_UNIQUE_MOVE_ASSIGNMENT.md),
+[measured sealed NDU identity reuse](docs/HIA_NDU_SESSION_COST.md), and
+[owned-queue continuation](docs/HIA_OWNED_CONTINUATION.md). Its published source
+checkpoint passed **386 tests with zero failures, errors or skips**; the actual CI
+archive also passed 189 identity and evidence checks. The new eight-arm performance
+study retained all 112 samples but failed its stronger aggregate gate: 4/14
+comparisons passed, including 2/10 against strong language configurations. The
+three owned-state cost replications were correct and resource-balanced, but their
+aggregate measured net saving was **negative 4.949976436 seconds**. The original
+three-arm Agent study stopped under its infrastructure rule after 15/24 cells:
+Qwen completed 0/12, while Granite's incomplete family cannot support a full-family
+rate. A complete exploratory CI replication now has a separately frozen protocol
+and one-use launch; its results remain pending without replacing or pooling the
+original observations. The
+[fourth-round acceptance ledger](experiments/hia_verified_integration/round4_20261030/acceptance.json)
+keeps these negative results and the remaining seven-track requirements explicit.
+
 ## Implemented capabilities
 
 The table describes the union of the explicitly qualified profiles in this
