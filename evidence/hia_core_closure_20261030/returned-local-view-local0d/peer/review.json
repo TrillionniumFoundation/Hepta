@@ -1,0 +1,848 @@
+{
+  "blocking_source_findings": [],
+  "focused_raw_audits": [
+    {
+      "actual_native_scalar_calls": 33,
+      "allocator_observations": [
+        {
+          "allocations": 2,
+          "attempts": 2,
+          "failure": 0,
+          "frees": 2,
+          "live_bytes": 0,
+          "peak_bytes": 10,
+          "value": 50
+        },
+        {
+          "allocations": 1,
+          "attempts": 2,
+          "failure": 2,
+          "frees": 1,
+          "live_bytes": 0,
+          "peak_bytes": 3,
+          "value": 41
+        }
+      ],
+      "balanced_shared_neighbour_included": false,
+      "bounded_compiler_observations": null,
+      "directory": "returned-local-view-composition-20261030/frozen317-focused9",
+      "raw_cli": "--owned-run (legacy raw CLI; not bound-v4 envelope or sealed custody)",
+      "raw_refusals": [
+        {
+          "name": "end_parent_before_child",
+          "python": "E_HIA_LOAN: end child loans before their parent",
+          "rust": "E_HIA_LOAN: child loan must end first"
+        },
+        {
+          "name": "drop_owner_with_live_child",
+          "python": "E_HIA_LOAN: owner moved/dropped/returned while borrowed",
+          "rust": "E_HIA_LOAN: owner still has live loans"
+        },
+        {
+          "name": "reborrow_suspended_parent",
+          "python": "E_HIA_RESOURCE: edge drops a live owner or local loan",
+          "rust": "E_HIA_RESOURCE: CFG edge silently drops owner/loan"
+        },
+        {
+          "name": "omit_final_parent_end",
+          "python": "E_HIA_RESOURCE: edge drops a live owner or local loan",
+          "rust": "E_HIA_RESOURCE: CFG edge silently drops owner/loan"
+        },
+        {
+          "name": "swap_parent_child_on_one_cfg_edge",
+          "python": "E_HIA_LOAN: predecessors disagree on loan origins/permissions",
+          "rust": "E_HIA_LOAN: incompatible loan/root CFG join"
+        }
+      ],
+      "rust_statuses": {
+        "budget_exceeded": 48,
+        "returned": 37
+      },
+      "source_refusal_stages": {
+        "existing_resource_ir_profile": [
+          "owner_drop_while_shared_alias_lives",
+          "mutable_owner_reborrow",
+          "shared_to_mutable_overlap",
+          "escaping_view_return",
+          "view_parameter",
+          "nested_view_record",
+          "two_stored_loans",
+          "origin_is_local_view",
+          "mutable_to_shared_mode_change"
+        ],
+        "fresh_source_checker": [
+          "readless_constructor",
+          "mutable_missing_drop",
+          "mutable_copy",
+          "mutable_one_branch_drop",
+          "borrowed_public_export",
+          "standalone_returned_storage"
+        ],
+        "narrow_source_adapter": [
+          "nested_returned_argument",
+          "two_borrowed_formals",
+          "borrowed_record_formal"
+        ]
+      }
+    },
+    {
+      "actual_native_scalar_calls": 33,
+      "allocator_observations": [
+        {
+          "allocations": 2,
+          "attempts": 2,
+          "failure": 0,
+          "frees": 2,
+          "live_bytes": 0,
+          "peak_bytes": 10,
+          "value": 50
+        },
+        {
+          "allocations": 1,
+          "attempts": 2,
+          "failure": 2,
+          "frees": 1,
+          "live_bytes": 0,
+          "peak_bytes": 3,
+          "value": 41
+        }
+      ],
+      "balanced_shared_neighbour_included": true,
+      "bounded_compiler_observations": 6,
+      "directory": "returned-local-view-composition-20261030/final0d-focused9",
+      "raw_cli": "--owned-run (legacy raw CLI; not bound-v4 envelope or sealed custody)",
+      "raw_refusals": [
+        {
+          "name": "end_parent_before_child",
+          "python": "E_HIA_LOAN: end child loans before their parent",
+          "rust": "E_HIA_LOAN: child loan must end first"
+        },
+        {
+          "name": "drop_owner_with_live_child",
+          "python": "E_HIA_LOAN: owner moved/dropped/returned while borrowed",
+          "rust": "E_HIA_LOAN: owner still has live loans"
+        },
+        {
+          "name": "reborrow_exclusive_parent_with_live_mutable_child",
+          "python": "E_HIA_LOAN: conflicting live borrow",
+          "rust": "E_HIA_LOAN: overlapping incompatible loans"
+        },
+        {
+          "name": "omit_final_parent_end",
+          "python": "E_HIA_RESOURCE: edge drops a live owner or local loan",
+          "rust": "E_HIA_RESOURCE: CFG edge silently drops owner/loan"
+        },
+        {
+          "name": "swap_parent_child_on_one_cfg_edge",
+          "python": "E_HIA_LOAN: predecessors disagree on loan origins/permissions",
+          "rust": "E_HIA_LOAN: incompatible loan/root CFG join"
+        }
+      ],
+      "rust_statuses": {
+        "budget_exceeded": 48,
+        "returned": 38
+      },
+      "source_refusal_stages": {
+        "existing_resource_ir_profile": [
+          "owner_drop_while_shared_alias_lives",
+          "mutable_owner_reborrow",
+          "shared_to_mutable_overlap",
+          "escaping_view_return",
+          "view_parameter",
+          "nested_view_record",
+          "two_stored_loans",
+          "origin_is_local_view",
+          "mutable_to_shared_mode_change"
+        ],
+        "fresh_source_checker": [
+          "readless_constructor",
+          "mutable_missing_drop",
+          "mutable_copy",
+          "mutable_one_branch_drop",
+          "borrowed_public_export",
+          "standalone_returned_storage"
+        ],
+        "narrow_source_adapter": [
+          "nested_returned_argument",
+          "two_borrowed_formals",
+          "borrowed_record_formal"
+        ]
+      }
+    }
+  ],
+  "independent_controls": [
+    {
+      "arguments": [
+        0
+      ],
+      "function": "nonfirst",
+      "resources": {
+        "allocation_attempts": 1,
+        "allocations": 1,
+        "chain_nodes_created": 0,
+        "chain_nodes_dropped": 0,
+        "chains_consumed": 0,
+        "chains_created": 0,
+        "frees": 1,
+        "live_bytes": 0,
+        "live_chain_nodes": 0,
+        "live_chains": 0,
+        "live_local_loans": 0,
+        "live_owners": 0,
+        "loans_ended": 8,
+        "loans_started": 8,
+        "owners_created": 1,
+        "owners_dropped": 1,
+        "peak_bytes": 3
+      },
+      "steps": 59,
+      "value": 26
+    },
+    {
+      "arguments": [
+        1
+      ],
+      "function": "nonfirst",
+      "resources": {
+        "allocation_attempts": 1,
+        "allocations": 1,
+        "chain_nodes_created": 0,
+        "chain_nodes_dropped": 0,
+        "chains_consumed": 0,
+        "chains_created": 0,
+        "frees": 1,
+        "live_bytes": 0,
+        "live_chain_nodes": 0,
+        "live_chains": 0,
+        "live_local_loans": 0,
+        "live_owners": 0,
+        "loans_ended": 8,
+        "loans_started": 8,
+        "owners_created": 1,
+        "owners_dropped": 1,
+        "peak_bytes": 3
+      },
+      "steps": 59,
+      "value": 26
+    },
+    {
+      "arguments": [
+        0
+      ],
+      "function": "twins",
+      "resources": {
+        "allocation_attempts": 1,
+        "allocations": 1,
+        "chain_nodes_created": 0,
+        "chain_nodes_dropped": 0,
+        "chains_consumed": 0,
+        "chains_created": 0,
+        "frees": 1,
+        "live_bytes": 0,
+        "live_chain_nodes": 0,
+        "live_chains": 0,
+        "live_local_loans": 0,
+        "live_owners": 0,
+        "loans_ended": 9,
+        "loans_started": 9,
+        "owners_created": 1,
+        "owners_dropped": 1,
+        "peak_bytes": 2
+      },
+      "steps": 62,
+      "value": 57
+    },
+    {
+      "arguments": [
+        1
+      ],
+      "function": "twins",
+      "resources": {
+        "allocation_attempts": 1,
+        "allocations": 1,
+        "chain_nodes_created": 0,
+        "chain_nodes_dropped": 0,
+        "chains_consumed": 0,
+        "chains_created": 0,
+        "frees": 1,
+        "live_bytes": 0,
+        "live_chain_nodes": 0,
+        "live_chains": 0,
+        "live_local_loans": 0,
+        "live_owners": 0,
+        "loans_ended": 9,
+        "loans_started": 9,
+        "owners_created": 1,
+        "owners_dropped": 1,
+        "peak_bytes": 2
+      },
+      "steps": 62,
+      "value": 57
+    },
+    {
+      "arguments": [
+        0
+      ],
+      "function": "copy_labels",
+      "resources": {
+        "allocation_attempts": 1,
+        "allocations": 1,
+        "chain_nodes_created": 0,
+        "chain_nodes_dropped": 0,
+        "chains_consumed": 0,
+        "chains_created": 0,
+        "frees": 1,
+        "live_bytes": 0,
+        "live_chain_nodes": 0,
+        "live_chains": 0,
+        "live_local_loans": 0,
+        "live_owners": 0,
+        "loans_ended": 2,
+        "loans_started": 2,
+        "owners_created": 1,
+        "owners_dropped": 1,
+        "peak_bytes": 4
+      },
+      "steps": 27,
+      "value": 13
+    },
+    {
+      "arguments": [
+        1
+      ],
+      "function": "copy_labels",
+      "resources": {
+        "allocation_attempts": 1,
+        "allocations": 1,
+        "chain_nodes_created": 0,
+        "chain_nodes_dropped": 0,
+        "chains_consumed": 0,
+        "chains_created": 0,
+        "frees": 1,
+        "live_bytes": 0,
+        "live_chain_nodes": 0,
+        "live_chains": 0,
+        "live_local_loans": 0,
+        "live_owners": 0,
+        "loans_ended": 2,
+        "loans_started": 2,
+        "owners_created": 1,
+        "owners_dropped": 1,
+        "peak_bytes": 4
+      },
+      "steps": 50,
+      "value": 46
+    }
+  ],
+  "independent_llvm_calls": 6,
+  "independent_raw_rust_processes": 6,
+  "independent_source_adapter_refusals": 2,
+  "limits": [
+    "Finite source composition only; no broad P0-P7 closure, whole-language soundness or backend refinement proof.",
+    "Owner --owned-run and peer --owned-run-bound-v4 are direct native processes using trusted host/tooling and retained executable hashes, not production sealed-memfd custody.",
+    "Scalar host LLVM ABI only; no arbitrary pointer/provenance, callback, thread, escaping stored lifetime or asynchronous cancellation qualification.",
+    "Requested payload ledgers and two allocator observations are not RSS or a process-memory bound.",
+    "Source records cover actual sparse materializations, not execution access to all 7699 tracked files.",
+    "No default route/production authority change; optimization_policy remains no_change; final349 is registration until separately executed."
+  ],
+  "new_native_or_test_invocations_in_this_auditor": 0,
+  "ok": true,
+  "owner_runs": [
+    {
+      "actual_log_outcomes": {
+        "ok": 9
+      },
+      "allocator_observer_calls": 2,
+      "commit": "31736998decf7fe952617fd219130ee3a5048a9e",
+      "counts": {
+        "errors": 0,
+        "expected_failures": 0,
+        "failures": 0,
+        "skips": 0,
+        "tests": 9,
+        "unexpected_successes": 0
+      },
+      "direct_llvm_calls": 33,
+      "directory": "returned-local-view-composition-20261030/frozen317-focused9",
+      "full_tree_files": 7699,
+      "materialized_files": 1454,
+      "ok": true,
+      "raw_rust_refusals": 5,
+      "rust_observations": 85,
+      "source_and_tools_unchanged": true,
+      "test_ids": [
+        "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViews.test_actual_core_rejects_parent_owner_and_cfg_corruptions",
+        "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViews.test_checked_resource_profile_enters_existing_v8_without_source_reparse",
+        "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViews.test_copy_move_branches_loops_and_each_early_exit_keep_parent_until_last_alias",
+        "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViews.test_fallible_paths_and_each_step_prefix_preserve_actual_resource_ledger",
+        "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViews.test_original_checker_and_finite_origin_storage_export_limits_still_reject",
+        "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViewsNative.test_actual_llvm_allocator_failure_keeps_returned_view_cleanup",
+        "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViewsNative.test_direct_llvm_executes_actual_source_selected_scalar_exports",
+        "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViewsRust.test_actual_same_rust_machine_matches_values_loans_failures_and_every_step",
+        "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViewsRust.test_raw_rust_refuses_the_same_five_emitted_capability_corruptions"
+      ],
+      "tree": "77258df1ea6e855e06d157c4d44013b638de6179"
+    },
+    {
+      "actual_log_outcomes": {
+        "ERROR": 3,
+        "ok": 84
+      },
+      "allocator_observer_calls": 0,
+      "commit": "31736998decf7fe952617fd219130ee3a5048a9e",
+      "counts": {
+        "errors": 3,
+        "expected_failures": 0,
+        "failures": 0,
+        "skips": 0,
+        "tests": 87,
+        "unexpected_successes": 0
+      },
+      "direct_llvm_calls": 0,
+      "directory": "returned-local-view-composition-20261030/frozen317-legacy87",
+      "full_tree_files": 7699,
+      "materialized_files": 1454,
+      "ok": false,
+      "raw_rust_refusals": 0,
+      "rust_observations": 0,
+      "source_and_tools_unchanged": true,
+      "test_ids": [
+        "tests.test_hia_program_source.HIASourceTests.test_standalone_execution_never_reparses_or_reads_source",
+        "tests.test_hia_program_source.HIASourceTests.test_full_existing_integer_owner_corpus_has_explicit_cfg",
+        "tests.test_hia_program_source.HIASourceTests.test_result_return_consumes_inactive_empty_owner",
+        "tests.test_hia_program_source.HIASourceTests.test_second_failure_drops_first_owner_and_failed_empty_owner",
+        "tests.test_hia_program_source.HIASourceTests.test_scalar_record_mutation_and_copy_are_not_aliased",
+        "tests.test_hia_program_source.HIASourceTests.test_nested_short_circuit_preserves_mutable_argument_updates",
+        "tests.test_hia_program_source.HIASourceTests.test_assertion_lowers_to_a_supported_explicit_trap",
+        "tests.test_hia_program_source.HIASourceTests.test_owned_record_and_returned_projection_are_executable",
+        "tests.test_hia_program_source.HIASourceTests.test_aliased_mutable_call_rejects_in_standalone_resource_checker",
+        "tests.test_hia_program_source.HIASourceTests.test_scalarized_aliases_reject_and_disjoint_fields_preserve_updates",
+        "tests.test_hia_program_source.HIASourceTests.test_closed_generic_owner_record_result_instances_are_real_hia",
+        "tests.test_hia_program_source.HIASourceTests.test_generic_copy_recursion_is_specialized_and_type_growth_rejects",
+        "tests.test_hia_program_source.HIASourceTests.test_removed_drop_cannot_be_resealed_into_valid_hia",
+        "tests.test_hia_program_source.HIASourceTests.test_unmodeled_source_never_falls_back_to_foreign_or_rust_execution",
+        "tests.test_hia_source_local_views.HIASourceLocalViewTests.test_local_views_enter_same_core_and_preserve_shared_aliases",
+        "tests.test_hia_source_local_views.HIASourceLocalViewTests.test_mutable_views_move_drop_and_rejoin_each_loop",
+        "tests.test_hia_source_local_views.HIASourceLocalViewTests.test_fallible_call_ends_local_views_on_each_return_path",
+        "tests.test_hia_source_local_views.HIASourceLocalViewTests.test_existing_scoped_neighbours_use_canonical_core",
+        "tests.test_hia_source_local_views.HIASourceLocalViewTests.test_shared_alias_survives_inner_scope_and_each_early_return",
+        "tests.test_hia_source_local_views.HIASourceLocalViewTests.test_view_ledger_at_every_prefix_does_not_invent_abort_cleanup",
+        "tests.test_hia_source_local_views.HIASourceLocalViewTests.test_existing_invalid_aliases_and_escaping_storage_still_reject",
+        "tests.test_hia_source_local_views.HIASourceLocalViewTests.test_removed_loan_end_rejected_by_canonical_core",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumTests.test_existing_source_checker_resource_ir_and_same_core_all_accept",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumTests.test_source_route_and_public_execution_reject_erased_enum_helpers",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumTests.test_invalid_core_tag_traps_instead_of_selecting_last_variant",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumTests.test_result_error_enum_and_real_owner_cleanup_at_failure",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumTests.test_step_stops_keep_real_partial_ledger_without_implicit_cleanup",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumTests.test_unit_enum_match_preserves_scoped_shared_view_aliases",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumTests.test_32_variant_boundary_and_unused_unsupported_declarations",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumTests.test_type_match_abi_and_complex_storage_refusals_remain_closed",
+        "tests.test_hia_source_exports.SourceExportBoundaryTests.test_original_signatures_survive_canonical_wire_round_trip",
+        "tests.test_hia_source_exports.SourceExportBoundaryTests.test_erased_aggregate_and_borrow_modes_are_not_scalar_exports",
+        "tests.test_hia_source_exports.SourceExportBoundaryTests.test_concrete_generic_scalar_instance_remains_internal",
+        "tests.test_hia_source_exports.SourceExportBoundaryTests.test_ordinary_scalar_and_unit_convenience_entries_are_retained",
+        "tests.test_hia_source_exports.SourceExportBoundaryTests.test_all_aggregate_module_has_explicit_empty_native_exports",
+        "tests.test_hia_source_exports.SourceExportBoundaryTests.test_existing_source_bound_owner_bridge_keeps_v1_exports",
+        "tests.test_hia_returned_loans.ReturnedLoanSemantics.test_source_retains_functions_calls_and_explicit_origin",
+        "tests.test_hia_returned_loans.ReturnedLoanSemantics.test_existing_source_default_and_unsupported_stored_origin_contracts",
+        "tests.test_hia_returned_loans.ReturnedLoanSemantics.test_nested_record_origin_is_named_nonfirst_leaf_with_scalar_writeback",
+        "tests.test_hia_returned_loans.ReturnedLoanSemantics.test_record_field_path_changes_local_origins_and_stored_borrows_reject",
+        "tests.test_hia_returned_loans.ReturnedLoanSemantics.test_identity_child_relay_join_and_original_parent_survives",
+        "tests.test_hia_returned_loans.ReturnedLoanSemantics.test_invalid_origins_lifetimes_suffixes_and_unused_helpers_reject",
+        "tests.test_hia_returned_loans.ReturnedLoanSemantics.test_other_version_consumers_fail_closed",
+        "tests.test_hia_routes.RouteTests.test_versioned_inventory_has_all_languages_and_legacy_non_authorities",
+        "tests.test_hia_routes.RouteTests.test_optimization_commands_have_explicit_distinct_contracts",
+        "tests.test_hia_routes.RouteTests.test_cli_options_cannot_reinterpret_ranking_guarded_or_source_routes",
+        "tests.test_hia_routes.RouteTests.test_source_and_both_legacy_routes_execute_one_value_model",
+        "tests.test_hia_routes.RouteTests.test_explicit_v8_source_route_keeps_returned_loans_and_cannot_override_wire_bytes",
+        "tests.test_hia_routes.RouteTests.test_cli_v8_lower_and_run_use_the_same_explicit_contract",
+        "tests.test_hia_routes.RouteTests.test_source_and_legacy_share_resource_and_failure_semantics",
+        "tests.test_hia_routes.RouteTests.test_unknown_language_metadata_receipt_and_backend_never_fallback",
+        "tests.test_hia_routes.RouteTests.test_cli_routes_and_optimization_publication_refusal",
+        "tests.test_hia_routes.RouteTests.test_captured_matrix_verifies_unselected_variant_before_admission",
+        "tests.test_hia_routes.RouteTests.test_captured_routes_execute_the_same_core_and_never_trust_a_receipt",
+        "tests.test_hia_routes.RouteTests.test_route_context_is_rejected_before_capture_or_source_access",
+        "tests.test_hia_routes.RouteTests.test_captured_route_cannot_claim_or_force_another_core_schema",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_reviewed_protocol_resolves_every_distinct_test",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_json_formatting_and_object_key_order_do_not_change_protocol",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_stateful_python_containers_cannot_reduce_the_hashed_selection",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_removing_each_reviewed_capability_is_refused",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_removing_each_boundary_regression_is_refused",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_replacing_a_regression_with_another_valid_test_is_refused",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_changed_scope_exclusions_or_trust_assumptions_are_refused",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_changed_entrypoint_refuses_before_dynamic_resolution",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_forged_identity_and_numeric_boolean_substitutions_are_refused",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_non_json_and_nonfinite_contract_values_are_controlled_refusals",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_live_registry_is_still_checked_after_protocol_identity",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_workflow_checkout_and_license_inputs_are_bound_to_actual_bytes",
+        "tests.test_hia_integrated_workflow.IntegratedWorkflowContractTests.test_raw_record_candidate_push_registers_full_and_both_host_gates",
+        "tests.test_hia_integrated_workflow.IntegratedWorkflowContractTests.test_actual_cli_receives_all_four_native_profiles_and_external_paths",
+        "tests.test_hia_integrated_workflow.IntegratedWorkflowContractTests.test_real_shell_preserves_failure_and_qualifies_a_clean_exact_sibling",
+        "tests.test_hia_integrated_workflow.IntegratedWorkflowContractTests.test_existing_gates_and_always_upload_remain_in_place",
+        "tests.test_hia_integrated_workflow.IntegratedWorkflowContractTests.test_real_source_record_selects_only_explicit_profile_and_refuses_wrong_head",
+        "tests.test_hia_integrated_workflow.IntegratedWorkflowContractTests.test_application_workflow_uses_clean_source_and_retains_external_identity_files",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_checker_independent_resource_ir_and_canonical_core_all_accept",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_restore_after_explicit_field_release",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_fallible_restoration_consumes_success_or_empty_error_slot",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_both_branch_initialization_states_reach_same_core_join",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_early_cancel_drops_only_remaining_initialized_field",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_loop_restores_same_linear_state_on_each_backedge",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_nested_generic_restore_preserves_preexisting_scalar_copy",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_real_static_and_payload_analyzers_qualify_acyclic_restoration",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_loop_frame_bound_does_not_promise_tick_termination",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_restoration_can_transfer_a_disjoint_remaining_field",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_every_normal_prefix_retains_actual_stopped_ledger",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_invalid_partial_source_combinations_reject_freshly",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_tampered_normalized_cleanup_and_live_loan_move_are_rejected"
+      ],
+      "tree": "77258df1ea6e855e06d157c4d44013b638de6179"
+    },
+    {
+      "actual_log_outcomes": {
+        "ok": 87
+      },
+      "allocator_observer_calls": 0,
+      "commit": "31736998decf7fe952617fd219130ee3a5048a9e",
+      "counts": {
+        "errors": 0,
+        "expected_failures": 0,
+        "failures": 0,
+        "skips": 0,
+        "tests": 87,
+        "unexpected_successes": 0
+      },
+      "direct_llvm_calls": 0,
+      "directory": "returned-local-view-composition-20261030/frozen317-legacy87-complete",
+      "full_tree_files": 7699,
+      "materialized_files": 1457,
+      "ok": true,
+      "raw_rust_refusals": 0,
+      "rust_observations": 0,
+      "source_and_tools_unchanged": true,
+      "test_ids": [
+        "tests.test_hia_program_source.HIASourceTests.test_standalone_execution_never_reparses_or_reads_source",
+        "tests.test_hia_program_source.HIASourceTests.test_full_existing_integer_owner_corpus_has_explicit_cfg",
+        "tests.test_hia_program_source.HIASourceTests.test_result_return_consumes_inactive_empty_owner",
+        "tests.test_hia_program_source.HIASourceTests.test_second_failure_drops_first_owner_and_failed_empty_owner",
+        "tests.test_hia_program_source.HIASourceTests.test_scalar_record_mutation_and_copy_are_not_aliased",
+        "tests.test_hia_program_source.HIASourceTests.test_nested_short_circuit_preserves_mutable_argument_updates",
+        "tests.test_hia_program_source.HIASourceTests.test_assertion_lowers_to_a_supported_explicit_trap",
+        "tests.test_hia_program_source.HIASourceTests.test_owned_record_and_returned_projection_are_executable",
+        "tests.test_hia_program_source.HIASourceTests.test_aliased_mutable_call_rejects_in_standalone_resource_checker",
+        "tests.test_hia_program_source.HIASourceTests.test_scalarized_aliases_reject_and_disjoint_fields_preserve_updates",
+        "tests.test_hia_program_source.HIASourceTests.test_closed_generic_owner_record_result_instances_are_real_hia",
+        "tests.test_hia_program_source.HIASourceTests.test_generic_copy_recursion_is_specialized_and_type_growth_rejects",
+        "tests.test_hia_program_source.HIASourceTests.test_removed_drop_cannot_be_resealed_into_valid_hia",
+        "tests.test_hia_program_source.HIASourceTests.test_unmodeled_source_never_falls_back_to_foreign_or_rust_execution",
+        "tests.test_hia_source_local_views.HIASourceLocalViewTests.test_local_views_enter_same_core_and_preserve_shared_aliases",
+        "tests.test_hia_source_local_views.HIASourceLocalViewTests.test_mutable_views_move_drop_and_rejoin_each_loop",
+        "tests.test_hia_source_local_views.HIASourceLocalViewTests.test_fallible_call_ends_local_views_on_each_return_path",
+        "tests.test_hia_source_local_views.HIASourceLocalViewTests.test_existing_scoped_neighbours_use_canonical_core",
+        "tests.test_hia_source_local_views.HIASourceLocalViewTests.test_shared_alias_survives_inner_scope_and_each_early_return",
+        "tests.test_hia_source_local_views.HIASourceLocalViewTests.test_view_ledger_at_every_prefix_does_not_invent_abort_cleanup",
+        "tests.test_hia_source_local_views.HIASourceLocalViewTests.test_existing_invalid_aliases_and_escaping_storage_still_reject",
+        "tests.test_hia_source_local_views.HIASourceLocalViewTests.test_removed_loan_end_rejected_by_canonical_core",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumTests.test_existing_source_checker_resource_ir_and_same_core_all_accept",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumTests.test_source_route_and_public_execution_reject_erased_enum_helpers",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumTests.test_invalid_core_tag_traps_instead_of_selecting_last_variant",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumTests.test_result_error_enum_and_real_owner_cleanup_at_failure",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumTests.test_step_stops_keep_real_partial_ledger_without_implicit_cleanup",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumTests.test_unit_enum_match_preserves_scoped_shared_view_aliases",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumTests.test_32_variant_boundary_and_unused_unsupported_declarations",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumTests.test_type_match_abi_and_complex_storage_refusals_remain_closed",
+        "tests.test_hia_source_exports.SourceExportBoundaryTests.test_original_signatures_survive_canonical_wire_round_trip",
+        "tests.test_hia_source_exports.SourceExportBoundaryTests.test_erased_aggregate_and_borrow_modes_are_not_scalar_exports",
+        "tests.test_hia_source_exports.SourceExportBoundaryTests.test_concrete_generic_scalar_instance_remains_internal",
+        "tests.test_hia_source_exports.SourceExportBoundaryTests.test_ordinary_scalar_and_unit_convenience_entries_are_retained",
+        "tests.test_hia_source_exports.SourceExportBoundaryTests.test_all_aggregate_module_has_explicit_empty_native_exports",
+        "tests.test_hia_source_exports.SourceExportBoundaryTests.test_existing_source_bound_owner_bridge_keeps_v1_exports",
+        "tests.test_hia_returned_loans.ReturnedLoanSemantics.test_source_retains_functions_calls_and_explicit_origin",
+        "tests.test_hia_returned_loans.ReturnedLoanSemantics.test_existing_source_default_and_unsupported_stored_origin_contracts",
+        "tests.test_hia_returned_loans.ReturnedLoanSemantics.test_nested_record_origin_is_named_nonfirst_leaf_with_scalar_writeback",
+        "tests.test_hia_returned_loans.ReturnedLoanSemantics.test_record_field_path_changes_local_origins_and_stored_borrows_reject",
+        "tests.test_hia_returned_loans.ReturnedLoanSemantics.test_identity_child_relay_join_and_original_parent_survives",
+        "tests.test_hia_returned_loans.ReturnedLoanSemantics.test_invalid_origins_lifetimes_suffixes_and_unused_helpers_reject",
+        "tests.test_hia_returned_loans.ReturnedLoanSemantics.test_other_version_consumers_fail_closed",
+        "tests.test_hia_routes.RouteTests.test_versioned_inventory_has_all_languages_and_legacy_non_authorities",
+        "tests.test_hia_routes.RouteTests.test_optimization_commands_have_explicit_distinct_contracts",
+        "tests.test_hia_routes.RouteTests.test_cli_options_cannot_reinterpret_ranking_guarded_or_source_routes",
+        "tests.test_hia_routes.RouteTests.test_source_and_both_legacy_routes_execute_one_value_model",
+        "tests.test_hia_routes.RouteTests.test_explicit_v8_source_route_keeps_returned_loans_and_cannot_override_wire_bytes",
+        "tests.test_hia_routes.RouteTests.test_cli_v8_lower_and_run_use_the_same_explicit_contract",
+        "tests.test_hia_routes.RouteTests.test_source_and_legacy_share_resource_and_failure_semantics",
+        "tests.test_hia_routes.RouteTests.test_unknown_language_metadata_receipt_and_backend_never_fallback",
+        "tests.test_hia_routes.RouteTests.test_cli_routes_and_optimization_publication_refusal",
+        "tests.test_hia_routes.RouteTests.test_captured_matrix_verifies_unselected_variant_before_admission",
+        "tests.test_hia_routes.RouteTests.test_captured_routes_execute_the_same_core_and_never_trust_a_receipt",
+        "tests.test_hia_routes.RouteTests.test_route_context_is_rejected_before_capture_or_source_access",
+        "tests.test_hia_routes.RouteTests.test_captured_route_cannot_claim_or_force_another_core_schema",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_reviewed_protocol_resolves_every_distinct_test",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_json_formatting_and_object_key_order_do_not_change_protocol",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_stateful_python_containers_cannot_reduce_the_hashed_selection",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_removing_each_reviewed_capability_is_refused",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_removing_each_boundary_regression_is_refused",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_replacing_a_regression_with_another_valid_test_is_refused",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_changed_scope_exclusions_or_trust_assumptions_are_refused",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_changed_entrypoint_refuses_before_dynamic_resolution",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_forged_identity_and_numeric_boolean_substitutions_are_refused",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_non_json_and_nonfinite_contract_values_are_controlled_refusals",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_live_registry_is_still_checked_after_protocol_identity",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_workflow_checkout_and_license_inputs_are_bound_to_actual_bytes",
+        "tests.test_hia_integrated_workflow.IntegratedWorkflowContractTests.test_raw_record_candidate_push_registers_full_and_both_host_gates",
+        "tests.test_hia_integrated_workflow.IntegratedWorkflowContractTests.test_actual_cli_receives_all_four_native_profiles_and_external_paths",
+        "tests.test_hia_integrated_workflow.IntegratedWorkflowContractTests.test_real_shell_preserves_failure_and_qualifies_a_clean_exact_sibling",
+        "tests.test_hia_integrated_workflow.IntegratedWorkflowContractTests.test_existing_gates_and_always_upload_remain_in_place",
+        "tests.test_hia_integrated_workflow.IntegratedWorkflowContractTests.test_real_source_record_selects_only_explicit_profile_and_refuses_wrong_head",
+        "tests.test_hia_integrated_workflow.IntegratedWorkflowContractTests.test_application_workflow_uses_clean_source_and_retains_external_identity_files",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_checker_independent_resource_ir_and_canonical_core_all_accept",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_restore_after_explicit_field_release",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_fallible_restoration_consumes_success_or_empty_error_slot",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_both_branch_initialization_states_reach_same_core_join",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_early_cancel_drops_only_remaining_initialized_field",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_loop_restores_same_linear_state_on_each_backedge",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_nested_generic_restore_preserves_preexisting_scalar_copy",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_real_static_and_payload_analyzers_qualify_acyclic_restoration",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_loop_frame_bound_does_not_promise_tick_termination",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_restoration_can_transfer_a_disjoint_remaining_field",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_every_normal_prefix_retains_actual_stopped_ledger",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_invalid_partial_source_combinations_reject_freshly",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_tampered_normalized_cleanup_and_live_loan_move_are_rejected"
+      ],
+      "tree": "77258df1ea6e855e06d157c4d44013b638de6179"
+    },
+    {
+      "actual_log_outcomes": {
+        "ok": 9
+      },
+      "allocator_observer_calls": 2,
+      "commit": "0d077885cc4be0b8ee96a012d7d6d2e51d1d2ace",
+      "counts": {
+        "errors": 0,
+        "expected_failures": 0,
+        "failures": 0,
+        "skips": 0,
+        "tests": 9,
+        "unexpected_successes": 0
+      },
+      "direct_llvm_calls": 33,
+      "directory": "returned-local-view-composition-20261030/final0d-focused9",
+      "full_tree_files": 7699,
+      "materialized_files": 1457,
+      "ok": true,
+      "raw_rust_refusals": 5,
+      "rust_observations": 86,
+      "source_and_tools_unchanged": true,
+      "test_ids": [
+        "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViews.test_actual_core_rejects_parent_owner_and_cfg_corruptions",
+        "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViews.test_checked_resource_profile_enters_existing_v8_without_source_reparse",
+        "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViews.test_copy_move_branches_loops_and_each_early_exit_keep_parent_until_last_alias",
+        "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViews.test_fallible_paths_and_each_step_prefix_preserve_actual_resource_ledger",
+        "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViews.test_original_checker_and_finite_origin_storage_export_limits_still_reject",
+        "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViewsNative.test_actual_llvm_allocator_failure_keeps_returned_view_cleanup",
+        "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViewsNative.test_direct_llvm_executes_actual_source_selected_scalar_exports",
+        "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViewsRust.test_actual_same_rust_machine_matches_values_loans_failures_and_every_step",
+        "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViewsRust.test_raw_rust_refuses_the_same_five_emitted_capability_corruptions"
+      ],
+      "tree": "88478a74708cf63edf7f9304c0b4ceb820b04d01"
+    },
+    {
+      "actual_log_outcomes": {
+        "ok": 87
+      },
+      "allocator_observer_calls": 0,
+      "commit": "0d077885cc4be0b8ee96a012d7d6d2e51d1d2ace",
+      "counts": {
+        "errors": 0,
+        "expected_failures": 0,
+        "failures": 0,
+        "skips": 0,
+        "tests": 87,
+        "unexpected_successes": 0
+      },
+      "direct_llvm_calls": 0,
+      "directory": "returned-local-view-composition-20261030/final0d-legacy87",
+      "full_tree_files": 7699,
+      "materialized_files": 1457,
+      "ok": true,
+      "raw_rust_refusals": 0,
+      "rust_observations": 0,
+      "source_and_tools_unchanged": true,
+      "test_ids": [
+        "tests.test_hia_program_source.HIASourceTests.test_standalone_execution_never_reparses_or_reads_source",
+        "tests.test_hia_program_source.HIASourceTests.test_full_existing_integer_owner_corpus_has_explicit_cfg",
+        "tests.test_hia_program_source.HIASourceTests.test_result_return_consumes_inactive_empty_owner",
+        "tests.test_hia_program_source.HIASourceTests.test_second_failure_drops_first_owner_and_failed_empty_owner",
+        "tests.test_hia_program_source.HIASourceTests.test_scalar_record_mutation_and_copy_are_not_aliased",
+        "tests.test_hia_program_source.HIASourceTests.test_nested_short_circuit_preserves_mutable_argument_updates",
+        "tests.test_hia_program_source.HIASourceTests.test_assertion_lowers_to_a_supported_explicit_trap",
+        "tests.test_hia_program_source.HIASourceTests.test_owned_record_and_returned_projection_are_executable",
+        "tests.test_hia_program_source.HIASourceTests.test_aliased_mutable_call_rejects_in_standalone_resource_checker",
+        "tests.test_hia_program_source.HIASourceTests.test_scalarized_aliases_reject_and_disjoint_fields_preserve_updates",
+        "tests.test_hia_program_source.HIASourceTests.test_closed_generic_owner_record_result_instances_are_real_hia",
+        "tests.test_hia_program_source.HIASourceTests.test_generic_copy_recursion_is_specialized_and_type_growth_rejects",
+        "tests.test_hia_program_source.HIASourceTests.test_removed_drop_cannot_be_resealed_into_valid_hia",
+        "tests.test_hia_program_source.HIASourceTests.test_unmodeled_source_never_falls_back_to_foreign_or_rust_execution",
+        "tests.test_hia_source_local_views.HIASourceLocalViewTests.test_local_views_enter_same_core_and_preserve_shared_aliases",
+        "tests.test_hia_source_local_views.HIASourceLocalViewTests.test_mutable_views_move_drop_and_rejoin_each_loop",
+        "tests.test_hia_source_local_views.HIASourceLocalViewTests.test_fallible_call_ends_local_views_on_each_return_path",
+        "tests.test_hia_source_local_views.HIASourceLocalViewTests.test_existing_scoped_neighbours_use_canonical_core",
+        "tests.test_hia_source_local_views.HIASourceLocalViewTests.test_shared_alias_survives_inner_scope_and_each_early_return",
+        "tests.test_hia_source_local_views.HIASourceLocalViewTests.test_view_ledger_at_every_prefix_does_not_invent_abort_cleanup",
+        "tests.test_hia_source_local_views.HIASourceLocalViewTests.test_existing_invalid_aliases_and_escaping_storage_still_reject",
+        "tests.test_hia_source_local_views.HIASourceLocalViewTests.test_removed_loan_end_rejected_by_canonical_core",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumTests.test_existing_source_checker_resource_ir_and_same_core_all_accept",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumTests.test_source_route_and_public_execution_reject_erased_enum_helpers",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumTests.test_invalid_core_tag_traps_instead_of_selecting_last_variant",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumTests.test_result_error_enum_and_real_owner_cleanup_at_failure",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumTests.test_step_stops_keep_real_partial_ledger_without_implicit_cleanup",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumTests.test_unit_enum_match_preserves_scoped_shared_view_aliases",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumTests.test_32_variant_boundary_and_unused_unsupported_declarations",
+        "tests.test_hia_source_unit_enums.HIASourceUnitEnumTests.test_type_match_abi_and_complex_storage_refusals_remain_closed",
+        "tests.test_hia_source_exports.SourceExportBoundaryTests.test_original_signatures_survive_canonical_wire_round_trip",
+        "tests.test_hia_source_exports.SourceExportBoundaryTests.test_erased_aggregate_and_borrow_modes_are_not_scalar_exports",
+        "tests.test_hia_source_exports.SourceExportBoundaryTests.test_concrete_generic_scalar_instance_remains_internal",
+        "tests.test_hia_source_exports.SourceExportBoundaryTests.test_ordinary_scalar_and_unit_convenience_entries_are_retained",
+        "tests.test_hia_source_exports.SourceExportBoundaryTests.test_all_aggregate_module_has_explicit_empty_native_exports",
+        "tests.test_hia_source_exports.SourceExportBoundaryTests.test_existing_source_bound_owner_bridge_keeps_v1_exports",
+        "tests.test_hia_returned_loans.ReturnedLoanSemantics.test_source_retains_functions_calls_and_explicit_origin",
+        "tests.test_hia_returned_loans.ReturnedLoanSemantics.test_existing_source_default_and_unsupported_stored_origin_contracts",
+        "tests.test_hia_returned_loans.ReturnedLoanSemantics.test_nested_record_origin_is_named_nonfirst_leaf_with_scalar_writeback",
+        "tests.test_hia_returned_loans.ReturnedLoanSemantics.test_record_field_path_changes_local_origins_and_stored_borrows_reject",
+        "tests.test_hia_returned_loans.ReturnedLoanSemantics.test_identity_child_relay_join_and_original_parent_survives",
+        "tests.test_hia_returned_loans.ReturnedLoanSemantics.test_invalid_origins_lifetimes_suffixes_and_unused_helpers_reject",
+        "tests.test_hia_returned_loans.ReturnedLoanSemantics.test_other_version_consumers_fail_closed",
+        "tests.test_hia_routes.RouteTests.test_versioned_inventory_has_all_languages_and_legacy_non_authorities",
+        "tests.test_hia_routes.RouteTests.test_optimization_commands_have_explicit_distinct_contracts",
+        "tests.test_hia_routes.RouteTests.test_cli_options_cannot_reinterpret_ranking_guarded_or_source_routes",
+        "tests.test_hia_routes.RouteTests.test_source_and_both_legacy_routes_execute_one_value_model",
+        "tests.test_hia_routes.RouteTests.test_explicit_v8_source_route_keeps_returned_loans_and_cannot_override_wire_bytes",
+        "tests.test_hia_routes.RouteTests.test_cli_v8_lower_and_run_use_the_same_explicit_contract",
+        "tests.test_hia_routes.RouteTests.test_source_and_legacy_share_resource_and_failure_semantics",
+        "tests.test_hia_routes.RouteTests.test_unknown_language_metadata_receipt_and_backend_never_fallback",
+        "tests.test_hia_routes.RouteTests.test_cli_routes_and_optimization_publication_refusal",
+        "tests.test_hia_routes.RouteTests.test_captured_matrix_verifies_unselected_variant_before_admission",
+        "tests.test_hia_routes.RouteTests.test_captured_routes_execute_the_same_core_and_never_trust_a_receipt",
+        "tests.test_hia_routes.RouteTests.test_route_context_is_rejected_before_capture_or_source_access",
+        "tests.test_hia_routes.RouteTests.test_captured_route_cannot_claim_or_force_another_core_schema",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_reviewed_protocol_resolves_every_distinct_test",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_json_formatting_and_object_key_order_do_not_change_protocol",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_stateful_python_containers_cannot_reduce_the_hashed_selection",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_removing_each_reviewed_capability_is_refused",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_removing_each_boundary_regression_is_refused",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_replacing_a_regression_with_another_valid_test_is_refused",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_changed_scope_exclusions_or_trust_assumptions_are_refused",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_changed_entrypoint_refuses_before_dynamic_resolution",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_forged_identity_and_numeric_boolean_substitutions_are_refused",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_non_json_and_nonfinite_contract_values_are_controlled_refusals",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_live_registry_is_still_checked_after_protocol_identity",
+        "tests.test_hia_safety_protocol.ReviewedSafetyProtocolTests.test_workflow_checkout_and_license_inputs_are_bound_to_actual_bytes",
+        "tests.test_hia_integrated_workflow.IntegratedWorkflowContractTests.test_raw_record_candidate_push_registers_full_and_both_host_gates",
+        "tests.test_hia_integrated_workflow.IntegratedWorkflowContractTests.test_actual_cli_receives_all_four_native_profiles_and_external_paths",
+        "tests.test_hia_integrated_workflow.IntegratedWorkflowContractTests.test_real_shell_preserves_failure_and_qualifies_a_clean_exact_sibling",
+        "tests.test_hia_integrated_workflow.IntegratedWorkflowContractTests.test_existing_gates_and_always_upload_remain_in_place",
+        "tests.test_hia_integrated_workflow.IntegratedWorkflowContractTests.test_real_source_record_selects_only_explicit_profile_and_refuses_wrong_head",
+        "tests.test_hia_integrated_workflow.IntegratedWorkflowContractTests.test_application_workflow_uses_clean_source_and_retains_external_identity_files",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_checker_independent_resource_ir_and_canonical_core_all_accept",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_restore_after_explicit_field_release",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_fallible_restoration_consumes_success_or_empty_error_slot",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_both_branch_initialization_states_reach_same_core_join",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_early_cancel_drops_only_remaining_initialized_field",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_loop_restores_same_linear_state_on_each_backedge",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_nested_generic_restore_preserves_preexisting_scalar_copy",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_real_static_and_payload_analyzers_qualify_acyclic_restoration",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_loop_frame_bound_does_not_promise_tick_termination",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_restoration_can_transfer_a_disjoint_remaining_field",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_every_normal_prefix_retains_actual_stopped_ledger",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_invalid_partial_source_combinations_reject_freshly",
+        "tests.test_hia_source_partial.HIASourcePartialTests.test_tampered_normalized_cleanup_and_live_loan_move_are_rejected"
+      ],
+      "tree": "88478a74708cf63edf7f9304c0b4ceb820b04d01"
+    }
+  ],
+  "preserved_findings": [
+    {
+      "actual_original_category": "E_HIA_RESOURCE (unclosed additional loan at CFG edge)",
+      "kind": "owner_counterexample_premise",
+      "original_commit": "31736998decf7fe952617fd219130ee3a5048a9e",
+      "original_name": "reborrow_suspended_parent",
+      "resolution": "Balanced shared neighbour accepted; balanced exclusive-parent/live-mutable-child case specifically rejected E_HIA_LOAN in Python and raw Rust on final source."
+    },
+    {
+      "actual": "84 pass and 3 import errors",
+      "kind": "owner_sparse_materialization",
+      "original_run": "frozen317-legacy87",
+      "resolution": "Exactly three original same-commit protocol blobs restored; separate 87/87 rerun retained. Earlier focused9 remained its original 1454-file execution."
+    },
+    {
+      "actual": "All six original Rust controls completed; low-level LLVM emitter refused bytes rather than VerifiedProgram before any LLVM compile.",
+      "kind": "reviewer_api_argument",
+      "resolution": "Original collector and traceback retained; completion reused six original Rust outputs with zero Rust replay and performed the six outstanding LLVM calls."
+    },
+    {
+      "actual": "First read-only audit compared raw pretty-printed contract file SHA with the canonical wire identity and stopped.",
+      "kind": "reviewer_contract_identity_representation",
+      "resolution": "Original auditor, traceback and partial source audit retained; raw-file and canonical identities are now explicitly distinct. No source/native/test changes."
+    },
+    {
+      "actual": "Second read-only audit assumed Core map values were serialized strings; the original collector retains decoded JSON Core objects.",
+      "kind": "reviewer_core_record_representation",
+      "resolution": "Original auditor, traceback and partial source audit retained; canonicalize those original objects to verify their keyed Core identity. No source/native/test changes."
+    },
+    {
+      "actual": "Third read-only audit required whole metadata equality despite extra full-tree/ancestry/scope fields only in the initial peer snapshot.",
+      "kind": "reviewer_source_snapshot_schema",
+      "resolution": "Compare exact head/tree and every materialized file byte/mode identity; independently bind full-tree map/count. Original auditor and partial review retained; no source/native/test changes."
+    }
+  ],
+  "registration": {
+    "added_actual_nine_ids": [
+      "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViews.test_actual_core_rejects_parent_owner_and_cfg_corruptions",
+      "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViews.test_checked_resource_profile_enters_existing_v8_without_source_reparse",
+      "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViews.test_copy_move_branches_loops_and_each_early_exit_keep_parent_until_last_alias",
+      "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViews.test_fallible_paths_and_each_step_prefix_preserve_actual_resource_ledger",
+      "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViews.test_original_checker_and_finite_origin_storage_export_limits_still_reject",
+      "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViewsNative.test_actual_llvm_allocator_failure_keeps_returned_view_cleanup",
+      "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViewsNative.test_direct_llvm_executes_actual_source_selected_scalar_exports",
+      "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViewsRust.test_actual_same_rust_machine_matches_values_loans_failures_and_every_step",
+      "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViewsRust.test_raw_rust_refuses_the_same_five_emitted_capability_corruptions"
+    ],
+    "all_original_selectors_and_guarantees_retained": true,
+    "base_unique_selectors": 340,
+    "canonical_contract_sha256": "7da611f24e957ab113d987bbfb1d812db3234ca1be27cc61a8e743d0c89e4f99",
+    "capabilities": 36,
+    "final_unique_selectors": 349,
+    "full_349_execution_established_by_this_review": false,
+    "raw_contract_file_sha256": "40335f3f18f32e1886d8c50f9b275717de68d05f24fbbdf6f70a44c146b3379a"
+  },
+  "review_check_count": 52811,
+  "review_finished_utc": "2026-10-30T13:33:03.591638+00:00",
+  "review_started_utc": "2026-10-30T13:33:02.246885+00:00",
+  "schema": "hepta.returned-local-view-independent-review.v1",
+  "source": {
+    "actual_materialized_files": 1457,
+    "base": "b121c9b4a57a8a58e53360d1d67387d953348f57",
+    "final_changed_files": [
+      "docs/HIA_SOURCE_LOCAL_VIEWS.md",
+      "hepta/hia_program_source.py",
+      "tests/test_hia_source_returned_local_views.py"
+    ],
+    "final_production_sha256": "28ee10e1778eb66d4073983b889be9694e2257a7bfd9fd92bd1fee8ed3876515",
+    "final_review": "0d077885cc4be0b8ee96a012d7d6d2e51d1d2ace",
+    "final_tree": "88478a74708cf63edf7f9304c0b4ceb820b04d01",
+    "full_tree_files": 7699,
+    "independent_execution": "31736998decf7fe952617fd219130ee3a5048a9e",
+    "independent_tree": "77258df1ea6e855e06d157c4d44013b638de6179",
+    "old_production_sha256": "bf8c6d72c97226a9eb26105ad51fb1464ff901da9fb60f93571baa619e5460f3",
+    "production_ast_identical": true,
+    "production_bytes_identical": false,
+    "unmaterialized_tracked_files": 6242
+  },
+  "static_review": [
+    "Prune closes over hidden borrow_parents before CFG interfaces; new_block retains atomic aliases and renames loan atoms.",
+    "CFG edges preserve parent keys and existing resource alias/consumption checks; stored origins cannot vary silently across paths.",
+    "Shared aliases retain both parent and child until their last lexical binding; reverse cleanup ends child before parent.",
+    "Exclusive move transfers and clears the parent list; explicit drop consumes child/parent and early returns still require explicit exclusive cleanup.",
+    "Returned-call adapter is explicit v8, nonextern, one same-mode byte formal identified by return_origin, scalar extra arguments, direct named byte place, exactly one argument parent and child.",
+    "Existing source checker, ResourceIR, Core checker, Rust Machine, LLVM backend and production authority routes are unchanged by this slice."
+  ]
+}
