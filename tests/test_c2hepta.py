@@ -97,6 +97,26 @@ class HsirSafety(unittest.TestCase):
         self.assertEqual(len(function_hash(ordinary)), 64)
 
 
+    def test_direct_ir_fanout_node_budget_and_malformed_children_reject(self):
+        # A DAG can have shallow depth but exponentially many recursive visits
+        # during asdict()/emit. The budget must count expanded occurrences.
+        expr = Expr("var", "i32", "x")
+        for _ in range(13):
+            expr = Expr("arith", "i32", "+", (expr, expr))
+        wide = Function("wide", (("x", "i32"),), "i32",
+                        (Stmt("return", expr),))
+        for entry in (check_function, emit_function, function_hash):
+            with self.subTest(entry=entry.__name__):
+                with self.assertRaisesRegex(IRValidationError, "budget"):
+                    entry(wide)
+
+        malformed = Function("malformed", (("x", "i32"),), "i32",
+                             (Stmt("return", Expr("neg", "i32", args=("x",))),))
+        for entry in (check_function, emit_function, function_hash):
+            with self.subTest(malformed_entry=entry.__name__):
+                with self.assertRaises(IRValidationError):
+                    entry(malformed)
+
     def test_ir_rejects_overlong_decimal_literals_as_validation_errors(self):
         # Direct consumers can supply an IR without passing through Clang.
         # On Python 3.11+ int('9' * 5000) raises an unhandled ValueError

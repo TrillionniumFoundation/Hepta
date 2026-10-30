@@ -113,7 +113,44 @@ def _block(body: tuple[Stmt, ...], names: dict[str, str], result: str) -> set[st
     raise IRValidationError(f"unsupported statement node: {statement.kind}")
 
 
+# All public IR consumers (validation, emission, hashing) share a recursive
+# implementation. Validate tree size iteratively before any recursive walk.
+# These are deliberately conservative migration-subset limits, not a universal
+# language-wide resource guarantee.
+_MAX_IR_DEPTH = 64
+_MAX_IR_NODES = 4096
+
+
+def _check_structure_budget(function: Function) -> None:
+    if not isinstance(function, Function) or not isinstance(function.body, tuple):
+        raise IRValidationError("invalid migration IR function structure")
+
+    pending: list[tuple[Expr | Stmt, int]] = [(node, 1) for node in function.body]
+    if len(pending) > _MAX_IR_NODES:
+        raise IRValidationError("migration IR node budget exceeded")
+    visited = 0
+    while pending:
+        node, depth = pending.pop()
+        visited += 1
+        if visited > _MAX_IR_NODES or depth > _MAX_IR_DEPTH:
+            raise IRValidationError("migration IR depth or node budget exceeded")
+        if isinstance(node, Expr):
+            children = node.args
+        elif isinstance(node, Stmt):
+            if not isinstance(node.then_body, tuple) or not isinstance(node.else_body, tuple):
+                raise IRValidationError("invalid migration IR statement branches")
+            children = (node.expr,) + node.then_body + node.else_body
+        else:
+            raise IRValidationError("invalid migration IR tree node")
+        if not isinstance(children, tuple):
+            raise IRValidationError("invalid migration IR child sequence")
+        if len(children) > _MAX_IR_NODES - visited - len(pending):
+            raise IRValidationError("migration IR node budget exceeded")
+        pending.extend((child, depth + 1) for child in children)
+
+
 def check_function(function: Function) -> frozenset[str]:
+    _check_structure_budget(function)
     _check_symbol(function.name)
     if function.result not in NUMERIC or not function.body:
         raise IRValidationError("unsupported result or empty function")
