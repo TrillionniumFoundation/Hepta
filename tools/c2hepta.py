@@ -293,9 +293,14 @@ def migrate(source: Path, output: Path, report: Path, clang: str = "clang", veri
         # escaped newlines can join tokens into an otherwise hidden directive.
         # Reject these raw spellings anywhere (including comments) rather than
         # claim a partial lexer can certify macro-free source provenance.
+        # Clang expands built-in numeric macros such as __LINE__ and
+        # __COUNTER__ into ordinary IntegerLiteral AST nodes even when the
+        # source has no # directive. Reserved __ identifiers and _Pragma
+        # require a provenance model, so reject them before AST translation.
         if (b"#" in original or b"%:" in original or b"??" in original
-                or re.search(rb"\\[ \t]*[\r\n]", original)):
-            raise UnsupportedC("preprocessor directives, alternate tokens or line splicing require a future source model")
+                or re.search(rb"\\[ \t]*[\r\n]", original)
+                or re.search(rb"(?<![A-Za-z0-9_])(?:__[A-Za-z0-9_]*|_Pragma)(?![A-Za-z0-9_])", original)):
+            raise UnsupportedC("preprocessor directives, predefined macros, alternate tokens or line splicing require a future source model")
         if not shutil.which(clang):
             raise UnsupportedC("clang executable unavailable")
         version = _run_clang_capture_bounded([clang, "--version"], b"",
