@@ -94,7 +94,7 @@ class C2HeptaImport(unittest.TestCase):
         # C99/C11's %: digraph is the same preprocessing token as '#'.
         # The byte-only ^\\s*# filter silently misses this real directive.
         # Do not claim the strict no-preprocessor safety subset as converted.
-        result = self.convert("%:define STEP 1\\nint step(int x){return x + STEP;}\\n")
+        result = self.convert("%:define STEP 1\nint step(int x){return x + STEP;}\n")
         self.assertEqual(result["status"], "rejected", result)
         self.assertIn("preprocessor", result.get("reason", ""))
         self.assertFalse(self.out.exists())
