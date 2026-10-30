@@ -1,0 +1,1781 @@
+{
+  "schema": "hepta.cpp.inih.native-qualification.v1",
+  "profile": "inih-two-pinned-revisions-synchronous-callback-partial-v1",
+  "ok": true,
+  "host": {
+    "system": "Linux",
+    "machine": "x86_64"
+  },
+  "route": "source-pinned C++ decision extraction -> actual checked Hepta -> independent C11/GCC -> real INIReader C++ component",
+  "rust_or_clang_used": false,
+  "all_executions_direct_native_host": true,
+  "component_declaration_inventory": "18/18 explicit member dispositions for each revision",
+  "actual_upstream_maintenance_change_observed": true,
+  "source_unchanged": true,
+  "tools": {
+    "/usr/bin/x86_64-linux-gnu-gcc-13": {
+      "sha256": "1b99826121ae6682a634e5efe09bd3e3df58ce58e0b28f849114ab5b89139c26",
+      "target": "x86_64-linux-gnu"
+    },
+    "/usr/bin/x86_64-linux-gnu-g++-13": {
+      "sha256": "1353e9bdd29a7295c7226bf6c63abccce056d8cac31f112e5cdbecc3f28c2769",
+      "target": "x86_64-linux-gnu"
+    }
+  },
+  "parser_options": [
+    "-DINI_USE_STACK=0",
+    "-DINI_CUSTOM_ALLOCATOR=1",
+    "-DINI_STOP_ON_FIRST_ERROR=1",
+    "-DINI_HANDLER_LINENO=0",
+    "-DINI_CALL_HANDLER_ON_NEW_SECTION=1",
+    "-DINI_ALLOW_NO_VALUE=1"
+  ],
+  "records": [
+    {
+      "version": "de720a6f4066587618edfba3960ea9ed4132c665",
+      "migration": {
+        "schema": "hepta.cpp.inih.partial-migration.v1",
+        "profile": "inih-two-pinned-revisions-synchronous-callback-partial-v1",
+        "upstream": {
+          "repository": "https://github.com/benhoyt/inih",
+          "commit": "de720a6f4066587618edfba3960ea9ed4132c665",
+          "files": [
+            {
+              "path": "LICENSE.txt",
+              "git_blob_sha1": "cb7ee2d017f01192ff7bb8a4277b1ba4fde086d8",
+              "bytes": 1510,
+              "sha256": "9ae3b39e83e9158e44b67733baa3bb2d84e80efdcfb14a5820210a42c7abdf7f",
+              "url": "https://github.com/benhoyt/inih/blob/de720a6f4066587618edfba3960ea9ed4132c665/LICENSE.txt"
+            },
+            {
+              "path": "cpp/INIReader.cpp",
+              "git_blob_sha1": "d9567d6a44fe1fe08da5b8ed9d76ee45062309d6",
+              "bytes": 6584,
+              "sha256": "d8e3ce76ed09b379beef8d48ae428c9f383bf84131e5d4838f6c82eb746553c0",
+              "url": "https://github.com/benhoyt/inih/blob/de720a6f4066587618edfba3960ea9ed4132c665/cpp/INIReader.cpp"
+            },
+            {
+              "path": "cpp/INIReader.h",
+              "git_blob_sha1": "0581ac0ad2505d531b952b79538ccadee0d0595e",
+              "bytes": 5065,
+              "sha256": "ec0e0d1c45b622f83664df6da3b9fcc646dabe308c354b971c14409f6d343cd9",
+              "url": "https://github.com/benhoyt/inih/blob/de720a6f4066587618edfba3960ea9ed4132c665/cpp/INIReader.h"
+            },
+            {
+              "path": "ini.c",
+              "git_blob_sha1": "62b8d49c14926a59b4317703773788aa23b61183",
+              "bytes": 9436,
+              "sha256": "aaf8ecaa1ae6650287be7f9be8a196927400370e9546fbe13891bd682bc2977e",
+              "url": "https://github.com/benhoyt/inih/blob/de720a6f4066587618edfba3960ea9ed4132c665/ini.c"
+            },
+            {
+              "path": "ini.h",
+              "git_blob_sha1": "5c44bec3b14539277b71f8d952ae8e3b93f19783",
+              "bytes": 6953,
+              "sha256": "2e46eba137b5f9ac816e12786846791296f89fb4bd5d4cba69191b706d64654e",
+              "url": "https://github.com/benhoyt/inih/blob/de720a6f4066587618edfba3960ea9ed4132c665/ini.h"
+            }
+          ],
+          "whole_upstream_repository_captured": false
+        },
+        "member_definitions": [
+          {
+            "name": "INIReader",
+            "signature": "INIReader::INIReader(const string& filename)",
+            "source_line": 20,
+            "body_sha256": "7a1a3855cb95f25030623d25fa31a5c75627fecd1180798281245d36bbb12b27",
+            "disposition": "retained_parser_call_with_authored_callback_lease_adapter"
+          },
+          {
+            "name": "INIReader",
+            "signature": "INIReader::INIReader(const char *buffer, size_t buffer_size)",
+            "source_line": 25,
+            "body_sha256": "f48ade835e9bc8acf9aa4ee5c2875197c2699360461254a6fd53d6e89dbc999a",
+            "disposition": "retained_parser_call_with_authored_callback_lease_adapter"
+          },
+          {
+            "name": "ParseError",
+            "signature": "int INIReader::ParseError() const",
+            "source_line": 30,
+            "body_sha256": "fe0214e1e05969b7b67937392d3e33ee0670f9731f3a2d851823389ef2d558ef",
+            "disposition": "retained_foreign_cpp_implementation"
+          },
+          {
+            "name": "ParseErrorMessage",
+            "signature": "string INIReader::ParseErrorMessage() const",
+            "source_line": 35,
+            "body_sha256": "0c9e981a863057b66659103f4f3b56fe475edcce021417299c730b3a1b1f2732",
+            "disposition": "hepta_decisions_with_explicit_foreign_data_operations"
+          },
+          {
+            "name": "Get",
+            "signature": "string INIReader::Get(const string& section, const string& name, const string& default_value) const",
+            "source_line": 62,
+            "body_sha256": "1a9501b8c577f06ca546f2c263e500dba1127bf71e7d9f31cb6ad4e5b42674ff",
+            "disposition": "retained_foreign_cpp_implementation"
+          },
+          {
+            "name": "GetString",
+            "signature": "string INIReader::GetString(const string& section, const string& name, const string& default_value) const",
+            "source_line": 69,
+            "body_sha256": "e09ccc0c6eab92fb77fc5309d065a4a6cacaae02f77739c2d4a85fdcfb28e236",
+            "disposition": "retained_foreign_cpp_implementation"
+          },
+          {
+            "name": "GetInteger",
+            "signature": "long INIReader::GetInteger(const string& section, const string& name, long default_value) const",
+            "source_line": 75,
+            "body_sha256": "7052bc513e727d3c5103b7a50df8f77da2d80400090a3738e7ae46145451fc1d",
+            "disposition": "retained_foreign_cpp_implementation"
+          },
+          {
+            "name": "GetInteger64",
+            "signature": "INI_API int64_t INIReader::GetInteger64(const string& section, const string& name, int64_t default_value) const",
+            "source_line": 85,
+            "body_sha256": "b307a7e5a370ff49bc90e4d323eae34891157e4ab469c601c92de66296f6edc0",
+            "disposition": "retained_foreign_cpp_implementation"
+          },
+          {
+            "name": "GetUnsigned",
+            "signature": "unsigned long INIReader::GetUnsigned(const string& section, const string& name, unsigned long default_value) const",
+            "source_line": 95,
+            "body_sha256": "69d6811341e767704a51550c32f696b30e963337aefbee0a15ba04a3a1c089d0",
+            "disposition": "retained_foreign_cpp_implementation"
+          },
+          {
+            "name": "GetUnsigned64",
+            "signature": "INI_API uint64_t INIReader::GetUnsigned64(const string& section, const string& name, uint64_t default_value) const",
+            "source_line": 105,
+            "body_sha256": "2e757c5c1bf00bb84370e71d564e4d0bd89ae391b3ab10db443626013b296cf4",
+            "disposition": "retained_foreign_cpp_implementation"
+          },
+          {
+            "name": "GetReal",
+            "signature": "double INIReader::GetReal(const string& section, const string& name, double default_value) const",
+            "source_line": 115,
+            "body_sha256": "303186c79f49fdddef7fa47f37b683f9bc10b7dda8008a92c1b5cc628035addf",
+            "disposition": "retained_foreign_cpp_implementation"
+          },
+          {
+            "name": "GetBoolean",
+            "signature": "bool INIReader::GetBoolean(const string& section, const string& name, bool default_value) const",
+            "source_line": 124,
+            "body_sha256": "0f3bb6d8126212563d9cea52262004c5d64edac2bc563b9ab171a5721466a662",
+            "disposition": "hepta_decisions_with_explicit_foreign_data_operations"
+          },
+          {
+            "name": "Sections",
+            "signature": "std::vector<string> INIReader::Sections() const",
+            "source_line": 138,
+            "body_sha256": "336faceb2752e635d1e5a1a6a86a35b5354888dc8f076455fcb29cda2aa4d375",
+            "disposition": "retained_foreign_cpp_implementation"
+          },
+          {
+            "name": "Keys",
+            "signature": "std::vector<string> INIReader::Keys(const string& section) const",
+            "source_line": 150,
+            "body_sha256": "75c7d5b7c1c402820068f9d0f796736445cc4f04477fa5b7f45eadce279cee35",
+            "disposition": "retained_foreign_cpp_implementation"
+          },
+          {
+            "name": "HasSection",
+            "signature": "bool INIReader::HasSection(const string& section) const",
+            "source_line": 162,
+            "body_sha256": "060c04722ebe14d2a7091916858a8c870fb8feb2641e318b5fa54a78020c2ea0",
+            "disposition": "retained_foreign_cpp_implementation"
+          },
+          {
+            "name": "HasValue",
+            "signature": "bool INIReader::HasValue(const string& section, const string& name) const",
+            "source_line": 172,
+            "body_sha256": "38c4a13d73641ed57e37089075419662f015d843ea49355aa481484c93bfbf78",
+            "disposition": "retained_foreign_cpp_implementation"
+          },
+          {
+            "name": "MakeKey",
+            "signature": "string INIReader::MakeKey(const string& section, const string& name)",
+            "source_line": 178,
+            "body_sha256": "17ccb442df9243dfc45df28c944a1737b5f5055375a059b610e011814f4f2c18",
+            "disposition": "retained_foreign_cpp_implementation"
+          },
+          {
+            "name": "ValueHandler",
+            "signature": "int INIReader::ValueHandler(void* user, const char* section, const char* name,\n                            const char* value)",
+            "source_line": 187,
+            "body_sha256": "ad36e86dc38825673d2bddf0a04473ac0f52ea9b55ec6153179d4d4a9383b59e",
+            "disposition": "hepta_decisions_with_explicit_foreign_data_operations"
+          }
+        ],
+        "member_definition_count": 18,
+        "header_callable_inventory_complete": true,
+        "retained_state": [
+          "INIReader::_error",
+          "INIReader::_values (std::map<std::string,std::string>)"
+        ],
+        "hepta_automaton": {
+          "states": {
+            "": 0,
+            "t": 1,
+            "tr": 2,
+            "tru": 3,
+            "true": 4,
+            "y": 5,
+            "ye": 6,
+            "yes": 7,
+            "o": 8,
+            "on": 9,
+            "1": 10,
+            "f": 11,
+            "fa": 12,
+            "fal": 13,
+            "fals": 14,
+            "false": 15,
+            "n": 16,
+            "no": 17,
+            "of": 18,
+            "off": 19,
+            "0": 20
+          },
+          "transitions": [
+            {
+              "from": 0,
+              "byte": 48,
+              "to": 20
+            },
+            {
+              "from": 0,
+              "byte": 49,
+              "to": 10
+            },
+            {
+              "from": 0,
+              "byte": 102,
+              "to": 11
+            },
+            {
+              "from": 0,
+              "byte": 110,
+              "to": 16
+            },
+            {
+              "from": 0,
+              "byte": 111,
+              "to": 8
+            },
+            {
+              "from": 0,
+              "byte": 116,
+              "to": 1
+            },
+            {
+              "from": 0,
+              "byte": 121,
+              "to": 5
+            },
+            {
+              "from": 1,
+              "byte": 114,
+              "to": 2
+            },
+            {
+              "from": 2,
+              "byte": 117,
+              "to": 3
+            },
+            {
+              "from": 3,
+              "byte": 101,
+              "to": 4
+            },
+            {
+              "from": 5,
+              "byte": 101,
+              "to": 6
+            },
+            {
+              "from": 6,
+              "byte": 115,
+              "to": 7
+            },
+            {
+              "from": 8,
+              "byte": 102,
+              "to": 18
+            },
+            {
+              "from": 8,
+              "byte": 110,
+              "to": 9
+            },
+            {
+              "from": 11,
+              "byte": 97,
+              "to": 12
+            },
+            {
+              "from": 12,
+              "byte": 108,
+              "to": 13
+            },
+            {
+              "from": 13,
+              "byte": 115,
+              "to": 14
+            },
+            {
+              "from": 14,
+              "byte": 101,
+              "to": 15
+            },
+            {
+              "from": 16,
+              "byte": 111,
+              "to": 17
+            },
+            {
+              "from": 18,
+              "byte": 102,
+              "to": 19
+            }
+          ],
+          "dead_state": 4294967295,
+          "true_literals": [
+            "true",
+            "yes",
+            "on",
+            "1"
+          ],
+          "false_literals": [
+            "false",
+            "no",
+            "off",
+            "0"
+          ]
+        },
+        "error_cases": [
+          {
+            "code": -2,
+            "text": "unable to allocate memory"
+          },
+          {
+            "code": -1,
+            "text": "unable to open file"
+          },
+          {
+            "code": 0,
+            "text": ""
+          }
+        ],
+        "generated_hepta_sha256": "fe3764208a769420025656d04a391948cdfb698c32008265b4e2d3add3e2fbe7",
+        "generated_cpp_sha256": "10047fc17b58d064b2efe1011562505612f71178fe1c5d1767d7ac90fe3b5ded",
+        "actual_cpp_body_decision_fragments": [
+          "GetBoolean",
+          "ParseErrorMessage",
+          "ValueHandler"
+        ],
+        "authored_safety_increment": "same-thread scoped non-reentrant callback lease; catch callback exception, let C parser free its buffer, then rethrow",
+        "exception_cleanup_is_explicit_behavioral_repair": true,
+        "required_parser_options": {
+          "INI_HANDLER_LINENO": 0,
+          "INI_STOP_ON_FIRST_ERROR": 1
+        },
+        "whole_component_translated": false,
+        "general_cpp_translator": false,
+        "general_cpp_memory_safety_proved": false,
+        "compiler_refinement_proved": false,
+        "unmeasured": [
+          "human migration hours",
+          "performance superiority",
+          "arbitrary asynchronous cancellation"
+        ],
+        "boundary": [
+          "upstream C parser",
+          "STL map/string allocation and mutation",
+          "locale-sensitive tolower",
+          "string formatting",
+          "native callback registry implementation",
+          "upstream borrowed char pointer validity"
+        ],
+        "qualified_domain": "bounded synchronous same-thread callbacks; at most 32 simultaneously active parser leases per thread; LP64 native host"
+      },
+      "comparisons": [
+        {
+          "mode": "functional",
+          "byte_identical_stdout": true,
+          "sha256": "a92c29d1d92328ccf4fb768a7ecbe611fd89ef689936cb8f735f10da1816de31",
+          "readout": "case=0 error=0 message= a=68656c6c6f:0:1 b=776f726c64:0:1 flag=54725565:1:1 empty=4d495353494e47:0:1 no_value=4d495353494e47:0:1 number=3078346432:0:1 section=1 integer=1234 unsigned=1234 S=73656374696f6e K=61 K=62 K=666c6167 K=6e756d626572\ncase=1 error=0 message= a=6f6e650a74776f:0:1 b=:0:1 flag=4f4646:0:0 empty=4d495353494e47:0:1 no_value=:0:1 number=4d495353494e47:0:1 section=1 integer=-99 unsigned=99 S=73656374696f6e K=61 K=62 K=666c6167 K=6e6f5f76616c7565\ncase=2 error=0 message= a=6c617374:0:1 b=4d495353494e47:0:1 flag=594553:1:1 empty=4d495353494e47:0:1 no_value=4d495353494e47:0:1 number=4d495353494e47:0:1 section=1 integer=-99 unsigned=99 S=73656374696f6e K=61 K=666c6167\ncase=3 error=1 message=7061727365206572726f72206f6e206c696e6520313b206d697373696e6720275d27206f7220273d273f a=4d495353494e47:0:1 b=4d495353494e47:0:1 flag=4d495353494e47:0:1 empty=4d495353494e47:0:1 no_value=4d495353494e47:0:1 number=4d495353494e47:0:1 section=0 integer=-99 unsigned=99\ncase=4 error=0 message= a=4d495353494e47:0:1 b=4d495353494e47:0:1 flag=4d495353494e47:0:1 empty=4d495353494e47:0:1 no_value=4d495353494e47:0:1 number=4d495353494e47:0:1 section=1 integer=-99 unsigned=99 S=73656374696f6e K=\ncase=5 error=0 message= a=4d495353494e47:0:1 b=4d495353494e47:0:1 flag=6f4e:1:1 empty=4d495353494e47:0:1 no_value=4d495353494e47:0:1 number=2d3432:0:1 section=1 integer=-42 unsigned=18446744073709551574 S=73656374696f6e K=666c6167 K=6e756d626572\ncase=6 error=0 message= a=4d495353494e47:0:1 b=4d495353494e47:0:1 flag=4d495353494e47:0:1 empty=4d495353494e47:0:1 no_value=4d495353494e47:0:1 number=4d495353494e47:0:1 section=0 integer=-99 unsigned=99\ncase=7 error=0 message= a=4d495353494e47:0:1 b=4d495353494e47:0:1 flag=4d495353494e47:0:1 empty=:0:1 no_value=:0:1 number=4d495353494e47:0:1 section=1 integer=-99 unsigned=99 S=73656374696f6e K=656d707479 K=6e6f5f76616c7565\ncase=8 error=2 message=7061727365206572726f72206f6e206c696e6520323b206d697373696e6720275d27206f7220273d273f a=7878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878:0:1 b=4d495353494e47:0:1 flag=4d495353494e47:0:1 empty=4d495353494e47:0:1 no_value=4d495353494e47:0:1 number=4d495353494e47:0:1 section=1 integer=-99 unsigned=99 S=73656374696f6e K=61\ncase=9 error=0 message= a=6265666f7265:0:1 b=4d495353494e47:0:1 flag=4d495353494e47:0:1 empty=4d495353494e47:0:1 no_value=4d495353494e47:0:1 number=4d495353494e47:0:1 section=1 integer=-99 unsigned=99 S=73656374696f6e K=61\nerror-dispatch=-2147483648:756e6b6e6f776e206572726f72202d32313437343833363438\nerror-dispatch=-5:756e6b6e6f776e206572726f72202d35\nerror-dispatch=-4:756e6b6e6f776e206572726f72202d34\nerror-dispatch=-3:756e6b6e6f776e206572726f72202d33\nerror-dispatch=-2:756e61626c6520746f20616c6c6f63617465206d656d6f7279\nerror-dispatch=-1:756e61626c6520746f206f70656e2066696c65\nerror-dispatch=0:\nerror-dispatch=1:7061727365206572726f72206f6e206c696e6520313b206d697373696e6720275d27206f7220273d273f\nerror-dispatch=2:7061727365206572726f72206f6e206c696e6520323b206d697373696e6720275d27206f7220273d273f\nerror-dispatch=999:7061727365206572726f72206f6e206c696e65203939393b206d697373696e6720275d27206f7220273d273f\nerror-dispatch=2147483647:7061727365206572726f72206f6e206c696e6520323134373438333634373b206d697373696e6720275d27206f7220273d273f\nboolean-checks=10780 digest=5988550968695887699\nboolean-results=1111111100000000010101011111010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101110101010101010101010101010101010101010101010101010101010101010111010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010111010101010101010101010101010101010101010101010101010101010101011101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101110101010101010101010101010101010101010101010101010101010101010111010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101110101010101010101010101010101010101010101010101010101010101010111010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101110101010101010101010101010101010101010101010101010101010101010111010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010111010101010101010101010101010101010101010101010101010101010101011101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010111010101010101010101010101010101010101010101010101010101010101011101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010111010101010101010101010101010101010101010101010101010101010101011101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010111010101010101010101010101010101010101010101010101010101010101011101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101001101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010100010101010101010101010101010101010101010101010101010101010101010001010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010001010101010101010101010101010101010101010101010101010101010101000101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010001010101010101010101010101010101010101010101010101010101010101000101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101000101010101010101010101010101010101010101010101010101010101010100010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010100010101010101010101010101010101010101010101010101010101010101010001010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101000101010101010101010101010101010101010101010101010101010101010100010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010100010101010101010101010101010101010101010101010101010101010101010001010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101000101010101010101010101010101010101010101010101010101010101010100010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010001010101010101010101010101010101010101010101010101010101010101000101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010100010101010101010101010101010101010101010101010101010101010101010001010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010100110101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101\ncallback-branches=5:66697273740a0a6c617374:\n",
+          "boolean_result_count": 10780,
+          "all_boolean_result_bits_retained": true
+        },
+        {
+          "mode": "lifecycle",
+          "byte_identical_stdout": true,
+          "sha256": "6791584045ea33a030046c9bfb1e9219cb2fffe24a7aceecf62c3575c8e9c6d9",
+          "readout": "lifetimes=64 valid=1 cpp-balanced=1 c-live=0\n"
+        },
+        {
+          "mode": "allocation-failure",
+          "byte_identical_stdout": true,
+          "sha256": "339261f4afc502cc33010de0f26e2e54e4b0ff6870a244508e20a301c9f47ca5",
+          "readout": "allocation-refusal=-2:756e61626c6520746f20616c6c6f63617465206d656d6f7279 c-live=0\n"
+        },
+        {
+          "mode": "file-error",
+          "byte_identical_stdout": true,
+          "sha256": "638b649cb1421181db892a2f050aea12a7b5c8808338c4129f5edf632903c471",
+          "readout": "directory-read=0:\nopen-failure=-1:756e61626c6520746f206f70656e2066696c65\n"
+        }
+      ],
+      "callback_exception_observations": {
+        "original": "callback-bad-alloc=1 c-live=1 cpp-balanced=1 parser-allocations=1\n",
+        "migrated": "callback-bad-alloc=1 c-live=0 cpp-balanced=1 parser-allocations=1\n"
+      },
+      "callback_exception_is_equivalence_gate": false,
+      "callback_lease_controls": "callback-controls=11/11 transitions=36/36 leases=0\n",
+      "native_wrong_result_control": {
+        "actual_mutated_hepta_compiled": true,
+        "both_native_programs_exited_zero": true,
+        "same_native_reference_rejected_output": true,
+        "source_rule": "if state == 4 { return 1; }",
+        "not_a_compiler_failure": true
+      }
+    },
+    {
+      "version": "2d5ec7b59abbb8e1797e48060965001aaac6996a",
+      "migration": {
+        "schema": "hepta.cpp.inih.partial-migration.v1",
+        "profile": "inih-two-pinned-revisions-synchronous-callback-partial-v1",
+        "upstream": {
+          "repository": "https://github.com/benhoyt/inih",
+          "commit": "2d5ec7b59abbb8e1797e48060965001aaac6996a",
+          "files": [
+            {
+              "path": "LICENSE.txt",
+              "git_blob_sha1": "cb7ee2d017f01192ff7bb8a4277b1ba4fde086d8",
+              "bytes": 1510,
+              "sha256": "9ae3b39e83e9158e44b67733baa3bb2d84e80efdcfb14a5820210a42c7abdf7f",
+              "url": "https://github.com/benhoyt/inih/blob/2d5ec7b59abbb8e1797e48060965001aaac6996a/LICENSE.txt"
+            },
+            {
+              "path": "cpp/INIReader.cpp",
+              "git_blob_sha1": "c96827a13620bfbae035cf5c0f225dc02d774c5d",
+              "bytes": 6636,
+              "sha256": "a15b1d3414e39ddf25f0ae72ff72fa891fb2f39bab7d8acd9420366c21146673",
+              "url": "https://github.com/benhoyt/inih/blob/2d5ec7b59abbb8e1797e48060965001aaac6996a/cpp/INIReader.cpp"
+            },
+            {
+              "path": "cpp/INIReader.h",
+              "git_blob_sha1": "02cf9a44d06a1c1ca772f13ca1bd5519e007774c",
+              "bytes": 5088,
+              "sha256": "7a597b8c60b432db518a0ff00e54b4d5f19f2c59dd634b67155cc04df4db2a84",
+              "url": "https://github.com/benhoyt/inih/blob/2d5ec7b59abbb8e1797e48060965001aaac6996a/cpp/INIReader.h"
+            },
+            {
+              "path": "ini.c",
+              "git_blob_sha1": "d0f950d87e0106f11bae82efca242f29d824fad8",
+              "bytes": 9479,
+              "sha256": "49635826cc1ae71209ba88cdad0640d7d1a079779ee24c521efd1e06f4a60633",
+              "url": "https://github.com/benhoyt/inih/blob/2d5ec7b59abbb8e1797e48060965001aaac6996a/ini.c"
+            },
+            {
+              "path": "ini.h",
+              "git_blob_sha1": "727aa5cbfc4870588906544341542a211b5bd134",
+              "bytes": 6976,
+              "sha256": "db3995229183d50d42cb675bf048f04525aed857fe3e4e39a54a1d7dd2f0f2e9",
+              "url": "https://github.com/benhoyt/inih/blob/2d5ec7b59abbb8e1797e48060965001aaac6996a/ini.h"
+            }
+          ],
+          "whole_upstream_repository_captured": false
+        },
+        "member_definitions": [
+          {
+            "name": "INIReader",
+            "signature": "INIReader::INIReader(const string& filename)",
+            "source_line": 20,
+            "body_sha256": "7a1a3855cb95f25030623d25fa31a5c75627fecd1180798281245d36bbb12b27",
+            "disposition": "retained_parser_call_with_authored_callback_lease_adapter"
+          },
+          {
+            "name": "INIReader",
+            "signature": "INIReader::INIReader(const char *buffer, size_t buffer_size)",
+            "source_line": 25,
+            "body_sha256": "f48ade835e9bc8acf9aa4ee5c2875197c2699360461254a6fd53d6e89dbc999a",
+            "disposition": "retained_parser_call_with_authored_callback_lease_adapter"
+          },
+          {
+            "name": "ParseError",
+            "signature": "int INIReader::ParseError() const",
+            "source_line": 30,
+            "body_sha256": "fe0214e1e05969b7b67937392d3e33ee0670f9731f3a2d851823389ef2d558ef",
+            "disposition": "retained_foreign_cpp_implementation"
+          },
+          {
+            "name": "ParseErrorMessage",
+            "signature": "string INIReader::ParseErrorMessage() const",
+            "source_line": 35,
+            "body_sha256": "e6e963ca27dfd0d5af2f36909e6439b799cd321c072102c3c45d7069aeca16cd",
+            "disposition": "hepta_decisions_with_explicit_foreign_data_operations"
+          },
+          {
+            "name": "Get",
+            "signature": "string INIReader::Get(const string& section, const string& name, const string& default_value) const",
+            "source_line": 65,
+            "body_sha256": "1a9501b8c577f06ca546f2c263e500dba1127bf71e7d9f31cb6ad4e5b42674ff",
+            "disposition": "retained_foreign_cpp_implementation"
+          },
+          {
+            "name": "GetString",
+            "signature": "string INIReader::GetString(const string& section, const string& name, const string& default_value) const",
+            "source_line": 72,
+            "body_sha256": "e09ccc0c6eab92fb77fc5309d065a4a6cacaae02f77739c2d4a85fdcfb28e236",
+            "disposition": "retained_foreign_cpp_implementation"
+          },
+          {
+            "name": "GetInteger",
+            "signature": "long INIReader::GetInteger(const string& section, const string& name, long default_value) const",
+            "source_line": 78,
+            "body_sha256": "7052bc513e727d3c5103b7a50df8f77da2d80400090a3738e7ae46145451fc1d",
+            "disposition": "retained_foreign_cpp_implementation"
+          },
+          {
+            "name": "GetInteger64",
+            "signature": "INI_API int64_t INIReader::GetInteger64(const string& section, const string& name, int64_t default_value) const",
+            "source_line": 88,
+            "body_sha256": "b307a7e5a370ff49bc90e4d323eae34891157e4ab469c601c92de66296f6edc0",
+            "disposition": "retained_foreign_cpp_implementation"
+          },
+          {
+            "name": "GetUnsigned",
+            "signature": "unsigned long INIReader::GetUnsigned(const string& section, const string& name, unsigned long default_value) const",
+            "source_line": 98,
+            "body_sha256": "69d6811341e767704a51550c32f696b30e963337aefbee0a15ba04a3a1c089d0",
+            "disposition": "retained_foreign_cpp_implementation"
+          },
+          {
+            "name": "GetUnsigned64",
+            "signature": "INI_API uint64_t INIReader::GetUnsigned64(const string& section, const string& name, uint64_t default_value) const",
+            "source_line": 108,
+            "body_sha256": "2e757c5c1bf00bb84370e71d564e4d0bd89ae391b3ab10db443626013b296cf4",
+            "disposition": "retained_foreign_cpp_implementation"
+          },
+          {
+            "name": "GetReal",
+            "signature": "double INIReader::GetReal(const string& section, const string& name, double default_value) const",
+            "source_line": 118,
+            "body_sha256": "303186c79f49fdddef7fa47f37b683f9bc10b7dda8008a92c1b5cc628035addf",
+            "disposition": "retained_foreign_cpp_implementation"
+          },
+          {
+            "name": "GetBoolean",
+            "signature": "bool INIReader::GetBoolean(const string& section, const string& name, bool default_value) const",
+            "source_line": 127,
+            "body_sha256": "0f3bb6d8126212563d9cea52262004c5d64edac2bc563b9ab171a5721466a662",
+            "disposition": "hepta_decisions_with_explicit_foreign_data_operations"
+          },
+          {
+            "name": "Sections",
+            "signature": "std::vector<string> INIReader::Sections() const",
+            "source_line": 141,
+            "body_sha256": "336faceb2752e635d1e5a1a6a86a35b5354888dc8f076455fcb29cda2aa4d375",
+            "disposition": "retained_foreign_cpp_implementation"
+          },
+          {
+            "name": "Keys",
+            "signature": "std::vector<string> INIReader::Keys(const string& section) const",
+            "source_line": 153,
+            "body_sha256": "75c7d5b7c1c402820068f9d0f796736445cc4f04477fa5b7f45eadce279cee35",
+            "disposition": "retained_foreign_cpp_implementation"
+          },
+          {
+            "name": "HasSection",
+            "signature": "bool INIReader::HasSection(const string& section) const",
+            "source_line": 165,
+            "body_sha256": "060c04722ebe14d2a7091916858a8c870fb8feb2641e318b5fa54a78020c2ea0",
+            "disposition": "retained_foreign_cpp_implementation"
+          },
+          {
+            "name": "HasValue",
+            "signature": "bool INIReader::HasValue(const string& section, const string& name) const",
+            "source_line": 175,
+            "body_sha256": "38c4a13d73641ed57e37089075419662f015d843ea49355aa481484c93bfbf78",
+            "disposition": "retained_foreign_cpp_implementation"
+          },
+          {
+            "name": "MakeKey",
+            "signature": "string INIReader::MakeKey(const string& section, const string& name)",
+            "source_line": 181,
+            "body_sha256": "17ccb442df9243dfc45df28c944a1737b5f5055375a059b610e011814f4f2c18",
+            "disposition": "retained_foreign_cpp_implementation"
+          },
+          {
+            "name": "ValueHandler",
+            "signature": "int INIReader::ValueHandler(void* user, const char* section, const char* name,\n                            const char* value)",
+            "source_line": 190,
+            "body_sha256": "ad36e86dc38825673d2bddf0a04473ac0f52ea9b55ec6153179d4d4a9383b59e",
+            "disposition": "hepta_decisions_with_explicit_foreign_data_operations"
+          }
+        ],
+        "member_definition_count": 18,
+        "header_callable_inventory_complete": true,
+        "retained_state": [
+          "INIReader::_error",
+          "INIReader::_values (std::map<std::string,std::string>)"
+        ],
+        "hepta_automaton": {
+          "states": {
+            "": 0,
+            "t": 1,
+            "tr": 2,
+            "tru": 3,
+            "true": 4,
+            "y": 5,
+            "ye": 6,
+            "yes": 7,
+            "o": 8,
+            "on": 9,
+            "1": 10,
+            "f": 11,
+            "fa": 12,
+            "fal": 13,
+            "fals": 14,
+            "false": 15,
+            "n": 16,
+            "no": 17,
+            "of": 18,
+            "off": 19,
+            "0": 20
+          },
+          "transitions": [
+            {
+              "from": 0,
+              "byte": 48,
+              "to": 20
+            },
+            {
+              "from": 0,
+              "byte": 49,
+              "to": 10
+            },
+            {
+              "from": 0,
+              "byte": 102,
+              "to": 11
+            },
+            {
+              "from": 0,
+              "byte": 110,
+              "to": 16
+            },
+            {
+              "from": 0,
+              "byte": 111,
+              "to": 8
+            },
+            {
+              "from": 0,
+              "byte": 116,
+              "to": 1
+            },
+            {
+              "from": 0,
+              "byte": 121,
+              "to": 5
+            },
+            {
+              "from": 1,
+              "byte": 114,
+              "to": 2
+            },
+            {
+              "from": 2,
+              "byte": 117,
+              "to": 3
+            },
+            {
+              "from": 3,
+              "byte": 101,
+              "to": 4
+            },
+            {
+              "from": 5,
+              "byte": 101,
+              "to": 6
+            },
+            {
+              "from": 6,
+              "byte": 115,
+              "to": 7
+            },
+            {
+              "from": 8,
+              "byte": 102,
+              "to": 18
+            },
+            {
+              "from": 8,
+              "byte": 110,
+              "to": 9
+            },
+            {
+              "from": 11,
+              "byte": 97,
+              "to": 12
+            },
+            {
+              "from": 12,
+              "byte": 108,
+              "to": 13
+            },
+            {
+              "from": 13,
+              "byte": 115,
+              "to": 14
+            },
+            {
+              "from": 14,
+              "byte": 101,
+              "to": 15
+            },
+            {
+              "from": 16,
+              "byte": 111,
+              "to": 17
+            },
+            {
+              "from": 18,
+              "byte": 102,
+              "to": 19
+            }
+          ],
+          "dead_state": 4294967295,
+          "true_literals": [
+            "true",
+            "yes",
+            "on",
+            "1"
+          ],
+          "false_literals": [
+            "false",
+            "no",
+            "off",
+            "0"
+          ]
+        },
+        "error_cases": [
+          {
+            "code": -3,
+            "text": "unable to read file"
+          },
+          {
+            "code": -2,
+            "text": "unable to allocate memory"
+          },
+          {
+            "code": -1,
+            "text": "unable to open file"
+          },
+          {
+            "code": 0,
+            "text": ""
+          }
+        ],
+        "generated_hepta_sha256": "75e13907474cd9c2501000192348400216bce146d5b4c042fcc5b8294860c2e4",
+        "generated_cpp_sha256": "578d23e9356a18234e054ca30c30492dbd852c1a5f8403d3c26d637a806a420e",
+        "actual_cpp_body_decision_fragments": [
+          "GetBoolean",
+          "ParseErrorMessage",
+          "ValueHandler"
+        ],
+        "authored_safety_increment": "same-thread scoped non-reentrant callback lease; catch callback exception, let C parser free its buffer, then rethrow",
+        "exception_cleanup_is_explicit_behavioral_repair": true,
+        "required_parser_options": {
+          "INI_HANDLER_LINENO": 0,
+          "INI_STOP_ON_FIRST_ERROR": 1
+        },
+        "whole_component_translated": false,
+        "general_cpp_translator": false,
+        "general_cpp_memory_safety_proved": false,
+        "compiler_refinement_proved": false,
+        "unmeasured": [
+          "human migration hours",
+          "performance superiority",
+          "arbitrary asynchronous cancellation"
+        ],
+        "boundary": [
+          "upstream C parser",
+          "STL map/string allocation and mutation",
+          "locale-sensitive tolower",
+          "string formatting",
+          "native callback registry implementation",
+          "upstream borrowed char pointer validity"
+        ],
+        "qualified_domain": "bounded synchronous same-thread callbacks; at most 32 simultaneously active parser leases per thread; LP64 native host"
+      },
+      "comparisons": [
+        {
+          "mode": "functional",
+          "byte_identical_stdout": true,
+          "sha256": "dc483ef16b88e31570ab1a93c7088308b65a32c514052bb4ead7e0c773232508",
+          "readout": "case=0 error=0 message= a=68656c6c6f:0:1 b=776f726c64:0:1 flag=54725565:1:1 empty=4d495353494e47:0:1 no_value=4d495353494e47:0:1 number=3078346432:0:1 section=1 integer=1234 unsigned=1234 S=73656374696f6e K=61 K=62 K=666c6167 K=6e756d626572\ncase=1 error=0 message= a=6f6e650a74776f:0:1 b=:0:1 flag=4f4646:0:0 empty=4d495353494e47:0:1 no_value=:0:1 number=4d495353494e47:0:1 section=1 integer=-99 unsigned=99 S=73656374696f6e K=61 K=62 K=666c6167 K=6e6f5f76616c7565\ncase=2 error=0 message= a=6c617374:0:1 b=4d495353494e47:0:1 flag=594553:1:1 empty=4d495353494e47:0:1 no_value=4d495353494e47:0:1 number=4d495353494e47:0:1 section=1 integer=-99 unsigned=99 S=73656374696f6e K=61 K=666c6167\ncase=3 error=1 message=7061727365206572726f72206f6e206c696e6520313b206d697373696e6720275d27206f7220273d273f a=4d495353494e47:0:1 b=4d495353494e47:0:1 flag=4d495353494e47:0:1 empty=4d495353494e47:0:1 no_value=4d495353494e47:0:1 number=4d495353494e47:0:1 section=0 integer=-99 unsigned=99\ncase=4 error=0 message= a=4d495353494e47:0:1 b=4d495353494e47:0:1 flag=4d495353494e47:0:1 empty=4d495353494e47:0:1 no_value=4d495353494e47:0:1 number=4d495353494e47:0:1 section=1 integer=-99 unsigned=99 S=73656374696f6e K=\ncase=5 error=0 message= a=4d495353494e47:0:1 b=4d495353494e47:0:1 flag=6f4e:1:1 empty=4d495353494e47:0:1 no_value=4d495353494e47:0:1 number=2d3432:0:1 section=1 integer=-42 unsigned=18446744073709551574 S=73656374696f6e K=666c6167 K=6e756d626572\ncase=6 error=0 message= a=4d495353494e47:0:1 b=4d495353494e47:0:1 flag=4d495353494e47:0:1 empty=4d495353494e47:0:1 no_value=4d495353494e47:0:1 number=4d495353494e47:0:1 section=0 integer=-99 unsigned=99\ncase=7 error=0 message= a=4d495353494e47:0:1 b=4d495353494e47:0:1 flag=4d495353494e47:0:1 empty=:0:1 no_value=:0:1 number=4d495353494e47:0:1 section=1 integer=-99 unsigned=99 S=73656374696f6e K=656d707479 K=6e6f5f76616c7565\ncase=8 error=2 message=7061727365206572726f72206f6e206c696e6520323b206d697373696e6720275d27206f7220273d273f a=7878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878:0:1 b=4d495353494e47:0:1 flag=4d495353494e47:0:1 empty=4d495353494e47:0:1 no_value=4d495353494e47:0:1 number=4d495353494e47:0:1 section=1 integer=-99 unsigned=99 S=73656374696f6e K=61\ncase=9 error=0 message= a=6265666f7265:0:1 b=4d495353494e47:0:1 flag=4d495353494e47:0:1 empty=4d495353494e47:0:1 no_value=4d495353494e47:0:1 number=4d495353494e47:0:1 section=1 integer=-99 unsigned=99 S=73656374696f6e K=61\nerror-dispatch=-2147483648:756e6b6e6f776e206572726f72202d32313437343833363438\nerror-dispatch=-5:756e6b6e6f776e206572726f72202d35\nerror-dispatch=-4:756e6b6e6f776e206572726f72202d34\nerror-dispatch=-3:756e61626c6520746f20726561642066696c65\nerror-dispatch=-2:756e61626c6520746f20616c6c6f63617465206d656d6f7279\nerror-dispatch=-1:756e61626c6520746f206f70656e2066696c65\nerror-dispatch=0:\nerror-dispatch=1:7061727365206572726f72206f6e206c696e6520313b206d697373696e6720275d27206f7220273d273f\nerror-dispatch=2:7061727365206572726f72206f6e206c696e6520323b206d697373696e6720275d27206f7220273d273f\nerror-dispatch=999:7061727365206572726f72206f6e206c696e65203939393b206d697373696e6720275d27206f7220273d273f\nerror-dispatch=2147483647:7061727365206572726f72206f6e206c696e6520323134373438333634373b206d697373696e6720275d27206f7220273d273f\nboolean-checks=10780 digest=5988550968695887699\nboolean-results=1111111100000000010101011111010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101110101010101010101010101010101010101010101010101010101010101010111010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010111010101010101010101010101010101010101010101010101010101010101011101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101110101010101010101010101010101010101010101010101010101010101010111010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101110101010101010101010101010101010101010101010101010101010101010111010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101110101010101010101010101010101010101010101010101010101010101010111010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010111010101010101010101010101010101010101010101010101010101010101011101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010111010101010101010101010101010101010101010101010101010101010101011101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010111010101010101010101010101010101010101010101010101010101010101011101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010111010101010101010101010101010101010101010101010101010101010101011101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101001101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010100010101010101010101010101010101010101010101010101010101010101010001010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010001010101010101010101010101010101010101010101010101010101010101000101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010001010101010101010101010101010101010101010101010101010101010101000101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101000101010101010101010101010101010101010101010101010101010101010100010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010100010101010101010101010101010101010101010101010101010101010101010001010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101000101010101010101010101010101010101010101010101010101010101010100010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010100010101010101010101010101010101010101010101010101010101010101010001010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101000101010101010101010101010101010101010101010101010101010101010100010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010001010101010101010101010101010101010101010101010101010101010101000101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010100010101010101010101010101010101010101010101010101010101010101010001010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010100110101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101\ncallback-branches=5:66697273740a0a6c617374:\n",
+          "boolean_result_count": 10780,
+          "all_boolean_result_bits_retained": true
+        },
+        {
+          "mode": "lifecycle",
+          "byte_identical_stdout": true,
+          "sha256": "6791584045ea33a030046c9bfb1e9219cb2fffe24a7aceecf62c3575c8e9c6d9",
+          "readout": "lifetimes=64 valid=1 cpp-balanced=1 c-live=0\n"
+        },
+        {
+          "mode": "allocation-failure",
+          "byte_identical_stdout": true,
+          "sha256": "339261f4afc502cc33010de0f26e2e54e4b0ff6870a244508e20a301c9f47ca5",
+          "readout": "allocation-refusal=-2:756e61626c6520746f20616c6c6f63617465206d656d6f7279 c-live=0\n"
+        },
+        {
+          "mode": "file-error",
+          "byte_identical_stdout": true,
+          "sha256": "71cf7be8610bc1c3aba811b2524cf9ed155bf4347fbf3ec8496e14e906f386bd",
+          "readout": "directory-read=-3:756e61626c6520746f20726561642066696c65\nopen-failure=-1:756e61626c6520746f206f70656e2066696c65\n"
+        }
+      ],
+      "callback_exception_observations": {
+        "original": "callback-bad-alloc=1 c-live=1 cpp-balanced=1 parser-allocations=1\n",
+        "migrated": "callback-bad-alloc=1 c-live=0 cpp-balanced=1 parser-allocations=1\n"
+      },
+      "callback_exception_is_equivalence_gate": false,
+      "callback_lease_controls": "callback-controls=11/11 transitions=36/36 leases=0\n",
+      "native_wrong_result_control": {
+        "actual_mutated_hepta_compiled": true,
+        "both_native_programs_exited_zero": true,
+        "same_native_reference_rejected_output": true,
+        "source_rule": "if state == 4 { return 1; }",
+        "not_a_compiler_failure": true
+      }
+    }
+  ],
+  "command_count": 48,
+  "wall_ns": 15288790267,
+  "files": [
+    {
+      "path": "2d5ec7b5/migrated/LICENSE.txt",
+      "bytes": 1510,
+      "sha256": "9ae3b39e83e9158e44b67733baa3bb2d84e80efdcfb14a5820210a42c7abdf7f",
+      "binary": false
+    },
+    {
+      "path": "2d5ec7b5/migrated/MIGRATION.json",
+      "bytes": 11638,
+      "sha256": "93e2e4ffd91a2ee4c18274c42a45896fcee9af3f3671f04f6c4206148ee8b082",
+      "binary": false
+    },
+    {
+      "path": "2d5ec7b5/migrated/alloc.o",
+      "bytes": 3384,
+      "sha256": "9326181f30008ee21fd9ecf2262ebd7ec231a34cfdc0874ad6968780d02dcc03",
+      "binary": true
+    },
+    {
+      "path": "2d5ec7b5/migrated/component",
+      "bytes": 87928,
+      "sha256": "b4748fa1d5f64adebf0ac65fb07c82f9b23e4575ef18dcb88944f1e60324fbe2",
+      "binary": true
+    },
+    {
+      "path": "2d5ec7b5/migrated/cpp/INIReader.cpp",
+      "bytes": 6670,
+      "sha256": "578d23e9356a18234e054ca30c30492dbd852c1a5f8403d3c26d637a806a420e",
+      "binary": false
+    },
+    {
+      "path": "2d5ec7b5/migrated/cpp/INIReader.h",
+      "bytes": 5088,
+      "sha256": "7a597b8c60b432db518a0ff00e54b4d5f19f2c59dd634b67155cc04df4db2a84",
+      "binary": false
+    },
+    {
+      "path": "2d5ec7b5/migrated/cpp/inih_hepta_callback.hpp",
+      "bytes": 5536,
+      "sha256": "6479821cd54b9793a6a2838267da53eac1877e712a44bd337270ca9437d5a2bf",
+      "binary": false
+    },
+    {
+      "path": "2d5ec7b5/migrated/ini.c",
+      "bytes": 9479,
+      "sha256": "49635826cc1ae71209ba88cdad0640d7d1a079779ee24c521efd1e06f4a60633",
+      "binary": false
+    },
+    {
+      "path": "2d5ec7b5/migrated/ini.h",
+      "bytes": 6976,
+      "sha256": "db3995229183d50d42cb675bf048f04525aed857fe3e4e39a54a1d7dd2f0f2e9",
+      "binary": false
+    },
+    {
+      "path": "2d5ec7b5/migrated/ini.o",
+      "bytes": 6192,
+      "sha256": "ec337704deb76accf153ed56888346bbe70f0e55c6a6efd21d3f8d17d46d43e8",
+      "binary": true
+    },
+    {
+      "path": "2d5ec7b5/migrated/inih-hepta.o",
+      "bytes": 2256,
+      "sha256": "d82e2b2778998b75af6370e2db1c4e099910b3f980fdb719e3f59ca4c61268ac",
+      "binary": true
+    },
+    {
+      "path": "2d5ec7b5/migrated/inih.c",
+      "bytes": 49047,
+      "sha256": "90891a7956bfacef46ba7eddc884e469cf5cef98eb7be83e180c327de46366ff",
+      "binary": false
+    },
+    {
+      "path": "2d5ec7b5/migrated/inih.hepta",
+      "bytes": 2359,
+      "sha256": "75e13907474cd9c2501000192348400216bce146d5b4c042fcc5b8294860c2e4",
+      "binary": false
+    },
+    {
+      "path": "2d5ec7b5/migrated/wrong-boolean.c",
+      "bytes": 51954,
+      "sha256": "c6f7e250acff2d50333df2240cf54004b5eac81d49f28919d5c5253176c01729",
+      "binary": false
+    },
+    {
+      "path": "2d5ec7b5/migrated/wrong-boolean.hepta",
+      "bytes": 2359,
+      "sha256": "12253d543f1253e5ac6d0f2b4cb1b6730751b91db74fc5762adb8c006eedda16",
+      "binary": false
+    },
+    {
+      "path": "2d5ec7b5/migrated/wrong-boolean.o",
+      "bytes": 2264,
+      "sha256": "6995bdf93636cc60cee6f503d681eb59c932136868af4ec2525694cd919196b2",
+      "binary": true
+    },
+    {
+      "path": "2d5ec7b5/migrated/wrong-component",
+      "bytes": 87936,
+      "sha256": "2bd2eab263a9cce829c9e01e1408affecd204ad7410d94cfe4334a8dd55bc847",
+      "binary": true
+    },
+    {
+      "path": "2d5ec7b5/original/LICENSE.txt",
+      "bytes": 1510,
+      "sha256": "9ae3b39e83e9158e44b67733baa3bb2d84e80efdcfb14a5820210a42c7abdf7f",
+      "binary": false
+    },
+    {
+      "path": "2d5ec7b5/original/alloc.o",
+      "bytes": 3384,
+      "sha256": "9326181f30008ee21fd9ecf2262ebd7ec231a34cfdc0874ad6968780d02dcc03",
+      "binary": true
+    },
+    {
+      "path": "2d5ec7b5/original/component",
+      "bytes": 76648,
+      "sha256": "1228b293373fde702305df275deeed5f211aad3ecfd66aee7b6d98aa7e82c9d7",
+      "binary": true
+    },
+    {
+      "path": "2d5ec7b5/original/cpp/INIReader.cpp",
+      "bytes": 6636,
+      "sha256": "a15b1d3414e39ddf25f0ae72ff72fa891fb2f39bab7d8acd9420366c21146673",
+      "binary": false
+    },
+    {
+      "path": "2d5ec7b5/original/cpp/INIReader.h",
+      "bytes": 5088,
+      "sha256": "7a597b8c60b432db518a0ff00e54b4d5f19f2c59dd634b67155cc04df4db2a84",
+      "binary": false
+    },
+    {
+      "path": "2d5ec7b5/original/ini.c",
+      "bytes": 9479,
+      "sha256": "49635826cc1ae71209ba88cdad0640d7d1a079779ee24c521efd1e06f4a60633",
+      "binary": false
+    },
+    {
+      "path": "2d5ec7b5/original/ini.h",
+      "bytes": 6976,
+      "sha256": "db3995229183d50d42cb675bf048f04525aed857fe3e4e39a54a1d7dd2f0f2e9",
+      "binary": false
+    },
+    {
+      "path": "2d5ec7b5/original/ini.o",
+      "bytes": 6192,
+      "sha256": "58f3ce41956755374ffb3c09d91236b28d7ab30619b98b946063d0a8e7c0a22d",
+      "binary": true
+    },
+    {
+      "path": "COMMANDS.json",
+      "bytes": 38531,
+      "sha256": "58de42999ead6c726bf099e2db24843e90112b8df0e93ed45d14fe0b040e6dae",
+      "binary": false
+    },
+    {
+      "path": "SOURCE_BEFORE.json",
+      "bytes": 3272,
+      "sha256": "f0bb8a9b28b92ca9aaed8feee50ab3b5522d4f8bc9ceaed66e7d7955e9dc24ba",
+      "binary": false
+    },
+    {
+      "path": "de720a6f/migrated/LICENSE.txt",
+      "bytes": 1510,
+      "sha256": "9ae3b39e83e9158e44b67733baa3bb2d84e80efdcfb14a5820210a42c7abdf7f",
+      "binary": false
+    },
+    {
+      "path": "de720a6f/migrated/MIGRATION.json",
+      "bytes": 11571,
+      "sha256": "da5ee3ccbe764bc8b7b7c387e9eb98fadc56a330344a4d61a0d16441ad154e9f",
+      "binary": false
+    },
+    {
+      "path": "de720a6f/migrated/alloc.o",
+      "bytes": 3384,
+      "sha256": "9326181f30008ee21fd9ecf2262ebd7ec231a34cfdc0874ad6968780d02dcc03",
+      "binary": true
+    },
+    {
+      "path": "de720a6f/migrated/component",
+      "bytes": 87888,
+      "sha256": "46b3090299282f141c51968de6d78cc2e5f2ea6563a4412841f5085c72667761",
+      "binary": true
+    },
+    {
+      "path": "de720a6f/migrated/cpp/INIReader.cpp",
+      "bytes": 6628,
+      "sha256": "10047fc17b58d064b2efe1011562505612f71178fe1c5d1767d7ac90fe3b5ded",
+      "binary": false
+    },
+    {
+      "path": "de720a6f/migrated/cpp/INIReader.h",
+      "bytes": 5065,
+      "sha256": "ec0e0d1c45b622f83664df6da3b9fcc646dabe308c354b971c14409f6d343cd9",
+      "binary": false
+    },
+    {
+      "path": "de720a6f/migrated/cpp/inih_hepta_callback.hpp",
+      "bytes": 5536,
+      "sha256": "6479821cd54b9793a6a2838267da53eac1877e712a44bd337270ca9437d5a2bf",
+      "binary": false
+    },
+    {
+      "path": "de720a6f/migrated/ini.c",
+      "bytes": 9436,
+      "sha256": "aaf8ecaa1ae6650287be7f9be8a196927400370e9546fbe13891bd682bc2977e",
+      "binary": false
+    },
+    {
+      "path": "de720a6f/migrated/ini.h",
+      "bytes": 6953,
+      "sha256": "2e46eba137b5f9ac816e12786846791296f89fb4bd5d4cba69191b706d64654e",
+      "binary": false
+    },
+    {
+      "path": "de720a6f/migrated/ini.o",
+      "bytes": 6024,
+      "sha256": "f9b74d73aa7ddc2bb6827ce6be65a021aeef2c7113843b486c93cb78cd49d755",
+      "binary": true
+    },
+    {
+      "path": "de720a6f/migrated/inih-hepta.o",
+      "bytes": 2224,
+      "sha256": "55ef635f4e27885860b3a315c71278557ca9d07932001d39e0e22acfd7bffa48",
+      "binary": true
+    },
+    {
+      "path": "de720a6f/migrated/inih.c",
+      "bytes": 48105,
+      "sha256": "c2cf8463def1944cd52e468d65df94b301cd88af2a861c0d9d7143f3290cf638",
+      "binary": false
+    },
+    {
+      "path": "de720a6f/migrated/inih.hepta",
+      "bytes": 2326,
+      "sha256": "fe3764208a769420025656d04a391948cdfb698c32008265b4e2d3add3e2fbe7",
+      "binary": false
+    },
+    {
+      "path": "de720a6f/migrated/wrong-boolean.c",
+      "bytes": 50949,
+      "sha256": "eff2b848bc768022e47d46dedad1dc97e8995bced67c456ed94a3bcb72bfec82",
+      "binary": false
+    },
+    {
+      "path": "de720a6f/migrated/wrong-boolean.hepta",
+      "bytes": 2326,
+      "sha256": "2f41c66345b051e05fab8ee50713376d8edf36eeaf50671246a92659ca50600a",
+      "binary": false
+    },
+    {
+      "path": "de720a6f/migrated/wrong-boolean.o",
+      "bytes": 2232,
+      "sha256": "97e747d06289cdd673821bc91735897f1b08a1be241f0460e279952ca02404be",
+      "binary": true
+    },
+    {
+      "path": "de720a6f/migrated/wrong-component",
+      "bytes": 87896,
+      "sha256": "f2835504705e6ef45b9f9475cb2ad053ac0eff2da65700f9d33807500a94a443",
+      "binary": true
+    },
+    {
+      "path": "de720a6f/original/LICENSE.txt",
+      "bytes": 1510,
+      "sha256": "9ae3b39e83e9158e44b67733baa3bb2d84e80efdcfb14a5820210a42c7abdf7f",
+      "binary": false
+    },
+    {
+      "path": "de720a6f/original/alloc.o",
+      "bytes": 3384,
+      "sha256": "9326181f30008ee21fd9ecf2262ebd7ec231a34cfdc0874ad6968780d02dcc03",
+      "binary": true
+    },
+    {
+      "path": "de720a6f/original/component",
+      "bytes": 76608,
+      "sha256": "a30414100777128b6353115a231048859d6b355765d7aa0055eb2256bc814ff4",
+      "binary": true
+    },
+    {
+      "path": "de720a6f/original/cpp/INIReader.cpp",
+      "bytes": 6584,
+      "sha256": "d8e3ce76ed09b379beef8d48ae428c9f383bf84131e5d4838f6c82eb746553c0",
+      "binary": false
+    },
+    {
+      "path": "de720a6f/original/cpp/INIReader.h",
+      "bytes": 5065,
+      "sha256": "ec0e0d1c45b622f83664df6da3b9fcc646dabe308c354b971c14409f6d343cd9",
+      "binary": false
+    },
+    {
+      "path": "de720a6f/original/ini.c",
+      "bytes": 9436,
+      "sha256": "aaf8ecaa1ae6650287be7f9be8a196927400370e9546fbe13891bd682bc2977e",
+      "binary": false
+    },
+    {
+      "path": "de720a6f/original/ini.h",
+      "bytes": 6953,
+      "sha256": "2e46eba137b5f9ac816e12786846791296f89fb4bd5d4cba69191b706d64654e",
+      "binary": false
+    },
+    {
+      "path": "de720a6f/original/ini.o",
+      "bytes": 6024,
+      "sha256": "3d693e971ff52ceb2d4dbb73597f3c30c5ca221a3b6ceecbd4717e4a8dbac38c",
+      "binary": true
+    },
+    {
+      "path": "raw/000-cc-version.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/000-cc-version.stdout",
+      "bytes": 266,
+      "sha256": "ae487f55927d605284a32711e4ecf6bc3be2bcd5a9de414ace0936264b741f85",
+      "binary": false
+    },
+    {
+      "path": "raw/001-cc-target.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/001-cc-target.stdout",
+      "bytes": 17,
+      "sha256": "08cababdf891ccbf96eb376f1e84f279f70302fb13d84e5f98637becdfc6d989",
+      "binary": false
+    },
+    {
+      "path": "raw/002-cxx-version.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/002-cxx-version.stdout",
+      "bytes": 266,
+      "sha256": "39553616934606f58b27c04bed0cdbbe5b00c92c831a9aaadebd7ceda61d1334",
+      "binary": false
+    },
+    {
+      "path": "raw/003-cxx-target.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/003-cxx-target.stdout",
+      "bytes": 17,
+      "sha256": "08cababdf891ccbf96eb376f1e84f279f70302fb13d84e5f98637becdfc6d989",
+      "binary": false
+    },
+    {
+      "path": "raw/004-de720a6f-hepta-c-compile.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/004-de720a6f-hepta-c-compile.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/005-de720a6f-original-parser.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/005-de720a6f-original-parser.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/006-de720a6f-original-allocator.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/006-de720a6f-original-allocator.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/007-de720a6f-original-link.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/007-de720a6f-original-link.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/008-de720a6f-migrated-parser.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/008-de720a6f-migrated-parser.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/009-de720a6f-migrated-allocator.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/009-de720a6f-migrated-allocator.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/010-de720a6f-migrated-link.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/010-de720a6f-migrated-link.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/011-de720a6f-original-functional.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/011-de720a6f-original-functional.stdout",
+      "bytes": 14487,
+      "sha256": "a92c29d1d92328ccf4fb768a7ecbe611fd89ef689936cb8f735f10da1816de31",
+      "binary": false
+    },
+    {
+      "path": "raw/012-de720a6f-migrated-functional.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/012-de720a6f-migrated-functional.stdout",
+      "bytes": 14487,
+      "sha256": "a92c29d1d92328ccf4fb768a7ecbe611fd89ef689936cb8f735f10da1816de31",
+      "binary": false
+    },
+    {
+      "path": "raw/013-de720a6f-original-lifecycle.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/013-de720a6f-original-lifecycle.stdout",
+      "bytes": 45,
+      "sha256": "6791584045ea33a030046c9bfb1e9219cb2fffe24a7aceecf62c3575c8e9c6d9",
+      "binary": false
+    },
+    {
+      "path": "raw/014-de720a6f-migrated-lifecycle.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/014-de720a6f-migrated-lifecycle.stdout",
+      "bytes": 45,
+      "sha256": "6791584045ea33a030046c9bfb1e9219cb2fffe24a7aceecf62c3575c8e9c6d9",
+      "binary": false
+    },
+    {
+      "path": "raw/015-de720a6f-original-allocation-failure.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/015-de720a6f-original-allocation-failure.stdout",
+      "bytes": 82,
+      "sha256": "339261f4afc502cc33010de0f26e2e54e4b0ff6870a244508e20a301c9f47ca5",
+      "binary": false
+    },
+    {
+      "path": "raw/016-de720a6f-migrated-allocation-failure.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/016-de720a6f-migrated-allocation-failure.stdout",
+      "bytes": 82,
+      "sha256": "339261f4afc502cc33010de0f26e2e54e4b0ff6870a244508e20a301c9f47ca5",
+      "binary": false
+    },
+    {
+      "path": "raw/017-de720a6f-original-file-error.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/017-de720a6f-original-file-error.stdout",
+      "bytes": 73,
+      "sha256": "638b649cb1421181db892a2f050aea12a7b5c8808338c4129f5edf632903c471",
+      "binary": false
+    },
+    {
+      "path": "raw/018-de720a6f-migrated-file-error.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/018-de720a6f-migrated-file-error.stdout",
+      "bytes": 73,
+      "sha256": "638b649cb1421181db892a2f050aea12a7b5c8808338c4129f5edf632903c471",
+      "binary": false
+    },
+    {
+      "path": "raw/019-de720a6f-original-callback-exception.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/019-de720a6f-original-callback-exception.stdout",
+      "bytes": 66,
+      "sha256": "bc25ec758a0329af1f3c37d02a5f99490e50e53201e4ca66782cb7058299ef13",
+      "binary": false
+    },
+    {
+      "path": "raw/020-de720a6f-migrated-callback-exception.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/020-de720a6f-migrated-callback-exception.stdout",
+      "bytes": 66,
+      "sha256": "203c24ac573c2a59b4e72ce53fd18165b1771da55940157ead404e3592fa7957",
+      "binary": false
+    },
+    {
+      "path": "raw/021-de720a6f-lease-controls.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/021-de720a6f-lease-controls.stdout",
+      "bytes": 51,
+      "sha256": "14818dfa67e3f0a05db8cf2a5d207d9ff63e4e126e770479f8995b99915d5852",
+      "binary": false
+    },
+    {
+      "path": "raw/022-de720a6f-wrong-hepta-compile.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/022-de720a6f-wrong-hepta-compile.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/023-de720a6f-wrong-link.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/023-de720a6f-wrong-link.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/024-de720a6f-negative-reference.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/024-de720a6f-negative-reference.stdout",
+      "bytes": 14487,
+      "sha256": "a92c29d1d92328ccf4fb768a7ecbe611fd89ef689936cb8f735f10da1816de31",
+      "binary": false
+    },
+    {
+      "path": "raw/025-de720a6f-negative-mutant.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/025-de720a6f-negative-mutant.stdout",
+      "bytes": 14487,
+      "sha256": "422af4c76ea05c790e815a0ebff1f30d0313270522a1b51c78c91a6c94dc8973",
+      "binary": false
+    },
+    {
+      "path": "raw/026-2d5ec7b5-hepta-c-compile.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/026-2d5ec7b5-hepta-c-compile.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/027-2d5ec7b5-original-parser.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/027-2d5ec7b5-original-parser.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/028-2d5ec7b5-original-allocator.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/028-2d5ec7b5-original-allocator.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/029-2d5ec7b5-original-link.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/029-2d5ec7b5-original-link.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/030-2d5ec7b5-migrated-parser.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/030-2d5ec7b5-migrated-parser.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/031-2d5ec7b5-migrated-allocator.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/031-2d5ec7b5-migrated-allocator.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/032-2d5ec7b5-migrated-link.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/032-2d5ec7b5-migrated-link.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/033-2d5ec7b5-original-functional.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/033-2d5ec7b5-original-functional.stdout",
+      "bytes": 14493,
+      "sha256": "dc483ef16b88e31570ab1a93c7088308b65a32c514052bb4ead7e0c773232508",
+      "binary": false
+    },
+    {
+      "path": "raw/034-2d5ec7b5-migrated-functional.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/034-2d5ec7b5-migrated-functional.stdout",
+      "bytes": 14493,
+      "sha256": "dc483ef16b88e31570ab1a93c7088308b65a32c514052bb4ead7e0c773232508",
+      "binary": false
+    },
+    {
+      "path": "raw/035-2d5ec7b5-original-lifecycle.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/035-2d5ec7b5-original-lifecycle.stdout",
+      "bytes": 45,
+      "sha256": "6791584045ea33a030046c9bfb1e9219cb2fffe24a7aceecf62c3575c8e9c6d9",
+      "binary": false
+    },
+    {
+      "path": "raw/036-2d5ec7b5-migrated-lifecycle.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/036-2d5ec7b5-migrated-lifecycle.stdout",
+      "bytes": 45,
+      "sha256": "6791584045ea33a030046c9bfb1e9219cb2fffe24a7aceecf62c3575c8e9c6d9",
+      "binary": false
+    },
+    {
+      "path": "raw/037-2d5ec7b5-original-allocation-failure.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/037-2d5ec7b5-original-allocation-failure.stdout",
+      "bytes": 82,
+      "sha256": "339261f4afc502cc33010de0f26e2e54e4b0ff6870a244508e20a301c9f47ca5",
+      "binary": false
+    },
+    {
+      "path": "raw/038-2d5ec7b5-migrated-allocation-failure.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/038-2d5ec7b5-migrated-allocation-failure.stdout",
+      "bytes": 82,
+      "sha256": "339261f4afc502cc33010de0f26e2e54e4b0ff6870a244508e20a301c9f47ca5",
+      "binary": false
+    },
+    {
+      "path": "raw/039-2d5ec7b5-original-file-error.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/039-2d5ec7b5-original-file-error.stdout",
+      "bytes": 112,
+      "sha256": "71cf7be8610bc1c3aba811b2524cf9ed155bf4347fbf3ec8496e14e906f386bd",
+      "binary": false
+    },
+    {
+      "path": "raw/040-2d5ec7b5-migrated-file-error.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/040-2d5ec7b5-migrated-file-error.stdout",
+      "bytes": 112,
+      "sha256": "71cf7be8610bc1c3aba811b2524cf9ed155bf4347fbf3ec8496e14e906f386bd",
+      "binary": false
+    },
+    {
+      "path": "raw/041-2d5ec7b5-original-callback-exception.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/041-2d5ec7b5-original-callback-exception.stdout",
+      "bytes": 66,
+      "sha256": "bc25ec758a0329af1f3c37d02a5f99490e50e53201e4ca66782cb7058299ef13",
+      "binary": false
+    },
+    {
+      "path": "raw/042-2d5ec7b5-migrated-callback-exception.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/042-2d5ec7b5-migrated-callback-exception.stdout",
+      "bytes": 66,
+      "sha256": "203c24ac573c2a59b4e72ce53fd18165b1771da55940157ead404e3592fa7957",
+      "binary": false
+    },
+    {
+      "path": "raw/043-2d5ec7b5-lease-controls.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/043-2d5ec7b5-lease-controls.stdout",
+      "bytes": 51,
+      "sha256": "14818dfa67e3f0a05db8cf2a5d207d9ff63e4e126e770479f8995b99915d5852",
+      "binary": false
+    },
+    {
+      "path": "raw/044-2d5ec7b5-wrong-hepta-compile.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/044-2d5ec7b5-wrong-hepta-compile.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/045-2d5ec7b5-wrong-link.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/045-2d5ec7b5-wrong-link.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/046-2d5ec7b5-negative-reference.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/046-2d5ec7b5-negative-reference.stdout",
+      "bytes": 14493,
+      "sha256": "dc483ef16b88e31570ab1a93c7088308b65a32c514052bb4ead7e0c773232508",
+      "binary": false
+    },
+    {
+      "path": "raw/047-2d5ec7b5-negative-mutant.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary": false
+    },
+    {
+      "path": "raw/047-2d5ec7b5-negative-mutant.stdout",
+      "bytes": 14493,
+      "sha256": "8ddfe665e9c4facf8215f9e18f4d2f80f51adf84e8ec240b42b6f5d0e0886749",
+      "binary": false
+    },
+    {
+      "path": "source/alloc_probe.c",
+      "bytes": 1576,
+      "sha256": "80005e670812affed175f8034dd4467ad05f6ca585a09009f8e05060bef7e800",
+      "binary": false
+    },
+    {
+      "path": "source/client.cpp",
+      "bytes": 12301,
+      "sha256": "fa89d2462ef70e6560312f83923b92040d7874fc8992b42ddab2420336cc0ae6",
+      "binary": false
+    },
+    {
+      "path": "source/inih_hepta_callback.hpp",
+      "bytes": 5536,
+      "sha256": "6479821cd54b9793a6a2838267da53eac1877e712a44bd337270ca9437d5a2bf",
+      "binary": false
+    }
+  ],
+  "all_requested_cpp_conditions_closed": false,
+  "whole_component_migration": false,
+  "resource_safety_proved": false,
+  "native_backend_refinement_proved": false,
+  "low_human_migration_cost_established": false,
+  "performance_advantage_measured": false,
+  "limits": [
+    "partial source-specific extraction, not a general C++ translator",
+    "foreign parser/STL/callback-registry implementation remains trusted",
+    "only synchronous same-thread callback leases; no arbitrary async callback support",
+    "callback cleanup repair intentionally differs from original exceptional resource behavior",
+    "native Linux LP64 host observation, not physical hardware or all-platform qualification",
+    "only parser allocator and ordinary C++ new/delete tracked; no all-process memory bound"
+  ]
+}
