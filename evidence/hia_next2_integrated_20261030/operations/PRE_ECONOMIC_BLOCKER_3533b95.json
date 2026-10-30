@@ -1,0 +1,19 @@
+{
+  "schema": "hepta.next2.pre-economic-blocker.v1",
+  "source_commit": "3533b95c53d23de2d22c91fcc05cb601b8448eb3",
+  "source_tree": "12fae5261a4478645c53e864bc262c1609d2f81d",
+  "finding": "CRC economics requested kernel_ns from legacy xor_fold result events; those events do not expose that field. Only map_repeat currently exposes an in-driver kernel timer.",
+  "discovered_by": "/root/ndu_audit",
+  "economic_runs_started": 0,
+  "model_requests_started": 0,
+  "capacity_runs_started": 0,
+  "source_branch_changed": false,
+  "remote_ci_dispatched": false,
+  "published_commit_created": false,
+  "transfer_blob_sha": "f7c968128a55563cbbdb42f62a5cf75cda5d91f4",
+  "unpublished_bootstrap_tree": "dc9046b70cc88f31aad3b90194d3fa616691b95c",
+  "implementation_change_required": true,
+  "resolution": "Add an explicit opt-in timed fold mode, preserve old output/defaults and frozen work/budget, exercise real native timer events, revise the protocol before timing, then freeze and rerun on the final source.",
+  "prior_p1_p3_records_preserved_under_original_source": true,
+  "outer_wall_will_not_substitute_for_kernel_time": true
+}

@@ -1,0 +1,127 @@
+{
+  "complete_review_cost": null,
+  "conclusion": "No new implementation, count or authority blocker. Two narrow factual wording corrections and two optional precision edits; final CI/P3 insertions are outside this reviewed draft version.",
+  "confirmed": {
+    "P1_P2": {
+      "cache_reuse_not_clean_build": true,
+      "direct_processes": 314,
+      "expected_rc1": 43,
+      "focused_python": 20,
+      "formal_stops": 18,
+      "isolated_python_children": 2,
+      "nested_python_wall_ns": 49170802457,
+      "nested_rust_wall_ns": 2329417820,
+      "observations": 260,
+      "outer_wall_ns": 55408975566,
+      "payload_stops": 58,
+      "rc0": 271,
+      "refusal_subset": 37,
+      "runtime_statuses": {
+        "budget_exceeded": 48,
+        "returned": 183,
+        "trapped": 29
+      },
+      "rust": 121,
+      "source_native_refinement_and_default_authority_not_granted": true,
+      "zero_logical_after_ledgers_not_host_oom_claim": true
+    },
+    "P7": {
+      "capacity_controls": 19,
+      "cli_tokenizer_calls": 95,
+      "main_cells": 0,
+      "main_engine_constructed": false,
+      "main_output_directory_created": false,
+      "main_rc": 1,
+      "no_hia_rust_main_language_comparison_ran": true,
+      "outer_wall_ns": {
+        "calibration": 538952711871,
+        "capacity": 95149394835,
+        "main": 5579925408
+      },
+      "qualification_correct": 0,
+      "qualification_tasks": 3,
+      "requests": 9,
+      "responses": 9,
+      "same_task_adaptive_not_independent_holdout": true,
+      "schema_and_selection_first_syntax_checks_do_not_prove_semantics": true,
+      "statuses": {
+        "compile_rejected": 1,
+        "observable_wrong": 1,
+        "response_rejected": 7
+      },
+      "usage": {
+        "input_tokens": 21577,
+        "output_tokens": 1659,
+        "total_tokens": 23236
+      }
+    },
+    "stage_scope": "P1/P2/P3/P4/P5/P6/P7 strict incomplete conditions remain explicit; no language-wide safety, all-instructions global optimum, generic C++ rewrite, performance superiority or model development advantage claimed."
+  },
+  "draft_or_implementation_modified": false,
+  "draft_path": "/workspace/scratch/f0c12f106c89/hia-next2-operations-20261030/REPORT_DRAFT.zh.md",
+  "draft_sha256_at_record_creation": "733dfde4ab8b64c82232ab97a952ea0f346f7204052af9911ee4b2f615faa734",
+  "evidence": [
+    {
+      "path": "p1-p2-scoped-cleanup-953-evidence-20261030/SUMMARY.json",
+      "sha256": "93ff000e7304fcb8a64e70993163c772f6df1a0636fc6d3304be19136d4dc76b"
+    },
+    {
+      "path": "p7-v13-evidence-staging-20261030/P7_PEER_REVIEW.json",
+      "sha256": "17e37d0afd2d0690415a8e1796e922178f23f0e617682b85e4af933a9cb76b83"
+    },
+    {
+      "path": "p7-v13-integrated-953fa62/SUMMARY.json",
+      "sha256": "b33852386bb4f12655ea6fb6f2c49297c6a1345021f35c4cf32aa2fb2a2f4d89"
+    },
+    {
+      "path": "p7-v13-integrated-953fa62/calibration/source_snapshot/experiments/hia_agent_toolstudy_v13_20261030/PROTOCOL.json",
+      "sha256": "0978503451db86e3eae8253ec5799c79215b628ef4a2a200c63765e692ebae95"
+    }
+  ],
+  "implementation_head": "953fa62dee5aa563551d57b1374ab95b6d548b45",
+  "new_implementation_blockers": [],
+  "new_native_or_model_execution": false,
+  "numerical_or_cost_mismatch_found": false,
+  "optional_precision": [
+    {
+      "current": "未知范围拒绝",
+      "id": "unknown_fact_vs_unsupported_scope",
+      "reason": "独立有限分析允许不参与资源上界的标量facts保留Unknown；拒绝的是无法在声明profile内保守界定所需预算或不受支持的语义，不能概括为任意unknown都拒。",
+      "section": "P2 stage row",
+      "suggested_replacement": "无法在该profile内保守界定所需资源预算或不受支持的范围拒绝"
+    },
+    {
+      "current": "按child/formal/parent loans到owners的顺序执行显式释放",
+      "id": "formal_is_counting_class_not_global_order_rank",
+      "reason": "实际按严格older-parent ID图降序结束所有loan；formal是单独核算的witness类别，不是独立的全局清理优先级。",
+      "section": "3 清理顺序",
+      "suggested_replacement": "按父子依赖先结束child loan、再结束parent loan，最后释放owners；call-formal witnesses单独核算。"
+    }
+  ],
+  "required_report_precision": [
+    {
+      "current": "补齐计时后，全部本地正式阶段在953fa62重新执行。",
+      "id": "distinguish_reexecution_from_first_execution",
+      "reason": "3533从未执行本轮完整CRC经济研究或V13模型阶段；这些阶段在953是首次执行。不要让重新执行一词暗示已存在前次模型/经济运行。",
+      "section": "1 同一实现的验收",
+      "suggested_replacement": "补齐计时后，在953fa62上重新执行P1/P2与P3/P6正确性资格，并首次执行本轮完整CRC经济研究与V13模型阶段。"
+    },
+    {
+      "actual_run_still_three_attempts_each": true,
+      "current": "每格三次提交",
+      "id": "submission_budget_is_upper_bound",
+      "reason": "冻结protocol资格要求是within three submissions each。实际本轮恰好每题3次，但通用预算应写最多3次，成功时无需强制继续。",
+      "section": "6 P7 冻结生成参数",
+      "suggested_replacement": "每格最多三次提交"
+    }
+  ],
+  "reviewed_draft_sha256": "733dfde4ab8b64c82232ab97a952ea0f346f7204052af9911ee4b2f615faa734",
+  "reviewer": "compiler_research",
+  "schema": "hepta.next2.report-review.v1",
+  "scope": [
+    "P1/P2 counts, finite cleanup admission, journal/host boundary, costs",
+    "P7 original responses, capacity/qualification distinction, budget and main refusal",
+    "overview and P0-P7 stage table without unfinished CI/P3 placeholders"
+  ],
+  "unfinished_CI_and_P3_placeholders_reviewed_as_results": false
+}

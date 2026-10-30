@@ -1,0 +1,32 @@
+name: Restore authorized original HIA integration commits
+on:
+  push:
+    branches: [work/hia-object-transfer-3533b95-20261030]
+permissions:
+  contents: write
+  actions: write
+concurrency:
+  group: hepta-object-transfer-3533b95
+  cancel-in-progress: false
+jobs:
+  restore-original-objects:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          # Only this job uses the repository-scoped checkout credential to
+          # publish the already authorized named branch after hash checks.
+          persist-credentials: true
+      - name: Verify chunks, restore original Git objects, publish exact commit and request qualification
+        env:
+          HEPTA_TRANSFER_ACTIONS_TOKEN: ${{ github.token }}
+        run: python .hia-transfer/3533b95/restore.py
+      - name: Retain transfer identity and failure receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hepta-original-object-transfer-3533b95
+          path: TRANSFER_RESULT_3533b95.json
+          if-no-files-found: error

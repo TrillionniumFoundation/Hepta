@@ -1,0 +1,46 @@
+{
+  "archive_and_manifest_rewritten": false,
+  "archived_verifier_snapshot_sha256": "08ad3b4f4774f4848f453cffb38ce5ef41851b224da7ed89cddcbd69d939aafc",
+  "attempts": [
+    {
+      "outer_wall_ns": 16994342917,
+      "receipt": "attempts/01-package.json",
+      "returncode": 0
+    },
+    {
+      "outer_wall_ns": 372251598,
+      "receipt": "attempts/02-verification.json",
+      "returncode": 1
+    },
+    {
+      "outer_wall_ns": 827831015,
+      "receipt": "attempts/03-verification.json",
+      "returncode": 1
+    },
+    {
+      "outer_wall_ns": 925076398,
+      "receipt": "attempts/04-verification.json",
+      "returncode": 0
+    }
+  ],
+  "execution_boundaries": "The 13 development outer execution receipts total 137813995758 ns including the formal launcher once. Inner qualification, study and per-context timings are nested and must not be added again. Archive/readback costs here are separate. Human and all historical acquisition cost remain unknown.",
+  "final_verification_sha256": "97867c9fb3431f567f5da2d83a957d6d9b5046baba54ed1b17e402debb2eb5b4",
+  "final_verifier_sha256": "33db52a5554bf2bcedafedecaefcfe87474eac97bb3ffcf84e13b3b506530030",
+  "native_or_model_execution": false,
+  "readback_corrections": [
+    {
+      "attempt": 1,
+      "cause": "Retained candidate .hia.json files append a newline; the executed proof uses canonical JSON bytes. Raw artifact bytes are still separately authenticated by the member manifest.",
+      "failure": "baseline Core identity",
+      "fix": "Hash canonical JSON for the semantic Core ID, retain full raw member SHA."
+    },
+    {
+      "attempt": 2,
+      "cause": "Two historical qualification outer receipts use outer_wall_ns, which the first reader did not include among explicit top-level cost fields.",
+      "failure": "developer execution cost unknown/missing",
+      "fix": "Require exactly one positive recorded top-level wall_ns, outer_wall_ns or outer_launcher_wall_ns across exactly 13 receipts; do not infer zero."
+    }
+  ],
+  "schema": "hepta.hia.crc-linear.readback-history.v1",
+  "sum_packaging_and_all_readback_attempt_outer_wall_ns": 19119501928
+}

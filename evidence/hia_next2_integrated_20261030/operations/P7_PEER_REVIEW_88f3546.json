@@ -1,0 +1,26 @@
+{
+  "schema": "hepta.next2.peer-source-review.v1",
+  "source_commit": "88f3546fcaa2aa2e2ec8b00bb008ad1353a29be8",
+  "reviewer": "/root/compiler_research",
+  "mode": "independent_read_only_source_review",
+  "reviewed": [
+    "contracts_v2.py",
+    "V13 engine.py",
+    "V13 study.py",
+    "V13 support.py",
+    "V13 capacity and study runners",
+    "V8 streaming and accounting call chain"
+  ],
+  "findings": [
+    "Generation schema uses the complete public query and public language type set only.",
+    "control_response_text is capacity-only, preserves canonical JSON values, and is not invoked during inference.",
+    "The actual HTTP completion body preserves node-before-changes order and retains the bytes; legacy/full remain canonical.",
+    "Actual returned GBNF is checked per public variant after the base generation succeeds.",
+    "A post-generation GBNF failure retains terminal SSE usage through last_usage_receipt and partial_usage; cost recovery does not turn the attempt into success.",
+    "Finalization still records counters, closes the owned engine and binds identities. Main requires fresh 3/3 with per-attempt decoder wire checks."
+  ],
+  "blocking_findings": [],
+  "tests_or_model_executed_by_this_review": false,
+  "capacity_claims_actual_native_grammar_execution": false,
+  "qualification_or_language_advantage_established": false
+}
