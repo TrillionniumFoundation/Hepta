@@ -288,6 +288,45 @@ class C2HeptaImport(unittest.TestCase):
                 self.assertTrue(self.report.exists())
                 self.assertEqual(json.loads(self.report.read_text())["status"], "rejected")
 
+    def test_malformed_nested_clang_ast_children_fail_closed_with_evidence(self):
+        # A valid JSON envelope can still contain malformed nested function
+        # children or expression metadata.  These must never escape migrate()
+        # as raw Python exceptions before its rejection receipt is written.
+        self.src.write_text("int safe(int x){return x;}\n", encoding="utf-8")
+        def fn(children):
+            return {"kind": "FunctionDecl", "loc": {"offset": 0},
+                    "name": "safe", "type": {"qualType": "int (int)"},
+                    "inner": children}
+
+        malformed = (
+            ("null_function_children", fn(None)),
+            ("non_object_function_child", fn([None])),
+            ("null_return_children", fn([
+                {"kind": "CompoundStmt", "inner": [
+                    {"kind": "ReturnStmt", "inner": None}]}])),
+            ("null_declref_metadata", fn([
+                {"kind": "ParmVarDecl", "name": "x", "type": {"qualType": "int"}},
+                {"kind": "CompoundStmt", "inner": [
+                    {"kind": "ReturnStmt", "inner": [
+                        {"kind": "DeclRefExpr", "type": {"qualType": "int"},
+                         "referencedDecl": None}]}]}])),
+            ("null_function_type", {
+                "kind": "FunctionDecl", "loc": {"offset": 0},
+                "name": "safe", "type": None, "inner": []}),
+        )
+        for label, function in malformed:
+            with self.subTest(case=label):
+                self.out.unlink(missing_ok=True)
+                self.report.unlink(missing_ok=True)
+                payload = json.dumps({"inner": [function]}).encode("utf-8")
+                fake = subprocess.CompletedProcess(["clang"], 0, payload, b"")
+                with mock.patch("tools.c2hepta._run_clang_ast_bounded", return_value=fake):
+                    result = migrate(self.src, self.out, self.report)
+                self.assertEqual(result["status"], "rejected", result)
+                self.assertFalse(self.out.exists())
+                self.assertTrue(self.report.exists())
+                self.assertEqual(json.loads(self.report.read_text())["status"], "rejected")
+
     def test_native_gate_without_frontend_fails_closed(self):
         self.src.write_text("int f(int x){return x;}", encoding="utf-8")
         result = migrate(self.src, self.out, self.report, verify_native=True, rustc="/no/such/rustc")
