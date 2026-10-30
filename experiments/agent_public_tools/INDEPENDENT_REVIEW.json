@@ -1,0 +1,262 @@
+{
+  "closed_findings": [
+    {
+      "finding": "A numerically correct Rust scalar implementation with vec/drop tokens in comments previously passed the resource task without using its buffer API.",
+      "resolution": "Native audited Vec API records allocation, mutable indexing, actual indexed readback and explicit release; scalar and uncalled-helper controls reject. Exact task length is checked before real allocation."
+    },
+    {
+      "finding": "HIA could place required store/load tokens in an uncalled helper while its target returned a scalar shortcut.",
+      "resolution": "Actual VM operation events must witness matching allocation/store/load/drop on the same owner, size, index and value for public and terminal hidden cases."
+    },
+    {
+      "finding": "Malformed action and digest types could cause TypeError and end the study instead of returning repairable RPC feedback.",
+      "resolution": "Bounded strict JSON and exact action/digest type checks produce repairable RPC errors."
+    },
+    {
+      "finding": "HIA local parameter names were constrained more tightly than the Rust scalar ABI.",
+      "resolution": "Both use two positional u32 inputs and one u32 result; alpha-renamed candidates pass actual native checks."
+    },
+    {
+      "finding": "VM resource evidence needed an independent return-value check.",
+      "resolution": "Both public and terminal hidden VM results are checked against the independent task oracle."
+    }
+  ],
+  "controls_sha256": "8094160fe6c061ffe609c856506cac4fe756aa058949c208662f8ba1ec5d0bdf",
+  "decision": "allow_generation",
+  "freeze_sha256": "2a60bbc1dddad5c24369f33c26a470f1710242a8f9d6cf0fe04a420a2ffa9405",
+  "identity_checks": {
+    "all_committed_source_hashes_match": true,
+    "all_eight_prompt_identities_match": true,
+    "catalog_identities_match": true,
+    "committed_source_files": 165,
+    "control_native_artifact_identities_match": true,
+    "controls_identity_and_source_bindings_match": true,
+    "tool_identities_match": true,
+    "working_tree_source_matches": true
+  },
+  "independent_execution": {
+    "command": "python3 -B -m unittest tests.test_hia_agent_public_tools tests.test_hia_agent_rust_resource -v",
+    "errors": 0,
+    "failures": 0,
+    "observed_duration_seconds": 2.886,
+    "rerun_at_final_identity_check": false,
+    "skipped": 0,
+    "source_identity_unchanged_since_execution": true,
+    "tests_run": 18
+  },
+  "model_requests_by_reviewer": 0,
+  "production_sources_modified_by_this_final_review": false,
+  "registration_commit_required_before_generation": true,
+  "retained_controls_checked_without_rerun": [
+    {
+      "bad": {
+        "rejected": true,
+        "report_sha256": "21ba9a2bfb3cb2a0c74116bdd72de454d16605398435352d055866a9aa769789",
+        "status": "candidate_rejected"
+      },
+      "bad-signature": {
+        "rejected": true,
+        "report_sha256": "9de1077a2dc088b22c39bc897c83ebdc93d35a7e36dbdb59d800a22b56f18520",
+        "status": "candidate_rejected"
+      },
+      "good": {
+        "actual_native_outputs_match_independent_oracle": true,
+        "native_cases": 6,
+        "report_sha256": "1ac200e6244cab7c432bdc1f918731a4095c3b71e5491d3e32aef5533cc5f3e8"
+      },
+      "hidden": {
+        "actual_native_outputs_match_independent_oracle": true,
+        "native_cases": 72,
+        "report_sha256": "1834a1235822967870d538982334438b1415f6af285a8f214358f24939fb1a50"
+      },
+      "language": "hia",
+      "task": "quota_clip"
+    },
+    {
+      "bad": {
+        "rejected": true,
+        "report_sha256": "65400cbd12fafa769910a7cd35a747cd7daad27bacdd5bc4ea86f1680e7d26a7",
+        "status": "cases_failed"
+      },
+      "bad-signature": {
+        "rejected": true,
+        "report_sha256": "01be160ffcc8bfaae63b8fa57ef7b22c433af0dc58f6f1def4703948560648a2",
+        "status": "compile_rejected"
+      },
+      "good": {
+        "actual_native_outputs_match_independent_oracle": true,
+        "native_cases": 6,
+        "report_sha256": "f7824f3b80c21a9a65f7e458716c84666c25feb4b72f347aa9de70caa2c18d77"
+      },
+      "hidden": {
+        "actual_native_outputs_match_independent_oracle": true,
+        "native_cases": 72,
+        "report_sha256": "5b064be23c532b5e1ad9289aeaa9ed04c2e247ed913a28dd6ebcd669143803d2"
+      },
+      "language": "rust",
+      "task": "quota_clip"
+    },
+    {
+      "bad": {
+        "rejected": true,
+        "report_sha256": "3114bcddf35fddda30b3d383ca85e236e1c74313ede9cb8c6279cab4618191c2",
+        "status": "candidate_rejected"
+      },
+      "bad-signature": {
+        "rejected": true,
+        "report_sha256": "1a8b094217e1732229985ad56da55a0c63d975fcda8489f046f49eb408836317",
+        "status": "candidate_rejected"
+      },
+      "good": {
+        "actual_native_outputs_match_independent_oracle": true,
+        "native_cases": 6,
+        "report_sha256": "9aa99eccf4e066091c8f0c930f983c05ce26fc57c0f80b393893cd78b4069fea"
+      },
+      "hidden": {
+        "actual_native_outputs_match_independent_oracle": true,
+        "native_cases": 72,
+        "report_sha256": "c5d3ac53bc33ac4252d19e43755b2cc103404b0853a55fb5fd458c7d988d716b"
+      },
+      "language": "hia",
+      "task": "rotate_lane"
+    },
+    {
+      "bad": {
+        "rejected": true,
+        "report_sha256": "0a1a12b01a86abe743360c245c7ada8150fd7759195a48646070988857183435",
+        "status": "cases_failed"
+      },
+      "bad-signature": {
+        "rejected": true,
+        "report_sha256": "5fece550fc1fd8c50e326318a70125ab47db7b5f5634572ea5e624cee33f1945",
+        "status": "compile_rejected"
+      },
+      "good": {
+        "actual_native_outputs_match_independent_oracle": true,
+        "native_cases": 6,
+        "report_sha256": "1d5a6d5275421185836042babf108c206f6f329b791c0588256a036ee1d8f7eb"
+      },
+      "hidden": {
+        "actual_native_outputs_match_independent_oracle": true,
+        "native_cases": 72,
+        "report_sha256": "dbbc3e4eb4fef4732cb2a81dcfb6917f53464b8476b48a21d86b469d2a09b1d2"
+      },
+      "language": "rust",
+      "task": "rotate_lane"
+    },
+    {
+      "bad": {
+        "rejected": true,
+        "report_sha256": "20558da9f0e6cc05d1b784b692ac1e97eea323ee5b84dac8afdb46117e21646c",
+        "status": "candidate_rejected"
+      },
+      "bad-signature": {
+        "rejected": true,
+        "report_sha256": "8e931192d3a80ded0a4ca92fa9163180f202bee914d7b044fbfa6d351f589a9e",
+        "status": "candidate_rejected"
+      },
+      "good": {
+        "actual_native_outputs_match_independent_oracle": true,
+        "native_cases": 6,
+        "report_sha256": "6e982a777aaea68541dd9eddb14afade1b81ea564df38a68e5457cdf277762dc"
+      },
+      "hidden": {
+        "actual_native_outputs_match_independent_oracle": true,
+        "native_cases": 72,
+        "report_sha256": "c08a21042e7c7ab36b70da650fd10426b66f86ddc9f47827da0ef75386af7304"
+      },
+      "language": "hia",
+      "task": "weighted_prefix"
+    },
+    {
+      "bad": {
+        "rejected": true,
+        "report_sha256": "d0091e9ebc11e26620e02fe6a31829c1e5507d8e8a58a7c5e3408ae74c888298",
+        "status": "cases_failed"
+      },
+      "bad-signature": {
+        "rejected": true,
+        "report_sha256": "ca4e32533ae43322aa5241daf5d66ca1beed91f13c673bcbd7d48d4369684131",
+        "status": "compile_rejected"
+      },
+      "good": {
+        "actual_native_outputs_match_independent_oracle": true,
+        "native_cases": 6,
+        "report_sha256": "21e32d691639617ac2bc327f1d478b6beb3d9f0e8b922a4926aaf303d6fc5408"
+      },
+      "hidden": {
+        "actual_native_outputs_match_independent_oracle": true,
+        "native_cases": 72,
+        "report_sha256": "87442752bf8ca0d4d8ede054c78c933a9404efcabf8b8afd9035596304ca8787"
+      },
+      "language": "rust",
+      "task": "weighted_prefix"
+    },
+    {
+      "bad": {
+        "rejected": true,
+        "report_sha256": "9933d859d521a44844b18dacacf2eb9124aba7bf8039fe4841abaa08c9e653de",
+        "status": "candidate_rejected"
+      },
+      "bad-signature": {
+        "rejected": true,
+        "report_sha256": "11ec1a1a23d21b842fe6cb9c16904f7b04f704e58bc0531c0a26093a65503d5d",
+        "status": "candidate_rejected"
+      },
+      "good": {
+        "actual_native_outputs_match_independent_oracle": true,
+        "native_cases": 6,
+        "report_sha256": "41cabfe5eb511f62e0c3542e91b8e1e906699bc556fb13da5893bda6f630ce76"
+      },
+      "hidden": {
+        "actual_native_outputs_match_independent_oracle": true,
+        "native_cases": 72,
+        "report_sha256": "b734c04fb9415e851e114a13417c9fcb6daf544c9a1b33a62e39c127f4e4f9e0"
+      },
+      "language": "hia",
+      "task": "buffer_lane"
+    },
+    {
+      "bad": {
+        "rejected": true,
+        "report_sha256": "84380fa773d5c8e998cfc6d4c22b24e93fa2a41cad8d825a806f18410eaae2be",
+        "status": "cases_failed"
+      },
+      "bad-signature": {
+        "rejected": true,
+        "report_sha256": "70c1e51788c5eacd3a6c8a8a49df77746e9a3c5762f478a6b2549ac9bc062013",
+        "status": "compile_rejected"
+      },
+      "good": {
+        "actual_native_outputs_match_independent_oracle": true,
+        "native_cases": 6,
+        "report_sha256": "b5d23331db0f12595d93cdd7c6db2c8e5398555649a576cdee2b5646c5ae4d40"
+      },
+      "hidden": {
+        "actual_native_outputs_match_independent_oracle": true,
+        "native_cases": 72,
+        "report_sha256": "eb3c2369f74178d916747da307bcaf536f87bbd655b0679b1bc715614e1ccdc9"
+      },
+      "language": "rust",
+      "task": "buffer_lane"
+    }
+  ],
+  "reviewed_at_utc": "2026-10-30T09:30:59.687433+00:00",
+  "reviewed_boundaries": [
+    "Only public task cases, the disclosed representation and actual public RPC feedback enter model history. Hidden evaluation is terminal and never appended to model history.",
+    "Failed request raw streams and recoverable usage are retained. Unknown usage or an incomplete denominator disables the descriptive advantage gate.",
+    "Per-cell wall time includes inference, tool checks, native compilation, terminal hidden execution and owned-process cleanup. Shared setup and controls remain separate; human review time is unknown, not zero.",
+    "Reviewer is separate from the study-runner author, but contributed the audited Rust fixture and its tests after discovering the acceptance bypass; this is an internal independent review, not an external third-party audit."
+  ],
+  "reviewer": "/root/core_contracts",
+  "schema": "hepta.hia.agent-public-tools.independent-review.v1",
+  "scope_limits": [
+    "Only this frozen four-task/eight-cell descriptive pilot is authorized by this methodological review; no result or language advantage is presumed.",
+    "Rust candidates use the disclosed restricted lexical/API profile. Token bans also affect comments and strings; the pilot does not represent arbitrary safe Rust development.",
+    "Audited Vec evidence observes the selected safe API, not every process allocation or machine store instruction. IndexMut observes mutable access and subsequent actual readback; zero-to-zero assignment is not distinguished from taking a mutable reference.",
+    "HIA operation evidence is actual VM execution, not machine-code refinement. No cross-language semantic equivalence proof is claimed.",
+    "Task-information isolation is not an OS-hermeticity claim against malicious generated code. Provider cache and scheduling are not controlled; population-level productivity and human-cost advantage are not established."
+  ],
+  "source_commit": "71aff3e9dbaa89601e0e0acacacac6c775e9f7f1",
+  "source_tree": "aa9a3177973e9526acf43a124ecdbc9cd7ea2414"
+}

@@ -12,7 +12,12 @@ from tools.qualify_ring_optimization import (
 
 class RingOptimizationQualificationTests(unittest.TestCase):
     def test_training_and_heldout_are_distinct_replayable_inputs(self):
-        protocol = json.loads(PROTOCOL_PATH.read_text())
+        # Unit tests replay the already observed development seeds. Reading the
+        # live formal protocol here would generate its registered holdout before
+        # the one permitted qualification run, including during ordinary CI.
+        protocol = {"profiles": ["small", "burst", "near_capacity"],
+                    "records_per_trace": 4096,
+                    "training_seed": 1708132849, "held_out_seed": 2097394567}
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             training = write_trace(root / "training", protocol, "burst", protocol["training_seed"])

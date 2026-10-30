@@ -1,0 +1,40 @@
+{
+  "schema": "hepta.ring-optimization.protocol.v1",
+  "scope": "Actual pinned Ring-Buffer implementation migration; new authored API traces, not a production traffic capture",
+  "upstream_commit": "8de8fff55a0baee4fef2a1c6a82d258a27c3c0ba",
+  "candidate_path": "Fresh C AST -> checked Hepta -> Rust reference backend -> native fat LTO, with the unchanged original C ABI",
+  "arms": ["clang_native_lto", "clang_native_irpgo_lto", "gcc_native_lto", "hepta_rust_native_lto"],
+  "strong_static_baselines": ["clang_native_lto", "clang_native_irpgo_lto", "gcc_native_lto"],
+  "profiles": ["small", "burst", "near_capacity"],
+  "records_per_trace": 4096,
+  "trace_record_bytes": 257,
+  "training_seed": 1708132849,
+  "held_out_seed": 2097394567,
+  "training_repeats": 4,
+  "held_out_repeats": 16,
+  "transactions_per_batch": 128,
+  "paired_groups": 5,
+  "held_out_generation": "Only after compiler flags and all final executable identities are frozen; no candidate tuning after held-out observations",
+  "training": "IR instrumentation, three training traces only, llvm-profdata merge/show, positive counters, stale/unprofiled-profile warnings fatal",
+  "baseline_selection": "One original-C static arm with minimum sum of per-profile median process wall times; all arms retained",
+  "net_cost": "Observed matched-group gross process-wall savings minus every measured non-held-out campaign wall cost, including controls, migration, checks, compilation, training, observation, selection and scratch cleanup",
+  "switching": "Each sample is a fresh process with actual dlopen/dlclose; no stateful hot-replacement claim",
+  "claims": {
+    "strong_static_comparison_executed": false,
+    "measured_finite_horizon_net_benefit": false,
+    "standalone_hia_optimization": false,
+    "ndu_contribution": false,
+    "formal_source_equivalence": false,
+    "production_traffic_representativeness": false,
+    "human_labor_savings": false,
+    "universal_rust_or_c_performance_advantage": false
+  },
+  "limitations": [
+    "Shared Linux x86_64 host; native CPU code is specific to this measured host",
+    "Three prospectively frozen authored traces of an existing library; no independently blind external traffic supplier",
+    "Timing includes input loading, dynamic loading, full byte oracle, checksum consumption, cleanup, output capture and supervisor process costs",
+    "No amortization beyond the actually executed candidate workload is counted as observed benefit",
+    "Human effort and end-to-end formal refinement proof costs are unmeasured, not zero",
+    "Campaign overhead conservatively charges baseline preparation and comparison costs to the candidate as well"
+  ]
+}
