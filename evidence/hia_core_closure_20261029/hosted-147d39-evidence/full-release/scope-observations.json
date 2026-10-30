@@ -1,0 +1,353 @@
+{
+  "P0_P7_fully_closed": false,
+  "ndu_binary_bindings": [
+    {
+      "binary_member": "_temp/hepta-ndu-target/debug/hia-ndu-bridge",
+      "binary_sha256": "6c7ec5832a2ac299063cd4d0de1ce2a179b04674a9317ea3d3493cd15ee1fc0d",
+      "profile": "ranking",
+      "receipt_member": "_temp/hepta-ndu-build/build-receipt.json",
+      "source_bodies_independently_reacquired": false,
+      "source_commit": "d3c2d760eca5065fc966820379c35c6e8d56e855"
+    },
+    {
+      "binary_member": "_temp/hepta-recursive-ndu-build/native/hepta-hia-ndu-bridge",
+      "binary_sha256": "43ccd8cc9e16a90c819772dd7e78be327a3f8396a4c5e535a18041f03a30009a",
+      "profile": "recursive",
+      "receipt_member": "_temp/hepta-recursive-ndu-build/identity.json",
+      "source_bodies_independently_reacquired": false,
+      "source_commit": "2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b"
+    },
+    {
+      "binary_member": "_temp/hepta-finite-ndu-build/native/hepta-hia-ndu-bridge",
+      "binary_sha256": "87539b15d72518fe77327c7c048ed061376d406074c5b6acc5f6e3dfd490c658",
+      "profile": "finite",
+      "receipt_member": "_temp/hepta-finite-ndu-build/identity.json",
+      "source_bodies_independently_reacquired": false,
+      "source_commit": "4b6391e116949af0c7e59776baead67271856bdb"
+    },
+    {
+      "binary_member": "_temp/hepta-stream-ndu-build/native/hepta-hia-ndu-bridge",
+      "binary_sha256": "666795f2893ff3abd02c13fd9df8980353d69be2ae086b46b34396cd360e5c5f",
+      "profile": "stream",
+      "receipt_member": "_temp/hepta-stream-ndu-build/identity.json",
+      "source_bodies_independently_reacquired": false,
+      "source_commit": "c4a1bbed3a39beba43a6abf1a18b6f75c5725c21"
+    }
+  ],
+  "ndu_gate_names": [
+    "focused_regression",
+    "rust_resource_crate",
+    "translation_controls",
+    "rust_owned_cfg",
+    "real_migration",
+    "equal_budget_ndu",
+    "native_generations",
+    "background_reoptimization",
+    "finite_x86_search"
+  ],
+  "no_optimization_policy_switch_inferred_from_gate_pass": true,
+  "performance": {
+    "claims": {
+      "actual_owned_cleanup_checked": true,
+      "backend_refinement_proved": false,
+      "finite_correctness_checked": true,
+      "host_performance_gate_passed": true,
+      "physical_device_qualified": false,
+      "source_free_core_executed": true,
+      "universal_rust_superiority_proved": false,
+      "whole_language_performance_qualified": false
+    },
+    "environment": {
+      "allowed_cpus_before": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "kernel": "7.0.0-1017-azure",
+      "loadavg_after": [
+        1.189453125,
+        1.279296875,
+        1.25634765625
+      ],
+      "loadavg_before": [
+        1.427734375,
+        1.32861328125,
+        1.26513671875
+      ],
+      "machine": "x86_64",
+      "python": "3.11.17",
+      "scheduler": {
+        "cgroup_cpu_max": {
+          "available": false,
+          "error": "FileNotFoundError"
+        },
+        "cgroup_cpuset_cpus_effective": "0-3",
+        "exclusive_cpu_ownership": false,
+        "policy": 0,
+        "priority": 0
+      },
+      "scope": "shared host; affinity is not exclusive CPU ownership",
+      "selected_cpu": 0,
+      "system": "Linux"
+    },
+    "interference_observations": {
+      "acceptance_thresholds_adjusted": false,
+      "cpu_to_wall_ratio": {
+        "maximum": 0.9988126940129757,
+        "median": 0.9985421960364322,
+        "minimum": 0.9978242511303427
+      },
+      "sample_count": 63,
+      "samples_excluded": 0,
+      "scope": "CPU interval brackets the wall interval; overhead and host interference are not isolated",
+      "totals": {
+        "involuntary_context_switches": 11758,
+        "major_page_faults": 0,
+        "minor_page_faults": 0,
+        "voluntary_context_switches": 0
+      }
+    },
+    "ok": true,
+    "original_report": "Hepta/Hepta/artifacts/hia-unified/performance.json",
+    "resource_observation": {
+      "artifacts": {
+        "leak.o": {
+          "bytes": 3376,
+          "path": "/tmp/hepta-hia-perf-ypnlkxiz/leak.o",
+          "sha256": "d4dff4aae67bc85c921655dc068c2a3853d36df16603bb1c8096521c76cf6de5"
+        },
+        "negative": {
+          "bytes": 16768,
+          "path": "/tmp/hepta-hia-perf-ypnlkxiz/negative",
+          "sha256": "f2138d14ee275e65250b05074e09ae78e1d32b263aa97314d6f6f3431d8d1569"
+        },
+        "owned.o": {
+          "bytes": 3736,
+          "path": "/tmp/hepta-hia-perf-ypnlkxiz/owned.o",
+          "sha256": "642ff3610d1518c2fd1348017e69241de1a24f1b1a672230275403350fcc7817"
+        },
+        "positive": {
+          "bytes": 16776,
+          "path": "/tmp/hepta-hia-perf-ypnlkxiz/positive",
+          "sha256": "64d120361df769e63661adae62c85a9436eb2c373daa80396a27201c2c6ccd0c"
+        }
+      },
+      "commands": [
+        {
+          "command": [
+            "/usr/lib/llvm-20/bin/clang",
+            "-x",
+            "ir",
+            "-O3",
+            "-c",
+            "/tmp/hepta-hia-perf-ypnlkxiz/leak.ll",
+            "-o",
+            "/tmp/hepta-hia-perf-ypnlkxiz/leak.o"
+          ],
+          "returncode": 0,
+          "stderr": "warning: overriding the module target triple with x86_64-pc-linux-gnu [-Woverride-module]\n1 warning generated.\n",
+          "stderr_sha256": "48039da247e1a8a23378c1c14be1456d540d28a2c01409ef938236f17df7f996",
+          "stdout": "",
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/usr/lib/llvm-20/bin/clang",
+            "-std=c11",
+            "-O3",
+            "/tmp/hepta-hia-perf-ypnlkxiz/observer.c",
+            "/tmp/hepta-hia-perf-ypnlkxiz/owned.o",
+            "-fno-builtin-calloc",
+            "-fno-builtin-malloc",
+            "-fno-builtin-free",
+            "-Wl,--wrap=calloc",
+            "-Wl,--wrap=malloc",
+            "-Wl,--wrap=free",
+            "-o",
+            "/tmp/hepta-hia-perf-ypnlkxiz/positive"
+          ],
+          "returncode": 0,
+          "stderr": "",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout": "",
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/usr/lib/llvm-20/bin/clang",
+            "-std=c11",
+            "-O3",
+            "/tmp/hepta-hia-perf-ypnlkxiz/observer.c",
+            "/tmp/hepta-hia-perf-ypnlkxiz/leak.o",
+            "-fno-builtin-calloc",
+            "-fno-builtin-malloc",
+            "-fno-builtin-free",
+            "-Wl,--wrap=calloc",
+            "-Wl,--wrap=malloc",
+            "-Wl,--wrap=free",
+            "-o",
+            "/tmp/hepta-hia-perf-ypnlkxiz/negative"
+          ],
+          "returncode": 0,
+          "stderr": "",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout": "",
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "mutant_sha256": "f97cccc9b8dfc1441b1a74ee13d2c87154767abed55f547dd6360fedb914ac12",
+      "negative": {
+        "command": [
+          "/tmp/hepta-hia-perf-ypnlkxiz/negative"
+        ],
+        "returncode": 1,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"allocations\":7,\"frees\":0,\"live\":7,\"refusals\":1}\n",
+        "stdout_sha256": "e28006f32eb60d83b9ee6cccd8714da3e5f226b5bd827ce4e9f4cdd6b38ca36f"
+      },
+      "object": {
+        "artifact_bytes": 3736,
+        "artifact_sha256": "642ff3610d1518c2fd1348017e69241de1a24f1b1a672230275403350fcc7817",
+        "binary_inventory": {
+          "defined": [
+            "constructor_error",
+            "full_lifecycle",
+            "two_alloc",
+            "two_stage"
+          ],
+          "undefined": [
+            "abort",
+            "calloc",
+            "free",
+            "malloc",
+            "memset"
+          ]
+        },
+        "claims": {
+          "backend_refinement_proved": false,
+          "c_codegen_used": false,
+          "cross_target_execution_qualified": false,
+          "fallback_used": false,
+          "foreign_buffer_entrypoints_exposed": false,
+          "native_execution_qualified": false,
+          "rust_codegen_used": false,
+          "rust_reference_required": false,
+          "source_ast_required": false,
+          "standalone_core_reverified": true,
+          "whole_language_soundness_proved": false
+        },
+        "core_sha256": "1de40df8a4d28a29b01dc5bcac54ce45f0bf1ac2f7627b416d5acaf86ad9c6c3",
+        "exports": [
+          "constructor_error",
+          "full_lifecycle",
+          "two_alloc",
+          "two_stage"
+        ],
+        "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+        "flags": [
+          "--target=x86_64-unknown-linux-gnu",
+          "-x",
+          "ir",
+          "-O3",
+          "-fPIC",
+          "-c"
+        ],
+        "implementation_sha256": "4257f6d73acf54ebc4452d28df5e2a48fca340def987258bdee8cb73726cb878",
+        "input_sha256": "1de40df8a4d28a29b01dc5bcac54ce45f0bf1ac2f7627b416d5acaf86ad9c6c3",
+        "kind": "object",
+        "llvm_ir_sha256": "873826c8af83e2b4621604d9daaf91839380bf924ded40dc32292d9a2a92e019",
+        "ok": true,
+        "output": "/tmp/hepta-hia-perf-ypnlkxiz/owned.o",
+        "profile": "hepta.hia.program.llvm-linux-x86_64.v1",
+        "runtime_assumptions": [
+          "Linux LP64 target with 64-bit pointers and size_t",
+          "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+          "C malloc returns null or a fresh nonaliasing allocation of the requested size; bytes are initialized before read or remain unobserved",
+          "C free accepts a live allocation from calloc or malloc, or null",
+          "abort terminates execution; no cleanup after traps is promised",
+          "native compiler, linker, loader, libc and host hardware are trusted"
+        ],
+        "schema": "hepta.hia.program.native.v1",
+        "status": "native_compiled_not_executed",
+        "target": "x86_64-unknown-linux-gnu",
+        "toolchain": {
+          "default_target": "x86_64-pc-linux-gnu",
+          "path": "/usr/lib/llvm-20/bin/clang",
+          "sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+          "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+        }
+      },
+      "positive": {
+        "command": [
+          "/tmp/hepta-hia-perf-ypnlkxiz/positive"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "{\"allocations\":7,\"frees\":7,\"live\":0,\"refusals\":1}\n",
+        "stdout_sha256": "ab8845ec479e24500fc63143e4ffe7bee9940755e8936079b4b69ac00e7db2a6"
+      },
+      "rehashed_llvm_rejected": true,
+      "status": "passed"
+    },
+    "status": "passed"
+  },
+  "report_boolean_claims": {
+    "candidate": {
+      "continue_on_failure": true,
+      "snapshot_unchanged": true,
+      "whole_project_blockers_closed": false
+    },
+    "integrated": {
+      "external_inputs_unchanged": true,
+      "full_regression_requested": true,
+      "global_optimality_established": false,
+      "historical_evidence_reused_as_current": false,
+      "native_timing_controls_in_full_regression": true,
+      "ok": true,
+      "scientific_incremental_advantage_established": false,
+      "six_stages_closed": false,
+      "source_unchanged": true,
+      "standalone_performance_campaigns_replayed": false,
+      "whole_language_soundness_proved": false
+    },
+    "ndu": {
+      "full_regression_requested": false,
+      "global_optimality_established": false,
+      "mechanism_qualified": true,
+      "ok": true,
+      "scientific_incremental_advantage_established": false,
+      "six_stages_closed": false,
+      "source_is_committed": true,
+      "source_unchanged": true,
+      "whole_language_soundness_proved": false
+    },
+    "standalone": {
+      "full_seven_deliverables_complete": false,
+      "full_six_deliverables_complete": false,
+      "ok": true,
+      "unchanged_source": true
+    }
+  },
+  "report_statuses": {
+    "candidate": "passed",
+    "integrated": "bounded_integrated_contracts_passed",
+    "ndu": "bounded_mechanisms_passed_scientific_gates_open",
+    "standalone": "all_scoped_gates_passed"
+  },
+  "schema": "hepta.hosted147-full-scope-observations.v1",
+  "standalone_scope_limits": [
+    "Dynamic recursive buffer chains are admitted; general recursive heap ADTs, escaping stored loans and background scheduling/channels remain outside the current core",
+    "C/C++ migration covers declared finite profiles, not arbitrary historical libraries",
+    "The upstream C resource matrix uses safe Hepta/Rust lowering; the upstream C++ library study is a bridge, while a separate bounded composed-owner profile rewrites implementations to native LLVM",
+    "Rust remains an opt-in shadow: verifier, scalar and finite single-block byte-owner parity do not qualify general resource execution or transfer production admission authority",
+    "Hosted concurrency, task/I/O, ABI and formal profiles retain their own finite scopes and do not become standalone Core guarantees",
+    "Application measurements are sequential in-process ABI requests, not an external network service or service-level objective",
+    "C++ noexcept termination observations do not establish allocation-failure recovery",
+    "QEMU is not physical hardware or device timing/protocol qualification",
+    "Agent productivity and independent total development-cost improvement require their own qualified trials",
+    "Whole-compiler soundness and Rust-wide performance superiority are unproved"
+  ]
+}
