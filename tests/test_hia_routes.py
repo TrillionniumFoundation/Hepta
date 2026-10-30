@@ -22,7 +22,7 @@ from tests.test_hia_optimization import constant_program
 class RouteTests(unittest.TestCase):
     def test_independent_rust_profile_cannot_mint_default_or_native_admission(self):
         inventory = route_inventory()
-        profile, = inventory["independent_execution_profiles"]
+        profile, heap = inventory["independent_execution_profiles"]
         self.assertEqual(profile["route"], "rust-byte-dag")
         self.assertEqual(profile["profile"], "raw-byte-dag-v1")
         module, name = profile["entry"].rsplit(".", 1)
@@ -39,6 +39,16 @@ class RouteTests(unittest.TestCase):
         profile["native_execution_authorized"] = True
         self.assertIs(route_inventory()["independent_execution_profiles"][0]
                       ["native_execution_authorized"], False)
+        self.assertEqual(heap["route"], "rust-byte-dag-finite-heap")
+        self.assertEqual(heap["profile"], "raw-byte-dag-finite-heap-v1")
+        self.assertEqual(heap["rust_entry"], "hia_core_shadow::admit_and_run_byte_dag_heap")
+        for key in ("python_semantic_admission_required", "execution_used_to_establish_heap_bound",
+                    "default_admission_changed", "source_or_nominal_lowering",
+                    "native_execution_authorized", "receipt_grants_admission"):
+            self.assertIs(heap[key], False)
+        with patch("hepta.hia_routes.verify_program", side_effect=AssertionError("must refuse first")):
+            with self.assertRaisesRegex(RouteRejected, "E_HIA_ROUTE_UNSUPPORTED"):
+                admit_route(heap["route"], constant_program())
 
     def test_versioned_inventory_has_all_languages_and_legacy_non_authorities(self):
         inventory = route_inventory()

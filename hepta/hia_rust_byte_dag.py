@@ -18,6 +18,7 @@ from . import hia_rust_crosscheck as _transport
 MAX_CORE_BYTES = 8 * 1024 * 1024
 MAX_REPORT_BYTES = 8 * 1024 * 1024
 PROFILE = "raw-byte-dag-v1"
+HEAP_PROFILE = "raw-byte-dag-finite-heap-v1"
 _METRICS = {"max_allocator_interactions", "max_vm_ticks", "max_call_depth"}
 _CLAIMS = {
     "raw_primitive_core_admitted_by_rust": True,
@@ -41,6 +42,32 @@ _RESOURCE_FIELDS = {
 _CHAIN_FIELDS = {
     "chains_created", "chains_consumed", "live_chains", "chain_nodes_created",
     "chain_nodes_dropped", "live_chain_nodes",
+}
+_HEAP_CLAIMS = {
+    "whole_module_independently_checked": True,
+    "exact_scalar_invocation_only": True,
+    "owned_call_transfer_accounted": True,
+    "external_borrow_payload_counted_in_caller": True,
+    "allocation_failure_and_stop_prefixes_in_bound": True,
+    "analysis_work_limits_enforced": True,
+    "allocation_failure_index_specialized": False,
+    "branch_reachability_proved": False,
+    "all_function_input_extents_bounded": False,
+    "caller_supplied_resource_extents_trusted": False,
+    "borrowed_lengths_assumed_exact": False,
+    "cleanup_after_trap_or_budget_stop_proved": False,
+    "recursive_chain_storage_bounded": False,
+    "process_rss_or_native_stack_bytes_bounded": False,
+    "source_or_native_backend_refinement_proved": False,
+    "whole_language_soundness_proved": False,
+    "native_execution_authorized": False,
+    "execution_used_to_establish_bound": False,
+}
+_HEAP_WORK_LIMITS = {
+    "contexts": ("max_contexts", 1024),
+    "transfer_steps": ("max_transfer_steps", 32768),
+    "peak_analysis_call_depth": ("max_analysis_call_depth", 64),
+    "abstract_value_events": ("max_abstract_value_events", 262144),
 }
 
 
@@ -176,17 +203,60 @@ def _validate_runtime(runtime, request, body, entry_bound):
         _reject("runtime tick limit and outcome disagree")
 
 
+def _validate_heap_report(heap, request, body, budget, entry_bound, runtime):
+    """Bind a producer's independently computed facts; do not recompute semantics."""
+    _keys(heap, {"schema", "profile", "status", "program_sha256", "core_schema",
+                 "function", "arguments", "limit_bytes", "peak_bound_bytes",
+                 "static_budget_sha256", "analysis_work", "claims"} | _METRICS,
+          "finite invocation heap bound")
+    if body["schema"] not in {"hepta.hia.program.v7", "hepta.hia.program.v8"}:
+        _reject("finite invocation heap bound is outside primitive v7/v8")
+    borrowed_extents = body["schema"] == "hepta.hia.program.v8"
+    expected = {
+        "schema": "hepta.hia.rust-finite-entry-heap.v1",
+        "profile": ("acyclic-byte-owner-transfer-caller-borrowed-extents-v8" if borrowed_extents
+                    else "acyclic-byte-owner-transfer-v7"),
+        "status": "conservative_finite_invocation_payload_bound_not_authority",
+        "program_sha256": request["program_sha256"], "core_schema": body["schema"],
+        "function": request["function"], "arguments": request["arguments"],
+        "limit_bytes": request["heap_policy"]["max_live_heap_bytes"],
+        "static_budget_sha256": sha256(_canonical(budget)).hexdigest(),
+        "claims": {**_HEAP_CLAIMS,
+                   "borrowed_extents_derived_from_caller_roots": borrowed_extents,
+                   "parameter_bound_returned_loans_checked": borrowed_extents},
+        **{metric: entry_bound[metric] for metric in _METRICS},
+    }
+    _equal({key: heap[key] for key in expected}, expected, "finite heap invocation/claims")
+    peak = _unsigned(heap["peak_bound_bytes"], "finite heap peak bound")
+    if not runtime["execution"]["resources"]["peak_bytes"] <= peak <= heap["limit_bytes"]:
+        _reject("Machine payload prefix escapes the admitted finite heap bound")
+    work = heap["analysis_work"]
+    _keys(work, set(_HEAP_WORK_LIMITS) | {v[0] for v in _HEAP_WORK_LIMITS.values()},
+          "finite heap analysis work")
+    for actual, (limit_name, limit) in _HEAP_WORK_LIMITS.items():
+        _equal(work[limit_name], limit, "finite heap work limit " + limit_name)
+        if not 1 <= _unsigned(work[actual], actual) <= limit:
+            _reject("finite heap analysis work escapes its fixed limit")
+    if work["peak_analysis_call_depth"] > work["contexts"]:
+        _reject("finite heap analysis depth exceeds its context inventory")
+
+
 def _validate_report(raw, request, body):
     # Bound response tree construction as well as bytes. A valid result may
     # contain a long scalar return list in addition to two bound request copies.
     preflight_hia_json(raw.decode("utf-8"), max_nodes=1048576, max_depth=64)
     report = _transport._report_line(raw, MAX_REPORT_BYTES)
+    heap_mode = request["profile"] == HEAP_PROFILE
     _keys(report, {"schema", "profile", "status", "request_sha256", "request",
-                   "static_budget", "runtime", "claims"}, "byte-DAG envelope")
+                   "static_budget", "runtime", "claims"} | ({"heap_bound"} if heap_mode else set()),
+          "byte-DAG envelope")
+    claims = {**_CLAIMS, **({"finite_entry_live_payload_limit_checked_before_execution": True}
+                          if heap_mode else {})}
     _equal({k: report[k] for k in ("schema", "profile", "status", "request_sha256", "request", "claims")}, {
-        "schema": "hepta.hia.rust-byte-dag-run.v1", "profile": PROFILE,
+        "schema": ("hepta.hia.rust-byte-dag-heap-run.v1" if heap_mode else "hepta.hia.rust-byte-dag-run.v1"),
+        "profile": HEAP_PROFILE if heap_mode else PROFILE,
         "status": "admitted_and_observed", "request": request,
-        "request_sha256": sha256(_canonical(request)).hexdigest(), "claims": _CLAIMS,
+        "request_sha256": sha256(_canonical(request)).hexdigest(), "claims": claims,
     }, "raw byte-DAG request/authority binding")
     if (type(body) is not dict or body.get("schema") not in {
             f"hepta.hia.program.v{version}" for version in range(1, 9)}
@@ -219,6 +289,8 @@ def _validate_report(raw, request, body):
     if entry_bound is None:
         _reject("selected entry has no static bound")
     _validate_runtime(report["runtime"], request, body, entry_bound)
+    if heap_mode:
+        _validate_heap_report(report["heap_bound"], request, body, budget, entry_bound, report["runtime"])
     return report
 
 
@@ -226,13 +298,21 @@ def execute_rust_byte_dag(raw_core: bytes, function: str, arguments: list | tupl
                          executable: str | Path, *, executable_sha256: str,
                          static_policy: dict, max_steps: int = 1_000_000,
                          max_heap_bytes: int = 16 * 1024 * 1024, max_call_depth: int = 256,
-                         allocation_fail_at: int | None = None, timeout: float = 30.0):
+                         allocation_fail_at: int | None = None, timeout: float = 30.0,
+                         max_static_live_heap_bytes: int | None = None):
     """Run the actual pinned Rust binary as this raw byte-DAG mode's authority.
 
     static_policy requires all three unsigned u64 metrics and applies to every
     function. Runtime limits retain exact v4 semantics and may stop before the
     structural upper bound. Input must be raw primitive JSON bytes; no Python
     semantic verifier or nominal normalizer is called, even on invalid Core.
+
+    max_static_live_heap_bytes explicitly selects raw-byte-dag-finite-heap-v1:
+    the same Rust admission snapshot independently derives a logical payload
+    bound for this exact scalar v7/v8 invocation, covering allocator failure and
+    stop prefixes without executing the Machine to establish the bound. The
+    default None preserves raw-byte-dag-v1. This does not bound RSS or authorize
+    a native backend, source lowering or imported resource extents.
 
     The executable pin, loader/libraries/kernel and caller process are trusted.
     Exact request checks reject stale/cross-policy replies; they are not a
@@ -246,6 +326,9 @@ def execute_rust_byte_dag(raw_core: bytes, function: str, arguments: list | tupl
             or allocation_fail_at is not None and
                (type(allocation_fail_at) is not int or allocation_fail_at < 1)):
         _reject("runtime policy is outside the explicit v4 profile")
+    if max_static_live_heap_bytes is not None and (
+            type(max_static_live_heap_bytes) is not int or not 0 <= max_static_live_heap_bytes < 1 << 63):
+        _reject("static live heap limit requires an exact integer in 0..2^63-1")
     if type(function) is not str or re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{0,127}", function) is None:
         _reject("function must be a bounded ASCII entry name")
     if (type(arguments) not in (list, tuple) or len(arguments) > _transport.MAX_ARGUMENTS
@@ -267,15 +350,22 @@ def execute_rust_byte_dag(raw_core: bytes, function: str, arguments: list | tupl
             "max_steps": max_steps, "max_heap_bytes": max_heap_bytes,
             "max_call_depth": max_call_depth, "allocation_fail_at": allocation_fail_at,
         }, 4)
-        request = {"schema": "hepta.hia.rust-byte-dag-request.v1", "profile": PROFILE,
+        heap_mode = max_static_live_heap_bytes is not None
+        request = {"schema": ("hepta.hia.rust-byte-dag-heap-request.v1" if heap_mode
+                              else "hepta.hia.rust-byte-dag-request.v1"),
+            "profile": HEAP_PROFILE if heap_mode else PROFILE,
             "input_sha256": sha256(raw_core).hexdigest(), "program_sha256": program_sha256,
             "function": function, "arguments": arguments, "static_policy": static_policy,
             "execution_policy": policy}
+        launch_arguments = ["--byte-dag-heap-admit-run" if heap_mode else "--byte-dag-admit-run",
+            function, argument_wire.decode("ascii"), _canonical(static_policy).decode("ascii")]
+        if heap_mode:
+            request["heap_policy"] = {"max_live_heap_bytes": max_static_live_heap_bytes}
+            launch_arguments.append(_canonical(request["heap_policy"]).decode("ascii"))
+        launch_arguments.append(_canonical(policy).decode("ascii"))
         raw_executable = _transport._verified_executable_bytes(Path(executable), executable_sha256)
-        stdout, stderr, returncode = _transport._run_pinned_shadow(raw_executable, [
-            "--byte-dag-admit-run", function, argument_wire.decode("ascii"),
-            _canonical(static_policy).decode("ascii"), _canonical(policy).decode("ascii"),
-        ], raw_core, timeout, maximum_output=MAX_REPORT_BYTES)
+        stdout, stderr, returncode = _transport._run_pinned_shadow(raw_executable, launch_arguments,
+            raw_core, timeout, maximum_output=MAX_REPORT_BYTES)
         if returncode != 0 or stderr:
             _reject("Rust rejected raw admission/execution or emitted unexpected diagnostics")
         report = _validate_report(stdout, request, body)
@@ -284,5 +374,6 @@ def execute_rust_byte_dag(raw_core: bytes, function: str, arguments: list | tupl
         if isinstance(exc, HIARustByteDagRejected):
             raise
         raise HIARustByteDagRejected("E_HIA_RUST_BYTE_DAG: process or response contract rejected") from exc
-    return {"schema": "hepta.hia.rust-byte-dag-invocation.v1",
+    return {"schema": ("hepta.hia.rust-byte-dag-heap-invocation.v1" if heap_mode
+                       else "hepta.hia.rust-byte-dag-invocation.v1"),
             "executable_sha256": executable_sha256, "rust_report": report}

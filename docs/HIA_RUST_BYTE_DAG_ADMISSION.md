@@ -13,6 +13,12 @@ and false production/native authority claims. The new route has a distinct
 profile and an explicit scoped authority claim; it does not relabel a shadow
 comparison as a whole-language authority switch.
 
+The separately selected `raw-byte-dag-finite-heap-v1` profile adds an independent
+Rust static live-payload gate for one exact primitive v7/v8 scalar invocation.
+It uses this same snapshot, whole-module verifier and v4 Machine. The original
+`raw-byte-dag-v1` schemas, policies, observations and claim meanings stay intact.
+See [the finite-entry heap contract](HIA_RUST_FINITE_ENTRY_HEAP.md).
+
 ## Entry points and immutable admission
 
 The Rust library entry point is:

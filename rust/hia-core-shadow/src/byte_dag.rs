@@ -6,10 +6,11 @@
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 
-use super::{analyze_static_budget, array, decode_hia, execute_owned_bound_v4,
+use super::{analyze_finite_entry_heap, analyze_static_budget, array, decode_hia, execute_owned_bound_v4,
             failure, object, R};
 
 const PROFILE: &str = "raw-byte-dag-v1";
+const HEAP_PROFILE: &str = "raw-byte-dag-finite-heap-v1";
 const MAX_STATIC_POLICY_BYTES: usize = 1024;
 const METRICS: [&str; 3] = ["max_allocator_interactions", "max_vm_ticks", "max_call_depth"];
 
@@ -22,6 +23,7 @@ struct AdmittedByteDag {
     input_sha256: String,
     static_policy: Value,
     static_budget: Value,
+    heap_bound: Option<Value>,
 }
 
 impl AdmittedByteDag {
@@ -53,28 +55,52 @@ impl AdmittedByteDag {
             }
         }
         Ok(Self { canonical_core, input_sha256: format!("{:x}", Sha256::digest(input)),
-                  static_policy, static_budget })
+                  static_policy, static_budget, heap_bound: None })
+    }
+
+    fn admit_heap(mut self, function: &str, arguments: &[Value], policy: &[u8]) -> R<Self> {
+        // No observation supplies this bound. The independent abstract pass
+        // rechecks the same immutable whole Core and every finite graph.
+        self.heap_bound = Some(analyze_finite_entry_heap(
+            &self.canonical_core, function, arguments, policy)?);
+        Ok(self)
     }
 
     fn run(self, function: &str, arguments: &[Value], execution_policy_input: &[u8]) -> R<Value> {
+        if let Some(heap) = &self.heap_bound {
+            if heap["function"] != function || heap["arguments"] != json!(arguments) {
+                return failure("E_HIA_INPUT", "finite heap admission belongs to a different invocation");
+            }
+        }
         // Preserve the complete v4 policy/parser/external scalar boundary and
         // runtime semantics, including early stops and retained resource ledgers.
         // Reverification here is deliberate: no unchecked Machine API is added.
         let runtime = execute_owned_bound_v4(
             &self.canonical_core, function, arguments, execution_policy_input)?;
-        let request = json!({
-            "schema": "hepta.hia.rust-byte-dag-request.v1", "profile": PROFILE,
+        let bounded_heap = self.heap_bound.is_some();
+        let profile = if bounded_heap { HEAP_PROFILE } else { PROFILE };
+        let mut request = json!({
+            "schema": if bounded_heap { "hepta.hia.rust-byte-dag-heap-request.v1" }
+                      else { "hepta.hia.rust-byte-dag-request.v1" }, "profile": profile,
             "input_sha256": self.input_sha256,
             "program_sha256": self.static_budget["program_sha256"],
             "function": function, "arguments": arguments,
             "static_policy": self.static_policy,
             "execution_policy": runtime["request"]["policy"],
         });
+        if let Some(heap) = &self.heap_bound {
+            request["heap_policy"] = json!({"max_live_heap_bytes": heap["limit_bytes"]});
+            if runtime["execution"]["resources"]["peak_bytes"].as_u64()
+                .zip(heap["peak_bound_bytes"].as_u64()).is_none_or(|(actual,bound)| actual > bound) {
+                return failure("E_HIA_BUDGET_GRAPH", "Machine prefix escaped finite heap admission");
+            }
+        }
         let canonical_request = serde_json::to_vec(&request).map_err(|error| super::VerifyError {
             code: "E_HIA_INPUT", detail: error.to_string(),
         })?;
-        Ok(json!({
-            "schema": "hepta.hia.rust-byte-dag-run.v1", "profile": PROFILE,
+        let mut report = json!({
+            "schema": if bounded_heap { "hepta.hia.rust-byte-dag-heap-run.v1" }
+                      else { "hepta.hia.rust-byte-dag-run.v1" }, "profile": profile,
             "status": "admitted_and_observed",
             "request_sha256": format!("{:x}", Sha256::digest(canonical_request)),
             "request": request, "static_budget": self.static_budget, "runtime": runtime,
@@ -93,7 +119,12 @@ impl AdmittedByteDag {
                 "process_rss_or_native_time_bounded": false,
                 "successful_return_or_cleanup_guaranteed": false,
             }
-        }))
+        });
+        if let Some(heap) = self.heap_bound {
+            report["heap_bound"] = heap;
+            report["claims"]["finite_entry_live_payload_limit_checked_before_execution"] = json!(true);
+        }
+        Ok(report)
     }
 }
 
@@ -108,4 +139,13 @@ pub fn admit_and_run_byte_dag(input: &[u8], function: &str, arguments: &[Value],
                              static_policy_input: &[u8], execution_policy_input: &[u8]) -> R<Value> {
     AdmittedByteDag::admit(input, static_policy_input)?.run(
         function, arguments, execution_policy_input)
+}
+
+/// Same snapshot/authority/Machine, with a separately versioned static heap gate.
+/// Only the exact scalar invocation is heap-bounded; v1 remains unchanged.
+pub fn admit_and_run_byte_dag_heap(input: &[u8], function: &str, arguments: &[Value],
+    static_policy_input: &[u8], heap_policy_input: &[u8], execution_policy_input: &[u8]) -> R<Value> {
+    AdmittedByteDag::admit(input, static_policy_input)?
+        .admit_heap(function, arguments, heap_policy_input)?
+        .run(function, arguments, execution_policy_input)
 }

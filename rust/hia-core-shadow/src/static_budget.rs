@@ -27,7 +27,7 @@ fn add(a: u64, b: u64) -> R<u64> {
     })
 }
 
-fn topological(edges: &BTreeMap<String, BTreeSet<String>>, context: &str) -> R<Vec<String>> {
+pub(super) fn topological(edges: &BTreeMap<String, BTreeSet<String>>, context: &str) -> R<Vec<String>> {
     let mut incoming: BTreeMap<String, usize> = edges.keys().map(|name| (name.clone(), 0)).collect();
     for targets in edges.values() {
         for target in targets {

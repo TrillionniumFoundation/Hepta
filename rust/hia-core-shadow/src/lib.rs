@@ -9,7 +9,9 @@
 #![forbid(unsafe_code)]
 
 mod byte_dag;
-pub use byte_dag::admit_and_run_byte_dag;
+pub use byte_dag::{admit_and_run_byte_dag, admit_and_run_byte_dag_heap};
+mod finite_heap;
+pub use finite_heap::analyze_finite_entry_heap;
 
 use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
