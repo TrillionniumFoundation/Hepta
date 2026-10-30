@@ -30,6 +30,7 @@ from hepta.native_tool_identity import digest_executable
 
 
 FIXTURE = ROOT / "tests/fixtures/c_migration/musl_strncmp"
+SUCCESSOR_FIXTURE = ROOT / "tests/fixtures/c_migration/musl_strncmp_v1_2_6"
 CLIENT = ROOT / "examples/hia_musl_strncmp"
 ENTRY = "strncmp_probe"
 FLAGS = ("-std=c11", "-funsigned-char", "-fno-builtin", "-O2", "-fPIC", "-Iplatform")
@@ -37,6 +38,21 @@ UPSTREAM_HASHES = {
     "strncmp.c": "df801c43304b27dcda67f219a7a3ca34a8fb06f4e63d21e8a6bcb36b03c3c012",
     "COPYRIGHT": "f9bc4423732350eb0b3f7ed7e91d530298476f8fec0c6c427a1c04ade22655af",
     "UPSTREAM_README": "99be6432b41de50d702dbee423149c8abcd52d06e29dc1715013c25865a2eda8",
+}
+UPSTREAM_PROFILES = {
+    "1.2.5": {
+        "fixture": FIXTURE,
+        "commit": "0784374d561435f7c787a555aeab8ede699ed298",
+        "archive": "a9a118bbe84d8764da0ea0d28b3ab3fae8477fc7e4085d90102b8596fc7c75e4",
+        "files": UPSTREAM_HASHES,
+    },
+    "1.2.6": {
+        "fixture": SUCCESSOR_FIXTURE,
+        "commit": "9fa28ece75d8a2191de7c5bb53bed224c5947417",
+        "archive": "d585fd3b613c66151fc3249e8ed44f77020cb5e6c1e635a616d3f9f82460512a",
+        "files": {**UPSTREAM_HASHES,
+            "COPYRIGHT": "b870108ec5e7790e9f9919064f1b9421d62d5f9b0e6c230c6adf7ea2da62e97b"},
+    },
 }
 PROTOCOL = {
     "schema": "hepta.hia.musl-strncmp-protocol.v1",
@@ -72,14 +88,17 @@ def require(condition, message):
         raise ValueError(message)
 
 
-def verify_upstream(directory=FIXTURE):
+def verify_upstream(directory=None, *, version="1.2.5"):
+    require(version in UPSTREAM_PROFILES, "unregistered upstream version")
+    profile = UPSTREAM_PROFILES[version]
+    directory = profile["fixture"] if directory is None else directory
     directory = Path(directory)
     metadata = json.loads((directory / "UPSTREAM.json").read_text())
-    require(metadata["version"] == "1.2.5"
-            and metadata["tag_commit"] == "0784374d561435f7c787a555aeab8ede699ed298"
-            and metadata["release_archive"]["sha256"] == "a9a118bbe84d8764da0ea0d28b3ab3fae8477fc7e4085d90102b8596fc7c75e4"
+    require(metadata["version"] == version
+            and metadata["tag_commit"] == profile["commit"]
+            and metadata["release_archive"]["sha256"] == profile["archive"]
             and metadata["source_modifications"] == []
-            and {row["local_path"]: row["sha256"] for row in metadata["files"]} == UPSTREAM_HASHES,
+            and {row["local_path"]: row["sha256"] for row in metadata["files"]} == profile["files"],
             "frozen upstream component identity differs")
     for row in metadata["files"]:
         actual = identity(directory / row["local_path"])
@@ -89,7 +108,8 @@ def verify_upstream(directory=FIXTURE):
 
 
 def source_bindings():
-    paths = [Path(__file__), *FIXTURE.rglob("*"), *CLIENT.iterdir(),
+    paths = [Path(__file__), ROOT / "tools/qualify_hia_musl_strncmp_update.py",
+             *FIXTURE.rglob("*"), *SUCCESSOR_FIXTURE.rglob("*"), *CLIENT.iterdir(),
              *sorted((ROOT / "hepta").rglob("*.py"))]
     return {str(path.relative_to(ROOT)): identity(path)["sha256"]
             for path in sorted(paths) if path.is_file()}
@@ -113,10 +133,10 @@ def configured_frontend_libraries():
             "all_system_dependencies_attested": False}
 
 
-def prepare_project(directory, *, signed_char=False):
-    verify_upstream()
+def prepare_project(directory, *, signed_char=False, upstream_version="1.2.5"):
+    verify_upstream(version=upstream_version)
     directory = Path(directory)
-    shutil.copytree(FIXTURE, directory)
+    shutil.copytree(UPSTREAM_PROFILES[upstream_version]["fixture"], directory)
     for path in CLIENT.iterdir():
         if path.is_file():
             shutil.copyfile(path, directory / path.name)
@@ -184,7 +204,7 @@ def expected_resources(case, refusal):
     return {"result": case["expected"], "attempts": 2, "allocations": 2, "frees": 2, "live": 0}
 
 
-def run(*, output, clang, source_sha):
+def run(*, output, clang, source_sha, upstream_version="1.2.5"):
     started = time.monotonic_ns()
     out = Path(output).absolute()
     out.mkdir(parents=True, exist_ok=False)
@@ -225,9 +245,9 @@ def run(*, output, clang, source_sha):
         report["frontend_loader"] = configured_frontend_libraries()
         report["python"] = {**identity(sys.executable), "version": sys.version}
         report["host"] = {"platform": platform.platform(), "machine": platform.machine(), "exclusive_host": False}
-        report["upstream"] = verify_upstream()
+        report["upstream"] = verify_upstream(version=upstream_version)
         project = out / "project"
-        database, contracts = prepare_project(project)
+        database, contracts = prepare_project(project, upstream_version=upstream_version)
         before = time.monotonic_ns()
         migrated = lower_c_project_views(database, contracts=contracts, clang=compiler,
             client_source=(project / "client.hepta").read_text(), retain_asts=True)
@@ -254,7 +274,9 @@ def run(*, output, clang, source_sha):
             "core": identity(capture / "program.hia.json"), "llvm": identity(capture / "program.ll"),
             "manual_migrated_body_edits": 0, "input_contracts": contracts,
             "domain": "two initialized read slices each at least n bytes; unsigned-char LP64 captured build only"}
+        before = time.monotonic_ns()
         build = build_program_native(core, out / "hia.o", kind="object", clang=compiler)
+        report["native_build_wall_ns"] = time.monotonic_ns() - before
         require(build["ok"] and not any(build["claims"][key] for key in ("rust_codegen_used", "c_codegen_used", "fallback_used")),
                 "direct LLVM native build required")
         require(build["llvm_ir_sha256"] == identity(capture / "program.ll")["sha256"], "retained LLVM differs from consumed IR")
@@ -304,7 +326,7 @@ def run(*, output, clang, source_sha):
         require(configured_frontend_libraries() == report["frontend_loader"], "frontend loader configuration or library drift")
         require({route: identity(path) for route, path in executables.items()} == report["executables"], "native artifact drift")
         verify_capture(migrated["capture"])
-        verify_upstream(project)
+        verify_upstream(project, version=upstream_version)
         report.update(ok=True, status="completed_finite_component_qualification")
     except Exception as error:
         report.update(ok=False, status="failed", error={"type": type(error).__name__,
@@ -324,6 +346,7 @@ def main():
     parser.add_argument("--output", required=True)
     parser.add_argument("--source-sha", required=True)
     parser.add_argument("--clang", default=os.environ.get("CLANG", "clang"))
+    parser.add_argument("--upstream-version", choices=tuple(UPSTREAM_PROFILES), default="1.2.5")
     result = run(**vars(parser.parse_args()))
     print(json.dumps({key: result[key] for key in ("ok", "status", "completed_cases", "native_observations", "vm_observations", "whole_qualification_wall_ns", "error") if key in result}))
     return 0 if result["ok"] else 1

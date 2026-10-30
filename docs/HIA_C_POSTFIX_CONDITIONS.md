@@ -79,3 +79,50 @@ These finite results do not establish all-input source or backend refinement,
 universal C/C++ migration, performance superiority, measured human effort or a
 general AI development advantage. The previous Agent study failures and their
 stopping rules remain unchanged.
+
+## Subsequent-release maintenance protocol
+
+The separately pinned musl 1.2.6 official release was announced on 2026-03-20.
+Its generic `strncmp.c` is byte-identical to the 1.2.5 input; its complete
+COPYRIGHT differs. The official archive is bound by SHA-256, and its source,
+copyright and README were compared with files from the mirror's exact tag
+commit. The tag commit is explicitly mirror-derived because the official cgit
+request returned HTTP 503. HTTPS download and byte identity are recorded; no
+PGP signature verification is claimed.
+
+`tools/qualify_hia_musl_strncmp_update.py` fixes an **unchanged-body release
+maintenance** profile before the new qualification runs. The previous receipt
+must be complete and all of its retained files, input cells, native process
+outputs and resource results must revalidate. The successor archive, both
+function bodies, authored declaration/contract/client files, production Hepta
+Python sources, compiler/Python/library identities and fixed input matrix must
+match their registered conditions. A changed function body or adapter requires
+a new protocol and new semantic qualification; this protocol refuses it.
+
+The maintenance command starts a new capture, direct LLVM build, 2,316 native
+process observations and 1,158 VM executions. It retains all newly observed
+results, requires the same readmitted Core, and records capture, build and
+whole-qualification wall time. Previous results are only the maintenance
+baseline; they are not copied into the new observations. This is a regression
+matrix reused intentionally across releases, not a fresh holdout experiment.
+
+```bash
+python tools/qualify_hia_musl_strncmp_update.py \
+  --baseline /absolute/musl-1.2.5/qualification-directory \
+  --release-archive /absolute/musl-1.2.6.tar.gz \
+  --acquisition-receipt /absolute/acquisition.json \
+  --clang "$CLANG" --source-sha "$(git rev-parse HEAD)" \
+  --output /absolute/new/maintenance-directory
+```
+
+The acquisition receipt records the official archive URL/hash, the mirror
+commit, timed download processes and whether signature verification occurred.
+Archive-member validation is performed again by the maintenance command.
+The command's timing excludes prior discovery and development; separately
+recorded acquisition timing excludes earlier failed or exploratory requests.
+Neither timing measures human labor or proves a comparative migration saving.
+
+This example establishes only a real subsequent release's unchanged generic
+component in the declared build and ownership contract. It does not qualify
+the whole later musl release, changes to its unrelated routines, changed-body
+maintenance, complete libc ABI compatibility or general C++ library migration.
