@@ -349,6 +349,36 @@ class HsirSafety(unittest.TestCase):
 
 
 
+    def test_standalone_ir_expression_emission_requires_validation(self):
+        # emit_expr is importable independently of check_function/emit_function.
+        # Without a validation boundary it can interpolate raw source fragments,
+        # produce syntactically invalid literals or leak IndexError/KeyError.
+        from hepta.migration_ir import emit_expr
+
+        scalar = Expr("literal", "i32", "1")
+        invalid = {
+            "raw_variable_fragment": Expr("var", "i32", "x) }; INJECTED_SOURCE_MARKER;"),
+            "unbound_variable": Expr("var", "i32", "missing"),
+            "invalid_literal": Expr("literal", "i32", "999999999999999999999"),
+            "unknown_unsigned_operator": Expr(
+                "arith", "u32", "BAD", (Expr("literal", "u32", "1"),
+                                        Expr("literal", "u32", "2"))),
+            "missing_negation_operand": Expr("neg", "i32"),
+            "invalid_comparison": Expr("compare", "bool", "??", (scalar, scalar)),
+        }
+        for case, expr in invalid.items():
+            with self.subTest(case=case):
+                with self.assertRaises(IRValidationError):
+                    emit_expr(expr)
+
+        self.assertEqual(emit_expr(Expr("literal", "i32", "17")), "(17 as i32)")
+        self.assertEqual(
+            emit_expr(Expr("var", "i32", "arg"), bindings=(("arg", "i32"),)), "arg")
+        self.assertEqual(
+            emit_expr(Expr("compare", "bool", "==", (scalar, scalar))),
+            "((1 as i32) == (1 as i32))")
+
+
 class C2HeptaImport(unittest.TestCase):
     def setUp(self):
         self.assertTrue(shutil.which("clang"), "Clang is required for this migration test")

@@ -210,17 +210,17 @@ def function_hash(function: Function) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
-def emit_expr(expr: Expr) -> str:
+def _emit_expr_unchecked(expr: Expr) -> str:
     if expr.kind == "var":
         return expr.value
     if expr.kind == "literal":
         return f"({expr.value} as {expr.ty})"
     if expr.kind == "neg":
-        return f"(-{emit_expr(expr.args[0])})"
+        return f"(-{_emit_expr_unchecked(expr.args[0])})"
     if expr.kind == "compare":
-        return f"({emit_expr(expr.args[0])} {expr.value} {emit_expr(expr.args[1])})"
+        return f"({_emit_expr_unchecked(expr.args[0])} {expr.value} {_emit_expr_unchecked(expr.args[1])})"
     if expr.kind == "arith":
-        a, b = (emit_expr(arg) for arg in expr.args)
+        a, b = (_emit_expr_unchecked(arg) for arg in expr.args)
         if expr.ty == "u32":
             op = {"+": "wrapping_add", "-": "wrapping_sub", "*": "wrapping_mul"}[expr.value]
             return f"{op}({a}, {b})"
@@ -228,11 +228,33 @@ def emit_expr(expr: Expr) -> str:
     raise IRValidationError("invalid expression")
 
 
+def emit_expr(expr: Expr, *, bindings: tuple[tuple[str, str], ...] = ()) -> str:
+    """Validate standalone expressions before emitting any raw source.
+
+    This importable helper has no implicit parameter scope. Callers supplying
+    variable references must provide explicit, validated parameter bindings.
+    emit_function() instead validates the entire Function once and uses the
+    private emitter only on that accepted structure.
+    """
+    if type(expr) is not Expr:
+        raise IRValidationError("invalid standalone migration IR expression")
+    if expr.ty == "bool":
+        true_stmt = Stmt("return", Expr("literal", "i32", "1"))
+        false_stmt = Stmt("return", Expr("literal", "i32", "0"))
+        body = (Stmt("if", expr, (true_stmt,), (false_stmt,)),)
+        result = "i32"
+    else:
+        body = (Stmt("return", expr),)
+        result = expr.ty
+    check_function(Function("expression_probe", bindings, result, body))
+    return _emit_expr_unchecked(expr)
+
+
 def _emit_body(body: tuple[Stmt, ...], indent: str) -> list[str]:
     stmt = body[0]
     if stmt.kind == "return":
-        return [indent + "return " + emit_expr(stmt.expr) + ";"]
-    return ([indent + "if " + emit_expr(stmt.expr) + " {"]
+        return [indent + "return " + _emit_expr_unchecked(stmt.expr) + ";"]
+    return ([indent + "if " + _emit_expr_unchecked(stmt.expr) + " {"]
             + _emit_body(stmt.then_body, indent + "    ")
             + [indent + "} else {"]
             + _emit_body(stmt.else_body, indent + "    ")
