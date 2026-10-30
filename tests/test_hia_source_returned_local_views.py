@@ -127,7 +127,7 @@ def refusals():
         "view_parameter": VIEW + "fn f<'a>(v:View<'a>)->u64 effects{}{return v.tag;}",
         "nested_view_record": VIEW + "struct Nested<'a>{view:View<'a>} fn f()->Unit effects{}{}",
         "two_stored_loans": "struct Two<'a>{a:read 'a [u8],b:read 'a [u8]} fn f()->Unit effects{}{}",
-        "nested_returned_argument": VIEW + SHARE + "fn f(b:read [u8])->u64 effects{}{let v=View{data:read shared(read shared(read b)),tag:7};return v.tag;}",
+        "nested_returned_mode_change": VIEW + SHARE + "fn frozen(b:mut [u8])->read [u8] from b effects{}{return read b;} fn f(b:mut [u8])->u64 effects{}{let v=View{data:read shared(read frozen(mut b)),tag:7};return v.tag;}",
         "origin_is_local_view": VIEW + SHARE + "fn f(b:read [u8])->u64 effects{}{let first=View{data:read b,tag:7};let v=View{data:read shared(read first.data),tag:7};return v.tag;}",
         "two_borrowed_formals": VIEW + "fn shared(b:read [u8],other:read [u8])->read [u8] from b effects{}{return read b;} fn f(b:read [u8])->u64 effects{}{let v=View{data:read shared(read b,read b),tag:7};return v.tag;}",
         "borrowed_record_formal": VIEW + "struct Pair{left:Buffer<u8>,right:Buffer<u8>} fn shared(p:read Pair)->read [u8] from p effects{}{return read p.left;} fn f(p:read Pair)->u64 effects{}{let v=View{data:read shared(read p),tag:7};return v.tag;}",

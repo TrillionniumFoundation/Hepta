@@ -65,8 +65,9 @@ ten existing field-origin methods, one mixed-form control and six source
 provenance methods brought that matrix to 340 selectors in 36 capabilities.
 The existing `source_lowering` capability now additionally selects nine
 returned-call local-view methods, preserving all 340 original selectors and
-every existing guarantee. The resulting union has 349 selectors in the same
-36 capabilities. This is the reviewed selection, not a claim that 349 methods
+every existing guarantee. Ten nested returned-origin methods now extend that
+349-selector matrix without removing a selector. The resulting union has 359
+selectors in the same 36 capabilities. This is the reviewed selection, not a claim that 359 methods
 have executed on every source revision. Focused and full reports retain
 their actual commit identities and separate execution denominators.
 
@@ -152,7 +153,7 @@ tests for the relevant ownership, alias, join and return cases.
 | Composite v2 | Nominal operations with the v7 resource grammar | Normalizes to primitive v7 |
 | Composite v3 | Explicit partially initialized record states | Normalizes to primitive v7; no implicit v8 returned-loan extension |
 | Composite v4 | V3 operations plus primitive loan results from declared original parameter/record-field paths | Normalizes to primitive v8; only incoming loan-only parameters may anchor results; no borrowed aggregate results or loans retained by partial/task state |
-| Hepta source | Finite checked scalar/record/Result profiles, concrete unit enums, local byte-view records and closed specialization; v1 by default or explicit v8 | Local views follow the lexical Resource IR profile; no stored returned borrows, general foreign calls or hidden Rust/C fallback |
+| Hepta source | Finite checked scalar/record/Result profiles, concrete unit enums, local byte-view records and closed specialization; v1 by default or explicit v8 | Local views follow the lexical Resource IR profile; explicit v8 permits same-mode single-origin returned-call chains with scalar other arguments; no escaping stored returns, general foreign calls or hidden Rust/C fallback |
 | Independent Rust shadow | Separately closed scalar, byte-owner, returned-loan and owned-chain Machine profiles, with invocation-bound outcomes and stopped ledgers | Independent finite comparison; execution v2 binds root-inclusive depth 1–32, while legacy/v1 stay at 32; never production admission or deployment authority |
 | Direct LLVM | Native code from immutable reverified HIA | Compiler, runtime and platform remain trusted; full Core-to-native refinement is not proved |
 

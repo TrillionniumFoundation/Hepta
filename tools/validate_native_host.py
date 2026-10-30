@@ -17,6 +17,7 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 import platform
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -34,6 +35,8 @@ SEED, SHAPES, VALUES = 20261025, 36, 3
 SCHEMA = "hepta.native-host.v2"
 FAMILIES = ("gcc", "clang", "msvc")
 PROFILES = ("O0", "O2")
+MAX_NATIVE_BINARY_BYTES = 16 * 1024 * 1024
+RETAINED_BINARY_ROLES = ("rust_object", "driver_O0", "driver_O2", "wrong_echo")
 
 # This file is preprocessed, not compiled or executed. Check __clang__ first:
 # clang targeting Windows defines _MSC_VER too, and is not Microsoft cl.exe.
@@ -75,6 +78,98 @@ HEPTA_C_STANDARD __STDC_VERSION__
 
 def sha(data):
     return hashlib.sha256(data).hexdigest()
+
+
+def _new_retention(directory):
+    directory = Path(directory)
+    # A new attempt must not replace a previous attempt's original bytes.
+    directory.mkdir(parents=True, exist_ok=False)
+    return {"directory": str(directory.resolve(strict=True)), "complete": False, "files": []}
+
+
+def _read_native_binary(path):
+    path = Path(path)
+    require(not path.is_symlink(), "native binary must not be a symbolic link")
+    flags = (os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
+             | getattr(os, "O_NONBLOCK", 0))
+    descriptor = os.open(path, flags)
+    with os.fdopen(descriptor, "rb") as stream:
+        before = os.fstat(stream.fileno())
+        require(stat.S_ISREG(before.st_mode) and 0 < before.st_size <= MAX_NATIVE_BINARY_BYTES,
+                "native binary must be a bounded nonempty regular file")
+        mode = stat.S_IMODE(before.st_mode)
+        require(0 <= mode <= 0o777, "native binary has unsupported permission bits")
+        data = stream.read(MAX_NATIVE_BINARY_BYTES + 1)
+        after = os.fstat(stream.fileno())
+        identity = lambda value: (value.st_dev, value.st_ino, value.st_size, value.st_mode,
+                                  value.st_mtime_ns, value.st_ctime_ns)
+        require(identity(before) == identity(after) and len(data) == before.st_size,
+                "native binary changed during retention")
+    return data, mode
+
+
+def _retain_binary(retention, source, role, expected_sha):
+    if retention is None:
+        return
+    require(role in RETAINED_BINARY_ROLES and is_sha(expected_sha), "invalid retained binary identity")
+    require(not any(item["role"] == role for item in retention["files"]), "duplicate retained binary role")
+    source = Path(source)
+    data, mode = _read_native_binary(source)
+    require(sha(data) == expected_sha, "retained binary differs from the executed artifact")
+    destination = Path(retention["directory"]) / source.name
+    # Exclusive creation also rejects an existing link or an earlier artifact.
+    with destination.open("xb") as stream:
+        stream.write(data)
+    os.chmod(destination, mode)
+    copied, copied_mode = _read_native_binary(destination)
+    require(copied == data and copied_mode == mode, "retained binary copy differs")
+    retention["files"].append({"role": role, "name": source.name, "original_path": str(source),
+                               "bytes": len(data), "sha256": expected_sha, "mode": mode})
+
+
+def validate_retained_binaries(report, *, directory=None):
+    """Bind four retained binaries to the original matrix; optionally read their bytes.
+
+    ``directory`` can explicitly map a restored archive to a new local directory.
+    The original producer's paths remain unchanged in the report.
+    """
+    retention = report.get("retained_binary_artifacts")
+    require(isinstance(retention, dict) and set(retention) == {"directory", "complete", "files"}
+            and text(retention["directory"]) and retention["complete"] is True,
+            "complete native binary retention is required")
+    files = retention["files"]
+    require(isinstance(files, list) and len(files) == 4, "four native binaries must be retained")
+    host, native, negative, hashes = (report.get("host", {}), report.get("native_object", {}),
+                                     report.get("negative_control", {}), report.get("executable_sha256s"))
+    require(isinstance(host, dict) and host.get("system") in {"Windows", "Darwin", "Linux"}
+            and isinstance(native, dict) and text(native.get("artifact"))
+            and isinstance(negative, dict) and isinstance(hashes, list) and len(hashes) == 2,
+            "native retention has no original artifact identities")
+    path_type = PureWindowsPath if host["system"] == "Windows" else PurePosixPath
+    original = path_type(native["artifact"])
+    extension = ".exe" if host["system"] == "Windows" else ""
+    origins = [original, original.parent / ("host-matrix-O0" + extension),
+               original.parent / ("host-matrix-O2" + extension), original.parent / ("wrong" + extension)]
+    expected_hashes = [native.get("artifact_sha256"), *hashes, negative.get("artifact_sha256")]
+    require(all(is_sha(value) for value in expected_hashes), "original native binary hashes are missing")
+    mapped = None
+    if directory is not None:
+        mapped = Path(directory)
+        require(mapped.is_dir() and not mapped.is_symlink(), "retained directory is not an ordinary directory")
+    for index, (entry, role, origin, digest) in enumerate(zip(files, RETAINED_BINARY_ROLES, origins, expected_hashes)):
+        require(isinstance(entry, dict)
+                and set(entry) == {"role", "name", "original_path", "bytes", "sha256", "mode"}
+                and entry["role"] == role and entry["name"] == origin.name
+                and entry["original_path"] == str(origin) and entry["sha256"] == digest
+                and type(entry["bytes"]) is int and 0 < entry["bytes"] <= MAX_NATIVE_BINARY_BYTES
+                and type(entry["mode"]) is int and 0 <= entry["mode"] <= 0o777,
+                "retained binary metadata differs from the original matrix")
+        if index == 0:
+            require(entry["bytes"] == native.get("artifact_bytes"), "retained object size differs")
+        if mapped is not None:
+            data, mode = _read_native_binary(mapped / entry["name"])
+            require(len(data) == entry["bytes"] and sha(data) == digest and mode == entry["mode"],
+                    "retained native binary bytes or mode differ")
 
 
 def compiler_probe_command(compiler, driver, probe):
@@ -164,7 +259,7 @@ def type_oracle_controls(header):
 
 
 def run_host(*, cc=None, cc_family="auto", rustc=None, expected_system=None, expected_machine=None,
-             observations=None):
+             observations=None, artifact_directory=None):
     system, machine = platform.system(), platform.machine().lower()
     normalized = {"amd64": "x86_64", "arm64": "aarch64"}.get(machine, machine)
     if expected_system is not None and system != expected_system:
@@ -182,6 +277,9 @@ def run_host(*, cc=None, cc_family="auto", rustc=None, expected_system=None, exp
     observations = {} if observations is None else observations
     observations.update({"commands": commands, "c_compiler": {"path": compiler, "binary_sha256": compiler_sha,
                                                               "requested_family": cc_family}})
+    retention = _new_retention(artifact_directory) if artifact_directory is not None else None
+    if retention is not None:
+        observations["retained_binary_artifacts"] = retention
     def run(argv, *, positive=True):
         argv = list(map(str, argv))
         start = time.monotonic()
@@ -248,21 +346,26 @@ def run_host(*, cc=None, cc_family="auto", rustc=None, expected_system=None, exp
         object_file = directory / ("matrix.obj" if system == "Windows" else "matrix.o")
         observations["native_object_artifact"] = str(object_file)
         native = compile_rust(analysis.rust + "\n" + probes, rustc=rustc, crate_type="obj", output=object_file)
+        observations["native_object"] = native
         if not native["ok"]:
             raise RuntimeError(json.dumps(native))
+        _retain_binary(retention, object_file, "rust_object", native.get("artifact_sha256"))
         executions = []
         observations["executions"] = executions
         executable_hashes = []
         for profile in PROFILES:
             executable = directory / ("host-matrix-" + profile + (".exe" if system == "Windows" else ""))
             run(c_compile_command(compiler, family, cfile, executable, profile=profile, rust_object=object_file))
+            built_hash = sha(_read_native_binary(executable)[0])
+            _retain_binary(retention, executable, "driver_" + profile, built_hash)
             executed = run([executable])
+            require(sha(_read_native_binary(executable)[0]) == built_hash, "native driver changed during execution")
             observed = json.loads(executed.stdout)
             if observed != {"status": "passed", "foreign_calls": denominator["expected_foreign_calls_per_run"]}:
                 raise ValueError("Actual host ABI denominator differs")
             executions.append({"optimization": optimization_flag(family, profile), "layout_checked": True,
                                "returncode": executed.returncode, "observed": observed})
-            executable_hashes.append(sha(executable.read_bytes()))
+            executable_hashes.append(built_hash)
         type_controls = []
         observations["type_negative_controls"] = type_controls
         try:
@@ -285,13 +388,18 @@ def run_host(*, cc=None, cc_family="auto", rustc=None, expected_system=None, exp
         cfile.write_text(wrong, encoding="utf-8", newline="\n")
         bad_executable = directory / ("wrong" + (".exe" if system == "Windows" else ""))
         run(c_compile_command(compiler, family, cfile, bad_executable, rust_object=object_file))
+        bad_hash = sha(_read_native_binary(bad_executable)[0])
+        _retain_binary(retention, bad_executable, "wrong_echo", bad_hash)
         wrong_run = run([bad_executable], positive=False)
+        require(sha(_read_native_binary(bad_executable)[0]) == bad_hash, "wrong-echo binary changed during execution")
         if wrong_run.returncode == 0:
             raise ValueError("The actual host oracle accepted the wrong C implementation")
         negative = {"name": "compiled_wrong_c_echo", "source_sha256": sha(wrong.encode()),
-                    "artifact_sha256": sha(bad_executable.read_bytes()), "returncode": wrong_run.returncode,
+                    "artifact_sha256": bad_hash, "returncode": wrong_run.returncode,
                     "status": "rejected_as_expected"}
         observations["negative_control"] = negative
+        if retention is not None:
+            retention["complete"] = True
     if compiler_hash() != before:
         raise ValueError("Compiler changed while qualifying the host")
     require(sha(Path(compiler).read_bytes()) == compiler_sha, "C compiler changed while qualifying the host")
@@ -305,6 +413,7 @@ def run_host(*, cc=None, cc_family="auto", rustc=None, expected_system=None, exp
             "layout_probes_sha256": sha(probes.encode()), "frontend": analysis.report,
             "native_object": native, "executions": executions, "executable_sha256s": executable_hashes,
             "negative_control": negative, "type_negative_controls": type_controls, "commands": commands,
+            **({"retained_binary_artifacts": retention} if retention is not None else {}),
             "claims": {"actual_reported_host_executed": True, "cross_host_results_inferred": False,
                        "physical_board_executed": False, "gpu_device_executed": False,
                        "all_abi_features_qualified": False},
@@ -443,6 +552,8 @@ def validate_report(report):
             and commands[-2]["returncode"] == 0 and commands[-1]["argv"] == [str(bad_executable)]
             and commands[-1]["returncode"] == negative["returncode"] and "v_scalar0_0" in commands[-1]["stderr"],
             "wrong echo must fail its actual native assertion, not fail to launch")
+    if "retained_binary_artifacts" in report:
+        validate_retained_binaries(report)
 
 
 def main():
@@ -455,13 +566,23 @@ def main():
     parser.add_argument("--expected-machine", choices=["x86_64", "aarch64"])
     parser.add_argument("--output", type=Path, default=ROOT / "artifacts/native-host.json")
     args = parser.parse_args()
+    if args.output.exists() or args.output.is_symlink():
+        print(json.dumps({"status": "failed", "output": str(args.output),
+                          "error": "The native host report already exists; use a fresh output path."}))
+        return 1
+    artifact_directory = args.output.parent / (args.output.stem + "-artifacts")
     observed = None
     attempt = {}
     try:
         report = run_host(cc=args.cc, cc_family=args.cc_family, rustc=args.rustc, expected_system=args.expected_system,
-                          expected_machine=args.expected_machine, observations=attempt)
+                          expected_machine=args.expected_machine, observations=attempt,
+                          artifact_directory=artifact_directory)
         observed = report
         validate_report(report)
+        retained = report.get("retained_binary_artifacts")
+        require(isinstance(retained, dict) and retained.get("directory") == str(artifact_directory.resolve()),
+                "retained binary directory differs from the requested destination")
+        validate_retained_binaries(report, directory=artifact_directory)
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as exc:
         report = {"schema": SCHEMA, "status": "failed", "error": str(exc),
                   "host": {"system": platform.system(), "machine": platform.machine()},
@@ -474,13 +595,21 @@ def main():
                 "commands": observed.get("commands", []),
                 "c_compiler": observed.get("c_compiler"),
                 "native_object_artifact": observed.get("native_object_artifact") or observed.get("native_object", {}).get("artifact"),
+                "native_object": observed.get("native_object"),
                 "executions": observed.get("executions"),
                 "type_negative_controls": observed.get("type_negative_controls"),
                 "negative_control": observed.get("negative_control"),
                 "source_sha256": observed.get("source_sha256"),
+                "retained_binary_artifacts": observed.get("retained_binary_artifacts"),
             }
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+    try:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        with args.output.open("x", encoding="utf-8", newline="\n") as stream:
+            stream.write(json.dumps(report, indent=2, sort_keys=True) + "\n")
+    except OSError as exc:
+        print(json.dumps({"status": "failed", "output": str(args.output),
+                          "error": "Cannot publish a fresh native host report: " + str(exc)}))
+        return 1
     print(json.dumps({"status": report["status"], "output": str(args.output), "error": report.get("error")}))
     return 0 if report["status"] == "passed" else 1
 

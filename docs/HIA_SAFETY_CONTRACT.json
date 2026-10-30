@@ -60,7 +60,7 @@
         "no stored lifetime returns or general borrowed-record returns",
         "no foreign calls, inline assembly, threads or implicit legacy backend fallback",
         "no payload, generic or recursive source enums; scalarization does not authorize an enum C ABI",
-        "stored returned calls require one same-mode direct byte formal and scalar value arguments; nested call/view origins, aggregate borrowed formals and multiple borrowed formals remain excluded"
+        "stored returned-call chains require one same-mode byte formal at every level, scalar value arguments and a direct terminal byte place; local-view origins, aggregate borrowed formals, multiple borrowed formals and permission conversions remain excluded"
       ],
       "guarantee": "checked_source_and_reverified_core",
       "id": "source_lowering",
@@ -91,9 +91,19 @@
         "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViewsRust.test_actual_same_rust_machine_matches_values_loans_failures_and_every_step",
         "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViewsRust.test_raw_rust_refuses_the_same_five_emitted_capability_corruptions",
         "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViewsNative.test_direct_llvm_executes_actual_source_selected_scalar_exports",
-        "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViewsNative.test_actual_llvm_allocator_failure_keeps_returned_view_cleanup"
+        "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViewsNative.test_actual_llvm_allocator_failure_keeps_returned_view_cleanup",
+        "tests.test_hia_source_nested_returned_views.HIASourceNestedReturnedViews.test_checked_call_chains_reuse_existing_v8_core_without_reparse",
+        "tests.test_hia_source_nested_returned_views.HIASourceNestedReturnedViews.test_copies_moves_field_origins_cfg_loops_and_early_returns_end_deepest_first",
+        "tests.test_hia_source_nested_returned_views.HIASourceNestedReturnedViews.test_error_branches_and_every_step_prefix_keep_full_chain_ledger_without_unwind",
+        "tests.test_hia_source_nested_returned_views.HIASourceNestedReturnedViews.test_primitive_core_refuses_actual_ancestor_order_owner_and_cfg_corruptions",
+        "tests.test_hia_source_nested_returned_views.HIASourceNestedReturnedViews.test_scalar_arguments_keep_left_to_right_order_across_nested_origin_and_failures",
+        "tests.test_hia_source_nested_returned_views.HIASourceNestedReturnedViews.test_source_permissions_origins_escapes_and_existing_compile_limits_still_reject",
+        "tests.test_hia_source_nested_returned_views.HIASourceNestedReturnedViewsNative.test_direct_llvm_executes_source_selected_exports_with_nested_origins",
+        "tests.test_hia_source_nested_returned_views.HIASourceNestedReturnedViewsNative.test_real_llvm_allocator_distinguishes_argument_order_and_cleans_nested_views",
+        "tests.test_hia_source_nested_returned_views.HIASourceNestedReturnedViewsRust.test_raw_rust_rejects_actual_six_ancestor_capability_corruptions",
+        "tests.test_hia_source_nested_returned_views.HIASourceNestedReturnedViewsRust.test_same_rust_machine_matches_nested_chains_order_failures_and_every_step"
       ],
-      "scope": "default primitive v1; explicit v8; finite checked scalars, records, Result and closed specialization; finite local byte-view records through the existing lexical Resource IR checker and canonical primitive v1/v8; concrete enums with 1..32 unit variants use existing u32 tags and CFG while original nominal signatures restrict public scalar entries; explicit v8 also composes one same-mode returned byte loan with a local View, preserving the parent capability through shared copies, exclusive moves, CFG edges and lexical/explicit ends"
+      "scope": "default primitive v1; explicit v8; finite checked scalars, records, Result and closed specialization; finite local byte-view records through the existing lexical Resource IR checker and canonical primitive v1/v8; concrete enums with 1..32 unit variants use existing u32 tags and CFG while original nominal signatures restrict public scalar entries; explicit v8 also composes a linear chain of same-mode single-origin returned byte loans with a local View, preserving every actual parent capability and left-to-right scalar argument evaluation through shared copies, exclusive moves, CFG edges and lexical/explicit ends"
     },
     {
       "entrypoints": [

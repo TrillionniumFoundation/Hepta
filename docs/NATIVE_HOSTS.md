@@ -79,6 +79,42 @@ with unqualified raw observations, including the failing command and available
 bounded stdout/stderr. Historical v1 files are left intact; they cannot serve
 as fresh v2 compiler-family qualification.
 
+Each CLI attempt requires a **fresh output JSON path**. An existing report is
+left intact, including if another writer creates it while qualification is
+running. A report named `native-host-gcc.json` owns a new sibling directory
+`native-host-gcc-artifacts`. Existing artifact directories and files are not
+overwritten. Use a different output name or directory for a new attempt.
+
+The CLI retains the four actual binary artifacts before the temporary build
+directory is removed:
+
+| Role | Retained file |
+| --- | --- |
+| Hepta/Rust object linked into the C drivers | `matrix.o` or `matrix.obj` |
+| Unoptimized native C driver | `host-matrix-O0` or `host-matrix-O0.exe` |
+| Optimized native C driver | `host-matrix-O2` or `host-matrix-O2.exe` |
+| Compiled wrong-echo control | `wrong` or `wrong.exe` |
+
+`retained_binary_artifacts` binds each file to its original build path, role,
+size, SHA-256 and ordinary permission bits. Each binary is a nonempty regular
+file bounded to 16 MiB. The driver hashes are checked before and after actual
+execution; the final CLI admission reads the retained copies again and binds
+them to the original Rust-object, successful-driver and wrong-control hashes.
+A hash, file, mode or directory mismatch cannot produce a passing report.
+Compiled files are copied before execution, so a subsequent launch, execution,
+type-control or report validation failure retains the available original bytes
+under `unqualified_observations`, with a failed qualification result. Partial
+retention does not establish a completed ABI matrix.
+
+The existing Python `run_host` API keeps its optional temporary behavior unless
+`artifact_directory` is supplied. `validate_report` checks any supplied
+retention metadata against the matrix. `validate_retained_binaries(report,
+directory=...)` additionally reads the actual files; an explicit mapped
+directory can verify a restored archive without rewriting the recorded
+producer paths. The CLI requires its own canonical destination and always
+performs the actual-file check. Historical reports without retained bytes are
+not upgraded to this retention claim.
+
 `.github/workflows/hepta-native-hosts.yml` requests separate native jobs on
 Linux x86-64 and AArch64 for both GCC and Clang, Windows x86-64 for Microsoft
 `cl.exe` and Clang separately, and macOS AArch64 for Clang. On Windows it uses
@@ -91,6 +127,10 @@ environment is never printed and no machine settings are changed.
 Jobs check out the exact PR head, retain distinct per-compiler artifacts and
 do not cancel one another on failure. An initial failed result and setup log
 also survive an interrupted setup, before the qualification tool can run.
+Immediately before invocation, the workflow preserves that initial result as
+`native-host-setup-placeholder.json`, allowing the producer to create its fresh
+`native-host.json`. The artifact upload includes both the original placeholder
+and the four retained binaries, including partial binaries from failed runs.
 The workflow is an execution request. Only a successfully executed, retained
 v2 report qualifies its actual host/compiler pair. This driver's development
 machine is Linux: its GCC/Clang runs and adapter tests do not constitute an
