@@ -75,6 +75,7 @@ CRITICAL_MODULES = {
     "rust_resource_execution": ("test_hia_rust_owned_vm", "test_hia_rust_owned_cfg",
                                 "test_hia_rust_owned_memory", "test_hia_rust_migration"),
     "raw_rust_integer_admission": ("test_hia_rust_raw_integer",),
+    "raw_rust_nominal_admission": ("test_hia_rust_copy_records",),
     "partial_record_states": ("test_hia_partial_record", "test_hia_partial_record_scenarios",
                               "test_hia_partial_finite_bounds"),
     "composite_partial_returned_loans": ("test_hia_composite_returned_loans",),

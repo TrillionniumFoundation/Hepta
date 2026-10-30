@@ -244,13 +244,15 @@
         "hepta.hia_rust_crosscheck.crosscheck_rust_execution",
         "hepta.hia_rust_crosscheck.crosscheck_rust_execution_v2",
         "hepta.hia_rust_crosscheck.crosscheck_rust_execution_v3",
-        "hepta.hia_rust_crosscheck.crosscheck_rust_execution_v4"
+        "hepta.hia_rust_crosscheck.crosscheck_rust_execution_v4",
+        "tools.qualify_hia_rust_copy_records.qualify"
       ],
       "exclusions": [
         "no deployment authority",
         "agreement is not refinement or whole-language soundness",
         "no complete Python production API parity: bounded scalar and 1024-byte policy transport remain; v1-v3 keep u64 failure indices, while v4 preserves exact wider hex values within its wire bound",
-        "logical payload budgets do not establish RSS bounds, successful 1 GiB allocation, asynchronous cancellation or complete unwind cleanup"
+        "logical payload budgets do not establish RSS bounds, successful 1 GiB allocation, asynchronous cancellation or complete unwind cleanup",
+        "raw Rust nominal candidate excludes resource fields, generic/enum/task/partial forms and later schemas; all declared layouts are checked, including unused layouts; bounded exact erasure evidence does not qualify general normalization or production admission"
       ],
       "guarantee": "independent_finite_comparison_only",
       "id": "independent_shadow",
@@ -282,9 +284,18 @@
         "tests.test_hia_rust_api_v4.RustApiV4Parity.test_python_exact_types_and_original_entry_eligibility_reject_before_launch",
         "tests.test_hia_rust_api_v4.RustApiV4Parity.test_tiny_budget_or_wide_index_cannot_hide_invalid_unused_function",
         "tests.test_hia_rust_api_v4.RustApiV4Parity.test_rehashed_policy_tampering_and_cross_protocol_replay_are_rejected",
-        "tests.test_hia_rust_api_v4.RustApiV4Parity.test_legacy_reports_and_refusal_contracts_remain_unchanged"
+        "tests.test_hia_rust_api_v4.RustApiV4Parity.test_legacy_reports_and_refusal_contracts_remain_unchanged",
+        "tests.test_hia_rust_copy_records.RustCopyRecordCandidate.test_raw_nested_and_empty_records_normalize_and_run_without_python",
+        "tests.test_hia_rust_copy_records.RustCopyRecordCandidate.test_raw_loops_resource_calls_refusals_traps_and_stopped_ledgers",
+        "tests.test_hia_rust_copy_records.RustCopyRecordCandidate.test_different_nominal_origins_keep_distinct_bound_requests",
+        "tests.test_hia_rust_copy_records.RustCopyRecordCandidate.test_distinct_same_layout_types_reject_before_calls_returns_and_edges",
+        "tests.test_hia_rust_copy_records.RustCopyRecordCandidate.test_zero_width_values_keep_ssa_identity_and_private_entry_eligibility",
+        "tests.test_hia_rust_copy_records.RustCopyRecordCandidate.test_unsupported_unused_forms_and_bad_primitive_helpers_refuse_whole_input",
+        "tests.test_hia_rust_copy_records.RustCopyRecordCandidate.test_raw_json_refusals_and_old_primitive_protocol_admission_stay_closed",
+        "tests.test_hia_rust_copy_records.RustCopyRecordCandidate.test_exact_type_name_and_value_slot_boundaries",
+        "tests.test_hia_rust_copy_records.RustCopyRecordCandidate.test_erased_return_fanout_refuses_before_wide_name_materialization"
       ],
-      "scope": "Rust closed byte-owner/returned-loan/owned-chain Machine profiles; fresh invocation-bound Python/Rust comparison of scalar public entries, full outcomes and stopped resource ledgers; Linux process-group ownership retained through bounded cleanup; v2 explicitly binds root-inclusive call depth 1..32 to the same Machine, with legacy/v1 fixed at 32; a separate v3 protocol uses explicit language frames in the same Machine and one ByteMemory ledger, with ceilings of 256 frames, 10000000 ticks and 1 GiB logical payload; actual finite controls exercise every depth, deep stopped resources, ten million allowed ticks and 16 MiB plus one allocated byte; v1/v2 policy ceilings and envelopes remain unchanged; separate v4 binds list/tuple ordered arguments and full canonical positive hexadecimal failure indices beyond u64 within a 1024-byte policy, retaining original v1-v3 envelopes, scalar restrictions and every stopped resource field"
+      "scope": "Rust closed byte-owner/returned-loan/owned-chain Machine profiles; fresh invocation-bound Python/Rust comparison of scalar public entries, full outcomes and stopped resource ledgers; Linux process-group ownership retained through bounded cleanup; v2 explicitly binds root-inclusive call depth 1..32 to the same Machine, with legacy/v1 fixed at 32; a separate v3 protocol uses explicit language frames in the same Machine and one ByteMemory ledger, with ceilings of 256 frames, 10000000 ticks and 1 GiB logical payload; actual finite controls exercise every depth, deep stopped resources, ten million allowed ticks and 16 MiB plus one allocated byte; v1/v2 policy ceilings and envelopes remain unchanged; separate v4 binds list/tuple ordered arguments and full canonical positive hexadecimal failure indices beyond u64 within a 1024-byte policy, retaining original v1-v3 envelopes, scalar restrictions and every stopped resource field; an explicit raw composite.v1 monomorphic Copy-record candidate checks original nominal SSA/type/CFG identities and public scalar exports before erasing to the existing primitive v6, then independently rechecks and executes the same Rust Machine without Python in the native child"
     },
     {
       "entrypoints": [
@@ -401,7 +412,8 @@
         "tests.test_hia_rust_budget_qualification.RustBudgetQualificationResultTests.test_late_expected_failure_cannot_promote_recorded_observations",
         "tests.test_hia_rust_budget_qualification.RustBudgetQualificationResultTests.test_unexpected_success_is_explicitly_reported_and_rejected",
         "tests.test_hia_rust_budget_qualification.RustBudgetQualificationResultTests.test_failures_errors_and_skips_cannot_satisfy_the_gate",
-        "tests.test_hia_native_child_limits.NativeChildHardLimitTests.test_worker_timeout_and_normal_exit_both_reap_forked_descendants"
+        "tests.test_hia_native_child_limits.NativeChildHardLimitTests.test_worker_timeout_and_normal_exit_both_reap_forked_descendants",
+        "tests.test_hia_integrated_workflow.IntegratedWorkflowContractTests.test_raw_record_candidate_push_registers_full_and_both_host_gates"
       ],
       "scope": "exact reviewed capability/test/assumption matrix; dynamic resolution uses only the canonical bytes whose independent identity passed; original Git object identity ignores replacement refs; integrated source snapshots enumerate the exact HEAD tree and verify every regular file's raw Git blob bytes and executable bit independently of index hints or core.fileMode; CI passes four explicit native profiles and preserves qualification failure from a clean exact source; workflow, checkout and frozen C++ license/notice bytes participate in before/after safety input identity; finite filecheck validation workers retain signal failures, partial invocation progress and host/tool context in a failed qualification report; generic LLD uses an identity-checked temporary ELF driver spelling with cleanup on success or failure; finite v3 qualification rejects expected failures and unexpected successes as well as skipped, failed, errored or missing methods; syscall-refusal observations still require SIGSYS while a separate non-forking stall retains its short timeout and descendant-absence check"
     }
