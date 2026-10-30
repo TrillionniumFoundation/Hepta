@@ -225,6 +225,78 @@ def _generated_identity(directory):
             **{name: digest(directory / 'bridge' / name) for name in ('bridge.h', 'bridge.hepta', 'contract.json')}}
 
 
+def build_json_checkpoint_image(directory, version, *, cxx='g++', rustc=None, receipt=None):
+    """Build the unchanged scoped ABI as a bounded, one-invocation worker.
+
+    The caller receives an opaque immutable image, never a pathname-based
+    execution permission. This reuses the original pinned library, adapter,
+    contract, Hepta consumer, C++ generator and existing object-code route.
+    It does not claim that the retained C++ implementation has been rewritten.
+    """
+    from hepta.cpp_json_checkpoint import _issue_worker_image
+    directory = Path(directory).absolute()
+    require(not directory.exists(), 'checkpoint worker requires a new build directory')
+    directory.mkdir(parents=True)
+    receipt = {} if receipt is None else receipt
+    receipt.update(version=version, directory=str(directory), status='building', processes=[],
+                   claims={'foreign_library_rewritten': False, 'foreign_memory_safety_proved': False,
+                           'general_foreign_recovery_proved': False})
+    started = time.monotonic_ns()
+    try:
+        locked = next((row for row in locked_libraries() if row['version'] == version), None)
+        require(locked is not None, 'unsupported exact JSON version')
+        compiler = shutil.which(cxx)
+        require(compiler is not None, 'actual C++ compiler is unavailable')
+        compiler = str(Path(compiler).resolve())
+        receipt['source_inputs_before'] = source_inputs()
+        selected = directory / 'selected.hpp'
+        selected.write_text(_selected_source(locked))
+        generated = directory / 'bridge'
+        bridge = bridge_cpp_contracts(selected, EXAMPLE / 'contract.json', generated,
+                                      cxx=compiler, rustc=rustc)
+        receipt['bridge'] = bridge
+        require(bridge.get('ok') is True, 'actual scoped C++ ABI generation failed')
+        shutil.copyfile(EXAMPLE / 'consumer.hepta', generated / 'consumer.hepta')
+        checked = analyze_project(generated / 'consumer.hepta', native=False, crate_type='obj')
+        receipt['frontend'] = checked.report
+        require(checked.report.get('ok') is True, 'actual Hepta consumer check failed')
+        exports = replace(checked.program, functions=[f for f in checked.program.functions if f.export_c])
+        (generated / 'hepta.h').write_text(emit_header(exports))
+        (generated / 'consumer.rs').write_text(checked.rust)
+        consumer = directory / 'consumer.o'
+        native = compile_rust(checked.rust, rustc=rustc, crate_type='obj', output=consumer)
+        receipt['native'] = native
+        require(native.get('ok') is True, 'actual Hepta consumer object build failed')
+        objects = []
+        for source in (generated / 'bridge.cpp', EXAMPLE / 'recovery_worker.cpp'):
+            _run(_compile_argv(compiler, directory, source), owner=receipt, directory=directory,
+                 stage='compile-' + source.stem)
+            objects.append(directory / (source.stem + '.o'))
+        executable = directory / 'json-checkpoint-worker'
+        _run([compiler, *objects, consumer, '-pthread', '-ldl', '-lm', '-o', executable],
+             owner=receipt, directory=directory, stage='link')
+        receipt['source_inputs_after'] = source_inputs()
+        require(receipt['source_inputs_after'] == receipt['source_inputs_before'],
+                'scoped JSON build source changed')
+        receipt['upstream_pin'] = locked
+        receipt['generated_identity'] = _generated_identity(directory)
+        receipt['artifacts'] = {str(p.relative_to(directory)): {'sha256': digest(p), 'bytes': p.stat().st_size}
+                                for p in (executable, consumer, *objects,
+                                          generated / 'bridge.cpp', generated / 'bridge.h',
+                                          generated / 'bridge.hepta', generated / 'consumer.rs',
+                                          generated / 'consumer.hepta', generated / 'hepta.h')}
+        binding = value_digest({'version': version, 'sources': receipt['source_inputs_before'],
+                                'artifacts': receipt['artifacts'], 'generated_identity': receipt['generated_identity']})
+        image = _issue_worker_image(executable.read_bytes(), version, binding)
+        receipt.update(status='built', image_sha256=image.sha256, build_sha256=binding)
+        return image
+    except BaseException as error:
+        receipt.update(status='failed', error=type(error).__name__ + ': ' + str(error))
+        raise
+    finally:
+        receipt['wall_ns'] = time.monotonic_ns() - started
+
+
 def _native_version(root, locked, compiler, rustc, *, receipt, native_tools):
     started = time.monotonic()
     directory = root / locked['version']

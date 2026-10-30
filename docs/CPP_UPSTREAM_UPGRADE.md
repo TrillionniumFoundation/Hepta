@@ -89,6 +89,12 @@ The original protocol-v2 run is preserved in
 `evidence/CPP_UPGRADE_V2_FIRST_RUN_20261025.json`; later compiler changes need
 a fresh qualification.
 
+A separate [finite caller-checkpoint profile](CPP_JSON_CHECKPOINT.md) now
+retains the parent integer-array state across an isolated failing invocation
+and tests reconstruction by a new explicit request. It retains these six
+foreign terminations as failures and does not make the C++ library a safe
+rewrite or qualify arbitrary foreign-state recovery.
+
 ## Retained evidence in qualification schema v2 / protocol v3
 
 The current producer writes `hepta.cpp-upgrade-qualification.v2`. Earlier
