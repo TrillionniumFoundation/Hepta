@@ -9,7 +9,7 @@ from __future__ import annotations
 import argparse
 import copy
 from datetime import datetime, timezone
-from hashlib import sha256
+from hashlib import sha256, shake_256
 import json
 from pathlib import Path
 import platform
@@ -30,13 +30,18 @@ from tools.qualify_hia_integrated import _source_state
 
 PROTOCOL_PATH = ROOT / "experiments/hia_crc_context/protocol_v2.json"
 PROTOCOL_SHA256 = "62fb0f94dc8a58ffc9d31137c28449162ec6847eb32937fb9b66946185b9a996"
+PROTOCOL_V3_PATH = ROOT / "experiments/hia_crc_context/protocol_v3.json"
+PROTOCOL_V3_SHA256 = "e3aa8c8cac5e9b6caa014660cd174232bd3dd4b84ae7206a2c2af1426888226b"
 require, write, identity = historical.require, historical.write, historical.identity
 schedule, requests = historical.schedule, historical.requests
 
 
-def protocol():
-    data = PROTOCOL_PATH.read_bytes()
-    require(sha256(data).hexdigest() == PROTOCOL_SHA256, "new frozen protocol bytes changed")
+def protocol(version=2):
+    require(type(version) is int and version in (2, 3), "explicit supported protocol version required")
+    path, digest = ((PROTOCOL_PATH, PROTOCOL_SHA256) if version == 2
+                    else (PROTOCOL_V3_PATH, PROTOCOL_V3_SHA256))
+    data = path.read_bytes()
+    require(sha256(data).hexdigest() == digest, "new frozen protocol bytes changed")
     p = json.loads(data)
     old = p["historical_protocol"]
     require(sha256((ROOT / old["path"]).read_bytes()).hexdigest() == old["sha256"],
@@ -44,7 +49,37 @@ def protocol():
     require(p["reference_reuse"]["max_entries"] == MAX_ORACLE_REFERENCES
             and p["reference_reuse"]["max_canonical_bytes"] == MAX_ORACLE_REFERENCE_BYTES,
             "registered reference limits differ from implementation")
+    if version == 3:
+        prior = p["prior_protocol"]
+        require(sha256((ROOT / prior["path"]).read_bytes()).hexdigest() == prior["sha256"],
+                "v2 protocol and its disclosed all-zero study must remain unchanged")
     return p
+
+
+def phase_input(p, phase):
+    spec = p["data"][phase]
+    if p["data"]["generator"] == "tools.qualify_hia_filecheck.corpus":
+        return corpus(spec["seed"], spec["bytes"])
+    require(p["data"]["generator"] == "SHAKE256-domain-phase-seed-v3", "unknown input generator")
+    material = (p["data"]["domain"].encode("ascii") + b"\0" + phase.encode("ascii") + b"\0"
+                + spec["seed"].to_bytes(8, "big"))
+    return shake_256(material).digest(spec["bytes"])
+
+
+def input_diversity(p, data):
+    width = p["bytes_per_request"]
+    chunks = [payload[i * width:(i + 1) * width]
+              for payload in data.values() for i in range(p["requests_per_trace"])]
+    record = {"phases_distinct": data["training"] != data["validation"],
+              "request_chunks": len(chunks), "unique_chunks": len(set(chunks)),
+              "zero_chunks": sum(chunk == bytes(width) for chunk in chunks),
+              "all_chunk_lengths_exact": all(len(chunk) == width for chunk in chunks),
+              "independent_statistical_confirmation": False}
+    if p["data"]["generator"] == "SHAKE256-domain-phase-seed-v3":
+        require(record["phases_distinct"] and record["unique_chunks"] == len(chunks)
+                and record["zero_chunks"] == 0 and record["all_chunk_lengths_exact"],
+                "diverse input admission failed before timing")
+    return record
 
 
 def analyze(samples, cold_setup_ns, codes, p=None):
@@ -74,18 +109,20 @@ def prime_references(bank, p, data):
     return rows
 
 
-def qualify(*, clang, cc, output, expected_source):
+def qualify(*, clang, cc, output, expected_source, protocol_version=2):
     started = time.monotonic_ns()
-    p = protocol()
+    p = protocol(protocol_version)
+    selected_protocol = PROTOCOL_PATH if protocol_version == 2 else PROTOCOL_V3_PATH
+    selected_digest = PROTOCOL_SHA256 if protocol_version == 2 else PROTOCOL_V3_SHA256
     require(type(expected_source) is str and re.fullmatch(r"[0-9a-f]{40}", expected_source), "full source SHA required")
     out = Path(output).resolve()
     require(out != ROOT and ROOT not in out.parents, "output must be outside source tree")
     out.mkdir(parents=True, exist_ok=False)
-    (out / "frozen-protocol.json").write_bytes(PROTOCOL_PATH.read_bytes())
-    report = {"schema": "hepta.hia.crc-context-reference-qualification.v2", "qualified": False,
+    (out / "frozen-protocol.json").write_bytes(selected_protocol.read_bytes())
+    report = {"schema": f"hepta.hia.crc-context-reference-qualification.v{protocol_version}", "qualified": False,
         "status": "failed", "expected_source": expected_source,
         "source_freeze": "local-frozen-before-run", "public_preregistration_claim": False,
-        "protocol_sha256": PROTOCOL_SHA256, "protocol": p,
+        "protocol_sha256": selected_digest, "protocol": p,
         "observed_utc": datetime.now(timezone.utc).isoformat(), "samples": [],
         "host": {"platform": platform.platform(), "machine": platform.machine(), "python": sys.version},
         "claims": dict(p["claims"])}
@@ -111,11 +148,11 @@ def qualify(*, clang, cc, output, expected_source):
         data = {}
         report["inputs"] = {}
         for phase in ("training", "validation"):
-            spec = p["data"][phase]
-            data[phase] = corpus(spec["seed"], spec["bytes"])
+            data[phase] = phase_input(p, phase)
             path = out / (phase + ".bin")
             path.write_bytes(data[phase])
             report["inputs"][phase] = identity(path)
+        report["input_diversity"] = input_diversity(p, data)
         report["reference_priming"] = prime_references(bank, p, data)
         primed = report["reference_state_after_priming"] = bank.oracle_reference_statistics()
         require(primed["misses"] > 0 and primed["capacity_bypasses"] == 0 and primed["failed_computations"] == 0,
@@ -206,8 +243,10 @@ def main():
     parser.add_argument("--cc", default="gcc")
     parser.add_argument("--output", required=True)
     parser.add_argument("--expected-source", required=True)
+    parser.add_argument("--protocol-version", type=int, choices=(2, 3), default=2)
     args = parser.parse_args()
-    result = qualify(clang=args.clang, cc=args.cc, output=args.output, expected_source=args.expected_source)
+    result = qualify(clang=args.clang, cc=args.cc, output=args.output, expected_source=args.expected_source,
+                     protocol_version=args.protocol_version)
     print(json.dumps({k: result.get(k) for k in ("qualified", "status", "contexts_attempted", "cold_setup_ns",
                                                "whole_study_wall_ns", "error")}, sort_keys=True))
     return 0 if result["qualified"] else 1

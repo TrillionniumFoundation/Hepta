@@ -49,6 +49,27 @@ class CRCReferenceStudyTests(unittest.TestCase):
             self.assertTrue(all(plan == public[0] for plan in public))
             self.assertEqual(sum(len(r["values"]) for r in plans[0]), 4096)
 
+    def test_v2_zero_prefix_is_disclosed_and_v3_has_32_distinct_nonzero_chunks(self):
+        old = study.protocol(2)
+        old_data = {phase: study.phase_input(old, phase) for phase in ("training", "validation")}
+        old_result = study.input_diversity(old, old_data)
+        self.assertFalse(old_result["phases_distinct"])
+        self.assertEqual(old_result["zero_chunks"], 32)
+        new = study.protocol(3)
+        new_data = {phase: study.phase_input(new, phase) for phase in ("training", "validation")}
+        new_result = study.input_diversity(new, new_data)
+        self.assertTrue(new_result["phases_distinct"])
+        self.assertEqual((new_result["unique_chunks"], new_result["zero_chunks"]), (32, 0))
+        self.assertEqual(new_data["training"], study.phase_input(new, "training"))
+        self.assertFalse(new_result["independent_statistical_confirmation"])
+        for field in ("arms", "requests_per_trace", "calls_per_trace", "bytes_per_request",
+                      "trials_per_phase", "max_study_wall_ns", "economic_gate", "sampling"):
+            self.assertEqual(new[field], old[field])
+        with self.assertRaisesRegex(ValueError, "diverse input admission"):
+            study.input_diversity(new, old_data)
+        with self.assertRaisesRegex(ValueError, "diverse input admission"):
+            study.input_diversity(new, {"training": new_data["training"], "validation": new_data["training"]})
+
     def test_native_only_win_cannot_hide_host_lookup_and_evidence_cost(self):
         rows = observations()
         for row in rows:

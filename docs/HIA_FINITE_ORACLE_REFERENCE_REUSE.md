@@ -72,3 +72,21 @@ NDU value, general dynamic adaptation, production demand or global optimality.
 Source and protocol are committed before local execution. The evidence records
 `local-frozen-before-run` and explicitly makes no public preregistration claim.
 Both positive and negative outcomes retain this cost and claim boundary.
+
+### Disclosed v2 input defect and the separate v3 protocol
+
+The completed v2 attempt exposed a design mistake in the new sampling choice:
+`tools.qualify_hia_filecheck.corpus` deliberately emits zeros for its first
+4096 bytes. Therefore both v2 phases were identical all-zero inputs. Its 60
+observations, 240 actual contexts, two reference misses, all negative finite-job
+economic gates and complete costs remain preserved. They do not establish
+diverse-input performance or independent training/validation evidence.
+
+The separate `protocol_v3.json` was designed **after** that observation. It uses
+SHAKE256 over an explicit domain, phase and frozen seed, then checks the two
+phase payloads and all 32 request chunks are distinct and nonzero before timing.
+The arms, trace size, repeats, budgets, cost accounting and stopping rule stay
+the same. Source and the new protocol must again be committed before its one
+local attempt. Select it explicitly with `--protocol-version 3`; the default
+still selects v2. This adaptive engineering repair is not an independent
+statistical confirmation, and it does not erase or relabel v2's results.
