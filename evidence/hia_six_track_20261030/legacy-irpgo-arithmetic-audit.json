@@ -1,0 +1,954 @@
+{
+  "archive": {
+    "all_original_files_included": true,
+    "exceeds_4_000_000_bytes": false,
+    "git_publication_performed": false,
+    "identity": {
+      "bytes": 3348420,
+      "path": "/workspace/scratch/cd43ab608057/hia-run-evidence/legacy-irpgo-raw.tar.gz",
+      "sha256": "07667190252bb1202df8191992a3177db115e2a62f2959ca89af14068dea8c55"
+    },
+    "manifest_identity": {
+      "bytes": 59305,
+      "path": "/workspace/scratch/cd43ab608057/hia-run-evidence/legacy-irpgo-raw-manifest.json",
+      "sha256": "a70524a0ba26937c9739741826fab8bd11dbf0fbd7d3507e120dc3f1a136f326"
+    },
+    "original_directory_retained": "/tmp/hepta-six-track-legacy-irpgo-20261030-01",
+    "per_file_decompressed_sha256_verified": true,
+    "public_native_binaries_and_fixed_inputs_retained": true,
+    "raw_file_count": 319,
+    "raw_total_file_bytes": 14563553,
+    "safe_relative_paths_verified": true
+  },
+  "arithmetic_rules": {
+    "batch_percentiles": "nearest-rank ceil(percent*n/100), pooled 7*513 batch durations per arm and algorithm",
+    "float_summary_comparison_tolerance": {
+      "absolute": 1e-12,
+      "relative": 1e-12
+    },
+    "hia_candidate": "hia_native_irpgo fixed by the protocol before sampling",
+    "median": "4th sorted observation of exactly 7 process samples",
+    "strong_reference": "minimum median process wall time over all eight non-HIA C/C++/Rust arms, separately for each algorithm"
+  },
+  "audit_and_archive_wall_ns": 1531704248,
+  "audit_date_utc": "2026-10-30",
+  "audit_ok": true,
+  "audit_revision_history": {
+    "archive_recompressed": false,
+    "corrections": [
+      {
+        "check": "all_resource_values_match_independent_client_expectations",
+        "reason": "The first audit incorrectly equated logical owner capabilities with physical allocations. _Machine.allocate returns new_owner(bytearray()) on an optional allocation failure; new_owner increments owners_created even when allocations does not increment. The corrected expected owner count is attempts for this fixed positive-size client; physical allocation/free expectations and all native outputs are unchanged.",
+        "source": "hepta/hia_program_runtime.py::_Machine.allocate,new_owner,drop"
+      },
+      {
+        "check": "original_raw_directory_files_unchanged_after_archive",
+        "reason": "The first audit compared a Path-sorted manifest list with a lexicographically string-sorted live list. Both lists are now normalized to the same string ordering. Exact path sets and every file size/SHA matched; no original evidence file changed."
+      }
+    ],
+    "experiment_or_threshold_changed": false,
+    "initial_failed_checks": 2,
+    "initial_report_identity": {
+      "bytes": 28886,
+      "path": "/workspace/scratch/cd43ab608057/hia-run-evidence/legacy-irpgo-arithmetic-audit.initial-review.json",
+      "sha256": "951525a4445dc31c8135bed80d46771be41a180ada84687a018229460f2947e7"
+    },
+    "initial_script_preserved_identity": {
+      "bytes": 35757,
+      "path": "/tmp/hepta-legacy-irpgo-independent-audit-20261030-initial.py",
+      "sha256": "b5d46b47a8f326fe992daabdac68cb1067aa341907fbdf60e4df43e467034f27"
+    },
+    "native_or_performance_rerun": false
+  },
+  "audit_scope": "Existing raw evidence only; independent Python standard-library arithmetic and identity checks; no compiler, model, native artifact execution or new performance sampling.",
+  "auditor_script_identity": {
+    "bytes": 37987,
+    "path": "/tmp/hepta-legacy-irpgo-independent-audit-20261030.py",
+    "sha256": "ba3e96f88b7a895aa5f99f39d011d0df284fcdbea70d2acf64412578af5cff5d"
+  },
+  "capture_and_migration": {
+    "maintenance": {
+      "authored_client_function_bodies": 1,
+      "authored_migrated_function_bodies": 2,
+      "capture_identity": {
+        "bytes": 21809,
+        "path": "/tmp/hepta-six-track-legacy-irpgo-20261030-01/maintenance/capture.json",
+        "sha256": "6b01f3b9a36b370178a5f9772ccad01dd278d52d3368a47162c1202b69f876e2"
+      },
+      "captured_dependencies": 39,
+      "contract_function_count": 13,
+      "contract_identity": {
+        "canonical_bytes": 1433,
+        "canonical_encoding": "UTF-8 sorted compact JSON",
+        "canonical_sha256": "339e415ab699e598eb4f366c64e611b2e03fa309fe812f0174e45aff3f107774",
+        "limits": {
+          "depth": 32,
+          "input_bytes": 1048576,
+          "nodes": 32768,
+          "string_bytes": 4096
+        },
+        "origin": "caller_declared_not_inferred_or_proved",
+        "schema": "hepta.c-record-views.v1"
+      },
+      "fresh_admission_wall_ns": 75207277,
+      "generated_program": {
+        "core": {
+          "bytes": 147034,
+          "path": "/tmp/hepta-six-track-legacy-irpgo-20261030-01/maintenance/program.hia.json",
+          "sha256": "1dafc625c5c4e4dfe3bcccc93f0080b2ebca381bed3fb3cad548d9889a70b52c"
+        },
+        "llvm": {
+          "bytes": 119178,
+          "path": "/tmp/hepta-six-track-legacy-irpgo-20261030-01/maintenance/program.ll",
+          "sha256": "12bebaa30a84c3a59cc0d80621a774186cb0787e786a2beb06dcdebf8387950d"
+        }
+      },
+      "human_effort_measured": false,
+      "manual_migrated_body_edits_recorded": 0,
+      "program_sha256": "1dafc625c5c4e4dfe3bcccc93f0080b2ebca381bed3fb3cad548d9889a70b52c",
+      "source_tus": 5,
+      "translated_implementation_bodies": 13,
+      "upstream_function_bodies": 11,
+      "wall_ns": 11370930914
+    },
+    "migration": {
+      "authored_client_function_bodies": 1,
+      "authored_migrated_function_bodies": 1,
+      "capture_identity": {
+        "bytes": 19286,
+        "path": "/tmp/hepta-six-track-legacy-irpgo-20261030-01/migration/capture.json",
+        "sha256": "8a2e64bfbc8a72ae0d1e84c2c26cececb09df0fc1f9f8982714e6b4db02ca292"
+      },
+      "captured_dependencies": 38,
+      "contract_function_count": 12,
+      "contract_identity": {
+        "canonical_bytes": 1387,
+        "canonical_encoding": "UTF-8 sorted compact JSON",
+        "canonical_sha256": "0d0ca410fc92950eef76af75c2507ac0082e4b1c0f200de42b09dca734f203c3",
+        "limits": {
+          "depth": 32,
+          "input_bytes": 1048576,
+          "nodes": 32768,
+          "string_bytes": 4096
+        },
+        "origin": "caller_declared_not_inferred_or_proved",
+        "schema": "hepta.c-record-views.v1"
+      },
+      "fresh_admission_wall_ns": 64577566,
+      "generated_program": {
+        "core": {
+          "bytes": 143935,
+          "path": "/tmp/hepta-six-track-legacy-irpgo-20261030-01/migration/program.hia.json",
+          "sha256": "1044e28ea68a18d6a0681cff9cd5f835e26e91c9a669dab01256b9592f64ca51"
+        },
+        "llvm": {
+          "bytes": 117466,
+          "path": "/tmp/hepta-six-track-legacy-irpgo-20261030-01/migration/program.ll",
+          "sha256": "32c061e5ce5ce9d55b1b216aa5b124bd0d0200bbd00666e23d027b682e09d750"
+        }
+      },
+      "human_effort_measured": false,
+      "manual_migrated_body_edits_recorded": 0,
+      "program_sha256": "1044e28ea68a18d6a0681cff9cd5f835e26e91c9a669dab01256b9592f64ca51",
+      "source_tus": 4,
+      "translated_implementation_bodies": 12,
+      "upstream_function_bodies": 11,
+      "wall_ns": 8654354078
+    }
+  },
+  "checks": [
+    {
+      "name": "complete_qualification_status",
+      "passed": true
+    },
+    {
+      "name": "recorded_clean_source",
+      "passed": true
+    },
+    {
+      "details": {
+        "measured_commit": "c9954b70afbe03d23b682aeef28c41057d8d52b1",
+        "review_commit": "865a4626910efbc882cad47a7816e9aa276a9600",
+        "tree": "998a90d473749d14274cb8adaf253a30f0185798"
+      },
+      "name": "review_tree_equals_measured_tree",
+      "passed": true
+    },
+    {
+      "name": "review_worktree_clean",
+      "passed": true
+    },
+    {
+      "name": "frozen_protocol_identity_and_value",
+      "passed": true
+    },
+    {
+      "details": {
+        "files": 182,
+        "mismatches": []
+      },
+      "name": "all_recorded_source_bindings_match_current_equal_tree",
+      "passed": true
+    },
+    {
+      "name": "tool_and_python_identities_still_match",
+      "passed": true
+    },
+    {
+      "name": "process_ledger_identity",
+      "passed": true
+    },
+    {
+      "name": "process_ledger_equals_all_recorded_commands",
+      "passed": true
+    },
+    {
+      "details": {
+        "commands": 516
+      },
+      "name": "every_recorded_command_successful",
+      "passed": true
+    },
+    {
+      "name": "independent_crc_known_vectors",
+      "passed": true
+    },
+    {
+      "name": "training.bin_fixed_bytes_and_checksums",
+      "passed": true
+    },
+    {
+      "name": "held-out.bin_fixed_bytes_and_checksums",
+      "passed": true
+    },
+    {
+      "name": "differential_ledger_identity",
+      "passed": true
+    },
+    {
+      "name": "all_96_registered_differential_inputs_and_independent_results",
+      "passed": true
+    },
+    {
+      "name": "all_1056_native_differential_values",
+      "passed": true
+    },
+    {
+      "name": "differential_metadata_counts",
+      "passed": true
+    },
+    {
+      "name": "complete_154_samples_in_exact_registered_order",
+      "passed": true
+    },
+    {
+      "name": "no_omitted_or_duplicate_measured_process_records",
+      "passed": true
+    },
+    {
+      "name": "all_measured_stdout_rss_work_and_library_bindings",
+      "passed": true
+    },
+    {
+      "name": "c_native_irpgo_training_and_profiles",
+      "passed": true
+    },
+    {
+      "name": "c_native_pgo_training_and_profiles",
+      "passed": true
+    },
+    {
+      "name": "cpp_native_irpgo_training_and_profiles",
+      "passed": true
+    },
+    {
+      "name": "cpp_native_pgo_training_and_profiles",
+      "passed": true
+    },
+    {
+      "name": "hia_native_irpgo_training_and_profiles",
+      "passed": true
+    },
+    {
+      "name": "rust_native_pgo_training_and_profiles",
+      "passed": true
+    },
+    {
+      "name": "all_12_and_only_registered_training_processes",
+      "passed": true
+    },
+    {
+      "name": "all_22_arm_summaries_and_reference_ratios_recompute",
+      "passed": true
+    },
+    {
+      "name": "preselected_hia_arm_and_both_gates_recompute",
+      "passed": true
+    },
+    {
+      "name": "all_96_resource_rows_in_registered_order",
+      "passed": true
+    },
+    {
+      "name": "all_resource_values_match_independent_client_expectations",
+      "passed": true
+    },
+    {
+      "name": "all_288_native_resource_outputs_bound_to_process_ledger",
+      "passed": true
+    },
+    {
+      "name": "irpgo_observer_is_separate_and_retains_registered_optimization",
+      "passed": true
+    },
+    {
+      "name": "12_maintenance_cases_recompute_by_named_algorithm",
+      "passed": true
+    },
+    {
+      "name": "human_labor_not_claimed_zero",
+      "passed": true
+    },
+    {
+      "name": "whole_qualification_cost_arithmetic",
+      "passed": true
+    },
+    {
+      "name": "migration_retained_files_and_capture_digest",
+      "passed": true
+    },
+    {
+      "name": "migration_all_captured_dependency_bytes_match",
+      "passed": true
+    },
+    {
+      "name": "migration_explicit_configurations_and_scalar_abi_model",
+      "passed": true
+    },
+    {
+      "name": "migration_caller_declared_contract_identity",
+      "passed": true
+    },
+    {
+      "name": "migration_retained_hepta_and_client_exact",
+      "passed": true
+    },
+    {
+      "name": "maintenance_retained_files_and_capture_digest",
+      "passed": true
+    },
+    {
+      "name": "maintenance_all_captured_dependency_bytes_match",
+      "passed": true
+    },
+    {
+      "name": "maintenance_explicit_configurations_and_scalar_abi_model",
+      "passed": true
+    },
+    {
+      "name": "maintenance_caller_declared_contract_identity",
+      "passed": true
+    },
+    {
+      "name": "maintenance_retained_hepta_and_client_exact",
+      "passed": true
+    },
+    {
+      "name": "initial_contracts_exact_explicit_component_merge",
+      "passed": true
+    },
+    {
+      "details": {
+        "file_observations": 16,
+        "mismatches": []
+      },
+      "name": "all_upstream_bytes_unchanged_in_original_and_maintenance_projects",
+      "passed": true
+    },
+    {
+      "name": "hia_default_native_receipt_and_retained_image",
+      "passed": true
+    },
+    {
+      "name": "resource_native_native_receipt_and_retained_image",
+      "passed": true
+    },
+    {
+      "name": "maintenance_native_receipt_and_retained_image",
+      "passed": true
+    },
+    {
+      "name": "all_final_native_artifact_identities",
+      "passed": true
+    },
+    {
+      "name": "hia_native_lto_same_core_llvm_and_no_original_c_link_input",
+      "passed": true
+    },
+    {
+      "name": "hia_native_irpgo_same_core_llvm_and_no_original_c_link_input",
+      "passed": true
+    },
+    {
+      "name": "hia_native_irpgo_positive_exact_target_ir_counter_list",
+      "passed": true
+    },
+    {
+      "name": "c_native_irpgo_positive_exact_target_ir_counter_list",
+      "passed": true
+    },
+    {
+      "name": "cpp_native_irpgo_positive_exact_target_ir_counter_list",
+      "passed": true
+    },
+    {
+      "name": "rejected_switch_raw_output_and_expected_switch_behavior",
+      "passed": true
+    },
+    {
+      "name": "successful_switch_raw_output_and_expected_switch_behavior",
+      "passed": true
+    },
+    {
+      "details": {
+        "unsafe_entries": []
+      },
+      "name": "raw_archive_input_paths_safe",
+      "passed": true
+    },
+    {
+      "name": "existing_manifest_matches_fresh_inventory",
+      "passed": true
+    },
+    {
+      "details": {
+        "extraction_performed": false,
+        "regular_file_count": 319
+      },
+      "name": "archive_readback_safe_and_byte_exact",
+      "passed": true
+    },
+    {
+      "name": "original_raw_directory_files_unchanged_after_archive",
+      "passed": true
+    },
+    {
+      "name": "source_still_clean_after_readonly_audit",
+      "passed": true
+    }
+  ],
+  "cost_scope": {
+    "build_preparation_wall_ns": {
+      "c_native_irpgo": 492938784,
+      "c_native_lto": 227533894,
+      "c_native_pgo": 548852234,
+      "cpp_native_irpgo": 1314576956,
+      "cpp_native_lto": 699737024,
+      "cpp_native_pgo": 1409106974,
+      "hia_default": 361120965,
+      "hia_native_irpgo": 775938588,
+      "hia_native_lto": 396060476,
+      "rust_native_lto": 2515533044,
+      "rust_native_pgo": 5085048043
+    },
+    "cost_interval_warning": "Build/migration subtimers are inside whole_qualification; do not add them again. Audit/archive time is separate.",
+    "human_effort_measured": false,
+    "human_hours": null,
+    "human_labor_saving_measured": false,
+    "initialization_wall_ns": 19267246,
+    "maintenance_wall_ns": 11853430068,
+    "manual_edit_counter_is_total_labor_cost": false,
+    "manual_migrated_body_edits_recorded": {
+      "initial": 0,
+      "maintenance": 0
+    },
+    "migration_wall_ns": 8654354078,
+    "run_wall_ns": 51560584869,
+    "unmeasured": [
+      "authoring contracts, clients, harness and migration implementation",
+      "historical toolchain acquisition",
+      "outer Python startup/import",
+      "final report write",
+      "archiving",
+      "human engineering labor"
+    ],
+    "whole_qualification_seconds": 51.579852115,
+    "whole_qualification_wall_ns": 51579852115
+  },
+  "counts": {
+    "differential_cases": 96,
+    "maintenance_cases": 12,
+    "maintenance_native_result_values": 24,
+    "measured_application_processes": 154,
+    "measured_groups": 7,
+    "native_differential_calls": 1056,
+    "native_resource_processes": 288,
+    "native_routes": 11,
+    "process_stages": {
+      "baseline_build": 3,
+      "baseline_build_c_object": 4,
+      "hia_research_native_build": 1,
+      "host_build": 2,
+      "ir_pgo_resource_execution": 96,
+      "ir_pgo_resource_link": 1,
+      "ir_pgo_resource_object": 1,
+      "ir_profile_build": 3,
+      "ir_profile_build_c_object": 4,
+      "ir_profile_inspection": 3,
+      "ir_profile_merge": 3,
+      "ir_profile_training": 6,
+      "ir_profile_use_build": 3,
+      "ir_profile_use_build_c_object": 4,
+      "maintenance_original_build": 1,
+      "measured_application": 154,
+      "profile_build": 3,
+      "profile_build_c_object": 4,
+      "profile_merge": 3,
+      "profile_training": 6,
+      "profile_use_build": 3,
+      "profile_use_build_c_object": 4,
+      "rejected_switch": 1,
+      "resource_execution": 192,
+      "resource_observer_build": 2,
+      "source_identity": 3,
+      "successful_switch": 1,
+      "tool_identity": 5
+    },
+    "recorded_processes": 516,
+    "resource_rows": 96,
+    "samples_excluded": 0,
+    "samples_per_algorithm_and_arm": 7,
+    "switch_observations": 2,
+    "training_application_processes": 12
+  },
+  "differential_ledger_identity": {
+    "bytes": 41138,
+    "path": "/tmp/hepta-six-track-legacy-irpgo-20261030-01/differential.jsonl",
+    "sha256": "e61de76b93e399f68d1d65472f1f0670462636b0e5c84e74af232261a5bdd27b"
+  },
+  "input_domain": {
+    "abi": "Linux x86-64 LP64 scalar entry: usize count, u64 packed, u32 state, u32 polynomial -> u64",
+    "allocation_failure_sentinel": 8589934592,
+    "buffer_lengths_bytes": [
+      16,
+      8,
+      8
+    ],
+    "capture_configuration": [
+      "C11",
+      "NDEBUG",
+      "unsigned char",
+      "no builtin during capture",
+      "64-bit long and pointer"
+    ],
+    "checked_invalid_counts": "9,10,11 in the finite differential domain return 2^32; this is not exhaustive validation of all usize inputs",
+    "contracts": "Caller-supplied record/slice access and length declarations, retained and hash-bound; not inferred or proved from arbitrary C pointers.",
+    "corpus_regions": "zero runs, repeating public text, seeded xorshift32 bytes, final partial chunk",
+    "foreign_pointer_or_original_record_layout_abi_claimed": false,
+    "inputs": {
+      "held-out.bin": {
+        "batches_per_application": 513,
+        "calls_per_application": 262149,
+        "identity": {
+          "bytes": 2097189,
+          "path": "/tmp/hepta-six-track-legacy-irpgo-20261030-01/held-out.bin",
+          "sha256": "403ad5ed698a0077ee2c5cb92945f12d9cbdad15835ee7b7040bf35bb2e019b7"
+        },
+        "independently_computed_checksums": {
+          "castagnoli": 2450703069,
+          "ieee": 3609812478
+        },
+        "seed": 29102026
+      },
+      "training.bin": {
+        "batches_per_application": 17,
+        "calls_per_application": 8193,
+        "identity": {
+          "bytes": 65537,
+          "path": "/tmp/hepta-six-track-legacy-irpgo-20261030-01/training.bin",
+          "sha256": "a9e39b31f3bbe38e43a9fd32ef155ad1d71069147e8f4a9cbbf92b3251bd851c"
+        },
+        "independently_computed_checksums": {
+          "castagnoli": 3059351022,
+          "ieee": 2786114534
+        },
+        "seed": 1282026
+      }
+    },
+    "ordinary_chunk_count": "1 through 8 bytes; count 0 returns the input state without allocating",
+    "polynomials": {
+      "castagnoli": 2197175160,
+      "ieee": 3988292384
+    },
+    "ring_capacity": "fixed 16-byte power-of-two storage in the authored client"
+  },
+  "ir_profile_counter_audit": {
+    "c_native_irpgo": {
+      "block_counter_count": 18,
+      "block_counts": [
+        131074,
+        131074,
+        16386,
+        0,
+        16386,
+        16386,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "counter_text_identity": {
+        "bytes": 1576,
+        "path": "/tmp/hepta-six-track-legacy-irpgo-20261030-01/c_ir_profiles/profile-counters.txt",
+        "sha256": "f96de3353d323227c40e726ae52842db69c1229036eb56bfb23a8e48d3ebcb87"
+      },
+      "interpretation": "stored block counters; neither first counter nor sum is entry invocation count",
+      "target": "legacy_checksum_chunk"
+    },
+    "cpp_native_irpgo": {
+      "block_counter_count": 28,
+      "block_counts": [
+        131074,
+        131074,
+        16386,
+        0,
+        16386,
+        16386,
+        16386,
+        16386,
+        16386,
+        16386,
+        16386,
+        16386,
+        16386,
+        16386,
+        16386,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "counter_text_identity": {
+        "bytes": 1642,
+        "path": "/tmp/hepta-six-track-legacy-irpgo-20261030-01/cpp_ir_profiles/profile-counters.txt",
+        "sha256": "e1c0b68e8c52dd06e9117c3fc5825eb820ad41783c296ac6712f93a02e5fa10e"
+      },
+      "interpretation": "stored block counters; neither first counter nor sum is entry invocation count",
+      "target": "legacy_checksum_chunk"
+    },
+    "hia_native_irpgo": {
+      "block_counter_count": 44,
+      "block_counts": [
+        1048592,
+        16386,
+        131074,
+        131074,
+        131074,
+        131074,
+        16386,
+        131074,
+        0,
+        16386,
+        16386,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        524352,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "counter_text_identity": {
+        "bytes": 1582,
+        "path": "/tmp/hepta-six-track-legacy-irpgo-20261030-01/hia_ir_profiles/profile-counters.txt",
+        "sha256": "85df6f78f727005b699a35fd0e3f5c1d96e951543387717b6d18c5f00b352adb"
+      },
+      "interpretation": "stored block counters; neither first counter nor sum is entry invocation count",
+      "target": "legacy_checksum_chunk"
+    }
+  },
+  "limitations": [
+    "Finite shared-host observation; no statistical or universal performance advantage claim.",
+    "Lower RSS medians do not establish a whole-process resource upper bound or a language safety proof.",
+    "Resource refusal is observed in a separate O3/full-LTO/native-CPU observer, not injected into the timed IRPGO DSO.",
+    "Native differential and maintenance observations are not source/native refinement proofs.",
+    "11 upstream C function bodies plus authored integration are not a full C++ library migration.",
+    "No evidence of total human labor being zero; zero recorded manual edits to migrated bodies has a narrower meaning.",
+    "File hashes and mutually consistent retained logs are trusted-host evidence, not hardware attestation or proof against fabricated records."
+  ],
+  "new_native_runs": 0,
+  "new_performance_samples": 0,
+  "performance_advantage_gate_recomputed": false,
+  "performance_and_rss_gate_recomputed": false,
+  "process_ledger_identity": {
+    "bytes": 1286593,
+    "path": "/tmp/hepta-six-track-legacy-irpgo-20261030-01/processes.jsonl",
+    "sha256": "fd5114f31069846c51e1795bb512d61796e4ae9c9af01f7be49fa20b7d1fc109"
+  },
+  "protocol_identity": {
+    "bytes": 4152,
+    "path": "/workspace/scratch/cd43ab608057/hepta-hia/experiments/hia_legacy_queue/IRPGO_PROTOCOL_20261029.json",
+    "sha256": "1ebcc1476dfa75f65b51074e224d869e7f3ce91a33ba3dfa7bc8d469c9e45ecb"
+  },
+  "qualification_identity": {
+    "bytes": 2069018,
+    "path": "/tmp/hepta-six-track-legacy-irpgo-20261030-01/qualification.json",
+    "sha256": "a72b0322132e489930e0722f59dede427a83a01968577a73a4072690fcc8ee0a"
+  },
+  "resource_counter_interpretation": "Logical owner capabilities include the zero-length owner returned on optional allocation refusal; owners_created/dropped differ from successful physical allocations/frees on those paths.",
+  "review_commit_same_tree": "865a4626910efbc882cad47a7816e9aa276a9600",
+  "schema": "hepta.hia.legacy-irpgo.independent-arithmetic-audit.v1",
+  "source_commit": "c9954b70afbe03d23b682aeef28c41057d8d52b1",
+  "source_tree": "998a90d473749d14274cb8adaf253a30f0185798",
+  "summary_recomputed": {
+    "castagnoli": {
+      "arms": {
+        "c_native_irpgo": {
+          "batch_p95_ns": 100349,
+          "batch_p99_ns": 201489,
+          "child_wait4_peak_rss_kib_median": 1736,
+          "median_process_wall_ns": 36557499,
+          "mib_per_second": 54.70930289705286,
+          "samples": 7
+        },
+        "c_native_lto": {
+          "batch_p95_ns": 114400,
+          "batch_p99_ns": 239596,
+          "child_wait4_peak_rss_kib_median": 1652,
+          "median_process_wall_ns": 36773776,
+          "mib_per_second": 54.38754197963535,
+          "samples": 7
+        },
+        "c_native_pgo": {
+          "batch_p95_ns": 90154,
+          "batch_p99_ns": 131526,
+          "child_wait4_peak_rss_kib_median": 1716,
+          "median_process_wall_ns": 35957807,
+          "mib_per_second": 55.621725928661526,
+          "samples": 7
+        },
+        "cpp_native_irpgo": {
+          "batch_p95_ns": 99749,
+          "batch_p99_ns": 165816,
+          "child_wait4_peak_rss_kib_median": 3064,
+          "median_process_wall_ns": 37962673,
+          "mib_per_second": 52.684258717759604,
+          "samples": 7
+        },
+        "cpp_native_lto": {
+          "batch_p95_ns": 105476,
+          "batch_p99_ns": 173959,
+          "child_wait4_peak_rss_kib_median": 3040,
+          "median_process_wall_ns": 37900094,
+          "mib_per_second": 52.771248692673616,
+          "samples": 7
+        },
+        "cpp_native_pgo": {
+          "batch_p95_ns": 110103,
+          "batch_p99_ns": 181500,
+          "child_wait4_peak_rss_kib_median": 3036,
+          "median_process_wall_ns": 38763271,
+          "mib_per_second": 51.59614331694833,
+          "samples": 7
+        },
+        "hia_default": {
+          "batch_p95_ns": 103534,
+          "batch_p99_ns": 157364,
+          "child_wait4_peak_rss_kib_median": 1648,
+          "median_process_wall_ns": 36549106,
+          "mib_per_second": 54.7218661367451,
+          "samples": 7
+        },
+        "hia_native_irpgo": {
+          "batch_p95_ns": 102853,
+          "batch_p99_ns": 168881,
+          "child_wait4_peak_rss_kib_median": 1808,
+          "median_process_wall_ns": 38288691,
+          "mib_per_second": 52.235666295034925,
+          "samples": 7
+        },
+        "hia_native_lto": {
+          "batch_p95_ns": 92898,
+          "batch_p99_ns": 168300,
+          "child_wait4_peak_rss_kib_median": 1712,
+          "median_process_wall_ns": 36036359,
+          "mib_per_second": 55.500481775911574,
+          "samples": 7
+        },
+        "rust_native_lto": {
+          "batch_p95_ns": 106158,
+          "batch_p99_ns": 171295,
+          "child_wait4_peak_rss_kib_median": 1980,
+          "median_process_wall_ns": 39266961,
+          "mib_per_second": 50.93430291052336,
+          "samples": 7
+        },
+        "rust_native_pgo": {
+          "batch_p95_ns": 95151,
+          "batch_p99_ns": 157935,
+          "child_wait4_peak_rss_kib_median": 1996,
+          "median_process_wall_ns": 35354140,
+          "mib_per_second": 56.57145912613649,
+          "samples": 7
+        }
+      },
+      "fastest_strong_reference": "rust_native_pgo",
+      "hia_p99_increase_percent": 6.930699338335389,
+      "hia_p99_ratio": 1.0693069933833539,
+      "hia_process_time_increase_percent": 8.300445152958048,
+      "hia_rss_change_percent": -9.4188376753507,
+      "hia_rss_ratio": 0.905811623246493,
+      "hia_runtime_ratio": 1.0830044515295805,
+      "latency_gate": false,
+      "pooled_batches_per_arm": 3591,
+      "rss_gate": true,
+      "selected_hia_arm": "hia_native_irpgo"
+    },
+    "ieee": {
+      "arms": {
+        "c_native_irpgo": {
+          "batch_p95_ns": 99267,
+          "batch_p99_ns": 186467,
+          "child_wait4_peak_rss_kib_median": 1692,
+          "median_process_wall_ns": 36588285,
+          "mib_per_second": 54.66326956701324,
+          "samples": 7
+        },
+        "c_native_lto": {
+          "batch_p95_ns": 106308,
+          "batch_p99_ns": 173428,
+          "child_wait4_peak_rss_kib_median": 1688,
+          "median_process_wall_ns": 37304032,
+          "mib_per_second": 53.61445341752085,
+          "samples": 7
+        },
+        "c_native_pgo": {
+          "batch_p95_ns": 89604,
+          "batch_p99_ns": 164815,
+          "child_wait4_peak_rss_kib_median": 1716,
+          "median_process_wall_ns": 36677792,
+          "mib_per_second": 54.52987153506152,
+          "samples": 7
+        },
+        "cpp_native_irpgo": {
+          "batch_p95_ns": 126088,
+          "batch_p99_ns": 230993,
+          "child_wait4_peak_rss_kib_median": 3032,
+          "median_process_wall_ns": 37620393,
+          "mib_per_second": 53.16359363788962,
+          "samples": 7
+        },
+        "cpp_native_lto": {
+          "batch_p95_ns": 88262,
+          "batch_p99_ns": 151055,
+          "child_wait4_peak_rss_kib_median": 3052,
+          "median_process_wall_ns": 37072043,
+          "mib_per_second": 53.94996132124974,
+          "samples": 7
+        },
+        "cpp_native_pgo": {
+          "batch_p95_ns": 107860,
+          "batch_p99_ns": 162972,
+          "child_wait4_peak_rss_kib_median": 2996,
+          "median_process_wall_ns": 38920366,
+          "mib_per_second": 51.38788484028406,
+          "samples": 7
+        },
+        "hia_default": {
+          "batch_p95_ns": 97204,
+          "batch_p99_ns": 158646,
+          "child_wait4_peak_rss_kib_median": 1776,
+          "median_process_wall_ns": 38499636,
+          "mib_per_second": 51.949459624753516,
+          "samples": 7
+        },
+        "hia_native_irpgo": {
+          "batch_p95_ns": 103874,
+          "batch_p99_ns": 177164,
+          "child_wait4_peak_rss_kib_median": 1776,
+          "median_process_wall_ns": 40210499,
+          "mib_per_second": 49.739131214206196,
+          "samples": 7
+        },
+        "hia_native_lto": {
+          "batch_p95_ns": 83634,
+          "batch_p99_ns": 133168,
+          "child_wait4_peak_rss_kib_median": 1736,
+          "median_process_wall_ns": 33952863,
+          "mib_per_second": 58.90623379682906,
+          "samples": 7
+        },
+        "rust_native_lto": {
+          "batch_p95_ns": 109794,
+          "batch_p99_ns": 210172,
+          "child_wait4_peak_rss_kib_median": 1976,
+          "median_process_wall_ns": 39996095,
+          "mib_per_second": 50.00576396144941,
+          "samples": 7
+        },
+        "rust_native_pgo": {
+          "batch_p95_ns": 85848,
+          "batch_p99_ns": 164524,
+          "child_wait4_peak_rss_kib_median": 1992,
+          "median_process_wall_ns": 33787206,
+          "mib_per_second": 59.19504814780207,
+          "samples": 7
+        }
+      },
+      "fastest_strong_reference": "rust_native_pgo",
+      "hia_p99_increase_percent": 7.682769687097313,
+      "hia_p99_ratio": 1.0768276968709731,
+      "hia_process_time_increase_percent": 19.011021509147575,
+      "hia_rss_change_percent": -10.843373493975905,
+      "hia_rss_ratio": 0.891566265060241,
+      "hia_runtime_ratio": 1.1901102150914757,
+      "latency_gate": false,
+      "pooled_batches_per_arm": 3591,
+      "rss_gate": true,
+      "selected_hia_arm": "hia_native_irpgo"
+    }
+  }
+}
