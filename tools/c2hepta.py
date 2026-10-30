@@ -260,6 +260,10 @@ def _run_clang_ast_bounded(command: list[str], source: bytes) -> subprocess.Comp
 
 
 def migrate(source: Path, output: Path, report: Path, clang: str = "clang", verify_native: bool = False, rustc: str | None = None) -> dict:
+    # Direct callers must get the same destination-identity protection as CLI.
+    # Reject before any source, output, or receipt is replaced.
+    if len({source.resolve(), output.resolve(), report.resolve()}) != 3:
+        raise ValueError("source, output and report paths must be distinct")
     try:
         original = _read_source_bounded(source)
         read_error = None
