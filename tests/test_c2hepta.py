@@ -18,6 +18,35 @@ from tools.c2hepta import migrate
 
 
 class HsirSafety(unittest.TestCase):
+    def test_direct_ir_rejects_wrong_expr_stmt_positions(self):
+        # The iterative budget walker must validate edge types, not just
+        # node types. Otherwise well-formed Stmt records can masquerade as
+        # Expr children (and vice versa), leaking raw AttributeError.
+        good = Expr("literal", "i32", "1")
+        two = Expr("literal", "i32", "2")
+        end = Stmt("return", good)
+        cond = Expr("compare", "bool", "<", (good, two))
+        examples = {
+            "expr_as_function_body": Function("safe", (), "i32", (good,)),
+            "stmt_as_return_expr": Function("safe", (), "i32",
+                                            (Stmt("return", end),)),
+            "stmt_as_neg_operand": Function("safe", (), "i32",
+                                            (Stmt("return", Expr("neg", "i32", "", (end,))),)),
+            "stmt_as_binary_operand": Function("safe", (), "i32",
+                                               (Stmt("return", Expr("arith", "i32", "+", (good, end))),)),
+            "expr_as_then_stmt": Function("safe", (), "i32",
+                                          (Stmt("if", cond, (good,), (end,)),)),
+            "expr_as_else_stmt": Function("safe", (), "i32",
+                                          (Stmt("if", cond, (end,), (good,)),)),
+        }
+        for shape, function in examples.items():
+            for consumer in (check_function, emit_function, function_hash):
+                with self.subTest(shape=shape, api=consumer.__name__):
+                    with self.assertRaises(IRValidationError):
+                        consumer(function)
+        valid = Function("safe", (), "i32", (end,))
+        self.assertIn("fn safe(", emit_function(valid))
+
     def test_unbound_variable_rejected(self):
         fn = Function("f", (("x", "i32"),), "i32", (Stmt("return", Expr("var", "i32", "y")),))
         with self.assertRaises(IRValidationError):
