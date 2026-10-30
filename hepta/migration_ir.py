@@ -130,14 +130,16 @@ _MAX_IR_NODES = 4096
 
 
 def _check_structure_budget(function: Function) -> None:
-    if (not isinstance(function, Function) or not isinstance(function.body, tuple)
-            or not isinstance(function.params, tuple)
+    # Do not accept extensible record/tuple subclasses: their overridden
+    # field access or iteration can change between validation and emission.
+    if (type(function) is not Function or type(function.body) is not tuple
+            or type(function.params) is not tuple
             or len(function.params) > _MAX_IR_PARAMS
             or not _bounded_text(function.name)
             or not _bounded_text(function.result)):
         raise IRValidationError("invalid migration IR function structure")
     for parameter in function.params:
-        if (not isinstance(parameter, tuple) or len(parameter) != 2
+        if (type(parameter) is not tuple or len(parameter) != 2
                 or not all(_bounded_text(field) for field in parameter)):
             raise IRValidationError("invalid migration IR parameter structure")
 
@@ -150,19 +152,19 @@ def _check_structure_budget(function: Function) -> None:
         visited += 1
         if visited > _MAX_IR_NODES or depth > _MAX_IR_DEPTH:
             raise IRValidationError("migration IR depth or node budget exceeded")
-        if isinstance(node, Expr):
+        if type(node) is Expr:
             if not all(_bounded_text(field) for field in (node.kind, node.ty, node.value)):
                 raise IRValidationError("invalid migration IR expression fields")
             children = node.args
-        elif isinstance(node, Stmt):
+        elif type(node) is Stmt:
             if not _bounded_text(node.kind):
                 raise IRValidationError("invalid migration IR statement kind")
-            if not isinstance(node.then_body, tuple) or not isinstance(node.else_body, tuple):
+            if type(node.then_body) is not tuple or type(node.else_body) is not tuple:
                 raise IRValidationError("invalid migration IR statement branches")
             children = (node.expr,) + node.then_body + node.else_body
         else:
             raise IRValidationError("invalid migration IR tree node")
-        if not isinstance(children, tuple):
+        if type(children) is not tuple:
             raise IRValidationError("invalid migration IR child sequence")
         if len(children) > _MAX_IR_NODES - visited - len(pending):
             raise IRValidationError("migration IR node budget exceeded")
