@@ -336,6 +336,9 @@ class CRecordViewTranslator(CTranslator):
         return super().lvalue(node)
 
     def stmt(self, node, depth=1):
+        lowered = self.loop_control(node, depth)
+        if lowered is not None:
+            return self.stmt(lowered, depth)
         kind, children = node.get("kind"), node.get("inner", [])
         pad = "    " * depth
         if self._void_noop(node):

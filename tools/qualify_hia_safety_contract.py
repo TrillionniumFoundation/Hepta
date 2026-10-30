@@ -34,7 +34,7 @@ CONTRACT = ROOT / "docs/HIA_SAFETY_CONTRACT.json"
 # caller can remove capabilities/tests and still obtain the same qualification
 # status for a weaker matrix. Deliberate protocol changes must review and update
 # this identity together with the contract and its boundary tests.
-REVIEWED_CONTRACT_SHA256 = "00e1f8363fb0375f2c9d8a47200eb7ccdf7477e75a6a86e500214f657be3a075"
+REVIEWED_CONTRACT_SHA256 = "03bcc4af39c2467c1395eb685e9f8345bcaa790fabe5fed14b4a329a096a065d"
 _UNPROVED = frozenset({"whole_language_soundness_proved", "source_to_core_refinement_proved",
     "core_to_native_refinement_proved", "global_optimality_proved", "absolute_resource_safety_proved",
     "general_concurrent_memory_safety_proved", "native_process_memory_bound_proved",
@@ -98,8 +98,8 @@ def validate_contract(contract):
             or authority.get("external_receipts_grant_admission") is not False
             or authority.get("metadata_grants_admission") is not False):
         raise ValueError("E_SAFETY_AUTHORITY: only actual Core admission is authoritative")
-    if set(contract.get("boundaries", {})) != {"normal", "error", "trap", "cancel", "recursive", "concurrent"}:
-        raise ValueError("E_SAFETY_BOUNDARY: all six execution boundaries must remain explicit")
+    if set(contract.get("boundaries", {})) != {"normal", "error", "trap", "budget", "cancel", "crash", "recursive", "concurrent"}:
+        raise ValueError("E_SAFETY_BOUNDARY: all eight execution boundaries must remain explicit")
     rows, identifiers, selectors = contract.get("capabilities"), set(), set()
     if type(rows) is not list or not rows:
         raise ValueError("E_SAFETY_MATRIX: nonempty capability matrix required")

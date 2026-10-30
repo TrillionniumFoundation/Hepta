@@ -149,6 +149,15 @@ CRITICAL_MODULES = {
     "captured_c_actual_native_targets": ("test_hia_c_posttest_hosts",),
     "bounded_native_execution_context": ("test_hia_finite_context", "test_clang_capture_environment"),
     "crc_static_control_cost_accounting": ("test_hia_crc_context_study",),
+    "immutable_runtime_invocation": ("test_hia_runtime_argument_snapshot",),
+    "rust_sealed_execution_and_api_parity": ("test_hia_rust_executable_custody",
+        "test_hia_rust_budget_v3", "test_hia_rust_api_v4"),
+    "ranking_shared_budget_and_execution_custody": ("test_hia_ndu_optimizer_budget",
+        "test_hia_ndu_optimizer_transport"),
+    "captured_c_loop_jumps_and_preprocessor_refusal": ("test_c2hepta_preprocessor_guard",
+        "test_hia_c_loop_jumps", "test_hia_c_do_while", "test_hia_c_loop_migration_qualification"),
+    "prepared_narrowed_four_arm_controls": ("test_hia_ndu_narrowed_controls",
+        "test_hia_artifact_narrowing"),
 }
 
 

@@ -77,6 +77,18 @@ MODULES = (
     "tests.test_hia_crc_context_study",
     "tests.test_hia_native_source_reinspect",
     "tests.test_hia_v6_differential",
+    "tests.test_hia_runtime_argument_snapshot",
+    "tests.test_hia_rust_executable_custody",
+    "tests.test_hia_rust_budget_v3",
+    "tests.test_hia_rust_api_v4",
+    "tests.test_hia_ndu_optimizer_budget",
+    "tests.test_hia_ndu_optimizer_transport",
+    "tests.test_c2hepta_preprocessor_guard",
+    "tests.test_hia_c_loop_jumps",
+    "tests.test_hia_c_do_while",
+    "tests.test_hia_c_loop_migration_qualification",
+    "tests.test_hia_ndu_narrowed_controls",
+    "tests.test_hia_artifact_narrowing",
 )
 
 

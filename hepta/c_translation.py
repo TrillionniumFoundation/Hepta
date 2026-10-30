@@ -200,6 +200,7 @@ class CTranslator:
         self.counter = 0
         self.expression_helpers: list[str] = []
         self.conditional_count = 0
+        self.loop_control_count = 0
         self.original_type_receipts: list[dict] = []
         self.parameter_sources: dict[str, bytes] = {}
         self.physical_source_files: dict[int, str | None] = {}
@@ -714,7 +715,22 @@ class CTranslator:
             raise MigrationRejected("E_C_LVALUE", "Pointer reassignment and effectful lvalues are unsupported")
         return result
 
+    def loop_control(self, node: dict, depth: int) -> dict | None:
+        # Structuring a wide sequence of possible jumps adds guarded suffixes.
+        # Bound that expansion before the recursive source/IR walkers consume
+        # it, independently of the depth of the original captured Clang AST.
+        if depth > 64:
+            raise MigrationRejected("E_C_CONTROL_LIMIT", "Structured source lowering exceeds 64 statement levels")
+        from .c_loop_control import lower_loop_jumps
+        lowered = lower_loop_jumps(node, self.loop_control_count)
+        if lowered is not None:
+            self.loop_control_count += 1
+        return lowered
+
     def stmt(self, node: dict, depth: int = 1) -> list[str]:
+        lowered = self.loop_control(node, depth)
+        if lowered is not None:
+            return self.stmt(lowered, depth)
         pad = "    " * depth
         kind, children = node.get("kind"), node.get("inner", [])
         if kind == "CompoundStmt":
@@ -774,6 +790,25 @@ class CTranslator:
             if len(children) == 3:
                 out += [pad + "else {", *self.stmt(children[2], depth + 1), pad + "}"]
             return out
+        if kind == "DoStmt":
+            if len(children) != 2:
+                raise MigrationRejected("E_C_CONTROL", "Unexpected post-test loop AST")
+            body, predicate = children
+            condition = truth(self.expr(predicate))
+            if condition.side_effect:
+                raise MigrationRejected("E_C_EVALUATION_ORDER", "Mutating post-test conditions are unsupported")
+            # Generate the body once. Short-circuiting skips the first test;
+            # subsequent header visits occur after the preceding body. This
+            # keeps local declarations scoped to each iteration and a return
+            # skips the postcondition, including a potentially trapping one.
+            # Loop jumps have already been structured by loop_control; goto
+            # and other unsupported control forms still reject.
+            self.counter += 1
+            first = "migration_do_first_" + str(self.counter)
+            return [f"{pad}let mut {first}: bool = true;",
+                    f"{pad}while {first} || {condition.text} {{",
+                    f"{pad}    {first} = false;",
+                    *self.stmt(body, depth + 1), pad + "}"]
         if kind == "ForStmt":
             if len(children) != 5 or children[1] or not all(children[i] for i in (2, 3, 4)):
                 raise MigrationRejected("E_C_FOR", "C for loops require an explicit condition and increment")
@@ -783,33 +818,6 @@ class CTranslator:
                 raise MigrationRejected("E_C_EVALUATION_ORDER", "Mutating loop conditions are unsupported")
             return initial + [f"{pad}while {condition.text} {{", *self.stmt(children[4], depth + 1),
                               *self.stmt(children[3], depth + 1), pad + "}"]
-        if kind == "DoStmt":
-            if len(children) != 2 or children[0].get("kind") != "CompoundStmt":
-                raise MigrationRejected("E_C_DO_SHAPE", "Do loop requires a braced body and one condition")
-            # A post-test loop executes its body before the first condition.
-            # Keep one lexical body instead of duplicating declarations, cursor
-            # advances or nested loops. Existing source lowering checks every
-            # iteration and resource edge of the resulting ordinary while.
-            pending = [children[0]]
-            while pending:
-                part = pending.pop()
-                if part.get("kind") in {"DeclStmt", "DoStmt", "ForStmt"}:
-                    raise MigrationRejected("E_C_DO_SCOPE",
-                        "Post-test loop declarations and nested do/for scopes need separate qualification")
-                if part.get("kind") in {"BreakStmt", "ContinueStmt", "GotoStmt",
-                                        "IndirectGotoStmt", "ReturnStmt", "SwitchStmt"}:
-                    raise MigrationRejected("E_C_DO_CONTROL",
-                        "Post-test loop jumps and terminating bodies require a separate control-flow model")
-                pending.extend(child for child in part.get("inner", []) if isinstance(child, dict))
-            self.counter += 1
-            active = "c_do_active_" + str(self.counter)
-            body = self.stmt(children[0], depth + 1)
-            condition = truth(self.expr(children[1]))
-            if condition.side_effect:
-                raise MigrationRejected("E_C_EVALUATION_ORDER", "Mutating do-loop conditions require explicit sequencing")
-            return [f"{pad}let mut {active}: bool = true;",
-                    f"{pad}while {active} {{", *body,
-                    f"{pad}    {active} = {condition.text};", pad + "}"]
         if kind in {"BinaryOperator", "CompoundAssignOperator"} and len(children) == 2:
             if kind == "BinaryOperator" and node.get("opcode") == ",":
                 # The C comma operator introduces a sequence point. Only

@@ -4,6 +4,15 @@ The Python Core verifier remains the production admission authority. This crate
 is an independent checking and execution oracle, not a native backend or a
 whole-language safety proof.
 
+The opt-in bound-v3 and bound-v4 protocols reuse this same Machine and ByteMemory
+with explicit language call frames. V3 admits up to 256 root-inclusive frames,
+10,000,000 ticks and 1 GiB of logical payload; v4 additionally binds ordered
+list/tuple arguments and exact positive failure indices beyond u64 within its
+1024-byte policy. Legacy protocols retain their original limits and receipts.
+See [v3 budgets](../../docs/HIA_RUST_BOUND_BUDGET_V3.md),
+[v4 API](../../docs/HIA_RUST_BOUND_API_V4.md), and
+[sealed executable custody](../../docs/HIA_RUST_EXECUTABLE_CUSTODY.md).
+
 For an exact invocation comparison, `--owned-run-bound` wraps the same Machine
 report with a canonical request binding the Core, entry, arguments and policy.
 The Python `crosscheck_rust_execution` API checks both full execution outcomes
