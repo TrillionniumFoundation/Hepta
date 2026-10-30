@@ -127,5 +127,8 @@ Python accepts arbitrarily large positive allocation-failure indices; the
 Rust transport retains its explicit `u64` bound. Scalar argument transport and
 primitive Core normalization also retain their independent limits. The three
 budget ceilings therefore do not establish complete production API parity.
+The separate [v4 API contract](HIA_RUST_BOUND_API_V4.md) adds ordered tuple inputs
+and exact hexadecimal failure indices beyond `u64` within its 1024-byte policy;
+it does not change this v3 contract or its refusal cases.
 Python remains production authority. All production-admission, whole-language
 soundness, backend-refinement and full-P2-closure claims remain false.

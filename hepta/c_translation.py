@@ -200,6 +200,7 @@ class CTranslator:
         self.counter = 0
         self.expression_helpers: list[str] = []
         self.conditional_count = 0
+        self.loop_control_count = 0
         self.original_type_receipts: list[dict] = []
         self.parameter_sources: dict[str, bytes] = {}
         self.physical_source_files: dict[int, str | None] = {}
@@ -714,7 +715,22 @@ class CTranslator:
             raise MigrationRejected("E_C_LVALUE", "Pointer reassignment and effectful lvalues are unsupported")
         return result
 
+    def loop_control(self, node: dict, depth: int) -> dict | None:
+        # Structuring a wide sequence of possible jumps adds guarded suffixes.
+        # Bound that expansion before the recursive source/IR walkers consume
+        # it, independently of the depth of the original captured Clang AST.
+        if depth > 64:
+            raise MigrationRejected("E_C_CONTROL_LIMIT", "Structured source lowering exceeds 64 statement levels")
+        from .c_loop_control import lower_loop_jumps
+        lowered = lower_loop_jumps(node, self.loop_control_count)
+        if lowered is not None:
+            self.loop_control_count += 1
+        return lowered
+
     def stmt(self, node: dict, depth: int = 1) -> list[str]:
+        lowered = self.loop_control(node, depth)
+        if lowered is not None:
+            return self.stmt(lowered, depth)
         pad = "    " * depth
         kind, children = node.get("kind"), node.get("inner", [])
         if kind == "CompoundStmt":
@@ -785,7 +801,8 @@ class CTranslator:
             # subsequent header visits occur after the preceding body. This
             # keeps local declarations scoped to each iteration and a return
             # skips the postcondition, including a potentially trapping one.
-            # Existing statement admission still refuses break/continue/goto.
+            # Loop jumps have already been structured by loop_control; goto
+            # and other unsupported control forms still reject.
             self.counter += 1
             first = "migration_do_first_" + str(self.counter)
             return [f"{pad}let mut {first}: bool = true;",

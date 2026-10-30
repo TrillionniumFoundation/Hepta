@@ -145,6 +145,14 @@ replace composite v4's separately declared parameter-field return origins.
 The invocation-bound Rust execution profiles compare the full outcomes and
 stopped resource ledgers within their own finite budgets. They do not silently
 replace the larger budgets accepted by the Python execution APIs.
+The explicit v4 API additionally accepts ordered lists and tuples, and exact
+allocation-failure indices wider than u64, within the unchanged 1024-byte
+policy and scalar argument limits. The legacy/v1/v2/v3 wire contracts remain
+unchanged. Every shadow process executes a fully sealed image of the admitted
+executable bytes, retaining descriptor and process-group ownership through
+cleanup; Linux sealing failure refuses execution. See
+[the v4 API boundary](HIA_RUST_BOUND_API_V4.md) and
+[executable custody](HIA_RUST_EXECUTABLE_CUSTODY.md).
 
 ## Execution boundaries
 

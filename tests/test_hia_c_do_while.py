@@ -239,8 +239,8 @@ class HIACDoWhileTests(unittest.TestCase):
             ("int value;int i=0;do{if(seed)value=4;i++;}while(i<count);return value;", "E_C_UNINITIALIZED"),
             ("int value;do{value=value+1;}while(0);return value;", "E_C_UNINITIALIZED"),
             ("int value;do{seed=1;}while(value<count);value=seed;return value;", "E_C_UNINITIALIZED"),
-            ("int i=0;do{i++;break;}while(i<count);return i;", "E_C_STATEMENT"),
-            ("int i=0;do{i++;continue;}while(i<count);return i;", "E_C_STATEMENT"),
+            ("int value;do{if(seed)break;value=4;}while(0);return value;", "E_C_UNINITIALIZED"),
+            ("int value;do{if(seed)continue;value=4;}while(0);return value;", "E_C_UNINITIALIZED"),
             ("int i=0;do{goto end;}while(i<count);end:return i;", "E_C_STATEMENT"),
             ("int i=0;do{i++;}while(seed--);return i;", "E_C_UNARY"),
         ]

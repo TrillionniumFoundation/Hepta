@@ -229,12 +229,13 @@
         "hepta.hia_rust_crosscheck.crosscheck_rust_shadow",
         "hepta.hia_rust_crosscheck.crosscheck_rust_execution",
         "hepta.hia_rust_crosscheck.crosscheck_rust_execution_v2",
-        "hepta.hia_rust_crosscheck.crosscheck_rust_execution_v3"
+        "hepta.hia_rust_crosscheck.crosscheck_rust_execution_v3",
+        "hepta.hia_rust_crosscheck.crosscheck_rust_execution_v4"
       ],
       "exclusions": [
         "no deployment authority",
         "agreement is not refinement or whole-language soundness",
-        "no complete Python production API parity: scalar public transport and u64 allocation-failure indices retain independent limits",
+        "no complete Python production API parity: bounded scalar public transport and a 1024-byte execution policy remain; only opt-in v4 admits exact wider-than-u64 failure indices",
         "logical payload budgets do not establish RSS bounds, successful 1 GiB allocation, asynchronous cancellation or complete unwind cleanup"
       ],
       "guarantee": "independent_finite_comparison_only",
@@ -259,9 +260,22 @@
         "tests.test_hia_rust_budget_v3.RustBudgetV3Parity.test_deep_step_stops_and_traps_retain_real_prefixes",
         "tests.test_hia_rust_budget_v3.RustBudgetV3Parity.test_raw_policy_and_original_entry_admission_remain_strict",
         "tests.test_hia_rust_budget_v3.RustBudgetV3Parity.test_v1_v2_reports_remain_unchanged_for_all_primitive_schemas",
-        "tests.test_hia_rust_budget_v3.RustBudgetV3Parity.test_rehashed_tampering_and_cross_protocol_replay_reject"
+        "tests.test_hia_rust_budget_v3.RustBudgetV3Parity.test_rehashed_tampering_and_cross_protocol_replay_reject",
+        "tests.test_hia_rust_api_v4.RustApiV4Parity.test_tuple_list_and_wide_indices_bind_identical_invocations",
+        "tests.test_hia_rust_api_v4.RustApiV4Parity.test_allocation_order_loans_chains_and_step_stops_keep_exact_ledgers",
+        "tests.test_hia_rust_api_v4.RustApiV4Parity.test_exact_policy_wire_boundary_and_prelaunch_large_integer_refusal",
+        "tests.test_hia_rust_api_v4.RustApiV4Parity.test_native_policy_rejects_noncanonical_hex_and_ambiguous_json",
+        "tests.test_hia_rust_api_v4.RustApiV4Parity.test_python_exact_types_and_original_entry_eligibility_reject_before_launch",
+        "tests.test_hia_rust_api_v4.RustApiV4Parity.test_tiny_budget_or_wide_index_cannot_hide_invalid_unused_function",
+        "tests.test_hia_rust_api_v4.RustApiV4Parity.test_rehashed_policy_tampering_and_cross_protocol_replay_are_rejected",
+        "tests.test_hia_rust_api_v4.RustApiV4Parity.test_legacy_reports_and_refusal_contracts_remain_unchanged",
+        "tests.test_hia_rust_executable_custody.RustShadowExecutableCustody.test_replacement_at_exec_boundary_cannot_change_admitted_bytes",
+        "tests.test_hia_rust_executable_custody.RustShadowExecutableCustody.test_unavailable_sealing_refuses_before_launch",
+        "tests.test_hia_rust_executable_custody.RustShadowExecutableCustody.test_incomplete_seals_or_changed_readback_refuse_and_close_image",
+        "tests.test_hia_rust_executable_custody.RustShadowExecutableCustody.test_real_success_failure_timeout_and_output_stop_release_image",
+        "tests.test_hia_rust_executable_custody.RustShadowExecutableCustody.test_uncertain_descriptor_close_refuses_and_never_retries_number"
       ],
-      "scope": "Rust closed byte-owner/returned-loan/owned-chain Machine profiles; fresh invocation-bound Python/Rust comparison of scalar public entries, full outcomes and stopped resource ledgers; Linux process-group ownership retained through bounded cleanup; v2 explicitly binds root-inclusive call depth 1..32 to the same Machine, with legacy/v1 fixed at 32; a separate v3 protocol uses explicit language frames in the same Machine and one ByteMemory ledger, with ceilings of 256 frames, 10000000 ticks and 1 GiB logical payload; finite controls exercise every depth, deep stopped resources, ten million allowed ticks and 16 MiB plus one allocated byte; v1/v2 policy ceilings and envelopes remain unchanged"
+      "scope": "Rust closed byte-owner/returned-loan/owned-chain Machine profiles; fresh invocation-bound Python/Rust comparison of scalar public entries, full outcomes and stopped resource ledgers; Linux process-group ownership retained through bounded cleanup; v2 explicitly binds root-inclusive call depth 1..32 to the same Machine, with legacy/v1 fixed at 32; a separate v3 protocol uses explicit language frames in the same Machine and one ByteMemory ledger, with ceilings of 256 frames, 10000000 ticks and 1 GiB logical payload; finite controls exercise every depth, deep stopped resources, ten million allowed ticks and 16 MiB plus one allocated byte; v1/v2 policy ceilings and envelopes remain unchanged; opt-in v4 admits ordered list/tuple arguments and exact wider-than-u64 allocation-failure indices within 1024 policy bytes; all protocols execute sealed admitted bytes with descriptor custody through the existing process-group cleanup; missing Linux memfd/seals refuses"
     },
     {
       "entrypoints": [
@@ -517,9 +531,15 @@
         "tests.test_hia_c_project_views.HIAProjectViewsTests.test_vm_native_queue_application_and_all_refusal_cleanups",
         "tests.test_hia_c_project_views.HIAProjectViewsTests.test_native_invalid_cursor_aborts_before_any_pointer_access",
         "tests.test_hia_c_project_views.HIAProjectViewsTests.test_source_body_changes_are_retranslated_and_missing_drop_refuses",
-        "tests.test_hia_c_project_views.HIAProjectViewsTests.test_resource_capabilities_do_not_escape_public_c_abi"
+        "tests.test_hia_c_project_views.HIAProjectViewsTests.test_resource_capabilities_do_not_escape_public_c_abi",
+        "tests.test_hia_c_loop_jumps.HIACLoopJumpTests.test_c_and_concrete_cpp_vm_and_direct_llvm_match_originals",
+        "tests.test_hia_c_loop_jumps.HIACLoopJumpTests.test_deferred_assignments_merge_actual_jump_exits",
+        "tests.test_hia_c_loop_jumps.HIACLoopJumpTests.test_break_continue_do_not_admit_uninitialized_reads",
+        "tests.test_hia_c_loop_jumps.HIACLoopJumpTests.test_switch_goto_and_mutating_conditions_remain_rejected",
+        "tests.test_hia_c_loop_jumps.HIACLoopJumpTests.test_wide_jump_sequence_rejects_bounded_expansion",
+        "tests.test_hia_c_loop_jumps.HIACLoopJumpTests.test_upstream_ring_maintenance_loop_jumps_reach_native_hia"
       ],
-      "scope": "captured C record/slice project bodies translated with explicit frozen foreign contracts into the existing source checker and immutable primitive Core; separately authored owned-storage clients are counted separately; captured source identity is rechecked and only admitted scalar entries are exported"
+      "scope": "captured C record/slice project bodies translated with explicit frozen foreign contracts into the existing source checker and immutable primitive Core; separately authored owned-storage clients are counted separately; captured source identity is rechecked and only admitted scalar entries are exported; structured while/for/do-while break and continue preserve nearest-loop transfer, for increment and post-test ordering through separately lowered flags; normal/break/continue initialization exits remain separate; original captured AST bytes are retained"
     },
     {
       "entrypoints": [
@@ -575,6 +595,56 @@
         "tests.test_hia_ndu_prepared_reuse.PreparedReuseProtocolTests.test_competition_requires_exact_actual_target_build_output_and_inputs"
       ],
       "scope": "prospectively fixed finite comparison protocol with the same proof policy and artifact limits for fixed, complete-DP and native-advisory arms; historical build cost remains separately labeled; claimed competition requires matching admitted control pairs, exact decision inputs, selected candidate build and observed correct output"
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_ndu_optimizer.rank_candidates"
+      ],
+      "exclusions": [
+        "solver timeouts are admission limits, not physical worst-case execution-time bounds",
+        "a profitable ranking estimate is not complete native publication or workload profitability evidence",
+        "NDU recommendation does not replace fresh equivalence proof or grant deployment authority"
+      ],
+      "guarantee": "host_enforced_scoped_admission",
+      "id": "shared_optimizer_proof_budget",
+      "regression_selectors": [
+        "tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_each_solver_timeout_uses_remaining_budget_including_paid_search",
+        "tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_all_candidates_share_one_cap_and_losing_search_costs",
+        "tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_native_budget_overrun_does_not_start_a_second_solver",
+        "tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_native_cost_exhausting_possible_gain_does_not_start_a_second_solver",
+        "tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_less_than_one_solver_millisecond_never_rounds_the_budget_up",
+        "tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_final_proof_overshoot_still_preserves_incumbent",
+        "tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_exact_budget_exhaustion_is_not_reported_as_an_overrun",
+        "tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_final_proof_may_finish_exactly_at_cap_if_net_margin_remains",
+        "tests.test_hia_ndu_optimizer_budget.RealProofBudgetTests.test_real_proofs_preserve_all_input_equivalence_and_reject_wrong_candidate",
+        "tests.test_hia_ndu_optimizer_budget.RealProofBudgetTests.test_unsupported_loop_remains_unknown_and_cannot_reach_final_proof",
+        "tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_less_than_one_profitable_millisecond_does_not_start_a_solver",
+        "tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_native_remainder_cannot_be_rounded_up_for_the_final_solver"
+      ],
+      "scope": "Every candidate and the final selected fresh proof consume one shared elapsed-cost cap and possible net saving; each solver receives the remaining integer-millisecond allowance; exhausted native ranking cost refuses before another solver; actual overshoot keeps the incumbent. Budget branch controls use deterministic clocks; separate native ranking regressions execute the pinned original NDU evaluator."
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_x86_search.search_bounded_affine_candidates",
+        "hepta.hia_x86_search.build_candidate"
+      ],
+      "exclusions": [
+        "minimum is within the unchanged closed 146-recipe grammar, not all ISA programs",
+        "model equivalence is not compiler-to-machine-code refinement or a runtime performance proof",
+        "unknown or an empty equivalent set has no minimum certificate; a serialized receipt never authorizes execution"
+      ],
+      "guarantee": "proved_only_within_declared_solver_profile",
+      "id": "bounded_affine_finite_byte_minimum",
+      "regression_selectors": [
+        "tests.test_hia_x86_bounded_affine.TargetDomainTests.test_legacy_grammar_corpus_and_frozen_protocol_are_unchanged",
+        "tests.test_hia_x86_bounded_affine.BoundedAffineProofTests.test_all_ten_targets_have_146_decided_proofs_and_a_nine_byte_minimum",
+        "tests.test_hia_x86_bounded_affine.BoundedAffineProofTests.test_unrepresented_affine_target_has_no_minimum_certificate",
+        "tests.test_hia_x86_bounded_affine.BoundedAffineProofTests.test_one_unknown_keeps_all_outcomes_but_denies_certificate_and_qualification",
+        "tests.test_hia_x86_bounded_affine.BoundedAffineProofTests.test_affine_candidate_for_different_target_fails_fresh_proof_before_compiler",
+        "tests.test_hia_x86_bounded_affine.BoundedAffineNativeTests.test_all_ten_targets_build_through_existing_byte_gate_and_run_native_edges",
+        "tests.test_hia_x86_bounded_affine.BoundedAffineNativeTests.test_actual_llvm_can_use_shorter_code_outside_the_frozen_grammar"
+      ],
+      "scope": "All-input u64 modular a*x+b, a in {-1,0,1,2,3,4}, b in [-16,16]; enumerate every existing recipe and require every proof decided; minimize encoded bytes including ret with stable-ID tie breaking; the distinct ten-target qualifier freezes every selection before native builds/timings and preserves a shorter LLVM result if observed."
     }
   ],
   "judgment": {
