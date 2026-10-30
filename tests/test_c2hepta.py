@@ -177,6 +177,41 @@ class C2HeptaImport(unittest.TestCase):
         self.assertNotIn("fn evil(", self.out.read_text())
         self.assertEqual(result["source_sha256"], hashlib.sha256(original.encode()).hexdigest())
 
+    def test_clang_ast_capture_stops_oversized_producer_early(self):
+        # A bounded source does NOT bound the emitted Clang AST.  The real
+        # producer must be stopped before it emits 16 MiB, not merely rejected
+        # after subprocess.run has captured the entire output in memory.
+        self.src.write_text("int safe(int x){return x;}\n", encoding="utf-8")
+        marker = self.path / "clang-finished-oversized-output"
+        fake_clang = self.path / "clang-spam"
+        fake_clang.write_text(
+            f"#!{sys.executable}\n"
+            "import pathlib, sys, time\n"
+            "args = sys.argv[1:]\n"
+            "if '--version' in args:\n"
+            "    print('clang version 19.0.0')\n"
+            "elif '-dumpmachine' in args:\n"
+            "    print('x86_64-unknown-linux-gnu')\n"
+            "elif '-dM' in args:\n"
+            "    print('#define __SIZEOF_INT__ 4')\n"
+            "    print('#define __CHAR_BIT__ 8')\n"
+            "elif '-ast-dump=json' in args:\n"
+            "    for _ in range(256):\n"
+            "        sys.stdout.buffer.write(b'X' * 65536)\n"
+            "        sys.stdout.buffer.flush()\n"
+            "        time.sleep(0.005)\n"
+            f"    pathlib.Path({str(marker)!r}).write_text('producer not stopped')\n"
+            "else:\n"
+            "    sys.exit(2)\n",
+            encoding="utf-8",
+        )
+        fake_clang.chmod(0o700)
+        result = migrate(self.src, self.out, self.report, clang=str(fake_clang))
+        self.assertEqual(result["status"], "rejected", result)
+        self.assertFalse(marker.exists(), "unbounded Clang output producer was allowed to finish")
+        self.assertFalse(self.out.exists())
+        self.assertTrue(self.report.exists())
+
     def test_native_gate_without_frontend_fails_closed(self):
         self.src.write_text("int f(int x){return x;}", encoding="utf-8")
         result = migrate(self.src, self.out, self.report, verify_native=True, rustc="/no/such/rustc")
