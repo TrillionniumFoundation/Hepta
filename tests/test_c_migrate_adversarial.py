@@ -64,6 +64,34 @@ class CMigrationAdversarial(unittest.TestCase):
         self.assertFalse(dangling.exists())
         self.assertTrue(self.output.is_symlink())
 
+    def test_frontend_mutation_of_equal_size_source_is_rejected(self):
+        # Changes after Clang and the first digest check must not produce
+        # a successfully published artifact labeled with the old source hash.
+        before = "int f(int x){return x;}\n"
+        after = "int f(int x){return 0;}\n"
+        self.assertEqual(len(before), len(after))
+        self.source.write_text(before, encoding="utf-8")
+        from hepta.checker import check as actual_check
+
+        def check_and_replace(*args, **kwargs):
+            result = actual_check(*args, **kwargs)
+            self.source.write_text(after, encoding="utf-8")
+            return result
+
+        with patch("hepta.checker.check", side_effect=check_and_replace):
+            result = migrate_c(self.source, self.output)
+        self.assertFalse(result["ok"], result)
+        self.assertIn("E_C_SOURCE_RACE",
+                      [item["code"] for item in result["rejected"]], result)
+        self.assertFalse(self.output.exists())
+        self.assertEqual(list(self.root.glob(".hepta-migrate-*")), [])
+
+    def test_unchanged_source_keeps_successful_frontend_gate(self):
+        result = self.migrate("int f(int x){return x;}\n")
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(result["status"], "frontend_checked_not_native_qualified")
+        self.assertTrue(self.output.is_file())
+
     def test_atomic_publish_failure_leaves_no_partial_output(self):
         self.source.write_text("int f(int x){return x;}")
         with patch("hepta.c_migrate.os.link", side_effect=OSError("simulated filesystem failure")):
