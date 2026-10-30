@@ -214,5 +214,38 @@ class CMigrationAdversarial(unittest.TestCase):
         self.assertEqual(list(self.root.glob(".hepta-migrate-*")), [])
 
 
+    def test_output_directory_creation_error_is_controlled(self):
+        # A denied destination directory must return machine-readable evidence,
+        # not abort the migrate-c CLI with an uncaught PermissionError.
+        self.source.write_text("int f(int x){return x;}\n", encoding="utf-8")
+        nested = self.root / "blocked" / "translated.hepta"
+        with patch("hepta.c_migrate.Path.mkdir",
+                   side_effect=PermissionError("simulated output-directory denial")):
+            result = migrate_c(self.source, nested)
+        self.assertFalse(result["ok"], result)
+        self.assertIn("E_C_PUBLISH", [x["code"] for x in result["rejected"]], result)
+        self.assertFalse(nested.exists())
+
+    def test_tempfile_creation_error_is_controlled(self):
+        self.source.write_text("int f(int x){return x;}\n", encoding="utf-8")
+        with patch("hepta.c_migrate.tempfile.NamedTemporaryFile",
+                   side_effect=PermissionError("simulated staging denial")):
+            result = migrate_c(self.source, self.output)
+        self.assertFalse(result["ok"], result)
+        self.assertIn("E_C_PUBLISH", [x["code"] for x in result["rejected"]], result)
+        self.assertFalse(self.output.exists())
+        self.assertEqual(list(self.root.glob(".hepta-migrate-*")), [])
+
+    def test_staged_fsync_error_is_controlled_and_cleans_stage(self):
+        self.source.write_text("int f(int x){return x;}\n", encoding="utf-8")
+        with patch("hepta.c_migrate.os.fsync",
+                   side_effect=OSError("simulated fsync failure")):
+            result = migrate_c(self.source, self.output)
+        self.assertFalse(result["ok"], result)
+        self.assertIn("E_C_PUBLISH", [x["code"] for x in result["rejected"]], result)
+        self.assertFalse(self.output.exists())
+        self.assertEqual(list(self.root.glob(".hepta-migrate-*")), [])
+
+
 if __name__ == "__main__":
     unittest.main()
