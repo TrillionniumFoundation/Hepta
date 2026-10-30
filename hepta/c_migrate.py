@@ -292,7 +292,11 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
             return report
         if dest.exists():
             raise MigrationRejected("E_C_EXISTS", "Refusing to overwrite an existing .hepta destination")
-        dest.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            dest.parent.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            raise MigrationRejected("E_C_PUBLISH",
+                                    "Cannot prepare migration output directory: " + str(exc)) from exc
         if dest.is_symlink():
             raise MigrationRejected("E_C_SYMLINK", "Refusing a symlink destination")
         staged = None
@@ -319,6 +323,12 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
                 raise MigrationRejected("E_C_EXISTS", "Destination appeared during conversion") from exc
             except OSError as exc:
                 raise MigrationRejected("E_C_PUBLISH", "Atomic publish unavailable: " + str(exc)) from exc
+        except OSError as exc:
+            # Directory access, temporary-file creation, write, flush and
+            # fsync failures must leave an explicit failed publication report.
+            # Never reach os.link when the staged bytes are not durable.
+            raise MigrationRejected("E_C_PUBLISH",
+                                    "Cannot stage migration output: " + str(exc)) from exc
         finally:
             if staged is not None:
                 staged.unlink(missing_ok=True)
