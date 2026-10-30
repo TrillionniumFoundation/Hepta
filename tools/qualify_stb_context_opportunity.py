@@ -6,7 +6,7 @@ protocol. All process images and DSOs are loaded from sealed memfds on Linux.
 """
 from __future__ import annotations
 import argparse, ctypes, fcntl, hashlib, json, os, platform, random, shutil, copy
-import subprocess, sys, time, traceback
+import subprocess, sys, time, traceback, signal, threading
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
@@ -35,16 +35,41 @@ def file_identity(path):
     path=Path(path);data=path.read_bytes()
     return {"path":str(path),"bytes":len(data),"sha256":digest(data),"git_blob":hashlib.sha1(b"blob "+str(len(data)).encode()+b"\0"+data).hexdigest()}
 def run(argv,work,processes,*,timeout=120,pass_fds=(),env_extra=None,expected=0):
+    if threading.active_count()!=1 or signal.getsignal(signal.SIGCHLD)!=signal.SIG_DFL:
+        raise RuntimeError("single process owner required")
     env=os.environ.copy();env["TMPDIR"]=str(work);env["PYTHONDONTWRITEBYTECODE"]="1"
     env.update(env_extra or {})
-    begin=time.monotonic_ns()
-    result=subprocess.run([str(v) for v in argv],cwd=work,env=env,capture_output=True,text=True,
-        timeout=timeout,pass_fds=pass_fds)
-    row={"argv":[str(v) for v in argv],"returncode":result.returncode,"wall_ns":time.monotonic_ns()-begin,
-         "stdout":result.stdout,"stderr":result.stderr,"pass_fds":list(pass_fds)}
+    begin=time.monotonic_ns();command=[str(v) for v in argv]
+    row={"argv":command,"returncode":None,"status":"starting","pass_fds":list(pass_fds)}
     processes.append(row)
-    if expected is not None and result.returncode!=expected:raise RuntimeError(json.dumps(row))
-    return row
+    process=None
+    try:
+        process=subprocess.Popen(command,cwd=work,env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE,
+            text=True,pass_fds=pass_fds,start_new_session=True)
+        row.update(pid=process.pid,pgid=process.pid)
+        try:
+            stdout,stderr=process.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            # Never reap before group signalling: waitid(WNOWAIT) retains the
+            # child PID, so it cannot be reused for a different process group.
+            os.waitid(os.P_PID,process.pid,os.WEXITED|os.WNOHANG|os.WNOWAIT)
+            try:os.killpg(process.pid,signal.SIGKILL)
+            except ProcessLookupError:pass
+            stdout,stderr=process.communicate(timeout=5)
+            row.update(status="timed_out",stdout=stdout,stderr=stderr,returncode=process.returncode,
+                owned_group_signalled=True,leader_reaped=True)
+            raise TimeoutError("bounded child process timed out")
+        row.update(status="exited",returncode=process.returncode,stdout=stdout,stderr=stderr,
+            leader_reaped=True)
+        if expected is not None and process.returncode!=expected:
+            raise RuntimeError("child failed: "+json.dumps(row))
+        return row
+    except BaseException as error:
+        row["error"]={"type":type(error).__name__,"message":str(error)}
+        raise
+    finally:
+        row["wall_ns"]=time.monotonic_ns()-begin
+
 
 def seal(path):
     data=Path(path).read_bytes();fd=os.memfd_create(Path(path).name,os.MFD_ALLOW_SEALING)
@@ -155,18 +180,27 @@ def compile_candidate(program,divisor,work,processes):
     return target,stages,candidate
 
 def observation(host,library,seed,divisor,count,rounds,work,processes,*,warmup=8,timeout=120):
-    begun=time.monotonic_ns();hf=seal(host);lf=seal(library)
-    sealed_ns=time.monotonic_ns()-begun
+    begun=time.monotonic_ns();fds=[]
     try:
+        hf=seal(host);fds.append(hf)
+        lf=seal(library);fds.append(lf)
+        sealed_ns=time.monotonic_ns()-begun
         row=run(["/proc/self/fd/"+str(hf),"/proc/self/fd/"+str(lf),seed,divisor,count,rounds,warmup],work,processes,timeout=timeout,pass_fds=(hf,lf))
-        value=json.loads(row["stdout"]);value["seal_ns"]=sealed_ns;value["process_wall_ns"]=row["wall_ns"]
+        value=json.loads(row["stdout"])
+        if (value.get("schema")!="hepta.stb-context-host.v1" or value.get("correct") is not True
+            or value.get("count")!=count or value.get("rounds")!=rounds
+            or value.get("divisor")!=divisor or value.get("calls")!=count*rounds):
+            raise ValueError("native observation receipt differs from requested work")
+        value["seal_ns"]=sealed_ns;value["process_wall_ns"]=row["wall_ns"]
         value["library"]=file_identity(library);value["input_seed"]=seed
         return value
     finally:
-        close_begin=time.monotonic_ns();os.close(lf);os.close(hf)
+        close_begin=time.monotonic_ns()
+        for fd in reversed(fds):os.close(fd)
         if "value" in locals():
             value["image_retirement_ns"]=time.monotonic_ns()-close_begin
             value["all_in_wall_ns"]=time.monotonic_ns()-begun
+
 
 def development(work):
     work.mkdir(parents=True,exist_ok=False)
@@ -186,7 +220,7 @@ def development(work):
 
 
 
-def build_pgo(work,host,processes,training):
+def build_pgo(work,host,processes,training,pgo_profile):
     batch=ROOT/"tools/fixtures/stb_context_batch.c"
     includes=["-I"+str(ROOT/"tests/fixtures/c_migration"/folder) for folder in ("stb_divide","libdivide_5_2_0")]
     result={}
@@ -194,8 +228,9 @@ def build_pgo(work,host,processes,training):
         folder=work/name;folder.mkdir();instrumented=folder/"instrumented.so"
         common=[CLANG,"-fuse-ld="+LLD,"-shared","-fPIC","-O3","-march=native","-flto","-fvisibility=hidden","-Wl,-Bsymbolic",*includes,"-D"+macro]
         run([*common,"-fprofile-generate="+str(folder),batch,"-o",instrumented],work,processes)
-        for row in training:
-            observation(host,instrumented,row["seed"],row["divisor"],16384,256,work,processes)
+        for repeat in range(pgo_profile["repeats"]):
+            for row in training:
+                observation(host,instrumented,row["seed"],row["divisor"],pgo_profile["count"],pgo_profile["rounds"],work,processes)
         profiles=sorted(folder.glob("*.profraw"))
         if not profiles:raise ValueError("PGO training wrote no actual profile")
         merged=folder/"training.profdata"
@@ -226,6 +261,10 @@ def formal(work,expected_source):
         if platform.system()!="Linux" or platform.machine()!="x86_64" or not {"avx2","avx512f"}<=set(report["environment"]["cpuinfo"].split()):raise ValueError("registered native SIMD host unavailable")
         os.sched_setaffinity(0,{sorted(original_affinity)[protocol["affinity_index"]%len(original_affinity)]})
         report["environment"]["selected_affinity"]=sorted(os.sched_getaffinity(0))
+        native_tools={executable:file_identity(Path(executable).resolve(strict=True))
+                      for executable in (CLANG,"/usr/bin/gcc",RUSTC,LLD,sys.executable)}
+        report["native_tools_before"]=native_tools
+        report["python_version"]=sys.version
         for executable in (CLANG,"/usr/bin/gcc",RUSTC,LLD):
             run([executable,"--version"],work,processes)
         for component in ("stb_divide","libdivide_5_2_0"):
@@ -237,7 +276,7 @@ def formal(work,expected_source):
         report["migration_ns"]=time.monotonic_ns()-stage
         stage=time.monotonic_ns();libraries,host=compile_static(work,processes)
         training=protocol["training"]
-        libraries.update(build_pgo(work,host,processes,training))
+        libraries.update(build_pgo(work,host,processes,training,protocol["pgo_training"]))
         if sorted(libraries)!=sorted(protocol["static_arms"]):raise ValueError("static arm inventory changed")
         report["static_build_ns"]=time.monotonic_ns()-stage
         report["artifacts"]={name:file_identity(path) for name,path in libraries.items()}
@@ -269,11 +308,14 @@ def formal(work,expected_source):
             for d in (2,3,divisor,divisor+2,2147483647):
                 observation(host,target,protocol["development_seed"],d,257,2,work,processes,warmup=0)
             for label in ("zero","overflow"):
-                hf,lf=seal(host),seal(target)
+                trap_fds=[]
                 try:
+                    hf=seal(host);trap_fds.append(hf)
+                    lf=seal(target);trap_fds.append(lf)
                     r=run(["/proc/self/fd/"+str(hf),"--trap","/proc/self/fd/"+str(lf),label],work,processes,pass_fds=(hf,lf),expected=None)
                     if r["returncode"]!=-6 or r["stdout"]!="ENTERED_HIA\n":raise ValueError("native exceptional fallback changed")
-                finally:os.close(lf);os.close(hf)
+                finally:
+                    for fd in reversed(trap_fds):os.close(fd)
         report["candidate_preparation_ns"]=time.monotonic_ns()-stage
         report["preparation_charged_ns"]=time.monotonic_ns()-started
         report["observations"]=[]
@@ -285,11 +327,12 @@ def formal(work,expected_source):
                 for arm in names[rotation:]+names[:rotation]:
                     if (time.monotonic_ns()-started)/1e9>protocol["max_wall_seconds"]-10:raise TimeoutError("registered study deadline")
                     path=candidates[context["divisor"]] if arm=="hia-context" else libraries[arm]
-                    observation_result=observation(host,path,context["seed"],context["divisor"],protocol["count"],protocol["rounds"],work,processes,warmup=protocol["warmup_rounds"],timeout=protocol["cell_timeout_seconds"])
+                    observation_result=observation(host,path,context["seed"],context["divisor"],protocol["count"],protocol["rounds"],work,processes,warmup=protocol["warmup_rounds"],timeout=min(protocol["cell_timeout_seconds"],max(0.001,protocol["max_wall_seconds"]-(time.monotonic_ns()-started)/1e9-10)))
                     report["observations"].append({"context":context["index"],"repetition":repetition,"arm":arm,"observation":observation_result})
                     print(json.dumps({"context":context["index"],"repetition":repetition,"arm":arm,"wall_ns":observation_result["wall_ns"]}),flush=True)
                 write(work/"CHECKPOINT.json",{k:v for k,v in report.items() if k!="environment"})
         report["timed_phase_wall_ns"]=time.monotonic_ns()-timed_phase_started
+        accounting_started=time.monotonic_ns()
         report["all_observation_bookkeeping_charged_ns"]=max(0,report["timed_phase_wall_ns"]-sum(r["observation"]["all_in_wall_ns"] for r in report["observations"]))
         def charge(obs):return obs["all_in_wall_ns"]
         savings=[];primary_savings=[]
@@ -303,22 +346,32 @@ def formal(work,expected_source):
         report["gross_primary_ns"]=sum(primary_savings)
         context_sums=[sum(r["ns"] for r in savings if r["context"]==i) for i in range(protocol["contexts"])]
         report["per_context_envelope_ns"]=context_sums
-        stage=time.monotonic_ns()
+        stage=accounting_started
         if bound_source()!=before:raise ValueError("bound source drifted during actual study")
+        report["native_tools_after"]={executable:file_identity(Path(executable).resolve(strict=True)) for executable in native_tools}
+        if report["native_tools_after"]!=native_tools:raise ValueError("native tools drifted during actual study")
         if subprocess.run(["git","status","--porcelain","--untracked-files=all"],cwd=ROOT,text=True,capture_output=True,check=True).stdout:raise ValueError("source dirtied during study")
         # Artifacts remain as evidence; release of every live memfd/DSO/buffer is
         # measured per invocation. Evidence archival is reported separately.
+        os.sched_setaffinity(0,original_affinity)
+        report["affinity_restored_before_gate"]=os.sched_getaffinity(0)==original_affinity
         report["final_identity_and_cleanup_ns"]=time.monotonic_ns()-stage
         report["net_envelope_ns"]=report["gross_envelope_ns"]-report["preparation_charged_ns"]-report["final_identity_and_cleanup_ns"]-report["all_observation_bookkeeping_charged_ns"]
         report["net_primary_ns"]=report["gross_primary_ns"]-report["preparation_charged_ns"]-report["final_identity_and_cleanup_ns"]-report["all_observation_bookkeeping_charged_ns"]
         report["economic_gate"]=report["net_envelope_ns"]>0 and all(n>0 for n in context_sums)
         report["measured_divisions_per_arm"]=protocol["contexts"]*protocol["repeats"]*protocol["count"]*protocol["rounds"]
         report["claims"]={"whole_application":False,"new_algorithm":False,"global_optimality":False,"population_speedup":False,"native_machine_refinement_proved":False,"batch_bridge_and_clang_trusted":True,"future_amortization_counted":False,"pointwise_envelope_is_not_statistical_confidence_bound":True}
+        report["cost_scope"]={"measured":"actual declared controller machine wall-time horizon",
+            "human_engineering_ns":None,"human_review_ns":None,"ai_input_tokens":None,"ai_output_tokens":None,
+            "earlier_toolchain_or_dependency_acquisition_ns":None,"total_project_roi_claim":False}
         report["complete"]=True
     except BaseException as exc:report.update(error=repr(exc),traceback=traceback.format_exc());raise
     finally:
-        os.sched_setaffinity(0,original_affinity)
+        if os.sched_getaffinity(0)!=original_affinity:os.sched_setaffinity(0,original_affinity)
         report["total_wall_ns"]=time.monotonic_ns()-started
+        report["within_registered_wall_budget"]=report["total_wall_ns"]<=json.loads(PROTOCOL.read_text())["max_wall_seconds"]*1_000_000_000
+        if not report["within_registered_wall_budget"]:
+            report["economic_gate"]=False;report["complete"]=False;report["budget_failure"]="actual total controller wall time exceeded"
         write(work/"RESULT.json",report)
 
 if __name__=="__main__":

@@ -6,6 +6,7 @@ on:
       - 'hepta/**'
       - 'formal/**'
       - 'tests/test_hia_*'
+      - 'tests/test_stb_context_opportunity.py'
       - 'tools/qualify_hia_owned_exit.py'
       - 'tools/qualify_stb_context_opportunity.py'
       - '.github/workflows/hepta-continuation-core.yml'
@@ -50,7 +51,7 @@ jobs:
           suites = ['tests.test_hia_semantics_contract', 'tests.test_hia_opcode_catalog',
                     'tests.test_hia_schema_unification', 'tests.test_hia_agent_assembly',
                     'tests.test_hia_optimization_contract', 'tests.test_hia_owned_exit',
-                    'tests.test_hia_context_specialization']
+                    'tests.test_hia_context_specialization', 'tests.test_stb_context_opportunity']
           suite = unittest.defaultTestLoader.loadTestsFromNames(suites)
           count = suite.countTestCases()
           output = Path(os.environ['RUNNER_TEMP']) / 'continuation-core'

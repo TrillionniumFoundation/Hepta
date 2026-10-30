@@ -1,0 +1,33 @@
+{
+  "schema": "hepta.ring-implementation-cycle.protocol.v1",
+  "scope": "Prospective repeatable correctness, maintenance, and native host qualification; not an unseen optimization study.",
+  "revisions": {
+    "before": "8f133fe1ea0b0ce0095bb9552ba7fbb7caeac600",
+    "after": "bbe82ad2b460db79d94bbb847dd3b3ece4f191cb"
+  },
+  "backend": "captured_original_C_to_checked_Hepta_to_independent_C",
+  "functions": 9,
+  "original_build": {"command": ["make"], "CFLAGS": "-Wall -g -O2 -std=c99", "interface": "unchanged original ringbuffer.h and simple.c"},
+  "legacy_output_extent": {"before": "len + 1 live bytes for dequeue_arr", "after": "len live bytes for dequeue_arr"},
+  "trace_seed": 923145,
+  "random_operations": 640,
+  "batch_profiles": [
+    {"name": "one_thread", "threads": 1, "shared": false},
+    {"name": "four_private", "threads": 4, "shared": false},
+    {"name": "four_mutex_shared", "threads": 4, "shared": true}
+  ],
+  "repeats": 3,
+  "batches_per_thread": 128,
+  "transactions_per_batch": 128,
+  "observation_order": "alternate original/translated order by repeat; before then after revision",
+  "hosts": ["x86_64", "aarch64"],
+  "host_constraints": "Linux native process; actual machine must equal requested host; no emulated host qualification",
+  "metrics": ["full record and output bytes per trace step", "original Makefile/client stdout", "actual ABI", "whole process wait4 peak RSS KiB including measured pre-exec floor", "per-batch p50/p95/p99 ns", "whole-run wall ns", "thread result checksums", "descriptor inventory before/after", "actual errno and child termination", "stage and command wall ns"],
+  "negative_controls": ["old native behavior fails new-revision oracle", "new native behavior fails old-revision oracle", "legacy missing extra extent rejects through checked bounds", "null record", "mutable output overlaps record", "input overlaps mutable record", "head outside inline array", "null output"],
+  "os_devices": ["/dev/zero read", "/dev/full ENOSPC", "eventfd EAGAIN, roundtrip, EBADF, reopen recovery"],
+  "recovery_scope": "child SIGABRT followed by healthy parent transaction; joined pthread normal lifetime and descriptor closure; no in-process corruption repair",
+  "human_cost": {"engineering_seconds": null, "review_seconds": null, "reason": "No human activity timer or attestation is available; missing does not mean zero."},
+  "ai_cost": {"input_tokens": null, "output_tokens": null, "reasoning_tokens": null, "reason": "No model usage receipt is exposed for this implementation session; runner records machine operations only."},
+  "claims_not_made": ["general C/C++ migration", "source equivalence proof", "full language safety proof", "Rust backend compilation of this inline-array profile", "standalone HIA Core to LLVM equivalence", "optimization advantage", "bounded worst-case latency", "physical device or DMA/GPU qualification", "foreign allocation provenance inferred", "unsynchronized shared access safe"],
+  "failure_policy": "Preserve failures and raw evidence. Development runs are labeled unfrozen. Formal source/protocol must be committed and byte matched before execution; later fixes require a new source identity."
+}

@@ -61,6 +61,9 @@ The fastest training arm and two challengers are selected before holdout
 materialization. The comparison also uses the pointwise fastest of all three,
 so the candidate cannot benefit by ignoring a measured stronger challenger.
 
+PGO collection uses exactly one 256-round pass per training task; static-arm
+selection separately uses two 4096-round passes. All are charged.
+
 The three new full-int32 contexts run 24 measured repetitions each, 16,384
 values by 1,048,576 actual passes per repetition: 1,236,950,581,248 actual
 scalar divisions per arm. Each invocation checks all final outputs and an
@@ -79,3 +82,7 @@ statistical confidence bound nor evidence of general global optimality.
 Only the executed fixed horizon counts; no future lifetime is extrapolated.
 A negative result remains a negative result. Previous frozen Ring/CRC and
 NDU/Agent studies are unchanged.
+
+Human engineering/review, this session's AI token cost and prior cached toolchain
+acquisition are unmeasured and remain null. The economic gate concerns the
+declared controller machine-time horizon, not total project return on cost.
