@@ -1,69 +1,52 @@
-# Hepta Core continuation evidence
+# Hepta Core: source-qualified progress and original evidence
 
-## Explicit-frame continuation on public source `699de39`
+This index separates each source commit and each original execution. Python remains production authority, the optimization policy remains `no_change`, and all eight broad P0–P7 stages / 27 strict obligations remain OPEN. Bounded implementation progress and successful engineering gates do not establish universal language, lifecycle, backend or device claims.
 
-The [component collection](next-699de39/README.md) preserves the explicit Rust frame implementation, versioned bound-v3 policy, strict result collector, independent native differential review, and the original CI failures with their finite repairs. Its [archive](next-699de39/hia_core_next_components_20261029.tar.gz) is 8,461,568 bytes, SHA-256 `c255ce520b57f0ee1adf0085ae0fdbb266202934cd8ad9262d4c8bfd81f0b6d0`, containing 486 members. The [receipt](next-699de39/archive-receipt.json) and [member inventory](next-699de39/retention.json) bind the original bytes and distinct component source identities.
+## Current reviewed source increments
 
-The [publication receipt](next-699de39/source-publication-699de39.json) binds local `421ae80` and public [`699de39a8e92e0f083df316ecc5333fb3ecf8571`](https://github.com/TrillionniumFoundation/Hepta/commit/699de39a8e92e0f083df316ecc5333fb3ecf8571) to the same tree `592b6114f659fb18b13ad3fa5ed5e213ecdb92b5`. Component executions are not presented as qualification of a different commit. The new exact-source safety and integrated records are published as a separate continuation after completion.
+| Public source | Review | Actual qualification retained here |
+| --- | --- | --- |
+| [699de39](https://github.com/TrillionniumFoundation/Hepta/commit/699de39a8e92e0f083df316ecc5333fb3ecf8571) | [#358](https://github.com/TrillionniumFoundation/Hepta/pull/358) | Original official full release: candidate50/50, standalone37/37, NDU9/9, integrated8/8; both original local complete attempts recovered separately. |
+| [adbe4a1](https://github.com/TrillionniumFoundation/Hepta/commit/adbe4a1168a84d0696749ef54f933994b5dc554c) | [#390](https://github.com/TrillionniumFoundation/Hepta/pull/390), stacked on #358 | Actual clean-public execution: Rust93 /18 harnesses, bound-v4 collector8/8, related Python45/45. |
+| [99cf106](https://github.com/TrillionniumFoundation/Hepta/commit/99cf106586509b08bb2b9890ed29cf042336d69e) | [#391](https://github.com/TrillionniumFoundation/Hepta/pull/391), stacked on #390 | Actual clean-public execution: composite-v4 collector13/13, stacked API collector8/8, legacy98/98, checked CLI example. |
 
-At this component-publication checkpoint, the exact public source has passed its local 95-method safety contract; the full local eight-gate run is in progress. The archived official CI snapshot is explicitly fixed to 2026-10-29 11:15:39 UTC, with seven ABI and seven C++ host jobs successful, both source/application jobs successful, and NDU/full release still running. This collection contains metadata for the new CI jobs, without claiming their artifact contents have been audited.
+These sets overlap and must not be added as independent language tests. The full release on `699de39` is not relabeled as execution of either later commit. The later focused components do not claim the full116-method safety selection or a full integrated release.
 
-Python remains production authority. Optimization policy remains `no_change`; all eight broad P0–P7 stages retain open obligations. Publication of raw evidence does not close general semantics, human productivity, physical-device or refinement-proof requirements.
+## Completed official full release on 699de39
 
----
+The [official full-release evidence](official-release-699de39/README.md), [summary](official-release-699de39/summary.json), [original job log](official-release-699de39/job-123409464501.log), [audit](official-release-699de39/audit.json) and [original ZIP member inventory](official-release-699de39/zip-inventory.json) preserve actual [run40862645318](https://github.com/TrillionniumFoundation/Hepta/actions/runs/40862645318), completed successfully and updated at 2026-10-29T12:49:40Z.
 
-## Original CI artifact recovery after workspace cleanup
+The entire official artifact is retained: **344,601,243 bytes**, SHA-256 `0bd04d40b4a88be8f244d93d6adfb6460680ddc0b1c03e4524c9a02c6bbb613e`, represented losslessly by **83 ordered raw parts**. All83 paths, sizes and Git blob identities matched the immutable remote directory. The whole original digest, all7,619 ZIP member CRCs and actual full-stream restoration were checked. Use [raw-parts.json](official-release-699de39/raw-parts.json) and [restore_official_zip.py](official-release-699de39/restore_official_zip.py) to reproduce the original bytes.
 
-This directory restores original GitHub Actions bytes after automatic workspace cleanup interrupted evidence publication. It records recovery and read-only consistency checks. It is **not a new execution qualification**, and recovered observations retain their original source commits.
+Candidate and integrated have the same3,628 verbose passing methods. Standalone has a nonverbose3,628-test OK summary, without independently retained per-method IDs. This full-release NDU records201 focused passing methods. Standalone, NDU and integrated each retain88 Rust tests /17 harness blocks. Repeated runs, safety95, NDU201 and coverage47 groups /119 modules are not extra disjoint test populations.
 
-## Retained original archives
+Producer-specific source scopes are2,111 /2,111 /758 /4,385 raw-Git matches, stable before/after. Only integrated covers the full tracked tree. Of440 unchanged recorded external inputs, the audit independently rehashed8 retained input byte streams and1 public source;431 remain original recorded identities. The ZIP's5,136 selected current-workflow members and2,483 historical/other members retain their original origins. The8,552 audit consistency conditions are not new language tests.
 
-The 31 original ZIPs contain 98,862,709 bytes and 3,530 members (461,999,311 uncompressed bytes). Every ZIP matched its official Actions SHA-256 digest and passed ZIP CRC inspection. The exact metadata is in `original-official-metadata.json`; the full member inventory is in `recovered-archives.json`.
+## Bounded source changes and independent review
 
-| Original source | Original artifacts | Scope |
-| --- | ---: | --- |
-| `1669ddc05a918e7c01b17e9262d4461130d44aaa` | 16 | Seven ABI host ZIPs, seven C++ upstream host ZIPs, two source/application preparation ZIPs |
-| `5c57fdac77d632a3f3736fba9878b3c16542bae8` | 14 | Seven ABI host ZIPs and seven C++ upstream host ZIPs |
-| `3d5401cf9bacddfd6d8f14c806b29ce13bb04eed` | 1 | Original source/application SIGILL failure artifact |
+- [Rust bound-v4 API evidence](rust-api-v4/README.md) preserves ordered list/tuple arguments and exact wide positive failure indices in a separate protocol. It uses the existing checker, Machine and ByteMemory. The1024-byte policy and8192-argument /128KiB scalar transport limits remain. The8-method public collector contains155 actual observations,37 raw refusals and72 legacy reports. Eleven distinct independent executions retain their original local source identity. The entire88-member archive is1,879,689 bytes, SHA-256 `0ec342656db3abb304ed9489f215ee71a9824a0e3fb57230ddf80b340cda3121`.
+- [Composite-v4 evidence](composite-v4/README.md) preserves the checked composition of nominal partial-record state with primitive parameter-bound returned loans through the existing v8 Core. Public execution retains153 Rust comparisons,4 raw Rust refusals and31 native calls within13 methods. The independent reviewer additionally exercised empty nominal returns, expanded result origins, mutual recursion, CFG-origin refusal and the observer precondition. The entire163-member archive is6,416,012 bytes, SHA-256 `68788c25585a8f57c2c1a7312a35cab8b30ada8bf20144d398e7b4f56a370c7e`.
+- [LLVM20 restoration](llvm-restoration-20261029-evening/README.md) retains signed package provenance, installed-file identities, original process records and actual C/IR and C++ probe artifacts. This Debian13/GCC14 host execution is distinct from prior Ubuntu-host or physical-device qualification.
 
-The seven original workflow runs, their job metadata, and all 31 original job logs were fetched again. They appear under `workflow-metadata/` and `job-logs/`. The 1669 and 5c matrix jobs and both 1669 source/application jobs succeeded. The original 3d source/application run failed; its failure is retained unchanged. This collection does not contain the separate full-release run `40799429611`.
+Composite stored/escaping aggregate loans, general initialization, recursive ADTs, historical task/I/O and source/bridge convergence remain unqualified. The direct LLVM public ABI remains scalar. Bound-v4 API parity is finite and does not switch production authority.
 
-## Byte representation and restoration
+## Recovered current local records and explicit gaps
 
-`raw-artifacts/` contains 41 physical files: 29 whole ZIPs and twelve ordered 4 MiB parts representing the two larger source/application ZIPs. Each of the two large ZIPs has six parts; its last part is shorter. These are lossless original bytes, not re-created ZIPs. Each concatenation was compared byte-for-byte with the complete original ZIP and checked against the official digest.
+The [recovered local699 evidence](recovered-local-699de39/README.md) restores both original local full runs: the first6/8 run with the missing Boost-header error, and the subsequent actual8/8 run after authenticated headers were restored. It also retains the95-method safety run and the second independent91-check review. The exact recovered second package is16,084,731 bytes with SHA-256 `5f460c4e1e2165b1752d4cc6c5143ef86d483459e7697043573a715ee66da0a2`; its complete509-member stream was read back.
 
-`recovered-publication-payloads.json` supplies each physical path, byte length, SHA-256 and Git blob SHA. The Git identities reproduce the previously uploaded objects despite loss of the upload receipt. No assertion that a remote ref already contains an object is inferred from its identity.
+The first16-file independent review is retained separately under [the original failed attempt](first-attempt-699de39/). The later third-package bytes (16,375,670 bytes, SHA-256 `9bcc40d851b7b6bc16ad7b11a9f6d27e2ed27afbf322463bc89d203159d53de2`) were not recovered and are not represented as this second package. The older local3,614-test raw run and frozen supplement also remain unrecovered; summary text is not substituted for either gap.
 
-From a complete published copy of this directory, reconstruct every original ZIP into a new destination with:
+## Preserved earlier evidence
 
-```bash
-python restore_original_zips.py --evidence-directory . --output-directory restored-zips
-```
+| Collection | Preserved scope |
+| --- | --- |
+| [Explicit-frame/budget-v3 components](next-699de39/README.md) | Original separate implementations, raw controls and independent review;486 archive members. |
+| [Current699 hosted matrices and component audits](ci-699de39/) | Eighteen original ZIPs,79,211,552 bytes, explicit host and producer distinctions. |
+| [Offline auditor admission correction](offline-auditor-path-supplement/) | Eight real old-accept/new-reject controls for path collisions and duplicate decoded JSON keys; original18 artifact audits unchanged. |
+| [Original failed local attempt](first-attempt-699de39/) | Complete raw failed run and original first independent review. |
+| [Earlier recovery summary](final-recovery-summary.json) | Thirty-one older original hosted ZIPs,98,862,709 bytes, and historical component evidence. |
 
-The destination must not already exist. The helper checks part order, offsets, regular-file status, byte lengths, SHA-256, Git blob identities and official whole-ZIP digests. It does not execute or unpack archive members.
+The older frozen index remains available [at its original immutable checkpoint](https://github.com/TrillionniumFoundation/Hepta/blob/4b746232df13946286a39aae80509f519675cfb3/evidence/hia_core_closure_20261029/README.md). Its in-progress snapshots retain their original times; the completed observations above supersede their status without changing their raw records.
 
-`original-zips/` is a local recovery copy and need not be republished alongside `raw-artifacts/`; it contains no otherwise missing original ZIP bytes.
+All original failures, source identities and scope limits are preserved. There is no asserted improvement in human migration cost, independent real-task agent efficiency, representative throughput/tail latency, process RSS, physical-device behavior or whole-language/refinement proofs.
 
-## Read-only report review
-
-`recovered-report-inspection.json` is authoritative for the final inspection status. It checks all sixteen 1669 qualification artifacts against their embedded source identity, compares their source bindings with raw Git blobs at that exact source commit, explicitly recording Windows CRLF checkout differences, and validates retained report-to-artifact byte identities. Unmodified convenient report copies are under `reports/`.
-
-For each source/application report, the scope is eight routes, 96 inputs and 768 native calls, 48 resource cases, four maintenance cases and two whole applications. Both reports explicitly say `prepared_not_measured`; both have empty measurement sample arrays. Preparation/maintenance observations do not establish representative performance or human productivity improvement. Each Windows C++ report has 150 source bindings identical to raw Git bytes and seven ordinary text inputs matching the exact CRLF checkout conversion. The other five C++ reports have 157 exact raw Git byte matches. These checkout differences are retained explicitly and do not establish universal exact-byte source identity across hosts. Current Python production authority, `no_change`, and all broad P0–P7 proof/qualification limits remain unchanged.
-
-The inspection also scans original ZIP member bytes and job logs for ten specified credential patterns. The scan result and counts are retained, without printing matched values. This finite scan is not a general absence-of-secrets proof.
-
-The first inspection attempts had a report-schema integer/list assumption and Windows path-separator handling and raw-Git-versus-CRLF assumptions in the recovery inspector itself. Their stderr is retained under `inspection-initial-*.stderr.log`. Correcting those read-only parsing errors does not change any original artifact or establish a new source-code qualification.
-
-## Explicit recovery gap
-
-This recovery does **not** restore the old local 3,614-test integrated-run raw files or the frozen supplemental archive with SHA-256 `f393f5872d4b602f523ff35268a658d5c3b81f59e5cfcdcb9f267bef8712fb67`. The former run was reported complete before cleanup, but its original local raw records cannot be reconstituted from summary text. They must not be represented as present in this recovered collection.
-
-The separate older fixed component archive can be restored from its already known Git blob `89389af82be94b692cb0f4a3d0e2c93a4f9ba5e3` and checked against SHA-256 `ee9767816854b0742ef1db5773a40ecf0ac0c7fb4ab6bd34a4272179e0ac6abe`; it is outside this directory's recovery scope.
-
-## Preserved component archive and public recovery checkpoint
-
-The original [component archive](hia_core_components_20261029.tar.gz) is retained byte-for-byte: 2,491,006 bytes, SHA-256 `ee9767816854b0742ef1db5773a40ecf0ac0c7fb4ab6bd34a4272179e0ac6abe`. It contains 364 members, retaining original component source identities. It is not a combined-source qualification.
-
-The [recovery summary](final-recovery-summary.json), [report inspection](recovered-report-inspection.json), [metadata archive](recovered-metadata-20261029.tar.gz), [retention inventory](recovered-metadata-retention.json) and [archive receipt](recovered-metadata-receipt.json) preserve the read-only recovery conclusions. The metadata archive contains the original job logs, official metadata, unmodified report copies, exact inventories and recovery scripts. It is 1,071,659 bytes with SHA-256 `b449f11289f5738e695c6e959385655ffe7b9de5be838a9b751ceb1dbe412578`.
-
-The 41 physical payloads were anchored at evidence commit `b982dbf149492806f889d3f755f7948ed63306da`; the component archive was anchored at `f84ee559074db87898a5004c9b1bdab325668d42`. These evidence commits do not change the qualified source tree. Later source increments retain separate qualifications. The missing local supplement is a recovery gap and is not represented as a successful public raw-evidence closure.
