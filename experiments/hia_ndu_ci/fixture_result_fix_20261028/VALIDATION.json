@@ -1,0 +1,82 @@
+{
+  "after_sha256": "78358f02576bd5442473d432db5bbf7273ff76c3b95d05591f2459c9e0f354db",
+  "base_commit": "4b6391e116949af0c7e59776baead67271856bdb",
+  "before_sha256": "8186c278ebfab8618170d3110415739adcd3a5732ee78deab9dbbbc4f3fe8ba3",
+  "branch": "work/fleet-fixture-result-20261028",
+  "changed_files": [
+    "codex-rs/hepta-fleet/src/authority_port.rs"
+  ],
+  "commands": [
+    {
+      "argv": [
+        "/tmp/hepta-ci-tools/bin/just",
+        "--version"
+      ],
+      "cwd": "/workspace/scratch/5567a9db5cf4/hepta-fleet-fixture-fix",
+      "exit_code": 0,
+      "log": "just-version.log",
+      "name": "just-version",
+      "wall_ns": 18264414
+    },
+    {
+      "argv": [
+        "/tmp/hepta-ci-rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustfmt",
+        "--version"
+      ],
+      "cwd": "/workspace/scratch/5567a9db5cf4/hepta-fleet-fixture-fix",
+      "exit_code": 0,
+      "log": "rustfmt-version.log",
+      "name": "rustfmt-version",
+      "wall_ns": 24324637
+    },
+    {
+      "argv": [
+        "/tmp/hepta-ci-tools/bin/just",
+        "fmt"
+      ],
+      "cwd": "/workspace/scratch/5567a9db5cf4/hepta-fleet-fixture-fix/codex-rs",
+      "exit_code": 0,
+      "log": "just-fmt.log",
+      "name": "just-fmt",
+      "wall_ns": 237342022
+    },
+    {
+      "argv": [
+        "/tmp/hepta-ci-tools/bin/just",
+        "fmt",
+        "--check"
+      ],
+      "cwd": "/workspace/scratch/5567a9db5cf4/hepta-fleet-fixture-fix/codex-rs",
+      "exit_code": 0,
+      "log": "just-fmt-check.log",
+      "name": "just-fmt-check",
+      "wall_ns": 202181047
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "cwd": "/workspace/scratch/5567a9db5cf4/hepta-fleet-fixture-fix",
+      "exit_code": 0,
+      "log": "diff-check.log",
+      "name": "diff-check",
+      "wall_ns": 13292483
+    }
+  ],
+  "crate_test_deferral": "Root instructed no heavy local build while the frozen Granite model profile is running. Required crate tests and actual CI lint validation remain pending.",
+  "dependency_or_lock_changes": false,
+  "lint_or_sandbox_configuration_changes": false,
+  "modified_scope": "Only tests::ledger helper; no changes outside this function",
+  "original_checkout": "/workspace/scratch/5567a9db5cf4/hepta-ndu-source",
+  "original_checkout_clean": true,
+  "original_checkout_head": "4b6391e116949af0c7e59776baead67271856bdb",
+  "patch_sha256": "9bab09773417534a02774530fcac1067069a03a6138e6791e8f7059427f1b232",
+  "remote_mutations": false,
+  "required_lint_validation": "just clippy -p codex-hepta-fleet; remote Bazel Clippy targets under unchanged repository configuration",
+  "required_targeted_tests": "just test -p codex-hepta-fleet",
+  "schema": "hepta.ci.fixture-lint-fix.v1",
+  "type_check_or_crate_test_run": false,
+  "worktree": "/workspace/scratch/5567a9db5cf4/hepta-fleet-fixture-fix"
+}

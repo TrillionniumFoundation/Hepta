@@ -1,0 +1,139 @@
+name: HIA verified optimization and native NDU integration
+
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'tests/test_hia_*'
+      - 'tests/test_core_unification.py'
+      - 'tests/test_cpp_composed_migrate.py'
+      - 'tests/test_cpp_scoped_ownership_migration.py'
+      - 'tests/test_cpp_composed_project.py'
+      - 'tests/test_cpp_unique_*.py'
+      - 'tools/qualify_hia_*'
+      - 'tools/build_hia_ndu_bridge.py'
+      - 'tools/qualify_cpp_scoped_ownership.py'
+      - 'tools/qualify_cpp_composed_project.py'
+      - 'tools/qualify_cpp_unique_project.py'
+      - 'tools/qualify_cpp_unique_assignment_project.py'
+      - 'examples/cpp/scoped_ownership_migration/**'
+      - 'examples/cpp/composed_project_migration/**'
+      - 'examples/cpp/unique_project_migration/**'
+      - 'examples/cpp/unique_assignment_project_migration/**'
+      - 'experiments/hia_optimizer_eval/**'
+      - 'experiments/hia_verified_integration/**'
+      - 'experiments/hia_agent_matched_v3_20261028/**'
+      - 'experiments/hia_agent_assembly_v4_20261030/**'
+      - 'experiments/hia_agent_assembly_v4_readout_20261030/**'
+      - 'experiments/hia_agent_assembly_recovery_20261030/**'
+      - 'experiments/hia_ndu_session_eval/round4_20261030/**'
+      - 'experiments/hia_ndu_graph_eval/round3_20261028/**'
+      - 'experiments/hia_stateful_eval/round3_20261028/**'
+      - 'experiments/hia_stateful_eval/round4_20261030/**'
+      - 'pyproject.toml'
+      - '.github/workflows/hepta-verified-optimization.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verified-native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      HEPTA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      NDU_SOURCE_SHA: c4a1bbed3a39beba43a6abf1a18b6f75c5725c21
+      CLANG: /usr/bin/clang-20
+      CLANGXX: /usr/bin/clang++-20
+      HEPTA_CLANG: /usr/bin/clang-20
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEPTA_SOURCE_SHA }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pin source and install the qualified solver
+        run: |
+          test "$(git rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"
+          test -z "$(git status --porcelain)"
+          mkdir -p artifacts/verified-optimization
+          git rev-parse HEAD > artifacts/verified-optimization/source-sha.txt
+          git rev-parse 'HEAD^{tree}' > artifacts/verified-optimization/source-tree.txt
+          python -m pip install -e '.[optimization]'
+      - name: Install the existing signed LLVM 20 profile
+        run: |
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/hepta-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key
+          hepta_llvm_fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hepta-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')
+          test "$hepta_llvm_fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+          sudo install -m 0644 "$RUNNER_TEMP/hepta-llvm.asc" /usr/share/keyrings/hepta-llvm.asc
+          printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hepta-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hepta-llvm20.list
+          sudo apt-get update
+          sudo apt-get install --yes clang-20 libclang-rt-20-dev llvm-20 lld-20
+          printf '%s\n' /usr/lib/llvm-20/bin >> "$GITHUB_PATH"
+      - name: Install the pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.90.0 --profile minimal
+          rustup toolchain install 1.95.0 --profile minimal
+          echo "RUSTC=$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_ENV"
+          echo "HEPTA_RUSTC=$(rustup which --toolchain 1.95.0 rustc)" >> "$GITHUB_ENV"
+          echo "NDU_RUSTC=$(rustup which --toolchain 1.95.0 rustc)" >> "$GITHUB_ENV"
+          echo "CARGO=$(rustup which --toolchain 1.95.0 cargo)" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v4
+        with:
+          repository: TrillionniumFoundation/hepta-private-ci
+          ref: ${{ env.NDU_SOURCE_SHA }}
+          path: ndu-source
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /codex-rs/Cargo.toml
+            /codex-rs/hepta-ndu/
+            /codex-rs/hepta-types/
+            /codex-rs/hepta-contracts/
+            /tools/hia-ndu-bridge/
+      - name: Build the original native NDU bridge with exact source identity
+        run: |
+          python tools/build_hia_ndu_bridge.py --ndu-source ndu-source \
+            --expected-source "$NDU_SOURCE_SHA" --cargo "$CARGO" --rustc "$NDU_RUSTC" \
+            --output "$RUNNER_TEMP/hia-ndu"
+          echo "HEPTA_NDU_IDENTITY=$RUNNER_TEMP/hia-ndu/identity.json" >> "$GITHUB_ENV"
+          echo "HEPTA_NDU_STREAM_IDENTITY=$RUNNER_TEMP/hia-ndu/identity.json" >> "$GITHUB_ENV"
+      - name: Run actual native integration and regression gates without skipped tests
+        run: |
+          python tools/qualify_hia_verified_increment.py --output artifacts/verified-optimization/regression
+          python experiments/hia_verified_integration/next_20261028/qualify_guarded_cli.py artifacts/verified-optimization/guarded-cli
+          python tools/qualify_hia_narrowing_cli.py --output artifacts/verified-optimization/narrowing-cli --clang "$CLANG"
+      - name: Validate model fault recovery controls
+        run: |
+          python -m unittest discover -s experiments/hia_optimizer_eval/upgrade_continuation_20261028 -p 'test_*.py' -v
+          python -m unittest discover -s experiments/hia_optimizer_eval/primary_continuation_20261028 -p 'test_*.py' -v
+          python -m unittest discover -s experiments/hia_agent_matched_v3_20261028 -p 'test_*.py' -v
+          python -m unittest discover -s experiments/hia_agent_assembly_v4_20261030 -p 'test_*.py' -v
+          python -m unittest discover -s experiments/hia_agent_assembly_v4_readout_20261030 -p 'test_*.py' -v
+          python -m unittest discover -s experiments/hia_agent_assembly_recovery_20261030 -p 'test_*.py' -v
+      - name: Retain real finite NDU loop and migration/runtime evidence
+        run: |
+          python tools/qualify_hia_ndu_loop.py --identity "$HEPTA_NDU_IDENTITY" --clang "$CLANG" --output artifacts/verified-optimization/ndu-loop
+          python tools/qualify_cpp_scoped_ownership.py --workdir artifacts/verified-optimization/cpp-scoped --clangxx "$CLANGXX" --clang "$CLANG" --rustc "$RUSTC" --cc gcc
+          python tools/qualify_hia_adaptive.py --workdir artifacts/verified-optimization/adaptive --clang "$CLANG"
+          python tools/qualify_cpp_composed_project.py --workdir artifacts/verified-optimization/cpp-composed-project --clangxx "$CLANGXX" --clang "$CLANG" --cc gcc
+          python tools/qualify_hia_stateful.py --workdir artifacts/verified-optimization/owned-state --clang "$CLANG"
+          python tools/qualify_hia_narrowing.py --out artifacts/verified-optimization/narrowing --clang "$CLANG"
+          python tools/qualify_cpp_unique_project.py --workdir artifacts/verified-optimization/cpp-unique-project --clangxx "$CLANGXX" --clang "$CLANG" --cc gcc
+          python tools/qualify_cpp_unique_assignment_project.py --workdir artifacts/verified-optimization/cpp-unique-assignment-project --clangxx "$CLANGXX" --clang "$CLANG" --cc gcc
+          python tools/qualify_hia_continuation.py --workdir artifacts/verified-optimization/owned-continuation --clang "$CLANG"
+          python tools/qualify_hia_agent_assembly.py --out artifacts/verified-optimization/agent-assembly --clang "$CLANG"
+      - name: Retain all completed and failed evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-verified-optimization-${{ env.HEPTA_SOURCE_SHA }}
+          path: |
+            artifacts/verified-optimization
+            ${{ runner.temp }}/hia-ndu/identity.json
+            ${{ runner.temp }}/hia-ndu/target/release/hepta-hia-ndu-bridge
+          if-no-files-found: error

@@ -1,0 +1,24 @@
+test_active_extra_namespace_and_deleter_specialization_reject (test_cpp_unique_project.UniqueProjectTests.test_active_extra_namespace_and_deleter_specialization_reject) ... ok
+test_actual_unique_array_all_configurations_native (test_cpp_unique_project.UniqueProjectTests.test_actual_unique_array_all_configurations_native) ... ok
+test_macro_changed_standard_header_semantics_reject (test_cpp_unique_project.UniqueProjectTests.test_macro_changed_standard_header_semantics_reject) ... ok
+test_missing_definition_and_macro_odr_change_reject (test_cpp_unique_project.UniqueProjectTests.test_missing_definition_and_macro_odr_change_reject) ... FAIL
+test_moved_from_and_unsequenced_owner_use_reject (test_cpp_unique_project.UniqueProjectTests.test_moved_from_and_unsequenced_owner_use_reject) ... ok
+test_omitted_declared_configuration_rejects (test_cpp_unique_project.UniqueProjectTests.test_omitted_declared_configuration_rejects) ... ok
+test_release_before_constructor_failure_rejects (test_cpp_unique_project.UniqueProjectTests.test_release_before_constructor_failure_rejects) ... ok
+
+======================================================================
+FAIL: test_missing_definition_and_macro_odr_change_reject (test_cpp_unique_project.UniqueProjectTests.test_missing_definition_and_macro_odr_change_reject)
+----------------------------------------------------------------------
+hepta.c_migrate.MigrationRejected: Owner definition differs between translation units
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/scratch/5567a9db5cf4/hepta-work/tests/test_cpp_unique_project.py", line 95, in test_missing_definition_and_macro_odr_change_reject
+    with self.assertRaisesRegex(ValueError, "Complete cross-unit"):
+AssertionError: "Complete cross-unit" does not match "Owner definition differs between translation units"
+
+----------------------------------------------------------------------
+Ran 7 tests in 296.148s
+
+FAILED (failures=1)

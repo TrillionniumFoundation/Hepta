@@ -1,0 +1,77 @@
+{
+  "clang": {
+    "path": "/usr/lib/llvm-20/bin/clang",
+    "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+  },
+  "compiler_semantics_changed": false,
+  "compiler_sha256_after": "fd17300a237eb722dc86cda00416f126dfc4a582da54123a84ed9ef66a04b3fd",
+  "compiler_sha256_before": "fd17300a237eb722dc86cda00416f126dfc4a582da54123a84ed9ef66a04b3fd",
+  "controlled_native_observations": [
+    {
+      "elapsed_ns": 3001814155,
+      "exception": "E_HIA_DIFFERENTIAL: native child timed out; process group terminated",
+      "function_value_accepted": false,
+      "marker_exists": false,
+      "timeout_seconds": 3.0
+    },
+    {
+      "elapsed_ns": 3528481395,
+      "exception": "E_HIA_DIFFERENTIAL: native child exited with unexpected error/signal -31",
+      "function_value_accepted": false,
+      "marker_exists": false,
+      "timeout_seconds": 10.0
+    }
+  ],
+  "git_head": "345b5497b3a2a48e4e5928fb694ed2dce6c2fc28",
+  "interpretation": "The old three-second wall deadline can expire before a forbidden constructor syscall is observed. The CI artifact does not identify its exact startup, scheduling, loader, or signal-exit delay. The controlled delay below is a real native timing-boundary reproduction, not a claim to reproduce that runner's unique cause.",
+  "native_fixture": {
+    "artifact_bytes": 15664,
+    "artifact_sha256": "bf37f5590e40cd9d52967454f3a822794cf881a9f25441135ebf6c773bdcaf91",
+    "command": [
+      "/usr/lib/llvm-20/bin/clang",
+      "-O0",
+      "-fPIC",
+      "-shared",
+      "/tmp/hepta-constructor-timeout-sn4l0bs0/delayed_constructor.c",
+      "-o",
+      "/tmp/hepta-constructor-timeout-sn4l0bs0/delayed_constructor.so"
+    ],
+    "constructor_delay_ns": 3500000000,
+    "returncode": 0,
+    "source_sha256": "dbf9b8c622af9e5919d9ff361b64529655afd2cda71384eea5c100cd4b320c6d",
+    "stderr": "",
+    "stdout": ""
+  },
+  "native_observer_source_sha256": "66d1fc71e5760ab368b86568a37a34901da26735aa5d0ef87a98b87cb79534e8",
+  "ok": true,
+  "original_ci": {
+    "errors": 0,
+    "failures": 1,
+    "job": 122333542434,
+    "observed": "constructor SIGSYS assertion instead received native child timed out; process group terminated",
+    "phase_telemetry_available": false,
+    "run": 40545121868,
+    "skips": 0,
+    "test_count": 201
+  },
+  "platform": "Linux-6.18.55-x86_64-with-glibc2.39",
+  "python": "3.12.3 (main, Jul 15 2026, 23:46:41) [GCC 13.3.0]",
+  "python_executable": "/usr/bin/python3",
+  "safety_assertions_unchanged": [
+    "exact -SIGSYS required",
+    "creation marker must remain absent",
+    "timeout is not accepted as SIGSYS",
+    "no retry",
+    "native observer and compiler unchanged"
+  ],
+  "schema": "hepta.native-side-effects-ci-timeout-fix.v1",
+  "targeted_tests": {
+    "elapsed_ns": 842391559,
+    "errors": 0,
+    "failures": 0,
+    "passed": true,
+    "skips": [],
+    "tests_run": 4
+  },
+  "test_source_sha256": "87ba4a8fa6883ded7d7cdd3fe7ff0e1ddc394d6015ec622cd8a67a8dea2766e4"
+}

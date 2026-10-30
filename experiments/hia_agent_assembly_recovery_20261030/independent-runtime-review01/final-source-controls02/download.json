@@ -1,0 +1,123 @@
+{
+  "passed": true,
+  "rows": [
+    {
+      "accepted": true,
+      "case": "exact",
+      "error": null,
+      "expected_accepted": true,
+      "partial_bytes": null,
+      "passed": true,
+      "read_sizes": [
+        5,
+        1
+      ],
+      "target_published": true,
+      "wall_cost_retained": true
+    },
+    {
+      "accepted": false,
+      "case": "truncated",
+      "error": {
+        "message": "download size or SHA-256 differs: truncated",
+        "type": "ValueError"
+      },
+      "expected_accepted": false,
+      "partial_bytes": 3,
+      "passed": true,
+      "read_sizes": [
+        5,
+        2
+      ],
+      "target_published": false,
+      "wall_cost_retained": true
+    },
+    {
+      "accepted": false,
+      "case": "wrong_sha",
+      "error": {
+        "message": "download size or SHA-256 differs: wrong_sha",
+        "type": "ValueError"
+      },
+      "expected_accepted": false,
+      "partial_bytes": 4,
+      "passed": true,
+      "read_sizes": [
+        5,
+        1
+      ],
+      "target_published": false,
+      "wall_cost_retained": true
+    },
+    {
+      "accepted": false,
+      "case": "oversize_without_length",
+      "error": {
+        "message": "download exceeded its exact in-flight byte bound",
+        "type": "ValueError"
+      },
+      "expected_accepted": false,
+      "partial_bytes": 0,
+      "passed": true,
+      "read_sizes": [
+        5
+      ],
+      "target_published": false,
+      "wall_cost_retained": true
+    },
+    {
+      "accepted": false,
+      "case": "wrong_content_length",
+      "error": {
+        "message": "HTTP content length differs",
+        "type": "ValueError"
+      },
+      "expected_accepted": false,
+      "partial_bytes": 0,
+      "passed": true,
+      "read_sizes": [],
+      "target_published": false,
+      "wall_cost_retained": true
+    },
+    {
+      "accepted": false,
+      "case": "absolute_deadline",
+      "error": {
+        "message": "absolute preparation download deadline exceeded",
+        "type": "TimeoutError"
+      },
+      "expected_accepted": false,
+      "partial_bytes": 0,
+      "passed": true,
+      "read_sizes": [
+        5
+      ],
+      "target_published": false,
+      "wall_cost_retained": true
+    },
+    {
+      "case": "member_stream_stops_before_514",
+      "extractall_called": false,
+      "failure": {
+        "message": "runtime member-count bound exceeded",
+        "type": "ValueError"
+      },
+      "passed": true,
+      "yielded": 513
+    },
+    {
+      "case": "HTTPS_redirect_downgrade_refused",
+      "passed": true
+    }
+  ],
+  "schema": "hepta.agent.recovery.bounded-download-review.v1",
+  "scope": {
+    "deadline_test_is_synthetic": true,
+    "model_calls": 0,
+    "native_program_runs": 0,
+    "network_requests": 0,
+    "performance_measurement": false
+  },
+  "source_sha256": "3f5b7c4ae3468b7358ffbe21e806ff9c3ab19f781ba0aac3a6c6eb4fec9e2444",
+  "source_unchanged": true
+}

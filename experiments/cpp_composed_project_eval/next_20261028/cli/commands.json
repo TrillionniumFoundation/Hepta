@@ -1,0 +1,53 @@
+[
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "-m",
+      "hepta",
+      "hia",
+      "import-cpp-composed-matrix",
+      "experiments/cpp_composed_project_eval/next_20261028/final/project/matrix.json",
+      "--variant",
+      "three_weight",
+      "--clangxx",
+      "clang++",
+      "--output",
+      "experiments/cpp_composed_project_eval/next_20261028/cli/three_weight.core.json",
+      "--report",
+      "experiments/cpp_composed_project_eval/next_20261028/cli/all_variants.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\n  \"input_sha256\": \"9b7d0514f96007510672f06fc9414dd2cfe87a8eea1264f4e0f232b8a939d44c\",\n  \"ok\": true,\n  \"output\": \"/workspace/scratch/5567a9db5cf4/hepta-work/experiments/cpp_composed_project_eval/next_20261028/cli/three_weight.core.json\",\n  \"program_sha256\": \"9b7d0514f96007510672f06fc9414dd2cfe87a8eea1264f4e0f232b8a939d44c\",\n  \"publication\": {\n    \"bytes\": 32511,\n    \"sha256\": \"9b7d0514f96007510672f06fc9414dd2cfe87a8eea1264f4e0f232b8a939d44c\"\n  },\n  \"published_representation\": \"independently_verified_normalized_core\",\n  \"schema\": \"hepta.hia.output.v1\",\n  \"status\": \"verified_program_published\"\n}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "-m",
+      "hepta",
+      "hia",
+      "verify",
+      "experiments/cpp_composed_project_eval/next_20261028/cli/three_weight.core.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\n  \"blocks_checked\": 43,\n  \"claims\": {\n    \"backend_refinement_proved\": false,\n    \"background_tasks_supported\": false,\n    \"concurrency_supported\": false,\n    \"cooperative_task_protocol_checked\": false,\n    \"escaping_loans_supported\": false,\n    \"foreign_code_supported\": false,\n    \"linear_resources_and_loan_provenance_checked\": true,\n    \"local_stored_loan_identity_checked\": false,\n    \"nominal_products_and_enums_checked\": false,\n    \"preemptive_or_async_cancellation_supported\": false,\n    \"record_field_borrow_provenance_checked\": false,\n    \"recursive_buffer_chains_supported\": false,\n    \"recursive_heap_adts_supported\": false,\n    \"typed_closed_ssa_checked\": true,\n    \"whole_language_soundness_proved\": false\n  },\n  \"functions_checked\": 15,\n  \"input_sha256\": \"9b7d0514f96007510672f06fc9414dd2cfe87a8eea1264f4e0f232b8a939d44c\",\n  \"native_executed\": false,\n  \"normalization\": {\n    \"core_profile\": \"closed-ssa-integer-byte-resources-64-v1\",\n    \"core_schema\": \"hepta.hia.program.v1\",\n    \"core_sha256\": \"9b7d0514f96007510672f06fc9414dd2cfe87a8eea1264f4e0f232b8a939d44c\",\n    \"input_profile\": \"closed-ssa-integer-byte-resources-64-v1\",\n    \"input_schema\": \"hepta.hia.program.v1\",\n    \"input_sha256\": \"9b7d0514f96007510672f06fc9414dd2cfe87a8eea1264f4e0f232b8a939d44c\",\n    \"primitive_core_rechecked\": true,\n    \"public_scalar_entrypoints\": [\n      \"translated_run\"\n    ],\n    \"source_ast_required\": false,\n    \"structured_elaboration_rechecked\": false\n  },\n  \"ok\": true,\n  \"profile\": \"closed-ssa-integer-byte-resources-64-v1\",\n  \"program_sha256\": \"9b7d0514f96007510672f06fc9414dd2cfe87a8eea1264f4e0f232b8a939d44c\",\n  \"schema\": \"hepta.hia.program-verification.v1\",\n  \"source_required\": false,\n  \"status\": \"standalone_core_checked\",\n  \"word_bits\": 64\n}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "-m",
+      "hepta",
+      "hia",
+      "run",
+      "experiments/cpp_composed_project_eval/next_20261028/cli/three_weight.core.json",
+      "--function",
+      "translated_run",
+      "--arguments",
+      "[3,5,7,0,0,0]"
+    ],
+    "exit_code": 0,
+    "stdout": "{\n  \"claims\": {\n    \"backend_refinement_proved\": false,\n    \"finite_core_execution\": true,\n    \"whole_language_soundness_proved\": false\n  },\n  \"function\": \"translated_run\",\n  \"input_sha256\": \"9b7d0514f96007510672f06fc9414dd2cfe87a8eea1264f4e0f232b8a939d44c\",\n  \"program_sha256\": \"9b7d0514f96007510672f06fc9414dd2cfe87a8eea1264f4e0f232b8a939d44c\",\n  \"resources\": {\n    \"allocation_attempts\": 2,\n    \"allocations\": 2,\n    \"frees\": 2,\n    \"live_bytes\": 0,\n    \"live_local_loans\": 0,\n    \"live_owners\": 0,\n    \"loans_ended\": 29,\n    \"loans_started\": 29,\n    \"owners_created\": 2,\n    \"owners_dropped\": 2,\n    \"peak_bytes\": 8\n  },\n  \"result\": 318,\n  \"schema\": \"hepta.hia.program-execution.v1\",\n  \"source_used\": false,\n  \"status\": \"returned\",\n  \"steps\": 290,\n  \"values\": [\n    318\n  ],\n  \"word_bits\": 64\n}\n",
+    "stderr": ""
+  }
+]

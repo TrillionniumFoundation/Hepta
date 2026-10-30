@@ -1,0 +1,133 @@
+{
+  "schema": "hepta.hia.private-ci.failure-log-readout.v1",
+  "recorded_utc": "2026-10-28T11:35:48.787123+00:00",
+  "repository": "TrillionniumFoundation/hepta-private-ci",
+  "expected_head_sha": "c4a1bbed3a39beba43a6abf1a18b6f75c5725c21",
+  "run_id": 40673287072,
+  "run_attempt": 1,
+  "job_id": 122765658377,
+  "job_name": "Bazel / Bazel test on windows-latest for x86_64-pc-windows-msvc shard 1/4",
+  "conclusion": "failure",
+  "failing_step": "bazel test shard",
+  "step_exit_code": 3,
+  "decoded_log": {
+    "file": "20261028T113525_486Z.windows-shard1.decoded.log",
+    "bytes": 1107303,
+    "sha256": "d1055a2b5571d377599e601555f0ff461a5d8fa685a08de501e2e764c0b476f6",
+    "capture": "UTF-8 encoding of exact connector decoded content; not original service ZIP bytes"
+  },
+  "bazel_summary": [
+    {
+      "line": 6362,
+      "text": "2026-10-28T11:34:27.0708142Z Executed 90 out of 137 tests: 83 tests pass, 7 fail locally, and 47 were skipped."
+    }
+  ],
+  "reported_targets": {
+    "total": 137,
+    "executed": 90,
+    "passed": 83,
+    "failed_locally": 7,
+    "skipped": 47
+  },
+  "failed_targets": [
+    {
+      "line": 6338,
+      "text": "2026-10-28T11:34:27.0672279Z //codex-rs/app-server-protocol:app-server-protocol-unit-tests            FAILED in 143.8s"
+    },
+    {
+      "line": 6340,
+      "text": "2026-10-28T11:34:27.0674929Z //codex-rs/ext/hepta-memory:hepta-memory-unit-tests                      FAILED in 18.1s"
+    },
+    {
+      "line": 6342,
+      "text": "2026-10-28T11:34:27.0676587Z //codex-rs/git-utils:git-utils-unit-tests                                FAILED in 119.6s"
+    },
+    {
+      "line": 6344,
+      "text": "2026-10-28T11:34:27.0677965Z //codex-rs/hepta-automation:hepta-automation-unit-tests                  FAILED in 3.3s"
+    },
+    {
+      "line": 6346,
+      "text": "2026-10-28T11:34:27.0680110Z //codex-rs/hepta-fleet:hepta-fleet-unit-tests                            FAILED in 88.5s"
+    },
+    {
+      "line": 6348,
+      "text": "2026-10-28T11:34:27.0682696Z //codex-rs/hepta-supervisor:hepta-supervisor-restart_budget_recovery-test FAILED in 0.4s"
+    },
+    {
+      "line": 6350,
+      "text": "2026-10-28T11:34:27.0685744Z //codex-rs/core:core-unit-tests                                          FAILED in 4 out of 11 in 116.6s"
+    }
+  ],
+  "representative_diagnostics": [
+    {
+      "line": 6612,
+      "text": "2026-10-28T11:34:38.1808677Z thread 'environment_selection::tests::blocking_snapshot_waits_for_starting_environment' (1192) panicked at core/src\\environment_selection.rs:1282:9:"
+    },
+    {
+      "line": 6613,
+      "text": "2026-10-28T11:34:38.1809710Z blocking snapshot should contain its environment wait span: 2026-10-28T11:33:24.447040Z  INFO codex.exec_server.remote.connect: codex_exec_server::client: new"
+    },
+    {
+      "line": 6863,
+      "text": "2026-10-28T11:34:38.2027153Z thread 'cognitive::federation::tests::revoke_removes_prepared_federated_context_from_next_physical_send' (1560) panicked at ext/hepta-memory/src\\cognitive\\federation.rs:1309:9:"
+    },
+    {
+      "line": 6864,
+      "text": "2026-10-28T11:34:38.2028734Z assertion failed: EphemeralModelInputContributor::is_active(&extension, &thread_store,"
+    },
+    {
+      "line": 6865,
+      "text": "2026-10-28T11:34:38.2030303Z     &turn_store)"
+    },
+    {
+      "line": 6986,
+      "text": "2026-10-28T11:34:38.2100840Z thread 'git_process::tests::timed_out_exited_git_wrapper_does_not_leave_child_process_running' (8260) panicked at git-utils/src\\git_process_tests.rs:75:6:"
+    },
+    {
+      "line": 6987,
+      "text": "2026-10-28T11:34:38.2102142Z wait for Git wrapper child readiness: Elapsed(())"
+    },
+    {
+      "line": 6992,
+      "text": "2026-10-28T11:34:38.2105646Z thread 'git_process::tests::timed_out_git_wrapper_does_not_leave_child_process_running' (8548) panicked at git-utils/src\\git_process_tests.rs:75:6:"
+    },
+    {
+      "line": 6993,
+      "text": "2026-10-28T11:34:38.2106840Z wait for Git wrapper child readiness: Elapsed(())"
+    },
+    {
+      "line": 7038,
+      "text": "2026-10-28T11:34:38.2732497Z thread 'store::migration_convergence_tests::canonical_cut_before_rebind_reopens' (900) panicked at hepta-automation/src\\migration_convergence_tests.rs:154:10:"
+    },
+    {
+      "line": 7039,
+      "text": "2026-10-28T11:34:38.2733750Z real open: Invalid"
+    },
+    {
+      "line": 7112,
+      "text": "2026-10-28T11:34:38.3545122Z Error: Invalid(\"workspace root must be canonical and must not traverse a symlink: D:\\\\tmp\\\\.tmpzrtKIE\\\\sweep\\\\a\")"
+    },
+    {
+      "line": 7132,
+      "text": "2026-10-28T11:34:38.4288124Z thread 'restart_budget_survives_repeated_supervisord_recovery' (7572) panicked at hepta-supervisor/tests/restart_budget_recovery.rs:251:5:"
+    },
+    {
+      "line": 7133,
+      "text": "2026-10-28T11:34:38.4289526Z assertion failed: supervisor.snapshot(&agent_id).expect(\"snapshot\").events.iter().any(|event|"
+    },
+    {
+      "line": 7134,
+      "text": "2026-10-28T11:34:38.4291043Z         matches!(&event.kind, SupervisorEventKind::AutomaticRestartQueued"
+    },
+    {
+      "line": 7135,
+      "text": "2026-10-28T11:34:38.4291691Z             { attempt: 2 }))"
+    },
+    {
+      "line": 7145,
+      "text": "2026-10-28T11:34:38.4998272Z ##[error]Process completed with exit code 3."
+    }
+  ],
+  "diagnostic_scope": "These are observed messages, not causal root-cause or regression attribution. Underlying platform/fixture/configuration or pre-existing versus candidate origin is unestablished; no re-execution was performed."
+}

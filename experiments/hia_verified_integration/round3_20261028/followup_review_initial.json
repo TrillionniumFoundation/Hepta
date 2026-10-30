@@ -1,0 +1,49 @@
+{
+  "schema": "hepta.hia.independent-followup-review.v1",
+  "reviewer": "certified_narrowing",
+  "review_type": "read-only source review before registration; no native workload or test execution",
+  "reviewed_source_sha256": {
+    "tools/qualify_hia_registered_followup.py": "d5f6d17d459abe74579c31219c3a8fbde7e0ff3753cc9aea4f03ba9b20fa7fcc",
+    "experiments/hia_ndu_graph_eval/round3_20261028/PROTOCOL.json": "fe76fe8a7df2c3d8c8a02e40ca65e78f23ad307592dd74f2df8b5130608d4961",
+    "experiments/hia_stateful_eval/round3_20261028/PROTOCOL.json": "2b9ee6a1ee191efa5f3949eedd28c09a88bb69fa88852735956096f519c66618",
+    "tools/qualify_hia_ndu_graph.py": "a79f78298b6aa5355d9f320563ff226a37a8898c2444c9c2ba18b7f96e404343",
+    "tools/build_hia_ndu_bridge.py": "34a83df070c523ab9a8791d2ff5077e4720eeb9a93f57ac0585afd787da913f8"
+  },
+  "findings": [
+    {
+      "id": "F1",
+      "finding": "Stream acceptance promises full allocated cost superiority, while the wrapper consumes median-amortized comparisons. An expensive completed group can disappear from this gate even when actual standalone total loses.",
+      "recommendation": "Use already retained standalone_total_cost_ns against both strong controls; retain medians descriptively.",
+      "owner_response": "Accepted for correction before registration; revised bytes not yet independently re-reviewed in this record."
+    },
+    {
+      "id": "F2",
+      "finding": "Stream wrapper registration revalidation, host/evidence and wrapper overhead are outside the graph study interval and its current cost gate.",
+      "recommendation": "Measure and allocate the wrapper scope, or state the exclusion explicitly before freezing. The owner chose to charge the measured wrapper overhead conservatively to NDU and publish equal-scope graph totals separately.",
+      "owner_response": "Accepted for correction before registration; revised bytes not yet independently re-reviewed in this record."
+    },
+    {
+      "id": "F3",
+      "finding": "Registration identifies Python sources but prepared-runtime output preserves no source snapshot; graph's own snapshot omits registered wrapper/helper/protocol files.",
+      "recommendation": "Retain all registered source bytes for both follow-ups before workloads. Preserve the registered native binary/build manifest and referenced native source evidence as well."
+    },
+    {
+      "id": "F4",
+      "finding": "Native build manifest is explicitly locally trusted. Current graph cost-completeness classification only checks target_cache and does not validate the cost field domain.",
+      "recommendation": "For any full-cost qualification, require a nonnegative integer native build wall cost and empty target cache; do not infer cost provenance from a hash alone."
+    }
+  ],
+  "positive_observations": [
+    "Declared Python closure covers inspected runtime/compiler imports; Python, Z3, compiler and declared environment identities are preregistered.",
+    "Prepared-runtime stricter per-group envelope charges fixture/proposal, fresh proof/build, owner, calibration, selection, application, resource/state checks, close, validation and evidence writing.",
+    "Counterfactual timing is collected after selection on a separate initial-state owner; it cannot inform the original selection or replay application state.",
+    "Failure or source identity drift fails qualification and retains a failed result; no replacement sample is admitted by the wrapper.",
+    "No additional reachable serialized-receipt authority bypass was found in the inspected wrapper under its declared trusted host/build-manifest boundary."
+  ],
+  "limitations": [
+    "This record is an initial source review, not executable validation or approval of later changed bytes.",
+    "The finite additive DP control already minimizes the supplied cost model; observed NDU benefit cannot establish general search superiority.",
+    "A finite horizon may rationally stop with no installed transform. Actual subsequent optimization must be reported separately from correctness/completion.",
+    "The already completed eight-arm benchmark and its exact source snapshot are unchanged by this review."
+  ]
+}

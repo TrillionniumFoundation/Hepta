@@ -1,0 +1,31 @@
+{
+  "archive_members": {
+    "Hepta/Hepta/artifacts/verified-optimization/regression/plan.json": "0abe2bbdb1eab9eedebf077fa230320608db99e8cdd7d1c8cac66a7309719560",
+    "Hepta/Hepta/artifacts/verified-optimization/regression/result.json": "3de4540b569723720d746afc06abf43ef970f9395fa8217d6f9e85a477b48242",
+    "Hepta/Hepta/artifacts/verified-optimization/regression/tests.log": "11dffd474183362b6a8504a51dc59d5413e2235d2b0294acd4181f673334f5eb",
+    "Hepta/Hepta/artifacts/verified-optimization/source-sha.txt": "55ba784c48c4f270dcdf34925077ee6ea3b739691c379762829c010c9f860dcd",
+    "_temp/hia-ndu/identity.json": "04d3262c22a6638ecb98e20345b49d3072e0fe3f9e97d2f2870de8deaf06d156"
+  },
+  "artifact_id": 12752746774,
+  "artifact_sha256": "810e4d2148ef15f3585430e5197f8247baff13c9dd4dfa45cd5008a652aad278",
+  "claim": "The expected SIGSYS assertion failed because the supervised native child timed out; this CI run is not passed.",
+  "job_url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/40545121868/job/122333542434",
+  "observed_result": {
+    "errors": 0,
+    "failure_details": [
+      [
+        "test_elf_constructor_file_mutation_rejected_before_function_body (tests.test_hia_native_side_effects.NativeSideEffectRejectionTests.test_elf_constructor_file_mutation_rejected_before_function_body)",
+        "hepta.hia_native_differential.HIADifferentialRejected: E_HIA_DIFFERENTIAL: native child timed out; process group terminated\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"/home/runner/work/Hepta/Hepta/tests/test_hia_native_side_effects.py\", line 152, in test_elf_constructor_file_mutation_rejected_before_function_body\n    self.assert_sigsys(lib, \"healthy\")\n  File \"/home/runner/work/Hepta/Hepta/tests/test_hia_native_side_effects.py\", line 47, in assert_sigsys\n    with self.assertRaisesRegex(\n         ^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: \"unexpected error/signal -31\" does not match \"E_HIA_DIFFERENTIAL: native child timed out; process group terminated\"\n"
+      ]
+    ],
+    "failures": 1,
+    "passed": false,
+    "skipped": [],
+    "source_unchanged": true,
+    "tests": 201
+  },
+  "run_url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/40545121868",
+  "schema": "hepta.hia.remote-ci-observation.v1",
+  "source_commit": "345b5497b3a2a48e4e5928fb694ed2dce6c2fc28",
+  "status": "failed_retained_before_fix"
+}

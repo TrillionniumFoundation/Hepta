@@ -1,0 +1,245 @@
+{
+  "actual_model_completions": 0,
+  "actual_native_workloads": 0,
+  "actual_network_downloads": 0,
+  "actual_recovery_ci_has_been_executed_by_this_review": false,
+  "counting_policy": {
+    "historical_attempts_are_not_new_cases": true,
+    "no_aggregate_independent_test_total_claimed": true,
+    "repeat_runs_are_not_new_cases": true,
+    "source_ci_189_checks_are_a_separate_audit": true,
+    "tar_group_contains_two_repeated_resource_cases": true
+  },
+  "created_unix_ns": 1793329133719102635,
+  "decision": "no_unresolved_blocking_issue_in_the_reviewed_runtime_and_evidence_scope",
+  "final_controls": [
+    {
+      "all_cases_passed": true,
+      "case_count": 18,
+      "case_passed": 18,
+      "exit_code": 0,
+      "group": "resource",
+      "previous_attempt": "hepta-recovery-resource-review-02.py",
+      "report": "final-source-controls02/resource.json",
+      "report_sha256": "e84ab7d2f1aad972f8147bf8bb92fb0b858aa80df30e890ce0d68393b0df6b59",
+      "script": "final-source-controls02/control_resource.py",
+      "script_sha256": "87d1e1877e12d3132d528fd1057a134ef8e24ecfcbb8152cc958473b34da264a",
+      "source_unchanged_claim": true,
+      "wall_ns": 169440061
+    },
+    {
+      "all_cases_passed": true,
+      "case_count": 9,
+      "case_passed": 9,
+      "exit_code": 0,
+      "group": "tar",
+      "previous_attempt": "hepta-recovery-io-review-01.py",
+      "report": "final-source-controls02/tar.json",
+      "report_sha256": "c602584824e7541fe2a5b57f3904b6c0ad4888f9187fdcc99596f7b13d0ba6cc",
+      "script": "final-source-controls02/control_tar.py",
+      "script_sha256": "ad051ce5a17f4939448c1dd7ca67bcf1c0a5713824fd824ffed37bd23a1be432",
+      "source_unchanged_claim": true,
+      "wall_ns": 579485455
+    },
+    {
+      "all_cases_passed": true,
+      "case_count": 8,
+      "case_passed": 8,
+      "exit_code": 0,
+      "group": "download",
+      "previous_attempt": "hepta-recovery-download-review-01.py",
+      "report": "final-source-controls02/download.json",
+      "report_sha256": "1f8c11db8626a97bedabf4a0c0e7ce150c1d23ab0c37973521c054fbf68866f7",
+      "script": "final-source-controls02/control_download.py",
+      "script_sha256": "e9443e981a03fe145a91748eb484ad132454f95477b23368a41ceb1da39bad11",
+      "source_unchanged_claim": true,
+      "wall_ns": 837140368
+    },
+    {
+      "all_cases_passed": true,
+      "case_count": 11,
+      "case_passed": 11,
+      "exit_code": 0,
+      "group": "stop",
+      "previous_attempt": "hepta-recovery-stop-review-02.py",
+      "report": "final-source-controls02/stop.json",
+      "report_sha256": "c5125001afbd62dc691e643c2679d579dbd306d487d260d41f0e54e101bcf9a1",
+      "script": "final-source-controls02/control_stop.py",
+      "script_sha256": "5496792838ab46e35e868a263085c09c97b77e18911a4d8eb6ec0afec109ea64",
+      "source_unchanged_claim": true,
+      "wall_ns": 584119279
+    },
+    {
+      "all_cases_passed": true,
+      "case_count": 4,
+      "case_passed": 4,
+      "exit_code": 0,
+      "group": "credential",
+      "previous_attempt": "hepta-recovery-credential-review-01.py",
+      "report": "final-source-controls02/credential.json",
+      "report_sha256": "c7608fe612cb2337fc88e4e2f5b2dcfd137fec1c7edf61b0b2b7dad03f4952ce",
+      "script": "final-source-controls02/control_credential.py",
+      "script_sha256": "fd0a1f29e59ea59c03465caa0c47a9220e84bc1bcc4bef5a7ea4ae0eba621a5e",
+      "source_unchanged_claim": true,
+      "wall_ns": 742791218
+    },
+    {
+      "all_cases_passed": true,
+      "case_count": 11,
+      "case_passed": 11,
+      "exit_code": 0,
+      "group": "staging",
+      "previous_attempt": "hepta-recovery-finalizer-review-01.py",
+      "report": "final-source-controls02/staging.json",
+      "report_sha256": "982c36f3263fcd2f6ca724b405b0fe85b4c111aed4b82218a2705f03bf23580d",
+      "script": "final-source-controls02/control_staging.py",
+      "script_sha256": "6962916cf89a8c624b48dac669655ff3e3b13fbe6bdca41aecef7bff5fe8b0a6",
+      "source_unchanged_claim": true,
+      "wall_ns": 494404983
+    }
+  ],
+  "fixed_findings": [
+    {
+      "finding": "Hybrid cgroup v1/v2 membership could be treated as unlimited v2.",
+      "first_failure": "hepta-recovery-resource-review-01.json",
+      "resolution": "Any parallel v1/hybrid membership refuses; final resource group passes 18/18."
+    },
+    {
+      "finding": "Download bounds and tar member bounds were enforced too late.",
+      "first_observation": "Source review; no real oversized download was attempted.",
+      "resolution": "Fixed HTTPS streamed bytes and absolute deadlines; exact hashes; incremental tar member/expanded-byte bounds; final download/tar groups pass."
+    },
+    {
+      "finding": "The outer owner could be reaped before killpg, allowing numeric process-group reuse; normal exits did not clean the owned group.",
+      "first_failure": "hepta-recovery-stop-review-01.json",
+      "resolution": "Linux WNOWAIT anchors the owner through group cleanup on all paths; one reap afterward, no group signal after ownership is lost. Final stop group passes 11/11."
+    },
+    {
+      "finding": "Original protocol identity was verified after using it to construct downloads.",
+      "first_observation": "Read-only execution-order review.",
+      "resolution": "Original protocol and 31-source checks precede any installation/download."
+    },
+    {
+      "finding": "A failed staged source copy left uploaded partial bytes absent from the member list.",
+      "first_failure": "hepta-recovery-finalizer-review-01.json",
+      "first_source_snapshot": "hepta-recovery-finalizer-review-01.source.py",
+      "resolution": "Inventory the actual destination in finally, preserve partial SHA/size with source_copy_verified=false, refuse final qualification; final staging group passes 11/11."
+    },
+    {
+      "finding": "An early FINALIZE checkpoint and console output could be mistaken for final post-staging qualification.",
+      "first_observation": "Parent review of finalization order.",
+      "resolution": "README names RECOVERY_RESULT as authoritative and console uses its final qualification."
+    }
+  ],
+  "live_process_signals": 0,
+  "original_evaluator_sources_all_match": true,
+  "original_evaluator_sources_count": 31,
+  "preserved_history_index": "HISTORY_FILES.json",
+  "ready_for_one_registered_ci_launch": true,
+  "remaining_boundaries": [
+    "These are source/mocked-operation/tiny-file controls, not an observed CI run or OS containment qualification. The future CI artifact and job status still require actual byte auditing.",
+    "Resource admission covers observed Linux x86_64 visible cgroup-v2 ancestors and host memory/affinity. It does not prove hidden hierarchy limits, ongoing isolation, or whole-run resource availability.",
+    "Owned llama servers inherit the wrapper process group. Frozen HIA Clang capture can create an independent session; outer failure cannot prove all descendants closed. Missing engine-close receipts remain null, incomplete cohorts fail qualification, and fresh VM disposal is the remaining containment boundary.",
+    "The original 15/24 aborted cohort remains unchanged. The new planned 24-cell run is a separately registered exploratory replication of already-seen tasks; it does not prove a memory-pressure cause or general Agent superiority.",
+    "Credential checks used fake tokens and mock HTTP. No real credential was accessed. Current source does not record Authorization, a general environment dump, or download redirect signed URLs; actual future uploaded bytes remain to be reviewed.",
+    "Bounded artifact staging may retain a partial inventory on storage/provider failure; unknown usage and cleanup are not filled with zero or success. Receipt self-hashes and upload duration are explicitly outside the local completed interval.",
+    "Per-stage and model costs are nested observations. Parent/child intervals must not be summed twice. Provisioning before bootstrap, provider action internals, upload until observed, human engineering and complete economic cost remain unknown. MaxRSS is a completed-process high-water mark, not simultaneous aggregate RSS."
+  ],
+  "review_harness_first_attempt": {
+    "cause": "Reviewer control named resource.py shadowed the standard library; five groups exited during import.",
+    "corrected_execution": "final-source-controls02/EXECUTION.json",
+    "path": "HARNESS_FIRST_ATTEMPT_FAILURE.json",
+    "preserved_execution": "final-source-controls/EXECUTION.json",
+    "production_changed_for_correction": false
+  },
+  "reviewed_sources": {
+    ".github/workflows/hepta-agent-recovery.yml": {
+      "bytes": 6477,
+      "sha256": "aec5abb0042b670b5e7e7296859ce8aea63cb54ba8d2bbf80afd1e3934b47c31"
+    },
+    "experiments/hia_agent_assembly_recovery_20261030/PROTOCOL.json": {
+      "bytes": 9019,
+      "sha256": "ad8a56772ca842560fd7e496264696609d1a55579553f87b57ee5cc20b8d7564"
+    },
+    "experiments/hia_agent_assembly_recovery_20261030/README.md": {
+      "bytes": 10059,
+      "sha256": "7df35ef7113d717e53b5404b769230ca1488f3f90cb26821e1745aa40ccc8d1e"
+    },
+    "experiments/hia_agent_assembly_recovery_20261030/measure_child.py": {
+      "bytes": 2157,
+      "sha256": "01fa980c716d12b750467649357086d9fb11c162721c7a2fa0576fd001e3873b"
+    },
+    "experiments/hia_agent_assembly_recovery_20261030/prepare_controls.py": {
+      "bytes": 4662,
+      "sha256": "1faac8fb01dc962f1878794dca03d627d5bf952a407e0d7477ac4a1422db3b41"
+    },
+    "experiments/hia_agent_assembly_recovery_20261030/resource_gate.py": {
+      "bytes": 8231,
+      "sha256": "921d579c8a9be97fa114b5cb68d1d00d0e6ff46ce054695cecb62c2d87acc0a6"
+    },
+    "experiments/hia_agent_assembly_recovery_20261030/run_recovery.py": {
+      "bytes": 59795,
+      "sha256": "3f5b7c4ae3468b7358ffbe21e806ff9c3ab19f781ba0aac3a6c6eb4fec9e2444"
+    },
+    "experiments/hia_agent_assembly_recovery_20261030/test_recovery.py": {
+      "bytes": 9718,
+      "sha256": "5cf3161e00347f6050dd3164e9f68fdc286e28c5474c6c586af9578dd7cdfe9b"
+    },
+    "experiments/hia_agent_assembly_v4_readout_20261030/archive_evidence.py": {
+      "bytes": 3028,
+      "sha256": "1482efe9a8e2088bdabc530c6aafb8553a089efcf6bbd94056fafb5c028d135a"
+    },
+    "experiments/hia_agent_assembly_v4_readout_20261030/diagnose.py": {
+      "bytes": 8027,
+      "sha256": "3ce5dafd7614b5fc2ab84fa3455b3d97d7cf8f604bf3292496681e55a53d182d"
+    },
+    "experiments/hia_agent_assembly_v4_readout_20261030/readout.py": {
+      "bytes": 40435,
+      "sha256": "7290b09ba84382b5a4a30cfbcea23c37157f39d9b6a6105ca05854b025a9fa6e"
+    }
+  },
+  "reviewed_sources_still_match": true,
+  "schema": "hepta.independent.recovery-runtime-boundary-review.v1",
+  "static_workflow_and_cost_checks": [
+    {
+      "finding": "The one read-only API credential appears only in the run step; checkout does not persist it. Child command environments remove token/password/secret keys. Request headers are not evidence fields.",
+      "name": "read_only_workflow_credentials",
+      "passed": true
+    },
+    {
+      "finding": "Finalization and upload run after failure. Only the separate bounded staged directory is uploaded, not RUNNER_TEMP or the cache.",
+      "name": "explicit_failure_upload_destination",
+      "passed": true
+    },
+    {
+      "finding": "Actual staged bytes, including failed partial copies, have identities. A failed source copy remains unverified and unqualified. The staging receipt intentionally excludes its own hash.",
+      "name": "actual_raw_manifest_and_partial_copy_refusal",
+      "passed": true
+    },
+    {
+      "finding": "Checkout and setup consume the 270-minute bootstrap deadline. Finalization and staging have separate budgets. The upload reserve is an operational target, not proof against provider cancellation, storage failure or timeouts.",
+      "name": "bootstrap_budget_and_operational_reserve",
+      "passed": true
+    },
+    {
+      "finding": "RECOVERY_RESULT.json is authoritative after inventory/staging. FINALIZE.json is an earlier checkpoint. Console output uses the final qualification.",
+      "name": "final_result_authority",
+      "passed": true
+    },
+    {
+      "finding": "Workflow stdout is not redirected into the tree being inventoried. Raw-suite/source archives are outside their own input directories; archive command logs remain evidence, and every archive member is read back.",
+      "name": "no_archive_self_mutating_log_redirection",
+      "passed": true
+    },
+    {
+      "finding": "The original protocol and all 31 evaluator source identities are checked before installation/downloads. Actual governing definition bytes are retained before qualification.",
+      "name": "fixed_original_definitions_before_download",
+      "passed": true
+    },
+    {
+      "finding": "The workflow has one study concurrency key and attempt-one launch guard; the detailed launch/history and model-loop controls are owned by the separate NDU review. This runtime review does not add their counts.",
+      "name": "one_launch_no_implicit_resume",
+      "passed": true
+    }
+  ]
+}

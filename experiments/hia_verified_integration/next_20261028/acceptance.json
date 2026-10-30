@@ -1,0 +1,2164 @@
+{
+  "acceptance": [
+    {
+      "advantage": {
+        "established": false,
+        "status": "not_established_by_route_tests"
+      },
+      "correctness": {
+        "passed_in_scope": true,
+        "source_to_core_refinement_proved": false,
+        "status": "finite_admission_and_regression_passed"
+      },
+      "evidence": [
+        "routes_source",
+        "routes_tests",
+        "gate_result",
+        "cpp_cli_commands",
+        "cpp_cli_variants",
+        "cli_result"
+      ],
+      "execution": {
+        "passed": true,
+        "scope": "Actual imports, VM/native integration and two-variant C++ CLI. Route metadata alone grants no authority.",
+        "status": "passed_in_declared_scope"
+      },
+      "full_requirement_satisfied": false,
+      "gaps": [
+        "No complete source frontends for the five unsupported languages.",
+        "Legacy/source/native profiles are not universally interchangeable.",
+        "No whole-language or all-target refinement proof."
+      ],
+      "id": 1,
+      "implementation": {
+        "authority": "hepta.hia_program.verify_program",
+        "implicit_backend_fallback_allowed": false,
+        "qualified_native_target": "x86_64-unknown-linux-gnu",
+        "routes": [
+          "standalone-hia",
+          "hepta-source",
+          "legacy-executable",
+          "legacy-scalar",
+          "legacy-composite-v2",
+          "cpp-project",
+          "cpp-matrix",
+          "cpp-composed-project",
+          "cpp-composed-matrix"
+        ],
+        "status": "implemented_in_declared_routes",
+        "unsupported_source_frontends": [
+          "Rust",
+          "TypeScript",
+          "Python",
+          "Go",
+          "general assembly"
+        ]
+      },
+      "title": "Explicit routes into one standalone HIA authority"
+    },
+    {
+      "advantage": {
+        "established": false,
+        "status": "separately_evaluated_in_items_3_5_7"
+      },
+      "correctness": {
+        "backend_refinement_proved": false,
+        "cli_obligations": 30,
+        "cli_obligations_all_unsat": true,
+        "native_artifact_sha256": "2dac270bff47a6f2e094ba0d3f5c96e5abf114ee7c5b6d20db2950ee0f1cf401",
+        "passed_in_scope": true,
+        "receipt_binding_sha256": "0168e7fbb710bd31b60682d28be67481b53d93355cfaffee955eaa8a522bdb01",
+        "status": "declared_core_obligations_and_finite_native_checks_passed",
+        "whole_language_soundness_proved": false
+      },
+      "evidence": [
+        "optimization_source",
+        "guarded_source",
+        "inductive_source",
+        "guarded_tests",
+        "cli_result",
+        "cli_archive",
+        "gate_result"
+      ],
+      "execution": {
+        "actual_fast_and_fallback_paths": true,
+        "final_cli_native_observations": 36,
+        "passed": true,
+        "status": "passed_in_declared_scope",
+        "timeout_proposal_unpublished": true
+      },
+      "full_requirement_satisfied": false,
+      "gaps": [
+        "No arbitrary CFG, aliasing, memory or interprocedural rewrite proof.",
+        "SMT encoding, solver, Core checker, LLVM, loader, OS and hardware remain trusted.",
+        "Proof and byte binding alone establish neither profitability nor deployment authority."
+      ],
+      "id": 2,
+      "implementation": {
+        "guarded_reduction": "Only inventoried unsigned checked additions may become wrapping additions after entry, every-edge and exact-instruction nontrap obligations.",
+        "original_fallback_preserved": true,
+        "producer_receipt_grants_authority": false,
+        "resource_operations_calls_and_interfaces_preserved": true,
+        "scalar_equivalence": "Same CFG/resource/effect skeleton and scalar first-trap equivalence.",
+        "status": "implemented_for_declared_transformations"
+      },
+      "title": "Scalar equivalence and guarded reduction with independent proofs"
+    },
+    {
+      "advantage": {
+        "established": false,
+        "median_amortized_cost_ns": {
+          "fixed-base": 5600837136.333333,
+          "fixed-best-plan": 5611284002.333333,
+          "fixed-small": 6442326201.333333,
+          "fixed-wide": 15795152924.333332,
+          "light": 5551750629.333333,
+          "ndu": 20026992678.666668
+        },
+        "median_episode_cost_ns": {
+          "fixed-base": 1016784738,
+          "fixed-best-plan": 1027231604,
+          "fixed-small": 1858273803,
+          "fixed-wide": 11211100526,
+          "light": 967017653,
+          "ndu": 1018801444
+        },
+        "ndu_cost_lower_than_complete_lightweight_dp": false,
+        "ndu_cost_lower_than_strong_fixed": false,
+        "net_benefit_gate_passed": false,
+        "standalone_total_cost_ns": {
+          "fixed-base": 16800843817,
+          "fixed-best-plan": 16816585775,
+          "fixed-small": 19654100724,
+          "fixed-wide": 49139412052,
+          "light": 16689621198,
+          "ndu": 60136882738
+        },
+        "statistical_superiority_established": false,
+        "status": "net_advantage_gate_failed"
+      },
+      "correctness": {
+        "passed_in_scope": true,
+        "status": "all_registered_outputs_correct"
+      },
+      "cost_accounting": {
+        "setup_accounting": {
+          "common_once_per_standalone_strategy": true,
+          "controller_setup_ns": {
+            "fixed-base": 0,
+            "fixed-best-plan": 0,
+            "fixed-small": 0,
+            "fixed-wide": 0,
+            "light": 2041734,
+            "ndu": 29040328
+          },
+          "cost_complete_within_scope": true,
+          "excluded": [
+            "toolchain installation",
+            "preexisting dependency cache acquisition",
+            "build process startup and final manifest write",
+            "final aggregate report write"
+          ],
+          "native_build_charged_to": "ndu",
+          "native_build_cost": {
+            "child_cpu_ns": 109514198000,
+            "dependency_cache": "caller supplied; downloads charged if incurred",
+            "fully_cold_machine_claim": false,
+            "parent_cpu_ns": 216356973,
+            "scope": "source admission, inventory, cargo, binary admission; excludes this manifest write and process startup",
+            "target_cache": "empty",
+            "wall_ns": 43243376181
+          },
+          "scope": "reported native build plus source/proof/calibration/control/compiler/loader/workload wall time"
+        },
+        "shared_setup_wall_ns": 13752157195,
+        "study_plus_native_build_wall_ns": 110476660329,
+        "study_wall_ns": 67233284148
+      },
+      "evidence": [
+        "ndu_result",
+        "ndu_bank",
+        "ndu_protocol",
+        "ndu_native_identity",
+        "ndu_source_identity",
+        "ndu_faults",
+        "ndu_archive",
+        "ndu_archive_manifest",
+        "ndu_rebinding"
+      ],
+      "execution": {
+        "actual_guarded_transitions": 6,
+        "all_actual_budgets_passed": true,
+        "calibration_executions": 27,
+        "episodes": 18,
+        "ndu_optimal_fixed_and_complete_dp_selected_stop": true,
+        "passed": true,
+        "status": "completed",
+        "workload_outputs": 72
+      },
+      "full_requirement_satisfied": false,
+      "gaps": [
+        "Measured NDU costs did not beat either strong same-information control.",
+        "Completeness applies only to the registered finite graph and its cost model.",
+        "No arbitrary-program global optimality, guaranteed forecast or safety authority from NDU."
+      ],
+      "id": 3,
+      "implementation": {
+        "authority": "DENY_ALL",
+        "safety_from_ndu": false,
+        "status": "implemented_finite_graph_with_strong_controls"
+      },
+      "rebinding": {
+        "current_mapping_only_admission_checks": 3,
+        "deployment_authority": false,
+        "evidence": "ndu_rebinding",
+        "fresh_proof_receipt_issued": false,
+        "new_performance_samples": 0,
+        "old_timings_modified": false
+      },
+      "source_identity": {
+        "fixture_fix_is_new_performance_measurement": false,
+        "measured_experiment_native_commit": "4b6391e116949af0c7e59776baead67271856bdb",
+        "measured_native_binary_sha256": "3f9533298792d443cedc0b224dc5577a2ef49cf68be74fb2cc611705935e1883",
+        "measured_source_digest": "82d9dde94b55b551e6fc2e11053d1907e888e06c852751f4cae02752d5c58baf",
+        "old_timings_relabelled_to_fixture_commit": false,
+        "published_fixture_ci_evidence": "private_ci_dc",
+        "published_fixture_commit": "dc984bb3b3cb21259f838a31f67a7c2983ea9510"
+      },
+      "title": "Original native NDU on a complete finite compiler graph"
+    },
+    {
+      "advantage": {
+        "established": false,
+        "general_low_cost_migration_established": false,
+        "performance_qualified": false,
+        "status": "migration_cost_and_performance_advantage_not_measured"
+      },
+      "correctness": {
+        "cpp_layout_mangling_or_exception_abi_preserved": false,
+        "missing_drop_negative_controls": {
+          "five_weight_missing_drop": {
+            "artifact_exists": false,
+            "diagnostic": "E_HIA_RESOURCE: return leaves live owner/local loan",
+            "rejected": true
+          },
+          "three_weight_missing_drop": {
+            "artifact_exists": false,
+            "diagnostic": "E_HIA_RESOURCE: return leaves live owner/local loan",
+            "rejected": true
+          }
+        },
+        "passed_in_scope": true,
+        "reference_harness_exact_signature": "std::uint64_t(size_t,size_t,uint8_t,size_t,uint32_t,uint32_t) noexcept; identical typedefs to harness",
+        "return_values_allocation_identity_sizes_destruction_and_failure_cleanup_compared": true,
+        "scalar_c_abi_preserved": true,
+        "source_equivalence_formally_proved": false,
+        "status": "finite_native_differential_and_resource_controls_passed"
+      },
+      "evidence": [
+        "cpp_result",
+        "cpp_raw",
+        "cpp_registration",
+        "cpp_archive",
+        "cpp_archive_manifest",
+        "cpp_cli_commands",
+        "cpp_cli_variants"
+      ],
+      "execution": {
+        "authoritative_attempt": "final3",
+        "historical_cli_all_variants_core_verified": true,
+        "historical_cli_attempt": "cli2",
+        "historical_cli_selected_variant": "three_weight",
+        "original_cpp_objects_in_target": false,
+        "passed": true,
+        "status": "completed_both_registered_configurations",
+        "variants": [
+          {
+            "active_declarations_including_per_tu_header_occurrences": 139,
+            "cases_per_reference_and_target": 437,
+            "declaration_disposition_counts": {
+              "compiler_implicit_declaration": 80,
+              "composite_resource_class": 2,
+              "consumed_by_value_owner_parameter": 1,
+              "deleted_assignment": 4,
+              "deleted_copy": 2,
+              "deleted_special_parameter": 6,
+              "exact_leaf_protocol": 54,
+              "exclusive_move_parameter": 2,
+              "forward_signature_bound_to_captured_definition": 22,
+              "injected_class_name": 2,
+              "integer_exception_parameter": 1,
+              "memberwise_exclusive_move": 2,
+              "ordered_fallible_member_constructor": 2,
+              "owned_leaf_field": 4,
+              "owner_local": 3,
+              "reverse_field_destruction": 2,
+              "scalar_local": 2,
+              "scalar_parameter": 18,
+              "translated_cross_unit_by_value_owner_consumer": 1,
+              "translated_lifecycle": 1,
+              "translated_scalar_or_mutating_method": 6,
+              "visibility_replaced_by_closed_free_functions": 2
+            },
+            "name": "three_weight",
+            "native_observation": {
+              "allocations": 401,
+              "cases": 437,
+              "frees": 401,
+              "live": 0,
+              "observations_fnv64": "79fca1db8d2f0865",
+              "ok": true,
+              "refusals": 196
+            },
+            "original_cpp_link_inputs_in_target": [],
+            "reference_and_target_observation_equal": true,
+            "target_archive_member": "final3/three_weight/hia-native",
+            "target_native_artifact_sha256": "19e8ee4973bb39e6f94adfc0ac3c0352d2546f1464d13da04f7db377bec7dc60",
+            "total_inventory_including_compiler_implicit": 219,
+            "unconverted_declarations": []
+          },
+          {
+            "active_declarations_including_per_tu_header_occurrences": 139,
+            "cases_per_reference_and_target": 437,
+            "declaration_disposition_counts": {
+              "compiler_implicit_declaration": 80,
+              "composite_resource_class": 2,
+              "consumed_by_value_owner_parameter": 1,
+              "deleted_assignment": 4,
+              "deleted_copy": 2,
+              "deleted_special_parameter": 6,
+              "exact_leaf_protocol": 54,
+              "exclusive_move_parameter": 2,
+              "forward_signature_bound_to_captured_definition": 22,
+              "injected_class_name": 2,
+              "integer_exception_parameter": 1,
+              "memberwise_exclusive_move": 2,
+              "ordered_fallible_member_constructor": 2,
+              "owned_leaf_field": 4,
+              "owner_local": 3,
+              "reverse_field_destruction": 2,
+              "scalar_local": 2,
+              "scalar_parameter": 18,
+              "translated_cross_unit_by_value_owner_consumer": 1,
+              "translated_lifecycle": 1,
+              "translated_scalar_or_mutating_method": 6,
+              "visibility_replaced_by_closed_free_functions": 2
+            },
+            "name": "five_weight",
+            "native_observation": {
+              "allocations": 401,
+              "cases": 437,
+              "frees": 401,
+              "live": 0,
+              "observations_fnv64": "dd7575852bb30d54",
+              "ok": true,
+              "refusals": 196
+            },
+            "original_cpp_link_inputs_in_target": [],
+            "reference_and_target_observation_equal": true,
+            "target_archive_member": "final3/five_weight/hia-native",
+            "target_native_artifact_sha256": "5bf03d75c845b2b73cb861ada68829a37870f3479e5ff1285fc67ba0f5e4e084",
+            "total_inventory_including_compiler_implicit": 219,
+            "unconverted_declarations": []
+          }
+        ]
+      },
+      "full_requirement_satisfied": false,
+      "gaps": [
+        "No general C++ source-to-Core equivalence proof.",
+        "No general references/aliasing, shared ownership, custom allocators, inheritance/virtual calls or template-container migration.",
+        "Declared scalar C ABI does not preserve original C++ class layout or exception ABI.",
+        "Declaration dispositions cover the captured profile; unsupported active constructs reject."
+      ],
+      "id": 4,
+      "implementation": {
+        "scope": "Two captured translation units plus headers; ordered fallible construction of two byte owners, by-value transfer, moves, borrows, early returns and reverse destruction into standalone HIA.",
+        "status": "implemented_for_finite_composed_by_value_owner_profile"
+      },
+      "title": "Multi-configuration C++ implementation and cross-unit owner migration"
+    },
+    {
+      "advantage": {
+        "comparisons": [
+          {
+            "baseline": "hia_original",
+            "empirical_p95_batch_ratio": 0.6961544947982136,
+            "empirical_p99_batch_ratio": 0.8907891865155121,
+            "kernel": "full_lifecycle",
+            "noninferiority_thresholds_passed": true,
+            "paired_time_geomean_ratio": 0.6020077439447267,
+            "paired_time_ratio_upper95": 0.7123130326937837,
+            "peak_rss_ratio": 1.0
+          },
+          {
+            "baseline": "rust_o3_lto",
+            "empirical_p95_batch_ratio": 1.4380557996392107,
+            "empirical_p99_batch_ratio": 1.991353400434147,
+            "kernel": "full_lifecycle",
+            "noninferiority_thresholds_passed": false,
+            "paired_time_geomean_ratio": 1.2039579584785733,
+            "paired_time_ratio_upper95": 1.4485784124405428,
+            "peak_rss_ratio": 0.7872340425531915
+          },
+          {
+            "baseline": "c_o3_lto",
+            "empirical_p95_batch_ratio": 0.9360980330228869,
+            "empirical_p99_batch_ratio": 0.6322674337283337,
+            "kernel": "full_lifecycle",
+            "noninferiority_thresholds_passed": false,
+            "paired_time_geomean_ratio": 0.9840314077713306,
+            "paired_time_ratio_upper95": 1.208928958095077,
+            "peak_rss_ratio": 1.0
+          },
+          {
+            "baseline": "cpp_o3_lto",
+            "empirical_p95_batch_ratio": 1.2656398377828837,
+            "empirical_p99_batch_ratio": 1.9536419762423907,
+            "kernel": "full_lifecycle",
+            "noninferiority_thresholds_passed": false,
+            "paired_time_geomean_ratio": 1.0692305174569605,
+            "paired_time_ratio_upper95": 1.2458381357646626,
+            "peak_rss_ratio": 0.4166666666666667
+          },
+          {
+            "baseline": "c_pgo_lto",
+            "empirical_p95_batch_ratio": 1.4616650586553777,
+            "empirical_p99_batch_ratio": 1.8640962171111979,
+            "kernel": "full_lifecycle",
+            "noninferiority_thresholds_passed": false,
+            "paired_time_geomean_ratio": 1.1167408432534978,
+            "paired_time_ratio_upper95": 1.3771349096606975,
+            "peak_rss_ratio": 1.0
+          },
+          {
+            "baseline": "cpp_pgo_lto",
+            "empirical_p95_batch_ratio": 1.1179503317394197,
+            "empirical_p99_batch_ratio": 1.3470966751773346,
+            "kernel": "full_lifecycle",
+            "noninferiority_thresholds_passed": false,
+            "paired_time_geomean_ratio": 1.020730613032611,
+            "paired_time_ratio_upper95": 1.2085546636516116,
+            "peak_rss_ratio": 0.4166666666666667
+          },
+          {
+            "baseline": "hia_original",
+            "empirical_p95_batch_ratio": 0.5342352655129398,
+            "empirical_p99_batch_ratio": 0.5713504815230263,
+            "kernel": "packet_xor",
+            "noninferiority_thresholds_passed": true,
+            "paired_time_geomean_ratio": 0.7087947036308901,
+            "paired_time_ratio_upper95": 0.9332571516364947,
+            "peak_rss_ratio": 1.0
+          },
+          {
+            "baseline": "rust_o3_lto",
+            "empirical_p95_batch_ratio": 1.030650959006129,
+            "empirical_p99_batch_ratio": 1.256283030563105,
+            "kernel": "packet_xor",
+            "noninferiority_thresholds_passed": false,
+            "paired_time_geomean_ratio": 0.9795281026597699,
+            "paired_time_ratio_upper95": 1.0907248616398564,
+            "peak_rss_ratio": 0.7944664031620553
+          },
+          {
+            "baseline": "c_o3_lto",
+            "empirical_p95_batch_ratio": 1.0042127993258585,
+            "empirical_p99_batch_ratio": 1.1575231732870535,
+            "kernel": "packet_xor",
+            "noninferiority_thresholds_passed": false,
+            "paired_time_geomean_ratio": 0.9929510485703535,
+            "paired_time_ratio_upper95": 1.1131081155898717,
+            "peak_rss_ratio": 1.0
+          },
+          {
+            "baseline": "cpp_o3_lto",
+            "empirical_p95_batch_ratio": 1.2464809142395585,
+            "empirical_p99_batch_ratio": 1.8444570015378394,
+            "kernel": "packet_xor",
+            "noninferiority_thresholds_passed": false,
+            "paired_time_geomean_ratio": 1.0754926726519782,
+            "paired_time_ratio_upper95": 1.2214641555658239,
+            "peak_rss_ratio": 0.4369565217391304
+          },
+          {
+            "baseline": "c_pgo_lto",
+            "empirical_p95_batch_ratio": 0.960558118602722,
+            "empirical_p99_batch_ratio": 1.1049305657366828,
+            "kernel": "packet_xor",
+            "noninferiority_thresholds_passed": true,
+            "paired_time_geomean_ratio": 0.9467647862929787,
+            "paired_time_ratio_upper95": 1.0028246706725021,
+            "peak_rss_ratio": 1.0
+          },
+          {
+            "baseline": "cpp_pgo_lto",
+            "empirical_p95_batch_ratio": 0.8478750983853682,
+            "empirical_p99_batch_ratio": 0.8040464727940315,
+            "kernel": "packet_xor",
+            "noninferiority_thresholds_passed": false,
+            "paired_time_geomean_ratio": 0.9077192784714334,
+            "paired_time_ratio_upper95": 1.0931920178262564,
+            "peak_rss_ratio": 0.4369565217391304
+          }
+        ],
+        "established": false,
+        "joint_noninferiority_passed": false,
+        "status": "joint_noninferiority_failed",
+        "strong_baseline_comparisons": 10,
+        "strong_baseline_comparisons_passed": 1,
+        "universal_rust_superiority": false
+      },
+      "correctness": {
+        "finite_native_checks": 1260,
+        "measurement_quality_passed": true,
+        "passed_in_scope": true,
+        "status": "finite_correctness_and_measurement_quality_passed"
+      },
+      "evidence": [
+        "bench_result",
+        "bench_archive",
+        "bench_archive_manifest",
+        "bench_rebinding"
+      ],
+      "execution": {
+        "kernels": 2,
+        "new_samples_during_rebinding": 0,
+        "paired_groups": 7,
+        "passed": true,
+        "status": "completed_all_registered_measurements",
+        "timed_samples": 98
+      },
+      "full_requirement_satisfied": false,
+      "gaps": [
+        "Joint throughput/tail/RSS comparison failed against strong baselines.",
+        "One shared x86-64 host and two kernels do not establish general Rust superiority.",
+        "Artifact rebinding is historical correspondence, not a new performance result or deployment permission."
+      ],
+      "id": 5,
+      "implementation": {
+        "actual_pgo_training_and_rebuild": true,
+        "arms": [
+          "hia_original",
+          "hia_verified",
+          "rust_o3_lto",
+          "c_o3_lto",
+          "cpp_o3_lto",
+          "c_pgo_lto",
+          "cpp_pgo_lto"
+        ],
+        "status": "registered_seven_arm_benchmark_implemented"
+      },
+      "preparation_costs": {
+        "all_costs": {
+          "all_command_wall_ns": 11467580874,
+          "explicit_core_verification_wall_ns": 9387026,
+          "finite_correctness_wall_ns": 232034608,
+          "guarded_proposal_verification_build_charged_to_candidate": true,
+          "optimizer_search_wall_ns": 12380786,
+          "pgo_training_and_compile_charged_to_pgo_builds": true,
+          "verification_in_native_build_included": true
+        },
+        "payback_point_estimates_are_guarantees": false,
+        "search_cost": {
+          "mode": "one registered deterministic proposal, no learned search or holdout-based selection",
+          "model_calls": 0,
+          "search_calls": 1,
+          "search_performed": true,
+          "wall_ns": 12380786
+        },
+        "standalone_guarded_verification_wall_ns": 3900177956
+      },
+      "rebinding": {
+        "current_core_and_llvm_match_preserved_artifacts": true,
+        "deployment_authority": false,
+        "evidence": "bench_rebinding",
+        "fresh_proof_receipt_issued": false,
+        "global_source_snapshot_identical": false,
+        "old_costs_and_samples_preserved": true,
+        "unestablished": {
+          "all_implicit_toolchain_dependencies_identical": "unknown: the historical plan binds five tool executables, not every shared library, compiler-rt/sysroot or system-linker dependency",
+          "current_loaded_mapping_admission": "unknown/not attempted: this audit never dlopens preserved binaries",
+          "fresh_native_binary_reproducibility": "unknown: no native compilation was performed; preserved artifact bytes and identical current emitted LLVM are separately established",
+          "fresh_solver_result": "unknown/not attempted: saved SMT bytes/results were rehashed, not solved again",
+          "new_runtime_performance": "unknown/not measured: historical fresh-process C-driver timings are not measurements of the repaired adaptive/stateful runtime"
+        }
+      },
+      "title": "Registered Rust and C/C++ LTO/PGO native comparison"
+    },
+    {
+      "advantage": {
+        "established": false,
+        "human_time_measured": false,
+        "human_time_ns": null,
+        "original_primary_protocol_gate_passed": false,
+        "status": "not_established_original_gates_failed",
+        "supplemental_replaces_original_scientific_gate": false,
+        "unknown_token_or_timeout_costs_are_zero": false
+      },
+      "all_request_token_costs": {
+        "input_tokens": 25387,
+        "known_input_tokens": 25387,
+        "known_output_tokens": 6803,
+        "known_total_tokens": 32190,
+        "output_tokens": null,
+        "total_tokens": null,
+        "unknown_output_requests": 3,
+        "usage_complete": false
+      },
+      "correctness": {
+        "final_scores": {
+          "primary": {
+            "planned": 32,
+            "successes": 5
+          },
+          "upgrade": {
+            "planned": 8,
+            "successes": 0
+          }
+        },
+        "granite_final_scores": {
+          "primary_planned": 16,
+          "primary_successes": 0,
+          "upgrade_planned": 4,
+          "upgrade_successes": 0
+        },
+        "native_model_candidate_evaluations": 13,
+        "passed_in_scope": false,
+        "provider_observation_scope": "Rust trusted native wrapper; HIA same-Core VM call trace plus separately checked native entry. VM counts are not native call counts.",
+        "reference_controls_count_as_model_answers": false,
+        "reference_native_controls_passed": 96,
+        "response_rejection_implies_semantic_failure": false,
+        "status": "five_main_solutions_passed_finite_native_inputs_no_upgrade_solution_passed",
+        "upgrade_candidate_compilations": 0,
+        "upgrade_hidden_validations": 0
+      },
+      "evidence": [
+        "agent_protocol",
+        "agent_registration",
+        "agent_runtime_amendment",
+        "qwen_original_manifest",
+        "qwen_original_parts",
+        "granite_original_manifest",
+        "granite_original_parts",
+        "primary_supplemental_source",
+        "upgrade_supplemental_source",
+        "agent_final_result",
+        "agent_final_readout",
+        "agent_response_diagnosis",
+        "agent_independent_review",
+        "granite_primary_supplemental_archive",
+        "granite_primary_supplemental_manifest"
+      ],
+      "execution": {
+        "complete_responses": 47,
+        "completion_requests": 50,
+        "final_result_path": "experiments/hia_optimizer_eval/next_20261028/AGENT_FINAL_RESULTS.json",
+        "final_result_sha256": "97902391462a67592d1644e1e5e9aa55ac265a92ece83a613d8f8f0026d6f47f",
+        "original_abort_classification": "Actual timeout/incomplete phases remain retained; timeout is not silently classified as a semantic wrong answer.",
+        "original_families": [
+          {
+            "archive_parts_recheck_status": "original_compressed_bytes_and_all_indexed_parts_independently_hashed",
+            "archive_parts_rehashed_during_this_assembly": true,
+            "archive_sha256_recorded_by_manifest": "07b76b8046c96ef668efca50e3edcf971079069c5b59275ef3ace28b0de057b7",
+            "family": "Qwen2.5-Coder 7B Instruct",
+            "final_scores": {
+              "primary": {
+                "attempted": 16,
+                "planned": 16,
+                "successes": 5
+              },
+              "upgrade": {
+                "attempted": 4,
+                "planned": 4,
+                "successes": 0
+              }
+            },
+            "missing_local_parts": [
+              "experiments/hia_optimizer_eval/next_20261028/archive-parts/qwen-final-02-original-phases/part-000",
+              "experiments/hia_optimizer_eval/next_20261028/archive-parts/qwen-final-02-original-phases/part-001",
+              "experiments/hia_optimizer_eval/next_20261028/archive-parts/qwen-final-02-original-phases/part-002",
+              "experiments/hia_optimizer_eval/next_20261028/archive-parts/qwen-final-02-original-phases/part-003"
+            ],
+            "original_model_status": "incomplete",
+            "original_protocol_complete": false,
+            "physical_parts_omitted_using_skip_worktree": true,
+            "primary_phase_status": "completed",
+            "upgrade_phase_status": "incomplete"
+          },
+          {
+            "archive_parts_recheck_status": "original_compressed_bytes_and_all_indexed_parts_independently_hashed",
+            "archive_parts_rehashed_during_this_assembly": true,
+            "archive_sha256_recorded_by_manifest": "4d6901ca44a8c733aa6ddb2b29a2835c6a3244efb8f3b548ac157b4edc95d07d",
+            "family": "IBM Granite 3.3 2B Instruct",
+            "final_scores": {
+              "primary": {
+                "attempted": 16,
+                "planned": 16,
+                "successes": 0
+              },
+              "upgrade": {
+                "attempted": 4,
+                "planned": 4,
+                "successes": 0
+              }
+            },
+            "missing_local_parts": [
+              "experiments/hia_optimizer_eval/next_20261028/archive-parts/granite-final-02-original-phases/part-000",
+              "experiments/hia_optimizer_eval/next_20261028/archive-parts/granite-final-02-original-phases/part-001",
+              "experiments/hia_optimizer_eval/next_20261028/archive-parts/granite-final-02-original-phases/part-002"
+            ],
+            "original_model_status": "incomplete",
+            "original_protocol_complete": false,
+            "physical_parts_omitted_using_skip_worktree": true,
+            "primary_phase_status": "incomplete",
+            "upgrade_phase_status": "completed"
+          }
+        ],
+        "original_registered_protocols_complete": false,
+        "passed": true,
+        "primary_attempted_cells": 32,
+        "primary_planned_cells": 32,
+        "status": "all_original_cells_attempted_with_audited_supplemental_suffixes",
+        "supplemental": {
+          "added_after_original_registration_and_partial_execution": true,
+          "attempted_cells_replayed": false,
+          "coverage_complete": true,
+          "may_retroactively_complete_or_pass_original_protocol": false,
+          "only_previously_unstarted_suffix_eligible": true,
+          "primary_evidence": [
+            "primary_supplemental_source",
+            "primary_supplemental_controls",
+            "granite_primary_supplemental_archive",
+            "granite_primary_supplemental_manifest"
+          ],
+          "upgrade_evidence": [
+            "upgrade_supplemental_source",
+            "upgrade_supplemental_controls",
+            "qwen_upgrade_supplemental_manifest"
+          ]
+        },
+        "supplemental_task_coverage_complete": true,
+        "timeout_requests": 3,
+        "upgrade_attempted_cells": 8,
+        "upgrade_planned_cells": 8
+      },
+      "family_final_results": [
+        {
+          "model": {
+            "bytes": 4683073536,
+            "family": "Qwen2.5-Coder",
+            "filename": "qwen2.5-coder-7b-instruct-q4_k_m.gguf",
+            "id": "qwen_coder7b",
+            "provenance": "official publicly available Qwen GGUF; file hash from pinned repository LFS metadata",
+            "repository": "Qwen/Qwen2.5-Coder-7B-Instruct-GGUF",
+            "revision": "13fb94bfda8c8cf22497dc57b78f391a9acb426a",
+            "sha256": "509287f78cb4d4cf6b3843734733b914b2c158e43e22a7f4bf5e963800894d3c"
+          },
+          "original_model_status": "incomplete",
+          "original_primary_gate": {
+            "primary": false,
+            "secondary": false
+          },
+          "original_primary_status": "completed",
+          "original_upgrade_status": "incomplete",
+          "phase_costs": {
+            "cost_scope": "Original phase timers and supplemental run() timers end before final result writes; outer Bash real includes process startup/imports and final writes. These intervals overlap within each original whole run; do not sum parent and child intervals.",
+            "manual_time_ns": null,
+            "original_primary_model_execution_ns": 527343975344,
+            "original_primary_native_controls_ns": 10020768860,
+            "original_primary_phase_ns": 542211416754,
+            "original_upgrade_native_controls_ns": 2783977324,
+            "original_upgrade_phase_ns": 202381293593,
+            "original_whole_model_run_ns": 757755722253,
+            "original_whole_process_outer": {
+              "artifact": {
+                "bytes": 47,
+                "path": "/tmp/hepta-next-20261028-agent-final-02/qwen_coder7b/OUTER_EXECUTION.txt",
+                "sha256": "ed22e97a41d9e06b04a6df843caad648de1c67a54c1f5c67fcee23f2131258cd"
+              },
+              "real_ns": 766019000000,
+              "reported_precision": "Bash rounded milliseconds",
+              "sys_ns": 44302000000,
+              "user_ns": 2629739000000
+            },
+            "supplemental_primary_outer": null,
+            "supplemental_primary_run_ns": null,
+            "supplemental_upgrade_outer": {
+              "artifact": {
+                "bytes": 46,
+                "path": "/tmp/hepta-next-20261028-agent-final-02/qwen_coder7b/upgrade-continuation/OUTER_EXECUTION.txt",
+                "sha256": "b0ec7f8fe70094144c0b2f7e0dbdd14caecf4e1b8bf609e49602eb850d415bda"
+              },
+              "real_ns": 416352000000,
+              "reported_precision": "Bash rounded milliseconds",
+              "sys_ns": 23628000000,
+              "user_ns": 1476471000000
+            },
+            "supplemental_upgrade_run_ns": 416214022169,
+            "tool_construction_time_ns": null,
+            "total_economic_cost": null
+          },
+          "primary_arms": {
+            "hia_edit_query": {
+              "attempted_cells": 4,
+              "attempts": 4,
+              "evaluation_ns": 1077173210,
+              "inference_ns": 120988994676,
+              "input_tokens": 1446,
+              "known_evaluation_ns": 1077173210,
+              "known_inference_ns": 120988994676,
+              "known_input_tokens": 1446,
+              "known_output_tokens": 227,
+              "known_total_tokens": 1673,
+              "native_candidate_evaluations": 3,
+              "native_executions": 3,
+              "output_tokens": 227,
+              "planned_cells": 4,
+              "states": {
+                "correct": 2,
+                "observable_wrong": 1,
+                "response_rejected": 1
+              },
+              "successes": 2,
+              "timeouts": 0,
+              "total_tokens": 1673,
+              "unknown_output_requests": 0,
+              "unsuccessful_cells": 2,
+              "usage_complete": true
+            },
+            "hia_full_context": {
+              "attempted_cells": 4,
+              "attempts": 4,
+              "evaluation_ns": 1119472901,
+              "inference_ns": 182301689470,
+              "input_tokens": 3004,
+              "known_evaluation_ns": 1119472901,
+              "known_inference_ns": 182301689470,
+              "known_input_tokens": 3004,
+              "known_output_tokens": 261,
+              "known_total_tokens": 3265,
+              "native_candidate_evaluations": 3,
+              "native_executions": 3,
+              "output_tokens": 261,
+              "planned_cells": 4,
+              "states": {
+                "expected_overflow_trap": 1,
+                "observable_wrong": 2,
+                "response_rejected": 1
+              },
+              "successes": 0,
+              "timeouts": 0,
+              "total_tokens": 3265,
+              "unknown_output_requests": 0,
+              "unsuccessful_cells": 4,
+              "usage_complete": true
+            },
+            "rust_edit_query": {
+              "attempted_cells": 4,
+              "attempts": 4,
+              "evaluation_ns": 2543909316,
+              "inference_ns": 99661859813,
+              "input_tokens": 1109,
+              "known_evaluation_ns": 2543909316,
+              "known_inference_ns": 99661859813,
+              "known_input_tokens": 1109,
+              "known_output_tokens": 179,
+              "known_total_tokens": 1288,
+              "native_candidate_evaluations": 4,
+              "native_executions": 4,
+              "output_tokens": 179,
+              "planned_cells": 4,
+              "states": {
+                "correct": 1,
+                "observable_wrong": 3
+              },
+              "successes": 1,
+              "timeouts": 0,
+              "total_tokens": 1288,
+              "unknown_output_requests": 0,
+              "unsuccessful_cells": 3,
+              "usage_complete": true
+            },
+            "rust_full_context": {
+              "attempted_cells": 4,
+              "attempts": 4,
+              "evaluation_ns": 2175980332,
+              "inference_ns": 74248066062,
+              "input_tokens": 1270,
+              "known_evaluation_ns": 2175980332,
+              "known_inference_ns": 74248066062,
+              "known_input_tokens": 1270,
+              "known_output_tokens": 116,
+              "known_total_tokens": 1386,
+              "native_candidate_evaluations": 3,
+              "native_executions": 3,
+              "output_tokens": 116,
+              "planned_cells": 4,
+              "states": {
+                "correct": 2,
+                "observable_wrong": 1,
+                "response_rejected": 1
+              },
+              "successes": 2,
+              "timeouts": 0,
+              "total_tokens": 1386,
+              "unknown_output_requests": 0,
+              "unsuccessful_cells": 2,
+              "usage_complete": true
+            }
+          },
+          "request_token_costs_including_probes": {
+            "input_tokens": 10544,
+            "known_input_tokens": 10544,
+            "known_output_tokens": 1303,
+            "known_total_tokens": 11847,
+            "output_tokens": null,
+            "total_tokens": null,
+            "unknown_output_requests": 2,
+            "usage_complete": false
+          },
+          "supplemental_primary_used": false,
+          "supplemental_upgrade_used": true,
+          "upgrade_languages": {
+            "hia": {
+              "attempted_cells": 2,
+              "attempts": 2,
+              "automatic_repair_rounds": 0,
+              "evaluation_ns": null,
+              "hidden_validations": 0,
+              "inference_ns": null,
+              "input_tokens": 1573,
+              "known_evaluation_ns": 0,
+              "known_inference_ns": 0,
+              "known_input_tokens": 1573,
+              "known_output_tokens": 0,
+              "known_total_tokens": 1573,
+              "native_builds": 0,
+              "output_tokens": null,
+              "planned_cells": 2,
+              "public_validations": 0,
+              "successes": 0,
+              "timeouts": 2,
+              "total_tokens": null,
+              "unknown_output_requests": 2,
+              "usage_complete": false
+            },
+            "rust": {
+              "attempted_cells": 2,
+              "attempts": 4,
+              "automatic_repair_rounds": 2,
+              "evaluation_ns": 4230684,
+              "hidden_validations": 0,
+              "inference_ns": 205992674660,
+              "input_tokens": 2016,
+              "known_evaluation_ns": 4230684,
+              "known_inference_ns": 205992674660,
+              "known_input_tokens": 2016,
+              "known_output_tokens": 468,
+              "known_total_tokens": 2484,
+              "native_builds": 0,
+              "output_tokens": 468,
+              "planned_cells": 2,
+              "public_validations": 0,
+              "successes": 0,
+              "timeouts": 0,
+              "total_tokens": 2484,
+              "unknown_output_requests": 0,
+              "usage_complete": true
+            }
+          }
+        },
+        {
+          "model": {
+            "bytes": 1545303328,
+            "family": "IBM-Granite3.3",
+            "filename": "granite-3.3-2b-instruct-Q4_K_M.gguf",
+            "id": "granite2b",
+            "provenance": "official publicly available IBM Granite GGUF; file hash from pinned repository LFS metadata",
+            "repository": "ibm-granite/granite-3.3-2b-instruct-GGUF",
+            "revision": "7cdf86ccd1f1bb3491c9b7017b033f2e51367397",
+            "sha256": "ac71e9e32c0bea919b409c5918f69ca74339854b0319c5065e4e9fb6d95c4852"
+          },
+          "original_model_status": "incomplete",
+          "original_primary_gate": {
+            "primary": false,
+            "secondary": false
+          },
+          "original_primary_status": "incomplete",
+          "original_upgrade_status": "completed",
+          "phase_costs": {
+            "cost_scope": "Original phase timers and supplemental run() timers end before final result writes; outer Bash real includes process startup/imports and final writes. These intervals overlap within each original whole run; do not sum parent and child intervals.",
+            "manual_time_ns": null,
+            "original_primary_model_execution_ns": 325254194775,
+            "original_primary_native_controls_ns": 12525818847,
+            "original_primary_phase_ns": 339721728133,
+            "original_upgrade_native_controls_ns": 3347296496,
+            "original_upgrade_phase_ns": 574507397893,
+            "original_whole_model_run_ns": 918427940846,
+            "original_whole_process_outer": {
+              "artifact": {
+                "bytes": 47,
+                "path": "/tmp/hepta-next-20261028-agent-final-02/granite2b/OUTER_EXECUTION.txt",
+                "sha256": "d58d0f09250e79dd57297972b8d88a004c4db47007906f05da2aa876a5b21362"
+              },
+              "real_ns": 921595000000,
+              "reported_precision": "Bash rounded milliseconds",
+              "sys_ns": 25697000000,
+              "user_ns": 3390331000000
+            },
+            "supplemental_primary_outer": {
+              "artifact": {
+                "bytes": 45,
+                "path": "/tmp/hepta-next-20261028-agent-final-02/granite2b/primary-continuation/OUTER_EXECUTION.txt",
+                "sha256": "62701c84e03401f94062900d9036aed54470f329434e8f59b999029264e88c4c"
+              },
+              "real_ns": 459815000000,
+              "reported_precision": "Bash rounded milliseconds",
+              "sys_ns": 14804000000,
+              "user_ns": 1746532000000
+            },
+            "supplemental_primary_run_ns": 459671530964,
+            "supplemental_upgrade_outer": null,
+            "supplemental_upgrade_run_ns": null,
+            "tool_construction_time_ns": null,
+            "total_economic_cost": null
+          },
+          "primary_arms": {
+            "hia_edit_query": {
+              "attempted_cells": 4,
+              "attempts": 4,
+              "evaluation_ns": 992743,
+              "inference_ns": 112113162465,
+              "input_tokens": 1725,
+              "known_evaluation_ns": 992743,
+              "known_inference_ns": 112113162465,
+              "known_input_tokens": 1725,
+              "known_output_tokens": 555,
+              "known_total_tokens": 2280,
+              "native_candidate_evaluations": 0,
+              "native_executions": 0,
+              "output_tokens": 555,
+              "planned_cells": 4,
+              "states": {
+                "response_rejected": 4
+              },
+              "successes": 0,
+              "timeouts": 0,
+              "total_tokens": 2280,
+              "unknown_output_requests": 0,
+              "unsuccessful_cells": 4,
+              "usage_complete": true
+            },
+            "hia_full_context": {
+              "attempted_cells": 4,
+              "attempts": 4,
+              "evaluation_ns": null,
+              "inference_ns": null,
+              "input_tokens": 3238,
+              "known_evaluation_ns": 1784748,
+              "known_inference_ns": 305513728700,
+              "known_input_tokens": 3238,
+              "known_output_tokens": 1536,
+              "known_total_tokens": 4774,
+              "native_candidate_evaluations": 0,
+              "native_executions": 0,
+              "output_tokens": null,
+              "planned_cells": 4,
+              "states": {
+                "budget_timeout": 1,
+                "response_rejected": 3
+              },
+              "successes": 0,
+              "timeouts": 1,
+              "total_tokens": null,
+              "unknown_output_requests": 1,
+              "unsuccessful_cells": 4,
+              "usage_complete": false
+            },
+            "rust_edit_query": {
+              "attempted_cells": 4,
+              "attempts": 4,
+              "evaluation_ns": 1509942,
+              "inference_ns": 102141071766,
+              "input_tokens": 1285,
+              "known_evaluation_ns": 1509942,
+              "known_inference_ns": 102141071766,
+              "known_input_tokens": 1285,
+              "known_output_tokens": 440,
+              "known_total_tokens": 1725,
+              "native_candidate_evaluations": 0,
+              "native_executions": 0,
+              "output_tokens": 440,
+              "planned_cells": 4,
+              "states": {
+                "response_rejected": 4
+              },
+              "successes": 0,
+              "timeouts": 0,
+              "total_tokens": 1725,
+              "unknown_output_requests": 0,
+              "unsuccessful_cells": 4,
+              "usage_complete": true
+            },
+            "rust_full_context": {
+              "attempted_cells": 4,
+              "attempts": 4,
+              "evaluation_ns": 584526,
+              "inference_ns": 57808394820,
+              "input_tokens": 1519,
+              "known_evaluation_ns": 584526,
+              "known_inference_ns": 57808394820,
+              "known_input_tokens": 1519,
+              "known_output_tokens": 248,
+              "known_total_tokens": 1767,
+              "native_candidate_evaluations": 0,
+              "native_executions": 0,
+              "output_tokens": 248,
+              "planned_cells": 4,
+              "states": {
+                "response_rejected": 4
+              },
+              "successes": 0,
+              "timeouts": 0,
+              "total_tokens": 1767,
+              "unknown_output_requests": 0,
+              "unsuccessful_cells": 4,
+              "usage_complete": true
+            }
+          },
+          "request_token_costs_including_probes": {
+            "input_tokens": 14843,
+            "known_input_tokens": 14843,
+            "known_output_tokens": 5500,
+            "known_total_tokens": 20343,
+            "output_tokens": null,
+            "total_tokens": null,
+            "unknown_output_requests": 1,
+            "usage_complete": false
+          },
+          "supplemental_primary_used": true,
+          "supplemental_upgrade_used": false,
+          "upgrade_languages": {
+            "hia": {
+              "attempted_cells": 2,
+              "attempts": 4,
+              "automatic_repair_rounds": 2,
+              "evaluation_ns": 4491726,
+              "hidden_validations": 0,
+              "inference_ns": 411116665887,
+              "input_tokens": 4525,
+              "known_evaluation_ns": 4491726,
+              "known_inference_ns": 411116665887,
+              "known_input_tokens": 4525,
+              "known_output_tokens": 1928,
+              "known_total_tokens": 6453,
+              "native_builds": 0,
+              "output_tokens": 1928,
+              "planned_cells": 2,
+              "public_validations": 0,
+              "successes": 0,
+              "timeouts": 0,
+              "total_tokens": 6453,
+              "unknown_output_requests": 0,
+              "usage_complete": true
+            },
+            "rust": {
+              "attempted_cells": 2,
+              "attempts": 4,
+              "automatic_repair_rounds": 2,
+              "evaluation_ns": 2113077,
+              "hidden_validations": 0,
+              "inference_ns": 152757622538,
+              "input_tokens": 2369,
+              "known_evaluation_ns": 2113077,
+              "known_inference_ns": 152757622538,
+              "known_input_tokens": 2369,
+              "known_output_tokens": 743,
+              "known_total_tokens": 3112,
+              "native_builds": 0,
+              "output_tokens": 743,
+              "planned_cells": 2,
+              "public_validations": 0,
+              "successes": 0,
+              "timeouts": 0,
+              "total_tokens": 3112,
+              "unknown_output_requests": 0,
+              "usage_complete": true
+            }
+          }
+        }
+      ],
+      "full_requirement_satisfied": false,
+      "gaps": [
+        "Original incomplete protocols remain incomplete despite complete supplemental task coverage.",
+        "Both original scientific gates failed; no general agent development or upgrade advantage established.",
+        "Thirty admission/response rejections, eight native failures, five successes and three timeouts are distinct outcomes among 46 scored submissions.",
+        "Human labor and tool-construction time are unmeasured; full economic cost remains unknown.",
+        "Only two fixed quantized model families and the finite frozen task set were evaluated."
+      ],
+      "id": 6,
+      "implementation": {
+        "finite_source_profile_is_general_rust_sandbox": false,
+        "status": "original_evaluators_and_separate_supplemental_drivers_implemented"
+      },
+      "original_raw_report_bindings": [
+        {
+          "archive_member": "MODEL_RESULT.json",
+          "archive_member_reextracted_during_this_assembly": false,
+          "archive_parts_index_evidence": "qwen_original_parts",
+          "family": "qwen",
+          "loose_report_rehashed_against_member_manifest": true,
+          "member_manifest_evidence": "qwen_original_manifest",
+          "retained_loose_source": "/tmp/hepta-next-20261028-agent-final-02/qwen_coder7b/MODEL_RESULT.json",
+          "sha256": "ba1f26b10bc024bcf0e4f7af384226527469d38f91f839a81e054b9a03b22f3e",
+          "size_bytes": 3877
+        },
+        {
+          "archive_member": "primary/report.json",
+          "archive_member_reextracted_during_this_assembly": false,
+          "archive_parts_index_evidence": "qwen_original_parts",
+          "family": "qwen",
+          "loose_report_rehashed_against_member_manifest": true,
+          "member_manifest_evidence": "qwen_original_manifest",
+          "retained_loose_source": "/tmp/hepta-next-20261028-agent-final-02/qwen_coder7b/primary/report.json",
+          "sha256": "6b2744fb92834c7c8e15ee330901ae0fd0e7733ac658abd74486d8999db414d1",
+          "size_bytes": 101345
+        },
+        {
+          "archive_member": "upgrade/RESULT.json",
+          "archive_member_reextracted_during_this_assembly": false,
+          "archive_parts_index_evidence": "qwen_original_parts",
+          "family": "qwen",
+          "loose_report_rehashed_against_member_manifest": true,
+          "member_manifest_evidence": "qwen_original_manifest",
+          "retained_loose_source": "/tmp/hepta-next-20261028-agent-final-02/qwen_coder7b/upgrade/RESULT.json",
+          "sha256": "b2c73c793280aa3bac05b5f942f6f5bb7923f47b19132609255ae4a43bd18832",
+          "size_bytes": 8493
+        },
+        {
+          "archive_member": "MODEL_RESULT.json",
+          "archive_member_reextracted_during_this_assembly": false,
+          "archive_parts_index_evidence": "granite_original_parts",
+          "family": "granite",
+          "loose_report_rehashed_against_member_manifest": true,
+          "member_manifest_evidence": "granite_original_manifest",
+          "retained_loose_source": "/tmp/hepta-next-20261028-agent-final-02/granite2b/MODEL_RESULT.json",
+          "sha256": "4a0b3b67e95c8ee198b572147d7a8fea7948a2db792ce3931551475d2760af03",
+          "size_bytes": 3856
+        },
+        {
+          "archive_member": "primary/report.json",
+          "archive_member_reextracted_during_this_assembly": false,
+          "archive_parts_index_evidence": "granite_original_parts",
+          "family": "granite",
+          "loose_report_rehashed_against_member_manifest": true,
+          "member_manifest_evidence": "granite_original_manifest",
+          "retained_loose_source": "/tmp/hepta-next-20261028-agent-final-02/granite2b/primary/report.json",
+          "sha256": "9cf0811f2c97b600966d5d2b62636b7730b1bbca63141d8a66095c2570773d35",
+          "size_bytes": 16850
+        },
+        {
+          "archive_member": "upgrade/RESULT.json",
+          "archive_member_reextracted_during_this_assembly": false,
+          "archive_parts_index_evidence": "granite_original_parts",
+          "family": "granite",
+          "loose_report_rehashed_against_member_manifest": true,
+          "member_manifest_evidence": "granite_original_manifest",
+          "retained_loose_source": "/tmp/hepta-next-20261028-agent-final-02/granite2b/upgrade/RESULT.json",
+          "sha256": "b9578440c8df771c359dc64679e4c737eea43a7133ab332a57b99b898d1c01fc",
+          "size_bytes": 13915
+        }
+      ],
+      "root_integration": {
+        "complete": true,
+        "independent_review": "agent_independent_review",
+        "must_preserve_original_protocol_statuses": true,
+        "updated_at_utc": "2026-10-28T09:48:43.156183+00:00"
+      },
+      "title": "Two-family Agent maintenance and provider/consumer upgrade study"
+    },
+    {
+      "advantage": {
+        "baseline_clone_native_execution_ns": 3307593459,
+        "complete_local_deployment_net_ns": -711592994,
+        "complete_local_deployment_wall_ns": 4019186453,
+        "established": false,
+        "forecast": {
+          "actual_calibration_verification_switch_ns": 134071418,
+          "actual_preparation_and_planning_ns": 1064312121,
+          "initial_and_candidate_preparation_ns": 930240703,
+          "internal_calibration_ns": 24079105,
+          "preselection_required_cost_ns": 954319808,
+          "projected_saving_ns": 990020000
+        },
+        "forecast_is_guaranteed": false,
+        "net_benefit_gate_passed": false,
+        "status": "complete_local_api_net_benefit_failed",
+        "whole_experiment_wall_ns": 7328442875
+      },
+      "correctness": {
+        "active_calls_and_live_loans_block_switch_and_close": true,
+        "borrow_access_lease_and_generation_checked": true,
+        "external_effect_or_crash_recovery_exactly_once": false,
+        "general_live_heap_or_stack_migration": false,
+        "passed_in_scope": true,
+        "status": "finite_owner_identity_lifetime_and_queue_controls_passed"
+      },
+      "evidence": [
+        "runtime_result",
+        "runtime_raw",
+        "runtime_registration",
+        "runtime_archive",
+        "runtime_archive_manifest"
+      ],
+      "execution": {
+        "actual_mapping_identity_checked": true,
+        "authoritative_attempt": "attempt05",
+        "automatic_candidate_selected": false,
+        "committed_transitions": 400000000,
+        "executed_transitions": 400000000,
+        "final_native_ledger": {
+          "allocations": 24,
+          "frees": 24,
+          "live": 0,
+          "refusals": 0
+        },
+        "passed": true,
+        "persistent_owner_explicit_switch_executed": true,
+        "queue_sha256": "f5f6fc884179e4b415b6e1bca5caf57a6253f3d5ef480183837282cdd30f45f8",
+        "real_native_controls": {
+          "active_call_switch_close_and_borrow_refused": true,
+          "allocation_refusal_cleanup": true,
+          "close_with_live_alias_refused": true,
+          "completed_queue_replay_refused": true,
+          "ended_alias_access_refused": true,
+          "partial_cancelled_queue_replay_refused": true,
+          "persistent_owner_survives_actual_switch": true
+        },
+        "replayed_transitions": 0,
+        "selection_reason": "forecast_exhausted_by_actual_preparation_and_switch_cost",
+        "state_driver_exports_checked": 14,
+        "status": "registered_queue_and_resource_controls_completed"
+      },
+      "full_requirement_satisfied": false,
+      "gaps": [
+        "Final deployment net is negative and the candidate was automatically declined.",
+        "Forecasts do not guarantee future net gain.",
+        "No external I/O replay guarantee, crash recovery, general heap-graph or live-stack migration.",
+        "Cost scope excludes Python startup/imports and external LLM/NDU search not executed in this deterministic fixture."
+      ],
+      "history": {
+        "attempt03_positive_internal_interval_is_final_gate": false,
+        "attempt04_complete_local_net_ns": -805389844,
+        "best_historical_timing_selected": false,
+        "final_requalification_reason": "Production loaded-mapping identity correctness fix; unchanged registered 400000000 transitions and complete outer API clock.",
+        "prior_attempts_retained": [
+          "attempt01",
+          "attempt02",
+          "attempt03",
+          "attempt04"
+        ],
+        "repeat_until_positive": false
+      },
+      "id": 7,
+      "implementation": {
+        "scope": {
+          "external_effects_or_crash_exactly_once": false,
+          "finite_committed_queue": true,
+          "global_optimality": false,
+          "lease_checked_access": true,
+          "persistent_native_u64_owner": true,
+          "python_process_startup_or_imports_included": false,
+          "unexecuted_llm_or_ndu_search_cost_included": false,
+          "whole_heap_or_live_frame_migration": false
+        },
+        "status": "native_owned_u64_state_and_forecast_gate_implemented"
+      },
+      "measurement_boundary": {
+        "additional_measured_overhead_ns": 870595,
+        "audit_finished_ns": 33304476216292,
+        "audit_started_ns": 33301166959870,
+        "baseline_native_execution_ns": 3307593459,
+        "deployment_wall_ns": 4019186453,
+        "finished_ns": 33304476753313,
+        "forecast_is_guaranteed": false,
+        "includes_every_runtime_api_tail_and_final_close": true,
+        "includes_external_llm_ndu_search": false,
+        "includes_fixture_program_and_proposal_construction": true,
+        "includes_python_process_startup_and_imports": false,
+        "internal_interval_deployment_ns": 4018315858,
+        "measured_net_ns": -711592994,
+        "only_subtracted_interval": "entire_post_decision_counterfactual_audit_api",
+        "schema": "hepta.hia.owned-complete-api-wall.v1",
+        "started_ns": 33297148310438,
+        "total_experiment_wall_ns": 7328442875,
+        "whole_audit_api_ns": 3309256422
+      },
+      "title": "Finite owned-state runtime adaptation with complete local API accounting"
+    }
+  ],
+  "archive_parts_readonly_verification": {
+    "all_part_paths_skip_worktree": true,
+    "all_part_sha256_and_git_blob_sha1_match": true,
+    "all_staged_index_blobs_match": true,
+    "archives": [
+      {
+        "archive_bytes": 22871472,
+        "archive_evidence": "qwen_original_archive",
+        "archive_members_reextracted": false,
+        "archive_sha256": "07b76b8046c96ef668efca50e3edcf971079069c5b59275ef3ace28b0de057b7",
+        "complete_archive_sha256_verified": true,
+        "decompression_performed": false,
+        "family": "qwen",
+        "member_manifest_evidence": "qwen_original_manifest",
+        "observed_at_utc": "2026-10-28T06:17:16.600668+00:00",
+        "parts": [
+          {
+            "git_blob_sha1": "c2bc11b27dc35a6a123c72f604c2e40c95dc0587",
+            "git_index_blob_matches": true,
+            "git_index_mode": "100644",
+            "git_index_skip_worktree_observed": true,
+            "git_ls_files_flag": "S",
+            "matches_index_git_blob_sha1": true,
+            "matches_index_sha256": true,
+            "offset": 0,
+            "path": "experiments/hia_optimizer_eval/next_20261028/archive-parts/qwen-final-02-original-phases/part-000",
+            "physical_part_file_exists": false,
+            "sha256": "abffe0e3c5ead927e9c11ff4280903e7d27806cf90fb58a7a5753caad60917ec",
+            "size_bytes": 7372800
+          },
+          {
+            "git_blob_sha1": "113b863350aff12b92655716f94f3af2d0d726c4",
+            "git_index_blob_matches": true,
+            "git_index_mode": "100644",
+            "git_index_skip_worktree_observed": true,
+            "git_ls_files_flag": "S",
+            "matches_index_git_blob_sha1": true,
+            "matches_index_sha256": true,
+            "offset": 7372800,
+            "path": "experiments/hia_optimizer_eval/next_20261028/archive-parts/qwen-final-02-original-phases/part-001",
+            "physical_part_file_exists": false,
+            "sha256": "11e535a876cc2dfc6fe757c285e57cb640e17d8bb36ecaea9c8a85b20657beda",
+            "size_bytes": 7372800
+          },
+          {
+            "git_blob_sha1": "d77968ae9582a0e74713b05f56fc5b16a1f2fa46",
+            "git_index_blob_matches": true,
+            "git_index_mode": "100644",
+            "git_index_skip_worktree_observed": true,
+            "git_ls_files_flag": "S",
+            "matches_index_git_blob_sha1": true,
+            "matches_index_sha256": true,
+            "offset": 14745600,
+            "path": "experiments/hia_optimizer_eval/next_20261028/archive-parts/qwen-final-02-original-phases/part-002",
+            "physical_part_file_exists": false,
+            "sha256": "2361e7fac1e3f6a204603ec5aa4037fe2cebcfbcfb81f4a950ef2b89a789888d",
+            "size_bytes": 7372800
+          },
+          {
+            "git_blob_sha1": "52d60902c1d102c0533ef4b81ee63cc24ac086f9",
+            "git_index_blob_matches": true,
+            "git_index_mode": "100644",
+            "git_index_skip_worktree_observed": true,
+            "git_ls_files_flag": "S",
+            "matches_index_git_blob_sha1": true,
+            "matches_index_sha256": true,
+            "offset": 22118400,
+            "path": "experiments/hia_optimizer_eval/next_20261028/archive-parts/qwen-final-02-original-phases/part-003",
+            "physical_part_file_exists": false,
+            "sha256": "f7c47091ff574201b361df684233ad9e44f52f921f33d2b20ee0e6ab31d548fe",
+            "size_bytes": 753072
+          }
+        ],
+        "parts_contiguous_in_index_order": true,
+        "parts_cover_exact_archive_length": true,
+        "parts_index_evidence": "qwen_original_parts"
+      },
+      {
+        "archive_bytes": 17216976,
+        "archive_evidence": "granite_original_archive",
+        "archive_members_reextracted": false,
+        "archive_sha256": "4d6901ca44a8c733aa6ddb2b29a2835c6a3244efb8f3b548ac157b4edc95d07d",
+        "complete_archive_sha256_verified": true,
+        "decompression_performed": false,
+        "family": "granite",
+        "member_manifest_evidence": "granite_original_manifest",
+        "observed_at_utc": "2026-10-28T06:17:16.600668+00:00",
+        "parts": [
+          {
+            "git_blob_sha1": "6dde2bdecb7cb9636109c7faa92c821405c24b26",
+            "git_index_blob_matches": true,
+            "git_index_mode": "100644",
+            "git_index_skip_worktree_observed": true,
+            "git_ls_files_flag": "S",
+            "matches_index_git_blob_sha1": true,
+            "matches_index_sha256": true,
+            "offset": 0,
+            "path": "experiments/hia_optimizer_eval/next_20261028/archive-parts/granite-final-02-original-phases/part-000",
+            "physical_part_file_exists": false,
+            "sha256": "72f78bb927889ff777faf74b5936de01d91e741331187a6b08e5f461f21b1ac3",
+            "size_bytes": 7372800
+          },
+          {
+            "git_blob_sha1": "4d821dd55ba413bc3c797616acc346f79130897c",
+            "git_index_blob_matches": true,
+            "git_index_mode": "100644",
+            "git_index_skip_worktree_observed": true,
+            "git_ls_files_flag": "S",
+            "matches_index_git_blob_sha1": true,
+            "matches_index_sha256": true,
+            "offset": 7372800,
+            "path": "experiments/hia_optimizer_eval/next_20261028/archive-parts/granite-final-02-original-phases/part-001",
+            "physical_part_file_exists": false,
+            "sha256": "bf8227e9f029414bdfb92e4a74f6f31f5d3dacfe672aaf4a9f08c765284f3612",
+            "size_bytes": 7372800
+          },
+          {
+            "git_blob_sha1": "b3f70b0deafcb3ab21b4dcd977cf6dfdc21b2479",
+            "git_index_blob_matches": true,
+            "git_index_mode": "100644",
+            "git_index_skip_worktree_observed": true,
+            "git_ls_files_flag": "S",
+            "matches_index_git_blob_sha1": true,
+            "matches_index_sha256": true,
+            "offset": 14745600,
+            "path": "experiments/hia_optimizer_eval/next_20261028/archive-parts/granite-final-02-original-phases/part-002",
+            "physical_part_file_exists": false,
+            "sha256": "0acd3fc9178117f1092c045d549e9b9c6bda1c8347b1200acc29c5c8fc346abb",
+            "size_bytes": 2471376
+          }
+        ],
+        "parts_contiguous_in_index_order": true,
+        "parts_cover_exact_archive_length": true,
+        "parts_index_evidence": "granite_original_parts"
+      }
+    ],
+    "item6_initial_record_preserved": true,
+    "item6_initial_record_sha256": "4e0dc86631c73c523ee8779a7000490969fea869e2924fa4fe531847a02688cc",
+    "method": "Read the retained complete compressed archive in INDEX offset/byte-count order; compute each SHA-256 and SHA-1 of the exact Git blob header plus bytes; compare complete SHA-256 and staged Git index identities. No decompression or model/runtime execution.",
+    "observed_at_utc": "2026-10-28T06:17:16.600668+00:00",
+    "part_count": 7,
+    "previous_acceptance_sha256": "952c5eced36fffab5c1775022647e3705d391fc43eb0c2d6bc773d7a01edfa37",
+    "remote_api_upload_or_ref_publication_rechecked": false,
+    "schema": "hepta.hia.original-agent-archive-parts-readonly-audit.v1",
+    "scope_note": "Item 6 remains the unchanged initial pending snapshot for root final integration. Its earlier local-part availability/recheck fields describe that initial assembly. This later audit closes the compressed archive/part byte identity check using retained whole files and supersedes only that earlier evidence-access limitation; it supplies no new experiment outcome."
+  },
+  "archive_readonly_verification": [
+    {
+      "all_member_hashes_match": true,
+      "archive_evidence": "ndu_archive",
+      "files_extracted": 0,
+      "manifest_evidence": "ndu_archive_manifest",
+      "members_rehashed": 218,
+      "native_loads": 0
+    },
+    {
+      "all_member_hashes_match": true,
+      "archive_evidence": "bench_archive",
+      "files_extracted": 0,
+      "manifest_evidence": "bench_archive_manifest",
+      "members_rehashed": 260,
+      "native_loads": 0
+    },
+    {
+      "all_member_hashes_match": true,
+      "archive_evidence": "cpp_archive",
+      "files_extracted": 0,
+      "manifest_evidence": "cpp_archive_manifest",
+      "members_rehashed": 42,
+      "native_loads": 0
+    },
+    {
+      "all_member_hashes_match": true,
+      "archive_evidence": "runtime_archive",
+      "files_extracted": 0,
+      "manifest_evidence": "runtime_archive_manifest",
+      "members_rehashed": 24,
+      "native_loads": 0
+    }
+  ],
+  "authority": "DENY_ALL",
+  "claim_policy": {
+    "arbitrary_program_global_optimality_proved": false,
+    "general_low_cost_safe_cpp_translation_proved": false,
+    "historical_receipts_are_evidence_not_authority": true,
+    "implementation_execution_correctness_and_advantage_are_separate": true,
+    "negative_results_and_aborted_protocols_retained": true,
+    "pass_limited_to_explicit_scope": true,
+    "unknown_or_pending_is_not_success": true,
+    "whole_language_soundness_proved": false
+  },
+  "deployment_authority": false,
+  "evidence": {
+    "agent_final_readout": {
+      "path": "experiments/hia_optimizer_eval/next_20261028/AGENT_FINAL_RESULTS.md",
+      "sha256": "f7cb6c8fed03efee1a11325a0175be2dec2ccb8c62d1bae6b52484fb2219bfc9",
+      "size_bytes": 8292
+    },
+    "agent_final_result": {
+      "path": "experiments/hia_optimizer_eval/next_20261028/AGENT_FINAL_RESULTS.json",
+      "sha256": "97902391462a67592d1644e1e5e9aa55ac265a92ece83a613d8f8f0026d6f47f",
+      "size_bytes": 140860
+    },
+    "agent_independent_review": {
+      "path": "experiments/hia_optimizer_eval/agent_readout_20261028/INDEPENDENT_REVIEW.json",
+      "sha256": "a1357dd03868b1291729d3b7251a879e4837a38c84250445ccedb5648cba0f9e",
+      "size_bytes": 1307
+    },
+    "agent_protocol": {
+      "path": "experiments/hia_optimizer_eval/next_20261028/PROTOCOL.json",
+      "sha256": "6b21fc1455034d7681b93dbd6c32ea8bced96c843db051293ba83f9887c26036",
+      "size_bytes": 7655
+    },
+    "agent_registration": {
+      "path": "experiments/hia_optimizer_eval/next_20261028/REGISTRATION.json",
+      "sha256": "7ac576d316458e80e46ed5370fe6a9845f8f808325271fe7496bb71fbf8dc37d",
+      "size_bytes": 3923
+    },
+    "agent_response_diagnosis": {
+      "path": "experiments/hia_optimizer_eval/next_20261028/AGENT_RESPONSE_DIAGNOSIS.json",
+      "sha256": "09268604ef5299ec56aad4351132f1f6a4be0075c3539a6963adf510bb1ab29d",
+      "size_bytes": 6981
+    },
+    "agent_runtime_amendment": {
+      "path": "experiments/hia_optimizer_eval/next_20261028/RUNTIME_AMENDMENT.json",
+      "sha256": "9ef289fe3d906d6728dfc1032f092a88972cb256c3c78f7389d58acf039fa7f2",
+      "size_bytes": 3107
+    },
+    "bench_archive": {
+      "path": "experiments/hia_optimizer_eval/next_20261028/benchmark-final-01.tar.xz",
+      "sha256": "0aa44299aabf4154f8cedc371309b4b4f2e33972986f795b4395af24a2e30e5a",
+      "size_bytes": 1345272
+    },
+    "bench_archive_manifest": {
+      "path": "experiments/hia_optimizer_eval/next_20261028/benchmark-final-01.tar.manifest.json",
+      "sha256": "0b7433e87fe57db27f6b135bda548b3c4aa95f6e75899de8f60133cd2f7c2bff",
+      "size_bytes": 32307
+    },
+    "bench_rebinding": {
+      "path": "experiments/hia_optimizer_eval/benchmark_rebinding_20261028/AUDIT.json",
+      "sha256": "7a95ae33cfad618f8ea2e022ef57b3c2bba925f25b27015d0fabc28af0f60fb2",
+      "size_bytes": 24849
+    },
+    "bench_result": {
+      "path": "experiments/hia_optimizer_eval/next_20261028/benchmark-results.json",
+      "sha256": "a79f0fc39e9b9c15bc04bbcb5259c0ae26fc7c8e37c4d1fcabcc32d0f9c78ccb",
+      "size_bytes": 70043
+    },
+    "cli_archive": {
+      "path": "experiments/hia_verified_integration/next_20261028/cli-guarded-after-loader.tar.xz",
+      "sha256": "ec925d18bbf2b9919fe2646220daab936307f2ced33d76230d5009d234ab8f53",
+      "size_bytes": 18976
+    },
+    "cli_archive_manifest": {
+      "path": "experiments/hia_verified_integration/next_20261028/cli-guarded-after-loader.tar.manifest.json",
+      "sha256": "873c583ef28b0b1d0bd9384ed33861eb3415f713850fbee76f3f93b1ddac99ce",
+      "size_bytes": 1117
+    },
+    "cli_result": {
+      "path": "experiments/hia_verified_integration/next_20261028/cli-guarded-after-loader/result.json",
+      "sha256": "ad74ce3ad135f8f5f08611477941b392ff6e874a43c83d321949d75da745ab27",
+      "size_bytes": 151840
+    },
+    "continuation_control_gate": {
+      "path": "experiments/hia_verified_integration/next_20261028/continuation-controls-final/RESULT.json",
+      "sha256": "362e5aac9e5d068c7e2af65572b158fdebaa8fa4ad0f4380430ad46c9e5be67e",
+      "size_bytes": 1872
+    },
+    "core_freeze": {
+      "path": "experiments/hia_verified_integration/next_20261028/core-freeze-after-loader.json",
+      "sha256": "0a2ee48b3cfd9258977c839918889dce32fdc06d6949df721a3ebacc79bedd04",
+      "size_bytes": 12071
+    },
+    "cpp_archive": {
+      "path": "experiments/cpp_composed_project_eval/next_20261028/evidence-final3.tar.xz",
+      "sha256": "451285bea82e2518bf86f25b104f992506c98843070bcac309a9675fcf277c40",
+      "size_bytes": 65068
+    },
+    "cpp_archive_index": {
+      "path": "experiments/cpp_composed_project_eval/next_20261028/ARCHIVE-final3.json",
+      "sha256": "52f66ffcb86fcff39996aef6f20beb30771651514c2006f9530e76d9ddaa1471",
+      "size_bytes": 3130
+    },
+    "cpp_archive_manifest": {
+      "path": "experiments/cpp_composed_project_eval/next_20261028/RAW_MEMBERS-final3.json",
+      "sha256": "8800ea1914f1b379677852f2e6a7e23a291cd02a073dd956328baff1b145418e",
+      "size_bytes": 8842
+    },
+    "cpp_cli_commands": {
+      "path": "experiments/cpp_composed_project_eval/next_20261028/cli2/commands.json",
+      "sha256": "67383919c6c345f70e59fe384852f85df509124d5121931c416927e2249c2160",
+      "size_bytes": 4605
+    },
+    "cpp_cli_variants": {
+      "path": "experiments/cpp_composed_project_eval/next_20261028/cli2/all_variants.json",
+      "sha256": "c22f845d559a6330d9f93b338dcfb3b674a3c05899eb75ee36e52a61e373ac75",
+      "size_bytes": 213434
+    },
+    "cpp_raw": {
+      "path": "experiments/cpp_composed_project_eval/next_20261028/final3/qualification.json",
+      "sha256": "46b2cfd0a84bd9b01e1d363f5c61d71550f0a14c7b58e0e8f6dd3b14de0b41ff",
+      "size_bytes": 259791
+    },
+    "cpp_registration": {
+      "path": "experiments/cpp_composed_project_eval/next_20261028/final3_registration.json",
+      "sha256": "e8903d300c04b0a7cf168d205fd00c53b9fa33818278b1697adf27f140bb4975",
+      "size_bytes": 972
+    },
+    "cpp_result": {
+      "path": "experiments/cpp_composed_project_eval/next_20261028/FINAL_ACCEPTANCE.json",
+      "sha256": "a0a8ce99da71d4d08ac66f696273ee6d538e356480d481492a997f6c98fb7531",
+      "size_bytes": 3989
+    },
+    "fleet_fixture_publication": {
+      "path": "experiments/hia_ndu_ci/fixture_result_fix_20261028/PUBLICATION.json",
+      "sha256": "0673e154b1b16544aa8aa06b7ad1ed213adab6671ce0070ec097fa8976580f2e",
+      "size_bytes": 933
+    },
+    "fleet_scoped_validation": {
+      "path": "experiments/hia_ndu_ci/fixture_scoped_validation_20261028/RESULT.json",
+      "sha256": "f1f7623ef6c744f907243083144699bffe962ed345b3be7eb50b922ab05c2e41",
+      "size_bytes": 7022
+    },
+    "fleet_scoped_validation_index": {
+      "path": "experiments/hia_ndu_ci/fixture_scoped_validation_20261028/INDEX.json",
+      "sha256": "3d0702cee74f953205ab302cc3f4a3efde33b87018bcadb78c9e7f21365f9032",
+      "size_bytes": 1578
+    },
+    "gate_log": {
+      "path": "experiments/hia_verified_integration/next_20261028/regression-after-loader/tests.log",
+      "sha256": "ef6e1c1dce009ca9f51dd8ebfcf5de4070f4c41381ca8bced16a16bdf9694879",
+      "size_bytes": 47552
+    },
+    "gate_plan": {
+      "path": "experiments/hia_verified_integration/next_20261028/regression-after-loader/plan.json",
+      "sha256": "5431ed4b0f69a83f9587352fe5d944bb256eabf81ff198f6fde30a5d67528ce9",
+      "size_bytes": 29516
+    },
+    "gate_result": {
+      "path": "experiments/hia_verified_integration/next_20261028/regression-after-loader/result.json",
+      "sha256": "800c8f2e7e05a7f8135e64dfcada628716e3df4c9ba7a6bcb4370a1ecf9ab6b4",
+      "size_bytes": 29766
+    },
+    "granite_original_archive": {
+      "materialization": {
+        "complete_archive_gitignored": true,
+        "complete_archive_kept_locally": true,
+        "index_path": "experiments/hia_optimizer_eval/next_20261028/archive-parts/granite-final-02-original-phases/INDEX.json",
+        "kind": "concatenate_ordered_parts",
+        "parts_git_tracked": true
+      },
+      "path": "experiments/hia_optimizer_eval/next_20261028/granite-final-02-original-phases.tar.xz",
+      "sha256": "4d6901ca44a8c733aa6ddb2b29a2835c6a3244efb8f3b548ac157b4edc95d07d",
+      "size_bytes": 17216976
+    },
+    "granite_original_manifest": {
+      "path": "experiments/hia_optimizer_eval/next_20261028/granite-final-02-original-phases.tar.manifest.json",
+      "sha256": "b2a90a82ec669541ed7b3bf4aecf90844679bd1cd0dc3bc42f2a9d8521283bea",
+      "size_bytes": 85243
+    },
+    "granite_original_parts": {
+      "path": "experiments/hia_optimizer_eval/next_20261028/archive-parts/granite-final-02-original-phases/INDEX.json",
+      "sha256": "9cb65e36eb9e8205f26f5b09810549604b3adf60dedbe0d17dca02c5238c2fef",
+      "size_bytes": 1686
+    },
+    "granite_primary_supplemental_archive": {
+      "path": "experiments/hia_optimizer_eval/next_20261028/granite-final-02-primary-continuation.tar.xz",
+      "sha256": "0244d51c9299f2d28d7811d06bfdb01a6ba55ecceeea62e68210bdeec8588cdc",
+      "size_bytes": 34528
+    },
+    "granite_primary_supplemental_manifest": {
+      "path": "experiments/hia_optimizer_eval/next_20261028/granite-final-02-primary-continuation.tar.manifest.json",
+      "sha256": "820ab271210aa5e878c0453b5b1b7e5234b0b7d6fb9a4e52b382d69336640187",
+      "size_bytes": 10962
+    },
+    "guarded_source": {
+      "path": "hepta/hia_guarded_optimization.py",
+      "sha256": "37f0934f2777c13de624777322984e0df2eff519b95d40b2210124518e3304ee",
+      "size_bytes": 23891
+    },
+    "guarded_tests": {
+      "path": "tests/test_hia_guarded_optimization.py",
+      "sha256": "df2385d00be55ab130162e4c02edd0a4f60274cd06e6a84aaf7f4399217cd20f",
+      "size_bytes": 10967
+    },
+    "inductive_source": {
+      "path": "hepta/hia_inductive.py",
+      "sha256": "66eb6077d727b15b7f206c9f87bb30b5fa50b7befa7757caca7f79ab1334f6ce",
+      "size_bytes": 6862
+    },
+    "ndu_archive": {
+      "path": "experiments/hia_ndu_graph/run_20261028.tar.xz",
+      "sha256": "0b9d0824e59b8f07db67078996c8eebee02bcacb19b96c701f4a8fc89f736a1b",
+      "size_bytes": 805388
+    },
+    "ndu_archive_index": {
+      "path": "experiments/hia_ndu_graph/run_20261028.archive.json",
+      "sha256": "24794431ea8fcac450ecd3ecaebe6598448f00dcefdf414acc12dd8f1d0cdbce",
+      "size_bytes": 849
+    },
+    "ndu_archive_manifest": {
+      "path": "experiments/hia_ndu_graph/run_20261028.members.json",
+      "sha256": "afed20fe94b2b62103890f0b60dc9d6b51221860b9adda4b3da73adaf93bd271",
+      "size_bytes": 38509
+    },
+    "ndu_bank": {
+      "path": "experiments/hia_ndu_graph/run_20261028/BANK_SUMMARY.json",
+      "sha256": "b14b53cb1f07704bdb8b576ec865723f7ef7631b1b7f04212dc582b5457e2464",
+      "size_bytes": 2168
+    },
+    "ndu_faults": {
+      "path": "experiments/hia_ndu_graph/run_20261028/FAULTS.json",
+      "sha256": "1f9944cfa4d4f8c7ce5cce19227cc3ed2a2cf83df8923530cc9c084ac447baf0",
+      "size_bytes": 3748
+    },
+    "ndu_native_identity": {
+      "path": "experiments/hia_ndu_graph/run_20261028/NATIVE_BUILD_IDENTITY.json",
+      "sha256": "a5e2137fd7cd8796d74b78469ed9820d15a7b47a5b3f665dc58fc7cb3563ce96",
+      "size_bytes": 12304
+    },
+    "ndu_protocol": {
+      "path": "experiments/hia_ndu_graph/run_20261028/PROTOCOL.json",
+      "sha256": "47e2b8eecc6378f2bd339324d7b4434a7db91d6acf45bfc3eb82c3f8b20c6d2c",
+      "size_bytes": 1571
+    },
+    "ndu_rebinding": {
+      "path": "experiments/hia_ndu_graph/loaded_mapping_rebinding_20261028/AUDIT.json",
+      "sha256": "d1a3ecc2b6538d3011e74fc2998a192d94ecf3379ea82ccb729daa19c9ee24a4",
+      "size_bytes": 27251
+    },
+    "ndu_regression_log": {
+      "path": "experiments/hia_ndu_graph/run_20261028/NDU_REGRESSION.log",
+      "sha256": "2722ff2d4d50b3c9bcc97c6c884fcb4eab41e695b661ab18f37e04aeeac1f529",
+      "size_bytes": 5542
+    },
+    "ndu_result": {
+      "path": "experiments/hia_ndu_graph/run_20261028/RESULT_SUMMARY.json",
+      "sha256": "80115a1b632d382caccc6c29cbeb0ee8f55c33b60003a38ebd6086a6fe905630",
+      "size_bytes": 34894
+    },
+    "ndu_source_identity": {
+      "path": "experiments/hia_ndu_graph/run_20261028/SOURCE_IDENTITY.json",
+      "sha256": "2000109bf867400106342472b5ce57ea7cf31ba548b9ff930d763e5dc3539eaf",
+      "size_bytes": 11256
+    },
+    "optimization_source": {
+      "path": "hepta/hia_optimization.py",
+      "sha256": "25407ba518ed0c54614fe54f6744d1e9f553a97ea23b0e62bc043b811f0fc6da",
+      "size_bytes": 23753
+    },
+    "previous_acceptance": {
+      "path": "experiments/hia_verified_integration/acceptance.json",
+      "sha256": "2f9146670371d0f23c2b276692aa4acab8ed3462a5f744c51bbb3525ea89c385",
+      "size_bytes": 3836
+    },
+    "primary_supplemental_controls": {
+      "path": "experiments/hia_optimizer_eval/primary_continuation_20261028/CONTROLS-after-review.json",
+      "sha256": "7725bd8f96705734cba28b1bdf295762e1e210f180c4b516c19b9013aa15cccb",
+      "size_bytes": 1436
+    },
+    "primary_supplemental_source": {
+      "path": "experiments/hia_optimizer_eval/primary_continuation_20261028/run_remaining.py",
+      "sha256": "3d7b80e59c65573fa582682023c7eb49fdd9b4cf574d5bf199ee1426937f7bb8",
+      "size_bytes": 18138
+    },
+    "private_ci_access": {
+      "path": "experiments/hia_private_ci/observation_dc984bb3_20261028T060535Z/ACCESS_LIMITATIONS.json",
+      "sha256": "ce609143054ec0a3985351d6b5a7eeb5b07600f49813e5f510536a8c8bde491c",
+      "size_bytes": 11209
+    },
+    "private_ci_dc": {
+      "path": "experiments/hia_private_ci/observation_dc984bb3_20261028T060535Z/OBSERVATION.json",
+      "sha256": "002f499c2aa8e121a5e493b006c6e53741f7a22ba175f374c2edf85a11423dc6",
+      "size_bytes": 255181
+    },
+    "private_ci_final_index": {
+      "path": "experiments/hia_private_ci/final_dc984bb3_20261028T094818Z/INDEX.json",
+      "sha256": "03d5a51df155b584b1307f420f6ba700fe945163cf387c4c68eef05c71e727e4",
+      "size_bytes": 1392
+    },
+    "private_ci_final_raw": {
+      "path": "experiments/hia_private_ci/final_dc984bb3_20261028T094818Z/FINAL.json",
+      "sha256": "ed9f5e5102c820e775bef973cfc4bd7908ecc3cf4159f22015af570683855d94",
+      "size_bytes": 269813
+    },
+    "private_ci_final_summary": {
+      "path": "experiments/hia_private_ci/final_dc984bb3_20261028T094818Z/SUMMARY.json",
+      "sha256": "96404188113d2a6ff48c80683cee38c31de7016f870b1574179f7e3f624b09ef",
+      "size_bytes": 7145
+    },
+    "public_ci_03": {
+      "path": "experiments/hia_public_ci/run_40636856854/FINAL.json",
+      "sha256": "01a5c05c3ebdbbef83f2af2a7ccaa1c7d629c294960c0bde23520b85e4a8acda",
+      "size_bytes": 6066
+    },
+    "public_ci_d5": {
+      "path": "experiments/hia_public_ci/run_40639809081/FINAL.json",
+      "sha256": "158b4a924be3b5fd4a503d3ed28d9f97755b8851114a3c58effee2571b1ce360",
+      "size_bytes": 8092
+    },
+    "qwen_original_archive": {
+      "materialization": {
+        "complete_archive_gitignored": true,
+        "complete_archive_kept_locally": true,
+        "index_path": "experiments/hia_optimizer_eval/next_20261028/archive-parts/qwen-final-02-original-phases/INDEX.json",
+        "kind": "concatenate_ordered_parts",
+        "parts_git_tracked": true
+      },
+      "path": "experiments/hia_optimizer_eval/next_20261028/qwen-final-02-original-phases.tar.xz",
+      "sha256": "07b76b8046c96ef668efca50e3edcf971079069c5b59275ef3ace28b0de057b7",
+      "size_bytes": 22871472
+    },
+    "qwen_original_manifest": {
+      "path": "experiments/hia_optimizer_eval/next_20261028/qwen-final-02-original-phases.tar.manifest.json",
+      "sha256": "fb22221b90bf55d448410136b5f6a0da80ffe4dc5e30b49574b80ec198a01ee8",
+      "size_bytes": 99844
+    },
+    "qwen_original_parts": {
+      "path": "experiments/hia_optimizer_eval/next_20261028/archive-parts/qwen-final-02-original-phases/INDEX.json",
+      "sha256": "85ffc8916883d642d68fe9a74d0604d16e083a301da29871778f27ff7222e615",
+      "size_bytes": 2023
+    },
+    "qwen_upgrade_supplemental_archive": {
+      "path": "experiments/hia_optimizer_eval/next_20261028/qwen-final-02-upgrade-continuation.tar.xz",
+      "sha256": "69f4e73fd8409c5da1750c33609b0678a02e04eb99a6b6c6fd5bf831eea77f54",
+      "size_bytes": 26876
+    },
+    "qwen_upgrade_supplemental_manifest": {
+      "path": "experiments/hia_optimizer_eval/next_20261028/qwen-final-02-upgrade-continuation.tar.manifest.json",
+      "sha256": "a70c3259004df824c7c00d040f0edc5a27cfaa1df2a7de114cde6126c22080bd",
+      "size_bytes": 6010
+    },
+    "routes_source": {
+      "path": "hepta/hia_routes.py",
+      "sha256": "9f07424b4f365449777d45ad607e257b3f1fde9e4276e05e4d5e363eec62d97a",
+      "size_bytes": 12346
+    },
+    "routes_tests": {
+      "path": "tests/test_hia_routes.py",
+      "sha256": "233e93ecc85f6e3788683803dd06fc5c69be28b6fe1a8b29f2b740b2eb251068",
+      "size_bytes": 6380
+    },
+    "runtime_archive": {
+      "path": "experiments/hia_stateful_eval/next_20261028/evidence-attempt05.tar.xz",
+      "sha256": "9133c8eed516f45af69db584705f5bbfbaae4f71dbda20b53a674f6872426a02",
+      "size_bytes": 35272
+    },
+    "runtime_archive_index": {
+      "path": "experiments/hia_stateful_eval/next_20261028/ARCHIVE-attempt05.json",
+      "sha256": "5f9fb4a32160c4725c1d8760235400ea76c92bb9072c18868272cbd6f70b178b",
+      "size_bytes": 2808
+    },
+    "runtime_archive_manifest": {
+      "path": "experiments/hia_stateful_eval/next_20261028/RAW_MEMBERS-attempt05.json",
+      "sha256": "48c0cad3ceaf53985df4d740d17831e7c2982a6a56c41d3bbcca434302d804b3",
+      "size_bytes": 5249
+    },
+    "runtime_raw": {
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt05/qualification.json",
+      "sha256": "9e50c78b7b36f3d1e63c980c663e1921b8724e22cda799b3de264217f634f1df",
+      "size_bytes": 73583
+    },
+    "runtime_registration": {
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt05_registration.json",
+      "sha256": "222e80fef98f15aa5d88350589b651704cb75131ab03435926279ed8ce94ff7b",
+      "size_bytes": 2607
+    },
+    "runtime_result": {
+      "path": "experiments/hia_stateful_eval/next_20261028/FINAL_ACCEPTANCE.json",
+      "sha256": "501dff05a02cb248e423f7b5d75d2fc4525fa1fa2377e06f77a9640aa3229d0d",
+      "size_bytes": 3748
+    },
+    "source_publication": {
+      "path": "experiments/hia_verified_integration/next_20261028/source-publication.json",
+      "sha256": "a0a78b63099357cde1a8a446afec080370e14771cb0d75d0bef0b74a30614e58",
+      "size_bytes": 1914
+    },
+    "upgrade_supplemental_controls": {
+      "path": "experiments/hia_optimizer_eval/upgrade_continuation_20261028/CONTROLS-after-review.json",
+      "sha256": "3017d5844a08c27ac8ecc90032c20b35ee4ed07e9cf73049572ed077bb283439",
+      "size_bytes": 2654
+    },
+    "upgrade_supplemental_source": {
+      "path": "experiments/hia_optimizer_eval/upgrade_continuation_20261028/run_remaining.py",
+      "sha256": "d3a357ac13d285ff8e994b913e437621ab13239755aac10228cb85961e42efd1",
+      "size_bytes": 19933
+    }
+  },
+  "full_seven_deliverables_complete": false,
+  "integration": {
+    "continuation_fault_controls": {
+      "evidence": "continuation_control_gate",
+      "failures": 0,
+      "scope": "Mocked fault-path controls; not model solutions or native execution",
+      "skips": 0,
+      "source_unchanged": true,
+      "tests": 7
+    },
+    "private_fixture_ci": {
+      "architecture_conclusion": "success",
+      "architecture_terminal_observed": true,
+      "blocking_conclusion": "failure",
+      "blocking_job_conclusions": {
+        "cancelled": 12,
+        "failure": 5,
+        "skipped": 4,
+        "success": 16
+      },
+      "blocking_jobs": 37,
+      "blocking_terminal_observed": true,
+      "bridge_conclusion": "success",
+      "bridge_status": "completed",
+      "broader_blocking_gate_pass_observed": false,
+      "evidence": "private_ci_final_summary",
+      "failure_root_cause": "cargo-deny unknown; Windows observed failures retained without general fix or unrelatedness claim",
+      "head_sha": "dc984bb3b3cb21259f838a31f67a7c2983ea9510",
+      "index_evidence": "private_ci_final_index",
+      "is_performance_requalification_of_4b_native": false,
+      "limits_evidence": "private_ci_access",
+      "observed_at": "2026-10-28T09:48:18.961541+00:00",
+      "observed_blocking_failed_job": 122658682490,
+      "observed_blocking_failed_step": "Run cargo-deny",
+      "raw_evidence": "private_ci_final_raw",
+      "ubuntu_clippy_reason": "Exceeded official maximum execution time of 1h0m0s",
+      "ubuntu_clippy_success_observed": false,
+      "ubuntu_clippy_terminal_status": "cancelled",
+      "unobserved_final_conclusions": [],
+      "v8_build_jobs_skipped": 2,
+      "v8_conclusion": "success",
+      "v8_status": "completed",
+      "windows_complete_failed_shard_logs_saved": true,
+      "windows_failed_shards": [
+        "1/4",
+        "3/4"
+      ],
+      "windows_failures_fixed": false
+    },
+    "private_fixture_ci_historical_observation": {
+      "architecture_terminal_observed": false,
+      "blocking_terminal_observed": false,
+      "bridge_conclusion": "success",
+      "bridge_status": "completed",
+      "broader_blocking_gate_pass_observed": false,
+      "evidence": "private_ci_dc",
+      "failure_root_cause": "unknown",
+      "head_sha": "dc984bb3b3cb21259f838a31f67a7c2983ea9510",
+      "is_performance_requalification_of_4b_native": false,
+      "limits_evidence": "private_ci_access",
+      "observed_at": "2026-10-28T06:05:35.242491+00:00",
+      "observed_blocking_failed_job": 122658682490,
+      "observed_blocking_failed_step": "Run cargo-deny",
+      "ubuntu_clippy_success_observed": false,
+      "unobserved_final_conclusions": null,
+      "v8_build_jobs_skipped": 2,
+      "v8_conclusion": "success",
+      "v8_status": "completed"
+    },
+    "private_fixture_local_qualification": {
+      "clippy_attempts": 1,
+      "clippy_exit_code": 0,
+      "clippy_fix": false,
+      "evidence": "fleet_scoped_validation",
+      "failed": 0,
+      "index": "fleet_scoped_validation_index",
+      "locked_registry_archives_verified": 61,
+      "passed": 41,
+      "replaces_remote_bazel_or_required_gate": false,
+      "skipped": 0,
+      "source_commit": "dc984bb3b3cb21259f838a31f67a7c2983ea9510",
+      "source_files_rechecked": 1113,
+      "source_tree": "cd388fb79077d62f041c9b0c63b46be24c949d70",
+      "source_unchanged": true,
+      "test_attempts": 1,
+      "test_binaries": 2,
+      "test_count": 41,
+      "test_warnings_retained": true
+    },
+    "public_ci": [
+      {
+        "conclusion": "success",
+        "evidence": "public_ci_03",
+        "head_sha": "03d463599484ca18c5ff8eebbb4c0fd149cd2d56",
+        "job_id": 122645709751,
+        "observed_at": "2026-10-28 05:18:53 UTC",
+        "run_id": 40636856854,
+        "run_url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/40636856854",
+        "status": "completed",
+        "steps": 15,
+        "successful_steps": 15,
+        "test_count_inferred_from_metadata": false,
+        "tree_sha": "383b3c7c8a6b68a3857a87c9acbd86af3ca32c24"
+      },
+      {
+        "conclusion": "success",
+        "evidence": "public_ci_d5",
+        "head_sha": "d5a0bf0e42611309cbc6461b1a414b9f8ece254f",
+        "job_id": 122655060017,
+        "observed_at": "2026-10-28T06:05:33.249299+00:00",
+        "run_id": 40639809081,
+        "run_url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/40639809081",
+        "status": "completed",
+        "steps": 15,
+        "successful_steps": 15,
+        "test_count_inferred_from_metadata": false,
+        "tree_sha": "2395f4d8628c2c9ce8a649f129200a71afff083b"
+      }
+    ],
+    "regression": {
+      "elapsed_ns": 179555448339,
+      "errors": 0,
+      "evidence": "gate_result",
+      "failures": 0,
+      "log_sha256": "ef6e1c1dce009ca9f51dd8ebfcf5de4070f4c41381ca8bced16a16bdf9694879",
+      "passed": true,
+      "recorded_source_bindings": 256,
+      "recorded_source_bindings_match_current_files": true,
+      "scope": "The declared integration suite, not proof of performance, general soundness or seven-item acceptance.",
+      "skips": 0,
+      "source_binding_mismatches": [],
+      "source_bindings_canonical_sha256": "5ff0452315adddaaeff2b65a240de3f479a2ca77ef9b340310cd6006a7b67681",
+      "source_unchanged_during_run": true,
+      "tests": 264
+    },
+    "source_publication": {
+      "evidence": "source_publication",
+      "local_and_remote_commit_sha_are_distinct": true,
+      "local_source_commit": "07f43e658268c173f9510567766361378288b0a2",
+      "published_source_commit": "03d463599484ca18c5ff8eebbb4c0fd149cd2d56",
+      "shared_tree": "383b3c7c8a6b68a3857a87c9acbd86af3ca32c24"
+    }
+  },
+  "overall_user_acceptance": false,
+  "prepared_at_utc": "2026-10-28T06:15:25.141900+00:00",
+  "production_deployment_qualified": false,
+  "round": "next_20261028",
+  "schema": "hepta.hia.seven-deliverable-acceptance.v2",
+  "self_check": {
+    "agent_archive_limit": "The seven physical part paths remain absent and skip-worktree. Exact partition bytes, contiguous coverage, full archive SHA-256 and staged Git blob identities were independently checked against retained complete archives. Remote API upload/ref publication was not rechecked here.",
+    "agent_archive_part_count_rehashed": 7,
+    "agent_archive_parts_git_blob_sha1_and_index_checked": true,
+    "agent_large_archive_parts_locally_rehashed": true,
+    "agent_large_archive_parts_rehashed_from_retained_complete_archives": true,
+    "agent_large_archives_decompressed": false,
+    "agent_selected_loose_reports_match_member_manifests": true,
+    "all_256_gate_source_bindings_rehashed": true,
+    "all_four_small_archive_member_inventories_rehashed": true,
+    "all_top_level_evidence_files_exist": true,
+    "all_top_level_evidence_hashes_from_actual_bytes": true,
+    "compiler_invocations": 0,
+    "evidence_file_count": 76,
+    "git_or_pr_writes": 0,
+    "historical_item6_pending_snapshot_not_modified_by_archive_followup": true,
+    "metrics_cross_checked_against_bound_raw_results": true,
+    "model_inferences_run": 0,
+    "native_execution_or_loading": 0,
+    "new_performance_samples": 0,
+    "only_this_new_acceptance_file_written": true,
+    "previous_acceptance_preserved": true,
+    "previous_acceptance_sha256": "2f9146670371d0f23c2b276692aa4acab8ed3462a5f744c51bbb3525ea89c385",
+    "remaining_required_integration": "Final delivery public CI is tracked by exact commit; broad NDU repository blocking gate failed and original scientific advantage gates remain failed.",
+    "root_final_agent_result_integrated": true,
+    "seven_unique_ids": true,
+    "solver_queries": 0
+  }
+}

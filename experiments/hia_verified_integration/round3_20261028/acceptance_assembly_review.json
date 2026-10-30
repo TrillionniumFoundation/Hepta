@@ -1,0 +1,104 @@
+{
+  "blocking_findings_remaining_in_reviewed_code": false,
+  "checks": {
+    "agent_failure_partition_complete": true,
+    "agent_null_output_totals_preserved": true,
+    "agent_review_identifies_current_readout": true,
+    "agent_review_passed_without_remaining_blocker": true,
+    "agent_task_denominator_complete": true,
+    "agent_validation_components_sum_once": true,
+    "migration_two_configs_and_finite_accounting": true,
+    "performance_audit_passed_full_pairs": true,
+    "performance_audit_same_raw_report": true,
+    "performance_counts_no_exclusion_or_retry": true,
+    "performance_nongated_batch_tail_loss_retained": true
+  },
+  "existing_evidence_checks_passed": true,
+  "pending_evidence": [
+    {
+      "currently_exists": false,
+      "path": "experiments/hia_ndu_graph_eval/round3_20261028/trial01.summary.json"
+    },
+    {
+      "currently_exists": false,
+      "path": "experiments/hia_ndu_graph_eval/round3_20261028/ROOT_COST_AUDIT.json"
+    },
+    {
+      "currently_exists": false,
+      "path": "experiments/hia_stateful_eval/round3_20261028/trial01.summary.json"
+    },
+    {
+      "currently_exists": false,
+      "path": "experiments/hia_stateful_eval/round3_20261028/ROOT_COST_AUDIT.json"
+    },
+    {
+      "currently_exists": false,
+      "path": "experiments/hia_private_ci/round3_c4a1bbed_20261028/latest-readout.json"
+    }
+  ],
+  "resolved_findings": [
+    {
+      "finding": "Agent review was not tied to actual READOUT bytes.",
+      "resolution": "Assembler now requires reviewed READOUT bytes/SHA, passed review status and no remaining blocker."
+    },
+    {
+      "finding": "Performance numeric audit was not tied to benchmark raw result.",
+      "resolution": "Assembler now requires passed full14-pair audit and equal raw_report_sha256."
+    },
+    {
+      "finding": "Follow-up kind/registration and independent cost-audit identities needed binding.",
+      "resolution": "Assembler now requires exact schema/kind/registered SHA and a passed same-raw-result audit for both follow-ups; actual new results remain pending."
+    },
+    {
+      "finding": "Document configuration count and Agent outcomes needed more precise wording.",
+      "resolution": "Document distinguishes8 configurations/5 language baselines,26 actual valid envelopes,14 public native checks/0 hidden,exact extend-method refusal and known/null token plus nested cost scopes."
+    }
+  ],
+  "reviewed_at_utc": "2026-10-28T11:35:35.584015+00:00",
+  "reviewed_files": {
+    "agent": {
+      "bytes": 33979,
+      "path": "experiments/hia_agent_matched_v3_readout_20261028/READOUT.json",
+      "sha256": "301345963849ebd997835ab1d233658936a32562cafb49c283f2d4f724e93cca"
+    },
+    "agent_review": {
+      "bytes": 9958,
+      "path": "experiments/hia_verified_integration/round3_20261028/agent_readout_review.json",
+      "sha256": "c0daff822743b9eaf70c7fd51770817350f4cb8d927115f375721eee1e7b7512"
+    },
+    "assembler": {
+      "bytes": 10116,
+      "path": "experiments/hia_verified_integration/round3_20261028/assemble_acceptance.py",
+      "sha256": "b1684264ad4c7ff08cecebfefb6d0bc4609a23e526094dcd8393ed67bb396634"
+    },
+    "document": {
+      "bytes": 21744,
+      "path": "docs/HIA_ROUND3_20261028.md",
+      "sha256": "26a4ff222e070efd56ceab883bad154bdf4345ef8c3cc512f4aaac981cecd6e7"
+    },
+    "migration": {
+      "bytes": 21979,
+      "path": "experiments/cpp_unique_project_eval/round3_20261028/RESULT.json",
+      "sha256": "be3d56929c869a006945b28062341e12efe773a457bb675d5996c004c9468353"
+    },
+    "performance": {
+      "bytes": 23944,
+      "path": "experiments/hia_optimizer_eval/round3_20261028/READOUT.json",
+      "sha256": "aecb5ff2cd9ed5de6c26f1fc2981fb860c544536952315b128ce3d15d907c032"
+    },
+    "performance_audit": {
+      "bytes": 7926,
+      "path": "experiments/hia_optimizer_eval/round3_20261028/ROOT_NUMERIC_AUDIT.json",
+      "sha256": "8378a901d295a7b684a91ac4896984b84c991d1b58ea84d20520a308df406f87"
+    }
+  },
+  "reviewer": "/root/agent_protocol",
+  "schema": "hepta.hia.round3.assembly-preflight-review.v1",
+  "scope_limits": [
+    "No native workload, model request, compiler, proof solver, test suite, archive compression or extraction was executed by this review.",
+    "This is code/record/document consistency review; it does not certify pending NDU/runtime outcomes or execute the assembler.",
+    "Native outputs and whole-source soundness were not independently re-executed or proved.",
+    "No old model result, frozen protocol or task score was edited."
+  ],
+  "status": "reviewed-existing-evidence-pending-new-results"
+}

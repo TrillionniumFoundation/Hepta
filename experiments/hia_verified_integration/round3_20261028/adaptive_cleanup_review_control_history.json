@@ -1,0 +1,115 @@
+{
+  "actual_control_history": [
+    {
+      "checks": [
+        "no native build",
+        "no disposal before close",
+        "both registries unchanged",
+        "preparing returns to zero",
+        "normal close succeeds"
+      ],
+      "command": "PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 -m unittest tests.test_hia_prepared.PreparationReservationTests -v",
+      "exit_code": 0,
+      "fault_subcases": [
+        "OSError during token generation",
+        "KeyboardInterrupt during token generation"
+      ],
+      "kind": "non-native-injected-reservation-failure",
+      "native_build_or_load_invoked": false,
+      "raw_output": "test_token_failure_releases_reservation_before_any_build (tests.test_hia_prepared.PreparationReservationTests.test_token_failure_releases_reservation_before_any_build) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.003s\n\nOK\n",
+      "scope_note": "This run preceded the final rollback committed-flag reset, disposal comment, and added native post-publication control. It is not relabeled as a test run of later source bytes.",
+      "source_bindings_at_this_run": {
+        "hepta/hia_adaptive.py": "402031177fdd95b658a84d23606e615f092887e80ffc557577ec44f877d6081b",
+        "tests/test_hia_prepared.py": "4f9b570dad31e26032c652efd904fd6b39f05a33bb522d496f1ad89320ee4344"
+      },
+      "status": "passed",
+      "test_methods": 1,
+      "tool_process_wall_seconds": 0.205274633,
+      "unittest_elapsed_seconds": 0.003
+    },
+    {
+      "checks": [
+        "ast.parse on both changed files",
+        "git diff --check on both changed paths"
+      ],
+      "kind": "final-static-validation",
+      "native_execution": false,
+      "source_bindings": {
+        "hepta/hia_adaptive.py": "30b9fe0df7d03c8141dd38568ce93c10697177470f858d10ccf10ce4419b5dca",
+        "tests/test_hia_prepared.py": "fa8373926342f845540430a3f465d1e6ea5402ffcdba4c19abf3844b54d8e456"
+      },
+      "status": "passed"
+    }
+  ],
+  "findings_and_fixes": [
+    {
+      "finding": "BaseException after a real candidate load could leave an unpublished native image unowned.",
+      "resolution": "Handle BaseException, dispose uncommitted image, decrement preparation reservation in finally."
+    },
+    {
+      "finding": "Event failure after registry insertion could dispose the image while leaving dangling registry entries.",
+      "resolution": "Roll back both image and admission registries under the same lock before disposal."
+    },
+    {
+      "finding": "Constructor proof or event failure after baseline load could leak the baseline image.",
+      "resolution": "Constructor failure clears its unpublished registries, marks construction closed, and disposes its successfully loaded image."
+    },
+    {
+      "finding": "Token generation raised outside the reservation cleanup guard.",
+      "resolution": "Move token and path generation inside the guarded preparation block."
+    },
+    {
+      "finding": "An interrupted return after successful publication must retain runtime ownership.",
+      "resolution": "Only uncommitted images are disposed. Committed images retain their registry entries and remain subject to the image cap and normal close."
+    },
+    {
+      "finding": "Cleanup telemetry could replace the original cancellation exception; dlclose failure could prevent fd closure.",
+      "resolution": "Rejection telemetry is best effort after ownership resolution; fd closure is in a finally block."
+    }
+  ],
+  "native_control_status": {
+    "executed_by_this_review_after_cleanup_fix": 0,
+    "expected_fault_coverage": [
+      "cancellation after real native load with failing telemetry",
+      "partial registry publication failure",
+      "constructor proof interruption",
+      "constructor baseline event failure",
+      "interruption after successful publication followed by actual selection and execution"
+    ],
+    "methods": [
+      "test_internal_proofs_reused_across_three_actual_images_without_solving_again",
+      "test_changed_core_state_or_internal_build_record_cannot_use_an_old_proof",
+      "test_actual_function_address_cannot_be_swapped_with_another_loaded_image",
+      "test_admitted_rollback_checks_actual_function_mapping_without_reproof",
+      "test_new_candidate_still_needs_real_proof_and_live_loan_still_blocks_switch",
+      "test_proof_from_another_runtime_cannot_match_its_native_build",
+      "test_interrupt_after_actual_load_releases_unpublished_candidate",
+      "test_event_failure_rolls_back_both_registries_before_disposal",
+      "test_interrupt_after_publication_keeps_committed_image_owned_and_callable",
+      "test_constructor_proof_interrupt_and_event_failure_release_actual_baseline"
+    ],
+    "native_test_methods": 10,
+    "reason": "Model inference lane is reserved. Root explicitly requested one final integrated gate rather than duplicate native execution.",
+    "status_at_this_report": "awaiting-root-final-integration-gate",
+    "test_class": "tests.test_hia_prepared.PreparedNativeTests"
+  },
+  "related_cost_review": {
+    "finding": "Session snapshot copying after shutdown previously fell into shared residual cost.",
+    "path": "tools/qualify_hia_ndu_graph.py",
+    "resolution": "native.snapshot now has a separate measured entry charged to the NDU controller, alongside native.shutdown.",
+    "status": "resolved-by-parent-and-read-only-reviewed"
+  },
+  "reported_at_utc": "2026-10-28T10:59:54.965768+00:00",
+  "reviewed_source_bindings": {
+    "hepta/hia_adaptive.py": "30b9fe0df7d03c8141dd38568ce93c10697177470f858d10ccf10ce4419b5dca",
+    "tests/test_hia_prepared.py": "fa8373926342f845540430a3f465d1e6ea5402ffcdba4c19abf3844b54d8e456"
+  },
+  "reviewed_source_commit": "25f357d4bfe2c5ce011efa40b983f5d488a7c2a6",
+  "reviewer": "/root/cpp_resources",
+  "schema": "hepta.hia.adaptive-cleanup-review-history.v1",
+  "scope_limits": [
+    "The Python host, compiler and loader remain trusted; this is not a guarantee against arbitrary repeated asynchronous interruption or host mutation.",
+    "No performance measurement or native correctness result is fabricated by this review.",
+    "Prior C++ qualification and benchmark snapshots are preserved; later integration results must bind their own exact source."
+  ]
+}

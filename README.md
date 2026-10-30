@@ -27,6 +27,60 @@ separate Buffer/owned-ADT/Result/borrow/cleanup profile to LLVM on Linux x86-64.
 Both require a native Rust reference check; neither silently falls back to
 Rust machine-code generation. Hosted task/I/O runtimes remain outside LLVM.
 
+The standalone optimization path now includes
+[independently proved guarded reductions](docs/HIA_GUARDED_OPTIMIZATION.md),
+[captured multi-unit C++ owner transfer](docs/CPP_COMPOSED_PROJECT_MIGRATION.md),
+and [verified version switching with a persistent native owner](docs/HIA_OWNED_STATE_RUNTIME.md).
+The [registered follow-up evaluation](experiments/hia_optimizer_eval/next_20261028/README.md)
+keeps original HIA, strong native baselines, actual model maintenance tasks,
+upgrades and all optimization costs visible. These finite implementations and
+measurements do not grant a universal safety, performance or productivity claim.
+
+The [second-round seven-part acceptance report](docs/HIA_NDU_CONTINUATION_20261028.md)
+records the actual 264-test integration gate, native code and resource checks,
+strong baseline comparisons, completed model-task coverage and retained negative
+results. Its [machine-readable acceptance ledger](experiments/hia_verified_integration/next_20261028/acceptance.json)
+separates implemented scope, finite correctness, scientific advantage and open
+repository CI gates. Passing a test suite does not satisfy an unpassed performance,
+NDU net-benefit or agent-productivity criterion.
+
+The [third-round implementation and evidence report](docs/HIA_ROUND3_20261028.md)
+adds [independently proved modular narrowing](docs/HIA_MODULAR_NARROWING.md),
+[actual default-deleter unique-array migration](docs/CPP_UNIQUE_PROJECT_MIGRATION.md),
+bounded sealed-process NDU sessions, and internally bound proof reuse at runtime
+safe points. Its source checkpoint passed **327 tests with zero failures, errors
+or skips**, plus actual CLI, migration and native qualification. A new preregistered
+eight-arm experiment passed all 14 finite-host noninferiority gates on two kernels;
+its retained batch-p99 regressions and preparation costs prevent a universal
+performance claim. The [third-round acceptance ledger](experiments/hia_verified_integration/round3_20261028/acceptance.json)
+keeps NDU total cost, actual model tasks, owned-state adaptation and repository CI
+separate. The completed native NDU graph made three NDU-selected transitions but
+lost its full-cost gate to both strong controls. All 16 registered cells across the
+two actual model families were attempted, with zero correct tasks. Three fresh owned-state queues completed
+2.1 billion updates without replay or leaks and passed their measured full-cost
+gate, including one actual automatic rollback; their aggregate measured net saving
+was 4.417590258 seconds. Broader companion CI failed. Complete seven-track
+acceptance remains false.
+
+The [fourth-round implementation and evidence report](docs/HIA_ROUND4_20261030.md)
+adds [typed compact HIA assembly](docs/HIA_AGENT_ASSEMBLY.md),
+[captured unique-owner move assignment](docs/CPP_UNIQUE_MOVE_ASSIGNMENT.md),
+[measured sealed NDU identity reuse](docs/HIA_NDU_SESSION_COST.md), and
+[owned-queue continuation](docs/HIA_OWNED_CONTINUATION.md). Its published source
+checkpoint passed **386 tests with zero failures, errors or skips**; the actual CI
+archive also passed 189 identity and evidence checks. The new eight-arm performance
+study retained all 112 samples but failed its stronger aggregate gate: 4/14
+comparisons passed, including 2/10 against strong language configurations. The
+three owned-state cost replications were correct and resource-balanced, but their
+aggregate measured net saving was **negative 4.949976436 seconds**. The original
+three-arm Agent study stopped under its infrastructure rule after 15/24 cells:
+Qwen completed 0/12, while Granite's incomplete family cannot support a full-family
+rate. A complete exploratory CI replication now has a separately frozen protocol
+and one-use launch; its results remain pending without replacing or pooling the
+original observations. The
+[fourth-round acceptance ledger](experiments/hia_verified_integration/round4_20261030/acceptance.json)
+keeps these negative results and the remaining seven-track requirements explicit.
+
 ## Implemented capabilities
 
 The table describes the union of the explicitly qualified profiles in this

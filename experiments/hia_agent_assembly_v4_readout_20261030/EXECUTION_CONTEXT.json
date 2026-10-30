@@ -1,0 +1,35 @@
+{
+  "schema": "hepta.agent.assembly-v4.execution-context.v1",
+  "scope": "Observed agent-controlled scheduling context, not hardware isolation or remote attestation",
+  "model_scheduling": "The registered model runs are sequential. The parent reserved the local heavy-compute slot for inference; other agents did not run additional local native benchmarks, compilations, archive compression, or model completions during it.",
+  "routine_parallel_activity": [
+    "Small JSON and log reads for status reporting",
+    "Source reads and edits outside the frozen evaluator for the independent readout and its pure-memory controls",
+    "Documentation and GitHub publication work by the parent",
+    "Remote CI, which does not execute in the local model process"
+  ],
+  "reported_additional_io": [
+    {
+      "reported_by": "parent agent",
+      "during": "Earlier portion of the model study; exact intervals and completion overlap were not separately instrumented",
+      "activity": "Read frozen source Git blobs in chunks, base64 transfer and GitHub writes; one same-tree git fetch and reference alignment",
+      "reported_wall_seconds": null,
+      "reported_total_cost": null,
+      "timing_scope": "Source publication I/O on the shared host; total overhead is unknown. This did not change the independently frozen evaluator bytes.",
+      "additional_local_compilation_benchmark_archive_compression_or_concurrent_model": false
+    },
+    {
+      "reported_by": "parent agent",
+      "during": "First registered model run, Qwen; exact overlap with a completion was not separately instrumented",
+      "activity": "Download the successful source CI evidence ZIP and check its SHA-256; no extraction, compilation, or execution",
+      "reported_wall_seconds": 0.519,
+      "reported_bytes_description": "6.5 MB (parent-reported rounded size)",
+      "source_ci_run": "40986915930",
+      "timing_scope": "Parent-reported download and hash interval, not a separately measured part of the model harness"
+    }
+  ],
+  "inference_times_adjusted": false,
+  "unfavorable_cells_rerun": false,
+  "background_interference_measured": false,
+  "note": "Actual elapsed request and outer times include whatever concurrent system activity occurred. No correction or zero-interference claim is made. The finite study cannot establish performance on isolated or different hardware."
+}

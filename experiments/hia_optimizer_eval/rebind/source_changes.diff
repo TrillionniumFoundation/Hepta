@@ -1,0 +1,101 @@
+--- measured/hepta/hia_optimization.py
++++ final/hepta/hia_optimization.py
+@@ -50,7 +50,8 @@
+ def checker_identity():
+     digest = sha256()
+     for name in ("hia_optimization.py", "hia_program.py", "hia_schema.py",
+-                 "hia_program_composite.py", "hia_json_preflight.py"):
++                 "hia_program_composite.py", "hia_json_preflight.py",
++                 "hia_program_runtime.py", "hia_bounded_memory.py"):
+         digest.update(name.encode() + b"\0" + Path(__file__).with_name(name).read_bytes() + b"\0")
+     return digest.hexdigest()
+ 
+@@ -131,10 +132,12 @@
+ 
+ 
+ class _Encoder:
+-    def __init__(self, z3, inputs):
++    def __init__(self, z3, inputs, context=None):
+         self.z3 = z3
+         self.env = dict(inputs)
+-        self.trap = z3.IntVal(0)
++        self.context = context if context is not None else (
++            next(iter(inputs.values()))[0].ctx if inputs else z3.main_ctx())
++        self.trap = z3.IntVal(0, ctx=self.context)
+ 
+     def fail(self, condition, code):
+         self.trap = self.z3.If(self.trap == 0, self.z3.If(condition, code, 0), self.trap)
+@@ -152,8 +155,8 @@
+         a = values[0] if values else None
+         b = values[1] if len(values) > 1 else None
+         if op == "const":
+-            value = (z.BoolVal(attrs["value"]) if typ == "bool" else
+-                     z.BitVecVal(0 if typ == "unit" else attrs["value"], WIDTHS.get(typ, 8)))
++            value = (z.BoolVal(attrs["value"], ctx=self.context) if typ == "bool" else
++                     z.BitVecVal(0 if typ == "unit" else attrs["value"], WIDTHS.get(typ, 8), ctx=self.context))
+         elif op == "select":
+             value = z.If(a, b, values[2])
+         elif op == "int.cast":
+@@ -209,9 +212,9 @@
+         self.env[out["name"]] = (value, typ)
+ 
+ 
+-def _fresh(z3, name, typ):
+-    return (z3.Bool(name) if typ == "bool" else z3.BitVecVal(0, 8) if typ == "unit"
+-            else z3.BitVec(name, WIDTHS[typ]), typ)
++def _fresh(z3, name, typ, context=None):
++    return (z3.Bool(name, ctx=context) if typ == "bool" else z3.BitVecVal(0, 8, ctx=context) if typ == "unit"
++            else z3.BitVec(name, WIDTHS[typ], ctx=context), typ)
+ 
+ 
+ def verify_optimization(base, candidate, policy=None):
+@@ -271,14 +274,18 @@
+         report["solver"] = _solver_identity(z3)
+     except OptimizationRejected as exc:
+         return finish("unknown", str(exc))
++    # Z3's default context cannot be concurrently manipulated. Every request
++    # owns all its ASTs and solver in a separate context, including constants
++    # and empty disjunctions. No process-global solver lock is assumed.
++    context = z3.Context()
+     deadline = started + policy["timeout_ms"] * 1_000_000
+     for fi, (lf, rf) in enumerate(zip(left["functions"], right["functions"])):
+         for bi, (lb, rb) in enumerate(zip(lf["blocks"], rf["blocks"])):
+             # Separate namespaces prevent an adversarial parameter such as
+             # 's0_value' from aliasing a later effect output named 'value'.
+-            inputs = {p["name"]: _fresh(z3, f"f{fi}.b{bi}.input:{p['name']}", p["type"])
++            inputs = {p["name"]: _fresh(z3, f"f{fi}.b{bi}.input:{p['name']}", p["type"], context)
+                       for p in lb["params"] if p["type"] in SCALARS}
+-            le, re = _Encoder(z3, inputs), _Encoder(z3, inputs)
++            le, re = _Encoder(z3, inputs, context), _Encoder(z3, inputs, context)
+             for si, ((ls, barrier), (rs, _)) in enumerate(zip(_segments(lb), _segments(rb))):
+                 if len(report["obligations"]) >= policy["max_obligations"]:
+                     return finish("unknown", "proof-obligation budget exceeded")
+@@ -298,11 +305,12 @@
+                         if name not in le.env or name not in re.env or le.env[name][1] != re.env[name][1]:
+                             return finish("unknown", "scalar effect operand correspondence is unavailable")
+                         differences.append(le.env[name][0] != re.env[name][0])
++                    different_values = z3.Or(*differences) if differences else z3.BoolVal(False, ctx=context)
+                     mismatch = z3.Or(le.trap != re.trap,
+-                                     z3.And(le.trap == 0, re.trap == 0, z3.Or(*differences)))
++                                     z3.And(le.trap == 0, re.trap == 0, different_values))
+                 except (KeyError, OptimizationRejected, z3.Z3Exception) as exc:
+                     return finish("unknown", "unsupported symbolic correspondence: " + str(exc))
+-                solver = z3.Solver()
++                solver = z3.Solver(ctx=context)
+                 solver.add(mismatch)
+                 smt = solver.to_smt2()
+                 if len(smt.encode()) > 2 * 1024 * 1024:
+@@ -329,11 +337,11 @@
+                 # starts from the same memory/resource state. Its successful
+                 # outputs may be arbitrary but are shared by both executions.
+                 # If it traps, both executions stop at this same barrier.
+-                le.trap = re.trap = z3.IntVal(0)
++                le.trap = re.trap = z3.IntVal(0, ctx=context)
+                 if barrier is not None:
+                     for output in barrier["out"]:
+                         if output["type"] in SCALARS:
+-                            shared = _fresh(z3, f"f{fi}.b{bi}.effect:{si}:{output['name']}", output["type"])
++                            shared = _fresh(z3, f"f{fi}.b{bi}.effect:{si}:{output['name']}", output["type"], context)
+                             le.env[output["name"]] = re.env[output["name"]] = shared
+     if checker_identity() != report["checker_sha256"]:
+         return finish("unknown", "checker source changed during verification")

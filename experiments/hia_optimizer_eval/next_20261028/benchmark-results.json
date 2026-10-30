@@ -1,0 +1,1095 @@
+{
+  "all_costs": {
+    "all_command_wall_ns": 11467580874,
+    "explicit_core_verification_wall_ns": 9387026,
+    "finite_correctness_wall_ns": 232034608,
+    "guarded_proposal_verification_build_charged_to_candidate": true,
+    "optimizer_search_wall_ns": 12380786,
+    "pgo_training_and_compile_charged_to_pgo_builds": true,
+    "verification_in_native_build_included": true
+  },
+  "archive": "benchmark-final-01.tar.xz",
+  "archive_sha256": "0aa44299aabf4154f8cedc371309b4b4f2e33972986f795b4395af24a2e30e5a",
+  "artifacts": {
+    "c_o3_lto": {
+      "bytes": 7472,
+      "path": "/tmp/hepta-next-20261028-bench-final-01/c_o3_lto.so",
+      "sha256": "ebf48ac62bb3cf3c1d6c35a7957928ff0d5681522247b0fdc196e28eee239500"
+    },
+    "c_pgo_lto": {
+      "bytes": 7856,
+      "path": "/tmp/hepta-next-20261028-bench-final-01/c_pgo_lto.so",
+      "sha256": "0986d02440127041b3eecdddc13bac42ec5131886355b969797325700bd3947b"
+    },
+    "cpp_o3_lto": {
+      "bytes": 9328,
+      "path": "/tmp/hepta-next-20261028-bench-final-01/cpp_o3_lto.so",
+      "sha256": "ce0ed8be8bd0d8c58f21916e4a31f08f11748e69c9bebd3c7b3ad66b0581ccb7"
+    },
+    "cpp_pgo_lto": {
+      "bytes": 9840,
+      "path": "/tmp/hepta-next-20261028-bench-final-01/cpp_pgo_lto.so",
+      "sha256": "86a943708433ba6ecb020230c7ebcc9f283fc7336106309d4941d4ab1f1539de"
+    },
+    "hia_original": {
+      "bytes": 15536,
+      "path": "/tmp/hepta-next-20261028-bench-final-01/hia_original.so",
+      "sha256": "cdef5a44d93f7d89a8256a4548490cb14ed8aa70b7bf2a22beecbdb7c406107d"
+    },
+    "hia_verified": {
+      "bytes": 15536,
+      "path": "/tmp/hepta-next-20261028-bench-final-01/hia_verified.so",
+      "sha256": "e4d1aadd4f859188d16f802daee4e65425aed27923e73ce6f93e59ed9e96932c"
+    },
+    "rust_o3_lto": {
+      "bytes": 1820696,
+      "path": "/tmp/hepta-next-20261028-bench-final-01/rust_o3_lto.so",
+      "sha256": "d0c9aba4614ccf2f0c1397d6b53586987179dc1f736055504c82df038a8a733a"
+    }
+  },
+  "break_even_scope": "descriptive point estimate using the identical heldout workload mix and all actual qualification preparation; no guarantee, no demonstrated payoff against every strong baseline",
+  "break_even_vs_original": [
+    {
+      "all_candidate_preparation_break_even_calls": 4742965,
+      "incremental_break_even_calls": 4615419,
+      "incremental_preparation_ns": 12571204024,
+      "kernel": "full_lifecycle",
+      "mean_saved_ns_per_call": 2723.740927419355
+    },
+    {
+      "all_candidate_preparation_break_even_calls": 3383130,
+      "incremental_break_even_calls": 3292152,
+      "incremental_preparation_ns": 12571204024,
+      "kernel": "packet_xor",
+      "mean_saved_ns_per_call": 3818.537046370968
+    }
+  ],
+  "builds": {
+    "c_o3_lto": {
+      "command_index": 8,
+      "status": "compiled",
+      "wall_ns": 187973852
+    },
+    "c_pgo_lto": {
+      "native_compile_wall_ns": 247759883,
+      "profile_inputs": [
+        {
+          "bytes": 424,
+          "path": "/tmp/hepta-next-20261028-bench-final-01/c_profiles/full_lifecycle-203298.profraw",
+          "sha256": "0ef1af68267b3ca7ec234fcd6011864bb78965370c29f80a65769b100e4c0bd9"
+        },
+        {
+          "bytes": 424,
+          "path": "/tmp/hepta-next-20261028-bench-final-01/c_profiles/packet_xor-203299.profraw",
+          "sha256": "a137c1e6fb03d9a1e2fec1f8555de8763e20dd56940076187ac6c77f21e06b0b"
+        }
+      ],
+      "status": "compiled",
+      "training_profile": {
+        "bytes": 832,
+        "path": "/tmp/hepta-next-20261028-bench-final-01/c_profiles/training.profdata",
+        "sha256": "9a04cad1a7ff6fd9d20b62579543e67b0576e5f22c9b5beaa363f8039ea70b16"
+      },
+      "wall_ns": 715351722
+    },
+    "cpp_o3_lto": {
+      "command_index": 9,
+      "status": "compiled",
+      "wall_ns": 473607080
+    },
+    "cpp_pgo_lto": {
+      "native_compile_wall_ns": 457441001,
+      "profile_inputs": [
+        {
+          "bytes": 432,
+          "path": "/tmp/hepta-next-20261028-bench-final-01/cpp_profiles/full_lifecycle-203316.profraw",
+          "sha256": "15377dddaa548ea41af1ce700e5f7c96dfd2a8f00eeb1e1dc66a973ec1a3eee8"
+        },
+        {
+          "bytes": 432,
+          "path": "/tmp/hepta-next-20261028-bench-final-01/cpp_profiles/packet_xor-203319.profraw",
+          "sha256": "88a0c58bb21d95c51166e375efd02b066df20a577ac2fa4ba9a2531fd87f39ac"
+        }
+      ],
+      "status": "compiled",
+      "training_profile": {
+        "bytes": 840,
+        "path": "/tmp/hepta-next-20261028-bench-final-01/cpp_profiles/training.profdata",
+        "sha256": "d880358387ead650340260dcfff05e07176d3ad42fee2709b30f879f1ba365e4"
+      },
+      "wall_ns": 1453394901
+    },
+    "hia_original": {
+      "receipt": {
+        "artifact_bytes": 15536,
+        "artifact_sha256": "cdef5a44d93f7d89a8256a4548490cb14ed8aa70b7bf2a22beecbdb7c406107d",
+        "binary_inventory": {
+          "claims": {
+            "backend_refinement_proven": false,
+            "binary_abi_observed": true,
+            "native_execution_proven": false,
+            "whole_language_memory_safety_proven": false
+          },
+          "dynamic_exports": [
+            "full_lifecycle",
+            "packet_xor"
+          ],
+          "format": "ELF64",
+          "kind": "ET_DYN",
+          "machine": 62,
+          "schema": "hepta.elf-shared-abi.v1",
+          "source_exports_rechecked": true,
+          "unresolved_imports": [
+            "_ITM_deregisterTMCloneTable",
+            "_ITM_registerTMCloneTable",
+            "__cxa_finalize",
+            "__gmon_start__",
+            "abort",
+            "calloc",
+            "free"
+          ]
+        },
+        "claims": {
+          "backend_refinement_proved": false,
+          "c_codegen_used": false,
+          "cross_target_execution_qualified": false,
+          "fallback_used": false,
+          "foreign_buffer_entrypoints_exposed": false,
+          "native_execution_qualified": false,
+          "rust_codegen_used": false,
+          "rust_reference_required": false,
+          "source_ast_required": false,
+          "standalone_core_reverified": true,
+          "whole_language_soundness_proved": false
+        },
+        "core_sha256": "1de9c862ca95838fa22ce0aecc2d873735cdb67f16e1a318926bd7ad1ce492ab",
+        "exports": [
+          "full_lifecycle",
+          "packet_xor"
+        ],
+        "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+        "flags": [
+          "--target=x86_64-unknown-linux-gnu",
+          "-x",
+          "ir",
+          "-O3",
+          "-fPIC",
+          "-shared"
+        ],
+        "implementation_sha256": "0519011099263210f3f0e9c0ad11c0dc4586fdaf079c6df16746ba49cc4a3ef9",
+        "input_sha256": "1de9c862ca95838fa22ce0aecc2d873735cdb67f16e1a318926bd7ad1ce492ab",
+        "kind": "shared",
+        "llvm_ir_sha256": "85179d6016ee5e1fe3c9b4768bfbd4f624f20dbbd7907fac7b5519ec3a8eef05",
+        "ok": true,
+        "output": "/tmp/hepta-next-20261028-bench-final-01/hia_original.so",
+        "profile": "hepta.hia.program.llvm-linux-x86_64.v1",
+        "runtime_assumptions": [
+          "Linux LP64 target with 64-bit pointers and size_t",
+          "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+          "C malloc returns null or a fresh nonaliasing allocation of the requested size; bytes are initialized before read or remain unobserved",
+          "C free accepts a live allocation from calloc or malloc, or null",
+          "abort terminates execution; no cleanup after traps is promised",
+          "native compiler, linker, loader, libc and host hardware are trusted"
+        ],
+        "schema": "hepta.hia.program.native.v1",
+        "status": "native_compiled_not_executed",
+        "target": "x86_64-unknown-linux-gnu",
+        "toolchain": {
+          "default_target": "x86_64-pc-linux-gnu",
+          "path": "/tmp/hepta-next-llvm-20261028/usr/lib/llvm-20/bin/clang",
+          "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+          "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+        }
+      },
+      "status": "compiled",
+      "wall_ns": 347401471
+    },
+    "hia_verified": {
+      "receipt": {
+        "binding_sha256": "ad8ac757b380912e71983667fc809b58b21cd79e64a1121ccdea922004a4a609",
+        "claims": {
+          "backend_refinement_proved": false,
+          "final_artifact_bound": true,
+          "performance_qualified": false,
+          "unverified_candidate_published": false
+        },
+        "native": {
+          "artifact_bytes": 15536,
+          "artifact_sha256": "e4d1aadd4f859188d16f802daee4e65425aed27923e73ce6f93e59ed9e96932c",
+          "binary_inventory": {
+            "claims": {
+              "backend_refinement_proven": false,
+              "binary_abi_observed": true,
+              "native_execution_proven": false,
+              "whole_language_memory_safety_proven": false
+            },
+            "dynamic_exports": [
+              "full_lifecycle",
+              "packet_xor"
+            ],
+            "format": "ELF64",
+            "kind": "ET_DYN",
+            "machine": 62,
+            "schema": "hepta.elf-shared-abi.v1",
+            "source_exports_rechecked": true,
+            "unresolved_imports": [
+              "_ITM_deregisterTMCloneTable",
+              "_ITM_registerTMCloneTable",
+              "__cxa_finalize",
+              "__gmon_start__",
+              "abort",
+              "calloc",
+              "free"
+            ]
+          },
+          "claims": {
+            "backend_refinement_proved": false,
+            "c_codegen_used": false,
+            "cross_target_execution_qualified": false,
+            "fallback_used": false,
+            "foreign_buffer_entrypoints_exposed": false,
+            "native_execution_qualified": false,
+            "rust_codegen_used": false,
+            "rust_reference_required": false,
+            "source_ast_required": false,
+            "standalone_core_reverified": true,
+            "whole_language_soundness_proved": false
+          },
+          "core_sha256": "a3c6dfd1c9ed497ac4ef886193e7f5d4200a8203bdb813a51f7f1f154122088b",
+          "exports": [
+            "full_lifecycle",
+            "packet_xor"
+          ],
+          "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+          "flags": [
+            "--target=x86_64-unknown-linux-gnu",
+            "-x",
+            "ir",
+            "-O3",
+            "-fPIC",
+            "-shared"
+          ],
+          "implementation_sha256": "0519011099263210f3f0e9c0ad11c0dc4586fdaf079c6df16746ba49cc4a3ef9",
+          "input_sha256": "a3c6dfd1c9ed497ac4ef886193e7f5d4200a8203bdb813a51f7f1f154122088b",
+          "kind": "shared",
+          "llvm_ir_sha256": "1a449a6aaa9562a0f0723187500ee8f6f292ea2a64c2cf7aee7218f12890c44d",
+          "ok": true,
+          "output": "/tmp/hepta-next-20261028-bench-final-01/hia_verified.so",
+          "profile": "hepta.hia.program.llvm-linux-x86_64.v1",
+          "runtime_assumptions": [
+            "Linux LP64 target with 64-bit pointers and size_t",
+            "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+            "C malloc returns null or a fresh nonaliasing allocation of the requested size; bytes are initialized before read or remain unobserved",
+            "C free accepts a live allocation from calloc or malloc, or null",
+            "abort terminates execution; no cleanup after traps is promised",
+            "native compiler, linker, loader, libc and host hardware are trusted"
+          ],
+          "schema": "hepta.hia.program.native.v1",
+          "status": "native_compiled_not_executed",
+          "target": "x86_64-unknown-linux-gnu",
+          "toolchain": {
+            "default_target": "x86_64-pc-linux-gnu",
+            "path": "/tmp/hepta-next-llvm-20261028/usr/lib/llvm-20/bin/clang",
+            "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+            "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+          }
+        },
+        "schema": "hepta.hia.optimized-native.v1",
+        "status": "verified_core_native_bound",
+        "verification": {
+          "base_sha256": "1de9c862ca95838fa22ce0aecc2d873735cdb67f16e1a318926bd7ad1ce492ab",
+          "candidate_sha256": "a3c6dfd1c9ed497ac4ef886193e7f5d4200a8203bdb813a51f7f1f154122088b",
+          "changes": [
+            {
+              "block": "b8",
+              "function": "full_lifecycle",
+              "operation": 4
+            },
+            {
+              "block": "b22",
+              "function": "packet_xor",
+              "operation": 4
+            }
+          ],
+          "checker_sha256": "6c6df88ddca7e8ed64eff8adb26f0bc434cac63f180bdedb2091dd2db1a66acf",
+          "claims": {
+            "backend_refinement_proved": false,
+            "core_resource_trace_equivalence_checked": true,
+            "deployment_authority": false,
+            "inductive_invariants_checked": true,
+            "original_fallback_preserved": true,
+            "performance_qualified": false,
+            "removed_checks_nontrapping": true,
+            "whole_language_soundness_proved": false
+          },
+          "elapsed_ns": 4040721155,
+          "fast_core_sha256": "d4d9dc3f39410f6a45b18356a94a3dbc4a400fbc3e0f9d4853da6f8734b28f93",
+          "obligations": [
+            {
+              "function": "full_lifecycle",
+              "kind": "guard_establishes_entry",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |full_lifecycle.entry:arg1| () (_ BitVec 64))\n(assert\n (let (($x8 (bvule |full_lifecycle.entry:arg1| (_ bv72340172838076673 64))))\n(and $x8 (not (and (bvule ((_ zero_extend 64) |full_lifecycle.entry:arg1|) (_ bv72340172838076673 128)))))))\n(check-sat)\n",
+              "smt2_sha256": "26de1fd7ec4dc83729b6a70750b8596ad32bd6cfbb8d646e46333dc5cf477a08"
+            },
+            {
+              "block": "b1",
+              "function": "full_lifecycle",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |full_lifecycle.b1.input:arg1| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b1.effect:0:v4| () Bool)\n(assert\n (let (($x13 (and (bvule ((_ zero_extend 64) |full_lifecycle.b1.input:arg1|) (_ bv72340172838076673 128)))))\n(and $x13 (= 0 0) |full_lifecycle.b1.effect:0:v4| (not $x13))))\n(check-sat)\n",
+              "smt2_sha256": "7ccaf71bb5621dc625385f8a548b5b14094f1f38fd879920e7a89c81105d17ad",
+              "target": "b2"
+            },
+            {
+              "block": "b1",
+              "function": "full_lifecycle",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |full_lifecycle.b1.input:arg1| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b1.effect:0:v4| () Bool)\n(assert\n (let (($x35 (not |full_lifecycle.b1.effect:0:v4|)))\n(let (($x13 (and (bvule ((_ zero_extend 64) |full_lifecycle.b1.input:arg1|) (_ bv72340172838076673 128)))))\n(and $x13 (= 0 0) $x35 (not $x13)))))\n(check-sat)\n",
+              "smt2_sha256": "f8498724167f0507e6a3f1293fb46bfb131f3689f4766696e885d8386c23e37f",
+              "target": "b3"
+            },
+            {
+              "block": "b2",
+              "function": "full_lifecycle",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |full_lifecycle.b2.input:p6| () (_ BitVec 64))\n(assert\n (let (($x49 (bvule ((_ zero_extend 64) |full_lifecycle.b2.input:p6|) (_ bv72340172838076673 128))))\n(let (($x46 (and $x49)))\n(and $x46 (= 0 0) true (not (and $x49 $x49))))))\n(check-sat)\n",
+              "smt2_sha256": "082a18dfebd979fb3d879c77ab41a93a632471e459099bed414a44097df836da",
+              "target": "b4"
+            },
+            {
+              "block": "b4",
+              "function": "full_lifecycle",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |full_lifecycle.b4.input:p21| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b4.input:p18| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b4.input:p22| () (_ BitVec 64))\n(assert\n (let (($x56 (and (bvule ((_ zero_extend 64) |full_lifecycle.b4.input:p18|) (_ bv72340172838076673 128)) (bvule ((_ zero_extend 64) |full_lifecycle.b4.input:p21|) (_ bv72340172838076673 128)))))\n(let (($x61 (bvult |full_lifecycle.b4.input:p22| |full_lifecycle.b4.input:p21|)))\n(and $x56 (= 0 0) $x61 (not $x56)))))\n(check-sat)\n",
+              "smt2_sha256": "22aea0f8fd2d48b1fecfb0706db56fcc6e134a2c1185c1c841c3ffd060bca999",
+              "target": "b5"
+            },
+            {
+              "block": "b4",
+              "function": "full_lifecycle",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |full_lifecycle.b4.input:p21| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b4.input:p18| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b4.input:p22| () (_ BitVec 64))\n(assert\n (let (($x56 (and (bvule ((_ zero_extend 64) |full_lifecycle.b4.input:p18|) (_ bv72340172838076673 128)) (bvule ((_ zero_extend 64) |full_lifecycle.b4.input:p21|) (_ bv72340172838076673 128)))))\n(let (($x61 (bvult |full_lifecycle.b4.input:p22| |full_lifecycle.b4.input:p21|)))\n(let (($x39 (not $x61)))\n(and $x56 (= 0 0) $x39 (not $x56))))))\n(check-sat)\n",
+              "smt2_sha256": "9425e391f7f33379f046e94e48a02fefaea112d244c320f4d326cfe68c07e999",
+              "target": "b6"
+            },
+            {
+              "block": "b5",
+              "function": "full_lifecycle",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |full_lifecycle.b5.input:p27| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b5.input:p24| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b5.input:p28| () (_ BitVec 64))\n(assert\n (let (($x68 (and (bvule ((_ zero_extend 64) |full_lifecycle.b5.input:p24|) (_ bv72340172838076673 128)) (bvule ((_ zero_extend 64) |full_lifecycle.b5.input:p27|) (_ bv72340172838076673 128)))))\n(let (($x59 (and (distinct (bvadd ((_ zero_extend 64) |full_lifecycle.b5.input:p28|) ((_ zero_extend 64) (_ bv1 64))) ((_ zero_extend 64) (bvadd |full_lifecycle.b5.input:p28| (_ bv1 64)))) true)))\n(let ((?x36 (ite $x59 1 0)))\n(let ((?x19 (ite (= 0 0) ?x36 0)))\n(and $x68 (= ?x19 0) true (not $x68)))))))\n(check-sat)\n",
+              "smt2_sha256": "e645ec45cfbc01d756e2ecc094d74506fae1090323e140a91505e14ac14e37ce",
+              "target": "b4"
+            },
+            {
+              "block": "b6",
+              "function": "full_lifecycle",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |full_lifecycle.b6.input:p29| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b6.input:p32| () (_ BitVec 64))\n(assert\n (let ((?x21 ((_ zero_extend 64) |full_lifecycle.b6.input:p29|)))\n(let (($x64 (bvule ?x21 (_ bv72340172838076673 128))))\n(let (($x69 (and $x64 $x64 (bvule ((_ zero_extend 64) (_ bv0 64)) ?x21) (bvule ((_ zero_extend 64) (_ bv0 64)) (bvmul ((_ zero_extend 64) (_ bv0 64)) (_ bv255 128))))))\n(let (($x95 (and $x64 (bvule ((_ zero_extend 64) |full_lifecycle.b6.input:p32|) (_ bv72340172838076673 128)))))\n(and $x95 (= 0 0) true (not $x69)))))))\n(check-sat)\n",
+              "smt2_sha256": "ed84e0b986ce28aa85b3a9e09e7e2c245a34b477f8ea81691cd9bef9344a7a9a",
+              "target": "b7"
+            },
+            {
+              "block": "b7",
+              "function": "full_lifecycle",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |full_lifecycle.b7.input:p47| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b7.input:p45| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b7.input:p46| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b7.input:p42| () (_ BitVec 64))\n(assert\n (let (($x105 (bvule ((_ zero_extend 64) |full_lifecycle.b7.input:p45|) (bvmul ((_ zero_extend 64) |full_lifecycle.b7.input:p47|) (_ bv255 128)))))\n(let ((?x69 ((_ zero_extend 64) |full_lifecycle.b7.input:p46|)))\n(let ((?x67 ((_ zero_extend 64) |full_lifecycle.b7.input:p47|)))\n(let (($x66 (bvule ?x69 (_ bv72340172838076673 128))))\n(let (($x33 (bvule ((_ zero_extend 64) |full_lifecycle.b7.input:p42|) (_ bv72340172838076673 128))))\n(let (($x22 (bvult |full_lifecycle.b7.input:p47| |full_lifecycle.b7.input:p46|)))\n(let (($x94 (and $x33 $x66 (bvule ?x67 ?x69) $x105)))\n(and $x94 (= 0 0) $x22 (not (and $x33 $x66 (bvult ?x67 ?x69) $x105)))))))))))\n(check-sat)\n",
+              "smt2_sha256": "db18064457dd1b1eef5f96f72201a6ea3cbeb0ff9f8fb5c74301c3f494ec53cc",
+              "target": "b8"
+            },
+            {
+              "block": "b7",
+              "function": "full_lifecycle",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |full_lifecycle.b7.input:p46| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b7.input:p42| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b7.input:p47| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b7.input:p45| () (_ BitVec 64))\n(assert\n (let ((?x69 ((_ zero_extend 64) |full_lifecycle.b7.input:p46|)))\n(let (($x66 (bvule ?x69 (_ bv72340172838076673 128))))\n(let (($x33 (bvule ((_ zero_extend 64) |full_lifecycle.b7.input:p42|) (_ bv72340172838076673 128))))\n(let (($x22 (bvult |full_lifecycle.b7.input:p47| |full_lifecycle.b7.input:p46|)))\n(let (($x25 (not $x22)))\n(let (($x105 (bvule ((_ zero_extend 64) |full_lifecycle.b7.input:p45|) (bvmul ((_ zero_extend 64) |full_lifecycle.b7.input:p47|) (_ bv255 128)))))\n(let (($x94 (and $x33 $x66 (bvule ((_ zero_extend 64) |full_lifecycle.b7.input:p47|) ?x69) $x105)))\n(and $x94 (= 0 0) $x25 (not (and $x33 $x66)))))))))))\n(check-sat)\n",
+              "smt2_sha256": "e6c6a3d0bde3279b7e39e3860ed62878d27e050704243778a2c9f89dbc5f04d6",
+              "target": "b9"
+            },
+            {
+              "block": "b8",
+              "function": "full_lifecycle",
+              "kind": "removed_check_cannot_trap",
+              "operation": 4,
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |full_lifecycle.b8.effect:1:v62| () (_ BitVec 8))\n(declare-fun |full_lifecycle.b8.input:p52| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b8.input:p54| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b8.input:p53| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b8.input:p49| () (_ BitVec 64))\n(assert\n (let ((?x33 ((_ zero_extend 56) |full_lifecycle.b8.effect:1:v62|)))\n(let ((?x69 (bvadd |full_lifecycle.b8.input:p52| ?x33)))\n(let (($x85 (and (distinct (bvadd ((_ zero_extend 64) |full_lifecycle.b8.input:p52|) ((_ zero_extend 64) ?x33)) ((_ zero_extend 64) ?x69)) true)))\n(let ((?x105 (ite $x85 1 0)))\n(let (($x104 (= 0 0)))\n(let ((?x94 (ite $x104 ?x105 0)))\n(let ((?x88 ((_ zero_extend 64) |full_lifecycle.b8.input:p52|)))\n(let ((?x36 ((_ zero_extend 64) |full_lifecycle.b8.input:p53|)))\n(let ((?x80 ((_ zero_extend 64) |full_lifecycle.b8.input:p54|)))\n(let (($x71 (and (bvule ((_ zero_extend 64) |full_lifecycle.b8.input:p49|) (_ bv72340172838076673 128)) (bvule ?x36 (_ bv72340172838076673 128)) (bvult ?x80 ?x36) (bvule ?x88 (bvmul ?x80 (_ bv255 128))))))\n(and $x71 $x104 (and (distinct ?x94 0) true)))))))))))))\n(check-sat)\n",
+              "smt2_sha256": "31c985bada4880a7d3d73ad2bade8f8d5ae4bfba74a79d50ef0faa84a51818d9"
+            },
+            {
+              "block": "b8",
+              "function": "full_lifecycle",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |full_lifecycle.b8.input:p54| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b8.effect:1:v62| () (_ BitVec 8))\n(declare-fun |full_lifecycle.b8.input:p52| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b8.input:p53| () (_ BitVec 64))\n(declare-fun |full_lifecycle.b8.input:p49| () (_ BitVec 64))\n(assert\n (let ((?x33 ((_ zero_extend 56) |full_lifecycle.b8.effect:1:v62|)))\n(let ((?x69 (bvadd |full_lifecycle.b8.input:p52| ?x33)))\n(let ((?x34 ((_ zero_extend 64) ?x69)))\n(let (($x37 (bvule ?x34 (bvmul ((_ zero_extend 64) (bvadd |full_lifecycle.b8.input:p54| (_ bv1 64))) (_ bv255 128)))))\n(let ((?x36 ((_ zero_extend 64) |full_lifecycle.b8.input:p53|)))\n(let ((?x31 (bvadd |full_lifecycle.b8.input:p54| (_ bv1 64))))\n(let ((?x12 ((_ zero_extend 64) ?x31)))\n(let (($x73 (bvule ?x36 (_ bv72340172838076673 128))))\n(let (($x115 (bvule ((_ zero_extend 64) |full_lifecycle.b8.input:p49|) (_ bv72340172838076673 128))))\n(let (($x85 (and (distinct (bvadd ((_ zero_extend 64) |full_lifecycle.b8.input:p52|) ((_ zero_extend 64) ?x33)) ?x34) true)))\n(let ((?x105 (ite $x85 1 0)))\n(let ((?x94 (ite (= 0 0) ?x105 0)))\n(let (($x106 (and (distinct (bvadd ((_ zero_extend 64) |full_lifecycle.b8.input:p54|) ((_ zero_extend 64) (_ bv1 64))) ?x12) true)))\n(let ((?x83 (ite (= ?x94 0) (ite $x106 1 0) ?x94)))\n(let ((?x88 ((_ zero_extend 64) |full_lifecycle.b8.input:p52|)))\n(let (($x71 (and $x115 $x73 (bvult ((_ zero_extend 64) |full_lifecycle.b8.input:p54|) ?x36) (bvule ?x88 (bvmul ((_ zero_extend 64) |full_lifecycle.b8.input:p54|) (_ bv255 128))))))\n(and $x71 (= ?x83 0) true (not (and $x115 $x73 (bvule ?x12 ?x36) $x37))))))))))))))))))))\n(check-sat)\n",
+              "smt2_sha256": "668b33c742abab9871238bdd273fdaf21e43291365919066355a07585611b45f",
+              "target": "b7"
+            },
+            {
+              "function": "packet_xor",
+              "kind": "guard_establishes_entry",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.entry:arg71| () (_ BitVec 64))\n(assert\n (let (($x40 (bvule |packet_xor.entry:arg71| (_ bv72340172838076673 64))))\n(and $x40 (not (and (bvule ((_ zero_extend 64) |packet_xor.entry:arg71|) (_ bv72340172838076673 128)))))))\n(check-sat)\n",
+              "smt2_sha256": "547fd1b36622e8adc501e586df6c5015b77d71ddc9612c51f2d85f8c6fa019b0"
+            },
+            {
+              "block": "b10",
+              "function": "packet_xor",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b10.input:arg71| () (_ BitVec 64))\n(declare-fun |packet_xor.b10.effect:0:v74| () Bool)\n(assert\n (let (($x30 (and (bvule ((_ zero_extend 64) |packet_xor.b10.input:arg71|) (_ bv72340172838076673 128)))))\n(and $x30 (= 0 0) |packet_xor.b10.effect:0:v74| (not $x30))))\n(check-sat)\n",
+              "smt2_sha256": "ceb3bd8dd03f2ed7bb9899967877378ba46cba7d2bef8928ffdaccbff2b56ac2",
+              "target": "b11"
+            },
+            {
+              "block": "b10",
+              "function": "packet_xor",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b10.input:arg71| () (_ BitVec 64))\n(declare-fun |packet_xor.b10.effect:0:v74| () Bool)\n(assert\n (let (($x8 (not |packet_xor.b10.effect:0:v74|)))\n(let (($x30 (and (bvule ((_ zero_extend 64) |packet_xor.b10.input:arg71|) (_ bv72340172838076673 128)))))\n(and $x30 (= 0 0) $x8 (not $x30)))))\n(check-sat)\n",
+              "smt2_sha256": "4108d516da14668da0505ac6edd92068a5db69dd1ed8d807173ef003b0cb0fee",
+              "target": "b12"
+            },
+            {
+              "block": "b11",
+              "function": "packet_xor",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b11.input:p76| () (_ BitVec 64))\n(assert\n (let (($x5 (bvule ((_ zero_extend 64) |packet_xor.b11.input:p76|) (_ bv72340172838076673 128))))\n(let (($x115 (and $x5)))\n(and $x115 (= 0 0) true (not (and $x5 $x5))))))\n(check-sat)\n",
+              "smt2_sha256": "12136a1a0a724d1a5ebd15e70241d21e85431f2ffc349c150c7f3bb9de5ba8e8",
+              "target": "b13"
+            },
+            {
+              "block": "b13",
+              "function": "packet_xor",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b13.input:p91| () (_ BitVec 64))\n(declare-fun |packet_xor.b13.input:p88| () (_ BitVec 64))\n(declare-fun |packet_xor.b13.input:p92| () (_ BitVec 64))\n(assert\n (let (($x73 (and (bvule ((_ zero_extend 64) |packet_xor.b13.input:p88|) (_ bv72340172838076673 128)) (bvule ((_ zero_extend 64) |packet_xor.b13.input:p91|) (_ bv72340172838076673 128)))))\n(let (($x66 (bvult |packet_xor.b13.input:p92| |packet_xor.b13.input:p91|)))\n(and $x73 (= 0 0) $x66 (not $x73)))))\n(check-sat)\n",
+              "smt2_sha256": "01eed5a403cecd9b37790a58608a231639a53071b6d1a77f8e2214e3fcf2c0eb",
+              "target": "b14"
+            },
+            {
+              "block": "b13",
+              "function": "packet_xor",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b13.input:p91| () (_ BitVec 64))\n(declare-fun |packet_xor.b13.input:p88| () (_ BitVec 64))\n(declare-fun |packet_xor.b13.input:p92| () (_ BitVec 64))\n(assert\n (let (($x73 (and (bvule ((_ zero_extend 64) |packet_xor.b13.input:p88|) (_ bv72340172838076673 128)) (bvule ((_ zero_extend 64) |packet_xor.b13.input:p91|) (_ bv72340172838076673 128)))))\n(let (($x66 (bvult |packet_xor.b13.input:p92| |packet_xor.b13.input:p91|)))\n(let (($x42 (not $x66)))\n(and $x73 (= 0 0) $x42 (not $x73))))))\n(check-sat)\n",
+              "smt2_sha256": "28f6779945ca81061735ce29d1d4733671d1beb1a4338e386bc0aebae5e4c9e0",
+              "target": "b15"
+            },
+            {
+              "block": "b14",
+              "function": "packet_xor",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b14.input:p97| () (_ BitVec 64))\n(declare-fun |packet_xor.b14.input:p94| () (_ BitVec 64))\n(declare-fun |packet_xor.b14.input:p98| () (_ BitVec 64))\n(assert\n (let (($x20 (and (bvule ((_ zero_extend 64) |packet_xor.b14.input:p94|) (_ bv72340172838076673 128)) (bvule ((_ zero_extend 64) |packet_xor.b14.input:p97|) (_ bv72340172838076673 128)))))\n(let (($x104 (and (distinct (bvadd ((_ zero_extend 64) |packet_xor.b14.input:p98|) ((_ zero_extend 64) (_ bv1 64))) ((_ zero_extend 64) (bvadd |packet_xor.b14.input:p98| (_ bv1 64)))) true)))\n(let ((?x74 (ite $x104 1 0)))\n(let ((?x115 (ite (= 0 0) ?x74 0)))\n(and $x20 (= ?x115 0) true (not $x20)))))))\n(check-sat)\n",
+              "smt2_sha256": "5b39e169bc2f04791ee58d29b3bd58b94f11af51a32d766ff26a0b86ca428e2c",
+              "target": "b13"
+            },
+            {
+              "block": "b15",
+              "function": "packet_xor",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b15.input:p99| () (_ BitVec 64))\n(declare-fun |packet_xor.b15.effect:0:v113| () Bool)\n(declare-fun |packet_xor.b15.input:p102| () (_ BitVec 64))\n(assert\n (let (($x120 (bvule ((_ zero_extend 64) |packet_xor.b15.input:p99|) (_ bv72340172838076673 128))))\n(let (($x5615 (and $x120 (bvule ((_ zero_extend 64) |packet_xor.b15.input:p102|) (_ bv72340172838076673 128)))))\n(and $x5615 (= 0 0) |packet_xor.b15.effect:0:v113| (not (and $x120))))))\n(check-sat)\n",
+              "smt2_sha256": "a09a62465ff3638defdd66441a5561043c1932f66653f13f1d8ed5d53cece0ab",
+              "target": "b16"
+            },
+            {
+              "block": "b15",
+              "function": "packet_xor",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b15.input:p99| () (_ BitVec 64))\n(declare-fun |packet_xor.b15.effect:0:v113| () Bool)\n(declare-fun |packet_xor.b15.input:p102| () (_ BitVec 64))\n(assert\n (let (($x102 (not |packet_xor.b15.effect:0:v113|)))\n(let (($x120 (bvule ((_ zero_extend 64) |packet_xor.b15.input:p99|) (_ bv72340172838076673 128))))\n(let (($x5615 (and $x120 (bvule ((_ zero_extend 64) |packet_xor.b15.input:p102|) (_ bv72340172838076673 128)))))\n(and $x5615 (= 0 0) $x102 (not (and $x120)))))))\n(check-sat)\n",
+              "smt2_sha256": "4313a50fd75be3518bbd59756166f94afe812e2862b22051c7490e501bd2aaf0",
+              "target": "b17"
+            },
+            {
+              "block": "b16",
+              "function": "packet_xor",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b16.input:p115| () (_ BitVec 64))\n(assert\n (let (($x36 (bvule ((_ zero_extend 64) |packet_xor.b16.input:p115|) (_ bv72340172838076673 128))))\n(let (($x5588 (and $x36)))\n(and $x5588 (= 0 0) true (not (and $x36 $x36))))))\n(check-sat)\n",
+              "smt2_sha256": "aec8d57914cb79d8f5c1a2ff02d751774351611b50f6a9ce0b07a8a9b55c9b1b",
+              "target": "b18"
+            },
+            {
+              "block": "b18",
+              "function": "packet_xor",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b18.input:p133| () (_ BitVec 64))\n(declare-fun |packet_xor.b18.input:p129| () (_ BitVec 64))\n(declare-fun |packet_xor.b18.input:p134| () (_ BitVec 64))\n(assert\n (let (($x59 (and (bvule ((_ zero_extend 64) |packet_xor.b18.input:p129|) (_ bv72340172838076673 128)) (bvule ((_ zero_extend 64) |packet_xor.b18.input:p133|) (_ bv72340172838076673 128)))))\n(let (($x94 (bvult |packet_xor.b18.input:p134| |packet_xor.b18.input:p133|)))\n(and $x59 (= 0 0) $x94 (not $x59)))))\n(check-sat)\n",
+              "smt2_sha256": "af675a9fd6f9eb24addc12eddb3a5b8f4cbeeb71a4af76f56da08b0ece4ffe46",
+              "target": "b19"
+            },
+            {
+              "block": "b18",
+              "function": "packet_xor",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b18.input:p133| () (_ BitVec 64))\n(declare-fun |packet_xor.b18.input:p129| () (_ BitVec 64))\n(declare-fun |packet_xor.b18.input:p134| () (_ BitVec 64))\n(assert\n (let (($x59 (and (bvule ((_ zero_extend 64) |packet_xor.b18.input:p129|) (_ bv72340172838076673 128)) (bvule ((_ zero_extend 64) |packet_xor.b18.input:p133|) (_ bv72340172838076673 128)))))\n(let (($x94 (bvult |packet_xor.b18.input:p134| |packet_xor.b18.input:p133|)))\n(let (($x122 (not $x94)))\n(and $x59 (= 0 0) $x122 (not $x59))))))\n(check-sat)\n",
+              "smt2_sha256": "5ea351fc81eb69bafa25ca15d6ab7a38e6c7b6f43a9d8fbf7d7d751a29bbf587",
+              "target": "b20"
+            },
+            {
+              "block": "b19",
+              "function": "packet_xor",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b19.input:p140| () (_ BitVec 64))\n(declare-fun |packet_xor.b19.input:p136| () (_ BitVec 64))\n(declare-fun |packet_xor.b19.input:p141| () (_ BitVec 64))\n(assert\n (let (($x5589 (and (bvule ((_ zero_extend 64) |packet_xor.b19.input:p136|) (_ bv72340172838076673 128)) (bvule ((_ zero_extend 64) |packet_xor.b19.input:p140|) (_ bv72340172838076673 128)))))\n(let (($x56 (and (distinct (bvadd ((_ zero_extend 64) |packet_xor.b19.input:p141|) ((_ zero_extend 64) (_ bv1 64))) ((_ zero_extend 64) (bvadd |packet_xor.b19.input:p141| (_ bv1 64)))) true)))\n(let ((?x5 (ite $x56 1 0)))\n(let ((?x38 (ite (= 0 0) ?x5 0)))\n(and $x5589 (= ?x38 0) true (not $x5589)))))))\n(check-sat)\n",
+              "smt2_sha256": "f515c1bea0705918e02878bf4c9af41377ba7f7b287d96e4f061a73aa60b899c",
+              "target": "b18"
+            },
+            {
+              "block": "b20",
+              "function": "packet_xor",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b20.input:p142| () (_ BitVec 64))\n(declare-fun |packet_xor.b20.input:p146| () (_ BitVec 64))\n(assert\n (let ((?x13 ((_ zero_extend 64) |packet_xor.b20.input:p142|)))\n(let (($x17 (bvule ?x13 (_ bv72340172838076673 128))))\n(let (($x9 (and $x17 $x17 (bvule ((_ zero_extend 64) (_ bv0 64)) ?x13) (bvule ((_ zero_extend 64) (_ bv0 64)) (bvmul ((_ zero_extend 64) (_ bv0 64)) (_ bv255 128))))))\n(let (($x80 (and $x17 (bvule ((_ zero_extend 64) |packet_xor.b20.input:p146|) (_ bv72340172838076673 128)))))\n(and $x80 (= 0 0) true (not $x9)))))))\n(check-sat)\n",
+              "smt2_sha256": "1ad6729b776a3888106f24fba2441670b096e529f1845a87e434e435b0e48d53",
+              "target": "b21"
+            },
+            {
+              "block": "b21",
+              "function": "packet_xor",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b21.input:p167| () (_ BitVec 64))\n(declare-fun |packet_xor.b21.input:p165| () (_ BitVec 64))\n(declare-fun |packet_xor.b21.input:p166| () (_ BitVec 64))\n(declare-fun |packet_xor.b21.input:p161| () (_ BitVec 64))\n(assert\n (let (($x67 (bvule ((_ zero_extend 64) |packet_xor.b21.input:p165|) (bvmul ((_ zero_extend 64) |packet_xor.b21.input:p167|) (_ bv255 128)))))\n(let ((?x9 ((_ zero_extend 64) |packet_xor.b21.input:p166|)))\n(let ((?x15 ((_ zero_extend 64) |packet_xor.b21.input:p167|)))\n(let (($x39 (bvule ?x9 (_ bv72340172838076673 128))))\n(let (($x32 (bvule ((_ zero_extend 64) |packet_xor.b21.input:p161|) (_ bv72340172838076673 128))))\n(let (($x123 (bvult |packet_xor.b21.input:p167| |packet_xor.b21.input:p166|)))\n(let (($x108 (and $x32 $x39 (bvule ?x15 ?x9) $x67)))\n(and $x108 (= 0 0) $x123 (not (and $x32 $x39 (bvult ?x15 ?x9) $x67)))))))))))\n(check-sat)\n",
+              "smt2_sha256": "f06af3516ced280ac7f80c8b19da05b79f234f6ce2676a2c03e8b9a872a5ae0c",
+              "target": "b22"
+            },
+            {
+              "block": "b21",
+              "function": "packet_xor",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b21.input:p166| () (_ BitVec 64))\n(declare-fun |packet_xor.b21.input:p161| () (_ BitVec 64))\n(declare-fun |packet_xor.b21.input:p167| () (_ BitVec 64))\n(declare-fun |packet_xor.b21.input:p165| () (_ BitVec 64))\n(assert\n (let ((?x9 ((_ zero_extend 64) |packet_xor.b21.input:p166|)))\n(let (($x39 (bvule ?x9 (_ bv72340172838076673 128))))\n(let (($x32 (bvule ((_ zero_extend 64) |packet_xor.b21.input:p161|) (_ bv72340172838076673 128))))\n(let (($x123 (bvult |packet_xor.b21.input:p167| |packet_xor.b21.input:p166|)))\n(let (($x104 (not $x123)))\n(let (($x67 (bvule ((_ zero_extend 64) |packet_xor.b21.input:p165|) (bvmul ((_ zero_extend 64) |packet_xor.b21.input:p167|) (_ bv255 128)))))\n(let (($x108 (and $x32 $x39 (bvule ((_ zero_extend 64) |packet_xor.b21.input:p167|) ?x9) $x67)))\n(and $x108 (= 0 0) $x104 (not (and $x32 $x39)))))))))))\n(check-sat)\n",
+              "smt2_sha256": "92ca1ccd2978776e9222b53447dfee27408ad749ccfb8eee4ffef0cc4c4458fc",
+              "target": "b23"
+            },
+            {
+              "block": "b22",
+              "function": "packet_xor",
+              "kind": "removed_check_cannot_trap",
+              "operation": 4,
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b22.effect:1:v184| () (_ BitVec 8))\n(declare-fun |packet_xor.b22.input:p173| () (_ BitVec 64))\n(declare-fun |packet_xor.b22.input:p175| () (_ BitVec 64))\n(declare-fun |packet_xor.b22.input:p174| () (_ BitVec 64))\n(declare-fun |packet_xor.b22.input:p169| () (_ BitVec 64))\n(assert\n (let ((?x32 ((_ zero_extend 56) |packet_xor.b22.effect:1:v184|)))\n(let ((?x9 (bvadd |packet_xor.b22.input:p173| ?x32)))\n(let (($x41 (and (distinct (bvadd ((_ zero_extend 64) |packet_xor.b22.input:p173|) ((_ zero_extend 64) ?x32)) ((_ zero_extend 64) ?x9)) true)))\n(let ((?x67 (ite $x41 1 0)))\n(let (($x73 (= 0 0)))\n(let ((?x108 (ite $x73 ?x67 0)))\n(let ((?x23 ((_ zero_extend 64) |packet_xor.b22.input:p173|)))\n(let ((?x5 ((_ zero_extend 64) |packet_xor.b22.input:p174|)))\n(let ((?x94 ((_ zero_extend 64) |packet_xor.b22.input:p175|)))\n(let (($x5582 (and (bvule ((_ zero_extend 64) |packet_xor.b22.input:p169|) (_ bv72340172838076673 128)) (bvule ?x5 (_ bv72340172838076673 128)) (bvult ?x94 ?x5) (bvule ?x23 (bvmul ?x94 (_ bv255 128))))))\n(and $x5582 $x73 (and (distinct ?x108 0) true)))))))))))))\n(check-sat)\n",
+              "smt2_sha256": "4688937ca73614b3245139fbc9f130da01f0ffc4e78cd18ed6b94f838d761f8b"
+            },
+            {
+              "block": "b22",
+              "function": "packet_xor",
+              "kind": "inductive_edge",
+              "result": "unsat",
+              "smt2": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun |packet_xor.b22.input:p175| () (_ BitVec 64))\n(declare-fun |packet_xor.b22.effect:1:v184| () (_ BitVec 8))\n(declare-fun |packet_xor.b22.input:p173| () (_ BitVec 64))\n(declare-fun |packet_xor.b22.input:p174| () (_ BitVec 64))\n(declare-fun |packet_xor.b22.input:p169| () (_ BitVec 64))\n(assert\n (let ((?x32 ((_ zero_extend 56) |packet_xor.b22.effect:1:v184|)))\n(let ((?x9 (bvadd |packet_xor.b22.input:p173| ?x32)))\n(let ((?x6 ((_ zero_extend 64) ?x9)))\n(let (($x7 (bvule ?x6 (bvmul ((_ zero_extend 64) (bvadd |packet_xor.b22.input:p175| (_ bv1 64))) (_ bv255 128)))))\n(let ((?x5 ((_ zero_extend 64) |packet_xor.b22.input:p174|)))\n(let ((?x59 (bvadd |packet_xor.b22.input:p175| (_ bv1 64))))\n(let ((?x50 ((_ zero_extend 64) ?x59)))\n(let (($x42 (bvule ?x5 (_ bv72340172838076673 128))))\n(let (($x5592 (bvule ((_ zero_extend 64) |packet_xor.b22.input:p169|) (_ bv72340172838076673 128))))\n(let (($x41 (and (distinct (bvadd ((_ zero_extend 64) |packet_xor.b22.input:p173|) ((_ zero_extend 64) ?x32)) ?x6) true)))\n(let ((?x67 (ite $x41 1 0)))\n(let ((?x108 (ite (= 0 0) ?x67 0)))\n(let (($x5621 (and (distinct (bvadd ((_ zero_extend 64) |packet_xor.b22.input:p175|) ((_ zero_extend 64) (_ bv1 64))) ?x50) true)))\n(let ((?x5618 (ite (= ?x108 0) (ite $x5621 1 0) ?x108)))\n(let ((?x23 ((_ zero_extend 64) |packet_xor.b22.input:p173|)))\n(let (($x5582 (and $x5592 $x42 (bvult ((_ zero_extend 64) |packet_xor.b22.input:p175|) ?x5) (bvule ?x23 (bvmul ((_ zero_extend 64) |packet_xor.b22.input:p175|) (_ bv255 128))))))\n(and $x5582 (= ?x5618 0) true (not (and $x5592 $x42 (bvule ?x50 ?x5) $x7))))))))))))))))))))\n(check-sat)\n",
+              "smt2_sha256": "3fae13497d0d5d695ceb237fa0ce8585efadd60e1a61bd7b0a0f78e9e315b55b",
+              "target": "b21"
+            }
+          ],
+          "policy": {
+            "max_obligations": 1024,
+            "max_scalar_operations": 4096,
+            "preconditions": [],
+            "schema": "hepta.hia.optimization-policy.v1",
+            "target": "x86_64-unknown-linux-gnu",
+            "timeout_ms": 30000
+          },
+          "preconditions": [
+            {
+              "argument": "arg1",
+              "function": "full_lifecycle",
+              "maximum": 72340172838076673
+            },
+            {
+              "argument": "arg71",
+              "function": "packet_xor",
+              "maximum": 72340172838076673
+            }
+          ],
+          "proposal_sha256": "36e9de797297622517de70a4b6df714c506a514a7780054775a8e7cf166747d6",
+          "reason": "guarded entry, every CFG edge, and removed-check obligations are UNSAT",
+          "resource_delta": {
+            "allocation_failure_sequence_preserved": true,
+            "code_size_and_compile_cost_may_increase": true,
+            "ordered_resource_instructions_unchanged": true,
+            "peak_live_bytes_change_under_core_model": 0,
+            "resource_trace_equivalence_checked": true,
+            "vm_steps_preserved": false
+          },
+          "schema": "hepta.hia.guarded-optimization-verification.v1",
+          "solver": {
+            "binding_sha256": "093e8f2a92070c5b60a6f50e91e799a79123ba8573a2df64f1b31c01edd86b39",
+            "library_path": "/tmp/hepta-next-z3-20261028/z3/lib/libz3.so",
+            "library_sha256": "89456c35d2deb579a6a73f012d366148baa54d750f547069b89d86ee616d89cb",
+            "name": "Z3",
+            "version": "4.13.4"
+          },
+          "status": "verified",
+          "target": "x86_64-unknown-linux-gnu",
+          "target_constraints": {
+            "foreign_abi": "unchanged scalar C exports",
+            "guard_before_effects": true,
+            "original_fallback": true,
+            "triple": "x86_64-unknown-linux-gnu"
+          },
+          "verification_sha256": "8f50e2ba908dcb036f5b71a371d7ddf42bed8acbbe6ada9a8dc499034ce5bd44"
+        }
+      },
+      "status": "compiled",
+      "wall_ns": 12918605495
+    },
+    "rust_o3_lto": {
+      "command_index": 10,
+      "status": "compiled",
+      "wall_ns": 4826329031
+    }
+  },
+  "claims": {
+    "global_optimality_proved": false,
+    "physical_device_qualified": false,
+    "resource_soundness_proved": false,
+    "universal_rust_superiority": false
+  },
+  "comparisons": [
+    {
+      "baseline": "hia_original",
+      "empirical_p95_batch_ratio": 0.6961544947982136,
+      "empirical_p99_batch_ratio": 0.8907891865155121,
+      "kernel": "full_lifecycle",
+      "noninferiority_thresholds_passed": true,
+      "paired_time_geomean_ratio": 0.6020077439447267,
+      "paired_time_ratio_upper95": 0.7123130326937837,
+      "peak_rss_ratio": 1.0
+    },
+    {
+      "baseline": "rust_o3_lto",
+      "empirical_p95_batch_ratio": 1.4380557996392107,
+      "empirical_p99_batch_ratio": 1.991353400434147,
+      "kernel": "full_lifecycle",
+      "noninferiority_thresholds_passed": false,
+      "paired_time_geomean_ratio": 1.2039579584785733,
+      "paired_time_ratio_upper95": 1.4485784124405428,
+      "peak_rss_ratio": 0.7872340425531915
+    },
+    {
+      "baseline": "c_o3_lto",
+      "empirical_p95_batch_ratio": 0.9360980330228869,
+      "empirical_p99_batch_ratio": 0.6322674337283337,
+      "kernel": "full_lifecycle",
+      "noninferiority_thresholds_passed": false,
+      "paired_time_geomean_ratio": 0.9840314077713306,
+      "paired_time_ratio_upper95": 1.208928958095077,
+      "peak_rss_ratio": 1.0
+    },
+    {
+      "baseline": "cpp_o3_lto",
+      "empirical_p95_batch_ratio": 1.2656398377828837,
+      "empirical_p99_batch_ratio": 1.9536419762423907,
+      "kernel": "full_lifecycle",
+      "noninferiority_thresholds_passed": false,
+      "paired_time_geomean_ratio": 1.0692305174569605,
+      "paired_time_ratio_upper95": 1.2458381357646626,
+      "peak_rss_ratio": 0.4166666666666667
+    },
+    {
+      "baseline": "c_pgo_lto",
+      "empirical_p95_batch_ratio": 1.4616650586553777,
+      "empirical_p99_batch_ratio": 1.8640962171111979,
+      "kernel": "full_lifecycle",
+      "noninferiority_thresholds_passed": false,
+      "paired_time_geomean_ratio": 1.1167408432534978,
+      "paired_time_ratio_upper95": 1.3771349096606975,
+      "peak_rss_ratio": 1.0
+    },
+    {
+      "baseline": "cpp_pgo_lto",
+      "empirical_p95_batch_ratio": 1.1179503317394197,
+      "empirical_p99_batch_ratio": 1.3470966751773346,
+      "kernel": "full_lifecycle",
+      "noninferiority_thresholds_passed": false,
+      "paired_time_geomean_ratio": 1.020730613032611,
+      "paired_time_ratio_upper95": 1.2085546636516116,
+      "peak_rss_ratio": 0.4166666666666667
+    },
+    {
+      "baseline": "hia_original",
+      "empirical_p95_batch_ratio": 0.5342352655129398,
+      "empirical_p99_batch_ratio": 0.5713504815230263,
+      "kernel": "packet_xor",
+      "noninferiority_thresholds_passed": true,
+      "paired_time_geomean_ratio": 0.7087947036308901,
+      "paired_time_ratio_upper95": 0.9332571516364947,
+      "peak_rss_ratio": 1.0
+    },
+    {
+      "baseline": "rust_o3_lto",
+      "empirical_p95_batch_ratio": 1.030650959006129,
+      "empirical_p99_batch_ratio": 1.256283030563105,
+      "kernel": "packet_xor",
+      "noninferiority_thresholds_passed": false,
+      "paired_time_geomean_ratio": 0.9795281026597699,
+      "paired_time_ratio_upper95": 1.0907248616398564,
+      "peak_rss_ratio": 0.7944664031620553
+    },
+    {
+      "baseline": "c_o3_lto",
+      "empirical_p95_batch_ratio": 1.0042127993258585,
+      "empirical_p99_batch_ratio": 1.1575231732870535,
+      "kernel": "packet_xor",
+      "noninferiority_thresholds_passed": false,
+      "paired_time_geomean_ratio": 0.9929510485703535,
+      "paired_time_ratio_upper95": 1.1131081155898717,
+      "peak_rss_ratio": 1.0
+    },
+    {
+      "baseline": "cpp_o3_lto",
+      "empirical_p95_batch_ratio": 1.2464809142395585,
+      "empirical_p99_batch_ratio": 1.8444570015378394,
+      "kernel": "packet_xor",
+      "noninferiority_thresholds_passed": false,
+      "paired_time_geomean_ratio": 1.0754926726519782,
+      "paired_time_ratio_upper95": 1.2214641555658239,
+      "peak_rss_ratio": 0.4369565217391304
+    },
+    {
+      "baseline": "c_pgo_lto",
+      "empirical_p95_batch_ratio": 0.960558118602722,
+      "empirical_p99_batch_ratio": 1.1049305657366828,
+      "kernel": "packet_xor",
+      "noninferiority_thresholds_passed": true,
+      "paired_time_geomean_ratio": 0.9467647862929787,
+      "paired_time_ratio_upper95": 1.0028246706725021,
+      "peak_rss_ratio": 1.0
+    },
+    {
+      "baseline": "cpp_pgo_lto",
+      "empirical_p95_batch_ratio": 0.8478750983853682,
+      "empirical_p99_batch_ratio": 0.8040464727940315,
+      "kernel": "packet_xor",
+      "noninferiority_thresholds_passed": false,
+      "paired_time_geomean_ratio": 0.9077192784714334,
+      "paired_time_ratio_upper95": 1.0931920178262564,
+      "peak_rss_ratio": 0.4369565217391304
+    }
+  ],
+  "finite_checks": 1260,
+  "quality_failures": [],
+  "quality_passed": true,
+  "raw_report_sha256": "9fc52240333beaac6881f48f3df400e793f5dc0066125a03d8a5368caf2103e7",
+  "samples": 98,
+  "schema": "hepta.hia.optimizer-bench.next-20261028.readout.v1",
+  "search_cost": {
+    "mode": "one registered deterministic proposal, no learned search or holdout-based selection",
+    "model_calls": 0,
+    "search_calls": 1,
+    "search_performed": true,
+    "wall_ns": 12380786
+  },
+  "source_bindings": {
+    "experiments/hia_optimizer_eval/driver.c": "94e419ffdd3eda64e8e03c6282d10c3a37703113b7be811a0c203f1041e1d6ee",
+    "experiments/hia_optimizer_eval/kernels.c": "3a0d1cdad396691c886da42eb8193cb565246d9ffae7c13b09b68c6fe905071b",
+    "experiments/hia_optimizer_eval/kernels.cpp": "1e701085a8bbfd9ab0627eb853568c72a687d467cae12b5d847c40a646dd688a",
+    "experiments/hia_optimizer_eval/kernels.hepta": "68f4fcf874450159ae0e8ea8c67552a51126f8ae324328b259b294c954e10c16",
+    "experiments/hia_optimizer_eval/kernels.rs": "a3e16f8350bc0fe15d86926a81199a364538050f85efb5ac1819cd159653ba59",
+    "experiments/hia_optimizer_eval/next_20261028/PROTOCOL.json": "6b21fc1455034d7681b93dbd6c32ea8bced96c843db051293ba83f9887c26036",
+    "hepta/__init__.py": "8448813083e33f38f96474d5c3b3b690284fcf9c1ca939c33683618b419031b2",
+    "hepta/__main__.py": "935a1c1166b0c1ea35a82256345000bf2c73ded718d77773bc27a71ecce28f7d",
+    "hepta/agent_contract_diff.py": "4c418ca2649bdcb9a41c6825a22fa8b4ee3bf07caceaa479774215203882b9a1",
+    "hepta/agent_semantics.py": "8f28e59630f096e5591a2ab6028dbd08ff5625a0c64d9dd7d8f83987b0cfac3a",
+    "hepta/artifact_publication.py": "44416fe2b5d3f3d29bbb006c592b34bf32ac59c249de995a31fe7976393ed915",
+    "hepta/ast.py": "e69d7d8782a84d3998c747a61420b98fc7a321ec2617284ee3c2c1c66b807af3",
+    "hepta/backend.py": "1ad606979e0bcf05b5b0b56c36e564fa8a402a906a1329104c527d6f23313ef7",
+    "hepta/borrowed_storage.py": "6303b6734c0e35b6080fb696909babfb6866bdd6ce6706c636141cbe021d6b8c",
+    "hepta/c_aliases.py": "bc6c0533fff674f20d64619c50afb81a07375c37f158bf17ea7034026e25baf9",
+    "hepta/c_allocation.py": "e11ad48fa7e2af3fd9d0ec3932f002277bbdf44c0d164593432c5965bfd686d0",
+    "hepta/c_backend.py": "888c1e4cf747bb6ab0aee20c1d8caeb2ba22ce38ebcce8537fd423f98cf8ef09",
+    "hepta/c_import.py": "e5a311752896068f79df1932173b2c8f89ca8d35d3d2159d7c166e54044f0b33",
+    "hepta/c_migrate.py": "99263f3622ecc00db578421c3de08913353afdc91d50943457552661acb458b3",
+    "hepta/c_migration_project.py": "36577acacd614d756805c869cd3ad07aaf70963f0943680ec1b9893e7d71691d",
+    "hepta/c_project.py": "c22aa1e5fdf7c147951c9415171d7a80c3b1395ce57ce2ce1167dfd394158d5c",
+    "hepta/c_project_matrix.py": "15102f57605d0aa53545e54d2dd08a5dff5329eaab3a056ae58b18f243b5b99c",
+    "hepta/c_record_views.py": "d28057eb9a129ebe7a01f3400af002978898e2430f43e9ec2f02710859204e1f",
+    "hepta/c_resource_matrix.py": "9c31d0dac213024b2d99c5cca10797630a97be8d2f640836e3a961ff187dd7a1",
+    "hepta/c_scalar_matrix.py": "c7419502d04595b13c16d537ed0b13f60a99ba3733bbc311beabbfac95ad1252",
+    "hepta/c_translation.py": "90827e735ae9c0bc09a980fcdb38464192e709ee477a5adfd86ce95933d63178",
+    "hepta/cfg.py": "e894c48e3244e1d6403e1adfe4e9872fb44cb469660eb52728c1247deecd05c1",
+    "hepta/cfg_analysis.py": "f8eebfb37dda89a3c7eaf332183ccdbfe10033a9009bf4e9b392f09cf7073599",
+    "hepta/checker.py": "83fa87f5098f2bef27265e5d810a70d9cf4625b816b8550a6a7b6d713005240a",
+    "hepta/clang_capture.py": "72b5f786ad949e0274e6c6543794d12280bf31c3269479ccc3d78427e9507d07",
+    "hepta/cli.py": "72a1b84d5dd6e539152d027b6477154e87c005d661f9fb3e0d73b9b9fafd7c17",
+    "hepta/concurrent_ir.py": "938ecc5d879b36e4c7190cd32a5be3a9105b5d954ccd622e83cbec667f474d3c",
+    "hepta/concurrent_lowering.py": "946dab7ade7f71464a86defcf3424060a0c9499526c452e994ef1ac0b847b25b",
+    "hepta/core.py": "89e8acdd5f3b34f767c974fe50f8a39d4b60518b41acce972a9b89f91e93a45e",
+    "hepta/cpp2hepta.py": "2402418e3a5e33f2d9b5b16289ec3fcd9c706bf492d034adfc701c0b94864ba1",
+    "hepta/cpp_bridge.py": "d6e60271306a37b74a231e9130660c5d2843b8f7b3cbcba26487fbb09b016dda",
+    "hepta/cpp_class_migrate.py": "dc03c3994e2f65e7ffa5f862faaf0d86b4ba0d79fbd97ffb1355397d660b9bd2",
+    "hepta/cpp_composed_migrate.py": "8893618b875d3ef1068d307833e3c9ad1102973c63ee280defb8bd88bb4076b5",
+    "hepta/cpp_composed_project.py": "b0d22ec5baeabb1576d0452e7b95fecbbc2a4695180bc2581428ad4af63c3295",
+    "hepta/cpp_contracts.py": "930c7e30a8e17e380dce3573c91826c6de98ade2918ff58bfe6853d9acce45c7",
+    "hepta/cpp_owned_migrate.py": "293ebbce2f8d59ee6aa2217dd388b39faaaea51180300bd6fea860240f818b83",
+    "hepta/cpp_project_migrate.py": "ed3a1d65eb8d9e1a28774e34e2aff0cd2ba79bfe0e702d6e5ae58c6a25693fef",
+    "hepta/cpp_scoped.py": "385452e0139403c15c316b0f1b76a3ad63d79c82d86619ba61abed3ba5d7d104",
+    "hepta/debug_info.py": "e30097582366ae3a5f4bae5e545b77046e0b4d8b4f2a2b34abc691de20c61d20",
+    "hepta/elf_shared_abi.py": "f9afbaa95a3aa5a9163546da42b601d3ac98648d8da68e6122008e381177ed02",
+    "hepta/executable_core.py": "bc26bc4a3f45664f07602ae4a78d30ef5cfaf710143d96a0a0de61f96b3df43e",
+    "hepta/executable_core_qualify.py": "1189a814592b41d075fb7bee403986c332342676a32ccaecc8ae85af5f195b8f",
+    "hepta/executable_core_runtime.py": "81b9cb0e50bfd66b034cdfff11ed3912e9d4d19e5a1da5c44d453871fe49aebb",
+    "hepta/flow_ir.py": "b0e57a7593d12e27e41c873f6d520c0a3cc929446b0d7df5b565223b93af074a",
+    "hepta/hia_adaptive.py": "79936ef7509d8f4f208c96b43ec854e6e768e09926fb4fca16a1686978226246",
+    "hepta/hia_bounded_memory.py": "3413e3f7dfb77b7672eba6b99b1a2320cb6bd61c3842f37976ee4507ed1a4a3d",
+    "hepta/hia_bundle_atomic.py": "38ba6928e122ae358b641275e1045c8916a05c2f242aab41ec5c5a91963b93c0",
+    "hepta/hia_core.py": "dc9fbacdc8cef16be85397a1beade3a353b93d19cb37a95700a4327777d3dc03",
+    "hepta/hia_core_upgrade.py": "550608c7b654c0af45cda8f122230188c1989069fda2dac4e05c285f7ce77570",
+    "hepta/hia_edit_batch.py": "6434ac74fdaaeb03d4a74107dc57990adf9769b1ea9ea23b49797bfa5596c01e",
+    "hepta/hia_edit_query.py": "d62c25f02870304884efb03956afdffe29c96c56201e0baa816a98196e135ac8",
+    "hepta/hia_guarded_optimization.py": "37f0934f2777c13de624777322984e0df2eff519b95d40b2210124518e3304ee",
+    "hepta/hia_heap_bound.py": "bbdcd71f783c451bf33c894b9a8bf710fb647c3bc8296f489ac070a49c873a66",
+    "hepta/hia_inductive.py": "66eb6077d727b15b7f206c9f87bb30b5fa50b7befa7757caca7f79ab1334f6ce",
+    "hepta/hia_json_preflight.py": "53c6b189ed6210f7cf6fdb75c042ed6db7c10dba9254083270cd2903e3f7f4f2",
+    "hepta/hia_l1_receipt.py": "e7cdd8654d789ce6525390c7f8a813a394683aaff6569e633e0e422d4b501c6f",
+    "hepta/hia_migrate.py": "62446f8c263dbe1b93a1767063c25e1998846eecfcaa680139ddf484a6d8ec42",
+    "hepta/hia_native_differential.py": "66d1fc71e5760ab368b86568a37a34901da26735aa5d0ef87a98b87cb79534e8",
+    "hepta/hia_ndu.py": "1927f0ac3b8cbb388c632da37491ac9401ddb4aa51efa528ca5756613e2c994a",
+    "hepta/hia_optimization.py": "25407ba518ed0c54614fe54f6744d1e9f553a97ea23b0e62bc043b811f0fc6da",
+    "hepta/hia_oracle.py": "3726e6a2bbfb0d54ff75cae1d162a36e49f4caa183f121927dc0b81c3c77622d",
+    "hepta/hia_patch_impact.py": "4d81dfdef67555fefae1aac044121608ec1ca7716f099bc58f32a4fbefed2bce",
+    "hepta/hia_program.py": "acd0a8d68ace92fd388eda53f184023e6915de9600276662c30eecc853acfed1",
+    "hepta/hia_program_aarch64.py": "8bf11c81854eb74c4962ca4f0b046802021a9fd07deb33baddd61f85d43e9716",
+    "hepta/hia_program_composite.py": "f65d51b97673133923a1408a082143d18f96ad6f891d106db66eb53a3ef0cb05",
+    "hepta/hia_program_llvm.py": "ffe2bd44f7924e31225eab3b4265c2e25fb4b974eb66d2b53cc08f315b9db3b2",
+    "hepta/hia_program_runtime.py": "bf951217e040d6588877314c3fe08eb5a92f2137b02bc06704fb798b68c3145a",
+    "hepta/hia_program_source.py": "9faf24112fc2bc602fa04d7f64220f407944260c8a4e380c5ee8c912475f8363",
+    "hepta/hia_program_tools.py": "1b6855fa3c40d6cdfc28a4cc75791d19bf69be0cb1123bc8d49512bbf7fc58f0",
+    "hepta/hia_routes.py": "9f07424b4f365449777d45ad607e257b3f1fde9e4276e05e4d5e363eec62d97a",
+    "hepta/hia_rust_crosscheck.py": "32ed8d1302cb30c3fbb1d6ee5fd178b44cf713c97434c4c9278d00872e38a6d4",
+    "hepta/hia_schema.py": "3f61932bbdc0e66a4b2b75f8a407ce9bf665540fd4760e9b065129f0da029c84",
+    "hepta/hia_source_bridge.py": "83d4de7378aeea85445b7b6635f5ba1a413fba7c5b9665599375e45aa41a139d",
+    "hepta/hia_stateful.py": "ba2e36b68c6efe047e95c4f6b0e28ee08aab120365365470c13297af887c0e28",
+    "hepta/hia_static_budget.py": "2b976816c5ba046e924f71c7e9ab1e856cd63e830ee8cddf3e02499bdcb0673f",
+    "hepta/hia_swap_opt.py": "136c3c5f79921c65256da5ae74e48177ca7579268cb7bbd02648b3bae806dce1",
+    "hepta/hmir.py": "3b3146355a08dcde3a6959626d98d5c8d7813445ca4621d2b03fdfb11dcbc896",
+    "hepta/hsir.py": "5b99d1f6dbb3e8658073457a0ace99898270be4aacccfa0cce4fbe09d14562dd",
+    "hepta/lexer.py": "8138278341afc789f744bf89a752723a96b530043a37596f943f3d4e464ff153",
+    "hepta/llvm_ir_profile.py": "732f8a337ab6f49724001f3ec218486f7146777350a6e778ed87e22a5a487bc5",
+    "hepta/llvm_owned_aarch64.py": "81c7d78c5a1a62b01abc5f7e6b6cf53425653f3ff967e08c4290c3f9bf88d008",
+    "hepta/llvm_owned_backend.py": "6df3e7cd9ce30fc99362b64c10be7a5767d7933d69dfee9509c7777d5cd4bfb8",
+    "hepta/llvm_owned_pipeline.py": "23f92e9eb3f320a066d452921a94452c63e424a74c1988091ced03e9baf64140",
+    "hepta/llvm_ssa_backend.py": "7b1d7b4b6d7d0b79744846875d15d000f533fe87419838f584a7f147b252ad89",
+    "hepta/llvm_ssa_pipeline.py": "b37ec82d74372227e649cb0dcd15b5ea39a5b732e9cb8cd34651d81a92f7bdad",
+    "hepta/llvm_ssa_target.py": "8172da1fd5cfcb4d5658de12f64acaf25cebebb8589e57a1579dffde4a773d1b",
+    "hepta/migration_ir.py": "af7011a20f17de92b108ce1e200dc8b50a9ba9aabde528afe4bff8fca6c30f5e",
+    "hepta/modules.py": "c933a5ab29a1a54b5b36e0e0b2554ce250db3303a559c742fddf2b65fcf0fcea",
+    "hepta/native_local_views.py": "a5ff9e9e78684b979d341e751f0011b9c4e8d65f1ee72b290721ef86dbbcc54c",
+    "hepta/native_resource_gate.py": "d6abcb7e7b1009aea8a8474388e80e1d9740957dfc2e242c4520260f23b93800",
+    "hepta/native_tool_identity.py": "0a67117d44d32154c0743a7111fd96170891386d0bd0164ae2955cc793846810",
+    "hepta/object_structure.py": "4fb0b3d962e4b7f6ba508257bf605f4403d402e4f3d7e05cffa084b91651f5a8",
+    "hepta/object_symbols.py": "aff81d724d08ed4a8c3189e3370f75e234daa010ec9e9855aedc1019d55a693f",
+    "hepta/owned_aarch64_link.py": "c1a6cc39d91805bcbbab841955455dd9db253cae29ae48c6e53a6b648ce3e193",
+    "hepta/owned_aarch64_runtime.py": "15aaa76b5f11e9aba8d76b1154a7bb62bb9962942b708dc9698a72b640ac3322",
+    "hepta/owned_drop_plan.py": "9519ec27c5e47baca77a68503bcd23e38c915f589257a8da7c733a5c6f6f7a25",
+    "hepta/owned_target_layout.py": "8045dcdcae41afe7f7e661cfd9844d12bf7cb4343361e0d10a56050544e5bbe4",
+    "hepta/packages.py": "f8a6f1beedcec4c11dbd544c2c60521f8aab40aac4a05a558d5c6a05dc14bb5f",
+    "hepta/parser.py": "b3cc04259c953d112e1ffbf4482b380cbb15fdd994a5924507dd1d11d5c0c5cf",
+    "hepta/pipeline.py": "9528ea5d7004c3e06fb005d1ef85741934fd1a7667787b166992499c3eaa6ef0",
+    "hepta/protocol.py": "7c4e9c6b71391f34662bd161864cdac63b90574f65dd77e9489a3820299c6972",
+    "hepta/protocol_v3.py": "ffcae884ccb4a0d32b1736bc272a92678ad8b37b7bc7c677107b84c693cbd903",
+    "hepta/resource_ir.py": "7ee06325c766682542334c2c76e876a4d1d50a86c993f91378f36edfaf7ab146",
+    "hepta/resource_lowering.py": "62d63f966b2f2e61540ae6719e8aeecefec9ee9dee65a920f6ba74dd370f3eb9",
+    "hepta/resource_source.py": "f0a4abccfdee9be5f05d54932ba51e9cbd6f448c5c778b36a8e49f3dd61392ad",
+    "hepta/runtime_concurrency.py": "e264aab58d9c0d970e5e9bcb107883d7174957b19a2c87e685c79bbc54dc0287",
+    "hepta/runtime_io.py": "ec87bedf99e209f6f7a5ae356457bd8f74a89bf92a9e6f2ce357c1619f33e8a4",
+    "hepta/runtime_task_io.py": "cf82d44afb4926b080a4b39c5660d3ef49544936f22981ce0478e8f05cbe79ca",
+    "hepta/runtime_task_tree.py": "5659b2484961124df1d38a528294f31f4540436d8f9a0c9b26e97d8b0cecbc27",
+    "hepta/scalar_host_abi.py": "63952a33c26d97e1d918086f9cdb342d32af19cc57b0cd37aab431cff5f512e0",
+    "hepta/semantic_ir.py": "040ecbe4715a4fa20edb719c987960bbff48b1ae59e82a23c08e78954bc389ef",
+    "hepta/source_map.py": "7a602a7728da1729c0a625eac04acbb0cd47ccf17788c5a31f20f292e3b736f8",
+    "hepta/ssa.py": "78f39afff1b89b359c6ce8d824a938712f4f4fa5ab10046d468d637000d75c67",
+    "hepta/ssa_reaching.py": "02a01024f3049c8d4cb40f191d2554f31ae1a971aef93cbdb786789431efbe34",
+    "hepta/ssa_verify.py": "fdf0272cacbe51819314af63defdd8b666e7aa93683cfd8df7ad7ec6b89ff510",
+    "hepta/static_resource_contracts.py": "fe16fb363b21cfc6f380f8e712ee6e087347fa36bbbeaba45d810c64b4c7ad01",
+    "hepta/workspace.py": "68eb4d6d3aeb04e917b9e8f604f928c53420ee8070cd6d45987949e67a88d1ef",
+    "tools/qualify_hia_optimizer_bench.py": "ed596d64a5e4497c8a195cc4ade11c4d6afb690cfce44c8e3e2add3e15c8eaf0"
+  },
+  "standalone_guarded_verification_wall_ns": 3900177956,
+  "status": "completed_noninferiority_failed",
+  "summary": {
+    "full_lifecycle": {
+      "c_o3_lto": {
+        "batch_count": 217,
+        "batch_p50_ns": 445374,
+        "batch_p95_ns": 1089184,
+        "batch_p99_ns": 2859744,
+        "maximum_process_peak_rss_kib": 740,
+        "median_cpu_to_wall_ratio": 0.9998795798481327,
+        "median_elapsed_ns": 15684381,
+        "median_outer_wall_ns": 17859284,
+        "relative_mad": 0.04750082263367614,
+        "samples": 7
+      },
+      "c_pgo_lto": {
+        "batch_count": 217,
+        "batch_p50_ns": 447992,
+        "batch_p95_ns": 697549,
+        "batch_p99_ns": 969973,
+        "maximum_process_peak_rss_kib": 740,
+        "median_cpu_to_wall_ratio": 0.9998797562194791,
+        "median_elapsed_ns": 14444283,
+        "median_outer_wall_ns": 16053722,
+        "relative_mad": 0.10259159281218735,
+        "samples": 7
+      },
+      "cpp_o3_lto": {
+        "batch_count": 217,
+        "batch_p50_ns": 471581,
+        "batch_p95_ns": 805587,
+        "batch_p99_ns": 925514,
+        "maximum_process_peak_rss_kib": 1776,
+        "median_cpu_to_wall_ratio": 0.9998901142493732,
+        "median_elapsed_ns": 15467790,
+        "median_outer_wall_ns": 18562421,
+        "relative_mad": 0.07725544502479023,
+        "samples": 7
+      },
+      "cpp_pgo_lto": {
+        "batch_count": 217,
+        "batch_p50_ns": 458697,
+        "batch_p95_ns": 912011,
+        "batch_p99_ns": 1342237,
+        "maximum_process_peak_rss_kib": 1776,
+        "median_cpu_to_wall_ratio": 0.9994445440730628,
+        "median_elapsed_ns": 16321727,
+        "median_outer_wall_ns": 19673539,
+        "relative_mad": 0.03357604253520476,
+        "samples": 7
+      },
+      "hia_original": {
+        "batch_count": 217,
+        "batch_p50_ns": 821787,
+        "batch_p95_ns": 1464593,
+        "batch_p99_ns": 2029799,
+        "maximum_process_peak_rss_kib": 740,
+        "median_cpu_to_wall_ratio": 0.9999233827557602,
+        "median_elapsed_ns": 26798331,
+        "median_outer_wall_ns": 29460768,
+        "relative_mad": 0.07589577127023321,
+        "samples": 7
+      },
+      "hia_verified": {
+        "batch_count": 217,
+        "batch_p50_ns": 464276,
+        "batch_p95_ns": 1019583,
+        "batch_p99_ns": 1808123,
+        "maximum_process_peak_rss_kib": 740,
+        "median_cpu_to_wall_ratio": 0.9998994098888243,
+        "median_elapsed_ns": 17824588,
+        "median_outer_wall_ns": 19417568,
+        "relative_mad": 0.182432659874102,
+        "samples": 7
+      },
+      "rust_o3_lto": {
+        "batch_count": 217,
+        "batch_p50_ns": 401179,
+        "batch_p95_ns": 709001,
+        "batch_p99_ns": 907987,
+        "maximum_process_peak_rss_kib": 940,
+        "median_cpu_to_wall_ratio": 0.9998992904870619,
+        "median_elapsed_ns": 13485116,
+        "median_outer_wall_ns": 15540257,
+        "relative_mad": 0.05439241308713993,
+        "samples": 7
+      }
+    },
+    "packet_xor": {
+      "c_o3_lto": {
+        "batch_count": 217,
+        "batch_p50_ns": 980273,
+        "batch_p95_ns": 1708840,
+        "batch_p99_ns": 2845302,
+        "maximum_process_peak_rss_kib": 804,
+        "median_cpu_to_wall_ratio": 0.999201835301154,
+        "median_elapsed_ns": 33078386,
+        "median_outer_wall_ns": 35661268,
+        "relative_mad": 0.06879162725775073,
+        "samples": 7
+      },
+      "c_pgo_lto": {
+        "batch_count": 217,
+        "batch_p50_ns": 1028571,
+        "batch_p95_ns": 1786502,
+        "batch_p99_ns": 2980733,
+        "maximum_process_peak_rss_kib": 804,
+        "median_cpu_to_wall_ratio": 0.9999383871073504,
+        "median_elapsed_ns": 35204256,
+        "median_outer_wall_ns": 37315414,
+        "relative_mad": 0.08517373581194274,
+        "samples": 7
+      },
+      "cpp_o3_lto": {
+        "batch_count": 217,
+        "batch_p50_ns": 941343,
+        "batch_p95_ns": 1376707,
+        "batch_p99_ns": 1785622,
+        "maximum_process_peak_rss_kib": 1840,
+        "median_cpu_to_wall_ratio": 0.9981569820087927,
+        "median_elapsed_ns": 30415518,
+        "median_outer_wall_ns": 34120631,
+        "relative_mad": 0.056564251182570684,
+        "samples": 7
+      },
+      "cpp_pgo_lto": {
+        "batch_count": 217,
+        "batch_p50_ns": 1012876,
+        "batch_p95_ns": 2023929,
+        "batch_p99_ns": 4096160,
+        "maximum_process_peak_rss_kib": 1840,
+        "median_cpu_to_wall_ratio": 0.9999434218733423,
+        "median_elapsed_ns": 34625114,
+        "median_outer_wall_ns": 39662457,
+        "relative_mad": 0.127368822525754,
+        "samples": 7
+      },
+      "hia_original": {
+        "batch_count": 217,
+        "batch_p50_ns": 1304813,
+        "batch_p95_ns": 3212141,
+        "batch_p99_ns": 5764418,
+        "maximum_process_peak_rss_kib": 804,
+        "median_cpu_to_wall_ratio": 0.9999588235066758,
+        "median_elapsed_ns": 40791098,
+        "median_outer_wall_ns": 43296521,
+        "relative_mad": 0.0647345653701207,
+        "samples": 7
+      },
+      "hia_verified": {
+        "batch_count": 217,
+        "batch_p50_ns": 962251,
+        "batch_p95_ns": 1716039,
+        "batch_p99_ns": 3293503,
+        "maximum_process_peak_rss_kib": 804,
+        "median_cpu_to_wall_ratio": 0.9999256848606819,
+        "median_elapsed_ns": 32564375,
+        "median_outer_wall_ns": 35038836,
+        "relative_mad": 0.13144112239218472,
+        "samples": 7
+      },
+      "rust_o3_lto": {
+        "batch_count": 217,
+        "batch_p50_ns": 987574,
+        "batch_p95_ns": 1665005,
+        "batch_p99_ns": 2621625,
+        "maximum_process_peak_rss_kib": 1012,
+        "median_cpu_to_wall_ratio": 0.9993331290853579,
+        "median_elapsed_ns": 34564217,
+        "median_outer_wall_ns": 37116777,
+        "relative_mad": 0.08294850133593364,
+        "samples": 7
+      }
+    }
+  }
+}

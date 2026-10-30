@@ -1,0 +1,164 @@
+{
+  "actual_archive_bytes_verified": true,
+  "actual_archive_sha256": "4efc9e6b11aa8dea795cf105de639f25fa951502494cd404952c9ce20232330a",
+  "archive_bytes": 4654139,
+  "archive_file": "artifact-12810424438.zip",
+  "artifact_id": 12810424438,
+  "guarded_cli": {
+    "all_actual_equal_expected": true,
+    "observations": 36,
+    "passed": true,
+    "timeout_never_published": true
+  },
+  "narrowing_cli": {
+    "all_actual_equal_expected": true,
+    "counts": [
+      {
+        "function": "calculate",
+        "observations": 20,
+        "profile": "scalar"
+      },
+      {
+        "function": "full_lifecycle",
+        "observations": 18,
+        "profile": "guarded"
+      },
+      {
+        "function": "packet_xor",
+        "observations": 18,
+        "profile": "guarded"
+      }
+    ],
+    "observations": 56,
+    "passed": true,
+    "performance_claim": false,
+    "source_unchanged": true,
+    "timeout_and_unknown_never_published": true
+  },
+  "native_ndu": {
+    "ci_binary_sha256": "182b538f61121a85db1873e5f690960628a8dd55d093482e865f5e093ff40a0c",
+    "identity": {
+      "algorithms": [
+        "codex_hepta_ndu::evaluate_recursive_utility",
+        "codex_hepta_ndu::evaluate_candidates_with_policy"
+      ],
+      "authority": "DENY_ALL",
+      "bridge_digest": "7385e8ddf22dc48d615b650809cd206a969988f1b4081b8b299dd00e4ede9a69",
+      "rustc": "rustc 1.95.0 (59807616e 2026-04-14)",
+      "safety_certificate": false,
+      "schema": "hepta.hia.ndu.identity.v1",
+      "source_commit": "c4a1bbed3a39beba43a6abf1a18b6f75c5725c21",
+      "source_digest": "82d9dde94b55b551e6fc2e11053d1907e888e06c852751f4cae02752d5c58baf"
+    },
+    "native_binary_body_read_or_verified_by_this_readout": false
+  },
+  "owned_state": {
+    "allocation_identity_preserved": true,
+    "controls": {
+      "active_call_switch_close_and_borrow_refused": true,
+      "allocation_refusal_cleanup": true,
+      "close_with_live_alias_refused": true,
+      "completed_queue_replay_refused": true,
+      "ended_alias_access_refused": true,
+      "partial_cancelled_queue_replay_refused": true,
+      "persistent_owner_survives_actual_switch": true
+    },
+    "external_or_crash_exactly_once": false,
+    "final_native_ledger": {
+      "allocations": 17,
+      "frees": 17,
+      "live": 0,
+      "refusals": 2
+    },
+    "general_heap_migration": false,
+    "note": "State values include an intentional mutable-loan update; equality of before/after whole snapshots is not asserted.",
+    "ok": true,
+    "owner_identity_preserved": true,
+    "performance": {
+      "guaranteed": false,
+      "status": "not_requested"
+    },
+    "source_bindings_unchanged": true
+  },
+  "public_head_sha": "5b66f96af480d6f599d8646cff6ef7e542de1072",
+  "recorded_utc": "2026-10-28T11:15:07.371633+00:00",
+  "regression": {
+    "errors": 0,
+    "failures": 0,
+    "git_base": "5b66f96af480d6f599d8646cff6ef7e542de1072",
+    "passed": true,
+    "skipped": [],
+    "source_unchanged": true,
+    "tests": 327
+  },
+  "run_id": 40676510092,
+  "schema": "hepta.hia.actual-source-ci-artifact-readout.v1",
+  "scope": [
+    "Only the five requested JSON member bodies (1,209,437 bytes) and three tiny CLI ELF members (hashing only; no extraction/loading) were read.",
+    "No large C++ AST/result body was read, no whole-archive decompression/testzip, and no workload/proof/compiler was executed.",
+    "Byte/identity correlation of retained CI evidence does not grant deployment authority from serialized receipts.",
+    "The current workspace match is a timestamped comparison to this source-only CI head; later changes require their own evidence."
+  ],
+  "small_elf_byte_checks": [
+    {
+      "actual_bytes_match_receipt": true,
+      "actual_sha256": "51d2b2a2055a46810834177e16844ec5c2d55c1e79ae9315568df2c25aad84e8",
+      "archive_member": "Hepta/Hepta/artifacts/verified-optimization/narrowing-cli/scalar.so",
+      "bytes": 15080,
+      "core_matches_verification": true,
+      "core_sha256": "b2378adbe318669ab0379fe4b03c499fd571445ae8ce9833e882d32158f02ea3",
+      "extracted_or_loaded": false,
+      "profile": "narrowing_scalar",
+      "receipt_sha256": "51d2b2a2055a46810834177e16844ec5c2d55c1e79ae9315568df2c25aad84e8",
+      "verification_candidate_sha256": "b2378adbe318669ab0379fe4b03c499fd571445ae8ce9833e882d32158f02ea3",
+      "verification_status": "verified"
+    },
+    {
+      "actual_bytes_match_receipt": true,
+      "actual_sha256": "ff84036e16681c15a0a2c1c645ce6c29d09e899e41f5bdcb9ad4086cae66e893",
+      "archive_member": "Hepta/Hepta/artifacts/verified-optimization/narrowing-cli/guarded.so",
+      "bytes": 15536,
+      "core_matches_verification": true,
+      "core_sha256": "51b7a3c7aa72814f05b10f2c17a143d99fc4ac269f8b21dff87a2af9ab50c378",
+      "extracted_or_loaded": false,
+      "profile": "guarded_narrowing",
+      "receipt_sha256": "ff84036e16681c15a0a2c1c645ce6c29d09e899e41f5bdcb9ad4086cae66e893",
+      "verification_candidate_sha256": "51b7a3c7aa72814f05b10f2c17a143d99fc4ac269f8b21dff87a2af9ab50c378",
+      "verification_status": "verified"
+    },
+    {
+      "actual_bytes_match_receipt": true,
+      "actual_sha256": "a0f76c2e4492ddc602ac4225b15a5d5c1bde15a1b289291f0d929b398159b24a",
+      "archive_member": "Hepta/Hepta/artifacts/verified-optimization/guarded-cli/candidate.so",
+      "bytes": 15536,
+      "core_matches_verification": true,
+      "core_sha256": "b738b58ed4ef45bad148ebfbdf511fbf43c1308c71f8c72f888864e7cbb33e7e",
+      "extracted_or_loaded": false,
+      "profile": "guarded_cli",
+      "receipt_sha256": "a0f76c2e4492ddc602ac4225b15a5d5c1bde15a1b289291f0d929b398159b24a",
+      "verification_candidate_sha256": "b738b58ed4ef45bad148ebfbdf511fbf43c1308c71f8c72f888864e7cbb33e7e",
+      "verification_status": "verified"
+    }
+  ],
+  "small_elf_bytes_read": 46152,
+  "source_binding_comparison": {
+    "narrowing": {
+      "all_current_bytes_match": true,
+      "bound_files": 123,
+      "different": [],
+      "missing": []
+    },
+    "owned_state": {
+      "all_current_bytes_match": true,
+      "bound_files": 3,
+      "different": [],
+      "missing": []
+    },
+    "regression": {
+      "all_current_bytes_match": true,
+      "bound_files": 286,
+      "different": [],
+      "missing": []
+    }
+  }
+}
