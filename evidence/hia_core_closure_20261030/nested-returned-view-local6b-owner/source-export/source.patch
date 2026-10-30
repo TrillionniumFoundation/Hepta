@@ -1,0 +1,842 @@
+diff --git a/.github/workflows/hepta-six-outcomes.yml b/.github/workflows/hepta-six-outcomes.yml
+index 762630e8ec1d3ddafc8d5741ecda4e50f4105e6d..99098e3bcb39b484fd4d5d0fe71044a33a938664 100644
+--- a/.github/workflows/hepta-six-outcomes.yml
++++ b/.github/workflows/hepta-six-outcomes.yml
+@@ -181,6 +181,7 @@ jobs:
+                    'tests.test_hia_agent_factorial', 'tests.test_hia_safety_protocol',
+                    'tests.test_hia_integrated_inputs', 'tests.test_hia_integrated_workflow',
+                    'tests.test_hia_source_local_views', 'tests.test_hia_source_returned_local_views',
++                   'tests.test_hia_source_nested_returned_views',
+                    'tests.test_hia_rust_execution_crosscheck',
+                    'tests.test_hia_source_unit_enums', 'tests.test_hia_rust_bound_depth',
+                    'tests.test_hia_rust_transport_lifecycle', 'tests.test_cpp_upstream_host',
+diff --git a/docs/HIA_SAFETY_CONTRACT.json b/docs/HIA_SAFETY_CONTRACT.json
+index d439402cbf071d75ee330dc8b11a4b069631010c..5ce6b27104e63140418c8da9abb287b68f8dd883 100644
+--- a/docs/HIA_SAFETY_CONTRACT.json
++++ b/docs/HIA_SAFETY_CONTRACT.json
+@@ -60,7 +60,7 @@
+         "no stored lifetime returns or general borrowed-record returns",
+         "no foreign calls, inline assembly, threads or implicit legacy backend fallback",
+         "no payload, generic or recursive source enums; scalarization does not authorize an enum C ABI",
+-        "stored returned calls require one same-mode direct byte formal and scalar value arguments; nested call/view origins, aggregate borrowed formals and multiple borrowed formals remain excluded"
++        "stored returned-call chains require one same-mode byte formal at every level, scalar value arguments and a direct terminal byte place; local-view origins, aggregate borrowed formals, multiple borrowed formals and permission conversions remain excluded"
+       ],
+       "guarantee": "checked_source_and_reverified_core",
+       "id": "source_lowering",
+@@ -91,9 +91,19 @@
+         "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViewsRust.test_actual_same_rust_machine_matches_values_loans_failures_and_every_step",
+         "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViewsRust.test_raw_rust_refuses_the_same_five_emitted_capability_corruptions",
+         "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViewsNative.test_direct_llvm_executes_actual_source_selected_scalar_exports",
+-        "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViewsNative.test_actual_llvm_allocator_failure_keeps_returned_view_cleanup"
+-      ],
+-      "scope": "default primitive v1; explicit v8; finite checked scalars, records, Result and closed specialization; finite local byte-view records through the existing lexical Resource IR checker and canonical primitive v1/v8; concrete enums with 1..32 unit variants use existing u32 tags and CFG while original nominal signatures restrict public scalar entries; explicit v8 also composes one same-mode returned byte loan with a local View, preserving the parent capability through shared copies, exclusive moves, CFG edges and lexical/explicit ends"
++        "tests.test_hia_source_returned_local_views.HIASourceReturnedLocalViewsNative.test_actual_llvm_allocator_failure_keeps_returned_view_cleanup",
++        "tests.test_hia_source_nested_returned_views.HIASourceNestedReturnedViews.test_checked_call_chains_reuse_existing_v8_core_without_reparse",
++        "tests.test_hia_source_nested_returned_views.HIASourceNestedReturnedViews.test_copies_moves_field_origins_cfg_loops_and_early_returns_end_deepest_first",
++        "tests.test_hia_source_nested_returned_views.HIASourceNestedReturnedViews.test_error_branches_and_every_step_prefix_keep_full_chain_ledger_without_unwind",
++        "tests.test_hia_source_nested_returned_views.HIASourceNestedReturnedViews.test_primitive_core_refuses_actual_ancestor_order_owner_and_cfg_corruptions",
++        "tests.test_hia_source_nested_returned_views.HIASourceNestedReturnedViews.test_scalar_arguments_keep_left_to_right_order_across_nested_origin_and_failures",
++        "tests.test_hia_source_nested_returned_views.HIASourceNestedReturnedViews.test_source_permissions_origins_escapes_and_existing_compile_limits_still_reject",
++        "tests.test_hia_source_nested_returned_views.HIASourceNestedReturnedViewsNative.test_direct_llvm_executes_source_selected_exports_with_nested_origins",
++        "tests.test_hia_source_nested_returned_views.HIASourceNestedReturnedViewsNative.test_real_llvm_allocator_distinguishes_argument_order_and_cleans_nested_views",
++        "tests.test_hia_source_nested_returned_views.HIASourceNestedReturnedViewsRust.test_raw_rust_rejects_actual_six_ancestor_capability_corruptions",
++        "tests.test_hia_source_nested_returned_views.HIASourceNestedReturnedViewsRust.test_same_rust_machine_matches_nested_chains_order_failures_and_every_step"
++      ],
++      "scope": "default primitive v1; explicit v8; finite checked scalars, records, Result and closed specialization; finite local byte-view records through the existing lexical Resource IR checker and canonical primitive v1/v8; concrete enums with 1..32 unit variants use existing u32 tags and CFG while original nominal signatures restrict public scalar entries; explicit v8 also composes a linear chain of same-mode single-origin returned byte loans with a local View, preserving every actual parent capability and left-to-right scalar argument evaluation through shared copies, exclusive moves, CFG edges and lexical/explicit ends"
+     },
+     {
+       "entrypoints": [
+diff --git a/docs/HIA_SAFETY_CONTRACT.md b/docs/HIA_SAFETY_CONTRACT.md
+index 7255eff724d5bd83ef46e8aebe84226c32952fcf..e806fd94bdc5e2d9537a0df25c5b8e309531e7b7 100644
+--- a/docs/HIA_SAFETY_CONTRACT.md
++++ b/docs/HIA_SAFETY_CONTRACT.md
+@@ -65,8 +65,9 @@ ten existing field-origin methods, one mixed-form control and six source
+ provenance methods brought that matrix to 340 selectors in 36 capabilities.
+ The existing `source_lowering` capability now additionally selects nine
+ returned-call local-view methods, preserving all 340 original selectors and
+-every existing guarantee. The resulting union has 349 selectors in the same
+-36 capabilities. This is the reviewed selection, not a claim that 349 methods
++every existing guarantee. Ten nested returned-origin methods now extend that
++349-selector matrix without removing a selector. The resulting union has 359
++selectors in the same 36 capabilities. This is the reviewed selection, not a claim that 359 methods
+ have executed on every source revision. Focused and full reports retain
+ their actual commit identities and separate execution denominators.
+ 
+@@ -152,7 +153,7 @@ tests for the relevant ownership, alias, join and return cases.
+ | Composite v2 | Nominal operations with the v7 resource grammar | Normalizes to primitive v7 |
+ | Composite v3 | Explicit partially initialized record states | Normalizes to primitive v7; no implicit v8 returned-loan extension |
+ | Composite v4 | V3 operations plus primitive loan results from declared original parameter/record-field paths | Normalizes to primitive v8; only incoming loan-only parameters may anchor results; no borrowed aggregate results or loans retained by partial/task state |
+-| Hepta source | Finite checked scalar/record/Result profiles, concrete unit enums, local byte-view records and closed specialization; v1 by default or explicit v8 | Local views follow the lexical Resource IR profile; no stored returned borrows, general foreign calls or hidden Rust/C fallback |
++| Hepta source | Finite checked scalar/record/Result profiles, concrete unit enums, local byte-view records and closed specialization; v1 by default or explicit v8 | Local views follow the lexical Resource IR profile; explicit v8 permits same-mode single-origin returned-call chains with scalar other arguments; no escaping stored returns, general foreign calls or hidden Rust/C fallback |
+ | Independent Rust shadow | Separately closed scalar, byte-owner, returned-loan and owned-chain Machine profiles, with invocation-bound outcomes and stopped ledgers | Independent finite comparison; execution v2 binds root-inclusive depth 1–32, while legacy/v1 stay at 32; never production admission or deployment authority |
+ | Direct LLVM | Native code from immutable reverified HIA | Compiler, runtime and platform remain trusted; full Core-to-native refinement is not proved |
+ 
+diff --git a/docs/HIA_SOURCE_LOCAL_VIEWS.md b/docs/HIA_SOURCE_LOCAL_VIEWS.md
+index 84aa24553cbec2ff6fdaa9f925a0d61bead574f2..cc7040d2ccd9976409d881c138fce1357c8b4726 100644
+--- a/docs/HIA_SOURCE_LOCAL_VIEWS.md
++++ b/docs/HIA_SOURCE_LOCAL_VIEWS.md
+@@ -66,17 +66,24 @@ fails source checking. The accepted construction uses the existing v8 call and
+ return-loan origin contract. Its helper has exactly one byte-slice or byte-buffer
+ borrowed formal, with the same read/mut mode as the stored field and return;
+ all other formals are ordinary scalar values. The actual origin is a direct
+-named byte owner, borrowed parameter or ordinary owner-record field. Nested
+-returned-call arguments, local-view origins, aggregate borrowed formals,
+-multiple borrowed formals and permission changes remain outside this source
+-increment. View parameters/returns and named lifetime escape remain refused.
+-
+-The argument loan and returned child remain distinct primitive capabilities.
+-The producer retains the hidden parent value while a View or shared copy holds
+-the child, and includes both capabilities in ordinary CFG interfaces. A shared
+-copy aliases this complete obligation; an exclusive move transfers it and
++named byte owner, borrowed parameter or ordinary owner-record field, or another
++returned call satisfying those same requirements. Every level has an explicit
++matching `read` or `mut`; the terminal argument is a direct named byte place.
++For example, `Read {data: read bytes(read bytes(read data)), tag: 7}` composes
++two existing calls. Local-view origins, aggregate borrowed formals, multiple
++borrowed formals and permission changes at any level remain outside this
++source increment. View parameters/returns and named lifetime escape remain
++refused. Non-View stored returned values and immediate nested borrowed-call
++arguments retain their previous profiles.
++
++The argument loan and every returned child remain distinct primitive capabilities.
++The producer retains each actual argument parent while a View or shared copy
++holds the final child, and includes the complete linear chain in ordinary CFG
++interfaces. It recursively checks the selected origin calls; the shape of an
++unrelated capability is insufficient to enter this source path. A shared copy
++aliases this complete obligation; an exclusive move transfers it and
+ invalidates the old value. The final shared alias, or explicit exclusive drop,
+-ends the returned child before its argument parent. Ending an inner shared
++ends the deepest returned child and then each ancestor in reverse order. Ending an inner shared
+ copy preserves the obligations of retained outer copies. Source and Core
+ verification continue to reject owner release, frozen exclusive-parent reborrow and
+ inconsistent branch resource states. No implicit exclusive cleanup is added
+@@ -97,8 +104,8 @@ the existing resource-alias rules.
+ 
+ Shared views end at lexical scope exit and before each normal/early return.
+ Ending an inner copy does not end a loan still held by an outer copy. The last
+-local alias emits one `loan.end` for a direct-origin view, or the returned child
+-and then its parent for the bounded v8 returned-call case. This is the existing
++local alias emits one `loan.end` for a direct-origin view, or the returned children
++and then their terminal parent for the bounded v8 returned-call case. This is the existing
+ conservative lexical profile, not Rust nonlexical lifetime inference.
+ 
+ Mutable local views remain affine. A whole-local `move` transfers the producer's
+@@ -114,6 +121,12 @@ a mutable reference cannot access its borrowed origin while that loan is live.
+ Disjoint named owner fields may be borrowed independently. Branches, loops and
+ Result arms retain their normal exact resource-state joins.
+ 
++Every call evaluates its arguments left to right, including scalar arguments
++before and after a nested origin. A scalar call before that origin therefore
++keeps its allocation attempt ahead of the nested call. The existing source
++byte limit, parser nesting limit, concrete specialization budgets and Core
++verification remain in force; this adaptation adds no unbounded compile mode.
++
+ ## Executed values and cleanup boundaries
+ 
+ `examples/hia_program/source_local_views.hepta` includes shared copies with
+@@ -130,6 +143,21 @@ Its 33-request corpus uses only the existing v8 source route. The native C
+ surface remains the five source-selected scalar wrappers; borrowed helpers
+ and View descriptors are internal.
+ 
++`examples/hia_program/source_nested_returned_views.hepta` composes two or three
++returned calls in the same cases, including a nonfirst borrowed formal and
++disjoint ordinary owner fields. Its test corpus adds `ordering_case()` and
++`stamp(3)` to the 33 requests, for 35 requests. The existing scalar-export
++selection admits those seven scalar functions; all borrowed helpers remain
++internal. The nested construction does not add an aggregate or borrowed ABI.
++
++`ordering_case()` performs four allocation attempts in a fixed order: result
++owner, scalar prefix, nested mutable origin, scalar suffix. The normal result
++is `15`; refusing attempt 2, 3 or 4 gives `113`, `61` or `109`, respectively.
++These distinct values expose argument reordering. The LLVM allocator observer
++tests those actual failures and the two `failure_case(7)` outcomes below.
++The three failed attempts still create and consume the existing empty logical
++owner slots. Successful returns leave no owner, requested payload or local loan.
++
+ For `failure_case(7)`, the normal path returns `50`, with two allocations/frees,
+ peak requested payload `10` bytes, and no remaining owner or loan. A refused
+ second allocation returns `41`, with one allocation/free and peak requested
+@@ -146,6 +174,7 @@ are not process RSS or allocator metadata measurements.
+ ```sh
+ python -m unittest -v tests.test_hia_source_local_views
+ python -m unittest -v tests.test_hia_source_returned_local_views
++python -m unittest -v tests.test_hia_source_nested_returned_views
+ python -m unittest -v tests.test_hia_program_source tests.test_hia_source_partial \
+   tests.test_hia_returned_loans tests.test_hia_source_exports tests.test_hia_routes
+ ```
+@@ -171,6 +200,19 @@ source controls retain the alias, mode, shape, default-storage and export
+ boundaries. Development, frozen-source and public-source observations must
+ retain their separate source identities; registration alone is not execution.
+ 
++The nested module has ten selected methods. Six Python methods cover the
++unchanged source/ResourceIR admission, values and CFG cleanup, argument order,
++stopped ledgers, fourteen source refusals and the existing compile limits, and
++six actual emitted-Core corruptions. The corruptions end a root or intermediate
++ancestor too soon, drop its owner, add a balanced conflicting reborrow from an
++exclusive middle ancestor, omit an intermediate end, or swap intermediate
++ancestors on one CFG edge. A balanced shared neighbour remains accepted.
++Two Rust methods compare full ledgers and submit the six invalid raw programs
++to the same Machine; two LLVM methods execute the scalar corpus and the real
++allocator observer. The former single-layer nested-call refusal is now an
++accepted source control, while a source/ResourceIR-legal nested permission
++conversion remains a profile refusal. No old selector was removed.
++
+ Actual toolchains are required for Rust/native methods; skips cannot qualify
+ them. These finite checks do not establish general provenance, source-to-Core
+ refinement, full language soundness, arbitrary stored lifetimes or production
+diff --git a/examples/hia_program/source_nested_returned_views.hepta b/examples/hia_program/source_nested_returned_views.hepta
+new file mode 100644
+index 0000000000000000000000000000000000000000..fabcba77e3474a4315496a662c7d09d94464bb0d
+--- /dev/null
++++ b/examples/hia_program/source_nested_returned_views.hepta
+@@ -0,0 +1,159 @@
++module source_nested_returned_views;
++
++struct Read<'a> { tag: u64, data: read 'a [u8], count: u64 }
++struct Edit<'a> { data: mut 'a [u8], tag: u64 }
++struct Pair { left: Buffer<u8>, right: Buffer<u8> }
++
++fn shared_origin(data: read [u8]) -> read [u8] from data effects {} {
++    return read data;
++}
++
++fn shared_relay(before: u64, data: read [u8], after: u64) -> read [u8] from data effects {} {
++    return read data;
++}
++
++fn mutable_origin(data: mut [u8], tag: u64) -> mut [u8] from data effects {} {
++    return mut data;
++}
++
++fn shared_read(data: read [u8], early: bool) -> u64 effects {panic} {
++    let first = Read {tag: 9, data: read shared_origin(read shared_origin(read data)), count: len(data) as u64};
++    let mut copied = first;
++    copied.tag = 17;
++    let mut total = first.tag + copied.tag + copied.count;
++    if true {
++        let nested = first;
++        total = total + nested.tag;
++        if early { return total; }
++    }
++    if len(first.data) > 0 { total = total + copied.data[0] as u64; }
++    return total;
++}
++
++export "C" fn shared_case(n: usize, byte: u8, early: u8) -> u64
++    effects {alloc,block,panic,write} {
++    match try_buffer(n) {
++        Result::Err(error) => { return 1000 + error as u64; },
++        Result::Ok(acquired) => {
++            let mut data = move acquired;
++            if n > 0 { data[0] = byte; }
++            let result = shared_read(read data, early != 0);
++            drop(move data);
++            return result;
++        }
++    }
++}
++
++export "C" fn mutable_case(n: usize, byte: u8, rounds: usize) -> u64
++    effects {alloc,block,panic,write} {
++    let mut data = buffer(n);
++    let mut total: u64 = 0;
++    for i in 0..rounds {
++        let first = Edit {data: mut mutable_origin(mut mutable_origin(mut mutable_origin(mut data, 0), i as u64), 3), tag: i as u64};
++        let mut moved = move first;
++        if n > 0 { moved.data[0] = wrapping_add(byte, i as u8); }
++        moved.tag = moved.tag + 1;
++        total = total + moved.tag;
++        drop(move moved);
++    }
++    if n > 0 { total = total + data[0] as u64; }
++    drop(move data);
++    return total;
++}
++
++export "C" fn branch_case(n: usize, byte: u8, choose: u8) -> u64
++    effects {alloc,block,panic,write} {
++    let mut pair = Pair {left: buffer(n), right: buffer(n + 1)};
++    let mut total: u64 = 0;
++    if choose != 0 {
++        let mut edit = Edit {data: mut mutable_origin(mut mutable_origin(mut pair.left, 2), 11), tag: 11};
++        let first = Read {tag: 5, data: read shared_relay(1, read shared_origin(read shared_origin(read pair.right)), 2), count: 3};
++        let copied = first;
++        if n > 0 { edit.data[0] = byte; }
++        total = edit.tag + copied.tag + len(copied.data) as u64;
++        drop(move edit);
++    } else {
++        let first = Read {tag: 7, data: read shared_origin(read shared_origin(read pair.left)), count: 2};
++        total = first.tag + len(first.data) as u64;
++    }
++    if n > 0 { total = total + pair.left[0] as u64; }
++    drop(move pair);
++    return total;
++}
++
++fn fallible_read(data: read [u8], n: usize) -> u64 effects {alloc,block,panic} {
++    let view = Read {tag: 40, data: read shared_origin(read shared_origin(read data)), count: len(data) as u64};
++    match try_buffer(n) {
++        Result::Err(error) => { return view.tag + error as u64; },
++        Result::Ok(scratch) => {
++            let size = len(scratch) as u64;
++            drop(move scratch);
++            return view.tag + view.count + size;
++        }
++    }
++}
++
++export "C" fn failure_case(n: usize) -> u64 effects {alloc,block,panic} {
++    let data = buffer(3);
++    let result = fallible_read(read data, n);
++    drop(move data);
++    return result;
++}
++
++fn mutable_early(data: mut [u8], early: bool) -> u64 effects {panic,write} {
++    let first = Edit {data: mut mutable_origin(mut mutable_origin(mut mutable_origin(mut data, 1), 2), 5), tag: 5};
++    let mut moved = move first;
++    if early {
++        drop(move moved);
++        return 5;
++    }
++    if len(moved.data) > 0 { moved.data[0] = 17; }
++    let answer = moved.tag;
++    drop(move moved);
++    return answer + 1;
++}
++
++export "C" fn mutable_early_case(early: u8) -> u64 effects {alloc,block,panic,write} {
++    let mut data = buffer(1);
++    let answer = mutable_early(mut data, early != 0);
++    let byte = data[0] as u64;
++    drop(move data);
++    return answer + byte;
++}
++
++// Each allocation attempt identifies the actual left-to-right call order.
++fn stamp(n: usize) -> u64 effects {alloc,block,panic} {
++    match try_buffer(n) {
++        Result::Err(error) => { return 100 + error as u64; },
++        Result::Ok(scratch) => {
++            let size = len(scratch) as u64;
++            drop(move scratch);
++            return size;
++        }
++    }
++}
++
++fn stamped_origin(data: mut [u8]) -> mut [u8] from data effects {alloc,block,panic,write} {
++    match try_buffer(5) {
++        Result::Err(error) => { data[0] = 50 + error; },
++        Result::Ok(scratch) => {
++            data[0] = len(scratch) as u8;
++            drop(move scratch);
++        }
++    }
++    return mut data;
++}
++
++fn ordered_origin(before: u64, data: mut [u8], after: u64) -> mut [u8] from data effects {panic,write} {
++    data[0] = (before + data[0] as u64 + after) as u8;
++    return mut data;
++}
++
++export "C" fn ordering_case() -> u64 effects {alloc,block,panic,write} {
++    let mut data = buffer(1);
++    let view = Edit {data: mut ordered_origin(stamp(3), mut stamped_origin(mut data), stamp(7)), tag: 0};
++    let answer = view.data[0] as u64;
++    drop(move view);
++    drop(move data);
++    return answer;
++}
+diff --git a/hepta/hia_program_source.py b/hepta/hia_program_source.py
+index b79987dba26205292db6ad537ae94b3c8fd130fa..c29e284740e6b257fa64ee6ad85a6d82cf3a37b0 100644
+--- a/hepta/hia_program_source.py
++++ b/hepta/hia_program_source.py
+@@ -597,9 +597,10 @@ class _Lower:
+ 
+         This only selects an existing v8 call. The unchanged source checker,
+         Resource IR and primitive Core verifier establish their own contracts.
+-        A single direct byte argument gives exactly one local parent and one
+-        returned child; recursive stored views and nested argument calls remain
+-        outside this explicit frontend profile.
++        Each call has one same-mode byte origin. That origin is either a
++        direct byte place or another such returned call. The existing call
++        keeps every parent capability; no new Core loan operation is needed.
++        Stored local Views and aggregate origins remain outside this profile.
+         """
+         call = expression.children[0]
+         fn = self.functions.get(call.value)
+@@ -616,20 +617,35 @@ class _Lower:
+         origin_index = fn.params.index(borrowed[0])
+         argument = call.children[origin_index]
+         if (argument.kind != "unary" or argument.value != mode or len(argument.children) != 1
+-                or argument.children[0].kind not in {"name", "field"}):
+-            _reject("stored returned-call origin must be a direct named byte place")
+-        root, indices, _ = self.place(state, argument.children[0])
+-        original = self.get(state, root)
+-        if original.typ.name in self.local_views or len(indices) != 1:
+-            _reject("stored returned calls cannot nest local views or aggregate origins")
+-        state, key = self.call(state, call)
++                or argument.children[0].kind not in {"name", "field", "call"}):
++            _reject("stored returned-call origin must be a named byte place or same-mode returned call")
++        if argument.children[0].kind == "call":
++            # Keep the ordinary left-to-right argument order, including
++            # scalar arguments before and after the nested origin. Only this
++            # checked View-field path prepares a nested borrowed argument.
++            arguments = []
++            for index, child in enumerate(call.children):
++                if index == origin_index:
++                    state, argument_key = self.returned_view_field(state, child, mode)
++                else:
++                    state, argument_key = self.expr(state, child)
++                arguments.append(argument_key)
++            state, key = self.call(state, call, arguments=arguments)
++        else:
++            root, indices, _ = self.place(state, argument.children[0])
++            original = self.get(state, root)
++            if original.typ.name in self.local_views or len(indices) != 1:
++                _reject("stored returned calls cannot nest local views or aggregate origins")
++            state, key = self.call(state, call)
+         value = self.get(state, key)
+         if len(value.borrow_parents) != 1:
+             _reject("stored returned call lacks its unique parent capability")
+         parent = self.get(state, value.borrow_parents[0])
+-        if (len(value.atoms) != 1 or len(parent.atoms) != 1 or parent.borrow_parents
+-                or parent.loans != parent.atoms or value.loans != parent.loans + value.atoms):
+-            _reject("stored returned call must retain exactly its parent and returned child")
++        if (len(value.atoms) != 1 or len(parent.atoms) != 1
++                or value.types != parent.types or parent.loans[-1:] != parent.atoms
++                or value.loans != parent.loans + value.atoms
++                or len(set(value.loans)) != len(value.loans)):
++            _reject("stored returned call must retain its complete linear parent and child stack")
+         return state, key
+ 
+     def expr(self, state: _State, expr: Expr | None) -> tuple[_State, int]:
+@@ -682,12 +698,14 @@ class _Lower:
+             _reject("missing checked record field")
+         if expr.kind == "struct":
+             parts = {}
++            returned_fields = set()
+             for name, child in zip(expr.value["fields"], expr.children):
+                 view = self.local_views.get(typ.name)
+                 if (self.core_schema == SCHEMA_V8 and view is not None
+                         and name == view[0] and child.kind == "unary" and child.value == view[1]
+                         and len(child.children) == 1 and child.children[0].kind == "call"):
+                     state, key = self.returned_view_field(state, child, view[1])
++                    returned_fields.add(name)
+                 else:
+                     state, key = self.expr(state, child)
+                 parts[name] = key
+@@ -697,8 +715,9 @@ class _Lower:
+                 atoms += value.atoms; types += value.types
+                 if typ.name in self.local_views:
+                     if member.name == self.local_views[typ.name][0]:
+-                        returned = (self.core_schema == SCHEMA_V8
+-                                    and len(value.loans) == 2 and len(value.borrow_parents) == 1)
++                        # Provenance is the freshly checked call-chain path
++                        # above, not the shape of an arbitrary loan value.
++                        returned = member.name in returned_fields
+                         if not returned and (len(value.loans) != 1 or value.borrow_parents):
+                             _reject("stored local views require one direct named byte loan")
+                         loans.extend(value.loans)
+@@ -813,12 +832,13 @@ class _Lower:
+             return self.call(state, expr)
+         _reject("unsupported source expression " + expr.kind)
+ 
+-    def call(self, state, expr):
++    def call(self, state, expr, *, arguments=None):
+         typ, name = self.typ(expr), expr.value
+-        arguments = []
+-        for child in expr.children:
+-            state, key = self.expr(state, child)
+-            arguments.append(key)
++        if arguments is None:
++            arguments = []
++            for child in expr.children:
++                state, key = self.expr(state, child)
++                arguments.append(key)
+         if name in {"buffer", "try_buffer"}:
+             if len(arguments) != 1:
+                 _reject("wrong buffer arity")
+diff --git a/tests/test_hia_source_nested_returned_views.py b/tests/test_hia_source_nested_returned_views.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..9733655de2e998f1f12deff82fb760a06e018934
+--- /dev/null
++++ b/tests/test_hia_source_nested_returned_views.py
+@@ -0,0 +1,335 @@
++"""Nested returned byte origins retain the actual linear v8 capability chain."""
++from __future__ import annotations
++
++import copy
++import ctypes
++import json
++import os
++from pathlib import Path
++import shutil
++import subprocess
++import tempfile
++import unittest
++from unittest.mock import patch
++
++from hepta.ast import HeptaError
++from hepta.checker import check
++from hepta.hia_program import HIAProgramRejected, verify_program
++from hepta.hia_program_runtime import HIAProgramBudgetExceeded, execute_program
++from hepta.hia_program_source import HIAProgramSourceRejected, lower_source
++from hepta.hia_routes import admit_route
++from hepta.hia_schema import SCHEMA, SCHEMA_V8
++from hepta.parser import parse
++from hepta.resource_ir import verify_resource_ir
++from hepta.resource_lowering import lower_resource_ir
++import tests.test_hia_source_returned_local_views as previous
++
++ROOT = Path(__file__).resolve().parents[1]
++SOURCE = (ROOT / "examples/hia_program/source_nested_returned_views.hepta").read_text()
++CLANG = os.environ.get("CLANG") or shutil.which("clang")
++FORMER_REFUSAL = previous.VIEW + previous.SHARE + "fn f(b:read [u8])->u64 effects{}{let v=View{data:read shared(read shared(read b)),tag:7};return v.tag;}"
++CONTROL_SOURCE = previous.CONTROL_SOURCE.replace(
++    "read shared(read data)", "read shared(read shared(read shared(read data)))")
++MUTABLE_CONTROL_SOURCE = previous.MUTABLE_CONTROL_SOURCE.replace(
++    "mut edited(mut data)", "mut edited(mut edited(mut edited(mut data)))")
++# Allocation 1 owns the result byte; 2/3/4 distinguish prefix/origin/suffix.
++ORDER_CASES = ((None, 15, 4, 8), (2, 113, 3, 8), (3, 61, 3, 8), (4, 109, 3, 6))
++
++
++def cases():
++    return [*previous.cases(), ("ordering_case", [], 15), ("stamp", [3], 3)]
++
++
++def chain(document):
++    function = next(fn for fn in document["functions"] if fn["name"] == "probe")
++    for block in function["blocks"]:
++        calls = [(index, op) for index, op in enumerate(block["ops"])
++                 if op["op"] == "call" and op["attrs"]["function"] in {"shared", "edited"}]
++        if len(calls) == 3:
++            names = [calls[0][1]["args"][0], *[op["out"][0]["name"] for _, op in calls]]
++            assert all(op["args"] == [names[index]] for index, (_, op) in enumerate(calls))
++            return function, block, calls[-1][0], names
++    raise AssertionError("fixture did not emit its actual three-call linear chain")
++
++
++def balanced_parent_reborrow(*, exclusive=False):
++    document = lower_source(MUTABLE_CONTROL_SOURCE if exclusive else CONTROL_SOURCE,
++                            core_schema=SCHEMA_V8).as_dict()
++    _, block, index, names = chain(document)
++    block["ops"][index + 1:index + 1] = [
++        {"op": "borrow.read", "args": [names[1]],
++         "out": [{"name": "additional_read", "type": "readbuf"}], "attrs": {}},
++        {"op": "loan.end", "args": ["additional_read"], "out": [], "attrs": {}},
++    ]
++    return document
++
++
++def corruptions():
++    original = lower_source(CONTROL_SOURCE, core_schema=SCHEMA_V8).as_dict()
++    for label, level in (("end_root_parent_before_descendants", 0),
++                         ("end_middle_parent_before_descendants", 1)):
++        document = copy.deepcopy(original)
++        _, block, index, names = chain(document)
++        block["ops"].insert(index + 1, {"op": "loan.end", "args": [names[level]], "out": [], "attrs": {}})
++        yield label, document
++    document = copy.deepcopy(original)
++    _, block, index, _ = chain(document)
++    owner = next(param["name"] for param in block["params"] if param["type"] == "buffer")
++    block["ops"].insert(index + 1, {"op": "owner.drop", "args": [owner], "out": [], "attrs": {}})
++    yield "drop_root_owner_with_live_descendants", document
++    yield "reborrow_exclusive_middle_with_live_mutable_child", balanced_parent_reborrow(exclusive=True)
++    document = copy.deepcopy(original)
++    function, _, _, _ = chain(document)
++    cleanup = next(block for block in function["blocks"]
++                   if sum(op["op"] == "loan.end" for op in block["ops"]) == 4)
++    ends = [index for index, op in enumerate(cleanup["ops"]) if op["op"] == "loan.end"]
++    cleanup["ops"].pop(ends[1])
++    yield "omit_middle_end_before_ancestor_cleanup", document
++    document = copy.deepcopy(original)
++    _, block, _, names = chain(document)
++    edge = block["term"]["then"]
++    left, right = edge["args"].index(names[1]), edge["args"].index(names[2])
++    edge["args"][left], edge["args"][right] = edge["args"][right], edge["args"][left]
++    yield "swap_intermediate_ancestors_on_one_cfg_edge", document
++
++
++def refusals():
++    view, shared, edit, edited = previous.VIEW, previous.SHARE, previous.EDIT, previous.EDIT_FN
++    frozen = "fn frozen(b:mut [u8])->read [u8] from b effects{}{return read b;} "
++    return {
++        "nested_mode_change": view + shared + frozen + "fn f(b:mut [u8])->u64 effects{}{let v=View{data:read shared(read frozen(mut b)),tag:7};return v.tag;}",
++        "outer_mode_change": view + edited + frozen + "fn f(b:mut [u8])->u64 effects{}{let v=View{data:read frozen(mut edited(mut b)),tag:7};return v.tag;}",
++        "nested_two_borrowed_formals": view + shared + "fn both(b:read [u8],other:read [u8])->read [u8] from b effects{}{return read b;} fn f(b:read [u8])->u64 effects{}{let v=View{data:read shared(read both(read b,read b)),tag:7};return v.tag;}",
++        "nested_borrowed_record_formal": view + shared + "struct Pair{left:Buffer<u8>,right:Buffer<u8>} fn field(p:read Pair)->read [u8] from p effects{}{return read p.left;} fn f(p:read Pair)->u64 effects{}{let v=View{data:read shared(read field(read p)),tag:7};return v.tag;}",
++        "nested_local_view_origin": view + shared + "fn f(b:read [u8])->u64 effects{}{let first=View{data:read b,tag:7};let v=View{data:read shared(read shared(read first.data)),tag:7};return v.tag;}",
++        "readless_constructor": view + shared + "fn f(b:read [u8])->u64 effects{}{let v=View{data:shared(read shared(read b)),tag:7};return v.tag;}",
++        "mutable_missing_drop": edit + edited + "fn f(b:mut [u8])->Unit effects{}{let v=Edit{data:mut edited(mut edited(mut b)),tag:7};}",
++        "mutable_copy": edit + edited + "fn f(b:mut [u8])->Unit effects{}{let v=Edit{data:mut edited(mut edited(mut b)),tag:7};let copy=v;drop(move copy);drop(move v);}",
++        "mutable_one_branch_drop": edit + edited + "fn f(b:mut [u8],flag:bool)->Unit effects{}{let v=Edit{data:mut edited(mut edited(mut b)),tag:7};if flag{drop(move v);}}",
++        "owner_write_with_live_mutable_chain": edit + edited + "fn f()->Unit effects{alloc,block,panic,write}{let mut b=buffer(1);let v=Edit{data:mut edited(mut edited(mut b)),tag:7};b[0]=9;drop(move v);drop(move b);}",
++        "owner_drop_with_live_shared_alias": view + shared + "fn f()->u64 effects{alloc,block,panic}{let b=buffer(1);let v=View{data:read shared(read shared(read b)),tag:7};let copy=v;drop(move b);return copy.tag;}",
++        "immediate_non_view_nested_argument": shared + "fn f(b:read [u8])->usize effects{}{return len(shared(read shared(read b)));}",
++        "standalone_returned_storage": shared + "fn f(b:read [u8])->usize effects{}{let v=shared(read shared(read b));return len(v);}",
++        "escaping_view": view + shared + "fn f<'a>(b:read 'a [u8])->View<'a> effects{}{return View{data:read shared(read shared(read b)),tag:7};}",
++    }
++
++
++class HIASourceNestedReturnedViews(unittest.TestCase):
++    @classmethod
++    def setUpClass(cls):
++        cls.core = lower_source(SOURCE, core_schema=SCHEMA_V8)
++        cls.source_refusals, cls.core_refusals, cls.order_observations = [], [], []
++
++    clean = previous.HIASourceReturnedLocalViews.clean
++
++    def test_checked_call_chains_reuse_existing_v8_core_without_reparse(self):
++        for source in (SOURCE, FORMER_REFUSAL):
++            ast = parse(source)
++            checked = check(ast)
++            self.assertTrue(checked.ok, checked.diagnostics)
++            self.assertTrue(verify_resource_ir(lower_resource_ir(ast, checked))["ok"])
++            lower_source(source, core_schema=SCHEMA_V8)
++        with self.assertRaises(HIAProgramSourceRejected):
++            lower_source(SOURCE, core_schema=SCHEMA)
++        self.assertEqual(self.core.as_dict()["exports"], sorted({entry for entry, _, _ in cases()}))
++        self.assertEqual(admit_route("hepta-source", SOURCE, core_schema=SCHEMA_V8).canonical_bytes,
++                         self.core.canonical_bytes)
++        with patch("hepta.parser.parse", side_effect=AssertionError("Core consumers must not parse source")):
++            canonical = verify_program(self.core.canonical_bytes)
++            self.clean(execute_program(canonical, "shared_case", [3, 19, 0]), 57)
++
++    def test_copies_moves_field_origins_cfg_loops_and_early_returns_end_deepest_first(self):
++        for entry, arguments, expected in cases():
++            with self.subTest(entry=entry, arguments=arguments):
++                self.clean(execute_program(self.core, entry, arguments), expected)
++        for source, expected in ((CONTROL_SOURCE, 8), (MUTABLE_CONTROL_SOURCE, 7)):
++            core = lower_source(source, core_schema=SCHEMA_V8)
++            function, _, _, _ = chain(core.as_dict())
++            cleanup = next(block for block in function["blocks"]
++                           if sum(op["op"] == "loan.end" for op in block["ops"]) == 4)
++            loans = [p["name"] for p in cleanup["params"] if p["type"] in {"readbuf", "mutbuf"}]
++            self.assertEqual([op["args"][0] for op in cleanup["ops"] if op["op"] == "loan.end"], loans[::-1])
++            for flag in (0, 1):
++                self.clean(execute_program(core, "probe", [flag]), expected)
++
++    def test_scalar_arguments_keep_left_to_right_order_across_nested_origin_and_failures(self):
++        function = next(fn for fn in self.core.as_dict()["functions"] if fn["name"] == "ordering_case")
++        self.assertEqual([op["attrs"]["function"] for block in function["blocks"] for op in block["ops"]
++                          if op["op"] == "call"], ["stamp", "stamped_origin", "stamp", "ordered_origin"])
++        for failure, expected, allocations, peak in ORDER_CASES:
++            report = execute_program(self.core, "ordering_case", [], allocation_fail_at=failure)
++            type(self).order_observations.append({"failure": failure, "report": report})
++            self.clean(report, expected)
++            self.assertEqual(report["resources"]["allocation_attempts"], 4)
++            self.assertEqual(report["resources"]["allocations"], allocations)
++            self.assertEqual(report["resources"]["peak_bytes"], peak)
++
++    def test_error_branches_and_every_step_prefix_keep_full_chain_ledger_without_unwind(self):
++        self.clean(execute_program(self.core, "failure_case", [7], allocation_fail_at=2), 41)
++        self.clean(execute_program(self.core, "shared_case", [7, 99, 0], allocation_fail_at=1), 1001)
++        completed = execute_program(self.core, "mutable_case", [2, 91, 1])
++        saw_four_live_loans = False
++        for limit in range(1, completed["steps"]):
++            with self.assertRaises(HIAProgramBudgetExceeded) as caught:
++                execute_program(self.core, "mutable_case", [2, 91, 1], max_steps=limit)
++            ledger = caught.exception.report["resources"]
++            self.assertEqual(ledger["owners_created"] - ledger["owners_dropped"], ledger["live_owners"])
++            self.assertEqual(ledger["loans_started"] - ledger["loans_ended"], ledger["live_local_loans"])
++            saw_four_live_loans |= ledger["live_local_loans"] >= 4
++        self.assertTrue(saw_four_live_loans)
++
++    def test_source_permissions_origins_escapes_and_existing_compile_limits_still_reject(self):
++        legal_exclusions = {"nested_mode_change", "outer_mode_change", "nested_two_borrowed_formals",
++                            "nested_borrowed_record_formal"}
++        for label, source in refusals().items():
++            with self.subTest(label=label):
++                if label in legal_exclusions:
++                    ast = parse(source)
++                    checked = check(ast)
++                    self.assertTrue(checked.ok, checked.diagnostics)
++                    self.assertTrue(verify_resource_ir(lower_resource_ir(ast, checked))["ok"])
++                with self.assertRaises((HIAProgramSourceRejected, HIAProgramRejected)) as caught:
++                    lower_source(source, core_schema=SCHEMA_V8)
++                type(self).source_refusals.append({"name": label, "source": source,
++                    "checked_frontend_and_resource_legal": True if label in legal_exclusions else None,
++                    "type": type(caught.exception).__name__, "message": str(caught.exception)})
++        with self.assertRaisesRegex(HIAProgramSourceRejected, "one MiB limit"):
++            lower_source(SOURCE + " " * (1024 * 1024), core_schema=SCHEMA_V8)
++        origin = "read b"
++        for _ in range(100):
++            origin = "read shared(" + origin + ")"
++        with self.assertRaises(HeptaError) as caught:
++            lower_source(previous.VIEW + previous.SHARE +
++                         "fn f(b:read [u8])->u64 effects{}{let v=View{data:" + origin + ",tag:7};return v.tag;}",
++                         core_schema=SCHEMA_V8)
++        self.assertEqual(caught.exception.diagnostic.code, "E_PARSE_DEPTH")
++
++    def test_primitive_core_refuses_actual_ancestor_order_owner_and_cfg_corruptions(self):
++        neighbour = verify_program(balanced_parent_reborrow())
++        self.clean(execute_program(neighbour, "probe", [0]), 8)
++        for name, document in corruptions():
++            with self.subTest(name=name), self.assertRaises(HIAProgramRejected) as caught:
++                verify_program(document)
++            type(self).core_refusals.append({"name": name, "document": document,
++                "type": type(caught.exception).__name__, "message": str(caught.exception)})
++            expected = {
++                "end_root_parent_before_descendants": "end child loans before their parent",
++                "end_middle_parent_before_descendants": "end child loans before their parent",
++                "drop_root_owner_with_live_descendants": "owner moved/dropped/returned while borrowed",
++                "reborrow_exclusive_middle_with_live_mutable_child": "conflicting live borrow",
++                "omit_middle_end_before_ancestor_cleanup": "end child loans before their parent",
++                "swap_intermediate_ancestors_on_one_cfg_edge": "predecessors disagree on loan origins/permissions",
++            }[name]
++            self.assertIn("E_HIA_LOAN: " + expected, str(caught.exception))
++
++
++@unittest.skipUnless(shutil.which("cargo") or os.environ.get("HIA_RETURNED_VIEW_RUST_BIN"),
++                     "Rust Machine unavailable: nested-returned-view parity NOT qualified")
++class HIASourceNestedReturnedViewsRust(unittest.TestCase):
++    @classmethod
++    def setUpClass(cls):
++        previous.HIASourceReturnedLocalViewsRust.setUpClass.__func__(cls)
++        cls.core = lower_source(SOURCE, core_schema=SCHEMA_V8)
++
++    @classmethod
++    def tearDownClass(cls):
++        previous.HIASourceReturnedLocalViewsRust.tearDownClass.__func__(cls)
++
++    def test_same_rust_machine_matches_nested_chains_order_failures_and_every_step(self):
++        for entry, arguments, _ in cases():
++            self.harness.parity(self.core, entry, arguments)
++        self.harness.parity(self.core, "failure_case", [7], fail=2)
++        self.harness.parity(self.core, "shared_case", [7, 99, 0], fail=1)
++        for failure, expected, _, _ in ORDER_CASES[1:]:
++            self.assertEqual(self.harness.parity(self.core, "ordering_case", [], fail=failure)["values"], [expected])
++        for heap in (1, 3):
++            self.harness.parity(self.core, "failure_case", [7], heap=heap)
++        completed = self.harness.parity(self.core, "mutable_case", [2, 91, 1])
++        type(self).prefix_complete_steps = completed["steps"]
++        for limit in range(1, completed["steps"] + 1):
++            self.harness.parity(self.core, "mutable_case", [2, 91, 1], steps=limit)
++
++    def test_raw_rust_rejects_actual_six_ancestor_capability_corruptions(self):
++        self.assertEqual(self.harness.parity(balanced_parent_reborrow(), "probe", [0])["values"], [8])
++        for name, document in corruptions():
++            raw = json.dumps(document, sort_keys=True, separators=(",", ":")).encode()
++            result = self.harness.raw_run(raw, "probe", [0])
++            type(self).refusals.append({"name": name, "raw": raw.decode(), "argv": result.args,
++                "returncode": result.returncode, "stdout": result.stdout.decode(), "stderr": result.stderr.decode()})
++            self.assertNotEqual(result.returncode, 0, name)
++            if name == "reborrow_exclusive_middle_with_live_mutable_child":
++                self.assertIn(b"E_HIA_LOAN: overlapping incompatible loans", result.stderr)
++
++
++@unittest.skipUnless(CLANG, "Clang unavailable: nested-returned-view LLVM execution NOT qualified")
++class HIASourceNestedReturnedViewsNative(unittest.TestCase):
++    records = []
++
++    def test_direct_llvm_executes_source_selected_exports_with_nested_origins(self):
++        from hepta.hia_program_llvm import build_program_native
++        core = lower_source(SOURCE, core_schema=SCHEMA_V8)
++        with tempfile.TemporaryDirectory() as temporary:
++            directory = Path(temporary)
++            output = directory / "nested-returned-views.so"
++            with patch("hepta.parser.parse", side_effect=AssertionError("LLVM consumer must use Core")):
++                receipt = build_program_native(core.canonical_bytes, output, clang=CLANG)
++            self.assertTrue(receipt["ok"], receipt)
++            library = ctypes.CDLL(str(output))
++            record = {"core_sha256": core.sha256, "receipt": receipt, "observations": []}
++            type(self).records = [record]
++            for entry, arguments, expected in cases():
++                types = {"shared_case": [ctypes.c_size_t, ctypes.c_uint8, ctypes.c_uint8],
++                         "mutable_case": [ctypes.c_size_t, ctypes.c_uint8, ctypes.c_size_t],
++                         "branch_case": [ctypes.c_size_t, ctypes.c_uint8, ctypes.c_uint8],
++                         "failure_case": [ctypes.c_size_t], "mutable_early_case": [ctypes.c_uint8],
++                         "ordering_case": [], "stamp": [ctypes.c_size_t]}[entry]
++                function = getattr(library, entry)
++                function.argtypes, function.restype = types, ctypes.c_uint64
++                actual = function(*arguments)
++                record["observations"].append({"entry": entry, "arguments": arguments,
++                                               "expected": expected, "actual": actual})
++                self.assertEqual(actual, expected)
++            retained = os.environ.get("HIA_NESTED_VIEW_NATIVE_DIR")
++            if retained:
++                shutil.copytree(directory, Path(retained) / "direct-llvm")
++
++    def test_real_llvm_allocator_distinguishes_argument_order_and_cleans_nested_views(self):
++        from hepta.hia_program_llvm import compile_program_llvm, emit_program_llvm
++        from tests.test_hia_source_partial import RESTORE_OBSERVER
++        core = lower_source(SOURCE, core_schema=SCHEMA_V8)
++        observer = RESTORE_OBSERVER.replace("extern size_t restore_try(void);",
++            "extern uint64_t ordering_case(void); extern uint64_t failure_case(size_t);")
++        observer = observer.replace("argc!=2", "argc!=3").replace("size_t value=restore_try();",
++            "size_t value=(size_t)(argv[2][0]=='o' ? ordering_case() : failure_case(7));")
++        with tempfile.TemporaryDirectory() as temporary:
++            directory = Path(temporary)
++            source, object_path, executable = directory / "observer.c", directory / "core.o", directory / "observer"
++            source.write_text(observer)
++            receipt = compile_program_llvm(emit_program_llvm(core), program=core,
++                                           output=object_path, clang=CLANG, kind="object")
++            self.assertTrue(receipt["ok"], receipt)
++            command = [CLANG, "-std=c11", "-O2", str(source), str(object_path),
++                       "-Wl,--wrap=malloc", "-Wl,--wrap=calloc", "-Wl,--wrap=free", "-o", str(executable)]
++            built = subprocess.run(command, capture_output=True, text=True, timeout=60)
++            self.assertEqual(built.returncode, 0, built.stderr)
++            record = {"core_sha256": core.sha256, "object_receipt": receipt, "observer": observer,
++                      "link": {"argv": command, "returncode": built.returncode, "stdout": built.stdout, "stderr": built.stderr},
++                      "observations": []}
++            type(self).allocator = record
++            selected = [("ordering", failure or 0, expected, allocations, peak, 4)
++                        for failure, expected, allocations, peak in ORDER_CASES]
++            selected += [("failure", 0, 50, 2, 10, 2), ("failure", 2, 41, 1, 3, 2)]
++            for entry, failure, expected, allocations, peak, attempts in selected:
++                run = subprocess.run([str(executable), str(failure), entry], capture_output=True, text=True, timeout=20)
++                record["observations"].append({"entry": entry, "failure": failure, "argv": run.args,
++                    "returncode": run.returncode, "stdout": run.stdout, "stderr": run.stderr})
++                self.assertEqual(run.returncode, 0, run.stderr)
++                self.assertEqual(json.loads(run.stdout), {"value": expected, "attempts": attempts,
++                    "allocations": allocations, "frees": allocations, "live_bytes": 0, "peak_bytes": peak})
++            retained = os.environ.get("HIA_NESTED_VIEW_NATIVE_DIR")
++            if retained:
++                shutil.copytree(directory, Path(retained) / "allocator")
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/tests/test_hia_source_returned_local_views.py b/tests/test_hia_source_returned_local_views.py
+index a751d37ffc01021e7c32d327a1e1fb3ffd7b3012..67df86f44f883847eb79d8a6abab98efb58d3522 100644
+--- a/tests/test_hia_source_returned_local_views.py
++++ b/tests/test_hia_source_returned_local_views.py
+@@ -127,7 +127,7 @@ def refusals():
+         "view_parameter": VIEW + "fn f<'a>(v:View<'a>)->u64 effects{}{return v.tag;}",
+         "nested_view_record": VIEW + "struct Nested<'a>{view:View<'a>} fn f()->Unit effects{}{}",
+         "two_stored_loans": "struct Two<'a>{a:read 'a [u8],b:read 'a [u8]} fn f()->Unit effects{}{}",
+-        "nested_returned_argument": VIEW + SHARE + "fn f(b:read [u8])->u64 effects{}{let v=View{data:read shared(read shared(read b)),tag:7};return v.tag;}",
++        "nested_returned_mode_change": VIEW + SHARE + "fn frozen(b:mut [u8])->read [u8] from b effects{}{return read b;} fn f(b:mut [u8])->u64 effects{}{let v=View{data:read shared(read frozen(mut b)),tag:7};return v.tag;}",
+         "origin_is_local_view": VIEW + SHARE + "fn f(b:read [u8])->u64 effects{}{let first=View{data:read b,tag:7};let v=View{data:read shared(read first.data),tag:7};return v.tag;}",
+         "two_borrowed_formals": VIEW + "fn shared(b:read [u8],other:read [u8])->read [u8] from b effects{}{return read b;} fn f(b:read [u8])->u64 effects{}{let v=View{data:read shared(read b,read b),tag:7};return v.tag;}",
+         "borrowed_record_formal": VIEW + "struct Pair{left:Buffer<u8>,right:Buffer<u8>} fn shared(p:read Pair)->read [u8] from p effects{}{return read p.left;} fn f(p:read Pair)->u64 effects{}{let v=View{data:read shared(read p),tag:7};return v.tag;}",
+diff --git a/tools/qualify_hia_integrated.py b/tools/qualify_hia_integrated.py
+index 0f7c47f90996883f596122e480c947cb4f9ed14d..e32811b71f47d745c5fccf42227afccc9171b369 100644
+--- a/tools/qualify_hia_integrated.py
++++ b/tools/qualify_hia_integrated.py
+@@ -77,7 +77,8 @@ CRITICAL_MODULES = {
+     "raw_rust_integer_admission": ("test_hia_rust_raw_integer",),
+     "partial_record_states": ("test_hia_partial_record", "test_hia_partial_record_scenarios",
+                               "test_hia_partial_finite_bounds"),
+-    "source_local_views": ("test_hia_source_local_views", "test_hia_source_returned_local_views"),
++    "source_local_views": ("test_hia_source_local_views", "test_hia_source_returned_local_views",
++                           "test_hia_source_nested_returned_views"),
+     "source_unit_enums": ("test_hia_source_unit_enums",),
+     "rust_invocation_bound_execution": ("test_hia_rust_execution_crosscheck", "test_hia_rust_transport_lifecycle",
+                                         "test_hia_rust_bound_depth"),
+diff --git a/tools/qualify_hia_safety_contract.py b/tools/qualify_hia_safety_contract.py
+index f0a035a415e386316a8d775b497ed90617f4219c..a2ec69d455736fe76a0b80b5d3691e86c581459f 100644
+--- a/tools/qualify_hia_safety_contract.py
++++ b/tools/qualify_hia_safety_contract.py
+@@ -34,7 +34,7 @@ CONTRACT = ROOT / "docs/HIA_SAFETY_CONTRACT.json"
+ # caller can remove capabilities/tests and still obtain the same qualification
+ # status for a weaker matrix. Deliberate protocol changes must review and update
+ # this identity together with the contract and its boundary tests.
+-REVIEWED_CONTRACT_SHA256 = "7da611f24e957ab113d987bbfb1d812db3234ca1be27cc61a8e743d0c89e4f99"
++REVIEWED_CONTRACT_SHA256 = "44c138659e8472a58db069c035d066feaaa5877680dc550b784802fe40ac9e76"
+ _UNPROVED = frozenset({"whole_language_soundness_proved", "source_to_core_refinement_proved",
+     "core_to_native_refinement_proved", "global_optimality_proved", "absolute_resource_safety_proved",
+     "general_concurrent_memory_safety_proved", "native_process_memory_bound_proved",

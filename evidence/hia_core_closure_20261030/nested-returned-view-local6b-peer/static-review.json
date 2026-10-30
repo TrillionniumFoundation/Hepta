@@ -1,0 +1,101 @@
+{
+  "changed_ast_methods": [
+    "_Lower.call",
+    "_Lower.expr",
+    "_Lower.returned_view_field"
+  ],
+  "findings": [
+    {
+      "finding": "Exactly _Lower.returned_view_field, _Lower.expr and optional prepared arguments in _Lower.call change. Checker, Resource IR, Core verifier, Python Machine, LLVM backend and scalar export selection remain byte-identical to the parent.",
+      "topic": "Only selected source adaptation changes"
+    },
+    {
+      "finding": "Every recursive returned_view_field call rechecks a known non-extern function, matching read/mut return and borrow mode, one declared original borrowed formal, byte slice/Buffer type and scalar-only other value arguments. The terminal origin must remain one named byte place or ordinary owner-record field; stored local View and aggregate origins are rejected.",
+      "topic": "Admission at every nested level"
+    },
+    {
+      "finding": "A freshly checked constructor-field path records returned_fields; an arbitrary value with a similar loan-list shape cannot enter the returned-call View path. The final chain requires one immediate parent, matching one-atom types, parent last loan equal to its capability, exact parent-prefix plus child, and no repeated capability names.",
+      "topic": "No shape-only admission"
+    },
+    {
+      "finding": "The recursive path loops over the original call.children once in source order. Only the declared origin recursively adapts; every other argument uses the unchanged expr path. The completed keys are passed to the existing call once, preventing duplicate scalar evaluation. Independent four-level short-circuit controls additionally exercised branch-generated CFG interfaces before and after every origin.",
+      "topic": "Argument evaluation order"
+    },
+    {
+      "finding": "Existing call copies the parent loan stack and appends the actual returned child. Existing _State.prune follows borrow_parents transitively. new_block retains aliases under resource renaming; edge requires equal parent binding and alias relation. These unchanged functions carry all ancestors through branches, loops and early returns.",
+      "topic": "Complete parent retention through CFG"
+    },
+    {
+      "finding": "Existing reverse loan ending plus consume removes each ended capability from all aliases. Shared lexical aliases retain obligations until the final alias; mutable whole-local move transfers them, and explicit drop ends descendants before ancestors. Existing source/ResourceIR and Core verification reject missing mutable drops, live-owner release and inconsistent joins.",
+      "topic": "Cleanup and ownership"
+    },
+    {
+      "finding": "Owner evidence covers allocation refusal with normal return, stopped budget ledgers and exact ancestor corruption refusals. Native C observers verify successful-return allocation/free balance only. Traps, cancellation, foreign lifetimes, general unwind cleanup and RSS are not established by this increment.",
+      "topic": "Error and stop boundary"
+    },
+    {
+      "finding": "The 36-capability selector set is exactly old349 plus new10; other35 capabilities and all top-level contract authority/boundary claims are unchanged. A former same-mode nested-call exclusion is deliberately replaced with a still-forbidden permission-change control. Existing single-call Core outputs retain their old identities. The default v1 route does not gain nested stored-return support.",
+      "topic": "Contract and compatibility"
+    },
+    {
+      "finding": "The unchanged source byte limit, parser depth limit, specialization limits and primitive Core verifier remain gates. Python remains the production authority, Rust remains a finite comparison Machine, public LLVM exports remain scalar and optimization remains no_change. No broad strict blocker is closed.",
+      "topic": "Bounded input and authority"
+    },
+    {
+      "finding": "The owner collector invokes the original unittest suite and records actual start/success/stop counts, all materialized source bytes/modes and tool hashes. Its bounded-compiler observer calls the original runner with unchanged arguments/options and returns the original completion or propagates its exception. It copies temporary IR/artifact bytes; it does not patch assertions or manufacture execution results.",
+      "topic": "Original collector review"
+    }
+  ],
+  "formal_refinement_claimed": false,
+  "head": "6b83eae0aef1cfbc9654510b55f5c35ed0bd55d5",
+  "ok": true,
+  "parent": "a6cfb7e00a1c08276d27459bdcc5628aa7622079",
+  "production_path": "hepta/hia_program_source.py",
+  "production_sha256": "bd73133516074ce49fb2b749a6e49b0ac69c1a94e9ba88fe3da4d9baa6c6dbb0",
+  "reviewer_authored_implementation_or_owner_collector": false,
+  "schema": "hepta.independent-nested-static-review.v1",
+  "unchanged_components": [
+    {
+      "bytes": 113249,
+      "path": "hepta/checker.py",
+      "sha256": "83fa87f5098f2bef27265e5d810a70d9cf4625b816b8550a6a7b6d713005240a",
+      "unchanged": true
+    },
+    {
+      "bytes": 26151,
+      "path": "hepta/parser.py",
+      "sha256": "b3cc04259c953d112e1ffbf4482b380cbb15fdd994a5924507dd1d11d5c0c5cf",
+      "unchanged": true
+    },
+    {
+      "bytes": 39535,
+      "path": "hepta/resource_lowering.py",
+      "sha256": "62d63f966b2f2e61540ae6719e8aeecefec9ee9dee65a920f6ba74dd370f3eb9",
+      "unchanged": true
+    },
+    {
+      "bytes": 59831,
+      "path": "hepta/resource_ir.py",
+      "sha256": "7ee06325c766682542334c2c76e876a4d1d50a86c993f91378f36edfaf7ab146",
+      "unchanged": true
+    },
+    {
+      "bytes": 37193,
+      "path": "hepta/hia_program.py",
+      "sha256": "5352d6b1e3906d4ab72f2a94c005cab15f1550d845549e63275402ee7d51ea1a",
+      "unchanged": true
+    },
+    {
+      "bytes": 26997,
+      "path": "hepta/hia_program_runtime.py",
+      "sha256": "1cf20b990a2f803c5613c0f51107d4470fb9ed09f0c4531a765d63075e0c86ea",
+      "unchanged": true
+    },
+    {
+      "bytes": 53765,
+      "path": "hepta/hia_program_llvm.py",
+      "sha256": "3d29e045b6aea94fa059e29541325f72306e3bcb4e7bec534d8fdcd6a8a87f21",
+      "unchanged": true
+    }
+  ]
+}
