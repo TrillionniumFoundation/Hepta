@@ -1,0 +1,17 @@
+name: Qualified LLVM 20 host tools
+description: Install the existing signed LLVM 20 profile on the actual Linux host
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        set -euo pipefail
+        curl --fail --location --retry 3 --output "$RUNNER_TEMP/hepta-six-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key
+        hepta_fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hepta-six-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')
+        test "$hepta_fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+        sudo install -m 0644 "$RUNNER_TEMP/hepta-six-llvm.asc" /usr/share/keyrings/hepta-six-llvm.asc
+        hepta_arch=$(dpkg --print-architecture)
+        printf 'deb [arch=%s signed-by=/usr/share/keyrings/hepta-six-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main\n' "$hepta_arch" | sudo tee /etc/apt/sources.list.d/hepta-six-llvm20.list
+        sudo apt-get update
+        sudo apt-get install --yes clang-20 libclang-20-dev libclang-rt-20-dev llvm-20 lld-20 build-essential
+        printf '%s\n' /usr/lib/llvm-20/bin >> "$GITHUB_PATH"

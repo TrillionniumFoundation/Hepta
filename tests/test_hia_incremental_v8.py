@@ -38,7 +38,7 @@ class V8IncrementalInterfaces(unittest.TestCase):
         changed["functions"][1] = migration(source)["edits"][0]["definition"]
         checked, report = session.verify(changed)
         self.assertEqual(report["mode"], "incremental")
-        self.assertEqual(report["dependency_contract"], "closed-body-and-direct-callee-interface.v3")
+        self.assertEqual(report["dependency_contract"], "closed-body-and-direct-callee-interface.v4")
         self.assertEqual(report["dependency_invalidations"], {"entrypoint": ["pick"]})
         self.assertEqual(report["functions_body_completed"], ["entrypoint", "pick"])
         self.assertEqual(checked.canonical_bytes, core.verify_program(changed).canonical_bytes)

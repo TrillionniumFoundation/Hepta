@@ -70,7 +70,7 @@ GRAMMAR = {
     "cost": "exact encoded function body bytes including ret; excludes ELF metadata/alignment",
 }
 _IMPLEMENTATION_INPUTS = (
-    "hia_x86_search.py", "hia_program.py", "hia_opcodes.py", "hia_program_composite.py", "hia_schema.py",
+    "hia_x86_search.py", "hia_program.py", "hia_opcodes.py", "hia_semantic_kernel.py", "hia_program_composite.py", "hia_schema.py",
     "hia_translation_validation.py", "hia_program_runtime.py", "hia_program_llvm.py",
     "elf_shared_abi.py", "artifact_publication.py", "clang_capture.py", "native_tool_identity.py",
 )

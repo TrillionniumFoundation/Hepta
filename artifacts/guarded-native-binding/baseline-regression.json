@@ -1,0 +1,30 @@
+{
+  "schema": "hepta.hia.guarded-native-binding-baseline-regression.v1",
+  "baseline_commit": "192d2cbba7e49bde3b03af73685ecf96f6fb1b05",
+  "baseline_builder_source_sha256": "d12fca604c17bc3bec9f816fd0ae6427a106cc0a7b4e57b7142976ce80701a25",
+  "scope": "Exact baseline builder injected into isolated process; real current Core/LLVM/file gates with mocked solver/backend boundary fixtures; not native execution",
+  "cases": [
+    {
+      "attack": "wrong_core",
+      "outcome": "accepted",
+      "reason": null,
+      "final_output_left_published": true,
+      "defect_reproduced": true
+    },
+    {
+      "attack": "missing_toolchain",
+      "outcome": "KeyError",
+      "reason": "'toolchain'",
+      "final_output_left_published": true,
+      "defect_reproduced": true
+    },
+    {
+      "attack": "publication_interrupt",
+      "outcome": "KeyboardInterrupt",
+      "reason": "interrupted after link creation",
+      "final_output_left_published": true,
+      "defect_reproduced": true
+    }
+  ],
+  "baseline_regressions_reproduced": true
+}

@@ -155,6 +155,7 @@ def check_instruction(spec: OpcodeSpec, operands, results, attributes) -> frozen
 
 def opcode_catalog(schema: str | None = None) -> dict:
     """Detached complete catalog; hashes bind metadata, never grant admission."""
+    from .hia_semantic_kernel import contract
     schema = LATEST_CORE_SCHEMA if schema is None else schema
     if schema not in PRIMITIVE_PROFILES:
         raise OpcodeRejected("catalog requires an exact primitive schema")
@@ -173,6 +174,7 @@ def opcode_catalog(schema: str | None = None) -> dict:
         "resource_checks": "all guards, transitions, exact CFG joins and return cleanup remain mandatory",
         "backend_scope": "VM and direct LLVM have separate supported-target/entry-ABI checks; catalog inclusion grants no native entry ABI",
         "admission_authority": "hepta.hia_program.verify_program", "safety_certificate": False,
+        "shared_semantic_contract": contract(),
         "generated_checker_scope": "opcode/version, operand/result signatures, attributes, effects, named resource guards",
         "not_generated_or_proved": ["CFG ownership algorithm", "interpreter", "LLVM lowering", "machine code"]}
     result["catalog_sha256"] = sha256(json.dumps(result, sort_keys=True, separators=(",", ":")).encode()).hexdigest()

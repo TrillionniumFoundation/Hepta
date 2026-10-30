@@ -22,12 +22,13 @@ from weakref import WeakKeyDictionary
 from . import hia_program as core
 from . import hia_schema as registry
 from . import hia_opcodes as opcodes
+from . import hia_semantic_kernel as semantic_kernel
 from .hia_program_tools import (HIAEditRejected, _check_patch_interface,
                                 _prepare_program_patch)
 
 REPORT_SCHEMA = "hepta.hia.incremental-verification.v1"
 PATCH_REPORT_SCHEMA = "hepta.hia.incremental-patch-result.v1"
-DEPENDENCY_CONTRACT = "closed-body-and-direct-callee-interface.v3"
+DEPENDENCY_CONTRACT = "closed-body-and-direct-callee-interface.v4"
 # An added primitive version never opts itself into cached admission merely by
 # appearing in the shared registry. Its dependency contract must be reviewed.
 _SCHEMAS = frozenset(f"hepta.hia.program.v{v}" for v in range(1, 9))
@@ -73,6 +74,9 @@ def _policy():
                    core.MAX_FUNCTIONS, core.MAX_BLOCKS],
         "registry": registry.schema_registry(),
         "terminator_fields": dict(core.TERMINATORS),
+        "semantic_contract": semantic_kernel.contract(),
+        "semantic_constants": {name: sorted(getattr(core.semantic_kernel, name))
+                               for name in ("OWNERS", "RESOURCES", "BYTE_RESOURCES")},
         # Imported aliases may diverge after a module reload/rebinding. Bind
         # the globals actually read by the generated checker as well as core's
         # aliases; otherwise a stale body could outlive changed literal bounds.
@@ -91,7 +95,14 @@ def _policy():
     opcode_functions = tuple((name, value, getattr(value, "__code__", None))
                              for name, value in sorted(vars(opcodes).items())
                              if callable(value) and getattr(value, "__module__", None) == opcodes.__name__)
-    return (DEPENDENCY_CONTRACT, functions, methods, constants, imported_helpers, opcode_functions)
+    semantic_functions = tuple((name, value, getattr(value, "__code__", None))
+                               for name, value in sorted(vars(core.semantic_kernel).items())
+                               if callable(value) and getattr(value, "__module__", None) == semantic_kernel.__name__)
+    capability_methods = tuple((name, value, getattr(value, "__code__", None))
+                               for name, value in sorted(vars(core.semantic_kernel.Capability).items())
+                               if callable(value))
+    return (DEPENDENCY_CONTRACT, functions, methods, constants, imported_helpers, opcode_functions,
+            core.semantic_kernel, core._Capability, semantic_functions, capability_methods)
 
 
 @dataclass(frozen=True, slots=True)

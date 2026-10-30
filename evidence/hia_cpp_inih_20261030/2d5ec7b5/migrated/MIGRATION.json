@@ -1,0 +1,369 @@
+{
+  "schema": "hepta.cpp.inih.partial-migration.v1",
+  "profile": "inih-two-pinned-revisions-synchronous-callback-partial-v1",
+  "upstream": {
+    "repository": "https://github.com/benhoyt/inih",
+    "commit": "2d5ec7b59abbb8e1797e48060965001aaac6996a",
+    "files": [
+      {
+        "path": "LICENSE.txt",
+        "git_blob_sha1": "cb7ee2d017f01192ff7bb8a4277b1ba4fde086d8",
+        "bytes": 1510,
+        "sha256": "9ae3b39e83e9158e44b67733baa3bb2d84e80efdcfb14a5820210a42c7abdf7f",
+        "url": "https://github.com/benhoyt/inih/blob/2d5ec7b59abbb8e1797e48060965001aaac6996a/LICENSE.txt"
+      },
+      {
+        "path": "cpp/INIReader.cpp",
+        "git_blob_sha1": "c96827a13620bfbae035cf5c0f225dc02d774c5d",
+        "bytes": 6636,
+        "sha256": "a15b1d3414e39ddf25f0ae72ff72fa891fb2f39bab7d8acd9420366c21146673",
+        "url": "https://github.com/benhoyt/inih/blob/2d5ec7b59abbb8e1797e48060965001aaac6996a/cpp/INIReader.cpp"
+      },
+      {
+        "path": "cpp/INIReader.h",
+        "git_blob_sha1": "02cf9a44d06a1c1ca772f13ca1bd5519e007774c",
+        "bytes": 5088,
+        "sha256": "7a597b8c60b432db518a0ff00e54b4d5f19f2c59dd634b67155cc04df4db2a84",
+        "url": "https://github.com/benhoyt/inih/blob/2d5ec7b59abbb8e1797e48060965001aaac6996a/cpp/INIReader.h"
+      },
+      {
+        "path": "ini.c",
+        "git_blob_sha1": "d0f950d87e0106f11bae82efca242f29d824fad8",
+        "bytes": 9479,
+        "sha256": "49635826cc1ae71209ba88cdad0640d7d1a079779ee24c521efd1e06f4a60633",
+        "url": "https://github.com/benhoyt/inih/blob/2d5ec7b59abbb8e1797e48060965001aaac6996a/ini.c"
+      },
+      {
+        "path": "ini.h",
+        "git_blob_sha1": "727aa5cbfc4870588906544341542a211b5bd134",
+        "bytes": 6976,
+        "sha256": "db3995229183d50d42cb675bf048f04525aed857fe3e4e39a54a1d7dd2f0f2e9",
+        "url": "https://github.com/benhoyt/inih/blob/2d5ec7b59abbb8e1797e48060965001aaac6996a/ini.h"
+      }
+    ],
+    "whole_upstream_repository_captured": false
+  },
+  "member_definitions": [
+    {
+      "name": "INIReader",
+      "signature": "INIReader::INIReader(const string& filename)",
+      "source_line": 20,
+      "body_sha256": "7a1a3855cb95f25030623d25fa31a5c75627fecd1180798281245d36bbb12b27",
+      "disposition": "retained_parser_call_with_authored_callback_lease_adapter"
+    },
+    {
+      "name": "INIReader",
+      "signature": "INIReader::INIReader(const char *buffer, size_t buffer_size)",
+      "source_line": 25,
+      "body_sha256": "f48ade835e9bc8acf9aa4ee5c2875197c2699360461254a6fd53d6e89dbc999a",
+      "disposition": "retained_parser_call_with_authored_callback_lease_adapter"
+    },
+    {
+      "name": "ParseError",
+      "signature": "int INIReader::ParseError() const",
+      "source_line": 30,
+      "body_sha256": "fe0214e1e05969b7b67937392d3e33ee0670f9731f3a2d851823389ef2d558ef",
+      "disposition": "retained_foreign_cpp_implementation"
+    },
+    {
+      "name": "ParseErrorMessage",
+      "signature": "string INIReader::ParseErrorMessage() const",
+      "source_line": 35,
+      "body_sha256": "e6e963ca27dfd0d5af2f36909e6439b799cd321c072102c3c45d7069aeca16cd",
+      "disposition": "hepta_decisions_with_explicit_foreign_data_operations"
+    },
+    {
+      "name": "Get",
+      "signature": "string INIReader::Get(const string& section, const string& name, const string& default_value) const",
+      "source_line": 65,
+      "body_sha256": "1a9501b8c577f06ca546f2c263e500dba1127bf71e7d9f31cb6ad4e5b42674ff",
+      "disposition": "retained_foreign_cpp_implementation"
+    },
+    {
+      "name": "GetString",
+      "signature": "string INIReader::GetString(const string& section, const string& name, const string& default_value) const",
+      "source_line": 72,
+      "body_sha256": "e09ccc0c6eab92fb77fc5309d065a4a6cacaae02f77739c2d4a85fdcfb28e236",
+      "disposition": "retained_foreign_cpp_implementation"
+    },
+    {
+      "name": "GetInteger",
+      "signature": "long INIReader::GetInteger(const string& section, const string& name, long default_value) const",
+      "source_line": 78,
+      "body_sha256": "7052bc513e727d3c5103b7a50df8f77da2d80400090a3738e7ae46145451fc1d",
+      "disposition": "retained_foreign_cpp_implementation"
+    },
+    {
+      "name": "GetInteger64",
+      "signature": "INI_API int64_t INIReader::GetInteger64(const string& section, const string& name, int64_t default_value) const",
+      "source_line": 88,
+      "body_sha256": "b307a7e5a370ff49bc90e4d323eae34891157e4ab469c601c92de66296f6edc0",
+      "disposition": "retained_foreign_cpp_implementation"
+    },
+    {
+      "name": "GetUnsigned",
+      "signature": "unsigned long INIReader::GetUnsigned(const string& section, const string& name, unsigned long default_value) const",
+      "source_line": 98,
+      "body_sha256": "69d6811341e767704a51550c32f696b30e963337aefbee0a15ba04a3a1c089d0",
+      "disposition": "retained_foreign_cpp_implementation"
+    },
+    {
+      "name": "GetUnsigned64",
+      "signature": "INI_API uint64_t INIReader::GetUnsigned64(const string& section, const string& name, uint64_t default_value) const",
+      "source_line": 108,
+      "body_sha256": "2e757c5c1bf00bb84370e71d564e4d0bd89ae391b3ab10db443626013b296cf4",
+      "disposition": "retained_foreign_cpp_implementation"
+    },
+    {
+      "name": "GetReal",
+      "signature": "double INIReader::GetReal(const string& section, const string& name, double default_value) const",
+      "source_line": 118,
+      "body_sha256": "303186c79f49fdddef7fa47f37b683f9bc10b7dda8008a92c1b5cc628035addf",
+      "disposition": "retained_foreign_cpp_implementation"
+    },
+    {
+      "name": "GetBoolean",
+      "signature": "bool INIReader::GetBoolean(const string& section, const string& name, bool default_value) const",
+      "source_line": 127,
+      "body_sha256": "0f3bb6d8126212563d9cea52262004c5d64edac2bc563b9ab171a5721466a662",
+      "disposition": "hepta_decisions_with_explicit_foreign_data_operations"
+    },
+    {
+      "name": "Sections",
+      "signature": "std::vector<string> INIReader::Sections() const",
+      "source_line": 141,
+      "body_sha256": "336faceb2752e635d1e5a1a6a86a35b5354888dc8f076455fcb29cda2aa4d375",
+      "disposition": "retained_foreign_cpp_implementation"
+    },
+    {
+      "name": "Keys",
+      "signature": "std::vector<string> INIReader::Keys(const string& section) const",
+      "source_line": 153,
+      "body_sha256": "75c7d5b7c1c402820068f9d0f796736445cc4f04477fa5b7f45eadce279cee35",
+      "disposition": "retained_foreign_cpp_implementation"
+    },
+    {
+      "name": "HasSection",
+      "signature": "bool INIReader::HasSection(const string& section) const",
+      "source_line": 165,
+      "body_sha256": "060c04722ebe14d2a7091916858a8c870fb8feb2641e318b5fa54a78020c2ea0",
+      "disposition": "retained_foreign_cpp_implementation"
+    },
+    {
+      "name": "HasValue",
+      "signature": "bool INIReader::HasValue(const string& section, const string& name) const",
+      "source_line": 175,
+      "body_sha256": "38c4a13d73641ed57e37089075419662f015d843ea49355aa481484c93bfbf78",
+      "disposition": "retained_foreign_cpp_implementation"
+    },
+    {
+      "name": "MakeKey",
+      "signature": "string INIReader::MakeKey(const string& section, const string& name)",
+      "source_line": 181,
+      "body_sha256": "17ccb442df9243dfc45df28c944a1737b5f5055375a059b610e011814f4f2c18",
+      "disposition": "retained_foreign_cpp_implementation"
+    },
+    {
+      "name": "ValueHandler",
+      "signature": "int INIReader::ValueHandler(void* user, const char* section, const char* name,\n                            const char* value)",
+      "source_line": 190,
+      "body_sha256": "ad36e86dc38825673d2bddf0a04473ac0f52ea9b55ec6153179d4d4a9383b59e",
+      "disposition": "hepta_decisions_with_explicit_foreign_data_operations"
+    }
+  ],
+  "member_definition_count": 18,
+  "header_callable_inventory_complete": true,
+  "retained_state": [
+    "INIReader::_error",
+    "INIReader::_values (std::map<std::string,std::string>)"
+  ],
+  "hepta_automaton": {
+    "states": {
+      "": 0,
+      "t": 1,
+      "tr": 2,
+      "tru": 3,
+      "true": 4,
+      "y": 5,
+      "ye": 6,
+      "yes": 7,
+      "o": 8,
+      "on": 9,
+      "1": 10,
+      "f": 11,
+      "fa": 12,
+      "fal": 13,
+      "fals": 14,
+      "false": 15,
+      "n": 16,
+      "no": 17,
+      "of": 18,
+      "off": 19,
+      "0": 20
+    },
+    "transitions": [
+      {
+        "from": 0,
+        "byte": 48,
+        "to": 20
+      },
+      {
+        "from": 0,
+        "byte": 49,
+        "to": 10
+      },
+      {
+        "from": 0,
+        "byte": 102,
+        "to": 11
+      },
+      {
+        "from": 0,
+        "byte": 110,
+        "to": 16
+      },
+      {
+        "from": 0,
+        "byte": 111,
+        "to": 8
+      },
+      {
+        "from": 0,
+        "byte": 116,
+        "to": 1
+      },
+      {
+        "from": 0,
+        "byte": 121,
+        "to": 5
+      },
+      {
+        "from": 1,
+        "byte": 114,
+        "to": 2
+      },
+      {
+        "from": 2,
+        "byte": 117,
+        "to": 3
+      },
+      {
+        "from": 3,
+        "byte": 101,
+        "to": 4
+      },
+      {
+        "from": 5,
+        "byte": 101,
+        "to": 6
+      },
+      {
+        "from": 6,
+        "byte": 115,
+        "to": 7
+      },
+      {
+        "from": 8,
+        "byte": 102,
+        "to": 18
+      },
+      {
+        "from": 8,
+        "byte": 110,
+        "to": 9
+      },
+      {
+        "from": 11,
+        "byte": 97,
+        "to": 12
+      },
+      {
+        "from": 12,
+        "byte": 108,
+        "to": 13
+      },
+      {
+        "from": 13,
+        "byte": 115,
+        "to": 14
+      },
+      {
+        "from": 14,
+        "byte": 101,
+        "to": 15
+      },
+      {
+        "from": 16,
+        "byte": 111,
+        "to": 17
+      },
+      {
+        "from": 18,
+        "byte": 102,
+        "to": 19
+      }
+    ],
+    "dead_state": 4294967295,
+    "true_literals": [
+      "true",
+      "yes",
+      "on",
+      "1"
+    ],
+    "false_literals": [
+      "false",
+      "no",
+      "off",
+      "0"
+    ]
+  },
+  "error_cases": [
+    {
+      "code": -3,
+      "text": "unable to read file"
+    },
+    {
+      "code": -2,
+      "text": "unable to allocate memory"
+    },
+    {
+      "code": -1,
+      "text": "unable to open file"
+    },
+    {
+      "code": 0,
+      "text": ""
+    }
+  ],
+  "generated_hepta_sha256": "75e13907474cd9c2501000192348400216bce146d5b4c042fcc5b8294860c2e4",
+  "generated_cpp_sha256": "578d23e9356a18234e054ca30c30492dbd852c1a5f8403d3c26d637a806a420e",
+  "actual_cpp_body_decision_fragments": [
+    "GetBoolean",
+    "ParseErrorMessage",
+    "ValueHandler"
+  ],
+  "authored_safety_increment": "same-thread scoped non-reentrant callback lease; catch callback exception, let C parser free its buffer, then rethrow",
+  "exception_cleanup_is_explicit_behavioral_repair": true,
+  "required_parser_options": {
+    "INI_HANDLER_LINENO": 0,
+    "INI_STOP_ON_FIRST_ERROR": 1
+  },
+  "whole_component_translated": false,
+  "general_cpp_translator": false,
+  "general_cpp_memory_safety_proved": false,
+  "compiler_refinement_proved": false,
+  "unmeasured": [
+    "human migration hours",
+    "performance superiority",
+    "arbitrary asynchronous cancellation"
+  ],
+  "boundary": [
+    "upstream C parser",
+    "STL map/string allocation and mutation",
+    "locale-sensitive tolower",
+    "string formatting",
+    "native callback registry implementation",
+    "upstream borrowed char pointer validity"
+  ],
+  "qualified_domain": "bounded synchronous same-thread callbacks; at most 32 simultaneously active parser leases per thread; LP64 native host"
+}

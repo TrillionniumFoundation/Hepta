@@ -14,7 +14,9 @@ from dataclasses import dataclass
 
 from .hia_program import WIDTHS, integer_range, verify_program
 
-MAX_REQUEST = (1 << 63) - 1
+from .hia_semantic_kernel import MAX_OBJECT_BYTES
+
+MAX_REQUEST = MAX_OBJECT_BYTES
 # The complete domain is small enough to express and can flow through checked
 # conversions without ever admitting an out-of-range allocation size.
 _SMALL_CAST_DOMAINS = frozenset({"i8", "i16", "i32", "u8", "u16", "u32"})

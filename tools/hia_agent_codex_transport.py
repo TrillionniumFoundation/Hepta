@@ -165,11 +165,18 @@ class CodexEvents:
         return {"text": self.messages[0], "usage": self.usage}
 
 
-def run_owned(argv, cwd, output, *, input_bytes=b"", wall_seconds, on_line=None):
+def run_owned(argv, cwd, output, *, input_bytes=b"", wall_seconds, on_line=None,
+              transport_config=None):
     """Own a new process group. Kill that group before reaping its leader."""
     output = Path(output)
     output.mkdir(parents=True, exist_ok=False)
-    cfg = protocol()
+    cfg = protocol() if transport_config is None else {"transport": copy.deepcopy(transport_config)}
+    limits = cfg["transport"]
+    if (type(limits) is not dict or set(limits) != {
+            "stdout_limit_bytes", "stderr_limit_bytes", "max_jsonl_line_bytes"}
+            or any(type(value) is not int or not 1 <= value <= 64 * 1024 * 1024
+                   for value in limits.values())):
+        raise ValueError("E_PILOT_TRANSPORT_LIMITS")
     caps = {"stdout": cfg["transport"]["stdout_limit_bytes"],
             "stderr": cfg["transport"]["stderr_limit_bytes"]}
     started = time.monotonic_ns()

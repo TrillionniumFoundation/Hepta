@@ -44,7 +44,7 @@ def _width(token):
 
 def checker_identity():
     digest = sha256()
-    for name in ("hia_scalar_lowering_check.py", "hia_optimization.py", "hia_program.py", "hia_opcodes.py",
+    for name in ("hia_scalar_lowering_check.py", "hia_optimization.py", "hia_program.py", "hia_opcodes.py", "hia_semantic_kernel.py",
                  "hia_program_runtime.py", "hia_program_llvm.py", "hia_schema.py"):
         digest.update(name.encode() + b"\0" + Path(__file__).with_name(name).read_bytes() + b"\0")
     return digest.hexdigest()

@@ -12,7 +12,6 @@ from __future__ import annotations
 from hashlib import sha256
 import json
 from pathlib import Path
-import tempfile
 import time
 
 from .hia_program import verify_program, SCALARS, WIDTHS, HIAProgramRejected
@@ -28,7 +27,7 @@ BYTE_SUM_LIMIT = (2**64 - 1) // 255
 
 def guarded_checker_identity():
     h = sha256(checker_identity().encode())
-    for name in ("hia_guarded_optimization.py", "hia_inductive.py"):
+    for name in ("hia_guarded_optimization.py", "hia_inductive.py", "hia_guarded_native_binding.py"):
         h.update(name.encode() + b"\0" + Path(__file__).with_name(name).read_bytes() + b"\0")
     return h.hexdigest()
 
@@ -388,44 +387,6 @@ def guarded_program(base, proposal, policy=None):
 
 
 def build_guarded_native(base, proposal, output, *, policy=None, clang="clang", kind="shared"):
-    from .hia_program_llvm import build_program_native, _read_artifact
-    from .artifact_publication import publish_verified, verify_published, withdraw_own_link
-    original, fast, frozen = _freeze(base, proposal)
-    proof = verify_guarded_optimization(original, frozen, policy)
-    if proof["status"] != "verified":
-        raise OptimizationRejected("E_HIA_GUARD_NOT_VERIFIED: " + proof["status"] + ": " + proof["reason"])
-    program = _compose(original, fast, frozen)
-    if program.sha256 != proof["candidate_sha256"]:
-        raise OptimizationRejected("E_HIA_GUARD_BINDING: final Core differs from proof")
-    destination = Path(output).absolute()
-    if destination.exists() or destination.is_symlink() or not destination.parent.is_dir():
-        raise OptimizationRejected("E_HIA_GUARD_OUTPUT: new path in an existing directory required")
-    import z3
-
-    def recheck():
-        if guarded_checker_identity() != proof["checker_sha256"] or _solver_identity(z3) != proof["solver"]:
-            raise OptimizationRejected("E_HIA_GUARD_STALE: proof implementation changed during build")
-
-    with tempfile.TemporaryDirectory(prefix=".hia-guarded-", dir=destination.parent) as tmp:
-        stage = Path(tmp) / ("guarded.so" if kind == "shared" else "guarded.o")
-        native = build_program_native(program, stage, clang=clang, kind=kind, target=proof["target"])
-        data = _read_artifact(stage)
-        if sha256(data).hexdigest() != native["artifact_sha256"]:
-            raise OptimizationRejected("E_HIA_GUARD_ARTIFACT: native bytes changed")
-        recheck()
-        publish_verified(stage, destination, data)
-        try:
-            recheck()
-            verify_published(stage, destination, data)
-        except Exception:
-            withdraw_own_link(stage, destination)
-            raise
-    native["output"] = str(destination)
-    return {"schema": "hepta.hia.optimized-native.v1", "status": "verified_core_native_bound",
-            "verification": proof, "native": native,
-            "binding_sha256": _digest({"base": original.sha256, "candidate": program.sha256,
-                                        "verification": proof["verification_sha256"],
-                                        "artifact": native["artifact_sha256"],
-                                        "compiler": native["toolchain"]["sha256"], "target": native["target"]}),
-            "claims": {"unverified_candidate_published": False, "final_artifact_bound": True,
-                       "performance_qualified": False, "backend_refinement_proved": False}}
+    """Check the actual guarded proposal and bind every native identity before publication."""
+    from .hia_guarded_native_binding import build_guarded_native_bound
+    return build_guarded_native_bound(base, proposal, output, policy=policy, clang=clang, kind=kind)
