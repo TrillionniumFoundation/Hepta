@@ -332,20 +332,20 @@ class C2HeptaImport(unittest.TestCase):
         # API.  Without the same gate here, successful conversion can replace
         # the C source with generated Hepta or a JSON receipt, or replace a
         # successful output with its own receipt while claiming success.
-        code = "int safe(int x){return x;}\\n"
+        code = "int safe(int x){return x;}\n"
         for scenario in ("source_as_output", "source_as_report", "output_as_report"):
             with self.subTest(scenario=scenario):
                 self.src.write_text(code, encoding="utf-8")
-                self.out.write_text("previous output\\n", encoding="utf-8")
-                self.report.write_text("previous receipt\\n", encoding="utf-8")
+                self.out.write_text("previous output\n", encoding="utf-8")
+                self.report.write_text("previous receipt\n", encoding="utf-8")
                 output = self.src if scenario == "source_as_output" else self.out
                 report = (self.src if scenario == "source_as_report" else
                           self.out if scenario == "output_as_report" else self.report)
                 with self.assertRaisesRegex(ValueError, "distinct"):
                     migrate(self.src, output, report)
                 self.assertEqual(self.src.read_text(encoding="utf-8"), code)
-                self.assertEqual(self.out.read_text(encoding="utf-8"), "previous output\\n")
-                self.assertEqual(self.report.read_text(encoding="utf-8"), "previous receipt\\n")
+                self.assertEqual(self.out.read_text(encoding="utf-8"), "previous output\n")
+                self.assertEqual(self.report.read_text(encoding="utf-8"), "previous receipt\n")
 
     def test_native_gate_without_frontend_fails_closed(self):
         self.src.write_text("int f(int x){return x;}", encoding="utf-8")
