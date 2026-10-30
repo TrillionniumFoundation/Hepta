@@ -275,6 +275,16 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
                 f.write(program)
                 f.flush()
                 os.fsync(f.fileno())
+            # Frontend checks may take time after the earlier source check.
+            # Reject any change before publication, including same-size edits.
+            # This narrows but cannot eliminate noncooperative writer races.
+            try:
+                if src.read_bytes() != source:
+                    raise MigrationRejected("E_C_SOURCE_RACE",
+                                            "C source changed before publication")
+            except OSError as exc:
+                raise MigrationRejected("E_C_SOURCE_RACE",
+                                        "C source unavailable before publication") from exc
             # Atomic same-filesystem hard-link publication: the completely
             # written, fsynced staged inode becomes visible in one operation.
             # os.link fails without replacing a concurrent existing name.
