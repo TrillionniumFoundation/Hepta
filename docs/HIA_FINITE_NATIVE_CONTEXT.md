@@ -95,6 +95,20 @@ alter the plan. The independent step oracle derives a final state and a
 wrapping u64 rolling checksum for each request. A trace digest binds all these
 values, the complete bank identity, and the exact selected image inventory.
 
+The trusted host oracle may read the bank's diagnostic state, but cannot
+reenter `prepare_trace`, `run`, `cancel` or `close` on that same bank while a
+preparation is active. The explicit preparation guard matters because the
+bank's reentrant lock alone allows same-thread callbacks. Without this guard,
+a callback could fill the pending-byte or trace quota after the outer check,
+or close descriptors and the reference cache before the outer trace is
+registered. Reentrant mutation rejects before any nested trace registration,
+child launch, token consumption or descriptor release. The oracle may catch
+that rejection and return its ordinary reference value. If it propagates an
+exception, including `BaseException`, the unregistered outer preparation is
+discarded and the guard is released; later valid preparation remains possible.
+This is a host-reference lifecycle boundary, not general foreign-callback,
+asynchronous cancellation or native failure recovery support.
+
 Only images actually referenced by this trace are passed to and loaded by the
 child. The driver uses dense local slots; the report binds each slot back to
 the bank index, candidate label and artifact digest. A static policy therefore

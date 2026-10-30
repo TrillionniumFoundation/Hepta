@@ -569,6 +569,7 @@ class FiniteU32Bank:
         self._pending_input_bytes = 0
         self._child_cleanup_uncertain = False
         self._closed = self._poisoned = False
+        self._preparing = False
         self._implementation = _implementation()
 
     def __copy__(self):
@@ -611,34 +612,47 @@ class FiniteU32Bank:
     def labels(self):
         return self._labels
 
+    def _mutation_allowed(self):
+        # The trusted host oracle may call back into this same owner. RLock
+        # serializes other threads but deliberately permits such reentrancy.
+        # A nested mutation could invalidate the outer preparation's quota and
+        # lifetime checks before its trace is registered. Reject before any
+        # token, child, descriptor or reference-cache state can be consumed.
+        _require(not self._preparing, "bank preparation is active; reentrant mutation forbidden")
+
     def prepare_trace(self, requests):
         """Bind a finite plan and oracle before execution; no native observation."""
         with self._lock:
-            self._open()
-            _require(len(self._tokens) < MAX_TRACES, "prepared trace budget exhausted")
-            requested, _initial_payload = _requests(requests, self._labels)
-            images = tuple(sorted({r[1] for r in requested}))
-            normalized = tuple((ident, images.index(image), mode, seed, parameter, values)
-                               for ident, image, mode, seed, parameter, values in requested)
-            payload = _payload(normalized)
-            payload_bytes = len(payload.encode("ascii"))
-            _require(self._pending_input_bytes + payload_bytes <= MAX_PENDING_INPUT_BYTES,
-                     "pending trace input-byte budget exhausted")
-            if self._reuse_oracle:
-                namespace = sha256(_wire({"profile": ORACLE_REFERENCE_PROFILE, "bank": self._bank_sha256,
-                    "root": self._root.sha256, "implementation": self._implementation})).hexdigest()
-                if self._oracle_references is None:
-                    self._oracle_references = _OracleReferences(namespace)
-                expected = self._oracle_references.expected(normalized, self._oracle, namespace)
-            else:
-                expected = _expected(normalized, self._oracle)
-            digest = sha256(_wire({"profile": PROFILE, "bank": self._bank_sha256,
-                                   "images": images, "requests": normalized, "expected": expected})).hexdigest()
-            token = object()
-            trace = _Trace(self, token, images, normalized, expected, payload, digest)
-            self._tokens[token] = (trace, digest, sha256(payload.encode("ascii")).hexdigest(), payload_bytes)
-            self._pending_input_bytes += payload_bytes
-            return trace
+            self._mutation_allowed()
+            self._preparing = True
+            try:
+                self._open()
+                _require(len(self._tokens) < MAX_TRACES, "prepared trace budget exhausted")
+                requested, _initial_payload = _requests(requests, self._labels)
+                images = tuple(sorted({r[1] for r in requested}))
+                normalized = tuple((ident, images.index(image), mode, seed, parameter, values)
+                                   for ident, image, mode, seed, parameter, values in requested)
+                payload = _payload(normalized)
+                payload_bytes = len(payload.encode("ascii"))
+                _require(self._pending_input_bytes + payload_bytes <= MAX_PENDING_INPUT_BYTES,
+                         "pending trace input-byte budget exhausted")
+                if self._reuse_oracle:
+                    namespace = sha256(_wire({"profile": ORACLE_REFERENCE_PROFILE, "bank": self._bank_sha256,
+                        "root": self._root.sha256, "implementation": self._implementation})).hexdigest()
+                    if self._oracle_references is None:
+                        self._oracle_references = _OracleReferences(namespace)
+                    expected = self._oracle_references.expected(normalized, self._oracle, namespace)
+                else:
+                    expected = _expected(normalized, self._oracle)
+                digest = sha256(_wire({"profile": PROFILE, "bank": self._bank_sha256,
+                                       "images": images, "requests": normalized, "expected": expected})).hexdigest()
+                token = object()
+                trace = _Trace(self, token, images, normalized, expected, payload, digest)
+                self._tokens[token] = (trace, digest, sha256(payload.encode("ascii")).hexdigest(), payload_bytes)
+                self._pending_input_bytes += payload_bytes
+                return trace
+            finally:
+                self._preparing = False
 
     def _enrolled(self, trace):
         _require(type(trace) is _Trace and trace.bank is self, "foreign trace; replay forbidden")
@@ -659,6 +673,7 @@ class FiniteU32Bank:
     def cancel(self, trace):
         """Discard an unstarted plan without a child or a replay permission."""
         with self._lock:
+            self._mutation_allowed()
             _require(not self._closed, "bank is closed")
             self._consume(trace)
             return {"status": "cancelled-before-execution", "trace_sha256": trace.sha256,
@@ -693,6 +708,7 @@ class FiniteU32Bank:
         _require(type(row) is dict, "report must be an ordinary dictionary")
         started = time.monotonic_ns()
         with self._lock:
+            self._mutation_allowed()
             self._open()
             self._consume(trace)  # Consume before launch or any uncertain effect.
             child_environment = {"PATH": os.defpath, "LANG": "C", "LC_ALL": "C"}
@@ -775,6 +791,7 @@ class FiniteU32Bank:
     def close(self):
         """One release attempt per held descriptor; uncertain debt stays visible."""
         with self._lock:
+            self._mutation_allowed()
             if self._closed:
                 return json.loads(_wire(self._release_snapshot))
             self._closed = True
