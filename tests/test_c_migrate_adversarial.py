@@ -214,5 +214,39 @@ class CMigrationAdversarial(unittest.TestCase):
         self.assertEqual(list(self.root.glob(".hepta-migrate-*")), [])
 
 
+    def test_deep_expression_ast_fails_closed(self):
+        # A deeply nested Clang expression must not leak RecursionError.
+        from hepta.c_migrate import MigrationRejected, _expr
+
+        expression = {"kind": "IntegerLiteral", "value": "1"}
+        for _ in range(1500):
+            expression = {"kind": "ParenExpr", "inner": [expression]}
+        with self.assertRaises(MigrationRejected) as rejected:
+            _expr(expression, {}, {}, "i32")
+        self.assertEqual(rejected.exception.code, "E_C_AST_DEPTH")
+
+    def test_deep_compound_ast_fails_closed(self):
+        # Source-derived AST nesting must have a bounded traversal depth.
+        from hepta.c_migrate import MigrationRejected, _stmt
+
+        statement = {"kind": "ReturnStmt", "inner": [{"kind": "IntegerLiteral", "value": "1"}]}
+        for _ in range(1500):
+            statement = {"kind": "CompoundStmt", "inner": [statement]}
+        with self.assertRaises(MigrationRejected) as rejected:
+            _stmt(statement, {}, {}, "i32")
+        self.assertEqual(rejected.exception.code, "E_C_AST_DEPTH")
+
+    def test_deep_clang_json_fails_closed_at_public_entrypoint(self):
+        # json.loads can raise RecursionError before returning an AST tree.
+        self.source.write_text("int f(int x){return x;}\n", encoding="utf-8")
+        with patch("hepta.c_migrate._data_model", return_value={}), \
+             patch("hepta.c_migrate._run", return_value="{}"), \
+             patch("hepta.c_migrate.json.loads", side_effect=RecursionError("deep JSON")):
+            report = migrate_c(self.source, self.output)
+        self.assertFalse(report["ok"], report)
+        self.assertIn("E_C_AST_DEPTH", [item["code"] for item in report["rejected"]])
+        self.assertFalse(self.output.exists())
+
+
 if __name__ == "__main__":
     unittest.main()
