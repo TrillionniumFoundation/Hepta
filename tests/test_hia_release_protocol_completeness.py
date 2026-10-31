@@ -7,14 +7,14 @@ from __future__ import annotations
 
 import unittest
 
-from tests.test_hia_release_parity_tail_gate import ReleaseParityTailGateTests
+from tests import test_hia_release_parity_tail_gate as tail
 from tools.qualify_hia_release_parity import assess
 
 
 class ReleaseProtocolCompletenessTests(unittest.TestCase):
     @staticmethod
     def cohort():
-        return ReleaseParityTailGateTests.cohort()
+        return tail.tail.ReleaseParityTailGateTests.cohort()
 
     def assert_reject(self, rows, spec):
         with self.assertRaisesRegex(ValueError, "E_RELEASE_COHORT"):
@@ -47,7 +47,7 @@ class ReleaseProtocolCompletenessTests(unittest.TestCase):
         self.assert_reject(rows, spec)
 
     def test_nonfinite_limits_cannot_admit_bad_tail(self):
-        rows, spec = ReleaseParityTailGateTests.cohort(
+        rows, spec = tail.ReleaseParityTailGateTests.cohort(
             slow_phase="holdout", last_sample_ns=999)
         spec["performance_gate"]["hia_median_ratio_maximum"] = float("inf")
         spec["performance_gate"]["hia_tail_ratio_maximum"] = float("inf")
