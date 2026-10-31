@@ -10,6 +10,7 @@ from __future__ import annotations
 from hashlib import sha256
 import json
 import re
+import unicodedata
 
 from .hia_json_preflight import preflight_hia_json
 from .hia_program import HIAProgramRejected, VerifiedProgram, verify_program
@@ -72,8 +73,15 @@ def _source(value):
         raise HIAAssemblyRejected("source is not valid UTF-8") from exc
     # LF and optional CRLF are the only line separators. Do not let Unicode
     # splitlines(), NUL, BOM or terminal controls change visible tokenization.
-    if any(ord(c) < 32 and c not in "\n\r\t" for c in text) or "\ufeff" in text:
-        _reject("unsupported control character or byte-order mark")
+    # The assembly grammar uses ASCII separators and LF/CRLF only. Python's
+    # regex \s also matches Unicode whitespace (e.g. NBSP or U+2028), which
+    # would otherwise admit visually misleading spellings of the same Core.
+    # Reject invisible format controls before tokenization, not just C0 bytes.
+    if any((ord(c) < 32 and c not in "\n\r\t") or c == "\ufeff"
+           or (ord(c) > 127 and (c.isspace()
+                                  or unicodedata.category(c) in {"Cc", "Cf"}))
+           for c in text):
+        _reject("unsupported control, Unicode separator/format character or byte-order mark")
     lines = text.split("\n")
     if len(lines) > MAX_LINES:
         _reject("source exceeds line budget", limit=True)
