@@ -32,6 +32,9 @@ MAX_STDIN = 64 * 1024
 MAX_INVOCATIONS = 4096
 MAX_CAMPAIGN_DEADLINE_MS = 900_000
 ARMS = ("baseline", "fixed", "dp", "ndu")
+# All arms receive exactly the same non-shell, non-loader-injected environment.
+# Custom dynamic-library paths are deliberately not supported in this profile.
+SAFE_ENV = {"PATH": "/usr/bin:/bin", "LANG": "C", "LC_ALL": "C", "TZ": "UTC"}
 COST_KEYS = ("toolchain", "dependencies", "controller_build", "candidate_build",
              "calibration", "search", "verification", "measurement",
              "publication", "switch", "rollback")
@@ -218,7 +221,8 @@ def _run_once(executable, argv, payload, timeout_ms, max_output_bytes):
 
         try:
             proc = subprocess.Popen([executable, *argv], stdin=stdin, stdout=stdout, stderr=stderr,
-                                    start_new_session=True, close_fds=True, preexec_fn=limits)
+                                    start_new_session=True, close_fds=True,
+                                    env=SAFE_ENV, preexec_fn=limits)
             deadline = began + timeout_ms * 1_000_000
             while True:
                 pid, status, usage = os.wait4(proc.pid, os.WNOHANG)
