@@ -44,6 +44,7 @@ SUITES = {
     "native": (
         "tests.test_hia_stateful_clone_partial",
         "tests.test_hia_stateful_generation_fence",
+        "tests.test_hia_stateful_queue_token_admission",
         "tests.test_hia_native_process_observer",
         "tests.test_hia_native_paired_replay",
     ),

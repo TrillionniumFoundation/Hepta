@@ -11,9 +11,11 @@ import secrets
 import time
 
 from .hia_adaptive import AdaptiveRejected, _digest
+from .hia_stateful import _queue_token
 
 
 def continue_owned_queue(runtime, token):
+    token = _queue_token(token)
     started = time.monotonic_ns()
     with runtime._lock:
         runtime._state_open()
