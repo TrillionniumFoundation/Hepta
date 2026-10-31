@@ -1,6 +1,7 @@
 """Adversarial P3 migration gates: completeness and atomic publication."""
 from __future__ import annotations
 
+import json
 from pathlib import Path
 import shutil
 import tempfile
@@ -300,6 +301,60 @@ class CMigrationAdversarial(unittest.TestCase):
             _function(declaration, {"sizeof_long": 8})
         self.assertEqual(rejected.exception.code, "E_C_AST")
 
+
+
+    def test_total_ast_node_budget_rejects_many_individually_valid_functions(self):
+        from hepta.c_migrate import MigrationRejected, _check_translation_unit_ast_budget
+
+        return_stmt = {"kind": "ReturnStmt",
+                       "inner": [{"kind": "IntegerLiteral", "value": "1"}]}
+        body = {"kind": "CompoundStmt", "inner": [return_stmt] * 1200}
+        declarations = [
+            {"kind": "FunctionDecl", "name": f"f{i}",
+             "type": {"qualType": "int (void)"}, "inner": [body]}
+            for i in range(28)
+        ]
+        # Each function uses 2,402 nodes, below the 4,096-node local bound.
+        _check_translation_unit_ast_budget(declarations[:27])
+        with self.assertRaises(MigrationRejected) as rejected:
+            _check_translation_unit_ast_budget(declarations)
+        self.assertEqual(rejected.exception.code, "E_C_AST_BUDGET")
+
+    def test_real_clang_many_functions_rejected_before_publication(self):
+        source = "".join(f"int f{i}(int x) {{return x;}}\n" for i in range(129))
+        self.reject(source, "E_C_AST_BUDGET")
+
+    def test_malformed_translation_unit_shapes_reject_with_stable_error(self):
+        self.source.write_text("int f(int x){return x;}\n", encoding="utf-8")
+        malformed = [
+            [],
+            {"kind": "TranslationUnitDecl", "inner": {}},
+            {"kind": "TranslationUnitDecl", "inner": [None]},
+            {"kind": "TranslationUnitDecl", "inner": [{"kind": "FunctionDecl", "loc": "bad"}]},
+        ]
+        for candidate in malformed:
+            with (self.subTest(candidate=str(candidate)[:80]),
+                  patch("hepta.c_migrate._data_model", return_value={}),
+                  patch("hepta.c_migrate._run", return_value=json.dumps(candidate))):
+                result = migrate_c(self.source, self.output)
+            self.assertFalse(result["ok"], result)
+            self.assertFalse(self.output.exists())
+            self.assertIn("E_C_AST", [item["code"] for item in result["rejected"]], result)
+
+    def test_malformed_local_function_children_reject_before_translation(self):
+        source = "int f(int x){return x;}\n"
+        self.source.write_text(source, encoding="utf-8")
+        node = {"kind": "FunctionDecl", "name": "f",
+                "loc": {"file": str(self.source)},
+                "range": {"begin": {"offset": 0}, "end": {"offset": len(source) - 2}},
+                "inner": "invalid-children"}
+        with (patch("hepta.c_migrate._data_model", return_value={}),
+              patch("hepta.c_migrate._run", return_value=json.dumps(
+                  {"kind": "TranslationUnitDecl", "inner": [node]}))):
+            result = migrate_c(self.source, self.output)
+        self.assertFalse(result["ok"], result)
+        self.assertIn("E_C_AST", [item["code"] for item in result["rejected"]], result)
+        self.assertFalse(self.output.exists())
 
 if __name__ == "__main__":
     unittest.main()

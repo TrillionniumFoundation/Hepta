@@ -176,9 +176,13 @@ def _stmt(node: dict, args: dict[str, str], model: dict, ret: str, depth: int = 
 
 
 _C_AST_FUNCTION_NODE_LIMIT = 4096
+# Source size alone does not bound cumulative translation work. Count only
+# selected source FunctionDecl trees, not declarations from system headers.
+_C_AST_TOTAL_FUNCTION_NODE_LIMIT = 65_536
+_C_AST_TOTAL_FUNCTION_COUNT_LIMIT = 128
 
 
-def _check_function_ast_budget(decl: dict) -> None:
+def _check_function_ast_budget(decl: dict) -> int:
     """Bound AST work per C function before recursive source generation.
 
     The depth guard alone does not prevent a shallow AST from containing many
@@ -201,6 +205,23 @@ def _check_function_ast_budget(decl: dict) -> None:
         if len(children) > remaining:
             raise MigrationRejected("E_C_AST_BUDGET", "C function AST node budget exceeded")
         pending.extend(children)
+    return _C_AST_FUNCTION_NODE_LIMIT - remaining
+
+
+def _check_translation_unit_ast_budget(declarations: list[dict]) -> None:
+    """Fail closed before translating any source function in the unit.
+
+    Per-function budgets are necessary but not sufficient: an input can have
+    many individually admitted, shallow functions. Reuse the iterative node
+    guard and count their combined work without recursive AST traversal.
+    """
+    if len(declarations) > _C_AST_TOTAL_FUNCTION_COUNT_LIMIT:
+        raise MigrationRejected("E_C_AST_BUDGET", "C translation unit function budget exceeded")
+    remaining = _C_AST_TOTAL_FUNCTION_NODE_LIMIT
+    for declaration in declarations:
+        remaining -= _check_function_ast_budget(declaration)
+        if remaining < 0:
+            raise MigrationRejected("E_C_AST_BUDGET", "C translation unit AST node budget exceeded")
 
 
 def _function(decl: dict, model: dict) -> dict:
@@ -278,35 +299,50 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
             root = json.loads(ast_json)
         except RecursionError as exc:
             raise MigrationRejected("E_C_AST_DEPTH", "Clang AST JSON nesting exceeds parser limit") from exc
-        if root.get("kind") != "TranslationUnitDecl":
-            raise MigrationRejected("E_C_AST", "Clang did not return a translation unit")
+        if (type(root) is not dict or root.get("kind") != "TranslationUnitDecl"
+                or type(root.get("inner")) is not list):
+            raise MigrationRejected("E_C_AST", "Clang did not return a well-formed translation unit")
         declarations = []
         unsupported_toplevel = []
         active_file = None
-        for node in root.get("inner", []):
-            node_file = node.get("loc", {}).get("file")
-            if node_file:
-                active_file = Path(node_file).resolve()
+        for node in root["inner"]:
+            if type(node) is not dict:
+                raise MigrationRejected("E_C_AST", "Malformed C top-level AST node")
             loc = node.get("loc", {})
+            if type(loc) is not dict:
+                raise MigrationRejected("E_C_AST", "Malformed C AST source location")
+            node_file = loc.get("file")
+            if node_file is not None:
+                if type(node_file) is not str or not node_file:
+                    raise MigrationRejected("E_C_AST", "Malformed C AST source path")
+                active_file = Path(node_file).resolve()
             if active_file != src:
                 continue
-            begin = node.get("range", {}).get("begin", {}).get("offset")
-            end = node.get("range", {}).get("end", {}).get("offset")
-            if not isinstance(begin, int) or not isinstance(end, int) or not (0 <= begin <= end < len(source)):
+            extent = node.get("range", {})
+            if type(extent) is not dict:
+                raise MigrationRejected("E_C_AST", "Malformed C AST source range")
+            first, last = extent.get("begin", {}), extent.get("end", {})
+            if type(first) is not dict or type(last) is not dict:
+                raise MigrationRejected("E_C_AST", "Malformed C AST range endpoint")
+            begin, end = first.get("offset"), last.get("offset")
+            if type(begin) is not int or type(end) is not int or not (0 <= begin <= end < len(source)):
                 continue
-            if node.get("kind") == "FunctionDecl" and any(
-                    x.get("kind") == "CompoundStmt" for x in node.get("inner", [])):
-                declarations.append(node)
-            else:
-                # The pilot claims a whole-translation-unit conversion.
-                # Globals, typedefs and prototypes may carry ABI/linkage state:
-                # never accept the file and silently omit those declarations.
-                unsupported_toplevel.append(f"{node.get('kind')}: {node.get('name', '<anonymous>')}")
+            if node.get("kind") == "FunctionDecl":
+                children = node.get("inner", [])
+                if type(children) is not list or any(type(child) is not dict for child in children):
+                    raise MigrationRejected("E_C_AST", "Malformed C function AST children")
+                if any(child.get("kind") == "CompoundStmt" for child in children):
+                    declarations.append(node)
+                    continue
+            # A whole translation unit cannot silently discard other source
+            # declarations, including prototypes and global state.
+            unsupported_toplevel.append(f"{node.get('kind')}: {node.get('name', '<anonymous>')}")
         if unsupported_toplevel:
             raise MigrationRejected("E_C_TOPLEVEL", "Unsupported source declarations: " +
                                     ", ".join(unsupported_toplevel[:12]))
         if not declarations:
             raise MigrationRejected("E_C_NO_FUNCTIONS", "No ordinary C function definitions found")
+        _check_translation_unit_ast_budget(declarations)
         translated = []
         seen = set()
         for decl in declarations:
