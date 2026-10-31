@@ -163,6 +163,19 @@ class HIANNativeProcessObservationTests(unittest.TestCase):
         with self.assertRaises(NativeObservationRejected):
             observe(wire(data))
 
+    def test_valid_magic_but_unloadable_elf_retains_spawn_failure(self):
+        data = self.registration()
+        malformed = self.path / "unloadable"
+        malformed.write_bytes(b"\\x7fELF" + b"\\0" * 128)
+        data["arms"][0]["binary_path"] = str(malformed)
+        data["arms"][0]["binary_digest"] = digest(malformed.read_bytes())
+        report = observe(wire(data))
+        self.assertFalse(report["complete"])
+        self.assertEqual(report["failures"][0]["strategy"], "baseline")
+        self.assertEqual(report["failures"][0]["spawn_error"], "OSError")
+        self.assertIsNone(report["raw_samples"]["baseline"]["task00"][0]["peak_rss_bytes"])
+        self.assertNotIn("full_cost_verdict", report)
+
     def test_registration_is_strict_and_immutable(self):
         original = self.registration()
         bad_cases = [
