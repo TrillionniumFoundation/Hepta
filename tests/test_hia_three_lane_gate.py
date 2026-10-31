@@ -5,12 +5,14 @@ from types import SimpleNamespace
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from io import StringIO
+import json
 import os
 import unittest
 
 from tools.qualify_hia_three_lane import (
     ROOT, SUITES, _IdentityRecordingResult, _outcome_admissible,
-    _planned_test_ids, _verified_receipt_destination, git,
+    _planned_test_ids, _verified_receipt_destination,
+    _write_immutable_receipt, git,
 )
 
 
@@ -105,6 +107,59 @@ class HIAThreeLaneGateTests(unittest.TestCase):
         with TemporaryDirectory(prefix="hia-external-receipt-") as outside:
             candidate = Path(outside) / "receipt.json"
             self.assertEqual(_verified_receipt_destination(candidate), candidate)
+
+
+    def test_frozen_receipt_is_atomic_no_clobber_and_private(self):
+        with TemporaryDirectory(prefix="hia-dirfd-receipt-") as outside:
+            output = Path(outside) / "nested" / "level" / "result.json"
+            self.assertEqual(_verified_receipt_destination(output), output)
+            record = {"passed": False, "authority": "DENY_ALL"}
+            _write_immutable_receipt(output, record)
+            self.assertEqual(json.loads(output.read_text()), record)
+            self.assertEqual(output.stat().st_mode & 0o777, 0o600)
+            with self.assertRaises(FileExistsError):
+                _write_immutable_receipt(output, {"passed": True})
+            self.assertEqual(json.loads(output.read_text()), record)
+
+    def test_parent_symlink_swapped_after_preflight_never_writes_checkout(self):
+        with TemporaryDirectory(prefix="hia-dirfd-race-") as outside:
+            root = Path(outside)
+            original = root / "alias"
+            original.mkdir()
+            target = original / "race_receipt_probe.json"
+            self.assertEqual(_verified_receipt_destination(target), target)
+            # Deterministic check/use attack, no scheduling assumptions.
+            original.rename(root / "moved")
+            original.symlink_to(ROOT, target_is_directory=True)
+            with self.assertRaises((OSError, ValueError)):
+                _write_immutable_receipt(target, {"passed": True})
+            self.assertFalse((ROOT / target.name).exists())
+
+    def test_symlink_to_outside_and_inside_repository_both_refuse(self):
+        with TemporaryDirectory(prefix="hia-dirfd-alias-") as outside:
+            root = Path(outside)
+            link = root / "alias"
+            link.symlink_to(ROOT, target_is_directory=True)
+            target = link / "unsafe_receipt_probe.json"
+            with self.assertRaisesRegex(ValueError, "outside"):
+                _verified_receipt_destination(target)
+            with self.assertRaises((OSError, ValueError)):
+                _write_immutable_receipt(target, {})
+            self.assertFalse((ROOT / target.name).exists())
+            link.unlink()
+            (root / "real").mkdir()
+            link.symlink_to(root / "real", target_is_directory=True)
+            with self.assertRaises((OSError, ValueError)):
+                _write_immutable_receipt(link / "elsewhere.json", {})
+            self.assertFalse((root / "real" / "elsewhere.json").exists())
+
+    def test_receipt_writer_refuses_direct_source_and_nonabsolute_path(self):
+        with self.assertRaises(ValueError):
+            _write_immutable_receipt(Path("relative.json"), {})
+        target = ROOT / "forbidden_dirfd_receipt_probe.json"
+        with self.assertRaisesRegex(ValueError, "inside source"):
+            _write_immutable_receipt(target, {"passed": True})
+        self.assertFalse(target.exists())
 
     def test_nested_suite_freezes_actual_order_and_test_count(self):
         class A(unittest.TestCase):
