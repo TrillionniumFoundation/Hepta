@@ -37,6 +37,7 @@ class OwnedProfileTests(unittest.TestCase):
         runtime._queues = {"q": {"status": "submitted", "revision": 0, "generation": 0, "owner": "o",
                                   "items": (_Work(0, 0, 1),), "sha256": "x"}}
         runtime._revision = runtime._active = runtime._calls = 0
+        runtime._generation = 0
         runtime._owner_id, runtime._allocation_identity = "o", "a"
         runtime._loans = {}
         runtime._unamortized_preparation_ns = runtime._cumulative_deployment_cost_ns = 0
