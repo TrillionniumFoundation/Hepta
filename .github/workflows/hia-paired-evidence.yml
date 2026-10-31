@@ -1,0 +1,94 @@
+name: HIA P5/P6 paired economic evidence (scoped)
+on:
+  push:
+    branches:
+      - work/hia-paired-holdout-20261031-gpt6
+  pull_request:
+    branches:
+      - work/hia-native-observer-20261031-gpt6
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  paired-gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify strict existing cost and real Linux native evidence
+        run: |
+          set -eu
+          gcc --version
+          python -c "import os,sys; assert sys.platform == 'linux' and hasattr(os, 'wait4')"
+          python -B -m unittest tests.test_hia_full_cost_gate -v
+          python -B -m unittest tests.test_hia_native_process_observer -v
+      - name: Verify all new exact finite paired evidence and negatives
+        run: |
+          set -eu
+          python -B -m unittest tests.test_hia_paired_holdout -v
+          python -B -m py_compile hepta/hia_paired_holdout.py tests/test_hia_paired_holdout.py tools/qualify_hia_paired_holdout.py
+      - name: Exercise atomic receipt and fail-closed nonpositive CLI
+        run: |
+          set -eu
+          python -B - <<'PY'
+          import json, os, pathlib, subprocess, sys
+          from tests.test_hia_full_cost_gate import fixture, wire
+          root = pathlib.Path(os.environ["RUNNER_TEMP"]) / "hia-paired-proof"
+          root.mkdir()
+          positive_input = root / "positive.json"
+          positive_input.write_bytes(wire(fixture()))
+          result_path = root / "positive-receipt.json"
+          command = [sys.executable, "-B", "tools/qualify_hia_paired_holdout.py",
+                     "--input", str(positive_input), "--output", str(result_path),
+                     "--require-paired"]
+          assert subprocess.run(command).returncode == 0
+          receipt = json.loads(result_path.read_bytes())
+          assert receipt["paired_evidence_supported"] is True
+          assert receipt["authority"] == "DENY_ALL"
+          assert receipt["production_activation_allowed"] is False
+          assert subprocess.run(command, capture_output=True).returncode == 2
+          negative = fixture()
+          for row in negative["arms"][3]["observations"][:2]:
+              row["execution_ns"] = 1
+          for row in negative["arms"][3]["observations"][2:]:
+              row["execution_ns"] = 1050
+          negative_input = root / "negative.json"
+          negative_input.write_bytes(wire(negative))
+          negative_output = root / "negative-receipt.json"
+          cmd = [sys.executable, "-B", "tools/qualify_hia_paired_holdout.py",
+                 "--input", str(negative_input), "--output", str(negative_output),
+                 "--require-paired"]
+          assert subprocess.run(cmd).returncode == 2
+          rejected = json.loads(negative_output.read_bytes())
+          assert rejected["existing_full_cost_verdict"]["economic_scope_positive"] is True
+          assert rejected["paired_evidence_supported"] is False
+          assert rejected["production_activation_allowed"] is False
+          bad_input = root / "bad.json"
+          bad_input.write_bytes(b'{"x":1,"x":2}')
+          bad_output = root / "should-not-exist.json"
+          assert subprocess.run([sys.executable, "-B",
+                      "tools/qualify_hia_paired_holdout.py", "--input",
+                      str(bad_input), "--output", str(bad_output)],
+                      capture_output=True).returncode == 2
+          assert not bad_output.exists()
+          link = root / "alias.json"
+          link.symlink_to(positive_input)
+          assert subprocess.run([sys.executable, "-B",
+                      "tools/qualify_hia_paired_holdout.py", "--input", str(link),
+                      "--output", str(bad_output)],
+                      capture_output=True).returncode == 2
+          assert not bad_output.exists()
+          PY
+      - name: Retain separate positive/negative synthetic evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-paired-evidence
+          path: ${{ runner.temp }}/hia-paired-proof/
+          if-no-files-found: warn
+          retention-days: 14
