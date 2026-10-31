@@ -175,7 +175,36 @@ def _stmt(node: dict, args: dict[str, str], model: dict, ret: str, depth: int = 
     raise MigrationRejected("E_C_STATEMENT", f"Unsupported C statement: {kind}")
 
 
+_C_AST_FUNCTION_NODE_LIMIT = 4096
+
+
+def _check_function_ast_budget(decl: dict) -> None:
+    """Bound AST work per C function before recursive source generation.
+
+    The depth guard alone does not prevent a shallow AST from containing many
+    siblings. Use an iterative, exact node count so a malformed or oversized
+    tree cannot enter the recursive translator. This does not cap Clang's own
+    CPU/RSS, the full translation-unit AST, or JSON parsing.
+    """
+    pending = [decl]
+    remaining = _C_AST_FUNCTION_NODE_LIMIT
+    while pending:
+        node = pending.pop()
+        if type(node) is not dict:
+            raise MigrationRejected("E_C_AST", "Malformed C AST node")
+        remaining -= 1
+        if remaining < 0:
+            raise MigrationRejected("E_C_AST_BUDGET", "C function AST node budget exceeded")
+        children = node.get("inner", [])
+        if type(children) is not list:
+            raise MigrationRejected("E_C_AST", "Malformed C AST child collection")
+        if len(children) > remaining:
+            raise MigrationRejected("E_C_AST_BUDGET", "C function AST node budget exceeded")
+        pending.extend(children)
+
+
 def _function(decl: dict, model: dict) -> dict:
+    _check_function_ast_budget(decl)
     name = decl.get("name", "")
     if not _IDENT.fullmatch(name) or name.startswith("__"):
         raise MigrationRejected("E_C_NAME", "Unsupported C function identifier")
