@@ -12,9 +12,7 @@ from hepta.hia_native_paired_replay import (
     NativePairedReplayRejected, replay_native_paired,
 )
 from tests.test_hia_full_cost_gate import wire
-from tests.test_hia_native_process_observer import (
-    HIANNativeProcessObservationTests,
-)
+from tests import test_hia_native_process_observer as native_fixture
 from tools.hia_native_process_observer import observe
 
 
@@ -23,14 +21,14 @@ from tools.hia_native_process_observer import observe
 class HIANativePairedReplayTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        HIANNativeProcessObservationTests.setUpClass()
-        cls.fixture = HIANNativeProcessObservationTests()
+        native_fixture.HIANNativeProcessObservationTests.setUpClass()
+        cls.fixture = native_fixture.HIANNativeProcessObservationTests()
         cls.good = observe(wire(cls.fixture.registration()))
         assert cls.good["complete"]
 
     @classmethod
     def tearDownClass(cls):
-        HIANNativeProcessObservationTests.tearDownClass()
+        native_fixture.HIANNativeProcessObservationTests.tearDownClass()
 
     def test_real_native_samples_are_independently_replayed(self):
         verdict = replay_native_paired(wire(self.good))
