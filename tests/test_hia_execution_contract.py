@@ -317,6 +317,41 @@ class SharedExecutionContractTests(unittest.TestCase):
                                             "allocation attempts exceed executed steps"):
                     validate_execution_observation(observed["status"], forged, **policy)
 
+    def test_chain_generation_history_cannot_outnumber_executed_ticks(self):
+        # Every chain generation comes from exactly one executed chain.empty,
+        # chain.try_push or chain.pop operation. Each operation is ticked first.
+        # Inventing balanced created/consumed generations used to satisfy the
+        # conservation-only ledger even when no such opcodes could have run.
+        from tests.test_hia_recursive_chain import doc
+
+        cases = (
+            (observe(doc(), "chain_cancel", [1]), 16 * 1024 * 1024),
+            (observe(doc(), "chain_cancel", [2], max_heap_bytes=25), 25),
+        )
+        for observed, heap_budget in cases:
+            with self.subTest(status=observed["status"], heap=heap_budget):
+                ledger, steps = observed["resources"], observed["steps"]
+                self.assertLessEqual(ledger["chains_created"], steps)
+                policy = dict(steps=steps, max_steps=1_000_000,
+                              max_heap_bytes=heap_budget,
+                              error_code=observed.get("error", {}).get("code"),
+                              with_chains=True)
+                validate_execution_observation(observed["status"], ledger, **policy)
+
+                forged = deepcopy(ledger)
+                extra = steps + 1 - ledger["chains_created"]
+                self.assertGreater(extra, 0)
+                forged["chains_created"] += extra
+                forged["chains_consumed"] += extra
+                self.assertEqual(forged["live_chains"],
+                                 forged["chains_created"] - forged["chains_consumed"])
+                self.assertLessEqual(forged["chain_nodes_created"], forged["chains_created"])
+                self.assertLessEqual(forged["chain_nodes_dropped"], forged["chains_consumed"])
+                self.assertLess(forged["chains_created"], 1 << 64)
+                with self.assertRaisesRegex(ExecutionObservationRejected,
+                                            "chain generations exceed executed steps"):
+                    validate_execution_observation(observed["status"], forged, **policy)
+
     def test_unknown_misclassified_nonexact_and_extra_observations_fail_closed(self):
         result = observe(held_program(), "held", [4, 4])
         ledger = result["resources"]
