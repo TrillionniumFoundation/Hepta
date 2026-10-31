@@ -538,3 +538,35 @@ regressions actually read these inputs, so their bytes must remain stable along
 with compiler source, workflows and licenses. The existing input-mutation
 regression now covers these paths; historical output files are not substituted
 for current protocol inputs.
+
+### Bounded C reads and a separately registered local maintenance arm
+
+The follow-on matrix starts from implementation commit
+`aedee50ec792fc4f1f44825439c716c463b93baa`. Its 57 capability rows and 610 unique
+selectors remain intact. Two scoped additions give 59 capabilities and 643
+unique selectors:
+
+- Seven actual-Clang/front-end controls cover the strict single-file C scalar
+  migrator's initial source read and both freshness checks. Each read consumes
+  at most 256001 bytes; the existing 256000-byte acceptance limit, whole-TU AST
+  and bounded Clang capture policies remain in place. Growth and I/O failure
+  reject before publication and clean staged output. This does not add native
+  ABI, whole-process memory or immutable-filesystem guarantees.
+- Twenty-six deterministic controls cover separately registered local
+  maintenance transport, source/tool/prompt bindings, owned processes, actual
+  bounded receipt reads, remaining-wall admission, monotone known usage and
+  explicit unknown states. The selectors use synthetic inference records and
+  need no GGUF, model generation or socket service. Real author controls and
+  tokenizer probes are separate evidence; actual maintenance execution needs
+  an exact freeze and independent generation admission. No productivity result
+  follows from these controls.
+
+The original cloud maintenance and v13 identities remain distinct. Corrected
+catalog bytes require new capacity evidence for changed public prefixes;
+byte-identical historical prefixes are identified separately from new runs.
+
+This matrix's canonical SHA-256 is
+`fac4e12c5385128e33a36aae2611abcfebf261c1264b0861fda942d742cdf999`.
+All previously unproved claims and authority rules remain unchanged. A new
+registration is not a passing execution receipt; the combined commit must
+retain its own actual matrix outcome.

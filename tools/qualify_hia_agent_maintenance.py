@@ -210,8 +210,9 @@ def execute_hia_contract(candidate, task, values):
     return {"args": values, "result": report["result"], "resources": resources, "operation_events": events}
 
 
-def evaluate_worker(args):
-    task, cfg = task_for(args.task), protocol()
+def evaluate_worker(args, *, tool_config=None):
+    task = task_for(args.task)
+    cfg = protocol() if tool_config is None else tool_config
     folder = Path(args.output)
     folder.mkdir(parents=True, exist_ok=False)
     result = {"accepted": False, "correct": False, "status": "starting", "hidden_evaluated": args.mode == "hidden"}

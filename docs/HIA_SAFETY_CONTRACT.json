@@ -1598,6 +1598,74 @@
       "regression_selectors": [
         "tests.test_hia_opcode_catalog.OpcodeCatalogTests.test_every_version_exposes_only_types_available_in_that_schema"
       ]
+    },
+    {
+      "entrypoints": [
+        "hepta.c_migrate.migrate_c"
+      ],
+      "exclusions": [
+        "The read limit does not bound all process memory, Clang CPU/RSS, temporary disk, JSON parsing or aggregate project work.",
+        "Repeated reads are not an immutable source snapshot or an atomic guarantee against noncooperating writers after the final comparison.",
+        "This scope does not change C/C++ language support, project migrator contracts, ABI equivalence, native execution, formal refinement or Rust admission authority."
+      ],
+      "guarantee": "host_enforced_scoped_admission",
+      "id": "bounded_c_scalar_source_reads",
+      "regression_selectors": [
+        "tests.test_c_migrate_source_reads.BoundedCSourceReads.test_initial_oversize_rejects_before_unbounded_read_or_clang",
+        "tests.test_c_migrate_source_reads.BoundedCSourceReads.test_initial_read_error_is_controlled_before_clang",
+        "tests.test_c_migrate_source_reads.BoundedCSourceReads.test_growth_after_actual_clang_uses_bounded_recheck",
+        "tests.test_c_migrate_source_reads.BoundedCSourceReads.test_growth_after_actual_frontend_cleans_staged_output",
+        "tests.test_c_migrate_source_reads.BoundedCSourceReads.test_read_error_after_actual_clang_is_controlled",
+        "tests.test_c_migrate_source_reads.BoundedCSourceReads.test_read_error_after_actual_frontend_cleans_staged_output",
+        "tests.test_c_migrate_source_reads.BoundedCSourceReads.test_unchanged_eligible_source_retains_frontend_and_digest_contract"
+      ],
+      "scope": "The strict single-file C scalar migrator reads at most 256001 source bytes per initial read and each of two freshness rechecks. Initial input above the existing 256000-byte limit rejects with E_C_SIZE before Clang. Growth at a later check and OSError during any source read reject with E_C_SOURCE_RACE; no destination is published and a staged file is cleaned. Ordinary eligible input retains source/output digest and frontend-only status. Controls use actual Clang and the actual Hepta frontend with deterministic temporary-file growth and source I/O fault injection."
+    },
+    {
+      "entrypoints": [
+        "tools.qualify_hia_agent_maintenance_local.prepare",
+        "tools.qualify_hia_agent_maintenance_local.freeze",
+        "tools.qualify_hia_agent_maintenance_local.run",
+        "tools.hia_agent_llama_transport.invoke"
+      ],
+      "exclusions": [
+        "The selected deterministic regressions do not qualify model-maintenance outcomes or establish AI development advantage.",
+        "Each actual experiment requires an exact source/tool/prompt-bound registration, freeze and independent generation review.",
+        "No OS hermeticity, hardware attestation, hard physical scheduling deadline or global resource-safety proof is established.",
+        "Cloud maintenance v1, V13 and prior capacity identities remain historical; model results are not pooled.",
+        "Manual review costs and OS file-cache or scheduling effects remain uncontrolled."
+      ],
+      "guarantee": "host_enforced_scoped_admission",
+      "id": "local_maintenance_registration_and_owned_transport",
+      "regression_selectors": [
+        "tests.test_hia_agent_maintenance_local.CellStateTests.test_budget_exhausted_by_model_cannot_launch_public_evaluator",
+        "tests.test_hia_agent_maintenance_local.CellStateTests.test_cleanup_uncertainty_after_paid_usage_poison_is_retained",
+        "tests.test_hia_agent_maintenance_local.CellStateTests.test_cleanup_uncertainty_without_terminal_receipt_keeps_endpoint_status_unknown",
+        "tests.test_hia_agent_maintenance_local.CellStateTests.test_confirmed_owner_with_malformed_usage_keeps_process_and_only_fails_cell",
+        "tests.test_hia_agent_maintenance_local.CellStateTests.test_hidden_result_is_terminal_and_never_added_to_a_model_conversation",
+        "tests.test_hia_agent_maintenance_local.CellStateTests.test_later_unknown_recovery_cannot_erase_known_usage_or_endpoint_flags",
+        "tests.test_hia_agent_maintenance_local.CellStateTests.test_public_check_limit_is_three_with_six_model_responses",
+        "tests.test_hia_agent_maintenance_local.CellStateTests.test_unknown_usage_ends_cell_without_evaluation",
+        "tests.test_hia_agent_maintenance_local.ConfigAndBudgetTests.test_missing_formal_freeze_refuses_before_runtime_or_git",
+        "tests.test_hia_agent_maintenance_local.ConfigAndBudgetTests.test_oversized_text_is_refused_before_persisting_model_request_or_owner",
+        "tests.test_hia_agent_maintenance_local.ConfigAndBudgetTests.test_protocol_preserves_task_and_wall_limits_and_declares_local_token_difference",
+        "tests.test_hia_agent_maintenance_local.ConfigAndBudgetTests.test_request_persistence_error_cannot_launch_owner",
+        "tests.test_hia_agent_maintenance_local.ConfigAndBudgetTests.test_request_preparation_expiry_refuses_owner_without_cleanup_poison",
+        "tests.test_hia_agent_maintenance_local.ConfigAndBudgetTests.test_worker_default_remains_original_protocol_and_override_is_explicit",
+        "tests.test_hia_agent_maintenance_local.LocalUsageTests.test_actual_four_field_usage_and_eos_delta_are_preserved",
+        "tests.test_hia_agent_maintenance_local.LocalUsageTests.test_false_counters_boolean_overflow_and_inconsistent_totals_are_refused",
+        "tests.test_hia_agent_maintenance_local.ReceiptTests.test_bounded_json_reads_limit_plus_one_and_refuses_growth_after_small_metadata",
+        "tests.test_hia_agent_maintenance_local.ReceiptTests.test_changed_native_prompt_or_token_ids_cannot_qualify_completed_worker_metadata",
+        "tests.test_hia_agent_maintenance_local.ReceiptTests.test_failed_owner_keeps_valid_observed_usage_without_qualification",
+        "tests.test_hia_agent_maintenance_local.ReceiptTests.test_full_bound_completion_retains_actual_usage_and_qualifies",
+        "tests.test_hia_agent_maintenance_local.ReceiptTests.test_persisted_generation_usage_survives_interrupted_final_worker_metadata",
+        "tests.test_hia_agent_maintenance_local.ReceiptTests.test_receipt_path_cannot_use_small_stat_to_read_more_than_one_mib",
+        "tests.test_hia_agent_maintenance_local.ReceiptTests.test_unconfirmed_outer_cleanup_poison_precedes_receipt_qualification",
+        "tests.test_hia_agent_maintenance_local.WorkerBoundaryTests.test_capacity_probe_has_no_completion_or_synthetic_usage",
+        "tests.test_hia_agent_maintenance_local.WorkerBoundaryTests.test_completion_is_refused_if_receipt_cost_exhausts_deadline",
+        "tests.test_hia_agent_maintenance_local.WorkerBoundaryTests.test_runtime_drift_is_rejected_before_engine_start"
+      ],
+      "scope": "Distinct registration and owned transport for a separately registered six-cell local maintenance arm. prepare/freeze/run bind current source/tools, exact public prefixes and zero-generation controls before a separate independent generation review. Each complete public RPC is a cold worker/runtime in the existing owned process group and remaining wall budget. Four real local usage fields and complete native request/token-ID/response bindings are required; actual bounded evidence reads, monotone known-cost retention and explicit unknown receipt states prevent false accounting. Confirmed owner cleanup survives later receipt rejection; uncertain cleanup stops later cells. Twenty-six deterministic unit selectors use synthetic inference records and no actual model/native/socket work; separately retained native author controls and owned tokenizer probes are not model-maintenance results."
     }
   ],
   "judgment": {
