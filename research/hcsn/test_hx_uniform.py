@@ -29,6 +29,8 @@ class HXUniformTests(unittest.TestCase):
         self.assertEqual(data.method,'pde_local_series')
         self.assertGreaterEqual(data.equity,0.)
         self.assertAlmostEqual(data.equity,equity_near_boundary(x,p,b),places=11)
+    # Local FP64 series yields near-zero derivative without computing
+    # the catastrophically subtractive original A7 at tiny x.
     self.assertLess(equity_logmargin(1e-6,p,boundary=b).equity,1e-8)
  def test_refusal_and_smooth_input(self):
     p=HXParams()
