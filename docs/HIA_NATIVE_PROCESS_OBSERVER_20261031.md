@@ -74,6 +74,20 @@ python -B tools/hia_native_process_observer.py \
   --output /new/path/observations.json
 ```
 
+For an actual saved raw-evidence artifact, run:
+
+```sh
+python -B tools/qualify_hia_native_observer_smoke.py \\
+  --output-dir /new/absolute/path/for-evidence
+```
+
+The dedicated Actions workflow retains `registration.json`, compiled C ELF
+binaries, `observed_c11_source.c`, `observations.json` (256 direct-process
+samples: 8 trials × 4 arms × 8 repetitions), and a digest/byte-count manifest.
+The C build times are actually measured and charged as candidate preparation,
+but external controller/proof/human costs remain explicit unknowns, so this
+smoke demonstration cannot qualify positive economics.
+
 The test compiles four **real** C ELF executables, checks completed native
 observations and arithmetic replay, then injects wrong output, an infinite
 loop with timeout, an executable digest drift, a symlink, non-ELF input, an ELF whose
