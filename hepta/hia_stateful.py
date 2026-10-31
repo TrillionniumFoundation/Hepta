@@ -22,6 +22,7 @@ import time
 from .hia_adaptive import (AdaptiveRejected, AdaptiveRuntime, _digest, _identity,
                            _TOTAL, _NativeRelease)
 from .hia_program import verify_program
+from .hia_json_preflight import preflight_hia_json
 from .hia_native_differential import _pin_native_artifact
 from .native_tool_identity import digest_executable
 from .native_mapping_identity import NativeMappingRejected, verify_loaded_symbols
@@ -30,6 +31,8 @@ from .elf_shared_abi import inspect_owned_shared_elf
 STATE_PROFILE = "hepta.hia.owned-u64-transition-runtime.v1"
 _MAX_STEPS = 1_000_000_000
 _MAX_ITEMS = 128
+_MAX_QUEUE_WIRE_BYTES = 32768
+_QUEUE_WIRE_SCHEMA = "hepta.hia.owner-queue-wire.v1"
 _EXPORTS = frozenset({"hs_new", "hs_clone", "hs_free", "hs_identity", "hs_read", "hs_write",
                       "hs_reset", "hs_apply", "hs_cancel", "hs_progress", "hs_live", "hs_allocations",
                       "hs_frees", "hs_refusals"})
@@ -491,6 +494,67 @@ class OwnedAdaptiveRuntime(AdaptiveRuntime):
         return {"selected": True, "current": token, "previous": previous,
                 "authority": "previously_admitted_sealed_image"}
 
+
+    def submit_queue_wire(self, wire):
+        """Register one immutable canonical queue with exact live owner fences.
+
+        This is a live-process intake, not an external authorization or durable
+        journal. Capture the complete request as immutable built-in bytes;
+        reject stale owner/generation/revision under the same runtime lock used
+        by submit_queue, then reuse that original owned-resource admission.
+        """
+        started = time.monotonic_ns()
+        if type(wire) is not bytes or not 1 <= len(wire) <= _MAX_QUEUE_WIRE_BYTES:
+            raise AdaptiveRejected("E_STATE_WIRE: immutable <=32768-byte request required")
+
+        def unique_pairs(pairs):
+            result = {}
+            for key, value in pairs:
+                if key in result:
+                    raise AdaptiveRejected("E_STATE_WIRE: duplicate JSON key")
+                result[key] = value
+            return result
+
+        try:
+            text = wire.decode("utf-8")
+            preflight_hia_json(text, max_nodes=1024, max_depth=4)
+            data = json.loads(text, object_pairs_hook=unique_pairs)
+            canonical = json.dumps(data, sort_keys=True, separators=(",", ":"),
+                                   ensure_ascii=False, allow_nan=False).encode("utf-8")
+        except AdaptiveRejected:
+            raise
+        except (ValueError, UnicodeError, RecursionError, OverflowError, TypeError) as error:
+            raise AdaptiveRejected("E_STATE_WIRE: malformed or unbounded queue JSON") from error
+        if canonical != wire:
+            raise AdaptiveRejected("E_STATE_WIRE: canonical immutable JSON wire required")
+        if type(data) is not dict or set(data) != {
+                "schema", "owner_id", "generation", "revision", "items"}:
+            raise AdaptiveRejected("E_STATE_WIRE: exact queue envelope required")
+        if data["schema"] != _QUEUE_WIRE_SCHEMA:
+            raise AdaptiveRejected("E_STATE_WIRE: unknown queue schema")
+        items = data["items"]
+        if type(items) is not list or not 1 <= len(items) <= _MAX_ITEMS:
+            raise AdaptiveRejected("E_STATE_WIRE: one to 128 queue items required")
+        wire_digest = sha256(wire).hexdigest()
+        with self._lock:
+            self._state_open()
+            if (type(data["owner_id"]) is not str or data["owner_id"] != self._owner_id
+                    or type(data["generation"]) is not int
+                    or data["generation"] != self._generation
+                    or type(data["revision"]) is not int
+                    or data["revision"] != self._revision):
+                raise AdaptiveRejected("E_STATE_FENCE: stale owner, generation or revision")
+            # Count the parse/identity work as preparation before the existing
+            # submission admission adds its own measured registration cost.
+            self._unamortized_preparation_ns += time.monotonic_ns() - started
+            token = self.submit_queue(items)
+            self._queues[token]["intake_wire_sha256"] = wire_digest
+            return {"token": token, "input_sha256": wire_digest,
+                    "queue_sha256": self._queues[token]["sha256"],
+                    "owner_id": self._owner_id, "generation": self._generation,
+                    "revision": self._revision, "authority": "DENY_ALL",
+                    "durable_crash_recovery": False}
+
     def submit_queue(self, items):
         started = time.monotonic_ns()
         if type(items) is not list or not 1 <= len(items) <= _MAX_ITEMS:
@@ -515,6 +579,8 @@ class OwnedAdaptiveRuntime(AdaptiveRuntime):
                 raise AdaptiveRejected("E_STATE_QUEUE: finite committed work budget exceeded")
             frozen = tuple(work)
             token = secrets.token_hex(16)
+            if token in self._queues:
+                raise AdaptiveRejected("E_STATE_QUEUE: queue token collision")
             self._queues[token] = {"items": frozen, "sha256": _digest([
                 {"slot": item.slot, "delta": item.delta, "iterations": item.iterations} for item in frozen]),
                                    "status": "submitted",

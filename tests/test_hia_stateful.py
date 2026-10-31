@@ -1,6 +1,7 @@
 """Real exclusive state, leases, committed queues and finite pure transitions."""
 from __future__ import annotations
 import copy
+import json
 from collections import Counter, deque
 import errno
 import fcntl
@@ -88,6 +89,28 @@ class OwnedNativeTests(unittest.TestCase):
         runtime = OwnedAdaptiveRuntime(base, self.root / "runtime", [11, 17], clang=CLANG)
         self.addCleanup(runtime.close)
         return runtime
+
+
+    def test_immutable_fenced_wire_executes_real_native_owner(self):
+        runtime = self.runtime()
+        envelope = {
+            "schema": "hepta.hia.owner-queue-wire.v1",
+            "owner_id": runtime._owner_id, "generation": runtime._generation,
+            "revision": runtime._revision,
+            "items": [{"slot": 0, "delta": 2, "iterations": 3}],
+        }
+        wire = json.dumps(envelope, sort_keys=True, separators=(",", ":")).encode()
+        registration = runtime.submit_queue_wire(wire)
+        self.assertEqual(registration["input_sha256"], sha256(wire).hexdigest())
+        self.assertEqual(registration["authority"], "DENY_ALL")
+        self.assertFalse(registration["durable_crash_recovery"])
+        original = runtime.queue_status(registration["token"])
+        result = runtime.execute_committed(registration["token"])
+        self.assertEqual(result["executed_steps"], 3)
+        self.assertEqual(result["queue_sha256"], original["queue_sha256"])
+        self.assertEqual(result["final_values"], runtime.snapshot()["state_values"])
+        self.assertEqual(runtime.queue_status(registration["token"])["status"], "completed")
+        self.assertNotEqual(result["final_values"], [11, 17])
 
     def test_real_native_owner_uses_detached_work_even_after_producer_clears_dict(self):
         import hepta.hia_stateful as stateful
