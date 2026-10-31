@@ -303,11 +303,11 @@ class CMigrationAdversarial(unittest.TestCase):
 
 
     def test_translation_unit_aggregate_ast_budget_fails_closed(self):
-        # Every individual C function is tiny; their aggregate AST work is not.
+        # Function names avoid Hepta f32/f64 type collisions, so the test\n        # isolates the translation-unit AST budget, not frontend naming checks.\n        # Every individual C function is tiny; their aggregate AST work is not.
         # An input under the 256 KiB gate can otherwise trigger thousands of
         # separate AST traversals and arbitrarily large generated Hepta source.
         program = "\n".join(
-            f"int f{i}(int x) {{ return x + 1; }}" for i in range(1500)
+            f"int aggregate_budget_fn_{i}(int x) {{ return x + 1; }}" for i in range(1500)
         )
         self.assertLess(len(program.encode("utf-8")), 256_000)
         self.reject(program, "E_C_AST_UNIT_BUDGET")
