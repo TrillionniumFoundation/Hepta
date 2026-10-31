@@ -7,7 +7,7 @@ Research-only; **P0–P6 all OPEN; production disabled.** Supplements, not overw
 - Test file: `test_bond_fd_stress.py` (frozen `numpy.random.default_rng(62844)`).
 - 50 HXParams tuples in declared finite domain; 5 log states per case (`x=0.12,0.3,0.7,1.3,2.0`); 250 independent finite-difference vs Eq.(8) comparisons.
 - PDE grid: log xmax=7, 501 points, 1300 implicit time steps per case, paper formula evaluated separately.
-- **All 250** below preregistered 0.001 relative-error threshold; observed max relative error `0.0004935247382669256`; observed mean relative error `0.00006246113113470682`; max absolute error `0.009049144239014595` bond units.
+- **All 250** below an exploratory 0.001 relative-error threshold (selected after a pilot run on the same panel; **not preregistered or independently held out**); observed max relative error `0.0004935247382669256`; observed mean relative error `0.00006246113113470682`; max absolute error `0.009049144239014595` bond units.
 - Validated finite random panel only; no global-domain, tight interval arithmetic or low-precision error theorem.
 
 ## P2 event-time exact-piecewise gradient adversarial check
