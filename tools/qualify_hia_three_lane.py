@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import platform
 import subprocess
@@ -127,6 +128,59 @@ def _verified_receipt_destination(output: Path) -> Path:
     return output
 
 
+
+def _write_immutable_receipt(output: Path, receipt: dict) -> None:
+    """No-clobber, no-symlink receipt publication using a real directory FD.
+
+    A path verified earlier can be retargeted through a parent symlink before
+    ordinary Path.open('x'). Open every directory component with O_NOFOLLOW
+    relative to the previously opened directory, and create the final file
+    exclusively against that same pinned parent. This is a Linux research
+    qualifier; unsupported hosts must fail closed rather than silently
+    downgrade to path-based writes.
+    """
+    if not output.is_absolute():
+        raise ValueError("qualification receipt path must be absolute")
+    if (not hasattr(os, "O_NOFOLLOW") or not hasattr(os, "O_DIRECTORY")
+            or os.open not in os.supports_dir_fd
+            or os.mkdir not in os.supports_dir_fd
+            or not Path("/proc/self/fd").is_dir()):
+        raise OSError("secure Linux directory-fd receipt publication unavailable")
+    components = output.parts[1:]
+    if not components or any(part in {"", ".", ".."} for part in components):
+        raise ValueError("unsafe qualification receipt path component")
+    directory_flags = (os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+                       | getattr(os, "O_CLOEXEC", 0))
+    directory_fd = os.open("/", directory_flags)
+    try:
+        for component in components[:-1]:
+            try:
+                os.mkdir(component, mode=0o700, dir_fd=directory_fd)
+            except FileExistsError:
+                pass
+            next_fd = os.open(component, directory_flags, dir_fd=directory_fd)
+            os.close(directory_fd)
+            directory_fd = next_fd
+        actual_parent = Path(
+            os.readlink(f"/proc/self/fd/{directory_fd}")
+        ).resolve(strict=True)
+        if actual_parent.is_relative_to(ROOT.resolve()):
+            raise ValueError("qualification receipt resolved inside source worktree")
+        # A symlink substituted after _verified_receipt_destination cannot
+        # move the final open. O_EXCL and O_NOFOLLOW also deny a leaf alias.
+        flags = (os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW
+                 | getattr(os, "O_CLOEXEC", 0))
+        file_fd = os.open(components[-1], flags, 0o600, dir_fd=directory_fd)
+        with os.fdopen(file_fd, "w", encoding="utf-8") as target:
+            target.write(json.dumps(receipt, ensure_ascii=False, sort_keys=True,
+                                    indent=2) + "\n")
+            target.flush()
+            os.fsync(target.fileno())
+        os.fsync(directory_fd)
+    finally:
+        os.close(directory_fd)
+
+
 def _outcome_admissible(result, planned_ids, *, immutable: bool) -> bool:
     """Strict pure gate; expectedFailures and missing/duplicated tests refuse."""
     return bool(
@@ -200,10 +254,9 @@ def check(scope: str, output: Path) -> dict:
             "ndu_real_full_cost_gain_established": False,
         },
     }
-    output.parent.mkdir(parents=True, exist_ok=True)
-    # Do not overwrite a prior positive or negative artifact. Retain failures.
-    with output.open("x", encoding="utf-8") as target:
-        target.write(json.dumps(receipt, ensure_ascii=False, sort_keys=True, indent=2) + "\n")
+    # The previously checked spelling is not trusted: parent symlinks may have
+    # changed since admission. Publish through an exclusively opened dirfd.
+    _write_immutable_receipt(output, receipt)
     print(json.dumps({k: receipt[k] for k in ("scope", "source_commit",
           "source_tree", "tests_planned", "tests_executed", "errors", "failures",
           "skipped", "expected_failures", "duplicate_test_identity",
