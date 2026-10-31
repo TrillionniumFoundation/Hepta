@@ -1,0 +1,97 @@
+name: HIA P5 native allocator realloc regression (research DENY_ALL)
+
+on:
+  push:
+    branches:
+      - research/hia-native-allocator-realloc-20261031-gpt6
+  pull_request:
+    paths:
+      - benchmarks/hia_native_ndu/metrics.c
+      - tests/native/hia_allocator_realloc_regression.c
+      - .github/workflows/hia-allocator-realloc-native-regression.yml
+  workflow_dispatch:
+
+jobs:
+  native-glibc-allocator-evidence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Four real GNU-wrapper executions; no skip or expected failure
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$RUNNER_TEMP/hia-native-allocator"
+          mkdir -p "$output"
+          test "$(uname -s)" = Linux
+          git rev-parse HEAD | tee "$output/commit.txt"
+          git rev-parse HEAD^{tree} | tee "$output/tree.txt"
+          test -z "$(git status --porcelain)"
+          for compiler in gcc clang; do
+            command -v "$compiler" >/dev/null
+            "$compiler" --version | head -n 1 | tee "$output/$compiler.version"
+            for optimization in O0 O3; do
+              executable="$output/$compiler-$optimization"
+              "$compiler" -std=c11 "-$optimization" -Wall -Wextra -Werror \
+                -Ibenchmarks/hia_native_ndu \
+                benchmarks/hia_native_ndu/metrics.c \
+                tests/native/hia_allocator_realloc_regression.c \
+                -Wl,--wrap=malloc -Wl,--wrap=calloc -Wl,--wrap=realloc \
+                -Wl,--wrap=free -o "$executable"
+              "$executable" | tee "$output/$compiler-$optimization.log"
+              grep -Fxq 'PASS: 5/5 real GNU-linker-wrapped allocator probes, zero skipped' \
+                "$output/$compiler-$optimization.log"
+              test "$(grep -Ec '^(realloc_null_slot0|realloc_null_refusal|realloc_owned_growth|realloc_owned_refusal|foreign_realloc_origin):' "$output/$compiler-$optimization.log")" -eq 5
+            done
+          done
+          python3 - "$output" <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+          out = Path(sys.argv[1])
+          paths = (
+              "benchmarks/hia_native_ndu/metrics.c",
+              "benchmarks/hia_native_ndu/metrics.h",
+              "tests/native/hia_allocator_realloc_regression.c",
+              ".github/workflows/hia-allocator-realloc-native-regression.yml",
+          )
+          sha = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          tree = subprocess.check_output(["git", "rev-parse", "HEAD^{tree}"], text=True).strip()
+          if os.environ["GITHUB_SHA"] != sha:
+              raise SystemExit("exact workflow source drift")
+          result = {
+              "source_sha": sha,
+              "source_tree": tree,
+              "source_files_sha256": {p: hashlib.sha256(Path(p).read_bytes()).hexdigest()
+                                      for p in paths},
+              "native_compilers": {cc: (out / f"{cc}.version").read_text().strip()
+                                   for cc in ("clang", "gcc")},
+              "executed_profiles": [
+                  f"{cc}-{opt}" for cc in ("clang", "gcc") for opt in ("O0", "O3")
+              ],
+              "native_executions": 4,
+              "asserted_counterexamples": 5,
+              "skipped": 0,
+              "expected_failures": 0,
+              "status": "passed",
+              "authority": "DENY_ALL",
+              "production_activation_allowed": False,
+              "note": "Research metrics accounting only: no NDU economic advantage claim",
+          }
+          (out / "receipt.json").write_text(json.dumps(result, sort_keys=True, indent=2) + "\n")
+          print(json.dumps(result, sort_keys=True))
+          PY
+          test -z "$(git status --porcelain)"
+      - name: Preserve source-bound native receipts, even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-allocator-realloc-${{ github.sha }}
+          path: ${{ runner.temp }}/hia-native-allocator/
+          if-no-files-found: warn
+          retention-days: 30

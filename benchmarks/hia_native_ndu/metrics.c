@@ -69,9 +69,14 @@ void *__wrap_calloc(size_t n, size_t size) {
 }
 void *__wrap_realloc(void *old, size_t n) {
     if (refusal()) return 0;
-    unsigned slot = 0;
+    /* realloc(NULL, n) is a new allocation: slot zero may be someone else's
+     * live object. Never retire it. An untracked non-NULL origin also poisons
+     * the measured cost evidence rather than silently certifying the trace. */
+    unsigned slot = 32;
     if (active && old) {
+        slot = 0;
         while (slot < 32 && slots[slot].p != old) ++slot;
+        if (slot == 32) ++current.accounting_errors;
     }
     void *p = __real_realloc(old, n);
     if (active && (p || n == 0)) {
