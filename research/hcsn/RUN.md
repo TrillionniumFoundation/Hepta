@@ -1,22 +1,35 @@
-# HCSN P0–P6 research bundle: reproducible local runs
+# HCSN independent research branch: reproduce experiments and gated evidence
 
-Run in a CPU Python environment with the requirements installed. Tested on Python 3.13.5, numpy 2.3.5, scipy 1.17.0, torch 2.10.0 (CPU), mpmath 1.3.0, 2026-10-31.
+Repo: `TrillionniumFoundation/Hepta`
+Branch: `research/hcsn-qvi-nonlocal-and-p1-controls-20261031`
+Draft PR: https://github.com/TrillionniumFoundation/Hepta/pull/468
 
-From `/mnt/data` or any parent folder containing `hcsn_next_20261031`:
+All code runs independently under `research/hcsn`; it is *not* a production neural engine. Research code depends on Python 3.13, numpy, scipy, torch CPU, mpmath, psutil and cryptography.
 
-```sh
-python -m pip install -r hcsn_next_20261031/requirements.txt
-OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python -m unittest discover -s hcsn_next_20261031 -p 'test_*.py' -v
-OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python -m hcsn_next_20261031.p1_audit --output /tmp/p1_new.json
-OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python -m hcsn_next_20261031.temporal_bench --steps 140 --output /tmp/temporal_new.json
-OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python -m hcsn_next_20261031.perf_probe --output /tmp/perf_new.json
-python -m hcsn_next_20261031.gate_evidence --folder hcsn_next_20261031 --strict
+From the **repository root**:
+
+```bash
+python -m pip install -r research/hcsn/requirements.txt
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python -m unittest discover -s research/hcsn -p 'test_*.py' -q
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python -m research.hcsn.p0_extreme_precision --output /tmp/hcsn_hx_new.json
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python -m research.hcsn.p1_hermite_control --output /tmp/hcsn_p1_new.json
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python -m research.hcsn.p2_regen_recall --steps 420 --seeds 11 --batch-size 48 --train-length 30 --output /tmp/hcsn_p2_new.json
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python -m research.hcsn.p5_recurrent_cpu_probe --repeats 35 --output /tmp/hcsn_p5_new.json
+python -m research.hcsn.gate_evidence --folder research/hcsn --strict
 ```
 
-The last command *intentionally returns 2* until every P0–P6 gate has independent closure evidence. Preserve baseline files and never overwrite signed/heldout results.
+**The final strict command MUST exit code 2 until independent scientific evidence for P0–P6 is verified; 66 passing unit tests do not certify production readiness.**
 
-`temporal_replicates.json` is the three-seed replication with v2 HCSN, v2 ordinary learned gate, and GRU. It used direct `train_temporal` calls with seeds 11/23/37, tasks `selective_copy,mqar`, 140 updates. `temporal_results.json` is the original first-run three-model study. `temporal_v2_results.json` is the one-seed preliminary v2 study.
+## Independent evidence gate v2
 
-The original HX direct A7 (`hx_a7.py`) and independent original coupled equity Green (`hx_original.py`) are scalar FP64 validation references; they are **not** per-neuron GPU-efficient activation implementations. `hx_stable.py` is a near-boundary log-margin expansion on [0, 1e-3] only. `regenerative_qvi.py` is the **new** independent stationary impulse-reset control model, not original HX.
+`independent_gate.py` is an *evidence-authentication* protocol, not an automatic correctness theorem. It can verify external two-party Ed25519 signatures (Evaluator, Observer), an independently provisioned trust-root JSON **outside** the repository/evidence folder, immutable source SHA, pre-registration hash, and per-topic artifact SHA256. There is no built-in key material, no automatic signed evidence, and no production-activation action. 
 
-Paper: He & Xiong, Journal of Finance, 2012, https://www.princeton.edu/~wxiong/papers/rollover.pdf (equations 8,11,12,A5,A7).
+To run with externally reviewed evidence:
+
+```bash
+python -m research.hcsn.gate_evidence --folder /path/to/evidence_bundle --trust-root /external/release-authority/root.json --strict
+```
+
+The evaluator and observer keys must be distinct and externally governed; tests generate throwaway keys only as synthetic protocol fixtures. Signed review alone cannot establish fair scientific comparison or formally prove a QVI; reviewers must validate those properties separately. Replacing an OPEN status without actual scientific evidence is not valid.
+
+The original He–Xiong A7 (`hx_a7.py`) and independent coupled equity Green evaluator (`hx_original.py`) are scalar FP64 references, not per-neuron GPU-ready activations. State-dependent QVI is a separately invented HCSN operator. Report `research/hcsn/gates/2026-10-31-iteration4.md` enumerates remaining blockers.
