@@ -88,6 +88,7 @@ def execute_owned_queue(self, token, *, candidate=None, rounds=5, sample_limit=2
                 if not application_started:
                     row["status"] = "submitted"
                     row.pop("version", None)
+                    row.pop("execution_generation", None)
                     self._event_count, self._event_counts, self._events = start_snapshot
                     self._unamortized_preparation_ns = candidate_cost
                     try:
