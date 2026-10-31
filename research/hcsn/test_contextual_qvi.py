@@ -29,7 +29,7 @@ class ContextualQVITests(unittest.TestCase):
         self.assertGreater(a.iterations,0)
         self.assertTrue(np.all(a.reset_policy[:12]))
         self.assertTrue(np.all(~a.reset_policy[a.v>=p.reset_value]))
-        self.assertGreater(np.ptp(a.u[:40]),.005)
+        self.assertGreater(np.ptp(a.u[:40]),.005)  # state-dependent reset value
         active=np.flatnonzero(a.reset_policy)[10:40]
         self.assertLess(np.max(np.abs(a.source_obstacle[active])),1e-8)
         self.assertLessEqual(np.max(a.source_generator[1:-1]),1e-8)
@@ -40,6 +40,7 @@ class ContextualQVITests(unittest.TestCase):
         a=solve_contextual_qvi(p,cfg,h=.04,left_steps=140,right_steps=140)
         b=solve_contextual_qvi(p,cfg,h=.02,left_steps=280,right_steps=280)
         self.assertLess(abs(a.estimated_trigger-b.estimated_trigger)/b.estimated_trigger,.06)
+        # Both grids represent same physical states, with reference reset at x=0.
         for k in (-60,30,70):
             va=a.u[a.v.size//2+k]
             vb=b.u[b.v.size//2+2*k]
