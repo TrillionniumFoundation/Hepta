@@ -92,7 +92,7 @@ class HIAPairedHoldoutTests(unittest.TestCase):
 
     def test_full_cost_immutability_and_failed_or_forged_control_still_reject(self):
         bad = (fixture(), b'{"a":1,"a":2}', b'{"a":NaN}',
-               b"\\xff", b"x" * 262145)
+               bytes([0xff]), b"x" * 262145)
         for raw in bad:
             with self.subTest(data=type(raw).__name__):
                 with self.assertRaises(FullCostRejected):
