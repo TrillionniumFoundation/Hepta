@@ -206,6 +206,27 @@ class HIAAgentAssemblyTests(unittest.TestCase):
             assemble_program(SOURCE.replace("\n", "\r\n")).canonical_bytes,
             assemble_program(SOURCE).canonical_bytes)
 
+    def test_ascii_del_in_wire_json_must_fail_before_core_verifier(self):
+        # DEL (U+007F) is a Cc terminal control. The original preflight
+        # excluded C0 and non-ASCII Cc/Cf, but accidentally omitted DEL.
+        # JSON accepts a literal DEL inside a string, so syntax processing
+        # must not hand this ambiguous text to the semantic verifier.
+        malformed = SOURCE.replace('{"mode":"wrap"}', '{"mode":"wrap\\x7f"}', 1)
+        self.assertNotEqual(malformed, SOURCE)
+        with patch("hepta.hia_agent_assembly.verify_program") as verifier:
+            for value in (malformed, malformed.encode("utf-8")):
+                with self.subTest(value_type=type(value).__name__):
+                    with self.assertRaises(HIAAssemblyRejected) as caught:
+                        assemble_program(value)
+                    self.assertEqual(caught.exception.code, "E_HIA_ASSEMBLY")
+                    self.assertIn("unsupported control", str(caught.exception))
+                    self.assertEqual(caught.exception.phase, "syntax")
+                    self.assertFalse(diagnose_assembly(value)["accepted"])
+            verifier.assert_not_called()
+        # Do not alter the valid canonical assembly acceptance.
+        self.assertEqual(assemble_program(SOURCE).canonical_bytes,
+                         assemble_program(SOURCE.encode("utf-8")).canonical_bytes)
+
     def test_missing_terminator_end_extra_text_and_duplicate_exports_reject(self):
         variants = (SOURCE.replace("  ret(answer)\n", ""), SOURCE.removesuffix("end\n"),
                     SOURCE + "garbage\n", SOURCE.replace("exports(total)", "exports(total)\nexports(total)"),
