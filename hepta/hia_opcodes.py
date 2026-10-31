@@ -112,6 +112,13 @@ def validate_execution_observation(status, ledger, *, steps, max_steps, max_heap
         need(ledger["chain_nodes_created"] <= allocated
              and ledger["chain_nodes_dropped"] <= freed,
              "chain node storage release/creation is not backed by nonempty allocator activity")
+        # A node is only created by pushing through an existing chain
+        # generation; a completed removal can only follow consumption of
+        # its owning chain generation. Keep interrupted destruction legal:
+        # zero live chain tokens may coexist with still-live detached nodes.
+        need(ledger["chain_nodes_created"] <= ledger["chains_created"]
+             and ledger["chain_nodes_dropped"] <= ledger["chains_consumed"],
+             "chain node history lacks corresponding chain token events")
     if status == "returned":
         need(error_code is None, "ordinary return cannot carry an error outcome")
         need(live == ledger["live_local_loans"] == 0
