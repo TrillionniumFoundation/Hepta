@@ -97,7 +97,66 @@ MODULES = (
     "tests.test_hia_register_safety.RegisterSafetyInputTests",
     "tests.test_ring_maintenance_qualification", "tests.test_hia_agent_public_tools",
     "tests.test_hia_ndu_convergence", "tests.test_hia_ndu_converged_holdout",
+    "tests.test_hia_verified_increment_gate",
 )
+
+
+
+def _planned_test_ids(suite) -> tuple[str, ...]:
+    """Freeze exact discovery order; a count alone cannot establish coverage."""
+    pending = [suite]
+    ids = []
+    while pending:
+        node = pending.pop()
+        if isinstance(node, unittest.TestSuite):
+            pending.extend(reversed(list(node)))
+        elif isinstance(node, unittest.TestCase):
+            identity = node.id()
+            if type(identity) is not str or not identity:
+                raise ValueError("noncanonical integration test identity")
+            ids.append(identity)
+        else:
+            raise ValueError("non-TestCase integration test discovered")
+    return tuple(ids)
+
+
+class _IdentityRecordingResult(unittest.TextTestResult):
+    """Record both start and completion, including skipped/expected-failure cases."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.started_ids: list[str] = []
+        self.finished_ids: list[str] = []
+
+    def startTest(self, test):
+        self.started_ids.append(test.id())
+        super().startTest(test)
+
+    def stopTest(self, test):
+        self.finished_ids.append(test.id())
+        super().stopTest(test)
+
+
+def _outcome_admissible(result, planned: tuple[str, ...], *,
+                        source_unchanged: bool, worktree_unchanged: bool) -> bool:
+    """An expected failure, missing/replaced test, or source drift never qualifies."""
+    return bool(
+        type(planned) is tuple and planned and len(planned) == len(set(planned))
+        and all(type(identity) is str and identity for identity in planned)
+        and result.testsRun == len(planned)
+        and tuple(result.started_ids) == planned
+        and tuple(result.finished_ids) == planned
+        and result.wasSuccessful()
+        and not result.failures and not result.errors and not result.skipped
+        and not result.expectedFailures and not result.unexpectedSuccesses
+        and source_unchanged and worktree_unchanged
+    )
+
+
+def _ids_digest(ids) -> str:
+    """Canonical ordered identity digest, never a substitute for equality."""
+    return sha256(json.dumps(list(ids), ensure_ascii=False,
+                             separators=(",", ":")).encode("utf-8")).hexdigest()
 
 
 def selector_source(selector):
@@ -157,20 +216,58 @@ def run(output):
                        "performance_or_agent_superiority_established": False,
                        "full_seven_deliverables_complete": False}}
     (destination / "plan.json").write_text(json.dumps(plan, indent=2, sort_keys=True) + "\n")
+    suite = unittest.defaultTestLoader.loadTestsFromNames(MODULES)
+    planned = _planned_test_ids(suite)
     started = time.monotonic_ns()
     with (destination / "tests.log").open("w") as stream:
-        suite = unittest.defaultTestLoader.loadTestsFromNames(MODULES)
-        result = unittest.TextTestRunner(stream=stream, verbosity=2).run(suite)
+        result = unittest.TextTestRunner(
+            stream=stream, verbosity=2, resultclass=_IdentityRecordingResult
+        ).run(suite)
     after = inventory()
-    report = {**plan, "tests": result.testsRun, "failures": len(result.failures),
-              "errors": len(result.errors), "skipped": [(str(test), reason) for test, reason in result.skipped],
-              "elapsed_ns": time.monotonic_ns() - started,
-              "source_unchanged": before == after,
-              "failure_details": [(str(test), trace) for test, trace in result.failures + result.errors],
-              "passed": result.wasSuccessful() and not result.skipped and before == after,
-              "log_sha256": sha256((destination / "tests.log").read_bytes()).hexdigest()}
+    git_status_after = subprocess.check_output(
+        ["git", "status", "--porcelain"], cwd=ROOT, text=True
+    )
+    source_unchanged = before == after
+    worktree_unchanged = plan["git_worktree_status"] == git_status_after
+    admitted = _outcome_admissible(
+        result, planned, source_unchanged=source_unchanged,
+        worktree_unchanged=worktree_unchanged
+    )
+    report = {
+        **plan,
+        "tests": result.testsRun,
+        "tests_planned": len(planned),
+        "failures": len(result.failures),
+        "errors": len(result.errors),
+        "skipped": [(str(test), reason) for test, reason in result.skipped],
+        "expected_failures": [(str(test), trace) for test, trace in result.expectedFailures],
+        "unexpected_successes": [str(test) for test in result.unexpectedSuccesses],
+        "test_identity": {
+            "planned_sha256": _ids_digest(planned),
+            "started_sha256": _ids_digest(result.started_ids),
+            "finished_sha256": _ids_digest(result.finished_ids),
+            "discovery_duplicates": len(planned) != len(set(planned)),
+            "started_matches_planned": tuple(result.started_ids) == planned,
+            "finished_matches_planned": tuple(result.finished_ids) == planned,
+        },
+        "elapsed_ns": time.monotonic_ns() - started,
+        "source_unchanged": source_unchanged,
+        "git_worktree_status_after": git_status_after,
+        "worktree_unchanged": worktree_unchanged,
+        "failure_details": [(str(test), trace) for test, trace in result.failures + result.errors],
+        "passed": admitted,
+        "authority": "DENY_ALL",
+        "safety_certificate": False,
+        "log_sha256": sha256((destination / "tests.log").read_bytes()).hexdigest(),
+    }
     (destination / "result.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
-    print(json.dumps({key: report[key] for key in ("tests", "failures", "errors", "skipped", "source_unchanged", "passed")}, indent=2))
+    print(json.dumps({
+        key: report[key] for key in (
+            "tests", "tests_planned", "failures", "errors", "skipped",
+            "expected_failures", "unexpected_successes", "test_identity",
+            "source_unchanged", "worktree_unchanged", "passed",
+        )
+    }, indent=2))
     return report
 
 
