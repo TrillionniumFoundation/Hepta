@@ -1,0 +1,63 @@
+name: HIA P7 bounded native queue token admission (scoped)
+on:
+  push:
+    branches: [work/hia-p7-bounded-token-admission-20261031-gpt6audit]
+  pull_request:
+    branches: [work/hia-p7-queue-generation-fence-20261031-gpt6]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bounded-native-token-admission:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CLANG: /usr/bin/clang-20
+      HEPTA_CLANG: /usr/bin/clang-20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run attacker-token negative suite before native package installation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B -m unittest tests.test_hia_stateful_queue_token_admission.QueueTokenAdmissionTests.test_no_untrusted_hash_or_equality_on_any_external_route tests.test_hia_stateful_queue_token_admission.QueueTokenAdmissionTests.test_oversized_and_invalid_token_shapes_reject_before_lookup tests.test_hia_stateful_queue_token_admission.QueueTokenAdmissionTests.test_valid_legacy_short_internal_token_still_observable_and_cancellable -v 2>&1 | tee "$RUNNER_TEMP/hia-p7-token-admission-pure.log"
+      - name: Install pinned actual Linux native compiler and Z3
+        run: |
+          set -eu
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/hepta-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key
+          fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hepta-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')
+          test "$fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+          sudo install -m 0644 "$RUNNER_TEMP/hepta-llvm.asc" /usr/share/keyrings/hepta-llvm.asc
+          printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hepta-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hepta-llvm20.list
+          sudo apt-get update
+          sudo apt-get install -y clang-20 libclang-rt-20-dev llvm-20 lld-20 build-essential
+          python -m pip install --disable-pip-version-check -e '.[optimization]' 'zstandard==0.25.0'
+          test -x "$CLANG"
+          python -c 'import z3; print("Pinned Z3", z3.get_version_string())'
+      - name: Native no-regression and strict source-bound Core/native qualification
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B -m unittest tests.test_hia_stateful_queue_token_admission -v 2>&1 | tee "$RUNNER_TEMP/hia-p7-token-admission-native.log"
+          python -B -m tools.qualify_hia_three_lane --suite core --output "$RUNNER_TEMP/hia-p7-token-core.json"
+          python -B -m tools.qualify_hia_three_lane --suite native --output "$RUNNER_TEMP/hia-p7-token-native.json"
+          python -B -m py_compile hepta/hia_stateful.py hepta/hia_queue_commit.py hepta/hia_continuation.py tests/test_hia_stateful_queue_token_admission.py
+          git diff --exit-code
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hia-p7-bounded-token-admission-exact-source
+          path: |
+            ${{ runner.temp }}/hia-p7-token-admission-pure.log
+            ${{ runner.temp }}/hia-p7-token-admission-native.log
+            ${{ runner.temp }}/hia-p7-token-core.json
+            ${{ runner.temp }}/hia-p7-token-native.json
+          if-no-files-found: warn
