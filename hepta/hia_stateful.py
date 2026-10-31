@@ -515,6 +515,10 @@ class OwnedAdaptiveRuntime(AdaptiveRuntime):
                 raise AdaptiveRejected("E_STATE_QUEUE: finite committed work budget exceeded")
             frozen = tuple(work)
             token = secrets.token_hex(16)
+            # Never replace an existing receipt or committed queue on token reuse.
+            # The owner lock makes the collision check and registration atomic.
+            if token in self._queues:
+                raise AdaptiveRejected("E_STATE_QUEUE: internal queue token collision")
             self._queues[token] = {"items": frozen, "sha256": _digest([
                 {"slot": item.slot, "delta": item.delta, "iterations": item.iterations} for item in frozen]),
                                    "status": "submitted",
