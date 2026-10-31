@@ -29,6 +29,8 @@ REPORT = "hepta.hia.native-observation.v1"
 MAX_MANIFEST = 262_144
 MAX_BINARY = 64 * 1024 * 1024
 MAX_STDIN = 64 * 1024
+MAX_INVOCATIONS = 4096
+MAX_CAMPAIGN_DEADLINE_MS = 900_000
 ARMS = ("baseline", "fixed", "dp", "ndu")
 COST_KEYS = ("toolchain", "dependencies", "controller_build", "candidate_build",
              "calibration", "search", "verification", "measurement",
@@ -131,6 +133,10 @@ def _registration(raw):
     ids = [r[0] for r in trials]
     if ids != sorted(set(ids)):
         _reject("trials must be uniquely registered in sorted order")
+    invocations = len(trials) * data["repetitions"] * len(ARMS)
+    if (invocations > MAX_INVOCATIONS
+            or invocations * data["timeout_ms"] > MAX_CAMPAIGN_DEADLINE_MS):
+        _reject("campaign exceeds total process/deadline budget")
     if type(data["arms"]) is not list or len(data["arms"]) != 4:
         _reject("four matched arms required")
     for index, arm in enumerate(data["arms"]):
