@@ -14,19 +14,19 @@ For a constant-volatility log state with drift `nu` and a moving affine log free
 - Six signed autograd derivatives of G were independently checked with density-based centered differences: maximum discrepancy **1.970144491991732e-9**.
 - Exact-time inverse-Gaussian/Levy first-passage Monte Carlo for **420,000 independent paths** across negative/zero/positive relative drifts: all 6 normalized differences below **2.79 standard errors** (exploratory, not preregistered).
 - Conditional Brownian-bridge hit simulation for 1/3/12 segments, **450,000 sampled paths**, recovered the constant-slope analytic hitting probability; normalized discrepancies below **1.79 standard errors**. For genuinely piecewise moving boundaries with identical endpoints, early-high vs late-high profiles produced hit rates `0.869036` versus `0.320900` under separate fixed-seed 250k-path Monte Carlo runs. Hence boundary trajectory, not only terminal value, matters.
-- Fixed actual FP64 autograd bug at `nu-gamma=0, lambda=0`: guarding `sqrt(0)` *after* sqrt caused NaN propagation through an unused branch; guard the radicand *before* sqrt. Added direct gradient regression and fail-closed numeric domain checks.
+- Fixed actual FP64 autograd bug at `nu-gamma=0, lambda=0`: guarding `sqrt(0)` *after* sqrt caused NaN propagation through an unused branch; guard the radicand *before* sqrt. Added direct gradient regression and fail-closed numeric domain checks, including subnormal positive horizon/discount refusal.
 - **Input quantization only** (256 deterministic panels; FP64 special-function kernel still used): max absolute deviations `2.7372053512664252e-8` for FP32-rounded inputs, `0.0020527097194489308` for BF16-rounded inputs. NOT GPU/BF16 arithmetic certification.
-- Feature-only torch CPU 2048-element batch p50/p99: **0.540/0.983 ms**, 120 iterations, one thread. NOT integrated head, GPU, device power or total encoder latency.
+- Feature-only torch CPU 2048-element batch p50/p99: **0.623/1.159 ms**, 120 iterations, one thread. NOT integrated head, GPU, device power or total encoder latency.
 
 ## Source provenance and rerun
 
 The three files below were source-identical (Git blob SHA1 matched) after connector delivery:
 
-- `research/hcsn/moving_boundary_first_passage.py` — blob `0d724fc1af6c5fc762a16882953c63e26ea4fabc`.
-- `research/hcsn/test_moving_boundary_first_passage.py` — blob `99ad7d486bdd0c51322e8aefcc63a77a724b029c`.
+- `research/hcsn/moving_boundary_first_passage.py` — blob `7a9e8a1bec624c2520ec206c4a0199cde0fd46df`.
+- `research/hcsn/test_moving_boundary_first_passage.py` — blob `8545080060fe3c144c2447497309039ba93f4c7b`.
 - `research/hcsn/p2_affine_stochastic_evidence.py` — blob `315fc689169e158dd03c09c007dadbd4877aee6e`.
 
-Full raw evidence file `ITERATION9_STOCHASTIC_AFFINE_EVIDENCE.json` SHA256: `3f71b30988194a9279d493fb5e6c56e498d429b343ff37ac0ac3041bbcf5d581` (generated with fixed seeds; per-run CPU timings may vary). Full JSON and independent research package are available in the accompanying conversation artifact, and the generator regenerates it.
+Full raw evidence file `ITERATION9_STOCHASTIC_AFFINE_EVIDENCE.json` SHA256: `7a761e9f4547f2ce18daecf54d6b85f53af57ee4cbf7aa2bf0e50305a90fa8d1` (generated with fixed seeds; per-run CPU timings may vary). Full JSON and independent research package are available in the accompanying conversation artifact, and the generator regenerates it.
 
 From repository root:
 
