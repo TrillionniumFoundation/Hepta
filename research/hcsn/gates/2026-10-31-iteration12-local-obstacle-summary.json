@@ -1,0 +1,59 @@
+{
+  "schema": "hcsn.p0-original-hx-local-sign-obstruction.summary.v1",
+  "date": "2026-10-31",
+  "root_research_pr": 468,
+  "root_base_sha": "819e33f691e9a3a255a74a6088789512e65ba951",
+  "research_only": true,
+  "parameters": {
+    "r": 0.1,
+    "delta": 0.075,
+    "sigma": 0.2,
+    "alpha": 0.4,
+    "tax": 0.27,
+    "xi": 4,
+    "k": 0.2,
+    "maturity": 3,
+    "coupon_total": 5,
+    "face_total": 100
+  },
+  "explicit_counterexample": {
+    "eq12_boundary": 197.52085498628088,
+    "boundary_net_cashflow": 4.1668447888085165,
+    "boundary_log_curvature": -208.34223944042577,
+    "recovery_over_face": 0.7900834199451237,
+    "green_equity_at_logx_0_05": -0.12005380835171753,
+    "classification": "REJECT_NEGATIVE_EQUITY_NEAR_BOUNDARY"
+  },
+  "panel": {
+    "count": 256,
+    "seed": 20261031,
+    "rejections": 76,
+    "without_local_sign_obstruction_only": 180,
+    "indeterminate": 0,
+    "numerically_unresolved": 0,
+    "rejections_with_recovery_below_face": 12,
+    "preregistered": false,
+    "raw_full_local_json_sha256": "4f89d1a9d655201f9b821d676ce1390d7720124ff817851d031c2ab5f10e3c7b"
+  },
+  "execution": {
+    "environment": "Python 3.13.5, SciPy 1.17.0, NumPy 2.3.5, CPU PyTorch 2.10.0; local reconstructed research subset",
+    "new_test_methods_passed": 6,
+    "full_local_test_methods_passed": 98,
+    "remote_ci_verified": false,
+    "strict_scientific_gate_exit_code": 2
+  },
+  "git_blob_sha1": {
+    "hx_original.py": "880ce9caea309d74569e5574df8f4d30aa0060f7",
+    "hx_equity_fd_independent.py": "c3801c5a3f2607371b7d9d17916f49fbcb103877",
+    "hx_local_obstacle_sign.py": "307eac9285090fa22b0630a10f46f2d64d5d6cce",
+    "test_hx_local_obstacle_sign.py": "e123eff3917e4dcc113b6e4f2e785bfdd7b91d23",
+    "p0_local_obstacle_evidence.py": "0ef295f7906d020112b9159f48b3ff326ec2105b"
+  },
+  "p0_full_domain_certified": false,
+  "p0_scientific_gate": "OPEN",
+  "p1_p6_scientific_gates": "OPEN",
+  "production_activation": false,
+  "all_scientific_blockers_closed": false,
+  "external_signature_verified": false,
+  "interpretation": "One-sided necessary sign obstruction only; no globally sufficient obstacle, reproducibility proof, statistical prevalence estimate, or hardware/neural efficacy claim."
+}
