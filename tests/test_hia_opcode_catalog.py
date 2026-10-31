@@ -182,7 +182,10 @@ class OpcodeCatalogTests(unittest.TestCase):
                     )
                 cast = next(row for row in catalog["instructions"]
                             if row["name"] == "int.cast")
-                self.assertEqual(cast["traps"], ["overflow"])
+                # asdict(OpcodeSpec) retains immutable tuple fields in Python;
+                # the exported wire format converts those tuples to JSON arrays.
+                self.assertEqual(cast["traps"], ("overflow",))
+                self.assertEqual(json.loads(json.dumps(cast))["traps"], ["overflow"])
 
         self.assertEqual(check_instruction(OPCODES["int.cast"], ["u64"], ["i8"],
                                            {"mode": "wrap"}), frozenset())
