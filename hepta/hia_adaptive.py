@@ -19,8 +19,8 @@ import time
 
 from .hia_native_differential import _pin_native_artifact
 from .native_mapping_identity import NativeMappingRejected, verify_loaded_symbols
-from .hia_optimization import (DEFAULT_POLICY, build_optimized_native,
-                               checker_identity, verify_optimization)
+from .hia_optimization import (build_optimized_native, checker_identity,
+                               verify_optimization, _policy as _admit_optimizer_policy)
 from .hia_program import verify_program
 from .hia_program_llvm import _implementation_hash
 from .hia_prepared import _issue, _reuse
@@ -216,8 +216,11 @@ class AdaptiveRuntime:
 
     def __init__(self, base, directory, *, clang="clang", policy=None):
         started = time.monotonic_ns()
+        # A JSON roundtrip before policy admission erases untrusted dict/list/str
+        # subclass identity and may allocate unbounded producer-owned data.
+        # Admit exact built-ins and freeze a bounded policy BEFORE native setup.
+        self._policy = _admit_optimizer_policy(policy)
         self._identity = _identity()
-        self._policy = json.loads(json.dumps(DEFAULT_POLICY if policy is None else policy))
         self._clang = clang
         self._root = Path(directory).absolute()
         if self._root.exists() or self._root.is_symlink():
