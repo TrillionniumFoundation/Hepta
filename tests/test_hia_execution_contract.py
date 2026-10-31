@@ -173,6 +173,38 @@ class SharedExecutionContractTests(unittest.TestCase):
                         error_code="heap", with_chains=True,
                     )
 
+    def test_peak_requires_successful_nonempty_allocation_and_persists_after_free(self):
+        # Real successful allocation + complete cleanup keeps historical
+        # peak bytes even though the current live payload is zero.
+        returned = observe(cleanup_module(), "run", [False, 3])
+        self.assertEqual(returned["status"], "returned")
+        self.assertGreater(returned["resources"]["allocations"], 0)
+        self.assertGreater(returned["resources"]["peak_bytes"], 0)
+        self.assertEqual(returned["resources"]["live_bytes"], 0)
+        limits = dict(steps=returned["steps"], max_steps=1_000_000,
+                      max_heap_bytes=16 * 1024 * 1024)
+        validate_execution_observation("returned", returned["resources"], **limits)
+        erased = {**returned["resources"], "peak_bytes": 0}
+        with self.assertRaisesRegex(ExecutionObservationRejected,
+                                    "peak payload contradicts"):
+            validate_execution_observation("returned", erased, **limits)
+
+        # A heap quota can stop before any allocation attempt. Inventing
+        # positive historical peak bytes while retaining zero allocation
+        # counters previously passed the other owner/live-byte equations.
+        stopped = observe(held_program(), "held", [4, 0], max_heap_bytes=3)
+        self.assertEqual((stopped["status"], stopped["error"]["code"]),
+                         ("budget_exceeded", "heap"))
+        self.assertEqual((stopped["resources"]["allocations"],
+                          stopped["resources"]["peak_bytes"]), (0, 0))
+        stop_limits = dict(steps=stopped["steps"], max_steps=1_000_000,
+                           max_heap_bytes=3, error_code="heap")
+        validate_execution_observation(stopped["status"], stopped["resources"], **stop_limits)
+        invented = {**stopped["resources"], "peak_bytes": 1}
+        with self.assertRaisesRegex(ExecutionObservationRejected,
+                                    "peak payload contradicts"):
+            validate_execution_observation(stopped["status"], invented, **stop_limits)
+
     def test_execution_step_count_requires_exact_integer_on_trap_and_tick_stop(self):
         # These are real VM reports; a wire observation must not replace an
         # integer tick count with a bool, float or other non-integer type.
