@@ -64,10 +64,12 @@ def affine_hitting_torch(
     if (x.numel()>2_000_000
         or any(not bool(torch.isfinite(v).all()) for v in (x,T,nu,sig,sl,lam))
         or bool((x<0).any()) or bool((x>100).any())
-        or bool((T<0).any()) or bool((T>1.e4).any())
+        or bool((T<0).any()) or bool(((T>0)&(T<1.e-10)).any())
+        or bool((T>1.e4).any())
         or bool((sig<1.e-5).any()) or bool((sig>5).any())
         or bool((nu.abs()>20).any()) or bool((sl.abs()>20).any())
-        or bool((lam<0).any()) or bool((lam>20).any())):
+        or bool((lam<0).any()) or bool(((lam>0)&(lam<1.e-12)).any())
+        or bool((lam>20).any())):
         raise ValueError('Outside bounded FP64 numerical reference domain')
 
     # Prevent invalid 0 divisions in untaken torch.where branches.
@@ -77,9 +79,10 @@ def affine_hitting_torch(
     # Compute the safe radicand BEFORE sqrt. Clamping z after sqrt(0)
     # propagates 0 * infinity -> NaN through the *unselected* autograd branch.
     # At discount=0, G is explicitly F and its discount derivative is not
-    # certified; at mu=0 too, the unused sqrt must not poison dF/dmu.
+    # certified; the unused sqrt must never poison dF/dmu, even when a tiny
+    # nonzero mu underflows on squaring.
     radicand=mu*mu+2*lam*sig*sig
-    z=torch.sqrt(torch.where((lam==0)&(mu==0),torch.ones_like(radicand),radicand))
+    z=torch.sqrt(torch.where(lam==0,torch.ones_like(radicand),radicand))
     st=sig*torch.sqrt(safe_T)
     a=(-safe_x-mu*safe_T)/st
     b=(-safe_x+mu*safe_T)/st
