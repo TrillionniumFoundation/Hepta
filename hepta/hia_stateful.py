@@ -206,19 +206,22 @@ def _snapshot_queue_work_item(item):
 
 
 class _Lease:
-    __slots__ = ("_runtime", "_token")
+    __slots__ = ("_runtime", "_token", "_epoch")
 
-    def __init__(self, runtime, token):
-        self._runtime, self._token = runtime, token
+    def __init__(self, runtime, token, epoch):
+        # A token is an opaque lookup key, not lifetime identity. A new loan
+        # may receive the same random token after an old loan ends. Every
+        # access and close must also bind the generation-unique lease epoch.
+        self._runtime, self._token, self._epoch = runtime, token, epoch
 
     def read(self, index):
-        return self._runtime._access(self._token, index)
+        return self._runtime._access(self._token, index, loan_epoch=self._epoch)
 
     def write(self, index, value):
-        self._runtime._access(self._token, index, _u64(value))
+        self._runtime._access(self._token, index, _u64(value), loan_epoch=self._epoch)
 
     def close(self):
-        self._runtime._end_loan(self._token)
+        self._runtime._end_loan(self._token, self._epoch)
 
     def __enter__(self):
         return self
@@ -300,6 +303,9 @@ class OwnedAdaptiveRuntime(AdaptiveRuntime):
         self._final_ledger = None
         self._final_ledger_error = None
         self._loans = {}
+        # Independent live-process serial; never revive a released handle when
+        # the random token is subsequently reused. No persistent replay claim.
+        self._loan_epoch = 0
         self._queues = {}
         self._revision = 0
         self._state_poisoned = False
@@ -399,17 +405,27 @@ class OwnedAdaptiveRuntime(AdaptiveRuntime):
             if self._active or (self._loans and (mutable or any(row["mutable"] for row in self._loans.values()))):
                 raise AdaptiveRejected("E_STATE_LOAN: conflicting native activity or exclusive loan")
             token = secrets.token_hex(16)
+            # A collided token must never replace an active capability. The
+            # independent epoch also invalidates *closed* capabilities if the
+            # random token is issued again later in this runtime.
+            if token in self._loans:
+                raise AdaptiveRejected("E_STATE_LOAN: active loan token collision")
+            if self._loan_epoch >= (1 << 64) - 1:
+                raise AdaptiveRejected("E_STATE_LOAN: loan epoch exhausted")
+            self._loan_epoch += 1
+            epoch = self._loan_epoch
             self._loans[token] = {"mutable": mutable, "generation": self._generation,
-                                  "owner": self._owner_id}
+                                  "owner": self._owner_id, "lease_epoch": epoch}
             self._event("state_loan_created", mutable=mutable)
-            return _Lease(self, token)
+            return _Lease(self, token, epoch)
 
-    def _access(self, token, index, value=None):
+    def _access(self, token, index, value=None, *, loan_epoch):
         with self._lock:
             self._state_open()
             loan = self._loans.get(token)
-            if (not loan or loan["generation"] != self._generation or loan["owner"] != self._owner_id
-                    or self._active):
+            if (not loan or loan["lease_epoch"] != loan_epoch
+                    or loan["generation"] != self._generation
+                    or loan["owner"] != self._owner_id or self._active):
                 raise AdaptiveRejected("E_STATE_STALE_LOAN: alias is no longer live")
             if type(index) is not int or not 0 <= index < self._size:
                 raise AdaptiveRejected("E_STATE_BOUNDS: cell outside owned extent")
@@ -420,9 +436,12 @@ class OwnedAdaptiveRuntime(AdaptiveRuntime):
             self._driver.hs_write(self._state, index, _u64(value))
             self._revision += 1
 
-    def _end_loan(self, token):
+    def _end_loan(self, token, loan_epoch):
         with self._lock:
-            if token in self._loans:
+            # Closing an already-closed lease is idempotent, but must never
+            # revoke a new live loan that reused its former random token.
+            row = self._loans.get(token)
+            if row is not None and row["lease_epoch"] == loan_epoch:
                 del self._loans[token]
                 self._event("state_loan_ended")
 
