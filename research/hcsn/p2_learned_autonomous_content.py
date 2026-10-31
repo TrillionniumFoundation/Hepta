@@ -171,7 +171,7 @@ class AutonomousBoundaryMemory(nn.Module):
         call=torch.where(continuation<.002,near,direct)/local_k
         put=torch.where(margin<=0,local_k-torch.exp(log_v),
                               boundary/beta*torch.exp(-beta*continuation))/local_k
-        if self.mode=='analytic':
+        if self.mode in ('analytic','no_reset'):
             features=torch.cat([call,put,torch.tanh(margin)],-1)
         else:
             features=torch.cat([torch.sigmoid(3*margin),
@@ -260,6 +260,8 @@ def train_one(mode:str,seed:int,*,steps=120,batch=48,length=42,
             'event_precision':float(((ht.hard_events)&(ev>.5)).sum()/ht.hard_events.sum().clamp(min=1)),
             'event_recall':float(((ht.hard_events)&(ev>.5)).sum()/(ev>.5).sum()),
             'hard_events_per_sequence':float(ht.hard_events.float().sum()/eval_n),
+            'applied_hard_resets_per_sequence':(0. if mode=='no_reset' else
+                       float(ht.hard_events.float().sum()/eval_n)),
             'supervised_transitions_per_sequence':n_segs-1,
             'samples':eval_n,'length':n_steps,
             'irregular':irregular}
