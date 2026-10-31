@@ -89,6 +89,27 @@ class OwnedNativeTests(unittest.TestCase):
         self.addCleanup(runtime.close)
         return runtime
 
+    def test_real_native_owner_uses_detached_work_even_after_producer_clears_dict(self):
+        import hepta.hia_stateful as stateful
+        runtime = self.runtime()
+        original = {"slot": 0, "delta": 2, "iterations": 3}
+        capture = stateful._snapshot_queue_work_item
+        def mutate_after_capture(item):
+            frozen = capture(item)
+            item.clear()
+            return frozen
+        with patch.object(stateful, "_snapshot_queue_work_item",
+                          side_effect=mutate_after_capture):
+            token = runtime.submit_queue([original])
+        self.assertEqual(original, {})
+        expected_hash = sha256(b'[{"delta":2,"iterations":3,"slot":0}]').hexdigest()
+        self.assertEqual(runtime.queue_status(token)["queue_sha256"], expected_hash)
+        receipt = runtime.execute_committed(token)
+        self.assertEqual(receipt["queue_sha256"], expected_hash)
+        self.assertEqual(receipt["executed_steps"], 3)
+        self.assertEqual(runtime.queue_status(token)["status"], "completed")
+        self.assertEqual(receipt["final_values"], runtime.snapshot()["state_values"])
+
     def test_actual_ownership_switching_partial_native_cancel_and_negative_gain(self):
         report = qualify(self.root / "qualification", clang=CLANG)
         self.assertTrue(report["ok"], report.get("error"))
