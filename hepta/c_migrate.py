@@ -312,7 +312,10 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
             if node_file is not None:
                 if type(node_file) is not str or not node_file:
                     raise MigrationRejected("E_C_AST", "Malformed C AST source path")
-                active_file = Path(node_file).resolve()
+                try:
+                    active_file = Path(node_file).resolve()
+                except (OSError, ValueError, RuntimeError) as exc:
+                    raise MigrationRejected("E_C_AST", "Unusable C AST source path") from exc
             if active_file != src:
                 continue
             extent = node.get("range", {})
