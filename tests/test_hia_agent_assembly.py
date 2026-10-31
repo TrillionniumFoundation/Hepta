@@ -211,7 +211,7 @@ class HIAAgentAssemblyTests(unittest.TestCase):
         # excluded C0 and non-ASCII Cc/Cf, but accidentally omitted DEL.
         # JSON accepts a literal DEL inside a string, so syntax processing
         # must not hand this ambiguous text to the semantic verifier.
-        malformed = SOURCE.replace('{"mode":"wrap"}', '{"mode":"wrap\\x7f"}', 1)
+        malformed = SOURCE.replace('{"mode":"wrap"}', '{"mode":"wrap' + chr(127) + '"}', 1)
         self.assertNotEqual(malformed, SOURCE)
         with patch("hepta.hia_agent_assembly.verify_program") as verifier:
             for value in (malformed, malformed.encode("utf-8")):
