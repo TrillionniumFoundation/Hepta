@@ -118,3 +118,33 @@ independent build/proof/controller/switch and human cost attribution,
 matched information and search budgets, and frozen unseen holdout outcomes.
 P0–P4 and P7 retain their independent semantic, resource, ABI, migration,
 runtime fault-recovery and Agent qualification gates.
+
+## Real ELF raw-receipt replay
+
+The additive `hepta.hia_native_paired_replay.replay_native_paired(raw)`
+accepts the **entire** immutable, bounded Linux observer report (up to 8 MiB),
+not merely its summary. It refuses incomplete, failed or escalated-authority
+reports. It replays the original complete full-cost verdict from the
+embedded canonical JSON input, checks the frozen ELF digests and the charged
+freezing cost, then **independently recomputes** per-trial totals, actual direct
+process sample count, maximum RSS and nearest-rank p99 directly from all
+interleaved `wait4` sample receipts.
+
+The replay enforces exact registered trial/arm sets and uniform 2–128
+repetitions, bound at most 4,096 direct-child samples. It refuses a
+misreported sample result, stderr, exit/crash/timeout, invalid repetition,
+missing/duplicated sample, uncharged ELF freeze, mutated summary, wrong
+full-cost verdict or altered permission flag. The independently recomputed
+summary must equal the upstream arithmetic input exactly before the paired
+sign comparison is reported.
+
+```sh
+python -B -m unittest tests.test_hia_native_paired_replay -v
+```
+
+This is **structural evidence consistency, not independent metrology**.
+The registered output oracle, build graph, historical one-time costs,
+external work, physical hardware identity, task independence and compiler
+refinement remain unverified. The real ELF regression corpus is deliberately
+small C echo programs, not HIA-vs-Rust-vs-Clang-vs-original-NDU production
+workloads. No real P5/P6 positive scientific result is claimed.
