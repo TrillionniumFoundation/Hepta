@@ -56,3 +56,61 @@ jobs:
           name: hia-source-preflight-${{ github.sha }}
           path: ${{ runner.temp }}/hia-source-preflight.log
           if-no-files-found: warn
+
+  native-source-and-core:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      CLANG: /usr/bin/clang-20
+      HEPTA_CLANG: /usr/bin/clang-20
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pin Clang20 and actual Z3 verifier
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          git rev-parse HEAD^{tree}
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/hepta-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key
+          fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hepta-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')
+          test "$fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+          sudo install -m 0644 "$RUNNER_TEMP/hepta-llvm.asc" /usr/share/keyrings/hepta-llvm.asc
+          printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hepta-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hepta-llvm20.list
+          sudo apt-get update
+          sudo apt-get install -y clang-20 libclang-rt-20-dev llvm-20 lld-20 build-essential
+          python -m pip install --disable-pip-version-check -e '.[optimization]' 'zstandard==0.25.0'
+          python -c 'import z3; print("pinned Z3", z3.get_version_string())'
+          test -x "$CLANG"
+      - name: Exercise actual native P7 owner and both constructor preflight boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B -m unittest tests.test_hia_runtime_source_preflight tests.test_hia_runtime_policy_predecode tests.test_hia_continuation tests.test_hia_stateful_generation_fence tests.test_hia_image_token_admission tests.test_hia_queue_candidate_admission -v 2>&1 | tee "$RUNNER_TEMP/hia-p0p7-preflight-native.log"
+          if grep -qE '\.\.\. (skipped|expected failure|unexpected success)' "$RUNNER_TEMP/hia-p0p7-preflight-native.log"; then exit 1; fi
+      - name: Independent P0/P1/P5 and native Core qualification on exact SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/generate_hia_catalog.py --check
+          python -B -m tools.qualify_hia_three_lane --suite core --output "$RUNNER_TEMP/hia-p0p7-preflight-core.json"
+          python -B -m tools.qualify_hia_three_lane --suite native --output "$RUNNER_TEMP/hia-p0p7-preflight-native.json"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          git diff --exit-code
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hia-source-preflight-native-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/hia-p0p7-preflight-native.log
+            ${{ runner.temp }}/hia-p0p7-preflight-core.json
+            ${{ runner.temp }}/hia-p0p7-preflight-native.json
+          if-no-files-found: warn
