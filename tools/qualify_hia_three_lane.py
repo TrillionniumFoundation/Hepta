@@ -27,6 +27,7 @@ SUITES = {
         "tests.test_hia_bounded_mutable_snapshot",
         "tests.test_hia_bounded_input_utf8",
         "tests.test_hia_bounded_research_wire",
+        "tests.test_hia_evidence_json_structure",
         "tests.test_hia_program",
         "tests.test_hia_json_preflight",
         "tests.test_hia_program_composite",

@@ -1,0 +1,48 @@
+name: HIA P0-P5 JSON node safety source-exact qualification
+on:
+  push:
+    branches: [work/hia-p0-p7-verified-json-matrix-20261031-gpt6]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  strict-core-and-native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned numerical proof solver
+        run: |
+          set -eu
+          python -m pip install --disable-pip-version-check 'z3-solver==4.15.4.0'
+          python -c 'import z3; print(z3.get_version_string())'
+      - name: Check exact input tree and opcode catalog
+        run: |
+          set -eu
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          python tools/generate_hia_catalog.py --check
+      - name: Execute no-skip P0/P1/P5 Core, input and evidence-admission regressions
+        run: |
+          set -eu
+          python -B -m tools.qualify_hia_three_lane --suite core --output /tmp/hia-json-integrated-core.json
+      - name: Execute real native Linux ELF observer and paired-sample replay
+        run: |
+          set -eu
+          python -B -m tools.qualify_hia_three_lane --suite native --output /tmp/hia-json-integrated-native.json
+      - name: Ensure all source remains unchanged
+        run: git diff --exit-code
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-json-merged-${{ github.sha }}
+          path: |
+            /tmp/hia-json-integrated-core.json
+            /tmp/hia-json-integrated-native.json
+          if-no-files-found: warn
