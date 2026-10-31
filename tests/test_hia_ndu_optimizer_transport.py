@@ -138,6 +138,18 @@ class NDUOptimizerTransportTests(unittest.TestCase):
     def test_receipt_fifo_without_writer_rejects_without_blocking(self):
         self.assert_fifo_rejected("build_receipt")
 
+    def test_identity_admission_cannot_renew_an_exhausted_process_budget(self):
+        # Real file/receipt verification, with a clock cut after admission.
+        # No subprocess or sealed copy is needed once the supplied time is gone.
+        with patch("hepta.hia_ndu_optimizer.time.perf_counter_ns", side_effect=[0, 20_000_000]), \
+                patch("subprocess.Popen") as launch, \
+                patch("hepta.hia_ndu_optimizer._seal_bridge_image") as seal:
+            with self.assertRaisesRegex(OptimizationRejected, "budget exhausted before process start"):
+                self.invoke(timeout=0.01)
+        launch.assert_not_called()
+        seal.assert_not_called()
+        self.assertFalse(self.marker.exists())
+
     def test_admitted_image_uses_required_kernel_seals_and_closes_descriptor(self):
         import fcntl
         real_popen = subprocess.Popen

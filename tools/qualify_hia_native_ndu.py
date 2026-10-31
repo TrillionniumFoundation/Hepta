@@ -85,7 +85,21 @@ def run_command(argv, directory, ledger, *, timeout=60):
     row = {"argv": list(map(str, argv)), "status": "attempted", "started_ns": start}
     ledger.append(row)
     try:
-        result = subprocess.run(row["argv"], cwd=ROOT, capture_output=True, timeout=timeout, check=False)
+        try:
+            result = subprocess.run(row["argv"], cwd=ROOT, capture_output=True, timeout=timeout, check=False)
+        except subprocess.TimeoutExpired as error:
+            row.update(status="timeout", returncode=None, timeout_seconds=timeout)
+            for name, raw in (("stdout", error.stdout), ("stderr", error.stderr)):
+                raw = raw or b""
+                destination = directory / f"command-{index:03d}.{name}"
+                destination.write_bytes(raw)
+                row[name] = file_identity(destination)
+                row[name+"_bytes"] = len(raw)
+            raise
+        except OSError as error:
+            row.update(status="spawn_failed", returncode=None,
+                       error={"type": type(error).__name__, "message": str(error)})
+            raise
         row.update(returncode=result.returncode, stdout_bytes=len(result.stdout), stderr_bytes=len(result.stderr))
         for name, raw in (("stdout", result.stdout), ("stderr", result.stderr)):
             destination = directory / f"command-{index:03d}.{name}"
@@ -112,14 +126,31 @@ def source_state():
     return {"head": git("rev-parse", "HEAD"), "status": git("status", "--porcelain")}
 
 
-def build(directory, clang, rustc, report):
+def build(directory, clang, rustc, report, *, build_profile="instrumented-checked-v1"):
     from hepta.hia_program_source import lower_source
     from hepta.hia_program_llvm import emit_program_llvm, compile_program_llvm
+    require(build_profile in {"instrumented-checked-v1", "optimized-release-v1"}, "unknown build profile")
+    release = build_profile == "optimized-release-v1"
     ledger = report.setdefault("build_commands", [])
+    report["build_profile"] = {"id": build_profile,
+        "optimization": "O3 / opt-level=3",
+        "rust_overflow_checks": "off" if release else "on",
+        "rust_panic": "abort", "rust_lto": "fat" if release else "off",
+        "c_cpp_lto": "thin" if release else "off",
+        "frame_pointers": "omitted across all four kernels" if release else "C/C++/Rust forced; HIA backend default",
+        "target_cpu": "compiler generic x86_64 defaults, no native CPU tuning",
+        "allocator_instrumentation": "same linker wrappers and actual allocation-failure probes",
+        "fully_identical_codegen_flags": False,
+        "limits": ["Different compiler implementations/LLVM versions and language runtimes remain explicit.",
+                   "HIA uses its production O3 checked-IR object path, without link-time IR.",
+                   "Default-release Rust overflow policy is safe on the bounded workload: wrapping seed addition is explicit and u64 sum cannot overflow.",
+                   "Allocator wrappers make this an instrumented native comparison, not an uninstrumented application benchmark."]}
     report["toolchains"] = {}
     for name, tool in (("clang", clang), ("rustc", rustc), ("objdump", "/usr/bin/objdump")):
         report["toolchains"][name] = {**file_identity(tool), "version": run_command([tool, "--version"], directory, ledger).splitlines()[0]}
-    flags = ["-O3", "-fPIC", "-fno-omit-frame-pointer", "-fstack-usage", "-fno-builtin-malloc", "-fno-builtin-calloc", "-fno-builtin-free"]
+    flags = ["-O3", "-fPIC", "-fomit-frame-pointer" if release else "-fno-omit-frame-pointer", "-fstack-usage"]
+    if not release:
+        flags += ["-fno-builtin-malloc", "-fno-builtin-calloc", "-fno-builtin-free"]
     wraps = ["-Wl,--wrap=" + name for name in ("malloc", "calloc", "realloc", "free")]
     for name in ("metrics", "probe_exports"):
         run_command([clang, *flags, "-I", FIXTURES, "-c", FIXTURES / (name+".c"), "-o", directory / (name+".o")], directory, ledger)
@@ -129,12 +160,18 @@ def build(directory, clang, rustc, report):
         target = directory / (name + ".so")
         if name in {"c", "cpp"}:
             compiler_flags = ["-x", "c++", "-std=c++17", "-fno-exceptions"] if name == "cpp" else ["-std=c11"]
+            if release:
+                compiler_flags += ["-flto=thin"]
             run_command([clang, *flags, *compiler_flags, "-c", FIXTURES / ("kernel."+name), "-o", directory / (name+".o")], directory, ledger)
-            run_command([clang, "-shared", directory / (name+".o"), directory / "metrics.o", directory / "probe_exports.o", *wraps, "-o", target], directory, ledger)
+            link_flags = ["-O3", "-flto=thin", "-fuse-ld=lld"] if release else []
+            run_command([clang, *link_flags, "-shared", directory / (name+".o"), directory / "metrics.o", directory / "probe_exports.o", *wraps, "-o", target], directory, ledger)
         elif name == "rust":
             args = [rustc, "--edition=2021", "--crate-type=cdylib", "--emit=link="+str(target)+",asm="+str(directory/"rust.s"), "-C", "opt-level=3",
-                    "-C", "panic=abort", "-C", "overflow-checks=on", "-C", "force-frame-pointers=yes",
+                    "-C", "panic=abort", "-C", "overflow-checks="+("off" if release else "on"),
+                    "-C", "force-frame-pointers="+("no" if release else "yes"),
                     "-C", "linker="+str(clang), "-C", "link-arg="+str(directory / "metrics.o")]
+            if release:
+                args += ["-C", "lto=fat", "-C", "codegen-units=1"]
             for flag in wraps:
                 args += ["-C", "link-arg="+flag]
             run_command([*args, FIXTURES / "kernel.rs"], directory, ledger)
@@ -344,6 +381,57 @@ def first_ready(reference, ready):
     return set(sorted((r["schedule"] for r in winners))[0][0])
 
 
+def native_first_action(bundle, response, ready):
+    """Project only a unanimous current prepared set from validated advice.
+
+    NduSession has already checked the response against its exact request. A
+    tie between whole paths need not mean their first action is ambiguous. This
+    caller policy retains every Pareto path and never invents a unique native
+    recommendation. ``verified`` here is the bounded model's external input,
+    not a machine-code safety proof or permission to publish native code.
+    """
+    require(response.get("authority") == "DENY_ALL"
+            and response.get("safety_certificate") is False,
+            "native advice cannot acquire execution authority")
+    identities = response["pareto_candidate_ids"]
+    decision = {"policy": "unanimous-pareto-first-prepared-set",
+        "pareto_candidate_ids": list(identities),
+        "native_advisory_candidate_id": response.get("advisory_candidate_id"),
+        "chosen_ready": sorted(ready), "stopped_until_size_change": False,
+        "status": "abstain_no_common_first_action", "whole_path_selected": False,
+        "authority": "DENY_ALL", "safety_certificate": False}
+    if not identities or "abstain" in identities:
+        return decision
+    require(len(set(identities)) == len(identities), "duplicate native Pareto path")
+    plans, states = bundle["plans"], bundle["stateful_binding"]["states"]
+    schedules = []
+    for identity in identities:
+        require(identity in plans, "native Pareto path is absent from the bound plan")
+        plan = plans[identity]
+        require(plan["verified"] is True and plan["actions"],
+                "native Pareto path lacks admitted model actions")
+        actions = plan["actions"]
+        require(set(states[actions[0]["source"]]["ready"]) == set(ready),
+                "native plan starts from another prepared set")
+        schedule = []
+        previous = set(ready)
+        for action in actions:
+            require(action["status"] == "verified", "native plan has an unadmitted model action")
+            target = set(states[action["target"]]["ready"])
+            require(previous <= target, "native plan cannot forget prepared variants")
+            schedule.append(tuple(sorted(target)))
+            previous = target
+        schedules.append(schedule)
+    firsts = {schedule[0] for schedule in schedules}
+    decision["pareto_first_ready_sets"] = [list(value) for value in sorted(firsts)]
+    if len(firsts) != 1:
+        return decision
+    chosen = next(iter(firsts))
+    decision.update(status="unanimous_first_action", chosen_ready=list(chosen),
+        stopped_until_size_change=all(target == chosen for schedule in schedules for target in schedule))
+    return decision
+
+
 def fixed_ready(training, spec):
     """One frozen fixed bank selected from training, before episode disclosure."""
     from itertools import combinations
@@ -414,26 +502,27 @@ def execute_policies(directory, products, training, report, spec, bridge, identi
                             response = session.evaluate(bundle["request"])
                             step["bundle"],step["response"] = bundle,response
                             step["native_raw_frame_hex"] = session._last_received_frame.hex()
-                            recommendation = response.get("advisory_candidate_id")
-                            if recommendation in bundle["plans"]:
-                                first = bundle["plans"][recommendation]["actions"][0]
-                                state = first["target"]
-                                chosen = set(bundle["stateful_binding"]["states"][state]["ready"])
-                                sleeping = first["mode"] == "stop"
-                            else:
-                                chosen = set(ready)
-                                sleeping = True
+                            step["decision"] = native_first_action(bundle,response,ready)
+                            chosen = set(step["decision"]["chosen_ready"])
+                            sleeping = step["decision"]["stopped_until_size_change"]
                         step["controller_ns"] = time.monotonic_ns()-decision_start
                         last_size = n
+                        step["chosen_ready"] = sorted(chosen)
                         step["stopped_until_size_change"] = sleeping
                         # Audit costs are retained separately and removed from service-only
                         # comparisons. The same independent computation runs for every arm.
                         audit_start = time.monotonic_ns()
                         check = exact_dp_control(model)
                         step["same_model_dp_best_value_q32"] = check["best_value_q32"]
+                        dp_firsts = sorted({tuple(winner["schedule"][0]) for winner in check["winners"]})
+                        step["same_model_dp_first_ready_sets"] = [list(value) for value in dp_firsts]
+                        step["chosen_ready_is_same_model_dp_first_action"] = tuple(sorted(chosen)) in dp_firsts
                         if "response" in step:
                             native_values = [p["values_q32"][0] for p in step["response"]["paths"]]
                             require(max(native_values)==check["best_value_q32"], "native advice disagrees with independent finite DP")
+                            if step["decision"]["status"] == "unanimous_first_action":
+                                require(step["chosen_ready_is_same_model_dp_first_action"],
+                                        "native common action disagrees with independent finite DP first step")
                         step["independent_audit_ns"] = time.monotonic_ns()-audit_start
                         require(ready <= chosen, "cannot forget already prepared variants")
                         for name in sorted(chosen-ready):
@@ -528,7 +617,8 @@ def qualify(args):
             require(report["source_before"]=={"head":args.expected_source,"status":""},"formal exact clean source required")
         report["input_hashes_before"]=source_inventory()
         t=time.monotonic_ns()
-        products=build(directory,Path(args.clang),Path(args.rustc),report)
+        products=build(directory,Path(args.clang),Path(args.rustc),report,
+                       build_profile=args.build_profile)
         report["offline_build_wall_ns"]=time.monotonic_ns()-t
         t=time.monotonic_ns()
         training=measure_training(directory,products,report,report["protocol"])
@@ -567,6 +657,8 @@ def main():
     parser.add_argument("--rustc",required=True)
     parser.add_argument("--bridge",required=True)
     parser.add_argument("--identity",required=True)
+    parser.add_argument("--build-profile", choices=("instrumented-checked-v1", "optimized-release-v1"),
+                        default="instrumented-checked-v1")
     parser.add_argument("--expected-source")
     args=parser.parse_args()
     report=qualify(args)
