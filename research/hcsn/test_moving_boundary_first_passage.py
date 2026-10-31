@@ -86,7 +86,7 @@ class TestAffineMovingFirstPassage(unittest.TestCase):
     def test_input_failure_and_shape(self):
         good=[d(.2),d(1.),d(.05),d(.2),d(.0),d(.04)]
         for i,bad in [(0,-.1),(1,-.2),(3,0.),(5,-.1),(0,float('nan')),
-                      (0,101.),(1,1.e5),(2,21.),(3,1.e-8),(4,21.),(5,21.)]:
+                      (0,101.),(1,1.e5),(1,1.e-13),(2,21.),(3,1.e-8),(4,21.),(5,21.),(5,1.e-15)]:
             args=good.copy();args[i]=d(bad)
             with self.assertRaises(ValueError):affine_hitting_torch(*args)
         good[3]=torch.tensor(.2,dtype=torch.float32)
@@ -100,6 +100,11 @@ class TestAffineMovingFirstPassage(unittest.TestCase):
         self.assertTrue(all(torch.isfinite(g).all() for g in gradients))
         self.assertEqual(ans.probability.item(),ans.discounted_probability.item())
         self.assertLess(gradients[0].item(),0.)
+        # Near-zero but not identically zero drift must not underflow sqrt.
+        almost_zero_mu=d(1e-200,True)
+        b=affine_hitting_torch(d(.2,True),d(1.),almost_zero_mu,d(.2),d(0.),d(0.))
+        self.assertTrue(torch.isfinite(torch.autograd.grad(
+            b.discounted_probability,almost_zero_mu)[0]).all())
 
     def test_batched_gradients_all_finite(self):
         x=d([.15,.3,.45],True)
