@@ -20,3 +20,10 @@ This does **not** confer authentication, cryptographic queue authorization,
 durable journaling, cross-process exactly-once effect safety, hardware
 portability, compiler soundness or positive NDU economy. Legitimate native
 queue execution and exact-source P0/P1/P5 tests must remain green.
+
+## Exact commit history and qualification boundary
+
+- Parent #478: `7a39d62e9dd3988682b6b96ddb0b40ec21a020d7`.
+- Test-only/unfixed negative commit: `6b8a0d1bc6c0d24a24cb291f78a924b9616c4b81`. Retain its actual CI result as a negative if it fails; do not call a queued run red.
+- Fixed candidate: enforce exact built-in `str`, length 1–64, printable ASCII before all five public queue operations and both underlying direct helpers. Legitimate generated 32-character queue IDs continue to work.
+- The strict native source-bound CI includes the new adversarial suite plus actual Linux Clang20/Z3 owner and independent ELF replay; all stages remain research-only DENY_ALL.

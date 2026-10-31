@@ -115,6 +115,19 @@ def _u64(value):
     return value
 
 
+def _queue_token(token):
+    """Bound and type-check untrusted queue lookup keys before any hash/lock.
+
+    Opaque native tokens are 32 lowercase hex characters; the bounded
+    internal compatibility profile also permits short printable ASCII IDs.
+    The exact built-in str test forbids user-controlled __hash__/__eq__.
+    """
+    if (type(token) is not str or not 1 <= len(token) <= 64
+            or not token.isascii() or not token.isprintable()):
+        raise AdaptiveRejected("E_STATE_TOKEN: bounded built-in ASCII queue token required")
+    return token
+
+
 def _driver(directory, clang, *, on_release=None):
     compiler = Path(shutil.which(clang) or clang).resolve(strict=True)
     identity = digest_executable(compiler)
@@ -610,6 +623,7 @@ class OwnedAdaptiveRuntime(AdaptiveRuntime):
             return token
 
     def cancel(self, token):
+        token = _queue_token(token)
         with self._lock:
             self._state_open()
             row = self._queues.get(token)
@@ -624,6 +638,7 @@ class OwnedAdaptiveRuntime(AdaptiveRuntime):
 
     def queue_status(self, token):
         """Detached observation, including terminal partial progress after errors."""
+        token = _queue_token(token)
         with self._lock:
             self._state_open()
             row = self._queues.get(token)
@@ -636,6 +651,7 @@ class OwnedAdaptiveRuntime(AdaptiveRuntime):
 
     def continue_queue(self, token):
         """Register only the unexecuted suffix of a cancelled live queue."""
+        token = _queue_token(token)
         from .hia_continuation import continue_owned_queue
         return continue_owned_queue(self, token)
 
@@ -725,6 +741,7 @@ class OwnedAdaptiveRuntime(AdaptiveRuntime):
             raise
 
     def execute_committed(self, token, *, candidate=None, rounds=5, sample_limit=200000):
+        token = _queue_token(token)
         from .hia_queue_commit import execute_owned_queue
         return execute_owned_queue(self, token, candidate=candidate, rounds=rounds, sample_limit=sample_limit)
 
@@ -735,6 +752,7 @@ class OwnedAdaptiveRuntime(AdaptiveRuntime):
         This extra baseline run is experiment overhead, explicitly separate
         from deployment cost, and is never a replay on application state.
         """
+        token = _queue_token(token)
         with self._lock:
             self._state_open()
             row = self._queues.get(token)

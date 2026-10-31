@@ -11,9 +11,11 @@ import json
 import time
 
 from .hia_adaptive import AdaptiveRejected
+from .hia_stateful import _queue_token
 
 
 def execute_owned_queue(self, token, *, candidate=None, rounds=5, sample_limit=200000):
+    token = _queue_token(token)
     preparation_started = time.monotonic_ns()
     start_snapshot = None
     application_started = False
