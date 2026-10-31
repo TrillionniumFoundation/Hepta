@@ -67,9 +67,17 @@ def _aliases(function):
     return origins
 
 
-def propose_guarded_reduction(program, maximum=None):
+def propose_guarded_reduction(program, maximum=None, *, include_induction=False):
+    """Propose a reduction and, optionally, its same-bound counted-loop steps.
+
+    The extra induction rewrites are still untrusted.  The existing independent
+    checker must establish each loop invariant and each removed overflow check;
+    recognizing a source pattern alone never authorizes a wrapping operation.
+    """
     original = verify_program(program)
     data, fast = original.as_dict(), original.as_dict()
+    if type(include_induction) is not bool:
+        raise OptimizationRejected("E_HIA_GUARD_INDUCTION: expected a boolean")
     if maximum is None:
         maximum = BYTE_SUM_LIMIT
     if type(maximum) is not int or not 0 <= maximum <= BYTE_SUM_LIMIT:
@@ -79,7 +87,7 @@ def propose_guarded_reduction(program, maximum=None):
         blocks = {b["id"]: b for b in fn["blocks"]}
         rewritten_blocks = {b["id"]: b for b in rewritten["blocks"]}
         aliases = _aliases(fn)
-        candidates = []
+        candidates, counted_loops = [], []
         for header in fn["blocks"]:
             term = header["term"]
             if term["op"] != "branch" or len(header["ops"]) != 1:
@@ -109,6 +117,7 @@ def propose_guarded_reduction(program, maximum=None):
             one = outputs.get(step["args"][1])
             if not one or one["op"] != "const" or one["attrs"].get("value") != 1:
                 continue
+            counted_loops.append((argument, header, body, index, limit, mapping, step))
             for param in header["params"]:
                 acc = param["name"]
                 if param["type"] != "u64" or acc not in mapping:
@@ -142,9 +151,31 @@ def propose_guarded_reduction(program, maximum=None):
             oi = body["ops"].index(add)
             rewritten_blocks[body["id"]]["ops"][oi]["op"] = "int.add.wrap"
             changes.append({"function": fn["name"], "block": body["id"], "operation": oi})
+        if include_induction:
+            for origin, header, body, index, limit, mapping, step in counted_loops:
+                if origin != argument:
+                    continue
+                for bid, constraint in (
+                    (header["id"], {"op": "le", "left": index, "right": limit}),
+                    (body["id"], {"op": "lt", "left": mapping[index], "right": mapping[limit]}),
+                ):
+                    if constraint not in inv[bid]:
+                        inv[bid].append(constraint)
+                oi = body["ops"].index(step)
+                rewritten_blocks[body["id"]]["ops"][oi]["op"] = "int.add.wrap"
+                change = {"function": fn["name"], "block": body["id"], "operation": oi}
+                if change not in changes:
+                    changes.append(change)
         invariants[fn["name"]] = inv
     if not changes:
         raise OptimizationRejected("E_HIA_GUARD_NO_CANDIDATE: no supported counted byte reduction")
+    # The verifier derives its inventory in source order, independently of the
+    # proposer.  Preserve that exact order even when a fill-loop step precedes
+    # the reduction that made this function eligible.
+    order = {(fn["name"], block["id"]): (fi, bi)
+             for fi, fn in enumerate(data["functions"])
+             for bi, block in enumerate(fn["blocks"])}
+    changes.sort(key=lambda c: (*order[c["function"], c["block"]], c["operation"]))
     return {"schema": SCHEMA, "base_sha256": original.sha256, "fast_core": verify_program(fast).as_dict(),
             "guards": guards, "invariants": invariants, "changes": changes}
 

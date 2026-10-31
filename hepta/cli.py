@@ -107,6 +107,9 @@ def main(argv=None) -> int:
             h.add_argument("--candidate", required=True, help="Actual proposed HIA bytes, never a verification receipt")
         if action in {"optimize-guarded", "optimize-guarded-narrowed"}:
             h.add_argument("--maximum", type=int, help="Runtime byte-count guard; the complete original fallback remains")
+        if action == "optimize-guarded":
+            h.add_argument("--include-induction", action="store_true",
+                           help="Also propose same-bound loop increments; each removed check requires proof")
         if action in {"import-cpp-project", "import-cpp-matrix", "import-cpp-composed-project", "import-cpp-composed-matrix",
                       "import-cpp-unique-project", "import-cpp-unique-matrix",
                       "import-cpp-unique-assignment-project", "import-cpp-unique-assignment-matrix"}:
@@ -466,7 +469,8 @@ def main(argv=None) -> int:
                 from .hia_guarded_optimization import (propose_guarded_reduction,
                     verify_guarded_optimization, build_guarded_native)
                 policy = decode_json(read_bounded(args.policy)) if args.policy else None
-                proposal = (propose_guarded_reduction(program, maximum=args.maximum)
+                proposal = (propose_guarded_reduction(program, maximum=args.maximum,
+                                                     include_induction=args.include_induction)
                             if args.hia_action == "optimize-guarded" else
                             decode_json(read_bounded(args.candidate)))
                 if args.hia_action == "build-guarded":

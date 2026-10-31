@@ -27,11 +27,13 @@ from tools.qualify_hia_native_ndu import (
 from tools.provider_adapter.llama_cpp_engine import resource_observation
 
 
-def specification():
+def specification(build_profile="optimized-release-v1"):
+    if build_profile not in {"optimized-release-v1", "verified-reduction-release-v1"}:
+        raise ValueError("E_RELEASE_PROFILE: unsupported release comparison")
     base = protocol()
     return {"schema": "hepta.hia.release-parity.protocol.v1",
             "workload": base["workload"], "semantics": base["semantics"],
-            "build_profile": "optimized-release-v1", "backends": base["backends"],
+            "build_profile": build_profile, "backends": base["backends"],
             "training_sizes": base["sizes"], "training_seeds": base["training_seeds"],
             "holdout_sizes": [2, 63, 257, 1025, 8193, 32769, 65535],
             "holdout_seeds": [383, 659, 1069],
@@ -87,11 +89,11 @@ def assess(rows, spec):
             "broad_rust_performance_parity_established": False}
 
 
-def run(output, clang, rustc):
+def run(output, clang, rustc, *, build_profile="optimized-release-v1"):
     started = time.monotonic_ns()
     output = Path(output).resolve()
     output.mkdir(parents=True, exist_ok=False)
-    spec = specification()
+    spec = specification(build_profile)
     original_affinity = sorted(os.sched_getaffinity(0))
     selected_cpu = original_affinity[0]
     report = {"schema": "hepta.hia.release-parity.result.v1", "status": "running",
@@ -190,8 +192,10 @@ def main():
     parser.add_argument("--output", required=True)
     parser.add_argument("--clang", required=True)
     parser.add_argument("--rustc", required=True)
+    parser.add_argument("--build-profile", default="optimized-release-v1",
+                        choices=("optimized-release-v1", "verified-reduction-release-v1"))
     args = parser.parse_args()
-    result = run(args.output, args.clang, args.rustc)
+    result = run(args.output, args.clang, args.rustc, build_profile=args.build_profile)
     print(json.dumps({"status": result["status"], "valid_observation": result["valid_observation"],
                       "performance_gate_passed": result.get("assessment", {}).get("performance_gate_passed"),
                       "campaign_wall_ns": result["campaign_wall_ns"]}))

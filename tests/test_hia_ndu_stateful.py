@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 from hepta.hia_ndu import NduBridgeError
 from hepta.hia_ndu_stateful import (
-    StatefulPlanningError, build_request, digest, graph_fields, observe_refusal,
+    SCHEMA_V2, StatefulPlanningError, build_request, digest, graph_fields, invocation_gate, observe_refusal,
     separability_diagnostic, validate_model)
 from tools.qualify_hia_ndu_stateful import (
     SCALE, assert_agreement, canonical_schedules, fixtures)
@@ -16,6 +16,131 @@ from tools.qualify_hia_ndu_stateful_reference import (
 
 
 class StatefulPreparationTests(unittest.TestCase):
+    def test_v2_requires_explicit_future_cost_and_v1_rejects_new_fields(self):
+        original = fixtures()[0]
+        before = build_request(original)
+        self.assertEqual(graph_fields(original)[0]["decision_cost_ns"], 0)
+        self.assertNotIn("future_decision_cost_ns", before["stateful_binding"])
+        for mutate in (
+            lambda m: m.update(future_decision_cost_ns=0),
+            lambda m: m.update(schema=SCHEMA_V2),
+            lambda m: m.update(schema=SCHEMA_V2, future_decision_cost_ns=True),
+            lambda m: m.update(schema=SCHEMA_V2, future_decision_cost_ns=-1),
+            lambda m: m.update(schema=SCHEMA_V2, future_decision_cost_ns=1_000_000_000_000),
+        ):
+            bad = deepcopy(original)
+            mutate(bad)
+            with self.assertRaises(StatefulPlanningError):
+                validate_model(bad)
+        zero = {**original, "schema": SCHEMA_V2, "future_decision_cost_ns": 0}
+        self.assertEqual(canonical_schedules(exhaustive_oracle(original)),
+                         canonical_schedules(exhaustive_oracle(zero)))
+        self.assertEqual(before, build_request(original))
+
+    def test_future_decision_charge_changes_delayed_acquisition_and_stopping(self):
+        model = fixtures()[1]
+        cheap = {**model, "schema": SCHEMA_V2, "future_decision_cost_ns": SCALE}
+        costly = {**model, "schema": SCHEMA_V2, "future_decision_cost_ns": 100 * SCALE}
+        self.assertEqual(canonical_schedules(exhaustive_oracle(cheap)), {((), (), ("late",), ("late",))})
+        self.assertEqual(canonical_schedules(exhaustive_oracle(costly)), {(("late",),) * 4})
+        for value in (cheap, costly):
+            oracle = exhaustive_oracle(value)
+            dp = exact_dp_control(value)
+            self.assertEqual(canonical_schedules(oracle), canonical_schedules(dp))
+            self.assertEqual(oracle["best_value_q32"], dp["best_value_q32"])
+            bundle = build_request(value, search="dynamic-light")
+            assert_agreement(bundle, bundle["advice"], oracle, native=False)
+        held = {**costly, "initial_ready": ["late"]}
+        incumbent = score_schedule(held, [["late"]] * 4)
+        self.assertEqual(incumbent["cost_ns"], 84 * SCALE)
+        delayed = score_schedule(cheap, [[], [], ["late"], ["late"]])
+        self.assertEqual(delayed["cost_ns"], (46 + 3) * SCALE)
+
+    def test_nonzero_future_cost_enumeration_dp_and_graph_agree_on_independent_lengths(self):
+        rng = random.Random(20261031)
+        for number in range(32):
+            model = deepcopy(fixtures()[2])
+            horizon = number % 4 + 1
+            model.update(schema=SCHEMA_V2, future_decision_cost_ns=rng.randrange(1, 3000),
+                         budget_ns=rng.randrange(500, 14000), completion_value_ns=rng.randrange(0, 12000))
+            model["baseline"]["latency_ns"] = [rng.randrange(1, 2000) for _ in range(horizon)]
+            model["memory_budget_bytes"] = 64 if number % 2 else 128
+            for variant in model["variants"]:
+                variant.update(preparation_ns=rng.randrange(0, 2000),
+                               latency_ns=[rng.randrange(1, 2000) for _ in range(horizon)],
+                               holding_ns=[rng.randrange(0, 100) for _ in range(horizon)])
+            if number % 5 == 0:
+                model["initial_ready"] = ["early"]
+            oracle = exhaustive_oracle(model)
+            dp = exact_dp_control(model)
+            with self.subTest(number=number, horizon=horizon):
+                self.assertEqual(oracle["best_value_q32"], dp["best_value_q32"])
+                self.assertEqual(canonical_schedules(oracle), canonical_schedules(dp))
+                bundle = build_request(model, search="dynamic-light")
+                assert_agreement(bundle, bundle["advice"], oracle, native=False)
+                full = build_request(model, search="enumerate")
+                values = [model["completion_value_ns"] * (1 << 32) // 1_000_000
+                          - sum((a["setup_ns"] + a["decision_ns"]) * (1 << 32) // 1_000_000
+                                + a["execution_ns"] * (1 << 32) // 1_000_000 for a in p["actions"])
+                          for p in full["plans"].values() if p["verified"]
+                          and p["estimated_cost_ns"] <= model["budget_ns"]]
+                self.assertEqual(max([0, *values]), oracle["best_value_q32"])
+
+    def test_strong_fixed_precommitment_is_not_charged_a_future_planner_stop(self):
+        model = {**fixtures()[1], "schema": SCHEMA_V2, "future_decision_cost_ns": 100 * SCALE}
+        original = deepcopy(model)
+        fixed = fixed_configuration_control(model)
+        active = exact_dp_control(model)
+        self.assertEqual({row["cost_ns"] for row in fixed["winners"]}, {104 * SCALE})
+        self.assertEqual({row["cost_ns"] for row in active["winners"]}, {204 * SCALE})
+        self.assertGreater(fixed["best_value_q32"], active["best_value_q32"])
+        self.assertEqual(fixed["future_controller_calls"], 0)
+        self.assertEqual(model, original)
+
+    def test_invocation_gate_uses_optimistic_complete_savings_not_current_batch_only(self):
+        model = fixtures()[0]
+        before = deepcopy(model)
+        result = invocation_gate(model, invocation_cost_ns=100 * SCALE)
+        self.assertTrue(result["invoke"])
+        self.assertEqual(result["gross_savings_upper_bound_ns"], 347 * SCALE)
+        result = invocation_gate(model, invocation_cost_ns=347 * SCALE)
+        self.assertFalse(result["invoke"])
+        self.assertEqual(result["reason"], "optimistic_savings_cannot_repay_invocation")
+        self.assertEqual(model, before)
+        self.assertEqual(result["authority"], "DENY_ALL")
+        self.assertFalse(result["safety_certificate"])
+        for bad in (True, -1, 1.5, 1_000_000_000_001):
+            with self.assertRaises(StatefulPlanningError):
+                invocation_gate(model, invocation_cost_ns=bad)
+
+    def test_invocation_gate_respects_refusal_residency_and_prepared_reuse(self):
+        model = fixtures()[0]
+        model["variants"][0]["status"] = "rejected"
+        self.assertFalse(invocation_gate(model, invocation_cost_ns=0)["invoke"])
+        model = fixtures()[0]
+        model["memory_budget_bytes"] = 0
+        self.assertFalse(invocation_gate(model, invocation_cost_ns=0)["invoke"])
+        model = fixtures()[4]
+        result = invocation_gate(model, invocation_cost_ns=1)
+        self.assertEqual(result["gross_savings_upper_bound_ns"], 0)
+        self.assertEqual(result["incumbent_delivery_ns"], 4 * SCALE)
+        self.assertFalse(result["invoke"])
+        model = fixtures()[0]
+        model["budget_ns"] = 1
+        self.assertEqual(invocation_gate(model, invocation_cost_ns=1)["reason"],
+                         "invocation_and_optimistic_delivery_exceed_budget")
+
+    def test_invocation_savings_bound_is_optimistic_against_independent_complete_schedules(self):
+        for original in fixtures():
+            model = {**original, "schema": SCHEMA_V2, "future_decision_cost_ns": 11 * SCALE}
+            result = invocation_gate(model, invocation_cost_ns=5 * SCALE)
+            oracle = exhaustive_oracle(model)
+            for winner in oracle["winners"]:
+                self.assertLessEqual(result["optimistic_delivery_lower_bound_ns"], winner["cost_ns"])
+                if not result["invoke"] and result["reason"] == "optimistic_savings_cannot_repay_invocation":
+                    self.assertLessEqual(result["incumbent_delivery_ns"],
+                                         winner["cost_ns"] + result["invocation_cost_ns"])
+
     def test_independent_oracle_resource_dp_and_existing_q32_planner_agree(self):
         for model in fixtures():
             with self.subTest(case=model["name"]):

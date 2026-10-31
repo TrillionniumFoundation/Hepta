@@ -26,7 +26,7 @@ if str(ROOT) not in sys.path:
 sys.dont_write_bytecode = True
 
 from tools.hia_agent_codex_transport import (CodexEvents, EventFailure, canonical,
-    identity, recover_reported_usage, run_owned, save, strict_json)
+    checked_usage, identity, recover_reported_usage, run_owned, save, strict_json)
 
 HERE = ROOT / "benchmarks/hia_agent_maintenance"
 spec = importlib.util.spec_from_file_location("maintenance_tasks", HERE / "tasks.py")
@@ -541,25 +541,112 @@ def run_cell(task, language, folder, experiment_deadline, cfg):
     return row
 
 
+def _known_request_tokens(row):
+    """Retain known reported usage once per request, including failed cells.
+
+    Conflicting valid observations are ineligible for comparison. Their larger
+    conservative token count still belongs in the known paid-cost subtotal;
+    a malformed duplicate cannot erase the other independently valid receipt.
+    """
+    total = 0
+    requests = row.get("requests", [])
+    if type(requests) is not list:
+        return total
+    for request in requests:
+        known = []
+        for field in ("observed_usage", "usage"):
+            try:
+                usage = checked_usage(request.get(field))
+            except (ValueError, TypeError, AttributeError):
+                continue
+            known.append(sum(usage[k] for k in ("input_tokens", "output_tokens", "reasoning_output_tokens")))
+        total += max(known, default=0)
+    return total
+
+
+def _valid_cell_accounting(row, cfg):
+    """Reconcile receipt costs; an asserted aggregate is not qualification."""
+    try:
+        requests = row["requests"]
+        if (any(type(row[key]) is not str for key in ("model", "task", "language"))
+                or row["model"] not in cfg["models"] or row["task"] not in cfg["tasks"]
+                or row["language"] not in {"hia", "rust"}
+                or type(requests) is not list or not 1 <= len(requests) <= cfg["max_requests_per_cell"]
+                or row["complete_usage"] is not True or type(row["correct"]) is not bool
+                or type(row["hidden_evaluated"]) is not bool
+                or type(row["wall_ns"]) is not int or row["wall_ns"] < 0
+                or type(row["charged_tokens"]) is not int
+                or type(row["public_failed_checks"]) is not int
+                or type(row["tool_calls"]) is not list
+                or type(row["human_answer_repairs"]) is not int or row["human_answer_repairs"] != 0):
+            return False
+        status = row["status"]
+        if (status not in {"correct", "hidden_failed", "final_not_publicly_accepted",
+                           "request_budget_exhausted", "wall_budget"}
+                or row["correct"] != (status == "correct")
+                or row["hidden_evaluated"] != (status in {"correct", "hidden_failed"})
+                or status == "request_budget_exhausted" and len(requests) != cfg["max_requests_per_cell"]):
+            return False
+        total, request_wall = 0, 0
+        for index, request in enumerate(requests):
+            usage = checked_usage(request["usage"])
+            observed_usage = checked_usage(request["observed_usage"])
+            charged = sum(usage[k] for k in ("input_tokens", "output_tokens", "reasoning_output_tokens"))
+            process = request["process"]
+            if (type(request["index"]) is not int or request["index"] != index
+                    or request["unknown_usage"] is not False or observed_usage != usage
+                    or request["actual_generation_observed"] is not True
+                    or type(request["charged_tokens"]) is not int or request["charged_tokens"] != charged
+                    or usage["input_tokens"] > cfg["max_reported_input_tokens_per_request"]
+                    or usage["output_tokens"] + usage["reasoning_output_tokens"] > cfg["max_charged_output_tokens_per_request"]
+                    or process["status"] != "exited" or process["cleanup_confirmed"] is not True
+                    or process["leader_reaped"] is not True
+                    or type(process["wall_ns"]) is not int or process["wall_ns"] < 0):
+                return False
+            total += charged
+            request_wall += process["wall_ns"]
+        failures = sum("public" in call and call["public"]["accepted"] is False for call in row["tool_calls"])
+        return (total == row["charged_tokens"] <= cfg["max_charged_tokens_per_cell"]
+                and failures == row["public_failed_checks"] and request_wall <= row["wall_ns"])
+    except (ValueError, KeyError, TypeError, AttributeError):
+        return False
+
+
 def summary(rows):
+    cfg = protocol()
+    expected = {(model, task["id"], language) for model in cfg["models"]
+                for task in TASKS for language in ("hia", "rust")}
+    descriptors = [tuple(row.get(key) for key in ("model", "task", "language")) for row in rows]
+    exact = (all(all(type(value) is str for value in item) for item in descriptors)
+             and len(descriptors) == len(expected) and len(set(descriptors)) == len(descriptors)
+             and set(descriptors) == expected)
+    eligible = exact and all(_valid_cell_accounting(row, cfg) for row in rows)
     grouped = {}
-    for model in protocol()["models"]:
+    for model in cfg["models"]:
         groups = {}
         for language in ("hia", "rust"):
             selected = [r for r in rows if r["model"] == model and r["language"] == language]
-            complete = len(selected) == len(TASKS) and all(r["complete_usage"] for r in selected)
-            groups[language] = {"attempted": len(selected), "correct": sum(r["correct"] for r in selected),
+            correct = len({r["task"] for r in selected if _valid_cell_accounting(r, cfg) and r["correct"]})
+            known_tokens = sum(_known_request_tokens(r) for r in selected)
+            total_wall = sum(r["wall_ns"] for r in selected if type(r.get("wall_ns")) is int and r["wall_ns"] >= 0)
+            groups[language] = {"attempted": len(selected), "correct": correct,
                 "requests": sum(len(r["requests"]) for r in selected),
-                "charged_tokens": sum(r["charged_tokens"] for r in selected),
-                "complete_usage": complete,
+                "charged_tokens": known_tokens,
+                "charged_tokens_scope": "known reported usage; conservative maximum of valid receipts once per request",
+                "complete_usage": eligible,
                 "failed_public_checks": sum(r["public_failed_checks"] for r in selected),
-                "wall_ns": sum(r["wall_ns"] for r in selected)}
+                "wall_ns": total_wall,
+                "charged_tokens_per_correct_delivery": known_tokens / correct if eligible and correct else None,
+                "cell_wall_ns_per_correct_delivery": total_wall / correct if eligible and correct else None,
+                "per_success_cost_available": bool(eligible and correct),
+                "cost_numerator_scope": "all attempted cells and requests in this model/language, including failures"}
         h, r = groups["hia"], groups["rust"]
         gate = (h["complete_usage"] and r["complete_usage"] and h["correct"] >= r["correct"] and h["correct"] > 0
                 and h["charged_tokens"] < r["charged_tokens"] and h["wall_ns"] < r["wall_ns"]
                 and h["failed_public_checks"] <= r["failed_public_checks"])
         grouped[model] = {"groups": groups, "descriptive_hia_advantage_gate": gate}
-    return {"by_requested_model": grouped, "general_productivity_proved": False,
+    return {"by_requested_model": grouped, "exact_coverage": exact, "eligible_comparison": eligible,
+            "general_productivity_proved": False,
             "cross_model_pooling_used": False, "human_review_time_ns": None,
             "human_cost_advantage_proved": False, "full_cost_advantage_proved": False,
             "population_task_representativeness": False,
