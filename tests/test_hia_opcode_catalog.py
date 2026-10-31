@@ -191,7 +191,10 @@ class OpcodeCatalogTests(unittest.TestCase):
                     )
                 cast = next(row for row in catalog["instructions"]
                             if row["name"] == "int.cast")
-                self.assertEqual(cast["traps"], ["overflow"])
+                # Dataclass tuples remain tuples in the in-process catalog;
+                # JSON serialization converts them to wire arrays.
+                self.assertEqual(cast["traps"], ("overflow",))
+                self.assertEqual(json.loads(json.dumps(cast))["traps"], ["overflow"])
 
         self.assertEqual(check_instruction(OPCODES["int.cast"], ["u64"], ["i8"],
                                            {"mode": "wrap"}), frozenset())
