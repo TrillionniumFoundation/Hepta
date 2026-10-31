@@ -101,7 +101,15 @@ MODULES = (
     "tests.test_hia_register_safety.RegisterSafetyInputTests",
     "tests.test_ring_maintenance_qualification", "tests.test_hia_agent_public_tools",
     "tests.test_hia_ndu_convergence", "tests.test_hia_ndu_converged_holdout",
-    "tests.test_hia_verified_increment_gate",
+    "tests.test_hia_verified_increment_gate",    "tests.test_hia_call_expansion",
+    "tests.test_hia_call_return_lifetimes",
+    "tests.test_cpp_gsl_final_action",
+    "tests.test_cpp_gsl_branching_callback",
+    "tests.test_hia_background_optimizer",
+    "tests.test_hia_native_ndu",
+    "tests.test_hia_agent_gguf",
+    "tests.test_hia_trial_observations",
+
 )
 
 

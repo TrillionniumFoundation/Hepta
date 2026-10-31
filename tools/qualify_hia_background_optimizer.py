@@ -13,7 +13,9 @@ import statistics
 import subprocess
 import sys
 import tempfile
+import threading
 import time
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -91,6 +93,70 @@ def observation(document, runtime_ns, *, uncertainty_ns=0, search_ns=0):
 def goal(profile, calls):
     return {"expected_calls": calls, "resource_cap_ns": 30_000_000_000,
             "target": TARGET, "measurement_profile": profile}
+
+
+def cancellation_after_native_preparation(coordinator, runtime, incumbent, candidate):
+    """Pause after real preparation solely to make cancellation reproducible.
+
+    Rank, proof, compiler, loader, cancellation CAS and retirement are unchanged.
+    Synchronization wait is included in observed costs and is not a performance
+    sample. No synthetic rank response or safety receipt is substituted.
+    """
+    entered, release = threading.Event(), threading.Event()
+    original_prepare = runtime._prepare
+    trace = {}
+    def observed_prepare(*args, **kwargs):
+        started = time.perf_counter_ns()
+        state = original_prepare(*args, **kwargs)
+        trace["actual_prepare_wall_ns"] = time.perf_counter_ns() - started
+        paused = time.perf_counter_ns()
+        entered.set()
+        released = release.wait(30)
+        trace["synchronization_wait_ns"] = time.perf_counter_ns() - paused
+        # Always return ownership to the real publication path, even on a
+        # failed trigger. Its cancellation/retirement path owns this artifact.
+        trace["trigger_released"] = released
+        return state
+    before = runtime.snapshot()
+    observations = {"abstain": observation(incumbent, 1_000_000),
+                    "restore_identity": observation(candidate, 1)}
+    candidates = [{"id": "restore_identity", "action": "equivalent_add_zero", "program": candidate}]
+    with runtime.lease() as live, patch.object(runtime, "_prepare", side_effect=observed_prepare):
+        future = coordinator.submit(candidates, observations,
+                                    goal("synthetic_cost_actual_native_cancel_control", 100_000))
+        try:
+            require(entered.wait(30), "real native preparation did not reach cancellation point")
+            trace["live_lease_before_cancel"] = live.call("calculate", [173])
+            trace["cancellation_accepted"] = future.cancel()
+            require(trace["cancellation_accepted"], "uncommitted publication could not be cancelled")
+        finally:
+            release.set()
+            coordinator.shutdown(cancel_pending=False)
+        trace["live_lease_after_cancel"] = live.call("calculate", [179])
+    after = runtime.snapshot()
+    require(future.cancelled(), "cancelled native job retained an uncancelled future")
+    require((before["current_generation"], before["selection_epoch"])
+            == (after["current_generation"], after["selection_epoch"]),
+            "cancelled native job changed the active generation")
+    require(trace["live_lease_before_cancel"] == 173 and trace["live_lease_after_cancel"] == 179,
+            "live admitted native generation stopped executing during cancellation")
+    require(after["cleanup"]["pending_resource_count"] == 0,
+            "cancelled native artifact retained uncertain resources")
+    ledger = coordinator.snapshot()["cost_accounting"]
+    receipt = ledger["recent_jobs"][-1]
+    require(receipt["execution_status"] == "cancelled"
+            and receipt["future_state_at_accounting"] == "cancelled"
+            and not receipt["publication_committed"],
+            "cancelled work lost its observed state or appeared committed")
+    require(receipt["native_rank_invoked"] and receipt["ranking_returned"],
+            "cancelled job did not retain its actual native ranking identity")
+    require(receipt["costs"]["rank_call_wall_ns"] > 0
+            and receipt["costs"]["publication_call_wall_ns"] >= trace["actual_prepare_wall_ns"]
+            and receipt["reported_ranking_costs"]["actual_adapter_ns"] > 0,
+            "cancelled job lost already-paid native work")
+    return {"receipt": receipt, "trace": trace, "snapshot_before": before,
+            "snapshot_after": after, "actual_native_rank_and_prepare": True,
+            "synchronization_delay_is_performance_measurement": False}
 
 
 def qualify(clang, bridge, bridge_build_receipt):
@@ -177,9 +243,25 @@ def qualify(clang, bridge, bridge_build_receipt):
                 require((before_rejection["current_generation"], before_rejection["selection_epoch"])
                         == (after_rejection["current_generation"], after_rejection["selection_epoch"]),
                         "rejected background decision replaced the incumbent")
+                exhausted = coordinator.submit(
+                    [{"id": "restore_identity", "action": "equivalent_add_zero", "program": baseline}],
+                    {"abstain": observation(candidate, 1_000_000),
+                     "restore_identity": observation(baseline, 1)},
+                    {**goal("zero_budget_no_native_process_control", 100_000), "resource_cap_ns": 0}).result(60)
+                require(exhausted["status"] == "abstained"
+                        and exhausted["ranking"]["native_response"] is None
+                        and not exhausted["ranking"]["native_rank_admission"]["invoked"],
+                        "exhausted search launched native work or claimed a native response")
+                cancelled = cancellation_after_native_preparation(coordinator, runtime, candidate, baseline)
                 coordinator.shutdown(cancel_pending=False)
                 drained = coordinator.snapshot()
                 require(drained["outstanding"] == 0 and not drained["worker_alive"], "worker did not drain")
+                accounting = drained["cost_accounting"]
+                require(accounting["settled_jobs"] == 5
+                        and accounting["observed_submit_and_worker_ns"] == sum(
+                            receipt["costs"]["observed_submit_and_worker_ns"]
+                            for receipt in accounting["recent_jobs"]),
+                        "settled background jobs lost or duplicated observed work")
                 require(runtime.call("calculate", [113]) == 113, "coordinator shutdown closed caller runtime")
                 final = runtime.snapshot()
         closed = runtime.snapshot()
@@ -191,6 +273,11 @@ def qualify(clang, bridge, bridge_build_receipt):
     trials = [actual_trial, controlled_trial, refused]
     require(len({trial["ranking"]["request_sha256"] for trial in trials}) == 3,
             "fresh NDU decisions did not bind three distinct requests")
+    native_receipts = [receipt for receipt in drained["cost_accounting"]["recent_jobs"]
+                       if receipt.get("native_rank_invoked")]
+    require(len(native_receipts) == 4
+            and len({receipt["native_request_sha256"] for receipt in native_receipts}) == 4,
+            "native ranking lifecycle did not retain four distinct actual request bindings")
     return {"schema": SCHEMA, "ok": True, "observed_utc": datetime.now(timezone.utc).isoformat(),
             "host": {"system": platform.system(), "machine": platform.machine(),
                      "python": sys.version.split()[0], "z3": z3.get_version_string(), "clang": clang_version},
@@ -204,8 +291,10 @@ def qualify(clang, bridge, bridge_build_receipt):
                              "cold_build_cost_charged_once_to_first_horizon": True},
             "trials": {"measured_finite_horizon": actual_trial,
                        "synthetic_cost_lifecycle": controlled_trial,
-                       "subsequent_behavior_change": refused},
-            "actual_native_ndu_invocations": 3,
+                       "subsequent_behavior_change": refused,
+                       "exhausted_budget": exhausted,
+                       "cancelled_after_native_preparation": cancelled},
+            "actual_native_ndu_invocations": len(native_receipts),
             "native_measurement_calls": measured_baseline["native_calls"] + measured_candidate["native_calls"],
             "native_observations": native_observations,
             "snapshot_after_rejection": after_rejection, "snapshot_after_drain": drained,
@@ -213,6 +302,8 @@ def qualify(clang, bridge, bridge_build_receipt):
             "wall_ns": time.perf_counter_ns() - started,
             "claims": {"actual_ndu_execution": True, "actual_native_publication": True,
                        "fresh_publication_proof": True, "measured_finite_horizon_abstention": True,
+                       "cancelled_native_work_cost_preserved": True,
+                       "exhausted_budget_native_launch_skipped": True,
                        "performance_improvement_established": False, "measurements_independently_attested": False,
                        "synthetic_costs_are_benchmark_results": False, "resource_state_migration": False,
                        "general_live_code_patch": False, "backend_refinement_proved": False,

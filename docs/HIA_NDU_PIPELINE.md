@@ -88,6 +88,19 @@ bound their respective operations, but a decision may discover that its budget
 has already been exceeded. Such a result cannot publish a candidate. These
 search limits do not prove heap or execution bounds for arbitrary HIA programs.
 
+The ranker now checks the remaining budget before starting the native evaluator
+as well as before each proof. A zero or exhausted allowance returns an explicit
+incumbent decision with `native_response: null` and a false
+`native_rank_admission.invoked` flag. That response is not represented as a
+native evaluation. When there is budget, executable identity admission and
+sealing reduce the allowance passed to the bounded process runner. Its execution
+timer starts after ownership checks and `Popen`, so startup and OS scheduling
+can still overrun that allowance. They remain charged by the final cost gate;
+this is not a hard whole-call wall-clock deadline. The subsequent fresh proof
+and final cost gate remain required.
+Background cancellation and preparation failures keep their paid-work records
+as described in [HIA_BACKGROUND_OPTIMIZER.md](HIA_BACKGROUND_OPTIMIZER.md).
+
 Measurements are trusted-host observations. Program hashes prevent accidental
 cross-program reuse; they do not attest that a supplied measurement is truthful.
 The actual native experiment retains raw samples, artifacts, costs, protocol
