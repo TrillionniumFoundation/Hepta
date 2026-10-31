@@ -1,0 +1,35 @@
+name: HIA P5 bounded evidence wire admission (scoped)
+on:
+  push:
+    branches:
+      - work/hia-p5-bounded-evidence-intake-20261031-gpt6
+  pull_request:
+    branches:
+      - work/hia-paired-holdout-20261031-gpt6
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evidence-admission-and-native-replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run bounded evidence and unchanged full-cost/paired controls
+        run: |
+          set -eu
+          python -B -m unittest tests.test_hia_bounded_research_wire tests.test_hia_full_cost_gate tests.test_hia_paired_holdout -v
+      - name: Execute real C/ELF observer and native paired-replay controls
+        run: |
+          set -eu
+          python -B -m unittest tests.test_hia_native_process_observer tests.test_hia_native_paired_replay -v
+      - name: Check source syntax and unintended modifications
+        run: |
+          set -eu
+          python -B -m py_compile hepta/hia_bounded_wire.py hepta/hia_full_cost_gate.py hepta/hia_native_paired_replay.py tools/hia_native_process_observer.py
+          git diff --exit-code -- hepta/hia_bounded_wire.py hepta/hia_full_cost_gate.py hepta/hia_native_paired_replay.py tools/hia_native_process_observer.py
