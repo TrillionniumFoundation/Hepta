@@ -20,6 +20,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Install exactly pinned Z3 proof dependency (no skips)
+        run: |
+          set -eu
+          python -m pip install --disable-pip-version-check 'z3-solver==4.15.4.0'
+          python -c 'import z3; print("Z3", z3.get_version_string())'
       - name: Bind source root and prove actual started/stopped test identities
         run: |
           set -eu
