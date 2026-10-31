@@ -131,6 +131,48 @@ class SharedExecutionContractTests(unittest.TestCase):
                     validate_execution_observation(observed["status"], forged,
                                                    **admission)
 
+    def test_chain_node_destruction_cannot_exceed_actual_frees(self):
+        # Every completed recursive-chain node destruction frees one distinct
+        # nonempty 24-byte header owner. The count is not merely advisory.
+        from tests.test_hia_recursive_chain import doc
+
+        finished = observe(doc(), "chain_cancel", [1])
+        self.assertEqual(finished["status"], "returned")
+        self.assertEqual(finished["resources"]["chain_nodes_created"], 1)
+        self.assertEqual(finished["resources"]["chain_nodes_dropped"], 1)
+        self.assertGreaterEqual(finished["resources"]["frees"], 1)
+        validate_execution_observation(
+            finished["status"], finished["resources"], steps=finished["steps"],
+            max_steps=1_000_000, max_heap_bytes=16 * 1024 * 1024,
+            with_chains=True,
+        )
+
+        stopped = observe(doc(), "chain_cancel", [2], max_heap_bytes=25)
+        self.assertEqual((stopped["status"], stopped["error"]["code"]),
+                         ("budget_exceeded", "heap"))
+        ledger = stopped["resources"]
+        self.assertEqual((ledger["chain_nodes_created"], ledger["chain_nodes_dropped"]),
+                         (1, 0))
+        self.assertEqual(ledger["frees"], 0)
+        for extra in (1, 2):
+            forged = deepcopy(ledger)
+            # Preserve the already-checked live-node, live-byte, and owner
+            # equations; only invent destruction and corresponding past nodes.
+            forged["chain_nodes_created"] += extra
+            forged["chain_nodes_dropped"] += extra
+            self.assertEqual(forged["live_chain_nodes"],
+                             forged["chain_nodes_created"] - forged["chain_nodes_dropped"])
+            self.assertEqual(forged["live_bytes"], ledger["live_bytes"])
+            self.assertGreater(forged["chain_nodes_dropped"], forged["frees"])
+            with self.subTest(extra=extra):
+                with self.assertRaisesRegex(ExecutionObservationRejected,
+                                            "node storage release"):
+                    validate_execution_observation(
+                        stopped["status"], forged, steps=stopped["steps"],
+                        max_steps=1_000_000, max_heap_bytes=25,
+                        error_code="heap", with_chains=True,
+                    )
+
     def test_unknown_misclassified_nonexact_and_extra_observations_fail_closed(self):
         result = observe(held_program(), "held", [4, 4])
         ledger = result["resources"]
