@@ -117,7 +117,8 @@ class ReviewedSafetyProtocolTests(unittest.TestCase):
         controls = (".gitattributes", ".github/workflows/hepta-qualification.yml",
                     ".github/workflows/hepta-six-outcomes.yml",
                     "tests/fixtures/cpp_upgrade/vendor/LICENSE.MIT",
-                    "tests/fixtures/cpp_upgrade/NOTICE.md")
+                    "tests/fixtures/cpp_upgrade/NOTICE.md",
+                    "formal/hia_exit_accounting.py", "formal/ledger.smt2", "formal/ledger.lean")
         required = ("docs/HIA_SAFETY_CONTRACT.json", "docs/HIA_SAFETY_CONTRACT.md",
                     "tools/qualify_hia_safety_contract.py", "hepta/input.py")
         with tempfile.TemporaryDirectory(prefix="hepta-safety-inputs-") as directory:

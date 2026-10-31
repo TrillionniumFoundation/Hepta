@@ -15,12 +15,12 @@ from pathlib import Path
 import re
 import shlex
 import shutil
-import subprocess
 import time
 
+from .clang_capture import run_bounded
 from .native_tool_identity import update_stable_regular_hash
 
-PROFILE = "cpp20-real-gsl-final-action-closed-scalar-callback-v1"
+PROFILE = "cpp20-real-gsl-final-action-closed-branching-callback-v2"
 MAX_AST_BYTES = 32 * 1024 * 1024
 MAX_NODES = 100_000
 VERSIONS = {
@@ -171,8 +171,12 @@ class Translator:
         self.stats = {"upstream_method_bodies_translated": 0,
                       "upstream_factory_instantiations_translated": 0,
                       "authored_callback_bodies_translated": 0,
-                      "callback_assignments_translated": 0}
+                      "callback_assignments_translated": 0,
+                      "callback_branches_translated": 0,
+                      "callback_const_locals_translated": 0}
         self.trace = []
+        self.callback_locals = {}
+        self.callback_statement_count = 0
 
     def _callback_layout(self):
         records = {}
@@ -363,7 +367,7 @@ class Translator:
     def scalar(self, node, depth=0):
         need(depth <= 32, "Scalar expression depth")
         node = unwrap(node)
-        need(qual(node) == "unsigned long long", "Only unsigned 64-bit callback arithmetic is supported")
+        need(qual(node) in {"unsigned long long", "const unsigned long long"}, "Only unsigned 64-bit callback arithmetic is supported")
         if node.get("kind") == "IntegerLiteral":
             value = int(node.get("value", "-1"))
             need(not children(node) and 0 <= value < 1 << 64, "Invalid scalar literal")
@@ -372,11 +376,94 @@ class Translator:
             place = self.place(node)
             need(place != "state", "A pointer cannot become a scalar")
             return place
+        if node.get("kind") == "DeclRefExpr":
+            ref = node.get("referencedDecl", {})
+            local = self.callback_locals.get(ref.get("id"))
+            need(not children(node) and local is not None and ref.get("kind") == "VarDecl"
+                 and ref.get("name") == local["name"] and qual(ref) == "const unsigned long long",
+                 "Callback local is not an initialized in-scope const scalar")
+            return local["emitted"]
         need(node.get("kind") == "BinaryOperator" and len(children(node)) == 2
-             and node.get("opcode") in {"+", "-", "*"}, "Unsupported callback scalar operation")
-        operation = {"+": "wrapping_add", "-": "wrapping_sub", "*": "wrapping_mul"}[node["opcode"]]
+             and node.get("opcode") in {"+", "-", "*", "&", "|", "^"}, "Unsupported callback scalar operation")
         left, right = (self.scalar(child, depth + 1) for child in children(node))
+        if node["opcode"] in {"&", "|", "^"}:
+            return "(" + left + " " + node["opcode"] + " " + right + ")"
+        operation = {"+": "wrapping_add", "-": "wrapping_sub", "*": "wrapping_mul"}[node["opcode"]]
         return operation + "(" + left + ", " + right + ")"
+
+    def predicate(self, node, depth=0):
+        need(depth <= 16, "Callback predicate depth")
+        if node.get("kind") == "ImplicitCastExpr" and node.get("castKind") == "IntegralToBoolean":
+            need(qual(node) == "bool" and len(children(node)) == 1, "Invalid callback Boolean conversion")
+            return "(" + self.scalar(children(node)[0]) + " != 0)"
+        node = unwrap(node)
+        need(qual(node) == "bool", "Callback condition must be Boolean")
+        if node.get("kind") == "CXXBoolLiteralExpr":
+            need(type(node.get("value")) is bool and not children(node), "Invalid Boolean literal")
+            return str(node["value"]).lower()
+        if node.get("kind") == "UnaryOperator" and node.get("opcode") == "!":
+            need(len(children(node)) == 1, "Invalid callback logical negation")
+            return "(!" + self.predicate(children(node)[0], depth + 1) + ")"
+        need(node.get("kind") == "BinaryOperator" and len(children(node)) == 2,
+             "Unsupported callback predicate operation")
+        op = node.get("opcode")
+        if op in {"&&", "||"}:
+            left, right = (self.predicate(child, depth + 1) for child in children(node))
+        else:
+            need(op in {"==", "!=", "<", "<=", ">", ">="}, "Unsupported callback predicate operator")
+            left, right = (self.scalar(child) for child in children(node))
+        return "(" + left + " " + op + " " + right + ")"
+
+    def callback_statement(self, statement, depth=0):
+        need(depth <= 8, "Callback block depth")
+        self.callback_statement_count += 1
+        need(self.callback_statement_count <= 64, "Callback total statement budget")
+        statement = unwrap(statement)
+        kind = statement.get("kind")
+        if kind == "CompoundStmt":
+            previous = dict(self.callback_locals)
+            try:
+                result = []
+                for child in children(statement):
+                    result.extend(self.callback_statement(child, depth + 1))
+                return result
+            finally:
+                self.callback_locals = previous
+        if kind == "IfStmt":
+            parts = children(statement)
+            need(not statement.get("hasInit") and not statement.get("hasVar")
+                 and len(parts) == (3 if statement.get("hasElse") else 2),
+                 "Callback if cannot hide an initializer or condition variable")
+            result = ["if " + self.predicate(parts[0]) + " {"]
+            previous = dict(self.callback_locals)
+            result += ["    " + line for line in self.callback_statement(parts[1], depth + 1)]
+            self.callback_locals = previous
+            if len(parts) == 3:
+                result.append("} else {")
+                result += ["    " + line for line in self.callback_statement(parts[2], depth + 1)]
+                self.callback_locals = previous
+            result.append("}")
+            self.stats["callback_branches_translated"] += 1
+            return result
+        if kind == "DeclStmt":
+            need(len(children(statement)) == 1, "One callback local declaration per statement")
+            local = children(statement)[0]
+            need(local.get("kind") == "VarDecl" and qual(local) == "const unsigned long long"
+                 and not local.get("storageClass") and not local.get("tls")
+                 and not local.get("constexpr") and not local.get("isInvalid")
+                 and len(children(local)) == 1 and local.get("id") not in self.callback_locals,
+                 "Callback locals must be automatic initialized const unsigned 64-bit scalars")
+            value = self.scalar(children(local)[0])
+            self.stats["callback_const_locals_translated"] += 1
+            emitted = "callback_local" + str(self.stats["callback_const_locals_translated"])
+            self.callback_locals[local["id"]] = {"name": local.get("name"), "emitted": emitted}
+            return ["let " + emitted + ": u64 = " + value + ";"]
+        need(kind == "BinaryOperator" and statement.get("opcode") == "="
+             and len(children(statement)) == 2, "Callback statements must be scalar assignments, const locals or bounded if blocks")
+        destination = self.place(children(statement)[0])
+        need(destination in {"state.trace", "state.calls"}, "Callback cannot alter/store its pointer or tag")
+        self.stats["callback_assignments_translated"] += 1
+        return [destination + " = " + self.scalar(children(statement)[1]) + ";"]
 
     def callback(self):
         methods = [n for n in self.callback_nodes if n.get("kind") == "CXXMethodDecl"
@@ -389,17 +476,9 @@ class Translator:
         body = self._body(method)
         need(len(children(method)) == 1 and 1 <= len(children(body)) <= 16,
              "Callback body statement budget/signature")
-        result = []
-        for statement in children(body):
-            statement = unwrap(statement)
-            need(statement.get("kind") == "BinaryOperator" and statement.get("opcode") == "="
-                 and len(children(statement)) == 2, "Callback statements must be scalar assignments")
-            destination = self.place(children(statement)[0])
-            need(destination in {"state.trace", "state.calls"}, "Callback cannot alter/store its pointer or tag")
-            result.append(destination + " = " + self.scalar(children(statement)[1]) + ";")
+        result = self.callback_statement(body)
         self.stats["authored_callback_bodies_translated"] += 1
-        self.stats["callback_assignments_translated"] = len(result)
-        self.trace.append({"operation": "callback", "assignments": result,
+        self.trace.append({"operation": "callback", "statements": result,
                            "source_range": method.get("range")})
         return result
 
@@ -518,13 +597,15 @@ def _identity(path):
 
 def _run(argv, *, output=None):
     started = time.monotonic()
-    result = subprocess.run([str(a) for a in argv], capture_output=True, timeout=60)
-    need(result.returncode == 0, "Capture compiler failed: " + result.stderr.decode(errors="replace")[:4000])
+    result = run_bounded([str(a) for a in argv], timeout=60,
+                         stdout_limit=MAX_AST_BYTES, stderr_limit=1_000_000)
+    need(result.returncode == 0, "Capture compiler failed: " + result.stderr[:4000])
+    raw = result.raw_stdout if result.raw_stdout is not None else result.stdout.encode()
     if output is not None:
-        Path(output).write_bytes(result.stdout)
-    return result.stdout.decode(), {"argv": [str(a) for a in argv], "returncode": result.returncode,
-        "stderr": result.stderr.decode(errors="replace"), "stdout_sha256": sha256(result.stdout).hexdigest(),
-        "stdout_bytes": len(result.stdout), "elapsed_seconds": time.monotonic() - started}
+        Path(output).write_bytes(raw)
+    return result.stdout, {"argv": [str(a) for a in argv], "returncode": result.returncode,
+        "stderr": result.stderr, "stdout_sha256": sha256(raw).hexdigest(),
+        "stdout_bytes": len(raw), "elapsed_seconds": time.monotonic() - started}
 
 
 def capture_and_lower(root, version, output, *, clang, examples=None):
@@ -606,7 +687,7 @@ def capture_and_lower(root, version, output, *, clang, examples=None):
                   "trivial GslCallback move/copy/destruction, 8-bit bytes and 64-bit unsigned long long",
                   "one synchronous callback state binding in the authored closed client"],
               "scope": {"upstream": "gsl::final_action<GslCallback> value/move constructors and destructor",
-                        "authored_translated": "GslCallback::operator() scalar body",
+                        "authored_translated": "GslCallback::operator() bounded scalar/const-local/if body",
                         "authored_not_translated": "C++ test clients and explicit-status Hepta integration client",
                         "factory": "actual rvalue instantiation; 4.0 also captures and lowers nonconst-lvalue instantiation",
                         "general_templates_or_exceptions_supported": False,

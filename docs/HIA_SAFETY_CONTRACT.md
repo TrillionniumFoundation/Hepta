@@ -160,6 +160,15 @@ and already completed correctness records keep their source identities.
 
 ## Typed state and instruction obligations
 
+The shared [exit observation contract](HIA_COMMON_EXIT_OBSERVATION.md) now
+checks allocation, owner, loan, payload, chain and step-limit consistency both
+when the Python VM emits a report and when raw Rust byte-DAG profiles accept
+one. Normal return, error values, fallible allocation, program traps,
+cooperative cancellation and quota stops retain their distinct obligations.
+Actual stopped-response counterexamples are covered by mandatory regressions.
+The accompanying independent Z3 count model is an explicitly limited induction
+result, not a production runtime or whole-language refinement theorem.
+
 The following judgment names the state already checked by the implementation:
 
 `Gamma; Omega; Lambda; Effects |- instruction => Gamma_next; Omega_next; Lambda_next`
