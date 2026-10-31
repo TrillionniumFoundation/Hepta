@@ -8,6 +8,7 @@ on:
     paths:
       - hepta/hia_optimization.py
       - tests/test_hia_optimization.py
+      - tests/test_hia_stateful.py
       - hepta/hia_continuation.py
       - hepta/hia_stateful.py
       - .github/workflows/hia-p0-p7-exact-convergence.yml
@@ -89,7 +90,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -B -m unittest tests.test_hia_optimization.OptimizationPolicyAdmissionTests tests.test_hia_p7_verified_partial_rebind tests.test_hia_continuation tests.test_hia_stateful_generation_fence tests.test_hia_image_token_admission tests.test_hia_queue_candidate_admission -v 2>&1 | tee "$RUNNER_TEMP/hia-p0p7-native.log"
+          python -B -m unittest tests.test_hia_optimization.OptimizationPolicyAdmissionTests tests.test_hia_p7_verified_partial_rebind tests.test_hia_continuation tests.test_hia_stateful_generation_fence tests.test_hia_image_token_admission tests.test_hia_queue_candidate_admission tests.test_hia_stateful.OwnedNativeTests.test_alias_modes_bounds_and_queue_staleness_are_real_state_gates -v 2>&1 | tee "$RUNNER_TEMP/hia-p0p7-native.log"
           if grep -qE 'skipped|expected failure|unexpected success' "$RUNNER_TEMP/hia-p0p7-native.log"; then exit 1; fi
       - name: Independently requalify full source-bound P0/P1/P5 Core and native receipt
         shell: bash
