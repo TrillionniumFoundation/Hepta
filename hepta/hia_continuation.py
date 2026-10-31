@@ -35,7 +35,13 @@ def continue_owned_queue(runtime, token):
                 raise AdaptiveRejected("E_STATE_CONTINUATION: a known incomplete native prefix is required")
             values = runtime._values()
             expected_values = tuple(receipt["final_values"]) if receipt is not None else row["initial_values"]
-            if (row["owner"] != runtime._owner_id or runtime._revision != row["revision"] + progress
+            # A cancelled pre-activation queue retains admission generation.
+            # A partially executed queue binds the actual native generation,
+            # including an intentional same-queue version switch at activation.
+            expected_generation = row.get("execution_generation", row.get("generation"))
+            if (expected_generation != runtime._generation
+                    or row["owner"] != runtime._owner_id
+                    or runtime._revision != row["revision"] + progress
                     or values != expected_values
                     or int(runtime._driver.hs_identity(runtime._state)) != runtime._allocation_address):
                 raise AdaptiveRejected("E_STATE_STALE: owner changed after cancellation")
@@ -63,6 +69,7 @@ def continue_owned_queue(runtime, token):
                 "items": frozen, "sha256": _digest([
                     {"slot": item.slot, "delta": item.delta, "iterations": item.iterations} for item in frozen]),
                 "status": "submitted", "revision": runtime._revision,
+                "generation": runtime._generation,
                 "owner": runtime._owner_id, "initial_values": values, "receipt": None,
                 "continuation": continuation,
             }
