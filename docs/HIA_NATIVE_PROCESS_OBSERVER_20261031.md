@@ -37,6 +37,8 @@ The complete required top-level fields are:
   64 MiB. Exact SHA-256 is checked while copying to a private directory;
   this frozen copy, not the original pathname, is executed.
 - 2–128 executions per trial per strategy, interleaved in registration order.
+  A whole campaign must also fit 4,096 process invocations and a combined
+  registered worst-case child-deadline envelope of 900 seconds.
   The subprocess is started without a shell, with fixed argv and stdin, bounded
   file output, a deadline, disabled core dumps and new process group.
   `wait4` obtains **per-child** maximum RSS instead of the cumulative
