@@ -331,6 +331,7 @@ class CMigrationAdversarial(unittest.TestCase):
             {"kind": "TranslationUnitDecl", "inner": {}},
             {"kind": "TranslationUnitDecl", "inner": [None]},
             {"kind": "TranslationUnitDecl", "inner": [{"kind": "FunctionDecl", "loc": "invalid"}]},
+            {"kind": "TranslationUnitDecl", "inner": [{"kind": "FunctionDecl", "loc": {"file": "bad" + chr(0) + "path.c"}}]},
         )
         for candidate in malformed:
             with self.subTest(candidate=repr(candidate)[:100]):
