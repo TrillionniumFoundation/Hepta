@@ -14,7 +14,7 @@ from tools.qualify_hia_release_parity import assess
 class ReleaseProtocolCompletenessTests(unittest.TestCase):
     @staticmethod
     def cohort():
-        return tail.tail.ReleaseParityTailGateTests.cohort()
+        return tail.ReleaseParityTailGateTests.cohort()
 
     def assert_reject(self, rows, spec):
         with self.assertRaisesRegex(ValueError, "E_RELEASE_COHORT"):
