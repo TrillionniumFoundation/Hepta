@@ -224,7 +224,11 @@ class PreparedArtifactSession:
 
     def bind_driver(self, driver, expected_sha256):
         """Pin one trusted host harness after the session already has an owner."""
-        if type(expected_sha256) is not str or len(expected_sha256) != 64:
+        # A format-invalid but 64-character value must not consume this
+        # one-shot binding, stat a path, or enter the native pinning routine.
+        # hashlib.hexdigest() is exactly 64 lowercase ASCII hex characters.
+        if (type(expected_sha256) is not str or len(expected_sha256) != 64
+                or any(ch not in "0123456789abcdef" for ch in expected_sha256)):
             _reject("driver requires its expected SHA-256")
         with self._writer, self._lock:
             if self._driver_attempted:
