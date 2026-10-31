@@ -104,7 +104,7 @@ class NativeCandidateControl(unittest.TestCase):
                     {"slot": 0, "delta": 2, "iterations": 3}
                 ])
                 receipt = runtime.execute_committed(
-                    token, candidate=prepared, rounds=1, sample_limit=2
+                    token, candidate=prepared, rounds=3, sample_limit=10000
                 )
                 self.assertEqual(receipt["status"], "completed")
                 self.assertEqual(receipt["executed_steps"], 3)
