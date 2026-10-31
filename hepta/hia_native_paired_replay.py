@@ -10,6 +10,7 @@ from hashlib import sha256
 import json
 import re
 
+from .hia_bounded_wire import WireBudgetExceeded, checked_utf8_wire
 from .hia_paired_holdout import assess_paired_holdout
 
 SCHEMA = "hepta.hia.native-paired-replay.v1"
@@ -53,7 +54,9 @@ def _read(raw):
         wire = raw
     elif type(raw) is str:
         try:
-            wire = raw.encode("utf-8")
+            wire = checked_utf8_wire(raw, MAX_REPORT_BYTES)
+        except WireBudgetExceeded:
+            _fail("native observer evidence exceeds byte limit")
         except UnicodeError as exc:
             raise NativePairedReplayRejected(
                 "E_HIA_NATIVE_PAIRED_REPLAY: invalid UTF-8") from exc
