@@ -1,0 +1,13 @@
+diff --git a/.github/workflows/hepta-verified-optimization.yml b/.github/workflows/hepta-verified-optimization.yml
+index de78839..a9e7c7e 100644
+--- a/.github/workflows/hepta-verified-optimization.yml
++++ b/.github/workflows/hepta-verified-optimization.yml
+@@ -240,7 +240,7 @@ jobs:
+             --bridge "$HEPTA_NDU_BRIDGE" --bridge-build-receipt "$HEPTA_NDU_BUILD/build-receipt.json" \
+             --output artifacts/verified-optimization/background-costs.json
+           python tools/qualify_hia_native_ndu.py --clang "$CLANG" --rustc "$RUSTC" \
+-            --bridge "$HEPTA_STREAM_NDU_BRIDGE" --identity "$HEPTA_STREAM_NDU_IDENTITY" \
++            --bridge "$HEPTA_NDU_STREAM_BRIDGE" --identity "$HEPTA_NDU_STREAM_IDENTITY" \
+             --build-profile optimized-release-v1 --output artifacts/verified-optimization/native-release-ndu
+       - name: Retain strong Rust release parity observation including negative results
+         if: ${{ !cancelled() }}

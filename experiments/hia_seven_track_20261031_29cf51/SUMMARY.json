@@ -1,0 +1,1260 @@
+{
+  "schema": "hepta.seven-track.increment-summary.v1",
+  "created_utc": "2026-10-31T14:00:54.935665+00:00",
+  "implementation_pr": "https://github.com/TrillionniumFoundation/Hepta/pull/497",
+  "implementation_source": "2bd473f6ff51c2afac7b7bb009402368af2afdee",
+  "qualified_ci_head_and_implementation_pr_head": "cf979410742481caa4948e877723cc7440171741",
+  "evidence_branch": "work/hia-seven-track-evidence-20261031-29cf51",
+  "evidence_only_commit_is_an_executed_runtime_source": false,
+  "full_seven_deliverables_complete": false,
+  "finite_increment_implemented_and_observed": true,
+  "local_regression_groups": [
+    {
+      "name": "returned_loan_semantics",
+      "tests": 43,
+      "passed": 43,
+      "skipped": 0
+    },
+    {
+      "name": "gsl_const_factory",
+      "tests": 18,
+      "passed": 18,
+      "skipped": 0
+    },
+    {
+      "name": "ndu_background_and_native_economics",
+      "tests": 71,
+      "passed": 71,
+      "skipped": 0
+    }
+  ],
+  "overlapping_test_groups_must_not_be_summed_as_unique_tests": true,
+  "semantics_local": {
+    "schema": "hepta.hia.frozen-semantics-rerun.v1",
+    "status": "passed",
+    "finished_at": "2026-10-31T13:16:08.033261+00:00",
+    "head": "2bd473f6ff51c2afac7b7bb009402368af2afdee",
+    "tree": "faa4a071156e5ad943f33e2fd9388bb83122bcd9",
+    "worktree_clean": true,
+    "source_identity_unchanged": true,
+    "regression_tests": 43,
+    "regression_tests_ok": 43,
+    "regression_skips": 0,
+    "profiles": 11,
+    "registered_cases": 158,
+    "python_vm_executions": 316,
+    "rust_vm_executions": 316,
+    "native_executions": 316,
+    "native_sigabrt_executions": 144,
+    "negative_controls": 2,
+    "qualification_outer_wall_ns": 7639978552,
+    "regression_outer_wall_ns": 7744257150,
+    "rust_executable_sha256": "1ffdd14ee444830980b8f844ecbd932d2e39dc6fd9d0b749ae5fbc14e65f8fcf",
+    "rust_rebuilt_this_run": false,
+    "original_rust_build_receipt_available": false,
+    "rust_source_to_binary_reproducibility_proved": false,
+    "claims": {
+      "actual_native_allocator_events_observed": true,
+      "all_input_backend_refinement_proved": false,
+      "asynchronous_cancellation_or_unwinding_proved": false,
+      "finite_registered_cases_match": true,
+      "independent_rust_execution_observed": true,
+      "native_loan_counters_observed": false,
+      "performance_superiority_qualified": false,
+      "vm_budget_stop_equivalence": false
+    }
+  },
+  "gsl_local": {
+    "schema": "hepta.gsl-const-frozen-summary.v1",
+    "frozen_head": "2bd473f6ff51c2afac7b7bb009402368af2afdee",
+    "frozen_tree": "faa4a071156e5ad943f33e2fd9388bb83122bcd9",
+    "native_ok": true,
+    "compiler_sha256": "9128e3538f75a97641dc7104a0e67f28a3fd9b0526f449ae913a7d0bdc2903b0",
+    "case_count_per_version": 416,
+    "execution_denominator": {
+      "cases_per_original_migrated_pair": 416,
+      "original_migrated_pairs": 6,
+      "positive_observation_rows": 4992,
+      "scalar_calls_per_observation_row": 3,
+      "positive_native_scalar_calls": 14976,
+      "const_factory_pairs": 2,
+      "const_factory_positive_native_scalar_calls": 4992,
+      "wrong_but_linear_observation_rows": 416,
+      "wrong_but_linear_native_scalar_calls": 1248,
+      "incompatible_signature_controls_called": 0
+    },
+    "native_abi": {
+      "host": {
+        "system": "Linux",
+        "machine": "x86_64",
+        "normalized_machine": "x86_64",
+        "target": "x86_64-unknown-linux-gnu",
+        "elf_machine": 62,
+        "abi": "SysV AMD64 LP64",
+        "byteorder": "little",
+        "pointer_bits": 64,
+        "size_t_bits": 64,
+        "long_bits": 64
+      },
+      "compiler_targets": {
+        "clang": "x86_64-pc-linux-gnu",
+        "cxx": "x86_64-linux-gnu",
+        "cc": "x86_64-linux-gnu"
+      },
+      "entry_signature": "u64(u64,u64,u32,u32)",
+      "scope": "actual_host_scalar_C_calls_only_not_Cpp_class_layout_or_cross_target"
+    },
+    "versions": {
+      "3.1.0": {
+        "categories": [
+          "const_lvalue",
+          "rvalue"
+        ],
+        "statistics": {
+          "upstream_method_bodies_translated": 3,
+          "upstream_factory_instantiations_translated": 2,
+          "authored_callback_bodies_translated": 1,
+          "callback_assignments_translated": 2,
+          "callback_branches_translated": 0,
+          "callback_const_locals_translated": 0
+        },
+        "const_factory": {
+          "case_count": 416,
+          "distinct_seed_tag_cases": 164,
+          "independent_original_and_migrated_match": true,
+          "captured_parameter_binding": "direct_const_copy",
+          "original_binary_sha256": "23113b3e82f6cb8e1b8a2f74e1083a194b707a5759ace987b7347b008cf5ec33",
+          "migrated_binary_sha256": "c0f5b22ac314cebf62d124587d7ccd658579237de7f00f1769f4d187ad3cf0a5",
+          "migrated_linked_cpp_objects": []
+        },
+        "original_matches_oracle": true,
+        "migrated_matches_oracle": true
+      },
+      "4.0.0": {
+        "categories": [
+          "const_lvalue",
+          "nonconst_lvalue",
+          "rvalue"
+        ],
+        "statistics": {
+          "upstream_method_bodies_translated": 3,
+          "upstream_factory_instantiations_translated": 3,
+          "authored_callback_bodies_translated": 1,
+          "callback_assignments_translated": 2,
+          "callback_branches_translated": 0,
+          "callback_const_locals_translated": 0
+        },
+        "const_factory": {
+          "case_count": 416,
+          "distinct_seed_tag_cases": 164,
+          "independent_original_and_migrated_match": true,
+          "captured_parameter_binding": "std_forward",
+          "original_binary_sha256": "23113b3e82f6cb8e1b8a2f74e1083a194b707a5759ace987b7347b008cf5ec33",
+          "migrated_binary_sha256": "0528ce81ec47d956864faa4d9e6481abd082248d1ad82943089d7e402d6e3381",
+          "migrated_linked_cpp_objects": []
+        },
+        "original_matches_oracle": true,
+        "migrated_matches_oracle": true
+      }
+    },
+    "negative_controls": {
+      "wrong_return_width": {
+        "detected": true,
+        "same_export_symbol": true,
+        "incompatible_native_call_executed": false
+      },
+      "wrong_argument_signedness": {
+        "detected": true,
+        "same_export_symbol": true,
+        "incompatible_native_call_executed": false
+      },
+      "changed_actual_callback": {
+        "passed": true
+      },
+      "wrong_but_linear": {
+        "detected": true,
+        "mismatch_count": 325,
+        "hepta_and_core_resource_checks_passed": true
+      },
+      "duplicate_owner": {
+        "detected": true
+      },
+      "lost_owner": {
+        "detected": true
+      }
+    },
+    "qualification_cost": {
+      "qualification_wall_seconds": 4.2112568659940735,
+      "human_seconds": null,
+      "human_seconds_status": "not_measured",
+      "generated_component_bytes": 1192,
+      "authored_integration_client_bytes": 1604
+    },
+    "commands": {
+      "native": {
+        "schema": "hepta.gsl-frozen-command.v1",
+        "name": "native",
+        "started_utc": "2026-10-31T13:15:49.377088+00:00",
+        "argv": [
+          "python3",
+          "/workspace/scratch/29cf51fbc1f3/run_hepta.py",
+          "/usr/bin/python3.12",
+          "-B",
+          "tools/qualify_cpp_gsl_final_action.py",
+          "--clang",
+          "/workspace/scratch/8ca82272aad7/clang20/usr/lib/llvm-20/bin/clang",
+          "--output",
+          "/workspace/scratch/29cf51fbc1f3/evidence/migration/gsl-const-native-frozen-20261031"
+        ],
+        "cwd": "/workspace/scratch/29cf51fbc1f3/Hepta",
+        "environment_overrides": {
+          "TMPDIR": "/workspace/scratch/29cf51fbc1f3/evidence/migration/gsl-const-native-frozen-20261031/temporary",
+          "PYTHONDONTWRITEBYTECODE": "1"
+        },
+        "source_before": {
+          "head": "2bd473f6ff51c2afac7b7bb009402368af2afdee",
+          "tree": "faa4a071156e5ad943f33e2fd9388bb83122bcd9",
+          "status_porcelain": ""
+        },
+        "status": "passed",
+        "stdout_path": "/workspace/scratch/29cf51fbc1f3/evidence/migration/gsl-const-native-frozen-20261031/command.stdout",
+        "stderr_path": "/workspace/scratch/29cf51fbc1f3/evidence/migration/gsl-const-native-frozen-20261031/command.stderr",
+        "returncode": 0,
+        "source_after": {
+          "head": "2bd473f6ff51c2afac7b7bb009402368af2afdee",
+          "tree": "faa4a071156e5ad943f33e2fd9388bb83122bcd9",
+          "status_porcelain": ""
+        },
+        "source_unchanged_and_clean": true,
+        "outer_wall_nanoseconds": 4468060248,
+        "wall_scope": "Per-command directory preparation, wrapper and child process, stream closure, and final git snapshot; final COMMAND.json write excluded."
+      },
+      "tests": {
+        "schema": "hepta.gsl-frozen-command.v1",
+        "name": "tests",
+        "started_utc": "2026-10-31T13:15:49.383106+00:00",
+        "argv": [
+          "python3",
+          "/workspace/scratch/29cf51fbc1f3/run_hepta.py",
+          "/usr/bin/python3.12",
+          "-B",
+          "-m",
+          "unittest",
+          "tests.test_cpp_gsl_final_action",
+          "tests.test_cpp_gsl_branching_callback",
+          "-v"
+        ],
+        "cwd": "/workspace/scratch/29cf51fbc1f3/Hepta",
+        "environment_overrides": {
+          "TMPDIR": "/workspace/scratch/29cf51fbc1f3/evidence/migration/gsl-const-tests-frozen-20261031/temporary",
+          "PYTHONDONTWRITEBYTECODE": "1"
+        },
+        "source_before": {
+          "head": "2bd473f6ff51c2afac7b7bb009402368af2afdee",
+          "tree": "faa4a071156e5ad943f33e2fd9388bb83122bcd9",
+          "status_porcelain": ""
+        },
+        "status": "passed",
+        "stdout_path": "/workspace/scratch/29cf51fbc1f3/evidence/migration/gsl-const-tests-frozen-20261031/command.stdout",
+        "stderr_path": "/workspace/scratch/29cf51fbc1f3/evidence/migration/gsl-const-tests-frozen-20261031/command.stderr",
+        "returncode": 0,
+        "source_after": {
+          "head": "2bd473f6ff51c2afac7b7bb009402368af2afdee",
+          "tree": "faa4a071156e5ad943f33e2fd9388bb83122bcd9",
+          "status_porcelain": ""
+        },
+        "source_unchanged_and_clean": true,
+        "outer_wall_nanoseconds": 3351747610,
+        "wall_scope": "Per-command directory preparation, wrapper and child process, stream closure, and final git snapshot; final COMMAND.json write excluded."
+      }
+    },
+    "test_summary": [
+      "",
+      "----------------------------------------------------------------------",
+      "Ran 18 tests in 3.032s",
+      "",
+      "OK"
+    ],
+    "native_report": {
+      "path": "/workspace/scratch/29cf51fbc1f3/evidence/migration/gsl-const-native-frozen-20261031/report.json",
+      "sha256": "733636d8017be82615a1696b32f590f4c7d1315f2910d69ac0a46187bba4879f"
+    },
+    "earlier_rejected_attempt": "/workspace/scratch/29cf51fbc1f3/evidence/migration/INITIAL_RUN_REJECTED.json"
+  },
+  "ndu_local_formal": {
+    "mode": "formal",
+    "status": "completed",
+    "acceptance_observation_valid": true,
+    "source_unchanged": true,
+    "acceptance": {
+      "complete_lifecycle_cost_known": false,
+      "economic_comparisons": [
+        {
+          "baseline": "fixed",
+          "baseline_ns": 5827833,
+          "episode": 0,
+          "ndu_ns": 29771896,
+          "passed": false,
+          "ratio": 5.108570544145654
+        },
+        {
+          "baseline": "exact_dp",
+          "baseline_ns": 6518442,
+          "episode": 0,
+          "ndu_ns": 29771896,
+          "passed": false,
+          "ratio": 4.5673331142625795
+        },
+        {
+          "baseline": "greedy",
+          "baseline_ns": 5122743,
+          "episode": 0,
+          "ndu_ns": 29771896,
+          "passed": false,
+          "ratio": 5.811709859346839
+        },
+        {
+          "baseline": "fixed",
+          "baseline_ns": 4041664,
+          "episode": 1,
+          "ndu_ns": 24973343,
+          "passed": false,
+          "ratio": 6.178975540767367
+        },
+        {
+          "baseline": "exact_dp",
+          "baseline_ns": 4962730,
+          "episode": 1,
+          "ndu_ns": 24973343,
+          "passed": false,
+          "ratio": 5.032178458227628
+        },
+        {
+          "baseline": "greedy",
+          "baseline_ns": 3961293,
+          "episode": 1,
+          "ndu_ns": 24973343,
+          "passed": false,
+          "ratio": 6.3043412845250275
+        },
+        {
+          "baseline": "fixed",
+          "baseline_ns": 4007723,
+          "episode": 2,
+          "ndu_ns": 38626846,
+          "passed": false,
+          "ratio": 9.638102733147974
+        },
+        {
+          "baseline": "exact_dp",
+          "baseline_ns": 4265079,
+          "episode": 2,
+          "ndu_ns": 38626846,
+          "passed": false,
+          "ratio": 9.056537053592677
+        },
+        {
+          "baseline": "greedy",
+          "baseline_ns": 4041864,
+          "episode": 2,
+          "ndu_ns": 38626846,
+          "passed": false,
+          "ratio": 9.556691170212556
+        }
+      ],
+      "four_language_finite_correctness_and_allocator_probes": true,
+      "future_timing_leakage_used": false,
+      "global_optimum_proved": false,
+      "performance_comparisons": [
+        {
+          "baseline": "c",
+          "median_ratio": 1.3244822092405735,
+          "p95_ratio": 1.326326852338413,
+          "passed": false,
+          "size": 64
+        },
+        {
+          "baseline": "cpp",
+          "median_ratio": 1.3315536572343833,
+          "p95_ratio": 1.3193936225823315,
+          "passed": false,
+          "size": 64
+        },
+        {
+          "baseline": "rust",
+          "median_ratio": 1.448315911730546,
+          "p95_ratio": 1.4324631101021565,
+          "passed": false,
+          "size": 64
+        },
+        {
+          "baseline": "c",
+          "median_ratio": 1.630672298240715,
+          "p95_ratio": 1.1418339854591733,
+          "passed": false,
+          "size": 4096
+        },
+        {
+          "baseline": "cpp",
+          "median_ratio": 1.6318115132038564,
+          "p95_ratio": 1.9629461532195185,
+          "passed": false,
+          "size": 4096
+        },
+        {
+          "baseline": "rust",
+          "median_ratio": 1.7421081091159965,
+          "p95_ratio": 1.8088170636239826,
+          "passed": false,
+          "size": 4096
+        },
+        {
+          "baseline": "c",
+          "median_ratio": 1.6322453611068533,
+          "p95_ratio": 0.8188328256743036,
+          "passed": false,
+          "size": 65536
+        },
+        {
+          "baseline": "cpp",
+          "median_ratio": 1.6613272574779825,
+          "p95_ratio": 1.6045865051903114,
+          "passed": false,
+          "size": 65536
+        },
+        {
+          "baseline": "rust",
+          "median_ratio": 1.7719818449449296,
+          "p95_ratio": 1.6570280012327867,
+          "passed": false,
+          "size": 65536
+        }
+      ],
+      "performance_gate_passed": false,
+      "service_scope_net_ndu_benefit_established": false,
+      "whole_language_safety_proved": false,
+      "whole_lifecycle_net_ndu_benefit_established": false
+    },
+    "shared_campaign_cost_ns": 5852928673,
+    "shared_campaign_cost_scope": "Actual shared bank preparation/validation/training and rejected proof paid once in this campaign, disclosed without arbitrary amortization. Per-policy service totals exclude this common sunk work and the independently recorded audit.",
+    "policy_run_count": 12,
+    "decision_cost_parameter_in_finite_model_ns": 0,
+    "actual_service_cost_includes_measured_planning_transport_and_response_validation": true
+  },
+  "ndu_final_ci_development": {
+    "mode": "development",
+    "status": "completed",
+    "acceptance_observation_valid": true,
+    "source_unchanged": true,
+    "acceptance": {
+      "complete_lifecycle_cost_known": false,
+      "economic_comparisons": [
+        {
+          "baseline": "fixed",
+          "baseline_ns": 9643772,
+          "episode": 0,
+          "ndu_ns": 65386957,
+          "passed": false,
+          "ratio": 6.780226347118119
+        },
+        {
+          "baseline": "exact_dp",
+          "baseline_ns": 11960263,
+          "episode": 0,
+          "ndu_ns": 65386957,
+          "passed": false,
+          "ratio": 5.4670166533963345
+        },
+        {
+          "baseline": "greedy",
+          "baseline_ns": 10518809,
+          "episode": 0,
+          "ndu_ns": 65386957,
+          "passed": false,
+          "ratio": 6.216193962643489
+        },
+        {
+          "baseline": "fixed",
+          "baseline_ns": 7030366,
+          "episode": 1,
+          "ndu_ns": 45908374,
+          "passed": false,
+          "ratio": 6.530011951013646
+        },
+        {
+          "baseline": "exact_dp",
+          "baseline_ns": 10696031,
+          "episode": 1,
+          "ndu_ns": 45908374,
+          "passed": false,
+          "ratio": 4.292094329195568
+        },
+        {
+          "baseline": "greedy",
+          "baseline_ns": 7891175,
+          "episode": 1,
+          "ndu_ns": 45908374,
+          "passed": false,
+          "ratio": 5.81768545241995
+        },
+        {
+          "baseline": "fixed",
+          "baseline_ns": 9312613,
+          "episode": 2,
+          "ndu_ns": 55185973,
+          "passed": false,
+          "ratio": 5.925938616798529
+        },
+        {
+          "baseline": "exact_dp",
+          "baseline_ns": 10252551,
+          "episode": 2,
+          "ndu_ns": 55185973,
+          "passed": false,
+          "ratio": 5.38265774049795
+        },
+        {
+          "baseline": "greedy",
+          "baseline_ns": 9713974,
+          "episode": 2,
+          "ndu_ns": 55185973,
+          "passed": false,
+          "ratio": 5.681091281487886
+        }
+      ],
+      "four_language_finite_correctness_and_allocator_probes": true,
+      "future_timing_leakage_used": false,
+      "global_optimum_proved": false,
+      "performance_comparisons": [
+        {
+          "baseline": "c",
+          "median_ratio": 1.3103122043519395,
+          "p95_ratio": 1.5582082764893133,
+          "passed": false,
+          "size": 64
+        },
+        {
+          "baseline": "cpp",
+          "median_ratio": 1.304450200141276,
+          "p95_ratio": 1.5546733212341197,
+          "passed": false,
+          "size": 64
+        },
+        {
+          "baseline": "rust",
+          "median_ratio": 1.7665816326530612,
+          "p95_ratio": 1.9105101756342346,
+          "passed": false,
+          "size": 64
+        },
+        {
+          "baseline": "c",
+          "median_ratio": 2.144404143452947,
+          "p95_ratio": 1.9116794490036095,
+          "passed": false,
+          "size": 4096
+        },
+        {
+          "baseline": "cpp",
+          "median_ratio": 1.9615910503418272,
+          "p95_ratio": 1.9189851337958375,
+          "passed": false,
+          "size": 4096
+        },
+        {
+          "baseline": "rust",
+          "median_ratio": 2.0569397515465675,
+          "p95_ratio": 1.9986622294524223,
+          "passed": false,
+          "size": 4096
+        },
+        {
+          "baseline": "c",
+          "median_ratio": 2.230173991285271,
+          "p95_ratio": 2.082881491865654,
+          "passed": false,
+          "size": 65536
+        },
+        {
+          "baseline": "cpp",
+          "median_ratio": 2.113261266922897,
+          "p95_ratio": 2.0216357868175465,
+          "passed": false,
+          "size": 65536
+        },
+        {
+          "baseline": "rust",
+          "median_ratio": 2.3724494844119026,
+          "p95_ratio": 2.2909586944258424,
+          "passed": false,
+          "size": 65536
+        }
+      ],
+      "performance_gate_passed": false,
+      "service_scope_net_ndu_benefit_established": false,
+      "whole_language_safety_proved": false,
+      "whole_lifecycle_net_ndu_benefit_established": false
+    },
+    "shared_campaign_cost_ns": 8377855805,
+    "shared_campaign_cost_scope": "Actual shared bank preparation/validation/training and rejected proof paid once in this campaign, disclosed without arbitrary amortization. Per-policy service totals exclude this common sunk work and the independently recorded audit.",
+    "policy_run_count": 12,
+    "decision_cost_parameter_in_finite_model_ns": 0,
+    "actual_service_cost_includes_measured_planning_transport_and_response_validation": true
+  },
+  "performance_local": {
+    "valid_observation": true,
+    "source_unchanged": true,
+    "source": {
+      "head": "2bd473f6ff51c2afac7b7bb009402368af2afdee",
+      "status": ""
+    },
+    "rust_thresholds_met": 1,
+    "registered_sizes": 10,
+    "comparisons": [
+      {
+        "baseline": "rust",
+        "median_ratio": 1.4416715031921068,
+        "p95_ratio": 1.2186136694134755,
+        "p99_ratio": 1.2238942088463292,
+        "passed": false,
+        "phase": "training",
+        "size": 64
+      },
+      {
+        "baseline": "rust",
+        "median_ratio": 1.7471361028573564,
+        "p95_ratio": 1.897150722642808,
+        "p99_ratio": 3.4435126190422585,
+        "passed": false,
+        "phase": "training",
+        "size": 4096
+      },
+      {
+        "baseline": "rust",
+        "median_ratio": 1.7694836372272633,
+        "p95_ratio": 1.8568952550033757,
+        "p99_ratio": 1.249889937001504,
+        "passed": false,
+        "phase": "training",
+        "size": 65536
+      },
+      {
+        "baseline": "rust",
+        "median_ratio": 1.0924214417744917,
+        "p95_ratio": 0.6795366795366795,
+        "p99_ratio": 0.03278285053284438,
+        "passed": true,
+        "phase": "holdout",
+        "size": 2
+      },
+      {
+        "baseline": "rust",
+        "median_ratio": 1.358654367878459,
+        "p95_ratio": 0.7949606299212598,
+        "p99_ratio": 0.821283255086072,
+        "passed": false,
+        "phase": "holdout",
+        "size": 63
+      },
+      {
+        "baseline": "rust",
+        "median_ratio": 1.8590015932023367,
+        "p95_ratio": 1.1742088607594936,
+        "p99_ratio": 5.041373365895705,
+        "passed": false,
+        "phase": "holdout",
+        "size": 257
+      },
+      {
+        "baseline": "rust",
+        "median_ratio": 1.8259925093632958,
+        "p95_ratio": 1.37466732380483,
+        "p99_ratio": 2.0053203711886876,
+        "passed": false,
+        "phase": "holdout",
+        "size": 1025
+      },
+      {
+        "baseline": "rust",
+        "median_ratio": 1.3105570246644878,
+        "p95_ratio": 0.7910909291465971,
+        "p99_ratio": 0.6982450277400404,
+        "passed": false,
+        "phase": "holdout",
+        "size": 8193
+      },
+      {
+        "baseline": "rust",
+        "median_ratio": 1.5428304584539774,
+        "p95_ratio": 1.4989474954102757,
+        "p99_ratio": 0.9859350896262181,
+        "passed": false,
+        "phase": "holdout",
+        "size": 32769
+      },
+      {
+        "baseline": "rust",
+        "median_ratio": 1.448583269082498,
+        "p95_ratio": 1.817243554027088,
+        "p99_ratio": 3.647200480371341,
+        "passed": false,
+        "phase": "holdout",
+        "size": 65535
+      }
+    ],
+    "campaign_wall_ns": 5806856636
+  },
+  "performance_initial_ci": {
+    "valid_observation": true,
+    "source_unchanged": true,
+    "source": {
+      "head": "2bd473f6ff51c2afac7b7bb009402368af2afdee",
+      "status": "?? artifacts/verified-optimization/\n?? finite-ndu-source/\n?? recursive-ndu-source/\n?? stream-ndu-source/"
+    },
+    "rust_thresholds_met": 0,
+    "registered_sizes": 10,
+    "comparisons": [
+      {
+        "baseline": "rust",
+        "median_ratio": 1.8722519310754604,
+        "p95_ratio": 1.6333082518184099,
+        "p99_ratio": 7.325984642060936,
+        "passed": false,
+        "phase": "training",
+        "size": 64
+      },
+      {
+        "baseline": "rust",
+        "median_ratio": 2.5029872436621994,
+        "p95_ratio": 2.047300355641772,
+        "p99_ratio": 2.1639084964234283,
+        "passed": false,
+        "phase": "training",
+        "size": 4096
+      },
+      {
+        "baseline": "rust",
+        "median_ratio": 2.394682367451044,
+        "p95_ratio": 2.2560403516777074,
+        "p99_ratio": 1.3496368371665766,
+        "passed": false,
+        "phase": "training",
+        "size": 65536
+      },
+      {
+        "baseline": "rust",
+        "median_ratio": 1.1344731977818854,
+        "p95_ratio": 1.2389662027833002,
+        "p99_ratio": 1.3745664739884393,
+        "passed": false,
+        "phase": "holdout",
+        "size": 2
+      },
+      {
+        "baseline": "rust",
+        "median_ratio": 1.2894543675067287,
+        "p95_ratio": 1.1376612391626137,
+        "p99_ratio": 1.1603243917654398,
+        "passed": false,
+        "phase": "holdout",
+        "size": 63
+      },
+      {
+        "baseline": "rust",
+        "median_ratio": 2.602016954106986,
+        "p95_ratio": 3.2831037774444294,
+        "p99_ratio": 5.217385586533403,
+        "passed": false,
+        "phase": "holdout",
+        "size": 257
+      },
+      {
+        "baseline": "rust",
+        "median_ratio": 2.424433249370277,
+        "p95_ratio": 2.8019358787971536,
+        "p99_ratio": 1.8662147844277215,
+        "passed": false,
+        "phase": "holdout",
+        "size": 1025
+      },
+      {
+        "baseline": "rust",
+        "median_ratio": 2.614959790124062,
+        "p95_ratio": 2.284340489813247,
+        "p99_ratio": 2.1862365750274733,
+        "passed": false,
+        "phase": "holdout",
+        "size": 8193
+      },
+      {
+        "baseline": "rust",
+        "median_ratio": 2.466516059440427,
+        "p95_ratio": 2.243714091163272,
+        "p99_ratio": 2.2283326082672406,
+        "passed": false,
+        "phase": "holdout",
+        "size": 32769
+      },
+      {
+        "baseline": "rust",
+        "median_ratio": 2.503151890007525,
+        "p95_ratio": 2.2737912024588236,
+        "p99_ratio": 1.119889690098042,
+        "passed": false,
+        "phase": "holdout",
+        "size": 65535
+      }
+    ],
+    "campaign_wall_ns": 9333654086
+  },
+  "performance_final_ci": {
+    "valid_observation": true,
+    "source_unchanged": true,
+    "source": {
+      "head": "cf979410742481caa4948e877723cc7440171741",
+      "status": "?? artifacts/verified-optimization/\n?? finite-ndu-source/\n?? recursive-ndu-source/\n?? stream-ndu-source/"
+    },
+    "rust_thresholds_met": 0,
+    "registered_sizes": 10,
+    "comparisons": [
+      {
+        "baseline": "rust",
+        "median_ratio": 1.7690339091490723,
+        "p95_ratio": 1.6330553449583018,
+        "p99_ratio": 0.8318205620527143,
+        "passed": false,
+        "phase": "training",
+        "size": 64
+      },
+      {
+        "baseline": "rust",
+        "median_ratio": 2.1289931086885403,
+        "p95_ratio": 1.9716534914902892,
+        "p99_ratio": 1.931664148499892,
+        "passed": false,
+        "phase": "training",
+        "size": 4096
+      },
+      {
+        "baseline": "rust",
+        "median_ratio": 2.4128411146040354,
+        "p95_ratio": 2.353547642217421,
+        "p99_ratio": 2.2502743298601287,
+        "passed": false,
+        "phase": "training",
+        "size": 65536
+      },
+      {
+        "baseline": "rust",
+        "median_ratio": 1.3274253731343284,
+        "p95_ratio": 1.3895759717314489,
+        "p99_ratio": 1.6948665297741272,
+        "passed": false,
+        "phase": "holdout",
+        "size": 2
+      },
+      {
+        "baseline": "rust",
+        "median_ratio": 1.2095836240986275,
+        "p95_ratio": 1.1430395913154534,
+        "p99_ratio": 1.1362209667294414,
+        "passed": false,
+        "phase": "holdout",
+        "size": 63
+      },
+      {
+        "baseline": "rust",
+        "median_ratio": 2.414641601711753,
+        "p95_ratio": 2.791823237637156,
+        "p99_ratio": 2.550219435736677,
+        "passed": false,
+        "phase": "holdout",
+        "size": 257
+      },
+      {
+        "baseline": "rust",
+        "median_ratio": 2.596091205211726,
+        "p95_ratio": 2.2853823088455774,
+        "p99_ratio": 1.2058760880987205,
+        "passed": false,
+        "phase": "holdout",
+        "size": 1025
+      },
+      {
+        "baseline": "rust",
+        "median_ratio": 2.550825343244634,
+        "p95_ratio": 2.273899684281741,
+        "p99_ratio": 2.0807424691513736,
+        "passed": false,
+        "phase": "holdout",
+        "size": 8193
+      },
+      {
+        "baseline": "rust",
+        "median_ratio": 2.3832635320590305,
+        "p95_ratio": 2.1611460880157063,
+        "p99_ratio": 2.246208719018387,
+        "passed": false,
+        "phase": "holdout",
+        "size": 32769
+      },
+      {
+        "baseline": "rust",
+        "median_ratio": 2.5082319770355292,
+        "p95_ratio": 2.3434193493735425,
+        "p99_ratio": 2.2483713400507996,
+        "passed": false,
+        "phase": "holdout",
+        "size": 65535
+      }
+    ],
+    "campaign_wall_ns": 9323703495
+  },
+  "agent": {
+    "source_commit": "2bd473f6ff51c2afac7b7bb009402368af2afdee",
+    "all_checks_passed": true,
+    "by_arm": {
+      "hia": {
+        "attempted_cells": 4,
+        "successes": 0,
+        "submissions": 8,
+        "automatic_repairs": 4,
+        "input_tokens": 11879,
+        "output_tokens": 8340,
+        "total_tokens": 20219,
+        "inference_ns": 381779958970,
+        "request_wall_ns": 381831101294,
+        "validation_total_ns": 4261270616,
+        "cell_wall_ns": 382279919267
+      },
+      "assembly": {
+        "attempted_cells": 4,
+        "successes": 0,
+        "submissions": 8,
+        "automatic_repairs": 4,
+        "input_tokens": 8474,
+        "output_tokens": 2634,
+        "total_tokens": 11108,
+        "inference_ns": 131545922220,
+        "request_wall_ns": 131594715266,
+        "validation_total_ns": 4349029123,
+        "cell_wall_ns": 132095315239
+      },
+      "rust": {
+        "attempted_cells": 4,
+        "successes": 0,
+        "submissions": 8,
+        "automatic_repairs": 4,
+        "input_tokens": 6499,
+        "output_tokens": 1018,
+        "total_tokens": 7517,
+        "inference_ns": 64222339346,
+        "request_wall_ns": 64270248472,
+        "validation_total_ns": 5244577930,
+        "cell_wall_ns": 65446078266
+      }
+    },
+    "attempt_status_counts": {
+      "response_rejected": 12,
+      "observable_wrong": 8,
+      "compile_rejected": 4
+    },
+    "native_built_submissions": 8,
+    "native_public_validation_submissions": 8,
+    "hidden_test_cells": 0,
+    "new_requests": 24,
+    "responses_received": 24,
+    "total_input_tokens": 26852,
+    "total_output_tokens": 11992,
+    "total_tokens": 38844,
+    "costs": {
+      "prepare_outer_wall_ns": 16319503371,
+      "run_outer_wall_ns": 594720103435,
+      "recorded_prepare_plus_run_outer_wall_ns": 611039606806,
+      "experiment_wall_ns": 594474565054,
+      "summed_inference_ns": 577548220536,
+      "summed_request_wall_ns": 577696065032,
+      "summed_evaluation_ns": 2033799060,
+      "summed_boundary_identity_ns": 11821078609,
+      "startup_ns": 1689240813,
+      "final_identity_ns": 903669443,
+      "shutdown_ns": 117238973,
+      "notes": [
+        "Component intervals overlap or nest; do not add them to outer wall as separate costs.",
+        "Recorded prepare plus run excludes asset download/provisioning, the gap between commands, human engineering/review, energy, and complete deployment lifecycle.",
+        "Shared cgroup counters are not per-process resource attribution."
+      ],
+      "unknown": [
+        "human engineering/review time",
+        "energy",
+        "full implicit system library closure",
+        "complete deployment lifecycle"
+      ]
+    },
+    "gates": {
+      "descriptive_stratum": {
+        "maintenance": false,
+        "upgrade": false
+      },
+      "assembly_vs_json": {
+        "maintenance": false,
+        "upgrade": false
+      },
+      "two_family_gate_satisfied": false
+    },
+    "limits": [
+      "Single Qwen2.5-Coder 1.5B Q4_K_M model family.",
+      "Four authored two-file arithmetic maintenance/API upgrade tasks; not real production maintenance tickets.",
+      "Assembly arm is Hepta textual .hiaasm syntax over the same Core as the JSON arm, not native ISA assembly.",
+      "All twelve cells failed the original public gates; no hidden tests were reached, no superiority claim is supported.",
+      "No cell was rerun; one original automated repair per cell was used, with no human repairs."
+    ]
+  },
+  "agent_scope": {
+    "model_families": 1,
+    "model": "Qwen2.5-Coder-1.5B-Instruct Q4_K_M",
+    "authored_two_file_tasks": 4,
+    "real_production_tickets": 0,
+    "verified_task_successes": 0,
+    "cells": 12,
+    "language_advantage_established": false
+  },
+  "ci": {
+    "all_five_current_source_workflows_success": true,
+    "regression": {
+      "tests": 1226,
+      "failures": 0,
+      "errors": 0,
+      "skipped": [],
+      "source_unchanged": true,
+      "elapsed_ns": 1228527174688,
+      "passed": true,
+      "git_base": "cf979410742481caa4948e877723cc7440171741"
+    },
+    "current_runs": [
+      {
+        "id": 41205107128,
+        "name": "HIA finite CRC context and static controls",
+        "head_sha": "cf979410742481caa4948e877723cc7440171741",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/41205107128",
+        "run_started_at": "2026-10-31T13:20:17Z",
+        "updated_at": "2026-10-31T13:22:14Z"
+      },
+      {
+        "id": 41205107283,
+        "name": "HIA captured C application on native Linux hosts",
+        "head_sha": "cf979410742481caa4948e877723cc7440171741",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/41205107283",
+        "run_started_at": "2026-10-31T13:20:17Z",
+        "updated_at": "2026-10-31T13:21:50Z"
+      },
+      {
+        "id": 41205107125,
+        "name": "HIA intelligent assembly closure",
+        "head_sha": "cf979410742481caa4948e877723cc7440171741",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/41205107125",
+        "run_started_at": "2026-10-31T13:20:17Z",
+        "updated_at": "2026-10-31T13:29:33Z"
+      },
+      {
+        "id": 41205107127,
+        "name": "HIA six-outcome source and application gates",
+        "head_sha": "cf979410742481caa4948e877723cc7440171741",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/41205107127",
+        "run_started_at": "2026-10-31T13:20:17Z",
+        "updated_at": "2026-10-31T13:43:03Z"
+      },
+      {
+        "id": 41205107123,
+        "name": "HIA verified optimization and native NDU integration",
+        "head_sha": "cf979410742481caa4948e877723cc7440171741",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/41205107123",
+        "run_started_at": "2026-10-31T13:20:17Z",
+        "updated_at": "2026-10-31T13:49:24Z"
+      }
+    ],
+    "initial_runs": [
+      {
+        "id": 41204651180,
+        "name": "HIA captured C application on native Linux hosts",
+        "head_sha": "2bd473f6ff51c2afac7b7bb009402368af2afdee",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/41204651180",
+        "run_started_at": "2026-10-31T13:14:16Z",
+        "updated_at": "2026-10-31T13:15:56Z"
+      },
+      {
+        "id": 41204651181,
+        "name": "HIA finite CRC context and static controls",
+        "head_sha": "2bd473f6ff51c2afac7b7bb009402368af2afdee",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/41204651181",
+        "run_started_at": "2026-10-31T13:14:16Z",
+        "updated_at": "2026-10-31T13:16:41Z"
+      },
+      {
+        "id": 41204651246,
+        "name": "HIA intelligent assembly closure",
+        "head_sha": "2bd473f6ff51c2afac7b7bb009402368af2afdee",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/41204651246",
+        "run_started_at": "2026-10-31T13:14:16Z",
+        "updated_at": "2026-10-31T13:22:35Z"
+      },
+      {
+        "id": 41204651144,
+        "name": "HIA six-outcome source and application gates",
+        "head_sha": "2bd473f6ff51c2afac7b7bb009402368af2afdee",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/41204651144",
+        "run_started_at": "2026-10-31T13:14:16Z",
+        "updated_at": "2026-10-31T13:37:03Z"
+      },
+      {
+        "id": 41204651204,
+        "name": "HIA verified optimization and native NDU integration",
+        "head_sha": "2bd473f6ff51c2afac7b7bb009402368af2afdee",
+        "status": "completed",
+        "conclusion": "failure",
+        "html_url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/41204651204",
+        "run_started_at": "2026-10-31T13:14:16Z",
+        "updated_at": "2026-10-31T13:38:11Z"
+      }
+    ],
+    "initial_verified_failure_retained": true,
+    "closure_optional_native_ndu_job_skipped": true,
+    "current_ci_does_not_establish_performance_or_agent_advantage": true
+  },
+  "remaining_acceptance": {
+    "whole_language_soundness_proved": false,
+    "whole_compiler_backend_refinement_proved": false,
+    "arbitrary_c_cpp_migration_qualified": false,
+    "complete_migration_human_cost_measured": false,
+    "external_production_workload_ndu_net_benefit_established": false,
+    "general_live_state_transfer_qualified": false,
+    "durable_external_exactly_once_recovery_qualified": false,
+    "broad_rust_performance_parity_established": false,
+    "two_family_agent_advantage_established": false,
+    "physical_device_mmio_dma_interrupt_recovery_qualified": false
+  },
+  "known_limits": [
+    "Local retained Rust shadow binary was not rebuilt in this run; CI rebuild has separate identity.",
+    "Projected NDU ready set is a member of same-model DP optimal first-ready sets, not whole-program optimality.",
+    "Future decision cost remains zero inside the finite planning model; measured service costs include real overhead.",
+    "Cancellation receipts account submission and worker stages; they are not total lifecycle costs or final Future state.",
+    "Allocator observer realloc(NULL,n) can clear unrelated live slot-0 accounting; registered single-buffer workload does not use realloc.",
+    "Current ABI execution covers registered scalar interfaces, not general C++ layouts or exception/foreign-pointer contracts.",
+    "Native Linux host execution and QEMU execution are separate from physical-device attestation.",
+    "Unobserved historical, human, energy and deployment costs remain unknown rather than zero."
+  ],
+  "evidence_index": [
+    {
+      "archive_member": "semantics/frozen-2bd473f/RESULT.json",
+      "bytes": 1305,
+      "sha256": "7b9019a69f71cf1230de5159edb17365a49f4026a38b14bc1841d49463a9fac8"
+    },
+    {
+      "archive_member": "migration/FROZEN_SUMMARY.json",
+      "bytes": 8013,
+      "sha256": "aa0cdd5b772d77a191a594050842d8090b915782224dfca4f7fbad296319ef7d"
+    },
+    {
+      "archive_member": "ndu/FINAL_CLAIMS_AUDIT.json",
+      "bytes": 39657,
+      "sha256": "985d07730f2ba63ff4c563b2b6e9d1af3017c0b565544bdb38d053de86e79aca"
+    },
+    {
+      "archive_member": "ndu/frozen-2bd473f/native-economics-release/RESULT.json",
+      "bytes": 2318205,
+      "sha256": "272201fac8fdbde189805cc96a073ebadc9f0a47a9fcb9c6f6f859b264cfe37b"
+    },
+    {
+      "archive_member": "performance/frozen-2bd473f/native/RESULT.json",
+      "bytes": 337320,
+      "sha256": "a1518f445e5cd75b57db879cdd9db43878a096449f3b49556f9ab5abf3893571"
+    },
+    {
+      "archive_member": "performance/ASSEMBLY_REVIEW.json",
+      "bytes": 18702,
+      "sha256": "d1958279130fd3cb7104bff860f5567b0c333bc333b3d7c516df27636fcf9f8e"
+    },
+    {
+      "archive_member": "agent/frozen-runtime-probes/RESULT.json",
+      "bytes": 40686,
+      "sha256": "73fe464f55c1f1338007f2fe069c70c02e798e15385520746baca7faa2e02fb9"
+    },
+    {
+      "archive_member": "agent/current-three-arm/RESULT.json",
+      "bytes": 79147,
+      "sha256": "150196bdc11bdecc8abf6fbf366db6d39964c1f9604ee9d7cb645f741c91df60"
+    },
+    {
+      "archive_member": "agent/current-three-arm-control/COMPLETION_AUDIT.json",
+      "bytes": 71962,
+      "sha256": "d1d6905b8bc229d300fdfecda19bed89e74d182907e3e8a2235c106d5b46f6f9"
+    },
+    {
+      "archive_member": "agent/current-three-arm-control/OWNED_LIFECYCLES.json",
+      "bytes": 16096,
+      "sha256": "d064fd0ce1b7048dabec747e40fce95eab18a7b0bb51cc83f1d6a6374056056d"
+    },
+    {
+      "archive_member": "ci/CI_EARLY_AUDIT.json",
+      "bytes": 49509,
+      "sha256": "ac4a62bbe27089e0460cb774d2a5ccf43ebc5ba4b319b64ea42914671239fea3"
+    },
+    {
+      "archive_member": "ci/CI_ADDITIONAL_AUDIT.json",
+      "bytes": 35707,
+      "sha256": "10a0f5a565ac8fb8dc2e2c5e83402afc92107c983006fd55c7215080a04566a8"
+    },
+    {
+      "archive_member": "ci/CI_INITIAL_VERIFIED_AUDIT.json",
+      "bytes": 148863,
+      "sha256": "d3f689d3e093ec096d0bae3184410a05a0d2559514eee561852e5111f86498b9"
+    },
+    {
+      "archive_member": "ci/CI_FINAL_VERIFIED_AUDIT.json",
+      "bytes": 227429,
+      "sha256": "fbfeed4a146d1cec43ab66a2254b058c7039a52aece75adbfa50a5d73639a7f5"
+    },
+    {
+      "archive_member": "ci/verified-cf979410-success.zip",
+      "zip_member": "Hepta/Hepta/artifacts/verified-optimization/regression/result.json",
+      "bytes": 409283,
+      "sha256": "fafcd251fdcf894f40d0dd17c83382b9d0644303f27f1cc21d8e1c1bd8f1dc1e"
+    },
+    {
+      "archive_member": "ci/verified-cf979410-success.zip",
+      "zip_member": "Hepta/Hepta/artifacts/verified-optimization/release-parity/RESULT.json",
+      "bytes": 338223,
+      "sha256": "ea1c3410cfa4f09c41ee2d3db9e32e1a3975056b8773afc33c1ca009201f8163"
+    },
+    {
+      "archive_member": "ci/verified-2bd473f-failed.zip",
+      "zip_member": "Hepta/Hepta/artifacts/verified-optimization/release-parity/RESULT.json",
+      "bytes": 338216,
+      "sha256": "0f28de4a0734044573dcd0d0fbcdaa6950418489793e0ef280cdee57e725277f"
+    },
+    {
+      "archive_member": "ci/verified-cf979410-success.zip",
+      "zip_member": "Hepta/Hepta/artifacts/verified-optimization/native-release-ndu/RESULT.json",
+      "bytes": 2320277,
+      "sha256": "b18ff847282f428acbcbe23b91d95e1933716b97f78961a19ec3f13fc56881ac"
+    }
+  ]
+}
