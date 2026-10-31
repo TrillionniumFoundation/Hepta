@@ -24,7 +24,7 @@ python -m research.hcsn.independent_gate --bundle research/hcsn --strict
 
 Local equivalent bundle location used for actual fresh test execution: `/mnt/data/hcsn_round5_20261031`; replace `research.hcsn` with `hcsn_round5_20261031` in module commands when running extracted local bundle.
 
-**Locally executed in Python 3.13.5, NumPy 2.3.5, SciPy 1.17.0, PyTorch 2.10.0+cpu: 81/81 unittest cases passed.** The independent Ed25519 external-trust-root gate still exits **2** with all P0–P6 OPEN because no release-authority trust root was supplied. The existing research gate also exits **2**. This is expected fail-closed behavior, not scientific acceptance.
+**Locally executed in Python 3.13.5, NumPy 2.3.5, SciPy 1.17.0, PyTorch 2.10.0+cpu: 85/85 remote-branch tracked unittest cases passed** (four additional local-only equity-FD tests were excluded from this precise count). The independent Ed25519 external-trust-root gate still exits **2** with all P0–P6 OPEN because no release-authority trust root was supplied. The existing research gate also exits **2**. This is expected fail-closed behavior, not scientific acceptance.
 
 Exact Git blob SHAs (verified GitHub file contents against locally run byte-identical files):
 
@@ -35,6 +35,15 @@ Exact Git blob SHAs (verified GitHub file contents against locally run byte-iden
 | `p0_mc_evidence.py` | `a27745b97c8f2e4c6bff9c9afdea86fd6326bf0e` |
 
 Local panel JSON SHA256: `4c19c65ea818ba02cd3ba1387aeab8051f753bf5810074fa02441c3f373e9848` (the file is an execution artifact, not embedded in the PR).
+
+
+## Added deterministic F/G density-quadrature cross-check
+
+- `research/hcsn/first_passage_quad.py` integrates the original drifted-Brownian first-passage **density**, not the normal-CDF closed form. The variable change `y=x/(sigma*sqrt(t))` and *geometric subintervals* resolve the narrow small-margin boundary layer that a naive one-interval `quad(lo, +inf)` can silently miss. In a pilot random panel, naive integration disagreed by as much as **9.557e-7** for near-boundary inputs; geometric subdivision removed this numerical artifact in the checked domain.
+- `research/hcsn/test_first_passage_quad.py` adds four tests: 500 seeded cases/1000 F/G comparisons, another postimplementation 2000 seeded cases/4000 comparisons with shorter relative maturities, explicit `x=1e-9` boundary-layer regression, zero-liquidity bond-value check and fail-closed invalid-domain checks.
+- Across **2,500** explored parameter cases / **5,000** F/G comparisons the observed maximum absolute discrepancy from the original analytically evaluated CDFs was **1.3877787807814457e-15**. This is strong *bounded numerical agreement*, not an analytical or floating-point global bound; the numerical integration is limited to `x>=1e-12` and `tau>=1e-12` for strictly positive inputs.
+- The second 2,000-case panel was selected after method development; **neither** panel is independently preregistered. No neural utility or production acceleration has been demonstrated by this quadrature.
+- Exact Git blob SHAs after remote verification: `first_passage_quad.py` = `58b9ab5030f3120c04b7aa71c2e18ab8ce0f1f59`; `test_first_passage_quad.py` = `8f48e799826a26dc1089d9def620ceff62aeddd9`.
 
 ## Blocker disposition, no overstated closure
 
