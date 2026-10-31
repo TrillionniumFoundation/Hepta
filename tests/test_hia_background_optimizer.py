@@ -200,6 +200,13 @@ class BackgroundNativeTests(unittest.TestCase):
             build.assert_not_called()
         self.assertEqual(result["status"], "rejected")
         self.assertIn("disproved", result["detail"])
+        self.assertIsNotNone(result["ranking"], "completed ranking was lost after publication refusal")
+        self.assertGreater(result["costs"]["publication_call_wall_ns"], 0)
+        receipt = coordinator.snapshot()["cost_accounting"]["recent_jobs"][-1]
+        self.assertEqual(receipt["execution_status"], "rejected")
+        self.assertTrue(receipt["ranking_returned"])
+        self.assertFalse(receipt["publication_committed"])
+        self.assertGreater(receipt["costs"]["observed_submit_and_worker_ns"], 0)
         self.assert_baseline()
 
     def test_unknown_publication_proof_preserves_the_native_head(self):
@@ -237,6 +244,48 @@ class BackgroundNativeTests(unittest.TestCase):
             result = self.submit(coordinator, incumbent_ns=1).result(10)
             build.assert_not_called()
         self.assertEqual(result["status"], "abstained", result)
+        ledger = coordinator.snapshot()["cost_accounting"]
+        self.assertEqual(ledger["settled_jobs"], 1)
+        self.assertEqual(ledger["execution_outcomes_at_accounting"], {"abstained": 1})
+        paid = ledger["observed_submit_and_worker_ns"]
+        self.assertGreater(paid, 0)
+        result["costs"].clear()
+        ledger["recent_jobs"][0]["costs"].clear()
+        retained = coordinator.snapshot()["cost_accounting"]
+        self.assertEqual(retained["observed_submit_and_worker_ns"], paid)
+        self.assertEqual(retained["recent_jobs"][0]["costs"]["observed_submit_and_worker_ns"], paid)
+        self.assert_baseline()
+
+    def test_cost_observation_does_not_predict_later_future_cancellation(self):
+        coordinator = self.coordinator()
+        recorded, release = threading.Event(), threading.Event()
+        account = coordinator._account_job
+        def observed_account(job, result):
+            account(job, result)
+            recorded.set()
+            if not release.wait(10):
+                raise RuntimeError("accounting barrier was not released")
+        with patch("hepta.hia_background_optimizer.rank_candidates", side_effect=controlled_rank), \
+                patch.object(coordinator, "_account_job", side_effect=observed_account):
+            future = self.submit(coordinator, incumbent_ns=1)
+            try:
+                self.assertTrue(recorded.wait(10))
+                self.assertTrue(future.cancel())
+            finally:
+                release.set()
+                coordinator.shutdown(cancel_pending=False)
+        self.assertTrue(future.cancelled())
+        ledger = coordinator.snapshot()["cost_accounting"]
+        self.assertEqual(ledger["settled_jobs"], 1)
+        self.assertEqual(ledger["execution_outcomes_at_accounting"], {"abstained": 1})
+        receipt = ledger["recent_jobs"][0]
+        self.assertEqual(receipt["execution_status"], "abstained")
+        self.assertEqual(receipt["future_state_at_accounting"], "pending")
+        self.assertIn("not a Future terminal-state claim", receipt["status_scope"])
+        self.assertNotIn("status", receipt)
+        self.assertGreater(ledger["observed_submit_and_worker_ns"], 0)
+        self.assertEqual(ledger["observed_submit_and_worker_ns"],
+                         receipt["costs"]["observed_submit_and_worker_ns"])
         self.assert_baseline()
 
     def test_real_preparation_over_budget_is_disposed_without_selection(self):
@@ -325,6 +374,20 @@ class BackgroundNativeTests(unittest.TestCase):
                 release.set()
             coordinator.shutdown()
         self.assertTrue(future.cancelled())
+        ledger = coordinator.snapshot()["cost_accounting"]
+        self.assertEqual(ledger["settled_jobs"], 1)
+        receipt = ledger["recent_jobs"][0]
+        self.assertEqual(receipt["execution_status"], "cancelled")
+        self.assertEqual(receipt["future_state_at_accounting"], "cancelled")
+        self.assertTrue(receipt["ranking_returned"])
+        self.assertFalse(receipt["publication_committed"])
+        self.assertGreater(receipt["costs"]["publication_call_wall_ns"], 0)
+        self.assertGreater(receipt["costs"]["observed_submit_and_worker_ns"], 0)
+        # This unit rank fixture explicitly reports zero adapter time. Preserve
+        # that value; the real-bridge qualifier separately requires paid work.
+        self.assertEqual(receipt["reported_ranking_costs"]["actual_adapter_ns"], 0)
+        self.assertGreaterEqual(receipt["reported_ranking_costs"]["total_search_ns"],
+                                receipt["reported_ranking_costs"]["actual_adapter_ns"])
         with self.assertRaises(CancelledError):
             future.result()
         self.assert_baseline()
@@ -401,6 +464,12 @@ class BackgroundNativeTests(unittest.TestCase):
         self.assertTrue(second.cancelled())
         self.assertEqual(rank.call_count, 1)
         self.assertEqual(coordinator.snapshot()["outstanding"], 0)
+        accounting = coordinator.snapshot()["cost_accounting"]
+        self.assertEqual(accounting["settled_jobs"], 2)
+        self.assertEqual(accounting["execution_outcomes_at_accounting"], {"cancelled": 2})
+        self.assertEqual(sum(row["costs"]["observed_submit_and_worker_ns"]
+                             for row in accounting["recent_jobs"]),
+                         accounting["observed_submit_and_worker_ns"])
         self.assertFalse(coordinator.snapshot()["worker_alive"])
         self.assert_baseline()
 

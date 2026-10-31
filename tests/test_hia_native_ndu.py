@@ -3,7 +3,7 @@ import unittest
 
 from tools.qualify_hia_native_ndu import (
     batch_checksum, checksum, digest, finalize_acceptance, first_ready, fixed_ready,
-    observed_model, percentile, protocol,
+    native_first_action, observed_model, percentile, protocol,
 )
 
 
@@ -47,6 +47,61 @@ class NativeEconomicsContractTests(unittest.TestCase):
         self.assertEqual(first_ready({"winners":[]},{"hia"}),{"hia"})
         self.assertEqual(percentile([1]*19+[1000],.95),1)
         self.assertEqual(percentile([1]*19+[1000],.99),1000)
+
+    @staticmethod
+    def native_fixture(schedules):
+        states = {"empty": {"ready": []}, "cpp": {"ready": ["cpp"]},
+                  "rust": {"ready": ["rust"]}, "both": {"ready": ["cpp", "rust"]}}
+        plans = {}
+        for index, schedule in enumerate(schedules):
+            actions, source = [], "empty"
+            for target in schedule:
+                actions.append({"source": source, "target": target, "status": "verified"})
+                source = target
+            plans[f"plan-{index}"] = {"verified": True, "actions": actions}
+        return ({"plans": plans, "stateful_binding": {"states": states}},
+                {"authority": "DENY_ALL", "safety_certificate": False,
+                 "advisory_candidate_id": None, "pareto_candidate_ids": list(plans)})
+
+    def test_whole_path_tie_preserves_a_common_preparation_action(self):
+        bundle, response = self.native_fixture([["cpp", "cpp"], ["cpp"]])
+        before = deepcopy(response)
+        result = native_first_action(bundle, response, set())
+        self.assertEqual(result["chosen_ready"], ["cpp"])
+        self.assertEqual(result["status"], "unanimous_first_action")
+        self.assertTrue(result["stopped_until_size_change"])
+        self.assertFalse(result["whole_path_selected"])
+        self.assertFalse(result["safety_certificate"])
+        self.assertEqual(response, before)
+
+    def test_conflicting_pareto_first_actions_do_not_pick_an_arbitrary_path(self):
+        bundle, response = self.native_fixture([["cpp"], ["rust"]])
+        result = native_first_action(bundle, response, set())
+        self.assertEqual(result["chosen_ready"], [])
+        self.assertEqual(result["status"], "abstain_no_common_first_action")
+        self.assertFalse(result["stopped_until_size_change"])
+        self.assertEqual(result["pareto_first_ready_sets"], [["cpp"], ["rust"]])
+
+    def test_a_common_first_action_does_not_erase_later_preparation_work(self):
+        bundle, response = self.native_fixture([["cpp", "both"], ["cpp"]])
+        result = native_first_action(bundle, response, set())
+        self.assertEqual(result["chosen_ready"], ["cpp"])
+        self.assertFalse(result["stopped_until_size_change"])
+
+    def test_abstention_unbound_and_unadmitted_paths_never_acquire_authority(self):
+        bundle, response = self.native_fixture([["cpp"]])
+        response["pareto_candidate_ids"].append("abstain")
+        self.assertEqual(native_first_action(bundle, response, set())["chosen_ready"], [])
+        response["pareto_candidate_ids"] = ["absent"]
+        with self.assertRaisesRegex(ValueError, "absent from the bound plan"):
+            native_first_action(bundle, response, set())
+        response["pareto_candidate_ids"] = ["plan-0"]
+        bundle["plans"]["plan-0"]["verified"] = False
+        with self.assertRaisesRegex(ValueError, "lacks admitted"):
+            native_first_action(bundle, response, set())
+        response["authority"] = "ALLOW"
+        with self.assertRaisesRegex(ValueError, "cannot acquire execution authority"):
+            native_first_action(bundle, response, set())
 
     def test_source_drift_or_incomplete_execution_withdraws_positive_acceptance(self):
         for status, unchanged in (("failed", True), ("completed", False), ("completed", None)):

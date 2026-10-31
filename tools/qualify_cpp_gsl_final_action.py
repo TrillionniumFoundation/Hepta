@@ -23,6 +23,7 @@ if __package__ in {None, ""}:
 
 from hepta.cpp_gsl_final_action import capture_and_lower, _identity
 from hepta.hia_program_source import lower_source
+from hepta.hia_program_llvm import native_host_profile, native_driver_matches_host
 from hepta.pipeline import analyze, compiler_hash
 
 
@@ -89,6 +90,34 @@ def build_original(root, version, directory, log, *, cxx, cc, examples=None):
     return executable
 
 
+def check_generated_signature(generated, directory, log, *, cc, label, reject=False):
+    """Check the actual emitted C definition against the independent C caller.
+
+    A symbol-name inventory cannot detect a narrowed return or a signed/wider
+    argument. Compile a separate translation unit including the real emitted
+    definition, so the check does not merely repeat the harness declaration.
+    This is a finite compiler observation, not a general binary ABI proof.
+    """
+    generated = Path(generated).resolve()
+    probe = Path(directory) / (label + ".abi-probe.c")
+    source = ('#include <stdint.h>\n#include <limits.h>\n'
+              '#include ' + json.dumps(str(generated)) + '\n'
+              'typedef uint64_t (*hepta_expected_gsl_entry)(uint64_t, uint64_t, uint32_t, uint32_t);\n'
+              '_Static_assert(CHAR_BIT == 8 && sizeof(uint64_t) == 8 && sizeof(uint32_t) == 4, "Hepta GSL scalar widths");\n'
+              '_Static_assert(_Generic(&migrated_case, hepta_expected_gsl_entry: 1, default: 0), "Hepta GSL export signature mismatch");\n')
+    probe.write_text(source)
+    result = command(log, [cc, "-std=c11", "-Werror", "-fsyntax-only", probe],
+                     accepted=(1,) if reject else (0,))
+    if reject:
+        require("Hepta GSL export signature mismatch" in result.stderr,
+                "ABI negative failed for a reason other than the exact export contract")
+    return {"status": "rejected_signature_mismatch" if reject else "compiler_checked",
+            "symbol": "migrated_case", "returns": "u64", "parameters": ["u64", "u64", "u32", "u32"],
+            "generated_c_sha256": sha256(generated.read_bytes()).hexdigest(),
+            "probe_sha256": sha256(probe.read_bytes()).hexdigest(),
+            "probe_path": str(probe), "whole_binary_abi_proved": False}
+
+
 def build_migrated(source, directory, log, *, cc, root, label="migrated"):
     hepta = directory / (label + ".hepta")
     hepta.write_text(source)
@@ -100,6 +129,8 @@ def build_migrated(source, directory, log, *, cc, root, label="migrated"):
     (directory / (label + ".check.json")).write_text(json.dumps(analysis.report, indent=2) + "\n")
     generated = directory / (label + ".c")
     generated.write_text(analysis.c)
+    signature = check_generated_signature(generated, directory, log, cc=cc, label=label)
+    (directory / (label + ".abi.json")).write_text(json.dumps(signature, indent=2) + "\n")
     obj = directory / (label + ".o")
     command(log, [cc, "-std=c11", "-O2", "-fno-lto", "-c", generated, "-o", obj])
     executable = directory / label
@@ -118,6 +149,13 @@ def qualify(root, output, *, clang, cxx="g++", cc="gcc"):
     source_bindings = {str(p): _identity(p) for p in source_paths if p.is_file()}
     tools = {name: _identity(shutil.which(str(path)) or str(path))
              for name, path in (("clang", clang), ("cxx", cxx), ("cc", cc))}
+    host = native_host_profile()
+    target_log, targets = [], {}
+    for name, tool in tools.items():
+        target = command(target_log, [tool["path"], "-dumpmachine"]).stdout.strip()
+        require(native_driver_matches_host(target, host),
+                "GSL native compiler target differs from the measured LP64 Linux host")
+        targets[name] = target
     rows = cases()
     expected = [oracle(*r) for r in rows]
     report = {"schema": "hepta.gsl-final-action-qualification.v1", "ok": False,
@@ -125,6 +163,9 @@ def qualify(root, output, *, clang, cxx="g++", cc="gcc"):
               "scope": "three real upstream class methods, instantiated finally factory, one authored closed callback body",
               "case_count_per_version": len(rows), "versions": {}, "negative_controls": {},
               "source_bindings": source_bindings, "native_tools": tools,
+              "native_abi": {"host": host, "compiler_targets": targets, "commands": target_log,
+                             "entry_signature": "u64(u64,u64,u32,u32)",
+                             "scope": "actual_host_scalar_C_calls_only_not_Cpp_class_layout_or_cross_target"},
               "claims": {"whole_gsl_migrated": False, "general_cpp_migration": False,
                          "general_cpp_exceptions_translated": False,
                          "arbitrary_callable_or_pointer_lifetimes_supported": False,
@@ -181,15 +222,65 @@ def qualify(root, output, *, clang, cxx="g++", cc="gcc"):
             require(observation(log, factory_original, rows) == factory_expected, "Original lvalue factory differs from oracle")
             require(observation(log, factory_migrated, rows) == factory_expected, "Migrated lvalue factory differs from oracle")
             factory_result.update(case_count=len(rows), independent_original_and_migrated_match=True)
+
+        # The two real releases implement const-lvalue construction through
+        # different overload bodies. Independently run both original programs
+        # and the standalone source-derived Hepta implementation.
+        const_source = migration["component_source"] + "\n" + (examples / "factory_const_client.hepta").read_text()
+        const_migrated, _ = build_migrated(const_source, directory, log, cc=cc, root=root,
+                                         label="const_factory_migrated")
+        const_object = directory / "const_factory_original.o"
+        const_harness = directory / "const_factory_harness.o"
+        const_original = directory / "const_factory_original"
+        command(log, [cxx, "-std=c++20", "-O2", "-fno-lto", "-DHEPTA_FACTORY_LIBRARY",
+                      "-I" + str(directory), "-I" + str(examples),
+                      "-I" + str(root / "tests/fixtures/gsl_final_action" / version / "include"),
+                      "-c", examples / "factory_const_lvalue.cpp", "-o", const_object])
+        command(log, [cc, "-std=c11", "-O2", "-DCASE_FUNCTION=original_const_factory_case",
+                      "-c", examples / "harness.c", "-o", const_harness])
+        command(log, [cxx, const_object, directory / "callback.cpp.o", const_harness, "-o", const_original])
+        const_expected = [oracle(seed, tag, 0) for seed, tag, _ in rows]
+        require(observation(log, const_original, rows) == const_expected,
+                "Original const-lvalue factory differs from independent oracle")
+        require(observation(log, const_migrated, rows) == const_expected,
+                "Migrated const-lvalue factory differs from independent oracle")
+        const_binding = [row for row in migration["report"]["lowered_operations"]
+                         if row.get("category") == "const_lvalue"]
+        require(len(const_binding) == 1, "Const-lvalue factory body was not captured once")
         report["versions"][version] = {
             "migration": migration["report"], "commands": log,
             "native_original_matches_oracle": True, "standalone_migration_matches_oracle": True,
             "hepta_and_independent_core_checked": True,
             "factory_nonconst_lvalue": "compiles_and_runs_once" if expected_compile else "compile_rejected_reference_binding",
             "migrated_factory_nonconst_lvalue": factory_result,
+            "migrated_factory_const_lvalue": {"case_count": len(rows),
+                "distinct_seed_tag_cases": len({(seed, tag) for seed, tag, _ in rows}),
+                "independent_original_and_migrated_match": True,
+                "captured_parameter_binding": const_binding[0]["parameter_binding"],
+                "original_binary_sha256": sha256(const_original.read_bytes()).hexdigest(),
+                "migrated_binary_sha256": sha256(const_migrated.read_bytes()).hexdigest(),
+                "migrated_linked_cpp_objects": []},
             "original_binary_sha256": sha256(original.read_bytes()).hexdigest(),
             "migrated_binary_sha256": sha256(migrated.read_bytes()).hexdigest(),
             "migrated_linked_cpp_objects": [], "check": checked}
+
+    # Preserve the symbol name while changing real emitted declarations and
+    # definitions. Name-only ELF inspection would miss both incompatibilities;
+    # the exact typed contract must reject before an incompatible call executes.
+    generated = (output / "4.0.0/migrated.c").read_text()
+    signature = "uint64_t migrated_case(uint64_t h_seed, uint64_t h_tag, uint32_t h_mode, uint32_t h_field)"
+    require(generated.count(signature) == 2, "Generated export declaration/definition anchor changed")
+    for label, replacement in {
+        "wrong_return_width": signature.replace("uint64_t migrated_case", "uint32_t migrated_case"),
+        "wrong_argument_signedness": signature.replace("uint32_t h_mode", "int32_t h_mode"),
+    }.items():
+        altered = output / (label + ".c")
+        altered.write_text(generated.replace(signature, replacement))
+        log = []
+        rejected = check_generated_signature(altered, output, log, cc=cc, label=label, reject=True)
+        report["negative_controls"][label] = {"detected": True, "same_export_symbol": True,
+                                               "incompatible_native_call_executed": False,
+                                               "signature": rejected, "commands": log}
 
     # Same upstream component, changed real callback source: emitter must follow
     # the new captured expression. Neither the implementation nor oracle is
@@ -249,6 +340,18 @@ def qualify(root, output, *, clang, cxx="g++", cc="gcc"):
                       "human_seconds": None, "human_seconds_status": "not_measured",
                       "generated_component_bytes": len(lowered["4.0.0"]["component_source"].encode()),
                       "authored_integration_client_bytes": len((root / "examples/cpp/gsl_final_action/client.hepta").read_bytes())}
+    report["execution_denominator"] = {
+        "cases_per_original_migrated_pair": len(rows),
+        "original_migrated_pairs": 6,
+        "positive_observation_rows": 12 * len(rows),
+        "scalar_calls_per_observation_row": 3,
+        "positive_native_scalar_calls": 36 * len(rows),
+        "const_factory_pairs": 2,
+        "const_factory_positive_native_scalar_calls": 12 * len(rows),
+        "wrong_but_linear_observation_rows": len(rows),
+        "wrong_but_linear_native_scalar_calls": 3 * len(rows),
+        "incompatible_signature_controls_called": 0,
+    }
     report["ok"] = True
     (output / "report.json").write_text(json.dumps(report, indent=2, allow_nan=False) + "\n")
     return report

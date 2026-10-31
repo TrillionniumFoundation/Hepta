@@ -29,6 +29,10 @@ void gsl_capture(GslState* state, unsigned long long tag) noexcept {
 void gsl_factory_capture(GslState* state, unsigned long long tag) noexcept {
     auto guard = gsl::finally(GslCallback{state, tag});
 }
+void gsl_const_lvalue_factory_capture(GslState* state, unsigned long long tag) noexcept {
+    const GslCallback callback{state, tag};
+    auto guard = gsl::finally(callback);
+}
 #if HEPTA_GSL_LVALUE
 void gsl_lvalue_factory_capture(GslState* state, unsigned long long tag) noexcept {
     GslCallback callback{state, tag};

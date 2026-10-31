@@ -36,6 +36,10 @@ class OptimizationRejected(ValueError):
     """Malformed inputs or a broken proof/evaluator identity fail closed."""
 
 
+class _NativeBudgetExhausted(OptimizationRejected):
+    """The admitted native image was not launched before its budget expired."""
+
+
 def _reject(message):
     raise OptimizationRejected("E_HIA_NDU: " + message)
 
@@ -199,15 +203,29 @@ def _bridge_identity(bridge):
 
 
 def _native_rank(bridge, request, *, timeout_s):
+    # Identity admission and sealing belong to this call's budget too. Starting
+    # a fresh subprocess timeout after those operations would renew spent time.
+    # The shared runner's execution timer starts after ownership checks/Popen;
+    # startup and scheduling are not preemptible here. All observed time still
+    # reaches the final search-cost gate; this is not a hard wall-clock quota.
+    deadline = time.perf_counter_ns() + int(timeout_s * 1_000_000_000)
+
+    def remaining_seconds():
+        remaining = deadline - time.perf_counter_ns()
+        if remaining <= 0:
+            raise _NativeBudgetExhausted("E_HIA_NDU: native budget exhausted before process start")
+        return remaining / 1_000_000_000
+
     image, identity = _bridge_identity(bridge)
     data = _bytes(request)
     if len(data) > 1024 * 1024:
         _reject("native request exceeds byte limit")
+    remaining_seconds()
     try:
         fd = _seal_bridge_image(image.data)
         try:
             stdout, stderr, returncode = _run_bounded_shadow(
-                ["/proc/self/fd/" + str(fd)], data, timeout_s,
+                ["/proc/self/fd/" + str(fd)], data, remaining_seconds(),
                 maximum_output=1024 * 1024 + 1, pass_fds=(fd,))
         finally:
             os.close(fd)
@@ -337,8 +355,9 @@ def rank_candidates(baseline, candidates, observations, *, function, bridge, obj
             remaining_margin = base_lower * calls - candidate_upper - spent_lower
             # Already paid cost cannot decrease. These tests may refuse work,
             # never approve a candidate or claim behavioral equivalence.
-            # Keep canonical admission and measurement bindings above, and the
-            # real native advisory invocation below, even when all are pruned.
+            # Keep canonical admission and measurement bindings above. Native
+            # advice below is available only inside the same remaining budget;
+            # retaining the incumbent never needs a fabricated NDU receipt.
             report["preproof_cost_lower_bound_ns"] = spent_lower
             report["proof_remaining_budget_ns"] = remaining_budget
             report["proof_remaining_margin_ns"] = remaining_margin
@@ -382,9 +401,21 @@ def rank_candidates(baseline, candidates, observations, *, function, bridge, obj
                      "support_sha256": _digest(report)})
     request = {"schema": "hepta.hia.ndu-request.v1", "objective_sha256": objective_sha,
                "generation": generation, "resource_cap_q32": ns_to_ms_q32(cap), "candidates": rows}
-    response, bridge_info = _native_rank(bridge, request, timeout_s=bridge_timeout_s)
-    selected = response["advisory_recommendation"] or "abstain"
-    final_proof, reason = None, "native_evaluator_abstained"
+    remaining_native_ns = cap - supplied_search_ns - (time.perf_counter_ns() - started)
+    native_admission = {"invoked": False, "remaining_budget_ns": remaining_native_ns,
+                        "timeout_s": None, "reason": "search_budget_exhausted_before_native"}
+    response, bridge_info, selected = None, None, "abstain"
+    final_proof, reason = None, native_admission["reason"]
+    if remaining_native_ns > 0:
+        native_admission["timeout_s"] = min(bridge_timeout_s, remaining_native_ns / 1_000_000_000)
+        try:
+            response, bridge_info = _native_rank(bridge, request, timeout_s=native_admission["timeout_s"])
+        except _NativeBudgetExhausted:
+            native_admission["reason"] = reason = "native_identity_admission_exhausted_budget"
+        else:
+            native_admission.update(invoked=True, reason="actual_native_response_received")
+            selected = response["advisory_recommendation"] or "abstain"
+            reason = "native_evaluator_abstained"
     final_proof_admission = None
     if selected != "abstain":
         if selected not in checked:
@@ -438,6 +469,7 @@ def rank_candidates(baseline, candidates, observations, *, function, bridge, obj
                       "publication_preparation_included": False},
             "candidate_reports": candidate_reports, "selected_fresh_proof": final_proof,
             "selected_proof_admission": final_proof_admission,
+            "native_rank_admission": native_admission,
             "native_request": request, "request_sha256": sha256(_bytes(request)).hexdigest(),
             "native_response": response, "bridge": bridge_info,
             "claims": {"ndu_is_advisory": True, "unproved_candidate_admitted": False,
