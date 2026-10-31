@@ -248,5 +248,52 @@ class CMigrationAdversarial(unittest.TestCase):
         self.assertFalse(self.output.exists())
 
 
+    def test_oversized_flat_function_ast_fails_closed(self):
+        # A shallow function with thousands of sibling statements bypasses
+        # the depth-only guard. The converter must reject its node budget.
+        from hepta.c_migrate import MigrationRejected, _function
+
+        statement = {"kind": "ReturnStmt",
+                     "inner": [{"kind": "IntegerLiteral", "value": "1"}]}
+        declaration = {
+            "kind": "FunctionDecl",
+            "name": "f",
+            "type": {"qualType": "int (void)"},
+            "inner": [{"kind": "CompoundStmt",
+                       "inner": [statement for _ in range(2200)]}],
+        }
+        with self.assertRaises(MigrationRejected) as rejected:
+            _function(declaration, {"sizeof_long": 8})
+        self.assertEqual(rejected.exception.code, "E_C_AST_BUDGET")
+
+    def test_small_function_ast_still_translates(self):
+        from hepta.c_migrate import _function
+
+        declaration = {
+            "kind": "FunctionDecl",
+            "name": "f",
+            "type": {"qualType": "int (void)"},
+            "inner": [{"kind": "CompoundStmt",
+                       "inner": [{"kind": "ReturnStmt",
+                                  "inner": [{"kind": "IntegerLiteral", "value": "1"}]}]}],
+        }
+        result = _function(declaration, {"sizeof_long": 8})
+        self.assertEqual(result["name"], "f")
+        self.assertIn("return 1;", result["source"])
+
+    def test_malformed_function_ast_children_fail_closed(self):
+        from hepta.c_migrate import MigrationRejected, _function
+
+        declaration = {
+            "kind": "FunctionDecl",
+            "name": "f",
+            "type": {"qualType": "int (void)"},
+            "inner": [{"kind": "CompoundStmt", "inner": "not-a-node-list"}],
+        }
+        with self.assertRaises(MigrationRejected) as rejected:
+            _function(declaration, {"sizeof_long": 8})
+        self.assertEqual(rejected.exception.code, "E_C_AST")
+
+
 if __name__ == "__main__":
     unittest.main()
