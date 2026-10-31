@@ -1,0 +1,163 @@
+{
+  "assumptions": "Brownian log state; deterministic first barrier; causal affine checkpoint barrier; second barrier frozen until horizon; gain range [-0.75,0.75]; 2 periods; no multi-reset",
+  "cases": [
+    {
+      "bridge_abs_z": 0.5297113662033768,
+      "bridge_hits": 40068,
+      "bridge_probability": 0.250425,
+      "bridge_standard_error": 0.0010831444945591285,
+      "case": "content_feedback_positive",
+      "first_gaussian_tail_upper_bound": 0.0,
+      "gauss_abs_gap": 8.881784197001252e-16,
+      "gauss_prob": 0.2509987539500095,
+      "mc_n": 160000,
+      "parameters": {
+        "b1": 0.0,
+        "b2_level": 0.4,
+        "diffusion": 0.65,
+        "drift": 0.08,
+        "gain": 0.32,
+        "t1": 0.75,
+        "t2": 0.9,
+        "x0": 1.15
+      },
+      "quad_error_estimate": 1.5790303678975326e-12,
+      "quad_prob": 0.2509987539500086
+    },
+    {
+      "bridge_abs_z": 0.7005865477668254,
+      "bridge_hits": 13326,
+      "bridge_probability": 0.0832875,
+      "bridge_standard_error": 0.0006907907260150772,
+      "case": "feedback_negative",
+      "first_gaussian_tail_upper_bound": 0.0,
+      "gauss_abs_gap": 1.5543122344752192e-15,
+      "gauss_prob": 0.08280354131003331,
+      "mc_n": 160000,
+      "parameters": {
+        "b1": 0.0,
+        "b2_level": -0.5,
+        "diffusion": 0.65,
+        "drift": 0.08,
+        "gain": -0.45,
+        "t1": 0.75,
+        "t2": 0.9,
+        "x0": 1.15
+      },
+      "quad_error_estimate": 5.013320405273491e-12,
+      "quad_prob": 0.08280354131003176
+    },
+    {
+      "bridge_abs_z": 1.3068875608468757,
+      "bridge_hits": 87757,
+      "bridge_probability": 0.54848125,
+      "bridge_standard_error": 0.0012441100443651414,
+      "case": "high_jump_negative_drift",
+      "first_gaussian_tail_upper_bound": 0.0,
+      "gauss_abs_gap": 6.661338147750939e-16,
+      "gauss_prob": 0.5501071619413062,
+      "mc_n": 160000,
+      "parameters": {
+        "b1": 0.0,
+        "b2_level": 0.6,
+        "diffusion": 0.65,
+        "drift": -0.18,
+        "gain": 0.45,
+        "t1": 0.75,
+        "t2": 0.9,
+        "x0": 1.15
+      },
+      "quad_error_estimate": 6.752683033354669e-12,
+      "quad_prob": 0.5501071619413055
+    },
+    {
+      "bridge_abs_z": 1.012466485365722,
+      "bridge_hits": 68163,
+      "bridge_probability": 0.42601875,
+      "bridge_standard_error": 0.001236241214954725,
+      "case": "high_jump_positive_drift",
+      "first_gaussian_tail_upper_bound": 0.0,
+      "gauss_abs_gap": 2.7755575615628914e-15,
+      "gauss_prob": 0.42727040279797224,
+      "mc_n": 160000,
+      "parameters": {
+        "b1": 0.0,
+        "b2_level": 0.9,
+        "diffusion": 0.65,
+        "drift": 0.3,
+        "gain": 0,
+        "t1": 0.75,
+        "t2": 0.9,
+        "x0": 1.15
+      },
+      "quad_error_estimate": 9.53916551742139e-13,
+      "quad_prob": 0.42727040279796946
+    },
+    {
+      "bridge_abs_z": 0.18672814886235178,
+      "bridge_hits": 21528,
+      "bridge_probability": 0.13455,
+      "bridge_standard_error": 0.0008531057140677233,
+      "case": "stationary_barrier",
+      "closed_form_fixed_boundary_prob": 0.13439070114922844,
+      "first_gaussian_tail_upper_bound": 0.0,
+      "gauss_abs_gap": 1.1102230246251565e-15,
+      "gauss_prob": 0.13439070114922935,
+      "mc_n": 160000,
+      "parameters": {
+        "b1": 0,
+        "b2_level": 0,
+        "diffusion": 0.65,
+        "drift": 0.08,
+        "gain": 0,
+        "t1": 0.75,
+        "t2": 0.9,
+        "x0": 1.15
+      },
+      "quad_error_estimate": 2.495658719502569e-12,
+      "quad_prob": 0.13439070114922824
+    }
+  ],
+  "environment": {
+    "cuda_available": false,
+    "numpy": "2.3.5",
+    "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "python": "3.13.5",
+    "scipy": "1.17.0",
+    "torch": "2.10.0+cpu"
+  },
+  "implementation": "research-only standalone CPU FP64, no upstream production dependencies",
+  "limitations": [
+    "No original coupled He-Xiong equity/QVI proof",
+    "No interval-certified quadrature error",
+    "No parameter-shifted neural model or trained memory gain",
+    "No independent external trust-root or observer signature",
+    "No target GPU or energy data",
+    "No multimodal encoders",
+    "No matched FLOP/slope causal benefit"
+  ],
+  "preregistration": false,
+  "production_activation": false,
+  "scalar_cpu_latency": {
+    "scipy_adaptive_quad": {
+      "median_ms": 7.186826,
+      "n": 110,
+      "p95_ms": 8.0238496,
+      "p99_ms": 8.62512069
+    },
+    "torch_256_node_fp64": {
+      "median_ms": 0.1882275,
+      "n": 110,
+      "p95_ms": 0.2739203499999999,
+      "p99_ms": 0.40357326999999976
+    }
+  },
+  "scientific_status": "OPEN",
+  "source_sha256": {
+    "research/hcsn/p2_checkpoint_boundary_evidence.py": "2c4617f978193f0c9d2c2504198066a298be765c5a3ccaa8ee8d0133e9ac5e4f",
+    "research/hcsn/p2_checkpoint_boundary_oracle.py": "3597259f8e258a57168c973d86e39d3b61366ea769528a191bb5d4e8e3e1d7c5",
+    "research/hcsn/test_p2_checkpoint_boundary_oracle.py": "97e9102c7af51af7d2b166cf32b3cc89ec8c0dc9ce1f0e66ffed7fff6d00b234"
+  },
+  "strict_gate": "NO_GO",
+  "study_class": "exploratory"
+}
