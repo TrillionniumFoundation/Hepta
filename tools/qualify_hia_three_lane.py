@@ -52,9 +52,9 @@ SUITES = {
         "tests.test_hia_schema_unification",
         "tests.test_hia_agent_assembly",
         "tests.test_hia_routes",
-        "tests.test_hia_agent_public_tools",
     ),
     "llvm": (
+        "tests.test_hia_agent_public_tools",
         "tests.test_hia_program_llvm",
         "tests.test_hia_composite_abi",
         "tests.test_hia_native_differential",

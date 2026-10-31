@@ -56,15 +56,20 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes clang-20 libclang-rt-20-dev llvm-20 lld-20 build-essential
           printf '%s\n' /usr/lib/llvm-20/bin >> "$GITHUB_PATH"
-      - name: Pin actual Rust 1.95.0 and verify direct LLVM backend toolchains
+      - name: Pin Hepta source reference rustc 1.90.0 and verify direct LLVM toolchains
         run: |
           set -eu
-          rustup toolchain install 1.95.0 --profile minimal
-          printf 'RUSTC=%s\n' "$(rustup which --toolchain 1.95.0 rustc)" >> "$GITHUB_ENV"
+          rustup toolchain install 1.90.0 --profile minimal
+          printf 'RUSTC=%s\n' "$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_ENV"
           "$CLANG" --version
           clang++-20 --version
-          rustup run 1.95.0 rustc --version
+          rustup run 1.90.0 rustc --version
           python --version
+      - name: Install exact project-level proof / native support packages
+        run: |
+          set -eu
+          python -m pip install --disable-pip-version-check -e '.[optimization]' 'zstandard==0.25.0'
+          python -c 'import z3; print("Z3", z3.get_version_string())'
       - name: Run VM vs directly generated LLVM x86/AArch64 object and ABI matrix
         run: |
           set -eu

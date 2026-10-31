@@ -47,3 +47,23 @@ power-loss production qualification remains OPEN.
 
 The original PR #464 same-SHA green 105 Core + 13 ELF/replay + 13 Rust tests
 cannot be relabelled as this branch's pass.
+
+## Failed first-host tests and corrected source/toolchain ownership
+
+Candidate `da2276d062e5d0213d5b7b70f503513cb5aa72b9` failed the first strict workflow
+[41183633403](https://github.com/TrillionniumFoundation/Hepta/actions/runs/41183633403).
+One Agent/HIA native CLI test required real Clang 20 but was placed in the
+lightweight legacy lane (Clang 18). That exact test is now moved to the
+**mandatory Clang-20 LLVM suite**, not dropped or skipped. The original
+118-test result remains failed.
+
+The LLVM end-to-end source replay refused `E_LLVM_SSA_REFERENCE` because
+`hepta.backend.RUST_VERSION` is exactly **1.90.0**, while the separate
+independent Rust byte-DAG shadow in PR #464 requires **1.95.0**. These two
+compiler identities are distinct. The corrected native-source job installs
+1.90.0 and preserves the 1.95.0 prior qualifier unchanged. The LLVM20 apt
+signature/fingerprint check is unchanged. Exact project Z3 and zstandard
+are installed to make the migration tests eligible without skips.
+
+No acceptance from the previous failed head transfers to the new SHA. All
+P0–P7 production gates stay OPEN.
