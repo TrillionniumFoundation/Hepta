@@ -20,6 +20,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Install exact-lock proof dependency (zero skips required)
+        run: |
+          set -eu
+          python -m pip install --disable-pip-version-check 'z3-solver==4.15.4.0'
+          python -c 'import z3; print("Pinned Z3", z3.get_version_string())'
       - name: Run strict receipt writer adversarial and real test-identity gate
         run: |
           set -eu
