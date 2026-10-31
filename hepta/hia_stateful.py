@@ -175,6 +175,33 @@ class _Work:
     iterations: int
 
 
+_QUEUE_ITEM_KEYS = frozenset({"slot", "delta", "iterations"})
+
+
+def _snapshot_queue_work_item(item):
+    """Capture one bounded caller-owned work item before validating/using it.
+
+    Producer dictionaries are outside the runtime lock. Their key set must not
+    be checked before subsequently fetching values from that same mutable dict.
+    Copy no more than three entries; validate, hash and execute only the frozen
+    scalar values. This is not an atomic snapshot of unrelated producer writes.
+    """
+    if type(item) is not dict or len(item) > 3:
+        raise AdaptiveRejected("E_STATE_QUEUE: exact slot/delta/iterations fields required")
+    captured = {}
+    try:
+        for key, value in item.items():
+            if (type(key) is not str or key not in _QUEUE_ITEM_KEYS
+                    or key in captured or len(captured) >= 3):
+                raise AdaptiveRejected("E_STATE_QUEUE: exact slot/delta/iterations fields required")
+            captured[key] = value
+    except RuntimeError as exc:
+        raise AdaptiveRejected("E_STATE_QUEUE: caller work item changed during capture") from exc
+    if set(captured) != _QUEUE_ITEM_KEYS:
+        raise AdaptiveRejected("E_STATE_QUEUE: exact slot/delta/iterations fields required")
+    return captured["slot"], captured["delta"], captured["iterations"]
+
+
 class _Lease:
     __slots__ = ("_runtime", "_token")
 
@@ -479,13 +506,11 @@ class OwnedAdaptiveRuntime(AdaptiveRuntime):
                 raise AdaptiveRejected("E_STATE_QUEUE: one pending queue and 32 retained queues maximum")
             work = []
             for item in items:
-                if type(item) is not dict or set(item) != {"slot", "delta", "iterations"}:
-                    raise AdaptiveRejected("E_STATE_QUEUE: exact slot/delta/iterations fields required")
-                slot, iterations = item["slot"], item["iterations"]
+                slot, delta, iterations = _snapshot_queue_work_item(item)
                 if (type(slot) is not int or not 0 <= slot < self._size or type(iterations) is not int
                         or not 1 <= iterations <= _MAX_STEPS):
                     raise AdaptiveRejected("E_STATE_QUEUE: invalid finite slot or iteration count")
-                work.append(_Work(slot, _u64(item["delta"]), iterations))
+                work.append(_Work(slot, _u64(delta), iterations))
             if sum(item.iterations for item in work) > _MAX_STEPS:
                 raise AdaptiveRejected("E_STATE_QUEUE: finite committed work budget exceeded")
             frozen = tuple(work)

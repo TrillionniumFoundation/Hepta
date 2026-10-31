@@ -1,0 +1,53 @@
+name: HIA P7 owned queue bounded detached intake
+on:
+  push:
+    branches: [work/hia-p7-queue-intake-snapshot-20261031-gpt6]
+  pull_request:
+    branches: [work/hia-exact-run-test-identity-20261031-gpt6]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  queue-freeze-and-native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      CLANG: /usr/bin/clang-20
+      HEPTA_CLANG: /usr/bin/clang-20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Execute bounded queue/identity adversarial controls without native dependency
+        run: |
+          set -eu
+          python -B -m unittest tests.test_hia_stateful_queue_capture -v
+      - name: Install pinned LLVM 20 and trusted proof dependency for genuine owner test
+        run: |
+          set -eu
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/hepta-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key
+          fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hepta-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')
+          test "$fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+          sudo install -m 0644 "$RUNNER_TEMP/hepta-llvm.asc" /usr/share/keyrings/hepta-llvm.asc
+          printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hepta-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hepta-llvm20.list
+          sudo apt-get update
+          sudo apt-get install -y clang-20 libclang-rt-20-dev llvm-20 lld-20 build-essential
+          python -m pip install --disable-pip-version-check -e '.[optimization]' 'zstandard==0.25.0'
+          test -x "$CLANG"
+          python -c 'import z3; print("Z3", z3.get_version_string())'
+      - name: Reproduce original native owner and execute post-capture producer mutation
+        run: |
+          set -eu
+          python -B -m unittest tests.test_hia_stateful.OwnedNativeTests.test_real_native_owner_uses_detached_work_even_after_producer_clears_dict -v
+          python -B -m unittest tests.test_hia_stateful.OwnedNativeTests.test_queue_hash_binds_copied_work_after_producer_mutates_during_admission -v
+      - name: Source/canonical safety and clean-worktree check
+        run: |
+          set -eu
+          python -B -m unittest tests.test_hia_program -v
+          python -B -m py_compile hepta/hia_stateful.py tests/test_hia_stateful_queue_capture.py tests/test_hia_stateful.py
+          git diff --exit-code
