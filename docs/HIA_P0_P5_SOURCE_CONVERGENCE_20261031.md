@@ -29,3 +29,25 @@ Dedicated scoped GitHub workflow reruns every suite against the **merged source*
 All HIA P0-P7 production stages remain **OPEN** pending exact final source safety, refinement, Rust/LLVM/ABI and resource qualification. Existing native NDU full-cost disadvantages are preserved; no real positive NDU benefit, independent observation attestation, task-general Agent productivity gain, or production activation is claimed.
 
 Authority: `DENY_ALL`. Safety certificate: `false`. Activation: `false`.
+
+## First integrated run and scoped Lean corrective action
+
+Exact merged commit `4929f9261e487702f2b6fd32b38d06e85ce1caa4` completed
+[the scoped integration run](https://github.com/TrillionniumFoundation/Hepta/actions/runs/41182461635)
+successfully: Core/intake 64 tests passed, catalog/assembly/register 36 completed
+with **2 intentionally skipped Lean-only methods**, and cost/native 21+13 tests passed.
+The two skips **are not** theorem qualification; do not silently relabel the job as
+P1 proof passing.
+
+The successor integration workflow explicitly runs `RegisterSafetyInputTests`
+(no bypass/skip) and a *separate, nonoptional* pinned Lean 4.19.0 job. Its
+`formal/toolchain-lock.json` archive and executable digests must match,
+the original selected Core and optimized Core must pass the Lean kernel,
+three independently mutated candidate obligations must fail as expected,
+and 272 actual interpreter comparison cases must be retained. The exact
+source and formal dependency hashes and positive/negative evidence
+are uploaded as independent artifacts. A network/toolchain failure
+remains a failed or incomplete gate; no synthetic/local-only fallback.
+The formal theorem is limited to the selected straight-line wrapping u32
+register machine. This **does not** prove general provenance, owners, FFI,
+LLVM/native semantics, or whole-language safety.

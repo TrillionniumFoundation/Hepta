@@ -20,7 +20,7 @@ jobs:
         run: |
           set -eu
           python -B -m unittest tests.test_hia_bounded_input_utf8 tests.test_hia_bounded_mutable_snapshot tests.test_hia_program tests.test_hia_json_preflight tests.test_hia_program_composite -v
-          python -B -m unittest tests.test_hia_opcode_catalog tests.test_hia_agent_assembly tests.test_hia_register_safety -v
+          python -B -m unittest tests.test_hia_opcode_catalog tests.test_hia_agent_assembly tests.test_hia_register_safety.RegisterSafetyInputTests -v
           python tools/generate_hia_catalog.py --check
       - name: Source identity and syntax
         run: |
@@ -45,3 +45,39 @@ jobs:
           python -B -m unittest tests.test_hia_native_process_observer tests.test_hia_native_paired_replay -v
       - name: Source identity
         run: git diff --exit-code
+  pinned-register-lean:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fetch exact pinned Lean and its declared proof dependencies
+        run: |
+          set -eu
+          python -m pip install --disable-pip-version-check zstandard==0.23.0
+          python -B tools/bootstrap_verification.py --lean-only --directory "$RUNNER_TEMP/hepta-tools"
+      - name: Verify actual selected Core rewrite and three rejected mutations
+        run: |
+          set -eu
+          python -B tools/qualify_hia_register_safety.py --lean "$RUNNER_TEMP/hepta-tools/lean-4.19.0/bin/lean" --output-directory "$RUNNER_TEMP/hia-register-proof"
+          python -B - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          result = json.loads((Path(os.environ["RUNNER_TEMP"]) / "hia-register-proof/qualification.json").read_text())
+          assert result["ok"] is True and result["status"] == "passed"
+          assert len(result["negative_controls"]) == 3
+          assert len(result["vm_cases"]) == 272
+          assert result["claims"]["whole_language_soundness_proved"] is False
+          assert result["claims"]["backend_or_machine_code_refinement_proved"] is False
+          PY
+      - name: Preserve exact native-kernel proof and negative evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-selected-register-lean-evidence
+          path: ${{ runner.temp }}/hia-register-proof
+          if-no-files-found: warn
+          retention-days: 14
