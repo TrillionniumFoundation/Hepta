@@ -23,6 +23,7 @@ import tempfile
 import time
 
 from hepta.hia_bounded_wire import WireBudgetExceeded, checked_utf8_wire
+from hepta.hia_json_preflight import preflight_hia_json
 from hepta.hia_full_cost_gate import SCHEMA as COST_SCHEMA, assess_full_cost
 
 SCHEMA = "hepta.hia.native-observation-registration.v1"
@@ -84,7 +85,10 @@ def _parse(raw):
         wire = raw if type(raw) is bytes else checked_utf8_wire(raw, MAX_MANIFEST)
         if len(wire) > MAX_MANIFEST:
             _reject("registration exceeds byte budget")
-        data = json.loads(wire.decode("utf-8"), object_pairs_hook=_pairs,
+        source = wire.decode("utf-8")
+        # Enforce node and nesting limits before allocating the JSON value tree.
+        preflight_hia_json(source, max_nodes=65536, max_depth=64)
+        data = json.loads(source, object_pairs_hook=_pairs,
                           parse_constant=lambda _: _reject("nonfinite JSON"))
     except WireBudgetExceeded:
         _reject("registration exceeds byte budget")
