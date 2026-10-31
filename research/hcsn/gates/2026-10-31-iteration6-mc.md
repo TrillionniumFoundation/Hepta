@@ -34,7 +34,7 @@ Exact Git blob SHAs (verified GitHub file contents against locally run byte-iden
 | `test_first_passage_mc.py` | `4f483eed6351b57236ff71b872c4178032083982` |
 | `p0_mc_evidence.py` | `a27745b97c8f2e4c6bff9c9afdea86fd6326bf0e` |
 
-Local panel JSON SHA256: `23ef33a4e3fe454ad50323d9226679014662746752adbae46006bd72ce056b73` (the file is an execution artifact, not embedded in the PR).
+Local panel JSON SHA256: `4c19c65ea818ba02cd3ba1387aeab8051f753bf5810074fa02441c3f373e9848` (the file is an execution artifact, not embedded in the PR).
 
 ## Blocker disposition, no overstated closure
 
