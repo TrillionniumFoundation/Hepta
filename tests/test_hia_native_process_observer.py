@@ -13,6 +13,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from hepta.hia_full_cost_gate import assess_full_cost
 from tools.hia_native_process_observer import (
@@ -132,6 +133,15 @@ class HIANNativeProcessObservationTests(unittest.TestCase):
         self.assertNotIn("full_cost_input", report)
         self.assertNotIn("full_cost_verdict", report)
         self.assertEqual(len(report["raw_samples"]["baseline"]["task00"]), 1)
+
+    def test_loader_environment_cannot_forge_changed_execution(self):
+        with patch.dict(os.environ, {"LD_PRELOAD": "/definitely/no/injected.so",
+                                     "LD_LIBRARY_PATH": "/untrusted/library/path"}):
+            report = observe(wire(self.registration()))
+        self.assertTrue(report["complete"])
+        for arm in report["raw_samples"].values():
+            self.assertTrue(all(sample["stderr_bytes"] == 0
+                                for samples in arm.values() for sample in samples))
 
     def test_timeout_is_failed_trial_not_fast_candidate(self):
         data = self.registration()
