@@ -130,6 +130,26 @@ def _json_string_bytes(value, remaining):
     return size
 
 
+def _bounded_input_utf8_bytes(text):
+    """Count encoded JSON-input bytes without materializing the entire wire.
+
+    HIA accepts at most MAX_BYTES of UTF-8 input.  Encoding a large caller
+    string just to check its size creates an unbounded pre-admission copy.
+    Exact built-in str values are immutable; count them in bounded chunks.
+    Each encoded temporary is at most 16 KiB (4096 Unicode code points).
+    """
+    if len(text) > MAX_BYTES:
+        _reject("program exceeds byte budget", "E_HIA_LIMIT")
+    if text.isascii():
+        return len(text)
+    total = 0
+    for offset in range(0, len(text), 4096):
+        total += len(text[offset:offset + 4096].encode("utf-8"))
+        if total > MAX_BYTES:
+            _reject("program exceeds byte budget", "E_HIA_LIMIT")
+    return total
+
+
 def _structure(value):
     """Count exact canonical JSON bytes AND nodes before json.dumps.
 
@@ -276,8 +296,7 @@ def _decode(value):
                 _reject("program exceeds byte budget", "E_HIA_LIMIT")
             value = value.decode("utf-8")
         if type(value) is str:
-            if len(value.encode("utf-8")) > MAX_BYTES:
-                _reject("program exceeds byte budget", "E_HIA_LIMIT")
+            _bounded_input_utf8_bytes(value)
             # Enforce structural limits before json.loads allocates a complete
             # object graph. This is a syntax preflight, not a second parser or
             # a shortcut around the canonical v7/composite Core verifier.
