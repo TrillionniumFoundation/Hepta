@@ -166,7 +166,7 @@ class HIANNativeProcessObservationTests(unittest.TestCase):
     def test_valid_magic_but_unloadable_elf_retains_spawn_failure(self):
         data = self.registration()
         malformed = self.path / "unloadable"
-        malformed.write_bytes(b"\\x7fELF" + b"\\0" * 128)
+        malformed.write_bytes(b"\x7fELF" + b"\0" * 128)
         data["arms"][0]["binary_path"] = str(malformed)
         data["arms"][0]["binary_digest"] = digest(malformed.read_bytes())
         report = observe(wire(data))
