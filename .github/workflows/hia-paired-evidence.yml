@@ -31,7 +31,8 @@ jobs:
         run: |
           set -eu
           python -B -m unittest tests.test_hia_paired_holdout -v
-          python -B -m py_compile hepta/hia_paired_holdout.py tests/test_hia_paired_holdout.py tools/qualify_hia_paired_holdout.py
+          python -B -m unittest tests.test_hia_native_paired_replay -v
+          python -B -m py_compile hepta/hia_paired_holdout.py hepta/hia_native_paired_replay.py tests/test_hia_paired_holdout.py tests/test_hia_native_paired_replay.py tools/qualify_hia_paired_holdout.py
       - name: Exercise atomic receipt and fail-closed nonpositive CLI
         run: |
           set -eu
