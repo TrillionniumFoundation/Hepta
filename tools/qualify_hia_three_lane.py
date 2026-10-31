@@ -8,6 +8,7 @@ an immutable per-run receipt with explicit negative outcomes.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import platform
@@ -23,6 +24,7 @@ if str(ROOT) not in sys.path:
 
 
 SUITES = {
+    "gate": ("tests.test_hia_three_lane_gate",),
     "core": (
         "tests.test_hia_bounded_mutable_snapshot",
         "tests.test_hia_bounded_input_utf8",
@@ -73,20 +75,52 @@ def git(*args: str) -> str:
     return subprocess.check_output(["git", *args], text=True, timeout=10).strip()
 
 
+def _planned_test_ids(suite) -> tuple[str, ...]:
+    """Freeze the exact discovered tests before unittest may consume the suite."""
+    ids = []
+    stack = [suite]
+    while stack:
+        current = stack.pop()
+        if isinstance(current, unittest.TestSuite):
+            stack.extend(reversed(list(current)))
+        else:
+            if not callable(getattr(current, "id", None)):
+                raise ValueError("non-TestCase discovery entry")
+            ids.append(current.id())
+    return tuple(ids)
+
+
+def _outcome_admissible(result, planned_ids, *, immutable: bool) -> bool:
+    """Strict pure gate; expectedFailures and missing/duplicated tests refuse."""
+    return bool(
+        immutable and planned_ids
+        and len(set(planned_ids)) == len(planned_ids)
+        and result.testsRun == len(planned_ids)
+        and result.wasSuccessful()
+        and not result.errors and not result.failures and not result.skipped
+        and not result.expectedFailures and not result.unexpectedSuccesses
+    )
+
+
 def check(scope: str, output: Path) -> dict:
     if scope not in SUITES:
         raise ValueError("unknown exact cross-lane suite")
-    # Reuse only frozen code under one Git commit. A dirty tracked worktree is
-    # not a qualified source. Tests additionally recheck this after execution.
-    if git("status", "--porcelain", "--untracked-files=no"):
-        raise ValueError("tracked source tree modified before cross-lane gate")
+    # Reject both tracked modifications and untracked material inside the
+    # repository: test discovery must not silently import an extra local file.
+    if git("status", "--porcelain", "--untracked-files=all"):
+        raise ValueError("source checkout dirty before cross-lane gate")
     head = git("rev-parse", "HEAD")
     tree = git("rev-parse", "HEAD^{tree}")
     suite = unittest.defaultTestLoader.loadTestsFromNames(SUITES[scope])
+    planned_ids = _planned_test_ids(suite)
     result = unittest.TextTestRunner(stream=sys.stderr, verbosity=2).run(suite)
-    dirty_after = bool(git("status", "--porcelain", "--untracked-files=no"))
-    passed = bool(result.testsRun > 0 and result.wasSuccessful()
-                  and not result.skipped and not dirty_after)
+    status_after = git("status", "--porcelain", "--untracked-files=all")
+    head_after = git("rev-parse", "HEAD")
+    tree_after = git("rev-parse", "HEAD^{tree}")
+    dirty_after = bool(status_after)
+    identity_drift = (head_after != head or tree_after != tree)
+    passed = _outcome_admissible(
+        result, planned_ids, immutable=(not dirty_after and not identity_drift))
     receipt = {
         "schema": "hepta.hia.three-lane-test-receipt.v1",
         "source_commit": head,
@@ -94,11 +128,18 @@ def check(scope: str, output: Path) -> dict:
         "scope": scope,
         "test_modules": list(SUITES[scope]),
         "tests_executed": result.testsRun,
+        "tests_planned": len(planned_ids),
+        "planned_test_ids_sha256": hashlib.sha256(json.dumps(
+            planned_ids, separators=(",", ":"), ensure_ascii=False).encode("utf-8")).hexdigest(),
+        "duplicate_test_identity": len(planned_ids) != len(set(planned_ids)),
+        "expected_failures": [test.id() for test, _ in result.expectedFailures],
         "errors": [test.id() for test, _ in result.errors],
         "failures": [test.id() for test, _ in result.failures],
         "skipped": [{"test": test.id(), "reason": reason}
                     for test, reason in result.skipped],
         "unexpected_successes": [test.id() for test in result.unexpectedSuccesses],
+        "source_identity_drift": identity_drift,
+        "worktree_dirty_after": dirty_after,
         "tracked_source_mutated": dirty_after,
         "python_version": platform.python_version(),
         "passed": passed,
@@ -116,8 +157,9 @@ def check(scope: str, output: Path) -> dict:
     with output.open("x", encoding="utf-8") as target:
         target.write(json.dumps(receipt, ensure_ascii=False, sort_keys=True, indent=2) + "\n")
     print(json.dumps({k: receipt[k] for k in ("scope", "source_commit",
-          "source_tree", "tests_executed", "errors", "failures", "skipped",
-          "tracked_source_mutated", "passed", "authority")}, sort_keys=True))
+          "source_tree", "tests_planned", "tests_executed", "errors", "failures",
+          "skipped", "expected_failures", "duplicate_test_identity",
+          "source_identity_drift", "worktree_dirty_after", "passed", "authority")}, sort_keys=True))
     return receipt
 
 

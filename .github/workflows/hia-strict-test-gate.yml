@@ -1,0 +1,37 @@
+name: HIA strict source/test qualification gate self-audit
+on:
+  push:
+    branches:
+      - work/hia-proof-test-gate-hardening-20261031-gpt6
+  pull_request:
+    branches:
+      - work/hia-p0-p3-native-legacy-matrix-20261031-gpt6
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  zero-skip-and-tamper-controls:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Confirm frozen source identity and self-test exact negative controls
+        run: |
+          set -eu
+          python -B -m tools.qualify_hia_three_lane --suite gate --output /tmp/hia-test-gate-receipt.json
+          python -B -m py_compile tools/qualify_hia_three_lane.py tests/test_hia_three_lane_gate.py
+          git diff --exit-code
+      - name: Retain exact commit and fail-closed receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-strict-gate-${{ github.sha }}
+          path: /tmp/hia-test-gate-receipt.json
+          if-no-files-found: error
