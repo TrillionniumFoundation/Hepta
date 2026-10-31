@@ -1,5 +1,18 @@
 # Checked abstract core and cross-execution tools
 
+## Common exit accounting model
+
+`hia_exit_accounting.py` independently models byte-allocation, empty-owner,
+loan, release and stopped-prefix counters over mathematical integers. Run
+`python tools/verify_hia_exit_accounting.py --output /tmp/hia-exit-accounting`
+with Z3 available. The runner retains 15 inductive/exit queries, their 15
+nonvacuity checks and four countermodels to broken rules; unknown answers fail.
+It does not import the production interpreter. Its aggregate drop guards do
+not prove individual-owner borrow safety, implementation correspondence or
+machine-integer overflow. This is solver evidence with Z3 in the trust base,
+not an extension of the Lean-kernel results below. See the
+[shared observation contract](../docs/HIA_COMMON_EXIT_OBSERVATION.md).
+
 ## Allocation identity and typed expression core
 
 `HeptaMemory.lean` adds 19 kernel-checked theorems. Its explicit memory model

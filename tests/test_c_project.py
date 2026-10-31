@@ -382,13 +382,30 @@ class CProjectMigrationTests(unittest.TestCase):
         self.rejected("int f(void *value,void *other){int *p;p=(int*)value;p=(int*)other;return *p;}", "E_C_LVALUE", self.fixed_integer_contract(2))
 
     def test_fixed_length_and_contract_selector_schema_fail_closed(self):
-        for length in (0, 2, True, -1):
+        for length in (0, 65537, True, -1):
             contract = self.fixed_integer_contract()
             contract["functions"]["f"]["slices"]["0"]["length"] = length
             self.rejected("int f(void *value){return *((int*)value);}", "E_C_POINTER_CONTRACT", contract)
         contract = self.fixed_integer_contract()
         contract["functions"]["f"]["slices"]["value"] = dict(contract["functions"]["f"]["slices"]["0"])
         self.rejected("int f(void *value){return *((int*)value);}", "E_C_POINTER_CONTRACT", contract)
+
+    def test_fixed_two_element_contract_preserves_extent_without_native_claim(self):
+        contract = self.fixed_integer_contract()
+        contract["functions"]["f"]["slices"]["0"]["length"] = 2
+        self.project({"input.c": "int f(void *value){return *((int*)value);}"})
+        report = self.migrate(contract)
+        self.assertTrue(report["ok"], report.get("diagnostics"))
+        self.assertEqual(report["functions"][0]["params"][0]["length"], 2)
+        self.assertEqual(report["frontend_validation"], "passed")
+        self.assertEqual(report["status"], "frontend_checked_not_native_qualified")
+        self.assertEqual(report["native_validation"], "not_run")
+        self.assertEqual(report["differential_execution"], "not_run")
+        self.assertFalse(report["claims"]["foreign_pointer_validity_checked"])
+        self.assertIn("assert((2 as usize) <= len(read p_value))",
+                      (self.output / "source.hepta").read_text())
+        self.assertIn("let n_b_value = 2 as usize;",
+                      (self.output / "bridge.rs").read_text())
 
     def test_documentation_does_not_enable_semantic_attributes(self):
         self.rejected("/** an integer */ __attribute__((noinline)) int f(int x){return x;}", "E_C_ATTRIBUTE")

@@ -1,0 +1,69 @@
+name: HIA three-lane P0-P1-P5 integration qualification
+on:
+  push:
+    branches:
+      - work/hia-crosslane-p0-p1-p5-20261031-gpt6
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integrated-python-and-native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Rebuild/check single HIA instruction catalog
+        run: |
+          set -eu
+          python tools/generate_hia_catalog.py --check
+      - name: Execute source-exact P0, P1 and P5 semantic/resource adversarial matrix
+        run: |
+          set -eu
+          python -B -m unittest \
+            tests.test_hia_bounded_mutable_snapshot \
+            tests.test_hia_bounded_input_utf8 \
+            tests.test_hia_bounded_research_wire \
+            tests.test_hia_program \
+            tests.test_hia_json_preflight \
+            tests.test_hia_program_composite \
+            tests.test_hia_execution_contract \
+            tests.test_hia_exit_accounting \
+            tests.test_hia_opcode_catalog \
+            tests.test_hia_full_cost_gate \
+            tests.test_hia_paired_holdout -v
+      - name: Run actual C/ELF observer and raw native paired replay
+        run: |
+          set -eu
+          python -B -m unittest tests.test_hia_native_process_observer tests.test_hia_native_paired_replay -v
+      - name: Check Python source and no test-induced mutation
+        run: |
+          set -eu
+          python -B -m py_compile hepta/hia_program.py hepta/hia_program_runtime.py hepta/hia_opcodes.py hepta/hia_bounded_wire.py
+          git diff --exit-code
+
+  independent-rust-shadow:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Record native toolchain provenance
+        run: |
+          set -eu
+          python --version
+          rustc --version
+          cargo --version
+          clang --version
+      - name: Run independent Rust shadow / bounded ledger tests without bypass
+        run: |
+          set -eu
+          python -B -m unittest tests.test_hia_rust_byte_dag -v
+      - name: Recheck tracked source
+        run: git diff --exit-code

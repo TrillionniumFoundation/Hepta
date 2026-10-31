@@ -13,6 +13,7 @@ from .hia_program import (HIAProgramRejected, OWNERS, RESOURCES, SCALARS, WIDTHS
                           integer_range, scalar_value_valid, verify_program)
 from .hia_bounded_memory import fill_bytes, move_bytes
 from .hia_schema import supports_feature
+from .hia_opcodes import ExecutionObservationRejected, validate_execution_observation
 
 
 class HIAProgramTrap(ArithmeticError):
@@ -488,10 +489,18 @@ class _Machine:
             current = target["id"]
 
     def report(self, function, status, values=None, error=None):
+        resources = self.resources()
+        try:
+            validate_execution_observation(status, resources, steps=self.steps,
+                max_steps=self.max_steps, max_heap_bytes=self.max_heap_bytes,
+                error_code=error.code if error is not None else None,
+                with_chains=self.recursive_chain, allow_host_memory=True)
+        except ExecutionObservationRejected as exc:
+            raise HIAProgramRejected(str(exc), "E_HIA_RUNTIME_INVARIANT") from exc
         result = {"schema": "hepta.hia.program-execution.v1", "status": status,
                   "program_sha256": self.program.sha256, "function": function,
                   "input_sha256": self.program.input_sha256,
-                  "steps": self.steps, "resources": self.resources(),
+                  "steps": self.steps, "resources": resources,
                   "word_bits": 64, "source_used": False,
                   "claims": {"finite_core_execution": True,
                              "whole_language_soundness_proved": False,

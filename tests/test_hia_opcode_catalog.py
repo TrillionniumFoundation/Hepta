@@ -52,6 +52,23 @@ class OpcodeCatalogTests(unittest.TestCase):
             with self.assertRaises(OpcodeRejected):
                 opcode_catalog(unknown)
 
+    def test_versioned_type_groups_never_offer_types_rejected_by_that_version(self):
+        for version in range(1, 9):
+            catalog = opcode_catalog(f"hepta.hia.program.v{version}")
+            visible = set(catalog["types"])
+            for group, members in catalog["type_groups"].items():
+                with self.subTest(version=version, group=group):
+                    self.assertLessEqual(set(members), visible)
+            self.assertEqual("chain" in catalog["type_groups"]["owner"], version >= 7)
+        document = m(f("empty", [], [], ["alloc"], [b("entry", [], [
+            i("chain.empty", [], [("owned", "chain")]), i("owner.drop", ["owned"]),
+        ], ret())]))
+        document["schema"] = "hepta.hia.program.v6"
+        with self.assertRaises(HIAProgramRejected):
+            verify_program(document)
+        document["schema"] = "hepta.hia.program.v7"
+        self.assertEqual(execute_program(document, "empty", [])["status"], "returned")
+
     def test_generated_docs_and_cli_are_the_actual_catalog(self):
         self.assertEqual((ROOT / "docs/HIA_OPCODE_REFERENCE.md").read_text(), render_opcode_reference())
         self.assertEqual(json.loads((ROOT / "docs/hia-opcode-catalog.v8.json").read_text()),
