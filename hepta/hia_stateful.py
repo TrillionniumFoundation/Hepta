@@ -603,7 +603,8 @@ class OwnedAdaptiveRuntime(AdaptiveRuntime):
             self._queues[token] = {"items": frozen, "sha256": _digest([
                 {"slot": item.slot, "delta": item.delta, "iterations": item.iterations} for item in frozen]),
                                    "status": "submitted",
-                                   "revision": self._revision, "owner": self._owner_id,
+                                   "revision": self._revision, "generation": self._generation,
+                                   "owner": self._owner_id,
                                    "initial_values": self._values(), "receipt": None}
             self._unamortized_preparation_ns += time.monotonic_ns() - started
             return token

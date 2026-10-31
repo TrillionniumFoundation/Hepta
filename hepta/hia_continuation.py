@@ -25,6 +25,8 @@ def continue_owned_queue(runtime, token):
                 raise AdaptiveRejected("E_STATE_CONTINUATION: only a cancelled, unclaimed queue may continue")
             if runtime._active or runtime._loans:
                 raise AdaptiveRejected("E_STATE_BUSY: continuation requires no native call or live loan")
+            if row["generation"] != runtime._generation:
+                raise AdaptiveRejected("E_STATE_FENCE: cancelled queue belongs to a stale owner generation")
             if len(runtime._queues) >= 32 or any(
                     other["status"] in {"submitted", "running"} for other in runtime._queues.values()):
                 raise AdaptiveRejected("E_STATE_QUEUE: one pending queue and 32 retained queues maximum")
@@ -63,6 +65,7 @@ def continue_owned_queue(runtime, token):
                 "items": frozen, "sha256": _digest([
                     {"slot": item.slot, "delta": item.delta, "iterations": item.iterations} for item in frozen]),
                 "status": "submitted", "revision": runtime._revision,
+                "generation": runtime._generation,
                 "owner": runtime._owner_id, "initial_values": values, "receipt": None,
                 "continuation": continuation,
             }
