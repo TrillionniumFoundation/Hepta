@@ -182,7 +182,7 @@ class OwnedNativeTests(unittest.TestCase):
             loan.write(0, 19)
             with self.assertRaises(AdaptiveRejected):
                 loan.write(0, None)
-        with self.assertRaisesRegex(AdaptiveRejected, "owner changed"):
+        with self.assertRaisesRegex(AdaptiveRejected, "E_STATE_FENCE: owner generation, revision or identity changed since queue submission"):
             runtime.execute_committed(queue)
         self.assertEqual(runtime.queue_status(queue)["status"], "stale")
         self.assertEqual(runtime.snapshot()["state_values"], [19, 17])
