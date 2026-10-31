@@ -82,6 +82,12 @@ def validate_execution_observation(status, ledger, *, steps, max_steps, max_heap
     need(0 <= nonempty <= live and nonempty <= ledger["live_bytes"]
          and (nonempty == 0) == (ledger["live_bytes"] == 0),
          "live payload is inconsistent with live allocation/owner counts")
+    # The VM increases peak payload only after a successful nonempty owner
+    # allocation. Zero successful allocations implies zero peak, and any
+    # successful nonempty allocation makes the historical peak positive,
+    # even if every owner was subsequently dropped.
+    need((allocated == 0) == (ledger["peak_bytes"] == 0),
+         "peak payload contradicts the successful nonempty allocation history")
     need(ledger["loans_ended"] <= ledger["loans_started"]
          and ledger["live_local_loans"] == ledger["loans_started"] - ledger["loans_ended"],
          "local loan conservation differs")
