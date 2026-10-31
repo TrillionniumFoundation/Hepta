@@ -19,6 +19,7 @@ def fake_runtime():
     runtime._state_open = lambda: None
     runtime._queues = {}
     runtime._revision = 0
+    runtime._generation = 0
     runtime._owner_id = "frozen-owner"
     runtime._size = 2
     runtime._values = lambda: (11, 17)
