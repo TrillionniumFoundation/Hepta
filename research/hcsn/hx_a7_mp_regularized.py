@@ -7,7 +7,10 @@ Not a GPU activation or globally certified financial contract.
 from __future__ import annotations
 import math
 import mpmath as mp
-from .hx_original import HXParams, closed_boundary
+try:
+    from .hx_original import HXParams, closed_boundary
+except ImportError:
+    from hx_original import HXParams, closed_boundary
 
 def equity_a7_mp(v:float,p:HXParams,boundary:float|None=None,*,dps:int=75)->float:
     if not isinstance(dps,int) or not 40<=dps<=250:
