@@ -27,8 +27,6 @@ def continue_owned_queue(runtime, token):
                 raise AdaptiveRejected("E_STATE_CONTINUATION: only a cancelled, unclaimed queue may continue")
             if runtime._active or runtime._loans:
                 raise AdaptiveRejected("E_STATE_BUSY: continuation requires no native call or live loan")
-            if row["generation"] != runtime._generation:
-                raise AdaptiveRejected("E_STATE_FENCE: cancelled queue belongs to a stale owner generation")
             if len(runtime._queues) >= 32 or any(
                     other["status"] in {"submitted", "running"} for other in runtime._queues.values()):
                 raise AdaptiveRejected("E_STATE_QUEUE: one pending queue and 32 retained queues maximum")
@@ -37,6 +35,20 @@ def continue_owned_queue(runtime, token):
             total = sum(item.iterations for item in row["items"])
             if type(progress) is not int or not 0 <= progress < total:
                 raise AdaptiveRejected("E_STATE_CONTINUATION: a known incomplete native prefix is required")
+            # A cancelled but unexecuted queue is irrevocably bound to its
+            # submitted generation. A real, partially executed prefix may be
+            # rebound only across ONE verified image switch while the same
+            # native owner, exact values and committed revision remain intact.
+            # This is a live-process scalar-only rebind, not replay authority.
+            generation_changed = row["generation"] != runtime._generation
+            verified_partial_switch = (
+                type(receipt) is dict and progress > 0
+                and type(row.get("version")) is str
+                and receipt.get("version") == row["version"]
+                and runtime._current != row["version"]
+                and runtime._generation == row["generation"] + 1)
+            if generation_changed and not verified_partial_switch:
+                raise AdaptiveRejected("E_STATE_FENCE: cancelled queue belongs to a stale owner generation")
             values = runtime._values()
             expected_values = tuple(receipt["final_values"]) if receipt is not None else row["initial_values"]
             if (row["owner"] != runtime._owner_id or runtime._revision != row["revision"] + progress
@@ -61,6 +73,9 @@ def continue_owned_queue(runtime, token):
                 "prior_executed_steps": ancestry.get("prior_executed_steps", 0) + progress,
                 "parent_executed_steps": progress,
                 "remaining_steps": total - progress,
+                "parent_execution_generation": row["generation"],
+                "registered_generation": runtime._generation,
+                "rebound_after_verified_image_switch": bool(generation_changed),
                 "same_live_owner": True, "external_effect_replay_authority": False,
             }
             registered = {

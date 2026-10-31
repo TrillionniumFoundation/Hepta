@@ -1,0 +1,67 @@
+name: HIA P7 verified partial-native continuation rebind (research)
+on:
+  push:
+    branches: [work/hia-p7-verified-partial-rebind-20261031-gpt6audit]
+  pull_request:
+    branches: [work/hia-p7-queue-candidate-admission-20261031-gpt6]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  generation-rebind-exact-head:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    env:
+      CLANG: /usr/bin/clang-20
+      HEPTA_CLANG: /usr/bin/clang-20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Record exact source
+        run: |
+          git rev-parse HEAD
+          git rev-parse HEAD^{tree}
+          git status --porcelain --untracked-files=all
+      - name: Pin native toolchain and verification dependencies
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/hepta-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key
+          fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hepta-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')
+          test "$fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+          sudo install -m 0644 "$RUNNER_TEMP/hepta-llvm.asc" /usr/share/keyrings/hepta-llvm.asc
+          printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hepta-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hepta-llvm20.list
+          sudo apt-get update
+          sudo apt-get install -y clang-20 libclang-rt-20-dev llvm-20 lld-20 build-essential
+          python -m pip install --disable-pip-version-check -e '.[optimization]' 'zstandard==0.25.0'
+          test -x "$CLANG"
+          python -c 'import z3; print("Z3", z3.get_version_string())'
+      - name: Adversarial rebind, real native continuation, image and generation safety
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B -m unittest tests.test_hia_p7_verified_partial_rebind tests.test_hia_continuation tests.test_hia_stateful_generation_fence tests.test_hia_image_token_admission tests.test_hia_queue_candidate_admission -v 2>&1 | tee "$RUNNER_TEMP/hia-p7-rebind-native.log"
+          if grep -qE 'skipped|expected failure|unexpected success' "$RUNNER_TEMP/hia-p7-rebind-native.log"; then exit 1; fi
+      - name: Source-exact independent P0/P1/P5 and native Core checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B -m tools.qualify_hia_three_lane --suite core --output "$RUNNER_TEMP/hia-p7-rebind-core.json"
+          python -B -m tools.qualify_hia_three_lane --suite native --output "$RUNNER_TEMP/hia-p7-rebind-verifier.json"
+          python -B -m py_compile hepta/hia_stateful.py hepta/hia_continuation.py hepta/hia_queue_commit.py tests/test_hia_p7_verified_partial_rebind.py
+          git diff --exit-code
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hia-p7-partial-generation-rebind-exact-head
+          path: |
+            ${{ runner.temp }}/hia-p7-rebind-native.log
+            ${{ runner.temp }}/hia-p7-rebind-core.json
+            ${{ runner.temp }}/hia-p7-rebind-verifier.json
+          if-no-files-found: warn
