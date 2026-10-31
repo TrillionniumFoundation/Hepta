@@ -1,7 +1,11 @@
 """Regression for the high-precision removable A7 limit."""
 import unittest
-from .hx_a7_mp_regularized import equity_a7_mp
-from .hx_original import HXParams, closed_boundary, equity_green
+try:
+    from .hx_a7_mp_regularized import equity_a7_mp
+    from .hx_original import HXParams, closed_boundary, equity_green
+except ImportError:
+    from hx_a7_mp_regularized import equity_a7_mp
+    from hx_original import HXParams, closed_boundary, equity_green
 
 class A7HighPrecisionTests(unittest.TestCase):
     def test_zero_hazard_matches_independent_equity_green(self):
