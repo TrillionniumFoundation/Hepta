@@ -29,9 +29,11 @@ def execute_owned_queue(self, token, *, candidate=None, rounds=5, sample_limit=2
                 raise AdaptiveRejected("E_STATE_REPLAY: only a registered unexecuted queue may run")
             if self._active or self._loans:
                 raise AdaptiveRejected("E_STATE_BUSY: native calls or aliases prevent queue execution")
-            if row["revision"] != self._revision or row["owner"] != self._owner_id:
+            if (row["generation"] != self._generation or row["revision"] != self._revision
+                    or row["owner"] != self._owner_id):
                 row["status"] = "stale"
-                raise AdaptiveRejected("E_STATE_STALE: owner changed since work was committed")
+                raise AdaptiveRejected("E_STATE_FENCE: owner generation, revision or identity changed since queue submission")
+            registered_generation = row["generation"]
             candidate_cost = self._unamortized_preparation_ns
             original, measurement, selected, reason = self._plan_queue(
                 row, candidate, rounds=rounds, sample_limit=sample_limit,
@@ -44,6 +46,11 @@ def execute_owned_queue(self, token, *, candidate=None, rounds=5, sample_limit=2
                 self._event("state_queue_started", token=token, steps=sum(item.iterations for item in row["items"]),
                             selected=selected, reason=reason)
                 queue_overhead = time.monotonic_ns() - preparation_started
+                # A new image may be selected by this *same* queue's verified
+                # planning transaction. Bind any continuation to the version
+                # actually activated, not to the old registration generation.
+                # External pre-activation switches were rejected above.
+                row["generation"] = self._generation
                 row["version"] = self._current
                 row["status"] = "running"
                 self._unamortized_preparation_ns = 0
@@ -56,6 +63,7 @@ def execute_owned_queue(self, token, *, candidate=None, rounds=5, sample_limit=2
             except BaseException:
                 self._active = active_before
                 row["status"] = "submitted"
+                row["generation"] = registered_generation
                 row.pop("version", None)
                 self._event_count, self._event_counts, self._events = start_snapshot
                 self._unamortized_preparation_ns = candidate_cost
@@ -81,6 +89,7 @@ def execute_owned_queue(self, token, *, candidate=None, rounds=5, sample_limit=2
                 self._active = active_before
                 if not application_started:
                     row["status"] = "submitted"
+                    row["generation"] = registered_generation
                     row.pop("version", None)
                     self._event_count, self._event_counts, self._events = start_snapshot
                     self._unamortized_preparation_ns = candidate_cost
