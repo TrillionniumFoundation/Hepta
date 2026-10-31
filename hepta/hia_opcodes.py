@@ -116,6 +116,11 @@ def validate_execution_observation(status, ledger, *, steps, max_steps, max_heap
         if status == "budget_exceeded" and allow_host_memory:
             permitted |= {"host_memory"}
         need(type(error_code) is str and error_code in permitted, "unknown or misclassified stop code")
+    # The step count is a receipt-shape field just like ledger counters.
+    # Python numeric comparisons would otherwise admit True, 1.0 or 1.5 as
+    # plausible stopped execution steps; reject before any comparisons.
+    need(type(steps) is int and 1 <= steps <= max_steps + 1,
+         "execution steps must be exact integers within the declared tick limit")
     tick_stop = status == "budget_exceeded" and error_code == "steps"
     need(steps == max_steps + 1 if tick_stop else 1 <= steps <= max_steps,
          "tick count contradicts the execution outcome")

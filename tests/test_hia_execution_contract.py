@@ -173,6 +173,40 @@ class SharedExecutionContractTests(unittest.TestCase):
                         error_code="heap", with_chains=True,
                     )
 
+    def test_execution_step_count_requires_exact_integer_on_trap_and_tick_stop(self):
+        # These are real VM reports; a wire observation must not replace an
+        # integer tick count with a bool, float or other non-integer type.
+        trapped = observe(held_program(), "held", [4, 4])
+        self.assertEqual((trapped["status"], trapped["error"]["code"]),
+                         ("trapped", "bounds"))
+        trap_policy = dict(steps=trapped["steps"], max_steps=1_000_000,
+                           max_heap_bytes=16 * 1024 * 1024, error_code="bounds")
+        validate_execution_observation(trapped["status"], trapped["resources"],
+                                       **trap_policy)
+        for invalid in (True, 1.0, 1.5, "1", None):
+            with self.subTest(outcome="trapped", invalid=repr(invalid)):
+                with self.assertRaisesRegex(ExecutionObservationRejected,
+                                            "execution steps must be exact integers"):
+                    validate_execution_observation(
+                        trapped["status"], trapped["resources"],
+                        **{**trap_policy, "steps": invalid})
+
+        stopped = observe(held_program(), "held", [4, 0], max_steps=3)
+        self.assertEqual((stopped["status"], stopped["error"]["code"]),
+                         ("budget_exceeded", "steps"))
+        self.assertEqual(stopped["steps"], 4)
+        stop_policy = dict(steps=stopped["steps"], max_steps=3,
+                           max_heap_bytes=16 * 1024 * 1024, error_code="steps")
+        validate_execution_observation(stopped["status"], stopped["resources"],
+                                       **stop_policy)
+        # A floating point value numerically equal to max_steps + 1 used to
+        # pass the tick-stop equality check.
+        with self.assertRaisesRegex(ExecutionObservationRejected,
+                                    "execution steps must be exact integers"):
+            validate_execution_observation(
+                stopped["status"], stopped["resources"],
+                **{**stop_policy, "steps": 4.0})
+
     def test_unknown_misclassified_nonexact_and_extra_observations_fail_closed(self):
         result = observe(held_program(), "held", [4, 4])
         ledger = result["resources"]

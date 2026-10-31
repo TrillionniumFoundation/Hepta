@@ -29,6 +29,13 @@ self-contradictory wire observations.
 | Injected host scratch allocation failure in Python bulk operations | `budget_exceeded`, `host_memory` | A Python-only evaluator stop; this code is not accepted from the Rust profile. |
 
 Unknown statuses, error codes, fields and nonexact integer counters reject.
+The execution `steps` field is also an **exact Python integer** (not `bool` or
+`float`), with `1 <= steps <= max_steps` for ordinary return/trap/other quota
+outcomes. A tick-quota stop alone requires exactly `steps == max_steps + 1`,
+still an integer. This prevents `True`, `1.0`, and fractional ticks from
+passing Python numeric comparison and avoids leaking `TypeError` for nonnumbers.
+These are wire-shape checks, not a guarantee that a producer reported its true
+execution count; the independent source and binary identity requirements remain.
 The validator checks allocation/owner conservation, exact loan start/end
 conservation, existence of a live byte owner for any live local loan, positive
 payload consistency, peak/live heap policy, and the exact step-stop boundary.
