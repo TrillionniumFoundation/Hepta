@@ -17,7 +17,7 @@ OBSERVER_SCHEMA = "hepta.hia.native-observation.v1"
 MAX_REPORT_BYTES = 8 * 1024 * 1024
 ARMS = ("baseline", "fixed", "dp", "ndu")
 EMPTY_SHA256 = sha256(b"").hexdigest()
-_HEX_DIGEST = re.compile(r"[0-9a-f]{64}\\Z")
+_HEX_DIGEST = re.compile(r"[0-9a-f]{64}\Z")
 
 
 class NativePairedReplayRejected(ValueError):
