@@ -1,0 +1,64 @@
+name: HIA native-cost observer (Linux scoped)
+on:
+  push:
+    branches:
+      - work/hia-native-observer-20261031-gpt6
+  pull_request:
+    branches:
+      - work/hia-p0-p7-full-cost-evidence-20261031-gpt6
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  measured-elf-negatives:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify actual C compiler and Linux wait4
+        run: |
+          set -eu
+          gcc --version
+          python -c "import os,sys; assert sys.platform == 'linux' and hasattr(os, 'wait4')"
+      - name: Compile and run all four real ELF strategies and adversarial trials
+        run: |
+          set -eu
+          python -B -m unittest tests.test_hia_native_process_observer -v
+          python -B -m unittest tests.test_hia_full_cost_gate -v
+      - name: Retain independently replayable C ELF measurements and SHA-256 identities
+        run: |
+          set -eu
+          python -B tools/qualify_hia_native_observer_smoke.py --output-dir "$RUNNER_TEMP/hia-native-observer-proof"
+          python -B - <<'PY'
+          import hashlib, json, os, pathlib
+          root = pathlib.Path(os.environ["RUNNER_TEMP"]) / "hia-native-observer-proof"
+          manifest = json.loads((root / "EVIDENCE_MANIFEST.json").read_bytes())
+          assert manifest["authority"] == "DENY_ALL"
+          assert manifest["production_activation_allowed"] is False
+          for name, entry in manifest["files"].items():
+              content = (root / name).read_bytes()
+              assert len(content) == entry["bytes"]
+              assert hashlib.sha256(content).hexdigest() == entry["sha256"]
+          report = json.loads((root / "observations.json").read_bytes())
+          assert report["complete"] is True
+          assert report["full_cost_verdict"]["economic_scope_positive"] is False
+          PY
+      - name: Check Python syntax and scoped source cleanliness
+        run: |
+          set -eu
+          python -B -m py_compile tools/hia_native_process_observer.py tests/test_hia_native_process_observer.py tools/qualify_hia_native_observer_smoke.py
+          git diff --exit-code -- tools/hia_native_process_observer.py tests/test_hia_native_process_observer.py
+
+      - name: Preserve exact registered sources, raw process observations and binaries
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-native-cost-observer-evidence
+          path: ${{ runner.temp }}/hia-native-observer-proof/
+          if-no-files-found: warn
+          retention-days: 14
