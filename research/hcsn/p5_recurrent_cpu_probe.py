@@ -1,13 +1,16 @@
-"""P5 CPU complete synthetic recurrent-head forward probe, not full encoder.
+"""P5 subgate CPU *complete recurrent-head forward* timing and hard events.
 
-Includes recurrent state and logits; excludes pretrained encoder, I/O, GPU,
-hardware energy and fused kernels. Records raw timing samples, process RSS
-high-water and explicit missing energy. CPU-only research evidence.
+This is end-to-end from synthetic sequence features through recurrent head
+and logits; it does NOT include a real modality encoder, input IO, GPU, power
+or optimized fused kernels.  All raw iterations, CPU time and process peak
+RSS are exposed to avoid false claims of energy or large-model throughput.
 """
 from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
+import os
 from pathlib import Path
 import platform
 import resource
@@ -22,13 +25,13 @@ except ImportError:
 
 def run_cpu_probe(n_list=(64,256,1024,4096),lengths=(30,60),repeats=30):
     if repeats<10 or not n_list or not lengths:
-        raise ValueError('Need repeatable sample sizes')
+        raise ValueError('Need repeatable CPU sample sizes')
     torch.set_num_threads(1)
     torch.manual_seed(20261031)
     nets={'analytic':RegenerativeRNN(mode='analytic'),
           'ordinary':RegenerativeRNN(mode='ordinary'),
           'gru':ResetGRU()}
-    for model in nets.values():model.eval()
+    for m in nets.values():m.eval()
     results=[]
     for length in lengths:
         for n in n_list:
@@ -36,15 +39,16 @@ def run_cpu_probe(n_list=(64,256,1024,4096),lengths=(30,60),repeats=30):
             for name,net in nets.items():
                 with torch.inference_mode():
                     for _ in range(4):net(x)
-                    wall=[];cpu=[];finite=True
+                    t=[]; cpu=[]; finite=True
                     for _ in range(repeats):
-                        t0=time.perf_counter_ns();c0=time.process_time_ns()
+                        t0=time.perf_counter_ns()
+                        c0=time.process_time_ns()
                         y=net(x)
                         cpu.append(time.process_time_ns()-c0)
-                        wall.append(time.perf_counter_ns()-t0)
+                        t.append(time.perf_counter_ns()-t0)
                         finite=finite and bool(torch.isfinite(y).all())
                     assert finite
-                t_arr=np.asarray(wall,dtype=np.float64)/1e6
+                t_arr=np.asarray(t,dtype=np.float64)/1e6
                 cpu_arr=np.asarray(cpu,dtype=np.float64)/1e6
                 results.append({'architecture':name,'batch':n,'length':length,
                     'trainable_parameters':sum(p.numel() for p in net.parameters()),
