@@ -79,6 +79,23 @@ falsely claiming one or two completed node destructions without any frees;
 those stopped summaries must refuse. A real successful chain cancellation
 provides the positive release control.
 
+Recursive nodes also require a **historical chain-token lifecycle**, not merely
+a sufficient number of byte allocations. Every node creation occurs inside a
+push on an already-created chain generation; each completed node destruction
+is preceded by consuming a chain generation (either through pop or, during
+iterative drop, after the earlier successful pushes). The additional necessary
+cumulative constraints are `chain_nodes_created <= chains_created` and
+`chain_nodes_dropped <= chains_consumed`.
+
+Two stopped-prefix regression controls first retain actual VM heap and tick
+quota reports, then forge the chain-generation counters while preserving
+their internal creation/consumption equation. The previous independent node,
+byte, and owner equations alone cannot detect those cases. The new checks
+reject them without requiring a live chain token for nodes held by an
+**interrupted iterative destructor**. These inequalities are necessary
+receipt-consistency conditions, not a sufficient full operational semantics
+or a cryptographic attestation of the emitting process.
+
 This is **a consistency constraint on declared receipts**, not evidence of an
 honest remote producer, memory-address provenance, whole-runtime proof, or
 native machine-code equivalence. Malformed reports do not gain authority.
