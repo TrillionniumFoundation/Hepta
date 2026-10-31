@@ -207,6 +207,57 @@ class SharedExecutionContractTests(unittest.TestCase):
                 stopped["status"], stopped["resources"],
                 **{**stop_policy, "steps": 4.0})
 
+    def test_chain_node_counts_require_historical_chain_events(self):
+        # Every node was created by pushing into an existing live chain token.
+        # Every completed node removal belongs to a previously consumed chain
+        # generation. These are cumulative necessary VM accounting facts, not
+        # a claim that an arbitrary wire producer is honest.
+        from tests.test_hia_recursive_chain import doc
+
+        stopped = observe(doc(), "chain_cancel", [2], max_heap_bytes=25)
+        self.assertEqual((stopped["status"], stopped["error"]["code"]),
+                         ("budget_exceeded", "heap"))
+        ledger = stopped["resources"]
+        self.assertGreater(ledger["chain_nodes_created"], 0)
+        policy = dict(steps=stopped["steps"], max_steps=1_000_000,
+                      max_heap_bytes=25, error_code="heap", with_chains=True)
+        validate_execution_observation(stopped["status"], ledger, **policy)
+        forged = deepcopy(ledger)
+        forged.update(chains_created=0, chains_consumed=0, live_chains=0)
+        self.assertEqual(forged["live_chains"],
+                         forged["chains_created"] - forged["chains_consumed"])
+        self.assertGreater(forged["chain_nodes_created"], forged["chains_created"])
+        with self.assertRaisesRegex(ExecutionObservationRejected,
+                                    "chain node history lacks corresponding chain token events"):
+            validate_execution_observation(stopped["status"], forged, **policy)
+
+        # The real iterative destructor has removed some nodes before its
+        # step budget stops it, so a receipt cannot erase the historic chain
+        # consumption while retaining the completed node-removal count.
+        completed = observe(doc(), "chain_cancel", [17])
+        self.assertEqual(completed["status"], "returned")
+        stopped_drop = observe(doc(), "chain_cancel", [17],
+                               max_steps=completed["steps"] - 10)
+        self.assertEqual((stopped_drop["status"], stopped_drop["error"]["code"]),
+                         ("budget_exceeded", "steps"))
+        destroyed = stopped_drop["resources"]
+        self.assertGreater(destroyed["chain_nodes_dropped"], 0)
+        drop_policy = dict(steps=stopped_drop["steps"],
+                           max_steps=completed["steps"] - 10,
+                           max_heap_bytes=16 * 1024 * 1024,
+                           error_code="steps", with_chains=True)
+        validate_execution_observation(stopped_drop["status"], destroyed, **drop_policy)
+        forged_drop = deepcopy(destroyed)
+        forged_drop["chains_consumed"] = destroyed["chain_nodes_dropped"] - 1
+        forged_drop["live_chains"] = (forged_drop["chains_created"]
+                                       - forged_drop["chains_consumed"])
+        self.assertGreater(forged_drop["chain_nodes_dropped"],
+                           forged_drop["chains_consumed"])
+        with self.assertRaisesRegex(ExecutionObservationRejected,
+                                    "chain node history lacks corresponding chain token events"):
+            validate_execution_observation(stopped_drop["status"], forged_drop,
+                                           **drop_policy)
+
     def test_unknown_misclassified_nonexact_and_extra_observations_fail_closed(self):
         result = observe(held_program(), "held", [4, 4])
         ledger = result["resources"]
