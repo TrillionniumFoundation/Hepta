@@ -63,6 +63,15 @@ fixture has one live node, two nonempty allocations and 25 live bytes.
 Mutants that lower the same stopped ledger to 2 or 23 live bytes must refuse,
 even though they satisfy the older count-only equations.
 
+A successful node creation also requires a distinct nonempty storage
+allocation, and a completed node destruction frees its nonempty storage owner.
+Therefore `chain_nodes_created <= allocations` and
+`chain_nodes_dropped <= frees` are mandatory cumulative invariants. A new
+negative case preserves the live-node, live-byte and owner equations while
+falsely claiming one or two completed node destructions without any frees;
+those stopped summaries must refuse. A real successful chain cancellation
+provides the positive release control.
+
 This is **a consistency constraint on declared receipts**, not evidence of an
 honest remote producer, memory-address provenance, whole-runtime proof, or
 native machine-code equivalence. Malformed reports do not gain authority.
