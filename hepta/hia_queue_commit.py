@@ -29,9 +29,10 @@ def execute_owned_queue(self, token, *, candidate=None, rounds=5, sample_limit=2
                 raise AdaptiveRejected("E_STATE_REPLAY: only a registered unexecuted queue may run")
             if self._active or self._loans:
                 raise AdaptiveRejected("E_STATE_BUSY: native calls or aliases prevent queue execution")
-            if row["revision"] != self._revision or row["owner"] != self._owner_id:
+            if (row.get("generation") != self._generation
+                    or row["revision"] != self._revision or row["owner"] != self._owner_id):
                 row["status"] = "stale"
-                raise AdaptiveRejected("E_STATE_STALE: owner changed since work was committed")
+                raise AdaptiveRejected("E_STATE_STALE: owner changed since work was committed (generation/revision fence)")
             candidate_cost = self._unamortized_preparation_ns
             original, measurement, selected, reason = self._plan_queue(
                 row, candidate, rounds=rounds, sample_limit=sample_limit,
@@ -45,6 +46,10 @@ def execute_owned_queue(self, token, *, candidate=None, rounds=5, sample_limit=2
                             selected=selected, reason=reason)
                 queue_overhead = time.monotonic_ns() - preparation_started
                 row["version"] = self._current
+                # An internally authorized selection may advance generation
+                # during _plan_queue. Record the actual execution generation
+                # for later partial-work continuation, not the old intake one.
+                row["execution_generation"] = self._generation
                 row["status"] = "running"
                 self._unamortized_preparation_ns = 0
                 self._active += 1
@@ -57,6 +62,7 @@ def execute_owned_queue(self, token, *, candidate=None, rounds=5, sample_limit=2
                 self._active = active_before
                 row["status"] = "submitted"
                 row.pop("version", None)
+                row.pop("execution_generation", None)
                 self._event_count, self._event_counts, self._events = start_snapshot
                 self._unamortized_preparation_ns = candidate_cost
                 try:
