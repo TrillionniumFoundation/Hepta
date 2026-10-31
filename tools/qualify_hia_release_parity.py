@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 from datetime import datetime, timezone
 import json
+import math
 import os
 from pathlib import Path
 import platform
@@ -57,7 +58,40 @@ def bindings():
     return values
 
 
+def _validate_release_registration(spec):
+    """Reject vacuous or nonfinite cohorts before set-based coverage checks.
+
+    A duplicate registration can collapse into one element of the expected
+    set; an empty axis can make both all([]) acceptance gates appear green.
+    Keep both complete training and independent holdout compulsory.
+    """
+    if type(spec) is not dict or spec.get("backends") != ["c", "cpp", "rust", "hia"]:
+        raise ValueError("E_RELEASE_COHORT: exact four-backend registration required")
+    for name, low, high in (("training_sizes", 1, 65536),
+                             ("holdout_sizes", 1, 65536),
+                             ("training_seeds", 0, (1 << 32) - 1),
+                             ("holdout_seeds", 0, (1 << 32) - 1)):
+        values = spec.get(name)
+        if (type(values) is not list or not values
+                or any(type(value) is not int or not low <= value <= high for value in values)
+                or len(values) != len(set(values))):
+            raise ValueError("E_RELEASE_COHORT: invalid or duplicate " + name)
+    samples = spec.get("samples")
+    if type(samples) is not int or not 1 <= samples <= 65536:
+        raise ValueError("E_RELEASE_COHORT: invalid native sample count")
+    gate = spec.get("performance_gate")
+    required = {"hia_median_ratio_maximum", "hia_tail_ratio_maximum",
+                "all_baselines_and_sizes_required"}
+    if type(gate) is not dict or set(gate) != required or gate["all_baselines_and_sizes_required"] is not True:
+        raise ValueError("E_RELEASE_COHORT: incomplete registered performance gate")
+    for name in ("hia_median_ratio_maximum", "hia_tail_ratio_maximum"):
+        value = gate[name]
+        if type(value) not in (int, float) or not math.isfinite(value) or value <= 0:
+            raise ValueError("E_RELEASE_COHORT: nonfinite or invalid " + name)
+
+
 def assess(rows, spec):
+    _validate_release_registration(spec)
     expected = {(phase, backend, n, seed)
                 for phase in ("training", "holdout") for backend in spec["backends"]
                 for n in spec[phase+"_sizes"] for seed in spec[phase+"_seeds"]}
