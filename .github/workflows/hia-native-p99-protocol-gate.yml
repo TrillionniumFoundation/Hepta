@@ -1,0 +1,87 @@
+name: HIA P0 native NDU p99 and protocol acceptance (research DENY_ALL)
+
+on:
+  push:
+    branches:
+      - research/hia-native-p99-protocol-gate-20261031-gpt6
+  pull_request:
+    paths:
+      - tools/qualify_hia_native_ndu.py
+      - tests/test_hia_native_performance_tail_gate.py
+      - .github/workflows/hia-native-p99-protocol-gate.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-economics-admission:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pin exact source and execute finite negative acceptance controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/hia-native-tail-gate"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          git rev-parse 'HEAD^{tree}' | tee "$RUNNER_TEMP/hia-native-tail-gate/tree.txt"
+          sha256sum tools/qualify_hia_native_ndu.py tests/test_hia_native_performance_tail_gate.py \
+            | tee "$RUNNER_TEMP/hia-native-tail-gate/file-hashes.txt"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          python -B - <<'PY' 2>&1 | tee "$RUNNER_TEMP/hia-native-tail-gate/tests.log"
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName("tests.test_hia_native_performance_tail_gate")
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          sha = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          tree = subprocess.check_output(["git", "rev-parse", "HEAD^{tree}"], text=True).strip()
+          ok = (expected == 6 and result.testsRun == expected and result.wasSuccessful()
+                and not result.skipped and not result.expectedFailures
+                and not result.unexpectedSuccesses and sha == os.environ["EXPECTED_HEAD"])
+          paths = ("tools/qualify_hia_native_ndu.py", "tests/test_hia_native_performance_tail_gate.py",
+                   ".github/workflows/hia-native-p99-protocol-gate.yml")
+          receipt = {
+              "schema": "hepta.hia.native-p99-protocol-gate.v1",
+              "source_commit": sha, "source_tree": tree,
+              "sha256": {p: hashlib.sha256(Path(p).read_bytes()).hexdigest() for p in paths},
+              "expected_tests": expected, "actual_tests": result.testsRun,
+              "errors": len(result.errors), "failures": len(result.failures),
+              "skipped": len(result.skipped), "expected_failures": len(result.expectedFailures),
+              "unexpected_successes": len(result.unexpectedSuccesses),
+              "status": "passed" if ok else "failed",
+              "native_speed_measured": False, "positive_ndu_economics": False,
+              "scope": "synthetic admission controls, not native benchmarking",
+              "authority": "DENY_ALL", "production_activation_allowed": False,
+          }
+          out = Path(os.environ["RUNNER_TEMP"]) / "hia-native-tail-gate" / "receipt.json"
+          out.write_text(json.dumps(receipt, indent=2, sort_keys=True)+"\n")
+          print(json.dumps(receipt, sort_keys=True))
+          if not ok:
+              raise SystemExit(1)
+          PY
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - name: Preserve source-bound RED/GREEN evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-native-p99-protocol-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/hia-native-tail-gate/
+          if-no-files-found: warn
+          retention-days: 30

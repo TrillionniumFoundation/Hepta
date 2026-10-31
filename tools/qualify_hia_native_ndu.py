@@ -557,13 +557,26 @@ def execute_policies(directory, products, training, report, spec, bridge, identi
 
 
 def evaluate(report,spec):
+    # The registered strong-baseline/tail contract, not hard-coded constants,
+    # is the sole acceptance threshold. A missing cohort/profile never passes.
+    gate = spec["performance_gate"]
+    require(gate["all_baselines_and_sizes_required"] is True,
+            "native performance qualification must require all sizes and baselines")
+    require(type(spec["backends"]) is list and len(spec["backends"]) == 4
+            and set(spec["backends"]) == {"c", "cpp", "rust", "hia"}
+            and type(spec["sizes"]) is list and len(spec["sizes"]) > 0
+            and len(set(spec["sizes"])) == len(spec["sizes"]),
+            "native performance protocol must register all four unique backends and nonempty unique sizes")
     performance = []
     for n in spec["sizes"]:
         hia=report["training_summary"]["hia"][str(n)]
         for name in ("c","cpp","rust"):
             control=report["training_summary"][name][str(n)]
-            performance.append({"size":n,"baseline":name,"median_ratio":hia["median"]/control["median"],
-                "p95_ratio":hia["p95"]/control["p95"],"passed":hia["median"]<=1.1*control["median"] and hia["p95"]<=1.2*control["p95"]})
+            ratios = {key+"_ratio": hia[key]/control[key] for key in ("median","p95","p99")}
+            performance.append({"size":n, "baseline":name, **ratios,
+                "passed": ratios["median_ratio"] <= gate["hia_median_ratio_maximum"]
+                          and ratios["p95_ratio"] <= gate["hia_tail_ratio_maximum"]
+                          and ratios["p99_ratio"] <= gate["hia_tail_ratio_maximum"]})
     economies=[]
     for episode in range(len(spec["episodes"])):
         rows={r["arm"]:r for r in report["policy_runs"] if r["episode"]==episode}
