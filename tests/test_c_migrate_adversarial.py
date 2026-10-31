@@ -301,5 +301,25 @@ class CMigrationAdversarial(unittest.TestCase):
         self.assertEqual(rejected.exception.code, "E_C_AST")
 
 
+
+    def test_translation_unit_aggregate_ast_budget_fails_closed(self):
+        # Every individual C function is tiny; their aggregate AST work is not.
+        # An input under the 256 KiB gate can otherwise trigger thousands of
+        # separate AST traversals and arbitrarily large generated Hepta source.
+        program = "\n".join(
+            f"int f{i}(int x) {{ return x + 1; }}" for i in range(1500)
+        )
+        self.assertLess(len(program.encode("utf-8")), 256_000)
+        self.reject(program, "E_C_AST_UNIT_BUDGET")
+
+    def test_small_multi_function_translation_unit_remains_supported(self):
+        program = "\n".join(
+            f"int f{i}(int x) {{ return x + 1; }}" for i in range(8)
+        )
+        result = self.migrate(program)
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(len(result["converted"]), 8)
+        self.assertTrue(self.output.exists())
+
 if __name__ == "__main__":
     unittest.main()

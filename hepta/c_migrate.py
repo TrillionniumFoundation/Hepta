@@ -176,9 +176,10 @@ def _stmt(node: dict, args: dict[str, str], model: dict, ret: str, depth: int = 
 
 
 _C_AST_FUNCTION_NODE_LIMIT = 4096
+_C_AST_TRANSLATION_UNIT_NODE_LIMIT = 8192
 
 
-def _check_function_ast_budget(decl: dict) -> None:
+def _check_function_ast_budget(decl: dict) -> int:
     """Bound AST work per C function before recursive source generation.
 
     The depth guard alone does not prevent a shallow AST from containing many
@@ -201,6 +202,23 @@ def _check_function_ast_budget(decl: dict) -> None:
         if len(children) > remaining:
             raise MigrationRejected("E_C_AST_BUDGET", "C function AST node budget exceeded")
         pending.extend(children)
+    return _C_AST_FUNCTION_NODE_LIMIT - remaining
+
+
+def _check_translation_unit_ast_budget(declarations: list[dict]) -> None:
+    """Bound the aggregate work across all source-defined C functions.
+
+    The per-function limit alone permits thousands of individually small
+    functions to generate unbounded cumulative traversal and output. Count
+    the same AST nodes, fail closed before any source generation, and do not
+    count unrelated imported-system-header declarations.
+    """
+    total = 0
+    for decl in declarations:
+        total += _check_function_ast_budget(decl)
+        if total > _C_AST_TRANSLATION_UNIT_NODE_LIMIT:
+            raise MigrationRejected("E_C_AST_UNIT_BUDGET",
+                                    "C translation unit function AST node budget exceeded")
 
 
 def _function(decl: dict, model: dict) -> dict:
@@ -307,6 +325,14 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
                                     ", ".join(unsupported_toplevel[:12]))
         if not declarations:
             raise MigrationRejected("E_C_NO_FUNCTIONS", "No ordinary C function definitions found")
+        # Reject aggregate AST expansion before rendering *any* function.
+        # Independently keep the _function guard for direct callers.
+        try:
+            _check_translation_unit_ast_budget(declarations)
+        except MigrationRejected as exc:
+            report["rejected"].append({"code": exc.code, "message": str(exc)})
+            report["status"] = "unsupported_source"
+            return report
         translated = []
         seen = set()
         for decl in declarations:
