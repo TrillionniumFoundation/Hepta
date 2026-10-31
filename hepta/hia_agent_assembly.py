@@ -88,7 +88,9 @@ def _source(value):
     for number, line in enumerate(lines, 1):
         if len(line.encode("utf-8")) > MAX_LINE_BYTES:
             _reject("line exceeds byte budget", line=number, limit=True)
-        if "\r" in line.removesuffix("\r"):
+        # A terminal CR has no following LF and is not a CRLF separator.
+        # Never silently normalize it into the same canonical Core as LF.
+        if "\r" in line.removesuffix("\r") or (number == len(lines) and line.endswith("\r")):
             _reject("carriage return must be part of CRLF", line=number)
     return raw, lines
 
