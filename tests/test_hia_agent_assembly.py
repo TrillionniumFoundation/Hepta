@@ -159,10 +159,10 @@ class HIAAgentAssemblyTests(unittest.TestCase):
                          assemble_program(SOURCE).sha256)
 
     def test_unicode_separators_and_invisible_formats_are_rejected_before_core(self):
-        # Python regex \\s matches Unicode whitespace even though this wire
+        # Python regex \s matches Unicode whitespace even though this wire
         # format admits only ASCII spaces/tabs and LF/CRLF line endings.
-        separators = ("\\u00a0", "\\u0085", "\\u2009", "\\u2028")
-        formats = ("\\u200b", "\\u202e", "\\u2066")
+        separators = ("\u00a0", "\u0085", "\u2009", "\u2028")
+        formats = ("\u200b", "\u202e", "\u2066")
         with patch("hepta.hia_agent_assembly.verify_program") as verifier:
             for separator in separators:
                 source = SOURCE.replace("hia-asm.v1 ", "hia-asm.v1" + separator, 1)
@@ -183,9 +183,9 @@ class HIAAgentAssemblyTests(unittest.TestCase):
         # Existing ASCII whitespace and explicit CRLF are unchanged.
         baseline = assemble_program(SOURCE).canonical_bytes
         self.assertEqual(assemble_program(SOURCE.replace(
-            "hia-asm.v1 ", "hia-asm.v1\\t", 1)).canonical_bytes, baseline)
+            "hia-asm.v1 ", "hia-asm.v1\t", 1)).canonical_bytes, baseline)
         self.assertEqual(assemble_program(SOURCE.replace(
-            "\\n", "\\r\\n")).canonical_bytes, baseline)
+            "\n", "\r\n")).canonical_bytes, baseline)
 
     def test_missing_terminator_end_extra_text_and_duplicate_exports_reject(self):
         variants = (SOURCE.replace("  ret(answer)\n", ""), SOURCE.removesuffix("end\n"),
