@@ -1,0 +1,54 @@
+name: HIA P7 loan-token stale-handle fence (scoped)
+on:
+  push:
+    branches: [work/hia-p7-loan-epoch-fence-20261031-gpt6]
+  pull_request:
+    branches: [work/hia-p7-immutable-fenced-queue-wire-20261031-gpt6]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  loan-fence-red-green:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      CLANG: /usr/bin/clang-20
+      HEPTA_CLANG: /usr/bin/clang-20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check deterministic loan collisions and stale-token resurrection
+        run: |
+          set -eu
+          python -B -m unittest tests.test_hia_stateful_loan_token_collision -v
+      - name: Install pinned LLVM 20 and proof dependencies for genuine native owner
+        run: |
+          set -eu
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/hepta-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key
+          fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hepta-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')
+          test "$fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+          sudo install -m 0644 "$RUNNER_TEMP/hepta-llvm.asc" /usr/share/keyrings/hepta-llvm.asc
+          printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hepta-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hepta-llvm20.list
+          sudo apt-get update
+          sudo apt-get install -y clang-20 libclang-rt-20-dev llvm-20 lld-20 build-essential
+          python -m pip install --disable-pip-version-check -e '.[optimization]' 'zstandard==0.25.0'
+          test -x "$CLANG"
+          python -c 'import z3; print("Z3", z3.get_version_string())'
+      - name: Validate real native owner lease and immutable queue path (zero-skip)
+        run: |
+          set -eu
+          python -B -m unittest tests.test_hia_stateful.OwnedNativeTests.test_alias_modes_bounds_and_queue_staleness_are_real_state_gates -v
+          python -B -m unittest tests.test_hia_stateful.OwnedNativeTests.test_native_loan_token_reuse_cannot_revive_stale_lease -v
+          python -B -m unittest tests.test_hia_stateful.OwnedNativeTests.test_immutable_fenced_wire_executes_real_native_owner -v
+      - name: Preserve original typed Core and clean source
+        run: |
+          set -eu
+          python -B -m unittest tests.test_hia_program -v
+          python -B -m py_compile hepta/hia_stateful.py tests/test_hia_stateful_loan_token_collision.py tests/test_hia_stateful.py
+          git diff --exit-code
