@@ -78,7 +78,8 @@ def assess(rows, spec):
                 ratios = {stat+"_ratio": hia[stat]/reference[stat] for stat in ("median", "p95", "p99")}
                 comparisons.append({"phase": phase, "size": n, "baseline": backend, **ratios,
                     "passed": ratios["median_ratio"] <= gate["hia_median_ratio_maximum"]
-                              and ratios["p95_ratio"] <= gate["hia_tail_ratio_maximum"]})
+                              and ratios["p95_ratio"] <= gate["hia_tail_ratio_maximum"]
+                              and ratios["p99_ratio"] <= gate["hia_tail_ratio_maximum"]})
     return {"cohorts": cohorts, "comparisons": comparisons,
             "performance_gate_passed": all(row["passed"] for row in comparisons),
             "holdout_gate_passed": all(row["passed"] for row in comparisons if row["phase"] == "holdout"),
