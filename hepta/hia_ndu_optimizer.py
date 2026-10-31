@@ -30,6 +30,8 @@ ROOT = Path(__file__).resolve().parents[1]
 _HEX = re.compile(r"[0-9a-f]{64}\Z")
 _ID = re.compile(r"[a-zA-Z][a-zA-Z0-9_.:-]{0,63}\Z")
 _MAX_INT = (1 << 63) - 1
+_MAX_CANDIDATES = 32
+_MAX_OBSERVATIONS = _MAX_CANDIDATES + 1
 
 
 class OptimizationRejected(ValueError):
@@ -53,6 +55,49 @@ def _integer(value, name, *, minimum=0, maximum=_MAX_INT):
     if type(value) is not int or not minimum <= value <= maximum:
         _reject(name + " must be a bounded exact integer")
     return value
+
+
+def _observation_snapshot(observations, expected_ids):
+    """Capture at most 33 four-field rows, then validate only captured values.
+
+    The accepted leaves are exact immutable integers/strings. Iterating ordinary
+    dict entries avoids a caller-sized copy or JSON materialization. Explicit
+    per-entry bounds still apply if the caller grows a mapping after its length
+    check. Caller mutations can invalidate intake, never replace validated
+    costs, program bindings or the observations digest used below.
+    """
+    if (len(expected_ids) > _MAX_OBSERVATIONS or type(observations) is not dict
+            or len(observations) != len(expected_ids)):
+        _reject("observations must cover exactly abstain and all proposals")
+    fields = {"runtime_ns", "uncertainty_ns", "search_ns", "program_sha256"}
+    observed = {}
+    try:
+        for cid, observation in observations.items():
+            if (len(observed) >= _MAX_OBSERVATIONS or len(observed) >= len(expected_ids)
+                    or type(cid) is not str
+                    or cid not in expected_ids or cid in observed):
+                _reject("observations must cover exactly abstain and all proposals")
+            if type(observation) is not dict or len(observation) != len(fields):
+                _reject("observation has an unexpected shape")
+            snapshot = {}
+            for field, value in observation.items():
+                if (len(snapshot) >= len(fields) or type(field) is not str
+                        or field not in fields or field in snapshot):
+                    _reject("observation has an unexpected shape")
+                snapshot[field] = value
+            if set(snapshot) != fields:
+                _reject("observation has an unexpected shape")
+            observed[cid] = snapshot
+            if (type(snapshot["program_sha256"]) is not str
+                    or not _HEX.fullmatch(snapshot["program_sha256"])):
+                _reject("observation must identify exact canonical program bytes")
+            for field in ("runtime_ns", "uncertainty_ns", "search_ns"):
+                _integer(snapshot[field], field)
+    except RuntimeError as error:
+        raise OptimizationRejected("E_HIA_NDU: observations changed during snapshot") from error
+    if set(observed) != expected_ids:
+        _reject("observations must cover exactly abstain and all proposals")
+    return observed
 
 
 def ns_to_ms_q32(value):
@@ -284,10 +329,14 @@ def rank_candidates(baseline, candidates, observations, *, function, bridge, obj
         if type(objective[field]) is not str or not 1 <= len(objective[field]) <= 256:
             _reject("objective " + field + " must be bounded text")
     ns_to_ms_q32(cap)
-    if type(candidates) is not list or len(candidates) > 32:
+    if type(candidates) is not list or len(candidates) > _MAX_CANDIDATES:
         _reject("at most thirty-two finite proposals are allowed")
     prepared, seen = [], {"abstain"}
-    for raw in candidates:
+    for index, raw in enumerate(candidates):
+        # The ordinary caller-owned list can grow after the length check.
+        # Refuse an extra entry before its shape check or Core verification.
+        if index >= _MAX_CANDIDATES:
+            _reject("at most thirty-two finite proposals are allowed")
         if type(raw) is not dict or set(raw) != {"id", "action", "program"}:
             _reject("candidate requires only id, action and program")
         cid, action = raw["id"], raw["action"]
@@ -303,17 +352,7 @@ def rank_candidates(baseline, candidates, observations, *, function, bridge, obj
                              "reason": "canonical_verifier_rejected", "detail": str(error)[:1024]})
         else:
             prepared.append({"id": cid, "action": action, "program": program})
-    if type(observations) is not dict or set(observations) != seen:
-        _reject("observations must cover exactly abstain and all proposals")
-    observed = {}
-    for cid, observation in observations.items():
-        if type(observation) is not dict or set(observation) != {"runtime_ns", "uncertainty_ns", "search_ns", "program_sha256"}:
-            _reject("observation has an unexpected shape")
-        if type(observation["program_sha256"]) is not str or not _HEX.fullmatch(observation["program_sha256"]):
-            _reject("observation must identify exact canonical program bytes")
-        observed[cid] = dict(observation)
-        for field in ("runtime_ns", "uncertainty_ns", "search_ns"):
-            _integer(observation[field], field)
+    observed = _observation_snapshot(observations, seen)
     if observed["abstain"]["program_sha256"] != before.sha256:
         _reject("baseline measurement belongs to a different program")
     supplied_search_ns = sum(row["search_ns"] for row in observed.values())

@@ -210,8 +210,9 @@ def execute_hia_contract(candidate, task, values):
     return {"args": values, "result": report["result"], "resources": resources, "operation_events": events}
 
 
-def evaluate_worker(args):
-    task, cfg = task_for(args.task), protocol()
+def evaluate_worker(args, *, tool_config=None):
+    task = task_for(args.task)
+    cfg = protocol() if tool_config is None else tool_config
     folder = Path(args.output)
     folder.mkdir(parents=True, exist_ok=False)
     result = {"accepted": False, "correct": False, "status": "starting", "hidden_evaluated": args.mode == "hidden"}
@@ -291,9 +292,69 @@ def evaluate_worker(args):
     return 0
 
 
-def evaluate(task, language, folder, *, candidate=None, build=None, timeout=70):
-    folder.mkdir(parents=True, exist_ok=False)
+class WallBudgetExhausted(TimeoutError):
+    """Refuse a new owned call without claiming a child was launched."""
+
+    def __init__(self, phase, deadline, observed):
+        super().__init__(phase + " work budget exhausted before owner call")
+        self.record = {"phase": phase, "work_deadline_monotonic": deadline,
+                       "observed_monotonic": observed, "remaining_seconds": deadline-observed,
+                       "owner_call_attempted": False}
+
+
+def admitted_wall_seconds(phase, limit, deadline):
+    if deadline is None:
+        return limit
+    observed = time.monotonic()
+    remaining = deadline-observed
+    if remaining <= 0:
+        raise WallBudgetExhausted(phase, deadline, observed)
+    return min(limit, remaining)
+
+
+class CleanupUncertain(RuntimeError):
+    """An owned call cannot permit another launch in this experiment."""
+
+    def __init__(self, phase, process, output, wall_ns, transport_error=None):
+        super().__init__("uncertain " + phase + " process cleanup; stop experiment")
+        self.record = {"phase": phase, "process": process,
+                       "transport_directory": str(output),
+                       "transport_call_wall_ns": wall_ns,
+                       "transport_error": transport_error}
+        self.observation = None
+
+
+def cleanup_confirmed(process):
+    return (type(process) is dict and process.get("cleanup_confirmed") is True
+            and process.get("leader_reaped") is True
+            and process.get("status") != "cleanup_uncertain")
+
+
+def checked_owned(phase, argv, cwd, output, *, deadline=None, **kwargs):
+    # Reuse the existing owner unchanged. No outcome, including an apparently
+    # successful evaluator or model response, supersedes its cleanup receipt.
+    # Recheck after request/evaluator preparation, immediately before handing
+    # work to the owner. This is admission, not OS preemption. A refusal here
+    # never entered run_owned and must not become uncertain process cleanup.
+    kwargs["wall_seconds"] = admitted_wall_seconds(phase, kwargs["wall_seconds"], deadline)
+    started = time.monotonic_ns()
+    try:
+        process = run_owned(argv, cwd, output, **kwargs)
+    except BaseException as exc:
+        # The owner may have launched and retained raw evidence before its
+        # receipt publication failed. Missing confirmation is never a retry.
+        raise CleanupUncertain(phase, None, output, time.monotonic_ns()-started,
+            {"type": type(exc).__name__, "message": str(exc)}) from exc
+    if not cleanup_confirmed(process):
+        raise CleanupUncertain(phase, process, output, time.monotonic_ns()-started)
+    return process
+
+
+def evaluate(task, language, folder, *, candidate=None, build=None, timeout=70, deadline=None):
     hidden = build is not None
+    phase = "hidden" if hidden else "public"
+    admitted_wall_seconds(phase, timeout, deadline)
+    folder.mkdir(parents=True, exist_ok=False)
     argv = [sys.executable, str(Path(__file__).resolve()), "_evaluate", "--task", task["id"],
             "--language", language, "--mode", "hidden" if hidden else "public", "--output", str(folder / "evaluation")]
     if hidden:
@@ -302,7 +363,14 @@ def evaluate(task, language, folder, *, candidate=None, build=None, timeout=70):
     else:
         save(folder / "CANDIDATE.json", candidate)
         argv.extend(["--candidate", str(folder / "CANDIDATE.json")])
-    process = run_owned(argv, ROOT, folder / "transport", wall_seconds=timeout)
+    try:
+        process = checked_owned(phase, argv, ROOT, folder / "transport",
+                                wall_seconds=timeout, deadline=deadline)
+    except CleanupUncertain as exc:
+        exc.observation = {"accepted": False, "correct": False, "hidden_evaluated": hidden,
+                           "status": "evaluation_cleanup_uncertain", "process": exc.record["process"],
+                           "cleanup_uncertainty": exc.record}
+        raise
     receipt = folder / "evaluation/RESULT.json"
     if process["status"] != "exited" or not receipt.is_file():
         return {"accepted": False, "correct": False, "hidden_evaluated": hidden,
@@ -422,10 +490,12 @@ def parse_action(text):
 def run_cell(task, language, folder, experiment_deadline, cfg):
     started = time.monotonic_ns()
     deadline = min(experiment_deadline, time.monotonic()+cfg["max_cell_wall_seconds"])
+    work_deadline = deadline-cfg["cleanup_reserve_seconds"]
     folder.mkdir()
     messages = [{"role": "user", "content": public_prompt(task, language)}]
     row = {"task": task["id"], "language": language, "model": cfg["model"], "correct": False, "hidden_evaluated": False,
-           "requests": [], "tool_calls": [], "charged_tokens": 0, "status": "starting", "human_answer_repairs": 0}
+           "requests": [], "tool_calls": [], "charged_tokens": 0, "status": "starting", "human_answer_repairs": 0,
+           "experiment_poisoned": False}
     approved = {}
     public_checks = 0
     for index in range(cfg["max_requests_per_cell"]):
@@ -444,8 +514,8 @@ def run_cell(task, language, folder, experiment_deadline, cfg):
         save(folder / "CELL.json", row)
         try:
             command = [cfg["codex"], "exec", "--json", "--ephemeral", "--sandbox", "read-only", "--skip-git-repo-check", "-m", cfg["model"], "-"]
-            receipt["process"] = run_owned(command, cwd, request_folder / "transport", input_bytes=text.encode(),
-                                            wall_seconds=min(remaining, cfg["max_request_wall_seconds"]), on_line=events.line)
+            receipt["process"] = checked_owned("model", command, cwd, request_folder / "transport", input_bytes=text.encode(),
+                                            wall_seconds=cfg["max_request_wall_seconds"], deadline=work_deadline, on_line=events.line)
             receipt["actual_generation_observed"] = events.turn_count > 0
             receipt["observed_usage"] = recover_reported_usage(request_folder / "transport/stdout.raw") or events.usage
             if receipt["observed_usage"] is not None:
@@ -486,8 +556,14 @@ def run_cell(task, language, folder, experiment_deadline, cfg):
                     public_checks += int(name == "check")
                     candidate = action["candidate"]
                     digest = hashlib.sha256(canonical(candidate)).hexdigest()
-                    observed = evaluate(task, language, request_folder / "public", candidate=candidate,
-                        timeout=min(70, max(0.01, deadline-time.monotonic()-cfg["cleanup_reserve_seconds"])))
+                    try:
+                        observed = evaluate(task, language, request_folder / "public", candidate=candidate,
+                                            timeout=70, deadline=work_deadline)
+                    except CleanupUncertain as exc:
+                        call["public"] = exc.observation
+                        raise
+                    finally:
+                        call["wall_ns"] = time.monotonic_ns()-tool_started
                     call["public"] = observed
                     feedback = public_feedback(observed, digest)
                     if observed["accepted"]:
@@ -503,8 +579,18 @@ def run_cell(task, language, folder, experiment_deadline, cfg):
                     row["status"] = "final_not_publicly_accepted"
                     break
                 hidden_started = time.monotonic_ns()
-                hidden = evaluate(task, language, request_folder / "hidden", build=build,
-                    timeout=min(30, max(0.01, deadline-time.monotonic()-cfg["cleanup_reserve_seconds"])))
+                try:
+                    hidden = evaluate(task, language, request_folder / "hidden", build=build,
+                                      timeout=30, deadline=work_deadline)
+                except CleanupUncertain as exc:
+                    row["hidden_evaluated"] = True
+                    # Record poison before writing optional hidden evidence;
+                    # a write failure cannot downgrade the stop condition.
+                    row.update(experiment_poisoned=True, cleanup_uncertainty=exc.record)
+                    save(request_folder / "HIDDEN.json", exc.observation)
+                    raise
+                finally:
+                    row["hidden_wall_ns"] = time.monotonic_ns()-hidden_started
                 row.update(hidden_evaluated=True, hidden_wall_ns=time.monotonic_ns()-hidden_started,
                            correct=hidden["correct"], status="correct" if hidden["correct"] else "hidden_failed")
                 save(request_folder / "HIDDEN.json", hidden)
@@ -515,17 +601,35 @@ def run_cell(task, language, folder, experiment_deadline, cfg):
             messages.append({"role": "user", "content": feedback})
         except Exception as exc:
             receipt["error"] = {"type": type(exc).__name__, "message": str(exc)}
+            if isinstance(exc, CleanupUncertain):
+                row.update(experiment_poisoned=True, cleanup_uncertainty=exc.record)
+                if exc.record["phase"] == "model" and exc.record["process"] is not None:
+                    receipt["process"] = exc.record["process"]
+            if isinstance(exc, WallBudgetExhausted):
+                row["wall_budget_refusal"] = exc.record
+                if exc.record["phase"] == "model":
+                    receipt["model_launch_refused"] = True
+            if row["experiment_poisoned"]:
+                row["status"] = "terminal_cleanup_uncertain"
+            elif isinstance(exc, WallBudgetExhausted):
+                row["status"] = "wall_budget"
+            else:
+                row["status"] = "terminal_runtime_or_protocol_failure"
             receipt["actual_generation_observed"] = events.turn_count > 0
-            if receipt.get("observed_usage") is None and events.usage is not None:
-                receipt["observed_usage"] = events.usage
-                receipt["charged_tokens"] = sum(events.usage[k] for k in ("input_tokens", "output_tokens", "reasoning_output_tokens"))
+            if receipt.get("observed_usage") is None and not receipt.get("model_launch_refused"):
+                try:
+                    receipt["observed_usage"] = recover_reported_usage(request_folder / "transport/stdout.raw") or events.usage
+                except Exception as usage_error:
+                    receipt["usage_recovery_error"] = {"type": type(usage_error).__name__, "message": str(usage_error)}
+                    receipt["observed_usage"] = events.usage
+                if receipt["observed_usage"] is not None:
+                    receipt["charged_tokens"] = sum(receipt["observed_usage"][k] for k in ("input_tokens", "output_tokens", "reasoning_output_tokens"))
             row["charged_tokens"] = sum(r.get("charged_tokens",0) for r in row["requests"])
-            row["status"] = "terminal_runtime_or_protocol_failure"
             break
         finally:
             receipt["cwd_entries_after"] = sorted(p.name for p in cwd.iterdir())
-            if (not receipt["cwd_entries_after"] and receipt.get("process", {}).get("cleanup_confirmed")
-                    and receipt.get("process", {}).get("leader_reaped")):
+            if not receipt["cwd_entries_after"] and (cleanup_confirmed(receipt.get("process"))
+                                                     or receipt.get("model_launch_refused")):
                 cwd.rmdir()
                 receipt["empty_cwd_removed"] = True
             else:
@@ -589,7 +693,8 @@ def run(output, review_path, registration_commit):
     folder.mkdir(parents=True, exist_ok=False)
     result = {"schema": "hepta.hia.agent-maintenance.result.v1", "freeze": identity(HERE / "FREEZE.json"),
               "registration_commit": registration_commit, "review": identity(review_path), "models": cfg["models"],
-              "cells": [], "status": "started", "previous_negative_results_replaced": False, "human_answer_repairs": 0}
+              "cells": [], "status": "started", "previous_negative_results_replaced": False, "human_answer_repairs": 0,
+              "experiment_poisoned": False}
     save(folder / "PLAN.json", {**result, "frozen": frozen, "protocol": cfg, "model_requests_before_plan": 0})
     deadline = time.monotonic()+cfg["max_experiment_wall_seconds"]
     try:
@@ -604,14 +709,18 @@ def run(output, review_path, registration_commit):
                     cell_cfg = {**cfg, "model": model}
                     row = run_cell(task, language, folder / (task["id"]+"-"+model+"-"+language), deadline, cell_cfg)
                     result["cells"].append(row)
+                    if row["experiment_poisoned"]:
+                        result.update(experiment_poisoned=True, cleanup_uncertainty=row["cleanup_uncertainty"])
                     result["summary"] = summary(result["cells"])
                     save(folder / "RESULT.json", result)
                     print(json.dumps({"task": task["id"], "model": model, "language": language,
                                       "correct": row["correct"], "status": row["status"],
                                       "requests": len(row["requests"])}), flush=True)
+                    if result["experiment_poisoned"]:
+                        raise RuntimeError("uncertain process cleanup; stop remaining cells")
                     if row["status"] == "terminal_runtime_or_protocol_failure":
                         process = row["requests"][-1].get("process", {}) if row["requests"] else {}
-                        if not (process.get("cleanup_confirmed") and process.get("leader_reaped")):
+                        if not cleanup_confirmed(process):
                             raise RuntimeError("uncertain process cleanup; stop remaining cells")
                         # This exact cell is terminal and never rerun. Other
                         # preregistered cells remain distinct observations.

@@ -43,6 +43,25 @@ class OpcodeCatalogTests(unittest.TestCase):
             with self.assertRaises(OpcodeRejected):
                 opcode_spec(guessed)
 
+    def test_every_version_exposes_only_types_available_in_that_schema(self):
+        for version in range(1, 9):
+            with self.subTest(version=version):
+                schema = f"hepta.hia.program.v{version}"
+                catalog = opcode_catalog(schema)
+                allowed = set(catalog["types"])
+                self.assertEqual("chain" in allowed, version >= 7)
+                for name, members in catalog["type_groups"].items():
+                    self.assertTrue(set(members) <= allowed, (schema, name, members))
+                self.assertEqual(
+                    set(catalog["type_groups"]["owner"]),
+                    {"buffer", "chain"} if version >= 7 else {"buffer"},
+                )
+                if version < 7:
+                    with self.assertRaises(OpcodeRejected):
+                        opcode_spec("chain.empty", schema)
+                else:
+                    self.assertEqual(opcode_spec("chain.empty", schema).since, 7)
+
     def test_catalog_is_detached_and_invalid_schemas_do_not_guess(self):
         detached = opcode_catalog()
         detached["instructions"][0]["name"] = "forged"

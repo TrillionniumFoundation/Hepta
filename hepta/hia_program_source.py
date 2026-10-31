@@ -215,6 +215,17 @@ class _State:
 
     def prune(self, keys=None) -> None:
         wanted = set(self.env.values()) | self.keep if keys is None else set(keys)
+        # A stored returned loan keeps its argument capability live.
+        # The parent is not a source binding, but must still be represented in
+        # every CFG interface until the final local alias ends the child.
+        pending = list(wanted)
+        while pending:
+            value = self.values.get(pending.pop())
+            if value is not None:
+                for parent in value.borrow_parents:
+                    if parent not in wanted:
+                        wanted.add(parent)
+                        pending.append(parent)
         self.values = {k: v for k, v in self.values.items() if k in wanted}
 
 
@@ -439,6 +450,7 @@ class _Lower:
             if key not in retained:
                 value.atoms = [None] * len(value.atoms)
                 value.loans = []
+                value.borrow_parents = []
 
     def restore_scope(self, state, before):
         self.end_local_views(state, set(state.env.values()) - set(before.values()),
@@ -488,6 +500,8 @@ class _Lower:
             value = state.values.get(key)
             if value is None or value.types != target_value.types:
                 _reject("incompatible value layout across a CFG edge")
+            if value.borrow_parents != target_value.borrow_parents:
+                _reject("path-dependent returned-loan parent binding")
             for actual, renamed, typ in zip(value.atoms, target_value.atoms, value.types):
                 if (actual is None) != (renamed is None):
                     _reject("path-dependent resource consumption")
@@ -578,6 +592,62 @@ class _Lower:
             if root == key and set(indices) & set(borrowed_indices) and (write or value.borrow_mode == "mut"):
                 _reject("overlapping source access while a scalarized borrow is live")
 
+    def returned_view_field(self, state, expression, mode):
+        """Adapt one explicitly borrowed call in a local byte-view field.
+
+        This only selects an existing v8 call. The unchanged source checker,
+        Resource IR and primitive Core verifier establish their own contracts.
+        Each call has one same-mode byte origin. That origin is either a
+        direct byte place or another such returned call. The existing call
+        keeps every parent capability; no new Core loan operation is needed.
+        Stored local Views and aggregate origins remain outside this profile.
+        """
+        call = expression.children[0]
+        fn = self.functions.get(call.value)
+        borrowed = [] if fn is None else [p for p in fn.params if p.mode in {"read", "mut"}]
+        if (fn is None or fn.extern_c or fn.return_mode != mode
+                or fn.return_type != Type("slice", (Type("u8"),))
+                or len(borrowed) != 1 or borrowed[0].name != fn.return_origin
+                or borrowed[0].mode != mode
+                or borrowed[0].type not in {Type("slice", (Type("u8"),)), Type("Buffer", (Type("u8"),))}
+                or any(p is not borrowed[0] and (p.mode != "value" or p.type.name not in _SCALARS
+                                                 or p.type.args or p.type.lifetimes or p.type.length is not None)
+                       for p in fn.params)):
+            _reject("stored returned calls require one same-mode byte origin and scalar value arguments")
+        origin_index = fn.params.index(borrowed[0])
+        argument = call.children[origin_index]
+        if (argument.kind != "unary" or argument.value != mode or len(argument.children) != 1
+                or argument.children[0].kind not in {"name", "field", "call"}):
+            _reject("stored returned-call origin must be a named byte place or same-mode returned call")
+        if argument.children[0].kind == "call":
+            # Keep the ordinary left-to-right argument order, including
+            # scalar arguments before and after the nested origin. Only this
+            # checked View-field path prepares a nested borrowed argument.
+            arguments = []
+            for index, child in enumerate(call.children):
+                if index == origin_index:
+                    state, argument_key = self.returned_view_field(state, child, mode)
+                else:
+                    state, argument_key = self.expr(state, child)
+                arguments.append(argument_key)
+            state, key = self.call(state, call, arguments=arguments)
+        else:
+            root, indices, _ = self.place(state, argument.children[0])
+            original = self.get(state, root)
+            if original.typ.name in self.local_views or len(indices) != 1:
+                _reject("stored returned calls cannot nest local views or aggregate origins")
+            state, key = self.call(state, call)
+        value = self.get(state, key)
+        if len(value.borrow_parents) != 1:
+            _reject("stored returned call lacks its unique parent capability")
+        parent = self.get(state, value.borrow_parents[0])
+        if (len(value.atoms) != 1 or len(parent.atoms) != 1
+                or value.types != parent.types or parent.loans[-1:] != parent.atoms
+                or value.loans != parent.loans + value.atoms
+                or len(set(value.loans)) != len(value.loans)):
+            _reject("stored returned call must retain its complete linear parent and child stack")
+        return state, key
+
     def expr(self, state: _State, expr: Expr | None) -> tuple[_State, int]:
         if expr is None:
             return state, self.value(state, Type("Unit"), [])
@@ -628,27 +698,37 @@ class _Lower:
             _reject("missing checked record field")
         if expr.kind == "struct":
             parts = {}
+            returned_fields = set()
             for name, child in zip(expr.value["fields"], expr.children):
-                state, key = self.expr(state, child)
+                view = self.local_views.get(typ.name)
+                if (self.core_schema == SCHEMA_V8 and view is not None
+                        and name == view[0] and child.kind == "unary" and child.value == view[1]
+                        and len(child.children) == 1 and child.children[0].kind == "call"):
+                    state, key = self.returned_view_field(state, child, view[1])
+                    returned_fields.add(name)
+                else:
+                    state, key = self.expr(state, child)
                 parts[name] = key
-            atoms, types, loans = [], [], []
+            atoms, types, loans, parents = [], [], [], []
             for member in self.structs[typ.name].fields:
                 value = self.get(state, parts[member.name])
                 atoms += value.atoms; types += value.types
                 if typ.name in self.local_views:
                     if member.name == self.local_views[typ.name][0]:
-                        # Keep the first local-view source subset to a named
-                        # byte origin. Returned-call parent stacks have their
-                        # own v8 contract and are not silently stored here.
-                        if len(value.loans) != 1 or value.borrow_parents:
+                        # Provenance is the freshly checked call-chain path
+                        # above, not the shape of an arbitrary loan value.
+                        returned = member.name in returned_fields
+                        if not returned and (len(value.loans) != 1 or value.borrow_parents):
                             _reject("stored local views require one direct named byte loan")
                         loans.extend(value.loans)
+                        parents.extend(value.borrow_parents)
                         value.loans = []
+                        value.borrow_parents = []
                         value.origin = None
                         value.borrow_mode = None
                     elif value.loans or value.origin is not None:
                         _reject("stored view labels must be independent scalar values")
-            return state, self.value(state, typ, atoms, types, loans=loans)
+            return state, self.value(state, typ, atoms, types, loans=loans, borrow_parents=parents)
         if expr.kind == "variant" and typ.name in self.unit_enums:
             variants = self.unit_enums[typ.name]
             if (expr.value.get("enum") != typ.name or expr.value.get("variant") not in variants
@@ -682,9 +762,11 @@ class _Lower:
                     return state, key
                 if child.kind != "name":
                     _reject("exclusive local views move only as whole named values")
-                result = self.value(state, typ, original.atoms, original.types, loans=original.loans)
+                result = self.value(state, typ, original.atoms, original.types, loans=original.loans,
+                                    borrow_parents=original.borrow_parents)
                 original.atoms = [None] * len(original.atoms)
                 original.loans = []
+                original.borrow_parents = []
                 return state, result
             state, key = self.expr(state, expr.children[0])
             value = self.get(state, key)
@@ -750,12 +832,13 @@ class _Lower:
             return self.call(state, expr)
         _reject("unsupported source expression " + expr.kind)
 
-    def call(self, state, expr):
+    def call(self, state, expr, *, arguments=None):
         typ, name = self.typ(expr), expr.value
-        arguments = []
-        for child in expr.children:
-            state, key = self.expr(state, child)
-            arguments.append(key)
+        if arguments is None:
+            arguments = []
+            for child in expr.children:
+                state, key = self.expr(state, child)
+                arguments.append(key)
         if name in {"buffer", "try_buffer"}:
             if len(arguments) != 1:
                 _reject("wrong buffer arity")
@@ -921,7 +1004,8 @@ class _Lower:
                 if not local_view and (value.loans or value.origin is not None):
                     _reject("stored local borrows require the explicit lifetime profile")
                 key = self.value(state, value.typ, value.atoms, value.types,
-                                 loans=value.loans if local_view else ())
+                                 loans=value.loans if local_view else (),
+                                 borrow_parents=value.borrow_parents if local_view else ())
                 state.env[d["name"]] = key
             elif stmt.kind == "assign":
                 # Hepta's established assignment semantics evaluate the RHS
@@ -1265,7 +1349,7 @@ def source_report(source: str, *, path="<hia-source>", module: str | None = None
                 "records": sorted(lowering.local_views),
                 "profile": "local_single_byte_slice_and_four_scalar_labels",
                 "interprocedural_stored_regions": False,
-                "returned_call_storage": False,
+                "returned_call_storage": core_schema == SCHEMA_V8,
             },
             "unit_enums": {"declarations": {name: list(variants)
                                             for name, variants in lowering.unit_enums.items()},

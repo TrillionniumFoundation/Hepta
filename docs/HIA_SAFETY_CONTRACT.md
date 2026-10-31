@@ -495,3 +495,78 @@ now participate in the verified regression and critical coverage group; their
 16 methods also extend the canonical matrix from 250 to 266 selectors without
 removing an earlier selector or capability. The actual owned-source path and
 host/cross-target forgery controls are required alongside the producer tests.
+
+### Next4 additions on the common six-track source
+
+The next4 matrix starts from commit `3201298a9828927452d42bcac146e610e1348a7f`,
+whose production source is the qualified `f6c2411` source. All 53 existing
+capability rows and all 552 selectors remain unchanged. Four additional scoped
+rows add 58 unique selectors, giving 57 capabilities and 610 selectors:
+
+- 19 existing returned-local and nested-returned View regressions from the
+  reviewed source branches, including actual independently built Rust and
+  LLVM/allocator comparisons. The explicit v8 source route retains its single
+  byte-origin, permission, escape and parent/child cleanup restrictions.
+- Ten new NDU observation-snapshot regressions. Candidate consumption has an
+  independent 32-item iteration bound; the snapshot helper independently caps
+  capture at 33 ordinary rows with four typed immutable fields. Those same
+  captured costs and program identities feed admission and hashes. Controlled
+  caller-interleaving cases do not establish trustworthy external measurements
+  or independent NDU application value.
+- 28 maintenance-owner and wall-admission regressions: 15 cleanup cases, nine
+  wall-admission cases and four existing protocol/cost controls. They use
+  controlled process receipts and clocks. Preparation consumes the same work
+  deadline; clean budget exhaustion refuses another owner without being
+  confused with unconfirmed cleanup. Existing frozen source bindings still
+  reject changed code. These tests are not model-generation results or an
+  operating-system hard-deadline theorem.
+- One cross-version catalog regression, covering the published type groups
+  for all primitive schema versions without widening operation admission.
+
+The complete canonical contract hash is
+`1a50b5b50dd41ed7507d264f2c282ce2a44217add022757d9ca3836a7dfada85`.
+It is also pinned in the qualification runner. Registering these selectors
+does not claim they passed on a future combined commit; executions must retain
+their actual source identity. All previously unproved universal claims and
+trusted-base assumptions are unchanged. Production authority is not switched
+to Rust by this extension.
+
+The qualification input inventory also includes tracked benchmark source and
+configuration files, experiment code, registered experiment protocol JSON files,
+and the complete v11 model-provenance inputs inherited by v12/v13. Selected
+regressions actually read these inputs, so their bytes must remain stable along
+with compiler source, workflows and licenses. The existing input-mutation
+regression now covers these paths; historical output files are not substituted
+for current protocol inputs.
+
+### Bounded C reads and a separately registered local maintenance arm
+
+The follow-on matrix starts from implementation commit
+`aedee50ec792fc4f1f44825439c716c463b93baa`. Its 57 capability rows and 610 unique
+selectors remain intact. Two scoped additions give 59 capabilities and 643
+unique selectors:
+
+- Seven actual-Clang/front-end controls cover the strict single-file C scalar
+  migrator's initial source read and both freshness checks. Each read consumes
+  at most 256001 bytes; the existing 256000-byte acceptance limit, whole-TU AST
+  and bounded Clang capture policies remain in place. Growth and I/O failure
+  reject before publication and clean staged output. This does not add native
+  ABI, whole-process memory or immutable-filesystem guarantees.
+- Twenty-six deterministic controls cover separately registered local
+  maintenance transport, source/tool/prompt bindings, owned processes, actual
+  bounded receipt reads, remaining-wall admission, monotone known usage and
+  explicit unknown states. The selectors use synthetic inference records and
+  need no GGUF, model generation or socket service. Real author controls and
+  tokenizer probes are separate evidence; actual maintenance execution needs
+  an exact freeze and independent generation admission. No productivity result
+  follows from these controls.
+
+The original cloud maintenance and v13 identities remain distinct. Corrected
+catalog bytes require new capacity evidence for changed public prefixes;
+byte-identical historical prefixes are identified separately from new runs.
+
+This matrix's canonical SHA-256 is
+`fac4e12c5385128e33a36aae2611abcfebf261c1264b0861fda942d742cdf999`.
+All previously unproved claims and authority rules remain unchanged. A new
+registration is not a passing execution receipt; the combined commit must
+retain its own actual matrix outcome.

@@ -160,10 +160,11 @@ def opcode_catalog(schema: str | None = None) -> dict:
         raise OpcodeRejected("catalog requires an exact primitive schema")
     version = list(PRIMITIVE_PROFILES).index(schema) + 1
     rows = [asdict(spec) for spec in OPCODES.values() if spec.since <= version]
+    visible_types = TYPES - ({"chain"} if version < 7 else set())
     result = {"schema": "hepta.hia.opcode-catalog.v1", "core_schema": schema,
         "profile": PRIMITIVE_PROFILES[schema], "word_bits": 64,
-        "types": sorted(TYPES - ({"chain"} if version < 7 else set())),
-        "type_groups": {k: sorted(v) for k, v in _GROUPS.items()},
+        "types": sorted(visible_types),
+        "type_groups": {k: sorted(v & visible_types) for k, v in _GROUPS.items()},
         "signature_rules": {"=N": "same type as zero-based operand N", "declared:T": "explicit result type in group T",
                             "null": "arity/types/effects determined by verified callee interface"},
         "instructions": rows,
