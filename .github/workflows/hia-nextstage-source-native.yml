@@ -1,0 +1,93 @@
+name: HIA P0-P3 source, native LLVM and migration exact-head qualification
+on:
+  push:
+    branches:
+      - work/hia-p0-p3-native-legacy-matrix-20261031-gpt6
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  legacy-source-schema:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Native source-version and typed SSA tests with ZERO SKIP
+        run: |
+          set -eu
+          python -B -m tools.qualify_hia_three_lane --suite legacy --output /tmp/hia-p0-legacy.json
+      - name: Assert exact source unchanged
+        run: git diff --exit-code
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-p0-legacy-${{ github.sha }}
+          path: /tmp/hia-p0-legacy.json
+          if-no-files-found: warn
+
+  llvm20-native-and-migration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    env:
+      CLANG: /usr/bin/clang-20
+      HEPTA_CLANG: /usr/bin/clang-20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install signed and fingerprint-pinned LLVM 20 compiler
+        run: |
+          set -eu
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/hepta-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key
+          fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hepta-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')
+          test "$fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+          sudo install -m 0644 "$RUNNER_TEMP/hepta-llvm.asc" /usr/share/keyrings/hepta-llvm.asc
+          printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hepta-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hepta-llvm20.list
+          sudo apt-get update
+          sudo apt-get install --yes clang-20 libclang-rt-20-dev llvm-20 lld-20 build-essential
+          printf '%s\n' /usr/lib/llvm-20/bin >> "$GITHUB_PATH"
+      - name: Pin Hepta source reference rustc 1.90.0 and verify direct LLVM toolchains
+        run: |
+          set -eu
+          rustup toolchain install 1.90.0 --profile minimal
+          printf 'RUSTC=%s\n' "$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_ENV"
+          "$CLANG" --version
+          clang++-20 --version
+          rustup run 1.90.0 rustc --version
+          python --version
+      - name: Install exact project-level proof / native support packages
+        run: |
+          set -eu
+          python -m pip install --disable-pip-version-check -e '.[optimization]' 'zstandard==0.25.0'
+          python -c 'import z3; print("Z3", z3.get_version_string())'
+      - name: Run VM vs directly generated LLVM x86/AArch64 object and ABI matrix
+        run: |
+          set -eu
+          python -B -m tools.qualify_hia_three_lane --suite llvm --output /tmp/hia-p2-llvm.json
+      - name: Run real C / C++ profile migration, upstream bodies and NDU contracts
+        run: |
+          set -eu
+          python -B -m tools.qualify_hia_three_lane --suite migration --output /tmp/hia-p3-migration.json
+      - name: Reject source mutation or partial qualification
+        run: |
+          set -eu
+          python tools/generate_hia_catalog.py --check
+          git diff --exit-code
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-p0-p3-llvm-migration-${{ github.sha }}
+          path: |
+            /tmp/hia-p2-llvm.json
+            /tmp/hia-p3-migration.json
+          if-no-files-found: warn

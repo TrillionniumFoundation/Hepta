@@ -43,6 +43,29 @@ SUITES = {
     "rust": (
         "tests.test_hia_rust_byte_dag",
     ),
+    "legacy": (
+        "tests.test_hsir_wire_audit",
+        "tests.test_hsir_bridge",
+        "tests.test_cfg_analysis",
+        "tests.test_ssa_scalar",
+        "tests.test_ssa_verify",
+        "tests.test_hia_schema_unification",
+        "tests.test_hia_agent_assembly",
+        "tests.test_hia_routes",
+    ),
+    "llvm": (
+        "tests.test_hia_agent_public_tools",
+        "tests.test_hia_program_llvm",
+        "tests.test_hia_composite_abi",
+        "tests.test_hia_native_differential",
+    ),
+    "migration": (
+        "tests.test_cpp_gsl_branching_callback",
+        "tests.test_hia_c_project_views",
+        "tests.test_hia_c_loop_migration_qualification",
+        "tests.test_c_fixed_slice_shift",
+        "tests.test_hia_native_ndu",
+    ),
 }
 
 
