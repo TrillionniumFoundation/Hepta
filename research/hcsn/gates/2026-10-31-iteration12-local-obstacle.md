@@ -44,6 +44,18 @@ coupon_total=5., face_total=100.
 
 These numerical results **do not refute the paper in its calibrated range**. They expose a hole in extending a smooth-fit formula over an enlarged parameter domain and treating it as a globally verified obstacle/free-boundary operator.
 
+## Independent 50-digit integral check (new numerical subgate)
+
+A separate `mpmath` reference (`hx_local_obstacle_mp_reference.py`) evaluates first-passage `F/G` at **50 decimal digits** and integrates their weighted densities on a geometrically subdivided semi-infinite domain. It reconstructs the smooth-fit boundary without calling `hx_integrals`, the binary64 `closed_boundary`, Green equity or the finite-difference solver:
+
+```
+V_B  = 197.52085498628085915289694345014521938607425062626
+f_B  =   4.1668447888085123235201965521135873720988022138047
+E_xx = -208.34223944042561617600982760567936860494011069023
+```
+
+This rules out the observed contradiction being merely a binary64 cancellation artifact. It is a **pointwise numerical** cross-check, **not** an outward-rounded interval theorem or a proof that all parameters are safe/unsafe. Three additional high-precision reference tests passed.
+
 ## Full no-drop fixed-seed numerical panel
 
 `p0_local_obstacle_evidence.py` records **all 256** attempts from `random.Random(20261031)`, including exceptions and a numerical status per case. These *exploratory*, nonpreregistered fixed ranges are embedded in the script.
@@ -64,11 +76,15 @@ Python 3.13.5, NumPy 2.3.5, SciPy 1.17.0 and CPU PyTorch 2.10.0:
 ```bash
 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
  python -m unittest -v research.hcsn.test_hx_local_obstacle_sign
-# 6/6 PASS
+# 6/6 PASS for the binary64 sign/FD tests
+
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \\
+ python -m unittest -v research.hcsn.test_hx_local_obstacle_mp_reference
+# 3/3 PASS for separate 50-digit first-passage quadrature
 
 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
  python -m unittest discover -s research/hcsn -p 'test_*.py' -q
-# 98/98 PASS in the locally reconstructed subset, NOT complete remote checkout/CI
+# 101/101 PASS in the locally reconstructed subset, NOT complete remote checkout/CI
 
 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
  python -m research.hcsn.p0_local_obstacle_evidence --output /tmp/hcsn-p0-iteration12.json
@@ -85,6 +101,8 @@ Source/test/reproducer Git blob SHA-1s read back from the research branch after 
 | `hx_local_obstacle_sign.py` | `307eac9285090fa22b0630a10f46f2d64d5d6cce` |
 | `test_hx_local_obstacle_sign.py` | `e123eff3917e4dcc113b6e4f2e785bfdd7b91d23` |
 | `p0_local_obstacle_evidence.py` | `0ef295f7906d020112b9159f48b3ff326ec2105b` |
+| `hx_local_obstacle_mp_reference.py` | `f131082e2844f16ddc0c8b0cee9126417caae604` |
+| `test_hx_local_obstacle_mp_reference.py` | `b10a8d3626930314e87fa941de6d24af07b83878` |
 | Unmodified original `hx_original.py` | `880ce9caea309d74569e5574df8f4d30aa0060f7` |
 | Unmodified independent `hx_equity_fd_independent.py` | `c3801c5a3f2607371b7d9d17916f49fbcb103877` |
 
