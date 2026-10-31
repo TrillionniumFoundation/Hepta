@@ -100,6 +100,37 @@ class SharedExecutionContractTests(unittest.TestCase):
                     observe(held_program(), "held", [4, 4])
                 self.assertEqual(caught.exception.code, "E_HIA_RUNTIME_INVARIANT")
 
+    def test_live_chain_storage_cannot_vanish_from_stopped_ledger(self):
+        # Exercise a real v7 chain whose second push exhausts the heap.
+        # One retained chain node owns a 24-byte header and a 1-byte payload.
+        from hepta.hia_opcodes import CHAIN_NODE_STORAGE_BYTES
+        from tests.test_hia_recursive_chain import doc
+
+        self.assertEqual(runtime.CHAIN_NODE_BYTES, CHAIN_NODE_STORAGE_BYTES)
+        observed = observe(doc(), "chain_cancel", [2], max_heap_bytes=25)
+        self.assertEqual((observed["status"], observed["error"]["code"]),
+                         ("budget_exceeded", "heap"))
+        ledger = observed["resources"]
+        self.assertEqual((ledger["live_chain_nodes"], ledger["live_bytes"]), (1, 25))
+        self.assertEqual(ledger["allocations"] - ledger["frees"], 2)
+        admission = dict(steps=observed["steps"], max_steps=1_000_000,
+                         max_heap_bytes=25, error_code="heap", with_chains=True)
+        validate_execution_observation(observed["status"], ledger, **admission)
+
+        # These counts satisfied the previous conservation-only guard: two
+        # live nonempty allocations and two live owners, but fewer than 24
+        # payload bytes despite one still-live 24-byte node storage header.
+        for claimed_bytes in (2, CHAIN_NODE_STORAGE_BYTES - 1):
+            forged = deepcopy(ledger)
+            forged["live_bytes"] = claimed_bytes
+            self.assertGreaterEqual(claimed_bytes,
+                                    forged["allocations"] - forged["frees"])
+            with self.subTest(claimed_bytes=claimed_bytes):
+                with self.assertRaisesRegex(ExecutionObservationRejected,
+                                            "live chain node storage"):
+                    validate_execution_observation(observed["status"], forged,
+                                                   **admission)
+
     def test_unknown_misclassified_nonexact_and_extra_observations_fail_closed(self):
         result = observe(held_program(), "held", [4, 4])
         ledger = result["resources"]
