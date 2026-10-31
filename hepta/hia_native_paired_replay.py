@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from hashlib import sha256
 import json
+import re
 
 from .hia_paired_holdout import assess_paired_holdout
 
@@ -16,6 +17,7 @@ OBSERVER_SCHEMA = "hepta.hia.native-observation.v1"
 MAX_REPORT_BYTES = 8 * 1024 * 1024
 ARMS = ("baseline", "fixed", "dp", "ndu")
 EMPTY_SHA256 = sha256(b"").hexdigest()
+_HEX_DIGEST = re.compile(r"[0-9a-f]{64}\\Z")
 
 
 class NativePairedReplayRejected(ValueError):
@@ -82,6 +84,17 @@ def replay_native_paired(raw):
             or report["safety_certificate"] is not False
             or report["production_activation_allowed"] is not False):
         _fail("failed/incomplete or authority-escalated observer report")
+    for field in ("registration_sha256", "observer_digest"):
+        value = report[field]
+        if (type(value) is not str or _HEX_DIGEST.fullmatch(value) is None
+                or value == "0" * 64):
+            _fail(field + " is not a valid nonzero digest")
+    _shape(report["host"], {"system", "machine", "release"}, "host")
+    if (report["host"]["system"] != "Linux"
+            or any(type(report["host"][key]) is not str
+                   or not 1 <= len(report["host"][key]) <= 256
+                   for key in ("machine", "release"))):
+        _fail("host does not match supported Linux observer profile")
     _shape(report["claims"], {
         "registered_reference_independently_verified",
         "one_time_costs_independently_attested",
@@ -114,6 +127,8 @@ def replay_native_paired(raw):
     total_samples = 0
     for index, name in enumerate(ARMS):
         arm = arms[name]
+        if arm["observer_digest"] != report["observer_digest"]:
+            _fail("reported observer identity differs from full-cost arm")
         entry = frozen[index]
         _shape(entry, {"strategy", "sha256", "freeze_ns"}, "ELF identity")
         if (entry["strategy"] != name
