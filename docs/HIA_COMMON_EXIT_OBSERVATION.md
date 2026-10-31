@@ -73,6 +73,29 @@ on both sides, but a `candidate_requalified` contract may intentionally change
 which quota is reached. A retained example changes a source call-depth stop
 into a candidate return. No exact budget-stop equivalence is claimed.
 
+### Executed-tick ceiling for chain generations
+
+In the finite v7/v8 chain VM, `chain.empty`, `chain.try_push` and
+`chain.pop` are the only operations that create a new chain generation.
+Each creates at most one generation, including failed fallible pushes that
+return a replacement chain. Every executed operation is ticked *before* its
+resource effects. Hence a necessary receipt invariant is
+`chains_created <= steps` (and `chains_consumed <= chains_created`
+remains mandatory).
+
+A wire report that adds the same number to `chains_created` and
+`chains_consumed` can preserve `live_chains`, all node-history inequalities
+and heap/owner conservation while claiming more generation events than
+executed VM ticks. The scoped real-VM return and heap-stop regressions
+retain their unmodified ledger, then mutate exactly those two counters.
+The shared validator must reject both; it must still admit the original
+reports and interrupted chain destruction.
+
+This is only a **necessary** history consistency condition for the
+specified finite VM event model, not proof that a remote producer executed
+the claimed instructions, or a claim about host scheduling, native machine
+instruction counts, source-to-backend refinement or production safety.
+
 ## Live recursive-chain storage in stopped receipts
 
 The v7/v8 chain model has a 24-byte storage allocation for every still-live
