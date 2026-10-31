@@ -28,6 +28,10 @@ jobs:
           set -eu
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
           python tools/generate_hia_catalog.py --check
+      - name: Self-test zero-skips, expected-failure and lost-case hard gate
+        run: |
+          set -eu
+          python -B -m tools.qualify_hia_three_lane --suite gate --output /tmp/hia-strict-gate.json
       - name: Execute no-skip P0/P1/P5 Core, input and evidence-admission regressions
         run: |
           set -eu
@@ -43,6 +47,7 @@ jobs:
         with:
           name: hia-json-merged-${{ github.sha }}
           path: |
+            /tmp/hia-strict-gate.json
             /tmp/hia-json-integrated-core.json
             /tmp/hia-json-integrated-native.json
           if-no-files-found: warn

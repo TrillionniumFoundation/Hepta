@@ -36,3 +36,12 @@ close one of these.
 
 **Authority: DENY_ALL. Production activation: false. Keep Draft; no main
 merge until separate full evidence and independent review.**
+
+## Strict test gate hardened on this integrated source
+
+The exact test gate from Hepta #466 at `db4608200ce600ebbecf0eb9c31e9c99e5c094b7` is imported
+with only one additive mandatory test module:
+`tests.test_hia_evidence_json_structure`. It rejects expected failures,
+unplanned/duplicate/disappearing cases, skips, changed source identity and
+untracked workspace changes; its independent negative self-tests run as a
+`gate` suite on this same source. No other scope or safety authority is changed.
