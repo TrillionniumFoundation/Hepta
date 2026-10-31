@@ -1,0 +1,76 @@
+name: HIA P7 queue-token no-clobber exact-source regression
+on:
+  push:
+    branches: [work/hia-p7-queue-token-collision-20261031-gpt6]
+  pull_request:
+    branches: [work/hia-p7-queue-intake-snapshot-20261031-gpt6]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  collision-no-clobber:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run real queue intake and deliberate token collision against exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python -B - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import sys
+          import unittest
+
+          names = ("tests.test_hia_stateful_queue_capture",
+                   "tests.test_hia_stateful_queue_collision")
+          suite = unittest.defaultTestLoader.loadTestsFromNames(names)
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          admissible = (
+              expected >= 6 and result.testsRun == expected and
+              result.wasSuccessful() and not result.errors and not result.failures and
+              not result.skipped and not result.expectedFailures and not result.unexpectedSuccesses
+          )
+          report = {
+              "schema": "hepta.hia.queue-token-no-clobber.v1",
+              "source_commit": os.environ["GITHUB_SHA"],
+              "source_root": str(Path.cwd()),
+              "tests_planned": expected,
+              "tests_executed": result.testsRun,
+              "failures": [case.id() for case, _ in result.failures],
+              "errors": [case.id() for case, _ in result.errors],
+              "skipped": [case.id() for case, _ in result.skipped],
+              "expected_failures": [case.id() for case, _ in result.expectedFailures],
+              "passed": admissible,
+              "authority": "DENY_ALL",
+              "production_activation_allowed": False,
+          }
+          Path("/tmp/hia-p7-queue-token-receipt.json").write_text(
+              json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          print(json.dumps(report, sort_keys=True))
+          if not admissible:
+              sys.exit(1)
+          PY
+      - name: Ensure checkout remains unchanged
+        run: |
+          set -eu
+          git diff --exit-code
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-p7-queue-token-${{ github.sha }}
+          path: /tmp/hia-p7-queue-token-receipt.json
+          if-no-files-found: warn
