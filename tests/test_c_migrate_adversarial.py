@@ -321,5 +321,44 @@ class CMigrationAdversarial(unittest.TestCase):
         self.assertEqual(len(result["converted"]), 8)
         self.assertTrue(self.output.exists())
 
+
+    def test_malformed_clang_root_and_toplevel_shapes_are_controlled(self):
+        import json
+        source = "int f(int x){return x;}\n"
+        self.source.write_text(source, encoding="utf-8")
+        malformed = (
+            [],
+            {"kind": "TranslationUnitDecl", "inner": {}},
+            {"kind": "TranslationUnitDecl", "inner": [None]},
+            {"kind": "TranslationUnitDecl", "inner": [{"kind": "FunctionDecl", "loc": "invalid"}]},
+            {"kind": "TranslationUnitDecl", "inner": [{"kind": "FunctionDecl", "loc": {"file": "bad" + chr(0) + "path.c"}}]},
+        )
+        for candidate in malformed:
+            with self.subTest(candidate=repr(candidate)[:100]):
+                with patch("hepta.c_migrate._data_model", return_value={}), \
+                     patch("hepta.c_migrate._run", return_value=json.dumps(candidate)):
+                    report = migrate_c(self.source, self.output)
+                self.assertFalse(report["ok"], report)
+                self.assertFalse(self.output.exists())
+                self.assertIn("E_C_AST", [entry["code"] for entry in report["rejected"]], report)
+
+    def test_malformed_main_function_children_are_controlled(self):
+        import json
+        source = "int f(int x){return x;}\n"
+        self.source.write_text(source, encoding="utf-8")
+        node = {
+            "kind": "FunctionDecl", "name": "f",
+            "loc": {"file": str(self.source)},
+            "range": {"begin": {"offset": 0}, "end": {"offset": len(source) - 2}},
+            "inner": "invalid-children",
+        }
+        fake_ast = {"kind": "TranslationUnitDecl", "inner": [node]}
+        with patch("hepta.c_migrate._data_model", return_value={}), \
+             patch("hepta.c_migrate._run", return_value=json.dumps(fake_ast)):
+            report = migrate_c(self.source, self.output)
+        self.assertFalse(report["ok"], report)
+        self.assertFalse(self.output.exists())
+        self.assertIn("E_C_AST", [entry["code"] for entry in report["rejected"]], report)
+
 if __name__ == "__main__":
     unittest.main()
