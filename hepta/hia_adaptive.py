@@ -38,6 +38,27 @@ class AdaptiveRejected(ValueError):
     pass
 
 
+def _version_token(token):
+    """Reject untrusted native image keys before any mapping/lock operation.
+
+    The runtime itself issues only "baseline" and 32-character lowercase hex
+    labels. Permit bounded printable ASCII for compatibility with existing
+    internally recorded test labels, but never hash arbitrary caller objects
+    or extremely long strings.
+    """
+    if (type(token) is not str or not 1 <= len(token) <= 64
+            or not token.isascii() or not token.isprintable()):
+        raise AdaptiveRejected("E_ADAPT_AUTHORITY: bounded built-in ASCII image token required")
+    return token
+
+
+def _selection_mode(mode):
+    """Do not dispatch caller-provided __eq__ while holding the owner lock."""
+    if type(mode) is not str or mode not in {"auto", "explicit"}:
+        raise AdaptiveRejected("E_ADAPT_AUTHORITY: known built-in selection mode required")
+    return mode
+
+
 def _digest(value):
     return sha256(json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest()
 
@@ -442,10 +463,11 @@ class AdaptiveRuntime:
         """
         if type(expires_after_ns) is not int or not 0 <= expires_after_ns <= 60_000_000_000:
             raise AdaptiveRejected("E_ADAPT_EVIDENCE: bounded evidence lifetime required")
+        token = _version_token(token)
         started = time.monotonic_ns()
         with self._lock:
             self._open()
-            if type(token) is not str or token not in self._images:
+            if token not in self._images:
                 raise AdaptiveRejected("E_ADAPT_AUTHORITY: an internally prepared token is required")
             candidate, base = self._images[token], self._images[self._current]
             epoch, current = self._generation, self._current
@@ -499,12 +521,13 @@ class AdaptiveRuntime:
         return json.loads(json.dumps(evidence))
 
     def select(self, token, *, mode="auto"):
+        token = _version_token(token)
+        mode = _selection_mode(mode)
         started = time.monotonic_ns()
         with self._lock:
             self._open()
-            if (type(token) is not str or token not in self._images
-                    or type(mode) is not str or mode not in {"auto", "explicit"}):
-                raise AdaptiveRejected("E_ADAPT_AUTHORITY: prepared token and known selection mode required")
+            if token not in self._images:
+                raise AdaptiveRejected("E_ADAPT_AUTHORITY: an internally prepared token is required")
             if self._active:
                 self._event("selection_refused", token=token, reason="active_native_call")
                 return {"selected": False, "reason": "active_native_call", "current": self._current}
