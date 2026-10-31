@@ -504,3 +504,25 @@ now participate in the verified regression and critical coverage group; their
 16 methods also extend the canonical matrix from 250 to 266 selectors without
 removing an earlier selector or capability. The actual owned-source path and
 host/cross-target forgery controls are required alongside the producer tests.
+
+## P0/P1 exact-reviewed opcode registry correction (2026-10-31)
+
+The #446 catalog carried actual v8 `int.cast` trap code `overflow` and catalog
+SHA-256 `433d70b7fc8d5ac2cfe4d60816572b64ef751ebecfc117066466e451e727537a`,
+while this 56-capability safety matrix still contained the old catalog hash
+`dd6fc836b5e71db165dcf81bfcdd233fda25dc6888f720dcc472dcdcf986ee54`
+and non-runtime trap label `overflow_when_checked`. The old reviewed matrix
+identity was `eadf83d6d465898504dd4a63e554191ac81df54c13568c87ccd6dad995e421ed`.
+The updated reviewed identity, independently recomputed over exact canonical
+JSON (sorted keys, compact separators and ASCII escaping), is
+`6e40271319d03c58712a152dca5946895de0f74ece480876353624ec4b19a731`.
+
+Exactly the two stale catalog fields are corrected. This **does not**
+import the 59-capability #437/#447 review matrix into #446 or discard
+any of #446's 56 capabilities and 562 distinct existing test selectors.
+The independent, immutable qualifier SHA-256 must be updated only alongside
+explicit review and the new positive/negative registry-drift unit test.
+Original #439 exact-head failure logs demonstrate the prior eight v1-v8
+tuple/list test failures and `E_SAFETY_REGISTRY`; these failures remain retained.
+The new exact HEAD requires its own complete source-bound tests and review.
+Metadata alignment neither grants Core admission nor proves native refinement.
