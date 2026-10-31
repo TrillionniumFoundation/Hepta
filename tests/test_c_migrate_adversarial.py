@@ -281,6 +281,12 @@ class CMigrationAdversarial(unittest.TestCase):
         self.assertEqual(result["name"], "f")
         self.assertIn("return 1;", result["source"])
 
+    def test_real_clang_wide_function_rejected_without_output(self):
+        # Clang emits thousands of AST siblings for a C function with many
+        # returns, even though its nesting is shallow and input is < 256 KiB.
+        source = "int f(int x) {\\n" + "return x;\\n" * 2200 + "}\\n"
+        self.reject(source, "E_C_AST_BUDGET")
+
     def test_malformed_function_ast_children_fail_closed(self):
         from hepta.c_migrate import MigrationRejected, _function
 
