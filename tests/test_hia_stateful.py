@@ -191,6 +191,27 @@ class OwnedNativeTests(unittest.TestCase):
         snapshot["owner_state_schema"]["cells"] = 999
         self.assertEqual(runtime.snapshot()["owner_state_schema"]["cells"], 2)
 
+    def test_native_loan_token_reuse_cannot_revive_stale_lease(self):
+        # Exercise actual native owned cells and handles. A repeated RNG
+        # output must not restore old read/write/close authority.
+        import hepta.hia_stateful as stateful
+        runtime = self.runtime()
+        with patch.object(stateful.secrets, "token_hex", return_value="reissued-token"):
+            former = runtime.borrow(mutable=True)
+            former.write(0, 37)
+            former.close()
+            current = runtime.borrow(mutable=True)
+            with self.assertRaisesRegex(AdaptiveRejected, "STALE_LOAN"):
+                former.read(0)
+            with self.assertRaisesRegex(AdaptiveRejected, "STALE_LOAN"):
+                former.write(1, 999)
+            former.close()
+            self.assertEqual(current.read(0), 37)
+            current.write(1, 23)
+            current.close()
+        self.assertEqual(runtime.snapshot()["state_values"], [37, 23])
+        self.assertEqual(runtime.snapshot()["live_loans"], 0)
+
     def test_failed_preparation_producer_receipts_and_incompatible_schema_keep_owner(self):
         runtime = self.runtime()
         base, candidate = programs()
