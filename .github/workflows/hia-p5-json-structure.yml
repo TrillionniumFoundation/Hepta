@@ -1,0 +1,31 @@
+name: HIA P5 bounded JSON structure before evidence decoder
+on:
+  push:
+    branches: [work/hia-p5-json-structure-20261031-gpt6]
+  pull_request:
+    branches: [work/hia-p0-p5-source-convergence-20261031-gpt6]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  bounded-json-and-real-native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify node/depth preflight occurs before complete JSON decoding
+        run: |
+          set -eu
+          python -B -m unittest tests.test_hia_evidence_json_structure tests.test_hia_bounded_research_wire tests.test_hia_full_cost_gate tests.test_hia_paired_holdout -v
+      - name: Recheck actual ELF observer, full-cost ledger and native paired replay
+        run: |
+          set -eu
+          python -B -m unittest tests.test_hia_native_process_observer tests.test_hia_native_paired_replay -v
+      - name: Preserve source syntax and tracked identity
+        run: |
+          set -eu
+          python -B -m py_compile hepta/hia_full_cost_gate.py hepta/hia_native_paired_replay.py tools/hia_native_process_observer.py
+          git diff --exit-code

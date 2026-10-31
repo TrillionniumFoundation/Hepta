@@ -11,6 +11,7 @@ import json
 import re
 
 from .hia_bounded_wire import WireBudgetExceeded, checked_utf8_wire
+from .hia_json_preflight import preflight_hia_json
 from .hia_paired_holdout import assess_paired_holdout
 
 SCHEMA = "hepta.hia.native-paired-replay.v1"
@@ -65,7 +66,10 @@ def _read(raw):
     if len(wire) > MAX_REPORT_BYTES:
         _fail("native observer evidence exceeds byte limit")
     try:
-        return json.loads(wire.decode("utf-8"), object_pairs_hook=_pairs,
+        source = wire.decode("utf-8")
+        # Same immutable evidence wire is preflighted before full JSON decode.
+        preflight_hia_json(source, max_nodes=262144, max_depth=64)
+        return json.loads(source, object_pairs_hook=_pairs,
                           parse_constant=lambda _: _fail("nonfinite JSON"))
     except NativePairedReplayRejected:
         raise
