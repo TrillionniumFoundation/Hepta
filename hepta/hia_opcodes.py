@@ -30,6 +30,9 @@ EXECUTION_CHAIN_FIELDS = frozenset({
     "chains_created", "chains_consumed", "live_chains", "chain_nodes_created",
     "chain_nodes_dropped", "live_chain_nodes",
 })
+# Each live recursive-chain node owns a real 24-byte storage allocation.
+# Keep the interpreter and independent stopped-ledger checks on one size contract.
+CHAIN_NODE_STORAGE_BYTES = 24
 _GROUPS = MappingProxyType({"integer": frozenset(WIDTHS), "scalar": SCALARS,
     "equality": frozenset(WIDTHS) | {"bool"}, "owner": OWNERS, "bytes": BYTE_RESOURCES,
     "view": frozenset({"readbuf", "mutbuf"}), "mutable_source": frozenset({"buffer", "mutbuf"})})
@@ -94,6 +97,9 @@ def validate_execution_observation(status, ledger, *, steps, max_steps, max_heap
         # Each still-live chain node owns its distinct payload and node-storage
         # byte owners, even after a quota interrupts iterative destruction.
         need(2 * ledger["live_chain_nodes"] <= live, "chain nodes have missing byte owners")
+        need(ledger["live_bytes"] >= CHAIN_NODE_STORAGE_BYTES * ledger["live_chain_nodes"]
+             and nonempty >= ledger["live_chain_nodes"],
+             "live chain node storage is missing from the stopped payload/allocation ledger")
     if status == "returned":
         need(error_code is None, "ordinary return cannot carry an error outcome")
         need(live == ledger["live_local_loans"] == 0
