@@ -20,7 +20,7 @@ import time
 from .clang_capture import run_bounded
 from .native_tool_identity import update_stable_regular_hash
 
-PROFILE = "cpp20-real-gsl-final-action-closed-branching-callback-v2"
+PROFILE = "cpp20-real-gsl-final-action-closed-cv-factories-v3"
 MAX_AST_BYTES = 32 * 1024 * 1024
 MAX_NODES = 100_000
 VERSIONS = {
@@ -60,6 +60,10 @@ void gsl_capture(GslState* state, unsigned long long tag) noexcept {
 }
 void gsl_factory_capture(GslState* state, unsigned long long tag) noexcept {
     auto guard = gsl::finally(GslCallback{state, tag});
+}
+void gsl_const_lvalue_factory_capture(GslState* state, unsigned long long tag) noexcept {
+    const GslCallback callback{state, tag};
+    auto guard = gsl::finally(callback);
 }
 #if HEPTA_GSL_LVALUE
 void gsl_lvalue_factory_capture(GslState* state, unsigned long long tag) noexcept {
@@ -488,7 +492,7 @@ class Translator:
         selected = [n for root in self.factory_roots for n in walk(root)
                     if n.get("kind") == "FunctionDecl" and n.get("name") == "finally"
                     and n.get("isUsed") and any(c.get("kind") == "TemplateArgument" for c in children(n))]
-        need(1 <= len(selected) <= 2, "Expected the captured rvalue and optional nonconst-lvalue factories")
+        need(1 <= len(selected) <= 3, "Expected the captured scalar callback value/reference factories")
         emitted, categories = [], []
         for method in selected:
             need(all(n.get("kind") in {"TemplateArgument", "ParmVarDecl", "CompoundStmt", "WarnUnusedResultAttr"}
@@ -496,9 +500,14 @@ class Translator:
             parameters = [n for n in children(method) if n.get("kind") == "ParmVarDecl"]
             arguments = [n for n in children(method) if n.get("kind") == "TemplateArgument"]
             need(len(parameters) == len(arguments) == 1, "Factory template/parameter arity")
-            category = {"GslCallback &&": "rvalue", "GslCallback &": "nonconst_lvalue"}.get(qual(parameters[0]))
+            category = {"GslCallback &&": "rvalue", "GslCallback &": "nonconst_lvalue",
+                        "const GslCallback &": "const_lvalue"}.get(qual(parameters[0]))
             need(category is not None and category not in categories, "Unknown or repeated factory category")
-            need(qual(arguments[0]) == ("GslCallback" if category == "rvalue" else "GslCallback &"),
+            template_argument = qual(arguments[0])
+            expected_arguments = {"rvalue": {"GslCallback"},
+                                  "nonconst_lvalue": {"GslCallback &"},
+                                  "const_lvalue": {"GslCallback", "const GslCallback &"}}
+            need(template_argument in expected_arguments[category],
                  "Factory template argument differs from reference category")
             body = self._body(method)
             need(len(children(body)) == 1 and children(body)[0].get("kind") == "ReturnStmt"
@@ -526,18 +535,29 @@ class Translator:
                  and qual(callback) == "GslCallback"
                  and callback.get("ctorType", {}).get("qualType") == expected_constructor,
                  "Factory must use the captured trivial callback move/copy")
-            forwarded = self._call(children(callback)[0], "forward", 1)[0]
-            forwarded = unwrap(forwarded)
+            # GSL 3.1 has a separate const F& overload with a direct copy from
+            # its parameter. GSL 4.0 forwards const F& through the unified
+            # remove_cv/remove_reference overload. Validate the actual body in
+            # either case; a release name or matching signature is not enough.
+            direct_const_copy = category == "const_lvalue" and template_argument == "GslCallback"
+            argument = children(callback)[0]
+            forwarded = unwrap(argument if direct_const_copy
+                               else self._call(argument, "forward", 1)[0])
             need(forwarded.get("kind") == "DeclRefExpr"
-                 and forwarded.get("referencedDecl", {}).get("id") == parameters[0]["id"],
-                 "Factory must forward its captured parameter")
-            name = "GslFinallyRvalue" if category == "rvalue" else "GslFinallyLvalue"
+                 and forwarded.get("referencedDecl", {}).get("kind") == "ParmVarDecl"
+                 and forwarded.get("referencedDecl", {}).get("id") == parameters[0]["id"]
+                 and qual(forwarded.get("referencedDecl", {})) == qual(parameters[0]),
+                 "Factory must copy/forward its captured parameter")
+            name = {"rvalue": "GslFinallyRvalue", "nonconst_lvalue": "GslFinallyLvalue",
+                    "const_lvalue": "GslFinallyConstLvalue"}[category]
             emitted.append("fn " + name + "(tag: u64) -> GslFinalAction effects {alloc, block, panic} {\n"
                            "    return GslConstruct(tag);\n}\n")
             categories.append(category)
             self.stats["upstream_factory_instantiations_translated"] += 1
             self.trace.append({"operation": "factory", "category": category,
                                "callback_transfer": "trivial_move" if category == "rvalue" else "trivial_copy",
+                               "parameter_binding": "direct_const_copy" if direct_const_copy else "std_forward",
+                               "template_argument": template_argument,
                                "return": "construct_owner_prvalue", "source_range": method.get("range")})
         need("rvalue" in categories, "Rvalue factory is required")
         return "\n".join(emitted), sorted(categories)
@@ -661,7 +681,8 @@ def capture_and_lower(root, version, output, *, clang, examples=None):
         captured[label] = raw
         commands.append(receipt)
     component, lowering = translate_captured(captured["upstream"], captured["callback"], captured["factory"])
-    need(lowering["factory_categories"] == (["nonconst_lvalue", "rvalue"] if version == "4.0.0" else ["rvalue"]),
+    need(lowering["factory_categories"] == (["const_lvalue", "nonconst_lvalue", "rvalue"]
+                                          if version == "4.0.0" else ["const_lvalue", "rvalue"]),
          "Captured factory categories differ from this release's type contract")
     client_path = examples / "client.hepta"
     before[str(client_path)] = _identity(client_path)
@@ -689,7 +710,7 @@ def capture_and_lower(root, version, output, *, clang, examples=None):
               "scope": {"upstream": "gsl::final_action<GslCallback> value/move constructors and destructor",
                         "authored_translated": "GslCallback::operator() bounded scalar/const-local/if body",
                         "authored_not_translated": "C++ test clients and explicit-status Hepta integration client",
-                        "factory": "actual rvalue instantiation; 4.0 also captures and lowers nonconst-lvalue instantiation",
+                        "factory": "actual rvalue and const-lvalue instantiations; 4.0 also lowers nonconst-lvalue",
                         "general_templates_or_exceptions_supported": False,
                         "standard_library_implementation_migrated": False,
                         "general_callable_lifetime_inference": False}}

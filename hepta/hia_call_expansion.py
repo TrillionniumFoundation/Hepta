@@ -1,8 +1,9 @@
 """Checked expansion of resolved, single-block leaf calls in resource CFGs.
 
-The proposer substitutes names.  The checker independently normalizes source
-call traces and candidate instruction traces and compares every ordered operation
-and CFG exit.  Both programs pass the ordinary Core ownership verifier.  This
+The proposer substitutes names and makes returned-loan boundary events explicit.
+The checker independently normalizes source call traces and candidate instruction
+traces and compares every ordered operation and CFG exit. Both programs pass the
+ordinary Core ownership verifier. This
 rule composes through caller loops without unrolling them; it does not prove
 arbitrary interprocedural equivalence or backend refinement.  VM fuel, diagnostic
 locations, and call-depth budget failures are outside this optimization profile.
@@ -98,7 +99,19 @@ def propose_leaf_call_expansion(base, *, callees=None):
                         frame[old] = output["name"]
                     operations.append(item)
                 values = fn["blocks"][0]["term"]["values"]
-                names.update({p["name"]: frame[x] for p, x in zip(op["out"], values)})
+                origins = fn.get("return_loans", [None] * len(values))
+                for output, value, origin in zip(op["out"], values, origins):
+                    returned = frame[value]
+                    if output["type"] in {"readbuf", "mutbuf"} and value == origin:
+                        # V8 forwarding returns a fresh child of the caller's
+                        # loan, not the same consumable capability. Materialize
+                        # that implicit return event after the whole leaf body.
+                        returned = fresh()
+                        mode = "read" if output["type"] == "readbuf" else "mut"
+                        operations.append({"op": "borrow." + mode, "args": [frame[value]],
+                                           "out": [{"name": returned, "type": output["type"]}],
+                                           "attrs": {}})
+                    names[output["name"]] = returned
                 sites.append({"caller": source_fn["name"], "block": source_block["id"],
                               "operation": index, "callee": target})
             target_block["ops"] = operations
@@ -137,8 +150,21 @@ def _trace(block, functions, selected, *, caller):
         frame = {p["name"]: env[name] for p, name in zip(fn["params"], op["args"])}
         for inner in fn["blocks"][0]["ops"]:
             emit(inner, frame)
+        parameters = {p["name"] for p in fn["params"]}
         for output, name in zip(op["out"], fn["blocks"][0]["term"]["values"]):
-            env[output["name"]] = frame[name]
+            value = frame[name]
+            if output["type"] in {"readbuf", "mutbuf"} and name in parameters:
+                # Independently model the invoke/return boundary in the source
+                # trace. A checked forwarded formal yields a new child; a
+                # callee-created child already has its own operation identity.
+                position = len(trace)
+                operation = "borrow.read" if output["type"] == "readbuf" else "borrow.mut"
+                trace.append({"op": operation, "args": [value],
+                              "types": [output["type"]], "attrs": {}})
+                if len(trace) > MAX_EXPANDED_OPERATIONS:
+                    raise OptimizationRejected("expanded instruction budget exceeded")
+                value = ("operation", position, 0, output["type"])
+            env[output["name"]] = value
     return trace, _rename_term(block["term"], env)
 
 

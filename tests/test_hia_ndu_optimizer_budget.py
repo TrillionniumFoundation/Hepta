@@ -24,6 +24,7 @@ class RankingBudgetTests(unittest.TestCase):
         self.proof_timeouts = []
         self.rank_cost = 0
         self.native_requests = []
+        self.native_timeouts = []
         self.baseline = baseline_program()
         self.candidate = identity("u32")
         self.observations = {
@@ -46,6 +47,7 @@ class RankingBudgetTests(unittest.TestCase):
 
     def native_rank(self, bridge, request, *, timeout_s):
         self.native_requests.append(request)
+        self.native_timeouts.append(timeout_s)
         self.now += self.rank_cost
         candidate = next(row for row in request["candidates"] if row["id"] == "cancel")
         # Deliberately stale advice lets the host guard be tested independently
@@ -70,6 +72,27 @@ class RankingBudgetTests(unittest.TestCase):
         self.assertEqual(result["costs"]["total_search_ns"], 4_000_000)
         self.assertEqual(result["candidate_reports"][0]["proof_wall_ns"], 1_500_000)
         self.assertEqual(result["selected_proof_admission"]["wall_ns"], 1_000_000)
+        self.assertEqual(self.native_timeouts, [0.003])
+
+    def test_exhausted_search_never_starts_native_work_or_claims_native_receipt(self):
+        self.objective["resource_cap_ns"] = 0
+        result = self.rank()
+        self.assertEqual(self.proof_timeouts, [])
+        self.assertEqual(self.native_requests, [])
+        self.assertIsNone(result["native_response"])
+        self.assertIsNone(result["bridge"])
+        self.assertFalse(result["native_rank_admission"]["invoked"])
+        self.assertEqual(result["reason"], "search_budget_exhausted_before_native")
+        self.assertEqual(result["selected_id"], "abstain")
+
+    def test_proof_spending_remaining_budget_does_not_renew_native_timeout(self):
+        self.proof_costs = [5_500_000]
+        result = self.rank()
+        self.assertEqual(self.proof_timeouts, [5])
+        self.assertEqual(self.native_requests, [])
+        self.assertEqual(result["costs"]["total_search_ns"], 5_500_000)
+        self.assertFalse(result["admitted"])
+        self.assertIsNone(result["selected_fresh_proof"])
 
     def test_all_candidates_share_one_cap_and_losing_search_costs(self):
         self.observations["abstain"]["search_ns"] = 1_000_000

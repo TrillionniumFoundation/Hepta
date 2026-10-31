@@ -45,7 +45,9 @@ class RealGslMigrationTests(unittest.TestCase):
         statistics = self.migration["report"]["statistics"]
         self.assertEqual(statistics["upstream_method_bodies_translated"], 3)
         self.assertEqual(statistics["authored_callback_bodies_translated"], 1)
-        self.assertEqual(statistics["upstream_factory_instantiations_translated"], 2)
+        self.assertEqual(statistics["upstream_factory_instantiations_translated"], 3)
+        self.assertEqual(self.migration["report"]["factory_categories"],
+                         ["const_lvalue", "nonconst_lvalue", "rvalue"])
         self.assertTrue(analyze(source, native=False, backend="c").report["ok"])
         lower_source(source)
         self.assertIn("wrapping_mul(state.trace, 31)", source)
@@ -107,6 +109,45 @@ class RealGslMigrationTests(unittest.TestCase):
                                 and n.get("ctorType", {}).get("qualType") == "void (const GslCallback &) noexcept")
         copy_constructor["ctorType"]["qualType"] = "void (const GslCallback &)"
         with self.assertRaisesRegex(MigrationError, "trivial callback move/copy"):
+            translate_captured(self.upstream, self.callback, factory)
+
+    def test_actual_const_factory_is_translated_on_both_upstream_releases(self):
+        old = capture_and_lower(ROOT, "3.1.0", self.output / "old-const-factory", clang=self.clang)
+        self.assertEqual(old["report"]["factory_categories"], ["const_lvalue", "rvalue"])
+        self.assertEqual(old["report"]["statistics"]["upstream_factory_instantiations_translated"], 2)
+        for migration, binding in ((old, "direct_const_copy"), (self.migration, "std_forward")):
+            operations = [row for row in migration["report"]["lowered_operations"]
+                          if row.get("category") == "const_lvalue"]
+            self.assertEqual(len(operations), 1)
+            self.assertEqual(operations[0]["parameter_binding"], binding)
+            self.assertEqual(operations[0]["callback_transfer"], "trivial_copy")
+            source = migration["component_source"] + (ROOT / "examples/cpp/gsl_final_action/factory_const_client.hepta").read_text()
+            self.assertTrue(analyze(source, native=False, backend="c").report["ok"])
+            lower_source(source)
+
+    def test_const_factory_cannot_claim_a_different_template_reference(self):
+        factory = copy.deepcopy(self.factory)
+        function = next(n for root in factory for n in walk(root)
+                        if n.get("kind") == "FunctionDecl" and n.get("isUsed")
+                        and any(c.get("kind") == "ParmVarDecl"
+                                and c.get("type", {}).get("qualType") == "const GslCallback &"
+                                for c in children(n)))
+        argument = next(n for n in children(function) if n.get("kind") == "TemplateArgument")
+        argument["type"]["qualType"] = "volatile GslCallback &"
+        with self.assertRaisesRegex(MigrationError, "template argument"):
+            translate_captured(self.upstream, self.callback, factory)
+
+    def test_const_factory_copy_must_use_its_actual_parameter(self):
+        factory = copy.deepcopy(self.factory)
+        function = next(n for root in factory for n in walk(root)
+                        if n.get("kind") == "FunctionDecl" and n.get("isUsed")
+                        and any(c.get("kind") == "ParmVarDecl"
+                                and c.get("type", {}).get("qualType") == "const GslCallback &"
+                                for c in children(n)))
+        reference = next(n for n in walk(function) if n.get("kind") == "DeclRefExpr"
+                         and n.get("referencedDecl", {}).get("kind") == "ParmVarDecl")
+        reference["referencedDecl"]["id"] = "unrelated-parameter"
+        with self.assertRaisesRegex(MigrationError, "captured parameter"):
             translate_captured(self.upstream, self.callback, factory)
 
     def test_source_pointer_rebinding_is_rejected(self):

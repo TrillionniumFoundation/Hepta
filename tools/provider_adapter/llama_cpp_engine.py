@@ -9,13 +9,28 @@ from __future__ import annotations
 import hashlib
 import http.client
 import json
+import math
 import os
 from pathlib import Path
 import socket
 import struct
 import subprocess
 import tempfile
+import threading
 import time
+
+
+def resource_observation():
+    """Best-effort shared-host observations, never per-process OOM attribution."""
+    files = ("memory.current", "memory.max", "memory.peak", "memory.events", "cpu.stat", "cpu.max")
+    values = {}
+    for name in files:
+        try:
+            values[name] = (Path("/sys/fs/cgroup") / name).read_text()[:16384]
+        except OSError as error:
+            values[name] = {"unavailable": type(error).__name__}
+    return {"observed_unix_ns": time.time_ns(), "cgroup": values,
+            "scope": "Shared cgroup counters; a delta does not identify which process caused an event."}
 
 
 def canonical(value):
@@ -75,6 +90,9 @@ class LlamaCppEngine:
         self.model = Path(model).resolve(strict=True)
         self.output = Path(output_dir)
         self.output.mkdir(parents=True, exist_ok=False)
+        self.lifecycle_started_ns = time.monotonic_ns()
+        self.resources_before = resource_observation()
+        self.closed = False
         self.model_identity = file_identity(self.model)
         if self.model_identity["sha256"] != model_sha256:
             raise ValueError("E_GGUF_MODEL: model bytes differ from the frozen identity")
@@ -136,8 +154,24 @@ class LlamaCppEngine:
         connection = http.client.HTTPConnection("localhost", timeout=timeout)
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         sock.settimeout(timeout)
+        expired = threading.Event()
+
+        def interrupt_transport():
+            # A per-read socket timeout alone permits an indefinitely dripped
+            # HTTP body. Interrupt this exact owned socket at the wall limit.
+            expired.set()
+            try:
+                sock.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+
+        timer = threading.Timer(timeout, interrupt_transport)
+        timer.daemon = True
+        timer.start()
         try:
             sock.connect(self.socket_path)
+            if expired.is_set():
+                raise TimeoutError("E_GGUF_DEADLINE: owned HTTP transport wall deadline exceeded")
             pid, uid, _ = struct.unpack("3i", sock.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12))
             if pid != self.process.pid or uid != os.geteuid():
                 raise RuntimeError("E_GGUF_OWNER: response peer is not the owned inference process")
@@ -145,33 +179,97 @@ class LlamaCppEngine:
             connection.request("GET" if data is None else "POST", endpoint, body=data,
                                headers={"Content-Type": "application/json"})
             response = connection.getresponse()
-            body = response.read(4 * 1024**2 + 1)
+            try:
+                body = response.read(4 * 1024**2 + 1)
+                body_complete = response.length == 0 or (response.chunked and response.isclosed())
+            except http.client.IncompleteRead as error:
+                body, body_complete = error.partial, False
+            if endpoint == "/completion":
+                destination = self.output / ("transport-" + str(self.generation_count).zfill(3) + ".response.raw")
+                with destination.open("xb") as stream:
+                    stream.write(body)
+                code = self.process.poll()
+                self.last_completion_observation = {
+                    "completion_sequence": self.generation_count, "body_received": bool(body),
+                    "body_complete": body_complete,
+                    "http_status": response.status, "body_bytes": len(body),
+                    "body_sha256": hashlib.sha256(body).hexdigest(),
+                    "owned_process_returncode": code if type(code) is int else None}
+            if expired.is_set():
+                raise TimeoutError("E_GGUF_DEADLINE: owned HTTP transport wall deadline exceeded")
             if len(body) > 4 * 1024**2:
                 raise ValueError("E_GGUF_RESPONSE: response budget exceeded")
+            if not body_complete:
+                raise ValueError("E_GGUF_RESPONSE: truncated or unframed HTTP response")
             if response.status == 503:
                 raise OSError("E_GGUF_NOT_READY")
             if response.status != 200 or self.process.poll() is not None:
                 raise RuntimeError("E_GGUF_RESPONSE: owned server failed request")
-            if endpoint == "/completion":
-                with (self.output / ("transport-" + str(self.generation_count).zfill(3) + ".response.raw")).open("xb") as stream:
-                    stream.write(body)
             return json.loads(body)
+        except (OSError, http.client.HTTPException) as error:
+            if expired.is_set():
+                raise TimeoutError("E_GGUF_DEADLINE: owned HTTP transport wall deadline exceeded") from error
+            raise
         finally:
+            timer.cancel()
+            timer.join()
             connection.close()
             sock.close()
 
-    def tokenize(self, text, *, special=False):
+    def tokenize(self, text, *, special=False, timeout=10):
         ids = self.request("/tokenize", {"content": text, "add_special": special,
-                                         "parse_special": True}).get("tokens")
+                                         "parse_special": True}, timeout=timeout).get("tokens")
         if not valid_tokens(ids):
             raise ValueError("E_GGUF_TOKENIZER")
         return ids
 
     def generate(self, messages, *, limit=1024, wall_seconds=180):
-        rendered = self.request("/apply-template", {"messages": messages}).get("prompt")
+        if (type(limit) is not int or not 1 <= limit <= self.context
+                or type(wall_seconds) not in {int, float} or not math.isfinite(wall_seconds)
+                or wall_seconds <= 0):
+            raise ValueError("E_GGUF_CONFIG: positive finite generation budget required")
+        self.attempt_count = getattr(self, "attempt_count", 0) + 1
+        started = time.monotonic_ns()
+        deadline = time.monotonic() + wall_seconds
+        receipt = {"schema": "hepta.gguf-attempt-observation.v1", "attempt": self.attempt_count,
+                   "started_unix_ns": time.time_ns(), "wall_limit_seconds": wall_seconds,
+                   "status": "started", "completion_requested": False, "response_received": False,
+                   "input_tokens": None, "usage": None, "resources_before": resource_observation()}
+        path = self.output / ("attempt-" + str(self.attempt_count).zfill(3) + ".json")
+        path.write_bytes(canonical(receipt) + b"\n")
+
+        def remaining():
+            value = deadline - time.monotonic()
+            if value <= 0:
+                raise TimeoutError("E_GGUF_DEADLINE: entire generate wall deadline exceeded")
+            return value
+
+        try:
+            result = self._generate(messages, limit, remaining, receipt)
+            # A complete late response is retained and charged, but cannot pass
+            # a registered wall limit. Its observed usage is still known.
+            remaining()
+            receipt["status"] = "completed"
+            result["wall_nanoseconds"] = time.monotonic_ns() - started
+            result["wall_scope"] = "template, tokenize, completion and response validation"
+            return result
+        except BaseException as error:
+            receipt.update(status="failed", error={"type": type(error).__name__, "message": str(error)})
+            raise
+        finally:
+            receipt["wall_nanoseconds"] = time.monotonic_ns() - started
+            receipt["resources_after"] = resource_observation()
+            process = getattr(self, "process", None)
+            code = process.poll() if process is not None else None
+            receipt["owned_process_returncode"] = code if type(code) is int else None
+            path.write_bytes(canonical(receipt) + b"\n")
+
+    def _generate(self, messages, limit, remaining, receipt):
+        rendered = self.request("/apply-template", {"messages": messages}, timeout=min(10, remaining())).get("prompt")
         if type(rendered) is not str:
             raise ValueError("E_GGUF_TEMPLATE")
-        ids = self.tokenize(rendered, special=True)
+        ids = self.tokenize(rendered, special=True, timeout=min(10, remaining()))
+        receipt["input_tokens"] = len(ids)
         if not ids or len(ids) + limit > self.context:
             raise ValueError("E_GGUF_CONTEXT: entire prompt and response must fit")
         # Supplying exact token IDs avoids implicit BOS/template differences.
@@ -184,34 +282,74 @@ class LlamaCppEngine:
             # schema to an output-format grammar. No task fields, allowed
             # replacements or correct answers enter the decoder.
             payload["json_schema"] = {"type": "object"}
+        remaining()
         self.generation_count += 1
+        receipt["completion_requested"] = True
+        receipt["completion_sequence"] = self.generation_count
         stem = "transport-" + str(self.generation_count).zfill(3)
         (self.output / (stem + ".request.json")).write_bytes(canonical({
             "messages": messages, "rendered_prompt": rendered, "payload": payload}) + b"\n")
         started = time.monotonic_ns()
-        raw = self.request("/completion", payload, timeout=wall_seconds)
-        self.response_count += 1
+        self.last_completion_observation = None
+        try:
+            raw = self.request("/completion", payload, timeout=remaining())
+        finally:
+            observed = self.last_completion_observation
+            if observed is not None:
+                receipt["transport_observation"] = observed
+                receipt["response_received"] = observed["body_complete"]
+                self.response_count += int(observed["body_complete"])
+        if not receipt["response_received"]:
+            # Protocol fixtures and explicitly supplied transports can return
+            # a complete object directly without an HTTP observation.
+            self.response_count += 1
+            receipt["response_received"] = True
         elapsed = time.monotonic_ns() - started
         (self.output / (stem + ".response.json")).write_bytes(canonical(raw) + b"\n")
         usage = validate_completion(raw, ids, limit, json_object=self.json_object)
+        receipt["usage"] = usage
         return {"schema": "hepta.gguf-generation.v1", "status": "completed",
                 "text": raw["content"], "rendered_prompt": rendered,
                 "input_token_ids": ids, "output_token_ids": raw["tokens"],
                 "request": payload, "response": raw, "usage": usage,
-                "wall_nanoseconds": elapsed}
+                "completion_wall_nanoseconds": elapsed}
 
     def close(self):
-        if self.process is not None and self.process.poll() is None:
-            self.process.terminate()
-            try:
-                self.process.wait(timeout=10)
-            except subprocess.TimeoutExpired:
-                self.process.kill()
-                self.process.wait(timeout=10)
-        if getattr(self, "log", None) is not None:
-            self.log.close()
-        if getattr(self, "socket_directory", None) is not None:
-            self.socket_directory.cleanup()
+        if getattr(self, "closed", False):
+            return
+        started = time.monotonic_ns()
+        before = self.process.poll() if self.process is not None else None
+        receipt = {"schema": "hepta.gguf-process-lifecycle.v1",
+                   "pid": self.process.pid if self.process is not None else None,
+                   "returncode_before_close": before if type(before) is int else None,
+                   "termination_requested": False, "kill_requested": False,
+                   "resources_before": getattr(self, "resources_before", None)}
+        try:
+            if self.process is not None and before is None:
+                self.process.terminate()
+                receipt["termination_requested"] = True
+                try:
+                    self.process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    self.process.kill()
+                    receipt["kill_requested"] = True
+                    self.process.wait(timeout=10)
+            self.closed = True
+        finally:
+            code = self.process.poll() if self.process is not None else None
+            receipt.update(returncode=code if type(code) is int else None,
+                           reaped=type(code) is int,
+                           completion_requests_started=self.generation_count,
+                           completion_responses_received=self.response_count,
+                           shutdown_ns=time.monotonic_ns()-started,
+                           lifecycle_ns=time.monotonic_ns()-getattr(self, "lifecycle_started_ns", started),
+                           resources_after=resource_observation(),
+                           oom_cause_established=False)
+            (self.output / "lifecycle.json").write_bytes(canonical(receipt) + b"\n")
+            if getattr(self, "log", None) is not None:
+                self.log.close()
+            if getattr(self, "socket_directory", None) is not None:
+                self.socket_directory.cleanup()
 
     def verify_final_identity(self):
         actual = file_identity(self.model)

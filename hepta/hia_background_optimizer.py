@@ -97,6 +97,11 @@ class _OptimizationFuture(Future):
             raise InvalidStateError("publication token has not been cancelled")
         return super().cancel()
 
+    def _accounting_state(self):
+        """Read one consistent observation without running any callbacks."""
+        with self._condition:
+            return "cancelled" if self.cancelled() else "finished" if self.done() else "pending"
+
 
 @dataclass
 class _Job:
@@ -110,6 +115,9 @@ class _Job:
     submitted_ns: int
     submit_work_ns: int = 0
     enqueued_ns: int = 0
+    work_started_ns: int | None = None
+    report: dict | None = None
+    accounted: bool = False
 
 
 class BackgroundOptimizer:
@@ -152,6 +160,12 @@ class BackgroundOptimizer:
         self._queue, self._pending = deque(), {}
         self._next, self._active, self._closed = 1, None, False
         self._worker_failure = None
+        # Future cancellation deliberately discards a return value, not the
+        # costs of work already performed. Keep detached bounded receipts and
+        # cumulative counters independently of caller-owned Future results.
+        self._recent_jobs = deque(maxlen=64)
+        self._settled_jobs = self._observed_work_ns = 0
+        self._outcomes = {}
         self._worker = threading.Thread(target=self._work, name="hia-background-optimizer", daemon=True)
         self._worker.start()
 
@@ -283,6 +297,7 @@ class BackgroundOptimizer:
     def _execute(self, job):
         started = time.perf_counter_ns()
         result = self._report(job, "stale", "incumbent_snapshot_changed")
+        job.report = result
         result["costs"]["queue_wait_ns"] = started - job.enqueued_ns
         if not self._same_snapshot(job):
             return result
@@ -290,13 +305,15 @@ class BackgroundOptimizer:
         if job.cancellation.cancelled():
             return result
         ranking_started = time.perf_counter_ns()
-        ranking = rank_candidates(job.baseline, inputs["candidates"], inputs["observations"],
-                                  function=self._function, bridge=dict(self._bridge),
-                                  objective=inputs["objective"], generation=job.epoch + 1,
-                                  timeout_ms=self._timeout, bridge_timeout_s=self._bridge_timeout)
-        rank_wall_ns = time.perf_counter_ns() - ranking_started
+        try:
+            ranking = rank_candidates(job.baseline, inputs["candidates"], inputs["observations"],
+                                      function=self._function, bridge=dict(self._bridge),
+                                      objective=inputs["objective"], generation=job.epoch + 1,
+                                      timeout_ms=self._timeout, bridge_timeout_s=self._bridge_timeout)
+        finally:
+            rank_wall_ns = time.perf_counter_ns() - ranking_started
+            result["costs"]["rank_call_wall_ns"] = rank_wall_ns
         result["ranking"] = ranking
-        result["costs"]["rank_call_wall_ns"] = rank_wall_ns
         if job.cancellation.cancelled():
             return result
         candidate, charged_rank_ns, search_ns = self._decision(job, inputs, ranking, rank_wall_ns)
@@ -318,12 +335,15 @@ class BackgroundOptimizer:
             result.update(status="abstained", reason="coordinator_work_exhausted_net_or_resource_budget")
             return result
         publication_started = time.perf_counter_ns()
-        publication = self._runtime.publish_if_current(
-            candidate, job.generation, expected_epoch=job.epoch,
-            max_prepare_ns=prepare_budget, cancellation=job.cancellation,
-            preparation_started_ns=handoff_ns)
-        publication_finished = time.perf_counter_ns()
-        publication_wall = publication_finished - publication_started
+        try:
+            publication = self._runtime.publish_if_current(
+                candidate, job.generation, expected_epoch=job.epoch,
+                max_prepare_ns=prepare_budget, cancellation=job.cancellation,
+                preparation_started_ns=handoff_ns)
+        finally:
+            publication_finished = time.perf_counter_ns()
+            publication_wall = publication_finished - publication_started
+            result["costs"]["publication_call_wall_ns"] = publication_wall
         with self._condition:
             self._last_program = candidate
         result.update(status="published", reason="fresh_proof_native_prepare_and_conditional_swap_passed",
@@ -335,6 +355,68 @@ class BackgroundOptimizer:
                                publication_handoff_ns=publication_started - handoff_ns,
                                postcommit_runtime_return_ns=publication_finished - handoff_ns - publication["prepare_ns"])
         return result
+
+    def _account_job(self, job, result):
+        """Settle once, including cancelled futures and pre-return failures.
+
+        Durations are host elapsed stage observations, not CPU-time or a hard
+        resource bound. Queue waiting is separate; externally supplied search
+        costs are not summed again across jobs. Runtime setup/close, this
+        receipt's encoding, Future callbacks and caller work need outer timing.
+        """
+        with self._condition:
+            if job.accounted:
+                return
+            now = time.perf_counter_ns()
+            worker_ns = 0 if job.work_started_ns is None else now - job.work_started_ns
+            result["costs"].update(
+                job_wall_before_future_completion_ns=now - job.submitted_ns,
+                worker_elapsed_ns=worker_ns,
+                observed_submit_and_worker_ns=job.submit_work_ns + worker_ns)
+            result["publication_committed"] = job.cancellation.committed()
+            future_state = job.future._accounting_state()
+            if future_state == "cancelled":
+                result.update(status="cancelled", reason="publication_cancelled_before_commit")
+            receipt = {key: result[key] for key in (
+                "schema", "job", "reason", "expected_generation",
+                "expected_selection_epoch", "before_sha256", "selected_id", "publication_committed")}
+            receipt.update(execution_status=result["status"], future_state_at_accounting=future_state,
+                status_scope="execution outcome observed at cost accounting; not a Future terminal-state claim")
+            receipt["costs"] = dict(result["costs"])
+            if "detail" in result:
+                receipt["detail"] = result["detail"]
+            if job.work_started_ns is None:
+                receipt["costs"]["queue_wait_ns"] = now - job.enqueued_ns
+            ranking = result.get("ranking")
+            receipt["ranking_returned"] = type(ranking) is dict
+            if type(ranking) is dict:
+                admission = ranking.get("native_rank_admission")
+                receipt["native_rank_invoked"] = (type(admission) is dict
+                                                  and admission.get("invoked") is True)
+                if type(ranking.get("request_sha256")) is str:
+                    receipt["native_request_sha256"] = ranking["request_sha256"]
+                bridge = ranking.get("bridge")
+                if type(bridge) is dict and type(bridge.get("binary_sha256")) is str:
+                    receipt["native_binary_sha256"] = bridge["binary_sha256"]
+                # Retain externally supplied and measured rank costs as
+                # context without adding overlapping costs to the cumulative
+                # submission/worker elapsed ledger a second time.
+                reported = ranking.get("costs")
+                if type(reported) is dict:
+                    receipt["reported_ranking_costs"] = {
+                        key: reported[key] for key in (
+                            "supplied_search_ns", "actual_adapter_ns", "total_search_ns",
+                            "search_at_native_rank_ns")
+                        if type(reported.get(key)) is int}
+            receipt["publication_returned"] = type(result.get("publication")) is dict
+            # Store bytes so mutating a Future result or a returned snapshot
+            # cannot rewrite paid work. A later cancellation can still change
+            # a pending Future; this observation does not predict that outcome.
+            self._recent_jobs.append(_pack(receipt))
+            self._settled_jobs += 1
+            self._observed_work_ns += job.submit_work_ns + worker_ns
+            self._outcomes[result["status"]] = self._outcomes.get(result["status"], 0) + 1
+            job.accounted = True
 
     def _stop_failed_worker(self, active, error, phase):
         """Close admission and settle every accepted future after interruption.
@@ -362,7 +444,7 @@ class BackgroundOptimizer:
             self._worker_failure = failure
             self._condition.notify_all()
         for job in pending.values():
-            if job.future.done():
+            if job.accounted and job.future.done():
                 continue
             try:
                 job.cancellation.cancel()
@@ -370,15 +452,15 @@ class BackgroundOptimizer:
                 with self._condition:
                     failure["cancellation_failures"] += 1
             committed = job.cancellation.committed()
-            result = self._report(job, "interrupted" if committed else "rejected",
-                "worker_interrupted_after_publication" if committed else "worker_unavailable")
+            result = job.report or self._report(job, "rejected", "worker_unavailable")
+            result.update(status="interrupted" if committed else "rejected",
+                reason="worker_interrupted_after_publication" if committed else "worker_unavailable")
             result["publication_committed"] = committed
             if committed:
                 result["selected_id"] = None
             result["worker_failure"] = {k: v for k, v in failure.items()
                                         if k != "completion_callback_failures"}
-            result["costs"]["job_wall_before_future_completion_ns"] = (
-                time.perf_counter_ns() - job.submitted_ns)
+            self._account_job(job, result)
             try:
                 job.future._complete(result)
             except BaseException:
@@ -399,6 +481,7 @@ class BackgroundOptimizer:
                         return
                     job = self._queue.popleft()
                     self._active = job.number
+                    job.work_started_ns = time.perf_counter_ns()
                 result, phase = None, "execute"
                 try:
                     if not job.cancellation.cancelled():
@@ -411,17 +494,19 @@ class BackgroundOptimizer:
                     if job.cancellation.committed():
                         raise
                     status = "rejected" if self._same_snapshot(job) else "stale"
-                    result = self._report(job, status, type(error).__name__)
+                    result = job.report or self._report(job, status, type(error).__name__)
+                    result.update(status=status, reason=type(error).__name__)
                     result["detail"] = str(error)[:2048]
                 finally:
                     with self._condition:
+                        if result is not None or job.cancellation.cancelled():
+                            settled = result or job.report or self._report(job, "cancelled", "cancelled")
+                            self._account_job(job, settled)
                         self._active = None
                         self._pending.pop(job.number, None)
                         self._condition.notify_all()
                 if result is not None:
                     phase = "complete"
-                    result["costs"]["job_wall_before_future_completion_ns"] = (
-                        time.perf_counter_ns() - job.submitted_ns)
                     job.future._complete(result)
         except BaseException as error:
             self._stop_failed_worker(job, error, phase)
@@ -431,6 +516,13 @@ class BackgroundOptimizer:
             return {"schema": SCHEMA, "closed": self._closed, "max_pending": self._max_pending,
                     "outstanding": len(self._pending), "queued": len(self._queue),
                     "active_job": self._active, "worker_alive": self._worker.is_alive(),
+                    "cost_accounting": {"settled_jobs": self._settled_jobs,
+                        "observed_submit_and_worker_ns": self._observed_work_ns,
+                        "execution_outcomes_at_accounting": dict(self._outcomes),
+                        "recent_limit": self._recent_jobs.maxlen,
+                        "recent_jobs": [json.loads(row) for row in self._recent_jobs],
+                        "scope": "submission plus worker elapsed before settlement; queue wait separate; outer lifecycle excluded",
+                        "supplied_prior_search_summed_again": False},
                     "worker_failure": (None if self._worker_failure is None
                                        else dict(self._worker_failure))}
 

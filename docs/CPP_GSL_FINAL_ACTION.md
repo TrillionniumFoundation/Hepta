@@ -36,14 +36,17 @@ The importer inspects the actual instantiated method bodies:
    captured nullary callback exactly once when active. Extra statements,
    unmodeled branches and unconditional invocation are rejected.
 4. Each supported `finally` instantiation must return a constructed owner
-   directly from `std::forward` of its captured parameter. The importer checks
+   from the captured parameter. GSL 3.1's separate `const F&` overload copies
+   directly; the forwarding overloads use the actual `std::forward` expression.
+   Both AST forms are checked rather than inferred from the release label. The importer checks
    the real move/copy constructor and return type after template substitution.
    It does not implement a general template instantiation engine.
 
 The separately authored `GslCallback::operator()` is also translated from its
-actual AST. Its statements are bounded unsigned-64-bit scalar assignments;
-the accepted addition, subtraction and multiplication operations become
-explicit wrapping operations. Pointer rebinding, pointer escape, extra active
+actual AST. Its statements are bounded unsigned-64-bit scalar assignments,
+initialized const locals and nested conditionals. Addition, subtraction and
+multiplication become explicit wrapping operations; supported bitwise and
+Boolean operations retain their scalar meaning. Pointer rebinding, pointer escape, extra active
 translation-unit declarations and unsupported expressions are rejected.
 Changing the real callback source from multiplier 31 to 37 causes a different
 generated program and a new successful original/migrated/oracle comparison.
@@ -68,6 +71,7 @@ This is tested at both source and migrated boundaries:
 | --- | --- | --- | --- | --- |
 | Rvalue callback | Compiles/runs | Captured factory adapter | Compiles/runs | Captured factory adapter |
 | Nonconst lvalue callback | Reference-binding compile error | `GslFinallyLvalue` is absent; caller rejected | Compiles/runs once | Actual lvalue factory AST is lowered; caller runs once |
+| Const lvalue callback | Separate `const F&` overload directly copies | Captured direct-copy adapter runs once | Unified forwarding overload copies after cv/reference removal | Captured forwarding-copy adapter runs once |
 
 Both released class implementations use the same essential cleanup algorithm.
 The migration does not claim that their runtime destructor algorithms differ.
@@ -102,6 +106,9 @@ construction, and failure before any guard is constructed. Observations are
 the wrapping callback trace, exact callback count and status result. The 4.0
 nonconst-lvalue factory additionally has 416 independent original/migrated
 comparisons. The actual callback-source mutation has another 416 comparisons.
+Each version additionally has 416 original/migrated const-factory comparisons,
+covering 164 distinct seed/tag pairs; the factory intentionally ignores the
+eight caller-mode values. The qualifier records this distinction explicitly.
 
 The report records negative controls:
 
@@ -109,6 +116,10 @@ The report records negative controls:
   rejected by the independent value/trace oracle.
 - Consuming an owner twice and returning without consuming it are rejected by
   the Hepta checker.
+- Actual emitted C with the unchanged export name but a narrowed return or a
+  signed argument is rejected by an independent C11 signature probe before
+  an incompatible native call can occur. The probe includes the actual generated
+  definitions, rather than merely restating a caller-side declaration.
 - The unit suite starts from real compiler-produced ASTs and rejects a move
   that leaves the source active, unconditional/extra destructor work, extra
   factory statements, an unsupported callback operation, a nontrivial factory
@@ -138,7 +149,7 @@ ABI. The externally observed native interface is scalar C ABI. `std::move`,
 toolchain remain explicit trusted dependencies. Hashes identify inputs; they
 are not an attestation of compiler correctness.
 
-`client.hepta` and `factory_client.hepta` are explicitly authored integration
+`client.hepta`, `factory_client.hepta` and `factory_const_client.hepta` are explicitly authored integration
 clients. They are excluded from the automatic-translation count. The former
 expresses the tested C++ exception/early-exit paths as explicit status returns
 and cleanup calls. General C++ exception ABI translation is not implemented.
@@ -156,3 +167,9 @@ upgrade boundary. Broad C++ migration remains open: large generic libraries,
 custom allocation/deallocation, arbitrary exceptions, inheritance and virtual
 dispatch, asynchronous or escaping callbacks, concurrency, and general
 pointer/lifetime reconstruction need separate supported profiles and evidence.
+
+The qualifier records the measured Linux LP64 native host and checks the
+selected Clang, C and C++ compiler target identities against it. Native calls
+exercise the exact `u64(u64,u64,u32,u32)` C export. This does not qualify a public
+C++ class layout, an arbitrary cross-target ABI or physical-device behavior.
+See `CPP_GSL_CONST_FACTORIES_20261031.md` for the two const-reference AST paths.

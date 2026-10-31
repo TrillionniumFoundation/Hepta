@@ -1,0 +1,11 @@
+// Authored integration caller; only the real GSL factory body is auto-lowered.
+// GslFinallyConstLvalue copies a trivial const callback in both upstream versions.
+pub export "C" fn migrated_case(seed: u64, tag: u64, mode: u32, field: u32) -> u64
+effects {alloc, block, panic, write} {
+    let mut state = GslState {trace: seed, calls: 0};
+    let owner = GslFinallyConstLvalue(tag);
+    GslDestroy(move owner, mut state);
+    if field == 0 { return state.trace; }
+    if field == 1 { return state.calls; }
+    return 0;
+}

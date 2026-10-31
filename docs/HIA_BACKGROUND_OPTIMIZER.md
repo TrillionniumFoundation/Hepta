@@ -114,6 +114,16 @@ costs. It charges submission work and its actual work outside the time already
 charged by the ranker. Ranker return/report construction time is included rather
 than counted twice or omitted.
 
+Proof and native ranking share the original remaining search budget. Once the
+budget is exhausted, the ranker retains the incumbent without starting a native
+process. The result explicitly records `native_rank_admission.invoked: false`
+and `native_response: null`. Identity admission and sealing reduce the allowance
+passed to the bounded subprocess runner. That runner starts its execution timer
+after process ownership checks and `Popen`; process startup and OS scheduling
+are not preemptible here. All observed time is still charged by the final cost
+gate. This remains an admission budget rather than a hard whole-call deadline
+or a preemptive CPU quota.
+
 The remaining publication budget is the smaller of:
 
 1. positive remaining modeled savings, leaving at least one nanosecond; and
@@ -188,6 +198,34 @@ cancellation, and preparation overruns do not select the candidate. The
 existing runtime continues to retain active generation leases and dispose old
 generations under its normal lifetime rules.
 
+Cancellation or a preparation exception does not erase work already paid for.
+`snapshot()["cost_accounting"]` retains cumulative settled-job counts,
+`execution_outcomes_at_accounting` counts and the sum of observed submission plus
+worker elapsed time. Its last
+64 compact receipts include rank/publication elapsed time, already-reported
+search costs, the native request and binary identities when available, and
+whether publication committed. Failed publication retains a completed rank
+report; cancelled Futures retain their compact record after queue removal.
+The history stores serialized snapshots, so changing a returned Future result
+or a returned snapshot cannot rewrite the coordinator's accounting.
+
+Each compact receipt names its `execution_status`, `future_state_at_accounting`
+and `status_scope`. These describe the worker's observation when paid work is
+recorded, not the Future's eventual terminal outcome. An abstained or rejected
+job can be accounted while its Future is still pending; a caller can legally
+cancel in the interval before normal Future completion. In that case the
+immutable receipt still says the worker abstained/rejected and observed a
+pending Future, while `future.cancelled()` later returns true. The cost remains
+recorded exactly once. No callback lock is introduced to close that interval.
+
+This ledger is deliberately bounded. Older detailed receipts expire after 64
+settlements while cumulative counts remain. The sum of stage elapsed times is
+not process CPU time or an end-to-end latency measurement; queue waits are
+separate, and concurrent submissions can overlap. Runtime setup/close, receipt
+encoding, Future callbacks and caller work require an outer lifecycle timer.
+Externally supplied search costs are preserved as context and are not added
+again to the cumulative observed-worker sum.
+
 ## Executed qualification
 
 ```sh
@@ -207,7 +245,7 @@ disproved proofs, real preparation overrun, frozen input mutation, queue limits,
 shutdown/drain, Future wait notification, and callback/worker-join races.
 
 The standalone qualifier additionally executes the original native NDU bridge
-for three distinct requests. It performs 14,592 native lease calls to measure a
+for four distinct requests. It performs 14,592 native lease calls to measure a
 baseline and a candidate, charges cold builds once to a one-call horizon, and
 requires the measured decision to abstain. A separately labelled synthetic
 economic control exercises actual publication through NDU, fresh SMT proof,
@@ -215,11 +253,22 @@ compilation and loading. A cheaper behavior-changing proposal obtains an actual
 counterexample, and a subsequent invalid proposal preserves the selected head.
 Synthetic costs are never presented as benchmark results.
 
+Two further lifecycle controls require an exhausted budget to skip native
+launch, and cancellation after actual proof, compilation and loading to retain
+all observed costs. A synchronization Event pauses only after the real native
+preparation returns; neither ranking nor proof nor compiled output is replaced.
+The pause is recorded separately and included in elapsed costs. A live lease
+continues to execute before and after cancellation, the generation/epoch remain
+unchanged, and the unpublished artifact is reclaimed. This controlled pause is
+not a performance sample.
+
 The `hepta.hia.background-optimization-qualification.v1` receipt sets `ok: true`
 only after those mechanisms, source stability, native outputs, drain, and final
 generation cleanup have been observed. It retains source hashes, exact programs,
-measurement samples, all three NDU requests/responses and proof reports,
-publication costs, native outputs, and lifecycle snapshots. Performance
+measurement samples, three completed NDU requests/responses and proof reports,
+the cancelled job's fourth request/binary identity and compact paid-work receipt,
+the skipped-launch result, publication costs, native outputs, and lifecycle
+snapshots. Performance
 improvement, independent measurement attestation, backend refinement,
 whole-language soundness, resource-state migration, and global optimality remain
 explicitly unestablished.

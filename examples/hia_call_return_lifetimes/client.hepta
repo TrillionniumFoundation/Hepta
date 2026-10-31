@@ -1,0 +1,16 @@
+module returned_loan_client;
+import loan_views as loans;
+
+export "C" fn cross_module(size: usize, byte: u8, cancel: u8) -> u8 effects {alloc, block, panic, write} {
+    let mut bytes = buffer(size);
+    if cancel != 0 {
+        drop(move bytes);
+        return 0;
+    }
+    bytes[0] = byte;
+    let observed = loans::edit(mut bytes)[0];
+    bytes[0] = observed ^ 90;
+    let answer = loans::view(read bytes)[0];
+    drop(move bytes);
+    return answer;
+}

@@ -42,6 +42,61 @@ block relation through any number of completed loop iterations. The trusted
 Python checker implements this rule; there is no machine-checked soundness
 theorem for its implementation or the whole language.
 
+### Parameter-bound returned loans in v8
+
+A v8 `return_loans` contract makes the call boundary a resource operation even
+when the callee has no instructions. Returning a borrowed formal directly
+creates a fresh child of the caller's loan. Ending the returned child must
+restore the parent; it must not consume the caller's original capability.
+Consequently a direct SSA substitution is insufficient for these returns.
+
+Expansion now materializes each forwarded result as `borrow.read` or
+`borrow.mut` after the complete callee body, in result order, with its own fresh
+SSA identity. A loan already created inside the callee is forwarded without a
+second borrow. The independently implemented checker adds the implicit return
+event to the original call trace, then compares against the actual candidate
+instructions. It never obtains that event from the candidate or regenerates the
+proposal with the proposer's implementation.
+
+The ordinary Core checker first validates the declared formal origin and
+permissions. Two shared formal parameters may bind the same actual parent;
+their returned loans still receive distinct child identities. Results from
+different mutable inputs preserve their respective origins even if return
+order differs from parameter order. The complete expanded caller is checked
+again, including resource flow through every CFG edge.
+
+`tests/test_hia_call_return_lifetimes.py` includes two deliberately wrong,
+Core-valid candidates. Removing a returned child preserves the numeric result
+but changes loan events; swapping two mutable origins preserves linearity but
+changes the result. Neither can obtain an expansion proof. Other cases compare
+the full VM resource ledger on normal return, allocation failure, a later
+bounds trap, and repeated calls inside a loop.
+
+The two files under `examples/hia_call_return_lifetimes/` demonstrate resolved
+source imports, both borrowed return permissions, parent reuse and an explicit
+cooperative cancellation branch. Their source lowering creates explicit
+children already; the forwarded-formal regression is separately exercised with
+standalone v8 Core. This distinction avoids attributing a Core forwarding bug
+to every source program with a borrowed return.
+
+`tools/qualify_hia_call_return_lifetimes.py` records original and expanded Core,
+fresh expansion proofs, independent arithmetic answers, and complete VM
+observations. With `--rust-shadow`, the same Core also executes in the separate
+Rust interpreter, including the exact tick count for each version. The native
+path compiles proof-bound objects, links an independent C allocator observer,
+seals the resulting executable bytes and observes real allocator failures and
+SIGABRT. It compares ordered allocation/free/abort prefixes as well as values.
+Native loans are erased, so native allocator telemetry is never reported as
+observation of native loan counters.
+
+The static resource-contract checker is rerun on admitted acyclic profiles.
+The caller-loop profile still requires a separate loop invariant for a static
+quota proof and is explicitly recorded as `E_HIA_BUDGET_UNBOUNDED`; finite
+successful loop executions do not authorize an unproved bound. A cooperative
+cancel branch is ordinary checked control flow. Trap prefixes with live owners
+are retained honestly, without an automatic unwind or asynchronous cancellation
+claim.
+
 ### Explicit exclusions
 
 Interpreter step counts, call-depth budgets, diagnostic source locations and
@@ -127,6 +182,12 @@ python tools/qualify_hia_call_expansion.py \
   --output /tmp/new-call-expansion-qualification \
   --clang /path/to/clang \
   --component-core /tmp/callback-qualification/three_weight/standalone.core.json
+
+python -m unittest tests.test_hia_call_return_lifetimes -v
+python tools/qualify_hia_call_return_lifetimes.py \
+  --output /tmp/new-return-lifetime-qualification \
+  --clang /path/to/clang \
+  --rust-shadow /path/to/hia-check
 ```
 
 Use the pinned Z3 dependency for the guarded stage. Native tests must actually
