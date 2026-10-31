@@ -1,0 +1,58 @@
+name: HIA P0/P7 source and ABI preflight before native side effects (research)
+
+on:
+  push:
+    branches:
+      - work/hia-p0-p7-source-abi-preflight-20261031-gpt6
+  pull_request:
+    paths:
+      - hepta/hia_adaptive.py
+      - tests/test_hia_runtime_source_preflight.py
+      - .github/workflows/hia-p0-p7-source-abi-preflight.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preflight-no-side-effects:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check exact HEAD and source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          git rev-parse HEAD^{tree}
+          sha256sum hepta/hia_adaptive.py tests/test_hia_runtime_source_preflight.py
+      - name: Reject invalid Core/ABI before any private native build directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B -m unittest tests.test_hia_runtime_source_preflight -v 2>&1 | tee "$RUNNER_TEMP/hia-source-preflight.log"
+          if grep -qE '\.\.\. (skipped|expected failure|unexpected success)' "$RUNNER_TEMP/hia-source-preflight.log"; then exit 1; fi
+      - name: Check syntax and clean source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B -m py_compile hepta/hia_adaptive.py tests/test_hia_runtime_source_preflight.py
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          git diff --exit-code
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hia-source-preflight-${{ github.sha }}
+          path: ${{ runner.temp }}/hia-source-preflight.log
+          if-no-files-found: warn
