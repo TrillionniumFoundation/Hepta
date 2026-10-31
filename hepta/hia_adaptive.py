@@ -220,15 +220,19 @@ class AdaptiveRuntime:
         # subclass identity and may allocate unbounded producer-owned data.
         # Admit exact built-ins and freeze a bounded policy BEFORE native setup.
         self._policy = _admit_optimizer_policy(policy)
+        # Reject malformed/unsafe Core and foreign target ABI before touching
+        # the filesystem, probing toolchain identity or starting a native build.
+        # For OwnedAdaptiveRuntime this resolves its bounded scalar+owner
+        # profile through the existing subclass _admit_profile override.
+        checked, state = self._admit_profile(base)
+        if self._policy["target"] != state["target"]:
+            raise AdaptiveRejected("E_ADAPT_TARGET: runtime only executes the qualified host ABI")
         self._identity = _identity()
         self._clang = clang
         self._root = Path(directory).absolute()
         if self._root.exists() or self._root.is_symlink():
             raise AdaptiveRejected("E_ADAPT_PATH: a new private build directory is required")
         self._root.mkdir(mode=0o700, parents=True)
-        checked, state = self._admit_profile(base)
-        if self._policy.get("target") != state["target"]:
-            raise AdaptiveRejected("E_ADAPT_TARGET: runtime only executes the qualified host ABI")
         path = self._root / "baseline.so"
         receipt = build_optimized_native(checked, checked, path, policy=self._policy, clang=clang)
         self._lock = threading.RLock()
