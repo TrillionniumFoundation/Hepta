@@ -565,8 +565,11 @@ The original cloud maintenance and v13 identities remain distinct. Corrected
 catalog bytes require new capacity evidence for changed public prefixes;
 byte-identical historical prefixes are identified separately from new runs.
 
-This matrix's canonical SHA-256 is
+The prior #439-reviewed matrix's canonical SHA-256 was
 `fac4e12c5385128e33a36aae2611abcfebf261c1264b0861fda942d742cdf999`.
-All previously unproved claims and authority rules remain unchanged. A new
-registration is not a passing execution receipt; the combined commit must
-retain its own actual matrix outcome.
+The newly reviewed two-field v8 trap-catalog correction preserves all 59
+capabilities and their selector lists, and has canonical matrix SHA-256
+`0db755448197f9b6c1b57935a7c976e152e9de42760c1fbf8672f9eab1a5b01c`.
+Both identities remain source-specific. All previously unproved claims and
+authority rules remain unchanged; the new matrix digest is not a passing
+execution receipt, and the combined exact HEAD needs its own full qualification.
