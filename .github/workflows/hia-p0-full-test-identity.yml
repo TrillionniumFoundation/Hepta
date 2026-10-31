@@ -18,11 +18,11 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
-      EXPECTED_HEAD: \${{ github.event.pull_request.head.sha || github.sha }}
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: \${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
@@ -68,6 +68,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: hia-p0-broad-test-identity-\${{ github.sha }}
-          path: \${{ runner.temp }}/hia-p0-verified-gate.log
+          name: hia-p0-broad-test-identity-${{ github.sha }}
+          path: ${{ runner.temp }}/hia-p0-verified-gate.log
           if-no-files-found: warn
