@@ -1,4 +1,4 @@
-"""C1 lookup versus analytic value and signed-input-Jacobian tests."""
+"""Analytical channel vs regular tabular C1 null: numerical Jacobian checks."""
 import unittest
 import torch
 try:
