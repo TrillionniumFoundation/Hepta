@@ -37,7 +37,7 @@ def load_json(path:Path):
     return json.loads(path.read_text())
 
 
-def make_manifest(folder:Path):
+def make_manifest(folder:Path,trust_root:Path|None=None):
     p1=load_json(folder/'p1_audit_results.json')
     p2=load_json(folder/'temporal_replicates.json')
     perf=load_json(folder/'perf_results.json')
@@ -57,13 +57,23 @@ def make_manifest(folder:Path):
     hashes={}
     for path in sorted(folder.glob('*.py')):
         hashes[path.name]=hashlib.sha256(path.read_bytes()).hexdigest()
-    return {'schema':'hcsn.evidence.gates.v1',
+    try:
+        from .independent_gate import verify as verify_independent
+    except ImportError:
+        from independent_gate import verify as verify_independent
+    verified=verify_independent(folder,trust_root)
+    for phase in GATES:
+        if verified['gates'][phase]['status']=='INDEPENDENTLY_ATTESTED':
+            summary[phase]['status']='INDEPENDENTLY_ATTESTED'
+            summary[phase]['independent_attestation_verified']=True
+    return {'schema':'hcsn.evidence.gates.v2',
             'repo_target':'TrillionniumFoundation/Hepta research/hcsn',
             'run_environment':{'python':sys.version.split()[0],
                                'platform':platform.platform()},
             'gates':summary,'source_sha256':hashes,
             'references':['https://www.princeton.edu/~wxiong/papers/rollover.pdf'],
-            'full_closure':False,'production_activation':False,
+            'full_closure':verified['full_closure'],'production_activation':False,
+            'independent_gate_audit':verified,
             'no_false_positive_gate':'fail_closed',
             'evidence_files':{'p1':'p1_audit_results.json' if p1 else None,
                               'p2':'temporal_replicates.json' if p2 else None,
@@ -75,8 +85,9 @@ if __name__=='__main__':
     cli.add_argument('--folder',type=Path,default=Path(__file__).parent)
     cli.add_argument('--output',type=Path)
     cli.add_argument('--strict',action='store_true')
+    cli.add_argument('--trust-root',type=Path,default=None)
     args=cli.parse_args()
-    manifest=make_manifest(args.folder)
+    manifest=make_manifest(args.folder,args.trust_root)
     if args.output:
         if args.output.exists():cli.error('Refusing overwrite')
         args.output.write_text(json.dumps(manifest,indent=2,sort_keys=True)+'\n')
