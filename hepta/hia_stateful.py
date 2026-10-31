@@ -290,6 +290,12 @@ class OwnedAdaptiveRuntime(AdaptiveRuntime):
         for name in functions:
             expanded(name, set())
         fn = functions[entry]
+        # The verifier admits finite scalar helpers with 1..8 parameters, but
+        # the owned native driver always dispatches exactly (state, delta).
+        # Reject incompatible entry ABI before toolchain identity, mkdir, or
+        # any native compilation; do not wait for loaded image inspection.
+        if len(fn["params"]) != 2:
+            raise AdaptiveRejected("E_STATE_ABI: transition requires exactly state and delta u64 arguments")
         state = {"schema": "hepta.hia.total-scalar-helper-abi.v1", "core_schema": data["schema"],
                  "target": "x86_64-unknown-linux-gnu", "calling_convention": "C-Linux-LP64",
                  "entry": entry, "params": fn["params"], "returns": fn["returns"],
@@ -326,8 +332,6 @@ class OwnedAdaptiveRuntime(AdaptiveRuntime):
         self._state_identity = _adapter_identity()
         super().__init__(base, directory, clang=clang, policy=policy)
         try:
-            if len(self._images["baseline"].state["params"]) != 2:
-                raise AdaptiveRejected("E_STATE_ABI: transition requires exactly state and delta u64 arguments")
             started = time.monotonic_ns()
             self._driver, self._driver_fd, self._driver_receipt = _driver(self._root, clang,
                 on_release=lambda release: self._record_release("owner-driver", release))
