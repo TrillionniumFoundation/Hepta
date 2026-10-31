@@ -76,6 +76,11 @@ def _validate_release_registration(spec):
                 or any(type(value) is not int or not low <= value <= high for value in values)
                 or len(values) != len(set(values))):
             raise ValueError("E_RELEASE_COHORT: invalid or duplicate " + name)
+    # The holdout must be unseen in both the workload length and seed dimensions.
+    # Comparing phase-tagged rows alone cannot detect a replayed training cohort.
+    if (set(spec["training_sizes"]) & set(spec["holdout_sizes"])
+            or set(spec["training_seeds"]) & set(spec["holdout_seeds"])):
+        raise ValueError("E_RELEASE_COHORT: training and holdout must be disjoint")
     samples = spec.get("samples")
     if type(samples) is not int or not 1 <= samples <= 65536:
         raise ValueError("E_RELEASE_COHORT: invalid native sample count")
@@ -92,6 +97,23 @@ def _validate_release_registration(spec):
 
 def assess(rows, spec):
     _validate_release_registration(spec)
+    # Require the actual native JSON receipt shape before Python's bool/int and
+    # float/int equality can launder an unregistered request into set coverage.
+    if type(rows) is not list:
+        raise ValueError("E_RELEASE_COHORT: native rows must be a list")
+    for row in rows:
+        if (type(row) is not dict
+                or type(row.get("phase")) is not str
+                or type(row.get("backend")) is not str
+                or type(row.get("n")) is not int
+                or type(row.get("seed")) is not int
+                or type(row.get("times_ns")) is not list):
+            raise ValueError("E_RELEASE_COHORT: invalid native request or sample shape")
+        samples = row["times_ns"]
+        if (len(samples) != spec["samples"]
+                or any(type(sample) is not int or not 0 < sample <= (1 << 63) - 1
+                       for sample in samples)):
+            raise ValueError("E_RELEASE_COHORT: invalid native timing sample")
     expected = {(phase, backend, n, seed)
                 for phase in ("training", "holdout") for backend in spec["backends"]
                 for n in spec[phase+"_sizes"] for seed in spec[phase+"_seeds"]}
