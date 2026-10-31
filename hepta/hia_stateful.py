@@ -670,7 +670,8 @@ class OwnedAdaptiveRuntime(AdaptiveRuntime):
                     raise AdaptiveRejected("E_STATE_ALLOCATION: calibration clone failed")
                 try:
                     before = time.monotonic_ns()
-                    self._apply_items(clone, samples, image)
+                    if not self._apply_items(clone, samples, image):
+                        raise AdaptiveRejected("E_STATE_MEASURE: incomplete native calibration sample")
                     pair[label + "_ns"] = time.monotonic_ns() - before
                     states[label] = self._values(clone)
                 finally:
@@ -748,7 +749,8 @@ class OwnedAdaptiveRuntime(AdaptiveRuntime):
                 for index, value in enumerate(row["initial_values"]):
                     self._driver.hs_write(clone, index, value)
                 before = time.monotonic_ns()
-                self._apply_items(clone, row["items"], self._images[row["receipt"]["original_version"]])
+                if not self._apply_items(clone, row["items"], self._images[row["receipt"]["original_version"]]):
+                    raise AdaptiveRejected("E_STATE_AUDIT: incomplete native counterfactual replay")
                 execution_ns = time.monotonic_ns() - before
                 values = self._values(clone)
                 if list(values) != row["receipt"]["final_values"]:
