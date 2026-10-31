@@ -13,8 +13,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from hepta.hia_optimization import (DEFAULT_POLICY, OptimizationRejected, _Encoder,
-    _fresh, build_optimized_native, fold_constants, verify_optimization)
+from hepta.hia_optimization import (DEFAULT_POLICY, POLICY_SCHEMA, OptimizationRejected, _Encoder,
+    _fresh, _policy, build_optimized_native, fold_constants, verify_optimization)
 from hepta.hia_program import WIDTHS, integer_range, verify_program
 from hepta.hia_program_runtime import _Machine, HIAProgramTrap, execute_program
 from tests.test_hia_program import arithmetic, b, c, f, i, m, ret, resource_program, jump, branch
@@ -30,6 +30,49 @@ def constant_program():
         b("entry", [("a", "i32")], [c("x", "i32", 6), c("y", "i32", 7),
             i("int.mul.checked", ["x", "y"], [("product", "i32")]),
             i("int.add.wrap", ["a", "product"], [("r", "i32")])], ret("r"))]))
+
+
+
+class OptimizationPolicyAdmissionTests(unittest.TestCase):
+    """Policy receipts must never derive authority from caller-defined comparisons."""
+
+    def test_nonempty_preconditions_cannot_spoof_empty_list(self):
+        class ClaimsEmpty(list):
+            def __ne__(self, other):
+                return False if other == [] else True
+
+        policy = dict(DEFAULT_POLICY)
+        policy["preconditions"] = ClaimsEmpty([{"unproven": "candidate may assume anything"}])
+        with self.assertRaisesRegex(OptimizationRejected, "E_HIA_OPT_PRECONDITION"):
+            _policy(policy)
+
+    def test_invalid_schema_cannot_spoof_version_equality(self):
+        class ClaimsSchema(str):
+            def __ne__(self, other):
+                return False if other == POLICY_SCHEMA else True
+
+        policy = dict(DEFAULT_POLICY)
+        policy["schema"] = ClaimsSchema("hepta.hia.unqualified-policy.v0")
+        with self.assertRaisesRegex(OptimizationRejected, "E_HIA_OPT_POLICY"):
+            _policy(policy)
+
+    def test_top_level_mapping_subclasses_are_not_policy_authority(self):
+        class ProducerPolicy(dict):
+            pass
+
+        with self.assertRaisesRegex(OptimizationRejected, "E_HIA_OPT_POLICY"):
+            _policy(ProducerPolicy(DEFAULT_POLICY))
+
+    def test_accepted_policy_is_detached_from_caller_mutations(self):
+        original = dict(DEFAULT_POLICY)
+        original["preconditions"] = []
+        normalized = _policy(original)
+        self.assertEqual(normalized, DEFAULT_POLICY)
+        self.assertIsNot(normalized, original)
+        self.assertIsNot(normalized["preconditions"], original["preconditions"])
+        original["preconditions"].append("unproved after validation")
+        original["schema"] = "changed"
+        self.assertEqual(normalized, DEFAULT_POLICY)
 
 
 @unittest.skipUnless(z3 is not None, "install the pinned optimization extra")

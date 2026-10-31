@@ -233,7 +233,7 @@ jobs:
             --expected-source "$HEPTA_SOURCE_SHA" \
             --workdir "$GITHUB_WORKSPACE/artifacts/verified-optimization/guarded-opportunity"
       - name: Qualify the captured post-test project on the exact source
-        if: ${{ !cancelled() }}
+        if: ${{ success() }}
         shell: bash
         run: |
           set -euo pipefail

@@ -1,0 +1,47 @@
+name: HIA P0 optimizer policy exact-input admission (research)
+
+on:
+  push:
+    branches:
+      - work/hia-p0-optimizer-policy-snapshot-20261031-gpt6
+  pull_request:
+    paths:
+      - hepta/hia_optimization.py
+      - tests/test_hia_optimization.py
+      - .github/workflows/hia-p0-optimizer-policy-admission.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  policy-admission:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Record exact source and test identity
+        run: |
+          set -eu
+          git rev-parse HEAD
+          sha256sum hepta/hia_optimization.py tests/test_hia_optimization.py
+      - name: Execute adversarial policy admission tests (no solver dependency)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B -m unittest tests.test_hia_optimization.OptimizationPolicyAdmissionTests -v 2>&1 | tee /tmp/hia-p0-policy-tests.log
+      - name: Check Python syntax and tracked workspace cleanliness
+        run: |
+          set -eu
+          python -B -m py_compile hepta/hia_optimization.py tests/test_hia_optimization.py
+          git diff --exit-code
+      - name: Retain exact-run policy counterexample output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-p0-policy-${{ github.sha }}
+          path: /tmp/hia-p0-policy-tests.log
+          if-no-files-found: warn

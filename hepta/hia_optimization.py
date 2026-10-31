@@ -82,8 +82,28 @@ def _solver_identity(z3):
 
 
 def _policy(value):
-    result = dict(DEFAULT_POLICY if value is None else value)
-    if set(result) != set(DEFAULT_POLICY) or result["schema"] != POLICY_SCHEMA:
+    """Admit an exact, detached policy; never ask caller subclasses to compare.
+
+    Python list/str subclasses can spoof equality to [] or the schema string.
+    Merely copying the outer mapping also retains its mutable list. Both are
+    inappropriate for a proof receipt that asserts zero preconditions.
+    """
+    if value is not None and type(value) is not dict:
+        raise OptimizationRejected("E_HIA_OPT_POLICY: built-in policy dictionary required")
+    source = DEFAULT_POLICY if value is None else value
+    try:
+        # Capture a finite field snapshot once. Below, all scalar types are
+        # exact built-ins, and the only permitted list is reconstructed empty.
+        items = tuple(source.items())
+    except RuntimeError as exc:
+        raise OptimizationRejected("E_HIA_OPT_POLICY: policy changed during capture") from exc
+    if (len(items) != len(DEFAULT_POLICY)
+            or any(type(key) is not str for key, _ in items)):
+        raise OptimizationRejected("E_HIA_OPT_POLICY: exact policy fields are required")
+    result = dict(items)
+    if (set(result) != set(DEFAULT_POLICY)
+            or type(result["schema"]) is not str
+            or result["schema"] != POLICY_SCHEMA):
         raise OptimizationRejected("E_HIA_OPT_POLICY: exact policy fields are required")
     if type(result["target"]) is not str or result["target"] not in TARGETS:
         raise OptimizationRejected("E_HIA_OPT_TARGET: unsupported target")
@@ -91,9 +111,13 @@ def _policy(value):
                          ("max_obligations", 4096)):
         if type(result[key]) is not int or not 0 <= result[key] <= maximum:
             raise OptimizationRejected("E_HIA_OPT_POLICY: invalid " + key)
-    if result["preconditions"] != []:
+    if type(result["preconditions"]) is not list or len(result["preconditions"]) != 0:
         raise OptimizationRejected("E_HIA_OPT_PRECONDITION: unproved input assumptions are not admitted")
-    return result
+    return {"schema": POLICY_SCHEMA, "target": result["target"],
+            "timeout_ms": result["timeout_ms"],
+            "max_scalar_operations": result["max_scalar_operations"],
+            "max_obligations": result["max_obligations"],
+            "preconditions": []}
 
 
 def _resource_inventory(document):
