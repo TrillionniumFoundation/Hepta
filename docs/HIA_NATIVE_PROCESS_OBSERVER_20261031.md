@@ -41,6 +41,9 @@ The complete required top-level fields are:
   registered worst-case child-deadline envelope of 900 seconds.
   The subprocess is started without a shell, with fixed argv and stdin, bounded
   file output, a deadline, disabled core dumps and new process group.
+  All arms use an identical minimal environment without inherited
+  `LD_PRELOAD` or `LD_LIBRARY_PATH`; custom dynamic-library search paths
+  are not in this version's supported profile.
   `wait4` obtains **per-child** maximum RSS instead of the cumulative
   `RUSAGE_CHILDREN` peak. Timed out children are killed/reaped.
 - Complete stdout must match the registered reference SHA-256; stderr must
@@ -73,8 +76,9 @@ python -B tools/hia_native_process_observer.py \
 
 The test compiles four **real** C ELF executables, checks completed native
 observations and arithmetic replay, then injects wrong output, an infinite
-loop with timeout, an executable digest drift, a symlink, non-ELF input, and
-malformed wire fields. A passing synthetic/echo fixture is *not* a real
+loop with timeout, an executable digest drift, a symlink, non-ELF input, an ELF whose
+kernel load fails, adversarial inherited loader environment, and malformed
+wire fields. A passing synthetic/echo fixture is *not* a real
 HIA-vs-Clang-vs-Rust or NDU advantage result.
 
 The writer uses exclusive creation and fsync; existing output is not replaced.
