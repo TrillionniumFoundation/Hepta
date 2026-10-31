@@ -100,6 +100,12 @@ def validate_execution_observation(status, ledger, *, steps, max_steps, max_heap
         need(ledger["live_bytes"] >= CHAIN_NODE_STORAGE_BYTES * ledger["live_chain_nodes"]
              and nonempty >= ledger["live_chain_nodes"],
              "live chain node storage is missing from the stopped payload/allocation ledger")
+        # A successful push necessarily allocates a nonempty node-storage
+        # owner; a completed pop/drop necessarily frees that same storage.
+        # Stopped reports can retain live nodes, but cannot fabricate releases.
+        need(ledger["chain_nodes_created"] <= allocated
+             and ledger["chain_nodes_dropped"] <= freed,
+             "chain node storage release/creation is not backed by nonempty allocator activity")
     if status == "returned":
         need(error_code is None, "ordinary return cannot carry an error outcome")
         need(live == ledger["live_local_loans"] == 0
