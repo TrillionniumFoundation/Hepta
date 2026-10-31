@@ -44,6 +44,16 @@ class OpcodeCatalogTests(unittest.TestCase):
             with self.assertRaises(OpcodeRejected):
                 opcode_spec(guessed)
 
+    def test_reviewed_safety_registry_is_bound_to_generated_v8_catalog(self):
+        # The safety matrix is an independently reviewed identity, not
+        # admission authority. A catalog fix must update that exact review
+        # before the full source-bound safety suite can qualify.
+        contract = json.loads((ROOT / "docs/HIA_SAFETY_CONTRACT.json").read_text())
+        reviewed = contract["registry"]["instruction_catalog"]
+        generated = json.loads(json.dumps(opcode_catalog()))
+        self.assertEqual(reviewed, generated,
+                         "E_SAFETY_REGISTRY: reviewed v8 catalog drift")
+
     def test_catalog_is_detached_and_invalid_schemas_do_not_guess(self):
         detached = opcode_catalog()
         detached["instructions"][0]["name"] = "forged"
