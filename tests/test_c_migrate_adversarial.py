@@ -301,5 +301,16 @@ class CMigrationAdversarial(unittest.TestCase):
         self.assertEqual(rejected.exception.code, "E_C_AST")
 
 
+
+    def test_translation_unit_aggregate_ast_budget_fails_closed(self):
+        # Deliberately avoid f32/f64: those collide with Hepta type names.
+        # Before the aggregate guard this input should pass C->Hepta migration,
+        # while after the guard it must fail with E_C_AST_UNIT_BUDGET.
+        program = "\n".join(
+            f"int aggregate_budget_fn_{i}(int x) {{ return x + 1; }}" for i in range(1500)
+        )
+        self.assertLess(len(program.encode("utf-8")), 256_000)
+        self.reject(program, "E_C_AST_UNIT_BUDGET")
+
 if __name__ == "__main__":
     unittest.main()
