@@ -10,9 +10,10 @@ from unittest.mock import patch
 
 from hepta.hia_agent_assembly import assemble_program, render_assembly
 from hepta.hia_incremental import IncrementalVerifier
-from hepta.hia_opcodes import OPCODES, OpcodeRejected, opcode_catalog, opcode_spec, render_opcode_reference
+from hepta.hia_opcodes import (OPCODES, TRAP_CODES, OpcodeRejected, check_instruction,
+                               opcode_catalog, opcode_spec, render_opcode_reference)
 from hepta.hia_program import HIAProgramRejected, verify_program
-from hepta.hia_program_runtime import execute_program
+from hepta.hia_program_runtime import HIAProgramTrap, execute_program
 from hepta.hia_schema import SCHEMA_V8, schema_registry
 from tests.test_hia_program import arithmetic, b, c, f, i, m, resource_program, ret
 from tests.test_hia_returned_loans import loan_program, multiple_shared
@@ -166,6 +167,47 @@ class OpcodeCatalogTests(unittest.TestCase):
                 verify_program(source)
             with self.assertRaises(HIAProgramRejected):
                 session.verify(source)
+
+    def test_trap_catalog_uses_executable_codes_for_conditional_cast(self):
+        # Regression: the original catalog published "overflow_when_checked",
+        # which is not any HIA runtime trap code. The mode is conditional,
+        # but the advertised possible trap must be the actual "overflow".
+        for version in range(1, 9):
+            with self.subTest(core_version=version):
+                catalog = opcode_catalog(f"hepta.hia.program.v{version}")
+                for instruction in catalog["instructions"]:
+                    self.assertFalse(
+                        set(instruction["traps"]) - TRAP_CODES,
+                        (instruction["name"], instruction["traps"]),
+                    )
+                cast = next(row for row in catalog["instructions"]
+                            if row["name"] == "int.cast")
+                self.assertEqual(cast["traps"], ["overflow"])
+
+        self.assertEqual(check_instruction(OPCODES["int.cast"], ["u64"], ["i8"],
+                                           {"mode": "wrap"}), frozenset())
+        self.assertEqual(check_instruction(OPCODES["int.cast"], ["u64"], ["i8"],
+                                           {"mode": "checked"}), frozenset({"trap"}))
+        for mode in ("wrap", "checked"):
+            document = m(f("cast", [("input", "u64")], ["i8"],
+                           ["trap"] if mode == "checked" else [], [
+                b("entry", [("input", "u64")], [
+                    i("int.cast", ["input"], [("result", "i8")], mode=mode),
+                ], ret("result")),
+            ]))
+            document["schema"] = SCHEMA_V8
+            verified = verify_program(document)
+            self.assertEqual(execute_program(verified, "cast", [127])["result"], 127)
+            if mode == "checked":
+                with self.assertRaises(HIAProgramTrap) as error:
+                    execute_program(verified, "cast", [255])
+                self.assertEqual(error.exception.code, "overflow")
+                invalid = deepcopy(document)
+                invalid["functions"][0]["effects"] = []
+                with self.assertRaises(HIAProgramRejected):
+                    verify_program(invalid)
+            else:
+                self.assertEqual(execute_program(verified, "cast", [255])["result"], -1)
 
 
 class AssemblyV8ContractTests(unittest.TestCase):

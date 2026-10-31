@@ -89,7 +89,11 @@ and loaded-image checks still apply.
 
 ## Bounds
 
-The frontend enforces a 1 MiB UTF-8 source limit and 16,384 lines, 16 KiB per line,
+The frontend admits only ASCII token separators and LF/CRLF line endings; Unicode
+whitespace, invisible format controls, BOM and non-CRLF carriage returns refuse
+before the Core checker. This prevents visually ambiguous Agent spellings from
+silently normalizing to another text form. It enforces a 1 MiB UTF-8 source
+limit and 16,384 lines, 16 KiB per line,
 256 functions, 4,096 blocks, 16,384 operations, and 256 items per list. Attribute
 JSON is preflighted before allocation with 2,048 nodes and depth 16. The existing
 Core byte/node/depth/type/ownership bounds apply afterwards. Neither excessive
