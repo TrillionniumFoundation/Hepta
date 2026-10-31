@@ -1,0 +1,324 @@
+{
+  "schema": "hcsn.p2-latched-st.exploratory.ood-per-seed.v1",
+  "date": "2026-10-31",
+  "root_repo": "TrillionniumFoundation/Hepta",
+  "upstream_draft_pr": 505,
+  "upstream_base_head": "2ce3267ca148a6568497cc20b27c09c26058b739",
+  "source_sha256": "b441122b3bf8aa26e3993d1c20081f720c741746dfc88c6aa116ce00761ef418",
+  "test_sha256": "6b1163fcfdfac0feffbc88984e65c55e94c71f59e05a39ff6f39054e846dc766",
+  "source_git_blob": "f80e3178864fc9f3478f9ffec20d57662fd31b25",
+  "test_git_blob": "eb38da8170e8ba5ef2c0e96978cb72010c0a871a",
+  "environment": {
+    "python": "3.13",
+    "torch": "2.10.0+cpu",
+    "platform": "CPU",
+    "openblas_threads": 1,
+    "omp_threads": 1,
+    "mkl_threads": 1
+  },
+  "protocol": {
+    "seeds": [
+      11,
+      23,
+      37
+    ],
+    "train_updates": 30,
+    "train_batch": 8,
+    "train_length": 56,
+    "ood_length": 112,
+    "ood_segments": 6,
+    "eval_sequences_per_seed": 24,
+    "three_modes": [
+      "analytic",
+      "ordinary",
+      "no_reset"
+    ],
+    "two_policies": [
+      "level_ST",
+      "latched_ST"
+    ],
+    "no_event_label_in_training": true,
+    "optimizer": "Adam",
+    "lr": 0.012
+  },
+  "notes": "Exploratory reconstruction of upstream source; NOT a byte-identical full remote checkout. Newly submitted source/test ARE byte-identical to locally tested versions. This JSON retains all 18 OOD per-run measurements and summaries; full local JSON also includes ID, wall seconds and train losses. No model strength proof, no FLOP/sign-slope matching; no_reset reports predicted events, never applied resets.",
+  "raw_ood_per_seed": [
+    {
+      "seed": 11,
+      "mode": "analytic",
+      "policy": "level_ST",
+      "ood_long_irregular": {
+        "hard_query_accuracy": 0.66435188,
+        "event_precision": 0.26279071,
+        "event_recall": 0.94166666,
+        "crossings_per_stream": 17.91666603,
+        "false_positive_events_per_stream": 13.20833302
+      }
+    },
+    {
+      "seed": 11,
+      "mode": "analytic",
+      "policy": "latched_ST",
+      "ood_long_irregular": {
+        "hard_query_accuracy": 0.66898149,
+        "event_precision": 0.26933333,
+        "event_recall": 0.84166664,
+        "crossings_per_stream": 15.625,
+        "false_positive_events_per_stream": 11.41666698
+      }
+    },
+    {
+      "seed": 11,
+      "mode": "ordinary",
+      "policy": "level_ST",
+      "ood_long_irregular": {
+        "hard_query_accuracy": 0.6736111,
+        "event_precision": 0.2781955,
+        "event_recall": 0.925,
+        "crossings_per_stream": 16.625,
+        "false_positive_events_per_stream": 12
+      }
+    },
+    {
+      "seed": 11,
+      "mode": "ordinary",
+      "policy": "latched_ST",
+      "ood_long_irregular": {
+        "hard_query_accuracy": 0.67592591,
+        "event_precision": 0.28291318,
+        "event_recall": 0.84166664,
+        "crossings_per_stream": 14.875,
+        "false_positive_events_per_stream": 10.66666698
+      }
+    },
+    {
+      "seed": 11,
+      "mode": "no_reset",
+      "policy": "level_ST",
+      "ood_long_irregular": {
+        "hard_query_accuracy": 0.72222221,
+        "event_precision": 0.0446761,
+        "event_recall": 1,
+        "crossings_per_stream": 111.91666412,
+        "false_positive_events_per_stream": 106.91666412
+      }
+    },
+    {
+      "seed": 11,
+      "mode": "no_reset",
+      "policy": "latched_ST",
+      "ood_long_irregular": {
+        "hard_query_accuracy": 0.72222221,
+        "event_precision": 0,
+        "event_recall": 0,
+        "crossings_per_stream": 1.04166663,
+        "false_positive_events_per_stream": 1.04166663
+      }
+    },
+    {
+      "seed": 23,
+      "mode": "analytic",
+      "policy": "level_ST",
+      "ood_long_irregular": {
+        "hard_query_accuracy": 0.6712963,
+        "event_precision": 0.30747128,
+        "event_recall": 0.89166665,
+        "crossings_per_stream": 14.5,
+        "false_positive_events_per_stream": 10.04166698
+      }
+    },
+    {
+      "seed": 23,
+      "mode": "analytic",
+      "policy": "latched_ST",
+      "ood_long_irregular": {
+        "hard_query_accuracy": 0.6736111,
+        "event_precision": 0.30864197,
+        "event_recall": 0.83333331,
+        "crossings_per_stream": 13.5,
+        "false_positive_events_per_stream": 9.33333302
+      }
+    },
+    {
+      "seed": 23,
+      "mode": "ordinary",
+      "policy": "level_ST",
+      "ood_long_irregular": {
+        "hard_query_accuracy": 0.66203701,
+        "event_precision": 0.29032257,
+        "event_recall": 0.9,
+        "crossings_per_stream": 15.5,
+        "false_positive_events_per_stream": 11
+      }
+    },
+    {
+      "seed": 23,
+      "mode": "ordinary",
+      "policy": "latched_ST",
+      "ood_long_irregular": {
+        "hard_query_accuracy": 0.66435188,
+        "event_precision": 0.29761904,
+        "event_recall": 0.83333331,
+        "crossings_per_stream": 14,
+        "false_positive_events_per_stream": 9.83333302
+      }
+    },
+    {
+      "seed": 23,
+      "mode": "no_reset",
+      "policy": "level_ST",
+      "ood_long_irregular": {
+        "hard_query_accuracy": 0.72222221,
+        "event_precision": 0.04475942,
+        "event_recall": 1,
+        "crossings_per_stream": 111.70833588,
+        "false_positive_events_per_stream": 106.70833588
+      }
+    },
+    {
+      "seed": 23,
+      "mode": "no_reset",
+      "policy": "latched_ST",
+      "ood_long_irregular": {
+        "hard_query_accuracy": 0.72222221,
+        "event_precision": 0,
+        "event_recall": 0,
+        "crossings_per_stream": 1.20833337,
+        "false_positive_events_per_stream": 1.20833337
+      }
+    },
+    {
+      "seed": 37,
+      "mode": "analytic",
+      "policy": "level_ST",
+      "ood_long_irregular": {
+        "hard_query_accuracy": 0.6875,
+        "event_precision": 0.38144329,
+        "event_recall": 0.92500001,
+        "crossings_per_stream": 12.125,
+        "false_positive_events_per_stream": 7.5
+      }
+    },
+    {
+      "seed": 37,
+      "mode": "analytic",
+      "policy": "latched_ST",
+      "ood_long_irregular": {
+        "hard_query_accuracy": 0.68981481,
+        "event_precision": 0.38732395,
+        "event_recall": 0.91666669,
+        "crossings_per_stream": 11.83333302,
+        "false_positive_events_per_stream": 7.25
+      }
+    },
+    {
+      "seed": 37,
+      "mode": "ordinary",
+      "policy": "level_ST",
+      "ood_long_irregular": {
+        "hard_query_accuracy": 0.68981481,
+        "event_precision": 0.38327527,
+        "event_recall": 0.91666669,
+        "crossings_per_stream": 11.95833302,
+        "false_positive_events_per_stream": 7.375
+      }
+    },
+    {
+      "seed": 37,
+      "mode": "ordinary",
+      "policy": "latched_ST",
+      "ood_long_irregular": {
+        "hard_query_accuracy": 0.69212961,
+        "event_precision": 0.38709676,
+        "event_recall": 0.89999998,
+        "crossings_per_stream": 11.625,
+        "false_positive_events_per_stream": 7.125
+      }
+    },
+    {
+      "seed": 37,
+      "mode": "no_reset",
+      "policy": "level_ST",
+      "ood_long_irregular": {
+        "hard_query_accuracy": 0.72222221,
+        "event_precision": 0.04477612,
+        "event_recall": 1,
+        "crossings_per_stream": 111.66666412,
+        "false_positive_events_per_stream": 106.66666412
+      }
+    },
+    {
+      "seed": 37,
+      "mode": "no_reset",
+      "policy": "latched_ST",
+      "ood_long_irregular": {
+        "hard_query_accuracy": 0.72222221,
+        "event_precision": 0,
+        "event_recall": 0,
+        "crossings_per_stream": 1.16666663,
+        "false_positive_events_per_stream": 1.16666663
+      }
+    }
+  ],
+  "ood_summary": {
+    "analytic:level_ST": {
+      "hard_query_accuracy": 0.6743827266666665,
+      "event_precision": 0.31723509333333333,
+      "event_recall": 0.91944444,
+      "crossings_per_stream": 14.847222010000001,
+      "false_positive_events_per_stream": 10.25
+    },
+    "analytic:latched_ST": {
+      "hard_query_accuracy": 0.6774691333333333,
+      "event_precision": 0.32176641666666667,
+      "event_recall": 0.8638888800000001,
+      "crossings_per_stream": 13.652777673333333,
+      "false_positive_events_per_stream": 9.333333333333334
+    },
+    "ordinary:level_ST": {
+      "hard_query_accuracy": 0.6751543066666668,
+      "event_precision": 0.3172644466666667,
+      "event_recall": 0.9138888966666667,
+      "crossings_per_stream": 14.694444339999999,
+      "false_positive_events_per_stream": 10.125
+    },
+    "ordinary:latched_ST": {
+      "hard_query_accuracy": 0.6774691333333333,
+      "event_precision": 0.3225429933333333,
+      "event_recall": 0.85833331,
+      "crossings_per_stream": 13.5,
+      "false_positive_events_per_stream": 9.208333333333334
+    },
+    "no_reset:level_ST": {
+      "hard_query_accuracy": 0.72222221,
+      "event_precision": 0.04473721333333334,
+      "event_recall": 1,
+      "crossings_per_stream": 111.76388804,
+      "false_positive_events_per_stream": 106.76388804
+    },
+    "no_reset:latched_ST": {
+      "hard_query_accuracy": 0.72222221,
+      "event_precision": 0,
+      "event_recall": 0,
+      "crossings_per_stream": 1.1388888766666667,
+      "false_positive_events_per_stream": 1.1388888766666667
+    }
+  },
+  "id_summary": {
+    "analytic_level_ST_accuracy": 1,
+    "analytic_latched_ST_accuracy": 1,
+    "ordinary_level_ST_accuracy": 1,
+    "ordinary_latched_ST_accuracy": 1,
+    "no_reset_level_ST_accuracy": 0.75,
+    "no_reset_latched_ST_accuracy": 0.75
+  },
+  "local_focused_unittest": {
+    "tests": 8,
+    "passed": 8,
+    "skipped": 0
+  },
+  "scientific_gate_status": "OPEN",
+  "all_p0_p6_open": true,
+  "production_activation": false,
+  "external_attestation": false
+}
