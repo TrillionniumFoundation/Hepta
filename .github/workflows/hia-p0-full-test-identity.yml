@@ -1,0 +1,73 @@
+name: HIA P0 broad gate source-exact test-identity admission (research)
+
+on:
+  push:
+    branches: [work/hia-p0-full-regression-test-identity-20261031-gpt6]
+  pull_request:
+    paths:
+      - tools/qualify_hia_verified_increment.py
+      - tests/test_hia_verified_increment_gate.py
+      - .github/workflows/hia-p0-full-test-identity.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  strict-adversarial-admission:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pin exact tested source and candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          git rev-parse 'HEAD^{tree}'
+          sha256sum tools/qualify_hia_verified_increment.py tests/test_hia_verified_increment_gate.py
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - name: Execute independent adversarial gate cases with no skip
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B - <<'PY' 2>&1 | tee "$RUNNER_TEMP/hia-p0-verified-gate.log"
+          import json, unittest
+          names = ["tests.test_hia_verified_increment_gate",
+                   "tests.test_hia_three_lane_gate"]
+          suite = unittest.defaultTestLoader.loadTestsFromNames(names)
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          ok = (expected > 0 and expected == result.testsRun
+                and result.wasSuccessful()
+                and not result.skipped and not result.expectedFailures
+                and not result.unexpectedSuccesses)
+          print(json.dumps({
+              "planned": expected, "executed": result.testsRun,
+              "failures": len(result.failures), "errors": len(result.errors),
+              "skipped": len(result.skipped),
+              "expected_failures": len(result.expectedFailures),
+              "unexpected_successes": len(result.unexpectedSuccesses),
+              "passed": ok, "authority": "DENY_ALL"
+          }, sort_keys=True))
+          if not ok:
+              raise SystemExit(1)
+          PY
+          python -B -m py_compile tools/qualify_hia_verified_increment.py tests/test_hia_verified_increment_gate.py
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          git diff --exit-code
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hia-p0-broad-test-identity-${{ github.sha }}
+          path: ${{ runner.temp }}/hia-p0-verified-gate.log
+          if-no-files-found: warn
