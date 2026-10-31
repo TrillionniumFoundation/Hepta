@@ -54,3 +54,34 @@ must be read from its real log, not inherited from earlier branches.
 Every model-provided advice, historical receipt, arbitrary synthetic economic
 positive or passed individual test remains `DENY_ALL` for production. Do not
 auto-merge this candidate into main.
+
+
+## First integrated CI (failed; retained)
+
+At original integrated SHA `7cd1f68183f73fa55af848e175f71723a2f64eb5`, workflow
+[41183211519](https://github.com/TrillionniumFoundation/Hepta/actions/runs/41183211519)
+observed:
+- Python/C-native integrated lane: 105 tests with 2 Z3 proof skips; actual
+  native ELF/replay 13 tests passed. Because the two skipped proofs were
+  missing their optional solver, this lane is **not** a complete P1 proof gate
+  despite the job concluding success.
+- Rust shadow lane: **failure before any test execution**, fresh Ubuntu
+  runner had no cached locked serde crate. The test intentionally performs
+  `cargo build --locked --offline`, which must not be weakened.
+- Toolchain installed on that runner was Rust 1.99.1; it was not the
+  experimental pinned Rust 1.95.0 source profile.
+
+## Corrective integration increment
+
+- Install exact declared `z3-solver==4.15.4.0`, then run full P1 proof tests.
+- Install Rust 1.95.0 and perform `cargo fetch --locked` before the unchanged
+  `--offline` compiled Rust shadow test. Lock identities remain unchanged.
+- New `tools/qualify_hia_three_lane.py` rejects all skips (and zero-tests),
+  failures, errors and post-test tracked source mutations; emits source-tree,
+  exact commit and all outcomes as an exclusive per-run receipt.
+- Preserve report artifacts even when a test fails. These changes are
+  **qualification-only**, not modification of Core semantics, production
+  admission authority, NDU score or C/C++ import assumptions.
+
+The new integration SHA needs independent exact-head CI before any updated
+passed claim. No production stage is closed from this preparation repair.

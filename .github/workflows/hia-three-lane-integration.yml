@@ -17,53 +17,73 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Install exact project solver dependency (no skipped proof)
+        run: |
+          set -eu
+          python -m pip install --disable-pip-version-check 'z3-solver==4.15.4.0'
+          python -c 'import z3; print("Z3", z3.get_version_string())'
       - name: Rebuild/check single HIA instruction catalog
         run: |
           set -eu
           python tools/generate_hia_catalog.py --check
-      - name: Execute source-exact P0, P1 and P5 semantic/resource adversarial matrix
+      - name: Execute source-exact P0/P1/P5 semantic/resource tests with ZERO SKIP
         run: |
           set -eu
-          python -B -m unittest \
-            tests.test_hia_bounded_mutable_snapshot \
-            tests.test_hia_bounded_input_utf8 \
-            tests.test_hia_bounded_research_wire \
-            tests.test_hia_program \
-            tests.test_hia_json_preflight \
-            tests.test_hia_program_composite \
-            tests.test_hia_execution_contract \
-            tests.test_hia_exit_accounting \
-            tests.test_hia_opcode_catalog \
-            tests.test_hia_full_cost_gate \
-            tests.test_hia_paired_holdout -v
-      - name: Run actual C/ELF observer and raw native paired replay
+          python -B tools/qualify_hia_three_lane.py --suite core --output /tmp/hia-three-lane-core.json
+      - name: Run real C/ELF observer and raw native paired replay with ZERO SKIP
         run: |
           set -eu
-          python -B -m unittest tests.test_hia_native_process_observer tests.test_hia_native_paired_replay -v
+          python -B tools/qualify_hia_three_lane.py --suite native --output /tmp/hia-three-lane-native.json
       - name: Check Python source and no test-induced mutation
         run: |
           set -eu
-          python -B -m py_compile hepta/hia_program.py hepta/hia_program_runtime.py hepta/hia_opcodes.py hepta/hia_bounded_wire.py
+          python -B -m py_compile hepta/hia_program.py hepta/hia_program_runtime.py hepta/hia_opcodes.py hepta/hia_bounded_wire.py tools/qualify_hia_three_lane.py
           git diff --exit-code
+      - name: Retain scoped test receipts including refused failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-three-lane-python-${{ github.sha }}
+          path: |
+            /tmp/hia-three-lane-core.json
+            /tmp/hia-three-lane-native.json
+          if-no-files-found: error
 
   independent-rust-shadow:
     runs-on: ubuntu-24.04
     timeout-minutes: 35
+    env:
+      RUSTUP_TOOLCHAIN: "1.95.0"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Record native toolchain provenance
+      - name: Install exact Rust 1.95 profile and record toolchain
         run: |
           set -eu
+          rustup toolchain install 1.95.0 --profile minimal
           python --version
           rustc --version
           cargo --version
           clang --version
-      - name: Run independent Rust shadow / bounded ledger tests without bypass
+      - name: Stage Cargo.lock crates before STRICT OFFLINE test build
         run: |
           set -eu
-          python -B -m unittest tests.test_hia_rust_byte_dag -v
+          cargo fetch --locked --manifest-path rust/hia-core-shadow/Cargo.toml
+          cargo metadata --locked --offline --manifest-path rust/hia-core-shadow/Cargo.toml --format-version 1 --no-deps > /tmp/hia-rust-locked-metadata.json
+      - name: Run independent Rust shadow / bounded ledger tests with ZERO SKIP
+        run: |
+          set -eu
+          python -B tools/qualify_hia_three_lane.py --suite rust --output /tmp/hia-three-lane-rust.json
       - name: Recheck tracked source
         run: git diff --exit-code
+      - name: Retain Rust shadow admission receipt on either outcome
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-three-lane-rust-${{ github.sha }}
+          path: |
+            /tmp/hia-three-lane-rust.json
+            /tmp/hia-rust-locked-metadata.json
+          if-no-files-found: warn
