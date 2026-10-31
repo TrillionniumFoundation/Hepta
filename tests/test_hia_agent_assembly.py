@@ -187,6 +187,25 @@ class HIAAgentAssemblyTests(unittest.TestCase):
         self.assertEqual(assemble_program(SOURCE.replace(
             "\n", "\r\n")).canonical_bytes, baseline)
 
+    def test_bare_eof_cr_is_rejected_before_core_even_when_function_is_complete(self):
+        # A CRLF record ends in CR followed by LF; a final bare CR must not
+        # be erased by removesuffix before the HIA grammar sees the last line.
+        malformed = SOURCE.removesuffix("\n") + "\r"
+        with patch("hepta.hia_agent_assembly.verify_program") as verifier:
+            for value in (malformed, malformed.encode("utf-8")):
+                with self.subTest(value_type=type(value).__name__):
+                    with self.assertRaises(HIAAssemblyRejected) as caught:
+                        assemble_program(value)
+                    self.assertEqual(caught.exception.code, "E_HIA_ASSEMBLY")
+                    self.assertEqual(caught.exception.line, len(SOURCE.splitlines()))
+                    diagnostic = diagnose_assembly(value)
+                    self.assertFalse(diagnostic["accepted"])
+                    self.assertEqual(diagnostic["diagnostic"]["phase"], "syntax")
+            verifier.assert_not_called()
+        self.assertEqual(
+            assemble_program(SOURCE.replace("\n", "\r\n")).canonical_bytes,
+            assemble_program(SOURCE).canonical_bytes)
+
     def test_missing_terminator_end_extra_text_and_duplicate_exports_reject(self):
         variants = (SOURCE.replace("  ret(answer)\n", ""), SOURCE.removesuffix("end\n"),
                     SOURCE + "garbage\n", SOURCE.replace("exports(total)", "exports(total)\nexports(total)"),
