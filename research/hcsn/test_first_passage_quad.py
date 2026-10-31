@@ -54,4 +54,19 @@ class FirstPassageQuadratureTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 hitting_density_quadrature(x,tau,p)
 
+    def test_postimplementation_second_seed_short_tau_stress(self):
+        # Fixed after the geometric partition design; exploratory, not an
+        # independently preregistered parameter-domain certificate.
+        rng=np.random.default_rng(628449)
+        for i in range(2000):
+            p=HXParams(r=rng.uniform(.005,.30),delta=rng.uniform(.001,.2),
+                       sigma=rng.uniform(.03,.75),xi=rng.uniform(0.,10.),
+                       k=rng.uniform(0.,.25),maturity=rng.uniform(.05,10))
+            x=10**rng.uniform(-9,1.08)
+            tau=p.maturity*10**rng.uniform(-4,0)
+            f,g=hitting_and_discounted_hitting(x,tau,p)
+            q=hitting_density_quadrature(x,tau,p)
+            with self.subTest(i=i):
+                self.assertLess(max(abs(f-q.F),abs(g-q.G)),2e-11)
+
 if __name__=='__main__':unittest.main()
