@@ -232,7 +232,14 @@ def _run_once(executable, argv, payload, timeout_ms, max_output_bytes):
                     proc.returncode = os.waitstatus_to_exitcode(status)
                     break
                 time.sleep(0.001)
-        except BaseException:
+        except BaseException as exc:
+            if proc is None and isinstance(exc, (OSError, subprocess.SubprocessError)):
+                return {"execution_ns": max(1, time.monotonic_ns() - began),
+                        "exit_code": None, "spawn_error": type(exc).__name__,
+                        "timed_out": False, "peak_rss_bytes": None,
+                        "stdout_bytes": 0, "stderr_bytes": 0,
+                        "stdout_digest": sha256(b"").hexdigest(),
+                        "stderr_digest": sha256(b"").hexdigest()}
             if proc is not None and proc.returncode is None:
                 try:
                     os.killpg(proc.pid, signal.SIGKILL)
@@ -297,6 +304,7 @@ def observe(raw):
                         failures.append({"strategy": arm["strategy"], "trial_id": tid,
                                          "repetition": repeat, "exit_code": sample["exit_code"],
                                          "timed_out": sample["timed_out"],
+                                         "spawn_error": sample.get("spawn_error"),
                                          "stdout_digest": sample["stdout_digest"],
                                          "expected_digest": trial["expected_result_digest"]})
                         # Stop on the first actual failure, but keep the raw
