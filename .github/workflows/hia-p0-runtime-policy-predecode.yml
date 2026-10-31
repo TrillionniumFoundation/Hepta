@@ -1,0 +1,105 @@
+name: HIA P0/P7 runtime policy predecode and exact native qualification (research)
+
+on:
+  push:
+    branches:
+      - work/hia-p0-runtime-policy-predecode-20261031-gpt6
+  pull_request:
+    paths:
+      - hepta/hia_adaptive.py
+      - tests/test_hia_runtime_policy_predecode.py
+      - tools/qualify_hia_verified_increment.py
+      - .github/workflows/hia-p0-runtime-policy-predecode.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  predecode-negative-and-positive:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Freeze exact source and failure boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          git rev-parse HEAD^{tree}
+          sha256sum hepta/hia_adaptive.py hepta/hia_optimization.py tests/test_hia_runtime_policy_predecode.py
+      - name: Execute strict predecode, proof-policy and broad gate adversarial cases
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B -m unittest tests.test_hia_runtime_policy_predecode.PolicyPredecodeAdmissionTests tests.test_hia_optimization.OptimizationPolicyAdmissionTests tests.test_hia_verified_increment_gate -v 2>&1 | tee "$RUNNER_TEMP/hia-policy-predecode.log"
+          if grep -qE 'skipped|expected failure|unexpected success' "$RUNNER_TEMP/hia-policy-predecode.log"; then exit 1; fi
+          python tools/generate_hia_catalog.py --check
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          git diff --exit-code
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hia-policy-predecode-${{ github.sha }}
+          path: ${{ runner.temp }}/hia-policy-predecode.log
+          if-no-files-found: warn
+
+  native-p0p1p5p7:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      CLANG: /usr/bin/clang-20
+      HEPTA_CLANG: /usr/bin/clang-20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pin Clang20, Z3 and real native baseline toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/hepta-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key
+          fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hepta-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')
+          test "$fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+          sudo install -m 0644 "$RUNNER_TEMP/hepta-llvm.asc" /usr/share/keyrings/hepta-llvm.asc
+          printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hepta-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hepta-llvm20.list
+          sudo apt-get update
+          sudo apt-get install -y clang-20 libclang-rt-20-dev llvm-20 lld-20 build-essential
+          python -m pip install --disable-pip-version-check -e '.[optimization]' 'zstandard==0.25.0'
+          test -x "$CLANG"
+          python -c 'import z3; print("Z3", z3.get_version_string())'
+      - name: Recheck real native runtime policies, P7 generations and exact Core
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B -m unittest tests.test_hia_runtime_policy_predecode tests.test_hia_optimization.OptimizationPolicyAdmissionTests tests.test_hia_stateful.OwnedNativeTests.test_alias_modes_bounds_and_queue_staleness_are_real_state_gates tests.test_hia_queue_candidate_admission tests.test_hia_continuation tests.test_hia_stateful_generation_fence -v 2>&1 | tee "$RUNNER_TEMP/hia-policy-native.log"
+          if grep -qE 'skipped|expected failure|unexpected success' "$RUNNER_TEMP/hia-policy-native.log"; then exit 1; fi
+          python -B -m tools.qualify_hia_three_lane --suite core --output "$RUNNER_TEMP/hia-policy-core.json"
+          python -B -m tools.qualify_hia_three_lane --suite native --output "$RUNNER_TEMP/hia-policy-native.json"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          git diff --exit-code
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hia-policy-native-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/hia-policy-native.log
+            ${{ runner.temp }}/hia-policy-core.json
+            ${{ runner.temp }}/hia-policy-native.json
+          if-no-files-found: warn
