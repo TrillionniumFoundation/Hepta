@@ -15,6 +15,7 @@ import json
 import re
 
 SCHEMA = "hepta.hia.ndu.stateful-preparation.v1"
+SCHEMA_V2 = "hepta.hia.ndu.stateful-preparation.v2"
 _MAX_NS = 1_000_000_000_000
 _ID = re.compile(r"[a-zA-Z][a-zA-Z0-9_-]{0,31}\Z")
 _HEX = re.compile(r"[0-9a-f]{64}\Z")
@@ -72,8 +73,12 @@ def validate_model(value):
     except (HIAEditRejected, ValueError, TypeError, RuntimeError, UnicodeError,
             RecursionError, OverflowError) as error:
         raise StatefulPlanningError("E_HIA_NDU_STATEFUL: bounded model snapshot rejected") from error
-    _require(type(value) is dict and set(value) == _FIELDS, "unknown or missing model fields")
-    _require(value["schema"] == SCHEMA, "unsupported schema")
+    _require(type(value) is dict and type(value.get("schema")) is str
+             and value["schema"] in {SCHEMA, SCHEMA_V2}, "unsupported schema")
+    fields = _FIELDS | ({"future_decision_cost_ns"} if value["schema"] == SCHEMA_V2 else set())
+    _require(set(value) == fields, "unknown or missing model fields")
+    if value["schema"] == SCHEMA_V2:
+        _int(value["future_decision_cost_ns"], "future decision cost")
     _require(type(value["name"]) is str and _ID.fullmatch(value["name"]) is not None,
              "invalid model name")
     _hex(value["objective_digest"], "objective")
@@ -129,7 +134,8 @@ def validate_model(value):
     # profile. Unknown/unaffordable costs are not replaced with zero.
     upper = (sum(v["preparation_ns"] for v in variants)
              + sum(base["latency_ns"])
-             + sum(sum(v["holding_ns"]) for v in variants))
+             + sum(sum(v["holding_ns"]) for v in variants)
+             + (horizon - 1) * value.get("future_decision_cost_ns", 0))
     _require(upper <= _MAX_NS, "complete cost envelope exceeds the finite profile")
     result = value
     result["variants"].sort(key=lambda v: v["id"])
@@ -203,19 +209,65 @@ def graph_fields(raw):
                 "verification_sha256": digest({"acquired": [variants[name]["verification_sha256"] for name in acquired],
                                                 "state": states[target_id]["verification_sha256"]}),
                 "support_sha256": digest({name: variants[name]["support_sha256"] for name in acquired})})
-    binding = {"schema": SCHEMA, "model_sha256": digest(model), "states": details,
+    binding = {"schema": model["schema"], "model_sha256": digest(model), "states": details,
         "preparation_charged": "once per acquisition; already prepared variants have no new setup cost",
         "holding_charged": "each resident variant for every remaining batch, including stop paths",
         "dispatch_rule": "lowest supplied current-batch execution cost; exact ties use stable variant identity",
         "sunk_cost_ns": model["sunk_cost_ns"], "cost_basis": model["cost_basis"],
         "verification_inputs_are_external_assertions": True,
         "native_application_executed": False, "safety_certificate": False}
+    if model["schema"] == SCHEMA_V2:
+        binding["future_decision_cost_ns"] = model["future_decision_cost_ns"]
+        binding["future_decision_charged"] = (
+            "each active decision after batch zero, including the decision to stop; "
+            "no decisions after stop; current invocation is outside this continuation model")
     fields = {"objective_digest": model["objective_digest"], "snapshot_digest": digest(binding),
         "generation": model["generation"], "initial_state": _state_id(tuple(model["initial_ready"])),
         "states": states, "transitions": transitions, "batch_costs_ns": costs,
         "remaining_budget_ns": model["budget_ns"], "completion_value_ns": model["completion_value_ns"],
-        "decision_cost_ns": 0, "observations": [*model["observations"], binding]}
+        "decision_cost_ns": model.get("future_decision_cost_ns", 0),
+        "observations": [*model["observations"], binding]}
     return fields, binding
+
+
+def invocation_gate(raw, *, invocation_cost_ns):
+    """Bound the value of invoking before paying for the current planner call.
+
+    The lower bound gives every verified, individually affordable candidate free
+    preparation and zero additional holding/decision costs. It may combine
+    mutually incompatible candidates across batches. Hence it is optimistic for
+    *every* legal monotone prepared-set schedule. If even this relaxation cannot
+    repay the supplied invocation cost, retaining the incumbent is no worse in
+    this declared nanosecond model. The estimate is not a measured-time bound,
+    an execution permission, or evidence of an NDU advantage. Gate evaluation
+    itself remains part of the caller's actual cost ledger.
+    """
+    model = validate_model(raw)
+    _int(invocation_cost_ns, "current invocation cost")
+    variants = {v["id"]: v for v in model["variants"]}
+    ready = set(model["initial_ready"])
+    resident = sum(variants[name]["resident_bytes"] for name in ready)
+    available = [v for v in variants.values() if v["status"] == "verified"
+                 and resident + (0 if v["id"] in ready else v["resident_bytes"])
+                 <= model["memory_budget_bytes"]]
+    skip_ns, relaxed_ns = 0, 0
+    for batch, base in enumerate(model["baseline"]["latency_ns"]):
+        holding = sum(variants[name]["holding_ns"][batch] for name in ready)
+        skip_ns += min([base, *(variants[name]["latency_ns"][batch] for name in ready)]) + holding
+        relaxed_ns += min([base, *(v["latency_ns"][batch] for v in available)]) + holding
+    upper = skip_ns - relaxed_ns
+    affordable = invocation_cost_ns + relaxed_ns <= model["budget_ns"]
+    invoke = affordable and upper > invocation_cost_ns
+    reason = ("optimistic_savings_exceed_invocation_estimate" if invoke else
+              "invocation_and_optimistic_delivery_exceed_budget" if not affordable else
+              "optimistic_savings_cannot_repay_invocation")
+    return {"schema": "hepta.hia.ndu.invocation-gate.v1", "model_sha256": digest(model),
+            "invoke": invoke, "reason": reason, "invocation_cost_ns": invocation_cost_ns,
+            "incumbent_delivery_ns": skip_ns, "optimistic_delivery_lower_bound_ns": relaxed_ns,
+            "gross_savings_upper_bound_ns": upper, "incumbent_ready": sorted(ready),
+            "cost_basis": model["cost_basis"], "future_decision_cost_ns": model.get("future_decision_cost_ns", 0),
+            "scope": "supplied deterministic nanosecond model; no empirical net-benefit guarantee",
+            "authority": "DENY_ALL", "safety_certificate": False}
 
 
 def build_request(raw, *, search="dynamic-frontier"):

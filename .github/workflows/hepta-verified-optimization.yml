@@ -7,6 +7,7 @@ on:
       - codex/hia-contract-integration-20261027
       - codex/hia-v8-blocker-convergence-20261027
       - work/hia-seven-track-reconcile-p7-driver-digest-20261031-gpt6
+      - work/hia-core-ndu-costed-integration-20261031
   pull_request:
     paths:
       - 'hepta/**'
@@ -248,6 +249,19 @@ jobs:
         run: |
           python tools/qualify_hia_release_parity.py --clang "$CLANG" --rustc "$RUSTC" \
             --output artifacts/verified-optimization/release-parity
+      - name: Verify costed native NDU and proof-checked reduction on the same source
+        if: ${{ !cancelled() }}
+        run: |
+          python tools/qualify_hia_ndu_costed.py \
+            --bridge "$HEPTA_NDU_STREAM_BRIDGE" --identity "$HEPTA_NDU_STREAM_IDENTITY" \
+            --output artifacts/verified-optimization/costed-native-ndu
+          python tools/qualify_hia_native_ndu.py --clang "$CLANG" --rustc "$RUSTC" \
+            --bridge "$HEPTA_NDU_STREAM_BRIDGE" --identity "$HEPTA_NDU_STREAM_IDENTITY" \
+            --build-profile verified-reduction-release-v1 \
+            --output artifacts/verified-optimization/verified-reduction-ndu
+          python tools/qualify_hia_release_parity.py --clang "$CLANG" --rustc "$RUSTC" \
+            --build-profile verified-reduction-release-v1 \
+            --output artifacts/verified-optimization/verified-reduction-parity
       - name: Acquire hash-locked target emulator and execute target ABI contracts
         if: ${{ !cancelled() }}
         run: |

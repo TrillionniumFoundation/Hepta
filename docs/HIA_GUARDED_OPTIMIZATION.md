@@ -133,6 +133,37 @@ A rejected or timed-out proposal is not published by that action. Native build
 performs its own admission again; a prior JSON receipt cannot substitute for
 the actual candidate.
 
+### Counted-loop increments and the native release comparison
+
+`optimize-guarded --include-induction` also proposes removal of unsigned
+increment checks in counted fill/reduction loops with the same original size
+parameter. Each proposed step must establish `index <= limit` at the loop
+header and `index < limit` in its body, with a unit increment. The independent
+checker proves the entry, every CFG edge, and the nontrapping operation;
+source-pattern recognition grants no permission. The proposal format and
+verifier are unchanged, and the default proposer retains its prior behavior.
+
+For the existing owned-byte workload, the explicit
+`verified-reduction-release-v1` build profile connects this checker to the
+actual measured native object. It uses a 65,536-byte dispatch guard, retains
+the entire original checked body for every other input, and keeps allocation,
+refusal, borrow, load/store and release instructions. The C/C++/Rust flags are
+identical to the existing `optimized-release-v1` comparison. The build records
+the full proposal, all SMT obligations, source and object digests, actual
+compiler identity, proof/build time, and final linked artifacts.
+
+```sh
+python tools/qualify_hia_release_parity.py --output /tmp/verified-release \
+  --clang /path/to/clang-20 --rustc /path/to/rustc \
+  --build-profile verified-reduction-release-v1
+```
+
+The registered training and independent-length cohorts remain the same.
+Keep failed thresholds, p95/p99 observations, all individual samples, native
+allocation-refusal probes, and the original checked release results. A
+successful proof or executable run is not a Rust performance pass. Compilation
+and proof costs are disclosed separately from steady-state kernel times.
+
 ## Qualification and boundaries
 
 The tests include genuine SMT induction, forged invariants and guard bounds,
