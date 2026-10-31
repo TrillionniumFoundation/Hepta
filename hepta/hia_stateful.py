@@ -20,7 +20,7 @@ import tempfile
 import time
 
 from .hia_adaptive import (AdaptiveRejected, AdaptiveRuntime, _digest, _identity,
-                           _TOTAL, _NativeRelease)
+                           _TOTAL, _NativeRelease, _version_token, _selection_mode)
 from .hia_program import verify_program
 from .hia_json_preflight import preflight_hia_json
 from .hia_native_differential import _pin_native_artifact
@@ -484,6 +484,10 @@ class OwnedAdaptiveRuntime(AdaptiveRuntime):
                 self._unamortized_preparation_ns += time.monotonic_ns() - started
 
     def _select_owned(self, token, *, mode="auto"):
+        # No caller-defined comparison or image-key lookup may execute while
+        # holding the native owner's lock. Check even with active state loans.
+        token = _version_token(token)
+        mode = _selection_mode(mode)
         with self._lock:
             self._state_open()
             if self._loans:
@@ -506,6 +510,7 @@ class OwnedAdaptiveRuntime(AdaptiveRuntime):
         the performance budget is exhausted. The old image remains a checked,
         sealed capability in this runtime; no new code is admitted here.
         """
+        token = _version_token(token)
         self._open()
         if self._active or self._loans or token not in self._images:
             raise AdaptiveRejected("E_STATE_ROLLBACK: previously admitted quiescent image required")
