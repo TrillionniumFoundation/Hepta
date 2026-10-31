@@ -721,7 +721,11 @@ class OwnedAdaptiveRuntime(AdaptiveRuntime):
         measurement, selected, reason = None, False, "no_candidate"
         try:
             if candidate is not None:
-                if type(candidate) is not str or candidate not in self._images or candidate == original:
+                # The queued optional image selector is caller-supplied too.
+                # Bound it before any dictionary hash under the owner lock;
+                # preserve the existing failed-plan cost/transaction semantics.
+                candidate = _version_token(candidate)
+                if candidate not in self._images or candidate == original:
                     raise AdaptiveRejected("E_STATE_AUTHORITY: a different internally prepared version is required")
                 measurement = self._calibrate(row, candidate, rounds=rounds, sample_limit=sample_limit)
                 if measurement["projected_saving_ns"] > candidate_cost + measurement["measurement_cost_ns"]:
