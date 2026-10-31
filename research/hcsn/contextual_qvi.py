@@ -25,8 +25,8 @@ except ImportError:
 @dataclass(frozen=True)
 class ContextualReset:
     """Locally state-conditioned nonlocal reset, bounded to a fixed scale."""
-    rho: float = .12
-    cost_slope: float = .01
+    rho: float = .12       # amplitude of reset-target state dependence
+    cost_slope: float = .01  # positive extra cost below fixed reset reference
 
     def __post_init__(self):
         if not (math.isfinite(self.rho) and math.isfinite(self.cost_slope)
@@ -34,6 +34,7 @@ class ContextualReset:
             raise ValueError('Outside explored state-dependent reset domain')
 
     def target_and_cost(self, v: np.ndarray, p: RegenerativeParams):
+        # R(v) always >0; near low v it remains above the expected trigger.
         margin = np.log(v / p.reset_value)
         target = p.reset_value * (1 + self.rho * np.tanh(margin))
         cost = p.reset_cost + self.cost_slope * np.maximum(0, -margin)
@@ -95,7 +96,7 @@ def solve_contextual_qvi(p: RegenerativeParams,
         below,above=diffusion-mu/h,diffusion
     assert below >= 0 and above >= 0
     source=p.delta*v-p.r*p.k
-    policy = v < p.reset_value*.45
+    policy = v < p.reset_value*.45  # independent of analytical trigger
     policy[0]=True; policy[-1]=False; policy[i_reset]=False
     u=np.zeros(n)
     for iterations in range(1,max_iter+1):
@@ -128,6 +129,8 @@ def solve_contextual_qvi(p: RegenerativeParams,
     else:
         raise ArithmeticError('Contextual QVI policy iteration did not converge')
 
+    # Recalculate with the converged policy. Equalities for the active branch
+    # and both non-positive inequalities define the *discrete* QVI certificate.
     gen=np.zeros(n)
     gen[1:-1]=below*u[:-2]-(p.r+below+above)*u[1:-1]+above*u[2:]+source[1:-1]
     obstacle=(1-w)*u[li]+w*u[ri]-reset_cost-u
