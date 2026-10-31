@@ -1,0 +1,29 @@
+name: HIA P7 image-token and mode admission exact-head tests
+on:
+  push:
+    branches:
+      - work/hia-p7-image-token-mode-admission-20261031-gpt6
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  p7-image-lookup-boundary:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Deterministic P7 hostile-input and existing queue-capture regressions
+        run: |
+          set -euo pipefail
+          python -B -m unittest -v \
+            tests.test_hia_image_token_admission \
+            tests.test_hia_stateful_queue_capture
+      - name: Ensure no tests mutated source
+        run: git diff --exit-code
