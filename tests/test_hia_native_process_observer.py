@@ -183,6 +183,7 @@ class HIANNativeProcessObservationTests(unittest.TestCase):
             lambda x: x.update(repetitions=True),
             lambda x: x["arms"][3].update(unknown_costs=["dup", "dup"]),
             lambda x: x["trials"][1].update(id="task00"),
+            lambda x: x.update(repetitions=128, timeout_ms=30000),
         ]
         for change in mutations:
             state = deepcopy(original)
