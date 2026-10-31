@@ -1,0 +1,48 @@
+name: HIA P7 driver digest exact SHA-256 preflight (research)
+on:
+  push:
+    branches:
+      - research/hia-p7-driver-sha-preflight-20261031-gpt6
+  pull_request:
+    paths:
+      - hepta/hia_artifact_session.py
+      - tests/test_hia_artifact_driver_preflight.py
+      - .github/workflows/hia-p7-driver-digest-preflight.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  driver-digest-boundary:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify exact source and parent
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          git rev-parse HEAD^{tree}
+          git rev-parse HEAD^
+          sha256sum hepta/hia_artifact_session.py tests/test_hia_artifact_driver_preflight.py
+      - name: Execute source-exact digest refusal and allowed path tests with no skips
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B -m unittest tests.test_hia_artifact_driver_preflight -v 2>&1 | tee "$RUNNER_TEMP/driver-digest.log"
+          if grep -Eq '\.\.\. (skipped|expected failure|unexpected success)' "$RUNNER_TEMP/driver-digest.log"; then exit 1; fi
+          python -B -m py_compile hepta/hia_artifact_session.py tests/test_hia_artifact_driver_preflight.py
+          git diff --exit-code
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hia-p7-driver-digest-${{ github.sha }}
+          path: ${{ runner.temp }}/driver-digest.log
+          if-no-files-found: warn
