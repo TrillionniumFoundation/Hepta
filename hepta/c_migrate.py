@@ -28,6 +28,7 @@ _BITS = {"&", "|", "^"}
 _SHIFTS = {"<<", ">>"}
 _CMP = {"==", "!=", "<", "<=", ">", ">="}
 _CASTS = {"LValueToRValue", "NoOp"}
+MAX_SOURCE_BYTES = 256_000
 # Original spelling -> (Hepta scalar type, Clang VarDecl ID, emitted identifier).
 # The third field allows hygienic names for loop-scoped variables without
 # manufacturing C++ lexical scopes or trusting variable spelling alone.
@@ -625,6 +626,23 @@ def _function(decl: dict, model: dict) -> dict:
     return {"name": name, "source": source, "params": args, "returns": ret}
 
 
+def _read_bounded_source(src: Path, *, recheck: bool) -> bytes:
+    """Bound initial and freshness reads, including a file grown by a writer.
+
+    This closes the parent-memory gap without claiming filesystem isolation or
+    eliminating the final noncooperative-writer race before publication.
+    """
+    try:
+        with src.open("rb") as stream:
+            source = stream.read(MAX_SOURCE_BYTES + 1)
+    except OSError as exc:
+        raise MigrationRejected("E_C_SOURCE_RACE", "C source unavailable during bounded read") from exc
+    if len(source) > MAX_SOURCE_BYTES:
+        raise MigrationRejected("E_C_SOURCE_RACE" if recheck else "E_C_SIZE",
+                                "C source exceeds the 256 KB bound")
+    return source
+
+
 def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> dict:
     """Return explicit migration evidence; never write a partial conversion."""
     src, dest = Path(path).resolve(), Path(output).absolute()
@@ -636,9 +654,7 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
         if (src == dest or not src.is_file() or src.suffix != ".c"
                 or dest.suffix != ".hepta" or dest.is_symlink()):
             raise MigrationRejected("E_C_PATH", "Require existing .c source and distinct non-symlink .hepta destination")
-        source = src.read_bytes()
-        if len(source) > 256_000:
-            raise MigrationRejected("E_C_SIZE", "Pilot source exceeds 256 KB")
+        source = _read_bounded_source(src, recheck=False)
         report["source_sha256"] = hashlib.sha256(source).hexdigest()
         model = _data_model(clang)
         report["target_model"] = model
@@ -712,7 +728,7 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
             report["status"] = "unsupported_source"
             return report
         program = "module c_migrated;\n\n" + "\n".join(x["source"] for x in translated)
-        if src.read_bytes() != source:
+        if _read_bounded_source(src, recheck=True) != source:
             raise MigrationRejected("E_C_SOURCE_RACE", "C source changed during Clang analysis")
         from .checker import check
         from .parser import parse
@@ -734,10 +750,12 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
                 f.write(program)
                 f.flush()
                 os.fsync(f.fileno())
-            if src.read_bytes() != source:
+            if _read_bounded_source(src, recheck=True) != source:
                 raise MigrationRejected("E_C_SOURCE_RACE", "C source changed before publication")
             if hashlib.sha256(_run(preprocess_cmd).encode("utf-8")).hexdigest() != preprocessed_sha256:
                 raise MigrationRejected("E_C_PREPROCESS_RACE", "Clang preprocessed source/headers changed before publication")
+            if _read_bounded_source(src, recheck=True) != source:
+                raise MigrationRejected("E_C_SOURCE_RACE", "C source changed during final preprocessing")
             # Atomic same-filesystem hard-link publication: the completely
             # written, fsynced staged inode becomes visible in one operation.
             # os.link fails without replacing a concurrent existing name.
@@ -758,6 +776,8 @@ def migrate_c(path: str | Path, output: str | Path, *, clang: str = "clang") -> 
         return report
     except (MigrationRejected, UnicodeError, json.JSONDecodeError) as exc:
         report["rejected"].append({"code": getattr(exc, "code", "E_C_INPUT"), "message": str(exc)})
+        if isinstance(exc, MigrationRejected) and exc.code == "E_C_TOPLEVEL":
+            report["status"] = "unsupported_source"
         return report
 
 

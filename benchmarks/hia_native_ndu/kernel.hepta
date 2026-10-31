@@ -1,0 +1,19 @@
+module native_economics;
+
+export "C" fn calculate(size:usize,seed:u32)->u64 effects {alloc,block,panic,write} {
+    match try_buffer(size) {
+        Result::Err(code)=>{return 1000+(code as u64);},
+        Result::Ok(initial)=>{
+            let mut bytes=move initial;
+            for i in 0..size {
+                bytes[i]=wrapping_add(i as u32,seed) as u8;
+            }
+            let mut total:u64=0;
+            for i in 0..size {
+                total=total+(bytes[i] as u64);
+            }
+            drop(move bytes);
+            return total;
+        },
+    }
+}

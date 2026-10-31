@@ -28,6 +28,8 @@ from tests.test_hia_swap_v4 import swap_program
 from tests.test_hia_offset_copy_v5 import copy_program
 from tests.test_hia_range_fill_v6 import fill_program
 from tests.test_hia_composite_abi import nominal_identity_program
+from tests.test_hia_execution_contract import held_program
+from tests.test_hia_optimization_contract import cleanup_module
 
 wire = native.wire
 METRICS = ("max_allocator_interactions", "max_vm_ticks", "max_call_depth")
@@ -148,6 +150,32 @@ print(json.dumps(result, sort_keys=True))
         self.assertEqual(stopped["runtime"]["execution"]["status"], "budget_exceeded")
         self.assertGreater(stopped["runtime"]["execution"]["resources"]["live_bytes"], 0)
         self.assertIs(stopped["claims"]["successful_return_or_cleanup_guaranteed"], False)
+
+    def test_actual_error_values_cancellation_and_allocation_traps_keep_outcome_distinctions(self):
+        for args, failure, expected in (([False, 3], None, 4), ([True, 0], None, 2),
+                                        ([False, 0], 1, 1)):
+            result = self.compare(cleanup_module(), "run", args,
+                                  allocation_fail_at=failure)["runtime"]["execution"]
+            self.assertEqual((result["status"], result["values"]), ("returned", [expected]))
+        result = self.compare(held_program(), "held", [4, 0],
+                              allocation_fail_at=1)["runtime"]["execution"]
+        self.assertEqual((result["status"], result["error"]["code"]), ("trapped", "allocation"))
+
+    def test_captured_trap_and_quota_response_cannot_erase_retained_loans_or_payloads(self):
+        source = held_program()
+        limits = dict(zip(METRICS, (2, 7, 1)))
+        for args, policy in (([4, 4], {}), ([4, 0], {"max_steps": 3})):
+            actual = self.compare(source, "held", args, **policy)
+            ledger = actual["runtime"]["execution"]["resources"]
+            self.assertEqual((ledger["live_owners"], ledger["live_local_loans"], ledger["live_bytes"]), (1, 1, 4))
+            for change in ({"live_local_loans": 0}, {"loans_ended": 2}, {"live_bytes": 0},
+                           {"owners_dropped": 1, "live_owners": 0}, {"allocations": 0}):
+                malformed = deepcopy(actual)
+                malformed["runtime"]["execution"]["resources"].update(change)
+                with self.subTest(policy=policy, change=change), patch.object(transport,
+                        "_run_pinned_shadow", return_value=(wire(malformed) + b"\n", b"", 0)):
+                    with self.assertRaisesRegex(raw_mode.HIARustByteDagRejected, "E_HIA_EXECUTION_CONTRACT"):
+                        self.invoke(wire(source), "held", args, limits, **policy)
 
     def test_bulk_byte_operations_and_scalar_result_boundaries_use_the_same_machine(self):
         cases = ((bulk_program(), "bulk", [8, 8, 37]),

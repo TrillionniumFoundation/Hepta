@@ -1477,6 +1477,63 @@
         "tests.test_hia_adaptive_snapshot_native.NativeInputSnapshotTests.test_hidden_effectful_helper_cannot_enter_an_owned_native_version"
       ],
       "scope": "Exact built-in scalar batches, initial owner cells and submitted work-item inventories are captured with finite sentinel slices before validation. Execution uses the validated snapshots; caller growth cannot exceed batch, arity, 65536-cell or 128-item admission bounds. Real native tests retain original function pointers, owner allocation/free ledgers and committed queue progress."
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_opcodes.validate_execution_observation",
+        "hepta.hia_program_runtime.execute_program",
+        "hepta.hia_rust_byte_dag.execute_rust_byte_dag",
+        "hepta.hia_optimization_contract.execute_contracted_expansion"
+      ],
+      "exclusions": [
+        "summary consistency does not prove producer honesty or program semantics",
+        "no source/native refinement or automatic unwind",
+        "host_memory is a Python-only stop; no asynchronous cancellation or forced-process cleanup",
+        "call expansion may change ticks/call stops under an explicitly requalified policy"
+      ],
+      "guarantee": "stopped_ledger_no_unwind",
+      "id": "common_exit_observation_contract",
+      "regression_selectors": [
+        "tests.test_hia_execution_contract.SharedExecutionContractTests.test_real_return_error_value_cancel_and_allocation_failure_use_one_contract",
+        "tests.test_hia_execution_contract.SharedExecutionContractTests.test_real_trap_and_each_quota_preserve_the_stopped_resource_prefix",
+        "tests.test_hia_execution_contract.SharedExecutionContractTests.test_host_scratch_failure_is_a_separate_python_only_evaluator_stop",
+        "tests.test_hia_execution_contract.SharedExecutionContractTests.test_python_report_cannot_emit_contradictory_loan_or_payload_counters",
+        "tests.test_hia_execution_contract.SharedExecutionContractTests.test_unknown_misclassified_nonexact_and_extra_observations_fail_closed",
+        "tests.test_hia_rust_byte_dag.RustByteDagAdmission.test_actual_error_values_cancellation_and_allocation_traps_keep_outcome_distinctions",
+        "tests.test_hia_rust_byte_dag.RustByteDagAdmission.test_captured_trap_and_quota_response_cannot_erase_retained_loans_or_payloads"
+      ],
+      "scope": "exact scalar interpreter observations: normal/error-value/cooperative-cancel returns and allocation/trap/quota stopped prefixes; Python VM and Rust raw byte-DAG acceptance share count invariants"
+    },
+    {
+      "entrypoints": [
+        "tools.verify_hia_exit_accounting.check"
+      ],
+      "exclusions": [
+        "Z3 and query generator trusted; not a Lean-kernel proof",
+        "no production-runtime refinement, individual-owner borrow proof or u64-overflow theorem",
+        "no recursive chains, alias/provenance, FFI, concurrency or asynchronous cancellation"
+      ],
+      "guarantee": "proved_only_within_declared_solver_profile",
+      "id": "abstract_exit_accounting_induction",
+      "regression_selectors": [
+        "tests.test_hia_exit_accounting.ExitAccountingProofTests.test_each_inductive_obligation_is_nonvacuous_and_mutants_have_countermodels",
+        "tests.test_hia_exit_accounting.ExitAccountingProofTests.test_solver_unknown_never_becomes_success_or_a_proof_claim"
+      ],
+      "scope": "independent mathematical byte-owner/loan/payload count model; 15 induction/exit obligations, 15 nonvacuity checks, four countermodel controls"
+    },
+    {
+      "entrypoints": [
+        "hepta.hia_opcodes.opcode_catalog"
+      ],
+      "exclusions": [
+        "discovery consistency does not prove verifier soundness or add an instruction"
+      ],
+      "guarantee": "checked_on_every_admission",
+      "id": "version_isolated_opcode_type_groups",
+      "regression_selectors": [
+        "tests.test_hia_opcode_catalog.OpcodeCatalogTests.test_versioned_type_groups_never_offer_types_rejected_by_that_version"
+      ],
+      "scope": "primitive-v1 through v8 catalog type groups are subsets of their version-visible type inventories; chain appears only from v7"
     }
   ],
   "judgment": {
