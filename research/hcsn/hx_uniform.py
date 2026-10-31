@@ -59,6 +59,8 @@ def equity_logmargin(x:float,p:HXParams, *,boundary:float|None=None,
         method='original_a7'
     if not math.isfinite(val):
         raise ArithmeticError('Nonfinite original HX value')
+    # At the free boundary the true value is non-negative. A noticeable
+    # violation is a parameter/model admissibility or numerical failure.
     if val < -1e-7*max(1.,b):
         raise ArithmeticError('Negative HX equity in continuation domain')
     if val<0:val=0.
