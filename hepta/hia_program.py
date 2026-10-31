@@ -190,10 +190,87 @@ def _structure(value):
     return size
 
 
+
+def _bounded_detached_snapshot(root):
+    """Capture caller-owned JSON containers before byte accounting/encoding.
+
+    `_structure(original)` followed by `json.dumps(original)` is a check/use
+    race if another thread mutates the original dict or list. Instead retain
+    bounded references to each container's children, build a separate plain
+    dict/list tree, and validate/serialize *that exact detached tree*.
+    A nested caller tree is not claimed to be atomically snapshotted.
+    Every supported capture is independently rechecked by _structure.
+    """
+    pending = [(root, None, None, 0, False)]
+    active = set()
+    count, queued = 0, 1
+    result = None
+    while pending:
+        node, parent, slot, depth, leaving = pending.pop()
+        if leaving:
+            active.remove(id(node))
+            continue
+        queued -= 1
+        count += 1
+        if count > MAX_NODES or depth > MAX_DEPTH:
+            _reject("caller-owned tree exceeds snapshot budget", "E_HIA_LIMIT")
+        kind = type(node)
+        if kind in (dict, list):
+            identity = id(node)
+            if identity in active:
+                _reject("cyclic caller-owned HIA tree", "E_HIA_FORMAT")
+            active.add(identity)
+            available = MAX_NODES - count - queued
+            if len(node) > available:
+                _reject("caller-owned tree exceeds queued-node budget", "E_HIA_LIMIT")
+            children = []
+            try:
+                if kind is dict:
+                    for key, child in node.items():
+                        if type(key) is not str:
+                            _reject("non-string caller-owned JSON key", "E_HIA_FORMAT")
+                        if len(children) >= available:
+                            _reject("caller-owned dictionary grew past node budget",
+                                    "E_HIA_LIMIT")
+                        children.append((key, child))
+                    copy = {}
+                else:
+                    for child in node:
+                        if len(children) >= available:
+                            _reject("caller-owned list grew past node budget",
+                                    "E_HIA_LIMIT")
+                        children.append(child)
+                    copy = [None] * len(children)
+            except RuntimeError as exc:
+                raise HIAProgramRejected(
+                    "caller-owned tree mutated during bounded snapshot",
+                    "E_HIA_FORMAT") from exc
+            if parent is None:
+                result = copy
+            else:
+                parent[slot] = copy
+            queued += len(children)
+            pending.append((node, None, None, depth, True))
+            if kind is dict:
+                pending.extend((child, copy, key, depth + 1, False)
+                               for key, child in reversed(children))
+            else:
+                pending.extend((child, copy, index, depth + 1, False)
+                               for index, child in reversed(list(enumerate(children))))
+        else:
+            if kind not in (str, int, bool) and node is not None:
+                _reject("unsupported caller-owned JSON node", "E_HIA_FORMAT")
+            if parent is None:
+                result = node
+            else:
+                parent[slot] = node
+    return result
+
 def _decode(value):
     if isinstance(value, VerifiedProgram):
         value = value.canonical_bytes
     try:
+        caller_owned = type(value) in (dict, list)
         if type(value) is bytes:
             if len(value) > MAX_BYTES:
                 _reject("program exceeds byte budget", "E_HIA_LIMIT")
@@ -212,6 +289,8 @@ def _decode(value):
                     "E_HIA_LIMIT") from exc
             value = json.loads(value, object_pairs_hook=_unique_pairs,
                                parse_constant=_bad_constant)
+        if caller_owned:
+            value = _bounded_detached_snapshot(value)
         _structure(value)
         raw = json.dumps(value, sort_keys=True, separators=(",", ":"),
                          ensure_ascii=False, allow_nan=False).encode("utf-8")
