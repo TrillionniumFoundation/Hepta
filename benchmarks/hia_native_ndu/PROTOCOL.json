@@ -1,0 +1,31 @@
+{
+  "schema": "hepta.hia.native-economics.protocol.v1",
+  "workload": "fallible-owned-byte-fill-checksum",
+  "semantics": "n <= 65536, seed u32; allocate n zeroed bytes, fill byte[i]=(i+seed) mod 256, return u64 sum and release; empty allocation has no malloc; allocation refusal returns 1001",
+  "backends": ["c", "cpp", "rust", "hia"],
+  "sizes": [64, 4096, 65536],
+  "correctness_sizes": [0, 1, 7, 64, 255, 256, 4096, 65536],
+  "correctness_seeds": [0, 1, 255, 256, 4294967295],
+  "training_seeds": [19, 107, 223],
+  "training_samples_per_request": 21,
+  "batch_calls": 64,
+  "warmup_calls": 3,
+  "policy_arms": ["fixed", "exact_dp", "greedy", "native_ndu"],
+  "episodes": [
+    {"sizes": [64, 65536, 4096, 65536], "seeds": [389, 457, 503, 569]},
+    {"sizes": [65536, 64, 4096, 64], "seeds": [631, 701, 773, 839]},
+    {"sizes": [4096, 65536, 64, 4096], "seeds": [907, 977, 1031, 1103]}
+  ],
+  "forecast": "Repeat the current observed size through the remaining horizon; use only training medians. Future episode sizes/seeds are supplied only immediately before that batch, never to a policy.",
+  "baseline": "c",
+  "variants": ["cpp", "rust", "hia"],
+  "resident_quota_bytes": 2097152,
+  "model_budget_ns": 1000000000,
+  "completion_value_ns": 1000000000,
+  "holding_time_tariff": "No memory-to-time price is invented. holding_ns is zero direct maintenance work; residency is constrained in bytes and observed byte-ns is reported separately. Energy/allocator metadata are unmeasured.",
+  "selection_ties": "Retain native Pareto ties; no advisory means keep already prepared set. Independent controls choose the lexicographically first complete tied ready-set schedule.",
+  "performance_gate": {"hia_median_ratio_maximum": 1.1, "hia_tail_ratio_maximum": 1.2, "all_baselines_and_sizes_required": true},
+  "economic_gate": {"native_ndu_service_total_must_be_less_than_every_control_in_every_episode": true, "service_total_definition": "Actual owned-process total minus separately measured independent audit, run for every arm; includes per-instance fixed bank selection, planner startup, policy calls, loader, resource probes, native execution and shutdown. Shared compilation/training and failed-proof costs are disclosed once outside this service comparison, with no amortization.", "all_semantic_and_resource_checks_required": true},
+  "outlier_policy": "Keep every attempt and sample, no reruns or trimming; development attempts remain separate from frozen formal runs.",
+  "limits": ["One synthetic but actually executed native owned-buffer workload, not a real application suite", "Shared Linux host; affinity is not exclusive CPU ownership", "malloc_usable_size slack excludes allocator metadata, arenas and fragmentation", "Static stack files and sampled addresses are observations, not whole-process stack bounds", "All four sources use the same two-pass fill then sum algorithm; compiler decisions remain different", "Finite native differential evidence does not prove whole-language or compiler refinement", "Already built native NDU binary is reused; its historical build cost is not relabelled as a new build", "No energy or complete engineering-cost claim"]
+}

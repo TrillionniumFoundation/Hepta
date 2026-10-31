@@ -447,7 +447,7 @@ class CRecordViewTranslator(CTranslator):
                     parameters.extend([f"{pname}: {param['mode']} [{param['type']}]", f"{pname}_offset: usize"])
                     self.bindings[param["id"]] = Expression(pname, "slice:" + param["type"])
                     self.slice_bindings[pname] = {"base": pname, "offset": pname + "_offset", "mode": param["mode"]}
-                    length = "(1 as usize)" if type(param["length"]) is int else "(p_" + param["length"] + " as usize)"
+                    length = "(" + str(param["length"]) + " as usize)" if type(param["length"]) is int else "(p_" + param["length"] + " as usize)"
                     entry.extend([f"    assert({pname}_offset <= len(read {pname}));",
                                   f"    assert({length} <= (len(read {pname}) - {pname}_offset));"])
                 else:
@@ -523,7 +523,7 @@ class CRecordViewTranslator(CTranslator):
                 elif param["pointer"]:
                     abi_type = "core::ffi::c_void" if param.get("c_void") else typ
                     params.append(f"{name}: *{'const' if param['c_const'] else 'mut'} {abi_type}")
-                    size = "1" if type(param["length"]) is int else "b_" + param["length"] + " as usize"
+                    size = str(param["length"]) if type(param["length"]) is int else "b_" + param["length"] + " as usize"
                     prelude.append(f"    let n_{name} = {size};")
                     pointer = f"{name}.cast::<{typ}>()" if param.get("c_void") else name
                     self._bridge_slice(name, pointer, "n_" + name, typ, param["mode"], prelude, borrows, ranges)

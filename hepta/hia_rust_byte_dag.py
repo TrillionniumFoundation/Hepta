@@ -13,6 +13,9 @@ from pathlib import Path
 import re
 
 from .hia_json_preflight import preflight_hia_json
+from .hia_opcodes import (EXECUTION_RESOURCE_FIELDS as _RESOURCE_FIELDS,
+    EXECUTION_CHAIN_FIELDS as _CHAIN_FIELDS, ExecutionObservationRejected,
+    validate_execution_observation)
 from . import hia_rust_crosscheck as _transport
 
 MAX_CORE_BYTES = 8 * 1024 * 1024
@@ -35,14 +38,6 @@ _CLAIMS = {
     "native_backend_refinement_proved": False,
     "process_rss_or_native_time_bounded": False,
     "successful_return_or_cleanup_guaranteed": False,
-}
-_RESOURCE_FIELDS = {
-    "allocations", "frees", "allocation_attempts", "owners_created", "owners_dropped",
-    "live_owners", "live_bytes", "peak_bytes", "loans_started", "loans_ended", "live_local_loans",
-}
-_CHAIN_FIELDS = {
-    "chains_created", "chains_consumed", "live_chains", "chain_nodes_created",
-    "chain_nodes_dropped", "live_chain_nodes",
 }
 _HEAP_CLAIMS = {
     "whole_module_independently_checked": True,
@@ -202,6 +197,15 @@ def _validate_runtime(runtime, request, body, entry_bound):
     stopped_on_ticks = run["status"] == "budget_exceeded" and run["error"]["code"] == "steps"
     if (steps != run["max_steps"] + 1 if stopped_on_ticks else steps > run["max_steps"]):
         _reject("runtime tick limit and outcome disagree")
+    try:
+        # No Core verification, analysis or Python execution: these are only
+        # the common exact summary equations, including stopped prefixes.
+        validate_execution_observation(run["status"], ledger, steps=steps,
+            max_steps=run["max_steps"], max_heap_bytes=run["max_heap_bytes"],
+            error_code=run["error"]["code"] if outcome == "error" else None,
+            with_chains=bool(chains))
+    except ExecutionObservationRejected as exc:
+        _reject(str(exc))
 
 
 def _validate_heap_report(heap, request, body, budget, entry_bound, runtime):

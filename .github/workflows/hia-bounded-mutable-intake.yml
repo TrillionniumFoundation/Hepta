@@ -1,0 +1,35 @@
+name: HIA P0 bounded mutable Core intake (scoped)
+on:
+  push:
+    branches:
+      - work/hia-p0-bounded-snapshot-20261031-gpt6
+  pull_request:
+    branches:
+      - work/hia-six-track-convergence-20261030-8ca82272
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checked-mutable-intake:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run deterministic preflight check/use race and aliases
+        run: |
+          set -eu
+          python -B -m unittest tests.test_hia_bounded_mutable_snapshot -v
+      - name: Recheck existing scalar, resource, composite and input semantics
+        run: |
+          set -eu
+          python -B -m unittest tests.test_hia_program tests.test_hia_json_preflight tests.test_hia_program_composite -v
+      - name: Check source syntax and no test-driven source mutation
+        run: |
+          set -eu
+          python -B -m py_compile hepta/hia_program.py tests/test_hia_bounded_mutable_snapshot.py
+          git diff --exit-code -- hepta/hia_program.py tests/test_hia_bounded_mutable_snapshot.py

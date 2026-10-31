@@ -19,6 +19,7 @@ from .c_project import _read_dependency, captured_source_argument, digest, invok
 INTEGER = {f"{s}{w}" for s in ("u", "i") for w in (8, 16, 32, 64)} | {"usize", "isize"}
 NUMBER = INTEGER | {"f32", "f64"}
 IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z_0-9]*\Z")
+MAX_FIXED_SLICE_ELEMENTS = 65_536
 
 
 def ident(name: str) -> str:
@@ -505,11 +506,11 @@ class CTranslator:
         values = {p["name"]: p for p in params if not p["pointer"]}
         for pointer in pointers:
             if type(pointer["length"]) is int:
-                if pointer["length"] != 1:
-                    raise MigrationRejected("E_C_POINTER_CONTRACT", "The fixed-size profile supports exactly one element")
+                if not 1 <= pointer["length"] <= MAX_FIXED_SLICE_ELEMENTS:
+                    raise MigrationRejected("E_C_POINTER_CONTRACT", "Fixed slice length must be between 1 and 65536 elements")
                 continue
             if not isinstance(pointer["length"], str):
-                raise MigrationRejected("E_C_POINTER_CONTRACT", "Length must name an unsigned parameter or be the integer 1")
+                raise MigrationRejected("E_C_POINTER_CONTRACT", "Length must name an unsigned parameter or be a bounded positive integer")
             length = values.get(pointer["length"])
             if length is None or length["type"] not in {"usize", "u32", "u64"}:
                 raise MigrationRejected("E_C_POINTER_CONTRACT", "Slice length must name an unsigned scalar parameter")
@@ -599,6 +600,8 @@ class CTranslator:
                 rhs = cast(rhs, lhs.typ)
                 return Expression(f"({lhs.text} {op} {rhs.text})", "bool")
             typ = self.typ(node["type"])
+            if op in {"<<", ">>"} and typ.startswith("i"):
+                return self.nonnegative_shift(node, lhs, rhs, typ)
             return self.arithmetic(lhs, rhs, op, typ)
         if kind == "InitListExpr":
             typ = self.typ(node["type"])
@@ -690,6 +693,60 @@ class CTranslator:
             f"fn {name}({', '.join(parameters)}) -> {typ} effects {{panic, write}} {{\n"
             f"    if {condition.text} {{ return {yes.text}; }} else {{ return {no.text}; }}\n}}")
         return Expression(name + "(" + ", ".join(arguments) + ")", typ)
+
+    def integer_bounds(self, node: dict, depth: int = 0) -> tuple[int, int] | None:
+        """A deliberately small type/literal interval proof, not a range guess.
+
+        Read values are bounded by their already admitted integer type. Only
+        value-preserving integer casts propagate a narrower bound. Arithmetic,
+        calls, narrowing casts and unknown expressions never gain a proof.
+        """
+        if depth > 32:
+            return None
+        kind, children = node.get("kind"), node.get("inner", [])
+        typ = self.typ(node.get("type", {}))
+        if typ not in INTEGER:
+            return None
+        if kind == "IntegerLiteral" and not children:
+            value = int(node["value"])
+            low, high = integer_range(typ)
+            return (value, value) if low <= value <= high else None
+        if kind in {"DeclRefExpr", "ArraySubscriptExpr", "MemberExpr"}:
+            return integer_range(typ)
+        if kind == "ParenExpr" and len(children) == 1:
+            return self.integer_bounds(children[0], depth + 1)
+        if kind in {"ImplicitCastExpr", "CStyleCastExpr"} and len(children) == 1:
+            if node.get("castKind") not in {"LValueToRValue", "NoOp", "IntegralCast"}:
+                return None
+            bounds = self.integer_bounds(children[0], depth + 1)
+            low, high = integer_range(typ)
+            if bounds is not None and low <= bounds[0] <= bounds[1] <= high:
+                return bounds
+        return None
+
+    def nonnegative_shift(self, node: dict, lhs: Expression, rhs: Expression, typ: str) -> Expression:
+        """Lower defined signed shifts only after a finite interval proof.
+
+        C's promoted unsigned byte reads are signed int values, but their
+        nonnegative ranges can make a constant left/right shift fully defined.
+        Negative operands, unknown counts and overflow continue to reject.
+        """
+        operands = node["inner"]
+        left = self.integer_bounds(operands[0])
+        right = self.integer_bounds(operands[1])
+        bits = width(typ)
+        op = node["opcode"]
+        if (left is None or right is None or left[0] < 0 or right[0] != right[1]
+                or not 0 <= right[0] < bits
+                or (op == "<<" and left[1] << right[0] > integer_range(typ)[1])):
+            raise MigrationRejected("E_C_SHIFT", "Signed shift lacks a nonnegative, constant-count, no-overflow interval proof")
+        proof = {"operand_interval": list(left), "shift_count": right[0],
+                 "operation": op, "promoted_type": typ,
+                 "result_interval": [value << right[0] if op == "<<" else value >> right[0] for value in left]}
+        self.current.setdefault("proven_nonnegative_shifts", []).append(proof)
+        unsigned = "u" + str(bits)
+        left_value, right_value = cast(lhs, unsigned), cast(rhs, unsigned)
+        return Expression(f"(({left_value.text} {op} {right_value.text}) as {typ})", typ)
 
     def arithmetic(self, lhs: Expression, rhs: Expression, op: str, typ: str) -> Expression:
         if op not in {"+", "-", "*", "/", "%", "&", "|", "^", "<<", ">>"} or typ not in NUMBER:
@@ -945,7 +1002,7 @@ class CTranslator:
                     parameters.append(f"{pname}: {param['mode']} [{param['type']}]")
                     self.bindings[param["id"]] = Expression(pname, "slice:" + param["type"])
                     self.binding_modes[pname] = param["mode"]
-                    length = "1" if type(param["length"]) is int else "p_" + param["length"]
+                    length = str(param["length"]) if type(param["length"]) is int else "p_" + param["length"]
                     entry.append(f"    assert(({length} as usize) <= len(read {pname}));")
                 else:
                     parameters.append(f"{pname}: {param['type']}")
@@ -984,7 +1041,7 @@ class CTranslator:
                     continue
                 abi_type = "core::ffi::c_void" if param["c_void"] else typ
                 params.append(f"{name}: *{'const' if param['c_const'] else 'mut'} {abi_type}")
-                size = "1" if type(param["length"]) is int else "b_" + param["length"]
+                size = str(param["length"]) if type(param["length"]) is int else "b_" + param["length"]
                 body.append(f"    let n_{name} = {size} as usize;")
                 body.append(f"    if n_{name} > (isize::MAX as usize) / core::mem::size_of::<{typ}>() {{ std::process::abort(); }}")
                 body.append(f"    if n_{name} != 0 && ({name}.is_null() || ({name} as usize) % core::mem::align_of::<{typ}>() != 0) {{ std::process::abort(); }}")

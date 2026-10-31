@@ -34,7 +34,7 @@ CONTRACT = ROOT / "docs/HIA_SAFETY_CONTRACT.json"
 # caller can remove capabilities/tests and still obtain the same qualification
 # status for a weaker matrix. Deliberate protocol changes must review and update
 # this identity together with the contract and its boundary tests.
-REVIEWED_CONTRACT_SHA256 = "c843b3471351f34ab25538f2bd2c2401395872d4043995b003e9e887cdd535a4"
+REVIEWED_CONTRACT_SHA256 = "eadf83d6d465898504dd4a63e554191ac81df54c13568c87ccd6dad995e421ed"
 _UNPROVED = frozenset({"whole_language_soundness_proved", "source_to_core_refinement_proved",
     "core_to_native_refinement_proved", "global_optimality_proved", "absolute_resource_safety_proved",
     "general_concurrent_memory_safety_proved", "native_process_memory_bound_proved",
@@ -129,8 +129,8 @@ def validate_contract(contract):
 
 def source_inventory():
     tracked = subprocess.check_output(["git", "-C", str(ROOT), "ls-files", "-z"], timeout=30).decode().split("\0")
-    prefixes = ("hepta/", "tests/", "tools/", "examples/", "rust/hia-core-shadow/")
-    suffixes = {".py", ".json", ".hepta", ".rs", ".toml", ".lock", ".c", ".cpp", ".h", ".hpp"}
+    prefixes = ("hepta/", "tests/", "tools/", "examples/", "formal/", "rust/hia-core-shadow/")
+    suffixes = {".py", ".json", ".hepta", ".rs", ".toml", ".lock", ".c", ".cpp", ".h", ".hpp", ".smt2", ".lean"}
     paths = {ROOT / name for name in tracked if name.startswith(prefixes) and Path(name).suffix in suffixes}
     # Workflow argv, checkout attributes and upstream licenses/notices are
     # executable qualification inputs even when their suffix is not source code.
