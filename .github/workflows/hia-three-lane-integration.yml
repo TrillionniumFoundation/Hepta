@@ -29,11 +29,11 @@ jobs:
       - name: Execute source-exact P0/P1/P5 semantic/resource tests with ZERO SKIP
         run: |
           set -eu
-          python -B tools/qualify_hia_three_lane.py --suite core --output /tmp/hia-three-lane-core.json
+          python -B -m tools.qualify_hia_three_lane --suite core --output /tmp/hia-three-lane-core.json
       - name: Run real C/ELF observer and raw native paired replay with ZERO SKIP
         run: |
           set -eu
-          python -B tools/qualify_hia_three_lane.py --suite native --output /tmp/hia-three-lane-native.json
+          python -B -m tools.qualify_hia_three_lane --suite native --output /tmp/hia-three-lane-native.json
       - name: Check Python source and no test-induced mutation
         run: |
           set -eu
@@ -75,7 +75,7 @@ jobs:
       - name: Run independent Rust shadow / bounded ledger tests with ZERO SKIP
         run: |
           set -eu
-          python -B tools/qualify_hia_three_lane.py --suite rust --output /tmp/hia-three-lane-rust.json
+          python -B -m tools.qualify_hia_three_lane --suite rust --output /tmp/hia-three-lane-rust.json
       - name: Recheck tracked source
         run: git diff --exit-code
       - name: Retain Rust shadow admission receipt on either outcome

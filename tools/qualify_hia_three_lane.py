@@ -15,6 +15,12 @@ import subprocess
 import sys
 import unittest
 
+# Direct script execution sets sys.path[0] to tools/, not to repository root.
+# Agent/CI invocations and python -m must resolve the exact same tests package.
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 
 SUITES = {
     "core": (

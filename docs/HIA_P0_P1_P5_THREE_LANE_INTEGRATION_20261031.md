@@ -85,3 +85,17 @@ observed:
 
 The new integration SHA needs independent exact-head CI before any updated
 passed claim. No production stage is closed from this preparation repair.
+
+## Corrective start-path fix after first pinned dependency run
+
+At `fc7bb2078b84699d15c092e898b84f1ca929ef81`, exact Z3 installation succeeded but the newly introduced
+qualifier was invoked by file path from `tools/`. Python therefore resolved
+`sys.path[0]` to `tools/` rather than the repository root; eleven test-module
+imports refused before actual P0/P1/P5 tests could run. See
+[workflow 41183342139](https://github.com/TrillionniumFoundation/Hepta/actions/runs/41183342139).
+The refusal receipt and skipped downstream native stage are retained.
+
+The next candidate runs the qualifier as `python -m tools.qualify_hia_three_lane`
+and ensures the direct script entry point adds the exact checkout root before
+loading tests. It does not bypass any assertion, skip rule, or original
+source/product code. P0–P7 production gates remain open.
