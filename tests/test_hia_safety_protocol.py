@@ -117,7 +117,19 @@ class ReviewedSafetyProtocolTests(unittest.TestCase):
         controls = (".gitattributes", ".github/workflows/hepta-qualification.yml",
                     ".github/workflows/hepta-six-outcomes.yml",
                     "tests/fixtures/cpp_upgrade/vendor/LICENSE.MIT",
-                    "tests/fixtures/cpp_upgrade/NOTICE.md")
+                    "tests/fixtures/cpp_upgrade/NOTICE.md",
+                    "benchmarks/hia_agent_maintenance/tasks.py",
+                    "benchmarks/hia_agent_maintenance/PROTOCOL.json",
+                    "benchmarks/hia_agent_public_tools/PROTOCOL.json",
+                    "experiments/hia_filecheck/PROTOCOL_20261028.json",
+                    "experiments/hia_legacy_queue/IRPGO_PROTOCOL_20261029.json",
+                    "experiments/hia_ndu_prepared_reuse/SMOKE_PROTOCOL_20261029.json",
+                    "experiments/hia_agent_structured_v7_20261029/contracts.py",
+                    "experiments/hia_ndu_activation/byte_sum.hepta",
+                    "experiments/hia_agent_toolstudy_v11_20261030/provenance/GGUF_METADATA.json",
+                    "experiments/hia_agent_toolstudy_v11_20261030/provenance/GGUF_chat_template.jinja",
+                    "experiments/hia_agent_toolstudy_v11_20261030/provenance/llama_b11669__LICENSE",
+                    "experiments/hia_agent_toolstudy_v11_20261030/provenance/V10_STUDY_SOURCE.py.txt")
         required = ("docs/HIA_SAFETY_CONTRACT.json", "docs/HIA_SAFETY_CONTRACT.md",
                     "tools/qualify_hia_safety_contract.py", "hepta/input.py")
         with tempfile.TemporaryDirectory(prefix="hepta-safety-inputs-") as directory:

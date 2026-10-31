@@ -34,7 +34,7 @@ CONTRACT = ROOT / "docs/HIA_SAFETY_CONTRACT.json"
 # caller can remove capabilities/tests and still obtain the same qualification
 # status for a weaker matrix. Deliberate protocol changes must review and update
 # this identity together with the contract and its boundary tests.
-REVIEWED_CONTRACT_SHA256 = "c843b3471351f34ab25538f2bd2c2401395872d4043995b003e9e887cdd535a4"
+REVIEWED_CONTRACT_SHA256 = "1a50b5b50dd41ed7507d264f2c282ce2a44217add022757d9ca3836a7dfada85"
 _UNPROVED = frozenset({"whole_language_soundness_proved", "source_to_core_refinement_proved",
     "core_to_native_refinement_proved", "global_optimality_proved", "absolute_resource_safety_proved",
     "general_concurrent_memory_safety_proved", "native_process_memory_bound_proved",
@@ -129,7 +129,7 @@ def validate_contract(contract):
 
 def source_inventory():
     tracked = subprocess.check_output(["git", "-C", str(ROOT), "ls-files", "-z"], timeout=30).decode().split("\0")
-    prefixes = ("hepta/", "tests/", "tools/", "examples/", "rust/hia-core-shadow/")
+    prefixes = ("hepta/", "tests/", "tools/", "examples/", "benchmarks/", "rust/hia-core-shadow/")
     suffixes = {".py", ".json", ".hepta", ".rs", ".toml", ".lock", ".c", ".cpp", ".h", ".hpp"}
     paths = {ROOT / name for name in tracked if name.startswith(prefixes) and Path(name).suffix in suffixes}
     # Workflow argv, checkout attributes and upstream licenses/notices are
@@ -137,6 +137,13 @@ def source_inventory():
     paths.update(ROOT / name for name in tracked
                  if name == ".gitattributes" or name.startswith(
                      (".github/workflows/", "tests/fixtures/cpp_upgrade/")))
+    # Selected regressions import benchmark/experiment code and read registered
+    # protocols. Bind those actual code and configuration bytes as well;
+    # historical run outputs must not stand in for their current inputs.
+    paths.update(ROOT / name for name in tracked if name.startswith("experiments/")
+                 and (Path(name).suffix in suffixes - {".json"}
+                      or Path(name).suffix == ".json" and "PROTOCOL" in Path(name).name.upper()
+                      or name.startswith("experiments/hia_agent_toolstudy_v11_20261030/provenance/")))
     # Include the new contract and runner even before the first local commit.
     paths.update({CONTRACT, Path(__file__), ROOT / "docs/HIA_SAFETY_CONTRACT.md"})
     return {str(path.relative_to(ROOT)): digest(path) for path in sorted(paths)}

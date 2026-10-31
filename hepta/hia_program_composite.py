@@ -478,7 +478,10 @@ class _Elaborator:
         """Resolve v4 source names/field paths, never caller-supplied slot IDs.
 
         Only a primitive incoming loan or a loan-only record's primitive leaf
-        may anchor a primitive borrowed result. The selected offset refers to
+        may anchor a primitive borrowed result. The original string annotation
+        is retained only for an original primitive formal; it cannot select or
+        erase a nominal record. Both forms use the same origin resolver.
+        The selected offset refers to
         the original formal's exact layout; function() binds it to that
         formal's actual generated entry parameter. Primitive Core then checks
         ancestry, permission, CFG joins and every call independently.
@@ -493,14 +496,28 @@ class _Elaborator:
                     _reject("nonloan nominal result requires a null origin", "E_HIA_LOAN")
                 result.append(None)
                 continue
-            _keys(annotation, {"param", "fields"}, "nominal returned-loan origin")
-            name = _name(annotation["param"], "returned-loan parameter")
+            if type(annotation) is not dict:
+                # Preserve the original primitive-formal annotation's exact
+                # refusal category, including missing/nonstring annotations
+                # and forged generated names. A successful lookup is already
+                # a validated original source name, never an erased slot.
+                if (type(annotation) is not str or annotation not in parameters
+                        or parameters[annotation].kind != "primitive"
+                        or parameters[annotation].key not in {"readbuf", "mutbuf"}
+                        or typ.key == "mutbuf" and parameters[annotation].key != "mutbuf"):
+                    _reject("nominal borrowed result must name a primitive input loan with sufficient permission",
+                            "E_HIA_LOAN")
+                name = annotation
+                path = []
+            else:
+                _keys(annotation, {"param", "fields"}, "nominal returned-loan origin")
+                name = _name(annotation["param"], "returned-loan parameter")
+                path = annotation["fields"]
             if name not in parameters:
                 _reject("returned loan names no original parameter", "E_HIA_LOAN")
             selected = parameters[name]
             if selected.kind not in {"primitive", "record"} or selected.owns:
                 _reject("returned-loan origin requires an incoming loan-only parameter", "E_HIA_LOAN")
-            path = annotation["fields"]
             if type(path) is not list or len(path) > MAX_TYPE_DEPTH:
                 _reject("returned-loan field path exceeds finite budget", "E_HIA_LIMIT")
             offset = 0

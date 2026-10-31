@@ -2,7 +2,7 @@ name: HIA six-track convergence
 
 on:
   push:
-    branches: [work/hia-six-track-convergence-20261030-8ca82272]
+    branches: [work/hia-six-track-convergence-20261030-8ca82272, fix/hia-next4-convergence-20261030]
   workflow_dispatch:
 
 permissions:
@@ -88,6 +88,71 @@ jobs:
           # separate from the production backend's target directory as well.
           RUSTC="$HIA_CRATE_RUSTC" RUSTDOC="$HIA_CRATE_RUSTDOC" CARGO_TARGET_DIR="$RUNNER_TEMP/six-rust195-target" \
             "$HIA_CRATE_CARGO" test --locked --offline --manifest-path rust/hia-core-shadow/Cargo.toml 2>&1 | tee "$SIX_EVIDENCE/rust-tests.log"
+          python - <<'PY'
+          import hashlib, json, os, shutil, stat, subprocess, time
+          from pathlib import Path
+          evidence = Path(os.environ['SIX_EVIDENCE'])
+          def digest(path):
+              return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+          def sources():
+              names = subprocess.check_output(['git', 'ls-files', '-z', 'rust/hia-core-shadow']).decode().split('\0')
+              return {name: digest(name) for name in sorted(names) if name}
+          def tool(name):
+              path = Path(os.environ[name]).resolve(strict=True)
+              version = subprocess.run([str(path), '--version', '--verbose'], capture_output=True, text=True, check=True)
+              return {'path': str(path), 'sha256': digest(path), 'version_argv': version.args,
+                      'version_stdout': version.stdout, 'version_stderr': version.stderr, 'version_exit_code': version.returncode}
+          source_before = sources()
+          tools = {name: tool(name) for name in ['HIA_CRATE_CARGO', 'HIA_CRATE_RUSTC', 'HIA_CRATE_RUSTDOC']}
+          build_env = dict(os.environ, RUSTC=os.environ['HIA_CRATE_RUSTC'], RUSTDOC=os.environ['HIA_CRATE_RUSTDOC'],
+                           CARGO_TARGET_DIR=str(Path(os.environ['RUNNER_TEMP']) / 'six-rust195-target'))
+          argv = [os.environ['HIA_CRATE_CARGO'], 'build', '--locked', '--offline', '--manifest-path',
+                  'rust/hia-core-shadow/Cargo.toml', '--bin', 'hia-core-shadow', '--message-format=json']
+          identity = {'schema': 'hepta.hia.next4.returned-view-rust-build.v2',
+                      'source_commit': os.environ['GITHUB_SHA'],
+                      'source_tree': subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}']).decode().strip(),
+                      'source_before': source_before, 'tools': tools, 'argv': argv, 'cwd': str(Path.cwd()),
+                      'build_environment': {key: build_env.get(key) for key in ['RUSTC', 'RUSTDOC', 'CARGO_HOME',
+                          'CARGO_TARGET_DIR', 'CARGO_PROFILE_DEV_DEBUG', 'CARGO_PROFILE_TEST_DEBUG',
+                          'CARGO_INCREMENTAL', 'CARGO_BUILD_JOBS', 'RUSTFLAGS', 'RUSTDOCFLAGS', 'PATH']},
+                      'fully_cold_build_claim': False, 'complete_transitive_toolchain_closure_proved': False}
+          identity_path = evidence / 'returned-view-rust-identity.json'
+          identity_path.write_text(json.dumps(identity, indent=2) + '\n')
+          started = time.monotonic_ns()
+          with (evidence / 'rust-binary-build.jsonl').open('wb') as stdout, (evidence / 'rust-binary-build.stderr').open('wb') as stderr:
+              completed = subprocess.run(argv, env=build_env, stdout=stdout, stderr=stderr)
+          identity.update(exit_code=completed.returncode, observed_outer_wall_ns=time.monotonic_ns() - started,
+                          source_after=sources(), tool_hashes_after={name: digest(value['path']) for name, value in tools.items()})
+          identity_path.write_text(json.dumps(identity, indent=2) + '\n')
+          assert completed.returncode == 0
+          assert identity['source_after'] == source_before
+          assert identity['tool_hashes_after'] == {name: value['sha256'] for name, value in tools.items()}
+          rows = [json.loads(line) for line in (evidence / 'rust-binary-build.jsonl').read_text().splitlines()]
+          artifacts = [row for row in rows if row.get('reason') == 'compiler-artifact'
+                       and row.get('target', {}).get('name') == 'hia-core-shadow'
+                       and row['target'].get('kind') == ['bin']
+                       and row.get('profile', {}).get('test') is False and row.get('executable')]
+          assert len(artifacts) == 1
+          binary = Path(artifacts[0]['executable']).resolve(strict=True)
+          expected = Path(os.environ['RUNNER_TEMP']) / 'six-rust195-target/debug/hia-core-shadow'
+          assert binary == expected.resolve(strict=True) and binary.is_file()
+          binary_digest = digest(binary)
+          retained = evidence / 'returned-view-rust/hia-core-shadow'
+          retained.parent.mkdir()
+          shutil.copy2(binary, retained)
+          assert digest(retained) == binary_digest
+          identity.update(binary=str(binary), retained_binary=str(retained), binary_sha256=binary_digest,
+                          binary_bytes=retained.stat().st_size, binary_mode=oct(stat.S_IMODE(retained.stat().st_mode)),
+                          cargo_artifact=artifacts[0])
+          identity_path.write_text(json.dumps(identity, indent=2) + '\n')
+          with open(os.environ['GITHUB_ENV'], 'a') as env:
+              env.write(f'HIA_RETURNED_VIEW_RUST_BIN={retained}\nHIA_RETURNED_VIEW_RUST_SHA256={binary_digest}\n')
+              for name, folder in [('HIA_RETURNED_VIEW_NATIVE_DIR', 'returned-view-native'),
+                                   ('HIA_NESTED_VIEW_NATIVE_DIR', 'nested-view-native')]:
+                  path = evidence / folder
+                  path.mkdir()
+                  env.write(f'{name}={path}\n')
+          PY
       - name: Build all three distinct NDU profiles required by the reviewed matrix
         run: |
           set -euo pipefail
@@ -125,7 +190,38 @@ jobs:
             esac
           done
       - name: Complete reviewed safety matrix without skipped selectors
-        run: python tools/qualify_hia_safety_contract.py --output "$SIX_EVIDENCE/safety-contract.json"
+        run: |
+          python - <<'PY'
+          import hashlib, json, os, sys, unittest
+          from pathlib import Path
+          from tools.qualify_hia_safety_contract import main
+          evidence = Path(os.environ['SIX_EVIDENCE'])
+          exit_code = None
+          try:
+              exit_code = main(['--output', str(evidence / 'safety-contract.json')])
+          finally:
+              observations = {}
+              for name in ['tests.test_hia_source_returned_local_views', 'tests.test_hia_source_nested_returned_views']:
+                  module = sys.modules.get(name)
+                  if module is None:
+                      continue
+                  for cls in vars(module).values():
+                      if isinstance(cls, type) and issubclass(cls, unittest.TestCase) and cls.__module__ == name:
+                          observations[name + '.' + cls.__name__] = {key: getattr(cls, key) for key in [
+                              'build', 'observations', 'programs', 'refusals', 'source_refusals', 'core_refusals',
+                              'order_observations', 'records', 'allocator', 'prefix_complete_steps'] if hasattr(cls, key)}
+              binary = Path(os.environ['HIA_RETURNED_VIEW_RUST_BIN'])
+              actual = hashlib.sha256(binary.read_bytes()).hexdigest()
+              unchanged = actual == os.environ['HIA_RETURNED_VIEW_RUST_SHA256']
+              report = {'schema': 'hepta.hia.next4.same-process-view-observations.v1',
+                        'source_commit': os.environ['GITHUB_SHA'], 'matrix_exit_code': exit_code,
+                        'observations': observations, 'retained_rust_binary': str(binary),
+                        'rust_binary_sha256_after': actual, 'rust_binary_unchanged': unchanged,
+                        'additional_test_execution': False}
+              (evidence / 'returned-view-observations.json').write_text(json.dumps(report, indent=2) + '\n')
+          assert unchanged
+          raise SystemExit(exit_code)
+          PY
       - name: New C++ and stateful planning regression suites
         run: |
           set -euo pipefail
