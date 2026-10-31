@@ -13,6 +13,8 @@ from hashlib import sha256
 import json
 import re
 
+from .hia_bounded_wire import WireBudgetExceeded, checked_utf8_wire
+
 SCHEMA = "hepta.hia.full-cost-comparison.v1"
 MAX_INPUT_BYTES = 262_144
 MAX_TRIALS = 128
@@ -80,11 +82,11 @@ def _wire(raw):
             raise FullCostRejected("E_HIA_FULL_COST: invalid UTF-8") from error
     elif type(raw) is str:
         try:
-            encoded = raw.encode("utf-8")
+            checked_utf8_wire(raw, MAX_INPUT_BYTES)
+        except WireBudgetExceeded:
+            _fail("input byte limit exceeded")
         except UnicodeError as error:
             raise FullCostRejected("E_HIA_FULL_COST: invalid UTF-8") from error
-        if len(encoded) > MAX_INPUT_BYTES:
-            _fail("input byte limit exceeded")
         source = raw
     else:
         _fail("input must be immutable JSON bytes or string, not mutable objects")

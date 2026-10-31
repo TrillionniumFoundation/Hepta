@@ -22,6 +22,7 @@ import sys
 import tempfile
 import time
 
+from hepta.hia_bounded_wire import WireBudgetExceeded, checked_utf8_wire
 from hepta.hia_full_cost_gate import SCHEMA as COST_SCHEMA, assess_full_cost
 
 SCHEMA = "hepta.hia.native-observation-registration.v1"
@@ -80,11 +81,13 @@ def _parse(raw):
     if type(raw) not in (str, bytes):
         _reject("immutable JSON bytes/text required")
     try:
-        wire = raw if type(raw) is bytes else raw.encode("utf-8")
+        wire = raw if type(raw) is bytes else checked_utf8_wire(raw, MAX_MANIFEST)
         if len(wire) > MAX_MANIFEST:
             _reject("registration exceeds byte budget")
         data = json.loads(wire.decode("utf-8"), object_pairs_hook=_pairs,
                           parse_constant=lambda _: _reject("nonfinite JSON"))
+    except WireBudgetExceeded:
+        _reject("registration exceeds byte budget")
     except NativeObservationRejected:
         raise
     except (UnicodeError, ValueError, TypeError, RecursionError, OverflowError) as exc:
