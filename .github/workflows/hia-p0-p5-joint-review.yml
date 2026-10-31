@@ -1,0 +1,26 @@
+name: HIA joint P0 P5 exact-source qualification
+on:
+  push:
+    branches: [work/hia-p0-p5-merge-20261031-gpt6-review1]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  joint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Core input + resources
+        run: python -B -m unittest tests.test_hia_bounded_input_utf8 tests.test_hia_bounded_mutable_snapshot tests.test_hia_program tests.test_hia_json_preflight tests.test_hia_program_composite -v
+      - name: Full cost + native evidence
+        run: python -B -m unittest tests.test_hia_bounded_research_wire tests.test_hia_full_cost_gate tests.test_hia_paired_holdout tests.test_hia_native_process_observer tests.test_hia_native_paired_replay -v
+      - name: Agent instruction catalog
+        run: |
+          python -B tools/generate_hia_catalog.py --check
+          python -B -m unittest tests.test_hia_agent_assembly tests.test_hia_opcode_catalog -v
+      - name: Source unchanged
+        run: git diff --exit-code
