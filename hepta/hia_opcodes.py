@@ -143,6 +143,13 @@ def validate_execution_observation(status, ledger, *, steps, max_steps, max_heap
     # executed ticks, even if all owner/byte conservation equations balance.
     need(ledger["allocation_attempts"] <= steps,
          "allocation attempts exceed executed steps")
+    if with_chains:
+        # chain.empty, chain.try_push and chain.pop each create at most one
+        # chain generation. Every such opcode is counted by an earlier tick;
+        # adding equal fake creation/consumption totals must not bypass the
+        # chain-token history checks while claiming fewer executed operations.
+        need(ledger["chains_created"] <= steps,
+             "chain generations exceed executed steps")
 
 
 @dataclass(frozen=True, slots=True)
