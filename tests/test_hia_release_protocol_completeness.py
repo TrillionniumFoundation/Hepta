@@ -59,5 +59,48 @@ class ReleaseProtocolCompletenessTests(unittest.TestCase):
         self.assert_reject(rows, spec)
 
 
+    def test_holdout_size_replay_is_not_an_unseen_length(self):
+        rows, spec = self.cohort()
+        spec["holdout_sizes"] = list(spec["training_sizes"])
+        for row in rows:
+            if row["phase"] == "holdout":
+                row["n"] = spec["holdout_sizes"][0]
+        self.assert_reject(rows, spec)
+
+    def test_holdout_seed_replay_is_not_an_unseen_seed(self):
+        rows, spec = self.cohort()
+        spec["holdout_seeds"] = list(spec["training_seeds"])
+        for row in rows:
+            if row["phase"] == "holdout":
+                row["seed"] = spec["holdout_seeds"][0]
+        self.assert_reject(rows, spec)
+
+    def test_boolean_request_size_cannot_impersonate_integer_axis(self):
+        rows, spec = self.cohort()
+        spec["training_sizes"] = [1]
+        for row in rows:
+            if row["phase"] == "training":
+                row["n"] = 1
+        rows[0]["n"] = True  # True == 1, but not the registered native integer.
+        self.assert_reject(rows, spec)
+
+    def test_float_request_seed_cannot_impersonate_integer_axis(self):
+        rows, spec = self.cohort()
+        rows[0]["seed"] = 11.0  # 11.0 == 11, not an integer native receipt.
+        self.assert_reject(rows, spec)
+
+    def test_zero_duration_cannot_count_as_unmeasured_hia_speedup(self):
+        rows, spec = self.cohort()
+        for row in rows:
+            if row["backend"] == "hia":
+                row["times_ns"] = [0] * spec["samples"]
+        self.assert_reject(rows, spec)
+
+    def test_tuple_timing_vector_cannot_impersonate_json_sample_list(self):
+        rows, spec = self.cohort()
+        rows[0]["times_ns"] = tuple(rows[0]["times_ns"])
+        self.assert_reject(rows, spec)
+
+
 if __name__ == "__main__":
     unittest.main()
