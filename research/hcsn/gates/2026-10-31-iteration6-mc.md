@@ -45,6 +45,15 @@ Local panel JSON SHA256: `4c19c65ea818ba02cd3ba1387aeab8051f753bf5810074fa02441c
 - The second 2,000-case panel was selected after method development; **neither** panel is independently preregistered. No neural utility or production acceleration has been demonstrated by this quadrature.
 - Exact Git blob SHAs after remote verification: `first_passage_quad.py` = `58b9ab5030f3120c04b7aa71c2e18ab8ce0f1f59`; `test_first_passage_quad.py` = `8f48e799826a26dc1089d9def620ceff62aeddd9`.
 
+
+## Reproduction path hardening: original A7 high-precision limit
+
+The remote `hx_a7_mp_regularized.py` and its `test_hx_a7_mp_regularized.py` previously used package-relative-only imports, which are invalid when Python `unittest discover -s research/hcsn` imports test files as top-level modules. Both now use relative imports with top-level discovery fallbacks. **No high-precision formula or tolerance was changed** in this repair.
+
+The two updated remote files were reproduced byte for byte locally (Git blob SHAs `a91f55f22935a75f20020afac09c33d9b5624e2e` and `b2caea993251d01bc84febfa65ab90aad5fddd61`), and their three numerical/negative tests passed under `python -m unittest discover -s hcsn_a7_remote_test -p 'test_*.py' -v`. A clean local rehearsal that combined the earlier 85-test bundle with these three byte-matched remote A7 tests passed **88/88**, excluding separate uncommitted local-only equity-FD experiments. This is not a CI run and not an all-files remote SHA audit.
+
+External trust-root verification remains OPEN, so full closure and production activation remain false.
+
 ## Blocker disposition, no overstated closure
 
 | Gate | Current disqualifying missing evidence |
