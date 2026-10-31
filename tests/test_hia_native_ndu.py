@@ -13,7 +13,7 @@ from tools.qualify_hia_native_ndu import (
 class NativeEconomicsContractTests(unittest.TestCase):
     def test_zero_native_calls_cannot_be_reported_as_incremental_ndu_benefit(self):
         spec = protocol()
-        report = {"training_summary": {name: {str(n): {"median": 1, "p95": 1}
+        report = {"training_summary": {name: {str(n): {"median": 1, "p95": 1, "p99": 1}
                    for n in spec["sizes"]} for name in spec["backends"]},
                   "policy_runs": [{"episode": index, "arm": arm,
                                    "service_total_ns": 1 if arm == "native_ndu" else 2,
