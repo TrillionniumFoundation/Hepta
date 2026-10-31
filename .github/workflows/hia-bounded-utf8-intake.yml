@@ -1,0 +1,35 @@
+name: HIA P0 bounded UTF-8 wire preflight (scoped)
+on:
+  push:
+    branches:
+      - work/hia-p0-bounded-utf8-20261031-gpt6
+  pull_request:
+    branches:
+      - work/hia-p0-bounded-snapshot-20261031-gpt6
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  utf8-and-mutable-admission:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Assert bounded UTF-8 and mutable-source defenses
+        run: |
+          set -eu
+          python -B -m unittest tests.test_hia_bounded_input_utf8 tests.test_hia_bounded_mutable_snapshot -v
+      - name: Recheck original HIA Core, resource and JSON semantics
+        run: |
+          set -eu
+          python -B -m unittest tests.test_hia_program tests.test_hia_json_preflight tests.test_hia_program_composite -v
+      - name: Verify syntax and unchanged tracked code during tests
+        run: |
+          set -eu
+          python -B -m py_compile hepta/hia_program.py tests/test_hia_bounded_input_utf8.py
+          git diff --exit-code -- hepta/hia_program.py tests/test_hia_bounded_input_utf8.py
