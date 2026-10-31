@@ -13,7 +13,8 @@ from .hia_program import (HIAProgramRejected, OWNERS, RESOURCES, SCALARS, WIDTHS
                           integer_range, scalar_value_valid, verify_program)
 from .hia_bounded_memory import fill_bytes, move_bytes
 from .hia_schema import supports_feature
-from .hia_opcodes import ExecutionObservationRejected, validate_execution_observation
+from .hia_opcodes import (CHAIN_NODE_STORAGE_BYTES, ExecutionObservationRejected,
+                          validate_execution_observation)
 
 
 class HIAProgramTrap(ArithmeticError):
@@ -63,7 +64,7 @@ class _Chain:
 # The native v7 object model has a 16-byte buffer descriptor and one 8-byte
 # successor pointer. Node storage is charged to the same live-byte budget as
 # user buffers, and consumes the same allocation-failure sequence.
-CHAIN_NODE_BYTES = 24
+CHAIN_NODE_BYTES = CHAIN_NODE_STORAGE_BYTES
 
 
 def _underlying(value):
