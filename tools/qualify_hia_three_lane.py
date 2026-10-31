@@ -42,6 +42,7 @@ SUITES = {
         "tests.test_hia_paired_holdout",
     ),
     "native": (
+        "tests.test_hia_stateful_clone_partial",
         "tests.test_hia_native_process_observer",
         "tests.test_hia_native_paired_replay",
     ),
