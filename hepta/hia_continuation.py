@@ -39,7 +39,14 @@ def continue_owned_queue(runtime, token):
             # A partially executed queue binds the actual native generation,
             # including an intentional same-queue version switch at activation.
             expected_generation = row.get("execution_generation", row.get("generation"))
-            if (expected_generation != runtime._generation
+            # An already executed, partially cancelled queue may be
+            # explicitly continued after a verified version *change*: that
+            # live-owner rebind is the original continuation contract. An
+            # unexecuted cancelled queue has no such authority, nor does a
+            # same-version epoch bump. All suffixes bind the new generation.
+            generation_drift = expected_generation != runtime._generation
+            version_changed = row.get("version") != runtime._current
+            if ((generation_drift and (receipt is None or not version_changed))
                     or row["owner"] != runtime._owner_id
                     or runtime._revision != row["revision"] + progress
                     or values != expected_values
@@ -63,6 +70,10 @@ def continue_owned_queue(runtime, token):
                 "prior_executed_steps": ancestry.get("prior_executed_steps", 0) + progress,
                 "parent_executed_steps": progress,
                 "remaining_steps": total - progress,
+                "parent_execution_generation": expected_generation,
+                "registered_generation": runtime._generation,
+                "version_changed_after_partial_execution": bool(
+                    receipt is not None and generation_drift and version_changed),
                 "same_live_owner": True, "external_effect_replay_authority": False,
             }
             registered = {
