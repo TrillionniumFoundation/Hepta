@@ -14,6 +14,11 @@ on:
       - 'tests/test_cpp_composed_migrate.py'
       - 'tests/test_cpp_scoped_ownership_migration.py'
       - 'tests/test_cpp_composed_project.py'
+      - 'tests/test_cpp_gsl_*.py'
+      - 'tools/provider_adapter/**'
+      - 'tools/qualify_cpp_gsl_final_action.py'
+      - 'examples/cpp/gsl_final_action/**'
+      - 'examples/hia_call_return_lifetimes/**'
       - 'tools/qualify_hia_*'
       - 'tools/build_hia_ndu_bridge.py'
       - 'tools/build_hia_recursive_ndu_bridge.py'
@@ -216,6 +221,49 @@ jobs:
           CARGO_TARGET_DIR="$RUNNER_TEMP/hia-shadow-target" CARGO_NET_OFFLINE=true \
             python tools/qualify_hia_verified_increment.py --output artifacts/verified-optimization/regression
           python experiments/hia_verified_integration/next_20261028/qualify_guarded_cli.py artifacts/verified-optimization/guarded-cli
+      - name: Qualify returned-loan expansion with independent Rust and actual native prefixes
+        if: ${{ !cancelled() }}
+        run: |
+          CARGO_TARGET_DIR="$RUNNER_TEMP/hia-shadow-target" "$CARGO" build --locked --manifest-path rust/hia-core-shadow/Cargo.toml
+          python tools/qualify_hia_call_return_lifetimes.py --clang "$CLANG" \
+            --rust-shadow "$RUNNER_TEMP/hia-shadow-target/debug/hia-core-shadow" \
+            --output artifacts/verified-optimization/call-return-lifetimes
+      - name: Qualify two-version GSL const factories and real C signatures
+        if: ${{ !cancelled() }}
+        run: |
+          python tools/qualify_cpp_gsl_final_action.py --clang "$CLANG" --cxx g++ --cc gcc \
+            --output artifacts/verified-optimization/gsl-const-factories
+      - name: Retain actual NDU cancelled work and same-information release economics
+        if: ${{ !cancelled() }}
+        run: |
+          python tools/qualify_hia_background_optimizer.py --clang "$CLANG" \
+            --bridge "$HEPTA_NDU_BRIDGE" --bridge-build-receipt "$HEPTA_NDU_BUILD/build-receipt.json" \
+            --output artifacts/verified-optimization/background-costs.json
+          python tools/qualify_hia_native_ndu.py --clang "$CLANG" --rustc "$RUSTC" \
+            --bridge "$HEPTA_NDU_STREAM_BRIDGE" --identity "$HEPTA_NDU_STREAM_IDENTITY" \
+            --build-profile optimized-release-v1 --output artifacts/verified-optimization/native-release-ndu
+      - name: Retain strong Rust release parity observation including negative results
+        if: ${{ !cancelled() }}
+        run: |
+          python tools/qualify_hia_release_parity.py --clang "$CLANG" --rustc "$RUSTC" \
+            --output artifacts/verified-optimization/release-parity
+      - name: Acquire hash-locked target emulator and execute target ABI contracts
+        if: ${{ !cancelled() }}
+        run: |
+          hepta_qemu_root="$RUNNER_TEMP/hepta-seven-track-qemu"
+          mkdir -p "$hepta_qemu_root"
+          hepta_qemu_url=$(python -c 'import json; print(json.load(open("formal/qemu-toolchain-lock.json"))["source"])')
+          hepta_qemu_sha=$(python -c 'import json; print(json.load(open("formal/qemu-toolchain-lock.json"))["package_sha256"])')
+          curl --fail --location --retry 3 "$hepta_qemu_url" --output "$hepta_qemu_root/package.deb"
+          printf '%s  %s\n' "$hepta_qemu_sha" "$hepta_qemu_root/package.deb" | sha256sum --check --strict
+          dpkg-deb --extract "$hepta_qemu_root/package.deb" "$hepta_qemu_root/root"
+          python tools/qualify_hia_program_aarch64.py --clang "$CLANG" --linker /usr/lib/llvm-20/bin/ld.lld \
+            --qemu-aarch64 "$hepta_qemu_root/root/usr/bin/qemu-aarch64-static" \
+            --output artifacts/verified-optimization/aarch64.json
+          python tools/qualify_hia_riscv64.py --clang "$CLANG" --linker /usr/lib/llvm-20/bin/ld.lld \
+            --readobj /usr/lib/llvm-20/bin/llvm-readobj \
+            --qemu-riscv64 "$hepta_qemu_root/root/usr/bin/qemu-riscv64-static" \
+            --output-directory artifacts/verified-optimization/riscv64
       - name: Prepare exact clean source for guarded opportunity and post-test application
         shell: bash
         run: |
