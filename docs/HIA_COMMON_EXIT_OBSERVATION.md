@@ -48,6 +48,25 @@ on both sides, but a `candidate_requalified` contract may intentionally change
 which quota is reached. A retained example changes a source call-depth stop
 into a candidate return. No exact budget-stop equivalence is claimed.
 
+## Live recursive-chain storage in stopped receipts
+
+The v7/v8 chain model has a 24-byte storage allocation for every still-live
+chain node, distinct from its payload owner. The central opcode/observation
+contract names this size as `CHAIN_NODE_STORAGE_BYTES`; the Python VM imports
+it rather than maintaining an independent literal.
+
+For any admitted stopped-chain resource summary, in addition to the existing
+owner and allocation count equations, the validator requires
+`live_bytes >= 24 * live_chain_nodes` and
+`allocations - frees >= live_chain_nodes`. A retained real v7 heap-stop
+fixture has one live node, two nonempty allocations and 25 live bytes.
+Mutants that lower the same stopped ledger to 2 or 23 live bytes must refuse,
+even though they satisfy the older count-only equations.
+
+This is **a consistency constraint on declared receipts**, not evidence of an
+honest remote producer, memory-address provenance, whole-runtime proof, or
+native machine-code equivalence. Malformed reports do not gain authority.
+
 ## Independent small model
 
 `formal/hia_exit_accounting.py` is separate from the production interpreter and
