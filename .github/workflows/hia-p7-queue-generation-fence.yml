@@ -1,0 +1,62 @@
+name: HIA P7 queue generation final-use fence (scoped)
+on:
+  push:
+    branches: [work/hia-p7-queue-generation-fence-20261031-gpt6]
+  pull_request:
+    branches: [work/hia-p7-clone-calibration-failclosed-20261031-gpt6]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  queue-generation-fence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CLANG: /usr/bin/clang-20
+      HEPTA_CLANG: /usr/bin/clang-20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned native compiler and Z3
+        run: |
+          set -eu
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/hepta-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key
+          fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hepta-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')
+          test "$fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+          sudo install -m 0644 "$RUNNER_TEMP/hepta-llvm.asc" /usr/share/keyrings/hepta-llvm.asc
+          printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hepta-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hepta-llvm20.list
+          sudo apt-get update
+          sudo apt-get install -y clang-20 libclang-rt-20-dev llvm-20 lld-20 build-essential
+          python -m pip install --disable-pip-version-check -e '.[optimization]' 'zstandard==0.25.0'
+          test -x "$CLANG"
+          python -c 'import z3; print("Z3", z3.get_version_string())'
+      - name: Real native pending queue generation and continuation regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B -m unittest tests.test_hia_stateful_generation_fence -v 2>&1 | tee "$RUNNER_TEMP/hia-p7-fence-native.log"
+      - name: Strict existing P0/P1/P5 and P7 exact-source regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B -m tools.qualify_hia_three_lane --suite core --output "$RUNNER_TEMP/hia-p7-generation-core.json"
+          python -B -m tools.qualify_hia_three_lane --suite native --output "$RUNNER_TEMP/hia-p7-generation-native.json"
+          python -B -m unittest tests.test_hia_stateful_wire -v
+          python -B -m py_compile hepta/hia_stateful.py hepta/hia_queue_commit.py hepta/hia_continuation.py tests/test_hia_stateful_generation_fence.py
+          git diff --exit-code
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hia-p7-queue-generation-exact-source
+          path: |
+            ${{ runner.temp }}/hia-p7-fence-native.log
+            ${{ runner.temp }}/hia-p7-generation-core.json
+            ${{ runner.temp }}/hia-p7-generation-native.json
+          if-no-files-found: warn
