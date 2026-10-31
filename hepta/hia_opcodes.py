@@ -162,7 +162,7 @@ def _table():
         rows.append(OpcodeSpec("bool." + operator, ("bool",) if operator == "not" else ("bool", "bool"),
                                ("bool",), semantic_rule="bool_" + operator))
     rows += [
-        OpcodeSpec("int.cast", ("integer",), ("declared:integer",), ("mode",), traps=("overflow_when_checked",), semantic_rule="integer_cast_mode"),
+        OpcodeSpec("int.cast", ("integer",), ("declared:integer",), ("mode",), traps=("overflow",), semantic_rule="integer_cast_mode"),
         OpcodeSpec("select", ("bool", "scalar", "=1"), ("=1",), semantic_rule="scalar_select"),
         OpcodeSpec("buffer.new", ("usize",), ("buffer",), effects=("alloc", "trap"), traps=("allocation",), resource_transition="allocate", semantic_rule="zeroed_byte_allocation"),
         OpcodeSpec("buffer.try_new", ("usize",), ("buffer", "bool"), effects=("alloc",), resource_transition="allocate", semantic_rule="zeroed_byte_allocation_or_empty_owner_false"),
