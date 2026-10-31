@@ -44,6 +44,24 @@ two live byte owners per live node. Empty owners remain real capabilities.
 An interrupted chain destructor may have consumed its chain token while
 retaining nodes; that valid stopped state remains accepted.
 
+### Executed-tick ceiling for allocation attempts
+
+The concrete Python scalar VM calls `tick()` before every executed opcode.
+Only `buffer.new`, `buffer.try_new` and `chain.try_push` can invoke the
+counted nonempty allocator, each at most once per executed opcode. Zero-sized
+owners and extra empty fallback owners do not increment the attempt counter.
+Consequently the additional necessary execution-summary condition is
+
+`allocation_attempts <= steps`.
+
+A forged receipt that increments only the attempt count above the observed
+VM ticks must be rejected, even when the existing allocation/owner and
+live-byte equations all hold. The regression retains real return, bounds-trap
+and heap-quota-stop observations and mutates only that one counter. This
+predicate is deliberately necessary but not sufficient to authenticate the
+producer or prove individual allocation events. No ASYNC cancellation,
+external FFI, whole-program refinement or native ABI claim is added.
+
 The scope is scalar interpreter entry/exit. Internal functions may transfer
 owners and loans through checked signatures. The existing explicit Rust
 scoped-abort-cleanup profile still validates its separate before/after journal;

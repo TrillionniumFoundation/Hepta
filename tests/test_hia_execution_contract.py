@@ -290,6 +290,33 @@ class SharedExecutionContractTests(unittest.TestCase):
             validate_execution_observation(stopped_drop["status"], forged_drop,
                                            **drop_policy)
 
+    def test_allocator_attempts_cannot_exceed_executed_vm_ticks(self):
+        # Every counted allocation attempt in the implemented scalar VM
+        # belongs to one buffer.new, buffer.try_new or chain.try_push opcode.
+        # Its execution tick precedes the attempt. Inflating only the attempts
+        # counter used to satisfy the prior owner/byte consistency equations.
+        cases = (
+            (observe(cleanup_module(), "run", [False, 3]), 16 * 1024 * 1024, False),
+            (observe(held_program(), "held", [4, 4]), 16 * 1024 * 1024, True),
+            (observe(held_program(), "held", [4, 0], max_heap_bytes=3), 3, True),
+        )
+        for observed, heap_budget, chains in cases:
+            with self.subTest(status=observed["status"], heap=heap_budget):
+                ledger = observed["resources"]
+                steps = observed["steps"]
+                self.assertLessEqual(ledger["allocation_attempts"], steps)
+                policy = dict(steps=steps, max_steps=1_000_000,
+                              max_heap_bytes=heap_budget,
+                              error_code=observed.get("error", {}).get("code"),
+                              with_chains=chains)
+                validate_execution_observation(observed["status"], ledger, **policy)
+                forged = {**ledger, "allocation_attempts": steps + 1}
+                self.assertLess(forged["allocation_attempts"], 1 << 64)
+                self.assertGreaterEqual(forged["allocation_attempts"], forged["allocations"])
+                with self.assertRaisesRegex(ExecutionObservationRejected,
+                                            "allocation attempts exceed executed steps"):
+                    validate_execution_observation(observed["status"], forged, **policy)
+
     def test_unknown_misclassified_nonexact_and_extra_observations_fail_closed(self):
         result = observe(held_program(), "held", [4, 4])
         ledger = result["resources"]

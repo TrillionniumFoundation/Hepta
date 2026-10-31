@@ -137,6 +137,12 @@ def validate_execution_observation(status, ledger, *, steps, max_steps, max_heap
     tick_stop = status == "budget_exceeded" and error_code == "steps"
     need(steps == max_steps + 1 if tick_stop else 1 <= steps <= max_steps,
          "tick count contradicts the execution outcome")
+    # Each counted allocator attempt belongs to exactly one executed
+    # buffer.new, buffer.try_new or chain.try_push operation; the VM ticks
+    # before calling allocate(). A summary cannot claim more attempts than
+    # executed ticks, even if all owner/byte conservation equations balance.
+    need(ledger["allocation_attempts"] <= steps,
+         "allocation attempts exceed executed steps")
 
 
 @dataclass(frozen=True, slots=True)
