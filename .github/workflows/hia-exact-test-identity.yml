@@ -1,0 +1,49 @@
+name: HIA P0 exact source and executed-test identity gate
+on:
+  push:
+    branches: [work/hia-exact-run-test-identity-20261031-gpt6]
+  pull_request:
+    branches: [work/hia-p0-p7-verified-json-matrix-20261031-gpt6]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  strict-source-and-execution-identity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bind source root and prove actual started/stopped test identities
+        run: |
+          set -eu
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python -B -m tools.qualify_hia_three_lane --suite gate --output /tmp/hia-p0-test-identity.json
+      - name: Replay shared P0/P1/P5 Core admissions against same immutable source
+        run: |
+          set -eu
+          python -B -m tools.qualify_hia_three_lane --suite core --output /tmp/hia-p0-core-identity.json
+      - name: Real Linux ELF and original native paired sample replay
+        run: |
+          set -eu
+          python -B -m tools.qualify_hia_three_lane --suite native --output /tmp/hia-p0-native-identity.json
+      - name: Refuse worktree mutation
+        run: |
+          set -eu
+          python -B -m py_compile tools/qualify_hia_three_lane.py tests/test_hia_three_lane_gate.py
+          git diff --exit-code
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-p0-test-identity-${{ github.sha }}
+          path: |
+            /tmp/hia-p0-test-identity.json
+            /tmp/hia-p0-core-identity.json
+            /tmp/hia-p0-native-identity.json
+          if-no-files-found: error

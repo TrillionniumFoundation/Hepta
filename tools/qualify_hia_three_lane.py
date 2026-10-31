@@ -73,7 +73,7 @@ SUITES = {
 
 
 def git(*args: str) -> str:
-    return subprocess.check_output(["git", *args], text=True, timeout=10).strip()
+    return subprocess.check_output(["git", *args], text=True, timeout=10, cwd=ROOT).strip()
 
 
 def _planned_test_ids(suite) -> tuple[str, ...]:
@@ -85,10 +85,46 @@ def _planned_test_ids(suite) -> tuple[str, ...]:
         if isinstance(current, unittest.TestSuite):
             stack.extend(reversed(list(current)))
         else:
-            if not callable(getattr(current, "id", None)):
+            if not isinstance(current, unittest.TestCase) or not callable(getattr(current, "id", None)):
                 raise ValueError("non-TestCase discovery entry")
             ids.append(current.id())
     return tuple(ids)
+
+
+class _IdentityRecordingResult(unittest.TextTestResult):
+    """Record the exact started and stopped tests, not only unittest.testsRun.
+
+    A result may claim the expected test count despite running a different test,
+    or finishing before a planned test has run. Neither case admits evidence.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.started_ids: list[str] = []
+        self.finished_ids: list[str] = []
+
+    def startTest(self, test):
+        self.started_ids.append(test.id())
+        super().startTest(test)
+
+    def stopTest(self, test):
+        self.finished_ids.append(test.id())
+        super().stopTest(test)
+
+
+def _verified_receipt_destination(output: Path) -> Path:
+    """Enforce outside-worktree, absolute evidence output before any tests run.
+
+    Otherwise the receipt itself can make the checkout dirty *after* the source
+    status check, while falsely claiming a clean post-run source. The resolved
+    path check also rejects an output alias into the checkout.
+    """
+    if not output.is_absolute():
+        raise ValueError("qualification receipt path must be absolute")
+    destination = output.resolve(strict=False)
+    if destination.is_relative_to(ROOT.resolve()):
+        raise ValueError("qualification receipt must be outside the source worktree")
+    return output
 
 
 def _outcome_admissible(result, planned_ids, *, immutable: bool) -> bool:
@@ -97,6 +133,8 @@ def _outcome_admissible(result, planned_ids, *, immutable: bool) -> bool:
         immutable and planned_ids
         and len(set(planned_ids)) == len(planned_ids)
         and result.testsRun == len(planned_ids)
+        and tuple(getattr(result, "started_ids", ())) == tuple(planned_ids)
+        and tuple(getattr(result, "finished_ids", ())) == tuple(planned_ids)
         and result.wasSuccessful()
         and not result.errors and not result.failures and not result.skipped
         and not result.expectedFailures and not result.unexpectedSuccesses
@@ -106,6 +144,7 @@ def _outcome_admissible(result, planned_ids, *, immutable: bool) -> bool:
 def check(scope: str, output: Path) -> dict:
     if scope not in SUITES:
         raise ValueError("unknown exact cross-lane suite")
+    output = _verified_receipt_destination(output)
     # Reject both tracked modifications and untracked material inside the
     # repository: test discovery must not silently import an extra local file.
     if git("status", "--porcelain", "--untracked-files=all"):
@@ -114,7 +153,9 @@ def check(scope: str, output: Path) -> dict:
     tree = git("rev-parse", "HEAD^{tree}")
     suite = unittest.defaultTestLoader.loadTestsFromNames(SUITES[scope])
     planned_ids = _planned_test_ids(suite)
-    result = unittest.TextTestRunner(stream=sys.stderr, verbosity=2).run(suite)
+    result = unittest.TextTestRunner(
+        stream=sys.stderr, verbosity=2, resultclass=_IdentityRecordingResult,
+    ).run(suite)
     status_after = git("status", "--porcelain", "--untracked-files=all")
     head_after = git("rev-parse", "HEAD")
     tree_after = git("rev-parse", "HEAD^{tree}")
@@ -132,6 +173,12 @@ def check(scope: str, output: Path) -> dict:
         "tests_planned": len(planned_ids),
         "planned_test_ids_sha256": hashlib.sha256(json.dumps(
             planned_ids, separators=(",", ":"), ensure_ascii=False).encode("utf-8")).hexdigest(),
+        "started_test_ids_sha256": hashlib.sha256(json.dumps(
+            result.started_ids, separators=(",", ":"), ensure_ascii=False).encode("utf-8")).hexdigest(),
+        "finished_test_ids_sha256": hashlib.sha256(json.dumps(
+            result.finished_ids, separators=(",", ":"), ensure_ascii=False).encode("utf-8")).hexdigest(),
+        "actual_test_identity_drift": (tuple(result.started_ids) != planned_ids
+                                       or tuple(result.finished_ids) != planned_ids),
         "duplicate_test_identity": len(planned_ids) != len(set(planned_ids)),
         "expected_failures": [test.id() for test, _ in result.expectedFailures],
         "errors": [test.id() for test, _ in result.errors],
@@ -160,7 +207,7 @@ def check(scope: str, output: Path) -> dict:
     print(json.dumps({k: receipt[k] for k in ("scope", "source_commit",
           "source_tree", "tests_planned", "tests_executed", "errors", "failures",
           "skipped", "expected_failures", "duplicate_test_identity",
-          "source_identity_drift", "worktree_dirty_after", "passed", "authority")}, sort_keys=True))
+          "actual_test_identity_drift", "source_identity_drift", "worktree_dirty_after", "passed", "authority")}, sort_keys=True))
     return receipt
 
 
