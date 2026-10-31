@@ -128,5 +128,4 @@ def main():
                      'counterexample':report['primary_counterexample']['local_sign_screen'],
                      'output':str(args.output)},indent=2))
 
-
 if __name__=='__main__':main()
