@@ -77,7 +77,7 @@ def _source(value):
     # regex \s also matches Unicode whitespace (e.g. NBSP or U+2028), which
     # would otherwise admit visually misleading spellings of the same Core.
     # Reject invisible format controls before tokenization, not just C0 bytes.
-    if any((ord(c) < 32 and c not in "\n\r\t") or c == "\ufeff"
+    if any((ord(c) < 32 and c not in "\n\r\t") or ord(c) == 127 or c == "\ufeff"
            or (ord(c) > 127 and (c.isspace()
                                   or unicodedata.category(c) in {"Cc", "Cf"}))
            for c in text):
