@@ -522,13 +522,19 @@ class HostRegion:
             self._generation+=1
             try:
                 self._event("recovered_zeroed",quiescence="all owned workers joined and no retained leases")
+                # Even after the audit event, a failed /proc mapping observation
+                # or result snapshot must not expose a ready generation.
+                # Finish every potentially failing result operation while the
+                # owner is still quarantined and the page is PROT_NONE.
+                receipt=self.snapshot()
+                receipt["state"]="ready";receipt["reason"]=None
             except BaseException as error:
-                self._reason="recovery completion receipt unconfirmed"
+                self._reason="recovery completion or result receipt unconfirmed"
                 raise HostRegionUncertain(
                     "recovery completion unconfirmed; region remains quarantined"
                 ) from error
             self._state="ready";self._reason=None
-            return self.snapshot()
+            return receipt
 
     def _observed_permissions(self):
         if self._address is None or self._release_report.get("mapping")=="closed": return None
