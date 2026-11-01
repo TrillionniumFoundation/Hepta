@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 jobs:
-  native-lease-mprotect-receipt:
+  native-borrow-rollback-mprotect-receipt:
     runs-on: ubuntu-24.04
     timeout-minutes: 50
     env:
@@ -62,7 +62,8 @@ jobs:
               tests/test_hia_host_region_lease_authority.py \
               tests/test_hia_host_region_lease_token_revocation.py \
               tests/test_hia_host_region.py \
-              .github/workflows/hia-host-lease-mprotect-receipt.yml
+              .github/workflows/hia-host-lease-mprotect-receipt.yml \
+              .github/workflows/hia-host-borrow-rollback-mprotect-receipt.yml
           } > "$dir/source-identity.txt"
           set +e
           HEPTA_TEST_CLANG="$CLANG" python -B -m unittest \
@@ -101,7 +102,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: hia-p7-native-lease-mprotect-receipt-${{ github.event.pull_request.head.sha || github.sha }}
+          name: hia-p7-native-borrow-rollback-mprotect-receipt-${{ github.event.pull_request.head.sha || github.sha }}
           path: ${{ runner.temp }}/hia-p7-borrow-rollback-mprotect-receipt/
           retention-days: 30
           if-no-files-found: error
