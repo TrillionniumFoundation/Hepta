@@ -37,7 +37,7 @@ class OwnerLeaseAuthorityTests(unittest.TestCase):
             region.close()
 
     def test_mutable_mode_does_not_spoof_registered_reader(self):
-        region = HostRegion(16, max_leases=2)
+        region = HostRegion(16, max_leases=2, max_native_calls=2)
         try:
             with region.borrow("write", generation=0) as writer:
                 writer.write(b"0123456789abcdef")
