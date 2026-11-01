@@ -305,9 +305,26 @@ class HostRegion:
                 self._lease_grants.pop(lease._token,None)
             lease._closed=True
             if not self._leases:
-                # A failed rollback mprotect is already permanent_deny
-                # through _protect; do not certify recovery in that case.
-                self._protect("none")
+                # A rollback mprotect can fail before or after the kernel
+                # transition. The original borrowed receipt was already
+                # unconfirmed: never leave an unowned page ready for reuse.
+                try:
+                    self._protect("none")
+                except BaseException as revoke_error:
+                    self._unprovable_quiescence=True
+                    if self._state=="permanent_deny":
+                        # The real mprotect error changes state before raising;
+                        # _quarantine only fences generations from ready.
+                        self._generation+=1
+                    try:
+                        self._quarantine("borrow rollback page revocation unconfirmed",permanent=True)
+                    except BaseException as receipt_error:
+                        raise HostRegionUncertain(
+                            "borrow rollback and quarantine receipts unconfirmed; permanently denied"
+                        ) from receipt_error
+                    raise HostRegionUncertain(
+                        "borrow rollback page revocation unconfirmed; permanently denied"
+                    ) from revoke_error
             raise
         return lease
 

@@ -1,0 +1,108 @@
+name: HIA P7 admission rollback mprotect receipt exact-head (research DENY_ALL)
+
+on:
+  push:
+    branches:
+      - 'research/hia-p7-borrow-rollback-mprotect-544-*'
+  pull_request:
+    branches:
+      - 'research/hia-p7-lease-mprotect-receipt-543-20261101-gpt6'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-borrow-rollback-mprotect-receipt:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: ./.github/actions/hia-execution-toolchain
+      - name: Real C worker failed borrow rollback mprotect plus 55 inherited controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          dir="$RUNNER_TEMP/hia-p7-borrow-rollback-mprotect-receipt"
+          mkdir -p "$dir"
+          test "$(git --no-replace-objects rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          {
+            git --no-replace-objects rev-parse HEAD
+            git --no-replace-objects rev-parse 'HEAD^{tree}'
+            python -V
+            "$CLANG" --version | head -1
+            uname -a
+            sha256sum hepta/hia_host_region.py \
+              tests/test_hia_host_region_borrow_rollback_receipt.py \
+              tests/test_hia_host_region_lease_mprotect_receipt.py \
+              tests/test_hia_host_region_quarantine_receipt.py \
+              tests/test_hia_host_region_public_release_receipt.py \
+              tests/test_hia_host_region_prestart_retirement_receipt.py \
+              tests/test_hia_host_region_recovery_zero_fault.py \
+              tests/test_hia_host_region_recovery_snapshot.py \
+              tests/test_hia_host_region_recovery_receipt.py \
+              tests/test_hia_host_region_finalization_receipt.py \
+              tests/test_hia_host_region_owner_retirement.py \
+              tests/test_hia_host_region_job_identity.py \
+              tests/test_hia_host_region_owner_registry_identity.py \
+              tests/test_hia_host_region_lease_identity_collision.py \
+              tests/test_hia_host_region_admission_transaction.py \
+              tests/test_hia_host_region_borrow_admission.py \
+              tests/test_hia_host_region_prestart_admission.py \
+              tests/test_hia_host_region_lease_authority.py \
+              tests/test_hia_host_region_lease_token_revocation.py \
+              tests/test_hia_host_region.py \
+              .github/workflows/hia-host-lease-mprotect-receipt.yml \
+              .github/workflows/hia-host-borrow-rollback-mprotect-receipt.yml
+          } > "$dir/source-identity.txt"
+          set +e
+          HEPTA_TEST_CLANG="$CLANG" python -B -m unittest \
+            tests.test_hia_host_region_borrow_rollback_receipt \
+            tests.test_hia_host_region_lease_mprotect_receipt \
+            tests.test_hia_host_region_quarantine_receipt \
+            tests.test_hia_host_region_public_release_receipt \
+            tests.test_hia_host_region_prestart_retirement_receipt \
+            tests.test_hia_host_region_recovery_zero_fault \
+            tests.test_hia_host_region_recovery_snapshot \
+            tests.test_hia_host_region_recovery_receipt \
+            tests.test_hia_host_region_finalization_receipt \
+            tests.test_hia_host_region_owner_retirement \
+            tests.test_hia_host_region_job_identity \
+            tests.test_hia_host_region_owner_registry_identity \
+            tests.test_hia_host_region_lease_identity_collision \
+            tests.test_hia_host_region_admission_transaction \
+            tests.test_hia_host_region_borrow_admission \
+            tests.test_hia_host_region_prestart_admission \
+            tests.test_hia_host_region_lease_authority \
+            tests.test_hia_host_region_lease_token_revocation \
+            tests.test_hia_host_region \
+            -v 2>&1 | tee "$dir/tests.log"
+          result=${PIPESTATUS[0]}
+          set -e
+          printf 'test_exit=%s\n' "$result" > "$dir/result.txt"
+          grep -q 'Ran 57 tests' "$dir/tests.log"
+          if grep -Eq 'skipped=|expected failures=|unexpected successes=' "$dir/tests.log"; then
+            echo 'Skipped or expected-failure controls are not qualifying' >&2
+            exit 1
+          fi
+          test "$result" -eq 0
+          test "$(git --no-replace-objects rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - name: Retain exact source, actual failures and successful receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-p7-native-borrow-rollback-mprotect-receipt-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/hia-p7-borrow-rollback-mprotect-receipt/
+          retention-days: 30
+          if-no-files-found: error
