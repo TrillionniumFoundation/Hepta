@@ -514,7 +514,25 @@ class HostRegion:
                 self._finalize_job(token,job)
             if self._leases: _reject("external leases still retained; quiescence not established")
             self._protect("write")
-            self._memory[:]=b"\0"*self._mapped
+            try:
+                # A partial or post-write mmap error is not a zeroing receipt.
+                # All workers have been joined and the owner lock is held;
+                # restore PROT_NONE before exposing any failure to a caller.
+                self._memory[:]=b"\0"*self._mapped
+            except BaseException as error:
+                try:
+                    self._protect("none")
+                except BaseException as revoke_error:
+                    # _protect itself marks permanent_deny on mprotect failure.
+                    # An uncertain write *and* revoke must never be retried.
+                    self._unprovable_quiescence=True
+                    raise HostRegionUncertain(
+                        "recovery zeroing and page revocation unconfirmed; permanently denied"
+                    ) from revoke_error
+                self._reason="recovery memory zeroing receipt unconfirmed"
+                raise HostRegionUncertain(
+                    "recovery zeroing unconfirmed; region remains quarantined"
+                ) from error
             self._protect("none")
             # Do not expose a new ready generation until the recovery
             # completion receipt has actually succeeded. An audit failure,
