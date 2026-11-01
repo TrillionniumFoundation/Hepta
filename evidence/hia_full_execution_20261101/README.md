@@ -34,6 +34,17 @@ qualification 命令成功表示实验及其控制正确执行，性能或生产
 - [完成版固定组合 CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/41258510021)：14 项阶段全部通过；资格过程 223.835 秒。
 - 首轮同 head 的另外七条工作流也完成，其中包括两个约 20 分钟的既有广域回归及 x86_64/AArch64 原生 C 应用检查。
 
+完成版的 [8 个同源码工作流](ci-bd450/closure-attempt-2/ALL-WORKFLOWS.json) 最终也全部 success。
+其中 closure 工作流第一次在 apt-get update 安装阶段达到 25 分钟上限，源码测试没有开始；
+同一提交的第二次尝试完成，job 共 579 秒，实际执行 175 项 unit tests、零 skipped/expected failures，
+并完成选定 Lean、真实 callback 迁移、调用展开和链式证明。
+[首次失败](ci-bd450/closure-attempt-1/DIAGNOSIS.json) 与 [最终完成记录](ci-bd450/closure-attempt-2/SUMMARY.json) 分别保留。
+另一个 optional native NDU job 按工作流条件 skipped；它不构成这次 NDU 的执行证据，也不等于 unit test 跳过。
+必需的原生 NDU 构建、九次调用、三个纯 skip episode 和完整成本检查来自前述固定组合。
+成功的固定组合性能实验没有因这次安装故障而重复运行。
+第二次 closure artifact 的 digest 已与 API/上传日志核对，但其额外 2.19 MB 容器没有下载；
+本目录保留完成日志和元数据，四份主要原始 artifact 的 payload 则已完整归档。
+
 运行器拒绝优化 Python 模式、未提交/被 Git 索引标志隐藏的源码修改、工具或求解器漂移。
 NDU 从固定上游源和原始锁文件在空 target 目录实际构建；缓存暖度如实登记。
 每条命令的 stdout/stderr、外部进程 wall time、前后身份校验均保留。

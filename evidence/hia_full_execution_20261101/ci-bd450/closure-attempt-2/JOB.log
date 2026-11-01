@@ -1,0 +1,962 @@
+﻿2026-11-01T01:19:43.2695740Z Current runner version: '2.338.2'
+2026-11-01T01:19:43.2720519Z ##[group]Runner Image Provisioner
+2026-11-01T01:19:43.2721538Z Hosted Compute Agent
+2026-11-01T01:19:43.2722212Z Version: 20261021.618
+2026-11-01T01:19:43.2722947Z Commit: 21505ad2541d5be6135ed84fc33697146cf75b8e
+2026-11-01T01:19:43.2723688Z Build Date: 2026-10-21T00:45:21Z
+2026-11-01T01:19:43.2724372Z Worker ID: {9fdc3ec4-80e1-4ec1-abc8-62e0d6732755}
+2026-11-01T01:19:43.2725158Z Region: westus2
+2026-11-01T01:19:43.2725721Z Cloud: Azure
+2026-11-01T01:19:43.2726539Z ##[endgroup]
+2026-11-01T01:19:43.2728082Z ##[group]Operating System
+2026-11-01T01:19:43.2728745Z Ubuntu
+2026-11-01T01:19:43.2729371Z 24.04.5
+2026-11-01T01:19:43.2729896Z LTS
+2026-11-01T01:19:43.2730520Z ##[endgroup]
+2026-11-01T01:19:43.2731113Z ##[group]Runner Image
+2026-11-01T01:19:43.2731728Z Image: ubuntu-24.04
+2026-11-01T01:19:43.2732414Z Version: 20261025.353.1
+2026-11-01T01:19:43.2733736Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261025.353/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-01T01:19:43.2735443Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261025.353
+2026-11-01T01:19:43.2736922Z ##[endgroup]
+2026-11-01T01:19:43.2738157Z ##[group]GITHUB_TOKEN Permissions
+2026-11-01T01:19:43.2740026Z Contents: read
+2026-11-01T01:19:43.2740779Z Metadata: read
+2026-11-01T01:19:43.2741360Z ##[endgroup]
+2026-11-01T01:19:43.2743385Z Secret source: Actions
+2026-11-01T01:19:43.2744484Z Cache mode: write
+2026-11-01T01:19:43.2745210Z Prepare workflow directory
+2026-11-01T01:19:43.3320980Z Prepare all required actions
+2026-11-01T01:19:43.3371146Z Getting action download info
+2026-11-01T01:19:43.6756592Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-11-01T01:19:43.7998435Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-11-01T01:19:43.8785414Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-11-01T01:19:44.0760308Z Complete job name: Core, callback migration and chained proofs
+2026-11-01T01:19:44.1624432Z ##[group]Run actions/checkout@v4
+2026-11-01T01:19:44.1625383Z with:
+2026-11-01T01:19:44.1626064Z   ref: bd450cb0ebee40db175011f54d8b34c260d13c49
+2026-11-01T01:19:44.1626706Z   persist-credentials: false
+2026-11-01T01:19:44.1627279Z   repository: TrillionniumFoundation/Hepta
+2026-11-01T01:19:44.1631099Z   token: ***
+2026-11-01T01:19:44.1631538Z   ssh-strict: true
+2026-11-01T01:19:44.1631981Z   ssh-user: git
+2026-11-01T01:19:44.1632410Z   clean: true
+2026-11-01T01:19:44.1632857Z   sparse-checkout-cone-mode: true
+2026-11-01T01:19:44.1633392Z   fetch-depth: 1
+2026-11-01T01:19:44.1633823Z   fetch-tags: false
+2026-11-01T01:19:44.1634264Z   show-progress: true
+2026-11-01T01:19:44.1634723Z   lfs: false
+2026-11-01T01:19:44.1635140Z   submodules: false
+2026-11-01T01:19:44.1635590Z   set-safe-directory: true
+2026-11-01T01:19:44.1636246Z   allow-unsafe-pr-checkout: false
+2026-11-01T01:19:44.1637055Z env:
+2026-11-01T01:19:44.1637615Z   HEPTA_SOURCE_SHA: bd450cb0ebee40db175011f54d8b34c260d13c49
+2026-11-01T01:19:44.1638283Z   CLANG: /usr/bin/clang-20
+2026-11-01T01:19:44.1638767Z   CLANGXX: /usr/bin/clang++-20
+2026-11-01T01:19:44.1639283Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-01T01:19:44.1639805Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-01T01:19:44.1640309Z   PYTHONUNBUFFERED: 1
+2026-11-01T01:19:44.1640771Z   NATIVE_NDU_REQUESTED: false
+2026-11-01T01:19:44.1641252Z ##[endgroup]
+2026-11-01T01:19:44.4672221Z Syncing repository: TrillionniumFoundation/Hepta
+2026-11-01T01:19:44.4675123Z ##[group]Getting Git version info
+2026-11-01T01:19:44.4676540Z Working directory is '/home/runner/work/Hepta/Hepta'
+2026-11-01T01:19:44.4677582Z [command]/usr/bin/git version
+2026-11-01T01:19:44.4770568Z git version 2.56.0
+2026-11-01T01:19:44.4796367Z ##[endgroup]
+2026-11-01T01:19:44.4811406Z Temporarily overriding HOME='/home/runner/work/_temp/4710290b-0f8c-4f60-b293-4903a87bf0ca' before making global git config changes
+2026-11-01T01:19:44.4814277Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-01T01:19:44.4818675Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-01T01:19:44.4873675Z Deleting the contents of '/home/runner/work/Hepta/Hepta'
+2026-11-01T01:19:44.4878314Z ##[group]Initializing the repository
+2026-11-01T01:19:44.4882202Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta
+2026-11-01T01:19:44.5006079Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-01T01:19:44.5007604Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-01T01:19:44.5008637Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-01T01:19:44.5009506Z hint: call:
+2026-11-01T01:19:44.5009918Z hint:
+2026-11-01T01:19:44.5010501Z hint: 	git config --global init.defaultBranch <name>
+2026-11-01T01:19:44.5119022Z hint:
+2026-11-01T01:19:44.5120115Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-01T01:19:44.5121744Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-01T01:19:44.5123032Z hint:
+2026-11-01T01:19:44.5123753Z hint: 	git branch -m <name>
+2026-11-01T01:19:44.5124566Z hint:
+2026-11-01T01:19:44.5125635Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-01T01:19:44.5127511Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/.git/
+2026-11-01T01:19:44.5130980Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-11-01T01:19:44.5132646Z ##[endgroup]
+2026-11-01T01:19:44.5133791Z ##[group]Disabling automatic garbage collection
+2026-11-01T01:19:44.5135041Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-01T01:19:44.5137566Z ##[endgroup]
+2026-11-01T01:19:44.5138625Z ##[group]Setting up auth
+2026-11-01T01:19:44.5139781Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-01T01:19:44.5169218Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-01T01:19:44.5585659Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-01T01:19:44.5634721Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-01T01:19:44.5891065Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-01T01:19:44.5937381Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-01T01:19:44.6187339Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-01T01:19:44.6245507Z ##[endgroup]
+2026-11-01T01:19:44.6259350Z ##[group]Fetching the repository
+2026-11-01T01:19:44.6260818Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin bd450cb0ebee40db175011f54d8b34c260d13c49
+2026-11-01T01:19:51.9642985Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-01T01:19:51.9644898Z  * branch            bd450cb0ebee40db175011f54d8b34c260d13c49 -> FETCH_HEAD
+2026-11-01T01:19:51.9677858Z ##[endgroup]
+2026-11-01T01:19:51.9679088Z ##[group]Determining the checkout info
+2026-11-01T01:19:51.9680488Z ##[endgroup]
+2026-11-01T01:19:51.9681384Z [command]/usr/bin/git sparse-checkout disable
+2026-11-01T01:19:51.9727391Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-01T01:19:51.9770734Z ##[group]Checking out the ref
+2026-11-01T01:19:51.9775363Z [command]/usr/bin/git checkout --progress --force bd450cb0ebee40db175011f54d8b34c260d13c49
+2026-11-01T01:19:52.9931942Z Updating files:  61% (5180/8475)
+2026-11-01T01:19:52.9963498Z Updating files:  62% (5255/8475)
+2026-11-01T01:19:52.9994040Z Updating files:  63% (5340/8475)
+2026-11-01T01:19:53.0070013Z Updating files:  64% (5424/8475)
+2026-11-01T01:19:53.0113573Z Updating files:  65% (5509/8475)
+2026-11-01T01:19:53.0153510Z Updating files:  66% (5594/8475)
+2026-11-01T01:19:53.0197408Z Updating files:  67% (5679/8475)
+2026-11-01T01:19:53.0237129Z Updating files:  68% (5763/8475)
+2026-11-01T01:19:53.0273997Z Updating files:  69% (5848/8475)
+2026-11-01T01:19:53.0311645Z Updating files:  70% (5933/8475)
+2026-11-01T01:19:53.0357023Z Updating files:  71% (6018/8475)
+2026-11-01T01:19:53.0405765Z Updating files:  72% (6102/8475)
+2026-11-01T01:19:53.0536941Z Updating files:  73% (6187/8475)
+2026-11-01T01:19:53.0657692Z Updating files:  74% (6272/8475)
+2026-11-01T01:19:53.0739426Z Updating files:  75% (6357/8475)
+2026-11-01T01:19:53.0855766Z Updating files:  76% (6441/8475)
+2026-11-01T01:19:53.0953651Z Updating files:  77% (6526/8475)
+2026-11-01T01:19:53.1079834Z Updating files:  78% (6611/8475)
+2026-11-01T01:19:53.1133267Z Updating files:  79% (6696/8475)
+2026-11-01T01:19:53.1553295Z Updating files:  80% (6780/8475)
+2026-11-01T01:19:53.1657451Z Updating files:  81% (6865/8475)
+2026-11-01T01:19:53.1714719Z Updating files:  82% (6950/8475)
+2026-11-01T01:19:53.1770322Z Updating files:  83% (7035/8475)
+2026-11-01T01:19:53.1824947Z Updating files:  84% (7119/8475)
+2026-11-01T01:19:53.2196842Z Updating files:  85% (7204/8475)
+2026-11-01T01:19:53.2270341Z Updating files:  86% (7289/8475)
+2026-11-01T01:19:53.2341697Z Updating files:  87% (7374/8475)
+2026-11-01T01:19:53.2592289Z Updating files:  88% (7458/8475)
+2026-11-01T01:19:53.2672069Z Updating files:  89% (7543/8475)
+2026-11-01T01:19:53.2767387Z Updating files:  90% (7628/8475)
+2026-11-01T01:19:53.2821556Z Updating files:  91% (7713/8475)
+2026-11-01T01:19:53.2884298Z Updating files:  92% (7797/8475)
+2026-11-01T01:19:53.2946900Z Updating files:  93% (7882/8475)
+2026-11-01T01:19:53.3007406Z Updating files:  94% (7967/8475)
+2026-11-01T01:19:53.3073184Z Updating files:  95% (8052/8475)
+2026-11-01T01:19:53.3135171Z Updating files:  96% (8136/8475)
+2026-11-01T01:19:53.3201823Z Updating files:  97% (8221/8475)
+2026-11-01T01:19:53.3294028Z Updating files:  98% (8306/8475)
+2026-11-01T01:19:53.3384152Z Updating files:  99% (8391/8475)
+2026-11-01T01:19:53.3385092Z Updating files: 100% (8475/8475)
+2026-11-01T01:19:53.3386283Z Updating files: 100% (8475/8475), done.
+2026-11-01T01:19:53.3473815Z Note: switching to 'bd450cb0ebee40db175011f54d8b34c260d13c49'.
+2026-11-01T01:19:53.3474425Z 
+2026-11-01T01:19:53.3474812Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-11-01T01:19:53.3475541Z changes and commit them, and you can discard any commits you make in this
+2026-11-01T01:19:53.3476703Z state without impacting any branches by switching back to a branch.
+2026-11-01T01:19:53.3477253Z 
+2026-11-01T01:19:53.3477634Z If you want to create a new branch to retain commits you create, you may
+2026-11-01T01:19:53.3478480Z do so (now or later) by using -c with the switch command. Example:
+2026-11-01T01:19:53.3478992Z 
+2026-11-01T01:19:53.3479233Z   git switch -c <new-branch-name>
+2026-11-01T01:19:53.3479573Z 
+2026-11-01T01:19:53.3479817Z Or undo this operation with:
+2026-11-01T01:19:53.3480135Z 
+2026-11-01T01:19:53.3480330Z   git switch -
+2026-11-01T01:19:53.3480583Z 
+2026-11-01T01:19:53.3480932Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-11-01T01:19:53.3481283Z 
+2026-11-01T01:19:53.3481646Z HEAD is now at bd450cb test(hia): preregister three-model maintenance cohort and requalify pinned GSL upgrades
+2026-11-01T01:19:53.3629717Z ##[endgroup]
+2026-11-01T01:19:53.3694844Z [command]/usr/bin/git log -1 --format=%H
+2026-11-01T01:19:53.3745790Z bd450cb0ebee40db175011f54d8b34c260d13c49
+2026-11-01T01:19:53.3761032Z ##[group]Removing auth
+2026-11-01T01:19:53.3766800Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-01T01:19:53.3815124Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-01T01:19:53.4103950Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-01T01:19:53.4144136Z http.https://github.com/.extraheader
+2026-11-01T01:19:53.4155680Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-01T01:19:53.4202529Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-01T01:19:53.4452781Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-01T01:19:53.4493074Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-01T01:19:53.4741607Z ##[endgroup]
+2026-11-01T01:19:53.4996440Z ##[group]Run actions/setup-python@v5
+2026-11-01T01:19:53.4996782Z with:
+2026-11-01T01:19:53.4997000Z   python-version: 3.12
+2026-11-01T01:19:53.4997237Z   check-latest: false
+2026-11-01T01:19:53.4999584Z   token: ***
+2026-11-01T01:19:53.4999806Z   update-environment: true
+2026-11-01T01:19:53.5000067Z   allow-prereleases: false
+2026-11-01T01:19:53.5000303Z   freethreaded: false
+2026-11-01T01:19:53.5000510Z env:
+2026-11-01T01:19:53.5000765Z   HEPTA_SOURCE_SHA: bd450cb0ebee40db175011f54d8b34c260d13c49
+2026-11-01T01:19:53.5001106Z   CLANG: /usr/bin/clang-20
+2026-11-01T01:19:53.5001347Z   CLANGXX: /usr/bin/clang++-20
+2026-11-01T01:19:53.5001610Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-01T01:19:53.5001877Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-01T01:19:53.5002132Z   PYTHONUNBUFFERED: 1
+2026-11-01T01:19:53.5002360Z   NATIVE_NDU_REQUESTED: false
+2026-11-01T01:19:53.5002618Z ##[endgroup]
+2026-11-01T01:19:53.6391101Z ##[group]Installed versions
+2026-11-01T01:19:53.6512500Z (node:2635) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-01T01:19:53.6513615Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-01T01:19:53.6514398Z Successfully set up CPython (3.12.15)
+2026-11-01T01:19:53.6515057Z ##[endgroup]
+2026-11-01T01:19:53.6684000Z ##[group]Run test "$(git rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"
+2026-11-01T01:19:53.6684559Z [36;1mtest "$(git rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"[0m
+2026-11-01T01:19:53.6684949Z [36;1mtest -z "$(git status --porcelain)"[0m
+2026-11-01T01:19:53.6685307Z [36;1mmkdir -p artifacts/intelligent-assembly[0m
+2026-11-01T01:19:53.6685741Z [36;1mgit rev-parse HEAD > artifacts/intelligent-assembly/source-sha.txt[0m
+2026-11-01T01:19:53.6686637Z [36;1mgit rev-parse 'HEAD^{tree}' > artifacts/intelligent-assembly/source-tree.txt[0m
+2026-11-01T01:19:53.6687171Z [36;1mpython -m pip install -e '.[optimization]' zstandard==0.25.0[0m
+2026-11-01T01:19:53.6687712Z [36;1mpython -m pip freeze > artifacts/intelligent-assembly/python-packages.txt[0m
+2026-11-01T01:19:53.6723075Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-01T01:19:53.6723453Z env:
+2026-11-01T01:19:53.6723724Z   HEPTA_SOURCE_SHA: bd450cb0ebee40db175011f54d8b34c260d13c49
+2026-11-01T01:19:53.6724134Z   CLANG: /usr/bin/clang-20
+2026-11-01T01:19:53.6724381Z   CLANGXX: /usr/bin/clang++-20
+2026-11-01T01:19:53.6724628Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-01T01:19:53.6724900Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-01T01:19:53.6725140Z   PYTHONUNBUFFERED: 1
+2026-11-01T01:19:53.6725366Z   NATIVE_NDU_REQUESTED: false
+2026-11-01T01:19:53.6725674Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:19:53.6726457Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-11-01T01:19:53.6726900Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:19:53.6727300Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:19:53.6727921Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:19:53.6728315Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-11-01T01:19:53.6728641Z ##[endgroup]
+2026-11-01T01:19:54.9425577Z Obtaining file:///home/runner/work/Hepta/Hepta
+2026-11-01T01:19:54.9439958Z   Installing build dependencies: started
+2026-11-01T01:19:55.7417630Z   Installing build dependencies: finished with status 'done'
+2026-11-01T01:19:55.7423914Z   Checking if build backend supports build_editable: started
+2026-11-01T01:19:56.0501996Z   Checking if build backend supports build_editable: finished with status 'done'
+2026-11-01T01:19:56.0510071Z   Getting requirements to build editable: started
+2026-11-01T01:19:56.5361828Z   Getting requirements to build editable: finished with status 'done'
+2026-11-01T01:19:56.5373419Z   Preparing editable metadata (pyproject.toml): started
+2026-11-01T01:19:57.0298350Z   Preparing editable metadata (pyproject.toml): finished with status 'done'
+2026-11-01T01:19:57.1731843Z Collecting zstandard==0.25.0
+2026-11-01T01:19:57.2325408Z   Downloading zstandard-0.25.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (3.3 kB)
+2026-11-01T01:19:57.2651302Z Collecting z3-solver==4.15.4.0 (from hepta-language==0.2.0)
+2026-11-01T01:19:57.2727554Z   Downloading z3_solver-4.15.4.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (602 bytes)
+2026-11-01T01:19:57.2841287Z Downloading zstandard-0.25.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (5.5 MB)
+2026-11-01T01:19:57.4955345Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.5/5.5 MB 29.9 MB/s  0:00:00
+2026-11-01T01:19:57.5031562Z Downloading z3_solver-4.15.4.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (29.3 MB)
+2026-11-01T01:19:57.7422392Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 29.3/29.3 MB 123.6 MB/s  0:00:00
+2026-11-01T01:19:57.7748084Z Building wheels for collected packages: hepta-language
+2026-11-01T01:19:57.7756591Z   Building editable for hepta-language (pyproject.toml): started
+2026-11-01T01:19:58.3100571Z   Building editable for hepta-language (pyproject.toml): finished with status 'done'
+2026-11-01T01:19:58.3106903Z   Created wheel for hepta-language: filename=hepta_language-0.2.0-0.editable-py3-none-any.whl size=3137 sha256=706d51c6e1dba8f8b0998a932a779e1b337db2634be1ad2576a347c220500d4e
+2026-11-01T01:19:58.3108818Z   Stored in directory: /tmp/pip-ephem-wheel-cache-9mdudgmd/wheels/ad/53/f1/c045f74241edb05ebbcd6fb826c0b8cc44c46ec19ef72e61f0
+2026-11-01T01:19:58.3122308Z Successfully built hepta-language
+2026-11-01T01:19:58.3309606Z Installing collected packages: z3-solver, zstandard, hepta-language
+2026-11-01T01:19:58.8901426Z 
+2026-11-01T01:19:58.8911842Z Successfully installed hepta-language-0.2.0 z3-solver-4.15.4.0 zstandard-0.25.0
+2026-11-01T01:19:59.7852505Z ##[group]Run python evidence/hia_five_deliverables_20261030/VERIFY.py
+2026-11-01T01:19:59.7853031Z [36;1mpython evidence/hia_five_deliverables_20261030/VERIFY.py[0m
+2026-11-01T01:19:59.7875231Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-01T01:19:59.7875583Z env:
+2026-11-01T01:19:59.7876002Z   HEPTA_SOURCE_SHA: bd450cb0ebee40db175011f54d8b34c260d13c49
+2026-11-01T01:19:59.7876359Z   CLANG: /usr/bin/clang-20
+2026-11-01T01:19:59.7876604Z   CLANGXX: /usr/bin/clang++-20
+2026-11-01T01:19:59.7876849Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-01T01:19:59.7877102Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-01T01:19:59.7877336Z   PYTHONUNBUFFERED: 1
+2026-11-01T01:19:59.7877554Z   NATIVE_NDU_REQUESTED: false
+2026-11-01T01:19:59.7877846Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:19:59.7878270Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-11-01T01:19:59.7878750Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:19:59.7879130Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:19:59.7879509Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:19:59.7879887Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-11-01T01:19:59.7880387Z ##[endgroup]
+2026-11-01T01:19:59.9246418Z {
+2026-11-01T01:19:59.9247134Z   "schema": "hepta.five-deliverables.evidence-integrity.v1",
+2026-11-01T01:19:59.9247616Z   "files_checked": 611,
+2026-11-01T01:19:59.9247911Z   "bytes_checked": 26120286,
+2026-11-01T01:19:59.9248203Z   "failures": [],
+2026-11-01T01:19:59.9248466Z   "passed": true,
+2026-11-01T01:19:59.9248863Z   "scope": "retained bytes only; not a new experiment or safety proof"
+2026-11-01T01:19:59.9249352Z }
+2026-11-01T01:19:59.9347259Z ##[group]Run curl --fail --location --retry 3 --output "$RUNNER_TEMP/hepta-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key
+2026-11-01T01:19:59.9348260Z [36;1mcurl --fail --location --retry 3 --output "$RUNNER_TEMP/hepta-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key[0m
+2026-11-01T01:19:59.9349177Z [36;1mhepta_llvm_fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hepta-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')[0m
+2026-11-01T01:19:59.9349954Z [36;1mtest "$hepta_llvm_fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421[0m
+2026-11-01T01:19:59.9350554Z [36;1msudo install -m 0644 "$RUNNER_TEMP/hepta-llvm.asc" /usr/share/keyrings/hepta-llvm.asc[0m
+2026-11-01T01:19:59.9351550Z [36;1mprintf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hepta-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hepta-llvm20.list[0m
+2026-11-01T01:19:59.9352406Z [36;1msudo apt-get update[0m
+2026-11-01T01:19:59.9352886Z [36;1msudo apt-get install --yes clang-20 libclang-rt-20-dev llvm-20 lld-20 build-essential[0m
+2026-11-01T01:19:59.9353408Z [36;1mprintf '%s\n' /usr/lib/llvm-20/bin >> "$GITHUB_PATH"[0m
+2026-11-01T01:19:59.9375555Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-01T01:19:59.9376264Z env:
+2026-11-01T01:19:59.9376532Z   HEPTA_SOURCE_SHA: bd450cb0ebee40db175011f54d8b34c260d13c49
+2026-11-01T01:19:59.9376874Z   CLANG: /usr/bin/clang-20
+2026-11-01T01:19:59.9377126Z   CLANGXX: /usr/bin/clang++-20
+2026-11-01T01:19:59.9377388Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-01T01:19:59.9377646Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-01T01:19:59.9377891Z   PYTHONUNBUFFERED: 1
+2026-11-01T01:19:59.9378112Z   NATIVE_NDU_REQUESTED: false
+2026-11-01T01:19:59.9378411Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:19:59.9378847Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-11-01T01:19:59.9379275Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:19:59.9379656Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:19:59.9380032Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:19:59.9380423Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-11-01T01:19:59.9380744Z ##[endgroup]
+2026-11-01T01:19:59.9480046Z   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+2026-11-01T01:19:59.9502821Z                                  Dload  Upload   Total   Spent    Left  Speed
+2026-11-01T01:19:59.9503282Z 
+2026-11-01T01:20:00.0767798Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+2026-11-01T01:20:00.1179703Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+2026-11-01T01:20:00.1180493Z 100  3167  100  3167    0     0  18622      0 --:--:-- --:--:-- --:--:-- 18629
+2026-11-01T01:20:00.1286308Z gpg: directory '/home/runner/.gnupg' created
+2026-11-01T01:20:00.1289093Z gpg: keybox '/home/runner/.gnupg/pubring.kbx' created
+2026-11-01T01:20:00.1321026Z gpg: /home/runner/.gnupg/trustdb.gpg: trustdb created
+2026-11-01T01:20:00.1489918Z deb [arch=amd64 signed-by=/usr/share/keyrings/hepta-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main
+2026-11-01T01:20:00.2589951Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2026-11-01T01:20:00.2757107Z Get:6 https://packages.microsoft.com/ubuntu/24.04/prod noble InRelease [3600 B]
+2026-11-01T01:20:00.2835377Z Hit:2 http://azure.archive.ubuntu.com/ubuntu noble InRelease
+2026-11-01T01:20:00.2848599Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+2026-11-01T01:20:00.2946741Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+2026-11-01T01:20:00.2983407Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+2026-11-01T01:20:00.3394053Z Get:7 https://packages.microsoft.com/ubuntu/24.04/prod noble/main amd64 Packages [682 kB]
+2026-11-01T01:20:00.3621683Z Get:8 https://packages.microsoft.com/ubuntu/24.04/prod noble/main arm64 Packages [617 kB]
+2026-11-01T01:20:00.4670271Z Get:9 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1408 kB]
+2026-11-01T01:20:00.4743659Z Get:10 http://azure.archive.ubuntu.com/ubuntu noble-updates/main Translation-en [311 kB]
+2026-11-01T01:20:00.4768887Z Get:11 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1708 kB]
+2026-11-01T01:20:00.4862535Z Get:12 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe Translation-en [343 kB]
+2026-11-01T01:20:00.4891236Z Get:13 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1813 kB]
+2026-11-01T01:20:00.5089487Z Get:14 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [412 kB]
+2026-11-01T01:20:00.5090905Z Get:15 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse Translation-en [14.3 kB]
+2026-11-01T01:20:00.5289301Z Get:16 https://apt.llvm.org/noble llvm-toolchain-noble-20 InRelease [5554 B]
+2026-11-01T01:20:00.5967410Z Get:17 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Packages [1146 kB]
+2026-11-01T01:20:00.6022835Z Get:18 http://azure.archive.ubuntu.com/ubuntu noble-security/main Translation-en [231 kB]
+2026-11-01T01:20:00.6044986Z Get:19 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Packages [1223 kB]
+2026-11-01T01:20:00.6549386Z Get:21 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 Packages [13.2 kB]
+2026-11-01T01:20:00.6573710Z Get:20 http://azure.archive.ubuntu.com/ubuntu noble-security/universe Translation-en [246 kB]
+2026-11-01T01:20:03.5216786Z Fetched 10.6 MB in 1s (9695 kB/s)
+2026-11-01T01:20:04.5847434Z Reading package lists...
+2026-11-01T01:20:04.6232397Z Reading package lists...
+2026-11-01T01:20:04.8223257Z Building dependency tree...
+2026-11-01T01:20:04.8231668Z Reading state information...
+2026-11-01T01:20:04.9625459Z The following additional packages will be installed:
+2026-11-01T01:20:04.9631390Z   clang-tools-20 libclang-common-20-dev libclang-cpp20 libclang1-20 libllvm20
+2026-11-01T01:20:04.9632619Z   llvm-20-dev llvm-20-linker-tools llvm-20-runtime llvm-20-tools
+2026-11-01T01:20:04.9638182Z Suggested packages:
+2026-11-01T01:20:04.9638587Z   clang-20-doc wasi-libc llvm-20-doc
+2026-11-01T01:20:04.9874904Z The following NEW packages will be installed:
+2026-11-01T01:20:04.9876214Z   build-essential clang-20 clang-tools-20 libclang-common-20-dev
+2026-11-01T01:20:04.9880772Z   libclang-cpp20 libclang-rt-20-dev libclang1-20 lld-20 llvm-20 llvm-20-dev
+2026-11-01T01:20:04.9882513Z   llvm-20-linker-tools llvm-20-runtime llvm-20-tools
+2026-11-01T01:20:04.9887890Z The following packages will be upgraded:
+2026-11-01T01:20:04.9892227Z   libllvm20
+2026-11-01T01:20:05.0137515Z 1 upgraded, 13 newly installed, 0 to remove and 6 not upgraded.
+2026-11-01T01:20:05.0138186Z Need to get 143 MB of archives.
+2026-11-01T01:20:05.0138775Z After this operation, 709 MB of additional disk space will be used.
+2026-11-01T01:20:05.0139598Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2026-11-01T01:20:05.1087907Z Get:3 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 libllvm20 amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [30.6 MB]
+2026-11-01T01:20:05.3532761Z Get:4 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 libclang-cpp20 amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [14.3 MB]
+2026-11-01T01:20:05.4539332Z Get:5 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 libclang-common-20-dev amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [780 kB]
+2026-11-01T01:20:05.4742016Z Get:6 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 llvm-20-linker-tools amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [1381 kB]
+2026-11-01T01:20:05.5372886Z Get:7 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 libclang1-20 amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [8379 kB]
+2026-11-01T01:20:05.6043399Z Get:8 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 clang-20 amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [121 kB]
+2026-11-01T01:20:05.6468903Z Get:9 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 clang-tools-20 amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [9631 kB]
+2026-11-01T01:20:05.7238551Z Get:10 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 libclang-rt-20-dev amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [4740 kB]
+2026-11-01T01:20:05.7638029Z Get:11 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 lld-20 amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [1537 kB]
+2026-11-01T01:20:05.7825034Z Get:12 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 llvm-20-runtime amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [601 kB]
+2026-11-01T01:20:05.8386284Z Get:13 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 llvm-20 amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [19.8 MB]
+2026-11-01T01:20:05.9730342Z Get:14 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 llvm-20-tools amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [558 kB]
+2026-11-01T01:20:05.9953981Z Get:15 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 llvm-20-dev amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [51.0 MB]
+2026-11-01T01:20:35.0623962Z Ign:2 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 build-essential amd64 12.10ubuntu1
+2026-11-01T01:20:36.2852909Z Get:2 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 build-essential amd64 12.10ubuntu1 [4928 B]
+2026-11-01T01:20:36.5903002Z Fetched 143 MB in 31s (4576 kB/s)
+2026-11-01T01:20:36.6161303Z Selecting previously unselected package build-essential.
+2026-11-01T01:20:36.6456605Z (Reading database ... 
+2026-11-01T01:20:36.6457370Z (Reading database ... 5%
+2026-11-01T01:20:36.6457713Z (Reading database ... 10%
+2026-11-01T01:20:36.6458071Z (Reading database ... 15%
+2026-11-01T01:20:36.6458370Z (Reading database ... 20%
+2026-11-01T01:20:36.6458650Z (Reading database ... 25%
+2026-11-01T01:20:36.6458930Z (Reading database ... 30%
+2026-11-01T01:20:36.6459469Z (Reading database ... 35%
+2026-11-01T01:20:36.6459981Z (Reading database ... 40%
+2026-11-01T01:20:36.6460500Z (Reading database ... 45%
+2026-11-01T01:20:36.6461000Z (Reading database ... 50%
+2026-11-01T01:20:36.6501311Z (Reading database ... 55%
+2026-11-01T01:20:36.7581128Z (Reading database ... 60%
+2026-11-01T01:20:36.8960051Z (Reading database ... 65%
+2026-11-01T01:20:37.1018408Z (Reading database ... 70%
+2026-11-01T01:20:37.3101130Z (Reading database ... 75%
+2026-11-01T01:20:37.4476263Z (Reading database ... 80%
+2026-11-01T01:20:37.6128502Z (Reading database ... 85%
+2026-11-01T01:20:37.7189594Z (Reading database ... 90%
+2026-11-01T01:20:37.8683467Z (Reading database ... 95%
+2026-11-01T01:20:37.8683890Z (Reading database ... 100%
+2026-11-01T01:20:37.8684344Z (Reading database ... 215504 files and directories currently installed.)
+2026-11-01T01:20:37.8729183Z Preparing to unpack .../00-build-essential_12.10ubuntu1_amd64.deb ...
+2026-11-01T01:20:37.8755467Z Unpacking build-essential (12.10ubuntu1) ...
+2026-11-01T01:20:37.9141081Z Preparing to unpack .../01-libllvm20_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-01T01:20:37.9192505Z Unpacking libllvm20:amd64 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) over (1:20.1.2-0ubuntu1~24.04.3) ...
+2026-11-01T01:20:38.4731692Z Selecting previously unselected package libclang-cpp20.
+2026-11-01T01:20:38.4875063Z Preparing to unpack .../02-libclang-cpp20_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-01T01:20:38.4884508Z Unpacking libclang-cpp20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-01T01:20:38.7168765Z Selecting previously unselected package libclang-common-20-dev:amd64.
+2026-11-01T01:20:38.7313834Z Preparing to unpack .../03-libclang-common-20-dev_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-01T01:20:38.7321960Z Unpacking libclang-common-20-dev:amd64 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-01T01:20:38.8387079Z Selecting previously unselected package llvm-20-linker-tools.
+2026-11-01T01:20:38.8531193Z Preparing to unpack .../04-llvm-20-linker-tools_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-01T01:20:38.8540529Z Unpacking llvm-20-linker-tools (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-01T01:20:38.8963954Z Selecting previously unselected package libclang1-20.
+2026-11-01T01:20:38.9107361Z Preparing to unpack .../05-libclang1-20_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-01T01:20:38.9116369Z Unpacking libclang1-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-01T01:20:39.0593133Z Selecting previously unselected package clang-20.
+2026-11-01T01:20:39.0740240Z Preparing to unpack .../06-clang-20_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-01T01:20:39.0748507Z Unpacking clang-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-01T01:20:39.1059024Z Selecting previously unselected package clang-tools-20.
+2026-11-01T01:20:39.1202136Z Preparing to unpack .../07-clang-tools-20_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-01T01:20:39.1209777Z Unpacking clang-tools-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-01T01:20:39.3003196Z Selecting previously unselected package libclang-rt-20-dev.
+2026-11-01T01:20:39.3145674Z Preparing to unpack .../08-libclang-rt-20-dev_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-01T01:20:39.3153505Z Unpacking libclang-rt-20-dev (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-01T01:20:39.5175548Z Selecting previously unselected package lld-20.
+2026-11-01T01:20:39.5318812Z Preparing to unpack .../09-lld-20_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-01T01:20:39.5327753Z Unpacking lld-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-01T01:20:39.5797552Z Selecting previously unselected package llvm-20-runtime.
+2026-11-01T01:20:39.5940936Z Preparing to unpack .../10-llvm-20-runtime_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-01T01:20:39.5950269Z Unpacking llvm-20-runtime (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-01T01:20:39.6265619Z Selecting previously unselected package llvm-20.
+2026-11-01T01:20:39.6409543Z Preparing to unpack .../11-llvm-20_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-01T01:20:39.6417682Z Unpacking llvm-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-01T01:20:39.9729880Z Selecting previously unselected package llvm-20-tools.
+2026-11-01T01:20:39.9872347Z Preparing to unpack .../12-llvm-20-tools_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-01T01:20:39.9880019Z Unpacking llvm-20-tools (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-01T01:20:40.0894827Z Selecting previously unselected package llvm-20-dev.
+2026-11-01T01:20:40.1040065Z Preparing to unpack .../13-llvm-20-dev_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-01T01:20:40.1049607Z Unpacking llvm-20-dev (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-01T01:20:41.5500546Z Setting up libclang-common-20-dev:amd64 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-01T01:20:41.5525007Z Setting up libclang-rt-20-dev (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-01T01:20:41.5548407Z Setting up libllvm20:amd64 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-01T01:20:41.5568775Z Setting up build-essential (12.10ubuntu1) ...
+2026-11-01T01:20:41.5589880Z Setting up libclang1-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-01T01:20:41.5612407Z Setting up llvm-20-runtime (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-01T01:20:41.5645058Z Setting up lld-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-01T01:20:41.5666180Z Setting up llvm-20-linker-tools (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-01T01:20:41.5690710Z Setting up llvm-20-tools (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-01T01:20:41.5712481Z Setting up libclang-cpp20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-01T01:20:41.5734519Z Setting up llvm-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-01T01:20:41.5754834Z Setting up llvm-20-dev (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-01T01:20:41.5776758Z Setting up clang-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-01T01:20:41.5798256Z Setting up clang-tools-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-01T01:20:41.5823509Z Processing triggers for systemd (255.4-1ubuntu8.18) ...
+2026-11-01T01:20:41.6126417Z Processing triggers for man-db (2.12.0-4build2) ...
+2026-11-01T01:20:41.6149862Z Not building database; man-db/auto-update is not 'true'.
+2026-11-01T01:20:41.6166747Z Processing triggers for libc-bin (2.39-0ubuntu8.9) ...
+2026-11-01T01:20:42.3272624Z 
+2026-11-01T01:20:42.3273207Z Running kernel seems to be up-to-date.
+2026-11-01T01:20:42.3273606Z 
+2026-11-01T01:20:42.3273951Z No services need to be restarted.
+2026-11-01T01:20:42.3274265Z 
+2026-11-01T01:20:42.3274447Z No containers need to be restarted.
+2026-11-01T01:20:42.3274750Z 
+2026-11-01T01:20:42.3274967Z No user sessions are running outdated binaries.
+2026-11-01T01:20:42.3275315Z 
+2026-11-01T01:20:42.3275649Z No VM guests are running outdated hypervisor (qemu) binaries on this host.
+2026-11-01T01:20:43.2213213Z ##[group]Run rustup toolchain install 1.95.0 --profile minimal
+2026-11-01T01:20:43.2213714Z [36;1mrustup toolchain install 1.95.0 --profile minimal[0m
+2026-11-01T01:20:43.2214203Z [36;1mprintf 'RUSTC=%s\n' "$(rustup which --toolchain 1.95.0 rustc)" >> "$GITHUB_ENV"[0m
+2026-11-01T01:20:43.2237436Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-01T01:20:43.2237782Z env:
+2026-11-01T01:20:43.2238043Z   HEPTA_SOURCE_SHA: bd450cb0ebee40db175011f54d8b34c260d13c49
+2026-11-01T01:20:43.2238388Z   CLANG: /usr/bin/clang-20
+2026-11-01T01:20:43.2238627Z   CLANGXX: /usr/bin/clang++-20
+2026-11-01T01:20:43.2238881Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-01T01:20:43.2239144Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-01T01:20:43.2239384Z   PYTHONUNBUFFERED: 1
+2026-11-01T01:20:43.2239603Z   NATIVE_NDU_REQUESTED: false
+2026-11-01T01:20:43.2239915Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:20:43.2240377Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-11-01T01:20:43.2240811Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:20:43.2241369Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:20:43.2241752Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:20:43.2242139Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-11-01T01:20:43.2242466Z ##[endgroup]
+2026-11-01T01:20:43.2388665Z info: syncing channel updates for 1.95.0-x86_64-unknown-linux-gnu
+2026-11-01T01:20:43.3933986Z info: latest update on 2026-04-16 for version 1.95.0 (59807616e 2026-04-14)
+2026-11-01T01:20:43.3938376Z info: downloading 3 components
+2026-11-01T01:20:51.1000290Z 
+2026-11-01T01:20:51.1077986Z   1.95.0-x86_64-unknown-linux-gnu installed - rustc 1.95.0 (59807616e 2026-04-14)
+2026-11-01T01:20:51.1078690Z 
+2026-11-01T01:20:51.1307799Z ##[group]Run python - <<'PY'
+2026-11-01T01:20:51.1308123Z [36;1mpython - <<'PY'[0m
+2026-11-01T01:20:51.1308389Z [36;1mimport json, os, re, shutil, subprocess[0m
+2026-11-01T01:20:51.1308700Z [36;1mfrom pathlib import Path[0m
+2026-11-01T01:20:51.1308949Z [36;1mimport z3[0m
+2026-11-01T01:20:51.1309300Z [36;1mfrom hepta.hia_optimization import PINNED_Z3_VERSION, _solver_identity[0m
+2026-11-01T01:20:51.1309906Z [36;1massert z3.get_version_string() == PINNED_Z3_VERSION, (z3.get_version_string(), PINNED_Z3_VERSION)[0m
+2026-11-01T01:20:51.1310384Z [36;1mversions = {}[0m
+2026-11-01T01:20:51.1310811Z [36;1mfor name in (os.environ['CLANG'], os.environ['CLANGXX'], os.environ['RUSTC'], 'gcc', 'g++', 'ld.lld'):[0m
+2026-11-01T01:20:51.1311430Z [36;1m    assert shutil.which(name), f'Missing required actual compiler: {name}'[0m
+2026-11-01T01:20:51.1311971Z [36;1m    versions[name] = subprocess.check_output([name, '--version'], text=True)[0m
+2026-11-01T01:20:51.1312489Z [36;1mfor name in (os.environ['CLANG'], os.environ['CLANGXX']):[0m
+2026-11-01T01:20:51.1312962Z [36;1m    assert re.search(r'\bclang version 20\.', versions[name]), versions[name][0m
+2026-11-01T01:20:51.1313353Z [36;1mreport = {[0m
+2026-11-01T01:20:51.1313610Z [36;1m    'source_sha': os.environ['HEPTA_SOURCE_SHA'],[0m
+2026-11-01T01:20:51.1313995Z [36;1m    'solver': _solver_identity(z3), 'tool_versions': versions,[0m
+2026-11-01T01:20:51.1314594Z [36;1m    'native_ndu': 'separate_requested_job' if os.environ['NATIVE_NDU_REQUESTED'] == 'true' else 'not_qualified',[0m
+2026-11-01T01:20:51.1315181Z [36;1m    'relative_performance_is_a_pass_condition': False,[0m
+2026-11-01T01:20:51.1315514Z [36;1m}[0m
+2026-11-01T01:20:51.1316269Z [36;1mPath('artifacts/intelligent-assembly/SCOPE.json').write_text(json.dumps(report, indent=2) + '\n')[0m
+2026-11-01T01:20:51.1316785Z [36;1mPY[0m
+2026-11-01T01:20:51.1339631Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-01T01:20:51.1339974Z env:
+2026-11-01T01:20:51.1340239Z   HEPTA_SOURCE_SHA: bd450cb0ebee40db175011f54d8b34c260d13c49
+2026-11-01T01:20:51.1340577Z   CLANG: /usr/bin/clang-20
+2026-11-01T01:20:51.1340822Z   CLANGXX: /usr/bin/clang++-20
+2026-11-01T01:20:51.1341072Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-01T01:20:51.1341323Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-01T01:20:51.1341561Z   PYTHONUNBUFFERED: 1
+2026-11-01T01:20:51.1341778Z   NATIVE_NDU_REQUESTED: false
+2026-11-01T01:20:51.1342070Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:20:51.1342497Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-11-01T01:20:51.1342913Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:20:51.1343283Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:20:51.1343654Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:20:51.1344032Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-11-01T01:20:51.1344502Z   RUSTC: /home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc
+2026-11-01T01:20:51.1344899Z ##[endgroup]
+2026-11-01T01:20:51.3868698Z ##[group]Run python tools/generate_hia_catalog.py --check
+2026-11-01T01:20:51.3869187Z [36;1mpython tools/generate_hia_catalog.py --check[0m
+2026-11-01T01:20:51.3891573Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-01T01:20:51.3891911Z env:
+2026-11-01T01:20:51.3892169Z   HEPTA_SOURCE_SHA: bd450cb0ebee40db175011f54d8b34c260d13c49
+2026-11-01T01:20:51.3892506Z   CLANG: /usr/bin/clang-20
+2026-11-01T01:20:51.3892737Z   CLANGXX: /usr/bin/clang++-20
+2026-11-01T01:20:51.3892987Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-01T01:20:51.3893246Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-01T01:20:51.3893492Z   PYTHONUNBUFFERED: 1
+2026-11-01T01:20:51.3893711Z   NATIVE_NDU_REQUESTED: false
+2026-11-01T01:20:51.3894005Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:20:51.3894431Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-11-01T01:20:51.3894851Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:20:51.3895268Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:20:51.3895652Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:20:51.3896245Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-11-01T01:20:51.3896714Z   RUSTC: /home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc
+2026-11-01T01:20:51.3897124Z ##[endgroup]
+2026-11-01T01:20:51.4463018Z Catalog/docs checked
+2026-11-01T01:20:51.4584646Z ##[group]Run python - <<'PY' 2>&1 | tee artifacts/intelligent-assembly/unit-tests.log
+2026-11-01T01:20:51.4585744Z [36;1mpython - <<'PY' 2>&1 | tee artifacts/intelligent-assembly/unit-tests.log[0m
+2026-11-01T01:20:51.4586723Z [36;1mimport json, sys, unittest[0m
+2026-11-01T01:20:51.4587211Z [36;1mfrom pathlib import Path[0m
+2026-11-01T01:20:51.4587658Z [36;1msuites = [[0m
+2026-11-01T01:20:51.4588126Z [36;1m    'tests.test_hia_semantics_contract',[0m
+2026-11-01T01:20:51.4588593Z [36;1m    'tests.test_hia_opcode_catalog',[0m
+2026-11-01T01:20:51.4588929Z [36;1m    'tests.test_hia_schema_unification',[0m
+2026-11-01T01:20:51.4589252Z [36;1m    'tests.test_hia_agent_assembly',[0m
+2026-11-01T01:20:51.4589567Z [36;1m    'tests.test_hia_incremental',[0m
+2026-11-01T01:20:51.4589894Z [36;1m    'tests.test_hia_incremental_v8',[0m
+2026-11-01T01:20:51.4590218Z [36;1m    'tests.test_hia_optimization_contract',[0m
+2026-11-01T01:20:51.4590651Z [36;1m    'tests.test_hia_register_safety.RegisterSafetyInputTests',[0m
+2026-11-01T01:20:51.4591094Z [36;1m    'tests.test_ring_maintenance_qualification',[0m
+2026-11-01T01:20:51.4591446Z [36;1m    'tests.test_hia_agent_public_tools',[0m
+2026-11-01T01:20:51.4591775Z [36;1m    'tests.test_hia_ndu_converged_holdout',[0m
+2026-11-01T01:20:51.4592092Z [36;1m    'tests.test_hia_call_expansion',[0m
+2026-11-01T01:20:51.4592399Z [36;1m    'tests.test_cpp_callback_project',[0m
+2026-11-01T01:20:51.4592751Z [36;1m    'tests.test_hia_planning.FiniteCompressionTests',[0m
+2026-11-01T01:20:51.4593144Z [36;1m    'tests.test_hia_ndu_graph.FiniteGraphTests',[0m
+2026-11-01T01:20:51.4593539Z [36;1m    'tests.test_hia_ndu_graph.CompilerGraphBoundaryTests',[0m
+2026-11-01T01:20:51.4593885Z [36;1m][0m
+2026-11-01T01:20:51.4594188Z [36;1msuite = unittest.defaultTestLoader.loadTestsFromNames(suites)[0m
+2026-11-01T01:20:51.4594573Z [36;1mdef identifiers(node):[0m
+2026-11-01T01:20:51.4594828Z [36;1m    for test in node:[0m
+2026-11-01T01:20:51.4595108Z [36;1m        if isinstance(test, unittest.TestSuite):[0m
+2026-11-01T01:20:51.4595431Z [36;1m            yield from identifiers(test)[0m
+2026-11-01T01:20:51.4595735Z [36;1m        else:[0m
+2026-11-01T01:20:51.4596333Z [36;1m            yield test.id()[0m
+2026-11-01T01:20:51.4596682Z [36;1mplanned = list(identifiers(suite))[0m
+2026-11-01T01:20:51.4597138Z [36;1mresult = unittest.TextTestRunner(stream=sys.stdout, verbosity=2).run(suite)[0m
+2026-11-01T01:20:51.4597758Z [36;1mpassed = (result.wasSuccessful() and not result.skipped and not result.expectedFailures[0m
+2026-11-01T01:20:51.4598330Z [36;1m          and result.testsRun == len(planned) and result.testsRun > 0)[0m
+2026-11-01T01:20:51.4598880Z [36;1mreport = {'status': 'passed' if passed else 'failed', 'suites': suites, 'planned': planned,[0m
+2026-11-01T01:20:51.4599747Z [36;1m          'tests_run': result.testsRun, 'failures': len(result.failures), 'errors': len(result.errors),[0m
+2026-11-01T01:20:51.4600312Z [36;1m          'skipped': [(t.id(), why) for t, why in result.skipped],[0m
+2026-11-01T01:20:51.4600829Z [36;1m          'expected_failures': [(t.id(), why) for t, why in result.expectedFailures],[0m
+2026-11-01T01:20:51.4601382Z [36;1m          'native_ndu_tests': 'outside_this_suite; separate_native_ndu_job_required'}[0m
+2026-11-01T01:20:51.4602240Z [36;1mPath('artifacts/intelligent-assembly/UNIT_RESULT.json').write_text(json.dumps(report, indent=2) + '\n')[0m
+2026-11-01T01:20:51.4603167Z [36;1mraise SystemExit(0 if passed else 1)[0m
+2026-11-01T01:20:51.4603520Z [36;1mPY[0m
+2026-11-01T01:20:51.4627917Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-01T01:20:51.4628265Z env:
+2026-11-01T01:20:51.4628529Z   HEPTA_SOURCE_SHA: bd450cb0ebee40db175011f54d8b34c260d13c49
+2026-11-01T01:20:51.4628879Z   CLANG: /usr/bin/clang-20
+2026-11-01T01:20:51.4629117Z   CLANGXX: /usr/bin/clang++-20
+2026-11-01T01:20:51.4629417Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-01T01:20:51.4629674Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-01T01:20:51.4630104Z   PYTHONUNBUFFERED: 1
+2026-11-01T01:20:51.4630331Z   NATIVE_NDU_REQUESTED: false
+2026-11-01T01:20:51.4630651Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:20:51.4631160Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-11-01T01:20:51.4631693Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:20:51.4632294Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:20:51.4632825Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:20:51.4633317Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-11-01T01:20:51.4633965Z   RUSTC: /home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc
+2026-11-01T01:20:51.4634478Z ##[endgroup]
+2026-11-01T01:20:52.4703708Z test_cancel_after_completion_does_not_execute_the_trapping_handler (tests.test_hia_semantics_contract.CancellationOutcomeContractTests.test_cancel_after_completion_does_not_execute_the_trapping_handler) ... ok
+2026-11-01T01:20:52.5046350Z test_cancellation_handler_budget_stop_is_not_success_or_program_trap (tests.test_hia_semantics_contract.CancellationOutcomeContractTests.test_cancellation_handler_budget_stop_is_not_success_or_program_trap) ... ok
+2026-11-01T01:20:52.5385698Z test_trap_during_cancel_preserves_stopped_owner_and_loan_ledger (tests.test_hia_semantics_contract.CancellationOutcomeContractTests.test_trap_during_cancel_preserves_stopped_owner_and_loan_ledger) ... ok
+2026-11-01T01:20:52.5443659Z test_declared_multiple_results_cannot_disappear_on_any_native_target (tests.test_hia_semantics_contract.NativeInterfaceContractTests.test_declared_multiple_results_cannot_disappear_on_any_native_target) ... ok
+2026-11-01T01:20:52.5471337Z test_declared_unit_parameter_cannot_disappear (tests.test_hia_semantics_contract.NativeInterfaceContractTests.test_declared_unit_parameter_cannot_disappear) ... ok
+2026-11-01T01:20:52.5496908Z test_implicit_native_profile_retains_its_existing_subset (tests.test_hia_semantics_contract.NativeInterfaceContractTests.test_implicit_native_profile_retains_its_existing_subset) ... ok
+2026-11-01T01:20:52.5526458Z test_unsupported_explicit_interface_rejects_before_compile_or_publication (tests.test_hia_semantics_contract.NativeInterfaceContractTests.test_unsupported_explicit_interface_rejects_before_compile_or_publication) ... ok
+2026-11-01T01:20:52.5589805Z test_unsupported_internal_signatures_do_not_expand_explicit_exports (tests.test_hia_semantics_contract.NativeInterfaceContractTests.test_unsupported_internal_signatures_do_not_expand_explicit_exports) ... ok
+2026-11-01T01:20:52.9551473Z test_actual_cancel_trap_aborts_and_late_cancel_still_returns (tests.test_hia_semantics_contract.NativeSemanticsContractTests.test_actual_cancel_trap_aborts_and_late_cancel_still_returns) ... ok
+2026-11-01T01:20:53.0795395Z test_actual_library_preserves_the_entire_supported_explicit_interface (tests.test_hia_semantics_contract.NativeSemanticsContractTests.test_actual_library_preserves_the_entire_supported_explicit_interface) ... ok
+2026-11-01T01:20:53.0833632Z test_explicit_contract_and_absence_remain_distinct (tests.test_hia_opcode_catalog.AssemblyV8ContractTests.test_explicit_contract_and_absence_remain_distinct) ... ok
+2026-11-01T01:20:53.1948538Z test_returned_read_mutable_and_cfg_loans_roundtrip_and_execute (tests.test_hia_opcode_catalog.AssemblyV8ContractTests.test_returned_read_mutable_and_cfg_loans_roundtrip_and_execute) ... ok
+2026-11-01T01:20:53.1993426Z test_wrong_origin_downgrade_and_malformed_contract_refuse (tests.test_hia_opcode_catalog.AssemblyV8ContractTests.test_wrong_origin_downgrade_and_malformed_contract_refuse) ... ok
+2026-11-01T01:20:53.2053387Z test_all_six_comparisons_are_executable_discovered_spellings (tests.test_hia_opcode_catalog.OpcodeCatalogTests.test_all_six_comparisons_are_executable_discovered_spellings) ... ok
+2026-11-01T01:20:53.2062497Z test_bulk_version_is_checked_by_table_even_for_valid_types (tests.test_hia_opcode_catalog.OpcodeCatalogTests.test_bulk_version_is_checked_by_table_even_for_valid_types) ... ok
+2026-11-01T01:20:53.2118877Z test_cache_cannot_keep_literal_after_catalog_width_rebinding (tests.test_hia_opcode_catalog.OpcodeCatalogTests.test_cache_cannot_keep_literal_after_catalog_width_rebinding) ... ok
+2026-11-01T01:20:53.2188462Z test_cache_invalidates_when_imported_opcode_checker_changes (tests.test_hia_opcode_catalog.OpcodeCatalogTests.test_cache_invalidates_when_imported_opcode_checker_changes) ... ok
+2026-11-01T01:20:53.2238637Z test_catalog_is_detached_and_invalid_schemas_do_not_guess (tests.test_hia_opcode_catalog.OpcodeCatalogTests.test_catalog_is_detached_and_invalid_schemas_do_not_guess) ... ok
+2026-11-01T01:20:53.2294020Z test_closed_inventory_contains_real_comparisons_and_every_version (tests.test_hia_opcode_catalog.OpcodeCatalogTests.test_closed_inventory_contains_real_comparisons_and_every_version) ... ok
+2026-11-01T01:20:53.4162493Z test_generated_docs_and_cli_are_the_actual_catalog (tests.test_hia_opcode_catalog.OpcodeCatalogTests.test_generated_docs_and_cli_are_the_actual_catalog) ... ok
+2026-11-01T01:20:53.4194481Z test_guards_do_not_allow_live_owner_drop_or_unended_loans (tests.test_hia_opcode_catalog.OpcodeCatalogTests.test_guards_do_not_allow_live_owner_drop_or_unended_loans) ... ok
+2026-11-01T01:20:53.4218687Z test_local_signature_effect_and_attribute_constraints_are_live (tests.test_hia_opcode_catalog.OpcodeCatalogTests.test_local_signature_effect_and_attribute_constraints_are_live) ... ok
+2026-11-01T01:20:53.4275677Z test_versioned_type_groups_never_offer_types_rejected_by_that_version (tests.test_hia_opcode_catalog.OpcodeCatalogTests.test_versioned_type_groups_never_offer_types_rejected_by_that_version) ... ok
+2026-11-01T01:20:53.5562102Z test_explicit_legacy_nominal_adapter_preserves_real_resources_and_results (tests.test_hia_schema_unification.SchemaUnificationTests.test_explicit_legacy_nominal_adapter_preserves_real_resources_and_results) ... ok
+2026-11-01T01:20:53.5647955Z test_legacy_adapter_cannot_gain_new_primitive_or_nominal_opcodes (tests.test_hia_schema_unification.SchemaUnificationTests.test_legacy_adapter_cannot_gain_new_primitive_or_nominal_opcodes) ... ok
+2026-11-01T01:20:53.5721795Z test_legacy_nominal_namespace_is_never_guessed_from_its_shape (tests.test_hia_schema_unification.SchemaUnificationTests.test_legacy_nominal_namespace_is_never_guessed_from_its_shape) ... ok
+2026-11-01T01:20:53.5816169Z test_no_malformed_or_forged_receipt_can_import_a_program (tests.test_hia_schema_unification.SchemaUnificationTests.test_no_malformed_or_forged_receipt_can_import_a_program) ... ok
+2026-11-01T01:20:53.5949650Z test_registry_and_primitive_reports_use_the_exact_schema (tests.test_hia_schema_unification.SchemaUnificationTests.test_registry_and_primitive_reports_use_the_exact_schema) ... ok
+2026-11-01T01:20:53.5976352Z test_selected_primitive_v2_upgrade_is_explicit_and_cannot_choose_nominal_profile (tests.test_hia_schema_unification.SchemaUnificationTests.test_selected_primitive_v2_upgrade_is_explicit_and_cannot_choose_nominal_profile) ... ok
+2026-11-01T01:20:53.5990026Z test_accepted_diagnostic_is_not_a_deployment_receipt (tests.test_hia_agent_assembly.HIAAgentAssemblyTests.test_accepted_diagnostic_is_not_a_deployment_receipt) ... ok
+2026-11-01T01:20:53.6032284Z test_actual_mathematical_wide_sum_and_canonical_rerender (tests.test_hia_agent_assembly.HIAAgentAssemblyTests.test_actual_mathematical_wide_sum_and_canonical_rerender) ... ok
+2026-11-01T01:20:53.6079801Z test_atomic_cross_function_interface_upgrade_needs_both_changes (tests.test_hia_agent_assembly.HIAAgentAssemblyTests.test_atomic_cross_function_interface_upgrade_needs_both_changes) ... ok
+2026-11-01T01:20:53.6111569Z test_byte_line_and_inventory_limits_apply_before_core_verification (tests.test_hia_agent_assembly.HIAAgentAssemblyTests.test_byte_line_and_inventory_limits_apply_before_core_verification) ... ok
+2026-11-01T01:20:53.6137255Z test_checked_overflow_and_declared_trap_are_not_dropped (tests.test_hia_agent_assembly.HIAAgentAssemblyTests.test_checked_overflow_and_declared_trap_are_not_dropped) ... ok
+2026-11-01T01:20:53.6163798Z test_dropped_owner_is_not_synthesized_to_repair_a_leak (tests.test_hia_agent_assembly.HIAAgentAssemblyTests.test_dropped_owner_is_not_synthesized_to_repair_a_leak) ... ok
+2026-11-01T01:20:53.6169709Z test_duplicate_json_keys_nonfinite_and_nesting_are_not_accepted (tests.test_hia_agent_assembly.HIAAgentAssemblyTests.test_duplicate_json_keys_nonfinite_and_nesting_are_not_accepted) ... ok
+2026-11-01T01:20:53.6176652Z test_duplicate_ssa_keeps_core_error_without_guessing_a_location (tests.test_hia_agent_assembly.HIAAgentAssemblyTests.test_duplicate_ssa_keeps_core_error_without_guessing_a_location) ... ok
+2026-11-01T01:20:53.6244184Z test_explicit_empty_exports_and_absence_are_distinct (tests.test_hia_agent_assembly.HIAAgentAssemblyTests.test_explicit_empty_exports_and_absence_are_distinct) ... ok
+2026-11-01T01:20:53.6253635Z test_missing_terminator_end_extra_text_and_duplicate_exports_reject (tests.test_hia_agent_assembly.HIAAgentAssemblyTests.test_missing_terminator_end_extra_text_and_duplicate_exports_reject) ... ok
+2026-11-01T01:20:53.6402635Z test_owner_move_loans_and_cleanup_execute_in_existing_vm (tests.test_hia_agent_assembly.HIAAgentAssemblyTests.test_owner_move_loans_and_cleanup_execute_in_existing_vm) ... ok
+2026-11-01T01:20:53.6493638Z test_real_joined_loans_cfg_parameters_preserve_origin (tests.test_hia_agent_assembly.HIAAgentAssemblyTests.test_real_joined_loans_cfg_parameters_preserve_origin) ... ok
+2026-11-01T01:20:53.9109858Z test_recursive_chain_v7_roundtrip_and_failure_paths (tests.test_hia_agent_assembly.HIAAgentAssemblyTests.test_recursive_chain_v7_roundtrip_and_failure_paths) ... ok
+2026-11-01T01:20:53.9422761Z test_unknown_header_historical_and_nominal_profiles_reject (tests.test_hia_agent_assembly.HIAAgentAssemblyTests.test_unknown_header_historical_and_nominal_profiles_reject) ... ok
+2026-11-01T01:20:53.9449037Z test_unsafe_loan_overlap_is_rejected_by_original_verifier (tests.test_hia_agent_assembly.HIAAgentAssemblyTests.test_unsafe_loan_overlap_is_rejected_by_original_verifier) ... ok
+2026-11-01T01:20:53.9474821Z test_use_after_move_is_rejected_by_original_verifier (tests.test_hia_agent_assembly.HIAAgentAssemblyTests.test_use_after_move_is_rejected_by_original_verifier) ... ok
+2026-11-01T01:20:53.9489716Z test_utf8_controls_and_explicit_line_diagnostic (tests.test_hia_agent_assembly.HIAAgentAssemblyTests.test_utf8_controls_and_explicit_line_diagnostic) ... ok
+2026-11-01T01:20:53.9511474Z test_wrong_signature_unknown_operation_and_missing_attribute_reject (tests.test_hia_agent_assembly.HIAAgentAssemblyTests.test_wrong_signature_unknown_operation_and_missing_attribute_reject) ... ok
+2026-11-01T01:20:53.9620259Z test_atomic_patch_uses_same_grammar_and_distinct_truthful_receipt (tests.test_hia_incremental.HIAIncrementalPatchTests.test_atomic_patch_uses_same_grammar_and_distinct_truthful_receipt) ... ok
+2026-11-01T01:20:53.9839939Z test_atomic_resource_patch_rejects_intermediates_but_accepts_joint_edit (tests.test_hia_incremental.HIAIncrementalPatchTests.test_atomic_resource_patch_rejects_intermediates_but_accepts_joint_edit) ... ok
+2026-11-01T01:20:53.9942262Z test_concurrent_patches_to_one_base_admit_exactly_one_and_reject_stale_other (tests.test_hia_incremental.HIAIncrementalPatchTests.test_concurrent_patches_to_one_base_admit_exactly_one_and_reject_stale_other) ... ok
+2026-11-01T01:20:54.0120682Z test_forbidden_interface_change_rolls_back_after_candidate_passes (tests.test_hia_incremental.HIAIncrementalPatchTests.test_forbidden_interface_change_rolls_back_after_candidate_passes) ... ok
+2026-11-01T01:20:54.0222098Z test_patch_interface_edit_rechecks_only_the_direct_unchanged_dependency (tests.test_hia_incremental.HIAIncrementalPatchTests.test_patch_interface_edit_rechecks_only_the_direct_unchanged_dependency) ... ok
+2026-11-01T01:20:54.0313347Z test_patch_receipt_and_candidate_mutation_cannot_seed_cache (tests.test_hia_incremental.HIAIncrementalPatchTests.test_patch_receipt_and_candidate_mutation_cannot_seed_cache) ... ok
+2026-11-01T01:20:54.0449205Z test_patch_resource_failure_cannot_replace_the_saved_snapshot (tests.test_hia_incremental.HIAIncrementalPatchTests.test_patch_resource_failure_cannot_replace_the_saved_snapshot) ... ok
+2026-11-01T01:20:54.0537341Z test_stale_or_malformed_patch_preserves_the_current_session (tests.test_hia_incremental.HIAIncrementalPatchTests.test_stale_or_malformed_patch_preserves_the_current_session) ... ok
+2026-11-01T01:20:54.0667712Z test_add_remove_and_reorder_independent_functions (tests.test_hia_incremental.HIAIncrementalTests.test_add_remove_and_reorder_independent_functions) ... ok
+2026-11-01T01:20:54.0790599Z test_changed_callee_effect_invalidates_unchanged_direct_caller (tests.test_hia_incremental.HIAIncrementalTests.test_changed_callee_effect_invalidates_unchanged_direct_caller) ... ok
+2026-11-01T01:20:54.0866566Z test_changed_checker_rule_cannot_reuse_an_old_pass (tests.test_hia_incremental.HIAIncrementalTests.test_changed_checker_rule_cannot_reuse_an_old_pass) ... ok
+2026-11-01T01:20:54.0997036Z test_changed_return_interface_and_removed_callee_reject_like_full (tests.test_hia_incremental.HIAIncrementalTests.test_changed_return_interface_and_removed_callee_reject_like_full) ... ok
+2026-11-01T01:20:54.1029704Z test_constructor_never_trusts_fabricated_verified_program_or_receipt (tests.test_hia_incremental.HIAIncrementalTests.test_constructor_never_trusts_fabricated_verified_program_or_receipt) ... ok
+2026-11-01T01:20:54.8858832Z test_finite_mutation_matrix_agrees_in_all_seven_primitive_versions (tests.test_hia_incremental.HIAIncrementalTests.test_finite_mutation_matrix_agrees_in_all_seven_primitive_versions) ... ok
+2026-11-01T01:20:54.9067580Z test_global_shape_and_export_errors_reject_before_body_reuse (tests.test_hia_incremental.HIAIncrementalTests.test_global_shape_and_export_errors_reject_before_body_reuse) ... ok
+2026-11-01T01:20:54.9124309Z test_imported_feature_helper_code_change_cannot_reuse_an_old_pass (tests.test_hia_incremental.HIAIncrementalTests.test_imported_feature_helper_code_change_cannot_reuse_an_old_pass) ... ok
+2026-11-01T01:20:54.9236468Z test_mid_check_policy_change_triggers_complete_same_bytes_fallback (tests.test_hia_incremental.HIAIncrementalTests.test_mid_check_policy_change_triggers_complete_same_bytes_fallback) ... ok
+2026-11-01T01:20:54.9316112Z test_mutating_inputs_and_receipts_never_changes_retained_baseline (tests.test_hia_incremental.HIAIncrementalTests.test_mutating_inputs_and_receipts_never_changes_retained_baseline) ... ok
+2026-11-01T01:20:54.9395347Z test_mutually_recursive_body_checks_do_not_require_invented_fixpoint (tests.test_hia_incremental.HIAIncrementalTests.test_mutually_recursive_body_checks_do_not_require_invented_fixpoint) ... ok
+2026-11-01T01:20:54.9644958Z test_nominal_input_and_its_binding_always_receive_full_verification (tests.test_hia_incremental.HIAIncrementalTests.test_nominal_input_and_its_binding_always_receive_full_verification) ... ok
+2026-11-01T01:20:55.0102632Z test_one_body_edit_checks_one_function_not_transitive_behavioral_callers (tests.test_hia_incremental.HIAIncrementalTests.test_one_body_edit_checks_one_function_not_transitive_behavioral_callers) ... ok
+2026-11-01T01:20:55.0191647Z test_registry_policy_change_invalidates_live_cache (tests.test_hia_incremental.HIAIncrementalTests.test_registry_policy_change_invalidates_live_cache) ... ok
+2026-11-01T01:20:55.0370496Z test_resource_failures_leave_baseline_unchanged_and_next_edit_works (tests.test_hia_incremental.HIAIncrementalTests.test_resource_failures_leave_baseline_unchanged_and_next_edit_works) ... ok
+2026-11-01T01:20:55.0634235Z test_schema_module_and_exports_changes_fall_back_to_full (tests.test_hia_incremental.HIAIncrementalTests.test_schema_module_and_exports_changes_fall_back_to_full) ... ok
+2026-11-01T01:20:55.0773713Z test_session_serializes_concurrent_attempts_without_mixing_cache_states (tests.test_hia_incremental.HIAIncrementalTests.test_session_serializes_concurrent_attempts_without_mixing_cache_states) ... ok
+2026-11-01T01:20:55.1129234Z test_strict_json_and_legacy_collision_keep_exact_full_diagnostics (tests.test_hia_incremental.HIAIncrementalTests.test_strict_json_and_legacy_collision_keep_exact_full_diagnostics) ... ok
+2026-11-01T01:20:55.1211318Z test_unchanged_input_rechecks_all_shapes_and_reuses_exact_bodies (tests.test_hia_incremental.HIAIncrementalTests.test_unchanged_input_rechecks_all_shapes_and_reuses_exact_bodies) ... ok
+2026-11-01T01:20:55.1244633Z test_unregistered_copied_serialized_and_subclassed_sessions_fail_closed (tests.test_hia_incremental.HIAIncrementalTests.test_unregistered_copied_serialized_and_subclassed_sessions_fail_closed) ... ok
+2026-11-01T01:20:55.1327520Z test_aliased_actuals_do_not_equate_different_original_formal_origins (tests.test_hia_incremental_v8.V8IncrementalInterfaces.test_aliased_actuals_do_not_equate_different_original_formal_origins) ... ok
+2026-11-01T01:20:55.2364745Z test_cfg_direct_child_and_recursive_origins_survive_body_refactor (tests.test_hia_incremental_v8.V8IncrementalInterfaces.test_cfg_direct_child_and_recursive_origins_survive_body_refactor) ... ok
+2026-11-01T01:20:55.2460002Z test_changed_caller_body_never_reuses_prior_permission_check (tests.test_hia_incremental_v8.V8IncrementalInterfaces.test_changed_caller_body_never_reuses_prior_permission_check) ... ok
+2026-11-01T01:20:55.2462609Z test_interfaces_are_immutable_detached_and_include_every_loan_field (tests.test_hia_incremental_v8.V8IncrementalInterfaces.test_interfaces_are_immutable_detached_and_include_every_loan_field) ... ok
+2026-11-01T01:20:55.2690607Z test_origin_and_cleanup_can_change_in_one_atomic_patch_only (tests.test_hia_incremental_v8.V8IncrementalInterfaces.test_origin_and_cleanup_can_change_in_one_atomic_patch_only) ... ok
+2026-11-01T01:20:55.2850347Z test_original_parameter_rename_invalidates_caller_even_with_same_position (tests.test_hia_incremental_v8.V8IncrementalInterfaces.test_original_parameter_rename_invalidates_caller_even_with_same_position) ... ok
+2026-11-01T01:20:55.3007370Z test_returned_origin_cannot_reuse_caller_that_released_the_other_owner (tests.test_hia_incremental_v8.V8IncrementalInterfaces.test_returned_origin_cannot_reuse_caller_that_released_the_other_owner) ... ok
+2026-11-01T01:20:55.3151485Z test_returned_origin_edit_rechecks_unchanged_caller_and_changes_result (tests.test_hia_incremental_v8.V8IncrementalInterfaces.test_returned_origin_edit_rechecks_unchanged_caller_and_changes_result) ... ok
+2026-11-01T01:20:55.3347157Z test_unknown_schema_or_resource_export_never_uses_cached_bodies (tests.test_hia_incremental_v8.V8IncrementalInterfaces.test_unknown_schema_or_resource_export_never_uses_cached_bodies) ... ok
+2026-11-01T01:20:55.3671247Z test_v8_preserve_policy_rejects_origin_migration_without_replacing_baseline (tests.test_hia_incremental_v8.V8IncrementalInterfaces.test_v8_preserve_policy_rejects_origin_migration_without_replacing_baseline) ... ok
+2026-11-01T01:20:55.6234148Z test_actual_normal_failure_and_cooperative_cancel_cleanup_composes (tests.test_hia_optimization_contract.ExpansionResourceContractTests.test_actual_normal_failure_and_cooperative_cancel_cleanup_composes) ... ok
+2026-11-01T01:20:55.7015606Z test_actual_tick_reduction_requires_fresh_limits (tests.test_hia_optimization_contract.ExpansionResourceContractTests.test_actual_tick_reduction_requires_fresh_limits) ... ok
+2026-11-01T01:20:55.7794466Z test_budget_mode_distinguishes_actual_changed_call_failure (tests.test_hia_optimization_contract.ExpansionResourceContractTests.test_budget_mode_distinguishes_actual_changed_call_failure) ... ok
+2026-11-01T01:20:55.8093047Z test_cancel_cleanup_cannot_be_deleted_and_legacy_owner_return_is_not_upgraded (tests.test_hia_optimization_contract.ExpansionResourceContractTests.test_cancel_cleanup_cannot_be_deleted_and_legacy_owner_return_is_not_upgraded) ... ok
+2026-11-01T01:20:55.8830138Z test_each_resource_cap_refuses_before_runtime (tests.test_hia_optimization_contract.ExpansionResourceContractTests.test_each_resource_cap_refuses_before_runtime) ... ok
+2026-11-01T01:20:55.8899500Z test_exact_policy_rejects_missing_extra_and_numeric_boolean_fields (tests.test_hia_optimization_contract.ExpansionResourceContractTests.test_exact_policy_rejects_missing_extra_and_numeric_boolean_fields) ... ok
+2026-11-01T01:20:55.9094744Z test_finite_contract_rejects_a_valid_owner_carrying_cycle (tests.test_hia_optimization_contract.ExpansionResourceContractTests.test_finite_contract_rejects_a_valid_owner_carrying_cycle) ... ok
+2026-11-01T01:20:55.9408374Z test_first_trap_keeps_live_resource_ledger_without_inventing_cleanup (tests.test_hia_optimization_contract.ExpansionResourceContractTests.test_first_trap_keeps_live_resource_ledger_without_inventing_cleanup) ... ok
+2026-11-01T01:20:55.9711754Z test_proposal_is_detached_before_semantic_checker_can_observe_caller_changes (tests.test_hia_optimization_contract.ExpansionResourceContractTests.test_proposal_is_detached_before_semantic_checker_can_observe_caller_changes) ... ok
+2026-11-01T01:20:56.1781915Z test_receipt_cannot_change_budget_claim_policy_or_base_identity (tests.test_hia_optimization_contract.ExpansionResourceContractTests.test_receipt_cannot_change_budget_claim_policy_or_base_identity) ... ok
+2026-11-01T01:20:56.2311093Z test_receipt_for_another_typed_invocation_cannot_authorize_execution (tests.test_hia_optimization_contract.ExpansionResourceContractTests.test_receipt_for_another_typed_invocation_cannot_authorize_execution) ... ok
+2026-11-01T01:20:56.2519366Z test_recursive_chain_in_unused_definition_does_not_inherit_byte_profile (tests.test_hia_optimization_contract.ExpansionResourceContractTests.test_recursive_chain_in_unused_definition_does_not_inherit_byte_profile) ... ok
+2026-11-01T01:20:56.2662023Z test_valid_but_different_resource_operation_and_unresolved_import_refused (tests.test_hia_optimization_contract.ExpansionResourceContractTests.test_valid_but_different_resource_operation_and_unresolved_import_refused) ... ok
+2026-11-01T01:20:56.2691505Z test_actual_instructions_and_distinct_before_after_are_exported (tests.test_hia_register_safety.RegisterSafetyInputTests.test_actual_instructions_and_distinct_before_after_are_exported) ... ok
+2026-11-01T01:20:56.2793511Z test_three_negative_controls_reach_their_intended_definition_or_actual_core (tests.test_hia_register_safety.RegisterSafetyInputTests.test_three_negative_controls_reach_their_intended_definition_or_actual_core) ... ok
+2026-11-01T01:20:56.2801552Z test_unpinned_executable_is_rejected_before_any_execution (tests.test_hia_register_safety.RegisterSafetyInputTests.test_unpinned_executable_is_rejected_before_any_execution) ... ok
+2026-11-01T01:20:56.2816480Z test_used_last_literal_or_invalid_forward_reference_cannot_inherit_safety (tests.test_hia_register_safety.RegisterSafetyInputTests.test_used_last_literal_or_invalid_forward_reference_cannot_inherit_safety) ... ok
+2026-11-01T01:20:56.3524129Z test_cc_integration_preserves_client_and_flags_and_replaces_only_implementation (tests.test_ring_maintenance_qualification.RingMaintenanceQualificationTests.test_cc_integration_preserves_client_and_flags_and_replaces_only_implementation) ... ok
+2026-11-01T01:20:56.3928238Z test_changed_translated_library_is_refused_before_compiler_execution (tests.test_ring_maintenance_qualification.RingMaintenanceQualificationTests.test_changed_translated_library_is_refused_before_compiler_execution) ... ok
+2026-11-01T01:20:56.4329764Z test_duplicate_implementation_input_is_refused (tests.test_ring_maintenance_qualification.RingMaintenanceQualificationTests.test_duplicate_implementation_input_is_refused) ... ok
+2026-11-01T01:20:56.4332071Z test_historical_bug_is_not_silently_corrected (tests.test_ring_maintenance_qualification.RingMaintenanceQualificationTests.test_historical_bug_is_not_silently_corrected) ... ok
+2026-11-01T01:20:56.4337478Z test_incomplete_or_wrong_work_cannot_enter_host_summary (tests.test_ring_maintenance_qualification.RingMaintenanceQualificationTests.test_incomplete_or_wrong_work_cannot_enter_host_summary) ... ok
+2026-11-01T01:20:56.4373121Z test_late_failure_resets_completed_claims (tests.test_ring_maintenance_qualification.RingMaintenanceQualificationTests.test_late_failure_resets_completed_claims) ... ok
+2026-11-01T01:20:56.4418049Z test_upstream_blob_change_cannot_be_hidden_by_unchanged_manifest (tests.test_ring_maintenance_qualification.RingMaintenanceQualificationTests.test_upstream_blob_change_cannot_be_hidden_by_unchanged_manifest) ... ok
+2026-11-01T01:20:56.4447861Z test_whole_git_tree_rejects_changed_executable_mode (tests.test_ring_maintenance_qualification.RingMaintenanceQualificationTests.test_whole_git_tree_rejects_changed_executable_mode) ... ok
+2026-11-01T01:20:56.5065443Z test_wrong_source_head_retains_failure_and_no_completed_claims (tests.test_ring_maintenance_qualification.RingMaintenanceQualificationTests.test_wrong_source_head_retains_failure_and_no_completed_claims) ... ok
+2026-11-01T01:20:56.5359523Z test_real_owned_group_is_reaped_and_streams_retained (tests.test_hia_agent_public_tools.CodexTransportBoundaryTests.test_real_owned_group_is_reaped_and_streams_retained) ... ok
+2026-11-01T01:20:56.5368036Z test_tool_events_reject_but_complete_reported_usage_can_be_retained (tests.test_hia_agent_public_tools.CodexTransportBoundaryTests.test_tool_events_reject_but_complete_reported_usage_can_be_retained) ... ok
+2026-11-01T01:20:56.5370884Z test_usage_boolean_and_unknown_fields_are_not_counts (tests.test_hia_agent_public_tools.CodexTransportBoundaryTests.test_usage_boolean_and_unknown_fields_are_not_counts) ... ok
+2026-11-01T01:20:57.0163862Z test_author_references_execute_against_independent_new_oracles (tests.test_hia_agent_public_tools.PublicAgentProtocolTests.test_author_references_execute_against_independent_new_oracles) ... ok
+2026-11-01T01:20:57.0168690Z test_closed_rpc_rejects_duplicate_unknown_and_smuggled_fields (tests.test_hia_agent_public_tools.PublicAgentProtocolTests.test_closed_rpc_rejects_duplicate_unknown_and_smuggled_fields) ... ok
+2026-11-01T01:20:57.2671054Z test_comment_scalar_shortcut_fails_actual_public_resource_audit (tests.test_hia_agent_public_tools.PublicAgentProtocolTests.test_comment_scalar_shortcut_fails_actual_public_resource_audit) ... ok
+2026-11-01T01:20:57.2855425Z test_fallible_allocation_obeys_the_same_owned_buffer_contract (tests.test_hia_agent_public_tools.PublicAgentProtocolTests.test_fallible_allocation_obeys_the_same_owned_buffer_contract) ... ok
+2026-11-01T01:20:57.3152878Z test_numerically_correct_wrong_rust_signature_is_rejected_by_native_compiler (tests.test_hia_agent_public_tools.PublicAgentProtocolTests.test_numerically_correct_wrong_rust_signature_is_rejected_by_native_compiler) ... ok
+2026-11-01T01:20:57.6104162Z test_parameter_alpha_renaming_preserves_both_actual_native_interfaces (tests.test_hia_agent_public_tools.PublicAgentProtocolTests.test_parameter_alpha_renaming_preserves_both_actual_native_interfaces) ... ok
+2026-11-01T01:20:57.6107585Z test_prompt_never_contains_hidden_cases_or_reference_answers (tests.test_hia_agent_public_tools.PublicAgentProtocolTests.test_prompt_never_contains_hidden_cases_or_reference_answers) ... ok
+2026-11-01T01:20:57.6110074Z test_resource_task_rejects_equivalent_scalar_shortcut (tests.test_hia_agent_public_tools.PublicAgentProtocolTests.test_resource_task_rejects_equivalent_scalar_shortcut) ... ok
+2026-11-01T01:20:57.6162352Z test_store_load_in_uncalled_helper_do_not_satisfy_resource_task (tests.test_hia_agent_public_tools.PublicAgentProtocolTests.test_store_load_in_uncalled_helper_do_not_satisfy_resource_task) ... ok
+2026-11-01T01:20:57.6167565Z test_terminal_hidden_feedback_cannot_enter_model_history (tests.test_hia_agent_public_tools.PublicAgentProtocolTests.test_terminal_hidden_feedback_cannot_enter_model_history) ... ok
+2026-11-01T01:20:57.6169744Z test_unknown_usage_or_incomplete_denominator_never_passes_advantage (tests.test_hia_agent_public_tools.PublicAgentProtocolTests.test_unknown_usage_or_incomplete_denominator_never_passes_advantage) ... ok
+2026-11-01T01:20:57.6171979Z test_failed_episode_and_unknown_lifetime_cannot_pass_broad_claim (tests.test_hia_ndu_converged_holdout.ProspectiveNduCostTests.test_failed_episode_and_unknown_lifetime_cannot_pass_broad_claim) ... ok
+2026-11-01T01:20:57.6174419Z test_fake_negative_overhead_or_missing_original_build_is_not_credit (tests.test_hia_ndu_converged_holdout.ProspectiveNduCostTests.test_fake_negative_overhead_or_missing_original_build_is_not_credit) ... ok
+2026-11-01T01:20:57.6176923Z test_outer_build_replaces_inner_once_and_reuse_does_not_erase_it (tests.test_hia_ndu_converged_holdout.ProspectiveNduCostTests.test_outer_build_replaces_inner_once_and_reuse_does_not_erase_it) ... ok
+2026-11-01T01:20:58.1713053Z test_composed_proof_binds_final_executed_artifact (tests.test_hia_call_expansion.ExpandedGuardTests.test_composed_proof_binds_final_executed_artifact) ... ok
+2026-11-01T01:20:59.0885005Z test_cross_target_chain_is_not_silently_admitted (tests.test_hia_call_expansion.ExpandedGuardTests.test_cross_target_chain_is_not_silently_admitted) ... ok
+2026-11-01T01:20:59.8358283Z test_expansion_exposes_previously_unsupported_producer_to_inductive_proof (tests.test_hia_call_expansion.ExpandedGuardTests.test_expansion_exposes_previously_unsupported_producer_to_inductive_proof) ... ok
+2026-11-01T01:21:01.6607615Z test_solver_identity_drift_after_real_compilation_refuses_publication (tests.test_hia_call_expansion.ExpandedGuardTests.test_solver_identity_drift_after_real_compilation_refuses_publication) ... ok
+2026-11-01T01:21:01.8844241Z test_stale_intermediate_unlisted_change_and_unsafe_invariants_reject (tests.test_hia_call_expansion.ExpandedGuardTests.test_stale_intermediate_unlisted_change_and_unsafe_invariants_reject) ... ok
+2026-11-01T01:21:02.0383651Z test_unknown_and_timeout_cannot_build_a_partial_chain (tests.test_hia_call_expansion.ExpandedGuardTests.test_unknown_and_timeout_cannot_build_a_partial_chain) ... ok
+2026-11-01T01:21:02.1880734Z test_checker_drift_after_real_compile_withdraws_artifact (tests.test_hia_call_expansion.ExpansionNativeTests.test_checker_drift_after_real_compile_withdraws_artifact) ... ok
+2026-11-01T01:21:02.1993046Z test_forged_native_work_is_not_started (tests.test_hia_call_expansion.ExpansionNativeTests.test_forged_native_work_is_not_started) ... ok
+2026-11-01T01:21:02.3490012Z test_missing_receipt_identity_cannot_leave_a_published_artifact (tests.test_hia_call_expansion.ExpansionNativeTests.test_missing_receipt_identity_cannot_leave_a_published_artifact) ... ok
+2026-11-01T01:21:02.5079809Z test_proof_binds_actual_native_bytes_and_loop_result (tests.test_hia_call_expansion.ExpansionNativeTests.test_proof_binds_actual_native_bytes_and_loop_result) ... ok
+2026-11-01T01:21:02.6463765Z test_real_compilation_of_wrong_core_cannot_launder_artifact_binding (tests.test_hia_call_expansion.ExpansionNativeTests.test_real_compilation_of_wrong_core_cannot_launder_artifact_binding) ... ok
+2026-11-01T01:21:02.6547538Z test_borrowed_call_trap_order_and_live_resource_observation (tests.test_hia_call_expansion.ExpansionProofTests.test_borrowed_call_trap_order_and_live_resource_observation) ... ok
+2026-11-01T01:21:02.6600806Z test_budget_difference_is_explicit_and_never_a_preserved_trap_claim (tests.test_hia_call_expansion.ExpansionProofTests.test_budget_difference_is_explicit_and_never_a_preserved_trap_claim) ... ok
+2026-11-01T01:21:02.6634833Z test_direct_parameter_return_and_nonleaf_exclusion (tests.test_hia_call_expansion.ExpansionProofTests.test_direct_parameter_return_and_nonleaf_exclusion) ... ok
+2026-11-01T01:21:02.6692588Z test_fresh_names_are_unique_across_caller_branches (tests.test_hia_call_expansion.ExpansionProofTests.test_fresh_names_are_unique_across_caller_branches) ... ok
+2026-11-01T01:21:02.7434803Z test_harmful_reordering_is_rejected_even_when_ordinary_core_is_valid (tests.test_hia_call_expansion.ExpansionProofTests.test_harmful_reordering_is_rejected_even_when_ordinary_core_is_valid) ... ok
+2026-11-01T01:21:03.0213093Z test_loop_with_two_transferred_owners_and_multiple_returns (tests.test_hia_call_expansion.ExpansionProofTests.test_loop_with_two_transferred_owners_and_multiple_returns) ... ok
+2026-11-01T01:21:03.0884765Z test_missing_duplicated_forged_sites_and_unsafe_candidate_fail_closed (tests.test_hia_call_expansion.ExpansionProofTests.test_missing_duplicated_forged_sites_and_unsafe_candidate_fail_closed) ... ok
+2026-11-01T01:21:03.1027606Z test_nominal_composite_elaborates_before_leaf_proof (tests.test_hia_call_expansion.ExpansionProofTests.test_nominal_composite_elaborates_before_leaf_proof) ... ok
+2026-11-01T01:21:03.1029755Z test_callback_error_still_releases_both_owners_in_reverse_order (tests.test_cpp_callback_project.CallbackOracleTests.test_callback_error_still_releases_both_owners_in_reverse_order) ... ok
+2026-11-01T01:21:03.1032093Z test_second_allocation_refusal_releases_the_completed_first_member (tests.test_cpp_callback_project.CallbackOracleTests.test_second_allocation_refusal_releases_the_completed_first_member) ... ok
+2026-11-01T01:21:44.2868815Z test_borrowing_the_moved_from_owner_rejects (tests.test_cpp_callback_project.CallbackProjectTests.test_borrowing_the_moved_from_owner_rejects) ... ok
+2026-11-01T01:22:25.4329756Z test_callback_definition_cannot_be_omitted (tests.test_cpp_callback_project.CallbackProjectTests.test_callback_definition_cannot_be_omitted) ... ok
+2026-11-01T01:24:07.9611425Z test_closed_callback_implementation_and_native_cleanup (tests.test_cpp_callback_project.CallbackProjectTests.test_closed_callback_implementation_and_native_cleanup) ... ok
+2026-11-01T01:24:49.4793871Z test_mutating_callback_borrow_rejects (tests.test_cpp_callback_project.CallbackProjectTests.test_mutating_callback_borrow_rejects) ... ok
+2026-11-01T01:25:30.6240901Z test_null_callback_binding_rejects (tests.test_cpp_callback_project.CallbackProjectTests.test_null_callback_binding_rejects) ... ok
+2026-11-01T01:25:46.0597133Z test_pointer_escape_rejects_the_complete_project (tests.test_cpp_callback_project.CallbackProjectTests.test_pointer_escape_rejects_the_complete_project) ... ok
+2026-11-01T01:26:27.1868477Z test_second_callback_execution_outside_profile_rejects (tests.test_cpp_callback_project.CallbackProjectTests.test_second_callback_execution_outside_profile_rejects) ... ok
+2026-11-01T01:26:27.2190576Z test_656_path_graph_matches_independent_exhaustive_all_first_action_oracle (tests.test_hia_planning.FiniteCompressionTests.test_656_path_graph_matches_independent_exhaustive_all_first_action_oracle) ... ok
+2026-11-01T01:26:27.2208700Z test_complete_native_ties_are_preserved_even_with_different_first_actions (tests.test_hia_planning.FiniteCompressionTests.test_complete_native_ties_are_preserved_even_with_different_first_actions) ... ok
+2026-11-01T01:26:27.2212699Z test_current_state_and_intake_cannot_bypass_original_validator (tests.test_hia_planning.FiniteCompressionTests.test_current_state_and_intake_cannot_bypass_original_validator) ... ok
+2026-11-01T01:26:27.4131679Z test_differential_against_exhaustive_paths_with_costs_ties_and_rejections (tests.test_hia_planning.FiniteCompressionTests.test_differential_against_exhaustive_paths_with_costs_ties_and_rejections) ... ok
+2026-11-01T01:26:27.4174289Z test_exponential_equal_value_frontier_is_refused_without_laundering_ambiguity (tests.test_hia_planning.FiniteCompressionTests.test_exponential_equal_value_frontier_is_refused_without_laundering_ambiguity) ... ok
+2026-11-01T01:26:27.4234922Z test_large_graph_exceeds_enumeration_cap_but_compresses_without_partial_search (tests.test_hia_planning.FiniteCompressionTests.test_large_graph_exceeds_enumeration_cap_but_compresses_without_partial_search) ... ok
+2026-11-01T01:26:27.4245568Z test_q32_per_event_rounding_is_not_total_nanosecond_tie_breaking (tests.test_hia_planning.FiniteCompressionTests.test_q32_per_event_rounding_is_not_total_nanosecond_tie_breaking) ... ok
+2026-11-01T01:26:27.4257588Z test_stop_delivers_remaining_work_and_literal_abstention_stays_distinct (tests.test_hia_planning.FiniteCompressionTests.test_stop_delivers_remaining_work_and_literal_abstention_stays_distinct) ... ok
+2026-11-01T01:26:27.4262378Z test_full_future_plan_can_defer_a_real_transition (tests.test_hia_ndu_graph.FiniteGraphTests.test_full_future_plan_can_defer_a_real_transition) ... ok
+2026-11-01T01:26:27.4271504Z test_invalid_units_shapes_costs_and_unverified_current_state_reject (tests.test_hia_ndu_graph.FiniteGraphTests.test_invalid_units_shapes_costs_and_unverified_current_state_reject) ... ok
+2026-11-01T01:26:27.4275711Z test_known_rejection_cannot_be_laundered_by_later_verified_states (tests.test_hia_ndu_graph.FiniteGraphTests.test_known_rejection_cannot_be_laundered_by_later_verified_states) ... ok
+2026-11-01T01:26:27.4278540Z test_path_budget_exhaustion_is_not_silent_partial_search (tests.test_hia_ndu_graph.FiniteGraphTests.test_path_budget_exhaustion_is_not_silent_partial_search) ... ok
+2026-11-01T01:26:27.4286076Z test_sunk_observations_bind_support_without_changing_future_values (tests.test_hia_ndu_graph.FiniteGraphTests.test_sunk_observations_bind_support_without_changing_future_values) ... ok
+2026-11-01T01:26:27.4365228Z test_all_fixed_light_and_native_arms_refuse_exhausted_actual_budget (tests.test_hia_ndu_graph.CompilerGraphBoundaryTests.test_all_fixed_light_and_native_arms_refuse_exhausted_actual_budget) ... ok
+2026-11-01T01:26:27.4403214Z test_completed_measurements_update_only_the_observed_state (tests.test_hia_ndu_graph.CompilerGraphBoundaryTests.test_completed_measurements_update_only_the_observed_state) ... ok
+2026-11-01T01:26:27.4420958Z test_control_does_not_deliver_unaffordable_or_negative_value_paths (tests.test_hia_ndu_graph.CompilerGraphBoundaryTests.test_control_does_not_deliver_unaffordable_or_negative_value_paths) ... ok
+2026-11-01T01:26:27.4844010Z test_efficient_control_matches_complete_enumeration_without_native_wire (tests.test_hia_ndu_graph.CompilerGraphBoundaryTests.test_efficient_control_matches_complete_enumeration_without_native_wire) ... ok
+2026-11-01T01:26:27.4861815Z test_lightweight_control_searches_complete_future_paths (tests.test_hia_ndu_graph.CompilerGraphBoundaryTests.test_lightweight_control_searches_complete_future_paths) ... ok
+2026-11-01T01:26:27.4882824Z test_native_unresolved_and_ineligible_advice_never_mints_authority (tests.test_hia_ndu_graph.CompilerGraphBoundaryTests.test_native_unresolved_and_ineligible_advice_never_mints_authority) ... ok
+2026-11-01T01:26:27.4884299Z 
+2026-11-01T01:26:27.4886535Z ----------------------------------------------------------------------
+2026-11-01T01:26:27.4887428Z Ran 175 tests in 335.036s
+2026-11-01T01:26:27.4887819Z 
+2026-11-01T01:26:27.4887984Z OK
+2026-11-01T01:26:27.5346655Z ##[group]Run python tools/bootstrap_verification.py --directory "$RUNNER_TEMP/hepta-convergence-tools" --lean-only
+2026-11-01T01:26:27.5347557Z [36;1mpython tools/bootstrap_verification.py --directory "$RUNNER_TEMP/hepta-convergence-tools" --lean-only[0m
+2026-11-01T01:26:27.5348153Z [36;1mpython tools/qualify_hia_register_safety.py \[0m
+2026-11-01T01:26:27.5348589Z [36;1m  --lean "$RUNNER_TEMP/hepta-convergence-tools/lean-4.19.0/bin/lean" \[0m
+2026-11-01T01:26:27.5349291Z [36;1m  --output-directory artifacts/intelligent-assembly/register-safety[0m
+2026-11-01T01:26:27.5349749Z [36;1mpython tools/qualify_hia_optimization_contract.py \[0m
+2026-11-01T01:26:27.5350239Z [36;1m  --output artifacts/intelligent-assembly/optimization-resource-contract.json[0m
+2026-11-01T01:26:27.5373024Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-01T01:26:27.5373375Z env:
+2026-11-01T01:26:27.5373654Z   HEPTA_SOURCE_SHA: bd450cb0ebee40db175011f54d8b34c260d13c49
+2026-11-01T01:26:27.5374054Z   CLANG: /usr/bin/clang-20
+2026-11-01T01:26:27.5374295Z   CLANGXX: /usr/bin/clang++-20
+2026-11-01T01:26:27.5374536Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-01T01:26:27.5374787Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-01T01:26:27.5375028Z   PYTHONUNBUFFERED: 1
+2026-11-01T01:26:27.5375247Z   NATIVE_NDU_REQUESTED: false
+2026-11-01T01:26:27.5375544Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:26:27.5376472Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-11-01T01:26:27.5376912Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:26:27.5377293Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:26:27.5377683Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:26:27.5378065Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-11-01T01:26:27.5378527Z   RUSTC: /home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc
+2026-11-01T01:26:27.5378933Z ##[endgroup]
+2026-11-01T01:26:27.6062740Z {"component": "lean", "event": "download_attempt", "attempt": 1, "maximum_attempts": 4}
+2026-11-01T01:26:31.4208709Z {
+2026-11-01T01:26:31.4209258Z   "lean": "/home/runner/work/_temp/hepta-convergence-tools/lean-4.19.0/bin/lean"
+2026-11-01T01:26:31.4209774Z }
+2026-11-01T01:26:36.4021918Z {"ok": true, "theorems": 14, "negative_controls": 3, "vm_cases": 272}
+2026-11-01T01:26:37.8180617Z {"ok": true, "exit_cases": 4, "budget_difference_cases": 2, "rejection_cases": 3, "tests_run": 13}
+2026-11-01T01:26:37.8405132Z ##[group]Run python tools/qualify_cpp_callback_project.py \
+2026-11-01T01:26:37.8406155Z [36;1mpython tools/qualify_cpp_callback_project.py \[0m
+2026-11-01T01:26:37.8406893Z [36;1m  --workdir artifacts/intelligent-assembly/cpp-callback \[0m
+2026-11-01T01:26:37.8407623Z [36;1m  --clang "$CLANG" --clangxx "$CLANGXX" --cc gcc \[0m
+2026-11-01T01:26:37.8408213Z [36;1m  --iterations 50000 --repeats 3[0m
+2026-11-01T01:26:37.8440535Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-01T01:26:37.8441130Z env:
+2026-11-01T01:26:37.8441587Z   HEPTA_SOURCE_SHA: bd450cb0ebee40db175011f54d8b34c260d13c49
+2026-11-01T01:26:37.8442219Z   CLANG: /usr/bin/clang-20
+2026-11-01T01:26:37.8442637Z   CLANGXX: /usr/bin/clang++-20
+2026-11-01T01:26:37.8443077Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-01T01:26:37.8443536Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-01T01:26:37.8443973Z   PYTHONUNBUFFERED: 1
+2026-11-01T01:26:37.8444366Z   NATIVE_NDU_REQUESTED: false
+2026-11-01T01:26:37.8444982Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:26:37.8445744Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-11-01T01:26:37.8446780Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:26:37.8447467Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:26:37.8448162Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:26:37.8448878Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-11-01T01:26:37.8449723Z   RUSTC: /home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc
+2026-11-01T01:26:37.8450443Z ##[endgroup]
+2026-11-01T01:28:20.2213580Z {"ok": true, "error": null, "cases": [1185, 1185], "costs": {"migration_wall_ns": 82919145986, "qualification_wall_ns": 99848403817, "human_engineering_seconds": null, "performance_comparison_performed": true, "process_peak_rss_kib": 206380, "child_max_peak_rss_kib": 206380}}
+2026-11-01T01:28:20.3096685Z ##[group]Run python tools/qualify_hia_call_expansion.py \
+2026-11-01T01:28:20.3097181Z [36;1mpython tools/qualify_hia_call_expansion.py \[0m
+2026-11-01T01:28:20.3097605Z [36;1m  --output artifacts/intelligent-assembly/call-expansion \[0m
+2026-11-01T01:28:20.3097985Z [36;1m  --clang "$CLANG" \[0m
+2026-11-01T01:28:20.3098499Z [36;1m  --component-core artifacts/intelligent-assembly/cpp-callback/three_weight/standalone.core.json[0m
+2026-11-01T01:28:20.3120110Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-01T01:28:20.3120448Z env:
+2026-11-01T01:28:20.3120716Z   HEPTA_SOURCE_SHA: bd450cb0ebee40db175011f54d8b34c260d13c49
+2026-11-01T01:28:20.3121050Z   CLANG: /usr/bin/clang-20
+2026-11-01T01:28:20.3121283Z   CLANGXX: /usr/bin/clang++-20
+2026-11-01T01:28:20.3121527Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-01T01:28:20.3121783Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-01T01:28:20.3122029Z   PYTHONUNBUFFERED: 1
+2026-11-01T01:28:20.3122280Z   NATIVE_NDU_REQUESTED: false
+2026-11-01T01:28:20.3122590Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:28:20.3123009Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-11-01T01:28:20.3123433Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:28:20.3123819Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:28:20.3124207Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:28:20.3124591Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-11-01T01:28:20.3125070Z   RUSTC: /home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc
+2026-11-01T01:28:20.3125470Z ##[endgroup]
+2026-11-01T01:29:14.9485215Z {"claims": {"backend_refinement_proved": false, "performance_qualified": false, "safety_theorem": false}, "component_input_unchanged": true, "profiles": [{"name": "loop", "native_observations": 20, "semantic_cases": 10, "vm_failure_injection_cases": 8}, {"name": "guarded_loop", "native_observations": 20, "semantic_cases": 10, "vm_failure_injection_cases": 8}, {"name": "composite", "native_observations": 10, "semantic_cases": 5, "vm_failure_injection_cases": 8}, {"name": "borrowed", "native_observations": 6, "semantic_cases": 3, "vm_failure_injection_cases": 6}, {"name": "captured_cpp_component", "native_observations": 1728, "semantic_cases": 864, "vm_failure_injection_cases": 8}], "schema": "hepta.hia.call-expansion-qualification.v1", "sources_unchanged": true, "status": "passed", "total_wall_ns": 54320808477}
+2026-11-01T01:29:14.9806737Z ##[group]Run python - <<'PY'
+2026-11-01T01:29:14.9807116Z [36;1mpython - <<'PY'[0m
+2026-11-01T01:29:14.9807353Z [36;1mimport json, os[0m
+2026-11-01T01:29:14.9807598Z [36;1mfrom pathlib import Path[0m
+2026-11-01T01:29:14.9807920Z [36;1mroot = Path('artifacts/intelligent-assembly')[0m
+2026-11-01T01:29:14.9808327Z [36;1munit = json.loads((root / 'UNIT_RESULT.json').read_bytes())[0m
+2026-11-01T01:29:14.9808832Z [36;1mcallback = json.loads((root / 'cpp-callback/qualification.json').read_bytes())[0m
+2026-11-01T01:29:14.9809385Z [36;1mexpansion = json.loads((root / 'call-expansion/RESULT.json').read_bytes())[0m
+2026-11-01T01:29:14.9809875Z [36;1massert unit['status'] == 'passed' and unit['skipped'] == [][0m
+2026-11-01T01:29:14.9810299Z [36;1massert callback['ok'] is True, callback.get('error')[0m
+2026-11-01T01:29:14.9810786Z [36;1massert {row['name'] for row in callback['variants']} == {'three_weight', 'five_weight'}[0m
+2026-11-01T01:29:14.9811328Z [36;1massert callback['allocation_high_water']['ok'] is True[0m
+2026-11-01T01:29:14.9811708Z [36;1massert callback['performance']['ok'] is True[0m
+2026-11-01T01:29:14.9812036Z [36;1massert expansion['status'] == 'passed'[0m
+2026-11-01T01:29:14.9812562Z [36;1massert expansion['sources_unchanged'] is True and expansion['component_input_unchanged'] is True[0m
+2026-11-01T01:29:14.9813138Z [36;1massert {row['name'] for row in expansion['profiles']} == {[0m
+2026-11-01T01:29:14.9813624Z [36;1m    'loop', 'guarded_loop', 'composite', 'borrowed', 'captured_cpp_component'}[0m
+2026-11-01T01:29:14.9814295Z [36;1mcases = sum(row['case_count'] for row in callback['variants'])[0m
+2026-11-01T01:29:14.9814800Z [36;1mobservations = sum(row['native_observations'] for row in expansion['profiles'])[0m
+2026-11-01T01:29:14.9815325Z [36;1mwith Path(os.environ['GITHUB_STEP_SUMMARY']).open('a') as summary:[0m
+2026-11-01T01:29:14.9816146Z [36;1m    summary.write(f'### Core closure evidence\n\nSource: `{os.environ["HEPTA_SOURCE_SHA"]}`.\n\n'[0m
+2026-11-01T01:29:14.9816820Z [36;1m                  f'{unit["tests_run"]} unit tests, zero skips; {cases} callback cases per implementation; '[0m
+2026-11-01T01:29:14.9817380Z [36;1m                  f'{observations} native call-expansion observations.\n\n'[0m
+2026-11-01T01:29:14.9817918Z [36;1m                  'C++ `-O3` and `-O3 -flto` measurements are descriptive; no relative speed gate. '[0m
+2026-11-01T01:29:14.9818480Z [36;1m                  'Native NDU qualification belongs to the separate optional job.\n')[0m
+2026-11-01T01:29:14.9818883Z [36;1mPY[0m
+2026-11-01T01:29:14.9819142Z [36;1mtest "$(git rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"[0m
+2026-11-01T01:29:14.9819484Z [36;1mgit diff --exit-code[0m
+2026-11-01T01:29:14.9819743Z [36;1mgit diff --cached --exit-code[0m
+2026-11-01T01:29:14.9841635Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-01T01:29:14.9841981Z env:
+2026-11-01T01:29:14.9842240Z   HEPTA_SOURCE_SHA: bd450cb0ebee40db175011f54d8b34c260d13c49
+2026-11-01T01:29:14.9842594Z   CLANG: /usr/bin/clang-20
+2026-11-01T01:29:14.9842829Z   CLANGXX: /usr/bin/clang++-20
+2026-11-01T01:29:14.9843074Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-01T01:29:14.9843325Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-01T01:29:14.9843562Z   PYTHONUNBUFFERED: 1
+2026-11-01T01:29:14.9843781Z   NATIVE_NDU_REQUESTED: false
+2026-11-01T01:29:14.9844078Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:29:14.9844498Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-11-01T01:29:14.9844918Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:29:14.9845290Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:29:14.9845659Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:29:14.9846373Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-11-01T01:29:14.9846855Z   RUSTC: /home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc
+2026-11-01T01:29:14.9847453Z ##[endgroup]
+2026-11-01T01:29:15.5960283Z ##[group]Run actions/upload-artifact@v4
+2026-11-01T01:29:15.5960584Z with:
+2026-11-01T01:29:15.5960876Z   name: hia-closure-core-bd450cb0ebee40db175011f54d8b34c260d13c49
+2026-11-01T01:29:15.5961262Z   path: artifacts/intelligent-assembly
+2026-11-01T01:29:15.5961539Z   if-no-files-found: error
+2026-11-01T01:29:15.5961769Z   compression-level: 6
+2026-11-01T01:29:15.5961984Z   overwrite: false
+2026-11-01T01:29:15.5962196Z   include-hidden-files: false
+2026-11-01T01:29:15.5962438Z env:
+2026-11-01T01:29:15.5962704Z   HEPTA_SOURCE_SHA: bd450cb0ebee40db175011f54d8b34c260d13c49
+2026-11-01T01:29:15.5963033Z   CLANG: /usr/bin/clang-20
+2026-11-01T01:29:15.5963262Z   CLANGXX: /usr/bin/clang++-20
+2026-11-01T01:29:15.5963506Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-01T01:29:15.5963765Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-01T01:29:15.5964004Z   PYTHONUNBUFFERED: 1
+2026-11-01T01:29:15.5964218Z   NATIVE_NDU_REQUESTED: false
+2026-11-01T01:29:15.5964547Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:29:15.5964971Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-11-01T01:29:15.5965391Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:29:15.5965768Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:29:15.5966442Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-11-01T01:29:15.5966828Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-11-01T01:29:15.5967470Z   RUSTC: /home/runner/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu/bin/rustc
+2026-11-01T01:29:15.5967880Z ##[endgroup]
+2026-11-01T01:29:15.7710710Z (node:5234) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-01T01:29:15.7712048Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-01T01:29:15.8127361Z With the provided path, there will be 146 files uploaded
+2026-11-01T01:29:15.8131868Z Artifact name is valid!
+2026-11-01T01:29:15.8132819Z Root directory input is valid!
+2026-11-01T01:29:16.2091976Z Beginning upload of artifact content to blob storage
+2026-11-01T01:29:16.8502265Z (node:5234) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-11-01T01:29:17.6399413Z Uploaded bytes 2193221
+2026-11-01T01:29:17.7177237Z Finished uploading artifact content to blob storage!
+2026-11-01T01:29:17.7178608Z SHA256 digest of uploaded artifact zip is 2de9f828f1417a8a43a6ac2c39283fce5c32651f4dd80e4a600009e571bf378c
+2026-11-01T01:29:17.7180526Z Finalizing artifact upload
+2026-11-01T01:29:18.1808930Z Artifact hia-closure-core-bd450cb0ebee40db175011f54d8b34c260d13c49.zip successfully finalized. Artifact ID 13065366749
+2026-11-01T01:29:18.1810370Z Artifact hia-closure-core-bd450cb0ebee40db175011f54d8b34c260d13c49 has been successfully uploaded! Final size is 2193221 bytes. Artifact ID is 13065366749
+2026-11-01T01:29:18.1816707Z Artifact download URL: https://github.com/TrillionniumFoundation/Hepta/actions/runs/41258514699/artifacts/13065366749
+2026-11-01T01:29:18.2036703Z Post job cleanup.
+2026-11-01T01:29:18.3267941Z (node:5247) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-01T01:29:18.3268875Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-01T01:29:18.3484753Z Post job cleanup.
+2026-11-01T01:29:18.4439446Z [command]/usr/bin/git version
+2026-11-01T01:29:18.4519682Z git version 2.56.0
+2026-11-01T01:29:18.4564589Z Temporarily overriding HOME='/home/runner/work/_temp/cb5c50b1-eee2-4c56-9c21-da333ee2f4d8' before making global git config changes
+2026-11-01T01:29:18.4565615Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-01T01:29:18.4570845Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-01T01:29:18.4624300Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-01T01:29:18.4680894Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-01T01:29:18.4971961Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-01T01:29:18.5011486Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-01T01:29:18.5326800Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-01T01:29:18.5367804Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-01T01:29:18.5779204Z Cleaning up orphan processes
+2026-11-01T01:29:18.6258848Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-python@v5, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
