@@ -336,21 +336,33 @@ class HostRegion:
             with self._lock:
                 if len(self._jobs)>=self._max_calls: _reject("native call budget exhausted")
                 lease=self._borrow(mode,generation,offset,length,True)
-                grant=self._lease_grants[lease._token]
-                native_address=self._address+grant.offset
-                native_length=grant.length
-                token=secrets.token_hex(16)
-                job={"lease":lease,"library":library,"done":threading.Event(),"uncertain":False,"result":None,"error":None,"finalized":False}
-                def worker():
-                    try:
-                        output=ctypes.c_uint64()
-                        code=function(native_address,native_length,argument,ctypes.byref(output))
-                        job["result"]=(code,output.value)
-                    except BaseException as error:
-                        job["error"]={"type":type(error).__name__,"message":str(error)}
-                    finally: job["done"].set()
-                thread=threading.Thread(target=worker,name="hia-region-"+token[:8],daemon=False)
-                job["thread"]=thread;self._jobs[token]=job
+                # Before thread.start() the C entry cannot have run. Release
+                # newly admitted state on a *prestart* host exception; do not
+                # confuse it with an ambiguous start() outcome below.
+                token=None
+                try:
+                    grant=self._lease_grants[lease._token]
+                    native_address=self._address+grant.offset
+                    native_length=grant.length
+                    token=secrets.token_hex(16)
+                    job={"lease":lease,"library":library,"done":threading.Event(),"uncertain":False,"result":None,"error":None,"finalized":False}
+                    def worker():
+                        try:
+                            output=ctypes.c_uint64()
+                            code=function(native_address,native_length,argument,ctypes.byref(output))
+                            job["result"]=(code,output.value)
+                        except BaseException as error:
+                            job["error"]={"type":type(error).__name__,"message":str(error)}
+                        finally: job["done"].set()
+                    thread=threading.Thread(target=worker,name="hia-region-"+token[:8],daemon=False)
+                    job["thread"]=thread;self._jobs[token]=job
+                except BaseException:
+                    # No thread.start() attempt; retire the precise internal
+                    # grant and let the outer handler balance library._active.
+                    if token is not None: self._jobs.pop(token,None)
+                    self._release_lease(lease,internal=True)
+                    lease=None
+                    raise
                 try: thread.start()
                 except BaseException:
                     # start may have taken effect before raising. No successful
