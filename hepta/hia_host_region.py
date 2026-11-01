@@ -256,8 +256,10 @@ class HostRegion:
         if len(self._leases)>=self._max_leases: _reject("lease budget exhausted")
         if self._leases and (mode=="write" or any(g.mode=="write" for g in self._lease_grants.values())):
             _reject("shared-read/exclusive-write conflict")
-        if not self._leases: self._protect(mode)
+        # Mint the lease identity before changing kernel page permissions:
+        # a failed identity source must leave no writable unowned mapping.
         lease=RegionLease(self,mode,offset,length,generation,internal)
+        if not self._leases: self._protect(mode)
         self._leases[lease._token]=lease
         self._lease_grants[lease._token]=_LeaseGrant(mode,offset,length,generation,internal)
         self._event("borrowed",mode=mode,offset=offset,length=length)
