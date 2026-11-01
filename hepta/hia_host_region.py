@@ -36,6 +36,20 @@ MAX_LIBRARIES=16
 _REGISTRY_LOCK=threading.RLock()
 _REGIONS={}
 _LIBRARIES={}
+
+
+def _retire_registered_owner(registry, owner):
+    """Retire only this owner, even when its exposed identity label changed.
+
+    Registry bounds are at most sixteen, so identity lookup is bounded.
+    Never let a mutable token select another retained native owner.
+    """
+    with _REGISTRY_LOCK:
+        key=next((token for token, registered in registry.items() if registered is owner),None)
+        if key is not None:
+            del registry[key]
+
+
 _IDENT=re.compile(r"[A-Za-z_][A-Za-z_0-9]{0,127}\Z")
 
 
@@ -126,7 +140,7 @@ class NativeRegionLibrary:
         except BaseException:
             self._closed=True;self._release.attempt()
             if self._release.complete and not self._debts:
-                with _REGISTRY_LOCK: _LIBRARIES.pop(self._token,None)
+                _retire_registered_owner(_LIBRARIES,self)
             raise
 
     def _acquire(self,symbol):
@@ -158,7 +172,7 @@ class NativeRegionLibrary:
             if self._active: _reject("native code retained while a region call may execute")
             self._closed=True;result=self._release.attempt()
             if not self._release.complete or self._debts: _reject("native retirement uncertain; work permanently denied")
-            with _REGISTRY_LOCK: _LIBRARIES.pop(self._token,None)
+            _retire_registered_owner(_LIBRARIES,self)
             return result
 
 
@@ -510,7 +524,7 @@ class HostRegion:
             except BaseException as error: self._release_report["fd_error"]=str(error)
         if all(self._release_report[k] in {"closed","not_acquired"} for k in ("mapping","fd")):
             self._state="closed"
-            with _REGISTRY_LOCK: _REGIONS.pop(self._token,None)
+            _retire_registered_owner(_REGIONS,self)
         else: self._state="permanent_deny"
 
     def close(self):
