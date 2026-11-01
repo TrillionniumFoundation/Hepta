@@ -366,7 +366,27 @@ class HostRegion:
             del self._lease_grants[token]
             lease._closed=True
             if not self._leases: self._protect("none")
-            self._event("released",mode=grant.mode)
+            try:
+                self._event("released",mode=grant.mode)
+            except BaseException as error:
+                # The grant was retired, but its public release receipt may
+                # have failed before or after append. Never leave this
+                # generation ready for a subsequent native admission.
+                try:
+                    self._quarantine("lease release receipt unconfirmed",
+                                     permanent=self._state=="permanent_deny")
+                except BaseException as quarantine_error:
+                    # Neither release nor quarantine can be receipted. Deny
+                    # permanently rather than guessing audit completeness.
+                    self._unprovable_quiescence=True
+                    self._state="permanent_deny"
+                    self._reason="lease and quarantine receipts unconfirmed"
+                    raise HostRegionUncertain(
+                        "lease and quarantine receipts unconfirmed; permanently denied"
+                    ) from quarantine_error
+                raise HostRegionUncertain(
+                    "lease release unconfirmed; quiescent recovery required"
+                ) from error
 
     def _quarantine(self,reason,*,permanent=False):
         if self._state not in {"quarantined","permanent_deny"}:
