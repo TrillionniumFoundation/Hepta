@@ -93,7 +93,7 @@ assert recovered["native_jobs"] == 0 and recovered["write_leases"] == 0, recover
 assert library.snapshot()["active_calls"] == 0
 generation = recovered["generation"]
 with region.borrow("read", generation=generation) as lease:
-    assert lease.read() == b"\\x00" * 7, "native-mutated memory not zeroed"
+    assert lease.read() == b"\x00" * 7, "native-mutated memory not zeroed"
 assert region.call(library, "region_fill", generation=generation, argument=13) == sum(range(13, 20))
 assert region.snapshot()["observed_mapping_permissions"] == "---s"
 region.close()
@@ -126,7 +126,7 @@ class RecoveryReceiptTests(unittest.TestCase):
         )
         self.assertEqual(
             result.returncode, 0,
-            f"stage={stage} stdout={result.stdout}\\nstderr={result.stderr}",
+            f"stage={stage} stdout={result.stdout}\nstderr={result.stderr}",
         )
         self.assertIn("PASS native receipt recovery refuses", result.stdout)
 
