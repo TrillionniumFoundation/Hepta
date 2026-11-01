@@ -378,7 +378,14 @@ class HostRegion:
                     grant=self._lease_grants[lease._token]
                     native_address=self._address+grant.offset
                     native_length=grant.length
-                    token=secrets.token_hex(16)
+                    # Validate the candidate BEFORE assigning it to the cleanup
+                    # key: on rejection the prestart handler must not pop an
+                    # existing live worker with the same injected identity.
+                    candidate=secrets.token_hex(16)
+                    if (type(candidate) is not str or re.fullmatch(r"[0-9a-f]{32}",candidate) is None
+                            or candidate in self._jobs):
+                        _reject("malformed or duplicate native job identity")
+                    token=candidate
                     job={"lease":lease,"library":library,"done":threading.Event(),"uncertain":False,"result":None,"error":None,"finalized":False}
                     def worker():
                         try:
