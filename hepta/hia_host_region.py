@@ -365,7 +365,28 @@ class HostRegion:
             del self._leases[token]
             del self._lease_grants[token]
             lease._closed=True
-            if not self._leases: self._protect("none")
+            if not self._leases:
+                try:
+                    self._protect("none")
+                except BaseException as error:
+                    # The grant is already retired, but mprotect may have
+                    # failed before *or after* changing physical page rights.
+                    # An ambiguous last-lease revocation may not leave the old
+                    # generation ready or permit later unmapping/recovery.
+                    self._unprovable_quiescence=True
+                    if self._state=="permanent_deny":
+                        # _protect marks kernel failure permanent before
+                        # throwing; still revoke the prior generation fence.
+                        self._generation+=1
+                    try:
+                        self._quarantine("last-lease page revocation unconfirmed",permanent=True)
+                    except BaseException as receipt_error:
+                        raise HostRegionUncertain(
+                            "last-lease page revocation and quarantine unconfirmed; permanently denied"
+                        ) from receipt_error
+                    raise HostRegionUncertain(
+                        "last-lease page revocation unconfirmed; permanently denied"
+                    ) from error
             try:
                 self._event("released",mode=grant.mode)
             except BaseException as error:
