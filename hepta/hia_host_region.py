@@ -412,10 +412,24 @@ class HostRegion:
                     thread=threading.Thread(target=worker,name="hia-region-"+token[:8],daemon=False)
                     job["thread"]=thread;self._jobs[token]=job
                 except BaseException:
-                    # No thread.start() attempt; retire the precise internal
-                    # grant and let the outer handler balance library._active.
+                    # No thread.start() attempt. A release receipt may itself
+                    # fail *after* revoking a lease. Keep the epoch quarantined,
+                    # but still settle the code pin acquired for this call:
+                    # there is provably no worker that can execute it.
                     if token is not None: self._jobs.pop(token,None)
-                    self._release_lease(lease,internal=True)
+                    try:
+                        self._release_lease(lease,internal=True)
+                    except BaseException as error:
+                        try:
+                            self._quarantine("prestart lease retirement unconfirmed",
+                                             permanent=self._state=="permanent_deny")
+                        finally:
+                            # The outer handler must balance library._active
+                            # even when lease/event retirement throws.
+                            lease=None
+                        raise HostRegionUncertain(
+                            "prestart lease retirement unconfirmed; region quarantined"
+                        ) from error
                     lease=None
                     raise
                 try: thread.start()
