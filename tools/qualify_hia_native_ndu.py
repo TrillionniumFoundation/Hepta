@@ -713,17 +713,47 @@ def evaluate(report,spec):
                 "passed": ratios["median_ratio"] <= gate["hia_median_ratio_maximum"]
                           and ratios["p95_ratio"] <= gate["hia_tail_ratio_maximum"]
                           and ratios["p99_ratio"] <= gate["hia_tail_ratio_maximum"]})
+    # Service-scope comparisons are meaningful only after each real policy
+    # execution completed once for each registered episode.  A dictionary keyed
+    # by arm silently overwrites replayed receipts; an unchecked status could
+    # turn a failed native attempt into an apparently cheap success.
+    arms = ("fixed", "exact_dp", "greedy", "native_ndu")
+    episodes = spec.get("episodes")
+    require(type(episodes) is list and episodes and spec.get("policy_arms") == list(arms),
+            "complete registered policy and episode cohort required")
+    policy_runs = report.get("policy_runs")
+    require(type(policy_runs) is list and len(policy_runs) == len(episodes) * len(arms),
+            "one completed policy receipt per episode and arm required")
+    by_episode = {number: {} for number in range(len(episodes))}
+    for row in policy_runs:
+        require(type(row) is dict and type(row.get("episode")) is int
+                and 0 <= row["episode"] < len(episodes)
+                and type(row.get("arm")) is str and row["arm"] in arms,
+                "unregistered episode or policy arm")
+        require(row.get("status") == "passed"
+                and type(row.get("service_total_ns")) is int
+                and 0 < row["service_total_ns"] <= (1 << 63) - 1
+                and type(row.get("native_invocations")) is int
+                and 0 <= row["native_invocations"] <= len(episodes[row["episode"]]["sizes"])
+                and (row["arm"] == "native_ndu" or row["native_invocations"] == 0),
+                "failed, incomplete or malformed native policy receipt")
+        require(row["arm"] not in by_episode[row["episode"]],
+                "replayed or duplicated policy receipt")
+        by_episode[row["episode"]][row["arm"]] = row
+    require(all(set(rows) == set(arms) for rows in by_episode.values()),
+            "incomplete policy and episode receipt cohort")
     economies=[]
-    for episode in range(len(spec["episodes"])):
-        rows={r["arm"]:r for r in report["policy_runs"] if r["episode"]==episode}
+    for episode in range(len(episodes)):
+        rows=by_episode[episode]
         for name in ("fixed","exact_dp","greedy"):
             economies.append({"episode":episode,"baseline":name,"ndu_ns":rows["native_ndu"]["service_total_ns"],
                 "baseline_ns":rows[name]["service_total_ns"],"ratio":rows["native_ndu"]["service_total_ns"]/rows[name]["service_total_ns"],
                 "passed":rows["native_ndu"]["service_total_ns"]<rows[name]["service_total_ns"]})
-    native_calls = sum(r.get("native_invocations", 0) for r in report["policy_runs"]
-                       if r["arm"] == "native_ndu")
+    native_calls = sum(by_episode[number]["native_ndu"]["native_invocations"]
+                       for number in range(len(episodes)))
     gated_policy_wins = all(r["passed"] for r in economies)
     return {"performance_comparisons":performance,"economic_comparisons":economies,
+            "economic_receipts_exact_and_passed": True,
             "four_language_finite_correctness_and_allocator_probes":True,
             "performance_gate_passed":all(r["passed"] for r in performance),
             "service_scope_gated_policy_benefit_established":gated_policy_wins,
