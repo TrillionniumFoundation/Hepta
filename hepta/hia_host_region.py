@@ -107,6 +107,7 @@ class NativeRegionLibrary:
         if type(contract) is not TrustedRegionContract: _reject("exact trusted FFI contract required")
         self._permissions=contract.admitted()
         self._lock=threading.RLock();self._active=0;self._closed=False
+        self._retirement_uncertain=False
         self._token=secrets.token_hex(16);self._release=_NativeRelease(None,None)
         self._debts=[];self._symbols={};self._mapping=None
         self.artifact_sha256=expected_sha256
@@ -146,7 +147,7 @@ class NativeRegionLibrary:
     def _acquire(self,symbol):
         if type(symbol) is not str: _reject("built-in native symbol name required")
         with self._lock:
-            if self._closed or symbol not in self._symbols: _reject("native library closed or entry not admitted")
+            if self._closed or self._retirement_uncertain or symbol not in self._symbols: _reject("native library closed, pin retirement uncertain or entry not admitted")
             # The same open descriptor and loader reference remain retained.
             verify_loaded_symbols(self._release.fd,{symbol:self._symbols[symbol]})
             self._active+=1
@@ -163,13 +164,15 @@ class NativeRegionLibrary:
     def snapshot(self):
         with self._lock:
             return {"artifact_sha256":self.artifact_sha256,"active_calls":self._active,
-                "closed":self._closed,"loaded_mapping":copy.deepcopy(self._mapping),
+                "closed":self._closed,"retirement_uncertain":self._retirement_uncertain,
+                "loaded_mapping":copy.deepcopy(self._mapping),
                 "release":self._release.snapshot(),"unresolved_input_closes":len(self._debts),
                 "trusted_contract":"synchronous bounded access; no pointer retention or detached native work"}
 
     def close(self):
         with self._lock:
-            if self._active: _reject("native code retained while a region call may execute")
+            if self._active or self._retirement_uncertain:
+                _reject("native code pin retained or retirement receipt uncertain")
             self._closed=True;result=self._release.attempt()
             if not self._release.complete or self._debts: _reject("native retirement uncertain; work permanently denied")
             _retire_registered_owner(_LIBRARIES,self)
@@ -512,7 +515,22 @@ class HostRegion:
                     raise HostRegionUncertain("native worker launch uncertain; region retained permanently")
         except BaseException:
             if lease is None:
-                library._finish()
+                try:
+                    library._finish()
+                except BaseException as error:
+                    # Even a provably unstarted call can lose its code-owner
+                    # retirement receipt before or after the active decrement.
+                    # Neither retry a numeric pin nor permit an unconfirmed
+                    # code owner to unload or admit new calls.
+                    with library._lock:
+                        library._retirement_uncertain=True
+                    with self._lock:
+                        self._unprovable_quiescence=True
+                        self._quarantine("prestart native code pin release unconfirmed",
+                                         permanent=True)
+                    raise HostRegionUncertain(
+                        "prestart native code pin retirement unconfirmed; permanently denied"
+                    ) from error
             else:
                 with self._lock:
                     self._quarantine("native call admission interrupted",permanent=self._unprovable_quiescence)
