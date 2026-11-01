@@ -131,7 +131,11 @@ def assess(rows, spec):
         raise ValueError("E_RELEASE_COHORT: missing, duplicated or unexpected native request")
     if any(len(row["times_ns"]) != spec["samples"] for row in rows):
         raise ValueError("E_RELEASE_COHORT: incomplete or padded batch samples")
-    cohorts, comparisons = {}, []
+    # A size-pooled summary is useful for reporting but is not a paired
+    # workload comparison.  Opposite per-seed regressions can have exactly the
+    # same pooled median, p95 and p99 as the three baselines.
+    rows_by_key = dict(zip(keys, rows))
+    cohorts, comparisons, seed_comparisons = {}, [], []
     gate = spec["performance_gate"]
     for phase in ("training", "holdout"):
         cohorts[phase] = {}
@@ -147,9 +151,30 @@ def assess(rows, spec):
                     "passed": ratios["median_ratio"] <= gate["hia_median_ratio_maximum"]
                               and ratios["p95_ratio"] <= gate["hia_tail_ratio_maximum"]
                               and ratios["p99_ratio"] <= gate["hia_tail_ratio_maximum"]})
+            # The same registered seed and size must be compared with every
+            # baseline separately.  No cross-seed pooling can make a failing
+            # input look acceptable, even when pooled distributions coincide.
+            for seed in spec[phase + "_seeds"]:
+                matched = {backend: summary(rows_by_key[(phase, backend, n, seed)]["times_ns"])
+                           for backend in spec["backends"]}
+                for backend in ("c", "cpp", "rust"):
+                    reference, hia = matched[backend], matched["hia"]
+                    ratios = {stat + "_ratio": hia[stat] / reference[stat]
+                              for stat in ("median", "p95", "p99")}
+                    seed_comparisons.append({
+                        "phase": phase, "size": n, "seed": seed, "baseline": backend, **ratios,
+                        "passed": ratios["median_ratio"] <= gate["hia_median_ratio_maximum"]
+                                  and ratios["p95_ratio"] <= gate["hia_tail_ratio_maximum"]
+                                  and ratios["p99_ratio"] <= gate["hia_tail_ratio_maximum"]})
+    pooled_pass = all(row["passed"] for row in comparisons)
+    paired_pass = all(row["passed"] for row in seed_comparisons)
+    pooled_holdout_pass = all(row["passed"] for row in comparisons if row["phase"] == "holdout")
+    paired_holdout_pass = all(row["passed"] for row in seed_comparisons if row["phase"] == "holdout")
     return {"cohorts": cohorts, "comparisons": comparisons,
-            "performance_gate_passed": all(row["passed"] for row in comparisons),
-            "holdout_gate_passed": all(row["passed"] for row in comparisons if row["phase"] == "holdout"),
+            "seed_comparisons": seed_comparisons, "all_seed_comparisons": len(seed_comparisons),
+            "pooled_gate_passed": pooled_pass, "paired_seed_gate_passed": paired_pass,
+            "performance_gate_passed": pooled_pass and paired_pass,
+            "holdout_gate_passed": pooled_holdout_pass and paired_holdout_pass,
             "rust_comparisons_passed": sum(row["passed"] for row in comparisons if row["baseline"] == "rust"),
             "all_rust_comparisons": sum(row["baseline"] == "rust" for row in comparisons),
             "broad_rust_performance_parity_established": False}
