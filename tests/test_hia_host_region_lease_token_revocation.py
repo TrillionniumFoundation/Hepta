@@ -40,7 +40,7 @@ class OwnerLeaseTokenRevocationTests(unittest.TestCase):
             region.close()
 
     def test_swapped_registered_token_does_not_revoke_other_reader(self):
-        region = HostRegion(8, max_leases=2)
+        region = HostRegion(8, max_leases=2, max_native_calls=2)
         first = second = None
         try:
             first = region.borrow("read", generation=0)
