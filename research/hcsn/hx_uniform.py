@@ -16,10 +16,12 @@ try:
     from .hx_original import HXParams,closed_boundary,equity_green
     from .hx_a7 import equity_a7
     from .hx_stable import equity_near_boundary
+    from .hx_precision_audit import require_consistent_boundary
 except ImportError:
     from hx_original import HXParams,closed_boundary,equity_green
     from hx_a7 import equity_a7
     from hx_stable import equity_near_boundary
+    from hx_precision_audit import require_consistent_boundary
 
 @dataclass(frozen=True)
 class HXEval:
@@ -77,6 +79,7 @@ def equity_logmargin(x:float,p:HXParams, *,boundary:float|None=None,
         raise ValueError('Invalid HX boundary')
     if not math.isclose(b,root,rel_tol=1e-12,abs_tol=1e-12):
         raise ValueError('External HX boundary is not the Eq12 candidate')
+    require_consistent_boundary(p,root)  # MP80 check, NOT a global obstacle certificate
     _check_local_candidate(p,b)
     if x<=0:
         return HXEval(0.,b,x,'stopping')
