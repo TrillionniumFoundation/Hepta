@@ -137,7 +137,7 @@ def _implementation_hash():
     """Bind the actual verifier/emitter and the native boundary helpers."""
     digest = sha256()
     root = Path(__file__).parent
-    for name in ("hia_schema.py", "hia_program.py", "hia_opcodes.py", "hia_program_composite.py", "hia_program_llvm.py", "artifact_publication.py",
+    for name in ("hia_schema.py", "hia_program.py", "hia_capability_flow.py", "hia_opcodes.py", "hia_program_composite.py", "hia_program_llvm.py", "artifact_publication.py",
                  "clang_capture.py", "elf_shared_abi.py", "object_symbols.py",
                  "object_structure.py", "native_tool_identity.py"):
         content = (root / name).read_bytes()

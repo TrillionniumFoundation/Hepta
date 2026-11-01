@@ -23,6 +23,8 @@ import json
 import re
 
 from .hia_json_preflight import preflight_hia_json
+from .hia_capability_flow import (Capability as _Capability,
+                                  CapabilityFlowRejected, rename_capabilities)
 from .hia_schema import (
     COMPOSITE_SCHEMA, COMPOSITE_SCHEMAS, PRIMITIVE_SCHEMAS, PROFILE, PROFILE_V2, PROFILE_V3,
     PROFILE_V4, PROFILE_V5, PROFILE_V6, PROFILE_V7, PROFILE_V8, SCHEMA, SCHEMA_V2, SCHEMA_V3,
@@ -405,17 +407,6 @@ class VerifiedProgram:
                            "preemptive_or_async_cancellation_supported": False}}
 
 
-@dataclass(frozen=True)
-class _Capability:
-    typ: str
-    root: str
-    parent: str | None = None
-    external: bool = False
-    # Original function parameter identity, independent of CFG SSA renaming.
-    # Only functions with v8 borrowed results track this extra restriction.
-    origin: str | None = None
-
-
 def _parameters(value, where):
     if type(value) is not list:
         _reject(f"{where}: expected parameter list", "E_HIA_FORMAT")
@@ -729,16 +720,10 @@ class _BlockCheck:
             _reject("edge drops a live owner or local loan", "E_HIA_RESOURCE")
         remap = {a: p["name"] for a, p in zip(arguments, target["params"])
                  if p["type"] in RESOURCES}
-        result = {}
-        for arg, param in zip(arguments, target["params"]):
-            if param["type"] not in RESOURCES:
-                continue
-            cap = self.caps[arg]
-            if cap.root not in remap or cap.parent is not None and cap.parent not in remap:
-                _reject("loan must travel with its owner/parent capability", "E_HIA_LOAN")
-            result[param["name"]] = _Capability(cap.typ, remap[cap.root],
-                remap[cap.parent] if cap.parent is not None else None, cap.external, cap.origin)
-        return result
+        try:
+            return rename_capabilities(self.caps, remap)
+        except CapabilityFlowRejected as error:
+            _reject(str(error), error.code)
 
     def finish(self):
         term = self.block["term"]

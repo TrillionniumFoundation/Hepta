@@ -107,7 +107,7 @@ def _observe(program, function, arguments):
 def validate_scalar_calls(before, after, *, function, timeout_ms=10000):
     """Freshly compare a bounded direct-call closure, including first-trap code."""
     started = time.monotonic_ns()
-    names = ("hia_scalar_call_validation.py", "hia_translation_validation.py", "hia_program.py",
+    names = ("hia_scalar_call_validation.py", "hia_translation_validation.py", "hia_program.py", "hia_capability_flow.py",
              "hia_program_runtime.py", "hia_optimization.py")
     implementation = {name: sha256(Path(__file__).with_name(name).read_bytes()).hexdigest() for name in names}
     report = {"schema": "hepta.hia.scalar-call-validation.v1", "profile": PROFILE,
