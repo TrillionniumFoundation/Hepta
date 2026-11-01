@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - 'research/hia-p7-prestart-*'
+      - 'research/hia-p7-borrow-admission-*'
   pull_request:
     branches:
       - 'research/hia-p7-token-revocation-528-fix-20261101-gpt6'
+      - 'research/hia-p7-prestart-admission-recovery-529-20261101-gpt6'
   workflow_dispatch:
 
 permissions:
@@ -28,7 +30,7 @@ jobs:
         with:
           python-version: '3.12'
       - uses: ./.github/actions/hia-execution-toolchain
-      - name: Execute two new real native failures plus original owner and native controls
+      - name: Execute unowned-page admission faults plus 18 original host/native controls
         shell: bash
         run: |
           set -euo pipefail
@@ -41,10 +43,11 @@ jobs:
             python -V
             "$CLANG" --version | head -1
             uname -a
-            sha256sum hepta/hia_host_region.py tests/test_hia_host_region_prestart_admission.py tests/test_hia_host_region.py tests/test_hia_host_region_lease_authority.py tests/test_hia_host_region_lease_token_revocation.py .github/workflows/hia-host-prestart-admission.yml
+            sha256sum hepta/hia_host_region.py tests/test_hia_host_region_borrow_admission.py tests/test_hia_host_region_prestart_admission.py tests/test_hia_host_region.py tests/test_hia_host_region_lease_authority.py tests/test_hia_host_region_lease_token_revocation.py .github/workflows/hia-host-prestart-admission.yml
           } > "$RUNNER_TEMP/hia-p7-prestart/source-identity.txt"
           set +e
           HEPTA_TEST_CLANG="$CLANG" python -B -m unittest \
+            tests.test_hia_host_region_borrow_admission \
             tests.test_hia_host_region_prestart_admission \
             tests.test_hia_host_region_lease_authority \
             tests.test_hia_host_region_lease_token_revocation \
@@ -53,7 +56,7 @@ jobs:
           result=${PIPESTATUS[0]}
           set -e
           printf 'test_exit=%s\\n' "$result" > "$RUNNER_TEMP/hia-p7-prestart/result.txt"
-          grep -q 'Ran 18 tests' "$RUNNER_TEMP/hia-p7-prestart/tests.log"
+          grep -q 'Ran 20 tests' "$RUNNER_TEMP/hia-p7-prestart/tests.log"
           if grep -Eq 'skipped=|expected failures=|unexpected successes=' "$RUNNER_TEMP/hia-p7-prestart/tests.log"; then
             echo 'Unexecuted or expected-failure controls cannot qualify native admission' >&2
             exit 1
