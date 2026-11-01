@@ -35,6 +35,8 @@ CORE_TESTS = (
     'tests.test_hia_returned_loans', 'tests.test_hia_returned_loan_interfaces',
     'tests.test_hia_reduction_pipeline', 'tests.test_hia_reduction_release',
     'tests.test_hia_ndu_cost', 'tests.test_hia_host_region',
+    'tests.test_hia_agent_repository_maintenance_v2',
+    'tests.test_hia_agent_repository_v2_feedback_review',
 )
 
 
@@ -203,7 +205,7 @@ def qualify(args):
             'machine':platform.machine(),'release':platform.release()},
             'lanes':['core','capability_proof','memory_proof','core_proof','register_proof',
                      'continuation','reduction','ndu_full_cost','cpp_unique_reset','cpp_source_refusals',
-                     'host_region','agent_tool_controls'],
+                     'gsl_upstream_upgrade','host_region','agent_tool_controls'],
             'performance_results_are_not_assumed_positive':True,
             'general_agent_advantage_gate':'separate complete prospective model study required',
             'authority':'DENY_ALL','safety_certificate':False}
@@ -272,6 +274,9 @@ def qualify(args):
         passed['cpp_source_refusals'] = step('cpp_source_refusals',py+['tools/qualify_cpp_unique_reset.py',
             '--source-refusals-only','--workdir',str(output/'cpp-source-refusals'),
             '--clangxx',tools['clangxx']['path'],'--clang',tools['clang']['path'],'--cc',tools['cc']['path']])
+        passed['gsl_upstream_upgrade'] = step('gsl_upstream_upgrade',py+['tools/qualify_cpp_gsl_final_action.py',
+            '--output',str(output/'gsl-upgrade'),'--clang',tools['clang']['path'],
+            '--cxx',tools['g++']['path'],'--cc',tools['cc']['path']])
         passed['host_region'] = step('host_region',py+['tools/qualify_hia_host_region.py',
             '--output',str(output/'host-region'),'--clang',tools['clang']['path']])
         passed['agent_tool_controls'] = step('agent_tool_controls',py+['tools/qualify_hia_agent_repository_maintenance.py',

@@ -19,7 +19,12 @@ through the explicitly selected paths.
 The campaign performs actual Core rejection tests, four Lean qualifications,
 native cancellation/verified-switch/single-use suffix recovery, the reduction
 holdout, native full-cost NDU controls, and C++ reset/release migration with
-fresh-Clang negative sources. Every child command has raw stdout/stderr and
+fresh-Clang negative sources. It also requalifies the existing Microsoft GSL
+v3.1.0/v4.0.0 final_action migration on the same tools, including the actual
+old-version refusal/new-version acceptance of the non-const lvalue factory.
+This is inherited, narrowly scoped upstream-upgrade capability revalidated
+alongside the new unique_ptr profile; it is not a newly generalized C++
+translator. Every child command has raw stdout/stderr and
 an outer wall-time record, so Python startup and final report writing are not
 silently excluded from the NDU build/experiment envelope. Nested costs must
 not be added twice. Cargo dependency cache warmth is declared; an empty target
