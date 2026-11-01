@@ -157,6 +157,16 @@ class NativeRegionLibrary:
             return result
 
 
+@dataclass(frozen=True)
+class _LeaseGrant:
+    """Owner-retained authority: mutable lease fields never define access."""
+    mode: str
+    offset: int
+    length: int
+    generation: int
+    internal: bool
+
+
 class RegionLease:
     """An identity-checked capability; reads return copies, never a raw view."""
     def __init__(self,owner,mode,offset,length,generation,internal=False):
@@ -193,7 +203,7 @@ class HostRegion:
         self._length=length;self._mapped=((length+mmap.PAGESIZE-1)//mmap.PAGESIZE)*mmap.PAGESIZE
         self._max_leases=max_leases;self._max_calls=max_native_calls
         self._generation=0;self._state="initializing";self._reason=None
-        self._leases={};self._jobs={};self._events=deque(maxlen=256);self._sequence=0
+        self._leases={};self._lease_grants={};self._jobs={};self._events=deque(maxlen=256);self._sequence=0
         self._fd=None;self._memory=None;self._address=None;self._permission="none"
         self._release_attempted=False;self._release_report={};self._unprovable_quiescence=False
         with _REGISTRY_LOCK:
@@ -244,42 +254,64 @@ class HostRegion:
         if (type(offset) is not int or type(length) is not int or offset<0 or length<0
                 or offset>self._length or length>self._length-offset): _reject("borrow extent outside owned region")
         if len(self._leases)>=self._max_leases: _reject("lease budget exhausted")
-        if self._leases and (mode=="write" or any(l._mode=="write" for l in self._leases.values())):
+        if self._leases and (mode=="write" or any(g.mode=="write" for g in self._lease_grants.values())):
             _reject("shared-read/exclusive-write conflict")
         if not self._leases: self._protect(mode)
         lease=RegionLease(self,mode,offset,length,generation,internal)
-        self._leases[lease._token]=lease;self._event("borrowed",mode=mode,offset=offset,length=length)
+        self._leases[lease._token]=lease
+        self._lease_grants[lease._token]=_LeaseGrant(mode,offset,length,generation,internal)
+        self._event("borrowed",mode=mode,offset=offset,length=length)
         return lease
 
     def borrow(self,mode,*,generation,offset=0,length=None):
         with self._lock: return self._borrow(mode,generation,offset,length,False)
 
     def _validate_lease(self,lease):
-        if type(lease) is not RegionLease or self._leases.get(lease._token) is not lease or lease._closed:
+        # Registry identity alone is insufficient: the public Python handle
+        # can have its mode, extent, generation or internal flag reassigned.
+        # Never use those mutable fields as authority after admission.
+        if (type(lease) is not RegionLease or lease._owner is not self
+                or type(lease._token) is not str or lease._closed is not False
+                or self._leases.get(lease._token) is not lease):
             _reject("lease is closed, forged or foreign")
-        self._ready(lease._generation)
+        grant=self._lease_grants.get(lease._token)
+        if grant is None or (type(lease._mode) is not str or type(lease._offset) is not int
+                or type(lease._length) is not int or type(lease._generation) is not int
+                or type(lease._internal) is not bool
+                or (lease._mode,lease._offset,lease._length,lease._generation,lease._internal)
+                != (grant.mode,grant.offset,grant.length,grant.generation,grant.internal)):
+            _reject("lease attributes differ from the immutable owner grant")
+        self._ready(grant.generation)
+        return grant
 
     def _read(self,lease):
         with self._lock:
-            self._validate_lease(lease)
-            return bytes(self._memory[lease._offset:lease._offset+lease._length])
+            grant=self._validate_lease(lease)
+            return bytes(self._memory[grant.offset:grant.offset+grant.length])
 
     def _write(self,lease,data):
         if type(data) is not bytes: _reject("host write requires immutable bytes")
         with self._lock:
-            self._validate_lease(lease)
-            if lease._mode!="write" or len(data)!=lease._length: _reject("write permission or exact extent missing")
-            self._memory[lease._offset:lease._offset+lease._length]=data
+            grant=self._validate_lease(lease)
+            if grant.mode!="write" or len(data)!=grant.length: _reject("write permission or exact extent missing")
+            self._memory[grant.offset:grant.offset+grant.length]=data
 
     def _release_lease(self,lease,*,internal=False):
         with self._lock:
-            if type(lease) is not RegionLease or lease._owner is not self: _reject("foreign lease release")
-            if lease._closed: return
-            if self._leases.get(lease._token) is not lease or lease._internal and not internal:
+            if (type(lease) is not RegionLease or lease._owner is not self
+                    or type(lease._token) is not str):
+                _reject("foreign lease release")
+            grant=self._lease_grants.get(lease._token)
+            if grant is None:
+                if lease._closed is True: return
                 _reject("lease release authority missing")
-            del self._leases[lease._token];lease._closed=True
+            if self._leases.get(lease._token) is not lease or grant.internal and not internal:
+                _reject("lease release authority missing")
+            del self._leases[lease._token]
+            del self._lease_grants[lease._token]
+            lease._closed=True
             if not self._leases: self._protect("none")
-            self._event("released",mode=lease._mode)
+            self._event("released",mode=grant.mode)
 
     def _quarantine(self,reason,*,permanent=False):
         if self._state not in {"quarantined","permanent_deny"}:
@@ -297,12 +329,15 @@ class HostRegion:
             with self._lock:
                 if len(self._jobs)>=self._max_calls: _reject("native call budget exhausted")
                 lease=self._borrow(mode,generation,offset,length,True)
+                grant=self._lease_grants[lease._token]
+                native_address=self._address+grant.offset
+                native_length=grant.length
                 token=secrets.token_hex(16)
                 job={"lease":lease,"library":library,"done":threading.Event(),"uncertain":False,"result":None,"error":None,"finalized":False}
                 def worker():
                     try:
                         output=ctypes.c_uint64()
-                        code=function(self._address+lease._offset,lease._length,argument,ctypes.byref(output))
+                        code=function(native_address,native_length,argument,ctypes.byref(output))
                         job["result"]=(code,output.value)
                     except BaseException as error:
                         job["error"]={"type":type(error).__name__,"message":str(error)}
@@ -395,8 +430,8 @@ class HostRegion:
             return {"profile":PROFILE,"state":self._state,"reason":self._reason,"generation":self._generation,
                 "length":self._length,"mapped_bytes":self._mapped,"kernel_seals":getattr(self,"_seals",None),
                 "permission":self._permission,"observed_mapping_permissions":self._observed_permissions(),
-                "read_leases":sum(l._mode=="read" for l in self._leases.values()),
-                "write_leases":sum(l._mode=="write" for l in self._leases.values()),"native_jobs":len(self._jobs),
+                "read_leases":sum(g.mode=="read" for g in self._lease_grants.values()),
+                "write_leases":sum(g.mode=="write" for g in self._lease_grants.values()),"native_jobs":len(self._jobs),
                 "live_native_workers":sum(j["thread"].is_alive() for j in self._jobs.values()),
                 "events":copy.deepcopy(list(self._events)),"release":dict(self._release_report),
                 "claims":{"arbitrary_foreign_pointer_safe":False,"mmio_dma_supported":False,
