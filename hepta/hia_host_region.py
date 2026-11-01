@@ -448,19 +448,51 @@ class HostRegion:
             uncertain=(job["uncertain"] or job["error"] is not None or job["result"] is None
                        or job["result"][0]!=0 or self._generation!=generation or self._state!="ready")
             if uncertain: self._quarantine("native call failed or its generation was revoked")
-            self._finalize_job(token,job)
-            if uncertain: raise HostRegionUncertain("native call did not commit; quiescent recovery required")
-            self._event("native_returned",symbol=symbol)
+            try:
+                self._finalize_job(token,job)
+                if uncertain: raise HostRegionUncertain("native call did not commit; quiescent recovery required")
+                self._event("native_returned",symbol=symbol)
+            except HostRegionUncertain:
+                raise
+            except BaseException as error:
+                # A joined C worker is not a committed result when its lease,
+                # finalization or return receipt is unconfirmed. Deny every
+                # new native entry until quiescent recovery zeroes the epoch.
+                self._quarantine("native completion evidence unconfirmed",
+                                 permanent=self._unprovable_quiescence)
+                raise HostRegionUncertain(
+                    "native completion unconfirmed; quiescent recovery required"
+                ) from error
             return job["result"][1]
 
     def _finalize_job(self,token,job):
         if job["finalized"]: return
         if job["thread"].is_alive() or not job["done"].is_set(): _reject("cannot retire a live or unconfirmed native worker")
+        # In-memory stage flags keep a completed worker owned across a
+        # receipt fault, so recover() can finish the exact same joined job.
+        # This is NOT a durable journal or a crash-recovery guarantee.
+        if not job.get("lease_retired",False):
+            self._release_lease(job["lease"],internal=True)
+            job["lease_retired"]=True
+        if not job.get("library_retired",False):
+            # A failed _finish() may already have decremented the reference.
+            # Do not make a second ambiguous release or unmap the code.
+            if job.get("library_finish_attempted",False):
+                self._unprovable_quiescence=True
+                self._quarantine("native code release outcome uncertain",permanent=True)
+                _reject("native code release outcome uncertain; never retry")
+            job["library_finish_attempted"]=True
+            job["library"]._finish()
+            job["library_retired"]=True
+        if not job.get("join_receipted",False):
+            self._event("worker_join_confirmed")
+            job["join_receipted"]=True
+        if self._jobs.get(token) is not job:
+            self._unprovable_quiescence=True
+            self._quarantine("native job identity lost during finalization",permanent=True)
+            _reject("native job identity lost during finalization")
+        del self._jobs[token]
         job["finalized"]=True
-        self._release_lease(job["lease"],internal=True)
-        job["library"]._finish()
-        self._jobs.pop(token,None)
-        self._event("worker_join_confirmed")
 
     def recover(self,*,timeout=0.0):
         if type(timeout) not in {int,float} or not 0<=timeout<=10: _reject("recovery wait outside [0,10]")
