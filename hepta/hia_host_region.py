@@ -298,17 +298,24 @@ class HostRegion:
 
     def _release_lease(self,lease,*,internal=False):
         with self._lock:
-            if (type(lease) is not RegionLease or lease._owner is not self
-                    or type(lease._token) is not str):
+            if type(lease) is not RegionLease or lease._owner is not self:
                 _reject("foreign lease release")
-            grant=self._lease_grants.get(lease._token)
-            if grant is None:
+            # A presented token is mutable, unlike the owner's registered
+            # object identity.  Use its fast path only after identity checks;
+            # bounded identity lookup lets close()/__exit__ retire the exact
+            # original grant even if the caller altered the token.  Never use
+            # a spoofed token to retire any other live lease.
+            token=lease._token
+            if type(token) is not str or self._leases.get(token) is not lease:
+                token=next((key for key,active in self._leases.items() if active is lease),None)
+            if token is None:
                 if lease._closed is True: return
                 _reject("lease release authority missing")
-            if self._leases.get(lease._token) is not lease or grant.internal and not internal:
+            grant=self._lease_grants.get(token)
+            if grant is None or grant.internal and not internal:
                 _reject("lease release authority missing")
-            del self._leases[lease._token]
-            del self._lease_grants[lease._token]
+            del self._leases[token]
+            del self._lease_grants[token]
             lease._closed=True
             if not self._leases: self._protect("none")
             self._event("released",mode=grant.mode)
