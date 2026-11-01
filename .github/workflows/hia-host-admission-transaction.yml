@@ -1,0 +1,73 @@
+name: HIA P7 post-grant admission atomicity exact-head (research DENY_ALL)
+
+on:
+  push:
+    branches:
+      - 'research/hia-p7-admission-transaction-*'
+  pull_request:
+    branches:
+      - 'research/hia-p7-borrow-admission-530-20261101-gpt6'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-admission-atomicity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: ./.github/actions/hia-execution-toolchain
+      - name: Exercise 5 post-grant faults plus 20 original native regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/hia-p7-admission-atomicity"
+          test "$(git --no-replace-objects rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          {
+            git --no-replace-objects rev-parse HEAD
+            git --no-replace-objects rev-parse 'HEAD^{tree}'
+            python -V
+            "$CLANG" --version | head -1
+            uname -a
+            sha256sum hepta/hia_host_region.py tests/test_hia_host_region_admission_transaction.py tests/test_hia_host_region_borrow_admission.py tests/test_hia_host_region_prestart_admission.py tests/test_hia_host_region.py tests/test_hia_host_region_lease_authority.py tests/test_hia_host_region_lease_token_revocation.py .github/workflows/hia-host-admission-transaction.yml
+          } > "$RUNNER_TEMP/hia-p7-admission-atomicity/source-identity.txt"
+          set +e
+          HEPTA_TEST_CLANG="$CLANG" python -B -m unittest \
+            tests.test_hia_host_region_admission_transaction \
+            tests.test_hia_host_region_borrow_admission \
+            tests.test_hia_host_region_prestart_admission \
+            tests.test_hia_host_region_lease_authority \
+            tests.test_hia_host_region_lease_token_revocation \
+            tests.test_hia_host_region -v \
+            2>&1 | tee "$RUNNER_TEMP/hia-p7-admission-atomicity/tests.log"
+          result=${PIPESTATUS[0]}
+          set -e
+          printf 'test_exit=%s\\n' "$result" > "$RUNNER_TEMP/hia-p7-admission-atomicity/result.txt"
+          grep -q 'Ran 25 tests' "$RUNNER_TEMP/hia-p7-admission-atomicity/tests.log"
+          if grep -Eq 'skipped=|expected failures=|unexpected successes=' "$RUNNER_TEMP/hia-p7-admission-atomicity/tests.log"; then
+            echo 'Unexecuted or expected-failure native controls cannot qualify admission atomicity' >&2
+            exit 1
+          fi
+          test "$result" -eq 0
+          test "$(git --no-replace-objects rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - name: Retain exact source, native permissions and RED/GREEN evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-p7-admission-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/hia-p7-admission-atomicity/
+          retention-days: 30
+          if-no-files-found: error
