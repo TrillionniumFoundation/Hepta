@@ -1,0 +1,388 @@
+{
+  "artifact": {
+    "bytes": 1884227,
+    "digest_verified": true,
+    "id": 13064600611,
+    "safely_extracted_files": 360,
+    "sha256": "a03a5e3ed1b3ccabf6e4b70ef84279f5d368977f6778ca7ffb1620a99679beb2",
+    "uncompressed_bytes": 9114504
+  },
+  "composition": {
+    "all_seven_research_targets_closed": false,
+    "authority": "DENY_ALL",
+    "elapsed_ns": 223835261355,
+    "qualification_commands_passed": true,
+    "qualifications": {
+      "agent_tool_controls": true,
+      "capability_proof": true,
+      "continuation": true,
+      "core": true,
+      "core_proof": true,
+      "cpp_source_refusals": true,
+      "cpp_unique_reset": true,
+      "gsl_upstream_upgrade": true,
+      "host_region": true,
+      "memory_proof": true,
+      "ndu_full_cost": true,
+      "reduction": true,
+      "register_proof": true,
+      "rust_shadow_dependencies": true
+    },
+    "safety_certificate": false,
+    "same_combination_build_execute_reject_recover": true,
+    "source_and_tools_unchanged": true,
+    "status": "completed"
+  },
+  "gsl": {
+    "case_count_per_version": 416,
+    "claims": {
+      "arbitrary_callable_or_pointer_lifetimes_supported": false,
+      "full_semantic_equivalence_proved": false,
+      "general_cpp_exceptions_translated": false,
+      "general_cpp_migration": false,
+      "migration_speedup_claimed": false,
+      "whole_gsl_migrated": false
+    },
+    "cost": {
+      "authored_integration_client_bytes": 1604,
+      "generated_component_bytes": 1192,
+      "human_seconds": null,
+      "human_seconds_status": "not_measured",
+      "qualification_wall_seconds": 2.9163839290000055
+    },
+    "execution_denominator": {
+      "cases_per_original_migrated_pair": 416,
+      "const_factory_pairs": 2,
+      "const_factory_positive_native_scalar_calls": 4992,
+      "incompatible_signature_controls_called": 0,
+      "original_migrated_pairs": 6,
+      "positive_native_scalar_calls": 14976,
+      "positive_observation_rows": 4992,
+      "scalar_calls_per_observation_row": 3,
+      "wrong_but_linear_native_scalar_calls": 1248,
+      "wrong_but_linear_observation_rows": 416
+    },
+    "ok": true,
+    "versions": {
+      "3.1.0": "0f6dbc9e2915ef5c16830f3fa3565738de2a9230",
+      "4.0.0": "a3534567187d2edc428efd3f13466ff75fe5805c"
+    },
+    "wrong_but_linear_mismatches": 325
+  },
+  "ndu": {
+    "acceptance": {
+      "actual_native_invocations": 9,
+      "complete_cost_accounting": true,
+      "finite_native_correctness_passed": true,
+      "native_matches_same_information_exact_model": true,
+      "native_net_benefit_established": false,
+      "native_net_win_scenarios": 0,
+      "reason": "Three repetitions are exploratory, never an application-wide or statistical net-benefit theorem.",
+      "same_information_controls": true,
+      "scenario_count": 3,
+      "skip_only_episodes_without_native_start": 3,
+      "source_stable_during_run": true
+    },
+    "campaign_wall_ns": 6103199628,
+    "comparisons": [
+      {
+        "episode": "tiny",
+        "median_service_ns": {
+          "exact_dp": 14960420,
+          "fixed": 14119671,
+          "lightweight": 14798856,
+          "native_ndu": 14966630
+        },
+        "native_beats_all_controls": false,
+        "native_over_best_control": 1.0599843296632052
+      },
+      {
+        "episode": "amortized",
+        "median_service_ns": {
+          "exact_dp": 56717274,
+          "fixed": 51621402,
+          "lightweight": 56816133,
+          "native_ndu": 67372095
+        },
+        "native_beats_all_controls": false,
+        "native_over_best_control": 1.3051194347646737
+      },
+      {
+        "episode": "invalidate-recover",
+        "median_service_ns": {
+          "exact_dp": 48579421,
+          "fixed": 43091238,
+          "lightweight": 45921110,
+          "native_ndu": 60816732
+        },
+        "native_beats_all_controls": false,
+        "native_over_best_control": 1.4113479867995438
+      }
+    ],
+    "offline_wall_ns": 4521133360,
+    "outer_cost_completion": {
+      "allocation_rule": "Every policy pays the full common campaign remainder once; native additionally pays outer minus inner bridge build. Original nested report is retained unchanged.",
+      "common_unallocated_runner_overhead_ns": 196152093,
+      "conservative_solo_campaign_cost_by_policy_ns": {
+        "exact_dp": 5094874042,
+        "fixed": 5057261130,
+        "lightweight": 5069928890,
+        "native_ndu": 24034514145
+      },
+      "native_build_additional_charged_ns": 132041647,
+      "native_build_inner_wall_ns": 18744765802,
+      "native_build_outer_wall_ns": 18876807449,
+      "not_an_independently_executed_solo_campaign": true,
+      "whole_qualification_command_wall_ns": 6227914399
+    },
+    "status": "completed"
+  },
+  "observed_at_utc": "2026-11-01T00:58:45.065687+00:00",
+  "performance": {
+    "all_rust_gate_passed": false,
+    "broad_rust_performance_parity_established": false,
+    "claims_limits": [
+      "one shared Linux x86_64 host; affinity is not exclusive CPU ownership",
+      "Rust byte arm receives the same modular arithmetic simplification explicitly",
+      "guard is machine-range-based and executed; benchmark lengths are not proof assumptions",
+      "p95/p99 are batch latencies, not per-invocation tail latencies",
+      "native compiler/linker/libc/hardware remain trusted; no backend refinement theorem",
+      "manual engineering, historical tool acquisition and energy costs are unknown"
+    ],
+    "failed_rust_comparisons": [
+      {
+        "baseline": "rust_release",
+        "median_ratio": 1.2222222222222223,
+        "n": 0,
+        "p95_ratio": 1.0596026490066226,
+        "p99_ratio": 0.9444444444444444,
+        "passed": false,
+        "phase": "regression",
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "median_ratio": 1.2222222222222223,
+        "n": 0,
+        "p95_ratio": 1.0666666666666667,
+        "p99_ratio": 0.9444444444444444,
+        "passed": false,
+        "phase": "regression",
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_release",
+        "median_ratio": 1.2101341281669151,
+        "n": 1,
+        "p95_ratio": 1.0940766550522647,
+        "p99_ratio": 1.1944444444444444,
+        "passed": false,
+        "phase": "regression",
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "median_ratio": 1.1751085383502171,
+        "n": 1,
+        "p95_ratio": 0.7523961661341853,
+        "p99_ratio": 0.06763369451240825,
+        "passed": false,
+        "phase": "regression",
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "median_ratio": 1.1057007125890737,
+        "n": 13,
+        "p95_ratio": 1.054229934924078,
+        "p99_ratio": 1.0199600798403194,
+        "passed": false,
+        "phase": "holdout",
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "median_ratio": 1.1348663766314482,
+        "n": 509,
+        "p95_ratio": 1.153751537515375,
+        "p99_ratio": 0.8441712338912754,
+        "passed": false,
+        "phase": "holdout",
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_release",
+        "median_ratio": 1.2222222222222223,
+        "n": 0,
+        "p95_ratio": 1.0666666666666667,
+        "p99_ratio": 1.125,
+        "passed": false,
+        "phase": "regression",
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "median_ratio": 1.2222222222222223,
+        "n": 0,
+        "p95_ratio": 1.2307692307692308,
+        "p99_ratio": 1.0,
+        "passed": false,
+        "phase": "regression",
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_release",
+        "median_ratio": 1.2284417549167927,
+        "n": 1,
+        "p95_ratio": 1.035252643948296,
+        "p99_ratio": 1.1497005988023952,
+        "passed": false,
+        "phase": "regression",
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "median_ratio": 1.2473118279569892,
+        "n": 1,
+        "p95_ratio": 1.0863131935881627,
+        "p99_ratio": 1.1612903225806452,
+        "passed": false,
+        "phase": "regression",
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "median_ratio": 1.1836266258607497,
+        "n": 257,
+        "p95_ratio": 1.2004279600570613,
+        "p99_ratio": 3.5363761153054223,
+        "passed": false,
+        "phase": "regression",
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "median_ratio": 1.251021599532983,
+        "n": 127,
+        "p95_ratio": 1.261129207383279,
+        "p99_ratio": 1.3856837606837606,
+        "passed": false,
+        "phase": "holdout",
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "median_ratio": 1.2313519813519813,
+        "n": 509,
+        "p95_ratio": 1.22580067990696,
+        "p99_ratio": 2.9324179743223966,
+        "passed": false,
+        "phase": "holdout",
+        "workload": "affine"
+      }
+    ],
+    "gate": {
+      "median_ratio_maximum": 1.1,
+      "p95_ratio_maximum": 1.2
+    },
+    "groups": [
+      {
+        "baseline": "hia_checked",
+        "holdout_passed": 16,
+        "holdout_total": 16,
+        "median_of_cohort_median_ratios": 0.5245305057538412,
+        "median_ratio_max": 1.0891089108910892,
+        "median_ratio_min": 0.35428833161571055,
+        "passed": 30,
+        "total": 30
+      },
+      {
+        "baseline": "rust_byte_release",
+        "holdout_passed": 12,
+        "holdout_total": 16,
+        "median_of_cohort_median_ratios": 1.0651026733276598,
+        "median_ratio_max": 1.251021599532983,
+        "median_ratio_min": 0.9913941480206541,
+        "passed": 21,
+        "total": 30
+      },
+      {
+        "baseline": "rust_release",
+        "holdout_passed": 16,
+        "holdout_total": 16,
+        "median_of_cohort_median_ratios": 0.8759213147053494,
+        "median_ratio_max": 1.2284417549167927,
+        "median_ratio_min": 0.6380075233847158,
+        "passed": 26,
+        "total": 30
+      }
+    ],
+    "holdout_sizes": [
+      13,
+      127,
+      509,
+      2053,
+      12289,
+      65521,
+      131071,
+      262147
+    ],
+    "independent_holdout_passed": false,
+    "qualification_valid": true,
+    "ratio_scope": "HIA reduction latency / baseline latency. Each quantile measures a 64-call batch; cohort-ratio median is not a weighted application speedup.",
+    "regression_sizes": [
+      0,
+      1,
+      64,
+      257,
+      4096,
+      8193,
+      65536
+    ],
+    "rust_comparisons_passed": 47,
+    "rust_comparisons_total": 60,
+    "whole_lifecycle_wall_ns": 17795367617,
+    "workloads": [
+      "linear",
+      "affine"
+    ]
+  },
+  "schema": "hepta.readonly-ci-audit.v1",
+  "scope": "Only this bd450 fixed-composition CI artifact. Other workflow results and earlier d170 observations are not substituted. No local CPU-heavy tests or model inference were run by this audit.",
+  "source_commit": "bd450cb0ebee40db175011f54d8b34c260d13c49",
+  "source_tree": "f12a62b33be4b36e2ad5761189c68220552e4501",
+  "stage_command_wall_ns": {
+    "agent_tool_controls": 2421760647,
+    "capability_proof": 1517615650,
+    "continuation": 565016950,
+    "core": 18612327123,
+    "core_proof": 2072646703,
+    "cpp_source_refusals": 98158652185,
+    "cpp_unique_reset": 34733477992,
+    "gsl_upstream_upgrade": 3069991749,
+    "host_region": 1366772373,
+    "memory_proof": 3475500738,
+    "ndu-build": 18876807449,
+    "ndu_full_cost": 6227914399,
+    "reduction": 18003026844,
+    "register_proof": 3424862663,
+    "rust_shadow_dependencies": 32006875
+  },
+  "tests": {
+    "errors": 0,
+    "failures": 0,
+    "finished": 130,
+    "passed": true,
+    "planned": 130,
+    "skips": 0,
+    "started": 130
+  },
+  "workflow": {
+    "completed_at": "2026-11-01T00:55:19Z",
+    "conclusion": "success",
+    "id": 41258510021,
+    "job_id": 124706687202,
+    "started_at": "2026-11-01T00:50:33Z",
+    "url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/41258510021"
+  }
+}

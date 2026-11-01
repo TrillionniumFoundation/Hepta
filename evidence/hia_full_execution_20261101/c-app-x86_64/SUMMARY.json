@@ -1,0 +1,192 @@
+{
+  "architecture": "x86_64",
+  "artifact_id": 13063872472,
+  "artifact_sha256": "76dd2990847bd69b5fb1554c9a5bdc431efdbef86d53a03b6de20a3f8d45b2f8",
+  "authority": "DENY_ALL",
+  "evidence": "original workflow artifact, 210 files; inspect qualification/RESULT.json",
+  "generated_core_sha256": "57b01a1a318a7e668d2780c010f977f9c7dbbb233f093a0b1efd93a3e779be89",
+  "inherited_capability_requalified": true,
+  "new_translator_this_change": false,
+  "qualification_summary": {
+    "capture_and_lower_wall_ns": 8044845310,
+    "claims": {
+      "cross_execution_used": false,
+      "foreign_pointer_contracts_inferred": false,
+      "foreign_pointer_native_abi_exposed": false,
+      "native_host_application_executed": true,
+      "performance_superiority": false,
+      "physical_hardware_attested": false,
+      "rust_codegen_used": false,
+      "source_equivalence_proved": false,
+      "upstream_implementation_rewritten": false,
+      "whole_c_cpp_migrated": false
+    },
+    "execution_mode": "direct_host_process",
+    "expected_source": "d170ff3cf0c1fb7b999f4e4af0ef119f8f34aad6",
+    "functional_case_count": 48,
+    "native_functional_calls": 144,
+    "native_host": {
+      "abi": "SysV AMD64 LP64",
+      "byteorder": "little",
+      "elf_machine": 62,
+      "long_bits": 64,
+      "machine": "x86_64",
+      "normalized_machine": "x86_64",
+      "pointer_bits": 64,
+      "size_t_bits": 64,
+      "system": "Linux",
+      "target": "x86_64-unknown-linux-gnu"
+    },
+    "native_resource_calls": 32,
+    "ok": true,
+    "qualification_wall_ns": 18817482529,
+    "requested_native_host": "x86_64",
+    "resource_case_count": 16,
+    "schema": "hepta.hia.c-posttest-native-host-qualification.v2",
+    "source_stable": true,
+    "status": "bounded_post_test_application_passed",
+    "target_binding": {
+      "captured_compiler": {
+        "executable_sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+        "path": "/usr/lib/llvm-20/bin/clang",
+        "target": "x86_64-pc-linux-gnu",
+        "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+      },
+      "captured_models": [
+        {
+          "char_unsigned": true,
+          "long_bits": 64,
+          "pointer_bits": 64
+        },
+        {
+          "char_unsigned": true,
+          "long_bits": 64,
+          "pointer_bits": 64
+        },
+        {
+          "char_unsigned": true,
+          "long_bits": 64,
+          "pointer_bits": 64
+        },
+        {
+          "char_unsigned": true,
+          "long_bits": 64,
+          "pointer_bits": 64
+        }
+      ],
+      "host": {
+        "abi": "SysV AMD64 LP64",
+        "byteorder": "little",
+        "elf_machine": 62,
+        "long_bits": 64,
+        "machine": "x86_64",
+        "normalized_machine": "x86_64",
+        "pointer_bits": 64,
+        "size_t_bits": 64,
+        "system": "Linux",
+        "target": "x86_64-unknown-linux-gnu"
+      },
+      "llvm_ir_sha256": "a80dfbd24544ce554cded9686da40d8898e1978d1d806ceb9d04522b0fbd0a8f",
+      "llvm_target": "x86_64-unknown-linux-gnu",
+      "scalar_abi": "u64 (usize, u64, u32, u32)"
+    },
+    "upstream": {
+      "compare": {
+        "authored_support_files": [
+          "platform/string.h",
+          "platform/strings.h",
+          "contracts.json"
+        ],
+        "files": [
+          {
+            "bytes": 175,
+            "local_path": "memcmp.c",
+            "sha256": "826b1b5e84d3c0fb68be827c051f6dc0d67da17ee3a444e94be0e5360586916f",
+            "upstream_path": "src/string/memcmp.c"
+          },
+          {
+            "bytes": 144,
+            "local_path": "bcmp.c",
+            "sha256": "15cf97fb0fbba4f484ad6bbafdf7df0e6772658e83cb26668df793726f66a167",
+            "upstream_path": "src/string/bcmp.c"
+          },
+          {
+            "bytes": 6204,
+            "local_path": "COPYRIGHT",
+            "sha256": "f9bc4423732350eb0b3f7ed7e91d530298476f8fec0c6c427a1c04ade22655af",
+            "upstream_path": "COPYRIGHT"
+          },
+          {
+            "bytes": 1028,
+            "local_path": "UPSTREAM_README",
+            "sha256": "99be6432b41de50d702dbee423149c8abcd52d06e29dc1715013c25865a2eda8",
+            "upstream_path": "README"
+          }
+        ],
+        "license": "MIT; complete upstream COPYRIGHT retained",
+        "project": "musl libc",
+        "release_archive": {
+          "bytes": 1080786,
+          "sha256": "a9a118bbe84d8764da0ea0d28b3ab3fae8477fc7e4085d90102b8596fc7c75e4",
+          "url": "https://musl.libc.org/releases/musl-1.2.5.tar.gz"
+        },
+        "repository": "https://git.musl-libc.org/cgit/musl/",
+        "schema": "hepta.upstream-component.v1",
+        "scope": "complete generic memcmp and bcmp source files; explicit component adapter; not full musl build or architecture optimized implementations",
+        "source_modifications": [],
+        "tag_commit": "0784374d561435f7c787a555aeab8ede699ed298",
+        "tag_mirror": "https://github.com/ifduyue/musl/tree/v1.2.5",
+        "version": "1.2.5"
+      },
+      "ring": {
+        "commit": "8de8fff55a0baee4fef2a1c6a82d258a27c3c0ba",
+        "files": [
+          {
+            "bytes": 2203,
+            "git_blob": "39fbea599e9e2c62561f1cd2e80bb08717e9e656",
+            "local_path": "ringbuffer.c",
+            "sha256": "21fde4113929246e00ad79533f83bb6def2bb154a18c12c2d84159bc61d4c39f",
+            "upstream_path": "ringbuffer.c"
+          },
+          {
+            "bytes": 4446,
+            "git_blob": "36da6eb18805853f79f5b558714204517fd969a0",
+            "local_path": "ringbuffer.h",
+            "sha256": "065589a731ffa8367ace4a17885968a53f35e265c7d0d45cdddbe3fa09cfa9e9",
+            "upstream_path": "ringbuffer.h"
+          },
+          {
+            "bytes": 1079,
+            "git_blob": "4e5491e49deef7fce4c58480177f501d8cc8dea9",
+            "local_path": "LICENSE",
+            "sha256": "b894277418ceef41a36383e6337978192505f2385f36a6cb8d27cb5c4b4db36d",
+            "upstream_path": "LICENSE"
+          },
+          {
+            "bytes": 1325,
+            "git_blob": "9936f6af274d25abdc0a87f77595df41d49a25d7",
+            "local_path": "UPSTREAM_README.md",
+            "sha256": "163b43e9963400e1afeb55c82ddb8048c27d1ffd73ab64f52ae1c4a44e10bd6c",
+            "upstream_path": "README.md"
+          }
+        ],
+        "license": "MIT",
+        "repository": "https://github.com/AndersKaloer/Ring-Buffer",
+        "scope": "complete ringbuffer.c and ringbuffer.h, exact C11 unsigned-char NDEBUG configuration"
+      }
+    }
+  },
+  "raw_qualification_path_in_archive": "qualification/RESULT.json",
+  "safety_certificate": false,
+  "source_commit": "d170ff3cf0c1fb7b999f4e4af0ef119f8f34aad6",
+  "translation_scope": {
+    "authored_checksum_function_bodies": 1,
+    "authored_integration_clients": 1,
+    "scope_source": "original qualification/migration inside workflow archive; counts audited alongside native execution",
+    "translated_function_bodies": 12,
+    "translation_units": 4,
+    "upstream_function_bodies": 11
+  },
+  "workflow_run_id": 41257229870,
+  "workflow_url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/41257229870"
+}

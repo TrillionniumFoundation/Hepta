@@ -1,0 +1,177 @@
+{
+  "all_seven_research_targets_closed": false,
+  "archive_includes": "322 original workflow evidence files including command streams, formal negative mutations, performance observations, costs, migration and recovery records",
+  "artifact_bytes": 1728089,
+  "artifact_id": 13062888519,
+  "artifact_sha256": "cdebac97822d1841ba85c99b538255b5b1eff68d9fdfb2602a7ecb62c82a31ae",
+  "authority": "DENY_ALL",
+  "campaign_wall_ns": 266998450972,
+  "combination_sha256": "f5bf7e3aa564b208529fbd23d70e587fdf5764950ac04344e431191205b99fec",
+  "core_tests": 118,
+  "host_region": {
+    "kernel_read_only_fault": {
+      "argv": [
+        "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python",
+        "/home/runner/work/Hepta/Hepta/tools/qualify_hia_host_region.py",
+        "--fault-child",
+        "--library",
+        "/home/runner/work/_temp/hia-composition/host-region/bridge.so",
+        "--sha256",
+        "2e8c4145b846f2372a88577514160d8d2af43c7c2e4395db30c2001d1bdcfea1"
+      ],
+      "expected": -11,
+      "returncode": -11,
+      "stderr": {
+        "bytes": 0,
+        "path": "/home/runner/work/_temp/hia-composition/host-region/fault.stderr",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 62,
+        "path": "/home/runner/work/_temp/hia-composition/host-region/fault.stdout",
+        "sha256": "a73ac7c5d2bff889fd1323f62cec73faf336cf17e2575fc5eb67a52b943a3b93"
+      },
+      "wall_ns": 613393674
+    },
+    "qualification_valid": true,
+    "scope": "actual Linux x86_64 hosted RAM, trusted synchronous no-escape C ABI and HIA scalar integration"
+  },
+  "job_id": 124702864735,
+  "ndu": {
+    "acceptance": {
+      "actual_native_invocations": 9,
+      "complete_cost_accounting": true,
+      "finite_native_correctness_passed": true,
+      "native_matches_same_information_exact_model": true,
+      "native_net_benefit_established": false,
+      "native_net_win_scenarios": 0,
+      "reason": "Three repetitions are exploratory, never an application-wide or statistical net-benefit theorem.",
+      "same_information_controls": true,
+      "scenario_count": 3,
+      "skip_only_episodes_without_native_start": 3,
+      "source_stable_during_run": true
+    },
+    "comparisons": [
+      {
+        "episode": "tiny",
+        "median_service_ns": {
+          "exact_dp": 22523634,
+          "fixed": 21145498,
+          "lightweight": 22633397,
+          "native_ndu": 23062894
+        },
+        "native_beats_all_controls": false,
+        "native_over_best_control": 1.090676322685803
+      },
+      {
+        "episode": "amortized",
+        "median_service_ns": {
+          "exact_dp": 71108032,
+          "fixed": 63699906,
+          "lightweight": 71267769,
+          "native_ndu": 84669172
+        },
+        "native_beats_all_controls": false,
+        "native_over_best_control": 1.329188335065989
+      },
+      {
+        "episode": "invalidate-recover",
+        "median_service_ns": {
+          "exact_dp": 60726732,
+          "fixed": 52734549,
+          "lightweight": 57994597,
+          "native_ndu": 75917371
+        },
+        "native_beats_all_controls": false,
+        "native_over_best_control": 1.4396135444336502
+      }
+    ],
+    "outer_cost_completion": {
+      "allocation_rule": "Every policy pays the full common campaign remainder once; native additionally pays outer minus inner bridge build. Original nested report is retained unchanged.",
+      "common_unallocated_runner_overhead_ns": 254172849,
+      "conservative_solo_campaign_cost_by_policy_ns": {
+        "exact_dp": 5956157842,
+        "fixed": 5905241820,
+        "lightweight": 5949272580,
+        "native_ndu": 27632523974
+      },
+      "native_build_additional_charged_ns": 130463100,
+      "native_build_inner_wall_ns": 21454004323,
+      "native_build_outer_wall_ns": 21584467423,
+      "not_an_independently_executed_solo_campaign": true,
+      "whole_qualification_command_wall_ns": 7379804504
+    }
+  },
+  "performance": {
+    "hia_checked": {
+      "all": {
+        "median_ratio_max": 1.0052631578947369,
+        "median_ratio_min": 0.44827989417020314,
+        "p95_ratio_max": 1.0082508250825082,
+        "passed": 30,
+        "total": 30
+      },
+      "holdout": {
+        "median_ratio_max": 0.9035812672176309,
+        "median_ratio_min": 0.44827989417020314,
+        "p95_ratio_max": 0.915100453661698,
+        "passed": 16,
+        "total": 16
+      }
+    },
+    "rust_byte_release": {
+      "all": {
+        "median_ratio_max": 1.2914207898320471,
+        "median_ratio_min": 1.0336272376808275,
+        "p95_ratio_max": 1.305191100969766,
+        "passed": 16,
+        "total": 30
+      },
+      "holdout": {
+        "median_ratio_max": 1.2914207898320471,
+        "median_ratio_min": 1.0336272376808275,
+        "p95_ratio_max": 1.2720105124835743,
+        "passed": 9,
+        "total": 16
+      }
+    },
+    "rust_release": {
+      "all": {
+        "median_ratio_max": 1.19375,
+        "median_ratio_min": 0.6439708248158407,
+        "p95_ratio_max": 1.1940298507462686,
+        "passed": 25,
+        "total": 30
+      },
+      "holdout": {
+        "median_ratio_max": 1.140737770649559,
+        "median_ratio_min": 0.6440389126916646,
+        "p95_ratio_max": 1.1464666403474142,
+        "passed": 15,
+        "total": 16
+      }
+    }
+  },
+  "qualifications": {
+    "agent_tool_controls": true,
+    "capability_proof": true,
+    "continuation": true,
+    "core": true,
+    "core_proof": true,
+    "cpp_source_refusals": true,
+    "cpp_unique_reset": true,
+    "host_region": true,
+    "memory_proof": true,
+    "ndu_full_cost": true,
+    "reduction": true,
+    "register_proof": true,
+    "rust_shadow_dependencies": true
+  },
+  "run_id": 41257225737,
+  "run_url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/41257225737",
+  "safety_certificate": false,
+  "schema": "hepta.hia.published-ci-evidence.v1",
+  "source_and_tools_unchanged": true,
+  "source_commit": "d170ff3cf0c1fb7b999f4e4af0ef119f8f34aad6",
+  "source_tree": "084ec73fa061a2a993afae8e83664dbe25a32b21"
+}
