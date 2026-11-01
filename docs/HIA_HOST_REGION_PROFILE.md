@@ -34,7 +34,17 @@ apply to the complete region, so even disjoint writes are conservatively
 exclusive. Snapshots read the actual kernel mapping permission string; they do
 not disclose a raw address or data fd.
 
-Each lease is registered by object identity and generation. Read operations
+Each lease is registered by object identity and generation. The owner also
+stores a separate frozen grant (read/write mode, exact byte offset and length,
+generation, and internal/external origin). The returned Python lease object is
+a mutable handle, **not an authoritative grant**. Public lease operations reject
+a handle whose fields were changed; actual copies and worker calls use only
+owner-retained grant values. Conflict counts and lease release likewise use
+those owner-retained values, so modifying the handle cannot expand a write,
+spoof a reader, or masquerade as an internal worker lease. The trusted Python
+host and code with direct private-owner access remain outside this boundary.
+
+Read operations
 return immutable copies. Host writes require an exact immutable `bytes` object
 matching the leased extent. A copied, forged, foreign, closed or stale lease
 does not acquire authority. Releasing an old lease is allowed so quarantine

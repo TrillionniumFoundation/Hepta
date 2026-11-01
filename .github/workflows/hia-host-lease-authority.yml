@@ -1,0 +1,116 @@
+name: HIA P1/P7 owner lease authority exact-source adversarial guard (research)
+
+on:
+  push:
+    branches:
+      - 'research/hia-p1-lease-authority-*'
+  pull_request:
+    branches:
+      - 'work/hia-full-execution-20261031'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  owned-lease-authority:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      EXPECTED_HEAD: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install the pinned standalone verifier dependency
+        run: python -m pip install 'z3-solver==4.15.4.0'
+      - name: Execute four adversarial owner lease cases against exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/hia-lease-authority"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          {
+            git rev-parse HEAD
+            git rev-parse 'HEAD^{tree}'
+            python -V
+            uname -a
+            sha256sum hepta/hia_host_region.py tests/test_hia_host_region_lease_authority.py .github/workflows/hia-host-lease-authority.yml
+          } > "$RUNNER_TEMP/hia-lease-authority/source-identity.txt"
+          set +e
+          python -B -m unittest tests.test_hia_host_region_lease_authority -v             2>&1 | tee "$RUNNER_TEMP/hia-lease-authority/test-output.txt"
+          status=${PIPESTATUS[0]}
+          set -e
+          printf 'unittest_exit=%s\n' "$status" | tee "$RUNNER_TEMP/hia-lease-authority/result.txt"
+          test "$status" -eq 0
+          grep -q 'Ran 4 tests' "$RUNNER_TEMP/hia-lease-authority/test-output.txt"
+          if grep -Eq 'skipped=|expected failures=|unexpected successes=' "$RUNNER_TEMP/hia-lease-authority/test-output.txt"; then
+            echo 'A skip or expected failure cannot qualify the lease-authority guard' >&2
+            exit 1
+          fi
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - name: Preserve original negative and repaired exact-head evidence
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hia-owner-lease-authority-${{ github.sha }}
+          retention-days: 30
+          if-no-files-found: error
+          path: ${{ runner.temp }}/hia-lease-authority/*
+
+  existing-host-region-native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      EXPECTED_HEAD: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: ./.github/actions/hia-execution-toolchain
+      - name: Requalify original kernel and real C/Hepta native host tests on this source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/hia-host-native"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          {
+            git rev-parse HEAD
+            git rev-parse 'HEAD^{tree}'
+            python -V
+            "$CLANG" --version | head -1
+            sha256sum hepta/hia_host_region.py tests/test_hia_host_region.py tests/test_hia_host_region_lease_authority.py
+          } > "$RUNNER_TEMP/hia-host-native/identity.txt"
+          set +e
+          HEPTA_TEST_CLANG="$CLANG" python -B -m unittest tests.test_hia_host_region -v \
+            2>&1 | tee "$RUNNER_TEMP/hia-host-native/native-tests.txt"
+          status=${PIPESTATUS[0]}
+          set -e
+          printf 'native_test_exit=%s\\n' "$status" > "$RUNNER_TEMP/hia-host-native/result.txt"
+          test "$status" -eq 0
+          grep -q 'Ran 9 tests' "$RUNNER_TEMP/hia-host-native/native-tests.txt"
+          if grep -Eq 'skipped=|expected failures=|unexpected successes=' "$RUNNER_TEMP/hia-host-native/native-tests.txt"; then
+            echo 'Native regression was skipped or weakened' >&2
+            exit 1
+          fi
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - name: Retain original full native host test receipts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hia-host-region-native-${{ github.sha }}
+          retention-days: 30
+          if-no-files-found: error
+          path: ${{ runner.temp }}/hia-host-native/*
