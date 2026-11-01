@@ -18,7 +18,8 @@ class NativePerformanceAcceptanceTests(unittest.TestCase):
         stats = {name: {str(n): {"median": 100, "p95": 100, "p99": 100}
                         for n in spec["sizes"]} for name in spec["backends"]}
         episodes = [{"episode": index, "arm": arm,
-                     "service_total_ns": 150 if arm == "native_ndu" else 100}
+                     "service_total_ns": 150 if arm == "native_ndu" else 100,
+                     "status": "passed", "native_invocations": 0}
                     for index in range(len(spec["episodes"]))
                     for arm in spec["policy_arms"]]
         return {"training_summary": stats, "policy_runs": episodes}, deepcopy(spec)
