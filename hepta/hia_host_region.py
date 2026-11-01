@@ -392,7 +392,20 @@ class HostRegion:
         if self._state not in {"quarantined","permanent_deny"}:
             self._generation+=1
         self._state="permanent_deny" if permanent or self._state=="permanent_deny" else "quarantined"
-        self._reason=reason;self._event("quarantined",reason=reason,permanent=permanent)
+        self._reason=reason
+        try:
+            self._event("quarantined",reason=reason,permanent=permanent)
+        except BaseException as error:
+            # The quarantine may have been appended or lost entirely. Its
+            # receipt is a production authority boundary, not advisory
+            # telemetry: never allow this epoch to be recovered or unmapped
+            # on an unconfirmed quarantine transition.
+            self._unprovable_quiescence=True
+            self._state="permanent_deny"
+            self._reason="quarantine receipt unconfirmed"
+            raise HostRegionUncertain(
+                "quarantine receipt unconfirmed; permanently denied"
+            ) from error
 
     def call(self,library,symbol,*,generation,argument=0,offset=0,length=None,timeout=1.0):
         if type(library) is not NativeRegionLibrary: _reject("owned reviewed native library required")
