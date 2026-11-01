@@ -1,0 +1,85 @@
+name: HIA P0 frozen release axes exact-head adversarial admission (research DENY_ALL)
+
+on:
+  push:
+    branches:
+      - 'research/hia-p0-release-frozen-axes-*'
+  pull_request:
+    paths:
+      - tools/qualify_hia_release_parity.py
+      - tests/test_hia_release_frozen_axes.py
+      - .github/workflows/hia-release-frozen-axes-521.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  frozen-release-axes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Exact immutable release registration counterexamples
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/hia-frozen-axes"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          git rev-parse HEAD | tee "$RUNNER_TEMP/hia-frozen-axes/head.txt"
+          git rev-parse 'HEAD^{tree}' | tee "$RUNNER_TEMP/hia-frozen-axes/tree.txt"
+          sha256sum tools/qualify_hia_release_parity.py benchmarks/hia_native_ndu/PROTOCOL.json tests/test_hia_release_frozen_axes.py .github/workflows/hia-release-frozen-axes-521.yml | tee "$RUNNER_TEMP/hia-frozen-axes/file-hashes.txt"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          python -B - <<'PY' 2>&1 | tee "$RUNNER_TEMP/hia-frozen-axes/tests.log"
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+          import unittest
+
+          module = "tests.test_hia_release_frozen_axes"
+          suite = unittest.defaultTestLoader.loadTestsFromName(module)
+          planned = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          head = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          tree = subprocess.check_output(["git", "rev-parse", "HEAD^{tree}"], text=True).strip()
+          sources = ("tools/qualify_hia_release_parity.py", "benchmarks/hia_native_ndu/PROTOCOL.json",
+                     "tests/test_hia_release_frozen_axes.py", ".github/workflows/hia-release-frozen-axes-521.yml")
+          good = (planned == 6 and result.testsRun == 6 and result.wasSuccessful()
+                  and not result.skipped and not result.expectedFailures
+                  and not result.unexpectedSuccesses and head == os.environ["EXPECTED_HEAD"])
+          receipt = {"schema": "hepta.hia.p0-release-frozen-axes.v1", "head": head, "tree": tree,
+                     "planned": planned, "executed": result.testsRun,
+                     "failures": len(result.failures), "errors": len(result.errors),
+                     "skipped": len(result.skipped), "expected_failures": len(result.expectedFailures),
+                     "unexpected_successes": len(result.unexpectedSuccesses),
+                     "sha256": {name: hashlib.sha256(Path(name).read_bytes()).hexdigest() for name in sources},
+                     "status": "passed" if good else "failed",
+                     "native_performance_measured": False, "authority": "DENY_ALL",
+                     "safety_certificate": False, "production_activation_allowed": False}
+          Path(os.environ["RUNNER_TEMP"], "hia-frozen-axes", "receipt.json").write_text(
+              json.dumps(receipt, indent=2, sort_keys=True)+"\n")
+          print(json.dumps(receipt, sort_keys=True))
+          if not good:
+              raise SystemExit(1)
+          PY
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - name: Preserve original failure or pass evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-frozen-axes-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/hia-frozen-axes/
+          if-no-files-found: warn
+          retention-days: 30
