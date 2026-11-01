@@ -97,6 +97,11 @@ class NativeRegionLibrary:
         self._debts=[];self._symbols={};self._mapping=None
         self.artifact_sha256=expected_sha256
         with _REGISTRY_LOCK:
+            # Global owner tokens are registry keys, not advisory labels.
+            # Reject malformed entropy or collision before replacing a retained owner.
+            if (type(self._token) is not str or re.fullmatch(r"[0-9a-f]{32}",self._token) is None
+                    or self._token in _LIBRARIES):
+                _reject("malformed or duplicate library identity")
             if len(_LIBRARIES)>=MAX_LIBRARIES: _reject("native library retention budget exhausted")
             _LIBRARIES[self._token]=self
 
@@ -207,6 +212,11 @@ class HostRegion:
         self._fd=None;self._memory=None;self._address=None;self._permission="none"
         self._release_attempted=False;self._release_report={};self._unprovable_quiescence=False
         with _REGISTRY_LOCK:
+            # A duplicate or malformed token must never hide the prior owner
+            # or allow retained memfd debt to escape the bounded registry.
+            if (type(self._token) is not str or re.fullmatch(r"[0-9a-f]{32}",self._token) is None
+                    or self._token in _REGIONS):
+                _reject("malformed or duplicate region identity")
             if len(_REGIONS)>=MAX_REGIONS: _reject("retained region budget exhausted, including quarantine")
             _REGIONS[self._token]=self
         try:
