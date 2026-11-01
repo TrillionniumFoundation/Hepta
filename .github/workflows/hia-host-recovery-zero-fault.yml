@@ -6,14 +6,14 @@ on:
       - 'research/hia-p7-recovery-zero-fault-539-*'
   pull_request:
     branches:
-      - 'research/hia-p7-recovery-zero-fault-538-20261101-gpt6'
+      - 'research/hia-p7-recovery-snapshot-538-20261101-gpt6'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  native-recovery-snapshot:
+  native-recovery-zero-fault:
     runs-on: ubuntu-24.04
     timeout-minutes: 50
     env:
@@ -91,7 +91,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: hia-p7-native-recovery-snapshot-${{ github.event.pull_request.head.sha || github.sha }}
+          name: hia-p7-native-recovery-zero-fault-${{ github.event.pull_request.head.sha || github.sha }}
           path: ${{ runner.temp }}/hia-p7-recovery-zero-fault/
           retention-days: 30
           if-no-files-found: error
