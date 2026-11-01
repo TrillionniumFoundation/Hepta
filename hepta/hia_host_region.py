@@ -259,6 +259,13 @@ class HostRegion:
         # Mint the lease identity before changing kernel page permissions:
         # a failed identity source must leave no writable unowned mapping.
         lease=RegionLease(self,mode,offset,length,generation,internal)
+        # An unexpected entropy collision must not replace a live grant.
+        # This is checked before mprotect or any owner registry mutation;
+        # never guess that a repeated/malformed capability can be recovered.
+        token=lease._token
+        if (type(token) is not str or re.fullmatch(r"[0-9a-f]{32}",token) is None
+                or token in self._leases or token in self._lease_grants):
+            _reject("malformed or duplicate lease identity")
         # The lease has not escaped to a caller. If registry or receipt
         # bookkeeping fails after mprotect, retract every partial grant
         # before returning the exception. No unowned accessible page may
