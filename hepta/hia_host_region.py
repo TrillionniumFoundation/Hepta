@@ -585,7 +585,21 @@ class HostRegion:
                 self._quarantine("native code release outcome uncertain",permanent=True)
                 _reject("native code release outcome uncertain; never retry")
             job["library_finish_attempted"]=True
-            job["library"]._finish()
+            try:
+                job["library"]._finish()
+            except BaseException as error:
+                # A joined worker does not prove that its code pin was
+                # retired. _finish may raise before or after decrementing the
+                # active count. Even a zero count cannot authorize dlclose or
+                # reuse by a different HostRegion without a receipt.
+                with job["library"]._lock:
+                    job["library"]._retirement_uncertain=True
+                self._unprovable_quiescence=True
+                self._quarantine("joined native code pin retirement unconfirmed",
+                                 permanent=True)
+                raise HostRegionUncertain(
+                    "joined native code pin retirement unconfirmed; permanently denied"
+                ) from error
             job["library_retired"]=True
         if not job.get("join_receipted",False):
             self._event("worker_join_confirmed")
