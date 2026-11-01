@@ -362,7 +362,23 @@ class HostRegion:
         with self._lock:
             grant=self._validate_lease(lease)
             if grant.mode!="write" or len(data)!=grant.length: _reject("write permission or exact extent missing")
-            self._memory[grant.offset:grant.offset+grant.length]=data
+            try:
+                self._memory[grant.offset:grant.offset+grant.length]=data
+            except BaseException as error:
+                # Even a lost result receipt can mean that some or all bytes
+                # reached the real mapping. Keep the exclusive lease owned,
+                # revoke this generation and require quiescent zeroing before
+                # any subsequent host/native read or native invocation.
+                try:
+                    self._quarantine("host write outcome unconfirmed")
+                except BaseException as quarantine_error:
+                    # _quarantine itself permanently denies a lost receipt.
+                    raise HostRegionUncertain(
+                        "host write and quarantine receipts unconfirmed; permanently denied"
+                    ) from quarantine_error
+                raise HostRegionUncertain(
+                    "host write result unconfirmed; quiescent recovery required"
+                ) from error
 
     def _release_lease(self,lease,*,internal=False):
         with self._lock:
