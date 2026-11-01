@@ -259,10 +259,25 @@ class HostRegion:
         # Mint the lease identity before changing kernel page permissions:
         # a failed identity source must leave no writable unowned mapping.
         lease=RegionLease(self,mode,offset,length,generation,internal)
-        if not self._leases: self._protect(mode)
-        self._leases[lease._token]=lease
-        self._lease_grants[lease._token]=_LeaseGrant(mode,offset,length,generation,internal)
-        self._event("borrowed",mode=mode,offset=offset,length=length)
+        # The lease has not escaped to a caller. If registry or receipt
+        # bookkeeping fails after mprotect, retract every partial grant
+        # before returning the exception. No unowned accessible page may
+        # survive a failed public or native-call admission.
+        try:
+            if not self._leases: self._protect(mode)
+            self._leases[lease._token]=lease
+            self._lease_grants[lease._token]=_LeaseGrant(mode,offset,length,generation,internal)
+            self._event("borrowed",mode=mode,offset=offset,length=length)
+        except BaseException:
+            if self._leases.get(lease._token) is lease:
+                self._leases.pop(lease._token)
+                self._lease_grants.pop(lease._token,None)
+            lease._closed=True
+            if not self._leases:
+                # A failed rollback mprotect is already permanent_deny
+                # through _protect; do not certify recovery in that case.
+                self._protect("none")
+            raise
         return lease
 
     def borrow(self,mode,*,generation,offset=0,length=None):
