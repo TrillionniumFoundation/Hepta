@@ -37,3 +37,12 @@ OPENBLAS_NUM_THREADS=1 python -m research.hcsn.p2_nonaffine_bridge_evidence --ou
 ## Scope and unclosed blockers
 
 This is a predetermined deterministic tent barrier, not a learned online input-dependent boundary. The conditional posterior uses the future endpoint; it **must not** be used for causal decisions before the endpoint arrives. No repeated endogenous reset, gradient, long MQAR heldout or pretrained encoder proof follows. Prior P1/P2 negative controls remain. P0–P6 remain OPEN without independent external signed evidence; strict gate must continue exiting nonzero. No CI or GPU/energy claim.
+
+## Post-push independent local replay and immutable blob check
+
+- Extracted the pre-existing `independent_gate.py` from the earlier self-contained local HCSN research archive, verified its Git blob `4611f0569f62bff00d932b7b7e95743dbbccbc29` exactly matches the pinned GitHub version, and actually ran:
+  `python -m research.hcsn.independent_gate --bundle research/hcsn --strict`.
+  **Exit code 2**; all seven phases report `status=OPEN`, `full_closure=false`, `production_activation=false`; missing external trust root.
+- Remote blob SHA-1s matched the locally run source (Git `hash-object`) exactly: kernel `518eab4f4578f9ca0eb1d6f5d86a9d9da4a7146f`, tests `aa0bc1645bdbc209ada6ec6f8de9a4e44940360f`, evidence generator `e3daee5e8cb55f775682e7f0acd0964974f23160`, raw JSON `f44cfc5deba4e20fb33979f6798a8a5e2f4c0a8b`.
+- This was run on the **local minimal replay**, not a full byte-identical GitHub checkout. GitHub latest-head combined status and PR-triggered workflow queries both returned empty lists; **no remote CI pass is claimed**.
+- Related #500 already studies independently verified two-stage moving barriers; this patch adds a distinct *endpoint-conditioned* non-affine bound witness to the #512 hidden-event clock line, and does not overwrite #500 or claim to supersede it.
