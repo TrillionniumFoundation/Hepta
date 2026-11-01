@@ -17,7 +17,7 @@ class NativeEconomicsContractTests(unittest.TestCase):
                    for n in spec["sizes"]} for name in spec["backends"]},
                   "policy_runs": [{"episode": index, "arm": arm,
                                    "service_total_ns": 1 if arm == "native_ndu" else 2,
-                                   "native_invocations": 0}
+                                   "status": "passed", "native_invocations": 0}
                                   for index in range(len(spec["episodes"])) for arm in spec["policy_arms"]]}
         zero = evaluate(report, spec)
         self.assertTrue(zero["service_scope_gated_policy_benefit_established"])

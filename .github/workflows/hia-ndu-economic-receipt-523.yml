@@ -1,0 +1,115 @@
+name: HIA P5 native NDU economic receipt refusal exact-head (research DENY_ALL)
+
+on:
+  push:
+    branches:
+      - 'research/hia-p5-economic-receipts-523-*'
+  pull_request:
+    paths:
+      - tools/qualify_hia_native_ndu.py
+      - tests/test_hia_ndu_economics_receipt_fence.py
+      - .github/workflows/hia-ndu-economic-receipt-523.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  economic-receipt-admission:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Immutable exact-head policy-receipt adversarial regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/hia-ndu-economic-receipt"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          git rev-parse HEAD | tee "$RUNNER_TEMP/hia-ndu-economic-receipt/commit.txt"
+          git rev-parse 'HEAD^{tree}' | tee "$RUNNER_TEMP/hia-ndu-economic-receipt/tree.txt"
+          sha256sum tools/qualify_hia_native_ndu.py benchmarks/hia_native_ndu/PROTOCOL.json tests/test_hia_ndu_economics_receipt_fence.py .github/workflows/hia-ndu-economic-receipt-523.yml | tee "$RUNNER_TEMP/hia-ndu-economic-receipt/file-hashes.txt"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          python -B - <<'PY' 2>&1 | tee "$RUNNER_TEMP/hia-ndu-economic-receipt/tests.log"
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+          import unittest
+
+          name = "tests.test_hia_ndu_economics_receipt_fence"
+          suite = unittest.defaultTestLoader.loadTestsFromName(name)
+          def walk(s):
+              for item in s:
+                  if isinstance(item, unittest.TestSuite):
+                      yield from walk(item)
+                  else:
+                      yield item.id()
+          planned_ids = list(walk(suite))
+          planned = len(planned_ids)
+          class ExactResult(unittest.TextTestResult):
+              def __init__(self, *args, **kwargs):
+                  super().__init__(*args, **kwargs)
+                  self.started_ids = []
+                  self.stopped_ids = []
+              def startTest(self, test):
+                  self.started_ids.append(test.id())
+                  super().startTest(test)
+              def stopTest(self, test):
+                  self.stopped_ids.append(test.id())
+                  super().stopTest(test)
+          result = unittest.TextTestRunner(verbosity=2, resultclass=ExactResult).run(suite)
+          head = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          tree = subprocess.check_output(["git", "rev-parse", "HEAD^{tree}"], text=True).strip()
+          paths = ("tools/qualify_hia_native_ndu.py", "benchmarks/hia_native_ndu/PROTOCOL.json",
+                   "tests/test_hia_ndu_economics_receipt_fence.py", ".github/workflows/hia-ndu-economic-receipt-523.yml")
+          expected_suffixes = (
+              "test_exact_passed_same_information_cost_cohort_is_accepted",
+              "test_failed_native_policy_must_not_be_counted_as_winning",
+              "test_replayed_duplicate_native_receipt_must_not_be_silently_overwritten",
+              "test_unregistered_extra_episode_must_not_be_ignored",
+              "test_bool_negative_and_zero_cost_receipts_fail_closed",
+              "test_boolean_native_invocation_cannot_impersonate_a_measured_call")
+          expected_ids = {name + ".NativeNduReceiptFenceTests." + item for item in expected_suffixes}
+          good = (planned == 6 and set(planned_ids) == expected_ids
+                  and len(set(planned_ids)) == planned and planned_ids == result.started_ids
+                  and result.started_ids == result.stopped_ids
+                  and result.testsRun == planned and result.wasSuccessful()
+                  and not result.skipped and not result.expectedFailures
+                  and not result.unexpectedSuccesses and head == os.environ["EXPECTED_HEAD"])
+          receipt = {"schema": "hepta.hia.p5-economic-receipt-admission.v1",
+                     "head": head, "tree": tree, "planned": planned, "executed": result.testsRun,
+                     "planned_ids": planned_ids, "started_ids": result.started_ids,
+                     "stopped_ids": result.stopped_ids,
+                     "failures": len(result.failures), "errors": len(result.errors),
+                     "skipped": len(result.skipped), "xfail": len(result.expectedFailures),
+                     "xpass": len(result.unexpectedSuccesses),
+                     "sha256": {name: hashlib.sha256(Path(name).read_bytes()).hexdigest() for name in paths},
+                     "status": "passed" if good else "failed",
+                     "synthetic_receipt_tests_only": True, "measured_native_performance": False,
+                     "authority": "DENY_ALL", "production_activation_allowed": False}
+          Path(os.environ["RUNNER_TEMP"], "hia-ndu-economic-receipt", "receipt.json").write_text(json.dumps(receipt, sort_keys=True, indent=2)+"\n")
+          print(json.dumps(receipt, sort_keys=True))
+          if not good:
+              raise SystemExit(1)
+          PY
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - name: Retain failure and success evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-ndu-economic-receipt-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/hia-ndu-economic-receipt/
+          if-no-files-found: warn
+          retention-days: 30
