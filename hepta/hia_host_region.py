@@ -516,8 +516,18 @@ class HostRegion:
             self._protect("write")
             self._memory[:]=b"\0"*self._mapped
             self._protect("none")
-            self._generation+=1;self._state="ready";self._reason=None
-            self._event("recovered_zeroed",quiescence="all owned workers joined and no retained leases")
+            # Do not expose a new ready generation until the recovery
+            # completion receipt has actually succeeded. An audit failure,
+            # including a post-append failure, must keep the epoch fenced.
+            self._generation+=1
+            try:
+                self._event("recovered_zeroed",quiescence="all owned workers joined and no retained leases")
+            except BaseException as error:
+                self._reason="recovery completion receipt unconfirmed"
+                raise HostRegionUncertain(
+                    "recovery completion unconfirmed; region remains quarantined"
+                ) from error
+            self._state="ready";self._reason=None
             return self.snapshot()
 
     def _observed_permissions(self):
