@@ -89,10 +89,19 @@ def _validate_release_registration(spec):
                 "all_baselines_and_sizes_required"}
     if type(gate) is not dict or set(gate) != required or gate["all_baselines_and_sizes_required"] is not True:
         raise ValueError("E_RELEASE_COHORT: incomplete registered performance gate")
+    # A finite number can still silently relax the frozen safety limit.
+    # Anchor the admission maxima to the source-bound native protocol; only
+    # stricter local limits are permissible, never a wider performance gate.
+    frozen = protocol().get("performance_gate")
+    if (type(frozen) is not dict or set(frozen) != required
+            or frozen["all_baselines_and_sizes_required"] is not True):
+        raise ValueError("E_RELEASE_COHORT: invalid frozen performance gate")
     for name in ("hia_median_ratio_maximum", "hia_tail_ratio_maximum"):
-        value = gate[name]
-        if type(value) not in (int, float) or not math.isfinite(value) or value <= 0:
-            raise ValueError("E_RELEASE_COHORT: nonfinite or invalid " + name)
+        value, cap = gate[name], frozen[name]
+        if (type(value) not in (int, float) or not math.isfinite(value) or value <= 0
+                or type(cap) not in (int, float) or not math.isfinite(cap) or cap <= 0
+                or value > cap):
+            raise ValueError("E_RELEASE_COHORT: relaxed, nonfinite or invalid " + name)
 
 
 def assess(rows, spec):
