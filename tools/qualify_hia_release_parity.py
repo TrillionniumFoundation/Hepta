@@ -96,6 +96,23 @@ def _validate_release_registration(spec):
     if (type(frozen) is not dict or set(frozen) != required
             or frozen["all_baselines_and_sizes_required"] is not True):
         raise ValueError("E_RELEASE_COHORT: invalid frozen performance gate")
+    # A full release protocol is source-owned, not a caller-selected subset.
+    # Synthetic unit cohorts intentionally omit all release identity fields;
+    # their comparator results are not native release qualifications.
+    release_identity = {"schema", "build_profile", "workload", "semantics",
+                        "batch_calls", "warmup_calls", "correctness_sizes",
+                        "correctness_seeds"}
+    if release_identity.intersection(spec):
+        profile = spec.get("build_profile")
+        if type(profile) is not str or profile not in (
+                "optimized-release-v1", "verified-reduction-release-v1"):
+            raise ValueError("E_RELEASE_COHORT: unknown frozen release build profile")
+        registered = specification(profile)
+        if set(spec) != set(registered):
+            raise ValueError("E_RELEASE_COHORT: altered frozen release field inventory")
+        for field in registered:
+            if field != "performance_gate" and wire(spec[field]) != wire(registered[field]):
+                raise ValueError("E_RELEASE_COHORT: altered frozen release " + field)
     for name in ("hia_median_ratio_maximum", "hia_tail_ratio_maximum"):
         value, cap = gate[name], frozen[name]
         if (type(value) not in (int, float) or not math.isfinite(value) or value <= 0
@@ -148,6 +165,7 @@ def assess(rows, spec):
                               and ratios["p95_ratio"] <= gate["hia_tail_ratio_maximum"]
                               and ratios["p99_ratio"] <= gate["hia_tail_ratio_maximum"]})
     return {"cohorts": cohorts, "comparisons": comparisons,
+            "source_frozen_release_registration": spec.get("schema") == "hepta.hia.release-parity.protocol.v1",
             "performance_gate_passed": all(row["passed"] for row in comparisons),
             "holdout_gate_passed": all(row["passed"] for row in comparisons if row["phase"] == "holdout"),
             "rust_comparisons_passed": sum(row["passed"] for row in comparisons if row["baseline"] == "rust"),
@@ -246,7 +264,8 @@ def run(output, clang, rustc, *, build_profile="optimized-release-v1"):
         report["other_measured_wall_ns"] = report["campaign_wall_ns"]-sum(report["stage_wall_ns"].values())
         report["cost_scope"] = "Campaign wall includes setup, build, load, validation, all samples, probes, cleanup and reporting to final snapshot; stage rows partition this interval. Build-command/backend timings are nested, never added again. Earlier tool acquisition, human time and energy are unknown."
         report["valid_observation"] = (report["status"] == "completed" and report["source_unchanged"]
-                                       and report["tool_and_artifact_identities_unchanged"])
+                                       and report["tool_and_artifact_identities_unchanged"]
+                                       and report.get("assessment", {}).get("source_frozen_release_registration") is True)
         if not report["valid_observation"] and "assessment" in report:
             report["invalidated_assessment"] = report.pop("assessment")
         checkpoint()
