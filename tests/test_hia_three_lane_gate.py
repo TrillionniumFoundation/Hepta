@@ -177,9 +177,10 @@ class HIAThreeLaneGateTests(unittest.TestCase):
 
     def test_separate_exact_suite_inventory_and_non_authority(self):
         self.assertEqual(SUITES["gate"], ("tests.test_hia_three_lane_gate",))
+        self.assertEqual(SUITES["trial-observations"], ("tests.test_hia_trial_observations",))
         self.assertEqual(set(SUITES), {
             "gate", "core", "native", "rust", "legacy", "llvm", "migration",
-            "core-consistency", "trusted-core"})
+            "core-consistency", "trusted-core", "trial-observations"})
         for key, sources in SUITES.items():
             self.assertTrue(sources)
             self.assertEqual(len(sources), len(set(sources)), key)
