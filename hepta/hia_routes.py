@@ -77,7 +77,15 @@ def route_inventory():
         sources.append({"language": language, "path": None, "scope": "no source frontend; reject as HIA input"})
     historical = [
         {"input": "hepta.hsir.v0 / hepta.hsir.scalar.v1 / hepta.cfg.v0 / hepta.ssa.scalar.v0",
-         "path": "only inside authenticated legacy-scalar import", "independent_execution": False},
+         "path": "only inside authenticated legacy-scalar import", "independent_execution": False,
+         "scope": "hepta.cfg.v0 here requires structural_cfg_only_not_proved status"},
+        {"input": "hepta.cfg.descriptive.v1", "path": "hepta.flow_ir.lower_checked_cfg",
+         "independent_execution": False,
+         "reason": "checked structured source description; no standalone or scalar CFG admission"},
+        {"input": "historical hepta.cfg.v0 descriptive profile",
+         "path": "hepta.flow_ir.import_legacy_descriptive_cfg -> hepta.cfg.descriptive.v1",
+         "independent_execution": False, "implicit_schema_guessing": False,
+         "scope": "explicit closed-source fresh replay only; scalar status and ambiguous envelopes rejected"},
         {"input": "HMIR export", "path": None, "independent_execution": False,
          "reason": "structural export, not a standalone executable authority"},
         {"input": "hepta.resource-ir.v1-v5", "path": "source resource-check side condition",

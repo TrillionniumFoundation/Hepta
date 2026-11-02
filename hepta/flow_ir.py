@@ -12,9 +12,19 @@ from typing import Any
 from .ast import Program, Stmt
 from .semantic_ir import _Encoder, _span, _stable_json, volatile_accesses
 
-SCHEMA = "hepta.cfg.v0"
+SCHEMA = "hepta.cfg.descriptive.v1"
+PROFILE = "typed_structured_cfg_not_ssa_or_verified_mir"
+LEGACY_DESCRIPTIVE_SCHEMA = "hepta.cfg.v0"
 MAX_BLOCKS = 4096
 MAX_OPERATIONS = 16384
+_EXPORT_FIELDS = frozenset({
+    "schema", "profile", "source_sha256", "project_sha256", "functions",
+    "volatile_accesses", "claims", "sha256",
+})
+_CLAIMS = frozenset({
+    "ssa", "borrow_check_independent", "machine_lowering_verified",
+    "semantic_equivalence_proved", "foreign_library_soundness_proved",
+})
 
 
 class FlowLowerError(ValueError):
@@ -227,7 +237,7 @@ def lower_checked_cfg(program: Program, checked: Any, *,
                           "graph": {"entry": entry, "blocks": builder.blocks}})
     payload = {
         "schema": SCHEMA,
-        "profile": "typed_structured_cfg_not_ssa_or_verified_mir",
+        "profile": PROFILE,
         "source_sha256": hashlib.sha256(program.source.encode("utf-8")).hexdigest(),
         "project_sha256": project_sha256,
         "functions": functions,
@@ -239,3 +249,97 @@ def lower_checked_cfg(program: Program, checked: Any, *,
     }
     payload["sha256"] = hashlib.sha256(_stable_json(payload)).hexdigest()
     return payload
+
+
+def import_legacy_descriptive_cfg(document: object, *, source: str, path: str,
+                                 project_sha256: str | None = None
+                                 ) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Explicitly replay one old descriptive export through the same frontend.
+
+    The historical descriptive and scalar CFG producers shared ``hepta.cfg.v0``.
+    This adapter selects only the descriptive profile, then requires the entire
+    old payload to match a fresh parse/check/lower of the supplied closed source.
+    It does not load files/imports, accept a scalar CFG, or authorize execution.
+    Project identity is caller-supplied metadata, not authenticated project data.
+    Project-expanded exports which do not replay exactly must be regenerated.
+    """
+    from .ast import HeptaError
+    from .checker import check
+    from .hia_bounded_wire import checked_utf8_wire
+    from .hia_program_tools import MAX_INPUT_BYTES, bounded_json_wire, decode_json
+    from .parser import parse
+
+    def reject(reason: str) -> None:
+        raise FlowLowerError("E_CFG_IMPORT: " + reason)
+
+    try:
+        # Reuse the existing bounded JSON intake, including duplicate-key,
+        # depth, node and cyclic in-process input rejection. Admit text bytes
+        # before making its complete UTF-8 copy or invoking the decoder.
+        if type(document) is str:
+            wire = checked_utf8_wire(document, MAX_INPUT_BYTES)
+        elif type(document) is bytes:
+            wire = document
+        elif type(document) is dict:
+            wire = bounded_json_wire(document, MAX_INPUT_BYTES, ensure_ascii=False)
+        else:
+            reject("legacy export must be JSON text, bytes or a built-in dict")
+        old = decode_json(wire)
+        source_wire = checked_utf8_wire(source, MAX_INPUT_BYTES)
+        checked_utf8_wire(path, 4096)
+        if project_sha256 is not None:
+            checked_utf8_wire(project_sha256, 4096)
+    except (TypeError, ValueError, UnicodeError, RecursionError, OverflowError) as exc:
+        raise FlowLowerError("E_CFG_IMPORT: bounded input refused: " + str(exc)) from exc
+
+    if type(old) is not dict or set(old) != _EXPORT_FIELDS:
+        reject("requires exactly the historical descriptive export fields")
+    if old["schema"] != LEGACY_DESCRIPTIVE_SCHEMA or old["profile"] != PROFILE:
+        reject("requires explicit historical descriptive schema and profile")
+    claims = old["claims"]
+    if (type(claims) is not dict or set(claims) != _CLAIMS
+            or any(value is not False for value in claims.values())):
+        reject("legacy claims exceed the descriptive profile")
+    digest = old["sha256"]
+    parent = {key: value for key, value in old.items() if key != "sha256"}
+    parent_wire = bounded_json_wire(parent, MAX_INPUT_BYTES, ensure_ascii=False)
+    if type(digest) is not str or hashlib.sha256(parent_wire).hexdigest() != digest:
+        reject("legacy descriptive checksum mismatch")
+    if old["source_sha256"] != hashlib.sha256(source_wire).hexdigest():
+        reject("supplied source content differs from the legacy export")
+
+    try:
+        program = parse(source, path)
+        if program.imports:
+            reject("requires closed source; imported projects must be regenerated")
+        result = check(program)
+        if not result.ok:
+            reject("supplied source was rejected by the fresh frontend check")
+        current = lower_checked_cfg(program, result, project_sha256=project_sha256)
+        expected = {key: value for key, value in current.items() if key != "sha256"}
+        expected["schema"] = LEGACY_DESCRIPTIVE_SCHEMA
+        # Compare canonical bytes, not Python equality (False == 0, True == 1).
+        # This also rejects resealed omitted/extra fields at every nested level.
+        expected_wire = bounded_json_wire(expected, MAX_INPUT_BYTES, ensure_ascii=False)
+        # Bound the returned representation too. Every field is freshly produced;
+        # the imported input is never merely relabelled and returned.
+        bounded_json_wire(current, MAX_INPUT_BYTES, ensure_ascii=False)
+    except (HeptaError, TypeError, ValueError, RecursionError, OverflowError) as exc:
+        raise FlowLowerError("E_CFG_IMPORT: fresh source replay refused: " + str(exc)) from exc
+    if parent_wire != expected_wire:
+        reject("legacy payload differs from the complete fresh descriptive export")
+    return current, {
+        "schema": "hepta.cfg.descriptive-import.v1", "ok": True,
+        "source_schema": LEGACY_DESCRIPTIVE_SCHEMA, "target_schema": SCHEMA,
+        "source_profile": PROFILE, "target_profile": PROFILE,
+        "source_cfg_sha256": digest, "target_cfg_sha256": current["sha256"],
+        "source_sha256": current["source_sha256"],
+        "claims": {
+            "fresh_source_check_and_descriptive_replay": True,
+            "payload_unchanged_excluding_schema_and_digest": True,
+            "project_identity_authenticated": False,
+            "independent_execution_authorized": False,
+            "source_to_core_refinement_proved": False,
+            "whole_language_soundness_proved": False,
+        },
+    }

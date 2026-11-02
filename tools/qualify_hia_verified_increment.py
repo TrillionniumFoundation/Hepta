@@ -182,6 +182,7 @@ MODULES = (
     'tests.test_hia_invocation_bank',
     'tests.test_hia_prepared_gate_profile',
     'tests.test_hia_initialized_release_protocol',
+    'tests.test_cfg_wire_versions',
 
 )
 

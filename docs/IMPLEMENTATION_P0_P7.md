@@ -82,11 +82,14 @@ Do not set whole_project_blockers_closed true until the original P01–P12
 ledger has actual qualifying evidence for every item, and P0–P7 acceptance
 here also has independent source-bound receipts.
 
-## Stacked follow-up: CFG v0 and C++ reentrant handle bridge
+## Stacked follow-up: descriptive CFG and C++ reentrant handle bridge
 
-- A versioned `hepta.cfg.v0` export adds checked typed expressions, explicit
+- A versioned `hepta.cfg.descriptive.v1` export adds checked typed expressions, explicit
   branch/loop/match edges and unsafe-region marks. Limits and graph validation
   fail closed; no claim of SSA, provenance, independent borrows or native proof.
+  The incompatible scalar structural CFG alone retains `hepta.cfg.v0`.
+  Historical descriptive data requires explicit fresh-source replay through
+  `hepta.flow_ir.import_legacy_descriptive_cfg`; see [the version contract](CFG_IR.md).
 - C++ bridge registry locking is separated from per-object method calls.
   A per-entry recursive mutex and shared method lifetime allow handle
   reentrancy and independent-object concurrency while retaining stale-handle
