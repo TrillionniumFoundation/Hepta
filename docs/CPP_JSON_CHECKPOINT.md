@@ -54,6 +54,20 @@ checked before execution; serialized diagnostics, copied requests, stale
 revisions and consumed requests grant no execution authority. Reentrant
 mutation is refused while a request is executing.
 
+The parent checkpoint owner is bound to its creating process ID. After `fork`,
+all observations, context entry and request operations reject before acquiring
+an inherited Python lock. This prevents a copied one-use token from authorizing
+a second process and avoids waiting on a lock held by a vanished thread.
+Closing the inherited object discards only the child's copied references; it
+does not invoke the process supervisor, consume the parent's token or change
+the parent's checkpoint. A child that needs independent work creates a new
+owner with a new request namespace.
+
+The 1–64 item extent is checked again on a bounded detached snapshot. A caller
+mutating its list between initial validation and capture cannot admit an empty
+or oversized checkpoint. Entering a context also checks that the owner remains
+open and unpoisoned; context entry never reopens a retired owner.
+
 Each invocation has a three-second capture deadline, at most 4096 bytes in
 each output stream, and a launch envelope capped at 3,000,000 bytes. The
 bootstrap applies child address-space, CPU, file-size and core-dump limits of
@@ -173,3 +187,14 @@ new independent requests. Human effort and agent token totals remain unknown.
 No speed advantage, general C++ rewrite, elimination of the six foreign
 terminations, complete side-effect recovery or whole-library memory-safety
 result is claimed.
+
+
+## Owner process and capture regressions
+
+`tests.test_cpp_json_checkpoint_fork` covers an idle real fork, a real fork while
+another thread holds the owner lock, parent token preservation, zero child
+worker launches, bounded snapshot races, and closed/poisoned context entry.
+These tests exercise OS fork and ownership refusal; their protocol substitute
+is not counted as native C++ recovery evidence. The existing two-version
+collector must still be rerun on the exact integrated implementation for native
+allocation-site qualification.

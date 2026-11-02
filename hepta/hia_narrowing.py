@@ -276,10 +276,17 @@ def narrowed_program(base, proposal, policy=None):
     return candidate
 
 
-def propose_guarded_narrowing(base, maximum=None):
+def propose_guarded_narrowing(base, maximum=None, *, include_induction=False):
+    """Compose existing reduction/induction and modular-width proof paths.
+
+    Both stages remain independently checked and the original default remains
+    reduction-only. The optional counted-loop rewrites use the same induction
+    obligations as ``propose_guarded_reduction``; no width or range annotation
+    becomes an unchecked assumption in the native emitter.
+    """
     from .hia_guarded_optimization import propose_guarded_reduction, _freeze as guard_freeze, _compose
     original = verify_program(base)
-    guarded = propose_guarded_reduction(original, maximum)
+    guarded = propose_guarded_reduction(original, maximum, include_induction=include_induction)
     # Construction and Core admission are not an equivalence proof. The chain
     # verifier discharges both stages before either stage grants publication.
     left, fast, frozen = guard_freeze(original, guarded)

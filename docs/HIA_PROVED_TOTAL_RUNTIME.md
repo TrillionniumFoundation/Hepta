@@ -73,3 +73,58 @@ remain trusted. A total Core does not prove LLVM/native refinement, physical
 execution time, whole-language soundness or profitable optimization. The
 benchmark protocol and its actual source-bound timing evidence must establish
 performance separately; enabling this profile does not assert a speedup.
+
+## Separate bounded direct-call totality evidence
+
+`validate_scalar_call_totality(document, function=..., timeout_ms=10000)` adds
+the explicit `hia.scalar-acyclic-direct-calls-bitvector-totality.v1` evidence
+profile. It reuses the existing independent direct-call encoder. That encoder
+reads the original caller and callee operations, without asking the inlining
+producer to establish its own correctness. The legacy totality API and native
+runtime continue to reject calls.
+
+The selected primitive v1-v7 call closure must have acyclic CFGs and an acyclic
+direct-call graph, at most 16 functions, 32 blocks, 512 operations and 32
+symbolic call expansions. Each function has one scalar result. Loops,
+recursion, resources, foreign effects and other schema versions are outside
+this profile. Every input value of the selected function is quantified in the
+finite-width SMT query. Other public functions and other programs accepted by
+the profile do not acquire a theorem from this result.
+
+A non-total helper can occur in a total caller: `divide(x,d)` may trap on zero,
+while a caller returns early on `d == 0` and reaches that helper only on the
+nonzero branch. The proof composes actual call arguments and path conditions;
+it does not require the helper to be total on inputs that the caller never
+supplies. The complete caller must return normally for every typed input.
+
+The counterexample query includes both a nonzero selected outcome and any
+missing callee path. A missing callee tag therefore cannot be hidden by a
+normal caller return. SAT establishes a negative result only after the actual
+canonical VM reproduces the encoded first trap at the original call position.
+Solver unknown, wrong solver version, replay disagreement and incomplete
+paths stay unknown. The proof uses the pinned Z3 binding/library identity,
+rechecks its source dependency identities before returning a conclusive result,
+and charges validation, encoding, solving, replay and final identity checks to
+one request deadline.
+
+| Property | Coverage of a successful result | Remaining trust or exclusion |
+| --- | --- | --- |
+| Canonical typing, CFG and resource legality | The actual complete input is rechecked by the existing Core checker | An executable structural check; no machine-checked soundness theorem for every accepted program |
+| Selected caller normal return | All typed inputs of this exact selected bounded scalar call closure | Trusted SMT encoding and pinned solver; no loops, resources or external effects |
+| Negative normal-return result | A concrete input replayed by the canonical VM with the same first trap | The replay is corroboration of the counterexample, not an all-input proof |
+| LLVM/native behavior and native admission | No new claim | Existing backend, ABI, runtime and lifecycle qualifications still apply |
+| Whole-language ownership and lowering | No new claim | This scalar property does not establish those broader theorems |
+
+Focused regressions exercise contextual guards, nested original calls, callee
+body changes, caller/callee trap order, incomplete callee paths, independent
+replay, all four existing closure budgets, whole-request deadline exhaustion,
+source/solver drift and concurrent proof contexts:
+
+```sh
+python -m unittest tests.test_hia_scalar_totality \
+  tests.test_hia_scalar_call_validation -v
+```
+
+The returned record has `execution_authority=false` and explicitly denies an
+all-program or native refinement theorem. A saved record cannot authorize a
+runtime generation or bypass fresh qualification.

@@ -182,6 +182,7 @@ class TrialObservationTests(unittest.TestCase):
     def test_release_assessment_rejects_missing_duplicate_or_padded_samples(self):
         spec = specification()
         rows = [{"phase": phase, "backend": backend, "n": n, "seed": seed,
+                 "calls": spec["batch_calls"], "samples": spec["samples"],
                  "times_ns": [100]*spec["samples"]}
                 for phase in ("training", "holdout") for backend in spec["backends"]
                 for n in spec[phase+"_sizes"] for seed in spec[phase+"_seeds"]]

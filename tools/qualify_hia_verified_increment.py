@@ -19,6 +19,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from tools.qualify_hia_three_lane import _verified_receipt_destination
+
 MODULES = (
     "tests.test_core_unification", "tests.test_hia_program", "tests.test_hia_program_tools",
     "tests.test_hia_inmemory_json_key_collisions", "tests.test_hia_inmemory_surrogate_wire",
@@ -41,8 +43,17 @@ MODULES = (
     "tests.test_hia_owned_entry_abi_preflight",
     "tests.test_hia_optimizer_bench", "tests.test_hia_agent_holdout",
     "tests.test_hia_guarded_optimization", "tests.test_hia_ndu_graph",
+    "tests.test_hia_guarded_induction",
+    "tests.test_hia_guarded_narrowed_release",
+    "tests.test_hia_scalar_totality", "tests.test_hia_scalar_call_validation",
+    "tests.test_hia_sequential_core",
+    "tests.test_hia_ndu_stateful", "tests.test_hia_durable_queue",
+    "tests.test_hia_ndu_residency", "tests.test_hia_durable_revision",
+    "tests.test_hia_agent_maintenance",
+    "tests.test_hia_agent_maintenance_v2",
     "tests.test_hia_ndu_cache",
     "tests.test_cpp_upstream_host", "tests.test_cpp_contract_capture",
+    "tests.test_cpp_json_checkpoint", "tests.test_cpp_json_checkpoint_fork",
     "tests.test_cpp_composed_project", "tests.test_hia_stateful",
     "tests.test_hia_native_mapping_identity",
     "tests.test_hia_next_evaluation",
@@ -110,6 +121,57 @@ MODULES = (
     "tests.test_hia_native_ndu",
     "tests.test_hia_agent_gguf",
     "tests.test_hia_trial_observations",
+
+    # Regression sources from both converged parents and the current repairs.
+    'tests.test_cpp_unique_reset',
+    'tests.test_hia_agent_preflight',
+    'tests.test_hia_agent_repository_maintenance_v2',
+    'tests.test_hia_agent_repository_v2_feedback_review',
+    'tests.test_hia_capability_flow',
+    'tests.test_hia_capability_identity',
+    'tests.test_hia_composition_identity',
+    'tests.test_hia_host_region',
+    'tests.test_hia_host_region_admission_transaction',
+    'tests.test_hia_host_region_borrow_admission',
+    'tests.test_hia_host_region_borrow_rollback_receipt',
+    'tests.test_hia_host_region_completed_pin_retirement',
+    'tests.test_hia_host_region_finalization_receipt',
+    'tests.test_hia_host_region_job_identity',
+    'tests.test_hia_host_region_lease_authority',
+    'tests.test_hia_host_region_lease_identity_collision',
+    'tests.test_hia_host_region_lease_mprotect_receipt',
+    'tests.test_hia_host_region_lease_token_revocation',
+    'tests.test_hia_host_region_owner_registry_identity',
+    'tests.test_hia_host_region_owner_retirement',
+    'tests.test_hia_host_region_prestart_admission',
+    'tests.test_hia_host_region_prestart_pin_release_receipt',
+    'tests.test_hia_host_region_prestart_retirement_receipt',
+    'tests.test_hia_host_region_public_release_receipt',
+    'tests.test_hia_host_region_quarantine_receipt',
+    'tests.test_hia_host_region_recovery_mprotect_receipt',
+    'tests.test_hia_host_region_recovery_receipt',
+    'tests.test_hia_host_region_recovery_snapshot',
+    'tests.test_hia_host_region_recovery_zero_fault',
+    'tests.test_hia_host_region_write_receipt',
+    'tests.test_hia_increment_source_admission',
+    'tests.test_hia_incremental_capability_policy',
+    'tests.test_hia_incremental_interface_policy',
+    'tests.test_hia_native_ndu_identity',
+    'tests.test_hia_native_performance_tail_gate',
+    'tests.test_hia_ndu_cost',
+    'tests.test_hia_reduction_pipeline',
+    'tests.test_hia_reduction_release',
+    'tests.test_hia_release_batch_work',
+    'tests.test_hia_release_gate_upper_bound',
+    'tests.test_hia_release_parity_tail_gate',
+    'tests.test_hia_release_protocol_completeness',
+    'tests.test_hia_rust_pgo',
+    'tests.test_hia_scalar_boundary_conformance',
+    'tests.test_hia_scalar_lowering_budget',
+    'tests.test_hia_scalar_proof_identity',
+    'tests.test_hia_source_layout_limits',
+    'tests.test_hia_three_lane_gate',
+    'tests.test_hia_translation_guard_partition',
 
 )
 
@@ -214,16 +276,31 @@ def inventory():
     return {str(path.relative_to(ROOT)): sha256(path.read_bytes()).hexdigest() for path in sorted(set(paths))}
 
 
+def _source_identity():
+    def git(*arguments):
+        return subprocess.check_output(["git", *arguments], cwd=ROOT, text=True).strip()
+    return {"commit": git("rev-parse", "HEAD"),
+            "tree": git("rev-parse", "HEAD^{tree}"),
+            "status": git("status", "--porcelain", "--untracked-files=all")}
+
+
 def run(output):
     if len(MODULES) != len(set(MODULES)):
         raise ValueError("duplicate integration test module")
-    destination = Path(output).resolve()
+    # Resolve against this gate's ROOT too: tests may run the collector in an
+    # isolated repository, while the shared path helper owns the real checkout.
+    destination = _verified_receipt_destination(Path(output)).resolve()
+    if destination.is_relative_to(ROOT.resolve()):
+        raise ValueError("integration evidence must be outside the source checkout")
+    identity_before = _source_identity()
+    if identity_before["status"]:
+        raise ValueError("source checkout dirty before integration gate")
     destination.mkdir(parents=True, exist_ok=False)
     before = inventory()
     plan = {"schema": "hepta.hia.verified-increment.tests.v1", "modules": list(MODULES),
             "source_sha256": before,
-            "git_base": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
-            "git_worktree_status": subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT, text=True),
+            "git_base": identity_before["commit"], "git_tree": identity_before["tree"],
+            "git_worktree_status": identity_before["status"],
             "python": sys.version, "python_executable": sys.executable,
             "claims": {"whole_language_soundness_proved": False,
                        "performance_or_agent_superiority_established": False,
@@ -237,11 +314,11 @@ def run(output):
             stream=stream, verbosity=2, resultclass=_IdentityRecordingResult
         ).run(suite)
     after = inventory()
-    git_status_after = subprocess.check_output(
-        ["git", "status", "--porcelain"], cwd=ROOT, text=True
-    )
+    identity_after = _source_identity()
+    git_status_after = identity_after["status"]
     source_unchanged = before == after
-    worktree_unchanged = plan["git_worktree_status"] == git_status_after
+    source_identity_drift = identity_before != identity_after
+    worktree_unchanged = not git_status_after and not source_identity_drift
     admitted = _outcome_admissible(
         result, planned, source_unchanged=source_unchanged,
         worktree_unchanged=worktree_unchanged
@@ -265,6 +342,8 @@ def run(output):
         },
         "elapsed_ns": time.monotonic_ns() - started,
         "source_unchanged": source_unchanged,
+        "source_identity_after": identity_after,
+        "source_identity_drift": source_identity_drift,
         "git_worktree_status_after": git_status_after,
         "worktree_unchanged": worktree_unchanged,
         "failure_details": [(str(test), trace) for test, trace in result.failures + result.errors],

@@ -1,0 +1,84 @@
+name: HIA P0 frozen release threshold cap exact-head (research DENY_ALL)
+
+on:
+  push:
+    branches:
+      - 'research/hia-p0-release-gate-cap-520-*'
+  pull_request:
+    paths:
+      - tools/qualify_hia_release_parity.py
+      - tests/test_hia_release_gate_upper_bound.py
+      - .github/workflows/hia-release-gate-upper-bound-520.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  finite-gate-upper-bound:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Immutable exact-head finite adversarial regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/hia-gate-cap"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          git rev-parse HEAD | tee "$RUNNER_TEMP/hia-gate-cap/commit.txt"
+          git rev-parse 'HEAD^{tree}' | tee "$RUNNER_TEMP/hia-gate-cap/tree.txt"
+          sha256sum tools/qualify_hia_release_parity.py benchmarks/hia_native_ndu/PROTOCOL.json tests/test_hia_release_gate_upper_bound.py .github/workflows/hia-release-gate-upper-bound-520.yml | tee "$RUNNER_TEMP/hia-gate-cap/file-hashes.txt"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          python -B - <<'PY' 2>&1 | tee "$RUNNER_TEMP/hia-gate-cap/tests.log"
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+          import unittest
+
+          name = "tests.test_hia_release_gate_upper_bound"
+          suite = unittest.defaultTestLoader.loadTestsFromName(name)
+          planned = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          head = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          tree = subprocess.check_output(["git", "rev-parse", "HEAD^{tree}"], text=True).strip()
+          paths = ("tools/qualify_hia_release_parity.py", "benchmarks/hia_native_ndu/PROTOCOL.json",
+                   "tests/test_hia_release_gate_upper_bound.py", ".github/workflows/hia-release-gate-upper-bound-520.yml")
+          good = (planned == 4 and result.testsRun == planned and result.wasSuccessful()
+                  and not result.skipped and not result.expectedFailures
+                  and not result.unexpectedSuccesses and head == os.environ["EXPECTED_HEAD"])
+          receipt = {"schema": "hepta.hia.p0-frozen-gate-cap.v1",
+                     "head": head, "tree": tree, "planned": planned, "executed": result.testsRun,
+                     "failures": len(result.failures), "errors": len(result.errors),
+                     "skipped": len(result.skipped), "xfail": len(result.expectedFailures),
+                     "xpass": len(result.unexpectedSuccesses),
+                     "sha256": {name: hashlib.sha256(Path(name).read_bytes()).hexdigest() for name in paths},
+                     "status": "passed" if good else "failed",
+                     "synthetic_admission_tests_only": True, "measured_native_performance": False,
+                     "authority": "DENY_ALL", "production_activation_allowed": False}
+          Path(os.environ["RUNNER_TEMP"], "hia-gate-cap", "receipt.json").write_text(json.dumps(receipt, sort_keys=True, indent=2)+"\n")
+          print(json.dumps(receipt, sort_keys=True))
+          if not good:
+              raise SystemExit(1)
+          PY
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - name: Retain failure and success evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-gate-cap-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/hia-gate-cap/
+          if-no-files-found: warn
+          retention-days: 30

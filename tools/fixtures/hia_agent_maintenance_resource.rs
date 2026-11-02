@@ -30,6 +30,7 @@ mod audited {
         length: usize,
         index: usize,
         byte: u8,
+        expected_result: u32,
         allocations: usize,
         releases: usize,
         explicit_releases: usize,
@@ -64,17 +65,28 @@ mod audited {
     }
 
     pub fn begin(x: u32, y: u32) {
+        let length = (x % 23 + 1) as usize;
+        let byte = (x ^ y) as u8;
+        begin_expected(length, (y % (length as u32)) as usize, byte,
+                       256 * (length as u32) + (byte as u32));
+    }
+
+    // Trusted driver input for a separately frozen maintenance campaign.
+    // Candidate source cannot access this bookkeeping API under the profile.
+    pub fn begin_expected(length: usize, index: usize, byte: u8, expected_result: u32) {
+        assert!((1..=23).contains(&length) && index < length,
+                "E_AGENT_BUFFER_INVALID_EXPECTED_INPUT");
         STATE.with(|cell| {
             let mut previous = cell.borrow_mut();
             assert!(!previous.active && previous.live == 0, "E_AGENT_BUFFER_UNFINISHED_INVOCATION");
             let epoch = previous.epoch.checked_add(1).expect("E_AGENT_BUFFER_EPOCH_EXHAUSTED");
-            let length = (x % 23 + 1) as usize;
             *previous = State {
                 epoch,
                 active: true,
                 length,
-                index: (y % (length as u32)) as usize,
-                byte: (x ^ y) as u8,
+                index,
+                byte,
+                expected_result,
                 ..State::default()
             };
         });
@@ -178,7 +190,7 @@ mod audited {
                     "E_AGENT_BUFFER_UNBALANCED_OR_IMPLICIT_RELEASE");
             assert!(state.matched_mutable_index && state.matched_reads > 0,
                     "E_AGENT_BUFFER_NO_MATCHING_WRITE_READ_SEQUENCE");
-            assert!(result == 256 * (state.length as u32) + (state.byte as u32),
+            assert!(result == state.expected_result,
                     "E_AGENT_BUFFER_RESULT");
             let ledger = format!(
                 "{{\"schema\":\"hepta.agent.rust-vec-api-audit.v1\",\"epoch\":{},\"length\":{},\"index\":{},\"expected_byte\":{},\"allocations\":{},\"releases\":{},\"explicit_releases\":{},\"live\":{},\"mutable_indices\":{},\"indexed_reads\":{},\"matched_reads\":{},\"events\":[{}]}}",

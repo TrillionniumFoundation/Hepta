@@ -1,13 +1,98 @@
 from copy import deepcopy
+from contextlib import contextmanager
+from pathlib import Path
+from unittest.mock import patch
 import unittest
 
 from tools.qualify_hia_native_ndu import (
-    batch_checksum, checksum, digest, finalize_acceptance, first_ready, fixed_ready,
+    batch_checksum, checksum, digest, evaluate, execute_policies, finalize_acceptance, first_ready, fixed_ready,
     native_first_action, observed_model, percentile, protocol,
 )
 
 
 class NativeEconomicsContractTests(unittest.TestCase):
+    def test_zero_native_calls_cannot_be_reported_as_incremental_ndu_benefit(self):
+        spec = protocol()
+        report = {"training_summary": {name: {str(n): {"median": 1, "p95": 1, "p99": 1}
+                   for n in spec["sizes"]} for name in spec["backends"]},
+                  "policy_runs": [{"episode": index, "arm": arm,
+                                   "service_total_ns": 1 if arm == "native_ndu" else 2,
+                                   "native_invocations": 0}
+                                  for index in range(len(spec["episodes"])) for arm in spec["policy_arms"]]}
+        zero = evaluate(report, spec)
+        self.assertTrue(zero["service_scope_gated_policy_benefit_established"])
+        self.assertFalse(zero["service_scope_net_ndu_benefit_established"])
+        self.assertFalse(zero["whole_lifecycle_net_ndu_benefit_established"])
+        for row in report["policy_runs"]:
+            if row["arm"] == "native_ndu":
+                row["native_invocations"] = 1
+                row["service_total_ns"] = 3
+        invoked_loss = evaluate(report, spec)
+        self.assertEqual(invoked_loss["native_policy_invocations"], len(spec["episodes"]))
+        self.assertFalse(invoked_loss["service_scope_net_ndu_benefit_established"])
+        self.assertFalse(invoked_loss["native_invocation_count_alone_proves_benefit"])
+
+    def test_future_controller_estimates_are_bound_without_future_episode_leakage(self):
+        spec = protocol()
+        training = {name: {"latency_ns": {str(n): 1000 + n for n in spec["sizes"]},
+                           "preparation_ns": 5000, "resident_bytes": 4096} for name in spec["backends"]}
+        products = {name: {"sha256": digest(name)} for name in spec["backends"]}
+        a = observed_model(training, products, spec, 64, 4, set(), 1, 0,
+                           future_decision_cost_ns=12345)
+        altered = deepcopy(spec)
+        altered["episodes"] = [{"sizes": [65536] * 4, "seeds": [99] * 4}]
+        b = observed_model(training, products, altered, 64, 4, set(), 1, 0,
+                           future_decision_cost_ns=12345)
+        self.assertEqual(a, b)
+        self.assertEqual(a["future_decision_cost_ns"], 12345)
+        self.assertTrue(a["schema"].endswith(".v2"))
+        for invalid in (True, -1, 1.5):
+            with self.assertRaises(ValueError):
+                observed_model(training, products, spec, 64, 4, set(), 1, 0,
+                               future_decision_cost_ns=invalid)
+
+    def test_no_savings_gate_precedes_native_startup_and_retains_actual_controller_costs(self):
+        # This is a control-flow refusal unit test, not native timing evidence.
+        spec = protocol()
+        spec["episodes"] = [{"sizes": [64], "seeds": [123]}]
+        training = {name: {"latency_ns": {str(n): 1000 for n in spec["sizes"]},
+                           "preparation_ns": 5000, "resident_bytes": 4096} for name in spec["backends"]}
+        products = {name: {"sha256": digest(name), "path": name} for name in spec["backends"]}
+        report = {"controller_calibration": {"status": "passed", "training_sha256": digest(training),
+            "sha256": digest("unit-calibration"), "native_startup_ns": 8000, "native_shutdown_ns": 2000,
+            "estimates_ns": {"exact_dp": 1000, "greedy": 1000, "native_ndu": 1000}}}
+
+        class UnitDriver:
+            def __init__(self):
+                self.loaded = set()
+            def load(self, name, unused):
+                self.loaded.add(name)
+                return {"transport_outer_ns": 1, "load_outer_ns": 1}
+            def measure(self, *unused):
+                return {"transport_outer_ns": 1}
+            def mapping(self, unused):
+                return {"backing_resident_bytes": 4096}
+
+        @contextmanager
+        def unit_driver(*unused):
+            yield UnitDriver()
+
+        with patch("tools.qualify_hia_native_ndu.driver", unit_driver), \
+             patch("hepta.hia_ndu_session.NduSession.for_stream_profile",
+                   side_effect=AssertionError("skip must precede native startup")) as start:
+            execute_policies(Path("/unused-unit-fixture"), products, training, report, spec, "unused", "unused")
+        start.assert_not_called()
+        self.assertEqual(len(report["policy_runs"]), 4)
+        for row in report["policy_runs"]:
+            self.assertEqual(row["status"], "passed")
+            self.assertEqual(row["native_invocations"], 0)
+            self.assertEqual(row["ndu_startup_ns"], 0)
+            self.assertGreater(row["service_total_ns"], 0)
+            self.assertGreater(row["steps"][0]["controller_ns"], 0)
+            if row["arm"] != "fixed":
+                self.assertEqual(row["steps"][0]["decision"]["status"], "skip_controller_keep_incumbent")
+                self.assertFalse(row["steps"][0]["invocation_gate"]["invoke"])
+
     def test_independent_periodic_oracle_covers_u32_wrap_and_empty(self):
         for n in (0, 1, 17, 255, 256, 4096, 65536):
             for seed in (0, 255, 256, (1 << 32)-1):
@@ -111,7 +196,8 @@ class NativeEconomicsContractTests(unittest.TestCase):
             finalize_acceptance(report)
             self.assertFalse(report["acceptance_observation_valid"])
             self.assertNotIn("acceptance", report)
-        valid = {"status": "completed", "source_unchanged": True, "acceptance": {"performance_gate_passed": False}}
+        valid = {"status": "completed", "source_unchanged": True, "runtime_inputs_unchanged": True,
+                 "acceptance": {"performance_gate_passed": False}}
         finalize_acceptance(valid)
         self.assertTrue(valid["acceptance_observation_valid"])
         self.assertFalse(valid["acceptance"]["performance_gate_passed"])
