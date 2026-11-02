@@ -25,6 +25,27 @@ if str(ROOT) not in sys.path:
 
 
 SUITES = {
+    "core-consistency": (
+        "tests.test_hia_incremental_capability_policy",
+        "tests.test_hia_incremental",
+        "tests.test_hia_incremental_v8",
+        "tests.test_hia_incremental_independent",
+        "tests.test_hia_capability_flow",
+        "tests.test_hia_capability_identity",
+        "tests.test_hia_opcode_catalog",
+        "tests.test_hia_schema_unification",
+        "tests.test_hia_core_upgrade",
+        "tests.test_hia_returned_loans",
+        "tests.test_hia_returned_loan_interfaces",
+        "tests.test_hia_translation_guard_partition",
+        "tests.test_hia_translation_validation",
+        "tests.test_hia_specialization",
+        "tests.test_hia_guarded_batch",
+        "tests.test_hia_reduction_pipeline",
+        "tests.test_hia_reduction_release",
+        "tests.test_hia_native_ndu",
+        "tests.test_hia_scalar_boundary_conformance",
+    ),
     "gate": ("tests.test_hia_three_lane_gate",),
     "core": (
         "tests.test_hia_bounded_mutable_snapshot",

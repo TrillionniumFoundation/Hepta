@@ -319,6 +319,47 @@ def _execute_observation(checked, function, arguments):
         return {"status": "trapped", "code": exc.code}
 
 
+def _partition_entry_equality(z, encoder, inputs, functions, difference):
+    """Simplify an exhaustive input partition without assuming the guard.
+
+    A symbolic divisor compared with a literal otherwise makes the solver
+    rediscover constant propagation through its division circuit. For any
+    input x and literal c, Q is exactly (x=c AND Q[x:=c]) OR
+    (x!=c AND Q[(x=c):=false]). Both cases, including every trap and missing
+    path tag, remain in the single original-timeout counterexample query.
+    This is only a bounded preprocessing hint; no source branch is trusted.
+    """
+    for fn in functions:
+        entry = next(block for block in fn["blocks"] if block["id"] == fn["entry"])
+        if entry["term"]["op"] != "branch":
+            continue
+        params = {p["name"]: (index, p["type"]) for index, p in enumerate(entry["params"])}
+        constants = {op["out"][0]["name"]: op for op in entry["ops"] if op["op"] == "const"}
+        for op in entry["ops"]:
+            if op["op"] != "compare.eq" or op["out"][0]["name"] != entry["term"]["cond"]:
+                continue
+            for name, constant in (op["args"], op["args"][::-1]):
+                if name not in params or constant not in constants:
+                    continue
+                index, typ = params[name]
+                if typ not in WIDTHS:
+                    continue
+                variable = inputs[index]
+                literal = encoder.literal(constants[constant]["attrs"]["value"], typ)
+                equal = variable == literal
+                hit = z.simplify(z.substitute(difference, (variable, literal)))
+                miss = z.simplify(z.substitute(difference,
+                    (equal, z.BoolVal(False, encoder.context)),
+                    (literal == variable, z.BoolVal(False, encoder.context))))
+                return z.Or(z.And(equal, hit), z.And(z.Not(equal), miss)), {
+                    "strategy": "exhaustive_entry_input_equality_split",
+                    "parameter_index": index, "type": typ,
+                    "value": constants[constant]["attrs"]["value"],
+                    "input_assumptions": [], "partition_count": 2,
+                }
+    return difference, {"strategy": "unpartitioned", "input_assumptions": []}
+
+
 def validate_translation(before, after, *, function=None, timeout_ms=2000):
     """Compare all typed inputs of one function; return a JSON evidence receipt.
 
@@ -385,6 +426,9 @@ def validate_translation(before, after, *, function=None, timeout_ms=2000):
         # equality proof, even when both encodings would miss the same path.
         difference = z.Or(ltag < 0, rtag < 0, ltag != rtag,
                           z.And(ltag == 0, rtag == 0, encoder.any(different_values)))
+        difference, preprocessing = _partition_entry_equality(
+            z, encoder, inputs, (second, first), difference)
+        result["solver"]["query_preprocessing"] = preprocessing
         solver = z.Solver(ctx=encoder.context)
         solver.set(timeout=timeout_ms)
         solver.add(difference)

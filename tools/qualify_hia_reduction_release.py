@@ -199,7 +199,11 @@ def build(output,clang,rustc,report):
                 for flag in report["protocol"]["rust_flags"]: args += ["-C",flag]
                 args += ["-C","linker="+str(clang),"-C","link-arg="+str(output/"metrics.o")]
                 for flag in wraps: args += ["-C","link-arg="+flag]
-                run_command([*args,source],output,ledger)
+                # Fat LTO plus --emit=link,asm can produce additional .rcgu
+                # intermediates beside the compiler's working directory even
+                # with explicitly named final outputs. Keep those bytes in
+                # this arm's evidence directory, outside the source checkout.
+                run_command([*args,source],output,ledger,cwd=directory)
             report["backend_build_wall_ns"][workload][arm]=time.monotonic_ns()-started
             report["artifacts"][workload][arm]=file_identity(target)
             assembly=run_command(["/usr/bin/objdump","-d","--disassemble=calculate",target],output,ledger)

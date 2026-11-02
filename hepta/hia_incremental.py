@@ -22,6 +22,7 @@ from weakref import WeakKeyDictionary
 from . import hia_program as core
 from . import hia_schema as registry
 from . import hia_opcodes as opcodes
+from . import hia_capability_flow as capability_flow
 from .hia_program_tools import (HIAEditRejected, _check_patch_interface,
                                 _prepare_program_patch)
 
@@ -87,11 +88,28 @@ def _policy():
     imported_helpers = tuple((helper, getattr(helper, "__code__", None))
                              for helper in (core.supports_feature, core.preflight_hia_json,
                                             core.opcode_spec, core.check_instruction,
-                                            core._catalog_scalar_value_valid))
+                                            core._catalog_scalar_value_valid,
+                                            core.rename_capabilities, core._Capability,
+                                            core.CapabilityFlowRejected))
     opcode_functions = tuple((name, value, getattr(value, "__code__", None))
                              for name, value in sorted(vars(opcodes).items())
                              if callable(value) and getattr(value, "__module__", None) == opcodes.__name__)
-    return (DEPENDENCY_CONTRACT, functions, methods, constants, imported_helpers, opcode_functions)
+    # CFG ownership checking crosses this extracted implementation boundary.
+    # A reload can leave core's imported function/class aliases intact while
+    # replacing globals read by that function. Bind both sides, including
+    # dataclass equality used to compare capability states at CFG joins.
+    capability_bindings = tuple((name, value, getattr(value, "__code__", None))
+                                for name, value in sorted(vars(capability_flow).items())
+                                if callable(value) and getattr(value, "__module__", None)
+                                == capability_flow.__name__)
+    capability_methods = tuple((typ, name, value, getattr(value, "__code__", None))
+                               for typ in (core._Capability, capability_flow.Capability,
+                                           core.CapabilityFlowRejected,
+                                           capability_flow.CapabilityFlowRejected)
+                               for name, value in sorted(vars(typ).items())
+                               if callable(value))
+    return (DEPENDENCY_CONTRACT, functions, methods, constants, imported_helpers,
+            opcode_functions, capability_bindings, capability_methods)
 
 
 @dataclass(frozen=True, slots=True)
