@@ -175,7 +175,7 @@ def build(directory, clang, rustc, report, *, build_profile="instrumented-checke
                 args += ["-C", "lto=fat", "-C", "codegen-units=1"]
             for flag in wraps:
                 args += ["-C", "link-arg="+flag]
-            run_command([*args, FIXTURES / "kernel.rs"], directory, ledger)
+            run_command([*args, FIXTURES / "kernel.rs"], directory, ledger, cwd=directory)
         else:
             source = (FIXTURES / "kernel.hepta").read_text()
             lowered = lower_source(source, path="benchmarks/hia_native_ndu/kernel.hepta")

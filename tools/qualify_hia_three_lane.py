@@ -42,6 +42,8 @@ SUITES = {
         "tests.test_hia_specialization",
         "tests.test_hia_guarded_batch",
         "tests.test_hia_reduction_pipeline",
+        "tests.test_hia_reduction_release",
+        "tests.test_hia_native_ndu",
         "tests.test_hia_scalar_boundary_conformance",
     ),
     "gate": ("tests.test_hia_three_lane_gate",),

@@ -41,6 +41,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y clang-20
           python -m pip install z3-solver==4.15.4.0
+          rustup toolchain install 1.95.0 --profile minimal --no-self-update
+          rustup default 1.95.0
+          cargo fetch --locked --manifest-path rust/hia-core-shadow/Cargo.toml
       - name: Check exact tests without skips and preserve source identity
         run: |
           set -euo pipefail
@@ -49,6 +52,8 @@ jobs:
             git rev-parse HEAD 'HEAD^{tree}'
             uname -a
             python --version
+            rustc --version
+            cargo --version
             "$CLANG" --version
             sha256sum "$(readlink -f "$CLANG")"
             python -c 'import z3; print("Z3", z3.get_version_string())'
