@@ -19,10 +19,12 @@ NDU score or successful source compilation cannot bypass that check.
 
 | Representation | Actual semantic path |
 | --- | --- |
-| Primitive HIA v1–v7 | Parse, check types/resources/effects, execute the checked operations |
+| Primitive HIA v1–v8 | Preserve the exact declared grammar; parse, check types/resources/effects, execute the checked operations |
 | Composite v1 | Check nominal structure and elaborate to primitive v6, then check again |
 | Composite v2 | Check nominal structure and elaborate to primitive v7, then check again |
-| `hia-asm.v1` | Deterministically assemble primitive v6/v7 and use the same verifier |
+| Composite v3 | Check partial-record structure and elaborate to primitive v7, then check again |
+| Composite v4 | Check nominal structure and parameter/field loan origins, elaborate to primitive v8, then check again |
+| `hia-asm.v1` | Deterministically assemble primitive v6/v7/v8, preserving explicit `return_loans`, and use the same verifier |
 | Supported Hepta/C/C++ sources | Execute their explicit, bounded source adapter and then independently admit the resulting Core |
 | Legacy IR | Use the registered adapter with its required source/version identity; no schema guessing |
 
@@ -37,6 +39,21 @@ target support, ABI support, finite runtime budgets and independent Rust shadow
 profiles are additional restrictions. A registered opcode is not automatically
 supported by every consumer. See [HIA_PROGRAM.md](HIA_PROGRAM.md) and the actual
 registry in `hepta/hia_schema.py`.
+
+For checked Hepta source, `hepta.semantic_ir.lower_checked_program` remains the
+source semantic encoder. `hepta.hsir` emits the explicitly named
+`hepta.hsir.scalar.v1` compatibility view; it does not reuse the historical
+incompatible `hepta.hsir.v0` envelope as a second source authority. A source
+snapshot and an executable primitive Core are distinct representations with
+explicit adapters and separately checked obligations.
+
+Historical nominal and primitive producers both used
+`hepta.hia.program.v2`. Nominal input requires
+`import_legacy_composite_v2`, which checks the historical primitive-v1
+instruction set before elaborating into composite v1/primitive v6. An explicit
+primitive upgrade from v2 requires the primitive `PROFILE_V2` selection.
+Changing only a schema label cannot admit newer operations, erase obligations
+or resolve the historical collision by guessing from payload shape.
 
 ## 2. Exact scalar and control-flow semantics
 
@@ -110,7 +127,8 @@ preservation of C++ class, mangling or exception ABI.
 ## 4. Owner, loan, memory and effects
 
 Owners are linear capabilities. A successful normal path must move, return or
-drop each local owner exactly once, and end each local loan. A scalar public
+drop each local owner exactly once, and end or explicitly return each local
+loan under its admitted version's contract. A scalar public
 return cannot retain owners or local loans. A return used to encode an ordinary
 application error is still a normal return and has the same cleanup duties.
 
@@ -125,8 +143,19 @@ The capability checker records loan roots, parents and permissions. Shared
 loans can coexist. An exclusive loan excludes other conflicting loans, and a
 parent view is suspended while a child reborrow is active. An owner cannot be
 moved, returned or dropped while borrowed. A call cannot duplicate an owner or
-pass conflicting exclusive views of one root. Call-scoped loans cannot escape
-as return values, and a callee cannot end its caller's loan.
+pass conflicting exclusive views of one root. A callee cannot end its caller's
+loan.
+
+Primitive v1–v7 forbid loan return values. Primitive v8 permits an internal
+borrowed result only under `return_loans`: one entry per result names its
+original borrowed formal parameter, with `null` for nonloan results. The
+returned capability must be that parameter or its direct child, with no live
+child of its own; roots and original formal identity survive CFG edges and
+calls. A mutable result requires a mutable input. A shared input cannot gain
+write permission, and a returned loan cannot refer to a local owner. The
+caller retains the parent relationship and suspends access while the returned
+child remains live. This contract grants no public borrowed-result C ABI,
+general reference escape, foreign lifetime guarantee or stored-region return.
 
 Every CFG edge carries all live local resources, without duplication; joining
 predecessors must agree on root/parent/permission identities. A scalar result
@@ -220,6 +249,13 @@ correctness, universally bounded memory consumption or cleanup after abort.
 These distinctions are acceptance boundaries, not permissions to weaken the
 existing checks.
 
+Session-local incremental admission may reuse a body only under unchanged
+Core bytes, direct callee interfaces and verifier policy. That policy includes
+the actual imported CFG capability-renaming helper, the helper module's live
+bindings and capability methods used at joins. Rebinding or reloading this
+ownership implementation requires full rechecking; an earlier cached verdict
+cannot supply admission under changed ownership rules.
+
 ## 8. Executable checks
 
 `tests/test_hia_semantics_contract.py` adds the mixed-export counterexample,
@@ -240,5 +276,10 @@ CLANG=/absolute/path/to/clang-20 python -B -m unittest \
 The existing scalar tests exercise every admitted integer width, wrapping and
 checked limits, signed division/remainder, shifts and evaluator budgets. The
 composite/native tests cover owner flow, stored loans and ordinary cooperative
-task outcomes. These tests retain the distinction between an executed finite
-contract and an unproved whole-toolchain refinement claim.
+task outcomes. The v8 returned-loan and assembly tests cover explicit formal
+origins, returned children, CFG/call preservation and rejected permission or
+version changes. `tests/test_hia_incremental_capability_policy.py` checks that
+changed renaming code, stale imported class aliases and changed capability
+equality cannot retain a cached ownership admission. These tests retain the
+distinction between an executed finite contract and an unproved whole-toolchain
+refinement claim.

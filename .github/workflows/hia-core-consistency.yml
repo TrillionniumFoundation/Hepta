@@ -1,0 +1,65 @@
+name: HIA ownership policy and scalar Core consistency
+
+on:
+  push:
+    branches: [work/hia-unified-core-20261102]
+  pull_request:
+    paths:
+      - 'hepta/hia_incremental.py'
+      - 'hepta/hia_capability_flow.py'
+      - 'hepta/hia_translation_validation.py'
+      - 'tests/test_hia_incremental_capability_policy.py'
+      - 'tests/test_hia_translation_guard_partition.py'
+      - 'tests/test_hia_scalar_boundary_conformance.py'
+      - 'tools/qualify_hia_three_lane.py'
+      - '.github/workflows/hia-core-consistency.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  core-consistency:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      CLANG: /usr/bin/clang-20
+      HEPTA_CLANG: /usr/bin/clang-20
+      HEPTA_TEST_CLANG: /usr/bin/clang-20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install the actual native compiler and pinned solver
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y clang-20
+          python -m pip install z3-solver==4.15.4.0
+      - name: Check exact tests without skips and preserve source identity
+        run: |
+          set -euo pipefail
+          mkdir "$RUNNER_TEMP/hia-core-consistency"
+          {
+            git rev-parse HEAD 'HEAD^{tree}'
+            uname -a
+            python --version
+            "$CLANG" --version
+            sha256sum "$(readlink -f "$CLANG")"
+            python -c 'import z3; print("Z3", z3.get_version_string())'
+          } > "$RUNNER_TEMP/hia-core-consistency/identity.log"
+          python -B tools/qualify_hia_three_lane.py --suite core-consistency \
+            --output "$RUNNER_TEMP/hia-core-consistency/result.json" \
+            2>&1 | tee "$RUNNER_TEMP/hia-core-consistency/tests.log"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hia-core-consistency-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/hia-core-consistency/
+          if-no-files-found: error
+          retention-days: 30

@@ -79,14 +79,15 @@ def summary(samples):
                             / max(1, statistics.median(samples)), "excluded": 0}
 
 
-def run_command(argv, directory, ledger, *, timeout=60):
+def run_command(argv, directory, ledger, *, timeout=60, cwd=None):
     index = len(ledger)
     start = time.monotonic_ns()
-    row = {"argv": list(map(str, argv)), "status": "attempted", "started_ns": start}
+    row = {"argv": list(map(str, argv)), "cwd": str(ROOT if cwd is None else Path(cwd).resolve()),
+           "status": "attempted", "started_ns": start}
     ledger.append(row)
     try:
         try:
-            result = subprocess.run(row["argv"], cwd=ROOT, capture_output=True, timeout=timeout, check=False)
+            result = subprocess.run(row["argv"], cwd=row["cwd"], capture_output=True, timeout=timeout, check=False)
         except subprocess.TimeoutExpired as error:
             row.update(status="timeout", returncode=None, timeout_seconds=timeout)
             for name, raw in (("stdout", error.stdout), ("stderr", error.stderr)):
