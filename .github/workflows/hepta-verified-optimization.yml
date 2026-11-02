@@ -219,6 +219,23 @@ jobs:
           print(json.dumps(record))
           raise SystemExit(0 if passed else 1)
           PY
+      - name: Preflight hash-locked AArch64 QEMU before no-skip native regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          hepta_qemu_root="$RUNNER_TEMP/hepta-seven-track-qemu"
+          mkdir -p "$hepta_qemu_root"
+          hepta_qemu_url=$(python -c 'import json; print(json.load(open("formal/qemu-toolchain-lock.json"))["source"])')
+          hepta_qemu_sha=$(python -c 'import json; print(json.load(open("formal/qemu-toolchain-lock.json"))["package_sha256"])')
+          hepta_qemu_binary_sha=$(python -c 'import json; print(json.load(open("formal/qemu-toolchain-lock.json"))["binary_sha256"])')
+          curl --fail --location --retry 3 "$hepta_qemu_url" --output "$hepta_qemu_root/package.deb"
+          printf '%s  %s\n' "$hepta_qemu_sha" "$hepta_qemu_root/package.deb" | sha256sum --check --strict
+          dpkg-deb --extract "$hepta_qemu_root/package.deb" "$hepta_qemu_root/root"
+          hepta_qemu="$hepta_qemu_root/root/usr/bin/qemu-aarch64-static"
+          test -x "$hepta_qemu"
+          printf '%s  %s\n' "$hepta_qemu_binary_sha" "$hepta_qemu" | sha256sum --check --strict
+          test -x /usr/lib/llvm-20/bin/ld.lld
+          printf 'HEPTA_QEMU_AARCH64=%s\nHEPTA_LLD=%s\n' "$hepta_qemu" /usr/lib/llvm-20/bin/ld.lld >> "$GITHUB_ENV"
       - name: Run actual native integration and regression gates without skipped tests
         run: |
           set -euo pipefail
