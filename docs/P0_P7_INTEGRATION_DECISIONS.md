@@ -3,6 +3,11 @@
 This document is a merge-safety checkpoint, **not** a declaration that any
 production P0–P7 gate has closed. Do not cherry-pick entire PR trees into main.
 
+The pinned heads and collision below are historical observations from October
+25. For the current executable route/adapter/version authority and the latest
+bounded admission repairs, see [Trusted Core convergence](HIA_TRUSTED_CORE_CONVERGENCE.md)
+and `python -m hepta hia routes`. Historical results do not qualify a later tree.
+
 ## Pinned independent candidate heads (2026-10-25)
 - Main 0.2: `48600e3126f7ddf930ed4006476dd01d7a92e473`
 - PR #14: `66b3359d384e4cf4496ca40bf499994575ffd3ca`

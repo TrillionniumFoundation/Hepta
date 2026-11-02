@@ -25,6 +25,32 @@ if str(ROOT) not in sys.path:
 
 
 SUITES = {
+    "trusted-core": (
+        "tests.test_hia_incremental_interface_policy",
+        "tests.test_hia_incremental_capability_policy",
+        "tests.test_hia_incremental",
+        "tests.test_hia_incremental_v8",
+        "tests.test_hia_incremental_independent",
+        "tests.test_hia_capability_flow",
+        "tests.test_hia_capability_identity",
+        "tests.test_hia_opcode_catalog",
+        "tests.test_hia_schema_unification",
+        "tests.test_hia_core_upgrade",
+        "tests.test_hia_routes",
+        "tests.test_hia_program_source",
+        "tests.test_hia_source_layout_limits",
+        "tests.test_hia_source_partial",
+        "tests.test_hia_source_local_views",
+        "tests.test_hia_source_unit_enums",
+        "tests.test_hia_source_exports",
+        "tests.test_hia_returned_loans",
+        "tests.test_hia_returned_loan_interfaces",
+        "tests.test_hia_scalar_lowering_check",
+        "tests.test_hia_scalar_lowering_budget",
+        "tests.test_hia_translation_guard_partition",
+        "tests.test_hia_translation_validation",
+        "tests.test_hia_scalar_boundary_conformance",
+    ),
     "core-consistency": (
         "tests.test_hia_incremental_capability_policy",
         "tests.test_hia_incremental",

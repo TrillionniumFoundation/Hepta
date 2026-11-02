@@ -2,13 +2,18 @@ name: HIA ownership policy and scalar Core consistency
 
 on:
   push:
-    branches: [work/hia-unified-core-20261102]
+    branches: [work/hia-unified-core-20261102, work/hia-core-proof-convergence-20261102]
   pull_request:
     paths:
       - 'hepta/hia_incremental.py'
       - 'hepta/hia_capability_flow.py'
       - 'hepta/hia_translation_validation.py'
+      - 'hepta/hia_scalar_lowering_check.py'
+      - 'hepta/hia_program_source.py'
       - 'tests/test_hia_incremental_capability_policy.py'
+      - 'tests/test_hia_incremental_interface_policy.py'
+      - 'tests/test_hia_scalar_lowering_budget.py'
+      - 'tests/test_hia_source_layout_limits.py'
       - 'tests/test_hia_translation_guard_partition.py'
       - 'tests/test_hia_scalar_boundary_conformance.py'
       - 'tools/qualify_hia_three_lane.py'
@@ -21,7 +26,7 @@ permissions:
 jobs:
   core-consistency:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 25
     env:
       PYTHONDONTWRITEBYTECODE: '1'
       CLANG: /usr/bin/clang-20
@@ -38,6 +43,11 @@ jobs:
       - name: Install the actual native compiler and pinned solver
         run: |
           set -euo pipefail
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/hepta-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key
+          fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hepta-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')
+          test "$fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+          sudo install -m 0644 "$RUNNER_TEMP/hepta-llvm.asc" /usr/share/keyrings/hepta-llvm.asc
+          printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hepta-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hepta-llvm20.list
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y clang-20
           python -m pip install z3-solver==4.15.4.0
@@ -61,6 +71,13 @@ jobs:
           python -B tools/qualify_hia_three_lane.py --suite core-consistency \
             --output "$RUNNER_TEMP/hia-core-consistency/result.json" \
             2>&1 | tee "$RUNNER_TEMP/hia-core-consistency/tests.log"
+      - name: Verify bounded trusted Core on the same exact source
+        if: always()
+        run: |
+          set -euo pipefail
+          python -B tools/qualify_hia_three_lane.py --suite trusted-core \
+            --output "$RUNNER_TEMP/hia-core-consistency/trusted-core.json" \
+            2>&1 | tee "$RUNNER_TEMP/hia-core-consistency/trusted-core.log"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

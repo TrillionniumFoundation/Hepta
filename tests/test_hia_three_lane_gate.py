@@ -179,7 +179,7 @@ class HIAThreeLaneGateTests(unittest.TestCase):
         self.assertEqual(SUITES["gate"], ("tests.test_hia_three_lane_gate",))
         self.assertEqual(set(SUITES), {
             "gate", "core", "native", "rust", "legacy", "llvm", "migration",
-            "core-consistency"})
+            "core-consistency", "trusted-core"})
         for key, sources in SUITES.items():
             self.assertTrue(sources)
             self.assertEqual(len(sources), len(set(sources)), key)
