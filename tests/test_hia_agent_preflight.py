@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+import contextlib
+import io
 import os
 from pathlib import Path
 import shutil
@@ -79,6 +81,87 @@ class AgentPreflightTests(unittest.TestCase):
         self.assertIsNone(result["model_usage"])
         self.assertEqual(result["task_requests"], 0)
         self.assertEqual(result["model_requests_sent_by_probe"], 0)
+        self.assertEqual(result["startup_overrides"], {})
+        self.assertEqual(result["runtime_directory_metadata"], {})
+
+    def test_independent_local_runtime_flags_record_only_fixed_keys_and_metadata(self):
+        startup_commands = []
+        actual = self.fake_process
+
+        def record(argv, cwd, output, **kwargs):
+            if "app-server" in argv:
+                startup_commands.append(argv)
+                for setting in (arg for arg in argv if arg.startswith(("sqlite_home=", "log_dir="))):
+                    runtime = Path(json.loads(setting.split("=", 1)[1]))
+                    (runtime / "fixture-marker").write_bytes(b"fixture")
+            return actual(argv, cwd, output, **kwargs)
+
+        with patch.object(probe, "run_owned", side_effect=record), \
+                patch.object(probe, "_native_probe", return_value={"passed": True}):
+            result = probe.preflight(self.root / "result", **self.tools, isolate_sqlite=True, isolate_logs=True)
+        self.assertTrue(result["passed"])
+        self.assertEqual(len(startup_commands), 1)
+        self.assertEqual(set(result["startup_overrides"]), {"sqlite_home", "log_dir"})
+        self.assertEqual(startup_commands[0].count("-c"), 2)
+        for key, child in (("sqlite_home", "sqlite-state"), ("log_dir", "codex-logs")):
+            self.assertEqual(result["startup_overrides"][key], str(self.root / "result" / child))
+            row = result["runtime_directory_metadata"][key]
+            self.assertFalse(row["payloads_read"])
+            self.assertEqual(row["files"], [{"relative_path": "fixture-marker", "bytes": 7}])
+        self.assertFalse(result["runtime_database_payloads_read"])
+        self.assertEqual(result["model_requests_sent_by_probe"], 0)
+
+    def test_isolation_flags_are_not_arbitrary_home_or_config_overrides(self):
+        for name in ("isolate_sqlite", "isolate_logs"):
+            for value in (1, "HOME=/another-home", "log_dir=/outside-output"):
+                with self.subTest(name=name, value=value), self.assertRaisesRegex(ValueError, "Boolean"):
+                    probe.preflight(self.root / "result", **self.tools, **{name: value})
+        argv = ["--output", str(self.root / "result")]
+        for key, value in self.tools.items(): argv.extend(["--" + key, value])
+        for extra in (["--config", "HOME=/another-home"], ["--isolate-logs=CODEX_HOME=/another-home"]):
+            with self.subTest(extra=extra), \
+                    patch.object(probe, "run_owned", side_effect=AssertionError("must not start")), \
+                    contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit) as rejected:
+                    probe.main([*argv, *extra])
+            self.assertEqual(rejected.exception.code, 2)
+
+    def test_runtime_metadata_cannot_trigger_an_unbounded_directory_walk(self):
+        actual = self.fake_process
+
+        def many_entries(argv, cwd, output, **kwargs):
+            if "app-server" in argv:
+                setting = next(arg for arg in argv if arg.startswith("log_dir="))
+                runtime = Path(json.loads(setting.split("=", 1)[1]))
+                for index in range(probe.MAX_RUNTIME_METADATA_ENTRIES + 1):
+                    (runtime / str(index)).mkdir()
+            return actual(argv, cwd, output, **kwargs)
+
+        with patch.object(probe, "run_owned", side_effect=many_entries):
+            result = probe.preflight(self.root / "result", **self.tools, isolate_logs=True)
+        self.assertFalse(result["passed"])
+        self.assertIn("entry budget", result["error"]["message"])
+        self.assertFalse(result["runtime_database_payloads_read"])
+
+    def test_runtime_log_symlink_or_output_alias_into_source_refuses(self):
+        alias = self.root / "source-alias"
+        alias.symlink_to(probe.ROOT, target_is_directory=True)
+        with patch.object(probe, "run_owned", side_effect=AssertionError("must not start")):
+            with self.assertRaisesRegex(ValueError, "outside"):
+                probe.preflight(alias / "forbidden-preflight-output", **self.tools, isolate_logs=True)
+        commands = []
+        actual = self.fake_process
+
+        def plant(argv, cwd, output, **kwargs):
+            commands.append(argv)
+            if output.name == "rustc-version":
+                (cwd / "codex-logs").symlink_to(probe.ROOT, target_is_directory=True)
+            return actual(argv, cwd, output, **kwargs)
+
+        with patch.object(probe, "run_owned", side_effect=plant):
+            result = probe.preflight(self.root / "result", **self.tools, isolate_logs=True)
+        self.assertFalse(result["passed"])
+        self.assertFalse(any("app-server" in argv for argv in commands))
 
     def test_missing_tool_refuses_before_startup_or_native_probe(self):
         (self.root / "rustc").unlink()

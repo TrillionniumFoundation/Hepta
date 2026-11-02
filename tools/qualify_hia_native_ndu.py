@@ -18,6 +18,10 @@ import os
 from pathlib import Path
 import platform
 import re
+try:
+    import resource
+except ImportError:  # Keep pure-model/control test discovery portable.
+    resource = None
 import selectors
 import statistics
 import subprocess
@@ -87,8 +91,10 @@ def require(condition, message):
         raise ValueError("E_HIA_NATIVE_ECONOMICS: " + message)
 
 
-def protocol():
-    return json.loads((FIXTURES / "PROTOCOL.json").read_bytes())
+def protocol(controller_profile="full-model-v3"):
+    require(controller_profile in {"full-model-v3", "prepared-bank-v1"}, "unknown controller profile")
+    name = "PREPARED_GATE_PROTOCOL.json" if controller_profile == "prepared-bank-v1" else "PROTOCOL.json"
+    return json.loads((FIXTURES / name).read_bytes())
 
 
 def checksum(n, seed):
@@ -541,7 +547,37 @@ def fixed_ready(training, spec):
     return set(min(rows)[1])
 
 
-def calibrate_controllers(training, products, spec, bridge, identity, report):
+def prepare_gate_bank(training, products, spec, report):
+    """Pay for bounded training-only bound construction before any episode."""
+    from hepta.hia_invocation_bank import prepare_invocation_bank
+    started = time.monotonic_ns()
+    row = {"status": "attempted", "training_sha256": digest(training), "future_evaluation_rows_used": 0,
+           "scope": "one locally validated bound owner; model facts, not artifact execution authority",
+           "memory_scope": "retained input wire bytes and bounded prefix count; Python object overhead excluded; process cumulative RSS recorded separately"}
+    report["prepared_gate"] = row
+    try:
+        owner = prepare_invocation_bank({n: observed_model(training, products, spec, n, 4,
+            set(), 1, 0, future_decision_cost_ns=0) for n in spec["sizes"]},
+            epoch=spec["prepared_gate"]["epoch"])
+        row.update(status="prepared", initial=owner.snapshot())
+        return owner
+    except Exception as error:
+        row.update(status="failed", error={"type": type(error).__name__, "message": str(error)})
+        raise
+    finally:
+        row["actual_preparation_ns"] = time.monotonic_ns() - started
+
+
+def prepared_invocation_gate(owner, model, size, spec, invocation_cost_ns):
+    """The model remains freshly constructed and charged on the controller path."""
+    return owner.lookup(size=size, horizon=len(model["baseline"]["latency_ns"]),
+        ready_mask=owner.mask_for(tuple(model["initial_ready"])),
+        budget_ns=model["budget_ns"], invocation_cost_ns=invocation_cost_ns,
+        epoch=spec["prepared_gate"]["epoch"], generation=model["generation"],
+        sunk_cost_ns=model["sunk_cost_ns"], future_decision_cost_ns=model["future_decision_cost_ns"])
+
+
+def calibrate_controllers(training, products, spec, bridge, identity, report, *, prepared_bank=None):
     """Freeze controller estimates using training sizes before any episode.
 
     Measured maxima are forecasts, not upper bounds on future host time. Every
@@ -567,8 +603,10 @@ def calibrate_controllers(training, products, spec, bridge, identity, report):
         for n in spec["sizes"]:
             for arm in ("exact_dp", "greedy", "native_ndu"):
                 t = time.monotonic_ns()
-                model = observed_model(training, products, spec, n, 4, set(), 1, 0)
-                gate = invocation_gate(model, invocation_cost_ns=0)
+                model = observed_model(training, products, spec, n, 4, set(), 1, 0,
+                                       **({"future_decision_cost_ns": 0} if prepared_bank is not None else {}))
+                gate = (invocation_gate(model, invocation_cost_ns=0) if prepared_bank is None else
+                        prepared_invocation_gate(prepared_bank, model, n, spec, 0))
                 if arm == "native_ndu":
                     bundle = build_request(model, search="dynamic-frontier")
                     response = session.evaluate(bundle["request"])
@@ -613,7 +651,7 @@ def calibrate_controllers(training, products, spec, bridge, identity, report):
     return result
 
 
-def execute_policies(directory, products, training, report, spec, bridge, identity):
+def execute_policies(directory, products, training, report, spec, bridge, identity, *, prepared_bank=None):
     from hepta.hia_ndu_session import NduSession
     from hepta.hia_ndu_stateful import build_request, invocation_gate
     from tools.qualify_hia_ndu_stateful_reference import exact_dp_control, greedy_control
@@ -634,24 +672,39 @@ def execute_policies(directory, products, training, report, spec, bridge, identi
             ready, sunk = set(), 0
             last_size, sleeping = None, False
             try:
-                if arm == "fixed":
+                if arm == "fixed" or prepared_bank is not None:
                     t = time.monotonic_ns()
                     fixed_inputs = {key: spec[key] for key in
                                     ("variants", "resident_quota_bytes", "sizes", "baseline")}
                     frozen = fixed_ready(training,fixed_inputs)
-                    row["fixed_selection_ns"] = time.monotonic_ns()-t
-                    row["fixed_training_selection"] = sorted(frozen)
-                    report["fixed_training_selections"].append(sorted(frozen))
+                    selection_ns = time.monotonic_ns()-t
+                    if arm == "fixed":
+                        row["fixed_selection_ns"] = selection_ns
+                        row["fixed_training_selection"] = sorted(frozen)
+                        report["fixed_training_selections"].append(sorted(frozen))
+                    if prepared_bank is not None:
+                        row["incumbent_initializer"] = "strong-training-fixed"
+                        row["initial_selection_ns"] = selection_ns
+                        row["initial_training_ready"] = sorted(frozen)
                 with driver(directory/"driver",directory/f"policy-{episode_index}-{arm}.jsonl") as child:
                     row["baseline_load"] = child.load(spec["baseline"],products)
+                    if prepared_bank is not None:
+                        row["initial_incumbent_loads"] = [
+                            {"backend": name, **child.load(name, products)} for name in sorted(frozen)]
+                        ready = set(frozen)
                     sunk = time.monotonic_ns()-started
                     for index in range(len(episode["sizes"])):
                         # The next request is first disclosed here, after the previous native batch.
                         n, seed = episode["sizes"][index], episode["seeds"][index]
                         decision_start = time.monotonic_ns()
                         future_cost = 0 if arm == "fixed" else calibration["estimates_ns"][arm]
-                        model = observed_model(training,products,spec,n,len(episode["sizes"])-index,ready,index+1,sunk,
-                                               future_decision_cost_ns=future_cost)
+                        # Fixed never uses a forecast to choose this request.
+                        # In the new profile its model exists only for the
+                        # separately timed independent audit. Adaptive arms
+                        # continue paying complete model construction here.
+                        model = (None if prepared_bank is not None and arm == "fixed" else
+                            observed_model(training,products,spec,n,len(episode["sizes"])-index,ready,index+1,sunk,
+                                           future_decision_cost_ns=future_cost))
                         step = {"index":index,"observed_size":n,"seed":seed,"model":model,"loads":[]}
                         row["steps"].append(step)
                         if arm == "fixed":
@@ -664,7 +717,9 @@ def execute_policies(directory, products, training, report, spec, bridge, identi
                             invocation_estimate = future_cost
                             if arm == "native_ndu" and session is None:
                                 invocation_estimate += calibration["native_startup_ns"] + calibration["native_shutdown_ns"]
-                            gate = invocation_gate(model, invocation_cost_ns=invocation_estimate)
+                            gate = (invocation_gate(model, invocation_cost_ns=invocation_estimate)
+                                    if prepared_bank is None else
+                                    prepared_invocation_gate(prepared_bank, model, n, spec, invocation_estimate))
                             step["invocation_gate"] = gate
                             if not gate["invoke"]:
                                 chosen, sleeping = set(ready), True
@@ -706,6 +761,11 @@ def execute_policies(directory, products, training, report, spec, bridge, identi
                         # Audit costs are retained separately and removed from service-only
                         # comparisons. The same independent computation runs for every arm.
                         audit_start = time.monotonic_ns()
+                        if model is None:
+                            model = observed_model(training,products,spec,n,len(episode["sizes"])-index,
+                                                   ready,index+1,sunk, future_decision_cost_ns=0)
+                            step["model"] = model
+                            step["fixed_model_is_audit_only"] = True
                         check = exact_dp_control(model)
                         step["same_model_dp_best_value_q32"] = check["best_value_q32"]
                         dp_firsts = sorted({tuple(winner["schedule"][0]) for winner in check["winners"]})
@@ -810,13 +870,63 @@ def finalize_acceptance(report):
         report.pop("acceptance", None)
 
 
+def prepared_observed_costs(report, spec):
+    """Preserve actual totals and attributable one-time work without amortizing.
+
+    A standalone adaptive arm pays one measured owner construction/close. Fixed
+    does not pay NDU or adaptive-owner calibration. The actual combined campaign
+    cost remains separate; unknown/unassigned costs never become zero.
+    """
+    expected = {(episode, arm) for episode in range(len(spec["episodes"])) for arm in spec["policy_arms"]}
+    rows = {(row["episode"], row["arm"]): row for row in report["policy_runs"]}
+    require(len(rows) == len(report["policy_runs"]) and set(rows) == expected
+            and all(row["status"] == "passed" for row in rows.values()),
+            "prepared-gate observed cost cohort is incomplete or repeated")
+    comparisons = []
+    for episode in range(len(spec["episodes"])):
+        ndu = rows[episode, "native_ndu"]["actual_total_ns"]
+        for arm in ("fixed", "exact_dp", "greedy"):
+            baseline = rows[episode, arm]["actual_total_ns"]
+            comparisons.append({"episode": episode, "baseline": arm, "ndu_ns": ndu,
+                "baseline_ns": baseline, "ratio": ndu / baseline, "passed": ndu < baseline})
+    common = sum(report[key] for key in ("offline_build_wall_ns", "offline_validation_training_wall_ns",
+                                         "failed_translation_outer_ns", "runtime_identity_check_ns"))
+    preparation = report["prepared_gate"]["actual_preparation_ns"] + report["prepared_gate"]["close_ns"]
+    calibration = report["controller_calibration"]
+    components = {}
+    for arm in spec["policy_arms"]:
+        entries = [row for (episode, name), row in rows.items() if name == arm]
+        parts = {"common_bank_work_ns": common,
+                 "actual_episode_totals_ns": sum(row["actual_total_ns"] for row in entries),
+                 "controller_calibration_ns": 0 if arm == "fixed" else calibration["observed_attributed_cost_ns"][arm],
+                 "prepared_owner_ns": 0 if arm == "fixed" else preparation}
+        components[arm] = {"parts_ns": parts, "known_component_total_ns": sum(parts.values())}
+    ndu_total = components["native_ndu"]["known_component_total_ns"]
+    known = [{"baseline": arm, "ndu_ns": ndu_total,
+              "baseline_ns": components[arm]["known_component_total_ns"],
+              "passed": ndu_total < components[arm]["known_component_total_ns"]}
+             for arm in ("fixed", "exact_dp", "greedy")]
+    return {"schema": "hepta.hia.prepared-gate.observed-costs.v1",
+        "actual_total_comparisons_including_audit": comparisons,
+        "all_actual_total_comparisons_passed": all(row["passed"] for row in comparisons),
+        "standalone_arm_known_components": components, "known_component_comparisons": known,
+        "calibration_harness_unassigned_ns": calibration["shared_calibration_harness_ns"],
+        "retained_original_ndu_build_cost": report["reused_native_identity"].get("build_cost"),
+        "unknown_or_unassigned_costs": ["calibration-harness-assignment", "original-ndu-build-amortization",
+            "tool-and-source-acquisition", "human-implementation-and-review", "energy", "publication"],
+        "complete_lifecycle_cost_known": False, "whole_lifecycle_net_ndu_benefit_established": False,
+        "authority": "DENY_ALL", "production_activation_allowed": False}
+
+
 def qualify(args):
     start=time.monotonic_ns()
     directory=Path(args.output).resolve()
     require(not directory.exists(),"new evidence directory required")
     directory.mkdir(parents=True,mode=0o700)
+    controller_profile = getattr(args, "controller_profile", "full-model-v3")
+    spec = protocol(controller_profile)
     report={"schema":"hepta.hia.native-economics.results.v3","status":"failed",
-            "observed_utc":datetime.now(timezone.utc).isoformat(),"protocol":protocol(),
+            "observed_utc":datetime.now(timezone.utc).isoformat(),"protocol":spec,
             "host":{"system":platform.system(),"machine":platform.machine(),"python":sys.version},
             "mode":"formal" if args.expected_source else "development","reused_native_ndu":file_identity(args.bridge),
             "reused_native_identity":json.loads(Path(args.identity).read_bytes()),
@@ -828,9 +938,18 @@ def qualify(args):
         "stack":"Sampled begin-to-allocator helper address distance plus compiler stack files/disassembly; no global peak proof.",
         "resident":"Loader PT_LOAD pages and mincore backing residency; not process-private RSS. Process peak RSS is getrusage, separately.",
         "planning":"Training-only measured controller maxima forecast future active decisions. An optimistic same-information invoke/skip gate runs before each controller and before native startup. Current invocation reservations are replaced by observed service costs at the next snapshot. Estimates are not runtime bounds. All gates, startup, calls, transport and shutdown remain charged; no empirical net-gain claim follows from the model."}
-    (directory/"protocol.json").write_bytes((FIXTURES/"PROTOCOL.json").read_bytes())
+    if controller_profile == "prepared-bank-v1":
+        report["schema"] = "hepta.hia.native-economics.prepared-gate.results.v1"
+        report["controller_profile"] = controller_profile
+    protocol_file = "PREPARED_GATE_PROTOCOL.json" if controller_profile == "prepared-bank-v1" else "PROTOCOL.json"
+    (directory/"protocol.json").write_bytes((FIXTURES/protocol_file).read_bytes())
+    prepared_bank = None
     try:
         require(platform.system()=="Linux" and platform.machine()=="x86_64","Linux x86-64 profile only")
+        if controller_profile == "prepared-bank-v1":
+            require(spec["controller_profile"] == controller_profile
+                    and args.build_profile == spec["required_build_profile"],
+                    "prepared-gate registration requires its exact controller/build profile")
         if hasattr(os,"sched_getaffinity"):
             allowed=os.sched_getaffinity(0); os.sched_setaffinity(0,{min(allowed)})
             report["host"].update(affinity=sorted(os.sched_getaffinity(0)),exclusive_cpu=False)
@@ -845,7 +964,11 @@ def qualify(args):
         t=time.monotonic_ns()
         training=measure_training(directory,products,report,report["protocol"])
         report["offline_validation_training_wall_ns"]=time.monotonic_ns()-t
-        calibrate_controllers(training,products,report["protocol"],args.bridge,args.identity,report)
+        if controller_profile == "prepared-bank-v1":
+            prepared_bank = prepare_gate_bank(training, products, spec, report)
+            calibrate_controllers(training,products,spec,args.bridge,args.identity,report, prepared_bank=prepared_bank)
+        else:
+            calibrate_controllers(training,products,spec,args.bridge,args.identity,report)
         from tools.qualify_hia_ndu_stateful import translation_refusal_probe
         t=time.monotonic_ns()
         report["actual_failed_translation"],_=translation_refusal_probe()
@@ -853,13 +976,30 @@ def qualify(args):
         require(report["actual_failed_translation"]["status"]=="actual-refusal-observed","real proof/refusal/replay required")
         report["shared_campaign_cost_ns"]=(report["offline_build_wall_ns"]+report["offline_validation_training_wall_ns"]
             +report["controller_calibration"]["actual_total_ns"]+report["failed_translation_outer_ns"])
+        if prepared_bank is not None:
+            report["shared_campaign_cost_ns"] += report["prepared_gate"]["actual_preparation_ns"]
         report["shared_campaign_cost_scope"]="Actual shared bank preparation/validation/training, training-only controller calibration (including native startup/shutdown), and rejected proof paid once in this campaign, disclosed without arbitrary amortization. Per-policy service totals exclude this common sunk work and the independently recorded audit."
-        execute_policies(directory,products,training,report,report["protocol"],args.bridge,args.identity)
+        if prepared_bank is None:
+            execute_policies(directory,products,training,report,spec,args.bridge,args.identity)
+        else:
+            execute_policies(directory,products,training,report,spec,args.bridge,args.identity, prepared_bank=prepared_bank)
         report["acceptance"]=evaluate(report,report["protocol"])
         report["status"]="completed"
     except BaseException as error:
         report["error"]={"type":type(error).__name__,"message":str(error)}
     finally:
+        if prepared_bank is not None:
+            closing = time.monotonic_ns()
+            try:
+                report["prepared_gate"]["final"] = prepared_bank.close()
+            except Exception as error:
+                report["status"] = "failed"
+                report["prepared_gate"]["close_error"] = {"type": type(error).__name__, "message": str(error)}
+            finally:
+                report["prepared_gate"]["close_ns"] = time.monotonic_ns() - closing
+            if "shared_campaign_cost_ns" in report:
+                report["shared_campaign_cost_ns"] += report["prepared_gate"]["close_ns"]
+            report["shared_campaign_cost_scope"] = report.get("shared_campaign_cost_scope", "Incomplete campaign: actual total retained.") + " Prepared-owner construction, validation, retained bound derivation and close are recorded once; standalone fixed accounting excludes adaptive-only owner work."
         report["input_hashes_after"]=source_inventory()
         report["source_after"]=source_state()
         report["source_unchanged"]=report.get("input_hashes_before")==report["input_hashes_after"] and report.get("source_before")==report["source_after"]
@@ -872,8 +1012,17 @@ def qualify(args):
         if "shared_campaign_cost_ns" in report:
             report["shared_campaign_cost_ns"] += report["runtime_identity_check_ns"]
             report["shared_campaign_cost_scope"] += " Final built-library, driver and compiler identity reconciliation is also charged once here."
+        if prepared_bank is not None and report.get("status") == "completed":
+            try:
+                report["prepared_observed_costs"] = prepared_observed_costs(report, spec)
+            except Exception as error:
+                report["status"] = "failed"
+                report["observed_cost_error"] = {"type": type(error).__name__, "message": str(error)}
         finalize_acceptance(report)
         report["wall_ns_before_final_encoding"]=time.monotonic_ns()-start
+        report["host"]["parent_process_peak_rss_bytes"] = (None if resource is None or platform.system() != "Linux" else
+            resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024)
+        report["host"]["parent_rss_scope"] = "Process-lifetime high-water mark; not an isolated bound-owner allocation measurement."
         report["cost_exclusions"]=["tool installation","source acquisition","past reused NDU build (separately preserved original identity/cost)","human implementation/review","energy","allocator arena/metadata/fragmentation","final report and archive publication"]
         report["artifact_inventory"]={str(p.relative_to(directory)):file_identity(p) for p in sorted(directory.iterdir()) if p.is_file()}
         (directory/"RESULT.json").write_text(json.dumps(report,sort_keys=True,indent=2)+"\n")
@@ -892,6 +1041,7 @@ def main():
                                                    "verified-reduction-narrowed-release-v1"),
                         default="instrumented-checked-v1")
     parser.add_argument("--expected-source")
+    parser.add_argument("--controller-profile", choices=("full-model-v3", "prepared-bank-v1"), default="full-model-v3")
     args=parser.parse_args()
     report=qualify(args)
     print(json.dumps({"status":report["status"],"error":report.get("error"),"acceptance":report.get("acceptance"),"output":args.output},indent=2))

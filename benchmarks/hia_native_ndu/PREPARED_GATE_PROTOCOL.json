@@ -1,0 +1,146 @@
+{
+  "schema": "hepta.hia.native-economics.prepared-gate.protocol.v1",
+  "workload": "fallible-owned-byte-fill-checksum",
+  "semantics": "n <= 65536, seed u32; allocate n zeroed bytes, fill byte[i]=(i+seed) mod 256, return u64 sum and release; empty allocation has no malloc; allocation refusal returns 1001",
+  "backends": [
+    "c",
+    "cpp",
+    "rust",
+    "hia"
+  ],
+  "sizes": [
+    64,
+    4096,
+    65536
+  ],
+  "correctness_sizes": [
+    0,
+    1,
+    7,
+    64,
+    255,
+    256,
+    4096,
+    65536
+  ],
+  "correctness_seeds": [
+    0,
+    1,
+    255,
+    256,
+    4294967295
+  ],
+  "training_seeds": [
+    19,
+    107,
+    223
+  ],
+  "training_samples_per_request": 21,
+  "batch_calls": 64,
+  "warmup_calls": 3,
+  "policy_arms": [
+    "fixed",
+    "exact_dp",
+    "greedy",
+    "native_ndu"
+  ],
+  "episodes": [
+    {
+      "sizes": [
+        64,
+        4096,
+        64,
+        65536
+      ],
+      "seeds": [
+        1201,
+        1277,
+        1321,
+        1381
+      ]
+    },
+    {
+      "sizes": [
+        65536,
+        4096,
+        65536,
+        64
+      ],
+      "seeds": [
+        1451,
+        1511,
+        1583,
+        1657
+      ]
+    },
+    {
+      "sizes": [
+        4096,
+        64,
+        4096,
+        65536
+      ],
+      "seeds": [
+        1723,
+        1789,
+        1847,
+        1901
+      ]
+    }
+  ],
+  "forecast": "Repeat the current observed size through the remaining horizon; use only training medians. Future episode sizes/seeds are supplied only immediately before that batch, never to a policy.",
+  "baseline": "c",
+  "variants": [
+    "cpp",
+    "rust",
+    "hia"
+  ],
+  "resident_quota_bytes": 2097152,
+  "model_budget_ns": 1000000000,
+  "completion_value_ns": 1000000000,
+  "holding_time_tariff": "No memory-to-time price is invented. holding_ns is zero direct maintenance work; residency is constrained in bytes and observed byte-ns is reported separately. Energy/allocator metadata are unmeasured.",
+  "controller_cost_model": "Freeze one actual call per training size for exact DP, greedy and native NDU; forecast each arm's future active-call cost by its maximum. Charge native cold startup/shutdown in the current invocation estimate. Before every active call apply the same optimistic savings gate; lazy native startup and retain every actual gate/call/session cost. Current estimated invocation is reserved once in the continuation budget, then replaced by actual elapsed costs in the next snapshot. V2 future decisions include the decision to stop, with zero after stopping. Estimates are not future runtime guarantees; do not count skipped native evaluations as evidence that NDU evaluated a better policy.",
+  "selection_ties": "Retain every native Pareto path and the original advisory. The caller executes only a prepared set common to all admitted Pareto first actions; conflicting actions or abstention keep the incumbent. Suspend replanning until the observed size changes only when every retained path has a constant remaining prepared set. Independent controls choose the lexicographically first complete tied ready-set schedule. Audit the actual chosen first prepared set against independent finite DP, not only the maximum native path value. Model admission is not a machine-code safety proof.",
+  "native_identity_policy": "Compare each library path/size/SHA-256 to its build receipt before load; include that check, dlopen transport and initial mapping in the measured preparation estimate. Reconcile all built libraries, driver and recorded tool binaries after the complete campaign. Unknown or changed identity withdraws acceptance even when source is unchanged. Charge final reconciliation once to shared campaign cost. These are trusted-host before/after observations, not sealed-library custody or proof against transient hostile replacement.",
+  "performance_gate": {
+    "hia_median_ratio_maximum": 1.1,
+    "hia_tail_ratio_maximum": 1.2,
+    "all_baselines_and_sizes_required": true
+  },
+  "economic_gate": {
+    "native_ndu_service_total_must_be_less_than_every_control_in_every_episode": true,
+    "service_total_definition": "Actual owned-process total minus separately measured independent audit, run for every arm; includes per-instance fixed bank selection, planner startup, policy calls, loader, resource probes, native execution and shutdown. Shared compilation/training and failed-proof costs are disclosed once outside this service comparison, with no amortization.",
+    "all_semantic_and_resource_checks_required": true
+  },
+  "outlier_policy": "Run once on a newly frozen clean source after source-owned registration; retain every attempt and sample. No trimming, threshold changes, old-result replacement or favorable rerun after observing the cohort.",
+  "limits": [
+    "One synthetic but actually executed native owned-buffer workload, not a real application suite",
+    "Shared Linux host; affinity is not exclusive CPU ownership",
+    "malloc_usable_size slack excludes allocator metadata, arenas and fragmentation",
+    "Static stack files and sampled addresses are observations, not whole-process stack bounds",
+    "All four sources use the same two-pass fill then sum algorithm; compiler decisions remain different",
+    "Finite native differential evidence does not prove whole-language or compiler refinement",
+    "Already built native NDU binary is reused; its historical build cost is not relabelled as a new build",
+    "No energy or complete engineering-cost claim"
+  ],
+  "controller_profile": "prepared-bank-v1",
+  "required_build_profile": "verified-reduction-narrowed-release-v1",
+  "cohort_scope": "New registered synthetic mechanism cohort over the existing owned-buffer kernel; not a natural application, statistical generalization or unseen engineering-task claim.",
+  "prepared_gate": {
+    "schema": "hepta.hia.ndu.invocation-bound-bank.v1",
+    "epoch": 1,
+    "templates": "All registered training sizes, four-batch current-size-persistence forecasts, same source/proof/support/status/quota facts. Preparation validates and derives bounded masks/prefixes once before calibration or policy episodes.",
+    "current_inputs": "Every lookup rechecks exact size, resident mask, horizon, current remaining budget, invocation estimate, bank epoch, request generation, sunk cost and future-decision cost. Unknown sizes, epochs or states refuse; no cache-key broadening or uncharged slow path.",
+    "cohort_is_never_used_for_preparation": true,
+    "controls": "The same prepared optimistic bound is available to exact DP, greedy and native NDU. Fixed retains the strongest training-only fixed selection and pays no adaptive gate-bank construction in standalone-arm accounting.",
+    "accounting": "Measure complete preparation, construction/validation, retained wire bytes, prefix entries, lookup/rejection counts and close. Fresh observed_model construction remains inside every adaptive controller measurement. Strong fixed requires no forecast for its committed selection, so its comparison model is constructed only in the independent-audit interval. No adaptive work moves to audit. Actual totals include all audit work. Failures and actual gate/search/session/load/cleanup costs remain recorded.",
+    "incumbent_initialization": "Every arm first pays the same strongest fixed_ready selection on all training sizes and actually loads that selected incumbent once. Fixed remains that configuration; adaptive arms use the prepared sufficient bound only for optional changes afterward. Initial selection, hash/load/mapping and failures stay inside each actual episode total. This static initialization is never credited as NDU contribution."
+  },
+  "observed_total_gate": {
+    "all_actual_total_controls_required": true,
+    "audit_is_included": true,
+    "cohort_totals": "Sum all observed episode actual_total_ns, including audit and all native child/controller/loader lifecycle work. Separately add the measured common bank build/validation/refused-proof/identity work once, each arm's measured controller calibration and adaptive-only prepared-owner construction/close once. Fixed pays no NDU-specific or adaptive-owner preparation.",
+    "unknown_policy": "Keep calibration harness residue, original NDU build, tool/source acquisition, human work, energy and publication explicit. Known-component comparisons do not establish complete lifecycle benefit while any category remains unassigned or unknown.",
+    "zero_invocation_policy": "Zero policy native calls never establish incremental NDU benefit, even if prepared skip code is faster."
+  }
+}

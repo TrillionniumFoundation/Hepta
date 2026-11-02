@@ -37,7 +37,7 @@ SOURCE_FILES = (
     "hepta/hia_program.py", "hepta/hia_capability_flow.py", "hepta/hia_opcodes.py", "hepta/hia_schema.py",
     "hepta/hia_json_preflight.py", "hepta/hia_program_composite.py",
     "hepta/hia_program_runtime.py", "hepta/hia_bounded_memory.py",
-    "hepta/hia_program_llvm.py",
+    "hepta/hia_program_llvm.py", "hepta/hia_initialization.py",
 )
 LIMITATIONS = [
     "Every typed input of every public scalar export of this exact Core is quantified, including reachable direct callees.",

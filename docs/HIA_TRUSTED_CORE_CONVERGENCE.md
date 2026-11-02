@@ -1,5 +1,31 @@
 # Trusted Core convergence and P0–P7 acceptance
 
+## Next source increment
+
+The next candidate extends the same verifier and backend, rather than creating
+another execution authority. Its source changes and remaining acceptance work
+are separated below. Every execution result must identify its own source tree;
+an older passing workflow does not qualify this candidate.
+
+| Track | Implemented next step | Acceptance boundary |
+| --- | --- | --- |
+| P1 | Observe actual production capability transfers, inventory every static edge independently, kernel-check concrete renamed graphs, and compare the same Core with Rust | Finite witnesses and explicit input profile; complete checker soundness, external projection and source refinement remain open |
+| P2 | Extend the existing AArch64 corpus with explicit native-host execution and trigger the existing native/C++ host matrices on feature PRs | Actual native reports required; QEMU results, workflow configuration and host execution do not qualify a physical device protocol |
+| P4 | Check a bounded complete initialization schedule before choosing the existing malloc path; retain calloc on unknown or incomplete shapes | Poison-allocation and semantic controls required; the Lean prefix model does not prove the Python CFG bridge or LLVM refinement |
+| P5 | Prepare the existing optimistic invocation bound once and share it fairly across adaptive controls, beginning with the strongest training-selected fixed incumbent | Preparation, load, lookup, search, audit and shutdown remain charged; zero native decisions cannot demonstrate NDU benefit |
+| P6 | Diagnose startup with supported task-local SQLite and log settings and bounded directory metadata | A successful preflight is required before real tasks; runtime EROFS is still a blocker, not a completed Agent experiment |
+| Regression | Keep the original integration suite and append the new mechanism tests; run unchanged HTTP observations on a real Unix-socket host | Exact planned/started/completed identities, no skips and unchanged source are mandatory; local socket denial remains a failed local gate |
+
+The capability and initialization details are in
+[production witnesses](HIA_PRODUCTION_CAPABILITY_WITNESSES.md) and
+[initialization elision](HIA_INITIALIZATION_ELISION.md). New timing and economic
+protocols must be frozen before their cohorts are measured. Historical LTO,
+PGO and NDU negative results remain source-specific evidence; neither new code
+nor a fresh protocol converts them into passes. Full P0–P7 closure remains
+false until the strict stage conditions below are independently satisfied.
+
+## Previous repairs and their scope
+
 This increment builds on PR #550, source
 `d55ea70cf854428f30c2ba7e044741f5f379a419`. It repairs bounded admission and
 selected lowering verification in the existing compiler. It does not establish

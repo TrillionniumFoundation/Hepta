@@ -772,6 +772,7 @@ def main(argv=None):
     for name in ("output", "codex", "clang", "rustc"):
         p.add_argument("--" + name, required=True)
     p.add_argument("--isolate-sqlite", action="store_true")
+    p.add_argument("--isolate-logs", action="store_true")
     p.add_argument("--wall-seconds", type=int, default=15)
     p = sub.add_parser("controls"); p.add_argument("--output", required=True)
     p = sub.add_parser("freeze"); p.add_argument("--controls", required=True)
@@ -787,7 +788,8 @@ def main(argv=None):
         cfg = protocol()
         result = preflight(args.output, codex=args.codex, clang=args.clang, rustc=args.rustc,
             campaign=CAMPAIGN, registered_paths={name: cfg[name] for name in ("codex", "clang", "rustc")},
-            freeze_path=HERE / "FREEZE.json", isolate_sqlite=args.isolate_sqlite, wall_seconds=args.wall_seconds)
+            freeze_path=HERE / "FREEZE.json", isolate_sqlite=args.isolate_sqlite,
+            isolate_logs=args.isolate_logs, wall_seconds=args.wall_seconds)
         print(json.dumps({key: result[key] for key in ("status", "passed", "model_requests_sent_by_probe",
             "model_access_verified", "registered_campaign_run_authorized", "new_registration_required")}))
         return 0 if result["passed"] else 1
