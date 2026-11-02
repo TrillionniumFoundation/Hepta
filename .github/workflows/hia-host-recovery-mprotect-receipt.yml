@@ -6,7 +6,7 @@ on:
       - 'research/hia-p7-recovery-mprotect-receipt-548-*'
   pull_request:
     branches:
-      - 'research/hia-p7-recovery-mprotect-receipt-547-20261101-gpt6'
+      - 'research/hia-p7-host-write-receipt-547-20261101-gpt6'
   workflow_dispatch:
 
 permissions:
@@ -111,7 +111,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: hia-p7-native-host-write-receipt-${{ github.event.pull_request.head.sha || github.sha }}
+          name: hia-p7-native-recovery-mprotect-receipt-${{ github.event.pull_request.head.sha || github.sha }}
           path: ${{ runner.temp }}/hia-p7-recovery-mprotect-receipt/
           retention-days: 30
           if-no-files-found: error
