@@ -219,6 +219,15 @@ jobs:
           print(json.dumps(record))
           raise SystemExit(0 if passed else 1)
           PY
+      - name: Acquire the reviewed AArch64 emulator before regression gates
+        run: |
+          mkdir -p artifacts/verified-optimization/qemu-acquisition
+          python -B tools/bootstrap_verification.py --qemu-only --directory "$RUNNER_TEMP/hepta-reviewed-verification" \
+            > artifacts/verified-optimization/qemu-acquisition/bootstrap.stdout.json \
+            2> artifacts/verified-optimization/qemu-acquisition/bootstrap.stderr.log
+          hepta_reviewed_qemu="$RUNNER_TEMP/hepta-reviewed-verification/qemu-8.2.2/qemu-aarch64-static"
+          test -x "$hepta_reviewed_qemu"
+          printf 'HEPTA_QEMU_AARCH64=%s\nQEMU_AARCH64=%s\nHEPTA_LLD=%s\n' "$hepta_reviewed_qemu" "$hepta_reviewed_qemu" /usr/lib/llvm-20/bin/ld.lld >> "$GITHUB_ENV"
       - name: Run actual native integration and regression gates without skipped tests
         run: |
           set -euo pipefail
