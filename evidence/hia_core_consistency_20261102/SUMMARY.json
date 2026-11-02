@@ -1,0 +1,140 @@
+{
+  "authority": "DENY_ALL",
+  "capability_focused_green_tests": 69,
+  "capability_red_failures": 4,
+  "capability_red_tests": 4,
+  "final_core_suite": {
+    "errors": [
+      "tests.test_hia_guarded_batch.GuardedBatchNativeTests.test_real_proofs_distinct_code_abi_traps_and_sealed_child_driver"
+    ],
+    "failures": [],
+    "passed": false,
+    "skipped": [],
+    "source_identity_drift": false,
+    "tests_executed": 210,
+    "tests_planned": 210,
+    "worktree_dirty_after": false
+  },
+  "limitations": [
+    "Local guarded batch cannot launch /proc/<reported pid>/fd executable: os.getpid namespace differs from mounted proc namespace; failure retained, no bypass.",
+    "Proof timing measures validate_translation call wall; the 10000ms parameter is the unchanged SMT-check budget, not an end-to-end wall limit.",
+    "Strong Rust comparison retains all negative cohorts; 45/60 is not broad parity.",
+    "No complete-lifecycle NDU gain, unseen real Agent productivity, all-target ABI or durable production recovery evidence.",
+    "Evidence commit is a carrier for observations of the pinned source, not an independently qualified source."
+  ],
+  "native_boundary_cases": {
+    "native_abort_probes": 60,
+    "native_normal": 894,
+    "vm_first_trap_order": 20,
+    "vm_math_oracle": 1132
+  },
+  "parent_commit": "1f6b45f1cfe148adb8c03b17d8a71bce2db5ac41",
+  "production_activation_allowed": false,
+  "production_p0_p7_gates_closed": 0,
+  "proof_timing": {
+    "all_sources_stable": true,
+    "child_count": 12,
+    "fresh_python_process_per_observation": true,
+    "groups": [
+      {
+        "arm": "original",
+        "candidate": "guard_denominator_8",
+        "median_proof_call_wall_ns": 626576497,
+        "process_failure_count": 0,
+        "proof_call_wall_ns": [
+          590890152,
+          656304482,
+          626576497
+        ],
+        "statuses": {
+          "proved": 3
+        }
+      },
+      {
+        "arm": "patched",
+        "candidate": "guard_denominator_8",
+        "median_proof_call_wall_ns": 11441990,
+        "process_failure_count": 0,
+        "proof_call_wall_ns": [
+          11498582,
+          10784540,
+          11441990
+        ],
+        "statuses": {
+          "proved": 3
+        }
+      },
+      {
+        "arm": "original",
+        "candidate": "guard_denominator_10",
+        "median_proof_call_wall_ns": 7006104233,
+        "process_failure_count": 0,
+        "proof_call_wall_ns": [
+          6787405951,
+          7239997765,
+          7006104233
+        ],
+        "statuses": {
+          "proved": 3
+        }
+      },
+      {
+        "arm": "patched",
+        "candidate": "guard_denominator_10",
+        "median_proof_call_wall_ns": 11030214,
+        "process_failure_count": 0,
+        "proof_call_wall_ns": [
+          11030214,
+          12490513,
+          9304599
+        ],
+        "statuses": {
+          "proved": 3
+        }
+      }
+    ],
+    "same_candidate_bank": true,
+    "same_solver_identity": true,
+    "schema": "hepta.hia.guard-partition-proof-timing.v1",
+    "scope": "Local proof-call timings on a shared Linux host; fresh Python processes, warm OS caches possible. No native performance or production P0-P7 closure claim.",
+    "script_sha256": "a5e056a872ea19ca9a250a266d5913ee57bf5a2982766d86fbe8d76878efddcd",
+    "timeout_ms": 10000,
+    "trials": 3,
+    "unknown_policy": "Solver unknowns and process failures retained verbatim; no substitution by sampled cases or timing-based retries."
+  },
+  "pull_request": "https://github.com/TrillionniumFoundation/Hepta/pull/550",
+  "reduction_assessment": {
+    "all_rust_gate_passed": false,
+    "broad_rust_performance_parity_established": false,
+    "independent_holdout_passed": false,
+    "rust_comparisons_passed": 45,
+    "rust_comparisons_total": 60
+  },
+  "reduction_qualification_valid": true,
+  "reduction_source_unchanged": true,
+  "reduction_tool_artifact_identities_unchanged": true,
+  "safety_certificate": false,
+  "schema": "hepta.hia.core-consistency-campaign.v1",
+  "source_commit": "d55ea70cf854428f30c2ba7e044741f5f379a419",
+  "source_tree": "a6981ee997a59c70ecf422e8202526c49567cf16",
+  "toolchains": {
+    "clang": {
+      "bytes": 132448,
+      "path": "/workspace/scratch/36a33ba70b2f/toolchains/llvm/usr/lib/llvm-20/bin/clang",
+      "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+      "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)\nTarget: x86_64-pc-linux-gnu\nThread model: posix\nInstalledDir: /workspace/scratch/36a33ba70b2f/toolchains/llvm/usr/lib/llvm-20/bin\n"
+    },
+    "objdump": {
+      "bytes": 390848,
+      "path": "/usr/bin/x86_64-linux-gnu-objdump",
+      "sha256": "7fd25a9f02382a952fe983e40bd41aa12127d1bbe3f4dc5c93ea13d03279a2f5",
+      "version": "GNU objdump (GNU Binutils for Ubuntu) 2.42\nCopyright (C) 2024 Free Software Foundation, Inc.\nThis program is free software; you may redistribute it under the terms of\nthe GNU General Public License version 3 or (at your option) any later version.\nThis program has absolutely no warranty.\n"
+    },
+    "rustc": {
+      "bytes": 644784,
+      "path": "/workspace/scratch/36a33ba70b2f/toolchains/rust-1.95.0/bin/rustc",
+      "sha256": "bff349e72704ff70bc08a234a3847338e797065bbedde5e556808bc87b7bf7c6",
+      "version": "rustc 1.95.0 (59807616e 2026-04-14)\n"
+    }
+  }
+}
