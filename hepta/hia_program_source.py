@@ -14,6 +14,7 @@ Finite local byte-view records reuse the existing independently checked
 Resource IR profile. Foreign code, tasks, escaping stored references, floats
 and unbounded specialization reject.
 Scalarization is an internal calling convention, not a C aggregate ABI claim.
+Record/Result scalarization shares the nominal Core's finite width/depth limits.
 Public scalar entries are selected from the original declarations before
 specialization or scalarization and retained in the verified Core exports.
 """
@@ -27,7 +28,7 @@ from .ast import Expr, Function, MatchArm, Program, Stmt, Type
 from .checker import check
 from .parser import parse
 from .hia_program import HIAProgramRejected, VerifiedProgram, verify_program
-from .hia_program_composite import MAX_VARIANTS
+from .hia_program_composite import MAX_FLAT_FIELDS, MAX_TYPE_DEPTH, MAX_VARIANTS
 from .hia_schema import SCHEMA as SCHEMA_V1, SCHEMA_V8
 
 
@@ -236,6 +237,7 @@ class _Lower:
         self.return_origin_leaves: dict[str, int] = {}
         self.source_map: list[dict] = []
         self.exports = tuple(exports)
+        self.layout_cache = {}
         self.local_views = self.checked_local_views()
 
     def checked_local_views(self):
@@ -317,7 +319,28 @@ class _Lower:
             _reject("returned record projection must select exactly one byte-view field")
         return selected[0]
 
-    def layout(self, typ: Type, mode="value", seen=()) -> list[tuple[tuple[str, ...], str]]:
+    def layout(self, typ: Type, mode="value", seen=(), depth=0) -> list[tuple[tuple[str, ...], str]]:
+        """Bound producer scalarization before constructing primitive Core.
+
+        Reuse the nominal Core's depth/width limits. A shared zero-width type
+        DAG must also stay bounded: leaf counting alone cannot stop its
+        exponential traversal. Cache immutable results by remaining depth as
+        well as type/mode, so reuse cannot bypass the nesting limit. Return a
+        detached list because callers assemble their own flattened layouts.
+        """
+        if depth > MAX_TYPE_DEPTH:
+            _reject("source layout nesting exceeds budget")
+        if typ.name in seen:
+            _reject("recursive record layout")
+        key = (typ, mode, depth)
+        if key not in self.layout_cache:
+            result = self._layout(typ, mode, seen, depth)
+            if len(result) > MAX_FLAT_FIELDS:
+                _reject("flattened source layout exceeds budget")
+            self.layout_cache[key] = tuple(result)
+        return list(self.layout_cache[key])
+
+    def _layout(self, typ: Type, mode, seen, depth) -> list[tuple[tuple[str, ...], str]]:
         if typ.name in self.local_views:
             if typ.args or typ.length is not None or typ.lifetimes != ("_",) or mode != "value":
                 _reject("stored byte views are confined to inferred local record values")
@@ -328,7 +351,9 @@ class _Lower:
                     result.append(((member.name,), "readbuf" if permission == "read" else "mutbuf"))
                 else:
                     result.extend(((member.name, *path), leaf)
-                                  for path, leaf in self.layout(member.type))
+                                  for path, leaf in self.layout(member.type, depth=depth + 1))
+                if len(result) > MAX_FLAT_FIELDS:
+                    _reject("flattened source layout exceeds budget")
             return result
         if typ.lifetimes or typ.length is not None:
             _reject("stored references and fixed-array layouts are outside this profile")
@@ -345,7 +370,9 @@ class _Lower:
         if typ.name == "Result" and len(typ.args) == 2 and mode not in {"read", "mut"}:
             result = [(("tag",), "bool")]
             for tag, payload in zip(("Ok", "Err"), typ.args):
-                result += [((tag, *path), leaf) for path, leaf in self.layout(payload, seen=seen)]
+                result += [((tag, *path), leaf) for path, leaf in self.layout(payload, seen=seen, depth=depth + 1)]
+                if len(result) > MAX_FLAT_FIELDS:
+                    _reject("flattened source layout exceeds budget")
             return result
         record = self.structs.get(typ.name)
         if record is not None and not typ.args and not record.type_params and not record.lifetime_params:
@@ -354,7 +381,9 @@ class _Lower:
             result = []
             for member in record.fields:
                 result += [((member.name, *path), leaf)
-                           for path, leaf in self.layout(member.type, mode, (*seen, typ.name))]
+                           for path, leaf in self.layout(member.type, mode, (*seen, typ.name), depth + 1)]
+                if len(result) > MAX_FLAT_FIELDS:
+                    _reject("flattened source layout exceeds budget")
             return result
         _reject("unsupported concrete type " + str(typ))
 

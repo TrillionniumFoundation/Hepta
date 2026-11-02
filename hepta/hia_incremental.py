@@ -48,6 +48,44 @@ def _wire(value):
                       ensure_ascii=False, allow_nan=False).encode("utf-8")
 
 
+def _callable_policy(value):
+    # The admitted checker implementations use finite JSON-shaped defaults.
+    # Snapshot their values, including mutable keyword-default dictionaries;
+    # neither a function reference nor its code object captures these inputs.
+    positional = getattr(value, "__defaults__", None)
+    keyword = getattr(value, "__kwdefaults__", None)
+    defaults = None
+    if positional is not None or keyword is not None:
+        try:
+            defaults = _wire({"positional": positional, "keyword": keyword})
+        except (TypeError, ValueError, RecursionError):
+            _reject("checker defaults are outside the cache dependency contract")
+    return (id(value), value, getattr(value, "__code__", None), defaults)
+
+
+def _class_policy(typ):
+    """Bind live methods, inherited hooks and descriptor implementations.
+
+    A class object does not change identity when its dataclass equality or a
+    property getter is replaced. Keep member identities as well as code
+    objects so both rebinding and in-place function-code updates invalidate.
+    """
+    lineage = []
+    for base in typ.__mro__:
+        members = []
+        for name, member in sorted(vars(base).items()):
+            accessors = ((member.fget, member.fset, member.fdel)
+                         if isinstance(member, property) else
+                         (member.__func__,) if isinstance(member, (classmethod, staticmethod))
+                         else ())
+            # Retain the objects as well as their IDs: a replaced descriptor
+            # must not be collected and have its ID reused by a later one.
+            members.append((name, _callable_policy(member),
+                            tuple(_callable_policy(fn) for fn in accessors)))
+        lineage.append((base, tuple(members)))
+    return tuple(lineage)
+
+
 def _policy():
     """Bind a live cache to actual checker code, constants and capabilities.
 
@@ -55,13 +93,18 @@ def _policy():
     The registry bytes cover future capabilities, including nominal profiles.
     This is local cache invalidation, not source/toolchain attestation.
     """
-    functions = tuple((name, value, getattr(value, "__code__", None))
+    functions = tuple((name, _callable_policy(value))
                       for name, value in sorted(vars(core).items())
                       if callable(value) and getattr(value, "__module__", None)
                       == core.__name__)
-    methods = tuple((name, value, getattr(value, "__code__", None))
-                    for name, value in sorted(vars(core._BlockCheck).items())
-                    if callable(value))
+    # Cache dependency comparison itself uses _FunctionInterface equality.
+    # Bind every implementation class, not only the block checker: otherwise
+    # an unchanged class object can silently change the cache's meaning.
+    classes = tuple((module.__name__, name, _class_policy(value))
+                    for module in (core, opcodes, capability_flow)
+                    for name, value in sorted(vars(module).items())
+                    if isinstance(value, type)
+                    and getattr(value, "__module__", None) == module.__name__)
     constants = _wire({
         "word_bits": core.WORD_BITS, "widths": dict(core.WIDTHS),
         "scalars": sorted(core.SCALARS), "owners": sorted(core.OWNERS),
@@ -85,30 +128,28 @@ def _policy():
             "profiles": dict(opcodes.PRIMITIVE_PROFILES),
         },
     })
-    imported_helpers = tuple((helper, getattr(helper, "__code__", None))
+    imported_helpers = tuple(_callable_policy(helper)
                              for helper in (core.supports_feature, core.preflight_hia_json,
                                             core.opcode_spec, core.check_instruction,
                                             core._catalog_scalar_value_valid,
                                             core.rename_capabilities, core._Capability,
                                             core.CapabilityFlowRejected))
-    opcode_functions = tuple((name, value, getattr(value, "__code__", None))
+    opcode_functions = tuple((name, _callable_policy(value))
                              for name, value in sorted(vars(opcodes).items())
                              if callable(value) and getattr(value, "__module__", None) == opcodes.__name__)
     # CFG ownership checking crosses this extracted implementation boundary.
     # A reload can leave core's imported function/class aliases intact while
     # replacing globals read by that function. Bind both sides, including
     # dataclass equality used to compare capability states at CFG joins.
-    capability_bindings = tuple((name, value, getattr(value, "__code__", None))
+    capability_bindings = tuple((name, _callable_policy(value))
                                 for name, value in sorted(vars(capability_flow).items())
                                 if callable(value) and getattr(value, "__module__", None)
                                 == capability_flow.__name__)
-    capability_methods = tuple((typ, name, value, getattr(value, "__code__", None))
+    capability_methods = tuple(_class_policy(typ)
                                for typ in (core._Capability, capability_flow.Capability,
                                            core.CapabilityFlowRejected,
-                                           capability_flow.CapabilityFlowRejected)
-                               for name, value in sorted(vars(typ).items())
-                               if callable(value))
-    return (DEPENDENCY_CONTRACT, functions, methods, constants, imported_helpers,
+                                           capability_flow.CapabilityFlowRejected))
+    return (DEPENDENCY_CONTRACT, functions, classes, constants, imported_helpers,
             opcode_functions, capability_bindings, capability_methods)
 
 

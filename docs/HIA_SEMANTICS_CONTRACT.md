@@ -235,6 +235,16 @@ expected speedup cannot waive a semantic obligation. Conversely, a valid
 semantic proof does not show that proving, compiling or selecting the candidate
 will recover its cost.
 
+The selected Core-to-LLVM body checker charges each symbolic instruction and
+terminator before encoding it. Every expanded path and nested callee shares
+one 8,192-step allowance within its Core or LLVM lane; a call cannot replenish
+that allowance. Its requested timeout covers admission, symbolic encoding and
+the solver, which receives only the remaining whole milliseconds. Encoding
+checks the deadline cooperatively, and a late solver result cannot verify.
+These bounds do not preempt Python/solver/native system calls or establish a
+hard real-time scheduling guarantee. They do not extend the selected body
+proof to LLVM machine-code generation, the public ABI or production recovery.
+
 | Established mechanism | Remaining boundary |
 | --- | --- |
 | Executable Core type/ownership/effect checking | No machine-checked soundness theorem for the whole implementation |

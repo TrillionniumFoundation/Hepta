@@ -36,6 +36,24 @@ def _require(condition, message):
         raise ScalarLoweringRejected(message)
 
 
+class _WorkBudget:
+    """One instruction allowance per lane, shared by every path and call."""
+
+    def __init__(self, lane, deadline_ns=None):
+        self.lane, self.deadline_ns = lane, deadline_ns
+        self.used = 0
+
+    def check(self):
+        _require(self.deadline_ns is None or time.monotonic_ns() < self.deadline_ns,
+                 "selected lowering deadline exhausted during symbolic encoding")
+        _require(self.used < MAX_LLVM_STEPS, self.lane + " instruction/path budget exceeded")
+
+    def consume(self):
+        self.check()
+        # Charge before constructing expressions or descending into a callee.
+        self.used += 1
+
+
 def _width(token):
     _require(type(token) is str and len(token) <= 2 and token in {"1", "8", "16", "32", "64"},
              "LLVM integer width is outside the selected profile")
@@ -51,11 +69,14 @@ def checker_identity():
 
 
 class _LLVM:
-    def __init__(self, z, context, text, fn, inputs, function_index, module, allowed_indices, call_stack=()):
+    def __init__(self, z, context, text, fn, inputs, function_index, module, allowed_indices,
+                 call_stack=(), budget=None):
         self.z, self.context = z, context
         self.text, self.module = text, module
         _require(function_index not in call_stack, "recursive LLVM call is outside the selected proof profile")
         self.allowed_indices, self.call_stack = allowed_indices, (*call_stack, function_index)
+        self.budget = _WorkBudget("LLVM") if budget is None else budget
+        self.budget.check()
         self.return_type = fn["returns"][0]
         entry_index = next(index for index, block in enumerate(fn["blocks"]) if block["id"] == fn["entry"])
         self.entry = f"b{entry_index}"
@@ -141,7 +162,7 @@ class _LLVM:
                          "LLVM call argument type differs from signature")
                 incoming[param["name"]] = (self.value(argument[2], argument_width), param["type"])
             child = _LLVM(z, self.context, self.text, function, incoming, number, self.module,
-                          self.allowed_indices, self.call_stack)
+                          self.allowed_indices, self.call_stack, self.budget)
             returns, abort, poison = child.execute()
             value, returned = _merge(z, self.context, returns, function["returns"][0])
             _require((bits == 1 and z.is_bool(value)) or
@@ -240,8 +261,8 @@ class _LLVM:
             lines = self.blocks[label]
             seen_non_phi = False
             for index, line in enumerate(lines):
+                self.budget.consume()
                 self.steps += 1
-                _require(self.steps <= MAX_LLVM_STEPS, "LLVM instruction/path budget exceeded")
                 match = re.fullmatch(rf"({_NAME}) = (.+)", line)
                 if match:
                     name, expression = match.groups()
@@ -317,7 +338,9 @@ def _merge(z, context, returns, typ):
     return value, returned
 
 
-def _reference(z, context, fn, inputs, module):
+def _reference(z, context, fn, inputs, module, budget=None):
+    budget = _WorkBudget("Core") if budget is None else budget
+    budget.check()
     blocks = {block["id"]: block for block in fn["blocks"]}
     graph = {}
     for name, block in blocks.items():
@@ -332,11 +355,12 @@ def _reference(z, context, fn, inputs, module):
         block = blocks[name]
         encoder = _Encoder(z, values, context)
         for operation in block["ops"]:
+            budget.consume()
             if operation["op"] == "call":
                 callee = next(f for f in module["functions"] if f["name"] == operation["attrs"]["function"])
                 incoming = {p["name"]: encoder.env[arg]
                             for p, arg in zip(callee["params"], operation["args"])}
-                results, abort, child_steps = _reference(z, context, callee, incoming, module)
+                results, abort, child_steps = _reference(z, context, callee, incoming, module, budget)
                 value, _returned = _merge(z, context, results, callee["returns"][0])
                 steps += child_steps
                 encoder.trap = z.If(encoder.trap != 0, encoder.trap, z.If(abort, 1, 0))
@@ -345,7 +369,7 @@ def _reference(z, context, fn, inputs, module):
             else:
                 encoder.operation(operation)
         steps += len(block["ops"]) + 1
-        _require(steps <= MAX_LLVM_STEPS, "Core path budget exceeded")
+        budget.consume()  # The terminator is symbolic work on every path too.
         aborted = z.Or(aborted, z.And(path, encoder.trap != 0))
         active = z.And(path, encoder.trap == 0)
         term = block["term"]
@@ -370,8 +394,12 @@ def verify_scalar_lowering(program, *, function=None, llvm_text=None, timeout_ms
     An optional LLVM text enables mutation audits. Reports are observations,
     never an importable admission certificate. The native wrapper/ABI and
     machine code are explicitly outside this selected internal-body theorem.
+    The timeout covers admission, encoding and solving. Bounded Python work
+    checks the deadline cooperatively; a late solver result cannot verify.
     """
     _require(type(timeout_ms) is int and 1 <= timeout_ms <= 30000, "invalid solver timeout")
+    validation_started = time.monotonic_ns()
+    deadline = validation_started + timeout_ms * 1_000_000
     checked = verify_program(program)
     document = checked.as_dict()
     _require(checked.structured_bytes is None, "selected lowering check requires explicit primitive Core")
@@ -417,14 +445,17 @@ def verify_scalar_lowering(program, *, function=None, llvm_text=None, timeout_ms
              re.search(r'(?m)^[ \t]*@(?:abort|"abort")[ \t]*=', text) is None and
              re.search(r"(?m)^[ \t]*module[ \t]+asm\b", text) is None,
              "selected lowering check requires the unchanged external abort primitive")
+    _require(time.monotonic_ns() < deadline, "selected lowering deadline exhausted during admission")
     import z3 as z
     _require(z.get_version_string() == PINNED_Z3_VERSION, "pinned Z3 version required")
     identity, solver_identity = checker_identity(), _solver_identity(z)
     context = z.Context()
     inputs = {p["name"]: _fresh(z, p["name"], p["type"], context) for p in fn["params"]}
-    expected, core_abort, _ = _reference(z, context, fn, inputs, document)
+    core_budget, llvm_budget = _WorkBudget("Core", deadline), _WorkBudget("LLVM", deadline)
+    expected, core_abort, _ = _reference(z, context, fn, inputs, document, core_budget)
     allowed_indices = frozenset(index for index, target in enumerate(document["functions"]) if target["name"] in reachable)
-    observed, abort, poison = _LLVM(z, context, text, fn, inputs, function_index, document, allowed_indices).execute()
+    observed, abort, poison = _LLVM(z, context, text, fn, inputs, function_index, document,
+                                   allowed_indices, budget=llvm_budget).execute()
     disagreements = []
     for core_path, core_value in expected:
         for llvm_path, llvm_value in observed:
@@ -434,20 +465,27 @@ def verify_scalar_lowering(program, *, function=None, llvm_text=None, timeout_ms
     llvm_returned = z.Or(*[path for path, _ in observed]) if observed else z.BoolVal(False, ctx=context)
     mismatch = z.Or(poison, abort != core_abort, core_returned != llvm_returned, *disagreements)
     solver = z.Solver(ctx=context)
-    solver.set(timeout=timeout_ms)
     solver.add(mismatch)
     query = solver.sexpr()
     _require(len(query.encode()) <= MAX_LLVM_BYTES, "SMT query budget exceeded")
+    remaining_ms = (deadline - time.monotonic_ns()) // 1_000_000
+    _require(remaining_ms >= 1, "selected lowering deadline exhausted before solving")
+    solver.set(timeout=int(remaining_ms))
     started = time.monotonic_ns()
     outcome = solver.check()
     wall_ns = time.monotonic_ns() - started
     _require(checker_identity() == identity and _solver_identity(z) == solver_identity,
              "checker or solver changed during validation")
+    _require(time.monotonic_ns() < deadline, "selected lowering deadline exhausted before final validation")
     status = "verified" if outcome == z.unsat else "refuted" if outcome == z.sat else "unknown"
     report = {"schema": SCHEMA, "status": status, "verified": outcome == z.unsat,
               "core_sha256": checked.sha256, "llvm_sha256": sha256(text.encode()).hexdigest(),
               "actual_emitter_output": text == emitted.text, "checker_sha256": identity,
               "solver": solver_identity, "solver_result": str(outcome), "solver_wall_ns": wall_ns,
+              "solver_timeout_ms": int(remaining_ms),
+              "validation_wall_ns": time.monotonic_ns() - validation_started,
+              "symbolic_steps": {"core": core_budget.used, "llvm": llvm_budget.used,
+                                 "maximum_per_lane": MAX_LLVM_STEPS},
               "query_sha256": sha256(query.encode()).hexdigest(), "smtlib": query,
               "function": fn["name"], "function_index": function_index, "operations": len(operations),
               "call_closure": sorted(reachable),
