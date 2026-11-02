@@ -77,20 +77,25 @@ _UNREAD_ALLOCATION_OPS = frozenset({
 
 
 def _can_elide_zero_initialization(function):
-    """Prove bytes of all local allocations unobservable in this function.
+    """Check that allocation zero bytes cannot affect specified observations.
 
-    Resource arguments/results, every call, every byte load/store, and unknown
-    instructions reject this optimization. Scan every block, including loops
-    and branches. Only zero writes disappear: allocation attempts, failure,
-    live storage and explicit drops still execute. This does not admit a new
-    uninitialized-buffer operation to Core or expose bytes to external code.
+    The original closed unread profile handles functions without byte access.
+    Otherwise an independent checker requires complete same-root counted-store
+    loops to dominate every load. Calls, escapes, ambiguous roots and unknown
+    instructions retain zero initialization. Allocation attempts, failure,
+    bounds and drops still execute. Core still exposes initialized buffers;
+    no uninitialized-buffer instruction or foreign-byte access is introduced.
     """
     scalars = set(_WIDTHS) | {"bool", "unit"}
-    return (all(param["type"] in scalars for param in function["params"])
+    unread = (all(param["type"] in scalars for param in function["params"])
             and all(typ in scalars for typ in function["returns"])
             and all(block["term"]["op"] in {"ret", "jump", "branch", "trap"}
                     and all(operation["op"] in _UNREAD_ALLOCATION_OPS for operation in block["ops"])
                     for block in function["blocks"]))
+    if unread:
+        return True
+    from .hia_initialization import initialization_coverage
+    return initialization_coverage(function)["eligible"]
 
 
 class HIAProgramLLVMRejected(ValueError):
@@ -137,7 +142,7 @@ def _implementation_hash():
     """Bind the actual verifier/emitter and the native boundary helpers."""
     digest = sha256()
     root = Path(__file__).parent
-    for name in ("hia_schema.py", "hia_program.py", "hia_capability_flow.py", "hia_opcodes.py", "hia_program_composite.py", "hia_program_llvm.py", "artifact_publication.py",
+    for name in ("hia_schema.py", "hia_program.py", "hia_capability_flow.py", "hia_opcodes.py", "hia_program_composite.py", "hia_program_llvm.py", "hia_initialization.py", "artifact_publication.py",
                  "clang_capture.py", "elf_shared_abi.py", "object_symbols.py",
                  "object_structure.py", "native_tool_identity.py"):
         content = (root / name).read_bytes()
@@ -886,13 +891,67 @@ def _read_artifact(path):
     return data
 
 
-def compile_program_llvm(ir, *, program, output, clang="clang", kind="shared"):
+def _run_logged(argv, *, command_log=None, **kwargs):
+    """Preserve bounded real command results without changing capture policy.
+
+    Raw hex contains the actual retained bytes. On timeout/output failure the
+    existing capture may provide only a bounded prefix; complete flags and
+    total lengths keep that distinction. Logs are observations, not authority.
+    """
+    if command_log is None:
+        return run_bounded(argv, **kwargs)
+    if type(command_log) is not list:
+        _reject("command log must be a plain list", "E_HIA_COMMAND_LOG")
+    row = {"argv": list(argv), "cwd": str(kwargs.get("cwd") or os.getcwd()),
+           "limits": {name: kwargs.get(name, default) for name, default in
+                      (("timeout", 30), ("stdout_limit", 32_000_000),
+                       ("stderr_limit", 1_000_000), ("stdin_limit", 1_000_000))},
+           "status": "attempted", "returncode": None,
+           "stdout_hex": None, "stderr_hex": None,
+           "stdout_total_bytes": None, "stderr_total_bytes": None,
+           "stdout_complete": None, "stderr_complete": None}
+    command_log.append(row)
+
+    def streams(stdout, stderr, stdout_total=None, stderr_total=None):
+        for name, raw, total in (("stdout", stdout, stdout_total), ("stderr", stderr, stderr_total)):
+            if type(raw) is bytes:
+                row[name + "_hex"] = raw.hex()
+                row[name + "_retained_bytes"] = len(raw)
+                row[name + "_total_bytes"] = len(raw) if total is None else total
+                row[name + "_complete"] = len(raw) == row[name + "_total_bytes"]
+
+    try:
+        result = run_bounded(argv, **kwargs)
+    except BaseException as error:
+        row.update(status="capture_failed", error={"type": type(error).__name__, "message": str(error),
+                                                    "code": getattr(error, "code", None)})
+        capture = getattr(error, "capture", None)
+        if capture is not None:
+            row["returncode"] = capture.returncode
+            streams(capture.stdout, capture.stderr, capture.stdout_total_bytes, capture.stderr_total_bytes)
+        if getattr(error, "capture_error", None) is not None:
+            row["capture_error"] = error.capture_error
+        raise
+    row.update(status="completed", returncode=result.returncode)
+    streams(result.raw_stdout, result.raw_stderr)
+    if result.raw_stdout is None:
+        row["stdout_text_fallback"] = result.stdout
+    if result.raw_stderr is None:
+        row["stderr_text_fallback"] = result.stderr
+    return result
+
+
+def compile_program_llvm(ir, *, program, output, clang="clang", kind="shared", command_log=None):
     """Compile only regenerated verified Core LLVM, then inspect and publish it.
 
     The returned receipt is compilation evidence. Executing it, comparing it
     against the interpreter, and observing allocator/guard behavior are separate
     qualification steps; this entry does not claim to have done those steps.
+    An optional plain-list sink preserves actual bounded command captures,
+    including available failure prefixes; omitting it retains the old path.
     """
+    if command_log is not None and type(command_log) is not list:
+        _reject("command log must be a plain list", "E_HIA_COMMAND_LOG")
     if not isinstance(ir, HIAProgramLLVM) or ir != emit_program_llvm(program, target=ir.target):
         _reject("LLVM differs from independently reverified standalone program", "E_HIA_PROGRAM_ORIGIN")
     if kind not in {"shared", "object"}:
@@ -907,8 +966,8 @@ def compile_program_llvm(ir, *, program, output, clang="clang", kind="shared"):
         _reject("actual Clang 20+ is required")
     compiler = Path(found).resolve()
     compiler_digest = digest_executable(compiler)
-    version = run_bounded([str(compiler), "--version"], timeout=10, stdout_limit=65536, stderr_limit=65536)
-    target = run_bounded([str(compiler), "-dumpmachine"], timeout=10, stdout_limit=65536, stderr_limit=65536)
+    version = _run_logged([str(compiler), "--version"], command_log=command_log, timeout=10, stdout_limit=65536, stderr_limit=65536)
+    target = _run_logged([str(compiler), "-dumpmachine"], command_log=command_log, timeout=10, stdout_limit=65536, stderr_limit=65536)
     if (version.returncode or target.returncode
             or re.search(r"clang version (?:2[0-9]|[3-9][0-9])\.", version.stdout) is None
             or not native_driver_matches_host(target.stdout.strip(), host)):
@@ -924,7 +983,7 @@ def compile_program_llvm(ir, *, program, output, clang="clang", kind="shared"):
         if ir.target == TARGET_RISCV64:
             flags += ["-march=rv64gc", "-mabi=lp64d"]
         command = [str(compiler), *flags, str(source), "-o", str(artifact)]
-        compiled = run_bounded(command, timeout=60, stdout_limit=65536, stderr_limit=1048576)
+        compiled = _run_logged(command, command_log=command_log, timeout=60, stdout_limit=65536, stderr_limit=1048576)
         if compiled.returncode:
             _reject("Clang rejected independently verified HIA LLVM: " + compiled.stderr[:3000], "E_HIA_PROGRAM_NATIVE")
         data = _read_artifact(artifact)
@@ -977,9 +1036,11 @@ def compile_program_llvm(ir, *, program, output, clang="clang", kind="shared"):
                        "foreign_buffer_entrypoints_exposed": False}}
 
 
-def build_program_native(document, output, *, clang="clang", kind="shared", target=TARGET):
+def build_program_native(document, output, *, clang="clang", kind="shared", target=TARGET, command_log=None):
     """Convenience path: verify standalone document, emit LLVM, compile it."""
     from .hia_program import verify_program
     program = verify_program(document)
     ir = emit_program_llvm(program, target=target)
-    return compile_program_llvm(ir, program=program, output=output, clang=clang, kind=kind)
+    if command_log is None:
+        return compile_program_llvm(ir, program=program, output=output, clang=clang, kind=kind)
+    return compile_program_llvm(ir, program=program, output=output, clang=clang, kind=kind, command_log=command_log)

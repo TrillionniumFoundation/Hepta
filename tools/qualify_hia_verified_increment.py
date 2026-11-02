@@ -173,6 +173,16 @@ MODULES = (
     'tests.test_hia_three_lane_gate',
     'tests.test_hia_translation_guard_partition',
 
+    # The next increment retains the original suite and adds the new mechanisms.
+    'tests.test_hia_initialization',
+    'tests.test_hia_initialization_prefix_formal',
+    'tests.test_hia_native_command_log',
+    'tests.test_hia_production_capability_witness',
+    'tests.test_hia_aarch64_execution_mode',
+    'tests.test_hia_invocation_bank',
+    'tests.test_hia_prepared_gate_profile',
+    'tests.test_hia_initialized_release_protocol',
+
 )
 
 

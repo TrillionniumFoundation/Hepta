@@ -1,0 +1,124 @@
+{
+  "schema": "hepta.hia.release-parity.protocol.v3",
+  "workload": "fallible-owned-byte-fill-checksum",
+  "semantics": "n <= 65536, seed u32; allocate n zeroed bytes, fill byte[i]=(i+seed) mod 256, return u64 sum and release; empty allocation has no malloc; allocation refusal returns 1001",
+  "build_profile": "verified-initialized-reduction-rust-pgo-release-v1",
+  "backends": [
+    "c",
+    "cpp",
+    "rust",
+    "hia"
+  ],
+  "training_sizes": [
+    64,
+    4096,
+    65536
+  ],
+  "training_seeds": [
+    19,
+    107,
+    223
+  ],
+  "holdout_sizes": [
+    3,
+    17,
+    65,
+    259,
+    1031,
+    4099,
+    16387,
+    65519
+  ],
+  "holdout_seeds": [
+    1597,
+    2633,
+    4261
+  ],
+  "correctness_sizes": [
+    0,
+    1,
+    7,
+    64,
+    255,
+    256,
+    4096,
+    65536
+  ],
+  "correctness_seeds": [
+    0,
+    1,
+    255,
+    256,
+    4294967295
+  ],
+  "batch_calls": 64,
+  "samples": 21,
+  "warmup_calls": 3,
+  "performance_gate": {
+    "hia_median_ratio_maximum": 1.1,
+    "hia_tail_ratio_maximum": 1.2,
+    "all_baselines_and_sizes_required": true
+  },
+  "order": "rotate backends by seed index, reverse odd rotations; preserve every sample",
+  "decision_rule": "No tuning, retries, trimming or best-of selection after measurements.",
+  "limits": [
+    "One bounded owned-buffer kernel, not multiple independent applications.",
+    "63 batch samples per backend/size; p99 equals the observed maximum, not per-call p99.",
+    "One shared host; affinity does not imply exclusive CPU or stable frequency.",
+    "Energy, manual engineering and past tool acquisition are unknown."
+  ],
+  "rust_pgo": {
+    "schema": "hepta.hia.rust-pgo-training.v1",
+    "sizes": [
+      64,
+      4096,
+      65536
+    ],
+    "seeds": [
+      19,
+      107,
+      223
+    ],
+    "batch_calls": 64,
+    "samples": 21,
+    "warmup_calls": 3,
+    "rust_flags": [
+      "opt-level=3",
+      "lto=fat",
+      "codegen-units=1",
+      "panic=abort",
+      "overflow-checks=off",
+      "force-frame-pointers=no"
+    ],
+    "rust_source": "benchmarks/hia_native_ndu/kernel.rs",
+    "profile_format": "LLVM IR instrumentation; exact Rust LLVM/llvm-profdata version match",
+    "warning_policy": "enable pgo-warn-missing-function; reject every profile/build warning",
+    "holdout_inputs_used": 0,
+    "preparation_cost": "initial baseline build, instrumentation build, all training calls, cleanup, merge and profile-use rebuild are retained and charged"
+  },
+  "initialization_coverage": {
+    "checker": "hepta/hia_initialization.py",
+    "mathematical_model": "formal/HiaInitializationPrefix.lean",
+    "function": "calculate",
+    "expected_local_allocations": 2,
+    "require_all_local_allocations_covered": true,
+    "require_actual_object_malloc_import": true,
+    "forbid_actual_object_calloc_import": true,
+    "keep_null_zero_length_bounds_refusal_drop": true,
+    "cfg_checker_or_native_refinement_machine_proved": false
+  },
+  "timing_cohort": {
+    "classification": "New timing lengths and seeds in the available prior structured timing receipts; correctness inputs may previously have been seen.",
+    "available_prior_census_file": "PRIOR_TIMING_CENSUS.json",
+    "available_prior_census_sha256": "33c0327b886f06f8d72d328f4e0a2378fdd6115736fc842074a46e3484e64c1c",
+    "prior_timing_rows_including_duplicate_archives": 1074,
+    "prior_correctness_rows_excluded": 1920,
+    "prior_structured_source_files": 831,
+    "timing_requests": 132,
+    "timed_batches": 2772,
+    "timed_kernel_calls": 177408,
+    "correctness_requests": 192,
+    "runs_on_final_frozen_source": 1,
+    "prior_negative_results_retained": true
+  }
+}

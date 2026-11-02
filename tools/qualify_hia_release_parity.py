@@ -28,8 +28,19 @@ from tools.qualify_hia_native_ndu import (
 from tools.provider_adapter.llama_cpp_engine import resource_observation
 from tools.hia_rust_pgo import PROFILE as RUST_PGO_PROFILE, training_registration, prepare_rust_pgo, check_pgo_identities
 
+INITIALIZED_RUST_PGO_PROFILE = "verified-initialized-reduction-rust-pgo-release-v1"
+INITIALIZED_PROTOCOL = ROOT / "benchmarks/hia_native_ndu/INITIALIZED_RELEASE_TIMING_PROTOCOL.json"
+
 
 def specification(build_profile="optimized-release-v1"):
+    if build_profile == INITIALIZED_RUST_PGO_PROFILE:
+        # The new prospective cohort has one source-bound registration. Never
+        # rewrite the older v1/v2 axes or substitute their negative results.
+        spec = json.loads(INITIALIZED_PROTOCOL.read_text())
+        if (type(spec) is not dict or spec.get("schema") != "hepta.hia.release-parity.protocol.v3"
+                or spec.get("build_profile") != build_profile):
+            raise ValueError("E_RELEASE_PROFILE: malformed initialized release registration")
+        return spec
     if build_profile not in {"optimized-release-v1", "verified-reduction-release-v1",
                              "verified-reduction-narrowed-release-v1", RUST_PGO_PROFILE}:
         raise ValueError("E_RELEASE_PROFILE: unsupported release comparison")
@@ -60,7 +71,8 @@ def specification(build_profile="optimized-release-v1"):
 def bindings():
     values = source_inventory()
     for name in ("tools/qualify_hia_release_parity.py", "tools/hia_rust_pgo.py",
-                 "tools/provider_adapter/llama_cpp_engine.py"):
+                 "tools/provider_adapter/llama_cpp_engine.py", "formal/HiaInitializationPrefix.lean",
+                 "tools/qualify_hia_initialization_prefix.py"):
         values[name] = file_identity(ROOT / name)["sha256"]
     return values
 
@@ -92,12 +104,16 @@ def _validate_release_registration(spec):
     if type(samples) is not int or not 1 <= samples <= 65536:
         raise ValueError("E_RELEASE_COHORT: invalid native sample count")
     if "schema" in spec:
-        if (spec["schema"] not in {"hepta.hia.release-parity.protocol.v1", "hepta.hia.release-parity.protocol.v2"}
+        if (spec["schema"] not in {"hepta.hia.release-parity.protocol.v1", "hepta.hia.release-parity.protocol.v2",
+                                  "hepta.hia.release-parity.protocol.v3"}
                 or type(spec.get("build_profile")) is not str):
             raise ValueError("E_RELEASE_COHORT: unknown formal release registration")
         registered = specification(spec["build_profile"])
         if spec["schema"] != registered["schema"] or spec.get("rust_pgo") != registered.get("rust_pgo"):
             raise ValueError("E_RELEASE_COHORT: changed profile or PGO training registration")
+        if (spec.get("initialization_coverage") != registered.get("initialization_coverage")
+                or spec.get("timing_cohort") != registered.get("timing_cohort")):
+            raise ValueError("E_RELEASE_COHORT: changed initialization or prospective timing registration")
         # Full native registrations bind the amount of measured work as well
         # as its axes. The schema-free miniature synthetic cohorts used by
         # acceptance tests are not native experiment registrations.
@@ -183,6 +199,29 @@ def assess(rows, spec):
             "broad_rust_performance_parity_established": False}
 
 
+def _require_initialized_artifact(output, report, spec):
+    """Recheck actual optimized Core and object; a saved witness is not input."""
+    from hepta.hia_initialization import verify_initialization_coverage
+    from hepta.hia_program import verify_program
+    core = verify_program((Path(output) / "hia.optimized.core.json").read_bytes())
+    coverage = verify_initialization_coverage(core)
+    expected = spec["initialization_coverage"]
+    function = next((fn for fn in core.as_dict()["functions"] if fn["name"] == expected["function"]), None)
+    observed = next((fn for fn in coverage["functions"] if fn["function"] == expected["function"]), None)
+    allocations = {op["out"][0]["name"] for block in function["blocks"] for op in block["ops"]
+                   if op["op"] in {"buffer.new", "buffer.try_new"}} if function is not None else set()
+    covered = {w["allocation"] for w in observed["witnesses"]} if observed is not None else set()
+    native = report["hia_compilation"]
+    imports = native["binary_inventory"].get("undefined", [])
+    if (coverage["core_sha256"] != native["core_sha256"] or observed is None or not observed["eligible"]
+            or len(allocations) != expected["expected_local_allocations"] or covered != allocations
+            or "malloc" not in imports or "calloc" in imports):
+        raise ValueError("E_RELEASE_INITIALIZATION: actual Core coverage or native allocator path differs")
+    report["hia_initialization_coverage"] = coverage
+    report["initialization_artifact_qualified"] = True
+    (Path(output) / "hia.initialization-coverage.json").write_bytes(wire(coverage) + b"\n")
+
+
 def run(output, clang, rustc, *, build_profile="optimized-release-v1", llvm_profdata=None):
     started = time.monotonic_ns()
     output = Path(output).resolve()
@@ -211,12 +250,15 @@ def run(output, clang, rustc, *, build_profile="optimized-release-v1", llvm_prof
         os.sched_setaffinity(0, {selected_cpu})
         stage = time.monotonic_ns()
         try:
-            base_profile = ("verified-reduction-narrowed-release-v1"
-                            if build_profile == RUST_PGO_PROFILE else build_profile)
+            uses_pgo = build_profile in {RUST_PGO_PROFILE, INITIALIZED_RUST_PGO_PROFILE}
+            base_profile = "verified-reduction-narrowed-release-v1" if uses_pgo else build_profile
             products = build(output, clang, rustc, report, build_profile=base_profile)
-            if build_profile == RUST_PGO_PROFILE:
+            if uses_pgo:
                 products = prepare_rust_pgo(output, clang, rustc, llvm_profdata, products, report,
                                             registration=spec["rust_pgo"])
+            if build_profile == INITIALIZED_RUST_PGO_PROFILE:
+                _require_initialized_artifact(output, report, spec)
+                report["build_profile"].update(id=build_profile, hia_complete_initialization_checked=True)
         finally:
             report["stage_wall_ns"]["build"] = time.monotonic_ns()-stage
             checkpoint()
@@ -282,7 +324,10 @@ def run(output, clang, rustc, *, build_profile="optimized-release-v1", llvm_prof
         report["cost_scope"] = "Campaign wall includes setup, build, load, validation, all samples, probes, cleanup and reporting to final snapshot; stage rows partition this interval. Build-command/backend timings are nested, never added again. Earlier tool acquisition, human time and energy are unknown."
         report["valid_observation"] = (report["status"] == "completed" and report["source_unchanged"]
                                        and report["tool_and_artifact_identities_unchanged"]
-                                       and (build_profile != RUST_PGO_PROFILE or report["pgo_preparation_qualified"]))
+                                       and (build_profile not in {RUST_PGO_PROFILE, INITIALIZED_RUST_PGO_PROFILE}
+                                            or report["pgo_preparation_qualified"])
+                                       and (build_profile != INITIALIZED_RUST_PGO_PROFILE
+                                            or report.get("initialization_artifact_qualified") is True))
         if not report["valid_observation"] and "assessment" in report:
             report["invalidated_assessment"] = report.pop("assessment")
         checkpoint()
@@ -297,7 +342,8 @@ def main():
     parser.add_argument("--llvm-profdata", help="Explicit matching LLVM20 tool, required by the Rust PGO profile")
     parser.add_argument("--build-profile", default="optimized-release-v1",
                         choices=("optimized-release-v1", "verified-reduction-release-v1",
-                                 "verified-reduction-narrowed-release-v1", RUST_PGO_PROFILE))
+                                 "verified-reduction-narrowed-release-v1", RUST_PGO_PROFILE,
+                                 INITIALIZED_RUST_PGO_PROFILE))
     args = parser.parse_args()
     result = run(args.output, args.clang, args.rustc, build_profile=args.build_profile,
                  llvm_profdata=args.llvm_profdata)

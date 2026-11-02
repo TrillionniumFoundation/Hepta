@@ -84,12 +84,21 @@ python tools/qualify_hia_agent_maintenance.py --campaign maintenance-v2 \
 ```
 
 `--isolate-sqlite` records a per-invocation `sqlite_home` override below that
-output directory. It does not change `HOME`, `CODEX_HOME`, user configuration,
-credentials, sandbox permissions or any frozen generation command. This can
-diagnose SQLite state initialization independently from later startup failures.
+output directory. Independently, `--isolate-logs` sets the documented `log_dir`
+to a fresh `codex-logs` child of that same admitted output. Both options are
+Boolean; neither accepts an arbitrary directory, config key, home override or
+thread-store implementation. Existing runtime children or symlinks refuse.
+These options do not change `HOME`, `CODEX_HOME`, user configuration,
+credentials, sandbox permissions or any frozen generation command. They can
+diagnose local SQLite/log initialization separately from later startup failures.
+Their path settings cannot relocate managed cloud storage or waive its policy.
 The app-server's complete raw process output remains in `app-server/` and the
 summary is `RESULT.json`; unknown events, missing initialization ACK, nonzero
 exit, unconfirmed cleanup, tool/path drift and probe-source drift refuse.
+The result records requested overrides and direct regular runtime file
+names/sizes, with at most 128 directory entries inspected and no recursive
+walk; database payloads are not read. Exclude those runtime directories from evidence
+exports. A created SQLite/log file does not establish a completed startup ACK.
 
 Passing startup/native probes does not verify model access, usage reporting or
 coding productivity. The report always keeps `model_access_verified=false`,

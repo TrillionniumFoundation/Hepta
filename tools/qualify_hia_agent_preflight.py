@@ -8,6 +8,7 @@ usage reporting, productivity or the eligibility of an existing frozen cohort.
 from __future__ import annotations
 
 import argparse
+from itertools import islice
 import json
 import os
 from pathlib import Path
@@ -20,6 +21,8 @@ if str(ROOT) not in sys.path:
 sys.dont_write_bytecode = True
 
 from tools.hia_agent_codex_transport import canonical, identity, run_owned, save, strict_json
+
+MAX_RUNTIME_METADATA_ENTRIES = 128
 
 
 def initialization_wire():
@@ -102,9 +105,11 @@ def _native_probe(language, compiler, folder, seconds):
 
 
 def preflight(output, *, codex, clang, rustc, campaign=None, registered_paths=None,
-              freeze_path=None, isolate_sqlite=False, wall_seconds=15):
-    if type(wall_seconds) is not int or not 1 <= wall_seconds <= 60 or type(isolate_sqlite) is not bool:
+              freeze_path=None, isolate_sqlite=False, isolate_logs=False, wall_seconds=15):
+    if type(wall_seconds) is not int or not 1 <= wall_seconds <= 60:
         raise ValueError("preflight per-process wall limit must be an integer in 1..60")
+    if type(isolate_sqlite) is not bool or type(isolate_logs) is not bool:
+        raise ValueError("preflight runtime isolation flags must be Boolean")
     folder = Path(output)
     if not folder.is_absolute() or folder.resolve().is_relative_to(ROOT.resolve()):
         raise ValueError("preflight output must be absolute and outside the source checkout")
@@ -117,6 +122,8 @@ def preflight(output, *, codex, clang, rustc, campaign=None, registered_paths=No
               "model_access_verified": False, "model_usage": None,
               "registered_campaign_run_authorized": False, "new_registration_required": True,
               "prior_results_replaced": False, "model_successes": 0,
+              "startup_overrides": {}, "runtime_directory_metadata": {},
+              "runtime_database_payloads_read": False,
               "claims": {"productivity_advantage_proved": False,
                          "full_cost_advantage_proved": False,
                          "arbitrary_tool_or_process_attestation": False}}
@@ -151,12 +158,17 @@ def preflight(output, *, codex, clang, rustc, campaign=None, registered_paths=No
             except Exception as exc:
                 report["probes"][name + "_version"] = {"passed": False, "error": str(exc)}
         command = [report["tools"]["codex"]["path"]]
-        if isolate_sqlite:
-            state = folder / "sqlite-state"
-            state.mkdir()
-            command.extend(["-c", "sqlite_home=" + json.dumps(str(state))])
+        # Expose only these documented local path settings. Paths are always
+        # fresh children of the admitted output; there is no arbitrary config,
+        # home relocation, permission or thread-store selector in this API.
+        for enabled, key, child in ((isolate_sqlite, "sqlite_home", "sqlite-state"),
+                                    (isolate_logs, "log_dir", "codex-logs")):
+            if enabled:
+                runtime = folder / child
+                runtime.mkdir()  # Existing files/symlinks refuse before startup.
+                report["startup_overrides"][key] = str(runtime)
+                command.extend(["-c", key + "=" + json.dumps(str(runtime))])
         command.extend(["app-server", "--stdio"])
-        report["startup_overrides"] = {"sqlite_home": str(folder / "sqlite-state")} if isolate_sqlite else {}
         try:
             process = run_owned(command, folder, folder / "app-server", wall_seconds=wall_seconds,
                                 input_bytes=initialization_wire())
@@ -167,6 +179,16 @@ def preflight(output, *, codex, clang, rustc, campaign=None, registered_paths=No
             report["probes"]["startup"] = {"passed": True, "process": process, **response}
         except Exception as exc:
             report["probes"].setdefault("startup", {"passed": False})["error"] = str(exc)
+        for key, name in report["startup_overrides"].items():
+            runtime = Path(name)
+            entries = list(islice(runtime.iterdir(), MAX_RUNTIME_METADATA_ENTRIES + 1))
+            if len(entries) > MAX_RUNTIME_METADATA_ENTRIES:
+                raise ValueError("preflight runtime metadata entry budget exceeded")
+            report["runtime_directory_metadata"][key] = {
+                "directory": name, "payloads_read": False, "scope": "direct regular files only",
+                "files": [{"relative_path": str(path.relative_to(runtime)), "bytes": path.stat().st_size}
+                          for path in sorted(entries)
+                          if not path.is_symlink() and path.is_file()]}
         for language, tool in (("hia", "clang"), ("rust", "rustc")):
             try:
                 report["probes"][language + "_native"] = _native_probe(
@@ -196,10 +218,12 @@ def main(argv=None):
     for name in ("output", "codex", "clang", "rustc"):
         parser.add_argument("--" + name, required=True)
     parser.add_argument("--isolate-sqlite", action="store_true")
+    parser.add_argument("--isolate-logs", action="store_true")
     parser.add_argument("--wall-seconds", type=int, default=15)
     args = parser.parse_args(argv)
     result = preflight(args.output, codex=args.codex, clang=args.clang, rustc=args.rustc,
-                       isolate_sqlite=args.isolate_sqlite, wall_seconds=args.wall_seconds)
+                       isolate_sqlite=args.isolate_sqlite, isolate_logs=args.isolate_logs,
+                       wall_seconds=args.wall_seconds)
     print(json.dumps({key: result[key] for key in ("status", "passed", "model_requests_sent_by_probe",
           "model_access_verified", "registered_campaign_run_authorized", "new_registration_required")}))
     return 0 if result["passed"] else 1

@@ -51,6 +51,10 @@ SUITES = {
         "tests.test_hia_translation_guard_partition",
         "tests.test_hia_translation_validation",
         "tests.test_hia_scalar_boundary_conformance",
+        "tests.test_hia_initialization",
+        "tests.test_hia_initialization_prefix_formal",
+        "tests.test_hia_native_command_log",
+        "tests.test_hia_production_capability_witness",
     ),
     "core-consistency": (
         "tests.test_hia_incremental_capability_policy",

@@ -713,6 +713,10 @@ python tools/qualify_hia_program_composite.py --clang clang \
   --workdir /tmp/hia-composite-qualified
 ```
 
+For the separate direct Linux AArch64 host mode, including its unchanged
+finite corpus and explicit refusal boundaries, see
+[Native AArch64 host qualification](HIA_AARCH64_NATIVE_HOST.md).
+
 Performance protocol `hepta.hia.program.perf.v3` builds in a fixed-length
 `/tmp/hepta-hia-perf-*` directory, independently of `TMPDIR` and the requested
 artifact retention parent. After the attempt, it copies the exact measured

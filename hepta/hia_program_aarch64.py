@@ -16,7 +16,8 @@ import tempfile
 
 from .clang_capture import run_bounded
 from .hia_program import verify_program
-from .hia_program_llvm import TARGET_AARCH64, compile_program_llvm, emit_program_llvm
+from .hia_program_llvm import (TARGET_AARCH64, HIAProgramLLVMRejected, _run_logged,
+                               compile_program_llvm, emit_program_llvm, native_host_profile)
 from .native_tool_identity import digest_executable
 from .object_symbols import inspect_object_symbols
 from .owned_aarch64_link import inspect_synthetic_aarch64_elf
@@ -24,6 +25,8 @@ from .owned_aarch64_link import inspect_synthetic_aarch64_elf
 
 PROFILE = "hepta.hia.program.aarch64-finite-runtime.v1"
 PROFILE_COMPOSITE = "hepta.hia.program.aarch64-composite-bulk-runtime.v1"
+PROFILE_NATIVE = "hepta.hia.program.aarch64-native-finite-runtime.v1"
+PROFILE_NATIVE_COMPOSITE = "hepta.hia.program.aarch64-native-composite-bulk-runtime.v1"
 REVIEWED_RUNTIME_SHA256 = "5caa9cbc33df5734626ff17045159add08b850abceb021b038ddb110db6f402c"
 REVIEWED_MULTI_RUNTIME_SHA256 = "c0fa3bbee8f3d792908854bd3cde4428fb3876beff55f729278739b2341fc4a3"
 QEMU_SHA256 = "e4f8d99e9ff69c3cefffab71cee358ce2af1ecba1282d04c3eeb44ef76f5a71e"
@@ -327,36 +330,81 @@ def _tool(path, role):
     return resolved, digest_executable(resolved)
 
 
-def run_finite_program_aarch64(program, *, clang, linker, qemu_aarch64, mode="matrix"):
-    """Compile a separately verified Core and execute the fixed driver in QEMU.
+def _execution_host(execution, qemu_aarch64):
+    """Admit explicit direct execution only on measured Linux AArch64 LP64.
+
+    These are local OS/ABI observations, not external hardware attestation.
+    An AArch64 VM is distinct from a physical-board qualification. No custom
+    emulator/runner path or implicit cross-host fallback is accepted as native.
+    """
+    if type(execution) is not str or execution not in {"qemu", "native"}:
+        _reject("execution must be explicit qemu or native")
+    if execution == "qemu":
+        if qemu_aarch64 is None:
+            _reject("QEMU execution requires its explicit reviewed runner path")
+        return None
+    if qemu_aarch64 is not None:
+        _reject("native execution cannot accept a QEMU runner path")
+    try:
+        host = native_host_profile()
+    except HIAProgramLLVMRejected as error:
+        raise HIAProgramAArch64Rejected(
+            "E_HIA_PROGRAM_AARCH64: native execution requires an actual Linux AArch64 LP64 host") from error
+    if host["target"] != TARGET_AARCH64 or host["normalized_machine"] != "aarch64":
+        _reject("native execution requires an actual Linux AArch64 LP64 host")
+    kernel = os.uname()
+    if kernel.sysname != "Linux" or kernel.machine.lower() not in {"aarch64", "arm64"}:
+        _reject("native execution host and kernel architecture disagree")
+    return {**host, "kernel_release": kernel.release,
+            "observation_scope": "local OS and LP64 ABI; no external hardware attestation"}
+
+
+def run_finite_program_aarch64(program, *, clang, linker, qemu_aarch64=None, mode="matrix",
+                               execution="qemu", command_log=None):
+    """Compile checked Core and run the same driver via explicit QEMU/native.
 
     This returns the actual exit code, including deliberate negative controls.
     Qualification callers must assess that exit code and retained evidence.
+    Default QEMU mode retains its original v1 report. Native adds its own
+    profile, measured host and full bounded command observations; it is never
+    evidence of a physical board or whole-backend refinement.
     """
+    host_before = _execution_host(execution, qemu_aarch64)
+    if command_log is not None and (execution != "native" or type(command_log) is not list):
+        _reject("native command log must be a plain list; QEMU retains its original report")
+    commands = ([] if command_log is None else command_log) if execution == "native" else None
+    command_begin = len(commands) if commands is not None else None
+    run = (lambda argv, **kwargs: _run_logged(argv, command_log=commands, **kwargs)) if commands is not None else run_bounded
     verified = verify_program(program)
     ir = emit_program_llvm(verified, target=TARGET_AARCH64)
     multi = mode == "composite_bulk" or mode in COMPOSITE_BULK_TRAPS
     own_before = _implementation_hash()
     compiler, compiler_sha = _tool(clang, "Clang")
     lld, linker_sha = _tool(linker, "LLVM lld")
-    runner, runner_sha = _tool(qemu_aarch64, "QEMU AArch64")
-    if runner_sha != QEMU_SHA256:
-        _reject("QEMU runner differs from the exact reviewed 8.2.2 executable")
+    tools = [(compiler, compiler_sha), (lld, linker_sha)]
+    if execution == "qemu":
+        runner, runner_sha = _tool(qemu_aarch64, "QEMU AArch64")
+        if runner_sha != QEMU_SHA256:
+            _reject("QEMU runner differs from the exact reviewed 8.2.2 executable")
+        tools.append((runner, runner_sha))
+    elif any(path.name.lower().startswith("qemu") or digest == QEMU_SHA256 for path, digest in tools):
+        _reject("native target tools cannot be a QEMU runner")
     runtime, required = _runtime_source(verified.as_dict(), mode)
-    runner_version = run_bounded([str(runner), "--version"], timeout=10, stdout_limit=65536, stderr_limit=65536)
-    linker_version = run_bounded([str(lld), "-flavor", "gnu", "--version"], timeout=10, stdout_limit=65536, stderr_limit=65536)
-    if runner_version.returncode or linker_version.returncode or "LLD" not in linker_version.stdout:
+    runner_version = run([str(runner), "--version"], timeout=10, stdout_limit=65536, stderr_limit=65536) if execution == "qemu" else None
+    linker_version = run([str(lld), "-flavor", "gnu", "--version"], timeout=10, stdout_limit=65536, stderr_limit=65536)
+    if (runner_version is not None and runner_version.returncode) or linker_version.returncode or "LLD" not in linker_version.stdout:
         _reject("real target runner or LLVM linker identity unavailable")
     with tempfile.TemporaryDirectory(prefix=".hia-aarch64-") as directory:
         folder = Path(directory)
         core_obj, runtime_c = folder / "core.o", folder / "runtime.c"
         runtime_obj, executable = folder / "runtime.o", folder / "core.elf"
-        core_receipt = compile_program_llvm(ir, program=verified, output=core_obj, clang=str(compiler), kind="object")
+        core_receipt = compile_program_llvm(ir, program=verified, output=core_obj, clang=str(compiler), kind="object",
+                                            **({"command_log": commands} if commands is not None else {}))
         runtime_c.write_text(runtime, encoding="ascii")
         compile_command = [str(compiler), "--target=" + TARGET_AARCH64, "-x", "c", "-std=c11",
                            "-ffreestanding", "-nostdinc", "-fno-builtin", "-fno-stack-protector",
                            "-O2", "-Wall", "-Wextra", "-Werror", "-c", str(runtime_c), "-o", str(runtime_obj)]
-        compiled = run_bounded(compile_command, timeout=35, stdout_limit=65536, stderr_limit=1048576)
+        compiled = run(compile_command, timeout=35, stdout_limit=65536, stderr_limit=1048576)
         if compiled.returncode:
             _reject("finite target runtime compile failed: " + compiled.stderr[:2000])
         runtime_bytes = _read(runtime_obj, 1048576)
@@ -366,14 +414,17 @@ def run_finite_program_aarch64(program, *, clang, linker, qemu_aarch64, mode="ma
         # Invoke the existing LLVM linker directly; no Rust frontend is run.
         link_command = [str(lld), "-flavor", "gnu", "-m", "aarch64linux", "-static", "-z", "noexecstack",
                         "-e", "_start", str(core_obj), str(runtime_obj), "-o", str(executable)]
-        linked = run_bounded(link_command, timeout=45, stdout_limit=65536, stderr_limit=1048576)
+        linked = run(link_command, timeout=45, stdout_limit=65536, stderr_limit=1048576)
         if linked.returncode:
             _reject("direct standalone AArch64 link failed: " + linked.stderr[:2000])
         payload = _read(executable, 16777216)
         # This reusable parser checks exact static ELF shape and symbol inventory;
         # it neither emits old source code nor substitutes synthetic execution.
         shape = inspect_synthetic_aarch64_elf(payload, tuple(ir.exports) + ("calloc",))
-        execution = run_bounded([str(runner), str(executable)], timeout=25, stdout_limit=65536, stderr_limit=65536)
+        execute_command = [str(runner), str(executable)] if execution == "qemu" else [str(executable)]
+        if execution == "native" and not os.access(executable, os.X_OK):
+            _reject("native linked ELF is not directly executable")
+        observed = run(execute_command, timeout=25, stdout_limit=65536, stderr_limit=65536)
         if (_read(executable, 16777216) != payload or
                 sha256(_read(core_obj, 16777216)).hexdigest() != core_receipt["artifact_sha256"] or
                 _read(runtime_obj, 1048576) != runtime_bytes or
@@ -381,18 +432,23 @@ def run_finite_program_aarch64(program, *, clang, linker, qemu_aarch64, mode="ma
                 emit_program_llvm(verified, target=TARGET_AARCH64) != ir or
                 _implementation_hash() != own_before or
                 any(digest_executable(path) != digest for path, digest in
-                    [(compiler, compiler_sha), (lld, linker_sha), (runner, runner_sha)])):
+                    tools)):
             _reject("target tool, source, core or executable changed during execution")
-    return {"schema": PROFILE_COMPOSITE if multi else PROFILE, "ok": True, "status": "finite_qemu_execution_observed", "mode": mode,
+        if execution == "native":
+            host_after = _execution_host(execution, qemu_aarch64)
+            if host_after != host_before:
+                _reject("native host identity changed during execution")
+    record = {"schema": PROFILE_COMPOSITE if multi else PROFILE, "ok": True, "status": "finite_qemu_execution_observed", "mode": mode,
             "target": TARGET_AARCH64, "core_sha256": verified.sha256, "core_object": core_receipt,
             "llvm_ir": ir.text, "llvm_ir_sha256": ir.sha256, "harness_implementation_sha256": own_before,
             "reviewed_runtime_sha256": REVIEWED_MULTI_RUNTIME_SHA256 if multi else REVIEWED_RUNTIME_SHA256,
             "runtime_source": runtime, "runtime_source_sha256": sha256(runtime.encode()).hexdigest(),
             "runtime_object_sha256": sha256(runtime_bytes).hexdigest(),
             "linked_sha256": sha256(payload).hexdigest(), "linked_bytes": len(payload), "elf_inventory": shape,
-            "runner": {"path": str(runner), "sha256": runner_sha, "version": runner_version.stdout.splitlines()[0]},
+            "runner": ({"path": str(runner), "sha256": runner_sha, "version": runner_version.stdout.splitlines()[0]}
+                       if execution == "qemu" else {"kind": "direct-native-ELF", "external_runner": False}),
             "linker": {"path": str(lld), "sha256": linker_sha, "version": linker_version.stdout.splitlines()[0]},
-            "execution": {"returncode": execution.returncode, "stdout": execution.stdout, "stderr": execution.stderr},
+            "execution": {"returncode": observed.returncode, "stdout": observed.stdout, "stderr": observed.stderr},
             "runtime_compile_flags": compile_command[1:-4], "link_flags": link_command[1:-4],
             "scope": ("fixed scalar ABI corpus; eight independent 4096-byte slots; Linux userspace QEMU"
                       if multi else "fixed scalar ABI corpus; 4096-byte arena with at most one live allocation; Linux userspace QEMU"),
@@ -400,3 +456,16 @@ def run_finite_program_aarch64(program, *, clang, linker, qemu_aarch64, mode="ma
                        "physical_target_executed": False, "general_allocator_qualified": False,
                        "source_ast_used": False, "rust_frontend_used": False, "rust_codegen_used": False,
                        "backend_refinement_proved": False, "whole_language_soundness_proved": False}}
+    if execution == "native":
+        record.update(schema=PROFILE_NATIVE_COMPOSITE if multi else PROFILE_NATIVE,
+                      status="finite_native_host_execution_observed", execution_mode="native",
+                      native_host_before=host_before, native_host_after=host_after,
+                      command_range=[command_begin, len(commands)], commands=commands[command_begin:],
+                      scope=("fixed scalar ABI corpus; reviewed finite arena; direct Linux AArch64 ELF execution; not physical-board qualification"),
+                      identity_checks={"source_tools_program_and_elf_unchanged": True,
+                                       "host_unchanged": True,
+                                       "core_sha256": verified.sha256,
+                                       "elf_sha256": sha256(payload).hexdigest()})
+        record["claims"].update(qemu_userspace_executed=False, native_linux_aarch64_executed=True,
+                                 physical_board_executed=False, hardware_attestation_proved=False)
+    return record
