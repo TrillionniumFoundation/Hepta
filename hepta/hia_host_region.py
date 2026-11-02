@@ -627,6 +627,32 @@ class HostRegion:
         del self._jobs[token]
         job["finalized"]=True
 
+    def _recover_protect(self,permission):
+        """Recovery has no live lease: a lost mprotect result is irreversible debt.
+
+        The caller cannot distinguish a failed transition from a completed
+        kernel transition followed by an unreceipted host observation. Keep
+        the mapping/code retained, revoke the generation and never retry an
+        ambiguous writable page as a fresh recovery or a close().
+        """
+        try:
+            self._protect(permission)
+        except BaseException as error:
+            self._unprovable_quiescence=True
+            # _quarantine does not advance the generation a second time
+            # when the owner is already quarantined or permanent_deny.
+            self._generation+=1
+            try:
+                self._quarantine("recovery page "+permission+" transition unconfirmed",
+                                 permanent=True)
+            except BaseException as receipt_error:
+                raise HostRegionUncertain(
+                    "recovery mprotect and quarantine receipts unconfirmed; permanently denied"
+                ) from receipt_error
+            raise HostRegionUncertain(
+                "recovery mprotect outcome unconfirmed; permanently denied"
+            ) from error
+
     def recover(self,*,timeout=0.0):
         if type(timeout) not in {int,float} or not 0<=timeout<=10: _reject("recovery wait outside [0,10]")
         with self._lock:
@@ -646,7 +672,7 @@ class HostRegion:
                 job["uncertain"]=True
                 self._finalize_job(token,job)
             if self._leases: _reject("external leases still retained; quiescence not established")
-            self._protect("write")
+            self._recover_protect("write")
             try:
                 # A partial or post-write mmap error is not a zeroing receipt.
                 # All workers have been joined and the owner lock is held;
@@ -666,7 +692,7 @@ class HostRegion:
                 raise HostRegionUncertain(
                     "recovery zeroing unconfirmed; region remains quarantined"
                 ) from error
-            self._protect("none")
+            self._recover_protect("none")
             # Do not expose a new ready generation until the recovery
             # completion receipt has actually succeeded. An audit failure,
             # including a post-append failure, must keep the epoch fenced.
