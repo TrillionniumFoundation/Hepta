@@ -16,6 +16,9 @@ on:
       - 'tests/test_hia_source_layout_limits.py'
       - 'tests/test_hia_translation_guard_partition.py'
       - 'tests/test_hia_scalar_boundary_conformance.py'
+      - 'tests/test_hia_trial_observations.py'
+      - 'tests/test_hia_three_lane_gate.py'
+      - 'tools/provider_adapter/llama_cpp_engine.py'
       - 'tools/qualify_hia_three_lane.py'
       - '.github/workflows/hia-core-consistency.yml'
   workflow_dispatch:
@@ -24,6 +27,43 @@ permissions:
   contents: read
 
 jobs:
+  trial-observations:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      HEPTA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEPTA_SOURCE_SHA }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Execute unchanged trial observations on the real Unix socket host
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          mkdir "$RUNNER_TEMP/hia-trial-observations"
+          {
+            git rev-parse HEAD 'HEAD^{tree}'
+            uname -a
+            python --version
+            sha256sum tests/test_hia_trial_observations.py tools/provider_adapter/llama_cpp_engine.py tools/qualify_hia_three_lane.py
+          } > "$RUNNER_TEMP/hia-trial-observations/identity.log"
+          python -B tools/qualify_hia_three_lane.py --suite trial-observations \
+            --output "$RUNNER_TEMP/hia-trial-observations/result.json" \
+            2>&1 | tee "$RUNNER_TEMP/hia-trial-observations/tests.log"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hia-trial-observations-${{ env.HEPTA_SOURCE_SHA }}
+          path: ${{ runner.temp }}/hia-trial-observations/
+          if-no-files-found: error
+          retention-days: 30
   core-consistency:
     runs-on: ubuntu-24.04
     timeout-minutes: 25

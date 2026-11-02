@@ -25,6 +25,7 @@ if str(ROOT) not in sys.path:
 
 
 SUITES = {
+    "trial-observations": ("tests.test_hia_trial_observations",),
     "trusted-core": (
         "tests.test_hia_incremental_interface_policy",
         "tests.test_hia_incremental_capability_policy",
