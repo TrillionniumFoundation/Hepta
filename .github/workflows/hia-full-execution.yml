@@ -2,7 +2,7 @@ name: HIA fixed composition proofs and full-cost execution (research)
 
 on:
   push:
-    branches: [work/hia-full-execution-20261031]
+    branches: [work/hia-full-execution-20261031, work/hia-unified-core-cost-20261103]
   workflow_dispatch:
 
 permissions:
@@ -27,7 +27,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: TrillionniumFoundation/hepta-private-ci
-          ref: c4a1bbed3a39beba43a6abf1a18b6f75c5725c21
+          ref: 8e52e1187f47f6d4edc8d942fc7cb7eca4bc447d
           path: _hia_ndu_source
           persist-credentials: false
       - name: Build, execute, reject and recover one exact source composition

@@ -27,12 +27,23 @@ NAMES = {"HiaCapabilityRenaming." + name for name in (
     "name_preserved", "kind_preserved", "external_preserved", "origin_preserved",
     "name_equal_iff", "root_equal_iff", "parent_map_iff", "child_of_iff",
     "exclusive_alias_iff", "suspended_iff", "closed_preserved", "number_preserved",
-    "rename_composes", "identity_rename")}
+    "rename_composes", "identity_rename", "projected_member", "local_retained",
+    "only_external_forgotten", "local_inventory_projection", "local_inventory_rename",
+    "parent_path_descends", "ranked_no_parent_cycle", "ranked_projection",
+    "transported_rank_at", "ranked_rename", "transfer_closed", "transfer_local_inventory",
+    "transfer_ranked", "trace_local_inventory", "trace_closed", "trace_ranked",
+    "trace_no_parent_cycle")}
 MUTATIONS = {
     "root_rebound_to_name": ("root := f c.root", "root := f c.name", "root_equal_iff"),
     "parent_discarded": ("parent := c.parent.map f", "parent := none", "child_of_iff"),
     "kind_changed": ("kind := c.kind", "kind := 0", "kind_preserved"),
     "origin_discarded": ("origin := c.origin", "origin := none", "origin_preserved"),
+    "local_retention_removed": (
+        "(∀ c ∈ caps, c.external = false → keep c.name = true) ∧ Closed",
+        "True ∧ Closed", "local_retained"),
+    "parent_rank_not_strict": (
+        "ChildOf child parent → rank parent.name < rank child.name",
+        "ChildOf child parent → rank parent.name ≤ rank child.name", "parent_path_descends"),
 }
 
 
@@ -105,7 +116,7 @@ def verify(lean, output):
     if digest(executable.read_bytes()) != executable_hash:
         raise ValueError('proof checker changed during qualification')
     result = {
-        'schema': 'hepta.hia.capability-renaming.proof.v1', 'passed': True,
+        'schema': 'hepta.hia.capability-renaming.proof.v2', 'passed': True,
         'source_sha256': bound, 'lean_version': version.stdout.strip(),
         'lean_binary_sha256': executable_hash, 'theorems': dependencies,
         'checked_input_sha256': digest((source+checks).encode()),
@@ -115,9 +126,16 @@ def verify(lean, output):
                   'execution_length_bound': None, 'names': 'unbounded mathematical naturals',
                   'properties': ['root identity relation', 'parent relation and suspension',
                                  'exclusive alias relation', 'graph closure', 'selected capability count',
-                                 'type/external/origin fields', 'composition and identity'],
-                  'selected_domain': 'the closed set carried across one CFG edge, before renaming',
-                  'external_forgetting_and_projection_proved': False,
+                                 'type/external/origin fields', 'composition and identity',
+                                 'only external capabilities can be forgotten',
+                                 'complete local kind/origin inventory',
+                                 'strict parent descent and absence of positive parent cycles',
+                                 'arbitrary finite traces of admitted projection/renaming edges'],
+                  'selected_domain': 'closed retained projection of a finite capability graph and finite edge-only traces',
+                  'external_forgetting_and_projection_proved': True,
+                  'local_inventory_preserved_on_all_admitted_finite_edge_traces': True,
+                  'parent_acyclicity_preserved_given_initial_ranks': True,
+                  'intervening_cfg_instructions_proved': False,
                   'python_correspondence_formally_proved': False,
                   'instruction_preservation_proved': False,
                   'complete_core_type_soundness_proved': False,
@@ -133,6 +151,11 @@ def verify(lean, output):
 MAX_OBSERVED_EDGES = 512
 MAX_EDGE_CAPABILITIES = 512
 KINDS = {"buffer": 0, "chain": 1, "readbuf": 2, "mutbuf": 3}
+EDGE_THEOREMS = (
+    "_injective", "_closed", "_result", "_closed_after", "_selected_projection",
+    "_projection", "_ranked_before", "_transfer", "_local_inventory", "_ranked_after",
+    "_no_parent_cycle",
+)
 PRODUCTION_INPUTS = (
     ("stored_record", "examples/hia_program/stored_loan_record.hia", "core", "stored",
      ((False,), (True,))),
@@ -328,16 +351,21 @@ def _edge_encoding(row):
         cap = caps[name]
         if cap["root"] not in remap or cap["parent"] is not None and cap["parent"] not in remap:
             raise ValueError("selected graph omits its root or parent")
-    for name in remap:
+    for name in caps:
+        if caps[name]["root"] not in caps or caps[name]["parent"] is not None and caps[name]["parent"] not in caps:
+            raise ValueError("full production witness graph omits a root or parent")
+    parent_ranks = {}
+    for name in caps:
         seen, current = set(), name
         while current is not None:
             if current in seen:
                 raise ValueError("parent cycle is outside the selected production witness profile")
             seen.add(current)
             current = caps[current]["parent"]
+        parent_ranks[name] = len(seen) - 1
     names = sorted(remap)
-    source_names = {name: index for index, name in enumerate(names)}
-    target_names = {remap[name]: index + len(names) for name, index in source_names.items()}
+    source_names = {name: index for index, name in enumerate(sorted(caps))}
+    target_names = {remap[name]: source_names[name] + len(caps) for name in names}
     origins = {name: index for index, name in enumerate(sorted({
         cap["origin"] for graph in (caps, result) for cap in graph.values() if cap["origin"] is not None}))}
 
@@ -353,6 +381,9 @@ def _edge_encoding(row):
         "source_names": source_names, "target_names": target_names, "origins": origins,
         "kind_tags": dict(KINDS), "dropped_external": sorted(set(caps) - set(remap)),
         "namespace_scope": "separate before/after SSA namespaces; target codes follow the supplied injective remap, independently of observed capability fields",
+        "full_before": [encode(name, caps[name], source_names) for name in sorted(caps)],
+        "selected_names": [source_names[name] for name in names],
+        "parent_ranks": {source_names[name]: parent_ranks[name] for name in sorted(caps)},
         "before": [encode(name, caps[name], source_names) for name in names],
         "after": [encode(remap[name], result[remap[name]], target_names) for name in names],
     }
@@ -367,7 +398,12 @@ def export_observed_edges(rows):
         mapping = _edge_encoding(row)
         mappings.append(mapping)
         prefix = "edge" + str(index)
-        text += f"def {prefix}Map (n : Nat) : Nat := n + {len(mapping['before'])}\n"
+        text += f"def {prefix}Map (n : Nat) : Nat := n + {len(mapping['full_before'])}\n"
+        text += f"def {prefix}FullBefore : List Capability := [" + ", ".join(mapping["full_before"]) + "]\n"
+        text += f"def {prefix}Keep (n : Nat) : Bool := decide (n ∈ [" + ", ".join(map(str, mapping["selected_names"])) + "])\n"
+        text += f"def {prefix}Rank (n : Nat) : Nat :=\n  match n with\n"
+        text += "".join(f"  | {name} => {rank}\n" for name, rank in mapping["parent_ranks"].items())
+        text += "  | _ => 0\n"
         text += f"def {prefix}Before : List Capability := [" + ", ".join(mapping["before"]) + "]\n"
         text += f"def {prefix}After : List Capability := [" + ", ".join(mapping["after"]) + "]\n"
         text += f"theorem {prefix}_injective : Injective {prefix}Map := by\n  intro a b h\n  exact Nat.add_right_cancel h\n"
@@ -375,8 +411,23 @@ def export_observed_edges(rows):
         text += f"theorem {prefix}_result : {prefix}After = {prefix}Before.map (rename {prefix}Map) := by decide\n"
         text += (f"theorem {prefix}_closed_after : Closed {prefix}After := by\n"
                  f"  rw [{prefix}_result]\n  exact closed_preserved {prefix}Map {prefix}Before {prefix}_closed\n")
+        text += (f"theorem {prefix}_selected_projection : {prefix}Before = project {prefix}Keep {prefix}FullBefore := by decide\n"
+                 f"theorem {prefix}_projection : AdmissibleProjection {prefix}FullBefore {prefix}Keep := by\n"
+                 f"  simp [AdmissibleProjection, project, {prefix}Keep, {prefix}FullBefore, Closed]\n"
+                 f"theorem {prefix}_ranked_before : Ranked {prefix}FullBefore := by\n"
+                 f"  refine ⟨{prefix}Rank, ?_⟩\n"
+                 f"  simp [ParentRanks, ChildOf, {prefix}FullBefore, {prefix}Rank]\n"
+                 f"theorem {prefix}_transfer : Transfer {prefix}FullBefore {prefix}After := by\n"
+                 f"  refine ⟨{prefix}Keep, {prefix}Map, {prefix}_projection, {prefix}_injective, ?_⟩\n"
+                 f"  rw [{prefix}_result, {prefix}_selected_projection]\n"
+                 f"theorem {prefix}_local_inventory : localInventory {prefix}After = localInventory {prefix}FullBefore :=\n"
+                 f"  transfer_local_inventory {prefix}_transfer\n"
+                 f"theorem {prefix}_ranked_after : Ranked {prefix}After :=\n"
+                 f"  transfer_ranked {prefix}_transfer {prefix}_ranked_before\n"
+                 f"theorem {prefix}_no_parent_cycle (name : Nat) : ¬ ParentPath {prefix}After name name :=\n"
+                 f"  ranked_no_parent_cycle {prefix}After {prefix}_ranked_after name\n")
         names.update("HiaCapabilityRenaming." + prefix + suffix
-                     for suffix in ("_injective", "_closed", "_result", "_closed_after"))
+                     for suffix in EDGE_THEOREMS)
     text += "end HiaCapabilityRenaming\n"
     text += "".join("#print axioms " + name + "\n" for name in sorted(names))
     if len(text.encode()) > 1_048_576:
@@ -410,6 +461,41 @@ def observed_mutations(rows, *, require_all=True):
         elif mutation == "external_flipped": cap["external"] = not cap["external"]
         else: cap["origin"] = None
         mutations[mutation] = (changed, "HiaCapabilityRenaming.edge" + str(index) + "_result")
+    return mutations
+
+
+def proof_input_mutations(rows):
+    """Break the new exported premises while retaining observed inputs/output.
+
+    These exercise kernel checking of the selector and rank certificate. They
+    are not presented as actual executions of a modified production helper.
+    """
+    generated, names, mappings = export_observed_edges(rows)
+    mutations = {}
+    local_edge = next(((i, name) for i, row in enumerate(rows)
+                       for name in sorted(row["remap"])
+                       if not row["capabilities"][name]["external"]), None)
+    if local_edge is not None:
+        index, name = local_edge
+        codes = mappings[index]["selected_names"]
+        lost = mappings[index]["source_names"][name]
+        old = f"def edge{index}Keep (n : Nat) : Bool := decide (n ∈ [" + ", ".join(map(str, codes)) + "])"
+        new = f"def edge{index}Keep (n : Nat) : Bool := decide (n ∈ [" + ", ".join(str(code) for code in codes if code != lost) + "])"
+        if generated.count(old) != 1 or old == new:
+            raise ValueError("concrete local-projection mutation is not unique")
+        mutations["selector_drops_local"] = (generated.replace(old, new, 1), names,
+            f"HiaCapabilityRenaming.edge{index}_projection")
+    ranked_edge = next((i for i, row in enumerate(rows)
+                        if any(cap["parent"] is not None for cap in row["capabilities"].values())), None)
+    if ranked_edge is not None:
+        old = f"def edge{ranked_edge}Rank (n : Nat) : Nat :=\n  match n with\n"
+        old += "".join(f"  | {name} => {rank}\n" for name, rank in mappings[ranked_edge]["parent_ranks"].items())
+        old += "  | _ => 0\n"
+        new = f"def edge{ranked_edge}Rank (_n : Nat) : Nat := 0\n"
+        if generated.count(old) != 1:
+            raise ValueError("concrete parent-rank mutation is not unique")
+        mutations["parent_ranks_flattened"] = (generated.replace(old, new, 1), names,
+            f"HiaCapabilityRenaming.edge{ranked_edge}_ranked_before")
     return mutations
 
 
@@ -464,13 +550,18 @@ def verify_production(lean, output, rust_shadow, rust_sha256, *, program=None, f
         raise ValueError("Rust shadow differs from the requested executable digest")
     lean_support = support._support_identity(executable)
     custom = program is not None
-    report = {"schema": "hepta.hia.production-capability-witness.v2", "passed": False,
+    report = {"schema": "hepta.hia.production-capability-witness.v3", "passed": False,
               "invocation_mode": "explicit_primitive_program" if custom else "registered_fixture_cohort",
               "source_before": before, "source_identity": source_identity,
-              "corpus": [], "rust_cases": [], "actual_result_mutations": [],
+              "corpus": [], "rust_cases": [], "actual_result_mutations": [], "proof_input_mutations": [],
               "scope": {"generic_renaming_invariants": True, "finite_actual_edge_witnesses": True,
                         "trace_scope": "current qualification thread only; existing callable profiler is chained/restored",
-                        "external_projection_formally_proved": False,
+                        "external_projection_formally_proved": True,
+                        "local_kind_origin_inventory_preserved": True,
+                        "observed_input_parent_ranks_kernel_checked": True,
+                        "observed_output_parent_acyclicity_proved": True,
+                        "all_admitted_model_edge_traces_proved": True,
+                        "intervening_production_instructions_proved": False,
                         "exclusive_alias_relation_preserved_not_excluded": True,
                         "exporter_or_python_checker_refinement_proved": False,
                         "rust_forward_implementation_formally_proved": False,
@@ -555,6 +646,25 @@ def verify_production(lean, output, rust_shadow, rust_sha256, *, program=None, f
             report["actual_result_mutations"].append({"mutation": mutation, "expected_invalid_theorem": expected,
                 "generated_lean_sha256": digest(changed.encode()), "theorems": dependencies, **negative})
             report["actual_result_mutation_coverage"][mutation] = "kernel_refused_as_expected"
+        premise_mutants = proof_input_mutations(all_rows)
+        if not custom and set(premise_mutants) != {"selector_drops_local", "parent_ranks_flattened"}:
+            raise ValueError("production cohort does not cover projection/rank proof-input mutations")
+        report["proof_input_mutation_coverage"] = {
+            name: "kernel_refusal_required" if name in premise_mutants else "not_applicable_field_absent_from_this_artifact"
+            for name in ("selector_drops_local", "parent_ranks_flattened")}
+        for mutation, (changed, changed_names, expected) in premise_mutants.items():
+            path = output / (mutation + ".lean")
+            path.write_text(changed)
+            negative = support._run_lean(executable, path)
+            badlog = negative["stdout"] + negative["stderr"]
+            dependencies = _observed_dependencies(badlog, changed_names, broken=True)
+            if negative["returncode"] != 1 or "error:" not in badlog or "sorryAx" not in dependencies[expected]:
+                raise ValueError("changed selection/rank witness was not rejected: " + mutation)
+            report["proof_input_mutations"].append({"mutation": mutation,
+                "mutation_scope": "exported proof premise only; actual production observations unchanged",
+                "expected_invalid_theorem": expected, "generated_lean_sha256": digest(changed.encode()),
+                "theorems": dependencies, **negative})
+            report["proof_input_mutation_coverage"][mutation] = "kernel_refused_as_expected"
         # Feed the SAME bad whole-Core bytes independently to both established checkers.
         bad_cores = []
         if custom:

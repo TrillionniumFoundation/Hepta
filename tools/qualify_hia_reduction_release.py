@@ -30,10 +30,13 @@ FIXTURES=ROOT/"benchmarks/hia_reduction_release"
 METRICS=ROOT/"benchmarks/hia_native_ndu"
 ARMS=("hia_checked","hia_reduction","rust_release","rust_byte_release")
 MASK32=2**32-1
+BASE_PROFILE = "reduction-v1"
+INDUCTION_PROFILE = "induction-multiload-v2"
 
 
-def specification():
-    return {"schema":"hepta.hia.reduction-release.protocol.v1",
+def specification(profile=BASE_PROFILE):
+    require(profile in (BASE_PROFILE, INDUCTION_PROFILE), "unknown reduction release profile")
+    spec = {"schema":"hepta.hia.reduction-release.protocol.v1",
         "workloads":["linear","affine"], "arms":list(ARMS),
         "regression_sizes":[0,1,64,257,4096,8193,65536],
         "holdout_sizes":[13,127,509,2053,12289,65521,131071,262147],
@@ -54,6 +57,18 @@ def specification():
             "p95/p99 are batch latencies, not per-invocation tail latencies",
             "native compiler/linker/libc/hardware remain trusted; no backend refinement theorem",
             "manual engineering, historical tool acquisition and energy costs are unknown"]}
+    if profile == INDUCTION_PROFILE:
+        spec.update(schema="hepta.hia.reduction-release.protocol.v2",
+            build_profile=profile, include_induction=True,
+            holdout_sizes=[19,73,269,1051,4109,16421,65557,262171],
+            seeds=[5471,6761,4294967291], batch_loads=[1,16,64],
+            source_profile="Rust 1.95.0 and Clang 20+ actual identities; generic x86_64; no target-cpu=native",
+            performance_gate={**spec["performance_gate"],"p99_ratio_maximum":1.20},
+            registration="one prospective run for this source; distinct new timing lengths and seeds for linear and affine, at three independently checked batch loads; no global-history or unseen-program claim",
+            baseline_scope="two Rust release sources with fat LTO and one codegen unit; PGO is not included in this two-workload profile and prior single-workload PGO observations remain separate",
+            timing_requests=2*4*(7+8)*3*3, timed_batches=2*4*(7+8)*3*3*21,
+            timed_kernel_calls=2*4*(7+8)*3*(1+16+64)*21)
+    return spec
 
 
 def bindings():
@@ -187,7 +202,8 @@ def build(output,clang,rustc,report):
                     with capture_native_commands(output,ledger):
                         receipt=build_program_native(core,obj,clang=str(clang),kind="object")
                 else:
-                    proposal=propose_reduction_pipeline(core)
+                    proposal=propose_reduction_pipeline(core,
+                        include_induction=report["protocol"].get("include_induction",False))
                     (directory/"PROPOSAL.json").write_bytes(wire(proposal)+b"\n")
                     with capture_native_commands(output,ledger):
                         receipt=build_reduction_native(core,proposal,obj,clang=str(clang),kind="object")
@@ -212,23 +228,33 @@ def build(output,clang,rustc,report):
 
 
 def assess(rows,spec):
-    expected={(workload,phase,arm,n,seed) for workload in spec["workloads"]
+    multiple = spec.get("schema") == "hepta.hia.reduction-release.protocol.v2"
+    if multiple:
+        require(spec == specification(INDUCTION_PROFILE), "changed induction campaign registration")
+    loads = spec.get("batch_loads", [spec["batch_calls"]])
+    expected={(workload,phase,arm,n,seed,calls) for workload in spec["workloads"]
         for phase in ("regression","holdout") for arm in ARMS
-        for n in spec[phase+"_sizes"] for seed in spec["seeds"]}
-    actual=[(r["workload"],r["phase"],r["backend"],r["n"],r["seed"]) for r in rows]
+        for n in spec[phase+"_sizes"] for seed in spec["seeds"] for calls in loads}
+    actual=[(r["workload"],r["phase"],r["backend"],r["n"],r["seed"],r["calls"]) for r in rows]
     require(len(actual)==len(set(actual)) and set(actual)==expected,"missing, duplicate or unexpected cohort")
-    require(all(len(r["times_ns"])==spec["samples"] and r["calls"]==spec["batch_calls"] for r in rows),"missing/padded samples or changed load")
+    require(all(len(r["times_ns"])==spec["samples"] and type(r["calls"]) is int
+                and r["calls"] in loads and all(type(v) is int and v > 0 for v in r["times_ns"])
+                for r in rows),"missing/padded samples or changed load")
     cohorts,comparisons=[],[]
     gate=spec["performance_gate"]
     for workload in spec["workloads"]:
         for phase in ("regression","holdout"):
             for n in spec[phase+"_sizes"]:
-                values={arm:summary([v for row in rows if (row["workload"],row["phase"],row["backend"],row["n"])==(workload,phase,arm,n) for v in row["times_ns"]]) for arm in ARMS}
-                cohorts.append({"workload":workload,"phase":phase,"n":n,"summaries":values})
-                for baseline in ("hia_checked","rust_release","rust_byte_release"):
-                    ratios={stat+"_ratio":values["hia_reduction"][stat]/max(1,values[baseline][stat]) for stat in ("median","p95","p99")}
-                    comparisons.append({"workload":workload,"phase":phase,"n":n,"baseline":baseline,**ratios,
-                        "passed":ratios["median_ratio"]<=gate["median_ratio_maximum"] and ratios["p95_ratio"]<=gate["p95_ratio_maximum"]})
+                for calls in loads:
+                    values={arm:summary([v for row in rows if (row["workload"],row["phase"],row["backend"],row["n"],row["calls"])==(workload,phase,arm,n,calls) for v in row["times_ns"]]) for arm in ARMS}
+                    cohorts.append({"workload":workload,"phase":phase,"n":n,"calls":calls,"summaries":values})
+                    for baseline in ("hia_checked","rust_release","rust_byte_release"):
+                        ratios={stat+"_ratio":values["hia_reduction"][stat]/max(1,values[baseline][stat]) for stat in ("median","p95","p99")}
+                        passed = (ratios["median_ratio"]<=gate["median_ratio_maximum"]
+                                  and ratios["p95_ratio"]<=gate["p95_ratio_maximum"])
+                        if "p99_ratio_maximum" in gate:
+                            passed &= ratios["p99_ratio"] <= gate["p99_ratio_maximum"]
+                        comparisons.append({"workload":workload,"phase":phase,"n":n,"calls":calls,"baseline":baseline,**ratios,"passed":passed})
     rust=[r for r in comparisons if r["baseline"].startswith("rust")]
     return {"cohorts":cohorts,"comparisons":comparisons,
         "all_rust_gate_passed":all(r["passed"] for r in rust),
@@ -238,9 +264,10 @@ def assess(rows,spec):
 
 
 def amortization(report):
-    result=[];calls=report["protocol"]["batch_calls"]
+    result=[]
     for cohort in report["assessment"]["cohorts"]:
         workload=cohort["workload"]
+        calls=cohort.get("calls",report["protocol"]["batch_calls"])
         times={arm:s["median"]/calls for arm,s in cohort["summaries"].items()}
         # The minimum of two Rust arms is a deliberately strong comparator.
         reference=min(("rust_release","rust_byte_release"),key=lambda arm:times[arm])
@@ -251,7 +278,7 @@ def amortization(report):
             delta=times[baseline]-times["hia_reduction"]
             extra=one_time["hia_reduction"]-one_time[baseline]
             thresholds.append(max(1,math.ceil(extra/delta)) if delta>0 else 1 if delta==0 and extra<=0 else None)
-        result.append({"workload":workload,"phase":cohort["phase"],"n":cohort["n"],"reference":reference,
+        result.append({"workload":workload,"phase":cohort["phase"],"n":cohort["n"],"calls":calls,"reference":reference,
             "estimated_per_call_ns":times,"one_time_build_proof_link_load_ns":one_time,
             "break_even_calls":max(thresholds) if all(n is not None for n in thresholds) else None,
             "horizons":[{"calls":n,"hia_total_ns":one_time["hia_reduction"]+n*times["hia_reduction"],
@@ -261,9 +288,9 @@ def amortization(report):
     return result
 
 
-def run(output,clang,rustc):
+def run(output,clang,rustc,*,profile=BASE_PROFILE):
     started=time.monotonic_ns();output=Path(output).resolve();output.mkdir(parents=True,exist_ok=False)
-    affinity=sorted(os.sched_getaffinity(0));spec=specification()
+    affinity=sorted(os.sched_getaffinity(0));spec=specification(profile)
     report={"schema":"hepta.hia.reduction-release.result.v1","status":"running",
         "started_utc":datetime.now(timezone.utc).isoformat(),"protocol":spec,"protocol_sha256":digest(spec),
         "source_before":source_state(),"bindings_before":bindings(),
@@ -291,8 +318,9 @@ def run(output,clang,rustc):
                         report["loads"].append({"workload":workload,"backend":arm,**child.load(arm,products[workload])})
                         for phase in ("regression","holdout"):
                             for n in spec[phase+"_sizes"]:
-                                row=child.measure(workload,arm,n,seed,spec["batch_calls"],spec["samples"],spec["warmup_calls"])
-                                row["phase"]=phase;report["measurements"].append(row)
+                                for calls in spec.get("batch_loads",[spec["batch_calls"]]):
+                                    row=child.measure(workload,arm,n,seed,calls,spec["samples"],spec["warmup_calls"])
+                                    row["phase"]=phase;report["measurements"].append(row)
                     checkpoint()
         report["stage_wall_ns"]["timing"]=time.monotonic_ns()-stage
         stage=time.monotonic_ns()
@@ -332,8 +360,9 @@ def run(output,clang,rustc):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output",required=True);parser.add_argument("--clang",default=shutil.which("clang"));parser.add_argument("--rustc",default=shutil.which("rustc"))
+    parser.add_argument("--profile",choices=(BASE_PROFILE,INDUCTION_PROFILE),default=BASE_PROFILE)
     args=parser.parse_args()
-    result=run(args.output,Path(args.clang).resolve(),Path(args.rustc).resolve())
+    result=run(args.output,Path(args.clang).resolve(),Path(args.rustc).resolve(),profile=args.profile)
     print(json.dumps({k:result.get(k) for k in ("status","qualification_valid","whole_lifecycle_wall_ns","error")}))
     if "assessment" in result:
         print(json.dumps({k:v for k,v in result["assessment"].items() if k not in ("cohorts","comparisons")}))

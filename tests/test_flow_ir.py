@@ -1,4 +1,4 @@
-"""CFG v0 graph, hash, branch, loop, unsafe and rejection tests."""
+"""Descriptive CFG graph, hash, branch, loop, unsafe and rejection tests."""
 import json
 from pathlib import Path
 import subprocess
@@ -25,7 +25,7 @@ class FlowIRTests(unittest.TestCase):
     def test_determinism_and_source_identity(self):
         a = self.lower(self.ADD)
         self.assertEqual(a, self.lower(self.ADD))
-        self.assertEqual(a["schema"], "hepta.cfg.v0")
+        self.assertEqual(a["schema"], "hepta.cfg.descriptive.v1")
         self.assertNotEqual(a["sha256"], self.lower(
             self.ADD.replace("a + b", "b + a"))["sha256"])
         self.assertFalse(a["claims"]["machine_lowering_verified"])
@@ -143,6 +143,7 @@ class FlowIRTests(unittest.TestCase):
             self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
             result = json.loads(p.stdout)
             self.assertEqual(result["schema"], "hepta.cfg.export.v0")
+            self.assertEqual(result["cfg"]["schema"], "hepta.cfg.descriptive.v1")
             self.assertEqual(result["cfg"]["functions"][0]["graph"]["entry"], "bb0")
             self.assertEqual(result["status"], "frontend_only")
 

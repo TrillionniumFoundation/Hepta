@@ -44,6 +44,23 @@ The scalar rewrite and induction are two separately budgeted verifications.
 Saved JSON receipts cannot authorize compilation. The native builder receives
 canonical admitted Core, not custom or externally supplied LLVM.
 
+### Counted-step extension
+
+`propose_reduction_pipeline(..., include_induction=True)` also proposes removal
+of the fill-loop and reduction-loop index overflow checks. The option requires
+an actual boolean and defaults to false, preserving the original proposal.
+Both sequential and affine byte workloads then have three separate
+`removed_check_cannot_trap` obligations: fill index, sum, and reduction index.
+The existing independent invariant checker discharges every obligation; the
+proposer introduces no unchecked instruction annotation. Nonzero initial sums
+cannot inherit the zero-prefix bound. The successful and refused allocation
+traces, both sides of a small guard, and the original checked fallback remain
+part of semantic and native regression checks.
+
+This connects the same counted-step proof used by the single-kernel narrowed
+release path to the general two-workload pipeline. It does not introduce a new
+Core opcode or modify native lowering.
+
 ## What is and is not established
 
 | Property | Coverage |
@@ -97,6 +114,31 @@ part of the protocol. Both Rust arms must satisfy median ratio <= 1.10 and p95
 ratio <= 1.20 for the all-length Rust gate. Empty and one-byte failures remain
 in that gate.
 
+### Separate multi-load protocol v2
+
+`--profile induction-multiload-v2` enables the counted-step extension and creates
+a separate prospective registration. The original v1 registration is byte
+identical under canonical serialization (SHA256
+`4641c52985ab1b25168117ffac3fc142daf59197948836d3932c67d23c84c8e7`).
+
+The v2 profile uses the same seven regression sizes, new timing lengths
+19, 73, 269, 1051, 4109, 16421, 65557 and 262171, and seeds 5471, 6761 and
+4294967291. Each workload and size is separately measured at 1, 16 and 64 calls
+per batch. There are 1,080 native timing requests, 22,680 retained batches and
+612,360 timed kernel calls. Ninety workload/size/load cohorts produce 180
+comparisons against the two Rust arms. Load identities cannot be pooled: a
+tail failure for one call per batch remains a failure even if 64-call batches
+are fast. The median limit stays 1.10, the p95 limit stays 1.20, and v2 also
+requires p99 <= 1.20. Empty and one-byte cohorts remain in the gate.
+
+The new axes are distinct from this tool's v1 axes. They are not asserted to
+be unseen in every previous experiment. Both Rust sources retain opt-level 3,
+fat LTO, one codegen unit and panic abort; this two-workload protocol does not
+include Rust PGO. The prior single-workload PGO campaign remains separate and
+cannot be superseded by this comparison. Clang 20+ remains mandatory through
+the unchanged native admission path. One run on the frozen implementation is
+retained irrespective of its outcome; stronger or broader parity remains open.
+
 The native driver checks independent periodic checksum formulas, successful
 allocation/free counts, requested and usable peak bytes, live bytes and refusal
 results. Refusal-only probes execute lengths around the actual reduction
@@ -135,6 +177,9 @@ With the registered Clang, Rust and pinned Z3 4.15.4 available:
 ```bash
 python -m unittest tests.test_hia_reduction_pipeline tests.test_hia_reduction_release -v
 python tools/qualify_hia_reduction_release.py --output /absolute/new/evidence/directory --clang /absolute/clang --rustc /absolute/rustc
+# Separate counted-step / multi-load observation:
+python -m unittest tests.test_hia_reduction_induction tests.test_hia_reduction_multiload -v
+python tools/qualify_hia_reduction_release.py --profile induction-multiload-v2 --output /absolute/new/v2-evidence/directory --clang /absolute/clang --rustc /absolute/rustc
 ```
 
 Run qualification from one frozen source combination. `REGISTRATION.json`

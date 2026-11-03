@@ -36,7 +36,7 @@ class ProductionCapabilityWitnessTests(unittest.TestCase):
         self.assertTrue(any(cap["parent"] is not None for row in self.rows for cap in row["capabilities"].values()))
         self.assertTrue(any(cap["origin"] is not None for row in self.rows for cap in row["capabilities"].values()))
         generated, names, maps = proof.export_observed_edges(self.rows)
-        self.assertEqual(len(names) - len(proof.NAMES), 16)
+        self.assertEqual(len(names) - len(proof.NAMES), len(maps) * len(proof.EDGE_THEOREMS))
         self.assertEqual(len(maps), 4)
         self.assertIn("After = edge0Before.map (rename edge0Map) := by decide", generated)
         self.assertIs(core.rename_capabilities, original)
@@ -126,6 +126,70 @@ class ProductionCapabilityWitnessTests(unittest.TestCase):
         _, _, mappings = proof.export_observed_edges([row])
         self.assertEqual(mappings[0]["dropped_external"], ["two"])
         self.assertEqual(result["two"].origin, "one")
+        # The kernel input must include the forgotten source capability;
+        # proving only the selected graph cannot prove legal selection.
+        self.assertEqual(set(mappings[0]["source_names"]), set(caps))
+        self.assertEqual(len(mappings[0]["full_before"]), len(caps))
+        self.assertEqual(len(mappings[0]["before"]), len(remap))
+        self.assertEqual(mappings[0]["selected_names"], [mappings[0]["source_names"]["one"]])
+
+    def test_projection_cannot_hide_local_capability_loss(self):
+        caps = {"root": C("buffer", "root"),
+                "forgotten": C("buffer", "forgotten")}
+        row = {"capabilities": {name: asdict(cap) for name, cap in caps.items()},
+               "remap": {"root": "new"},
+               "result": {"new": asdict(C("buffer", "new"))}}
+        with self.assertRaisesRegex(ValueError, "omits a local capability"):
+            proof.export_observed_edges([row])
+
+    def test_parent_rank_witness_covers_the_full_input_before_projection(self):
+        caps = {"root": C("readbuf", "root", external=True),
+                "parent": C("readbuf", "root", "root", True, "formal"),
+                "child": C("readbuf", "root", "parent", False, "formal"),
+                "unused": C("readbuf", "unused", external=True)}
+        remap = {"root": "z", "parent": "y", "child": "x"}
+        result = rename_capabilities(caps, remap)
+        row = {"capabilities": {name: asdict(cap) for name, cap in caps.items()},
+               "remap": remap, "result": {name: asdict(cap) for name, cap in result.items()}}
+        _, names, (mapping,) = proof.export_observed_edges([row])
+        ranks = {name: mapping["parent_ranks"][code] for name, code in mapping["source_names"].items()}
+        self.assertEqual(ranks, {"root": 0, "parent": 1, "child": 2, "unused": 0})
+        self.assertIn("HiaCapabilityRenaming.edge0_local_inventory", names)
+        self.assertIn("HiaCapabilityRenaming.edge0_no_parent_cycle", names)
+        # A cycle in an omitted external subgraph cannot disappear from
+        # the evidence for the full input parent-rank premise.
+        broken = deepcopy(row)
+        broken["capabilities"]["unused"]["parent"] = "unused"
+        with self.assertRaisesRegex(ValueError, "parent cycle"):
+            proof.export_observed_edges([broken])
+
+    def test_empty_selected_projection_retains_full_external_input(self):
+        caps = {"external": C("readbuf", "external", external=True, origin="formal")}
+        row = {"capabilities": {name: asdict(cap) for name, cap in caps.items()},
+               "remap": {}, "result": {}}
+        generated, names, (mapping,) = proof.export_observed_edges([row])
+        self.assertEqual(mapping["before"], [])
+        self.assertEqual(mapping["after"], [])
+        self.assertEqual(len(mapping["full_before"]), 1)
+        self.assertEqual(mapping["dropped_external"], ["external"])
+        self.assertIn("edge0_selected_projection", generated)
+        self.assertIn("HiaCapabilityRenaming.edge0_transfer", names)
+
+    def test_new_proof_controls_alter_only_selector_or_rank_not_observed_caps(self):
+        original = deepcopy(self.rows)
+        generated, names, _ = proof.export_observed_edges(self.rows)
+        mutants = proof.proof_input_mutations(self.rows)
+        self.assertEqual(set(mutants), {"selector_drops_local", "parent_ranks_flattened"})
+        for name, (changed, changed_names, expected) in mutants.items():
+            self.assertEqual(changed_names, names)
+            self.assertIn(expected, names)
+            self.assertNotEqual(changed, generated)
+            # Neither changing the assumed selector nor a supplied rank is
+            # allowed to rebuild the supposedly observed input/output lists.
+            lists = lambda text: [line for line in text.splitlines()
+                                  if line.startswith("def edge") and "List Capability" in line]
+            self.assertEqual(lists(changed), lists(generated))
+        self.assertEqual(self.rows, original)
 
     def test_identical_branch_destinations_are_two_independent_occurrences(self):
         checked, rows = self.modules[0]
