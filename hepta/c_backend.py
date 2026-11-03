@@ -204,7 +204,11 @@ class CEmitter:
         else:
             result = self.typ(returns)
         params = [replace(p, type=substitute_type(p.type, mapping)) for p in fn.params]
-        return result + " " + self.fn_name(fn, args) + "(" + (", ".join(self.parameter(p) for p in params) or "void") + ")"
+        # Only explicit C boundaries have external linkage. Other functions,
+        # including public language functions and generic instances, belong to
+        # this translation unit and must not collide/interpose across libraries.
+        linkage = "" if fn.extern_c or fn.export_c else "static "
+        return linkage + result + " " + self.fn_name(fn, args) + "(" + (", ".join(self.parameter(p) for p in params) or "void") + ")"
 
     def expr_type(self, e):
         t = self.checked.expr_types.get(id(e))
