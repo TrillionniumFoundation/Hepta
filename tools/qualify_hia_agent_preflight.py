@@ -30,7 +30,12 @@ def initialization_wire():
     return b"".join(canonical(message) + b"\n" for message in (
         {"id": 1, "method": "initialize", "params": {
             "clientInfo": {"name": "hepta_zero_generation_preflight", "version": "1"},
-            "capabilities": {"experimentalApi": False}}},
+            # Codex 0.144.1 publishes this non-task status notification after
+            # initialized. Opt out at the documented transport boundary so
+            # startup_response can still require exactly one ACK and reject
+            # every unexpected message, including all model/task events.
+            "capabilities": {"experimentalApi": False,
+                "optOutNotificationMethods": ["remoteControl/status/changed"]}}},
         {"method": "initialized", "params": {}},
     ))
 
