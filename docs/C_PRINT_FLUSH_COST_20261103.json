@@ -1,0 +1,118 @@
+{
+  "scope": "One local end-to-end /dev/null output cost observation; not a general benchmark or Rust comparison",
+  "protocol": {
+    "lines": 20000,
+    "warmups_per_arm": 1,
+    "paired_rounds": 7,
+    "order": "alternating before/after; no samples discarded",
+    "clock": "Python perf_counter_ns around subprocess.run; includes process startup",
+    "sink": "/dev/null"
+  },
+  "source": "fn main() -> Unit effects {io, block, alloc, panic} { for i in 0..20000 { print_i64(i); } }",
+  "base_commit": "f2b76f5741c83822be2e12cf5a50b50a8d27b96a",
+  "host": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "gcc": "gcc (Debian 14.2.0-19) 14.2.0",
+  "flags": [
+    "-std=c11",
+    "-O3",
+    "-fno-strict-aliasing"
+  ],
+  "generated_c_sha256": {
+    "before": "05dee7625e0bec0d7fa94c7673e27ba7566011e17636408eaac59656ae1fecd2",
+    "after": "d25b1ca666c2e9835d2cd02a3a2f265bb72a5d7a2fe148b34708794dd19633d7"
+  },
+  "observations": [
+    {
+      "round": 0,
+      "arm": "before",
+      "elapsed_ns": 3788880,
+      "returncode": 0
+    },
+    {
+      "round": 0,
+      "arm": "after",
+      "elapsed_ns": 9239015,
+      "returncode": 0
+    },
+    {
+      "round": 1,
+      "arm": "after",
+      "elapsed_ns": 4199858,
+      "returncode": 0
+    },
+    {
+      "round": 1,
+      "arm": "before",
+      "elapsed_ns": 3461519,
+      "returncode": 0
+    },
+    {
+      "round": 2,
+      "arm": "before",
+      "elapsed_ns": 1707049,
+      "returncode": 0
+    },
+    {
+      "round": 2,
+      "arm": "after",
+      "elapsed_ns": 3124114,
+      "returncode": 0
+    },
+    {
+      "round": 3,
+      "arm": "after",
+      "elapsed_ns": 7661649,
+      "returncode": 0
+    },
+    {
+      "round": 3,
+      "arm": "before",
+      "elapsed_ns": 2086181,
+      "returncode": 0
+    },
+    {
+      "round": 4,
+      "arm": "before",
+      "elapsed_ns": 4003147,
+      "returncode": 0
+    },
+    {
+      "round": 4,
+      "arm": "after",
+      "elapsed_ns": 7312311,
+      "returncode": 0
+    },
+    {
+      "round": 5,
+      "arm": "after",
+      "elapsed_ns": 9304096,
+      "returncode": 0
+    },
+    {
+      "round": 5,
+      "arm": "before",
+      "elapsed_ns": 3006436,
+      "returncode": 0
+    },
+    {
+      "round": 6,
+      "arm": "before",
+      "elapsed_ns": 2511241,
+      "returncode": 0
+    },
+    {
+      "round": 6,
+      "arm": "after",
+      "elapsed_ns": 11132998,
+      "returncode": 0
+    }
+  ],
+  "median_ns": {
+    "before": 3006436,
+    "after": 7661649
+  },
+  "after_over_before": 2.5484157986399842,
+  "recorded_at_utc": "2026-11-03T12:39:40.346549+00:00",
+  "gcc_executable": "/usr/bin/gcc",
+  "gcc_sha256": "a23ecab8ff08f09ad8c80602c2c5df7f49e09c25905cb8975902e101bf72635f"
+}

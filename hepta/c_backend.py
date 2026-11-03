@@ -487,7 +487,11 @@ class CEmitter:
                 return "((void)0)"
             elif e.value == "print_i64":
                 val = self.value(e.children[0], lines)
-                expression = f'((void)printf("%" PRId64 "\\n", {val}))'
+                # Deliver the line before continuing, including when stdout
+                # is fully buffered (pipes/files). An exit-time flush alone
+                # can silently discard a failed write after returning success.
+                lines.append(f'if (printf("%" PRId64 "\\n", {val}) < 0 || fflush(stdout) != 0) abort();')
+                return "((void)0)"
             elif e.value in {"load", "store", "volatile_load", "volatile_store"}:
                 if e.value in {"store", "volatile_store"}:
                     for child in e.children:
