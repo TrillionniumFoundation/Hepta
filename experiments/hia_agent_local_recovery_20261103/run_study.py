@@ -11,6 +11,7 @@ import contextlib
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -29,7 +30,7 @@ from experiments.hia_agent_assembly_v4_20261030 import controls, evaluator, fixt
 from experiments.hia_agent_assembly_v4_20261030 import run_study as inherited
 from experiments.hia_agent_assembly_v4_20261030 import tokenizer_check
 from tools.hia_agent_codex_transport import strict_json
-from tools.provider_adapter.llama_cpp_engine import file_identity
+from tools.provider_adapter.llama_cpp_engine import canonical, file_identity
 
 HERE = Path(__file__).resolve().parent
 PARENT = ROOT / "experiments/hia_agent_assembly_v4_20261030"
@@ -155,13 +156,36 @@ def freeze(registry):
             or not inherited.check_bindings(preparation["sources"])):
         raise ValueError("current exact-source no-generation preparation required")
     require_committed_sources()
-    value = inherited.register()
-    value.update(campaign=CAMPAIGN, source_commit=git("rev-parse", "HEAD"),
-                 source_tree=git("rev-parse", "HEAD^{tree}"),
-                 inherited_protocol_sha256=file_identity(PARENT / "PROTOCOL.json")["sha256"],
-                 preparation=file_identity(folder / "PREPARATION.json"),
-                 original_campaigns_replaced=False, frontier_model_cohort_completed=False)
-    evaluator.save(folder / "REGISTRATION.json", value)
+    metadata = dict(campaign=CAMPAIGN, source_commit=git("rev-parse", "HEAD"),
+                    source_tree=git("rev-parse", "HEAD^{tree}"),
+                    inherited_protocol_sha256=file_identity(PARENT / "PROTOCOL.json")["sha256"],
+                    preparation=file_identity(folder / "PREPARATION.json"),
+                    original_campaigns_replaced=False, frontier_model_cohort_completed=False)
+    original_save = evaluator.save
+
+    def publish(path, value):
+        if Path(path) != folder / "REGISTRATION.json":
+            return original_save(path, value)
+        # v4 publishes during register(). Enrich that one publication instead
+        # of trying to overwrite its create-only file afterwards. Serialize
+        # before opening anything and retain a failed candidate for diagnosis.
+        value.update(metadata)
+        raw = canonical(value) + b"\n"
+        candidate = folder / "REGISTRATION.candidate.json"
+        with candidate.open("xb") as stream:
+            stream.write(raw)
+            stream.flush()
+            os.fsync(stream.fileno())
+        # A concurrent owner file wins unchanged; final never has a partial
+        # write. Registry and candidate share the same filesystem.
+        os.link(candidate, path)
+        candidate.unlink()
+
+    evaluator.save = publish
+    try:
+        inherited.register()
+    finally:
+        evaluator.save = original_save
     return validate_registration()
 
 

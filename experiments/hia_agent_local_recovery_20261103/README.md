@@ -22,7 +22,7 @@ is terminal. No answer is repaired by a human or rerun to obtain a better score.
 ## New registration and owner evidence
 
 The registry and all raw artifacts are new absolute directories outside the
-source checkout. Before freezing, 23 orchestration/admission controls, the
+source checkout. Before freezing, 26 orchestration/admission controls, the
 inherited 36 reference/partial-migration controls, nine hostile-provider
 controls and two non-generative tokenizer-capacity checks must pass. Test
 fixture output is explicitly not model output. The adapter binds the complete
@@ -30,6 +30,13 @@ fixture output is explicitly not model output. The adapter binds the complete
 protocol files, inherited study sources and its own source. Every source must
 already be committed. The new registration includes the exact Git commit and
 tree; validation at each original cell boundary also checks those identities.
+
+`freeze` enriches the inherited registrar's single publication with recovery
+metadata. It serializes the complete registration before creating a candidate,
+flushes that candidate, and atomically links it to the final create-only path.
+An existing final file is never overwritten. Failed publication candidates
+remain diagnostic evidence; the temporary writer is restored on every exit.
+This does not claim a durable power-loss transaction or production authority.
 
 `freeze` refuses an existing registration. Actual generation additionally
 requires an independent review of that exact source commit, protocol hash and
