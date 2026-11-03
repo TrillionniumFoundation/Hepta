@@ -205,6 +205,10 @@ class _FunctionLowerer:
             return self.slot(value.type)
         if value.kind != "value":
             _unsupported("An owned/borrowed value cannot be erased into an abstract scalar")
+        if value.id is None and value.type == Type("Unit"):
+            # Calls have no Unit result slot, but a copied argument/payload
+            # still needs an explicit typed value in the resource graph.
+            return self.slot(value.type)
         return value
 
     def place(self, expr) -> dict:
@@ -425,7 +429,8 @@ class _FunctionLowerer:
                 # A Copy field reads a returned view immediately. Keeping its
                 # loan until all later field expressions complete invents an
                 # overlap that neither source/native evaluator performs.
-                values.append(self.copy_value(value) if value.kind == "borrow" else value)
+                values.append(self.copy_value(value) if value.kind == "borrow" or
+                              value.type == Type("Unit") else value)
             variant = expr.value["variant"] if kind == "variant" else None
             if kind == "struct":
                 ordered = dict(zip(expr.value["fields"], values))
@@ -597,7 +602,7 @@ class _FunctionLowerer:
                     if value.kind == "borrow":
                         value = self.copy_value(value)
                     self.end_shared_views(self.env.values())
-                    self.finish("return", value=value.id, loan=None)
+                    self.finish("return", value=None if value.type == Type("Unit") else value.id, loan=None)
             elif statement.kind == "unsafe":
                 self.statements(data["body"], dict(self.env))
             elif statement.kind == "if":
