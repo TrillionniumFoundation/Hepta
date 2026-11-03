@@ -110,3 +110,22 @@ native responses. Every winning prepared-set sequence and Q32 value must match
 the independent exhaustive oracle and resource-aware DP. The qualification
 refuses source drift and keeps `authority=DENY_ALL` and
 `safety_certificate=false`. It reports only finite model agreement.
+
+## Full-cost v2 controller return-time guard
+
+The separate `hepta.hia.ndu.full-cost.v2` advisory controller checks elapsed
+decision time again after native evaluation and response projection. At or
+beyond the supplied remaining `budget_ns`, it withholds an optional invoke
+action, retaining the existing skip action when model-feasible or returning
+refusal. No new artifact is acquired by that fallback. Native responses and
+measured costs remain in the ledger; `optional_action_withheld` and the original
+projection reason distinguish a valid but late reply from a native failure.
+The fallback action remains the original model skip forecast; live session
+residency is read from the controller/session snapshot, not that forecast.
+
+This is cooperative admission at return time, not preemption of native work or
+a hard real-time guarantee. A timely reply does not prove that subsequent
+proof, loading, delivery or cleanup will fit their estimates. Keeping an
+admitted incumbent after overrunning the decision budget does not establish
+that baseline delivery can still meet the original deadline. Historical native
+observations and model thresholds are unchanged.

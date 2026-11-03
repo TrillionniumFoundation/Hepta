@@ -513,6 +513,17 @@ class AdvisoryController:
                                 self.session = None
         row["reason"] = row.get("reason", gate["reason"])
         row["wall_ns"] = time.monotonic_ns() - start
+        # Native evaluation and projection can outlive their estimates. A
+        # response is evidence, not permission to begin optional work after
+        # this decision's remaining wall budget has already been consumed.
+        # Preserve its receipt, but fall back to the already-admitted incumbent
+        # (or refusal). This does not guarantee that delivery can meet a deadline.
+        if (action is not None and action["mode"] == "invoke"
+                and row["wall_ns"] >= model["budget_ns"]):
+            row["reason_before_budget_guard"] = row["reason"]
+            row["reason"] = "actual decision cost exhausted optional budget"
+            row["optional_action_withheld"] = True
+            action = gate["skip"]["actions"][0] if gate["skip"]["feasible"] else None
         row["action"] = action
         self.ledger.append(row)
         return action, row
