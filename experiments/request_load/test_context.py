@@ -273,8 +273,8 @@ class ContextTests(unittest.TestCase):
         # Private owner admission seams reviewed against normal-source #623;
         # raw #622 legacy differential behavior remains independently covered.
         expected={
-            '_loader_ops':'f9a4e12a33f64352c007dd82625d07c55160bc3c77e39eed65bbd53295dd5cad',
-            'modules':'9436ee8b62127adfff70add4c81426efbbdb502cf234ca790337e1046d3fbd76',
+            '_loader_ops':'a277d3dbf4f7edae0799582bfca7a57f961fc81abc38c1d3d2f946610ff0bc33',
+            'modules':'76ec07b4e538ab7b409d402c9fa00006dbe0de1fd8acba2b39f1781ccadbcc28',
             'packages':'a3c588c7d1b77ff8a8c6c98c057ada28437a802d646299a8903e54fa033afa2b',
             'lexer':'e8614da15be2ab89f5e9e70f206476db9884b3ddb6e0c4e0839f66940eda7d87',
             'parser':'ecae1aa96e458e9054518bd21e739f8c45b25b2cf7491c6477ab7f09ddfe7a86'}

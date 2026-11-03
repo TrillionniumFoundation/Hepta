@@ -210,7 +210,7 @@ def _load_project(entry, *, locked=False, source_overrides=None, ops) -> LoadedP
         return unit
 
     main = visit(entry, owner, Span(path=str(entry)))
-    assembled = copy.deepcopy(main.program)
+    assembled = ops.deepcopy(copy.deepcopy, main.program)
     assembled.structs = []
     assembled.functions = []
     if hasattr(assembled, "enums"):
@@ -270,7 +270,7 @@ def _load_project(entry, *, locked=False, source_overrides=None, ops) -> LoadedP
 
         for attr in ("structs", "enums", "functions"):
             for original in getattr(unit.program, attr, []):
-                declaration = copy.deepcopy(original)
+                declaration = ops.deepcopy(copy.deepcopy, original)
                 declaration.name = unit.names[original.name]
                 transform(declaration, frozenset(getattr(original, "type_params", ())))
                 getattr(assembled, attr).append(declaration)

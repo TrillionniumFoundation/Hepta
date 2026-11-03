@@ -22,6 +22,15 @@ class LegacyLoaderOps:
         """Preserve the original Path method; experimental ops may admit it."""
         return getattr(path, operation)()
 
+    def deepcopy(self, deepcopy, value):
+        """Preserve the captured copy callable and its original argument."""
+        try:
+            return deepcopy(value)
+        finally:
+            # Do not retain temporary callables/arguments in failure tracebacks.
+            # Match direct call cleanup order: callable, then argument.
+            del deepcopy, value
+
     def read(self, path, role):
         return path.read_bytes()
 
