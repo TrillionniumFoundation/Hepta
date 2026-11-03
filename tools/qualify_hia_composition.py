@@ -34,7 +34,9 @@ REDUCTION_PROFILE = 'induction-multiload-v2'
 CORE_TESTS = (
     'tests.test_hia_capability_flow', 'tests.test_hia_capability_identity',
     'tests.test_hia_capability_lifecycle',
+    'tests.test_hia_capability_borrow',
     'tests.test_hia_composition_identity',
+    'tests.test_hia_opcode_catalog',
     'tests.test_hia_program', 'tests.test_hia_execution_contract',
     'tests.test_hia_returned_loans', 'tests.test_hia_returned_loan_interfaces',
     'tests.test_hia_reduction_pipeline', 'tests.test_hia_reduction_release',
@@ -227,7 +229,7 @@ def qualify(args):
             'ndu_stream_profile':STREAM_PROFILE,'reduction_profile':REDUCTION_PROFILE,
             'registered_unix_ns':time.time_ns(),'host':{'system':platform.system(),
             'machine':platform.machine(),'release':platform.release()},
-            'lanes':['core','capability_proof','capability_lifecycle','memory_proof','core_proof','register_proof',
+            'lanes':['core','capability_proof','capability_lifecycle','capability_borrow','memory_proof','core_proof','register_proof',
                      'production_capabilities','sequential_core','ndu_budget_model',
                      'continuation','reduction','ndu_full_cost','cpp_unique_reset','cpp_source_refusals',
                      'gsl_upstream_upgrade','migration_resources','host_region','agent_tool_controls',
@@ -291,6 +293,9 @@ def qualify(args):
         passed['capability_lifecycle'] = step('capability_lifecycle',py+[
             'tools/verify_hia_capability_lifecycle.py','--lean',tools['lean']['path'],
             '--output',str(output/'capability-lifecycle')])
+        passed['capability_borrow'] = step('capability_borrow',py+[
+            'tools/verify_hia_capability_borrow.py','--lean',tools['lean']['path'],
+            '--output',str(output/'capability-borrow')])
         passed['register_proof'] = step('register_proof',py+['tools/qualify_hia_register_safety.py',
             '--lean',tools['lean']['path'],'--output-directory',str(output/'register-proof')])
         shadow = output/'rust-shadow-target/release/hia-core-shadow'
@@ -337,11 +342,12 @@ def qualify(args):
         report = {'status':'completed','qualifications':passed,'qualification_commands_passed':all(passed.values()),
                   'p0_same_combination_build_execute_reject_recover':all(passed.get(k,False) for k in
                       ('rust_shadow_dependencies','rust_shadow_build','core',
-                       'capability_proof','capability_lifecycle','memory_proof','core_proof','register_proof',
+                       'capability_proof','capability_lifecycle','capability_borrow','memory_proof','core_proof','register_proof',
                        'production_capabilities','sequential_core','ndu_budget_model',
                        'continuation','reduction','ndu_full_cost','ndu_model_planner','host_region')),
                   'all_seven_research_targets_closed':False,
                   'capability_lifecycle_assessment':'capability-lifecycle/REPORT.json',
+                  'capability_borrow_assessment':'capability-borrow/REPORT.json',
                   'performance_assessment':'reduction/RESULT.json',
                   'ndu_assessment':'ndu-cost/REPORT.json',
                   'ndu_model_planner_assessment':'ndu-model-planner/RESULT.json'}

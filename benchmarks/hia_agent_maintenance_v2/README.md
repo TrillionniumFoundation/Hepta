@@ -102,6 +102,15 @@ The initialization request opts out of the documented
 The response parser still requires exactly one initialization ACK; it does not
 discard unknown notifications or any model/task output. This transport opt-out
 does not enable remote control or change a user setting.
+The probe keeps the app-server input pipe open after `initialize`. Only after
+strictly validating its ACK does it send `initialized` and close the pipe.
+Ending input before the ACK can make the CLI exit successfully with no response;
+such an exit remains a failed probe. The small sequencing worker and its child
+share the outer owned process group, deadline and output caps. The report binds
+the worker's Python executable and records the actual two outbound messages in
+`app-server/rpc.stdin.raw`; duplicate, malformed or unexpected response messages
+still refuse readiness. The native test fixture follows this interactive
+exchange instead of waiting for input EOF before returning its ACK.
 The app-server's complete raw process output remains in `app-server/` and the
 summary is `RESULT.json`; unknown events, missing initialization ACK, nonzero
 exit, unconfirmed cleanup, tool/path drift and probe-source drift refuse.

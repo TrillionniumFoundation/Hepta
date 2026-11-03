@@ -1,0 +1,423 @@
+{
+  "schema": "hepta.hia.program.v8",
+  "module": "capability_borrow_access",
+  "functions": [
+    {
+      "name": "shared_siblings",
+      "params": [
+        {
+          "name": "n",
+          "type": "usize"
+        },
+        {
+          "name": "index",
+          "type": "usize"
+        },
+        {
+          "name": "byte",
+          "type": "u8"
+        }
+      ],
+      "returns": [
+        "u8"
+      ],
+      "effects": [
+        "alloc",
+        "read",
+        "write",
+        "trap"
+      ],
+      "entry": "entry",
+      "blocks": [
+        {
+          "id": "entry",
+          "params": [
+            {
+              "name": "n",
+              "type": "usize"
+            },
+            {
+              "name": "index",
+              "type": "usize"
+            },
+            {
+              "name": "byte",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "buffer.new",
+              "args": [
+                "n"
+              ],
+              "out": [
+                {
+                  "name": "owner",
+                  "type": "buffer"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "borrow.mut",
+              "args": [
+                "owner"
+              ],
+              "out": [
+                {
+                  "name": "parent",
+                  "type": "mutbuf"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "buffer.store",
+              "args": [
+                "parent",
+                "index",
+                "byte"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "borrow.read",
+              "args": [
+                "parent"
+              ],
+              "out": [
+                {
+                  "name": "left",
+                  "type": "readbuf"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "borrow.read",
+              "args": [
+                "parent"
+              ],
+              "out": [
+                {
+                  "name": "right",
+                  "type": "readbuf"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "buffer.load",
+              "args": [
+                "left",
+                "index"
+              ],
+              "out": [
+                {
+                  "name": "left_value",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "borrow.read",
+              "args": [
+                "left"
+              ],
+              "out": [
+                {
+                  "name": "nested",
+                  "type": "readbuf"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "buffer.load",
+              "args": [
+                "nested",
+                "index"
+              ],
+              "out": [
+                {
+                  "name": "nested_value",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "loan.end",
+              "args": [
+                "nested"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "buffer.load",
+              "args": [
+                "left",
+                "index"
+              ],
+              "out": [
+                {
+                  "name": "restored_left",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "loan.end",
+              "args": [
+                "left"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "buffer.load",
+              "args": [
+                "right",
+                "index"
+              ],
+              "out": [
+                {
+                  "name": "right_value",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "loan.end",
+              "args": [
+                "right"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "buffer.store",
+              "args": [
+                "parent",
+                "index",
+                "byte"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "loan.end",
+              "args": [
+                "parent"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "owner.drop",
+              "args": [
+                "owner"
+              ],
+              "out": [],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "right_value"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "mutable_reborrow",
+      "params": [
+        {
+          "name": "n",
+          "type": "usize"
+        },
+        {
+          "name": "index",
+          "type": "usize"
+        },
+        {
+          "name": "byte",
+          "type": "u8"
+        }
+      ],
+      "returns": [
+        "u8"
+      ],
+      "effects": [
+        "alloc",
+        "read",
+        "write",
+        "trap"
+      ],
+      "entry": "entry",
+      "blocks": [
+        {
+          "id": "entry",
+          "params": [
+            {
+              "name": "n",
+              "type": "usize"
+            },
+            {
+              "name": "index",
+              "type": "usize"
+            },
+            {
+              "name": "byte",
+              "type": "u8"
+            }
+          ],
+          "ops": [
+            {
+              "op": "buffer.new",
+              "args": [
+                "n"
+              ],
+              "out": [
+                {
+                  "name": "owner",
+                  "type": "buffer"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "borrow.mut",
+              "args": [
+                "owner"
+              ],
+              "out": [
+                {
+                  "name": "parent",
+                  "type": "mutbuf"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "borrow.mut",
+              "args": [
+                "parent"
+              ],
+              "out": [
+                {
+                  "name": "child",
+                  "type": "mutbuf"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "buffer.store",
+              "args": [
+                "child",
+                "index",
+                "byte"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "borrow.read",
+              "args": [
+                "child"
+              ],
+              "out": [
+                {
+                  "name": "shared",
+                  "type": "readbuf"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "buffer.load",
+              "args": [
+                "shared",
+                "index"
+              ],
+              "out": [
+                {
+                  "name": "value",
+                  "type": "u8"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "loan.end",
+              "args": [
+                "shared"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "buffer.store",
+              "args": [
+                "child",
+                "index",
+                "byte"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "loan.end",
+              "args": [
+                "child"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "buffer.store",
+              "args": [
+                "parent",
+                "index",
+                "byte"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "loan.end",
+              "args": [
+                "parent"
+              ],
+              "out": [],
+              "attrs": {}
+            },
+            {
+              "op": "owner.drop",
+              "args": [
+                "owner"
+              ],
+              "out": [],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "value"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
