@@ -11,6 +11,8 @@ on:
       - 'tests/test_hia_*'
       - 'tests/test_cpp_callback_project.py'
       - 'tools/qualify_hia_*'
+      - 'tools/verify_hia_retained_evidence.py'
+      - 'docs/HIA_ARCHIVE_PATH_MIGRATIONS.json'
       - 'tools/qualify_cpp_*'
       - 'tools/build_hia_recursive_ndu_bridge.py'
       - 'examples/cpp/callback_project_migration/**'
@@ -68,7 +70,9 @@ jobs:
           python -m pip install -e '.[optimization]' zstandard==0.25.0
           python -m pip freeze > artifacts/intelligent-assembly/python-packages.txt
       - name: Verify the retained qualification and model evidence bytes
-        run: python evidence/hia_five_deliverables_20261030/VERIFY.py
+        run: |
+          python -m unittest tests.test_hia_retained_evidence -v
+          python tools/verify_hia_retained_evidence.py
       - name: Install the existing signed LLVM 20 profile
         run: |
           curl --fail --location --retry 3 --output "$RUNNER_TEMP/hepta-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key

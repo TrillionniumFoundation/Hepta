@@ -253,6 +253,25 @@ class CppUpstreamHostTests(unittest.TestCase):
                     if (root / path).exists():
                         self.assertEqual((root / path).read_bytes(), raw)
 
+    def test_generator_import_without_resource_and_measurement_refuses(self):
+        import sys
+        code = """
+import sys
+sys.modules['resource'] = None
+from tools import qualify_hia_ndu_graph, qualify_hia_ndu_loop
+ran = []
+ledger = []
+try:
+    qualify_hia_ndu_loop.measured('fixture', ledger, lambda: ran.append(True))
+except ModuleNotFoundError:
+    pass
+else:
+    raise AssertionError('missing child accounting accepted')
+assert ran == [] and ledger == []
+"""
+        subprocess.run([sys.executable, '-c', code], check=True,
+                       cwd=Path(__file__).resolve().parents[1])
+
     def test_active_ndu_generators_publish_distinct_program_and_receipt_paths(self):
         from tools import qualify_hia_ndu_graph as graph, qualify_hia_ndu_loop as loop
         for module, target in [(loop, 'tools.qualify_hia_ndu_loop.NduBridge'),
