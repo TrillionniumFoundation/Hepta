@@ -97,6 +97,23 @@ def check_metrics(row,n,fail,*,boundary=False):
     row["metrics"]=m
 
 
+def check_measurement(row, *, n, seed, calls, samples, identifier=None):
+    """Bind native work and elapsed accounting before scoring its samples."""
+    require(type(row) is dict, "invalid native measurement")
+    expected = {"n": n, "seed": seed, "calls": calls, "samples": samples}
+    if identifier is not None:
+        expected["id"] = identifier
+    require(all(type(row.get(key)) is int and row[key] == value
+                for key, value in expected.items()), "native work identity")
+    times = row.get("times_ns")
+    require(type(times) is list and len(times) == samples
+            and all(type(value) is int and 0 < value < 2**64 for value in times),
+            "missing/padded or invalid native samples")
+    elapsed = row.get("elapsed_ns")
+    require(type(elapsed) is int and 0 < elapsed < 2**64 and sum(times) == elapsed,
+            "complete native sample accounting")
+
+
 class ReductionDriver(Driver):
     def load(self,label,products):
         identifier=ARMS.index(label)
@@ -109,11 +126,11 @@ class ReductionDriver(Driver):
     def measure(self,workload,label,n,seed,calls,samples,warmup=0,fail=0):
         identifier=ARMS.index(label)
         row=self.ask(f"R {identifier} {n} {seed} {calls} {samples} {warmup} {fail}")
-        require(row.get("id")==identifier and row.get("n")==n and row.get("seed")==seed,"native response identity")
+        check_measurement(row, n=n, seed=seed, calls=calls, samples=samples,
+                          identifier=identifier)
         require(row["cold_value"]==checksum(workload,n,seed),"cold result")
         require(row["batch_checksum"]==sum(checksum(workload,n,(seed+i)&MASK32) for i in range(calls)),"batch checksum")
         require(row["observed"]==(1001 if n and fail else checksum(workload,n,seed)),"normal/refusal result")
-        require(len(row["times_ns"])==samples and sum(row["times_ns"])==row["elapsed_ns"],"complete native sample accounting")
         check_metrics(row,n,fail)
         row.update(backend=label,workload=workload)
         return row
@@ -242,11 +259,15 @@ def assess(rows,spec):
     expected={(workload,phase,arm,n,seed,calls) for workload in spec["workloads"]
         for phase in ("regression","holdout") for arm in ARMS
         for n in spec[phase+"_sizes"] for seed in spec["seeds"] for calls in loads}
+    require(type(rows) is list, "invalid native observation collection")
+    for row in rows:
+        require(type(row) is dict and all(type(row.get(key)) is str
+                    for key in ("workload", "phase", "backend")),
+                "invalid native cohort identity")
+        check_measurement(row, n=row.get("n"), seed=row.get("seed"),
+                          calls=row.get("calls"), samples=spec["samples"])
     actual=[(r["workload"],r["phase"],r["backend"],r["n"],r["seed"],r["calls"]) for r in rows]
     require(len(actual)==len(set(actual)) and set(actual)==expected,"missing, duplicate or unexpected cohort")
-    require(all(len(r["times_ns"])==spec["samples"] and type(r["calls"]) is int
-                and r["calls"] in loads and all(type(v) is int and v > 0 for v in r["times_ns"])
-                for r in rows),"missing/padded samples or changed load")
     cohorts,comparisons=[],[]
     gate=spec["performance_gate"]
     for workload in spec["workloads"]:
