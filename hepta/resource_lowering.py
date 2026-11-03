@@ -291,6 +291,15 @@ class _FunctionLowerer:
         for index in reversed(indices):
             self.copy_value(self.expression(index))
 
+    def temporary_aggregate(self, expr) -> bool:
+        base = expr
+        while base.kind in {"field", "index"}:
+            base = base.children[0]
+        if base.kind in {"array", "struct"}:
+            return True
+        return (base.kind == "call" and base.value in self.signatures and
+                self.signatures[base.value]["returns"]["mode"] == "value")
+
     def expression(self, expr) -> _Value:
         typ = self.typ(expr)
         kind = expr.kind
@@ -372,6 +381,18 @@ class _FunctionLowerer:
                 return self.slot(typ)
             if self.types.owned(typ):
                 _unsupported("Partial owned-field moves are not modelled")
+            if self.temporary_aggregate(expr):
+                # Evaluate one immediate Copy base before its index. Recursion
+                # preserves nested projection order without replaying the root
+                # call or turning a returned loan into an independent value.
+                value = self.expression(expr.children[0])
+                if value.kind != "value" or self.types.owned(value.type):
+                    _unsupported("Temporary aggregate projection requires a Copy value")
+                if kind == "index":
+                    self.copy_value(self.expression(expr.children[1]))
+                path = ["*"] if kind == "index" else [str(expr.value)]
+                self.emit("use", place={"root": value.id, "path": path}, mode="read")
+                return self.slot(typ)
             # Normal named projections preserve field-disjointness. A view
             # returned by a call retains its conservative input-region loan.
             base = expr
@@ -460,6 +481,12 @@ class _FunctionLowerer:
             stored = self.view_projection(args[0])
             if stored is not None:
                 self.emit("use_view", src=stored.id, mode="read")
+                return self.slot(typ)
+            if self.typ(args[0]).name == "array" and self.temporary_aggregate(args[0]):
+                value = self.expression(args[0])
+                if value.kind != "value" or self.types.owned(value.type):
+                    _unsupported("Temporary array length requires a Copy value")
+                self.emit("use", place={"root": value.id, "path": []}, mode="read")
                 return self.slot(typ)
             view = self.borrow(args[0], "read")
             self.emit("use", loan=view.id, mode="read")

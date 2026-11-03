@@ -80,11 +80,9 @@ class CArrayValueTests(unittest.TestCase):
     def test_literals_returns_fields_nested_order_and_short_circuit(self):
         self.execute(SUCCESS, expected='8\n')
 
-    def test_resource_gated_temporary_projection_remains_rejected(self):
-        p, c = frontend('''fn pair<T>(x: T) -> [T; 2] effects {} { return [x, x]; }
+    def test_resource_gated_copy_temporary_projection_executes(self):
+        self.execute('''fn pair<T>(x: T) -> [T; 2] effects {} { return [x, x]; }
             fn main() -> Unit effects { panic } { assert(pair::<i64>(7)[1] == 7); }''')
-        with self.assertRaisesRegex(HeptaError, 'Projection from temporary aggregate'):
-            emit_c(p, c)
 
     def test_dynamic_out_of_bounds_aborts_without_undefined_access(self):
         for ix in ('2', '18446744073709551615'):

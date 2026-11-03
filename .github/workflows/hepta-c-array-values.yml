@@ -4,6 +4,9 @@ on:
     paths:
       - 'hepta/**'
       - 'tests/test_c_array_values.py'
+      - 'tests/test_resource_array_values.py'
+      - 'tests/test_resource_ir.py'
+      - 'tests/test_resource_evaluation_order.py'
       - 'tests/test_c_backend.py'
       - 'tests/test_c_owned_backend.py'
       - '.github/workflows/hepta-c-array-values.yml'
@@ -42,10 +45,11 @@ jobs:
           import unittest
           suite = unittest.defaultTestLoader.loadTestsFromNames([
               'tests.test_c_array_values', 'tests.test_c_backend',
-              'tests.test_c_owned_backend'])
+              'tests.test_c_owned_backend', 'tests.test_resource_array_values',
+              'tests.test_resource_ir', 'tests.test_resource_evaluation_order'])
           result = unittest.TextTestRunner(verbosity=2).run(suite)
-          if not result.wasSuccessful() or result.skipped or result.testsRun != 42:
-              raise SystemExit('Expected all 42 controls with no skips')
+          if not result.wasSuccessful() or result.skipped or result.expectedFailures or result.unexpectedSuccesses or result.testsRun != 80:
+              raise SystemExit('Expected all 80 controls with no skips or expected failures')
           PY
           test -z "$(git status --porcelain --untracked-files=no)"
       - uses: actions/upload-artifact@v4
