@@ -144,6 +144,13 @@ class Owner:
             self.context.closed = True
             raise
 
+    def _authority_shallow(self, copier, value):
+        """Legacy shallow copy with captured-callable lifetime preserved."""
+        try:
+            return copier(value)
+        finally:
+            del copier, value
+
     def _authority_copy(self, deepcopy, value, name):
         """Legacy one-argument copy; subclasses may admit selected map copies."""
         try:
@@ -159,7 +166,7 @@ class Owner:
             graph = modules._load_project(entry, locked=locked, ops=self._ops)
             handle = _OwnedGraph(graph, self)
             # Disk revalidation authority must not alias report/public graph maps.
-            authority = copy.copy(graph)
+            authority = self._authority_shallow(copy.copy, graph)
             for name in ('source_bytes', 'bindings', 'package_state', 'package'):
                 setattr(authority, name, self._authority_copy(copy.deepcopy, getattr(graph, name), name))
             self._handles.append((handle, authority))
