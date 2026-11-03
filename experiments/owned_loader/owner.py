@@ -144,6 +144,13 @@ class Owner:
             self.context.closed = True
             raise
 
+    def _authority_copy(self, deepcopy, value, name):
+        """Legacy one-argument copy; subclasses may admit selected map copies."""
+        try:
+            return deepcopy(value)
+        finally:
+            del deepcopy, value
+
     def load(self, entry, *, locked=False, source_overrides=None):
         self._enter()
         try:
@@ -154,7 +161,7 @@ class Owner:
             # Disk revalidation authority must not alias report/public graph maps.
             authority = copy.copy(graph)
             for name in ('source_bytes', 'bindings', 'package_state', 'package'):
-                setattr(authority, name, copy.deepcopy(getattr(graph, name)))
+                setattr(authority, name, self._authority_copy(copy.deepcopy, getattr(graph, name), name))
             self._handles.append((handle, authority))
             return handle
         except BaseException:
