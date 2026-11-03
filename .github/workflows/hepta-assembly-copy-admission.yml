@@ -1,0 +1,73 @@
+name: Experimental assembly copy admission
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'experiments/normal_loader_extraction/**'
+      - 'experiments/owned_loader/**'
+      - 'experiments/graph_loader/**'
+      - 'experiments/owned_tokens/**'
+      - 'experiments/ast_structure/**'
+      - 'experiments/parser_appends/**'
+      - 'experiments/assembly_copy/**'
+      - 'experiments/legacy_loader_ops/**'
+      - 'experiments/loader_consumer_audit/**'
+      - 'experiments/loader_api/**'
+      - 'experiments/request_load/**'
+      - 'experiments/loader_budget/**'
+      - 'experiments/c_char_boundary/**'
+      - 'tests/**'
+      - 'examples/**'
+      - 'docs/design/NORMAL_LOADER_EXTRACTION.md'
+      - 'docs/design/OWNED_LOADER_INTEGRATION.md'
+      - 'docs/design/GRAPH_LOADER_ADMISSION.md'
+      - 'docs/design/OWNED_TOKEN_ADMISSION.md'
+      - 'docs/design/AST_STRUCTURE_ADMISSION.md'
+      - 'docs/design/PARSER_APPEND_ADMISSION.md'
+      - 'docs/design/ASSEMBLY_COPY_ADMISSION.md'
+      - '.github/workflows/hepta-assembly-copy-admission.yml'
+permissions:
+  contents: read
+jobs:
+  compatibility:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.12']
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+      BASELINE_HEAD: '1c87a3f9f7fd5637a8d95b1db215d31bd6e7ee00'
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          persist-credentials: false
+      - name: Check out frozen pre-copy baseline
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BASELINE_HEAD }}
+          path: .copy-baseline
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Verify exact source and bind regression compilers
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test "$(git -C .copy-baseline rev-parse HEAD)" = "$BASELINE_HEAD"
+          rustup toolchain install 1.90.0 --profile minimal
+          echo "RUSTC=$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_ENV"
+          echo "CC=$(command -v gcc)" >> "$GITHUB_ENV"
+          "$(rustup which --toolchain 1.90.0 rustc)" --version
+          gcc --version
+      - name: Compare 99 direct lexer and parser outcomes
+        run: python experiments/owned_tokens/compare_checkouts.py --baseline .copy-baseline --candidate .
+      - name: Compare 80 direct normal-loader graph outcomes
+        run: python experiments/assembly_copy/compare_checkouts.py --baseline .copy-baseline --candidate .
+      - name: Run 469 unique no-skip controls
+        run: python -m experiments.assembly_copy.gate --include-consumers
