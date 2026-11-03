@@ -1,4 +1,4 @@
-name: HIA Core syntax declaration diagnostic (DENY_ALL, never acceptance)
+name: HIA noncomputable data diagnostic (DENY_ALL, never acceptance)
 on:
   pull_request:
     paths:
@@ -8,6 +8,7 @@ on:
       - 'tools/diagnose_core_syntax_declarations.py'
       - 'tools/core_syntax_declaration_diagnostic_sources.py'
       - 'tools/core_syntax_diagnostic_capture.py'
+      - 'tools/core_syntax_noncomputable_diagnostic_sources.py'
       - 'tools/core_syntax_stage_sources.py'
       - 'tools/core_syntax_structured_sources.py'
       - 'tools/core_syntax_structured_stages.py'
@@ -64,10 +65,10 @@ jobs:
         run: |
           set -euo pipefail
           timeout 300s python -B tools/bootstrap_verification.py --lean-only --directory "$RUNNER_TEMP/core-syntax-tools"
-      - name: Observe at most three stages; never qualify the syntax connection
+      - name: Observe explicit noncomputable data in at most three stages; never qualify
         run: |
           set -euo pipefail
-          timeout 600s python -B -m tools.diagnose_core_syntax_declarations \
+          timeout 600s python -B -m tools.diagnose_core_syntax_declarations --noncomputable-data \
             --lean "$RUNNER_TEMP/core-syntax-tools/lean-4.19.0/bin/lean" \
             --output-directory "$RUNNER_TEMP/core-syntax-proof"
           test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"

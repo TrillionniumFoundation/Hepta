@@ -16,10 +16,19 @@ DIAGNOSTIC_NAMES = ('Baseline', 'SyntaxData', 'LinearTransport')
 
 def execute_diagnostic(executable, output_directory, prepared, diagnostic, identity, support,
                        source_reader, support_reader, expected_binary_sha,
-                       run_process=base.capture_result, capture=None):
+                       run_process=base.capture_result, capture=None, *, noncomputable=False):
     from tools.core_syntax_declaration_diagnostic_sources import validate_diagnostic_sources
     from tools import core_syntax_diagnostic_capture as collector
-    validate_diagnostic_sources(prepared, diagnostic)
+    require(type(noncomputable) is bool, 'explicit diagnostic mode required')
+    if noncomputable:
+        from tools.core_syntax_noncomputable_diagnostic_sources import validate_noncomputable_diagnostic
+        validate_noncomputable_diagnostic(prepared, diagnostic)
+        extra_sources = diagnostic.retained_extra_sources
+        markers = diagnostic.markers
+    else:
+        validate_diagnostic_sources(prepared, diagnostic)
+        extra_sources = {}
+        markers = diagnostic.manifest['markers']
     require(tuple(s.name for s in diagnostic.stages) == DIAGNOSTIC_NAMES, 'exact diagnostic stage order')
     base._support_imports(prepared, support)
     require(source_reader() == identity and support_reader(executable) == support,
@@ -36,6 +45,7 @@ def execute_diagnostic(executable, output_directory, prepared, diagnostic, ident
                   kernel_core_syntax_connection_checked=False, actual_core_bridge_proved=False,
                   python_exporter_refinement_proved=False, body_prefix_refinement_proved=False,
                   all_edge_transfer_proved=False, diagnostic_only=True, invocation_limit=3,
+                  data_codegen_mode='explicit_noncomputable' if noncomputable else 'original',
                   invocations=0, invocation_count_exact=True, stages=[], not_scheduled=[s.name for s in prepared['stages'][3:]],
                   not_scheduled_reason='diagnostic_not_scheduled',
                   obligations=[dict(id=n, status='unproved') for n, _ in OBLIGATIONS], **DENY)
@@ -84,8 +94,12 @@ def execute_diagnostic(executable, output_directory, prepared, diagnostic, ident
             rel = stage.module_name.replace('.', '/') + '.lean'
             write(rel, stage.source.encode())
             hashes[rel] = stage.source_sha256
+        for relative, source in extra_sources.items():
+            require(type(source) is str and len(source.encode()) <= base.MAX_SOURCE, 'retained extra source budget')
+            write(relative,source.encode())
+            hashes[relative] = base.digest(source.encode())
         require(sum(len(s.source.encode()) for s in prepared['stages']) +
-                len(diagnostic.stages[2].source.encode()) <= base.MAX_TOTAL_SOURCE,
+                len(diagnostic.stages[2].source.encode()) + sum(len(s.encode()) for s in extra_sources.values()) <= base.MAX_TOTAL_SOURCE,
                 'all retained source byte budget')
         state()
         for index, stage in enumerate(diagnostic.stages):
@@ -130,7 +144,7 @@ def execute_diagnostic(executable, output_directory, prepared, diagnostic, ident
             report['invocations'] += 1
             report['invocation_count_exact'] = False
             result = capture_fn(executable, root.path/source_rel, root.path/output_rel, root.path,
-                                safe_root=root, markers=diagnostic.manifest['markers'],
+                                safe_root=root, markers=markers,
                                 manifest_reference={'path':'diagnostic-manifest.json', 'sha256':diagnostic.manifest_sha256})
             require(type(result) is dict and type(result.get('process_started')) is bool, 'diagnostic receipt missing')
             if not result['process_started']:
@@ -183,12 +197,13 @@ def source_identity():
     for relative in ('tools/diagnose_core_syntax_declarations.py',
                      'tools/core_syntax_declaration_diagnostic_sources.py',
                      'tools/core_syntax_diagnostic_capture.py',
+                     'tools/core_syntax_noncomputable_diagnostic_sources.py',
                      '.github/workflows/hia-core-syntax-kernel-research.yml'):
         result[relative] = base.digest((ROOT/relative).read_bytes())
     return result
 
 
-def diagnose(lean, output_directory):
+def diagnose(lean, output_directory, *, noncomputable=False):
     from tools.core_syntax_structured_stages import build_inputs
     from tools.core_syntax_declaration_diagnostic_sources import build_diagnostic_sources
     from tools.qualify_hia_selected_formal import _support_identity
@@ -198,10 +213,15 @@ def diagnose(lean, output_directory):
     require(base.digest(executable.read_bytes()) == binary, 'pinned binary required')
     identity, support = source_identity(), _support_identity(executable)
     prepared = build_inputs()
-    diagnostic = build_diagnostic_sources(prepared)
+    require(type(noncomputable) is bool, 'explicit diagnostic mode required')
+    if noncomputable:
+        from tools.core_syntax_noncomputable_diagnostic_sources import build_noncomputable_diagnostic
+        diagnostic = build_noncomputable_diagnostic(prepared)
+    else:
+        diagnostic = build_diagnostic_sources(prepared)
     require(source_identity() == identity, 'sources changed during preparation')
     return execute_diagnostic(executable, output_directory, prepared, diagnostic,
-                              identity, support, source_identity, _support_identity, binary)
+                              identity, support, source_identity, _support_identity, binary, noncomputable=noncomputable)
 
 
 LIVE_NAMES = ('RESULT.json', 'LinearTransport.stdout', 'LinearTransport.stderr', 'LinearTransport.events.jsonl')
@@ -306,12 +326,14 @@ def main():
     parser.add_argument('--lean', type=Path)
     parser.add_argument('--output-directory', type=Path, required=True)
     parser.add_argument('--print-diagnostics', action='store_true')
+    parser.add_argument('--noncomputable-data', action='store_true',
+                        help='single-factor research data-codegen diagnostic; never acceptance')
     args = parser.parse_args()
     if args.print_diagnostics:
         print_events(args.output_directory)
         return 0
     require(args.lean is not None, '--lean required')
-    diagnose(args.lean,args.output_directory)
+    diagnose(args.lean,args.output_directory,noncomputable=args.noncomputable_data)
     return 1  # This lane cannot report a qualification success.
 
 

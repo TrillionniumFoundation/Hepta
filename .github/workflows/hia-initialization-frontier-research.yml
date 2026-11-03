@@ -8,6 +8,7 @@ on:
       - 'tools/diagnose_core_syntax_declarations.py'
       - 'tools/core_syntax_declaration_diagnostic_sources.py'
       - 'tools/core_syntax_diagnostic_capture.py'
+      - 'tools/core_syntax_noncomputable_diagnostic_sources.py'
       - 'tools/core_syntax_stage_sources.py'
       - 'tools/core_syntax_structured_sources.py'
       - 'tools/core_syntax_structured_stages.py'
@@ -108,7 +109,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        group: [sources, execution]
+        group: [sources, execution, noncomputable-sources, noncomputable-execution]
     env:
       EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
       PYTHONDONTWRITEBYTECODE: '1'
@@ -135,6 +136,8 @@ jobs:
           import hashlib, json, os, unittest
           groups = {
               'sources': (['tests.test_core_syntax_declaration_diagnostic_sources'], 16),
+              'noncomputable-sources': (['tests.test_core_syntax_noncomputable_diagnostic_sources'], 16),
+              'noncomputable-execution': (['tests.test_core_syntax_noncomputable_diagnostic_runner'], 8),
               'execution': (['tests.test_core_syntax_declaration_diagnostic_runner',
                              'tests.test_core_syntax_diagnostic_capture'], 42),
           }
