@@ -326,8 +326,9 @@ def _support_imports(prepared, support):
 
 
 def execute_plan(executable, output_directory, prepared, identity, support,
-                 source_reader, support_reader, expected_binary_sha, run_process=capture_result):
+                 source_reader, support_reader, expected_binary_sha, run_process=capture_result, stage_limit=MAX_INVOCATIONS):
     """Execute only a complete frozen DAG; injected readers/process are for tests."""
+    require(type(stage_limit) is int and stage_limit in (2,MAX_INVOCATIONS), 'unsupported diagnostic stage limit')
     validate_plan(prepared)
     _support_imports(prepared,support)
     require(source_reader()==identity and support_reader(executable)==support,
@@ -346,6 +347,7 @@ def execute_plan(executable, output_directory, prepared, identity, support,
               'stage_manifest_sha256':prepared['manifest_sha256'],
               'import_trust':'same-run successful pinned-kernel outputs; imports are not rechecked',
               'negative_protocol':'kernel_proof_of_exact_negation','stages':[],
+              'diagnostic_stage_limit':stage_limit if stage_limit==2 else None,
               'invocations':0,'obligations':[{'id':n,'status':'unproved'} for n,_ in OBLIGATIONS], **DENY}
     allowed = set()
     accepted = {}
@@ -388,7 +390,7 @@ def execute_plan(executable, output_directory, prepared, identity, support,
             source_hashes[rel] = stage.source_sha256
         check_state()
         for stage in prepared['stages']:
-            require(report['invocations']<MAX_INVOCATIONS, 'Lean invocation budget')
+            require(report['invocations']<stage_limit, 'diagnostic stage boundary' if stage_limit==2 else 'Lean invocation budget')
             require(time.monotonic()-started<LAUNCH_SECONDS, 'new-stage launch deadline')
             require(all(p in accepted for p in stage.parents), 'parent not successfully admitted')
             check_state()
@@ -467,7 +469,7 @@ def source_identity():
     return result
 
 
-def qualify(lean, output_directory):
+def qualify(lean, output_directory, stage_limit=MAX_INVOCATIONS):
     from tools.core_syntax_structured_stages import build_inputs
     from tools.check_core_syntax_lean import fixed_input
     from tools.qualify_hia_selected_formal import _support_identity
@@ -480,7 +482,7 @@ def qualify(lean, output_directory):
     require(source_identity()==identity, 'sources changed during preparation')
     require(fixed_input()['bytes']==prepared['canonical_bytes'], 'Core bytes changed')
     return execute_plan(executable,output_directory,prepared,identity,support,
-                        source_identity,_support_identity,lock['lean_binary_sha256'])
+                        source_identity,_support_identity,lock['lean_binary_sha256'],stage_limit=stage_limit)
 
 
 def print_diagnostics(directory):
@@ -526,12 +528,14 @@ def main():
     parser.add_argument('--lean',type=Path)
     parser.add_argument('--output-directory',type=Path,required=True)
     parser.add_argument('--print-diagnostics',action='store_true')
+    parser.add_argument('--diagnostic-stage-limit',type=int,choices=(2,))
     args = parser.parse_args()
     if args.print_diagnostics:
         print_diagnostics(args.output_directory)
         return 0
     require(args.lean is not None, '--lean required for checking')
-    result = qualify(args.lean,args.output_directory)
+    result = qualify(args.lean,args.output_directory,
+                     args.diagnostic_stage_limit if args.diagnostic_stage_limit is not None else MAX_INVOCATIONS)
     print(json.dumps(result,sort_keys=True))
     return 0 if result['status']=='passed' else 1
 

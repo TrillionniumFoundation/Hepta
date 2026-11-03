@@ -235,7 +235,7 @@ class StagedExecutionTests(unittest.TestCase):
     def setUpClass(cls):
         cls.prepared = sources.build_inputs()
 
-    def exercise(self, behavior='success', patches=()):
+    def exercise(self, behavior='success', patches=(), stage_limit=runner.MAX_INVOCATIONS):
         from contextlib import ExitStack
         with tempfile.TemporaryDirectory() as folder, ExitStack() as stack:
             root = Path(folder)
@@ -327,7 +327,8 @@ class StagedExecutionTests(unittest.TestCase):
                 stack.enter_context(patch.object(runner, name, value))
             report = runner.execute_plan(executable, root / 'out', self.prepared,
                                          identity, support, lambda *args: dict(source_state),
-                                         lambda *args: dict(support_state), sha256(executable.read_bytes()).hexdigest(), run_process=invoke)
+                                         lambda *args: dict(support_state), sha256(executable.read_bytes()).hexdigest(),
+                                         run_process=invoke, stage_limit=stage_limit)
             self.assertEqual(json.loads((root / 'out/RESULT.json').read_text()), report)
             if behavior == 'timeout':
                 process = report['stages'][0]['process']
@@ -393,6 +394,24 @@ class StagedExecutionTests(unittest.TestCase):
     def test_pinned_support_prefix_shadow_never_starts(self):
         with self.assertRaisesRegex(ValueError, 'prefix shadows support'):
             self.exercise('prefix_shadow')
+
+
+    def test_diagnostic_limit_stops_after_two_successes_and_invalid_limits_never_launch(self):
+        report, calls = self.exercise(stage_limit=2)
+        self.assertEqual(calls, ['Baseline', 'SyntaxData'])
+        self.assertEqual(report['invocations'], 2)
+        self.assertEqual(report['diagnostic_stage_limit'], 2)
+        self.assertEqual(report['status'], 'failed')
+        self.assertEqual(report['error'], 'diagnostic stage boundary')
+        self.assertFalse(report['kernel_core_syntax_connection_checked'])
+        self.assertEqual([stage['status'] for stage in report['stages']], ['passed', 'passed'])
+        # Invalid options fail before even validating/preparing the DAG, so no
+        # process or output receipt can be created under an unsupported limit.
+        for limit in (True, False, 0, 3, 2.0, '2', None):
+            with self.subTest(limit=repr(limit)), patch.object(runner, 'validate_plan') as validate:
+                with self.assertRaisesRegex(ValueError, 'unsupported diagnostic stage limit'):
+                    self.exercise(stage_limit=limit)
+                validate.assert_not_called()
 
 
 class StagedDiagnosticPrintingTests(unittest.TestCase):

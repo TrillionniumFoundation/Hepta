@@ -77,13 +77,14 @@ theorem parse_array (f d : Nat) (input tail : List Nat) (items : List Raw)
     (notEmptyClose : input.head? ≠ some 93)
     (children : parseItems f d input = some (items, tail)) :
     parseRaw (f + 1) (d + 1) (91 :: input) = some (.arr items, tail) := by
-  cases input with
-  | nil => simp [parseRaw, children]
-  | cons first rest =>
-    by_cases same : first = 93
-    · subst first
-      exact False.elim (notEmptyClose rfl)
-    · simp [parseRaw, same, children]
+  -- Diagnostic-only: this deliberate failure cannot admit the module.
+  unfold parseRaw
+  trace "DIAGNOSTIC_PARSE_ARRAY_AFTER_UNFOLD"
+  trace_state
+  try split
+  trace "DIAGNOSTIC_PARSE_ARRAY_AFTER_SPLIT"
+  all_goals trace_state
+  fail "DIAGNOSTIC_ONLY_PARSE_ARRAY_STOP"
 
 /-- The explicit opening quote excludes the earlier empty-object pattern. -/
 theorem parse_object (f d : Nat) (input tail : List Nat)
