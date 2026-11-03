@@ -30,15 +30,23 @@ MAX_LINE = 1024 * 1024
 PROMPT = b"Do not use tools. Reply with exactly the single word AVAILABLE. This is an availability probe, not a coding task.\n"
 
 
-def event_lines(raw):
+def _event_pairs(raw):
     if type(raw) is not bytes or len(raw) > MAX_STREAM:
         raise ValueError("bounded raw event stream required")
-    lines = raw.splitlines()
-    if len(lines) > 1024 or any(not line or len(line) > MAX_LINE for line in lines):
-        raise ValueError("bounded nonempty JSONL events required")
-    events = [decode_json(line) for line in lines]
-    if any(type(e) is not dict for e in events):
-        raise ValueError("object events required")
+    for index, line in enumerate(raw.splitlines()):
+        if index >= 1024 or not line or len(line) > MAX_LINE:
+            raise ValueError("bounded nonempty JSONL events required")
+        event = decode_json(line)
+        if type(event) is not dict:
+            raise ValueError("object events required")
+        yield line, event
+
+
+def event_lines(raw):
+    lines, events = [], []
+    for line, event in _event_pairs(raw):
+        lines.append(line)
+        events.append(event)
     return lines, events
 
 
@@ -49,10 +57,16 @@ def classify(process, raw):
               "account_block_observed": False, "usage": None,
               "coding_task_requests": 0, "task_successes": 0,
               "stdout_sha256": sha256(raw).hexdigest(), "provider_messages": []}
+    lines, events, stream_error = [], [], None
     try:
-        lines, events = event_lines(raw)
+        # Retain already observed provider stop signals if a later line fails.
+        # A valid prefix never makes an incomplete or malformed stream available.
+        for line, event in _event_pairs(raw):
+            lines.append(line)
+            events.append(event)
     except (ValueError, UnicodeError, RecursionError) as error:
-        return {**result, "error": str(error)}
+        stream_error = str(error)
+        result["error"] = stream_error
     result["generation_turn_observed"] = any(e.get("type") == "turn.started" for e in events)
     usages, messages = [], []
     for event in events:
@@ -66,7 +80,7 @@ def classify(process, raw):
                    if event.get("type") == "turn.failed" and type(event.get("error")) is dict else None)
         if type(message) is str and message not in messages:
             messages.append(message)
-    result["usage"] = usages[0] if len(usages) == 1 else None
+    result["usage"] = usages[0] if len(usages) == 1 and stream_error is None else None
     result["provider_messages"] = messages
     unsupported = False
     for message in messages:
@@ -84,6 +98,8 @@ def classify(process, raw):
         result["diagnosis"] = "cleanup_uncertain"
     elif result["account_block_observed"]:
         result["diagnosis"] = "account_quota"
+    elif stream_error is not None:
+        result["diagnosis"] = "protocol_failure"
     elif unsupported:
         result["diagnosis"] = "unsupported_selector"
     elif not process_ok(process):
@@ -193,10 +209,10 @@ def probe_batch(codex, models, folder, seconds, *, execute=run_owned):
         row = {"model": model, "attempted": True, "process": process, **result}
         rows.append(row)
         save(work / "RESULT.json", row)
-        if result["account_block_observed"]:
-            stop = "not_attempted_after_account_quota"
-        elif result["diagnosis"] == "cleanup_uncertain":
+        if not all(process.get(k) is True for k in ("cleanup_confirmed", "leader_reaped", "streams_complete")):
             stop = "not_attempted_after_uncertain_cleanup"
+        elif result["account_block_observed"]:
+            stop = "not_attempted_after_account_quota"
     return rows
 
 
@@ -232,6 +248,8 @@ def main():
                 if type(value.get("rows")) is not list or not 1 <= len(value["rows"]) <= 8:
                     raise ValueError("bounded diagnostic rows required")
                 for row in value["rows"]:
+                    if type(row) is not dict:
+                        raise ValueError("recorded diagnostic row must be an object")
                     if type(row.get("coding_task_requests")) is not int or row["coding_task_requests"] != 0:
                         raise ValueError("recorded row is not a zero-coding probe")
                     raw_events = b"".join(canonical(event) + b"\n" for event in row["events"])

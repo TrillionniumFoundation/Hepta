@@ -42,7 +42,7 @@ CORE_TESTS = (
     'tests.test_hia_ndu_model_snapshot',
     'tests.test_hia_agent_repository_maintenance_v2',
     'tests.test_hia_agent_repository_v2_feedback_review',
-    'tests.test_hia_agent_preflight.AgentPreflightTests',
+    'tests.test_hia_agent_preflight',
     'tests.test_hia_agent_transport_framing',
     'tests.test_hia_agent_provider',
     'experiments.hia_agent_local_recovery_20261103.test_recovery',

@@ -35,6 +35,12 @@ deadline and owned-group cleanup. A known account quota stops all subsequent
 selectors in that batch. Uncertain cleanup also stops the batch. The remaining
 selectors are retained as unattempted, with unknown usage.
 
+Cleanup is checked directly from the process receipt, even when event decoding
+fails. A valid provider quota event remains a stop signal if a later JSONL line
+is malformed. A valid success prefix never admits a malformed complete stream;
+its usage remains unknown. Replay also refuses non-object diagnostic rows with
+a structured blocked result.
+
 Positive availability requires the existing strict event parser, exactly one
 answer and complete typed usage. Typed reasoning remains a non-answer event.
 Unknown events or observable tool items cannot admit a positive result. This
