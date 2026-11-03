@@ -26,23 +26,39 @@ if str(ROOT) not in sys.path:
 sys.dont_write_bytecode = True
 
 from tools.hia_agent_codex_transport import (CodexEvents, EventFailure, canonical,
-    identity, recover_reported_usage, run_owned, save, strict_json)
+    checked_usage, identity, recover_reported_usage, run_owned, save, strict_json)
 
-HERE = ROOT / "benchmarks/hia_agent_maintenance"
-spec = importlib.util.spec_from_file_location("maintenance_tasks", HERE / "tasks.py")
-TASK_MODULE = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(TASK_MODULE)
-TASKS = TASK_MODULE.TASKS
+CAMPAIGNS = {"maintenance-v1": "benchmarks/hia_agent_maintenance",
+             "maintenance-v2": "benchmarks/hia_agent_maintenance_v2"}
+CAMPAIGN = "maintenance-v1"
+
+
+def select_campaign(name):
+    """Select a source-owned prospective cohort; never rewrite a prior freeze."""
+    global CAMPAIGN, HERE, TASK_MODULE, TASKS
+    if type(name) is not str or name not in CAMPAIGNS:
+        raise ValueError("unknown source-owned maintenance campaign")
+    folder = ROOT / CAMPAIGNS[name]
+    task_spec = importlib.util.spec_from_file_location("maintenance_tasks_" + name, folder / "tasks.py")
+    module = importlib.util.module_from_spec(task_spec)
+    task_spec.loader.exec_module(module)
+    CAMPAIGN, HERE, TASK_MODULE, TASKS = name, folder, module, module.TASKS
+
+
+select_campaign(CAMPAIGN)
 SCHEMA = "hepta.hia.program.v6"
 
 
 def protocol():
     value = strict_json((HERE / "PROTOCOL.json").read_bytes())
     inherited = strict_json((ROOT / "benchmarks/hia_agent_public_tools/PROTOCOL.json").read_bytes())
-    if (value.get("schema") != "hepta.hia.agent-maintenance.v1"
+    expected_schema = "hepta.hia.agent-maintenance.v1" if CAMPAIGN == "maintenance-v1" else "hepta.hia.agent-maintenance.v2"
+    if (value.get("schema") != expected_schema
             or value.get("transport") != inherited["transport"]
             or value.get("models") != ["gpt-6.1-sol", "gpt-6-luna"]
-            or value.get("tasks") != [task["id"] for task in TASKS]):
+            or value.get("tasks") != [task["id"] for task in TASKS]
+            or value.get("arms") != ["hia", "rust"]
+            or CAMPAIGN == "maintenance-v2" and value.get("campaign") != CAMPAIGN):
         raise ValueError("new maintenance protocol or inherited transport limits changed")
     return value
 
@@ -57,6 +73,9 @@ def bindings():
         ROOT / "tests/test_hia_agent_maintenance.py",
         ROOT / "benchmarks/hia_agent_public_tools/PROTOCOL.json",
         ROOT / "tools/fixtures/hia_agent_maintenance_resource.rs"]
+    if CAMPAIGN == "maintenance-v2":
+        paths.extend([ROOT / "tests/test_hia_agent_maintenance_v2.py",
+                      ROOT / "benchmarks/hia_agent_maintenance/tasks.py"])
     return {str(p.relative_to(ROOT)): identity(p)["sha256"] for p in sorted(paths)}
 
 
@@ -67,6 +86,18 @@ def tool_bindings():
 
 def task_for(name):
     return next(task for task in TASKS if task["id"] == name)
+
+
+def buffer_task(task):
+    return task["id"] == "buffer_resize" or task.get("resource_contract") == "single-owned-buffer-v2"
+
+
+def resource_expected(task, values):
+    if task.get("resource_contract") == "single-owned-buffer-v2":
+        return TASK_MODULE.resource_expected(task["id"], *values)
+    x, y = values
+    length, byte = x % 23 + 1, (x ^ y) % 256
+    return {"length": length, "index": y % length, "byte": byte, "result": 256 * length + byte}
 
 
 def catalog(language):
@@ -104,9 +135,9 @@ def public_prompt(task, language):
             "budget": "At most six model responses including catalog/check/final; at most three check calls. Each response is exactly one JSON object matching a tool request. Return no Markdown. The host executes these public RPCs and returns actual feedback. You may revise only from public feedback. Do not invoke CLI tools, inspect files, browse or find reference answers. Existing user rules still apply.",
             "representation": example if language == "hia" else "fn target(x:u32,y:u32)->u32 { x ^ y }",
             "example_notice": "The example demonstrates the container/signature only and does not solve this task. Request catalog for complete operations and constraints."}
-    if task["id"] == "buffer_resize" and language == "hia":
+    if buffer_task(task) and language == "hia":
         result["resource_api"] = "The selected exercise requires actual buffer.new or buffer.try_new, buffer.store, buffer.load and owner.drop operations on the same owner, with the specified size/index/value and local loan cleanup. Public and terminal hidden VM executions observe this sequence; an uncalled helper or scalar shortcut cannot satisfy it. Repeated valid reads/writes are allowed. This is a VM resource witness, not a machine-instruction proof."
-    if task["id"] == "buffer_resize" and language == "rust":
+    if buffer_task(task) and language == "rust":
         result["resource_api"] = catalog("rust")["buffer_resize_only"]
     return result
 
@@ -131,7 +162,7 @@ def candidate_constraints(task, language, candidate):
                 or target.get("returns") != ["u32"] or candidate.get("exports") != ["target"]):
             raise ValueError("preserve exported target(x:u32,y:u32)->u32")
         ops = [op["op"] for f in functions for b in f.get("blocks", []) for op in b.get("ops", [])]
-        if task["id"] == "buffer_resize" and (not {"buffer.new", "buffer.try_new"}.intersection(ops)
+        if buffer_task(task) and (not {"buffer.new", "buffer.try_new"}.intersection(ops)
                 or not {"buffer.store", "buffer.load", "owner.drop", "loan.end"} <= set(ops)):
             raise ValueError("buffer task requires allocation (buffer.new or buffer.try_new), store, load, loan cleanup and owner cleanup")
     else:
@@ -144,15 +175,20 @@ def candidate_constraints(task, language, candidate):
             raise ValueError("missing target function")
 
 
-def rust_driver(candidate, *, audit_buffer=False):
+def rust_driver(candidate, *, audit_buffer=False, expected_buffer=False):
     if audit_buffer:
+        begin = ("let length:usize=words.next().unwrap().parse().unwrap();"
+                 "let index:usize=words.next().unwrap().parse().unwrap();"
+                 "let byte:u8=words.next().unwrap().parse().unwrap();"
+                 "let expected:u32=words.next().unwrap().parse().unwrap();"
+                 "audited::begin_expected(length,index,byte,expected);" if expected_buffer else "audited::begin(x,y);")
         return ("#![forbid(unsafe_code)]\n" + (ROOT / "tools/fixtures/hia_agent_maintenance_resource.rs").read_text() + "\n"
             "mod candidate {\nuse super::audited::{Vec, drop};\n"
             "macro_rules! vec { ($value:expr; $length:expr) => { super::audited::make_vec($value,$length) }; }\n"
             + candidate + "\npub fn invoke(x:u32,y:u32)->u32 {let target_contract:fn(u32,u32)->u32=target;target_contract(x,y)}\n}\n"
             "fn main(){use std::io::{self,Read};let mut s=String::new();io::stdin().read_to_string(&mut s).unwrap();"
             "let mut words=s.split_whitespace();while let Some(word)=words.next(){let x:u32=word.parse().unwrap();"
-            "let y:u32=words.next().unwrap().parse().unwrap();audited::begin(x,y);let value=candidate::invoke(x,y);"
+            "let y:u32=words.next().unwrap().parse().unwrap();" + begin + "let value=candidate::invoke(x,y);"
             "let ledger=audited::finish(value);println!(\"{}\",value);eprintln!(\"HIA_RUST_AUDIT {}\",ledger);}}\n")
     return ('#![forbid(unsafe_code)]\nuse std::io::{self,Read};\n' + candidate + '\nfn main(){let target_contract:fn(u32,u32)->u32=target;let mut s=String::new();io::stdin().read_to_string(&mut s).unwrap();let mut t=s.split_whitespace();while let Some(a)=t.next(){let x:u32=a.parse().unwrap();let y:u32=t.next().unwrap().parse().unwrap();println!("{}",target_contract(x,y));}}\n')
 
@@ -191,10 +227,9 @@ def execute_hia_contract(candidate, task, values):
     resources = report["resources"]
     if resources["live_owners"] or resources["live_local_loans"]:
         raise ValueError("interpreter observed unresolved resources")
-    if task["id"] == "buffer_resize":
-        x, y = values
-        size, value = x % 23 + 1, (x^y) % 256
-        position = y % size
+    if buffer_task(task):
+        expected = resource_expected(task, values)
+        size, value, position = expected["length"], expected["byte"], expected["index"]
         allocations = [(i,e) for i,e in enumerate(events) if e["op"] == "allocate"]
         drops = [(i,e) for i,e in enumerate(events) if e["op"] == "drop"]
         if (resources["allocations"] != 1 or resources["frees"] != 1 or len(allocations) != 1 or len(drops) != 1):
@@ -248,7 +283,8 @@ def evaluate_worker(args):
                 command = [cfg["clang"], "-O2", str(driver), str(folder / "program.o"), "-o", str(binary)]
             else:
                 driver = folder / "main.rs"
-                driver.write_text(rust_driver(candidate, audit_buffer=task["id"] == "buffer_resize"))
+                driver.write_text(rust_driver(candidate, audit_buffer=buffer_task(task),
+                    expected_buffer=task.get("resource_contract") == "single-owned-buffer-v2"))
                 command = [cfg["rustc"], "--edition=2021", "-C", "opt-level=2", "-C", "overflow-checks=on", "-C", "strip=symbols", "-C", "panic=abort", str(driver), "-o", str(binary)]
             compile_started = time.monotonic_ns()
             compiled = subprocess.run(command, capture_output=True, text=True, timeout=35)
@@ -261,22 +297,27 @@ def evaluate_worker(args):
         values = TASK_MODULE.cases(task, hidden=args.mode == "hidden")
         expected = [TASK_MODULE.oracle(task["id"], *pair) for pair in values]
         entered = time.monotonic_ns()
-        execution = subprocess.run([str(binary)], input="".join(f"{x} {y}\n" for x,y in values), capture_output=True, text=True, timeout=8)
+        native_input = "".join(f"{x} {y}\n" for x,y in values)
+        if args.language == "rust" and task.get("resource_contract") == "single-owned-buffer-v2":
+            native_input = "".join(f"{x} {y} {r['length']} {r['index']} {r['byte']} {r['result']}\n"
+                for x,y in values for r in [resource_expected(task, (x,y))])
+        execution = subprocess.run([str(binary)], input=native_input, capture_output=True, text=True, timeout=8)
         try:
             actual = [int(line) for line in execution.stdout.splitlines()]
         except ValueError:
             actual = None
         correct = execution.returncode == 0 and actual == expected and identity(binary) == before
-        if args.language == "rust" and task["id"] == "buffer_resize":
+        if args.language == "rust" and buffer_task(task):
             prefix = "HIA_RUST_AUDIT "
             lines = execution.stderr.splitlines()
             ledgers = [strict_json(line[len(prefix):]) for line in lines if line.startswith(prefix)]
             valid_ledgers = len(ledgers) == len(values) and len(lines) == len(ledgers)
             for epoch, (ledger, (x,y)) in enumerate(zip(ledgers, values), 1):
-                length = x % 23 + 1
+                expected_resource = resource_expected(task, (x,y))
+                length = expected_resource["length"]
                 valid_ledgers &= (ledger.get("schema") == "hepta.agent.rust-vec-api-audit.v1"
                     and ledger.get("epoch") == epoch and ledger.get("length") == length
-                    and ledger.get("index") == y % length and ledger.get("expected_byte") == (x^y) % 256
+                    and ledger.get("index") == expected_resource["index"] and ledger.get("expected_byte") == expected_resource["byte"]
                     and [ledger.get(key) for key in ("allocations", "releases", "explicit_releases", "live")] == [1,1,1,0]
                     and type(ledger.get("matched_reads")) is int and ledger["matched_reads"] > 0)
             result["resource_audit"] = {"scope": "selected audited Vec API events; not whole-process allocator or machine instruction counting",
@@ -294,7 +335,7 @@ def evaluate_worker(args):
 def evaluate(task, language, folder, *, candidate=None, build=None, timeout=70):
     folder.mkdir(parents=True, exist_ok=False)
     hidden = build is not None
-    argv = [sys.executable, str(Path(__file__).resolve()), "_evaluate", "--task", task["id"],
+    argv = [sys.executable, str(Path(__file__).resolve()), "--campaign", CAMPAIGN, "_evaluate", "--task", task["id"],
             "--language", language, "--mode", "hidden" if hidden else "public", "--output", str(folder / "evaluation")]
     if hidden:
         save(folder / "BUILD.json", build)
@@ -327,7 +368,7 @@ def controls(output):
     folder.mkdir(parents=True, exist_ok=False)
     result = {"schema": "hepta.hia.agent-maintenance.controls.v1", "bindings": bindings(), "tools": tool_bindings(),
               "catalogs": {lang: hashlib.sha256(canonical(catalog(lang))).hexdigest() for lang in ("hia", "rust")},
-              "model_requests": 0, "reference_controls_are_model_successes": False, "rows": [], "passed": False}
+              "campaign": CAMPAIGN, "model_requests": 0, "reference_controls_are_model_successes": False, "rows": [], "passed": False}
     save(folder / "RESULT.json", result)
     for task in TASKS:
         for lang in ("hia", "rust"):
@@ -347,7 +388,7 @@ def controls(output):
                 bad_signature["functions"][0]["returns"] = ["u64"]
             signature = evaluate(task, lang, cell / "bad-signature", candidate=bad_signature)
             lifecycle = None
-            if task["id"] == "buffer_resize":
+            if buffer_task(task):
                 bad_lifecycle = TASK_MODULE.reference(task["id"], lang)
                 if lang == "rust":
                     bad_lifecycle = bad_lifecycle.replace("drop(data);", "")
@@ -363,7 +404,7 @@ def controls(output):
             result["rows"].append(row)
             save(folder / "RESULT.json", result)
             print(json.dumps(row), flush=True)
-    result["passed"] = len(result["rows"]) == 6 and all(all(row[key] for key in ("reference_public", "reference_hidden", "wrong_control_rejected", "wrong_signature_rejected", "unmaintained_initial_rejected", "missing_explicit_release_rejected")) for row in result["rows"])
+    result["passed"] = len(result["rows"]) == len(TASKS) * 2 and all(all(row[key] for key in ("reference_public", "reference_hidden", "wrong_control_rejected", "wrong_signature_rejected", "unmaintained_initial_rejected", "missing_explicit_release_rejected")) for row in result["rows"])
     result["wall_ns"] = time.monotonic_ns()-started
     result["unchanged"] = result["bindings"] == bindings() and result["tools"] == tool_bindings()
     result["passed"] &= result["unchanged"]
@@ -376,7 +417,9 @@ def freeze(controls_path):
         raise ValueError("freeze already exists; never replace a registered study")
     record = strict_json(Path(controls_path).read_bytes())
     source, tools = bindings(), tool_bindings()
-    if not record.get("passed") or record.get("model_requests") != 0 or record.get("bindings") != source or record.get("tools") != tools:
+    if (not record.get("passed") or record.get("model_requests") != 0
+            or record.get("campaign", "maintenance-v1") != CAMPAIGN
+            or record.get("bindings") != source or record.get("tools") != tools):
         raise ValueError("current exact-source no-generation controls required")
     # Frozen implementation must already be tracked and committed.
     for name, digest in source.items():
@@ -384,7 +427,7 @@ def freeze(controls_path):
         if hashlib.sha256(committed).hexdigest() != digest:
             raise ValueError("uncommitted source: " + name)
     result = {"schema": "hepta.hia.agent-maintenance.freeze.v1", "code_commit": git("rev-parse", "HEAD"),
-              "bindings": source, "tools": tools, "controls": identity(controls_path),
+              "campaign": CAMPAIGN, "bindings": source, "tools": tools, "controls": identity(controls_path),
               "catalogs": record["catalogs"], "created_unix_ns": time.time_ns(), "model_requests_before_freeze": 0,
               "prompts": {t["id"] + ":" + l: hashlib.sha256(canonical(public_prompt(t,l))).hexdigest() for t in TASKS for l in ("hia", "rust")}}
     save(HERE / "FREEZE.json", result)
@@ -394,7 +437,8 @@ def freeze(controls_path):
 
 def verify_freeze():
     value = strict_json((HERE / "FREEZE.json").read_bytes())
-    if value["bindings"] != bindings() or value["tools"] != tool_bindings():
+    if (value.get("campaign", "maintenance-v1") != CAMPAIGN
+            or value["bindings"] != bindings() or value["tools"] != tool_bindings()):
         raise ValueError("registered source/tool identity drift")
     if value["catalogs"] != {lang: hashlib.sha256(canonical(catalog(lang))).hexdigest() for lang in ("hia", "rust")}:
         raise ValueError("registered catalog drift")
@@ -541,25 +585,112 @@ def run_cell(task, language, folder, experiment_deadline, cfg):
     return row
 
 
+def _known_request_tokens(row):
+    """Retain known reported usage once per request, including failed cells.
+
+    Conflicting valid observations are ineligible for comparison. Their larger
+    conservative token count still belongs in the known paid-cost subtotal;
+    a malformed duplicate cannot erase the other independently valid receipt.
+    """
+    total = 0
+    requests = row.get("requests", [])
+    if type(requests) is not list:
+        return total
+    for request in requests:
+        known = []
+        for field in ("observed_usage", "usage"):
+            try:
+                usage = checked_usage(request.get(field))
+            except (ValueError, TypeError, AttributeError):
+                continue
+            known.append(sum(usage[k] for k in ("input_tokens", "output_tokens", "reasoning_output_tokens")))
+        total += max(known, default=0)
+    return total
+
+
+def _valid_cell_accounting(row, cfg):
+    """Reconcile receipt costs; an asserted aggregate is not qualification."""
+    try:
+        requests = row["requests"]
+        if (any(type(row[key]) is not str for key in ("model", "task", "language"))
+                or row["model"] not in cfg["models"] or row["task"] not in cfg["tasks"]
+                or row["language"] not in {"hia", "rust"}
+                or type(requests) is not list or not 1 <= len(requests) <= cfg["max_requests_per_cell"]
+                or row["complete_usage"] is not True or type(row["correct"]) is not bool
+                or type(row["hidden_evaluated"]) is not bool
+                or type(row["wall_ns"]) is not int or row["wall_ns"] < 0
+                or type(row["charged_tokens"]) is not int
+                or type(row["public_failed_checks"]) is not int
+                or type(row["tool_calls"]) is not list
+                or type(row["human_answer_repairs"]) is not int or row["human_answer_repairs"] != 0):
+            return False
+        status = row["status"]
+        if (status not in {"correct", "hidden_failed", "final_not_publicly_accepted",
+                           "request_budget_exhausted", "wall_budget"}
+                or row["correct"] != (status == "correct")
+                or row["hidden_evaluated"] != (status in {"correct", "hidden_failed"})
+                or status == "request_budget_exhausted" and len(requests) != cfg["max_requests_per_cell"]):
+            return False
+        total, request_wall = 0, 0
+        for index, request in enumerate(requests):
+            usage = checked_usage(request["usage"])
+            observed_usage = checked_usage(request["observed_usage"])
+            charged = sum(usage[k] for k in ("input_tokens", "output_tokens", "reasoning_output_tokens"))
+            process = request["process"]
+            if (type(request["index"]) is not int or request["index"] != index
+                    or request["unknown_usage"] is not False or observed_usage != usage
+                    or request["actual_generation_observed"] is not True
+                    or type(request["charged_tokens"]) is not int or request["charged_tokens"] != charged
+                    or usage["input_tokens"] > cfg["max_reported_input_tokens_per_request"]
+                    or usage["output_tokens"] + usage["reasoning_output_tokens"] > cfg["max_charged_output_tokens_per_request"]
+                    or process["status"] != "exited" or process["cleanup_confirmed"] is not True
+                    or process["leader_reaped"] is not True
+                    or type(process["wall_ns"]) is not int or process["wall_ns"] < 0):
+                return False
+            total += charged
+            request_wall += process["wall_ns"]
+        failures = sum("public" in call and call["public"]["accepted"] is False for call in row["tool_calls"])
+        return (total == row["charged_tokens"] <= cfg["max_charged_tokens_per_cell"]
+                and failures == row["public_failed_checks"] and request_wall <= row["wall_ns"])
+    except (ValueError, KeyError, TypeError, AttributeError):
+        return False
+
+
 def summary(rows):
+    cfg = protocol()
+    expected = {(model, task["id"], language) for model in cfg["models"]
+                for task in TASKS for language in ("hia", "rust")}
+    descriptors = [tuple(row.get(key) for key in ("model", "task", "language")) for row in rows]
+    exact = (all(all(type(value) is str for value in item) for item in descriptors)
+             and len(descriptors) == len(expected) and len(set(descriptors)) == len(descriptors)
+             and set(descriptors) == expected)
+    eligible = exact and all(_valid_cell_accounting(row, cfg) for row in rows)
     grouped = {}
-    for model in protocol()["models"]:
+    for model in cfg["models"]:
         groups = {}
         for language in ("hia", "rust"):
             selected = [r for r in rows if r["model"] == model and r["language"] == language]
-            complete = len(selected) == len(TASKS) and all(r["complete_usage"] for r in selected)
-            groups[language] = {"attempted": len(selected), "correct": sum(r["correct"] for r in selected),
+            correct = len({r["task"] for r in selected if _valid_cell_accounting(r, cfg) and r["correct"]})
+            known_tokens = sum(_known_request_tokens(r) for r in selected)
+            total_wall = sum(r["wall_ns"] for r in selected if type(r.get("wall_ns")) is int and r["wall_ns"] >= 0)
+            groups[language] = {"attempted": len(selected), "correct": correct,
                 "requests": sum(len(r["requests"]) for r in selected),
-                "charged_tokens": sum(r["charged_tokens"] for r in selected),
-                "complete_usage": complete,
+                "charged_tokens": known_tokens,
+                "charged_tokens_scope": "known reported usage; conservative maximum of valid receipts once per request",
+                "complete_usage": eligible,
                 "failed_public_checks": sum(r["public_failed_checks"] for r in selected),
-                "wall_ns": sum(r["wall_ns"] for r in selected)}
+                "wall_ns": total_wall,
+                "charged_tokens_per_correct_delivery": known_tokens / correct if eligible and correct else None,
+                "cell_wall_ns_per_correct_delivery": total_wall / correct if eligible and correct else None,
+                "per_success_cost_available": bool(eligible and correct),
+                "cost_numerator_scope": "all attempted cells and requests in this model/language, including failures"}
         h, r = groups["hia"], groups["rust"]
         gate = (h["complete_usage"] and r["complete_usage"] and h["correct"] >= r["correct"] and h["correct"] > 0
                 and h["charged_tokens"] < r["charged_tokens"] and h["wall_ns"] < r["wall_ns"]
                 and h["failed_public_checks"] <= r["failed_public_checks"])
         grouped[model] = {"groups": groups, "descriptive_hia_advantage_gate": gate}
-    return {"by_requested_model": grouped, "general_productivity_proved": False,
+    return {"by_requested_model": grouped, "exact_coverage": exact, "eligible_comparison": eligible,
+            "general_productivity_proved": False,
             "cross_model_pooling_used": False, "human_review_time_ns": None,
             "human_cost_advantage_proved": False, "full_cost_advantage_proved": False,
             "population_task_representativeness": False,
@@ -581,14 +712,14 @@ def run(output, review_path, registration_commit):
     if (review.get("decision") != "allow_generation" or review.get("freeze_sha256") != identity(HERE / "FREEZE.json")["sha256"]
             or review.get("controls_sha256") != frozen["controls"]["sha256"] or review.get("model_requests_by_reviewer") != 0):
         raise ValueError("independent exact-freeze review required")
-    registered = subprocess.check_output(["git", "show", registration_commit+":benchmarks/hia_agent_maintenance/FREEZE.json"], cwd=ROOT)
+    registered = subprocess.check_output(["git", "show", registration_commit+":"+str(HERE.relative_to(ROOT)/"FREEZE.json")], cwd=ROOT)
     if registered != (HERE / "FREEZE.json").read_bytes():
         raise ValueError("registration commit does not bind current freeze")
     subprocess.run(["git", "merge-base", "--is-ancestor", registration_commit, "HEAD"], cwd=ROOT, check=True)
     folder = Path(output).resolve()
     folder.mkdir(parents=True, exist_ok=False)
     result = {"schema": "hepta.hia.agent-maintenance.result.v1", "freeze": identity(HERE / "FREEZE.json"),
-              "registration_commit": registration_commit, "review": identity(review_path), "models": cfg["models"],
+              "campaign": CAMPAIGN, "registration_commit": registration_commit, "review": identity(review_path), "models": cfg["models"],
               "cells": [], "status": "started", "previous_negative_results_replaced": False, "human_answer_repairs": 0}
     save(folder / "PLAN.json", {**result, "frozen": frozen, "protocol": cfg, "model_requests_before_plan": 0})
     deadline = time.monotonic()+cfg["max_experiment_wall_seconds"]
@@ -635,7 +766,13 @@ def run(output, review_path, registration_commit):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--campaign", choices=tuple(CAMPAIGNS), default="maintenance-v1")
     sub = parser.add_subparsers(dest="command", required=True)
+    p = sub.add_parser("preflight", help="Zero-generation startup and native probes; never authorizes an old freeze")
+    for name in ("output", "codex", "clang", "rustc"):
+        p.add_argument("--" + name, required=True)
+    p.add_argument("--isolate-sqlite", action="store_true")
+    p.add_argument("--wall-seconds", type=int, default=15)
     p = sub.add_parser("controls"); p.add_argument("--output", required=True)
     p = sub.add_parser("freeze"); p.add_argument("--controls", required=True)
     p = sub.add_parser("run"); p.add_argument("--output", required=True); p.add_argument("--review", required=True); p.add_argument("--registration-commit", required=True)
@@ -644,6 +781,16 @@ def main(argv=None):
     p.add_argument("--mode", choices=("public","hidden"), required=True); p.add_argument("--output", required=True)
     p.add_argument("--candidate"); p.add_argument("--build")
     args = parser.parse_args(argv)
+    select_campaign(args.campaign)
+    if args.command == "preflight":
+        from tools.qualify_hia_agent_preflight import preflight
+        cfg = protocol()
+        result = preflight(args.output, codex=args.codex, clang=args.clang, rustc=args.rustc,
+            campaign=CAMPAIGN, registered_paths={name: cfg[name] for name in ("codex", "clang", "rustc")},
+            freeze_path=HERE / "FREEZE.json", isolate_sqlite=args.isolate_sqlite, wall_seconds=args.wall_seconds)
+        print(json.dumps({key: result[key] for key in ("status", "passed", "model_requests_sent_by_probe",
+            "model_access_verified", "registered_campaign_run_authorized", "new_registration_required")}))
+        return 0 if result["passed"] else 1
     if args.command == "controls": return controls(args.output)
     if args.command == "freeze": return freeze(args.controls)
     if args.command == "run": return run(args.output, args.review, args.registration_commit)

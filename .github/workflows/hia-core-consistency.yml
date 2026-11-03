@@ -2,7 +2,7 @@ name: HIA ownership policy and scalar Core consistency
 
 on:
   push:
-    branches: [work/hia-unified-core-20261102, work/hia-core-proof-convergence-20261102]
+    branches: [work/hia-unified-core-20261102, work/hia-core-proof-convergence-20261102, work/hia-seven-track-core-convergence-next]
   pull_request:
     paths:
       - 'hepta/hia_incremental.py'
@@ -30,6 +30,7 @@ jobs:
     env:
       PYTHONDONTWRITEBYTECODE: '1'
       CLANG: /usr/bin/clang-20
+      CLANGXX: /usr/bin/clang++-20
       HEPTA_CLANG: /usr/bin/clang-20
       HEPTA_TEST_CLANG: /usr/bin/clang-20
     steps:
@@ -51,8 +52,12 @@ jobs:
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y clang-20
           python -m pip install z3-solver==4.15.4.0
-          rustup toolchain install 1.95.0 --profile minimal --no-self-update
-          rustup default 1.95.0
+          rustup toolchain install 1.90.0 --profile minimal --no-self-update
+          rustup default 1.90.0
+          printf 'RUSTC=%s\nCARGO=%s\n' \
+            "$(rustup which --toolchain 1.90.0 rustc)" \
+            "$(rustup which --toolchain 1.90.0 cargo)" >> "$GITHUB_ENV"
+          printf '%s\n' /usr/lib/llvm-20/bin >> "$GITHUB_PATH"
           cargo fetch --locked --manifest-path rust/hia-core-shadow/Cargo.toml
       - name: Check exact tests without skips and preserve source identity
         run: |

@@ -1,0 +1,310 @@
+{
+  "schema": "hepta.hia.program.v1",
+  "module": "selected_sequential_u32",
+  "functions": [
+    {
+      "name": "calculate",
+      "params": [
+        {
+          "name": "x",
+          "type": "u32"
+        },
+        {
+          "name": "denominator",
+          "type": "u32"
+        }
+      ],
+      "returns": [
+        "u32"
+      ],
+      "effects": [
+        "trap"
+      ],
+      "entry": "entry",
+      "blocks": [
+        {
+          "id": "entry",
+          "params": [
+            {
+              "name": "x",
+              "type": "u32"
+            },
+            {
+              "name": "denominator",
+              "type": "u32"
+            }
+          ],
+          "ops": [
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "zero",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {
+                "value": 0
+              }
+            },
+            {
+              "op": "compare.eq",
+              "args": [
+                "denominator",
+                "zero"
+              ],
+              "out": [
+                {
+                  "name": "is_zero",
+                  "type": "bool"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "branch",
+            "cond": "is_zero",
+            "then": {
+              "target": "zero_case",
+              "args": [
+                "x"
+              ]
+            },
+            "else": {
+              "target": "nonzero",
+              "args": [
+                "x",
+                "denominator"
+              ]
+            }
+          }
+        },
+        {
+          "id": "zero_case",
+          "params": [
+            {
+              "name": "z",
+              "type": "u32"
+            }
+          ],
+          "ops": [],
+          "term": {
+            "op": "ret",
+            "values": [
+              "z"
+            ]
+          }
+        },
+        {
+          "id": "nonzero",
+          "params": [
+            {
+              "name": "n",
+              "type": "u32"
+            },
+            {
+              "name": "d",
+              "type": "u32"
+            }
+          ],
+          "ops": [
+            {
+              "op": "call",
+              "args": [
+                "n",
+                "d"
+              ],
+              "out": [
+                {
+                  "name": "answer",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {
+                "function": "divide"
+              }
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "answer"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "divide",
+      "params": [
+        {
+          "name": "a",
+          "type": "u32"
+        },
+        {
+          "name": "z",
+          "type": "u32"
+        }
+      ],
+      "returns": [
+        "u32"
+      ],
+      "effects": [
+        "trap"
+      ],
+      "entry": "entry",
+      "blocks": [
+        {
+          "id": "entry",
+          "params": [
+            {
+              "name": "a",
+              "type": "u32"
+            },
+            {
+              "name": "z",
+              "type": "u32"
+            }
+          ],
+          "ops": [
+            {
+              "op": "int.div.checked",
+              "args": [
+                "a",
+                "z"
+              ],
+              "out": [
+                {
+                  "name": "r",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {}
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "r"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "add_with_dead_literal",
+      "params": [
+        {
+          "name": "left",
+          "type": "u32"
+        },
+        {
+          "name": "right",
+          "type": "u32"
+        }
+      ],
+      "returns": [
+        "u32"
+      ],
+      "effects": [],
+      "entry": "entry",
+      "blocks": [
+        {
+          "id": "entry",
+          "params": [
+            {
+              "name": "left",
+              "type": "u32"
+            },
+            {
+              "name": "right",
+              "type": "u32"
+            }
+          ],
+          "ops": [
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "left",
+                "right"
+              ],
+              "out": [
+                {
+                  "name": "sum",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "bias",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {
+                "value": 17
+              }
+            },
+            {
+              "op": "int.add.wrap",
+              "args": [
+                "sum",
+                "bias"
+              ],
+              "out": [
+                {
+                  "name": "biased",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "int.sub.wrap",
+              "args": [
+                "biased",
+                "bias"
+              ],
+              "out": [
+                {
+                  "name": "restored",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {}
+            },
+            {
+              "op": "const",
+              "args": [],
+              "out": [
+                {
+                  "name": "unused",
+                  "type": "u32"
+                }
+              ],
+              "attrs": {
+                "value": 99
+              }
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "restored"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "exports": [
+    "calculate",
+    "add_with_dead_literal"
+  ]
+}

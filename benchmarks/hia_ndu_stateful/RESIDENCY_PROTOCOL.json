@@ -1,0 +1,42 @@
+{
+  "schema": "hepta.hia.ndu.residency-study.protocol.v1",
+  "model_schema": "hepta.hia.ndu.stateful-preparation.v3",
+  "native_source_commit": "c4a1bbed3a39beba43a6abf1a18b6f75c5725c21",
+  "cases": [
+    "evict-reacquire-alternating",
+    "eviction-delayed-payback",
+    "eviction-too-expensive",
+    "release-unused-incumbent",
+    "eviction-refused-target",
+    "eviction-insufficient-budget"
+  ],
+  "maximum_variants": 2,
+  "maximum_horizon": 4,
+  "maximum_complete_states": 4,
+  "maximum_complete_transitions": 12,
+  "native_search": "dynamic-frontier",
+  "image_check": "sealed",
+  "residency_order": "Release removed variants before preparing added variants; real loader and borrow-quiescence correctness are outside this model.",
+  "transition_cost": "Sum every released variant's eviction cost and every newly resident variant's preparation cost. Reacquisition after eviction pays again.",
+  "future_decision_cost": "Every active decision after the first, including the decision to stop; stopped delivery has no later controller calls.",
+  "fixed_control": "Best complete fixed resident subset chosen at the first batch; zero future controller calls, same initial eviction and preparation costs.",
+  "controls": [
+    "independent-exhaustive-oracle",
+    "independent-exact-resource-dp",
+    "strong-fixed-configuration-with-combined-variants",
+    "same-information-one-step-greedy",
+    "production-exact-q32-control"
+  ],
+  "same_information": "All controls receive every future batch estimate, preparation, eviction, holding, memory, status and future decision cost.",
+  "model_cost_basis": "declared-model-only",
+  "exact_dp_contract": "NDU must match all exact DP winning schedules and values. Strict value superiority over the same-information exact optimum is not an attainable objective.",
+  "measurement_contract": "Native call, graph construction, independent audit, startup, identity checking and shutdown time are observed separately. Declared application nanoseconds are never reported as measured application speedup.",
+  "unsupported_enumeration": "The original complete-enumeration cap remains 127 paths; no truncated search is accepted as an optimum.",
+  "claims": {
+    "native_application_speedup_established": false,
+    "incremental_ndu_value_established": false,
+    "loader_eviction_safety_proved": false,
+    "safety_certificate": false,
+    "authority": "DENY_ALL"
+  }
+}

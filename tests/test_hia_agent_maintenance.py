@@ -9,6 +9,144 @@ from tools import qualify_hia_agent_maintenance as study
 
 
 class MaintenanceStudyTests(unittest.TestCase):
+    def accounted_rows(self):
+        """Synthetic receipt fixtures for the readout gate, never model results."""
+        rows = []
+        for model in study.protocol()["models"]:
+            for task in study.TASKS:
+                for language in ("hia", "rust"):
+                    factor = 1 if language == "hia" else 2
+                    usage = {"input_tokens": 10 * factor, "cached_input_tokens": 2 * factor,
+                             "cache_write_input_tokens": 0, "output_tokens": 3 * factor,
+                             "reasoning_output_tokens": 2 * factor}
+                    request = {"index": 0, "usage": usage, "observed_usage": deepcopy(usage),
+                               "unknown_usage": False, "actual_generation_observed": True,
+                               "charged_tokens": 15 * factor,
+                               "process": {"status": "exited", "cleanup_confirmed": True,
+                                           "leader_reaped": True, "wall_ns": 5 * factor}}
+                    rows.append({"model": model, "task": task["id"], "language": language,
+                                 "correct": True, "complete_usage": True, "hidden_evaluated": True,
+                                 "status": "correct", "human_answer_repairs": 0,
+                                 "requests": [request], "charged_tokens": 15 * factor,
+                                 "tool_calls": [{"name": "final", "public": {"accepted": True}}],
+                                 "public_failed_checks": 0, "wall_ns": 50 * factor})
+        return rows
+
+    def test_exact_distinct_registered_tasks_are_required_for_each_model_and_language(self):
+        good = self.accounted_rows()
+        result = study.summary(good)
+        self.assertTrue(result["exact_coverage"])
+        self.assertTrue(result["eligible_comparison"])
+        self.assertTrue(all(group["descriptive_hia_advantage_gate"]
+                            for group in result["by_requested_model"].values()))
+        duplicated = deepcopy(good)
+        for row in duplicated:
+            row["task"] = study.TASKS[0]["id"]
+        unknown = deepcopy(good)
+        unknown[0]["task"] = "unregistered-upgrade"
+        other_model = deepcopy(good)
+        other_model[0]["model"] = "unregistered-model"
+        for rows in (duplicated, unknown, other_model, good[:-1], good + [good[0]]):
+            result = study.summary(rows)
+            self.assertFalse(result["exact_coverage"])
+            self.assertFalse(result["eligible_comparison"])
+            self.assertTrue(all(not group["descriptive_hia_advantage_gate"]
+                                for group in result["by_requested_model"].values()))
+
+    def test_reported_aggregate_cannot_hide_paid_failed_or_repair_requests(self):
+        rows = self.accounted_rows()
+        rows[0]["charged_tokens"] = 0
+        result = study.summary(rows)
+        self.assertFalse(result["eligible_comparison"])
+        group = result["by_requested_model"][rows[0]["model"]]["groups"]["hia"]
+        self.assertEqual(group["charged_tokens"], 45)
+        self.assertIsNone(group["charged_tokens_per_correct_delivery"])
+        rows = self.accounted_rows()
+        extra = deepcopy(rows[0]["requests"][0]); extra["index"] = 1
+        rows[0]["requests"].append(extra)
+        rows[0]["charged_tokens"] += 15
+        rows[0]["tool_calls"].insert(0, {"name": "check", "public": {"accepted": False}})
+        rows[0]["public_failed_checks"] = 1
+        result = study.summary(rows)
+        self.assertTrue(result["eligible_comparison"])
+        group = result["by_requested_model"][rows[0]["model"]]["groups"]["hia"]
+        self.assertEqual(group["charged_tokens"], 60)
+        self.assertEqual(group["charged_tokens_per_correct_delivery"], 20)
+
+    def test_failed_task_costs_remain_in_per_success_numerator_and_zero_is_unavailable(self):
+        rows = self.accounted_rows()
+        model = rows[0]["model"]
+        selected = [row for row in rows if row["model"] == model and row["language"] == "hia"]
+        for row in selected[1:]:
+            row.update(correct=False, status="hidden_failed")
+        result = study.summary(rows)
+        self.assertTrue(result["eligible_comparison"])
+        group = result["by_requested_model"][model]["groups"]["hia"]
+        self.assertEqual(group["correct"], 1)
+        self.assertEqual(group["charged_tokens_per_correct_delivery"], 45)
+        self.assertEqual(group["cell_wall_ns_per_correct_delivery"], 150)
+        selected[0].update(correct=False, status="hidden_failed")
+        group = study.summary(rows)["by_requested_model"][model]["groups"]["hia"]
+        self.assertEqual(group["charged_tokens"], 45)
+        self.assertEqual(group["correct"], 0)
+        self.assertIsNone(group["charged_tokens_per_correct_delivery"])
+        self.assertIsNone(group["cell_wall_ns_per_correct_delivery"])
+        self.assertFalse(group["per_success_cost_available"])
+
+    def test_inconsistent_request_usage_success_or_cleanup_blocks_readout(self):
+        cases = []
+        for key, value in (("charged_tokens", 0), ("unknown_usage", True), ("index", True),
+                           ("actual_generation_observed", False), ("observed_usage", None)):
+            rows = self.accounted_rows(); rows[0]["requests"][0][key] = value; cases.append(rows)
+        for key, value in (("hidden_evaluated", False), ("public_failed_checks", 3),
+                           ("wall_ns", 0), ("correct", 1)):
+            rows = self.accounted_rows(); rows[0][key] = value; cases.append(rows)
+        rows = self.accounted_rows(); rows[0]["requests"][0]["process"]["cleanup_confirmed"] = False; cases.append(rows)
+        rows = self.accounted_rows(); rows[0]["requests"][0]["usage"]["input_tokens"] = True; cases.append(rows)
+        for rows in cases:
+            result = study.summary(rows)
+            self.assertFalse(result["eligible_comparison"])
+            self.assertTrue(all(not group["descriptive_hia_advantage_gate"]
+                                for group in result["by_requested_model"].values()))
+
+    def test_unknown_failure_usage_keeps_known_costs_without_a_full_cost_claim(self):
+        rows = self.accounted_rows()
+        rows[0]["complete_usage"] = False
+        rows[0]["requests"][0]["unknown_usage"] = True
+        rows[0]["requests"][0]["usage"] = None
+        rows[0].update(status="terminal_runtime_or_protocol_failure", correct=False, hidden_evaluated=False)
+        result = study.summary(rows)
+        group = result["by_requested_model"][rows[0]["model"]]["groups"]["hia"]
+        self.assertEqual(group["charged_tokens"], 45)
+        self.assertFalse(result["eligible_comparison"])
+        self.assertFalse(result["full_cost_advantage_proved"])
+        self.assertFalse(result["human_cost_advantage_proved"])
+
+    def test_boolean_observed_counter_cannot_alias_an_integer_and_understate_cost(self):
+        rows = self.accounted_rows()
+        request = rows[0]["requests"][0]
+        request["usage"].update(input_tokens=1, cached_input_tokens=0)
+        request["observed_usage"] = deepcopy(request["usage"])
+        request["observed_usage"]["input_tokens"] = True
+        request["charged_tokens"] = rows[0]["charged_tokens"] = 6
+        self.assertFalse(study._valid_cell_accounting(rows[0], study.protocol()))
+        result = study.summary(rows)
+        self.assertFalse(result["eligible_comparison"])
+        self.assertEqual(result["by_requested_model"][rows[0]["model"]]["groups"]["hia"]["charged_tokens"], 36)
+        self.assertTrue(all(not group["descriptive_hia_advantage_gate"]
+                            for group in result["by_requested_model"].values()))
+
+    def test_inconsistent_valid_usage_retains_maximum_once_and_still_blocks_comparison(self):
+        rows = self.accounted_rows()
+        request = rows[0]["requests"][0]
+        request["observed_usage"]["output_tokens"] += 10
+        result = study.summary(rows)
+        group = result["by_requested_model"][rows[0]["model"]]["groups"]["hia"]
+        self.assertEqual(group["charged_tokens"], 55)  # max(15,25) + 15 + 15, not 70
+        self.assertFalse(result["eligible_comparison"])
+        self.assertIsNone(group["charged_tokens_per_correct_delivery"])
+        self.assertFalse(result["full_cost_advantage_proved"])
+
     def test_every_author_repair_matches_independent_oracle_and_real_resource_witness(self):
         for task in study.TASKS:
             candidate = study.TASK_MODULE.reference(task["id"], "hia")

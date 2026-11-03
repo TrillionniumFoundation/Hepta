@@ -72,7 +72,8 @@ def _json(data):
 def _state(values):
     _require(type(values) in (list, tuple) and 1 <= len(values) <= MAX_ITEMS,
              "checkpoint requires 1..64 ordinary integer values")
-    result = tuple(values)
+    result = tuple(values[:MAX_ITEMS + 1])
+    _require(1 <= len(result) <= MAX_ITEMS, "checkpoint extent changed during capture")
     _require(all(type(v) is int and -MAX_MAGNITUDE <= v <= MAX_MAGNITUDE for v in result),
              "checkpoint value is outside the exact integer domain")
     return result
@@ -195,6 +196,7 @@ class JsonCheckpoint:
         _require(type(image) is JsonWorkerImage, "actual built worker image required")
         _require(sys.platform == "linux" and platform.machine() == "x86_64",
                  "this finite isolation profile requires Linux x86-64")
+        self._pid = os.getpid()
         self._image = image
         self._values = _state(values)
         self._revision = 0
@@ -217,6 +219,13 @@ class JsonCheckpoint:
     def __reduce_ex__(self, protocol):
         raise TypeError("checkpoint owners cannot be serialized")
 
+    def _same_process(self):
+        # A fork copies one-use capabilities and may inherit an RLock held by
+        # a vanished thread. Reject before touching that lock or launching a
+        # worker; copied request bytes are not a second live owner's authority.
+        _require(os.getpid() == self._pid,
+                 "forked checkpoint owner cannot be used; create an independent owner")
+
     def _mutable(self):
         _require(not self._busy, "reentrant checkpoint mutation is forbidden")
         _require(not self._closed and not self._poisoned, "checkpoint is closed or poisoned")
@@ -226,16 +235,19 @@ class JsonCheckpoint:
         return {**data, "sha256": _sha(_wire(data))}
 
     def snapshot(self):
+        self._same_process()
         with self._lock:
             return {"schema": PROFILE, **self._snapshot(), "closed": self._closed,
                     "poisoned": self._poisoned, "issued_requests": self._issued,
                     "pending": self._pending is not None}
 
     def history(self):
+        self._same_process()
         with self._lock:
             return json.loads(_wire(self._history))
 
     def prepare(self, index, value, *, revision, fault_site=0):
+        self._same_process()
         with self._lock:
             self._mutable()
             _require(self._pending is None, "only one outstanding replacement is permitted")
@@ -265,11 +277,13 @@ class JsonCheckpoint:
         return body
 
     def cancel(self, request):
+        self._same_process()
         with self._lock:
             self._mutable()
             self._take(request)
 
     def execute(self, request):
+        self._same_process()
         with self._lock:
             self._mutable()
             body = self._take(request)
@@ -396,12 +410,22 @@ class JsonCheckpoint:
         row.update(status="committed", committed=True)
 
     def close(self):
+        if os.getpid() != self._pid:
+            # No foreign handle or process owner lives in this object. Drop
+            # only the child's copied capability references without taking an
+            # inherited mutex, calling the supervisor or changing parent state.
+            self._closed = True
+            self._pending = None
+            return
         with self._lock:
             _require(not self._busy, "reentrant checkpoint close is forbidden")
             self._closed = True
             self._pending = None
 
     def __enter__(self):
+        self._same_process()
+        with self._lock:
+            self._mutable()
         return self
 
     def __exit__(self, kind, value, traceback):

@@ -48,6 +48,40 @@ def file_identity(path):
             "sha256": sha256(path.read_bytes()).hexdigest()}
 
 
+def check_runtime_inputs(report):
+    """Reconcile built libraries, driver and tool bytes with their observations.
+
+    These are before/after checks under the existing trusted-host contract,
+    not custody against a hostile process changing a file between observations.
+    Missing inputs or a failed read cannot leave an acceptance result valid.
+    """
+    started = time.monotonic_ns()
+    raw_products, raw_tools = report.get("native_artifacts"), report.get("toolchains")
+    products = raw_products if type(raw_products) is dict else {}
+    tools = raw_tools if type(raw_tools) is dict else {}
+    complete = (set(products) == {"c", "cpp", "rust", "hia"}
+                and {"clang", "rustc", "objdump"} <= set(tools)
+                and type(report.get("driver_identity")) is dict)
+    expected = {"library:" + name: value for name, value in products.items()}
+    expected.update({"tool:" + name: value for name, value in tools.items()})
+    expected["driver"] = report.get("driver_identity")
+    checks = {}
+    for name, before in expected.items():
+        row = {"before": before, "unchanged": False}
+        try:
+            after = file_identity(before["path"])
+            row["after"] = after
+            row["unchanged"] = all(after[key] == before[key]
+                                   for key in ("path", "bytes", "sha256"))
+        except (OSError, TypeError, KeyError, ValueError) as error:
+            row["error"] = {"type": type(error).__name__, "message": str(error)}
+        checks[name] = row
+    report["runtime_input_checks"] = checks
+    report["runtime_inputs_unchanged"] = bool(complete and all(row["unchanged"] for row in checks.values()))
+    report["runtime_identity_check_ns"] = time.monotonic_ns() - started
+    return report["runtime_inputs_unchanged"]
+
+
 def require(condition, message):
     if not condition:
         raise ValueError("E_HIA_NATIVE_ECONOMICS: " + message)
@@ -130,8 +164,12 @@ def source_state():
 def build(directory, clang, rustc, report, *, build_profile="instrumented-checked-v1"):
     from hepta.hia_program_source import lower_source
     from hepta.hia_program_llvm import emit_program_llvm, compile_program_llvm
-    require(build_profile in {"instrumented-checked-v1", "optimized-release-v1"}, "unknown build profile")
-    release = build_profile == "optimized-release-v1"
+    require(build_profile in {"instrumented-checked-v1", "optimized-release-v1",
+                              "verified-reduction-release-v1",
+                              "verified-reduction-narrowed-release-v1"}, "unknown build profile")
+    release = build_profile != "instrumented-checked-v1"
+    verified_narrowing = build_profile == "verified-reduction-narrowed-release-v1"
+    verified_reduction = build_profile == "verified-reduction-release-v1" or verified_narrowing
     ledger = report.setdefault("build_commands", [])
     report["build_profile"] = {"id": build_profile,
         "optimization": "O3 / opt-level=3",
@@ -142,6 +180,8 @@ def build(directory, clang, rustc, report, *, build_profile="instrumented-checke
         "target_cpu": "compiler generic x86_64 defaults, no native CPU tuning",
         "allocator_instrumentation": "same linker wrappers and actual allocation-failure probes",
         "fully_identical_codegen_flags": False,
+        "hia_verified_reduction": verified_reduction,
+        "hia_verified_modular_narrowing": verified_narrowing,
         "limits": ["Different compiler implementations/LLVM versions and language runtimes remain explicit.",
                    "HIA uses its production O3 checked-IR object path, without link-time IR.",
                    "Default-release Rust overflow policy is safe on the bounded workload: wrapping seed addition is explicit and u64 sum cannot overflow.",
@@ -185,9 +225,41 @@ def build(directory, clang, rustc, report, *, build_profile="instrumented-checke
                 core = core[0]
             raw = core.as_dict() if hasattr(core, "as_dict") else core
             (directory / "hia.core.json").write_bytes(wire(raw)+b"\n")
+            if verified_reduction:
+                from hepta.hia_guarded_optimization import (
+                    propose_guarded_reduction, guarded_program, build_guarded_native)
+                if verified_narrowing:
+                    from hepta.hia_narrowing import (
+                        propose_guarded_narrowing, guarded_narrowed_program,
+                        build_guarded_narrowed_native)
+                    propose = propose_guarded_narrowing
+                    build_verified = build_guarded_narrowed_native
+                    compose_verified = guarded_narrowed_program
+                else:
+                    propose = propose_guarded_reduction
+                    build_verified = build_guarded_native
+                    compose_verified = guarded_program
+                # The guard is an optimization boundary, not an admission
+                # assumption. Every other input retains the original checked
+                # semantics, including all original overflow checks.
+                # The optional second stage also proves modular changes in the
+                # fallback: scalar results, first traps and effects still match.
+                proposal = propose(core, maximum=65536, include_induction=True)
+                (directory / "hia.guarded-proposal.json").write_bytes(wire(proposal)+b"\n")
+                proof = build_verified(core, proposal, directory / "hia.o",
+                                       clang=str(clang), kind="object")
+                report["hia_guarded_compilation"] = proof
+                (directory / "hia.guarded-proof.json").write_bytes(wire(proof)+b"\n")
+                core = compose_verified(core, proposal)
+                require(core.sha256 == proof["native"]["core_sha256"],
+                        "guarded proof must bind the emitted Core and actual object")
+                (directory / "hia.optimized.core.json").write_bytes(wire(core.as_dict())+b"\n")
             llvm = emit_program_llvm(core)
             (directory / "hia.ll").write_text(llvm.text)
-            report["hia_compilation"] = compile_program_llvm(llvm, program=core, output=directory / "hia.o", clang=str(clang), kind="object")
+            if verified_reduction:
+                report["hia_compilation"] = proof["native"]
+            else:
+                report["hia_compilation"] = compile_program_llvm(llvm, program=core, output=directory / "hia.o", clang=str(clang), kind="object")
             run_command([clang, "-shared", directory / "hia.o", directory / "metrics.o", directory / "probe_exports.o", *wraps, "-o", target], directory, ledger)
         costs[name] = time.monotonic_ns() - start
         products[name] = file_identity(target)
@@ -206,10 +278,10 @@ def build(directory, clang, rustc, report, *, build_profile="instrumented-checke
 
 class Driver:
     """A bounded owned child, executing only this campaign's generated files."""
-    def __init__(self, executable, raw_path):
+    def __init__(self, executable, raw_path, *, env=None):
         self.raw = raw_path.open("xb")
         self.process = subprocess.Popen([str(executable)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                        stderr=subprocess.PIPE, bufsize=0)
+                                        stderr=subprocess.PIPE, bufsize=0, env=env)
         self.selector = selectors.DefaultSelector()
         self.selector.register(self.process.stdout, selectors.EVENT_READ)
         self.buffer = b""
@@ -247,12 +319,19 @@ class Driver:
     def load(self, label, products):
         if label in self.loaded:
             return None
+        started = time.monotonic_ns()
+        expected = products[label]
+        actual = file_identity(expected["path"])
+        require(all(actual[key] == expected[key] for key in ("path", "bytes", "sha256")),
+                "native library identity differs before load")
         order = protocol()["backends"].index(label)
         row = self.ask(f"L {order} {products[label]['path']}")
         require(row.get("loaded") == order, "wrong loaded library")
         self.loaded.add(label)
         self.path_ids[products[label]["path"]] = order
         row["mapping"] = self.mapping(products[label]["path"])
+        row["artifact_identity"] = actual
+        row["load_outer_ns"] = time.monotonic_ns() - started
         return row
 
     def mapping(self, path):
@@ -289,25 +368,32 @@ class Driver:
         return row
 
     def close(self):
-        if self.process.poll() is None:
-            try:
-                value = self.ask("Q")
-                require(value.get("closed") is True, "driver cleanup acknowledgement")
-                self.process.wait(timeout=5)
-            except BaseException:
-                self.process.kill()
-                self.process.wait(timeout=5)
-                raise
-        stderr = self.process.stderr.read(65536)
-        self.raw.write(wire({"exit_code": self.process.returncode, "stderr_hex": stderr.hex()})+b"\n")
-        self.raw.close()
-        self.selector.close()
-        require(self.process.returncode == 0, "native child failed")
+        try:
+            if self.process.poll() is None:
+                try:
+                    value = self.ask("Q")
+                    require(value.get("closed") is True, "driver cleanup acknowledgement")
+                    self.process.wait(timeout=5)
+                except BaseException:
+                    self.process.kill()
+                    self.process.wait(timeout=5)
+                    raise
+            stderr = self.process.stderr.read(65536)
+            self.raw.write(wire({"exit_code": self.process.returncode, "stderr_hex": stderr.hex()})+b"\n")
+            require(self.process.returncode == 0, "native child failed")
+        finally:
+            # Repeated measured sessions must release their actual pipe FDs
+            # before returning, including failed acknowledgements/child exits.
+            # Relying on Python GC moves cleanup outside the measured lifetime.
+            self.selector.close()
+            for stream in (self.process.stdin, self.process.stdout, self.process.stderr):
+                stream.close()
+            self.raw.close()
 
 
 @contextmanager
-def driver(executable, raw_path):
-    instance = Driver(executable, raw_path)
+def driver(executable, raw_path, *, env=None):
+    instance = Driver(executable, raw_path, env=env)
     try:
         yield instance
     finally:
@@ -341,25 +427,26 @@ def measure_training(directory, products, report, spec):
         rows = [r for r in report["training"] if r["backend"] == name]
         loads = [r for r in report["loads"] if r["backend"] == name]
         training[name] = {"latency_ns": {str(n): math.ceil(statistics.median(t for r in rows if r["n"] == n for t in r["times_ns"])) for n in spec["sizes"]},
-            "preparation_ns": math.ceil(statistics.median(r["transport_outer_ns"] for r in loads)),
+            "preparation_ns": math.ceil(statistics.median(r["load_outer_ns"] for r in loads)),
             "resident_bytes": max(r["mapping_after"]["mapped_bytes"] for r in rows)}
     report["training_summary"] = {name:{str(n):summary([t for r in report["training"] if r["backend"] == name and r["n"] == n for t in r["times_ns"]]) for n in spec["sizes"]} for name in spec["backends"]}
     report["frozen_training"] = {"values": training, "sha256": digest(training),
-        "future_evaluation_timing_rows_used": 0, "preparation_scope": "already-built artifact dlopen and bounded transport, not compilation",
+        "future_evaluation_timing_rows_used": 0, "preparation_scope": "complete already-built artifact identity check, dlopen transport and initial mapping observation; not compilation",
         "samples_are_admission_domain": "finite observed native cases, not an all-input theorem"}
     return training
 
 
-def observed_model(training, products, spec, current_size, horizon, ready, generation, sunk_ns):
+def observed_model(training, products, spec, current_size, horizon, ready, generation, sunk_ns,
+                   *, future_decision_cost_ns=None):
     """No episode or future-size argument exists at the policy input boundary."""
-    from hepta.hia_ndu_stateful import SCHEMA
+    from hepta.hia_ndu_stateful import SCHEMA, SCHEMA_V2
     require(current_size in spec["sizes"] and 1 <= horizon <= 4, "unsupported observed request")
     baseline = spec["baseline"]
     def identity(name):
         return products[name]["sha256"]
     objective = {key:value for key,value in spec.items() if key not in {
         "episodes", "training_seeds", "correctness_seeds", "correctness_sizes"}}
-    return {"schema": SCHEMA, "name": "native-owned-bytes", "objective_digest": digest(objective),
+    model = {"schema": SCHEMA, "name": "native-owned-bytes", "objective_digest": digest(objective),
         "generation": generation, "baseline": {"source_sha256": identity(baseline),
             "verification_sha256": digest(["bounded-native-differential",identity(baseline)]),
             "latency_ns": [training[baseline]["latency_ns"][str(current_size)]]*horizon},
@@ -374,6 +461,11 @@ def observed_model(training, products, spec, current_size, horizon, ready, gener
         "sunk_cost_ns": sunk_ns, "observations": [{"training_sha256":digest(training), "observed_size":current_size,
             "forecast":"current-size persistence", "future_workload_visible":False}],
         "cost_basis":"caller-measurement-estimates"}
+    if future_decision_cost_ns is not None:
+        require(type(future_decision_cost_ns) is int and 0 <= future_decision_cost_ns <= 1_000_000_000_000,
+                "future controller cost must be an explicit bounded integer")
+        model.update(schema=SCHEMA_V2, future_decision_cost_ns=future_decision_cost_ns)
+    return model
 
 
 def first_ready(reference, ready):
@@ -449,16 +541,93 @@ def fixed_ready(training, spec):
     return set(min(rows)[1])
 
 
+def calibrate_controllers(training, products, spec, bridge, identity, report):
+    """Freeze controller estimates using training sizes before any episode.
+
+    Measured maxima are forecasts, not upper bounds on future host time. Every
+    sample, native startup/shutdown, and calibration failure is retained. This
+    work is charged once to campaign preparation and never represented as free.
+    """
+    from hepta.hia_ndu_session import NduSession
+    from hepta.hia_ndu_stateful import build_request, invocation_gate
+    from tools.qualify_hia_ndu_stateful_reference import exact_dp_control, greedy_control
+    started = time.monotonic_ns()
+    result = {"schema": "hepta.hia.ndu.controller-calibration.v1", "status": "running",
+              "training_sha256": digest(training), "future_evaluation_rows_used": 0,
+              "samples": [], "estimates_ns": {}, "native_startup_ns": 0,
+              "native_shutdown_ns": 0, "estimates_are_runtime_bounds": False}
+    report["controller_calibration"] = result
+    session = None
+    try:
+        t = time.monotonic_ns()
+        try:
+            session = NduSession.for_stream_profile(bridge, identity, timeout=10)
+        finally:
+            result["native_startup_ns"] = time.monotonic_ns() - t
+        for n in spec["sizes"]:
+            for arm in ("exact_dp", "greedy", "native_ndu"):
+                t = time.monotonic_ns()
+                model = observed_model(training, products, spec, n, 4, set(), 1, 0)
+                gate = invocation_gate(model, invocation_cost_ns=0)
+                if arm == "native_ndu":
+                    bundle = build_request(model, search="dynamic-frontier")
+                    response = session.evaluate(bundle["request"])
+                    value = native_first_action(bundle, response, set())
+                else:
+                    value = (exact_dp_control if arm == "exact_dp" else greedy_control)(model)
+                elapsed = time.monotonic_ns() - t
+                sample = {"arm": arm, "training_size": n, "model_sha256": digest(model),
+                          "wall_ns": elapsed, "result": value, "invocation_gate": gate,
+                          "forced_calibration_call": True}
+                if arm == "native_ndu":
+                    sample.update(bundle=bundle, response=response,
+                                  native_raw_frame_hex=session._last_received_frame.hex())
+                result["samples"].append(sample)
+        result["estimates_ns"] = {arm: max(s["wall_ns"] for s in result["samples"] if s["arm"] == arm)
+                                  for arm in ("exact_dp", "greedy", "native_ndu")}
+        result["status"] = "passed"
+    except BaseException as error:
+        result.update(status="failed", error={"type": type(error).__name__, "message": str(error)})
+        raise
+    finally:
+        try:
+            if session is not None:
+                t = time.monotonic_ns()
+                try:
+                    session.close()
+                finally:
+                    result["native_shutdown_ns"] = time.monotonic_ns() - t
+                    result["native_session"] = session.snapshot()
+        except BaseException as error:
+            result.update(status="failed", cleanup_error={"type": type(error).__name__, "message": str(error)})
+            raise
+        finally:
+            result["actual_total_ns"] = time.monotonic_ns() - started
+            result["observed_attributed_cost_ns"] = {
+                arm: sum(s["wall_ns"] for s in result["samples"] if s["arm"] == arm)
+                + (result["native_startup_ns"] + result["native_shutdown_ns"] if arm == "native_ndu" else 0)
+                for arm in ("exact_dp", "greedy", "native_ndu")}
+            result["shared_calibration_harness_ns"] = (
+                result["actual_total_ns"] - sum(result["observed_attributed_cost_ns"].values()))
+            result["sha256"] = digest({key: value for key, value in result.items() if key != "sha256"})
+    return result
+
+
 def execute_policies(directory, products, training, report, spec, bridge, identity):
     from hepta.hia_ndu_session import NduSession
-    from hepta.hia_ndu_stateful import build_request
+    from hepta.hia_ndu_stateful import build_request, invocation_gate
     from tools.qualify_hia_ndu_stateful_reference import exact_dp_control, greedy_control
     report["policy_runs"] = []
     report["fixed_training_selections"] = []
+    calibration = report["controller_calibration"]
+    require(calibration["status"] == "passed" and calibration["training_sha256"] == digest(training),
+            "matching training-only controller calibration is required")
     for episode_index, episode in enumerate(spec["episodes"]):
         order = spec["policy_arms"][episode_index:]+spec["policy_arms"][:episode_index]
         for arm in order:
-            row = {"episode":episode_index,"arm":arm,"steps":[],"status":"running"}
+            row = {"episode":episode_index,"arm":arm,"steps":[],"status":"running",
+                   "ndu_startup_ns": 0, "ndu_shutdown_ns": 0, "native_invocations": 0,
+                   "controller_calibration_sha256": calibration["sha256"]}
             report["policy_runs"].append(row)
             session = None
             started = time.monotonic_ns()
@@ -473,39 +642,63 @@ def execute_policies(directory, products, training, report, spec, bridge, identi
                     row["fixed_selection_ns"] = time.monotonic_ns()-t
                     row["fixed_training_selection"] = sorted(frozen)
                     report["fixed_training_selections"].append(sorted(frozen))
-                if arm == "native_ndu":
-                    t = time.monotonic_ns()
-                    session = NduSession.for_stream_profile(bridge,identity,timeout=10)
-                    row["ndu_startup_ns"] = time.monotonic_ns()-t
                 with driver(directory/"driver",directory/f"policy-{episode_index}-{arm}.jsonl") as child:
                     row["baseline_load"] = child.load(spec["baseline"],products)
                     sunk = time.monotonic_ns()-started
                     for index in range(len(episode["sizes"])):
                         # The next request is first disclosed here, after the previous native batch.
                         n, seed = episode["sizes"][index], episode["seeds"][index]
-                        model = observed_model(training,products,spec,n,len(episode["sizes"])-index,ready,index+1,sunk)
+                        decision_start = time.monotonic_ns()
+                        future_cost = 0 if arm == "fixed" else calibration["estimates_ns"][arm]
+                        model = observed_model(training,products,spec,n,len(episode["sizes"])-index,ready,index+1,sunk,
+                                               future_decision_cost_ns=future_cost)
                         step = {"index":index,"observed_size":n,"seed":seed,"model":model,"loads":[]}
                         row["steps"].append(step)
-                        decision_start = time.monotonic_ns()
                         if arm == "fixed":
                             chosen = set(frozen)
                             sleeping = True
                         elif sleeping and n == last_size:
                             chosen = set(ready)
                             step["decision"] = {"status":"stop_until_observed_workload_change"}
-                        elif arm in {"exact_dp","greedy"}:
-                            result = exact_dp_control(model) if arm == "exact_dp" else greedy_control(model)
-                            step["decision"] = result
-                            chosen = first_ready(result,ready)
-                            sleeping = bool(result.get("winners")) and all(set(x)==chosen for x in sorted(r["schedule"] for r in result["winners"])[0])
                         else:
-                            bundle = build_request(model,search="dynamic-frontier")
-                            response = session.evaluate(bundle["request"])
-                            step["bundle"],step["response"] = bundle,response
-                            step["native_raw_frame_hex"] = session._last_received_frame.hex()
-                            step["decision"] = native_first_action(bundle,response,ready)
-                            chosen = set(step["decision"]["chosen_ready"])
-                            sleeping = step["decision"]["stopped_until_size_change"]
+                            invocation_estimate = future_cost
+                            if arm == "native_ndu" and session is None:
+                                invocation_estimate += calibration["native_startup_ns"] + calibration["native_shutdown_ns"]
+                            gate = invocation_gate(model, invocation_cost_ns=invocation_estimate)
+                            step["invocation_gate"] = gate
+                            if not gate["invoke"]:
+                                chosen, sleeping = set(ready), True
+                                step["decision"] = {"status": "skip_controller_keep_incumbent",
+                                                    "reason": gate["reason"]}
+                            else:
+                                # Reserve the estimated current invocation before planning;
+                                # the next snapshot replaces this reservation with actual
+                                # service time. It is never added to the observed sunk ledger.
+                                step["model_before_invocation_reservation"] = deepcopy(model)
+                                model["budget_ns"] -= invocation_estimate
+                                model["observations"].append({"kind": "current-controller-cost-reserved",
+                                    "estimated_ns": invocation_estimate,
+                                    "calibration_sha256": calibration["sha256"], "actual_measurement": False})
+                                if arm in {"exact_dp", "greedy"}:
+                                    result = exact_dp_control(model) if arm == "exact_dp" else greedy_control(model)
+                                    step["decision"] = result
+                                    chosen = first_ready(result,ready)
+                                    sleeping = bool(result.get("winners")) and all(set(x)==chosen for x in sorted(r["schedule"] for r in result["winners"])[0])
+                                else:
+                                    if session is None:
+                                        t = time.monotonic_ns()
+                                        try:
+                                            session = NduSession.for_stream_profile(bridge,identity,timeout=10)
+                                        finally:
+                                            row["ndu_startup_ns"] = time.monotonic_ns()-t
+                                    bundle = build_request(model,search="dynamic-frontier")
+                                    response = session.evaluate(bundle["request"])
+                                    row["native_invocations"] += 1
+                                    step["bundle"],step["response"] = bundle,response
+                                    step["native_raw_frame_hex"] = session._last_received_frame.hex()
+                                    step["decision"] = native_first_action(bundle,response,ready)
+                                    chosen = set(step["decision"]["chosen_ready"])
+                                    sleeping = step["decision"]["stopped_until_size_change"]
                         step["controller_ns"] = time.monotonic_ns()-decision_start
                         last_size = n
                         step["chosen_ready"] = sorted(chosen)
@@ -533,7 +726,7 @@ def execute_policies(directory, products, training, report, spec, bridge, identi
                         step["dispatched"] = dispatched
                         step["execution"] = child.measure(dispatched,n,seed,spec["batch_calls"],1)
                         step["resident_observations"] = {name:child.mapping(products[name]["path"]) for name in sorted(child.loaded)}
-                        load_cost = sum(r["transport_outer_ns"] for r in step["loads"])
+                        load_cost = sum(r["load_outer_ns"] for r in step["loads"])
                         charged = step["controller_ns"]+load_cost+step["execution"]["transport_outer_ns"]
                         sunk = time.monotonic_ns()-started-sum(s.get("independent_audit_ns",0) for s in row["steps"])
                         step["charged_step_ns"] = charged
@@ -546,25 +739,45 @@ def execute_policies(directory, products, training, report, spec, bridge, identi
                 row["error"] = {"type":type(error).__name__,"message":str(error)}
                 raise
             finally:
-                if session is not None:
-                    t=time.monotonic_ns()
-                    session.close()
-                    row["ndu_shutdown_ns"] = time.monotonic_ns()-t
-                    row["ndu_session"] = session.snapshot()
-                row["actual_total_ns"] = time.monotonic_ns()-started
-                row["independent_audit_ns"] = sum(s.get("independent_audit_ns",0) for s in row["steps"])
-                row["service_total_ns"] = row["actual_total_ns"]-row["independent_audit_ns"]
-                row["scope"] = "driver startup/load, current-only planning, actual native execution/probes, response validation and cleanup; shared offline build/training separately charged once"
+                try:
+                    if session is not None:
+                        t=time.monotonic_ns()
+                        try:
+                            session.close()
+                        finally:
+                            row["ndu_shutdown_ns"] = time.monotonic_ns()-t
+                            row["ndu_session"] = session.snapshot()
+                except BaseException as error:
+                    row.update(status="failed", cleanup_error={"type": type(error).__name__, "message": str(error)})
+                    raise
+                finally:
+                    row["actual_total_ns"] = time.monotonic_ns()-started
+                    row["independent_audit_ns"] = sum(s.get("independent_audit_ns",0) for s in row["steps"])
+                    row["service_total_ns"] = row["actual_total_ns"]-row["independent_audit_ns"]
+                    row["scope"] = "driver startup/load, current-only planning, actual native execution/probes, response validation and cleanup; shared offline build/training separately charged once"
 
 
 def evaluate(report,spec):
+    # Bind every strong-control comparison to the registered protocol.
+    # Tail-only regression and incomplete cohorts must never qualify.
+    gate = spec["performance_gate"]
+    require(gate["all_baselines_and_sizes_required"] is True,
+            "native performance qualification must require all sizes and baselines")
+    require(type(spec["backends"]) is list and len(spec["backends"]) == 4
+            and set(spec["backends"]) == {"c", "cpp", "rust", "hia"}
+            and type(spec["sizes"]) is list and len(spec["sizes"]) > 0
+            and len(set(spec["sizes"])) == len(spec["sizes"]),
+            "native performance protocol must register all four unique backends and nonempty unique sizes")
     performance = []
     for n in spec["sizes"]:
         hia=report["training_summary"]["hia"][str(n)]
         for name in ("c","cpp","rust"):
             control=report["training_summary"][name][str(n)]
-            performance.append({"size":n,"baseline":name,"median_ratio":hia["median"]/control["median"],
-                "p95_ratio":hia["p95"]/control["p95"],"passed":hia["median"]<=1.1*control["median"] and hia["p95"]<=1.2*control["p95"]})
+            ratios = {key+"_ratio": hia[key]/control[key] for key in ("median","p95","p99")}
+            performance.append({"size":n, "baseline":name, **ratios,
+                "passed": ratios["median_ratio"] <= gate["hia_median_ratio_maximum"]
+                          and ratios["p95_ratio"] <= gate["hia_tail_ratio_maximum"]
+                          and ratios["p99_ratio"] <= gate["hia_tail_ratio_maximum"]})
     economies=[]
     for episode in range(len(spec["episodes"])):
         rows={r["arm"]:r for r in report["policy_runs"] if r["episode"]==episode}
@@ -572,10 +785,17 @@ def evaluate(report,spec):
             economies.append({"episode":episode,"baseline":name,"ndu_ns":rows["native_ndu"]["service_total_ns"],
                 "baseline_ns":rows[name]["service_total_ns"],"ratio":rows["native_ndu"]["service_total_ns"]/rows[name]["service_total_ns"],
                 "passed":rows["native_ndu"]["service_total_ns"]<rows[name]["service_total_ns"]})
+    native_calls = sum(r.get("native_invocations", 0) for r in report["policy_runs"]
+                       if r["arm"] == "native_ndu")
+    gated_policy_wins = all(r["passed"] for r in economies)
     return {"performance_comparisons":performance,"economic_comparisons":economies,
             "four_language_finite_correctness_and_allocator_probes":True,
             "performance_gate_passed":all(r["passed"] for r in performance),
-            "service_scope_net_ndu_benefit_established":all(r["passed"] for r in economies),
+            "service_scope_gated_policy_benefit_established":gated_policy_wins,
+            "service_scope_net_ndu_benefit_established":gated_policy_wins and native_calls > 0,
+            "native_policy_invocations":native_calls,
+            "native_invocation_count_alone_proves_benefit":False,
+            "invoke_gate_proves_empirical_benefit":False,
             "whole_lifecycle_net_ndu_benefit_established":False,
             "whole_language_safety_proved":False,"global_optimum_proved":False,
             "complete_lifecycle_cost_known":False,"future_timing_leakage_used":False}
@@ -583,7 +803,8 @@ def evaluate(report,spec):
 
 def finalize_acceptance(report):
     """Identity drift or incomplete execution withdraws every acceptance gate."""
-    valid = report.get("status") == "completed" and report.get("source_unchanged") is True
+    valid = (report.get("status") == "completed" and report.get("source_unchanged") is True
+             and report.get("runtime_inputs_unchanged") is True)
     report["acceptance_observation_valid"] = valid
     if not valid:
         report.pop("acceptance", None)
@@ -594,7 +815,7 @@ def qualify(args):
     directory=Path(args.output).resolve()
     require(not directory.exists(),"new evidence directory required")
     directory.mkdir(parents=True,mode=0o700)
-    report={"schema":"hepta.hia.native-economics.results.v1","status":"failed",
+    report={"schema":"hepta.hia.native-economics.results.v3","status":"failed",
             "observed_utc":datetime.now(timezone.utc).isoformat(),"protocol":protocol(),
             "host":{"system":platform.system(),"machine":platform.machine(),"python":sys.version},
             "mode":"formal" if args.expected_source else "development","reused_native_ndu":file_identity(args.bridge),
@@ -606,7 +827,7 @@ def qualify(args):
         "allocator":"Requested payload, malloc_usable_size allocation capacity and slack; arena metadata and fragmentation unobserved.",
         "stack":"Sampled begin-to-allocator helper address distance plus compiler stack files/disassembly; no global peak proof.",
         "resident":"Loader PT_LOAD pages and mincore backing residency; not process-private RSS. Process peak RSS is getrusage, separately.",
-        "planning":"Measured planning/validation/transport costs are charged in actual service totals. The inherited preparation model's zero future decision-cost parameter remains a declared model limitation; no net-gain claim follows from its predicted optimum."}
+        "planning":"Training-only measured controller maxima forecast future active decisions. An optimistic same-information invoke/skip gate runs before each controller and before native startup. Current invocation reservations are replaced by observed service costs at the next snapshot. Estimates are not runtime bounds. All gates, startup, calls, transport and shutdown remain charged; no empirical net-gain claim follows from the model."}
     (directory/"protocol.json").write_bytes((FIXTURES/"PROTOCOL.json").read_bytes())
     try:
         require(platform.system()=="Linux" and platform.machine()=="x86_64","Linux x86-64 profile only")
@@ -624,13 +845,15 @@ def qualify(args):
         t=time.monotonic_ns()
         training=measure_training(directory,products,report,report["protocol"])
         report["offline_validation_training_wall_ns"]=time.monotonic_ns()-t
+        calibrate_controllers(training,products,report["protocol"],args.bridge,args.identity,report)
         from tools.qualify_hia_ndu_stateful import translation_refusal_probe
         t=time.monotonic_ns()
         report["actual_failed_translation"],_=translation_refusal_probe()
         report["failed_translation_outer_ns"]=time.monotonic_ns()-t
         require(report["actual_failed_translation"]["status"]=="actual-refusal-observed","real proof/refusal/replay required")
-        report["shared_campaign_cost_ns"]=(report["offline_build_wall_ns"]+report["offline_validation_training_wall_ns"]+report["failed_translation_outer_ns"])
-        report["shared_campaign_cost_scope"]="Actual shared bank preparation/validation/training and rejected proof paid once in this campaign, disclosed without arbitrary amortization. Per-policy service totals exclude this common sunk work and the independently recorded audit."
+        report["shared_campaign_cost_ns"]=(report["offline_build_wall_ns"]+report["offline_validation_training_wall_ns"]
+            +report["controller_calibration"]["actual_total_ns"]+report["failed_translation_outer_ns"])
+        report["shared_campaign_cost_scope"]="Actual shared bank preparation/validation/training, training-only controller calibration (including native startup/shutdown), and rejected proof paid once in this campaign, disclosed without arbitrary amortization. Per-policy service totals exclude this common sunk work and the independently recorded audit."
         execute_policies(directory,products,training,report,report["protocol"],args.bridge,args.identity)
         report["acceptance"]=evaluate(report,report["protocol"])
         report["status"]="completed"
@@ -643,6 +866,12 @@ def qualify(args):
         if not report["source_unchanged"]:
             report["status"]="failed"
             report["source_error"]="source changed during execution"
+        if not check_runtime_inputs(report):
+            report["status"]="failed"
+            report["runtime_identity_error"]="native artifact, driver or tool identity changed or is incomplete"
+        if "shared_campaign_cost_ns" in report:
+            report["shared_campaign_cost_ns"] += report["runtime_identity_check_ns"]
+            report["shared_campaign_cost_scope"] += " Final built-library, driver and compiler identity reconciliation is also charged once here."
         finalize_acceptance(report)
         report["wall_ns_before_final_encoding"]=time.monotonic_ns()-start
         report["cost_exclusions"]=["tool installation","source acquisition","past reused NDU build (separately preserved original identity/cost)","human implementation/review","energy","allocator arena/metadata/fragmentation","final report and archive publication"]
@@ -658,7 +887,9 @@ def main():
     parser.add_argument("--rustc",required=True)
     parser.add_argument("--bridge",required=True)
     parser.add_argument("--identity",required=True)
-    parser.add_argument("--build-profile", choices=("instrumented-checked-v1", "optimized-release-v1"),
+    parser.add_argument("--build-profile", choices=("instrumented-checked-v1", "optimized-release-v1",
+                                                   "verified-reduction-release-v1",
+                                                   "verified-reduction-narrowed-release-v1"),
                         default="instrumented-checked-v1")
     parser.add_argument("--expected-source")
     args=parser.parse_args()

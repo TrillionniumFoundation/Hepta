@@ -245,6 +245,26 @@ These bounds do not preempt Python/solver/native system calls or establish a
 hard real-time scheduling guarantee. They do not extend the selected body
 proof to LLVM machine-code generation, the public ABI or production recovery.
 
+Release parity's full native protocol additionally fixes the training and
+holdout axes, calls per timed batch, sample count and warmup count. Its
+assessment checks each native receipt's exact integer `calls` and `samples`
+against that registration before comparing median, p95 or p99. Schema-free
+synthetic cohorts exercise the acceptance arithmetic only and report
+`native_batch_work_identity_checked=false`. Neither kind of finite assessment
+establishes broad Rust performance parity or a net NDU benefit.
+
+The separate prospective `verified-reduction-narrowed-rust-pgo-release-v1`
+profile uses protocol v2. It adds Rust opt-level 3, fat LTO, one codegen unit
+and profile-guided optimization with the unchanged Rust kernel source. Only
+the registered training lengths/seeds enter instrumentation; the preparation
+API accepts no holdout. The LLVM20 profile tool must exactly match Rust's LLVM
+version. Instrumented build, native training and cleanup, raw profiles, merge,
+profile-use rebuild and original unprofiled build remain charged and retained.
+Missing-function diagnostics are enabled; successful compiler exit with a
+profile warning still refuses. Final measurement rechecks the used profile,
+tools and binary identities. Original v1 registrations and negative results
+remain distinct, with the same median/p95/p99 thresholds in both profiles.
+
 | Established mechanism | Remaining boundary |
 | --- | --- |
 | Executable Core type/ownership/effect checking | No machine-checked soundness theorem for the whole implementation |

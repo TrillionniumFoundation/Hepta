@@ -7,6 +7,7 @@ import importlib.util
 import os
 from pathlib import Path
 import shutil
+import sys
 import tempfile
 import time
 import threading
@@ -19,7 +20,12 @@ from tools.qualify_hia_stateful import programs, expected
 from tools.qualify_hia_continuation import qualify
 
 CLANG = os.environ.get("CLANG", "/usr/bin/clang-20")
-NATIVE = shutil.which(CLANG) and hasattr(fcntl, "F_SEAL_WRITE") and importlib.util.find_spec("z3") is not None
+# CPython may omit optional Linux fcntl constants even when the kernel
+# supports seals. The production pinning path uses the documented Linux ABI
+# numbers and verifies F_GET_SEALS; these actual native tests must exercise
+# that path instead of silently skipping solely because a macro is absent.
+NATIVE = (sys.platform == "linux" and shutil.which(CLANG)
+          and hasattr(os, "memfd_create") and importlib.util.find_spec("z3") is not None)
 
 
 @unittest.skipUnless(NATIVE, "Clang, Z3 and real Linux memfd seals required")
