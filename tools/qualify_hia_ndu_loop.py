@@ -17,7 +17,6 @@ import json
 import os
 from pathlib import Path
 import platform
-import resource
 import statistics
 import subprocess
 import sys
@@ -130,6 +129,9 @@ def oracle(n, calls, seed, multiplier=13):
 
 
 def measured(label, ledger, operation):
+    # Artifact publication helpers can be imported on other hosts. Actual CPU
+    # accounting still requires POSIX resource; never substitute zero usage.
+    import resource
     start, cpu = time.monotonic_ns(), time.process_time_ns()
     child = resource.getrusage(resource.RUSAGE_CHILDREN)
     row = {"label": label, "started_monotonic_ns": start, "status": "running"}
