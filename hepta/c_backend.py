@@ -123,8 +123,8 @@ class CEmitter:
                 fail("E_C_BACKEND_SUBSET", "Recursive C backend type definitions are not yet supported")
             return self.types[t]
         if t.name in {"raw_const", "raw_mut"}:
-            if t.args[0].name == "array":
-                fail("E_C_BACKEND_SUBSET", "Pointers to arrays require C declarator lowering not yet supported here")
+            # Fixed arrays are already named value wrappers, so an internal
+            # pointer to an array needs no additional C declarator machinery.
             child = self.typ(t.args[0])
             name = "__hepta_cb_ptr_" + str(len(self.types))
             self.types[t] = name
@@ -198,6 +198,21 @@ class CEmitter:
     def signature(self, fn, args=()):
         mapping = dict(zip(fn.type_params, args))
         returns = substitute_type(fn.return_type, mapping)
+        if fn.extern_c or fn.export_c:
+            # Public C headers use pointers to real C arrays, not pointers to
+            # our private array wrappers. Equal size is not type compatibility.
+            pending = [returns, *(p.type for p in fn.params)]
+            seen = set()
+            while pending:
+                typ = pending.pop()
+                if typ in seen:
+                    continue
+                seen.add(typ)
+                if typ.name in {"raw_const", "raw_mut"} and typ.args[0].name == "array":
+                    fail("E_C_BACKEND_SUBSET", "C ABI pointers to arrays require public declarator lowering", fn.span)
+                pending.extend(typ.args)
+                if typ.name in self.structs:
+                    pending.extend(field.type for field in self.fields(typ))
         if fn.return_mode != "value":
             result = (self.slice_type(returns, fn.return_mode) if returns.name == "slice" else
                       ("const " if fn.return_mode == "read" else "") + self.typ(returns) + " *")

@@ -10,6 +10,7 @@ on:
       - 'tools/**'
       - 'examples/**'
       - 'tests/test_native_host_evidence.py'
+      - 'tests/test_c_array_pointers.py'
       - 'tests/test_hia_aarch64*.py'
       - 'tests/fixtures/c_migration/**'
       - '.github/workflows/hepta-native-hosts.yml'
@@ -151,6 +152,23 @@ jobs:
           test "$(git rev-parse HEAD)" = "$HEPTA_QUALIFICATION_HEAD_SHA"
           test ! -s artifacts/native-host-tracked-before.log
           rustup toolchain install 1.90.0 --profile minimal 2>&1 | tee -a artifacts/native-host-setup.log
+      - name: Check internal array pointers against native Rust on Linux GCC hosts
+        if: matrix.system == 'Linux' && matrix.cc_family == 'gcc'
+        shell: bash
+        run: |
+          set -euo pipefail
+          export RUSTC="$(rustup which --toolchain 1.90.0 rustc)"
+          export CC="$(command -v gcc)"
+          "$CC" --version
+          "$RUSTC" --version
+          sha256sum "$CC" "$RUSTC"
+          python - <<'PYTEST'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_c_array_pointers')
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          if not result.wasSuccessful() or result.skipped or result.testsRun != 6:
+              raise SystemExit('Expected six array-pointer controls with no skips')
+          PYTEST
       - name: Establish the actual Visual Studio and Windows SDK environment
         if: matrix.system == 'Windows'
         shell: pwsh
