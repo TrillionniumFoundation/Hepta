@@ -27,9 +27,17 @@ class RecoveryControls(unittest.TestCase):
                 "HOSTILE_CONTROLS.json": {"count": 9, "passed": 9},
                 "TOKENIZER_CAPACITY.json": {"passed": True, "model_requests": 0, "models": [{}, {}]},
                 "PREPARATION.json": {"passed": True, "model_requests": 0,
-                    "source_commit": "a" * 40, "sources": bindings},
+                    "source_commit": "a" * 40, "source_tree": "b" * 40, "sources": bindings},
             }.items():
                 recovery.evaluator.save(folder / name, value)
+            preparation_path = folder / "PREPARATION.json"
+            preparation = json.loads(preparation_path.read_text())
+            for key, name in (("unit_controls", "UNIT_CONTROLS.json"),
+                              ("reference_controls", "DEVELOPMENT_CONTROLS.json"),
+                              ("hostile_controls", "HOSTILE_CONTROLS.json"),
+                              ("tokenizer_capacity", "TOKENIZER_CAPACITY.json")):
+                preparation[key] = recovery.file_identity(folder / name)
+            preparation_path.write_text(json.dumps(preparation))
             # Restore globals so controls cannot retarget a real preparation.
             for name in ("HERE", "SCHEMA", "source_bindings", "validate_registration"):
                 stack.enter_context(patch.object(recovery.inherited, name, getattr(recovery.inherited, name)))
@@ -97,6 +105,47 @@ class RecoveryControls(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "registration already exists"):
                 recovery.freeze(folder)
             self.assertEqual((folder / "REGISTRATION.json").read_bytes(), raw)
+
+    def test_preparation_tree_and_integer_zero_are_required_before_publication(self):
+        for key, value in (("source_tree", "c" * 40), ("source_tree", None),
+                           ("model_requests", False), ("model_requests", 0.0),
+                           ("model_requests", None)):
+            with self.subTest(key=key, value=value), self.prepared_registry() as folder:
+                path = folder / "PREPARATION.json"
+                preparation = json.loads(path.read_text()); preparation[key] = value
+                path.write_text(json.dumps(preparation))
+                before = {p.name: p.read_bytes() for p in folder.iterdir()}
+                with patch.object(recovery.inherited, "register", wraps=recovery.inherited.register) as register:
+                    with self.assertRaisesRegex(ValueError, "preparation required"):
+                        recovery.freeze(folder)
+                    register.assert_not_called()
+                self.assertEqual({p.name: p.read_bytes() for p in folder.iterdir()}, before)
+
+    def test_all_four_prepared_receipts_must_match_before_publication(self):
+        receipts = (("unit_controls", "UNIT_CONTROLS.json"),
+                    ("reference_controls", "DEVELOPMENT_CONTROLS.json"),
+                    ("hostile_controls", "HOSTILE_CONTROLS.json"),
+                    ("tokenizer_capacity", "TOKENIZER_CAPACITY.json"))
+        for key, name in receipts:
+            for change in ("bytes", "missing_binding", "wrong_binding"):
+                with self.subTest(receipt=name, change=change), self.prepared_registry() as folder:
+                    if change == "bytes":
+                        path = folder / name
+                        value = json.loads(path.read_text()); value["changed_after_preparation"] = True
+                    else:
+                        path = folder / "PREPARATION.json"
+                        value = json.loads(path.read_text())
+                        if change == "missing_binding":
+                            del value[key]
+                        else:
+                            value[key]["sha256"] = "0" * 64
+                    path.write_text(json.dumps(value))
+                    before = {p.name: p.read_bytes() for p in folder.iterdir()}
+                    with patch.object(recovery.inherited, "register", wraps=recovery.inherited.register) as register:
+                        with self.assertRaisesRegex(ValueError, "prepared recovery receipt changed"):
+                            recovery.freeze(folder)
+                        register.assert_not_called()
+                    self.assertEqual({p.name: p.read_bytes() for p in folder.iterdir()}, before)
 
     def test_registration_serialization_failure_restores_writer_without_final_file(self):
         with self.prepared_registry() as folder:
