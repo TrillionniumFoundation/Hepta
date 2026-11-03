@@ -61,6 +61,9 @@ pointer as a wrapper lvalue. `memcpy` can copy compatible object representations
 but cannot be used to assert arbitrary struct/native-array layouts are equal;
 prove or statically enforce each admitted layout, and retain full initialization,
 alignment, lifetime, extent and mutability obligations at the unsafe edge.
+For storage without a declared type, copy from the canonical native payload,
+not the enclosing wrapper: the source object also matters to the destination
+effective type. Byte copying is not a general effective-type escape hatch.
 All internal indexing, array literals, nested copies, `ptr_read`/`ptr_mut`,
 raw loads/stores, pointer casts and helper calls must consume the same layout.
 Do not perform unaligned typed accesses through a byte-cast workaround.

@@ -20,13 +20,20 @@ export "C" fn indirect(p:raw mut raw mut [i32;3])->raw mut raw mut [i32;3] effec
 
 class PublicArrayAbiDesignTests(unittest.TestCase):
     def test_frontend_accepts_but_c_backend_still_refuses(self):
-        p = parse(SOURCE)
-        c = check(p)
-        self.assertTrue(c.ok, c.diagnostics)
-        with self.assertRaises(HeptaError) as error:
-            emit_c(p, c, crate_type='staticlib')
-        self.assertEqual(error.exception.diagnostic.code, 'E_C_BACKEND_SUBSET')
-        self.assertIn('public declarator', str(error.exception))
+        sources = [
+            SOURCE,
+            'extern "C" fn nested(p:raw const [[i32;3];2])->i32 effects {ffi};',
+            'extern "C" fn returned()->raw mut [i32;3] effects {ffi};',
+        ]
+        for source in sources:
+            with self.subTest(source=source):
+                p = parse(source)
+                c = check(p)
+                self.assertTrue(c.ok, c.diagnostics)
+                with self.assertRaises(HeptaError) as error:
+                    emit_c(p, c, crate_type='staticlib')
+                self.assertEqual(error.exception.diagnostic.code, 'E_C_BACKEND_SUBSET')
+                self.assertIn('public declarator', str(error.exception))
 
     @unittest.skipUnless(shutil.which('gcc'), 'native GCC required')
     def test_real_header_callers_preserve_pointer_identity_and_stride(self):
