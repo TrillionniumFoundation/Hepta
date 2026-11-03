@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import contextlib
+from copy import deepcopy
 import io
 import json
 import sys
@@ -21,12 +22,16 @@ MSVC_PROBE = ("HEPTA_CC_FAMILY msvc\nHEPTA_CC_VERSION 194435213 0\n"
               "HEPTA_CC_SYSTEM Windows\nHEPTA_CC_MACHINE x86_64\nHEPTA_C_STANDARD 201112L\n")
 
 
+def _captured(code, stdout="", stderr=""):
+    return CaptureResult(code, stdout, stderr, stdout.encode(), stderr.encode())
+
+
 class NativeHostFailureEvidenceTests(TestCase):
     def test_host_subprocess_uses_bounded_capture_and_preserves_status(self):
         with patch.object(module, "run_bounded",
-                          side_effect=[CaptureResult(0, "clang version 20.1.8\n", ""),
-                                       CaptureResult(0, "x86_64-unknown-linux-gnu\n", ""),
-                                       CaptureResult(0, CLANG_PROBE, "")]) as invoke:
+                          side_effect=[_captured(0, "clang version 20.1.8\n", ""),
+                                       _captured(0, "x86_64-unknown-linux-gnu\n", ""),
+                                       _captured(0, CLANG_PROBE, "")]) as invoke:
             # The public run_host has a nested capture helper: exercise the
             # helper through its source path with a deliberately early mock
             # abort after version/target interrogation below.
@@ -58,6 +63,10 @@ class NativeHostFailureEvidenceTests(TestCase):
         self.assertEqual(entry["stdout"], "partial")
         self.assertEqual(entry["stdout_total_bytes"], 200000)
         self.assertEqual(entry["returncode"], -9)
+        root, _ = module._validate_retained_files(observations["retained_evidence"])
+        self.assertIs(entry["retained_streams"]["complete"], False)
+        self.assertEqual((root / "streams/00.stdout").read_bytes(), b"partial")
+        self.assertEqual((root / "streams/00.stderr").read_bytes(), b"error")
 
     def test_post_execution_validator_failure_keeps_raw_trace_and_fails(self):
         observed = {
@@ -98,8 +107,8 @@ class NativeHostFailureEvidenceTests(TestCase):
                   patch.object(module.shutil, "which", return_value=sys.executable),
                   patch.object(module.platform, "system", return_value="Windows"),
                   patch.object(module.platform, "machine", return_value="AMD64"),
-                  patch.object(module, "run_bounded", side_effect=[CaptureResult(0, MSVC_PROBE, ""),
-                         CaptureResult(2, "matrix.c\nerror C2143: deliberate compile failure\n", "")]),
+                  patch.object(module, "run_bounded", side_effect=[_captured(0, MSVC_PROBE, ""),
+                         _captured(2, "matrix.c\nerror C2143: deliberate compile failure\n", "")]),
                   patch.object(module, "analyze", return_value=SimpleNamespace(report={"ok": True}, program=None, rust="")),
                   patch.object(module, "emit_header", return_value="/* unit fixture */\n"),
                   patch.object(module, "compile_rust", return_value={"ok": True})):
@@ -145,7 +154,7 @@ class NativeHostCompilerDriverTests(TestCase):
         with (patch.object(module.shutil, "which", return_value=sys.executable),
               patch.object(module.platform, "system", return_value="Windows"),
               patch.object(module.platform, "machine", return_value="AMD64"),
-              patch.object(module, "run_bounded", return_value=CaptureResult(0, CLANG_PROBE.replace("Linux", "Windows"), ""))):
+              patch.object(module, "run_bounded", return_value=_captured(0, CLANG_PROBE.replace("Linux", "Windows"), ""))):
             with self.assertRaisesRegex(ValueError, "implementation differs"):
                 module.run_host(cc="clang-cl", cc_family="msvc", observations=observations)
         self.assertEqual(len(observations["commands"]), 1)
@@ -154,8 +163,8 @@ class NativeHostCompilerDriverTests(TestCase):
         with (patch.object(module.shutil, "which", return_value=sys.executable),
               patch.object(module.platform, "system", return_value="Linux"),
               patch.object(module.platform, "machine", return_value="x86_64"),
-              patch.object(module, "run_bounded", side_effect=[CaptureResult(0, "clang version 20.1.8", ""),
-                   CaptureResult(0, "x86_64-unknown-linux-gnu", ""), CaptureResult(0, CLANG_PROBE, "")])):
+              patch.object(module, "run_bounded", side_effect=[_captured(0, "clang version 20.1.8", ""),
+                   _captured(0, "x86_64-unknown-linux-gnu", ""), _captured(0, CLANG_PROBE, "")])):
             with self.assertRaisesRegex(ValueError, "differs from --cc-family"):
                 module.run_host(cc="cc", cc_family="gcc")
 
@@ -189,3 +198,171 @@ class NativeHostCompilerDriverTests(TestCase):
         self.assertEqual(command[-2:], ["/c", "/Fo" + str(output)])
         self.assertNotIn("/link", command)
         self.assertFalse(any(arg.startswith("/Fe") for arg in command))
+
+
+class NativeHostRetainedEvidenceTests(TestCase):
+    def native_names(self):
+        extension = ".exe" if sys.platform == "win32" else ""
+        return ("matrix.obj" if sys.platform == "win32" else "matrix.o",
+                "host-matrix-O0" + extension, "host-matrix-O2" + extension, "wrong" + extension)
+
+    @contextlib.contextmanager
+    def archive(self):
+        """Synthetic bytes exercise archive admission, not native execution."""
+        with tempfile.TemporaryDirectory() as temporary:
+            observations, commands = {}, []
+            evidence = module._RetainedEvidence(Path(temporary) / "archive", observations)
+            with module._retained_workdir(evidence, commands) as work:
+                inputs = {"compiler-identity.c": module.COMPILER_PROBE.encode(),
+                          "matrix.hepta": b"unit Hepta source", "matrix.c": b"positive C source",
+                          "matrix.h": b"positive header", "matrix.rs": b"complete Rust input",
+                          "layout-probes.rs": b"layout probes", "wrong.c": b"wrong C source"}
+                for name, raw in inputs.items():
+                    evidence.save("inputs/" + name, raw)
+                object_name, o0, o2, wrong = self.native_names()
+                native = {object_name: b"unit native object", o0: b"unit O0 executable",
+                          o2: b"unit O2 executable", wrong: b"unit wrong executable"}
+                for name, raw in {**native, "compiler-identity.c": inputs["compiler-identity.c"],
+                                  "matrix.c": inputs["wrong.c"], "matrix.h": inputs["matrix.h"]}.items():
+                    (work / name).write_bytes(raw)
+                controls = []
+                for name in ("function_parameter", "array_extent", "nested_pointer_const"):
+                    raw = ("changed header " + name).encode()
+                    evidence.save("inputs/type-" + name + ".h", raw)
+                    controls.append({"name": name, "header_sha256": module.sha(raw)})
+                commands.append({"argv": [str(work / o0)], "returncode": 0,
+                                 "seconds": 0, "stdout": "unit observation\n", "stderr": "",
+                                 "retained_streams": evidence.streams(0, b"unit observation\r\n", b"", complete=True)})
+                report = {"host": {"system": module.platform.system()}, "retained_evidence": evidence.receipt,
+                          "source_sha256": module.sha(inputs["matrix.hepta"]),
+                          "harness_sha256": module.sha(inputs["matrix.c"]),
+                          "header_sha256": module.sha(inputs["matrix.h"]),
+                          "layout_probes_sha256": module.sha(inputs["layout-probes.rs"]),
+                          "native_object": {"artifact": str(work / object_name), "artifact_bytes": len(native[object_name]),
+                                            "artifact_sha256": module.sha(native[object_name]),
+                                            "rust_sha256": module.sha(inputs["matrix.rs"])},
+                          "executable_sha256s": [module.sha(native[name]) for name in (o0, o2)],
+                          "negative_control": {"source_sha256": module.sha(inputs["wrong.c"]),
+                                               "artifact_sha256": module.sha(native[wrong])},
+                          "type_negative_controls": controls, "commands": commands}
+                evidence.save("native-build.json", (json.dumps(report["native_object"], sort_keys=True) + "\n").encode())
+            self.assertFalse(work.exists())
+            yield report, evidence.directory
+
+    def reseal(self, report, root):
+        receipt = report["retained_evidence"]
+        for name in receipt["files"]:
+            raw = (root / name).read_bytes()
+            receipt["files"][name] = {"bytes": len(raw), "sha256": module.sha(raw)}
+        raw = (json.dumps({k: v for k, v in receipt.items() if k != "manifest"}, sort_keys=True) + "\n").encode()
+        (root / "manifest.json").write_bytes(raw)
+        receipt["manifest"] = {"bytes": len(raw), "sha256": module.sha(raw)}
+
+    def test_originals_survive_temp_cleanup_with_raw_crlf_and_create_only_archive(self):
+        with self.archive() as (report, root):
+            module._validate_retained_bindings(report)
+            self.assertEqual((root / "streams/00.stdout").read_bytes(), b"unit observation\r\n")
+            self.assertNotEqual((root / "inputs/matrix.c").read_bytes(), (root / "work/matrix.c").read_bytes())
+            before = (root / "manifest.json").read_bytes()
+            with self.assertRaises(FileExistsError):
+                module._RetainedEvidence(root, {})
+            self.assertEqual((root / "manifest.json").read_bytes(), before)
+
+    def test_missing_truncated_or_changed_originals_cannot_qualify(self):
+        with self.archive() as (report, root):
+            for name in tuple("work/" + name for name in self.native_names()) + (
+                         "inputs/matrix.c", "inputs/type-array_extent.h", "streams/00.stdout"):
+                path = root / name; original = path.read_bytes()
+                for change in ("missing", "truncated", "changed"):
+                    with self.subTest(name=name, change=change):
+                        if change == "missing":
+                            path.unlink()
+                        else:
+                            path.write_bytes(original[:1] if change == "truncated" else b"X" * len(original))
+                        with self.assertRaises(ValueError):
+                            module._validate_retained_bindings(report)
+                        path.write_bytes(original)
+            module._validate_retained_bindings(report)
+
+    def test_resealed_manifest_cannot_replace_native_roles_or_original_output(self):
+        for name in tuple("work/" + name for name in self.native_names()) + (
+                     "inputs/matrix.c", "inputs/wrong.c", "streams/00.stdout"):
+            with self.subTest(name=name), self.archive() as (report, root):
+                (root / name).write_bytes(b"different retained bytes")
+                self.reseal(report, root)
+                with self.assertRaises(ValueError):
+                    module._validate_retained_bindings(report)
+        with self.archive() as (report, root):
+            changed = deepcopy(report)
+            changed["commands"][0]["argv"] = ["different-executable"]
+            with self.assertRaisesRegex(ValueError, "commands differ"):
+                module._validate_retained_bindings(changed)
+
+    def test_legacy_receipt_extra_files_aliases_and_symlinks_refuse(self):
+        with self.assertRaisesRegex(ValueError, "receipt-only"):
+            module._validate_retained_bindings({"schema": "hepta.native-host.v2"})
+        for name in ("../escape", "/absolute", "C:/drive", "\\\\server\\file", "work/../alias", "work\\alias", "work//alias"):
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                module._archive_name(name)
+        with self.archive() as (report, root):
+            (root / "extra").write_bytes(b"unlisted")
+            with self.assertRaisesRegex(ValueError, "file set"):
+                module._validate_retained_bindings(report)
+            (root / "extra").unlink()
+            # Exercise this guard on Windows without requiring OS symlink privileges.
+            with patch.object(Path, "is_symlink", autospec=True, side_effect=lambda p: p.name == self.native_names()[0]):
+                with self.assertRaisesRegex(ValueError, "symlink"):
+                    module._validate_retained_bindings(report)
+
+    def test_second_profile_failure_retains_first_profile_and_partial_outputs(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            target = Path(temporary) / "report.json"
+            def compile_object(source, **kwargs):
+                Path(kwargs["output"]).write_bytes(b"unit Rust object")
+                return {"ok": True}
+            def invoke(argv, **kwargs):
+                if argv[-1] == "--version": return _captured(0, "clang version 20.1.8\n")
+                if argv[-1] == "-dumpmachine": return _captured(0, "x86_64-unknown-linux-gnu\n")
+                if "-E" in argv: return _captured(0, CLANG_PROBE)
+                if "-o" in argv:
+                    output = Path(argv[argv.index("-o") + 1]); output.write_bytes(b"unit " + output.name.encode())
+                    return _captured(2, "deliberate O2 failure\n") if "-O2" in argv else _captured(0)
+                return _captured(0, json.dumps({"status": "passed", "foreign_calls": 181}) + "\n")
+            with (patch.object(sys, "argv", ["validate_native_host.py", "--cc", "clang", "--output", str(target)]),
+                  patch.object(module.shutil, "which", return_value=sys.executable),
+                  patch.object(module.platform, "system", return_value="Linux"),
+                  patch.object(module.platform, "machine", return_value="x86_64"),
+                  patch.object(module, "run_bounded", side_effect=invoke),
+                  patch.object(module, "analyze", return_value=SimpleNamespace(report={"ok": True}, program=None, rust="unit Rust source")),
+                  patch.object(module, "emit_header", return_value="unit header"),
+                  patch.object(module, "compile_rust", side_effect=compile_object),
+                  contextlib.redirect_stdout(io.StringIO())):
+                self.assertEqual(module.main(), 1)
+            report = json.loads(target.read_bytes())
+            self.assertEqual(report["status"], "failed")
+            observed = report["unqualified_observations"]
+            receipt = observed["retained_evidence"]
+            root, files = module._validate_retained_files(receipt)
+            self.assertFalse(Path(receipt["original_temporary_directory"]).exists())
+            self.assertEqual(len(observed["executions"]), 1)
+            self.assertEqual(observed["commands"][-1]["returncode"], 2)
+            for name in ("work/matrix.o", "work/host-matrix-O0", "work/host-matrix-O2"):
+                self.assertIn(name, files)
+            self.assertEqual((root / "streams/05.stdout").read_bytes(), b"deliberate O2 failure\n")
+            with self.assertRaises(ValueError):
+                module.validate_report(report)
+
+    def test_retention_failure_cannot_hide_original_failure_or_admit_success(self):
+        for original_failure in (False, True):
+            with self.subTest(original_failure=original_failure), tempfile.TemporaryDirectory() as temporary:
+                evidence = module._RetainedEvidence(Path(temporary) / "archive", {})
+                with patch.object(evidence, "finish", side_effect=OSError("archive unavailable")):
+                    expected = RuntimeError if original_failure else OSError
+                    with self.assertRaisesRegex(expected, "original native failure" if original_failure else "archive unavailable"):
+                        with module._retained_workdir(evidence, []):
+                            if original_failure:
+                                raise RuntimeError("original native failure")
+                self.assertEqual(evidence.receipt["retention_error"]["type"], "OSError")
+                self.assertEqual("execution_failure" in evidence.receipt, original_failure)
+                if original_failure:
+                    self.assertEqual(evidence.receipt["execution_failure"]["message"], "original native failure")

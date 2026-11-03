@@ -128,7 +128,7 @@ jobs:
         run: |
           mkdir -p artifacts
           cat > artifacts/native-host.json <<'JSON'
-          {"schema":"hepta.native-host.v2","status":"failed","error":"Native host setup or execution did not finish; inspect retained setup/test logs.","requested_compiler":"${{ matrix.cc }}","requested_family":"${{ matrix.cc_family }}","claims":{"cross_host_results_inferred":false}}
+          {"schema":"hepta.native-host.v3","status":"failed","error":"Native host setup or execution did not finish; inspect retained setup/test logs.","requested_compiler":"${{ matrix.cc }}","requested_family":"${{ matrix.cc_family }}","claims":{"cross_host_results_inferred":false}}
           JSON
           cat > artifacts/stb-divide-host.json <<'JSON'
           {"schema":"hepta.c-stb-divide-qualification.v1","ok":false,"status":"failed","error":"Complete component setup or execution did not finish; inspect retained setup and component logs.","claims":{"cross_host_results_inferred":false,"cpp_migration":false}}
@@ -204,6 +204,7 @@ jobs:
             --rustc "$(rustup which --toolchain 1.90.0 rustc)" \
             --cc "$HEPTA_HOST_CC" --cc-family "$HEPTA_HOST_CC_FAMILY" \
             --expected-system '${{ matrix.system }}' --expected-machine '${{ matrix.machine }}' \
+            --artifact-directory artifacts/native-host-artifacts \
             --output artifacts/native-host.json
       - name: Check bounded compiler capture process ownership on this host
         shell: bash
@@ -276,6 +277,7 @@ jobs:
           name: native-${{ matrix.os }}-${{ matrix.cc_family }}-${{ env.HEPTA_QUALIFICATION_HEAD_SHA }}
           path: |
             artifacts/native-host.json
+            artifacts/native-host-artifacts/
             artifacts/native-host-setup.log
             artifacts/native-host-source-before.log
             artifacts/native-host-source-after.log
