@@ -23,7 +23,7 @@ class CoreSyntaxRunnerTests(unittest.TestCase):
             prepared = {'positive':'mock text', 'canonical_bytes':b'{}',
                         'expected_theorems':{'Mock.expected'},
                         'manifest':{'core_sha256':sha256(b'{}').hexdigest()},
-                        'negatives':{'bad':{'source':'mock negative','kind':'mock', 'failure_lines':[4,4]}}}
+                        'negatives':{'bad':{'source':'mock negative','kind':'mock', 'declaration_line':4, 'rejected_proposition':'False'}}}
             calls=[]
             def invoke(exe,path):
                 calls.append(path.name)
@@ -35,8 +35,9 @@ class CoreSyntaxRunnerTests(unittest.TestCase):
                     if behavior == 'bad_axiom':
                         return {'returncode':0,'stdout':"'Mock.expected' depends on axioms: [sorryAx]",'stderr':''}
                     return {'returncode':0,'stdout':"'Mock.expected' does not depend on any axioms",'stderr':''}
-                line = 1 if behavior == 'wrong_location' else 4
-                return {'returncode':1,'stdout':f"{path}:{line}:1: error: tactic 'decide' proved that the proposition\n  False\nis false\n",'stderr':''}
+                if behavior == 'wrong_location':
+                    return {'returncode':1,'stdout':f'{path}:4:1: error: timeout','stderr':''}
+                return {'returncode':0,'stdout':"'HiaCoreSyntaxSlice.intended_rejection' does not depend on any axioms",'stderr':''}
             stack.enter_context(patch.object(proof,'ROOT',root))
             stack.enter_context(patch.object(proof,'source_identity',return_value={'fixed':'mock'}))
             stack.enter_context(patch.object(proof,'build_inputs',return_value=prepared))
@@ -61,6 +62,9 @@ class CoreSyntaxRunnerTests(unittest.TestCase):
         self.assertEqual(r['status'],'passed')
         self.assertTrue(r['kernel_core_syntax_connection_checked'])
         self.assertEqual(calls,['positive.lean','bad.lean'])
+        self.assertEqual(r['negative_protocol'],'kernel_proof_of_exact_negation')
+        self.assertEqual(r['negative_controls'][0]['certificate_kind'],'proof_of_negation')
+        self.assertTrue(r['negative_controls'][0]['kernel_rejection_certificate_checked'])
 
     def test_rejected_positive_stops_before_negatives(self):
         for behavior in ('missing','positive_fail','bad_axiom'):
@@ -123,20 +127,33 @@ class CoreSyntaxGeneratedInputTests(unittest.TestCase):
                      'parallel_transport','parallel_extraction'):
             self.assertIn('HiaCoreSyntaxSlice.'+name,p['expected_theorems'])
         self.assertIn('def parallelRaw : Raw :=',p['positive'])
+        self.assertIn('theorem linear_transport : checkedEncode linearRaw = some linearBytes := by decide +kernel',p['positive'])
+        self.assertNotIn('native_decide', p['positive'])
         self.assertIn('theorem linear_0_small',p['positive'])
         self.assertIn('theorem linear_0_upper',p['positive'])
 
     def test_negative_failure_ranges_and_semantic_mutation_are_explicit(self):
         p=self.prepared
         self.assertEqual(len(p['negatives']),10)
+        original = {
+            'changed_exact_byte':'checkedEncode linearRaw = some linearBytes',
+            'stale_descriptor':'extract linearRaw linearHint = some { HiaGuardedUsizeSlice.linear_0 with literalValue := 2 }',
+            'duplicate_keys':'checkedEncode (.obj [([97],.num 0),([97],.num 1)]) = some [123,34,97,34,58,48,44,34,97,34,58,49,125]',
+            'unordered_keys':'checkedEncode (.obj [([98],.num 0),([97],.num 1)]) = some [123,34,98,34,58,48,44,34,97,34,58,49,125]',
+            'byte_modulo_alias':'checkedEncode (.str [256]) = some [34,0,34]',
+            'leading_zero':'decode [48,49] = some (.num 1)',
+            'wrong_phi':'extract linearRaw linearHint = some HiaGuardedUsizeSlice.linear_0',
+            'literal_two':'extract linearRaw linearHint = some HiaGuardedUsizeSlice.linear_0',
+            'wrong_condition':'extract linearRaw linearHint = some HiaGuardedUsizeSlice.linear_0',
+            'wrong_arm_implementation':'extract parallelRaw parallelHint = some HiaGuardedUsizeSlice.linear_0'}
+        self.assertEqual({name:n['rejected_proposition'] for name,n in p['negatives'].items()},original)
         for name,n in p['negatives'].items():
-            self.assertNotIn('#print axioms',n['source'])
-            a,b=n['failure_lines']
-            self.assertEqual(a,b)
-            self.assertTrue(n['source'].splitlines()[a-1].startswith('theorem intended_negative'))
+            self.assertEqual(n['source'].count('#print axioms'),1)
+            a=n['declaration_line']
+            self.assertEqual(n['source'].splitlines()[a-1], 'theorem intended_rejection : ¬ ('+n['rejected_proposition']+') := by decide +kernel')
         for name in ('wrong_phi','literal_two','wrong_condition'):
             text=p['negatives'][name]['source']
-            self.assertLess(text.index('theorem mutated_transport'), text.index('theorem intended_negative'))
+            self.assertLess(text.index('theorem mutated_transport'), text.index('theorem intended_rejection'))
         mutant=p['negatives']['wrong_arm_implementation']['source']
         self.assertIn('let edge := field (field header "term") "else" -- MUTATION_SITE_SELECT_THEN',mutant)
         self.assertIn('let thenEdge := field term "then"',mutant)
@@ -157,17 +174,19 @@ class CoreSyntaxGeneratedInputTests(unittest.TestCase):
 
 
 class CoreSyntaxNegativeClassificationTests(unittest.TestCase):
-    def test_only_complete_decide_false_error_qualifies(self):
-        path=Path('/tmp/negative.lean')
-        good=f"{path}:42:3: error: tactic 'decide' proved that the proposition\n  False\nis false\n"
-        self.assertTrue(proof.decide_negative_rejected({'returncode':1,'stdout':good,'stderr':''},path,[42,42]))
-        for message in ('unexpected token', 'unknown identifier',
-                        '(deterministic) timeout at isDefEq, maximum number of heartbeats exceeded',
-                        'maximum recursion depth has been reached', 'unsolved goals'):
-            bad=f'{path}:42:3: error: {message}\n'
-            for log in (bad, good+bad, bad+good):
-                with self.subTest(message=message,log=log):
-                    self.assertFalse(proof.decide_negative_rejected(
-                        {'returncode':1,'stdout':log,'stderr':''},path,[42,42]))
-        self.assertFalse(proof.decide_negative_rejected({'returncode':True,'stdout':good,'stderr':''},path,[42,42]))
-        self.assertFalse(proof.decide_negative_rejected({'returncode':1,'stdout':good,'stderr':'extra error'},path,[42,42]))
+    def test_only_successful_exact_negation_certificate_qualifies(self):
+        good="'HiaCoreSyntaxSlice.intended_rejection' does not depend on any axioms"
+        self.assertTrue(proof.rejection_certificate_checked({'returncode':0,'stdout':good,'stderr':''}))
+        for message in ('unexpected token', 'unknown identifier', 'heartbeat timeout',
+                        'maximum recursion depth', 'unsolved goals',
+                        "tactic 'decide' proved that the proposition False is false"):
+            bad=f'/tmp/negative.lean:42:3: error: {message}\n'
+            for log in (bad,good+'\n'+bad,bad+good):
+                for code in (0,1):
+                    with self.subTest(message=message,code=code):
+                        self.assertFalse(proof.rejection_certificate_checked(
+                            {'returncode':code,'stdout':log,'stderr':''}))
+        for log in (good+'\n'+good,good.replace('intended_rejection','unrelated'),
+                    good.replace('does not depend on any axioms','depends on axioms: [sorryAx]')):
+            self.assertFalse(proof.rejection_certificate_checked({'returncode':0,'stdout':log,'stderr':''}))
+        self.assertFalse(proof.rejection_certificate_checked({'returncode':False,'stdout':good,'stderr':''}))

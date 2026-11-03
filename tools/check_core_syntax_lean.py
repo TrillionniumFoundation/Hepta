@@ -250,7 +250,7 @@ def build_inputs():
  theorem linear_extraction : extract linearRaw linearHint = some HiaGuardedUsizeSlice.linear_0 := by decide
  theorem linear_relation : SliceSyntaxRelation linearRaw linearHint HiaGuardedUsizeSlice.linear_0 :=
    extract_sound linearRaw linearHint HiaGuardedUsizeSlice.linear_0 linear_extraction
-'''.replace('\n theorem', '\ntheorem')
+'''.replace('\n theorem', '\ntheorem').replace('by decide\n', 'by decide +kernel\n')
     parallel = deepcopy(fixed['tree'])
     fn = next(f for f in parallel['functions'] if f['name'] == fixed['hint']['function'])
     blocks = {b['id']:b for b in fn['blocks']}
@@ -268,13 +268,13 @@ def build_inputs():
     parallel_defs = _definitions(parallel_tree, parallel_bytes, fixed['hint']).replace('linearRaw','parallelRaw').replace('linearBytes','parallelBytes').replace('linearHint','parallelHint')
     parallel_proofs = '''theorem parallel_transport : checkedEncode parallelRaw = some parallelBytes := by decide
  theorem parallel_extraction : extract parallelRaw parallelHint = some HiaGuardedUsizeSlice.linear_0 := by decide
-'''.replace('\n theorem','\ntheorem')
+'''.replace('\n theorem','\ntheorem').replace('by decide\n', 'by decide +kernel\n')
     new_names = MODEL_THEOREMS | {'linear_transport', 'linear_extraction', 'linear_relation',
                                  'parallel_transport', 'parallel_extraction'}
     printed = ''.join('#print axioms '+NAMESPACE+'.'+name+'\n' for name in sorted(new_names))
     positive = checked_source((baseline['positive'], model, defs, proofs,
                                'end HiaCoreSyntaxSlice\n', parallel_defs, parallel_proofs, 'end HiaCoreSyntaxSlice\n', printed))
-    # Negative declarations do not print failed-theorem placeholders as axioms.
+    # Rejection certificates prove the exact negation; no compiler error qualifies.
     common = re.sub(r'(?m)^#print axioms .*\n', '', baseline['positive'] + model)
     negatives = {}
     proof_bytes = len(positive.encode())
@@ -284,11 +284,11 @@ def build_inputs():
         nonlocal proof_bytes
         start = checked_source((common, definitions))
         line = start.count('\n') + 1
-        source = checked_source((start, 'theorem intended_negative : '+proposition+' := by decide\n',
-                                 'end HiaCoreSyntaxSlice\n'))
+        source = checked_source((start, 'theorem intended_rejection : ¬ ('+proposition+') := by decide +kernel\n',
+                                 'end HiaCoreSyntaxSlice\n#print axioms HiaCoreSyntaxSlice.intended_rejection\n'))
         proof_bytes += len(source.encode())
         require(proof_bytes <= MAX_TOTAL_PROOF_BYTES, 'total proof input budget')
-        negatives[name] = {'source': source, 'failure_lines': [line, line], 'kind': kind}
+        negatives[name] = {'source': source, 'declaration_line': line, 'rejected_proposition':proposition, 'kind': kind}
 
     changed = bytearray(fixed['bytes'])
     changed[-1] = 93 if changed[-1] != 93 else 125
@@ -322,7 +322,7 @@ def build_inputs():
         checked = verify_program(mutant)
         raw = checked.canonical_bytes
         negative(kind, _definitions(strict_canonical(raw), raw, fixed['hint']) +
-                 'theorem mutated_transport : checkedEncode linearRaw = some linearBytes := by decide\n',
+                 'theorem mutated_transport : checkedEncode linearRaw = some linearBytes := by decide +kernel\n',
                  'extract linearRaw linearHint = some HiaGuardedUsizeSlice.linear_0',
                  'reverified_core_syntax')
     negative('leading_zero', '\nnamespace HiaCoreSyntaxSlice\n',
@@ -332,11 +332,12 @@ def build_inputs():
     changed_common = common.replace(selector, selector.replace('"then"','"else"'))
     start = checked_source((changed_common, parallel_defs))
     line = start.count('\n') + 1
-    semantic_source = checked_source((start, 'theorem intended_negative : extract parallelRaw parallelHint = some HiaGuardedUsizeSlice.linear_0 := by decide\nend HiaCoreSyntaxSlice\n'))
+    semantic_proposition = 'extract parallelRaw parallelHint = some HiaGuardedUsizeSlice.linear_0'
+    semantic_source = checked_source((start, 'theorem intended_rejection : ¬ ('+semantic_proposition+') := by decide +kernel\nend HiaCoreSyntaxSlice\n#print axioms HiaCoreSyntaxSlice.intended_rejection\n'))
     require(proof_bytes + len(semantic_source.encode()) <= MAX_TOTAL_PROOF_BYTES, 'total proof input budget')
     negatives['wrong_arm_implementation'] = {
         'source':semantic_source,
-        'failure_lines':[line,line], 'kind':'reconstruction_implementation'}
+        'declaration_line':line, 'rejected_proposition':semantic_proposition, 'kind':'reconstruction_implementation'}
     total = len(positive.encode()) + sum(len(n['source'].encode()) for n in negatives.values())
     require(total <= MAX_TOTAL_PROOF_BYTES, 'total proof input budget')
     require(len(negatives) == 10, 'negative inventory changed')
@@ -349,21 +350,17 @@ def build_inputs():
                          'proof_input_bytes':total}}
 
 
-def decide_negative_rejected(result, path, lines):
-    """Only a complete intended-line proof of false qualifies, not any error.
-
-    All new negative declarations use by decide. Syntax/import/timeout errors,
-    even on the intended line or mixed with an expected error, are failures.
-    """
-    if type(result.get('returncode')) is not int or result['returncode'] != 1:
+def rejection_certificate_checked(result):
+    """Only a successful kernel proof of the exact emitted negation qualifies."""
+    from tools.check_guarded_slice_lean import theorem_inventory
+    if type(result.get('returncode')) is not int or result['returncode'] != 0:
         return False
-    log = result.get('stdout', '') + result.get('stderr', '')
-    match = re.fullmatch(re.escape(str(path)) +
-        r":(\d+):\d+: error: tactic 'decide' proved that the proposition\n(.+)\nis false\s*",
-        log, re.S)
-    return bool(match and lines[0] <= int(match.group(1)) <= lines[1]
-                and match.group(2).strip() and 'error:' not in match.group(2)
-                and 'sorryAx' not in log)
+    try:
+        theorem_inventory(result.get('stdout','') + result.get('stderr',''),
+                          {NAMESPACE+'.intended_rejection'})
+    except ValueError:
+        return False
+    return True
 
 
 def qualify(lean, output_directory):
@@ -390,7 +387,7 @@ def qualify(lean, output_directory):
         'python_exporter_refinement_proved':False, 'body_prefix_refinement_proved':False,
         'all_edge_transfer_proved':False, 'source_sha256':identity,
         'lean_binary_sha256':lock['lean_binary_sha256'], 'support_sha256':support,
-        'negative_controls':[], 'manifest':prepared['manifest'],
+        'negative_controls':[], 'negative_protocol':'kernel_proof_of_exact_negation', 'manifest':prepared['manifest'],
         'obligations':[{'id':n,'status':'unproved'} for n, _ in OBLIGATIONS], **DENY}
     started = time.monotonic()
     try:
@@ -405,11 +402,13 @@ def qualify(lean, output_directory):
             path = output / (name+'.lean')
             path.write_text(mutation['source'])
             result = _run_lean(executable, path)
-            accepted = decide_negative_rejected(result,path,mutation['failure_lines'])
+            accepted = rejection_certificate_checked(result)
             report['negative_controls'].append({'name':name, 'kind':mutation['kind'],
                 'source_sha256':digest(mutation['source'].encode()),
-                'failure_lines':mutation['failure_lines'], 'expected_rejection':accepted, **result})
-            require(accepted, 'intended negative obligation not rejected: '+name)
+                'declaration_line':mutation['declaration_line'],
+                'rejected_proposition':mutation['rejected_proposition'],
+                'kernel_rejection_certificate_checked':accepted, 'certificate_kind':'proof_of_negation', **result})
+            require(accepted, 'rejection certificate kernel check failed: '+name)
         require(source_identity() == identity and digest(executable.read_bytes()) == lock['lean_binary_sha256']
                 and _support_identity(executable) == support, 'source or checker changed')
         require(fixed_input()['bytes'] == prepared['canonical_bytes'], 'Core bytes changed')

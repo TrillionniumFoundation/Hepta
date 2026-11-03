@@ -19,7 +19,7 @@ inductive Raw where
   | obj (fields : List (List Nat × Raw))
   deriving Repr
 
-/-- Lean 4.19 does not derive DecidableEq for this nested datatype. These
+/- Lean 4.19 does not derive DecidableEq for this nested datatype. These
     explicit mutual decisions produce equality proofs by constructor congruence
     and reject unequal constructor arguments by constructor injectivity. -/
 mutual
@@ -374,7 +374,7 @@ def keysAre (raw : Raw) (keys : List String) : Bool :=
   | .obj fields => decide (fields.map Prod.fst = keys.map ascii)
   | _ => false
 
-def at (items : List Raw) (index : Nat) : Raw := items[index]?.getD (.obj [])
+def rawAt (items : List Raw) (index : Nat) : Raw := items[index]?.getD (.obj [])
 
 def position (name : List Nat) : List (List Nat) → Nat
   | [] => 0
@@ -441,13 +441,13 @@ structure Hint where
 abbrev Locator := Hint
 
 def selectedFunction (raw : Raw) (hint : Hint) : Raw :=
-  at (array (field raw "functions")) hint.functionIndex
+  rawAt (array (field raw "functions")) hint.functionIndex
 
 def selectedHeader (raw : Raw) (hint : Hint) : Raw :=
-  at (array (field (selectedFunction raw hint) "blocks")) hint.headerIndex
+  rawAt (array (field (selectedFunction raw hint) "blocks")) hint.headerIndex
 
 def selectedTarget (raw : Raw) (hint : Hint) : Raw :=
-  at (array (field (selectedFunction raw hint) "blocks")) hint.targetIndex
+  rawAt (array (field (selectedFunction raw hint) "blocks")) hint.targetIndex
 
 def definitionOrdinal (name : List Nat) : List Raw → Nat
   | [] => 0
@@ -464,23 +464,23 @@ def addTag (raw : Raw) : AddOp :=
 def reconstruct (raw : Raw) (hint : Hint) : Descriptor :=
   let header := selectedHeader raw hint
   let target := selectedTarget raw hint
-  let compare := at (array (field header "ops")) 0
+  let compare := rawAt (array (field header "ops")) 0
   let sourceNames := names (blockBinders header)
   let compareArgs := (array (field compare "args")).map bytes
   let edge := field (field header "term") "then" -- MUTATION_SITE_SELECT_THEN
   let targetParams := array (field target "params")
   let targetNames := names targetParams
   let ops := array (field target "ops")
-  let add := at ops hint.addOrdinal
+  let add := rawAt ops hint.addOrdinal
   let args := (array (field add "args")).map bytes
   let literalOrdinal := definitionOrdinal (args[1]?.getD []) ops
-  let literal := at ops literalOrdinal
+  let literal := rawAt ops literalOrdinal
   { sourceIndex := position (compareArgs[0]?.getD []) sourceNames -- MUTATION_SITE_SOURCE_POSITION
     sourceExtent := position (compareArgs[1]?.getD []) sourceNames
-    compareOutput := position (bytes (field (at (array (field compare "out")) 0) "name")) sourceNames
+    compareOutput := position (bytes (field (rawAt (array (field compare "out")) 0) "name")) sourceNames
     branchCondition := position (bytes (field (field header "term") "cond")) sourceNames
-    indexType := if field (at (blockBinders header) (position (compareArgs[0]?.getD []) sourceNames)) "type" = .str (ascii "usize") then .usize else .other
-    extentType := if field (at (blockBinders header) (position (compareArgs[1]?.getD []) sourceNames)) "type" = .str (ascii "usize") then .usize else .other
+    indexType := if field (rawAt (blockBinders header) (position (compareArgs[0]?.getD []) sourceNames)) "type" = .str (ascii "usize") then .usize else .other
+    extentType := if field (rawAt (blockBinders header) (position (compareArgs[1]?.getD []) sourceNames)) "type" = .str (ascii "usize") then .usize else .other
     compareOp := if field compare "op" = .str (ascii "compare.lt") then .lt else .other
     selectedArm := .thenArm
     incoming := (array (field edge "args")).map (fun arg => position (bytes arg) sourceNames)
@@ -488,8 +488,8 @@ def reconstruct (raw : Raw) (hint : Hint) : Descriptor :=
     extentSlot := position hint.bodyExtent targetNames
     addIndexSlot := position (args[0]?.getD []) targetNames
     addOp := addTag (field add "op")
-    addType := if field (at (array (field add "out")) 0) "type" = .str (ascii "usize") then .usize else .other
-    literalType := if field (at (array (field literal "out")) 0) "type" = .str (ascii "usize") then .usize else .other
+    addType := if field (rawAt (array (field add "out")) 0) "type" = .str (ascii "usize") then .usize else .other
+    literalType := if field (rawAt (array (field literal "out")) 0) "type" = .str (ascii "usize") then .usize else .other
     literalValue := number (field (field literal "attrs") "value")
     literalOrdinal := literalOrdinal
     addOrdinal := hint.addOrdinal }
@@ -499,12 +499,12 @@ def reconstruct (raw : Raw) (hint : Hint) : Descriptor :=
     No condition below claims normal arrival through the target body. -/
 def SliceSyntaxRelation (raw : Raw) (hint : Hint) (d : Descriptor) : Prop :=
   let functions := array (field raw "functions")
-  let fn := at functions hint.functionIndex
+  let fn := rawAt functions hint.functionIndex
   let blocks := array (field fn "blocks")
-  let header := at blocks hint.headerIndex
-  let target := at blocks hint.targetIndex
+  let header := rawAt blocks hint.headerIndex
+  let target := rawAt blocks hint.targetIndex
   let headerParams := array (field header "params")
-  let compare := at (array (field header "ops")) 0
+  let compare := rawAt (array (field header "ops")) 0
   let sourceBinders := blockBinders header
   let sourceNames := names sourceBinders
   let targetParams := array (field target "params")
@@ -514,8 +514,8 @@ def SliceSyntaxRelation (raw : Raw) (hint : Hint) (d : Descriptor) : Prop :=
   let elseEdge := field term "else"
   let edgeArgs := array (field thenEdge "args")
   let ops := array (field target "ops")
-  let add := at ops d.addOrdinal
-  let literal := at ops d.literalOrdinal
+  let add := rawAt ops d.addOrdinal
+  let literal := rawAt ops d.literalOrdinal
   withinBounds raw = true ∧
   goodProgram raw = true ∧
   hint.functionIndex < functions.length ∧
@@ -526,8 +526,8 @@ def SliceSyntaxRelation (raw : Raw) (hint : Hint) (d : Descriptor) : Prop :=
   field compare "args" = .arr [.str (sourceNames[d.sourceIndex]?.getD []),
     .str (sourceNames[d.sourceExtent]?.getD [])] ∧
   d.sourceIndex < headerParams.length ∧ d.sourceExtent < headerParams.length ∧
-  field (at sourceBinders d.sourceIndex) "type" = .str (ascii "usize") ∧
-  field (at sourceBinders d.sourceExtent) "type" = .str (ascii "usize") ∧
+  field (rawAt sourceBinders d.sourceIndex) "type" = .str (ascii "usize") ∧
+  field (rawAt sourceBinders d.sourceExtent) "type" = .str (ascii "usize") ∧
   d.compareOutput = headerParams.length ∧
   field compare "out" = .arr [.obj [(ascii "name", .str (sourceNames[d.compareOutput]?.getD [])),
     (ascii "type", .str (ascii "bool"))]] ∧
@@ -546,24 +546,24 @@ def SliceSyntaxRelation (raw : Raw) (hint : Hint) (d : Descriptor) : Prop :=
   hint.bodyIndex ∈ targetNames ∧ hint.bodyExtent ∈ targetNames ∧
   targetNames[d.indexSlot]? = some hint.bodyIndex ∧
   targetNames[d.extentSlot]? = some hint.bodyExtent ∧
-  field (at targetParams d.indexSlot) "type" = .str (ascii "usize") ∧
-  field (at targetParams d.extentSlot) "type" = .str (ascii "usize") ∧
+  field (rawAt targetParams d.indexSlot) "type" = .str (ascii "usize") ∧
+  field (rawAt targetParams d.extentSlot) "type" = .str (ascii "usize") ∧
   d.incoming[d.indexSlot]? = some d.sourceIndex ∧
   d.incoming[d.extentSlot]? = some d.sourceExtent ∧
   d.addOrdinal = hint.addOrdinal ∧ d.addOrdinal < ops.length ∧
   d.literalOrdinal < d.addOrdinal ∧
   field add "args" = .arr [.str hint.bodyIndex,
-    .str (bytes (field (at (array (field literal "out")) 0) "name"))] ∧
+    .str (bytes (field (rawAt (array (field literal "out")) 0) "name"))] ∧
   field add "attrs" = .obj [] ∧
   (field add "op" = .str (ascii "int.add.checked") ∧ d.addOp = .checked ∨
    field add "op" = .str (ascii "int.add.wrap") ∧ d.addOp = .wrapping) ∧
   (array (field add "out")).length = 1 ∧
-  field (at (array (field add "out")) 0) "type" = .str (ascii "usize") ∧
+  field (rawAt (array (field add "out")) 0) "type" = .str (ascii "usize") ∧
   field literal "op" = .str (ascii "const") ∧
   field literal "args" = .arr [] ∧
   field literal "attrs" = .obj [(ascii "value", .num 1)] ∧
   (array (field literal "out")).length = 1 ∧
-  field (at (array (field literal "out")) 0) "type" = .str (ascii "usize") ∧
+  field (rawAt (array (field literal "out")) 0) "type" = .str (ascii "usize") ∧
   d.branchCondition = d.compareOutput ∧ d.indexType = .usize ∧ d.extentType = .usize ∧
   d.compareOp = .lt ∧ d.selectedArm = .thenArm ∧ d.addIndexSlot = d.indexSlot ∧
   d.addType = .usize ∧ d.literalType = .usize ∧ d.literalValue = 1
@@ -579,13 +579,12 @@ def extract (raw : Raw) (hint : Hint) : Option Descriptor :=
 
 theorem extract_sound (raw : Raw) (hint : Hint) (d : Descriptor)
     (extracted : extract raw hint = some d) : SliceSyntaxRelation raw hint d := by
-  unfold extract at extracted
-  split at extracted
-  · rename_i accepted
-    have same : reconstruct raw hint = d := by simpa using extracted
+  by_cases accepted : SliceSyntaxRelation raw hint (reconstruct raw hint)
+  · have same : reconstruct raw hint = d := by
+      simpa [extract, accepted] using extracted
     rw [← same]
     exact accepted
-  · simp at extracted
+  · simp [extract, accepted] at extracted
 
 /-- Composition with the existing projection theorem. Exact byte binding and
     transport determinacy are separate certificate obligations. -/

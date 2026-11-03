@@ -61,10 +61,12 @@ still establish nonvacuity for the selected descriptor, not actual body arrival.
 Ten fixed negatives: one exact byte change; a stale proposed descriptor; duplicate
 keys; unordered keys; byte 256/modulo alias; leading-zero parser spelling; three
 reverified actual-Core mutations (wrong phi, literal two, condition); and a Lean
-reconstruction mutation selecting else instead of then. Each must emit only the exact Lean decide-proved-false diagnostic at its
-intended theorem location after the complete positive source passes. A syntax,
-import, missing-tool or resource error is not counted as a successful negative.
-The last failed result is retained with expected_rejection=false when applicable.
+reconstruction mutation selecting else instead of then. Each now requires an exit-zero kernel certificate of the exact original wrong
+proposition's negation, with the unique intended_rejection axiom inventory and
+no errors or sorryAx. The three new mutant inputs first prove their independent
+transport equality. Any syntax/import/missing-tool/resource error fails the run;
+no compiler error counts as a successful rejection. Reports retain original
+proposition, input hash, certificate kind and checked flag, including failures.
 
 There are 35 new Python controls: 24 transport/boundary tests and 11 generated-input
 or mocked-runner tests. Their mocked results are explicitly not kernel evidence.
@@ -95,3 +97,32 @@ native_decide as a substitute for a kernel-checkable result. Review is required
 before publication/CI. Even successful CI would only establish this restricted
 byte-bound syntax connection to a projected theorem, not complete any of the
 twelve Core/runtime/body-prefix/all-edge/resource/loop/backend obligations.
+
+
+## First real kernel failure and proof-protocol repair
+
+Head 5e740715e90036a55480685c8da1cf12d9c4cfe4, actual run
+[41643195183/job125941651738](https://github.com/TrillionniumFoundation/Hepta/actions/runs/41643195183/job/125941651738),
+failed its positive stage. A doc comment before mutual and reserved helper name
+at caused parsing errors; extract_sound did not unfold its let before splitting;
+large concrete transport checks exceeded the elaborator's default recursion
+bound. No negative was counted. The original log and failed result remain in CI.
+
+The repair changes the comment/helper spelling and the same theorem's proof
+structure without changing statements or the declarative relation. Concrete
+certificates use `decide +kernel`, which sends the proof term directly to Lean's
+kernel rather than first reducing it with the elaborator. This is NOT native
+execution or native_decide, and no input, recursion, heartbeat or time budget is
+increased. The exact pinned implementation is
+[Lean v4.19.0 ElabTerm.lean, evalDecideCore/doKernel](https://github.com/leanprover/lean4/blob/v4.19.0/src/Lean/Elab/Tactic/ElabTerm.lean#L404-L451);
+[its syntax/configuration is in Init/Tactics.lean](https://github.com/leanprover/lean4/blob/v4.19.0/src/Init/Tactics.lean).
+The existing locked support inventory already includes ElabTerm.olean.
+
+Negative evidence now directly asks the kernel to prove `not P` for each
+unchanged erroneous proposition P, rather than accepting a compiler diagnostic
+about P. The generated statement is parenthesized and fixed by structural tests.
+Every negative source must exit zero and print the exact sole named rejection
+theorem's permitted axioms. All other outcomes fail closed. This protocol avoids
+misclassifying meta-reduction limits as intended proof rejection. It does not
+make the still-unexecuted repaired proof text a theorem: fresh exact-head CI and
+independent review remain required.
