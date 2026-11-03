@@ -1,0 +1,239 @@
+{
+  "schema": "hia.composition-checkpoint.readout.v1",
+  "source": {
+    "clean": true,
+    "commit": "5c3741da1d36e8c1f79ec728ec325b8d973c899e",
+    "sparse_checkout": false,
+    "tree": "3492a8efb0ea2818b3260585c6b937935cd505a4",
+    "materialized_files_count": 4848,
+    "materialized_manifest_canonical_sha256": "9d4cdf170ae562af32a7f36a796b6b2459f9407a66adbad3e7630eef171e2352",
+    "complete_manifest_location": "composition-5c3741d.zip:RESULT.json/source/materialized_files_sha256"
+  },
+  "run_id": 41599656061,
+  "artifact_id": 13213324093,
+  "artifact_bytes": 3256578,
+  "artifact_sha256": "026966ec3a8bf448632e20cb25f2a906ef76d0829980273fe9a25ef6b060b634",
+  "qualification_commands": {
+    "agent_tool_controls": true,
+    "capability_borrow": true,
+    "capability_lifecycle": true,
+    "capability_proof": true,
+    "continuation": true,
+    "core": true,
+    "core_proof": true,
+    "cpp_source_refusals": true,
+    "cpp_unique_reset": true,
+    "gsl_upstream_upgrade": true,
+    "host_region": true,
+    "memory_proof": true,
+    "migration_resources": true,
+    "ndu_budget_model": true,
+    "ndu_full_cost": true,
+    "ndu_model_planner": true,
+    "production_capabilities": true,
+    "reduction": true,
+    "register_proof": true,
+    "rust_shadow_build": true,
+    "rust_shadow_dependencies": true,
+    "sequential_core": true
+  },
+  "command_receipts_count": 23,
+  "core": {
+    "tests": 321,
+    "errors": 0,
+    "failures": 0,
+    "skips": 0,
+    "passed": true
+  },
+  "borrow": {
+    "modelled_instruction_count": 74,
+    "modelled_opcodes": [
+      "borrow.mut",
+      "borrow.read",
+      "buffer.load",
+      "buffer.new",
+      "buffer.store",
+      "buffer.try_new",
+      "chain.empty",
+      "loan.end",
+      "owner.drop"
+    ],
+    "theorem_dependency_checks": 1100,
+    "negative_controls": 16,
+    "production_rejections": [
+      {
+        "code": "E_HIA_LOAN",
+        "input_sha256": "66ee7aa203d9907e055c58a5b5e1b0ad89a9f3049c98d708e95e32434f14ec53",
+        "message": "E_HIA_LOAN: conflicting live borrow",
+        "name": "second_mutable_sibling"
+      },
+      {
+        "code": "E_HIA_LOAN",
+        "input_sha256": "ec0689c3e41f3d926aeffed984857f6ec20926905b2748df0330afcb45959f05",
+        "message": "E_HIA_LOAN: parent view is suspended until child loans end",
+        "name": "parent_access_before_child_end"
+      },
+      {
+        "code": "E_HIA_LOAN",
+        "input_sha256": "d613d0cb75d5883233e8e46257864556808b895053d968246e2a878f46df0633",
+        "message": "E_HIA_LOAN: borrow.mut: operand types must match ('mutable_source',)",
+        "name": "shared_to_mutable_escalation"
+      },
+      {
+        "code": "E_HIA_LOAN",
+        "input_sha256": "2365f9985ed97a0db8430fd7fc2ed912a7b84dfb50e750e9462cf7dfb960e310",
+        "message": "E_HIA_LOAN: parent view is suspended until child loans end",
+        "name": "parent_access_with_shared_sibling_remaining"
+      }
+    ],
+    "corpus": [
+      {
+        "access_calls": 3,
+        "actual_guard_calls": 6,
+        "borrow_calls": 3,
+        "core_sha256": "4aeea8c7c520cc51578a9faadd1a600dbc630cc0368b413e5654a3dee9cfaa90",
+        "input_sha256": "ffc3e1b7ebfaf3ec09009fa552a890b7d430b1401e1db6a6d69be445aaddd300",
+        "label": "stored_record",
+        "modelled_instructions": 11,
+        "observed_instructions": 14,
+        "unmodelled_opcodes": [
+          "const"
+        ]
+      },
+      {
+        "access_calls": 4,
+        "actual_guard_calls": 13,
+        "borrow_calls": 9,
+        "core_sha256": "6bc00d0e8891794c742596d326f91026ed3137531adfee749fac943733ea36f9",
+        "input_sha256": "3b74007a76c0641aa7e5948fa207a034bc0811ea0ad628d8d11b0eee71958071",
+        "label": "returned_views",
+        "modelled_instructions": 23,
+        "observed_instructions": 32,
+        "unmodelled_opcodes": [
+          "bit.xor",
+          "call",
+          "const",
+          "owner.move"
+        ]
+      },
+      {
+        "access_calls": 0,
+        "actual_guard_calls": 4,
+        "borrow_calls": 4,
+        "core_sha256": "b4d658f0b11a81f67dbe48efd59438fbc25d206cc6aa5b949fc324c7a0caea0c",
+        "input_sha256": "73c4bbdefd23185f40b23b5fbb362e09a3c3b465c58ae9498fbe86626d6fd46d",
+        "label": "explicit_lifecycle",
+        "modelled_instructions": 12,
+        "observed_instructions": 12,
+        "unmodelled_opcodes": []
+      },
+      {
+        "access_calls": 10,
+        "actual_guard_calls": 17,
+        "borrow_calls": 7,
+        "core_sha256": "2eefa36df81234484617aa2908b881c360a63f1a5f2ec1ea3831542b872b4094",
+        "input_sha256": "6f757d9ff633da659487cefbf5a888b70df7b61735a924db0e78849fea8cc9a9",
+        "label": "borrow_access",
+        "modelled_instructions": 28,
+        "observed_instructions": 28,
+        "unmodelled_opcodes": []
+      }
+    ],
+    "scope": {
+      "acyclicity_requires_initial_ranked": true,
+      "all_finite_model_states": true,
+      "all_static_instructions_inventoried": true,
+      "calls_moves_chain_transfers_proved": false,
+      "complete_core_type_soundness_proved": false,
+      "execution_length_bound": null,
+      "finite_actual_borrow_access_guard_witnesses": true,
+      "finite_actual_instruction_witnesses": true,
+      "generic_composition_with_admitted_cfg_edges": true,
+      "heap_execution_proved": false,
+      "instruction_model": [
+        "borrow.mut",
+        "borrow.read",
+        "buffer.load",
+        "buffer.new",
+        "buffer.store",
+        "buffer.try_new",
+        "chain.empty",
+        "loan.end",
+        "owner.drop"
+      ],
+      "llvm_native_ffi_concurrency_proved": false,
+      "properties": [
+        "root and parent closure",
+        "unique capability names",
+        "strict parent descent",
+        "absence of positive parent cycles",
+        "ancestor-compatible mutable borrows",
+        "child and ancestor access suspension",
+        "mutual exclusion of simultaneously accessible mutable aliases",
+        "last-child end restores parent access"
+      ],
+      "python_checker_or_exporter_refinement_proved": false,
+      "requires_initial_closed_unique_compatible": true,
+      "source_semantics_refinement_proved": false,
+      "whole_cfg_execution_trace_exported": false
+    },
+    "passed": true,
+    "safety_certificate": false
+  },
+  "rust": {
+    "all_rust_gate_passed": false,
+    "broad_rust_performance_parity_established": false,
+    "independent_holdout_passed": false,
+    "rust_comparisons_passed": 154,
+    "rust_comparisons_total": 180
+  },
+  "ndu_acceptance": {
+    "actual_native_invocations": 9,
+    "complete_cost_accounting": true,
+    "complete_cost_accounting_scope": "Declared bridge build, shared offline build/training/proof/calibration, and actual per-policy service wall times. Parent interpreter startup/imports and final report output require separate composition outer receipts.",
+    "finite_native_correctness_passed": true,
+    "full_lifecycle_cost_complete": false,
+    "native_matches_same_information_exact_model": true,
+    "native_model_all_attempts_completed": true,
+    "native_model_attempted_count": 9,
+    "native_model_evaluated_count": 9,
+    "native_model_failed_count": 0,
+    "native_net_benefit_established": false,
+    "native_net_win_scenarios": 0,
+    "native_policy_evidence_present": true,
+    "reason": "Three repetitions are exploratory, never an application-wide or statistical net-benefit theorem.",
+    "same_information_controls": true,
+    "scenario_count": 3,
+    "skip_only_episodes_without_native_start": 3,
+    "source_stable_during_run": true
+  },
+  "ndu_outer_cost_completion": {
+    "allocation_rule": "Every policy pays the full common campaign remainder once; native additionally pays outer minus inner bridge build. Original nested report is retained unchanged.",
+    "common_unallocated_runner_overhead_ns": 184724915,
+    "conservative_solo_campaign_cost_by_policy_ns": {
+      "exact_dp": 4961875938,
+      "fixed": 4960922416,
+      "lightweight": 4961578821,
+      "native_ndu": 23362909522
+    },
+    "native_build_additional_charged_ns": 106284181,
+    "native_build_inner_wall_ns": 18263237668,
+    "native_build_outer_wall_ns": 18369521849,
+    "not_an_independently_executed_solo_campaign": true,
+    "whole_qualification_command_wall_ns": 6024746064
+  },
+  "source_and_tools_unchanged": true,
+  "authority": "DENY_ALL",
+  "safety_certificate": false,
+  "production_activation_allowed": false,
+  "all_blockers_closed": false,
+  "member_sha256": {
+    "RESULT.json": "3b20c316e3d8f5192e77a9ef5980af190f170434619e5945b095464343748028",
+    "CORE.json": "6b68e4dc8849e698f9fac033bffd252556f9024741ebb50e2103ddd6bdb9ae53",
+    "COMBINATION.json": "6844a95ccf10f304daa0dd37bb5357b1ef2063fbd2f2fa4bc0cd1cb023dedc57",
+    "capability-borrow/REPORT.json": "143741aeec9dd50e021cff34e3ae2c0b542924b48168ff6151b4b8ae64919486",
+    "capability-lifecycle/REPORT.json": "c8a4aedfb562842eb3c9e8eaede42c876c3c38a8e05e64e17bcfc7d6b4d0cb78",
+    "reduction/RESULT.json": "c760c6f896eba9b5d8f343b3fc1c48e3618580aa835b08618b1fe6a684520a58",
+    "ndu-cost/REPORT.json": "9ef8c5cc97fb2c7ef7ba3b39c17ae5ca07f05d03134de0ba53d442969f48c1f6"
+  }
+}

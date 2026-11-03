@@ -1,0 +1,623 @@
+{
+  "all_46_command_stream_hashes_verified": true,
+  "all_seven_research_targets_closed": false,
+  "artifact": {
+    "archive_saved_to_disk_by_reviewer": false,
+    "bytes": 3256578,
+    "digest_verified": true,
+    "id": 13213324093,
+    "members": 590,
+    "sha256": "026966ec3a8bf448632e20cb25f2a906ef76d0829980273fe9a25ef6b060b634"
+  },
+  "authority": "DENY_ALL",
+  "borrow": {
+    "all_source_identities_match_composition": true,
+    "corpus": [
+      {
+        "access_calls": 3,
+        "actual_guard_calls": 6,
+        "borrow_calls": 3,
+        "core_sha256": "4aeea8c7c520cc51578a9faadd1a600dbc630cc0368b413e5654a3dee9cfaa90",
+        "input_sha256": "ffc3e1b7ebfaf3ec09009fa552a890b7d430b1401e1db6a6d69be445aaddd300",
+        "label": "stored_record",
+        "modelled_instructions": 11,
+        "observed_instructions": 14
+      },
+      {
+        "access_calls": 4,
+        "actual_guard_calls": 13,
+        "borrow_calls": 9,
+        "core_sha256": "6bc00d0e8891794c742596d326f91026ed3137531adfee749fac943733ea36f9",
+        "input_sha256": "3b74007a76c0641aa7e5948fa207a034bc0811ea0ad628d8d11b0eee71958071",
+        "label": "returned_views",
+        "modelled_instructions": 23,
+        "observed_instructions": 32
+      },
+      {
+        "access_calls": 0,
+        "actual_guard_calls": 4,
+        "borrow_calls": 4,
+        "core_sha256": "b4d658f0b11a81f67dbe48efd59438fbc25d206cc6aa5b949fc324c7a0caea0c",
+        "input_sha256": "73c4bbdefd23185f40b23b5fbb362e09a3c3b465c58ae9498fbe86626d6fd46d",
+        "label": "explicit_lifecycle",
+        "modelled_instructions": 12,
+        "observed_instructions": 12
+      },
+      {
+        "access_calls": 10,
+        "actual_guard_calls": 17,
+        "borrow_calls": 7,
+        "core_sha256": "2eefa36df81234484617aa2908b881c360a63f1a5f2ec1ea3831542b872b4094",
+        "input_sha256": "6f757d9ff633da659487cefbf5a888b70df7b61735a924db0e78849fea8cc9a9",
+        "label": "borrow_access",
+        "modelled_instructions": 28,
+        "observed_instructions": 28
+      }
+    ],
+    "dependency_names": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "modelled_instruction_count": 74,
+    "negative_controls": [
+      {
+        "name": "root_rebound",
+        "output_hash_verified": true,
+        "returncode": 1,
+        "source_hash_verified": true
+      },
+      {
+        "name": "parent_discarded",
+        "output_hash_verified": true,
+        "returncode": 1,
+        "source_hash_verified": true
+      },
+      {
+        "name": "kind_changed",
+        "output_hash_verified": true,
+        "returncode": 1,
+        "source_hash_verified": true
+      },
+      {
+        "name": "external_flipped",
+        "output_hash_verified": true,
+        "returncode": 1,
+        "source_hash_verified": true
+      },
+      {
+        "name": "origin_discarded",
+        "output_hash_verified": true,
+        "returncode": 1,
+        "source_hash_verified": true
+      },
+      {
+        "name": "ended_loan_retained",
+        "output_hash_verified": true,
+        "returncode": 1,
+        "source_hash_verified": true
+      },
+      {
+        "name": "dropped_owner_retained",
+        "output_hash_verified": true,
+        "returncode": 1,
+        "source_hash_verified": true
+      },
+      {
+        "name": "loan_root_rebound",
+        "output_hash_verified": true,
+        "returncode": 1,
+        "source_hash_verified": true
+      },
+      {
+        "name": "loan_parent_self",
+        "output_hash_verified": true,
+        "returncode": 1,
+        "source_hash_verified": true
+      },
+      {
+        "name": "freshness_removed",
+        "output_hash_verified": true,
+        "returncode": 1,
+        "source_hash_verified": true
+      },
+      {
+        "name": "release_references_ignored",
+        "output_hash_verified": true,
+        "returncode": 1,
+        "source_hash_verified": true
+      },
+      {
+        "name": "borrow_conflict_guard_removed",
+        "output_hash_verified": true,
+        "returncode": 1,
+        "source_hash_verified": true
+      },
+      {
+        "name": "access_child_guard_removed",
+        "output_hash_verified": true,
+        "returncode": 1,
+        "source_hash_verified": true
+      },
+      {
+        "name": "second_mutable_sibling",
+        "output_hash_verified": true,
+        "returncode": 1,
+        "source_hash_verified": true
+      },
+      {
+        "name": "parent_access_before_child_end",
+        "output_hash_verified": true,
+        "returncode": 1,
+        "source_hash_verified": true
+      },
+      {
+        "name": "parent_access_with_shared_sibling_remaining",
+        "output_hash_verified": true,
+        "returncode": 1,
+        "source_hash_verified": true
+      }
+    ],
+    "passed": true,
+    "positive_kernel_exit": 0,
+    "positive_kernel_output_hash_verified": true,
+    "production_rejection_inputs_hash_verified": true,
+    "production_rejections": [
+      {
+        "code": "E_HIA_LOAN",
+        "input_sha256": "66ee7aa203d9907e055c58a5b5e1b0ad89a9f3049c98d708e95e32434f14ec53",
+        "message": "E_HIA_LOAN: conflicting live borrow",
+        "name": "second_mutable_sibling"
+      },
+      {
+        "code": "E_HIA_LOAN",
+        "input_sha256": "ec0689c3e41f3d926aeffed984857f6ec20926905b2748df0330afcb45959f05",
+        "message": "E_HIA_LOAN: parent view is suspended until child loans end",
+        "name": "parent_access_before_child_end"
+      },
+      {
+        "code": "E_HIA_LOAN",
+        "input_sha256": "d613d0cb75d5883233e8e46257864556808b895053d968246e2a878f46df0633",
+        "message": "E_HIA_LOAN: borrow.mut: operand types must match ('mutable_source',)",
+        "name": "shared_to_mutable_escalation"
+      },
+      {
+        "code": "E_HIA_LOAN",
+        "input_sha256": "2365f9985ed97a0db8430fd7fc2ed912a7b84dfb50e750e9462cf7dfb960e310",
+        "message": "E_HIA_LOAN: parent view is suspended until child loans end",
+        "name": "parent_access_with_shared_sibling_remaining"
+      }
+    ],
+    "report": {
+      "bytes": 298544,
+      "member": "capability-borrow/REPORT.json",
+      "sha256": "143741aeec9dd50e021cff34e3ae2c0b542924b48168ff6151b4b8ae64919486"
+    },
+    "safety_certificate": false,
+    "scope": {
+      "acyclicity_requires_initial_ranked": true,
+      "all_finite_model_states": true,
+      "all_static_instructions_inventoried": true,
+      "calls_moves_chain_transfers_proved": false,
+      "complete_core_type_soundness_proved": false,
+      "execution_length_bound": null,
+      "finite_actual_borrow_access_guard_witnesses": true,
+      "finite_actual_instruction_witnesses": true,
+      "generic_composition_with_admitted_cfg_edges": true,
+      "heap_execution_proved": false,
+      "instruction_model": [
+        "borrow.mut",
+        "borrow.read",
+        "buffer.load",
+        "buffer.new",
+        "buffer.store",
+        "buffer.try_new",
+        "chain.empty",
+        "loan.end",
+        "owner.drop"
+      ],
+      "llvm_native_ffi_concurrency_proved": false,
+      "properties": [
+        "root and parent closure",
+        "unique capability names",
+        "strict parent descent",
+        "absence of positive parent cycles",
+        "ancestor-compatible mutable borrows",
+        "child and ancestor access suspension",
+        "mutual exclusion of simultaneously accessible mutable aliases",
+        "last-child end restores parent access"
+      ],
+      "python_checker_or_exporter_refinement_proved": false,
+      "requires_initial_closed_unique_compatible": true,
+      "source_semantics_refinement_proved": false,
+      "whole_cfg_execution_trace_exported": false
+    },
+    "source_identity_count": 194,
+    "theorem_dependency_checks": 1100
+  },
+  "combination_source_equals_result": true,
+  "commands": [
+    {
+      "name": "ndu-build",
+      "returncode": 0,
+      "timed_out": false,
+      "wall_ns": 18369521849
+    },
+    {
+      "name": "rust_shadow_dependencies",
+      "returncode": 0,
+      "timed_out": false,
+      "wall_ns": 31828431
+    },
+    {
+      "name": "rust_shadow_build",
+      "returncode": 0,
+      "timed_out": false,
+      "wall_ns": 6639229915
+    },
+    {
+      "name": "core",
+      "returncode": 0,
+      "timed_out": false,
+      "wall_ns": 37743234090
+    },
+    {
+      "name": "capability_proof",
+      "returncode": 0,
+      "timed_out": false,
+      "wall_ns": 2521406267
+    },
+    {
+      "name": "memory_proof",
+      "returncode": 0,
+      "timed_out": false,
+      "wall_ns": 3172241994
+    },
+    {
+      "name": "core_proof",
+      "returncode": 0,
+      "timed_out": false,
+      "wall_ns": 1967786490
+    },
+    {
+      "name": "capability_lifecycle",
+      "returncode": 0,
+      "timed_out": false,
+      "wall_ns": 39778052418
+    },
+    {
+      "name": "capability_borrow",
+      "returncode": 0,
+      "timed_out": false,
+      "wall_ns": 28602241327
+    },
+    {
+      "name": "register_proof",
+      "returncode": 0,
+      "timed_out": false,
+      "wall_ns": 3575565006
+    },
+    {
+      "name": "production_capabilities",
+      "returncode": 0,
+      "timed_out": false,
+      "wall_ns": 10602033567
+    },
+    {
+      "name": "sequential_core",
+      "returncode": 0,
+      "timed_out": false,
+      "wall_ns": 314547035
+    },
+    {
+      "name": "ndu_budget_model",
+      "returncode": 0,
+      "timed_out": false,
+      "wall_ns": 465347990
+    },
+    {
+      "name": "continuation",
+      "returncode": 0,
+      "timed_out": false,
+      "wall_ns": 615059580
+    },
+    {
+      "name": "reduction",
+      "returncode": 0,
+      "timed_out": false,
+      "wall_ns": 17498506610
+    },
+    {
+      "name": "ndu_full_cost",
+      "returncode": 0,
+      "timed_out": false,
+      "wall_ns": 6024746064
+    },
+    {
+      "name": "cpp_unique_reset",
+      "returncode": 0,
+      "timed_out": false,
+      "wall_ns": 33771041006
+    },
+    {
+      "name": "cpp_source_refusals",
+      "returncode": 0,
+      "timed_out": false,
+      "wall_ns": 95882629577
+    },
+    {
+      "name": "gsl_upstream_upgrade",
+      "returncode": 0,
+      "timed_out": false,
+      "wall_ns": 4373399660
+    },
+    {
+      "name": "migration_resources",
+      "returncode": 0,
+      "timed_out": false,
+      "wall_ns": 11686970050
+    },
+    {
+      "name": "host_region",
+      "returncode": 0,
+      "timed_out": false,
+      "wall_ns": 1416541929
+    },
+    {
+      "name": "agent_tool_controls",
+      "returncode": 0,
+      "timed_out": false,
+      "wall_ns": 2527184457
+    },
+    {
+      "name": "ndu_model_planner",
+      "returncode": 0,
+      "timed_out": false,
+      "wall_ns": 3169926336
+    }
+  ],
+  "core_tests": {
+    "count": 321,
+    "errors": 0,
+    "failures": 0,
+    "member": {
+      "bytes": 58234,
+      "member": "commands/core.stderr",
+      "sha256": "df9c15ab3c28937e72415de4a2767d98ba943a12b6ae0887ad3fe964bf89841c"
+    },
+    "ok_lines": 321,
+    "skipped": 0,
+    "summary": [
+      "Ran 321 tests in 36.730s",
+      "",
+      "OK"
+    ]
+  },
+  "job_id": 125795114347,
+  "lifecycle": {
+    "negative_control_count": 11,
+    "passed": true,
+    "report": {
+      "bytes": 197070,
+      "member": "capability-lifecycle/REPORT.json",
+      "sha256": "c8a4aedfb562842eb3c9e8eaede42c876c3c38a8e05e64e17bcfc7d6b4d0cb78"
+    },
+    "scope": {
+      "all_finite_model_states": true,
+      "all_static_instructions_inventoried": true,
+      "calls_moves_chain_transfers_proved": false,
+      "complete_core_type_soundness_proved": false,
+      "conflicting_alias_exclusion_proved": false,
+      "execution_length_bound": null,
+      "finite_actual_instruction_witnesses": true,
+      "generic_composition_with_admitted_cfg_edges": true,
+      "heap_execution_proved": false,
+      "instruction_model": [
+        "borrow.mut",
+        "borrow.read",
+        "buffer.new",
+        "buffer.try_new",
+        "chain.empty",
+        "loan.end",
+        "owner.drop"
+      ],
+      "llvm_native_ffi_concurrency_proved": false,
+      "properties": [
+        "root and parent closure",
+        "unique capability names",
+        "strict parent descent",
+        "absence of positive parent cycles",
+        "exact selected instruction resource transition"
+      ],
+      "python_checker_or_exporter_refinement_proved": false,
+      "whole_cfg_execution_trace_exported": false
+    },
+    "theorem_dependency_checks": 404
+  },
+  "limits": [
+    "Successful CI records test/proof execution and preserved negative gates. It does not close broad Rust parity, net NDU benefit, complete safety or language-wide refinement.",
+    "No performance gain is causally estimated across main and GitHub CI hosts or across separate unpaired CI runs."
+  ],
+  "mode": "read-only archived evidence; no timing rerun or source modification",
+  "ndu": {
+    "acceptance": {
+      "actual_native_invocations": 9,
+      "complete_cost_accounting": true,
+      "complete_cost_accounting_scope": "Declared bridge build, shared offline build/training/proof/calibration, and actual per-policy service wall times. Parent interpreter startup/imports and final report output require separate composition outer receipts.",
+      "finite_native_correctness_passed": true,
+      "full_lifecycle_cost_complete": false,
+      "native_matches_same_information_exact_model": true,
+      "native_model_all_attempts_completed": true,
+      "native_model_attempted_count": 9,
+      "native_model_evaluated_count": 9,
+      "native_model_failed_count": 0,
+      "native_net_benefit_established": false,
+      "native_net_win_scenarios": 0,
+      "native_policy_evidence_present": true,
+      "reason": "Three repetitions are exploratory, never an application-wide or statistical net-benefit theorem.",
+      "same_information_controls": true,
+      "scenario_count": 3,
+      "skip_only_episodes_without_native_start": 3,
+      "source_stable_during_run": true
+    },
+    "architecture_limit": "AdvisoryController computes the exact same-information dynamic-programming solution before building the native request. Agreement validates finite integration; it does not establish additional optimization quality or global program optimality.",
+    "comparisons": [
+      {
+        "episode": "tiny",
+        "median_service_ns": {
+          "exact_dp": 13924524,
+          "fixed": 13810197,
+          "lightweight": 13897482,
+          "native_ndu": 14114566
+        },
+        "native_beats_all_controls": false,
+        "native_over_best_control": 1.0220394394084313
+      },
+      {
+        "episode": "amortized",
+        "median_service_ns": {
+          "exact_dp": 55923984,
+          "fixed": 56241724,
+          "lightweight": 56860898,
+          "native_ndu": 60375810
+        },
+        "native_beats_all_controls": false,
+        "native_over_best_control": 1.0796049508919108
+      },
+      {
+        "episode": "invalidate-recover",
+        "median_service_ns": {
+          "exact_dp": 46630932,
+          "fixed": 44990939,
+          "lightweight": 45916009,
+          "native_ndu": 51831702
+        },
+        "native_beats_all_controls": false,
+        "native_over_best_control": 1.152047571178721
+      }
+    ],
+    "cross_run_causal_speedup_inferred": false,
+    "dispatch_ready_all_match": true,
+    "dispatch_ready_comparison_count": 36,
+    "full_lifecycle_cost_complete": false,
+    "git": {
+      "head": "5c3741da1d36e8c1f79ec728ec325b8d973c899e",
+      "status": ""
+    },
+    "inner_cost_equation_recomputed": true,
+    "inner_cost_ns_by_policy": {
+      "exact_dp": 4777151023,
+      "fixed": 4776197501,
+      "lightweight": 4776853906,
+      "native_ndu": 23071900426
+    },
+    "native_dispatch_counts": {
+      "cpp": 3,
+      "hia": 15,
+      "rust": 18
+    },
+    "outer_cost": {
+      "allocation_rule": "Every policy pays the full common campaign remainder once; native additionally pays outer minus inner bridge build. Original nested report is retained unchanged.",
+      "common_unallocated_runner_overhead_ns": 184724915,
+      "conservative_solo_campaign_cost_by_policy_ns": {
+        "exact_dp": 4961875938,
+        "fixed": 4960922416,
+        "lightweight": 4961578821,
+        "native_ndu": 23362909522
+      },
+      "native_build_additional_charged_ns": 106284181,
+      "native_build_inner_wall_ns": 18263237668,
+      "native_build_outer_wall_ns": 18369521849,
+      "not_an_independently_executed_solo_campaign": true,
+      "whole_qualification_command_wall_ns": 6024746064
+    },
+    "outer_cost_equation_recomputed": true,
+    "report": {
+      "bytes": 272151,
+      "member": "ndu-cost/REPORT.json",
+      "sha256": "9ef8c5cc97fb2c7ef7ba3b39c17ae5ca07f05d03134de0ba53d442969f48c1f6"
+    },
+    "service_sum_ns_by_policy": {
+      "exact_dp": 344203010,
+      "fixed": 343249488,
+      "lightweight": 343905893,
+      "native_ndu": 375714745
+    },
+    "source_stable": true,
+    "unmeasured_lifecycle_costs": {
+      "dependency_acquisition_before_campaign_ns": null,
+      "human_engineering_and_review_ns": null,
+      "long_term_residency_and_evidence_retention_ns": null,
+      "maintenance_and_recovery_beyond_observed_campaign_ns": null,
+      "toolchain_acquisition_ns": null
+    }
+  },
+  "observed_utc": "2026-11-03T08:08:01.272570+00:00",
+  "qualification_count": 22,
+  "qualifications": {
+    "agent_tool_controls": true,
+    "capability_borrow": true,
+    "capability_lifecycle": true,
+    "capability_proof": true,
+    "continuation": true,
+    "core": true,
+    "core_proof": true,
+    "cpp_source_refusals": true,
+    "cpp_unique_reset": true,
+    "gsl_upstream_upgrade": true,
+    "host_region": true,
+    "memory_proof": true,
+    "migration_resources": true,
+    "ndu_budget_model": true,
+    "ndu_full_cost": true,
+    "ndu_model_planner": true,
+    "production_capabilities": true,
+    "reduction": true,
+    "register_proof": true,
+    "rust_shadow_build": true,
+    "rust_shadow_dependencies": true,
+    "sequential_core": true
+  },
+  "refinement_index": "REFINEMENT_INDEX_5c3741d.json",
+  "run_id": 41599656061,
+  "rust": {
+    "assessment": {
+      "all_rust_gate_passed": false,
+      "broad_rust_performance_parity_established": false,
+      "independent_holdout_passed": false,
+      "rust_comparisons_passed": 154,
+      "rust_comparisons_total": 180
+    },
+    "correctness_cases": 144,
+    "energy_joules": null,
+    "historical_tool_acquisition_ns": null,
+    "manual_engineering_ns": null,
+    "measurement_rows": 1080,
+    "protocol_profile": "induction-multiload-v2",
+    "protocol_sha256": "054f1862479bca6e322e4ec6acb8a05288f21f5373b5cabed1e11a1e510db4ff",
+    "qualification_valid": true,
+    "refusal_cases": 56,
+    "report": {
+      "bytes": 1299367,
+      "member": "reduction/RESULT.json",
+      "sha256": "c760c6f896eba9b5d8f343b3fc1c48e3618580aa835b08618b1fe6a684520a58"
+    },
+    "source_after": {
+      "head": "5c3741da1d36e8c1f79ec728ec325b8d973c899e",
+      "status": ""
+    },
+    "source_before": {
+      "head": "5c3741da1d36e8c1f79ec728ec325b8d973c899e",
+      "status": ""
+    }
+  },
+  "safety_certificate": false,
+  "schema": "hepta.hia.readonly-composition-review.v1",
+  "source": {
+    "clean": true,
+    "commit": "5c3741da1d36e8c1f79ec728ec325b8d973c899e",
+    "sparse_checkout": false,
+    "tree": "3492a8efb0ea2818b3260585c6b937935cd505a4"
+  },
+  "source_and_tools_unchanged": true
+}
