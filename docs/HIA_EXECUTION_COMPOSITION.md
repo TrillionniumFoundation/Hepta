@@ -54,7 +54,7 @@ The production CFG verifier calls the extracted `rename_capabilities` helper.
 capability graph and every injective renaming, without a loop-unroll bound:
 root equality, parent/child relations, parent suspension, the exclusive-alias
 relation, graph closure, selected capability count, type/external/origin
-preservation, composition, and identity. Four semantic mutations must fail
+preservation, composition, and identity. Six semantic mutations must fail
 their intended theorem; no `sorry` dependency is admitted.
 
 The selected graph is the set of capabilities **carried across the edge**.

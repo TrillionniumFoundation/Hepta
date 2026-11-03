@@ -35,20 +35,60 @@ class CurrentProfileTests(unittest.TestCase):
                     NduSession.for_stream_profile("unused", "missing", profile=value)
 
     def rows(self, invoked=False, matches=True):
-        return [{"policy": p, "service_wall_ns": 7, "steps": [{"decision": {
+        rows = [{"policy": p, "service_wall_ns": 7, "steps": [{"decision": {
             "native_invoked": invoked if p == "native_ndu" else False,
             "native_matches_exact_model": matches}}]}
             for p in ("fixed", "exact_dp", "lightweight", "native_ndu")]
+        if invoked:
+            # Unit-level completed-response marker, never a real native receipt.
+            rows[-1]["steps"][0]["decision"]["response"] = {"fixture": "completed response"}
+        return rows
 
     def test_no_invocation_is_unknown_agreement(self):
         result = policy_model_evidence(self.rows())
         self.assertIsNone(result["native_matches_same_information_exact_model"])
+        self.assertEqual(result["native_model_attempted_count"], 0)
         self.assertEqual(result["native_model_evaluated_count"], 0)
+        self.assertEqual(result["native_model_failed_count"], 0)
+        self.assertIsNone(result["native_model_all_attempts_completed"])
         self.assertFalse(result["native_policy_evidence_present"])
         for matches in (True, False, None):
             result = policy_model_evidence(self.rows(True, matches))
+            self.assertEqual(result["native_model_attempted_count"], 1)
             self.assertEqual(result["native_model_evaluated_count"], 1)
+            self.assertEqual(result["native_model_failed_count"], 0)
+            self.assertTrue(result["native_model_all_attempts_completed"])
             self.assertIs(result["native_matches_same_information_exact_model"], matches is True)
+
+    def test_failed_attempt_does_not_count_as_a_completed_model_evaluation(self):
+        mutations = (
+            lambda d: d.pop("response"),
+            lambda d: d.update(response=None),
+            lambda d: d.update(response={}),
+            lambda d: d.update(native_error="native request failed"),
+        )
+        for mutate in mutations:
+            rows = self.rows(True)
+            mutate(rows[-1]["steps"][0]["decision"])
+            result = policy_model_evidence(rows)
+            self.assertEqual(result["native_model_attempted_count"], 1)
+            self.assertEqual(result["native_model_evaluated_count"], 0)
+            self.assertEqual(result["native_model_failed_count"], 1)
+            self.assertFalse(result["native_policy_evidence_present"])
+            self.assertFalse(result["native_model_all_attempts_completed"])
+            self.assertIsNone(result["native_matches_same_information_exact_model"])
+
+    def test_failed_call_cannot_be_hidden_by_a_matching_successful_subset(self):
+        rows = self.rows(True)
+        rows[-1]["steps"].append({"decision": {
+            "native_invoked": True, "native_error": "timeout", "native_matches_exact_model": True}})
+        result = policy_model_evidence(rows)
+        self.assertEqual(result["native_model_attempted_count"], 2)
+        self.assertEqual(result["native_model_evaluated_count"], 1)
+        self.assertEqual(result["native_model_failed_count"], 1)
+        self.assertTrue(result["native_policy_evidence_present"])
+        self.assertFalse(result["native_model_all_attempts_completed"])
+        self.assertFalse(result["native_matches_same_information_exact_model"])
 
     def test_unknown_build_never_becomes_zero_cost(self):
         manifests = [{}, {"build_cost": None}, {"build_cost": {}}]
@@ -58,6 +98,7 @@ class CurrentProfileTests(unittest.TestCase):
                 result = full_cost_totals(self.rows(), 100, manifest)
                 self.assertFalse(result["build_cost_observed"])
                 self.assertIsNone(result["arm_full_cost_ns"]["native_ndu"])
+                self.assertFalse(result["execution_scope_cost_complete"])
                 self.assertEqual(result["arm_full_cost_ns"]["exact_dp"], 107)
                 self.assertEqual(result["unknown_costs"], ["native_bridge_build_wall_ns"])
 
@@ -67,6 +108,16 @@ class CurrentProfileTests(unittest.TestCase):
         self.assertEqual(result["arm_full_cost_ns"], {
             "fixed": 107, "exact_dp": 107, "lightweight": 107, "native_ndu": 130})
         self.assertEqual(result["unknown_costs"], [])
+        self.assertTrue(result["execution_scope_cost_complete"])
+
+    def test_known_execution_cost_does_not_fill_unmeasured_lifecycle_costs(self):
+        for manifest in ({}, {"build_cost": {"wall_ns": 23}}):
+            result = full_cost_totals(self.rows(), 100, manifest)
+            self.assertIn("separate composition outer receipts", result["cost_scope"])
+            self.assertEqual(result["unknown_costs_scope"], "declared execution scope only")
+            self.assertFalse(result["full_lifecycle_cost_complete"])
+            self.assertGreaterEqual(len(result["unmeasured_lifecycle_costs"]), 4)
+            self.assertTrue(all(value is None for value in result["unmeasured_lifecycle_costs"].values()))
 
     def test_started_session_without_evaluation_is_not_a_no_start_episode(self):
         row = {"policy": "native_ndu", "native_invocations": 0,
