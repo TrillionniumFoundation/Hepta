@@ -5,6 +5,9 @@ on:
       - 'hepta/**'
       - 'tools/check_core_syntax_lean.py'
       - 'tools/check_core_syntax_staged.py'
+      - 'tools/diagnose_core_syntax_declarations.py'
+      - 'tools/core_syntax_declaration_diagnostic_sources.py'
+      - 'tools/core_syntax_diagnostic_capture.py'
       - 'tools/core_syntax_stage_sources.py'
       - 'tools/core_syntax_structured_sources.py'
       - 'tools/core_syntax_structured_stages.py'
@@ -96,5 +99,59 @@ jobs:
           assert result.testsRun == 207 and result.wasSuccessful(), 'research controls failed'
           assert not result.skipped and not result.expectedFailures and not result.unexpectedSuccesses, 'incomplete controls'
           PYTEST
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+  declaration-diagnostic-controls:
+    name: Nonaccepting declaration diagnostic controls / ${{ matrix.group }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [sources, execution]
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+      CONTROL_GROUP: ${{ matrix.group }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify exact source and existing solver pin
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          python -m pip install 'z3-solver==4.15.4.0'
+          python -c "import z3; assert z3.get_version_string() == '4.15.4'"
+      - name: Run bounded source and fake-child controls; never Lean
+        run: |
+          set -euo pipefail
+          timeout 180s python -B - <<'PYDIAG'
+          import hashlib, json, os, unittest
+          groups = {
+              'sources': (['tests.test_core_syntax_declaration_diagnostic_sources'], 16),
+              'execution': (['tests.test_core_syntax_declaration_diagnostic_runner',
+                             'tests.test_core_syntax_diagnostic_capture'], 42),
+          }
+          names, expected = groups[os.environ['CONTROL_GROUP']]
+          suite = unittest.defaultTestLoader.loadTestsFromNames(names)
+          def flatten(node):
+              for item in node:
+                  if isinstance(item, unittest.TestSuite):
+                      yield from flatten(item)
+                  else:
+                      yield item
+          ids = [case.id() for case in flatten(suite)]
+          assert len(ids) == len(set(ids)) == expected, 'diagnostic test inventory changed'
+          print(json.dumps({'count':len(ids), 'inventory_sha256':hashlib.sha256('\n'.join(sorted(ids)).encode()).hexdigest()}))
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          assert result.testsRun == expected and result.wasSuccessful(), 'diagnostic controls failed'
+          assert not result.skipped and not result.expectedFailures and not result.unexpectedSuccesses
+          PYDIAG
           test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
           test -z "$(git status --porcelain --untracked-files=all)"
