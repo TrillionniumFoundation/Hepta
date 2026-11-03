@@ -34,7 +34,7 @@ class ConsumerContractTests(unittest.TestCase):
         self.assertEqual(saved, inventory())
         self.assertEqual(len(saved['source_sha256']), 180)
         self.assertEqual(len(saved['references']), 26)
-        self.assertEqual(sum(map(len, saved['references'].values())), 203)
+        self.assertEqual(sum(map(len, saved['references'].values())), 204)
 
     def test_inventory_tracks_import_aliases_and_nested_project_attributes(self):
         rows = inspect_source('from hepta.modules import load_project as lp\nx = lp(p)\nx.project.unchanged()\n')

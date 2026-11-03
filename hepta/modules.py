@@ -17,7 +17,7 @@ from .lexer import tokenize
 from .packages import Package, digest, find_manifest, load_package, package_snapshot, verify_lock
 from .packages import (_load_package, _package_snapshot, _verify_lock,
                        _LEGACY_LOAD_PACKAGE, _LEGACY_PACKAGE_SNAPSHOT, _LEGACY_VERIFY_LOCK,
-                       _LEGACY_FIND_MANIFEST)
+                       _LEGACY_FIND_MANIFEST, _find_manifest)
 from ._loader_ops import LegacyLoaderOps as _LegacyLoaderOps, dispatch as _dispatch
 
 
@@ -76,9 +76,9 @@ def _revalidate(project, *, ops, except_paths=()):
 
 
 def _unchanged(self, *, ops, except_paths=()):
-    omitted = {str(Path(p).resolve()) for p in except_paths}
+    omitted = {str(ops.path(Path(p), 'resolve')) for p in except_paths}
     try:
-        if any(str(Path(p).resolve()) != expected for p, expected in self.bindings.items()):
+        if any(str(ops.path(Path(p), 'resolve')) != expected for p, expected in self.bindings.items()):
             return False
         if any(ops.read(Path(p), 'revalidation') != b for p, b in self.source_bytes.items() if p not in omitted):
             return False
@@ -95,19 +95,18 @@ def load_project(entry, *, locked=False, source_overrides=None) -> LoadedProject
 
 
 def _load_project(entry, *, locked=False, source_overrides=None, ops) -> LoadedProject:
-    requested_path = Path(entry).absolute()
-    entry = Path(entry).resolve()
+    requested_path = ops.path(Path(entry), 'absolute')
+    entry = ops.path(Path(entry), 'resolve')
     bindings = {str(requested_path): str(entry)}
     package = None
-    if entry.is_dir():
+    if ops.path(entry, 'is_dir'):
         package = _dispatch(load_package, _LEGACY_LOAD_PACKAGE, _load_package, ops, entry)
         entry = package.entry
     elif entry.name == "hepta.toml":
         package = _dispatch(load_package, _LEGACY_LOAD_PACKAGE, _load_package, ops, entry.parent)
         entry = package.entry
     else:
-        ops.hook(find_manifest, _LEGACY_FIND_MANIFEST)
-        root = find_manifest(entry)
+        root = _dispatch(find_manifest, _LEGACY_FIND_MANIFEST, _find_manifest, ops, entry)
         if root is not None:
             package = _dispatch(load_package, _LEGACY_LOAD_PACKAGE, _load_package, ops, root)
             if not entry.is_relative_to(package.source_root):
@@ -117,7 +116,7 @@ def _load_project(entry, *, locked=False, source_overrides=None, ops) -> LoadedP
     state = (_dispatch(verify_lock, _LEGACY_VERIFY_LOCK, _verify_lock, ops, package) if locked else
              (_dispatch(package_snapshot, _LEGACY_PACKAGE_SNAPSHOT, _package_snapshot, ops, package) if package else None))
     owner = package or Package(entry.parent, "standalone", "0.0.0", entry, "bin", entry.parent)
-    overrides = {str(Path(k).resolve()): v.encode("utf-8") for k, v in (source_overrides or {}).items()}
+    overrides = {str(ops.path(Path(k), 'resolve')): v.encode("utf-8") for k, v in (source_overrides or {}).items()}
     units: dict[Path, Unit] = {}
     stack = []
     sources = {}
@@ -125,8 +124,9 @@ def _load_project(entry, *, locked=False, source_overrides=None, ops) -> LoadedP
     c_imports = []
 
     def visit(path: Path, pkg: Package, span: Span):
-        lexical_path = path.absolute()
-        path = path.resolve()
+        ops.edge("module", len(stack) + 1)
+        lexical_path = ops.path(path, 'absolute')
+        path = ops.path(path, 'resolve')
         bindings[str(lexical_path)] = str(path)
         if not path.is_relative_to(pkg.source_root) or path.suffix != ".hepta":
             fail("E_MODULE_ESCAPE", "Module path escapes its declared source_root", span)
@@ -134,6 +134,7 @@ def _load_project(entry, *, locked=False, source_overrides=None, ops) -> LoadedP
             fail("E_MODULE_CYCLE", "Import cycle: " + " -> ".join(str(p) for p in stack + [path]), span)
         if path in units:
             return units[path]
+        ops.node("module")
         try:
             data = overrides.get(str(path))
             if data is None:
@@ -160,19 +161,19 @@ def _load_project(entry, *, locked=False, source_overrides=None, ops) -> LoadedP
                 fail("E_C_IMPORT_TARGET", "Imported C facts must be re-probed on this host", span)
             sources[str(sidecar)] = digest(metadata_bytes)
             source_bytes[str(sidecar)] = metadata_bytes
-            bindings[str(sidecar)] = str(sidecar.resolve())
+            bindings[str(sidecar)] = str(ops.path(sidecar, 'resolve'))
             original_header = Path(metadata.get("header", ""))
             if relative_header:
-                original_header = (sidecar.parent / original_header).resolve()
-                if not original_header.is_relative_to(pkg.root) or not original_header.is_file():
+                original_header = ops.path(sidecar.parent / original_header, 'resolve')
+                if not original_header.is_relative_to(pkg.root) or not ops.path(original_header, 'is_file'):
                     fail("E_C_IMPORT_MANIFEST", "Portable C header must exist inside its package", span)
-            if original_header.resolve().is_relative_to(pkg.root) and original_header.is_file():
+            if ops.path(original_header, 'resolve').is_relative_to(pkg.root) and ops.path(original_header, 'is_file'):
                 original_data = ops.read(original_header, 'header')
                 if digest(original_data) != metadata.get("header_sha256"):
                     fail("E_C_IMPORT_IDENTITY", "Original C header changed since probing", span)
                 sources[str(original_header)] = digest(original_data)
                 source_bytes[str(original_header)] = original_data
-                bindings[str(original_header)] = str(original_header.resolve())
+                bindings[str(original_header)] = str(ops.path(original_header, 'resolve'))
             c_imports.append({"source": str(path), "manifest": str(sidecar), "target": metadata.get("target"), "host": host})
         for token in ops.tokenize(tokenize, text, str(path)):
             if token.kind == "IDENT" and re.match(r"M[0-9a-f]{16}_", token.value):
