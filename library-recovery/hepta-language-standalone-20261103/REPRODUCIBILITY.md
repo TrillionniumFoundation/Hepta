@@ -47,3 +47,22 @@ Every raw file's Git Blob SHA-1 was computed on the original bytes and independe
 4. Keep any unverified or failing gate OPEN, without silently skipping, relaxing, or treating synthetic unit tests as native qualification.
 
 Historical-source preservation only; not a replacement compiler, not a completed C/C++ migration, not a production release.
+
+## Executed isolated snapshot test reproduction (2026-11-03)
+
+A new source-only script, `VERIFY_SOURCE_MAP.py`, reconstructs three **separate** historical package layouts under temporary directories and first checks the exact Git Blob SHA-1 of all 16 original files. It does not overwrite the current compiler source, call the real HIA release authority or alter CI.
+
+```bash
+cd library-recovery/hepta-language-standalone-20261103
+python3 VERIFY_SOURCE_MAP.py --research-only   # scoped tests only; release authority false
+python3 VERIFY_SOURCE_MAP.py                   # strict; expected exit 2 / DENY_ALL
+```
+
+Actual local results on Python 3.13.5 with GCC/Clang/Clang++ and CPU:
+- Host C-ABI plus C++ L0 bridge: **4/4 executed PASS**, no skip.
+- Original scalar-backend layout: **3 passed, 1 skipped** (4 collected); `full Hepta bootstrap frontend not mounted`.
+- Separate later cross/SSA-phi LLVM-backend layout: **11 passed, 2 skipped** (13 collected); original Hepta frontend integration not mounted.
+- **Total: 21 collected, 18 passed, 3 skipped.** Two additional historical frontend-specific test modules could not be imported (`hepta.ast` / `hepta.parser` absent from this 16-file historical source set) and were not counted in the 21.
+- Deliberately pairing the early scalar backend with the later Phi/target tests produced **3 failures, 3 errors, 2 skipped among 10 collected tests**. That is an invalid cross-version combination; it is preserved as a negative example, not fixed by removing tests or editing historical blobs.
+
+This confirms executable historical C/C++/LLVM subscopes **only**. `--research-only` returns 0 with explicit qualification limits; default strict mode returns 2 because of skipped/incomplete original frontend gates. Neither result proves complete Hepta correctness, target ABI equality, original full source/CI, or P0–P7 production readiness. Do not mark blocked stages closed.
