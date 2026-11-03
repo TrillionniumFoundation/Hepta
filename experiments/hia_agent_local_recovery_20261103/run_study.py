@@ -150,18 +150,39 @@ def freeze(registry):
     if (folder / "REGISTRATION.json").exists():
         raise ValueError("registration already exists; never replace a cohort")
     preparation = strict_json((folder / "PREPARATION.json").read_bytes())
-    if (preparation.get("passed") is not True or preparation.get("model_requests") != 0
+    if (preparation.get("passed") is not True
+            or type(preparation.get("model_requests")) is not int or preparation["model_requests"] != 0
             or preparation.get("source_commit") != git("rev-parse", "HEAD")
+            or preparation.get("source_tree") != git("rev-parse", "HEAD^{tree}")
             or not inherited.check_bindings(preparation["sources"])):
         raise ValueError("current exact-source no-generation preparation required")
+    # Registration must consume the exact receipts admitted by preparation,
+    # not later replacements that happen to retain the same passing counters.
+    for key, name in (("unit_controls", "UNIT_CONTROLS.json"),
+                      ("reference_controls", "DEVELOPMENT_CONTROLS.json"),
+                      ("hostile_controls", "HOSTILE_CONTROLS.json"),
+                      ("tokenizer_capacity", "TOKENIZER_CAPACITY.json")):
+        if preparation.get(key) != file_identity(folder / name):
+            raise ValueError("prepared recovery receipt changed: " + name)
     require_committed_sources()
-    value = inherited.register()
-    value.update(campaign=CAMPAIGN, source_commit=git("rev-parse", "HEAD"),
-                 source_tree=git("rev-parse", "HEAD^{tree}"),
-                 inherited_protocol_sha256=file_identity(PARENT / "PROTOCOL.json")["sha256"],
-                 preparation=file_identity(folder / "PREPARATION.json"),
-                 original_campaigns_replaced=False, frontier_model_cohort_completed=False)
-    evaluator.save(folder / "REGISTRATION.json", value)
+    metadata = dict(campaign=CAMPAIGN, source_commit=git("rev-parse", "HEAD"),
+                    source_tree=git("rev-parse", "HEAD^{tree}"),
+                    inherited_protocol_sha256=file_identity(PARENT / "PROTOCOL.json")["sha256"],
+                    preparation=file_identity(folder / "PREPARATION.json"),
+                    original_campaigns_replaced=False, frontier_model_cohort_completed=False)
+    publish = evaluator.save
+    def publish_registration(path, value):
+        # The inherited register already creates REGISTRATION.json with xb.
+        # Add recovery metadata to that one write, never replace a cohort or
+        # leave a deliberately incomplete inherited registration behind.
+        if Path(path) == folder / "REGISTRATION.json":
+            value = {**value, **metadata}
+        return publish(path, value)
+    try:
+        evaluator.save = publish_registration
+        inherited.register()
+    finally:
+        evaluator.save = publish
     return validate_registration()
 
 
