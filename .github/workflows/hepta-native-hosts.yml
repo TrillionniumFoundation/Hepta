@@ -9,6 +9,8 @@ on:
       - 'tools/**'
       - 'examples/**'
       - 'tests/test_native_host_evidence.py'
+      - 'tests/test_c_float_casts.py'
+      - 'tests/test_c_backend.py'
       - 'tests/test_hia_aarch64*.py'
       - 'tests/fixtures/c_migration/**'
       - '.github/workflows/hepta-native-hosts.yml'
@@ -192,6 +194,28 @@ jobs:
         shell: bash
         run: |
           python -m unittest tests.test_native_host_evidence -v 2>&1 | tee artifacts/native-host-adapter-tests.log
+      - name: Check independent saturating float casts against native Rust
+        if: ${{ matrix.system == 'Linux' && matrix.cc_family == 'gcc' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CC="$(command -v gcc)"
+          export RUSTC="$(rustup which --toolchain 1.90.0 rustc)"
+          export PATH="$(dirname "$RUSTC"):$PATH"
+          {
+            gcc --version
+            gcc -dumpmachine
+            "$RUSTC" --version --verbose
+            sha256sum "$(readlink -f "$(command -v gcc)")" "$RUSTC"
+            python - <<'PYTHON'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromNames([
+              "tests.test_c_float_casts", "tests.test_c_backend"])
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          if result.testsRun != 15 or result.skipped or not result.wasSuccessful():
+              raise SystemExit("All 15 actual GCC/Rust cast and C backend tests must pass without skips")
+          PYTHON
+          } 2>&1 | tee artifacts/c-float-cast-native-tests.log
       - name: Execute both C profiles, three ill-typed declarations, and a compiled wrong echo
         shell: bash
         run: |
@@ -263,6 +287,7 @@ jobs:
             artifacts/native-host.json
             artifacts/native-host-setup.log
             artifacts/native-host-adapter-tests.log
+            artifacts/c-float-cast-native-tests.log
             artifacts/clang-capture-tests.log
             artifacts/original-type-process-tests.log
             artifacts/original-type-preflight.json

@@ -47,6 +47,7 @@ class CEmitter:
         self.functions = {f.name: f for f in program.functions}
         self.declarations, self.types, self.active = [], {}, set()
         self.helpers = set()
+        self.float_casts = set()
         self.counter = 0
         self.params = {}
         self.mapping = {}
@@ -452,10 +453,13 @@ class CEmitter:
             val = self.value(e.children[0], lines)
             if source.name in INTS and t.name in INTS:
                 expression = self.integer_helper(t) + f"bits((uint64_t){val})"
+            elif source.name in {"f32", "f64"} and t.name in INTS:
+                self.float_casts.add((source.name, t.name))
+                expression = f"__hepta_cb_{source.name}_to_{t.name}({val})"
             elif source == t or (source.name == "raw_mut" and t.name == "raw_const"):
                 expression = f"({self.typ(t)}){val}"
             else:
-                fail("E_C_BACKEND_CAST", "Only integer casts and mut-to-const pointer casts are currently supported", e.span)
+                fail("E_C_BACKEND_CAST", "Only integer, saturating float-to-integer and mut-to-const pointer casts are currently supported", e.span)
         elif k == "call":
             if e.value in self.functions:
                 fn = self.functions[e.value]
@@ -585,6 +589,28 @@ class CEmitter:
             # Arithmetic right shift is explicit: no implementation-defined signed shift.
             fill = f" if (a < 0 && b) x |= UINT64_MAX << (sizeof(a)*CHAR_BIT - b);" if signed else ""
             lines.append(f"static inline {t} {prefix}shr({t} a, {t} b) {{ if ((uint64_t)b >= sizeof(a)*CHAR_BIT) abort(); uint64_t x = (uint64_t)({u})a >> b;{fill} return {prefix}bits(x); }}")
+        if self.float_casts:
+            lines.append('_Static_assert(FLT_RADIX == 2 && FLT_MANT_DIG == 24 && DBL_MANT_DIG == 53 '
+                         '&& FLT_MAX_EXP == 128 && DBL_MAX_EXP == 1024 '
+                         '&& sizeof(float) == 4 && sizeof(double) == 8, '
+                         '"Float casts require the qualified binary32/binary64 profile");')
+        for source, target in sorted(self.float_casts):
+            native = SCALARS[target]
+            signed = target.startswith("i")
+            bits = 64 if target in {"isize", "usize"} else int(target[1:])
+            maximum = ({"isize": "INTPTR_MAX", "usize": "SIZE_MAX"}.get(target)
+                       or f"{'INT' if signed else 'UINT'}{bits}_MAX")
+            minimum = "INTPTR_MIN" if target == "isize" else f"INT{bits}_MIN"
+            # Use exact powers of two, never a rounded floating INT_MAX.
+            # The final C cast is reached only for a finite value whose
+            # truncation is representable, avoiding float-cast overflow UB.
+            upper = f"0x1p{bits - 1 if signed else bits}"
+            guards = "if (x != x) return 0; "
+            guards += (f"if (x <= -{upper}) return {minimum}; " if signed
+                       else "if (x <= 0) return 0; ")
+            guards += f"if (x >= {upper}) return {maximum}; "
+            lines.append(f"static inline {native} __hepta_cb_{source}_to_{target}({SCALARS[source]} x) {{ "
+                         + guards + f"return ({native})x; }}")
         return "\n".join(lines)
 
     def runtime_source(self):
@@ -665,7 +691,7 @@ static {result_name} __hepta_cb_try_buffer(size_t size) {{
                 fail("E_C_ENTRYPOINT", "A C binary requires a non-FFI main() -> Unit or i32")
             expression = self.fn_name(main) + "()"
             bodies.append("int main(void) { " + (expression + "; return 0;" if main.return_type.name == "Unit" else "return " + expression + ";") + " }")
-        includes = "\n".join("#include <" + name + ">" for name in ["stdint.h", "stddef.h", "stdbool.h", "inttypes.h", "limits.h", "stdlib.h", "stdio.h", "string.h", "math.h"])
+        includes = "\n".join("#include <" + name + ">" for name in ["stdint.h", "stddef.h", "stdbool.h", "inttypes.h", "limits.h", "stdlib.h", "stdio.h", "string.h", "math.h", "float.h"])
         runtime = self.runtime_source()
         drops = "\n".join("static void " + name + "(" + self.typ(typ) + " value);" for typ, (name, _) in self.drops.items())
         drops += "\n" + "\n".join(body for _, body in self.drops.values())
