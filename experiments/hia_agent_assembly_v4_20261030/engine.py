@@ -93,8 +93,21 @@ class EnvelopeEngine(LlamaCppEngine):
         started = time.monotonic_ns()
         timeout = remaining()
         self.generation_count += 1
-        raw = self.request("/completion", payload, timeout=timeout)
-        self.response_count += 1
+        self.last_completion_observation = None
+        response_received = False
+        try:
+            raw = self.request("/completion", payload, timeout=timeout)
+        finally:
+            # The owned HTTP transport can receive a complete body and then
+            # reject a failed/exited server. Preserve that known response cost
+            # while propagating the failure; it is not accepted model output.
+            observed = self.last_completion_observation
+            response_received = observed is not None and observed.get("body_complete") is True
+            self.response_count += int(response_received)
+        if not response_received:
+            # Explicit fixture transports can return an object without HTTP
+            # observations. A normal return still counts exactly one response.
+            self.response_count += 1
         elapsed = time.monotonic_ns() - started
         with (self.output / (stem + ".response.json")).open("xb") as stream:
             stream.write(canonical(raw) + b"\n")

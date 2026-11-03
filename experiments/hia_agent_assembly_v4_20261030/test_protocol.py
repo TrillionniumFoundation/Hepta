@@ -8,7 +8,7 @@ import tempfile
 import signal
 import time
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 from contextlib import ExitStack
 
 from experiments.hia_agent_assembly_v4_20261030 import fixtures, evaluator, run_study
@@ -251,6 +251,97 @@ class ProtocolControls(unittest.TestCase):
                 self.assertLess(time.monotonic()-started,0.5)
                 self.assertEqual(engine.generation_count,1 if delayed_stage=="/completion" else 0)
                 self.assertEqual(signal.getitimer(signal.ITIMER_REAL),(0.0,0.0))
+
+    def envelope_transport_fixture(self, folder, *, complete, failure=None, invalid=False):
+        """No process/model: supply the owned transport's observation contract."""
+        engine = EnvelopeEngine.__new__(EnvelopeEngine)
+        engine.output = Path(folder); engine.context = 8192
+        engine.generation_count = engine.response_count = 0
+        engine.tokenize = lambda *_args, **_kwargs: [1, 2, 3]
+        # An old successful observation must never count for this request.
+        engine.last_completion_observation = {"body_complete": True, "completion_sequence": 99}
+        def request(endpoint, *_args, **_kwargs):
+            if endpoint == "/apply-template":
+                return {"prompt": "fixture prompt"}
+            self.assertEqual(endpoint, "/completion")
+            if complete is not None:
+                engine.last_completion_observation = {
+                    "body_complete": complete, "completion_sequence": engine.generation_count}
+            if failure is not None:
+                raise failure
+            return {"content": "{}", "tokens": [11], "tokens_evaluated": 3,
+                    "truncated": False, "stop_type": "eos",
+                    "generation_settings": {"temperature": 0, "seed": 0,
+                        "grammar": "" if invalid else 'root ::= "{}"', "grammar_lazy": False},
+                    "timings": {"predicted_n": 1}}
+        engine.request = request
+        return engine
+
+    def test_envelope_retains_complete_failed_response_without_accepting_task(self):
+        for complete in (True, False, None):
+            with self.subTest(complete=complete), tempfile.TemporaryDirectory() as td:
+                failure = RuntimeError("owned server exited after response")
+                engine = self.envelope_transport_fixture(td, complete=complete, failure=failure)
+                row, usable = run_study.run_cell(self.cell(), self.task, Path(td)/"cell",
+                    engine, "clang", "rustc", {}, self.protocol())
+                self.assertFalse(usable); self.assertFalse(row["correct"])
+                self.assertEqual(row["status"], "generation_infrastructure_failure")
+                self.assertEqual(len(row["attempts"]), 1)
+                self.assertEqual(row["automatic_repair_rounds"], 0)
+                self.assertIsNone(row["output_tokens"])
+                self.assertEqual(engine.generation_count, 1)
+                self.assertEqual(engine.response_count, int(complete is True))
+                self.assertFalse((Path(td)/"transport-001.response.json").exists())
+
+    def test_envelope_counts_actual_transport_observation_before_exit_refusal(self):
+        import os
+        import struct
+        from tools.provider_adapter.llama_cpp_engine import LlamaCppEngine
+        with tempfile.TemporaryDirectory() as td:
+            engine = self.envelope_transport_fixture(td, complete=None)
+            fixture_request = engine.request
+            engine.process = Mock(pid=123)
+            engine.process.poll.side_effect = [None, 7, 7]
+            engine.socket_path = "fixture-only-not-connected"
+            def request(endpoint, *args, **kwargs):
+                if endpoint == "/completion":
+                    return LlamaCppEngine.request(engine, endpoint, *args, **kwargs)
+                return fixture_request(endpoint, *args, **kwargs)
+            engine.request = request
+            sock = Mock()
+            sock.getsockopt.return_value = struct.pack("3i", 123, os.geteuid(), os.getegid())
+            connection = Mock()
+            body = b'{"content":"unvalidated fixture response"}'
+            response = connection.getresponse.return_value
+            response.read.return_value = body
+            response.length = 0; response.status = 200
+            prefix = "tools.provider_adapter.llama_cpp_engine."
+            # Exercise actual request/EnvelopeEngine accounting without a
+            # socket, server, model or interpretation of fixture output.
+            with patch(prefix + "socket.socket", return_value=sock), \
+                 patch(prefix + "http.client.HTTPConnection", return_value=connection):
+                with self.assertRaisesRegex(RuntimeError, "owned server failed request"):
+                    engine.generate([], language="hia", limit=4, wall_seconds=1)
+            self.assertEqual((engine.generation_count, engine.response_count), (1, 1))
+            self.assertTrue(engine.last_completion_observation["body_complete"])
+            self.assertEqual(engine.last_completion_observation["owned_process_returncode"], 7)
+            self.assertEqual((Path(td)/"transport-001.response.raw").read_bytes(), body)
+            self.assertFalse((Path(td)/"transport-001.response.json").exists())
+
+    def test_envelope_success_counts_one_response_with_or_without_http_observation(self):
+        for complete in (True, None):
+            with self.subTest(complete=complete), tempfile.TemporaryDirectory() as td:
+                engine = self.envelope_transport_fixture(td, complete=complete)
+                result = engine.generate([], language="hia", limit=4, wall_seconds=1)
+                self.assertEqual(result["status"], "completed")
+                self.assertEqual((engine.generation_count, engine.response_count), (1, 1))
+
+    def test_envelope_malformed_generation_still_counts_received_response(self):
+        with tempfile.TemporaryDirectory() as td:
+            engine = self.envelope_transport_fixture(td, complete=True, invalid=True)
+            with self.assertRaisesRegex(ValueError, "grammar"):
+                engine.generate([], language="hia", limit=4, wall_seconds=1)
+            self.assertEqual((engine.generation_count, engine.response_count), (1, 1))
 
     def test_deadline_never_steals_existing_alarm_and_restores_handler(self):
         previous_handler=signal.getsignal(signal.SIGALRM)
