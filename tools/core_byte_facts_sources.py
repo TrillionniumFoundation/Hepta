@@ -100,7 +100,7 @@ def _proof(ast, known):
     kind = ast[0]
     if kind == 'literal':
         length = len(ast[1])
-        return length, '(by decide +kernel : '+HELPER+'facts '+_expr(ast)+' '+str(length)+')'
+        return length, '(by unfold '+HELPER+'facts; decide +kernel : '+HELPER+'facts '+_expr(ast)+' '+str(length)+')'
     if kind == 'ref':
         require(ast[1] in known, 'fact dependency must already be named')
         return known[ast[1]]
@@ -124,7 +124,7 @@ def _facts(plan, stem):
         require(type(length) is int and length == row['length'], 'independent byte length differs')
         statement = HELPER+'facts '+row['name']+' '+str(length)
         if row['ast'][0] == 'literal':
-            body = 'by decide +kernel'
+            body = 'by unfold '+HELPER+'facts; decide +kernel'
         else:
             body = 'by\n  simpa only ['+row['name']+'] using '+proof
         lines.append('theorem '+name+' : '+statement+' := '+body+'\n')

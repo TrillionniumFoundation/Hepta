@@ -17,7 +17,8 @@ _HELPERS = frozenset(_HELPER_NS + '.' + x for x in ('nil', 'cons', 'append'))
 _HELPER_HASH = 'ec04662991f9efd20e51fdb6f37a8178fa81c86e62818c2441f8c7762a98507b'
 _FRAME = re.compile(r'theorem ([A-Za-z][A-Za-z0-9_]*) : '
                     + re.escape(_PREDICATE)
-                    + r' ([A-Za-z][A-Za-z0-9_]*) (0|[1-9][0-9]*) := (by(?: decide \+kernel)?)\n')
+                    + r' ([A-Za-z][A-Za-z0-9_]*) (0|[1-9][0-9]*) := (by(?: unfold '
+                    + re.escape(_PREDICATE) + r'; decide \+kernel)?)\n')
 
 
 def _check(ok, reason):
@@ -64,7 +65,7 @@ def _tree_terms(root, earlier):
         if tag == 'literal':
             expression = '[' + ', '.join(str(b) for b in node[1]) + ']'
             size = len(node[1])
-            evidence = f'(by decide +kernel : {_PREDICATE} {expression} {size})'
+            evidence = f'(by unfold {_PREDICATE}; decide +kernel : {_PREDICATE} {expression} {size})'
         elif tag == 'ref':
             _check(node[1] in earlier, 'unknown or forward child fact')
             size, evidence = earlier[node[1]]
@@ -98,7 +99,7 @@ def _check_fact_block(block, plan, stem):
         _check(length == row['length'] == int(numeral), 'fact length proposal')
         pos = frame.end()
         if row['ast'][0] == 'literal':
-            _check(mode == 'by decide +kernel', 'literal proof schema')
+            _check(mode == f'by unfold {_PREDICATE}; decide +kernel', 'literal proof schema')
         else:
             _check(mode == 'by', 'nonliteral proof schema')
             end = block.find('\n', pos)

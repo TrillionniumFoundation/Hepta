@@ -50,9 +50,9 @@ class ByteFactsSourcesTests(unittest.TestCase):
         self.assertEqual(len(m['obligations']),12)
         for key,value in facts.DENY.items(): self.assertEqual(m[key],value)
         self.assertEqual(m['original_source_bytes'],2400382)
-        self.assertEqual(m['transformed_source_bytes'],3121111)
+        self.assertEqual(m['transformed_source_bytes'],3192766)
         self.assertEqual(m['retained_source_bytes'],sum(len(s.encode()) for s in self.proposal.retained_sources.values()))
-        self.assertEqual(m['diagnostic_retained_source_upper_bound'],6056021)
+        self.assertEqual(m['diagnostic_retained_source_upper_bound'],6142007)
         self.assertLess(m['diagnostic_retained_source_upper_bound'],8*1024*1024)
         self.assertLessEqual(max(s.source_bytes for s in self.proposal.stages),2*1024*1024)
         self.assertEqual(len(self.prepared['expected_theorems']),66)
@@ -233,3 +233,58 @@ class ByteFactsSourcesTests(unittest.TestCase):
         with patch.object(facts,'_facts',side_effect=wrong_root):
             bad=facts._derive(self.prepared)
             self.reject(bad)
+
+    def test_literal_unfold_schema_rejects_standalone_and_inline_variants(self):
+        from tools import core_byte_facts_verify as independent
+        predicate='HiaCoreSyntaxSlice.ByteFactsResearch.facts'
+        proof='by unfold '+predicate+'; decide +kernel'
+        plan=dict(namespace='Example',root='sampleBytes',rows=[
+            dict(name='sample_g0',ast=('literal',(1,)),length=1),
+            dict(name='sampleBytes',ast=('append',('ref','sample_g0'),('literal',(2,))),length=2)])
+        block=('theorem sample_bf0000 : '+predicate+' sample_g0 1 := '+proof+'\n'
+            'theorem sample_bf0001 : '+predicate+' sampleBytes 2 := by\n'
+            '  simpa only [sampleBytes] using (HiaCoreSyntaxSlice.ByteFactsResearch.append '
+            'sample_g0 [2] 1 1 sample_bf0000 ('+proof+' : '+predicate+' [2] 1))\n')
+        names,root=independent._check_fact_block(block,plan,'sample')
+        self.assertEqual(len(names),2)
+        self.assertEqual(root,(2,'sample_bf0001'))
+        self.assertEqual(facts._proof(('literal',(2,)),{}),
+                         (1,'('+proof+' : '+predicate+' [2] 1)'))
+        variants=('by decide +kernel',proof.replace('facts;','nil;'),
+                  proof.replace(' +kernel',''),proof.replace('decide +kernel','native_decide'),
+                  proof+'; trivial')
+        for prefix in (' := ', '('):
+            for replacement in variants:
+                changed=block.replace(prefix+proof,prefix+replacement,1)
+                self.assertNotEqual(changed,block)
+                with self.subTest(prefix=prefix,replacement=replacement),self.assertRaisesRegex(ValueError,'independent byte-fact insertion'):
+                    independent._check_fact_block(changed,plan,'sample')
+        for before,after in (('facts sample_g0 1','facts sample_g0 2'),
+                             ('sample_g0 [2]','sample_g0 [3]'),
+                             ('1 1 sample_bf0000','1 1 sample_bf0001'),
+                             ('facts [2] 1','facts [3] 1')):
+            with self.subTest(before=before),self.assertRaises(ValueError):
+                independent._check_fact_block(block.replace(before,after,1),plan,'sample')
+        with self.assertRaises(ValueError):
+            independent._check_fact_block(block+'example : True := by trivial\n',plan,'sample')
+
+    def test_rehashed_faulty_literal_emitters_reach_independent_rejection(self):
+        from tools import core_byte_facts_verify as independent
+        unfold='unfold HiaCoreSyntaxSlice.ByteFactsResearch.facts; '
+        real_facts=facts._facts
+        def standalone(plan,stem):
+            block,names,root=real_facts(plan,stem)
+            return block.replace(' := by '+unfold,' := by ',1),names,root
+        # The five real DAGs use named references for every nonliteral child;
+        # inline literals are covered independently by the synthetic schema test.
+        for name,broken in (('_facts',standalone),):
+            with self.subTest(site=name),patch.object(facts,name,side_effect=broken):
+                bad=facts._derive(self.prepared)
+                self.assertNotEqual(bad.stages,self.proposal.stages)
+                # Every changed-size ledger and hash is freshly generated. Exact
+                # inverse succeeds, so stale offsets cannot explain rejection.
+                for old,new in zip(self.prepared['stages'],bad.stages):
+                    self.assertEqual(facts.inverse_source(new.source,old.source,
+                        bad.manifest['edits'][old.name]),old.source.encode())
+                with self.assertRaisesRegex(ValueError,'independent byte-fact insertion'):
+                    independent.validate_insertions(self.prepared,bad)
