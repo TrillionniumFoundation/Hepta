@@ -1,0 +1,53 @@
+name: Legacy loader operations differential oracle
+on:
+  pull_request:
+    paths:
+      - 'experiments/legacy_loader_ops/**'
+      - 'experiments/loader_api/**'
+      - 'experiments/request_load/**'
+      - 'experiments/loader_budget/**'
+      - 'experiments/c_char_boundary/**'
+      - 'hepta/**'
+      - 'examples/**'
+      - 'docs/design/LEGACY_LOADER_OPS_EXTRACTION.md'
+      - '.github/workflows/hepta-legacy-loader-ops.yml'
+permissions:
+  contents: read
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run exact-head model and existing context controls
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          python - <<'PY'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromNames([
+              'experiments.legacy_loader_ops.test_differential',
+              'experiments.loader_api.test_contract',
+              'experiments.request_load.test_context'])
+          def identities(suite):
+              for item in suite:
+                  if isinstance(item, unittest.TestSuite):
+                      yield from identities(item)
+                  else:
+                      yield item.id()
+          planned = list(identities(suite))
+          assert len(planned) == len(set(planned)) == 81, planned
+          print('Planned identities:', planned, flush=True)
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          if (not result.wasSuccessful() or result.skipped or result.expectedFailures
+                  or result.unexpectedSuccesses or result.testsRun != 81):
+              raise SystemExit(1)
+          PY
