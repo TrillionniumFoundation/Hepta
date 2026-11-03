@@ -32,9 +32,9 @@ class ConsumerContractTests(unittest.TestCase):
     def test_inventory_is_reproducible_and_pins_all_production_sources(self):
         saved = json.loads((Path(__file__).with_name('inventory.json')).read_text())
         self.assertEqual(saved, inventory())
-        self.assertEqual(len(saved['source_sha256']), 179)
+        self.assertEqual(len(saved['source_sha256']), 180)
         self.assertEqual(len(saved['references']), 26)
-        self.assertEqual(sum(map(len, saved['references'].values())), 202)
+        self.assertEqual(sum(map(len, saved['references'].values())), 203)
 
     def test_inventory_tracks_import_aliases_and_nested_project_attributes(self):
         rows = inspect_source('from hepta.modules import load_project as lp\nx = lp(p)\nx.project.unchanged()\n')

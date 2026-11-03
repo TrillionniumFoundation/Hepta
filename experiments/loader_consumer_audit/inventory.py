@@ -32,6 +32,8 @@ def inspect_source(text):
                     and isinstance(node.args[0], ast.Attribute)
                     and node.args[0].attr == 'project'):
                 rows.add((node.lineno, 'reflective-surface', ast.unparse(node)))
+            if name == '_dispatch' and node.args and isinstance(node.args[0], ast.Name):
+                rows.add((node.lineno, 'hook-dispatch', node.args[0].id))
             if name in aliases:
                 rows.add((node.lineno, 'call', ast.unparse(node.func)))
         if isinstance(node, ast.Attribute) and node.attr in FIELDS:

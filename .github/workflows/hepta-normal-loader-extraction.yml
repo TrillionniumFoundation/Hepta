@@ -1,0 +1,49 @@
+name: Normal-source legacy loader extraction
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'experiments/normal_loader_extraction/**'
+      - 'experiments/legacy_loader_ops/**'
+      - 'experiments/loader_consumer_audit/**'
+      - 'experiments/loader_api/**'
+      - 'experiments/request_load/**'
+      - 'experiments/loader_budget/**'
+      - 'experiments/c_char_boundary/**'
+      - 'tests/**'
+      - 'examples/**'
+      - 'docs/design/NORMAL_LOADER_EXTRACTION.md'
+      - '.github/workflows/hepta-normal-loader-extraction.yml'
+permissions:
+  contents: read
+jobs:
+  compatibility:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.12']
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Verify exact source and bind regression compilers
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          rustup toolchain install 1.90.0 --profile minimal
+          echo "RUSTC=$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_ENV"
+          echo "CC=$(command -v gcc)" >> "$GITHUB_ENV"
+          "$(rustup which --toolchain 1.90.0 rustc)" --version
+          gcc --version
+      - name: Run 259 unique no-skip controls
+        run: python -m experiments.normal_loader_extraction.gate --include-consumers
