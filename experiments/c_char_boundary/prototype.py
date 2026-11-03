@@ -138,10 +138,19 @@ def native_type(parser, tokens, *, result=False):
 class Prepared:
     """Live, single-profile experimental session; close removes private inputs."""
     def __init__(self, entry, *, cc='gcc', char_mode='default',
-                 _runner=run, _importer=import_header, _project=None, _locked=False):
+                 _runner=run, _importer=import_header, _project=None, _locked=False,
+                 _context=None):
         require(char_mode in MODES, 'unqualified char mode')
         self.run, self.importer = _runner, _importer
         self.loaded_project, self.locked = _project, _locked
+        require(_context is None or _project is None or getattr(_project, 'context', None) is _context,
+                'supplied project does not belong to request context')
+        self.load = load_project if _context is None else _context.load
+        self.read = (lambda path, role=None: Path(path).read_bytes()) if _context is None else _context.read
+        self.text = (lambda path, role=None: Path(path).read_text()) if _context is None else (
+            lambda path, role=None: self.read(path, role).decode('utf-8').replace('\r\n', '\n').replace('\r', '\n'))
+        self.parse = (lambda text, path: parse(text)) if _context is None else _context.parse
+        self.metadata = (lambda data, path: json.loads(data.decode('utf-8'))) if _context is None else _context.json
         self._temporary = tempfile.TemporaryDirectory(prefix='hepta-char-prototype-')
         self.directory = Path(self._temporary.name)
         try:
@@ -161,28 +170,28 @@ class Prepared:
 
     def _prepare(self, entry, cc, mode):
         compiler = compiler_identity(cc, self.run)
-        project = self.loaded_project or load_project(entry, locked=self.locked)
+        project = self.loaded_project or self.load(entry, locked=self.locked)
         require(len(project.c_imports) == 1, 'prototype requires exactly one imported header')
         item = project.c_imports[0]
         bindings = Path(item['source'])
-        manifest = json.loads(Path(item['manifest']).read_text())
+        manifest = self.metadata(self.read(Path(item['manifest']), 'sidecar'), item['manifest'])
         original = Path(manifest['header'])
         if manifest.get('header_path_kind') == 'relative_to_manifest':
             original = Path(item['manifest']).parent/original
         original = original.resolve()
         require(original.is_file(), 'original header is unavailable')
-        raw = original.read_bytes()
+        raw = self.read(original, 'header')
         require(digest(raw) == manifest['header_sha256'], 'original header identity changed')
         self.snapshot = self.directory/'original.h'
         self.snapshot.write_bytes(raw)
         self.snapshot.chmod(0o400)
-        parsed_bindings = parse(bindings.read_text())
+        parsed_bindings = self.parse(self.text(bindings, 'source'), str(bindings))
         contracts = {f.name: set(f.effects) for f in parsed_bindings.functions}
         driver = compiler_driver(self.directory, compiler[0], mode)
         self.driver_hash = digest(driver.read_bytes())
         fresh = self.importer(self.snapshot, cc=str(driver), module=parsed_bindings.name,
                               contracts=contracts)
-        require(fresh.source == bindings.read_text(), 'fresh native declarations differ from binding source')
+        require(fresh.source == self.text(bindings, 'source'), 'fresh native declarations differ from binding source')
         require(fresh.manifest['primitive_types'] == manifest['primitive_types'], 'native facts differ from manifest')
         require(fresh.manifest['target'] == manifest['target'], 'native target differs from manifest')
         parser = HeaderParser(raw.decode('utf-8'))
@@ -218,7 +227,7 @@ class Prepared:
         identities[str(original)] = digest(raw)
         self.program, self.checked = project.program, checked
         self.context = Context(PROFILE,str(entry),tuple(sorted(identities.items())),str(original),digest(raw),
-                               compiler,mode,digest(bindings.read_bytes()),project.identity,
+                               compiler,mode,digest(self.read(bindings, 'source')),project.identity,
                                tuple(boundaries),tuple((k,' '.join(v)) for k,v in parser.aliases.items()),
                                fresh.manifest['primitive_types']['char']['signed'])
         self._bound_context = self.context
@@ -228,12 +237,12 @@ class Prepared:
         ctx = self._bound_context
         require(self.context == ctx, 'context was replaced')
         require(compiler_identity(ctx.compiler[0], self.run) == ctx.compiler, 'compiler identity changed')
-        require(self.snapshot.is_file() and digest(self.snapshot.read_bytes()) == ctx.header_hash, 'private header snapshot changed')
+        require(self.snapshot.is_file() and digest(self.read(self.snapshot, 'header')) == ctx.header_hash, 'private header snapshot changed')
         require(digest((self.directory/'probe-driver').read_bytes()) == self.driver_hash, 'probe driver changed')
         for name, expected in ctx.identities:
             path = Path(name)
-            require(path.is_file() and digest(path.read_bytes()) == expected, 'prepared source identity changed: ' + name)
-        current = load_project(ctx.entry, locked=self.locked)
+            require(path.is_file() and digest(self.read(path)) == expected, 'prepared source identity changed: ' + name)
+        current = self.load(ctx.entry, locked=self.locked)
         require(current.identity == ctx.source_hash, 'assembled project changed')
         # Reconstruct rather than trust a caller-mutated retained AST/check result.
         self.program = current.program

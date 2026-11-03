@@ -5,9 +5,12 @@ on:
       - 'hepta/**'
       - 'experiments/c_char_boundary/**'
       - 'experiments/loader_budget/**'
+      - 'experiments/request_load/**'
+      - 'docs/design/REQUEST_LOAD_CONTEXT.md'
       - 'docs/design/LOADER_READ_BUDGET.md'
       - 'docs/design/C_CHAR_BOUNDARY*'
       - 'tests/test_c_import*.py'
+      - 'tests/test_modules.py'
       - '.github/workflows/hepta-c-char-prototype.yml'
 permissions:
   contents: read
@@ -55,6 +58,7 @@ jobs:
               'experiments.c_char_boundary.test_build_plan',
               'experiments.loader_budget.test_characterization',
               'experiments.loader_budget.test_prototype',
+              'experiments.request_load.test_context', 'tests.test_modules',
               'tests.test_c_import', 'tests.test_c_import_capture',
               'tests.test_c_import_prototypes', 'tests.test_c_import_typedefs'])
           def identities(tests):
@@ -64,13 +68,13 @@ jobs:
                   else:
                       yield item.id()
           ids = list(identities(suite))
-          if len(ids) != 95 or len(set(ids)) != 95:
-              raise SystemExit('Expected 95 unique test identities')
+          if len(ids) != 164 or len(set(ids)) != 164:
+              raise SystemExit('Expected 164 unique test identities')
           print('Planned test identities:', ids, flush=True)
           result = unittest.TextTestRunner(verbosity=2).run(suite)
           if (not result.wasSuccessful() or result.skipped or result.expectedFailures
-                  or result.unexpectedSuccesses or result.testsRun != 95):
-              raise SystemExit('Expected all 95 controls with no skips')
+                  or result.unexpectedSuccesses or result.testsRun != 164):
+              raise SystemExit('Expected all 164 controls with no skips')
           PY
           test -z "$(git status --porcelain --untracked-files=no)"
       - uses: actions/upload-artifact@v4

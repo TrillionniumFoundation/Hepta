@@ -47,13 +47,15 @@ class Reader:
             raise Rejected('reader is terminal')
         self.checkpoint()
 
-    def _chunks(self, path):
+    def _chunks(self, path, max_bytes=None):
         if not self._active.acquire(blocking=False):
             self.closed = True
             raise Rejected('overlapping reader operations are not admitted')
         fd = None
         try:
             self._check()
+            if max_bytes is not None and (type(max_bytes) is not int or max_bytes <= 0):
+                raise Rejected('invalid per-read byte quota')
             if self.reads >= self.limits.reads:
                 raise Rejected('read invocation quota exceeded')
             self.reads += 1
@@ -64,7 +66,8 @@ class Reader:
             if not stat.S_ISREG(info.st_mode):
                 raise Rejected('only regular files are admitted')
             remaining = self.limits.total_bytes - self.bytes_read
-            cap = min(self.limits.per_file, remaining)
+            cap = min(self.limits.per_file, remaining,
+                      self.limits.per_file if max_bytes is None else max_bytes)
             if info.st_size > cap:
                 raise Rejected('file or aggregate byte quota exceeded')
             consumed = 0
@@ -91,11 +94,11 @@ class Reader:
             finally:
                 self._active.release()
 
-    def read(self, path):
-        return b''.join(self._chunks(path))
+    def read(self, path, *, max_bytes=None):
+        return b''.join(self._chunks(path, max_bytes))
 
-    def digest(self, path):
+    def digest(self, path, *, max_bytes=None):
         result = hashlib.sha256()
-        for chunk in self._chunks(path):
+        for chunk in self._chunks(path, max_bytes):
             result.update(chunk)
         return result.hexdigest()
