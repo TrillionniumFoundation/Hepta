@@ -239,10 +239,11 @@ def _load_project(entry, *, locked=False, source_overrides=None, ops) -> LoadedP
                 return name
             fail("E_MODULE_NAMESPACE", "Unknown namespace: " + parts[0], span)
 
-        def transform(value, params=frozenset()):
+        def transform(value, params=frozenset(), depth=1):
+            ops.transform_visit(depth)
             if isinstance(value, Type):
                 name = value.name if value.name in params else resolve(value.name, "type", Span(path=str(unit.path)))
-                return Type(name, tuple(transform(a, params) for a in value.args), value.length, value.lifetimes)
+                return Type(name, tuple(transform(a, params, depth + 1) for a in value.args), value.length, value.lifetimes)
             if isinstance(value, Expr):
                 if value.kind in {"name", "call"} and isinstance(value.value, str):
                     if value.kind == "call" or "::" in value.value or value.value in unit.functions:
@@ -251,20 +252,20 @@ def _load_project(entry, *, locked=False, source_overrides=None, ops) -> LoadedP
                     value.value["name"] = resolve(value.value["name"], "type", value.span)
                 for f in fields(value):
                     if f.name not in {"kind", "span"}:
-                        setattr(value, f.name, transform(getattr(value, f.name), params))
+                        setattr(value, f.name, transform(getattr(value, f.name), params, depth + 1))
                 return value
             if isinstance(value, list):
-                return [transform(v, params) for v in value]
+                return [transform(v, params, depth + 1) for v in value]
             if isinstance(value, tuple):
-                return tuple(transform(v, params) for v in value)
+                return tuple(transform(v, params, depth + 1) for v in value)
             if isinstance(value, dict):
-                return {k: transform(v, params) for k, v in value.items()}
+                return {k: transform(v, params, depth + 1) for k, v in value.items()}
             if is_dataclass(value) and not isinstance(value, Span):
                 if hasattr(value, "enum_name"):
                     value.enum_name = resolve(value.enum_name, "type", value.span)
                 for f in fields(value):
                     if f.name not in {"span", "body_span", "name", "enum_name", "type_params"}:
-                        setattr(value, f.name, transform(getattr(value, f.name), params))
+                        setattr(value, f.name, transform(getattr(value, f.name), params, depth + 1))
                 return value
             return value
 

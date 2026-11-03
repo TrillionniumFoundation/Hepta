@@ -22,6 +22,9 @@ class LegacyLoaderOps:
         """Preserve the original Path method; experimental ops may admit it."""
         return getattr(path, operation)()
 
+    def transform_visit(self, depth):
+        """Private pre-body visit seam; legacy transformation has no quota."""
+
     def deepcopy(self, deepcopy, value):
         """Preserve the captured copy callable and its original argument."""
         try:
