@@ -130,7 +130,7 @@ theorem readUsize_bounded (maximum : Nat) (env : Env) (slot n : Nat)
   | none => simp [hvalue] at read
   | some value =>
     cases value with
-    | opaque => simp [hvalue] at read
+    | «opaque» => simp [hvalue] at read
     | usize value =>
       by_cases bounded : value ≤ maximum
       · have same : value = n := by simpa [hvalue, bounded] using read
@@ -157,7 +157,7 @@ theorem guard_values (maximum : Nat) (d : Descriptor) (env : Env)
     | none => simp [hi, hn] at guard
     | some extent =>
       have below : index < extent := by simpa [hi, hn, strict] using guard
-      exact ⟨index, extent, hi, hn, below⟩
+      exact ⟨index, extent, rfl, rfl, below⟩
 
 theorem checked_add_in_range (maximum index : Nat) (bounded : index + 1 ≤ maximum) :
     evalAdd .checked maximum index 1 = some (index + 1) := by

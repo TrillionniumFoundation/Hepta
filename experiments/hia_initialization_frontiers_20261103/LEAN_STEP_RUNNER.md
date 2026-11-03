@@ -85,3 +85,18 @@ Only the successful positive input prints and validates axiom dependencies.
 Negative inputs remove all axiom-print directives so expected failed declarations
 are not inspected as if they were completed theorems. Positive checks still
 unconditionally reject sorryAx and incomplete/unexpected axiom inventories.
+
+## First actual kernel attempt (retained failure)
+
+PR #600 head 2876c936b095dd33a7ca6d58ac1c9e9f190d90ed, run 41637574322,
+completed the locked toolchain acquisition but rejected the positive Lean input.
+The new generic proof text had an unescaped `opaque` case label and used original
+read equalities after case analysis had already reduced those goal components
+to reflexivity. The runner correctly left the projected theorem flag false and
+did not execute or count negative controls. Concrete descriptor/witness checks
+alone were insufficient to establish the intended generic result.
+
+The follow-up changes only the case-label syntax and uses reflexivity for the
+already reduced equalities; it does not weaken theorem statements, add assumptions,
+change semantics or relax the runner. It remains UNCHECKED until a new exact-head
+kernel run accepts the complete positive input and all required negatives.
