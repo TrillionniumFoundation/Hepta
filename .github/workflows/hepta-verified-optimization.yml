@@ -196,14 +196,15 @@ jobs:
           printf 'HEPTA_NDU_BRIDGE=%s\nHEPTA_NDU_BUILD=%s\nHEPTA_NDU_UPSTREAM=%s\n' \
             "$RUNNER_TEMP/hepta-ranking-ndu-target/debug/hia-ndu-bridge" "$hepta_ranking_build" \
             "$hepta_ranking_checkout" >> "$GITHUB_ENV"
-      - name: Require native Q32 planning and numeric boundary tests without skips
+      - name: Require native Q32 planning and finite plan-copy controls without skips
         run: |
           python - <<'PY'
           import json, unittest
           from pathlib import Path
           out = Path('artifacts/verified-optimization/planning-boundaries')
           out.mkdir()
-          names = ['tests.test_hia_planning', 'tests.test_hia_planning_boundaries']
+          names = ['tests.test_hia_planning', 'tests.test_hia_planning_boundaries',
+                   'tests.test_hia_ndu_plan_copy']
           suite = unittest.defaultTestLoader.loadTestsFromNames(names)
           expected = suite.countTestCases()
           with (out / 'tests.log').open('w') as log:

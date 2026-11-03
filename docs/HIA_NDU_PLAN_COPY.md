@@ -83,3 +83,17 @@ retained `rebased/` observation measured 82,363,551 ns versus 65,466,957 ns per
 observations. Independent review also found no blocking issue and reproduced
 the bounded Python-preparation improvement. Native/full-lifecycle claims remain
 excluded.
+
+## Regression registration
+
+The plan-copy module is explicitly included in `qualify_hia_composition.CORE_TESTS`
+and the PR-triggered verified-optimization workflow's no-skip planning controls.
+A composition identity regression checks that the module is registered exactly
+once and resolves at least its four controls. The focused composition/cost/copy/
+snapshot checks pass 31/31 with pinned Z3; the final NDU discovery again reports
+164 pass and 93 native-dependent skips. Logs are in `registration/`.
+
+This registration does not retroactively qualify earlier workflow runs. The PR
+workflow still requires its native bridge setup before reaching those controls;
+a prior setup failure means the controls did not execute. Full composition is
+separately triggered and requires its complete native/formal toolchain.

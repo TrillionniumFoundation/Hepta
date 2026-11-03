@@ -41,6 +41,12 @@ class CompositionIdentityTests(unittest.TestCase):
         self.git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
                  "commit", "-q", "-m", "Register exact source fixture")
 
+    def test_plan_copy_regressions_are_registered_once(self):
+        name = "tests.test_hia_ndu_plan_copy"
+        self.assertEqual(composition.CORE_TESTS.count(name), 1)
+        suite = unittest.defaultTestLoader.loadTestsFromName(name)
+        self.assertGreaterEqual(suite.countTestCases(), 4)
+
     def test_clean_materialized_source_is_bound_to_the_git_commit(self):
         self.source_fixture()
         with patch.object(composition, "ROOT", self.root):
