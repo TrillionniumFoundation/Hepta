@@ -12,6 +12,10 @@ jobs:
   compile-only:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [shrink-wrap, common-sink]
     env:
       EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
       PYTHONDONTWRITEBYTECODE: '1'
@@ -47,14 +51,14 @@ jobs:
         run: |
           set -euo pipefail
           python -B -m unittest tests.test_reduction_layout_diagnostic -v 2>&1 | tee "$RUNNER_TEMP/layout-tests.log"
-          timeout 300s python -B tools/diagnose_hia_reduction_layout.py --clang "$CLANG" --output "$RUNNER_TEMP/reduction-layout" 2>&1 | tee "$RUNNER_TEMP/layout-run.log"
+          timeout 300s python -B tools/diagnose_hia_reduction_layout.py --profile "${{ matrix.profile }}" --clang "$CLANG" --output "$RUNNER_TEMP/reduction-layout" 2>&1 | tee "$RUNNER_TEMP/layout-run.log"
           test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
           test -z "$(git status --porcelain --untracked-files=all)"
       - name: Retain all positive, negative and failed observations
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: reduction-layout-diagnostic-${{ env.EXPECTED_HEAD }}
+          name: reduction-layout-diagnostic-${{ matrix.profile }}-${{ env.EXPECTED_HEAD }}
           path: |
             ${{ runner.temp }}/reduction-layout
             ${{ runner.temp }}/layout-tests.log
