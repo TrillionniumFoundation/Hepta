@@ -281,12 +281,21 @@ class CEmitter:
         for child in e.children:
             self.require_nonmutating(child)
 
-    def sequence(self, e, lines):
+    def sequence(self, e, lines, *, allow_temporary=False):
         t = self.expr_type(e)
         if t.name not in {"array", "slice", "Buffer"}:
             fail("E_C_BACKEND_SUBSET", "Only fixed arrays, borrowed slices and Buffer<u8> are supported sequences", e.span)
         if e.kind == "call" and t.name == "slice":
             p = self.view(e, lines)
+        elif (allow_temporary and t.name == "array" and self.root(e) is None
+              and not (e.kind == "call" and e.value in self.functions
+                       and self.functions[e.value].return_mode != "value")):
+            # Materialize copy-array rvalues once for immediate read access.
+            # Borrowing and assignment keep using the named-place path; owned
+            # temporaries need explicit lifetime/drop lowering, not this rule.
+            if is_owned_type(self.program, t):
+                fail("E_C_BACKEND_SUBSET", "Owned temporary arrays require explicit consumption", e.span)
+            p = self.value(e, lines)
         else:
             p = self.place(e, lines)
         return f"({p}).data", str(t.length) if t.name == "array" else f"({p}).len"
@@ -412,7 +421,12 @@ class CEmitter:
                 base = self.value(e.children[0], lines)
                 expression = "(" + base + ").h_" + e.value
         elif k == "index":
-            expression = self.place(e, lines)
+            base, index = e.children
+            self.require_nonmutating(index)
+            data, length = self.sequence(base, lines, allow_temporary=True)
+            ix = self.value(index, lines)
+            lines.append(f"if ({ix} >= {length}) abort();")
+            expression = f"({data})[{ix}]"
         elif k == "unary":
             child = e.children[0]
             if e.value in {"read", "mut"}:
@@ -477,7 +491,7 @@ class CEmitter:
                 arg = e.children[0]
                 if arg.kind == "unary":
                     arg = arg.children[0]
-                _, expression = self.sequence(arg, lines)
+                _, expression = self.sequence(arg, lines, allow_temporary=True)
             elif e.value in {"wrapping_add", "wrapping_sub", "wrapping_mul", "min", "max"}:
                 args = [self.value(x, lines) for x in e.children]
                 expression = self.integer_helper(t) + e.value + "(" + ", ".join(args) + ")"
