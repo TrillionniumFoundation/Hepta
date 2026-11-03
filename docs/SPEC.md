@@ -276,9 +276,14 @@ remainder, shifts, and integer negation have conservative panic effects.
 Failed runtime guards abort.
 
 The Rust profile uses ordinary Rust numeric casts and floating semantics,
-without fast-math. The C subset supports basic floating arithmetic but rejects
-float/integer casts; its supported integer casts and wrapping operations use
-explicit bit semantics. Pointer/integer conversion and arbitrary pointer
+without fast-math. The C subset supports basic floating arithmetic and
+saturating `f32`/`f64` to integer casts. These casts truncate toward zero, map
+NaN to zero, and clamp out-of-range values (including infinities) to the target
+integer limits. Exact power-of-two guards precede the C conversion, so no
+out-of-range float is cast directly to an integer. This path requires the
+checked binary32/binary64 and existing 64-bit pointer data model. Integer to
+float and cross-width float casts remain rejected. Supported integer casts
+and wrapping operations use explicit bit semantics. Pointer/integer conversion and arbitrary pointer
 reinterpretation are rejected. Converting `raw mut T` to `raw const T`
 requires unsafe and preserves the pointee type.
 
@@ -492,7 +497,7 @@ before C emission; native error/cleanup behavior is qualified separately in
 resource verification. General stored lifetime records outside that profile,
 labelled v5 views, nested or escaping view records, hosted task/group/I/O
 runtimes, unsupported zero-sized layouts, pointers to arrays, `repr(C)` array
-fields and float/integer casts remain rejected. No silent substitution or Rust
+fields, integer-to-float and cross-width float casts remain rejected. No silent substitution or Rust
 fallback is permitted.
 
 The C compiler API supports bin, object, static-library, and shared-library
