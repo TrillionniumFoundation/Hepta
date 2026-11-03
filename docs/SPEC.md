@@ -495,6 +495,13 @@ runtimes, unsupported zero-sized layouts, pointers to arrays, `repr(C)` array
 fields and float/integer casts remain rejected. No silent substitution or Rust
 fallback is permitted.
 
+The C `print_i64` path checks its formatted write and flushes stdout before
+continuing. Reported write/flush failures abort rather than silently succeeding
+at program exit. This submits a line to the OS, not durable storage or receiver
+acknowledgment. It preserves the process's existing SIGPIPE policy, and does not
+promise an atomic transaction with foreign writers. Per-line flushing costs
+throughput on redirected output; see [C_PRINT_IO.md](C_PRINT_IO.md).
+
 The C compiler API supports bin, object, static-library, and shared-library
 artifacts. Default C `check` analysis uses an object validation artifact rather
 than a Rust rlib. Explicit foreign targets and `--no-std` are rejected. A
