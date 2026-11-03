@@ -6,7 +6,7 @@ identity: `baseline`, `fixed`, `dp` and `ndu`.
 
 ## Reproduce
 
-Run `python -B -m unittest tests.test_hia_full_cost_gate -v`.
+Run `python -B -m unittest tests.test_hia_full_cost_gate tests.test_hia_full_cost_gate_cli -v`.
 
 For an independently collected JSON file, run:
 
@@ -16,9 +16,13 @@ python -B tools/qualify_hia_full_cost_gate.py \
   --output /new/report.json --require-positive
 ```
 
-Input is strict immutable UTF-8 JSON of at most 256 KiB. The output path must
-be new; no overwrite is permitted. Without `--require-positive`, a *negative*
-valid result is still preserved and exits zero for evidence collection.
+Input is strict immutable UTF-8 JSON of at most 256 KiB, read from an ordinary
+file. The command uses nonblocking descriptor admission to reject FIFOs and
+other special files before reading; final-component symlinks are rejected on
+hosts with `O_NOFOLLOW`. This does not promise an atomic filesystem snapshot.
+The output path must be new; no overwrite is permitted. Without
+`--require-positive`, a *negative* valid result is still preserved and exits
+zero for evidence collection.
 With that flag, a negative economic result exits nonzero.
 
 ## Exact contract
