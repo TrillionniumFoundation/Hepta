@@ -1,0 +1,112 @@
+diff --git a/qa/hepta-p0-p7-readiness/audit.py b/qa/hepta-p0-p7-readiness/audit.py
+--- a/qa/hepta-p0-p7-readiness/audit.py
++++ b/qa/hepta-p0-p7-readiness/audit.py
+@@ -20,6 +20,15 @@
+ SCHEMA = "hepta.stem-ndu.p0-p7-ci-audit.v1"
+ REPO = "TrillionniumFoundation/hepta-private-ci"
+ STAGES = tuple(f"P{n}" for n in range(8))
++# These original blocking-ci security/native jobs cannot be removed by a
++# caller-supplied plan. Additional applicable jobs remain separately required.
++REQUIRED_BLOCKING_JOBS = frozenset({
++    "Select blocking CI scope",
++    "cargo-deny / cargo-deny",
++    "Bazel / Bazel test on windows-latest for x86_64-pc-windows-msvc shard 2/4",
++    "Bazel / Bazel clippy on macos-15 for aarch64-apple-darwin",
++    "repo-checks / Native Hepta paths on windows-latest",
++})
+ SHA = re.compile(r"[0-9a-f]{40}\Z")
+ # Not a checklist the caller can delete to manufacture readiness. An external,
+ # independently approved evidence mechanism must establish these separately.
+@@ -95,6 +104,13 @@
+             seen.add(c["workflow"])
+         if "blocking-ci" not in seen:
+             raise AuditError(f"{name}: full blocking-ci cannot be omitted")
++        declared = next(c["jobs"] for c in checks if c["workflow"] == "blocking-ci")
++        missing = REQUIRED_BLOCKING_JOBS.difference(declared)
++        if missing:
++            raise AuditError(
++                f"{name}: mandatory blocking-ci native/security jobs omitted: "
++                + ", ".join(sorted(missing))
++            )
+ 
+ 
+ class GithubClient:
+diff --git a/qa/hepta-p0-p7-readiness/test_audit.py b/qa/hepta-p0-p7-readiness/test_audit.py
+--- a/qa/hepta-p0-p7-readiness/test_audit.py
++++ b/qa/hepta-p0-p7-readiness/test_audit.py
+@@ -5,7 +5,8 @@
+ from pathlib import Path
+ import unittest
+ 
++from audit import (AuditError, REPO, REQUIRED_BLOCKING_JOBS, SCHEMA, STAGES,
++                   audit, read_json, validate_plan)
+-from audit import AuditError, REPO, SCHEMA, STAGES, audit, read_json, validate_plan
+ 
+ 
+ class MockGitHub:
+@@ -22,7 +23,7 @@
+         sha = f"{k + 1:040x}"
+         specs[stage] = {"pr": k + 101, "head_sha": sha,
+                         "checks": [
++                            {"workflow": "blocking-ci", "jobs": sorted(REQUIRED_BLOCKING_JOBS)},
+-                            {"workflow": "blocking-ci", "jobs": ["native-security"]},
+                             {"workflow": "focused", "jobs": ["task-check"]},
+                         ]}
+     plan = {"schema": SCHEMA, "repository": REPO, "stages": specs}
+@@ -41,9 +42,10 @@
+                          "pull_requests": [{"number": s["pr"],
+                                             "head": {"sha": s["head_sha"]}}]})
+             db[f"{base}/actions/runs/{ident}/jobs?per_page=100"] = {
++                "total_count": len(requirement["jobs"]),
++                "jobs": [{"name": job,
++                          "status": "completed", "conclusion": "success"}
++                         for job in requirement["jobs"]]}
+-                "total_count": 1,
+-                "jobs": [{"name": requirement["jobs"][0],
+-                          "status": "completed", "conclusion": "success"}]}
+         db[f"{base}/actions/runs?head_sha={s['head_sha']}&per_page=100"] = {
+             "total_count": len(runs), "workflow_runs": runs}
+     return plan, db
+@@ -75,6 +77,25 @@
+         with self.assertRaises(AuditError):
+             validate_plan(bad)
+ 
++    def test_native_security_roster_cannot_be_trimmed_from_a_green_plan(self):
++        plan, db = fixtures()
++        for required in sorted(REQUIRED_BLOCKING_JOBS):
++            altered = copy.deepcopy(plan)
++            altered["stages"]["P7"]["checks"][0]["jobs"].remove(required)
++            with self.subTest(removed=required):
++                with self.assertRaisesRegex(AuditError, "mandatory blocking-ci"):
++                    validate_plan(altered)
++                with self.assertRaises(AuditError):
++                    audit(altered, MockGitHub(db).get)
++
++    def test_green_scope_selector_alone_does_not_qualify_native_ci(self):
++        plan, db = fixtures()
++        plan["stages"]["P0"]["checks"][0]["jobs"] = [
++            "Select blocking CI scope"
++        ]
++        with self.assertRaisesRegex(AuditError, "mandatory blocking-ci"):
++            audit(plan, MockGitHub(db).get)
++
+     def test_invalid_shas_prs_and_duplicate_workflow_names_rejected(self):
+         for field, bad_value in (("pr", True), ("pr", 0), ("head_sha", "ab"),
+                                  ("head_sha", "F"*40)):
+diff --git a/qa/hepta-p0-p7-readiness/README.md b/qa/hepta-p0-p7-readiness/README.md
+--- a/qa/hepta-p0-p7-readiness/README.md
++++ b/qa/hepta-p0-p7-readiness/README.md
+@@ -15,6 +15,13 @@
+ 
+ `--require-ci-ready` returns exit 2 if any of the eight **CI preflights** fails. Even when all pass, output retains `all_blockers_closed=false`, `model_promotion_authorized=false`, and the immutable externally verifiable science/authority gaps per stage. This tool does not download model weights, execute agents, touch mutable state, or grant tool permissions.
+ 
++The original `blocking-ci` minimum security/native job roster is
++source-pinned as `REQUIRED_BLOCKING_JOBS`, independently of the plan. Removing
++the Windows shard-2 test, macOS Clippy, RustSec cargo-deny, native Windows
++paths, or scope selection invalidates the plan before contacting GitHub.
++A successful lightweight scope job is not full native CI. Other applicable
++jobs, independent science, and FinalUse remain separate blockers.
++
+ `candidate_plan.json` is a timestamped **2026-10-23 pinned snapshot**, not a list of PRs to merge blindly. Every PR/HEAD change requires reviewing and updating that exact SHA and its owning native workflows. Failure of a deprecated/older source should not be assumed to remain a problem in future integrations; neither should a donor-source green check qualify a new combined source. A branch's PR result is not final **prospective merge** CI or target-device approval.
+ 
+ ## Current science and implementation blockers
