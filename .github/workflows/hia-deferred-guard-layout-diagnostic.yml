@@ -1,0 +1,73 @@
+name: HIA deferred guard layout (compile-only, DENY_ALL)
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'benchmarks/hia_reduction_release/linear.hepta'
+      - 'benchmarks/hia_reduction_release/affine.hepta'
+      - 'tools/diagnose_hia_deferred_guard_layout.py'
+      - 'tools/experimental_deferred_guard_proposer.py'
+      - 'tools/check_deferred_guard_candidate.py'
+      - 'tools/research_deferred_guard_model.py'
+      - 'tools/stage_deferred_guard_evidence.py'
+      - 'tests/test_deferred_guard*.py'
+      - '.github/workflows/hia-deferred-guard-layout-diagnostic.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compile-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+      CLANG: /usr/bin/clang-20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Record clean source and install existing pinned verification profile
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          python -m pip install 'z3-solver==4.15.4.0'
+      - name: Install the repository's existing signed LLVM 20 profile
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --show-error --silent --location https://apt.llvm.org/llvm-snapshot.gpg.key -o "$RUNNER_TEMP/hepta-llvm.asc"
+          fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hepta-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')
+          test "$fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+          sudo install -m 0644 "$RUNNER_TEMP/hepta-llvm.asc" /usr/share/keyrings/hepta-llvm.asc
+          printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hepta-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hepta-llvm20.list
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends clang-20 binutils
+      - name: Run controls and compile the two frozen arms once
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B -m unittest tests.test_deferred_guard_model tests.test_deferred_guard_proposer tests.test_deferred_guard_checker tests.test_deferred_guard_layout tests.test_deferred_guard_staging -v 2>&1 | tee "$RUNNER_TEMP/layout-tests.log"
+          timeout 300s python -B tools/diagnose_hia_deferred_guard_layout.py --clang "$CLANG" --output "$RUNNER_TEMP/deferred-guard-layout" 2>&1 | tee "$RUNNER_TEMP/layout-run.log"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - name: Stage only detached bounded ordinary evidence files
+        id: stage
+        if: always()
+        shell: bash
+        run: |
+          python -B tools/stage_deferred_guard_evidence.py --source "$RUNNER_TEMP/deferred-guard-layout" --destination "$RUNNER_TEMP/deferred-guard-upload" --test-log "$RUNNER_TEMP/layout-tests.log" --run-log "$RUNNER_TEMP/layout-run.log"
+      - name: Retain safe observations or sanitized staging refusal
+        if: always() && steps.stage.outputs.safe_to_upload == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: deferred-guard-layout-diagnostic-${{ env.EXPECTED_HEAD }}
+          path: ${{ runner.temp }}/deferred-guard-upload
+          if-no-files-found: warn
+          retention-days: 30
