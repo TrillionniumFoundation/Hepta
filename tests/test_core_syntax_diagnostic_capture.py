@@ -185,7 +185,8 @@ os.write(2,b'err-without-newline\\xfe')
         self.assertEqual(result['status'], 'diagnostic_infrastructure_failed')
         self.assertTrue(result['group_kill_sent'])
         self.assertEqual(len(launches), 1)
-        self.assertEqual(files[capture.DIAGNOSTIC_FILES[0]], b'x')
+        self.assertEqual(files[capture.DIAGNOSTIC_FILES[0]], b'')
+        self.assertEqual(result['observed_bytes']['stdout'], 1)
 
     def test_held_descendant_descriptors_are_killed_after_leader_exits(self):
         script = """import os,time

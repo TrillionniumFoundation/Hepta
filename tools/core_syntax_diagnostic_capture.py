@@ -82,6 +82,10 @@ def _settings(value):
             if isinstance(part, list) else part for part in value]
 
 
+def _record_bytes(value):
+    return (json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False) + '\n').encode()
+
+
 class _Sink:
     """Exclusive single-link descriptors, continuously bound to their directory entry."""
     def __init__(self, safe_root, root_path, *, target="LinearTransport"):
@@ -145,8 +149,7 @@ class _Sink:
         os.fsync(item['fd'])
 
     def record(self, value, terminal=False):
-        data = (json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False) + '\n').encode()
-        self.append(self.names[2], data, terminal=terminal)
+        self.append(self.names[2], _record_bytes(value), terminal=terminal)
 
     def identities(self):
         return {name: {'path': name, 'bytes': item['bytes'], 'sha256': item['hash'].hexdigest()}
@@ -302,17 +305,27 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
         offset = observed_bytes[stream]
         observed_bytes[stream] += len(data)
         elapsed = round(time.monotonic() - started, 6)
-        sink.append(names[0 if stream == 'stdout' else 1], data)
-        sink.record({'kind': 'receive', 'stream': stream, 'offset': offset,
-                     'bytes': len(data), 'received_seconds': elapsed})
+        # Reserve the complete replay batch before persisting any of this read.
+        # A rejected read still consumes observed_bytes; collection then stops.
+        # This preflight is not an I/O transaction: partial writes remain failures.
+        batch = bytearray(_record_bytes({'kind': 'receive', 'stream': stream, 'offset': offset,
+                                        'bytes': len(data), 'received_seconds': elapsed}))
+        metadata_remaining = INTERNAL_METADATA_LIMIT - sink.metadata_written - TERMINAL_RESERVE
+        require(len(batch) <= metadata_remaining, 'diagnostic metadata budget')
+        next_count, next_marker = marker_count, last_marker
         if observer is not None:
             events = observer(stream, data, offset, elapsed)
             if events is not None:
                 for event in events:
-                    require(marker_count < MAX_MARKERS and type(event) is dict, 'marker event bound/type')
-                    sink.record({'kind': 'marker', 'event': event, 'received_seconds': elapsed})
-                    marker_count += 1
-                    last_marker = event
+                    require(next_count < MAX_MARKERS and type(event) is dict, 'marker event bound/type')
+                    record = _record_bytes({'kind': 'marker', 'event': event, 'received_seconds': elapsed})
+                    require(len(batch) + len(record) <= metadata_remaining, 'diagnostic metadata budget')
+                    batch.extend(record)
+                    next_count += 1
+                    next_marker = event
+        sink.append(names[0 if stream == 'stdout' else 1], data)
+        sink.append(names[2], bytes(batch))
+        marker_count, last_marker = next_count, next_marker
         if sum(observed_bytes.values()) == RAW_LIMIT:
             raw_limit_hit = True
 

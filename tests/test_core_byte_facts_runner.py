@@ -21,7 +21,7 @@ class ByteFactsRunnerTests(unittest.TestCase):
         cls.proposal = build_sources(cls.prepared)
         cls.diagnostic = build_diagnostic_sources(cls.prepared, cls.proposal)
 
-    def exercise(self, behavior='success', inspect=None, real_validation=False):
+    def exercise(self, behavior='success', inspect=None, real_validation=False, capture_adapter=None):
         with tempfile.TemporaryDirectory() as directory:
             home = Path(directory)
             executable = home/'pinned/bin/lean'
@@ -126,7 +126,7 @@ class ByteFactsRunnerTests(unittest.TestCase):
             with validation:
                 report = runner.execute_diagnostic(executable,home/'out',self.prepared,self.proposal,self.diagnostic,
                                                    identity,support,lambda:identity,lambda _:support,
-                                                   base.digest(executable.read_bytes()),run_process=invoke,capture=capture)
+                                                   base.digest(executable.read_bytes()),run_process=invoke,capture=capture_adapter or capture)
             self.assertEqual(json.loads((home/'out/RESULT.json').read_text()),report)
             self.assertEqual(report['authority'],'DENY_ALL')
             for key,value in runner._denials().items():
@@ -378,6 +378,47 @@ class ByteFactsRunnerTests(unittest.TestCase):
     def test_metadata_budget_includes_result_and_events(self):
         with self.assertRaises(ValueError):
             runner._evidence_budget({'RESULT.json':b'x',runner.CAPTURE_FILES[2]:b'x'*collector.METADATA_LIMIT})
+
+
+    def test_rejected_metadata_chunk_never_reaches_presentation(self):
+        import subprocess
+        import sys
+        from tests.test_core_syntax_diagnostic_capture import PLATFORM
+        real_popen = subprocess.Popen
+        original_encode = collector._record_bytes
+        original_init = collector._Sink.__init__
+        sinks = []
+        receives = []
+        def initialize(obj, *args, **kwargs):
+            original_init(obj, *args, **kwargs)
+            sinks.append(obj)
+        def encode(value):
+            raw = original_encode(value)
+            if value.get('kind') == 'receive':
+                receives.append(value)
+                if len(receives) == 2:
+                    collector.INTERNAL_METADATA_LIMIT = sinks[0].metadata_written + collector.TERMINAL_RESERVE + len(raw) - 1
+            return raw
+        def launch(argv, **kwargs):
+            return real_popen([sys.executable, '-c',
+                'import os,time;os.write(1,b"safe-prefix\\n");time.sleep(.05);'
+                'os.write(1,b"REJECTED_SENTINEL_603");time.sleep(10)'], **kwargs)
+        def inspect(path, report):
+            self.assertEqual(report['status'], 'diagnostic_infrastructure_failed')
+            self.assertEqual(report['invocations'], 4)
+            self.assertEqual(report['stages'][-1]['name'], 'CertPart02')
+            self.assertNotIn('inventory_receipt', report['stages'][-1])
+            output = self.print_bytes(path)
+            self.assertIn(b'safe-prefix', output)
+            self.assertNotIn(b'REJECTED_SENTINEL_603', output)
+            self.assertEqual((path/'CertPart02.stdout').read_bytes(), b'safe-prefix\n')
+        with patch.object(collector,'platform_observation',return_value=PLATFORM), \
+             patch.object(collector.subprocess,'Popen',side_effect=launch), \
+             patch.object(collector,'PROCESS_SECONDS',1), \
+             patch.object(collector,'INTERNAL_METADATA_LIMIT',collector.INTERNAL_METADATA_LIMIT), \
+             patch.object(collector._Sink,'__init__',initialize), \
+             patch.object(collector,'_record_bytes',encode):
+            self.exercise(inspect=inspect,capture_adapter=collector.capture_result)
 
 
 if __name__ == '__main__':
