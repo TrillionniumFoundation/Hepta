@@ -1,10 +1,12 @@
-name: HIA noncomputable data diagnostic (DENY_ALL, never acceptance)
+name: HIA partitioned Core syntax kernel research (DENY_ALL)
 on:
   pull_request:
     paths:
       - 'hepta/**'
       - 'tools/check_core_syntax_lean.py'
       - 'tools/check_core_syntax_staged.py'
+      - 'tools/check_core_syntax_partitioned.py'
+      - 'tools/core_syntax_partition_sources.py'
       - 'tools/diagnose_core_syntax_declarations.py'
       - 'tools/core_syntax_declaration_diagnostic_sources.py'
       - 'tools/core_syntax_diagnostic_capture.py'
@@ -65,10 +67,10 @@ jobs:
         run: |
           set -euo pipefail
           timeout 300s python -B tools/bootstrap_verification.py --lean-only --directory "$RUNNER_TEMP/core-syntax-tools"
-      - name: Observe explicit noncomputable data in at most three stages; never qualify
+      - name: Check the complete exact eleven-stage partitioned protocol
         run: |
           set -euo pipefail
-          timeout 600s python -B -m tools.diagnose_core_syntax_declarations --noncomputable-data \
+          timeout 600s python -B -m tools.check_core_syntax_partitioned \
             --lean "$RUNNER_TEMP/core-syntax-tools/lean-4.19.0/bin/lean" \
             --output-directory "$RUNNER_TEMP/core-syntax-proof"
           test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
@@ -76,5 +78,5 @@ jobs:
       - name: Retain available diagnostics in the job log only
         if: always()
         run: |
-          python -B -m tools.diagnose_core_syntax_declarations --print-diagnostics \
+          python -B -m tools.check_core_syntax_partitioned --print-diagnostics \
             --output-directory "$RUNNER_TEMP/core-syntax-proof"

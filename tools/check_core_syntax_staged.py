@@ -18,6 +18,7 @@ from tools.extract_initialization_obligations import OBLIGATIONS
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULE_PREFIX = 'HiaSyntaxResearch'
+PARTITION_PROTOCOL = 'contiguous-transport-certificate-partitions-v1'
 MAX_INVOCATIONS = 11
 PROCESS_SECONDS = 60
 LAUNCH_SECONDS = 540
@@ -204,7 +205,9 @@ def capture_result(executable, source, output, root):
 
 def validate_plan(prepared):
     stages = prepared['stages']
-    require(type(stages) is tuple and len(stages)==10 and len(stages)<=MAX_INVOCATIONS,
+    partitioned = prepared['manifest'].get('protocol') == PARTITION_PROTOCOL
+    required_count = 11 if partitioned else 10
+    require(type(stages) is tuple and len(stages)==required_count and len(stages)<=MAX_INVOCATIONS,
             'exact staged invocation inventory')
     require(len(prepared['expected_theorems'])==66 and set(prepared['negatives'])==NEGATIVES,
             'complete positive/negative inventory required')
@@ -217,11 +220,16 @@ def validate_plan(prepared):
             manifest['expected_theorems']==sorted(prepared['expected_theorems']) and
             manifest['module_prefix']==MODULE_PREFIX, 'manifest content differs')
     require(dict(prepared['sources'])=={s.module_name:s.source for s in stages}, 'source map differs')
-    require(digest(prepared['canonical_bytes'])==manifest['inputs']['linear']['canonical_sha256'],
+    canonical_binding = (manifest['inputs']['linear']['original_input_binding'] if partitioned
+                         else manifest['inputs']['linear'])
+    require(digest(prepared['canonical_bytes'])==canonical_binding['canonical_sha256'],
             'fixed canonical byte identity differs')
     expected_names = ('Baseline','SyntaxData','LinearTransport','ParallelTransport',
                       'WrongPhiTransport','LiteralTwoTransport','WrongConditionTransport',
                       'Connections','TransportRejections','WrongArm')
+    if partitioned:
+        expected_names = ('Baseline','SyntaxData') + tuple(f'CertPart{i:02d}' for i in range(1,7)) + (
+            'Connections','TransportRejections','WrongArm')
     require(tuple(s.name for s in stages)==expected_names, 'fixed stage order differs')
     known = {}
     modules = {}
@@ -268,7 +276,10 @@ def validate_plan(prepared):
     require(set(prepared['expected_theorems'])<=all_names and
             any(set(prepared['expected_theorems'])<=set(s.expected_theorems) for s in stages),
             'final full positive inventory missing')
-    if manifest.get('protocol')=='structured-prefix-certificates-v1':
+    if partitioned:
+        from tools.core_syntax_partition_sources import validate_bindings
+        validate_bindings(prepared)
+    elif manifest.get('protocol')=='structured-prefix-certificates-v1':
         from tools.core_syntax_structured_stages import validate_bindings
         validate_bindings(prepared)
     else:
@@ -311,6 +322,12 @@ def validate_plan(prepared):
         **{n:('SyntaxData',) for n in expected_names[2:7]},
         'Connections':expected_names[2:7], 'TransportRejections':('LinearTransport',),
         'WrongArm':('ParallelTransport',)}
+    if partitioned:
+        expected_parents = {'Baseline':(), 'SyntaxData':('Baseline',),
+            **{f'CertPart{i:02d}':(('SyntaxData',) if i==1 else (f'CertPart{i-1:02d}',))
+               for i in range(1,7)},
+            'Connections':('CertPart06',), 'TransportRejections':('CertPart02',),
+            'WrongArm':('CertPart03',)}
     for stage in stages:
         require(stage.parents==tuple(MODULE_PREFIX+'.'+n for n in expected_parents[stage.name]),
                 'fixed import graph differs')
@@ -329,6 +346,8 @@ def execute_plan(executable, output_directory, prepared, identity, support,
                  source_reader, support_reader, expected_binary_sha, run_process=capture_result, stage_limit=MAX_INVOCATIONS):
     """Execute only a complete frozen DAG; injected readers/process are for tests."""
     require(type(stage_limit) is int and stage_limit in (2,MAX_INVOCATIONS), 'unsupported diagnostic stage limit')
+    if prepared['manifest'].get('protocol') == PARTITION_PROTOCOL:
+        require(stage_limit == MAX_INVOCATIONS, 'partition protocol requires complete eleven-stage execution')
     validate_plan(prepared)
     _support_imports(prepared,support)
     require(source_reader()==identity and support_reader(executable)==support,
@@ -349,17 +368,26 @@ def execute_plan(executable, output_directory, prepared, identity, support,
               'negative_protocol':'kernel_proof_of_exact_negation','stages':[],
               'diagnostic_stage_limit':stage_limit if stage_limit==2 else None,
               'invocations':0,'obligations':[{'id':n,'status':'unproved'} for n,_ in OBLIGATIONS], **DENY}
+    if prepared['manifest'].get('protocol') == PARTITION_PROTOCOL:
+        report.update(protocol=PARTITION_PROTOCOL, expected_stage_count=11)
     allowed = set()
     accepted = {}
     source_hashes = {}
+    frozen_receipt_hashes = {}
+    partitioned = prepared['manifest'].get('protocol') == PARTITION_PROTOCOL
     completed_rejections = set()
     full_inventory = None
     started = time.monotonic()
     def write(name,data):
         root.write(name,data)
         allowed.add(name)
+        if partitioned and name != 'RESULT.json' and (name == 'RUN.json' or
+                name.endswith(('.started.json', '.stdout', '.stderr', '.finished.json'))):
+            frozen_receipt_hashes[name] = digest(data)
     def write_json(name,obj):
-        write(name,(json.dumps(obj,sort_keys=True,indent=2)+'\n').encode())
+        data = (json.dumps(obj,sort_keys=True,indent=2)+'\n').encode()
+        write(name,data)
+        return digest(data)
     def check_state(extra=()):
         require(not os.path.lexists(module_root/MODULE_PREFIX) and
                 not os.path.lexists(module_root/(MODULE_PREFIX+'.olean')), 'module prefix shadows support')
@@ -367,6 +395,8 @@ def execute_plan(executable, output_directory, prepared, identity, support,
         files = root.scan(allowed | set(extra))
         for rel,expected in source_hashes.items():
             require(digest(root.read(rel,MAX_SOURCE))==expected, 'staged source changed')
+        for rel,expected in frozen_receipt_hashes.items():
+            require(digest(root.read(rel,MAX_DIAGNOSTIC))==expected, 'partition frozen receipt changed')
         total = 0
         for item in accepted.values():
             raw = root.read(item['path'],MAX_MODULE)
@@ -382,6 +412,8 @@ def execute_plan(executable, output_directory, prepared, identity, support,
     current = None
     try:
         write('manifest.json',prepared['manifest_json'].encode())
+        if partitioned:
+            frozen_receipt_hashes['manifest.json'] = prepared['manifest_sha256']
         write_json('RUN.json',{'status':'running','manifest_sha256':prepared['manifest_sha256'],
                              'source_sha256':identity,'support_sha256':support})
         for stage in prepared['stages']:
@@ -401,6 +433,11 @@ def execute_plan(executable, output_directory, prepared, identity, support,
             current = {'name':stage.name,'module_name':stage.module_name,'status':'running',
                        'source_sha256':stage.source_sha256,'direct_imports':list(stage.direct_imports),
                        'parents':parents,'remaining_launch_seconds':LAUNCH_SECONDS-(time.monotonic()-started)}
+            if partitioned:
+                current['parent_receipts'] = {p: {
+                    'path': accepted[p]['successful_stage']+'.finished.json',
+                    'sha256': frozen_receipt_hashes[accepted[p]['successful_stage']+'.finished.json']}
+                    for p in stage.parents}
             report['stages'].append(current)
             write_json(stage.name+'.started.json',current)
             report['invocations'] += 1
@@ -434,7 +471,9 @@ def execute_plan(executable, output_directory, prepared, identity, support,
             completed_rejections.update(stage.rejection_names)
             if set(prepared['expected_theorems'])<=set(inventory):
                 full_inventory = {n:inventory[n] for n in sorted(prepared['expected_theorems'])}
-            write_json(stage.name+'.finished.json',current)
+            receipt_hash = write_json(stage.name+'.finished.json',current)
+            if partitioned:
+                frozen_receipt_hashes[stage.name+'.finished.json'] = receipt_hash
             current = None
         check_state()
         require(len(accepted)==len(prepared['stages']) and completed_rejections==NEGATIVES and
@@ -452,6 +491,8 @@ def execute_plan(executable, output_directory, prepared, identity, support,
         report.update(status='failed',error_type=type(error).__name__,error=str(error))
     finally:
         report['wall_seconds'] = time.monotonic()-started
+        if partitioned:
+            report['frozen_receipt_sha256'] = dict(frozen_receipt_hashes)
         try:
             write_json('RESULT.json',report)
         finally:

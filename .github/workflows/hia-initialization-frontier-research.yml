@@ -5,6 +5,8 @@ on:
       - 'hepta/**'
       - 'tools/check_core_syntax_lean.py'
       - 'tools/check_core_syntax_staged.py'
+      - 'tools/check_core_syntax_partitioned.py'
+      - 'tools/core_syntax_partition_sources.py'
       - 'tools/diagnose_core_syntax_declarations.py'
       - 'tools/core_syntax_declaration_diagnostic_sources.py'
       - 'tools/core_syntax_diagnostic_capture.py'
@@ -103,13 +105,13 @@ jobs:
           test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
           test -z "$(git status --porcelain --untracked-files=all)"
   declaration-diagnostic-controls:
-    name: Nonaccepting declaration diagnostic controls / ${{ matrix.group }}
+    name: Isolated source and execution controls / ${{ matrix.group }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     strategy:
       fail-fast: false
       matrix:
-        group: [sources, execution, noncomputable-sources, noncomputable-execution]
+        group: [sources, execution, noncomputable-sources, noncomputable-execution, partition-sources-a, partition-sources-b, partition-execution]
     env:
       EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
       PYTHONDONTWRITEBYTECODE: '1'
@@ -136,6 +138,9 @@ jobs:
           import hashlib, json, os, unittest
           groups = {
               'sources': (['tests.test_core_syntax_declaration_diagnostic_sources'], 16),
+              'partition-sources-a': (['tests.test_core_syntax_partition_sources'], 8),
+              'partition-sources-b': (['tests.test_core_syntax_partition_sources'], 8),
+              'partition-execution': (['tests.test_core_syntax_partitioned'], 12),
               'noncomputable-sources': (['tests.test_core_syntax_noncomputable_diagnostic_sources'], 16),
               'noncomputable-execution': (['tests.test_core_syntax_noncomputable_diagnostic_runner'], 8),
               'execution': (['tests.test_core_syntax_declaration_diagnostic_runner',
@@ -149,11 +154,16 @@ jobs:
                       yield from flatten(item)
                   else:
                       yield item
+          if os.environ['CONTROL_GROUP'] in ('partition-sources-a', 'partition-sources-b'):
+              cases = sorted(flatten(suite), key=lambda case: case.id())
+              assert len(cases) == len({case.id() for case in cases}) == 16, 'complete partition source inventory changed'
+              start = 0 if os.environ['CONTROL_GROUP'] == 'partition-sources-a' else 8
+              suite = unittest.TestSuite(cases[start:start + 8])
           ids = [case.id() for case in flatten(suite)]
-          assert len(ids) == len(set(ids)) == expected, 'diagnostic test inventory changed'
+          assert len(ids) == len(set(ids)) == expected, 'isolated test inventory changed'
           print(json.dumps({'count':len(ids), 'inventory_sha256':hashlib.sha256('\n'.join(sorted(ids)).encode()).hexdigest()}))
           result = unittest.TextTestRunner(verbosity=2).run(suite)
-          assert result.testsRun == expected and result.wasSuccessful(), 'diagnostic controls failed'
+          assert result.testsRun == expected and result.wasSuccessful(), 'isolated controls failed'
           assert not result.skipped and not result.expectedFailures and not result.unexpectedSuccesses
           PYDIAG
           test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
