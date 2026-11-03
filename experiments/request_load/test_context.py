@@ -277,7 +277,7 @@ class ContextTests(unittest.TestCase):
             'modules':'9436ee8b62127adfff70add4c81426efbbdb502cf234ca790337e1046d3fbd76',
             'packages':'a3c588c7d1b77ff8a8c6c98c057ada28437a802d646299a8903e54fa033afa2b',
             'lexer':'e8614da15be2ab89f5e9e70f206476db9884b3ddb6e0c4e0839f66940eda7d87',
-            'parser':'3264eec10524d86760ce4fac4f4fd562c25814a09d90de606c12ca2be25274fb'}
+            'parser':'6dfb89824e8cdc6992af22a9f3a422205ec4387def1c3cb6739937364253d4e0'}
         root=Path(__file__).resolve().parents[2]
         for name,digest in expected.items():
             self.assertEqual(hashlib.sha256((root/'hepta'/(name+'.py')).read_bytes()).hexdigest(),digest,

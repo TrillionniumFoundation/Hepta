@@ -144,7 +144,7 @@ class _Ops(GraphOps):
             private = [_TOKEN(kind, float.fromhex(value) if tag == 'float' else value,
                                    _SPAN(start, end, line, column, token_path))
                             for kind, tag, value, start, end, line, column, token_path in fingerprint]
-            result = _Parser(text, path, private, self.context).parse()
+            result = self._make_parser(text, path, private).parse()
             self.context.check()
             return result
         except BaseException:
@@ -152,6 +152,9 @@ class _Ops(GraphOps):
             self._pending.clear()
             self._scan_batch = None
             raise
+
+    def _make_parser(self, text, path, tokens):
+        return _Parser(text, path, tokens, self.context)
 
     def parse(self, parse, text, path):
         self.context.reject('single-lex parsing requires an admitted batch')

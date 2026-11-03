@@ -41,6 +41,10 @@ class Parser:
         self.depth = 0
         self.qualified_expressions: list[tuple[str, Span]] = []
 
+    def _admit_node(self, constructor):
+        """Private pre-construction seam; legacy returns the exact callable."""
+        return constructor
+
     @property
     def current(self) -> Token:
         return self.tokens[self.position]
@@ -93,7 +97,7 @@ class Parser:
             imported = self._path()
             alias = self._expect("IDENT", "Expected an import alias").value if self._take("as") else imported.split("::")[-1]
             end = self._expect(";").span
-            imports.append(Import(imported, alias, _cover(start, end)))
+            imports.append(self._admit_node(Import)(imported, alias, _cover(start, end)))
         structs: list[Struct] = []
         enums: list[Enum] = []
         functions: list[Function] = []
@@ -113,7 +117,7 @@ class Parser:
                 self._error(f"Qualified name {path} requires a declared import or enum namespace",
                             Token("", None, span), "E_PARSE_NAMESPACE")
         self._validate_tree_depth(functions)
-        return Program(name, structs, functions, self.source, self.path, enums, imports)
+        return self._admit_node(Program)(name, structs, functions, self.source, self.path, enums, imports)
 
     def _path(self) -> str:
         parts = [self._expect("IDENT", "Expected a name").value]
@@ -219,11 +223,11 @@ class Parser:
             field = self._field_name()
             self._expect(":")
             field_type = self._type()
-            fields.append(Param(field.value, field_type, span=_cover(field.span, self.previous.span)))
+            fields.append(self._admit_node(Param)(field.value, field_type, span=_cover(field.span, self.previous.span)))
             if not self._take(","):
                 break
         end = self._expect("}", "Expected ',' or '}' after a struct field").span
-        return Struct(name, fields, repr_c, _cover(start, end), type_params, public, lifetime_params)
+        return self._admit_node(Struct)(name, fields, repr_c, _cover(start, end), type_params, public, lifetime_params)
 
     def _enum(self) -> Enum:
         start = self.current.span
@@ -241,11 +245,11 @@ class Parser:
                 while self._take(","):
                     fields.append(self._type())
                 self._expect(")")
-            variants.append(EnumVariant(token.value, fields, _cover(token.span, self.previous.span)))
+            variants.append(self._admit_node(EnumVariant)(token.value, fields, _cover(token.span, self.previous.span)))
             if not self._take(","):
                 break
         end = self._expect("}", "Expected ',' or '}' after an enum variant").span
-        return Enum(name, variants, type_params, public, _cover(start, end))
+        return self._admit_node(Enum)(name, variants, type_params, public, _cover(start, end))
 
     def _abi(self) -> None:
         abi = self._expect("STRING", 'Expected the ABI literal "C"')
@@ -277,7 +281,7 @@ class Parser:
                 mode = self._advance().value
             lifetime = self._advance().value if self._at("LIFETIME") else None
             parameter_type = self._type()
-            params.append(Param(param.value, parameter_type, mode,
+            params.append(self._admit_node(Param)(param.value, parameter_type, mode,
                                 _cover(param.span, self.previous.span), lifetime))
             if not self._take(","):
                 break
@@ -303,7 +307,7 @@ class Parser:
                 resources = self._resources()
             body, body_span = self._block()
             end = body_span
-        return Function(name, params, return_type, effects, body, public, extern_c,
+        return self._admit_node(Function)(name, params, return_type, effects, body, public, extern_c,
                         export_c, resources, _cover(start, end), body_span, type_params, return_mode, type_bounds, return_origin,
                         lifetime_params, return_lifetime)
 
@@ -361,25 +365,25 @@ class Parser:
             if self.current.kind in {"read", "mut"}:
                 mode = self._advance().value
                 lifetime = self._expect("LIFETIME", "Stored references require an explicit lifetime: read 'a T").value
-                return Type("ref_" + mode, (self._type(),), lifetimes=(lifetime,))
+                return self._admit_node(Type)("ref_" + mode, (self._type(),), lifetimes=(lifetime,))
             if self._take("["):
                 element = self._type()
                 if self._take(";"):
                     length = self._expect("INT", "Array lengths must be nonnegative integer literals").value
                     self._expect("]")
-                    return Type("array", (element,), length)
+                    return self._admit_node(Type)("array", (element,), length)
                 self._expect("]")
-                return Type("slice", (element,))
+                return self._admit_node(Type)("slice", (element,))
             if self._take("raw"):
                 if self.current.kind not in ("const", "mut"):
                     self._error("A raw pointer type requires 'const' or 'mut'")
                 mode = self._advance().value
-                return Type("raw_" + mode, (self._type(),))
+                return self._admit_node(Type)("raw_" + mode, (self._type(),))
             name = self._path()
             args, lifetimes = self._type_instantiation() if self._at("<") else ((), ())
             if name in {"Buffer", "Task", "Sender"} and len(args) != 1:
                 self._error(f"{name} requires exactly one element type: {name}<T>")
-            return Type(name, args, lifetimes=lifetimes)
+            return self._admit_node(Type)(name, args, lifetimes=lifetimes)
 
     def _block(self) -> tuple[list[Stmt], Span]:
         with self._nested():
@@ -400,12 +404,12 @@ class Parser:
             self._expect("=")
             expr = self._expr()
             end = self._expect(";", "A let statement must end with ';'").span
-            return Stmt("let", {"name": name, "type": binding_type,
+            return self._admit_node(Stmt)("let", {"name": name, "type": binding_type,
                                 "mutable": mutable, "expr": expr}, _cover(start, end))
         if self._take("return"):
             expr = None if self._at(";") else self._expr()
             end = self._expect(";", "A return statement must end with ';'").span
-            return Stmt("return", {"expr": expr}, _cover(start, end))
+            return self._admit_node(Stmt)("return", {"expr": expr}, _cover(start, end))
         if self._take("for"):
             name = self._expect("IDENT", "Expected a loop variable").value
             self._expect("in")
@@ -413,23 +417,23 @@ class Parser:
             self._expect("..", "For loops require a half-open start..end range")
             upper = self._expr(allow_struct=False)
             body, end = self._block()
-            return Stmt("for", {"name": name, "start": lower, "end": upper,
+            return self._admit_node(Stmt)("for", {"name": name, "start": lower, "end": upper,
                                 "body": body}, _cover(start, end))
         if self._take("while"):
             condition = self._expr(allow_struct=False)
             body, end = self._block()
-            return Stmt("while", {"condition": condition, "body": body}, _cover(start, end))
+            return self._admit_node(Stmt)("while", {"condition": condition, "body": body}, _cover(start, end))
         if self._take("if"):
             condition = self._expr(allow_struct=False)
             then_body, end = self._block()
             else_body: list[Stmt] = []
             if self._take("else"):
                 else_body, end = self._block()
-            return Stmt("if", {"condition": condition, "then": then_body,
+            return self._admit_node(Stmt)("if", {"condition": condition, "then": then_body,
                                "else": else_body}, _cover(start, end))
         if self._take("unsafe"):
             body, end = self._block()
-            return Stmt("unsafe", {"body": body}, _cover(start, end))
+            return self._admit_node(Stmt)("unsafe", {"body": body}, _cover(start, end))
         if self._take("match"):
             expr = self._expr(allow_struct=False)
             self._expect("{")
@@ -446,14 +450,14 @@ class Parser:
                     while self._take(","):
                         bindings.append(self._expect("IDENT", "Expected a payload binding or '_'").value)
                     self._expect(")")
-                pattern = Pattern(parts[0], parts[1], bindings, _cover(arm_start, self.previous.span))
+                pattern = self._admit_node(Pattern)(parts[0], parts[1], bindings, _cover(arm_start, self.previous.span))
                 self._expect("=>")
                 body, arm_end = self._block()
-                arms.append(MatchArm(pattern, body, _cover(arm_start, arm_end)))
+                arms.append(self._admit_node(MatchArm)(pattern, body, _cover(arm_start, arm_end)))
                 if not self._take(","):
                     break
             end = self._expect("}", "Expected ',' or '}' after a match arm").span
-            return Stmt("match", {"expr": expr, "arms": arms}, _cover(start, end))
+            return self._admit_node(Stmt)("match", {"expr": expr, "arms": arms}, _cover(start, end))
         target = self._expr()
         if self._take("="):
             if target.kind not in ("name", "field", "index"):
@@ -461,9 +465,9 @@ class Parser:
                             Token("", None, target.span), "E_PARSE_ASSIGNMENT")
             expr = self._expr()
             end = self._expect(";", "An assignment must end with ';'").span
-            return Stmt("assign", {"target": target, "expr": expr}, _cover(start, end))
+            return self._admit_node(Stmt)("assign", {"target": target, "expr": expr}, _cover(start, end))
         end = self._expect(";", "An expression statement must end with ';'").span
-        return Stmt("expr", {"expr": target}, _cover(start, end))
+        return self._admit_node(Stmt)("expr", {"expr": target}, _cover(start, end))
 
     def _expr(self, minimum: int = 0, allow_struct: bool = True) -> Expr:
         with self._nested():
@@ -475,21 +479,21 @@ class Parser:
                     self._advance()
                     args = self._expressions(")")
                     end = self._expect(")").span
-                    left = Expr("call", left.value, args, _cover(left.span, end), left.type_args)
+                    left = self._admit_node(Expr)("call", left.value, args, _cover(left.span, end), left.type_args)
                     continue
                 if self._take("["):
                     index = self._expr()
                     end = self._expect("]").span
-                    left = Expr("index", children=[left, index], span=_cover(left.span, end))
+                    left = self._admit_node(Expr)("index", children=[left, index], span=_cover(left.span, end))
                     continue
                 if self._take("."):
                     field = self._field_name()
-                    left = Expr("field", field.value, [left], _cover(left.span, field.span))
+                    left = self._admit_node(Expr)("field", field.value, [left], _cover(left.span, field.span))
                     continue
                 if self._at("as") and _CAST >= minimum:
                     self._advance()
                     target = self._type()
-                    left = Expr("cast", target, [left], _cover(left.span, self.previous.span))
+                    left = self._admit_node(Expr)("cast", target, [left], _cover(left.span, self.previous.span))
                     continue
                 operator = self.current.kind
                 precedence = _BINARY.get(operator, -1)
@@ -497,7 +501,7 @@ class Parser:
                     break
                 self._advance()
                 right = self._expr(precedence + 1, allow_struct)
-                left = Expr("binary", operator, [left, right], _cover(left.span, right.span))
+                left = self._admit_node(Expr)("binary", operator, [left, right], _cover(left.span, right.span))
             return left
 
     def _expressions(self, closer: str) -> list[Expr]:
@@ -512,14 +516,14 @@ class Parser:
     def _prefix(self, allow_struct: bool) -> Expr:
         token = self._advance()
         if token.kind == "INT":
-            return Expr("int", token.value, span=token.span)
+            return self._admit_node(Expr)("int", token.value, span=token.span)
         if token.kind == "FLOAT":
-            return Expr("float", token.value, span=token.span)
+            return self._admit_node(Expr)("float", token.value, span=token.span)
         if token.kind in ("true", "false"):
-            return Expr("bool", token.kind == "true", span=token.span)
+            return self._admit_node(Expr)("bool", token.kind == "true", span=token.span)
         if token.kind in ("-", "!", "read", "mut", "move"):
             operand = self._expr(_UNARY, allow_struct)
-            return Expr("unary", token.value, [operand], _cover(token.span, operand.span))
+            return self._admit_node(Expr)("unary", token.value, [operand], _cover(token.span, operand.span))
         if token.kind == "IDENT":
             parts = [token.value]
             type_args: tuple[Type, ...] = ()
@@ -544,9 +548,9 @@ class Parser:
                     if not self._take(","):
                         break
                 end = self._expect("}", "Expected ',' or '}' after a field value").span
-                return Expr("struct", {"name": name, "fields": fields},
+                return self._admit_node(Expr)("struct", {"name": name, "fields": fields},
                             values, _cover(token.span, end), type_args)
-            return Expr("name", name, span=_cover(token.span, self.previous.span), type_args=type_args)
+            return self._admit_node(Expr)("name", name, span=_cover(token.span, self.previous.span), type_args=type_args)
         if token.kind == "(":
             expr = self._expr()
             end = self._expect(")").span
@@ -557,7 +561,7 @@ class Parser:
         if token.kind == "[":
             values = self._expressions("]")
             end = self._expect("]").span
-            return Expr("array", children=values, span=_cover(token.span, end))
+            return self._admit_node(Expr)("array", children=values, span=_cover(token.span, end))
         if token.kind == "STRING":
             self._error('Strings are supported only as the ABI literal "C"', token,
                         "E_PARSE_STRING")
