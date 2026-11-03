@@ -475,6 +475,12 @@ The C profile supports scalar integers through 64 bits, native-size integers,
 bool, basic floating arithmetic, supported nongeneric structs, nonempty fixed
 arrays, borrowed slices, read/mut scalar or struct parameters, ordinary calls,
 conditionals/loops, checked indexing, and supported raw-pointer operations.
+Immediate indexing and `len` also materialize non-owned fixed-array temporary
+values once, including literals, returned arrays and nested field/index results.
+Base evaluation precedes index evaluation, bounds still abort, and short-circuit
+branches do not evaluate unused arrays. This does not extend temporary borrowing,
+assignment targets or the resource-IR profile: temporary projections in programs
+that require that independent gate remain rejected by it.
 Its borrow arguments must be named places. Multiple borrows of one root reject
 if any is mutable; this deliberately rejects some disjoint-field cases.
 Effectful nested calls in borrowed argument lists, indices, and raw-store
