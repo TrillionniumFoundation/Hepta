@@ -47,12 +47,12 @@ def run(command):
     return result.stdout
 
 
-def compiler_identity(cc):
+def compiler_identity(cc, runner=run):
     require(not any(os.environ.get(k) for k in SEMANTIC_ENV), 'unrecorded compiler search environment')
     path = Path(shutil.which(cc) or cc).resolve()
     require(path.is_file(), 'compiler is unavailable')
-    version = run([path, '--version'])
-    triple = run([path, '-dumpmachine']).strip()
+    version = runner([path, '--version'])
+    triple = runner([path, '-dumpmachine']).strip()
     require('gcc' in version.lower() and platform.system() == 'Linux'
             and platform.machine() in {'x86_64', 'aarch64'}, 'unqualified native profile')
     return str(path), digest(path.read_bytes()), version, triple
@@ -137,8 +137,11 @@ def native_type(parser, tokens, *, result=False):
 
 class Prepared:
     """Live, single-profile experimental session; close removes private inputs."""
-    def __init__(self, entry, *, cc='gcc', char_mode='default'):
+    def __init__(self, entry, *, cc='gcc', char_mode='default',
+                 _runner=run, _importer=import_header, _project=None, _locked=False):
         require(char_mode in MODES, 'unqualified char mode')
+        self.run, self.importer = _runner, _importer
+        self.loaded_project, self.locked = _project, _locked
         self._temporary = tempfile.TemporaryDirectory(prefix='hepta-char-prototype-')
         self.directory = Path(self._temporary.name)
         try:
@@ -157,8 +160,8 @@ class Prepared:
         self.close()
 
     def _prepare(self, entry, cc, mode):
-        compiler = compiler_identity(cc)
-        project = load_project(entry)
+        compiler = compiler_identity(cc, self.run)
+        project = self.loaded_project or load_project(entry, locked=self.locked)
         require(len(project.c_imports) == 1, 'prototype requires exactly one imported header')
         item = project.c_imports[0]
         bindings = Path(item['source'])
@@ -177,7 +180,7 @@ class Prepared:
         contracts = {f.name: set(f.effects) for f in parsed_bindings.functions}
         driver = compiler_driver(self.directory, compiler[0], mode)
         self.driver_hash = digest(driver.read_bytes())
-        fresh = import_header(self.snapshot, cc=str(driver), module=parsed_bindings.name,
+        fresh = self.importer(self.snapshot, cc=str(driver), module=parsed_bindings.name,
                               contracts=contracts)
         require(fresh.source == bindings.read_text(), 'fresh native declarations differ from binding source')
         require(fresh.manifest['primitive_types'] == manifest['primitive_types'], 'native facts differ from manifest')
@@ -224,13 +227,13 @@ class Prepared:
     def _assert_current(self):
         ctx = self._bound_context
         require(self.context == ctx, 'context was replaced')
-        require(compiler_identity(ctx.compiler[0]) == ctx.compiler, 'compiler identity changed')
+        require(compiler_identity(ctx.compiler[0], self.run) == ctx.compiler, 'compiler identity changed')
         require(self.snapshot.is_file() and digest(self.snapshot.read_bytes()) == ctx.header_hash, 'private header snapshot changed')
         require(digest((self.directory/'probe-driver').read_bytes()) == self.driver_hash, 'probe driver changed')
         for name, expected in ctx.identities:
             path = Path(name)
             require(path.is_file() and digest(path.read_bytes()) == expected, 'prepared source identity changed: ' + name)
-        current = load_project(ctx.entry)
+        current = load_project(ctx.entry, locked=self.locked)
         require(current.identity == ctx.source_hash, 'assembled project changed')
         # Reconstruct rather than trust a caller-mutated retained AST/check result.
         self.program = current.program
@@ -305,11 +308,11 @@ class Prepared:
         for index, input_file in enumerate(inputs):
             obj = self.directory/f'unit-{index}.o'
             dep = self.directory/f'unit-{index}.d'
-            run([ctx.compiler[0],*flags,'-c',input_file,'-MD','-MF',dep,'-o',obj])
+            self.run([ctx.compiler[0],*flags,'-c',input_file,'-MD','-MF',dep,'-o',obj])
             objects.append(obj)
             dependency_paths = shlex.split(dep.read_text().replace('\\\n','').split(':',1)[1])
             hashes.update({p:digest(Path(p).read_bytes()) for p in dependency_paths})
-        run([ctx.compiler[0],*flags,*objects,'-lm','-o',artifact])
+        self.run([ctx.compiler[0],*flags,*objects,'-lm','-o',artifact])
         self._assert_current()
         receipt = {'profile':PROFILE,'status':'compiled_experimental', 'source_sha256':digest(source.encode()),
                    'artifact_sha256':digest(artifact.read_bytes()),'compiler':ctx.compiler,'flags':flags,

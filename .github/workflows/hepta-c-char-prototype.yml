@@ -49,6 +49,8 @@ jobs:
           assert set(unittest.defaultTestLoader.getTestCaseNames(CharPrototypeTests)) == set(names) | {'test_actual_rust_reference'}
           suite = unittest.defaultTestLoader.loadTestsFromNames([
               'experiments.c_char_boundary.test_prototype',
+              'experiments.c_char_boundary.test_integration_gaps',
+              'experiments.c_char_boundary.test_build_plan',
               'tests.test_c_import', 'tests.test_c_import_capture',
               'tests.test_c_import_prototypes', 'tests.test_c_import_typedefs'])
           def identities(tests):
@@ -58,13 +60,13 @@ jobs:
                   else:
                       yield item.id()
           ids = list(identities(suite))
-          if len(ids) != 49 or len(set(ids)) != 49:
-              raise SystemExit('Expected 49 unique test identities')
+          if len(ids) != 75 or len(set(ids)) != 75:
+              raise SystemExit('Expected 75 unique test identities')
           print('Planned test identities:', ids, flush=True)
           result = unittest.TextTestRunner(verbosity=2).run(suite)
           if (not result.wasSuccessful() or result.skipped or result.expectedFailures
-                  or result.unexpectedSuccesses or result.testsRun != 49):
-              raise SystemExit('Expected all 49 controls with no skips')
+                  or result.unexpectedSuccesses or result.testsRun != 75):
+              raise SystemExit('Expected all 75 controls with no skips')
           PY
           test -z "$(git status --porcelain --untracked-files=no)"
       - uses: actions/upload-artifact@v4
