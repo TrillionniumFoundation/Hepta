@@ -1,0 +1,35 @@
+name: HIA local recovery orchestration controls
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/hia-agent-local-recovery-controls.yml'
+      - 'experiments/hia_agent_local_recovery_20261103/**'
+      - 'experiments/hia_agent_assembly_v4_20261030/**'
+      - 'experiments/hia_optimizer_eval/next_20261028/**'
+      - 'experiments/hia_agent_matched_v3_20261028/**'
+      - 'tools/provider_adapter/**'
+      - 'tools/hia_agent_codex_transport.py'
+      - 'hepta/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  orchestration-controls:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run recovery and inherited fixture controls without model requests
+        run: |
+          python -B -m unittest -v \
+            experiments.hia_agent_local_recovery_20261103.test_recovery \
+            experiments.hia_agent_assembly_v4_20261030.test_protocol

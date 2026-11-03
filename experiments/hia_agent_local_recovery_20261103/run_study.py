@@ -151,10 +151,20 @@ def freeze(registry):
     if (folder / "REGISTRATION.json").exists():
         raise ValueError("registration already exists; never replace a cohort")
     preparation = strict_json((folder / "PREPARATION.json").read_bytes())
-    if (preparation.get("passed") is not True or preparation.get("model_requests") != 0
+    if (preparation.get("passed") is not True
+            or type(preparation.get("model_requests")) is not int or preparation["model_requests"] != 0
             or preparation.get("source_commit") != git("rev-parse", "HEAD")
+            or preparation.get("source_tree") != git("rev-parse", "HEAD^{tree}")
             or not inherited.check_bindings(preparation["sources"])):
         raise ValueError("current exact-source no-generation preparation required")
+    # Consume the same receipts admitted by preparation, not replacements
+    # whose passing counters happen to satisfy the inherited registrar.
+    for key, name in (("unit_controls", "UNIT_CONTROLS.json"),
+                      ("reference_controls", "DEVELOPMENT_CONTROLS.json"),
+                      ("hostile_controls", "HOSTILE_CONTROLS.json"),
+                      ("tokenizer_capacity", "TOKENIZER_CAPACITY.json")):
+        if preparation.get(key) != file_identity(folder / name):
+            raise ValueError("prepared recovery receipt changed: " + name)
     require_committed_sources()
     metadata = dict(campaign=CAMPAIGN, source_commit=git("rev-parse", "HEAD"),
                     source_tree=git("rev-parse", "HEAD^{tree}"),

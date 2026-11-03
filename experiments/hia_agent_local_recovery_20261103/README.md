@@ -68,3 +68,19 @@ productivity, representative historical maintenance, full human/economic
 costs, unrestricted C++ migration or globally optimal instructions. A passed
 local cohort cannot turn an unsupported selector, account quota error or
 missing provider usage into a successful frontier observation.
+
+### Preparation-to-freeze identity binding
+
+Before invoking the inherited registrar, freeze requires the preparation's exact
+Git tree, an integer zero model-request count (not Boolean/float zero), and exact
+path/size/SHA-256 identities for all four preparation receipts. Replaced receipts
+are refused even if their passing counters remain valid. Refusal does not create
+fixtures, candidates or a registration, and does not modify existing evidence.
+The complete-file, create-only candidate/fsync/hardlink publication remains unchanged.
+
+This is a sequential consistency check, not authentication of receipt claims or
+protection against concurrent filesystem mutation. Current external owner
+registrations were not accessible for this change; no actual registration is
+claimed contaminated. The changed study source requires fresh preparation and
+exact registration review before a new inference campaign. Existing registrations
+and model tasks are not modified or executed by these controls.
