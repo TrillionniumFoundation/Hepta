@@ -618,6 +618,10 @@ class _FunctionLowerer:
                     self.current = join
             elif statement.kind == "match":
                 value = self.expression(data["expr"])
+                if value.kind == "borrow":
+                    # A match on a returned Copy enum reads its value before
+                    # dispatch. Switch/unpack consume value slots, not loans.
+                    value = self.copy_value(value)
                 arms = [(self.new_block(), arm) for arm in data["arms"]]
                 self.finish("switch", src=value.id, cases=[{"variant": arm.pattern.variant, "target": block["id"]} for block, arm in arms])
                 continuation = []
