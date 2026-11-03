@@ -6,6 +6,12 @@ legacy monkeypatch namespaces and Python evaluation order remain observable.
 
 
 class LegacyLoaderOps:
+    def hook(self, hook, original):
+        """Private admission seam; legacy replacement behavior is unchanged."""
+
+    def revalidation_hook(self, project, original):
+        """Private admission seam before resolving a revalidation descriptor."""
+
     def read(self, path, role):
         return path.read_bytes()
 
@@ -33,6 +39,7 @@ def dispatch(hook, original, implementation, ops, *args, **kwargs):
     If it calls a captured public wrapper, that wrapper starts fresh stateless
     legacy operations. No custom-owner/budget guarantee is offered across hooks.
     """
+    ops.hook(hook, original)
     if hook is original:
         return implementation(*args, ops=ops, **kwargs)
     return hook(*args, **kwargs)

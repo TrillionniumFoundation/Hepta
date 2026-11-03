@@ -110,6 +110,9 @@ def find_manifest(source: Path) -> Path | None:
     return None
 
 
+_LEGACY_FIND_MANIFEST = find_manifest
+
+
 def package_snapshot(package: Package) -> dict:
     return _package_snapshot(package, ops=_LegacyLoaderOps())
 

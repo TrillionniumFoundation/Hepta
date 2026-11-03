@@ -1,0 +1,51 @@
+name: Experimental normal-loader owner integration
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'experiments/normal_loader_extraction/**'
+      - 'experiments/owned_loader/**'
+      - 'experiments/legacy_loader_ops/**'
+      - 'experiments/loader_consumer_audit/**'
+      - 'experiments/loader_api/**'
+      - 'experiments/request_load/**'
+      - 'experiments/loader_budget/**'
+      - 'experiments/c_char_boundary/**'
+      - 'tests/**'
+      - 'examples/**'
+      - 'docs/design/NORMAL_LOADER_EXTRACTION.md'
+      - 'docs/design/OWNED_LOADER_INTEGRATION.md'
+      - '.github/workflows/hepta-owned-loader-integration.yml'
+permissions:
+  contents: read
+jobs:
+  compatibility:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.12']
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Verify exact source and bind regression compilers
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          rustup toolchain install 1.90.0 --profile minimal
+          echo "RUSTC=$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_ENV"
+          echo "CC=$(command -v gcc)" >> "$GITHUB_ENV"
+          "$(rustup which --toolchain 1.90.0 rustc)" --version
+          gcc --version
+      - name: Run 291 unique no-skip controls
+        run: python -m experiments.owned_loader.gate --include-consumers

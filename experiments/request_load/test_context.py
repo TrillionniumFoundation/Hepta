@@ -270,11 +270,12 @@ class ContextTests(unittest.TestCase):
 
     def test_upstream_fork_inputs_are_pinned(self):
         import hashlib
-        # Normal-source extraction reviewed against the immutable #622 baseline.
+        # Private owner admission seams reviewed against normal-source #623;
+        # raw #622 legacy differential behavior remains independently covered.
         expected={
-            '_loader_ops':'167124173f004afcf4f95610b1cbfca32ba7322ca54f3f73f97c9c1785993c48',
-            'modules':'37be4d94beb74e970f3cb90dfdc76990fe181538676789ad890d3e2acdc48ec8',
-            'packages':'007e564725f30c344826da9e1fbf880486afb39e943c640b9ba9374f4dd808a0',
+            '_loader_ops':'6ed0bc0cb481a569e8cf34a69a0d3397ffa52275cfff8142140fef1152e9c43d',
+            'modules':'a2ccc10199fae42de43b7e6a1a65470b0b1c068864c8dedad4288f1478d66e3a',
+            'packages':'353384fed24014b8848a8a6a43729ae50739b201ecf83f49fabebb8a871281e5',
             'lexer':'8138278341afc789f744bf89a752723a96b530043a37596f943f3d4e464ff153',
             'parser':'b3cc04259c953d112e1ffbf4482b380cbb15fdd994a5924507dd1d11d5c0c5cf'}
         root=Path(__file__).resolve().parents[2]
