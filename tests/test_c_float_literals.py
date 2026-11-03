@@ -115,7 +115,9 @@ class CFloatLiteralTests(unittest.TestCase):
         p, c = frontend([(32, '1.00000005960464477')])
         expr = p.functions[0].body[0].data['expr']
         self.assertEqual(repr(expr.value), '1.0000000596046448')
-        self.assertIn('1.0000000596046448f32', emit_rust(p, c, crate_type='staticlib'))
+        rust = emit_rust(p, c, crate_type='staticlib')
+        self.assertIn('1.0000000596046448f32', rust)
+        self.assertIn('pub extern "C" fn h_value_0()', rust)
         self.assertIn('1.0000000596046448f)', emit_c(p, c, crate_type='staticlib'))
         self.assertLess(Fraction('1.00000005960464477'), Fraction(1) + Fraction(1, 1 << 24))
         # The checker also permits integer-valued float AST payloads.
@@ -138,7 +140,7 @@ class CFloatLiteralTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             src = root / 'literal.rs'
-            main = 'fn main() {\n' + '\n'.join(f'println!("{{}}", value_{i}().to_bits());' for i in range(len(rows))) + '\n}'
+            main = 'fn main() {\n' + '\n'.join(f'println!("{{}}", h_value_{i}().to_bits());' for i in range(len(rows))) + '\n}'
             src.write_text(emit_rust(p, c, crate_type='staticlib') + main)
             exe = root / 'native'
             result = subprocess.run([RUSTC, '--edition=2021', str(src), '-o', str(exe)], capture_output=True, text=True, timeout=60)
