@@ -192,6 +192,27 @@ def run_owned(argv, cwd, output, *, input_bytes=b"", wall_seconds, on_line=None)
     stdin_path = output / "stdin.raw"
     stdin_path.write_bytes(input_bytes)
 
+    def consume_stdout(chunk):
+        nonlocal pending, reason
+        pending += chunk
+        limit = cfg["transport"]["max_jsonl_line_bytes"]
+        # Pipe reads may contain many complete lines. Bound each logical line,
+        # not the OS-dependent batch, both during execution and final draining.
+        while b"\n" in pending and reason is None:
+            line, pending = pending.split(b"\n", 1)
+            if len(line) > limit:
+                reason = "jsonl_line_limit"
+                return
+            try:
+                if not line:
+                    raise EventFailure("E_PILOT_EMPTY_EVENT_LINE")
+                on_line(line)
+            except Exception as exc:
+                reason = "protocol_violation"
+                record["event_error"] = str(exc)
+        if reason is None and len(pending) > limit:
+            reason = "jsonl_line_limit"
+
     def observe_owned():
         if record["reap_attempted"] or record["ownership_uncertain"]:
             raise RuntimeError("E_PILOT_CHILD_OWNERSHIP_UNCERTAIN")
@@ -272,22 +293,7 @@ def run_owned(argv, cwd, output, *, input_bytes=b"", wall_seconds, on_line=None)
                     reason = "output_limit"
                     break
                 if name == "stdout" and on_line is not None:
-                    pending += chunk
-                    if len(pending) > cfg["transport"]["max_jsonl_line_bytes"]:
-                        reason = "jsonl_line_limit"
-                        break
-                    while b"\n" in pending:
-                        line, pending = pending.split(b"\n", 1)
-                        if not line:
-                            reason = "protocol_violation"
-                            record["event_error"] = "E_PILOT_EMPTY_EVENT_LINE"
-                            break
-                        try:
-                            on_line(line)
-                        except Exception as exc:
-                            reason = "protocol_violation"
-                            record["event_error"] = str(exc)
-                            break
+                    consume_stdout(chunk)
                 if reason:
                     break
             if reason:
@@ -314,18 +320,7 @@ def run_owned(argv, cwd, output, *, input_bytes=b"", wall_seconds, on_line=None)
                 if record["bytes_observed"][name] > caps[name]:
                     reason = reason or "output_limit"
                 if name == "stdout" and on_line is not None and reason is None:
-                    pending += chunk
-                    if len(pending) > cfg["transport"]["max_jsonl_line_bytes"]:
-                        reason = "jsonl_line_limit"
-                    while b"\n" in pending and reason is None:
-                        line, pending = pending.split(b"\n", 1)
-                        try:
-                            if not line:
-                                raise EventFailure("E_PILOT_EMPTY_EVENT_LINE")
-                            on_line(line)
-                        except Exception as exc:
-                            reason = "protocol_violation"
-                            record["event_error"] = str(exc)
+                    consume_stdout(chunk)
         record["streams_complete"] = not active
         if active:
             reason = reason or "stream_cleanup_incomplete"
