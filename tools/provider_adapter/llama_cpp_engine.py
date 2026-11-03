@@ -141,8 +141,13 @@ class LlamaCppEngine:
             self.identity["pid"] = self.process.pid
             self.identity["properties"] = self.request("/props")
             (self.output / "identity.json").write_bytes(canonical(self.identity) + b"\n")
-        except BaseException:
-            self.close()
+        except BaseException as startup_error:
+            try:
+                self.close()
+            except BaseException as cleanup_error:
+                # Keep the initiating failure primary without discarding the
+                # separate cleanup failure. No readiness is granted here.
+                raise startup_error from cleanup_error
             raise
 
     def request(self, endpoint, payload=None, timeout=10):
@@ -317,6 +322,28 @@ class LlamaCppEngine:
     def close(self):
         if getattr(self, "closed", False):
             return
+        failure = None
+        try:
+            self._close_process()
+        except BaseException as error:
+            failure = error
+        # Receipt storage and process observation can fail too. Neither may
+        # prevent releasing independent local handles. Preserve the first
+        # failure and identify any additional cleanup failures explicitly.
+        for resource, action in (("log", "close"), ("socket_directory", "cleanup")):
+            value = getattr(self, resource, None)
+            if value is not None:
+                try:
+                    getattr(value, action)()
+                except BaseException as error:
+                    if failure is None:
+                        failure = error
+                    else:
+                        failure.add_note(f"{resource} cleanup failed: {type(error).__name__}: {error}")
+        if failure is not None:
+            raise failure
+
+    def _close_process(self):
         started = time.monotonic_ns()
         before = self.process.poll() if self.process is not None else None
         receipt = {"schema": "hepta.gguf-process-lifecycle.v1",
@@ -346,10 +373,6 @@ class LlamaCppEngine:
                            resources_after=resource_observation(),
                            oom_cause_established=False)
             (self.output / "lifecycle.json").write_bytes(canonical(receipt) + b"\n")
-            if getattr(self, "log", None) is not None:
-                self.log.close()
-            if getattr(self, "socket_directory", None) is not None:
-                self.socket_directory.cleanup()
 
     def verify_final_identity(self):
         actual = file_identity(self.model)
