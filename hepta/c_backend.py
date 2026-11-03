@@ -384,7 +384,7 @@ class CEmitter:
             self.has_float_literals = True
             if not math.isfinite(e.value):
                 fail("E_C_BACKEND_LITERAL", "Nonfinite literals are unsupported", e.span)
-            # Match Rust emission from the shared binary64 AST value: parse
+            # Match Rust emission from the checker-resolved AST value: parse
             # its canonical decimal directly at the destination precision.
             # Casting an unsuffixed C double introduces a second rounding.
             literal = repr(e.value)
