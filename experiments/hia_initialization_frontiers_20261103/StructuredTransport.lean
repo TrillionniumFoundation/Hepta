@@ -80,11 +80,10 @@ theorem parse_array (f d : Nat) (input tail : List Nat) (items : List Raw)
   cases input with
   | nil => simp [parseRaw, children]
   | cons first rest =>
-    have different : first ≠ 93 := by
-      intro same
-      subst first
-      exact notEmptyClose rfl
-    simp [parseRaw, different, children]
+    by_cases same : first = 93
+    · subst first
+      exact False.elim (notEmptyClose rfl)
+    · simp [parseRaw, same, children]
 
 /-- The explicit opening quote excludes the earlier empty-object pattern. -/
 theorem parse_object (f d : Nat) (input tail : List Nat)
@@ -138,11 +137,11 @@ theorem parse_string (f d : Nat) (input value tail : List Nat)
 
 /-- Reading a valid quoted prefix does not inspect the suffix after its quote.
     The accumulator form supports induction without assumptions about that suffix. -/
-theorem parse_string_tail_prefix (prefix suffix acc : List Nat) :
-    stringBytes prefix = true →
-    parseStringTail (prefix ++ (34 :: suffix)) acc =
-      some (acc.reverse ++ prefix, suffix) := by
-  induction prefix generalizing acc with
+theorem parse_string_tail_prefix (segment suffix acc : List Nat) :
+    stringBytes segment = true →
+    parseStringTail (segment ++ (34 :: suffix)) acc =
+      some (acc.reverse ++ segment, suffix) := by
+  induction segment generalizing acc with
   | nil =>
     intro _domain
     simp [parseStringTail]
@@ -181,7 +180,10 @@ as 12. Root composition must still return the exact empty suffix.
 /-- Decimal digits cannot be split by an arbitrary suffix-extension rule. -/
 theorem reject_numeric_split :
     ¬ (parseRaw 2 2 [49, 50] = some (.num 1, [50])) := by
-  decide +kernel
+  intro claim
+  change some (Raw.num 12, ([] : List Nat)) = some (Raw.num 1, [50]) at claim
+  have tails : ([] : List Nat) = [50] := congrArg Prod.snd (Option.some.inj claim)
+  cases tails
 
 /-- A colon cannot replace the comma between two array items. -/
 theorem reject_wrong_separator :
@@ -198,7 +200,14 @@ theorem reject_wrong_closing :
 theorem reject_trailing_bytes :
     ¬ (parseRaw 2 2 [91, 93, 48] = some (.arr [], [])) ∧
     ¬ (decode [91, 93, 48] = some (.arr [])) := by
-  decide +kernel
+  constructor
+  · intro claim
+    change some (Raw.arr [], [48]) = some (Raw.arr [], ([] : List Nat)) at claim
+    have tails : [48] = ([] : List Nat) := congrArg Prod.snd (Option.some.inj claim)
+    cases tails
+  · intro claim
+    change none = some (Raw.arr []) at claim
+    cases claim
 
 theorem reject_insufficient_fuel :
     ¬ (parseRaw 0 2 [48] = some (.num 0, [])) := by
@@ -218,6 +227,9 @@ theorem reject_changed_leaf_byte :
 theorem reject_distinct_sufficient_fuel_failure :
     ¬ (parseRaw 1 1 [48] ≠ some (.num 0, []) ∨
        parseRaw 2 1 [48] ≠ some (.num 0, [])) := by
-  decide +kernel
+  intro failure
+  cases failure with
+  | inl rejected => exact rejected rfl
+  | inr rejected => exact rejected rfl
 
 end HiaCoreSyntaxSlice.Structured
