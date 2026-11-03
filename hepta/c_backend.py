@@ -46,6 +46,7 @@ class CEmitter:
         self.enums["Result"] = Enum("Result", [EnumVariant("Ok", [Type("A")]), EnumVariant("Err", [Type("B")])], ("A", "B"))
         self.functions = {f.name: f for f in program.functions}
         self.declarations, self.types, self.active = [], {}, set()
+        self.deferred_types = {}
         self.helpers = set()
         self.counter = 0
         self.params = {}
@@ -115,17 +116,57 @@ class CEmitter:
             self.pending.append((fn, args))
         return self.instances[key]
 
+    def field_name(self, t, name):
+        declaration = self.structs.get(t.name)
+        return name if declaration and declaration.repr_c else "h_" + name
+
+    def aggregate_tag(self, t):
+        declaration = self.structs.get(t.name)
+        # Match the public header's tag across translation units for repr(C).
+        return "hepta_" + t.name if declaration and declaration.repr_c else self.types[t]
+
+    @staticmethod
+    def require_bounded_type(t):
+        pending, nodes = [(t, 0)], 0
+        while pending:
+            current, depth = pending.pop()
+            nodes += 1
+            if depth > 64 or nodes > 4096:
+                fail("E_C_SPECIALIZATION_LIMIT", "C value type exceeds the 64-level/4096-node bound")
+            pending.extend((child, depth + 1) for child in current.args)
+
+    def forward_aggregate(self, t):
+        # Check iteratively before hashing a type or recursively expanding its
+        # fields. Pointer-broken generic layouts can still grow without bound.
+        self.require_bounded_type(t)
+        if t not in self.types:
+            if len(self.types) >= 4096:
+                fail("E_C_SPECIALIZATION_LIMIT", "C value types exceed the 4096-type bound")
+            name = "__hepta_cb_aggregate_" + str(len(self.types))
+            self.types[t] = name
+            self.deferred_types[t] = None
+            self.declarations.append(f"typedef struct {self.aggregate_tag(t)} {name};")
+        return self.types[t]
+
     def typ(self, t):
+        self.require_bounded_type(t)
         if t.name in SCALARS and not t.args:
             return SCALARS[t.name]
         if t in self.types:
             if t in self.active:
                 fail("E_C_BACKEND_SUBSET", "Recursive C backend type definitions are not yet supported")
-            return self.types[t]
+            if t not in self.deferred_types:
+                return self.types[t]
         if t.name in {"raw_const", "raw_mut"}:
             if t.args[0].name == "array":
                 fail("E_C_BACKEND_SUBSET", "Pointers to arrays require C declarator lowering not yet supported here")
-            child = self.typ(t.args[0])
+            # A pointer needs only the nominal tag, not its completed layout.
+            # Defer that body so a legal A -> *B -> A value chain can finish A
+            # before B's by-value field requires A to be complete.
+            pointee = t.args[0]
+            child = (self.forward_aggregate(pointee)
+                     if pointee.name in self.structs or pointee.name in self.enums
+                     else self.typ(pointee))
             name = "__hepta_cb_ptr_" + str(len(self.types))
             self.types[t] = name
             self.declarations.append(f"typedef {'const ' if t.name == 'raw_const' else ''}{child} *{name};")
@@ -143,8 +184,8 @@ class CEmitter:
             fail("E_C_BACKEND_SUBSET", "Zero-length and Unit-element arrays are not supported by the C backend")
         if len(self.active) > 128 or len(self.types) >= 4096:
             fail("E_C_SPECIALIZATION_LIMIT", "C value types exceed the 128-level/4096-type bound")
-        name = "__hepta_cb_aggregate_" + str(len(self.types))
-        self.types[t] = name
+        name = self.forward_aggregate(t)
+        self.deferred_types.pop(t)
         self.active.add(t)
         if t in self.views:
             view = self.views[t]
@@ -167,9 +208,9 @@ class CEmitter:
                 fail("E_C_BACKEND_SUBSET", "Unit fields are not supported by the C backend")
             if st.repr_c and any(f.type.name == "array" for f in concrete_fields):
                 fail("E_C_BACKEND_SUBSET", "repr(C) array fields are not yet supported in the independent backend")
-            fields = " ".join(self.typ(f.type) + " h_" + f.name + ";" for f in concrete_fields)
+            fields = " ".join(self.typ(f.type) + " " + self.field_name(t, f.name) + ";" for f in concrete_fields)
         self.active.remove(t)
-        self.declarations.append(f"typedef struct {{ {fields} }} {name};")
+        self.declarations.append(f"struct {self.aggregate_tag(t)} {{ {fields} }};")
         return name
 
     def slice_type(self, t, mode):
@@ -259,7 +300,7 @@ class CEmitter:
             name = "h_" + e.value
             return f"(*{name})" if p and p.mode in {"read", "mut"} and p.type.name != "slice" else name
         if e.kind == "field":
-            return "(" + self.place(e.children[0], lines) + ").h_" + e.value
+            return "(" + self.place(e.children[0], lines) + ")." + self.field_name(self.expr_type(e.children[0]), e.value)
         if e.kind == "index":
             base, index = e.children
             self.require_nonmutating(index)
@@ -350,7 +391,7 @@ class CEmitter:
         elif typ.name in self.structs:
             for field in self.fields(typ):
                 if is_owned_type(self.program, field.type):
-                    lines.append(self.drop_helper(field.type) + "(value.h_" + field.name + ");")
+                    lines.append(self.drop_helper(field.type) + "(value." + self.field_name(typ, field.name) + ");")
         elif typ.name in self.enums:
             lines.append("switch (value.tag) {")
             for index, (variant, fields) in enumerate(self.variants(typ)):
@@ -395,7 +436,7 @@ class CEmitter:
                 values = [self.borrowed(e.children[0], Type("slice", (Type("u8"),)), view["mode"], lines)]
             else:
                 values = [self.value(x, lines) for x in e.children]
-            expression = f"({self.typ(t)}){{ " + ", ".join(".h_" + n + " = " + v for n, v in zip(e.value["fields"], values)) + " }"
+            expression = f"({self.typ(t)}){{ " + ", ".join("." + self.field_name(t, n) + " = " + v for n, v in zip(e.value["fields"], values)) + " }"
         elif k == "variant":
             values = [self.value(x, lines) for x in e.children]
             variants = self.variants(t)
@@ -410,7 +451,7 @@ class CEmitter:
                 expression = self.place(e, lines)
             else:
                 base = self.value(e.children[0], lines)
-                expression = "(" + base + ").h_" + e.value
+                expression = "(" + base + ")." + self.field_name(self.expr_type(e.children[0]), e.value)
         elif k == "index":
             expression = self.place(e, lines)
         elif k == "unary":
@@ -667,6 +708,8 @@ static {result_name} __hepta_cb_try_buffer(size_t size) {{
             bodies.append("int main(void) { " + (expression + "; return 0;" if main.return_type.name == "Unit" else "return " + expression + ";") + " }")
         includes = "\n".join("#include <" + name + ">" for name in ["stdint.h", "stddef.h", "stdbool.h", "inttypes.h", "limits.h", "stdlib.h", "stdio.h", "string.h", "math.h"])
         runtime = self.runtime_source()
+        while self.deferred_types:
+            self.typ(next(iter(self.deferred_types)))
         drops = "\n".join("static void " + name + "(" + self.typ(typ) + " value);" for typ, (name, _) in self.drops.items())
         drops += "\n" + "\n".join(body for _, body in self.drops.values())
         return "/* Hepta independent C11/GCC backend. No Rust compiler involved. */\n" + includes + "\n_Static_assert(CHAR_BIT == 8 && sizeof(size_t) == 8 && sizeof(intptr_t) == 8, \"C backend requires the qualified 64-bit data model\");\n" + "\n".join(self.declarations) + "\n" + self.helper_source() + "\n" + runtime + "\n" + drops + "\n" + "\n".join(s + ";" for s in signatures) + "\n" + "\n".join(bodies) + "\n"

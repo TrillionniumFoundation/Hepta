@@ -475,6 +475,14 @@ The C profile supports scalar integers through 64 bits, native-size integers,
 bool, basic floating arithmetic, supported nongeneric structs, nonempty fixed
 arrays, borrowed slices, read/mut scalar or struct parameters, ordinary calls,
 conditionals/loops, checked indexing, and supported raw-pointer operations.
+Self- and mutually-recursive nominal records behind `raw mut`/`raw const`
+pointers use forward-declared C tags; pointee bodies are completed after their
+by-value dependencies. `repr(C)` records use the public header's tags and field
+names. This supports finite linked-record layouts, not recursive by-value
+layouts or pointers to arrays. Expanding generic pointer chains are bounded
+before type hashing by 64 type-argument levels/4096 nodes, with the existing
+4096-type emission cap. Raw pointer validity, lifetime and alignment
+remain the unsafe caller's responsibility; no ownership proof is inferred.
 Its borrow arguments must be named places. Multiple borrows of one root reject
 if any is mutable; this deliberately rejects some disjoint-field cases.
 Effectful nested calls in borrowed argument lists, indices, and raw-store
