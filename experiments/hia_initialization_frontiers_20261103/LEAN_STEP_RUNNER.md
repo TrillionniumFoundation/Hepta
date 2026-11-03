@@ -1,7 +1,8 @@
-# Projected scalar kernel runner: implemented, not yet kernel-checked
+# Projected scalar kernel runner and validation history
 
-The formal input remains UNCHECKED until a real run with the repository-pinned
-Lean executable succeeds. Local tests use mocks only and are not proof evidence.
+Proof status is tied to an exact input and repository-pinned Lean run. The
+successful narrow result is recorded below; local mocked tests alone are never
+proof evidence.
 This directory holds the experimental extension rather than modifying existing
 formal models or production proof gates.
 
@@ -100,3 +101,27 @@ The follow-up changes only the case-label syntax and uses reflexivity for the
 already reduced equalities; it does not weaken theorem statements, add assumptions,
 change semantics or relax the runner. It remains UNCHECKED until a new exact-head
 kernel run accepts the complete positive input and all required negatives.
+
+
+## Accepted narrow kernel result
+
+On head fa96fcbce8718a065094b686701a5072b6367c72, tree
+338b9f4dd1dd17aa4c5f45b9d08f720ecd164159, the actual locked Lean run
+[41638129107](https://github.com/TrillionniumFoundation/Hepta/actions/runs/41638129107)
+(job 125924418398) accepted the complete positive input with exit 0, exactly
+56 named axiom checks and no error or sorryAx. All ten required negatives exited
+1 at the intended proof locations, not import or syntax failures. The elapsed
+checker administration time was 12.438 seconds, not a performance measurement
+of Hepta programs. An independent review reconstructed and matched every source,
+manifest and negative-input digest from the original job log.
+
+Positive input SHA-256:
+8c615ecd34ae3e67c6ecc78d57cacca3437cc53ec3efcbd18c6b505f54127f31.
+Manifest SHA-256:
+0e8a0d95373a2d52e3c7e4571f7245a1348e16d39c3fd0be6b9432084133b839.
+
+This establishes only the stated conditional universal theorem for the defined
+partial projected scalar evaluator and its concrete validity/nonvacuity witnesses.
+The Core/exporter/runtime/body-prefix/all-edge/whole-loop connections are NOT
+proved. All twelve global obligations and DENY_ALL remain unchanged. The first
+failed attempt above is retained rather than replaced by the successful result.

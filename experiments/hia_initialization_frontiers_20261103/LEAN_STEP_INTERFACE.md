@@ -1,6 +1,7 @@
 # Kernel-checkable local slice interface: plan and current blocker
 
-Design only. No new proof has been kernel-checked. All twelve obligations remain
+Historical pre-implementation design. At the time this plan was written, no new
+proof had been kernel-checked. See LEAN_STEP_RUNNER.md for later exact-run results. All twelve obligations remain
 unproved, actual_core_bridge_proved=false and DENY_ALL. Production zero
 initialization and gates stay unchanged. This work must not become another
 finite-sample exercise or a second initialization-memory model.
