@@ -182,6 +182,49 @@ class PackageTests(ProjectFixture):
         f.write_text(f.read_text().replace('"0.1.0"', '"latest"'))
         self.reject("E_PACKAGE_VERSION", lambda: load_package(app))
 
+    def test_source_directory_alias_rejected_before_locking(self):
+        app = self.package()
+        self.put("app/src/a/value.hepta", "pub fn answer() -> i32 effects {} { return 1; }")
+        self.put("app/src/b/value.hepta", "pub fn answer() -> i32 effects {} { return 2; }")
+        self.put("app/src/main.hepta", "import alias::value; fn main() -> i32 effects {} { return value::answer(); }")
+        alias = app / "src/alias"
+        alias.symlink_to("a", target_is_directory=True)
+        self.reject("E_PACKAGE_SOURCE_LINK", lambda: write_lock(app))
+        self.assertFalse((app / "Hepta.lock").exists())
+        self.reject("E_PACKAGE_SOURCE_LINK", lambda: load_project(app, locked=False))
+        alias.unlink()
+        alias.symlink_to("b", target_is_directory=True)
+        self.reject("E_PACKAGE_SOURCE_LINK", lambda: write_lock(app))
+
+    def test_directory_alias_added_after_lock_rejects_locked_load(self):
+        app = self.package()
+        self.put("app/src/a/value.hepta", "pub fn answer() -> i32 effects {} { return 1; }")
+        write_lock(app)
+        (app / "src/alias").symlink_to("a", target_is_directory=True)
+        self.reject("E_PACKAGE_SOURCE_LINK", lambda: load_project(app, locked=True))
+
+    def test_nested_and_dependency_directory_links_rejected(self):
+        lib = self.package("lib", kind="lib")
+        app = self.package(dependencies='[dependencies]\nlib = { path = "../lib" }\n')
+        self.put("lib/src/nested/real/value.hepta", "")
+        (lib / "src/nested/alias").symlink_to("real", target_is_directory=True)
+        self.reject("E_PACKAGE_SOURCE_LINK", lambda: write_lock(app))
+
+    def test_directory_link_escape_rejected(self):
+        app = self.package()
+        self.put("outside/value.hepta", "")
+        (app / "src/alias").symlink_to(self.root / "outside", target_is_directory=True)
+        self.reject("E_PACKAGE_ESCAPE", lambda: write_lock(app))
+
+    def test_regular_source_file_symlinks_remain_content_locked(self):
+        app = self.package()
+        source = self.put("app/src/value.hepta", "pub fn answer() -> i32 effects {} { return 1; }")
+        (app / "src/alias.hepta").symlink_to("value.hepta")
+        write_lock(app)
+        verify_lock(load_package(app))
+        source.write_text(source.read_text().replace("return 1", "return 2"))
+        self.reject("E_LOCK_STALE", lambda: verify_lock(load_package(app)))
+
     def test_snapshot_is_portable_and_deterministic(self):
         app = self.package()
         first = package_snapshot(load_package(app))

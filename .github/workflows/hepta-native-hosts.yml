@@ -5,6 +5,7 @@ on:
     branches: [feat/hepta-safe-migration-agent-20261024, dot/hepta-p0-p1-semantic-bridge-20261025, dot/hepta-p0-p7-integration-20261025, codex/hia-ndu-verified-optimization-20261027, codex/hia-ndu-bounded-pipeline-20261027, codex/hia-contract-integration-20261027, codex/hia-v8-blocker-convergence-20261027, codex/hia-round5-*, codex/hia-core-closure-20261028, codex/hia-round6-convergence-20261029, codex/hia-round7-opportunity-20261029, codex/hia-round8-integration-20261029, work/hia-p0-p3-native-legacy-matrix-20261031-gpt6, work/hia-p0-p7-verified-json-matrix-20261031-gpt6, work/hia-p2-p3-current-native-host-matrix-20261031-gpt6audit, work/hia-p0-p3-policy-host-requal-20261031-gpt6, work/hia-p0-p3-owned-arity-host-requal-20261031-gpt6audit, research/hia-p0-p3-driver-digest-host-requal-20261031-run8, work/hia-seven-track-reconcile-p7-driver-digest-20261031-gpt6, work/hia-core-ndu-costed-integration-20261031]
   pull_request:
     paths:
+      - '.gitattributes'
       - 'hepta/**'
       - 'tools/**'
       - 'examples/**'
@@ -127,7 +128,7 @@ jobs:
         run: |
           mkdir -p artifacts
           cat > artifacts/native-host.json <<'JSON'
-          {"schema":"hepta.native-host.v2","status":"failed","error":"Native host setup or execution did not finish; inspect retained setup/test logs.","requested_compiler":"${{ matrix.cc }}","requested_family":"${{ matrix.cc_family }}","claims":{"cross_host_results_inferred":false}}
+          {"schema":"hepta.native-host.v3","status":"failed","error":"Native host setup or execution did not finish; inspect retained setup/test logs.","requested_compiler":"${{ matrix.cc }}","requested_family":"${{ matrix.cc_family }}","claims":{"cross_host_results_inferred":false}}
           JSON
           cat > artifacts/stb-divide-host.json <<'JSON'
           {"schema":"hepta.c-stb-divide-qualification.v1","ok":false,"status":"failed","error":"Complete component setup or execution did not finish; inspect retained setup and component logs.","claims":{"cross_host_results_inferred":false,"cpp_migration":false}}
@@ -144,7 +145,11 @@ jobs:
       - name: Verify exact head and install the pinned native Rust version
         shell: bash
         run: |
+          set -euo pipefail
+          git rev-parse HEAD 'HEAD^{tree}' > artifacts/native-host-source-before.log
+          git status --porcelain --untracked-files=no > artifacts/native-host-tracked-before.log
           test "$(git rev-parse HEAD)" = "$HEPTA_QUALIFICATION_HEAD_SHA"
+          test ! -s artifacts/native-host-tracked-before.log
           rustup toolchain install 1.90.0 --profile minimal 2>&1 | tee -a artifacts/native-host-setup.log
       - name: Establish the actual Visual Studio and Windows SDK environment
         if: matrix.system == 'Windows'
@@ -199,6 +204,7 @@ jobs:
             --rustc "$(rustup which --toolchain 1.90.0 rustc)" \
             --cc "$HEPTA_HOST_CC" --cc-family "$HEPTA_HOST_CC_FAMILY" \
             --expected-system '${{ matrix.system }}' --expected-machine '${{ matrix.machine }}' \
+            --artifact-directory artifacts/native-host-artifacts \
             --output artifacts/native-host.json
       - name: Check bounded compiler capture process ownership on this host
         shell: bash
@@ -254,6 +260,16 @@ jobs:
             cp artifacts/stb-divide-host/qualification.json artifacts/stb-divide-host.json
           fi
           exit "$stb_status"
+      - name: Verify final exact head and unchanged clean tracked source
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD 'HEAD^{tree}' > artifacts/native-host-source-after.log
+          git status --porcelain --untracked-files=no > artifacts/native-host-tracked-after.log
+          test "$(git rev-parse HEAD)" = "$HEPTA_QUALIFICATION_HEAD_SHA"
+          test ! -s artifacts/native-host-tracked-after.log
+          cmp artifacts/native-host-source-before.log artifacts/native-host-source-after.log
       - name: Retain actual host evidence, including failures
         if: always()
         uses: actions/upload-artifact@v4
@@ -261,9 +277,15 @@ jobs:
           name: native-${{ matrix.os }}-${{ matrix.cc_family }}-${{ env.HEPTA_QUALIFICATION_HEAD_SHA }}
           path: |
             artifacts/native-host.json
+            artifacts/native-host-artifacts/
             artifacts/native-host-setup.log
+            artifacts/native-host-source-before.log
+            artifacts/native-host-source-after.log
+            artifacts/native-host-tracked-before.log
+            artifacts/native-host-tracked-after.log
             artifacts/native-host-adapter-tests.log
             artifacts/clang-capture-tests.log
+            artifacts/clang-capture-ownership-tests.log
             artifacts/original-type-process-tests.log
             artifacts/original-type-preflight.json
             artifacts/original-type-preflight.log

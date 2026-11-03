@@ -15,6 +15,7 @@ import hashlib
 import json
 from pathlib import Path
 import platform
+import re
 import shutil
 import struct
 import subprocess
@@ -56,6 +57,59 @@ def source_inputs():
              *HOST_EXAMPLE.iterdir(), *EXAMPLE.iterdir(),
              *FIXTURES.rglob('*')]
     return {str(p.relative_to(ROOT)): digest(p) for p in sorted(set(paths)) if p.is_file()}
+
+
+def casefold_path_collisions(paths):
+    """Check tracked file names and directory prefixes, independent of host FS."""
+    names = {}
+    for path in paths:
+        parts = path.split('/')
+        for length in range(1, len(parts) + 1):
+            prefix = '/'.join(parts[:length])
+            names.setdefault(prefix.casefold(), set()).add(prefix)
+    return sorted(sorted(group) for group in names.values() if len(group) > 1)
+
+
+def source_checkout_identity(repository=None):
+    repository = ROOT if repository is None else Path(repository)
+    def git(*arguments, text=True):
+        return subprocess.check_output(['git', *arguments], cwd=repository, text=text, timeout=30)
+    paths = git('ls-files', '-z', text=False)
+    names = paths.decode('utf-8').split('\0')
+    if names[-1] != '':
+        raise ValueError('Tracked Git path inventory is not NUL terminated')
+    names.pop()
+    return {'commit': git('rev-parse', 'HEAD').strip(),
+            'tree': git('rev-parse', 'HEAD^{tree}').strip(),
+            'tracked_status': git('status', '--porcelain', '--untracked-files=no'),
+            'tracked_paths_sha256': hashlib.sha256(paths).hexdigest(),
+            'tracked_path_count': len(names),
+            'casefold_collisions': casefold_path_collisions(names)}
+
+
+def require_clean_checkout(identity):
+    keys = {'commit', 'tree', 'tracked_status', 'tracked_paths_sha256',
+            'tracked_path_count', 'casefold_collisions'}
+    if (not isinstance(identity, dict) or set(identity) != keys
+            or any(not isinstance(identity[k], str) or not re.fullmatch('[0-9a-f]{40}', identity[k])
+                   for k in ('commit', 'tree'))
+            or not isinstance(identity['tracked_paths_sha256'], str)
+            or not re.fullmatch('[0-9a-f]{64}', identity['tracked_paths_sha256'])
+            or type(identity['tracked_path_count']) is not int or identity['tracked_path_count'] <= 0
+            or not isinstance(identity['tracked_status'], str)
+            or not isinstance(identity['casefold_collisions'], list)):
+        raise ValueError('Complete original Git checkout identity is required')
+    if identity['tracked_status']:
+        raise ValueError('Tracked source checkout is not clean: ' + identity['tracked_status'][:1000])
+    if identity['casefold_collisions']:
+        raise ValueError('Tracked source paths collide under casefold: ' + repr(identity['casefold_collisions'])[:1000])
+
+
+def require_same_clean_checkout(before, after):
+    require_clean_checkout(before)
+    require_clean_checkout(after)
+    if before != after:
+        raise ValueError('Original Git checkout identity changed during qualification')
 
 
 def inspect_executable(path, system, machine):
@@ -147,8 +201,11 @@ def qualify(directory, *, cxx='g++', cxx_family='auto', rustc=None, linker=None,
                 or expected_system is not None and expected_system != system
                 or expected_machine is not None and expected_machine != machine):
             raise ValueError('Actual host differs from explicitly requested host')
-        report['source_commit'] = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
-        report['tracked_source_status'] = subprocess.check_output(['git', 'status', '--porcelain', '--untracked-files=no'], cwd=ROOT, text=True)
+        checkout_before = source_checkout_identity()
+        report['source_checkout_before'] = checkout_before
+        report['source_commit'] = checkout_before['commit']
+        report['tracked_source_status'] = checkout_before['tracked_status']
+        require_clean_checkout(checkout_before)
         before = source_inputs()
         report['source_inputs'] = before
         report['compiler_sha256'] = compiler_hash()
@@ -253,6 +310,10 @@ def qualify(directory, *, cxx='g++', cxx_family='auto', rustc=None, linker=None,
             raise ValueError('Source or upstream input changed during host qualification')
         if digest(compiler['path']) != compiler['executable_sha256']:
             raise ValueError('Actual C++ compiler changed during qualification')
+        checkout_after = source_checkout_identity()
+        report['source_checkout_after'] = checkout_after
+        report['tracked_source_status_after'] = checkout_after['tracked_status']
+        require_same_clean_checkout(checkout_before, checkout_after)
         report['inputs_unchanged'] = True
         report['claims'] = CLAIMS.copy()
         report['status'], report['ok'] = 'passed', True
@@ -268,15 +329,17 @@ def qualify(directory, *, cxx='g++', cxx_family='auto', rustc=None, linker=None,
 @normalized_errors
 def validate_report(report):
     """Read-only byte and original-observation check; never rebuild native code."""
+    require_same_clean_checkout(report.get('source_checkout_before'), report.get('source_checkout_after'))
+    current_checkout = source_checkout_identity()
+    require_same_clean_checkout(report['source_checkout_after'], current_checkout)
     if (report.get('schema') != SCHEMA or report.get('status') != 'passed' or report.get('ok') is not True
             or report.get('claims') != CLAIMS or report.get('inputs_unchanged') is not True
             or report.get('compiler_sha256') != compiler_hash() or report.get('source_inputs') != source_inputs()
             or [v.get('version') for v in report.get('versions', [])] != list(VERSIONS)):
         raise ValueError('Upstream host qualification scope or source differs')
     directory = Path(report['directory'])
-    if (report.get('source_commit') != subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
-            or report.get('tracked_source_status') != subprocess.check_output(
-                ['git', 'status', '--porcelain', '--untracked-files=no'], cwd=ROOT, text=True)):
+    if (report.get('source_commit') != current_checkout['commit']
+            or report.get('tracked_source_status') != '' or report.get('tracked_source_status_after') != ''):
         raise ValueError('Original Git source identity or tracked working state differs')
     retained = report['retained_files']
     actual_names = {str(p.relative_to(directory)) for p in directory.rglob('*') if p.is_file()
@@ -496,7 +559,18 @@ def negative_evidence_controls(report):
         value['cxx']['identity']['family'] = new
         value['cxx']['macro_probe']['stdout'] = value['cxx']['macro_probe']['stdout'].replace(
             'HEPTA_CXX_FAMILY ' + old, 'HEPTA_CXX_FAMILY ' + new)
+    def dirty_checkout(value):
+        for phase in ('before', 'after'):
+            value['source_checkout_' + phase]['tracked_status'] = ' M archived-input.json\n'
+        value['tracked_source_status'] = value['tracked_source_status_after'] = ' M archived-input.json\n'
+    def colliding_checkout(value):
+        for phase in ('before', 'after'):
+            value['source_checkout_' + phase]['casefold_collisions'] = [['BASE.json', 'base.json']]
     changes = {
+        'same_dirty_checkout_before_and_after': dirty_checkout,
+        'final_checkout_identity_missing': lambda r: r.pop('source_checkout_after'),
+        'source_tree_changed_before_exit': lambda r: r['source_checkout_after'].update(tree='0' * 40),
+        'casefold_colliding_tracked_paths': colliding_checkout,
         'compiler_family_and_inline_probe_relabelled': relabel_compiler,
         'original_identity_process_removed': lambda r: r['processes'].pop(0),
         'failed_identity_probe_substituted': lambda r: r['incompatible_signature']['failure'].update(phase='compiler_identity'),

@@ -12,6 +12,7 @@ from itertools import islice
 import json
 import os
 from pathlib import Path
+import subprocess
 import sys
 import time
 
@@ -23,6 +24,7 @@ sys.dont_write_bytecode = True
 from tools.hia_agent_codex_transport import canonical, identity, run_owned, save, strict_json
 
 MAX_RUNTIME_METADATA_ENTRIES = 128
+MAX_STARTUP_LINE_BYTES = 65536
 
 
 def initialization_wire():
@@ -30,7 +32,12 @@ def initialization_wire():
     return b"".join(canonical(message) + b"\n" for message in (
         {"id": 1, "method": "initialize", "params": {
             "clientInfo": {"name": "hepta_zero_generation_preflight", "version": "1"},
-            "capabilities": {"experimentalApi": False}}},
+            # Codex 0.144.1 publishes this non-task status notification after
+            # initialized. Opt out at the documented transport boundary so
+            # startup_response can still require exactly one ACK and reject
+            # every unexpected message, including all model/task events.
+            "capabilities": {"experimentalApi": False,
+                "optOutNotificationMethods": ["remoteControl/status/changed"]}}},
         {"method": "initialized", "params": {}},
     ))
 
@@ -49,6 +56,57 @@ def startup_response(raw):
         raise ValueError("app-server did not acknowledge the initialization request")
     return {"initialization_acknowledged": True,
             "response_keys": sorted(response["result"])}
+
+
+def _startup_worker(sent_path, command):
+    """Sequence the two fixed messages inside the outer owned process group.
+
+    EOF before initialize completes can make app-server exit without its ACK.
+    Keep its pipe open until the one allowed response has been validated. The
+    outer run_owned deadline/output caps/cleanup also cover this child.
+    """
+    child = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                             stderr=sys.stderr.buffer)
+    try:
+        with Path(sent_path).open("xb") as sent:
+            def send(raw):
+                sent.write(raw); sent.flush()
+                child.stdin.write(raw); child.stdin.flush()
+            initialize, initialized = initialization_wire().splitlines(keepends=True)
+            send(initialize)
+            response = child.stdout.readline(MAX_STARTUP_LINE_BYTES + 1)
+            sys.stdout.buffer.write(response); sys.stdout.buffer.flush()
+            if len(response) > MAX_STARTUP_LINE_BYTES or not response.endswith(b"\n"):
+                raise ValueError("incomplete or oversized initialization response")
+            startup_response(response)
+            send(initialized)
+        child.stdin.close()
+        while True:
+            extra = child.stdout.read(65536)
+            if not extra:
+                break
+            # Retain unexpected notifications for strict outer validation;
+            # no extra method is silently ignored or treated as an ACK.
+            sys.stdout.buffer.write(extra); sys.stdout.buffer.flush()
+        return child.wait(timeout=5)
+    finally:
+        if not child.stdin.closed:
+            try:
+                child.stdin.close()
+            except BrokenPipeError:
+                pass
+        child.stdout.close()
+        if child.poll() is None:
+            child.terminate()
+            try:
+                child.wait(timeout=1)
+            except subprocess.TimeoutExpired:
+                child.kill(); child.wait(timeout=1)
+
+
+def startup_command(command, sent_path):
+    return [sys.executable, "-B", str(Path(__file__).resolve()),
+            "_startup-worker", str(sent_path), *command]
 
 
 def process_ok(record):
@@ -170,13 +228,20 @@ def preflight(output, *, codex, clang, rustc, campaign=None, registered_paths=No
                 command.extend(["-c", key + "=" + json.dumps(str(runtime))])
         command.extend(["app-server", "--stdio"])
         try:
-            process = run_owned(command, folder, folder / "app-server", wall_seconds=wall_seconds,
-                                input_bytes=initialization_wire())
+            worker = identity(sys.executable)
+            report["startup_worker_python"] = worker
+            sent = folder / "app-server/rpc.stdin.raw"
+            process = run_owned(startup_command(command, sent), folder, folder / "app-server",
+                                wall_seconds=wall_seconds)
             report["probes"]["startup"] = {"passed": False, "process": process}
             if not process_ok(process):
                 raise ValueError("app-server initialization process failed or cleanup was not confirmed")
+            if sent.read_bytes() != initialization_wire() or identity(sys.executable) != worker:
+                raise ValueError("startup request sequence or worker executable identity differs")
             response = startup_response((folder / "app-server/stdout.raw").read_bytes())
-            report["probes"]["startup"] = {"passed": True, "process": process, **response}
+            report["probes"]["startup"] = {"passed": True, "process": process, **response,
+                "worker_python": worker, "rpc_requests": identity(sent),
+                "sequence": "initialize; strict ACK; initialized; EOF"}
         except Exception as exc:
             report["probes"].setdefault("startup", {"passed": False})["error"] = str(exc)
         for key, name in report["startup_overrides"].items():
@@ -197,13 +262,14 @@ def preflight(output, *, codex, clang, rustc, campaign=None, registered_paths=No
                 report["probes"][language + "_native"] = {"passed": False, "error": str(exc)}
         report["tools_unchanged"] = all(identity(path) == report["tools"][name]
             for name, path in report["requested_tool_paths"].items())
+        report["startup_worker_unchanged"] = report.get("startup_worker_python") == identity(sys.executable)
         report["existing_freeze_unchanged"] = (freeze_before is None if freeze is None or not freeze.is_file()
                                                 else identity(freeze) == freeze_before)
         report["probe_sources_unchanged"] = all(identity(ROOT / name) == recorded
             for name, recorded in report["probe_sources"].items())
         report["passed"] = (all(row.get("passed") is True for row in report["probes"].values())
                             and report["tools_unchanged"] and report["existing_freeze_unchanged"]
-                            and report["probe_sources_unchanged"])
+                            and report["probe_sources_unchanged"] and report["startup_worker_unchanged"])
         report["status"] = "startup_and_native_probes_passed" if report["passed"] else "blocked"
     except Exception as exc:
         report.update(status="blocked", error={"type": type(exc).__name__, "message": str(exc)})
@@ -214,6 +280,11 @@ def preflight(output, *, codex, clang, rustc, campaign=None, registered_paths=No
 
 
 def main(argv=None):
+    argv = sys.argv[1:] if argv is None else argv
+    if len(argv) >= 5 and argv[0] == "_startup-worker":
+        if argv[-2:] != ["app-server", "--stdio"]:
+            raise ValueError("startup worker only admits app-server stdio")
+        return _startup_worker(argv[1], argv[2:])
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("output", "codex", "clang", "rustc"):
         parser.add_argument("--" + name, required=True)

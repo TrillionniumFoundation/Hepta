@@ -5,10 +5,16 @@ The same C11 matrix has separate GCC/Clang and Microsoft cl.exe drivers. A
 Clang target using the MSVC ABI is still recorded as Clang. This command never
 substitutes cross compilation or QEMU for host execution. A workflow
 declaration alone is not qualification evidence for another host/compiler.
+The v3 evidence contract retains native files and this qualifier's C-driver
+raw command streams before temporary cleanup. Rust input is the canonical
+UTF-8 text passed to the backend, not its platform-materialized temporary
+program.rs; Rust compiler streams remain outside this archive. Historical v2
+receipt-only reports do not qualify under this stricter contract.
 """
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 import datetime
 import hashlib
 import json
@@ -17,6 +23,7 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 import platform
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -31,7 +38,14 @@ from tools.abi_fuzz import Matrix
 from tools.evidence_checks import command as check_command, is_sha, native_build, normalized_errors, require, strict_equal, text
 
 SEED, SHAPES, VALUES = 20261025, 36, 3
-SCHEMA = "hepta.native-host.v2"
+SCHEMA = "hepta.native-host.v3"
+RETENTION_SCHEMA = "hepta.native-host.retained.v1"
+RETENTION_SCOPE = {"c_driver_streams": "original bounded bytes; completeness is recorded per command",
+                   "rust_input_kind": "canonical UTF-8 text passed to compile_rust",
+                   "rust_build_record_kind": "structured backend receipt",
+                   "rust_temporary_input_bytes_retained": False,
+                   "rust_compiler_argv_and_raw_streams_retained": False,
+                   "native_files": "only originals actually listed in the manifest; failures can be partial"}
 FAMILIES = ("gcc", "clang", "msvc")
 PROFILES = ("O0", "O2")
 
@@ -75,6 +89,168 @@ HEPTA_C_STANDARD __STDC_VERSION__
 
 def sha(data):
     return hashlib.sha256(data).hexdigest()
+
+
+def _source_identity():
+    def git(argument):
+        return subprocess.check_output(["git", "rev-parse", argument], cwd=ROOT, text=True).strip()
+    return {"commit": git("HEAD"), "tree": git("HEAD^{tree}"),
+            "compiler_sha256": compiler_hash(), "qualifier_sha256": sha(Path(__file__).read_bytes())}
+
+
+def _archive_name(name):
+    require(type(name) is str and name and "\\" not in name and ":" not in name
+            and not name.startswith("/") and all(p not in {"", ".", ".."} for p in name.split("/")),
+            "invalid retained relative path")
+    return name
+
+
+class _RetainedEvidence:
+    """One create-only archive. Its manifest is capture evidence, not admission."""
+    def __init__(self, directory, observations):
+        if directory is None:
+            directory = Path(tempfile.mkdtemp(prefix="hepta-native-host-artifacts-"))
+        else:
+            directory = Path(directory)
+            directory.mkdir(parents=True, exist_ok=False)
+        self.directory = directory.resolve(strict=True)
+        self.receipt = {"schema": RETENTION_SCHEMA, "directory": str(self.directory),
+                        "source_identity": _source_identity(), "scope": dict(RETENTION_SCOPE), "files": {}}
+        observations["retained_evidence"] = self.receipt
+
+    def save(self, name, raw):
+        name = _archive_name(name)
+        require(type(raw) is bytes, "original retained bytes required")
+        target = self.directory / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with target.open("xb") as stream:
+            stream.write(raw)
+        value = {"bytes": len(raw), "sha256": sha(raw)}
+        self.receipt["files"][name] = value
+        return {"path": name, **value}
+
+    def copy(self, name, source):
+        require(not source.is_symlink() and stat.S_ISREG(source.stat().st_mode), "ordinary retained input required")
+        name = _archive_name(name)
+        target = self.directory / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        digest, size = hashlib.sha256(), 0
+        with source.open("rb") as before, target.open("xb") as after:
+            for chunk in iter(lambda: before.read(1024 * 1024), b""):
+                after.write(chunk); digest.update(chunk); size += len(chunk)
+        self.receipt["files"][name] = {"bytes": size, "sha256": digest.hexdigest()}
+
+    def streams(self, index, stdout, stderr, *, complete):
+        return {"complete": complete, "stdout": self.save(f"streams/{index:02d}.stdout", stdout),
+                "stderr": self.save(f"streams/{index:02d}.stderr", stderr)}
+
+    def finish(self, directory, commands):
+        # Includes partial compiler outputs on failure, before temporary cleanup.
+        for source in sorted(directory.rglob("*")):
+            require(not source.is_symlink(), "symlink in original host artifacts")
+            if not source.is_dir():
+                self.copy("work/" + source.relative_to(directory).as_posix(), source)
+        self.save("commands.json", (json.dumps(commands, sort_keys=True, allow_nan=False) + "\n").encode())
+        raw = (json.dumps(self.receipt, sort_keys=True, allow_nan=False) + "\n").encode()
+        with (self.directory / "manifest.json").open("xb") as stream:
+            stream.write(raw)
+        self.receipt["manifest"] = {"bytes": len(raw), "sha256": sha(raw)}
+
+
+@contextmanager
+def _retained_workdir(evidence, commands):
+    with tempfile.TemporaryDirectory(prefix="hepta-native-host-") as td:
+        directory = Path(td).resolve(strict=True)
+        evidence.receipt["original_temporary_directory"] = str(directory)
+        original_failure = None
+        try:
+            yield directory
+        except BaseException as error:
+            original_failure = error
+            evidence.receipt["execution_failure"] = {"type": type(error).__name__, "message": str(error)[:4000]}
+            raise
+        finally:
+            try:
+                evidence.finish(directory, commands)
+            except BaseException as error:
+                evidence.receipt["retention_error"] = {"type": type(error).__name__, "message": str(error)[:4000]}
+                if original_failure is None:
+                    raise
+
+
+def _validate_retained_files(receipt, artifact_directory=None):
+    require(type(receipt) is dict and receipt.get("schema") == RETENTION_SCHEMA,
+            "retained native originals required; receipt-only reports are historical evidence")
+    require(strict_equal(receipt.get("scope"), RETENTION_SCOPE), "retained evidence scope differs")
+    require(strict_equal(receipt.get("source_identity"), _source_identity()), "retained source identity differs")
+    root = Path(receipt["directory"] if artifact_directory is None else artifact_directory)
+    require(not root.is_symlink() and root.is_dir(), "ordinary retained artifact directory required")
+    root = root.resolve(strict=True)
+    files = receipt["files"]
+    require(type(files) is dict and bool(files) and "manifest.json" not in files, "retained file manifest missing")
+    actual = set()
+    for path in root.rglob("*"):
+        require(not path.is_symlink(), "retained artifact symlink refused")
+        if not path.is_dir():
+            require(stat.S_ISREG(path.stat().st_mode), "ordinary retained artifact required")
+            actual.add(path.relative_to(root).as_posix())
+    require(actual == set(files) | {"manifest.json"}, "retained artifact file set differs")
+    for name, identity in {**files, "manifest.json": receipt["manifest"]}.items():
+        path = root / _archive_name(name)
+        require(path.resolve(strict=True).is_relative_to(root), "retained artifact outside directory")
+        require(type(identity) is dict and set(identity) == {"bytes", "sha256"}
+                and type(identity["bytes"]) is int and identity["bytes"] >= 0 and is_sha(identity["sha256"]),
+                "invalid retained artifact identity")
+        with path.open("rb") as stream:
+            actual_hash = hashlib.file_digest(stream, "sha256").hexdigest()
+        require(path.stat().st_size == identity["bytes"] and actual_hash == identity["sha256"],
+                "retained artifact bytes differ: " + name)
+    frozen = json.loads((root / "manifest.json").read_bytes())
+    require(strict_equal(frozen, {k: v for k, v in receipt.items() if k != "manifest"}), "retained manifest differs")
+    return root, files
+
+
+def _validate_retained_bindings(report, artifact_directory=None):
+    receipt = report.get("retained_evidence")
+    root, files = _validate_retained_files(receipt, artifact_directory)
+    require("execution_failure" not in receipt and "retention_error" not in receipt, "failed retention attempt cannot qualify")
+    require("native-build.json" in files and "commands.json" in files, "retained build/command records missing")
+    native, negative = report["native_object"], report["negative_control"]
+    require(strict_equal(json.loads((root / "native-build.json").read_bytes()), native), "retained original native build differs")
+    windows = report["host"]["system"] == "Windows"
+    path_type = PureWindowsPath if windows else PurePosixPath
+    require(str(path_type(native["artifact"]).parent) == receipt["original_temporary_directory"],
+            "retained original execution directory differs")
+    extension = ".exe" if windows else ""
+    expected = {"inputs/compiler-identity.c": sha(COMPILER_PROBE.encode()),
+                "work/compiler-identity.c": sha(COMPILER_PROBE.encode()),
+                "inputs/matrix.hepta": report["source_sha256"], "inputs/matrix.c": report["harness_sha256"],
+                "inputs/layout-probes.rs": report["layout_probes_sha256"],
+                "inputs/matrix.h": report["header_sha256"], "work/matrix.h": report["header_sha256"],
+                "inputs/matrix.rs": native["rust_sha256"],
+                "inputs/wrong.c": negative["source_sha256"], "work/matrix.c": negative["source_sha256"],
+                "work/" + path_type(native["artifact"]).name: native["artifact_sha256"],
+                "work/wrong" + extension: negative["artifact_sha256"]}
+    for index, profile in enumerate(PROFILES):
+        expected["work/host-matrix-" + profile + extension] = report["executable_sha256s"][index]
+    for control in report["type_negative_controls"]:
+        expected["inputs/type-" + control["name"] + ".h"] = control["header_sha256"]
+    for name, digest in expected.items():
+        require(name in files and files[name]["sha256"] == digest and files[name]["bytes"] > 0,
+                "retained source or native role differs: " + name)
+    require(files["work/" + path_type(native["artifact"]).name]["bytes"] == native["artifact_bytes"],
+            "retained native object size differs")
+    commands = report["commands"]
+    require(strict_equal(json.loads((root / "commands.json").read_bytes()), commands), "retained original commands differ")
+    for index, command in enumerate(commands):
+        streams = command.get("retained_streams", {})
+        require(streams.get("complete") is True, "incomplete raw capture cannot qualify")
+        for channel in ("stdout", "stderr"):
+            name = f"streams/{index:02d}." + channel
+            require(name in files and strict_equal(streams.get(channel), {"path": name, **files[name]}),
+                    "retained command stream role differs")
+            original = (root / name).read_bytes().decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
+            require(original == command[channel], "raw retained command output differs")
 
 
 def compiler_probe_command(compiler, driver, probe):
@@ -164,7 +340,7 @@ def type_oracle_controls(header):
 
 
 def run_host(*, cc=None, cc_family="auto", rustc=None, expected_system=None, expected_machine=None,
-             observations=None):
+             observations=None, artifact_directory=None):
     system, machine = platform.system(), platform.machine().lower()
     normalized = {"amd64": "x86_64", "arm64": "aarch64"}.get(machine, machine)
     if expected_system is not None and system != expected_system:
@@ -182,6 +358,7 @@ def run_host(*, cc=None, cc_family="auto", rustc=None, expected_system=None, exp
     observations = {} if observations is None else observations
     observations.update({"commands": commands, "c_compiler": {"path": compiler, "binary_sha256": compiler_sha,
                                                               "requested_family": cc_family}})
+    evidence = _RetainedEvidence(artifact_directory, observations)
     def run(argv, *, positive=True):
         argv = list(map(str, argv))
         start = time.monotonic()
@@ -196,19 +373,21 @@ def run_host(*, cc=None, cc_family="auto", rustc=None, expected_system=None, exp
                      "seconds": time.monotonic() - start, "capture_rejection": exc.code,
                      "stdout": capture.stdout.decode("utf-8", errors="replace") if capture else "",
                      "stderr": capture.stderr.decode("utf-8", errors="replace") if capture else ""}
+            commands.append(entry)
             if capture:
                 entry.update({"stdout_total_bytes": capture.stdout_total_bytes,
-                              "stderr_total_bytes": capture.stderr_total_bytes})
-            commands.append(entry)
+                              "stderr_total_bytes": capture.stderr_total_bytes,
+                              "retained_streams": evidence.streams(len(commands) - 1, capture.stdout, capture.stderr, complete=False)})
             raise ValueError(f"E_NATIVE_HOST_CAPTURE: {exc.code}: {exc}") from exc
         entry = {"argv": argv, "returncode": process.returncode,
                  "seconds": time.monotonic() - start,
                  "stdout": process.stdout, "stderr": process.stderr}
         commands.append(entry)
+        entry["retained_streams"] = evidence.streams(len(commands) - 1, process.raw_stdout, process.raw_stderr, complete=True)
         if positive and process.returncode:
             raise RuntimeError("Host command failed: " + json.dumps(entry))
         return process
-    with tempfile.TemporaryDirectory(prefix="hepta-native-host-") as td:
+    with _retained_workdir(evidence, commands) as td:
         # Windows may return the 8.3 short-path spelling RUNNER~1 here.
         # rustc's validated artifact path uses Path.resolve(), which expands
         # that name to runneradmin. Canonicalize *before* constructing any
@@ -220,6 +399,7 @@ def run_host(*, cc=None, cc_family="auto", rustc=None, expected_system=None, exp
             target = run([compiler, "-dumpmachine"]).stdout.strip()
         probe = directory / "compiler-identity.c"
         probe.write_text(COMPILER_PROBE, encoding="utf-8", newline="\n")
+        evidence.save("inputs/compiler-identity.c", COMPILER_PROBE.encode())
         identity = parse_compiler_probe(run(compiler_probe_command(compiler, driver, probe)).stdout)
         family = identity["family"]
         require((family == "msvc") == (driver == "msvc"), "C compiler implementation differs from its requested driver")
@@ -235,12 +415,17 @@ def run_host(*, cc=None, cc_family="auto", rustc=None, expected_system=None, exp
                        "identity_probe": {"source_sha256": sha(COMPILER_PROBE.encode()), "observed": identity}}
         observations["c_compiler"] = cc_identity
         source, harness, probes, denominator = Matrix(SEED, SHAPES, VALUES).generate()
+        evidence.save("inputs/matrix.hepta", source.encode())
+        evidence.save("inputs/matrix.c", harness.encode())
+        evidence.save("inputs/layout-probes.rs", probes.encode())
         observations["source_sha256"] = sha(source.encode())
         before = compiler_hash()
         analysis = analyze(source, "<native-host-matrix>", rustc=rustc, native=True, no_std=True, crate_type="obj")
         if not analysis.report["ok"]:
             raise RuntimeError(json.dumps(analysis.report))
         header = emit_header(analysis.program)
+        evidence.save("inputs/matrix.h", header.encode())
+        evidence.save("inputs/matrix.rs", (analysis.rust + "\n" + probes).encode())
         header_file = directory / "matrix.h"
         header_file.write_text(header, encoding="utf-8", newline="\n")
         cfile = directory / "matrix.c"
@@ -248,6 +433,7 @@ def run_host(*, cc=None, cc_family="auto", rustc=None, expected_system=None, exp
         object_file = directory / ("matrix.obj" if system == "Windows" else "matrix.o")
         observations["native_object_artifact"] = str(object_file)
         native = compile_rust(analysis.rust + "\n" + probes, rustc=rustc, crate_type="obj", output=object_file)
+        evidence.save("native-build.json", (json.dumps(native, sort_keys=True, allow_nan=False) + "\n").encode())
         if not native["ok"]:
             raise RuntimeError(json.dumps(native))
         executions = []
@@ -267,6 +453,7 @@ def run_host(*, cc=None, cc_family="auto", rustc=None, expected_system=None, exp
         observations["type_negative_controls"] = type_controls
         try:
             for control in type_oracle_controls(header):
+                evidence.save("inputs/type-" + control["name"] + ".h", control["header"].encode())
                 header_file.write_text(control["header"], encoding="utf-8", newline="\n")
                 rejected_object = directory / ("type-" + control["name"] + (".obj" if system == "Windows" else ".o"))
                 rejected = run(c_compile_command(compiler, family, cfile, rejected_object), positive=False)
@@ -282,6 +469,7 @@ def run_host(*, cc=None, cc_family="auto", rustc=None, expected_system=None, exp
         if harness.count(needle) != 1:
             raise ValueError("Expected exactly one independent C negative-control site")
         wrong = harness.replace(needle, needle.replace("return value;", "return (ExpectedType0)(value ^ 1);"))
+        evidence.save("inputs/wrong.c", wrong.encode())
         cfile.write_text(wrong, encoding="utf-8", newline="\n")
         bad_executable = directory / ("wrong" + (".exe" if system == "Windows" else ""))
         run(c_compile_command(compiler, family, cfile, bad_executable, rust_object=object_file))
@@ -305,6 +493,7 @@ def run_host(*, cc=None, cc_family="auto", rustc=None, expected_system=None, exp
             "layout_probes_sha256": sha(probes.encode()), "frontend": analysis.report,
             "native_object": native, "executions": executions, "executable_sha256s": executable_hashes,
             "negative_control": negative, "type_negative_controls": type_controls, "commands": commands,
+            "retained_evidence": evidence.receipt,
             "claims": {"actual_reported_host_executed": True, "cross_host_results_inferred": False,
                        "physical_board_executed": False, "gpu_device_executed": False,
                        "all_abi_features_qualified": False},
@@ -324,7 +513,7 @@ def target_shape(target):
 
 
 @normalized_errors
-def validate_report(report):
+def validate_report(report, *, artifact_directory=None):
     source, harness, probes, denominator = Matrix(SEED, SHAPES, VALUES).generate()
     claims = {"actual_reported_host_executed": True, "cross_host_results_inferred": False,
               "physical_board_executed": False, "gpu_device_executed": False, "all_abi_features_qualified": False}
@@ -443,6 +632,7 @@ def validate_report(report):
             and commands[-2]["returncode"] == 0 and commands[-1]["argv"] == [str(bad_executable)]
             and commands[-1]["returncode"] == negative["returncode"] and "v_scalar0_0" in commands[-1]["stderr"],
             "wrong echo must fail its actual native assertion, not fail to launch")
+    _validate_retained_bindings(report, artifact_directory)
 
 
 def main():
@@ -454,12 +644,15 @@ def main():
     parser.add_argument("--expected-system", choices=["Linux", "Windows", "Darwin"])
     parser.add_argument("--expected-machine", choices=["x86_64", "aarch64"])
     parser.add_argument("--output", type=Path, default=ROOT / "artifacts/native-host.json")
+    parser.add_argument("--artifact-directory", type=Path,
+                        help="Create-only persistent directory; default: <output-stem>-artifacts beside the report")
     args = parser.parse_args()
     observed = None
     attempt = {}
     try:
         report = run_host(cc=args.cc, cc_family=args.cc_family, rustc=args.rustc, expected_system=args.expected_system,
-                          expected_machine=args.expected_machine, observations=attempt)
+                          expected_machine=args.expected_machine, observations=attempt,
+                          artifact_directory=args.artifact_directory or args.output.with_name(args.output.stem + "-artifacts"))
         observed = report
         validate_report(report)
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as exc:
@@ -478,6 +671,7 @@ def main():
                 "type_negative_controls": observed.get("type_negative_controls"),
                 "negative_control": observed.get("negative_control"),
                 "source_sha256": observed.get("source_sha256"),
+                "retained_evidence": observed.get("retained_evidence"),
             }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")

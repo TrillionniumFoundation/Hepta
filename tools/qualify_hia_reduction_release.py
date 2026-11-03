@@ -228,9 +228,16 @@ def build(output,clang,rustc,report):
 
 
 def assess(rows,spec):
-    multiple = spec.get("schema") == "hepta.hia.reduction-release.protocol.v2"
-    if multiple:
-        require(spec == specification(INDUCTION_PROFILE), "changed induction campaign registration")
+    require(type(spec) is dict, "invalid reduction campaign registration")
+    profiles = {"hepta.hia.reduction-release.protocol.v1": BASE_PROFILE,
+                "hepta.hia.reduction-release.protocol.v2": INDUCTION_PROFILE}
+    require(type(spec.get("schema")) is str, "invalid reduction campaign schema")
+    profile = profiles.get(spec["schema"])
+    require(profile is not None, "unknown reduction campaign registration")
+    # Compare the canonical wire, not Python equality (True == 1). Both
+    # historical and current profiles retain their full frozen denominators.
+    require(wire(spec) == wire(specification(profile)),
+            "changed reduction campaign registration")
     loads = spec.get("batch_loads", [spec["batch_calls"]])
     expected={(workload,phase,arm,n,seed,calls) for workload in spec["workloads"]
         for phase in ("regression","holdout") for arm in ARMS

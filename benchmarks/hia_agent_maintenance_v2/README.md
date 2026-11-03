@@ -92,6 +92,25 @@ These options do not change `HOME`, `CODEX_HOME`, user configuration,
 credentials, sandbox permissions or any frozen generation command. They can
 diagnose local SQLite/log initialization separately from later startup failures.
 Their path settings cannot relocate managed cloud storage or waive its policy.
+SQLite isolation is optional: a fresh state database can require substantial
+startup work even when the host's existing state initializes promptly. A
+timeout with isolation does not prove that the same binary cannot initialize
+with its normal state directory. Record each invocation separately; do not
+retry it in place or silently change its configuration.
+The initialization request opts out of the documented
+`remoteControl/status/changed` status notification observed with Codex 0.144.1.
+The response parser still requires exactly one initialization ACK; it does not
+discard unknown notifications or any model/task output. This transport opt-out
+does not enable remote control or change a user setting.
+The probe keeps the app-server input pipe open after `initialize`. Only after
+strictly validating its ACK does it send `initialized` and close the pipe.
+Ending input before the ACK can make the CLI exit successfully with no response;
+such an exit remains a failed probe. The small sequencing worker and its child
+share the outer owned process group, deadline and output caps. The report binds
+the worker's Python executable and records the actual two outbound messages in
+`app-server/rpc.stdin.raw`; duplicate, malformed or unexpected response messages
+still refuse readiness. The native test fixture follows this interactive
+exchange instead of waiting for input EOF before returning its ACK.
 The app-server's complete raw process output remains in `app-server/` and the
 summary is `RESULT.json`; unknown events, missing initialization ACK, nonzero
 exit, unconfirmed cleanup, tool/path drift and probe-source drift refuse.

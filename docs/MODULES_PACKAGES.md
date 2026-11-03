@@ -48,7 +48,14 @@ This mechanism never downloads or executes dependency scripts.
 
 `hepta lock DIRECTORY` atomically writes `Hepta.lock` after rechecking the graph.
 It hashes manifests, all `.hepta` files under participating source roots and
-present C-import sidecars. `--locked` rejects changed bytes, added sources,
+present C-import sidecars. Directory symlinks below a package source root are
+rejected with `E_PACKAGE_SOURCE_LINK`, including in dependencies and unlocked
+package loading: v1 locks cannot represent their import-routing topology.
+Use real source directories instead. Regular `.hepta` file symlinks remain
+content-locked and must stay within the applicable source root. This restriction
+also applies when reading an older lock; merely regenerating it does not make
+a directory alias safe. Standalone (non-package) module loading is unchanged.
+`--locked` rejects changed bytes, added sources,
 changed topology or missing locks. Paths are relative and the lock is portable
 when package layout is preserved. It does not sign authorship, sandbox unsafe
 execution or prove foreign implementations.

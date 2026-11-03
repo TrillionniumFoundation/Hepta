@@ -41,6 +41,8 @@ class AgentPreflightTests(unittest.TestCase):
         output.mkdir()
         (output / "stdout.raw").write_bytes(GOOD if "app-server" in argv else b"fixture-version\n")
         (output / "stderr.raw").write_bytes(b"")
+        if "_startup-worker" in argv:
+            Path(argv[argv.index("_startup-worker") + 1]).write_bytes(probe.initialization_wire())
         return ok_process()
 
     def fake_preflight(self, **kwargs):
@@ -52,11 +54,15 @@ class AgentPreflightTests(unittest.TestCase):
         rows = [json.loads(line) for line in probe.initialization_wire().splitlines()]
         self.assertEqual([row["method"] for row in rows], ["initialize", "initialized"])
         self.assertEqual([row["id"] for row in rows if "id" in row], [1])
+        self.assertEqual(rows[0]["params"]["capabilities"], {
+            "experimentalApi": False,
+            "optOutNotificationMethods": ["remoteControl/status/changed"]})
         self.assertNotIn("model", probe.initialization_wire().decode())
         self.assertEqual(probe.startup_response(GOOD)["initialization_acknowledged"], True)
 
     def test_response_rejects_generation_unknown_events_and_ambiguous_identity(self):
         bad = [b"", GOOD + GOOD, GOOD + b'{"method":"turn/started"}\n',
+               GOOD + b'{"method":"remoteControl/status/changed","params":{"status":"disabled"}}\n',
                b'{"id":true,"result":{"userAgent":"x"}}',
                b'{"id":2,"result":{"userAgent":"x"}}',
                b'{"id":1,"id":1,"result":{"userAgent":"x"}}',
@@ -83,6 +89,44 @@ class AgentPreflightTests(unittest.TestCase):
         self.assertEqual(result["model_requests_sent_by_probe"], 0)
         self.assertEqual(result["startup_overrides"], {})
         self.assertEqual(result["runtime_directory_metadata"], {})
+
+    def test_owned_startup_waits_for_ack_before_initialized_or_eof(self):
+        fixture = self.root / "sequenced-startup"
+        fixture.write_text('#!/usr/bin/env python3\nimport sys,json,select\n'
+            'assert sys.argv[1:]==["app-server","--stdio"]\n'
+            'first=json.loads(sys.stdin.buffer.readline())\n'
+            'assert first["method"]=="initialize"\n'
+            '# Input data or EOF before ACK reproduces the rejected old flow.\n'
+            'assert not select.select([sys.stdin.buffer],[],[],0.05)[0]\n'
+            'print(json.dumps({"id":1,"result":{"userAgent":"sequenced-fixture"}}),flush=True)\n'
+            'second=json.loads(sys.stdin.buffer.readline())\n'
+            'assert second=={"method":"initialized","params":{}}\n'
+            'assert sys.stdin.buffer.read()==b""\n')
+        fixture.chmod(0o700)
+        folder = self.root / "sequenced"
+        sent = folder / "rpc.stdin.raw"
+        result = probe.run_owned(probe.startup_command([str(fixture), "app-server", "--stdio"], sent),
+                                 self.root, folder, wall_seconds=5)
+        self.assertTrue(probe.process_ok(result), result)
+        self.assertEqual(sent.read_bytes(), probe.initialization_wire())
+        self.assertTrue(probe.startup_response((folder / "stdout.raw").read_bytes())["initialization_acknowledged"])
+
+    def test_owned_startup_rejects_unknown_before_ack_without_sending_initialized(self):
+        fixture = self.root / "unknown-startup"
+        fixture.write_text('#!/usr/bin/env python3\nimport sys,json\n'
+            'assert json.loads(sys.stdin.buffer.readline())["method"]=="initialize"\n'
+            'print(json.dumps({"method":"turn/started","params":{}}),flush=True)\n'
+            'assert sys.stdin.buffer.read()==b""\n')
+        fixture.chmod(0o700)
+        folder = self.root / "unknown"
+        sent = folder / "rpc.stdin.raw"
+        result = probe.run_owned(probe.startup_command([str(fixture), "app-server", "--stdio"], sent),
+                                 self.root, folder, wall_seconds=5)
+        self.assertFalse(probe.process_ok(result))
+        self.assertTrue(result["cleanup_confirmed"], result)
+        self.assertEqual(sent.read_bytes(), probe.initialization_wire().splitlines(keepends=True)[0])
+        with self.assertRaises(ValueError):
+            probe.startup_response((folder / "stdout.raw").read_bytes())
 
     def test_independent_local_runtime_flags_record_only_fixed_keys_and_metadata(self):
         startup_commands = []
@@ -262,9 +306,15 @@ class AgentPreflightNativeTests(unittest.TestCase):
             codex.write_text('#!/usr/bin/env python3\nimport sys,json\n'
                 'if sys.argv[1:]==["--version"]:print("startup-fixture");sys.exit(0)\n'
                 'assert sys.argv[1:]==["app-server","--stdio"]\n'
-                'rows=[json.loads(line) for line in sys.stdin]\n'
-                'assert [r["method"] for r in rows]==["initialize","initialized"]\n'
-                'print(json.dumps({"id":1,"result":{"userAgent":"non-model-fixture"}}))\n')
+                'first=json.loads(sys.stdin.buffer.readline())\n'
+                'assert first["method"]=="initialize"\n'
+                'print(json.dumps({"id":1,"result":{"userAgent":"non-model-fixture"}}),flush=True)\n'
+                'second=json.loads(sys.stdin.buffer.readline())\n'
+                'assert second["method"]=="initialized"\n'
+                'assert sys.stdin.buffer.read()==b""\n'
+                'if "remoteControl/status/changed" not in first["params"].get("capabilities",{}).get("optOutNotificationMethods",[]):\n'
+                ' print(json.dumps({"method":"remoteControl/status/changed","params":{"status":"disabled"}}))\n'
+                )
             codex.chmod(0o700)
             result = probe.preflight(root / "result", codex=str(codex), clang=CLANG, rustc=RUSTC)
             self.assertTrue(result["passed"], result)
