@@ -59,6 +59,32 @@ def process_ok(record):
             and record.get("streams_complete") is True)
 
 
+def assess_startup(process, raw):
+    """Retain handshake and process evidence independently, without a new grant.
+
+    A valid initialization response followed by a timeout is not evidence that
+    initialization failed. It is still a failed readiness probe: clean process
+    completion and ownership/stream cleanup remain mandatory.
+    """
+    row = {"passed": False, "process": process,
+           "initialization_acknowledged": False,
+           "process_completed_cleanly": process_ok(process)}
+    try:
+        row.update(startup_response(raw))
+    except (ValueError, UnicodeError, RecursionError) as exc:
+        row["initialization_response_error"] = str(exc)
+    missing = []
+    if not row["initialization_acknowledged"]:
+        missing.append("initialization_response")
+    if not row["process_completed_cleanly"]:
+        missing.append("process_completion")
+    row["failure_scope"] = "_and_".join(missing) or None
+    row["passed"] = not missing
+    if missing:
+        row["error"] = "app-server startup evidence failed: " + row["failure_scope"]
+    return row
+
+
 def _owned(argv, cwd, output, seconds, *, input_bytes=b""):
     record = run_owned(argv, cwd, output, input_bytes=input_bytes, wall_seconds=seconds)
     if not process_ok(record):
@@ -173,10 +199,8 @@ def preflight(output, *, codex, clang, rustc, campaign=None, registered_paths=No
             process = run_owned(command, folder, folder / "app-server", wall_seconds=wall_seconds,
                                 input_bytes=initialization_wire())
             report["probes"]["startup"] = {"passed": False, "process": process}
-            if not process_ok(process):
-                raise ValueError("app-server initialization process failed or cleanup was not confirmed")
-            response = startup_response((folder / "app-server/stdout.raw").read_bytes())
-            report["probes"]["startup"] = {"passed": True, "process": process, **response}
+            report["probes"]["startup"] = assess_startup(
+                process, (folder / "app-server/stdout.raw").read_bytes())
         except Exception as exc:
             report["probes"].setdefault("startup", {"passed": False})["error"] = str(exc)
         for key, name in report["startup_overrides"].items():

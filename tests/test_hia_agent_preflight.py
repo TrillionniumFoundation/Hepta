@@ -7,12 +7,13 @@ import io
 import os
 from pathlib import Path
 import shutil
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
 
 from tools import qualify_hia_agent_preflight as probe
-from tools.hia_agent_codex_transport import identity
+from tools.hia_agent_codex_transport import identity, run_owned
 
 
 GOOD = b'{"id":1,"result":{"userAgent":"local-startup-probe"}}\n'
@@ -229,6 +230,65 @@ class AgentPreflightTests(unittest.TestCase):
             result = probe.preflight(self.root / "result", **self.tools)
         self.assertFalse(result["passed"])
         self.assertFalse(result["tools_unchanged"])
+
+    def test_acknowledged_initialization_is_retained_when_process_times_out(self):
+        original = self.fake_process
+        def timeout_after_ack(argv, cwd, output, **kwargs):
+            row = original(argv, cwd, output, **kwargs)
+            if "app-server" in argv:
+                row.update(status="wall_timeout", returncode=-9)
+            return row
+        with patch.object(probe, "run_owned", side_effect=timeout_after_ack), \
+                patch.object(probe, "_native_probe", return_value={"passed": True}):
+            result = probe.preflight(self.root / "result", **self.tools)
+        startup = result["probes"]["startup"]
+        self.assertTrue(startup["initialization_acknowledged"])
+        self.assertFalse(startup["process_completed_cleanly"])
+        self.assertEqual(startup["failure_scope"], "process_completion")
+        self.assertFalse(startup["passed"])
+        self.assertFalse(result["passed"])
+        self.assertFalse(result["model_access_verified"])
+        self.assertEqual(result["task_requests"], 0)
+
+    def test_response_and_process_failures_are_assessed_independently(self):
+        for process, raw, scope in (
+                (ok_process(), b"", "initialization_response"),
+                ({**ok_process(), "status": "wall_timeout", "returncode": -9},
+                 b"", "initialization_response_and_process_completion"),
+                ({**ok_process(), "cleanup_confirmed": False}, GOOD, "process_completion")):
+            with self.subTest(scope=scope):
+                row = probe.assess_startup(process, raw)
+                self.assertEqual(row["failure_scope"], scope)
+                self.assertFalse(row["passed"])
+                self.assertEqual(row["initialization_acknowledged"], raw == GOOD)
+                self.assertEqual(row["process_completed_cleanly"], probe.process_ok(process))
+                if raw != GOOD:
+                    self.assertIn("initialization_response_error", row)
+
+    def test_extra_output_never_turns_partial_ack_into_valid_initialization(self):
+        row = probe.assess_startup(ok_process(), GOOD + b'{"method":"turn/started"}\n')
+        self.assertFalse(row["initialization_acknowledged"])
+        self.assertFalse(row["passed"])
+        self.assertEqual(row["failure_scope"], "initialization_response")
+
+    def test_clean_handshake_has_no_failure_scope(self):
+        row = probe.assess_startup(ok_process(), GOOD)
+        self.assertTrue(row["passed"])
+        self.assertTrue(row["initialization_acknowledged"])
+        self.assertTrue(row["process_completed_cleanly"])
+        self.assertIsNone(row["failure_scope"])
+
+    @unittest.skipUnless(hasattr(os, "WNOWAIT"), "requires owned-process waitid control")
+    def test_real_ack_then_hung_shutdown_keeps_ack_but_fails_readiness(self):
+        code = "import os,time;os.write(1," + repr(GOOD) + ");time.sleep(30)"
+        process = run_owned([sys.executable, "-c", code], self.root,
+                            self.root / "hung-shutdown", wall_seconds=1)
+        row = probe.assess_startup(process, (self.root / "hung-shutdown/stdout.raw").read_bytes())
+        self.assertEqual(process["status"], "wall_timeout")
+        self.assertTrue(process["cleanup_confirmed"])
+        self.assertTrue(row["initialization_acknowledged"])
+        self.assertEqual(row["failure_scope"], "process_completion")
+        self.assertFalse(row["passed"])
 
     def test_nonzero_exit_or_uncertain_cleanup_never_counts_as_ready_startup(self):
         for field, value in (("returncode", True), ("returncode", 1),
