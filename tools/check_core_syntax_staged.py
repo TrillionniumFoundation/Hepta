@@ -268,38 +268,43 @@ def validate_plan(prepared):
     require(set(prepared['expected_theorems'])<=all_names and
             any(set(prepared['expected_theorems'])<=set(s.expected_theorems) for s in stages),
             'final full positive inventory missing')
-    # Ownership is fixed independently of the mutable manifest metadata.
-    input_layout = (
-        ('linear','LinearTransport','HiaCoreSyntaxSlice','linear'),
-        ('parallel','ParallelTransport','HiaCoreSyntaxSlice','parallel'),
-        ('wrong_phi','WrongPhiTransport','HiaCoreSyntaxSlice.WrongPhi','linear'),
-        ('literal_two','LiteralTwoTransport','HiaCoreSyntaxSlice.LiteralTwo','linear'),
-        ('wrong_condition','WrongConditionTransport','HiaCoreSyntaxSlice.WrongCondition','linear'))
-    for key,owner,namespace,stem in input_layout:
-        item = manifest['inputs'][key]
-        require(item['definition_module']==MODULE_PREFIX+'.'+owner, 'input owner differs')
-        source = known[owner].source
-        require(len(re.findall(r'(?m)^def \w+ : (Raw|List Nat) :=',source))==2,
-                'transport must own only its two input definitions')
-        pattern = (r'namespace '+re.escape(namespace)+r'\n'
-                   r'(def '+stem+r'Raw : Raw := ([^\n]+)\n'
-                   r'def '+stem+r'Bytes : List Nat := ([^\n]+)\n)'
-                   r'end '+re.escape(namespace)+r'\n')
-        found = list(re.finditer(pattern,source))
-        require(len(found)==1, 'exact owned input block missing or duplicated')
-        match = found[0]
-        block = match.group(0)
-        require(sum(stage.source.count(block) for stage in stages)==1,
-                'input block appears in a sibling')
-        require(digest(match.group(1).encode())==item['definitions_sha256'] and
-                digest(match.group(2).encode())==item['raw_literal_sha256'] and
-                digest(match.group(3).encode())==item['byte_literal_sha256'], 'owned input bytes differ')
-        certificate_stem = stem if key in ('linear','parallel') else 'mutated'
-        certificate = re.search(r'(?m)^theorem '+certificate_stem+r'_bounds\b',source)
-        require(certificate is not None and match.end()<certificate.start(),
-                'input must precede transport certificate')
-    require(not re.search(r'(?m)^def \w+ : (Raw|List Nat|Hint) :=',known['SyntaxData'].source),
-            'common module must not own concrete input data')
+    if manifest.get('protocol')=='structured-prefix-certificates-v1':
+        from tools.core_syntax_structured_stages import validate_bindings
+        validate_bindings(prepared)
+    else:
+        require('protocol' not in manifest, 'unknown staged protocol')
+        # Ownership is fixed independently of the mutable manifest metadata.
+        input_layout = (
+            ('linear','LinearTransport','HiaCoreSyntaxSlice','linear'),
+            ('parallel','ParallelTransport','HiaCoreSyntaxSlice','parallel'),
+            ('wrong_phi','WrongPhiTransport','HiaCoreSyntaxSlice.WrongPhi','linear'),
+            ('literal_two','LiteralTwoTransport','HiaCoreSyntaxSlice.LiteralTwo','linear'),
+            ('wrong_condition','WrongConditionTransport','HiaCoreSyntaxSlice.WrongCondition','linear'))
+        for key,owner,namespace,stem in input_layout:
+            item = manifest['inputs'][key]
+            require(item['definition_module']==MODULE_PREFIX+'.'+owner, 'input owner differs')
+            source = known[owner].source
+            require(len(re.findall(r'(?m)^def \w+ : (Raw|List Nat) :=',source))==2,
+                    'transport must own only its two input definitions')
+            pattern = (r'namespace '+re.escape(namespace)+r'\n'
+                       r'(def '+stem+r'Raw : Raw := ([^\n]+)\n'
+                       r'def '+stem+r'Bytes : List Nat := ([^\n]+)\n)'
+                       r'end '+re.escape(namespace)+r'\n')
+            found = list(re.finditer(pattern,source))
+            require(len(found)==1, 'exact owned input block missing or duplicated')
+            match = found[0]
+            block = match.group(0)
+            require(sum(stage.source.count(block) for stage in stages)==1,
+                    'input block appears in a sibling')
+            require(digest(match.group(1).encode())==item['definitions_sha256'] and
+                    digest(match.group(2).encode())==item['raw_literal_sha256'] and
+                    digest(match.group(3).encode())==item['byte_literal_sha256'], 'owned input bytes differ')
+            certificate_stem = stem if key in ('linear','parallel') else 'mutated'
+            certificate = re.search(r'(?m)^theorem '+certificate_stem+r'_bounds\b',source)
+            require(certificate is not None and match.end()<certificate.start(),
+                    'input must precede transport certificate')
+        require(not re.search(r'(?m)^def \w+ : (Raw|List Nat|Hint) :=',known['SyntaxData'].source),
+                'common module must not own concrete input data')
     require(manifest['proof_input_bytes']==total, 'aggregate source manifest differs')
     expected_parents = {
         'Baseline':(), 'SyntaxData':('Baseline',),
@@ -455,13 +460,15 @@ def execute_plan(executable, output_directory, prepared, identity, support,
 def source_identity():
     from tools.check_core_syntax_lean import source_identity as prior
     result = prior()
-    for relative in ('tools/check_core_syntax_staged.py','tools/core_syntax_stage_sources.py'):
+    for relative in ('tools/check_core_syntax_staged.py','tools/core_syntax_stage_sources.py',
+                     'tools/core_syntax_structured_sources.py','tools/core_syntax_structured_stages.py',
+                     'experiments/hia_initialization_frontiers_20261103/StructuredTransport.lean'):
         result[relative] = digest((ROOT/relative).read_bytes())
     return result
 
 
 def qualify(lean, output_directory):
-    from tools.core_syntax_stage_sources import build_inputs
+    from tools.core_syntax_structured_stages import build_inputs
     from tools.check_core_syntax_lean import fixed_input
     from tools.qualify_hia_selected_formal import _support_identity
     executable = Path(lean).resolve(strict=True)

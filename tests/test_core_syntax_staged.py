@@ -500,7 +500,7 @@ class StagedPreparationRaceTests(unittest.TestCase):
             stack.enter_context(patch.object(checker, '_support_identity', return_value=support))
             stack.enter_context(patch.object(original, 'fixed_input', return_value={
                 'bytes': prepared['canonical_bytes']}))
-            prepare = stack.enter_context(patch.object(sources, 'build_inputs', side_effect=prepare_and_replace_binary))
+            prepare = stack.enter_context(patch('tools.core_syntax_structured_stages.build_inputs', side_effect=prepare_and_replace_binary))
             launch = stack.enter_context(patch.object(runner.subprocess, 'run'))
             with self.assertRaisesRegex(ValueError, 'pinned Lean binary changed before execution'):
                 runner.qualify(executable, root / 'output')

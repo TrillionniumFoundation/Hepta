@@ -6,6 +6,9 @@ on:
       - 'tools/check_core_syntax_lean.py'
       - 'tools/check_core_syntax_staged.py'
       - 'tools/core_syntax_stage_sources.py'
+      - 'tools/core_syntax_structured_sources.py'
+      - 'tools/core_syntax_structured_stages.py'
+      - 'experiments/hia_initialization_frontiers_20261103/StructuredTransport.lean'
       - 'tests/test_core_syntax_*.py'
       - 'experiments/hia_initialization_frontiers_20261103/CoreSyntaxSlice.lean'
       - '.github/workflows/hia-core-syntax-kernel-research.yml'
@@ -71,6 +74,7 @@ jobs:
               'tests.test_core_syntax_transport',
               'tests.test_core_syntax_runner',
               'tests.test_core_syntax_staged',
+              'tests.test_core_syntax_structured',
               'tests.test_guarded_slice_lean',
               'tests.test_dynamic_unsigned_step',
               'tests.test_single_store_projection',
@@ -86,10 +90,10 @@ jobs:
                   else:
                       yield item
           ids = sorted(test.id() for test in flatten(suite))
-          assert len(ids) == len(set(ids)) == 189, 'test inventory changed'
+          assert len(ids) == len(set(ids)) == 206, 'test inventory changed'
           print(json.dumps({'tests': ids, 'inventory_sha256': hashlib.sha256(json.dumps(ids).encode()).hexdigest()}))
           result = unittest.TextTestRunner(verbosity=2).run(suite)
-          assert result.testsRun == 189 and result.wasSuccessful(), 'research controls failed'
+          assert result.testsRun == 206 and result.wasSuccessful(), 'research controls failed'
           assert not result.skipped and not result.expectedFailures and not result.unexpectedSuccesses, 'incomplete controls'
           PYTEST
           test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
