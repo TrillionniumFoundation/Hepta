@@ -1,4 +1,4 @@
-name: HIA partitioned Core syntax kernel research (DENY_ALL)
+name: HIA Part02 position diagnostic (DENY_ALL)
 on:
   pull_request:
     paths:
@@ -7,6 +7,8 @@ on:
       - 'tools/check_core_syntax_staged.py'
       - 'tools/check_core_syntax_partitioned.py'
       - 'tools/core_syntax_partition_sources.py'
+      - 'tools/core_syntax_partition_diagnostic_sources.py'
+      - 'tools/diagnose_core_syntax_partition.py'
       - 'tools/diagnose_core_syntax_declarations.py'
       - 'tools/core_syntax_declaration_diagnostic_sources.py'
       - 'tools/core_syntax_diagnostic_capture.py'
@@ -67,16 +69,18 @@ jobs:
         run: |
           set -euo pipefail
           timeout 300s python -B tools/bootstrap_verification.py --lean-only --directory "$RUNNER_TEMP/core-syntax-tools"
-      - name: Check the complete exact eleven-stage partitioned protocol
+      - name: Diagnose Part02 only after three same-run parents; never acceptance
         run: |
           set -euo pipefail
-          timeout 600s python -B -m tools.check_core_syntax_partitioned \
+          status=0
+          timeout 600s python -B -m tools.diagnose_core_syntax_partition \
             --lean "$RUNNER_TEMP/core-syntax-tools/lean-4.19.0/bin/lean" \
-            --output-directory "$RUNNER_TEMP/core-syntax-proof"
+            --output-directory "$RUNNER_TEMP/core-syntax-proof" || status=$?
           test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
           test -z "$(git status --porcelain --untracked-files=all)"
+          exit "$status"
       - name: Retain available diagnostics in the job log only
         if: always()
         run: |
-          python -B -m tools.check_core_syntax_partitioned --print-diagnostics \
+          python -B -m tools.diagnose_core_syntax_partition --print-diagnostics \
             --output-directory "$RUNNER_TEMP/core-syntax-proof"

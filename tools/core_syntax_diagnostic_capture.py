@@ -21,6 +21,13 @@ import termios
 import time
 
 DIAGNOSTIC_FILES = ('LinearTransport.stdout', 'LinearTransport.stderr', 'LinearTransport.events.jsonl')
+def target_configuration(target):
+    require(type(target) is str and target in ('LinearTransport', 'CertPart02'),
+            'fixed diagnostic target required')
+    return (tuple(target + suffix for suffix in ('.stdout', '.stderr', '.events.jsonl')),
+            'HIA_DIAG_v1_' + ('LIN_' if target == 'LinearTransport' else 'P02_'))
+
+
 PROCESS_SECONDS = 60
 CLEANUP_SECONDS = 2
 TOTAL = 1048576
@@ -77,7 +84,8 @@ def _settings(value):
 
 class _Sink:
     """Exclusive single-link descriptors, continuously bound to their directory entry."""
-    def __init__(self, safe_root, root_path):
+    def __init__(self, safe_root, root_path, *, target="LinearTransport"):
+        self.names, _ = target_configuration(target)
         self.root = safe_root
         self.path = Path(root_path).absolute()
         require(self.path == Path(safe_root.path).absolute(), 'safe root path mismatch')
@@ -88,7 +96,7 @@ class _Sink:
         self.raw_written = 0
         self.metadata_written = 0
         try:
-            for name in DIAGNOSTIC_FILES:
+            for name in self.names:
                 fd = os.open(name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_APPEND |
                              os.O_NOFOLLOW | os.O_NONBLOCK, 0o600, dir_fd=safe_root.fd)
                 self.files[name] = {'fd': fd, 'identity': os.fstat(fd), 'bytes': 0, 'hash': sha256()}
@@ -115,7 +123,7 @@ class _Sink:
 
     def append(self, name, data, terminal=False):
         require(type(data) is bytes, 'diagnostic bytes required')
-        metadata = name == DIAGNOSTIC_FILES[2]
+        metadata = name == self.names[2]
         remaining = (INTERNAL_METADATA_LIMIT - self.metadata_written - (0 if terminal else TERMINAL_RESERVE)
                      if metadata else RAW_LIMIT - self.raw_written)
         require(len(data) <= remaining, 'diagnostic metadata budget' if metadata else 'diagnostic raw write budget')
@@ -138,7 +146,7 @@ class _Sink:
 
     def record(self, value, terminal=False):
         data = (json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False) + '\n').encode()
-        self.append(DIAGNOSTIC_FILES[2], data, terminal=terminal)
+        self.append(self.names[2], data, terminal=terminal)
 
     def identities(self):
         return {name: {'path': name, 'bytes': item['bytes'], 'sha256': item['hash'].hexdigest()}
@@ -153,11 +161,13 @@ class _Sink:
 
 class MarkerObserver:
     """Recognize only complete, ordered, exact stdout records; pending bytes <=256."""
-    def __init__(self, markers):
+    def __init__(self, markers, *, target="LinearTransport"):
         require(type(markers) in (list, tuple) and len(markers) <= MAX_MARKERS, 'planned marker cap/type')
+        _, prefix = target_configuration(target)
+        self.pattern = rb'"(' + re.escape(prefix.encode()) + rb'[0-9]{3})" : String'
         self.markers = []
         for index, marker in enumerate(markers):
-            require(type(marker) is dict and marker.get('id') == 'HIA_DIAG_v1_LIN_%03d' % index,
+            require(type(marker) is dict and marker.get('id') == prefix + '%03d' % index,
                     'planned marker IDs/order')
             require(all(type(marker.get(k)) is int and marker[k] >= 0
                         for k in ('original_offset', 'instrumented_offset')) and
@@ -176,7 +186,7 @@ class MarkerObserver:
         for index, byte in enumerate(data):
             if byte == 10:
                 if not self.discarding:
-                    match = re.fullmatch(rb'"(HIA_DIAG_v1_LIN_[0-9]{3})" : String', bytes(self.pending))
+                    match = re.fullmatch(self.pattern, bytes(self.pending))
                     if match:
                         ident = match[1].decode('ascii')
                         require(self.next_index < len(self.markers) and
@@ -197,13 +207,14 @@ class MarkerObserver:
 
 
 def capture_result(executable, source, output, root_path, *, safe_root, markers=(),
-                   manifest_reference=None, observer=None):
+                   manifest_reference=None, observer=None, target="LinearTransport"):
     """Return bounded metadata; raw logs never appear in the returned dictionary.
 
     observer(stream, chunk, stream_offset, elapsed_seconds) may return up to 24
     compact event dictionaries cumulatively; any observer failure kills/reaps the group. The caller owns marker
     grammar and must budget any additional copy of the returned metadata.
     """
+    names, _ = target_configuration(target)
     started = time.monotonic()
     process = None
     sink = None
@@ -291,7 +302,7 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
         offset = observed_bytes[stream]
         observed_bytes[stream] += len(data)
         elapsed = round(time.monotonic() - started, 6)
-        sink.append(DIAGNOSTIC_FILES[0 if stream == 'stdout' else 1], data)
+        sink.append(names[0 if stream == 'stdout' else 1], data)
         sink.record({'kind': 'receive', 'stream': stream, 'offset': offset,
                      'bytes': len(data), 'received_seconds': elapsed})
         if observer is not None:
@@ -306,8 +317,8 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
             raw_limit_hit = True
 
     try:
-        sink = _Sink(safe_root, root_path)
-        default_observer = MarkerObserver(markers)
+        sink = _Sink(safe_root, root_path, target=target)
+        default_observer = MarkerObserver(markers, target=target)
         if observer is None:
             observer = default_observer
         if manifest_reference is not None:
@@ -435,7 +446,7 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
                       elapsed_seconds=round(time.monotonic() - started, 6))
         if sink is not None:
             result['raw_files'] = {name: row for name, row in sink.identities().items()
-                                   if name != DIAGNOSTIC_FILES[2]}
+                                   if name != names[2]}
             # A terminal record cannot truthfully contain its own final serialized
             # byte count/hash. Persist explicit prefix accounting instead. The
             # returned object receives final accounting only after this append.
@@ -458,5 +469,5 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
             sink.close()
         result['terminal_record_persisted'] = terminal_written
         if sink is not None:
-            result['compact_receipt_reference'] = sink.identities()[DIAGNOSTIC_FILES[2]]
+            result['compact_receipt_reference'] = sink.identities()[names[2]]
     return result

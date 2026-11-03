@@ -21,7 +21,7 @@ PLATFORM = {'sys_platform': 'linux', 'machine': 'x86_64',
 
 
 class DiagnosticCaptureTests(unittest.TestCase):
-    def run_child(self, script, *, observer=None, markers=(), overrides=(), setup=None, platform_value=PLATFORM):
+    def run_child(self, script, *, observer=None, markers=(), overrides=(), setup=None, platform_value=PLATFORM, target="LinearTransport"):
         real_popen = subprocess.Popen
         with tempfile.TemporaryDirectory() as folder, ExitStack() as stack:
             safe = SafeRoot(Path(folder) / 'fresh')
@@ -59,8 +59,9 @@ class DiagnosticCaptureTests(unittest.TestCase):
             if setup is not None:
                 setup(safe, stack)
             result = capture.capture_result(executable, safe.path / 'Input.lean', safe.path / 'Output.olean',
-                                             safe.path, safe_root=safe, markers=markers, observer=observer)
-            files = {name: (safe.path / name).read_bytes() for name in capture.DIAGNOSTIC_FILES
+                                             safe.path, safe_root=safe, markers=markers, observer=observer, target=target)
+            names, _ = capture.target_configuration(target)
+            files = {name: (safe.path / name).read_bytes() for name in names
                      if (safe.path / name).is_file() and not (safe.path / name).is_symlink()}
             self.assertEqual(set(os.listdir('/proc/self/fd')), snapshot)
             for process in processes:
@@ -74,7 +75,7 @@ class DiagnosticCaptureTests(unittest.TestCase):
             self.assertLessEqual(result['metadata_written_bytes'], capture.INTERNAL_METADATA_LIMIT)
             self.assertGreaterEqual(result['metadata_remaining_bytes'], 4096)
             if result['terminal_record_persisted']:
-                events = files[capture.DIAGNOSTIC_FILES[2]]
+                events = files[names[2]]
                 self.assertEqual(len(events), result['metadata_written_bytes'])
                 self.assertEqual(result['compact_receipt_reference']['sha256'], sha256(events).hexdigest())
                 self.assertEqual(json.loads(events.splitlines()[-1])['kind'], 'terminal')

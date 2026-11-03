@@ -7,6 +7,8 @@ on:
       - 'tools/check_core_syntax_staged.py'
       - 'tools/check_core_syntax_partitioned.py'
       - 'tools/core_syntax_partition_sources.py'
+      - 'tools/core_syntax_partition_diagnostic_sources.py'
+      - 'tools/diagnose_core_syntax_partition.py'
       - 'tools/diagnose_core_syntax_declarations.py'
       - 'tools/core_syntax_declaration_diagnostic_sources.py'
       - 'tools/core_syntax_diagnostic_capture.py'
@@ -111,7 +113,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        group: [sources, execution, noncomputable-sources, noncomputable-execution, partition-sources-a, partition-sources-b, partition-execution]
+        group: [sources, execution, noncomputable-sources, noncomputable-execution, partition-sources-a, partition-sources-b, partition-execution, partition-diagnostic-sources, partition-diagnostic-capture, partition-diagnostic-execution]
     env:
       EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
       PYTHONDONTWRITEBYTECODE: '1'
@@ -140,6 +142,9 @@ jobs:
               'sources': (['tests.test_core_syntax_declaration_diagnostic_sources'], 16),
               'partition-sources-a': (['tests.test_core_syntax_partition_sources'], 8),
               'partition-sources-b': (['tests.test_core_syntax_partition_sources'], 8),
+              'partition-diagnostic-sources': (['tests.test_core_syntax_partition_diagnostic_sources'], 9),
+              'partition-diagnostic-capture': (['tests.test_core_syntax_partition_diagnostic_capture'], 5),
+              'partition-diagnostic-execution': (['tests.test_core_syntax_partition_diagnostic_runner'], 16),
               'partition-execution': (['tests.test_core_syntax_partitioned'], 12),
               'noncomputable-sources': (['tests.test_core_syntax_noncomputable_diagnostic_sources'], 16),
               'noncomputable-execution': (['tests.test_core_syntax_noncomputable_diagnostic_runner'], 8),
