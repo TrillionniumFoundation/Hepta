@@ -1,4 +1,4 @@
-name: HIA Part02 position diagnostic (DENY_ALL)
+name: HIA byte-facts Part02 diagnostic (DENY_ALL)
 on:
   pull_request:
     paths:
@@ -9,6 +9,10 @@ on:
       - 'tools/core_syntax_partition_sources.py'
       - 'tools/core_syntax_partition_diagnostic_sources.py'
       - 'tools/diagnose_core_syntax_partition.py'
+      - 'tools/core_byte_facts_*.py'
+      - 'tools/diagnose_core_byte_facts.py'
+      - 'tests/test_core_byte_facts_*.py'
+      - 'experiments/hia_initialization_frontiers_20261103/ByteFactsResearch.lean'
       - 'tools/diagnose_core_syntax_declarations.py'
       - 'tools/core_syntax_declaration_diagnostic_sources.py'
       - 'tools/core_syntax_diagnostic_capture.py'
@@ -69,11 +73,11 @@ jobs:
         run: |
           set -euo pipefail
           timeout 300s python -B tools/bootstrap_verification.py --lean-only --directory "$RUNNER_TEMP/core-syntax-tools"
-      - name: Diagnose Part02 only after three same-run parents; never acceptance
+      - name: Diagnose byte-facts Part02 after three fresh parents; never acceptance
         run: |
           set -euo pipefail
           status=0
-          timeout 600s python -B -m tools.diagnose_core_syntax_partition \
+          timeout 600s python -B -m tools.diagnose_core_byte_facts \
             --lean "$RUNNER_TEMP/core-syntax-tools/lean-4.19.0/bin/lean" \
             --output-directory "$RUNNER_TEMP/core-syntax-proof" || status=$?
           test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
@@ -82,5 +86,5 @@ jobs:
       - name: Retain available diagnostics in the job log only
         if: always()
         run: |
-          python -B -m tools.diagnose_core_syntax_partition --print-diagnostics \
+          python -B -m tools.diagnose_core_byte_facts --print-diagnostics \
             --output-directory "$RUNNER_TEMP/core-syntax-proof"

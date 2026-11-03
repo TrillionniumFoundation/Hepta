@@ -9,6 +9,10 @@ on:
       - 'tools/core_syntax_partition_sources.py'
       - 'tools/core_syntax_partition_diagnostic_sources.py'
       - 'tools/diagnose_core_syntax_partition.py'
+      - 'tools/core_byte_facts_*.py'
+      - 'tools/diagnose_core_byte_facts.py'
+      - 'tests/test_core_byte_facts_*.py'
+      - 'experiments/hia_initialization_frontiers_20261103/ByteFactsResearch.lean'
       - 'tools/diagnose_core_syntax_declarations.py'
       - 'tools/core_syntax_declaration_diagnostic_sources.py'
       - 'tools/core_syntax_diagnostic_capture.py'
@@ -113,7 +117,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        group: [sources, execution, noncomputable-sources, noncomputable-execution, partition-sources-a, partition-sources-b, partition-execution, partition-diagnostic-sources, partition-diagnostic-capture, partition-diagnostic-execution]
+        group: [sources, execution, noncomputable-sources, noncomputable-execution, partition-sources-a, partition-sources-b, partition-execution, partition-diagnostic-sources, partition-diagnostic-capture, partition-diagnostic-execution, byte-facts]
     env:
       EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
       PYTHONDONTWRITEBYTECODE: '1'
@@ -145,6 +149,8 @@ jobs:
               'partition-diagnostic-sources': (['tests.test_core_syntax_partition_diagnostic_sources'], 9),
               'partition-diagnostic-capture': (['tests.test_core_syntax_partition_diagnostic_capture'], 5),
               'partition-diagnostic-execution': (['tests.test_core_syntax_partition_diagnostic_runner'], 16),
+              'byte-facts': (['tests.test_core_byte_facts_dag', 'tests.test_core_byte_facts_sources',
+                              'tests.test_core_byte_facts_diagnostic', 'tests.test_core_byte_facts_runner'], 65),
               'partition-execution': (['tests.test_core_syntax_partitioned'], 12),
               'noncomputable-sources': (['tests.test_core_syntax_noncomputable_diagnostic_sources'], 16),
               'noncomputable-execution': (['tests.test_core_syntax_noncomputable_diagnostic_runner'], 8),
