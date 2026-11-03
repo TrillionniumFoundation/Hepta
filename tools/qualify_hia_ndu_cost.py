@@ -27,7 +27,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 
 from hepta.hia_ndu_cost import (SCHEMA, AdvisoryController, build_request, digest,
     exact_control, invocation_gate, lightweight_control, skip_schedule, validate_model)
-from hepta.hia_ndu_session import NduSession
+from hepta.hia_ndu_session import NduSession, STREAM_PROFILE_PINS
 from hepta.hia_native_differential import _pin_native_artifact
 from hepta.hia_program import verify_program
 import qualify_hia_native_ndu as native
@@ -47,6 +47,31 @@ def timed(fn):
 
 def median(values):
     return math.ceil(statistics.median(values))
+
+
+def policy_model_evidence(rows):
+    """A skipped policy call is not evidence of native/DP agreement."""
+    decisions = [step["decision"] for row in rows if row["policy"] == "native_ndu"
+                 for step in row["steps"] if step["decision"]["native_invoked"]]
+    return {"native_model_evaluated_count": len(decisions),
+            "native_policy_evidence_present": bool(decisions),
+            "native_matches_same_information_exact_model": (
+                all(item.get("native_matches_exact_model") is True for item in decisions)
+                if decisions else None)}
+
+
+def full_cost_totals(rows, offline_wall_ns, manifest):
+    """Keep an absent build observation unknown; never charge it as zero."""
+    build = manifest.get("build_cost")
+    build_ns = build.get("wall_ns") if type(build) is dict else None
+    known = type(build_ns) is int and build_ns >= 0
+    totals = {policy: offline_wall_ns + sum(row["service_wall_ns"] for row in rows
+                                           if row["policy"] == policy)
+              for policy in ("fixed", "exact_dp", "lightweight", "native_ndu")}
+    totals["native_ndu"] = totals["native_ndu"] + build_ns if known else None
+    return {"build_cost_observed": known, "bridge_build_wall_ns": build_ns if known else None,
+            "arm_full_cost_ns": totals,
+            "unknown_costs": [] if known else ["native_bridge_build_wall_ns"]}
 
 
 def source_inventory():
@@ -305,9 +330,13 @@ def qualify(args):
     output = Path(args.output).resolve()
     output.mkdir(parents=True,exist_ok=False)
     started = time.monotonic_ns()
-    report = {"schema":"hepta.hia.ndu.full-cost-qualification.v2", "status":"running",
+    stream_profile = getattr(args, "stream_profile", "original-v1")
+    if stream_profile not in STREAM_PROFILE_PINS:
+        raise ValueError("unknown native stream source profile")
+    report = {"schema":"hepta.hia.ndu.full-cost-qualification.v3", "status":"running",
               "authority":"DENY_ALL","safety_certificate":False,"source_before":source_inventory(),
-              "git":native.source_state(),"specification":spec(),"command":sys.argv}
+              "git":native.source_state(),"specification":spec(),"command":sys.argv,
+              "stream_profile":stream_profile,"native_source_pin":STREAM_PROFILE_PINS[stream_profile]}
     descriptors = []
     try:
         products = native.build(output,args.clang,args.rustc,report,build_profile="optimized-release-v1")
@@ -344,7 +373,7 @@ def qualify(args):
             "identity":manifest["identity"],"build_cost":manifest.get("build_cost"),
             "rebuilt_this_campaign":args.bridge_built_this_campaign,
             "no_python_native_algorithm_substitution":True}
-        factory = lambda: NduSession.for_stream_profile(args.bridge,args.identity)
+        factory = lambda: NduSession.for_stream_profile(args.bridge,args.identity,profile=stream_profile)
         zero = {k:0 for k in ("gate_ns","search_ns","native_ns","transport_ns","validation_ns","startup_ns","close_ns")}
         example = model_from(training,products,report["specification"],zero,65536,4,[],0,True,0,False)
         fees,report["decision_calibration"] = calibrated_fees(output,example,factory)
@@ -363,21 +392,18 @@ def qualify(args):
                 "native_beats_all_controls":all(medians["native_ndu"]<medians[p] for p in medians if p!="native_ndu"),
                 "native_over_best_control":medians["native_ndu"]/min(v for p,v in medians.items() if p!="native_ndu")})
         report["comparisons"] = comparisons
-        report["acceptance"] = {"complete_cost_accounting":True,"same_information_controls":True,
+        costs = full_cost_totals(rows, report["offline_wall_ns"], manifest)
+        report["acceptance"] = {"complete_cost_accounting":costs["build_cost_observed"],"same_information_controls":True,
             "actual_native_invocations":sum(r["native_invocations"] for r in rows),
-            "native_matches_same_information_exact_model":all(s["decision"].get("native_matches_exact_model",False)
-                for r in rows if r["policy"]=="native_ndu" for s in r["steps"] if s["decision"]["native_invoked"]),
+            **policy_model_evidence(rows),
             "skip_only_episodes_without_native_start":sum(r["policy"]=="native_ndu" and not r["native_invocations"] for r in rows),
             "native_net_win_scenarios":sum(c["native_beats_all_controls"] for c in comparisons),
             "scenario_count":len(comparisons),"native_net_benefit_established":False,
             "finite_native_correctness_passed":True,
             "reason":"Three repetitions are exploratory, never an application-wide or statistical net-benefit theorem."}
         report["shared_cost_policy"] = {"offline_build_training_proof_calibration_wall_ns":report["offline_wall_ns"],
-            "bridge_build_wall_ns":manifest.get("build_cost",{}).get("wall_ns"),
+            **costs,
             "charged_per_arm":"one full shared offline campaign cost plus sum of actual service walls; no unreported amortization",
-            "arm_full_cost_ns":{p:report["offline_wall_ns"]+sum(r["service_wall_ns"] for r in rows if r["policy"]==p)
-                                +(manifest.get("build_cost",{}).get("wall_ns",0) if p=="native_ndu" else 0)
-                                for p in ("fixed","exact_dp","lightweight","native_ndu")},
             "limits":"Shared offline calibration includes native calibration for every arm as an identical workload-information campaign; bridge build is additional only for native. No fully cold host claim."}
         report["outer_measurement_scope"] = "Service accounting includes driver start/stop and all online work; campaign_wall_ns starts after module imports and excludes final report serialization. The integration command ledger must additionally retain outer process wall time, including imports and report output."
         report["status"] = "completed"
@@ -403,6 +429,7 @@ def main():
     for name in ("output","clang","rustc","bridge","identity"):
         parser.add_argument("--"+name,required=True)
     parser.add_argument("--bridge-built-this-campaign",action="store_true")
+    parser.add_argument("--stream-profile", choices=tuple(STREAM_PROFILE_PINS), default="original-v1")
     qualify(parser.parse_args())
 
 

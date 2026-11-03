@@ -26,6 +26,13 @@ from .hia_ndu import MAX_REQUEST_BYTES, NduBridge, NduBridgeError, _read_json
 
 MAX_SESSION_REQUESTS = 256
 STREAM_SOURCE_PIN = "c4a1bbed3a39beba43a6abf1a18b6f75c5725c21"
+CORRECTED_STREAM_SOURCE_PIN = "8e52e1187f47f6d4edc8d942fc7cb7eca4bc447d"
+# Historical campaigns keep their original source identity. New campaigns
+# explicitly select the corrected exact-zero abstention transport.
+STREAM_PROFILE_PINS = {
+    "original-v1": STREAM_SOURCE_PIN,
+    "zero-abstain-v1": CORRECTED_STREAM_SOURCE_PIN,
+}
 IMAGE_CHECK_PROFILES = ("sealed", "rehash")
 _MAX_STDERR = 16384
 _SEALS = 0x0008 | 0x0004 | 0x0002 | 0x0001  # Linux UAPI write/grow/shrink/seal.
@@ -63,11 +70,13 @@ class NduSession(NduBridge):
 
     @classmethod
     def for_stream_profile(cls, executable, identity_manifest, *, timeout=10.0,
-                           image_check="sealed"):
-        """Admit the distinct c4 stream source without aliasing a finite profile."""
+                           image_check="sealed", profile="original-v1"):
+        """Admit one explicitly selected stream source, preserving old studies."""
+        if type(profile) is not str or profile not in STREAM_PROFILE_PINS:
+            raise NduBridgeError("unknown native stream source profile")
         manifest = _read_json(_manifest_bytes(Path(identity_manifest).resolve(strict=True)))
-        if manifest.get("identity", {}).get("source_commit") != STREAM_SOURCE_PIN:
-            raise NduBridgeError("stream NDU requires its distinct c4 source pin")
+        if manifest.get("identity", {}).get("source_commit") != STREAM_PROFILE_PINS[profile]:
+            raise NduBridgeError("stream NDU source differs from the explicitly selected profile")
         session = cls(executable, identity_manifest, timeout=timeout, image_check=image_check)
         if session.manifest != manifest:
             session.close()

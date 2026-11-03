@@ -25,9 +25,12 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from hepta.hia_ndu_session import STREAM_SOURCE_PIN
+from hepta.hia_ndu_session import STREAM_PROFILE_PINS
 
-SCHEMA = 'hepta.hia.source-composition.v1'
+SCHEMA = 'hepta.hia.source-composition.v2'
+STREAM_PROFILE = 'zero-abstain-v1'
+NDU_SOURCE_PIN = STREAM_PROFILE_PINS[STREAM_PROFILE]
+REDUCTION_PROFILE = 'induction-multiload-v2'
 CORE_TESTS = (
     'tests.test_hia_capability_flow', 'tests.test_hia_capability_identity',
     'tests.test_hia_composition_identity',
@@ -37,6 +40,10 @@ CORE_TESTS = (
     'tests.test_hia_ndu_cost', 'tests.test_hia_host_region',
     'tests.test_hia_agent_repository_maintenance_v2',
     'tests.test_hia_agent_repository_v2_feedback_review',
+    'tests.test_hia_durable_queue', 'tests.test_hia_durable_revision',
+    'tests.test_hia_production_capability_witness',
+    'tests.test_hia_ndu_current_profile',
+    'tests.test_hia_reduction_induction', 'tests.test_hia_reduction_multiload',
 )
 
 
@@ -200,12 +207,14 @@ def qualify(args):
     source, tools = source_identity(), tool_identity(args)
     output.mkdir(parents=True)
     ledger = output/'commands'; ledger.mkdir()
-    plan = {'schema':SCHEMA,'source':source,'tools':tools,'ndu_source_pin':STREAM_SOURCE_PIN,
+    plan = {'schema':SCHEMA,'source':source,'tools':tools,'ndu_source_pin':NDU_SOURCE_PIN,
+            'ndu_stream_profile':STREAM_PROFILE,'reduction_profile':REDUCTION_PROFILE,
             'registered_unix_ns':time.time_ns(),'host':{'system':platform.system(),
             'machine':platform.machine(),'release':platform.release()},
             'lanes':['core','capability_proof','memory_proof','core_proof','register_proof',
+                     'production_capabilities','sequential_core','ndu_budget_model',
                      'continuation','reduction','ndu_full_cost','cpp_unique_reset','cpp_source_refusals',
-                     'gsl_upstream_upgrade','host_region','agent_tool_controls'],
+                     'gsl_upstream_upgrade','migration_resources','host_region','agent_tool_controls'],
             'performance_results_are_not_assumed_positive':True,
             'general_agent_advantage_gate':'separate complete prospective model study required',
             'authority':'DENY_ALL','safety_certificate':False}
@@ -231,7 +240,7 @@ def qualify(args):
         build_command = py+['tools/measure_hia_ndu_build.py','--output',str(output/'ndu-build'),
             '--ndu-source',str(Path(args.ndu_source).resolve()),'--target-dir',str(output/'cargo-target'),
             '--cargo',tools['cargo']['path'],'--rustc',tools['rustc']['path'],
-            '--cargo-home',str(Path(args.cargo_home).resolve()),'--expected-source',STREAM_SOURCE_PIN]
+            '--cargo-home',str(Path(args.cargo_home).resolve()),'--expected-source',NDU_SOURCE_PIN]
         if args.offline:
             build_command.append('--offline')
         if not step('ndu-build',build_command):
@@ -239,7 +248,7 @@ def qualify(args):
         identity = output/'ndu-build/build/identity.json'
         manifest = json.loads(identity.read_text())
         bridge = Path(manifest['binary']).resolve()
-        if (manifest['identity']['source_commit']!=STREAM_SOURCE_PIN or
+        if (manifest['identity']['source_commit']!=NDU_SOURCE_PIN or
                 manifest['identity']['rustc']!=tools['rustc']['version'] or
                 manifest['binary_sha256']!=digest(bridge)):
             raise ValueError('NDU output does not belong to the registered composition')
@@ -253,6 +262,9 @@ def qualify(args):
         if args.offline:
             fetch.append('--offline')
         passed['rust_shadow_dependencies']=step('rust_shadow_dependencies',fetch)
+        passed['rust_shadow_build']=step('rust_shadow_build',[
+            tools['cargo']['path'],'build','--release','--locked','--offline',
+            '--manifest-path',str(ROOT/'rust/hia-core-shadow/Cargo.toml')])
         passed['core'] = step('core',py+['tools/qualify_hia_composition.py','--regression-output',str(output/'CORE.json')])
         for name,script,target in (
             ('capability_proof','verify_hia_capabilities.py','CAPABILITY_PROOF.json'),
@@ -261,13 +273,29 @@ def qualify(args):
             passed[name] = step(name,py+['tools/'+script,'--lean',tools['lean']['path'],'--output',str(output/target)])
         passed['register_proof'] = step('register_proof',py+['tools/qualify_hia_register_safety.py',
             '--lean',tools['lean']['path'],'--output-directory',str(output/'register-proof')])
+        shadow = output/'rust-shadow-target/release/hia-core-shadow'
+        if passed['rust_shadow_build']:
+            frozen[str(shadow)] = digest(shadow)
+            passed['production_capabilities'] = step('production_capabilities',py+[
+                'tools/verify_hia_capabilities.py','--lean',tools['lean']['path'],
+                '--production-output-directory',str(output/'production-capabilities'),
+                '--rust-shadow',str(shadow),'--rust-shadow-sha256',frozen[str(shadow)]])
+        else:
+            passed['production_capabilities'] = False
+        passed['sequential_core'] = step('sequential_core',py+['tools/qualify_hia_sequential_core.py',
+            '--core',str(ROOT/'formal/selected_sequential_u32.hia.json'),
+            '--output',str(output/'sequential-core'),'--timeout-ms','30000'])
+        passed['ndu_budget_model'] = step('ndu_budget_model',[
+            tools['lean']['path'],str(ROOT/'formal/HiaNduBudgetErasure.lean')])
         passed['continuation'] = step('continuation',py+['tools/qualify_hia_continuation.py',
             '--workdir',str(output/'continuation'),'--clang',tools['clang']['path']])
         passed['reduction'] = step('reduction',py+['tools/qualify_hia_reduction_release.py',
-            '--output',str(output/'reduction'),'--clang',tools['clang']['path'],'--rustc',tools['rustc']['path']])
+            '--output',str(output/'reduction'),'--clang',tools['clang']['path'],'--rustc',tools['rustc']['path'],
+            '--profile',REDUCTION_PROFILE])
         passed['ndu_full_cost'] = step('ndu_full_cost',py+['tools/qualify_hia_ndu_cost.py',
             '--output',str(output/'ndu-cost'),'--clang',tools['clang']['path'],'--rustc',tools['rustc']['path'],
-            '--bridge',str(bridge),'--identity',str(identity),'--bridge-built-this-campaign'])
+            '--bridge',str(bridge),'--identity',str(identity),'--bridge-built-this-campaign',
+            '--stream-profile',STREAM_PROFILE])
         passed['cpp_unique_reset'] = step('cpp_unique_reset',py+['tools/qualify_cpp_unique_reset.py',
             '--workdir',str(output/'cpp-unique-reset'),'--clang',tools['clang']['path'],
             '--clangxx',tools['clangxx']['path'],'--cc',tools['cc']['path']])
@@ -277,9 +305,12 @@ def qualify(args):
         passed['gsl_upstream_upgrade'] = step('gsl_upstream_upgrade',py+['tools/qualify_cpp_gsl_final_action.py',
             '--output',str(output/'gsl-upgrade'),'--clang',tools['clang']['path'],
             '--cxx',tools['g++']['path'],'--cc',tools['cc']['path']])
+        passed['migration_resources'] = step('migration_resources',py+['tools/qualify_migration_resource_profiles.py',
+            '--output',str(output/'migration-resources'),'--clang',tools['clang']['path'],
+            '--cxx',tools['g++']['path'],'--cc',tools['cc']['path']])
         passed['host_region'] = step('host_region',py+['tools/qualify_hia_host_region.py',
             '--output',str(output/'host-region'),'--clang',tools['clang']['path']])
-        passed['agent_tool_controls'] = step('agent_tool_controls',py+['tools/qualify_hia_agent_repository_maintenance.py',
+        passed['agent_tool_controls'] = step('agent_tool_controls',py+['tools/qualify_hia_agent_repository_maintenance_v2.py',
             'controls','--output',str(output/'agent-controls'),'--clang',tools['clang']['path']])
         report = {'status':'completed','qualifications':passed,'qualification_commands_passed':all(passed.values()),
                   'p0_same_combination_build_execute_reject_recover':all(passed.get(k,False) for k in

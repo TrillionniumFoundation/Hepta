@@ -24,19 +24,25 @@ def fixture(horizon=3):
         "session_ready": False, "observation_sha256": digest("observations")}
 
 
-def independent_exhaustive(model):
-    """Enumerate modes and residency sequences without calling production steps."""
+def independent_frontier(model, *, committed_call=False):
+    """Enumerate all schedules without calling production steps or recurrence."""
     names = [v["id"] for v in model["variants"]]
     rows = {v["id"]: v for v in model["variants"]}
     horizon = len(model["baseline"]["latency_ns"])
     sets = [set(c) for n in range(len(names)+1) for c in itertools.combinations(names,n)
             if sum(rows[x]["resident_bytes"] for x in c) <= model["memory_budget_bytes"]]
     choices = [None, *sets]  # None means skip the planner and keep valid objects.
-    best = None
+    frontier = {}
     for schedule in itertools.product(choices, repeat=horizon):
         ready = set(model["ready"])
         session = model["session_ready"]
         total = 0
+        if committed_call and schedule[0] is None:
+            total += sum(model["decision"][k] for k in
+                         ("search_ns", "native_ns", "transport_ns", "validation_ns"))
+            if not session:
+                total += model["decision"]["startup_ns"]
+            session = True
         valid = True
         for batch, target in enumerate(schedule):
             available = {n for n in names if rows[n]["valid"][batch] and rows[n]["status"] == "verified"}
@@ -58,9 +64,14 @@ def independent_exhaustive(model):
             ready = destination
         if session:
             total += model["decision"]["close_ns"]
-        if valid and total <= model["budget_ns"] and (best is None or total < best):
-            best = total
-    return best
+        if valid and total <= model["budget_ns"]:
+            first = ("skip", ()) if schedule[0] is None else ("invoke", tuple(sorted(schedule[0])))
+            frontier[first] = min(frontier.get(first, total), total)
+    return frontier
+
+
+def independent_exhaustive(model):
+    return min(independent_frontier(model).values(), default=None)
 
 
 class FullCostTests(unittest.TestCase):
@@ -94,6 +105,61 @@ class FullCostTests(unittest.TestCase):
         model["decision"]["native_ns"] = 2000
         self.assertTrue(all(a["mode"] == "skip" for a in exact_control(model)["best"]["actions"]))
         self.assertEqual(invocation_gate(model)["mode"], "consider")
+
+    def test_all_first_actions_match_independent_budgeted_enumeration(self):
+        rng = random.Random(32452843)
+        for case in range(128):
+            model = fixture(1 + case % 4)
+            horizon = len(model["baseline"]["latency_ns"])
+            model["memory_budget_bytes"] = case % 3
+            model["budget_ns"] = rng.randrange(10, 15000)
+            model["session_ready"] = bool(case % 2)
+            model["baseline"]["latency_ns"] = [rng.randrange(0, 2000) for _ in range(horizon)]
+            for row in model["variants"]:
+                row["status"] = "rejected" if rng.randrange(9) == 0 else "verified"
+                row["valid"] = [rng.randrange(4) != 0 for _ in range(horizon)]
+                row["latency_ns"] = [rng.randrange(0, 2000) for _ in range(horizon)]
+                for key in ("prepare_ns", "proof_ns", "retire_ns", "holding_ns"):
+                    row[key] = rng.randrange(0, 1000)
+            model["ready"] = [v["id"] for v in model["variants"]][:case % 3]
+            model["memory_budget_bytes"] = max(model["memory_budget_bytes"], len(model["ready"]))
+            for key in model["decision"]:
+                model["decision"][key] = rng.randrange(0, 800)
+            with self.subTest(case=case):
+                exact = exact_control(model)
+                witnesses = exact["witnesses"]
+                key = lambda p: (p["actions"][0]["mode"],
+                    tuple(p["actions"][0]["ready_after"]) if p["actions"][0]["mode"] == "invoke" else ())
+                self.assertEqual({key(p): p["total_ns"] for p in witnesses}, independent_frontier(model))
+                native = build_request(model)
+                self.assertEqual({key(p): p["total_ns"] for p in native["plans"].values()},
+                                 independent_frontier(model, committed_call=True))
+                self.assertLessEqual(exact["search"]["states"], horizon * 2 * (2 ** len(model["variants"])))
+
+    def test_budget_filter_preserves_exact_boundary_and_ties(self):
+        model = fixture(4)
+        # Different histories reach the same resident/session state with
+        # different spent budgets. Exact boundaries and tie order survive.
+        for row in model["variants"]:
+            row.update(prepare_ns=0, proof_ns=0, retire_ns=0, holding_ns=0,
+                       latency_ns=[100, 100, 100, 100])
+        model["decision"] = dict.fromkeys(model["decision"], 0)
+        expected = exact_control(model)["best"]
+        total = expected["total_ns"]
+        for budget in (total - 1, total, total + 1):
+            model["budget_ns"] = budget
+            result = exact_control(model)
+            self.assertEqual(result["best"], None if budget < total else expected)
+            self.assertEqual(result["best"]["total_ns"] if result["best"] else None,
+                             independent_exhaustive(model))
+
+    def test_native_witnesses_do_not_share_mutable_tail_actions(self):
+        bundle = build_request(fixture())
+        plans = list(bundle["plans"].values())
+        self.assertGreater(len(plans), 1)
+        other = deepcopy(plans[1:])
+        plans[0]["actions"][-1]["costs"]["holding_ns"] += 1
+        self.assertEqual(plans[1:], other)
 
     def test_skip_does_not_create_session(self):
         model = fixture()

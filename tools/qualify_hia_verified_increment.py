@@ -183,6 +183,9 @@ MODULES = (
     'tests.test_hia_prepared_gate_profile',
     'tests.test_hia_initialized_release_protocol',
     'tests.test_cfg_wire_versions',
+    'tests.test_hia_ndu_current_profile',
+    'tests.test_hia_reduction_induction',
+    'tests.test_hia_reduction_multiload',
 
 )
 

@@ -119,12 +119,20 @@ def propose_byte_narrowing(program):
         "changes": changes, "new_operations": created, "equivalence_authority": False}
 
 
-def propose_reduction_pipeline(program, maximum=None):
+def propose_reduction_pipeline(program, maximum=None, *, include_induction=False):
+    """Propose the byte pipeline, optionally including same-bound counted steps.
+
+    The general pipeline otherwise leaves the fill and reduction index
+    additions checked. Opting in proposes those steps as well; the existing
+    independent induction checker must discharge every removed check and the
+    complete checked fallback remains available.
+    """
     original = verify_program(program)
     narrowed, _ = propose_byte_narrowing(original)
     return {"schema": SCHEMA, "base_sha256": original.sha256,
             "narrowed_core": narrowed.as_dict(),
-            "guarded": propose_guarded_reduction(narrowed, maximum=maximum)}
+            "guarded": propose_guarded_reduction(narrowed, maximum=maximum,
+                                                   include_induction=include_induction)}
 
 
 def _freeze_pipeline(base, proposal):

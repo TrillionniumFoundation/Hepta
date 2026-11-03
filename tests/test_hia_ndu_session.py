@@ -201,7 +201,7 @@ class NativeNduSessionTests(unittest.TestCase):
             wrong["identity"]["source_commit"] = "4b6391e116949af0c7e59776baead67271856bdb"
             path.write_text(json.dumps(wrong))
             with patch("hepta.hia_ndu_session.subprocess.Popen", side_effect=AssertionError("launched")):
-                with self.assertRaisesRegex(NduBridgeError, "distinct c4 source"):
+                with self.assertRaisesRegex(NduBridgeError, "explicitly selected profile"):
                     NduSession.for_stream_profile(self.manifest["binary"], path)
 
 

@@ -14,7 +14,7 @@ The memoized recurrence includes remaining budget and session residency.
 
 from __future__ import annotations
 
-from functools import lru_cache
+from copy import deepcopy
 from hashlib import sha256
 import itertools
 import json
@@ -205,49 +205,94 @@ def invocation_gate(raw):
     return _gate(validate_model(raw))
 
 
-def _exact(model):
-    variants, sets, horizon = _parts(model)
-    counters = {"states": 0, "actions": 0}
+class _Planner:
+    """One immutable-model planner with an exact budget-free continuation cache.
 
-    @lru_cache(None)
-    def solve(batch, ready, session_ready, budget):
-        counters["states"] += 1
-        if batch == horizon:
-            close = model["decision"]["close_ns"] if session_ready else 0
-            return (close, (), close) if close <= budget else None
+    All edge and terminal costs are nonnegative, and budget is only a scalar
+    upper bound on that same total. A minimum-cost continuation fits iff any
+    continuation fits. Thus remaining budget does not distinguish continuation
+    subproblems. Status, validity, resident set, session state and batch do.
+    The original budget is still applied to every complete first-action witness.
+    See formal/HiaNduBudgetErasure.lean for the finite-tree model theorem.
+    """
+    def __init__(self, model):
+        self.model = model
+        self.variants, self.sets, self.horizon = _parts(model)
+        self.counters = {"states": 0, "actions": 0}
+        self._continuations = {}
+
+    def solve(self, batch, ready, session_ready):
+        key = batch, ready, session_ready
+        if key not in self._continuations:
+            self._continuations[key] = self._solve(batch, ready, session_ready)
+        return self._continuations[key]
+
+    def _choices(self):
+        return [("skip", None)] + [("invoke", value) for value in self.sets]
+
+    def _solve(self, batch, ready, session_ready):
+        self.counters["states"] += 1
+        if batch == self.horizon:
+            close = self.model["decision"]["close_ns"] if session_ready else 0
+            return close, (), close
         best = None
-        for mode, target in [("skip", None)] + [("invoke", value) for value in sets]:
-            action = _action(model, variants, ready, batch, session_ready, mode, target)
-            counters["actions"] += 1
-            if action is None or action["total_ns"] > budget:
+        for mode, target in self._choices():
+            action = _action(self.model, self.variants, ready, batch,
+                             session_ready, mode, target)
+            self.counters["actions"] += 1
+            if action is None:
                 continue
-            tail = solve(batch + 1, tuple(action["ready_after"]), action["session_after"], budget - action["total_ns"])
+            tail = self.solve(batch + 1, tuple(action["ready_after"]),
+                              action["session_after"])
             if tail is None:
                 continue
-            value = (action["total_ns"] + tail[0], (action,) + tail[1], tail[2])
-            # Deterministic ties: skip precedes invocation, then lexical set.
+            value = action["total_ns"] + tail[0], (action,) + tail[1], tail[2]
+            # The same ordered choices preserve skip-first/lexical ties.
             if best is None or value[0] < best[0]:
                 best = value
         return best
 
-    ready = tuple(sorted(model["ready"]))
-    witnesses = []
-    # One least-cost witness for EACH first action preserves the complete
-    # first-action frontier for this scalar cost/risk-zero profile.
-    for mode, target in [("skip", None)] + [("invoke", value) for value in sets]:
-        action = _action(model, variants, ready, 0, model["session_ready"], mode, target)
-        if action is None or action["total_ns"] > model["budget_ns"]:
-            continue
-        tail = solve(1, tuple(action["ready_after"]), action["session_after"], model["budget_ns"] - action["total_ns"])
-        if tail is None:
-            continue
-        actions = [action, *tail[1]]
-        witnesses.append({"actions": actions, "close_ns": tail[2],
-                          "total_ns": action["total_ns"] + tail[0]})
-    best = min(witnesses, key=lambda p: p["total_ns"], default=None)
-    return {"best": best, "witnesses": witnesses, "search": counters,
-            "scope": "exact within v2 finite deterministic cost model",
-            "native_evaluation": False, "authority": "DENY_ALL", "safety_certificate": False}
+    def frontier(self, *, committed_call_ns=None):
+        """Complete least-cost first-action frontier, optionally after a call.
+
+        A committed first skip has already opened the session and incurred the
+        current call, even though its artifact state does not change. The same
+        continuation cache covers that state; no second exact search is needed.
+        """
+        ready = tuple(sorted(self.model["ready"]))
+        witnesses = []
+        for mode, target in self._choices():
+            committed_skip = committed_call_ns is not None and mode == "skip"
+            session_ready = True if committed_skip else self.model["session_ready"]
+            action = _action(self.model, self.variants, ready, 0,
+                             session_ready, mode, target)
+            if action is None:
+                continue
+            extra = committed_call_ns if committed_skip else 0
+            if action["total_ns"] + extra > self.model["budget_ns"]:
+                continue
+            tail = self.solve(1, tuple(action["ready_after"]), action["session_after"])
+            if tail is None:
+                continue
+            total = action["total_ns"] + tail[0] + extra
+            if total > self.model["budget_ns"]:
+                continue
+            plan = {"actions": [action, *tail[1]], "close_ns": tail[2], "total_ns": total}
+            if committed_call_ns is not None:
+                plan["current_committed_ns"] = extra
+            witnesses.append(plan)
+        return witnesses
+
+    def exact(self):
+        witnesses = self.frontier()
+        best = min(witnesses, key=lambda p: p["total_ns"], default=None)
+        return {"best": best, "witnesses": witnesses, "search": dict(self.counters),
+                "scope": "exact within v2 finite deterministic cost model",
+                "native_evaluation": False, "authority": "DENY_ALL", "safety_certificate": False}
+
+
+def _exact(model):
+    return _Planner(model).exact()
 
 
 def exact_control(raw):
@@ -273,39 +318,24 @@ def build_request(raw):
     once, before adding future invocation costs. Otherwise a fictitious free
     skip could undercut a physically incurred native call.
     """
-    model = validate_model(raw)
+    return _build_request(validate_model(raw))
+
+
+def _build_request(model, planner=None):
+    # Internal callers pass only this request's detached validated model and
+    # planner. No mutable caller cache or cross-request plan is accepted.
+    planner = _Planner(model) if planner is None else planner
     original_session = model["session_ready"]
     decision = model["decision"]
     current_charge = sum(decision[k] for k in ("search_ns", "native_ns", "transport_ns", "validation_ns"))
     current_charge += 0 if original_session else decision["startup_ns"]
-    # In the committed first decision skip and invoke both use this paid call.
-    # Solve by temporarily making it sunk, then add it to every first action.
-    plans = _exact(model)
     support = {"model": model, "recurrence": "batch,resident-set,session-ready,remaining-budget",
                "scope": "scalar completion-minus-total-cost; zero risk and uncertainty",
                "compaction": "one minimum-cost witness per first action; complete first-action frontier",
                "verification": "independent caller admission, not authenticated by model digests"}
     candidates, mapping = [], {}
-    for witness in plans["witnesses"]:
-        plan = json.loads(json.dumps(witness))
-        first = plan["actions"][0]
-        if first["mode"] == "skip":
-            # A future invocation might already start and close a session. The
-            # recomputed committed plan avoids charging a second startup.
-            committed = json.loads(json.dumps(model))
-            committed["session_ready"] = True
-            committed["budget_ns"] = max(0, model["budget_ns"] - current_charge)
-            replanned = _exact(committed)
-            match = next((p for p in replanned["witnesses"] if p["actions"][0]["mode"] == "skip"), None)
-            if match is None:
-                continue
-            plan = match
-            plan["total_ns"] += current_charge
-            plan["current_committed_ns"] = current_charge
-        else:
-            plan["current_committed_ns"] = 0  # Already present in first costs.
-        if plan["total_ns"] > model["budget_ns"]:
-            continue
+    for witness in planner.frontier(committed_call_ns=current_charge):
+        plan = deepcopy(witness)
         identity = "cost-" + digest(plan)[:24]
         mapping[identity] = plan
     # The native protocol requires literal abstain to have exactly zero effect
@@ -379,7 +409,8 @@ class AdvisoryController:
         action = gate["skip"]["actions"][0] if gate["mode"] == "skip" else None
         if gate["mode"] == "consider":
             searched = time.monotonic_ns()
-            exact = _exact(model)
+            planner = _Planner(model)
+            exact = planner.exact()
             row["search_ns"] = time.monotonic_ns() - searched
             if exact["best"] is None:
                 row["reason"] = "no budget-feasible plan"
@@ -395,7 +426,7 @@ class AdvisoryController:
                     action = gate["skip"]["actions"][0] if gate["skip"]["feasible"] else None
                 else:
                     built = time.monotonic_ns()
-                    bundle = build_request(model)
+                    bundle = _build_request(model, planner)
                     row["search_ns"] += time.monotonic_ns() - built
                     if time.monotonic_ns() - start + gate["invocation_lower_ns"] > model["budget_ns"]:
                         row["reason"] = "actual request construction exhausted optional budget"

@@ -56,16 +56,65 @@ recurrence is:
 
 An action is omitted if its status, validity, resident quota or budget is
 infeasible. The terminal value is the remaining session-close cost. The
-implementation memoizes all four state components, and retains one least-cost
-continuation for every distinct first action. Within this scalar, zero-risk,
-zero-uncertainty profile, continuations with the same first action and a greater
-total cost cannot improve the native result. This is a complete first-action
-frontier; it is not a complete enumeration of every future schedule.
+implementation retains one least-cost continuation for every distinct first
+action. Within this scalar, zero-risk, zero-uncertainty profile, continuations
+with the same first action and a greater total cost cannot improve the native
+result. This is a complete first-action frontier; it is not a complete
+enumeration of every future schedule.
 
-Independent tests enumerate every schedule for 96 deterministic randomized
-small models and compare minimum costs, including refusal, residency, validity,
-memory and budget cases. This is executable corroboration of the recurrence,
-not a machine-checked theorem over the Python implementation.
+### Exact elimination of the budget cache dimension
+
+The current implementation memoizes `(batch, ready artifacts, session resident)`.
+It computes the least total continuation cost, then checks that complete cost
+against the caller's remaining budget. This is exactly the budgeted recurrence
+above in this profile: budget is an upper bound on the same nonnegative scalar
+quantity being minimized. If the least-cost continuation does not fit, no more
+expensive continuation can fit. If it fits, every prefix fits because no edge
+or terminal cost is negative. The finite horizon, validity, resident quota,
+invalidation, preparation, proof, holding, retirement and session-close costs
+remain in the state transitions.
+
+`formal/HiaNduBudgetErasure.lean` states this as equality between recursively
+budgeted search and a final budget filter on the unconstrained minimum of a
+finite decision tree. The model theorem does not prove Python refinement,
+measured wall time, native NDU, or a stochastic/multiobjective generalization.
+With at most two artifacts and four batches, there are at most 32 distinct
+continuation keys instead of a separate key for each reachable remaining
+budget. First-action tie order stays skip-first and then lexical resident set.
+
+The native request builder uses the same request-local continuation cache as
+the preliminary exact decision. For an already-committed first skip, it selects
+the continuation with the session already resident and adds the modeled
+current call once. Later skip/invoke states use the same cache. This replaces
+repeated complete planning and repeated detachment of the same internal model;
+it introduces no cross-request result cache. Native plan outputs are copied so
+two returned plans do not share mutable tail action dictionaries.
+
+Independent tests enumerate every schedule for the existing 96 deterministic
+randomized small models, and additionally check every first-action minimum for
+128 independently seeded models both before invocation and after the current
+call is committed. They include initial residency, invalidation, rejected
+artifacts, zero-cost ties, exact budget boundaries and session cleanup. These
+checks corroborate the Python implementation; they do not replace its missing
+refinement proof.
+
+The registered implementation comparison is separate from native economics:
+
+```bash
+python3 tools/qualify_hia_ndu_budget_erasure.py \
+  --output /absolute/new-model-comparison-directory
+```
+
+`benchmarks/hia_ndu_cost/BUDGET_ERASURE_PROTOCOL.json` pins the historical
+`931c96fcc7fb698226b809862c233a345dcca4ec` implementation and its file digest,
+128 declared models, independent seed 49979687, and eleven alternating paired
+sweeps. Before timing, it compares every full witness with the historical
+implementation, every first-action minimum with independent exhaustive
+schedules, and every native request byte with the historical builder. It
+retains every timing sample and reports median, p95 and complete observed
+sum. The measured operations include their public model validation and request
+encoding. The experiment does not run native NDU, an application or a complete
+lifecycle; faster Python planning cannot by itself establish any of those wins.
 
 ## A cheap no-invocation bound
 
