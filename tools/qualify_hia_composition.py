@@ -36,6 +36,7 @@ CORE_TESTS = (
     'tests.test_hia_capability_lifecycle',
     'tests.test_hia_composition_identity',
     'tests.test_hia_program', 'tests.test_hia_execution_contract',
+    'tests.test_hia_runtime_dispatch',
     'tests.test_hia_returned_loans', 'tests.test_hia_returned_loan_interfaces',
     'tests.test_hia_reduction_pipeline', 'tests.test_hia_reduction_release',
     'tests.test_hia_ndu_cost', 'tests.test_hia_host_region',

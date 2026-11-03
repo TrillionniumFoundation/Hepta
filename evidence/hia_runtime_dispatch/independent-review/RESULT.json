@@ -1,0 +1,52 @@
+{
+  "authority": "DENY_ALL",
+  "baseline_runtime_sha256": "d07e2324b833b6ca3e7d6c5c520935db7ca08813dab415acd992505e6235a225",
+  "complete_reports_equal": true,
+  "native_performance_measured": false,
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "program_sha256": "440a58aef3c41e64a33704c890c52e6812bf3d0ff92d83625e704f3008b6fac0",
+  "protocol_sha256": "1b56448f706578c352cc90b82fde0e1ebde70e7e8ca8212b0e42d0430d2b9d79",
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "release_qualification": false,
+  "samples": 88,
+  "schema": "hepta.hia.runtime-dispatch-observation.v1",
+  "sources": {
+    "hepta/hia_capability_flow.py": "95394f56ae64be96919f234142e96d7af9a8ec18524504b10cf8f7cea3b9b530",
+    "hepta/hia_opcodes.py": "155ad9de58affbb4352725daa73aed95de3abca6f420b206d3defe3b799b2f63",
+    "hepta/hia_program.py": "7e4f3ba54e0862b42b053e765addfae6116469100245f4f16882d4a8f20049d5",
+    "hepta/hia_program_runtime.py": "c270897953ec1e8c1fc21a00799fc603f8ce48da59eae08d60b421a530fc7f4a",
+    "hepta/hia_schema.py": "b6bd0864fbe2a90e8f2f705da1d81c8b1afae001d8608f54f8f1fca477cdf253",
+    "tools/measure_hia_runtime_dispatch.py": "038d414727842ae8271ceb64485f3e416757c5295c6f862add036368a80b17b7",
+    "tools/qualify_hia_program.py": "3e0b0064ca8aa4c6a7fe6be12096d0393483cdb69b0851b19ac8cdf7cfef1c05"
+  },
+  "summary": {
+    "borrowed_memory_loop": {
+      "median_ns": {
+        "baseline": 54372594,
+        "candidate": 42670148
+      },
+      "median_reduction_percent": 21.522692112132813
+    },
+    "call_loop": {
+      "median_ns": {
+        "baseline": 107970620,
+        "candidate": 94260969
+      },
+      "median_reduction_percent": 12.697575507114811
+    },
+    "empty_loop_control": {
+      "median_ns": {
+        "baseline": 23307528,
+        "candidate": 23304053
+      },
+      "median_reduction_percent": 0.014909346027602854
+    },
+    "scalar_loop": {
+      "median_ns": {
+        "baseline": 110207977,
+        "candidate": 88673677
+      },
+      "median_reduction_percent": 19.539692666711417
+    }
+  }
+}
