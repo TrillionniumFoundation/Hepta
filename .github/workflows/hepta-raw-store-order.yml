@@ -1,9 +1,11 @@
-name: Raw store operand-order characterization
+name: Raw store operand-order regression
 on:
   pull_request:
     paths:
       - 'hepta/**'
       - 'tests/test_raw_store_order.py'
+      - 'tests/test_c_backend.py'
+      - 'tests/test_resource_evaluation_order.py'
       - '.github/workflows/hepta-raw-store-order.yml'
 permissions:
   contents: read
@@ -40,7 +42,8 @@ jobs:
           python - <<'PY' 2>&1 | tee artifacts/raw-store-order/tests.log
           import unittest
           suite = unittest.defaultTestLoader.loadTestsFromNames([
-              'tests.test_raw_store_order'])
+              'tests.test_raw_store_order', 'tests.test_c_backend',
+              'tests.test_resource_evaluation_order'])
           def identities(tests):
               for item in tests:
                   if isinstance(item, unittest.TestSuite):
@@ -48,13 +51,13 @@ jobs:
                   else:
                       yield item.id()
           ids = list(identities(suite))
-          if len(ids) != 4 or len(set(ids)) != 4:
-              raise SystemExit('Expected four unique test identities')
+          if len(ids) != 25 or len(set(ids)) != 25:
+              raise SystemExit('Expected 25 unique test identities')
           print('Planned test identities:', ids, flush=True)
           result = unittest.TextTestRunner(verbosity=2).run(suite)
           if (not result.wasSuccessful() or result.skipped or result.expectedFailures
-                  or result.unexpectedSuccesses or result.testsRun != 4):
-              raise SystemExit('Expected all 4 controls with no skips')
+                  or result.unexpectedSuccesses or result.testsRun != 25):
+              raise SystemExit('Expected all 25 controls with no skips')
           PY
           test -z "$(git status --porcelain --untracked-files=no)"
       - uses: actions/upload-artifact@v4
