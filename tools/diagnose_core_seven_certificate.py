@@ -48,6 +48,7 @@ SOURCE_IDENTITY_ADDITIONS = (
     'tools/core_seven_certificate_sources.py', 'tools/core_seven_certificate_diagnostic_sources.py',
     'tools/diagnose_core_seven_certificate.py', 'tests/test_core_seven_certificate_sources.py',
     'tests/test_core_seven_certificate_diagnostic.py', 'tests/test_core_seven_certificate_runner.py',
+    'tests/test_core_seven_certificate_pending_eio.py',
     'docs/seven-certificate-source-proposal.md',
     'docs/seven-certificate-first-four-diagnostic-design.md')
 

@@ -33,6 +33,7 @@ def target_configuration(target):
 
 PROCESS_SECONDS = 60
 CLEANUP_SECONDS = 2
+PENDING_EIO_SECONDS = 0.050
 TOTAL = 1048576
 DISPLAY_LABEL_RESERVE = 1024
 DURABLE_TOTAL = (TOTAL - DISPLAY_LABEL_RESERVE) // 2
@@ -243,6 +244,10 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
     raw_limit_hit = False
     metadata_limit_hit = False
     collect_enabled = True
+    pending_eio = None
+
+    class PendingEIOTimeout(CaptureFailure):
+        pass
     result = {'process_started': False, 'returncode': None, 'signal': None,
               'timeout_seconds': PROCESS_SECONDS, 'platform': None, 'pty': None,
               'leader_reaped': False, 'group_kill_sent': False, 'drain_complete': False,
@@ -294,8 +299,41 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
         elif stream == 'stdout':
             os.close(fd)
 
+    def check_pending_deadline():
+        # Check after waitid/read as well: neither syscall may admit a late EOF.
+        now = time.monotonic()
+        if now >= started + PROCESS_SECONDS:
+            raise PendingEIOTimeout('60-second process deadline')
+        require(now < pending_eio[1], 'pending stdout EIO grace expired')
+        require(not group_signalled and cleanup_deadline is None and
+                status == 'diagnostic_completed', 'pending stdout EIO after cleanup')
+
+    def confirm_pending_eio():
+        nonlocal pending_eio
+        check_pending_deadline()
+        exited = leader_exit()
+        check_pending_deadline()
+        if exited is None:
+            return
+        fd = pending_eio[0]
+        remaining = RAW_LIMIT - sum(observed_bytes.values())
+        require(remaining > 0, 'pending stdout EIO raw budget exhausted')
+        try:
+            data = os.read(fd, min(READ_CHUNK, remaining))
+        except OSError as error:
+            if error.errno != errno.EIO:
+                raise
+            data = b''
+        # A reopened stream's data is observed but never persisted or interpreted.
+        observed_bytes['stdout'] += len(data)
+        check_pending_deadline()
+        require(not data, 'pending stdout EIO confirmation returned data')
+        eof.add('stdout')
+        close_stream(fd)
+        pending_eio = None
+
     def collect(fd, stream):
-        nonlocal marker_count, last_marker, raw_limit_hit
+        nonlocal marker_count, last_marker, raw_limit_hit, pending_eio
         remaining = RAW_LIMIT - sum(observed_bytes.values())
         if remaining <= 0:
             raw_limit_hit = True
@@ -305,9 +343,20 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
         except BlockingIOError:
             return
         except OSError as error:
-            if error.errno == errno.EIO and stream == 'stdout' and (
-                    result['group_kill_sent'] or leader_exit() is not None):
+            if error.errno != errno.EIO or stream != 'stdout':
+                raise
+            first_eio = time.monotonic() if target == 'SevenCertificatePart02' else None
+            if result['group_kill_sent'] or leader_exit() is not None:
                 data = b''
+            elif target == 'SevenCertificatePart02' and not group_signalled:
+                # Unregister, but retain ownership for exactly-once final closure.
+                # This deadline is fixed at the first EIO and never refreshed.
+                pending_eio = (fd, min(first_eio + PENDING_EIO_SECONDS,
+                                       started + PROCESS_SECONDS,
+                                       cleanup_deadline if cleanup_deadline is not None else float('inf')))
+                selector.unregister(fd)
+                check_pending_deadline()
+                return
             else:
                 raise
         if not data:
@@ -401,7 +450,12 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
                 status, reason = 'diagnostic_timeout', '60-second process deadline'
                 kill_group()
                 cleanup_deadline = now + CLEANUP_SECONDS
-            if leader_exit() is not None and cleanup_deadline is None:
+                if pending_eio is not None:
+                    collect_enabled = False
+                    break
+            if pending_eio is not None:
+                confirm_pending_eio()
+            if pending_eio is None and leader_exit() is not None and cleanup_deadline is None:
                 # Kill any descendant still inheriting our descriptors. Never wait
                 # for it to perform more computation after the leader exits.
                 kill_group()
@@ -414,6 +468,8 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
                 break
             wait = min(0.05, max(0, (cleanup_deadline if cleanup_deadline is not None
                                    else started + PROCESS_SECONDS) - now))
+            if pending_eio is not None:
+                wait = min(wait, 0.001, max(0, pending_eio[1] - time.monotonic()))
             for key, _ in selector.select(wait):
                 collect(key.fd, key.data)
                 if raw_limit_hit:
@@ -427,6 +483,8 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
         status = 'diagnostic_failed' if result['interrupted'] else 'diagnostic_infrastructure_failed'
         collect_enabled = False
         reason = type(error).__name__ + ': ' + str(error)[:256]
+        if isinstance(error, PendingEIOTimeout):
+            status, reason = 'diagnostic_timeout', '60-second process deadline'
         if target == 'SevenCertificatePart02' and process is not None and isinstance(error, CaptureFailure) and str(error) == 'diagnostic metadata budget':
             metadata_limit_hit = True
             status = 'diagnostic_output_limit'
