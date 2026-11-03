@@ -264,7 +264,15 @@ live owners; every continuing arm must leave the same owners live.
 Named calls, struct/array construction, fields, indices, casts, unary operators,
 and the supported arithmetic/comparison/bitwise/logical binary operators use
 the parser's conventional precedence. Default literals are `i64` and `f64`;
-expected types can constrain them. Integer range checking includes native
+expected types can constrain them. The current bootstrap lexer stores floating
+literals as binary64 AST values, losing distinctions between decimal spellings
+that round to the same value. Both native backends emit the canonical decimal
+`repr` of that stored value directly at the inferred destination precision;
+C `f32` emission must not first round it as an unsuffixed C double. This aligns
+backend behavior but does not restore the original decimal source spelling.
+A canonical literal that rounds to infinity in `f32` is rejected by the C
+emitter, matching the Rust compiler's default overflowing-literal refusal.
+Integer range checking includes native
 target checks for pointer-sized integers.
 
 Evaluation preserves left-to-right argument/operand evaluation and short
