@@ -9,11 +9,15 @@ from pathlib import Path
 import re
 import platform
 import struct
+from types import MethodType as _MethodType
 
 from .ast import Diagnostic, Expr, Function, HeptaError, Program, Span, Type
 from .parser import parse
 from .lexer import tokenize
 from .packages import Package, digest, find_manifest, load_package, package_snapshot, verify_lock
+from .packages import (_load_package, _package_snapshot, _verify_lock,
+                       _LEGACY_LOAD_PACKAGE, _LEGACY_PACKAGE_SNAPSHOT, _LEGACY_VERIFY_LOCK)
+from ._loader_ops import LegacyLoaderOps as _LegacyLoaderOps, dispatch as _dispatch
 
 
 def fail(code, message, span):
@@ -46,17 +50,7 @@ class LoadedProject:
     c_imports: list[dict]
 
     def unchanged(self, *, except_paths=()) -> bool:
-        omitted = {str(Path(p).resolve()) for p in except_paths}
-        try:
-            if any(str(Path(p).resolve()) != expected for p, expected in self.bindings.items()):
-                return False
-            if any(Path(p).read_bytes() != b for p, b in self.source_bytes.items() if p not in omitted):
-                return False
-            if self.package_state is not None:
-                return package_snapshot(load_package(self.package.root)) == self.package_state
-            return True
-        except (OSError, HeptaError):
-            return False
+        return _unchanged(self, ops=_LegacyLoaderOps(), except_paths=except_paths)
 
     def report(self):
         return {"schema": "hepta.module-graph.v1", "sha256": self.identity,
@@ -68,26 +62,57 @@ class LoadedProject:
                             "root": str(self.package.root)} if self.package else None}
 
 
+_LEGACY_UNCHANGED = LoadedProject.unchanged
+
+
+def _revalidate(project, *, ops, except_paths=()):
+    method = project.unchanged
+    if (type(method) is _MethodType and method.__self__ is project
+            and method.__func__ is _LEGACY_UNCHANGED):
+        return _unchanged(project, ops=ops, except_paths=except_paths)
+    return method(except_paths=except_paths)
+
+
+def _unchanged(self, *, ops, except_paths=()):
+    omitted = {str(Path(p).resolve()) for p in except_paths}
+    try:
+        if any(str(Path(p).resolve()) != expected for p, expected in self.bindings.items()):
+            return False
+        if any(ops.read(Path(p), 'revalidation') != b for p, b in self.source_bytes.items() if p not in omitted):
+            return False
+        if self.package_state is not None:
+            return _dispatch(package_snapshot, _LEGACY_PACKAGE_SNAPSHOT, _package_snapshot, ops,
+                             _dispatch(load_package, _LEGACY_LOAD_PACKAGE, _load_package, ops, self.package.root)) == self.package_state
+        return True
+    except (OSError, HeptaError):
+        return False
+
+
 def load_project(entry, *, locked=False, source_overrides=None) -> LoadedProject:
+    return _load_project(entry, locked=locked, source_overrides=source_overrides, ops=_LegacyLoaderOps())
+
+
+def _load_project(entry, *, locked=False, source_overrides=None, ops) -> LoadedProject:
     requested_path = Path(entry).absolute()
     entry = Path(entry).resolve()
     bindings = {str(requested_path): str(entry)}
     package = None
     if entry.is_dir():
-        package = load_package(entry)
+        package = _dispatch(load_package, _LEGACY_LOAD_PACKAGE, _load_package, ops, entry)
         entry = package.entry
     elif entry.name == "hepta.toml":
-        package = load_package(entry.parent)
+        package = _dispatch(load_package, _LEGACY_LOAD_PACKAGE, _load_package, ops, entry.parent)
         entry = package.entry
     else:
         root = find_manifest(entry)
         if root is not None:
-            package = load_package(root)
+            package = _dispatch(load_package, _LEGACY_LOAD_PACKAGE, _load_package, ops, root)
             if not entry.is_relative_to(package.source_root):
                 fail("E_MODULE_ROOT", "Source lies outside the package source_root", Span(path=str(entry)))
     if locked and package is None:
         fail("E_LOCK_CONTEXT", "--locked requires a package manifest", Span(path=str(entry)))
-    state = verify_lock(package) if locked else (package_snapshot(package) if package else None)
+    state = (_dispatch(verify_lock, _LEGACY_VERIFY_LOCK, _verify_lock, ops, package) if locked else
+             (_dispatch(package_snapshot, _LEGACY_PACKAGE_SNAPSHOT, _package_snapshot, ops, package) if package else None))
     owner = package or Package(entry.parent, "standalone", "0.0.0", entry, "bin", entry.parent)
     overrides = {str(Path(k).resolve()): v.encode("utf-8") for k, v in (source_overrides or {}).items()}
     units: dict[Path, Unit] = {}
@@ -109,15 +134,15 @@ def load_project(entry, *, locked=False, source_overrides=None) -> LoadedProject
         try:
             data = overrides.get(str(path))
             if data is None:
-                data = path.read_bytes()
+                data = ops.read(path, 'source')
             text = data.decode("utf-8")
         except (OSError, UnicodeError) as e:
             fail("E_MODULE_READ", str(e), span)
         if text.startswith("// hepta:c-import:v1\n"):
             sidecar = path.with_suffix(path.suffix + ".imports.json")
             try:
-                metadata_bytes = sidecar.read_bytes()
-                metadata = json.loads(metadata_bytes)
+                metadata_bytes = ops.read(sidecar, 'sidecar')
+                metadata = ops.json(json.loads, metadata_bytes, sidecar)
             except (OSError, ValueError) as e:
                 fail("E_C_IMPORT_MANIFEST", "Imported C bindings require their generated sidecar: " + str(e), span)
             if not isinstance(metadata, dict) or metadata.get("schema") != "hepta.c-import.v1" or metadata.get("source_sha256") != digest(data):
@@ -139,17 +164,17 @@ def load_project(entry, *, locked=False, source_overrides=None) -> LoadedProject
                 if not original_header.is_relative_to(pkg.root) or not original_header.is_file():
                     fail("E_C_IMPORT_MANIFEST", "Portable C header must exist inside its package", span)
             if original_header.resolve().is_relative_to(pkg.root) and original_header.is_file():
-                original_data = original_header.read_bytes()
+                original_data = ops.read(original_header, 'header')
                 if digest(original_data) != metadata.get("header_sha256"):
                     fail("E_C_IMPORT_IDENTITY", "Original C header changed since probing", span)
                 sources[str(original_header)] = digest(original_data)
                 source_bytes[str(original_header)] = original_data
                 bindings[str(original_header)] = str(original_header.resolve())
             c_imports.append({"source": str(path), "manifest": str(sidecar), "target": metadata.get("target"), "host": host})
-        for token in tokenize(text, str(path)):
+        for token in ops.tokenize(tokenize, text, str(path)):
             if token.kind == "IDENT" and re.match(r"M[0-9a-f]{16}_", token.value):
                 fail("E_MODULE_RESERVED", "Compiler module symbols cannot be spelled in source", token.span)
-        program = parse(text, str(path))
+        program = ops.parse(parse, text, str(path))
         # An imported file may omit module, which defaults to main. Explicit
         # module names are informational; file identity owns namespace identity.
         types = {s.name: s for s in [*program.structs, *getattr(program, "enums", [])]}
@@ -256,6 +281,6 @@ def load_project(entry, *, locked=False, source_overrides=None) -> LoadedProject
                                  "sources": portable_sources, "imports": import_edges, "package": state},
                                 sort_keys=True, separators=(",", ":")).encode())
     result = LoadedProject(assembled, entry, sources, source_bytes, identity, module_reports, package, state, locked, bindings, c_imports)
-    if not result.unchanged(except_paths=overrides):
+    if not _revalidate(result, ops=ops, except_paths=overrides):
         fail("E_MODULE_RACE", "Source graph changed while loading", Span(path=str(entry)))
     return result

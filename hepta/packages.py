@@ -11,6 +11,7 @@ import tempfile
 import tomllib
 
 from .ast import Diagnostic, HeptaError, Span
+from ._loader_ops import LegacyLoaderOps as _LegacyLoaderOps, dispatch as _dispatch
 
 
 def fail(code, message, path):
@@ -40,6 +41,13 @@ def _inside(path: Path, root: Path, message: str):
 
 
 def load_package(root, _stack=None, _cache=None) -> Package:
+    return _load_package(root, _stack, _cache, ops=_LegacyLoaderOps())
+
+
+_LEGACY_LOAD_PACKAGE = load_package
+
+
+def _load_package(root, _stack=None, _cache=None, *, ops) -> Package:
     root = Path(root).resolve()
     stack = [] if _stack is None else _stack
     cache = {} if _cache is None else _cache
@@ -50,9 +58,9 @@ def load_package(root, _stack=None, _cache=None) -> Package:
         return cache[root]
     if not manifest.is_file():
         fail("E_PACKAGE_MANIFEST", "Expected a hepta.toml manifest", manifest)
-    data = manifest.read_bytes()
+    data = ops.read(manifest, 'manifest')
     try:
-        config = tomllib.loads(data.decode("utf-8"))
+        config = ops.toml(tomllib.loads, data, manifest)
     except (ValueError, UnicodeError) as e:
         fail("E_PACKAGE_MANIFEST", str(e), manifest)
     if set(config) - {"package", "dependencies"} or not isinstance(config.get("package"), dict):
@@ -86,7 +94,7 @@ def load_package(root, _stack=None, _cache=None) -> Package:
         if not isinstance(spec, dict) or set(spec) != {"path"} or not isinstance(spec["path"], str):
             fail("E_PACKAGE_DEPENDENCY", "Dependencies require exactly { path = \"...\" }; network/registry resolution is not implemented", manifest)
         dep_root = (root / spec["path"]).resolve()
-        dep = load_package(dep_root, stack + [root], cache)
+        dep = _dispatch(load_package, _LEGACY_LOAD_PACKAGE, _load_package, ops, dep_root, stack + [root], cache)
         if dep.kind != "lib":
             fail("E_PACKAGE_DEPENDENCY", "Dependencies must declare kind = \"lib\"", dep_root)
         package.dependencies[alias] = dep
@@ -103,6 +111,13 @@ def find_manifest(source: Path) -> Path | None:
 
 
 def package_snapshot(package: Package) -> dict:
+    return _package_snapshot(package, ops=_LegacyLoaderOps())
+
+
+_LEGACY_PACKAGE_SNAPSHOT = package_snapshot
+
+
+def _package_snapshot(package: Package, *, ops) -> dict:
     files = {}
     nodes = {}
     seen = set()
@@ -116,13 +131,13 @@ def package_snapshot(package: Package) -> dict:
                       "entry": p.entry.relative_to(p.root).as_posix(),
                       "dependencies": {a: Path(os.path.relpath(d.root, package.root)).as_posix() for a, d in sorted(p.dependencies.items())}}
         manifest = p.root / "hepta.toml"
-        files[Path(os.path.relpath(manifest, package.root)).as_posix()] = digest(manifest.read_bytes())
+        files[Path(os.path.relpath(manifest, package.root)).as_posix()] = digest(ops.read(manifest, 'manifest'))
         # Path.rglob does not descend into directory symlinks. Module imports
         # do follow them, so an alias could otherwise retarget an import between
         # already-hashed directories without changing a v1 content lock.
         # Refuse this unrepresented topology instead of issuing a partial lock.
         source_files = []
-        for candidate in sorted(p.source_root.rglob("*")):
+        for candidate in sorted(ops.inventory(p.source_root)):
             if candidate.is_symlink() and candidate.is_dir():
                 _inside(candidate.resolve(), p.source_root, "Source directory symlink escapes its source_root")
                 fail("E_PACKAGE_SOURCE_LINK", "Source directory symlinks are not supported by package locks; use a real directory", candidate)
@@ -131,11 +146,11 @@ def package_snapshot(package: Package) -> dict:
         for f in source_files:
             _inside(f.resolve(), p.root, "Source symlink escapes its package")
             if f.is_file():
-                files[Path(os.path.relpath(f, package.root)).as_posix()] = digest(f.read_bytes())
+                files[Path(os.path.relpath(f, package.root)).as_posix()] = digest(ops.read(f, 'source'))
                 sidecar = f.with_suffix(f.suffix + ".imports.json")
                 if sidecar.is_file():
                     _inside(sidecar.resolve(), p.root, "C import metadata symlink escapes its package")
-                    files[Path(os.path.relpath(sidecar, package.root)).as_posix()] = digest(sidecar.read_bytes())
+                    files[Path(os.path.relpath(sidecar, package.root)).as_posix()] = digest(ops.read(sidecar, 'sidecar'))
         for d in p.dependencies.values():
             visit(d)
     visit(package)
@@ -145,22 +160,33 @@ def package_snapshot(package: Package) -> dict:
 
 
 def verify_lock(package: Package) -> dict:
+    return _verify_lock(package, ops=_LegacyLoaderOps())
+
+
+_LEGACY_VERIFY_LOCK = verify_lock
+
+
+def _verify_lock(package: Package, *, ops) -> dict:
     file = package.root / "Hepta.lock"
     if not file.is_file():
         fail("E_LOCK_MISSING", "Run hepta lock to create Hepta.lock before --locked validation", file)
     try:
-        actual = json.loads(file.read_bytes())
+        actual = ops.json(json.loads, ops.read(file, 'lock'), file)
     except (ValueError, UnicodeError) as e:
         fail("E_LOCK_INVALID", str(e), file)
-    expected = package_snapshot(package)
+    expected = _dispatch(package_snapshot, _LEGACY_PACKAGE_SNAPSHOT, _package_snapshot, ops, package)
     if actual != expected:
         fail("E_LOCK_STALE", "Manifest, dependency graph, or source bytes differ from Hepta.lock", file)
     return actual
 
 
 def write_lock(root) -> dict:
-    package = load_package(root)
-    snapshot = package_snapshot(package)
+    return _write_lock(root, ops=_LegacyLoaderOps())
+
+
+def _write_lock(root, *, ops) -> dict:
+    package = _dispatch(load_package, _LEGACY_LOAD_PACKAGE, _load_package, ops, root)
+    snapshot = _dispatch(package_snapshot, _LEGACY_PACKAGE_SNAPSHOT, _package_snapshot, ops, package)
     path = package.root / "Hepta.lock"
     staged = None
     try:
@@ -171,7 +197,8 @@ def write_lock(root) -> dict:
             f.flush()
             os.fsync(f.fileno())
         # Re-read manifests as well: stale dependency topology is not a valid lock.
-        if package_snapshot(load_package(package.root)) != snapshot:
+        if _dispatch(package_snapshot, _LEGACY_PACKAGE_SNAPSHOT, _package_snapshot, ops,
+                     _dispatch(load_package, _LEGACY_LOAD_PACKAGE, _load_package, ops, package.root)) != snapshot:
             fail("E_LOCK_RACE", "Package changed while locking; retry on a stable tree", path)
         os.replace(staged, path)
         staged = None

@@ -270,9 +270,11 @@ class ContextTests(unittest.TestCase):
 
     def test_upstream_fork_inputs_are_pinned(self):
         import hashlib
+        # Normal-source extraction reviewed against the immutable #622 baseline.
         expected={
-            'modules':'c933a5ab29a1a54b5b36e0e0b2554ce250db3303a559c742fddf2b65fcf0fcea',
-            'packages':'5623c715a0aae116e6aae8211b7eef93cfc6058bf11d503b913389e322d38cc1',
+            '_loader_ops':'167124173f004afcf4f95610b1cbfca32ba7322ca54f3f73f97c9c1785993c48',
+            'modules':'37be4d94beb74e970f3cb90dfdc76990fe181538676789ad890d3e2acdc48ec8',
+            'packages':'007e564725f30c344826da9e1fbf880486afb39e943c640b9ba9374f4dd808a0',
             'lexer':'8138278341afc789f744bf89a752723a96b530043a37596f943f3d4e464ff153',
             'parser':'b3cc04259c953d112e1ffbf4482b380cbb15fdd994a5924507dd1d11d5c0c5cf'}
         root=Path(__file__).resolve().parents[2]

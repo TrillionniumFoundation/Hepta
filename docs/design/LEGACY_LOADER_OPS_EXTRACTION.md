@@ -1,5 +1,7 @@
 # Mechanical legacy loader extraction: isolated differential candidate
 
+> Historical snapshot note: The following experiment describes #621. Its recipe now uses immutable pre-extraction baseline inputs after the normal-source implementation; see NORMAL_LOADER_EXTRACTION.md. Production never executes this recipe.
+
 Status: executable experiment stacked on #620 at
 `cbc6e494b4c2c52608586c15dfd1ca843e57529f`. No production `hepta/` file changes,
 production import, CLI switch, default limit or bounded-loader claim.

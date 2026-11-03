@@ -1,5 +1,7 @@
 # Loader consumer compatibility and normal-source extraction design
 
+> Historical snapshot note: The following audit describes #622. The normal-source implementation and refreshed current inventory are documented in NORMAL_LOADER_EXTRACTION.md; historical numbers and proposal status below refer to that earlier snapshot.
+
 Status: isolated design and executable audit, stacked on #621 at
 `671ffdb1596d92efa1c33acb20a93720383a542a`. No production source changes,
 new public loader API, switched entry point or bounded adapter.

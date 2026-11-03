@@ -512,89 +512,94 @@
       {
         "expression": "from .packages import Package, digest, find_manifest, load_package, package_snapshot, verify_lock",
         "kind": "import",
-        "line": 16
+        "line": 17
       },
       {
-        "expression": "load_package",
-        "kind": "call",
-        "line": 56
+        "expression": "project.unchanged",
+        "kind": "surface",
+        "line": 69
       },
       {
         "expression": "package_snapshot",
-        "kind": "call",
-        "line": 56
+        "kind": "hook-dispatch",
+        "line": 84
       },
       {
         "expression": "load_package",
-        "kind": "call",
-        "line": 77
-      },
-      {
-        "expression": "load_package",
-        "kind": "call",
-        "line": 80
-      },
-      {
-        "expression": "load_package",
-        "kind": "call",
+        "kind": "hook-dispatch",
         "line": 85
       },
       {
-        "expression": "package_snapshot",
-        "kind": "call",
-        "line": 90
+        "expression": "load_package",
+        "kind": "hook-dispatch",
+        "line": 101
+      },
+      {
+        "expression": "load_package",
+        "kind": "hook-dispatch",
+        "line": 104
+      },
+      {
+        "expression": "load_package",
+        "kind": "hook-dispatch",
+        "line": 109
       },
       {
         "expression": "verify_lock",
-        "kind": "call",
-        "line": 90
+        "kind": "hook-dispatch",
+        "line": 114
+      },
+      {
+        "expression": "package_snapshot",
+        "kind": "hook-dispatch",
+        "line": 115
       },
       {
         "expression": "Package",
         "kind": "call",
-        "line": 91
+        "line": 116
       },
       {
         "expression": "LoadedProject",
         "kind": "call",
-        "line": 258
+        "line": 283
       }
     ],
     "hepta/packages.py": [
       {
         "expression": "Package",
         "kind": "call",
-        "line": 79
+        "line": 87
       },
       {
         "expression": "load_package",
-        "kind": "call",
-        "line": 89
+        "kind": "hook-dispatch",
+        "line": 97
       },
       {
         "expression": "package_snapshot",
-        "kind": "call",
-        "line": 155
+        "kind": "hook-dispatch",
+        "line": 177
       },
       {
         "expression": "load_package",
-        "kind": "call",
-        "line": 162
+        "kind": "hook-dispatch",
+        "line": 188
       },
       {
         "expression": "package_snapshot",
-        "kind": "call",
-        "line": 163
+        "kind": "hook-dispatch",
+        "line": 189
+      },
+      {
+        "expression": "package_snapshot",
+        "kind": "hook-dispatch",
+        "line": 200
       },
       {
         "expression": "load_package",
-        "kind": "call",
-        "line": 174
-      },
-      {
-        "expression": "package_snapshot",
-        "kind": "call",
-        "line": 174
+        "kind": "hook-dispatch",
+        "line": 201
       }
     ],
     "hepta/pipeline.py": [
@@ -1068,6 +1073,7 @@
   "source_sha256": {
     "hepta/__init__.py": "8448813083e33f38f96474d5c3b3b690284fcf9c1ca939c33683618b419031b2",
     "hepta/__main__.py": "935a1c1166b0c1ea35a82256345000bf2c73ded718d77773bc27a71ecce28f7d",
+    "hepta/_loader_ops.py": "167124173f004afcf4f95610b1cbfca32ba7322ca54f3f73f97c9c1785993c48",
     "hepta/agent_contract_diff.py": "4c418ca2649bdcb9a41c6825a22fa8b4ee3bf07caceaa479774215203882b9a1",
     "hepta/agent_semantics.py": "8f28e59630f096e5591a2ab6028dbd08ff5625a0c64d9dd7d8f83987b0cfac3a",
     "hepta/artifact_publication.py": "44416fe2b5d3f3d29bbb006c592b34bf32ac59c249de995a31fe7976393ed915",
@@ -1213,7 +1219,7 @@
     "hepta/llvm_ssa_pipeline.py": "b37ec82d74372227e649cb0dcd15b5ea39a5b732e9cb8cd34651d81a92f7bdad",
     "hepta/llvm_ssa_target.py": "8172da1fd5cfcb4d5658de12f64acaf25cebebb8589e57a1579dffde4a773d1b",
     "hepta/migration_ir.py": "6320d124d4a16eab04ef96f8879111747a23c4fe77b4707fe2f28730784653bb",
-    "hepta/modules.py": "c933a5ab29a1a54b5b36e0e0b2554ce250db3303a559c742fddf2b65fcf0fcea",
+    "hepta/modules.py": "37be4d94beb74e970f3cb90dfdc76990fe181538676789ad890d3e2acdc48ec8",
     "hepta/native_local_views.py": "a5ff9e9e78684b979d341e751f0011b9c4e8d65f1ee72b290721ef86dbbcc54c",
     "hepta/native_mapping_identity.py": "e85114ea20081dc97ccca299e80a954c3c2165de63d22b776948a1c4001ff010",
     "hepta/native_resource_gate.py": "d6abcb7e7b1009aea8a8474388e80e1d9740957dfc2e242c4520260f23b93800",
@@ -1224,7 +1230,7 @@
     "hepta/owned_aarch64_runtime.py": "15aaa76b5f11e9aba8d76b1154a7bb62bb9962942b708dc9698a72b640ac3322",
     "hepta/owned_drop_plan.py": "9519ec27c5e47baca77a68503bcd23e38c915f589257a8da7c733a5c6f6f7a25",
     "hepta/owned_target_layout.py": "8045dcdcae41afe7f7e661cfd9844d12bf7cb4343361e0d10a56050544e5bbe4",
-    "hepta/packages.py": "5623c715a0aae116e6aae8211b7eef93cfc6058bf11d503b913389e322d38cc1",
+    "hepta/packages.py": "007e564725f30c344826da9e1fbf880486afb39e943c640b9ba9374f4dd808a0",
     "hepta/parser.py": "b3cc04259c953d112e1ffbf4482b380cbb15fdd994a5924507dd1d11d5c0c5cf",
     "hepta/pipeline.py": "9528ea5d7004c3e06fb005d1ef85741934fd1a7667787b166992499c3eaa6ef0",
     "hepta/protocol.py": "7c4e9c6b71391f34662bd161864cdac63b90574f65dd77e9489a3820299c6972",

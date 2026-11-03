@@ -1,7 +1,8 @@
 """Fail-closed source recipe for isolated modules, not production monkeypatching.
 
-Exact pinned production sources are the only domain algorithm definitions. This
-recipe can be reviewed as an explicit extraction diff. Drift requires review;
+Exact pinned pre-extraction sources are immutable historical test inputs. This
+recipe remains the #621 isolated oracle after normal-source production extraction.
+It is not a second maintained production implementation. Drift requires review;
 there is no fuzzy matching, generated source download or silent fallback.
 """
 import hashlib
@@ -65,7 +66,7 @@ MODULE_EDITS = [
 
 
 def source(name):
-    raw = (Path(__file__).resolve().parents[2] / 'hepta' / (name + '.py')).read_bytes()
+    raw = (Path(__file__).resolve().parent / 'baseline' / (name + '.py')).read_bytes()
     if hashlib.sha256(raw).hexdigest() != PINS[name]:
         raise RuntimeError('upstream drift: review extraction recipe for ' + name)
     text = raw.decode('utf-8')
