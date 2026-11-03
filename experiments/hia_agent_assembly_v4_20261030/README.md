@@ -116,3 +116,18 @@ The scalar candidate resource envelope is not a general hostile-code OS
 sandbox. Compiler, linker, solver when used, loader, OS and hardware remain
 trusted. Small quantized models and four arithmetic tasks do not establish
 large-project productivity, complete C++ migration or instruction optimality.
+
+### Complete responses on a failed transport outcome
+
+The envelope engine counts a complete HTTP response body even when the owned
+transport then rejects the server's exit, HTTP status or response format. It
+resets the observation before every completion request; stale or incomplete
+observations do not count. A complete body is not a validated generation, known
+token usage, a correct task or permission to retry. The original exception still
+ends the cell with unknown output usage and no automatic repair round.
+
+This aligns wrapper accounting with the underlying owned transport's existing
+observation. Pure transport fixtures verify the failure and success paths; they
+are not real model productivity evidence. Changed engine/test source requires
+fresh preparation and exact registration review before a new campaign. No
+existing registration or result is rewritten.
