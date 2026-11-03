@@ -1,0 +1,420 @@
+{
+  "all_command_log_sizes_and_sha256_verified": true,
+  "all_commands_exit_zero_without_timeout": true,
+  "all_seven_research_targets_closed": false,
+  "artifact": {
+    "archive_extracted_to_disk": false,
+    "bytes": 3264982,
+    "download_size_and_sha256_verified": true,
+    "id": 13217022395,
+    "sha256": "ab3b9bc45f3750cb3de33796a679b735b4c07f2ce06dcacbc7eb983405ad086b",
+    "zip_member_count": 590
+  },
+  "authority": "DENY_ALL",
+  "capability_borrow": {
+    "all_source_identities_match_materialized_source": true,
+    "dependency_map_matches_actual_kernel_stdout": true,
+    "modelled_instruction_count": 74,
+    "negative_control_count": 16,
+    "negative_controls": [
+      {
+        "name": "root_rebound",
+        "output_hash_verified": true,
+        "returncode": 1,
+        "source_hash_verified": true
+      },
+      {
+        "name": "parent_discarded",
+        "output_hash_verified": true,
+        "returncode": 1,
+        "source_hash_verified": true
+      },
+      {
+        "name": "kind_changed",
+        "output_hash_verified": true,
+        "returncode": 1,
+        "source_hash_verified": true
+      },
+      {
+        "name": "external_flipped",
+        "output_hash_verified": true,
+        "returncode": 1,
+        "source_hash_verified": true
+      },
+      {
+        "name": "origin_discarded",
+        "output_hash_verified": true,
+        "returncode": 1,
+        "source_hash_verified": true
+      },
+      {
+        "name": "ended_loan_retained",
+        "output_hash_verified": true,
+        "returncode": 1,
+        "source_hash_verified": true
+      },
+      {
+        "name": "dropped_owner_retained",
+        "output_hash_verified": true,
+        "returncode": 1,
+        "source_hash_verified": true
+      },
+      {
+        "name": "loan_root_rebound",
+        "output_hash_verified": true,
+        "returncode": 1,
+        "source_hash_verified": true
+      },
+      {
+        "name": "loan_parent_self",
+        "output_hash_verified": true,
+        "returncode": 1,
+        "source_hash_verified": true
+      },
+      {
+        "name": "freshness_removed",
+        "output_hash_verified": true,
+        "returncode": 1,
+        "source_hash_verified": true
+      },
+      {
+        "name": "release_references_ignored",
+        "output_hash_verified": true,
+        "returncode": 1,
+        "source_hash_verified": true
+      },
+      {
+        "name": "borrow_conflict_guard_removed",
+        "output_hash_verified": true,
+        "returncode": 1,
+        "source_hash_verified": true
+      },
+      {
+        "name": "access_child_guard_removed",
+        "output_hash_verified": true,
+        "returncode": 1,
+        "source_hash_verified": true
+      },
+      {
+        "name": "second_mutable_sibling",
+        "output_hash_verified": true,
+        "returncode": 1,
+        "source_hash_verified": true
+      },
+      {
+        "name": "parent_access_before_child_end",
+        "output_hash_verified": true,
+        "returncode": 1,
+        "source_hash_verified": true
+      },
+      {
+        "name": "parent_access_with_shared_sibling_remaining",
+        "output_hash_verified": true,
+        "returncode": 1,
+        "source_hash_verified": true
+      }
+    ],
+    "positive_kernel_exit": 0,
+    "positive_kernel_output_sha256_verified": true,
+    "production_rejection_count": 4,
+    "production_rejections": [
+      {
+        "code": "E_HIA_LOAN",
+        "input_sha256": "66ee7aa203d9907e055c58a5b5e1b0ad89a9f3049c98d708e95e32434f14ec53",
+        "input_sha256_verified": true,
+        "message": "E_HIA_LOAN: conflicting live borrow",
+        "name": "second_mutable_sibling"
+      },
+      {
+        "code": "E_HIA_LOAN",
+        "input_sha256": "ec0689c3e41f3d926aeffed984857f6ec20926905b2748df0330afcb45959f05",
+        "input_sha256_verified": true,
+        "message": "E_HIA_LOAN: parent view is suspended until child loans end",
+        "name": "parent_access_before_child_end"
+      },
+      {
+        "code": "E_HIA_LOAN",
+        "input_sha256": "d613d0cb75d5883233e8e46257864556808b895053d968246e2a878f46df0633",
+        "input_sha256_verified": true,
+        "message": "E_HIA_LOAN: borrow.mut: operand types must match ('mutable_source',)",
+        "name": "shared_to_mutable_escalation"
+      },
+      {
+        "code": "E_HIA_LOAN",
+        "input_sha256": "2365f9985ed97a0db8430fd7fc2ed912a7b84dfb50e750e9462cf7dfb960e310",
+        "input_sha256_verified": true,
+        "message": "E_HIA_LOAN: parent view is suspended until child loans end",
+        "name": "parent_access_with_shared_sibling_remaining"
+      }
+    ],
+    "report": {
+      "bytes": 298544,
+      "member": "capability-borrow/REPORT.json",
+      "sha256": "143741aeec9dd50e021cff34e3ae2c0b542924b48168ff6151b4b8ae64919486"
+    },
+    "safety_certificate": false,
+    "scope": {
+      "acyclicity_requires_initial_ranked": true,
+      "all_finite_model_states": true,
+      "all_static_instructions_inventoried": true,
+      "calls_moves_chain_transfers_proved": false,
+      "complete_core_type_soundness_proved": false,
+      "execution_length_bound": null,
+      "finite_actual_borrow_access_guard_witnesses": true,
+      "finite_actual_instruction_witnesses": true,
+      "generic_composition_with_admitted_cfg_edges": true,
+      "heap_execution_proved": false,
+      "instruction_model": [
+        "borrow.mut",
+        "borrow.read",
+        "buffer.load",
+        "buffer.new",
+        "buffer.store",
+        "buffer.try_new",
+        "chain.empty",
+        "loan.end",
+        "owner.drop"
+      ],
+      "llvm_native_ffi_concurrency_proved": false,
+      "properties": [
+        "root and parent closure",
+        "unique capability names",
+        "strict parent descent",
+        "absence of positive parent cycles",
+        "ancestor-compatible mutable borrows",
+        "child and ancestor access suspension",
+        "mutual exclusion of simultaneously accessible mutable aliases",
+        "last-child end restores parent access"
+      ],
+      "python_checker_or_exporter_refinement_proved": false,
+      "requires_initial_closed_unique_compatible": true,
+      "source_semantics_refinement_proved": false,
+      "whole_cfg_execution_trace_exported": false
+    },
+    "source_identity_count": 194,
+    "theorem_dependency_count": 1100
+  },
+  "capability_lifecycle": {
+    "negative_control_count": 11,
+    "report": {
+      "bytes": 197070,
+      "member": "capability-lifecycle/REPORT.json",
+      "sha256": "c8a4aedfb562842eb3c9e8eaede42c876c3c38a8e05e64e17bcfc7d6b4d0cb78"
+    },
+    "scope": {
+      "all_finite_model_states": true,
+      "all_static_instructions_inventoried": true,
+      "calls_moves_chain_transfers_proved": false,
+      "complete_core_type_soundness_proved": false,
+      "conflicting_alias_exclusion_proved": false,
+      "execution_length_bound": null,
+      "finite_actual_instruction_witnesses": true,
+      "generic_composition_with_admitted_cfg_edges": true,
+      "heap_execution_proved": false,
+      "instruction_model": [
+        "borrow.mut",
+        "borrow.read",
+        "buffer.new",
+        "buffer.try_new",
+        "chain.empty",
+        "loan.end",
+        "owner.drop"
+      ],
+      "llvm_native_ffi_concurrency_proved": false,
+      "properties": [
+        "root and parent closure",
+        "unique capability names",
+        "strict parent descent",
+        "absence of positive parent cycles",
+        "exact selected instruction resource transition"
+      ],
+      "python_checker_or_exporter_refinement_proved": false,
+      "whole_cfg_execution_trace_exported": false
+    },
+    "theorem_dependency_count": 404
+  },
+  "combination_source_equals_result_source": true,
+  "command_count": 23,
+  "command_log_stream_count": 46,
+  "core_tests": {
+    "count": 344,
+    "errors": 0,
+    "failures": 0,
+    "log": {
+      "bytes": 62522,
+      "member": "commands/core.stderr",
+      "sha256": "2bd9979e2fa87b56b7c7bdccfaf3c0097dfd3b6b0c8f2f35f6e86e4225994fcd"
+    },
+    "result": "OK",
+    "skipped": 0,
+    "unique_test_identities": 344
+  },
+  "job_id": 125814611432,
+  "ndu": {
+    "acceptance": {
+      "actual_native_invocations": 9,
+      "complete_cost_accounting": true,
+      "complete_cost_accounting_scope": "Declared bridge build, shared offline build/training/proof/calibration, and actual per-policy service wall times. Parent interpreter startup/imports and final report output require separate composition outer receipts.",
+      "finite_native_correctness_passed": true,
+      "full_lifecycle_cost_complete": false,
+      "native_matches_same_information_exact_model": true,
+      "native_model_all_attempts_completed": true,
+      "native_model_attempted_count": 9,
+      "native_model_evaluated_count": 9,
+      "native_model_failed_count": 0,
+      "native_net_benefit_established": false,
+      "native_net_win_scenarios": 0,
+      "native_policy_evidence_present": true,
+      "reason": "Three repetitions are exploratory, never an application-wide or statistical net-benefit theorem.",
+      "same_information_controls": true,
+      "scenario_count": 3,
+      "skip_only_episodes_without_native_start": 3,
+      "source_stable_during_run": true
+    },
+    "all_cost_equations_recomputed": true,
+    "cost_scope_warning": "Conservative allocated solo-campaign accounting is not an independently run solo campaign; declared scope completion does not include all lifetime engineering/dependency/long-term costs.",
+    "exact_dp_quality_upper_bound": "Native cannot improve a correctly solved same-information deterministic scalar model; any incremental value must come from measured end-to-end cost or a richer model.",
+    "inner_declared_cost_sums_recomputed_ns": {
+      "exact_dp": 6928944787,
+      "fixed": 6922138374,
+      "lightweight": 6924702708,
+      "native_ndu": 34601974686
+    },
+    "native_dispatch_counts": {
+      "cpp": 3,
+      "hia": 15,
+      "rust": 18
+    },
+    "native_exact_all_dispatch_and_ready_states_match": true,
+    "native_exact_step_comparisons": 36,
+    "online_service_sums_ns": {
+      "exact_dp": 507037027,
+      "fixed": 500230614,
+      "lightweight": 502794948,
+      "native_ndu": 544852596
+    },
+    "outer_cost_completion": {
+      "allocation_rule": "Every policy pays the full common campaign remainder once; native additionally pays outer minus inner bridge build. Original nested report is retained unchanged.",
+      "common_unallocated_runner_overhead_ns": 264999835,
+      "conservative_solo_campaign_cost_by_policy_ns": {
+        "exact_dp": 7193944622,
+        "fixed": 7187138209,
+        "lightweight": 7189702543,
+        "native_ndu": 35002589917
+      },
+      "native_build_additional_charged_ns": 135615396,
+      "native_build_inner_wall_ns": 27635214330,
+      "native_build_outer_wall_ns": 27770829726,
+      "not_an_independently_executed_solo_campaign": true,
+      "whole_qualification_command_wall_ns": 8741822780
+    },
+    "outer_cost_sums_recomputed_ns": {
+      "exact_dp": 7193944622,
+      "fixed": 7187138209,
+      "lightweight": 7189702543,
+      "native_ndu": 35002589917
+    },
+    "report": {
+      "bytes": 272516,
+      "member": "ndu-cost/REPORT.json",
+      "sha256": "9ff9691657c406f0a9ac0f6897b34552e8d417288977278663ff39126b576540"
+    },
+    "scenarios": [
+      {
+        "episode": "tiny",
+        "median_service_ns": {
+          "exact_dp": 25211056,
+          "fixed": 24370515,
+          "lightweight": 25039043,
+          "native_ndu": 25593140
+        },
+        "native_beats_all_controls": false,
+        "native_over_best_control": 1.050168205308751
+      },
+      {
+        "episode": "amortized",
+        "median_service_ns": {
+          "exact_dp": 77363780,
+          "fixed": 77772376,
+          "lightweight": 78449735,
+          "native_ndu": 84033874
+        },
+        "native_beats_all_controls": false,
+        "native_over_best_control": 1.0862172711829747
+      },
+      {
+        "episode": "invalidate-recover",
+        "median_service_ns": {
+          "exact_dp": 65396579,
+          "fixed": 63081400,
+          "lightweight": 64029721,
+          "native_ndu": 72440060
+        },
+        "native_beats_all_controls": false,
+        "native_over_best_control": 1.1483584701671175
+      }
+    ],
+    "uses_exact_python_first_action_compression": true
+  },
+  "qualifications": {
+    "agent_tool_controls": true,
+    "capability_borrow": true,
+    "capability_lifecycle": true,
+    "capability_proof": true,
+    "continuation": true,
+    "core": true,
+    "core_proof": true,
+    "cpp_source_refusals": true,
+    "cpp_unique_reset": true,
+    "gsl_upstream_upgrade": true,
+    "host_region": true,
+    "memory_proof": true,
+    "migration_resources": true,
+    "ndu_budget_model": true,
+    "ndu_full_cost": true,
+    "ndu_model_planner": true,
+    "production_capabilities": true,
+    "reduction": true,
+    "register_proof": true,
+    "rust_shadow_build": true,
+    "rust_shadow_dependencies": true,
+    "sequential_core": true
+  },
+  "reduction": {
+    "all_original_samples_and_denominators_retained": true,
+    "all_rust_gate_passed": false,
+    "broad_rust_performance_parity_established": false,
+    "correctness_records": 144,
+    "cross_run_causal_improvement_inferred": false,
+    "independent_holdout_passed": false,
+    "measurement_records": 1080,
+    "profile": "induction-multiload-v2",
+    "protocol_sha256": "054f1862479bca6e322e4ec6acb8a05288f21f5373b5cabed1e11a1e510db4ff",
+    "refusal_records": 56,
+    "report": {
+      "bytes": 1304345,
+      "member": "reduction/RESULT.json",
+      "sha256": "d05884c298f6f9f3bc320809bd7d15b3735c9ae9e5b83cc90ff68ba9db7c681a"
+    },
+    "rust_comparisons_passed": 158,
+    "rust_comparisons_total": 180
+  },
+  "refinement_index": "REFINEMENT_INDEX_1629.json",
+  "reviewed_at_utc": "2026-11-03T09:08:12.872065+00:00",
+  "safety_certificate": false,
+  "schema": "hepta.hia.ci-composition-independent-review.v1",
+  "scope_limits": [
+    "CI success records successful qualification execution, not universal Rust parity or positive NDU net benefit.",
+    "Four native chain identities are indexed separately; distinct scalar, sequential, borrow, or reduction Core inputs are not joined into one end-to-end refinement proof.",
+    "LLVM/object/library identities and finite execution observations do not establish native backend refinement.",
+    "Earlier candidate timings are unpaired and are not used as causal speedup estimates."
+  ],
+  "source_and_tools_unchanged": true,
+  "source_clean": true,
+  "source_commit": "1629a03dc76c5360550da40a6fc6fcbd80425128",
+  "source_materialized_identity_count": 4850,
+  "source_materialized_identity_map_sha256": "ff13af0db5846ab9b9ba22add5da0e86ccdf361e98d7eaafd6883090aabab043",
+  "source_sparse_checkout": false,
+  "source_tree": "06edb86c49637015630ce6097dcfd30921760f74",
+  "workflow_run_id": 41605627053
+}

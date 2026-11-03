@@ -1,0 +1,133 @@
+{
+  "artifact": {
+    "archive_saved_to_disk": false,
+    "bytes": 2193178,
+    "digest_verified": true,
+    "id": 13216738803,
+    "members": 146,
+    "sha256": "7dc95a26603facabe8d06c84120ce8cd18d8645ed1cbddc525f0d274886aa9a9"
+  },
+  "call_expansion": {
+    "artifact_id": 13216738803,
+    "bytes": 765,
+    "claims": {
+      "backend_refinement_proved": false,
+      "performance_qualified": false,
+      "safety_theorem": false
+    },
+    "component_input_unchanged": true,
+    "member": "call-expansion/RESULT.json",
+    "profile_count": 5,
+    "sha256": "3e7fdcb8539d61a91ccc796e703fd2ce5c4b658d25fe68e34d150cd94f03ed79",
+    "sources_unchanged": true,
+    "status": "passed"
+  },
+  "callback_migration": {
+    "artifact_id": 13216738803,
+    "bytes": 67353507,
+    "claims": {
+      "all_builds_in_declared_matrix_executed": true,
+      "arbitrary_callback_or_pointer_escape_supported": false,
+      "callback_body_and_failure_paths_translated": true,
+      "closed_synchronous_callback_implementation_migrated": true,
+      "cpp_class_or_mangled_abi_preserved": false,
+      "general_cpp_ownership_supported": false,
+      "original_cpp_objects_in_target": false,
+      "performance_qualified": true,
+      "performance_scope": "generated_success_error_and_cancellation_workloads_only",
+      "scalar_c_abi_preserved": true,
+      "source_equivalence_formally_proved": false
+    },
+    "member": "cpp-callback/qualification.json",
+    "migration_coverage": {
+      "borrowed_callback_definitions": 1,
+      "captured_project_free_function_definitions": 3,
+      "external_cxx_standard_library_bodies_migrated": 0,
+      "general_cpp_source_coverage_percentage": null,
+      "human_engineering_seconds": null,
+      "human_time_not_inferred_from_wall_clock": true,
+      "implemented_free_function_definitions": 3,
+      "manual_profile_implementation_required": true,
+      "original_cpp_bridge_functions_in_target": 0
+    },
+    "negative_control_count": 8,
+    "ok": true,
+    "sha256": "4efef1aab1228cce9d0434791e1988001ee2629525c5419722b9602f98c49cd0",
+    "source_bindings_unchanged": true,
+    "variant_count": 2
+  },
+  "main_job_conclusion": "success",
+  "main_job_id": 125814638027,
+  "main_job_step_skips": 0,
+  "no_cross_artifact_universal_refinement_inferred": true,
+  "observed_utc": "2026-11-03T08:57:55.267178+00:00",
+  "optional_ndu_job": {
+    "conclusion": "skipped",
+    "id": 125817768364,
+    "qualification_inherited": false
+  },
+  "register_proof": {
+    "artifact_id": 13216738803,
+    "bytes": 69789,
+    "claims": {
+      "actual_before_after_core_reverified": true,
+      "all_well_formed_selected_register_programs_total": true,
+      "backend_or_machine_code_refinement_proved": false,
+      "exact_register_growth_proved": true,
+      "exporter_or_python_verifier_refinement_proved": false,
+      "generic_dead_literal_removal_preserves_value": true,
+      "resource_lifetimes_or_cancellation_proved": false,
+      "selected_rewrite_all_u32_arguments_proved_in_imported_model": true,
+      "whole_language_soundness_proved": false
+    },
+    "limitations": [
+      "The mathematical machine admits straight-line u32 literals and wrapping add/sub with positional registers.",
+      "The generic proof establishes defined register reads, total execution and exact logical register growth, not heap or process memory bounds.",
+      "The selected actual Core has two u32 parameters, one u32 return and one block; its final unused literal is removed.",
+      "Exported Core mapping and production Python checking are re-executed and byte-bound, but their refinement is not machine-proved.",
+      "LLVM, native machine code, ownership, borrowing, traps, FFI, concurrency and cancellation remain outside these theorems.",
+      "A deleted instruction changes evaluator tick counts; this proof does not preserve budget-stop behavior.",
+      "Lean's pinned kernel, standard-library support and host are trusted; retained JSON is not an attestation of an untrusted producer."
+    ],
+    "member": "register-safety/qualification.json",
+    "negative_control_count": 3,
+    "ok": true,
+    "sha256": "9ef0d8156111fafff1126bcd887d6e10bd625b5b3c0e6fca36242eaf137d6726",
+    "status": "passed",
+    "theorem_dependency_checks": 14,
+    "vm_cases": 272
+  },
+  "retained_evidence_integrity": {
+    "bytes_checked": 26120286,
+    "failures": [],
+    "files_checked": 611,
+    "moves": 2,
+    "original_manifest_sha256": "29b643df0c6a2c6982e9b40b745b52a297b168b28a7b03dc091d66bd280bb24b",
+    "passed": true,
+    "path_migrations_sha256": "b7dd8dc3e435d3fb1c9c69f24ec111b3c4f2ac356078e68f2123d851e527f1f0",
+    "provenance": "GitHub decoded main-job log",
+    "schema": "hepta.five-deliverables.evidence-integrity.v2",
+    "scope": "original retained bytes only; not a new experiment or safety proof"
+  },
+  "run_id": 41605635687,
+  "schema": "hepta.hia.readonly-closure-review.v1",
+  "scope": {
+    "native_ndu": "not_qualified",
+    "relative_performance_is_a_pass_condition": false
+  },
+  "source_commit": "1629a03dc76c5360550da40a6fc6fcbd80425128",
+  "unit_tests": {
+    "artifact_id": 13216738803,
+    "bytes": 22708,
+    "errors": 0,
+    "expected_failures": [],
+    "failures": 0,
+    "member": "UNIT_RESULT.json",
+    "native_ndu_tests": "outside_this_suite; separate_native_ndu_job_required",
+    "planned_distinct_ids": 175,
+    "sha256": "808233a0eb38b948c137b916db85d5c89135bdf11700be2bc81f6536780ac814",
+    "skipped": [],
+    "status": "passed",
+    "tests_run": 175
+  }
+}

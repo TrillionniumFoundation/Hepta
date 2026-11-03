@@ -1,0 +1,66 @@
+{
+  "schema": "hepta.hia.ndu-next-experiment-independent-addendum.v1",
+  "reviewed_source": "23af1df3eed65230137aa54ab8b10eac3520abd3",
+  "source_modified": false,
+  "experiment_run": false,
+  "timing_run": false,
+  "original_review": {
+    "source": "1629a03dc76c5360550da40a6fc6fcbd80425128",
+    "file": "NDU_NEXT_EXPERIMENT_REVIEW.json",
+    "sha256": "f388ffa15b110528dfa85bf3de9fc13e8b9db80061a9677976ba554a2bbcb730"
+  },
+  "independent_reviewer": "/root/safety_implementation",
+  "conclusion": "No material defect found in the proposed isolated raw-model Rust adapter experiment. The following details must be frozen before an implementation claims to preserve the same recurrence and projection.",
+  "requirements": [
+    {
+      "topic": "Pre-invocation session and sunk costs",
+      "requirement": "Bind session_ready from before the adapter/session starts. Cold startup cannot disappear merely because the Rust process is now running. A committed first skip has session_after=true; actual current call and terminal close remain charged once. sunk_cost_ns is a history/binding field in the current model, not an additional future recurrence charge; do not subtract it from the remaining budget twice or drop it from the complete campaign ledger."
+    },
+    {
+      "topic": "Tie, skip and literal abstain",
+      "requirement": "The DP skip-first/lexical winner and NDU projection are distinct contracts. Any abstain in the returned frontier yields no action; conflicting ready_after/dispatch projections also yield no action. A Rust lexical argmin cannot replace this rule. Skip still retires invalid artifacts, pays holding costs, and dispatches baseline or the fastest resident artifact; it is not literal zero-effect abstain."
+    },
+    {
+      "topic": "Exact fixed-point arithmetic",
+      "requirement": "Reproduce each original operation order, unit and floor: instant=-(cost*Q32//1000000), terminal is independently completion_value*Q32//1000000, and resource/budget use //1000. Do not combine completion and cost before rounding. MAX_NS=1000000000000 and Q32=2^32 make a legal intermediate product exceed u64 even when its converted result fits. Use sufficiently wide checked intermediates, such as i128, instead of accidentally rejecting valid Python models or wrapping the product."
+    },
+    {
+      "topic": "Separate real events",
+      "requirement": "Record Rust process/session startup, raw-model DP completion, and original NDU evaluate as separate actual events. If the core is skipped, the first two still cost time. native_evaluated=false cannot mean zero invocation/setup cost. Any changed current-charge model must be separately registered rather than silently described as v2 numeric equivalence."
+    },
+    {
+      "topic": "Actual admission and memory peak",
+      "requirement": "Retain actual wall-budget admission after new Rust search and before NDU evaluate, and again before caller prepare/dispatch. Model memory-budget bounds resident sets; it does not automatically prove peak memory while old and new artifacts coexist. Independently enforce retire/prepare order, actual allocation and runtime resource budgets."
+    }
+  ],
+  "source_references": [
+    {
+      "path": "hepta/hia_ndu_cost.py",
+      "symbols": [
+        "MAX_NS",
+        "validate_model",
+        "_action",
+        "_Planner.frontier",
+        "_build_request",
+        "project_advice",
+        "AdvisoryController.decide"
+      ],
+      "sha256": "e5ba69bcb9ac9fa78c6cd216e76e9abaa3bd850df1a8c8add7ce160bdfae0142"
+    },
+    {
+      "path": "hepta/hia_ndu.py",
+      "symbol": "Q32",
+      "sha256": "affa916479adc7d9c232a24b247f10d6c52fe03363fbba4e13711726eb5b961d"
+    },
+    {
+      "path": "hepta/hia_planning.py",
+      "sha256": "4eec407232fc664fe36612ea95ad42af74ef23f42205f6b02a0c81e1fbe80a0f"
+    }
+  ],
+  "scope_limits": [
+    "These requirements govern a future separate candidate profile.",
+    "No current production bug, native speedup, NDU-specific value, whole-language safety or global-optimality proof is inferred.",
+    "Existing 1629 and 23af negative performance results and original denominators remain unchanged."
+  ]
+}
+

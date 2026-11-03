@@ -1,0 +1,96 @@
+{
+  "schema": "hepta.hia.ndu-next-experiment-readonly-review.v1",
+  "reviewed_source": "1629a03dc76c5360550da40a6fc6fcbd80425128",
+  "source_modified": false,
+  "experiment_run": false,
+  "performance_claim": false,
+  "finding": "The current native arm already pays for an exact Python continuation planner before native evaluation; native evaluates an already optimally compressed first-action witness set under the supplied deterministic scalar model.",
+  "code_references": [
+    {
+      "path": "hepta/hia_ndu_cost.py",
+      "lines": "254-342",
+      "sha256": "e5ba69bcb9ac9fa78c6cd216e76e9abaa3bd850df1a8c8add7ce160bdfae0142",
+      "detail": "_Planner.solve caches batch/resident-set/session-ready continuations; frontier returns a least-cost complete witness per first action."
+    },
+    {
+      "path": "hepta/hia_ndu_cost.py",
+      "lines": "370-415",
+      "detail": "_build_request calls planner.frontier even when the caller omits planner.exact; current call plus unavoidable close are charged before literal zero-effect abstain."
+    },
+    {
+      "path": "hepta/hia_ndu_cost.py",
+      "lines": "447-521",
+      "detail": "AdvisoryController.decide calls exact first, avoids native if its optimum starts with skip, builds compressed request, then compares native output to the already known minimum."
+    },
+    {
+      "path": "hepta/hia_ndu.py",
+      "lines": "95-217",
+      "sha256": "affa916479adc7d9c232a24b247f10d6c52fe03363fbba4e13711726eb5b961d",
+      "detail": "finite_plan_request enumerates Python paths or delegates to Python dynamic-frontier compaction; <=8 states, <=4 batches, <=127 paths reserving an abstain slot, <=1 MiB support."
+    },
+    {
+      "path": "hepta/hia_planning.py",
+      "lines": "16-17,71-157",
+      "sha256": "4eec407232fc664fe36612ea95ad42af74ef23f42205f6b02a0c81e1fbe80a0f",
+      "detail": "Dynamic-frontier is Python-side search with explicit generated-label and retained-frontier budgets."
+    },
+    {
+      "path": "tools/qualify_hia_ndu_cost.py",
+      "lines": "409",
+      "detail": "Retained report explicitly declares native_uses_exact_first_action_compression=true."
+    }
+  ],
+  "non_solutions": [
+    "Deleting only planner.exact leaves exact DP inside _build_request.frontier and also removes the existing ex-ante skip decision.",
+    "Switching to the existing finite-plan API does not move search into native code.",
+    "Enumerating every path into the existing request is not a complete general replacement: two optional artifacts permit up to five nominal actions at each of four batches (5^4=625 nominal sequences before feasibility pruning), beyond the 127-path interface bound. No silently truncated search, shrunk cohort, or changed original acceptance denominator is acceptable."
+  ],
+  "minimum_separate_candidate": {
+    "name": "versioned raw-model native adapter with the same bounded recurrence",
+    "implementation_boundary": [
+      "Keep the current 1629 native profile, its negative results, and its original gates immutable.",
+      "Add a separately pinned bridge profile that receives the detached bounded model and artifact identities; transfer the finite _Planner recurrence and request witness construction into Rust before the existing NDU evaluator.",
+      "Keep Python bounded input validation, cheap optimistic _gate, actual wall-budget guards, response validation, and independent artifact/proof/resource admission. A returned plan grants no authority.",
+      "Return an explicit witness, state-generation binding, chosen first action, charged common/variable costs, and whether NDU evaluation occurred. Independently replay bounded witness feasibility and all resource transitions before preparation or dispatch.",
+      "Keep exact Python DP as an independent reference/control, not a hidden computation inside the native decision critical path. If an optimality comparison is retained as experimental instrumentation, separate it from deployment path while charging it in campaign/verification cost; if it is required online for admission, include it in native service cost and do not claim its removal."
+    ],
+    "semantic_requirements": [
+      "Preserve finite integer bounds and checked arithmetic; reject bool-as-integer, overflow, malformed fields, stale generation, unknown artifact identities, incomplete search, and resource quota violations.",
+      "Match the original scalar objective, first-action completeness, stable ties and ordering, Q32 conversion behavior, literal zero-effect abstain, session state, readiness invalidation, retirement, holding, prepare/proof costs, and terminal session-close cost.",
+      "Do not apply already-paid call/close costs twice, and do not omit them from abstain or skip after native startup.",
+      "Removing the ex-ante Python exact-skip gate can start a native process in states that previously skipped. This is a material invocation-cadence change and must be registered and fully charged, including extra startup/close and failed or aborted work."
+    ],
+    "why_smallest_real_architectural_change": "It moves the existing bounded search rather than inventing a new optimizer, while retaining the original NDU evaluator. It can measure reduced Python/search overhead, but by itself does not establish an NDU-specific decision advantage over the same exact recurrence in Rust."
+  },
+  "fair_experiment": {
+    "arms": [
+      "fixed incumbent",
+      "Python lightweight control",
+      "Python exact DP",
+      "Rust exact DP without NDU evaluation",
+      "Rust raw-model adapter plus original NDU evaluation"
+    ],
+    "common_information": "Same preregistered candidate library, code/proof identities, observations, model fields, cost estimates, workload lengths/seeds, memory/time budgets, compiler flags, and initial resident/session states; no extra candidate or feedback only for NDU.",
+    "quality_and_safety": "Check every selected action and refusal, all admitted resource transitions, and exact-model agreement where claimed; include ties, overflow boundaries, no-feasible-plan, invalidation/recovery, cold startup, warm residency, abstain, and actual budget exhaustion.",
+    "cost_accounting": "Measure validation, serialization, transport, native search/evaluation, response replay, preparation, proof, code loading, execution, invalidation, retirement and close; retain every failure and cancelled work; charge all build/calibration and declared acquisition costs. Account for host startup/import/final-output outer receipts and declare remaining unknown lifetime costs.",
+    "registration": "Freeze the new protocol, source pins, host/toolchain, complete denominator and gates before timing. A pilot with a smaller bounded graph is a distinct result, not closure of the original workload.",
+    "stop_condition": "If Rust exact DP yields the same actions with less complete cost, report that outcome. A native speedup of an exact planner cannot be relabeled as an NDU-specific or globally optimal-program benefit."
+  },
+  "retained_primary_result": {
+    "artifact_id": 13217022395,
+    "sha256": "ab3b9bc45f3750cb3de33796a679b735b4c07f2ce06dcacbc7eb983405ad086b",
+    "native_invocations": 9,
+    "native_failed": 0,
+    "scenario_wins": 0,
+    "scenario_count": 3,
+    "outer_conservative_campaign_ns": {
+      "fixed": 7187138209,
+      "exact_dp": 7193944622,
+      "lightweight": 7189702543,
+      "native_ndu": 35002589917
+    },
+    "full_lifecycle_cost_complete": false,
+    "scope": "These existing results are retained unchanged. No candidate experiment or cross-host causal improvement is inferred."
+  }
+}
+
