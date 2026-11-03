@@ -163,12 +163,14 @@ def _protected_inputs(project,request):
     return protected
 
 
-def execute(request, *, seconds=60, output_bytes=2_000_000):
+def execute(request, *, seconds=60, output_bytes=2_000_000, _context_factory=None):
     """One fresh plan per call. No context/receipt is accepted as an input."""
     admit(request)  # Must happen before budget creation, graph loading or probing.
     budget=Budget(seconds,output_bytes)
     request_id=uuid.uuid4().hex
-    project=load_project(request.entry,locked=request.locked)
+    context=None if _context_factory is None else _context_factory(budget.checkpoint)
+    loader=load_project if context is None else context.load
+    project=loader(request.entry,locked=request.locked)
     protected=_protected_inputs(project,request)
     destination=Path(request.output).resolve() if request.output else None
     if destination:
@@ -178,7 +180,7 @@ def execute(request, *, seconds=60, output_bytes=2_000_000):
     try:
         with Prepared(request.entry,cc=request.cc,char_mode=request.char_mode,
                       _runner=budget.run,_importer=importer.module.import_header,
-                      _project=project,_locked=request.locked) as prepared:
+                      _project=project,_locked=request.locked,_context=context) as prepared:
             require(destination is None or not destination.is_relative_to(prepared.directory),
                     'output aliases private qualification inputs')
             artifact,receipt=prepared.compile(optimize=request.optimize,strict_aliasing=True)
