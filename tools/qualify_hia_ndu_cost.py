@@ -113,6 +113,60 @@ def source_inventory():
 
 
 class ResidentDriver(native.Driver):
+    @staticmethod
+    def sealed_identity(descriptor, access_path):
+        """Bind a readable fd alias to its retained, immutable kernel object."""
+        import fcntl
+        native.require(type(descriptor) is int and descriptor >= 0,
+                       "sealed artifact descriptor is invalid")
+        required = (getattr(fcntl, "F_SEAL_WRITE", 0x0008)
+                    | getattr(fcntl, "F_SEAL_GROW", 0x0004)
+                    | getattr(fcntl, "F_SEAL_SHRINK", 0x0002)
+                    | getattr(fcntl, "F_SEAL_SEAL", 0x0001))
+        seals = fcntl.fcntl(descriptor, getattr(fcntl, "F_GET_SEALS", 1034))
+        native.require(seals & required == required, "native artifact is not fully sealed")
+        held, accessed = os.fstat(descriptor), Path(access_path).stat()
+        native.require((held.st_dev, held.st_ino, held.st_size) ==
+                       (accessed.st_dev, accessed.st_ino, accessed.st_size),
+                       "sealed artifact access path differs from retained descriptor")
+        actual = native.file_identity(access_path)
+        native.require(actual["bytes"] == held.st_size, "sealed artifact byte count differs")
+        return {**actual, "access_path": str(access_path), "descriptor": descriptor,
+                "device": held.st_dev, "inode": held.st_ino, "seals": seals}
+
+    @classmethod
+    def bind_product(cls, product, descriptor, access_path):
+        """Keep the build identity and the sealed access path as separate fields."""
+        original = native.file_identity(product["path"])
+        native.require(all(original[key] == product[key] for key in ("path", "bytes", "sha256")),
+                       "native library identity differs before sealed binding")
+        sealed = cls.sealed_identity(descriptor, access_path)
+        native.require(all(sealed[key] == product[key] for key in ("bytes", "sha256")),
+                       "sealed native library differs from fixed build product")
+        return {**product, "original_path": product["path"], "path": str(access_path),
+                "sealed_identity": sealed}
+
+    def load(self, label, products):
+        if label in self.loaded:
+            return None
+        started = time.monotonic_ns()
+        expected = products[label]
+        binding = expected.get("sealed_identity")
+        native.require(type(binding) is dict, "resident artifact lacks sealed identity")
+        actual = self.sealed_identity(binding["descriptor"], expected["path"])
+        native.require(actual == binding and
+                       all(actual[key] == expected[key] for key in ("bytes", "sha256")),
+                       "sealed native library identity differs before load")
+        order = native.protocol()["backends"].index(label)
+        row = self.ask(f"L {order} {expected['path']}")
+        native.require(row.get("loaded") == order, "wrong loaded library")
+        self.loaded.add(label)
+        self.path_ids[expected["path"]] = order
+        row["mapping"] = self.mapping(expected["path"])
+        row["artifact_identity"] = actual
+        row["load_outer_ns"] = time.monotonic_ns() - started
+        return row
+
     def unload(self, label, products):
         if label not in self.loaded:
             return None
@@ -382,9 +436,9 @@ def qualify(args):
         for name,product in products.items():
             raw,_,descriptor = _pin_native_artifact(Path(product["path"]))
             descriptors.append(descriptor)
-            native.require(hashlib.sha256(raw).hexdigest()==product["sha256"],"sealed artifact binding")
-            product["original_path"] = product["path"]
-            product["path"] = f"/proc/{os.getpid()}/fd/{descriptor}"
+            native.require(len(raw)==product["bytes"] and hashlib.sha256(raw).hexdigest()==product["sha256"],
+                           "sealed artifact binding")
+            products[name] = ResidentDriver.bind_product(product, descriptor, f"/proc/{os.getpid()}/fd/{descriptor}")
             with_probe = ResidentDriver(output/"driver",output/("residency-"+name+".jsonl"))
             try:
                 proof,e1 = timed(lambda n=name: admission(n,0,products,receipts,core))

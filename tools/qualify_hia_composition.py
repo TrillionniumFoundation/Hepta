@@ -320,7 +320,7 @@ def qualify(args):
                       ('rust_shadow_dependencies','rust_shadow_build','core',
                        'capability_proof','memory_proof','core_proof','register_proof',
                        'production_capabilities','sequential_core','ndu_budget_model',
-                       'continuation','ndu_full_cost','host_region')),
+                       'continuation','reduction','ndu_full_cost','ndu_model_planner','host_region')),
                   'all_seven_research_targets_closed':False,
                   'performance_assessment':'reduction/RESULT.json',
                   'ndu_assessment':'ndu-cost/REPORT.json',

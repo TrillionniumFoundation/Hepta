@@ -16,7 +16,6 @@ from pathlib import Path
 import platform
 import random
 import statistics
-import subprocess
 import sys
 import time
 import types
@@ -29,6 +28,7 @@ from hepta import hia_ndu_cost as current
 from tests.test_hia_ndu_cost import fixture, independent_frontier
 
 PROTOCOL = ROOT / "benchmarks/hia_ndu_cost/BUDGET_ERASURE_PROTOCOL.json"
+BASELINE = ROOT / "benchmarks/hia_ndu_cost/historical_hia_ndu_cost_931c96fcc7fb698226b809862c233a345dcca4ec.py"
 
 
 def encoded(value):
@@ -70,7 +70,7 @@ def inventory():
     paths = [ROOT / "hepta/hia_ndu_cost.py", ROOT / "hepta/hia_ndu.py",
              ROOT / "hepta/hia_program_tools.py", ROOT / "hepta/hia_json_preflight.py",
              ROOT / "tests/test_hia_ndu_cost.py", ROOT / "formal/HiaNduBudgetErasure.lean",
-             PROTOCOL, Path(__file__)]
+             PROTOCOL, BASELINE, Path(__file__)]
     return {str(p.relative_to(ROOT)): sha256(p.read_bytes()).hexdigest() for p in paths}
 
 
@@ -88,18 +88,23 @@ def require(condition, reason):
         raise ValueError(reason)
 
 
+def historical_model(protocol):
+    """Load the exact protocol-bound source bytes without requiring Git history."""
+    old_bytes = BASELINE.read_bytes()
+    require(sha256(old_bytes).hexdigest() == protocol["baseline_sha256"], "frozen baseline source mismatch")
+    old = types.ModuleType("hepta._budget_erasure_historical")
+    old.__package__ = "hepta"
+    exec(compile(old_bytes, protocol["baseline_file"] + "@" + protocol["baseline_commit"], "exec"), old.__dict__)
+    return old, old_bytes
+
+
 def qualify(output):
     started = time.monotonic_ns()
     destination = Path(output).resolve()
     destination.mkdir(parents=True, exist_ok=False)
     protocol = json.loads(PROTOCOL.read_bytes())
     source = inventory()
-    old_bytes = subprocess.check_output([
-        "git", "show", protocol["baseline_commit"] + ":" + protocol["baseline_file"]], cwd=ROOT)
-    require(sha256(old_bytes).hexdigest() == protocol["baseline_sha256"], "frozen baseline source mismatch")
-    old = types.ModuleType("hepta._budget_erasure_historical")
-    old.__package__ = "hepta"
-    exec(compile(old_bytes, protocol["baseline_file"] + "@" + protocol["baseline_commit"], "exec"), old.__dict__)
+    old, old_bytes = historical_model(protocol)
     models = corpus(protocol)
     report = {"schema": "hepta.hia.ndu.budget-erasure.result.v1", "status": "failed",
               "protocol": protocol, "source_before": source, "model_count": len(models),
