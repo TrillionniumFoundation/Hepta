@@ -118,8 +118,7 @@ class CBackendTests(unittest.TestCase):
 
     def test_unsupported_semantics_are_explicit_errors(self):
         for source, code in [
-            ("fn main() -> Unit effects { alloc, block, panic,write } { let x = task_group(0,0,1); group_cancel_and_join(move x); }", "E_C_RESOURCE_IR"),
-            ("fn main() -> Unit effects {} { let x: f64 = 3 as f64; }", "E_C_BACKEND_CAST")]:
+            ("fn main() -> Unit effects { alloc, block, panic,write } { let x = task_group(0,0,1); group_cancel_and_join(move x); }", "E_C_RESOURCE_IR")]:
             program, checked = self.frontend(source)
             with self.assertRaises(HeptaError) as error:
                 emit_c(program, checked)

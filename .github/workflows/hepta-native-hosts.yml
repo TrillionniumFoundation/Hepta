@@ -10,6 +10,7 @@ on:
       - 'examples/**'
       - 'tests/test_native_host_evidence.py'
       - 'tests/test_c_float_casts.py'
+      - 'tests/test_c_float_conversions.py'
       - 'tests/test_c_backend.py'
       - 'tests/test_hia_aarch64*.py'
       - 'tests/fixtures/c_migration/**'
@@ -194,7 +195,7 @@ jobs:
         shell: bash
         run: |
           python -m unittest tests.test_native_host_evidence -v 2>&1 | tee artifacts/native-host-adapter-tests.log
-      - name: Check independent saturating float casts against native Rust
+      - name: Check independent numeric float casts against native Rust
         if: ${{ matrix.system == 'Linux' && matrix.cc_family == 'gcc' }}
         shell: bash
         run: |
@@ -210,10 +211,10 @@ jobs:
             python - <<'PYTHON'
           import unittest
           suite = unittest.defaultTestLoader.loadTestsFromNames([
-              "tests.test_c_float_casts", "tests.test_c_backend"])
+              "tests.test_c_float_casts", "tests.test_c_float_conversions", "tests.test_c_backend"])
           result = unittest.TextTestRunner(verbosity=2).run(suite)
-          if result.testsRun != 15 or result.skipped or not result.wasSuccessful():
-              raise SystemExit("All 15 actual GCC/Rust cast and C backend tests must pass without skips")
+          if result.testsRun != 21 or result.skipped or not result.wasSuccessful():
+              raise SystemExit("All 21 actual GCC/Rust cast and C backend tests must pass without skips")
           PYTHON
           } 2>&1 | tee artifacts/c-float-cast-native-tests.log
       - name: Execute both C profiles, three ill-typed declarations, and a compiled wrong echo
