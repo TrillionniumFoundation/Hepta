@@ -1,0 +1,67 @@
+module c_multi_owner_migrated;
+
+pub fn c_checksum_byte(p_state: u32, p_byte: u8, p_polynomial: u32) -> u32 effects {alloc,block,panic,write} {
+    let mut v_state: u32 = p_state;
+    let mut v_byte: u8 = p_byte;
+    let mut v_polynomial: u32 = p_polynomial;
+    let mut v_value_1: u32 = (v_state ^ (v_byte as u32));
+    let mut v_bit_2: u32 = ((0 as i32) as u32);
+    while (v_bit_2 < ((8 as i32) as u32)) {
+        if ((v_value_1 & (1 as u32)) != ((0 as i32) as u32)) {
+            v_value_1 = ((v_value_1 >> (1 as u32)) ^ v_polynomial);
+        }
+        else {
+            v_value_1 = (v_value_1 >> (1 as u32));
+        }
+        v_bit_2 = wrapping_add(v_bit_2, (1 as u32));
+    }
+    return v_value_1;
+}
+
+pub fn c_checksum_chunk(p_count: usize, p_packed: u64, p_state: u32, p_polynomial: u32) -> u64 effects {alloc,block,panic,write} {
+    let mut v_count: usize = p_count;
+    let mut v_packed: u64 = p_packed;
+    let mut v_state: u32 = p_state;
+    let mut v_polynomial: u32 = p_polynomial;
+    if (v_count == ((0 as i32) as usize)) {
+        return (v_state as u64);
+    }
+    if (v_count > ((8 as i32) as usize)) {
+        return (4294967296 as u64);
+    }
+    match try_buffer(v_count) {
+        Result::Err(allocation_error) => {
+            return (8589934592 as u64);
+        },
+        Result::Ok(acquired_owner_bytes_1) => {
+            let mut owner_bytes_1 = move acquired_owner_bytes_1;
+            let mut v_index_2: usize = ((0 as i32) as usize);
+            while (v_index_2 < v_count) {
+                owner_bytes_1[v_index_2] = ((v_packed >> wrapping_mul((v_index_2 as u64), (8 as u64))) as u8);
+                v_index_2 = wrapping_add(v_index_2, (1 as usize));
+            }
+            let mut v_value_3: u32 = v_state;
+            let mut v_index_4: usize = ((0 as i32) as usize);
+            while (v_index_4 < v_count) {
+                v_value_3 = c_checksum_byte(v_value_3, owner_bytes_1[v_index_4], v_polynomial);
+                v_index_4 = wrapping_add(v_index_4, (1 as usize));
+            }
+            drop(move owner_bytes_1);
+            return (v_value_3 as u64);
+        },
+    }
+}
+
+pub fn c_checksum_chunk_v2(p_count: usize, p_packed: u64, p_state: u32, p_algorithm: u32) -> u64 effects {alloc,block,panic,write} {
+    let mut v_count: usize = p_count;
+    let mut v_packed: u64 = p_packed;
+    let mut v_state: u32 = p_state;
+    let mut v_algorithm: u32 = p_algorithm;
+    if (v_algorithm == ((1 as i32) as u32)) {
+        return c_checksum_chunk(v_count, v_packed, v_state, (3988292384 as u32));
+    }
+    if (v_algorithm == ((2 as i32) as u32)) {
+        return c_checksum_chunk(v_count, v_packed, v_state, (2197175160 as u32));
+    }
+    return (12884901888 as u64);
+}
