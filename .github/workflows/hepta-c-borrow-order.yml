@@ -1,0 +1,53 @@
+name: Independent C call argument loan ordering
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'tests/test_c_borrow_order.py'
+      - 'tests/test_c_backend.py'
+      - 'tests/test_c_owned_backend.py'
+      - 'tests/test_resource_ir.py'
+      - 'tests/test_resource_evaluation_order.py'
+      - '.github/workflows/hepta-c-borrow-order.yml'
+permissions:
+  contents: read
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bind compilers and execute complete no-skip controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          rustup toolchain install 1.90.0 --profile minimal
+          export RUSTC="$(rustup which --toolchain 1.90.0 rustc)"
+          export CC="$(command -v gcc)"
+
+          { "$CC" --version; "$RUSTC" --version; sha256sum "$CC" "$RUSTC"; }
+          python - <<'PY'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromNames([
+              'tests.test_c_borrow_order', 'tests.test_c_backend',
+              'tests.test_c_owned_backend', 'tests.test_resource_ir',
+              'tests.test_resource_evaluation_order'])
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          if not result.wasSuccessful() or result.skipped or result.testsRun != 73:
+              raise SystemExit('Expected all 73 controls with no skips')
+          PY
+          test -z "$(git status --porcelain --untracked-files=no)"

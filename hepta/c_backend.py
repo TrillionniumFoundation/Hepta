@@ -233,7 +233,31 @@ class CEmitter:
             # including loans returned by another call and later owner moves.
             return
         borrowed = []
+
+        def check_access(expr):
+            # Earlier call arguments keep their loans until the call returns.
+            # Reading a later Copy value is still an access to its source place.
+            mode = "read"
+            place_expr = expr
+            if expr.kind == "unary" and expr.value in {"read", "mut"}:
+                mode, place_expr = expr.value, expr.children[0]
+            place = place_path(place_expr)
+            if place is not None:
+                for old_place, old_mode in borrowed:
+                    if places_overlap(old_place, place) and "mut" in {old_mode, mode}:
+                        fail("E_C_BORROW", "Argument access conflicts with an earlier live borrow", expr.span)
+                # A field access does not read its entire containing aggregate,
+                # but every index expression is evaluated before borrowing it.
+                while place_expr.kind in {"field", "index"}:
+                    if place_expr.kind == "index":
+                        check_access(place_expr.children[1])
+                    place_expr = place_expr.children[0]
+                return
+            for child in expr.children:
+                check_access(child)
+
         for arg, param in zip(call.children, fn.params):
+            check_access(arg)
             if param.mode in {"read", "mut"}:
                 place = place_path(arg.children[0]) if arg.kind == "unary" and arg.children else None
                 if place is None:
