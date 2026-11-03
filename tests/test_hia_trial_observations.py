@@ -11,6 +11,7 @@ import time
 import threading
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch, Mock
 
 from tests.test_hia_agent_gguf import offline_engine, response
 from tools.provider_adapter.llama_cpp_engine import LlamaCppEngine
@@ -170,6 +171,112 @@ class TrialObservationTests(unittest.TestCase):
             self.assertFalse(retained["oom_cause_established"])
             engine.close()
             self.assertEqual(first, (Path(folder)/"lifecycle.json").read_bytes())
+
+    def test_lifecycle_write_failure_still_releases_local_resources(self):
+        with tempfile.TemporaryDirectory() as folder:
+            engine = object.__new__(LlamaCppEngine)
+            engine.output = Path(folder)
+            engine.generation_count = engine.response_count = 0
+            engine.process = subprocess.Popen([sys.executable, "-c", "raise SystemExit(7)"])
+            self.assertEqual(engine.process.wait(timeout=5), 7)
+            engine.log = (Path(folder) / "server.log").open("wb")
+            engine.socket_directory = tempfile.TemporaryDirectory(dir=folder)
+            socket_folder = Path(engine.socket_directory.name)
+            failure = OSError("controlled lifecycle storage failure")
+            try:
+                with patch.object(Path, "write_bytes", side_effect=failure):
+                    with self.assertRaises(OSError) as caught:
+                        engine.close()
+                self.assertIs(caught.exception, failure)
+                self.assertTrue(engine.log.closed)
+                self.assertFalse(socket_folder.exists())
+                self.assertEqual(engine.process.returncode, 7)
+            finally:
+                engine.log.close()
+                engine.socket_directory.cleanup()
+
+    def test_live_child_is_reaped_even_when_lifecycle_storage_fails(self):
+        with tempfile.TemporaryDirectory() as folder:
+            engine = object.__new__(LlamaCppEngine)
+            engine.output = Path(folder)
+            engine.generation_count = engine.response_count = 0
+            engine.process = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])
+            engine.log = (Path(folder) / "server.log").open("wb")
+            engine.socket_directory = tempfile.TemporaryDirectory(dir=folder)
+            socket_folder = Path(engine.socket_directory.name)
+            try:
+                with patch.object(Path, "write_bytes", side_effect=OSError("controlled receipt failure")):
+                    with self.assertRaisesRegex(OSError, "controlled receipt failure"):
+                        engine.close()
+                self.assertIsNotNone(engine.process.returncode)
+                self.assertTrue(engine.log.closed)
+                self.assertFalse(socket_folder.exists())
+            finally:
+                if engine.process.poll() is None:
+                    engine.process.kill()
+                    engine.process.wait(timeout=5)
+                engine.log.close()
+                engine.socket_directory.cleanup()
+
+    def test_log_close_failure_does_not_skip_socket_cleanup(self):
+        with tempfile.TemporaryDirectory() as folder:
+            engine = object.__new__(LlamaCppEngine)
+            engine.output = Path(folder)
+            engine.generation_count = engine.response_count = 0
+            engine.process = None
+            engine.log = Mock()
+            failure = OSError("controlled log close failure")
+            engine.log.close.side_effect = failure
+            engine.socket_directory = tempfile.TemporaryDirectory(dir=folder)
+            socket_folder = Path(engine.socket_directory.name)
+            with self.assertRaises(OSError) as caught:
+                engine.close()
+            self.assertIs(caught.exception, failure)
+            self.assertFalse(socket_folder.exists())
+
+    def test_receipt_failure_retains_secondary_resource_failure(self):
+        with tempfile.TemporaryDirectory() as folder:
+            engine = object.__new__(LlamaCppEngine)
+            engine.output = Path(folder)
+            engine.generation_count = engine.response_count = 0
+            engine.process = None
+            engine.log = Mock()
+            engine.log.close.side_effect = OSError("controlled log close failure")
+            engine.socket_directory = Mock()
+            failure = OSError("controlled lifecycle write failure")
+            with patch.object(Path, "write_bytes", side_effect=failure):
+                with self.assertRaises(OSError) as caught:
+                    engine.close()
+            self.assertIs(caught.exception, failure)
+            self.assertIn("controlled log close failure", " ".join(failure.__notes__))
+            engine.socket_directory.cleanup.assert_called_once_with()
+
+    def test_initialization_failure_remains_primary_if_close_fails(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            binary, model = root / "binary", root / "model"
+            binary.write_bytes(b"not executable")
+            model.write_bytes(b"not a model")
+            prefix = "tools.provider_adapter.llama_cpp_engine."
+            startup_failure = RuntimeError("controlled startup failure")
+            cleanup_failure = OSError("controlled cleanup failure")
+            # Allocate no server, socket or model task. The real constructor
+            # reaches its startup exception through a rejected Popen fixture.
+            log = Mock()
+            socket_directory = Mock(name="socket directory")
+            socket_directory.name = str(root / "private-socket")
+            with patch(prefix + "subprocess.run", return_value=SimpleNamespace(stdout="fixture", stderr="")), \
+                 patch(prefix + "subprocess.Popen", side_effect=startup_failure), \
+                 patch(prefix + "tempfile.TemporaryDirectory", return_value=socket_directory), \
+                 patch.object(Path, "open", return_value=log), \
+                 patch(prefix + "file_identity", return_value={"sha256": "fixture"}), \
+                 patch(prefix + "resource_observation", return_value={}), \
+                 patch.object(LlamaCppEngine, "close", side_effect=cleanup_failure) as close:
+                with self.assertRaises(RuntimeError) as caught:
+                    LlamaCppEngine(binary=binary, model=model, model_sha256="fixture", output_dir=root / "run")
+            self.assertIs(caught.exception, startup_failure)
+            self.assertIs(caught.exception.__cause__, cleanup_failure)
+            close.assert_called_once_with()
 
     def test_invalid_budgets_never_start_a_generation(self):
         with tempfile.TemporaryDirectory() as folder:
