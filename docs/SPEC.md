@@ -478,9 +478,13 @@ conditionals/loops, checked indexing, and supported raw-pointer operations.
 Immediate indexing and `len` also materialize non-owned fixed-array temporary
 values once, including literals, returned arrays and nested field/index results.
 Base evaluation precedes index evaluation, bounds still abort, and short-circuit
-branches do not evaluate unused arrays. This does not extend temporary borrowing,
-assignment targets or the resource-IR profile: temporary projections in programs
-that require that independent gate remain rejected by it.
+branches do not evaluate unused arrays. This does not extend temporary borrowing
+or assignment targets. The resource-IR profile also permits immediate reads of
+Copy aggregate temporaries and their fixed-array lengths, evaluating each base
+once before its index. Named-place and returned-loan accesses retain their
+original overlap rules; owned temporaries and stored views are not erased into
+Copy values. Resource IR still abstracts scalar values and does not prove the
+native bounds checks or source-to-native refinement.
 Its borrow arguments must be named places. Multiple borrows of one root reject
 if any is mutable; this deliberately rejects some disjoint-field cases.
 Effectful nested calls in borrowed argument lists, indices, and raw-store
