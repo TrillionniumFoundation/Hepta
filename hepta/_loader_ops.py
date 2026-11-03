@@ -12,6 +12,16 @@ class LegacyLoaderOps:
     def revalidation_hook(self, project, original):
         """Private admission seam before resolving a revalidation descriptor."""
 
+    def edge(self, kind, depth):
+        """Private graph-work admission; legacy traversal has no quota."""
+
+    def node(self, kind):
+        """Private admission before retaining a new traversal node."""
+
+    def path(self, path, operation):
+        """Preserve the original Path method; experimental ops may admit it."""
+        return getattr(path, operation)()
+
     def read(self, path, role):
         return path.read_bytes()
 

@@ -48,7 +48,8 @@ _LEGACY_LOAD_PACKAGE = load_package
 
 
 def _load_package(root, _stack=None, _cache=None, *, ops) -> Package:
-    root = Path(root).resolve()
+    ops.edge("package", 1 if _stack is None else len(_stack) + 1)
+    root = ops.path(Path(root), 'resolve')
     stack = [] if _stack is None else _stack
     cache = {} if _cache is None else _cache
     manifest = root / "hepta.toml"
@@ -56,7 +57,8 @@ def _load_package(root, _stack=None, _cache=None, *, ops) -> Package:
         fail("E_PACKAGE_CYCLE", "Dependency cycle: " + " -> ".join(str(p) for p in stack + [root]), manifest)
     if root in cache:
         return cache[root]
-    if not manifest.is_file():
+    ops.node("package")
+    if not ops.path(manifest, 'is_file'):
         fail("E_PACKAGE_MANIFEST", "Expected a hepta.toml manifest", manifest)
     data = ops.read(manifest, 'manifest')
     try:
@@ -80,9 +82,9 @@ def _load_package(root, _stack=None, _cache=None, *, ops) -> Package:
     entry_value = meta.get("entry", f"{source_value}/{'main' if kind == 'bin' else 'lib'}.hepta")
     if not isinstance(source_value, str) or not isinstance(entry_value, str):
         fail("E_PACKAGE_SCHEMA", "entry and source_root must be paths", manifest)
-    source_root = _inside((root / source_value).resolve(), root, "source_root escapes its package")
-    entry = _inside((root / entry_value).resolve(), source_root, "entry escapes source_root")
-    if entry.suffix != ".hepta" or not entry.is_file():
+    source_root = _inside(ops.path(root / source_value, 'resolve'), root, "source_root escapes its package")
+    entry = _inside(ops.path(root / entry_value, 'resolve'), source_root, "entry escapes source_root")
+    if entry.suffix != ".hepta" or not ops.path(entry, 'is_file'):
         fail("E_PACKAGE_ENTRY", "Package entry must be an existing .hepta file", entry)
     package = Package(root, name, version, entry, kind, source_root, manifest_bytes=data)
     deps = config.get("dependencies", {})
@@ -93,7 +95,7 @@ def _load_package(root, _stack=None, _cache=None, *, ops) -> Package:
             fail("E_PACKAGE_NAME", "Dependency aliases must be ASCII identifiers", manifest)
         if not isinstance(spec, dict) or set(spec) != {"path"} or not isinstance(spec["path"], str):
             fail("E_PACKAGE_DEPENDENCY", "Dependencies require exactly { path = \"...\" }; network/registry resolution is not implemented", manifest)
-        dep_root = (root / spec["path"]).resolve()
+        dep_root = ops.path(root / spec["path"], 'resolve')
         dep = _dispatch(load_package, _LEGACY_LOAD_PACKAGE, _load_package, ops, dep_root, stack + [root], cache)
         if dep.kind != "lib":
             fail("E_PACKAGE_DEPENDENCY", "Dependencies must declare kind = \"lib\"", dep_root)
@@ -103,9 +105,13 @@ def _load_package(root, _stack=None, _cache=None, *, ops) -> Package:
 
 
 def find_manifest(source: Path) -> Path | None:
-    source = source.resolve()
+    return _find_manifest(source, ops=_LegacyLoaderOps())
+
+
+def _find_manifest(source: Path, *, ops) -> Path | None:
+    source = ops.path(source, 'resolve')
     for parent in [source.parent, *source.parent.parents]:
-        if (parent / "hepta.toml").is_file():
+        if ops.path(parent / "hepta.toml", 'is_file'):
             return parent
     return None
 
@@ -125,9 +131,11 @@ def _package_snapshot(package: Package, *, ops) -> dict:
     nodes = {}
     seen = set()
 
-    def visit(p):
+    def visit(p, depth=1):
+        ops.edge("package", depth)
         if p.root in seen:
             return
+        ops.node("package")
         seen.add(p.root)
         rel = Path(os.path.relpath(p.root, package.root)).as_posix()
         nodes[rel] = {"name": p.name, "version": p.version, "kind": p.kind,
@@ -141,21 +149,21 @@ def _package_snapshot(package: Package, *, ops) -> dict:
         # Refuse this unrepresented topology instead of issuing a partial lock.
         source_files = []
         for candidate in sorted(ops.inventory(p.source_root)):
-            if candidate.is_symlink() and candidate.is_dir():
-                _inside(candidate.resolve(), p.source_root, "Source directory symlink escapes its source_root")
+            if ops.path(candidate, 'is_symlink') and ops.path(candidate, 'is_dir'):
+                _inside(ops.path(candidate, 'resolve'), p.source_root, "Source directory symlink escapes its source_root")
                 fail("E_PACKAGE_SOURCE_LINK", "Source directory symlinks are not supported by package locks; use a real directory", candidate)
             if candidate.name.endswith(".hepta"):
                 source_files.append(candidate)
         for f in source_files:
-            _inside(f.resolve(), p.root, "Source symlink escapes its package")
-            if f.is_file():
+            _inside(ops.path(f, 'resolve'), p.root, "Source symlink escapes its package")
+            if ops.path(f, 'is_file'):
                 files[Path(os.path.relpath(f, package.root)).as_posix()] = digest(ops.read(f, 'source'))
                 sidecar = f.with_suffix(f.suffix + ".imports.json")
-                if sidecar.is_file():
-                    _inside(sidecar.resolve(), p.root, "C import metadata symlink escapes its package")
+                if ops.path(sidecar, 'is_file'):
+                    _inside(ops.path(sidecar, 'resolve'), p.root, "C import metadata symlink escapes its package")
                     files[Path(os.path.relpath(sidecar, package.root)).as_posix()] = digest(ops.read(sidecar, 'sidecar'))
         for d in p.dependencies.values():
-            visit(d)
+            visit(d, depth + 1)
     visit(package)
     content = {"packages": nodes, "files": files}
     return {"schema": "hepta.lock.v1", **content,
@@ -171,7 +179,7 @@ _LEGACY_VERIFY_LOCK = verify_lock
 
 def _verify_lock(package: Package, *, ops) -> dict:
     file = package.root / "Hepta.lock"
-    if not file.is_file():
+    if not ops.path(file, 'is_file'):
         fail("E_LOCK_MISSING", "Run hepta lock to create Hepta.lock before --locked validation", file)
     try:
         actual = ops.json(json.loads, ops.read(file, 'lock'), file)

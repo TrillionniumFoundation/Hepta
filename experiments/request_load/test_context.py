@@ -273,9 +273,9 @@ class ContextTests(unittest.TestCase):
         # Private owner admission seams reviewed against normal-source #623;
         # raw #622 legacy differential behavior remains independently covered.
         expected={
-            '_loader_ops':'6ed0bc0cb481a569e8cf34a69a0d3397ffa52275cfff8142140fef1152e9c43d',
-            'modules':'a2ccc10199fae42de43b7e6a1a65470b0b1c068864c8dedad4288f1478d66e3a',
-            'packages':'353384fed24014b8848a8a6a43729ae50739b201ecf83f49fabebb8a871281e5',
+            '_loader_ops':'e97be56c7a99e881e2b05e7f9294d4601a2ad78e420a79c2d05ee188feb2237d',
+            'modules':'def4ed2fb401002009c9f803a39bd19e51ffec849d0c918e79a932952686c5e3',
+            'packages':'a3c588c7d1b77ff8a8c6c98c057ada28437a802d646299a8903e54fa033afa2b',
             'lexer':'8138278341afc789f744bf89a752723a96b530043a37596f943f3d4e464ff153',
             'parser':'b3cc04259c953d112e1ffbf4482b380cbb15fdd994a5924507dd1d11d5c0c5cf'}
         root=Path(__file__).resolve().parents[2]
