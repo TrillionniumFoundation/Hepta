@@ -14,9 +14,9 @@ from pathlib import Path
 import shutil
 import subprocess
 import tempfile
-from dataclasses import replace
+from dataclasses import fields, is_dataclass, replace
 
-from .ast import Diagnostic, Enum, EnumVariant, HeptaError, Type
+from .ast import Diagnostic, Enum, EnumVariant, Expr, HeptaError, Type
 from .checker import is_owned_type, place_path, places_overlap, substitute_type
 from .native_local_views import local_slice_view_layouts
 
@@ -41,6 +41,7 @@ class CEmitter:
         from .borrowed_storage import has_borrowed_storage
         stored = has_borrowed_storage(program)
         self.program, self.checked, self.crate_type = program, checked, crate_type
+        self.check_pointer_sized_literals()
         self.structs = {s.name: s for s in program.structs}
         self.enums = {s.name: s for s in program.enums}
         self.enums["Result"] = Enum("Result", [EnumVariant("Ok", [Type("A")]), EnumVariant("Err", [Type("B")])], ("A", "B"))
@@ -78,6 +79,31 @@ class CEmitter:
                 self.views = local_slice_view_layouts(program, self.resource_graph["types"])
             except ValueError as error:
                 fail("E_C_BORROW_STORAGE", str(error))
+
+    def check_pointer_sized_literals(self):
+        # The shared checker delegates target-sized ranges to Rust. This
+        # independent backend instead qualifies only the 64-bit data model.
+        # Check even uninstantiated bodies and unexecuted branches: a C cast
+        # must not silently turn an invalid source literal into another value.
+        pending = [(self.program, None)]
+        while pending:
+            value, parent = pending.pop()
+            if isinstance(value, Expr):
+                typ = self.checked.expr_types.get(id(value))
+                if value.kind == "int" and typ and typ.name in {"isize", "usize"}:
+                    signed = typ.name == "isize"
+                    lower, upper = (-(1 << 63), (1 << 63) - 1) if signed else (0, (1 << 64) - 1)
+                    minimum_magnitude = (signed and value.value == 1 << 63 and
+                                         isinstance(parent, Expr) and parent.kind == "unary" and parent.value == "-")
+                    if not lower <= value.value <= upper and not minimum_magnitude:
+                        fail("E_C_INTEGER_RANGE", f"Integer literal does not fit {typ.name} in the C backend's 64-bit data model", value.span)
+                pending.extend((child, value) for child in value.children)
+            elif is_dataclass(value):
+                pending.extend((getattr(value, field.name), None) for field in fields(value))
+            elif isinstance(value, dict):
+                pending.extend((child, None) for child in value.values())
+            elif isinstance(value, (list, tuple)):
+                pending.extend((child, None) for child in value)
 
     def resolve(self, typ):
         return substitute_type(typ, self.mapping)
