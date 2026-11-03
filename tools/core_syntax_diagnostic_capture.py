@@ -22,8 +22,11 @@ import time
 
 DIAGNOSTIC_FILES = ('LinearTransport.stdout', 'LinearTransport.stderr', 'LinearTransport.events.jsonl')
 def target_configuration(target):
-    require(type(target) is str and target in ('LinearTransport', 'CertPart02'),
+    require(type(target) is str and target in ('LinearTransport', 'CertPart02', 'SevenCertificatePart02'),
             'fixed diagnostic target required')
+    if target == 'SevenCertificatePart02':
+        return (tuple(target + suffix for suffix in ('.stdout', '.stderr', '.events.jsonl')),
+                'HIA_SEVEN_DIAG_v1_P02_')
     return (tuple(target + suffix for suffix in ('.stdout', '.stderr', '.events.jsonl')),
             'HIA_DIAG_v1_' + ('LIN_' if target == 'LinearTransport' else 'P02_'))
 
@@ -167,6 +170,7 @@ class MarkerObserver:
     def __init__(self, markers, *, target="LinearTransport"):
         require(type(markers) in (list, tuple) and len(markers) <= MAX_MARKERS, 'planned marker cap/type')
         _, prefix = target_configuration(target)
+        self.reject_foreign = target == 'SevenCertificatePart02'
         self.pattern = rb'"(' + re.escape(prefix.encode()) + rb'[0-9]{3})" : String'
         self.markers = []
         for index, marker in enumerate(markers):
@@ -189,6 +193,9 @@ class MarkerObserver:
         for index, byte in enumerate(data):
             if byte == 10:
                 if not self.discarding:
+                    if self.reject_foreign:
+                        require(re.fullmatch(rb'"HIA_DIAG_v1_(?:LIN|P02)_[0-9]{3}" : String',
+                                             bytes(self.pending)) is None, 'foreign diagnostic marker namespace')
                     match = re.fullmatch(self.pattern, bytes(self.pending))
                     if match:
                         ident = match[1].decode('ascii')
@@ -210,7 +217,7 @@ class MarkerObserver:
 
 
 def capture_result(executable, source, output, root_path, *, safe_root, markers=(),
-                   manifest_reference=None, observer=None, target="LinearTransport"):
+                   manifest_reference=None, observer=None, target="LinearTransport", started_reference=None):
     """Return bounded metadata; raw logs never appear in the returned dictionary.
 
     observer(stream, chunk, stream_offset, elapsed_seconds) may return up to 24
@@ -234,6 +241,7 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
     cleanup_deadline = None
     eof = set()
     raw_limit_hit = False
+    metadata_limit_hit = False
     collect_enabled = True
     result = {'process_started': False, 'returncode': None, 'signal': None,
               'timeout_seconds': PROCESS_SECONDS, 'platform': None, 'pty': None,
@@ -241,6 +249,10 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
               'kernel_core_syntax_connection_checked': False, 'authority': 'DENY_ALL',
               'metadata_written_bytes': 0, 'metadata_remaining_bytes': METADATA_LIMIT,
               'raw_written_bytes': 0, 'compact_receipt_reference': None}
+    if target == 'SevenCertificatePart02':
+        result['started_reference'] = started_reference
+    else:
+        require(started_reference is None, 'old capture has no new started reference')
     argv = [str(executable), '--root=' + str(root_path), '-o', str(output), str(source)]
     result.update(argv=argv, cwd=str(root_path), search_path=str(root_path),
                   sysroot=str(Path(executable).parent.parent), manifest_reference=manifest_reference)
@@ -340,6 +352,14 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
                     'compact manifest reference required')
             original = safe_root.read(manifest_reference['path'], 8 * 1024 * 1024)
             require(sha256(original).hexdigest() == manifest_reference['sha256'], 'manifest reference changed')
+        if target == 'SevenCertificatePart02':
+            require(type(started_reference) is dict and set(started_reference) == {'path', 'sha256'} and
+                    started_reference['path'] == 'SevenCertificatePart02.started.json' and
+                    type(started_reference['sha256']) is str and
+                    re.fullmatch(r'[0-9a-f]{64}', started_reference['sha256']) is not None,
+                    'fixed target started reference required')
+            require(sha256(safe_root.read(started_reference['path'], METADATA_LIMIT)).hexdigest() ==
+                    started_reference['sha256'], 'target started reference changed')
         observed = platform_observation()
         result['platform'] = observed
         require_platform(observed)
@@ -407,6 +427,9 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
         status = 'diagnostic_failed' if result['interrupted'] else 'diagnostic_infrastructure_failed'
         collect_enabled = False
         reason = type(error).__name__ + ': ' + str(error)[:256]
+        if target == 'SevenCertificatePart02' and process is not None and isinstance(error, CaptureFailure) and str(error) == 'diagnostic metadata budget':
+            metadata_limit_hit = True
+            status = 'diagnostic_output_limit'
         kill_group()
         cleanup_deadline = time.monotonic() + CLEANUP_SECONDS
     finally:
@@ -427,6 +450,8 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
                 except BaseException as error:
                     status = 'diagnostic_infrastructure_failed'
                     reason = 'cleanup capture: ' + type(error).__name__ + ': ' + str(error)[:160]
+                    if target == 'SevenCertificatePart02' and process is not None and isinstance(error, CaptureFailure) and str(error) == 'diagnostic metadata budget':
+                        metadata_limit_hit = True
                     break
             try:
                 process.wait(timeout=max(0, cleanup_deadline - time.monotonic()))
@@ -452,8 +477,10 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
             status, reason = 'diagnostic_infrastructure_failed', 'incomplete cleanup or output drain'
         if process is not None and process.stderr is not None and not process.stderr.closed:
             process.stderr.close()
+        if metadata_limit_hit:
+            status, reason = 'diagnostic_output_limit', 'diagnostic metadata budget exhausted'
         result.update(status=status, error=reason, observed_bytes=observed_bytes,
-                      output_truncated=raw_limit_hit, marker_count=marker_count, last_observed_marker=last_marker,
+                      output_truncated=raw_limit_hit or metadata_limit_hit, marker_count=marker_count, last_observed_marker=last_marker,
                       next_planned_marker_id=(markers[marker_count]['id'] if marker_count < len(markers) else None),
                       cleanup_incomplete=process is not None and not (result['leader_reaped'] and result['drain_complete'] and 'group_cleanup_error' not in result),
                       elapsed_seconds=round(time.monotonic() - started, 6))

@@ -9,6 +9,11 @@ on:
       - 'tools/core_syntax_partition_sources.py'
       - 'tools/core_syntax_partition_diagnostic_sources.py'
       - 'tools/diagnose_core_syntax_partition.py'
+      - 'tools/core_seven_certificate*.py'
+      - 'tools/diagnose_core_seven_certificate.py'
+      - 'tests/test_core_seven_certificate*.py'
+      - 'docs/seven-certificate-first-four-diagnostic-design.md'
+      - 'docs/seven-certificate-source-proposal.md'
       - 'tools/core_byte_facts_*.py'
       - 'tools/diagnose_core_byte_facts.py'
       - 'tests/test_core_byte_facts_*.py'
@@ -117,7 +122,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        group: [sources, execution, noncomputable-sources, noncomputable-execution, partition-sources-a, partition-sources-b, partition-execution, partition-diagnostic-sources, partition-diagnostic-capture, partition-diagnostic-execution, byte-facts]
+        group: [sources, execution, noncomputable-sources, noncomputable-execution, partition-sources-a, partition-sources-b, partition-execution, partition-diagnostic-sources, partition-diagnostic-capture, partition-diagnostic-execution, byte-facts-dag, byte-facts-sources, byte-facts-diagnostic, byte-facts-execution, byte-facts-replay, seven-sources-a, seven-sources-b, seven-sources-c, seven-diagnostic, seven-execution-a, seven-execution-b, seven-execution-inverse]
     env:
       EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
       PYTHONDONTWRITEBYTECODE: '1'
@@ -149,31 +154,63 @@ jobs:
               'partition-diagnostic-sources': (['tests.test_core_syntax_partition_diagnostic_sources'], 9),
               'partition-diagnostic-capture': (['tests.test_core_syntax_partition_diagnostic_capture'], 5),
               'partition-diagnostic-execution': (['tests.test_core_syntax_partition_diagnostic_runner'], 16),
-              'byte-facts': (['tests.test_core_byte_facts_dag', 'tests.test_core_byte_facts_sources',
-                              'tests.test_core_byte_facts_diagnostic', 'tests.test_core_byte_facts_runner',
-                              'tests.test_core_byte_facts_capture_replay'], 77),
+              'byte-facts-dag': (['tests.test_core_byte_facts_dag'], 14),
+              'byte-facts-sources': (['tests.test_core_byte_facts_sources'], 21),
+              'byte-facts-diagnostic': (['tests.test_core_byte_facts_diagnostic'], 12),
+              'byte-facts-execution': (['tests.test_core_byte_facts_runner'], 22),
+              'byte-facts-replay': (['tests.test_core_byte_facts_capture_replay'], 8),
+              'seven-sources-a': (['tests.test_core_seven_certificate_sources'], 11),
+              'seven-sources-b': (['tests.test_core_seven_certificate_sources'], 10),
+              'seven-sources-c': (['tests.test_core_seven_certificate_sources'], 10),
+              'seven-diagnostic': (['tests.test_core_seven_certificate_diagnostic'], 12),
+              'seven-execution-a': (['tests.test_core_seven_certificate_runner'], 8),
+              'seven-execution-b': (['tests.test_core_seven_certificate_runner'], 7),
+              'seven-execution-inverse': (['tests.test_core_seven_certificate_runner'], 1),
               'partition-execution': (['tests.test_core_syntax_partitioned'], 12),
               'noncomputable-sources': (['tests.test_core_syntax_noncomputable_diagnostic_sources'], 16),
               'noncomputable-execution': (['tests.test_core_syntax_noncomputable_diagnostic_runner'], 8),
               'execution': (['tests.test_core_syntax_declaration_diagnostic_runner',
                              'tests.test_core_syntax_diagnostic_capture'], 42),
           }
-          names, expected = groups[os.environ['CONTROL_GROUP']]
-          suite = unittest.defaultTestLoader.loadTestsFromNames(names)
           def flatten(node):
               for item in node:
                   if isinstance(item, unittest.TestSuite):
                       yield from flatten(item)
                   else:
                       yield item
-          if os.environ['CONTROL_GROUP'] in ('partition-sources-a', 'partition-sources-b'):
-              cases = sorted(flatten(suite), key=lambda case: case.id())
-              assert len(cases) == len({case.id() for case in cases}) == 16, 'complete partition source inventory changed'
-              start = 0 if os.environ['CONTROL_GROUP'] == 'partition-sources-a' else 8
-              suite = unittest.TestSuite(cases[start:start + 8])
-          ids = [case.id() for case in flatten(suite)]
-          assert len(ids) == len(set(ids)) == expected, 'isolated test inventory changed'
-          print(json.dumps({'count':len(ids), 'inventory_sha256':hashlib.sha256('\n'.join(sorted(ids)).encode()).hexdigest()}))
+          inventories = {}
+          suites = {}
+          for group, (names, expected) in groups.items():
+              cases = sorted(flatten(unittest.defaultTestLoader.loadTestsFromNames(names)), key=lambda case: case.id())
+              if group.startswith(('partition-sources-', 'seven-sources-', 'seven-execution-')):
+                  complete_expected = 31 if group.startswith('seven-sources-') else 16
+                  assert len(cases) == len({case.id() for case in cases}) == complete_expected, 'complete split inventory changed'
+                  if group.startswith('partition-sources-'):
+                      start = 0 if group.endswith('-a') else 8
+                      cases = cases[start:start + 8]
+                  elif group.startswith('seven-sources-'):
+                      cases = cases['abc'.index(group[-1])::3]
+                  else:
+                      inverse_id = 'tests.test_core_seven_certificate_runner.SevenRunnerTests.test_full_inverse_replay_integration'
+                      inverse = [case for case in cases if case.id() == inverse_id]
+                      ordinary = [case for case in cases if case.id() != inverse_id]
+                      assert len(inverse) == 1 and len(ordinary) == 15, 'runner split inventory changed'
+                      # Preserve full truthful IDs; the indivisible full inverse runs alone.
+                      cases = inverse if group.endswith('-inverse') else ordinary[0 if group.endswith('-a') else 1::2]
+              ids = [case.id() for case in cases]
+              assert len(ids) == len(set(ids)) == expected, 'isolated test inventory changed: ' + group
+              inventories[group] = ids
+              suites[group] = unittest.TestSuite(cases)
+          all_ids = [test_id for ids in inventories.values() for test_id in ids]
+          all_names = sorted({name for names, _ in groups.values() for name in names})
+          complete_ids = [case.id() for case in flatten(unittest.defaultTestLoader.loadTestsFromNames(all_names))]
+          assert len(all_ids) == len(set(all_ids)) == len(complete_ids) == 276, 'combined inventory changed'
+          assert set(all_ids) == set(complete_ids), 'split omitted or duplicated controls'
+          group = os.environ['CONTROL_GROUP']
+          ids, suite = inventories[group], suites[group]
+          expected = groups[group][1]
+          print(json.dumps({'group': group, 'count': len(ids), 'tests': ids,
+                            'inventory_sha256': hashlib.sha256('\n'.join(ids).encode()).hexdigest()}), flush=True)
           result = unittest.TextTestRunner(verbosity=2).run(suite)
           assert result.testsRun == expected and result.wasSuccessful(), 'isolated controls failed'
           assert not result.skipped and not result.expectedFailures and not result.unexpectedSuccesses
