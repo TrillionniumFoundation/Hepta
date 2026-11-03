@@ -77,14 +77,35 @@ theorem parse_array (f d : Nat) (input tail : List Nat) (items : List Raw)
     (notEmptyClose : input.head? ≠ some 93)
     (children : parseItems f d input = some (items, tail)) :
     parseRaw (f + 1) (d + 1) (91 :: input) = some (.arr items, tail) := by
-  -- Diagnostic-only: this deliberate failure cannot admit the module.
   unfold parseRaw
-  trace "DIAGNOSTIC_PARSE_ARRAY_AFTER_UNFOLD"
-  trace_state
-  try split
-  trace "DIAGNOSTIC_PARSE_ARRAY_AFTER_SPLIT"
-  all_goals trace_state
-  fail "DIAGNOSTIC_ONLY_PARSE_ARRAY_STOP"
+  split
+  case h_1 => omega
+  case h_2 => omega
+  case h_3 =>
+    rename_i hinput
+    have bad : (91 : Nat) = 34 := (List.cons.inj hinput).1
+    omega
+  case h_4 =>
+    rename_i hinput
+    exact False.elim
+      (notEmptyClose (congrArg List.head? (List.cons.inj hinput).2))
+  case h_5 =>
+    rename_i childFuel childDepth rest excluded hf hd hinput
+    have fuelEq : f = childFuel := Nat.succ.inj hf
+    have depthEq : d = childDepth := Nat.succ.inj hd
+    have inputEq : input = rest := (List.cons.inj hinput).2
+    rw [← fuelEq, ← depthEq, ← inputEq, children] <;> rfl
+  case h_6 =>
+    rename_i hinput
+    have bad : (91 : Nat) = 123 := (List.cons.inj hinput).1
+    omega
+  case h_7 =>
+    rename_i hinput
+    have bad : (91 : Nat) = 123 := (List.cons.inj hinput).1
+    omega
+  case h_8 =>
+    rename_i noString noEmptyArray noArray noEmptyObject noObject
+    exact False.elim (noArray input rfl)
 
 /-- The explicit opening quote excludes the earlier empty-object pattern. -/
 theorem parse_object (f d : Nat) (input tail : List Nat)
