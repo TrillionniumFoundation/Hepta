@@ -486,6 +486,11 @@ class _FunctionLowerer:
                 value = self.expression(arg)
                 if param["mode"] == "value":
                     value = self.copy_value(value)
+                    # Call-by-value reads happen now, before later arguments
+                    # establish loans. Do not make the eventual call re-read
+                    # the source local under those later loans.
+                    if value.kind == "value":
+                        value = self.slot(value.type)
                 if value.kind != ("owner" if param["mode"] == "take" else "value"):
                     _unsupported("Call argument cannot erase ownership or references")
             values.append(value)
