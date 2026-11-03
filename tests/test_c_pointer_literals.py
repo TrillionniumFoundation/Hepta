@@ -134,7 +134,8 @@ class CPointerLiteralTests(unittest.TestCase):
                 src.write_text(emit_rust(p,c,crate_type='bin'))
                 result = subprocess.run([RUSTC,'--edition=2021',str(src),'-o',str(Path(td)/'program')],capture_output=True,text=True,timeout=60)
                 self.assertNotEqual(result.returncode,0)
-                self.assertIn('literal out of range',result.stderr)
+                self.assertIn('out of range',result.stderr)
+                self.assertIn('overflowing_literals',result.stderr)
 
 
 if __name__=='__main__':
