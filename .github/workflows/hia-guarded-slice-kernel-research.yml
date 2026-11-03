@@ -1,0 +1,75 @@
+name: HIA projected guarded-slice kernel research (DENY_ALL)
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'formal/HiaInitializationPrefix.lean'
+      - 'formal/toolchain-lock.json'
+      - 'formal/proof-dependencies.txt'
+      - 'experiments/hia_initialization_frontiers_20261103/GuardedUsizeSlice.lean'
+      - 'tools/check_guarded_slice_lean.py'
+      - 'tools/check_dynamic_unsigned_step.py'
+      - 'tools/extract_initialization_obligations.py'
+      - 'tools/check_initialization_frontiers.py'
+      - 'tools/experimental_deferred_guard_proposer.py'
+      - 'tools/research_deferred_guard_model.py'
+      - 'tools/qualify_hia_selected_formal.py'
+      - 'tools/evidence_checks.py'
+      - 'tools/qualify_hia_initialization_prefix.py'
+      - 'tools/bootstrap_verification.py'
+      - 'benchmarks/hia_reduction_release/linear.hepta'
+      - 'benchmarks/hia_reduction_release/affine.hepta'
+      - 'tests/test_guarded_slice_lean.py'
+      - '.github/workflows/hia-guarded-slice-kernel-research.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  projected-scalar-kernel:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify exact source and acquire existing bootstrap dependencies
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          git rev-parse HEAD HEAD^{tree}
+          python -m pip install zstandard 'z3-solver==4.15.4.0'
+          python -m pip show zstandard z3-solver
+          python -c "import z3; assert z3.get_version_string() == '4.15.4'"
+      - name: Acquire only the existing SHA-locked Lean checker
+        run: |
+          set -euo pipefail
+          timeout 300s python -B tools/bootstrap_verification.py --lean-only --directory "$RUNNER_TEMP/guarded-slice-tools"
+      - name: Kernel-check projected theorem, all concrete witnesses and negative controls
+        run: |
+          set -euo pipefail
+          timeout 600s python -B -m tools.check_guarded_slice_lean \
+            --lean "$RUNNER_TEMP/guarded-slice-tools/lean-4.19.0/bin/lean" \
+            --output-directory "$RUNNER_TEMP/guarded-slice-proof"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - name: Retain available diagnostics in the job log only
+        if: always()
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP']) / 'guarded-slice-proof'
+          for name in ('positive.stdout', 'positive.stderr', 'RESULT.json'):
+              path = root / name
+              if path.is_file():
+                  print(name)
+                  print(path.read_text()[:1048576])
+          PY
