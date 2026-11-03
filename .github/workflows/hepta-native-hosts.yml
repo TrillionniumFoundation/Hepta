@@ -144,7 +144,11 @@ jobs:
       - name: Verify exact head and install the pinned native Rust version
         shell: bash
         run: |
+          set -euo pipefail
+          git rev-parse HEAD 'HEAD^{tree}' > artifacts/native-host-source-before.log
+          git status --porcelain --untracked-files=no > artifacts/native-host-tracked-before.log
           test "$(git rev-parse HEAD)" = "$HEPTA_QUALIFICATION_HEAD_SHA"
+          test ! -s artifacts/native-host-tracked-before.log
           rustup toolchain install 1.90.0 --profile minimal 2>&1 | tee -a artifacts/native-host-setup.log
       - name: Establish the actual Visual Studio and Windows SDK environment
         if: matrix.system == 'Windows'
@@ -254,6 +258,16 @@ jobs:
             cp artifacts/stb-divide-host/qualification.json artifacts/stb-divide-host.json
           fi
           exit "$stb_status"
+      - name: Verify final exact head and unchanged clean tracked source
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD 'HEAD^{tree}' > artifacts/native-host-source-after.log
+          git status --porcelain --untracked-files=no > artifacts/native-host-tracked-after.log
+          test "$(git rev-parse HEAD)" = "$HEPTA_QUALIFICATION_HEAD_SHA"
+          test ! -s artifacts/native-host-tracked-after.log
+          cmp artifacts/native-host-source-before.log artifacts/native-host-source-after.log
       - name: Retain actual host evidence, including failures
         if: always()
         uses: actions/upload-artifact@v4
@@ -262,8 +276,13 @@ jobs:
           path: |
             artifacts/native-host.json
             artifacts/native-host-setup.log
+            artifacts/native-host-source-before.log
+            artifacts/native-host-source-after.log
+            artifacts/native-host-tracked-before.log
+            artifacts/native-host-tracked-after.log
             artifacts/native-host-adapter-tests.log
             artifacts/clang-capture-tests.log
+            artifacts/clang-capture-ownership-tests.log
             artifacts/original-type-process-tests.log
             artifacts/original-type-preflight.json
             artifacts/original-type-preflight.log

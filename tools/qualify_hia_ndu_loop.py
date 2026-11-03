@@ -499,7 +499,7 @@ def qualify(output, *, identity, clang, protocol=None, executable=None):
     save(root / "SOURCE_IDENTITY.json", source_identity)
     save(root / "PROTOCOL.json", protocol)
     base = program(protocol["calibration_multiplier"])
-    save(root / "BASE.json", base)
+    save(root / "BASE_PROGRAM.json", base)
     manifest = json.loads(Path(identity).read_text())
     save(root / "NATIVE_BUILD_IDENTITY.json", manifest)
     bridge = measured("study.native-bridge-admission", ledger,

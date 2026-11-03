@@ -546,7 +546,7 @@ def _qualify(output, *, identity, clang, protocol, decision_cache_entries, clean
     save(root / "HOST.json", host)
     base = measured("source.lower", shared, lambda: lower_source(
         (repository / "experiments/hia_optimizer_eval/kernels.hepta").read_text()))
-    save(root / "BASE.json", base.as_dict())
+    save(root / "BASE_PROGRAM.json", base.as_dict())
     manifest = json.loads(Path(identity).read_bytes())
     save(root / "NATIVE_BUILD_IDENTITY.json", manifest)
     bridge_factory = NduBridge.for_finite_profile

@@ -32,6 +32,7 @@ STREAM_PROFILE = 'zero-abstain-v1'
 NDU_SOURCE_PIN = STREAM_PROFILE_PINS[STREAM_PROFILE]
 REDUCTION_PROFILE = 'induction-multiload-v2'
 CORE_TESTS = (
+    'tests.test_cpp_upstream_host',
     'tests.test_hia_capability_flow', 'tests.test_hia_capability_identity',
     'tests.test_hia_capability_lifecycle',
     'tests.test_hia_capability_borrow',

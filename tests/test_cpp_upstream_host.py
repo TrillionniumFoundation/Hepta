@@ -1,5 +1,8 @@
 """Native-host identity and finite upstream observation refusal contracts."""
 import copy
+from contextlib import contextmanager
+import hashlib
+import json
 import os
 from pathlib import Path
 import shutil
@@ -11,11 +14,27 @@ from unittest.mock import patch
 
 from hepta.c_migrate import MigrationRejected
 from hepta.cpp_host_toolchain import parse_probe
-from tools.qualify_cpp_upstream_host import check_observation, inspect_executable, qualify
+from tools.qualify_cpp_upstream_host import (casefold_path_collisions, check_observation,
+    inspect_executable, qualify, require_clean_checkout, require_same_clean_checkout,
+    source_checkout_identity, validate_report)
 from tools.qualify_cpp_upgrade import FIXTURES, expected_rows, locked_libraries
 
 
 class CppUpstreamHostTests(unittest.TestCase):
+    @contextmanager
+    def checkout(self):
+        with tempfile.TemporaryDirectory(prefix='hepta-clean-source-') as td:
+            root = Path(td)
+            def git(*arguments):
+                return subprocess.check_output(['git', '-C', str(root), *arguments], stderr=subprocess.STDOUT)
+            git('init', '--quiet')
+            git('config', 'core.autocrlf', 'false')
+            (root / 'input.hepta').write_bytes(b'original input\n')
+            git('add', 'input.hepta')
+            git('-c', 'user.name=Checkout fixture', '-c', 'user.email=fixture@example.invalid',
+                'commit', '--quiet', '-m', 'clean initial source')
+            yield root, git
+
     def probe(self, family='gcc', system='Linux', machine='x86_64'):
         return (f'HEPTA_CXX_FAMILY {family}\nHEPTA_CXX_VERSION '
                 + ('194133823 0' if family == 'msvc' else '18 1 8')
@@ -146,6 +165,115 @@ class CppUpstreamHostTests(unittest.TestCase):
             self.assertFalse(report['claims']['actual_reported_host_executed'])
             self.assertEqual(report['versions'], [])
             run.assert_not_called()
+
+    def test_all_tracked_paths_and_directory_prefixes_are_casefold_unique(self):
+        root = Path(__file__).resolve().parents[1]
+        raw = subprocess.check_output(['git', 'ls-files', '-z'], cwd=root)
+        self.assertEqual(casefold_path_collisions(raw.decode().rstrip('\0').split('\0')), [])
+        for paths in [('archive/BASE.json', 'archive/base.json'),
+                      ('Archive/one.json', 'archive/two.json'),
+                      ('Output', 'output/child.json')]:
+            with self.subTest(paths=paths):
+                self.assertTrue(casefold_path_collisions(paths))
+        self.assertEqual(casefold_path_collisions(('archive/BASE_PROGRAM.json', 'archive/base.json')), [])
+
+    def test_dirty_checkout_stops_before_any_compiler_or_input_capture(self):
+        with self.checkout() as (root, git):
+            require_clean_checkout(source_checkout_identity(root))
+            (root / 'input.hepta').write_bytes(b'changed tracked input\n')
+            with patch('tools.qualify_cpp_upstream_host.ROOT', root), \
+                    patch('tools.qualify_cpp_upstream_host._run') as run, \
+                    patch('tools.qualify_cpp_upstream_host.compiler_identity') as compiler, \
+                    patch('tools.qualify_cpp_upstream_host.source_inputs') as inputs:
+                report = qualify(root / 'untracked-evidence')
+            self.assertFalse(report['ok'])
+            self.assertFalse(report['claims']['actual_reported_host_executed'])
+            self.assertEqual(report['versions'], [])
+            self.assertIn('not clean', report['error'])
+            self.assertTrue(report['source_checkout_before']['tracked_status'])
+            run.assert_not_called()
+            compiler.assert_not_called()
+            inputs.assert_not_called()
+
+    def test_checkout_pair_refuses_end_drift_same_dirty_state_and_missing_evidence(self):
+        with self.checkout() as (root, git):
+            before = source_checkout_identity(root)
+            require_same_clean_checkout(before, source_checkout_identity(root))
+            (root / 'untracked-evidence.json').write_bytes(b'generated output\n')
+            require_same_clean_checkout(before, source_checkout_identity(root))
+            (root / 'input.hepta').write_bytes(b'changed tracked input\n')
+            dirty = source_checkout_identity(root)
+            for first, last in [(before, dirty), (dirty, dirty), (None, before), (before, None)]:
+                with self.subTest(first=first, last=last), self.assertRaises(ValueError):
+                    require_same_clean_checkout(first, last)
+            git('add', 'input.hepta')
+            git('-c', 'user.name=Checkout fixture', '-c', 'user.email=fixture@example.invalid',
+                'commit', '--quiet', '-m', 'different clean source')
+            after = source_checkout_identity(root)
+            require_clean_checkout(after)
+            with self.assertRaisesRegex(ValueError, 'changed during qualification'):
+                require_same_clean_checkout(before, after)
+
+    def test_report_validator_rejects_equal_dirty_and_current_drift_before_other_checks(self):
+        with self.checkout() as (root, git):
+            clean = source_checkout_identity(root)
+            (root / 'input.hepta').write_bytes(b'changed tracked input\n')
+            dirty = source_checkout_identity(root)
+            for before, after, current in [(dirty, dirty, dirty), (clean, dirty, dirty),
+                                            (clean, clean, dirty), (clean, None, clean)]:
+                report = {'source_checkout_before': before, 'source_checkout_after': after}
+                with self.subTest(before=before, after=after), \
+                        patch('tools.qualify_cpp_upstream_host.source_checkout_identity', return_value=current), \
+                        patch('tools.qualify_cpp_upstream_host.compiler_hash') as compiler, \
+                        patch('tools.qualify_cpp_upstream_host.source_inputs') as inputs, \
+                        self.assertRaises(ValueError):
+                    validate_report(report)
+                compiler.assert_not_called()
+                inputs.assert_not_called()
+            colliding = dict(clean, casefold_collisions=[['BASE.json', 'base.json']])
+            with self.assertRaisesRegex(ValueError, 'collide under casefold'):
+                require_same_clean_checkout(colliding, colliding)
+
+    def test_archived_program_path_migrations_preserve_all_original_bytes(self):
+        root = Path(__file__).resolve().parents[1]
+        manifest = json.loads((root / 'docs/HIA_ARCHIVE_PATH_MIGRATIONS.json').read_bytes())
+        tracked = set(subprocess.check_output(['git', 'ls-files', '-z'], cwd=root).decode().split('\0'))
+        self.assertEqual(len(manifest['migrations']), 2)
+        for row in manifest['migrations']:
+            with self.subTest(path=row['original_path']):
+                self.assertNotIn(row['original_path'], tracked)
+                self.assertIn(row['current_path'], tracked)
+                for path, size, expected in [(row['current_path'], row['bytes'], row['sha256']),
+                        (row['unchanged_receipt']['path'], row['unchanged_receipt']['bytes'], row['unchanged_receipt']['sha256'])]:
+                    # The composition runner may use a sparse checkout. Its
+                    # full tracked index still pins these historical bytes.
+                    raw = subprocess.check_output(['git', 'show', ':' + path], cwd=root)
+                    self.assertEqual(len(raw), size)
+                    self.assertEqual(hashlib.sha256(raw).hexdigest(), expected)
+                    if (root / path).exists():
+                        self.assertEqual((root / path).read_bytes(), raw)
+
+    def test_active_ndu_generators_publish_distinct_program_and_receipt_paths(self):
+        from tools import qualify_hia_ndu_graph as graph, qualify_hia_ndu_loop as loop
+        for module, target in [(loop, 'tools.qualify_hia_ndu_loop.NduBridge'),
+                               (graph, 'tools.qualify_hia_ndu_graph.NduBridge.for_finite_profile')]:
+            with self.subTest(generator=module.__name__), tempfile.TemporaryDirectory() as td:
+                root = Path(td)
+                identity = root / 'identity.json'
+                identity.write_text(json.dumps({'binary': 'must-not-execute'}))
+                output = root / 'output'
+                with patch(target, side_effect=RuntimeError('stop before native admission')) as native, \
+                        self.assertRaisesRegex(RuntimeError, 'stop before native admission'):
+                    module.qualify(output, identity=identity, clang='must-not-execute')
+                native.assert_called_once()
+                source = output / 'BASE_PROGRAM.json'
+                original = source.read_bytes()
+                self.assertIn('functions', json.loads(original))
+                receipt = {'receipt': 'separate native observation fixture'}
+                loop.save(output / 'base.json', receipt)
+                self.assertEqual(source.read_bytes(), original)
+                self.assertEqual(json.loads((output / 'base.json').read_bytes()), receipt)
+                self.assertEqual(casefold_path_collisions(p.name for p in output.iterdir()), [])
 
 
 if __name__ == '__main__':
