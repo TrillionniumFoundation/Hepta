@@ -15,6 +15,7 @@ import shutil
 import subprocess
 import tempfile
 from dataclasses import replace
+from decimal import Decimal
 
 from .ast import Diagnostic, Enum, EnumVariant, HeptaError, Type
 from .checker import is_owned_type, place_path, places_overlap, substitute_type
@@ -47,6 +48,7 @@ class CEmitter:
         self.functions = {f.name: f for f in program.functions}
         self.declarations, self.types, self.active = [], {}, set()
         self.helpers = set()
+        self.has_float_literals = False
         self.counter = 0
         self.params = {}
         self.mapping = {}
@@ -379,9 +381,19 @@ class CEmitter:
         elif k == "int":
             expression = f"({self.typ(t)})" + (f"UINT64_C({e.value})" if t.name.startswith("u") else f"INT64_C({e.value})")
         elif k == "float":
+            self.has_float_literals = True
             if not math.isfinite(e.value):
                 fail("E_C_BACKEND_LITERAL", "Nonfinite literals are unsupported", e.span)
-            expression = f"({self.typ(t)})({e.value!r})"
+            # Match Rust emission from the shared binary64 AST value: parse
+            # its canonical decimal directly at the destination precision.
+            # Casting an unsuffixed C double introduces a second rounding.
+            literal = repr(e.value)
+            if not any(marker in literal for marker in (".", "e", "E")):
+                literal += ".0"
+            if (t.name == "f32" and Decimal(literal).copy_abs()
+                    >= Decimal((1 << 128) - (1 << 103))):
+                fail("E_C_BACKEND_LITERAL", "Floating literal rounds to infinity in f32", e.span)
+            expression = f"({self.typ(t)})({literal}{'f' if t.name == 'f32' else ''})"
         elif k == "bool":
             expression = "true" if e.value else "false"
         elif k == "array":
@@ -565,6 +577,11 @@ class CEmitter:
 
     def helper_source(self):
         lines = []
+        if self.has_float_literals:
+            lines.append('_Static_assert(FLT_RADIX == 2 && FLT_MANT_DIG == 24 && DBL_MANT_DIG == 53 '
+                         '&& FLT_MAX_EXP == 128 && DBL_MAX_EXP == 1024 '
+                         '&& sizeof(float) == 4 && sizeof(double) == 8, '
+                         '"Floating literals require binary32/binary64");')
         for name in sorted(self.helpers):
             t = SCALARS[name]
             signed = name.startswith("i")
@@ -665,7 +682,7 @@ static {result_name} __hepta_cb_try_buffer(size_t size) {{
                 fail("E_C_ENTRYPOINT", "A C binary requires a non-FFI main() -> Unit or i32")
             expression = self.fn_name(main) + "()"
             bodies.append("int main(void) { " + (expression + "; return 0;" if main.return_type.name == "Unit" else "return " + expression + ";") + " }")
-        includes = "\n".join("#include <" + name + ">" for name in ["stdint.h", "stddef.h", "stdbool.h", "inttypes.h", "limits.h", "stdlib.h", "stdio.h", "string.h", "math.h"])
+        includes = "\n".join("#include <" + name + ">" for name in ["stdint.h", "stddef.h", "stdbool.h", "inttypes.h", "limits.h", "stdlib.h", "stdio.h", "string.h", "math.h", "float.h"])
         runtime = self.runtime_source()
         drops = "\n".join("static void " + name + "(" + self.typ(typ) + " value);" for typ, (name, _) in self.drops.items())
         drops += "\n" + "\n".join(body for _, body in self.drops.values())
