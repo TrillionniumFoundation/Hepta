@@ -367,6 +367,46 @@ def build_request(raw):
     return _build_request(validate_model(raw))
 
 
+def _copy_plan(witness):
+    """Detach a generated finite plan, falling back if its schema evolves.
+
+    The fast path admits only the current dictionary/list structure with exact
+    immutable builtin leaves. A new field or mutable leaf uses deepcopy rather
+    than silently sharing state. This is internal copying, not input admission;
+    public input still passes bounded model snapshot and validation first.
+    """
+    scalar = (str, int, bool, type(None))
+    lists = {"ready_before", "ready_after", "acquired", "retired", "invalidated"}
+    fields = lists | {"mode", "batch", "dispatch", "costs", "total_ns", "session_after"}
+    if (type(witness) is not dict
+            or set(witness) not in ({"actions", "close_ns", "total_ns"},
+                                   {"actions", "close_ns", "total_ns", "current_committed_ns"})
+            or type(witness["actions"]) is not list
+            or any(type(v) not in scalar for k, v in witness.items() if k != "actions")):
+        return deepcopy(witness)
+    actions = []
+    for action in witness["actions"]:
+        if type(action) is not dict or set(action) != fields:
+            return deepcopy(witness)
+        copied = {}
+        for key, value in action.items():
+            if key in lists:
+                if type(value) is not list or any(type(v) is not str for v in value):
+                    return deepcopy(witness)
+                copied[key] = list(value)
+            elif key == "costs":
+                if (type(value) is not dict
+                        or any(type(k) is not str or type(v) is not int for k, v in value.items())):
+                    return deepcopy(witness)
+                copied[key] = dict(value)
+            else:
+                if type(value) not in scalar:
+                    return deepcopy(witness)
+                copied[key] = value
+        actions.append(copied)
+    return {**witness, "actions": actions}
+
+
 def _build_request(model, planner=None):
     # Internal callers pass only this request's detached validated model and
     # planner. No mutable caller cache or cross-request plan is accepted.
@@ -381,7 +421,7 @@ def _build_request(model, planner=None):
                "verification": "independent caller admission, not authenticated by model digests"}
     candidates, mapping = [], {}
     for witness in planner.frontier(committed_call_ns=current_charge):
-        plan = deepcopy(witness)
+        plan = _copy_plan(witness)
         identity = "cost-" + digest(plan)[:24]
         mapping[identity] = plan
     # The native protocol requires literal abstain to have exactly zero effect
