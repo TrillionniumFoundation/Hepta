@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """A new owner-evidence registry for the unchanged three-arm v4 protocol.
 
-Original sources, registration and results remain unchanged. Inference and
-scoring reuse v4 with newly frozen source/tool/model identities.
+Historical registration and results remain unchanged. Inference and scoring
+reuse v4 with newly frozen source/tool/model identities; runner changes require
+fresh preparation and registration.
 """
 from __future__ import annotations
 

@@ -129,8 +129,9 @@ class ProtocolControls(unittest.TestCase):
             self.assertTrue((Path(td)/"cell"/"attempt-0.evaluation.json").exists())
             self.assertTrue((Path(td)/"cell"/"CELL.json").exists())
 
-    def fake_cohort(self, first_error=None, native_error=False, boundary_error=False):
-        instances=[]
+    def fake_cohort(self, first_error=None, native_error=False, boundary_error=False,
+                    missing_identity=None, close_error=False, engine_identity_error=False, observed_engines=None):
+        instances=[] if observed_engines is None else observed_engines
         model=run_study.read(run_study.HERE/"PROTOCOL.json")["models"][0]
 
         class Process:
@@ -141,14 +142,25 @@ class ProtocolControls(unittest.TestCase):
             def __init__(self, **kwargs):
                 directory=Path(kwargs["output_dir"]);directory.mkdir()
                 super().__init__([],directory)
-                self.response_count=0;self.process=Process();instances.append(self)
+                self.response_count=0;self.process=Process();self.close_calls=0;instances.append(self)
             def generate(self,messages,**kwargs):
                 self.outputs.append(first_error if first_error is not None and len(instances)==1 and self.generation_count==0 else "mock candidate")
                 result=super().generate(messages,**kwargs);self.response_count+=1;return result
-            def verify_final_identity(self): return {"model_unchanged":True,"runtime_unchanged":True}
-            def close(self): self.process.exited=True
+            def verify_final_identity(self):
+                if engine_identity_error:
+                    if isinstance(engine_identity_error, BaseException):
+                        raise engine_identity_error
+                    raise OSError("fixture final engine identity unavailable")
+                return {"model_unchanged":True,"runtime_unchanged":True}
+            def close(self):
+                self.close_calls+=1
+                if close_error:
+                    raise OSError("fixture engine cleanup failed")
+                self.process.exited=True
 
         def identity(path):
+            if str(path)==missing_identity and instances and instances[0].generation_count:
+                raise FileNotFoundError("fixture identity disappeared: " + str(path))
             return {"path":str(path),"bytes":model["bytes"] if str(path)=="model.gguf" else 1,
                     "sha256":model["sha256"] if str(path)=="model.gguf" else "fixed"}
 
@@ -169,6 +181,7 @@ class ProtocolControls(unittest.TestCase):
             if boundary_error:
                 stack.enter_context(patch.object(run_study,"check_cell_identities",return_value={"passed":False,"wall_ns":1}))
             result=run_study.run(output=str(Path(td)/"cohort"),model_id=model["id"],model_path="model.gguf",binary="binary",clang="clang",rustc="rustc")
+            self.assertEqual(run_study.read(Path(td)/"cohort"/model["id"]/"MODEL_RESULT.json"),result)
         return result,instances
 
     def test_timeout_next_distinct_cell_uses_fresh_process_without_retry(self):
@@ -194,6 +207,65 @@ class ProtocolControls(unittest.TestCase):
         self.assertFalse(result["valid_observation"]);self.assertEqual(len(result["cells"]),1)
         self.assertEqual(result["cells"][0]["status"],"generation_infrastructure_failure")
         self.assertEqual(len(engines),1);self.assertEqual(result["new_requests"],1)
+
+    def test_missing_final_model_or_tool_retains_terminal_cost_evidence(self):
+        for missing in ("model.gguf", "clang"):
+            with self.subTest(missing=missing):
+                result, engines = self.fake_cohort(missing_identity=missing)
+                self.assertFalse(result["valid_observation"])
+                self.assertEqual(result["status"], "incomplete")
+                self.assertEqual(len(result["cells"]), 1)
+                self.assertEqual(result["new_requests"], 1)
+                self.assertEqual(result["responses_received"], 1)
+                field = "model_unchanged" if missing == "model.gguf" else "tools_unchanged"
+                self.assertFalse(result[field])
+                self.assertEqual(result["final_identity_errors"][field]["type"], "FileNotFoundError")
+                self.assertTrue(engines[0].process.exited)
+                self.assertEqual(engines[0].close_calls, 1)
+                self.assertFalse(result["cell_identity_checks"][0]["passed"])
+
+    def test_failed_cleanup_is_not_retried_or_erased_from_request_counts(self):
+        result, engines = self.fake_cohort(first_error=RuntimeError("fixture generation failed"), close_error=True)
+        self.assertEqual(len(result["cells"]), 1)
+        self.assertFalse(result["valid_observation"])
+        self.assertEqual(result["status"], "incomplete")
+        self.assertEqual(result["new_requests"], 1)
+        self.assertEqual(result["responses_received"], 0)
+        self.assertEqual(engines[0].close_calls, 1)
+        self.assertFalse(result["engines"][0]["process_exited"])
+        self.assertTrue(result["engines"][0]["cleanup_attempted"])
+        self.assertEqual(result["engines"][0]["cleanup_error"]["message"], "fixture engine cleanup failed")
+        self.assertEqual(result["cells"][0]["attempts"][0]["error"]["message"], "fixture generation failed")
+
+    def test_interrupt_during_final_identity_still_attempts_cleanup_once(self):
+        engines = []
+        with self.assertRaises(KeyboardInterrupt):
+            self.fake_cohort(engine_identity_error=KeyboardInterrupt("fixture interrupt"), observed_engines=engines)
+        self.assertEqual(engines[0].close_calls, 1)
+        self.assertTrue(engines[0].process.exited)
+
+    def test_terminal_report_write_failure_propagates_without_cleanup_retry(self):
+        engines = []
+        publish = evaluator.save
+        def fail_report(path, value):
+            if Path(path).name == "MODEL_RESULT.json":
+                raise OSError("fixture terminal storage failure")
+            return publish(path, value)
+        with patch.object(evaluator, "save", side_effect=fail_report):
+            with self.assertRaisesRegex(OSError, "fixture terminal storage failure"):
+                self.fake_cohort(observed_engines=engines)
+        self.assertEqual(engines[0].close_calls, 1)
+        self.assertTrue(engines[0].process.exited)
+
+    def test_engine_identity_and_cleanup_errors_are_both_retained(self):
+        result, engines = self.fake_cohort(engine_identity_error=True, close_error=True)
+        self.assertFalse(result["valid_observation"])
+        self.assertEqual(result["new_requests"], 12)
+        self.assertEqual(result["responses_received"], 12)
+        self.assertEqual(engines[0].close_calls, 1)
+        self.assertEqual(result["engines"][0]["identity_error"]["type"], "OSError")
+        self.assertEqual(result["engines"][0]["cleanup_error"]["type"], "OSError")
+        self.assertIn("shutdown_or_identity_error", result)
 
     def test_missing_cells_fail_gates_and_unknown_total_not_partial_sum(self):
         result=run_study.summarize_cells([],[])
