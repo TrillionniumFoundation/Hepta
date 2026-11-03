@@ -45,8 +45,8 @@ correctness remain external trusted boundaries, not kernel results.
 ## Concrete controls and scope
 
 The inherited #600 positive input retains its 56 named generic/descriptor/witness
-checks. Four new generic theorems plus five concrete certificates bring this lane
-to 65 exact named axiom checks:
+checks. Five new generic theorems plus five concrete certificates bring this lane
+to 66 exact named axiom checks:
 
 - Full real linear Core byte certificate, first-slice extraction, structural relation.
 - Full reverified variant with swapped same-typed else-arm arguments, while the
@@ -126,3 +126,30 @@ theorem's permitted axioms. All other outcomes fail closed. This protocol avoids
 misclassifying meta-reduction limits as intended proof rejection. It does not
 make the still-unexecuted repaired proof text a theorem: fresh exact-head CI and
 independent review remain required.
+
+
+## Second retained failure and composed transport certificates
+
+Head 578156b7ed04e47a7020d5e750c450de0b7fa521,
+[run 41645044832/job125948056409](https://github.com/TrillionniumFoundation/Hepta/actions/runs/41645044832/job/125948056409),
+also failed before counting negatives. Parsing was repaired and the generic
+roundtrip/determinacy declarations checked, but synthesis of the full relation's
+Decidable instance failed. Full concrete transport checks still emitted depth-
+related diagnostics; the pretty-printing failure does not identify their exact
+kernel cause. No syntax connection or rejection certificate was accepted.
+
+An independent exact-rule Python mirror reproduced serialization and parsing of
+the full 14,466-byte fixture, with all nodes/depth/fuel in bounds. This is only a
+finite diagnostic ruling out an observed domain/fuel mismatch, not a Lean proof.
+
+The next repair leaves every evaluator, relation clause, limit and full-byte
+conclusion unchanged. It assembles the relation decision from 58 small clause
+decisions rather than one recursive typeclass search. It separately kernel-checks
+five concrete transport components: withinBounds, serializeRaw, parseRaw consuming
+the entire byte list, byte-list length, and every byte's range. The new generic
+checkedEncode_of_parts theorem rewrites those proven equalities into the same
+checkedEncode result. Component facts are proved, not additional caller premises.
+The transport theorem's axiom inventory includes their dependencies. This both
+caches intermediate proofs and identifies any still-costly component without
+raising recursion/heartbeat/process budgets. Fresh mutant transport certificates
+use the same construction. New proof text remains UNCHECKED pending exact-head CI.

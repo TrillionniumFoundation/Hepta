@@ -305,6 +305,22 @@ def checkedEncode (raw : Raw) : Option (List Nat) :=
   | none => none
   | some bytes => if decode bytes = some raw then some bytes else none
 
+/-- Compose separately kernel-checked computational certificates without
+    weakening the full byte equality or any transport bound. The premises
+    concern the same raw tree and the same independently supplied byte list. -/
+theorem checkedEncode_of_parts (raw : Raw) (bytes : List Nat)
+    (bounds : withinBounds raw = true)
+    (serialized : serializeRaw transportFuel transportDepth raw = some bytes)
+    (parsed : parseRaw transportFuel transportDepth bytes = some (raw, []))
+    (boundedLength : bytes.length ≤ transportByteLimit)
+    (byteRange : bytes.all (fun byte => decide (byte ≤ 255)) = true) :
+    checkedEncode raw = some bytes := by
+  have encoded : serializeChecked raw = some bytes := by
+    simp [serializeChecked, bounds, serialized, boundedLength]
+  have decoded : decode bytes = some raw := by
+    simp [decode, boundedLength, byteRange, parsed, bounds]
+  simp [checkedEncode, encoded, decoded]
+
 /-- Generic checked round trip. This says nothing about unaccepted inputs. -/
 theorem checkedEncode_roundtrip (raw : Raw) (bytes : List Nat)
     (accepted : checkedEncode raw = some bytes) : decode bytes = some raw := by
@@ -568,9 +584,76 @@ def SliceSyntaxRelation (raw : Raw) (hint : Hint) (d : Descriptor) : Prop :=
   d.compareOp = .lt ∧ d.selectedArm = .thenArm ∧ d.addIndexSlot = d.indexSlot ∧
   d.addType = .usize ∧ d.literalType = .usize ∧ d.literalValue = 1
 
+/-- Assemble small decisions without asking typeclass search to synthesize
+    the entire structural contract in one recursive search. -/
+def andDecision {p q : Prop} (left : Decidable p) (right : Decidable q) :
+    Decidable (p ∧ q) :=
+  match left, right with
+  | isTrue hp, isTrue hq => isTrue ⟨hp, hq⟩
+  | isFalse hp, _ => isFalse (fun both => hp both.1)
+  | _, isFalse hq => isFalse (fun both => hq both.2)
+
 instance (raw : Raw) (hint : Hint) (d : Descriptor) : Decidable (SliceSyntaxRelation raw hint d) := by
-  unfold SliceSyntaxRelation
-  infer_instance
+  dsimp only [SliceSyntaxRelation]
+  exact
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    andDecision (by infer_instance) (
+    (by infer_instance))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
 
 /-- Successful reconstruction requires the independently specified contract. -/
 def extract (raw : Raw) (hint : Hint) : Option Descriptor :=

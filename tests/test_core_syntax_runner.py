@@ -122,12 +122,14 @@ class CoreSyntaxGeneratedInputTests(unittest.TestCase):
         self.assertEqual(p['manifest']['core_sha256'],
                          'c7b8b9ef7619700fd9c5ec0dedb06fbf7ecc801563813b6cb7abaf7e08a467d3')
         self.assertEqual(p['canonical_bytes'],proof.fixed_input()['bytes'])
-        self.assertEqual(len(p['expected_theorems']),65)
+        self.assertEqual(len(p['expected_theorems']),66)
         for name in ('linear_transport','linear_extraction','linear_relation',
                      'parallel_transport','parallel_extraction'):
             self.assertIn('HiaCoreSyntaxSlice.'+name,p['expected_theorems'])
         self.assertIn('def parallelRaw : Raw :=',p['positive'])
-        self.assertIn('theorem linear_transport : checkedEncode linearRaw = some linearBytes := by decide +kernel',p['positive'])
+        self.assertIn('checkedEncode_of_parts linearRaw linearBytes linear_bounds linear_serialized linear_parsed linear_length linear_byte_range',p['positive'])
+        for suffix in ('bounds','serialized','parsed','length','byte_range'):
+            self.assertIn('theorem linear_'+suffix,p['positive'])
         self.assertNotIn('native_decide', p['positive'])
         self.assertIn('theorem linear_0_small',p['positive'])
         self.assertIn('theorem linear_0_upper',p['positive'])

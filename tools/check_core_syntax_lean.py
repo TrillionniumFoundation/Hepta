@@ -199,7 +199,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MODEL = ROOT / 'experiments/hia_initialization_frontiers_20261103/CoreSyntaxSlice.lean'
 NAMESPACE = 'HiaCoreSyntaxSlice'
 MODEL_THEOREMS = {'checkedEncode_roundtrip', 'checkedEncode_determinate',
-                  'extract_sound', 'extracted_successor'}
+                  'extract_sound', 'extracted_successor', 'checkedEncode_of_parts'}
 MAX_TOTAL_PROOF_BYTES = 8 * 1024 * 1024
 
 
@@ -236,6 +236,20 @@ def _definitions(tree, raw, hint):
         'def linearHint : Hint := ' + render_hint(tree, hint) + '\n'))
 
 
+def transport_certificates(prefix, raw_name, bytes_name):
+    """Cache separate exact components, then compose the unchanged conclusion."""
+    require(all(re.fullmatch(r'[A-Za-z][A-Za-z0-9_]*', n) for n in
+                (prefix, raw_name, bytes_name)), 'certificate identifier')
+    return checked_source((
+        f'theorem {prefix}_bounds : withinBounds {raw_name} = true := by decide +kernel\n',
+        f'theorem {prefix}_serialized : serializeRaw transportFuel transportDepth {raw_name} = some {bytes_name} := by decide +kernel\n',
+        f'theorem {prefix}_parsed : parseRaw transportFuel transportDepth {bytes_name} = some ({raw_name}, []) := by decide +kernel\n',
+        f'theorem {prefix}_length : {bytes_name}.length ≤ transportByteLimit := by decide +kernel\n',
+        f'theorem {prefix}_byte_range : {bytes_name}.all (fun byte => decide (byte ≤ 255)) = true := by decide +kernel\n',
+        f'theorem {prefix}_transport : checkedEncode {raw_name} = some {bytes_name} :=\n',
+        f'  checkedEncode_of_parts {raw_name} {bytes_name} {prefix}_bounds {prefix}_serialized {prefix}_parsed {prefix}_length {prefix}_byte_range\n'))
+
+
 def build_inputs():
     """One real slice first; neither Python extraction nor mock checks prove it."""
     from copy import deepcopy
@@ -246,8 +260,7 @@ def build_inputs():
     fixed = fixed_input()
     model = _model()
     defs = _definitions(fixed['tree'], fixed['bytes'], fixed['hint'])
-    proofs = '''theorem linear_transport : checkedEncode linearRaw = some linearBytes := by decide
- theorem linear_extraction : extract linearRaw linearHint = some HiaGuardedUsizeSlice.linear_0 := by decide
+    proofs = transport_certificates('linear','linearRaw','linearBytes') + '''theorem linear_extraction : extract linearRaw linearHint = some HiaGuardedUsizeSlice.linear_0 := by decide
  theorem linear_relation : SliceSyntaxRelation linearRaw linearHint HiaGuardedUsizeSlice.linear_0 :=
    extract_sound linearRaw linearHint HiaGuardedUsizeSlice.linear_0 linear_extraction
 '''.replace('\n theorem', '\ntheorem').replace('by decide\n', 'by decide +kernel\n')
@@ -266,8 +279,7 @@ def build_inputs():
     parallel_bytes = verify_program(parallel).canonical_bytes
     parallel_tree = strict_canonical(parallel_bytes)
     parallel_defs = _definitions(parallel_tree, parallel_bytes, fixed['hint']).replace('linearRaw','parallelRaw').replace('linearBytes','parallelBytes').replace('linearHint','parallelHint')
-    parallel_proofs = '''theorem parallel_transport : checkedEncode parallelRaw = some parallelBytes := by decide
- theorem parallel_extraction : extract parallelRaw parallelHint = some HiaGuardedUsizeSlice.linear_0 := by decide
+    parallel_proofs = transport_certificates('parallel','parallelRaw','parallelBytes') + '''theorem parallel_extraction : extract parallelRaw parallelHint = some HiaGuardedUsizeSlice.linear_0 := by decide
 '''.replace('\n theorem','\ntheorem').replace('by decide\n', 'by decide +kernel\n')
     new_names = MODEL_THEOREMS | {'linear_transport', 'linear_extraction', 'linear_relation',
                                  'parallel_transport', 'parallel_extraction'}
@@ -322,7 +334,7 @@ def build_inputs():
         checked = verify_program(mutant)
         raw = checked.canonical_bytes
         negative(kind, _definitions(strict_canonical(raw), raw, fixed['hint']) +
-                 'theorem mutated_transport : checkedEncode linearRaw = some linearBytes := by decide +kernel\n',
+                 transport_certificates('mutated','linearRaw','linearBytes'),
                  'extract linearRaw linearHint = some HiaGuardedUsizeSlice.linear_0',
                  'reverified_core_syntax')
     negative('leading_zero', '\nnamespace HiaCoreSyntaxSlice\n',
