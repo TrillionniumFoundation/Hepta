@@ -65,6 +65,13 @@ class _Chain:
 # user buffers, and consumes the same allocation-failure sequence.
 CHAIN_NODE_BYTES = 24
 
+# This fixed dispatch group is shared by every instruction, not reconstructed
+# for each dynamic VM step. It does not replace opcode/version admission.
+_BINARY_ARITHMETIC_OPS = frozenset({
+    "int.add.checked", "int.add.wrap", "int.sub.checked", "int.sub.wrap",
+    "int.mul.checked", "int.mul.wrap",
+})
+
 
 def _underlying(value):
     seen = set()
@@ -219,7 +226,7 @@ class _Machine:
         result = []
         if op == "const":
             result = [attrs["value"]]
-        elif op in {f"int.{a}.{m}" for a in ("add", "sub", "mul") for m in ("checked", "wrap")}:
+        elif op in _BINARY_ARITHMETIC_OPS:
             a, b = args
             kind = op.split(".")[1]
             value = a + b if kind == "add" else a - b if kind == "sub" else a * b

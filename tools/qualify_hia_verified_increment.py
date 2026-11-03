@@ -39,6 +39,7 @@ MODULES = (
     "tests.test_hia_routes", "tests.test_hia_ndu",
     "tests.test_hia_ndu_loop", "tests.test_hia_ndu_bridge_isolation", "tests.test_hia_adaptive",
     "tests.test_hia_runtime_policy_predecode",
+    "tests.test_hia_runtime_dispatch",
     "tests.test_hia_runtime_source_preflight",
     "tests.test_hia_owned_entry_abi_preflight",
     "tests.test_hia_optimizer_bench", "tests.test_hia_agent_holdout",

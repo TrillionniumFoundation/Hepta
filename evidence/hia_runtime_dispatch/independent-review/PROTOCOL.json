@@ -1,0 +1,43 @@
+{
+  "baseline_commit": "ab1c1a50b77a0d9f2da14a86b418f60985fbfe28",
+  "baseline_runtime_sha256": "d07e2324b833b6ca3e7d6c5c520935db7ca08813dab415acd992505e6235a225",
+  "cases": [
+    {
+      "arguments": [
+        10000
+      ],
+      "function": "sum_to",
+      "id": "scalar_loop"
+    },
+    {
+      "arguments": [
+        10000
+      ],
+      "function": "invoke_sum",
+      "id": "call_loop"
+    },
+    {
+      "arguments": [
+        1000,
+        7
+      ],
+      "function": "fill_sum",
+      "id": "borrowed_memory_loop"
+    },
+    {
+      "arguments": [
+        0
+      ],
+      "function": "sum_to",
+      "id": "empty_loop_control"
+    }
+  ],
+  "comparison": "retain every timing; compare medians separately for every case without trimming or pooling; no release gate",
+  "correctness": "exact complete execution-report equality between baseline and candidate for every invocation",
+  "measurement": "perf_counter_ns around full execute_program including mandatory re-verification and report generation; canonical JSON bytes already in memory",
+  "order": "rotate cases by round; baseline/candidate order reversed on odd rounds",
+  "rounds": 11,
+  "schema": "hepta.hia.runtime-dispatch-study.v1",
+  "scope": "Python interpreter wall time only; not native code, compilation, NDU lifecycle or Agent productivity",
+  "warmups_per_arm_per_case": 2
+}
