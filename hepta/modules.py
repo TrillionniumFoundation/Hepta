@@ -16,7 +16,8 @@ from .parser import parse
 from .lexer import tokenize
 from .packages import Package, digest, find_manifest, load_package, package_snapshot, verify_lock
 from .packages import (_load_package, _package_snapshot, _verify_lock,
-                       _LEGACY_LOAD_PACKAGE, _LEGACY_PACKAGE_SNAPSHOT, _LEGACY_VERIFY_LOCK)
+                       _LEGACY_LOAD_PACKAGE, _LEGACY_PACKAGE_SNAPSHOT, _LEGACY_VERIFY_LOCK,
+                       _LEGACY_FIND_MANIFEST)
 from ._loader_ops import LegacyLoaderOps as _LegacyLoaderOps, dispatch as _dispatch
 
 
@@ -66,6 +67,7 @@ _LEGACY_UNCHANGED = LoadedProject.unchanged
 
 
 def _revalidate(project, *, ops, except_paths=()):
+    ops.revalidation_hook(project, _LEGACY_UNCHANGED)
     method = project.unchanged
     if (type(method) is _MethodType and method.__self__ is project
             and method.__func__ is _LEGACY_UNCHANGED):
@@ -104,6 +106,7 @@ def _load_project(entry, *, locked=False, source_overrides=None, ops) -> LoadedP
         package = _dispatch(load_package, _LEGACY_LOAD_PACKAGE, _load_package, ops, entry.parent)
         entry = package.entry
     else:
+        ops.hook(find_manifest, _LEGACY_FIND_MANIFEST)
         root = find_manifest(entry)
         if root is not None:
             package = _dispatch(load_package, _LEGACY_LOAD_PACKAGE, _load_package, ops, root)
