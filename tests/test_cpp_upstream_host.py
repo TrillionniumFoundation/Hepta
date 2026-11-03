@@ -8,9 +8,10 @@ from pathlib import Path
 import shutil
 import struct
 import subprocess
+import sys
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from hepta.c_migrate import MigrationRejected
 from hepta.cpp_host_toolchain import parse_probe
@@ -262,7 +263,11 @@ class CppUpstreamHostTests(unittest.TestCase):
                 identity = root / 'identity.json'
                 identity.write_text(json.dumps({'binary': 'must-not-execute'}))
                 output = root / 'output'
-                with patch(target, side_effect=RuntimeError('stop before native admission')) as native, \
+                # This is a publication-path test, not a cost/native execution
+                # sample. Bypass only the POSIX measurement wrapper; keep both
+                # actual generator entry points and all written source bytes.
+                with patch.object(module, 'measured', side_effect=lambda label, ledger, operation: operation()), \
+                        patch(target, side_effect=RuntimeError('stop before native admission')) as native, \
                         self.assertRaisesRegex(RuntimeError, 'stop before native admission'):
                     module.qualify(output, identity=identity, clang='must-not-execute')
                 native.assert_called_once()
@@ -274,6 +279,15 @@ class CppUpstreamHostTests(unittest.TestCase):
                 self.assertEqual(source.read_bytes(), original)
                 self.assertEqual(json.loads((output / 'base.json').read_bytes()), receipt)
                 self.assertEqual(casefold_path_collisions(p.name for p in output.iterdir()), [])
+
+    def test_posix_cost_accounting_refuses_missing_resource_before_operation(self):
+        from tools.qualify_hia_ndu_loop import measured
+        operation = Mock()
+        ledger = []
+        with patch.dict(sys.modules, {'resource': None}), self.assertRaises(ModuleNotFoundError):
+            measured('must-not-run', ledger, operation)
+        operation.assert_not_called()
+        self.assertEqual(ledger, [])
 
 
 if __name__ == '__main__':
