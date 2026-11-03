@@ -21,11 +21,13 @@ theorem cons (b : Nat) (xs : List Nat) (n : Nat)
   constructor
   · rw [List.length_cons, child.1]
   · rw [List.all_cons, decide_eq_true byteBound, child.2]
+    rfl
 
 theorem append (xs ys : List Nat) (n m : Nat)
     (left : facts xs n) (right : facts ys m) : facts (xs ++ ys) (n + m) := by
   constructor
   · rw [List.length_append, left.1, right.1]
   · rw [List.all_append, left.2, right.2]
+    rfl
 
 end HiaCoreSyntaxSlice.ByteFactsResearch

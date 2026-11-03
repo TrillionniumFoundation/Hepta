@@ -15,7 +15,7 @@ from tools.extract_initialization_obligations import OBLIGATIONS
 ROOT = Path(__file__).resolve().parents[1]
 PROTOCOL = 'compositional-byte-facts-source-v1'
 HELPER_PATH = 'experiments/hia_initialization_frontiers_20261103/ByteFactsResearch.lean'
-HELPER_SHA256 = '58b2081fe8736aa150f597ba02f51a241bfc8206c6c310004b8d7664383fe026'
+HELPER_SHA256 = 'ec04662991f9efd20e51fdb6f37a8178fa81c86e62818c2441f8c7762a98507b'
 HELPER = 'HiaCoreSyntaxSlice.ByteFactsResearch.'
 HELPER_NAMES = frozenset(HELPER+n for n in ('nil', 'cons', 'append'))
 EXPECTED_COUNTS = (56, 35, 703, 1298, 1298, 1297, 1297, 1297)

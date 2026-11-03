@@ -14,7 +14,7 @@ from tools.core_syntax_partition_sources import ROOT_OWNERS
 _HELPER_NS = 'HiaCoreSyntaxSlice.ByteFactsResearch'
 _PREDICATE = _HELPER_NS + '.facts'
 _HELPERS = frozenset(_HELPER_NS + '.' + x for x in ('nil', 'cons', 'append'))
-_HELPER_HASH = '58b2081fe8736aa150f597ba02f51a241bfc8206c6c310004b8d7664383fe026'
+_HELPER_HASH = 'ec04662991f9efd20e51fdb6f37a8178fa81c86e62818c2441f8c7762a98507b'
 _FRAME = re.compile(r'theorem ([A-Za-z][A-Za-z0-9_]*) : '
                     + re.escape(_PREDICATE)
                     + r' ([A-Za-z][A-Za-z0-9_]*) (0|[1-9][0-9]*) := (by(?: decide \+kernel)?)\n')

@@ -62,8 +62,29 @@ this document.
 
 The fixed selection produces23 markers from24 candidate boundaries. The marker
 manifest is12,867bytes, the transformation manifest19,905bytes, and marked Part02
-is533,659bytes. All23 retained source files total6,055,136bytes. These are source
+is533,659bytes. All23 retained source files total6,055,152bytes. These are source
 measurements, not elaboration-time or generated-olean measurements. Source and
 runner mock adversaries cover emitter substitution, rehashed receipt/event
 contradictions, source swaps, missing evidence, stale parents, target promotion,
 partial collection and presentation-time mutations.
+
+## First actual byte-facts helper failure and proof-only repair
+
+Exact remote head `7f8049a73e271b90dd33386984ee19b128c94a71`, tree
+`f3427b313addeb7e5bde848f0c81b1af307314d9`, ran in
+[run41709548105/job126173714377](https://github.com/TrillionniumFoundation/Hepta/actions/runs/41709548105/job/126173714377).
+Baseline checked in 2.134s with 56 named facts. SyntaxData failed: both new
+`cons` and `append` proofs left the explicit goal `(true && true) = true` after
+rewriting. Their `sorryAx` output was rejected; SyntaxData was not admitted.
+Only two invocations started. Neither certificate part ran, so no new concrete
+reporting frontier or root certificate was observed. The retained result is
+`diagnostic_failed`, not a timeout and not an accepted connection.
+
+The repair adds explicit `rfl` closure after precisely those two rewrites and
+updates both independent helper-text hash pins. Exact size assertions and the
+retained-source measurement increase by the 16 inserted proof-text bytes. Helper statements, the `facts`
+predicate, all original inputs/targets, inventories, budgets, and the four-stage
+nonaccepting boundary remain unchanged. A new exact-head kernel run is required;
+Python tests and source review do not establish that the repair elaborates or
+that either certificate part completes. All prior failures remain evidence and
+full acceptance remains UNCHECKED, with DENY_ALL unchanged.
