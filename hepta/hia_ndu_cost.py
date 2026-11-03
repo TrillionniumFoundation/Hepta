@@ -22,7 +22,6 @@ import json
 import time
 
 from .hia_ndu import Q32, REQUEST_SCHEMA, candidate, event, NduBridgeError
-from .hia_program_tools import bounded_json_wire, decode_json
 
 SCHEMA = "hepta.hia.ndu.full-cost.v2"
 MAX_NS = 1_000_000_000_000
@@ -50,11 +49,56 @@ def _require(ok, reason):
         raise CostModelError("full-cost v2: " + reason)
 
 
+def _model_snapshot(raw):
+    """Detach the finite schema before validation without a JSON round trip.
+
+    Every container has a schema-bound field/element limit, checked before
+    copying or visiting children. Exact builtin types exclude conversion hooks.
+    All leaves are subsequently checked by validate_model; no caller-owned
+    mutable object can survive a successful return. The former JSON conversion
+    accepted tuples as arrays, so that compatibility is retained explicitly.
+    Textual JSON still goes through the normal bounded decoder at its boundary.
+    """
+    def record(value, fields, name):
+        _require(type(value) is dict and len(value) == len(fields), name + " fields")
+        # Cap the snapshot itself: another thread may grow caller-owned data
+        # after the initial length check. Do not copy the entire dictionary.
+        try:
+            entries = list(itertools.islice(value.items(), len(fields) + 1))
+        except RuntimeError as error:
+            raise CostModelError("full-cost v2: " + name + " changed during snapshot") from error
+        _require(len(entries) == len(fields) and len(value) == len(fields)
+                 and all(type(k) is str and len(k) <= 32 for k, _ in entries)
+                 and {k for k, _ in entries} == fields, name + " fields")
+        # The old serializer sorted object keys. Retain that observable order
+        # as well as values without encoding or decoding the bounded records.
+        return dict(sorted(entries))
+
+    def sequence(value, maximum, name):
+        _require(type(value) in (list, tuple) and len(value) <= maximum, name + " bound")
+        snapshot = list(value[:maximum + 1])
+        _require(len(snapshot) <= maximum, name + " bound")
+        return snapshot
+
+    model = record(raw, _MODEL_FIELDS, "model")
+    model["baseline"] = record(model["baseline"], {"source_sha256", "verification_sha256", "latency_ns"}, "baseline")
+    model["baseline"]["latency_ns"] = sequence(model["baseline"]["latency_ns"], 4, "baseline horizon")
+    model["decision"] = record(model["decision"], _DECISION_FIELDS, "decision cost")
+    model["ready"] = sequence(model["ready"], 2, "initial residency")
+    model["variants"] = sequence(model["variants"], 2, "variants")
+    for index, value in enumerate(model["variants"]):
+        variant = record(value, _VARIANT_FIELDS, "variant")
+        variant["valid"] = sequence(variant["valid"], 4, "validity horizon")
+        variant["latency_ns"] = sequence(variant["latency_ns"], 4, "latency horizon")
+        model["variants"][index] = variant
+    return model
+
+
 def validate_model(raw):
     """Detach bounded input before search; exact fields prevent implicit costs."""
-    model = decode_json(bounded_json_wire(raw, 200_000))
+    model = _model_snapshot(raw)
     _require(type(model) is dict and set(model) == _MODEL_FIELDS, "model fields")
-    _require(model["schema"] == SCHEMA, "schema")
+    _require(type(model["schema"]) is str and model["schema"] == SCHEMA, "schema")
 
     def integer(value, name, maximum=MAX_NS):
         _require(type(value) is int and 0 <= value <= maximum, name)
@@ -90,7 +134,8 @@ def validate_model(raw):
         names.add(name)
         for key in ("source_sha256", "verification_sha256", "support_sha256"):
             hash_value(row[key])
-        _require(row["status"] in {"verified", "unknown", "rejected", "timeout"}, "verification status")
+        _require(type(row["status"]) is str and len(row["status"]) <= 8
+                 and row["status"] in {"verified", "unknown", "rejected", "timeout"}, "verification status")
         _require(type(row["valid"]) is list and len(row["valid"]) == horizon
                  and all(type(v) is bool for v in row["valid"]), "validity horizon")
         _require(type(row["latency_ns"]) is list and len(row["latency_ns"]) == horizon, "latency horizon")
@@ -99,7 +144,7 @@ def validate_model(raw):
         for key in ("prepare_ns", "proof_ns", "retire_ns", "holding_ns", "resident_bytes"):
             integer(row[key], key)
     ready = model["ready"]
-    _require(type(ready) is list and all(type(v) is str for v in ready)
+    _require(type(ready) is list and all(type(v) is str and len(v) <= 32 for v in ready)
              and len(set(ready)) == len(ready) and set(ready) <= names, "initial residency")
     # Invalid initial artifacts are admitted only as objects to retire. They
     # cannot be dispatched, including on the no-native-call path.

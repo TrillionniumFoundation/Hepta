@@ -33,17 +33,33 @@ NDU_SOURCE_PIN = STREAM_PROFILE_PINS[STREAM_PROFILE]
 REDUCTION_PROFILE = 'induction-multiload-v2'
 CORE_TESTS = (
     'tests.test_hia_capability_flow', 'tests.test_hia_capability_identity',
+    'tests.test_hia_capability_lifecycle',
     'tests.test_hia_composition_identity',
     'tests.test_hia_program', 'tests.test_hia_execution_contract',
     'tests.test_hia_returned_loans', 'tests.test_hia_returned_loan_interfaces',
     'tests.test_hia_reduction_pipeline', 'tests.test_hia_reduction_release',
     'tests.test_hia_ndu_cost', 'tests.test_hia_host_region',
+    'tests.test_hia_ndu_model_snapshot',
     'tests.test_hia_agent_repository_maintenance_v2',
     'tests.test_hia_agent_repository_v2_feedback_review',
+    'tests.test_hia_agent_preflight.AgentPreflightTests',
+    'tests.test_hia_agent_transport_framing',
+    'tests.test_hia_agent_provider',
+    'experiments.hia_agent_local_recovery_20261103.test_recovery',
     'tests.test_hia_durable_queue', 'tests.test_hia_durable_revision',
     'tests.test_hia_production_capability_witness',
     'tests.test_hia_ndu_current_profile',
     'tests.test_hia_reduction_induction', 'tests.test_hia_reduction_multiload',
+    'tests.test_hia_empty_reduction', 'tests.test_hia_empty_reduction_observation',
+    'tests.test_hia_empty_wrapper_candidate',
+    'tests.test_modules.PackageTests.test_source_directory_alias_rejected_before_locking',
+    'tests.test_modules.PackageTests.test_directory_alias_added_after_lock_rejects_locked_load',
+    'tests.test_modules.PackageTests.test_nested_and_dependency_directory_links_rejected',
+    'tests.test_modules.PackageTests.test_directory_link_escape_rejected',
+    'tests.test_modules.PackageTests.test_regular_source_file_symlinks_remain_content_locked',
+    'tests.test_modules.PackageTests.test_snapshot_is_portable_and_deterministic',
+    'tests.test_modules.PackageTests.test_lock_missing_and_source_changes_fail',
+    'tests.test_modules.PackageTests.test_dependency_source_changes_fail_lock',
 )
 
 
@@ -211,7 +227,7 @@ def qualify(args):
             'ndu_stream_profile':STREAM_PROFILE,'reduction_profile':REDUCTION_PROFILE,
             'registered_unix_ns':time.time_ns(),'host':{'system':platform.system(),
             'machine':platform.machine(),'release':platform.release()},
-            'lanes':['core','capability_proof','memory_proof','core_proof','register_proof',
+            'lanes':['core','capability_proof','capability_lifecycle','memory_proof','core_proof','register_proof',
                      'production_capabilities','sequential_core','ndu_budget_model',
                      'continuation','reduction','ndu_full_cost','cpp_unique_reset','cpp_source_refusals',
                      'gsl_upstream_upgrade','migration_resources','host_region','agent_tool_controls',
@@ -272,6 +288,9 @@ def qualify(args):
             ('memory_proof','verify_memory.py','MEMORY_PROOF.json'),
             ('core_proof','verify_formal.py','CORE_PROOF.json')):
             passed[name] = step(name,py+['tools/'+script,'--lean',tools['lean']['path'],'--output',str(output/target)])
+        passed['capability_lifecycle'] = step('capability_lifecycle',py+[
+            'tools/verify_hia_capability_lifecycle.py','--lean',tools['lean']['path'],
+            '--output',str(output/'capability-lifecycle')])
         passed['register_proof'] = step('register_proof',py+['tools/qualify_hia_register_safety.py',
             '--lean',tools['lean']['path'],'--output-directory',str(output/'register-proof')])
         shadow = output/'rust-shadow-target/release/hia-core-shadow'
@@ -318,10 +337,11 @@ def qualify(args):
         report = {'status':'completed','qualifications':passed,'qualification_commands_passed':all(passed.values()),
                   'p0_same_combination_build_execute_reject_recover':all(passed.get(k,False) for k in
                       ('rust_shadow_dependencies','rust_shadow_build','core',
-                       'capability_proof','memory_proof','core_proof','register_proof',
+                       'capability_proof','capability_lifecycle','memory_proof','core_proof','register_proof',
                        'production_capabilities','sequential_core','ndu_budget_model',
                        'continuation','reduction','ndu_full_cost','ndu_model_planner','host_region')),
                   'all_seven_research_targets_closed':False,
+                  'capability_lifecycle_assessment':'capability-lifecycle/REPORT.json',
                   'performance_assessment':'reduction/RESULT.json',
                   'ndu_assessment':'ndu-cost/REPORT.json',
                   'ndu_model_planner_assessment':'ndu-model-planner/RESULT.json'}

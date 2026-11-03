@@ -52,11 +52,15 @@ class AgentPreflightTests(unittest.TestCase):
         rows = [json.loads(line) for line in probe.initialization_wire().splitlines()]
         self.assertEqual([row["method"] for row in rows], ["initialize", "initialized"])
         self.assertEqual([row["id"] for row in rows if "id" in row], [1])
+        self.assertEqual(rows[0]["params"]["capabilities"], {
+            "experimentalApi": False,
+            "optOutNotificationMethods": ["remoteControl/status/changed"]})
         self.assertNotIn("model", probe.initialization_wire().decode())
         self.assertEqual(probe.startup_response(GOOD)["initialization_acknowledged"], True)
 
     def test_response_rejects_generation_unknown_events_and_ambiguous_identity(self):
         bad = [b"", GOOD + GOOD, GOOD + b'{"method":"turn/started"}\n',
+               GOOD + b'{"method":"remoteControl/status/changed","params":{"status":"disabled"}}\n',
                b'{"id":true,"result":{"userAgent":"x"}}',
                b'{"id":2,"result":{"userAgent":"x"}}',
                b'{"id":1,"id":1,"result":{"userAgent":"x"}}',
@@ -264,6 +268,8 @@ class AgentPreflightNativeTests(unittest.TestCase):
                 'assert sys.argv[1:]==["app-server","--stdio"]\n'
                 'rows=[json.loads(line) for line in sys.stdin]\n'
                 'assert [r["method"] for r in rows]==["initialize","initialized"]\n'
+                'if "remoteControl/status/changed" not in rows[0]["params"].get("capabilities",{}).get("optOutNotificationMethods",[]):\n'
+                ' print(json.dumps({"method":"remoteControl/status/changed","params":{"status":"disabled"}}))\n'
                 'print(json.dumps({"id":1,"result":{"userAgent":"non-model-fixture"}}))\n')
             codex.chmod(0o700)
             result = probe.preflight(root / "result", codex=str(codex), clang=CLANG, rustc=RUSTC)

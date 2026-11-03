@@ -1,5 +1,11 @@
 # Capability projection and finite edge traces
 
+The separate [instruction lifecycle model](HIA_CAPABILITY_LIFECYCLE.md) now
+proves structural preservation for allocation, local borrowing, loan ending
+and owner dropping, with finite witnesses from actual instruction checks.
+It supplements the edge-only relation described here; existing edge reports
+retain their scope and do not prove complete language safety.
+
 The sequential capability model now includes the selection performed before a
 CFG edge renames its arguments. The earlier theorem started from the already
 selected closed graph. It therefore did not establish that an omitted input
