@@ -40,6 +40,7 @@ CORE_TESTS = (
     'tests.test_hia_reduction_pipeline', 'tests.test_hia_reduction_release',
     'tests.test_hia_ndu_cost', 'tests.test_hia_host_region',
     'tests.test_hia_ndu_model_snapshot',
+    'tests.test_hia_ndu_plan_copy',
     'tests.test_hia_agent_repository_maintenance_v2',
     'tests.test_hia_agent_repository_v2_feedback_review',
     'tests.test_hia_agent_preflight',
