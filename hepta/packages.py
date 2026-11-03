@@ -102,6 +102,22 @@ def find_manifest(source: Path) -> Path | None:
     return None
 
 
+def _source_entries(root: Path):
+    """Inventory source paths without hiding directory I/O errors or following links."""
+    pending = [root]
+    while pending:
+        directory = pending.pop()
+        try:
+            with os.scandir(directory) as stream:
+                entries = sorted(stream, key=lambda entry: entry.name)
+            for entry in entries:
+                yield Path(entry.path)
+                if entry.is_dir(follow_symlinks=False):
+                    pending.append(Path(entry.path))
+        except OSError as exc:
+            fail("E_PACKAGE_READ", "Cannot inventory package sources: " + str(exc), directory)
+
+
 def package_snapshot(package: Package) -> dict:
     files = {}
     nodes = {}
@@ -122,7 +138,7 @@ def package_snapshot(package: Package) -> dict:
         # already-hashed directories without changing a v1 content lock.
         # Refuse this unrepresented topology instead of issuing a partial lock.
         source_files = []
-        for candidate in sorted(p.source_root.rglob("*")):
+        for candidate in sorted(_source_entries(p.source_root)):
             if candidate.is_symlink() and candidate.is_dir():
                 _inside(candidate.resolve(), p.source_root, "Source directory symlink escapes its source_root")
                 fail("E_PACKAGE_SOURCE_LINK", "Source directory symlinks are not supported by package locks; use a real directory", candidate)

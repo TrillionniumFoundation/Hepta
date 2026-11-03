@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from hepta.ast import HeptaError
 from hepta.backend import compile_rust, find_rustc
@@ -224,6 +226,70 @@ class PackageTests(ProjectFixture):
         verify_lock(load_package(app))
         source.write_text(source.read_text().replace("return 1", "return 2"))
         self.reject("E_LOCK_STALE", lambda: verify_lock(load_package(app)))
+
+    def test_unreadable_source_directory_cannot_issue_partial_lock(self):
+        app = self.package()
+        self.put("app/src/hidden/value.hepta", "")
+        original = os.scandir
+        def unreadable(path):
+            if Path(path) == app / "src/hidden":
+                raise PermissionError("injected unreadable source directory")
+            return original(path)
+        with patch("os.scandir", side_effect=unreadable):
+            self.reject("E_PACKAGE_READ", lambda: write_lock(app))
+        self.assertFalse((app / "Hepta.lock").exists())
+
+    def test_unreadable_directory_preserves_existing_lock(self):
+        app = self.package()
+        self.put("app/src/hidden/value.hepta", "")
+        write_lock(app)
+        original_lock = (app / "Hepta.lock").read_bytes()
+        original = os.scandir
+        def unreadable(path):
+            if Path(path) == app / "src/hidden":
+                raise PermissionError("injected unreadable source directory")
+            return original(path)
+        with patch("os.scandir", side_effect=unreadable):
+            self.reject("E_PACKAGE_READ", lambda: write_lock(app))
+            self.reject("E_PACKAGE_READ", lambda: load_project(app, locked=True))
+            self.reject("E_PACKAGE_READ", lambda: load_project(app, locked=False))
+        self.assertEqual((app / "Hepta.lock").read_bytes(), original_lock)
+
+    def test_inventory_failure_during_recheck_preserves_lock_and_cleans_stage(self):
+        app = self.package()
+        write_lock(app)
+        original_lock = (app / "Hepta.lock").read_bytes()
+        original = os.scandir
+        calls = 0
+        def unreadable_on_recheck(path):
+            nonlocal calls
+            if Path(path) == app / "src":
+                calls += 1
+                if calls == 2:
+                    raise PermissionError("injected recheck enumeration failure")
+            return original(path)
+        with patch("os.scandir", side_effect=unreadable_on_recheck):
+            self.reject("E_PACKAGE_READ", lambda: write_lock(app))
+        self.assertEqual((app / "Hepta.lock").read_bytes(), original_lock)
+        self.assertEqual(list(app.glob(".hepta-lock-*")), [])
+
+    def test_unreadable_dependency_directory_rejected(self):
+        lib = self.package("lib", kind="lib")
+        app = self.package(dependencies='[dependencies]\nlib = { path = "../lib" }\n')
+        original = os.scandir
+        def unreadable(path):
+            if Path(path) == lib / "src":
+                raise PermissionError("injected unreadable dependency")
+            return original(path)
+        with patch("os.scandir", side_effect=unreadable):
+            self.reject("E_PACKAGE_READ", lambda: write_lock(app))
+
+    def test_source_root_disappearing_after_load_rejected(self):
+        app = self.package()
+        package = load_package(app)
+        (app / "src/main.hepta").unlink()
+        (app / "src").rmdir()
+        self.reject("E_PACKAGE_READ", lambda: package_snapshot(package))
 
     def test_snapshot_is_portable_and_deterministic(self):
         app = self.package()
