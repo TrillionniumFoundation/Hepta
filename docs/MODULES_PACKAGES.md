@@ -55,6 +55,9 @@ Use real source directories instead. Regular `.hepta` file symlinks remain
 content-locked and must stay within the applicable source root. This restriction
 also applies when reading an older lock; merely regenerating it does not make
 a directory alias safe. Standalone (non-package) module loading is unchanged.
+Directory enumeration errors, including unreadable or vanished source directories,
+reject with `E_PACKAGE_READ`; an incomplete inventory never issues a lock or
+replaces an existing lock. This also applies to dependency source trees.
 `--locked` rejects changed bytes, added sources,
 changed topology or missing locks. Paths are relative and the lock is portable
 when package layout is preserved. It does not sign authorship, sandbox unsafe
