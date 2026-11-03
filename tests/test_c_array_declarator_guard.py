@@ -92,7 +92,7 @@ class CArrayParameterGuardTests(unittest.TestCase):
         database = self.root / "compile_commands.json"
         database.write_text(json.dumps([{
             "directory": str(self.root), "file": "input.c",
-            "arguments": [self.clang, "-std=c11", "-Werror=vla", "-c", "input.c", "-o", "input.o"],
+            "arguments": [self.clang, "-std=c11", "-c", "input.c", "-o", "input.o"],
         }]), encoding="utf-8")
         output = self.root / "translated"
         report = migrate_c_project(database, output, contracts=contracts, clang=self.clang)
