@@ -445,6 +445,14 @@ these generated typedefs. The checker rejects conflicting C/C++ keywords,
 standard/generated typedef and macro names, and implementation-reserved
 boundary names. Language enums and generic layouts have no stable C ABI promise.
 
+In the independent C backend, only explicit `extern "C"` / `export "C"`
+functions have external C linkage. Other functions, including `pub` language
+functions and generic instances, have translation-unit-local linkage. `pub`
+permits language-module access; it does not declare a stable C export. This
+prevents private names from colliding or interposing when independently emitted
+objects, static libraries, or shared libraries are used together. Existing
+explicit C symbol names and caller obligations remain unchanged.
+
 External calls, calls with an unsafe effect, raw loads/stores, and pointer
 extraction require an explicit unsafe block. Reports retain foreign effect/ABI
 assumptions and raw-memory obligations. No ownership, lifetime, thread-safety,
