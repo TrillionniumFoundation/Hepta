@@ -7,8 +7,11 @@ frontier-model cohort. Its presence is not a result of an inference experiment.
 `PROTOCOL.json` is byte-for-byte identical to the three-arm v4 protocol. The
 adapter imports the original fixture, evaluator, owned model engine and scoring
 implementation. It does not change any task, prompt, answer schema, model file,
-family/cell order, budget, hidden-feedback rule, timeout handling or gate. The
-original source directory, registration and result artifacts remain unchanged.
+family/cell order, budget, hidden-feedback rule, timeout handling or gate.
+Historical registration and result artifacts remain unchanged. The shared runner
+now retains terminal receipts when final identity reads or cleanup fail; this
+source change requires fresh preparation, registration and independent review
+before any new inference. It does not authorize resuming an old frozen cohort.
 
 The two fixed families are Qwen2.5-Coder 1.5B Instruct Q4_K_M and Granite 3.3 2B
 Instruct Q4_K_M with the original official revisions and SHA-256 values. Each
@@ -22,7 +25,7 @@ is terminal. No answer is repaired by a human or rerun to obtain a better score.
 ## New registration and owner evidence
 
 The registry and all raw artifacts are new absolute directories outside the
-source checkout. Before freezing, 30 orchestration/admission controls, the
+source checkout. Before freezing, 35 orchestration/admission controls, the
 inherited 36 reference/partial-migration controls, nine hostile-provider
 controls and two non-generative tokenizer-capacity checks must pass. Test
 fixture output is explicitly not model output. The adapter binds the complete
@@ -68,3 +71,12 @@ productivity, representative historical maintenance, full human/economic
 costs, unrestricted C++ migration or globally optimal instructions. A passed
 local cohort cannot turn an unsupported selector, account quota error or
 missing provider usage into a successful frontier observation.
+
+Final engine request/response counts are retained before cleanup. A failed close
+is not retried by the runner; its error and observed process-exit state remain
+separate, and the cohort stays incomplete. Final identity-read failures are
+recorded independently so they do not erase a preceding failure or prevent the
+terminal report when the evidence output itself remains writable. This is not a
+guarantee of cleanup after an unconfirmed close or of writing to failed storage.
+KeyboardInterrupt/SystemExit still propagate. A final-identity interruption
+still attempts cleanup once, but does not guarantee a terminal report.

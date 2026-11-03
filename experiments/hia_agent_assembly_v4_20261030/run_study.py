@@ -388,15 +388,34 @@ def run(*,output,model_id,model_path,binary,clang,rustc):
         nonlocal engine
         if engine is None:
             return
-        record={"path":str(engine.output),"started_requests":engine.generation_count,"responses_received":engine.response_count}
+        current,engine=engine,None
+        record={"path":str(current.output),"started_requests":current.generation_count,
+                "responses_received":current.response_count,"cleanup_attempted":False,"process_exited":False}
+        # Retain counts before fallible final hashes or cleanup. Detaching the
+        # engine prevents an uncertain close from being retried in outer finally.
+        result["engines"].append(record)
         try:
-            record["identity"]=engine.verify_final_identity()
+            try:
+                record["identity"]=current.verify_final_identity()
+            except Exception as error:
+                record["identity_error"]={"type":type(error).__name__,"message":str(error)}
         finally:
-            close_started=time.monotonic_ns();engine.close();record["close_wall_ns"]=time.monotonic_ns()-close_started
-            record["lifecycle_wall_ns"]=time.monotonic_ns()-engine_started
-            record["process_exited"]=engine.process.poll() is not None
-            result["engines"].append(record);engine=None
-        if not record["process_exited"] or not record["identity"]["model_unchanged"] or not record["identity"]["runtime_unchanged"]:
+            close_started=time.monotonic_ns();record["cleanup_attempted"]=True
+            try:
+                current.close()
+            except Exception as error:
+                record["cleanup_error"]={"type":type(error).__name__,"message":str(error)}
+            finally:
+                record["close_wall_ns"]=time.monotonic_ns()-close_started
+                record["lifecycle_wall_ns"]=time.monotonic_ns()-engine_started
+                try:
+                    record["process_exited"]=current.process.poll() is not None
+                except Exception as error:
+                    record["process_observation_error"]={"type":type(error).__name__,"message":str(error)}
+        if (any(key in record for key in ("identity_error","cleanup_error","process_observation_error"))
+                or not record["process_exited"]
+                or any(record.get("identity",{}).get(key) is not True
+                       for key in ("model_unchanged","runtime_unchanged"))):
             raise RuntimeError("owned model/runtime identity or shutdown failed")
 
     try:
@@ -432,9 +451,18 @@ def run(*,output,model_id,model_path,binary,clang,rustc):
             close_engine()
         except Exception as error:
             result.update(status="incomplete",shutdown_or_identity_error=str(error))
-        result["sources_unchanged"]=check_bindings(registration["sources"])
-        result["tools_unchanged"]=all(file_identity(item["path"])==item for item in tools.values()) and runtime_bindings(binary)==runtime
-        result["model_unchanged"]=file_identity(model_path)==actual_model
+        result["final_identity_errors"]={}
+        for key, check in (
+                ("sources_unchanged",lambda:check_bindings(registration["sources"])),
+                ("tools_unchanged",lambda:all(file_identity(item["path"])==item for item in tools.values())
+                    and runtime_bindings(binary)==runtime),
+                ("model_unchanged",lambda:file_identity(model_path)==actual_model)):
+            try:
+                result[key]=check()
+            except Exception as error:
+                result[key]=False
+                result["final_identity_errors"][key]={"type":type(error).__name__,"message":str(error)}
+                result["status"]="incomplete"
         result["coverage_complete"]=len(result["cells"])==len(order)
         result["valid_observation"]=result["status"]=="all_cells_attempted" and all(result[k] for k in ("sources_unchanged","tools_unchanged","model_unchanged","coverage_complete"))
         result["usage_complete"]=result["coverage_complete"] and all(row["usage_complete"] for row in result["cells"])
