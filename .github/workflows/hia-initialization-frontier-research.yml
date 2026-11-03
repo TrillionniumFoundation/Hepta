@@ -5,6 +5,9 @@ on:
       - 'hepta/**'
       - 'benchmarks/hia_reduction_release/linear.hepta'
       - 'benchmarks/hia_reduction_release/affine.hepta'
+      - 'tools/observe_single_store_projection.py'
+      - 'tests/test_single_store_projection.py'
+      - 'experiments/hia_initialization_frontiers_20261103/SINGLE_STORE_CONNECTION.md'
       - 'tools/extract_initialization_obligations.py'
       - 'formal/HiaInitializationPrefix.lean'
       - 'formal/toolchain-lock.json'
@@ -53,6 +56,7 @@ jobs:
           timeout 180s python -B - <<'PYTEST'
           import hashlib, json, unittest
           suite = unittest.defaultTestLoader.loadTestsFromNames([
+              'tests.test_single_store_projection',
               'tests.test_initialization_obligation_ledger',
               'tests.test_initialization_write_observer',
               'tests.test_initialization_frontier_checker',
@@ -65,10 +69,10 @@ jobs:
                   else:
                       yield item
           ids = sorted(test.id() for test in flatten(suite))
-          assert len(ids) == len(set(ids)) == 62, 'test inventory changed'
+          assert len(ids) == len(set(ids)) == 82, 'test inventory changed'
           print(json.dumps({'tests': ids, 'inventory_sha256': hashlib.sha256(json.dumps(ids).encode()).hexdigest()}))
           result = unittest.TextTestRunner(verbosity=2).run(suite)
-          assert result.testsRun == 62 and result.wasSuccessful(), 'research controls failed'
+          assert result.testsRun == 82 and result.wasSuccessful(), 'research controls failed'
           assert not result.skipped and not result.expectedFailures and not result.unexpectedSuccesses, 'incomplete controls'
           PYTEST
           test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
