@@ -125,8 +125,8 @@ def build_inputs():
             'model bytes must reconstruct exactly without newline normalization')
     prefix, suffix = split_model(model)
     mutated_suffix = suffix.replace(SELECTOR, SELECTOR.replace('"then"', '"else"'))
-    inputs, data_parts, hints = {}, [], {}
-    for key, namespace, stem, _ in INPUT_LAYOUT:
+    inputs, data_parts, hints = {}, {}, {}
+    for key, namespace, stem, module in INPUT_LAYOUT:
         source = old['positive'] if key in ('linear', 'parallel') else old['negatives'][key]['source']
         raw = _definition(source, stem + 'Raw', 'Raw')
         literal = _definition(source, stem + 'Bytes', 'List Nat')
@@ -139,7 +139,7 @@ def build_inputs():
         full_ns = NAMESPACE + ('.' + namespace if namespace else '')
         data = 'def ' + stem + 'Raw : Raw := ' + raw + '\n' + \
                'def ' + stem + 'Bytes : List Nat := ' + literal + '\n'
-        data_parts.append(_wrapped(namespace, data))
+        data_parts[key] = _wrapped(namespace, data)
         hints[key] = _wrapped(namespace, 'def ' + stem + 'Hint : Hint := ' + hint + '\n')
         inputs[key] = {'canonical_sha256': digest(byte_value), 'canonical_bytes': len(byte_value),
                        'raw_literal_sha256': digest(raw.encode()),
@@ -148,7 +148,8 @@ def build_inputs():
                        'raw_name': full_ns + '.' + stem + 'Raw',
                        'bytes_name': full_ns + '.' + stem + 'Bytes',
                        'hint_name': full_ns + '.' + stem + 'Hint',
-                       'definitions_sha256': digest(data.encode())}
+                       'definitions_sha256': digest(data.encode()),
+                       'definition_module': MODULE_PREFIX + '.' + module}
     require(inputs['linear']['canonical_sha256'] == digest(old['canonical_bytes']),
             'real canonical input changed')
     stages = []
@@ -177,14 +178,16 @@ def build_inputs():
     require(base_imports == ('Lean.Elab.Tactic.Omega',), 'pinned baseline imports')
     base_module = stage('Baseline', base_imports, baseline['positive'],
                         baseline['expected_theorems'], baseline_source=True)
-    data_module = stage('SyntaxData', (base_module,), prefix + ''.join(data_parts), TRANSPORT_GENERIC)
-    transport_modules = {}
+    data_module = stage('SyntaxData', (base_module,), prefix, TRANSPORT_GENERIC)
+    transport_modules, transport_blocks = {}, {}
     for key, namespace, stem, module in INPUT_LAYOUT:
         cert = stem if key in ('linear', 'parallel') else 'mutated'
         text = original.transport_certificates(cert, stem + 'Raw', stem + 'Bytes')
         full_ns = NAMESPACE + ('.' + namespace if namespace else '')
         names = {full_ns + '.' + cert + '_' + c for c in COMPONENTS}
-        transport_modules[key] = stage(module, (data_module,), _wrapped(namespace, text), names)
+        transport_blocks[key] = _wrapped(namespace, text)
+        transport_modules[key] = stage(module, (data_module,),
+                                       data_parts[key] + transport_blocks[key], names)
 
     negatives = {}
 
@@ -252,6 +255,25 @@ theorem parallel_extraction : extract parallelRaw parallelHint = some HiaGuarded
         mutated_suffix + hints['parallel'] + _wrapped('', wrong_arm),
         {negatives['wrong_arm_implementation']['certificate']}, ('wrong_arm_implementation',))
     require(len(stages) == 10 and len(negatives) == 10, 'ten-stage exact negative inventory')
+    # Module ownership is part of the frozen input binding. Each complete block
+    # moves verbatim, without aliases or namespace changes, before its proofs.
+    by_module = {item.module_name: item for item in stages}
+    require(not re.search(r'(?m)^def \w+ : (Raw|List Nat) :=',
+                          by_module[data_module].source),
+            'common transport model must not own concrete input literals')
+    for key, namespace, stem, module in INPUT_LAYOUT:
+        owner = inputs[key]['definition_module']
+        require(owner == transport_modules[key], 'input definition module differs')
+        source = by_module[owner].source
+        block = data_parts[key]
+        require(sum(item.source.count(block) for item in stages) == 1 and
+                source.count(block) == 1, 'input literal block must occur exactly once in its owner')
+        require(source.index(block) + len(block) == source.index(transport_blocks[key]),
+                'literal definitions must immediately precede transport certificate block')
+        require(len(re.findall(r'(?m)^def \w+ : (Raw|List Nat) :=', source)) == 2,
+                'transport module must own only its two input definitions')
+        require(all(other == key or data_parts[other] not in source for other in data_parts),
+                'transport module contains sibling input literals')
     total = sum(s.source_bytes for s in stages)
     require(total <= MAX_TOTAL_PROOF_BYTES, 'aggregate staged source budget')
     for item in stages:

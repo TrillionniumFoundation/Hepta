@@ -530,3 +530,143 @@ class StagedPreparationRaceTests(unittest.TestCase):
                     safe.read('output.olean', 100)
             finally:
                 safe.close()
+
+
+class StagedLiteralPlacementTests(unittest.TestCase):
+    """Frozen relocation invariants against reviewed pre-relocation git 1ad7645."""
+    LAYOUT = (
+        ('linear', '', 'linear', 'LinearTransport', 96224,
+         '14f5aed02ae6b3f7769d349da730ee6942ce6b0b937449c6f235d9a0bd8f3a0b'),
+        ('parallel', '', 'parallel', 'ParallelTransport', 96228,
+         '6f1fb249c1768905baf002fb128bc3208b96d6a7cf2c2305dfb5ef6287607eea'),
+        ('wrong_phi', 'WrongPhi', 'linear', 'WrongPhiTransport', 96242,
+         '574e89c44029375d7879cfa7c7188be3e3710dc5ea3bfe289d9a9f4e99421e56'),
+        ('literal_two', 'LiteralTwo', 'linear', 'LiteralTwoTransport', 96246,
+         '7608ae138734b28f585a0ba093a176197d684ef0a20e167953adb29c0b3b8ff1'),
+        ('wrong_condition', 'WrongCondition', 'linear', 'WrongConditionTransport', 97085,
+         '2bdea199441ab50c3a3e80d47a44025f11e14588ce0df9b86363ffc3c6065374'),
+    )
+
+    @classmethod
+    def setUpClass(cls):
+        import re
+        from tools import check_core_syntax_lean as original
+        cls.prepared = sources.build_inputs()
+        cls.stages = {stage.name: stage for stage in cls.prepared['stages']}
+        prior = original.build_inputs()
+        cls.blocks = {}
+        for key, namespace, stem, owner, size, expected_sha in cls.LAYOUT:
+            source = prior['positive'] if key in ('linear', 'parallel') else prior['negatives'][key]['source']
+            raw = re.findall(r'(?m)^def ' + stem + r'Raw : Raw := [^\n]+\n', source)
+            byte = re.findall(r'(?m)^def ' + stem + r'Bytes : List Nat := [^\n]+\n', source)
+            if len(raw) != 1 or len(byte) != 1:
+                raise AssertionError('reviewed input must have exactly one Raw and Bytes definition')
+            ns = 'HiaCoreSyntaxSlice' + ('.' + namespace if namespace else '')
+            cls.blocks[key] = '\nnamespace ' + ns + '\n' + raw[0] + byte[0] + 'end ' + ns + '\n'
+
+    @staticmethod
+    def json_hash(value):
+        return sha256(json.dumps(value, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+
+    def rebind(self, replacements, owners=None):
+        """Repair all mutable hash metadata, so rejection must bind fixed ownership."""
+        prepared = dict(self.prepared)
+        stages = tuple(replace(stage, source=replacements.get(stage.name, stage.source))
+                       for stage in prepared['stages'])
+        manifest = deepcopy(prepared['manifest'])
+        manifest['stages'] = [stage.manifest() for stage in stages]
+        manifest['proof_input_bytes'] = sum(stage.source_bytes for stage in stages)
+        for key, owner in (owners or {}).items():
+            manifest['inputs'][key]['definition_module'] = 'HiaSyntaxResearch.' + owner
+        encoded = json.dumps(manifest, sort_keys=True, separators=(',', ':'))
+        prepared.update(stages=stages, sources={stage.module_name: stage.source for stage in stages},
+                        manifest=manifest, manifest_json=encoded,
+                        manifest_sha256=sha256(encoded.encode()).hexdigest())
+        self.assertEqual(manifest['proof_input_bytes'], 622046)
+        self.assertEqual(manifest['stages'], [stage.manifest() for stage in prepared['stages']])
+        self.assertEqual(self.json_hash(manifest), prepared['manifest_sha256'])
+        return prepared
+
+    def test_exact_original_wrapped_blocks_are_owned_once_before_certificates(self):
+        for key, namespace, stem, owner, size, expected_sha in self.LAYOUT:
+            with self.subTest(input=key):
+                block = self.blocks[key]
+                self.assertEqual(len(block.encode()), size)
+                self.assertEqual(sha256(block.encode()).hexdigest(), expected_sha)
+                self.assertEqual(sum(stage.source.count(block) for stage in self.stages.values()), 1)
+                source = self.stages[owner].source
+                self.assertEqual(source.count(block), 1)
+                cert = stem if key in ('linear', 'parallel') else 'mutated'
+                ns = 'HiaCoreSyntaxSlice' + ('.' + namespace if namespace else '')
+                following = source[source.index(block) + len(block):]
+                self.assertTrue(following.startswith('\nnamespace ' + ns + '\n' +
+                                                     'theorem ' + cert + '_bounds'))
+                self.assertEqual(self.prepared['manifest']['inputs'][key]['definition_module'],
+                                 self.stages[owner].module_name)
+                for sibling, other in self.blocks.items():
+                    if sibling != key:
+                        self.assertNotIn(other, source)
+        import re
+        self.assertIsNone(re.search(r'(?m)^def \w+ : (Raw|List Nat|Hint) :=', self.stages['SyntaxData'].source))
+        runner.validate_plan(self.prepared)
+
+    def test_four_untouched_sources_have_reviewed_prior_hashes(self):
+        expected = {
+            'Baseline': '8c615ecd34ae3e67c6ecc78d57cacca3437cc53ec3efcbd18c6b505f54127f31',
+            'Connections': 'd422a27e0a1f1a1a9b6a46857dde36601f3311626163da906e0a4f29f1df3244',
+            'TransportRejections': '7929a9355c3f24a67b73fd7b4b3651e4d0f354cbfe1d06a454ff550435156d91',
+            'WrongArm': '4ae5e0e633c374232794c626679360dc28266484e4ff47cd69fb77888dca7c07',
+        }
+        self.assertEqual({name: self.stages[name].source_sha256 for name in expected}, expected)
+
+    def test_input_proposition_partition_and_theorem_bindings_are_unchanged(self):
+        manifest = self.prepared['manifest']
+        inputs = {key: {name: value for name, value in item.items() if name != 'definition_module'}
+                  for key, item in manifest['inputs'].items()}
+        for value, digest in (
+            (inputs, 'cc68e4a2271f97852c3e3eede5bc18de4a8539203af663c41c26d2c1561a2b2f'),
+            (manifest['model_partition'], '3fd61cd2740b0341a018e0840c0760c61741e76f620902a45fe6b4ef51b67047'),
+            (self.prepared['negatives'], '9a4fcbe6522b6b40cf7c115cec8ecb56f473fbfe00ea92ce6fcc92f2563da3c8'),
+            (sorted(self.prepared['expected_theorems']), '95cc6947553398e2a4cdd3d243d9d15b50f8f8daae993a8bc01ddb53a8ff44d0'),
+        ):
+            self.assertEqual(self.json_hash(value), digest)
+
+    def test_exact_relocated_sizes_imports_inventories_and_total(self):
+        sizes = {'Baseline': 30632, 'SyntaxData': 15107, 'LinearTransport': 97312,
+                 'ParallelTransport': 97372, 'WrongPhiTransport': 97419,
+                 'LiteralTwoTransport': 97439, 'WrongConditionTransport': 98310,
+                 'Connections': 21683, 'TransportRejections': 51030, 'WrongArm': 15742}
+        self.assertEqual({name: stage.source_bytes for name, stage in self.stages.items()}, sizes)
+        self.assertEqual(sum(sizes.values()), 622046)
+        self.assertEqual(self.prepared['manifest']['proof_input_bytes'], 622046)
+        self.assertEqual(sum(len(block.encode()) for block in self.blocks.values()), 482025)
+        self.assertEqual([len(stage.expected_theorems) for stage in self.prepared['stages']],
+                         [56, 3, 6, 6, 6, 6, 6, 70, 5, 1])
+        transports = tuple('HiaSyntaxResearch.' + entry[3] for entry in self.LAYOUT)
+        self.assertEqual(self.stages['Connections'].explicit_imports, transports)
+        self.assertEqual(self.stages['WrongArm'].explicit_imports, ('HiaSyntaxResearch.ParallelTransport',))
+        self.assertEqual(self.stages['TransportRejections'].explicit_imports, ('HiaSyntaxResearch.LinearTransport',))
+        for name in sizes.keys() & {entry[3] for entry in self.LAYOUT}:
+            self.assertEqual(self.stages[name].explicit_imports, ('HiaSyntaxResearch.SyntaxData',))
+
+    def test_rehashed_wrong_sibling_placement_is_rejected_even_with_forged_owner(self):
+        block = self.blocks['linear']
+        replacements = {
+            'LinearTransport': self.stages['LinearTransport'].source.replace(block, '', 1),
+            'ParallelTransport': self.stages['ParallelTransport'].source.replace(
+                self.blocks['parallel'], block + self.blocks['parallel'], 1),
+        }
+        for owners in (None, {'linear': 'ParallelTransport'}):
+            with self.subTest(forged_owner=bool(owners)), self.assertRaises(ValueError):
+                runner.validate_plan(self.rebind(replacements, owners))
+
+    def test_rehashed_old_shared_data_placement_is_rejected(self):
+        replacements = {}
+        for key, namespace, stem, owner, size, expected_sha in self.LAYOUT:
+            replacements[owner] = self.stages[owner].source.replace(self.blocks[key], '', 1)
+        common = self.stages['SyntaxData'].source
+        index = common.index('#print axioms ')
+        replacements['SyntaxData'] = common[:index] + ''.join(self.blocks[key] for key, *_ in self.LAYOUT) + common[index:]
+        for owners in (None, {key: 'SyntaxData' for key, *_ in self.LAYOUT}):
+            with self.subTest(forged_owners=bool(owners)), self.assertRaises(ValueError):
+                runner.validate_plan(self.rebind(replacements, owners))
