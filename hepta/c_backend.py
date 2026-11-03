@@ -277,7 +277,7 @@ class CEmitter:
         if e.kind == "call" and e.value in self.functions:
             effects = self.checked.effects.get(e.value, set()) | self.functions[e.value].effects
             if effects - {"panic"}:
-                fail("E_C_BACKEND_EVALUATION", "Effectful nested calls in index/raw-store operands are conservatively rejected", e.span)
+                fail("E_C_BACKEND_EVALUATION", "Effectful nested calls in index operands are conservatively rejected", e.span)
         for child in e.children:
             self.require_nonmutating(child)
 
@@ -489,9 +489,9 @@ class CEmitter:
                 val = self.value(e.children[0], lines)
                 expression = f'((void)printf("%" PRId64 "\\n", {val}))'
             elif e.value in {"load", "store", "volatile_load", "volatile_store"}:
-                if e.value in {"store", "volatile_store"}:
-                    for child in e.children:
-                        self.require_nonmutating(child)
+                # Materialize pointer, offset and value in call order before
+                # the store. Raw-pointer validity remains the unsafe caller's
+                # responsibility; no named-place indexing rule is relaxed.
                 args = [self.value(x, lines) for x in e.children]
                 if e.value.startswith("volatile_"):
                     element = self.typ(self.expr_type(e.children[0]).args[0])

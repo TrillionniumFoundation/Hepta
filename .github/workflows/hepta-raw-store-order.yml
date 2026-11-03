@@ -1,0 +1,67 @@
+name: Raw store operand-order regression
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'tests/test_raw_store_order.py'
+      - 'tests/test_c_backend.py'
+      - 'tests/test_resource_evaluation_order.py'
+      - '.github/workflows/hepta-raw-store-order.yml'
+permissions:
+  contents: read
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bind compilers and execute complete no-skip controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          rustup toolchain install 1.90.0 --profile minimal
+          export RUSTC="$(rustup which --toolchain 1.90.0 rustc)"
+          export CC="$(command -v gcc)"
+          mkdir -p artifacts/raw-store-order
+          { "$CC" --version; "$RUSTC" --version; sha256sum "$CC" "$RUSTC"; } > artifacts/raw-store-order/compilers.txt
+          python - <<'PY' 2>&1 | tee artifacts/raw-store-order/tests.log
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromNames([
+              'tests.test_raw_store_order', 'tests.test_c_backend',
+              'tests.test_resource_evaluation_order'])
+          def identities(tests):
+              for item in tests:
+                  if isinstance(item, unittest.TestSuite):
+                      yield from identities(item)
+                  else:
+                      yield item.id()
+          ids = list(identities(suite))
+          if len(ids) != 25 or len(set(ids)) != 25:
+              raise SystemExit('Expected 25 unique test identities')
+          print('Planned test identities:', ids, flush=True)
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          if (not result.wasSuccessful() or result.skipped or result.expectedFailures
+                  or result.unexpectedSuccesses or result.testsRun != 25):
+              raise SystemExit('Expected all 25 controls with no skips')
+          PY
+          test -z "$(git status --porcelain --untracked-files=no)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: raw-store-order-${{ matrix.os }}-${{ env.EXPECTED_HEAD }}
+          path: artifacts/raw-store-order

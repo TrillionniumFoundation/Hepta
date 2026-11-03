@@ -275,6 +275,13 @@ and `wrapping_mul` operate modulo the integer width. Indexing, division,
 remainder, shifts, and integer negation have conservative panic effects.
 Failed runtime guards abort.
 
+The unsafe `store(pointer, offset, value)` and `volatile_store` builtins
+evaluate pointer, offset and value once, in that order, before writing. A
+failure in an earlier operand prevents later operands and the write. This is
+call evaluation, distinct from ordinary assignment, which evaluates its
+right-hand-side value before its destination. The caller must still establish
+raw-pointer validity, bounds, alignment and permitted access throughout.
+
 The Rust profile uses ordinary Rust numeric casts and floating semantics,
 without fast-math. The C subset supports basic floating arithmetic but rejects
 float/integer casts; its supported integer casts and wrapping operations use
