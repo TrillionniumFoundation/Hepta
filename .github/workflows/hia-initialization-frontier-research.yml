@@ -1,0 +1,67 @@
+name: HIA initialization frontier research (Python only, DENY_ALL)
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'benchmarks/hia_reduction_release/linear.hepta'
+      - 'benchmarks/hia_reduction_release/affine.hepta'
+      - 'tools/check_initialization_frontiers.py'
+      - 'tools/research_initialization_writes.py'
+      - 'tools/prove_initialization_prefix_conditions.py'
+      - 'tools/experimental_deferred_guard_proposer.py'
+      - 'tools/research_deferred_guard_model.py'
+      - 'tests/test_initialization_*.py'
+      - 'tests/test_hia_initialization.py'
+      - 'tests/test_hia_program.py'
+      - '.github/workflows/hia-initialization-frontier-research.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  python-research:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify exact source and existing solver pin
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          git rev-parse HEAD HEAD^{tree}
+          python -m pip install 'z3-solver==4.15.4.0'
+          python -c "import z3; assert z3.get_version_string() == '4.15.4'"
+      - name: Run only structural, scalar and ordinary-VM controls
+        run: |
+          set -euo pipefail
+          timeout 180s python -B - <<'PYTEST'
+          import hashlib, json, unittest
+          suite = unittest.defaultTestLoader.loadTestsFromNames([
+              'tests.test_initialization_write_observer',
+              'tests.test_initialization_frontier_checker',
+              'tests.test_initialization_prefix_conditions',
+              'tests.test_hia_initialization.InitializationCoverageTests'])
+          def flatten(suite):
+              for item in suite:
+                  if isinstance(item, unittest.TestSuite):
+                      yield from flatten(item)
+                  else:
+                      yield item
+          ids = sorted(test.id() for test in flatten(suite))
+          assert len(ids) == len(set(ids)) == 45, 'test inventory changed'
+          print(json.dumps({'tests': ids, 'inventory_sha256': hashlib.sha256(json.dumps(ids).encode()).hexdigest()}))
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          assert result.testsRun == 45 and result.wasSuccessful(), 'research controls failed'
+          assert not result.skipped and not result.expectedFailures and not result.unexpectedSuccesses, 'incomplete controls'
+          PYTEST
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
