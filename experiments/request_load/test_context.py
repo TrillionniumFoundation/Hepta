@@ -273,11 +273,11 @@ class ContextTests(unittest.TestCase):
         # Private owner admission seams reviewed against normal-source #623;
         # raw #622 legacy differential behavior remains independently covered.
         expected={
-            '_loader_ops':'e97be56c7a99e881e2b05e7f9294d4601a2ad78e420a79c2d05ee188feb2237d',
-            'modules':'def4ed2fb401002009c9f803a39bd19e51ffec849d0c918e79a932952686c5e3',
+            '_loader_ops':'f9a4e12a33f64352c007dd82625d07c55160bc3c77e39eed65bbd53295dd5cad',
+            'modules':'9436ee8b62127adfff70add4c81426efbbdb502cf234ca790337e1046d3fbd76',
             'packages':'a3c588c7d1b77ff8a8c6c98c057ada28437a802d646299a8903e54fa033afa2b',
-            'lexer':'8138278341afc789f744bf89a752723a96b530043a37596f943f3d4e464ff153',
-            'parser':'b3cc04259c953d112e1ffbf4482b380cbb15fdd994a5924507dd1d11d5c0c5cf'}
+            'lexer':'e8614da15be2ab89f5e9e70f206476db9884b3ddb6e0c4e0839f66940eda7d87',
+            'parser':'3264eec10524d86760ce4fac4f4fd562c25814a09d90de606c12ca2be25274fb'}
         root=Path(__file__).resolve().parents[2]
         for name,digest in expected.items():
             self.assertEqual(hashlib.sha256((root/'hepta'/(name+'.py')).read_bytes()).hexdigest(),digest,

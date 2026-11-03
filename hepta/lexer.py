@@ -177,7 +177,10 @@ class Lexer:
         return Token("STRING", value, self._span(mark))
 
     def tokenize(self) -> list[Token]:
-        result: list[Token] = []
+        return self._tokenize([])
+
+    def _tokenize(self, result):
+        """Shared private collection seam; callers admit appends, not a second lexer."""
         pairs = {"->", "..", "==", "!=", "<=", ">=", "&&", "||", "<<", ">>", "::", "=>"}
         singles = set("{}()[],:;=+-*/%!<>.&|^")
         while self.position < len(self.source):

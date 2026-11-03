@@ -41,6 +41,14 @@ class LegacyLoaderOps:
         # The legacy parser performs its own second lexing pass.
         return parse(text, path)
 
+    def scan_receipt(self):
+        # Do not retain legacy tokenize iterables or change their finalization.
+        return None
+
+    def parse_admitted(self, parse, text, path, tokens):
+        # Legacy intentionally ignores scan tokens and performs its second lex.
+        return self.parse(parse, text, path)
+
 
 def dispatch(hook, original, implementation, ops, *args, **kwargs):
     """Preserve legacy replacement hooks, sharing ops only for original helpers.

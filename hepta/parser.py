@@ -32,7 +32,11 @@ class Parser:
     def __init__(self, source: str, path: str = "<input>") -> None:
         self.source = source
         self.path = path
-        self.tokens = tokenize(source, path)
+        self._initialize_tokens(tokenize(source, path))
+
+    def _initialize_tokens(self, tokens):
+        """Shared private initialization after a caller has admitted tokens."""
+        self.tokens = tokens
         self.position = 0
         self.depth = 0
         self.qualified_expressions: list[tuple[str, Span]] = []

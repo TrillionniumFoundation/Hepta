@@ -39,6 +39,9 @@ _BINDINGS = (
 class _Context(Context):
     def check(self):
         super().check()
+        # A callback may swallow nested rejection; never reopen terminal state.
+        if self.closed:
+            self.reject('request context is terminal')
         # Check after the caller's checkpoint too: it may replace a namespace.
         for namespace, name, expected in _BINDINGS:
             if getattr(namespace, name, None) is not expected:

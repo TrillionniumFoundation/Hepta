@@ -178,7 +178,7 @@ def _load_project(entry, *, locked=False, source_overrides=None, ops) -> LoadedP
         for token in ops.tokenize(tokenize, text, str(path)):
             if token.kind == "IDENT" and re.match(r"M[0-9a-f]{16}_", token.value):
                 fail("E_MODULE_RESERVED", "Compiler module symbols cannot be spelled in source", token.span)
-        program = ops.parse(parse, text, str(path))
+        program = ops.parse_admitted(parse, text, str(path), ops.scan_receipt())
         # An imported file may omit module, which defaults to main. Explicit
         # module names are informational; file identity owns namespace identity.
         types = {s.name: s for s in [*program.structs, *getattr(program, "enums", [])]}
