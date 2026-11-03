@@ -1,0 +1,152 @@
+{
+  "schema": "hepta.c-char-boundary-plan.v1",
+  "status": "planned_not_executed",
+  "base": "f2b76f5741c83822be2e12cf5a50b50a8d27b96a",
+  "cases": [
+    {
+      "id": "strlen_original_header",
+      "expectation": "accept",
+      "oracle": "Actual strlen returns2 for A,B,nul with fresh native char mapping"
+    },
+    {
+      "id": "puts_original_header",
+      "expectation": "accept",
+      "oracle": "Exact captured AB newline with stdio still included"
+    },
+    {
+      "id": "scalar_char_extrema",
+      "expectation": "accept",
+      "oracle": "Original C and Rust agree at signed or unsigned native char extrema"
+    },
+    {
+      "id": "mutable_and_const_char_pointer",
+      "expectation": "accept",
+      "oracle": "Original C observes/writes only valid bytes with qualifier-preserving adapter"
+    },
+    {
+      "id": "returned_and_null_char_pointer",
+      "expectation": "accept",
+      "oracle": "Valid return pointer aliases expected live buffer; declared null passthrough remains null without dereference"
+    },
+    {
+      "id": "signedness_flag_variants",
+      "expectation": "accept",
+      "oracle": "Each -fsigned-char/-funsigned-char mode has independent probe/compiler flag identity"
+    },
+    {
+      "id": "adapter_local_symbols",
+      "expectation": "accept",
+      "oracle": "nm/readelf has original undefined symbols but no global adapter export"
+    },
+    {
+      "id": "original_multi_tu_lto",
+      "expectation": "accept",
+      "oracle": "Actual header implementation links under LTO type-mismatch errors and UBSan; include a strict-aliasing-enabled adapter control"
+    },
+    {
+      "id": "changed_generated_source",
+      "expectation": "reject",
+      "oracle": "Existing source binding hash check rejects"
+    },
+    {
+      "id": "changed_header",
+      "expectation": "reject",
+      "oracle": "Fresh preparation detects mismatch or requires explicit reprobe; stale context cannot qualify"
+    },
+    {
+      "id": "changed_actual_prototype",
+      "expectation": "reject",
+      "oracle": "Final same-TU prototype assertion rejects despite matching forged metadata"
+    },
+    {
+      "id": "changed_actual_typedef",
+      "expectation": "reject",
+      "oracle": "Final typedef assertion rejects inactive/conflicting native alias"
+    },
+    {
+      "id": "forged_char_mapping",
+      "expectation": "reject",
+      "oracle": "Fresh probe/final char assertions disagree with claimed i8/u8 mapping"
+    },
+    {
+      "id": "wrong_host_or_target",
+      "expectation": "reject",
+      "oracle": "Existing loader and native profile refuse reuse"
+    },
+    {
+      "id": "missing_header",
+      "expectation": "reject",
+      "oracle": "New profile cannot prepare qualified context"
+    },
+    {
+      "id": "char_double_pointer",
+      "expectation": "reject",
+      "oracle": "Initial profile refuses char** and nested pointer aliases"
+    },
+    {
+      "id": "record_or_array_boundary",
+      "expectation": "reject",
+      "oracle": "Initial profile refuses records/array conversions"
+    },
+    {
+      "id": "variadic_function_pointer_atomic_volatile",
+      "expectation": "reject",
+      "oracle": "Unsupported declarators never reach adapter codegen"
+    },
+    {
+      "id": "stale_flags_context",
+      "expectation": "reject",
+      "oracle": "A context from different char/ABI flags cannot qualify current compilation"
+    },
+    {
+      "id": "late_flag_override",
+      "expectation": "reject",
+      "oracle": "Unrecorded semantic flags cannot be appended after validation"
+    },
+    {
+      "id": "export_misrouting",
+      "expectation": "reject",
+      "oracle": "Only imported externs use adapters, never explicit exports"
+    },
+    {
+      "id": "ordinary_byte_apis",
+      "expectation": "preserve",
+      "oracle": "signed char/unsigned char remain distinct from plain char mapping"
+    },
+    {
+      "id": "v1_and_low_level_apis",
+      "expectation": "preserve",
+      "oracle": "Old bundle meaning and source-only APIs are unchanged"
+    },
+    {
+      "id": "foreign_obligations",
+      "expectation": "preserve",
+      "oracle": "No bounds/lifetime/termination/ownership proof or narrowed effects inferred"
+    },
+    {
+      "id": "noncharacter_byte_representation",
+      "expectation": "reject",
+      "oracle": "Refuse a profile where int8_t/uint8_t are not compatible with signed/unsigned char or required character size/alignment differs"
+    },
+    {
+      "id": "adapter_header_namespace_collision",
+      "expectation": "reject",
+      "oracle": "Proposed adapter name conflicting with original-header function/typedef or macro never becomes generated code; generator may choose and revalidate a distinct name instead"
+    },
+    {
+      "id": "successful_probe_then_dependency_drift",
+      "expectation": "reject",
+      "oracle": "Keep top-level header/probe receipt unchanged, change only a temporary included native typedef/guard fixture after successful probe with fixed recorded search flags; final same-TU assertions reject"
+    },
+    {
+      "id": "const_typedef_and_return_erasure",
+      "expectation": "reject",
+      "oracle": "Actual typedef const char pointer or returned const char* cannot be mapped to raw_mut by altered metadata/AST; fresh declaration comparison rejects"
+    },
+    {
+      "id": "native_implementation_flags_bound",
+      "expectation": "accept",
+      "oracle": "Custom C implementations compiled with same recorded char/ABI flags as caller; arbitrary precompiled binaries remain assumed contracts, not certified by caller prototype assertions"
+    }
+  ]
+}
