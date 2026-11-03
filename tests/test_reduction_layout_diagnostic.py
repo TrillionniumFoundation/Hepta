@@ -1,5 +1,11 @@
 """Compile-only diagnostic cannot become a release timing verdict."""
 import unittest
+import json
+from pathlib import Path
+import sys
+import tempfile
+from types import SimpleNamespace
+from unittest.mock import patch
 from tools import diagnose_hia_reduction_layout as layout
 from hepta.hia_program_source import lower_source
 from hepta.hia_reduction import propose_reduction_pipeline, reduction_program
@@ -41,6 +47,55 @@ class LayoutDiagnosticTests(unittest.TestCase):
 
     def test_missing_arm_is_rejected(self):
         with self.assertRaises(ValueError): layout.equivalence({'default': 'x'}, {}, 'x')
+
+    def test_common_sink_profile_changes_only_its_one_flag(self):
+        default = layout.command('clang', 'same.ll', 'out.o', 'default', profile='common-sink')
+        self.assertEqual(default, layout.command('clang', 'same.ll', 'out.o', 'default'))
+        candidate = layout.command('clang', 'same.ll', 'out.o', 'common_sink_off', profile='common-sink')
+        self.assertEqual(candidate[:7] + candidate[9:], default)
+        self.assertEqual(candidate[7:9], ['-mllvm', '-simplifycfg-sink-common=false'])
+        with self.assertRaises(ValueError):
+            layout.command('clang', 'same.ll', 'out.o', 'common_sink_off')
+        with self.assertRaises(ValueError):
+            layout.command('clang', 'same.ll', 'out.o', 'default', profile='unregistered')
+
+    def test_common_sink_requires_its_complete_separate_inventory(self):
+        same = {arm: 'same' for arm in layout.PROFILES['common-sink']}
+        result = layout.equivalence(same, same, 'same', profile='common-sink')
+        self.assertTrue(result['object_equal_to_default']['common_sink_off'])
+        self.assertFalse(result['performance_qualified'])
+        with self.assertRaises(ValueError):
+            layout.equivalence(same, same, 'same')
+        with self.assertRaises(ValueError):
+            layout.equivalence(same, same, 'same', profile='unregistered')
+
+    def test_common_sink_candidate_trace_mismatch_fails_run_and_is_retained(self):
+        # Synthetic compiler only tests orchestration. No native result is claimed.
+        state = {'head': 'test-only', 'tree': 'test-only', 'status': ''}
+        def fake_command(argv, *, command_log, **kwargs):
+            command_log.append({'argv': argv, 'returncode': 0, 'status': 'synthetic-test'})
+            if '-c' in argv:
+                output = Path(argv[argv.index('-o') + 1])
+                output.write_bytes(b'changed-trace' if output.name == 'common_sink_off.trace.o' else b'same-object')
+            elif '--only-section=.text' in argv:
+                Path(argv[-1]).write_bytes(b'same-text')
+            return SimpleNamespace(returncode=0, stdout='clang version 20.1.8 test-double', stderr='synthetic MIR')
+        with tempfile.TemporaryDirectory() as temporary, \
+                patch.object(layout, 'source_state', return_value=state), \
+                patch.object(layout, 'bindings', return_value={}), \
+                patch.object(layout.shutil, 'which', return_value=sys.executable), \
+                patch.object(layout.native, '_run_logged', side_effect=fake_command):
+            output = Path(temporary) / 'evidence'
+            with self.assertRaisesRegex(ValueError, 'trace instrumentation changed object bytes'):
+                layout.run(output, sys.executable, profile='common-sink')
+            result = json.loads((output / 'RESULT.json').read_text())
+            self.assertEqual(result['status'], 'failed')
+            self.assertFalse(result['performance_qualified'])
+            self.assertFalse(result['timing_performed'])
+            self.assertEqual(result['authority'], 'DENY_ALL')
+            self.assertIn('linear/common_sink_off.trace.o', result['artifact_sha256'])
+            self.assertNotEqual(result['workloads']['linear']['trace_objects']['common_sink_off'],
+                                result['workloads']['linear']['objects']['common_sink_off'])
 
     def test_both_workloads_use_fresh_production_core_without_wrapper(self):
         for workload in ('linear', 'affine'):

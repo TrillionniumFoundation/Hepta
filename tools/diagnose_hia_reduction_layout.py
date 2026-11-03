@@ -21,6 +21,8 @@ from hepta.hia_reduction import propose_reduction_pipeline, reduction_program, v
 
 ARMS = {'default': [], 'shrink_wrap_off': ['-mllvm', '-enable-shrink-wrap=false'],
         'shrink_wrap_on': ['-mllvm', '-enable-shrink-wrap=true']}
+PROFILES = {'shrink-wrap': ARMS,
+            'common-sink': {'default': [], 'common_sink_off': ['-mllvm', '-simplifycfg-sink-common=false']}}
 TRACE_FLAGS = ['-mllvm', '-print-before=shrink-wrap', '-mllvm', '-print-after=shrink-wrap']
 
 
@@ -47,15 +49,15 @@ def bindings():
     return {str(p.relative_to(ROOT)): digest(p) for p in sorted(paths)}
 
 
-def command(compiler, ir, output, arm, *, trace=False):
-    if arm not in ARMS:
+def command(compiler, ir, output, arm, *, trace=False, profile='shrink-wrap'):
+    if profile not in PROFILES or arm not in PROFILES[profile]:
         raise ValueError('unregistered layout arm')
     return [str(compiler), '--target=' + native.TARGET, '-x', 'ir', '-O3', '-fPIC', '-c',
-            *ARMS[arm], *(TRACE_FLAGS if trace else []), str(ir), '-o', str(output)]
+            *PROFILES[profile][arm], *(TRACE_FLAGS if trace else []), str(ir), '-o', str(output)]
 
 
-def equivalence(objects, sections, trace_object):
-    if set(objects) != set(ARMS) or set(sections) != set(ARMS):
+def equivalence(objects, sections, trace_object, *, profile='shrink-wrap'):
+    if profile not in PROFILES or set(objects) != set(PROFILES[profile]) or set(sections) != set(PROFILES[profile]):
         raise ValueError('complete registered compiler arms required')
     return {'object_equal_to_default': {k: v == objects['default'] for k, v in objects.items()},
             'text_equal_to_default': {k: v == sections['default'] for k, v in sections.items()},
@@ -64,7 +66,10 @@ def equivalence(objects, sections, trace_object):
             'next_step': 'No speedup inferred. Identical objects rule out this flag as an optimization on this compiler/source. Different objects require separate preregistered correctness and complete original wall-time gates before any performance claim.'}
 
 
-def run(output, clang):
+def run(output, clang, *, profile='shrink-wrap'):
+    if profile not in PROFILES:
+        raise ValueError('unregistered compiler experiment profile')
+    arms = PROFILES[profile]
     output = Path(output).resolve()
     if output == ROOT or ROOT in output.parents:
         raise ValueError('evidence output must be outside the source checkout')
@@ -82,9 +87,9 @@ def run(output, clang):
     tools = {name: {'path': str(path), 'sha256': digest(path)} for name, path in tool_paths.items()}
     bound = bindings()
     registration = {'schema': 'hepta.hia.reduction-layout-diagnostic.v1', 'source': before,
-        'source_sha256': bound, 'tools': tools, 'workloads': ['linear', 'affine'], 'arms': ARMS,
+        'source_sha256': bound, 'tools': tools, 'workloads': ['linear', 'affine'], 'profile': profile, 'arms': arms,
         'target': native.TARGET, 'common_flags': ['-x', 'ir', '-O3', '-fPIC', '-c'],
-        'trace_flags': TRACE_FLAGS, 'maximum_compilations': 8, 'command_timeout_seconds': 60,
+        'trace_flags': TRACE_FLAGS, 'trace_arms': ['default'] if profile == 'shrink-wrap' else list(arms), 'maximum_compilations': 8, 'command_timeout_seconds': 60,
         'scope': 'compile-only ablation, no Rust comparison or target-library execution',
         'authority': 'DENY_ALL', 'production_activation_allowed': False, 'performance_qualified': False}
     save(output / 'REGISTRATION.json', registration)
@@ -129,9 +134,9 @@ def run(output, clang):
             record = {'core_sha256': reduced.sha256, 'llvm_sha256': ir.sha256,
                       'exports': list(ir.exports), 'objects': {}, 'text_sections': {}}
             result['workloads'][workload] = record
-            for arm in ARMS:
+            for arm in arms:
                 obj = directory / (arm + '.o')
-                execute(command(compiler, ir_path, obj, arm))
+                execute(command(compiler, ir_path, obj, arm, profile=profile))
                 record['objects'][arm] = digest(obj)
                 text_section = directory / (arm + '.text.bin')
                 execute([str(tool_paths['objcopy']), '--only-section=.text', '-O', 'binary', str(obj), str(text_section)])
@@ -140,13 +145,18 @@ def run(output, clang):
                 (directory / (arm + '.asm')).write_text(assembly.stdout)
                 symbols = execute([str(tool_paths['nm']), '-S', str(obj)])
                 (directory / (arm + '.symbols')).write_text(symbols.stdout)
-            trace_obj = directory / 'default.trace.o'
-            trace = execute(command(compiler, ir_path, trace_obj, 'default', trace=True))
-            (directory / 'shrink-wrap.mir.txt').write_text(trace.stderr)
-            record['trace_object_sha256'] = digest(trace_obj)
-            record['equivalence'] = equivalence(record['objects'], record['text_sections'], record['trace_object_sha256'])
-            if not record['equivalence']['trace_object_equal_to_default']:
-                raise ValueError('trace instrumentation changed object bytes')
+            record['trace_objects'] = {}
+            for trace_arm in registration['trace_arms']:
+                trace_obj = directory / (trace_arm + '.trace.o')
+                trace = execute(command(compiler, ir_path, trace_obj, trace_arm, trace=True, profile=profile))
+                trace_name = 'shrink-wrap.mir.txt' if profile == 'shrink-wrap' else trace_arm + '.shrink-wrap.mir.txt'
+                (directory / trace_name).write_text(trace.stderr)
+                record['trace_objects'][trace_arm] = digest(trace_obj)
+                if record['trace_objects'][trace_arm] != record['objects'][trace_arm]:
+                    raise ValueError('trace instrumentation changed object bytes')
+            record['trace_object_sha256'] = record['trace_objects']['default']
+            record['equivalence'] = equivalence(record['objects'], record['text_sections'],
+                                                record['trace_object_sha256'], profile=profile)
             if digest(ir_path) != ir.sha256:
                 raise ValueError('shared canonical LLVM changed')
         result['status'] = 'completed'
@@ -175,5 +185,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', required=True)
     parser.add_argument('--clang', default='/usr/bin/clang-20')
+    parser.add_argument('--profile', choices=tuple(PROFILES), default='shrink-wrap')
     args = parser.parse_args()
-    print(json.dumps({'status': run(args.output, args.clang)['status'], 'performance_qualified': False}))
+    print(json.dumps({'status': run(args.output, args.clang, profile=args.profile)['status'], 'performance_qualified': False}))

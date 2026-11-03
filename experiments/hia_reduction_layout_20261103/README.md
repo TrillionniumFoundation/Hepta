@@ -89,3 +89,36 @@ python -B tools/diagnose_hia_reduction_layout.py --clang /usr/bin/clang-20 --out
 
 Evidence output must be outside the source checkout. The workflow uploads
 successful, negative and failed observations with the exact source HEAD.
+
+## Follow-on common-code sinking ablation (separate profile)
+
+The actual first shrink-wrap run is preserved at
+[immutable evidence commit 6c696eae](https://github.com/TrillionniumFoundation/Hepta/tree/6c696eae8c13a470a291a46750c10a573b30f5d9/experiments/hia_reduction_layout_20261103).
+All default/off/on objects matched for both workloads. No timing followed.
+
+That MIR shows the empty branch defining callee-saved r14 and joining a
+`common.ret.sink` path. A separate **common-sink** profile tests one limited
+hypothesis: disabling SimplifyCFG common-code sinking may change that shared
+return structure and the empty-path register-save burden. This is a hypothesis,
+not a claim that the block name proves its creating pass or the root cause.
+LLVM20's [implementation switch](https://github.com/llvm/llvm-project/blob/llvmorg-20.1.8/llvm/lib/Transforms/Utils/SimplifyCFG.cpp)
+controls this transformation; the same Core and canonical LLVM remain intact.
+
+The frozen arms are default and `-mllvm -simplifycfg-sink-common=false`.
+Both receive a separate MIR-printing compilation which must exactly match
+its own uninstrumented object, for eight total compilations over two workloads.
+The existing shrink-wrap profile is retained, separately registered and run,
+not retroactively replaced. CI uses two isolated matrix jobs, each with the
+same 60-second/300-second/15-minute bounds and distinct complete artifacts.
+
+First compare entire objects and inspect empty-path assembly/MIR. Equal bytes,
+or different bytes without a reduced empty-path save/restore burden, are
+negative outcomes to retain. No automated instruction-count threshold is a
+new qualification gate. A different layout alone is not semantic refinement,
+latency improvement, or permission to activate the optimization. Only a useful,
+safe candidate would justify a separate prospective timing protocol; this
+profile performs no timing even when its object differs.
+
+```sh
+python -B tools/diagnose_hia_reduction_layout.py --profile common-sink --clang /usr/bin/clang-20 --output /tmp/hepta-common-sink-new
+```
