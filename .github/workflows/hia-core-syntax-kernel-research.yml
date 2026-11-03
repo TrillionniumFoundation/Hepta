@@ -64,7 +64,7 @@ jobs:
       - name: Kernel-check byte-bound Core syntax connection and negative controls
         run: |
           set -euo pipefail
-          timeout 600s python -B -m tools.check_core_syntax_staged --diagnostic-stage-limit 2 \
+          timeout 600s python -B -m tools.check_core_syntax_staged \
             --lean "$RUNNER_TEMP/core-syntax-tools/lean-4.19.0/bin/lean" \
             --output-directory "$RUNNER_TEMP/core-syntax-proof"
           test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
