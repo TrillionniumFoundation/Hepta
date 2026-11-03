@@ -4,6 +4,8 @@ on:
     paths:
       - 'hepta/**'
       - 'tools/check_core_syntax_lean.py'
+      - 'tools/check_core_syntax_staged.py'
+      - 'tools/core_syntax_stage_sources.py'
       - 'tests/test_core_syntax_*.py'
       - 'experiments/hia_initialization_frontiers_20261103/CoreSyntaxSlice.lean'
       - '.github/workflows/hia-core-syntax-kernel-research.yml'
@@ -59,7 +61,7 @@ jobs:
       - name: Kernel-check byte-bound Core syntax connection and negative controls
         run: |
           set -euo pipefail
-          timeout 600s python -B -m tools.check_core_syntax_lean \
+          timeout 600s python -B -m tools.check_core_syntax_staged \
             --lean "$RUNNER_TEMP/core-syntax-tools/lean-4.19.0/bin/lean" \
             --output-directory "$RUNNER_TEMP/core-syntax-proof"
           test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
@@ -67,13 +69,5 @@ jobs:
       - name: Retain available diagnostics in the job log only
         if: always()
         run: |
-          python - <<'PY'
-          import os
-          from pathlib import Path
-          root = Path(os.environ['RUNNER_TEMP']) / 'core-syntax-proof'
-          for name in ('positive.stdout', 'positive.stderr', 'RESULT.json'):
-              path = root / name
-              if path.is_file():
-                  print(name)
-                  print(path.read_text()[:1048576])
-          PY
+          python -B -m tools.check_core_syntax_staged --print-diagnostics \
+            --output-directory "$RUNNER_TEMP/core-syntax-proof"
