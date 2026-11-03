@@ -214,7 +214,8 @@ def qualify(args):
             'lanes':['core','capability_proof','memory_proof','core_proof','register_proof',
                      'production_capabilities','sequential_core','ndu_budget_model',
                      'continuation','reduction','ndu_full_cost','cpp_unique_reset','cpp_source_refusals',
-                     'gsl_upstream_upgrade','migration_resources','host_region','agent_tool_controls'],
+                     'gsl_upstream_upgrade','migration_resources','host_region','agent_tool_controls',
+                     'ndu_model_planner'],
             'performance_results_are_not_assumed_positive':True,
             'general_agent_advantage_gate':'separate complete prospective model study required',
             'authority':'DENY_ALL','safety_certificate':False}
@@ -312,15 +313,18 @@ def qualify(args):
             '--output',str(output/'host-region'),'--clang',tools['clang']['path']])
         passed['agent_tool_controls'] = step('agent_tool_controls',py+['tools/qualify_hia_agent_repository_maintenance_v2.py',
             'controls','--output',str(output/'agent-controls'),'--clang',tools['clang']['path']])
+        passed['ndu_model_planner'] = step('ndu_model_planner',py+['tools/qualify_hia_ndu_budget_erasure.py',
+            '--output',str(output/'ndu-model-planner')])
         report = {'status':'completed','qualifications':passed,'qualification_commands_passed':all(passed.values()),
                   'p0_same_combination_build_execute_reject_recover':all(passed.get(k,False) for k in
                       ('rust_shadow_dependencies','rust_shadow_build','core',
                        'capability_proof','memory_proof','core_proof','register_proof',
                        'production_capabilities','sequential_core','ndu_budget_model',
-                       'continuation','ndu_full_cost','host_region')),
+                       'continuation','reduction','ndu_full_cost','ndu_model_planner','host_region')),
                   'all_seven_research_targets_closed':False,
                   'performance_assessment':'reduction/RESULT.json',
-                  'ndu_assessment':'ndu-cost/REPORT.json'}
+                  'ndu_assessment':'ndu-cost/REPORT.json',
+                  'ndu_model_planner_assessment':'ndu-model-planner/RESULT.json'}
         if passed['ndu_full_cost']:
             ndu=json.loads((output/'ndu-cost/REPORT.json').read_text())
             command_cost={row['name']:row['wall_ns'] for row in rows}

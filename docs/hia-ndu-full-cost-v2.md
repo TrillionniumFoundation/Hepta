@@ -108,7 +108,11 @@ python3 tools/qualify_hia_ndu_budget_erasure.py \
 `benchmarks/hia_ndu_cost/BUDGET_ERASURE_PROTOCOL.json` pins the historical
 `931c96fcc7fb698226b809862c233a345dcca4ec` implementation and its file digest,
 128 declared models, independent seed 49979687, and eleven alternating paired
-sweeps. Before timing, it compares every full witness with the historical
+sweeps. The complete historical file is retained unchanged beside the protocol
+as `historical_hia_ndu_cost_931c96fcc7fb698226b809862c233a345dcca4ec.py`;
+its registered digest is checked before loading and its bytes are included in
+the source inventory, so shallow checkouts do not need historical Git objects.
+Before timing, it compares every full witness with the historical
 implementation, every first-action minimum with independent exhaustive
 schedules, and every native request byte with the historical builder. It
 retains every timing sample and reports median, p95 and complete observed

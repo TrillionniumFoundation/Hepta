@@ -50,14 +50,25 @@ def median(values):
 
 
 def policy_model_evidence(rows):
-    """A skipped policy call is not evidence of native/DP agreement."""
-    decisions = [step["decision"] for row in rows if row["policy"] == "native_ndu"
-                 for step in row["steps"] if step["decision"]["native_invoked"]]
-    return {"native_model_evaluated_count": len(decisions),
-            "native_policy_evidence_present": bool(decisions),
+    """Separate attempted calls from completed, validated response evidence.
+
+    AdvisoryController records response only after successful native evaluation
+    and projection. An exception can set native_invoked without that receipt.
+    A surviving successful subset cannot hide failed calls in aggregate agreement.
+    """
+    attempts = [step["decision"] for row in rows if row["policy"] == "native_ndu"
+                for step in row["steps"] if step["decision"]["native_invoked"] is True]
+    completed = [item for item in attempts if type(item.get("response")) is dict
+                 and bool(item["response"]) and "native_error" not in item]
+    failed = len(attempts) - len(completed)
+    return {"native_model_attempted_count": len(attempts),
+            "native_model_evaluated_count": len(completed),
+            "native_model_failed_count": failed,
+            "native_policy_evidence_present": bool(completed),
+            "native_model_all_attempts_completed": not failed if attempts else None,
             "native_matches_same_information_exact_model": (
-                all(item.get("native_matches_exact_model") is True for item in decisions)
-                if decisions else None)}
+                not failed and all(item.get("native_matches_exact_model") is True for item in completed)
+                if completed else None)}
 
 
 def full_cost_totals(rows, offline_wall_ns, manifest):
@@ -71,7 +82,19 @@ def full_cost_totals(rows, offline_wall_ns, manifest):
     totals["native_ndu"] = totals["native_ndu"] + build_ns if known else None
     return {"build_cost_observed": known, "bridge_build_wall_ns": build_ns if known else None,
             "arm_full_cost_ns": totals,
-            "unknown_costs": [] if known else ["native_bridge_build_wall_ns"]}
+            "cost_scope": ("Declared bridge build, shared offline build/training/proof/calibration, "
+                           "and actual per-policy service wall times. Parent interpreter startup/imports "
+                           "and final report output require separate composition outer receipts."),
+            "execution_scope_cost_complete": known,
+            "unknown_costs": [] if known else ["native_bridge_build_wall_ns"],
+            "unknown_costs_scope": "declared execution scope only",
+            "full_lifecycle_cost_complete": False,
+            "unmeasured_lifecycle_costs": {
+                "toolchain_acquisition_ns": None,
+                "dependency_acquisition_before_campaign_ns": None,
+                "human_engineering_and_review_ns": None,
+                "long_term_residency_and_evidence_retention_ns": None,
+                "maintenance_and_recovery_beyond_observed_campaign_ns": None}}
 
 
 def episodes_without_native_start(rows):
@@ -90,6 +113,60 @@ def source_inventory():
 
 
 class ResidentDriver(native.Driver):
+    @staticmethod
+    def sealed_identity(descriptor, access_path):
+        """Bind a readable fd alias to its retained, immutable kernel object."""
+        import fcntl
+        native.require(type(descriptor) is int and descriptor >= 0,
+                       "sealed artifact descriptor is invalid")
+        required = (getattr(fcntl, "F_SEAL_WRITE", 0x0008)
+                    | getattr(fcntl, "F_SEAL_GROW", 0x0004)
+                    | getattr(fcntl, "F_SEAL_SHRINK", 0x0002)
+                    | getattr(fcntl, "F_SEAL_SEAL", 0x0001))
+        seals = fcntl.fcntl(descriptor, getattr(fcntl, "F_GET_SEALS", 1034))
+        native.require(seals & required == required, "native artifact is not fully sealed")
+        held, accessed = os.fstat(descriptor), Path(access_path).stat()
+        native.require((held.st_dev, held.st_ino, held.st_size) ==
+                       (accessed.st_dev, accessed.st_ino, accessed.st_size),
+                       "sealed artifact access path differs from retained descriptor")
+        actual = native.file_identity(access_path)
+        native.require(actual["bytes"] == held.st_size, "sealed artifact byte count differs")
+        return {**actual, "access_path": str(access_path), "descriptor": descriptor,
+                "device": held.st_dev, "inode": held.st_ino, "seals": seals}
+
+    @classmethod
+    def bind_product(cls, product, descriptor, access_path):
+        """Keep the build identity and the sealed access path as separate fields."""
+        original = native.file_identity(product["path"])
+        native.require(all(original[key] == product[key] for key in ("path", "bytes", "sha256")),
+                       "native library identity differs before sealed binding")
+        sealed = cls.sealed_identity(descriptor, access_path)
+        native.require(all(sealed[key] == product[key] for key in ("bytes", "sha256")),
+                       "sealed native library differs from fixed build product")
+        return {**product, "original_path": product["path"], "path": str(access_path),
+                "sealed_identity": sealed}
+
+    def load(self, label, products):
+        if label in self.loaded:
+            return None
+        started = time.monotonic_ns()
+        expected = products[label]
+        binding = expected.get("sealed_identity")
+        native.require(type(binding) is dict, "resident artifact lacks sealed identity")
+        actual = self.sealed_identity(binding["descriptor"], expected["path"])
+        native.require(actual == binding and
+                       all(actual[key] == expected[key] for key in ("bytes", "sha256")),
+                       "sealed native library identity differs before load")
+        order = native.protocol()["backends"].index(label)
+        row = self.ask(f"L {order} {expected['path']}")
+        native.require(row.get("loaded") == order, "wrong loaded library")
+        self.loaded.add(label)
+        self.path_ids[expected["path"]] = order
+        row["mapping"] = self.mapping(expected["path"])
+        row["artifact_identity"] = actual
+        row["load_outer_ns"] = time.monotonic_ns() - started
+        return row
+
     def unload(self, label, products):
         if label not in self.loaded:
             return None
@@ -359,9 +436,9 @@ def qualify(args):
         for name,product in products.items():
             raw,_,descriptor = _pin_native_artifact(Path(product["path"]))
             descriptors.append(descriptor)
-            native.require(hashlib.sha256(raw).hexdigest()==product["sha256"],"sealed artifact binding")
-            product["original_path"] = product["path"]
-            product["path"] = f"/proc/{os.getpid()}/fd/{descriptor}"
+            native.require(len(raw)==product["bytes"] and hashlib.sha256(raw).hexdigest()==product["sha256"],
+                           "sealed artifact binding")
+            products[name] = ResidentDriver.bind_product(product, descriptor, f"/proc/{os.getpid()}/fd/{descriptor}")
             with_probe = ResidentDriver(output/"driver",output/("residency-"+name+".jsonl"))
             try:
                 proof,e1 = timed(lambda n=name: admission(n,0,products,receipts,core))
@@ -400,7 +477,9 @@ def qualify(args):
                 "native_over_best_control":medians["native_ndu"]/min(v for p,v in medians.items() if p!="native_ndu")})
         report["comparisons"] = comparisons
         costs = full_cost_totals(rows, report["offline_wall_ns"], manifest)
-        report["acceptance"] = {"complete_cost_accounting":costs["build_cost_observed"],"same_information_controls":True,
+        report["acceptance"] = {"complete_cost_accounting":costs["execution_scope_cost_complete"],
+            "complete_cost_accounting_scope":costs["cost_scope"],
+            "full_lifecycle_cost_complete":False,"same_information_controls":True,
             "actual_native_invocations":sum(r["native_invocations"] for r in rows),
             **policy_model_evidence(rows),
             "skip_only_episodes_without_native_start":episodes_without_native_start(rows),
