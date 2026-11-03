@@ -1,0 +1,74 @@
+name: Experimental plain-char boundary qualification
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'experiments/c_char_boundary/**'
+      - 'docs/design/C_CHAR_BOUNDARY*'
+      - 'tests/test_c_import*.py'
+      - '.github/workflows/hepta-c-char-prototype.yml'
+permissions:
+  contents: read
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bind compilers and execute complete no-skip controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          rustup toolchain install 1.90.0 --profile minimal
+          export RUSTC="$(rustup which --toolchain 1.90.0 rustc)"
+          export CC="$(command -v gcc)"
+          mkdir -p artifacts/c-char-prototype
+          { "$CC" --version; "$RUSTC" --version; sha256sum "$CC" "$RUSTC"; } > artifacts/c-char-prototype/compilers.txt
+          python - <<'PY' 2>&1 | tee artifacts/c-char-prototype/tests.log
+          import json, unittest
+          from pathlib import Path
+          from experiments.c_char_boundary.test_prototype import CharPrototypeTests
+          planned = json.loads(Path('docs/design/C_CHAR_BOUNDARY_CASES.json').read_text())['cases']
+          names = ['test_' + item['id'] for item in planned]
+          assert len(names) == len(set(names)) == 29
+          assert set(unittest.defaultTestLoader.getTestCaseNames(CharPrototypeTests)) == set(names) | {'test_actual_rust_reference'}
+          suite = unittest.defaultTestLoader.loadTestsFromNames([
+              'experiments.c_char_boundary.test_prototype',
+              'tests.test_c_import', 'tests.test_c_import_capture',
+              'tests.test_c_import_prototypes', 'tests.test_c_import_typedefs'])
+          def identities(tests):
+              for item in tests:
+                  if isinstance(item, unittest.TestSuite):
+                      yield from identities(item)
+                  else:
+                      yield item.id()
+          ids = list(identities(suite))
+          if len(ids) != 49 or len(set(ids)) != 49:
+              raise SystemExit('Expected 49 unique test identities')
+          print('Planned test identities:', ids, flush=True)
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          if (not result.wasSuccessful() or result.skipped or result.expectedFailures
+                  or result.unexpectedSuccesses or result.testsRun != 49):
+              raise SystemExit('Expected all 49 controls with no skips')
+          PY
+          test -z "$(git status --porcelain --untracked-files=no)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: c-char-prototype-${{ matrix.os }}-${{ env.EXPECTED_HEAD }}
+          path: artifacts/c-char-prototype
