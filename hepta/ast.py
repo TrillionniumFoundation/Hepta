@@ -62,6 +62,9 @@ class Expr:
     children: list[Expr] = field(default_factory=list)
     span: Span = field(default_factory=Span)
     type_args: tuple[Type, ...] = ()
+    # Decimal source is authoritative until the checker resolves f32/f64.
+    # value then holds the exactly representable destination value for all IRs.
+    literal_text: str | None = None
 
 
 @dataclass

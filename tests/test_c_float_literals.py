@@ -29,10 +29,9 @@ def rational_bits(bits, width):
 
 
 def oracle(text, width):
-    # Hepta currently stores binary64 in the AST, and both emitters use repr.
-    value = float(text)
-    sign = int(math.copysign(1, value) < 0) << (width - 1)
-    exact = abs(Fraction(repr(value)))
+    # Use the source rational, independent of the frontend's integer rounder.
+    sign = int(text.startswith('-')) << (width - 1)
+    exact = abs(Fraction(text))
     maximum = 0x7f7fffff if width == 32 else 0x7fefffffffffffff
     lo, hi = 0, maximum
     while lo < hi:
@@ -111,24 +110,36 @@ class CFloatLiteralTests(unittest.TestCase):
         self.execute_c([(32, '1.0000000596046448'), (32, '-1.0000000596046448'),
                         (32, '-0.0'), (64, '-0.0')])
 
-    def test_original_spelling_is_not_claimed_to_survive_ast(self):
+    def test_original_spelling_is_resolved_before_native_emission(self):
         p, c = frontend([(32, '1.00000005960464477')])
         expr = p.functions[0].body[0].data['expr']
-        self.assertEqual(repr(expr.value), '1.0000000596046448')
+        self.assertEqual(expr.literal_text, '1.00000005960464477')
+        self.assertEqual(expr.value, 1.0)
         rust = emit_rust(p, c, crate_type='staticlib')
-        self.assertIn('1.0000000596046448f32', rust)
+        self.assertIn('1.0f32', rust)
         self.assertIn('pub extern "C" fn h_value_0()', rust)
-        self.assertIn('1.0000000596046448f)', emit_c(p, c, crate_type='staticlib'))
+        self.assertIn('1.0f)', emit_c(p, c, crate_type='staticlib'))
         self.assertLess(Fraction('1.00000005960464477'), Fraction(1) + Fraction(1, 1 << 24))
         # The checker also permits integer-valued float AST payloads.
         expr.value = 1
+        expr.literal_text = None
         self.assertTrue(check(p).ok)
         self.assertIn('1.0f)', emit_c(p, check(p), crate_type='staticlib'))
 
     def test_infinite_target_literals_rejected(self):
         for text in ('3.402823567797337e38', '-3.402823567797337e38', '1e39', '-1e39'):
             self.assertEqual(oracle(text, 32) & 0x7fffffff, 0x7f800000)
-            p, c = frontend([(32, text)])
+            p = parse(f'export "C" fn value_0() -> f32 effects {{}} {{ return {text}; }}')
+            c = check(p)
+            self.assertFalse(c.ok)
+            self.assertIn('E_FLOAT_RANGE', [d.code for d in c.diagnostics])
+            # The C guard still protects constructed legacy AST payloads.
+            expr = p.functions[0].body[0].data['expr']
+            if expr.kind == 'unary':
+                expr = expr.children[0]
+            expr.literal_text = None
+            c = check(p)
+            self.assertTrue(c.ok)
             with self.subTest(text=text), self.assertRaises(HeptaError) as caught:
                 emit_c(p, c, crate_type='staticlib')
             self.assertEqual(caught.exception.diagnostic.code, 'E_C_BACKEND_LITERAL')
@@ -148,8 +159,8 @@ class CFloatLiteralTests(unittest.TestCase):
             run = subprocess.run([str(exe)], capture_output=True, text=True, timeout=10)
             self.assertEqual(run.returncode, 0, run.stderr)
             self.assertEqual([int(x) for x in run.stdout.split()], [oracle(s, w) for w, s in rows])
-            p, c = frontend([(32, '1e39')])
-            src.write_text(emit_rust(p, c, crate_type='staticlib'))
+            # Independent native overflow control uses the original spelling.
+            src.write_text('pub fn invalid() -> f32 { 1e39f32 }')
             rejected = subprocess.run([RUSTC, '--crate-type=lib', str(src), '-o', str(root/'invalid.rlib')], capture_output=True, text=True, timeout=60)
             self.assertNotEqual(rejected.returncode, 0)
             self.assertIn('out of range for `f32`', rejected.stderr)

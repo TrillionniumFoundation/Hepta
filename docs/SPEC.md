@@ -264,14 +264,22 @@ live owners; every continuing arm must leave the same owners live.
 Named calls, struct/array construction, fields, indices, casts, unary operators,
 and the supported arithmetic/comparison/bitwise/logical binary operators use
 the parser's conventional precedence. Default literals are `i64` and `f64`;
-expected types can constrain them. The current bootstrap lexer stores floating
-literals as binary64 AST values, losing distinctions between decimal spellings
-that round to the same value. Both native backends emit the canonical decimal
-`repr` of that stored value directly at the inferred destination precision;
-C `f32` emission must not first round it as an unsuffixed C double. This aligns
-backend behavior but does not restore the original decimal source spelling.
-A canonical literal that rounds to infinity in `f32` is rejected by the C
-emitter, matching the Rust compiler's default overflowing-literal refusal.
+expected types can constrain them. The parser retains each floating expression's
+decimal source spelling, with numeric separators removed. After its destination
+type is known, the checker rounds that decimal directly to `f32` or `f64` using
+round-to-nearest, ties-to-even. It includes gradual underflow and signed zero;
+target overflow produces `E_FLOAT_RANGE`. The lexer still rejects spellings
+outside its finite binary64 envelope and the existing 4096-character limit.
+
+The resolved AST value is exactly representable in the destination type and
+is shared by typed semantic snapshots, IR lowering and both native backends.
+Those backends emit its canonical decimal at the destination precision;
+C `f32` emission must not first round it as an unsuffixed C double. For example,
+`1.00000005960464477` in an `f32` context resolves to `1.0`, while the distinct
+source `1.0000000596046448` resolves to the next larger `f32`. An explicit cast
+still evaluates its operand at the operand's inferred type before conversion.
+Constructed legacy AST literals without a source spelling retain their existing
+numeric-payload contract; the C emitter also retains its overflow guard.
 Integer range checking includes native
 target checks for pointer-sized integers.
 

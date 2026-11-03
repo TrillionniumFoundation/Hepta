@@ -510,7 +510,8 @@ class Parser:
         if token.kind == "INT":
             return Expr("int", token.value, span=token.span)
         if token.kind == "FLOAT":
-            return Expr("float", token.value, span=token.span)
+            return Expr("float", token.value, span=token.span,
+                        literal_text=self.source[token.span.start:token.span.end].replace("_", ""))
         if token.kind in ("true", "false"):
             return Expr("bool", token.kind == "true", span=token.span)
         if token.kind in ("-", "!", "read", "mut", "move"):

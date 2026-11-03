@@ -928,9 +928,18 @@ class _Checker:
                     self.error("E_INTEGER_RANGE", "negative literal does not fit usize", expr.span)
         elif kind == "float":
             typ = expected if expected is not None and expected.name in FLOATS else F64
-            import math
-            if not isinstance(expr.value, (float, int)) or not math.isfinite(expr.value):
-                self.error("E_LITERAL", "floating literal must be finite", expr.span)
+            if expr.literal_text is not None:
+                from .float_literals import round_source_float
+                try:
+                    expr.value = round_source_float(expr.literal_text, typ.name)
+                except OverflowError as error:
+                    self.error("E_FLOAT_RANGE", str(error), expr.span)
+                except ValueError as error:
+                    self.error("E_LITERAL", str(error), expr.span)
+            else:
+                import math
+                if not isinstance(expr.value, (float, int)) or not math.isfinite(expr.value):
+                    self.error("E_LITERAL", "floating literal must be finite", expr.span)
         elif kind == "bool":
             typ = BOOL
         elif kind == "name":
