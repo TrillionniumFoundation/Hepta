@@ -46,7 +46,7 @@ class ByteFactsDiagnosticTests(unittest.TestCase):
         self.assertEqual(self.diagnostic.stages[:3], self.proposal.stages[:3])
         self.assertEqual(m['maximum_processes'], 4)
         self.assertLessEqual(m['marker_count'], 24)
-        self.assertEqual(m['candidate_site_count'], 24)
+        self.assertEqual(m['candidate_site_count'], 20)
         self.assertLessEqual(len(self.diagnostic.manifest_json.encode()), 32768)
         self.assertEqual(m['original_total_source_bytes'], sum(s.source_bytes for s in self.prepared['stages']))
         self.assertEqual(m['transformed_total_source_bytes'], sum(s.source_bytes for s in self.proposal.stages))
@@ -69,12 +69,18 @@ class ByteFactsDiagnosticTests(unittest.TestCase):
 
     def test_named_anchors_and_complete_command_boundaries(self):
         m = self.diagnostic.manifest
-        labels = {a for marker in m['markers'] for a in marker['anchors']}
-        for ordinal in (0,63,127,255,383,511,594):
-            for side in ('before','after'):
-                self.assertIn(side + '_linear_bf%04d' % ordinal, labels)
-        for name in ('bounds','serialized','parsed','length','byte_range','transport'):
-            self.assertIn('after_linear_'+name, labels)
+        expected = ['before_linear_p146', 'after_linear_p146',
+                    'after_linear_p149', 'after_linear_p145',
+                    'before_linear_sl4_20', 'after_linear_pl4_15', 'after_linear_pl4_10',
+                    'after_linear_pl4_5', 'after_linear_pl4_0', 'after_linear_p4',
+                    'after_linear_p152',
+                    'after_linear_p153', 'after_linear_p154', 'after_linear_p3',
+                    'after_linear_p2', 'after_linear_p155', 'after_linear_p156',
+                    'after_linear_pl0_0', 'after_linear_p0', 'after_linearBytes']
+        self.assertEqual([marker['anchors'] for marker in m['markers']], [[x] for x in expected])
+        self.assertEqual(len({marker['original_offset'] for marker in m['markers']}),20)
+        self.assertEqual(m['markers'][-1]['next_command']['name'],'linear_bounds')
+        self.assertEqual(m['marker_count'],20)
         source = self.proposal.stages[3].source.encode()
         for index, marker in enumerate(m['markers']):
             self.assertEqual(marker['id'], 'HIA_DIAG_v1_P02_%03d' % index)
@@ -144,8 +150,11 @@ class ByteFactsDiagnosticTests(unittest.TestCase):
         self.reject(old)
         with patch.object(previous,'_validate_original',return_value=None),self.assertRaises(ValueError):
             previous.validate_diagnostic_sources(self.prepared,self.diagnostic)
-        m = self.diagnostic.manifest; m['protocol'] = previous.PROTOCOL
-        self.reject(self.changed(manifest=m))
+        for protocol in (previous.PROTOCOL, 'compositional-byte-facts-position-diagnostic-v1'):
+            m = self.diagnostic.manifest; m['protocol'] = protocol
+            self.reject(self.changed(manifest=m))
+            with self.assertRaises(ValueError):
+                diag.strip_markers(self.diagnostic.stages[3].source,m)
         with self.assertRaises(ValueError): diag.strip_markers(old.stages[3].source, old.manifest)
 
     def test_faulty_marker_emitter_cannot_authorize_nonreporting_command(self):
@@ -161,6 +170,27 @@ class ByteFactsDiagnosticTests(unittest.TestCase):
             with patch.object(facts,'validate_sources',side_effect=ValueError('original gate')) as gate:
                 with self.assertRaisesRegex(ValueError,'original gate'): call()
                 gate.assert_called_once_with(self.prepared,self.proposal)
+
+    def test_marker_only_metadata_budget_keeps_observed_launcher_headroom(self):
+        from tools import core_syntax_diagnostic_capture as collector
+        markers = self.diagnostic.manifest['markers']
+        observer = collector.MarkerObserver(markers, target='CertPart02')
+        # Actual 833568c start receipt was 1433 bytes. This is a regression
+        # scenario, not a universal bound on paths, fragmentation or errors.
+        used, offset = 1433, 0
+        for marker in markers:
+            raw = ('"'+marker['id']+'" : String\n').encode()
+            elapsed = 599.999999  # conservative permitted replay timestamp width
+            receive = dict(kind='receive',stream='stdout',offset=offset,bytes=len(raw),received_seconds=elapsed)
+            used += len(collector._record_bytes(receive))
+            events = observer('stdout',raw,offset,elapsed)
+            self.assertEqual(len(events),1)
+            used += len(collector._record_bytes(dict(kind='marker',event=events[0],received_seconds=elapsed)))
+            offset += len(raw)
+        live_cap = collector.INTERNAL_METADATA_LIMIT - collector.TERMINAL_RESERVE
+        self.assertEqual(collector.MAX_MARKERS,24)
+        self.assertEqual(live_cap,8192)
+        self.assertLessEqual(used,live_cap-800)
 
 
 if __name__ == '__main__':

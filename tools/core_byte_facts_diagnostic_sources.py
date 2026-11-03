@@ -13,11 +13,12 @@ from tools.check_guarded_slice_lean import require
 from tools.check_initialization_frontiers import DENY
 from tools.extract_initialization_obligations import OBLIGATIONS
 
-PROTOCOL = 'compositional-byte-facts-position-diagnostic-v1'
-SCHEMA = 'hepta.hia.byte-facts-position-diagnostic.v1'
+PROTOCOL = 'compositional-byte-facts-prefix-diagnostic-v1'
+SCHEMA = 'hepta.hia.byte-facts-prefix-diagnostic.v1'
 SCHEDULED = original.NAMES[:4]
 NOT_SCHEDULED = original.NAMES[4:]
 MAX_MARKERS = 24
+PLANNED_MARKERS = 20
 MAX_MANIFEST = 32768
 MAX_SOURCE = 2 * 1024 * 1024
 MAX_TOTAL_SOURCE = 8 * 1024 * 1024
@@ -39,23 +40,25 @@ def _sites(proposal):
     def boundary(name, side, label):
         require(name in by_name, 'missing named byte-fact diagnostic anchor')
         candidates.append((by_name[name]['start' if side == 'before' else 'end'], label))
-    boundary(theorems[0]['name'], 'before', 'before_first_theorem')
-    roots = ('linear_bounds', 'linear_serialized', 'linear_parsed', 'linear_length',
-             'linear_byte_range', 'linear_transport')
-    boundary(roots[0], 'before', 'before_linear_roots')
-    for name in roots:
+    # Locate only the already observed slow prefix. The entire remaining
+    # certificate and inventory stay in the source, with no completion claim.
+    require(theorems[0]['name'] == 'linear_p146', 'fixed prefix start')
+    boundary('linear_p146', 'before', 'before_linear_p146')
+    for name in ('linear_p146', 'linear_p149', 'linear_p145'):
         boundary(name, 'after', 'after_' + name)
-    for ordinal in (0, 63, 127, 255, 383, 511, 594):
-        name = 'linear_bf%04d' % ordinal
-        for side in ('before', 'after'):
-            boundary(name, side, side + '_' + name)
+    boundary('linear_sl4_20', 'before', 'before_linear_sl4_20')
+    for name in ('linear_pl4_15', 'linear_pl4_10', 'linear_pl4_5', 'linear_pl4_0',
+                 'linear_p4', 'linear_p152',
+                 'linear_p153', 'linear_p154', 'linear_p3', 'linear_p2',
+                 'linear_p155', 'linear_p156', 'linear_pl0_0', 'linear_p0', 'linearBytes'):
+        boundary(name, 'after', 'after_' + name)
+    require(by_name['linearBytes']['end'] == by_name['linear_bounds']['start'],
+            'prefix ends immediately before unchanged root certificates')
     printed = [c for c in commands if c['kind'] == 'print']
     require(len(printed) == 1298 and commands[-1298:] == printed, 'complete transformed print suffix')
     require(set(c['name'] for c in printed) == proposal.stages[3].expected_theorems,
             'full transformed print inventory')
-    candidates.extend(((printed[0]['start'], 'before_final_inventory'),
-                       (printed[-1]['end'], 'after_final_inventory')))
-    require(len(candidates) == MAX_MARKERS, 'fixed candidate boundary selection')
+    require(len(candidates) == PLANNED_MARKERS, 'fixed candidate boundary selection')
     grouped = {}
     for offset, label in candidates:
         grouped.setdefault(offset, []).append(label)
@@ -68,7 +71,7 @@ def _sites(proposal):
         sites.append(dict(original_offset=offset, anchors=sorted(labels),
                           previous_command=previous[0] if previous else None,
                           next_command=following[0] if following else None))
-    require(0 < len(sites) <= MAX_MARKERS, 'marker count cap')
+    require(len(sites) == PLANNED_MARKERS, 'exact distinct prefix marker count')
     return sites
 
 
@@ -143,7 +146,7 @@ def _derive(prepared, proposal):
         original_target_source_sha256=digest(raw), diagnostic_target_source_sha256=digest(marked),
         original_target_source_bytes=len(raw), diagnostic_target_source_bytes=len(marked),
         original_total_source_bytes=old_total, transformed_total_source_bytes=transformed_total,
-        retained_total_source_bytes=retained, candidate_site_count=MAX_MARKERS,
+        retained_total_source_bytes=retained, candidate_site_count=PLANNED_MARKERS,
         marker_count=len(markers), markers=markers, stages=_bindings(proposal, stages),
         kernel_core_syntax_connection_checked=False, actual_core_bridge_proved=False,
         python_exporter_refinement_proved=False, body_prefix_refinement_proved=False,

@@ -12,7 +12,7 @@ from tools.check_initialization_frontiers import DENY
 from tools.extract_initialization_obligations import OBLIGATIONS
 
 ROOT = base.ROOT
-PROTOCOL = 'compositional-byte-facts-position-diagnostic-v1'
+PROTOCOL = 'compositional-byte-facts-prefix-diagnostic-v1'
 DIAGNOSTIC_NAMES = ('Baseline', 'SyntaxData', 'CertPart01', 'CertPart02')
 CAPTURE_FILES = tuple('CertPart02'+s for s in ('.stdout', '.stderr', '.events.jsonl'))
 LIVE_NAMES = ('RESULT.json',) + CAPTURE_FILES
@@ -57,7 +57,7 @@ def execute_diagnostic(executable, output_directory, prepared, proposal, diagnos
     base._support_imports(prepared, support)
     root = base.SafeRoot(output_directory)
     allowed, frozen, accepted = set(), {}, {}
-    report = dict(schema='hepta.hia.compositional-byte-facts-diagnostic.v1', protocol=PROTOCOL,
+    report = dict(schema='hepta.hia.compositional-byte-facts-prefix-diagnostic.v1', protocol=PROTOCOL,
                   status='diagnostic_running', invocation_limit=4, invocations=0,
                   invocation_count_exact=True, stages=[],
                   not_scheduled=[s.name for s in prepared['stages'][4:]], **_denials())

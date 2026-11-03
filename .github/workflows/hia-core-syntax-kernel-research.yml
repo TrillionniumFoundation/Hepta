@@ -1,4 +1,4 @@
-name: HIA byte-facts Part02 diagnostic (DENY_ALL)
+name: HIA byte-facts prefix diagnostic (DENY_ALL)
 on:
   pull_request:
     paths:
@@ -73,7 +73,7 @@ jobs:
         run: |
           set -euo pipefail
           timeout 300s python -B tools/bootstrap_verification.py --lean-only --directory "$RUNNER_TEMP/core-syntax-tools"
-      - name: Diagnose byte-facts Part02 after three fresh parents; never acceptance
+      - name: Diagnose unchanged Part02 prefix after three fresh parents; never acceptance
         run: |
           set -euo pipefail
           status=0
