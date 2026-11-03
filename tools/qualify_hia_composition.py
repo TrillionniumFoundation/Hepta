@@ -314,7 +314,10 @@ def qualify(args):
             'controls','--output',str(output/'agent-controls'),'--clang',tools['clang']['path']])
         report = {'status':'completed','qualifications':passed,'qualification_commands_passed':all(passed.values()),
                   'p0_same_combination_build_execute_reject_recover':all(passed.get(k,False) for k in
-                      ('core','continuation','ndu_full_cost')),
+                      ('rust_shadow_dependencies','rust_shadow_build','core',
+                       'capability_proof','memory_proof','core_proof','register_proof',
+                       'production_capabilities','sequential_core','ndu_budget_model',
+                       'continuation','ndu_full_cost','host_region')),
                   'all_seven_research_targets_closed':False,
                   'performance_assessment':'reduction/RESULT.json',
                   'ndu_assessment':'ndu-cost/REPORT.json'}

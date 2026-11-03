@@ -74,6 +74,13 @@ def full_cost_totals(rows, offline_wall_ns, manifest):
             "unknown_costs": [] if known else ["native_bridge_build_wall_ns"]}
 
 
+def episodes_without_native_start(rows):
+    return sum(row["policy"] == "native_ndu" and row.get("native_invocations") == 0
+               and "native_session" not in row and bool(row["steps"])
+               and all(step["decision"].get("startup_ns") == 0 for step in row["steps"])
+               for row in rows)
+
+
 def source_inventory():
     files = [*ROOT.glob("hepta/*.py"), *ROOT.glob("benchmarks/hia_native_ndu/*"),
              *ROOT.glob("benchmarks/hia_ndu_cost/*"), Path(__file__),
@@ -396,7 +403,7 @@ def qualify(args):
         report["acceptance"] = {"complete_cost_accounting":costs["build_cost_observed"],"same_information_controls":True,
             "actual_native_invocations":sum(r["native_invocations"] for r in rows),
             **policy_model_evidence(rows),
-            "skip_only_episodes_without_native_start":sum(r["policy"]=="native_ndu" and not r["native_invocations"] for r in rows),
+            "skip_only_episodes_without_native_start":episodes_without_native_start(rows),
             "native_net_win_scenarios":sum(c["native_beats_all_controls"] for c in comparisons),
             "scenario_count":len(comparisons),"native_net_benefit_established":False,
             "finite_native_correctness_passed":True,

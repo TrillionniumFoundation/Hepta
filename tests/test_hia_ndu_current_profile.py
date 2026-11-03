@@ -6,7 +6,8 @@ import unittest
 from unittest.mock import patch
 from hepta.hia_ndu import NduBridgeError
 from hepta.hia_ndu_session import NduSession, STREAM_PROFILE_PINS
-from tools.qualify_hia_ndu_cost import full_cost_totals, policy_model_evidence
+from tools.qualify_hia_ndu_cost import (full_cost_totals, policy_model_evidence,
+                                      episodes_without_native_start)
 
 
 class CurrentProfileTests(unittest.TestCase):
@@ -66,3 +67,11 @@ class CurrentProfileTests(unittest.TestCase):
         self.assertEqual(result["arm_full_cost_ns"], {
             "fixed": 107, "exact_dp": 107, "lightweight": 107, "native_ndu": 130})
         self.assertEqual(result["unknown_costs"], [])
+
+    def test_started_session_without_evaluation_is_not_a_no_start_episode(self):
+        row = {"policy": "native_ndu", "native_invocations": 0,
+               "steps": [{"decision": {"native_invoked": False, "startup_ns": 0}}]}
+        self.assertEqual(episodes_without_native_start([row]), 1)
+        self.assertEqual(episodes_without_native_start([{**row, "native_session": {"requests": 0}}]), 0)
+        row["steps"][0]["decision"]["startup_ns"] = 10
+        self.assertEqual(episodes_without_native_start([row]), 0)

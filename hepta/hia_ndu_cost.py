@@ -9,7 +9,8 @@ Every batch pays the gate cost.  An invoke additionally pays search, native
 evaluation, transport, response validation and (once) session startup.  A
 prepared artifact pays proof and loading; resident artifacts pay holding, and
 eviction or invalidation pays retirement.  Session cleanup is a terminal cost.
-The memoized recurrence includes remaining budget and session residency.
+The memoized recurrence keeps session/artifact residency and batch position;
+its nonnegative scalar minimum is filtered by the remaining budget at the root.
 """
 
 from __future__ import annotations
