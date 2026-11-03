@@ -68,11 +68,10 @@ class CFloatCastTests(unittest.TestCase):
                            for s in ('f32', 'f64') for t in INTEGER_TYPES)
         self.emitted(source, 'obj')
 
-    def test_integer_to_float_and_float_width_changes_still_reject(self):
+    def test_integer_to_float_and_float_width_changes_emit(self):
         for source in ('let x: f64 = 3 as f64;', 'let x: f32 = 3.5 as f32;'):
-            with self.subTest(source=source), self.assertRaises(HeptaError) as error:
+            with self.subTest(source=source):
                 self.emitted('fn main() -> Unit effects {} { ' + source + ' }')
-            self.assertEqual(error.exception.diagnostic.code, 'E_C_BACKEND_CAST')
 
     @unittest.skipUnless(shutil.which('gcc'), 'GCC required for actual native casts')
     def test_native_boundaries_and_seeded_bits_under_float_cast_sanitizer(self):

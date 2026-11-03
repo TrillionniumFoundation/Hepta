@@ -48,6 +48,7 @@ class CEmitter:
         self.declarations, self.types, self.active = [], {}, set()
         self.helpers = set()
         self.float_casts = set()
+        self.float_conversions = set()
         self.counter = 0
         self.params = {}
         self.mapping = {}
@@ -456,10 +457,13 @@ class CEmitter:
             elif source.name in {"f32", "f64"} and t.name in INTS:
                 self.float_casts.add((source.name, t.name))
                 expression = f"__hepta_cb_{source.name}_to_{t.name}({val})"
+            elif (source.name in INTS or source.name in {"f32", "f64"}) and t.name in {"f32", "f64"} and source != t:
+                self.float_conversions.add((source.name, t.name))
+                expression = f"__hepta_cb_{source.name}_to_{t.name}({val})"
             elif source == t or (source.name == "raw_mut" and t.name == "raw_const"):
                 expression = f"({self.typ(t)}){val}"
             else:
-                fail("E_C_BACKEND_CAST", "Only integer, saturating float-to-integer and mut-to-const pointer casts are currently supported", e.span)
+                fail("E_C_BACKEND_CAST", "Only numeric and mut-to-const pointer casts are currently supported", e.span)
         elif k == "call":
             if e.value in self.functions:
                 fn = self.functions[e.value]
@@ -611,6 +615,9 @@ class CEmitter:
             guards += f"if (x >= {upper}) return {maximum}; "
             lines.append(f"static inline {native} __hepta_cb_{source}_to_{target}({SCALARS[source]} x) {{ "
                          + guards + f"return ({native})x; }}")
+        if self.float_conversions:
+            from .c_float_conversions import helpers
+            lines.append(helpers(self.float_conversions, SCALARS))
         return "\n".join(lines)
 
     def runtime_source(self):
