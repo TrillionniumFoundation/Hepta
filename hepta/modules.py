@@ -188,11 +188,16 @@ def load_project(entry, *, locked=False, source_overrides=None) -> LoadedProject
         assembled.enums = []
     if hasattr(assembled, "imports"):
         assembled.imports = []
+    flat_types = {unit.names[name] for unit in units.values() for name in unit.types}
     module_reports = []
     for unit in units.values():
         def resolve(name, role, span):
             if "::" not in name:
                 declarations = unit.types if role == "type" else {**unit.types, **unit.functions}
+                # Entry types keep their source spelling in the flat program;
+                # this does not make them visible in another source module.
+                if role == "type" and name not in declarations and name in flat_types:
+                    fail("E_MODULE_SCOPE", "Unqualified type is not declared in this module: " + name, span)
                 return unit.names.get(name, name) if name in declarations else name
             parts = name.split("::")
             if parts[0] in unit.imports:
