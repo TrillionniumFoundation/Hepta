@@ -1,0 +1,46 @@
+name: HIA validated CLI input inode preservation
+on:
+  pull_request:
+    paths:
+      - 'hepta/cli.py'
+      - 'tests/test_cli_known_input_hardlink.py'
+      - '.github/workflows/hia-cli-known-input-hardlink.yml'
+permissions:
+  contents: read
+jobs:
+  native:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify real host identities and source-exact guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          command -v gcc
+          mkdir -p artifacts/cli-hardlink
+          { git rev-parse HEAD HEAD^{tree}; uname -a; python --version; gcc --version; sha256sum "$(command -v gcc)"; sha256sum hepta/cli.py tests/test_cli_known_input_hardlink.py; } > artifacts/cli-hardlink/identity.txt
+          python -B -m unittest tests.test_cli_known_input_hardlink -v 2>&1 | tee artifacts/cli-hardlink/native-tests.log
+          test -z "$(git status --porcelain --untracked-files=no)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cli-known-input-hardlink-${{ matrix.os }}-${{ env.EXPECTED_HEAD }}
+          path: artifacts/cli-hardlink
+          if-no-files-found: error
