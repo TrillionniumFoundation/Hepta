@@ -1,0 +1,52 @@
+name: Workspace complete directory enumeration
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'tests/test_workspace_enumeration.py'
+      - 'tests/test_workspace.py'
+      - 'tests/test_workspace_query_cli.py'
+      - 'tests/test_modules.py'
+      - 'tools/test_workspace_enumeration.py'
+      - '.github/workflows/hepta-workspace-enumeration.yml'
+permissions:
+  contents: read
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bind source and run real workspace publication controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          rustup toolchain install 1.90.0 --profile minimal
+          export RUSTC="$(rustup which --toolchain 1.90.0 rustc)"
+          mkdir -p artifacts/workspace-enumeration
+          { git rev-parse HEAD HEAD^{tree}; uname -a; id; python --version; \
+            "$RUSTC" --version; sha256sum "$RUSTC"; } > artifacts/workspace-enumeration/identities.txt
+          python -B tools/test_workspace_enumeration.py 2>&1 | tee artifacts/workspace-enumeration/tests.log
+          test -z "$(git status --porcelain --untracked-files=no)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: workspace-enumeration-${{ matrix.os }}-${{ env.EXPECTED_HEAD }}
+          path: artifacts/workspace-enumeration
+          if-no-files-found: error
