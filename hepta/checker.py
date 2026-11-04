@@ -408,23 +408,58 @@ class _Checker:
         self.error("E_UNKNOWN_TYPE", f"unknown type {typ}", span)
         return False
 
-    def c_type(self, typ: Type, *, position: str, seen: frozenset[str] = frozenset()) -> bool:
-        if typ.name == "Unit":
-            return position in ("return", "pointee")
-        if typ.name in (INTS - {"i128", "u128"}) | FLOATS:
-            return not typ.args
-        if typ.name in ("raw_const", "raw_mut") and len(typ.args) == 1:
-            return self.c_type(typ.args[0], position="pointee", seen=seen)
-        if typ.name == "array" and len(typ.args) == 1:
-            return position in ("field", "pointee") and type(typ.length) is int and typ.length > 0 and self.c_type(typ.args[0], position="field", seen=seen)
-        if typ.name in self.structs:
-            struct = self.structs[typ.name]
-            if not struct.repr_c or not struct.fields or struct.type_params or typ.args:
+    def c_type(self, typ: Type, *, position: str) -> bool:
+        # Validate reachable ABI shapes once, independently of traversal order.
+        # A pointer breaks value layout, but a following array still requires
+        # a complete element type, exactly as in emit_header's dependency walk.
+        pending = [(typ, position, None, True)]
+        dependencies: dict[str, set[str]] = {}
+        while pending:
+            current, place, owner, complete = pending.pop()
+            name = current.name
+            if name == "Unit":
+                if place not in {"return", "pointee"}:
+                    return False
+            elif name in (INTS - {"i128", "u128"}) | FLOATS:
+                if current.args:
+                    return False
+            elif name in {"raw_const", "raw_mut"} and len(current.args) == 1:
+                pending.append((current.args[0], "pointee", owner, False))
+            elif name == "array" and len(current.args) == 1:
+                if (place not in {"field", "pointee"} or type(current.length) is not int
+                        or current.length <= 0):
+                    return False
+                pending.append((current.args[0], "field", owner, True))
+            elif name in self.structs:
+                struct = self.structs[name]
+                if not struct.repr_c or not struct.fields or struct.type_params or current.args:
+                    return False
+                if owner is not None and complete:
+                    dependencies[owner].add(name)
+                if name not in dependencies:
+                    dependencies[name] = set()
+                    pending.extend((field.type, "field", name, True)
+                                   for field in reversed(struct.fields))
+            else:
                 return False
-            if typ.name in seen:
-                return position == "pointee"
-            return all(self.c_type(f.type, position="field", seen=seen | {typ.name}) for f in struct.fields)
-        return False
+
+        # Reject impossible complete-definition cycles, including a separate
+        # invalid component reached only through a pointer. The language's
+        # independent value-layout cycle check still runs for every record.
+        incoming = dict.fromkeys(dependencies, 0)
+        for children in dependencies.values():
+            for child in children:
+                incoming[child] += 1
+        ready = [name for name, count in incoming.items() if count == 0]
+        finished = 0
+        while ready:
+            name = ready.pop()
+            finished += 1
+            for child in dependencies[name]:
+                incoming[child] -= 1
+                if incoming[child] == 0:
+                    ready.append(child)
+        return finished == len(dependencies)
 
     def check_struct_cycles(self) -> None:
         declarations = {**self.structs, **self.enums}
