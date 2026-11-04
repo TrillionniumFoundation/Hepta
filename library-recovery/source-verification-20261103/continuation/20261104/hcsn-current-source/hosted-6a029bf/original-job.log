@@ -1,0 +1,1067 @@
+﻿2026-11-04T04:13:21.7826753Z Current runner version: '2.338.2'
+2026-11-04T04:13:21.7851812Z ##[group]Runner Image Provisioner
+2026-11-04T04:13:21.7852795Z Hosted Compute Agent
+2026-11-04T04:13:21.7853443Z Version: 20261021.618
+2026-11-04T04:13:21.7854322Z Commit: 21505ad2541d5be6135ed84fc33697146cf75b8e
+2026-11-04T04:13:21.7855195Z Build Date: 2026-10-21T00:45:21Z
+2026-11-04T04:13:21.7856036Z Worker ID: {5d192023-ee46-4e8e-98dc-6409664be3be}
+2026-11-04T04:13:21.7856840Z Region: westcentralus
+2026-11-04T04:13:21.7857468Z Cloud: Azure
+2026-11-04T04:13:21.7858037Z ##[endgroup]
+2026-11-04T04:13:21.7859879Z ##[group]Operating System
+2026-11-04T04:13:21.7860622Z Ubuntu
+2026-11-04T04:13:21.7861560Z 24.04.5
+2026-11-04T04:13:21.7862152Z LTS
+2026-11-04T04:13:21.7862743Z ##[endgroup]
+2026-11-04T04:13:21.7863409Z ##[group]Runner Image
+2026-11-04T04:13:21.7874985Z Image: ubuntu-24.04
+2026-11-04T04:13:21.7876055Z Version: 20261025.353.1
+2026-11-04T04:13:21.7878092Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261025.353/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-04T04:13:21.7880646Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261025.353
+2026-11-04T04:13:21.7882274Z ##[endgroup]
+2026-11-04T04:13:21.7884323Z ##[group]GITHUB_TOKEN Permissions
+2026-11-04T04:13:21.7887272Z Contents: read
+2026-11-04T04:13:21.7888248Z Metadata: read
+2026-11-04T04:13:21.7889133Z ##[endgroup]
+2026-11-04T04:13:21.7891927Z Secret source: Actions
+2026-11-04T04:13:21.7893445Z Cache mode: write
+2026-11-04T04:13:21.7895053Z Prepare workflow directory
+2026-11-04T04:13:21.8349232Z Prepare all required actions
+2026-11-04T04:13:21.8397682Z Getting action download info
+2026-11-04T04:13:22.1344210Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-11-04T04:13:22.4135402Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-11-04T04:13:22.4910656Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-11-04T04:13:22.7013233Z Complete job name: current-source
+2026-11-04T04:13:22.7878556Z ##[group]Run actions/checkout@v4
+2026-11-04T04:13:22.7879381Z with:
+2026-11-04T04:13:22.7879882Z   ref: 6a029bf2791c090da295f325d29a4d239e8e8817
+2026-11-04T04:13:22.7880489Z   fetch-depth: 0
+2026-11-04T04:13:22.7880969Z   persist-credentials: false
+2026-11-04T04:13:22.7881523Z   repository: TrillionniumFoundation/Hepta
+2026-11-04T04:13:22.7885638Z   token: ***
+2026-11-04T04:13:22.7886097Z   ssh-strict: true
+2026-11-04T04:13:22.7886552Z   ssh-user: git
+2026-11-04T04:13:22.7886988Z   clean: true
+2026-11-04T04:13:22.7887446Z   sparse-checkout-cone-mode: true
+2026-11-04T04:13:22.7887977Z   fetch-tags: false
+2026-11-04T04:13:22.7888453Z   show-progress: true
+2026-11-04T04:13:22.7888915Z   lfs: false
+2026-11-04T04:13:22.7889337Z   submodules: false
+2026-11-04T04:13:22.7889792Z   set-safe-directory: true
+2026-11-04T04:13:22.7890313Z   allow-unsafe-pr-checkout: false
+2026-11-04T04:13:22.7891028Z env:
+2026-11-04T04:13:22.7891484Z   OPENBLAS_NUM_THREADS: 1
+2026-11-04T04:13:22.7892007Z   OMP_NUM_THREADS: 1
+2026-11-04T04:13:22.7892491Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-04T04:13:22.7892990Z   PYTHONPATH: .
+2026-11-04T04:13:22.7893427Z ##[endgroup]
+2026-11-04T04:13:23.0054888Z Syncing repository: TrillionniumFoundation/Hepta
+2026-11-04T04:13:23.0057186Z ##[group]Getting Git version info
+2026-11-04T04:13:23.0058245Z Working directory is '/home/runner/work/Hepta/Hepta'
+2026-11-04T04:13:23.0059534Z [command]/usr/bin/git version
+2026-11-04T04:13:23.0124868Z git version 2.56.0
+2026-11-04T04:13:23.0148083Z ##[endgroup]
+2026-11-04T04:13:23.0162157Z Temporarily overriding HOME='/home/runner/work/_temp/c97519ce-b28a-4304-a97c-4a871d8c6ec8' before making global git config changes
+2026-11-04T04:13:23.0164831Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-04T04:13:23.0175191Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-04T04:13:23.0250224Z Deleting the contents of '/home/runner/work/Hepta/Hepta'
+2026-11-04T04:13:23.0255637Z ##[group]Initializing the repository
+2026-11-04T04:13:23.0260800Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta
+2026-11-04T04:13:23.0353483Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-04T04:13:23.0355672Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-04T04:13:23.0357349Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-04T04:13:23.0358540Z hint: call:
+2026-11-04T04:13:23.0359149Z hint:
+2026-11-04T04:13:23.0359907Z hint: 	git config --global init.defaultBranch <name>
+2026-11-04T04:13:23.0360903Z hint:
+2026-11-04T04:13:23.0361807Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-04T04:13:23.0363273Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-04T04:13:23.0364650Z hint:
+2026-11-04T04:13:23.0365278Z hint: 	git branch -m <name>
+2026-11-04T04:13:23.0366039Z hint:
+2026-11-04T04:13:23.0367027Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-04T04:13:23.0368575Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/.git/
+2026-11-04T04:13:23.0372485Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-11-04T04:13:23.0435705Z ##[endgroup]
+2026-11-04T04:13:23.0436881Z ##[group]Disabling automatic garbage collection
+2026-11-04T04:13:23.0437962Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-04T04:13:23.0496023Z ##[endgroup]
+2026-11-04T04:13:23.0499077Z ##[group]Setting up auth
+2026-11-04T04:13:23.0500302Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-04T04:13:23.0540900Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-04T04:13:23.0901890Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-04T04:13:23.0946700Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-04T04:13:23.1242788Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-04T04:13:23.1290914Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-04T04:13:23.1558616Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-04T04:13:23.1612310Z ##[endgroup]
+2026-11-04T04:13:23.1624514Z ##[group]Fetching the repository
+2026-11-04T04:13:23.1626661Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
+2026-11-04T04:13:53.0130415Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-04T04:13:53.0145214Z  * [new branch]        agent/c-contract-identity-20261028 -> origin/agent/c-contract-identity-20261028
+2026-11-04T04:13:53.0147683Z  * [new branch]        agent/hepta-hia-p0-p7-integrated-20261026 -> origin/agent/hepta-hia-p0-p7-integrated-20261026
+2026-11-04T04:13:53.0149394Z  * [new branch]        agent/hepta-hia-v5-resource-integration-20261026 -> origin/agent/hepta-hia-v5-resource-integration-20261026
+2026-11-04T04:13:53.0151218Z  * [new branch]        agent/hepta-llvm-owned-targets-integrated-20261025 -> origin/agent/hepta-llvm-owned-targets-integrated-20261025
+2026-11-04T04:13:53.0152893Z  * [new branch]        agent/hepta-owned-aarch64-llvm-cross-object-20261025 -> origin/agent/hepta-owned-aarch64-llvm-cross-object-20261025
+2026-11-04T04:13:53.0154812Z  * [new branch]        agent/hepta-owned-elf-dynamic-abi-20261025 -> origin/agent/hepta-owned-elf-dynamic-abi-20261025
+2026-11-04T04:13:53.0156768Z  * [new branch]        agent/hepta-owned-publisher-merged-20261025 -> origin/agent/hepta-owned-publisher-merged-20261025
+2026-11-04T04:13:53.0158122Z  * [new branch]        agent/hepta-p0-p6-exact-guards-unified-20261025 -> origin/agent/hepta-p0-p6-exact-guards-unified-20261025
+2026-11-04T04:13:53.0159589Z  * [new branch]        agent/hepta-p0-p6-unified-integration-20261025 -> origin/agent/hepta-p0-p6-unified-integration-20261025
+2026-11-04T04:13:53.0161056Z  * [new branch]        agent/hepta-p0-p7-llvm-provenance-20261025 -> origin/agent/hepta-p0-p7-llvm-provenance-20261025
+2026-11-04T04:13:53.0162547Z  * [new branch]        agent/hepta-p0-p7-next-owned-integration-20261025 -> origin/agent/hepta-p0-p7-next-owned-integration-20261025
+2026-11-04T04:13:53.0164415Z  * [new branch]        agent/hepta-p0-p7-unified-origin-and-objects-20261025 -> origin/agent/hepta-p0-p7-unified-origin-and-objects-20261025
+2026-11-04T04:13:53.0166119Z  * [new branch]        agent/hepta-p1-native-resource-gate-20261025 -> origin/agent/hepta-p1-native-resource-gate-20261025
+2026-11-04T04:13:53.0167803Z  * [new branch]        agent/hepta-p1-p5-source-authority-unified-20261025 -> origin/agent/hepta-p1-p5-source-authority-unified-20261025
+2026-11-04T04:13:53.0169467Z  * [new branch]        agent/hepta-p1-p5-unified-reachability-20261025 -> origin/agent/hepta-p1-p5-unified-reachability-20261025
+2026-11-04T04:13:53.0171112Z  * [new branch]        agent/hepta-p1-resource-cert-native-20261025-2252 -> origin/agent/hepta-p1-resource-cert-native-20261025-2252
+2026-11-04T04:13:53.0172707Z  * [new branch]        agent/hepta-p1-stored-view-scalar-fields-20261026 -> origin/agent/hepta-p1-stored-view-scalar-fields-20261026
+2026-11-04T04:13:53.0174511Z  * [new branch]        agent/hepta-p1-unified-safe-core-20261025 -> origin/agent/hepta-p1-unified-safe-core-20261025
+2026-11-04T04:13:53.0175918Z  * [new branch]        agent/hepta-p1-v5-copy-label-write-20261026 -> origin/agent/hepta-p1-v5-copy-label-write-20261026
+2026-11-04T04:13:53.0177677Z  * [new branch]        agent/hepta-p2-p3-p5-p7-unified-20261025 -> origin/agent/hepta-p2-p3-p5-p7-unified-20261025
+2026-11-04T04:13:53.0179114Z  * [new branch]        agent/hepta-p3-abi-capture-closure-20261025 -> origin/agent/hepta-p3-abi-capture-closure-20261025
+2026-11-04T04:13:53.0180563Z  * [new branch]        agent/hepta-p3-compdb-failclosed-20261025-v2 -> origin/agent/hepta-p3-compdb-failclosed-20261025-v2
+2026-11-04T04:13:53.0182638Z  * [new branch]        agent/hepta-p3-p5-five-target-symbol-integration-20261025 -> origin/agent/hepta-p3-p5-five-target-symbol-integration-20261025
+2026-11-04T04:13:53.0184036Z  * [new branch]        agent/hepta-p3-p5-p7-unified-toolchain-20261026 -> origin/agent/hepta-p3-p5-p7-unified-toolchain-20261026
+2026-11-04T04:13:53.0185050Z  * [new branch]        agent/hepta-p3-p7-owned-target-layout-probe-20261026 -> origin/agent/hepta-p3-p7-owned-target-layout-probe-20261026
+2026-11-04T04:13:53.0186105Z  * [new branch]        agent/hepta-p3-p7-toolchain-layout-link-unified-20261026 -> origin/agent/hepta-p3-p7-toolchain-layout-link-unified-20261026
+2026-11-04T04:13:53.0187117Z  * [new branch]        agent/hepta-p5-no-extra-global-exports-20261025 -> origin/agent/hepta-p5-no-extra-global-exports-20261025
+2026-11-04T04:13:53.0188156Z  * [new branch]        agent/hepta-p5-p7-aarch64-freestanding-link-probe-20261026 -> origin/agent/hepta-p5-p7-aarch64-freestanding-link-probe-20261026
+2026-11-04T04:13:53.0189292Z  * [new branch]        agent/hepta-p5-p7-streamed-toolchain-20261025 -> origin/agent/hepta-p5-p7-streamed-toolchain-20261025
+2026-11-04T04:13:53.0190266Z  * [new branch]        agent/hepta-p7-aarch64-exec-stack-guard-20261026 -> origin/agent/hepta-p7-aarch64-exec-stack-guard-20261026
+2026-11-04T04:13:53.0191299Z  * [new branch]        agent/hepta-p7-finite-owned-aarch64-runtime-20261026 -> origin/agent/hepta-p7-finite-owned-aarch64-runtime-20261026
+2026-11-04T04:13:53.0192301Z  * [new branch]        agent/hepta-p7-finite-runtime-source-gate-20261026 -> origin/agent/hepta-p7-finite-runtime-source-gate-20261026
+2026-11-04T04:13:53.0193504Z  * [new branch]        agent/hepta-unified-p0-evidence-snapshot-20261025 -> origin/agent/hepta-unified-p0-evidence-snapshot-20261025
+2026-11-04T04:13:53.0194914Z  * [new branch]        agent/hepta-unified-p1-ssa-typed-inventory-20261025 -> origin/agent/hepta-unified-p1-ssa-typed-inventory-20261025
+2026-11-04T04:13:53.0195964Z  * [new branch]        agent/hepta-unified-p2-compdb-replay-20261025 -> origin/agent/hepta-unified-p2-compdb-replay-20261025
+2026-11-04T04:13:53.0196906Z  * [new branch]        agent/hepta-unified-p2-p3-c-provenance-20261025 -> origin/agent/hepta-unified-p2-p3-c-provenance-20261025
+2026-11-04T04:13:53.0197818Z  * [new branch]        agent/hepta-unified-p4-cpp-publication-20261025 -> origin/agent/hepta-unified-p4-cpp-publication-20261025
+2026-11-04T04:13:53.0198794Z  * [new branch]        agent/hepta-unified-p5-publication-receipt-20261025 -> origin/agent/hepta-unified-p5-publication-receipt-20261025
+2026-11-04T04:13:53.0199772Z  * [new branch]        agent/hepta-unified-p6-typed-contracts-20261025 -> origin/agent/hepta-unified-p6-typed-contracts-20261025
+2026-11-04T04:13:53.0200650Z  * [new branch]        agent/hia-agent-interface-policy-20261026 -> origin/agent/hia-agent-interface-policy-20261026
+2026-11-04T04:13:53.0201437Z  * [new branch]        agent/hia-c2hia-cpp2hia-l1-20261026 -> origin/agent/hia-c2hia-cpp2hia-l1-20261026
+2026-11-04T04:13:53.0202223Z  * [new branch]        agent/hia-core-scalar-source-bound-20261026 -> origin/agent/hia-core-scalar-source-bound-20261026
+2026-11-04T04:13:53.0203101Z  * [new branch]        agent/hia-independent-resources-v2-v7-20261027 -> origin/agent/hia-independent-resources-v2-v7-20261027
+2026-11-04T04:13:53.0204188Z  * [new branch]        agent/hia-isa-p0-p7-authority-drop-20261026 -> origin/agent/hia-isa-p0-p7-authority-drop-20261026
+2026-11-04T04:13:53.0205046Z  * [new branch]        agent/hia-native-postexit-pgroup-20261026 -> origin/agent/hia-native-postexit-pgroup-20261026
+2026-11-04T04:13:53.0206055Z  * [new branch]        agent/hia-original-types-budget-20261027 -> origin/agent/hia-original-types-budget-20261027
+2026-11-04T04:13:53.0206849Z  * [new branch]        agent/hia-owned-drop-sites-20261026 -> origin/agent/hia-owned-drop-sites-20261026
+2026-11-04T04:13:53.0207697Z  * [new branch]        agent/hia-owned-resource-emission-witness-20261026 -> origin/agent/hia-owned-resource-emission-witness-20261026
+2026-11-04T04:13:53.0208576Z  * [new branch]        agent/hia-p0-audit-no-follow-fd-20261027 -> origin/agent/hia-p0-audit-no-follow-fd-20261027
+2026-11-04T04:13:53.0209435Z  * [new branch]        agent/hia-p0-fifo-nonblocking-audit-20261027 -> origin/agent/hia-p0-fifo-nonblocking-audit-20261027
+2026-11-04T04:13:53.0210352Z  * [new branch]        agent/hia-p0-hsir-wire-pinned-file-intake-20261027 -> origin/agent/hia-p0-hsir-wire-pinned-file-intake-20261027
+2026-11-04T04:13:53.0211280Z  * [new branch]        agent/hia-p0-p2-native-artifact-fifo-20261026 -> origin/agent/hia-p0-p2-native-artifact-fifo-20261026
+2026-11-04T04:13:53.0212155Z  * [new branch]        agent/hia-p0-p2-tool-identity-fifo-20261026 -> origin/agent/hia-p0-p2-tool-identity-fifo-20261026
+2026-11-04T04:13:53.0213585Z  * [new branch]        agent/hia-p0-p4-bundle-race-precommit-20261026 -> origin/agent/hia-p0-p4-bundle-race-precommit-20261026
+2026-11-04T04:13:53.0215144Z  * [new branch]        agent/hia-p0-p7-integrated-20261026 -> origin/agent/hia-p0-p7-integrated-20261026
+2026-11-04T04:13:53.0216513Z  * [new branch]        agent/hia-p0-reflection-alias-audit-20261027 -> origin/agent/hia-p0-reflection-alias-audit-20261027
+2026-11-04T04:13:53.0217964Z  * [new branch]        agent/hia-p0-rustup-pinned-real-rustc-20261027 -> origin/agent/hia-p0-rustup-pinned-real-rustc-20261027
+2026-11-04T04:13:53.0219493Z  * [new branch]        agent/hia-p0-schema-rebinding-failclosed-20261027 -> origin/agent/hia-p0-schema-rebinding-failclosed-20261027
+2026-11-04T04:13:53.0221073Z  * [new branch]        agent/hia-p0-v6-single-translator-zero-bulk-20261026 -> origin/agent/hia-p0-v6-single-translator-zero-bulk-20261026
+2026-11-04T04:13:53.0222720Z  * [new branch]        agent/hia-p0-v7-fd-alias-combined-20261027 -> origin/agent/hia-p0-v7-fd-alias-combined-20261027
+2026-11-04T04:13:53.0224177Z  * [new branch]        agent/hia-p0-verified-core-upgrade-20261026 -> origin/agent/hia-p0-verified-core-upgrade-20261026
+2026-11-04T04:13:53.0225339Z  * [new branch]        agent/hia-p0p1-v7-guarded-resource-convergence-20261027 -> origin/agent/hia-p0p1-v7-guarded-resource-convergence-20261027
+2026-11-04T04:13:53.0227073Z  * [new branch]        agent/hia-p0p2-rust-scalar-v7-guarded-convergence-20261027 -> origin/agent/hia-p0p2-rust-scalar-v7-guarded-convergence-20261027
+2026-11-04T04:13:53.0228519Z  * [new branch]        agent/hia-p0p2p5-v7-scalar-agent-edit-convergence-20261027 -> origin/agent/hia-p0p2p5-v7-scalar-agent-edit-convergence-20261027
+2026-11-04T04:13:53.0229930Z  * [new branch]        agent/hia-p0p2p7-v7-frame-predecode-convergence-20261027 -> origin/agent/hia-p0p2p7-v7-frame-predecode-convergence-20261027
+2026-11-04T04:13:53.0231472Z  * [new branch]        agent/hia-p0p3p4p7-source-intake-convergence-20261027 -> origin/agent/hia-p0p3p4p7-source-intake-convergence-20261027
+2026-11-04T04:13:53.0232884Z  * [new branch]        agent/hia-p0p7-fifo-toolchain-convergence-20261027 -> origin/agent/hia-p0p7-fifo-toolchain-convergence-20261027
+2026-11-04T04:13:53.0234468Z  * [new branch]        agent/hia-p0p7-followup-contracts-20261027 -> origin/agent/hia-p0p7-followup-contracts-20261027
+2026-11-04T04:13:53.0235443Z  * [new branch]        agent/hia-p0p7-verified-core-20261027 -> origin/agent/hia-p0p7-verified-core-20261027
+2026-11-04T04:13:53.0236348Z  * [new branch]        agent/hia-p1-borrowed-heap-ssa-20261026 -> origin/agent/hia-p1-borrowed-heap-ssa-20261026
+2026-11-04T04:13:53.0237333Z  * [new branch]        agent/hia-p1-cast-modulo-convergence-20261026 -> origin/agent/hia-p1-cast-modulo-convergence-20261026
+2026-11-04T04:13:53.0238906Z  * [new branch]        agent/hia-p1-concrete-boolean-resource-20261026 -> origin/agent/hia-p1-concrete-boolean-resource-20261026
+2026-11-04T04:13:53.0240020Z  * [new branch]        agent/hia-p1-dynamic-unsigned-division-20261026 -> origin/agent/hia-p1-dynamic-unsigned-division-20261026
+2026-11-04T04:13:53.0241026Z  * [new branch]        agent/hia-p1-exact-scalar-budget-20261026 -> origin/agent/hia-p1-exact-scalar-budget-20261026
+2026-11-04T04:13:53.0241962Z  * [new branch]        agent/hia-p1-interval-bitmask-20261026 -> origin/agent/hia-p1-interval-bitmask-20261026
+2026-11-04T04:13:53.0242973Z  * [new branch]        agent/hia-p1-modular-interval-heap-20261026 -> origin/agent/hia-p1-modular-interval-heap-20261026
+2026-11-04T04:13:53.0244089Z  * [new branch]        agent/hia-p1-or-xor-interval-20261026 -> origin/agent/hia-p1-or-xor-interval-20261026
+2026-11-04T04:13:53.0245110Z  * [new branch]        agent/hia-p1-p2-acquire-drop-unification-20261026 -> origin/agent/hia-p1-p2-acquire-drop-unification-20261026
+2026-11-04T04:13:53.0246231Z  * [new branch]        agent/hia-p1-p2-drop-site-convergence-20261026 -> origin/agent/hia-p1-p2-drop-site-convergence-20261026
+2026-11-04T04:13:53.0247410Z  * [new branch]        agent/hia-p1-p2-hepta-source-ssa-core-bridge-20261026 -> origin/agent/hia-p1-p2-hepta-source-ssa-core-bridge-20261026
+2026-11-04T04:13:53.0248478Z  * [new branch]        agent/hia-p1-p2-live-heap-ssa-interval-20261026 -> origin/agent/hia-p1-p2-live-heap-ssa-interval-20261026
+2026-11-04T04:13:53.0249507Z  * [new branch]        agent/hia-p1-p2-native-byte-probe-20261026 -> origin/agent/hia-p1-p2-native-byte-probe-20261026
+2026-11-04T04:13:53.0250805Z  * [new branch]        agent/hia-p1-p2-ordered-owned-emission-20261026 -> origin/agent/hia-p1-p2-ordered-owned-emission-20261026
+2026-11-04T04:13:53.0251935Z  * [new branch]        agent/hia-p1-p7-signed-resource-security-convergence-20261027 -> origin/agent/hia-p1-p7-signed-resource-security-convergence-20261027
+2026-11-04T04:13:53.0253204Z  * [new branch]        agent/hia-p1-proven-bitnot-interval-20261026 -> origin/agent/hia-p1-proven-bitnot-interval-20261026
+2026-11-04T04:13:53.0254551Z  * [new branch]        agent/hia-p1-quotient-bitwise-converged-20261027 -> origin/agent/hia-p1-quotient-bitwise-converged-20261027
+2026-11-04T04:13:53.0255700Z  * [new branch]        agent/hia-p1-resource-ir-pinned-source-20261027 -> origin/agent/hia-p1-resource-ir-pinned-source-20261027
+2026-11-04T04:13:53.0256745Z  * [new branch]        agent/hia-p1-resource-path-oracle-20261026 -> origin/agent/hia-p1-resource-path-oracle-20261026
+2026-11-04T04:13:53.0257693Z  * [new branch]        agent/hia-p1-resource-v5-integrated-20261026 -> origin/agent/hia-p1-resource-v5-integrated-20261026
+2026-11-04T04:13:53.0344723Z  * [new branch]        agent/hia-p1-rust-v7-chain-resource-shadow-20261027 -> origin/agent/hia-p1-rust-v7-chain-resource-shadow-20261027
+2026-11-04T04:13:53.0345904Z  * [new branch]        agent/hia-p1-scoped-alloc-loop-bound-20261027 -> origin/agent/hia-p1-scoped-alloc-loop-bound-20261027
+2026-11-04T04:13:53.0346950Z  * [new branch]        agent/hia-p1-scoped-int-ssa-live-peak-20261027 -> origin/agent/hia-p1-scoped-int-ssa-live-peak-20261027
+2026-11-04T04:13:53.0347900Z  * [new branch]        agent/hia-p1-scoped-owner-arithmetic-20261027 -> origin/agent/hia-p1-scoped-owner-arithmetic-20261027
+2026-11-04T04:13:53.0348757Z  * [new branch]        agent/hia-p1-scoped-try-new-peak-20261027 -> origin/agent/hia-p1-scoped-try-new-peak-20261027
+2026-11-04T04:13:53.0349612Z  * [new branch]        agent/hia-p1-signed-cast-bounds-20261026 -> origin/agent/hia-p1-signed-cast-bounds-20261026
+2026-11-04T04:13:53.0351181Z  * [new branch]        agent/hia-p1-signed-positive-divisor-interval-20261027 -> origin/agent/hia-p1-signed-positive-divisor-interval-20261027
+2026-11-04T04:13:53.0352762Z  * [new branch]        agent/hia-p1-source-bound-byte-oracle-20261026 -> origin/agent/hia-p1-source-bound-byte-oracle-20261026
+2026-11-04T04:13:53.0354350Z  * [new branch]        agent/hia-p1-unsigned-modulo-interval-20261026 -> origin/agent/hia-p1-unsigned-modulo-interval-20261026
+2026-11-04T04:13:53.0356160Z  * [new branch]        agent/hia-p1-verified-interval-bitmask-20261026 -> origin/agent/hia-p1-verified-interval-bitmask-20261026
+2026-11-04T04:13:53.0357626Z  * [new branch]        agent/hia-p1-zero-heap-scalar-loops-20261027 -> origin/agent/hia-p1-zero-heap-scalar-loops-20261027
+2026-11-04T04:13:53.0359278Z  * [new branch]        agent/hia-p1p2p5p7-v7-chain-agent-json-convergence-20261027 -> origin/agent/hia-p1p2p5p7-v7-chain-agent-json-convergence-20261027
+2026-11-04T04:13:53.0361105Z  * [new branch]        agent/hia-p1p2p7-rust-chain-json-convergence-20261027 -> origin/agent/hia-p1p2p7-rust-chain-json-convergence-20261027
+2026-11-04T04:13:53.0362705Z  * [new branch]        agent/hia-p1p7-fallible-peak-v7-guarded-20261027 -> origin/agent/hia-p1p7-fallible-peak-v7-guarded-20261027
+2026-11-04T04:13:53.0364419Z  * [new branch]        agent/hia-p2-allocator-native-differential-20261026 -> origin/agent/hia-p2-allocator-native-differential-20261026
+2026-11-04T04:13:53.0366005Z  * [new branch]        agent/hia-p2-explicit-scalar-exports-20261027 -> origin/agent/hia-p2-explicit-scalar-exports-20261027
+2026-11-04T04:13:53.0367508Z  * [new branch]        agent/hia-p2-native-abi-memfd-20261026 -> origin/agent/hia-p2-native-abi-memfd-20261026
+2026-11-04T04:13:53.0368865Z  * [new branch]        agent/hia-p2-native-child-hard-limits-20261026 -> origin/agent/hia-p2-native-child-hard-limits-20261026
+2026-11-04T04:13:53.0370295Z  * [new branch]        agent/hia-p2-native-seccomp-prefork-20261026 -> origin/agent/hia-p2-native-seccomp-prefork-20261026
+2026-11-04T04:13:53.0371743Z  * [new branch]        agent/hia-p2-native-side-effect-seccomp-20261026 -> origin/agent/hia-p2-native-side-effect-seccomp-20261026
+2026-11-04T04:13:53.0373207Z  * [new branch]        agent/hia-p2-native-sideeffect-seccomp-20261026 -> origin/agent/hia-p2-native-sideeffect-seccomp-20261026
+2026-11-04T04:13:53.0374892Z  * [new branch]        agent/hia-p2-process-group-convergence-20261026 -> origin/agent/hia-p2-process-group-convergence-20261026
+2026-11-04T04:13:53.0376759Z  * [new branch]        agent/hia-p2-root-inclusive-depth-parity-20261027 -> origin/agent/hia-p2-root-inclusive-depth-parity-20261027
+2026-11-04T04:13:53.0378184Z  * [new branch]        agent/hia-p2-rust-recursion-parity-20261027 -> origin/agent/hia-p2-rust-recursion-parity-20261027
+2026-11-04T04:13:53.0379508Z  * [new branch]        agent/hia-p2-seccomp-ownpid-signals-20261026 -> origin/agent/hia-p2-seccomp-ownpid-signals-20261026
+2026-11-04T04:13:53.0381033Z  * [new branch]        agent/hia-p2-shadow-postsuccess-group-cleanup-20261026 -> origin/agent/hia-p2-shadow-postsuccess-group-cleanup-20261026
+2026-11-04T04:13:53.0382507Z  * [new branch]        agent/hia-p2-signed-rem-overflow-20261027 -> origin/agent/hia-p2-signed-rem-overflow-20261027
+2026-11-04T04:13:53.0384442Z  * [new branch]        agent/hia-p2-source-reinspect-startup-convergence-20261026 -> origin/agent/hia-p2-source-reinspect-startup-convergence-20261026
+2026-11-04T04:13:53.0386108Z  * [new branch]        agent/hia-p2-static-budget-replay-20261026 -> origin/agent/hia-p2-static-budget-replay-20261026
+2026-11-04T04:13:53.0387696Z  * [new branch]        agent/hia-p2-v7-root-inclusive-budget-convergence-20261027 -> origin/agent/hia-p2-v7-root-inclusive-budget-convergence-20261027
+2026-11-04T04:13:53.0389308Z  * [new branch]        agent/hia-p2-v7-scalar-only-shadow-20261027 -> origin/agent/hia-p2-v7-scalar-only-shadow-20261027
+2026-11-04T04:13:53.0390717Z  * [new branch]        agent/hia-p3-c-migrate-oracle-isolation-20261027 -> origin/agent/hia-p3-c-migrate-oracle-isolation-20261027
+2026-11-04T04:13:53.0392063Z  * [new branch]        agent/hia-p3-p4-atomic-bundle-20261026 -> origin/agent/hia-p3-p4-atomic-bundle-20261026
+2026-11-04T04:13:53.0393472Z  * [new branch]        agent/hia-p3-p4-migration-receipt-binding-20261026 -> origin/agent/hia-p3-p4-migration-receipt-binding-20261026
+2026-11-04T04:13:53.0395493Z  * [new branch]        agent/hia-p3p4-bounded-migration-intake-20261027 -> origin/agent/hia-p3p4-bounded-migration-intake-20261027
+2026-11-04T04:13:53.0397080Z  * [new branch]        agent/hia-p5-failclosed-context-render-20261027 -> origin/agent/hia-p5-failclosed-context-render-20261027
+2026-11-04T04:13:53.0398498Z  * [new branch]        agent/hia-p5-fallible-length-ssa-20261026 -> origin/agent/hia-p5-fallible-length-ssa-20261026
+2026-11-04T04:13:53.0399938Z  * [new branch]        agent/hia-p5-interblock-ssa-edit-context-20261027 -> origin/agent/hia-p5-interblock-ssa-edit-context-20261027
+2026-11-04T04:13:53.0401565Z  * [new branch]        agent/hia-p5-render-identifier-failclosed-20261027 -> origin/agent/hia-p5-render-identifier-failclosed-20261027
+2026-11-04T04:13:53.0403031Z  * [new branch]        agent/hia-p5-transitive-ssa-context-20261027 -> origin/agent/hia-p5-transitive-ssa-context-20261027
+2026-11-04T04:13:53.0404695Z  * [new branch]        agent/hia-p5p7-bounded-inmemory-agent-json-20261027 -> origin/agent/hia-p5p7-bounded-inmemory-agent-json-20261027
+2026-11-04T04:13:53.0406435Z  * [new branch]        agent/hia-p5p7-interblock-context-render-convergence-20261027 -> origin/agent/hia-p5p7-interblock-context-render-convergence-20261027
+2026-11-04T04:13:53.0408172Z  * [new branch]        agent/hia-p7-agent-json-escape-preflight-20261027 -> origin/agent/hia-p7-agent-json-escape-preflight-20261027
+2026-11-04T04:13:53.0409640Z  * [new branch]        agent/hia-p7-ascii-del-json-preflight-20261027 -> origin/agent/hia-p7-ascii-del-json-preflight-20261027
+2026-11-04T04:13:53.0411202Z  * [new branch]        agent/hia-p7-bounded-rust-scalar-cli-args-20261027 -> origin/agent/hia-p7-bounded-rust-scalar-cli-args-20261027
+2026-11-04T04:13:53.0412714Z  * [new branch]        agent/hia-p7-inmemory-core-json-size-20261027 -> origin/agent/hia-p7-inmemory-core-json-size-20261027
+2026-11-04T04:13:53.0414424Z  * [new branch]        agent/hia-p7-json-predecode-v7-convergence-20261027 -> origin/agent/hia-p7-json-predecode-v7-convergence-20261027
+2026-11-04T04:13:53.0416223Z  * [new branch]        agent/hia-p7-native-kernel-handle-guard-20261027 -> origin/agent/hia-p7-native-kernel-handle-guard-20261027
+2026-11-04T04:13:53.0417792Z  * [new branch]        agent/hia-p7-native-seccomp-kernel-effects-20261027 -> origin/agent/hia-p7-native-seccomp-kernel-effects-20261027
+2026-11-04T04:13:53.0419403Z  * [new branch]        agent/hia-p7-nonblocking-bounded-evidence-20261027 -> origin/agent/hia-p7-nonblocking-bounded-evidence-20261027
+2026-11-04T04:13:53.0421053Z  * [new branch]        agent/hia-p7-predecode-bounded-text-edit-json-20261027 -> origin/agent/hia-p7-predecode-bounded-text-edit-json-20261027
+2026-11-04T04:13:53.0422638Z  * [new branch]        agent/hia-p7-python-json-predecode-20261027 -> origin/agent/hia-p7-python-json-predecode-20261027
+2026-11-04T04:13:53.0424345Z  * [new branch]        agent/hia-p7-runtime-security-converged-20261027 -> origin/agent/hia-p7-runtime-security-converged-20261027
+2026-11-04T04:13:53.0425955Z  * [new branch]        agent/hia-p7-rust-shadow-process-rlimits-20261027 -> origin/agent/hia-p7-rust-shadow-process-rlimits-20261027
+2026-11-04T04:13:53.0427402Z  * [new branch]        agent/hia-p7-sealed-shadow-exec-20261027 -> origin/agent/hia-p7-sealed-shadow-exec-20261027
+2026-11-04T04:13:53.0428831Z  * [new branch]        agent/hia-p7-streaming-json-node-budget-20261027 -> origin/agent/hia-p7-streaming-json-node-budget-20261027
+2026-11-04T04:13:53.0430247Z  * [new branch]        agent/hia-p7-text-utf16-predecode-20261027 -> origin/agent/hia-p7-text-utf16-predecode-20261027
+2026-11-04T04:13:53.0431644Z  * [new branch]        agent/hia-partial-records-incremental-20261027 -> origin/agent/hia-partial-records-incremental-20261027
+2026-11-04T04:13:53.0433121Z  * [new branch]        agent/hia-rust-native-p0-p7-convergence-20261026 -> origin/agent/hia-rust-native-p0-p7-convergence-20261026
+2026-11-04T04:13:53.0434806Z  * [new branch]        agent/hia-rust-p0-failclosed-crosscheck-20261026 -> origin/agent/hia-rust-p0-failclosed-crosscheck-20261026
+2026-11-04T04:13:53.0436421Z  * [new branch]        agent/hia-rust-scalar-shadow-20261026 -> origin/agent/hia-rust-scalar-shadow-20261026
+2026-11-04T04:13:53.0437671Z  * [new branch]        agent/hia-rust-scalar-vm-20261027 -> origin/agent/hia-rust-scalar-vm-20261027
+2026-11-04T04:13:53.0438987Z  * [new branch]        agent/hia-source-native-binary-recheck-20261026 -> origin/agent/hia-source-native-binary-recheck-20261026
+2026-11-04T04:13:53.0440446Z  * [new branch]        agent/hia-v2-agent-policy-converged-20261026 -> origin/agent/hia-v2-agent-policy-converged-20261026
+2026-11-04T04:13:53.0441679Z  * [new branch]        agent/hia-v2-bulk-memory-20261026 -> origin/agent/hia-v2-bulk-memory-20261026
+2026-11-04T04:13:53.0442992Z  * [new branch]        agent/hia-v3-agent-impact-convergence-20261026 -> origin/agent/hia-v3-agent-impact-convergence-20261026
+2026-11-04T04:13:53.0444520Z  * [new branch]        agent/hia-v3-overlap-memmove-20261026 -> origin/agent/hia-v3-overlap-memmove-20261026
+2026-11-04T04:13:53.0445886Z  * [new branch]        agent/hia-v3-overlap-safe-memmove-20261026 -> origin/agent/hia-v3-overlap-safe-memmove-20261026
+2026-11-04T04:13:53.0447178Z  * [new branch]        agent/hia-v4-byte-swap-p1-p2-20261026 -> origin/agent/hia-v4-byte-swap-p1-p2-20261026
+2026-11-04T04:13:53.0448500Z  * [new branch]        agent/hia-v4-verified-swap-peephole-20261026 -> origin/agent/hia-v4-verified-swap-peephole-20261026
+2026-11-04T04:13:53.0449958Z  * [new branch]        agent/hia-v5-agent-impact-converged-20261026 -> origin/agent/hia-v5-agent-impact-converged-20261026
+2026-11-04T04:13:53.0451415Z  * [new branch]        agent/hia-v5-distinct-owner-copy-range-20261026 -> origin/agent/hia-v5-distinct-owner-copy-range-20261026
+2026-11-04T04:13:53.0452935Z  * [new branch]        agent/hia-v6-atomic-cpp-c2hia-convergence-20261026 -> origin/agent/hia-v6-atomic-cpp-c2hia-convergence-20261026
+2026-11-04T04:13:53.0454597Z  * [new branch]        agent/hia-v6-atomic-guards-convergence-20261026 -> origin/agent/hia-v6-atomic-guards-convergence-20261026
+2026-11-04T04:13:53.0456291Z  * [new branch]        agent/hia-v6-bounded-vm-memory-20261026 -> origin/agent/hia-v6-bounded-vm-memory-20261026
+2026-11-04T04:13:53.0457735Z  * [new branch]        agent/hia-v6-checked-negation-heap-interval-20261026 -> origin/agent/hia-v6-checked-negation-heap-interval-20261026
+2026-11-04T04:13:53.0459175Z  * [new branch]        agent/hia-v6-l1-receipt-guard-20261026 -> origin/agent/hia-v6-l1-receipt-guard-20261026
+2026-11-04T04:13:53.0460640Z  * [new branch]        agent/hia-v6-native-budget-replay-convergence-20261026 -> origin/agent/hia-v6-native-budget-replay-convergence-20261026
+2026-11-04T04:13:53.0462139Z  * [new branch]        agent/hia-v6-native-differential-20261026 -> origin/agent/hia-v6-native-differential-20261026
+2026-11-04T04:13:53.0463580Z  * [new branch]        agent/hia-v6-owned-scalar-core-convergence-20261026 -> origin/agent/hia-v6-owned-scalar-core-convergence-20261026
+2026-11-04T04:13:53.0465535Z  * [new branch]        agent/hia-v6-p0-p2-native-boundary-integration-20261026 -> origin/agent/hia-v6-p0-p2-native-boundary-integration-20261026
+2026-11-04T04:13:53.0467211Z  * [new branch]        agent/hia-v6-p0-p4-l1-receipt-convergence-20261026 -> origin/agent/hia-v6-p0-p4-l1-receipt-convergence-20261026
+2026-11-04T04:13:53.0468682Z  * [new branch]        agent/hia-v6-p1-p2-live-byte-bound-20261026 -> origin/agent/hia-v6-p1-p2-live-byte-bound-20261026
+2026-11-04T04:13:53.0470054Z  * [new branch]        agent/hia-v6-p1-p2-p4-p6-converged-20261026 -> origin/agent/hia-v6-p1-p2-p4-p6-converged-20261026
+2026-11-04T04:13:53.0471349Z  * [new branch]        agent/hia-v6-p1-p2-p5-converged-20261026 -> origin/agent/hia-v6-p1-p2-p5-converged-20261026
+2026-11-04T04:13:53.0472729Z  * [new branch]        agent/hia-v6-p2-empty-owner-free-guard-20261026 -> origin/agent/hia-v6-p2-empty-owner-free-guard-20261026
+2026-11-04T04:13:53.0474294Z  * [new branch]        agent/hia-v6-p4-p6-negative-guards-20261026 -> origin/agent/hia-v6-p4-p6-negative-guards-20261026
+2026-11-04T04:13:53.0475926Z  * [new branch]        agent/hia-v6-p4-typed-rejection-convergence-20261026 -> origin/agent/hia-v6-p4-typed-rejection-convergence-20261026
+2026-11-04T04:13:53.0477521Z  * [new branch]        agent/hia-v6-unified-cpp-c2hia-native-core-20261026 -> origin/agent/hia-v6-unified-cpp-c2hia-native-core-20261026
+2026-11-04T04:13:53.0478954Z  * [new branch]        agent/hia-v6-verified-offset-fill-20261026 -> origin/agent/hia-v6-verified-offset-fill-20261026
+2026-11-04T04:13:53.0480284Z  * [new branch]        agent/hia-v6-vm-call-depth-budget-20261026 -> origin/agent/hia-v6-vm-call-depth-budget-20261026
+2026-11-04T04:13:53.0481614Z  * [new branch]        agent/hia-v6-vm-memory-fastpath-20261026 -> origin/agent/hia-v6-vm-memory-fastpath-20261026
+2026-11-04T04:13:53.0483009Z  * [new branch]        agent/hia-v7-agent-json-nesting-guard-20261027 -> origin/agent/hia-v7-agent-json-nesting-guard-20261027
+2026-11-04T04:13:53.0484643Z  * [new branch]        agent/hia-v7-agent-json-p5p7-converged-20261027 -> origin/agent/hia-v7-agent-json-p5p7-converged-20261027
+2026-11-04T04:13:53.0486151Z  * [new branch]        archive/host-source-custody-20261103-desktop-v2 -> origin/archive/host-source-custody-20261103-desktop-v2
+2026-11-04T04:13:53.0487577Z  * [new branch]        archive/library-bundle-source-20261103-gpt6 -> origin/archive/library-bundle-source-20261103-gpt6
+2026-11-04T04:13:53.0489000Z  * [new branch]        archive/library-priority-source-20261103-gpt6 -> origin/archive/library-priority-source-20261103-gpt6
+2026-11-04T04:13:53.0490468Z  * [new branch]        archive/library-small-source-20261103-gpt6 -> origin/archive/library-small-source-20261103-gpt6
+2026-11-04T04:13:53.0491898Z  * [new branch]        archive/library-source-verification-20261103-gpt6 -> origin/archive/library-source-verification-20261103-gpt6
+2026-11-04T04:13:53.0493452Z  * [new branch]        assistant/hepta-p0-exact-audit-integration-20261025 -> origin/assistant/hepta-p0-exact-audit-integration-20261025
+2026-11-04T04:13:53.0495503Z  * [new branch]        assistant/hepta-p0-p4-unified-semantic-migration-20261025 -> origin/assistant/hepta-p0-p4-unified-semantic-migration-20261025
+2026-11-04T04:13:53.0497088Z  * [new branch]        assistant/hepta-p0-p7-semantic-budget-20261025 -> origin/assistant/hepta-p0-p7-semantic-budget-20261025
+2026-11-04T04:13:53.0498591Z  * [new branch]        assistant/hepta-p1-p6-semantic-integrity-20261025 -> origin/assistant/hepta-p1-p6-semantic-integrity-20261025
+2026-11-04T04:13:53.0500229Z  * [new branch]        assistant/hepta-p1-reaching-ssa-verification-20261025 -> origin/assistant/hepta-p1-reaching-ssa-verification-20261025
+2026-11-04T04:13:53.0501731Z  * [new branch]        assistant/hepta-p1-ssa-origin-json-20261025 -> origin/assistant/hepta-p1-ssa-origin-json-20261025
+2026-11-04T04:13:53.0503189Z  * [new branch]        assistant/hepta-p1-ssa-refinement-guards-20261025 -> origin/assistant/hepta-p1-ssa-refinement-guards-20261025
+2026-11-04T04:13:53.0504980Z  * [new branch]        assistant/hepta-p1-ssa-resealed-cfg-guard-20261025 -> origin/assistant/hepta-p1-ssa-resealed-cfg-guard-20261025
+2026-11-04T04:13:53.0506529Z  * [new branch]        assistant/hepta-p1-untrusted-hsir-guard-20261025 -> origin/assistant/hepta-p1-untrusted-hsir-guard-20261025
+2026-11-04T04:13:53.0508054Z  * [new branch]        assistant/hepta-p1-versioned-scalar-hsir-20261025 -> origin/assistant/hepta-p1-versioned-scalar-hsir-20261025
+2026-11-04T04:13:53.0509567Z  * [new branch]        assistant/hepta-p3-capture-provenance-20261025 -> origin/assistant/hepta-p3-capture-provenance-20261025
+2026-11-04T04:13:53.0511088Z  * [new branch]        assistant/hepta-p3-p4-divmod-shortcircuit-20261025 -> origin/assistant/hepta-p3-p4-divmod-shortcircuit-20261025
+2026-11-04T04:13:53.0512636Z  * [new branch]        assistant/hepta-p3-p4-mixed-shift-count-20261025 -> origin/assistant/hepta-p3-p4-mixed-shift-count-20261025
+2026-11-04T04:13:53.0514263Z  * [new branch]        assistant/hepta-p3-p4-unsigned-shifts-20261025 -> origin/assistant/hepta-p3-p4-unsigned-shifts-20261025
+2026-11-04T04:13:53.0515936Z  * [new branch]        assistant/hepta-p4-bridge-publication-20261025 -> origin/assistant/hepta-p4-bridge-publication-20261025
+2026-11-04T04:13:53.0517520Z  * [new branch]        assistant/hepta-p4-unsigned-scalar-migration-20261025 -> origin/assistant/hepta-p4-unsigned-scalar-migration-20261025
+2026-11-04T04:13:53.0519143Z  * [new branch]        assistant/hepta-p5-host-library-identity-20261025 -> origin/assistant/hepta-p5-host-library-identity-20261025
+2026-11-04T04:13:53.0520664Z  * [new branch]        assistant/hepta-p5-u32-checked-llvm-20261025 -> origin/assistant/hepta-p5-u32-checked-llvm-20261025
+2026-11-04T04:13:53.0522111Z  * [new branch]        assistant/hepta-p6-strict-contract-diff-20261025 -> origin/assistant/hepta-p6-strict-contract-diff-20261025
+2026-11-04T04:13:53.0523528Z  * [new branch]        assistant/hepta-p6-workspace-json-20261025 -> origin/assistant/hepta-p6-workspace-json-20261025
+2026-11-04T04:13:53.0525067Z  * [new branch]        audit/hepta-c-contract-ci-start-20261028 -> origin/audit/hepta-c-contract-ci-start-20261028
+2026-11-04T04:13:53.0526435Z  * [new branch]        audit/hepta-c2hepta-api-path-alias-20261028 -> origin/audit/hepta-c2hepta-api-path-alias-20261028
+2026-11-04T04:13:53.0527824Z  * [new branch]        audit/hepta-c2hepta-bounded-source-20261028 -> origin/audit/hepta-c2hepta-bounded-source-20261028
+2026-11-04T04:13:53.0529261Z  * [new branch]        audit/hepta-cargo-workflow-regression-20261028 -> origin/audit/hepta-cargo-workflow-regression-20261028
+2026-11-04T04:13:53.0530817Z  * [new branch]        audit/hepta-clang-artifact-parent-rebind-20261029 -> origin/audit/hepta-clang-artifact-parent-rebind-20261029
+2026-11-04T04:13:53.0532339Z  * [new branch]        audit/hepta-clang-ast-bounded-capture-20261028 -> origin/audit/hepta-clang-ast-bounded-capture-20261028
+2026-11-04T04:13:53.0533918Z  * [new branch]        audit/hepta-clang-ast-json-structure-20261028 -> origin/audit/hepta-clang-ast-json-structure-20261028
+2026-11-04T04:13:53.0535603Z  * [new branch]        audit/hepta-clang-ast-nested-metadata-20261028 -> origin/audit/hepta-clang-ast-nested-metadata-20261028
+2026-11-04T04:13:53.0537019Z  * [new branch]        audit/hepta-clang-ast-opcode-shape-20261028 -> origin/audit/hepta-clang-ast-opcode-shape-20261028
+2026-11-04T04:13:53.0538398Z  * [new branch]        audit/hepta-clang-canonical-dir-fd-20261029 -> origin/audit/hepta-clang-canonical-dir-fd-20261029
+2026-11-04T04:13:53.0539777Z  * [new branch]        audit/hepta-clang-frozen-source-aba-20261029 -> origin/audit/hepta-clang-frozen-source-aba-20261029
+2026-11-04T04:13:53.0541153Z  * [new branch]        audit/hepta-clang-json-nonfinite-20261029 -> origin/audit/hepta-clang-json-nonfinite-20261029
+2026-11-04T04:13:53.0542615Z  * [new branch]        audit/hepta-clang-metadata-probes-bounded-20261028 -> origin/audit/hepta-clang-metadata-probes-bounded-20261028
+2026-11-04T04:13:53.0544288Z  * [new branch]        audit/hepta-clang-postexit-pipe-leak-20261029 -> origin/audit/hepta-clang-postexit-pipe-leak-20261029
+2026-11-04T04:13:53.0545764Z  * [new branch]        audit/hepta-clang-predefined-macros-20261029 -> origin/audit/hepta-clang-predefined-macros-20261029
+2026-11-04T04:13:53.0547183Z  * [new branch]        audit/hepta-clang-preprocess-digraph-20261029 -> origin/audit/hepta-clang-preprocess-digraph-20261029
+2026-11-04T04:13:53.0548708Z  * [new branch]        audit/hepta-clang-process-group-termination-20261029 -> origin/audit/hepta-clang-process-group-termination-20261029
+2026-11-04T04:13:53.0550255Z  * [new branch]        audit/hepta-clang-stderr-overflow-20261029 -> origin/audit/hepta-clang-stderr-overflow-20261029
+2026-11-04T04:13:53.0551541Z  * [new branch]        audit/hepta-formal-exec-race-20261028 -> origin/audit/hepta-formal-exec-race-20261028
+2026-11-04T04:13:53.0552957Z  * [new branch]        audit/hepta-formal-proof-race-qualification-20261028 -> origin/audit/hepta-formal-proof-race-qualification-20261028
+2026-11-04T04:13:53.0554995Z  * [new branch]        audit/hepta-migration-ir-identifier-guard-20261028 -> origin/audit/hepta-migration-ir-identifier-guard-20261028
+2026-11-04T04:13:53.0556618Z  * [new branch]        audit/hepta-migration-ir-literal-guard-20261028 -> origin/audit/hepta-migration-ir-literal-guard-20261028
+2026-11-04T04:13:53.0558059Z  * [new branch]        audit/hepta-migration-ir-neg-canonical-20261028 -> origin/audit/hepta-migration-ir-neg-canonical-20261028
+2026-11-04T04:13:53.0559553Z  * [new branch]        audit/hepta-migration-ir-parser-depth-20261028 -> origin/audit/hepta-migration-ir-parser-depth-20261028
+2026-11-04T04:13:53.0561082Z  * [new branch]        audit/hepta-migration-ir-structural-budget-20261028 -> origin/audit/hepta-migration-ir-structural-budget-20261028
+2026-11-04T04:13:53.0562565Z  * [new branch]        audit/hepta-native-tests-nonskip-20261028 -> origin/audit/hepta-native-tests-nonskip-20261028
+2026-11-04T04:13:53.0564152Z  * [new branch]        audit/hepta-p0-aggregate-work-budget-20261029 -> origin/audit/hepta-p0-aggregate-work-budget-20261029
+2026-11-04T04:13:53.0565544Z  * [new branch]        audit/hepta-p0-atomic-report-20261029 -> origin/audit/hepta-p0-atomic-report-20261029
+2026-11-04T04:13:53.0566822Z  * [new branch]        audit/hepta-p0-git-descendant-reap-20261029 -> origin/audit/hepta-p0-git-descendant-reap-20261029
+2026-11-04T04:13:53.0568280Z  * [new branch]        audit/hepta-p0-git-tree-stream-budget-20261029 -> origin/audit/hepta-p0-git-tree-stream-budget-20261029
+2026-11-04T04:13:53.0569705Z  * [new branch]        audit/hepta-p0-report-dirfd-publish-20261029 -> origin/audit/hepta-p0-report-dirfd-publish-20261029
+2026-11-04T04:13:53.0571070Z  * [new branch]        audit/hepta-p0-report-json-budget-20261029 -> origin/audit/hepta-p0-report-json-budget-20261029
+2026-11-04T04:13:53.0572687Z  * [new branch]        audit/hepta-p3-aggregate-ast-budget-fix-corrected-20261031-r40 -> origin/audit/hepta-p3-aggregate-ast-budget-fix-corrected-20261031-r40
+2026-11-04T04:13:53.0574779Z  * [new branch]        audit/hepta-p3-aggregate-ast-budget-red-corrected-20261031-r39 -> origin/audit/hepta-p3-aggregate-ast-budget-red-corrected-20261031-r39
+2026-11-04T04:13:53.0576553Z  * [new branch]        audit/hepta-p3-api-path-alias-20261030 -> origin/audit/hepta-p3-api-path-alias-20261030
+2026-11-04T04:13:53.0577853Z  * [new branch]        audit/hepta-p3-ast-child-shapes-20261030 -> origin/audit/hepta-p3-ast-child-shapes-20261030
+2026-11-04T04:13:53.0579137Z  * [new branch]        audit/hepta-p3-ast-depth-fix-20261030-r34 -> origin/audit/hepta-p3-ast-depth-fix-20261030-r34
+2026-11-04T04:13:53.0580428Z  * [new branch]        audit/hepta-p3-ast-depth-red-20261030-r33 -> origin/audit/hepta-p3-ast-depth-red-20261030-r33
+2026-11-04T04:13:53.0581784Z  * [new branch]        audit/hepta-p3-ast-envelope-boundary-20261030 -> origin/audit/hepta-p3-ast-envelope-boundary-20261030
+2026-11-04T04:13:53.0583247Z  * [new branch]        audit/hepta-p3-ast-node-budget-fix-20261031-r36 -> origin/audit/hepta-p3-ast-node-budget-fix-20261031-r36
+2026-11-04T04:13:53.0584911Z  * [new branch]        audit/hepta-p3-ast-node-budget-red-20261031-r35 -> origin/audit/hepta-p3-ast-node-budget-red-20261031-r35
+2026-11-04T04:13:53.0586260Z  * [new branch]        audit/hepta-p3-bounded-clang-ast-20261029 -> origin/audit/hepta-p3-bounded-clang-ast-20261029
+2026-11-04T04:13:53.0587639Z  * [new branch]        audit/hepta-p3-bounded-clang-probes-20261029 -> origin/audit/hepta-p3-bounded-clang-probes-20261029
+2026-11-04T04:13:53.0589045Z  * [new branch]        audit/hepta-p3-bounded-clang-probes-20261030 -> origin/audit/hepta-p3-bounded-clang-probes-20261030
+2026-11-04T04:13:53.0590386Z  * [new branch]        audit/hepta-p3-bounded-recheck-20261030-r30 -> origin/audit/hepta-p3-bounded-recheck-20261030-r30
+2026-11-04T04:13:53.0591820Z  * [new branch]        audit/hepta-p3-bounded-source-read-20261030-r29 -> origin/audit/hepta-p3-bounded-source-read-20261030-r29
+2026-11-04T04:13:53.0593300Z  * [new branch]        audit/hepta-p3-c-digraph-directives-20261030-r11 -> origin/audit/hepta-p3-c-digraph-directives-20261030-r11
+2026-11-04T04:13:53.0595184Z  * [new branch]        audit/hepta-p3-clang-capture-fix-20261030-r32 -> origin/audit/hepta-p3-clang-capture-fix-20261030-r32
+2026-11-04T04:13:53.0596606Z  * [new branch]        audit/hepta-p3-clang-capture-red-20261030-r31 -> origin/audit/hepta-p3-clang-capture-red-20261030-r31
+2026-11-04T04:13:53.0598026Z  * [new branch]        audit/hepta-p3-clang-stdin-snapshot-20261029 -> origin/audit/hepta-p3-clang-stdin-snapshot-20261029
+2026-11-04T04:13:53.0599416Z  * [new branch]        audit/hepta-p3-global-rejection-ci-20261029 -> origin/audit/hepta-p3-global-rejection-ci-20261029
+2026-11-04T04:13:53.0600871Z  * [new branch]        audit/hepta-p3-ir-budget-preflight-20261030-r23 -> origin/audit/hepta-p3-ir-budget-preflight-20261030-r23
+2026-11-04T04:13:53.0602381Z  * [new branch]        audit/hepta-p3-ir-container-subclasses-20261030-r21 -> origin/audit/hepta-p3-ir-container-subclasses-20261030-r21
+2026-11-04T04:13:53.0604061Z  * [new branch]        audit/hepta-p3-ir-depth-budget-20261030-r18 -> origin/audit/hepta-p3-ir-depth-budget-20261030-r18
+2026-11-04T04:13:53.0605513Z  * [new branch]        audit/hepta-p3-ir-field-shape-budget-20261030-r19 -> origin/audit/hepta-p3-ir-field-shape-budget-20261030-r19
+2026-11-04T04:13:53.0606955Z  * [new branch]        audit/hepta-p3-ir-literal-range-20261030-r15 -> origin/audit/hepta-p3-ir-literal-range-20261030-r15
+2026-11-04T04:13:53.0608347Z  * [new branch]        audit/hepta-p3-ir-node-position-20261030-r22 -> origin/audit/hepta-p3-ir-node-position-20261030-r22
+2026-11-04T04:13:53.0609747Z  * [new branch]        audit/hepta-p3-ir-standalone-emitter-20261030-r24 -> origin/audit/hepta-p3-ir-standalone-emitter-20261030-r24
+2026-11-04T04:13:53.0611377Z  * [new branch]        audit/hepta-p3-ir-standalone-emitter-fix-20261030-r24 -> origin/audit/hepta-p3-ir-standalone-emitter-fix-20261030-r24
+2026-11-04T04:13:53.0612936Z  * [new branch]        audit/hepta-p3-ir-string-subclass-20261030-r20 -> origin/audit/hepta-p3-ir-string-subclass-20261030-r20
+2026-11-04T04:13:53.0614844Z  * [new branch]        audit/hepta-p3-ir-structural-budget-20261030-r16 -> origin/audit/hepta-p3-ir-structural-budget-20261030-r16
+2026-11-04T04:13:53.0616300Z  * [new branch]        audit/hepta-p3-ir-symbol-validation-20261030-r14 -> origin/audit/hepta-p3-ir-symbol-validation-20261030-r14
+2026-11-04T04:13:53.0617840Z  * [new branch]        audit/hepta-p3-macro-inventory-compose-20261031-r37 -> origin/audit/hepta-p3-macro-inventory-compose-20261031-r37
+2026-11-04T04:13:53.0619464Z  * [new branch]        audit/hepta-p3-malformed-ast-converged-20261031-r42 -> origin/audit/hepta-p3-malformed-ast-converged-20261031-r42
+2026-11-04T04:13:53.0621141Z  * [new branch]        audit/hepta-p3-malformed-ast-red-after-budget-20261031-r41 -> origin/audit/hepta-p3-malformed-ast-red-after-budget-20261031-r41
+2026-11-04T04:13:53.0622824Z  * [new branch]        audit/hepta-p3-migration-parent-binding-20261030-r12 -> origin/audit/hepta-p3-migration-parent-binding-20261030-r12
+2026-11-04T04:13:53.0624543Z  * [new branch]        audit/hepta-p3-output-io-fix-20261030-r34 -> origin/audit/hepta-p3-output-io-fix-20261030-r34
+2026-11-04T04:13:53.0625803Z  * [new branch]        audit/hepta-p3-output-io-red-20261030-r33 -> origin/audit/hepta-p3-output-io-red-20261030-r33
+2026-11-04T04:13:53.0627077Z  * [new branch]        audit/hepta-p3-pinned-rustc-ci-20261029 -> origin/audit/hepta-p3-pinned-rustc-ci-20261029
+2026-11-04T04:13:53.0628534Z  * [new branch]        audit/hepta-p3-pr4-toplevel-negative-gate-20261030-r25 -> origin/audit/hepta-p3-pr4-toplevel-negative-gate-20261030-r25
+2026-11-04T04:13:53.0630105Z  * [new branch]        audit/hepta-p3-predefined-macro-gate-20261030-r13 -> origin/audit/hepta-p3-predefined-macro-gate-20261030-r13
+2026-11-04T04:13:53.0631592Z  * [new branch]        audit/hepta-p3-regular-bounded-source-20261029 -> origin/audit/hepta-p3-regular-bounded-source-20261029
+2026-11-04T04:13:53.0633073Z  * [new branch]        audit/hepta-p3-source-freshness-fix-20261030-r28 -> origin/audit/hepta-p3-source-freshness-fix-20261030-r28
+2026-11-04T04:13:53.0634951Z  * [new branch]        audit/hepta-p3-source-freshness-red-20261030-r27 -> origin/audit/hepta-p3-source-freshness-red-20261030-r27
+2026-11-04T04:13:53.0636595Z  * [new branch]        audit/hepta-p3-source-provenance-pinning-20261030-r17 -> origin/audit/hepta-p3-source-provenance-pinning-20261030-r17
+2026-11-04T04:13:53.0638066Z  * [new branch]        audit/hepta-p3-toplevel-gate-20261028 -> origin/audit/hepta-p3-toplevel-gate-20261028
+2026-11-04T04:13:53.0639402Z  * [new branch]        audit/hepta-p3-toplevel-status-fix-20261030-r26 -> origin/audit/hepta-p3-toplevel-status-fix-20261030-r26
+2026-11-04T04:13:53.0641014Z  * [new branch]        audit/hepta-p3-translation-unit-budget-fix-20261031-r38 -> origin/audit/hepta-p3-translation-unit-budget-fix-20261031-r38
+2026-11-04T04:13:53.0642752Z  * [new branch]        audit/hepta-p3-translation-unit-budget-red-20261031-r37 -> origin/audit/hepta-p3-translation-unit-budget-red-20261031-r37
+2026-11-04T04:13:53.0644494Z  * [new branch]        audit/hepta-p3-tu-ast-budget-20261030-gpt6 -> origin/audit/hepta-p3-tu-ast-budget-20261030-gpt6
+2026-11-04T04:13:53.0645873Z  * [new branch]        audit/hepta-rustup-pinned-identity-20261028 -> origin/audit/hepta-rustup-pinned-identity-20261028
+2026-11-04T04:13:53.0647330Z  * [new branch]        audit/hepta-v7-static-budget-assertions-20261028 -> origin/audit/hepta-v7-static-budget-assertions-20261028
+2026-11-04T04:13:53.0648882Z  * [new branch]        audit/hia-asm-v1-unicode-delimiter-guard-20261030 -> origin/audit/hia-asm-v1-unicode-delimiter-guard-20261030
+2026-11-04T04:13:53.0650365Z  * [new branch]        audit/hia-c-array-adjustment-guard-20261027 -> origin/audit/hia-c-array-adjustment-guard-20261027
+2026-11-04T04:13:53.0651734Z  * [new branch]        audit/hia-p0-ascii-del-control-20261031-gpt6 -> origin/audit/hia-p0-ascii-del-control-20261031-gpt6
+2026-11-04T04:13:53.0653203Z  * [new branch]        audit/hia-p0-bare-eof-cr-rejection-20261030-gpt6 -> origin/audit/hia-p0-bare-eof-cr-rejection-20261030-gpt6
+2026-11-04T04:13:53.0655138Z  * [new branch]        audit/hia-p0-catalog-version-compose-20261031 -> origin/audit/hia-p0-catalog-version-compose-20261031
+2026-11-04T04:13:53.0656781Z  * [new branch]        audit/hia-p0-reviewed-catalog-registry-20261031-gpt6-r1 -> origin/audit/hia-p0-reviewed-catalog-registry-20261031-gpt6-r1
+2026-11-04T04:13:53.0658464Z  * [new branch]        audit/hia-p0-trap-catalog-consistency-20261030-gpt6 -> origin/audit/hia-p0-trap-catalog-consistency-20261030-gpt6
+2026-11-04T04:13:53.0660072Z  * [new branch]        audit/hia-p0-v1-v6-catalog-convergence-20261030-gpt6 -> origin/audit/hia-p0-v1-v6-catalog-convergence-20261030-gpt6
+2026-11-04T04:13:53.0661777Z  * [new branch]        audit/hia-p0p1-catalog-receipt-convergence-20261031-gpt6 -> origin/audit/hia-p0p1-catalog-receipt-convergence-20261031-gpt6
+2026-11-04T04:13:53.0663459Z  * [new branch]        audit/hia-p0p1-reviewed-catalog-bind-20261031-gpt6-r1 -> origin/audit/hia-p0p1-reviewed-catalog-bind-20261031-gpt6-r1
+2026-11-04T04:13:53.0665517Z  * [new branch]        audit/hia-p1-allocation-attempt-tick-conservation-20261031-gpt6 -> origin/audit/hia-p1-allocation-attempt-tick-conservation-20261031-gpt6
+2026-11-04T04:13:53.0667355Z  * [new branch]        audit/hia-p1-chain-generation-tick-ceiling-20261031-gpt6 -> origin/audit/hia-p1-chain-generation-tick-ceiling-20261031-gpt6
+2026-11-04T04:13:53.0669049Z  * [new branch]        audit/hia-p1-chain-node-free-conservation-20261031-gpt6 -> origin/audit/hia-p1-chain-node-free-conservation-20261031-gpt6
+2026-11-04T04:13:53.0670690Z  * [new branch]        audit/hia-p1-chain-token-history-20261031-gpt6-r1 -> origin/audit/hia-p1-chain-token-history-20261031-gpt6-r1
+2026-11-04T04:13:53.0672290Z  * [new branch]        audit/hia-p1-chain-token-history-red-20261031-gpt6-r1 -> origin/audit/hia-p1-chain-token-history-red-20261031-gpt6-r1
+2026-11-04T04:13:53.0673882Z  * [new branch]        audit/hia-p1-exact-steps-20261031-gpt6 -> origin/audit/hia-p1-exact-steps-20261031-gpt6
+2026-11-04T04:13:53.0675508Z  * [new branch]        audit/hia-p1-live-chain-storage-ledger-20261031-gpt6 -> origin/audit/hia-p1-live-chain-storage-ledger-20261031-gpt6
+2026-11-04T04:13:53.0677186Z  * [new branch]        audit/hia-p1-peak-allocation-accounting-20261030-gpt6 -> origin/audit/hia-p1-peak-allocation-accounting-20261030-gpt6
+2026-11-04T04:13:53.0678741Z  * [new branch]        audit/hia-p2-native-nosite-worker-20261026 -> origin/audit/hia-p2-native-nosite-worker-20261026
+2026-11-04T04:13:53.0680392Z  * [new branch]        audit/hia-p2-p3-native-startup-publication-convergence-20261026 -> origin/audit/hia-p2-p3-native-startup-publication-convergence-20261026
+2026-11-04T04:13:53.0682148Z  * [new branch]        audit/hia-p7-agent-json-wire-parity-pr323-20261027 -> origin/audit/hia-p7-agent-json-wire-parity-pr323-20261027
+2026-11-04T04:13:53.0683682Z  * [new branch]        audit/hia-p7-ascii-surrogate-preflight-20261027 -> origin/audit/hia-p7-ascii-surrogate-preflight-20261027
+2026-11-04T04:13:53.0685435Z  * [new branch]        audit/hia-p7-canonical-json-key-collision-20261027 -> origin/audit/hia-p7-canonical-json-key-collision-20261027
+2026-11-04T04:13:53.0687058Z  * [new branch]        audit/hia-p7-inmemory-agent-node-preflight-20261027 -> origin/audit/hia-p7-inmemory-agent-node-preflight-20261027
+2026-11-04T04:13:53.0688677Z  * [new branch]        audit/hia-release-source-drift-diagnostics-20261027 -> origin/audit/hia-release-source-drift-diagnostics-20261027
+2026-11-04T04:13:53.0690230Z  * [new branch]        audit/hia-rust-shadow-postexit-group-20261026 -> origin/audit/hia-rust-shadow-postexit-group-20261026
+2026-11-04T04:13:53.0692149Z  * [new branch]        audit/hsir-unresolved-ffi-obligations-20261025 -> origin/audit/hsir-unresolved-ffi-obligations-20261025
+2026-11-04T04:13:53.0693623Z  * [new branch]        audit/p0-unittest-terminal-receipt-20261025 -> origin/audit/p0-unittest-terminal-receipt-20261025
+2026-11-04T04:13:53.0695426Z  * [new branch]        audit/pr111-source-origin-exception-code-20261026 -> origin/audit/pr111-source-origin-exception-code-20261026
+2026-11-04T04:13:53.0696658Z  * [new branch]        audit/pr115-p0-pinned-rust-20261025-2235 -> origin/audit/pr115-p0-pinned-rust-20261025-2235
+2026-11-04T04:13:53.0697512Z  * [new branch]        audit/pr128-bwrap-restricted-userns-20261025 -> origin/audit/pr128-bwrap-restricted-userns-20261025
+2026-11-04T04:13:53.0698454Z  * [new branch]        audit/pr131-sandbox-host-stat-eacces-20261026 -> origin/audit/pr131-sandbox-host-stat-eacces-20261026
+2026-11-04T04:13:53.0699301Z  * [new branch]        audit/pr134-native-receipt-mocks-20261026 -> origin/audit/pr134-native-receipt-mocks-20261026
+2026-11-04T04:13:53.0700109Z  * [new branch]        audit/pr14-pin-rustc-selector-20261025 -> origin/audit/pr14-pin-rustc-selector-20261025
+2026-11-04T04:13:53.0700879Z  * [new branch]        audit/pr145-native-llvm-tests-20261026 -> origin/audit/pr145-native-llvm-tests-20261026
+2026-11-04T04:13:53.0701647Z  * [new branch]        audit/pr154-qualification-20261026 -> origin/audit/pr154-qualification-20261026
+2026-11-04T04:13:53.0702380Z  * [new branch]        audit/pr173-pinned-rustc-20261026-0521 -> origin/audit/pr173-pinned-rustc-20261026-0521
+2026-11-04T04:13:53.0703263Z  * [new branch]        audit/pr179-native-rustc-env-20261026 -> origin/audit/pr179-native-rustc-env-20261026
+2026-11-04T04:13:53.0704312Z  * [new branch]        audit/pr187-clang-for-empty-slot-20261026 -> origin/audit/pr187-clang-for-empty-slot-20261026
+2026-11-04T04:13:53.0705177Z  * [new branch]        audit/pr212-clang-ast-depth-fixture-20261026 -> origin/audit/pr212-clang-ast-depth-fixture-20261026
+2026-11-04T04:13:53.0706018Z  * [new branch]        audit/pr218-aarch64-lld-qemu-ci-20261026 -> origin/audit/pr218-aarch64-lld-qemu-ci-20261026
+2026-11-04T04:13:53.0706783Z  * [new branch]        audit/pr225-c-probe-newline-20261026 -> origin/audit/pr225-c-probe-newline-20261026
+2026-11-04T04:13:53.0707550Z  * [new branch]        audit/pr231-agent-graph-identity-20261026 -> origin/audit/pr231-agent-graph-identity-20261026
+2026-11-04T04:13:53.0708605Z  * [new branch]        audit/pr237-llvm-profile-capture-fixture-20261026 -> origin/audit/pr237-llvm-profile-capture-fixture-20261026
+2026-11-04T04:13:53.0709541Z  * [new branch]        audit/pr238-c-datamodel-typed-error-20261026 -> origin/audit/pr238-c-datamodel-typed-error-20261026
+2026-11-04T04:13:53.0710387Z  * [new branch]        audit/pr239-cpp-ternary-lvalue-cast-20261026 -> origin/audit/pr239-cpp-ternary-lvalue-cast-20261026
+2026-11-04T04:13:53.0711169Z  * [new branch]        audit/pr240-qemu-http-retry-20261026 -> origin/audit/pr240-qemu-http-retry-20261026
+2026-11-04T04:13:53.0711937Z  * [new branch]        audit/pr241-c-truthiness-native-20261026 -> origin/audit/pr241-c-truthiness-native-20261026
+2026-11-04T04:13:53.0712733Z  * [new branch]        audit/pr250-qemu-official-mirror-20261027 -> origin/audit/pr250-qemu-official-mirror-20261027
+2026-11-04T04:13:53.0713630Z  * [new branch]        audit/pr259-c-migrate-negative-fixtures-20261027 -> origin/audit/pr259-c-migrate-negative-fixtures-20261027
+2026-11-04T04:13:53.0714778Z  * [new branch]        audit/pr30-macro-toplevel-inventory-20261026 -> origin/audit/pr30-macro-toplevel-inventory-20261026
+2026-11-04T04:13:53.0715671Z  * [new branch]        codex/evidence-hia-round5-recovered-20261029 -> origin/codex/evidence-hia-round5-recovered-20261029
+2026-11-04T04:13:53.0716561Z  * [new branch]        codex/evidence-hia-round6-ci-recovered-20261029 -> origin/codex/evidence-hia-round6-ci-recovered-20261029
+2026-11-04T04:13:53.0717423Z  * [new branch]        codex/evidence-hia-round6-local-20261029 -> origin/codex/evidence-hia-round6-local-20261029
+2026-11-04T04:13:53.0718243Z  * [new branch]        codex/evidence-hia-round6-repair-20261029 -> origin/codex/evidence-hia-round6-repair-20261029
+2026-11-04T04:13:53.0719002Z  * [new branch]        codex/evidence-hia-round7-20261029 -> origin/codex/evidence-hia-round7-20261029
+2026-11-04T04:13:53.0719763Z  * [new branch]        codex/evidence-hia-round7-local-20261029 -> origin/codex/evidence-hia-round7-local-20261029
+2026-11-04T04:13:53.0720831Z  * [new branch]        codex/hepta-bounded-clang-capture-20261025 -> origin/codex/hepta-bounded-clang-capture-20261025
+2026-11-04T04:13:53.0721645Z  * [new branch]        codex/hepta-hsir-c-migration-20261024 -> origin/codex/hepta-hsir-c-migration-20261024
+2026-11-04T04:13:53.0722540Z  * [new branch]        codex/hepta-p0-p1-hsir-wire-guard-integration-20261025 -> origin/codex/hepta-p0-p1-hsir-wire-guard-integration-20261025
+2026-11-04T04:13:53.0723546Z  * [new branch]        codex/hepta-p0-p5-typed-llvm-integration-20261025 -> origin/codex/hepta-p0-p5-typed-llvm-integration-20261025
+2026-11-04T04:13:53.0724523Z  * [new branch]        codex/hepta-p1-structural-cfg-20261024 -> origin/codex/hepta-p1-structural-cfg-20261024
+2026-11-04T04:13:53.0725363Z  * [new branch]        codex/hepta-p2-bounded-clang-capture-20261025 -> origin/codex/hepta-p2-bounded-clang-capture-20261025
+2026-11-04T04:13:53.0726225Z  * [new branch]        codex/hepta-p2-for-declaration-20261025 -> origin/codex/hepta-p2-for-declaration-20261025
+2026-11-04T04:13:53.0726999Z  * [new branch]        codex/hepta-p2-p4-for-scope-20261025 -> origin/codex/hepta-p2-p4-for-scope-20261025
+2026-11-04T04:13:53.0727801Z  * [new branch]        codex/hepta-p2-p4-stateful-migration-20261025 -> origin/codex/hepta-p2-p4-stateful-migration-20261025
+2026-11-04T04:13:53.0728666Z  * [new branch]        codex/hepta-p2-p7-bounded-clang-ast-20261025 -> origin/codex/hepta-p2-p7-bounded-clang-ast-20261025
+2026-11-04T04:13:53.0729580Z  * [new branch]        codex/hepta-p3-object-layout-verification-20261025 -> origin/codex/hepta-p3-object-layout-verification-20261025
+2026-11-04T04:13:53.0730741Z  * [new branch]        codex/hepta-p3-p4-logical-predicate-20261025 -> origin/codex/hepta-p3-p4-logical-predicate-20261025
+2026-11-04T04:13:53.0731700Z  * [new branch]        codex/hepta-p3-p5-defined-exports-20261025 -> origin/codex/hepta-p3-p5-defined-exports-20261025
+2026-11-04T04:13:53.0732803Z  * [new branch]        codex/hepta-p3-p5-executable-symbol-boundary-20261025 -> origin/codex/hepta-p3-p5-executable-symbol-boundary-20261025
+2026-11-04T04:13:53.0733927Z  * [new branch]        codex/hepta-p3-p5-linux-host-abi-20261025 -> origin/codex/hepta-p3-p5-linux-host-abi-20261025
+2026-11-04T04:13:53.0734784Z  * [new branch]        codex/hepta-p3-p5-section-extents-20261025 -> origin/codex/hepta-p3-p5-section-extents-20261025
+2026-11-04T04:13:53.0735649Z  * [new branch]        codex/hepta-p3-p5-source-native-link-20261025 -> origin/codex/hepta-p3-p5-source-native-link-20261025
+2026-11-04T04:13:53.0736483Z  * [new branch]        codex/hepta-p4-p6-guardrails-20261025 -> origin/codex/hepta-p4-p6-guardrails-20261025
+2026-11-04T04:13:53.0737278Z  * [new branch]        codex/hepta-p5-llvm-capture-budget-20261025 -> origin/codex/hepta-p5-llvm-capture-budget-20261025
+2026-11-04T04:13:53.0738116Z  * [new branch]        codex/hepta-p5-llvm-closed-profile-20261025 -> origin/codex/hepta-p5-llvm-closed-profile-20261025
+2026-11-04T04:13:53.0739033Z  * [new branch]        codex/hepta-p5-llvm-object-qualification-20261025 -> origin/codex/hepta-p5-llvm-object-qualification-20261025
+2026-11-04T04:13:53.0739874Z  * [new branch]        codex/hepta-p5-llvm-ssa-cli-20261025 -> origin/codex/hepta-p5-llvm-ssa-cli-20261025
+2026-11-04T04:13:53.0740649Z  * [new branch]        codex/hepta-p5-llvm-text-boundary-20261025 -> origin/codex/hepta-p5-llvm-text-boundary-20261025
+2026-11-04T04:13:53.0741555Z  * [new branch]        codex/hepta-p5-p7-bounded-native-artifacts-20261025 -> origin/codex/hepta-p5-p7-bounded-native-artifacts-20261025
+2026-11-04T04:13:53.0742579Z  * [new branch]        codex/hepta-p6-agent-verified-workspace-queries-20261025 -> origin/codex/hepta-p6-agent-verified-workspace-queries-20261025
+2026-11-04T04:13:53.0743608Z  * [new branch]        codex/hepta-p6-portable-contract-identity-20261025 -> origin/codex/hepta-p6-portable-contract-identity-20261025
+2026-11-04T04:13:53.0744911Z  * [new branch]        codex/hepta-p6-stable-source-ids-20261025 -> origin/codex/hepta-p6-stable-source-ids-20261025
+2026-11-04T04:13:53.0745736Z  * [new branch]        codex/hia-agent-closure-evidence-20261028 -> origin/codex/hia-agent-closure-evidence-20261028
+2026-11-04T04:13:53.0746535Z  * [new branch]        codex/hia-blocker-closure-next-20261028 -> origin/codex/hia-blocker-closure-next-20261028
+2026-11-04T04:13:53.0747352Z  * [new branch]        codex/hia-composite-returned-loans-20261029 -> origin/codex/hia-composite-returned-loans-20261029
+2026-11-04T04:13:53.0748147Z  * [new branch]        codex/hia-contract-evidence-20261027 -> origin/codex/hia-contract-evidence-20261027
+2026-11-04T04:13:53.0748902Z  * [new branch]        codex/hia-contract-integration-20261027 -> origin/codex/hia-contract-integration-20261027
+2026-11-04T04:13:53.0749618Z  * [new branch]        codex/hia-core-closure-20261028 -> origin/codex/hia-core-closure-20261028
+2026-11-04T04:13:53.0750343Z  * [new branch]        codex/hia-core-closure-evidence-20261029 -> origin/codex/hia-core-closure-evidence-20261029
+2026-11-04T04:13:53.0751130Z  * [new branch]        codex/hia-core-rust-convergence-20261030 -> origin/codex/hia-core-rust-convergence-20261030
+2026-11-04T04:13:53.0751911Z  * [new branch]        codex/hia-ndu-bounded-pipeline-20261027 -> origin/codex/hia-ndu-bounded-pipeline-20261027
+2026-11-04T04:13:53.0752738Z  * [new branch]        codex/hia-ndu-verified-optimization-20261027 -> origin/codex/hia-ndu-verified-optimization-20261027
+2026-11-04T04:13:53.0753632Z  * [new branch]        codex/hia-nested-views-native-retention-20261030 -> origin/codex/hia-nested-views-native-retention-20261030
+2026-11-04T04:13:53.0754567Z  * [new branch]        codex/hia-next-closure-20261028 -> origin/codex/hia-next-closure-20261028
+2026-11-04T04:13:53.0755324Z  * [new branch]        codex/hia-next-evidence-b1fc801-20261029 -> origin/codex/hia-next-evidence-b1fc801-20261029
+2026-11-04T04:13:53.0756086Z  * [new branch]        codex/hia-p0-p7-convergence-20261027 -> origin/codex/hia-p0-p7-convergence-20261027
+2026-11-04T04:13:53.0756999Z  * [new branch]        codex/hia-reconciled-evidence-20261028 -> origin/codex/hia-reconciled-evidence-20261028
+2026-11-04T04:13:53.0757805Z  * [new branch]        codex/hia-resource-ndu-evidence-20261028 -> origin/codex/hia-resource-ndu-evidence-20261028
+2026-11-04T04:13:53.0758561Z  * [new branch]        codex/hia-round5-contracts-20261028 -> origin/codex/hia-round5-contracts-20261028
+2026-11-04T04:13:53.0759304Z  * [new branch]        codex/hia-round6-convergence-20261029 -> origin/codex/hia-round6-convergence-20261029
+2026-11-04T04:13:53.0760041Z  * [new branch]        codex/hia-round7-opportunity-20261029 -> origin/codex/hia-round7-opportunity-20261029
+2026-11-04T04:13:53.0760778Z  * [new branch]        codex/hia-round8-integration-20261029 -> origin/codex/hia-round8-integration-20261029
+2026-11-04T04:13:53.0761559Z  * [new branch]        codex/hia-round8-preregistration-20261029 -> origin/codex/hia-round8-preregistration-20261029
+2026-11-04T04:13:53.0762335Z  * [new branch]        codex/hia-rust-api-parity-20261029 -> origin/codex/hia-rust-api-parity-20261029
+2026-11-04T04:13:53.0763147Z  * [new branch]        codex/hia-rust-record-normalization-20261030 -> origin/codex/hia-rust-record-normalization-20261030
+2026-11-04T04:13:53.0764026Z  * [new branch]        codex/hia-six-outcomes-20261028 -> origin/codex/hia-six-outcomes-20261028
+2026-11-04T04:13:53.0764780Z  * [new branch]        codex/hia-v8-blocker-convergence-20261027 -> origin/codex/hia-v8-blocker-convergence-20261027
+2026-11-04T04:13:53.0765592Z  * [new branch]        codex/hia-v8-economics-evidence-20261028 -> origin/codex/hia-v8-economics-evidence-20261028
+2026-11-04T04:13:53.0766390Z  * [new branch]        codex/registration-hia-round7-20261029 -> origin/codex/registration-hia-round7-20261029
+2026-11-04T04:13:53.0767139Z  * [new branch]        delivery/hia-p0-p7-44e34b7-20261030 -> origin/delivery/hia-p0-p7-44e34b7-20261030
+2026-11-04T04:13:53.0767997Z  * [new branch]        delivery/hia-p0-p7-953fa62-20261030 -> origin/delivery/hia-p0-p7-953fa62-20261030
+2026-11-04T04:13:53.0768653Z  * [new branch]        dot/acceptance-hardening -> origin/dot/acceptance-hardening
+2026-11-04T04:13:53.0769369Z  * [new branch]        dot/array-integration-invariants-20261103 -> origin/dot/array-integration-invariants-20261103
+2026-11-04T04:13:53.0770092Z  * [new branch]        dot/assembly-copy-admission -> origin/dot/assembly-copy-admission
+2026-11-04T04:13:53.0770707Z  * [new branch]        dot/ast-structure-admission -> origin/dot/ast-structure-admission
+2026-11-04T04:13:53.0771303Z  * [new branch]        dot/authority-map-admission -> origin/dot/authority-map-admission
+2026-11-04T04:13:53.0771891Z  * [new branch]        dot/c-array-values-20261103 -> origin/dot/c-array-values-20261103
+2026-11-04T04:13:53.0772519Z  * [new branch]        dot/c-call-borrow-order-20261103 -> origin/dot/c-call-borrow-order-20261103
+2026-11-04T04:13:53.0773201Z  * [new branch]        dot/c-char-boundary-prototype -> origin/dot/c-char-boundary-prototype
+2026-11-04T04:13:53.0773914Z  * [new branch]        dot/c-char-build-plan   -> origin/dot/c-char-build-plan
+2026-11-04T04:13:53.0774472Z  * [new branch]        dot/c-float-conversions -> origin/dot/c-float-conversions
+2026-11-04T04:13:53.0775073Z  * [new branch]        dot/c-float-literals-20261103 -> origin/dot/c-float-literals-20261103
+2026-11-04T04:13:53.0775845Z  * [new branch]        dot/c-frontend-process-group-cleanup-20261024 -> origin/dot/c-frontend-process-group-cleanup-20261024
+2026-11-04T04:13:53.0776653Z  * [new branch]        dot/c-import-active-guards-20261024 -> origin/dot/c-import-active-guards-20261024
+2026-11-04T04:13:53.0777451Z  * [new branch]        dot/c-import-native-prototypes-20261024 -> origin/dot/c-import-native-prototypes-20261024
+2026-11-04T04:13:53.0778223Z  * [new branch]        dot/c-import-typedef-abi-20261024 -> origin/dot/c-import-typedef-abi-20261024
+2026-11-04T04:13:53.0778972Z  * [new branch]        dot/c-internal-array-pointers-20261103 -> origin/dot/c-internal-array-pointers-20261103
+2026-11-04T04:13:53.0779909Z  * [new branch]        dot/c-migrate-active-macro-gate-20261024 -> origin/dot/c-migrate-active-macro-gate-20261024
+2026-11-04T04:13:53.0780747Z  * [new branch]        dot/c-migrate-calling-conventions-20261024 -> origin/dot/c-migrate-calling-conventions-20261024
+2026-11-04T04:13:53.0781578Z  * [new branch]        dot/c-migrate-canonical-typedefs-20261024 -> origin/dot/c-migrate-canonical-typedefs-20261024
+2026-11-04T04:13:53.0782424Z  * [new branch]        dot/c-migrate-main-macro-provenance-20261024 -> origin/dot/c-migrate-main-macro-provenance-20261024
+2026-11-04T04:13:53.0783185Z  * [new branch]        dot/c-pointer-literals-20261103 -> origin/dot/c-pointer-literals-20261103
+2026-11-04T04:13:53.0784045Z  * [new branch]        dot/c-print-failures-20261103 -> origin/dot/c-print-failures-20261103
+2026-11-04T04:13:53.0784704Z  * [new branch]        dot/c-private-linkage-20261103 -> origin/dot/c-private-linkage-20261103
+2026-11-04T04:13:53.0785457Z  * [new branch]        dot/c-project-calling-conventions-20261024 -> origin/dot/c-project-calling-conventions-20261024
+2026-11-04T04:13:53.0786267Z  * [new branch]        dot/c-project-canonical-types-20261024 -> origin/dot/c-project-canonical-types-20261024
+2026-11-04T04:13:53.0787046Z  * [new branch]        dot/c-project-semantic-flags-20261025 -> origin/dot/c-project-semantic-flags-20261025
+2026-11-04T04:13:53.0787764Z  * [new branch]        dot/c-recursive-pointers-20261103 -> origin/dot/c-recursive-pointers-20261103
+2026-11-04T04:13:53.0788423Z  * [new branch]        dot/c-saturating-float-casts -> origin/dot/c-saturating-float-casts
+2026-11-04T04:13:53.0789180Z  * [new branch]        dot/c2hepta-bounded-clang-transport-20261024 -> origin/dot/c2hepta-bounded-clang-transport-20261024
+2026-11-04T04:13:53.0790010Z  * [new branch]        dot/c2hepta-library-output-alias-20261024 -> origin/dot/c2hepta-library-output-alias-20261024
+2026-11-04T04:13:53.0791087Z  * [new branch]        dot/c2hepta-success-descendant-cleanup-20261024 -> origin/dot/c2hepta-success-descendant-cleanup-20261024
+2026-11-04T04:13:53.0792338Z  * [new branch]        dot/check-assignment-order-20261104 -> origin/dot/check-assignment-order-20261104
+2026-11-04T04:13:53.0793391Z  * [new branch]        dot/ci-aarch64-elf-inspection-20261024 -> origin/dot/ci-aarch64-elf-inspection-20261024
+2026-11-04T04:13:53.0794564Z  * [new branch]        dot/cli-admission-closure-audit -> origin/dot/cli-admission-closure-audit
+2026-11-04T04:13:53.0795648Z  * [new branch]        dot/core-syntax-kernel-research-20261103 -> origin/dot/core-syntax-kernel-research-20261103
+2026-11-04T04:13:53.0796866Z  * [new branch]        dot/cpp-bridge-shadowed-alias-20261024 -> origin/dot/cpp-bridge-shadowed-alias-20261024
+2026-11-04T04:13:53.0798126Z  * [new branch]        dot/cpp-l1-preprocessor-boundary-20261025 -> origin/dot/cpp-l1-preprocessor-boundary-20261025
+2026-11-04T04:13:53.0799426Z  * [new branch]        dot/deferred-guard-compile-only-20261103 -> origin/dot/deferred-guard-compile-only-20261103
+2026-11-04T04:13:53.0800775Z  * [new branch]        dot/descriptive-float-intake-20261103 -> origin/dot/descriptive-float-intake-20261103
+2026-11-04T04:13:53.0802181Z  * [new branch]        dot/descriptive-float-reviewed-base-931c96-20261103 -> origin/dot/descriptive-float-reviewed-base-931c96-20261103
+2026-11-04T04:13:53.0803587Z  * [new branch]        dot/dynamic-unsigned-step-research-20261103 -> origin/dot/dynamic-unsigned-step-research-20261103
+2026-11-04T04:13:53.0804810Z  * [new branch]        dot/empty-reduction-receipts -> origin/dot/empty-reduction-receipts
+2026-11-04T04:13:53.0805461Z  * [new branch]        dot/explicit-frontend-cli -> origin/dot/explicit-frontend-cli
+2026-11-04T04:13:53.0806175Z  * [new branch]        dot/fix-c-migration-provenance-20261024 -> origin/dot/fix-c-migration-provenance-20261024
+2026-11-04T04:13:53.0806962Z  * [new branch]        dot/fix-c-typedef-attributes-20261025 -> origin/dot/fix-c-typedef-attributes-20261025
+2026-11-04T04:13:53.0808031Z  * [new branch]        dot/full-cost-file-admission -> origin/dot/full-cost-file-admission
+2026-11-04T04:13:53.0809024Z  * [new branch]        dot/graph-loader-admission -> origin/dot/graph-loader-admission
+2026-11-04T04:13:53.0810026Z  * [new branch]        dot/harden-package-snapshots -> origin/dot/harden-package-snapshots
+2026-11-04T04:13:53.0811084Z  * [new branch]        dot/hepta-canonical-hsir-v1-20261025 -> origin/dot/hepta-canonical-hsir-v1-20261025
+2026-11-04T04:13:53.0812196Z  * [new branch]        dot/hepta-ci-runner-context-20261028 -> origin/dot/hepta-ci-runner-context-20261028
+2026-11-04T04:13:53.0813304Z  * [new branch]        dot/hepta-p0-ci-ref-isolation-20261024 -> origin/dot/hepta-p0-ci-ref-isolation-20261024
+2026-11-04T04:13:53.0814763Z  * [new branch]        dot/hepta-p0-integration-audit-20261025 -> origin/dot/hepta-p0-integration-audit-20261025
+2026-11-04T04:13:53.0816033Z  * [new branch]        dot/hepta-p0-p1-semantic-bridge-20261025 -> origin/dot/hepta-p0-p1-semantic-bridge-20261025
+2026-11-04T04:13:53.0817296Z  * [new branch]        dot/hepta-p0-p7-integration-20261025 -> origin/dot/hepta-p0-p7-integration-20261025
+2026-11-04T04:13:53.0818637Z  * [new branch]        dot/hepta-p1-hsir-resource-source-replay-20261025 -> origin/dot/hepta-p1-hsir-resource-source-replay-20261025
+2026-11-04T04:13:53.0820172Z  * [new branch]        dot/hepta-p1-scalar-source-bridge-20261025 -> origin/dot/hepta-p1-scalar-source-bridge-20261025
+2026-11-04T04:13:53.0821599Z  * [new branch]        dot/hepta-p2-atomic-migration-publication-20261025 -> origin/dot/hepta-p2-atomic-migration-publication-20261025
+2026-11-04T04:13:53.0822936Z  * [new branch]        dot/hepta-p3-adversarial-gates-20261024 -> origin/dot/hepta-p3-adversarial-gates-20261024
+2026-11-04T04:13:53.0824392Z  * [new branch]        dot/hepta-p3-native-host-evidence-20261025 -> origin/dot/hepta-p3-native-host-evidence-20261025
+2026-11-04T04:13:53.0825857Z  * [new branch]        dot/hepta-p3-preprocessor-input-failclosed-20261024 -> origin/dot/hepta-p3-preprocessor-input-failclosed-20261024
+2026-11-04T04:13:53.0827667Z  * [new branch]        dot/hepta-p4-cpp2hepta-shared-lowerer-20261025 -> origin/dot/hepta-p4-cpp2hepta-shared-lowerer-20261025
+2026-11-04T04:13:53.0829056Z  * [new branch]        dot/hepta-p5-llvm-ssa-integrated-20261025 -> origin/dot/hepta-p5-llvm-ssa-integrated-20261025
+2026-11-04T04:13:53.0830433Z  * [new branch]        dot/hepta-p6-agent-snapshot-semantics-20261025 -> origin/dot/hepta-p6-agent-snapshot-semantics-20261025
+2026-11-04T04:13:53.0831747Z  * [new branch]        dot/hepta-pr28-pin-qualify-20261024 -> origin/dot/hepta-pr28-pin-qualify-20261024
+2026-11-04T04:13:53.0832945Z  * [new branch]        dot/hepta-v1-cfg-ssa-consumer-20261025 -> origin/dot/hepta-v1-cfg-ssa-consumer-20261025
+2026-11-04T04:13:53.0834387Z  * [new branch]        dot/hepta-v1-resource-verification-20261025 -> origin/dot/hepta-v1-resource-verification-20261025
+2026-11-04T04:13:53.0835994Z  * [new branch]        dot/hia-chain-loan-qualification-20261027 -> origin/dot/hia-chain-loan-qualification-20261027
+2026-11-04T04:13:53.0836923Z  * [new branch]        dot/hia-ndu-executable-closure-20261027 -> origin/dot/hia-ndu-executable-closure-20261027
+2026-11-04T04:13:53.0837682Z  * [new branch]        dot/hia-ndu-native-closure-20261027 -> origin/dot/hia-ndu-native-closure-20261027
+2026-11-04T04:13:53.0838328Z  * [new branch]        dot/hia-runtime-dispatch -> origin/dot/hia-runtime-dispatch
+2026-11-04T04:13:53.0838992Z  * [new branch]        dot/hia-v7-soak-qualification-20261028 -> origin/dot/hia-v7-soak-qualification-20261028
+2026-11-04T04:13:53.0839711Z  * [new branch]        dot/hsir-c2hepta-p0-p3-20261024 -> origin/dot/hsir-c2hepta-p0-p3-20261024
+2026-11-04T04:13:53.0840439Z  * [new branch]        dot/hsir-pr36-assumption-status-20261025 -> origin/dot/hsir-pr36-assumption-status-20261025
+2026-11-04T04:13:53.0841269Z  * [new branch]        dot/hsir-transitive-raw-boundaries-20261024 -> origin/dot/hsir-transitive-raw-boundaries-20261024
+2026-11-04T04:13:53.0842329Z  * [new branch]        dot/initialization-core-model-ledger-20261103 -> origin/dot/initialization-core-model-ledger-20261103
+2026-11-04T04:13:53.0843227Z  * [new branch]        dot/initialization-frontier-research-20261103 -> origin/dot/initialization-frontier-research-20261103
+2026-11-04T04:13:53.0844319Z  * [new branch]        dot/integrate-active-tu-macro-gate-20261024 -> origin/dot/integrate-active-tu-macro-gate-20261024
+2026-11-04T04:13:53.0845162Z  * [new branch]        dot/integrate-comparator-cleanup-20261024 -> origin/dot/integrate-comparator-cleanup-20261024
+2026-11-04T04:13:53.0845972Z  * [new branch]        dot/integrate-frontend-cleanup-20261024 -> origin/dot/integrate-frontend-cleanup-20261024
+2026-11-04T04:13:53.0846782Z  * [new branch]        dot/integrate-reviewed-abi-fixes-20261024 -> origin/dot/integrate-reviewed-abi-fixes-20261024
+2026-11-04T04:13:53.0847462Z  * [new branch]        dot/legacy-loader-ops   -> origin/dot/legacy-loader-ops
+2026-11-04T04:13:53.0848277Z  * [new branch]        dot/loader-api-compatibility -> origin/dot/loader-api-compatibility
+2026-11-04T04:13:53.0849328Z  * [new branch]        dot/loader-consumer-compatibility -> origin/dot/loader-consumer-compatibility
+2026-11-04T04:13:53.0850345Z  * [new branch]        dot/loader-read-budget  -> origin/dot/loader-read-budget
+2026-11-04T04:13:53.0851055Z  * [new branch]        dot/loader-transform-admission -> origin/dot/loader-transform-admission
+2026-11-04T04:13:53.0851824Z  * [new branch]        dot/native-array-storage-prototype-20261103 -> origin/dot/native-array-storage-prototype-20261103
+2026-11-04T04:13:53.0852631Z  * [new branch]        dot/native-dependency-observations -> origin/dot/native-dependency-observations
+2026-11-04T04:13:53.0853291Z  * [new branch]        dot/ndu-controller-budget -> origin/dot/ndu-controller-budget
+2026-11-04T04:13:53.0854118Z  * [new branch]        dot/ndu-cost-search     -> origin/dot/ndu-cost-search
+2026-11-04T04:13:53.0854714Z  * [new branch]        dot/normal-loader-extraction -> origin/dot/normal-loader-extraction
+2026-11-04T04:13:53.0855670Z  * [new branch]        dot/observation-qualification-evidence -> origin/dot/observation-qualification-evidence
+2026-11-04T04:13:53.0856388Z  * [new branch]        dot/owned-loader-integration -> origin/dot/owned-loader-integration
+2026-11-04T04:13:53.0856994Z  * [new branch]        dot/owned-token-admission -> origin/dot/owned-token-admission
+2026-11-04T04:13:53.0857614Z  * [new branch]        dot/owner-preserving-frontend -> origin/dot/owner-preserving-frontend
+2026-11-04T04:13:53.0858339Z  * [new branch]        dot/p0-formal-evidence-binding-20261025 -> origin/dot/p0-formal-evidence-binding-20261025
+2026-11-04T04:13:53.0859145Z  * [new branch]        dot/p0-formal-receipt-integrity-20261025 -> origin/dot/p0-formal-receipt-integrity-20261025
+2026-11-04T04:13:53.0860020Z  * [new branch]        dot/p0-qualification-artifact-source-sha-20261025 -> origin/dot/p0-qualification-artifact-source-sha-20261025
+2026-11-04T04:13:53.0861042Z  * [new branch]        dot/p0-release-evidence-staleness-20261025 -> origin/dot/p0-release-evidence-staleness-20261025
+2026-11-04T04:13:53.0862223Z  * [new branch]        dot/p1-source-bound-scalar-consumer-20261025 -> origin/dot/p1-source-bound-scalar-consumer-20261025
+2026-11-04T04:13:53.0863252Z  * [new branch]        dot/p1-source-bound-ssa-reconciliation-20261025 -> origin/dot/p1-source-bound-ssa-reconciliation-20261025
+2026-11-04T04:13:53.0864639Z  * [new branch]        dot/p1-sourcebound-scalar-ssa-20261025 -> origin/dot/p1-sourcebound-scalar-ssa-20261025
+2026-11-04T04:13:53.0865495Z  * [new branch]        dot/p2-bounded-c-migration-capture-20261025 -> origin/dot/p2-bounded-c-migration-capture-20261025
+2026-11-04T04:13:53.0866770Z  * [new branch]        dot/p2-c-migration-dirfd-publication-20261025 -> origin/dot/p2-c-migration-dirfd-publication-20261025
+2026-11-04T04:13:53.0868240Z  * [new branch]        dot/p5-llvm-dual-output-path-guard-20261025 -> origin/dot/p5-llvm-dual-output-path-guard-20261025
+2026-11-04T04:13:53.0870058Z  * [new branch]        dot/p5-ssa-publication-guards-combined-20261025 -> origin/dot/p5-ssa-publication-guards-combined-20261025
+2026-11-04T04:13:53.0871574Z  * [new branch]        dot/p6-ssa-host-output-symlink-guard-20261025 -> origin/dot/p6-ssa-host-output-symlink-guard-20261025
+2026-11-04T04:13:53.0873074Z  * [new branch]        dot/p6-ssa-output-symlink-consolidated-20261025 -> origin/dot/p6-ssa-output-symlink-consolidated-20261025
+2026-11-04T04:13:53.0874786Z  * [new branch]        dot/p6-ssa-target-symlink-guard-20261025 -> origin/dot/p6-ssa-target-symlink-guard-20261025
+2026-11-04T04:13:53.0875942Z  * [new branch]        dot/package-copy-admission -> origin/dot/package-copy-admission
+2026-11-04T04:13:53.0876893Z  * [new branch]        dot/parser-append-admission -> origin/dot/parser-append-admission
+2026-11-04T04:13:53.0878227Z  * [new branch]        dot/pr29-clang19-frontend-qualification-20261025 -> origin/dot/pr29-clang19-frontend-qualification-20261025
+2026-11-04T04:13:53.0879710Z  * [new branch]        dot/pr36-exact-pr-head-qualification-20261025 -> origin/dot/pr36-exact-pr-head-qualification-20261025
+2026-11-04T04:13:53.0881110Z  * [new branch]        dot/pr37-exact-head-qualification-20261025 -> origin/dot/pr37-exact-head-qualification-20261025
+2026-11-04T04:13:53.0882393Z  * [new branch]        dot/pr4-global-preflight-ci-20261024 -> origin/dot/pr4-global-preflight-ci-20261024
+2026-11-04T04:13:53.0883609Z  * [new branch]        dot/pr5-pin-rust-migration-ci-20261024 -> origin/dot/pr5-pin-rust-migration-ci-20261024
+2026-11-04T04:13:53.0885154Z  * [new branch]        dot/pr77-real-macho-header-regression-20261025 -> origin/dot/pr77-real-macho-header-regression-20261025
+2026-11-04T04:13:53.0886489Z  * [new branch]        dot/probe-typedef-alignment-20261025 -> origin/dot/probe-typedef-alignment-20261025
+2026-11-04T04:13:53.0887757Z  * [new branch]        dot/project-boundary-integration-20261025 -> origin/dot/project-boundary-integration-20261025
+2026-11-04T04:13:53.0889506Z  * [new branch]        dot/projected-slice-kernel-research-20261103 -> origin/dot/projected-slice-kernel-research-20261103
+2026-11-04T04:13:53.0890349Z  * [new branch]        dot/public-array-abi-design-20261103 -> origin/dot/public-array-abi-design-20261103
+2026-11-04T04:13:53.0891187Z  * [new branch]        dot/qualify-active-typedef-attributes-20261025 -> origin/dot/qualify-active-typedef-attributes-20261025
+2026-11-04T04:13:53.0892022Z  * [new branch]        dot/qualify-project-c-types-20261024 -> origin/dot/qualify-project-c-types-20261024
+2026-11-04T04:13:53.0892714Z  * [new branch]        dot/raw-store-order-20261103 -> origin/dot/raw-store-order-20261103
+2026-11-04T04:13:53.0893383Z  * [new branch]        dot/reduction-common-sink-20261103 -> origin/dot/reduction-common-sink-20261103
+2026-11-04T04:13:53.0894404Z  * [new branch]        dot/reduction-common-sink-evidence-20261103 -> origin/dot/reduction-common-sink-evidence-20261103
+2026-11-04T04:13:53.0895261Z  * [new branch]        dot/reduction-layout-diagnostic-20261103 -> origin/dot/reduction-layout-diagnostic-20261103
+2026-11-04T04:13:53.0896068Z  * [new branch]        dot/reduction-layout-evidence-20261103 -> origin/dot/reduction-layout-evidence-20261103
+2026-11-04T04:13:53.0896837Z  * [new branch]        dot/reduction-observation-integrity -> origin/dot/reduction-observation-integrity
+2026-11-04T04:13:53.0897597Z  * [new branch]        dot/reduction-tail-diagnostic-20261103 -> origin/dot/reduction-tail-diagnostic-20261103
+2026-11-04T04:13:53.0898422Z  * [new branch]        dot/reject-untracked-source-directory-links -> origin/dot/reject-untracked-source-directory-links
+2026-11-04T04:13:53.0899260Z  * [new branch]        dot/repair-native-host-evidence-20261103 -> origin/dot/repair-native-host-evidence-20261103
+2026-11-04T04:13:53.0899949Z  * [new branch]        dot/request-load-context -> origin/dot/request-load-context
+2026-11-04T04:13:53.0900590Z  * [new branch]        dot/resource-array-values-20261103 -> origin/dot/resource-array-values-20261103
+2026-11-04T04:13:53.0901763Z  * [new branch]        dot/resource-unit-values-20261103 -> origin/dot/resource-unit-values-20261103
+2026-11-04T04:13:53.0902922Z  * [new branch]        dot/returned-copy-enum-match-20261103 -> origin/dot/returned-copy-enum-match-20261103
+2026-11-04T04:13:53.0904272Z  * [new branch]        dot/sequential-lock-revalidation -> origin/dot/sequential-lock-revalidation
+2026-11-04T04:13:53.0905007Z  * [new branch]        dot/shallow-authority-admission -> origin/dot/shallow-authority-admission
+2026-11-04T04:13:53.0905810Z  * [new branch]        dot/single-store-projection-research-20261103 -> origin/dot/single-store-projection-research-20261103
+2026-11-04T04:13:53.0906611Z  * [new branch]        dot/structured-policy-provenance -> origin/dot/structured-policy-provenance
+2026-11-04T04:13:53.0907337Z  * [new branch]        evidence/hepta-composition-20261026 -> origin/evidence/hepta-composition-20261026
+2026-11-04T04:13:53.0908079Z  * [new branch]        evidence/hia-blocker-closure-ab1c1a5 -> origin/evidence/hia-blocker-closure-ab1c1a5
+2026-11-04T04:13:53.0908878Z  * [new branch]        evidence/hia-eight-delivery-ci-20261030 -> origin/evidence/hia-eight-delivery-ci-20261030
+2026-11-04T04:13:53.0909642Z  * [new branch]        evidence/hia-full-execution-20261101 -> origin/evidence/hia-full-execution-20261101
+2026-11-04T04:13:53.0910453Z  * [new branch]        evidence/hia-trusted-core-convergence-20261102 -> origin/evidence/hia-trusted-core-convergence-20261102
+2026-11-04T04:13:53.0911245Z  * [new branch]        evidence/hia-unified-core-20261102 -> origin/evidence/hia-unified-core-20261102
+2026-11-04T04:13:53.0911996Z  * [new branch]        feat/hepta-agent-safe-cfg-cpp-20261024 -> origin/feat/hepta-agent-safe-cfg-cpp-20261024
+2026-11-04T04:13:53.0912834Z  * [new branch]        feat/hepta-hmir-cfg-p0-qualification-20261024 -> origin/feat/hepta-hmir-cfg-p0-qualification-20261024
+2026-11-04T04:13:53.0914040Z  * [new branch]        feat/hepta-p0-p1-verified-ir-20261024 -> origin/feat/hepta-p0-p1-verified-ir-20261024
+2026-11-04T04:13:53.0915077Z  * [new branch]        feat/hepta-p1-cfg-hmir-20261024 -> origin/feat/hepta-p1-cfg-hmir-20261024
+2026-11-04T04:13:53.0916256Z  * [new branch]        feat/hepta-safe-migration-agent-20261024 -> origin/feat/hepta-safe-migration-agent-20261024
+2026-11-04T04:13:53.0917418Z  * [new branch]        fix/hia-catalog-versioned-type-groups-20261030 -> origin/fix/hia-catalog-versioned-type-groups-20261030
+2026-11-04T04:13:53.0918758Z  * [new branch]        fix/hia-core-current-reference-toolchain-20261103 -> origin/fix/hia-core-current-reference-toolchain-20261103
+2026-11-04T04:13:53.0920392Z  * [new branch]        fix/hia-cpp-checkpoint-abort-test-budget-20261030 -> origin/fix/hia-cpp-checkpoint-abort-test-budget-20261030
+2026-11-04T04:13:53.0921724Z  * [new branch]        fix/hia-next4-convergence-20261030 -> origin/fix/hia-next4-convergence-20261030
+2026-11-04T04:13:53.0922888Z  * [new branch]        implement/hepta-safe-core-e2e-20261026 -> origin/implement/hepta-safe-core-e2e-20261026
+2026-11-04T04:13:53.0924421Z  * [new branch]        implement/hepta-unified-native-20261025 -> origin/implement/hepta-unified-native-20261025
+2026-11-04T04:13:53.0925780Z  * [new branch]        implement/hia-seven-stage-unified-20261026 -> origin/implement/hia-seven-stage-unified-20261026
+2026-11-04T04:13:53.0927065Z  * [new branch]        implement/hia-unified-native-20261026 -> origin/implement/hia-unified-native-20261026
+2026-11-04T04:13:53.0928038Z  * [new branch]        main                    -> origin/main
+2026-11-04T04:13:53.0928969Z  * [new branch]        recovery/git-bundle-source-20261103 -> origin/recovery/git-bundle-source-20261103
+2026-11-04T04:13:53.0930216Z  * [new branch]        recovery/host-source-20261103/18291446e048 -> origin/recovery/host-source-20261103/18291446e048
+2026-11-04T04:13:53.0931515Z  * [new branch]        recovery/host-source-20261103/23af1df3eed6 -> origin/recovery/host-source-20261103/23af1df3eed6
+2026-11-04T04:13:53.0933452Z  * [new branch]        recovery/library-hepta-931c96f-evidence-ledger-20261103 -> origin/recovery/library-hepta-931c96f-evidence-ledger-20261103
+2026-11-04T04:13:53.0935489Z  * [new branch]        recovery/library-hepta-language-standalone-20261103-gpt6 -> origin/recovery/library-hepta-language-standalone-20261103-gpt6
+2026-11-04T04:13:53.0937103Z  * [new branch]        recovery/library-hepta-p0p7-sources-20261103 -> origin/recovery/library-hepta-p0p7-sources-20261103
+2026-11-04T04:13:53.0938472Z  * [new branch]        recovery/library-hepta-standalone-20261103 -> origin/recovery/library-hepta-standalone-20261103
+2026-11-04T04:13:53.0939768Z  * [new branch]        recovery/library-offline-hia-20261103 -> origin/recovery/library-offline-hia-20261103
+2026-11-04T04:13:53.0940970Z  * [new branch]        recovery/library-seven-track-20261103 -> origin/recovery/library-seven-track-20261103
+2026-11-04T04:13:53.0942169Z  * [new branch]        recovery/local-round6-tools-20261103 -> origin/recovery/local-round6-tools-20261103
+2026-11-04T04:13:53.0943382Z  * [new branch]        research/dot-c-array-fixture-20261103 -> origin/research/dot-c-array-fixture-20261103
+2026-11-04T04:13:53.0944921Z  * [new branch]        research/float-artifact-readback-20261104-gpt6 -> origin/research/float-artifact-readback-20261104-gpt6
+2026-11-04T04:13:53.0946376Z  * [new branch]        research/hcsn-adaptive-second-hit-20261031-gpt6 -> origin/research/hcsn-adaptive-second-hit-20261031-gpt6
+2026-11-04T04:13:53.0948152Z  * [new branch]        research/hcsn-causal-checkpoint-first-hit-20261031-gpt6 -> origin/research/hcsn-causal-checkpoint-first-hit-20261031-gpt6
+2026-11-04T04:13:53.0949406Z  * [new branch]        research/hcsn-edge-refractory-negative-20261031-gpt6 -> origin/research/hcsn-edge-refractory-negative-20261031-gpt6
+2026-11-04T04:13:53.0950448Z  * [new branch]        research/hcsn-hardforward-ood-falsification-20261031-gpt6 -> origin/research/hcsn-hardforward-ood-falsification-20261031-gpt6
+2026-11-04T04:13:53.0951355Z  * [new branch]        research/hcsn-hx-qvi-gates-20261031 -> origin/research/hcsn-hx-qvi-gates-20261031
+2026-11-04T04:13:53.0952446Z  * [new branch]        research/hcsn-independent-renewal-convolution-20261031 -> origin/research/hcsn-independent-renewal-convolution-20261031
+2026-11-04T04:13:53.0953473Z  * [new branch]        research/hcsn-iteration33-current-source-20261104-gpt6 -> origin/research/hcsn-iteration33-current-source-20261104-gpt6
+2026-11-04T04:13:53.0954722Z  * [new branch]        research/hcsn-learned-content-autoreset-20261031-gpt6 -> origin/research/hcsn-learned-content-autoreset-20261031-gpt6
+2026-11-04T04:13:53.0955688Z  * [new branch]        research/hcsn-markov-reset-renewal-20261031-gpt6 -> origin/research/hcsn-markov-reset-renewal-20261031-gpt6
+2026-11-04T04:13:53.0956629Z  * [new branch]        research/hcsn-moving-linear-boundary-20261031-gpt6 -> origin/research/hcsn-moving-linear-boundary-20261031-gpt6
+2026-11-04T04:13:53.0957622Z  * [new branch]        research/hcsn-p0-fp32-tax-cell-gradient-20261031-gpt6 -> origin/research/hcsn-p0-fp32-tax-cell-gradient-20261031-gpt6
+2026-11-04T04:13:53.0958602Z  * [new branch]        research/hcsn-p0-mp80-boundary-20261031-gpt6 -> origin/research/hcsn-p0-mp80-boundary-20261031-gpt6
+2026-11-04T04:13:53.0960008Z  * [new branch]        research/hcsn-p0-uniform-failclosed-20261031-gpt6 -> origin/research/hcsn-p0-uniform-failclosed-20261031-gpt6
+2026-11-04T04:13:53.0961659Z  * [new branch]        research/hcsn-p1-vectorized-bellman-fairness-20261031-gpt6 -> origin/research/hcsn-p1-vectorized-bellman-fairness-20261031-gpt6
+2026-11-04T04:13:53.0962783Z  * [new branch]        research/hcsn-p2-latched-ood-falsification-20261031-gpt6 -> origin/research/hcsn-p2-latched-ood-falsification-20261031-gpt6
+2026-11-04T04:13:53.0963999Z  * [new branch]        research/hcsn-qvi-nonlocal-and-p1-controls-20261031 -> origin/research/hcsn-qvi-nonlocal-and-p1-controls-20261031
+2026-11-04T04:13:53.0964941Z  * [new branch]        research/hcsn-stochastic-renewal-20261031-gpt6 -> origin/research/hcsn-stochastic-renewal-20261031-gpt6
+2026-11-04T04:13:53.0966065Z  * [new branch]        research/hcsn-taskonly-multiquery-20261031-gpt6 -> origin/research/hcsn-taskonly-multiquery-20261031-gpt6
+2026-11-04T04:13:53.0967060Z  * [new branch]        research/hia-gguf-lifecycle-current-source-20261103-gpt6 -> origin/research/hia-gguf-lifecycle-current-source-20261103-gpt6
+2026-11-04T04:13:53.0968077Z  * [new branch]        research/hia-native-allocator-realloc-20261031-gpt6 -> origin/research/hia-native-allocator-realloc-20261031-gpt6
+2026-11-04T04:13:53.0969062Z  * [new branch]        research/hia-native-p99-protocol-gate-20261031-gpt6 -> origin/research/hia-native-p99-protocol-gate-20261031-gpt6
+2026-11-04T04:13:53.0970010Z  * [new branch]        research/hia-p0-native-p99-516-repair-20261031-gpt6 -> origin/research/hia-p0-native-p99-516-repair-20261031-gpt6
+2026-11-04T04:13:53.0970993Z  * [new branch]        research/hia-p0-native-p99-516-unfixed-red-20261031-gpt6 -> origin/research/hia-p0-native-p99-516-unfixed-red-20261031-gpt6
+2026-11-04T04:13:53.0972460Z  * [new branch]        research/hia-p0-p3-driver-digest-host-requal-20261031-run8 -> origin/research/hia-p0-p3-driver-digest-host-requal-20261031-run8
+2026-11-04T04:13:53.0974370Z  * [new branch]        research/hia-p0-paired-seed-parity-521-20261101-gpt6 -> origin/research/hia-p0-paired-seed-parity-521-20261101-gpt6
+2026-11-04T04:13:53.0976057Z  * [new branch]        research/hia-p0-release-cohort-518-fix-20261031-gpt6 -> origin/research/hia-p0-release-cohort-518-fix-20261031-gpt6
+2026-11-04T04:13:53.0977742Z  * [new branch]        research/hia-p0-release-cohort-518-red-20261031-gpt6 -> origin/research/hia-p0-release-cohort-518-red-20261031-gpt6
+2026-11-04T04:13:53.0979665Z  * [new branch]        research/hia-p0-release-cohort-518-unseen-observation-fix-20261031-gpt6 -> origin/research/hia-p0-release-cohort-518-unseen-observation-fix-20261031-gpt6
+2026-11-04T04:13:53.0981961Z  * [new branch]        research/hia-p0-release-cohort-518-unseen-observation-red-20261031-gpt6 -> origin/research/hia-p0-release-cohort-518-unseen-observation-red-20261031-gpt6
+2026-11-04T04:13:53.0984326Z  * [new branch]        research/hia-p0-release-frozen-axes-fix-20261101-gpt6 -> origin/research/hia-p0-release-frozen-axes-fix-20261101-gpt6
+2026-11-04T04:13:53.0985934Z  * [new branch]        research/hia-p0-release-frozen-axes-red-20261101-gpt6 -> origin/research/hia-p0-release-frozen-axes-red-20261101-gpt6
+2026-11-04T04:13:53.0987593Z  * [new branch]        research/hia-p0-release-gate-cap-520-fix-20261101-gpt6 -> origin/research/hia-p0-release-gate-cap-520-fix-20261101-gpt6
+2026-11-04T04:13:53.0989213Z  * [new branch]        research/hia-p0-release-gate-cap-520-red-20261101-gpt6 -> origin/research/hia-p0-release-gate-cap-520-red-20261101-gpt6
+2026-11-04T04:13:53.0990802Z  * [new branch]        research/hia-p0-release-p99-517-repair-20261031-gpt6 -> origin/research/hia-p0-release-p99-517-repair-20261031-gpt6
+2026-11-04T04:13:53.0992454Z  * [new branch]        research/hia-p0-release-p99-517-unfixed-red-20261031-gpt6 -> origin/research/hia-p0-release-p99-517-unfixed-red-20261031-gpt6
+2026-11-04T04:13:53.0994361Z  * [new branch]        research/hia-p1-lease-authority-fixed-20261031-gpt6 -> origin/research/hia-p1-lease-authority-fixed-20261031-gpt6
+2026-11-04T04:13:53.0995695Z  * [new branch]        research/hia-p1-lease-authority-red-20261031-gpt6 -> origin/research/hia-p1-lease-authority-red-20261031-gpt6
+2026-11-04T04:13:53.0996715Z  * [new branch]        research/hia-p4-qemu-regression-preflight-555-20261102-gpt6 -> origin/research/hia-p4-qemu-regression-preflight-555-20261102-gpt6
+2026-11-04T04:13:53.0997738Z  * [new branch]        research/hia-p5-economic-receipts-523-20261101-gpt6 -> origin/research/hia-p5-economic-receipts-523-20261101-gpt6
+2026-11-04T04:13:53.0998752Z  * [new branch]        research/hia-p7-admission-transaction-fix-531-20261101-gpt6 -> origin/research/hia-p7-admission-transaction-fix-531-20261101-gpt6
+2026-11-04T04:13:53.1000015Z  * [new branch]        research/hia-p7-admission-transaction-red-531-20261101-gpt6 -> origin/research/hia-p7-admission-transaction-red-531-20261101-gpt6
+2026-11-04T04:13:53.1001033Z  * [new branch]        research/hia-p7-borrow-admission-530-20261101-gpt6 -> origin/research/hia-p7-borrow-admission-530-20261101-gpt6
+2026-11-04T04:13:53.1002029Z  * [new branch]        research/hia-p7-borrow-rollback-mprotect-544-20261101-gpt6 -> origin/research/hia-p7-borrow-rollback-mprotect-544-20261101-gpt6
+2026-11-04T04:13:53.1003090Z  * [new branch]        research/hia-p7-completed-pin-retirement-546-20261101-gpt6 -> origin/research/hia-p7-completed-pin-retirement-546-20261101-gpt6
+2026-11-04T04:13:53.1004333Z  * [new branch]        research/hia-p7-driver-sha-preflight-20261031-gpt6 -> origin/research/hia-p7-driver-sha-preflight-20261031-gpt6
+2026-11-04T04:13:53.1005303Z  * [new branch]        research/hia-p7-host-write-receipt-547-20261101-gpt6 -> origin/research/hia-p7-host-write-receipt-547-20261101-gpt6
+2026-11-04T04:13:53.1006815Z  * [new branch]        research/hia-p7-lease-id-collision-532-fix-20261101-gpt6 -> origin/research/hia-p7-lease-id-collision-532-fix-20261101-gpt6
+2026-11-04T04:13:53.1008369Z  * [new branch]        research/hia-p7-lease-id-collision-red-532-20261101-gpt6 -> origin/research/hia-p7-lease-id-collision-red-532-20261101-gpt6
+2026-11-04T04:13:53.1009410Z  * [new branch]        research/hia-p7-lease-mprotect-receipt-543-20261101-gpt6 -> origin/research/hia-p7-lease-mprotect-receipt-543-20261101-gpt6
+2026-11-04T04:13:53.1010448Z  * [new branch]        research/hia-p7-native-finalize-receipt-536-20261101-gpt6 -> origin/research/hia-p7-native-finalize-receipt-536-20261101-gpt6
+2026-11-04T04:13:53.1011463Z  * [new branch]        research/hia-p7-native-job-identity-534-20261101-gpt6 -> origin/research/hia-p7-native-job-identity-534-20261101-gpt6
+2026-11-04T04:13:53.1012498Z  * [new branch]        research/hia-p7-owner-registry-uniqueness-533-20261101-gpt6 -> origin/research/hia-p7-owner-registry-uniqueness-533-20261101-gpt6
+2026-11-04T04:13:53.1013719Z  * [new branch]        research/hia-p7-owner-retirement-535-20261101-gpt6 -> origin/research/hia-p7-owner-retirement-535-20261101-gpt6
+2026-11-04T04:13:53.1014976Z  * [new branch]        research/hia-p7-prestart-admission-recovery-529-20261101-gpt6 -> origin/research/hia-p7-prestart-admission-recovery-529-20261101-gpt6
+2026-11-04T04:13:53.1016034Z  * [new branch]        research/hia-p7-prestart-pin-release-545-20261101-gpt6 -> origin/research/hia-p7-prestart-pin-release-545-20261101-gpt6
+2026-11-04T04:13:53.1017091Z  * [new branch]        research/hia-p7-prestart-retirement-receipt-540-20261101-gpt6 -> origin/research/hia-p7-prestart-retirement-receipt-540-20261101-gpt6
+2026-11-04T04:13:53.1018176Z  * [new branch]        research/hia-p7-public-release-receipt-541-20261101-gpt6 -> origin/research/hia-p7-public-release-receipt-541-20261101-gpt6
+2026-11-04T04:13:53.1019173Z  * [new branch]        research/hia-p7-quarantine-receipt-542-20261101-gpt6 -> origin/research/hia-p7-quarantine-receipt-542-20261101-gpt6
+2026-11-04T04:13:53.1020203Z  * [new branch]        research/hia-p7-recovery-mprotect-receipt-548-20261102-gpt6 -> origin/research/hia-p7-recovery-mprotect-receipt-548-20261102-gpt6
+2026-11-04T04:13:53.1021199Z  * [new branch]        research/hia-p7-recovery-receipt-537-20261101-gpt6 -> origin/research/hia-p7-recovery-receipt-537-20261101-gpt6
+2026-11-04T04:13:53.1022130Z  * [new branch]        research/hia-p7-recovery-snapshot-538-20261101-gpt6 -> origin/research/hia-p7-recovery-snapshot-538-20261101-gpt6
+2026-11-04T04:13:53.1023089Z  * [new branch]        research/hia-p7-recovery-zero-fault-539-20261101-gpt6 -> origin/research/hia-p7-recovery-zero-fault-539-20261101-gpt6
+2026-11-04T04:13:53.1024299Z  * [new branch]        research/hia-p7-token-revocation-528-fix-20261101-gpt6 -> origin/research/hia-p7-token-revocation-528-fix-20261101-gpt6
+2026-11-04T04:13:53.1025320Z  * [new branch]        research/hia-p7-token-revocation-528-red-20261101-gpt6 -> origin/research/hia-p7-token-revocation-528-red-20261101-gpt6
+2026-11-04T04:13:53.1026514Z  * [new branch]        research/hia-release-p99-strict-gate-20261031-gpt6 -> origin/research/hia-release-p99-strict-gate-20261031-gpt6
+2026-11-04T04:13:53.1028153Z  * [new branch]        research/hia-seven-track-yaml-negative-gate-20261031-run9 -> origin/research/hia-seven-track-yaml-negative-gate-20261031-run9
+2026-11-04T04:13:53.1029894Z  * [new branch]        research/hia-three-lane-clang20-native-gate-20261031-gpt6 -> origin/research/hia-three-lane-clang20-native-gate-20261031-gpt6
+2026-11-04T04:13:53.1031586Z  * [new branch]        research/source-float-rounding-20261103-gpt6 -> origin/research/source-float-rounding-20261103-gpt6
+2026-11-04T04:13:53.1032930Z  * [new branch]        work/hia-agent-terminal-evidence-20261103 -> origin/work/hia-agent-terminal-evidence-20261103
+2026-11-04T04:13:53.1034433Z  * [new branch]        work/hia-atomic-freeze-bindings-20261103 -> origin/work/hia-atomic-freeze-bindings-20261103
+2026-11-04T04:13:53.1035672Z  * [new branch]        work/hia-blocker-closure-20261103 -> origin/work/hia-blocker-closure-20261103
+2026-11-04T04:13:53.1036994Z  * [new branch]        work/hia-core-catalog-integration-20261030-793cbcdf -> origin/work/hia-core-catalog-integration-20261030-793cbcdf
+2026-11-04T04:13:53.1038387Z  * [new branch]        work/hia-core-ci-reference-toolchains -> origin/work/hia-core-ci-reference-toolchains
+2026-11-04T04:13:53.1039708Z  * [new branch]        work/hia-core-ndu-costed-integration-20261031 -> origin/work/hia-core-ndu-costed-integration-20261031
+2026-11-04T04:13:53.1041059Z  * [new branch]        work/hia-core-proof-convergence-20261102 -> origin/work/hia-core-proof-convergence-20261102
+2026-11-04T04:13:53.1042400Z  * [new branch]        work/hia-crosslane-p0-p1-p5-20261031-gpt6 -> origin/work/hia-crosslane-p0-p1-p5-20261031-gpt6
+2026-11-04T04:13:53.1043973Z  * [new branch]        work/hia-eight-delivery-convergence-20261030-r1 -> origin/work/hia-eight-delivery-convergence-20261030-r1
+2026-11-04T04:13:53.1045364Z  * [new branch]        work/hia-eight-track-continuation-20261030-793cbcdf -> origin/work/hia-eight-track-continuation-20261030-793cbcdf
+2026-11-04T04:13:53.1046267Z  * [new branch]        work/hia-eight-track-convergence-20261030 -> origin/work/hia-eight-track-convergence-20261030
+2026-11-04T04:13:53.1047095Z  * [new branch]        work/hia-envelope-response-counts-20261103 -> origin/work/hia-envelope-response-counts-20261103
+2026-11-04T04:13:53.1047972Z  * [new branch]        work/hia-exact-run-test-identity-20261031-gpt6 -> origin/work/hia-exact-run-test-identity-20261031-gpt6
+2026-11-04T04:13:53.1048824Z  * [new branch]        work/hia-explicit-descriptive-cfg-version -> origin/work/hia-explicit-descriptive-cfg-version
+2026-11-04T04:13:53.1049600Z  * [new branch]        work/hia-five-deliverables-20261030 -> origin/work/hia-five-deliverables-20261030
+2026-11-04T04:13:53.1050408Z  * [new branch]        work/hia-five-track-execution-20261031-14d5934b -> origin/work/hia-five-track-execution-20261031-14d5934b
+2026-11-04T04:13:53.1051206Z  * [new branch]        work/hia-full-execution-20261031 -> origin/work/hia-full-execution-20261031
+2026-11-04T04:13:53.1051918Z  * [new branch]        work/hia-gguf-local-cleanup-20261103 -> origin/work/hia-gguf-local-cleanup-20261103
+2026-11-04T04:13:53.1052699Z  * [new branch]        work/hia-http-host-qualification-20261102 -> origin/work/hia-http-host-qualification-20261102
+2026-11-04T04:13:53.1053445Z  * [new branch]        work/hia-jsonl-framing-20261103 -> origin/work/hia-jsonl-framing-20261103
+2026-11-04T04:13:53.1054338Z  * [new branch]        work/hia-native-observer-20261031-gpt6 -> origin/work/hia-native-observer-20261031-gpt6
+2026-11-04T04:13:53.1055193Z  * [new branch]        work/hia-next-native-proof-cost-closure-20261102 -> origin/work/hia-next-native-proof-cost-closure-20261102
+2026-11-04T04:13:53.1056049Z  * [new branch]        work/hia-object-transfer-44e34b7-20261030 -> origin/work/hia-object-transfer-44e34b7-20261030
+2026-11-04T04:13:53.1056973Z  * [new branch]        work/hia-object-transfer-6bd02c4-20261030 -> origin/work/hia-object-transfer-6bd02c4-20261030
+2026-11-04T04:13:53.1057778Z  * [new branch]        work/hia-object-transfer-73922c1-20261030 -> origin/work/hia-object-transfer-73922c1-20261030
+2026-11-04T04:13:53.1058569Z  * [new branch]        work/hia-object-transfer-953fa62-20261030 -> origin/work/hia-object-transfer-953fa62-20261030
+2026-11-04T04:13:53.1059363Z  * [new branch]        work/hia-object-transfer-ad23f44-20261030 -> origin/work/hia-object-transfer-ad23f44-20261030
+2026-11-04T04:13:53.1060140Z  * [new branch]        work/hia-object-transfer-f7cc872-20261030 -> origin/work/hia-object-transfer-f7cc872-20261030
+2026-11-04T04:13:53.1060949Z  * [new branch]        work/hia-p0-bounded-snapshot-20261031-gpt6 -> origin/work/hia-p0-bounded-snapshot-20261031-gpt6
+2026-11-04T04:13:53.1061736Z  * [new branch]        work/hia-p0-bounded-utf8-20261031-gpt6 -> origin/work/hia-p0-bounded-utf8-20261031-gpt6
+2026-11-04T04:13:53.1062593Z  * [new branch]        work/hia-p0-catalog-wire-convergence-20261030-gpt6 -> origin/work/hia-p0-catalog-wire-convergence-20261030-gpt6
+2026-11-04T04:13:53.1063598Z  * [new branch]        work/hia-p0-full-regression-test-identity-20261031-gpt6 -> origin/work/hia-p0-full-regression-test-identity-20261031-gpt6
+2026-11-04T04:13:53.1064850Z  * [new branch]        work/hia-p0-optimizer-policy-snapshot-20261031-gpt6 -> origin/work/hia-p0-optimizer-policy-snapshot-20261031-gpt6
+2026-11-04T04:13:53.1065810Z  * [new branch]        work/hia-p0-p3-native-legacy-matrix-20261031-gpt6 -> origin/work/hia-p0-p3-native-legacy-matrix-20261031-gpt6
+2026-11-04T04:13:53.1066809Z  * [new branch]        work/hia-p0-p3-owned-arity-host-requal-20261031-gpt6audit -> origin/work/hia-p0-p3-owned-arity-host-requal-20261031-gpt6audit
+2026-11-04T04:13:53.1068099Z  * [new branch]        work/hia-p0-p3-policy-host-requal-20261031-gpt6 -> origin/work/hia-p0-p3-policy-host-requal-20261031-gpt6
+2026-11-04T04:13:53.1069092Z  * [new branch]        work/hia-p0-p5-integrated-20261031-gpt6 -> origin/work/hia-p0-p5-integrated-20261031-gpt6
+2026-11-04T04:13:53.1070197Z  * [new branch]        work/hia-p0-p5-merge-20261031-gpt6-review1 -> origin/work/hia-p0-p5-merge-20261031-gpt6-review1
+2026-11-04T04:13:53.1071472Z  * [new branch]        work/hia-p0-p5-source-convergence-20261031-gpt6 -> origin/work/hia-p0-p5-source-convergence-20261031-gpt6
+2026-11-04T04:13:53.1072915Z  * [new branch]        work/hia-p0-p7-full-cost-evidence-20261031-gpt6 -> origin/work/hia-p0-p7-full-cost-evidence-20261031-gpt6
+2026-11-04T04:13:53.1074407Z  * [new branch]        work/hia-p0-p7-integrated-20261030 -> origin/work/hia-p0-p7-integrated-20261030
+2026-11-04T04:13:53.1075950Z  * [new branch]        work/hia-p0-p7-owned-entry-arity-preflight-20261031-gpt6 -> origin/work/hia-p0-p7-owned-entry-arity-preflight-20261031-gpt6
+2026-11-04T04:13:53.1077706Z  * [new branch]        work/hia-p0-p7-policy-rebind-convergence-20261031-gpt6 -> origin/work/hia-p0-p7-policy-rebind-convergence-20261031-gpt6
+2026-11-04T04:13:53.1079331Z  * [new branch]        work/hia-p0-p7-source-abi-preflight-20261031-gpt6 -> origin/work/hia-p0-p7-source-abi-preflight-20261031-gpt6
+2026-11-04T04:13:53.1080818Z  * [new branch]        work/hia-p0-p7-verified-json-matrix-20261031-gpt6 -> origin/work/hia-p0-p7-verified-json-matrix-20261031-gpt6
+2026-11-04T04:13:53.1082365Z  * [new branch]        work/hia-p0-runtime-policy-predecode-20261031-gpt6 -> origin/work/hia-p0-runtime-policy-predecode-20261031-gpt6
+2026-11-04T04:13:53.1083567Z  * [new branch]        work/hia-p0-secure-qualification-receipts-20261031-gpt6 -> origin/work/hia-p0-secure-qualification-receipts-20261031-gpt6
+2026-11-04T04:13:53.1085064Z  * [new branch]        work/hia-p2-p3-current-native-host-matrix-20261031-gpt6audit -> origin/work/hia-p2-p3-current-native-host-matrix-20261031-gpt6audit
+2026-11-04T04:13:53.1086109Z  * [new branch]        work/hia-p5-bounded-evidence-intake-20261031-gpt6 -> origin/work/hia-p5-bounded-evidence-intake-20261031-gpt6
+2026-11-04T04:13:53.1087311Z  * [new branch]        work/hia-p5-json-structure-20261031-gpt6 -> origin/work/hia-p5-json-structure-20261031-gpt6
+2026-11-04T04:13:53.1088274Z  * [new branch]        work/hia-p7-bounded-token-admission-20261031-gpt6audit -> origin/work/hia-p7-bounded-token-admission-20261031-gpt6audit
+2026-11-04T04:13:53.1089443Z  * [new branch]        work/hia-p7-broad-queue-stale-assertion-20261031-gpt6audit -> origin/work/hia-p7-broad-queue-stale-assertion-20261031-gpt6audit
+2026-11-04T04:13:53.1091009Z  * [new branch]        work/hia-p7-clone-calibration-failclosed-20261031-gpt6 -> origin/work/hia-p7-clone-calibration-failclosed-20261031-gpt6
+2026-11-04T04:13:53.1092098Z  * [new branch]        work/hia-p7-image-token-mode-admission-20261031-gpt6 -> origin/work/hia-p7-image-token-mode-admission-20261031-gpt6
+2026-11-04T04:13:53.1093696Z  * [new branch]        work/hia-p7-immutable-fenced-queue-wire-20261031-gpt6 -> origin/work/hia-p7-immutable-fenced-queue-wire-20261031-gpt6
+2026-11-04T04:13:53.1095398Z  * [new branch]        work/hia-p7-loan-epoch-fence-20261031-gpt6 -> origin/work/hia-p7-loan-epoch-fence-20261031-gpt6
+2026-11-04T04:13:53.1096841Z  * [new branch]        work/hia-p7-queue-candidate-admission-20261031-gpt6 -> origin/work/hia-p7-queue-candidate-admission-20261031-gpt6
+2026-11-04T04:13:53.1098525Z  * [new branch]        work/hia-p7-queue-candidate-admission-unfixed-20261031-gpt6 -> origin/work/hia-p7-queue-candidate-admission-unfixed-20261031-gpt6
+2026-11-04T04:13:53.1100268Z  * [new branch]        work/hia-p7-queue-generation-commit-fence-20261031-gpt6 -> origin/work/hia-p7-queue-generation-commit-fence-20261031-gpt6
+2026-11-04T04:13:53.1101859Z  * [new branch]        work/hia-p7-queue-generation-fence-20261031-gpt6 -> origin/work/hia-p7-queue-generation-fence-20261031-gpt6
+2026-11-04T04:13:53.1103369Z  * [new branch]        work/hia-p7-queue-intake-snapshot-20261031-gpt6 -> origin/work/hia-p7-queue-intake-snapshot-20261031-gpt6
+2026-11-04T04:13:53.1105182Z  * [new branch]        work/hia-p7-queue-token-collision-20261031-gpt6 -> origin/work/hia-p7-queue-token-collision-20261031-gpt6
+2026-11-04T04:13:53.1107082Z  * [new branch]        work/hia-p7-verified-partial-rebind-20261031-gpt6audit -> origin/work/hia-p7-verified-partial-rebind-20261031-gpt6audit
+2026-11-04T04:13:53.1108526Z  * [new branch]        work/hia-paired-holdout-20261031-gpt6 -> origin/work/hia-paired-holdout-20261031-gpt6
+2026-11-04T04:13:53.1109722Z  * [new branch]        work/hia-preflight-evidence-20261103 -> origin/work/hia-preflight-evidence-20261103
+2026-11-04T04:13:53.1110987Z  * [new branch]        work/hia-proof-test-gate-hardening-20261031-gpt6 -> origin/work/hia-proof-test-gate-hardening-20261031-gpt6
+2026-11-04T04:13:53.1112358Z  * [new branch]        work/hia-qemu-before-expanded-regression -> origin/work/hia-qemu-before-expanded-regression
+2026-11-04T04:13:53.1113542Z  * [new branch]        work/hia-recovery-freeze-20261103 -> origin/work/hia-recovery-freeze-20261103
+2026-11-04T04:13:53.1114890Z  * [new branch]        work/hia-seven-track-20261031-29cf51 -> origin/work/hia-seven-track-20261031-29cf51
+2026-11-04T04:13:53.1134280Z  * [new branch]        work/hia-seven-track-core-convergence-next -> origin/work/hia-seven-track-core-convergence-next
+2026-11-04T04:13:53.1135270Z  * [new branch]        work/hia-seven-track-evidence-20261031-29cf51 -> origin/work/hia-seven-track-evidence-20261031-29cf51
+2026-11-04T04:13:53.1136336Z  * [new branch]        work/hia-seven-track-reconcile-p7-driver-digest-20261031-gpt6 -> origin/work/hia-seven-track-reconcile-p7-driver-digest-20261031-gpt6
+2026-11-04T04:13:53.1137409Z  * [new branch]        work/hia-six-track-advance-20261030-2a90364b -> origin/work/hia-six-track-advance-20261030-2a90364b
+2026-11-04T04:13:53.1138436Z  * [new branch]        work/hia-six-track-convergence-20261030-8ca82272 -> origin/work/hia-six-track-convergence-20261030-8ca82272
+2026-11-04T04:13:53.1139290Z  * [new branch]        work/hia-six-track-evidence-20261030 -> origin/work/hia-six-track-evidence-20261030
+2026-11-04T04:13:53.1140348Z  * [new branch]        work/hia-six-track-evidence-20261030-2a90364b -> origin/work/hia-six-track-evidence-20261030-2a90364b
+2026-11-04T04:13:53.1141189Z  * [new branch]        work/hia-six-track-execution-20261030 -> origin/work/hia-six-track-execution-20261030
+2026-11-04T04:13:53.1141907Z  * [new branch]        work/hia-unified-core-20261102 -> origin/work/hia-unified-core-20261102
+2026-11-04T04:13:53.1142610Z  * [new branch]        work/hia-unified-core-cost-20261103 -> origin/work/hia-unified-core-cost-20261103
+2026-11-04T04:13:53.1144296Z [command]/usr/bin/git rev-parse --verify --quiet 6a029bf2791c090da295f325d29a4d239e8e8817^{object}
+2026-11-04T04:13:53.1145040Z 6a029bf2791c090da295f325d29a4d239e8e8817
+2026-11-04T04:13:53.1145943Z ##[endgroup]
+2026-11-04T04:13:53.1146404Z ##[group]Determining the checkout info
+2026-11-04T04:13:53.1146913Z ##[endgroup]
+2026-11-04T04:13:53.1147216Z [command]/usr/bin/git sparse-checkout disable
+2026-11-04T04:13:53.1148098Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-04T04:13:53.1149110Z ##[group]Checking out the ref
+2026-11-04T04:13:53.1149586Z [command]/usr/bin/git checkout --progress --force 6a029bf2791c090da295f325d29a4d239e8e8817
+2026-11-04T04:13:53.1150169Z Note: switching to '6a029bf2791c090da295f325d29a4d239e8e8817'.
+2026-11-04T04:13:53.1150471Z 
+2026-11-04T04:13:53.1150713Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-11-04T04:13:53.1151267Z changes and commit them, and you can discard any commits you make in this
+2026-11-04T04:13:53.1151801Z state without impacting any branches by switching back to a branch.
+2026-11-04T04:13:53.1152107Z 
+2026-11-04T04:13:53.1152334Z If you want to create a new branch to retain commits you create, you may
+2026-11-04T04:13:53.1152841Z do so (now or later) by using -c with the switch command. Example:
+2026-11-04T04:13:53.1153133Z 
+2026-11-04T04:13:53.1153284Z   git switch -c <new-branch-name>
+2026-11-04T04:13:53.1153509Z 
+2026-11-04T04:13:53.1154014Z Or undo this operation with:
+2026-11-04T04:13:53.1154268Z 
+2026-11-04T04:13:53.1154407Z   git switch -
+2026-11-04T04:13:53.1154576Z 
+2026-11-04T04:13:53.1154837Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-11-04T04:13:53.1155185Z 
+2026-11-04T04:13:53.1155476Z HEAD is now at 6a029bf2 research(hcsn): qualify iteration 33 against current immutable source
+2026-11-04T04:13:53.1156520Z ##[endgroup]
+2026-11-04T04:13:53.1157180Z [command]/usr/bin/git log -1 --format=%H
+2026-11-04T04:13:53.1157560Z 6a029bf2791c090da295f325d29a4d239e8e8817
+2026-11-04T04:13:53.1158461Z ##[group]Removing auth
+2026-11-04T04:13:53.1158891Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-04T04:13:53.1160127Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-04T04:13:53.1268829Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-04T04:13:53.1303502Z http.https://github.com/.extraheader
+2026-11-04T04:13:53.1312416Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-04T04:13:53.1357506Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-04T04:13:53.1617412Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-04T04:13:53.1659889Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-04T04:13:53.1918579Z ##[endgroup]
+2026-11-04T04:13:53.2194829Z ##[group]Run actions/setup-python@v5
+2026-11-04T04:13:53.2195223Z with:
+2026-11-04T04:13:53.2195488Z   python-version: 3.13.5
+2026-11-04T04:13:53.2195785Z   check-latest: false
+2026-11-04T04:13:53.2198238Z   token: ***
+2026-11-04T04:13:53.2198524Z   update-environment: true
+2026-11-04T04:13:53.2198836Z   allow-prereleases: false
+2026-11-04T04:13:53.2199135Z   freethreaded: false
+2026-11-04T04:13:53.2199414Z env:
+2026-11-04T04:13:53.2199666Z   OPENBLAS_NUM_THREADS: 1
+2026-11-04T04:13:53.2199950Z   OMP_NUM_THREADS: 1
+2026-11-04T04:13:53.2200232Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-04T04:13:53.2200527Z   PYTHONPATH: .
+2026-11-04T04:13:53.2200788Z ##[endgroup]
+2026-11-04T04:13:53.3786074Z ##[group]Installed versions
+2026-11-04T04:13:53.4236546Z Version 3.13.5 was not found in the local cache
+2026-11-04T04:13:53.4407862Z (node:2389) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-04T04:13:53.4409241Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-04T04:13:54.3830119Z Version 3.13.5 is available for downloading
+2026-11-04T04:13:54.3832055Z Download from "https://github.com/actions/python-versions/releases/download/3.13.5-15601068749/python-3.13.5-linux-24.04-x64.tar.gz"
+2026-11-04T04:13:55.4895663Z Extract downloaded archive
+2026-11-04T04:13:55.5047059Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/1155b0d1-c183-4d56-a227-3ff89384c2a4 -f /home/runner/work/_temp/09fc9ef3-b395-4317-8740-da48b703372f
+2026-11-04T04:13:57.8415043Z Execute installation script
+2026-11-04T04:13:57.8543388Z Check if Python hostedtoolcache folder exist...
+2026-11-04T04:13:57.8544647Z Create Python 3.13.5 folder
+2026-11-04T04:13:57.8566129Z Copy Python binaries to hostedtoolcache folder
+2026-11-04T04:13:58.3250242Z Create additional symlinks (Required for the UsePythonVersion Azure Pipelines task and the setup-python GitHub Action)
+2026-11-04T04:13:58.3296467Z Upgrading pip...
+2026-11-04T04:14:00.6545255Z Looking in links: /tmp/tmp6h4yj8d7
+2026-11-04T04:14:00.6548141Z Requirement already satisfied: pip in /opt/hostedtoolcache/Python/3.13.5/x64/lib/python3.13/site-packages (25.1.1)
+2026-11-04T04:14:02.2493467Z Collecting pip
+2026-11-04T04:14:02.3291967Z Downloading pip-26.3-py3-none-any.whl.metadata (4.6 kB)
+2026-11-04T04:14:02.3593180Z Downloading pip-26.3-py3-none-any.whl (2.0 MB)
+2026-11-04T04:14:02.4568175Z ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.0/2.0 MB 33.9 MB/s eta 0:00:00
+2026-11-04T04:14:02.4568724Z 
+2026-11-04T04:14:02.4761024Z Installing collected packages: pip
+2026-11-04T04:14:02.4762113Z Attempting uninstall: pip
+2026-11-04T04:14:02.4807824Z Found existing installation: pip 25.1.1
+2026-11-04T04:14:02.5116031Z Uninstalling pip-25.1.1:
+2026-11-04T04:14:02.5166767Z Successfully uninstalled pip-25.1.1
+2026-11-04T04:14:03.5144274Z Successfully installed pip-26.3
+2026-11-04T04:14:03.5706862Z Create complete file
+2026-11-04T04:14:03.5765183Z Successfully set up CPython (3.13.5)
+2026-11-04T04:14:03.5766364Z ##[endgroup]
+2026-11-04T04:14:03.5974849Z ##[group]Run python qualification/hcsn-iteration33-current-20261104/run.py --self-test
+2026-11-04T04:14:03.5975586Z [36;1mpython qualification/hcsn-iteration33-current-20261104/run.py --self-test[0m
+2026-11-04T04:14:03.6003955Z shell: /usr/bin/bash -e {0}
+2026-11-04T04:14:03.6004344Z env:
+2026-11-04T04:14:03.6004571Z   OPENBLAS_NUM_THREADS: 1
+2026-11-04T04:14:03.6004862Z   OMP_NUM_THREADS: 1
+2026-11-04T04:14:03.6005102Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-04T04:14:03.6005356Z   PYTHONPATH: .
+2026-11-04T04:14:03.6005641Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.5/x64
+2026-11-04T04:14:03.6006080Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.5/x64/lib/pkgconfig
+2026-11-04T04:14:03.6006499Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.5/x64
+2026-11-04T04:14:03.6006871Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.5/x64
+2026-11-04T04:14:03.6007239Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.5/x64
+2026-11-04T04:14:03.6007657Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.5/x64/lib
+2026-11-04T04:14:03.6007993Z ##[endgroup]
+2026-11-04T04:14:03.8217776Z HCSN_READER_CONTROLS={"checks": ["complete exact case set accepted", "missing case", "duplicate case", "skipped case", "false summary count", "missing success trailer", "old source fingerprint", "production admission", "zero sample count"], "failed": 0, "passed": 9, "synthetic_only": true}
+2026-11-04T04:14:03.8341012Z ##[group]Run python -m pip install --disable-pip-version-check --only-binary=:all: --report "$RUNNER_TEMP/hcsn-iteration33-install.json" numpy==2.3.5 scipy==1.16.3
+2026-11-04T04:14:03.8342167Z [36;1mpython -m pip install --disable-pip-version-check --only-binary=:all: --report "$RUNNER_TEMP/hcsn-iteration33-install.json" numpy==2.3.5 scipy==1.16.3[0m
+2026-11-04T04:14:03.8365448Z shell: /usr/bin/bash -e {0}
+2026-11-04T04:14:03.8365711Z env:
+2026-11-04T04:14:03.8365921Z   OPENBLAS_NUM_THREADS: 1
+2026-11-04T04:14:03.8366162Z   OMP_NUM_THREADS: 1
+2026-11-04T04:14:03.8366401Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-04T04:14:03.8366664Z   PYTHONPATH: .
+2026-11-04T04:14:03.8366958Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.5/x64
+2026-11-04T04:14:03.8367433Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.5/x64/lib/pkgconfig
+2026-11-04T04:14:03.8367855Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.5/x64
+2026-11-04T04:14:03.8368272Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.5/x64
+2026-11-04T04:14:03.8368646Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.5/x64
+2026-11-04T04:14:03.8369018Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.5/x64/lib
+2026-11-04T04:14:03.8369344Z ##[endgroup]
+2026-11-04T04:14:05.0113136Z Collecting numpy==2.3.5
+2026-11-04T04:14:05.1055595Z   Downloading numpy-2.3.5-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (62 kB)
+2026-11-04T04:14:05.2662390Z Collecting scipy==1.16.3
+2026-11-04T04:14:05.2873015Z   Downloading scipy-1.16.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (62 kB)
+2026-11-04T04:14:05.3299340Z Downloading numpy-2.3.5-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16.6 MB)
+2026-11-04T04:14:05.5025697Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.6/16.6 MB 110.4 MB/s  0:00:00
+2026-11-04T04:14:05.5251748Z Downloading scipy-1.16.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (35.7 MB)
+2026-11-04T04:14:05.8424551Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 35.7/35.7 MB 113.2 MB/s  0:00:00
+2026-11-04T04:14:06.0082667Z Installing collected packages: numpy, scipy
+2026-11-04T04:14:12.0360828Z 
+2026-11-04T04:14:12.0373512Z Successfully installed numpy-2.3.5 scipy-1.16.3
+2026-11-04T04:14:12.1054950Z ##[group]Run python qualification/hcsn-iteration33-current-20261104/run.py --out "$RUNNER_TEMP/hcsn-iteration33-current"
+2026-11-04T04:14:12.1055832Z [36;1mpython qualification/hcsn-iteration33-current-20261104/run.py --out "$RUNNER_TEMP/hcsn-iteration33-current"[0m
+2026-11-04T04:14:12.1079290Z shell: /usr/bin/bash -e {0}
+2026-11-04T04:14:12.1079546Z env:
+2026-11-04T04:14:12.1079751Z   OPENBLAS_NUM_THREADS: 1
+2026-11-04T04:14:12.1079991Z   OMP_NUM_THREADS: 1
+2026-11-04T04:14:12.1080230Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-04T04:14:12.1080502Z   PYTHONPATH: .
+2026-11-04T04:14:12.1080786Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.5/x64
+2026-11-04T04:14:12.1081217Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.5/x64/lib/pkgconfig
+2026-11-04T04:14:12.1081623Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.5/x64
+2026-11-04T04:14:12.1081996Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.5/x64
+2026-11-04T04:14:12.1082411Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.5/x64
+2026-11-04T04:14:12.1082783Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.5/x64/lib
+2026-11-04T04:14:12.1083108Z ##[endgroup]
+2026-11-04T04:14:14.7372176Z test_absorption_atom_and_repeated_positive_mode_events (research.hcsn.test_p2_markov_defective_firsthit.TestMarkovDefectiveFirstHit.test_absorption_atom_and_repeated_positive_mode_events) ... ok
+2026-11-04T04:14:14.7373508Z test_analytic_defect_mass_and_monotone (research.hcsn.test_p2_markov_defective_firsthit.TestMarkovDefectiveFirstHit.test_analytic_defect_mass_and_monotone) ... ok
+2026-11-04T04:14:14.7374896Z test_budget_failure_is_atomic (research.hcsn.test_p2_markov_defective_firsthit.TestMarkovDefectiveFirstHit.test_budget_failure_is_atomic) ... ok
+2026-11-04T04:14:14.7375893Z test_exhaustive_paths_laplace (research.hcsn.test_p2_markov_defective_firsthit.TestMarkovDefectiveFirstHit.test_exhaustive_paths_laplace) ... ok
+2026-11-04T04:14:14.7376847Z test_fail_closed_inputs (research.hcsn.test_p2_markov_defective_firsthit.TestMarkovDefectiveFirstHit.test_fail_closed_inputs) ... ok
+2026-11-04T04:14:14.7377753Z test_falsify_scalar_mean_q (research.hcsn.test_p2_markov_defective_firsthit.TestMarkovDefectiveFirstHit.test_falsify_scalar_mean_q) ... ok
+2026-11-04T04:14:14.7378800Z test_independent_first_hit_reflection_and_flux (research.hcsn.test_p2_markov_defective_firsthit.TestMarkovDefectiveFirstHit.test_independent_first_hit_reflection_and_flux) ... ok
+2026-11-04T04:14:14.7379973Z test_independent_two_event_convolution_and_mc (research.hcsn.test_p2_markov_defective_firsthit.TestMarkovDefectiveFirstHit.test_independent_two_event_convolution_and_mc) ... ok
+2026-11-04T04:14:14.7381100Z test_laplace_zero_matches_eventual_tail (research.hcsn.test_p2_markov_defective_firsthit.TestMarkovDefectiveFirstHit.test_laplace_zero_matches_eventual_tail) ... ok
+2026-11-04T04:14:14.7382215Z test_refinement_event_mode_and_refractory (research.hcsn.test_p2_markov_defective_firsthit.TestMarkovDefectiveFirstHit.test_refinement_event_mode_and_refractory) ... ok
+2026-11-04T04:14:14.7383288Z test_atomic_budget_and_hostile_inputs (research.hcsn.test_p2_defective_first_hit_clock.DefectiveFirstHitTests.test_atomic_budget_and_hostile_inputs) ... ok
+2026-11-04T04:14:14.7384595Z test_eventual_defect_and_geometric_counts (research.hcsn.test_p2_defective_first_hit_clock.DefectiveFirstHitTests.test_eventual_defect_and_geometric_counts) ... ok
+2026-11-04T04:14:14.7385628Z test_exact_reference_cdf_and_flux (research.hcsn.test_p2_defective_first_hit_clock.DefectiveFirstHitTests.test_exact_reference_cdf_and_flux) ... ok
+2026-11-04T04:14:14.7386940Z test_exp_compensator_inversion_and_no_hit (research.hcsn.test_p2_defective_first_hit_clock.DefectiveFirstHitTests.test_exp_compensator_inversion_and_no_hit) ... ok
+2026-11-04T04:14:14.7388019Z test_independent_monte_carlo_with_refractory (research.hcsn.test_p2_defective_first_hit_clock.DefectiveFirstHitTests.test_independent_monte_carlo_with_refractory) ... ok
+2026-11-04T04:14:14.7389250Z test_multi_event_in_coarse_interval (research.hcsn.test_p2_defective_first_hit_clock.DefectiveFirstHitTests.test_multi_event_in_coarse_interval) ... ok
+2026-11-04T04:14:14.7390292Z test_negative_drift_ever_hit_monte_carlo (research.hcsn.test_p2_defective_first_hit_clock.DefectiveFirstHitTests.test_negative_drift_ever_hit_monte_carlo) ... ok
+2026-11-04T04:14:14.7391523Z test_sampling_refinement_and_refractory (research.hcsn.test_p2_defective_first_hit_clock.DefectiveFirstHitTests.test_sampling_refinement_and_refractory) ... ok
+2026-11-04T04:14:14.7392741Z test_actual_clock_matches_poisson_not_brownian_at_ood_time (research.hcsn.test_p2_first_hit_renewal_falsification.FirstHitFalsificationTests.test_actual_clock_matches_poisson_not_brownian_at_ood_time) ... ok
+2026-11-04T04:14:14.7394604Z test_analytical_brownian_vs_independent_quadrature (research.hcsn.test_p2_first_hit_renewal_falsification.FirstHitFalsificationTests.test_analytical_brownian_vs_independent_quadrature) ... ok
+2026-11-04T04:14:14.7395842Z test_analytical_brownian_vs_normal_tail (research.hcsn.test_p2_first_hit_renewal_falsification.FirstHitFalsificationTests.test_analytical_brownian_vs_normal_tail) ... ok
+2026-11-04T04:14:14.7397070Z test_analytical_poisson_vs_independent_scipy_reference (research.hcsn.test_p2_first_hit_renewal_falsification.FirstHitFalsificationTests.test_analytical_poisson_vs_independent_scipy_reference) ... ok
+2026-11-04T04:14:14.7398273Z test_exact_stable_multi_reset_scaling (research.hcsn.test_p2_first_hit_renewal_falsification.FirstHitFalsificationTests.test_exact_stable_multi_reset_scaling) ... ok
+2026-11-04T04:14:14.7399460Z test_horizon_matched_but_early_and_ood_late_mismatch (research.hcsn.test_p2_first_hit_renewal_falsification.FirstHitFalsificationTests.test_horizon_matched_but_early_and_ood_late_mismatch) ... ok
+2026-11-04T04:14:14.7400681Z test_independent_three_seed_levy_sampler (research.hcsn.test_p2_first_hit_renewal_falsification.FirstHitFalsificationTests.test_independent_three_seed_levy_sampler) ... ok
+2026-11-04T04:14:14.7401816Z test_no_invalid_time_or_normalization (research.hcsn.test_p2_first_hit_renewal_falsification.FirstHitFalsificationTests.test_no_invalid_time_or_normalization) ... ok
+2026-11-04T04:14:14.7402774Z test_causal_prefix (research.hcsn.test_p2_physical_hazard_clock.PhysicalHazardClockTests.test_causal_prefix) ... ok
+2026-11-04T04:14:14.7403552Z test_causal_rate_map (research.hcsn.test_p2_physical_hazard_clock.PhysicalHazardClockTests.test_causal_rate_map) ... ok
+2026-11-04T04:14:14.7404507Z test_hold_same_physical_time (research.hcsn.test_p2_physical_hazard_clock.PhysicalHazardClockTests.test_hold_same_physical_time) ... ok
+2026-11-04T04:14:14.7405503Z test_independent_quad_root_with_refractory (research.hcsn.test_p2_physical_hazard_clock.PhysicalHazardClockTests.test_independent_quad_root_with_refractory) ... ok
+2026-11-04T04:14:14.7406601Z test_independent_quad_root_without_refractory (research.hcsn.test_p2_physical_hazard_clock.PhysicalHazardClockTests.test_independent_quad_root_without_refractory) ... ok
+2026-11-04T04:14:14.7407690Z test_negative_and_invalid_inputs_rejected (research.hcsn.test_p2_physical_hazard_clock.PhysicalHazardClockTests.test_negative_and_invalid_inputs_rejected) ... ok
+2026-11-04T04:14:14.7408655Z test_no_event_when_rate_zero (research.hcsn.test_p2_physical_hazard_clock.PhysicalHazardClockTests.test_no_event_when_rate_zero) ... ok
+2026-11-04T04:14:14.7409585Z test_poisson_count_law_no_refractory (research.hcsn.test_p2_physical_hazard_clock.PhysicalHazardClockTests.test_poisson_count_law_no_refractory) ... ok
+2026-11-04T04:14:14.7410622Z test_refinement_invariance_no_refractory (research.hcsn.test_p2_physical_hazard_clock.PhysicalHazardClockTests.test_refinement_invariance_no_refractory) ... ok
+2026-11-04T04:14:14.7411962Z test_refinement_invariance_refractory (research.hcsn.test_p2_physical_hazard_clock.PhysicalHazardClockTests.test_refinement_invariance_refractory) ... ok
+2026-11-04T04:14:14.7413090Z test_resource_limit_fail_closed (research.hcsn.test_p2_physical_hazard_clock.PhysicalHazardClockTests.test_resource_limit_fail_closed) ... ok
+2026-11-04T04:14:14.7414321Z test_token_bernoulli_negative_control (research.hcsn.test_p2_physical_hazard_clock.PhysicalHazardClockTests.test_token_bernoulli_negative_control) ... ok
+2026-11-04T04:14:14.7414900Z 
+2026-11-04T04:14:14.7415067Z ----------------------------------------------------------------------
+2026-11-04T04:14:14.7415414Z Ran 38 tests in 0.860s
+2026-11-04T04:14:14.7415559Z 
+2026-11-04T04:14:14.7415663Z OK
+2026-11-04T04:14:15.8100914Z {
+2026-11-04T04:14:15.8101340Z   "rank3_difference": 0.38197252352309374,
+2026-11-04T04:14:15.8101879Z   "max_abs_eventual_mc_z": 1.5812226473959516,
+2026-11-04T04:14:15.8102310Z   "P0_P6": "OPEN",
+2026-11-04T04:14:15.8102654Z   "production_activation": false
+2026-11-04T04:14:15.8103025Z }
+2026-11-04T04:14:16.3495792Z HCSN_CURRENT_SOURCE_RESULT={"commands": [{"argv": ["/opt/hostedtoolcache/Python/3.13.5/x64/bin/python", "-m", "unittest", "research.hcsn.test_p2_markov_defective_firsthit", "research.hcsn.test_p2_defective_first_hit_clock", "research.hcsn.test_p2_first_hit_renewal_falsification", "research.hcsn.test_p2_physical_hazard_clock", "-v"], "exit_code": 0, "expected_exit_code": 0, "name": "original-four-modules", "seconds": 1.8759012480000052, "stderr": {"bytes": 6221, "sha256": "1f03b42078035ca5a9ac58dee6585af48678e6c5e74e4d2263c17d74ff7e37f8"}, "stdout": {"bytes": 0, "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}, "timed_out": false}, {"argv": ["/opt/hostedtoolcache/Python/3.13.5/x64/bin/python", "-m", "research.hcsn.p2_markov_defective_evidence", "--samples", "45000", "--output", "/home/runner/work/_temp/hcsn-iteration33-current/current-markov-defective-raw.json"], "exit_code": 0, "expected_exit_code": 0, "name": "original-evidence", "seconds": 1.071902890000004, "stderr": {"bytes": 0, "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}, "stdout": {"bytes": 146, "sha256": "b46c06223e35c9b0dffc770c04c75b8c549f2ad2f146941be0f791ff0847fb41"}, "timed_out": false}, {"argv": ["/opt/hostedtoolcache/Python/3.13.5/x64/bin/python", "-m", "research.hcsn.independent_gate", "--bundle", "/home/runner/work/_temp/hcsn-iteration33-current/empty-untrusted", "--strict", "--output", "/home/runner/work/_temp/hcsn-iteration33-current/strict-gate.json"], "exit_code": 2, "expected_exit_code": 2, "name": "original-empty-bundle-gate", "seconds": 0.17198165400000676, "stderr": {"bytes": 0, "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}, "stdout": {"bytes": 0, "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}, "timed_out": false}], "empty_gate": {"all_phases_open": true, "expected_exit_code": 2, "observed_exit_code": 2, "sha256": "7b895f6758982fc19030c9c39d72707b6e179e7d9c695c2fa93f86fc04c53203"}, "fresh_evidence": {"bytes": 13922, "independent_seed_transition_panels": 6, "production_activation": false, "sample_paths_per_panel": 45000, "scientific_admission": false, "sha256": "11ac804599bf289474403c26406abbd09b354131a1666e9a9f17a4ee04035c8a", "source_digests_match_current_bytes": true, "synthetic_trajectories": 270000}, "gates": {"P0": "OPEN", "P1": "OPEN", "P2": "OPEN", "P3": "OPEN", "P4": "OPEN", "P5": "OPEN", "P6": "OPEN"}, "historical_scipy_version_known": false, "new_vs_original_nonmetadata_changed_top_level_keys": ["scenarios"], "original_report_modified": false, "original_report_source_mismatches": {"test_p2_markov_defective_firsthit.py": {"current": "5cb79deae3a090b2d2fe47993838a69dd35099fb4048dfd296015bf000ca3f75", "recorded": "75d512f5c62b4ded677e55252df8f3e925e8271468486a780499d761ea11bb97"}}, "original_research_commit": "e179de289b44210920e80ed5f376e5abbe864fee", "production_activation": false, "retained_outputs": {"current-markov-defective-raw.json": {"bytes": 13922, "sha256": "11ac804599bf289474403c26406abbd09b354131a1666e9a9f17a4ee04035c8a"}, "original-empty-bundle-gate.stderr": {"bytes": 0, "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}, "original-empty-bundle-gate.stdout": {"bytes": 0, "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}, "original-evidence.stderr": {"bytes": 0, "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}, "original-evidence.stdout": {"bytes": 146, "sha256": "b46c06223e35c9b0dffc770c04c75b8c549f2ad2f146941be0f791ff0847fb41"}, "original-four-modules.stderr": {"bytes": 6221, "sha256": "1f03b42078035ca5a9ac58dee6585af48678e6c5e74e4d2263c17d74ff7e37f8"}, "original-four-modules.stdout": {"bytes": 0, "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}, "source-after.json": {"bytes": 46343, "sha256": "81b8eed068f47a0ceb9fff4f7453ce509453cbf597f3d04ebd9c556fa55ce3ca"}, "source-before.json": {"bytes": 46343, "sha256": "81b8eed068f47a0ceb9fff4f7453ce509453cbf597f3d04ebd9c556fa55ce3ca"}, "strict-gate.json": {"bytes": 1211, "sha256": "7b895f6758982fc19030c9c39d72707b6e179e7d9c695c2fa93f86fc04c53203"}, "test-inventory.json": {"bytes": 4485, "sha256": "45d4c1a2fa6fd00f0855b0081d32a265e3fab918be8b8be43c5b2d210081f68f"}}, "run_attempt": "1", "run_id": "41771431668", "schema": "hcsn.iteration33.current-source-qualification.v1", "scientific_admission": false, "scope": "New execution of the original four research test modules, original synthetic evidence command, and empty-bundle refusal. Not full HCSN qualification or historical native-log verification.", "software": {"numpy": "2.3.5", "python": "3.13.5", "scipy": "1.16.3"}, "source_commit": "6a029bf2791c090da295f325d29a4d239e8e8817", "source_tree": "defe21c7c92452f2e452e82625cafe4bf9242da7", "source_unchanged": true, "status": "source-bound-research-commands-passed", "tests": {"errors": 0, "exact_cases": ["research.hcsn.test_p2_defective_first_hit_clock.DefectiveFirstHitTests.test_atomic_budget_and_hostile_inputs", "research.hcsn.test_p2_defective_first_hit_clock.DefectiveFirstHitTests.test_eventual_defect_and_geometric_counts", "research.hcsn.test_p2_defective_first_hit_clock.DefectiveFirstHitTests.test_exact_reference_cdf_and_flux", "research.hcsn.test_p2_defective_first_hit_clock.DefectiveFirstHitTests.test_exp_compensator_inversion_and_no_hit", "research.hcsn.test_p2_defective_first_hit_clock.DefectiveFirstHitTests.test_independent_monte_carlo_with_refractory", "research.hcsn.test_p2_defective_first_hit_clock.DefectiveFirstHitTests.test_multi_event_in_coarse_interval", "research.hcsn.test_p2_defective_first_hit_clock.DefectiveFirstHitTests.test_negative_drift_ever_hit_monte_carlo", "research.hcsn.test_p2_defective_first_hit_clock.DefectiveFirstHitTests.test_sampling_refinement_and_refractory", "research.hcsn.test_p2_first_hit_renewal_falsification.FirstHitFalsificationTests.test_actual_clock_matches_poisson_not_brownian_at_ood_time", "research.hcsn.test_p2_first_hit_renewal_falsification.FirstHitFalsificationTests.test_analytical_brownian_vs_independent_quadrature", "research.hcsn.test_p2_first_hit_renewal_falsification.FirstHitFalsificationTests.test_analytical_brownian_vs_normal_tail", "research.hcsn.test_p2_first_hit_renewal_falsification.FirstHitFalsificationTests.test_analytical_poisson_vs_independent_scipy_reference", "research.hcsn.test_p2_first_hit_renewal_falsification.FirstHitFalsificationTests.test_exact_stable_multi_reset_scaling", "research.hcsn.test_p2_first_hit_renewal_falsification.FirstHitFalsificationTests.test_horizon_matched_but_early_and_ood_late_mismatch", "research.hcsn.test_p2_first_hit_renewal_falsification.FirstHitFalsificationTests.test_independent_three_seed_levy_sampler", "research.hcsn.test_p2_first_hit_renewal_falsification.FirstHitFalsificationTests.test_no_invalid_time_or_normalization", "research.hcsn.test_p2_markov_defective_firsthit.TestMarkovDefectiveFirstHit.test_absorption_atom_and_repeated_positive_mode_events", "research.hcsn.test_p2_markov_defective_firsthit.TestMarkovDefectiveFirstHit.test_analytic_defect_mass_and_monotone", "research.hcsn.test_p2_markov_defective_firsthit.TestMarkovDefectiveFirstHit.test_budget_failure_is_atomic", "research.hcsn.test_p2_markov_defective_firsthit.TestMarkovDefectiveFirstHit.test_exhaustive_paths_laplace", "research.hcsn.test_p2_markov_defective_firsthit.TestMarkovDefectiveFirstHit.test_fail_closed_inputs", "research.hcsn.test_p2_markov_defective_firsthit.TestMarkovDefectiveFirstHit.test_falsify_scalar_mean_q", "research.hcsn.test_p2_markov_defective_firsthit.TestMarkovDefectiveFirstHit.test_independent_first_hit_reflection_and_flux", "research.hcsn.test_p2_markov_defective_firsthit.TestMarkovDefectiveFirstHit.test_independent_two_event_convolution_and_mc", "research.hcsn.test_p2_markov_defective_firsthit.TestMarkovDefectiveFirstHit.test_laplace_zero_matches_eventual_tail", "research.hcsn.test_p2_markov_defective_firsthit.TestMarkovDefectiveFirstHit.test_refinement_event_mode_and_refractory", "research.hcsn.test_p2_physical_hazard_clock.PhysicalHazardClockTests.test_causal_prefix", "research.hcsn.test_p2_physical_hazard_clock.PhysicalHazardClockTests.test_causal_rate_map", "research.hcsn.test_p2_physical_hazard_clock.PhysicalHazardClockTests.test_hold_same_physical_time", "research.hcsn.test_p2_physical_hazard_clock.PhysicalHazardClockTests.test_independent_quad_root_with_refractory", "research.hcsn.test_p2_physical_hazard_clock.PhysicalHazardClockTests.test_independent_quad_root_without_refractory", "research.hcsn.test_p2_physical_hazard_clock.PhysicalHazardClockTests.test_negative_and_invalid_inputs_rejected", "research.hcsn.test_p2_physical_hazard_clock.PhysicalHazardClockTests.test_no_event_when_rate_zero", "research.hcsn.test_p2_physical_hazard_clock.PhysicalHazardClockTests.test_poisson_count_law_no_refractory", "research.hcsn.test_p2_physical_hazard_clock.PhysicalHazardClockTests.test_refinement_invariance_no_refractory", "research.hcsn.test_p2_physical_hazard_clock.PhysicalHazardClockTests.test_refinement_invariance_refractory", "research.hcsn.test_p2_physical_hazard_clock.PhysicalHazardClockTests.test_resource_limit_fail_closed", "research.hcsn.test_p2_physical_hazard_clock.PhysicalHazardClockTests.test_token_bernoulli_negative_control"], "failed": 0, "passed": 38, "scope": "Only the original four iteration-33 modules.", "skipped": 0}}
+2026-11-04T04:14:16.3750596Z ##[group]Run actions/upload-artifact@v4
+2026-11-04T04:14:16.3750901Z with:
+2026-11-04T04:14:16.3751251Z   name: hcsn-iteration33-current-6a029bf2791c090da295f325d29a4d239e8e8817-1
+2026-11-04T04:14:16.3751910Z   path: /home/runner/work/_temp/hcsn-iteration33-current
+/home/runner/work/_temp/hcsn-iteration33-install.json
+
+2026-11-04T04:14:16.3752431Z   if-no-files-found: warn
+2026-11-04T04:14:16.3752678Z   compression-level: 6
+2026-11-04T04:14:16.3752908Z   overwrite: false
+2026-11-04T04:14:16.3753156Z   include-hidden-files: false
+2026-11-04T04:14:16.3753397Z env:
+2026-11-04T04:14:16.3753601Z   OPENBLAS_NUM_THREADS: 1
+2026-11-04T04:14:16.3754104Z   OMP_NUM_THREADS: 1
+2026-11-04T04:14:16.3754369Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-04T04:14:16.3754617Z   PYTHONPATH: .
+2026-11-04T04:14:16.3754909Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.5/x64
+2026-11-04T04:14:16.3755331Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.5/x64/lib/pkgconfig
+2026-11-04T04:14:16.3755779Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.5/x64
+2026-11-04T04:14:16.3756157Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.5/x64
+2026-11-04T04:14:16.3756542Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.5/x64
+2026-11-04T04:14:16.3756916Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.5/x64/lib
+2026-11-04T04:14:16.3757239Z ##[endgroup]
+2026-11-04T04:14:16.5478877Z (node:2908) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-04T04:14:16.5480034Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-04T04:14:16.5584413Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-11-04T04:14:16.5586726Z The least common ancestor is /home/runner/work/_temp. This will be the root directory of the artifact
+2026-11-04T04:14:16.5587934Z With the provided path, there will be 13 files uploaded
+2026-11-04T04:14:16.5592936Z Artifact name is valid!
+2026-11-04T04:14:16.5593895Z Root directory input is valid!
+2026-11-04T04:14:16.8768134Z Beginning upload of artifact content to blob storage
+2026-11-04T04:14:16.9215938Z (node:2908) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-11-04T04:14:17.2229353Z Uploaded bytes 74193
+2026-11-04T04:14:17.2831018Z Finished uploading artifact content to blob storage!
+2026-11-04T04:14:17.2832184Z SHA256 digest of uploaded artifact zip is 17370b82e5ef96786458d3a8a0d3193cf915e991e8fdd6ddecaf0c93a3a87154
+2026-11-04T04:14:17.2833415Z Finalizing artifact upload
+2026-11-04T04:14:17.7120370Z Artifact hcsn-iteration33-current-6a029bf2791c090da295f325d29a4d239e8e8817-1.zip successfully finalized. Artifact ID 13295306776
+2026-11-04T04:14:17.7125488Z Artifact hcsn-iteration33-current-6a029bf2791c090da295f325d29a4d239e8e8817-1 has been successfully uploaded! Final size is 74193 bytes. Artifact ID is 13295306776
+2026-11-04T04:14:17.7127433Z Artifact download URL: https://github.com/TrillionniumFoundation/Hepta/actions/runs/41771431668/artifacts/13295306776
+2026-11-04T04:14:17.7340653Z Post job cleanup.
+2026-11-04T04:14:17.8555648Z (node:2920) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-04T04:14:17.8556433Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-04T04:14:17.8726803Z Post job cleanup.
+2026-11-04T04:14:17.9727652Z [command]/usr/bin/git version
+2026-11-04T04:14:17.9792378Z git version 2.56.0
+2026-11-04T04:14:17.9841017Z Temporarily overriding HOME='/home/runner/work/_temp/842129a1-2d23-48f2-9d11-303eae68d01a' before making global git config changes
+2026-11-04T04:14:17.9847601Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-04T04:14:17.9848569Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-04T04:14:17.9925633Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-04T04:14:18.0001157Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-04T04:14:18.0352428Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-04T04:14:18.0475650Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-04T04:14:18.0816691Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-04T04:14:18.0885343Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-04T04:14:18.1321097Z Cleaning up orphan processes
+2026-11-04T04:14:18.1713593Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-python@v5, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
