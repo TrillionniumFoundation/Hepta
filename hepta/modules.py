@@ -105,6 +105,9 @@ def load_project(entry, *, locked=False, source_overrides=None) -> LoadedProject
         if path in stack:
             fail("E_MODULE_CYCLE", "Import cycle: " + " -> ".join(str(p) for p in stack + [path]), span)
         if path in units:
+            if units[path].package.root != pkg.root:
+                fail("E_MODULE_PACKAGE_CONTEXT", "Module " + str(path) + " is imported under conflicting package roots: "
+                     + str(units[path].package.root) + " and " + str(pkg.root), span)
             return units[path]
         try:
             data = overrides.get(str(path))
