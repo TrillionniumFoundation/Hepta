@@ -38,6 +38,11 @@ package. All three output commands share it. Refusal remains a structured
 final artifact is built. The normal native validation pass can already have
 invoked the selected compiler before this output check.
 
+Default and explicit build destinations are both resolved before this check.
+Stable ordinary symlink aliases therefore receive the same known-input
+decision. This does not identify hardlink aliases or close a check/use race;
+see [`CLI_DEFAULT_OUTPUT_PATH.md`](CLI_DEFAULT_OUTPUT_PATH.md).
+
 An unlocked owner's lock, dependency locks that this command does not read,
 and unimported standalone sibling files are not newly protected. Ordinary
 new or existing non-input output files remain supported. No whole-directory
