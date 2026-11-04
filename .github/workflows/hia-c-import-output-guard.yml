@@ -1,0 +1,30 @@
+name: HIA C import output preservation
+on:
+  push:
+    branches:
+      - research/hia-import-c-header-manifest-20261104
+  pull_request:
+    paths:
+      - hepta/cli.py
+      - tests/test_c_import_output_guard.py
+      - .github/workflows/hia-c-import-output-guard.yml
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Real GCC C import input and output protection
+        run: |
+          git rev-parse HEAD
+          gcc --version
+          python -B -m unittest -v tests.test_c_import_output_guard
