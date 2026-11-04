@@ -13,6 +13,13 @@ aliases are unique and cannot collide with local declarations. Functions,
 structs and enums are private by default; `pub` exposes them. C import/export
 functions are module bindings with an explicit external symbol.
 
+An unqualified function reference must belong to the current source module (or
+be a builtin). Flattening does not implicitly import private or public entry
+functions, or C symbols declared in another module. Such cross-module references
+reject with `E_MODULE_SCOPE`; import the owning module and use its explicit
+alias and public symbol instead. Entry/API symbol spellings and the existing
+local-binding/function-name collision rules are unchanged.
+
 For standalone files, imports resolve below the entry file's directory. For
 packages, they resolve below `source_root` (default `src`). A dependency alias
 resolves to that library's entry; trailing path components resolve below its
@@ -87,3 +94,8 @@ No remote registry, version solver, cyclic imports, re-exports, glob imports,
 incremental cache or arbitrary multi-file edit transaction is implemented.
 One semantic patch changes one body while validating and coordinating with its
 complete imported graph.
+
+Generic type parameters bind within their declaration. A parameter whose name
+collides only with an unrelated flattened nominal type receives an internal
+bound name before checking. See [the bounded generic scope repair](MODULE_GENERIC_PARAMETER_SCOPE.md)
+for interface naming consequences and unchanged same-module limitations.
