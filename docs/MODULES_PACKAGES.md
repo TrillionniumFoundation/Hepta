@@ -80,6 +80,12 @@ Directory, manifest and direct-source arguments are accepted by check/inspect,
 emit/header/build/run. Files outside their discovered package source root reject.
 Reports retain per-file spans and source/generated symbol mappings.
 
+`emit`, `header` and `build` cannot write over a loaded graph input or a file
+in the captured package snapshot, including dependency manifests and unimported
+package sources. A verified owner `Hepta.lock` is also protected in locked
+mode. Unrelated existing output files remain overwriteable. See
+[`CLI_INPUT_PROTECTION.md`](CLI_INPUT_PROTECTION.md) for the precise boundary.
+
 ## C imports
 
 `import-c` emits a reserved marker and paired `.imports.json`. Loading through
