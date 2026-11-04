@@ -833,6 +833,11 @@ def main(argv=None) -> int:
                                  backend=args.backend, cc=args.cc, locked=args.locked, c_optimization=args.c_opt)
         file = result.project.entry
         protected = {Path(p) for p in result.project.sources}
+        if args.command in {"emit", "header", "build"} and result.project.package_state is not None:
+            root = result.project.package.root
+            protected.update((root / p).resolve() for p in result.project.package_state["files"])
+            if result.project.locked:
+                protected.add((root / "Hepta.lock").resolve())
         if args.command == "inspect":
             output_json(inspect_analysis(result))
             return 0 if result.report["ok"] else 1
@@ -864,7 +869,7 @@ def main(argv=None) -> int:
             if args.output:
                 dest = Path(args.output).resolve()
                 if dest in protected:
-                    raise ValueError("Output cannot overwrite a Hepta source in the module graph")
+                    raise ValueError("Output cannot overwrite an input used to validate the project")
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 dest.write_text(content)
                 output_json({"schema": "hepta.output.v1", "ok": True, "output": str(dest), "validation": result.report})
@@ -875,7 +880,7 @@ def main(argv=None) -> int:
             ext = {"bin": "", "staticlib": ".a", "cdylib": ".so", "obj": ".o", "rlib": ".rlib"}[args.crate_type]
             dest = Path(args.output).resolve() if args.output else file.parent / "build" / (file.stem + ext)
             if dest in protected:
-                raise ValueError("Output cannot overwrite a Hepta source in the module graph")
+                raise ValueError("Output cannot overwrite an input used to validate the project")
             if args.backend == "c":
                 from .c_backend import compile_c
                 native = compile_c(result.c, cc=args.cc, crate_type=args.crate_type, output=dest, link_args=args.link_arg,
