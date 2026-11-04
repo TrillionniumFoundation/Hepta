@@ -20,6 +20,11 @@ from hepta.pipeline import analyze, interface_hash
 
 MAX_INTEGER = (1 << 128) - 1
 ROOT = Path(__file__).resolve().parents[1]
+NATIVE_BOUNDARIES = f"""
+pub fn maximum() -> u128 effects {{}} {{ return {MAX_INTEGER}; }}
+pub fn minimum() -> i128 effects {{panic}} {{ return -{1 << 127}; }}
+pub fn array_length(x: read [u8; 1]) -> usize effects {{}} resources {{ heap_allocations = 0; }} {{ return len(x); }}
+"""
 
 
 def spellings(value):
@@ -129,6 +134,9 @@ class IntegerLiteralAdmissionTests(unittest.TestCase):
                         self.assertEqual(result.report["diagnostics"][0]["code"], "E_RESOURCE_UNSUPPORTED")
 
     def test_fixed_width_type_ranges_and_signed_minimum_are_preserved(self):
+        # Exercise the native fixture even where rustc is unavailable.
+        boundary_result = analyze(NATIVE_BOUNDARIES, native=False)
+        self.assertTrue(boundary_result.report["ok"], boundary_result.report)
         for literal in spellings(MAX_INTEGER):
             result = analyze(f"fn f() -> u128 effects {{}} {{ return {literal}; }}", native=False)
             self.assertTrue(result.report["ok"], result.report)
@@ -159,7 +167,7 @@ class IntegerLiteralAdmissionTests(unittest.TestCase):
             with self.assertRaises(HeptaError) as caught:
                 load_project(entry)
             self.assertEqual(caught.exception.diagnostic.code, "E_LEX_NUMBER")
-            self.assertEqual(Path(caught.exception.diagnostic.span.path), child)
+            self.assertEqual(Path(caught.exception.diagnostic.span.path), child.resolve())
 
     def test_cli_returns_json_without_traceback_for_original_crashes(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -200,12 +208,7 @@ assert sys.get_int_max_str_digits() == before
 
     @unittest.skipUnless(shutil.which("rustc"), "requires pinned native rustc")
     def test_admitted_boundaries_pass_native_rust_validation(self):
-        source = f"""
-        pub fn maximum() -> u128 effects {{}} {{ return {MAX_INTEGER}; }}
-        pub fn minimum() -> i128 effects {{panic}} {{ return -{1 << 127}; }}
-        pub fn array(x: read [u8; 1]) -> usize effects {{}} resources {{ heap_allocations = 0; }} {{ return len(x); }}
-        """
-        result = analyze(source)
+        result = analyze(NATIVE_BOUNDARIES)
         self.assertTrue(result.report["ok"], result.report)
         self.assertEqual(result.report["status"], "checked")
 
