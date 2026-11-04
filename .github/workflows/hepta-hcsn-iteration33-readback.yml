@@ -1,0 +1,56 @@
+name: HCSN iteration 33 original artifact readback
+
+on:
+  push:
+    branches:
+      - 'research/hcsn-iteration33-artifact-readback-20261104-gpt6'
+    paths:
+      - 'qualification/hcsn-iteration33-artifact-readback-20261104/**'
+      - '.github/workflows/hepta-hcsn-iteration33-readback.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: hcsn-iteration33-original-artifact-readback
+  cancel-in-progress: false
+
+jobs:
+  original-artifact:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: 6a029bf2791c090da295f325d29a4d239e8e8817
+          path: original-source
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13.5'
+      - name: Run the unchanged shared reader controls
+        run: python qualification/hcsn-iteration33-artifact-readback-20261104/readback_common.py --self-test
+      - name: Run the additional exact ZIP controls
+        run: python qualification/hcsn-iteration33-artifact-readback-20261104/readback.py --self-test
+      - name: Verify the one frozen original artifact without executing its contents
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >-
+          python qualification/hcsn-iteration33-artifact-readback-20261104/readback.py
+          --source "$GITHUB_WORKSPACE/original-source"
+          --out "$RUNNER_TEMP/hcsn-iteration33-readback"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hcsn-iteration33-readback-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/hcsn-iteration33-readback
+          if-no-files-found: warn
