@@ -1,0 +1,54 @@
+name: Module same-source generic scope
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'tests/**'
+      - 'tools/test_module_same_source_generic_scope.py'
+      - '.github/workflows/hepta-module-same-source-generics.yml'
+permissions:
+  contents: read
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Reject source-local generic shadowing and execute all inherited native controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          rustup toolchain install 1.90.0 --profile minimal
+          export RUSTC="$(rustup which --toolchain 1.90.0 rustc)"
+          export CC="$(command -v gcc)"
+          mkdir -p artifacts/module-same-source-generics
+          { git rev-parse HEAD HEAD^{tree}; uname -a; python --version; \
+            "$CC" --version; git --version; "$RUSTC" --version; \
+            sha256sum "$CC" "$(command -v git)" "$RUSTC"; \
+            sha256sum hepta/modules.py hepta/module_bindings.py \
+              tests/test_module_generic_parameter_scope.py tests/test_module_same_source_generic_scope.py; \
+          } > artifacts/module-same-source-generics/identities.txt
+          python -B tools/test_module_same_source_generic_scope.py 2>&1 | tee artifacts/module-same-source-generics/tests.log
+          test -z "$(git status --porcelain --untracked-files=no)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: module-same-source-generics-${{ matrix.os }}-${{ env.EXPECTED_HEAD }}
+          path: artifacts/module-same-source-generics
+          if-no-files-found: error

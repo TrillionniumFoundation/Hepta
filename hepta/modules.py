@@ -265,8 +265,9 @@ def load_project(entry, *, locked=False, source_overrides=None) -> LoadedProject
                 original_params = tuple(getattr(original, "type_params", ()))
                 params = {name: name for name in original_params}
                 # Keep bound type identities out of unrelated flat nominal
-                # namespaces. Keep own-module, duplicate/reserved parameter,
-                # invalid-bound and C-boundary restrictions unchanged.
+                # namespaces. Keep source-local nominal collisions visible to
+                # the checker after mangling, and preserve malformed/boundary
+                # declarations' existing diagnostics.
                 if (len(params) == len(original_params)
                         and not params.keys() & RESERVED_TYPES
                         and all(name in params and bound in {"Copy", "Owned"}
@@ -274,6 +275,8 @@ def load_project(entry, *, locked=False, source_overrides=None) -> LoadedProject
                         and not getattr(original, "repr_c", False)
                         and not getattr(original, "extern_c", False)
                         and not getattr(original, "export_c", False)):
+                    for name in params.keys() & unit.types.keys():
+                        params[name] = unit.names[name]
                     occupied = flat_types | flat_functions | params.keys()
                     for name in sorted((params.keys() & flat_types) - unit.types.keys() - RESERVED_TYPES):
                         counter = 0
