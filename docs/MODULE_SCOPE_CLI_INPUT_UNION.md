@@ -1,5 +1,13 @@
 # Module scope and ordinary CLI input preservation
 
+Historical scope: this document records the exact #671 qualification. Its
+five-file, test-only and 534-method statements, including the remaining
+default-output symlink gap, refer to that baseline. The later combination
+with #670 is specified in [MODULE_SCOPE_DEFAULT_OUTPUT_UNION.md](MODULE_SCOPE_DEFAULT_OUTPUT_UNION.md);
+it preserves this work and adds default-path resolution and separate
+intersection qualification. The hardlink and concurrent-mutation limits
+below remain unchanged.
+
 This is a test-only qualification extension over #669, head
 `8a267f7287b5987a3f8b92302977bccbce9861b4`, tree
 `5a32f37a678a2dfc299d0d15a051c653a11aeefe`. That base already contains the
