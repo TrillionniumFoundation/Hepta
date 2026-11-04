@@ -45,6 +45,7 @@ class CEmitter:
         self.enums = {s.name: s for s in program.enums}
         self.enums["Result"] = Enum("Result", [EnumVariant("Ok", [Type("A")]), EnumVariant("Err", [Type("B")])], ("A", "B"))
         self.functions = {f.name: f for f in program.functions}
+        self.c_symbols = {f.name for f in program.functions if f.extern_c or f.export_c}
         self.declarations, self.types, self.active = [], {}, set()
         self.helpers = set()
         self.counter = 0
@@ -186,14 +187,20 @@ class CEmitter:
     def fn_name(self, fn, args=()):
         return self.instance(fn, args)
 
+    def local_name(self, name):
+        # Keep ordinary debug spellings, but never hide an admitted C symbol.
+        # Boundary symbols cannot use this reserved implementation namespace.
+        local = "h_" + name
+        return "__hepta_cb_local_" + name if local in self.c_symbols else local
+
     def parameter(self, p):
         if p.type.name == "slice":
-            return self.slice_type(p.type, p.mode) + " h_" + p.name
+            return self.slice_type(p.type, p.mode) + " " + self.local_name(p.name)
         if p.type.name == "Unit":
             if p.mode != "value":
                 fail("E_C_BACKEND_SUBSET", "Borrowed Unit needs a separate addressable representation", p.span)
-            return "uint8_t h_" + p.name
-        return ("const " if p.mode == "read" else "") + self.typ(p.type) + (" *" if p.mode in {"read", "mut"} else " ") + "h_" + p.name
+            return "uint8_t " + self.local_name(p.name)
+        return ("const " if p.mode == "read" else "") + self.typ(p.type) + (" *" if p.mode in {"read", "mut"} else " ") + self.local_name(p.name)
 
     def signature(self, fn, args=()):
         mapping = dict(zip(fn.type_params, args))
@@ -256,7 +263,7 @@ class CEmitter:
     def place(self, e, lines):
         if e.kind == "name":
             p = self.params.get(e.value)
-            name = "h_" + e.value
+            name = self.local_name(e.value)
             return f"(*{name})" if p and p.mode in {"read", "mut"} and p.type.name != "slice" else name
         if e.kind == "field":
             return "(" + self.place(e.children[0], lines) + ").h_" + e.value
@@ -517,7 +524,7 @@ class CEmitter:
                 v = self.value(d["expr"], lines)
                 t = self.resolve(d["type"]) if d.get("type") else self.expr_type(d["expr"])
                 if t.name != "Unit":
-                    lines.append(self.typ(t) + " h_" + d["name"] + " = " + v + ";")
+                    lines.append(self.typ(t) + " " + self.local_name(d["name"]) + " = " + v + ";")
             elif s.kind == "assign":
                 value = self.value(d["expr"], lines)
                 if self.expr_type(d["target"]).name != "Unit":
@@ -546,7 +553,7 @@ class CEmitter:
                     lines.append(f"case {index}: {{")
                     for i, (name, field) in enumerate(zip(arm.pattern.bindings, variants[index][1])):
                         if name != "_" and field.name != "Unit":
-                            lines.append(self.typ(field) + f" h_{name} = {value}.payload.v_{arm.pattern.variant}.f_{i};")
+                            lines.append(self.typ(field) + f" {self.local_name(name)} = {value}.payload.v_{arm.pattern.variant}.f_{i};")
                     lines.append(self.block(arm.body))
                     lines.append("break; }")
                 lines.append("default: abort(); }")
@@ -558,7 +565,8 @@ class CEmitter:
                 begin = self.value(d["start"], lines)
                 end = self.value(d["end"], lines)
                 t = self.expr_type(d["start"])
-                lines.append(f"for ({self.typ(t)} h_{d['name']} = {begin}; h_{d['name']} < {end}; ++h_{d['name']}) {{ " + self.block(d["body"]) + " }")
+                name = self.local_name(d["name"])
+                lines.append(f"for ({self.typ(t)} {name} = {begin}; {name} < {end}; ++{name}) {{ " + self.block(d["body"]) + " }")
             else:
                 fail("E_C_BACKEND_SUBSET", f"Statement {s.kind} is unsupported", s.span)
         return "\n".join(lines)
