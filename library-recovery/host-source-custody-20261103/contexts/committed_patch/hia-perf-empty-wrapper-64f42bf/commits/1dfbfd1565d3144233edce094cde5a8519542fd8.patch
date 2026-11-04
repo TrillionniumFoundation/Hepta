@@ -1,0 +1,69 @@
+From 1dfbfd1565d3144233edce094cde5a8519542fd8 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Tue, 3 Nov 2026 14:40:53 +0800
+Subject: [PATCH] Reject boolean aliases in experimental reduction
+ registrations and cohorts
+
+---
+ tests/test_hia_empty_reduction_observation.py | 18 ++++++++++++++++++
+ tools/qualify_hia_empty_reduction.py          |  9 +++++++--
+ 2 files changed, 25 insertions(+), 2 deletions(-)
+
+diff --git a/tests/test_hia_empty_reduction_observation.py b/tests/test_hia_empty_reduction_observation.py
+index cf401e4..ca854d6 100644
+--- a/tests/test_hia_empty_reduction_observation.py
++++ b/tests/test_hia_empty_reduction_observation.py
+@@ -68,6 +68,24 @@ class EmptyReductionObservationTests(unittest.TestCase):
+             with self.assertRaises(ValueError):
+                 experiment.assess(rows, self.spec)
+ 
++    def test_boolean_integer_aliases_are_refused_in_both_profiles(self):
++        for profile in (experiment.CLONE_PROFILE, experiment.WRAPPER_PROFILE):
++            spec = experiment.specification(profile)
++            changed = deepcopy(spec)
++            changed["groups"][0]["sizes"][0] = False
++            with self.assertRaisesRegex(ValueError, "changed empty-entry observation registration"):
++                experiment.assess([], changed)
++            rows = [{"workload": w, "group": g["name"], "backend": a, "n": n,
++                     "seed": seed, "calls": calls, "times_ns": [100] * spec["samples"]}
++                    for w in spec["historical_profile"]["workloads"] for g in spec["groups"]
++                    for a in experiment.ARMS for n in g["sizes"] for seed in g["seeds"] for calls in spec["batch_loads"]]
++            for field, value in (("n", False), ("seed", True), ("calls", True),
++                                 ("workload", 0), ("group", 0), ("backend", 0)):
++                invalid = deepcopy(rows)
++                invalid[0][field] = value
++                with self.subTest(profile=profile, field=field), self.assertRaisesRegex(ValueError, "cohort field types"):
++                    experiment.assess(invalid, spec)
++
+ 
+ if __name__ == "__main__":
+     unittest.main()
+diff --git a/tools/qualify_hia_empty_reduction.py b/tools/qualify_hia_empty_reduction.py
+index 1d6705f..100e8fc 100644
+--- a/tools/qualify_hia_empty_reduction.py
++++ b/tools/qualify_hia_empty_reduction.py
+@@ -94,14 +94,19 @@ def child_driver(executable, path):
+ 
+ 
+ def assess(rows, spec):
+-    require(spec == specification(spec.get("build_profile", CLONE_PROFILE)), "changed empty-entry observation registration")
++    require(type(spec) is dict and wire(spec) == wire(specification(spec.get("build_profile", CLONE_PROFILE))),
++            "changed empty-entry observation registration")
+     expected = {(w, g["name"], a, n, seed, calls)
+                 for w in spec["historical_profile"]["workloads"] for g in spec["groups"]
+                 for a in ARMS for n in g["sizes"] for seed in g["seeds"] for calls in spec["batch_loads"]}
++    require(type(rows) is list and len(rows) == len(expected), "complete registered cohort inventory required")
++    require(all(type(r) is dict and all(type(r.get(k)) is str for k in ("workload", "group", "backend"))
++                and all(type(r.get(k)) is int for k in ("n", "seed", "calls")) for r in rows),
++            "cohort field types must match registration")
+     actual = [(r["workload"], r["group"], r["backend"], r["n"], r["seed"], r["calls"]) for r in rows]
+     require(len(actual) == len(set(actual)) and set(actual) == expected, "missing, duplicate or unexpected cohort")
+     require(all(type(r["calls"]) is int and r["calls"] in spec["batch_loads"]
+-                and len(r["times_ns"]) == spec["samples"]
++                and type(r["times_ns"]) is list and len(r["times_ns"]) == spec["samples"]
+                 and all(type(v) is int and v > 0 for v in r["times_ns"]) for r in rows),
+             "missing/padded samples or changed batch load")
+     grouped = {}
+-- 
+2.43.0
+

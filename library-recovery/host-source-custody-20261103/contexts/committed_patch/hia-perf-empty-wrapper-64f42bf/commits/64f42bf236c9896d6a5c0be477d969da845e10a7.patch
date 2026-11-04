@@ -1,0 +1,269 @@
+From 64f42bf236c9896d6a5c0be477d969da845e10a7 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Tue, 3 Nov 2026 14:38:18 +0800
+Subject: [PATCH] Isolate thin empty-entry LLVM wrapper candidate behind a new
+ observation profile
+
+---
+ tests/test_hia_empty_reduction_observation.py | 12 ++++
+ tests/test_hia_empty_wrapper_candidate.py     | 59 +++++++++++++++++++
+ tools/hia_empty_wrapper_candidate.py          | 56 ++++++++++++++++++
+ tools/qualify_hia_empty_reduction.py          | 45 +++++++++++---
+ 4 files changed, 163 insertions(+), 9 deletions(-)
+ create mode 100644 tests/test_hia_empty_wrapper_candidate.py
+ create mode 100644 tools/hia_empty_wrapper_candidate.py
+
+diff --git a/tests/test_hia_empty_reduction_observation.py b/tests/test_hia_empty_reduction_observation.py
+index 0d4bd19..cf401e4 100644
+--- a/tests/test_hia_empty_reduction_observation.py
++++ b/tests/test_hia_empty_reduction_observation.py
+@@ -25,6 +25,18 @@ class EmptyReductionObservationTests(unittest.TestCase):
+         self.assertEqual(result["by_group"]["prospective_lengths"]["total"], 96)
+         self.assertFalse(result["broad_rust_performance_parity_established"])
+ 
++    def test_wrapper_profile_keeps_historical_gate_and_uses_new_lengths(self):
++        spec = experiment.specification(experiment.WRAPPER_PROFILE)
++        self.assertEqual(spec["historical_profile"], self.spec["historical_profile"])
++        self.assertEqual(spec["groups"][:2], self.spec["groups"][:2])
++        self.assertEqual(spec["performance_gate"], self.spec["performance_gate"])
++        self.assertFalse(set(spec["groups"][-1]["sizes"]) & set(self.spec["groups"][-1]["sizes"]))
++        rows = [{"workload": w, "group": g["name"], "backend": a, "n": n,
++                 "seed": seed, "calls": calls, "times_ns": [100] * spec["samples"]}
++                for w in spec["historical_profile"]["workloads"] for g in spec["groups"]
++                for a in experiment.ARMS for n in g["sizes"] for seed in g["seeds"] for calls in spec["batch_loads"]]
++        self.assertEqual(experiment.assess(rows, spec)["candidate_rust_comparisons_total"], 276)
++
+     def test_empty_input_regression_is_not_erased_by_faster_nonempty_cases(self):
+         rows = deepcopy(self.rows)
+         for row in rows:
+diff --git a/tests/test_hia_empty_wrapper_candidate.py b/tests/test_hia_empty_wrapper_candidate.py
+new file mode 100644
+index 0000000..ad8a227
+--- /dev/null
++++ b/tests/test_hia_empty_wrapper_candidate.py
+@@ -0,0 +1,59 @@
++"""Experimental wrapper changes preserve complete Core calls and ABI admission."""
++from dataclasses import replace
++from hashlib import sha256
++from pathlib import Path
++import tempfile
++import unittest
++
++from hepta.hia_program import verify_program
++from hepta.hia_program_llvm import (compile_program_llvm, emit_program_llvm,
++                                    HIAProgramLLVMRejected)
++from hepta.hia_program_source import lower_source
++from tools.hia_empty_wrapper_candidate import emit_candidate
++
++
++class EmptyWrapperCandidateTests(unittest.TestCase):
++    @classmethod
++    def setUpClass(cls):
++        path = Path(__file__).resolve().parents[1] / "benchmarks/hia_reduction_release/linear.hepta"
++        cls.program = lower_source(path.read_text())
++        cls.length = next(p["name"] for p in cls.program.as_dict()["functions"][0]["params"] if p["type"] == "usize")
++
++    def test_only_wrapper_changes_and_both_paths_call_the_complete_core(self):
++        original = emit_program_llvm(self.program)
++        text, report = emit_candidate(self.program, {"calculate": self.length})
++        self.assertEqual(report["core_sha256"], self.program.sha256)
++        restored = text
++        for row in report["wrappers"]:
++            restored = restored.replace(row["candidate_wrapper"], row["canonical_wrapper"])
++            self.assertEqual(row["candidate_wrapper"].count(" call "), 2)
++            self.assertIn("icmp eq i64 %a0, 0", row["candidate_wrapper"])
++            self.assertIn("@__hia_fn_0(i64 0, i32 %a1) alwaysinline", row["candidate_wrapper"])
++            self.assertIn("@__hia_fn_0(i64 %a0, i32 %a1) noinline", row["candidate_wrapper"])
++            self.assertNotIn("ret i64 0", row["candidate_wrapper"])
++        self.assertEqual(restored, original.text)
++        self.assertFalse(report["production_admission"])
++
++    def test_length_position_is_derived_from_verified_signature(self):
++        data = self.program.as_dict()
++        fn = data["functions"][0]
++        fn["params"].reverse()
++        entry = next(b for b in fn["blocks"] if b["id"] == fn["entry"])
++        entry["params"].reverse()
++        text, report = emit_candidate(verify_program(data), {"calculate": self.length})
++        self.assertEqual(report["wrappers"][0]["parameter_index"], 1)
++        self.assertIn("icmp eq i64 %a1, 0", text)
++        self.assertIn("@__hia_fn_0(i32 %a0, i64 0) alwaysinline", text)
++
++    def test_wrong_or_unknown_length_selection_is_refused(self):
++        for selected in ({}, {"missing": "n"}, {"calculate": "missing"}, {"calculate": "seed"}):
++            with self.assertRaises(ValueError):
++                emit_candidate(self.program, selected)
++
++    def test_production_compiler_still_refuses_experimental_ir(self):
++        canonical = emit_program_llvm(self.program)
++        text, _ = emit_candidate(self.program, {"calculate": self.length})
++        altered = replace(canonical, text=text, sha256=sha256(text.encode()).hexdigest())
++        with tempfile.TemporaryDirectory() as directory:
++            with self.assertRaisesRegex(HIAProgramLLVMRejected, "differs from independently reverified"):
++                compile_program_llvm(altered, program=self.program, output=Path(directory) / "not-created.o", kind="object")
+diff --git a/tools/hia_empty_wrapper_candidate.py b/tools/hia_empty_wrapper_candidate.py
+new file mode 100644
+index 0000000..c3f3c0f
+--- /dev/null
++++ b/tools/hia_empty_wrapper_candidate.py
+@@ -0,0 +1,56 @@
++"""Experimental LLVM entry dispatch, outside production native admission.
++
++Keep the complete reverified Core body on both paths. Only the equality-guarded
++call substitutes zero; LLVM may inline it. The generic call is kept out of line
++to avoid forcing its callee-saved frame onto the empty path. No Core instruction,
++resource action, checked operation or native argument check is manually erased.
++"""
++from hashlib import sha256
++
++from hepta import hia_program_llvm as native
++from hepta.hia_program import verify_program
++
++
++def emit_candidate(program, selections):
++    verified = verify_program(program)
++    original = native.emit_program_llvm(verified)
++    document = verified.as_dict()
++    if (type(selections) is not dict or not 1 <= len(selections) <= 128
++            or not all(type(k) is str and type(v) is str for k, v in selections.items())):
++        raise ValueError("bounded function/length selections required")
++    emitter = native._Emitter(document, original.target, verified.scalar_entrypoints)
++    text, checked = original.text, []
++    for index, fn in enumerate(document["functions"]):
++        if fn["name"] not in selections:
++            continue
++        argument = selections[fn["name"]]
++        params = fn["params"]
++        if (fn["name"] not in original.exports or type(argument) is not str
++                or len(fn["returns"]) != 1 or fn["returns"][0] not in native._WIDTHS
++                or sum(p["name"] == argument and p["type"] == "usize" for p in params) != 1):
++            raise ValueError("integer-returning scalar export with actual usize argument required")
++        selected = next(i for i, p in enumerate(params) if p["name"] == argument)
++        old = emitter.wrapper(fn, index)
++        if text.count(old) != 1:
++            raise ValueError("canonical wrapper missing or ambiguous")
++        ordinary = ", ".join(native._llvm_type(p["type"]) + " %a" + str(i) for i, p in enumerate(params))
++        zero = ", ".join(native._llvm_type(p["type"]) + (" 0" if i == selected else " %a" + str(i))
++                         for i, p in enumerate(params))
++        call = native._return_type(fn["returns"]) + " @__hia_fn_" + str(index)
++        result = native._llvm_type(fn["returns"][0])
++        replacement = "\n".join([
++            old.splitlines()[0], "entry:", "  %is_empty = icmp eq i64 %a" + str(selected) + ", 0",
++            "  br i1 %is_empty, label %zero, label %ordinary", "zero:",
++            "  %zero_result = call " + call + "(" + zero + ") alwaysinline",
++            "  ret " + result + " %zero_result", "ordinary:",
++            "  %result = call " + call + "(" + ordinary + ") noinline", "  ret " + result + " %result", "}"])
++        text = text.replace(old, replacement, 1)
++        checked.append({"function": fn["name"], "argument": argument, "parameter_index": selected,
++                        "canonical_wrapper": old, "candidate_wrapper": replacement})
++    if len(checked) != len(selections) or len(text.encode()) > native.MAX_LLVM_BYTES:
++        raise ValueError("unknown selection or candidate LLVM exceeds bound")
++    return text, {"schema": "hepta.hia.experimental-zero-dispatch.v1", "core_sha256": verified.sha256,
++                  "canonical_llvm_sha256": original.sha256, "candidate_llvm_sha256": sha256(text.encode()).hexdigest(),
++                  "wrappers": checked, "native_profile": original.profile, "target": original.target,
++                  "exports": list(original.exports), "production_admission": False,
++                  "backend_refinement_proved": False, "performance_qualified": False}
+diff --git a/tools/qualify_hia_empty_reduction.py b/tools/qualify_hia_empty_reduction.py
+index 89aa202..1d6705f 100644
+--- a/tools/qualify_hia_empty_reduction.py
++++ b/tools/qualify_hia_empty_reduction.py
+@@ -25,11 +25,14 @@ from tools.qualify_hia_native_ndu import (digest, file_identity, require,
+ 
+ ARMS = (*release.ARMS, "hia_empty_candidate")
+ CANDIDATE = ARMS[-1]
++CLONE_PROFILE = "clone-v1"
++WRAPPER_PROFILE = "wrapper-v2"
+ 
+ 
+-def specification():
++def specification(profile=CLONE_PROFILE):
++    require(profile in (CLONE_PROFILE, WRAPPER_PROFILE), "unknown empty-entry observation profile")
+     historical = release.specification(release.INDUCTION_PROFILE)
+-    return {
++    result = {
+         "schema": "hepta.hia.empty-reduction-observation.protocol.v1",
+         "historical_profile": historical, "arms": list(ARMS),
+         "groups": [
+@@ -52,10 +55,17 @@ def specification():
+             "Core quotas excluded; candidate adds three steps per transformed entry",
+             "all current costs recorded; full lifecycle advantage not established"],
+     }
++    if profile == WRAPPER_PROFILE:
++        result.update(schema="hepta.hia.empty-reduction-observation.protocol.v2", build_profile=profile,
++                      candidate_codegen="same verified Core; equality-guarded zero call alwaysinline, generic call noinline")
++        result["groups"][-1] = {"name": "prospective_lengths", "sizes": [29, 97, 307, 1237, 4937, 19751, 79039, 316201],
++                                 "seeds": [15013, 15017, 4294967231]}
++    return result
+ 
+ 
+ def bindings():
+-    return {**release.bindings(), str(Path(__file__).relative_to(ROOT)): file_identity(__file__)["sha256"]}
++    return {**release.bindings(), str(Path(__file__).relative_to(ROOT)): file_identity(__file__)["sha256"],
++            "tools/hia_empty_wrapper_candidate.py": file_identity(ROOT / "tools/hia_empty_wrapper_candidate.py")["sha256"]}
+ 
+ 
+ class CandidateDriver(release.ReductionDriver):
+@@ -84,7 +94,7 @@ def child_driver(executable, path):
+ 
+ 
+ def assess(rows, spec):
+-    require(spec == specification(), "changed empty-entry observation registration")
++    require(spec == specification(spec.get("build_profile", CLONE_PROFILE)), "changed empty-entry observation registration")
+     expected = {(w, g["name"], a, n, seed, calls)
+                 for w in spec["historical_profile"]["workloads"] for g in spec["groups"]
+                 for a in ARMS for n in g["sizes"] for seed in g["seeds"] for calls in spec["batch_loads"]}
+@@ -141,8 +151,24 @@ def build_candidate(output, clang, report):
+         (directory / "EMPTY_PROOF.json").write_bytes(wire(proof) + b"\n")
+         (directory / "empty.core.json").write_bytes(candidate.canonical_bytes + b"\n")
+         obj, target = directory / (CANDIDATE + ".o"), directory / (CANDIDATE + ".so")
+-        with release.capture_native_commands(output, ledger):
+-            receipt = build_program_native(candidate, obj, clang=str(clang), kind="object")
++        if report["protocol"].get("build_profile") == WRAPPER_PROFILE:
++            from tools.hia_empty_wrapper_candidate import emit_candidate
++            from hepta.hia_program_llvm import _IMPORTS
++            from hepta.object_symbols import inspect_object_symbols
++            selections = {g["function"]: g["argument"] for g in proof["obligations"]}
++            ir, receipt = emit_candidate(candidate, selections)
++            llvm_path = directory / "empty-wrapper.ll"
++            llvm_path.write_text(ir)
++            run_command([clang, "--target=" + receipt["target"], "-x", "ir", "-O3", "-fPIC", "-c", llvm_path, "-o", obj], output, ledger)
++            symbols = inspect_object_symbols(obj.read_bytes(), "ELF64", 62)
++            require(symbols.get("defined") == frozenset(receipt["exports"])
++                    and symbols.get("undefined") is not None and symbols["undefined"] <= _IMPORTS,
++                    "experimental candidate closed ABI inventory mismatch")
++            receipt["artifact"] = file_identity(obj)
++            receipt["binary_inventory"] = {k: sorted(v) for k, v in symbols.items()}
++        else:
++            with release.capture_native_commands(output, ledger):
++                receipt = build_program_native(candidate, obj, clang=str(clang), kind="object")
+         require(receipt["core_sha256"] == candidate.sha256, "native input identity changed")
+         report["compilation"][workload][CANDIDATE] = {"proof": proof, "native": receipt}
+         wraps = ["-Wl,--wrap=" + name for name in ("malloc", "calloc", "realloc", "free")]
+@@ -154,11 +180,11 @@ def build_candidate(output, clang, report):
+             (directory / (CANDIDATE + "." + name)).write_text(run_command(argv, output, ledger))
+ 
+ 
+-def run(output, clang, rustc):
++def run(output, clang, rustc, *, profile=CLONE_PROFILE):
+     started = time.monotonic_ns()
+     output = Path(output).resolve()
+     output.mkdir(parents=True, exist_ok=False)
+-    affinity, spec = sorted(os.sched_getaffinity(0)), specification()
++    affinity, spec = sorted(os.sched_getaffinity(0)), specification(profile)
+     report = {"schema": "hepta.hia.empty-reduction-observation.result.v1", "status": "running",
+               "started_utc": datetime.now(timezone.utc).isoformat(), "protocol": spec,
+               "protocol_sha256": digest(spec), "source_before": source_state(), "bindings_before": bindings(),
+@@ -255,8 +281,9 @@ def main():
+     parser.add_argument("--output", required=True)
+     parser.add_argument("--clang", required=True)
+     parser.add_argument("--rustc", required=True)
++    parser.add_argument("--profile", choices=(CLONE_PROFILE, WRAPPER_PROFILE), default=CLONE_PROFILE)
+     args = parser.parse_args()
+-    report = run(args.output, Path(args.clang).resolve(), Path(args.rustc).resolve())
++    report = run(args.output, Path(args.clang).resolve(), Path(args.rustc).resolve(), profile=args.profile)
+     print(json.dumps({k: report.get(k) for k in ("status", "qualification_valid", "whole_lifecycle_wall_ns", "error")}))
+     for name in ("assessment", "historical_v2_replay_assessment"):
+         if name in report:
+-- 
+2.43.0
+
