@@ -9,3 +9,5 @@ API requests cannot redirect with their Authorization header. The signed archive
 The workflow runs only on this independent research branch with contents/actions read permissions. Its own three operative tracked files are compared with Git bytes before and after the readback. Synthetic rejection controls validate the reader itself and are labelled separately from the historical native cases.
 
 A successful readback closes only this original-artifact integrity gap. It does not independently rebuild every transitive original compiler input, rerun historical binaries, prove all HIA P0–P7 or HCSN P0–P6 acceptance, authorize production, or satisfy Library clearance. The existing product branch is unchanged.
+
+The successful bounded JSON report is also printed in the hosted job log, so its complete bytes can be independently retained without executing or publishing either original log payload. The independent static review binds the unchanged reader blob; actual hosted controls and archive verification remain separate observations.

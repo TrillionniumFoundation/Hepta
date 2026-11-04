@@ -27,7 +27,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PYTHONDONTWRITEBYTECODE: '1'
-        run: python qualification/float-artifact-readback-20261104/readback.py --out "${{ runner.temp }}/hepta-original-float-readback"
+        run: |
+          python qualification/float-artifact-readback-20261104/readback.py --out "${{ runner.temp }}/hepta-original-float-readback"
+          cat "${{ runner.temp }}/hepta-original-float-readback/readback.json"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
