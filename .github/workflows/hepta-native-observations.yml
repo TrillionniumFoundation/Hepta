@@ -1,0 +1,66 @@
+name: Experimental native dependency observations
+on:
+  pull_request:
+    paths:
+      - 'experiments/native_observations/**'
+      - '.github/workflows/hepta-native-observations.yml'
+permissions:
+  contents: read
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: 43ea9c8f316d38cf3aa14b883d540a7ad0c5f3c6
+          path: baseline
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify inherited tree and bind real compilers
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test "$(git -C baseline rev-parse HEAD)" = 43ea9c8f316d38cf3aa14b883d540a7ad0c5f3c6
+          test "$(git -C baseline rev-parse HEAD^{tree})" = e454a09e83c86263b4cc0a43563821e8fd266755
+          export GIT_ALTERNATE_OBJECT_DIRECTORIES="$GITHUB_WORKSPACE/baseline/.git/objects"
+          git diff --exit-code 43ea9c8f316d38cf3aa14b883d540a7ad0c5f3c6 HEAD -- . ':!experiments/native_observations' ':!.github/workflows/hepta-native-observations.yml'
+          python - <<'PY'
+          import subprocess
+          rows=subprocess.check_output(['git','diff','--name-status','43ea9c8f316d38cf3aa14b883d540a7ad0c5f3c6','HEAD'],text=True).splitlines()
+          expected={'.github/workflows/hepta-native-observations.yml'}|{'experiments/native_observations/'+name for name in ('__init__.py','context.py','observer.py','prepared.py','build_plan.py','test_observer.py','test_native.py','test_review_regressions.py','gate.py','README.md')}
+          assert set(rows)=={'A\t'+path for path in expected},rows
+          PY
+          rustup toolchain install 1.90.0 --profile minimal
+          mkdir -p artifacts/native-observations
+          echo "RUSTC=$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_ENV"
+          echo "CC=$(command -v gcc)" >> "$GITHUB_ENV"
+      - name: Run all 202 unique controls twice without skips
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          { "$CC" --version; "$RUSTC" --version; sha256sum "$CC" "$RUSTC"; } > artifacts/native-observations/compilers.txt
+          python -B -m experiments.native_observations.gate 2>&1 | tee artifacts/native-observations/tests-1.log
+          python -B -m experiments.native_observations.gate 2>&1 | tee artifacts/native-observations/tests-2.log
+          test -z "$(git status --porcelain --untracked-files=no)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-observations-${{ matrix.os }}-${{ env.EXPECTED_HEAD }}
+          path: artifacts/native-observations
