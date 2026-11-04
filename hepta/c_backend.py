@@ -34,6 +34,26 @@ def _hash(data):
     return hashlib.sha256(data).hexdigest()
 
 
+def _source_filename(span):
+    """Encode one UTF-8 filename as an ASCII C #line string constant.
+
+    JSON's UTF-16 escapes are not C escapes. Fixed-width octal bytes also
+    keep Unicode line separators, controls and trigraphs out of the source
+    stream, without depending on the compiler's input character set.
+    """
+    path = span.path
+    if type(path) is not str or "\0" in path:
+        fail("E_C_SOURCE_PATH", "C source paths must be NUL-free UTF-8 strings", span)
+    try:
+        data = path.encode("utf-8")
+    except UnicodeEncodeError:
+        fail("E_C_SOURCE_PATH", "C source paths must be NUL-free UTF-8 strings", span)
+    escaped = {34: '\\"', 92: '\\\\'}
+    return '"' + "".join(escaped.get(byte, chr(byte))
+                         if 32 <= byte <= 126 and byte != 63
+                         else f"\\{byte:03o}" for byte in data) + '"'
+
+
 class CEmitter:
     def __init__(self, program, checked, crate_type):
         if not checked.ok:
@@ -512,7 +532,7 @@ class CEmitter:
         lines = []
         for s in body:
             d = s.data
-            lines.append("\n#line " + str(s.span.line) + " " + json.dumps(s.span.path))
+            lines.append("\n#line " + str(s.span.line) + " " + _source_filename(s.span))
             if s.kind == "let":
                 v = self.value(d["expr"], lines)
                 t = self.resolve(d["type"]) if d.get("type") else self.expr_type(d["expr"])
@@ -657,7 +677,7 @@ static {result_name} __hepta_cb_try_buffer(size_t size) {{
             if fn.extern_c:
                 continue
             self.params = {p.name: replace(p, type=self.resolve(p.type)) for p in fn.params}
-            directive = "#line " + str(fn.span.line) + " " + json.dumps(fn.span.path)
+            directive = "#line " + str(fn.span.line) + " " + _source_filename(fn.span)
             bodies.append(self.retain_source_lines(directive + "\n" + signature + " {\n" + self.block(fn.body or []) + "\n}"))
         if self.crate_type == "bin":
             main = self.functions.get("main")
