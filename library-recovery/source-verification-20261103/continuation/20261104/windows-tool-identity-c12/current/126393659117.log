@@ -1,0 +1,335 @@
+﻿2026-11-04T04:45:57.2037560Z Current runner version: '2.338.2'
+2026-11-04T04:45:57.2088391Z ##[group]Runner Image Provisioner
+2026-11-04T04:45:57.2089233Z Hosted Compute Agent
+2026-11-04T04:45:57.2089809Z Version: 20261021.618
+2026-11-04T04:45:57.2090388Z Commit: 21505ad2541d5be6135ed84fc33697146cf75b8e
+2026-11-04T04:45:57.2091136Z Build Date: 2026-10-21T00:45:21Z
+2026-11-04T04:45:57.2091781Z Worker ID: {a2aa3dd0-2e64-42fb-a033-fc79d0989fda}
+2026-11-04T04:45:57.2092476Z Region: westus
+2026-11-04T04:45:57.2093021Z Cloud: Azure
+2026-11-04T04:45:57.2093492Z ##[endgroup]
+2026-11-04T04:45:57.2094750Z ##[group]Operating System
+2026-11-04T04:45:57.2095357Z Microsoft Windows Server 2022
+2026-11-04T04:45:57.2095923Z 10.0.20348
+2026-11-04T04:45:57.2096415Z Datacenter
+2026-11-04T04:45:57.2096895Z ##[endgroup]
+2026-11-04T04:45:57.2097403Z ##[group]Runner Image
+2026-11-04T04:45:57.2097948Z Image: windows-2022
+2026-11-04T04:45:57.2098492Z Version: 20261025.346.1
+2026-11-04T04:45:57.2099874Z Included Software: https://github.com/actions/runner-images/blob/win22/20261025.346/images/windows/Windows2022-Readme.md
+2026-11-04T04:45:57.2101438Z Image Release: https://github.com/actions/runner-images/releases/tag/win22%2F20261025.346
+2026-11-04T04:45:57.2102353Z ##[endgroup]
+2026-11-04T04:45:57.2103434Z ##[group]GITHUB_TOKEN Permissions
+2026-11-04T04:45:57.2105211Z Contents: read
+2026-11-04T04:45:57.2105797Z Metadata: read
+2026-11-04T04:45:57.2106323Z ##[endgroup]
+2026-11-04T04:45:57.2108242Z Secret source: Actions
+2026-11-04T04:45:57.2109157Z Cache mode: write
+2026-11-04T04:45:57.2109822Z Prepare workflow directory
+2026-11-04T04:45:57.2614324Z Prepare all required actions
+2026-11-04T04:45:57.2663922Z Getting action download info
+2026-11-04T04:45:57.6678812Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-11-04T04:45:57.7925615Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-11-04T04:45:58.0590475Z Complete job name: stable-identity (windows-2022, 3.12)
+2026-11-04T04:45:58.2264316Z ##[group]Run actions/checkout@v4
+2026-11-04T04:45:58.2265538Z with:
+2026-11-04T04:45:58.2266278Z   ref: c12ae2c3788c3b74acf8e283676b4145743b1883
+2026-11-04T04:45:58.2267154Z   persist-credentials: false
+2026-11-04T04:45:58.2267920Z   repository: TrillionniumFoundation/Hepta
+2026-11-04T04:45:58.2274499Z   token: ***
+2026-11-04T04:45:58.2275094Z   ssh-strict: true
+2026-11-04T04:45:58.2275776Z   ssh-user: git
+2026-11-04T04:45:58.2276277Z   clean: true
+2026-11-04T04:45:58.2276817Z   sparse-checkout-cone-mode: true
+2026-11-04T04:45:58.2277474Z   fetch-depth: 1
+2026-11-04T04:45:58.2278007Z   fetch-tags: false
+2026-11-04T04:45:58.2278549Z   show-progress: true
+2026-11-04T04:45:58.2279098Z   lfs: false
+2026-11-04T04:45:58.2279603Z   submodules: false
+2026-11-04T04:45:58.2280148Z   set-safe-directory: true
+2026-11-04T04:45:58.2280776Z   allow-unsafe-pr-checkout: false
+2026-11-04T04:45:58.2281620Z env:
+2026-11-04T04:45:58.2282297Z   HEPTA_SOURCE_SHA: c12ae2c3788c3b74acf8e283676b4145743b1883
+2026-11-04T04:45:58.2283171Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-04T04:45:58.2283790Z ##[endgroup]
+2026-11-04T04:45:58.3853562Z Syncing repository: TrillionniumFoundation/Hepta
+2026-11-04T04:45:58.3855287Z ##[group]Getting Git version info
+2026-11-04T04:45:58.3855867Z Working directory is 'D:\a\Hepta\Hepta'
+2026-11-04T04:45:58.5410848Z [command]"C:\Program Files\Git\bin\git.exe" version
+2026-11-04T04:45:58.8965500Z git version 2.56.0.windows.3
+2026-11-04T04:45:58.9013436Z ##[endgroup]
+2026-11-04T04:45:58.9037784Z Temporarily overriding HOME='D:\a\_temp\74232b5a-4a43-4a2b-bac7-a342e26ec236' before making global git config changes
+2026-11-04T04:45:58.9040277Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-04T04:45:58.9049014Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\Hepta\Hepta
+2026-11-04T04:45:58.9672548Z Deleting the contents of 'D:\a\Hepta\Hepta'
+2026-11-04T04:45:58.9677626Z ##[group]Initializing the repository
+2026-11-04T04:45:58.9686937Z [command]"C:\Program Files\Git\bin\git.exe" init D:\a\Hepta\Hepta
+2026-11-04T04:45:59.0521395Z Initialized empty Git repository in D:/a/Hepta/Hepta/.git/
+2026-11-04T04:45:59.0554693Z [command]"C:\Program Files\Git\bin\git.exe" remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-11-04T04:45:59.1193922Z ##[endgroup]
+2026-11-04T04:45:59.1194784Z ##[group]Disabling automatic garbage collection
+2026-11-04T04:45:59.1203365Z [command]"C:\Program Files\Git\bin\git.exe" config --local gc.auto 0
+2026-11-04T04:45:59.1499806Z ##[endgroup]
+2026-11-04T04:45:59.1501009Z ##[group]Setting up auth
+2026-11-04T04:45:59.1509785Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-11-04T04:45:59.1788383Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-11-04T04:46:00.6832731Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-04T04:46:00.7112991Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-11-04T04:46:01.1642694Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-04T04:46:01.1926753Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-11-04T04:46:01.6470902Z [command]"C:\Program Files\Git\bin\git.exe" config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ***"
+2026-11-04T04:46:01.6765139Z ##[endgroup]
+2026-11-04T04:46:01.6767976Z ##[group]Fetching the repository
+2026-11-04T04:46:01.6785234Z [command]"C:\Program Files\Git\bin\git.exe" -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin c12ae2c3788c3b74acf8e283676b4145743b1883
+2026-11-04T04:46:14.9146370Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-04T04:46:14.9147303Z  * branch            c12ae2c3788c3b74acf8e283676b4145743b1883 -> FETCH_HEAD
+2026-11-04T04:46:14.9181014Z ##[endgroup]
+2026-11-04T04:46:14.9181656Z ##[group]Determining the checkout info
+2026-11-04T04:46:14.9185986Z ##[endgroup]
+2026-11-04T04:46:14.9199573Z [command]"C:\Program Files\Git\bin\git.exe" sparse-checkout disable
+2026-11-04T04:46:14.9626765Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all extensions.worktreeConfig
+2026-11-04T04:46:14.9947574Z ##[group]Checking out the ref
+2026-11-04T04:46:14.9956062Z [command]"C:\Program Files\Git\bin\git.exe" checkout --progress --force c12ae2c3788c3b74acf8e283676b4145743b1883
+2026-11-04T04:46:16.1631325Z Updating files:  19% (1707/8664)
+2026-11-04T04:46:16.2475203Z Updating files:  20% (1733/8664)
+2026-11-04T04:46:16.2886989Z Updating files:  21% (1820/8664)
+2026-11-04T04:46:16.5376989Z Updating files:  22% (1907/8664)
+2026-11-04T04:46:16.6139607Z Updating files:  23% (1993/8664)
+2026-11-04T04:46:16.6405119Z Updating files:  24% (2080/8664)
+2026-11-04T04:46:16.6728090Z Updating files:  25% (2166/8664)
+2026-11-04T04:46:16.7004886Z Updating files:  26% (2253/8664)
+2026-11-04T04:46:16.7252831Z Updating files:  27% (2340/8664)
+2026-11-04T04:46:16.7695763Z Updating files:  28% (2426/8664)
+2026-11-04T04:46:16.7878437Z Updating files:  29% (2513/8664)
+2026-11-04T04:46:16.8013133Z Updating files:  30% (2600/8664)
+2026-11-04T04:46:16.8297429Z Updating files:  31% (2686/8664)
+2026-11-04T04:46:16.8671492Z Updating files:  32% (2773/8664)
+2026-11-04T04:46:16.8839817Z Updating files:  33% (2860/8664)
+2026-11-04T04:46:16.8953453Z Updating files:  34% (2946/8664)
+2026-11-04T04:46:16.9185762Z Updating files:  35% (3033/8664)
+2026-11-04T04:46:16.9366439Z Updating files:  36% (3120/8664)
+2026-11-04T04:46:16.9614142Z Updating files:  37% (3206/8664)
+2026-11-04T04:46:17.0669643Z Updating files:  38% (3293/8664)
+2026-11-04T04:46:17.1497577Z Updating files:  38% (3363/8664)
+2026-11-04T04:46:17.1680873Z Updating files:  39% (3379/8664)
+2026-11-04T04:46:17.1805235Z Updating files:  40% (3466/8664)
+2026-11-04T04:46:17.1948601Z Updating files:  41% (3553/8664)
+2026-11-04T04:46:17.2498945Z Updating files:  42% (3639/8664)
+2026-11-04T04:46:17.2663794Z Updating files:  43% (3726/8664)
+2026-11-04T04:46:17.2917484Z Updating files:  44% (3813/8664)
+2026-11-04T04:46:17.3060738Z Updating files:  45% (3899/8664)
+2026-11-04T04:46:17.3225577Z Updating files:  46% (3986/8664)
+2026-11-04T04:46:17.3444008Z Updating files:  47% (4073/8664)
+2026-11-04T04:46:17.3678155Z Updating files:  48% (4159/8664)
+2026-11-04T04:46:17.4162683Z Updating files:  49% (4246/8664)
+2026-11-04T04:46:17.4462651Z Updating files:  50% (4332/8664)
+2026-11-04T04:46:17.4658721Z Updating files:  51% (4419/8664)
+2026-11-04T04:46:17.5260532Z Updating files:  52% (4506/8664)
+2026-11-04T04:46:17.6034732Z Updating files:  53% (4592/8664)
+2026-11-04T04:46:17.6258198Z Updating files:  54% (4679/8664)
+2026-11-04T04:46:17.6398890Z Updating files:  55% (4766/8664)
+2026-11-04T04:46:17.6547015Z Updating files:  56% (4852/8664)
+2026-11-04T04:46:17.6698118Z Updating files:  57% (4939/8664)
+2026-11-04T04:46:17.6866753Z Updating files:  58% (5026/8664)
+2026-11-04T04:46:17.7617521Z Updating files:  59% (5112/8664)
+2026-11-04T04:46:17.7790503Z Updating files:  60% (5199/8664)
+2026-11-04T04:46:17.7935991Z Updating files:  61% (5286/8664)
+2026-11-04T04:46:17.8080138Z Updating files:  62% (5372/8664)
+2026-11-04T04:46:17.8251117Z Updating files:  63% (5459/8664)
+2026-11-04T04:46:17.8431317Z Updating files:  64% (5545/8664)
+2026-11-04T04:46:17.8599469Z Updating files:  65% (5632/8664)
+2026-11-04T04:46:17.8804889Z Updating files:  66% (5719/8664)
+2026-11-04T04:46:17.8962879Z Updating files:  67% (5805/8664)
+2026-11-04T04:46:17.9116282Z Updating files:  68% (5892/8664)
+2026-11-04T04:46:17.9273818Z Updating files:  69% (5979/8664)
+2026-11-04T04:46:17.9445420Z Updating files:  70% (6065/8664)
+2026-11-04T04:46:17.9602600Z Updating files:  71% (6152/8664)
+2026-11-04T04:46:18.0016855Z Updating files:  72% (6239/8664)
+2026-11-04T04:46:18.0308881Z Updating files:  73% (6325/8664)
+2026-11-04T04:46:18.0438248Z Updating files:  74% (6412/8664)
+2026-11-04T04:46:18.0545502Z Updating files:  74% (6456/8664)
+2026-11-04T04:46:18.0941130Z Updating files:  75% (6498/8664)
+2026-11-04T04:46:18.1179386Z Updating files:  76% (6585/8664)
+2026-11-04T04:46:18.1443233Z Updating files:  77% (6672/8664)
+2026-11-04T04:46:18.1633215Z Updating files:  78% (6758/8664)
+2026-11-04T04:46:18.2145417Z Updating files:  79% (6845/8664)
+2026-11-04T04:46:18.3265091Z Updating files:  80% (6932/8664)
+2026-11-04T04:46:18.3504062Z Updating files:  81% (7018/8664)
+2026-11-04T04:46:18.3719554Z Updating files:  82% (7105/8664)
+2026-11-04T04:46:18.3891784Z Updating files:  83% (7192/8664)
+2026-11-04T04:46:18.4605800Z Updating files:  84% (7278/8664)
+2026-11-04T04:46:18.4840414Z Updating files:  85% (7365/8664)
+2026-11-04T04:46:18.5029768Z Updating files:  86% (7452/8664)
+2026-11-04T04:46:18.5444231Z Updating files:  87% (7538/8664)
+2026-11-04T04:46:18.5920476Z Updating files:  88% (7625/8664)
+2026-11-04T04:46:18.6098726Z Updating files:  89% (7711/8664)
+2026-11-04T04:46:18.6321801Z Updating files:  90% (7798/8664)
+2026-11-04T04:46:18.6502578Z Updating files:  91% (7885/8664)
+2026-11-04T04:46:18.6670428Z Updating files:  92% (7971/8664)
+2026-11-04T04:46:18.6833397Z Updating files:  93% (8058/8664)
+2026-11-04T04:46:18.6998500Z Updating files:  94% (8145/8664)
+2026-11-04T04:46:18.7174291Z Updating files:  95% (8231/8664)
+2026-11-04T04:46:18.7340093Z Updating files:  96% (8318/8664)
+2026-11-04T04:46:18.7527564Z Updating files:  97% (8405/8664)
+2026-11-04T04:46:18.7751612Z Updating files:  98% (8491/8664)
+2026-11-04T04:46:18.7958625Z Updating files:  99% (8578/8664)
+2026-11-04T04:46:18.7959065Z Updating files: 100% (8664/8664)
+2026-11-04T04:46:18.7959323Z Updating files: 100% (8664/8664), done.
+2026-11-04T04:46:18.8148932Z Note: switching to 'c12ae2c3788c3b74acf8e283676b4145743b1883'.
+2026-11-04T04:46:18.8149714Z 
+2026-11-04T04:46:18.8150053Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-11-04T04:46:18.8151265Z changes and commit them, and you can discard any commits you make in this
+2026-11-04T04:46:18.8152319Z state without impacting any branches by switching back to a branch.
+2026-11-04T04:46:18.8152699Z 
+2026-11-04T04:46:18.8152892Z If you want to create a new branch to retain commits you create, you may
+2026-11-04T04:46:18.8153334Z do so (now or later) by using -c with the switch command. Example:
+2026-11-04T04:46:18.8153596Z 
+2026-11-04T04:46:18.8153738Z   git switch -c <new-branch-name>
+2026-11-04T04:46:18.8153908Z 
+2026-11-04T04:46:18.8154033Z Or undo this operation with:
+2026-11-04T04:46:18.8154182Z 
+2026-11-04T04:46:18.8154254Z   git switch -
+2026-11-04T04:46:18.8154357Z 
+2026-11-04T04:46:18.8154554Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-11-04T04:46:18.8154849Z 
+2026-11-04T04:46:18.8155099Z HEAD is now at c12ae2c Compose integer admission with independent Windows identity repair
+2026-11-04T04:46:18.8698179Z ##[endgroup]
+2026-11-04T04:46:18.9171087Z [command]"C:\Program Files\Git\bin\git.exe" log -1 --format=%H
+2026-11-04T04:46:18.9438425Z c12ae2c3788c3b74acf8e283676b4145743b1883
+2026-11-04T04:46:18.9473339Z ##[group]Removing auth
+2026-11-04T04:46:18.9481775Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-11-04T04:46:18.9781011Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-11-04T04:46:19.4489821Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-04T04:46:19.4739141Z http.https://github.com/.extraheader
+2026-11-04T04:46:19.4770312Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all http.https://github.com/.extraheader
+2026-11-04T04:46:19.5136188Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-11-04T04:46:19.9983242Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-04T04:46:20.0259285Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-11-04T04:46:20.4821725Z ##[endgroup]
+2026-11-04T04:46:20.5186270Z ##[group]Run actions/setup-python@v5
+2026-11-04T04:46:20.5186784Z with:
+2026-11-04T04:46:20.5187058Z   python-version: 3.12
+2026-11-04T04:46:20.5187269Z   check-latest: false
+2026-11-04T04:46:20.5189604Z   token: ***
+2026-11-04T04:46:20.5189795Z   update-environment: true
+2026-11-04T04:46:20.5190012Z   allow-prereleases: false
+2026-11-04T04:46:20.5190221Z   freethreaded: false
+2026-11-04T04:46:20.5190406Z env:
+2026-11-04T04:46:20.5190628Z   HEPTA_SOURCE_SHA: c12ae2c3788c3b74acf8e283676b4145743b1883
+2026-11-04T04:46:20.5190952Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-04T04:46:20.5191165Z ##[endgroup]
+2026-11-04T04:46:20.6659945Z ##[group]Installed versions
+2026-11-04T04:46:20.6769292Z (node:6608) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-04T04:46:20.6770001Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-04T04:46:20.6771489Z Successfully set up CPython (3.12.10)
+2026-11-04T04:46:20.6772693Z ##[endgroup]
+2026-11-04T04:46:20.7017776Z ##[group]Run import hashlib, json, os, pathlib, platform, subprocess, sys, tempfile, time
+2026-11-04T04:46:20.7018518Z [36;1mimport hashlib, json, os, pathlib, platform, subprocess, sys, tempfile, time[0m
+2026-11-04T04:46:20.7018958Z [36;1msys.path.insert(0, os.getcwd())[0m
+2026-11-04T04:46:20.7019301Z [36;1mfrom hepta.native_tool_identity import digest_executable[0m
+2026-11-04T04:46:20.7019889Z [36;1mactual = subprocess.check_output(['git', '--no-replace-objects', 'rev-parse', 'HEAD'], text=True).strip()[0m
+2026-11-04T04:46:20.7020574Z [36;1massert actual == os.environ['HEPTA_SOURCE_SHA'], (actual, os.environ['HEPTA_SOURCE_SHA'])[0m
+2026-11-04T04:46:20.7021272Z [36;1massert not subprocess.check_output(['git', 'status', '--porcelain', '--untracked-files=all'], text=True).strip()[0m
+2026-11-04T04:46:20.7021954Z [36;1mprint('Source:', actual, 'Host:', platform.platform(), 'Python:', sys.version, flush=True)[0m
+2026-11-04T04:46:20.7022576Z [36;1mfields = ('st_dev', 'st_ino', 'st_size', 'st_mtime_ns', 'st_ctime_ns', 'st_birthtime_ns')[0m
+2026-11-04T04:46:20.7023015Z [36;1mwith tempfile.TemporaryDirectory() as root:[0m
+2026-11-04T04:46:20.7023344Z [36;1m    path = pathlib.Path(root) / 'compiler'[0m
+2026-11-04T04:46:20.7023641Z [36;1m    path.write_bytes(b'initial')[0m
+2026-11-04T04:46:20.7023891Z [36;1m    time.sleep(0.02)[0m
+2026-11-04T04:46:20.7024117Z [36;1m    path.write_bytes(b'updated')[0m
+2026-11-04T04:46:20.7024414Z [36;1m    os.utime(path, ns=(1_600_000_000_000_000_000,) * 2)[0m
+2026-11-04T04:46:20.7024721Z [36;1m    before = path.lstat()[0m
+2026-11-04T04:46:20.7025035Z [36;1m    with path.open('rb') as stream:[0m
+2026-11-04T04:46:20.7025351Z [36;1m        opened = os.fstat(stream.fileno())[0m
+2026-11-04T04:46:20.7025733Z [36;1m    report = {name: {field: getattr(value, field, None) for field in fields}[0m
+2026-11-04T04:46:20.7026186Z [36;1m              for name, value in [('lstat', before), ('fstat', opened)]}[0m
+2026-11-04T04:46:20.7026808Z [36;1m    report['differing_fields'] = [field for field in fields if getattr(before, field, None) != getattr(opened, field, None)][0m
+2026-11-04T04:46:20.7027406Z [36;1m    print(json.dumps(report, sort_keys=True), flush=True)[0m
+2026-11-04T04:46:20.7027845Z [36;1m    assert digest_executable(path) == hashlib.sha256(b'updated').hexdigest()[0m
+2026-11-04T04:46:20.7036720Z shell: C:\hostedtoolcache\windows\Python\3.12.10\x64\python.EXE {0}
+2026-11-04T04:46:20.7037075Z env:
+2026-11-04T04:46:20.7037320Z   HEPTA_SOURCE_SHA: c12ae2c3788c3b74acf8e283676b4145743b1883
+2026-11-04T04:46:20.7037644Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-04T04:46:20.7037960Z   pythonLocation: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-11-04T04:46:20.7038418Z   PKG_CONFIG_PATH: C:\hostedtoolcache\windows\Python\3.12.10\x64/lib/pkgconfig
+2026-11-04T04:46:20.7038860Z   Python_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-11-04T04:46:20.7039272Z   Python2_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-11-04T04:46:20.7039666Z   Python3_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-11-04T04:46:20.7039971Z ##[endgroup]
+2026-11-04T04:46:23.0892151Z Source: c12ae2c3788c3b74acf8e283676b4145743b1883 Host: Windows-2022Server-10.0.20348-SP0 Python: 3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]
+2026-11-04T04:46:23.1418294Z {"differing_fields": ["st_ctime_ns"], "fstat": {"st_birthtime_ns": 1793767583090110000, "st_ctime_ns": 1793767583121807500, "st_dev": 3488864977864881806, "st_ino": 1407374884570336, "st_mtime_ns": 1600000000000000000, "st_size": 7}, "lstat": {"st_birthtime_ns": 1793767583090110000, "st_ctime_ns": 1793767583090110000, "st_dev": 3488864977864881806, "st_ino": 1407374884570336, "st_mtime_ns": 1600000000000000000, "st_size": 7}}
+2026-11-04T04:46:23.1706014Z ##[group]Run import os, sys, unittest
+2026-11-04T04:46:23.1706507Z [36;1mimport os, sys, unittest[0m
+2026-11-04T04:46:23.1707508Z [36;1msys.path.insert(0, os.getcwd())[0m
+2026-11-04T04:46:23.1708055Z [36;1msuite = unittest.defaultTestLoader.loadTestsFromName('tests.test_native_tool_identity_cross_api')[0m
+2026-11-04T04:46:23.1708666Z [36;1mresult = unittest.TextTestRunner(verbosity=2).run(suite)[0m
+2026-11-04T04:46:23.1709021Z [36;1massert result.testsRun == 9[0m
+2026-11-04T04:46:23.1709588Z [36;1massert result.wasSuccessful() and not result.skipped and not result.expectedFailures and not result.unexpectedSuccesses[0m
+2026-11-04T04:46:23.1713500Z shell: C:\hostedtoolcache\windows\Python\3.12.10\x64\python.EXE {0}
+2026-11-04T04:46:23.1713850Z env:
+2026-11-04T04:46:23.1714094Z   HEPTA_SOURCE_SHA: c12ae2c3788c3b74acf8e283676b4145743b1883
+2026-11-04T04:46:23.1714416Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-04T04:46:23.1714757Z   pythonLocation: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-11-04T04:46:23.1715198Z   PKG_CONFIG_PATH: C:\hostedtoolcache\windows\Python\3.12.10\x64/lib/pkgconfig
+2026-11-04T04:46:23.1715637Z   Python_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-11-04T04:46:23.1716026Z   Python2_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-11-04T04:46:23.1716411Z   Python3_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-11-04T04:46:23.1716717Z ##[endgroup]
+2026-11-04T04:46:23.8352294Z test_each_comparable_field_mismatch_is_rejected_before_read (tests.test_native_tool_identity_cross_api.CrossApiToolIdentityTests.test_each_comparable_field_mismatch_is_rejected_before_read) ... ok
+2026-11-04T04:46:23.8381371Z test_each_handle_identity_change_during_read_is_rejected (tests.test_native_tool_identity_cross_api.CrossApiToolIdentityTests.test_each_handle_identity_change_during_read_is_rejected) ... ok
+2026-11-04T04:46:23.8414807Z test_each_path_identity_change_after_read_is_rejected (tests.test_native_tool_identity_cross_api.CrossApiToolIdentityTests.test_each_path_identity_change_after_read_is_rejected) ... ok
+2026-11-04T04:46:23.8425232Z test_posix_cross_api_ctime_is_still_required_even_with_birthtime (tests.test_native_tool_identity_cross_api.CrossApiToolIdentityTests.test_posix_cross_api_ctime_is_still_required_even_with_birthtime) ... ok
+2026-11-04T04:46:23.8822581Z test_real_checkout_compiler_hash_matches_original_envelope (tests.test_native_tool_identity_cross_api.CrossApiToolIdentityTests.test_real_checkout_compiler_hash_matches_original_envelope) ... ok
+2026-11-04T04:46:23.8857464Z test_real_compiler_source_envelope_after_metadata_change (tests.test_native_tool_identity_cross_api.CrossApiToolIdentityTests.test_real_compiler_source_envelope_after_metadata_change) ... ok
+2026-11-04T04:46:23.9077728Z test_real_rewritten_file_preserves_exact_bytes (tests.test_native_tool_identity_cross_api.CrossApiToolIdentityTests.test_real_rewritten_file_preserves_exact_bytes) ... ok
+2026-11-04T04:46:23.9094499Z test_windows_311_without_birthtime_keeps_creation_time_check (tests.test_native_tool_identity_cross_api.CrossApiToolIdentityTests.test_windows_311_without_birthtime_keeps_creation_time_check) ... ok
+2026-11-04T04:46:23.9108179Z test_windows_distinct_creation_and_change_times_are_accepted (tests.test_native_tool_identity_cross_api.CrossApiToolIdentityTests.test_windows_distinct_creation_and_change_times_are_accepted) ... ok
+2026-11-04T04:46:23.9109224Z 
+2026-11-04T04:46:23.9109482Z ----------------------------------------------------------------------
+2026-11-04T04:46:23.9109900Z Ran 9 tests in 0.085s
+2026-11-04T04:46:23.9110065Z 
+2026-11-04T04:46:23.9110145Z OK
+2026-11-04T04:46:23.9369693Z ##[group]Run python -m unittest tests.test_native_tool_identity -v
+2026-11-04T04:46:23.9370228Z [36;1mpython -m unittest tests.test_native_tool_identity -v[0m
+2026-11-04T04:46:23.9479788Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-11-04T04:46:23.9480151Z env:
+2026-11-04T04:46:23.9480406Z   HEPTA_SOURCE_SHA: c12ae2c3788c3b74acf8e283676b4145743b1883
+2026-11-04T04:46:23.9480762Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-04T04:46:23.9481256Z   pythonLocation: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-11-04T04:46:23.9481755Z   PKG_CONFIG_PATH: C:\hostedtoolcache\windows\Python\3.12.10\x64/lib/pkgconfig
+2026-11-04T04:46:23.9482227Z   Python_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-11-04T04:46:23.9482648Z   Python2_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-11-04T04:46:23.9483066Z   Python3_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-11-04T04:46:23.9483397Z ##[endgroup]
+2026-11-04T04:46:24.5193892Z test_empty_and_missing (tests.test_native_tool_identity.NativeToolIdentityTests.test_empty_and_missing) ... ok
+2026-11-04T04:46:24.5194955Z test_fifo_fails_without_open (tests.test_native_tool_identity.NativeToolIdentityTests.test_fifo_fails_without_open) ... skipped 'POSIX FIFO required'
+2026-11-04T04:46:24.5217127Z test_file_growth_after_open_is_not_silently_accepted (tests.test_native_tool_identity.NativeToolIdentityTests.test_file_growth_after_open_is_not_silently_accepted) ... ok
+2026-11-04T04:46:24.5218574Z test_in_place_mutation_after_open (tests.test_native_tool_identity.NativeToolIdentityTests.test_in_place_mutation_after_open) ... skipped 'POSIX open-inode mutation semantics'
+2026-11-04T04:46:25.7833354Z test_oversize_sparse_file_without_reading (tests.test_native_tool_identity.NativeToolIdentityTests.test_oversize_sparse_file_without_reading) ... ok
+2026-11-04T04:46:25.7837832Z test_path_retarget_after_open (tests.test_native_tool_identity.NativeToolIdentityTests.test_path_retarget_after_open) ... skipped 'POSIX open-inode replacement semantics'
+2026-11-04T04:46:26.9188199Z test_real_clang_identity (tests.test_native_tool_identity.NativeToolIdentityTests.test_real_clang_identity) ... ok
+2026-11-04T04:46:26.9190122Z test_regular_compiler_swapped_to_fifo_before_open_never_blocks (tests.test_native_tool_identity.NativeToolIdentityTests.test_regular_compiler_swapped_to_fifo_before_open_never_blocks) ... skipped 'POSIX FIFO required'
+2026-11-04T04:46:26.9206770Z test_small_exact_sha_no_read_bytes (tests.test_native_tool_identity.NativeToolIdentityTests.test_small_exact_sha_no_read_bytes) ... ok
+2026-11-04T04:46:26.9208469Z test_symlink_fails_closed (tests.test_native_tool_identity.NativeToolIdentityTests.test_symlink_fails_closed) ... skipped 'POSIX path semantics'
+2026-11-04T04:46:26.9209232Z 
+2026-11-04T04:46:26.9209433Z ----------------------------------------------------------------------
+2026-11-04T04:46:26.9209853Z Ran 10 tests in 2.404s
+2026-11-04T04:46:26.9210017Z 
+2026-11-04T04:46:26.9210130Z OK (skipped=5)
+2026-11-04T04:46:27.0465208Z Post job cleanup.
+2026-11-04T04:46:27.1919316Z (node:7872) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-04T04:46:27.1920345Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-04T04:46:27.2204738Z Post job cleanup.
+2026-11-04T04:46:27.4374447Z [command]"C:\Program Files\Git\bin\git.exe" version
+2026-11-04T04:46:27.4660556Z git version 2.56.0.windows.3
+2026-11-04T04:46:27.4721853Z Temporarily overriding HOME='D:\a\_temp\ba29ceda-13ad-4dd5-9531-3776c4e23c49' before making global git config changes
+2026-11-04T04:46:27.4723123Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-04T04:46:27.4734866Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\Hepta\Hepta
+2026-11-04T04:46:27.5038885Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-11-04T04:46:27.5325951Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-11-04T04:46:28.0187446Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-04T04:46:28.0477245Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-11-04T04:46:28.5349142Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-04T04:46:28.5626878Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-11-04T04:46:29.0191298Z Cleaning up orphan processes
+2026-11-04T04:46:29.0507724Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-python@v5. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
