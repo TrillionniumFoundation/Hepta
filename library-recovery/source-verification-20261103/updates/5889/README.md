@@ -1,0 +1,7 @@
+# Verified frozen source count: 5,889 / 6,116
+
+This update adds one original 2,321-byte Git replacement regression source. Its original Git blob was reused under an explicit archival path in hepta-private-ci Draft #4713, commit `f2e9cb2b5d422c54208a00492b8ecb9239568914`, and all four new paths were read back completely by immutable commit. The source SHA-1, SHA-256, size and exact text matched; the three auxiliary files do not add candidates.
+
+The exact new single incremental ledger contains 3,872 rows, with SHA-256 `aa97561448909481fe88c33ae27448b96da95f559193ab3253a4cc033946249e`, Git blob `8a1718d66b93c0742158d94e41cd046863735d1b` and 4208274 bytes. `LEDGER_HEADER.json` plus `source-delta1.json` extend the preserved predecessor at `updates/5888`; the reconstruction receipt specifies exact serialization and verifies that all prior 3,871 rows remain unchanged. The unchanged 2,017-row baseline gives 5,889 unique verified frozen candidates and 227 remaining.
+
+The 48 separately verified additional source objects remain outside the frozen 6,116 candidates. This source was read and archived, not executed. The contextual historical code relationship and independent static review do not establish a current vulnerability or current native test success. Original archives, dot directories and full worktree histories remain incompletely audited. Scientific and production gates stay open, and original Library deletions remain zero.
