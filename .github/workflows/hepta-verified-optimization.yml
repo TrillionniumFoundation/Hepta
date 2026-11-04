@@ -311,9 +311,13 @@ jobs:
             --qemu-riscv64 "$hepta_qemu_root/root/usr/bin/qemu-riscv64-static" \
             --output-directory artifacts/verified-optimization/riscv64
       - name: Prepare exact clean source for guarded opportunity and post-test application
+        # Preserve independent post-test evidence after a prior native gate fails;
+        # the failed gate itself remains failed and cannot qualify the run.
+        if: ${{ !cancelled() }}
         shell: bash
         run: |
           set -euo pipefail
+          python -B -m unittest discover -s tests -p 'test_hia_ci_failure_dependency.py' -v
           git --no-replace-objects worktree add --detach "$RUNNER_TEMP/hepta-round7-clean-source" "$HEPTA_SOURCE_SHA"
           cd "$RUNNER_TEMP/hepta-round7-clean-source"
           test "$(git --no-replace-objects rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"
