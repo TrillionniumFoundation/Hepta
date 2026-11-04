@@ -1,0 +1,53 @@
+name: Bounded source integer admission
+
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'tests/test_integer_literal_admission.py'
+      - 'tests/test_parser.py'
+      - 'tests/test_checker.py'
+      - '.github/workflows/hepta-integer-literal-admission.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-integers:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022]
+        python: ['3.11', '3.12', '3.13']
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    env:
+      HEPTA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEPTA_SOURCE_SHA }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install pinned Rust validation compiler
+        run: |
+          rustup toolchain install 1.90.0 --profile minimal
+          rustup default 1.90.0
+          rustc --version --verbose
+      - name: Check exact source and run all controls without skips
+        shell: python
+        run: |
+          import os, platform, subprocess, sys, unittest
+          sys.path.insert(0, os.getcwd())
+          actual = subprocess.check_output(['git', '--no-replace-objects', 'rev-parse', 'HEAD'], text=True).strip()
+          assert actual == os.environ['HEPTA_SOURCE_SHA'], (actual, os.environ['HEPTA_SOURCE_SHA'])
+          assert not subprocess.check_output(['git', 'status', '--porcelain', '--untracked-files=all'], text=True).strip()
+          print('Source:', actual, 'Host:', platform.platform(), 'Python:', sys.version, flush=True)
+          suite = unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromName(name) for name in (
+              'tests.test_integer_literal_admission', 'tests.test_parser', 'tests.test_checker'))
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          assert result.wasSuccessful() and not result.skipped and not result.expectedFailures and not result.unexpectedSuccesses
