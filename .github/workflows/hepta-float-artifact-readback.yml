@@ -1,0 +1,36 @@
+name: Hepta original float artifact readback
+
+on:
+  push:
+    branches:
+      - 'research/float-artifact-readback-20261104-gpt6'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  readback:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Reader rejection controls
+        run: python qualification/float-artifact-readback-20261104/readback.py --self-test
+      - name: Verify the two existing original artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: python qualification/float-artifact-readback-20261104/readback.py --out "${{ runner.temp }}/hepta-original-float-readback"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hepta-original-float-readback-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/hepta-original-float-readback
+          if-no-files-found: warn
