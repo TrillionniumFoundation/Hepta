@@ -135,12 +135,15 @@ def cases(weight):
     return [oracle(row, weight=weight) for row in raw]
 
 
-def bindings():
+def bindings(*, reusable_released_owners=False):
     paths = [Path(__file__), ROOT / "hepta/cpp_unique_reset.py", ROOT / "hepta/cpp_unique_project.py",
              ROOT / "hepta/cpp_unique_capture.py", ROOT / "hepta/cpp_composed_migrate.py",
              ROOT / "tools/validate_cpp_composed.py", ROOT / "tools/validate_cpp_owned.py",
              ROOT / "tools/qualify_cpp_unique_project.py", ROOT / "tools/evidence_checks.py",
              *EXAMPLE.iterdir()]
+    if reusable_released_owners:
+        paths.extend([ROOT / "tools/qualify_cpp_unique_reuse.py",
+                      * (ROOT / "examples/cpp/unique_reuse_migration").iterdir()])
     return {str(path.relative_to(ROOT)): sha256(path.read_bytes()).hexdigest()
             for path in paths if path.is_file()}
 
@@ -166,14 +169,19 @@ extern "C" std::uint64_t composed_case(std::size_t left, std::size_t right, std:
 '''
 
 
-def qualify(directory, *, clangxx="clang++", clang="clang", cc="gcc"):
+def qualify(directory, *, clangxx="clang++", clang="clang", cc="gcc", reusable_released_owners=False):
     work = Path(directory).absolute()
     if work.exists():
         raise ValueError("A new reset qualification directory is required")
     work.mkdir(parents=True)
     started = time.perf_counter_ns()
-    before, inputs = compiler_hash(), bindings()
-    report = {"schema": "hepta.cpp-unique-reset-native-qualification.v1", "ok": False,
+    before, inputs = compiler_hash(), bindings(reusable_released_owners=reusable_released_owners)
+    example = ROOT / "examples/cpp/unique_reuse_migration" if reusable_released_owners else EXAMPLE
+    if reusable_released_owners:
+        from tools.qualify_cpp_unique_reuse import cases as selected_cases
+    else:
+        selected_cases = cases
+    report = {"schema": "hepta.cpp-unique-reuse-native-qualification.v2" if reusable_released_owners else "hepta.cpp-unique-reset-native-qualification.v1", "ok": False,
         "started_utc": datetime.now(timezone.utc).isoformat(), "compiler_sha256": before,
         "source_bindings": inputs, "variants": [], "negative_controls": {},
         "costs": {"human_engineering_seconds": None, "performance_comparison_performed": False},
@@ -187,7 +195,7 @@ def qualify(directory, *, clangxx="clang++", clang="clang", cc="gcc"):
     try:
         for name, weight, function in (("original", 3, "run_reset"), ("api_maintenance", 5, "run_reset_v2")):
             target = work / name; target.mkdir()
-            project = target / "project"; shutil.copytree(EXAMPLE, project)
+            project = target / "project"; shutil.copytree(example, project)
             if name == "api_maintenance":
                 component = project / "component.cpp"
                 text = component.read_text().replace("run_reset(", "run_reset_v2(")
@@ -196,7 +204,8 @@ def qualify(directory, *, clangxx="clang++", clang="clang", cc="gcc"):
             row = {"name": name, "costs": {}, "reference": {"commands": []},
                 "standalone_hia": {"commands": [], "original_cpp_link_inputs": []}}
             report["variants"].append(row)
-            migration = lower_unique_reset_project(project / "compile_commands.json", clangxx=clangxx)
+            migration = lower_unique_reset_project(project / "compile_commands.json", clangxx=clangxx,
+                reusable_released_owners=reusable_released_owners)
             # Preserve the complete 46k+ library census without repeatedly
             # inflating the main report. This is lossless evidence storage.
             library = migration.pop("standard_library_declarations")
@@ -211,7 +220,7 @@ def qualify(directory, *, clangxx="clang++", clang="clang", cc="gcc"):
             require(migration["project_function"] == function, "Captured API name differs")
             source = migration["source"] + WRAPPER
             (target / "migrated.hepta").write_text(source)
-            vectors = cases(weight); expected = observation_oracle(vectors)
+            vectors = selected_cases(weight); expected = observation_oracle(vectors)
             row.update(case_count=len(vectors), expected=expected,
                        families=dict(Counter(case["family"] for case in vectors)))
             (target / "cases.json").write_text(json.dumps(vectors, indent=2) + "\n")
@@ -292,7 +301,8 @@ def qualify(directory, *, clangxx="clang++", clang="clang", cc="gcc"):
                 raise ValueError("Missing owner drop accepted")
         require(report["variants"][0]["expected"]["observations_fnv64"] !=
                 report["variants"][1]["expected"]["observations_fnv64"], "Actual source/API change must alter observed results")
-        require(compiler_hash() == before and bindings() == inputs, "Source/compiler changed during qualification")
+        require(compiler_hash() == before and bindings(reusable_released_owners=reusable_released_owners) == inputs,
+                "Source/compiler changed during qualification")
         report.update(ok=True, source_bindings_unchanged=True)
     except Exception as error:
         report["error"] = {"kind": type(error).__name__, "message": str(error)}
