@@ -5,6 +5,38 @@ import unittest
 from tools import core_seven_shared_sources as s
 
 
+# Independent handwritten controls for the real linear_p6 -> linear_p151 failure.
+# A diagnostic compiles these against the actual checked parent and the new
+# helper. Their statements and altered closing byte do not come from the emitter.
+STRING_REBASE_POSITIVE_CONTROL = '''import HiaSyntaxResearch.CertPart01
+import BoundHelpers
+namespace HiaCoreSyntaxSlice.AtomReuseRegression
+noncomputable def bytes : List Nat := [34,100,103,95,115,104,97,114,101,100,95,48,34]
+noncomputable def raw : Raw := .str [100,103,95,115,104,97,114,101,100,95,48]
+theorem byte_alias : bytes = HiaCoreSyntaxSlice.linear_b6 := by rfl
+theorem raw_alias : raw = HiaCoreSyntaxSlice.linear_r6 := by rfl
+theorem shape : HiaCoreSyntaxSlice.linear_b6 =
+    34 :: ([100,103,95,115,104,97,114,101,100,95,48] ++ [34]) := by rfl
+theorem replay (tail : List Nat) : parseRaw 4087 29 (bytes ++ tail) = some (raw, tail) := by
+  exact (HiaCoreSyntaxSlice.Shared.parse_string_rebase_bound 4084 26 4086 28
+    HiaCoreSyntaxSlice.linear_r6 raw HiaCoreSyntaxSlice.linear_b6 bytes
+    ([100,103,95,115,104,97,114,101,100,95,48] ++ [34]) shape byte_alias raw_alias
+    HiaCoreSyntaxSlice.linear_p6 tail)
+end HiaCoreSyntaxSlice.AtomReuseRegression
+#print axioms HiaCoreSyntaxSlice.AtomReuseRegression.byte_alias
+#print axioms HiaCoreSyntaxSlice.AtomReuseRegression.raw_alias
+#print axioms HiaCoreSyntaxSlice.AtomReuseRegression.shape
+#print axioms HiaCoreSyntaxSlice.AtomReuseRegression.replay
+'''
+STRING_REBASE_NEGATIVE_CONTROL = '''import HiaSyntaxResearch.CertPart01
+namespace HiaCoreSyntaxSlice.AtomReuseNegative
+theorem changed_closing_byte :
+    ([34,100,103,95,115,104,97,114,101,100,95,48,35] : List Nat) =
+      HiaCoreSyntaxSlice.linear_b6 := by rfl
+end HiaCoreSyntaxSlice.AtomReuseNegative
+'''
+
+
 class SharedSourceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -33,14 +65,16 @@ class SharedSourceTests(unittest.TestCase):
         self.assertEqual(Counter(n for x in p.stages for n in x.expected_theorems),
                          Counter(n for x in old.stages for n in x.expected_theorems) +
                          Counter(s.HELPER_NAMES))
-        self.assertEqual(s.COUNTS[:4], (101, 256, 290, 291))
+        self.assertEqual(s.COUNTS[:5], (102, 256, 444, 735, 1057))
         for before, after in zip(old.stages, p.stages):
             self.assertEqual(before.rejection_names, after.rejection_names)
             self.assertEqual(before.direct_imports, after.direct_imports)
         self.assertEqual(p.original_stages, self.prepared['stages'])
         self.assertEqual(p.manifest['helper_names'], sorted(s.HELPER_NAMES))
         self.assertEqual(p.manifest['prefix_cuts'], [256, 546, 837])
-        self.assertEqual(len(p.manifest['generic_relocation']['subjects']), 45)
+        self.assertEqual(len(p.manifest['generic_relocation']['subjects']), 46)
+        self.assertEqual(p.manifest['part02_extension']['declaration_bytes'], 121930)
+        self.assertEqual(p.manifest['part02_extension']['preceding_prefix_cuts'], [256, 700, 837])
         self.assertGreater(p.manifest['proof_changes'], 28)
         self.assertTrue(all(n > 0 for n in p.manifest['literal_proof_reuses'].values()))
         self.assertLess(p.manifest['retained_source_bytes'], s.MAX_TOTAL_SOURCE)
@@ -93,6 +127,44 @@ class SharedSourceTests(unittest.TestCase):
         manifest = self.proposal.manifest
         manifest['literal_proof_reuses']['byte_facts'] = 0
         self.reject(replace(self.proposal, manifest_json=s.encode(manifest)))
+
+    def test_fixed_extension_reconstructs_exact_v4_and_original_order(self):
+        old, syntax, _, blocks, _ = s._context(self.prepared, self.previous)
+        v4 = s._repartition(s._render(old, syntax, blocks, helpers=True))
+        extended = s._extend_part02(v4)
+        self.assertEqual(s._undo_extension(extended, v4), v4)
+        old_blocks, new_blocks = s.seven._extract(v4)[1], s.seven._extract(extended)[1]
+        self.assertEqual(tuple(r for b in old_blocks for r in b),
+                         tuple(r for b in new_blocks for r in b))
+        self.assertEqual(s._partition_checks(extended, new_blocks), 45994)
+        self.assertIn('HiaCoreSyntaxSlice.linear_transport', extended[4].expected_theorems)
+        self.assertNotIn('HiaCoreSyntaxSlice.linear_transport', extended[3].expected_theorems)
+
+    def test_moved_declarations_cannot_be_dropped_duplicated_or_reassigned(self):
+        source = self.proposal.stages[3].source.replace('\nnoncomputable def ', '\ndef ')
+        row = s.seven.original._parse(source)[1][-1][3].decode()
+        self.reject(self.change(3, lambda text: text.replace(row, '', 1)))
+        self.reject(self.change(3, lambda text: text.replace(row, row + row, 1)))
+        manifest = self.proposal.manifest
+        manifest['part02_extension']['last'] = 'HiaCoreSyntaxSlice.linear_bf0593'
+        self.reject(replace(self.proposal, manifest_json=s.encode(manifest)))
+        manifest = self.proposal.manifest
+        manifest['part02_extension']['preceding_prefix_cuts'] = [256, 699, 837]
+        self.reject(replace(self.proposal, manifest_json=s.encode(manifest)))
+
+    def test_new_boundary_checks_actual_import_and_forward_reference(self):
+        self.reject(self.change(3, lambda text: text.replace('import HiaSyntaxResearch.CertPart01',
+                                                          'import HiaSyntaxResearch.CertPart03', 1)))
+        unmarked = tuple(replace(stage, source=stage.source.replace('\nnoncomputable def ', '\ndef '))
+                         for stage in self.proposal.stages)
+        syntax, blocks, _, _ = s.seven._extract(unmarked)
+        changed = list(blocks[2])
+        ns, kind, name, raw = changed[-1]
+        header, _ = s._body(raw)
+        changed[-1] = (ns, kind, name, (header + ' := by\n  exact HiaCoreSyntaxSlice.parallel_p0\n').encode())
+        forged = (*blocks[:2], tuple(changed), *blocks[3:])
+        with self.assertRaisesRegex(ValueError, 'forward or recursive actual transport reference'):
+            s._partition_checks(unmarked, forged)
 
     def test_manifest_cannot_authorize_or_hide_edits(self):
         for key, value in (('acceptance_eligible', True), ('proof_changes', 0),

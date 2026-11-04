@@ -17,19 +17,26 @@ from tools.check_guarded_slice_lean import require
 
 seven = nocode.seven
 encode, digest = nocode.encode, nocode.digest
-SCHEMA = 'hepta.hia.seven-shared-composition-source.v3'
-PROTOCOL = 'seven-shared-composition-source-v3'
+SCHEMA = 'hepta.hia.seven-shared-composition-source.v6'
+PROTOCOL = 'seven-shared-composition-source-v6'
 HELPER_PATH = 'experiments/hia_initialization_frontiers_20261103/SharedTransport.lean'
 NAMESPACE = 'HiaCoreSyntaxSlice.Shared'
 HELPER_NAMES = frozenset(NAMESPACE + '.' + name for name in (
     'serialize_fields_single_packet', 'serialize_fields_cons_packet',
     'parse_fields_last_packet', 'parse_fields_cons_packet', 'parse_items_cons_bytes',
     'parse_array_bytes', 'parse_object_bytes', 'parse_root',
-    'serialize_string_rebase', 'parse_string_rebase'))
+    'serialize_string_rebase', 'parse_string_rebase', 'parse_string_rebase_bound'))
 GENERIC_FRAME = '-- SHARED_GENERIC_PARENT_V2\n'
 PREFIX_CUTS = (256, 546, 837)
+EXTENDED_PREFIX_CUTS = (256, 700, 837)
 GENERIC_COUNT = 35 + len(HELPER_NAMES)
-COUNTS = (nocode.COUNTS[0] + GENERIC_COUNT, 256, 290, 291, *nocode.COUNTS[4:])
+V4_COUNTS = (nocode.COUNTS[0] + GENERIC_COUNT, 256, 290, 291, *nocode.COUNTS[4:])
+COUNTS = (*V4_COUNTS[:2], 444, 735, 1057, *V4_COUNTS[5:])
+PART02_PREFIX_NAMES = (
+    ('def', 'linearRaw'), ('def', 'linearBytes'),
+    ('theorem', 'linear_bounds'), ('theorem', 'linear_serialized'),
+    ('theorem', 'linear_parsed'),
+    *(('theorem', 'linear_bf%04d' % i) for i in range(595)))
 MAX_SOURCE, MAX_TOTAL_SOURCE, MAX_MANIFEST = nocode.MAX_SOURCE, nocode.MAX_TOTAL_SOURCE, nocode.MAX_MANIFEST
 
 
@@ -138,14 +145,20 @@ def _reuse_string(ns, name, raw, definitions, first_proofs):
     require(fuel > 0 and depth > 0, 'atomic rebase explicitly excludes exhausted bounds')
     key = (serial, literal)
     if key not in first_proofs:
-        first_proofs[key] = (ns + '.' + name, fuel, depth)
+        first_proofs[key] = (ns + '.' + name, fuel, depth,
+                             ns + '.' + raw_name, ns + '.' + bytes_name)
         return None
-    reference, prior_fuel, prior_depth = first_proofs[key]
+    reference, prior_fuel, prior_depth, prior_raw, prior_bytes = first_proofs[key]
     args = [str(n - 1) for n in (prior_fuel, prior_depth, fuel, depth)]
-    args += [value[1], bytes_name if serial else '(' + value[1] + ' ++ [34])', reference]
-    helper = 'serialize_string_rebase' if serial else 'parse_string_rebase'
-    if not serial:
-        args.append('tail')
+    if serial:
+        helper = 'serialize_string_rebase'
+        args += [value[1], bytes_name, reference]
+    else:
+        helper = 'parse_string_rebase_bound'
+        # Keep the original parser theorem's actual aliases. Equality of Raw
+        # literals is never allowed to stand in for a proof of byte encoding.
+        args += [prior_raw, raw_name, prior_bytes, bytes_name, '(' + value[1] + ' ++ [34])',
+                 '(by rfl)', '(by rfl)', '(by rfl)', reference, 'tail']
     return (header + ' := by\n  exact (' + NAMESPACE + '.' + helper + ' ' +
             ' '.join(args) + ')\n').encode()
 
@@ -342,7 +355,7 @@ def _repartition(stages):
     result = list(_prefix_stages(stages, imports, adjusted))
     result[0] = replace(stages[0], source=stages[0].source + GENERIC_FRAME + body,
                         expected_theorems=stages[0].expected_theorems | frozenset(generic))
-    require(tuple(len(s.expected_theorems) for s in result) == COUNTS,
+    require(tuple(len(s.expected_theorems) for s in result) == V4_COUNTS,
             'fixed repartition inventory without subject loss')
     return tuple(result)
 
@@ -365,9 +378,94 @@ def _undo_repartition(actual, original_layout):
     return tuple(result)
 
 
+def _part02_prefix(rows):
+    """The fixed contiguous 600-declaration boundary, independent of cost data."""
+    require(tuple((ns, kind, name) for ns, kind, name, _ in rows) ==
+            tuple(('HiaCoreSyntaxSlice', kind, name) for kind, name in PART02_PREFIX_NAMES),
+            'exact Part02 extension names, kinds, order and multiplicities')
+    return rows
+
+
+def _partition_checks(stages, blocks):
+    """Check references against the ACTUAL new layout and literal import DAG."""
+    expected_parents = ('Baseline', 'SyntaxData', 'CertPart01', 'CertPart02',
+                        'CertPart03', 'CertPart04', 'CertPart05', 'CertPart06',
+                        'CertPart07', 'CertPart04')
+    for stage, name, parent_name in zip(stages[1:], seven.NAMES[1:], expected_parents):
+        parent = seven.original.PREFIX + '.' + parent_name
+        require(stage.name == name and stage.module_name == seven.original.PREFIX + '.' + name and
+                stage.parents == (parent,) and stage.explicit_imports == (parent,) and
+                stage.direct_imports == ('Init', parent), 'unchanged eleven-module parent graph')
+        require(tuple(re.findall(r'^import (.+)$', stage.source, re.M)) == (parent,),
+                'actual source import graph agrees with fixed parent graph')
+    rows = tuple(row for block in blocks for row in block)
+    require(sum(r[1] == 'def' for r in rows) == 7685 and
+            sum(seven._aux(r) for r in rows) == 2975 and
+            sum(r[1] == 'theorem' and not seven._aux(r) for r in rows) == 4215,
+            'complete transport inventory after fixed extension')
+    names = [ns + '.' + name for ns, _, name, _ in rows]
+    require(len(names) == len(set(names)), 'unique actual transport declarations')
+    positions = {name: i for i, name in enumerate(names)}
+    owners = {ns + '.' + name: stages[i + 1].module_name
+              for i, block in enumerate(blocks) for ns, _, name, _ in block}
+    ancestors = {}
+    for stage in stages:
+        inherited = set(stage.parents)
+        for parent in stage.parents:
+            inherited.update(ancestors.get(parent, set()))
+        ancestors[stage.module_name] = inherited
+    references = 0
+    for i, (ns, _, name, raw) in enumerate(rows):
+        for token in re.findall(r'[A-Za-z][A-Za-z0-9_.]*', raw.decode().split(name, 1)[1]):
+            resolved = token if token in positions else ns + '.' + token
+            if resolved in positions:
+                require(positions[resolved] < i, 'forward or recursive actual transport reference')
+                owner = owners[names[i]]
+                require(owners[resolved] == owner or owners[resolved] in ancestors[owner],
+                        'actual transport owner is not an imported ancestor')
+                references += 1
+    return references
+
+
+def _extend_part02(stages):
+    """Move two fixed contiguous boundaries; keep global order and root owners."""
+    syntax, blocks, _, _ = seven._extract(stages)
+    size = len(PART02_PREFIX_NAMES)
+    moved = _part02_prefix(blocks[3][:size])
+    require(blocks[3][size][:3] == ('HiaCoreSyntaxSlice', 'theorem', 'linear_length'),
+            'fixed remaining Part03 first declaration')
+    prefix = tuple(row for block in blocks[:3] for row in block)
+    earlier = seven._cut(prefix, EXTENDED_PREFIX_CUTS)
+    adjusted = (*earlier[:2], earlier[2] + moved, blocks[3][size:], *blocks[4:])
+    require(tuple(row for b in adjusted for row in b) == tuple(row for b in blocks for row in b),
+            'all actual declaration bytes and global order preserved')
+    result = _prefix_stages(stages, syntax, adjusted)
+    _partition_checks(result, adjusted)
+    require(tuple(len(s.expected_theorems) for s in result) == COUNTS,
+            'fixed eleven-stage extended inventory')
+    return result
+
+
+def _undo_extension(actual, v4_layout):
+    """Recover v4 from candidate bytes before replaying its existing inverse."""
+    syntax, blocks, _, _ = seven._extract(actual)
+    _partition_checks(actual, blocks)
+    size = len(PART02_PREFIX_NAMES)
+    moved = _part02_prefix(blocks[2][-size:])
+    require(blocks[3][0][:3] == ('HiaCoreSyntaxSlice', 'theorem', 'linear_length'),
+            'actual remaining Part03 first declaration')
+    prefix = tuple(row for block in (*blocks[:2], blocks[2][:-size]) for row in block)
+    recovered = (*seven._cut(prefix, PREFIX_CUTS), moved + blocks[3], *blocks[4:])
+    require(tuple(row for b in recovered for row in b) == tuple(row for b in blocks for row in b),
+            'inverse preserves complete actual global declaration bytes')
+    result = _prefix_stages(actual, syntax, recovered)
+    require(result == v4_layout, 'actual inverse reconstructs every complete v4 source byte and subject')
+    return result
+
+
 def _derive_stages(prepared, previous):
     old, syntax, _, blocks, _ = _context(prepared, previous)
-    adjusted = _repartition(_render(old, syntax, blocks, helpers=True))
+    adjusted = _extend_part02(_repartition(_render(old, syntax, blocks, helpers=True)))
     names = nocode._definitions(replace(old, stages=adjusted))
     return tuple(replace(s, source=nocode._transform(s.source, names[s.name]))
                  for s in adjusted)
@@ -380,12 +478,14 @@ def _manifest(prepared, previous, stages):
               for name, (before, after) in sorted(changes.items())]
     require(stages[0].source.count(GENERIC_FRAME) == 1, 'manifest actual generic frame')
     generic = stages[0].source.split(GENERIC_FRAME)[1]
+    _, rows, _ = seven.original._parse(re.sub(r'(?m)^noncomputable def ', 'def ', stages[3].source))
+    moved = _part02_prefix(rows[-len(PART02_PREFIX_NAMES):])
     reuses = {family: sum(_literal_family(name.rsplit('.', 1)[1]) == family for name in changes)
               for family in ('byte_facts', 'key_domain', 'key_parser')}
     reuses.update({family: sum((NAMESPACE + '.' + helper + ' ').encode() in after
                               for _, after in changes.values())
                    for family, helper in (('string_serializer', 'serialize_string_rebase'),
-                                          ('string_parser', 'parse_string_rebase'))})
+                                          ('string_parser', 'parse_string_rebase_bound'))})
     return dict(schema=SCHEMA, protocol=PROTOCOL, source_only=True, acceptance_eligible=False,
                 kernel_core_syntax_connection_checked=False, actual_core_bridge_proved=False,
                 python_exporter_refinement_proved=False, body_prefix_refinement_proved=False,
@@ -398,6 +498,13 @@ def _manifest(prepared, previous, stages):
                 proof_changes=len(ledger), proof_changes_sha256=digest(encode(ledger).encode()),
                 literal_proof_reuses=reuses,
                 prefix_cuts=list(PREFIX_CUTS),
+                part02_extension=dict(source='CertPart03', destination='CertPart02',
+                    preceding_prefix_cuts=list(EXTENDED_PREFIX_CUTS),
+                    first='HiaCoreSyntaxSlice.linearRaw', last='HiaCoreSyntaxSlice.linear_bf0594',
+                    next='HiaCoreSyntaxSlice.linear_length', definitions=2,
+                    original_theorems=3, auxiliary_theorems=595,
+                    declaration_bytes=sum(len(r[3]) for r in moved),
+                    declaration_sha256=digest(b''.join(r[3] for r in moved))),
                 generic_relocation=dict(source='SyntaxData', destination='Baseline',
                     body_sha256=digest(generic.encode()), subjects=sorted(seven._qualified_prints(generic))),
                 inputs_sha256=digest(encode(prepared['manifest']['inputs']).encode()),
@@ -420,11 +527,12 @@ def validate_sources(prepared, previous, proposal, retained_copies=()):
             'bounded source manifest')
     old, old_syntax, old_blocks, new_blocks, changes = _context(prepared, previous)
     original_layout = _render(old, old_syntax, new_blocks, helpers=True)
-    adjusted = _repartition(original_layout)
+    v4_layout = _repartition(original_layout)
+    adjusted = _extend_part02(v4_layout)
     adjusted_names = nocode._definitions(replace(old, stages=adjusted))
     unmarked = tuple(replace(s, source=nocode._transform(s.source, adjusted_names[s.name], inverse=True))
                      for s in proposal.stages)
-    unmarked = _undo_repartition(unmarked, original_layout)
+    unmarked = _undo_repartition(_undo_extension(unmarked, v4_layout), original_layout)
     helper = helper_source()
     require(unmarked[1].source.count(helper) == 1, 'exact actual shared helper bytes')
     stripped = list(unmarked)

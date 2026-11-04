@@ -19,8 +19,8 @@ from tools import diagnose_core_seven_certificate as diagnostic
 from tools.check_guarded_slice_lean import require
 
 ROOT = base.ROOT
-SCHEMA = 'hepta.hia.seven-shared-acceptance.v3'
-PROTOCOL = 'seven-shared-acceptance-v3'
+SCHEMA = 'hepta.hia.seven-shared-acceptance.v6'
+PROTOCOL = 'seven-shared-acceptance-v6'
 ADDITIONS = (
     'docs/seven-data-nocode.md',
     'docs/seven-shared-composition.md',

@@ -114,4 +114,15 @@ theorem parse_string_rebase (f d g e : Nat) (value input : List Nat)
       some (.str value, tail) := by
   exact first
 
+theorem parse_string_rebase_bound (f d g e : Nat) (raw nextRaw : Raw)
+    (bytes nextBytes input : List Nat)
+    (shape : bytes = 34 :: input) (sameBytes : nextBytes = bytes)
+    (sameRaw : nextRaw = raw)
+    (first : ∀ tail, parseRaw (f + 1) (d + 1) (bytes ++ tail) = some (raw, tail)) :
+    ∀ tail, parseRaw (g + 1) (e + 1) (nextBytes ++ tail) = some (nextRaw, tail) := by
+  subst nextRaw
+  subst nextBytes
+  subst bytes
+  exact first
+
 end HiaCoreSyntaxSlice.Shared

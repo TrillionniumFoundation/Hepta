@@ -42,7 +42,7 @@ authority; every replacement and new helper must pass the pinned Lean kernel.
 
 ## Execution contract
 
-The versioned `seven-shared-acceptance-v3` protocol fixes `--threads=1` for every
+The versioned `seven-shared-acceptance-v6` protocol fixes `--threads=1` for every
 Lean invocation. This reduces worker concurrency and does not increase a time,
 source, module, log, evidence, or cleanup allowance. The same 60 seconds per
 process, 540-second launch deadline including preparation, 600-second outer
@@ -121,3 +121,116 @@ check taking 0.678905773 seconds; both reported no axiom dependencies. The v3
 complete input/inverse, hostile mutation and acceptance-contract suite then
 passed **17 tests in 132.131 seconds**, durable job `1a1a4dd2819-fc05-14e2`.
 These results remain distinct from fresh full-chain acceptance.
+
+The fresh v3 run at `6905cffc0508727ef97597bcacbdc9628d95d1a8` failed in CertPart02
+after 22.019751280 seconds, with an application type mismatch when `linear_p151`
+reused `linear_p6`. Baseline/SyntaxData/CertPart01 had passed (101/256/290 subjects).
+Lean emitted error-recovery `sorryAx` dependencies after that error and exited 1;
+the stage and full run were rejected. No resulting module was admitted. The
+retained RESULT SHA256 is
+`fd193c57da12b4e6a2652d18401d9b0da1fbd390aa283500c6a389e2f10da18d`,
+total wall time 247.482644445 seconds, under the r3 evidence root.
+
+Both original byte aliases in that case expand to exactly the same 13 bytes.
+The generated parser application had replaced the original byte alias with a
+constructed quote/list spine without an explicit representation bridge. Version
+4 retains the first parser theorem's actual Raw and byte aliases and requires
+three kernel-checked equalities: the leading-quote shape, equality of the byte
+aliases, and equality of the Raw aliases. One new generic theorem performs these
+explicit rewrites; all ten previous helper subjects remain. Baseline therefore
+has 102 subjects. Independent handwritten Lean controls preserve the real
+6-to-151 example and separately alter its closing quote byte.
+
+The new explicit representation helper passed the pinned kernel in 0.577142405
+seconds. The independent handwritten positive control passed in 0.593522859
+seconds; its changed-closing-byte negative control was rejected with exit 1 in
+0.532415422 seconds. The entire formerly failing Part02 then checked all 291
+subjects in 22.152103628 seconds without error-recovery axioms. These diagnostic
+modules reused the previously checked parent and added a helper import, so they
+are explicitly nonaccepting. Their durable job `1a1a4ee9f7c-fc05-15fb` then ran
+the full source/inverse and acceptance-contract suite: **17 tests in 122.837
+seconds, all passing**.
+
+The fresh v4 acceptance at `f63511595e556177d1565d4f7e7f3d50c75ea588` failed
+in CertPart03 after 60.000279301 seconds. Baseline, SyntaxData, CertPart01 and
+CertPart02 checked 102, 256, 290 and 291 subjects in 17.947752704, 41.249657321,
+26.054124214 and 21.734902182 seconds. Its total wall time including preparation
+was 397.626573798 seconds. Cleanup completed in 0.165990874 seconds; no later
+stage or final independent replay was reached. RESULT SHA256 is
+`f991eac9736d619dd903325b6c25b892ff850097f42d2614edf8816b9e5b6bde`, under
+`/home/qian-qi/work/hia-safe-core-shared-acceptance-20261104-r4`. This failed
+candidate, its exact source export and its git bundle remain preserved.
+
+## Version 5: one fixed dependency-safe boundary extension
+
+The actual v4 source contains a contiguous 600-declaration prefix at the start
+of CertPart03: `linearRaw`, `linearBytes`, three original transport theorems,
+and all 595 `linear_bf0000` through `linear_bf0594` facts. Version 5 appends this
+prefix, byte for byte, to CertPart02. `linear_length`, `linear_byte_range` and
+`linear_transport` remain in CertPart03, so all root owners remain unchanged.
+The eleven subject counts become 102, 256, 290, 889, 1057, 807, 1297, 1297,
+1297, 75 and 1. There is no proof-body change relative to v4.
+
+The source validator independently checks all 7,685 definitions, 4,215 original
+transport theorems and 2,975 auxiliary facts, the actual literal import graph,
+and all known transport references against their actual declaration positions
+and imported ancestors. The audit found 45,994 such references. The concatenated
+global declaration sequence remains identical. The inverse removes the fixed
+600-declaration suffix from the actual Part02, restores it to the actual Part03,
+and requires every recovered v4 source byte, subject and metadata field to match
+before replaying all earlier inverses. A manifest records the exact moved-byte
+hash and fixed boundary; it does not authorize a caller-selected partition.
+
+Missing or duplicated moved declarations, a forged boundary, an actual future
+reference and a changed literal import have explicit hostile controls. Version
+5 retains all process, preparation, outer, source, module, log and evidence
+limits. Its targeted diagnostics and source tests cannot substitute for a
+fresh full eleven-stage acceptance and independent replay.
+
+The v5 source, inverse, hostile-boundary and unchanged-budget suite passed all
+20 tests in 133.256 seconds. Its first nonaccepting diagnostic failed before
+proof checking because the newly created module-prefix directory shadowed the
+separate prior parent directory. A new diagnostic copied only the three parent
+modules after verifying their hashes against the preserved successful v4
+receipts. That corrected diagnostic **failed**: CertPart02 reached the same
+60-second limit at 60.000930714 seconds. Both roots are preserved under
+`/home/qian-qi/work/hia-safe-core-partition-controls-20261104-r1` and `-r2`.
+No v5 full acceptance was attempted; the failed candidate has a separate
+source export and git bundle in `hia-safe-core-delivery-20261104-v5`.
+
+## Version 6: distribute the preceding prefix too
+
+The v5 diagnostic shows that the complete linear prefix does not fit within
+Part02's remaining allowance. Version 6 therefore also moves the first 154
+original certificates from the old Part02 into Part01. The earlier cumulative
+cuts change from 256/546/837 to fixed 256/700/837 before the same 600-declaration
+linear prefix is moved. The eleven subject counts are now 102, 256, 444, 735,
+1057, 807, 1297, 1297, 1297, 75 and 1. This is a new fixed layout, not a retry
+of the timed-out layout. It introduces no proof-body or theorem-statement edit.
+
+The inverse first removes the exact 600-declaration actual Part02 suffix,
+restores the preceding actual rows to 256/546/837, and requires complete byte
+equality with the v4 layout. The same independent actual import/reference
+checks and all earlier full inverses remain. The additional manifest cut field
+has a hostile forged-cut control. All original budgets and eleven processes
+remain unchanged; fresh complete acceptance is still mandatory.
+
+The v6 complete source/inverse, hostile-mutation and unchanged-budget suite
+passed **20 tests in 143.183 seconds**. The subsequent diagnostic reused only
+the hash-verified, checked v4 Baseline and SyntaxData modules. It checked all
+444 Part01 subjects in 41.758393769 seconds and all 735 Part02 subjects in
+40.155894844 seconds. Part03 then **timed out** at 60.000332206 seconds, with
+1,057 expected subjects and no buffered inventory emitted. Durable job
+`1a1a5128524-fc05-1867` and all actual sources, module bytes, raw streams and
+observations remain under
+`/home/qian-qi/work/hia-safe-core-partition-controls-20261104-r3`.
+
+This diagnostic does not establish full acceptance or rule out every possible
+safe partition. It establishes that this exact two-boundary redistribution
+retains the complete source and dependency invariants but still exceeds the
+Part03 process allowance. The earlier failed layout is immutable commit
+`65f49765bc248fdb0dfc6bc84f71c6990f543fcf`, tree
+`b6556f64dece19847770d7edd429d8c6e35568d7`. Its export includes an explicit
+nonaccepting outcome and both retained diagnostic failures. A fresh full v6
+protocol run must record its own terminal outcome separately; this document
+does not claim that such a run passed.
