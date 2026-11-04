@@ -188,12 +188,19 @@ def load_project(entry, *, locked=False, source_overrides=None) -> LoadedProject
         assembled.enums = []
     if hasattr(assembled, "imports"):
         assembled.imports = []
+    flat_functions = {unit.names[name] for unit in units.values() for name in unit.functions}
     module_reports = []
     for unit in units.values():
         def resolve(name, role, span):
             if "::" not in name:
                 declarations = unit.types if role == "type" else {**unit.types, **unit.functions}
-                return unit.names.get(name, name) if name in declarations else name
+                if name in declarations:
+                    return unit.names[name]
+                # Entry functions and C symbols retain their source spelling
+                # in the flat program, but that does not import them into peers.
+                if role == "term" and name in flat_functions:
+                    fail("E_MODULE_SCOPE", "Unqualified symbol is not declared in this module: " + name, span)
+                return name
             parts = name.split("::")
             if parts[0] in unit.imports:
                 imported = unit.imports[parts[0]]
@@ -216,7 +223,7 @@ def load_project(entry, *, locked=False, source_overrides=None) -> LoadedProject
                 return Type(name, tuple(transform(a, params) for a in value.args), value.length, value.lifetimes)
             if isinstance(value, Expr):
                 if value.kind in {"name", "call"} and isinstance(value.value, str):
-                    if value.kind == "call" or "::" in value.value or value.value in unit.functions:
+                    if value.kind == "call" or "::" in value.value or value.value in unit.functions or value.value in flat_functions:
                         value.value = resolve(value.value, "term", value.span)
                 elif value.kind == "struct" and isinstance(value.value, dict):
                     value.value["name"] = resolve(value.value["name"], "type", value.span)

@@ -1,0 +1,60 @@
+name: Module function scope
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'tests/test_module_unqualified_function_scope.py'
+      - 'tests/test_c_import.py'
+      - 'tests/test_c_import_prototypes.py'
+      - 'tests/test_c_import_typedefs.py'
+      - 'tests/test_c_import_capture.py'
+      - 'tests/test_modules.py'
+      - 'tests/test_cross_feature_audit.py'
+      - 'tests/test_project_protocol.py'
+      - 'tests/test_workspace_query_cli.py'
+      - 'tools/test_module_unqualified_function_scope.py'
+      - '.github/workflows/hepta-module-function-scope.yml'
+permissions:
+  contents: read
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bind source and execute all module scope and native integration controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          rustup toolchain install 1.90.0 --profile minimal
+          export RUSTC="$(rustup which --toolchain 1.90.0 rustc)"
+          export CC="$(command -v gcc)"
+          command -v git
+          mkdir -p artifacts/module-function-scope
+          { git rev-parse HEAD HEAD^{tree}; uname -a; python --version; \
+            "$CC" --version; git --version; "$RUSTC" --version; \
+            sha256sum "$CC" "$(command -v git)" "$RUSTC"; } > artifacts/module-function-scope/identities.txt
+          python -B tools/test_module_unqualified_function_scope.py 2>&1 | tee artifacts/module-function-scope/tests.log
+          test -z "$(git status --porcelain --untracked-files=no)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: module-function-scope-${{ matrix.os }}-${{ env.EXPECTED_HEAD }}
+          path: artifacts/module-function-scope
+          if-no-files-found: error
