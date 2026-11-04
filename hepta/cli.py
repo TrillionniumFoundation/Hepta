@@ -803,13 +803,23 @@ def main(argv=None) -> int:
             dest = Path(args.output).resolve()
             header = Path(args.header).resolve()
             manifest = dest.with_suffix(dest.suffix + ".imports.json")
-            if dest == header:
+
+            def same_existing_inode(first: Path, second: Path) -> bool:
+                # Canonical paths alone miss hard links to the same inode.
+                # A missing *output* is safe for this pre-write alias check;
+                # other filesystem errors fail closed through E_DRIVER.
+                try:
+                    return first.samefile(second)
+                except FileNotFoundError:
+                    return False
+
+            if dest == header or same_existing_inode(dest, header):
                 raise ValueError("Output cannot overwrite the C input header")
-            # The derived sidecar is an output too: a hostile or accidental
-            # path alias must not turn the original C header into a receipt.
-            # Resolve its existing symlink (if any) before writing *either*
-            # output. This is not a concurrent filesystem/TOCTOU guarantee.
-            if manifest.resolve() in {header, dest}:
+            # Check both symlink targets and existing hard-link identities
+            # before *either* write. This is not a concurrent TOCTOU guarantee.
+            if (manifest.resolve() in {header, dest}
+                    or same_existing_inode(manifest, header)
+                    or same_existing_inode(manifest, dest)):
                 raise ValueError("C import manifest cannot overwrite the C input or generated source")
             dest.parent.mkdir(parents=True, exist_ok=True)
             dest.write_text(imported.source)
