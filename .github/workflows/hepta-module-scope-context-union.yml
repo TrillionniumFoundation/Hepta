@@ -1,0 +1,57 @@
+name: Module scope and package context
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'tests/**'
+      - 'tools/test_module*.py'
+      - 'tools/module_scope_context_union_inventory.json'
+      - 'docs/MODULE_SCOPE_CONTEXT_UNION.md'
+      - '.github/workflows/hepta-module-scope-context-union.yml'
+permissions:
+  contents: read
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Execute the frozen combined inventory with actual native compilers
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          rustup toolchain install 1.90.0 --profile minimal
+          export RUSTC="$(rustup which --toolchain 1.90.0 rustc)"
+          export CC="$(command -v gcc)"
+          mkdir -p artifacts/module-scope-context-union
+          { git rev-parse HEAD HEAD^{tree}; uname -a; python --version; \
+            "$CC" --version; git --version; "$RUSTC" --version; \
+            sha256sum "$CC" "$(command -v git)" "$RUSTC"; \
+            sha256sum hepta/modules.py hepta/module_bindings.py \
+              tests/test_module_scope_context_union.py tools/test_module_scope_context_union.py \
+              tools/module_scope_context_union_inventory.json; \
+          } > artifacts/module-scope-context-union/identities.txt
+          python -B tools/test_module_scope_context_union.py 2>&1 | tee artifacts/module-scope-context-union/tests.log
+          test -z "$(git status --porcelain --untracked-files=no)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: module-scope-context-union-${{ matrix.os }}-${{ env.EXPECTED_HEAD }}
+          path: artifacts/module-scope-context-union
+          if-no-files-found: error
