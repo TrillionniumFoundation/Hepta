@@ -12,6 +12,9 @@ on:
       - 'tools/core_seven_certificate*.py'
       - 'tools/diagnose_core_seven_certificate.py'
       - 'tools/check_core_seven_certificate.py'
+      - 'tools/*part04*.py'
+      - 'tests/test_core_seven_part04_*.py'
+      - 'docs/seven-part04-diagnostic.md'
       - 'tools/core_seven_acceptance_*.py'
       - 'tests/test_core_seven_acceptance.py'
       - 'docs/seven-certificate-acceptance.md'
@@ -126,7 +129,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        group: [sources, execution, noncomputable-sources, noncomputable-execution, partition-sources-a, partition-sources-b, partition-execution, partition-diagnostic-sources, partition-diagnostic-capture, partition-diagnostic-execution, byte-facts-dag, byte-facts-sources, byte-facts-diagnostic, byte-facts-execution, byte-facts-replay, seven-sources-a, seven-sources-b, seven-sources-c, seven-diagnostic, seven-execution-a, seven-execution-b, seven-execution-inverse, seven-pending-eio, seven-acceptance-fast, seven-acceptance-records, seven-acceptance-record_types, seven-acceptance-full_eleven, seven-acceptance-fail_every_stage, seven-acceptance-adversary_provenance_finalization, seven-acceptance-write_faults, seven-acceptance-fsync_faults, seven-acceptance-reread_faults, seven-acceptance-review_boundaries_shadows, seven-acceptance-negative_pair_1, seven-acceptance-negative_pair_2, seven-acceptance-negative_pair_3, seven-acceptance-negative_pair_4, seven-acceptance-negative_pair_5]
+        group: [sources, execution, noncomputable-sources, noncomputable-execution, partition-sources-a, partition-sources-b, partition-execution, partition-diagnostic-sources, partition-diagnostic-capture, partition-diagnostic-execution, byte-facts-dag, byte-facts-sources, byte-facts-diagnostic, byte-facts-execution, byte-facts-replay, seven-sources-a, seven-sources-b, seven-sources-c, seven-diagnostic, seven-execution-a, seven-execution-b, seven-execution-inverse, seven-pending-eio, seven-acceptance-fast, seven-acceptance-records, seven-acceptance-record_types, seven-acceptance-full_eleven, seven-acceptance-fail_every_stage, seven-acceptance-adversary_provenance_finalization, seven-acceptance-write_faults, seven-acceptance-fsync_faults, seven-acceptance-reread_faults, seven-acceptance-review_boundaries_shadows, seven-acceptance-negative_pair_1, seven-acceptance-negative_pair_2, seven-acceptance-negative_pair_3, seven-acceptance-negative_pair_4, seven-acceptance-negative_pair_5, part04-sources, part04-capture, part04-grammar, part04-runner-a, part04-runner-b, part04-runner-inverse]
     env:
       EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
       PYTHONDONTWRITEBYTECODE: '1'
@@ -176,6 +179,12 @@ jobs:
               'noncomputable-execution': (['tests.test_core_syntax_noncomputable_diagnostic_runner'], 8),
               'execution': (['tests.test_core_syntax_declaration_diagnostic_runner',
                              'tests.test_core_syntax_diagnostic_capture'], 42),
+              'part04-sources': (['tests.test_core_seven_part04_sources'], 9),
+              'part04-capture': (['tests.test_core_seven_part04_capture'], 41),
+              'part04-grammar': (['tests.test_core_seven_part04_runner.Part04ReplayGrammarTests'], 6),
+              'part04-runner-a': (['tests.test_core_seven_part04_runner.Part04RunnerTests'], 8),
+              'part04-runner-b': (['tests.test_core_seven_part04_runner.Part04RunnerTests'], 8),
+              'part04-runner-inverse': (['tests.test_core_seven_part04_runner.Part04RunnerTests'], 1),
               'seven-acceptance-fast': (['tests.test_core_seven_acceptance.SchemaTests', 'tests.test_core_seven_acceptance.FilesystemTests', 'tests.test_core_seven_acceptance.CaptureTests', 'tests.test_core_seven_acceptance.ClockTests', 'tests.test_core_seven_acceptance.LaunchTests', 'tests.test_core_seven_acceptance.TransitionTests', 'tests.test_core_seven_acceptance.VerifiedDisplayTests', 'tests.test_core_seven_acceptance.ReceiptBoundaryTests'], 108),
               'seven-acceptance-records': (['tests.test_core_seven_acceptance.RecordAndSizingTests.test_all_failed_stage_codes_and_fields', 'tests.test_core_seven_acceptance.RecordAndSizingTests.test_every_nested_identity_plan_run_field', 'tests.test_core_seven_acceptance.RecordAndSizingTests.test_exact_approved_serialized_reserve'], 3),
               'seven-acceptance-record_types': (['tests.test_core_seven_acceptance.RecordAndSizingTests.test_every_nested_wrong_type_unknown_and_numeric_bounds'], 1),
@@ -217,6 +226,13 @@ jobs:
                       assert len(inverse) == 1 and len(ordinary) == 15, 'runner split inventory changed'
                       # Preserve full truthful IDs; the indivisible full inverse runs alone.
                       cases = inverse if group.endswith('-inverse') else ordinary[0 if group.endswith('-a') else 1::2]
+              if group.startswith('part04-runner-'):
+                  assert len(cases) == len({case.id() for case in cases}) == 17, 'complete Part04 runner inventory changed'
+                  inverse_id = 'tests.test_core_seven_part04_runner.Part04RunnerTests.test_full_inverse_replay_integration'
+                  inverse = [case for case in cases if case.id() == inverse_id]
+                  ordinary = [case for case in cases if case.id() != inverse_id]
+                  assert len(inverse) == 1 and len(ordinary) == 16, 'Part04 runner split inventory changed'
+                  cases = inverse if group.endswith('-inverse') else ordinary[0 if group.endswith('-a') else 1::2]
               ids = [case.id() for case in cases]
               assert len(ids) == len(set(ids)) == expected, 'isolated test inventory changed: ' + group
               inventories[group] = ids
@@ -224,12 +240,17 @@ jobs:
           all_ids = [test_id for ids in inventories.values() for test_id in ids]
           all_names = sorted({name for names, _ in groups.values() for name in names})
           complete_ids = [case.id() for case in flatten(unittest.defaultTestLoader.loadTestsFromNames(all_names))]
-          assert len(all_ids) == len(set(all_ids)) == len(complete_ids) == 427, 'combined inventory changed'
+          assert len(all_ids) == len(set(all_ids)) == len(complete_ids) == 500, 'combined inventory changed'
           assert set(all_ids) == set(complete_ids), 'split omitted or duplicated controls'
           acceptance_ids = [case.id() for case in flatten(unittest.defaultTestLoader.loadTestsFromName('tests.test_core_seven_acceptance'))]
           assigned_acceptance_ids = [test_id for group, ids in inventories.items() if group.startswith('seven-acceptance-') for test_id in ids]
           assert len(acceptance_ids) == len(set(acceptance_ids)) == len(assigned_acceptance_ids) == len(set(assigned_acceptance_ids)) == 136, 'complete acceptance inventory changed'
           assert set(acceptance_ids) == set(assigned_acceptance_ids), 'acceptance shards omitted or duplicated controls'
+          part04_names = ['tests.test_core_seven_part04_sources', 'tests.test_core_seven_part04_capture', 'tests.test_core_seven_part04_runner']
+          part04_ids = [case.id() for case in flatten(unittest.defaultTestLoader.loadTestsFromNames(part04_names))]
+          assigned_part04_ids = [test_id for group, ids in inventories.items() if group.startswith('part04-') for test_id in ids]
+          assert len(part04_ids) == len(set(part04_ids)) == len(assigned_part04_ids) == len(set(assigned_part04_ids)) == 73, 'complete Part04 inventory changed'
+          assert set(part04_ids) == set(assigned_part04_ids), 'Part04 shards omitted or duplicated controls'
           group = os.environ['CONTROL_GROUP']
           ids, suite = inventories[group], suites[group]
           expected = groups[group][1]

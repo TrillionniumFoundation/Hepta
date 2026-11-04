@@ -1,4 +1,4 @@
-name: HIA complete seven-certificate kernel check (DENY_ALL)
+name: HIA Part04 first-six diagnostic (DENY_ALL)
 on:
   pull_request:
     paths:
@@ -12,6 +12,9 @@ on:
       - 'tools/core_seven_certificate*.py'
       - 'tools/diagnose_core_seven_certificate.py'
       - 'tools/check_core_seven_certificate.py'
+      - 'tools/*part04*.py'
+      - 'tests/test_core_seven_part04_*.py'
+      - 'docs/seven-part04-diagnostic.md'
       - 'tools/core_seven_acceptance_*.py'
       - 'tests/test_core_seven_acceptance.py'
       - 'docs/seven-certificate-acceptance.md'
@@ -82,18 +85,18 @@ jobs:
         run: |
           set -euo pipefail
           timeout 300s python -B tools/bootstrap_verification.py --lean-only --directory "$RUNNER_TEMP/core-syntax-tools"
-      - name: Check all eleven fresh seven-layout modules; narrow connection only
+      - name: Diagnose Part04 after five fresh parents; never acceptance
         run: |
           set -euo pipefail
           status=0
-          timeout 600s python -B -m tools.check_core_seven_certificate \
+          timeout 600s python -B -m tools.diagnose_core_seven_part04 \
             --lean "$RUNNER_TEMP/core-syntax-tools/lean-4.19.0/bin/lean" \
             --output-directory "$RUNNER_TEMP/core-syntax-proof" || status=$?
           test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
           test -z "$(git status --porcelain --untracked-files=all)"
           exit "$status"
-      - name: Replay complete same-run evidence; bounded summary only
+      - name: Replay same-run diagnostic evidence; bounded event projection
         if: always()
         run: |
-          python -B -m tools.check_core_seven_certificate --replay \
+          python -B -m tools.diagnose_core_seven_part04 --print-diagnostics \
             --output-directory "$RUNNER_TEMP/core-syntax-proof"
