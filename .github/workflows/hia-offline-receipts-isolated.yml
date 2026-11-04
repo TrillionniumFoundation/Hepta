@@ -1,0 +1,68 @@
+name: Isolated offline receipt checks
+
+on:
+  push:
+    branches:
+      - ci/hia-offline-receipts-20261104
+    paths:
+      - .github/workflows/hia-offline-receipts-isolated.yml
+      - tools/run_hia_offline_receipts.py
+
+permissions:
+  contents: read
+
+concurrency:
+  group: isolated-offline-receipts-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  offline:
+    name: ${{ matrix.suite }} / Python ${{ matrix.python }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        suite: [aot, ndu]
+        python: ['3.12', '3.13']
+        include:
+          - suite: aot
+            commit: 7de8bc98cc51c0cc13376fa4031d63758921c9d8
+            tree: d6cbf9de2d99e1b655e68cb93425fd7eef9e327a
+          - suite: ndu
+            commit: 5b56dcb9543611d7455c009ca79cd485480ed7c4
+            tree: ea520855318ad1d588a797e7c927c9e1efba2ffd
+    steps:
+      - name: Check out reviewed runner
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          path: control
+          persist-credentials: false
+      - name: Check out fixed source as test data
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ matrix.commit }}
+          path: source
+          persist-credentials: false
+          submodules: false
+          lfs: false
+      - name: Select Python without installing project dependencies
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Verify exact source and run guarded offline tests
+        env:
+          PINNED_COMMIT: ${{ matrix.commit }}
+          PINNED_TREE: ${{ matrix.tree }}
+          OFFLINE_SUITE: ${{ matrix.suite }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C source rev-parse HEAD)" = "$PINNED_COMMIT"
+          test "$(git -C source rev-parse 'HEAD^{tree}')" = "$PINNED_TREE"
+          test -z "$(git -C source status --porcelain --untracked-files=all)"
+          python -I -B control/tools/run_hia_offline_receipts.py \
+            --source "$GITHUB_WORKSPACE/source" --suite "$OFFLINE_SUITE"
+          test -z "$(git -C source status --porcelain --untracked-files=all)"
