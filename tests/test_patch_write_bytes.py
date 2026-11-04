@@ -88,7 +88,10 @@ class PatchFixture:
             self.assertEqual(report["validation"]["source_sha256"], sha256(expected))
         else:
             self.assertEqual(report["project_candidate_sha256"], load_project(self.entry).identity)
-            self.assertEqual(report["validation"]["project"]["sources"][str(self.target)], sha256(expected))
+            # Windows temp paths may use 8.3 aliases; project keys are resolved.
+            canonical_target = str(self.target.resolve())
+            self.assertEqual(report["target"], canonical_target)
+            self.assertEqual(report["validation"]["project"]["sources"][canonical_target], sha256(expected))
         self.assert_clean()
 
 
