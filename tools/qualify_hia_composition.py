@@ -309,6 +309,7 @@ def qualify(args):
                    'RUSTC':tools['rustc']['path'],'CLANG':tools['clang']['path'],
                    'CLANGXX':tools['clangxx']['path'],'HEPTA_CLANG':tools['clang']['path'],
                    'HEPTA_TEST_CLANG':tools['clang']['path'],
+                   'HIA_TEST_CLANG20':tools['clang']['path'],
                    'PATH':os.pathsep.join((str(Path(tools['clang']['path']).parent),
                                           str(Path(tools['cargo']['path']).parent),os.environ.get('PATH','')))}
     rows = []
