@@ -44,10 +44,12 @@ module header-guard repair #647, other pending C backend extensions or Part03.
 ## Reproduction and tests
 
 Base: #564 `f2b76f5741c83822be2e12cf5a50b50a8d27b96a`.
-With the new test file and unchanged production code, 17 test methods produce
-30 failing assertions/subcases and one explicit unavailable-Rust skip locally.
-Subcases are not counted as independent methods. The original failure log is
-retained separately from the repaired observations.
+The initial published test revision on unchanged production code ran 17
+methods with 30 failing assertions/subcases and one unavailable-Rust skip.
+The corrected reference fixture also checks its frontend/C execution before
+testing Rust availability: unchanged production now has 31 failing
+assertions/subcases across the same 17 methods. Subcases are not independent
+methods. Both original failure logs remain separate from repaired observations.
 
 ```sh
 python -B -m unittest tests.test_c_local_symbol_names -v

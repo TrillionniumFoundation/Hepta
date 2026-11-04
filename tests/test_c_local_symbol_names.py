@@ -172,24 +172,26 @@ class CLocalSymbolTests(unittest.TestCase):
                 self.assertEqual(linked.returncode, 0, linked.stderr)
                 self.assertEqual(subprocess.run([output], timeout=15).returncode, 0)
 
-    @unittest.skipUnless(RUSTC and Path(RUSTC).is_file(), "requires real pinned Rust reference")
     def test_native_rust_reference_matches_c(self):
         source = EXPORT + '''
         enum Choice {Some(i32),None}
         fn use(value:i32)->i32 effects {panic} {return h_value()+value;}
-        fn main()->Unit effects {panic,write,io} {let mut sum:i32=0;
+        fn main()->Unit effects {panic,write,io,alloc,block} {let mut sum:i32=0;
             for value in 0..3 {sum=sum+use(value as i32);}
             match Choice::Some(sum) {Choice::Some(value)=>{assert(value==129);print_i64((h_value()+value) as i64);},Choice::None=>{assert(false);}}
         }'''
         program, checked = self.frontend(source)
         observed = []
         for backend in ("c", "rust"):
+            if backend == "rust" and not (RUSTC and Path(RUSTC).is_file()):
+                self.skipTest("C execution passed; requires real pinned Rust reference")
             output = self.directory / backend
             built = (compile_c(emit_c(program, checked), output=output) if backend == "c" else
                      compile_rust(emit_rust(program, checked, crate_type="bin"), rustc=RUSTC, crate_type="bin", output=output))
             self.assertTrue(built["ok"], built["diagnostics"])
             ran = subprocess.run([output], capture_output=True, timeout=15)
             self.assertEqual(ran.returncode, 0, ran.stderr)
+            self.assertEqual(ran.stdout, b"171\n")
             observed.append(ran.stdout)
         self.assertEqual(observed, [b"171\n", b"171\n"])
 
