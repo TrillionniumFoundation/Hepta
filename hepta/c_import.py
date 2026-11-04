@@ -86,10 +86,18 @@ def split_top(items, delimiter):
 
 
 def preprocess_subset(text):
+    if "\x00" in text:
+        reject("SYNTAX", "NUL bytes are unsupported in C headers")
+    # Match the native probe's physical lines before identifying comments.
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    # C11 trigraphs and GCC whitespace extensions can also continue comments.
+    # Reject these unmodeled logical lines before they can hide declarations.
+    if re.search(r"(?:\\|\?\?/)[ \t\v\f]*\n", text):
+        reject("PREPROCESSOR", "C line continuations are unsupported; flatten continued lines explicitly before importing")
     text = re.sub(r"/\*.*?\*/|//[^\n]*", " ", text, flags=re.S)
     declarations, macros, guard = [], {}, None
     guard_open = False
-    for line in text.splitlines():
+    for line in text.split("\n"):
         stripped = line.strip()
         if not stripped.startswith("#"):
             declarations.append(line)

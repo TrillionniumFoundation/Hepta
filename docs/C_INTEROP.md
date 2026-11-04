@@ -35,6 +35,19 @@ literal or a separately probed integer macro. Named nested records are supported
 Parameter names become `arg0`, `arg1`, etc.; external C symbol names are retained.
 Typedefs are resolved into concrete Hepta types and recorded in the manifest.
 
+LF, CRLF and CR physical line endings are recognized before comments are removed.
+Other Python/Unicode line separators are not treated as C directive boundaries.
+The original header bytes remain unchanged and are still hashed and included by
+the native probe. Continued physical lines are explicitly rejected before comment
+scanning, including C11 `??/` backslashes and GCC's horizontal-whitespace
+continuation extension. Flatten those lines explicitly before importing. This
+conservative restriction also applies inside comments: otherwise an unmodeled
+continuation could hide an active declaration or invent a commented-out binding.
+Headers containing NUL bytes are rejected, including inside comments where GCC
+can silently ignore them while recognizing a continuation.
+It does not add a general C preprocessor or change multiline block-comment rules.
+See [logical-line regression evidence](C_IMPORT_LOGICAL_LINES.md).
+
 Generated records use `pub repr(C) struct`, so another module can use the type
 through `import native_api;` and `native_api::TypeName`. Imported extern functions
 are visible module bindings. Integer macros become public `cconst_NAME()`

@@ -1,0 +1,47 @@
+name: C header logical line inventory
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'tests/test_c_import*.py'
+      - 'tools/test_c_import_logical_lines.py'
+      - '.github/workflows/hepta-c-import-logical-lines.yml'
+permissions:
+  contents: read
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bind source and run real GCC header inventory controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          mkdir -p artifacts/c-import-logical-lines
+          { git rev-parse HEAD HEAD^{tree}; uname -a; id; python --version; \
+            gcc --version; gcc -dumpmachine; sha256sum "$(readlink -f "$(command -v gcc)")"; } > artifacts/c-import-logical-lines/identities.txt
+          python -B tools/test_c_import_logical_lines.py 2>&1 | tee artifacts/c-import-logical-lines/tests.log
+          test -z "$(git status --porcelain --untracked-files=no)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: c-import-logical-lines-${{ matrix.os }}-${{ env.EXPECTED_HEAD }}
+          path: artifacts/c-import-logical-lines
+          if-no-files-found: error
