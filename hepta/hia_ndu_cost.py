@@ -503,6 +503,7 @@ class AdvisoryController:
         _require(model["session_ready"] == (self.session is not None), "session state drift")
         gate = _gate(model)
         row = {"gate": gate, "native_invoked": False, "startup_ns": 0,
+               "startup_attempted": False, "session_ready_before": self.session is not None,
                "request_ns": 0, "search_ns": 0, "response_projection_ns": 0}
         action = gate["skip"]["actions"][0] if gate["mode"] == "skip" else None
         if gate["mode"] == "consider":
@@ -533,8 +534,14 @@ class AdvisoryController:
                         try:
                             if self.session is None:
                                 opened = time.monotonic_ns()
-                                self.session = self._factory()
-                                row["startup_ns"] = time.monotonic_ns() - opened
+                                # A failed factory may already have spawned and
+                                # cleaned up a process. An attempt is not proof
+                                # of either process creation or its absence.
+                                row["startup_attempted"] = True
+                                try:
+                                    self.session = self._factory()
+                                finally:
+                                    row["startup_ns"] = time.monotonic_ns() - opened
                             # Startup is measured, not assumed to fit its estimate.
                             reserved = model["decision"]["transport_ns"] + model["decision"]["native_ns"]
                             reserved += model["decision"]["validation_ns"] + model["decision"]["close_ns"]
@@ -544,8 +551,10 @@ class AdvisoryController:
                             else:
                                 invoked = time.monotonic_ns()
                                 row["native_invoked"] = True
-                                response = self.session.evaluate(bundle["request"])
-                                row["request_ns"] = time.monotonic_ns() - invoked
+                                try:
+                                    response = self.session.evaluate(bundle["request"])
+                                finally:
+                                    row["request_ns"] = time.monotonic_ns() - invoked
                                 projected = time.monotonic_ns()
                                 action = project_advice(bundle, response)
                                 frontier = response["pareto_candidate_ids"]
