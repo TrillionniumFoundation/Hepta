@@ -1,0 +1,54 @@
+name: HCSN iteration 33 current source qualification
+
+on:
+  push:
+    branches:
+      - 'research/hcsn-iteration33-current-source-20261104-gpt6'
+    paths:
+      - 'qualification/hcsn-iteration33-current-20261104/**'
+      - '.github/workflows/hepta-hcsn-iteration33-current.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hcsn-iteration33-current-source
+  cancel-in-progress: false
+
+jobs:
+  current-source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONPATH: '.'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13.5'
+      - name: Source and count reader rejection controls
+        run: python qualification/hcsn-iteration33-current-20261104/run.py --self-test
+      - name: Install the explicit compatible numerical dependencies
+        run: >-
+          python -m pip install --disable-pip-version-check --only-binary=:all:
+          --report "$RUNNER_TEMP/hcsn-iteration33-install.json"
+          numpy==2.3.5 scipy==1.16.3
+      - name: Run the unchanged research reproduction commands
+        run: >-
+          python qualification/hcsn-iteration33-current-20261104/run.py
+          --out "$RUNNER_TEMP/hcsn-iteration33-current"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hcsn-iteration33-current-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hcsn-iteration33-current
+            ${{ runner.temp }}/hcsn-iteration33-install.json
+          if-no-files-found: warn
