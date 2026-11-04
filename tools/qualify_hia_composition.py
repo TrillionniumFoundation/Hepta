@@ -57,6 +57,7 @@ CORE_TESTS = (
     'tests.test_hia_empty_reduction', 'tests.test_hia_empty_reduction_observation',
     'tests.test_hia_empty_wrapper_candidate',
     'tests.test_hia_entry_layout', 'tests.test_hia_outlined_aot_protocol',
+    'tests.test_hia_v6_differential', 'tests.test_hia_native_source_reinspect',
     'tests.test_hia_ndu_lazy_witness', 'tests.test_hia_ndu_controller_deadline', 'tests.test_hia_ndu_build_cost',
     'tests.test_hia_raw_session_cost', 'tests.test_hia_composition_raw_identity',
     'tests.test_cpp_gsl_final_action', 'tests.test_cpp_gsl_current_release',
@@ -149,9 +150,50 @@ def executable(path):
             'version': (result.stdout+result.stderr).strip()}
 
 
+def source_reference_identity(path):
+    """Freeze the explicitly selected 1.90 source reference and its local libs.
+
+    Reuse the production backend's rustup resolution and complete -vV pin.
+    The sysroot inventory is content identity, not compiler-correctness proof;
+    the system loader, libc, linker and host remain trusted.
+    """
+    from hepta.ast import HeptaError
+    from hepta.backend import find_rustc, toolchain_info
+    from hepta.native_tool_identity import digest_executable
+
+    if type(path) is not str or not path:
+        raise ValueError('an explicit pinned source-reference Rust compiler is required')
+    invocation = executable(path)
+    try:
+        reference = toolchain_info(find_rustc(invocation['path']))
+    except HeptaError as error:
+        raise ValueError('source-reference Rust identity rejected: '+str(error)) from error
+    if reference['sysroot_discovery'] != 'verified_compiler_prefix' or not reference['sysroot']:
+        raise ValueError('source-reference compiler requires an explicit local sysroot')
+    sysroot = Path(reference['sysroot'])
+    libraries = sysroot/'lib'
+    if libraries.is_symlink() or not libraries.is_dir():
+        raise ValueError('source-reference library root must be an ordinary directory')
+    inventory = {}
+    for entry in sorted(libraries.rglob('*')):
+        if entry.is_symlink():
+            raise ValueError('source-reference sysroot links are outside this inventory profile')
+        if entry.is_dir():
+            continue
+        inventory[str(entry.relative_to(sysroot))] = digest_executable(entry)
+    if not inventory:
+        raise ValueError('source-reference sysroot inventory is empty')
+    return {'path':reference['path'], 'resolved_path':str(Path(reference['path']).resolve(strict=True)),
+            'sha256':reference['executable_sha256'], 'version':reference['version'],
+            'selected_argument':path, 'invocation':invocation, 'reference':reference,
+            'sysroot_files_sha256':inventory,
+            'scope':'actual resolved compiler, full -vV identity and every ordinary file under its lib directory; system loader/libc/linker and hardware trusted'}
+
+
 def tool_identity(args):
     result = {name: executable(getattr(args,name)) for name in
               ('clang','clangxx','rustc','cargo','cc','lean')}
+    result['source_rustc'] = source_reference_identity(args.source_rustc)
     result.update({name:executable(name) for name in ('g++','ld','nm','objdump','readelf')})
     result['python'] = executable(sys.executable)
     if 'clang version 20.' not in result['clang']['version'] or 'clang version 20.' not in result['clangxx']['version']:
@@ -176,6 +218,9 @@ def unchanged(source, tools, frozen=None):
         import z3
         from hepta.hia_optimization import _solver_identity
         if _solver_identity(z3) != tools['z3']:
+            return False
+        if ('source_rustc' in tools and source_reference_identity(
+                tools['source_rustc']['selected_argument']) != tools['source_rustc']):
             return False
         if any(digest(path)!=expected for path,expected in (frozen or {}).items()):
             return False
@@ -310,6 +355,7 @@ def qualify(args):
                    'CLANGXX':tools['clangxx']['path'],'HEPTA_CLANG':tools['clang']['path'],
                    'HEPTA_TEST_CLANG':tools['clang']['path'],
                    'HIA_TEST_CLANG20':tools['clang']['path'],
+                   'HIA_TEST_SOURCE_RUSTC':tools['source_rustc']['path'],
                    'PATH':os.pathsep.join((str(Path(tools['clang']['path']).parent),
                                           str(Path(tools['cargo']['path']).parent),os.environ.get('PATH','')))}
     rows = []
@@ -523,7 +569,7 @@ def main():
         raise ValueError('qualification requires Python assertion checks enabled')
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--regression-output',type=Path)
-    for name in ('output','ndu-source','cargo-home','clang','clangxx','rustc','cargo','cc','lean'):
+    for name in ('output','ndu-source','cargo-home','clang','clangxx','rustc','source-rustc','cargo','cc','lean'):
         parser.add_argument('--'+name)
     parser.add_argument('--offline',action='store_true')
     parser.add_argument('--ndu-object-source',help='optional read-only complete Git object mirror of the same NDU pin')
@@ -531,7 +577,7 @@ def main():
     if args.regression_output:
         return 0 if regression_suite(args.regression_output) else 1
     if any(getattr(args,name.replace('-','_')) is None for name in
-           ('output','ndu-source','cargo-home','clang','clangxx','rustc','cargo','cc','lean')):
+           ('output','ndu-source','cargo-home','clang','clangxx','rustc','source-rustc','cargo','cc','lean')):
         parser.error('all composition/tool/source arguments are required')
     result=qualify(args)
     print(json.dumps({k:result.get(k) for k in

@@ -164,7 +164,7 @@ def _reinspect_source_native_bytes(payload: bytes, ir, native: dict, *,
         "core_sha256", "input_sha256", "llvm_ir_sha256", "implementation_sha256",
         "artifact_sha256", "artifact_bytes", "exports", "binary_inventory",
         "external_abi", "runtime_assumptions", "toolchain", "flags", "claims",
-        "build_host", "cross_target_compilation",
+        "build_host", "cross_target_compilation", "entry_layout",
     }
     if (type(payload) is not bytes or not payload or type(native) is not dict
             or set(native) != expected_fields
@@ -172,6 +172,8 @@ def _reinspect_source_native_bytes(payload: bytes, ir, native: dict, *,
             or native.get("ok") is not True
             or native.get("status") != "native_compiled_not_executed"
             or native.get("profile") != ir.profile
+            or type(native.get("entry_layout")) is not str
+            or native["entry_layout"] != ir.layout
             or native.get("target") != target or native.get("kind") != kind
             or native.get("output") != str(stage)
             or native.get("core_sha256") != ir.core_sha256

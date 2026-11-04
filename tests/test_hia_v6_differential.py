@@ -23,6 +23,8 @@ from hepta.hia_native_differential import (HIADifferentialRejected,
 from hepta.parser import parse
 
 CLANG = os.environ.get("CLANG", "/usr/lib/llvm-20/bin/clang")
+# Composition freezes the legacy reference separately from its Rust 1.95 lanes.
+SOURCE_RUSTC = os.environ.get("HIA_TEST_SOURCE_RUSTC") or os.environ.get("RUSTC")
 _SOURCE = '''module differential_owned_hia;
 export "C" fn drop_case() -> i32 effects {alloc,block,panic} {
     let bytes = buffer(4);
@@ -222,7 +224,7 @@ class ExistingV6CoreDifferentialTests(unittest.TestCase):
         self.assertEqual(caught.exception.build_diagnostics["snapshot_status"], "unavailable")
 
     @unittest.skipUnless(shutil.which(CLANG) and
-                         (os.environ.get("RUSTC") or shutil.which("rustc")),
+                         (SOURCE_RUSTC or shutil.which("rustc")),
                          "pinned Rust and Clang20 required")
     def test_pinned_hepta_owned_source_to_single_core_native(self):
         from hepta.hia_program_llvm import native_host_profile
@@ -243,11 +245,12 @@ class ExistingV6CoreDifferentialTests(unittest.TestCase):
             with patch("hepta.hia_source_bridge.build_checked_hepta_hia_native", side_effect=retain_real_build):
                 report = qualify_checked_hia_source(
                     src, {"drop_case": [[]]}, profile="owned",
-                    clang=CLANG, rustc=os.environ.get("RUSTC"),
+                    clang=CLANG, rustc=SOURCE_RUSTC,
                     static_resource_limits={"max_live_heap_bytes": 4})
             self.assertEqual(len(observed_builds), 1)
             self.assertTrue(observed_builds[0]["ok"], observed_builds[0])
             self.assertEqual(observed_builds[0]["native_backend"]["build_host"], native_host_profile())
+            self.assertEqual(observed_builds[0]["native_backend"]["entry_layout"], "canonical")
             self.assertIs(observed_builds[0]["native_backend"]["cross_target_compilation"], False)
             self.assertTrue(observed_builds[0]["claims"]["source_native_binary_abi_rechecked"])
             self.assertTrue(report["claims"]["source_static_resource_budget_replayed"])
