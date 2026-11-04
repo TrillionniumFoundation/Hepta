@@ -1,0 +1,58 @@
+name: Module scope and CLI inputs
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'tests/**'
+      - 'tools/test_module*.py'
+      - 'tools/test_cli_input_protection.py'
+      - 'tools/*_inventory.json'
+      - 'docs/MODULE_SCOPE_CLI_INPUT_UNION.md'
+      - '.github/workflows/hepta-module-scope-cli-input-union.yml'
+permissions:
+  contents: read
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Execute the frozen scope and input-preservation composition
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          rustup toolchain install 1.90.0 --profile minimal
+          export RUSTC="$(rustup which --toolchain 1.90.0 rustc)"
+          export CC="$(command -v gcc)"
+          mkdir -p artifacts/module-scope-cli-input-union
+          { git rev-parse HEAD HEAD^{tree}; uname -a; python --version; \
+            "$CC" --version; git --version; "$RUSTC" --version; \
+            sha256sum "$CC" "$(command -v git)" "$RUSTC"; \
+            sha256sum hepta/cli.py hepta/modules.py hepta/module_bindings.py \
+              tests/test_module_scope_cli_input_union.py tools/test_module_scope_cli_input_union.py \
+              tools/module_scope_cli_input_union_inventory.json; \
+          } > artifacts/module-scope-cli-input-union/identities.txt
+          python -B tools/test_module_scope_cli_input_union.py 2>&1 | tee artifacts/module-scope-cli-input-union/tests.log
+          test -z "$(git status --porcelain --untracked-files=no)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: module-scope-cli-input-union-${{ matrix.os }}-${{ env.EXPECTED_HEAD }}
+          path: artifacts/module-scope-cli-input-union
+          if-no-files-found: error
