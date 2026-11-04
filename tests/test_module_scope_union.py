@@ -189,19 +189,23 @@ class ModuleScopeUnionTests(unittest.TestCase):
                 expected = next(item["symbols"]["Secret"] for item in result.project.modules
                                 if item["path"] == str(self.root / type_source))
                 self.assertEqual(fn.params[1].type.name, expected)
-        # A generic parameter is not an undeclared nominal reference. The
-        # independent checker restriction on shadowing a root type remains.
+        # Type-parameter and term-binding identities are independently scoped,
+        # even when both source spellings collide with unrelated entry names.
         files = {"lib.hepta": "pub fn answer<Secret>(secret: Secret) -> Secret effects {} { return secret; }",
                  "main.hepta": self.main("7", 7, PRIVATE + " struct Secret { value: i64 }")}
         entry = self.project(files)
         loaded = load_project(entry)
         fn = self.library_function(loaded.program)
-        self.assertEqual((fn.type_params, fn.params[0].type.name, fn.return_type.name),
-                         (("Secret",), "Secret", "Secret"))
+        parameter = fn.type_params[0]
+        self.assertNotEqual(parameter, "Secret")
+        self.assertEqual((fn.params[0].type.name, fn.return_type.name),
+                         (parameter, parameter))
+        self.assertEqual(fn.type_bounds, {parameter: "Copy"})
         self.assertNotEqual(fn.params[0].name, "secret")
+        self.assertNotEqual(fn.params[0].name, parameter)
         checked = analyze_project(entry, backend="c", native=False, crate_type="bin")
-        self.assertFalse(checked.report["ok"])
-        self.assertEqual([d["code"] for d in checked.report["diagnostics"]], ["E_GENERIC_PARAMETER"])
+        self.assertTrue(checked.report["ok"], checked.report)
+        self.assertEqual(checked.report["diagnostics"], [])
 
     def test_protected_export_precedes_c_keyword_checks_without_changing_abi(self):
         for name in ("secret", "switch"):

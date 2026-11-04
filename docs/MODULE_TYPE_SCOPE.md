@@ -41,8 +41,9 @@ and deterministic module naming remain unchanged for valid source programs.
 This nominal guard remains separate from function-reference and local-binding
 checks. Their physical integration is documented in [MODULE_SCOPE_UNION.md](MODULE_SCOPE_UNION.md).
 It does not alter checker or backend logic, public ABI names, layouts, loader
-budgets, or package identity algorithms. C-boundary parameter, same-module and
-generic-parameter name collision restrictions remain. It does not claim
+budgets, or package identity algorithms. C-boundary parameter and same-module restrictions remain. The later
+[bound generic parameter repair](MODULE_GENERIC_PARAMETER_SCOPE.md) addresses
+unrelated-root generic collisions without changing this nominal guard. It does not claim
 complete module isolation, whole-language soundness, arbitrary object-layout
 qualification or correctness of foreign implementations. No recursive or
 worker-execution qualification is asserted.

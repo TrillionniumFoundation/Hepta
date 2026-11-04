@@ -85,3 +85,8 @@ No remote registry, version solver, cyclic imports, re-exports, glob imports,
 incremental cache or arbitrary multi-file edit transaction is implemented.
 One semantic patch changes one body while validating and coordinating with its
 complete imported graph.
+
+Generic type parameters bind within their declaration. A parameter whose name
+collides only with an unrelated flattened nominal type receives an internal
+bound name before checking. See [the bounded generic scope repair](MODULE_GENERIC_PARAMETER_SCOPE.md)
+for interface naming consequences and unchanged same-module limitations.

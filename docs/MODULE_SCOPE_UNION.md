@@ -78,3 +78,12 @@ It is finite regression evidence, not complete language soundness, arbitrary
 object layout, recursive programs, worker lifecycles, foreign implementation
 correctness or production readiness. No merge or deployment is authorized by
 this integration work.
+
+## Follow-on bound generic identity repair
+
+The union above deliberately retained the unrelated-root generic-parameter
+refusal. The separate [generic parameter repair](MODULE_GENERIC_PARAMETER_SCOPE.md)
+addresses that false refusal on this exact union and explicitly reconciles the
+two inherited expectations. Same-module restrictions and their existing
+inconsistencies remain; this does not retroactively change the earlier union's
+source identity or observations.

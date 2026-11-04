@@ -114,10 +114,20 @@ class ModuleUnqualifiedTypeScopeTests(unittest.TestCase):
 
     def test_generic_parameter_collision_keeps_existing_checker_restriction(self):
         entry = self.project("pub fn answer<Secret>(value:Secret)->Secret effects {} {return value;}", (MAIN % SECRET).replace("lib::answer()", "lib::answer::<i32>(42)"))
-        load_project(entry)  # Generic parameters bypass module name resolution.
+        result = analyze_project(entry, backend="c", native=False)
+        self.assertTrue(result.report["ok"], result.report)
+        function = next(fn for fn in result.program.functions if fn.type_params)
+        parameter = function.type_params[0]
+        self.assertNotEqual(parameter, "Secret")
+        self.assertEqual((function.params[0].type.name, function.return_type.name),
+                         (parameter, parameter))
+        # Keep this inherited method's same-module checker restriction while
+        # explicitly reconciling its former unrelated-entry false refusal.
+        entry = self.project("", SECRET + " fn answer<Secret>(value:Secret)->Secret effects {} {return value;} fn main()->i32 effects {} {return answer::<i32>(42);}")
         result = analyze_project(entry, backend="c", native=False)
         self.assertFalse(result.report["ok"])
-        self.assertIn("E_GENERIC_PARAMETER", [d["code"] for d in result.report["diagnostics"]])
+        self.assertEqual([d["code"] for d in result.report["diagnostics"]], ["E_GENERIC_PARAMETER"])
+        self.assertIn("Secret", result.report["diagnostics"][0]["message"])
 
     def test_unimported_sibling_type_remains_unknown(self):
         entry = self.project(ANSWER, "import model; " + MAIN % "", model="pub " + SECRET)
