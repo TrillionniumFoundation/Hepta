@@ -66,6 +66,47 @@ class CImportOutputGuardTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 2, report)
         self.assertEqual(report["diagnostics"][0]["code"], "E_DRIVER")
 
+    def test_generated_source_hardlink_cannot_overwrite_c_header(self):
+        header = self.root / "api.h"
+        original = b"int add(int a, int b);\n"
+        header.write_bytes(original)
+        generated = self.root / "bindings.hepta"
+        os.link(header, generated)
+        proc, report = self.run_cli(header, generated)
+        self.assertEqual(header.read_bytes(), original, "output hardlink destroyed the original C header")
+        self.assertEqual(generated.read_bytes(), original, "rejected output hardlink mutated existing input")
+        self.assertFalse((self.root / "bindings.hepta.imports.json").exists(), "refusal published a receipt")
+        self.assertEqual(proc.returncode, 2, report)
+        self.assertEqual(report["diagnostics"][0]["code"], "E_DRIVER")
+
+    def test_manifest_hardlink_cannot_overwrite_c_header(self):
+        header = self.root / "api.h"
+        original = b"int add(int a, int b);\n"
+        header.write_bytes(original)
+        generated = self.root / "bindings.hepta"
+        manifest = self.root / "bindings.hepta.imports.json"
+        os.link(header, manifest)
+        proc, report = self.run_cli(header, generated)
+        self.assertEqual(header.read_bytes(), original, "sidecar hardlink destroyed the original C header")
+        self.assertEqual(manifest.read_bytes(), original)
+        self.assertFalse(generated.exists(), "refusal published a partial generated source")
+        self.assertEqual(proc.returncode, 2, report)
+        self.assertEqual(report["diagnostics"][0]["code"], "E_DRIVER")
+
+    def test_manifest_hardlink_cannot_replace_generated_source(self):
+        header = self.root / "api.h"
+        header.write_bytes(b"int add(int a, int b);\n")
+        generated = self.root / "bindings.hepta"
+        original_output = b"preserved existing output\n"
+        generated.write_bytes(original_output)
+        manifest = self.root / "bindings.hepta.imports.json"
+        os.link(generated, manifest)
+        proc, report = self.run_cli(header, generated)
+        self.assertEqual(generated.read_bytes(), original_output, "sidecar hardlink replaced generated source inode")
+        self.assertEqual(manifest.read_bytes(), original_output)
+        self.assertEqual(proc.returncode, 2, report)
+        self.assertEqual(report["diagnostics"][0]["code"], "E_DRIVER")
+
     def test_normal_header_import_remains_native_and_preserves_input(self):
         header = self.root / "api.h"
         original = b"int add(int a, int b);\n"
