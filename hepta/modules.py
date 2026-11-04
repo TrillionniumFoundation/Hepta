@@ -11,6 +11,7 @@ import platform
 import struct
 
 from .ast import Diagnostic, Expr, Function, HeptaError, Program, Span, Type
+from .checker import RESERVED_TYPES
 from .parser import parse
 from .lexer import tokenize
 from .module_bindings import isolate_local_bindings
@@ -226,9 +227,9 @@ def load_project(entry, *, locked=False, source_overrides=None) -> LoadedProject
                 return name
             fail("E_MODULE_NAMESPACE", "Unknown namespace: " + parts[0], span)
 
-        def transform(value, params=frozenset()):
+        def transform(value, params):
             if isinstance(value, Type):
-                name = value.name if value.name in params else resolve(value.name, "type", Span(path=str(unit.path)))
+                name = params[value.name] if value.name in params else resolve(value.name, "type", Span(path=str(unit.path)))
                 return Type(name, tuple(transform(a, params) for a in value.args), value.length, value.lifetimes)
             if isinstance(value, Expr):
                 if value.kind in {"name", "call"} and isinstance(value.value, str):
@@ -261,7 +262,30 @@ def load_project(entry, *, locked=False, source_overrides=None) -> LoadedProject
                 if isinstance(declaration, Function):
                     isolate_local_bindings(declaration, binding_collisions, binding_namespace, flat_functions)
                 declaration.name = unit.names[original.name]
-                transform(declaration, frozenset(getattr(original, "type_params", ())))
+                original_params = tuple(getattr(original, "type_params", ()))
+                params = {name: name for name in original_params}
+                # Keep bound type identities out of unrelated flat nominal
+                # namespaces. Keep own-module, duplicate/reserved parameter,
+                # invalid-bound and C-boundary restrictions unchanged.
+                if (len(params) == len(original_params)
+                        and not params.keys() & RESERVED_TYPES
+                        and all(name in params and bound in {"Copy", "Owned"}
+                                for name, bound in getattr(original, "type_bounds", {}).items())
+                        and not getattr(original, "repr_c", False)
+                        and not getattr(original, "extern_c", False)
+                        and not getattr(original, "export_c", False)):
+                    occupied = flat_types | flat_functions | params.keys()
+                    for name in sorted((params.keys() & flat_types) - unit.types.keys() - RESERVED_TYPES):
+                        counter = 0
+                        while binding_namespace + "T" + str(counter) + "_" + name in occupied:
+                            counter += 1
+                        params[name] = binding_namespace + "T" + str(counter) + "_" + name
+                        occupied.add(params[name])
+                declaration.type_params = tuple(params[name] for name in original_params)
+                if isinstance(declaration, Function):
+                    declaration.type_bounds = {params.get(name, name): bound
+                                               for name, bound in declaration.type_bounds.items()}
+                transform(declaration, params)
                 getattr(assembled, attr).append(declaration)
         module_reports.append({"path": str(unit.path), "module": unit.program.name,
                                "imports": {a: str(u.path) for a, u in unit.imports.items()},
