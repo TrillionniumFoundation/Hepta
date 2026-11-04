@@ -1,0 +1,496 @@
+{
+  "actual_observed_prepare_main_and_release_wall_sum_ns": 4642117869822,
+  "actual_observed_sum_with_recorded_footprint_setup_ns": 4650736488171,
+  "all_preparation_outer_wall_ns": 520706534029,
+  "common_main_overhead_ns": 101838125006,
+  "concurrent_evidence_io": {
+    "CONCURRENT_EVIDENCE_IO_END.json": {
+      "elapsed_wall_scope": "Coordination-inclusive elapsed transport interval; overlaps the main and is not added again as independent main compute cost.",
+      "event": "bounded_source_aot_blob_io_completed",
+      "finished_unix_ms": 1793774836445,
+      "main_job": "1a1a5341ebd-fc05-1abf",
+      "remote_read_concurrency": 1,
+      "schema": "hepta.factorial.concurrent-evidence-io.v1",
+      "source_or_models_modified": false,
+      "started_unix_ms": 1793773298875,
+      "tree_or_ref_written": false,
+      "uploads": 18,
+      "verified_bytes": 8201303
+    },
+    "CONCURRENT_EVIDENCE_IO_OTHER_STREAMS.json": {
+      "all_reader_actual_end_unix_ms": null,
+      "cost_rule": "Concurrent evidence I/O and inspection time overlaps observed main wall; no invented all-reader cutoff or separate additive compute estimate.",
+      "host_exclusive": false,
+      "other_team_io_report": "Root, NDU, and language evidence exports/readers continued after this agent's END marker. Root reports their bulk streams have now finished.",
+      "other_users_and_unobserved_activity_not_excluded": true,
+      "recorded_unix_ms": 1793776714035,
+      "root_read_only_aot_result_inspections": {
+        "approximate_time_utc": "2026-11-04 around 07:11 UTC",
+        "job_id_prefixes": [
+          "1a1a565a947",
+          "1a1a566e018"
+        ],
+        "scope": "Existing AOT RESULT read-only inspection; no compilation, inference, or measurement rerun."
+      },
+      "schema": "hepta.factorial.shared-host-io-disclosure.v1",
+      "source_of_report": "root coordination message",
+      "source_or_models_modified": false,
+      "this_agent_io_markers_scope": "CONCURRENT_EVIDENCE_IO_START/END refer only to this agent's bounded source/AOT transport stream. They do not certify all shared-host readers stopped."
+    },
+    "CONCURRENT_EVIDENCE_IO_START.json": {
+      "authorized_by_root": true,
+      "benchmarks_or_heavy_compression": false,
+      "blob_mutations_sequential": true,
+      "event": "bounded_blob_io_resumed_during_main",
+      "main_job": "1a1a5341ebd-fc05-1abf",
+      "maximum_decoded_bytes_per_read": 192000,
+      "maximum_files_per_read": 4,
+      "remote_read_concurrency": 1,
+      "schema": "hepta.factorial.concurrent-evidence-io.v1",
+      "scope": "Source/AOT evidence transport runs concurrently with the registered main. Treat timing as observed on a shared nonexclusive host with this evidence IO, not an isolated hardware measurement.",
+      "shared_host_exclusive": false,
+      "source_head": "3707b871ecbe563233ee9a3b69299fc627408936",
+      "source_or_models_modified": false,
+      "started_unix_ms": 1793773298875
+    }
+  },
+  "cost_allocation_rule": "Each descriptive solo arm pays all common preparation and runtime overhead once; not independently executed solo campaigns.",
+  "desktop_release_check_wall_ns": 63260537,
+  "energy_joules": null,
+  "final_prelaunch_gate_wall_ns": 41202167756,
+  "footprint_receipt": {
+    "bytes": 725854,
+    "path": "/home/qian-qi/work/hia-seven-evidence-20261104/factorial-r3-footprint.json",
+    "sha256": "3f319042539ac1e1ca9e447aa56dd1843fa01a2bec397b7119b1b5653d15b38f"
+  },
+  "historical_download_wall_ns": null,
+  "human_labor_wall_ns": null,
+  "main_command_wall_ns": 4074860143819,
+  "main_internal_cohort_wall_ns": 4074525291653,
+  "main_outer_wall_ns": 4080145907500,
+  "preparations": [
+    {
+      "command_wall_ns": 97367289842,
+      "inner_wall_ns": 95635179014,
+      "outer_wall_ns": 98276697960,
+      "registration": {
+        "bytes": 36843,
+        "path": "/home/qian-qi/work/hia-seven-evidence-20261104/factorial-r1/REGISTRATION.json",
+        "sha256": "0507d6269bfdbb38e348cee3c3a525721390b844794f041ce05978f58b86e987"
+      },
+      "revision": 1,
+      "role": "superseded zero-generation preparation; retained cost",
+      "sessions": [
+        {
+          "lifecycle": {
+            "completion_requests_started": 0,
+            "completion_responses_received": 0,
+            "kill_requested": false,
+            "lifecycle_ns": 6882523509,
+            "oom_cause_established": false,
+            "pid": 3954105,
+            "reaped": true,
+            "resources_after": {
+              "cgroup": {
+                "cpu.max": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "cpu.stat": "usage_usec 5635041303000\nuser_usec 4876161381000\nsystem_usec 758879922000\nnice_usec 573760782000\ncore_sched.force_idle_usec 0\nnr_periods 0\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0\n",
+                "memory.current": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.events": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.max": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.peak": {
+                  "unavailable": "FileNotFoundError"
+                }
+              },
+              "observed_unix_ns": 1793764858807995905,
+              "scope": "Shared cgroup counters; a delta does not identify which process caused an event."
+            },
+            "resources_before": {
+              "cgroup": {
+                "cpu.max": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "cpu.stat": "usage_usec 5634928391000\nuser_usec 4876058618000\nsystem_usec 758869773000\nnice_usec 573758922000\ncore_sched.force_idle_usec 0\nnr_periods 0\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0\n",
+                "memory.current": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.events": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.max": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.peak": {
+                  "unavailable": "FileNotFoundError"
+                }
+              },
+              "observed_unix_ns": 1793764851925076195,
+              "scope": "Shared cgroup counters; a delta does not identify which process caused an event."
+            },
+            "returncode": 0,
+            "returncode_before_close": null,
+            "schema": "hepta.gguf-process-lifecycle.v1",
+            "shutdown_ns": 163998066,
+            "termination_requested": true
+          },
+          "path": "factorial-r1/capacity-granite2b/lifecycle.json"
+        },
+        {
+          "lifecycle": {
+            "completion_requests_started": 0,
+            "completion_responses_received": 0,
+            "kill_requested": false,
+            "lifecycle_ns": 5737453172,
+            "oom_cause_established": false,
+            "pid": 3951337,
+            "reaped": true,
+            "resources_after": {
+              "cgroup": {
+                "cpu.max": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "cpu.stat": "usage_usec 5634516657000\nuser_usec 4875684217000\nsystem_usec 758832440000\nnice_usec 573741692000\ncore_sched.force_idle_usec 0\nnr_periods 0\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0\n",
+                "memory.current": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.events": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.max": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.peak": {
+                  "unavailable": "FileNotFoundError"
+                }
+              },
+              "observed_unix_ns": 1793764815073084212,
+              "scope": "Shared cgroup counters; a delta does not identify which process caused an event."
+            },
+            "resources_before": {
+              "cgroup": {
+                "cpu.max": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "cpu.stat": "usage_usec 5634441292000\nuser_usec 4875614614000\nsystem_usec 758826678000\nnice_usec 573735666000\ncore_sched.force_idle_usec 0\nnr_periods 0\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0\n",
+                "memory.current": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.events": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.max": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.peak": {
+                  "unavailable": "FileNotFoundError"
+                }
+              },
+              "observed_unix_ns": 1793764809335469727,
+              "scope": "Shared cgroup counters; a delta does not identify which process caused an event."
+            },
+            "returncode": 0,
+            "returncode_before_close": null,
+            "schema": "hepta.gguf-process-lifecycle.v1",
+            "shutdown_ns": 164144362,
+            "termination_requested": true
+          },
+          "path": "factorial-r1/capacity-qwen_coder1_5b/lifecycle.json"
+        }
+      ],
+      "source_commit": "87106dd3f965de88cfa11616d2e9c63ac3baa5a3",
+      "source_tree": "60a75bf87cca191aa932e2d83bf8bb65141f089a",
+      "zero_generation": true
+    },
+    {
+      "command_wall_ns": 273756235289,
+      "inner_wall_ns": 272733280235,
+      "outer_wall_ns": 274209818823,
+      "registration": {
+        "bytes": 36844,
+        "path": "/home/qian-qi/work/hia-seven-evidence-20261104/factorial-r2/REGISTRATION.json",
+        "sha256": "376a955ce6b4e11dd29b9ead36c74a449a9bee7067a6e790558d624011500259"
+      },
+      "revision": 2,
+      "role": "superseded zero-generation preparation; retained cost",
+      "sessions": [
+        {
+          "lifecycle": {
+            "completion_requests_started": 0,
+            "completion_responses_received": 0,
+            "kill_requested": false,
+            "lifecycle_ns": 10557305624,
+            "oom_cause_established": false,
+            "pid": 10764,
+            "reaped": true,
+            "resources_after": {
+              "cgroup": {
+                "cpu.max": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "cpu.stat": "usage_usec 5662644605000\nuser_usec 4900636917000\nsystem_usec 762007688000\nnice_usec 578264176000\ncore_sched.force_idle_usec 0\nnr_periods 0\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0\n",
+                "memory.current": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.events": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.max": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.peak": {
+                  "unavailable": "FileNotFoundError"
+                }
+              },
+              "observed_unix_ns": 1793767366012160502,
+              "scope": "Shared cgroup counters; a delta does not identify which process caused an event."
+            },
+            "resources_before": {
+              "cgroup": {
+                "cpu.max": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "cpu.stat": "usage_usec 5662514899000\nuser_usec 4900525669000\nsystem_usec 761989230000\nnice_usec 578248567000\ncore_sched.force_idle_usec 0\nnr_periods 0\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0\n",
+                "memory.current": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.events": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.max": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.peak": {
+                  "unavailable": "FileNotFoundError"
+                }
+              },
+              "observed_unix_ns": 1793767355454544580,
+              "scope": "Shared cgroup counters; a delta does not identify which process caused an event."
+            },
+            "returncode": 0,
+            "returncode_before_close": null,
+            "schema": "hepta.gguf-process-lifecycle.v1",
+            "shutdown_ns": 213951845,
+            "termination_requested": true
+          },
+          "path": "factorial-r2/capacity-granite2b/lifecycle.json"
+        },
+        {
+          "lifecycle": {
+            "completion_requests_started": 0,
+            "completion_responses_received": 0,
+            "kill_requested": false,
+            "lifecycle_ns": 6115734144,
+            "oom_cause_established": false,
+            "pid": 4183609,
+            "reaped": true,
+            "resources_after": {
+              "cgroup": {
+                "cpu.max": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "cpu.stat": "usage_usec 5659887252000\nuser_usec 4898147207000\nsystem_usec 761740045000\nnice_usec 578156351000\ncore_sched.force_idle_usec 0\nnr_periods 0\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0\n",
+                "memory.current": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.events": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.max": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.peak": {
+                  "unavailable": "FileNotFoundError"
+                }
+              },
+              "observed_unix_ns": 1793767172945606188,
+              "scope": "Shared cgroup counters; a delta does not identify which process caused an event."
+            },
+            "resources_before": {
+              "cgroup": {
+                "cpu.max": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "cpu.stat": "usage_usec 5659771840000\nuser_usec 4898042469000\nsystem_usec 761729371000\nnice_usec 578149914000\ncore_sched.force_idle_usec 0\nnr_periods 0\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0\n",
+                "memory.current": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.events": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.max": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.peak": {
+                  "unavailable": "FileNotFoundError"
+                }
+              },
+              "observed_unix_ns": 1793767166829761204,
+              "scope": "Shared cgroup counters; a delta does not identify which process caused an event."
+            },
+            "returncode": 0,
+            "returncode_before_close": null,
+            "schema": "hepta.gguf-process-lifecycle.v1",
+            "shutdown_ns": 163751999,
+            "termination_requested": true
+          },
+          "path": "factorial-r2/capacity-qwen_coder1_5b/lifecycle.json"
+        }
+      ],
+      "source_commit": "98bdbe9f859b5caf95356fbfb1254448d9b583d0",
+      "source_tree": "514b607bd5661abe5ac516ee77d80638c939749c",
+      "zero_generation": true
+    },
+    {
+      "command_wall_ns": 147727368260,
+      "inner_wall_ns": 146976267952,
+      "outer_wall_ns": 148220017246,
+      "registration": {
+        "bytes": 36844,
+        "path": "/home/qian-qi/work/hia-seven-evidence-20261104/factorial-r3/REGISTRATION.json",
+        "sha256": "ba423ea5c86e8cda0c6a78de42f2ac40d7a8722e868c3a0260aafdf1b97655a2"
+      },
+      "revision": 3,
+      "role": "final preparation",
+      "sessions": [
+        {
+          "lifecycle": {
+            "completion_requests_started": 0,
+            "completion_responses_received": 0,
+            "kill_requested": false,
+            "lifecycle_ns": 6761111205,
+            "oom_cause_established": false,
+            "pid": 368844,
+            "reaped": true,
+            "resources_after": {
+              "cgroup": {
+                "cpu.max": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "cpu.stat": "usage_usec 5702328367000\nuser_usec 4935870311000\nsystem_usec 766458056000\nnice_usec 581593972000\ncore_sched.force_idle_usec 0\nnr_periods 0\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0\n",
+                "memory.current": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.events": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.max": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.peak": {
+                  "unavailable": "FileNotFoundError"
+                }
+              },
+              "observed_unix_ns": 1793770609436800137,
+              "scope": "Shared cgroup counters; a delta does not identify which process caused an event."
+            },
+            "resources_before": {
+              "cgroup": {
+                "cpu.max": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "cpu.stat": "usage_usec 5702237388000\nuser_usec 4935788996000\nsystem_usec 766448392000\nnice_usec 581593308000\ncore_sched.force_idle_usec 0\nnr_periods 0\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0\n",
+                "memory.current": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.events": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.max": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.peak": {
+                  "unavailable": "FileNotFoundError"
+                }
+              },
+              "observed_unix_ns": 1793770602675553062,
+              "scope": "Shared cgroup counters; a delta does not identify which process caused an event."
+            },
+            "returncode": 0,
+            "returncode_before_close": null,
+            "schema": "hepta.gguf-process-lifecycle.v1",
+            "shutdown_ns": 164045646,
+            "termination_requested": true
+          },
+          "path": "factorial-r3/capacity-granite2b/lifecycle.json"
+        },
+        {
+          "lifecycle": {
+            "completion_requests_started": 0,
+            "completion_responses_received": 0,
+            "kill_requested": false,
+            "lifecycle_ns": 5780465032,
+            "oom_cause_established": false,
+            "pid": 361438,
+            "reaped": true,
+            "resources_after": {
+              "cgroup": {
+                "cpu.max": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "cpu.stat": "usage_usec 5701268645000\nuser_usec 4934943637000\nsystem_usec 766325008000\nnice_usec 581575269000\ncore_sched.force_idle_usec 0\nnr_periods 0\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0\n",
+                "memory.current": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.events": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.max": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.peak": {
+                  "unavailable": "FileNotFoundError"
+                }
+              },
+              "observed_unix_ns": 1793770530210361563,
+              "scope": "Shared cgroup counters; a delta does not identify which process caused an event."
+            },
+            "resources_before": {
+              "cgroup": {
+                "cpu.max": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "cpu.stat": "usage_usec 5701197071000\nuser_usec 4934880835000\nsystem_usec 766316236000\nnice_usec 581568460000\ncore_sched.force_idle_usec 0\nnr_periods 0\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0\n",
+                "memory.current": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.events": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.max": {
+                  "unavailable": "FileNotFoundError"
+                },
+                "memory.peak": {
+                  "unavailable": "FileNotFoundError"
+                }
+              },
+              "observed_unix_ns": 1793770524429646467,
+              "scope": "Shared cgroup counters; a delta does not identify which process caused an event."
+            },
+            "returncode": 0,
+            "returncode_before_close": null,
+            "schema": "hepta.gguf-process-lifecycle.v1",
+            "shutdown_ns": 164093765,
+            "termination_requested": true
+          },
+          "path": "factorial-r3/capacity-qwen_coder1_5b/lifecycle.json"
+        }
+      ],
+      "source_commit": "3707b871ecbe563233ee9a3b69299fc627408936",
+      "source_tree": "9530e9feccf0077696d2e94746fda6bfb6854417",
+      "zero_generation": true
+    }
+  ],
+  "schema": "hepta.agent.edit-factorial.observed-costs.v1",
+  "scope": "Observed process walls on a shared nonexclusive host. Outerdriver excludes final receipt publication and interpreter startup; not complete economic cost.",
+  "source_footprint_materialization_setup_ns": 8618618349,
+  "waiting_ci_and_coordination_wall_ns": null,
+  "waiting_scope": "Waiting is separate and no complete waiting clock was measured.",
+  "warning": "Four solo-arm allocations overlap. Never sum them as actual campaign cost. Nested clocks are not added to outer clocks."
+}
