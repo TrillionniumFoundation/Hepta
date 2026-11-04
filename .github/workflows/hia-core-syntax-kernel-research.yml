@@ -1,4 +1,4 @@
-name: HIA bounded relocated Part03 diagnostic (DENY_ALL)
+name: HIA bounded completion Part03 diagnostic (DENY_ALL)
 on:
   pull_request:
     paths:
@@ -17,6 +17,10 @@ on:
       - 'tools/diagnose_core_seven_relocated_part03.py'
       - 'tests/test_core_seven_relocated_part03_*.py'
       - 'docs/seven-relocated-part03-diagnostic.md'
+      - 'tools/core_seven_completion_part03_*.py'
+      - 'tools/diagnose_core_seven_completion_part03.py'
+      - 'tests/test_core_seven_completion_part03_*.py'
+      - 'docs/seven-completion-part03-diagnostic.md'
       - 'tools/core_seven_relocation_acceptance_plan.py'
       - 'tools/core_seven_relocation_acceptance_replay.py'
       - 'tests/test_core_seven_relocation_acceptance.py'
@@ -100,11 +104,11 @@ jobs:
         run: |
           set -euo pipefail
           timeout 300s python -B tools/bootstrap_verification.py --lean-only --directory "$RUNNER_TEMP/core-syntax-tools"
-      - name: Observe four fresh hardened parents and marked Part03; no acceptance
+      - name: Observe four fresh parents and completion barrier; no acceptance
         run: |
           set -euo pipefail
           status=0
-          timeout 600s python -B -m tools.diagnose_core_seven_relocated_part03 \
+          timeout 600s python -B -m tools.diagnose_core_seven_completion_part03 \
             --lean "$RUNNER_TEMP/core-syntax-tools/lean-4.19.0/bin/lean" \
             --output-directory "$RUNNER_TEMP/core-syntax-proof" || status=$?
           test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
@@ -113,5 +117,5 @@ jobs:
       - name: Independently replay bounded Part03 diagnostic evidence; never acceptance
         if: always()
         run: |
-          timeout 600s python -B -m tools.diagnose_core_seven_relocated_part03 --replay \
+          timeout 600s python -B -m tools.diagnose_core_seven_completion_part03 --replay \
             --output-directory "$RUNNER_TEMP/core-syntax-proof"

@@ -17,6 +17,10 @@ on:
       - 'tools/diagnose_core_seven_relocated_part03.py'
       - 'tests/test_core_seven_relocated_part03_*.py'
       - 'docs/seven-relocated-part03-diagnostic.md'
+      - 'tools/core_seven_completion_part03_*.py'
+      - 'tools/diagnose_core_seven_completion_part03.py'
+      - 'tests/test_core_seven_completion_part03_*.py'
+      - 'docs/seven-completion-part03-diagnostic.md'
       - 'tools/core_seven_relocation_acceptance_plan.py'
       - 'tools/core_seven_relocation_acceptance_replay.py'
       - 'tests/test_core_seven_relocation_acceptance.py'
@@ -144,7 +148,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        group: [sources, execution, noncomputable-sources, noncomputable-execution, partition-sources-a, partition-sources-b, partition-execution, partition-diagnostic-sources, partition-diagnostic-capture, partition-diagnostic-execution, byte-facts-dag, byte-facts-sources, byte-facts-diagnostic, byte-facts-execution, byte-facts-replay, seven-sources-a, seven-sources-b, seven-sources-c, seven-diagnostic, seven-execution-a, seven-execution-b, seven-execution-inverse, seven-pending-eio, seven-acceptance-fast, seven-acceptance-records, seven-acceptance-record_types, seven-acceptance-full_eleven, seven-acceptance-fail_every_stage, seven-acceptance-adversary_provenance_finalization, seven-acceptance-write_faults, seven-acceptance-fsync_faults, seven-acceptance-reread_faults, seven-acceptance-review_boundaries_shadows, seven-acceptance-negative_pair_1, seven-acceptance-negative_pair_2, seven-acceptance-negative_pair_3, seven-acceptance-negative_pair_4, seven-acceptance-negative_pair_5, part04-sources, part04-capture, part04-grammar, part04-runner-a, part04-runner-b, part04-runner-inverse, relocation-proposal, relocation-sources, relocation-grammar, relocation-runner-a, relocation-runner-b, relocation-runner-inverse, full-relocation-acceptance-fast, full-relocation-acceptance-records, full-relocation-acceptance-record_types, full-relocation-acceptance-full_eleven, full-relocation-acceptance-runner, full-relocation-acceptance-provenance_shadows, full-relocation-acceptance-final_replay, full-relocation-acceptance-clock_replay, full-relocation-acceptance-writes_faults, full-relocation-acceptance-fsyncs_faults, full-relocation-acceptance-rereads_faults, full-relocation-acceptance-negative_byte_modulo_alias, full-relocation-acceptance-negative_changed_exact_byte, full-relocation-acceptance-negative_duplicate_keys, full-relocation-acceptance-negative_leading_zero, full-relocation-acceptance-negative_literal_two, full-relocation-acceptance-negative_stale_descriptor, full-relocation-acceptance-negative_unordered_keys, full-relocation-acceptance-negative_wrong_arm_implementation, full-relocation-acceptance-negative_wrong_condition, full-relocation-acceptance-negative_wrong_phi, full-relocation-acceptance-source_contract, full-relocation-acceptance-protocols, full-relocation-acceptance-retained_source, relocated-part03-sources, relocated-part03-fast, relocated-part03-raw, relocated-part03-branches, relocated-part03-full]
+        group: [sources, execution, noncomputable-sources, noncomputable-execution, partition-sources-a, partition-sources-b, partition-execution, partition-diagnostic-sources, partition-diagnostic-capture, partition-diagnostic-execution, byte-facts-dag, byte-facts-sources, byte-facts-diagnostic, byte-facts-execution, byte-facts-replay, seven-sources-a, seven-sources-b, seven-sources-c, seven-diagnostic, seven-execution-a, seven-execution-b, seven-execution-inverse, seven-pending-eio, seven-acceptance-fast, seven-acceptance-records, seven-acceptance-record_types, seven-acceptance-full_eleven, seven-acceptance-fail_every_stage, seven-acceptance-adversary_provenance_finalization, seven-acceptance-write_faults, seven-acceptance-fsync_faults, seven-acceptance-reread_faults, seven-acceptance-review_boundaries_shadows, seven-acceptance-negative_pair_1, seven-acceptance-negative_pair_2, seven-acceptance-negative_pair_3, seven-acceptance-negative_pair_4, seven-acceptance-negative_pair_5, part04-sources, part04-capture, part04-grammar, part04-runner-a, part04-runner-b, part04-runner-inverse, relocation-proposal, relocation-sources, relocation-grammar, relocation-runner-a, relocation-runner-b, relocation-runner-inverse, full-relocation-acceptance-fast, full-relocation-acceptance-records, full-relocation-acceptance-record_types, full-relocation-acceptance-full_eleven, full-relocation-acceptance-runner, full-relocation-acceptance-provenance_shadows, full-relocation-acceptance-final_replay, full-relocation-acceptance-clock_replay, full-relocation-acceptance-writes_faults, full-relocation-acceptance-fsyncs_faults, full-relocation-acceptance-rereads_faults, full-relocation-acceptance-negative_byte_modulo_alias, full-relocation-acceptance-negative_changed_exact_byte, full-relocation-acceptance-negative_duplicate_keys, full-relocation-acceptance-negative_leading_zero, full-relocation-acceptance-negative_literal_two, full-relocation-acceptance-negative_stale_descriptor, full-relocation-acceptance-negative_unordered_keys, full-relocation-acceptance-negative_wrong_arm_implementation, full-relocation-acceptance-negative_wrong_condition, full-relocation-acceptance-negative_wrong_phi, full-relocation-acceptance-source_contract, full-relocation-acceptance-protocols, full-relocation-acceptance-retained_source, relocated-part03-sources, relocated-part03-fast, relocated-part03-raw, relocated-part03-branches, relocated-part03-full, completion-part03-sources, completion-part03-fast, completion-part03-raw, completion-part03-branches-a, completion-part03-branches-b, completion-part03-branches-c, completion-part03-adversary, completion-part03-full]
     env:
       EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
       PYTHONDONTWRITEBYTECODE: '1'
@@ -170,6 +174,14 @@ jobs:
           timeout 180s python -B - <<'PYDIAG'
           import hashlib, json, os, unittest
           groups = {
+              'completion-part03-sources': (['tests.test_core_seven_completion_part03_sources'], 20),
+              'completion-part03-fast': (['tests.test_core_seven_completion_part03_diagnostic.Part03SchemaTests', 'tests.test_core_seven_completion_part03_diagnostic.Part03RecordTests', 'tests.test_core_seven_completion_part03_diagnostic.Part03FinalizationTests', 'tests.test_core_seven_completion_part03_diagnostic.CaptureLifecycleTests'], 70),
+              'completion-part03-raw': (['tests.test_core_seven_completion_part03_diagnostic.Part03RawTests'], 12),
+              'completion-part03-branches-a': (['tests.test_core_seven_completion_part03_diagnostic.Part03BranchTests'], 7),
+              'completion-part03-branches-b': (['tests.test_core_seven_completion_part03_diagnostic.Part03BranchTests'], 7),
+              'completion-part03-branches-c': (['tests.test_core_seven_completion_part03_diagnostic.Part03BranchTests'], 7),
+              'completion-part03-adversary': (['tests.test_core_seven_completion_part03_diagnostic.CompletionCollectorAdversaryTests'], 2),
+              'completion-part03-full': (['tests.test_core_seven_completion_part03_diagnostic.Part03IntegrationTests'], 1),
               'relocated-part03-sources': (['tests.test_core_seven_relocated_part03_sources'], 15),
               'relocated-part03-fast': (['tests.test_core_seven_relocated_part03_diagnostic.Part03SchemaTests', 'tests.test_core_seven_relocated_part03_diagnostic.Part03RecordTests', 'tests.test_core_seven_relocated_part03_diagnostic.Part03FinalizationTests', 'tests.test_core_seven_relocated_part03_diagnostic.CaptureLifecycleTests'], 39),
               'relocated-part03-raw': (['tests.test_core_seven_relocated_part03_diagnostic.Part03RawTests'], 11),
@@ -261,6 +273,10 @@ jobs:
           suites = {}
           for group, (names, expected) in groups.items():
               cases = sorted(flatten(unittest.defaultTestLoader.loadTestsFromNames(names)), key=lambda case: case.id())
+              if group.startswith('completion-part03-branches-'):
+                  assert len(cases) == len({case.id() for case in cases}) == 21, 'complete completion branch inventory changed'
+                  start = {'a': 0, 'b': 7, 'c': 14}[group.rsplit('-', 1)[1]]
+                  cases = cases[start:start + 7]
               if group.startswith(('partition-sources-', 'seven-sources-', 'seven-execution-')):
                   complete_expected = 31 if group.startswith('seven-sources-') else 16
                   assert len(cases) == len({case.id() for case in cases}) == complete_expected, 'complete split inventory changed'
@@ -297,7 +313,7 @@ jobs:
           all_ids = [test_id for ids in inventories.values() for test_id in ids]
           all_names = sorted({name for names, _ in groups.values() for name in names})
           complete_ids = [case.id() for case in flatten(unittest.defaultTestLoader.loadTestsFromNames(all_names))]
-          assert len(all_ids) == len(set(all_ids)) == len(complete_ids) == 779, 'combined inventory changed'
+          assert len(all_ids) == len(set(all_ids)) == len(complete_ids) == 905, 'combined inventory changed'
           assert set(all_ids) == set(complete_ids), 'split omitted or duplicated controls'
           acceptance_ids = [case.id() for case in flatten(unittest.defaultTestLoader.loadTestsFromName('tests.test_core_seven_acceptance'))]
           assigned_acceptance_ids = [test_id for group, ids in inventories.items() if group.startswith('seven-acceptance-') for test_id in ids]
@@ -308,7 +324,7 @@ jobs:
           assigned_part04_ids = [test_id for group, ids in inventories.items() if group.startswith('part04-') for test_id in ids]
           assert len(part04_ids) == len(set(part04_ids)) == len(assigned_part04_ids) == len(set(assigned_part04_ids)) == 73, 'complete Part04 inventory changed'
           assert set(part04_ids) == set(assigned_part04_ids), 'Part04 shards omitted or duplicated controls'
-          legacy_ids = [test_id for group, ids in inventories.items() if not group.startswith(('relocation-', 'full-relocation-acceptance-', 'relocated-part03-')) for test_id in ids]
+          legacy_ids = [test_id for group, ids in inventories.items() if not group.startswith(('completion-part03-', 'relocation-', 'full-relocation-acceptance-', 'relocated-part03-')) for test_id in ids]
           assert len(legacy_ids) == len(set(legacy_ids)) == 500, 'all prior isolated controls must remain assigned once'
           relocation_names = ['tests.test_core_seven_parallel_relocation_sources', 'tests.test_core_seven_relocation_sources', 'tests.test_core_seven_relocation_runner']
           relocation_ids = [case.id() for case in flatten(unittest.defaultTestLoader.loadTestsFromNames(relocation_names))]
@@ -319,15 +335,21 @@ jobs:
           assigned_full_relocation_ids = [test_id for group, ids in inventories.items() if group.startswith('full-relocation-acceptance-') for test_id in ids]
           assert len(full_relocation_ids) == len(set(full_relocation_ids)) == len(assigned_full_relocation_ids) == len(set(assigned_full_relocation_ids)) == 140, 'complete full relocation acceptance inventory changed'
           assert set(full_relocation_ids) == set(assigned_full_relocation_ids), 'full relocation acceptance shards omitted or duplicated controls'
-          old_ids = [test_id for group, ids in inventories.items() if not group.startswith(('full-relocation-acceptance-', 'relocated-part03-')) for test_id in ids]
+          old_ids = [test_id for group, ids in inventories.items() if not group.startswith(('completion-part03-', 'full-relocation-acceptance-', 'relocated-part03-')) for test_id in ids]
           assert len(old_ids) == len(set(old_ids)) == 565, 'all prior isolated controls retained once'
           part03_names = ['tests.test_core_seven_relocated_part03_sources', 'tests.test_core_seven_relocated_part03_diagnostic']
           part03_ids = [case.id() for case in flatten(unittest.defaultTestLoader.loadTestsFromNames(part03_names))]
           assigned_part03_ids = [test_id for group, ids in inventories.items() if group.startswith('relocated-part03-') for test_id in ids]
           assert len(part03_ids) == len(set(part03_ids)) == len(assigned_part03_ids) == len(set(assigned_part03_ids)) == 74, 'complete Part03 inventory changed'
           assert set(part03_ids) == set(assigned_part03_ids), 'Part03 shards omitted or duplicated controls'
-          inherited_ids = [test_id for group, ids in inventories.items() if not group.startswith('relocated-part03-') for test_id in ids]
+          inherited_ids = [test_id for group, ids in inventories.items() if not group.startswith(('completion-part03-', 'relocated-part03-')) for test_id in ids]
           assert len(inherited_ids) == len(set(inherited_ids)) == 705, 'all prior isolated controls retained once'
+          completion_ids = [case.id() for case in flatten(unittest.defaultTestLoader.loadTestsFromNames(['tests.test_core_seven_completion_part03_sources', 'tests.test_core_seven_completion_part03_diagnostic']))]
+          assigned_completion_ids = [test_id for group, ids in inventories.items() if group.startswith('completion-part03-') for test_id in ids]
+          assert len(completion_ids) == len(set(completion_ids)) == len(assigned_completion_ids) == len(set(assigned_completion_ids)) == 126, 'complete completion diagnostic inventory changed'
+          assert set(completion_ids) == set(assigned_completion_ids), 'completion shards omitted or duplicated controls'
+          retained_ids = [test_id for group, ids in inventories.items() if not group.startswith('completion-part03-') for test_id in ids]
+          assert len(retained_ids) == len(set(retained_ids)) == 779, 'all prior isolated controls retained once'
           group = os.environ['CONTROL_GROUP']
           ids, suite = inventories[group], suites[group]
           expected = groups[group][1]
