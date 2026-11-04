@@ -20,8 +20,16 @@ class ToolIdentityRejected(ValueError):
     """A compiler executable could not be identified as a stable regular file."""
 
 
-def _identity(st: os.stat_result) -> tuple[int, int, int, int, int]:
-    return (st.st_dev, st.st_ino, st.st_size, st.st_mtime_ns, st.st_ctime_ns)
+def _identity(st: os.stat_result, *, cross_api: bool = False) -> tuple[int, int, int, int, int]:
+    timestamp = st.st_ctime_ns
+    if cross_api and os.name == "nt":
+        # CPython 3.12+ Windows lstat uses creation time for ctime, whereas
+        # fstat can use metadata change time. Birthtime is comparable across
+        # both APIs; 3.11 has no birthtime and uses creation time for both.
+        # Keep ctime for same-API comparisons, including the open handle's
+        # change time before/after reading. Never drop device or file identity.
+        timestamp = getattr(st, "st_birthtime_ns", timestamp)
+    return (st.st_dev, st.st_ino, st.st_size, st.st_mtime_ns, timestamp)
 
 
 def update_stable_regular_hash(hasher, path: str | Path, *,
@@ -54,7 +62,8 @@ def update_stable_regular_hash(hasher, path: str | Path, *,
             raise
         with stream:
             initial = os.fstat(stream.fileno())
-            if not stat.S_ISREG(initial.st_mode) or _identity(initial) != _identity(before):
+            if (not stat.S_ISREG(initial.st_mode)
+                    or _identity(initial, cross_api=True) != _identity(before, cross_api=True)):
                 raise ToolIdentityRejected("E_TOOL_IDENTITY: file replaced before read")
             total = 0
             limit = before.st_size + 1
@@ -65,7 +74,7 @@ def update_stable_regular_hash(hasher, path: str | Path, *,
                 total += len(block)
                 hasher.update(block)
             after = os.fstat(stream.fileno())
-            if total != before.st_size or _identity(after) != _identity(before):
+            if total != before.st_size or _identity(after) != _identity(initial):
                 raise ToolIdentityRejected("E_TOOL_IDENTITY: file mutated during read")
         final = path.lstat()
         if not stat.S_ISREG(final.st_mode) or _identity(final) != _identity(before):
