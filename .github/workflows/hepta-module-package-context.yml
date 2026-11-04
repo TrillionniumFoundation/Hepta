@@ -1,0 +1,52 @@
+name: Module package context
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'tests/**'
+      - 'tools/test_module_package_context.py'
+      - '.github/workflows/hepta-module-package-context.yml'
+permissions:
+  contents: read
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bind source and execute all module-package and native controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          rustup toolchain install 1.90.0 --profile minimal
+          export RUSTC="$(rustup which --toolchain 1.90.0 rustc)"
+          export CC="$(command -v gcc)"
+          mkdir -p artifacts/module-package-context
+          { git rev-parse HEAD HEAD^{tree}; uname -a; python --version; \
+            "$CC" --version; git --version; "$RUSTC" --version; \
+            sha256sum "$CC" "$(command -v git)" "$RUSTC"; \
+          } > artifacts/module-package-context/identities.txt
+          python -B tools/test_module_package_context.py 2>&1 | tee artifacts/module-package-context/tests.log
+          test -z "$(git status --porcelain --untracked-files=no)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: module-package-context-${{ matrix.os }}-${{ env.EXPECTED_HEAD }}
+          path: artifacts/module-package-context
+          if-no-files-found: error

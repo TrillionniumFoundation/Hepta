@@ -88,7 +88,10 @@ owning package's `source_root`; a standalone project uses the entry file's
 directory. If the first component names a manifest dependency, resolution uses
 that dependency's entry or source root. Imports must precede declarations.
 Cycles, missing files, duplicate aliases, alias/declaration collisions, and
-source-root escapes are rejected. The same resolved file is loaded once.
+source-root escapes are rejected. The same resolved file is loaded once and
+must be reached under one consistent canonical package root. Reusing it under
+a different package root rejects with `E_MODULE_PACKAGE_CONTEXT`, rather than
+silently selecting the first import's context.
 File identity owns the namespace; `module` spelling does not redirect imports.
 
 Files may declare structs, enums, functions, and `extern "C"` functions. Use
