@@ -90,10 +90,9 @@ def assess(rows, spec):
             "cohort field types must match registration")
     actual = [(r["workload"], r["group"], r["backend"], r["n"], r["seed"], r["calls"]) for r in rows]
     require(len(actual) == len(set(actual)) and set(actual) == expected, "missing, duplicate or unexpected cohort")
-    require(all(type(r["calls"]) is int and r["calls"] in spec["batch_loads"]
-                and type(r["times_ns"]) is list and len(r["times_ns"]) == spec["samples"]
-                and all(type(v) is int and v > 0 for v in r["times_ns"]) for r in rows),
-            "missing/padded samples or changed batch load")
+    for row in rows:
+        release.check_measurement(row, n=row["n"], seed=row["seed"],
+                                  calls=row["calls"], samples=spec["samples"])
     grouped = {}
     for row in rows:
         key = (row["workload"], row["group"], row["n"], row["calls"], row["backend"])
