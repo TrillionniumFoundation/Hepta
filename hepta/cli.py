@@ -804,7 +804,7 @@ def main(argv=None) -> int:
             if dest == Path(args.header).resolve():
                 raise ValueError("Output cannot overwrite the C input header")
             dest.parent.mkdir(parents=True, exist_ok=True)
-            dest.write_text(imported.source)
+            dest.write_bytes(imported.source.encode("utf-8"))
             manifest = dest.with_suffix(dest.suffix + ".imports.json")
             manifest.write_text(json.dumps(imported.manifest, indent=2, sort_keys=True) + "\n")
             output_json({"schema": "hepta.import-c.v1", "ok": True, "output": str(dest), "manifest": str(manifest), "validation": imported.manifest})

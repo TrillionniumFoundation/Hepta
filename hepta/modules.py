@@ -113,7 +113,9 @@ def load_project(entry, *, locked=False, source_overrides=None) -> LoadedProject
             text = data.decode("utf-8")
         except (OSError, UnicodeError) as e:
             fail("E_MODULE_READ", str(e), span)
-        if text.startswith("// hepta:c-import:v1\n"):
+        # Source line-ending conversion must not disable generated-bundle checks.
+        # The recorded source hash below must still match the exact bytes.
+        if text.startswith(("// hepta:c-import:v1\n", "// hepta:c-import:v1\r")):
             sidecar = path.with_suffix(path.suffix + ".imports.json")
             try:
                 metadata_bytes = sidecar.read_bytes()

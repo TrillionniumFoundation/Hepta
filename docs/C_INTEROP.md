@@ -67,6 +67,25 @@ their `// hepta:c-import:v1` marker and enforce the following bundle checks:
   attempts to reuse its bindings for a foreign ABI. Target-specific import
   profiles are not implemented.
 
+The generated marker is recognized with LF, CRLF or bare-CR line endings,
+matching the source lexer's line boundaries. Changing line endings does not
+turn generated bindings into handwritten declarations or disable bundle
+checks. Source hashes still cover the exact bytes: a Git checkout or editor
+conversion without matching source metadata therefore rejects with
+`E_C_IMPORT_IDENTITY`. Missing metadata, stale local headers and mismatched
+host facts continue to reject rather than disappearing from project identity.
+
+`import-c` writes its generated binding as the exact UTF-8 bytes used for the
+recorded source hash, without platform text newline conversion. This does not
+add native Windows support or change the importer probe, header grammar,
+foreign assumptions or the intentional low-level handwritten-extern path.
+
+The regression gate `python -B tools/test_c_import_line_identity.py` requires
+actual GCC and the pinned Rust reference for all adjacent module controls.
+It includes real Git CRLF checkout and public CLI/native C stale-fact refusal
+controls. Its separately labeled Windows-newline writer model is not native
+Windows qualification.
+
 These checks are applied by project loading; direct calls to low-level `parse`,
 `check`, or `emit_c` are not a replacement for loading a binding bundle. Hashes
 identify the source and probe evidence. They do not prove a foreign
