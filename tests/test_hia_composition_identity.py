@@ -96,5 +96,82 @@ class CompositionIdentityTests(unittest.TestCase):
             self.assertIs(composition.unchanged(self.source, self.tools, frozen), False)
 
 
+    def source_reference_fixture(self, release="1.90.0"):
+        """Executable version-protocol control, never a real compiler proof."""
+        import sys
+        root = self.root/"source-reference"
+        binary = root/"bin/rustc"
+        binary.parent.mkdir(parents=True, exist_ok=True)
+        version = ("rustc "+release+" (fixture 2025-09-14)\n"
+                   "binary: rustc\ncommit-hash: fixture-identity\n"
+                   "commit-date: 2025-09-14\nhost: x86_64-unknown-linux-gnu\n"
+                   "release: "+release+"\nLLVM version: 20.1.8")
+        binary.write_text("#!"+sys.executable+"\nimport sys\nprint("+
+                          repr(version)+" if '-vV' in sys.argv else "+repr(version.splitlines()[0])+")\n")
+        binary.chmod(0o700)
+        for name in ("lib/librustc_driver.fixture.so", "lib/libLLVM.fixture.so",
+                     "lib/rustlib/x86_64-unknown-linux-gnu/lib/libstd.fixture.rlib"):
+            path = root/name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(("fixture:"+name).encode())
+        return binary
+
+    def test_source_reference_uses_complete_pin_and_has_no_implicit_fallback(self):
+        from hepta.backend import RUST_VERSION
+        self.assertEqual(RUST_VERSION, "1.90.0")
+        binary = self.source_reference_fixture()
+        frozen = composition.source_reference_identity(str(binary))
+        self.assertEqual(frozen["path"], str(binary.resolve()))
+        self.assertEqual(frozen["selected_argument"], str(binary))
+        self.assertEqual(frozen["reference"]["sysroot_discovery"], "verified_compiler_prefix")
+        self.assertEqual(len(frozen["sysroot_files_sha256"]), 3)
+        for invalid in (None, "", str(self.root/"missing-rustc")):
+            with self.subTest(selection=invalid), self.assertRaises(ValueError):
+                composition.source_reference_identity(invalid)
+        self.source_reference_fixture(release="1.95.0")
+        with self.assertRaisesRegex(ValueError, "source-reference Rust identity rejected"):
+            composition.source_reference_identity(str(binary))
+
+    def test_source_reference_driver_sysroot_and_executable_drift_fail_closed(self):
+        binary = self.source_reference_fixture()
+        frozen = composition.source_reference_identity(str(binary))
+        self.tools["source_rustc"] = frozen
+        library = binary.parent.parent/"lib/librustc_driver.fixture.so"
+        stdlib = binary.parent.parent/"lib/rustlib/x86_64-unknown-linux-gnu/lib/libstd.fixture.rlib"
+        with patch.object(composition, "source_identity", return_value=self.source):
+            self.assertTrue(composition.unchanged(self.source, self.tools))
+            for path in (binary, library, stdlib):
+                original = path.read_bytes()
+                with self.subTest(path=str(path)):
+                    path.write_bytes(original+b"\n# drift\n" if path == binary else original+b"drift")
+                    self.assertIs(composition.unchanged(self.source, self.tools), False)
+                    path.write_bytes(original)
+            added = library.with_name("new-driver.so")
+            added.write_bytes(b"added")
+            self.assertIs(composition.unchanged(self.source, self.tools), False)
+            added.unlink()
+            original = stdlib.read_bytes()
+            stdlib.unlink()
+            self.assertIs(composition.unchanged(self.source, self.tools), False)
+            stdlib.write_bytes(original)
+            self.assertTrue(composition.unchanged(self.source, self.tools))
+
+    def test_source_reference_sysroot_links_are_rejected(self):
+        binary = self.source_reference_fixture()
+        lib = binary.parent.parent/"lib"
+        (lib/"linked-driver.so").symlink_to(lib/"librustc_driver.fixture.so")
+        with self.assertRaisesRegex(ValueError, "sysroot links"):
+            composition.source_reference_identity(str(binary))
+
+
+    def test_regression_child_mode_does_not_require_full_composition_tool_flags(self):
+        with patch("sys.argv", ["qualify_hia_composition.py", "--regression-output", "child.json"]), \
+                patch.object(composition, "regression_suite", return_value=True) as run, \
+                patch.object(composition, "qualify") as full:
+            self.assertEqual(composition.main(), 0)
+            run.assert_called_once_with(Path("child.json"))
+            full.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,33 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "/home/qian-qi/work/hia-tools-20261103/venv/bin/python",
+        "-B",
+        "-m",
+        "unittest",
+        "tests.test_hia_ndu_build_cost",
+        "tests.test_hia_raw_session_cost",
+        "tests.test_hia_ndu_bridge_isolation",
+        "-v"
+      ],
+      "name": "unit-protocols",
+      "outer_wall_ns": 1088713747,
+      "returncode": 0,
+      "stderr_sha256": "2b8d039902ef207abfab371b7a2de09ba0c4f7d7b55059ed0b15e6be749d2a29",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "completed": false,
+  "failure": {
+    "message": "Command '['/home/qian-qi/work/hia-tools-20261103/venv/bin/python', '-B', 'tools/build_hia_raw_model_bridge.py', '--upstream', '/home/qian-qi/work/hia-ndu-native-20261103', '--output', '/home/qian-qi/work/hia-seven-raw-native-20261104-r1/build', '--cargo', '/home/qian-qi/.cargo/bin/cargo']' timed out after 180 seconds",
+    "traceback": "Traceback (most recent call last):\n  File \"<stdin>\", line 31, in <module>\n  File \"<stdin>\", line 25, in command\n  File \"/usr/lib/python3.12/subprocess.py\", line 550, in run\n    stdout, stderr = process.communicate(input, timeout=timeout)\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.12/subprocess.py\", line 1209, in communicate\n    stdout, stderr = self._communicate(input, endtime, timeout)\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.12/subprocess.py\", line 2116, in _communicate\n    self._check_timeout(endtime, orig_timeout, stdout, stderr)\n  File \"/usr/lib/python3.12/subprocess.py\", line 1253, in _check_timeout\n    raise TimeoutExpired(\nsubprocess.TimeoutExpired: Command '['/home/qian-qi/work/hia-tools-20261103/venv/bin/python', '-B', 'tools/build_hia_raw_model_bridge.py', '--upstream', '/home/qian-qi/work/hia-ndu-native-20261103', '--output', '/home/qian-qi/work/hia-seven-raw-native-20261104-r1/build', '--cargo', '/home/qian-qi/.cargo/bin/cargo']' timed out after 180 seconds\n",
+    "type": "TimeoutExpired"
+  },
+  "historical_results_reused": false,
+  "performance_measured": false,
+  "schema": "hepta.hia.raw-model.fresh-qualification-outer.v1",
+  "scope": "outer setup, clean source/tool admission, protocol tests, isolated Rust build and actual native correctness/refusal; excludes enclosing runtime worker launch and final report write",
+  "source_head": "99d4cb5942755ba12e1d3006558bb53d435734d8",
+  "wall_ns": 183246959526
+}

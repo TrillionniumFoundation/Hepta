@@ -21,12 +21,15 @@ from .clang_capture import run_bounded
 from .native_tool_identity import update_stable_regular_hash
 
 PROFILE = "cpp20-real-gsl-final-action-closed-cv-factories-v3"
+REFERENCE_CTOR_PROFILE = "cpp20-real-gsl-final-action-reference-constructors-v4"
 MAX_AST_BYTES = 32 * 1024 * 1024
 MAX_NODES = 100_000
 VERSIONS = {
     "3.1.0": ("0f6dbc9e2915ef5c16830f3fa3565738de2a9230", "gsl/gsl_util"),
     "4.0.0": ("a3534567187d2edc428efd3f13466ff75fe5805c", "gsl/util"),
+    "5.0.1": ("fbd20b8e8c52cba04dbc869cc9068a7800a5665d", "gsl/util"),
 }
+LVALUE_FACTORY_VERSIONS = frozenset({"4.0.0", "5.0.1"})
 
 # The probe is compiler owned: user-supplied extra standard-library overloads,
 # specializations or preprocessing flags cannot self-certify the std contracts.
@@ -164,8 +167,15 @@ class Translator:
         need(len(specs) == 1, "Exactly one complete final_action<GslCallback> instantiation is required")
         self.owner = specs[0]
         need(not self.owner.get("bases"), "Inheritance is outside this profile")
-        self.fields = {c.get("name"): c for c in children(self.owner) if c.get("kind") == "FieldDecl"}
-        need(set(self.fields) == {"f_", "invoke_"} and qual(self.fields["f_"]) == "GslCallback"
+        fields = [c for c in children(self.owner) if c.get("kind") == "FieldDecl"]
+        by_name = {c.get("name"): c for c in fields}
+        need(len(fields) == 2 and set(by_name) in ({"f_", "invoke_"}, {"f", "invoke"}),
+             "Upstream owner field inventory changed")
+        # Stable semantic roles retain the actual captured declarations. Names
+        # alone never authorize a member access: _member also checks its ID.
+        self.fields = ({"f_": by_name["f"], "invoke_": by_name["invoke"]}
+                       if "f" in by_name else by_name)
+        need(qual(self.fields["f_"]) == "GslCallback"
              and qual(self.fields["invoke_"]) == "bool", "Upstream owner field contract changed")
         need(all(not f.get("isBitfield") for f in self.fields.values()), "Bitfield owner state")
         self.callback_roots = callbacks
@@ -239,7 +249,8 @@ class Translator:
              "Expected one declaration-bound member access")
         name = node.get("name")
         if field is not None:
-            need(name == field and node.get("referencedMemberDecl") == self.fields[field]["id"],
+            need(name == self.fields[field]["name"]
+                 and node.get("referencedMemberDecl") == self.fields[field]["id"],
                  "Owner member does not reference captured declaration")
         origin = unwrap(children(node)[0])
         if base == "this":
@@ -284,12 +295,23 @@ class Translator:
 
     def constructor(self, method):
         parameters = [n for n in children(method) if n.get("kind") == "ParmVarDecl"]
-        need(len(parameters) == 1 and qual(parameters[0]) == "GslCallback", "Constructor callable type")
+        need(len(parameters) == 1 and qual(parameters[0]) in
+             {"GslCallback", "GslCallback &&", "const GslCallback &"}, "Constructor callable type")
+        parameter_type = qual(parameters[0])
         f, invoke = self._initializers(method)
-        moved = unwrap(self._callback_move(f))
+        if parameter_type == "const GslCallback &":
+            copied = unwrap(f)
+            need(copied.get("kind") == "CXXConstructExpr" and qual(copied) == "GslCallback"
+                 and len(children(copied)) == 1
+                 and copied.get("ctorType", {}).get("qualType") == "void (const GslCallback &) noexcept",
+                 "Constructor must make its captured trivial callback copy")
+            moved = unwrap(children(copied)[0])
+        else:
+            moved = unwrap(self._callback_move(f))
         need(moved.get("kind") == "DeclRefExpr" and
-             moved.get("referencedDecl", {}).get("id") == parameters[0]["id"],
-             "Constructor must move its captured by-value callback")
+             moved.get("referencedDecl", {}).get("id") == parameters[0]["id"]
+             and qual(moved.get("referencedDecl", {})) == parameter_type,
+             "Constructor must transfer its actual captured callback parameter")
         invoke = unwrap(invoke)
         if invoke.get("kind") == "CXXDefaultInitExpr":
             defaults = children(self.fields["invoke_"])
@@ -307,7 +329,9 @@ class Translator:
         need(invoke.get("kind") == "CXXBoolLiteralExpr" and type(invoke.get("value")) is bool,
              "Activation must be a captured Boolean literal")
         self.stats["upstream_method_bodies_translated"] += 1
-        self.trace.append({"operation": "construct", "callback": "trivial_move_from_value",
+        self.trace.append({"operation": "construct", "callback": {
+            "GslCallback": "trivial_move_from_value", "GslCallback &&": "trivial_move_from_rvalue",
+            "const GslCallback &": "trivial_copy_from_const_lvalue"}[parameter_type],
                            "active": invoke["value"], "source_range": method.get("range")})
         return invoke["value"]
 
@@ -513,34 +537,47 @@ class Translator:
             need(len(children(body)) == 1 and children(body)[0].get("kind") == "ReturnStmt"
                  and len(children(children(body)[0])) == 1, "Factory must directly return one owner")
             cast = unwrap(children(children(body)[0])[0])
-            need(cast.get("kind") == "CXXFunctionalCastExpr" and cast.get("castKind") == "ConstructorConversion"
-                 and qual(cast) == "gsl::final_action<GslCallback>" and len(children(cast)) == 1
-                 and cast.get("conversionFunc", {}).get("name") == "final_action"
-                 and qual(cast.get("conversionFunc", {})) == "void (GslCallback) noexcept",
-                 "Factory must construct the captured owner value")
-            temporary = children(cast)[0]
+            if self.reference_callback_constructors:
+                # GSL 5 directly list-initializes the selected reference
+                # constructor. Its body owns the actual trivial transfer.
+                temporary = cast
+            else:
+                need(cast.get("kind") == "CXXFunctionalCastExpr" and cast.get("castKind") == "ConstructorConversion"
+                     and qual(cast) == "gsl::final_action<GslCallback>" and len(children(cast)) == 1
+                     and cast.get("conversionFunc", {}).get("name") == "final_action"
+                     and qual(cast.get("conversionFunc", {})) == "void (GslCallback) noexcept",
+                     "Factory must construct the captured owner value")
+                temporary = children(cast)[0]
             need(temporary.get("kind") == "CXXBindTemporaryExpr" and len(children(temporary)) == 1
                  and qual(temporary) == "gsl::final_action<GslCallback>"
                  and temporary.get("dtor", {}).get("name") == "~final_action"
                  and qual(temporary.get("dtor", {})) == "void () noexcept", "Factory temporary owner contract")
             owner = children(temporary)[0]
-            need(owner.get("kind") == "CXXConstructExpr" and len(children(owner)) == 1
-                 and qual(owner) == "gsl::final_action<GslCallback>"
-                 and owner.get("ctorType", {}).get("qualType") == "void (GslCallback) noexcept",
-                 "Factory owner constructor contract")
-            callback = children(owner)[0]
             expected_constructor = ("void (GslCallback &&) noexcept" if category == "rvalue"
                                     else "void (const GslCallback &) noexcept")
-            need(callback.get("kind") == "CXXConstructExpr" and len(children(callback)) == 1
-                 and qual(callback) == "GslCallback"
-                 and callback.get("ctorType", {}).get("qualType") == expected_constructor,
-                 "Factory must use the captured trivial callback move/copy")
+            need(owner.get("kind") == ("CXXTemporaryObjectExpr" if self.reference_callback_constructors else "CXXConstructExpr")
+                 and len(children(owner)) == 1
+                 and qual(owner) == "gsl::final_action<GslCallback>"
+                 and owner.get("ctorType", {}).get("qualType") ==
+                    (expected_constructor if self.reference_callback_constructors else "void (GslCallback) noexcept"),
+                 "Factory owner constructor contract")
+            callback = children(owner)[0]
             # GSL 3.1 has a separate const F& overload with a direct copy from
             # its parameter. GSL 4.0 forwards const F& through the unified
             # remove_cv/remove_reference overload. Validate the actual body in
             # either case; a release name or matching signature is not enough.
-            direct_const_copy = category == "const_lvalue" and template_argument == "GslCallback"
-            argument = children(callback)[0]
+            direct_const_copy = (not self.reference_callback_constructors
+                                 and category == "const_lvalue" and template_argument == "GslCallback")
+            if self.reference_callback_constructors:
+                need(owner.get("list") is True and owner.get("constructionKind") == "complete",
+                     "Reference constructor requires complete list initialization")
+                argument = callback
+            else:
+                need(callback.get("kind") == "CXXConstructExpr" and len(children(callback)) == 1
+                     and qual(callback) == "GslCallback"
+                     and callback.get("ctorType", {}).get("qualType") == expected_constructor,
+                     "Factory must use the captured trivial callback move/copy")
+                argument = children(callback)[0]
             forwarded = unwrap(argument if direct_const_copy
                                else self._call(argument, "forward", 1)[0])
             need(forwarded.get("kind") == "DeclRefExpr"
@@ -565,12 +602,20 @@ class Translator:
     def translate(self):
         constructors = [n for n in children(self.owner) if n.get("kind") == "CXXConstructorDecl"
                         and not n.get("explicitlyDeleted") and not n.get("isImplicit")]
-        need(len(constructors) == 2, "Unexpected owner constructor set")
-        value = [n for n in constructors if any(c.get("kind") == "ParmVarDecl" and qual(c) == "GslCallback"
+        need(len(constructors) in {2, 3}, "Unexpected owner constructor set")
+        value = [n for n in constructors if any(c.get("kind") == "ParmVarDecl" and qual(c) in
+                                                {"GslCallback", "GslCallback &&", "const GslCallback &"}
                                                 for c in children(n))]
         move = [n for n in constructors if n not in value]
-        need(len(value) == len(move) == 1, "Value/move constructor distinction")
-        active = self.constructor(value[0])
+        parameters = [qual(next(c for c in children(n) if c.get("kind") == "ParmVarDecl")) for n in value]
+        need(len(move) == 1 and sorted(parameters) in
+             (["GslCallback"], ["GslCallback &&", "const GslCallback &"]),
+             "Value or complete const-copy/rvalue-move constructor distinction")
+        self.reference_callback_constructors = len(value) == 2
+        activations = [self.constructor(method) for method in value]
+        need(all(flag == activations[0] for flag in activations),
+             "Callback constructors disagree about cleanup activation")
+        active = activations[0]
         self.move_constructor(move[0])
         destructors = [n for n in children(self.owner) if n.get("kind") == "CXXDestructorDecl"]
         need(len(destructors) == 1, "Unexpected destructor set")
@@ -599,7 +644,8 @@ CALLBACK
     drop(move owner);
 }
 """.replace("ACTIVE", str(active).lower()).replace("CALLBACK", "\n".join("        " + row for row in callback))
-        return source + factories, {"profile": PROFILE, "statistics": dict(self.stats),
+        return source + factories, {"profile": REFERENCE_CTOR_PROFILE if self.reference_callback_constructors else PROFILE,
+                                    "statistics": dict(self.stats),
                                     "factory_categories": categories, "lowered_operations": self.trace}
 
 
@@ -652,7 +698,7 @@ def capture_and_lower(root, version, output, *, clang, examples=None):
          "Type contract must match the compiler-owned probe exactly")
     probe = output / "capture_contract.cpp"
     probe.write_text(PROBE)
-    flags = ["-std=c++20", "-Werror", "-DHEPTA_GSL_LVALUE=" + str(int(version == "4.0.0")),
+    flags = ["-std=c++20", "-Werror", "-DHEPTA_GSL_LVALUE=" + str(int(version in LVALUE_FACTORY_VERSIONS)),
              "-I" + str(output), "-I" + str(examples),
              "-I" + str(upstream / version / "include")]
     commands, captured, before = [compiler_version], {}, {}
@@ -682,7 +728,7 @@ def capture_and_lower(root, version, output, *, clang, examples=None):
         commands.append(receipt)
     component, lowering = translate_captured(captured["upstream"], captured["callback"], captured["factory"])
     need(lowering["factory_categories"] == (["const_lvalue", "nonconst_lvalue", "rvalue"]
-                                          if version == "4.0.0" else ["const_lvalue", "rvalue"]),
+                                          if version in LVALUE_FACTORY_VERSIONS else ["const_lvalue", "rvalue"]),
          "Captured factory categories differ from this release's type contract")
     client_path = examples / "client.hepta"
     before[str(client_path)] = _identity(client_path)
@@ -710,7 +756,7 @@ def capture_and_lower(root, version, output, *, clang, examples=None):
               "scope": {"upstream": "gsl::final_action<GslCallback> value/move constructors and destructor",
                         "authored_translated": "GslCallback::operator() bounded scalar/const-local/if body",
                         "authored_not_translated": "C++ test clients and explicit-status Hepta integration client",
-                        "factory": "actual rvalue and const-lvalue instantiations; 4.0 also lowers nonconst-lvalue",
+                        "factory": "actual rvalue and const-lvalue instantiations; 4.0/5.0.1 also lower nonconst-lvalue",
                         "general_templates_or_exceptions_supported": False,
                         "standard_library_implementation_migrated": False,
                         "general_callable_lifetime_inference": False}}

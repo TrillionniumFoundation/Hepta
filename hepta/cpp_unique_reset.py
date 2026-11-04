@@ -29,6 +29,7 @@ from .pipeline import analyze, compiler_hash
 
 
 PROFILE = "cpp20-direct-unique-byte-array-closed-reset-v1"
+REUSABLE_PROFILE = "cpp20-direct-unique-byte-array-reusable-reset-v2"
 UNIQUE = "std::unique_ptr<unsigned char[]>"
 MAX_ALLOCATION = 65536
 _REFERENCE = r'''#include <memory>
@@ -91,8 +92,9 @@ def _contracts(probe, external):
 class _ResetTranslator(_Translator):
     """Reuse scalar typing, with a separate complete local ownership machine."""
 
-    def __init__(self, operation, external, contracts):
+    def __init__(self, operation, external, contracts, *, reusable_released_owners=False):
         self.operation, self.external, self.contracts = operation, external, contracts
+        self.reusable_released_owners = reusable_released_owners
         self.roles, self.fields, self.methods, self.serial = {}, {}, {}, 0
         self.stats = {"scalar_expressions": 0, "if_statements": 0, "scalar_locals": 0,
                       "owner_constructions": 0, "source_returns": 0,
@@ -253,7 +255,13 @@ class _ResetTranslator(_Translator):
             target.update(alive=True, emitted=replacement, length=source["length"])
         else:
             target.update(alive=False, length="(0 as usize)")
-        source.update(alive=False, consumed=True)
+        # C++ release() consumes the allocation, not the unique_ptr object.
+        # The v2 profile retains an empty source slot that can later adopt a
+        # different live owner. Every adoption gets a fresh Hepta binding;
+        # no moved linear value or raw pointer is reused. The v1 admission
+        # boundary remains unchanged for callers that did not select v2.
+        source.update(alive=False, consumed=not self.reusable_released_owners,
+                      length="(0 as usize)")
         self.stats["distinct_release_reset"] += 1
         return lines
 
@@ -378,8 +386,10 @@ class _ResetTranslator(_Translator):
         return source, inventory
 
 
-def lower_unique_reset_project(database, *, clangxx="clang++"):
+def lower_unique_reset_project(database, *, clangxx="clang++", reusable_released_owners=False):
     """Capture one real source TU, bind its library, and emit checked Core."""
+    if type(reusable_released_owners) is not bool:
+        raise ValueError("reusable_released_owners must be an explicit Boolean profile selection")
     started = time.perf_counter_ns()
     before = compiler_hash()
     stage = time.perf_counter_ns()
@@ -409,7 +419,8 @@ def lower_unique_reset_project(database, *, clangxx="clang++"):
     contracts = _contracts(reference[0][0], reference_external)
     costs["ast_and_library_contract_capture_wall_ns"] = time.perf_counter_ns() - stage
     stage = time.perf_counter_ns()
-    translator = _ResetTranslator(active[0][0], external, contracts)
+    translator = _ResetTranslator(active[0][0], external, contracts,
+                                  reusable_released_owners=reusable_released_owners)
     source, inventory = translator.translate()
     costs["source_generation_wall_ns"] = time.perf_counter_ns() - stage
     stage = time.perf_counter_ns()
@@ -426,7 +437,8 @@ def lower_unique_reset_project(database, *, clangxx="clang++"):
     costs["source_toolchain_revalidation_wall_ns"] = time.perf_counter_ns() - stage
     costs["total_migration_wall_ns"] = time.perf_counter_ns() - started
     costs["human_engineering_seconds"] = None
-    return {"schema": "hepta.cpp-unique-reset-migration.v1", "profile": PROFILE, "ok": True,
+    return {"schema": "hepta.cpp-unique-reset-migration.v2" if reusable_released_owners else "hepta.cpp-unique-reset-migration.v1",
+            "profile": REUSABLE_PROFILE if reusable_released_owners else PROFILE, "ok": True,
             "source": source, "program": program, "capture": capture, "compiler_sha256": before,
             "source_lowering": source_summary, "translation_statistics": translator.stats, "costs": costs,
             "project_function": active[0][0]["name"], "declarations": inventory,
@@ -442,7 +454,7 @@ def lower_unique_reset_project(database, *, clangxx="clang++"):
                 "standard_library_implementation_migrated": False, "source_equivalence_formally_proved": False,
                 "whole_cpp_supported": False, "scalar_abi_requires_native_qualification": True,
                 "cpp_class_abi_preserved": False, "pointer_escape_supported": False,
-                "released_source_reuse_supported": False, "custom_deleters_supported": False,
+                "released_source_reuse_supported": reusable_released_owners, "custom_deleters_supported": False,
                 "loops_or_concurrency_supported": False, "maximum_guarded_allocation_bytes": MAX_ALLOCATION,
                 "allocator_contract": "zeroed byte allocation and default delete; replaceable allocator behavior outside contract is unsupported",
                 "abort_or_process_crash_recovery_qualified": False}}

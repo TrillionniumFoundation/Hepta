@@ -15,7 +15,6 @@ its nonnegative scalar minimum is filtered by the remaining budget at the root.
 
 from __future__ import annotations
 
-from copy import deepcopy
 from hashlib import sha256
 import itertools
 import json
@@ -252,20 +251,26 @@ def invocation_gate(raw):
 
 
 class _Planner:
-    """One immutable-model planner with an exact budget-free continuation cache.
+    """Request-local exact continuation costs with lazy witness materialization.
 
-    All edge and terminal costs are nonnegative, and budget is only a scalar
-    upper bound on that same total. A minimum-cost continuation fits iff any
-    continuation fits. Thus remaining budget does not distinguish continuation
-    subproblems. Status, validity, resident set, session state and batch do.
-    The original budget is still applied to every complete first-action witness.
-    See formal/HiaNduBudgetErasure.lean for the finite-tree model theorem.
+    Budget is still checked at each complete first-action witness. Search uses
+    only scalar costs and immutable step descriptors; the existing _action
+    function materializes the winning witnesses at the public boundary. No
+    proof, native response, mutable caller object or cross-request state is
+    cached. Ordered choices and search counters retain the previous semantics.
     """
     def __init__(self, model):
         self.model = model
         self.variants, self.sets, self.horizon = _parts(model)
         self.counters = {"states": 0, "actions": 0}
         self._continuations = {}
+        self._live_sets = {}
+        self._delivery_costs = {}
+        self._transition_costs = {}
+        self._ordered_choices = (("skip", None),) + tuple(("invoke", value) for value in self.sets)
+        decision = model["decision"]
+        self._call_ns = sum(decision[k] for k in
+                            ("search_ns", "native_ns", "transport_ns", "validation_ns"))
 
     def solve(self, batch, ready, session_ready):
         key = batch, ready, session_ready
@@ -274,7 +279,52 @@ class _Planner:
         return self._continuations[key]
 
     def _choices(self):
-        return [("skip", None)] + [("invoke", value) for value in self.sets]
+        return self._ordered_choices
+
+    def _live(self, batch, ready):
+        key = batch, ready
+        if key not in self._live_sets:
+            self._live_sets[key] = _live(self.variants, ready, batch)
+        return self._live_sets[key]
+
+    def _numeric_action(self, ready, batch, session_ready, mode, target=None):
+        """Score the same admitted transition without allocating a receipt.
+
+        Every valid target is a subset of this batch's available artifacts.
+        Thus target - live(ready) equals target - ready. This permits the
+        preparation/retirement subtotal to be shared across batches, while
+        availability, execution and holding remain bound to the current batch.
+        """
+        target = self._live(batch, ready) if mode == "skip" else target
+        if target is None:
+            return None
+        delivery_key = batch, target
+        if delivery_key not in self._delivery_costs:
+            if target != self._live(batch, target):
+                self._delivery_costs[delivery_key] = None
+            else:
+                execution = min([self.model["baseline"]["latency_ns"][batch]] +
+                                [self.variants[n]["latency_ns"][batch] for n in target])
+                self._delivery_costs[delivery_key] = execution + sum(
+                    self.variants[n]["holding_ns"] for n in target)
+        delivery = self._delivery_costs[delivery_key]
+        if delivery is None:
+            return None
+        transition_key = ready, target
+        if transition_key not in self._transition_costs:
+            retired = sum(self.variants[n]["retire_ns"] for n in ready if n not in target)
+            acquired = sum(self.variants[n]["prepare_ns"] + self.variants[n]["proof_ns"]
+                           for n in target if n not in ready)
+            self._transition_costs[transition_key] = retired + acquired
+        decision = self.model["decision"]
+        total = decision["gate_ns"] + delivery + self._transition_costs[transition_key]
+        if mode == "invoke":
+            total += self._call_ns + (0 if session_ready else decision["startup_ns"])
+        return total, target, session_ready or mode == "invoke"
+
+    def _materialize(self, descriptor):
+        # A fresh nested receipt is returned for each witness occurrence.
+        return _action(self.model, self.variants, *descriptor)
 
     def _solve(self, batch, ready, session_ready):
         self.counters["states"] += 1
@@ -283,47 +333,48 @@ class _Planner:
             return close, (), close
         best = None
         for mode, target in self._choices():
-            action = _action(self.model, self.variants, ready, batch,
-                             session_ready, mode, target)
+            scored = self._numeric_action(ready, batch, session_ready, mode, target)
             self.counters["actions"] += 1
-            if action is None:
+            if scored is None:
                 continue
-            tail = self.solve(batch + 1, tuple(action["ready_after"]),
-                              action["session_after"])
+            cost, after, next_session = scored
+            tail = self.solve(batch + 1, after, next_session)
             if tail is None:
                 continue
-            value = action["total_ns"] + tail[0], (action,) + tail[1], tail[2]
-            # The same ordered choices preserve skip-first/lexical ties.
-            if best is None or value[0] < best[0]:
-                best = value
+            total = cost + tail[0]
+            if best is None or total < best[0]:
+                descriptor = ready, batch, session_ready, mode, target
+                best = total, (descriptor,) + tail[1], tail[2]
         return best
 
     def frontier(self, *, committed_call_ns=None):
-        """Complete least-cost first-action frontier, optionally after a call.
+        """Return independent complete least-cost first-action witnesses.
 
-        A committed first skip has already opened the session and incurred the
-        current call, even though its artifact state does not change. The same
-        continuation cache covers that state; no second exact search is needed.
+        The current committed call applies equally to an initial skip; its
+        session is already resident. It is not refunded or hidden by the
+        numerical cache. Every root budget comparison remains exact.
         """
         ready = tuple(sorted(self.model["ready"]))
         witnesses = []
         for mode, target in self._choices():
             committed_skip = committed_call_ns is not None and mode == "skip"
             session_ready = True if committed_skip else self.model["session_ready"]
-            action = _action(self.model, self.variants, ready, 0,
-                             session_ready, mode, target)
-            if action is None:
+            scored = self._numeric_action(ready, 0, session_ready, mode, target)
+            if scored is None:
                 continue
+            cost, after, next_session = scored
             extra = committed_call_ns if committed_skip else 0
-            if action["total_ns"] + extra > self.model["budget_ns"]:
+            if cost + extra > self.model["budget_ns"]:
                 continue
-            tail = self.solve(1, tuple(action["ready_after"]), action["session_after"])
+            tail = self.solve(1, after, next_session)
             if tail is None:
                 continue
-            total = action["total_ns"] + tail[0] + extra
+            total = cost + tail[0] + extra
             if total > self.model["budget_ns"]:
                 continue
-            plan = {"actions": [action, *tail[1]], "close_ns": tail[2], "total_ns": total}
+            descriptors = ((ready, 0, session_ready, mode, target),) + tail[1]
+            plan = {"actions": [self._materialize(step) for step in descriptors],
+                    "close_ns": tail[2], "total_ns": total}
             if committed_call_ns is not None:
                 plan["current_committed_ns"] = extra
             witnesses.append(plan)
@@ -381,7 +432,8 @@ def _build_request(model, planner=None):
                "verification": "independent caller admission, not authenticated by model digests"}
     candidates, mapping = [], {}
     for witness in planner.frontier(committed_call_ns=current_charge):
-        plan = deepcopy(witness)
+        # frontier materializes independent records; no shared tail objects.
+        plan = witness
         identity = "cost-" + digest(plan)[:24]
         mapping[identity] = plan
     # The native protocol requires literal abstain to have exactly zero effect
@@ -513,6 +565,17 @@ class AdvisoryController:
                                 self.session = None
         row["reason"] = row.get("reason", gate["reason"])
         row["wall_ns"] = time.monotonic_ns() - start
+        # A valid native receipt can arrive after its decision budget. Keep
+        # the proposal and complete observed cost as evidence, but do not
+        # begin optional artifact work once that budget has been consumed.
+        # An admitted incumbent remains available; this is not a promise
+        # that its eventual delivery can still meet the original deadline.
+        if (action is not None and action["mode"] == "invoke"
+                and row["wall_ns"] >= model["budget_ns"]):
+            row["reason_before_budget_guard"] = row["reason"]
+            row["reason"] = "actual decision cost exhausted optional budget"
+            row["optional_action_withheld"] = True
+            action = gate["skip"]["actions"][0] if gate["skip"]["feasible"] else None
         row["action"] = action
         self.ledger.append(row)
         return action, row

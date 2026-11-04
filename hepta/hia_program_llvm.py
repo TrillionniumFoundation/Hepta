@@ -142,7 +142,7 @@ def _implementation_hash():
     """Bind the actual verifier/emitter and the native boundary helpers."""
     digest = sha256()
     root = Path(__file__).parent
-    for name in ("hia_schema.py", "hia_program.py", "hia_capability_flow.py", "hia_opcodes.py", "hia_program_composite.py", "hia_program_llvm.py", "hia_initialization.py", "artifact_publication.py",
+    for name in ("hia_schema.py", "hia_program.py", "hia_capability_flow.py", "hia_opcodes.py", "hia_program_composite.py", "hia_program_llvm.py", "hia_initialization.py", "hia_entry_layout.py", "artifact_publication.py",
                  "clang_capture.py", "elf_shared_abi.py", "object_symbols.py",
                  "object_structure.py", "native_tool_identity.py"):
         content = (root / name).read_bytes()
@@ -220,6 +220,7 @@ class HIAProgramLLVM:
     profile: str = PROFILE
     target: str = TARGET
     input_sha256: str | None = None
+    layout: str = "canonical"
 
 
 class _FunctionEmitter:
@@ -742,7 +743,7 @@ done:
 
 
 class _Emitter:
-    def __init__(self, document, target, allowed_exports):
+    def __init__(self, document, target, allowed_exports, layout="canonical"):
         self.document = document
         self.target = target
         self.functions = {fn["name"]: fn for fn in document["functions"]}
@@ -753,6 +754,7 @@ class _Emitter:
         self.intrinsics = set()
         self.exports = []
         self.allowed_exports = allowed_exports
+        self.layout = layout
 
     def wrapper(self, fn, number):
         # External entrypoints never accept forged owner/loan descriptors.
@@ -783,8 +785,19 @@ class _Emitter:
         return "\n".join(lines)
 
     def render(self):
-        bodies = [_FunctionEmitter(self, fn, index).render()
-                  for index, fn in enumerate(self.document["functions"])]
+        from .hia_entry_layout import CANONICAL, entry_plan, render_entry
+        bodies, outlined = [], 0
+        helper = len(self.document["functions"])
+        for index, fn in enumerate(self.document["functions"]):
+            plan = entry_plan(fn) if self.layout != CANONICAL else None
+            if plan is None:
+                bodies.append(_FunctionEmitter(self, fn, index).render())
+            else:
+                bodies.extend(render_entry(self, fn, index, helper, plan))
+                helper += 2
+                outlined += 1
+        if self.layout != CANONICAL and not outlined:
+            _reject("no complete disjoint scalar entry guard for requested layout", "E_HIA_PROGRAM_LAYOUT")
         wrappers = [self.wrapper(fn, index) for index, fn in enumerate(self.document["functions"])]
         if "exports" in self.document:
             # An explicit export list is a complete public interface contract.
@@ -829,15 +842,20 @@ class _Emitter:
                 + "\n\n".join(bodies + [wrapper for wrapper in wrappers if wrapper]) + "\n")
 
 
-def emit_program_llvm(program, *, target=TARGET):
+def emit_program_llvm(program, *, target=TARGET, layout="canonical"):
     """Emit LLVM from an independently verified immutable standalone program."""
     if target not in {TARGET, TARGET_AARCH64, TARGET_RISCV64}:
         _reject("unsupported 64-bit native target")
+    from .hia_entry_layout import CANONICAL, LAYOUTS
+    if type(layout) is not str or layout not in LAYOUTS:
+        _reject("unknown native entry layout", "E_HIA_PROGRAM_LAYOUT")
+    if layout != CANONICAL and target != TARGET:
+        _reject("outlined entry layout currently requires x86_64 Linux", "E_HIA_PROGRAM_LAYOUT")
     before = _implementation_hash()
     verified = _verified(program)
     from .hia_program import SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8
     document = verified.as_dict()
-    emitter = _Emitter(document, target, verified.scalar_entrypoints)
+    emitter = _Emitter(document, target, verified.scalar_entrypoints, layout=layout)
     text = emitter.render()
     if not text.isascii() or len(text.encode()) > MAX_LLVM_BYTES:
         _reject("generated LLVM exceeds the closed textual profile")
@@ -866,7 +884,7 @@ def emit_program_llvm(program, *, target=TARGET):
     else:
         profile = PROFILE if target == TARGET else PROFILE_AARCH64
     return HIAProgramLLVM(text, sha256(text.encode()).hexdigest(), verified.sha256,
-                          before, tuple(sorted(emitter.exports)), profile, target, verified.input_sha256)
+                          before, tuple(sorted(emitter.exports)), profile, target, verified.input_sha256, layout)
 
 
 def _read_artifact(path):
@@ -952,7 +970,7 @@ def compile_program_llvm(ir, *, program, output, clang="clang", kind="shared", c
     """
     if command_log is not None and type(command_log) is not list:
         _reject("command log must be a plain list", "E_HIA_COMMAND_LOG")
-    if not isinstance(ir, HIAProgramLLVM) or ir != emit_program_llvm(program, target=ir.target):
+    if not isinstance(ir, HIAProgramLLVM) or ir != emit_program_llvm(program, target=ir.target, layout=ir.layout):
         _reject("LLVM differs from independently reverified standalone program", "E_HIA_PROGRAM_ORIGIN")
     if kind not in {"shared", "object"}:
         _reject("only shared libraries and relocatable objects are supported")
@@ -1011,6 +1029,7 @@ def compile_program_llvm(ir, *, program, output, clang="clang", kind="shared", c
             raise
     return {"schema": "hepta.hia.program.native.v1", "ok": True,
             "status": "native_compiled_not_executed", "profile": ir.profile, "target": ir.target,
+            "entry_layout": ir.layout,
             "kind": kind, "output": str(destination), "core_sha256": ir.core_sha256,
             "build_host": host, "cross_target_compilation": ir.target != host["target"],
             "input_sha256": ir.input_sha256,
@@ -1036,11 +1055,11 @@ def compile_program_llvm(ir, *, program, output, clang="clang", kind="shared", c
                        "foreign_buffer_entrypoints_exposed": False}}
 
 
-def build_program_native(document, output, *, clang="clang", kind="shared", target=TARGET, command_log=None):
+def build_program_native(document, output, *, clang="clang", kind="shared", target=TARGET, command_log=None, layout="canonical"):
     """Convenience path: verify standalone document, emit LLVM, compile it."""
     from .hia_program import verify_program
     program = verify_program(document)
-    ir = emit_program_llvm(program, target=target)
+    ir = emit_program_llvm(program, target=target, layout=layout)
     if command_log is None:
         return compile_program_llvm(ir, program=program, output=output, clang=clang, kind=kind)
     return compile_program_llvm(ir, program=program, output=output, clang=clang, kind=kind, command_log=command_log)

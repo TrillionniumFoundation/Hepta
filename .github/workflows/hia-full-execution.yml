@@ -24,6 +24,8 @@ jobs:
         with:
           python-version: '3.12'
       - uses: ./.github/actions/hia-execution-toolchain
+      - name: Install the separately pinned checked-source Rust reference
+        run: rustup toolchain install 1.90.0 --profile minimal
       - uses: actions/checkout@v4
         with:
           repository: TrillionniumFoundation/hepta-private-ci
@@ -42,7 +44,8 @@ jobs:
             --ndu-source "$RUNNER_TEMP/hia-ndu-source" \
             --cargo-home "$HOME/.cargo" \
             --clang "$CLANG" --clangxx "$CLANGXX" --cc /usr/bin/gcc \
-            --rustc "$(rustup which rustc)" --cargo "$(rustup which cargo)" --lean "$LEAN"
+            --rustc "$(rustup which --toolchain 1.95.0 rustc)" --cargo "$(rustup which --toolchain 1.95.0 cargo)" \
+            --source-rustc "$(rustup which --toolchain 1.90.0 rustc)" --lean "$LEAN"
           test -z "$(git status --porcelain --untracked-files=all)"
       - name: Retain positive and negative evidence, including failed commands
         uses: actions/upload-artifact@v4

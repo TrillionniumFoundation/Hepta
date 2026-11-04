@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if __package__ in {None, ""}:
     sys.path.insert(0, str(ROOT))
 
-from hepta.cpp_gsl_final_action import capture_and_lower, _identity
+from hepta.cpp_gsl_final_action import capture_and_lower, _identity, LVALUE_FACTORY_VERSIONS
 from hepta.hia_program_source import lower_source
 from hepta.hia_program_llvm import native_host_profile, native_driver_matches_host
 from hepta.pipeline import analyze, compiler_hash
@@ -139,7 +139,7 @@ def build_migrated(source, directory, log, *, cc, root, label="migrated"):
     return executable, analysis.report
 
 
-def qualify(root, output, *, clang, cxx="g++", cc="gcc"):
+def qualify(root, output, *, clang, cxx="g++", cc="gcc", include_current_upstream=False):
     root, output = Path(root).resolve(), Path(output).resolve()
     output.mkdir(parents=True, exist_ok=True)
     started = time.monotonic()
@@ -160,7 +160,8 @@ def qualify(root, output, *, clang, cxx="g++", cc="gcc"):
     expected = [oracle(*r) for r in rows]
     report = {"schema": "hepta.gsl-final-action-qualification.v1", "ok": False,
               "component": "microsoft/GSL gsl::final_action<GslCallback>",
-              "scope": "three real upstream class methods, instantiated finally factory, one authored closed callback body",
+              "scope": "all selected real upstream class constructors/destructor, instantiated finally factories, one authored closed callback body",
+              "includes_pinned_current_upstream": include_current_upstream,
               "case_count_per_version": len(rows), "versions": {}, "negative_controls": {},
               "source_bindings": source_bindings, "native_tools": tools,
               "native_abi": {"host": host, "compiler_targets": targets, "commands": target_log,
@@ -175,7 +176,8 @@ def qualify(root, output, *, clang, cxx="g++", cc="gcc"):
         [{"input": r, "expected": e} for r, e in zip(rows, expected)], indent=2) + "\n")
     report["cases_sha256"] = sha256((output / "cases.json").read_bytes()).hexdigest()
     lowered = {}
-    for version in ("3.1.0", "4.0.0"):
+    versions = ("3.1.0", "4.0.0", "5.0.1") if include_current_upstream else ("3.1.0", "4.0.0")
+    for version in versions:
         directory = output / version
         directory.mkdir(exist_ok=True)
         migration = capture_and_lower(root, version, directory, clang=clang)
@@ -193,7 +195,7 @@ def qualify(root, output, *, clang, cxx="g++", cc="gcc"):
             "-I" + str(examples), "-I" + str(root / "tests/fixtures/gsl_final_action" / version / "include"),
             examples / "factory_lvalue.cpp", examples / "callback.cpp", "-o", factory],
             accepted=(0, 1))
-        expected_compile = version == "4.0.0"
+        expected_compile = version in LVALUE_FACTORY_VERSIONS
         require((result.returncode == 0) is expected_compile, "Upstream factory change disappeared")
         if expected_compile:
             command(log, [factory])
@@ -340,14 +342,16 @@ def qualify(root, output, *, clang, cxx="g++", cc="gcc"):
                       "human_seconds": None, "human_seconds_status": "not_measured",
                       "generated_component_bytes": len(lowered["4.0.0"]["component_source"].encode()),
                       "authored_integration_client_bytes": len((root / "examples/cpp/gsl_final_action/client.hepta").read_bytes())}
+    positive_pairs = 6 + (3 if include_current_upstream else 0)
+    const_pairs = len(versions)
     report["execution_denominator"] = {
         "cases_per_original_migrated_pair": len(rows),
-        "original_migrated_pairs": 6,
-        "positive_observation_rows": 12 * len(rows),
+        "original_migrated_pairs": positive_pairs,
+        "positive_observation_rows": 2 * positive_pairs * len(rows),
         "scalar_calls_per_observation_row": 3,
-        "positive_native_scalar_calls": 36 * len(rows),
-        "const_factory_pairs": 2,
-        "const_factory_positive_native_scalar_calls": 12 * len(rows),
+        "positive_native_scalar_calls": 6 * positive_pairs * len(rows),
+        "const_factory_pairs": const_pairs,
+        "const_factory_positive_native_scalar_calls": 6 * const_pairs * len(rows),
         "wrong_but_linear_observation_rows": len(rows),
         "wrong_but_linear_native_scalar_calls": 3 * len(rows),
         "incompatible_signature_controls_called": 0,
@@ -363,8 +367,11 @@ def main():
     parser.add_argument("--cxx", default="g++")
     parser.add_argument("--cc", default="gcc")
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--include-current-upstream", action="store_true",
+                        help="Additionally qualify the exact pinned GSL 5.0.1 upgrade")
     args = parser.parse_args()
-    report = qualify(ROOT, args.output, clang=args.clang, cxx=args.cxx, cc=args.cc)
+    report = qualify(ROOT, args.output, clang=args.clang, cxx=args.cxx, cc=args.cc,
+                     include_current_upstream=args.include_current_upstream)
     print(json.dumps({"ok": report["ok"], "cases_per_version": report["case_count_per_version"],
                       "report": str(args.output / "report.json")}, indent=2))
 

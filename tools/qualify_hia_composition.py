@@ -27,7 +27,7 @@ if str(ROOT) not in sys.path:
 
 from hepta.hia_ndu_session import STREAM_PROFILE_PINS
 
-SCHEMA = 'hepta.hia.source-composition.v2'
+SCHEMA = 'hepta.hia.source-composition.v3'
 STREAM_PROFILE = 'zero-abstain-v1'
 NDU_SOURCE_PIN = STREAM_PROFILE_PINS[STREAM_PROFILE]
 REDUCTION_PROFILE = 'induction-multiload-v2'
@@ -56,6 +56,13 @@ CORE_TESTS = (
     'tests.test_hia_reduction_induction', 'tests.test_hia_reduction_multiload',
     'tests.test_hia_empty_reduction', 'tests.test_hia_empty_reduction_observation',
     'tests.test_hia_empty_wrapper_candidate',
+    'tests.test_hia_entry_layout', 'tests.test_hia_outlined_aot_protocol',
+    'tests.test_hia_v6_differential', 'tests.test_hia_native_source_reinspect',
+    'tests.test_hia_ndu_lazy_witness', 'tests.test_hia_ndu_controller_deadline', 'tests.test_hia_ndu_build_cost',
+    'tests.test_hia_raw_session_cost', 'tests.test_hia_composition_raw_identity',
+    'tests.test_cpp_gsl_final_action', 'tests.test_cpp_gsl_current_release',
+    'tests.test_hia_agent_factorial', 'tests.test_hia_agent_edit_factorial',
+    'tests.test_cpp_unique_reuse.UniqueReuseProfileTests.test_profile_flag_is_exact_boolean',
     'tests.test_modules.PackageTests.test_source_directory_alias_rejected_before_locking',
     'tests.test_modules.PackageTests.test_directory_alias_added_after_lock_rejects_locked_load',
     'tests.test_modules.PackageTests.test_nested_and_dependency_directory_links_rejected',
@@ -132,17 +139,61 @@ def executable(path):
     found = shutil.which(str(path))
     if found is None:
         raise ValueError('missing tool: '+str(path))
-    resolved = Path(found).resolve(strict=True)
-    result = subprocess.run([str(resolved), '--version'], capture_output=True, text=True, timeout=20)
+    invocation = Path(found).absolute()
+    resolved = invocation.resolve(strict=True)
+    # argv[0] selects Clang's C++ driver and Rust's rustup dispatch.
+    # Hash the target, but execute and retain the actual invocation path.
+    result = subprocess.run([str(invocation), '--version'], capture_output=True, text=True, timeout=20)
     if result.returncode:
         raise ValueError('tool did not execute: '+str(path))
-    return {'path': str(resolved), 'sha256': digest(resolved),
+    return {'path': str(invocation), 'resolved_path': str(resolved), 'sha256': digest(resolved),
             'version': (result.stdout+result.stderr).strip()}
+
+
+def source_reference_identity(path):
+    """Freeze the explicitly selected 1.90 source reference and its local libs.
+
+    Reuse the production backend's rustup resolution and complete -vV pin.
+    The sysroot inventory is content identity, not compiler-correctness proof;
+    the system loader, libc, linker and host remain trusted.
+    """
+    from hepta.ast import HeptaError
+    from hepta.backend import find_rustc, toolchain_info
+    from hepta.native_tool_identity import digest_executable
+
+    if type(path) is not str or not path:
+        raise ValueError('an explicit pinned source-reference Rust compiler is required')
+    invocation = executable(path)
+    try:
+        reference = toolchain_info(find_rustc(invocation['path']))
+    except HeptaError as error:
+        raise ValueError('source-reference Rust identity rejected: '+str(error)) from error
+    if reference['sysroot_discovery'] != 'verified_compiler_prefix' or not reference['sysroot']:
+        raise ValueError('source-reference compiler requires an explicit local sysroot')
+    sysroot = Path(reference['sysroot'])
+    libraries = sysroot/'lib'
+    if libraries.is_symlink() or not libraries.is_dir():
+        raise ValueError('source-reference library root must be an ordinary directory')
+    inventory = {}
+    for entry in sorted(libraries.rglob('*')):
+        if entry.is_symlink():
+            raise ValueError('source-reference sysroot links are outside this inventory profile')
+        if entry.is_dir():
+            continue
+        inventory[str(entry.relative_to(sysroot))] = digest_executable(entry)
+    if not inventory:
+        raise ValueError('source-reference sysroot inventory is empty')
+    return {'path':reference['path'], 'resolved_path':str(Path(reference['path']).resolve(strict=True)),
+            'sha256':reference['executable_sha256'], 'version':reference['version'],
+            'selected_argument':path, 'invocation':invocation, 'reference':reference,
+            'sysroot_files_sha256':inventory,
+            'scope':'actual resolved compiler, full -vV identity and every ordinary file under its lib directory; system loader/libc/linker and hardware trusted'}
 
 
 def tool_identity(args):
     result = {name: executable(getattr(args,name)) for name in
               ('clang','clangxx','rustc','cargo','cc','lean')}
+    result['source_rustc'] = source_reference_identity(args.source_rustc)
     result.update({name:executable(name) for name in ('g++','ld','nm','objdump','readelf')})
     result['python'] = executable(sys.executable)
     if 'clang version 20.' not in result['clang']['version'] or 'clang version 20.' not in result['clangxx']['version']:
@@ -168,12 +219,57 @@ def unchanged(source, tools, frozen=None):
         from hepta.hia_optimization import _solver_identity
         if _solver_identity(z3) != tools['z3']:
             return False
+        if ('source_rustc' in tools and source_reference_identity(
+                tools['source_rustc']['selected_argument']) != tools['source_rustc']):
+            return False
         if any(digest(path)!=expected for path,expected in (frozen or {}).items()):
             return False
-        return all(digest(item['path']) == item['sha256'] for item in tools.values()
+        return all(digest(item['path']) == item['sha256']
+                   and str(Path(item['path']).resolve(strict=True)) == item.get('resolved_path',str(Path(item['path']).resolve(strict=True)))
+                   for item in tools.values()
                    if isinstance(item,dict) and 'path' in item and 'sha256' in item)
     except (OSError,ValueError,RuntimeError,subprocess.SubprocessError):
         return False
+
+
+def validate_raw_build(path, tools):
+    """Bind the second protocol to a fresh build of this exact adapter/toolchain."""
+    path = Path(path).resolve()
+    manifest = json.loads(path.read_text())
+    from tools.measure_hia_raw_model_cost import build_cost_observation
+    observed_cost = build_cost_observation(manifest,path)
+    adapter = ROOT / 'rust/hia-ndu-raw-model'
+    files = {str(p.relative_to(adapter)):digest(p) for p in sorted(adapter.rglob('*')) if p.is_file()}
+    required_true = ('original_rust_sources_unchanged', 'all_original_non_manifest_inputs_unchanged',
+                     'build_inputs_unchanged', 'locked_dependencies', 'isolated_production_manifests')
+    cost, command = manifest.get('build_cost', {}), manifest.get('build_command_evidence', {})
+    binary = Path(manifest.get('binary', '')).resolve(strict=True)
+    expected_command = [tools['cargo']['path'],'build','--manifest-path',str(path.parent/'Cargo.toml'),
+                        '-p','hia-ndu-bridge','--locked','--release']
+    if (manifest.get('schema') != 'hepta.hia.ndu-build.v1'
+            or manifest.get('upstream', {}).get('commit') != NDU_SOURCE_PIN
+            or not all(manifest.get(k) is True for k in required_true)
+            or not files or manifest.get('adapter_files') != files
+            or manifest.get('builder_sha256') != digest(ROOT/'tools/build_hia_ndu_bridge.py')
+            or manifest.get('rustc_version', '').partition('\n')[0] != tools['rustc']['version']
+            or manifest.get('cargo_version') != tools['cargo']['version']
+            or manifest.get('binary_sha256') != digest(binary)
+            or manifest.get('production_activation') is not False
+            or cost.get('completed') is not True or type(cost.get('wall_ns')) is not int
+            or cost['wall_ns'] <= 0 or observed_cost['wall_ns'] != cost['wall_ns']
+            or cost.get('target_cache_at_start') != 'absent'
+            or command.get('returncode') != 0 or command.get('launch_error') is not None
+            or command.get('original_streams_retained') is not True
+            or command.get('argv') != manifest.get('build_command')
+            or command.get('argv') != expected_command or command.get('cwd') != str(ROOT)):
+        raise ValueError('raw native build differs from the registered source/toolchain/empty target')
+    for stream in ('stdout', 'stderr'):
+        item = command.get(stream, {})
+        logfile = (path.parent / item.get('path', '')).resolve(strict=True)
+        if (not logfile.is_relative_to(path.parent) or not logfile.is_file()
+                or logfile.stat().st_size != item.get('bytes') or digest(logfile) != item.get('sha256')):
+            raise ValueError('raw build original command stream changed')
+    return manifest
 
 
 def run_command(directory, name, argv, *, timeout=1200, environment=None):
@@ -185,16 +281,23 @@ def run_command(directory, name, argv, *, timeout=1200, environment=None):
     env.update(environment or {})
     row['explicit_environment'] = dict(environment or {})
     with stdout.open('xb') as out, stderr.open('xb') as err:
-        proc = subprocess.Popen(row['argv'], cwd=ROOT, env=env, stdout=out, stderr=err,
-                                start_new_session=True)
+        row.update(returncode=None,timed_out=False,launch_error=None)
         try:
-            row['returncode'] = proc.wait(timeout=timeout)
-            row['timed_out'] = False
-        except subprocess.TimeoutExpired:
-            os.killpg(proc.pid, signal.SIGKILL)
-            row['returncode'] = proc.wait(timeout=10)
-            row['timed_out'] = True
-            row['timeout_group_killed_before_reap'] = True
+            proc = subprocess.Popen(row['argv'], cwd=ROOT, env=env, stdout=out, stderr=err,
+                                    start_new_session=True)
+        except OSError as error:
+            row['launch_error'] = {'type':type(error).__name__,'message':str(error)}
+        else:
+            try:
+                row['returncode'] = proc.wait(timeout=timeout)
+            except subprocess.TimeoutExpired:
+                row['timed_out'] = True
+                try:
+                    os.killpg(proc.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                row['returncode'] = proc.wait(timeout=10)
+                row['timeout_group_killed_before_reap'] = True
     row['wall_ns'] = time.monotonic_ns()-started
     row['logs'] = {p.name: {'bytes':p.stat().st_size,'sha256':digest(p)} for p in (stdout,stderr)}
     write(directory/(name+'.command.json'),row)
@@ -235,7 +338,12 @@ def qualify(args):
                      'production_capabilities','sequential_core','ndu_budget_model',
                      'continuation','reduction','ndu_full_cost','cpp_unique_reset','cpp_source_refusals',
                      'gsl_upstream_upgrade','migration_resources','host_region','agent_tool_controls',
-                     'ndu_model_planner'],
+                     'ndu_model_planner','ndu_lazy_witness','outlined_aot','raw_ndu_correctness','raw_ndu_service_cost',
+                     'cpp_unique_reuse','cpp_reuse_source_refusals'],
+            'raw_ndu_profile':'raw-model-v1; separate executable and protocol, same upstream pin',
+            'raw_ndu_object_source':str(Path(args.ndu_object_source or args.ndu_source).resolve()),
+            'proof_scope':'general model theorems, selected-program all-input checks and finite tests are distinct; syntax-kernel research branch is not silently included',
+            'hardware_scope':'Linux x86_64 host-region execution and lifecycle controls; no device/DMA guarantee',
             'performance_results_are_not_assumed_positive':True,
             'general_agent_advantage_gate':'separate complete prospective model study required',
             'authority':'DENY_ALL','safety_certificate':False}
@@ -246,13 +354,16 @@ def qualify(args):
                    'RUSTC':tools['rustc']['path'],'CLANG':tools['clang']['path'],
                    'CLANGXX':tools['clangxx']['path'],'HEPTA_CLANG':tools['clang']['path'],
                    'HEPTA_TEST_CLANG':tools['clang']['path'],
+                   'HIA_TEST_CLANG20':tools['clang']['path'],
+                   'HIA_TEST_SOURCE_RUSTC':tools['source_rustc']['path'],
                    'PATH':os.pathsep.join((str(Path(tools['clang']['path']).parent),
                                           str(Path(tools['cargo']['path']).parent),os.environ.get('PATH','')))}
     rows = []
-    def step(name,command,timeout=1200):
+    passed = {}
+    def step(name,command,timeout=1200,environment=None):
         if not unchanged(source,tools,frozen):
             raise ValueError('composition source or tools changed before '+name)
-        row = run_command(ledger,name,command,timeout=timeout,environment=execution_env); rows.append(row)
+        row = run_command(ledger,name,command,timeout=timeout,environment={**execution_env,**(environment or {})}); rows.append(row)
         if not unchanged(source,tools,frozen):
             raise ValueError('composition source or tools changed during '+name)
         return row['returncode']==0 and not row['timed_out']
@@ -273,12 +384,25 @@ def qualify(args):
                 manifest['identity']['rustc']!=tools['rustc']['version'] or
                 manifest['binary_sha256']!=digest(bridge)):
             raise ValueError('NDU output does not belong to the registered composition')
+        raw_build = output/'raw-ndu-build'
+        raw_receipt = raw_build/'build-receipt.json'
+        if not step('raw-ndu-build', py+['tools/build_hia_raw_model_bridge.py',
+                '--upstream',str(Path(args.ndu_object_source or args.ndu_source).resolve()),
+                '--output',str(raw_build),'--cargo',tools['cargo']['path']],
+                environment={'CARGO_TARGET_DIR':str(output/'raw-cargo-target'),
+                             'CARGO_NET_OFFLINE':'true' if args.offline else 'false',
+                             'GIT_NO_LAZY_FETCH':'1'}):
+            raise ValueError('raw native NDU failed to build; original streams retained')
+        raw_manifest = validate_raw_build(raw_receipt,tools)
+        raw_bridge = Path(raw_manifest['binary']).resolve()
         combination = {**plan, 'ndu_build_identity_sha256':digest(identity),
-                       'ndu':manifest, 'plan_sha256':digest(output/'PLAN.json')}
+                       'ndu':manifest, 'raw_ndu':raw_manifest,
+                       'raw_ndu_build_receipt_sha256':digest(raw_receipt),
+                       'plan_sha256':digest(output/'PLAN.json')}
         write(output/'COMBINATION.json',combination)
         frozen.update({str(identity):digest(identity),str(bridge):digest(bridge),
+                       str(raw_receipt):digest(raw_receipt),str(raw_bridge):digest(raw_bridge),
                        str(output/'COMBINATION.json'):digest(output/'COMBINATION.json')})
-        passed = {}
         fetch=[tools['cargo']['path'],'fetch','--locked','--manifest-path',str(ROOT/'rust/hia-core-shadow/Cargo.toml')]
         if args.offline:
             fetch.append('--offline')
@@ -319,19 +443,43 @@ def qualify(args):
         passed['reduction'] = step('reduction',py+['tools/qualify_hia_reduction_release.py',
             '--output',str(output/'reduction'),'--clang',tools['clang']['path'],'--rustc',tools['rustc']['path'],
             '--profile',REDUCTION_PROFILE])
+        passed['outlined_aot'] = step('outlined_aot',py+['tools/qualify_hia_outlined_aot.py',
+            '--output',str(output/'outlined-aot'),'--clang',tools['clang']['path'],'--rustc',tools['rustc']['path']])
         passed['ndu_full_cost'] = step('ndu_full_cost',py+['tools/qualify_hia_ndu_cost.py',
             '--output',str(output/'ndu-cost'),'--clang',tools['clang']['path'],'--rustc',tools['rustc']['path'],
             '--bridge',str(bridge),'--identity',str(identity),'--bridge-built-this-campaign',
             '--stream-profile',STREAM_PROFILE])
+        passed['ndu_lazy_witness'] = step('ndu_lazy_witness',py+['tools/qualify_hia_ndu_lazy_witness.py',
+            '--expected-source',source['commit'],'--bridge',str(bridge),'--identity',str(identity),
+            '--output',str(output/'ndu-lazy-witness')])
+        passed['raw_ndu_correctness'] = step('raw_ndu_correctness',py+['tools/qualify_hia_raw_model.py',
+            '--binary',str(raw_bridge),'--build',str(raw_receipt),
+            '--output',str(output/'raw-correctness'),'--include-stream'])
+        raw_cost = output/'raw-service-cost'
+        passed['raw_ndu_service_freeze'] = step('raw_ndu_service_freeze',py+[
+            'tools/measure_hia_raw_session_cost.py','freeze','--binary',str(raw_bridge),
+            '--build',str(raw_receipt),'--output',str(raw_cost)])
+        if passed['raw_ndu_service_freeze']:
+            frozen[str(raw_cost/'REGISTRATION.json')] = digest(raw_cost/'REGISTRATION.json')
+            passed['raw_ndu_service_cost'] = step('raw_ndu_service_cost',py+[
+                'tools/measure_hia_raw_session_cost.py','run','--output',str(raw_cost)])
+        else:
+            passed['raw_ndu_service_cost'] = False
         passed['cpp_unique_reset'] = step('cpp_unique_reset',py+['tools/qualify_cpp_unique_reset.py',
             '--workdir',str(output/'cpp-unique-reset'),'--clang',tools['clang']['path'],
             '--clangxx',tools['clangxx']['path'],'--cc',tools['cc']['path']])
         passed['cpp_source_refusals'] = step('cpp_source_refusals',py+['tools/qualify_cpp_unique_reset.py',
             '--source-refusals-only','--workdir',str(output/'cpp-source-refusals'),
             '--clangxx',tools['clangxx']['path'],'--clang',tools['clang']['path'],'--cc',tools['cc']['path']])
+        passed['cpp_unique_reuse'] = step('cpp_unique_reuse',py+['tools/qualify_cpp_unique_reuse.py',
+            '--workdir',str(output/'cpp-unique-reuse'),'--clang',tools['clang']['path'],
+            '--clangxx',tools['clangxx']['path'],'--cc',tools['cc']['path']])
+        passed['cpp_reuse_source_refusals'] = step('cpp_reuse_source_refusals',py+['tools/qualify_cpp_unique_reuse.py',
+            '--source-refusals-only','--workdir',str(output/'cpp-reuse-source-refusals'),
+            '--clangxx',tools['clangxx']['path'],'--clang',tools['clang']['path'],'--cc',tools['cc']['path']])
         passed['gsl_upstream_upgrade'] = step('gsl_upstream_upgrade',py+['tools/qualify_cpp_gsl_final_action.py',
             '--output',str(output/'gsl-upgrade'),'--clang',tools['clang']['path'],
-            '--cxx',tools['g++']['path'],'--cc',tools['cc']['path']])
+            '--cxx',tools['g++']['path'],'--cc',tools['cc']['path'],'--include-current-upstream'])
         passed['migration_resources'] = step('migration_resources',py+['tools/qualify_migration_resource_profiles.py',
             '--output',str(output/'migration-resources'),'--clang',tools['clang']['path'],
             '--cxx',tools['g++']['path'],'--cc',tools['cc']['path']])
@@ -342,17 +490,43 @@ def qualify(args):
         passed['ndu_model_planner'] = step('ndu_model_planner',py+['tools/qualify_hia_ndu_budget_erasure.py',
             '--output',str(output/'ndu-model-planner')])
         report = {'status':'completed','qualifications':passed,'qualification_commands_passed':all(passed.values()),
-                  'p0_same_combination_build_execute_reject_recover':all(passed.get(k,False) for k in
+                  'p0_same_combination_build_execute_reject_cancel_recover':all(passed.get(k,False) for k in
                       ('rust_shadow_dependencies','rust_shadow_build','core',
                        'capability_proof','capability_lifecycle','capability_borrow','memory_proof','core_proof','register_proof',
                        'production_capabilities','sequential_core','ndu_budget_model',
-                       'continuation','reduction','ndu_full_cost','ndu_model_planner','host_region')),
+                       'continuation','reduction','outlined_aot','ndu_full_cost','ndu_model_planner','ndu_lazy_witness','host_region',
+                       'raw_ndu_correctness','raw_ndu_service_cost','cpp_unique_reuse','cpp_reuse_source_refusals',
+                       'gsl_upstream_upgrade')),
                   'all_seven_research_targets_closed':False,
                   'capability_lifecycle_assessment':'capability-lifecycle/REPORT.json',
                   'capability_borrow_assessment':'capability-borrow/REPORT.json',
                   'performance_assessment':'reduction/RESULT.json',
+                  'outlined_performance_assessment':'outlined-aot/RESULT.json',
+                  'raw_ndu_assessment':'raw-service-cost/RESULT.json',
+                  'ndu_lazy_witness_assessment':'ndu-lazy-witness/RESULT.json',
                   'ndu_assessment':'ndu-cost/REPORT.json',
                   'ndu_model_planner_assessment':'ndu-model-planner/RESULT.json'}
+        if passed['raw_ndu_service_cost']:
+            raw = json.loads((raw_cost/'RESULT.json').read_text())
+            commands = {row['name']:row['wall_ns'] for row in rows}
+            services = {name:value['standalone_service_ns'] for name,value in raw['arms'].items()}
+            inner_build = raw_manifest['build_cost']['wall_ns']
+            outer_build = commands['raw-ndu-build']
+            runner_remainder = commands['raw_ndu_service_cost'] - sum(services.values())
+            if outer_build < inner_build or runner_remainder < 0:
+                raise ValueError('raw service outer/inner nonoverlapping cost clocks disagree')
+            shared = runner_remainder + commands['raw_ndu_service_freeze']
+            report['raw_ndu_outer_cost_completion'] = {
+                'native_build_outer_wall_ns':outer_build,'native_build_inner_wall_ns':inner_build,
+                'native_build_additional_charged_ns':outer_build-inner_build,
+                'whole_service_command_wall_ns':commands['raw_ndu_service_cost'],
+                'registration_command_wall_ns':commands['raw_ndu_service_freeze'],
+                'common_runner_and_registration_remainder_ns':shared,
+                'conservative_solo_service_cost_by_arm_ns':{
+                    name:outer_build+service+shared for name,service in services.items()},
+                'allocation_rule':'Each descriptive standalone service pays the complete observed outer build, its service, and all common caller/registration remainder once.',
+                'not_an_independently_executed_solo_campaign':True,
+                'application_execution_included':False,'historical_preparation_or_human_cost_ns':None}
         if passed['ndu_full_cost']:
             ndu=json.loads((output/'ndu-cost/REPORT.json').read_text())
             command_cost={row['name']:row['wall_ns'] for row in rows}
@@ -373,7 +547,8 @@ def qualify(args):
                 'allocation_rule':'Every policy pays the full common campaign remainder once; native additionally pays outer minus inner bridge build. Original nested report is retained unchanged.',
                 'not_an_independently_executed_solo_campaign':True}
     except Exception as error:
-        report = {'status':'failed','qualification_commands_passed':False,
+        report = {'status':'failed','qualification_commands_passed':False,'qualifications':passed,
+                  'p0_same_combination_build_execute_reject_cancel_recover':False,
                   'error':{'type':type(error).__name__,'message':str(error)},
                   'all_seven_research_targets_closed':False}
     report.update(schema=SCHEMA,source=source,commands=rows,
@@ -384,7 +559,7 @@ def qualify(args):
                   authority='DENY_ALL',safety_certificate=False)
     if not report['source_and_tools_unchanged']:
         report['qualification_commands_passed']=False
-        report['p0_same_combination_build_execute_reject_recover']=False
+        report['p0_same_combination_build_execute_reject_cancel_recover']=False
     write(output/'RESULT.json',report)
     return report
 
@@ -394,14 +569,15 @@ def main():
         raise ValueError('qualification requires Python assertion checks enabled')
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--regression-output',type=Path)
-    for name in ('output','ndu-source','cargo-home','clang','clangxx','rustc','cargo','cc','lean'):
+    for name in ('output','ndu-source','cargo-home','clang','clangxx','rustc','source-rustc','cargo','cc','lean'):
         parser.add_argument('--'+name)
     parser.add_argument('--offline',action='store_true')
+    parser.add_argument('--ndu-object-source',help='optional read-only complete Git object mirror of the same NDU pin')
     args=parser.parse_args()
     if args.regression_output:
         return 0 if regression_suite(args.regression_output) else 1
     if any(getattr(args,name.replace('-','_')) is None for name in
-           ('output','ndu-source','cargo-home','clang','clangxx','rustc','cargo','cc','lean')):
+           ('output','ndu-source','cargo-home','clang','clangxx','rustc','source-rustc','cargo','cc','lean')):
         parser.error('all composition/tool/source arguments are required')
     result=qualify(args)
     print(json.dumps({k:result.get(k) for k in
