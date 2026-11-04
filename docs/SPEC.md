@@ -211,7 +211,9 @@ Function calls require explicit type arguments, such as
 expected nominal type, as in `let item: Maybe<u64> = Maybe::Some(17);`.
 This is limited contextual constructor inference, not general type-argument
 inference for calls. Duplicate/shadowing type parameters and unused
-struct/enum parameters are rejected. Generic `main` and generic C boundary
+struct/enum parameters are rejected. A parameter cannot shadow a nominal type
+declared in its own source module, whether that module is the entry or imported;
+unrelated modules do not reserve the parameter's spelling. Generic `main` and generic C boundary
 functions are rejected. Compiler monomorphization limits still apply.
 
 Enums have named unit variants or positional payload variants. Unit variants

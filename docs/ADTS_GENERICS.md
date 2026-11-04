@@ -117,7 +117,10 @@ no general Hindley-Milner inference, inferred function type argument list,
 overloading, specialization, trait dictionary, const generic, higher-kinded
 type, lifetime generic, higher-order function, or closure implementation here.
 Type parameters cannot duplicate each other or shadow a declared or reserved
-type name. Each generic struct/enum parameter must occur in a field or payload;
+type name. A declared nominal name here belongs to the parameter's own source
+module; entry and imported files obey the same restriction. An unrelated
+module's nominal declaration does not reserve a generic parameter spelling.
+Each generic struct/enum parameter must occur in a field or payload;
 phantom parameters are rejected. Generic `main` and generic C boundary
 functions are rejected.
 

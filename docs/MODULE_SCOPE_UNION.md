@@ -84,6 +84,6 @@ this integration work.
 The union above deliberately retained the unrelated-root generic-parameter
 refusal. The separate [generic parameter repair](MODULE_GENERIC_PARAMETER_SCOPE.md)
 addresses that false refusal on this exact union and explicitly reconciles the
-two inherited expectations. Same-module restrictions and their existing
-inconsistencies remain; this does not retroactively change the earlier union's
-source identity or observations.
+two inherited expectations. The subsequent [source-local generic correction](MODULE_SAME_SOURCE_GENERICS.md)
+addresses the separately recorded imported same-module generic loophole.
+Neither follow-on changes the earlier union's source identity or observations.

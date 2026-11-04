@@ -44,12 +44,12 @@ Distinct internal bound names preserve their existing invariant instead.
 
 ## Deliberate compatibility limits
 
-- Source-local nominal names remain excluded. Root same-source shadowing still
-  rejects. Imported same-source shadowing has an existing inconsistent case:
-  an imported nominal and same-spelled generic parameter can pass after the
-  nominal is mangled, but adding a same-spelled entry nominal can make it
-  reject. This repair preserves that behavior rather than silently imposing a
-  new same-module naming rule.
+- The original #663 foreign-collision repair excluded source-local nominal
+  names and deliberately preserved imported same-source shadowing. The later
+  [source-local generic correction](MODULE_SAME_SOURCE_GENERICS.md) makes those
+  collisions visible to the existing checker after nominal mangling. Ordinary
+  generic declarations now obey the already documented refusal in both entry
+  and imported files; this intentionally removes the former accepted case.
 - Duplicate/reserved parameter lists, invalid bounds and generic C boundary
   declarations remain unchanged for their existing refusal and source-name
   diagnostics. Generic C declarations are not newly supported.

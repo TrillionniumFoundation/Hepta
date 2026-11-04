@@ -226,11 +226,19 @@ class ModuleGenericParameterScopeTests(unittest.TestCase):
                     self.assertEqual(fn.type_bounds, {"Secret": "Send"})
 
     def test_existing_same_source_shadowing_matrix_is_unchanged(self):
+        # Keep this inherited method's identity while explicitly reconciling
+        # the imported acceptance that #663 deliberately preserved.
         self.reject({"main.hepta": NOMINAL + IDENTITY + " fn main()->i32 effects {} {return answer::<i32>(42);}"},
                     "E_GENERIC_PARAMETER", "Secret")
-        self.execute_c(self.files(NOMINAL + IDENTITY, nominal=""))
+        rejected = self.reject(self.files(NOMINAL + IDENTITY, nominal=""), "E_GENERIC_PARAMETER", "Secret")
+        self.assertIsNotNone(rejected.checked)
+        self.assertEqual([d["code"] for d in rejected.report["diagnostics"]], ["E_GENERIC_PARAMETER"])
+        self.assertEqual(rejected.report["diagnostics"][0]["phase"], "check")
         self.reject(self.files(NOMINAL + IDENTITY), "E_GENERIC_PARAMETER", "Secret")
-        self.execute_c(self.files("pub struct Secret<Secret>{value:Secret} pub fn answer()->i32 effects {} "
+        self.reject(self.files("pub struct Secret<Secret>{value:Secret} pub fn answer()->i32 effects {} "
+                               "{let v=Secret::<i32>{value:42};return v.value;}", "lib::answer()", nominal=""),
+                    "E_GENERIC_PARAMETER", "Secret")
+        self.execute_c(self.files("pub struct Secret<T>{value:T} pub fn answer()->i32 effects {} "
                                   "{let v=Secret::<i32>{value:42};return v.value;}", "lib::answer()", nominal=""))
         self.execute_c({"lib.hepta": "pub " + NOMINAL,
                         "main.hepta": "import lib;" + IDENTITY + " fn main()->i32 effects {} {return answer::<i32>(42);}"})
