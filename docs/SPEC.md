@@ -267,6 +267,19 @@ the parser's conventional precedence. Default literals are `i64` and `f64`;
 expected types can constrain them. Integer range checking includes native
 target checks for pointer-sized integers.
 
+The bootstrap lexer admits integer literal magnitudes from zero through
+`2^128 - 1`, the maximum of its widest integer type, `u128`. This applies in
+every base and context, including array lengths and resource clauses, before
+interface hashing or code generation. Larger magnitudes produce a positioned
+`E_LEX_NUMBER` diagnostic. A leading minus is a separate unary operator, so the
+`i128` minimum remains representable. Narrower type ranges and native target
+checks for `isize`/`usize` still apply; admission is not a valid-array-size or
+resource-contract guarantee. The pre-existing numeric spelling limit remains
+4096 characters after removing underscores, including a base prefix. Leading
+zeroes do not change the magnitude, and finite floating literals do not use
+the integer magnitude ceiling. No Python process-wide conversion limit is
+changed.
+
 Evaluation preserves left-to-right argument/operand evaluation and short
 circuiting of `&&` and `||`. The C backend uses ordered temporaries for its
 supported expressions. Regular integer arithmetic has enabled overflow checks

@@ -21,6 +21,11 @@ KEYWORDS = frozenset({
     "raw", "const", "true", "false", "enum", "match", "import",
 })
 
+# u128 is the widest supported integer. This is source admission, not a
+# replacement for the checker's narrower ranges or rustc's target-size checks.
+_MAX_INTEGER_LITERAL = (1 << 128) - 1
+_MAX_INTEGER_DIGITS = {2: 128, 8: 43, 10: 39, 16: 32}
+
 
 @dataclass(frozen=True)
 class Token:
@@ -150,10 +155,19 @@ class Lexer:
         raw = self.source[mark[0]:self.position].replace("_", "")
         if len(raw) > 4096:
             self._error("E_LEX_NUMBER", "Numeric literal exceeds the bootstrap limit of 4096 digits", mark)
+        if not floating:
+            # Bound before int() and before any downstream decimal rendering.
+            # Normalize conversion input only; retain source spelling and spans.
+            digits = (raw[2:] if base != 10 else raw).lstrip("0") or "0"
+            if len(digits) > _MAX_INTEGER_DIGITS[base]:
+                self._error("E_LEX_NUMBER", "Integer literal exceeds the supported unsigned 128-bit magnitude", mark)
+            raw = digits
         try:
             value = float(raw) if floating else int(raw, base)
         except (ValueError, OverflowError):
             self._error("E_LEX_NUMBER", "Invalid numeric literal", mark)
+        if not floating and value > _MAX_INTEGER_LITERAL:
+            self._error("E_LEX_NUMBER", "Integer literal exceeds the supported unsigned 128-bit magnitude", mark)
         if floating and not math.isfinite(value):
             self._error("E_LEX_NUMBER", "Floating-point literal must be finite", mark)
         return Token("FLOAT" if floating else "INT", value, self._span(mark))
