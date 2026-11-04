@@ -20,6 +20,15 @@ source root. Source symlinks cannot escape the applicable source root. Cycles
 and missing modules are errors. Shared modules are loaded once. Declarations
 are flattened by AST transformation, never source-fragment splicing.
 
+A shared physical module must have one consistent canonical package root in
+the loaded graph. Reaching it through two different package roots rejects with
+`E_MODULE_PACKAGE_CONTEXT` at the conflicting import. Otherwise an unused
+import could silently select the wrong source root for the shared module's own
+imports. Repeated aliases and diamonds within the same package still share
+one module. Nested vendored packages remain supported when each module is
+reached through a single package context; this is not a blanket ban on
+overlapping source roots.
+
 Generated identifiers beginning with `M` plus 16 lowercase hexadecimal digits
 and `_` are reserved in source. Private names exposed in inspection metadata
 therefore cannot become source-level access paths. Project identity hashes
