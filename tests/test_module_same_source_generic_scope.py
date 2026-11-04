@@ -439,11 +439,21 @@ class ModuleSameSourceGenericScopeTests(unittest.TestCase):
             result = self.frontend(sources, "rust")
             for optimize in (False, True):
                 with self.subTest(case=index, optimize=optimize):
+                    artifact = self.root / ("rust-" + str(index) + "-" + str(optimize))
                     built = compile_rust(result.rust, rustc=rustc, crate_type="bin", optimize=optimize,
-                                         output=self.root / ("rust-" + str(index) + "-" + str(optimize)))
+                                         output=artifact)
                     self.assertTrue(built["ok"], built)
-                    self.assertTrue(built["rustc_used"])
+                    self.assertEqual(built["status"], "rustc_checked")
+                    self.assertEqual(Path(built["toolchain"]["path"]).resolve(), Path(rustc).resolve())
+                    self.assertIn("opt-level=" + ("3" if optimize else "0"), built["flags"])
                     self.assertFalse(built["check_only"])
+                    self.assertEqual(Path(built["artifact"]).resolve(), artifact.resolve())
+                    self.assertTrue(artifact.is_file())
+                    self.assertGreater(artifact.stat().st_size, 0)
+                    self.assertEqual(built["artifact_bytes"], artifact.stat().st_size)
+                    digest = hashlib.sha256(artifact.read_bytes()).hexdigest()
+                    self.assertEqual(built["artifact_sha256"], digest)
+                    self.assertEqual(built["validation_artifact_sha256"], digest)
                     self.execute(built, sources, "rust", optimize)
 
 
