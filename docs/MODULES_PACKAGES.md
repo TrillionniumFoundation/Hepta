@@ -13,6 +13,13 @@ aliases are unique and cannot collide with local declarations. Functions,
 structs and enums are private by default; `pub` exposes them. C import/export
 functions are module bindings with an explicit external symbol.
 
+An unqualified function reference must belong to the current source module (or
+be a builtin). Flattening does not implicitly import private or public entry
+functions, or C symbols declared in another module. Such cross-module references
+reject with `E_MODULE_SCOPE`; import the owning module and use its explicit
+alias and public symbol instead. Entry/API symbol spellings and the existing
+local-binding/function-name collision rules are unchanged.
+
 For standalone files, imports resolve below the entry file's directory. For
 packages, they resolve below `source_root` (default `src`). A dependency alias
 resolves to that library's entry; trailing path components resolve below its
