@@ -23,7 +23,7 @@ class SevenRunnerTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):cls.prepared,cls.proposal,cls.diagnostic=fixture()
 
-    def exercise(self,behavior='success',inspect=None):
+    def exercise(self,behavior='success',inspect=None,coalesced_reads=False):
         with tempfile.TemporaryDirectory() as folder,ExitStack() as stack:
             home=Path(folder);exe=home/'pinned/bin/lean';exe.parent.mkdir(parents=True)
             exe.write_bytes(b'fake executable never launched');(home/'pinned/lib/lean').mkdir(parents=True)
@@ -67,7 +67,8 @@ class SevenRunnerTests(unittest.TestCase):
                 script='import os,pathlib,time\npathlib.Path(%r).write_bytes(b"untrusted fake target")\nos.write(1,%r)\ntime.sleep(.03)\n'%(str(output),out.encode())
                 if behavior=='fifth':script+='pathlib.Path(%r).write_bytes(b"forbidden fifth module")\n'%str(root/'HiaSyntaxResearch/CertPart03.olean')
                 if behavior=='target_timeout':script+='time.sleep(10)\n'
-                if behavior=='target_limit':script='import os,time\nfor i in range(200):\n os.write(1,b"inert theorem line\\n");time.sleep(.002)\n'
+                # Exceed the unchanged raw cap even when many child writes/readiness events coalesce.
+                if behavior=='target_limit':script='import sys\nsys.stdout.buffer.write(b"x" * %d)\nsys.stdout.buffer.flush()\n'%(collector.RAW_LIMIT+1)
                 if behavior=='target_exit':script+='raise SystemExit(1)\n'
                 real=subprocess.Popen
                 def popen(argv,**options):
@@ -76,6 +77,13 @@ class SevenRunnerTests(unittest.TestCase):
                 with ExitStack() as capture_stack:
                     capture_stack.enter_context(patch.object(collector.subprocess,'Popen',side_effect=popen))
                     capture_stack.enter_context(patch.object(collector,'platform_observation',return_value=PLATFORM))
+                    if coalesced_reads:
+                        selector=collector.selectors.DefaultSelector();select=selector.select
+                        def delayed_select(timeout=None):
+                            time.sleep(.025)
+                            return select(timeout)
+                        capture_stack.enter_context(patch.object(selector,'select',side_effect=delayed_select))
+                        capture_stack.enter_context(patch.object(collector.selectors,'DefaultSelector',return_value=selector))
                     if behavior=='target_timeout':
                         origin=time.monotonic()
                         capture_stack.enter_context(patch.object(collector,'time',SimpleNamespace(monotonic=lambda:origin+(time.monotonic()-origin)*100)))
@@ -185,10 +193,17 @@ class SevenRunnerTests(unittest.TestCase):
     def test_complete_failure_replay_and_spawn_semantics(self):
         for behavior in ('parent_exit','parent_timeout','missing','no_output','spawn','target_missing','target_sorry','target_timeout','target_limit'):
             def inspect(path,report,identity,support):
+                if behavior=='target_limit':
+                    self.assertEqual(report['status'],'diagnostic_output_limit',report)
+                    self.assertTrue(report['evidence_complete'],report)
+                    self.assertTrue(report['stages'][-1]['process']['output_truncated'])
                 verified=self.replay(path,identity,support)
                 self.assertEqual(verified['validated_markers'],behavior=='target_timeout')
                 self.assertLessEqual(verified['validated_parent_count'],3)
             with self.subTest(behavior=behavior):self.exercise(behavior,inspect)
+            if behavior=='target_limit':
+                with self.subTest(behavior=behavior,coalesced_reads=True):
+                    self.exercise(behavior,inspect,coalesced_reads=True)
 
     def test_rehashed_result_receipt_and_start_tampering(self):
         def inspect(path,report,identity,support):

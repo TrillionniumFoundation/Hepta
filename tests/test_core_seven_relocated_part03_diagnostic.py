@@ -427,7 +427,22 @@ class Part03IntegrationTests(unittest.TestCase):
         # Genuine preparation, complete inverse and independent replay. Only the
         # compiler binary and required platform observation are test fixtures.
         with installation() as (home,exe),patch.object(c,'platform_observation',return_value=dict(c.PLATFORM)):
-            output=runner.execute(exe,home/'out')
+            # execute owns a genuine independent whole-container replay. Spy on
+            # that real call instead of repeating the same costly full inverse.
+            # No semantic gate, identity read or process function is replaced.
+            real_verify=replay.verify_evidence
+            captured=[]
+            def observe_real_replay(directory):
+                verified=real_verify(directory)
+                captured.append(verified)
+                return verified
+            with patch.object(replay,'verify_evidence',side_effect=observe_real_replay) as actual_replay:
+                output=runner.execute(exe,home/'out')
+            actual_replay.assert_called_once_with(home/'out')
+            self.assertEqual(len(captured),1)
+            self.assertIs(type(captured[0]),replay.VerifiedEvidence)
+            self.assertEqual(output['result'],captured[0].result)
+            self.assertEqual(output['display'],captured[0].display)
             self.assertEqual(output['exit_code'],1)
             self.assertEqual(output.get('result',{}).get('status'),'diagnostic_completed',output)
             summary=p.parse(output['display'])
@@ -440,8 +455,25 @@ class Part03IntegrationTests(unittest.TestCase):
             self.assertEqual(len(list((home/'out').rglob('*'))),57) #54 files +3 directories
             self.assertFalse((home/'out/HiaSyntaxResearch/CertPart04.olean').exists())
             self.assertFalse((home/'out/RelocatedPart03.finished.json').exists())
-            verified=replay.verify_evidence(home/'out')
-            self.assertEqual(verified.result,output['result'])
+            self.assertEqual(summary['result_sha256'],p.commitment(output['result']))
+            # Real failure propagation, not a fake verifier return: corrupt one
+            # closed denial field in the disposable persisted result. The actual
+            # unpatched replay rejects before any expensive semantic gate.
+            damaged=p.parse((home/'out/RESULT.json').read_bytes())
+            damaged['acceptance_eligible']=True
+            (home/'out/RESULT.json').write_bytes(p.encode(damaged))
+            import io
+            from types import SimpleNamespace
+            rejected=io.BytesIO()
+            with patch.object(runner.sys,'stdout',SimpleNamespace(buffer=rejected)):
+                self.assertEqual(runner.main(['--replay','--output-directory',str(home/'out')]),1)
+            failure=p.parse(rejected.getvalue())
+            self.assertEqual(failure['status'],'container_unverifiable')
+            self.assertEqual(failure['outcome'],'replay_failed')
+            self.assertEqual(failure['target']['marker_count'],0)
+            self.assertEqual(failure['target']['markers'],[])
+            self.assertFalse(failure['acceptance_eligible'])
+            self.assertFalse(failure['kernel_core_syntax_connection_checked'])
 
 @contextmanager
 def cached_semantic_fixture():
