@@ -1,0 +1,57 @@
+name: Generated C header module identities
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'tests/test_c_header_guards.py'
+      - 'tests/test_parser.py'
+      - 'tests/test_checker.py'
+      - 'tests/test_c_backend.py'
+      - 'tests/test_c_import_typedefs.py'
+      - 'tests/test_protocol.py'
+      - 'tools/test_c_header_guards.py'
+      - '.github/workflows/hepta-c-header-guards.yml'
+permissions:
+  contents: read
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bind source and execute all C, C++ and Rust controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          rustup toolchain install 1.90.0 --profile minimal
+          export RUSTC="$(rustup which --toolchain 1.90.0 rustc)"
+          export CC="$(command -v gcc)"
+          command -v g++
+          mkdir -p artifacts/c-header-guards
+          { git rev-parse HEAD HEAD^{tree}; uname -a; python --version; \
+            "$CC" --version; g++ --version; "$RUSTC" --version; \
+            sha256sum "$CC" "$(command -v g++)" "$RUSTC"; } > artifacts/c-header-guards/identities.txt
+          python -B tools/test_c_header_guards.py 2>&1 | tee artifacts/c-header-guards/tests.log
+          test -z "$(git status --porcelain --untracked-files=no)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: c-header-guards-${{ matrix.os }}-${{ env.EXPECTED_HEAD }}
+          path: artifacts/c-header-guards
+          if-no-files-found: error
