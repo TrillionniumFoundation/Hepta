@@ -1,4 +1,4 @@
-name: HIA relocation first-six diagnostic (DENY_ALL)
+name: HIA relocation full eleven acceptance (DENY_ALL)
 on:
   pull_request:
     paths:
@@ -12,6 +12,11 @@ on:
       - 'tools/core_seven_certificate*.py'
       - 'tools/diagnose_core_seven_certificate.py'
       - 'tools/check_core_seven_certificate.py'
+      - 'tools/check_core_seven_relocation.py'
+      - 'tools/core_seven_relocation_acceptance_plan.py'
+      - 'tools/core_seven_relocation_acceptance_replay.py'
+      - 'tests/test_core_seven_relocation_acceptance.py'
+      - 'docs/seven-relocation-acceptance.md'
       - 'tools/core_seven_parallel_relocation_sources.py'
       - 'tests/test_core_seven_parallel_relocation_sources.py'
       - 'docs/seven-parallel-relocation.md'
@@ -91,18 +96,18 @@ jobs:
         run: |
           set -euo pipefail
           timeout 300s python -B tools/bootstrap_verification.py --lean-only --directory "$RUNNER_TEMP/core-syntax-tools"
-      - name: Diagnose relocated Part04 after five fresh candidate parents; never acceptance
+      - name: Check eleven fresh unmarked relocation modules; narrow syntax only
         run: |
           set -euo pipefail
           status=0
-          timeout 600s python -B -m tools.diagnose_core_seven_relocation \
+          timeout 600s python -B -m tools.check_core_seven_relocation \
             --lean "$RUNNER_TEMP/core-syntax-tools/lean-4.19.0/bin/lean" \
             --output-directory "$RUNNER_TEMP/core-syntax-proof" || status=$?
           test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
           test -z "$(git status --porcelain --untracked-files=all)"
           exit "$status"
-      - name: Replay same-run diagnostic evidence; bounded event projection
+      - name: Replay complete same-run relocation evidence; bounded checked summary
         if: always()
         run: |
-          python -B -m tools.diagnose_core_seven_relocation --print-diagnostics \
+          timeout 600s python -B -m tools.check_core_seven_relocation --replay \
             --output-directory "$RUNNER_TEMP/core-syntax-proof"

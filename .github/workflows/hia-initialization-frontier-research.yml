@@ -12,6 +12,11 @@ on:
       - 'tools/core_seven_certificate*.py'
       - 'tools/diagnose_core_seven_certificate.py'
       - 'tools/check_core_seven_certificate.py'
+      - 'tools/check_core_seven_relocation.py'
+      - 'tools/core_seven_relocation_acceptance_plan.py'
+      - 'tools/core_seven_relocation_acceptance_replay.py'
+      - 'tests/test_core_seven_relocation_acceptance.py'
+      - 'docs/seven-relocation-acceptance.md'
       - 'tools/core_seven_parallel_relocation_sources.py'
       - 'tests/test_core_seven_parallel_relocation_sources.py'
       - 'docs/seven-parallel-relocation.md'
@@ -70,7 +75,6 @@ on:
       - 'tests/test_hia_initialization.py'
       - 'tests/test_hia_program.py'
       - '.github/workflows/hia-initialization-frontier-research.yml'
-  workflow_dispatch:
 permissions:
   contents: read
 jobs:
@@ -136,7 +140,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        group: [sources, execution, noncomputable-sources, noncomputable-execution, partition-sources-a, partition-sources-b, partition-execution, partition-diagnostic-sources, partition-diagnostic-capture, partition-diagnostic-execution, byte-facts-dag, byte-facts-sources, byte-facts-diagnostic, byte-facts-execution, byte-facts-replay, seven-sources-a, seven-sources-b, seven-sources-c, seven-diagnostic, seven-execution-a, seven-execution-b, seven-execution-inverse, seven-pending-eio, seven-acceptance-fast, seven-acceptance-records, seven-acceptance-record_types, seven-acceptance-full_eleven, seven-acceptance-fail_every_stage, seven-acceptance-adversary_provenance_finalization, seven-acceptance-write_faults, seven-acceptance-fsync_faults, seven-acceptance-reread_faults, seven-acceptance-review_boundaries_shadows, seven-acceptance-negative_pair_1, seven-acceptance-negative_pair_2, seven-acceptance-negative_pair_3, seven-acceptance-negative_pair_4, seven-acceptance-negative_pair_5, part04-sources, part04-capture, part04-grammar, part04-runner-a, part04-runner-b, part04-runner-inverse, relocation-proposal, relocation-sources, relocation-grammar, relocation-runner-a, relocation-runner-b, relocation-runner-inverse]
+        group: [sources, execution, noncomputable-sources, noncomputable-execution, partition-sources-a, partition-sources-b, partition-execution, partition-diagnostic-sources, partition-diagnostic-capture, partition-diagnostic-execution, byte-facts-dag, byte-facts-sources, byte-facts-diagnostic, byte-facts-execution, byte-facts-replay, seven-sources-a, seven-sources-b, seven-sources-c, seven-diagnostic, seven-execution-a, seven-execution-b, seven-execution-inverse, seven-pending-eio, seven-acceptance-fast, seven-acceptance-records, seven-acceptance-record_types, seven-acceptance-full_eleven, seven-acceptance-fail_every_stage, seven-acceptance-adversary_provenance_finalization, seven-acceptance-write_faults, seven-acceptance-fsync_faults, seven-acceptance-reread_faults, seven-acceptance-review_boundaries_shadows, seven-acceptance-negative_pair_1, seven-acceptance-negative_pair_2, seven-acceptance-negative_pair_3, seven-acceptance-negative_pair_4, seven-acceptance-negative_pair_5, part04-sources, part04-capture, part04-grammar, part04-runner-a, part04-runner-b, part04-runner-inverse, relocation-proposal, relocation-sources, relocation-grammar, relocation-runner-a, relocation-runner-b, relocation-runner-inverse, full-relocation-acceptance-fast, full-relocation-acceptance-records, full-relocation-acceptance-record_types, full-relocation-acceptance-full_eleven, full-relocation-acceptance-runner, full-relocation-acceptance-provenance_shadows, full-relocation-acceptance-final_replay, full-relocation-acceptance-clock_replay, full-relocation-acceptance-writes_faults, full-relocation-acceptance-fsyncs_faults, full-relocation-acceptance-rereads_faults, full-relocation-acceptance-negative_byte_modulo_alias, full-relocation-acceptance-negative_changed_exact_byte, full-relocation-acceptance-negative_duplicate_keys, full-relocation-acceptance-negative_leading_zero, full-relocation-acceptance-negative_literal_two, full-relocation-acceptance-negative_stale_descriptor, full-relocation-acceptance-negative_unordered_keys, full-relocation-acceptance-negative_wrong_arm_implementation, full-relocation-acceptance-negative_wrong_condition, full-relocation-acceptance-negative_wrong_phi, full-relocation-acceptance-source_contract, full-relocation-acceptance-protocols, full-relocation-acceptance-retained_source]
     env:
       EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
       PYTHONDONTWRITEBYTECODE: '1'
@@ -213,6 +217,30 @@ jobs:
               'seven-acceptance-negative_pair_3': (['tests.test_core_seven_acceptance.NegativeMutationTests.test_exact_negation_literal_two', 'tests.test_core_seven_acceptance.NegativeMutationTests.test_exact_negation_stale_descriptor'], 2),
               'seven-acceptance-negative_pair_4': (['tests.test_core_seven_acceptance.NegativeMutationTests.test_exact_negation_unordered_keys', 'tests.test_core_seven_acceptance.NegativeMutationTests.test_exact_negation_wrong_arm_implementation'], 2),
               'seven-acceptance-negative_pair_5': (['tests.test_core_seven_acceptance.NegativeMutationTests.test_exact_negation_wrong_condition', 'tests.test_core_seven_acceptance.NegativeMutationTests.test_exact_negation_wrong_phi'], 2),
+              'full-relocation-acceptance-fast': (['tests.test_core_seven_relocation_acceptance.SchemaTests', 'tests.test_core_seven_relocation_acceptance.FilesystemTests', 'tests.test_core_seven_relocation_acceptance.CaptureTests', 'tests.test_core_seven_relocation_acceptance.ClockTests', 'tests.test_core_seven_relocation_acceptance.LaunchTests', 'tests.test_core_seven_relocation_acceptance.TransitionTests', 'tests.test_core_seven_relocation_acceptance.VerifiedDisplayTests', 'tests.test_core_seven_relocation_acceptance.ReceiptBoundaryTests'], 108),
+              'full-relocation-acceptance-records': (['tests.test_core_seven_relocation_acceptance.RecordAndSizingTests.test_all_failed_stage_codes_and_fields', 'tests.test_core_seven_relocation_acceptance.RecordAndSizingTests.test_every_nested_identity_plan_run_field', 'tests.test_core_seven_relocation_acceptance.RecordAndSizingTests.test_exact_approved_serialized_reserve'], 3),
+              'full-relocation-acceptance-record_types': (['tests.test_core_seven_relocation_acceptance.RecordAndSizingTests.test_every_nested_wrong_type_unknown_and_numeric_bounds'], 1),
+              'full-relocation-acceptance-full_eleven': (['tests.test_core_seven_relocation_acceptance.FullRunTests'], 1),
+              'full-relocation-acceptance-runner': (['tests.test_core_seven_relocation_acceptance.RunnerAdversaryTests'], 4),
+              'full-relocation-acceptance-provenance_shadows': (['tests.test_core_seven_relocation_acceptance.ProvenanceTests', 'tests.test_core_seven_relocation_acceptance.SupportShadowTests'], 4),
+              'full-relocation-acceptance-final_replay': (['tests.test_core_seven_relocation_acceptance.FinalReplayFailureTests'], 1),
+              'full-relocation-acceptance-clock_replay': (['tests.test_core_seven_relocation_acceptance.BoundaryReplayTests'], 1),
+              'full-relocation-acceptance-writes_faults': (['tests.test_core_seven_relocation_acceptance.ReceiptTransactionTests.test_all_writes_fail_closed'], 1),
+              'full-relocation-acceptance-fsyncs_faults': (['tests.test_core_seven_relocation_acceptance.ReceiptTransactionTests.test_all_fsyncs_fail_closed'], 1),
+              'full-relocation-acceptance-rereads_faults': (['tests.test_core_seven_relocation_acceptance.ReceiptTransactionTests.test_all_rereads_fail_closed'], 1),
+              'full-relocation-acceptance-negative_byte_modulo_alias': (['tests.test_core_seven_relocation_acceptance.NegativeMutationTests.test_exact_negation_byte_modulo_alias'], 1),
+              'full-relocation-acceptance-negative_changed_exact_byte': (['tests.test_core_seven_relocation_acceptance.NegativeMutationTests.test_exact_negation_changed_exact_byte'], 1),
+              'full-relocation-acceptance-negative_duplicate_keys': (['tests.test_core_seven_relocation_acceptance.NegativeMutationTests.test_exact_negation_duplicate_keys'], 1),
+              'full-relocation-acceptance-negative_leading_zero': (['tests.test_core_seven_relocation_acceptance.NegativeMutationTests.test_exact_negation_leading_zero'], 1),
+              'full-relocation-acceptance-negative_literal_two': (['tests.test_core_seven_relocation_acceptance.NegativeMutationTests.test_exact_negation_literal_two'], 1),
+              'full-relocation-acceptance-negative_stale_descriptor': (['tests.test_core_seven_relocation_acceptance.NegativeMutationTests.test_exact_negation_stale_descriptor'], 1),
+              'full-relocation-acceptance-negative_unordered_keys': (['tests.test_core_seven_relocation_acceptance.NegativeMutationTests.test_exact_negation_unordered_keys'], 1),
+              'full-relocation-acceptance-negative_wrong_arm_implementation': (['tests.test_core_seven_relocation_acceptance.NegativeMutationTests.test_exact_negation_wrong_arm_implementation'], 1),
+              'full-relocation-acceptance-negative_wrong_condition': (['tests.test_core_seven_relocation_acceptance.NegativeMutationTests.test_exact_negation_wrong_condition'], 1),
+              'full-relocation-acceptance-negative_wrong_phi': (['tests.test_core_seven_relocation_acceptance.NegativeMutationTests.test_exact_negation_wrong_phi'], 1),
+              'full-relocation-acceptance-source_contract': (['tests.test_core_seven_relocation_acceptance.RelocationBoundaryTests.test_exact_protocol_identity_and_actual_inputs'], 1),
+              'full-relocation-acceptance-protocols': (['tests.test_core_seven_relocation_acceptance.RelocationBoundaryTests.test_old_and_diagnostic_protocols_rejected', 'tests.test_core_seven_relocation_acceptance.RelocationBoundaryTests.test_old_diagnostic_and_extra_container_files_rejected'], 2),
+              'full-relocation-acceptance-retained_source': (['tests.test_core_seven_relocation_acceptance.RelocationBoundaryTests.test_rehashed_actual_retained_candidate_rejected'], 1),
           }
           def flatten(node):
               for item in node:
@@ -260,7 +288,7 @@ jobs:
           all_ids = [test_id for ids in inventories.values() for test_id in ids]
           all_names = sorted({name for names, _ in groups.values() for name in names})
           complete_ids = [case.id() for case in flatten(unittest.defaultTestLoader.loadTestsFromNames(all_names))]
-          assert len(all_ids) == len(set(all_ids)) == len(complete_ids) == 565, 'combined inventory changed'
+          assert len(all_ids) == len(set(all_ids)) == len(complete_ids) == 705, 'combined inventory changed'
           assert set(all_ids) == set(complete_ids), 'split omitted or duplicated controls'
           acceptance_ids = [case.id() for case in flatten(unittest.defaultTestLoader.loadTestsFromName('tests.test_core_seven_acceptance'))]
           assigned_acceptance_ids = [test_id for group, ids in inventories.items() if group.startswith('seven-acceptance-') for test_id in ids]
@@ -271,13 +299,19 @@ jobs:
           assigned_part04_ids = [test_id for group, ids in inventories.items() if group.startswith('part04-') for test_id in ids]
           assert len(part04_ids) == len(set(part04_ids)) == len(assigned_part04_ids) == len(set(assigned_part04_ids)) == 73, 'complete Part04 inventory changed'
           assert set(part04_ids) == set(assigned_part04_ids), 'Part04 shards omitted or duplicated controls'
-          legacy_ids = [test_id for group, ids in inventories.items() if not group.startswith('relocation-') for test_id in ids]
+          legacy_ids = [test_id for group, ids in inventories.items() if not group.startswith(('relocation-', 'full-relocation-acceptance-')) for test_id in ids]
           assert len(legacy_ids) == len(set(legacy_ids)) == 500, 'all prior isolated controls must remain assigned once'
           relocation_names = ['tests.test_core_seven_parallel_relocation_sources', 'tests.test_core_seven_relocation_sources', 'tests.test_core_seven_relocation_runner']
           relocation_ids = [case.id() for case in flatten(unittest.defaultTestLoader.loadTestsFromNames(relocation_names))]
           assigned_relocation_ids = [test_id for group, ids in inventories.items() if group.startswith('relocation-') for test_id in ids]
           assert len(relocation_ids) == len(set(relocation_ids)) == len(assigned_relocation_ids) == len(set(assigned_relocation_ids)) == 65, 'complete relocation inventory changed'
           assert set(relocation_ids) == set(assigned_relocation_ids), 'relocation shards omitted or duplicated controls'
+          full_relocation_ids = [case.id() for case in flatten(unittest.defaultTestLoader.loadTestsFromName('tests.test_core_seven_relocation_acceptance'))]
+          assigned_full_relocation_ids = [test_id for group, ids in inventories.items() if group.startswith('full-relocation-acceptance-') for test_id in ids]
+          assert len(full_relocation_ids) == len(set(full_relocation_ids)) == len(assigned_full_relocation_ids) == len(set(assigned_full_relocation_ids)) == 140, 'complete full relocation acceptance inventory changed'
+          assert set(full_relocation_ids) == set(assigned_full_relocation_ids), 'full relocation acceptance shards omitted or duplicated controls'
+          old_ids = [test_id for group, ids in inventories.items() if not group.startswith('full-relocation-acceptance-') for test_id in ids]
+          assert len(old_ids) == len(set(old_ids)) == 565, 'all prior isolated controls retained once'
           group = os.environ['CONTROL_GROUP']
           ids, suite = inventories[group], suites[group]
           expected = groups[group][1]
