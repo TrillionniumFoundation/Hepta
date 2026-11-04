@@ -13,6 +13,7 @@ import struct
 from .ast import Diagnostic, Expr, Function, HeptaError, Program, Span, Type
 from .parser import parse
 from .lexer import tokenize
+from .module_bindings import isolate_local_bindings
 from .packages import Package, digest, find_manifest, load_package, package_snapshot, verify_lock
 
 
@@ -192,6 +193,9 @@ def load_project(entry, *, locked=False, source_overrides=None) -> LoadedProject
     flat_functions = {unit.names[name] for unit in units.values() for name in unit.functions}
     module_reports = []
     for unit in units.values():
+        binding_collisions = flat_functions - unit.functions.keys()
+        relative = Path(os.path.relpath(unit.path, owner.root)).as_posix()
+        binding_namespace = "M" + digest(relative.encode())[:16] + "_"
         def resolve(name, role, span):
             if "::" not in name:
                 declarations = unit.types if role == "type" else {**unit.types, **unit.functions}
@@ -254,6 +258,8 @@ def load_project(entry, *, locked=False, source_overrides=None) -> LoadedProject
         for attr in ("structs", "enums", "functions"):
             for original in getattr(unit.program, attr, []):
                 declaration = copy.deepcopy(original)
+                if isinstance(declaration, Function):
+                    isolate_local_bindings(declaration, binding_collisions, binding_namespace, flat_functions)
                 declaration.name = unit.names[original.name]
                 transform(declaration, frozenset(getattr(original, "type_params", ())))
                 getattr(assembled, attr).append(declaration)

@@ -38,10 +38,11 @@ Generic parameters keep their existing declaration scope. Builtin types and
 constructors, truly unknown type diagnostics, imported private-type rejection,
 and deterministic module naming remain unchanged for valid source programs.
 
-This change does not compose the separate function-reference repair in #658.
+This nominal guard remains separate from function-reference and local-binding
+checks. Their physical integration is documented in [MODULE_SCOPE_UNION.md](MODULE_SCOPE_UNION.md).
 It does not alter checker or backend logic, public ABI names, layouts, loader
-budgets, or package identity algorithms. Existing cross-module local/function
-and generic-parameter name collision restrictions remain. It does not claim
+budgets, or package identity algorithms. C-boundary parameter, same-module and
+generic-parameter name collision restrictions remain. It does not claim
 complete module isolation, whole-language soundness, arbitrary object-layout
 qualification or correctness of foreign implementations. No recursive or
 worker-execution qualification is asserted.
