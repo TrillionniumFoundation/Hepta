@@ -27,15 +27,15 @@ class _Context(TokenContext):
         for name, constructor in zip(_NAMES, _CONSTRUCTORS):
             if (getattr(parser, name, None) is not constructor
                     or getattr(ast, name, None) is not constructor):
-                self.reject('replacement AST constructor is not admitted: ' + name)
+                self.reject('replacement AST constructor is not admitted: ' + name, category='replacement_hook', phase='ast_structure')
         if getattr(parser.Parser, '_admit_node', None) is not _ADMIT:
-            self.reject('replacement AST admission hook is not admitted')
+            self.reject('replacement AST admission hook is not admitted', category='replacement_hook', phase='ast_structure')
 
 
 class _Parser(TokenParser):
     def _admit_node(self, constructor):
         if not any(constructor is expected for expected in _CONSTRUCTORS):
-            self.context.reject('unknown AST constructor')
+            self.context.reject('unknown AST constructor', category='schema', phase='ast_structure')
         # Admission precedes arguments and construction. A failed argument or
         # constructor still consumes this conservative work-attempt admission.
         self.context.charge('ast_nodes')

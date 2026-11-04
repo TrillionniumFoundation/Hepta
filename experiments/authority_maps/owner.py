@@ -33,16 +33,16 @@ class _Context(TransformContext):
         super().check()
         if (owned.copy is not copy
                 or getattr(owned.Owner, '_authority_copy', None) is not _SEAM):
-            self.reject('replacement authority copy seam')
+            self.reject('replacement authority copy seam', category='replacement_hook', phase='authority_maps')
 
     def admit_authority(self, depth):
         # No callback between inspecting an input and using the actual copier.
         if self.closed:
-            self.reject('request context is terminal')
+            self.reject('request context is terminal', category='terminal', phase='authority_maps')
         if depth > self.limits.authority_depth:
-            self.reject('authority_depth quota exceeded')
+            self.reject('authority_depth quota exceeded', category='budget', phase='authority_maps', dimension='authority_depth', limit=self.limits.authority_depth, admitted=None, attempted=depth)
         if self.counts['authority_visits'] >= self.limits.authority_visits:
-            self.reject('authority_visits quota exceeded')
+            self.reject('authority_visits quota exceeded', category='budget', phase='authority_maps', dimension='authority_visits', limit=self.limits.authority_visits, admitted=self.counts['authority_visits'], attempted=self.counts['authority_visits'] + 1)
         self.counts['authority_visits'] += 1
 
 
@@ -52,25 +52,25 @@ def _children(value, context, name, depth):
         if name == 'package_state' and value is None:
             return None
         if cls is not dict:
-            context.reject('authority map root must be an exact dictionary')
+            context.reject('authority map root must be an exact dictionary', category='schema', phase='authority_maps')
     elif cls is str:
         return None
     elif name == 'source_bytes' and cls is bytes:
         return None
     elif name != 'package_state' or cls is not dict:
-        context.reject('unknown authority map object')
+        context.reject('unknown authority map object', category='schema', phase='authority_maps')
     return _entries(value, context, name)
 
 
 def _entries(value, context, name):
     for key, child in value.items():
         if type(key) is not str:
-            context.reject('authority map keys must be exact strings')
+            context.reject('authority map keys must be exact strings', category='schema', phase='authority_maps')
         yield key
         if name == 'source_bytes' and type(child) is not bytes:
-            context.reject('source_bytes values must be exact bytes')
+            context.reject('source_bytes values must be exact bytes', category='schema', phase='authority_maps')
         if name == 'bindings' and type(child) is not str:
-            context.reject('bindings values must be exact strings')
+            context.reject('bindings values must be exact strings', category='schema', phase='authority_maps')
         yield child
 
 
@@ -82,7 +82,7 @@ def _preflight(value, context, name):
         if children is not None:
             identity = id(value)
             if identity in active:
-                context.reject('cyclic authority map is not admitted')
+                context.reject('cyclic authority map is not admitted', category='schema', phase='authority_maps')
             active.add(identity)
             stack.append((identity, children, depth))
         while stack:
@@ -110,21 +110,21 @@ class Owner(TransformOwner):
     def _authority_copy(self, deepcopy, value, name):
         try:
             if self.context.closed:
-                self.context.reject('request context is terminal')
+                self.context.reject('request context is terminal', category='terminal', phase='authority_maps')
             if type(name) is not str:
-                self.context.reject('unknown authority map name')
+                self.context.reject('unknown authority map name', category='schema', phase='authority_maps')
             if name == 'package':
                 # Separate fresh-memo call, deliberately outside map admission.
                 return super()._authority_copy(deepcopy, value, name)
             self.context.check()
             if name not in ('source_bytes', 'bindings', 'package_state'):
-                self.context.reject('unknown authority map name')
+                self.context.reject('unknown authority map name', category='schema', phase='authority_maps')
             if deepcopy is not _DEEPCOPY:
-                self.context.reject('replacement captured authority copier')
+                self.context.reject('replacement captured authority copier', category='replacement_hook', phase='authority_maps')
             _copy_hooks(self.context)
             if (copy._deepcopy_dispatch.get(bytes, _MISSING) is not _BYTES_COPY
                     or copy.dispatch_table.get(bytes, _MISSING) is not _BYTES_REDUCER):
-                self.context.reject('replacement bytes copy dispatch')
+                self.context.reject('replacement bytes copy dispatch', category='replacement_hook', phase='authority_maps')
             _preflight(value, self.context, name)
             result = deepcopy(value)
             self.context.check()

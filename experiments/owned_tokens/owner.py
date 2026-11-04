@@ -31,7 +31,7 @@ class _Context(ReadContext):
         super().check()
         for namespace, name, expected in _BINDINGS:
             if getattr(namespace, name, None) is not expected:
-                self.reject('replacement token hook is not admitted: ' + name)
+                self.reject('replacement token hook is not admitted: ' + name, category='replacement_hook', phase='owned_tokens')
 
 
 class _Lexer(_LEXER):
@@ -62,7 +62,7 @@ class _Parser(_PARSER):
     def _nested(self):
         self.depth += 1
         try:
-            self.context.depth(self.depth, self.context.limits.parser_depth)
+            self.context.depth(self.depth, self.context.limits.parser_depth, dimension='parser_depth')
             yield
         finally:
             self.depth -= 1
@@ -78,16 +78,16 @@ class _Batch:
 
 def _fingerprint(tokens, context):
     if type(tokens) is not tuple:
-        context.reject('modified token collection')
+        context.reject('modified token collection', category='schema', phase='owned_tokens')
     rows = []
     for token in tokens:
         if type(token) is not _TOKEN or type(token.span) is not _SPAN:
-            context.reject('modified token type')
+            context.reject('modified token type', category='schema', phase='owned_tokens')
         span = token.span
         if (type(token.kind) is not str or type(token.value) not in (str, int, float, type(None))
                 or any(type(v) is not int for v in (span.start, span.end, span.line, span.column))
                 or type(span.path) is not str):
-            context.reject('modified token fields')
+            context.reject('modified token fields', category='schema', phase='owned_tokens')
         value = token.value.hex() if type(token.value) is float else token.value
         rows.append((token.kind, type(token.value).__name__, value, span.start, span.end, span.line, span.column, span.path))
     return tuple(rows)
@@ -103,9 +103,10 @@ class _Ops(GraphOps):
         try:
             self.hook(tokenize, _TOKENIZE)
             if type(text) is not str or type(path) is not str:
-                self.context.reject('token source and path must be exact strings')
-            if len(text.encode('utf-8')) > self.context.limits.source:
-                self.context.reject('parser input byte quota exceeded')
+                self.context.reject('token source and path must be exact strings', category='schema', phase='owned_tokens')
+            input_bytes = len(text.encode('utf-8'))
+            if input_bytes > self.context.limits.source:
+                self.context.reject('parser input byte quota exceeded', category='budget', phase='owned_tokens', dimension='source', limit=self.context.limits.source, admitted=0, attempted=input_bytes)
             tokens = tuple(_Lexer(text, path, self.context).tokenize())
             self.context.check()
             batch = _Batch(tokens)
@@ -130,12 +131,12 @@ class _Ops(GraphOps):
             self.context.charge('parses')
             record = self._pending.get(id(batch))
             if type(batch) is not _Batch or record is None or record[0] is not batch:
-                self.context.reject('token batch does not belong or was consumed')
+                self.context.reject('token batch does not belong or was consumed', category='schema', phase='owned_tokens')
             _, source, source_path, tokens, fingerprint = record
             if type(text) is not str or type(path) is not str or text != source or path != source_path:
-                self.context.reject('token source or path mismatch')
+                self.context.reject('token source or path mismatch', category='schema', phase='owned_tokens')
             if batch.tokens is not tokens or _fingerprint(tokens, self.context) != fingerprint:
-                self.context.reject('modified admitted tokens')
+                self.context.reject('modified admitted tokens', category='schema', phase='owned_tokens')
             # Consume before parser/checkpoint callbacks. Parser owns a separate
             # private snapshot, so later mutation of exposed batch tokens is inert.
             del self._pending[id(batch)]
@@ -157,7 +158,7 @@ class _Ops(GraphOps):
         return _Parser(text, path, tokens, self.context)
 
     def parse(self, parse, text, path):
-        self.context.reject('single-lex parsing requires an admitted batch')
+        self.context.reject('single-lex parsing requires an admitted batch', category='schema', phase='owned_tokens')
 
 
 class Owner(GraphOwner):

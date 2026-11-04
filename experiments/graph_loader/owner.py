@@ -5,7 +5,7 @@ from experiments.request_load.context import Limits
 
 class _Ops(ReadOps):
     def edge(self, kind, depth):
-        self.context.depth(depth, getattr(self.context.limits, kind + '_depth'))
+        self.context.depth(depth, getattr(self.context.limits, kind + '_depth'), dimension=kind + '_depth')
         self.context.charge(kind + '_edges')
 
     def node(self, kind):

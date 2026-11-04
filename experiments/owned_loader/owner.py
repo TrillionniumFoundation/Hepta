@@ -41,13 +41,13 @@ class _Context(Context):
         super().check()
         # A callback may swallow nested rejection; never reopen terminal state.
         if self.closed:
-            self.reject('request context is terminal')
+            self.reject('request context is terminal', category='terminal', phase='owned_loader')
         # Check after the caller's checkpoint too: it may replace a namespace.
         for namespace, name, expected in _BINDINGS:
             if getattr(namespace, name, None) is not expected:
-                self.reject('replacement hook is not admitted: ' + name)
+                self.reject('replacement hook is not admitted: ' + name, category='replacement_hook', phase='owned_loader')
         if inspect.getattr_static(modules.LoadedProject, 'unchanged', None) is not modules._LEGACY_UNCHANGED:
-            self.reject('replacement revalidation hook is not admitted')
+            self.reject('replacement revalidation hook is not admitted', category='replacement_hook', phase='owned_loader')
 
 
 class _Ops(LegacyLoaderOps):
@@ -60,12 +60,12 @@ class _Ops(LegacyLoaderOps):
     def hook(self, hook, original):
         self.context.check()
         if hook is not original:
-            self.context.reject('replacement hook is not admitted')
+            self.context.reject('replacement hook is not admitted', category='replacement_hook', phase='owned_loader')
 
     def revalidation_hook(self, project, original):
         self.context.check()
         if type(project) is not modules.LoadedProject or inspect.getattr_static(project, 'unchanged', None) is not original:
-            self.context.reject('replacement revalidation hook is not admitted')
+            self.context.reject('replacement revalidation hook is not admitted', category='replacement_hook', phase='owned_loader')
 
     def read(self, path, role):
         self.context.check()
@@ -73,13 +73,13 @@ class _Ops(LegacyLoaderOps):
         key = str(Path(path).resolve())
         previous_target = self.bindings.get(lexical)
         if previous_target is not None and previous_target != key:
-            self.context.reject('admitted input binding changed')
+            self.context.reject('admitted input binding changed', category='schema', phase='owned_loader')
         if role == 'revalidation':
             if lexical not in self.lexical_roles:
-                self.context.reject('revalidation input has no admitted role')
+                self.context.reject('revalidation input has no admitted role', category='schema', phase='owned_loader')
             role = self.lexical_roles[lexical]
         elif role not in {'source', 'manifest', 'lock', 'sidecar', 'header'}:
-            self.context.reject('unknown input role')
+            self.context.reject('unknown input role', category='schema', phase='owned_loader')
         for old in (self.roles.get(key), self.lexical_roles.get(lexical)):
             if old is not None and getattr(self.context.limits, old) < getattr(self.context.limits, role):
                 role = old
@@ -87,7 +87,7 @@ class _Ops(LegacyLoaderOps):
         self.bindings[lexical] = key
         data = self.context.read(path, role)
         if str(Path(path).resolve()) != key:
-            self.context.reject('admitted input binding changed during read')
+            self.context.reject('admitted input binding changed during read', category='schema', phase='owned_loader')
         return data
 
     def inventory(self, root):
@@ -138,7 +138,7 @@ class Owner:
         try:
             self.context.check()
             if self._busy:
-                self.context.reject('reentrant owner operation is not admitted')
+                self.context.reject('reentrant owner operation is not admitted', category='reentrancy', phase='owned_loader')
             self._busy = True
         except BaseException:
             self.context.closed = True
@@ -162,7 +162,7 @@ class Owner:
         self._enter()
         try:
             if source_overrides is not None:
-                self.context.reject('source overrides are not admitted by this experimental profile')
+                self.context.reject('source overrides are not admitted by this experimental profile', category='schema', phase='owned_loader')
             graph = modules._load_project(entry, locked=locked, ops=self._ops)
             handle = _OwnedGraph(graph, self)
             # Disk revalidation authority must not alias report/public graph maps.
@@ -182,7 +182,7 @@ class Owner:
         try:
             authority = next((graph for known, graph in self._handles if handle is known), None)
             if authority is None:
-                self.context.reject('graph handle does not belong to this owner')
+                self.context.reject('graph handle does not belong to this owner', category='schema', phase='owned_loader')
             self._ops.revalidation_hook(handle.project, modules._LEGACY_UNCHANGED)
             return modules._revalidate(authority, ops=self._ops)
         except BaseException:

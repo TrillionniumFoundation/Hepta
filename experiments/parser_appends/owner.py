@@ -24,7 +24,7 @@ class _Context(AstContext):
     def check(self):
         super().check()
         if getattr(parser.Parser, '_admit_append', None) is not _ADMIT_APPEND:
-            self.reject('replacement parser append hook is not admitted')
+            self.reject('replacement parser append hook is not admitted', category='replacement_hook', phase='parser_appends')
 
 
 class _Parser(AstParser):
@@ -32,7 +32,7 @@ class _Parser(AstParser):
         if (type(operation) is not BuiltinMethodType
                 or type(operation.__self__) is not list
                 or operation.__name__ != 'append'):
-            self.context.reject('unknown parser append operation')
+            self.context.reject('unknown parser append operation', category='schema', phase='parser_appends')
         self.context.charge('parser_appends')
         return operation
 
