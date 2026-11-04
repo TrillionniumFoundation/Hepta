@@ -1,6 +1,6 @@
 {
   "schema": "hepta.seven.delivery.provenance.v1",
-  "status": "in_progress",
+  "status": "completed_execution_with_open_research_gates",
   "date": "2026-11-04",
   "integration_pr": "https://github.com/TrillionniumFoundation/Hepta/pull/644",
   "proof_pr": "https://github.com/TrillionniumFoundation/Hepta/pull/648",
@@ -70,23 +70,36 @@
       "core_failures": 0,
       "core_skips": 0,
       "source_and_tools_unchanged": true,
-      "result_sha256": "4b8601fb56bcf2b9e4b3d256648643d0bf4db801a95db91826a8f28f6acbfb41"
+      "result_sha256": "4b8601fb56bcf2b9e4b3d256648643d0bf4db801a95db91826a8f28f6acbfb41",
+      "path": "experiments/hia_seven_composition_20261104/composition-r3"
     },
     "ci_all_eight_success": true,
     "full_ci_regression_tests": 1781,
     "six_outcome_tests": 562,
     "proof_connection_accepted": false,
-    "agent_cohort": "single main running"
+    "agent_cohort": "completed;32/32cells,63attempts,1correct in Rust-patch;no stable HIA benefit",
+    "sequential_scalar_verification": {
+      "source": "3707b871ecbe563233ee9a3b69299fc627408936",
+      "tree": "9530e9feccf0077696d2e94746fda6bfb6854417",
+      "core_sha256": "d0bd183fa2908b0a099e92975286b554cb10311bf989df21f530906cdc57be0c",
+      "result_sha256": "7cad6f3cd472c45e597f4d8c7494fd0c1510a93af9e74b9c5af2804d94c67ce9",
+      "scope": "Two scalar public exports and reachable direct callees only; no ownership/resource or machine-code/ABI proof"
+    }
   },
   "proof_evidence": {
     "path": "experiments/hia_safe_core_transport_delivery_20261104",
     "review_sha256": "24f6f034d8a7f08195a695f4d286146592ef5874f31ddd522aa098faa54b45f0",
     "full_run": "r5",
-    "full_run_result": "process_timeout",
+    "full_run_result": "failed",
     "total_wall_ns": 339817342764,
     "original_source": "ce1dd749ffaf7b0905e55473164f79741facb08c",
     "source_tree": "92fe27daac9d2b2e2c76d0fa7a79362445b7fc4b",
-    "all_twelve_wider_obligations_unproved": true
+    "all_twelve_wider_obligations_unproved": true,
+    "error_code": "process_timeout",
+    "actual_invocations": 5,
+    "passed_stages": 4,
+    "binary_module_payloads_included": false,
+    "complete_external_toolchain_payloads_included": false
   },
   "source_history": {
     "path": "experiments/hia_seven_source_history_20261104",
@@ -96,6 +109,87 @@
     "independent_aot_bundle_sha256": "ce47eaf325a0ace3075c8ffe60d5b09db94b5a5d493bf8509edbaff5b88eb693",
     "original_aot_archive_sha256": "ae47856d8672670fe6a4cd3f10d341ba8d4df172b5813a067ef8c484bef97310",
     "bundle_prerequisite": "f2b76f5741c83822be2e12cf5a50b50a8d27b96a",
-    "restoration_verified": true
-  }
+    "restoration_verified": true,
+    "independent_original_aot_source": "8ce43b8d8f4bf415387ebf4c52435939cd4ad6d2",
+    "independent_original_aot_evidence": "4aedbdfc029e9d77dcf319626e8cc332207c0ff0"
+  },
+  "composition_evidence": {
+    "path": "experiments/hia_seven_composition_20261104",
+    "published_at": "c5a595008b4d9b6ffa8c89bef9ed2226345c6104",
+    "git_blobs": 106,
+    "original_r1_r2_r3_retained": true,
+    "original_roots_preserved": true,
+    "each_main_capsule_archive_members": 1431,
+    "r3_hash_inventory_only_intermediates": 1693,
+    "duplicate_upstream_source_inventory_entries": 115,
+    "duplicate_upstream_source_inventory_bytes": 1406860,
+    "all_three_external_observer_drivers_and_raw_streams_retained": true,
+    "r3_manifest_sha256": "9f1e997b15e72eeba24ecde7df87c1de4e1dad41f0d0f2ffa14285108c59114b",
+    "r3_restore_verification_sha256": "bc11920daec80c49b3cc847a8723dcb9e6addb728f2aed1770b53c30beff92cb",
+    "derivative_postprocessing_syntax_error_retained_and_not_counted_as_campaign_failure": true
+  },
+  "publication_verification_through_compositions": {
+    "commit": "c5a595008b4d9b6ffa8c89bef9ed2226345c6104",
+    "tree": "34fccec47cb82702f6b736a979d9318f2184efe2",
+    "blob_count": 163,
+    "new_directories": [
+      "hia_ci_failure_review_20261104",
+      "hia_safe_core_transport_delivery_20261104",
+      "hia_seven_composition_20261104",
+      "hia_seven_delivery_20261104",
+      "hia_seven_final_ci_20261104",
+      "hia_seven_native_ci_final_20261104",
+      "hia_seven_source_history_20261104"
+    ],
+    "all_prior_experiment_entries_unchanged": true,
+    "all_non_experiments_root_entries_unchanged": true,
+    "all_expected_blobs_exact_match": true
+  },
+  "scope_costs": {
+    "whole_project_full_lifecycle_cost_complete": false,
+    "human_engineering_seconds": null,
+    "historical_dependency_acquisition_seconds": null,
+    "energy_joules": null,
+    "long_term_evidence_retention_cost": null,
+    "rule": "Preserve measured disjoint automated walls and registered per-arm cost allocations separately; do not sum overlapping or alternative allocations as actual elapsed wall."
+  },
+  "agent_evidence": {
+    "path": "experiments/hia_agent_edit_factorial_20261104",
+    "original_result_sha256": "c4e50393d162639662c2274cc405a76837d478f21146c590749de48fa26cbc42",
+    "main_terminal_receipt_sha256": "3a362a14d5d1ef5d7f2d4c75b78bbb12d1c593ac22dee208b96d74f5140d0c5b",
+    "main_repetitions": 1,
+    "completed_cells": 32,
+    "attempts": 63,
+    "correct": 1,
+    "source_runtime_and_registration_unchanged": true,
+    "raw_archive_members": 1150,
+    "raw_tar_bytes": 105441280,
+    "raw_tar_sha256": "3f0b0837abb152de545f3967aed87863fa16119ff25bfb7a09e60789bae1fe61",
+    "actual_observed_nonoverlapping_stage_wall_ns": 4642117869822,
+    "additional_footprint_setup_ns": 8618618349,
+    "complete_economic_cost": false,
+    "real_maintenance_benefit_established": false,
+    "published_at": "84c65f560452c34f2b65439070adb08bab33cd14",
+    "encoded_xz_sha256": "080018a6cf2424e29d63cd7a201b547efc90eda759c389f26d61139dc8eb177e",
+    "manifest_sha256": "327533656eb234fb95c3b7941e83a5dfedfc46253c8aa0bda14f71e271a2d645",
+    "restoration_check_sha256": "b9fd37a0afc43a91ead59df2e590122f2c97c44407e9b2546888396127c5cb99",
+    "all_raw_members_retained_and_restored": true,
+    "model_weights_included": false,
+    "files": 15,
+    "public_bytes": 3523244,
+    "delivery_only_packaging_wall_ns": 42083331142,
+    "delivery_only_transport_staging_wall_ns": 202308245
+  },
+  "publication_verification_through_agent": {
+    "commit": "84c65f560452c34f2b65439070adb08bab33cd14",
+    "tree": "09ef2c134843a844359b2e91a4b1f9953f65b2d9",
+    "parent": "c5a595008b4d9b6ffa8c89bef9ed2226345c6104",
+    "agent_blob_count": 15,
+    "all_agent_blobs_exact": true,
+    "all_earlier_experiments_unchanged": true,
+    "all_non_experiments_unchanged": true,
+    "root_readme_unchanged": true
+  },
+  "observed_all_seven_closure": false,
+  "no_active_experiment_remaining": true
 }

@@ -1,0 +1,861 @@
+{
+  "schema": "hepta.seven.delivery.results.v1",
+  "source": {
+    "original": "3707b871ecbe563233ee9a3b69299fc627408936",
+    "projection": "e3b380bdb4d52e3d65c77356a3c09a4c6e3cfbf4",
+    "tree": "9530e9feccf0077696d2e94746fda6bfb6854417"
+  },
+  "proof_source": {
+    "original": "ce1dd749ffaf7b0905e55473164f79741facb08c",
+    "projection": "cbc3925ecfae120b1dd471a60499416e139db2e6",
+    "tree": "92fe27daac9d2b2e2c76d0fa7a79362445b7fc4b",
+    "track": "separate proof research; failed acceptance"
+  },
+  "composition": {
+    "r1": {
+      "source": "87106dd3f965de88cfa11616d2e9c63ac3baa5a3",
+      "flags_passed": 28,
+      "flags_total": 29,
+      "commands": 31,
+      "core_tests": 442,
+      "core_skips": 1,
+      "elapsed_ns": 1522808641741,
+      "p0_passed": false
+    },
+    "r2": {
+      "source": "98bdbe9f859b5caf95356fbfb1254448d9b583d0",
+      "flags_passed": 29,
+      "flags_total": 29,
+      "commands": 31,
+      "core_tests": 442,
+      "core_skips": 0,
+      "elapsed_ns": 1763228221927,
+      "p0_passed": true,
+      "broader_ci_failed_receipt_compatibility": true
+    },
+    "r3": {
+      "source": "3707b871ecbe563233ee9a3b69299fc627408936",
+      "tree": "9530e9feccf0077696d2e94746fda6bfb6854417",
+      "flags_passed": 29,
+      "flags_total": 29,
+      "commands": 31,
+      "core_tests": 462,
+      "core_failures": 0,
+      "core_errors": 0,
+      "core_skips": 0,
+      "elapsed_ns": 1737258619380,
+      "outer_wall_ns": 1737421842286,
+      "p0_passed": true,
+      "source_and_tools_unchanged": true,
+      "result_sha256": "4b8601fb56bcf2b9e4b3d256648643d0bf4db801a95db91826a8f28f6acbfb41",
+      "last_command": "ndu_model_planner",
+      "last_command_wall_ns": 7737150175,
+      "sequential_program_verification": {
+        "profile": "hia.sequential-acyclic-scalar-all-exports.v1",
+        "public_exports": [
+          "add_with_dead_literal",
+          "calculate"
+        ],
+        "reachable_direct_callees_included": true,
+        "passed": true,
+        "all_inputs_scope": "Normal-return result equivalence for the exact scalar Core and actual LLVM; no abort or poison",
+        "qualification_sha256": "7cad6f3cd472c45e597f4d8c7494fd0c1510a93af9e74b9c5af2804d94c67ce9",
+        "ownership_or_resource_safety_proved": false,
+        "verifier_or_encoder_refinement_proved": false,
+        "native_machine_code_or_c_abi_proved": false,
+        "excluded": [
+          "loops",
+          "recursion",
+          "FFI",
+          "hardware",
+          "concurrency"
+        ],
+        "source": "3707b871ecbe563233ee9a3b69299fc627408936",
+        "tree": "9530e9feccf0077696d2e94746fda6bfb6854417",
+        "core_sha256": "d0bd183fa2908b0a099e92975286b554cb10311bf989df21f530906cdc57be0c"
+      }
+    }
+  },
+  "ci": {
+    "all_eight_success": true,
+    "full_regression_tests": 1781,
+    "full_regression_errors": 0,
+    "full_regression_failures": 0,
+    "full_regression_skips": 0,
+    "six_outcome_tests": 562,
+    "six_outcome_all_passed_without_skips": true,
+    "native_artifacts": 17,
+    "native_platform_compiler_pairs": 7,
+    "run_ids": [
+      41779890702,
+      41779888055,
+      41779888318,
+      41779888059,
+      41779888063,
+      41779888215,
+      41779888106,
+      41779888067
+    ],
+    "full_regression_wall_ns": 1560800370291,
+    "six_outcome_wall_ns": 559288126064,
+    "full_regression_result_sha256": "4a4db21d22eb7df9ec6127cc98d076a3b8088866c3a16bffb44e02b22e62c7de",
+    "six_outcome_result_sha256": "cef52252f8951362b19f490f4c246c21e36f0589578897ba80a340b5853250e6"
+  },
+  "aot": {
+    "comparison_rows": 372,
+    "independent_passed": 303,
+    "r1_passed": 308,
+    "r2_passed": 304,
+    "r3_passed": 293,
+    "r3_failed": 79,
+    "median_ratio_max": 1.1,
+    "p95_batch_ratio_max": 1.2,
+    "p99_batch_ratio_max": 1.2,
+    "loads": [
+      1,
+      16,
+      64
+    ],
+    "warmup_calls": 3,
+    "cost_horizons": [
+      1,
+      1000,
+      1000000
+    ],
+    "rust": "1.95.0 -C opt-level=3 -C lto=fat -C codegen-units=1 -C panic=abort -C overflow-checks=off -C force-frame-pointers=no; conventional and explicit-byte baselines",
+    "pgo_included": false,
+    "qualification_valid": true,
+    "broad_parity": false,
+    "full_lifecycle_net_benefit": false,
+    "shared_host": true,
+    "discrete_lengths": 31,
+    "length_min": 0,
+    "length_max": 340157,
+    "length_seed_groups": 4,
+    "seeds_per_group": 3,
+    "measured_batches_per_seed_request": 21,
+    "pooled_batch_observations_per_cohort": 63,
+    "target_cpu": "generic x86_64",
+    "target_cpu_native": false,
+    "protocol_source_file_sha256": "66d45590cfcd6e7e0a09f31ea91e93d8b04af32eaf974ed2da563648e1ddb31b",
+    "protocol_source_file_bytes": 6333,
+    "protocol_canonical_json_sha256": "8706e62e4069669a0a8155c7d6b93e9701f23e4836ffa93c9bf14630ffa9ddfa",
+    "protocol_canonical_json_rule": "json.dumps(spec, sort_keys=True, separators=(',', ':'), allow_nan=False).encode(); no terminal newline",
+    "r3_comparisons_by_group": {
+      "historical_holdout": {
+        "passed": 71,
+        "total": 96
+      },
+      "historical_regression": {
+        "passed": 67,
+        "total": 84
+      },
+      "prior_wrapper_lengths": {
+        "passed": 77,
+        "total": 96
+      },
+      "prospective_lengths": {
+        "passed": 78,
+        "total": 96
+      }
+    },
+    "r3_measured_automated_qualifier_wall_ns": 90501378599
+  },
+  "ndu_r3": {
+    "net_win_scenarios": 0,
+    "scenarios": 3,
+    "native_over_best_service_median": [
+      1.027065593,
+      1.142205002,
+      1.279844839
+    ],
+    "service_seconds": {
+      "fixed": 0.981106097,
+      "exact_dp": 1.047695467,
+      "light": 1.0256016,
+      "ndu": 1.152509677
+    },
+    "full_allocated_seconds": {
+      "fixed": 12.437043145,
+      "exact_dp": 12.503632515,
+      "light": 12.481538648,
+      "ndu": 60.779899759
+    },
+    "sessions": 6,
+    "requests": 9,
+    "skips": 27,
+    "never_started": 3,
+    "reuse_events": 12,
+    "epoch_retires": 3,
+    "reacquires": 3,
+    "raw_calls": 2976,
+    "raw_quartets": 744,
+    "raw_errors": 0,
+    "raw_witnesses_all_equal": true,
+    "raw_oneshot_ndu_over_dp": 1.039500251,
+    "raw_session_ndu_over_dp": 1.042118261,
+    "lazy_request_median_ms_before": 166.249938,
+    "lazy_request_median_ms_after": 125.602485,
+    "lazy_exact_median_ms_before": 63.267893,
+    "lazy_exact_median_ms_after": 58.267186,
+    "net_benefit_established": false,
+    "policy_episodes": 9,
+    "episodes_with_native_session": 6,
+    "native_sessions": 6,
+    "native_requests": 9,
+    "episodes_without_native_start": 3,
+    "model_selected_plan_gap_ns": {
+      "count": 9,
+      "observed_values": [
+        0
+      ],
+      "scope": "Registered finite models; modeled objective compared with same-information exact DP; not measured service cost or whole-program optimality"
+    },
+    "full_lifecycle_cost_complete": false,
+    "unmeasured_cost_categories": [
+      "historical dependency acquisition",
+      "human work",
+      "long-term residency and evidence retention",
+      "energy"
+    ],
+    "raw_service_ratio_scope": "Aggregate service time across744 calls per arm; not full allocated costs or single-call tail latency",
+    "lazy_sweep_models": 256,
+    "lazy_sweep_samples": 11,
+    "lazy_native_checks": 64,
+    "lazy_time_scope": "Median total time per256-model sweep; not per model or single request",
+    "optional_action_withholding_triggered_in_application_cohort": false,
+    "optional_action_withholding_covered_by_separate_deadline_controls": true
+  },
+  "proof": {
+    "status": "failed",
+    "source": "ce1dd749ffaf7b0905e55473164f79741facb08c",
+    "protocol": "seven-shared-acceptance-v6",
+    "run": "r5",
+    "run_id": "d0b0d4e98598485ba3b01f85b9bc5aaf67423017125d4463ad1d85af1d3b1df3",
+    "result_sha256": "96a0999c91ea120f96b1708325a53cc1462f56765ace38f0f5e33d36f9efafca",
+    "total_wall_ns": 339817342764,
+    "part03_wall_ns": 60000790060,
+    "part03_cleanup_ns": 109014595,
+    "source_tests_passed": 20,
+    "processes_registered": 11,
+    "process_seconds_cap": 60,
+    "total_launch_seconds": 540,
+    "outer_seconds_cap": 600,
+    "definitions": 7685,
+    "transport_subjects": 4215,
+    "auxiliary_facts": 2975,
+    "connection_accepted": false,
+    "remaining_obligations": [
+      "environment_phi",
+      "dynamic_owner",
+      "allocation_extent",
+      "finite_integer",
+      "direct_body_seed",
+      "store_write_frame",
+      "value_schedule",
+      "normal_completion",
+      "empty_extent",
+      "trace_edge_cut",
+      "post_completion_frame",
+      "observational_boundary"
+    ],
+    "review_archive_sha256": "24f6f034d8a7f08195a695f4d286146592ef5874f31ddd522aa098faa54b45f0",
+    "review_archive_bytes": 2747867,
+    "olean_payloads_omitted_but_inventoried": 37,
+    "error_code": "process_timeout",
+    "invocations": 5,
+    "passed_stages": 4,
+    "source_dependency_references_checked": 45994,
+    "declaration_counts_scope": "Source inventory and dependency scan, not full successful Lean kernel acceptance in r5",
+    "binary_module_payloads_included": false,
+    "complete_external_toolchain_payloads_included": false,
+    "archive_is_review_material_not_a_standalone_success_replay": true,
+    "combined_with_later_research_baselines": "not run; unqualified"
+  },
+  "agent": {
+    "status": "completed",
+    "expected_cells": 32,
+    "models": 2,
+    "tasks": 4,
+    "arms": 4,
+    "preparations": 3,
+    "preparation_outer_wall_ns": 520706534029,
+    "prelaunch_gate_wall_ns": 41202167756,
+    "desktop_receipt_check_wall_ns": 63260537,
+    "main_job": "1a1a5341ebd-fc05-1abf",
+    "main_repetitions": 1,
+    "experimental_budgets_changed": false,
+    "actual_main_results": "32 observed cells;1 correct;29 original public_validation_failed;2 registered budget_timeout",
+    "real_maintenance_benefit_established": false,
+    "human_engineering_cost": null,
+    "asset_acquisition_cost": null,
+    "energy_cost": null,
+    "observed_cells": 32,
+    "attempts": 63,
+    "correct": 1,
+    "result_sha256": "c4e50393d162639662c2274cc405a76837d478f21146c590749de48fa26cbc42",
+    "outer_receipt_sha256": "8e87cb8cd584b07f8b56742f8b941872f84e7c48f1f896c72ac29bb49be59c7a",
+    "terminal_receipt_sha256": "3a362a14d5d1ef5d7f2d4c75b78bbb12d1c593ac22dee208b96d74f5140d0c5b",
+    "main_outer_wall_ns": 4080145907500,
+    "main_internal_cohort_wall_ns": 4074525291653,
+    "main_command_wall_ns": 4074860143819,
+    "common_main_overhead_ns": 101838125006,
+    "actual_measured_nonoverlapping_stage_sum_ns": 4642117869822,
+    "source_footprint_setup_ns": 8618618349,
+    "actual_measured_sum_including_footprint_ns": 4650736488171,
+    "original_cell_statuses": {
+      "budget_timeout": 2,
+      "correct": 1,
+      "public_validation_failed": 29
+    },
+    "cell_terminal_stages": {
+      "correct": 1,
+      "json_or_protocol": 2,
+      "patch_admission": 4,
+      "public_tests": 8,
+      "source_or_compile": 15,
+      "timeout": 2
+    },
+    "attempt_stages": {
+      "correct": 1,
+      "json_or_protocol": 3,
+      "patch_admission": 6,
+      "public_tests": 16,
+      "source_or_compile": 35,
+      "timeout": 2
+    },
+    "official_arms": [
+      {
+        "cells": 8,
+        "correct": 0,
+        "cost_per_correct_ns": null,
+        "expected_cells": 8,
+        "input_tokens_complete": true,
+        "interface": "full",
+        "known_input_tokens": 20156,
+        "known_output_tokens": 6608,
+        "language": "assembly",
+        "observed_shared_cost_solo_allocation_ns": 1345973545900,
+        "output_tokens_complete": true,
+        "requests": 16,
+        "total_input_tokens": 20156,
+        "total_output_tokens": 6608,
+        "usage_complete": true
+      },
+      {
+        "cells": 8,
+        "correct": 0,
+        "cost_per_correct_ns": null,
+        "expected_cells": 8,
+        "input_tokens_complete": true,
+        "interface": "full",
+        "known_input_tokens": 13923,
+        "known_output_tokens": 3136,
+        "language": "rust",
+        "observed_shared_cost_solo_allocation_ns": 835652687134,
+        "output_tokens_complete": true,
+        "requests": 16,
+        "total_input_tokens": 13923,
+        "total_output_tokens": 3136,
+        "usage_complete": true
+      },
+      {
+        "cells": 8,
+        "correct": 0,
+        "cost_per_correct_ns": null,
+        "expected_cells": 8,
+        "input_tokens_complete": true,
+        "interface": "patch",
+        "known_input_tokens": 20898,
+        "known_output_tokens": 6690,
+        "language": "assembly",
+        "observed_shared_cost_solo_allocation_ns": 1555746601728,
+        "output_tokens_complete": false,
+        "requests": 16,
+        "total_input_tokens": 20898,
+        "total_output_tokens": null,
+        "usage_complete": false
+      },
+      {
+        "cells": 8,
+        "correct": 1,
+        "cost_per_correct_ns": 1230571903717.0,
+        "expected_cells": 8,
+        "input_tokens_complete": true,
+        "interface": "patch",
+        "known_input_tokens": 15388,
+        "known_output_tokens": 5580,
+        "language": "rust",
+        "observed_shared_cost_solo_allocation_ns": 1230571903717,
+        "output_tokens_complete": false,
+        "requests": 15,
+        "total_input_tokens": 15388,
+        "total_output_tokens": null,
+        "usage_complete": false
+      }
+    ],
+    "by_model_language_interface": [
+      {
+        "attempt_stages": {
+          "public_tests": 4,
+          "source_or_compile": 4
+        },
+        "attempts": 8,
+        "attributable_cell_wall_ns": 737186543276,
+        "cell_failure_stages": {
+          "public_tests": 2,
+          "source_or_compile": 2
+        },
+        "correct": 0,
+        "cost_scope": "Only these four cells; common costs reported separately and not assigned again.",
+        "expected_cells": 4,
+        "input_tokens_complete": true,
+        "interface": "full",
+        "known_input_tokens": 10684,
+        "known_output_tokens": 3442,
+        "language": "assembly",
+        "model_id": "granite2b",
+        "observed_cells": 4,
+        "output_tokens_complete": true,
+        "total_input_tokens": 10684,
+        "total_output_tokens": 3442
+      },
+      {
+        "attempt_stages": {
+          "json_or_protocol": 2,
+          "public_tests": 2,
+          "source_or_compile": 4
+        },
+        "attempts": 8,
+        "attributable_cell_wall_ns": 376130504502,
+        "cell_failure_stages": {
+          "json_or_protocol": 1,
+          "public_tests": 1,
+          "source_or_compile": 2
+        },
+        "correct": 0,
+        "cost_scope": "Only these four cells; common costs reported separately and not assigned again.",
+        "expected_cells": 4,
+        "input_tokens_complete": true,
+        "interface": "full",
+        "known_input_tokens": 7018,
+        "known_output_tokens": 1606,
+        "language": "rust",
+        "model_id": "granite2b",
+        "observed_cells": 4,
+        "output_tokens_complete": true,
+        "total_input_tokens": 7018,
+        "total_output_tokens": 1606
+      },
+      {
+        "attempt_stages": {
+          "source_or_compile": 7,
+          "timeout": 1
+        },
+        "attempts": 8,
+        "attributable_cell_wall_ns": 955452278110,
+        "cell_failure_stages": {
+          "source_or_compile": 3,
+          "timeout": 1
+        },
+        "correct": 0,
+        "cost_scope": "Only these four cells; common costs reported separately and not assigned again.",
+        "expected_cells": 4,
+        "input_tokens_complete": true,
+        "interface": "patch",
+        "known_input_tokens": 11501,
+        "known_output_tokens": 3964,
+        "language": "assembly",
+        "model_id": "granite2b",
+        "observed_cells": 4,
+        "output_tokens_complete": false,
+        "total_input_tokens": 11501,
+        "total_output_tokens": null
+      },
+      {
+        "attempt_stages": {
+          "patch_admission": 4,
+          "source_or_compile": 3,
+          "timeout": 1
+        },
+        "attempts": 8,
+        "attributable_cell_wall_ns": 645826198720,
+        "cell_failure_stages": {
+          "patch_admission": 2,
+          "source_or_compile": 1,
+          "timeout": 1
+        },
+        "correct": 0,
+        "cost_scope": "Only these four cells; common costs reported separately and not assigned again.",
+        "expected_cells": 4,
+        "input_tokens_complete": true,
+        "interface": "patch",
+        "known_input_tokens": 8393,
+        "known_output_tokens": 2348,
+        "language": "rust",
+        "model_id": "granite2b",
+        "observed_cells": 4,
+        "output_tokens_complete": false,
+        "total_input_tokens": 8393,
+        "total_output_tokens": null
+      },
+      {
+        "attempt_stages": {
+          "public_tests": 4,
+          "source_or_compile": 4
+        },
+        "attempts": 8,
+        "attributable_cell_wall_ns": 359972609666,
+        "cell_failure_stages": {
+          "public_tests": 2,
+          "source_or_compile": 2
+        },
+        "correct": 0,
+        "cost_scope": "Only these four cells; common costs reported separately and not assigned again.",
+        "expected_cells": 4,
+        "input_tokens_complete": true,
+        "interface": "full",
+        "known_input_tokens": 9472,
+        "known_output_tokens": 3166,
+        "language": "assembly",
+        "model_id": "qwen_coder1_5b",
+        "observed_cells": 4,
+        "output_tokens_complete": true,
+        "total_input_tokens": 9472,
+        "total_output_tokens": 3166
+      },
+      {
+        "attempt_stages": {
+          "public_tests": 4,
+          "source_or_compile": 4
+        },
+        "attempts": 8,
+        "attributable_cell_wall_ns": 210707789674,
+        "cell_failure_stages": {
+          "public_tests": 2,
+          "source_or_compile": 2
+        },
+        "correct": 0,
+        "cost_scope": "Only these four cells; common costs reported separately and not assigned again.",
+        "expected_cells": 4,
+        "input_tokens_complete": true,
+        "interface": "full",
+        "known_input_tokens": 6905,
+        "known_output_tokens": 1530,
+        "language": "rust",
+        "model_id": "qwen_coder1_5b",
+        "observed_cells": 4,
+        "output_tokens_complete": true,
+        "total_input_tokens": 6905,
+        "total_output_tokens": 1530
+      },
+      {
+        "attempt_stages": {
+          "patch_admission": 1,
+          "source_or_compile": 7
+        },
+        "attempts": 8,
+        "attributable_cell_wall_ns": 351479930660,
+        "cell_failure_stages": {
+          "patch_admission": 1,
+          "source_or_compile": 3
+        },
+        "correct": 0,
+        "cost_scope": "Only these four cells; common costs reported separately and not assigned again.",
+        "expected_cells": 4,
+        "input_tokens_complete": true,
+        "interface": "patch",
+        "known_input_tokens": 9397,
+        "known_output_tokens": 2726,
+        "language": "assembly",
+        "model_id": "qwen_coder1_5b",
+        "observed_cells": 4,
+        "output_tokens_complete": true,
+        "total_input_tokens": 9397,
+        "total_output_tokens": 2726
+      },
+      {
+        "attempt_stages": {
+          "correct": 1,
+          "json_or_protocol": 1,
+          "patch_admission": 1,
+          "public_tests": 2,
+          "source_or_compile": 2
+        },
+        "attempts": 7,
+        "attributable_cell_wall_ns": 335931312039,
+        "cell_failure_stages": {
+          "correct": 1,
+          "json_or_protocol": 1,
+          "patch_admission": 1,
+          "public_tests": 1
+        },
+        "correct": 1,
+        "cost_scope": "Only these four cells; common costs reported separately and not assigned again.",
+        "expected_cells": 4,
+        "input_tokens_complete": true,
+        "interface": "patch",
+        "known_input_tokens": 6995,
+        "known_output_tokens": 3232,
+        "language": "rust",
+        "model_id": "qwen_coder1_5b",
+        "observed_cells": 4,
+        "output_tokens_complete": true,
+        "total_input_tokens": 6995,
+        "total_output_tokens": 3232
+      }
+    ],
+    "tokens": {
+      "input_tokens_complete": true,
+      "known_input_tokens": 70365,
+      "known_output_tokens": 22014,
+      "output_tokens_complete": false,
+      "total_input_tokens": 70365,
+      "total_output_tokens": null
+    },
+    "unknown_output_usage_attempts": [
+      {
+        "id": "granite2b/stride_span_v2/rust-patch",
+        "index": 1,
+        "input_tokens": 1829,
+        "output_tokens": null,
+        "request_wall_ns": 180003373256,
+        "status": "budget_timeout"
+      },
+      {
+        "id": "granite2b/stride_span_v2/assembly-patch",
+        "index": 1,
+        "input_tokens": 2162,
+        "output_tokens": null,
+        "request_wall_ns": 180002978794,
+        "status": "budget_timeout"
+      }
+    ],
+    "source_unchanged": true,
+    "runtime_unchanged": true,
+    "registration_unchanged": true,
+    "errors": [],
+    "integrity_issues": [],
+    "session_cleanup": [
+      {
+        "session": 1,
+        "model_id": "qwen_coder1_5b",
+        "reaped": true,
+        "returncode": 0,
+        "errors": [],
+        "model_unchanged": true,
+        "runtime_unchanged": true
+      },
+      {
+        "session": 2,
+        "model_id": "granite2b",
+        "reaped": true,
+        "returncode": 0,
+        "errors": [],
+        "model_unchanged": true,
+        "runtime_unchanged": true
+      },
+      {
+        "session": 3,
+        "model_id": "granite2b",
+        "reaped": true,
+        "returncode": 0,
+        "errors": [],
+        "model_unchanged": true,
+        "runtime_unchanged": true
+      },
+      {
+        "session": 4,
+        "model_id": "granite2b",
+        "reaped": true,
+        "returncode": 0,
+        "errors": [],
+        "model_unchanged": true,
+        "runtime_unchanged": true
+      }
+    ],
+    "cost_scope": "Measured nonoverlapping automated stage sum; excludes complete waiting/human/download/energy/postprocessing costs; individual solo-arm allocations overlap and are not separately executed campaigns.",
+    "complete_economic_cost": false,
+    "real_external_maintenance_corpus": false,
+    "stable_productivity_advantage": false,
+    "hidden_oracle_evaluations": 1,
+    "hidden_oracle_failures": 0,
+    "posthoc_taxonomy_rescored": false,
+    "shared_host_exclusive": false,
+    "all_reader_end_time_known": false,
+    "main_repeated_after_failures": false,
+    "public_archive_members": 1150,
+    "public_archive_tar_bytes": 105441280,
+    "public_archive_tar_sha256": "3f0b0837abb152de545f3967aed87863fa16119ff25bfb7a09e60789bae1fe61",
+    "public_archive_xz_bytes": 2531628,
+    "delivery_work_recorded_separately": {
+      "post_terminal_packaging_wall_ns": 42083331142,
+      "transport_staging_wall_ns": 202308245,
+      "scope": "Delivery work after the single experiment terminal; not added to experimental nested clocks. Publication and all other delivery costs are not completely measured."
+    },
+    "evidence_path": "experiments/hia_agent_edit_factorial_20261104",
+    "evidence_publication_commit": "84c65f560452c34f2b65439070adb08bab33cd14",
+    "public_archive_xz_sha256": "080018a6cf2424e29d63cd7a201b547efc90eda759c389f26d61139dc8eb177e",
+    "public_manifest_sha256": "327533656eb234fb95c3b7941e83a5dfedfc46253c8aa0bda14f71e271a2d645",
+    "public_restore_check_sha256": "b9fd37a0afc43a91ead59df2e590122f2c97c44407e9b2546888396127c5cb99"
+  },
+  "closed_all_seven": false,
+  "main_merged": false,
+  "migration": {
+    "unique_owner_variants": 2,
+    "cases_per_unique_owner_variant": 2211,
+    "gsl_versions": [
+      "3.1.0",
+      "4.0.0",
+      "5.0.1"
+    ],
+    "gsl_new_version": "5.0.1",
+    "gsl_5_0_1_pin": "fbd20b8e8c52cba04dbc869cc9068a7800a5665d",
+    "gsl_scope": "Declared final_action class methods and factory instantiations only",
+    "sqlite": {
+      "versions": [
+        "3.46.0",
+        "3.53.2"
+      ],
+      "functions": [
+        "sqlite3Get4byte",
+        "sqlite3Put4byte"
+      ],
+      "inputs_per_version": 2556,
+      "native_function_observations_per_version": 5112,
+      "oracle_equal": true,
+      "report_sha256": "405f5ba99d705521fd49865681ffc13e52721ee567dc81b457a2651c7ea5830c",
+      "new_sqlite_translation_semantics_this_round": false,
+      "selected_function_source_bytes_identical_between_versions": true,
+      "portable_branch_conditions": {
+        "SQLITE_BYTEORDER": 0,
+        "GCC_VERSION": 0,
+        "MSVC_VERSION": 0
+      },
+      "negative_controls": 8,
+      "valid_initialized_four_byte_allocation_required": true,
+      "exclusive_access_for_mutable_call_required": true,
+      "all_input_source_equivalence_proved": false,
+      "external_raw_pointer_validity_inferred": false,
+      "raw_pointer_rust_abi_bridge_executed_in_this_profile": false,
+      "sql_engine_translated": false
+    },
+    "json_upstream_versions": [
+      "3.11.3",
+      "3.12.0"
+    ],
+    "json_upstream_source_unchanged": true,
+    "json_reuse_is_bridge_not_whole_library_translation": true,
+    "human_migration_cost_complete": false,
+    "arbitrary_c_cpp_translation_accepted": false
+  },
+  "hardware": {
+    "pairs": [
+      {
+        "os": "Linux",
+        "arch": "x86_64",
+        "compiler": "GCC"
+      },
+      {
+        "os": "Linux",
+        "arch": "x86_64",
+        "compiler": "Clang"
+      },
+      {
+        "os": "Linux",
+        "arch": "AArch64",
+        "compiler": "GCC"
+      },
+      {
+        "os": "Linux",
+        "arch": "AArch64",
+        "compiler": "Clang"
+      },
+      {
+        "os": "macOS15",
+        "arch": "AArch64",
+        "compiler": "Clang"
+      },
+      {
+        "os": "Windows2025",
+        "arch": "x86_64",
+        "compiler": "MSVC"
+      },
+      {
+        "os": "Windows2025",
+        "arch": "x86_64",
+        "compiler": "Clang"
+      }
+    ],
+    "native_artifact_breakdown": {
+      "c_abi_stb_rust_backend": 7,
+      "unchanged_cpp_json_bridge": 7,
+      "direct_hia_llvm_captured_c_linux": 2,
+      "standalone_aarch64_corpus": 1
+    },
+    "c_abi_distinct_inputs_per_pair": 21453,
+    "c_abi_configuration_pairs_per_pair": 42906,
+    "cpp_functional_observations_per_version_and_pair": 98,
+    "cpp_lifecycle_cases_per_version_and_pair": 32,
+    "cpp_concurrent_calls_per_version_and_pair": 1024,
+    "cpp_ordinary_owner_live_delta": 0,
+    "cpp_registry_retained_allocations_linux_macos": 2,
+    "cpp_registry_retained_allocations_windows": 3,
+    "continuation": {
+      "actual_native_boundary": true,
+      "completed_prefix_steps": 6,
+      "remaining_suffix_steps": 34,
+      "same_owner_and_allocation": true,
+      "original_replay_refused": true,
+      "second_continuation_refused": true,
+      "allocations": 4,
+      "frees": 4,
+      "live": 0,
+      "controls_passed": 10,
+      "result_sha256": "e28ae9925e9566563781b4dbdcc34f20d62e5670f6265cad1ff98e6657b414ee",
+      "crash_recovery_supported": false,
+      "external_effect_replay_authority": false,
+      "safety_certificate": false
+    },
+    "dma_mmio_guarantees_accepted": false,
+    "general_async_cancellation_guarantees_accepted": false,
+    "general_multithread_memory_model_guarantees_accepted": false
+  },
+  "gate_status": {
+    "p0_fixed_composition": {
+      "closed_for_declared_scope": true,
+      "scope": "Exact measured source3707/tree9530/tool identities/protocols/Linux x86_64 composition; not an untested merge with separate proof research"
+    },
+    "p0_sequential_safe_core_proof": {
+      "closed": false,
+      "blocker": "Part03 process timeout and twelve unproved wider production obligations"
+    },
+    "p0_strong_aot_parity": {
+      "measurement_completed": true,
+      "closed": false,
+      "failed_registered_comparison_rows": 79
+    },
+    "p0_ndu_net_benefit": {
+      "measurement_completed": true,
+      "closed": false,
+      "net_win_scenarios": 0,
+      "total_scenarios": 3
+    },
+    "p1_real_cpp_migration": {
+      "profile_expansion_completed": true,
+      "closed": false,
+      "blocker": "Bounded declared profiles only; whole-program coverage and manual lifecycle cost not established"
+    },
+    "p1_agent_benefit": {
+      "study_status": "completed",
+      "closed": false,
+      "blocker": "Only1/32 correct, in Rust-patch; HIA0/16; authored pilot is not real maintenance or stable population benefit"
+    },
+    "p2_hardware_concurrency": {
+      "declared_native_host_checks_completed": true,
+      "closed": false,
+      "blocker": "No DMA/MMIO/general async or full concurrent memory-model guarantee"
+    }
+  },
+  "status": "executed_and_measured_research_gates_unclosed"
+}
