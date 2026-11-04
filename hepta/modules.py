@@ -188,6 +188,7 @@ def load_project(entry, *, locked=False, source_overrides=None) -> LoadedProject
         assembled.enums = []
     if hasattr(assembled, "imports"):
         assembled.imports = []
+    flat_types = {unit.names[name] for unit in units.values() for name in unit.types}
     flat_functions = {unit.names[name] for unit in units.values() for name in unit.functions}
     module_reports = []
     for unit in units.values():
@@ -196,6 +197,10 @@ def load_project(entry, *, locked=False, source_overrides=None) -> LoadedProject
                 declarations = unit.types if role == "type" else {**unit.types, **unit.functions}
                 if name in declarations:
                     return unit.names[name]
+                # Entry nominal types retain their source spelling in the flat program;
+                # this does not import them into unrelated source modules.
+                if role == "type" and name in flat_types:
+                    fail("E_MODULE_SCOPE", "Unqualified type is not declared in this module: " + name, span)
                 # Entry functions and C symbols retain their source spelling
                 # in the flat program, but that does not import them into peers.
                 if role == "term" and name in flat_functions:
