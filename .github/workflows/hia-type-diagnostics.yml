@@ -1,0 +1,71 @@
+name: HIA concrete type diagnostics
+
+on:
+  pull_request:
+    paths:
+      - 'hepta/hia_opcodes.py'
+      - 'hepta/hia_program.py'
+      - 'hepta/hia_agent_assembly.py'
+      - 'tests/test_hia_type_diagnostics.py'
+      - 'tests/test_hia_opcode_catalog.py'
+      - 'tools/test_hia_type_diagnostics.py'
+      - 'tools/qualify_hia_three_lane.py'
+      - '.github/workflows/hia-type-diagnostics.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostics:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.12', '3.13']
+    env:
+      HEPTA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEPTA_SOURCE_SHA }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Check the exact source and strict non-native suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          mkdir "$RUNNER_TEMP/hia-type-diagnostics"
+          {
+            git rev-parse HEAD 'HEAD^{tree}'
+            python --version
+          } > "$RUNNER_TEMP/hia-type-diagnostics/identity-before.txt"
+          python -B tools/generate_hia_catalog.py --check
+          python -B tools/test_hia_type_diagnostics.py \
+            > "$RUNNER_TEMP/hia-type-diagnostics/result.json" \
+            2> "$RUNNER_TEMP/hia-type-diagnostics/tests.log"
+      - name: Verify source identity after tests, including on failure
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          {
+            git rev-parse HEAD 'HEAD^{tree}'
+            python --version
+          } > "$RUNNER_TEMP/hia-type-diagnostics/identity-after.txt"
+          cmp "$RUNNER_TEMP/hia-type-diagnostics/identity-before.txt" \
+              "$RUNNER_TEMP/hia-type-diagnostics/identity-after.txt"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hia-type-diagnostics-${{ env.HEPTA_SOURCE_SHA }}-python-${{ matrix.python }}
+          path: ${{ runner.temp }}/hia-type-diagnostics/
+          if-no-files-found: error

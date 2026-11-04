@@ -207,6 +207,21 @@ def _matches(rule, typ, operands):
     return typ in _GROUPS[rule] if rule in _GROUPS else typ == rule
 
 
+def _diagnostic_types(rules, operands):
+    """Resolve operand references for display only; never infer or admit types."""
+    expected = []
+    for rule in rules:
+        if rule.startswith("="):
+            try:
+                rule = operands[int(rule[1:])]
+            except (ValueError, IndexError):
+                # A prior mismatch can short-circuit before an invalid later
+                # rule in a custom catalog. Keep that original rejection.
+                pass
+        expected.append(rule)
+    return tuple(expected)
+
+
 def check_instruction(spec: OpcodeSpec, operands, results, attributes) -> frozenset[str]:
     """Generated local checker; caller still checks liveness, CFG and calls."""
     if type(attributes) is not dict or set(attributes) != set(spec.attributes):
@@ -217,7 +232,9 @@ def check_instruction(spec: OpcodeSpec, operands, results, attributes) -> frozen
                 raise OpcodeRejected(f"{spec.name}: wrong {label} count", "E_HIA_TYPE")
             if any(not _matches(rule, typ, operands) for rule, typ in zip(rules, actual)):
                 code = "E_HIA_LOAN" if label == "operand" and spec.name in {"borrow.read", "borrow.mut"} else "E_HIA_TYPE"
-                raise OpcodeRejected(f"{spec.name}: {label} types must match {rules}", code)
+                raise OpcodeRejected(f"{spec.name}: {label} types must match {rules}; "
+                    f"expected {_diagnostic_types(rules, operands)}, got {tuple(actual)}; "
+                    f"operands {tuple(operands)}", code)
     effects = set(spec.effects)
     if spec.name == "const" and not scalar_value_valid(attributes["value"], results[0]):
         raise OpcodeRejected("constant must be an exactly typed scalar", "E_HIA_TYPE")
