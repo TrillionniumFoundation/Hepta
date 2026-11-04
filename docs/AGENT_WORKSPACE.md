@@ -89,6 +89,22 @@ Captured C import metadata is rewritten to a package-contained relative header
 reference while preserving the probed header hash; native-host import rules
 still apply. Package content locks are regenerated inside the candidate tree.
 
+Directory enumeration failures reject with `E_WORKSPACE_IO`, including missing
+roots and unreadable subdirectories. They must not produce an apparently empty
+or partial inventory during capture, rechecking, or pinning. The candidate's
+bottom-up directory durability pass also rejects enumeration failures before
+version publication. Existing Git/cache exclusions remain pruned before scans.
+This closes silent omission by `os.walk`; it does not make filesystem
+observations atomic or change other stat, read, write, or fsync error handling.
+
+`python -m unittest tests.test_workspace_enumeration -v` exercises real POSIX
+permission failures, controlled scan errors, unchanged exclusions and bounds,
+and native workspace initialization, pinning, rejected publication and retry.
+The dedicated exact-head x86-64/ARM64 workflow requires pinned Rust 1.90.0 and
+all 67 focused workspace/module controls without skips. Local runs without
+Rust explicitly skip the four new native controls and are not native workspace
+qualification. A non-root POSIX host is required for the real mode-bit tests.
+
 The target and compiler identity are fixed for a workspace. After changing the
 compiler, initialize a new workspace to obtain fresh validation. Adding or
 removing modules and changing package topology are not v4 edit operations;

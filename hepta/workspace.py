@@ -83,9 +83,13 @@ def _atomic_json(path, value):
         staging.unlink(missing_ok=True)
 
 
+def _walk_error(error):
+    raise WorkspaceError("E_WORKSPACE_IO", "Cannot enumerate workspace directory: " + str(error)) from error
+
+
 def _files(root):
     result, total = {}, 0
-    for directory, dirs, names in os.walk(root, followlinks=False):
+    for directory, dirs, names in os.walk(root, followlinks=False, onerror=_walk_error):
         dirs.sort()
         names.sort()
         for name in list(dirs):
@@ -276,7 +280,7 @@ def _stage(store, entry, files, parent, rustc, target):
                 "profile": profile,
                 "validation": report, "functional_equivalence_proved": False}
         _write(stage / "snapshot.json", canonical(meta) + b"\n")
-        for directory, _, _ in os.walk(tree, topdown=False):
+        for directory, _, _ in os.walk(tree, topdown=False, onerror=_walk_error):
             _fsync_dir(directory)
         _fsync_dir(stage)
         dest = versions / version
