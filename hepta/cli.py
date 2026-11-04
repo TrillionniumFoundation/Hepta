@@ -801,11 +801,18 @@ def main(argv=None) -> int:
             from .c_import import import_header
             imported = import_header(args.header, cc=args.cc, module=args.module)
             dest = Path(args.output).resolve()
-            if dest == Path(args.header).resolve():
+            header = Path(args.header).resolve()
+            manifest = dest.with_suffix(dest.suffix + ".imports.json")
+            if dest == header:
                 raise ValueError("Output cannot overwrite the C input header")
+            # The derived sidecar is an output too: a hostile or accidental
+            # path alias must not turn the original C header into a receipt.
+            # Resolve its existing symlink (if any) before writing *either*
+            # output. This is not a concurrent filesystem/TOCTOU guarantee.
+            if manifest.resolve() in {header, dest}:
+                raise ValueError("C import manifest cannot overwrite the C input or generated source")
             dest.parent.mkdir(parents=True, exist_ok=True)
             dest.write_text(imported.source)
-            manifest = dest.with_suffix(dest.suffix + ".imports.json")
             manifest.write_text(json.dumps(imported.manifest, indent=2, sort_keys=True) + "\n")
             output_json({"schema": "hepta.import-c.v1", "ok": True, "output": str(dest), "manifest": str(manifest), "validation": imported.manifest})
             return 0
