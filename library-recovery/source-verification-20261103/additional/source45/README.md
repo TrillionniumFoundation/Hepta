@@ -1,0 +1,7 @@
+# Additional-source ledger: 45 exact identities
+
+This checkpoint adds two TaskFlow Rust source versions to the prior 43 additional identities. The old 43 rows are unchanged; all 45 remain outside the frozen 6,116 candidates. Formal accounting remains **5,888 verified / 228 unverified**, with the original 3,871-row ledger SHA-256 `8777382e09d4d838cf481a2b60cd7a4c82dffbcd0678c8430cac1eea9e515739`.
+
+The two sources (88,823 bytes) are anchored at public hepta-private-ci Draft #4713 commit `0ecd9d788bcfef9d52894bbd7d4e895348fd40ee`. All six new source/metadata paths were fetched at that immutable commit and checked for complete UTF-8 bytes, Git blob SHA-1, SHA-256 and size. Existing Git blobs were reused. Author and committer read back as noreply. The cumulative additional ledger is 192705 bytes, SHA-256 `8dccd7ae5cbdcc1affed1a0c870e288673380a689732a505e7a2feca7505167d`.
+
+The previous original JSON extraction is represented as reconstructed provenance because the execution environment is unavailable. Current source bytes match all three previously recorded source fingerprints, but the original ZIP/JSON was not newly decompressed or parsed. Fifteen other source versions remain unavailable through this repository's current blob reads. These observations do not establish that the original parent containers, all archive/dot/worktree history, scientific gates or production qualification are complete. No preserved source was executed and no originals were deleted. DRAFT / SHADOW_ONLY / DENY_ALL / HOLD_NO_GO remain.
