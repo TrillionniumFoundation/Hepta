@@ -1,0 +1,121 @@
+name: HIA bounded completion Part03 diagnostic (DENY_ALL)
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'tools/check_core_syntax_lean.py'
+      - 'tools/check_core_syntax_staged.py'
+      - 'tools/check_core_syntax_partitioned.py'
+      - 'tools/core_syntax_partition_sources.py'
+      - 'tools/core_syntax_partition_diagnostic_sources.py'
+      - 'tools/diagnose_core_syntax_partition.py'
+      - 'tools/core_seven_certificate*.py'
+      - 'tools/diagnose_core_seven_certificate.py'
+      - 'tools/check_core_seven_certificate.py'
+      - 'tools/check_core_seven_relocation.py'
+      - 'tools/core_seven_relocated_part03_*.py'
+      - 'tools/diagnose_core_seven_relocated_part03.py'
+      - 'tests/test_core_seven_relocated_part03_*.py'
+      - 'docs/seven-relocated-part03-diagnostic.md'
+      - 'tools/core_seven_completion_part03_*.py'
+      - 'tools/diagnose_core_seven_completion_part03.py'
+      - 'tests/test_core_seven_completion_part03_*.py'
+      - 'docs/seven-completion-part03-diagnostic.md'
+      - 'tools/core_seven_relocation_acceptance_plan.py'
+      - 'tools/core_seven_relocation_acceptance_replay.py'
+      - 'tests/test_core_seven_relocation_acceptance.py'
+      - 'docs/seven-relocation-acceptance.md'
+      - 'tools/core_seven_parallel_relocation_sources.py'
+      - 'tests/test_core_seven_parallel_relocation_sources.py'
+      - 'docs/seven-parallel-relocation.md'
+      - 'tools/core_seven_relocation_diagnostic_sources.py'
+      - 'tools/diagnose_core_seven_relocation.py'
+      - 'tests/test_core_seven_relocation_*.py'
+      - 'docs/seven-relocation-diagnostic.md'
+      - 'tools/*part04*.py'
+      - 'tests/test_core_seven_part04_*.py'
+      - 'docs/seven-part04-diagnostic.md'
+      - 'tools/core_seven_acceptance_*.py'
+      - 'tests/test_core_seven_acceptance.py'
+      - 'docs/seven-certificate-acceptance.md'
+      - 'tests/test_core_seven_certificate*.py'
+      - 'docs/seven-certificate-first-four-diagnostic-design.md'
+      - 'docs/seven-certificate-source-proposal.md'
+      - 'tools/core_byte_facts_*.py'
+      - 'tools/diagnose_core_byte_facts.py'
+      - 'tests/test_core_byte_facts_*.py'
+      - 'experiments/hia_initialization_frontiers_20261103/ByteFactsResearch.lean'
+      - 'tools/diagnose_core_syntax_declarations.py'
+      - 'tools/core_syntax_declaration_diagnostic_sources.py'
+      - 'tools/core_syntax_diagnostic_capture.py'
+      - 'tools/core_syntax_noncomputable_diagnostic_sources.py'
+      - 'tools/core_syntax_stage_sources.py'
+      - 'tools/core_syntax_structured_sources.py'
+      - 'tools/core_syntax_structured_stages.py'
+      - 'experiments/hia_initialization_frontiers_20261103/StructuredTransport.lean'
+      - 'tests/test_core_syntax_*.py'
+      - 'experiments/hia_initialization_frontiers_20261103/CoreSyntaxSlice.lean'
+      - '.github/workflows/hia-core-syntax-kernel-research.yml'
+      - 'formal/HiaInitializationPrefix.lean'
+      - 'formal/toolchain-lock.json'
+      - 'formal/proof-dependencies.txt'
+      - 'experiments/hia_initialization_frontiers_20261103/GuardedUsizeSlice.lean'
+      - 'tools/check_guarded_slice_lean.py'
+      - 'tools/check_dynamic_unsigned_step.py'
+      - 'tools/extract_initialization_obligations.py'
+      - 'tools/check_initialization_frontiers.py'
+      - 'tools/experimental_deferred_guard_proposer.py'
+      - 'tools/research_deferred_guard_model.py'
+      - 'tools/qualify_hia_selected_formal.py'
+      - 'tools/evidence_checks.py'
+      - 'tools/qualify_hia_initialization_prefix.py'
+      - 'tools/bootstrap_verification.py'
+      - 'benchmarks/hia_reduction_release/linear.hepta'
+      - 'benchmarks/hia_reduction_release/affine.hepta'
+      - 'tests/test_guarded_slice_lean.py'
+      - '.github/workflows/hia-guarded-slice-kernel-research.yml'
+permissions:
+  contents: read
+jobs:
+  core-syntax-kernel:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify exact source and acquire existing bootstrap dependencies
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          git rev-parse HEAD HEAD^{tree}
+          python -m pip install zstandard 'z3-solver==4.15.4.0'
+          python -m pip show zstandard z3-solver
+          python -c "import z3; assert z3.get_version_string() == '4.15.4'"
+      - name: Acquire only the existing SHA-locked Lean checker
+        run: |
+          set -euo pipefail
+          timeout 300s python -B tools/bootstrap_verification.py --lean-only --directory "$RUNNER_TEMP/core-syntax-tools"
+      - name: Observe four fresh parents and completion barrier; no acceptance
+        run: |
+          set -euo pipefail
+          status=0
+          timeout 600s python -B -m tools.diagnose_core_seven_completion_part03 \
+            --lean "$RUNNER_TEMP/core-syntax-tools/lean-4.19.0/bin/lean" \
+            --output-directory "$RUNNER_TEMP/core-syntax-proof" || status=$?
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          exit "$status"
+      - name: Independently replay bounded Part03 diagnostic evidence; never acceptance
+        if: always()
+        run: |
+          timeout 600s python -B -m tools.diagnose_core_seven_completion_part03 --replay \
+            --output-directory "$RUNNER_TEMP/core-syntax-proof"
