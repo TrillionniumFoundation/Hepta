@@ -1,0 +1,58 @@
+name: C local names and ABI symbols
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'tests/test_c_local_symbol_names.py'
+      - 'tests/test_parser.py'
+      - 'tests/test_checker.py'
+      - 'tests/test_c_backend.py'
+      - 'tests/test_c_owned_backend.py'
+      - 'tests/test_borrowed_returns.py'
+      - 'tests/test_owned_generics.py'
+      - 'tools/test_c_local_symbol_names.py'
+      - '.github/workflows/hepta-c-local-symbol-names.yml'
+permissions:
+  contents: read
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bind source and execute all C, C++ and Rust controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          rustup toolchain install 1.90.0 --profile minimal
+          export RUSTC="$(rustup which --toolchain 1.90.0 rustc)"
+          export CC="$(command -v gcc)"
+          command -v g++
+          mkdir -p artifacts/c-local-symbol-names
+          { git rev-parse HEAD HEAD^{tree}; uname -a; python --version; \
+            "$CC" --version; g++ --version; "$RUSTC" --version; \
+            sha256sum "$CC" "$(command -v g++)" "$RUSTC"; } > artifacts/c-local-symbol-names/identities.txt
+          python -B tools/test_c_local_symbol_names.py 2>&1 | tee artifacts/c-local-symbol-names/tests.log
+          test -z "$(git status --porcelain --untracked-files=no)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: c-local-symbol-names-${{ matrix.os }}-${{ env.EXPECTED_HEAD }}
+          path: artifacts/c-local-symbol-names
+          if-no-files-found: error
