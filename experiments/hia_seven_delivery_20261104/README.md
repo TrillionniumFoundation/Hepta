@@ -1,10 +1,18 @@
 # Hepta 七线交付证据
 
-这是 PR #644 的配套证据分支；源码及其固定组合与证据提交分别记录。完整交付报告仍在生成，尚不宣告七项目标全部关闭。
+这是 [实现 PR #644](https://github.com/TrillionniumFoundation/Hepta/pull/644) 与 [独立证明 PR #648](https://github.com/TrillionniumFoundation/Hepta/pull/648) 的配套证据分支。源码测量提交、发布投影及证据提交分别记录。
 
-- 实现 PR：https://github.com/TrillionniumFoundation/Hepta/pull/644
-- 独立证明研究 PR：https://github.com/TrillionniumFoundation/Hepta/pull/648；最新完整接受运行在 Part03 超时，未被接受。
-- 当前确切源码的原生 CI 证据：`../hia_seven_native_ci_final_20261104/`。17 个原始 ZIP 均校验了大小与 SHA256；1,983 个文本和源码成员完整保留，150 个二进制成员保留原始大小和哈希索引。
-- 旧版失败 CI 的完整回归日志：`../hia_ci_failure_review_20261104/`。1,777 项测试中的旧源到 Core 回执兼容错误保留原样，后续修复不会改写这次失败结果。
+## 已完成的工程资格
 
-`PROVENANCE.json` 给出原始测量提交、发布投影提交及确切 Git 树的映射。发布投影的提交号不作为本机测量提交号使用。后续提交将加入完整组合、原始历史 bundle、性能与 NDU 成本、Agent 试验和终态报告。
+冻结源码 `3707b871`（发布投影 `e3b380bd`，相同树 `9530e9fe`）已通过第三轮完整组合：31 条命令、29 项检查、462 项零失败／错误／跳过的核心测试。八条 CI 全部通过，其中完整原生回归为 1,781/1,781，六结果安全边界流程为 562/562。见 [最终 CI 证据](../hia_seven_final_ci_20261104/)。
+
+## 已公开的完整材料
+
+- [最终源码的实际主机证据](../hia_seven_native_ci_final_20261104/)：17 个 ZIP 哈希核验，1,983 个完整文本／源码成员，2,133 个成员总清单。
+- [旧版失败的完整回归证据](../hia_ci_failure_review_20261104/)：保留旧回执兼容错误，不改写历史失败。
+- [独立证明研究完整审查包](../hia_safe_core_transport_delivery_20261104/)：23 个证据目录，实际源码和完整运行回执；r5 在 Part03 超时，连接未接受；37 份 .olean 二进制仅列原始路径／大小／SHA256，原始目录仍保留。
+- [提交与来源映射](PROVENANCE.json)：每项发布投影的确切树已独立回读，原始测量 ID 不被替换。
+
+## 仍在收口
+
+单次 32 格 Agent 主实验正在运行；完整组合分片、源历史与独立 AOT 原始记录仍在发布。最终报告尚未宣告七项目标全部关闭。当前冻结 AOT 仅 293/372 个 Rust 门槛通过，NDU 的三个应用场景为 0/3 净收益胜出，完整证明连接仍未接受。
