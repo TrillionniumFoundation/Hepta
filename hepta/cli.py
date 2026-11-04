@@ -855,6 +855,22 @@ def main(argv=None) -> int:
             protected.update((root / p).resolve() for p in result.project.package_state["files"])
             if result.project.locked:
                 protected.add((root / "Hepta.lock").resolve())
+        def output_aliases_validated_input(destination: Path) -> bool:
+            # Resolved path equality does not detect another hardlink to an
+            # inode that was already used for source/package validation.
+            if destination in protected:
+                return True
+            try:
+                target_stat = destination.stat()
+            except FileNotFoundError:
+                return False
+            # Existing destination only; other stat failures fail closed.
+            # This is not atomic filesystem observation or TOCTOU protection.
+            for source_path in protected:
+                source_stat = source_path.stat()
+                if (source_stat.st_dev, source_stat.st_ino) == (target_stat.st_dev, target_stat.st_ino):
+                    return True
+            return False
         if args.command == "inspect":
             output_json(inspect_analysis(result))
             return 0 if result.report["ok"] else 1
@@ -885,7 +901,7 @@ def main(argv=None) -> int:
             content = (result.c if args.backend == "c" else result.rust) if args.command == "emit" else emit_header(result.program)
             if args.output:
                 dest = Path(args.output).resolve()
-                if dest in protected:
+                if output_aliases_validated_input(dest):
                     raise ValueError("Output cannot overwrite an input used to validate the project")
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 dest.write_text(content)
@@ -896,7 +912,7 @@ def main(argv=None) -> int:
         if args.command == "build":
             ext = {"bin": "", "staticlib": ".a", "cdylib": ".so", "obj": ".o", "rlib": ".rlib"}[args.crate_type]
             dest = (Path(args.output) if args.output else file.parent / "build" / (file.stem + ext)).resolve()
-            if dest in protected:
+            if output_aliases_validated_input(dest):
                 raise ValueError("Output cannot overwrite an input used to validate the project")
             if args.backend == "c":
                 from .c_backend import compile_c
