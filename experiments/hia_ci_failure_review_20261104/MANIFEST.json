@@ -1,0 +1,98 @@
+{
+  "archive": {
+    "all_members_independently_read_back": true,
+    "bytes": 149803,
+    "path": "retained-regression.tar.gz",
+    "sha256": "dd451f67d05f7e1a98802bd2fa0b1e501100ef8e8dfadffb1199ac57a81c0720"
+  },
+  "artifact": {
+    "archive_download_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/artifacts/13297256589/zip",
+    "created_at": "2026-11-04T05:00:22Z",
+    "digest": "sha256:0f1cd9be8ff24ebe525b0b452449ea5d8fe05f74dc0323a3101664e26af1efe7",
+    "expired": false,
+    "expires_at": "2027-02-02T04:37:49Z",
+    "id": 13297256589,
+    "name": "hia-verified-optimization-9435f04887757e403b6caf67e09f113079356e12",
+    "size_in_bytes": 10858438,
+    "updated_at": "2026-11-04T05:00:22Z",
+    "url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/artifacts/13297256589",
+    "workflow_run": {
+      "head_branch": "work/hia-seven-delivery-20261104-app",
+      "head_repository_id": 1432132756,
+      "head_sha": "9435f04887757e403b6caf67e09f113079356e12",
+      "id": 41774368131,
+      "repository_id": 1432132756
+    }
+  },
+  "fix_original": "3707b871ecbe563233ee9a3b69299fc627408936",
+  "fix_projection": "e3b380bdb4d52e3d65c77356a3c09a4c6e3cfbf4",
+  "fix_tree": "9530e9feccf0077696d2e94746fda6bfb6854417",
+  "full_workflow_passed": false,
+  "interpretation": "The missing clean-source directory was subsequent to the failed regression gate and the skipped preparation step; it is not an additional successfully qualified source.",
+  "job_id": 126391151071,
+  "regression": {
+    "elapsed_ns": 1085785597103,
+    "errors": 1,
+    "failure_details": [
+      [
+        "test_pinned_hepta_owned_source_to_single_core_native (tests.test_hia_v6_differential.ExistingV6CoreDifferentialTests.test_pinned_hepta_owned_source_to_single_core_native)",
+        "Traceback (most recent call last):\n  File \"/home/runner/work/_temp/hepta-full-regression-source/tests/test_hia_v6_differential.py\", line 244, in test_pinned_hepta_owned_source_to_single_core_native\n    report = qualify_checked_hia_source(\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/_temp/hepta-full-regression-source/hepta/hia_native_differential.py\", line 1033, in qualify_checked_hia_source\n    _reject_checked_source_build(native)\n  File \"/home/runner/work/_temp/hepta-full-regression-source/hepta/hia_native_differential.py\", line 229, in _reject_checked_source_build\n    raise error\nhepta.hia_native_differential.HIADifferentialRejected: E_HIA_DIFFERENTIAL: checked source->Core native qualification rejected: E_HIA_HEPTA_BRIDGE: staged native receipt lacks exact Core profile or proof scope\n"
+      ]
+    ],
+    "failures": 0,
+    "passed": false,
+    "skipped": [],
+    "source_unchanged": true,
+    "test_identity": {
+      "discovery_duplicates": false,
+      "finished_matches_planned": true,
+      "finished_sha256": "49c62981344e7cfd77aa269112c950b2d904aa5d8fc30094d561c14a78ef4159",
+      "planned_sha256": "49c62981344e7cfd77aa269112c950b2d904aa5d8fc30094d561c14a78ef4159",
+      "started_matches_planned": true,
+      "started_sha256": "49c62981344e7cfd77aa269112c950b2d904aa5d8fc30094d561c14a78ef4159"
+    },
+    "tests": 1777,
+    "tests_planned": 1777,
+    "worktree_unchanged": true
+  },
+  "relevant_steps": [
+    {
+      "conclusion": "success",
+      "name": "Acquire the reviewed AArch64 emulator before regression gates",
+      "status": "completed"
+    },
+    {
+      "conclusion": "failure",
+      "name": "Run actual native integration and regression gates without skipped tests",
+      "status": "completed"
+    },
+    {
+      "conclusion": "skipped",
+      "name": "Prepare exact clean source for guarded opportunity and post-test application",
+      "status": "completed"
+    },
+    {
+      "conclusion": "failure",
+      "name": "Qualify the captured post-test project on the exact source",
+      "status": "completed"
+    }
+  ],
+  "retained_members": [
+    {
+      "bytes": 429480,
+      "path": "result.json",
+      "sha256": "bf9dac6217601b68d7f0fcf1c3a9fe3505072ed4d18e39c4177ab7bf29e64249"
+    },
+    {
+      "bytes": 333200,
+      "path": "tests.log",
+      "sha256": "7c1b9d8dd6966f21dac57eb72eba350a5b923daa217c89b76f119c86fde7a959"
+    }
+  ],
+  "root_cause": "Exact legacy checked-source native receipt field-set rejected the newly present entry_layout; same failing test as run41774368010.",
+  "run_id": 41774368131,
+  "schema": "hepta.ci.independent-failure-review.v1",
+  "source_original": "98bdbe9f859b5caf95356fbfb1254448d9b583d0",
+  "source_projection": "9435f04887757e403b6caf67e09f113079356e12",
+  "source_tree": "514b607bd5661abe5ac516ee77d80638c939749c"
+}
