@@ -11,6 +11,10 @@ on:
       - 'tools/diagnose_core_syntax_partition.py'
       - 'tools/core_seven_certificate*.py'
       - 'tools/diagnose_core_seven_certificate.py'
+      - 'tools/check_core_seven_certificate.py'
+      - 'tools/core_seven_acceptance_*.py'
+      - 'tests/test_core_seven_acceptance.py'
+      - 'docs/seven-certificate-acceptance.md'
       - 'tests/test_core_seven_certificate*.py'
       - 'docs/seven-certificate-first-four-diagnostic-design.md'
       - 'docs/seven-certificate-source-proposal.md'
@@ -122,7 +126,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        group: [sources, execution, noncomputable-sources, noncomputable-execution, partition-sources-a, partition-sources-b, partition-execution, partition-diagnostic-sources, partition-diagnostic-capture, partition-diagnostic-execution, byte-facts-dag, byte-facts-sources, byte-facts-diagnostic, byte-facts-execution, byte-facts-replay, seven-sources-a, seven-sources-b, seven-sources-c, seven-diagnostic, seven-execution-a, seven-execution-b, seven-execution-inverse, seven-pending-eio]
+        group: [sources, execution, noncomputable-sources, noncomputable-execution, partition-sources-a, partition-sources-b, partition-execution, partition-diagnostic-sources, partition-diagnostic-capture, partition-diagnostic-execution, byte-facts-dag, byte-facts-sources, byte-facts-diagnostic, byte-facts-execution, byte-facts-replay, seven-sources-a, seven-sources-b, seven-sources-c, seven-diagnostic, seven-execution-a, seven-execution-b, seven-execution-inverse, seven-pending-eio, seven-acceptance-fast, seven-acceptance-records, seven-acceptance-record_types, seven-acceptance-full_eleven, seven-acceptance-fail_every_stage, seven-acceptance-adversary_provenance_finalization, seven-acceptance-write_faults, seven-acceptance-fsync_faults, seven-acceptance-reread_faults, seven-acceptance-review_boundaries_shadows, seven-acceptance-negative_pair_1, seven-acceptance-negative_pair_2, seven-acceptance-negative_pair_3, seven-acceptance-negative_pair_4, seven-acceptance-negative_pair_5]
     env:
       EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
       PYTHONDONTWRITEBYTECODE: '1'
@@ -172,6 +176,21 @@ jobs:
               'noncomputable-execution': (['tests.test_core_syntax_noncomputable_diagnostic_runner'], 8),
               'execution': (['tests.test_core_syntax_declaration_diagnostic_runner',
                              'tests.test_core_syntax_diagnostic_capture'], 42),
+              'seven-acceptance-fast': (['tests.test_core_seven_acceptance.SchemaTests', 'tests.test_core_seven_acceptance.FilesystemTests', 'tests.test_core_seven_acceptance.CaptureTests', 'tests.test_core_seven_acceptance.ClockTests', 'tests.test_core_seven_acceptance.LaunchTests', 'tests.test_core_seven_acceptance.TransitionTests', 'tests.test_core_seven_acceptance.VerifiedDisplayTests', 'tests.test_core_seven_acceptance.ReceiptBoundaryTests'], 108),
+              'seven-acceptance-records': (['tests.test_core_seven_acceptance.RecordAndSizingTests.test_all_failed_stage_codes_and_fields', 'tests.test_core_seven_acceptance.RecordAndSizingTests.test_every_nested_identity_plan_run_field', 'tests.test_core_seven_acceptance.RecordAndSizingTests.test_exact_approved_serialized_reserve'], 3),
+              'seven-acceptance-record_types': (['tests.test_core_seven_acceptance.RecordAndSizingTests.test_every_nested_wrong_type_unknown_and_numeric_bounds'], 1),
+              'seven-acceptance-full_eleven': (['tests.test_core_seven_acceptance.FullRunTests'], 1),
+              'seven-acceptance-fail_every_stage': (['tests.test_core_seven_acceptance.RunnerAdversaryTests.test_failure_at_each_of_eleven_stages'], 1),
+              'seven-acceptance-adversary_provenance_finalization': (['tests.test_core_seven_acceptance.RunnerAdversaryTests.test_bad_capture_inventory_source_module', 'tests.test_core_seven_acceptance.RunnerAdversaryTests.test_deadline_after_expensive_prelaunch_checks', 'tests.test_core_seven_acceptance.RunnerAdversaryTests.test_stale_root_and_symlink', 'tests.test_core_seven_acceptance.ProvenanceTests', 'tests.test_core_seven_acceptance.FinalReplayFailureTests'], 6),
+              'seven-acceptance-write_faults': (['tests.test_core_seven_acceptance.ReceiptTransactionTests.test_all_writes_fail_closed'], 1),
+              'seven-acceptance-fsync_faults': (['tests.test_core_seven_acceptance.ReceiptTransactionTests.test_all_fsyncs_fail_closed'], 1),
+              'seven-acceptance-reread_faults': (['tests.test_core_seven_acceptance.ReceiptTransactionTests.test_all_rereads_fail_closed'], 1),
+              'seven-acceptance-review_boundaries_shadows': (['tests.test_core_seven_acceptance.SupportShadowTests', 'tests.test_core_seven_acceptance.BoundaryReplayTests'], 3),
+              'seven-acceptance-negative_pair_1': (['tests.test_core_seven_acceptance.NegativeMutationTests.test_exact_negation_byte_modulo_alias', 'tests.test_core_seven_acceptance.NegativeMutationTests.test_exact_negation_changed_exact_byte'], 2),
+              'seven-acceptance-negative_pair_2': (['tests.test_core_seven_acceptance.NegativeMutationTests.test_exact_negation_duplicate_keys', 'tests.test_core_seven_acceptance.NegativeMutationTests.test_exact_negation_leading_zero'], 2),
+              'seven-acceptance-negative_pair_3': (['tests.test_core_seven_acceptance.NegativeMutationTests.test_exact_negation_literal_two', 'tests.test_core_seven_acceptance.NegativeMutationTests.test_exact_negation_stale_descriptor'], 2),
+              'seven-acceptance-negative_pair_4': (['tests.test_core_seven_acceptance.NegativeMutationTests.test_exact_negation_unordered_keys', 'tests.test_core_seven_acceptance.NegativeMutationTests.test_exact_negation_wrong_arm_implementation'], 2),
+              'seven-acceptance-negative_pair_5': (['tests.test_core_seven_acceptance.NegativeMutationTests.test_exact_negation_wrong_condition', 'tests.test_core_seven_acceptance.NegativeMutationTests.test_exact_negation_wrong_phi'], 2),
           }
           def flatten(node):
               for item in node:
@@ -205,8 +224,12 @@ jobs:
           all_ids = [test_id for ids in inventories.values() for test_id in ids]
           all_names = sorted({name for names, _ in groups.values() for name in names})
           complete_ids = [case.id() for case in flatten(unittest.defaultTestLoader.loadTestsFromNames(all_names))]
-          assert len(all_ids) == len(set(all_ids)) == len(complete_ids) == 291, 'combined inventory changed'
+          assert len(all_ids) == len(set(all_ids)) == len(complete_ids) == 427, 'combined inventory changed'
           assert set(all_ids) == set(complete_ids), 'split omitted or duplicated controls'
+          acceptance_ids = [case.id() for case in flatten(unittest.defaultTestLoader.loadTestsFromName('tests.test_core_seven_acceptance'))]
+          assigned_acceptance_ids = [test_id for group, ids in inventories.items() if group.startswith('seven-acceptance-') for test_id in ids]
+          assert len(acceptance_ids) == len(set(acceptance_ids)) == len(assigned_acceptance_ids) == len(set(assigned_acceptance_ids)) == 136, 'complete acceptance inventory changed'
+          assert set(acceptance_ids) == set(assigned_acceptance_ids), 'acceptance shards omitted or duplicated controls'
           group = os.environ['CONTROL_GROUP']
           ids, suite = inventories[group], suites[group]
           expected = groups[group][1]

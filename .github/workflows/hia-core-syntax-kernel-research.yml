@@ -1,4 +1,4 @@
-name: HIA seven-certificate first-four diagnostic (DENY_ALL)
+name: HIA complete seven-certificate kernel check (DENY_ALL)
 on:
   pull_request:
     paths:
@@ -11,6 +11,10 @@ on:
       - 'tools/diagnose_core_syntax_partition.py'
       - 'tools/core_seven_certificate*.py'
       - 'tools/diagnose_core_seven_certificate.py'
+      - 'tools/check_core_seven_certificate.py'
+      - 'tools/core_seven_acceptance_*.py'
+      - 'tests/test_core_seven_acceptance.py'
+      - 'docs/seven-certificate-acceptance.md'
       - 'tests/test_core_seven_certificate*.py'
       - 'docs/seven-certificate-first-four-diagnostic-design.md'
       - 'docs/seven-certificate-source-proposal.md'
@@ -78,18 +82,18 @@ jobs:
         run: |
           set -euo pipefail
           timeout 300s python -B tools/bootstrap_verification.py --lean-only --directory "$RUNNER_TEMP/core-syntax-tools"
-      - name: Diagnose seven-layout Part02 after three fresh parents; never acceptance
+      - name: Check all eleven fresh seven-layout modules; narrow connection only
         run: |
           set -euo pipefail
           status=0
-          timeout 600s python -B -m tools.diagnose_core_seven_certificate \
+          timeout 600s python -B -m tools.check_core_seven_certificate \
             --lean "$RUNNER_TEMP/core-syntax-tools/lean-4.19.0/bin/lean" \
             --output-directory "$RUNNER_TEMP/core-syntax-proof" || status=$?
           test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
           test -z "$(git status --porcelain --untracked-files=all)"
           exit "$status"
-      - name: Retain available diagnostics in the job log only
+      - name: Replay complete same-run evidence; bounded summary only
         if: always()
         run: |
-          python -B -m tools.diagnose_core_seven_certificate --print-diagnostics \
+          python -B -m tools.check_core_seven_certificate --replay \
             --output-directory "$RUNNER_TEMP/core-syntax-proof"
