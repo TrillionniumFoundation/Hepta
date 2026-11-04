@@ -11,7 +11,8 @@ class EmptyReductionObservationTests(unittest.TestCase):
     def setUpClass(cls):
         cls.spec = experiment.specification()
         cls.rows = [{"workload": w, "group": g["name"], "backend": a, "n": n,
-                     "seed": seed, "calls": calls, "times_ns": [100] * cls.spec["samples"]}
+                     "seed": seed, "calls": calls, "samples": cls.spec["samples"],
+                     "elapsed_ns": 100 * cls.spec["samples"], "times_ns": [100] * cls.spec["samples"]}
                     for w in cls.spec["historical_profile"]["workloads"] for g in cls.spec["groups"]
                     for a in experiment.ARMS for n in g["sizes"] for seed in g["seeds"]
                     for calls in cls.spec["batch_loads"]]
@@ -32,7 +33,8 @@ class EmptyReductionObservationTests(unittest.TestCase):
         self.assertEqual(spec["performance_gate"], self.spec["performance_gate"])
         self.assertFalse(set(spec["groups"][-1]["sizes"]) & set(self.spec["groups"][-1]["sizes"]))
         rows = [{"workload": w, "group": g["name"], "backend": a, "n": n,
-                 "seed": seed, "calls": calls, "times_ns": [100] * spec["samples"]}
+                 "seed": seed, "calls": calls, "samples": spec["samples"],
+                 "elapsed_ns": 100 * spec["samples"], "times_ns": [100] * spec["samples"]}
                 for w in spec["historical_profile"]["workloads"] for g in spec["groups"]
                 for a in experiment.ARMS for n in g["sizes"] for seed in g["seeds"] for calls in spec["batch_loads"]]
         self.assertEqual(experiment.assess(rows, spec)["candidate_rust_comparisons_total"], 276)
@@ -42,10 +44,36 @@ class EmptyReductionObservationTests(unittest.TestCase):
         for row in rows:
             if row["backend"] == experiment.CANDIDATE:
                 row["times_ns"] = [150 if row["n"] == 0 else 50] * self.spec["samples"]
+                row["elapsed_ns"] = sum(row["times_ns"])
         result = experiment.assess(rows, self.spec)
         self.assertFalse(result["candidate_all_registered_rust_gates_passed"])
         self.assertEqual(result["candidate_rust_comparisons_passed"], 264)
         self.assertEqual(result["by_group"]["historical_regression"]["passed"], 72)
+
+    def test_native_sample_identity_and_elapsed_ledger_are_required(self):
+        for profile in (experiment.CLONE_PROFILE, experiment.WRAPPER_PROFILE):
+            spec = experiment.specification(profile)
+            rows = [{"workload": w, "group": g["name"], "backend": a, "n": n,
+                     "seed": seed, "calls": calls, "samples": spec["samples"],
+                     "elapsed_ns": 100 * spec["samples"], "times_ns": [100] * spec["samples"]}
+                    for w in spec["historical_profile"]["workloads"] for g in spec["groups"]
+                    for a in experiment.ARMS for n in g["sizes"] for seed in g["seeds"]
+                    for calls in spec["batch_loads"]]
+            self.assertTrue(experiment.assess(rows, spec)["candidate_all_registered_rust_gates_passed"])
+            for field in ("samples", "elapsed_ns"):
+                for value in (None, True, 1, float(rows[0][field])):
+                    changed = deepcopy(rows)
+                    if value is None:
+                        changed[0].pop(field)
+                    else:
+                        changed[0][field] = value
+                    with self.subTest(profile=profile, field=field, value=value), self.assertRaises(ValueError):
+                        experiment.assess(changed, spec)
+            changed = deepcopy(rows)
+            changed[0]["times_ns"][0] = 2**64
+            changed[0]["elapsed_ns"] = sum(changed[0]["times_ns"])
+            with self.subTest(profile=profile, mutation="uint64_overflow"), self.assertRaises(ValueError):
+                experiment.assess(changed, spec)
 
     def test_registration_mutations_fail_closed(self):
         mutations = [lambda s: s["groups"].clear(), lambda s: s["arms"].pop(),
@@ -76,7 +104,8 @@ class EmptyReductionObservationTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "changed empty-entry observation registration"):
                 experiment.assess([], changed)
             rows = [{"workload": w, "group": g["name"], "backend": a, "n": n,
-                     "seed": seed, "calls": calls, "times_ns": [100] * spec["samples"]}
+                     "seed": seed, "calls": calls, "samples": spec["samples"],
+                 "elapsed_ns": 100 * spec["samples"], "times_ns": [100] * spec["samples"]}
                     for w in spec["historical_profile"]["workloads"] for g in spec["groups"]
                     for a in experiment.ARMS for n in g["sizes"] for seed in g["seeds"] for calls in spec["batch_loads"]]
             for field, value in (("n", False), ("seed", True), ("calls", True),

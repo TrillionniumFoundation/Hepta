@@ -15,6 +15,7 @@ class ReductionMultiloadTests(unittest.TestCase):
         spec = specification(INDUCTION_PROFILE)
         rows = [{"workload": workload, "phase": phase, "backend": arm,
                  "n": n, "seed": seed, "calls": calls,
+                 "samples": spec["samples"], "elapsed_ns": 1000 * spec["samples"],
                  "times_ns": [1000] * spec["samples"]}
                 for workload in spec["workloads"]
                 for phase in ("regression", "holdout")
@@ -48,12 +49,22 @@ class ReductionMultiloadTests(unittest.TestCase):
         row = next(r for r in rows if r["backend"] == "hia_reduction"
                    and r["phase"] == "holdout" and r["calls"] == 1)
         row["times_ns"][-1] = 1201
+        row["elapsed_ns"] = sum(row["times_ns"])
         result = assess(rows, spec)
         self.assertFalse(result["all_rust_gate_passed"])
         self.assertFalse(result["independent_holdout_passed"])
         affected = [r for r in result["comparisons"] if not r["passed"]]
         self.assertEqual(len(affected), 3)
         self.assertTrue(all(r["calls"] == 1 for r in affected))
+
+    def test_multiload_receipts_retain_sample_count_and_elapsed_identity(self):
+        for calls in (1, 16, 64):
+            for field in ("samples", "elapsed_ns", "seed"):
+                spec, rows = self.cohort()
+                row = next(r for r in rows if r["calls"] == calls)
+                row[field] = float(row[field])
+                with self.subTest(calls=calls, field=field), self.assertRaises(ValueError):
+                    assess(rows, spec)
 
     def test_missing_load_changed_work_and_relaxed_protocol_cannot_qualify(self):
         spec, rows = self.cohort()
