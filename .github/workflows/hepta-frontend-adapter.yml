@@ -1,0 +1,97 @@
+name: Experimental owner-preserving frontend adapter
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'experiments/normal_loader_extraction/**'
+      - 'experiments/owned_loader/**'
+      - 'experiments/graph_loader/**'
+      - 'experiments/owned_tokens/**'
+      - 'experiments/ast_structure/**'
+      - 'experiments/parser_appends/**'
+      - 'experiments/assembly_copy/**'
+      - 'experiments/loader_transform/**'
+      - 'experiments/authority_maps/**'
+      - 'experiments/shallow_authority/**'
+      - 'experiments/package_copy/**'
+      - 'experiments/cli_admission_audit/**'
+      - 'experiments/policy_failures/**'
+      - 'experiments/frontend_adapter/**'
+      - 'experiments/legacy_loader_ops/**'
+      - 'experiments/loader_consumer_audit/**'
+      - 'experiments/loader_api/**'
+      - 'experiments/request_load/**'
+      - 'experiments/loader_budget/**'
+      - 'experiments/c_char_boundary/**'
+      - 'tests/**'
+      - 'examples/**'
+      - 'docs/design/NORMAL_LOADER_EXTRACTION.md'
+      - 'docs/design/OWNED_LOADER_INTEGRATION.md'
+      - 'docs/design/GRAPH_LOADER_ADMISSION.md'
+      - 'docs/design/OWNED_TOKEN_ADMISSION.md'
+      - 'docs/design/AST_STRUCTURE_ADMISSION.md'
+      - 'docs/design/PARSER_APPEND_ADMISSION.md'
+      - 'docs/design/ASSEMBLY_COPY_ADMISSION.md'
+      - 'docs/design/LOADER_TRANSFORM_ADMISSION.md'
+      - 'docs/design/AUTHORITY_COPY_AUDIT.md'
+      - 'docs/design/AUTHORITY_MAP_ADMISSION.md'
+      - 'docs/design/SHALLOW_AUTHORITY_ADMISSION.md'
+      - 'docs/design/PACKAGE_PATH_COPY_AUDIT.md'
+      - 'docs/design/PACKAGE_COPY_ADMISSION.md'
+      - 'docs/design/CLI_ADMISSION_CLOSURE.md'
+      - 'docs/design/STRUCTURED_POLICY_PROVENANCE.md'
+      - '.github/workflows/hepta-policy-provenance.yml'
+      - '.github/workflows/hepta-frontend-adapter.yml'
+      - 'docs/design/FRONTEND_ADAPTER.md'
+permissions:
+  contents: read
+jobs:
+  compatibility:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.12']
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+      BASELINE_HEAD: 'a300184277d931c596ca592412557d6f36482492'
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          persist-credentials: false
+      - name: Check out frozen Stage B baseline
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BASELINE_HEAD }}
+          path: .frontend-baseline
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Verify exact source and bind regression compilers
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test "$(git -C .frontend-baseline rev-parse HEAD)" = "$BASELINE_HEAD"
+          test "$(git -C .frontend-baseline rev-parse HEAD^{tree})" = "071a01f97446e57795bdb0b50b3b58efa4b3a343"
+          BASELINE_OBJECTS="$(git -C .frontend-baseline rev-parse --absolute-git-dir)/objects"
+          GIT_ALTERNATE_OBJECT_DIRECTORIES="$BASELINE_OBJECTS" git diff --exit-code "$BASELINE_HEAD" HEAD -- . \
+            ':!experiments/frontend_adapter/**' ':!docs/design/FRONTEND_ADAPTER.md' \
+            ':!.github/workflows/hepta-frontend-adapter.yml'
+          rustup toolchain install 1.90.0 --profile minimal
+          echo "RUSTC=$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_ENV"
+          echo "CC=$(command -v gcc)" >> "$GITHUB_ENV"
+          "$(rustup which --toolchain 1.90.0 rustc)" --version
+          gcc --version
+      - name: Compare 99 direct lexer and parser outcomes
+        run: python experiments/owned_tokens/compare_checkouts.py --baseline .frontend-baseline --candidate .
+      - name: Compare 80 direct normal-loader graph outcomes
+        run: python experiments/assembly_copy/compare_checkouts.py --baseline .frontend-baseline --candidate .
+      - name: Run 767 unique no-skip controls
+        run: python -m experiments.frontend_adapter.gate --include-consumers
+      - name: Compare 813 prior-profile outcomes
+        run: python experiments/policy_failures/compare_legacy.py --baseline .frontend-baseline --candidate .
