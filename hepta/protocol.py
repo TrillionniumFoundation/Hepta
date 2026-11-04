@@ -75,9 +75,9 @@ def apply_patch(path: str | Path, request: dict, *, apply=False, rustc=None, tar
         os.write(fd, json.dumps({"pid": os.getpid(), "source_sha256": request["expected_source_sha256"]}).encode())
         if file.read_bytes() != original_bytes:
             return error("E_STALE_SOURCE", "Source changed while validation ran")
-        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=file.parent, prefix=".hepta-patch-", delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="wb", dir=file.parent, prefix=".hepta-patch-", delete=False) as f:
             staged = Path(f.name)
-            f.write(candidate)
+            f.write(candidate.encode("utf-8"))
             f.flush()
             os.fsync(f.fileno())
         os.chmod(staged, stat.S_IMODE(file.stat().st_mode))
@@ -172,9 +172,9 @@ def apply_project_patch(entry: str | Path, request: dict, *, apply=False, rustc=
                 os.write(fd, json.dumps({"pid": os.getpid(), "project_sha256": original.identity}).encode())
             if not original.unchanged():
                 return reject("E_STALE_PROJECT", "Graph changed while candidate validation ran")
-            with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=file.parent, prefix=".hepta-patch-", delete=False) as f:
+            with tempfile.NamedTemporaryFile(mode="wb", dir=file.parent, prefix=".hepta-patch-", delete=False) as f:
                 staged = Path(f.name)
-                f.write(candidate)
+                f.write(candidate.encode("utf-8"))
                 f.flush()
                 os.fsync(f.fileno())
             os.chmod(staged, stat.S_IMODE(file.stat().st_mode))

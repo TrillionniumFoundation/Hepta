@@ -1,0 +1,73 @@
+name: Patch exact UTF-8 publication
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'tests/test_patch_write_bytes.py'
+      - 'tests/test_project_protocol.py'
+      - 'tests/test_protocol_v3.py'
+      - 'tools/test_patch_write_bytes.py'
+      - 'tools/reproduce_patch_bytes_baseline.py'
+      - '.github/workflows/hepta-patch-write-bytes.yml'
+permissions:
+  contents: read
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-24.04, python: '3.12'}
+          # Keep the existing Windows native baseline separate from #645's
+          # newer-Python stat-identity repair; do not compose another draft.
+          - {os: windows-2025, python: '3.11'}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Bind source and install the pinned native validator
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          mkdir -p artifacts/patch-write-bytes
+          rustup toolchain install 1.90.0 --profile minimal
+          echo "RUSTC=$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_ENV"
+          { git rev-parse HEAD HEAD^{tree}; uname -a; python --version; } > artifacts/patch-write-bytes/identities.txt
+      - name: Fetch the immutable original Windows baseline independently
+        if: runner.os == 'Windows'
+        uses: actions/checkout@v4
+        with:
+          ref: f2b76f5741c83822be2e12cf5a50b50a8d27b96a
+          path: .patch-byte-baseline
+          persist-credentials: false
+      - name: Reproduce original Windows mismatch with actual Rust validation
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $baseline = Join-Path $env:GITHUB_WORKSPACE '.patch-byte-baseline'
+          python -B tools/reproduce_patch_bytes_baseline.py $baseline 2>&1 | Tee-Object -FilePath artifacts/patch-write-bytes/original-windows.log
+          if ($LASTEXITCODE -ne 0) { throw 'Original native Windows witness failed' }
+      - name: Require all exact candidate native and byte controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B tools/test_patch_write_bytes.py 2>&1 | tee artifacts/patch-write-bytes/tests.log
+          test -z "$(git status --porcelain --untracked-files=no)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: patch-write-bytes-${{ matrix.os }}-${{ env.EXPECTED_HEAD }}
+          path: artifacts/patch-write-bytes
+          if-no-files-found: error
