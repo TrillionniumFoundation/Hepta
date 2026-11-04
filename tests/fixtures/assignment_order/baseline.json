@@ -1,0 +1,887 @@
+{
+  "base": "b3ed67874af8f6fcc5b9cd7756e6800edf047ed1",
+  "cases": {
+    "rhs_consumes_index_field": {
+      "resource_ir": {
+        "claims": {
+          "external_contracts_proved": false,
+          "native_codegen_uses_this_ir": false,
+          "scalar_value_semantics_verified": false,
+          "source_to_ir_refinement_proved": false,
+          "termination_proved": false,
+          "whole_language_soundness_proved": false
+        },
+        "functions": [
+          {
+            "blocks": [
+              {
+                "id": "b0",
+                "ops": [
+                  {
+                    "dest": "v0",
+                    "op": "move",
+                    "src": "p0"
+                  },
+                  {
+                    "op": "drop",
+                    "src": "v0"
+                  }
+                ],
+                "term": {
+                  "loan": null,
+                  "op": "return",
+                  "value": "v1"
+                }
+              }
+            ],
+            "entry": "b0",
+            "external": false,
+            "locals": [
+              {
+                "id": "v0",
+                "mutable": false,
+                "type": "Buffer<u8>"
+              },
+              {
+                "id": "v1",
+                "mutable": false,
+                "type": "u8"
+              }
+            ],
+            "name": "dispose",
+            "obligation": null,
+            "params": [
+              {
+                "id": "p0",
+                "mode": "take",
+                "type": "Buffer<u8>"
+              }
+            ],
+            "returns": {
+              "mode": "value",
+              "origin": null,
+              "type": "u8"
+            }
+          },
+          {
+            "blocks": [
+              {
+                "id": "b0",
+                "ops": [
+                  {
+                    "dest": "v1",
+                    "kind": "buffer",
+                    "op": "acquire"
+                  },
+                  {
+                    "dest": "v2",
+                    "op": "move",
+                    "src": "v1"
+                  },
+                  {
+                    "dest": "v4",
+                    "kind": "buffer",
+                    "op": "acquire"
+                  },
+                  {
+                    "dest": "v6",
+                    "fields": [
+                      "v4",
+                      "v5"
+                    ],
+                    "op": "pack",
+                    "variant": null
+                  },
+                  {
+                    "dest": "v7",
+                    "op": "move",
+                    "src": "v6"
+                  },
+                  {
+                    "dest": "v8",
+                    "op": "take_field",
+                    "place": {
+                      "path": [
+                        "bytes"
+                      ],
+                      "root": "v7"
+                    }
+                  },
+                  {
+                    "args": [
+                      {
+                        "id": "v8",
+                        "kind": "owner"
+                      }
+                    ],
+                    "function": "dispose",
+                    "obligation": null,
+                    "op": "call",
+                    "result": "v9",
+                    "result_loan": null
+                  },
+                  {
+                    "mode": "read",
+                    "op": "use",
+                    "place": {
+                      "path": [
+                        "bytes",
+                        "*"
+                      ],
+                      "root": "v7"
+                    }
+                  },
+                  {
+                    "mode": "write",
+                    "op": "use",
+                    "place": {
+                      "path": [
+                        "*"
+                      ],
+                      "root": "v2"
+                    }
+                  },
+                  {
+                    "dest": "v13",
+                    "op": "move",
+                    "src": "v2"
+                  },
+                  {
+                    "op": "drop",
+                    "src": "v13"
+                  },
+                  {
+                    "op": "forget",
+                    "src": "v7"
+                  }
+                ],
+                "term": {
+                  "loan": null,
+                  "op": "return",
+                  "value": null
+                }
+              }
+            ],
+            "entry": "b0",
+            "external": false,
+            "locals": [
+              {
+                "id": "v0",
+                "mutable": false,
+                "type": "usize"
+              },
+              {
+                "id": "v1",
+                "mutable": false,
+                "type": "Buffer<u8>"
+              },
+              {
+                "id": "v2",
+                "mutable": true,
+                "type": "Buffer<u8>"
+              },
+              {
+                "id": "v3",
+                "mutable": false,
+                "type": "usize"
+              },
+              {
+                "id": "v4",
+                "mutable": false,
+                "type": "Buffer<u8>"
+              },
+              {
+                "id": "v5",
+                "mutable": false,
+                "type": "u64"
+              },
+              {
+                "id": "v6",
+                "mutable": false,
+                "type": "Index"
+              },
+              {
+                "id": "v7",
+                "mutable": false,
+                "type": "Index"
+              },
+              {
+                "id": "v8",
+                "mutable": false,
+                "type": "Buffer<u8>"
+              },
+              {
+                "id": "v9",
+                "mutable": false,
+                "type": "u8"
+              },
+              {
+                "id": "v10",
+                "mutable": false,
+                "type": "usize"
+              },
+              {
+                "id": "v11",
+                "mutable": false,
+                "type": "u8"
+              },
+              {
+                "id": "v12",
+                "mutable": false,
+                "type": "usize"
+              },
+              {
+                "id": "v13",
+                "mutable": false,
+                "type": "Buffer<u8>"
+              }
+            ],
+            "name": "main",
+            "obligation": null,
+            "params": [],
+            "returns": {
+              "mode": "value",
+              "origin": null,
+              "type": "Unit"
+            }
+          }
+        ],
+        "obligations": {},
+        "project_sha256": null,
+        "schema": "hepta.resource-ir.v3",
+        "source_sha256": "0a33c58c3e02267d3142b0e852cf639ccc81ee0ad5906021cff8295584a19b74",
+        "types": {
+          "Buffer<u8>": {
+            "element": "u8",
+            "kind": "buffer"
+          },
+          "Index": {
+            "args": [],
+            "fields": [
+              {
+                "name": "bytes",
+                "type": "Buffer<u8>"
+              },
+              {
+                "name": "tag",
+                "type": "u64"
+              }
+            ],
+            "kind": "struct",
+            "name": "Index"
+          },
+          "Unit": {
+            "kind": "scalar",
+            "name": "Unit"
+          },
+          "bool": {
+            "kind": "scalar",
+            "name": "bool"
+          },
+          "u64": {
+            "kind": "scalar",
+            "name": "u64"
+          },
+          "u8": {
+            "kind": "scalar",
+            "name": "u8"
+          },
+          "usize": {
+            "kind": "scalar",
+            "name": "usize"
+          }
+        },
+        "value_semantics": "copied_values_abstract_not_executable"
+      },
+      "rust": "// Generated by Hepta 0.2.0 from checked AST; do not edit.\n#![allow(non_camel_case_types, unused, unused_parens)]\n\nfn __hepta_try_buffer(size: usize) -> core::result::Result<std::vec::Vec<u8>, u8> {\n    let mut bytes = std::vec::Vec::new();\n    if bytes.try_reserve_exact(size).is_err() {\n        return Err(1u8);\n    }\n    // Successful reservation proves capacity >= size. u8 initialization cannot\n    // call user code or allocate again; no uninitialized bytes are exposed.\n    bytes.resize(size, 0u8);\n    Ok(bytes)\n}\n\npub struct H_Index { pub h_bytes: std::vec::Vec<u8>, pub h_tag: u64 }\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":22,\"end\":118,\"line\":2,\"column\":1,\"path\":\"<input>\"}}\nfn h_dispose(h_data: std::vec::Vec<u8>) -> u8 {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":87,\"end\":106,\"line\":3,\"column\":5,\"path\":\"<input>\"}}\n    core::mem::drop(h_data);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":107,\"end\":116,\"line\":3,\"column\":25,\"path\":\"<input>\"}}\n    return 7u8;\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":163,\"end\":360,\"line\":7,\"column\":1,\"path\":\"<input>\"}}\nfn h_main() -> () {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":213,\"end\":235,\"line\":8,\"column\":5,\"path\":\"<input>\"}}\n    let mut h_out: std::vec::Vec<u8> = std::vec![0u8; 8usize];\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":236,\"end\":275,\"line\":8,\"column\":28,\"path\":\"<input>\"}}\n    let h_index: H_Index = H_Index { h_bytes: std::vec![0u8; 1usize], h_tag: 1u64 };\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":280,\"end\":335,\"line\":9,\"column\":5,\"path\":\"<input>\"}}\n    (h_out)[(((h_index).h_bytes)[0usize] as usize)] = h_dispose((h_index).h_bytes);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":340,\"end\":358,\"line\":10,\"column\":5,\"path\":\"<input>\"}}\n    core::mem::drop(h_out);\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\nfn main() { h_main(); }\n",
+      "source_sha256": "0a33c58c3e02267d3142b0e852cf639ccc81ee0ad5906021cff8295584a19b74"
+    },
+    "rhs_consumes_index_owner": {
+      "resource_ir": {
+        "claims": {
+          "external_contracts_proved": false,
+          "native_codegen_uses_this_ir": false,
+          "scalar_value_semantics_verified": false,
+          "source_to_ir_refinement_proved": false,
+          "termination_proved": false,
+          "whole_language_soundness_proved": false
+        },
+        "functions": [
+          {
+            "blocks": [
+              {
+                "id": "b0",
+                "ops": [
+                  {
+                    "dest": "v0",
+                    "op": "move",
+                    "src": "p0"
+                  },
+                  {
+                    "op": "drop",
+                    "src": "v0"
+                  }
+                ],
+                "term": {
+                  "loan": null,
+                  "op": "return",
+                  "value": "v1"
+                }
+              }
+            ],
+            "entry": "b0",
+            "external": false,
+            "locals": [
+              {
+                "id": "v0",
+                "mutable": false,
+                "type": "Buffer<u8>"
+              },
+              {
+                "id": "v1",
+                "mutable": false,
+                "type": "u8"
+              }
+            ],
+            "name": "dispose",
+            "obligation": null,
+            "params": [
+              {
+                "id": "p0",
+                "mode": "take",
+                "type": "Buffer<u8>"
+              }
+            ],
+            "returns": {
+              "mode": "value",
+              "origin": null,
+              "type": "u8"
+            }
+          },
+          {
+            "blocks": [
+              {
+                "id": "b0",
+                "ops": [
+                  {
+                    "dest": "v1",
+                    "kind": "buffer",
+                    "op": "acquire"
+                  },
+                  {
+                    "dest": "v2",
+                    "op": "move",
+                    "src": "v1"
+                  },
+                  {
+                    "dest": "v4",
+                    "kind": "buffer",
+                    "op": "acquire"
+                  },
+                  {
+                    "dest": "v5",
+                    "op": "move",
+                    "src": "v4"
+                  },
+                  {
+                    "dest": "v6",
+                    "op": "move",
+                    "src": "v5"
+                  },
+                  {
+                    "args": [
+                      {
+                        "id": "v6",
+                        "kind": "owner"
+                      }
+                    ],
+                    "function": "dispose",
+                    "obligation": null,
+                    "op": "call",
+                    "result": "v7",
+                    "result_loan": null
+                  },
+                  {
+                    "mode": "read",
+                    "op": "use",
+                    "place": {
+                      "path": [
+                        "*"
+                      ],
+                      "root": "v5"
+                    }
+                  },
+                  {
+                    "mode": "write",
+                    "op": "use",
+                    "place": {
+                      "path": [
+                        "*"
+                      ],
+                      "root": "v2"
+                    }
+                  },
+                  {
+                    "dest": "v11",
+                    "op": "move",
+                    "src": "v2"
+                  },
+                  {
+                    "op": "drop",
+                    "src": "v11"
+                  }
+                ],
+                "term": {
+                  "loan": null,
+                  "op": "return",
+                  "value": null
+                }
+              }
+            ],
+            "entry": "b0",
+            "external": false,
+            "locals": [
+              {
+                "id": "v0",
+                "mutable": false,
+                "type": "usize"
+              },
+              {
+                "id": "v1",
+                "mutable": false,
+                "type": "Buffer<u8>"
+              },
+              {
+                "id": "v2",
+                "mutable": true,
+                "type": "Buffer<u8>"
+              },
+              {
+                "id": "v3",
+                "mutable": false,
+                "type": "usize"
+              },
+              {
+                "id": "v4",
+                "mutable": false,
+                "type": "Buffer<u8>"
+              },
+              {
+                "id": "v5",
+                "mutable": false,
+                "type": "Buffer<u8>"
+              },
+              {
+                "id": "v6",
+                "mutable": false,
+                "type": "Buffer<u8>"
+              },
+              {
+                "id": "v7",
+                "mutable": false,
+                "type": "u8"
+              },
+              {
+                "id": "v8",
+                "mutable": false,
+                "type": "usize"
+              },
+              {
+                "id": "v9",
+                "mutable": false,
+                "type": "u8"
+              },
+              {
+                "id": "v10",
+                "mutable": false,
+                "type": "usize"
+              },
+              {
+                "id": "v11",
+                "mutable": false,
+                "type": "Buffer<u8>"
+              }
+            ],
+            "name": "main",
+            "obligation": null,
+            "params": [],
+            "returns": {
+              "mode": "value",
+              "origin": null,
+              "type": "Unit"
+            }
+          }
+        ],
+        "obligations": {},
+        "project_sha256": null,
+        "schema": "hepta.resource-ir.v3",
+        "source_sha256": "c64abe844d0a5fb11bf7bd3ed0ea325064c55fc1b32665647f233425c173fa33",
+        "types": {
+          "Buffer<u8>": {
+            "element": "u8",
+            "kind": "buffer"
+          },
+          "Unit": {
+            "kind": "scalar",
+            "name": "Unit"
+          },
+          "bool": {
+            "kind": "scalar",
+            "name": "bool"
+          },
+          "u8": {
+            "kind": "scalar",
+            "name": "u8"
+          },
+          "usize": {
+            "kind": "scalar",
+            "name": "usize"
+          }
+        },
+        "value_semantics": "copied_values_abstract_not_executable"
+      },
+      "rust": "// Generated by Hepta 0.2.0 from checked AST; do not edit.\n#![allow(non_camel_case_types, unused, unused_parens)]\n\nfn __hepta_try_buffer(size: usize) -> core::result::Result<std::vec::Vec<u8>, u8> {\n    let mut bytes = std::vec::Vec::new();\n    if bytes.try_reserve_exact(size).is_err() {\n        return Err(1u8);\n    }\n    // Successful reservation proves capacity >= size. u8 initialization cannot\n    // call user code or allocate again; no uninitialized bytes are exposed.\n    bytes.resize(size, 0u8);\n    Ok(bytes)\n}\n\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":22,\"end\":118,\"line\":2,\"column\":1,\"path\":\"<input>\"}}\nfn h_dispose(h_data: std::vec::Vec<u8>) -> u8 {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":87,\"end\":106,\"line\":3,\"column\":5,\"path\":\"<input>\"}}\n    core::mem::drop(h_data);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":107,\"end\":116,\"line\":3,\"column\":25,\"path\":\"<input>\"}}\n    return 7u8;\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":120,\"end\":286,\"line\":6,\"column\":1,\"path\":\"<input>\"}}\nfn h_main() -> () {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":170,\"end\":192,\"line\":7,\"column\":5,\"path\":\"<input>\"}}\n    let mut h_out: std::vec::Vec<u8> = std::vec![0u8; 8usize];\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":193,\"end\":213,\"line\":7,\"column\":28,\"path\":\"<input>\"}}\n    let h_index: std::vec::Vec<u8> = std::vec![0u8; 1usize];\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":218,\"end\":261,\"line\":8,\"column\":5,\"path\":\"<input>\"}}\n    (h_out)[((h_index)[0usize] as usize)] = h_dispose(h_index);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":266,\"end\":284,\"line\":9,\"column\":5,\"path\":\"<input>\"}}\n    core::mem::drop(h_out);\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\nfn main() { h_main(); }\n",
+      "source_sha256": "c64abe844d0a5fb11bf7bd3ed0ea325064c55fc1b32665647f233425c173fa33"
+    },
+    "rhs_consumes_returned_target_argument": {
+      "resource_ir": {
+        "claims": {
+          "external_contracts_proved": false,
+          "native_codegen_uses_this_ir": false,
+          "scalar_value_semantics_verified": false,
+          "source_to_ir_refinement_proved": false,
+          "termination_proved": false,
+          "whole_language_soundness_proved": false
+        },
+        "functions": [
+          {
+            "blocks": [
+              {
+                "id": "b0",
+                "ops": [
+                  {
+                    "dest": "v0",
+                    "op": "move",
+                    "src": "p0"
+                  },
+                  {
+                    "op": "drop",
+                    "src": "v0"
+                  }
+                ],
+                "term": {
+                  "loan": null,
+                  "op": "return",
+                  "value": "v1"
+                }
+              }
+            ],
+            "entry": "b0",
+            "external": false,
+            "locals": [
+              {
+                "id": "v0",
+                "mutable": false,
+                "type": "Buffer<u8>"
+              },
+              {
+                "id": "v1",
+                "mutable": false,
+                "type": "u8"
+              }
+            ],
+            "name": "dispose",
+            "obligation": null,
+            "params": [
+              {
+                "id": "p0",
+                "mode": "take",
+                "type": "Buffer<u8>"
+              }
+            ],
+            "returns": {
+              "mode": "value",
+              "origin": null,
+              "type": "u8"
+            }
+          },
+          {
+            "blocks": [
+              {
+                "id": "b0",
+                "ops": [
+                  {
+                    "id": "l0",
+                    "mode": "mut",
+                    "op": "borrow",
+                    "place": {
+                      "path": [],
+                      "root": "p0"
+                    },
+                    "type": "[u8]"
+                  }
+                ],
+                "term": {
+                  "loan": "l0",
+                  "op": "return",
+                  "value": null
+                }
+              }
+            ],
+            "entry": "b0",
+            "external": false,
+            "locals": [],
+            "name": "view",
+            "obligation": null,
+            "params": [
+              {
+                "id": "p0",
+                "mode": "mut",
+                "type": "Buffer<u8>"
+              },
+              {
+                "id": "p1",
+                "mode": "read",
+                "type": "Buffer<u8>"
+              }
+            ],
+            "returns": {
+              "mode": "mut",
+              "origin": "p0",
+              "type": "[u8]"
+            }
+          },
+          {
+            "blocks": [
+              {
+                "id": "b0",
+                "ops": [
+                  {
+                    "dest": "v1",
+                    "kind": "buffer",
+                    "op": "acquire"
+                  },
+                  {
+                    "dest": "v2",
+                    "op": "move",
+                    "src": "v1"
+                  },
+                  {
+                    "dest": "v4",
+                    "kind": "buffer",
+                    "op": "acquire"
+                  },
+                  {
+                    "dest": "v5",
+                    "op": "move",
+                    "src": "v4"
+                  },
+                  {
+                    "dest": "v6",
+                    "op": "move",
+                    "src": "v5"
+                  },
+                  {
+                    "args": [
+                      {
+                        "id": "v6",
+                        "kind": "owner"
+                      }
+                    ],
+                    "function": "dispose",
+                    "obligation": null,
+                    "op": "call",
+                    "result": "v7",
+                    "result_loan": null
+                  },
+                  {
+                    "id": "l0",
+                    "mode": "mut",
+                    "op": "borrow",
+                    "place": {
+                      "path": [],
+                      "root": "v2"
+                    },
+                    "type": "Buffer<u8>"
+                  },
+                  {
+                    "id": "l1",
+                    "mode": "read",
+                    "op": "borrow",
+                    "place": {
+                      "path": [],
+                      "root": "v5"
+                    },
+                    "type": "Buffer<u8>"
+                  },
+                  {
+                    "args": [
+                      {
+                        "id": "l0",
+                        "kind": "borrow"
+                      },
+                      {
+                        "id": "l1",
+                        "kind": "borrow"
+                      }
+                    ],
+                    "function": "view",
+                    "obligation": null,
+                    "op": "call",
+                    "result": null,
+                    "result_loan": "l2"
+                  },
+                  {
+                    "id": "l1",
+                    "op": "end_borrow"
+                  },
+                  {
+                    "loan": "l2",
+                    "mode": "write",
+                    "op": "use"
+                  },
+                  {
+                    "id": "l2",
+                    "op": "end_borrow"
+                  },
+                  {
+                    "dest": "v9",
+                    "op": "move",
+                    "src": "v2"
+                  },
+                  {
+                    "op": "drop",
+                    "src": "v9"
+                  }
+                ],
+                "term": {
+                  "loan": null,
+                  "op": "return",
+                  "value": null
+                }
+              }
+            ],
+            "entry": "b0",
+            "external": false,
+            "locals": [
+              {
+                "id": "v0",
+                "mutable": false,
+                "type": "usize"
+              },
+              {
+                "id": "v1",
+                "mutable": false,
+                "type": "Buffer<u8>"
+              },
+              {
+                "id": "v2",
+                "mutable": true,
+                "type": "Buffer<u8>"
+              },
+              {
+                "id": "v3",
+                "mutable": false,
+                "type": "usize"
+              },
+              {
+                "id": "v4",
+                "mutable": false,
+                "type": "Buffer<u8>"
+              },
+              {
+                "id": "v5",
+                "mutable": false,
+                "type": "Buffer<u8>"
+              },
+              {
+                "id": "v6",
+                "mutable": false,
+                "type": "Buffer<u8>"
+              },
+              {
+                "id": "v7",
+                "mutable": false,
+                "type": "u8"
+              },
+              {
+                "id": "v8",
+                "mutable": false,
+                "type": "usize"
+              },
+              {
+                "id": "v9",
+                "mutable": false,
+                "type": "Buffer<u8>"
+              }
+            ],
+            "name": "main",
+            "obligation": null,
+            "params": [],
+            "returns": {
+              "mode": "value",
+              "origin": null,
+              "type": "Unit"
+            }
+          }
+        ],
+        "obligations": {},
+        "project_sha256": null,
+        "schema": "hepta.resource-ir.v3",
+        "source_sha256": "9a4aff73d83c5c5651761ade3ed3f7a934679fad5a6be704f92a1371aa4cf933",
+        "types": {
+          "Buffer<u8>": {
+            "element": "u8",
+            "kind": "buffer"
+          },
+          "Unit": {
+            "kind": "scalar",
+            "name": "Unit"
+          },
+          "[u8]": {
+            "element": "u8",
+            "kind": "slice"
+          },
+          "bool": {
+            "kind": "scalar",
+            "name": "bool"
+          },
+          "u8": {
+            "kind": "scalar",
+            "name": "u8"
+          },
+          "usize": {
+            "kind": "scalar",
+            "name": "usize"
+          }
+        },
+        "value_semantics": "copied_values_abstract_not_executable"
+      },
+      "rust": "// Generated by Hepta 0.2.0 from checked AST; do not edit.\n#![allow(non_camel_case_types, unused, unused_parens)]\n\nfn __hepta_try_buffer(size: usize) -> core::result::Result<std::vec::Vec<u8>, u8> {\n    let mut bytes = std::vec::Vec::new();\n    if bytes.try_reserve_exact(size).is_err() {\n        return Err(1u8);\n    }\n    // Successful reservation proves capacity >= size. u8 initialization cannot\n    // call user code or allocate again; no uninitialized bytes are exposed.\n    bytes.resize(size, 0u8);\n    Ok(bytes)\n}\n\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":22,\"end\":118,\"line\":2,\"column\":1,\"path\":\"<input>\"}}\nfn h_dispose(h_data: std::vec::Vec<u8>) -> u8 {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":87,\"end\":106,\"line\":3,\"column\":5,\"path\":\"<input>\"}}\n    core::mem::drop(h_data);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":107,\"end\":116,\"line\":3,\"column\":25,\"path\":\"<input>\"}}\n    return 7u8;\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":120,\"end\":224,\"line\":6,\"column\":1,\"path\":\"<input>\"}}\nfn h_view<'hepta_return>(h_out: &'hepta_return mut std::vec::Vec<u8>, h_index: &std::vec::Vec<u8>) -> &'hepta_return mut [u8] {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":207,\"end\":222,\"line\":7,\"column\":5,\"path\":\"<input>\"}}\n    return (&mut (*h_out));\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\n// hepta-source: {\"event\":\"begin\",\"kind\":\"declaration\",\"span\":{\"start\":225,\"end\":396,\"line\":9,\"column\":1,\"path\":\"<input>\"}}\nfn h_main() -> () {\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":275,\"end\":297,\"line\":10,\"column\":5,\"path\":\"<input>\"}}\n    let mut h_out: std::vec::Vec<u8> = std::vec![0u8; 8usize];\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":298,\"end\":318,\"line\":10,\"column\":28,\"path\":\"<input>\"}}\n    let h_index: std::vec::Vec<u8> = std::vec![0u8; 1usize];\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":323,\"end\":371,\"line\":11,\"column\":5,\"path\":\"<input>\"}}\n    ((*h_view((&mut h_out), (&h_index))))[0usize] = h_dispose(h_index);\n    // hepta-source: {\"event\":\"end\"}\n    // hepta-source: {\"event\":\"begin\",\"kind\":\"statement\",\"span\":{\"start\":376,\"end\":394,\"line\":12,\"column\":5,\"path\":\"<input>\"}}\n    core::mem::drop(h_out);\n    // hepta-source: {\"event\":\"end\"}\n}\n// hepta-source: {\"event\":\"end\"}\nfn main() { h_main(); }\n",
+      "source_sha256": "9a4aff73d83c5c5651761ade3ed3f7a934679fad5a6be704f92a1371aa4cf933"
+    }
+  },
+  "files": {
+    "hepta/backend.py": {
+      "git_blob": "10b9f7ae6d447112f2d42ba8df7bed772cbfdd81",
+      "sha256": "008c5c0cf8fcb4cf08884f71b01ed1bee2c1146c253cfe1f5d9bf3d689948c2b"
+    },
+    "hepta/checker.py": {
+      "git_blob": "e954a11e12aee381d0165a675ede4ab9bfde6502",
+      "sha256": "83fa87f5098f2bef27265e5d810a70d9cf4625b816b8550a6a7b6d713005240a"
+    },
+    "hepta/resource_ir.py": {
+      "git_blob": "9ae6ffd1e2f7ac2f1692ff45fbc1b153429695c9",
+      "sha256": "7ee06325c766682542334c2c76e876a4d1d50a86c993f91378f36edfaf7ab146"
+    },
+    "hepta/resource_lowering.py": {
+      "git_blob": "2948632664f41888eb3189c37151c2521c5763bc",
+      "sha256": "62d63f966b2f2e61540ae6719e8aeecefec9ee9dee65a920f6ba74dd370f3eb9"
+    },
+    "tests/test_resource_evaluation_order.py": {
+      "git_blob": "6e7cda6b71028d371fcf882a528bf2b58b04c183",
+      "sha256": "5f44995419982a41e9bb2ac2b1097b3f129b7b743a5537b0d22e6375151fbd1c"
+    }
+  },
+  "schema": "hepta.assignment-order.baseline.v1"
+}

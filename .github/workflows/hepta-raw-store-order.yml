@@ -1,4 +1,4 @@
-name: Raw store operand-order regression
+name: Store and assignment operand-order regression
 on:
   pull_request:
     paths:
@@ -6,6 +6,14 @@ on:
       - 'tests/test_raw_store_order.py'
       - 'tests/test_c_backend.py'
       - 'tests/test_resource_evaluation_order.py'
+      - 'tests/test_assignment_order.py'
+      - 'tests/fixtures/assignment_order/**'
+      - 'tests/test_checker.py'
+      - 'tests/test_parser.py'
+      - 'tests/test_owned_generics.py'
+      - 'tests/test_partial_places.py'
+      - 'tests/test_borrowed_returns.py'
+      - 'tests/test_owned_types.py'
       - '.github/workflows/hepta-raw-store-order.yml'
 permissions:
   contents: read
@@ -43,7 +51,10 @@ jobs:
           import unittest
           suite = unittest.defaultTestLoader.loadTestsFromNames([
               'tests.test_raw_store_order', 'tests.test_c_backend',
-              'tests.test_resource_evaluation_order'])
+              'tests.test_resource_evaluation_order', 'tests.test_assignment_order',
+              'tests.test_checker', 'tests.test_parser', 'tests.test_owned_generics',
+              'tests.test_partial_places', 'tests.test_borrowed_returns',
+              'tests.test_owned_types'])
           def identities(tests):
               for item in tests:
                   if isinstance(item, unittest.TestSuite):
@@ -51,13 +62,13 @@ jobs:
                   else:
                       yield item.id()
           ids = list(identities(suite))
-          if len(ids) != 25 or len(set(ids)) != 25:
-              raise SystemExit('Expected 25 unique test identities')
+          if len(ids) != 306 or len(set(ids)) != 306:
+              raise SystemExit('Expected 306 unique test identities')
           print('Planned test identities:', ids, flush=True)
           result = unittest.TextTestRunner(verbosity=2).run(suite)
           if (not result.wasSuccessful() or result.skipped or result.expectedFailures
-                  or result.unexpectedSuccesses or result.testsRun != 25):
-              raise SystemExit('Expected all 25 controls with no skips')
+                  or result.unexpectedSuccesses or result.testsRun != 306):
+              raise SystemExit('Expected all 306 controls with no skips')
           PY
           test -z "$(git status --porcelain --untracked-files=no)"
       - uses: actions/upload-artifact@v4

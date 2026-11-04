@@ -1571,9 +1571,13 @@ class _Checker:
                     self.error("E_USE_AFTER_MOVE", "restore a moved field only while all its enclosing aggregates remain initialized", target.span)
                 elif destination & live:
                     self.error("E_LINEAR_REASSIGN", "owned field restoration requires a completely moved-out field; consume remaining payloads explicitly", target.span)
+                actual = self.expr(data["expr"], env, live, unsafe_depth, target_type)
             else:
+                # Assignment evaluates its value before its destination. Obtain
+                # only a type hint first: evaluating the target here can consume
+                # an owner needed by the RHS, or miss a target read after a move.
+                actual = self.expr(data["expr"], env, live, unsafe_depth, hint)
                 target_type = self.lvalue(target, env, live, unsafe_depth, mutable=True)
-            actual = self.expr(data["expr"], env, live, unsafe_depth, target_type)
             self.compatible(actual, target_type, stmt.span)
             if restore:
                 self.require_transfer(data["expr"], actual, context="owned field restoration")

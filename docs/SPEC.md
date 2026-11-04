@@ -292,6 +292,12 @@ requires unsafe and preserves the pointee type.
 Statements include bindings, assignments, returns, expression statements,
 `if`/`else`, `while`, half-open `for name in start..end`, `unsafe` blocks, and
 exhaustive matches. Unsupported statement forms are errors.
+Ordinary assignment evaluates the right-hand value before the destination
+place, including the destination's calls and indices. The source checker uses
+only a pure destination-type hint before checking that value, then checks the
+destination against the updated ownership state. This does not relax the
+separate owned-field restoration rules or backend subset limits. Named calls,
+including raw store builtins, still evaluate arguments left-to-right.
 
 ## 8. Effects and resource clauses
 

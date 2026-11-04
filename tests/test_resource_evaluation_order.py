@@ -1,5 +1,7 @@
 """Reject invalid ownership ordering before C generation; run only valid neighbours."""
 from pathlib import Path
+import hashlib
+import json
 import subprocess
 import tempfile
 import unittest
@@ -7,6 +9,7 @@ import unittest
 from hepta.backend import compile_rust
 from hepta.c_backend import compile_c
 from hepta.pipeline import analyze, resource_ir_analysis
+from hepta.resource_ir import verify_resource_ir
 
 PREFIX = """module operand_order;
 fn dispose(data:take Buffer<u8>)->u8 effects {alloc,block} {
@@ -71,20 +74,36 @@ fn main()->Unit effects {alloc,block,panic} {
 
 class ResourceEvaluationOrderTests(unittest.TestCase):
     def test_rhs_precedes_index_and_returned_target_arguments(self):
+        # Preserve the exact pre-fix rejected IR and Rust controls. The improved
+        # frontend now stops these sources before lowering; no checked result
+        # is fabricated to force invalid source through the production gate.
+        raw = (Path(__file__).parent / "fixtures/assignment_order/baseline.json").read_bytes()
+        self.assertEqual(hashlib.sha256(raw).hexdigest(),
+                         "1d79ea5e0064569df4077260854e3fda89a2525a7b54cadcb9dcb8829ca54b93")
+        baseline = json.loads(raw)
+        self.assertEqual(baseline["base"], "b3ed67874af8f6fcc5b9cd7756e6800edf047ed1")
+        self.assertEqual(set(baseline["cases"]), set(REJECTED))
         for name, source in REJECTED.items():
             with self.subTest(name=name):
+                frozen = baseline["cases"][name]
+                self.assertEqual(frozen["source_sha256"], hashlib.sha256(source.encode()).hexdigest())
                 frontend = analyze(source, native=False, crate_type="bin")
-                self.assertTrue(frontend.report["ok"], frontend.report)
+                self.assertFalse(frontend.report["ok"], frontend.report)
+                self.assertIn("E_USE_AFTER_MOVE", str(frontend.report["diagnostics"]))
+                self.assertIsNone(frontend.rust)
                 graph = resource_ir_analysis(frontend)
                 self.assertFalse(graph["ok"], graph)
-                self.assertIn("E_RIR_USE_AFTER_MOVE", str(graph.get("diagnostics")))
+                self.assertIsNone(graph["resource_ir"])
+                original = verify_resource_ir(frozen["resource_ir"])
+                self.assertFalse(original["ok"], original)
+                self.assertIn("E_RIR_USE_AFTER_MOVE", str(original["diagnostics"]))
                 emitted = analyze(source, native=False, backend="c", crate_type="bin")
                 self.assertFalse(emitted.report["ok"])
                 self.assertIsNone(emitted.c)
-                self.assertEqual(emitted.report["diagnostics"][0]["code"], "E_C_RESOURCE_IR")
-                rust = analyze(source, native=True, crate_type="bin")
-                self.assertFalse(rust.report["ok"])
-                self.assertTrue({"E0382", "E0505"}.intersection(d["code"] for d in rust.report["diagnostics"]))
+                self.assertEqual(emitted.report["diagnostics"][0]["code"], "E_USE_AFTER_MOVE")
+                rust = compile_rust(frozen["rust"], crate_type="bin", check_only=True)
+                self.assertFalse(rust["ok"])
+                self.assertTrue({"E0382", "E0505"}.intersection(d["code"] for d in rust["diagnostics"]))
 
     def test_valid_neighbours_execute_through_both_backends(self):
         with tempfile.TemporaryDirectory() as td:
