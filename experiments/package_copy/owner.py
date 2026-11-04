@@ -112,67 +112,67 @@ class _Context(ShallowContext):
 
     def admit_package_call(self, depth):
         if self.closed:
-            self.reject('request context is terminal')
+            self.reject('request context is terminal', category='terminal', phase='package_copy')
         if depth > self.limits.package_copy_depth:
-            self.reject('package_copy_depth quota exceeded')
+            self.reject('package_copy_depth quota exceeded', category='budget', phase='package_copy', dimension='package_copy_depth', limit=self.limits.package_copy_depth, admitted=None, attempted=depth)
         if self.counts['package_copy_calls'] >= self.limits.package_copy_calls:
-            self.reject('package_copy_calls quota exceeded')
+            self.reject('package_copy_calls quota exceeded', category='budget', phase='package_copy', dimension='package_copy_calls', limit=self.limits.package_copy_calls, admitted=self.counts['package_copy_calls'], attempted=self.counts['package_copy_calls'] + 1)
         self.counts['package_copy_calls'] += 1
 
 
 def _hooks(context):
     if not _SUPPORTED:
-        context.reject('unsupported Package copy runtime')
+        context.reject('unsupported Package copy runtime', category='unsupported_runtime', phase='package_copy')
     if (copy._deepcopy_dispatch is not _DISPATCH or type(_DISPATCH) is not dict
             or copy.dispatch_table is not _REDUCERS or copyreg.dispatch_table is not _REDUCERS
             or type(_REDUCERS) is not dict or owned.Owner._authority_copy is not _SEAM):
-        context.reject('replacement Package copy dispatch or seam')
+        context.reject('replacement Package copy dispatch or seam', category='replacement_hook', phase='package_copy')
     for cls, (dispatch, reducer) in zip(_COPY_TYPES, _DISPATCH_PINS):
         if (_DISPATCH.get(cls, _MISSING) is not dispatch
                 or _REDUCERS.get(cls, _MISSING) is not reducer):
-            context.reject('replacement Package copy dispatch entry')
+            context.reject('replacement Package copy dispatch entry', category='replacement_hook', phase='package_copy')
     for cls in (_CLASS,) + _PATH_CLASSES:
         if type(cls) is not type:
-            context.reject('replacement Package copy metaclass')
+            context.reject('replacement Package copy metaclass', category='replacement_hook', phase='package_copy')
     for cls, mro in _MROS:
         actual = type.__getattribute__(cls, '__mro__')
         if len(actual) != len(mro) or any(a is not b for a, b in zip(actual, mro)):
-            context.reject('replacement Package copy class hierarchy')
+            context.reject('replacement Package copy class hierarchy', category='replacement_hook', phase='package_copy')
     if _VERSION == (3, 11) and type(_FLAVOUR) is not _FLAVOUR_CLASS:
-        context.reject('replacement Path flavour class')
+        context.reject('replacement Path flavour class', category='replacement_hook', phase='package_copy')
     for namespace, name, original in _PINS:
         if inspect.getattr_static(namespace, name, _MISSING) is not original:
-            context.reject('replacement Package copy hook: ' + name)
+            context.reject('replacement Package copy hook: ' + name, category='replacement_hook', phase='package_copy')
     for function, defaults, keywords in _FUNCTIONS:
         actual = function.__defaults__
         if (actual is not defaults and (type(actual) is not tuple or type(defaults) is not tuple
                 or len(actual) != len(defaults) or any(a is not b for a, b in zip(actual, defaults)))):
-            context.reject('replacement Package copy function defaults')
+            context.reject('replacement Package copy function defaults', category='replacement_hook', phase='package_copy')
         actual = function.__kwdefaults__
         if keywords is None:
             if actual is not None:
-                context.reject('replacement Package copy keyword defaults')
+                context.reject('replacement Package copy keyword defaults', category='replacement_hook', phase='package_copy')
         elif type(actual) is not dict or len(actual) != len(keywords):
-            context.reject('replacement Package copy keyword defaults')
+            context.reject('replacement Package copy keyword defaults', category='replacement_hook', phase='package_copy')
         else:
             # Validate key types before dictionary lookups can invoke foreign equality.
             if any(type(key) is not str for key in actual):
-                context.reject('replacement Package copy keyword defaults')
+                context.reject('replacement Package copy keyword defaults', category='replacement_hook', phase='package_copy')
             for key, expected in keywords:
                 if actual.get(key, _MISSING) is not expected:
-                    context.reject('replacement Package copy keyword defaults')
+                    context.reject('replacement Package copy keyword defaults', category='replacement_hook', phase='package_copy')
     if inspect.getattr_static(_CLASS, '__slots__', _MISSING) is not _MISSING:
-        context.reject('replacement Package slot metadata')
+        context.reject('replacement Package slot metadata', category='replacement_hook', phase='package_copy')
     slots = inspect.getattr_static(_CLASS, '__slotnames__', _MISSING)
     if slots is not _MISSING and slots is not None and not (type(slots) is list and not slots):
-        context.reject('replacement Package slot metadata')
+        context.reject('replacement Package slot metadata', category='replacement_hook', phase='package_copy')
 
 
 def _slot(path, name, context):
     try:
         return _SLOTS[name].__get__(path, _PATH)
     except AttributeError:
-        context.reject('cold or partial Path is not admitted')
+        context.reject('cold or partial Path is not admitted', category='schema', phase='package_copy')
 
 
 def _path_children(value, context):
@@ -183,22 +183,22 @@ def _path_children(value, context):
         root = _slot(value, '_root', context)
         tail = _slot(value, '_tail_cached', context)
         if type(drive) is not str or type(root) is not str:
-            context.reject('Path drive/root must be exact strings')
+            context.reject('Path drive/root must be exact strings', category='schema', phase='package_copy')
         if drive or root:
             # Virtual atomic anchor event; do not concatenate or create parts.
             yield '', 'string'
     if type(tail) is not list:
-        context.reject('Path components must be an exact list')
+        context.reject('Path components must be an exact list', category='schema', phase='package_copy')
     for component in tail:
         yield component, 'string'
 
 
 def _state_children(state, context):
     if len(state) != len(_FIELDS):
-        context.reject('noncanonical Package state shape')
+        context.reject('noncanonical Package state shape', category='schema', phase='package_copy')
     for key in state:
         if type(key) is not str or key not in _FIELDS:
-            context.reject('noncanonical Package state key')
+            context.reject('noncanonical Package state key', category='schema', phase='package_copy')
     for key, value in state.items():
         role = ('path' if key in _PATH_FIELDS else 'dependencies' if key == 'dependencies'
                 else 'manifest' if key == 'manifest_bytes' else 'string')
@@ -222,30 +222,30 @@ def _children(value, role, memo, roles, context):
         return None
     if role in ('root', 'package'):
         if cls is not _CLASS:
-            context.reject('Package must have exact canonical type')
+            context.reject('Package must have exact canonical type', category='schema', phase='package_copy')
     elif role == 'class':
         if value is not _CLASS:
-            context.reject('unknown Package class argument')
+            context.reject('unknown Package class argument', category='schema', phase='package_copy')
         return None
     elif role == 'string':
         if cls is not str:
-            context.reject('Package strings must have exact type')
+            context.reject('Package strings must have exact type', category='schema', phase='package_copy')
         return None
     elif role == 'manifest':
         if cls is not bytes and value is not None:
-            context.reject('Package manifest must be bytes or None')
+            context.reject('Package manifest must be bytes or None', category='schema', phase='package_copy')
         return None
     elif role == 'path':
         if cls is not _PATH:
-            context.reject('Package paths must be exact native PosixPath')
+            context.reject('Package paths must be exact native PosixPath', category='schema', phase='package_copy')
     elif role in ('state', 'dependencies'):
         if cls is not dict:
-            context.reject('Package dictionaries must have exact type')
+            context.reject('Package dictionaries must have exact type', category='schema', phase='package_copy')
         old = roles.setdefault(id(value), role)
         if old != role:
-            context.reject('Package dictionary reused across roles')
+            context.reject('Package dictionary reused across roles', category='schema', phase='package_copy')
     else:
-        context.reject('noncanonical Package dependency key')
+        context.reject('noncanonical Package dependency key', category='schema', phase='package_copy')
     identity = id(value)
     if identity in memo:
         return None
@@ -290,12 +290,12 @@ class Owner(ShallowOwner):
     def _authority_copy(self, deepcopy, value, name):
         try:
             if self.context.closed:
-                self.context.reject('request context is terminal')
+                self.context.reject('request context is terminal', category='terminal', phase='package_copy')
             if type(name) is not str or name != 'package':
                 return super()._authority_copy(deepcopy, value, name)
             self.context.check()
             if deepcopy is not _COPY:
-                self.context.reject('replacement captured Package copier')
+                self.context.reject('replacement captured Package copier', category='replacement_hook', phase='package_copy')
             _hooks(self.context)
             _preflight(value, self.context)
             result = deepcopy(value)

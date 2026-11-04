@@ -34,42 +34,52 @@ class Reader:
     invocation; bytes actually returned by the OS are charged, including the one
     overflow sentinel. Rejection makes this object terminal.
     """
-    def __init__(self, limits=Limits(), checkpoint=lambda: None):
+    def __init__(self, limits=Limits(), checkpoint=lambda: None, *, on_failure=None):
         self.limits = limits
+        self.on_failure = on_failure
         self.checkpoint = checkpoint
         self.bytes_read = 0
         self.reads = 0
         self.closed = False
         self._active = threading.Lock()
 
+    def _reject(self, message, **provenance):
+        if self.on_failure is not None:
+            self.on_failure(phase='read', **provenance)
+        raise Rejected(message)
+
     def _check(self):
         if self.closed:
-            raise Rejected('reader is terminal')
+            self._reject('reader is terminal', category='terminal')
         self.checkpoint()
 
     def _chunks(self, path, max_bytes=None):
         if not self._active.acquire(blocking=False):
             self.closed = True
-            raise Rejected('overlapping reader operations are not admitted')
+            self._reject('overlapping reader operations are not admitted', category='reentrancy')
         fd = None
         try:
             self._check()
             if max_bytes is not None and (type(max_bytes) is not int or max_bytes <= 0):
-                raise Rejected('invalid per-read byte quota')
+                self._reject('invalid per-read byte quota', category='schema')
             if self.reads >= self.limits.reads:
-                raise Rejected('read invocation quota exceeded')
+                self._reject('read invocation quota exceeded', category='budget', dimension='reads', limit=self.limits.reads, admitted=self.reads, attempted=self.reads + 1)
             self.reads += 1
             # Nonblocking open prevents a FIFO substituted after path checks from
             # hanging before fstat. fstat checks the opened object, not its name.
             fd = os.open(Path(path), os.O_RDONLY | os.O_NONBLOCK | os.O_CLOEXEC)
             info = os.fstat(fd)
             if not stat.S_ISREG(info.st_mode):
-                raise Rejected('only regular files are admitted')
+                self._reject('only regular files are admitted', category='schema')
             remaining = self.limits.total_bytes - self.bytes_read
             cap = min(self.limits.per_file, remaining,
                       self.limits.per_file if max_bytes is None else max_bytes)
+            aggregate = remaining <= min(self.limits.per_file, self.limits.per_file if max_bytes is None else max_bytes)
+            dimension = 'total_bytes' if aggregate else 'per_file'
+            limit = self.limits.total_bytes if aggregate else cap
+            admitted = self.bytes_read if aggregate else 0
             if info.st_size > cap:
-                raise Rejected('file or aggregate byte quota exceeded')
+                self._reject('file or aggregate byte quota exceeded', category='budget', dimension=dimension, limit=limit, admitted=admitted, attempted=admitted + info.st_size)
             consumed = 0
             while True:
                 self._check()
@@ -77,18 +87,22 @@ class Reader:
                 self.bytes_read += len(block)
                 consumed += len(block)
                 if consumed > cap:
-                    raise Rejected('file grew beyond byte quota')
+                    self._reject('file grew beyond byte quota', category='budget', dimension=dimension, limit=limit, admitted=admitted + consumed - len(block), attempted=admitted + consumed)
                 if not block:
                     break
                 yield block
-        except BaseException:
+        except BaseException as error:
+            if self.on_failure is not None:
+                self.on_failure(error=error, phase='read')
             self.closed = True
             raise
         finally:
             try:
                 if fd is not None:
                     os.close(fd)
-            except BaseException:
+            except BaseException as error:
+                if self.on_failure is not None:
+                    self.on_failure(error=error, phase='close')
                 self.closed = True
                 raise
             finally:

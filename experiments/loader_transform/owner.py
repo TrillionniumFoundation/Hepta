@@ -31,19 +31,19 @@ class _Context(CopyContext):
     def check(self):
         super().check()
         if getattr(LegacyLoaderOps, 'transform_visit', None) is not _TRANSFORM:
-            self.reject('replacement transform admission hook')
+            self.reject('replacement transform admission hook', category='replacement_hook', phase='loader_transform')
         for name, expected in _BINDINGS:
             if getattr(modules, name, None) is not expected:
-                self.reject('replacement transform alias: ' + name)
+                self.reject('replacement transform alias: ' + name, category='replacement_hook', phase='loader_transform')
 
     def admit_transform(self, depth):
         self.check()
         if type(depth) is not int or depth < 1:
-            self.reject('invalid transform depth')
+            self.reject('invalid transform depth', category='schema', phase='loader_transform')
         if depth > self.limits.transform_depth:
-            self.reject('transform_depth quota exceeded')
+            self.reject('transform_depth quota exceeded', category='budget', phase='loader_transform', dimension='transform_depth', limit=self.limits.transform_depth, admitted=None, attempted=depth)
         if self.counts['transform_visits'] >= self.limits.transform_visits:
-            self.reject('transform_visits quota exceeded')
+            self.reject('transform_visits quota exceeded', category='budget', phase='loader_transform', dimension='transform_visits', limit=self.limits.transform_visits, admitted=self.counts['transform_visits'], attempted=self.counts['transform_visits'] + 1)
         self.counts['transform_visits'] += 1
 
 

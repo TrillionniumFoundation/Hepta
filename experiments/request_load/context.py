@@ -67,7 +67,7 @@ class Context:
                             limits.lock, limits.sidecar, limits.header),
                             limits.total_bytes, limits.reads), self.check)
 
-    def reject(self, message):
+    def reject(self, message, **provenance):
         self.closed = True
         raise Rejected(message)
 
@@ -75,9 +75,9 @@ class Context:
         if self.closed:
             raise Rejected('request context is terminal')
         if threading.get_ident() != self.owner:
-            self.reject('request context cannot cross threads')
+            self.reject('request context cannot cross threads', category='thread', phase='request_load')
         if not self._checkpoint_guard.acquire(blocking=False):
-            self.reject('reentrant checkpoint is not admitted')
+            self.reject('reentrant checkpoint is not admitted', category='reentrancy', phase='request_load')
         try:
             self.checkpoint()
         except BaseException:
@@ -89,13 +89,13 @@ class Context:
     def charge(self, name, amount=1):
         self.check()
         if self.counts[name] + amount > getattr(self.limits, name):
-            self.reject(name + ' quota exceeded')
+            self.reject(name + ' quota exceeded', category='budget', phase='charge', dimension=name, limit=getattr(self.limits, name), admitted=self.counts[name], attempted=self.counts[name] + amount)
         self.counts[name] += amount
 
-    def depth(self, actual, maximum):
+    def depth(self, actual, maximum, *, dimension=None):
         self.check()
         if actual > maximum:
-            self.reject('depth quota exceeded')
+            self.reject('depth quota exceeded', category='budget', phase='depth', dimension=dimension, limit=maximum, admitted=None, attempted=actual)
 
     def admit(self, name, depth, maximum):
         self.depth(depth, maximum)
@@ -113,7 +113,7 @@ class Context:
     def _cap(self, path, role):
         role = self.role(path) if role is None else role
         if role not in {'source', 'manifest', 'lock', 'sidecar', 'header'}:
-            self.reject('unknown input role')
+            self.reject('unknown input role', category='schema', phase='request_load')
         key = str(Path(path).resolve())
         cap = min(getattr(self.limits, role), self._role_caps.get(key, getattr(self.limits, role)))
         self._role_caps[key] = cap
@@ -125,7 +125,7 @@ class Context:
         try:
             return self.reader.read(path, max_bytes=cap)
         except ReadRejected as error:
-            self.reject(str(error))
+            self.reject(str(error), category='schema', phase='request_load')
         except BaseException:
             self.closed = True
             raise
@@ -135,7 +135,7 @@ class Context:
         try:
             return self.reader.digest(path, max_bytes=self._cap(path, role))
         except ReadRejected as error:
-            self.reject(str(error))
+            self.reject(str(error), category='schema', phase='request_load')
         except BaseException:
             self.closed = True
             raise
@@ -146,14 +146,14 @@ class Context:
         pending = [(Path(root), 1)]
         while pending:
             directory, depth = pending.pop()
-            self.depth(depth, self.limits.directory_depth)
+            self.depth(depth, self.limits.directory_depth, dimension='directory_depth')
             with os.scandir(directory) as entries:
                 for entry in entries:
                     self.charge('inventory_entries')
                     path = Path(entry.path)
                     yield path
                     if entry.is_dir(follow_symlinks=False):
-                        self.depth(depth + 1, self.limits.directory_depth)
+                        self.depth(depth + 1, self.limits.directory_depth, dimension='directory_depth')
                         pending.append((path, depth + 1))
 
     def json(self, data, path):
@@ -173,7 +173,7 @@ class Context:
             elif byte == 34: quoted = True
             elif byte in (91, 123):
                 depth += 1
-                self.depth(depth, self.limits.json_depth)
+                self.depth(depth, self.limits.json_depth, dimension='json_depth')
             elif byte in (93, 125): depth -= 1
         result = json.loads(text)
         self.check()
@@ -188,8 +188,9 @@ class Context:
 
     def tokenize(self, text, path='<input>'):
         self.check()
-        if len(text.encode('utf-8')) > self.limits.source:
-            self.reject('parser input byte quota exceeded')
+        input_bytes = len(text.encode('utf-8'))
+        if input_bytes > self.limits.source:
+            self.reject('parser input byte quota exceeded', category='budget', phase='request_load', dimension='source', limit=self.limits.source, admitted=0, attempted=input_bytes)
         return BoundedLexer(text, path, self).tokenize()
 
     def parse(self, text, path='<input>', *, tokens=None):
@@ -205,7 +206,7 @@ class Context:
         from .modules import load_project
         self.check()
         if self._loading:
-            self.reject('reentrant graph load is not admitted')
+            self.reject('reentrant graph load is not admitted', category='reentrancy', phase='request_load')
         self._loading = True
         try:
             return load_project(entry, context=self, locked=locked,
@@ -224,7 +225,7 @@ class TokenList(list):
     def append(self, token):
         # The next token exists, but no unbounded token list is built first.
         if len(self) >= self.context.limits.tokens_per_parse:
-            self.context.reject('tokens per parse quota exceeded')
+            self.context.reject('tokens per parse quota exceeded', category='budget', phase='request_load', dimension='tokens_per_parse', limit=self.context.limits.tokens_per_parse, admitted=len(self), attempted=len(self) + 1)
         self.context.charge('total_tokens')
         super().append(token)
 
@@ -301,7 +302,7 @@ class BoundedParser(Parser):
     def _nested(self):
         self.depth += 1
         try:
-            self.context.depth(self.depth, self.context.limits.parser_depth)
+            self.context.depth(self.depth, self.context.limits.parser_depth, dimension='parser_depth')
             yield
         finally:
             self.depth -= 1

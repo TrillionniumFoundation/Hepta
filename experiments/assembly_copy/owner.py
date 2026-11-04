@@ -56,49 +56,49 @@ class _Context(AppendContext):
         super().check()
         if (modules.copy is not copy or copy.deepcopy is not _DEEPCOPY
                 or LegacyLoaderOps.deepcopy is not _SEAM):
-            self.reject('replacement assembly copy hook is not admitted')
+            self.reject('replacement assembly copy hook is not admitted', category='replacement_hook', phase='assembly_copy')
 
     def admit_copy_visit(self, depth):
         # Deliberately no user callback: a callback could mutate already visited
         # children and invalidate preflight. Entry and exit check separately.
         if self.closed:
-            self.reject('request context is terminal')
+            self.reject('request context is terminal', category='terminal', phase='assembly_copy')
         if depth > self.limits.copy_depth:
-            self.reject('copy_depth quota exceeded')
+            self.reject('copy_depth quota exceeded', category='budget', phase='assembly_copy', dimension='copy_depth', limit=self.limits.copy_depth, admitted=None, attempted=depth)
         if self.counts['copy_visits'] >= self.limits.copy_visits:
-            self.reject('copy_visits quota exceeded')
+            self.reject('copy_visits quota exceeded', category='budget', phase='assembly_copy', dimension='copy_visits', limit=self.limits.copy_visits, admitted=self.counts['copy_visits'], attempted=self.counts['copy_visits'] + 1)
         self.counts['copy_visits'] += 1
 
 
 def _copy_hooks(context):
     if (copy._deepcopy_dispatch is not _DISPATCH or type(_DISPATCH) is not dict
             or copy.dispatch_table is not _REDUCERS or type(_REDUCERS) is not dict):
-        context.reject('replacement copy dispatch table')
+        context.reject('replacement copy dispatch table', category='replacement_hook', phase='assembly_copy')
     for namespace, name, expected in _HELPERS:
         if getattr(namespace, name, _MISSING) is not expected:
-            context.reject('replacement copy helper: ' + name)
+            context.reject('replacement copy helper: ' + name, category='replacement_hook', phase='assembly_copy')
     for cls, copier, reducer in zip(_COPY_TYPES, _DISPATCH_VALUES, _REDUCER_VALUES):
         if (_DISPATCH.get(cls, _MISSING) is not copier
                 or _REDUCERS.get(cls, _MISSING) is not reducer):
-            context.reject('replacement canonical copy dispatch')
+            context.reject('replacement canonical copy dispatch', category='replacement_hook', phase='assembly_copy')
     for name, cls, expected in zip(_NAMES, _CLASSES, _CLASS_HOOKS):
         if getattr(ast, name, _MISSING) is not cls:
-            context.reject('replacement canonical AST class')
+            context.reject('replacement canonical AST class', category='replacement_hook', phase='assembly_copy')
         if inspect.getattr_static(cls, '__slots__', _MISSING) is not _MISSING:
-            context.reject('replacement AST slot metadata')
+            context.reject('replacement AST slot metadata', category='replacement_hook', phase='assembly_copy')
         slots = inspect.getattr_static(cls, '__slotnames__', _MISSING)
         if (slots is not _MISSING and slots is not None
                 and not (type(slots) is list and len(slots) == 0)):
-            context.reject('replacement AST slot metadata')
+            context.reject('replacement AST slot metadata', category='replacement_hook', phase='assembly_copy')
         for hook, original in zip(_HOOK_NAMES, expected):
             if inspect.getattr_static(cls, hook, _MISSING) is not original:
-                context.reject('replacement AST copy hook: ' + hook)
+                context.reject('replacement AST copy hook: ' + hook, category='replacement_hook', phase='assembly_copy')
 
 
 def _dictionary_children(value, context):
     for key, child in value.items():
         if type(key) is not str:
-            context.reject('copy dictionary keys must be exact strings')
+            context.reject('copy dictionary keys must be exact strings', category='schema', phase='assembly_copy')
         yield key
         yield child
 
@@ -106,7 +106,7 @@ def _dictionary_children(value, context):
 def _set_children(value, context):
     for child in value:
         if type(child) is not str:
-            context.reject('copy set members must be exact strings')
+            context.reject('copy set members must be exact strings', category='schema', phase='assembly_copy')
         yield child
 
 
@@ -124,13 +124,13 @@ def _children(value, context):
         if cls is expected:
             state = object.__getattribute__(value, '__dict__')
             if type(state) is not dict or len(state) != len(names):
-                context.reject('noncanonical AST field shape')
+                context.reject('noncanonical AST field shape', category='schema', phase='assembly_copy')
             for name in state:
                 if type(name) is not str or name not in names:
-                    context.reject('noncanonical AST field shape')
+                    context.reject('noncanonical AST field shape', category='schema', phase='assembly_copy')
             return iter((state,))
     # No hashing/equality/attribute lookup on the unknown object or its class.
-    context.reject('unknown copy graph object')
+    context.reject('unknown copy graph object', category='schema', phase='assembly_copy')
 
 
 def _preflight(value, context):
@@ -146,7 +146,7 @@ def _preflight(value, context):
         if children is not None:
             identity = id(value)
             if identity in active:
-                context.reject('cyclic copy graph is not admitted')
+                context.reject('cyclic copy graph is not admitted', category='schema', phase='assembly_copy')
             active.add(identity)
             stack.append((identity, children, depth))
         while stack:
@@ -169,7 +169,7 @@ class _Ops(AppendOps):
         try:
             self.context.check()
             if deepcopy is not _DEEPCOPY:
-                self.context.reject('replacement captured copy callable')
+                self.context.reject('replacement captured copy callable', category='replacement_hook', phase='assembly_copy')
             _copy_hooks(self.context)
             _preflight(value, self.context)
             # No checkpoint after validation and before dispatch.
