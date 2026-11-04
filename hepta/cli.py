@@ -878,7 +878,7 @@ def main(argv=None) -> int:
             return 0
         if args.command == "build":
             ext = {"bin": "", "staticlib": ".a", "cdylib": ".so", "obj": ".o", "rlib": ".rlib"}[args.crate_type]
-            dest = Path(args.output).resolve() if args.output else file.parent / "build" / (file.stem + ext)
+            dest = (Path(args.output) if args.output else file.parent / "build" / (file.stem + ext)).resolve()
             if dest in protected:
                 raise ValueError("Output cannot overwrite an input used to validate the project")
             if args.backend == "c":

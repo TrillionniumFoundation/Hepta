@@ -69,27 +69,30 @@ not include arbitrary foreign link inputs or the full native compiler
 dependency closure. Low-level backend APIs and unrelated migration/import
 commands are unchanged.
 
-## Known filesystem limits are not repaired here
+## Stable default-output alias correction and remaining filesystem limits
 
-This composition's qualification scope is limited to stable ordinary paths
-and regular-file fixtures. It does not provide atomic observation or
-transactional publication.
-The existing post-validation unchanged() check does not pin files or the owner
-lock through later output selection and writing. Changes can occur between
-validation, resolution, protection comparison and publication.
+The #671 parent had a reproducible default-build path alias gap: explicit
+`-o` destinations were resolved before the protected-input comparison, but
+implicit destinations were not. In this successor source, the independently
+reproduced #670 correction resolves either destination before the same guard.
+The exact #670 native regression suite and workflow are retained alongside
+the #671 534-method module/CLI intersection suite. Their prior separate CI
+results do not qualify this new union commit: both must execute on its own
+exact HEAD before even narrowly accepting the combined repair.
 
-There is also an existing default-build output gap: an explicit -o is resolved
-before the CLI guard, but the default build path is compared before the native
-backend resolves it. A default-output file symlink can therefore resolve to a
-protected input after that comparison. This known issue requires separate
-repair and qualification; no such repair is included in this exact tree.
-Graph paths are not all normalized uniformly, and path equality is not an
-inode/samefile check. Hard-link preservation is not established either.
+This correction covers stable ordinary symlink aliases, not a general
+filesystem security guarantee. The existing post-validation `unchanged()`
+check does not pin inputs or the owner lock through later output selection and
+publication. Paths may change between validation, resolution, protection
+comparison and use. No directory-descriptor / inode-bound atomic publication
+protocol is present. Path equality is not a hardlink `samefile` guarantee;
+foreign compiler inputs and the complete native dependency closure are not
+inventoried. Earlier failed destructive-default controls from #670 remain
+part of the historical baseline, not a failure erased by this composition.
 
-Do not interpret ordinary default-output controls as symlink or hard-link
-qualification. Do not describe this candidate as universal physical-file
-preservation, filesystem security, concurrent-mutation protection or complete
-native-input isolation.
+Do not describe this candidate as universal physical-file preservation,
+filesystem security, concurrent-mutation protection, complete native-input
+isolation, or any P0–P7 production qualification.
 
 ## Frozen test composition
 
