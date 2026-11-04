@@ -1,0 +1,74 @@
+name: Stable compiler identity hosts
+
+on:
+  pull_request:
+    paths:
+      - 'hepta/native_tool_identity.py'
+      - 'hepta/pipeline.py'
+      - 'tests/test_native_tool_identity*.py'
+      - 'tests/test_compiler_hash_identity.py'
+      - '.github/workflows/hepta-tool-identity-hosts.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stable-identity:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022]
+        python: ['3.11', '3.12', '3.13']
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    env:
+      HEPTA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEPTA_SOURCE_SHA }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Verify exact source and record native stat semantics
+        shell: python
+        run: |
+          import hashlib, json, os, pathlib, platform, subprocess, sys, tempfile, time
+          sys.path.insert(0, os.getcwd())
+          from hepta.native_tool_identity import digest_executable
+          actual = subprocess.check_output(['git', '--no-replace-objects', 'rev-parse', 'HEAD'], text=True).strip()
+          assert actual == os.environ['HEPTA_SOURCE_SHA'], (actual, os.environ['HEPTA_SOURCE_SHA'])
+          assert not subprocess.check_output(['git', 'status', '--porcelain', '--untracked-files=all'], text=True).strip()
+          print('Source:', actual, 'Host:', platform.platform(), 'Python:', sys.version, flush=True)
+          fields = ('st_dev', 'st_ino', 'st_size', 'st_mtime_ns', 'st_ctime_ns', 'st_birthtime_ns')
+          with tempfile.TemporaryDirectory() as root:
+              path = pathlib.Path(root) / 'compiler'
+              path.write_bytes(b'initial')
+              time.sleep(0.02)
+              path.write_bytes(b'updated')
+              os.utime(path, ns=(1_600_000_000_000_000_000,) * 2)
+              before = path.lstat()
+              with path.open('rb') as stream:
+                  opened = os.fstat(stream.fileno())
+              report = {name: {field: getattr(value, field, None) for field in fields}
+                        for name, value in [('lstat', before), ('fstat', opened)]}
+              report['differing_fields'] = [field for field in fields if getattr(before, field, None) != getattr(opened, field, None)]
+              print(json.dumps(report, sort_keys=True), flush=True)
+              assert digest_executable(path) == hashlib.sha256(b'updated').hexdigest()
+      - name: Require portable positive and mutation controls without skips
+        shell: python
+        run: |
+          import os, sys, unittest
+          sys.path.insert(0, os.getcwd())
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_native_tool_identity_cross_api')
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          assert result.testsRun == 9
+          assert result.wasSuccessful() and not result.skipped and not result.expectedFailures and not result.unexpectedSuccesses
+      - name: Run existing native identity controls
+        run: python -m unittest tests.test_native_tool_identity -v
+      - name: Run existing source identity controls on POSIX
+        if: runner.os == 'Linux'
+        run: python -m unittest tests.test_compiler_hash_identity -v
