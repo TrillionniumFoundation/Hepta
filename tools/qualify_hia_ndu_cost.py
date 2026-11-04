@@ -98,9 +98,22 @@ def full_cost_totals(rows, offline_wall_ns, manifest):
 
 
 def episodes_without_native_start(rows):
-    return sum(row["policy"] == "native_ndu" and row.get("native_invocations") == 0
+    """Count proven skips, not failed starts or unknown legacy receipts.
+
+    Zero elapsed startup time alone cannot prove the factory was never entered.
+    A factory attempt does not establish whether a process actually started.
+    Missing attempt/session evidence in retained older rows stays unproven; do
+    not manufacture it or rewrite their original qualification reports.
+    """
+    return sum(row["policy"] == "native_ndu"
+               and type(row.get("native_invocations")) is int and row["native_invocations"] == 0
                and "native_session" not in row and bool(row["steps"])
-               and all(step["decision"].get("startup_ns") == 0 for step in row["steps"])
+               and all(decision.get("startup_attempted") is False
+                       and decision.get("session_ready_before") is False
+                       and decision.get("native_invoked") is False
+                       and type(decision.get("startup_ns")) is int and decision["startup_ns"] == 0
+                       and "native_error" not in decision and "response" not in decision
+                       for decision in (step["decision"] for step in row["steps"]))
                for row in rows)
 
 

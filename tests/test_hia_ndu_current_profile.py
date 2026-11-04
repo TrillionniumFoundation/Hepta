@@ -127,7 +127,8 @@ class CurrentProfileTests(unittest.TestCase):
 
     def test_started_session_without_evaluation_is_not_a_no_start_episode(self):
         row = {"policy": "native_ndu", "native_invocations": 0,
-               "steps": [{"decision": {"native_invoked": False, "startup_ns": 0}}]}
+               "steps": [{"decision": {"native_invoked": False, "startup_ns": 0,
+                                       "startup_attempted": False, "session_ready_before": False}}]}
         self.assertEqual(episodes_without_native_start([row]), 1)
         self.assertEqual(episodes_without_native_start([{**row, "native_session": {"requests": 0}}]), 0)
         row["steps"][0]["decision"]["startup_ns"] = 10
