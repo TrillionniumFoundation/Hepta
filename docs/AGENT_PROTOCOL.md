@@ -159,6 +159,53 @@ leaf module, a package snapshot, or a containing project's dependency graph.
 Use v2 when those contexts matter. A v1 source lock uses the same convention as
 v2 so cooperative edits to a shared file cannot bypass one another's locks.
 
+### Byte-preserving writeback
+
+Both versions stage the candidate as binary UTF-8 bytes. The exact candidate
+passed to validation and used for `after_sha256` is the payload written before
+atomic replacement; there is no platform newline translation. LF, CRLF, CR,
+mixed source line endings and Unicode comments outside the replacement remain
+unchanged. The replacement body's own line endings are preserved too.
+
+The previous text-mode staging used Python's default newline conversion. Under
+Windows' CRLF policy, a candidate containing LF was written with different bytes;
+existing CRLF became CRCRLF. V1 and v2 could report `applied=true` while their
+returned source hash differed from the resulting file. The v2 candidate project
+identity could also differ from a fresh load after publication.
+
+The correction changes only the two staging modes and the two UTF-8 writes.
+Validation, request schemas, graph/source/interface checks, cooperative locks,
+permission preservation, flush/fsync, replacement ordering and cleanup remain
+unchanged. It does not strengthen crash durability, add rollback of external
+effects or promise atomic observation against uncooperative writers.
+
+Repeatable focused controls:
+
+```sh
+python -m unittest -v tests.test_patch_write_bytes.ModelTextWrites
+RUSTC=/path/to/rust-1.90.0/bin/rustc python -B tools/test_patch_write_bytes.py
+```
+
+The first command uses actual files and Python text streams configured with
+Windows' default newline policy. Its validation doubles deliberately run only
+the frontend, so these ten controls are not Windows-host or native qualification.
+The strict command requires real pinned Rust and exactly 37 unique test methods:
+the ten modeled controls, eight new native controls, twelve existing project
+transaction tests and seven existing multi-file preview tests. Skips, expected
+failures and incomplete inventories are rejected. Native controls use actual
+Rust metadata validation, actual host staging, public CLI calls, repeated edits,
+fresh project identities and mandatory borrow rejection. They do not execute
+the patched programs or claim functional equivalence.
+
+The dedicated workflow tests the exact PR head on Linux/Python 3.12 and actual
+Windows/Python 3.11. Windows first runs
+`tools/reproduce_patch_bytes_baseline.py` against a separate clean worktree at
+`f2b76f5741c83822be2e12cf5a50b50a8d27b96a`, requiring both original v1/v2
+mismatches after actual Rust validation, without mocks or production source
+replacement. Original and repaired observations are retained separately.
+Windows Python 3.12/3.13 are not qualified by this workflow: their independent
+stat-identity repair remains in draft #645 and is not composed here.
+
 ## 4. Locking, races, and failure behavior
 
 Transaction locks are sidecars named `FILE.hepta-lock`; they are separate from
