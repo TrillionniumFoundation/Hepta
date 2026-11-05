@@ -133,11 +133,14 @@ def render_entry(parent, function, number, helper_start, plan):
     length = "%entry_" + str(position)
     fast = result + " @__hia_fn_" + str(helper_start)
     slow = result + " @__hia_fn_" + str(helper_start + 1)
+    # Static 2:1 layout preference: keep the zero body on the fall-through edge.
+    # This is not sampled profile data and changes no guard or semantic effect.
+    parent.entry_zero_layout_hint = True
     dispatch = "\n".join([
         "define internal " + result + " @__hia_fn_" + str(number) + "(" + arguments + ") {",
         "entry:",
         "  %empty = icmp eq i64 " + length + ", 0",
-        "  br i1 %empty, label %zero, label %guard",
+        "  br i1 %empty, label %zero, label %guard, !prof !0",
         "zero:",
         "  %zero_result = call " + fast + "(" + zero_arguments + ") alwaysinline",
         "  ret " + result + " %zero_result",

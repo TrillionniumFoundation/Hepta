@@ -1,0 +1,98 @@
+{
+  "schema": "hepta.hia.ndu.dynamic-cache.protocol.v1",
+  "scope": "Native Rust controller and cache workload experiment. Not HIA compiler integration, not a language speedup, not whole-program optimality or all-input safety proof.",
+  "previous_negative_baseline": {
+    "source_commit": "3707b871ecbe563233ee9a3b69299fc627408936",
+    "source_tree": "9530e9feccf0077696d2e94746fda6bfb6854417",
+    "hia_full_cost_native_net_win_scenarios": 0,
+    "scenario_count": 3,
+    "alter_or_replace_previous_evidence": false
+  },
+  "upstream_ndu_commit": "8e52e1187f47f6d4edc8d942fc7cb7eca4bc447d",
+  "arms": [
+    "direct",
+    "fixed",
+    "light",
+    "exact_dp",
+    "beam",
+    "beam_ndu"
+  ],
+  "primary_native_arm": "beam_ndu",
+  "no_ndu_ablation": "beam",
+  "beam_width": 4,
+  "maximum_artifacts": 8,
+  "lookahead": 12,
+  "episode_steps": 24,
+  "cache_slots": 2,
+  "matrix_count": 6,
+  "training_dimensions": [
+    128,
+    384,
+    768
+  ],
+  "training_seeds": [
+    19,
+    811,
+    2347
+  ],
+  "training_repeats": [
+    1,
+    2,
+    8
+  ],
+  "training_samples_per_combination": 3,
+  "warmup_calls": 2,
+  "holdout_dimensions": [
+    256,
+    896
+  ],
+  "holdout_seeds": [
+    7001,
+    12289
+  ],
+  "schedule_families": [
+    "persistent_pair",
+    "phase_reuse",
+    "cyclic_pressure",
+    "short_bursts",
+    "invalidate_recover",
+    "mixed_regime"
+  ],
+  "repetitions": 3,
+  "paired_order": "Latin rotation of all six arms by (cohort_index + repeat); no best-of reruns",
+  "job_generation": "Pure registered family and seed function; no selection by measured latency. Each arm gets only current plus next 11 announced requests and data-epoch updates. No measured future execution times.",
+  "forecast": {
+    "execution": "For each repeat count, median observed round-trip cost divided by n squared on training dimensions; interpolate normalized cost linearly between adjacent training dimensions, clamp outside. Holdout timings never train or revise forecasts.",
+    "preparation": "Median actual prepare round trip divided by n squared, same interpolation; retirement uses median actual retire round trip.",
+    "controller_costs": "Each native mode calibrates its own actual search and indivisible remaining request round trip; startup and close measured. Same source/binary/channel. Future changed resident sets pay that mode's own estimate; current committed call charged to every candidate including skip. Common per-batch gate calibration includes forecast-model construction. Seven actual native calibration calls per mode and 21 construction-plus-gate samples are retained.",
+    "errors": "Retain predicted and actual execution/prepare/retire/decision costs for every held-out action. Forecast errors are observations, not repaired by retrospectively fitted parameters.",
+    "prepared_bank": "After training, immutable geometry/repeat forecasts are prepared once and source/training bound. This caches arithmetic only, no proof, native response or decision. Its actual preparation cost is charged before online work."
+  },
+  "fixed_control": "Exhaust every feasible static resident set against all registered training schedules/dimensions/seeds using training forecasts, preparation and epoch retirement. Choose minimum aggregate modeled delivery cost with stable mask tie-break. The selected set never adapts to holdout results; reprepare members after announced invalidation. Direct is an additional strong no-cache arm.",
+  "light_control": "Enumerate every legal first resident set and score its full forecast horizon while retaining until invalidation; no DP. Same future queue and cost forecasts as all dynamic arms.",
+  "exact_control": "Native scalar-cost DP with mask-bank cost precomputation and lazy action witnesses; no NDU evaluation. No artificial delay, Python continuation search, or duplicate proof work.",
+  "beam_control": "At most four best prefix states after same-state compaction, same feasible action bank and transition costs. Approximate; retains all bounded winners and linear witness validation.",
+  "ndu_control": "The exact same beam implementation and candidate bundle as beam, followed by unchanged upstream recursive utility and candidate evaluation APIs. No claim NDU improves scalar decision quality over its ablation.",
+  "invocation_gate": "A cheap supplied-model optimistic saving bound may skip planner creation/invocation. It ignores preparation/capacity/future fees, thus may overestimate benefit. A failed or over-budget proposal retains only current valid admitted caches; no new optional preparation.",
+  "reuse_invalidation": "Prepared cache data is physically resident and byte-metered. Monotonic data epochs invalidate/drop affected transposes. Ready state and every optional prepare are independently checked outside NDU; NDU authority remains DENY_ALL.",
+  "exact_gap_audit": "After the online campaign, each unique actual dynamic model is solved by the same optimized native exact DP; replayed selected witness total minus exact minimum is reported. The reference receives exactly that model, including that arm's estimated solver fee. Audit cost is separately measured and included in conservative full campaign allocations; it never feeds online decisions. Every native exact minimum is independently verified by a Python bottom-up traversal of every legal resident state/transition, without calling native witness action replay or NDU. This extra wall time is separately measured and charged to offline audit. Hot-path search_complete is only the pinned implementation assertion.",
+  "cost_boundary": {
+    "service": "Outer episode wall from sealed workload process startup through initialization, decisions, request/response/replay, real preparation/retirement, kernel/oracle, epochs, planner close and workload cleanup; inline original-frame writes included. Final episode/aggregate report writes are separately covered by campaign and outer process wall.",
+    "offline": "Source/tool identity, absent-target native build, refusal/correctness qualification, all training/calibration, fixed selection, exact-gap audit, final report serialization and enclosing command wall retained.",
+    "alternative_allocations": "Each standalone arm is conservatively assigned the full shared preparation/build/training/qualification/report remainder plus its measured online service and own audit share. These overlap and MUST NOT be summed as actual machine wall.",
+    "unknown": "Historical dependency/tool acquisition, human engineering/review, long-term operation and storage remain unknown. No full lifecycle claim.",
+    "cpu": "Freeze allowed CPU set and machine observations; shared host acknowledged; no manufactured sleeps, cache-flush delays or hidden background load.",
+    "shared_binary": "Every arm executes the same sealed native binary. Build cost is assigned to every conservative standalone allocation. A separately built NDU-free binary is not isolated; this is a component evaluation ablation, not a complete deployment alternative cost comparison."
+  },
+  "acceptance": {
+    "correctness": "All requested episodes/attempts retained; every output of the generated affine matrix family checked, resource/refusal/session cleanup cases pass, no skipped cells.",
+    "performance": "Report every scenario and arm, paired total/median service and complete allocated costs. Positive net-benefit requires native beat every registered control including no-NDU beam after all allocated observed costs; no substituted threshold after measurement.",
+    "inference": "Three repeats and a finite registered workload remain exploratory. No universal or statistical theorem; zero wins is a valid retained outcome."
+  },
+  "expected_episode_count": 432,
+  "expected_online_workload_requests": 10368,
+  "expected_holdout_cohorts": 24,
+  "new_protocol_requires_new_source_freeze": true,
+  "episode_budget_ns": 30000000000,
+  "completion_value_ns": 100000000000
+}

@@ -27,7 +27,7 @@ if str(ROOT) not in sys.path:
 
 from hepta.hia_ndu_session import STREAM_PROFILE_PINS
 
-SCHEMA = 'hepta.hia.source-composition.v3'
+SCHEMA = 'hepta.hia.source-composition.v4'
 STREAM_PROFILE = 'zero-abstain-v1'
 NDU_SOURCE_PIN = STREAM_PROFILE_PINS[STREAM_PROFILE]
 REDUCTION_PROFILE = 'induction-multiload-v2'
@@ -57,12 +57,16 @@ CORE_TESTS = (
     'tests.test_hia_empty_reduction', 'tests.test_hia_empty_reduction_observation',
     'tests.test_hia_empty_wrapper_candidate',
     'tests.test_hia_entry_layout', 'tests.test_hia_outlined_aot_protocol',
+    'tests.test_hia_byte_sum', 'tests.test_hia_byte_sum_resources',
     'tests.test_hia_v6_differential', 'tests.test_hia_native_source_reinspect',
     'tests.test_hia_ndu_lazy_witness', 'tests.test_hia_ndu_controller_deadline', 'tests.test_hia_ndu_build_cost',
     'tests.test_hia_raw_session_cost', 'tests.test_hia_composition_raw_identity',
     'tests.test_cpp_gsl_final_action', 'tests.test_cpp_gsl_current_release',
     'tests.test_hia_agent_factorial', 'tests.test_hia_agent_edit_factorial',
+    'tests.test_hia_upstream_factorial',
+    'tests.test_hia_agent_gguf', 'tests.test_hia_ndu_dynamic',
     'tests.test_cpp_unique_reuse.UniqueReuseProfileTests.test_profile_flag_is_exact_boolean',
+    'tests.test_cpp_unique_swap.UniqueSwapTests.test_explicit_profile_and_reusable_slots_required',
     'tests.test_modules.PackageTests.test_source_directory_alias_rejected_before_locking',
     'tests.test_modules.PackageTests.test_directory_alias_added_after_lock_rejects_locked_load',
     'tests.test_modules.PackageTests.test_nested_and_dependency_directory_links_rejected',
@@ -328,6 +332,8 @@ def qualify(args):
     if output.is_relative_to(ROOT) or output.exists():
         raise ValueError('new output directory outside the source worktree required')
     source, tools = source_identity(), tool_identity(args)
+    from tools.assess_hia_byte_sum_resources import specification
+    resource_cost_specification = specification()
     output.mkdir(parents=True)
     ledger = output/'commands'; ledger.mkdir()
     plan = {'schema':SCHEMA,'source':source,'tools':tools,'ndu_source_pin':NDU_SOURCE_PIN,
@@ -339,11 +345,16 @@ def qualify(args):
                      'continuation','reduction','ndu_full_cost','cpp_unique_reset','cpp_source_refusals',
                      'gsl_upstream_upgrade','migration_resources','host_region','agent_tool_controls',
                      'ndu_model_planner','ndu_lazy_witness','outlined_aot','raw_ndu_correctness','raw_ndu_service_cost',
-                     'cpp_unique_reuse','cpp_reuse_source_refusals'],
+                     'cpp_unique_reuse','cpp_reuse_source_refusals','cpp_unique_swap','cpp_swap_source_refusals',
+                     'host_region_recovery_race','upstream_native_ports','outlined_aot_resource_cost'],
+            'aot_resource_cost_protocol_sha256':digest(ROOT/'benchmarks/hia_byte_sum_resource_cost.json'),
+            'aot_resource_cost_specification':resource_cost_specification,
+            'process_affinity':sorted(os.sched_getaffinity(0)) if hasattr(os,'sched_getaffinity') else None,
             'raw_ndu_profile':'raw-model-v1; separate executable and protocol, same upstream pin',
             'raw_ndu_object_source':str(Path(args.ndu_object_source or args.ndu_source).resolve()),
-            'proof_scope':'general model theorems, selected-program all-input checks and finite tests are distinct; syntax-kernel research branch is not silently included',
-            'hardware_scope':'Linux x86_64 host-region execution and lifecycle controls; no device/DMA guarantee',
+            'proof_scope':'general model theorems, selected-program all-input checks and finite tests are distinct; integrated syntax-kernel research requires a separate fresh complete acceptance and replay on this exact source commit',
+            'hardware_scope':'Linux x86_64 host-region execution, lifecycle and gated native recovery race; no device/DMA or all-interleavings guarantee',
+            'upstream_task_scope':'two correlated historical stb fixes from one header; complete C captures, finite native controls and explicitly attributed HIA/Rust repair references; no general Agent advantage',
             'performance_results_are_not_assumed_positive':True,
             'general_agent_advantage_gate':'separate complete prospective model study required',
             'authority':'DENY_ALL','safety_certificate':False}
@@ -445,6 +456,9 @@ def qualify(args):
             '--profile',REDUCTION_PROFILE])
         passed['outlined_aot'] = step('outlined_aot',py+['tools/qualify_hia_outlined_aot.py',
             '--output',str(output/'outlined-aot'),'--clang',tools['clang']['path'],'--rustc',tools['rustc']['path']])
+        passed['outlined_aot_resource_cost'] = (step('outlined_aot_resource_cost',py+[
+            'tools/assess_hia_byte_sum_resources.py','--result',str(output/'outlined-aot/RESULT.json'),
+            '--output',str(output/'outlined-aot-resource-cost.json')]) if passed['outlined_aot'] else False)
         passed['ndu_full_cost'] = step('ndu_full_cost',py+['tools/qualify_hia_ndu_cost.py',
             '--output',str(output/'ndu-cost'),'--clang',tools['clang']['path'],'--rustc',tools['rustc']['path'],
             '--bridge',str(bridge),'--identity',str(identity),'--bridge-built-this-campaign',
@@ -477,6 +491,12 @@ def qualify(args):
         passed['cpp_reuse_source_refusals'] = step('cpp_reuse_source_refusals',py+['tools/qualify_cpp_unique_reuse.py',
             '--source-refusals-only','--workdir',str(output/'cpp-reuse-source-refusals'),
             '--clangxx',tools['clangxx']['path'],'--clang',tools['clang']['path'],'--cc',tools['cc']['path']])
+        passed['cpp_unique_swap'] = step('cpp_unique_swap',py+['tools/qualify_cpp_unique_swap.py',
+            '--workdir',str(output/'cpp-unique-swap'),'--clang',tools['clang']['path'],
+            '--clangxx',tools['clangxx']['path'],'--cc',tools['cc']['path']])
+        passed['cpp_swap_source_refusals'] = step('cpp_swap_source_refusals',py+['tools/qualify_cpp_unique_swap.py',
+            '--source-refusals-only','--workdir',str(output/'cpp-swap-source-refusals'),
+            '--clangxx',tools['clangxx']['path'],'--clang',tools['clang']['path'],'--cc',tools['cc']['path']])
         passed['gsl_upstream_upgrade'] = step('gsl_upstream_upgrade',py+['tools/qualify_cpp_gsl_final_action.py',
             '--output',str(output/'gsl-upgrade'),'--clang',tools['clang']['path'],
             '--cxx',tools['g++']['path'],'--cc',tools['cc']['path'],'--include-current-upstream'])
@@ -485,6 +505,11 @@ def qualify(args):
             '--cxx',tools['g++']['path'],'--cc',tools['cc']['path']])
         passed['host_region'] = step('host_region',py+['tools/qualify_hia_host_region.py',
             '--output',str(output/'host-region'),'--clang',tools['clang']['path']])
+        passed['host_region_recovery_race'] = step('host_region_recovery_race',py+['tools/qualify_hia_host_region_race.py',
+            '--output',str(output/'host-region-race'),'--clang',tools['clang']['path']])
+        passed['upstream_native_ports'] = step('upstream_native_ports',py+['tools/qualify_hia_upstream_ports.py',
+            '--output',str(output/'upstream-native-ports'),'--clang',tools['clang']['path'],
+            '--rustc',tools['rustc']['path'],'--cc',tools['cc']['path']])
         passed['agent_tool_controls'] = step('agent_tool_controls',py+['tools/qualify_hia_agent_repository_maintenance_v2.py',
             'controls','--output',str(output/'agent-controls'),'--clang',tools['clang']['path']])
         passed['ndu_model_planner'] = step('ndu_model_planner',py+['tools/qualify_hia_ndu_budget_erasure.py',
@@ -496,15 +521,20 @@ def qualify(args):
                        'production_capabilities','sequential_core','ndu_budget_model',
                        'continuation','reduction','outlined_aot','ndu_full_cost','ndu_model_planner','ndu_lazy_witness','host_region',
                        'raw_ndu_correctness','raw_ndu_service_cost','cpp_unique_reuse','cpp_reuse_source_refusals',
-                       'gsl_upstream_upgrade')),
+                       'gsl_upstream_upgrade','cpp_unique_swap','cpp_swap_source_refusals',
+                       'host_region_recovery_race','upstream_native_ports','outlined_aot_resource_cost')),
                   'all_seven_research_targets_closed':False,
                   'capability_lifecycle_assessment':'capability-lifecycle/REPORT.json',
                   'capability_borrow_assessment':'capability-borrow/REPORT.json',
                   'performance_assessment':'reduction/RESULT.json',
                   'outlined_performance_assessment':'outlined-aot/RESULT.json',
+                  'outlined_resource_cost_assessment':'outlined-aot-resource-cost.json',
                   'raw_ndu_assessment':'raw-service-cost/RESULT.json',
                   'ndu_lazy_witness_assessment':'ndu-lazy-witness/RESULT.json',
                   'ndu_assessment':'ndu-cost/REPORT.json',
+                  'cpp_swap_assessment':'cpp-unique-swap/qualification.json',
+                  'host_region_race_assessment':'host-region-race/RESULT.json',
+                  'upstream_native_port_assessment':'upstream-native-ports/CONTROLS.json',
                   'ndu_model_planner_assessment':'ndu-model-planner/RESULT.json'}
         if passed['raw_ndu_service_cost']:
             raw = json.loads((raw_cost/'RESULT.json').read_text())
@@ -587,3 +617,4 @@ def main():
 
 if __name__=='__main__':
     raise SystemExit(main())
+

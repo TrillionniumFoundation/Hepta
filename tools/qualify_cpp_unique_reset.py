@@ -135,7 +135,7 @@ def cases(weight):
     return [oracle(row, weight=weight) for row in raw]
 
 
-def bindings(*, reusable_released_owners=False):
+def bindings(*, reusable_released_owners=False, owner_swaps=False):
     paths = [Path(__file__), ROOT / "hepta/cpp_unique_reset.py", ROOT / "hepta/cpp_unique_project.py",
              ROOT / "hepta/cpp_unique_capture.py", ROOT / "hepta/cpp_composed_migrate.py",
              ROOT / "tools/validate_cpp_composed.py", ROOT / "tools/validate_cpp_owned.py",
@@ -144,6 +144,9 @@ def bindings(*, reusable_released_owners=False):
     if reusable_released_owners:
         paths.extend([ROOT / "tools/qualify_cpp_unique_reuse.py",
                       * (ROOT / "examples/cpp/unique_reuse_migration").iterdir()])
+    if owner_swaps:
+        paths.extend([ROOT / "tools/qualify_cpp_unique_swap.py",
+                      * (ROOT / "examples/cpp/unique_swap_migration").iterdir()])
     return {str(path.relative_to(ROOT)): sha256(path.read_bytes()).hexdigest()
             for path in paths if path.is_file()}
 
@@ -169,19 +172,25 @@ extern "C" std::uint64_t composed_case(std::size_t left, std::size_t right, std:
 '''
 
 
-def qualify(directory, *, clangxx="clang++", clang="clang", cc="gcc", reusable_released_owners=False):
+def qualify(directory, *, clangxx="clang++", clang="clang", cc="gcc", reusable_released_owners=False,
+            owner_swaps=False):
     work = Path(directory).absolute()
     if work.exists():
         raise ValueError("A new reset qualification directory is required")
     work.mkdir(parents=True)
     started = time.perf_counter_ns()
-    before, inputs = compiler_hash(), bindings(reusable_released_owners=reusable_released_owners)
-    example = ROOT / "examples/cpp/unique_reuse_migration" if reusable_released_owners else EXAMPLE
-    if reusable_released_owners:
+    before, inputs = compiler_hash(), bindings(reusable_released_owners=reusable_released_owners,
+                                               owner_swaps=owner_swaps)
+    example = (ROOT / "examples/cpp/unique_swap_migration" if owner_swaps else
+               ROOT / "examples/cpp/unique_reuse_migration" if reusable_released_owners else EXAMPLE)
+    if owner_swaps:
+        from tools.qualify_cpp_unique_swap import cases as selected_cases
+    elif reusable_released_owners:
         from tools.qualify_cpp_unique_reuse import cases as selected_cases
     else:
         selected_cases = cases
-    report = {"schema": "hepta.cpp-unique-reuse-native-qualification.v2" if reusable_released_owners else "hepta.cpp-unique-reset-native-qualification.v1", "ok": False,
+    report = {"schema": ("hepta.cpp-unique-swap-native-qualification.v3" if owner_swaps else
+                         "hepta.cpp-unique-reuse-native-qualification.v2" if reusable_released_owners else "hepta.cpp-unique-reset-native-qualification.v1"), "ok": False,
         "started_utc": datetime.now(timezone.utc).isoformat(), "compiler_sha256": before,
         "source_bindings": inputs, "variants": [], "negative_controls": {},
         "costs": {"human_engineering_seconds": None, "performance_comparison_performed": False},
@@ -205,7 +214,7 @@ def qualify(directory, *, clangxx="clang++", clang="clang", cc="gcc", reusable_r
                 "standalone_hia": {"commands": [], "original_cpp_link_inputs": []}}
             report["variants"].append(row)
             migration = lower_unique_reset_project(project / "compile_commands.json", clangxx=clangxx,
-                reusable_released_owners=reusable_released_owners)
+                reusable_released_owners=reusable_released_owners, owner_swaps=owner_swaps)
             # Preserve the complete 46k+ library census without repeatedly
             # inflating the main report. This is lossless evidence storage.
             library = migration.pop("standard_library_declarations")
@@ -301,7 +310,8 @@ def qualify(directory, *, clangxx="clang++", clang="clang", cc="gcc", reusable_r
                 raise ValueError("Missing owner drop accepted")
         require(report["variants"][0]["expected"]["observations_fnv64"] !=
                 report["variants"][1]["expected"]["observations_fnv64"], "Actual source/API change must alter observed results")
-        require(compiler_hash() == before and bindings(reusable_released_owners=reusable_released_owners) == inputs,
+        require(compiler_hash() == before and bindings(reusable_released_owners=reusable_released_owners,
+                                                     owner_swaps=owner_swaps) == inputs,
                 "Source/compiler changed during qualification")
         report.update(ok=True, source_bindings_unchanged=True)
     except Exception as error:
@@ -374,3 +384,4 @@ def main():
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
