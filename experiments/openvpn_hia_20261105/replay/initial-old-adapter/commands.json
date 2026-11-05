@@ -1,0 +1,90 @@
+[
+  {
+    "command": [
+      "/workspace/scratch/2719a9027f80/toolchain/llvm20/usr/lib/llvm-20/bin/clang",
+      "-O3",
+      "-ffunction-sections",
+      "-fdata-sections",
+      "-DHAVE_CONFIG_H",
+      "-I/workspace/scratch/2719a9027f80/openvpn-baseline/build-c",
+      "-I/workspace/scratch/2719a9027f80/openvpn-baseline/openvpn-2.7.8/src/openvpn",
+      "-I/workspace/scratch/2719a9027f80/openvpn-baseline/openvpn-2.7.8/src/compat",
+      "-I/workspace/scratch/2719a9027f80/openvpn-baseline/openvpn-2.7.8/include",
+      "-I/workspace/scratch/2719a9027f80/Hepta-frozen/experiments/openvpn_hia_20261105",
+      "-c",
+      "/workspace/scratch/2719a9027f80/Hepta-frozen/experiments/openvpn_hia_20261105/packet_replay_differential.c",
+      "-o",
+      "/workspace/scratch/2719a9027f80/replay-run/replay.o"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/workspace/scratch/2719a9027f80/toolchain/llvm20/usr/lib/llvm-20/bin/clang",
+      "-O3",
+      "-ffunction-sections",
+      "-fdata-sections",
+      "-DHAVE_CONFIG_H",
+      "-I/workspace/scratch/2719a9027f80/openvpn-baseline/build-c",
+      "-I/workspace/scratch/2719a9027f80/openvpn-baseline/openvpn-2.7.8/src/openvpn",
+      "-I/workspace/scratch/2719a9027f80/openvpn-baseline/openvpn-2.7.8/src/compat",
+      "-I/workspace/scratch/2719a9027f80/openvpn-baseline/openvpn-2.7.8/include",
+      "-I/workspace/scratch/2719a9027f80/Hepta-frozen/experiments/openvpn_hia_20261105",
+      "-c",
+      "/workspace/scratch/2719a9027f80/openvpn-baseline/openvpn-2.7.8/src/openvpn/buffer.c",
+      "-o",
+      "/workspace/scratch/2719a9027f80/replay-run/upstream-buffer.o"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/workspace/scratch/2719a9027f80/toolchain/llvm20/usr/lib/llvm-20/bin/clang",
+      "-O3",
+      "-ffunction-sections",
+      "-fdata-sections",
+      "-DHAVE_CONFIG_H",
+      "-I/workspace/scratch/2719a9027f80/openvpn-baseline/build-c",
+      "-I/workspace/scratch/2719a9027f80/openvpn-baseline/openvpn-2.7.8/src/openvpn",
+      "-I/workspace/scratch/2719a9027f80/openvpn-baseline/openvpn-2.7.8/src/compat",
+      "-I/workspace/scratch/2719a9027f80/openvpn-baseline/openvpn-2.7.8/include",
+      "-I/workspace/scratch/2719a9027f80/Hepta-frozen/experiments/openvpn_hia_20261105",
+      "-c",
+      "/workspace/scratch/2719a9027f80/openvpn-baseline/openvpn-2.7.8/src/openvpn/otime.c",
+      "-o",
+      "/workspace/scratch/2719a9027f80/replay-run/upstream-otime.o"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/workspace/scratch/2719a9027f80/toolchain/llvm20/usr/lib/llvm-20/bin/clang",
+      "-Wl,--gc-sections",
+      "/workspace/scratch/2719a9027f80/replay-run/replay.o",
+      "/workspace/scratch/2719a9027f80/replay-run/adapter.o",
+      "/workspace/scratch/2719a9027f80/replay-run/packet.o",
+      "/workspace/scratch/2719a9027f80/replay-run/upstream-packet-id.o",
+      "/workspace/scratch/2719a9027f80/replay-run/upstream-buffer.o",
+      "/workspace/scratch/2719a9027f80/replay-run/upstream-otime.o",
+      "-o",
+      "/workspace/scratch/2719a9027f80/replay-run/replay"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/workspace/scratch/2719a9027f80/replay-run/replay"
+    ],
+    "exit_code": 0,
+    "stdout_file": "results.jsonl",
+    "stderr_file": "replay.stderr"
+  }
+]

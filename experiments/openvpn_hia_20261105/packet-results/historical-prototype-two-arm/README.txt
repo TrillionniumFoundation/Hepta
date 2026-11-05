@@ -1,0 +1,1 @@
+Historical development prototype, before adapter alias/receiver fixes. Two arms only. Raw observations retained as requested. The full original source snapshot is unavailable; this is not the final qualified implementation and is not claimed independently reproducible.

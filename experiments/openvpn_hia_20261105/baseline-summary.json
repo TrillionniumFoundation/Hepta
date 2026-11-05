@@ -1,0 +1,43 @@
+{
+  "official_version": "2.7.8",
+  "official_commit": "dc1f569087135894ac2703aeabd7a960ee9452d4",
+  "archive_sha256": "c070d1d2440b5a6fca6c2c68645c98cd492116ac36ef4f0946177115532c8e36",
+  "source_closure_files": 545,
+  "native_c_application_built": true,
+  "final2_hia_application_linked": true,
+  "actual_crypto_selftests_passed": 6,
+  "packet_lengths_each": [
+    1,
+    1768
+  ],
+  "actual_null_device_controls_passed": 9,
+  "reviewed_rekey_cycles_per_peer_per_positive_session": 4,
+  "adversarial_mixed_pairs_passed": 2,
+  "replay_rejections_each_receiving_peer": 1,
+  "bad_tag_rejections_each_receiving_peer": 1,
+  "real_tun_tunnel_passed": false,
+  "dco_runtime_passed": false,
+  "fair_tunnel_performance_qualified": false,
+  "blockers": [
+    "CAP_NET_ADMIN absent; effective/bounding caps0",
+    "/dev/net/tun absent",
+    "kernel CONFIG_OVPN disabled; no ovpn module",
+    "iperf3 absent"
+  ],
+  "canonical_result": "baseline-application/integration-run-final2/baseline-reviewed-v2.json",
+  "adversarial_result": "baseline-application/udp-adversarial-final2/udp-probe.json",
+  "profile": "baseline-profile/profile-run2/profile.json",
+  "profile_limit": "unmodified application test-crypto synthetic workload;10ms sampling; shared OpenSSL internals absent; no production hotspot or throughput claim",
+  "docs": "BASELINE.md",
+  "reproduction": [
+    "baseline_build.sh",
+    "baseline_link.mk",
+    "baseline_review.py",
+    "baseline_udp_replay.py",
+    "tunnel_trial.py",
+    "../../tools/openvpn_hia_baseline.py"
+  ],
+  "future_tunnel_execution_branch_tested": false,
+  "no_private_key_files_in_retained_evidence": true,
+  "child_completion": "baseline/integration responsibility complete; residual privileged-host stages explicitly blocked"
+}

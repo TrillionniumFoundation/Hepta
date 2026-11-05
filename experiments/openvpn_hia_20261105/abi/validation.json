@@ -1,0 +1,44 @@
+{
+  "schema": "hepta.openvpn.foreign-buffer-abi-validation.v1",
+  "base_commit": "3102c2bb6cd819c27aef36cc927c23b39b279204",
+  "source_files": {
+    "hepta/hia_program_llvm.py": "c9c502bb30cee77399fa53fe67f3ddac73f2bfe8e9ec76ca6642f3d4f8d6ae53",
+    "hepta/hia_foreign_buffer_abi.py": "8236d7ee8510f56948531a0a89aada35f3be91560f64989b8b380875ed9ee9fc",
+    "tests/test_hia_foreign_buffer_abi.py": "205021ae1b1c0a462dd52bd154256cd192adc176f0dc33d4cb76534787cea65b",
+    "docs/hia_foreign_buffer_abi.md": "378e44989f6ba8fde2c3e4832d6ccadaefc3aa635ddac4d15196e3148c502358"
+  },
+  "command": [
+    "python3",
+    "-m",
+    "unittest",
+    "tests.test_hia_foreign_buffer_abi",
+    "tests.test_hia_composite_abi",
+    "tests.test_hia_program_llvm",
+    "-v"
+  ],
+  "clang": "Clang 20.1.8 locally unpacked official apt.llvm.org packages",
+  "exit_code": 0,
+  "test_methods": 31,
+  "new_test_methods": 12,
+  "old_test_methods": 19,
+  "skips": 0,
+  "errors": 0,
+  "failures": 0,
+  "elapsed_seconds_reported_by_unittest": 10.9,
+  "raw_log_sha256": "f8327a473e50c109025fcda8e1f865c801dc5b4eaed388a750c522545263601e",
+  "actual_native_execution": true,
+  "guard_rejections_leave_memory_unchanged_observed": true,
+  "caller_free_observation": {
+    "frees_during_call": 0,
+    "caller_frees_after_return": 2
+  },
+  "initial_test_development_failure": "The initial new fixture reused source/destination SSA names in a second block and failed existing E_HIA_SSA before LLVM generation; fixture names were corrected. No verifier or language rule was relaxed.",
+  "claims": {
+    "bounded_foreign_contract_finite_cases_passed": true,
+    "arbitrary_c_pointer_liveness_detected": false,
+    "backend_refinement_proved": false,
+    "whole_openvpn_compatibility_qualified": false,
+    "dco_execution_qualified": false,
+    "tunnel_performance_qualified": false
+  }
+}

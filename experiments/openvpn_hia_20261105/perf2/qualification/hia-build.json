@@ -1,0 +1,104 @@
+{
+  "artifact_bytes": 4224,
+  "artifact_sha256": "05d189d73cb75e49ef251ba8a7fe97bb36f837b3bb3936fe3b907614233e7c31",
+  "binary_inventory": {
+    "defined": [
+      "ovpn_hia_packet_id_read",
+      "ovpn_hia_packet_id_read_epoch",
+      "ovpn_hia_packet_id_write",
+      "ovpn_hia_packet_id_write_epoch"
+    ],
+    "undefined": [
+      "abort"
+    ]
+  },
+  "build_host": {
+    "abi": "SysV AMD64 LP64",
+    "byteorder": "little",
+    "elf_machine": 62,
+    "long_bits": 64,
+    "machine": "x86_64",
+    "normalized_machine": "x86_64",
+    "pointer_bits": 64,
+    "size_t_bits": 64,
+    "system": "Linux",
+    "target": "x86_64-unknown-linux-gnu"
+  },
+  "claims": {
+    "backend_refinement_proved": false,
+    "c_codegen_used": false,
+    "cross_target_execution_qualified": false,
+    "fallback_used": false,
+    "foreign_buffer_entrypoints_exposed": true,
+    "native_execution_qualified": false,
+    "rust_codegen_used": false,
+    "rust_reference_required": false,
+    "source_ast_required": false,
+    "standalone_core_reverified": true,
+    "whole_language_soundness_proved": false
+  },
+  "core_sha256": "ac14be9d4608692f63c236b6e18215a7573b38f0f8d691d3d8529acf0afd7247",
+  "cross_target_compilation": false,
+  "entry_layout": "canonical",
+  "exports": [
+    "ovpn_hia_packet_id_read",
+    "ovpn_hia_packet_id_read_epoch",
+    "ovpn_hia_packet_id_write",
+    "ovpn_hia_packet_id_write_epoch"
+  ],
+  "external_abi": "bounded synchronous byte loans; u64 packs ABI status/high32 and Core u32/low32",
+  "flags": [
+    "--target=x86_64-unknown-linux-gnu",
+    "-x",
+    "ir",
+    "-O3",
+    "-fPIC",
+    "-c"
+  ],
+  "foreign_buffer_exports": [
+    [
+      "ovpn_hia_packet_id_read",
+      65536
+    ],
+    [
+      "ovpn_hia_packet_id_read_epoch",
+      65536
+    ],
+    [
+      "ovpn_hia_packet_id_write",
+      65536
+    ],
+    [
+      "ovpn_hia_packet_id_write_epoch",
+      65536
+    ]
+  ],
+  "implementation_sha256": "7a98c69c8853508aa129d111ad9792013f2520614ce0c10796c4fb6655fb04f5",
+  "input_sha256": "ac14be9d4608692f63c236b6e18215a7573b38f0f8d691d3d8529acf0afd7247",
+  "kind": "object",
+  "llvm_ir_sha256": "1b325d04013d9bc4fbe7afaafa956ee004bb97513b9f071965dcb6cd841a6c1a",
+  "ok": true,
+  "output": "/workspace/scratch/2719a9027f80/packet-perf2-candidate1/packet.o",
+  "profile": "hepta.hia.program.llvm-linux-x86_64-foreign-buffers.v1",
+  "runtime_assumptions": [
+    "Linux LP64 target with 64-bit pointers and size_t",
+    "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+    "C malloc returns null or a fresh nonaliasing allocation of the requested size; bytes are initialized before read or remain unobserved",
+    "C free accepts a live allocation from calloc or malloc, or null",
+    "abort terminates execution; no cleanup after traps is promised",
+    "native compiler, linker, loader, libc and host hardware are trusted",
+    "caller provides live memory covering every admitted range for the whole synchronous call",
+    "caller keeps mutable ranges exclusive and does not mutate read-only ranges during the call",
+    "numeric range checks do not authenticate allocation provenance or dangling C pointers",
+    "Core traps still abort and do not roll back already performed writes"
+  ],
+  "schema": "hepta.hia.program.native.v1",
+  "status": "native_compiled_not_executed",
+  "target": "x86_64-unknown-linux-gnu",
+  "toolchain": {
+    "default_target": "x86_64-pc-linux-gnu",
+    "path": "/workspace/scratch/2719a9027f80/toolchain/llvm20/usr/lib/llvm-20/bin/clang",
+    "sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+    "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+  }
+}

@@ -1,0 +1,958 @@
+#!/usr/bin/env python3
+"""Bounded real-TUN/ovpn qualification on an explicitly provisioned test VM.
+
+Creates only uniquely named owned namespaces and veths, never a host route/NAT.
+No local privilege acquisition, module loading or CI dispatch is performed here.
+The frozen plan declares every case before execution. Raw failures are retained.
+"""
+from __future__ import annotations
+import argparse
+import hashlib
+import importlib.util
+import json
+import math
+import os
+from pathlib import Path
+import platform
+import re
+import shutil
+import signal
+import subprocess
+import sys
+import time
+import traceback
+import uuid
+
+HERE = Path(__file__).resolve().parent
+BYTE_COUNTERS = ('vpn_rx_bytes', 'vpn_tx_bytes', 'link_rx_bytes', 'link_tx_bytes')
+PEER_COUNTERS = BYTE_COUNTERS + ('vpn_rx_packets', 'vpn_tx_packets', 'link_rx_packets', 'link_tx_packets')
+ROLES = ('server', 'client')
+
+
+def digest(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+def save(path, obj):
+    path = Path(path); path.parent.mkdir(parents=True, exist_ok=True)
+    temp = path.with_name(path.name + '.new')
+    temp.write_text(json.dumps(obj, indent=2, sort_keys=True) + '\n'); temp.replace(path)
+
+def read_json(path): return json.loads(Path(path).read_text())
+
+def read_text(path):
+    try: return Path(path).read_text(errors='replace')
+    except FileNotFoundError: return ''
+
+def process_stats(pid):
+    raw = Path('/proc', str(pid), 'stat').read_text()
+    fields = raw[raw.rindex(')')+2:].split()
+    return {'user_ticks': int(fields[11]), 'system_ticks': int(fields[12]),
+            'starttime_ticks': int(fields[19]), 'rss_bytes': int(fields[21])*os.sysconf('SC_PAGE_SIZE')}
+
+
+def observe(text):
+    lines = text.splitlines()
+    resets = [i for i, line in enumerate(lines) if 'TLS: soft reset' in line]
+    boundaries = [i for i, line in enumerate(lines) if any(x in line for x in (
+        'TLS: Initial packet', 'initial untrusted session promoted to trusted',
+        'Initialization Sequence Completed', 'SIGUSR1[hard,'))]
+    completed = []
+    for begin in resets:
+        end = min([i for i in resets + boundaries if i > begin] + [len(lines)])
+        segment = lines[begin:end]
+        find = lambda token: [begin+i+1 for i, line in enumerate(segment) if token in line]
+        tls = find('Control Channel: TLS')
+        outgoing = find('Outgoing Epoch Data key 1:') or find('Outgoing Data Channel: Cipher')
+        incoming = find('Incoming Epoch Data key 1:') or find('Incoming Data Channel: Cipher')
+        install = find('dco_new_key: slot 1,')
+        swap = find('dco_swap_keys: peer-id')
+        failed = any(any(x in line for x in ('Cannot swap keys', 'Impossible to install key material',
+                     'DCO key state mismatch', 'TLS Error:')) for line in segment)
+        ordinary = bool(tls and outgoing and incoming and tls[0] < outgoing[0] <= incoming[0])
+        offload = bool(tls and install and swap and tls[0] < install[0] <= swap[-1])
+        if (ordinary or offload) and not failed:
+            completed.append({'reset_line': begin+1, 'tls_line': tls[0],
+                              'outgoing_key_line': outgoing[0] if ordinary else None,
+                              'incoming_key_line': incoming[0] if ordinary else None,
+                              'dco_install_line': install[0] if offload else None,
+                              'dco_swap_line': swap[-1] if offload else None})
+    traces = re.findall(r'OPENVPN_HIA_CALLS read=(\d+) write=(\d+) read_epoch=(\d+) write_epoch=(\d+) abi_failures=(\d+)',text)
+    trace = dict(zip(('read','write','read_epoch','write_epoch','abi_failures'),map(int,traces[-1]))) if traces else None
+    initializations=[i for i,line in enumerate(lines) if 'Initialization Sequence Completed' in line]
+    latest_start=initializations[-1]+1 if initializations else len(lines)
+    latest_lines=lines[latest_start:]
+    return {'initializations':len(initializations),
+            'last_initialization_line':initializations[-1]+1 if initializations else None,
+            'initial_packets':text.count('TLS: Initial packet'),
+            'initial_promotions':text.count('initial untrusted session promoted to trusted'),
+            'hard_restarts':text.count('SIGUSR1[hard,'),
+            'soft_resets':len(resets),
+            'peer_connections':text.count('Peer Connection Initiated'),
+            'rekey_cycles':completed,'completed_rekeys':len(completed),
+            'protocol_lines':[line for line in lines if 'Protocol options:' in line],
+            'data_channel_lines':[line for line in lines if 'Data Channel: cipher' in line],
+            'latest_initialized_session':{
+                'initialization_line':initializations[-1]+1 if initializations else None,
+                'protocol_lines':[line for line in latest_lines if 'Protocol options:' in line],
+                'data_channel_lines':[line for line in latest_lines if 'Data Channel: cipher' in line]},
+            'certificate_error_lines':[line for line in lines if re.search(r'VERIFY (?:X509NAME )?ERROR',line)],
+            'replay_rejections':text.count('bad packet ID (may be a replay)'),
+            'tag_rejections':text.count('packet tag authentication failed'),
+            'tls_error_lines':[line for line in lines if 'TLS Error:' in line],
+            'hia_trace':trace}
+
+
+def session_marker(observation):
+    return {key:observation[key] for key in ('initializations','initial_packets','initial_promotions','hard_restarts','peer_connections')}
+
+
+def negotiated_profile(observation, epoch):
+    """Only profile lines after the newest completed client initialization count."""
+    latest=observation['latest_initialized_session']
+    protocols=latest['protocol_lines'];data=latest['data_channel_lines']
+    if not latest['initialization_line'] or not protocols or not data:
+        raise ValueError('latest initialized session has no complete negotiated profile yet')
+    if any('aead-epoch' in line for line in protocols)!=epoch:
+        raise ValueError('latest initialized session negotiated the wrong epoch profile')
+    if not all("cipher 'AES-256-GCM'" in line for line in data):
+        raise ValueError('latest initialized session negotiated an unexpected cipher')
+    return latest
+
+
+def peer_delta(before, after):
+    for key in ('ifindex','netns_inode','family_id'):
+        if before.get(key) != after.get(key): raise ValueError('DCO peer scope changed: '+key)
+    first={p['peer_id']:p for p in before['peers']};last={p['peer_id']:p for p in after['peers']}
+    if len(first)!=1 or set(first)!=set(last): raise ValueError('expected the same single DCO peer')
+    deltas={}
+    for peer_id, old in first.items():
+        row={k:last[peer_id][k]-old[k] for k in PEER_COUNTERS}
+        if any(v<0 for v in row.values()): raise ValueError('DCO peer counters reset')
+        if any(row[k]<=0 for k in BYTE_COUNTERS): raise ValueError('DCO peer byte counters did not all increase')
+        deltas[str(peer_id)]=row
+    return deltas
+
+
+def path_delta(before, after, require_peer=True):
+    out={}
+    for role in ROLES:
+        a,b=before[role],after[role]
+        if a['ifindex']!=b['ifindex'] or a['netns_inode']!=b['netns_inode']:
+            raise ValueError('tunnel path changed during measured interval')
+        if a['kind']!=b['kind']: raise ValueError('tunnel kind changed')
+        deltas={}
+        for direction in ('rx','tx'):
+            aa=a['link'].get('stats64',a['link'].get('stats',{}))[direction]
+            bb=b['link'].get('stats64',b['link'].get('stats',{}))[direction]
+            deltas[direction]={key:bb[key]-aa[key] for key in ('bytes','packets','errors','dropped') if key in aa and key in bb}
+            if deltas[direction].get('bytes',0)<=0 or deltas[direction].get('packets',0)<=0:
+                raise ValueError('no bidirectional traffic on actual tunnel link')
+            if any(v<0 for v in deltas[direction].values()): raise ValueError('tunnel interface counters reset')
+        out[role]={'link_delta':deltas}
+        if a['kind']=='ovpn' and require_peer: out[role]['kernel_peer_delta']=peer_delta(a['peer'],b['peer'])
+    return out
+
+
+class Deadline(RuntimeError): pass
+
+
+class Job:
+    def __init__(self, ledger, label, argv, folder, namespace=None):
+        ledger.check()
+        self.ledger=ledger;self.label=label;self.started=time.monotonic();self.finished=False
+        self.folder=Path(folder);self.folder.mkdir(parents=True,exist_ok=True)
+        self.stdout=self.folder/(label+'.stdout');self.stderr=self.folder/(label+'.stderr')
+        self.outf=self.stdout.open('xb');self.errf=self.stderr.open('xb')
+        command=list(map(str,argv))
+        if namespace:command=['ip','netns','exec',namespace,*command]
+        self.row={'label':label,'argv':command,'namespace':namespace,'started_monotonic_ns':time.monotonic_ns(),
+                  'stdout':str(self.stdout.relative_to(ledger.out)),'stderr':str(self.stderr.relative_to(ledger.out)),
+                  'signals':[]}
+        try:self.proc=subprocess.Popen(command,stdout=self.outf,stderr=self.errf,start_new_session=True)
+        except Exception:
+            self.outf.close();self.errf.close();raise
+        self.row['pid']=self.proc.pid;ledger.jobs.append(self);ledger.record({'event':'spawn',**self.row})
+    def signal(self,signum):
+        if self.proc.poll() is None:
+            self.row['signals'].append({'signal':signum,'monotonic_ns':time.monotonic_ns()})
+            try:os.killpg(self.proc.pid,signum)
+            except ProcessLookupError:self.proc.poll()
+    def finish(self):
+        if self.finished:return self.row
+        if self.proc.poll() is None:raise RuntimeError('cannot finish a running process')
+        self.outf.close();self.errf.close();self.finished=True
+        self.row.update(exit_code=self.proc.returncode,elapsed_seconds=time.monotonic()-self.started,
+                        stdout_sha256=digest(self.stdout),stderr_sha256=digest(self.stderr))
+        self.ledger.record({'event':'finished',**self.row});return self.row
+    def wait(self,timeout=10,required=True,monitor=None):
+        until=time.monotonic()+timeout
+        while self.proc.poll() is None:
+            self.ledger.check()
+            if monitor:monitor()
+            if time.monotonic()>=until:
+                self.row['timed_out']=True;self.stop();break
+            time.sleep(0.05 if monitor else 0.01)
+        row=self.finish()
+        if required and (row['exit_code'] or row.get('timed_out')):
+            raise RuntimeError(self.label+' failed: '+str(row.get('exit_code')))
+        return row
+    def stop(self):
+        if self.proc.poll() is None:
+            self.signal(signal.SIGTERM)
+            try:self.proc.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                self.signal(signal.SIGKILL);self.proc.wait(timeout=3)
+        return self.finish()
+    def text(self):return read_text(self.stdout)+read_text(self.stderr)
+
+
+class Ledger:
+    def __init__(self,out,private,budget):
+        self.out=out;self.private=private;self.started=time.monotonic();self.deadline=self.started+budget
+        self.jobs=[];self.serial=0;self.owned=[];self.cmdlog=(out/'commands.jsonl').open('x')
+        self.owned_path=out/'owned-namespaces.json';self.save_owned()
+    def check(self):
+        if time.monotonic()>=self.deadline:raise Deadline('predeclared total matrix deadline reached')
+    def record(self,row):self.cmdlog.write(json.dumps(row,sort_keys=True)+'\n');self.cmdlog.flush()
+    def save_owned(self):save(self.owned_path,{'schema':'hepta.openvpn-hia.owned-namespaces.v1','host_boot_id':read_text('/proc/sys/kernel/random/boot_id').strip(),'namespaces':self.owned})
+    def run(self,argv,label,folder=None,namespace=None,timeout=10,required=True):
+        self.serial+=1;name=f'{self.serial:05d}-{label}'
+        job=Job(self,name,argv,folder or self.out/'commands',namespace)
+        job.wait(timeout,required);return job
+    def pause(self,seconds):
+        until=time.monotonic()+seconds
+        while time.monotonic()<until:self.check();time.sleep(min(.05,max(0,until-time.monotonic())))
+    def close(self):
+        for job in reversed(self.jobs):
+            if not job.finished:
+                try:job.stop()
+                except Exception as e:self.record({'cleanup_error':repr(e),'pid':job.proc.pid})
+        self.cmdlog.close()
+
+
+class Pair:
+    def __init__(self,ledger,case,binaries,configuration,arms,trace=False,reneg=3600,negative=False):
+        self.l=ledger;self.case=case;self.folder=ledger.out/'cases'/case;self.folder.mkdir(parents=True)
+        self.arms=arms;self.trace=trace;self.negative=negative;self.jobs=[];self.processes={};self.names={};self.entries=[]
+        self.result={'case':case,'arms':arms,'trace':trace,'reneg_seconds':reneg,'status':'running','passed':False,'checks':{},'events':[]}
+        unique=uuid.uuid4().hex[:10]
+        try:
+            for role,suffix in (('server','s'),('client','c')):
+                name='ohia-'+unique+'-'+suffix
+                if Path('/run/netns',name).exists():raise RuntimeError('namespace name already exists')
+                entry={'name':name,'inode':None,'case':case,'active':True}
+                self.l.owned.append(entry);self.entries.append(entry);self.l.save_owned();self.names[role]=name
+                creation=None
+                try:
+                    creation=Job(self.l,role+'-netns-add',['ip','netns','add',name],self.folder)
+                    creation.wait(10)
+                finally:
+                    # Stop a partially completed creator before recording its
+                    # resource. A deadline between spawn and wait must not leave
+                    # an unrecorded namespace outside the cleanup ledger.
+                    if creation and not creation.finished:creation.stop()
+                    if Path('/run/netns',name).exists():entry['inode']=os.stat('/run/netns/'+name).st_ino
+                    else:entry['active']=False
+                    self.l.save_owned()
+                if entry['inode'] is None:raise RuntimeError('namespace creation produced no owned resource')
+            self.command('server',['ip','link','add','ovpn-us','type','veth','peer','name','ovpn-uc','netns',self.names['client']],'veth-create')
+            for role,ip,dev in (('server','192.0.2.1/30','ovpn-us'),('client','192.0.2.2/30','ovpn-uc')):
+                self.command(role,['ip','link','set','lo','up'],'lo-up')
+                self.command(role,['ip','addr','add',ip,'dev',dev],'underlay-address')
+                self.command(role,['ip','link','set',dev,'up'],'underlay-up')
+                before=read_json_output(self.command(role,['ip','-j','-d','link','show'],'links-before'))
+                if any(x['ifname']=='tunbench-'+role[0] for x in before):raise RuntimeError('unexpected existing target tunnel device')
+                self.command(role,['ethtool','-k',dev],'underlay-offloads',required=False)
+            for role in ROLES:
+                arm=arms[role];binary=binaries['hia_trace' if trace and arm.startswith('hia') else 'hia' if arm.startswith('hia') else 'c']
+                command=['taskset','-c',str(configuration['cpus'][0 if role=='server' else 1]),str(binary),
+                         '--config',str(configuration[role]),'--verb','6' if trace else '3','--status',str(self.folder/(role+'.status')),'1',
+                         '--status-version','3','--reneg-sec',str(reneg),str(reneg)]
+                if not arm.endswith('dco'):command+=['--disable-dco']
+                if role=='client' and negative:command+=['--cert',str(configuration['untrusted_crt']),'--key',str(configuration['untrusted_key']),'--tls-exit']
+                job=self.spawn(role,command,role+'-openvpn');self.processes[role]=job
+            self.result['namespaces']=self.names;self.result['new_namespace_identities']=self.entries
+            save(self.folder/'case.json',self.result)
+        except BaseException:
+            self.close();raise
+    def command(self,role,argv,label,required=True,timeout=10):
+        return self.l.run(argv,role+'-'+label,self.folder,self.names[role],timeout,required)
+    def spawn(self,role,argv,label):
+        job=Job(self.l,label,argv,self.folder,self.names[role]);self.jobs.append(job);return job
+    def observation(self,role):return observe(self.processes[role].text())
+    def event(self,name,**fields):
+        row={'name':name,'monotonic_ns':time.monotonic_ns(),**fields};self.result['events'].append(row);save(self.folder/'case.json',self.result);return row
+    def wait_until(self,condition,timeout,label,allow_client_exit=False):
+        end=time.monotonic()+timeout
+        while time.monotonic()<end:
+            self.l.check()
+            if condition():return
+            for role,job in self.processes.items():
+                if job.proc.poll() is not None and not (allow_client_exit and role=='client'):
+                    raise RuntimeError(role+' OpenVPN exited before '+label)
+            self.l.pause(.05)
+        raise TimeoutError(label+' deadline expired')
+    def connected(self,after_initializations=0):
+        self.wait_until(lambda:self.observation('client')['initializations']>after_initializations,30,'authenticated initialization')
+        if not any('VERIFY OK: depth=0' in job.text() for job in [self.processes['server']]):
+            raise RuntimeError('server has not authenticated the client certificate')
+    def snapshot(self,label):
+        result={}
+        for role in ROLES:
+            dev='tunbench-'+role[0];ip='10.77.0.1' if role=='server' else '10.77.0.2';peer='10.77.0.2' if role=='server' else '10.77.0.1'
+            links=read_json_output(self.command(role,['ip','-d','-s','-j','link','show','dev',dev],label+'-link'))
+            addresses=read_json_output(self.command(role,['ip','-j','address','show','dev',dev],label+'-address'))
+            route=read_json_output(self.command(role,['ip','-j','route','get',peer,'from',ip],label+'-route'))
+            underlay=read_json_output(self.command(role,['ip','-s','-j','link','show','dev','ovpn-u'+role[0]],label+'-underlay'))
+            if len(links)!=1 or len(addresses)!=1:raise RuntimeError('ambiguous tunnel device')
+            link=links[0];kind=link.get('linkinfo',{}).get('info_kind');expected='ovpn' if self.arms[role].endswith('dco') else 'tun'
+            if kind!=expected:raise RuntimeError('DCO fallback or wrong tunnel type: '+str(kind)+' expected '+expected)
+            if link['ifindex']!=addresses[0]['ifindex'] or not any(x.get('local')==ip for x in addresses[0]['addr_info']):raise RuntimeError('source address is not on the measured tunnel ifindex')
+            if not route or any(x.get('dev')!=dev for x in route):raise RuntimeError('source-specific route does not use the tunnel')
+            text=self.processes[role].text();opening='DCO device '+dev+' opened' if expected=='ovpn' else 'TUN/TAP device '+dev+' opened'
+            if opening not in text:raise RuntimeError('missing actual device-open log')
+            row={'ifindex':link['ifindex'],'netns_inode':os.stat('/run/netns/'+self.names[role]).st_ino,
+                 'kind':kind,'link':link,'address':addresses[0],'route':route,'underlay':underlay[0]}
+            if expected=='ovpn':
+                path=self.folder/(label+'-'+role+'-peer.json')
+                self.command(role,[sys.executable,str(HERE/'dco_peer_stats.py'),'--interface',dev,'--out',str(path)],label+'-kernel-peer')
+                row['peer']=read_json(path)
+                if row['peer']['ifindex']!=row['ifindex'] or row['peer']['netns_inode']!=row['netns_inode']:raise RuntimeError('netlink and link scope differ')
+            result[role]=row
+        save(self.folder/(label+'-paths.json'),result);return result
+    def protocol_gate(self,epoch):
+        self.wait_until(lambda:all(self.observation('client')['latest_initialized_session'][key]
+                                  for key in ('protocol_lines','data_channel_lines')),3,'new session profile log')
+        obs=self.observation('client');profile=negotiated_profile(obs,epoch)
+        self.event('negotiated-profile',epoch=epoch,initializations=obs['initializations'],profile=profile)
+        return obs
+    def initial_session_gate(self,markers,no_rekey=False):
+        observations={role:self.observation(role) for role in ROLES}
+        if observations['client']['initializations']!=1:
+            raise RuntimeError('behavior action is no longer in the first authenticated client session')
+        for role,obs in observations.items():
+            if session_marker(obs)!=markers[role]:raise RuntimeError(role+' session changed before its declared transition')
+            if no_rekey and (obs['soft_resets'] or obs['completed_rekeys']):
+                raise RuntimeError(role+' started a rekey during the declared same-epoch action')
+        return observations
+    def close(self):
+        for job in reversed(self.jobs):
+            try:job.stop()
+            except Exception as e:self.result.setdefault('cleanup_errors',[]).append(repr(e))
+        self.result['observations']={role:{**self.observation(role),'process':job.row} for role,job in self.processes.items()}
+        for entry in reversed(self.entries):
+            name=entry['name'];path=Path('/run/netns',name)
+            try:
+                if path.exists():
+                    if os.stat(path).st_ino!=entry['inode']:raise RuntimeError('namespace identity changed before cleanup')
+                    # Direct bounded subprocess: cleanup still runs after global deadline.
+                    result=subprocess.run(['ip','netns','del',name],capture_output=True,text=True,timeout=5)
+                    entry['delete_returncode']=result.returncode;entry['delete_stdout']=result.stdout;entry['delete_stderr']=result.stderr
+                    if result.returncode:raise RuntimeError('namespace deletion failed')
+                entry['active']=False
+            except Exception as e:self.result.setdefault('cleanup_errors',[]).append(repr(e))
+        self.l.save_owned();save(self.folder/'case.json',self.result)
+
+
+def read_json_output(job):return json.loads(read_text(job.stdout))
+
+
+def create_pki(ledger,binary):
+    p=ledger.private/'pki';p.mkdir(mode=0o700);pub=ledger.out/'pki';pub.mkdir()
+    def openssl(label,argv):return ledger.run(['openssl',*argv],label,pub,timeout=20)
+    for name in ('ca','rogue-ca'):
+        openssl('create-'+name,['req','-x509','-newkey','rsa:2048','-nodes','-days','2','-subj','/CN=OpenVPN-HIA-'+name,
+                              '-addext','basicConstraints=critical,CA:TRUE','-addext','keyUsage=critical,keyCertSign,cRLSign',
+                              '-keyout',str(p/(name+'.key')),'-out',str(p/(name+'.crt'))])
+    for name,usage,ca in (('server','serverAuth','ca'),('client','clientAuth','ca'),('untrusted','clientAuth','rogue-ca')):
+        cn='OpenVPN-HIA-server' if name=='server' else 'OpenVPN-HIA-client'
+        ext=p/(name+'.ext');ext.write_text('basicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature,keyEncipherment\nextendedKeyUsage='+usage+'\n')
+        openssl('request-'+name,['req','-new','-newkey','rsa:2048','-nodes','-subj','/CN='+cn,'-keyout',str(p/(name+'.key')),'-out',str(p/(name+'.csr'))])
+        openssl('sign-'+name,['x509','-req','-in',str(p/(name+'.csr')),'-CA',str(p/(ca+'.crt')),'-CAkey',str(p/(ca+'.key')),
+                            '-CAcreateserial','-days','2','-extfile',str(ext),'-out',str(p/(name+'.crt'))])
+    ledger.run([binary,'--genkey','secret',str(p/'ta.key')],'tls-auth-key',pub)
+    for key in p.glob('*.key'):key.chmod(0o600)
+    for cert in p.glob('*.crt'):shutil.copyfile(cert,pub/cert.name)
+    ccd=ledger.private/'ccd';ccd.mkdir();(ccd/'OpenVPN-HIA-client').write_text('ifconfig-push 10.77.0.2 255.255.255.0\n')
+    common=f'proto udp4\ndev-type tun\nca {p}/ca.crt\ndata-ciphers AES-256-GCM\ntun-mtu 1400\nallow-compression no\nauth SHA256\nping 1\nping-restart 15\nreneg-bytes 0\nreneg-pkts 0\n'
+    server=common+f'local 192.0.2.1\nport 1194\ndev tunbench-s\ntopology subnet\nserver 10.77.0.0 255.255.255.0 nopool\nclient-config-dir {ccd}\ncert {p}/server.crt\nkey {p}/server.key\ndh none\nverify-client-cert require\nremote-cert-tls client\ntls-auth {p}/ta.key 0\n'
+    client=common+f'client\nremote 192.0.2.1 1194\nnobind\ndev tunbench-c\ncert {p}/client.crt\nkey {p}/client.key\nremote-cert-tls server\nverify-x509-name OpenVPN-HIA-server name\ntls-auth {p}/ta.key 1\nconnect-retry 1 1\nconnect-retry-max 3\nserver-poll-timeout 5\n'
+    for role,text in (('server',server),('client',client)):
+        (ledger.private/(role+'.conf')).write_text(text)
+        # Configuration paths are public; private key bytes never leave private-work.
+        (ledger.out/(role+'-common.conf')).write_text(text)
+    return {'server':ledger.private/'server.conf','client':ledger.private/'client.conf',
+            'untrusted_crt':p/'untrusted.crt','untrusted_key':p/'untrusted.key'}
+
+
+def probe_start(pair,label,port,count=40,size=256,interval=.01,receiver_seconds=3,bind='10.77.0.2',run_id=None):
+    token=run_id or uuid.uuid4().hex
+    receiver_dir=pair.folder/(label+'-receiver');sender_dir=pair.folder/(label+'-sender')
+    common=['--port',str(port),'--count',str(count),'--size',str(size),'--run-id',token]
+    receiver=pair.spawn('server',[sys.executable,str(HERE/'payload_probe.py'),'receiver','--bind','10.77.0.1','--peer',bind,
+                                 *common,'--deadline',str(receiver_seconds),'--out',str(receiver_dir)],label+'-receiver')
+    pair.wait_until(lambda:(receiver_dir/'ready.json').is_file(),3,label+' receiver ready',allow_client_exit=pair.negative)
+    sender=pair.spawn('client',[sys.executable,str(HERE/'payload_probe.py'),'sender','--bind',bind,'--peer','10.77.0.1',
+                               *common,'--interval',str(interval),'--drain','0.6','--deadline',str(count*interval+2),
+                               '--out',str(sender_dir)],label+'-sender')
+    return {'receiver':receiver,'sender':sender,'receiver_dir':receiver_dir,'sender_dir':sender_dir,
+            'run_id':token,'count':count,'size':size,'started_ns':time.monotonic_ns()}
+
+
+def probe_finish(probe,required=True):
+    probe['sender'].wait(45,required=False);probe['receiver'].wait(55,required=False)
+    sender=read_json(probe['sender_dir']/'summary.json');receiver=read_json(probe['receiver_dir']/'summary.json')
+    result={'run_id':probe['run_id'],'sender':sender,'receiver':receiver,
+            'sender_exit':probe['sender'].proc.returncode,'receiver_exit':probe['receiver'].proc.returncode,
+            'passed':bool(sender.get('passed') and receiver.get('passed') and probe['sender'].proc.returncode==0 and probe['receiver'].proc.returncode==0)}
+    if required and not result['passed']:raise RuntimeError('strict payload/echo probe failed: '+probe['run_id'])
+    return result
+
+
+def strict_probe(pair,label,port):
+    before=pair.snapshot(label+'-before')
+    probe=probe_start(pair,label,port)
+    result=probe_finish(probe)
+    after=pair.snapshot(label+'-after')
+    result['path_delta']=path_delta(before,after)
+    save(pair.folder/(label+'-result.json'),result);return result
+
+
+def inject(pair,capture,old_receiver,label,mode):
+    if old_receiver.proc.poll() is not None:raise RuntimeError('old-payload receiver is no longer alive before '+label)
+    spec=importlib.util.spec_from_file_location('encrypted_packet_helper',HERE/'encrypted_capture.py')
+    helper=importlib.util.module_from_spec(spec);spec.loader.exec_module(helper)
+    captured=read_json(capture)
+    frame=Path(capture).with_name('frame.bin').read_bytes()
+    if hashlib.sha256(frame).hexdigest()!=captured['frame_sha256']:
+        raise RuntimeError('original ciphertext capture changed before injection')
+    expected=hashlib.sha256(helper.parse_frame(helper.submitted_frame(frame,mode))['payload']).hexdigest()
+    witness_dir=pair.folder/(label+'-witness')
+    witness=pair.spawn('server',[sys.executable,str(HERE/'encrypted_capture.py'),'witness','--interface','ovpn-us',
+                      '--src','192.0.2.2','--dst','192.0.2.1','--dport','1194','--ciphertext-sha256',expected,
+                      '--deadline','3','--out',str(witness_dir)],label+'-witness')
+    pair.wait_until(lambda:(witness_dir/'ready.json').is_file(),3,label+' exact incoming witness ready')
+    server_before=pair.observation('server')
+    server_line_before=len(pair.processes['server'].text().splitlines())
+    out=pair.folder/label
+    row=pair.command('client',[sys.executable,str(HERE/'encrypted_capture.py'),'inject','--interface','ovpn-uc',
+                              '--capture',str(capture),'--mode',mode,'--count','1','--out',str(out)],label+'-submit')
+    metadata=read_json(out/'result.json')
+    if metadata.get('status')!='injection_submitted':raise RuntimeError('encrypted injection was not submitted')
+    if metadata.get('submitted_ciphertext_sha256')!=expected:raise RuntimeError('submission differs from expected encrypted datagram')
+    witness.wait(4);arrival=read_json(witness_dir/'result.json')
+    if not (arrival.get('status')=='captured' and arrival.get('direction')=='incoming'
+            and arrival.get('exact_ciphertext_match') is True and arrival.get('ciphertext_sha256')==expected
+            and all(arrival.get('outer_checksums',{}).get(k) is True for k in ('ipv4_valid','udp_present','udp_valid'))):
+        raise RuntimeError('peer did not witness the exact valid outer datagram')
+    if arrival['monotonic_ns']<metadata['submissions'][0]['monotonic_ns']:
+        raise RuntimeError('peer witness predates controlled injection')
+    pair.l.pause(.2)
+    reason=None
+    if label.startswith('same-epoch') and not pair.arms['server'].endswith('dco'):
+        reason='replay_rejections' if mode=='replay' else 'tag_rejections'
+        pair.wait_until(lambda:pair.observation('server')[reason]>server_before[reason],2,label+' fresh userspace rejection log')
+    observation_end=time.monotonic_ns()
+    if old_receiver.proc.poll() is not None:
+        raise RuntimeError('old-payload receiver ended before exact arrival and rejection observation completed')
+    server_after=pair.observation('server')
+    rejection_lines=pair.processes['server'].text().splitlines()[server_line_before:]
+    # Exact submitted ciphertext, its actual incoming peer frame, and a live
+    # old receiver jointly support the final no-duplicate delivery decision.
+    result={'submission':metadata,'peer_exact_witness':arrival,'expected_ciphertext_sha256':expected,
+            'old_receiver_alive_before_and_after_observation':True,'observation_finished_monotonic_ns':observation_end,
+            'injection_command':row.row,'witness_command':witness.row,
+            'server_log_start_line':server_line_before+1,'server_log_observed_lines':rejection_lines,
+            'userspace_rejection_counter':reason,
+            'userspace_rejection_counter_before':server_before.get(reason) if reason else None,
+            'userspace_rejection_counter_after':server_after.get(reason) if reason else None,
+            'scope':'exact encrypted datagram witnessed on peer ingress with valid outer checksums; old receiver remained live; only separately observed userspace errors identify a cryptographic rejection reason'}
+    pair.event(label,mode=mode,output=str(out.relative_to(pair.l.out)))
+    save(pair.folder/(label+'-evidence.json'),result);return result
+
+
+def run_behavior(pair,plan,epoch):
+    pair.connected();pair.protocol_gate(epoch)
+    markers={role:session_marker(pair.observation(role)) for role in ROLES}
+    pair.initial_session_gate(markers,no_rekey=True)
+    before=pair.snapshot('initial')
+    spec=plan['behavior']
+    capture_dir=pair.folder/'capture-old'
+    capture=pair.spawn('client',[sys.executable,str(HERE/'encrypted_capture.py'),'capture','--interface','ovpn-uc',
+                                 '--src','192.0.2.2','--dst','192.0.2.1','--dport','1194','--min-data-bytes','284',
+                                 '--deadline','10','--out',str(capture_dir)],'capture-old')
+    pair.wait_until(lambda:(capture_dir/'ready.json').is_file(),3,'encrypted capture ready')
+    old=probe_start(pair,'old-payload',51000,count=spec['strict_probe_count'],size=spec['strict_probe_size'],
+                    interval=spec['strict_probe_interval_seconds'],receiver_seconds=spec['old_receiver_seconds'])
+    old['sender'].wait(4)
+    original_sender=read_json(old['sender_dir']/'summary.json')
+    if not original_sender.get('passed'):raise RuntimeError('captured old payload was not delivered and echoed before replay')
+    capture.wait(10);captured=read_json(capture_dir/'result.json')
+    if captured.get('status')!='captured':raise RuntimeError('no actual encrypted data capture')
+    pair.result['initial_payload_sender']=original_sender
+    injections=[]
+    pair.event('same-epoch-before',observations=pair.initial_session_gate(markers,no_rekey=True))
+    injections.append(inject(pair,capture_dir/'result.json',old['receiver'],'same-epoch-replay','replay'))
+    pair.initial_session_gate(markers,no_rekey=True)
+    injections.append(inject(pair,capture_dir/'result.json',old['receiver'],'same-epoch-flip','flip'))
+    pair.event('same-epoch-after',observations=pair.initial_session_gate(markers,no_rekey=True))
+    # At this point the only long data records were the successful first probe;
+    # start the separate continuous flow only after that capture is fixed.
+    continuous=probe_start(pair,'continuity',51001,count=spec['continuous_count'],interval=spec['continuous_interval_seconds'],
+                           receiver_seconds=spec['continuous_receiver_seconds'])
+    pair.wait_until(lambda:all(pair.observation(role)['completed_rekeys']>=spec['required_completed_rekeys_before_replay'] for role in ROLES),
+                    28,'two completed TLS/key rekeys before old-ciphertext replay')
+    pair.event('completed-rekeys',observations=pair.initial_session_gate(markers))
+    pair.result['post_rekey_payload']=strict_probe(pair,'after-rekey-valid',51002)
+    pair.initial_session_gate(markers)
+    injections.append(inject(pair,capture_dir/'result.json',old['receiver'],'after-rekey-replay','replay'))
+    injections.append(inject(pair,capture_dir/'result.json',old['receiver'],'after-rekey-flip','flip'))
+    pair.initial_session_gate(markers)
+    pair.result['pre_reconnect_path_delta']=path_delta(before,pair.snapshot('before-reconnect'))
+    init_count=pair.observation('client')['initializations'];line_count=len(pair.processes['client'].text().splitlines())
+    pair.event('SIGUSR1-requested',previous_client_initializations=init_count)
+    pair.processes['client'].signal(signal.SIGUSR1)
+    pair.wait_until(lambda:pair.observation('client')['initializations']>init_count,10,'new initialization after SIGUSR1')
+    suffix='\n'.join(pair.processes['client'].text().splitlines()[line_count:])
+    if 'SIGUSR1[hard,' not in suffix or 'Initialization Sequence Completed' not in suffix:
+        raise RuntimeError('reconnect success is not ordered after requested hard signal')
+    pair.protocol_gate(epoch)
+    pair.result['post_reconnect_payload']=strict_probe(pair,'after-reconnect-valid',51003)
+    injections.append(inject(pair,capture_dir/'result.json',old['receiver'],'after-reconnect-replay','replay'))
+    pair.result['injections']=injections
+    pair.result['continuity']=probe_finish(continuous,required=False)
+    cont=pair.result['continuity']
+    if cont['receiver']['duplicate_packets'] or cont['receiver']['invalid_packets'] or cont['sender']['duplicate_echoes']:
+        raise RuntimeError('continuous real payload was duplicated/corrupted')
+    pair.result['old_payload_final']=probe_finish(old)
+    if pair.result['old_payload_final']['receiver']['finished_monotonic_ns']<=max(
+            item['observation_finished_monotonic_ns'] for item in injections):
+        raise RuntimeError('old receiver final receipt does not cover every injection observation window')
+    pair.result['checks'].update(real_tunnel_payload=True,source_specific_routes=True,
+          captured_previously_delivered_ciphertext=True,old_receiver_alive_for_all_injections=True,
+          no_replayed_or_corrupted_payload_delivery=True,rekey_then_fresh_payload=True,reconnect_then_fresh_payload=True,
+          negotiated_profile_matches=True)
+    pair.result['negotiated_epoch']=epoch
+    observations={r:pair.observation(r) for r in ROLES}
+    # DCO rejects in kernel; without a kernel error reason, do not relabel a
+    # rejected old record as a proven AEAD-tag or replay-window error.
+    if not pair.arms['server'].endswith('dco'):
+        if observations['server']['replay_rejections']<1 or observations['server']['tag_rejections']<1:
+            raise RuntimeError('userspace server lacks same-epoch replay/tag rejection logs')
+        pair.result['rejection_scope']='userspace same-epoch replay and tag errors logged; old-session records not delivered after transitions'
+    else:
+        pair.result['rejection_scope']='actual kernel DCO path, controlled encrypted reinjection and no duplicate/corrupt payload delivery; per-rejection kernel cause not inferred from byte counters'
+    pair.result['checks']['continuity_all_losses_retained']=True
+
+
+def run_negative(pair,plan):
+    spec=plan['behavior']
+    # A multi-client server initializes its actual device before accepting any
+    # peer. This is distinct from a client completing authentication.
+    pair.wait_until(lambda:pair.observation('server')['initializations']>=1,10,'negative server ready',allow_client_exit=True)
+    probe=probe_start(pair,'blocked-payload-attempts',51100,count=spec['negative_probe_count'],
+                      receiver_seconds=spec['negative_deadline_seconds'],bind='192.0.2.2')
+    pair.wait_until(lambda:bool(pair.observation('server')['certificate_error_lines']),spec['negative_deadline_seconds'],
+                    'explicit untrusted client certificate rejection',allow_client_exit=True)
+    result=probe_finish(probe,required=False)
+    link_state=read_json_output(pair.command('client',['ip','-j','address','show'],'negative-client-addresses'))
+    route_attempt=pair.command('client',['ip','-j','route','get','10.77.0.1','from','192.0.2.2'],'negative-route',required=False)
+    observations={r:pair.observation(r) for r in ROLES}
+    errors=observations['server']['certificate_error_lines']
+    checks={'explicit_untrusted_chain_error':any(any(token in line for token in ('unable to get local issuer certificate','self-signed certificate','unable to verify the first certificate')) for line in errors),
+            'client_never_initialized':observations['client']['initializations']==0,
+            'client_has_no_tunnel_address':not any(a.get('local')=='10.77.0.2' for row in link_state for a in row.get('addr_info',[])),
+            'sender_attempted_all_declared_payloads':result['sender']['send_attempts']==spec['negative_probe_count'],
+            'no_payload_received':result['receiver']['received_packets']==0,
+            'server_stayed_alive':pair.processes['server'].proc.poll() is None,
+            'no_plaintext_route_to_bypass_vpn':route_attempt.proc.returncode!=0}
+    pair.result.update(checks=checks,negative_payload=result,negative_client_addresses=link_state,
+         rejection_scope='untrusted client certificate was rejected; client acquired no VPN address; real underlay-bound attempts to VPN destination had no route and delivered zero payload')
+    if not all(checks.values()):raise RuntimeError('negative certificate/payload gate failed')
+
+
+def cpu_snapshot(cpus):
+    rows={}
+    for line in Path('/proc/stat').read_text().splitlines():
+        parts=line.split()
+        if parts and parts[0] in ['cpu'+str(c) for c in cpus]:rows[parts[0]]=list(map(int,parts[1:]))
+    return rows
+
+
+def numeric_fields(value,path='end'):
+    output={}
+    if isinstance(value,dict):
+        for key,item in value.items():output.update(numeric_fields(item,path+'.'+str(key)))
+    elif isinstance(value,list):
+        for i,item in enumerate(value):output.update(numeric_fields(item,path+'['+str(i)+']'))
+    elif isinstance(value,(int,float)) and not isinstance(value,bool):output[path]=value
+    return output
+
+
+def received_candidates(document):
+    values=numeric_fields(document.get('end',{}))
+    return {k:v for k,v in values.items() if k.endswith('.bytes') and ('sum_received' in k or '.receiver.' in k)}
+
+
+def local_bidir_receiver(document,role):
+    """iperf3 names the server-to-client half *_bidir_reverse on both ends.
+
+    Read each receiving endpoint's own result, never a sender's copy of the
+    other endpoint's statistics. See ESnet iperf 3.16 iperf_api.c summary logic.
+    """
+    if document.get('start',{}).get('test_start',{}).get('bidir')!=1:
+        raise ValueError(role+' did not report an actual bidirectional test')
+    key='sum_received_bidir_reverse' if role=='client' else 'sum_received'
+    row=document.get('end',{}).get(key)
+    if not isinstance(row,dict):raise ValueError(role+' lacks its local receiver summary '+key)
+    for field in ('bytes','seconds','bits_per_second'):
+        value=row.get(field)
+        if isinstance(value,bool) or not isinstance(value,(int,float)) or not math.isfinite(value) or value<=0:
+            raise ValueError(role+' local receiver has no finite positive '+field)
+    if row.get('sender') is not False:raise ValueError(role+' summary is not a local receiving stream')
+    return {'json_path':'end.'+key,'direction':'server-to-client' if role=='client' else 'client-to-server',
+            'local_receiving_role':role,**row}
+
+
+def throughput(pair,workload,seconds,cpus,label,perf=None):
+    output=pair.folder/(label+'-measurement.json')
+    result={'workload':workload,'bidirectional':True,'duration_requested_seconds':seconds,'omit_seconds':0,
+            'status':'started','passed':False,'checks':{},'failures':[],
+            'started_monotonic_ns':time.monotonic_ns(),
+            'process_cpu_scope':'OpenVPN process user/system ticks only; kernel offload and generators also appear in host CPU totals',
+            'host_cpu_scope':'all activity on assigned vCPUs, including traffic generators, softirq and runner background work; not exclusive OpenVPN attribution'}
+    pair.result.setdefault('measurements',[]).append(result);save(output,result)
+    server=client=perf_job=None;perf_file=None;before=after=None
+    cpu_before={};cpu_after={};maxrss={};started=None;deadline_error=None
+    def failure(stage,exc):result['failures'].append({'stage':stage,'failure':repr(exc)})
+    try:
+        server=pair.spawn('server',['taskset','-c',str(cpus[0]),'iperf3','-4','--server','--one-off','--json','--bind','10.77.0.1','--port','5201'],label+'-iperf-server')
+        before=pair.snapshot(label+'-before');result['path_before']=before
+        result['tls_sessions_before']={role:session_marker(pair.observation(role)) for role in ROLES}
+        cpu_before={r:process_stats(pair.processes[r].proc.pid) for r in ROLES}
+        result['host_cpu_ticks_before']=cpu_snapshot(cpus);maxrss={r:cpu_before[r]['rss_bytes'] for r in ROLES}
+        command=['taskset','-c',str(cpus[1]),'iperf3','-4','--client','10.77.0.1','--bind','10.77.0.2','--port','5201',
+                 '--json','--time',str(seconds),'--bidir','--parallel','1','--connect-timeout','3000']
+        if workload['transport']=='udp':command+=['--udp','--length',str(workload['payload_bytes']),'--bitrate',workload['offered_rate_each_direction']]
+        if perf:
+            perf_folder=pair.l.private/'perf'/pair.case;perf_folder.mkdir(parents=True,exist_ok=True)
+            perf_file=perf_folder/(label+'.perf.data')
+            perf_job=Job(pair.l,label+'-perf-record',[str(perf),'record','--all-cpus','--cpu',','.join(map(str,cpus)),
+                     '--freq','99','--event','cpu-clock','--call-graph','dwarf,8192','--output',str(perf_file),
+                     '--','sleep',str(seconds+1)],pair.folder)
+            pair.jobs.append(perf_job)
+        started=time.monotonic();result['traffic_started_monotonic_ns']=time.monotonic_ns()
+        client=pair.spawn('client',command,label+'-iperf-client')
+        def monitor():
+            for role in ROLES:
+                if pair.processes[role].proc.poll() is not None:raise RuntimeError(role+' OpenVPN died during traffic')
+                maxrss[role]=max(maxrss[role],process_stats(pair.processes[role].proc.pid)['rss_bytes'])
+        client.wait(seconds+12,required=False,monitor=monitor);server.wait(5,required=False)
+        result['elapsed_seconds']=time.monotonic()-started
+        result['traffic_finished_monotonic_ns']=time.monotonic_ns()
+        cpu_after={r:process_stats(pair.processes[r].proc.pid) for r in ROLES}
+        result['host_cpu_ticks_after']=cpu_snapshot(cpus)
+        after=pair.snapshot(label+'-after');result['path_after']=after
+        result['path_delta']=path_delta(before,after);result['checks']['actual_tunnel_and_kernel_counter_progress']=True
+        result['tls_sessions_after']={role:session_marker(pair.observation(role)) for role in ROLES}
+        result['checks']['same_authenticated_sessions']=result['tls_sessions_before']==result['tls_sessions_after']
+    except Exception as exc:
+        failure('traffic-and-path',exc)
+        if isinstance(exc,Deadline):deadline_error=exc
+    finally:
+        # Even malformed JSON, failed counter queries, early process death and
+        # deadlines retain a concrete measurement receipt and partial CPU data.
+        for role,job in (('client',client),('server',server)):
+            if not job:continue
+            try:
+                if not job.finished:job.stop()
+                result[role+'_process']=job.row
+                result['checks'][role+'_process_succeeded']=job.row.get('exit_code')==0 and not job.row.get('timed_out')
+                document=json.loads(read_text(job.stdout));result[role+'_iperf']=document
+                result[role+'_numeric_end_fields']=numeric_fields(document.get('end',{}))
+                result[role+'_received_byte_candidates']=received_candidates(document)
+                if document.get('error'):raise RuntimeError(role+' iperf error: '+str(document['error']))
+                result[role+'_local_receiver']=local_bidir_receiver(document,role)
+                result['checks'][role+'_received_its_direction']=True
+            except Exception as exc:failure(role+'-receipt',exc)
+        if started is not None and 'elapsed_seconds' not in result:
+            result['elapsed_seconds']=time.monotonic()-started
+            result['traffic_finished_monotonic_ns']=time.monotonic_ns()
+        for role in ROLES:
+            if role not in cpu_after:
+                try:cpu_after[role]=process_stats(pair.processes[role].proc.pid)
+                except Exception as exc:failure(role+'-final-process-cpu',exc)
+        result['process_cpu_ticks_before']=cpu_before;result['process_cpu_ticks_after']=cpu_after
+        result['process_cpu_seconds']={}
+        for role in ROLES:
+            if role not in cpu_before or role not in cpu_after:continue
+            a,b=cpu_before[role],cpu_after[role]
+            try:
+                if a['starttime_ticks']!=b['starttime_ticks']:raise ValueError('OpenVPN PID identity changed')
+                if b['user_ticks']<a['user_ticks'] or b['system_ticks']<a['system_ticks']:raise ValueError('process CPU counters reset')
+                result['process_cpu_seconds'][role]={'user':(b['user_ticks']-a['user_ticks'])/os.sysconf('SC_CLK_TCK'),
+                   'system':(b['system_ticks']-a['system_ticks'])/os.sysconf('SC_CLK_TCK'),
+                   'maximum_sampled_rss_bytes':max(maxrss.get(role,0),b['rss_bytes'])}
+            except Exception as exc:failure(role+'-cpu-delta',exc)
+        if 'host_cpu_ticks_after' not in result:
+            try:result['host_cpu_ticks_after']=cpu_snapshot(cpus)
+            except Exception as exc:failure('host-cpu-after',exc)
+        result['checks']['both_openvpn_cpu_receipts']=len(result['process_cpu_seconds'])==2
+        if perf:
+            profile={'passed':False,'raw_stack_file_published':False,
+                     'scope':'system-wide sampling on the two test vCPUs; includes kernel/shared VM activity; only bounded symbol fields published; raw DWARF stack memory is private and deleted'}
+            result['profile']=profile
+            try:
+                if not perf_job:raise RuntimeError('perf record was never started')
+                perf_job.wait(3,required=False);profile['record']=perf_job.row
+                profile['data_sha256']=digest(perf_file) if perf_file.exists() else None
+                report=pair.l.run([str(perf),'report','--stdio','--no-children','--sort','comm,dso,symbol','--input',str(perf_file)],label+'-perf-report',pair.folder,timeout=30,required=False)
+                samples=pair.l.run([str(perf),'script','--input',str(perf_file),'-F','comm,pid,tid,time,event,ip,sym,dso'],label+'-perf-samples',pair.folder,timeout=30,required=False)
+                profile.update(report=report.row,samples=samples.row)
+                text=read_text(samples.stdout);lines=text.splitlines()
+                headers=[line for line in lines if re.search(r'\bcpu-clock(?:\:[ukhp]+)?:',line)]
+                counts={r:sum(bool(re.search(r'\b'+str(pair.processes[r].proc.pid)+r'(?:/|\s)',line)) for line in headers) for r in ROLES}
+                kernel=sum('[kernel.kallsyms]' in line or '[ovpn]' in line for line in lines)
+                profile.update(actual_samples_present=bool(headers and samples.proc.returncode==0),
+                     actual_sample_headers=len(headers),openvpn_sample_headers_by_role=counts,
+                     kernel_symbol_lines=kernel,ovpn_symbol_lines=sum(bool(re.search(r'\bovpn_[a-zA-Z_]',line)) for line in lines))
+                original_process_visible=counts['client']>0 if pair.arms['client']=='c-user' else True
+                profile['passed']=bool(perf_job.proc.returncode==0 and report.proc.returncode==0 and samples.proc.returncode==0
+                                       and headers and kernel and original_process_visible)
+            except Exception as exc:
+                if perf_job and not perf_job.finished:
+                    try:perf_job.stop();profile['record']=perf_job.row
+                    except Exception as stop_exc:failure('perf-stop',stop_exc)
+                failure('profile',exc)
+                if isinstance(exc,Deadline):deadline_error=exc
+            if perf_file and perf_file.exists():
+                try:profile['data_sha256']=digest(perf_file)
+                except Exception as exc:failure('private-profile-hash',exc)
+            result['checks']['actual_process_kernel_profile']=profile['passed']
+        required={'actual_tunnel_and_kernel_counter_progress','client_process_succeeded','server_process_succeeded',
+                  'client_received_its_direction','server_received_its_direction','both_openvpn_cpu_receipts','same_authenticated_sessions'}
+        if perf:required.add('actual_process_kernel_profile')
+        result['passed']=not result['failures'] and all(result['checks'].get(key) is True for key in required)
+        result['status']='completed' if result['passed'] else 'failed'
+        result['finished_monotonic_ns']=time.monotonic_ns();save(output,result)
+    if deadline_error:raise deadline_error
+    return result
+
+
+def cleanup_state(path):
+    state=read_json(path)
+    if state.get('schema')!='hepta.openvpn-hia.owned-namespaces.v1':raise ValueError('unrecognized namespace ownership record')
+    if state.get('host_boot_id')!=read_text('/proc/sys/kernel/random/boot_id').strip():raise ValueError('ownership record belongs to a different boot')
+    results=[]
+    for entry in reversed(state['namespaces']):
+        if not entry.get('active'):continue
+        name=entry['name'];row={'name':name,'passed':False};results.append(row)
+        try:
+            if not re.fullmatch(r'ohia-[0-9a-f]{10}-[sc]',name):raise ValueError('unexpected owned namespace name')
+            ns=Path('/run/netns',name)
+            if not ns.exists():row['already_absent']=True;row['passed']=True;entry['active']=False;continue
+            if os.stat(ns).st_ino!=entry['inode']:raise ValueError('namespace inode no longer matches the owned resource')
+            listing=subprocess.run(['ip','netns','pids',name],capture_output=True,text=True,timeout=5,check=True)
+            pids=[int(x) for x in listing.stdout.split()]
+            row['recorded_namespace_pids']=pids
+            for pid in pids:
+                proc_ns=Path('/proc',str(pid),'ns/net')
+                if proc_ns.exists() and os.stat(proc_ns).st_ino==entry['inode']:os.kill(pid,signal.SIGTERM)
+            time.sleep(.1)
+            for pid in pids:
+                proc_ns=Path('/proc',str(pid),'ns/net')
+                if proc_ns.exists() and os.stat(proc_ns).st_ino==entry['inode']:os.kill(pid,signal.SIGKILL)
+            deletion=subprocess.run(['ip','netns','del',name],capture_output=True,text=True,timeout=5)
+            row.update(exit_code=deletion.returncode,stdout=deletion.stdout,stderr=deletion.stderr)
+            row['passed']=deletion.returncode==0 and not ns.exists()
+            if row['passed']:entry['active']=False
+        except Exception as exc:row['failure']=repr(exc)
+    save(path,state)
+    result={'schema':'hepta.openvpn-hia.target-cleanup.v1','passed':all(x['passed'] for x in results),'namespaces':results}
+    save(Path(path).parent/'cleanup-report.json',result);return result
+
+
+def main(argv=None):
+    parser=argparse.ArgumentParser(description=__doc__)
+    for flag in ('c','hia','hia-trace','source','build','out','private-work','perf'):
+        parser.add_argument('--'+flag,type=Path)
+    parser.add_argument('--budget-seconds',type=int,default=1800)
+    parser.add_argument('--cleanup-state',type=Path)
+    parser.add_argument('--preflight-only',action='store_true')
+    args=parser.parse_args(argv)
+    if args.cleanup_state:
+        result=cleanup_state(args.cleanup_state);print(json.dumps(result));return 0 if result['passed'] else 1
+    for name in ('c','hia','hia_trace','source','build','out','private_work'):
+        if getattr(args,name) is None:parser.error('--'+name.replace('_','-')+' is required')
+        setattr(args,name,getattr(args,name).resolve())
+    plan=read_json(HERE/'plan.json')
+    if args.budget_seconds!=plan['budget_seconds']:parser.error('budget must equal the predeclared plan')
+    if args.out.exists() and any(args.out.iterdir()):parser.error('evidence output must be new or empty')
+    if args.private_work.exists():parser.error('private-work must be a new directory')
+    args.out.mkdir(parents=True,exist_ok=True);args.private_work.mkdir(parents=True,mode=0o700)
+    os.umask(0o077)
+    ledger=Ledger(args.out,args.private_work,args.budget_seconds)
+    def stop_requested(signum,frame):
+        ledger.record({'event':'controller-stop-requested','signal':signum,'monotonic_ns':time.monotonic_ns()})
+        ledger.deadline=time.monotonic()
+    signal.signal(signal.SIGTERM,stop_requested);signal.signal(signal.SIGINT,stop_requested)
+    allowed=sorted(os.sched_getaffinity(0))
+    tasks=[]
+    for server,client in plan['behavior']['epoch_pairs']:
+        tasks.append({'id':'epoch-'+server+'-'+client,'kind':'behavior','epoch':True,
+                      'arms':{'server':server+'-user','client':client+'-user'}})
+    for client in plan['behavior']['common_profile_clients']:
+        tasks.append({'id':'common-'+client,'kind':'behavior','epoch':False,'arms':{'server':'c-dco','client':client}})
+    for client in plan['behavior']['negative_clients']:
+        tasks.append({'id':'auth-untrusted-'+client,'kind':'authentication','arms':{'server':'c-user','client':client+'-user'}})
+    for arm in plan['profile']['arms']:
+        tasks.append({'id':'profile-'+arm,'kind':'profile','arms':{'server':'c-dco','client':arm}})
+    for round_no in range(plan['performance']['rounds']):
+        for order_no,order in enumerate(plan['performance']['orders']):
+            for position,arm in enumerate(order):
+                tasks.append({'id':f'perf-r{round_no}-o{order_no}-p{position}-{arm}','kind':'performance',
+                              'round':round_no,'order':order_no,'position':position,
+                              'arms':{'server':'c-dco','client':arm}})
+    report={'schema':'hepta.openvpn-hia.target-matrix.v1','complete':False,
+            'started_utc':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'plan':plan,'plan_sha256':digest(HERE/'plan.json'),
+            'inputs':{},'host':{'uname':platform.uname()._asdict(),'allowed_cpus':allowed,
+                  'selected_cpus':allowed[:2],'dedicated_physical_host':False,'frequency_locked':False},
+            'cases':[{**task,'status':'planned','passed':False} for task in tasks],
+            'gates':{k:False for k in ('real_tun','dco_runtime','authentication','encrypted_replay','rekey','reconnect','profile','fixed_performance_matrix')},
+            'counts':{'planned_behavior_cases':7,'passed_behavior_cases':0,'planned_authentication_cases':2,'passed_authentication_cases':0,
+                      'planned_performance_cases':54,'passed_performance_cases':0,'planned_performance_workloads':216,
+                      'attempted_performance_workloads':0,'completed_performance_workloads':0,'failed_performance_workloads':0,
+                      'planned_profile_cases':2,'passed_profile_cases':0},
+            'cleanup':{'passed':False},'production_performance_qualified':False,
+            'claim_limit':'finite single hosted VM namespace/veth observations only; every failed/lost/slow sample retained'}
+    receipt=args.out/'target-result.json';save(receipt,report)
+    binaries={'c':args.c,'hia':args.hia,'hia_trace':args.hia_trace}
+    try:
+        # Freeze exact inputs before any namespace or traffic is created.
+        report['inputs']['binaries']={name:{'path':str(path),'sha256':digest(path)} for name,path in binaries.items()}
+        report['inputs']['scripts']={p.name:digest(p) for p in sorted(HERE.glob('*.py'))}
+        report['inputs']['build_config_sha256']=digest(args.build/'config.h')
+        for name in ('c','hia'):
+            if b'OPENVPN_HIA_CALLS' in binaries[name].read_bytes():raise RuntimeError('performance input contains diagnostic trace: '+name)
+        if b'OPENVPN_HIA_CALLS' not in args.hia_trace.read_bytes():raise RuntimeError('diagnostic HIA input lacks entry tracer')
+        repo=HERE.parents[2]
+        head=ledger.run(['git','-C',str(repo),'rev-parse','HEAD'],'source-head',timeout=10)
+        report['inputs']['hepta_commit']=head.text().strip()
+        spec=importlib.util.spec_from_file_location('official_baseline',repo/'tools/openvpn_hia_baseline.py')
+        module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        report['inputs']['official_source']=module.source_freeze(args.source,args.source.parent/'openvpn-2.7.8.tar.gz')
+        report['inputs']['perf']={'path':str(args.perf),'sha256':digest(args.perf)} if args.perf else None
+        status=read_text('/proc/self/status');caps=int(re.search(r'^CapEff:\s*(\w+)',status,re.M).group(1),16)
+        report['host']['process_status']=status;report['host']['cpuinfo']=read_text('/proc/cpuinfo')
+        report['host']['perf_event_paranoid']=read_text('/proc/sys/kernel/perf_event_paranoid').strip()
+        blockers=[]
+        if os.geteuid()!=0 or not caps&(1<<12) or not caps&(1<<21):blockers.append('requires provisioned target CAP_NET_ADMIN and CAP_SYS_ADMIN; no escalation is attempted')
+        if not Path('/dev/net/tun').exists():blockers.append('/dev/net/tun absent')
+        if not Path('/sys/module/ovpn').exists():blockers.append('actual ovpn kernel implementation absent')
+        if len(allowed)<2:blockers.append('at least two allowed target CPUs required')
+        for command in ('ip','iperf3','openssl','taskset'):
+            if not shutil.which(command):blockers.append(command+' unavailable')
+        report['preflight']={'blockers':blockers,'passed':not blockers};save(receipt,report)
+        if blockers or args.preflight_only:
+            report['preflight_only']=True
+            return 2 if blockers else 0
+        configuration=create_pki(ledger,args.c);configuration['cpus']=allowed[:2]
+        report['inputs']['configuration_sha256']={r:digest(configuration[r]) for r in ROLES}
+        report['inputs']['public_cert_sha256']={p.name:digest(p) for p in (args.out/'pki').glob('*.crt')}
+        save(receipt,report)
+        for row in report['cases']:
+            ledger.check();pair=None;row['status']='running';save(receipt,report)
+            try:
+                if row['kind']=='profile' and not args.perf:raise RuntimeError('actual perf collector unavailable; no synthetic substitute')
+                behavior=row['kind']=='behavior';negative=row['kind']=='authentication'
+                pair=Pair(ledger,row['id'],binaries,configuration,row['arms'],trace=behavior or negative,
+                          reneg=plan['behavior']['rekey_seconds'] if behavior else 3600,negative=negative)
+                if behavior:run_behavior(pair,plan,row['epoch'])
+                elif negative:run_negative(pair,plan)
+                else:
+                    pair.connected();pair.protocol_gate(False)
+                    if row['kind']=='profile':
+                        measurement=throughput(pair,{'name':'tcp-profile','transport':'tcp'},plan['profile']['seconds'],allowed[:2],
+                                               'tcp-profile',perf=args.perf)
+                        if not measurement['passed'] or not measurement.get('profile',{}).get('passed'):
+                            raise RuntimeError('actual tunnel traffic or perf profile failed')
+                        pair.result['checks']={'actual_tunnel_profile':True}
+                    else:
+                        pair.result['measurements']=[]
+                        for index,workload in enumerate(plan['performance']['workloads']):
+                            measurement=throughput(pair,workload,plan['performance']['seconds_per_workload'],allowed[:2],
+                                                   f'workload-{index}-'+workload['name'])
+                            save(pair.folder/'case.json',pair.result)
+                        pair.result['checks']={'four_workloads_completed':len(pair.result['measurements'])==4 and all(m['passed'] for m in pair.result['measurements']),
+                                               'trace_excluded':True,'common_non_epoch_profile':True}
+                        if not pair.result['checks']['four_workloads_completed']:
+                            raise RuntimeError('one or more fixed workloads failed; every attempted measurement is retained')
+                pair.result['status']='completed';pair.result['passed']=True
+            except Deadline:
+                row.update(status='deadline_exceeded',passed=False)
+                if pair:pair.result.update(status='deadline_exceeded',passed=False)
+                raise
+            except Exception as exc:
+                row.update(status='failed',failure=repr(exc),passed=False)
+                if pair:pair.result.update(status='failed',failure=repr(exc),passed=False)
+                (args.out/'cases'/row['id']).mkdir(parents=True,exist_ok=True)
+                (args.out/'cases'/row['id']/'failure.txt').write_text(traceback.format_exc())
+            finally:
+                if pair:
+                    pair.close()
+                    # Entry traces are emitted at exit, so assess them only now.
+                    if row['kind']=='behavior' and pair.result['passed']:
+                        for role in ROLES:
+                            if row['arms'][role].startswith('hia'):
+                                trace=pair.result['observations'][role]['hia_trace']
+                                good=bool(trace and trace['abi_failures']==0 and trace['read']>0 and trace['write']>0)
+                                if row['epoch']:good=good and trace['read_epoch']>0 and trace['write_epoch']>0
+                                else:good=good and trace['read_epoch']==0 and trace['write_epoch']==0
+                                pair.result['checks'][role+'_hia_profile_trace']=good
+                                pair.result['passed']=pair.result['passed'] and good
+                    if pair.result.get('cleanup_errors'):pair.result['passed']=False
+                    if not pair.result['passed'] and pair.result['status']=='completed':pair.result['status']='gate_failed'
+                    save(pair.folder/'case.json',pair.result)
+                    row.update(status=pair.result['status'],passed=pair.result['passed'],receipt=str((pair.folder/'case.json').relative_to(args.out)))
+                    if 'failure' in pair.result:row['failure']=pair.result['failure']
+                    if 'measurements' in pair.result:
+                        row['attempted_workloads']=len(pair.result['measurements'])
+                        row['completed_workloads']=sum(m['passed'] for m in pair.result['measurements'])
+                save(receipt,report)
+            print(json.dumps({'case':row['id'],'status':row['status'],'passed':row['passed']}),flush=True)
+    except BaseException as exc:
+        report['failure']=repr(exc)
+        (args.out/'controller-failure.txt').write_text(traceback.format_exc())
+    finally:
+        ledger.close()
+        try:report['cleanup']=cleanup_state(ledger.owned_path)
+        except Exception as exc:report['cleanup']={'passed':False,'failure':repr(exc)}
+        # Only this new directory is removed. Public artifacts never include
+        # PKI private keys or raw DWARF stack bytes.
+        try:
+            shutil.rmtree(args.private_work);report['cleanup']['private_work_removed']=True
+        except Exception as exc:report['cleanup']['private_work_removed']=False;report['cleanup']['private_error']=repr(exc);report['cleanup']['passed']=False
+        bykind={kind:[r for r in report['cases'] if r['kind']==kind] for kind in ('behavior','authentication','performance','profile')}
+        report['counts'].update(passed_behavior_cases=sum(r['passed'] for r in bykind['behavior']),
+              passed_authentication_cases=sum(r['passed'] for r in bykind['authentication']),
+              passed_performance_cases=sum(r['passed'] for r in bykind['performance']),
+              attempted_performance_workloads=sum(r.get('attempted_workloads',0) for r in bykind['performance']),
+              completed_performance_workloads=sum(r.get('completed_workloads',0) for r in bykind['performance']),
+              failed_performance_workloads=sum(r.get('attempted_workloads',0)-r.get('completed_workloads',0) for r in bykind['performance']),
+              passed_profile_cases=sum(r['passed'] for r in bykind['profile']))
+        behavior_ok=len(bykind['behavior'])==7 and all(r['passed'] for r in bykind['behavior'])
+        common=[r for r in bykind['behavior'] if not r['epoch']]
+        report['gates'].update(real_tun=behavior_ok,dco_runtime=len(common)==3 and all(r['passed'] for r in common),
+                 authentication=len(bykind['authentication'])==2 and all(r['passed'] for r in bykind['authentication']),
+                 encrypted_replay=behavior_ok,rekey=behavior_ok,reconnect=behavior_ok,
+                 profile=len(bykind['profile'])==2 and all(r['passed'] for r in bykind['profile']),
+                 fixed_performance_matrix=len(bykind['performance'])==54 and all(r['passed'] for r in bykind['performance'])
+                     and report['counts']['completed_performance_workloads']==216)
+        report['complete']=bool(all(report['gates'].values()) and report['cleanup']['passed'] and not report.get('failure'))
+        report['elapsed_seconds']=time.monotonic()-ledger.started
+        report['finished_utc']=time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())
+        save(receipt,report)
+    print(json.dumps({'receipt':str(receipt),'complete':report['complete'],'gates':report['gates'],'counts':report['counts']}),flush=True)
+    return 0 if report['complete'] else 1
+
+
+if __name__=='__main__':raise SystemExit(main())

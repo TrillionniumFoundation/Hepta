@@ -1,0 +1,23 @@
+{
+  "schema": "hepta.openvpn-hia.real-tunnel-trial.v1",
+  "preflight": {
+    "mode": "userspace",
+    "cap_eff": "0x0",
+    "tun_exists": false,
+    "kernel_flags": {
+      "CONFIG_TUN": "CONFIG_TUN=y",
+      "CONFIG_OVPN": "# CONFIG_OVPN is not set",
+      "CONFIG_NET_NS": "CONFIG_NET_NS=y"
+    },
+    "kernel_config_sha256": "d01566bd89e87ab860a2fbfcac7c374b04f69b935faf87e79b8e69a4f7216d25",
+    "blockers": [
+      "CAP_NET_ADMIN is absent",
+      "/dev/net/tun is absent",
+      "iperf3 is unavailable"
+    ],
+    "available": false
+  },
+  "real_tun_tunnel_passed": false,
+  "dco_runtime_passed": false,
+  "performance_qualified": false
+}

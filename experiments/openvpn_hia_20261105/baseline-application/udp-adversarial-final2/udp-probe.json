@@ -1,0 +1,470 @@
+{
+  "schema": "hepta.openvpn-hia.encrypted-udp-adversarial-probe.v1",
+  "runner_sha256": "5f3a963bf5796361ab8799bc4afb0d7a5135382373521f2f416a48f63418ef8c",
+  "baseline_sha256": "88d12c3b2ceee46cd502f9d428d1c90483c7da5f19ff1448749efd4771297f43",
+  "real_tun_tunnel_passed": false,
+  "dco_runtime_passed": false,
+  "sessions": [
+    {
+      "pair": "c-hia",
+      "scope": "actual-OpenVPN-loopback-dev-null-encrypted-ping",
+      "passed": true,
+      "checks": {
+        "both_processes_survived": true,
+        "injected_both_directions": true,
+        "both_peers_initialized_once": true,
+        "both_peers_rekeyed": true,
+        "both_peers_rejected_exact_replay": true,
+        "both_peers_rejected_bad_tag": true,
+        "client_hia_no_abi_errors": true
+      },
+      "commands": [
+        [
+          "/workspace/scratch/2719a9027f80/openvpn-baseline/build-c/src/openvpn/openvpn",
+          "--dev",
+          "null",
+          "--disable-dco",
+          "--proto",
+          "udp",
+          "--local",
+          "127.0.0.1",
+          "--ifconfig-noexec",
+          "--route-noexec",
+          "--verb",
+          "4",
+          "--data-ciphers",
+          "AES-256-GCM",
+          "--cipher",
+          "AES-256-GCM",
+          "--reneg-sec",
+          "3",
+          "--reneg-bytes",
+          "0",
+          "--reneg-pkts",
+          "0",
+          "--ping",
+          "1",
+          "--hand-window",
+          "6",
+          "--tls-timeout",
+          "1",
+          "--ca",
+          "/workspace/scratch/2719a9027f80/openvpn-baseline/integration-run-final2/ephemeral-pki/ca.crt",
+          "--tls-server",
+          "--dh",
+          "none",
+          "--lport",
+          "39044",
+          "--rport",
+          "41048",
+          "--remote",
+          "127.0.0.1",
+          "--cert",
+          "/workspace/scratch/2719a9027f80/openvpn-baseline/integration-run-final2/ephemeral-pki/server.crt",
+          "--key",
+          "/workspace/scratch/2719a9027f80/openvpn-baseline/integration-run-final2/ephemeral-pki/server.key"
+        ],
+        [
+          "/workspace/scratch/2719a9027f80/openvpn-baseline/integration-final2/openvpn-hia-trace",
+          "--dev",
+          "null",
+          "--disable-dco",
+          "--proto",
+          "udp",
+          "--local",
+          "127.0.0.1",
+          "--ifconfig-noexec",
+          "--route-noexec",
+          "--verb",
+          "4",
+          "--data-ciphers",
+          "AES-256-GCM",
+          "--cipher",
+          "AES-256-GCM",
+          "--reneg-sec",
+          "3",
+          "--reneg-bytes",
+          "0",
+          "--reneg-pkts",
+          "0",
+          "--ping",
+          "1",
+          "--hand-window",
+          "6",
+          "--tls-timeout",
+          "1",
+          "--ca",
+          "/workspace/scratch/2719a9027f80/openvpn-baseline/integration-run-final2/ephemeral-pki/ca.crt",
+          "--tls-client",
+          "--lport",
+          "39817",
+          "--rport",
+          "41136",
+          "--remote",
+          "127.0.0.1",
+          "--cert",
+          "/workspace/scratch/2719a9027f80/openvpn-baseline/integration-run-final2/ephemeral-pki/client.crt",
+          "--key",
+          "/workspace/scratch/2719a9027f80/openvpn-baseline/integration-run-final2/ephemeral-pki/client.key",
+          "--remote-cert-tls",
+          "server",
+          "--verify-x509-name",
+          "OpenVPN-HIA-server",
+          "name"
+        ]
+      ],
+      "injections": [
+        {
+          "direction": "server-to-client",
+          "opcode": 9,
+          "length": 44,
+          "elapsed_seconds": 1.0588637729997572,
+          "ciphertext_sha256": "a511cc3438447cdce6f023675c2feb3cbcbf48380802fc0bbcacad875440a6b8",
+          "exact_duplicates": 1,
+          "corrupted_copies": 1
+        },
+        {
+          "direction": "client-to-server",
+          "opcode": 9,
+          "length": 44,
+          "elapsed_seconds": 2.0683793919997697,
+          "ciphertext_sha256": "e5d2b905133eabca40878ec093a30bf9b87eaa8de7c53798aca4e60667bca1c6",
+          "exact_duplicates": 1,
+          "corrupted_copies": 1
+        }
+      ],
+      "forwarded_datagrams": {
+        "client-to-server": 42,
+        "server-to-client": 38
+      },
+      "observations": {
+        "server": {
+          "log": "c-hia-server.log",
+          "log_sha256": "13d52c6af6bfd60622c57ac65d20d989d629bc2063cd4182766c2313caad2ef2",
+          "initialization_completed": 1,
+          "initialization_lines": [
+            276
+          ],
+          "peer_connections": 1,
+          "tls_soft_resets": 3,
+          "rekey_cycles_completed": 3,
+          "rekey_evidence": [
+            {
+              "soft_reset_line": 282,
+              "tls_channel_line": 287,
+              "outgoing_key_line": 288,
+              "incoming_key_line": 289
+            },
+            {
+              "soft_reset_line": 294,
+              "tls_channel_line": 299,
+              "outgoing_key_line": 300,
+              "incoming_key_line": 301
+            },
+            {
+              "soft_reset_line": 306,
+              "tls_channel_line": 311,
+              "outgoing_key_line": 312,
+              "incoming_key_line": 313
+            }
+          ],
+          "reconnect_completed_after_signal": false,
+          "identity_rejections": 0,
+          "certificate_chain_rejections": 0,
+          "verification_errors": 0,
+          "tls_error_lines": [],
+          "hia_calls": [],
+          "exact_replay_rejections": 1,
+          "tag_authentication_rejections": 1
+        },
+        "client": {
+          "log": "c-hia-client.log",
+          "log_sha256": "97471d5ed74d75411a789d3b752e97ba9ebb3ef2897e3e935fa1ba4549a7ad7b",
+          "initialization_completed": 1,
+          "initialization_lines": [
+            277
+          ],
+          "peer_connections": 1,
+          "tls_soft_resets": 3,
+          "rekey_cycles_completed": 3,
+          "rekey_evidence": [
+            {
+              "soft_reset_line": 283,
+              "tls_channel_line": 293,
+              "outgoing_key_line": 294,
+              "incoming_key_line": 295
+            },
+            {
+              "soft_reset_line": 300,
+              "tls_channel_line": 310,
+              "outgoing_key_line": 311,
+              "incoming_key_line": 312
+            },
+            {
+              "soft_reset_line": 317,
+              "tls_channel_line": 327,
+              "outgoing_key_line": 328,
+              "incoming_key_line": 329
+            }
+          ],
+          "reconnect_completed_after_signal": false,
+          "identity_rejections": 0,
+          "certificate_chain_rejections": 0,
+          "verification_errors": 0,
+          "tls_error_lines": [],
+          "hia_calls": [
+            "OPENVPN_HIA_CALLS read=21 write=24 read_epoch=11 write_epoch=10 abi_failures=0"
+          ],
+          "exact_replay_rejections": 1,
+          "tag_authentication_rejections": 1,
+          "hia_trace": {
+            "present": true,
+            "counts": {
+              "read": 21,
+              "write": 24,
+              "read_epoch": 11,
+              "write_epoch": 10,
+              "abi_failures": 0
+            }
+          }
+        }
+      },
+      "duration_seconds": 10.050831808001021,
+      "exit_codes": [
+        0,
+        0
+      ]
+    },
+    {
+      "pair": "hia-c",
+      "scope": "actual-OpenVPN-loopback-dev-null-encrypted-ping",
+      "passed": true,
+      "checks": {
+        "both_processes_survived": true,
+        "injected_both_directions": true,
+        "both_peers_initialized_once": true,
+        "both_peers_rekeyed": true,
+        "both_peers_rejected_exact_replay": true,
+        "both_peers_rejected_bad_tag": true,
+        "server_hia_no_abi_errors": true
+      },
+      "commands": [
+        [
+          "/workspace/scratch/2719a9027f80/openvpn-baseline/integration-final2/openvpn-hia-trace",
+          "--dev",
+          "null",
+          "--disable-dco",
+          "--proto",
+          "udp",
+          "--local",
+          "127.0.0.1",
+          "--ifconfig-noexec",
+          "--route-noexec",
+          "--verb",
+          "4",
+          "--data-ciphers",
+          "AES-256-GCM",
+          "--cipher",
+          "AES-256-GCM",
+          "--reneg-sec",
+          "3",
+          "--reneg-bytes",
+          "0",
+          "--reneg-pkts",
+          "0",
+          "--ping",
+          "1",
+          "--hand-window",
+          "6",
+          "--tls-timeout",
+          "1",
+          "--ca",
+          "/workspace/scratch/2719a9027f80/openvpn-baseline/integration-run-final2/ephemeral-pki/ca.crt",
+          "--tls-server",
+          "--dh",
+          "none",
+          "--lport",
+          "39439",
+          "--rport",
+          "44603",
+          "--remote",
+          "127.0.0.1",
+          "--cert",
+          "/workspace/scratch/2719a9027f80/openvpn-baseline/integration-run-final2/ephemeral-pki/server.crt",
+          "--key",
+          "/workspace/scratch/2719a9027f80/openvpn-baseline/integration-run-final2/ephemeral-pki/server.key"
+        ],
+        [
+          "/workspace/scratch/2719a9027f80/openvpn-baseline/build-c/src/openvpn/openvpn",
+          "--dev",
+          "null",
+          "--disable-dco",
+          "--proto",
+          "udp",
+          "--local",
+          "127.0.0.1",
+          "--ifconfig-noexec",
+          "--route-noexec",
+          "--verb",
+          "4",
+          "--data-ciphers",
+          "AES-256-GCM",
+          "--cipher",
+          "AES-256-GCM",
+          "--reneg-sec",
+          "3",
+          "--reneg-bytes",
+          "0",
+          "--reneg-pkts",
+          "0",
+          "--ping",
+          "1",
+          "--hand-window",
+          "6",
+          "--tls-timeout",
+          "1",
+          "--ca",
+          "/workspace/scratch/2719a9027f80/openvpn-baseline/integration-run-final2/ephemeral-pki/ca.crt",
+          "--tls-client",
+          "--lport",
+          "34686",
+          "--rport",
+          "39344",
+          "--remote",
+          "127.0.0.1",
+          "--cert",
+          "/workspace/scratch/2719a9027f80/openvpn-baseline/integration-run-final2/ephemeral-pki/client.crt",
+          "--key",
+          "/workspace/scratch/2719a9027f80/openvpn-baseline/integration-run-final2/ephemeral-pki/client.key",
+          "--remote-cert-tls",
+          "server",
+          "--verify-x509-name",
+          "OpenVPN-HIA-server",
+          "name"
+        ]
+      ],
+      "injections": [
+        {
+          "direction": "client-to-server",
+          "opcode": 9,
+          "length": 44,
+          "elapsed_seconds": 1.0577482290009357,
+          "ciphertext_sha256": "6554a18f9cb5fcd823a1bbc3d5a2228eefab8b4e691424cfbc81fcae43aa02f1",
+          "exact_duplicates": 1,
+          "corrupted_copies": 1
+        },
+        {
+          "direction": "server-to-client",
+          "opcode": 9,
+          "length": 44,
+          "elapsed_seconds": 2.0934760729996924,
+          "ciphertext_sha256": "72b438b953b5d3393b66d017d738ba8f1d80d448bf6546f0190bce5cb61d3092",
+          "exact_duplicates": 1,
+          "corrupted_copies": 1
+        }
+      ],
+      "forwarded_datagrams": {
+        "client-to-server": 41,
+        "server-to-client": 38
+      },
+      "observations": {
+        "server": {
+          "log": "hia-c-server.log",
+          "log_sha256": "e39bccdfc1aea13007591d8b44e60a2d542c54a7ba88192388e92fca75e794ef",
+          "initialization_completed": 1,
+          "initialization_lines": [
+            275
+          ],
+          "peer_connections": 1,
+          "tls_soft_resets": 3,
+          "rekey_cycles_completed": 3,
+          "rekey_evidence": [
+            {
+              "soft_reset_line": 281,
+              "tls_channel_line": 286,
+              "outgoing_key_line": 287,
+              "incoming_key_line": 288
+            },
+            {
+              "soft_reset_line": 293,
+              "tls_channel_line": 298,
+              "outgoing_key_line": 299,
+              "incoming_key_line": 300
+            },
+            {
+              "soft_reset_line": 305,
+              "tls_channel_line": 310,
+              "outgoing_key_line": 311,
+              "incoming_key_line": 312
+            }
+          ],
+          "reconnect_completed_after_signal": false,
+          "identity_rejections": 0,
+          "certificate_chain_rejections": 0,
+          "verification_errors": 0,
+          "tls_error_lines": [],
+          "hia_calls": [
+            "OPENVPN_HIA_CALLS read=24 write=21 read_epoch=11 write_epoch=9 abi_failures=0"
+          ],
+          "exact_replay_rejections": 1,
+          "tag_authentication_rejections": 1,
+          "hia_trace": {
+            "present": true,
+            "counts": {
+              "read": 24,
+              "write": 21,
+              "read_epoch": 11,
+              "write_epoch": 9,
+              "abi_failures": 0
+            }
+          }
+        },
+        "client": {
+          "log": "hia-c-client.log",
+          "log_sha256": "3448b487407159b1be8c488aa3f303a7484f46844d826fa2128f99bac8c7345a",
+          "initialization_completed": 1,
+          "initialization_lines": [
+            278
+          ],
+          "peer_connections": 1,
+          "tls_soft_resets": 3,
+          "rekey_cycles_completed": 3,
+          "rekey_evidence": [
+            {
+              "soft_reset_line": 284,
+              "tls_channel_line": 294,
+              "outgoing_key_line": 295,
+              "incoming_key_line": 296
+            },
+            {
+              "soft_reset_line": 301,
+              "tls_channel_line": 311,
+              "outgoing_key_line": 312,
+              "incoming_key_line": 313
+            },
+            {
+              "soft_reset_line": 318,
+              "tls_channel_line": 328,
+              "outgoing_key_line": 329,
+              "incoming_key_line": 330
+            }
+          ],
+          "reconnect_completed_after_signal": false,
+          "identity_rejections": 0,
+          "certificate_chain_rejections": 0,
+          "verification_errors": 0,
+          "tls_error_lines": [],
+          "hia_calls": [],
+          "exact_replay_rejections": 1,
+          "tag_authentication_rejections": 1
+        }
+      },
+      "duration_seconds": 10.026923942999929,
+      "exit_codes": [
+        0,
+        0
+      ]
+    }
+  ],
+  "passed": true
+}

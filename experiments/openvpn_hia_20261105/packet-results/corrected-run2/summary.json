@@ -1,0 +1,325 @@
+{
+  "benchmark": {
+    "epoch_read": {
+      "c_original": {
+        "maximum_ns_per_call": 4.183584,
+        "median_ns_per_call": 2.296931,
+        "minimum_ns_per_call": 1.869893,
+        "samples": 18
+      },
+      "c_same_buffer_abi": {
+        "maximum_ns_per_call": 22.203157,
+        "median_ns_per_call": 13.5552975,
+        "minimum_ns_per_call": 12.130699,
+        "samples": 18
+      },
+      "hia_adapter": {
+        "maximum_ns_per_call": 24.053193,
+        "median_ns_per_call": 15.756495000000001,
+        "minimum_ns_per_call": 13.472707,
+        "samples": 18
+      },
+      "hia_raw": {
+        "maximum_ns_per_call": 15.900805,
+        "median_ns_per_call": 10.3235605,
+        "minimum_ns_per_call": 9.05353,
+        "samples": 18
+      }
+    },
+    "epoch_write": {
+      "c_original": {
+        "maximum_ns_per_call": 4.453036,
+        "median_ns_per_call": 2.9207460000000003,
+        "minimum_ns_per_call": 2.528914,
+        "samples": 18
+      },
+      "c_same_buffer_abi": {
+        "maximum_ns_per_call": 16.066311,
+        "median_ns_per_call": 12.325436,
+        "minimum_ns_per_call": 10.732875,
+        "samples": 18
+      },
+      "hia_adapter": {
+        "maximum_ns_per_call": 31.315889,
+        "median_ns_per_call": 18.061189,
+        "minimum_ns_per_call": 15.292462,
+        "samples": 18
+      },
+      "hia_raw": {
+        "maximum_ns_per_call": 14.530567,
+        "median_ns_per_call": 10.61973,
+        "minimum_ns_per_call": 9.28576,
+        "samples": 18
+      }
+    },
+    "long_read": {
+      "c_original": {
+        "maximum_ns_per_call": 10.65046,
+        "median_ns_per_call": 3.5669804999999997,
+        "minimum_ns_per_call": 2.603908,
+        "samples": 18
+      },
+      "c_same_buffer_abi": {
+        "maximum_ns_per_call": 33.287913,
+        "median_ns_per_call": 19.831606999999998,
+        "minimum_ns_per_call": 12.953259,
+        "samples": 18
+      },
+      "hia_adapter": {
+        "maximum_ns_per_call": 39.199047,
+        "median_ns_per_call": 21.6809,
+        "minimum_ns_per_call": 15.409461,
+        "samples": 18
+      },
+      "hia_raw": {
+        "maximum_ns_per_call": 22.459539,
+        "median_ns_per_call": 13.364301999999999,
+        "minimum_ns_per_call": 9.119326,
+        "samples": 18
+      }
+    },
+    "long_write": {
+      "c_original": {
+        "maximum_ns_per_call": 7.692186,
+        "median_ns_per_call": 4.8100995,
+        "minimum_ns_per_call": 4.031463,
+        "samples": 18
+      },
+      "c_same_buffer_abi": {
+        "maximum_ns_per_call": 23.796797,
+        "median_ns_per_call": 13.9454595,
+        "minimum_ns_per_call": 11.533305,
+        "samples": 18
+      },
+      "hia_adapter": {
+        "maximum_ns_per_call": 34.700256,
+        "median_ns_per_call": 24.78034,
+        "minimum_ns_per_call": 20.057394,
+        "samples": 18
+      },
+      "hia_raw": {
+        "maximum_ns_per_call": 23.32006,
+        "median_ns_per_call": 16.9793405,
+        "minimum_ns_per_call": 13.914843,
+        "samples": 18
+      }
+    }
+  },
+  "benchmark_notes": [
+    "All observations retained, including slow samples; no outlier exclusion.",
+    "18 measured samples of 1000000 calls per mode/arm after 10000 warmup calls.",
+    "C/rawHIA/adapterHIA use six predetermined orders, each repeated three times.",
+    "C same-buffer-ABI control alternates before and after the triplet.",
+    "Every iteration resets offset/length and sinks return values and observed packet bytes/state.",
+    "Timing differences are observations, not an exact additive adapter-cost decomposition.",
+    "Pinned CPU without exclusive host isolation; C and HIA are separately compiled with identical Clang20.1.8 -O3; no LTO.",
+    "HIA raw includes bounded foreign-call admission and the 32-byte state ABI.",
+    "These microbenchmarks do not predict tunnel throughput, DCO performance, or deployment value."
+  ],
+  "c_flags": [
+    "--target=x86_64-unknown-linux-gnu",
+    "-O3",
+    "-fPIC",
+    "-ffunction-sections",
+    "-fdata-sections",
+    "-DHAVE_CONFIG_H",
+    "-I/workspace/scratch/2719a9027f80/openvpn-baseline/build-c",
+    "-I/workspace/scratch/2719a9027f80/openvpn-baseline/openvpn-2.7.8/src/openvpn",
+    "-I/workspace/scratch/2719a9027f80/openvpn-baseline/openvpn-2.7.8/include",
+    "-I/workspace/scratch/2719a9027f80/openvpn-baseline/openvpn-2.7.8/src/compat",
+    "-I/workspace/scratch/2719a9027f80/Hepta-frozen/experiments/openvpn_hia_20261105"
+  ],
+  "compiler": {
+    "path": "/workspace/scratch/2719a9027f80/toolchain/llvm20/usr/lib/llvm-20/bin/clang",
+    "sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+    "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+  },
+  "config_h_sha256": "947e00ff44750e517cfb7bfbe53a14080b8963000c9f2c400eb9f9ffc3cbdc3f",
+  "error": "RuntimeError('san-differential failed (1); retained stdout/stderr')",
+  "finished_utc": "2026-11-05T07:37:22Z",
+  "hia_receipt": {
+    "artifact_bytes": 4744,
+    "artifact_sha256": "67e17b4113f8aeca171efb9b1a45909373daddeaae448060c20ec080e0725983",
+    "binary_inventory": {
+      "defined": [
+        "ovpn_hia_packet_id_read",
+        "ovpn_hia_packet_id_read_epoch",
+        "ovpn_hia_packet_id_write",
+        "ovpn_hia_packet_id_write_epoch"
+      ],
+      "undefined": [
+        "abort"
+      ]
+    },
+    "build_host": {
+      "abi": "SysV AMD64 LP64",
+      "byteorder": "little",
+      "elf_machine": 62,
+      "long_bits": 64,
+      "machine": "x86_64",
+      "normalized_machine": "x86_64",
+      "pointer_bits": 64,
+      "size_t_bits": 64,
+      "system": "Linux",
+      "target": "x86_64-unknown-linux-gnu"
+    },
+    "claims": {
+      "backend_refinement_proved": false,
+      "c_codegen_used": false,
+      "cross_target_execution_qualified": false,
+      "fallback_used": false,
+      "foreign_buffer_entrypoints_exposed": true,
+      "native_execution_qualified": false,
+      "rust_codegen_used": false,
+      "rust_reference_required": false,
+      "source_ast_required": false,
+      "standalone_core_reverified": true,
+      "whole_language_soundness_proved": false
+    },
+    "core_sha256": "b25fc16e46ba2bc64fefd6de0e823f361b5a377b420811035c1dfbbc6b094a33",
+    "cross_target_compilation": false,
+    "entry_layout": "canonical",
+    "exports": [
+      "ovpn_hia_packet_id_read",
+      "ovpn_hia_packet_id_read_epoch",
+      "ovpn_hia_packet_id_write",
+      "ovpn_hia_packet_id_write_epoch"
+    ],
+    "external_abi": "bounded synchronous byte loans; u64 packs ABI status/high32 and Core u32/low32",
+    "flags": [
+      "--target=x86_64-unknown-linux-gnu",
+      "-x",
+      "ir",
+      "-O3",
+      "-fPIC",
+      "-c"
+    ],
+    "foreign_buffer_exports": [
+      [
+        "ovpn_hia_packet_id_read",
+        65536
+      ],
+      [
+        "ovpn_hia_packet_id_read_epoch",
+        65536
+      ],
+      [
+        "ovpn_hia_packet_id_write",
+        65536
+      ],
+      [
+        "ovpn_hia_packet_id_write_epoch",
+        65536
+      ]
+    ],
+    "implementation_sha256": "e98d5c5b964b74ea5d11e3e79639c3381b1d69bb09787d19360c90c70523d1c0",
+    "input_sha256": "b25fc16e46ba2bc64fefd6de0e823f361b5a377b420811035c1dfbbc6b094a33",
+    "kind": "object",
+    "llvm_ir_sha256": "41657dee78e0b25d0426b2f64f638f764ead9e587d91eb951b41a62a83946bd7",
+    "ok": true,
+    "output": "/workspace/scratch/2719a9027f80/packet-run-final2/packet.o",
+    "profile": "hepta.hia.program.llvm-linux-x86_64-foreign-buffers.v1",
+    "runtime_assumptions": [
+      "Linux LP64 target with 64-bit pointers and size_t",
+      "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+      "C malloc returns null or a fresh nonaliasing allocation of the requested size; bytes are initialized before read or remain unobserved",
+      "C free accepts a live allocation from calloc or malloc, or null",
+      "abort terminates execution; no cleanup after traps is promised",
+      "native compiler, linker, loader, libc and host hardware are trusted",
+      "caller provides live memory covering every admitted range for the whole synchronous call",
+      "caller keeps mutable ranges exclusive and does not mutate read-only ranges during the call",
+      "numeric range checks do not authenticate allocation provenance or dangling C pointers",
+      "Core traps still abort and do not roll back already performed writes"
+    ],
+    "schema": "hepta.hia.program.native.v1",
+    "status": "native_compiled_not_executed",
+    "target": "x86_64-unknown-linux-gnu",
+    "toolchain": {
+      "default_target": "x86_64-pc-linux-gnu",
+      "path": "/workspace/scratch/2719a9027f80/toolchain/llvm20/usr/lib/llvm-20/bin/clang",
+      "sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+      "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+    }
+  },
+  "host": {
+    "allowed_cpus_before": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "cpu_model": "AMD EPYC 9V74 80-Core Processor",
+    "load_average_before": [
+      0.54833984375,
+      0.57666015625,
+      0.671875
+    ],
+    "machine": "x86_64",
+    "pinned_cpu": 0,
+    "python": "3.12.14",
+    "system": "Linux-6.18.57-x86_64-with-glibc2.39"
+  },
+  "local_sources": {
+    "experiments/openvpn_hia_20261105/openvpn_hia_adapter.c": "3464486d59c3ad95572c83be4e706c431082590203b859a5f6c23c9a98fb9e03",
+    "experiments/openvpn_hia_20261105/openvpn_hia_adapter.h": "590a46fac17acf64b1d9f20bdbab4c0599e5c00ec76107edad3ca01286cfc661",
+    "experiments/openvpn_hia_20261105/packet_admission.c": "b3bd2b8dd74a589ae7f7fa410b9e0f78b116747646b021232f172519ff3a3bf4",
+    "experiments/openvpn_hia_20261105/packet_c_buffer_control.c": "a67dcea2dca60aa1a69c03986a060d2b2a655b413ccd6483f96cf8300ddc1f35",
+    "experiments/openvpn_hia_20261105/packet_differential.c": "29b8596fa9e59f25c165ff2eb0173d1652693df51a07f40aa5ac63a6a5770404",
+    "experiments/openvpn_hia_20261105/packet_guard_pages.c": "925e66cd26a5879d63b9ffdbba4600d6628b3c55f151f1ce51737922f076b4a1",
+    "experiments/openvpn_hia_20261105/packet_program.py": "327d7bbdd1cae8e93f78f53dbbe37dc08db7dbacec5adb3ef48462bd0a20ac08",
+    "experiments/openvpn_hia_20261105/packet_replay_differential.c": "52a41aa7c7790796aea2f0e762d18d9c822fcf03a907679729f1ac3e05992b43",
+    "tools/qualify_openvpn_hia.py": "60380c2e427b56e420a08dcd37ffd5080940f724ae843858e50cc5001a575f53"
+  },
+  "observed_tar_sha256": "c070d1d2440b5a6fca6c2c68645c98cd492116ac36ef4f0946177115532c8e36",
+  "ok": false,
+  "qualification": {
+    "admission": {
+      "adapter_cases": 80,
+      "caller_frees": 2,
+      "failures": 0,
+      "hia_frees": 0,
+      "kind": "admission",
+      "raw_cases": 83,
+      "receiver_cases": 11
+    },
+    "differential": {
+      "comparisons": 456672,
+      "failures": 0,
+      "kind": "differential",
+      "observations": 228336,
+      "partial_failures": 68211,
+      "success_calls": 124973
+    },
+    "guard-pages": {
+      "cases": 15504,
+      "failures": 0,
+      "kind": "guard_pages"
+    }
+  },
+  "sanitizer": {},
+  "sanitizer_scope": "C harness/oracle/adapter only; HIA bounded accesses separately exercise guard pages",
+  "schema": "hepta.openvpn.packet-qualification.v1",
+  "scope": "finite packet codec and application ABI, not tunnel/DCO qualification",
+  "source_lock": {
+    "archive_name": "openvpn-2.7.8.tar.gz",
+    "archive_sha256": "c070d1d2440b5a6fca6c2c68645c98cd492116ac36ef4f0946177115532c8e36",
+    "commit": "dc1f569087135894ac2703aeabd7a960ee9452d4",
+    "files": {
+      "src/openvpn/buffer.h": "41443b2e348736a7f6786da19558708ea300d851c5476dcb8adb005c4dea39fb",
+      "src/openvpn/packet_id.c": "c3a4376f8cc23fe51924b4dcc2e59fb8295d3fc0852d8bd803bae63560f7fed9",
+      "src/openvpn/packet_id.h": "59e074be0d76624a3b51bae400b1b2bbcd4c1077587f3d746e5a650159fae52e"
+    },
+    "release": "OpenVPN 2.7.8",
+    "source_url": "https://github.com/OpenVPN/openvpn/tree/dc1f569087135894ac2703aeabd7a960ee9452d4",
+    "tag": "v2.7.8",
+    "tag_object": "7cf7ae23c051533d42aff2e4fa265d779d422cf1"
+  },
+  "started_utc": "2026-11-05T07:37:13Z",
+  "upstream_build": "/workspace/scratch/2719a9027f80/openvpn-baseline/build-c",
+  "upstream_source": "/workspace/scratch/2719a9027f80/openvpn-baseline/openvpn-2.7.8"
+}

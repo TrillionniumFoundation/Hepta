@@ -1,0 +1,119 @@
+{
+  "schema": "hepta.openvpn-hia.all-corrected-benchmark-samples.v1",
+  "source_logs": {
+    "experiments/openvpn_hia_20261105/packet-results/corrected-run2/differential.stdout": "da3cc59f74e279993b98f63bfe05684503bce0e00f4ceec262ed1cb4bbcaaf77",
+    "experiments/openvpn_hia_20261105/packet-results/corrected-run3/differential.stdout": "a0557bbf54a63cd813d5c787e55bb82705a745ee31bf6bc305d5293999cf6539"
+  },
+  "same_packet_object_sha256": "67e17b4113f8aeca171efb9b1a45909373daddeaae448060c20ec080e0725983",
+  "same_adapter_object_sha256": "64c78f6e9e8d04d9887a040460e157aae53a75aac738c996f650e80555e3ea6f",
+  "samples_discarded": 0,
+  "summary": [
+    {
+      "mode": "long_write",
+      "samples_per_arm": 36,
+      "c": {
+        "median_ns_per_call": 4.3811275,
+        "minimum_ns_per_call": 3.772252,
+        "maximum_ns_per_call": 7.692186
+      },
+      "hia_raw": {
+        "median_ns_per_call": 15.018177999999999,
+        "minimum_ns_per_call": 12.143696,
+        "maximum_ns_per_call": 26.19091
+      },
+      "hia_adapter": {
+        "median_ns_per_call": 22.606893499999998,
+        "minimum_ns_per_call": 18.210312,
+        "maximum_ns_per_call": 34.700256
+      },
+      "c_buffer": {
+        "median_ns_per_call": 12.7733385,
+        "minimum_ns_per_call": 11.156414,
+        "maximum_ns_per_call": 23.796797
+      },
+      "adapter_over_original_ratio_of_medians": 5.160062906181114
+    },
+    {
+      "mode": "long_read",
+      "samples_per_arm": 36,
+      "c": {
+        "median_ns_per_call": 2.9170635000000003,
+        "minimum_ns_per_call": 2.498592,
+        "maximum_ns_per_call": 10.65046
+      },
+      "hia_raw": {
+        "median_ns_per_call": 10.9508765,
+        "minimum_ns_per_call": 8.29411,
+        "maximum_ns_per_call": 22.459539
+      },
+      "hia_adapter": {
+        "median_ns_per_call": 18.0196935,
+        "minimum_ns_per_call": 14.690247,
+        "maximum_ns_per_call": 39.199047
+      },
+      "c_buffer": {
+        "median_ns_per_call": 15.304427,
+        "minimum_ns_per_call": 12.22214,
+        "maximum_ns_per_call": 33.287913
+      },
+      "adapter_over_original_ratio_of_medians": 6.177340157319166
+    },
+    {
+      "mode": "epoch_write",
+      "samples_per_arm": 36,
+      "c": {
+        "median_ns_per_call": 2.8854515000000003,
+        "minimum_ns_per_call": 2.513214,
+        "maximum_ns_per_call": 5.069672
+      },
+      "hia_raw": {
+        "median_ns_per_call": 10.61973,
+        "minimum_ns_per_call": 9.219742,
+        "maximum_ns_per_call": 17.836669
+      },
+      "hia_adapter": {
+        "median_ns_per_call": 17.566363000000003,
+        "minimum_ns_per_call": 15.292462,
+        "maximum_ns_per_call": 31.315889
+      },
+      "c_buffer": {
+        "median_ns_per_call": 11.9738915,
+        "minimum_ns_per_call": 10.732875,
+        "maximum_ns_per_call": 16.066311
+      },
+      "adapter_over_original_ratio_of_medians": 6.087907906267009
+    },
+    {
+      "mode": "epoch_read",
+      "samples_per_arm": 36,
+      "c": {
+        "median_ns_per_call": 2.140987,
+        "minimum_ns_per_call": 1.800118,
+        "maximum_ns_per_call": 6.3392
+      },
+      "hia_raw": {
+        "median_ns_per_call": 10.139268000000001,
+        "minimum_ns_per_call": 8.957884,
+        "maximum_ns_per_call": 17.011121
+      },
+      "hia_adapter": {
+        "median_ns_per_call": 14.810966,
+        "minimum_ns_per_call": 12.864963,
+        "maximum_ns_per_call": 24.053193
+      },
+      "c_buffer": {
+        "median_ns_per_call": 12.854443,
+        "minimum_ns_per_call": 11.042192,
+        "maximum_ns_per_call": 22.203157
+      },
+      "adapter_over_original_ratio_of_medians": 6.91782154679127
+    }
+  ],
+  "limitations": [
+    "Corrected run2 completed performance and correctness phases but its later LeakSanitizer host inspection failed; full original failure remains retained.",
+    "Corrected run3 differs only by runner capture of explicit ASAN_OPTIONS=detect_leaks=0 for C-side sanitizer child processes, not benchmark objects.",
+    "HIA raw includes foreign-range checks. The C buffer control delegates to separately compiled upstream C; optimizer visibility differs.",
+    "Results are native batch mean time per call, summarized across every sample, not individual-request tail latency.",
+    "Shared host; no frequency lock; no real TUN tunnel or DCO measurement; no performance win qualification."
+  ]
+}

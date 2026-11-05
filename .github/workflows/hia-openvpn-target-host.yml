@@ -1,0 +1,100 @@
+name: OpenVPN HIA real TUN and DCO target experiment
+
+on:
+  push:
+    branches: [work/openvpn-hia-buffer-20261105]
+    paths:
+      - .github/workflows/hia-openvpn-target-host.yml
+      - experiments/openvpn_hia_20261105/target_host/*.py
+      - experiments/openvpn_hia_20261105/target_host/*.sh
+      - experiments/openvpn_hia_20261105/target_host/source-lock.json
+      - experiments/openvpn_hia_20261105/target_host/plan.json
+      - experiments/openvpn_hia_20261105/packet_program.py
+      - experiments/openvpn_hia_20261105/openvpn_hia_adapter.*
+      - experiments/openvpn_hia_20261105/baseline_link.mk
+      - experiments/openvpn_hia_20261105/openvpn_hia_trace.c
+      - tools/qualify_openvpn_hia.py
+      - tools/openvpn_hia_baseline.py
+      - hepta/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-tun-dco:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Freeze and build official C, actual HIA and the selected kernel DCO implementation
+        run: |
+          set -euo pipefail
+          bash experiments/openvpn_hia_20261105/target_host/build.sh --task-root "$RUNNER_TEMP/ovpn-hia-target"
+      - name: Execute bounded real namespace tunnels, adversarial payloads, profile and all performance arms
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, pathlib, subprocess
+          root = pathlib.Path(os.environ['RUNNER_TEMP']) / 'ovpn-hia-target'
+          env = json.loads((root / 'public/build-env.json').read_text())
+          command = ['sudo', '-n', 'env', 'LD_LIBRARY_PATH=' + env['ld_library_path'], 'python3',
+                     'experiments/openvpn_hia_20261105/target_host/run_matrix.py',
+                     '--c', env['c'], '--hia', env['hia'], '--hia-trace', env['hia_trace'],
+                     '--source', env['source'], '--build', env['build'],
+                     '--out', str(root / 'public/tunnel'), '--private-work', str(root / 'private'),
+                     '--budget-seconds', '1800']
+          if env['perf']:
+              command.extend(['--perf', env['perf']])
+          result = subprocess.run(command, timeout=1860)
+          raise SystemExit(result.returncode)
+          PY
+      - name: Clean only this experiment's recorded namespaces and private runtime material
+        if: always()
+        run: |
+          set -euo pipefail
+          ownership="$RUNNER_TEMP/ovpn-hia-target/public/tunnel/owned-namespaces.json"
+          if [ -f "$ownership" ]; then
+            sudo -n python3 experiments/openvpn_hia_20261105/target_host/run_matrix.py --cleanup-state "$ownership"
+          fi
+          sudo -n python3 - "$RUNNER_TEMP/ovpn-hia-target/private" <<'PY'
+          import pathlib, shutil, sys
+          path = pathlib.Path(sys.argv[1])
+          if path.exists():
+              if path.is_symlink():
+                  raise RuntimeError('unexpected private output symlink')
+              shutil.rmtree(path)
+          PY
+      - name: Make root-owned experiment evidence readable by the artifact collector
+        if: always()
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/ovpn-hia-target/public"
+          if [ -d "$evidence" ]; then
+            sudo -n chown -R --no-dereference "$(id -u):$(id -g)" "$evidence"
+          fi
+      - name: Independently reject incomplete inventories, stale identities or missing runtime evidence
+        if: always()
+        run: |
+          set -euo pipefail
+          python3 experiments/openvpn_hia_20261105/target_host/verify_result.py \
+            --public "$RUNNER_TEMP/ovpn-hia-target/public" --commit "$GITHUB_SHA"
+      - name: Reject unsafe public evidence before upload (independent of experiment pass)
+        id: publication_privacy
+        if: always()
+        run: |
+          set -euo pipefail
+          python3 -B experiments/openvpn_hia_20261105/target_host/test_publication_guard.py
+          python3 -B experiments/openvpn_hia_20261105/target_host/publication_guard.py \
+            --public "$RUNNER_TEMP/ovpn-hia-target/public" \
+            --marker "$RUNNER_TEMP/ovpn-hia-target/publication-ok.json"
+      - name: Retain complete nonsecret evidence on success, failure or timeout
+        if: always() && steps.publication_privacy.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: openvpn-hia-target-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ovpn-hia-target/public/
+          if-no-files-found: error
+          retention-days: 14

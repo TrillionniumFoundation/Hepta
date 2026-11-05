@@ -1,0 +1,65 @@
+{
+  "schema": "hepta.openvpn-hia.official-selftest-profile.v1",
+  "scope": "official --test-crypto executable only; no tunnel",
+  "instrumentation": "Clang20 -O3 -g -fno-omit-frame-pointer -pg, gprof 10ms sampling",
+  "binary_sha256": "d51675486e30e6b512aeadf19f22a00d8bbc7b94438743dabf17a379cb3a1c98",
+  "limitations": [
+    "Dynamic OpenSSL shared-library internal functions are not instrumented",
+    "64 short process runs per cipher; startup and self-test setup are included",
+    "No TUN network traffic and no DCO runtime",
+    "Shared host CPU frequency and scheduling are uncontrolled; not a throughput comparison"
+  ],
+  "commands": [
+    {
+      "cipher": "AES-256-GCM",
+      "runs": 64,
+      "argv": [
+        "/workspace/scratch/2719a9027f80/openvpn-baseline/build-profile/src/openvpn/openvpn",
+        "--test-crypto",
+        "--cipher",
+        "AES-256-GCM"
+      ],
+      "completed": true,
+      "wall_seconds": 1.28212559900021,
+      "sample_period_seconds": 0.01,
+      "gmon_files": 64,
+      "gmon_total_bytes": 21379392,
+      "gprof_exit_code": 0,
+      "gprof_sha256": "6436ee2407b6607de763b050c706aba6b741b6daaa57fd7da8695f6af54a2b25"
+    },
+    {
+      "cipher": "AES-256-CBC",
+      "runs": 64,
+      "argv": [
+        "/workspace/scratch/2719a9027f80/openvpn-baseline/build-profile/src/openvpn/openvpn",
+        "--test-crypto",
+        "--cipher",
+        "AES-256-CBC"
+      ],
+      "completed": true,
+      "wall_seconds": 1.477052463000291,
+      "sample_period_seconds": 0.01,
+      "gmon_files": 64,
+      "gmon_total_bytes": 21391488,
+      "gprof_exit_code": 0,
+      "gprof_sha256": "7bafdd04303f821d37c82ee663dacbc6c84fbf48e5b104b6942f458da48d1732"
+    },
+    {
+      "cipher": "CHACHA20-POLY1305",
+      "runs": 64,
+      "argv": [
+        "/workspace/scratch/2719a9027f80/openvpn-baseline/build-profile/src/openvpn/openvpn",
+        "--test-crypto",
+        "--cipher",
+        "CHACHA20-POLY1305"
+      ],
+      "completed": true,
+      "wall_seconds": 1.2598307939988445,
+      "sample_period_seconds": 0.01,
+      "gmon_files": 64,
+      "gmon_total_bytes": 21380736,
+      "gprof_exit_code": 0,
+      "gprof_sha256": "e8da0ae3c92e373e46c57ea93dde359039d8850ebaf18de3c8ee91171a280153"
+    }
+  ]
+}

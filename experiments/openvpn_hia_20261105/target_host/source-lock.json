@@ -1,0 +1,27 @@
+{
+  "schema": "hepta.openvpn-hia.target-host-sources.v1",
+  "openvpn": {
+    "version": "2.7.8",
+    "commit": "dc1f569087135894ac2703aeabd7a960ee9452d4",
+    "url": "https://github.com/OpenVPN/openvpn/releases/download/v2.7.8/openvpn-2.7.8.tar.gz",
+    "archive_sha256": "c070d1d2440b5a6fca6c2c68645c98cd492116ac36ef4f0946177115532c8e36"
+  },
+  "ovpn_backports_fallback": {
+    "repository": "OpenVPN/ovpn-backports",
+    "tag": "ovpn-net-next/main-7.3.0-rc2-2026100801",
+    "commit": "5fa9098115f7e8fe0d4519864410339557ba16e6",
+    "url": "https://codeload.github.com/OpenVPN/ovpn-backports/tar.gz/5fa9098115f7e8fe0d4519864410339557ba16e6",
+    "archive_bytes": 82416,
+    "archive_sha256": "66e0813f00c84fb5bcbd71a97db00c3b49c12afca43aa4a51ddb3f1190d7d994"
+  },
+  "llvm_packages_lock": "../toolchain-lock.json",
+  "clang_sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+  "application_cflags": "-O3 -g -fPIC",
+  "lto": false,
+  "actions": {
+    "checkout_v4": "11d5960a326750d5838078e36cf38b85af677262",
+    "upload_artifact_v4": "ea165f8d65b6e75b540449e92b4886f43607fa02"
+  },
+  "runtime_freeze": "Record exact runner image, kernel/configuration, selected ovpn module, libraries and binaries before samples. Prefer the runner kernel's available official ovpn module; build the pinned official backport only when absent. Never combine samples from different runtime identities.",
+  "scope": "A dedicated disposable Linux VM with two real network namespaces. No container privilege escape and no modification of an existing production host."
+}

@@ -1,0 +1,49 @@
+{
+  "artifact_sha256": {
+    "adapter.o": "64c78f6e9e8d04d9887a040460e157aae53a75aac738c996f650e80555e3ea6f",
+    "admission": "313af276e2b4284127d8ed6ae25029ad2bda23428fec1f6f1fb3043a8058cd7e",
+    "admission.o": "ef0a1a3e15ec821b0c0aad07dcab92aa5e5dbf3d81c90d80256f3c7de5d11ee4",
+    "c-buffer-control.o": "8d23a199f71f6b4a2cdb1c2407d09eae7cf74ac94d903fdeaafc5cefde3a3e76",
+    "differential": "c83fcbc7abcab49663ed5d695c6fc161e6f8a02a29fee4cb43a78030f0cf26e4",
+    "differential.o": "f8276f909568f838e43b0296e4887436e04153a9277e29df4639d65c497c3b38",
+    "guard-pages": "407372a41f85b732135408443649d3d7c25fb807d881883bc2fe5af976291347",
+    "guard-pages.o": "ea28db7380f77425282f4d29f6193573de4fb63c2d6a29fd176872ca0658d866",
+    "packet.o": "67e17b4113f8aeca171efb9b1a45909373daddeaae448060c20ec080e0725983",
+    "upstream-packet-id.o": "bde08ca29c2cb5338333ac1a186d877618821adfe8690b10b3c1ed49eef5e4e2"
+  },
+  "benchmark_runs": [
+    "corrected-run2",
+    "corrected-run3"
+  ],
+  "comparison_policy": "No sample or run discarded. Run3 repeated the complete runner to complete ASan+UBSan with only unsupported LeakSanitizer disabled. Run4 used no benchmark and rechecked correctness with UBSAN_OPTIONS=halt_on_error=1; all native objects/executables are byte-identical to run3. Run2 and Run3 timings are both reported and were not selected for favorable timing.",
+  "history_preserved": [
+    "historical-prototype-two-arm",
+    "compile-failure",
+    "corrected-run2",
+    "corrected-run3"
+  ],
+  "kernel_core_sha256": "b25fc16e46ba2bc64fefd6de0e823f361b5a377b420811035c1dfbbc6b094a33",
+  "limitations": [
+    "No packet tunnel or DCO performance qualification in this runner",
+    "ASan and UBSan instrument C only; HIA uses separate guard-page checks",
+    "LeakSanitizer disabled because managed-host proc/ptrace restrictions prevent thread scanning",
+    "Memory liveness remains a caller precondition",
+    "Historical prototype source snapshot unavailable"
+  ],
+  "qualified_run": "corrected-run4",
+  "same_kernel_sources_other_runs": [
+    "corrected-run2",
+    "corrected-run3"
+  ],
+  "source_sha256": {
+    "experiments/openvpn_hia_20261105/openvpn_hia_adapter.c": "3464486d59c3ad95572c83be4e706c431082590203b859a5f6c23c9a98fb9e03",
+    "experiments/openvpn_hia_20261105/openvpn_hia_adapter.h": "590a46fac17acf64b1d9f20bdbab4c0599e5c00ec76107edad3ca01286cfc661",
+    "experiments/openvpn_hia_20261105/packet_admission.c": "b3bd2b8dd74a589ae7f7fa410b9e0f78b116747646b021232f172519ff3a3bf4",
+    "experiments/openvpn_hia_20261105/packet_c_buffer_control.c": "a67dcea2dca60aa1a69c03986a060d2b2a655b413ccd6483f96cf8300ddc1f35",
+    "experiments/openvpn_hia_20261105/packet_differential.c": "29b8596fa9e59f25c165ff2eb0173d1652693df51a07f40aa5ac63a6a5770404",
+    "experiments/openvpn_hia_20261105/packet_guard_pages.c": "925e66cd26a5879d63b9ffdbba4600d6628b3c55f151f1ce51737922f076b4a1",
+    "experiments/openvpn_hia_20261105/packet_program.py": "327d7bbdd1cae8e93f78f53dbbe37dc08db7dbacec5adb3ef48462bd0a20ac08",
+    "experiments/openvpn_hia_20261105/packet_replay_differential.c": "52a41aa7c7790796aea2f0e762d18d9c822fcf03a907679729f1ac3e05992b43",
+    "tools/qualify_openvpn_hia.py": "c7f6680cd790b0de769e5d504d6de70432e9e01fc4735b4257b8b94fb2dd9fd6"
+  }
+}

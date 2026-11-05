@@ -1,0 +1,35 @@
+{
+  "scope": "independent read-only audit of existing samples; no new benchmark execution",
+  "samples_sha256": "2fd610603b6091b1701c28e840142d861d27b2aae6ab9515ef58a093d5570282",
+  "batches": 432,
+  "calls_per_batch": 1000000,
+  "six_arm_orders_match_declared_williams": true,
+  "all_mode_sample_ids_complete_unique": true,
+  "all_sinks_equal": true,
+  "all_ns_positive": true,
+  "samples_discarded": 0,
+  "paired_new_over_old": {
+    "0": {
+      "raw": 0.8593307750230583,
+      "adapter": 0.8966671795521222
+    },
+    "1": {
+      "raw": 1.0069030927072213,
+      "adapter": 1.0475144012337936
+    },
+    "2": {
+      "raw": 0.922236865133961,
+      "adapter": 0.9274020589359178
+    },
+    "3": {
+      "raw": 0.9088180199596632,
+      "adapter": 0.9848565945010883
+    }
+  },
+  "limitations": [
+    "Only finite hot workload: read buffers are all zero, including epoch zero; write IDs advance from the fixed initial state.",
+    "Matching aggregate sinks does not substitute for full differential state qualification.",
+    "Elapsed values include identical per-arm batch harness, volatile sink and reset overhead; ratios near 1 cannot establish a broad language result.",
+    "Code inspection confirms no per-kernel-call function pointer and equal flags; C buffer control remains separately compiled."
+  ]
+}

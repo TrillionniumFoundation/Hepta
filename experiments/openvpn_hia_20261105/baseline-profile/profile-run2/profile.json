@@ -1,0 +1,78 @@
+{
+  "schema": "hepta.openvpn-hia.official-selftest-profile.v1",
+  "scope": "official --test-crypto with tun-mtu60000 only; no tunnel",
+  "instrumentation": "Clang20 -O3 -g -fno-omit-frame-pointer -pg; gprof 10ms sampling",
+  "binary_sha256": "d51675486e30e6b512aeadf19f22a00d8bbc7b94438743dabf17a379cb3a1c98",
+  "limitations": [
+    "Dynamic OpenSSL shared-library internal functions are not instrumented; samples there are unrepresented",
+    "Large synthetic per-packet-length selftest, not actual production traffic",
+    "No TUN network traffic and no DCO runtime",
+    "Shared host CPU frequency and scheduling are uncontrolled; not a throughput comparison",
+    "Original default-MTU run1 had no accumulated GCM time samples; preserved separately"
+  ],
+  "commands": [
+    {
+      "cipher": "AES-256-GCM",
+      "runs": 4,
+      "argv": [
+        "/workspace/scratch/2719a9027f80/openvpn-baseline/build-profile/src/openvpn/openvpn",
+        "--test-crypto",
+        "--cipher",
+        "AES-256-GCM",
+        "--tun-mtu",
+        "60000",
+        "--verb",
+        "0"
+      ],
+      "completed": true,
+      "wall_seconds": 9.47056845500083,
+      "sample_period_seconds": 0.01,
+      "gmon_files": 4,
+      "gmon_total_bytes": 1334196,
+      "gprof_exit_code": 0,
+      "gprof_sha256": "26afbe6d6f212a172c568f946219a81d4734adf5903ff7c7a2ee4be354158169"
+    },
+    {
+      "cipher": "AES-256-CBC",
+      "runs": 4,
+      "argv": [
+        "/workspace/scratch/2719a9027f80/openvpn-baseline/build-profile/src/openvpn/openvpn",
+        "--test-crypto",
+        "--cipher",
+        "AES-256-CBC",
+        "--tun-mtu",
+        "60000",
+        "--verb",
+        "0"
+      ],
+      "completed": true,
+      "wall_seconds": 26.891849114999786,
+      "sample_period_seconds": 0.01,
+      "gmon_files": 4,
+      "gmon_total_bytes": 1334952,
+      "gprof_exit_code": 0,
+      "gprof_sha256": "2df035619fbd6305c3039439726bb8a21f83c5b82f827ae2bbfdceb8065fd7a4"
+    },
+    {
+      "cipher": "CHACHA20-POLY1305",
+      "runs": 4,
+      "argv": [
+        "/workspace/scratch/2719a9027f80/openvpn-baseline/build-profile/src/openvpn/openvpn",
+        "--test-crypto",
+        "--cipher",
+        "CHACHA20-POLY1305",
+        "--tun-mtu",
+        "60000",
+        "--verb",
+        "0"
+      ],
+      "completed": true,
+      "wall_seconds": 12.31714797299901,
+      "sample_period_seconds": 0.01,
+      "gmon_files": 4,
+      "gmon_total_bytes": 1334280,
+      "gprof_exit_code": 0,
+      "gprof_sha256": "4f316186c37681321275655328825e41e0c470c305ee78cd01e25c48ffbfd302"
+    }
+  ]
+}
