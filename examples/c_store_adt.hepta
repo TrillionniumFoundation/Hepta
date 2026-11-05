@@ -1,0 +1,16 @@
+struct Cell<T> { value: T, done: Unit }
+fn unit() -> Unit effects {} {}
+fn payload(n: mut i64) -> Result<Cell<f64>, Unit> effects {write, panic} {
+    n = n + 1;
+    return Result::Ok(Cell { value: 257.75, done: unit() });
+}
+fn main() -> Unit effects {unsafe, write, panic, io, alloc, block} {
+    let mut n: i64 = 0;
+    let mut cells: [Result<Cell<f64>, Unit>; 1] = [Result::Err(unit())];
+    unsafe { store(ptr_mut(mut cells), 0, payload(mut n)); }
+    match cells[0] {
+        Result::Ok(c) => { let done = c.done; print_i64((c.value as u8) as i64); },
+        Result::Err(_) => { assert(false); }
+    }
+    assert(n == 1);
+}

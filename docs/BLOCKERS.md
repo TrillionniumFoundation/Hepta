@@ -90,3 +90,7 @@ P11 新增非泛型、无载荷源码枚举与穷尽 match 降级，覆盖 Copy 
 ## 2026-11-05 临时 Copy 数组与 ADT 的有界整合
 
 在 #706 上适配 #583 已有临时数组读取，联合验证内部 Unit、具体泛型结构/枚举、Result 与数值转换。数组基值只求值一次，索引后检查边界，len 保留副作用；命名位置赋值/借用和所有资源/泛型函数拒绝不变。详见 [C_ARRAY_ADT_COMPOSITION.md](C_ARRAY_ADT_COMPOSITION.md)。不是新资源能力、完整后端一致性或生产资格，P11/P01 保持 PARTIAL。
+
+## 2026-11-05 普通 raw store 与 Copy ADT 的有界整合
+
+在 #707 的具体 Copy 泛型结构/枚举、Result、内部 Unit、数值转换与临时数组读取上，按精确源码整合 #610 已有普通 store 操作数求值顺序。指针、偏移和值各求值一次并保持左到右顺序；新联合验证覆盖聚合值快照、Unit 返回值与副作用、模块和失败边界。详见 [C_STORE_ADT_COMPOSITION.md](C_STORE_ADT_COMPOSITION.md)。不新增 volatile、raw Unit 解引用、资源载荷、数组指针或 C ABI；有效性、对齐、边界和生命周期仍属 unsafe 调用者责任。没有生命周期证明、性能优势或生产资格，P11/P01 保持 PARTIAL。

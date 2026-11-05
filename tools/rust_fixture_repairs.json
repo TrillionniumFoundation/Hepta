@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "original_commit": "5e88f0daba0a860411bde76c1d4351194d51bfa5",
+  "original_commit": "b45d6621b0435dd8da4aabf87250b275dbe03927",
   "upstream_commit": "d6b73fd355fbf1248bcfcb01d39d953a02a4245d",
   "upstream_unit_commit": "4e8ec1710c3f3b2ea7168ed93893942680eb7c63",
   "scope": "Only qualification-file repairs; production and original transplanted corpora unchanged.",
@@ -78,6 +78,20 @@
         }
       ]
     },
+    "docs/C_STORE_ADT_COMPOSITION.md": {
+      "original_sha256": "b1ead3be3f0ea66e1bff5963ab7b25054f29733f2e6bddaa03071d6ce7089350",
+      "original_blob": "0f88fd8ea0a5cd01a23fc28599ab3dd955ee912f",
+      "repaired_sha256": "ae171923345176b5939c3dd7c4448e5f4391d205c4da23790582ee43002fd93d",
+      "repaired_blob": "d91c700078a33c00e31546dadf7c49d96432025f",
+      "edits": [
+        {
+          "start": 6066,
+          "end": 7768,
+          "before": "",
+          "after": "\n## Executable Rust fixture correction (2026-11-05)\n\nOriginal head `b45d6621b0435dd8da4aabf87250b275dbe03927` retains its failed native\n[store run 42018730948](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42018730948).\nAll four lanes executed 357 methods and reported 35 EACCES error entries: 30\nshared numerical-helper uses, four Unit trap subcases, and the aggregate-store\ntrace fixture. The requested output kind defaulted to a Rust library, so those\noutputs were not runnable binaries. Later oracle commands were not reached.\nThe inherited Unit/numeric/array workflows also failed for these same callers.\n\nImport the exact seven #706 repair files described in the array correction\nabove, and make the store trace compilation explicitly request bin (its emitter\nalready does). Add a third mocked Rust caller-contract regression with real C\ncompilation/execution; both missing-emission and missing-compilation mutations\nfail. This checks fixture wiring only, not native Rust behavior.\n\nCorrected inventory: 352 C-only / 360 required-Rust methods. Every former\n349/357 method remains in its original relative order. The separate inherited\narray gate is 335/338, numeric 321/323, and Unit 289. The original store provenance\nmanifest remains byte-identical. Its inherited qualification checks receive\nonly exact, verified inverse projections of repaired files, while actual tests\nimport and execute the corrected files. All production bytes and original\ntransplanted corpora remain unchanged. Do not relabel old failures, mock results\nor missing Rust as native passes. No permissions change, production default\nchange, source bypass, skipped method or weakened gate is part of this fix.\n"
+        }
+      ]
+    },
     "docs/C_UNIT_VALUES.md": {
       "original_sha256": "673d986f0d01ceac61cc0f4bc251b7d266cf8e18a38b97a581d1be934c27b230",
       "original_blob": "e7bef33630977e39300c19ef0ee6cdbc70274745",
@@ -139,6 +153,32 @@
           "end": 4164,
           "before": "",
           "after": "\n\n    def test_rust_success_consumer_requests_binary_without_native_rust(self):\n        \"\"\"Mocked Rust call contract only; both C compilations/runs stay real.\"\"\"\n        original_run = subprocess.run\n        calls = []\n        executions = []\n        compiler = 'mocked-rust-success-contract'\n        artifact = str(self.root / 'mocked-rust-contract-not-an-executable')\n\n        def compile_contract(source, **kwargs):\n            self.assertEqual(kwargs.get('crate_type'), 'bin')\n            self.assertIn('fn main()', source)\n            self.assertEqual(kwargs['rustc'], compiler)\n            calls.append(kwargs['optimize'])\n            return {'ok': True, 'artifact': artifact, 'crate_type': 'bin',\n                    'rustc_crate_type': 'bin'}\n\n        def run_contract(args, *positional, **kwargs):\n            if args == [compiler, '--version']:\n                return subprocess.CompletedProcess(args, 0, 'rustc 1.90.0 (mocked contract)\\n', '')\n            if args == [artifact]:\n                executions.append(args)\n                return subprocess.CompletedProcess(args, 0, b'', b'')\n            return original_run(args, *positional, **kwargs)\n\n        with patch.dict(os.environ, {'HEPTA_ENUM_REQUIRE_RUST': '1', 'RUSTC': compiler}), \\\n             patch(__name__ + '.compile_rust', side_effect=compile_contract), \\\n             patch('subprocess.run', side_effect=run_contract):\n            self.execute('fn main()->Unit effects {panic} {assert((3.75 as i32)==3);}')\n        self.assertEqual(calls, [False, True])\n        self.assertEqual(executions, [[artifact], [artifact]])"
+        }
+      ]
+    },
+    "tests/test_c_store_adt_composition.py": {
+      "original_sha256": "18047ee464be533ae93c7b891f5934ac5704347b9273f4f094856481a694ed07",
+      "original_blob": "9e304e5421ed9d7f2ea65a65c96897504f6ead45",
+      "repaired_sha256": "3b53e45675ea469ee683177661cfcff7e3c88a158be58e1a405059b644d361fb",
+      "repaired_blob": "399fcdb5df6bdd9391efb7c6acc6cb99cc47deb8",
+      "edits": [
+        {
+          "start": 166,
+          "end": 198,
+          "before": "",
+          "after": "\nfrom unittest.mock import patch"
+        },
+        {
+          "start": 8287,
+          "end": 8304,
+          "before": "",
+          "after": "crate_type='bin',"
+        },
+        {
+          "start": 8868,
+          "end": 10642,
+          "before": "",
+          "after": ")\n\n    def test_rust_trace_requests_binary_contract_without_native_rust(self):\n        \"\"\"Mocked Rust boundary only; original C work remains real.\"\"\"\n        original_run = subprocess.run\n        calls, observations = [], []\n        artifact = str(self.root / 'mocked-rust-trace-contract-not-an-executable')\n\n        def compile_contract(source, **kwargs):\n            self.assertEqual(kwargs.get('crate_type'), 'bin')\n            self.assertIn('fn main()', source)\n            self.assertEqual(kwargs['rustc'], 'mocked-rust-contract')\n            self.assertEqual(kwargs['output'], self.root / 'trace-rust')\n            self.assertEqual(kwargs['link_args'], [str(self.root / 'trace-helper.o')])\n            self.assertGreater((self.root / 'trace-helper.o').stat().st_size, 0)\n            calls.append(kwargs['optimize'])\n            return {'ok': True, 'artifact': artifact}\n\n        def run_contract(args, *positional, **kwargs):\n            if args == [artifact]:\n                failure = kwargs['env']['HEPTA_FAIL']\n                observations.append(failure)\n                output = b'1234' if not failure else b'123'[:int(failure)]\n                return subprocess.CompletedProcess(args, -signal.SIGABRT if failure else 0, output, b'')\n            return original_run(args, *positional, **kwargs)\n\n        with patch.dict(os.environ, {'HEPTA_ENUM_REQUIRE_RUST': '1',\n                                     'RUSTC': 'mocked-rust-contract'}), \\\n             patch(__name__ + '.compile_rust', side_effect=compile_contract), \\\n             patch('subprocess.run', side_effect=run_contract):\n            self.test_aggregate_operand_failure_stops_later_effects()\n        self.assertEqual(calls, [False, True])\n        self.assertEqual(observations, ['', '1', '2', '3'] * 2"
         }
       ]
     },
@@ -254,6 +294,58 @@
         }
       ]
     },
+    "tools/c_store_adt_rust_test_ids.json": {
+      "original_sha256": "950a6e25ec281a8a24f391c65f5034d8f11625c57b93ff2d3426eaa413022fb7",
+      "original_blob": "d17a1ce4580246c385881e2c79c40202d00022c9",
+      "repaired_sha256": "8c3c25b3429d0a868e4aa50e2f074beb19e0c374a712b3747160986663df22b2",
+      "repaired_blob": "0820649f4e48402898f61837a5a8f9cad77ed74d",
+      "edits": [
+        {
+          "start": 952,
+          "end": 1061,
+          "before": "",
+          "after": "\",\n  \"test_c_float_int_casts.FloatIntCastTests.test_rust_success_consumer_requests_binary_without_native_rust"
+        },
+        {
+          "start": 3387,
+          "end": 3486,
+          "before": "",
+          "after": "\",\n  \"test_c_unit_values.UnitValueTests.test_rust_trap_requests_binary_contract_without_native_rust"
+        },
+        {
+          "start": 28869,
+          "end": 28989,
+          "before": "",
+          "after": "rust_trace_requests_binary_contract_without_native_rust\",\n  \"test_c_store_adt_composition.StoreAdtCompositionTests.test_"
+        }
+      ]
+    },
+    "tools/c_store_adt_test_ids.json": {
+      "original_sha256": "ebd80d0bfac311efde603f329491601ec06ba7c07d84181f1fa4fef3848cb671",
+      "original_blob": "78ff460229d72dc3da89f4f58c1e24dd936124ba",
+      "repaired_sha256": "7998900daa422c30161ee8d567c7c4a97a2043012c2ad1434b680efb7606abd3",
+      "repaired_blob": "f6882b60c8767614a631db0b5a9424807aaaf45e",
+      "edits": [
+        {
+          "start": 952,
+          "end": 1061,
+          "before": "",
+          "after": "\",\n  \"test_c_float_int_casts.FloatIntCastTests.test_rust_success_consumer_requests_binary_without_native_rust"
+        },
+        {
+          "start": 3387,
+          "end": 3486,
+          "before": "",
+          "after": "\",\n  \"test_c_unit_values.UnitValueTests.test_rust_trap_requests_binary_contract_without_native_rust"
+        },
+        {
+          "start": 28588,
+          "end": 28708,
+          "before": "",
+          "after": "rust_trace_requests_binary_contract_without_native_rust\",\n  \"test_c_store_adt_composition.StoreAdtCompositionTests.test_"
+        }
+      ]
+    },
     "tools/c_unit_test_ids.json": {
       "original_sha256": "506172c523c289b04f999fd0fa0ad7df000a3229506e4d7da1a4c6f4eef27e99",
       "original_blob": "8de758f6aec68a105a3a241b349b25051c6dc088",
@@ -269,22 +361,98 @@
       ]
     },
     "tools/validate_c_array_adt_composition.py": {
-      "original_sha256": "760c892d8ee3acddc2fc71d99edea63f7a5281a4de1da076733540f7d6ef0b4a",
-      "original_blob": "ffb0e755185851b6ec0c6625dc4d647d996b998c",
-      "repaired_sha256": "8cbc0c8683c9d3e4436d38b232455bf26efc4989e54def645bed7260dfb5b1b8",
-      "repaired_blob": "42fd0e4725bacb3ff150fac0fe6b049861bcd7b1",
+      "original_sha256": "e51b442ad0ba69008a506b7742b1c14d5d4c0e086c69734114747821fa788f76",
+      "original_blob": "17a37a9e5f2c5d5f8a294a140013a9c1dc398c18",
+      "repaired_sha256": "b5f2f4a06761f299ee13c78dd6801c11b565475aeda76ce135380115754476d0",
+      "repaired_blob": "daaa6454d6b2761b7f3c04a9fca86c7b2d71e6df",
       "edits": [
         {
-          "start": 340,
-          "end": 414,
+          "start": 367,
+          "end": 441,
           "before": "",
           "after": "\n\nfrom verify_rust_fixture_repairs import verify as verify_fixture_repairs"
         },
         {
-          "start": 1175,
-          "end": 1218,
+          "start": 1202,
+          "end": 1245,
           "before": "",
           "after": "'fixture_repairs':verify_fixture_repairs(),"
+        }
+      ]
+    },
+    "tools/validate_c_store_adt_composition.py": {
+      "original_sha256": "4d760fc170b5c10395253434cdcf387f1b68718d8aa261481b4e0e388e812134",
+      "original_blob": "d5b5b515e9a23602b1ef61bc3eb038fbc4fcb6d5",
+      "repaired_sha256": "938cbfd61f8e86e90d105d757b3dbda509cc2cb1564a6e4c1c7996af144820cd",
+      "repaired_blob": "ee22632b6fdf9bad2111902ee0730c4a9de56d36",
+      "edits": [
+        {
+          "start": 390,
+          "end": 463,
+          "before": "",
+          "after": "\nfrom verify_rust_fixture_repairs import verify as verify_fixture_repairs"
+        },
+        {
+          "start": 1669,
+          "end": 1722,
+          "before": "",
+          "after": "{'fixture_repairs':verify_fixture_repairs(),'stores':"
+        },
+        {
+          "start": 1730,
+          "end": 1731,
+          "before": "",
+          "after": "}"
+        }
+      ]
+    },
+    "tools/verify_store_adt_sources.py": {
+      "original_sha256": "6226d45c2ecfd16081a6ab5dc40f1a787d5aad563892237841aa46a01729cbfb",
+      "original_blob": "f41cce7b07f19dc1dd9d4bf795402618cfe732f5",
+      "repaired_sha256": "11842b269e02f7a54dc8372da80a6097442f126d0c669a68906a825070fcdd84",
+      "repaired_blob": "ba7b71f77a040c4748b3fc3abefd2a40d3e7c3ea",
+      "edits": [
+        {
+          "start": 156,
+          "end": 213,
+          "before": "",
+          "after": "\nfrom verify_rust_fixture_repairs import project_original"
+        },
+        {
+          "start": 1614,
+          "end": 1636,
+          "before": "",
+          "after": "project_original(name,"
+        },
+        {
+          "start": 1659,
+          "end": 1660,
+          "before": "",
+          "after": ")"
+        },
+        {
+          "start": 1809,
+          "end": 1831,
+          "before": "",
+          "after": "project_original(name,"
+        },
+        {
+          "start": 1848,
+          "end": 1850,
+          "before": "",
+          "after": "by"
+        },
+        {
+          "start": 1852,
+          "end": 1866,
+          "before": "x",
+          "after": "s()).decode('u"
+        },
+        {
+          "start": 1867,
+          "end": 1871,
+          "before": "(",
+          "after": "f-8'"
         }
       ]
     }

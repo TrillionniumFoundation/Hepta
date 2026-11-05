@@ -247,7 +247,7 @@ class CEmitter:
         if e.kind == "call" and e.value in self.functions:
             effects = self.checked.effects.get(e.value, set()) | self.functions[e.value].effects
             if effects - {"panic"}:
-                fail("E_C_BACKEND_EVALUATION", "Effectful nested calls in index/raw-store operands are conservatively rejected", e.span)
+                fail("E_C_BACKEND_EVALUATION", "Effectful nested calls in index operands are conservatively rejected", e.span)
         for child in e.children:
             self.require_nonmutating(child)
 
@@ -393,9 +393,9 @@ class CEmitter:
             elif e.value in {"load", "store"}:
                 if self.expr_type(e.children[0]).args[0] == Type("Unit"):
                     fail("E_C_BACKEND_SUBSET", "Raw Unit pointers are opaque; load/store is not supported", e.span)
-                if e.value == "store":
-                    for child in e.children:
-                        self.require_nonmutating(child)
+                # Materialize pointer, offset and value in call order before
+                # the store. Raw-pointer validity remains the unsafe caller's
+                # responsibility; no named-place indexing rule is relaxed.
                 args = [self.value(x, lines) for x in e.children]
                 expression = f"({args[0]})[{args[1]}]" if e.value == "load" else f"(({args[0]})[{args[1]}] = {args[2]})"
             elif e.value in {"ptr_read", "ptr_mut"}:
