@@ -1,0 +1,51 @@
+name: C archiver selection
+
+on:
+  pull_request:
+    paths:
+      - 'hepta/c_backend.py'
+      - 'tests/test_c_archiver_selection.py'
+      - 'docs/C_ARCHIVER.md'
+      - '.github/workflows/c-archiver-selection.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  native-archive:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+        python: ['3.11', '3.13']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Record exact source and host tools
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          git status --porcelain
+          git diff --exit-code
+          python --version
+          gcc --version
+          ar --version
+      - name: Run native archive selection controls without skips
+        run: |
+          python -B - <<'PY'
+          import unittest
+          suite = unittest.defaultTestLoader.discover('tests', pattern='test_c_archiver_selection.py')
+          assert suite.countTestCases() == 8, 'archiver test inventory changed'
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          assert result.testsRun == 8 and not result.skipped and result.wasSuccessful()
+          PY
+      - name: Check source remains unchanged
+        if: always()
+        run: test -z "$(git status --porcelain)"
