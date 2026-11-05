@@ -1,0 +1,345 @@
+{
+  "acceptance": {
+    "each_registered_panel_each_model_seed_each_mode": true,
+    "no_threshold_relaxation": true,
+    "query_accuracy_at_least": 0.95,
+    "sequence_exact_accuracy_at_least": 0.9
+  },
+  "budget": {
+    "additional_training_cpu_soft_stop_seconds": 80.0,
+    "all_replay_updates_and_CPU_charged": true,
+    "evaluation_cpu_reserve_seconds": 20.0,
+    "evaluation_reserve_is_not_a_runtime_kill_switch": true,
+    "maximum_additional_fits": 1,
+    "maximum_additional_optimizer_updates": 300,
+    "maximum_replayed_prefix_updates": 173,
+    "on_exhaustion": "retain replay checkpoint and optimizer state, no heldout; original failure unchanged",
+    "original_campaign_cpu_seconds": 181.443367942,
+    "original_optimizer_updates": 1073,
+    "original_training_cpu_seconds": 180.10969595600002,
+    "original_training_queries": 92900
+  },
+  "checkpoint_policy": "Reuse exactly three hashed 300-update weights. Fourth quality checkpoint is exactly replay update300. No best-dev/test selection. Save final replay optimizer state for audit.",
+  "created_time_utc": "2026-11-05T06:52:18.077636+00:00",
+  "development": {
+    "erasure_witness": {
+      "episodes": 2,
+      "kinds": [
+        "multi_reset"
+      ],
+      "n": 4,
+      "seed": 820003099
+    },
+    "evaluate_after_updates": [
+      100,
+      300
+    ],
+    "fit_count_before_registration": 0,
+    "panels": {
+      "mqar": {
+        "kinds": [
+          "mqar"
+        ],
+        "n": 16,
+        "seed": 820003001
+      },
+      "multi_reset": {
+        "kinds": [
+          "multi_reset"
+        ],
+        "n": 16,
+        "seed": 820003004
+      },
+      "overwrite": {
+        "kinds": [
+          "overwrite"
+        ],
+        "n": 16,
+        "seed": 820003002
+      },
+      "state_tracking": {
+        "kinds": [
+          "state_tracking"
+        ],
+        "n": 16,
+        "seed": 820003003
+      }
+    },
+    "role": "progress diagnostics only; no tuning or model selection",
+    "witness_policy": "first learned reset in a command-to-first-query window; counterfactual memory/validity perturbation, same context; explicitly not a quality score"
+  },
+  "development_results_already_known": "All four existing checkpoints erase at224/224 queries on the registered multi_reset development panel and answer all160 known queries UNKNOWN. This negative finding motivates honest completion, not any model or hyperparameter adjustment.",
+  "expected_actual_fit_attempts": {
+    "additional": 1,
+    "distinct_final_configurations": 4,
+    "original": 4,
+    "total": 5
+  },
+  "guard_tests_passed_before_registration": 4,
+  "heldout": {
+    "contextual_false_writes": {
+      "ignore_probability": 1.0,
+      "kinds": [
+        "mqar",
+        "overwrite"
+      ],
+      "n": 96,
+      "noise_gap": 4,
+      "seed": 920003008
+    },
+    "irregular_time": {
+      "duration_max": 16.0,
+      "duration_min": 0.02,
+      "kinds": [
+        "mqar",
+        "overwrite",
+        "state_tracking",
+        "multi_reset"
+      ],
+      "n": 96,
+      "seed": 920003006
+    },
+    "mqar_id": {
+      "kinds": [
+        "mqar"
+      ],
+      "n": 96,
+      "noise_gap": 2,
+      "seed": 920003001
+    },
+    "mqar_long_distractors": {
+      "ignore_probability": 0.6,
+      "kinds": [
+        "mqar"
+      ],
+      "n": 96,
+      "noise_gap": 24,
+      "seed": 920003002
+    },
+    "overwrite": {
+      "kinds": [
+        "overwrite"
+      ],
+      "n": 96,
+      "noise_gap": 4,
+      "overwrites": 8,
+      "seed": 920003003
+    },
+    "repeated_visible_resets": {
+      "episodes": 4,
+      "kinds": [
+        "multi_reset"
+      ],
+      "n": 96,
+      "noise_gap": 2,
+      "seed": 920003005
+    },
+    "reset_without_rebinding": {
+      "cycles": 4,
+      "generator": "reset_no_rebind",
+      "ignore_probability": 0.6,
+      "n": 96,
+      "noise_gap": 2,
+      "queries_per_reset": 8,
+      "seed": 920003009
+    },
+    "short_intervals": {
+      "duration_max": 0.02,
+      "duration_min": 0.005,
+      "kinds": [
+        "mqar",
+        "overwrite",
+        "state_tracking",
+        "multi_reset"
+      ],
+      "n": 96,
+      "seed": 920003007
+    },
+    "state_tracking": {
+      "kinds": [
+        "state_tracking"
+      ],
+      "n": 96,
+      "noise_gap": 4,
+      "overwrites": 8,
+      "seed": 920003004
+    }
+  },
+  "heldout_policy": "The original run never constructed or scored these same nine panels. Construct them only after all four final checkpoints and exact prefix verification. One scoring forward per final checkpoint/panel; raw predictions/probabilities/events retained. Algebraic-map verification and artifact replay are separately labeled.",
+  "mechanism_claim": {
+    "additional_conditions_for_registered_gap_closed": [
+      "all four fits complete and pass every quality panel",
+      "zero UNKNOWN false accepts across both reset panels, for every fit",
+      "every visible RESET-to-first-query window contains a learned reset event",
+      "a model-produced development event passes exact counterfactual erasure witness"
+    ],
+    "claim_scope": "bounded registered command-reset experiment only; not all P2, autonomous resets, arbitrary inputs, or HCSN superiority",
+    "reset_panels": [
+      "repeated_visible_resets",
+      "reset_without_rebinding"
+    ]
+  },
+  "model": {
+    "control_width": 24,
+    "embedding_width": 16,
+    "globally_equal_gradients_or_compute": false,
+    "initial_reset_channel_bias": -4.0,
+    "initial_write_channel_bias": 0.0,
+    "inputs": [
+      "raw token IDs",
+      "elapsed time",
+      "optional model-produced state"
+    ],
+    "key_width": 16,
+    "known_probability": "sigmoid(12*(validity_dot_address-0.5)); multiply learned four-way value probabilities",
+    "mapped_put_linear": "same canonical parameters; exact arithmetic identity only. FP32 rounding can cross a hard threshold: retain counterexample and measure actual event equality and log-probability error per trained checkpoint.",
+    "modes": [
+      "ordinary_reset_validity",
+      "hcsn_reset_validity"
+    ],
+    "numeric_contract": {
+      "conditional_exact_erasure": "when a finite learned reset event is computed and forward returns, memory/validity/older are exactly zero and previous=current; pre-erasure avoids the reviewed huge-finite-state overflow",
+      "half_and_bfloat16": "explicit ValueError",
+      "nonfinite_events_outputs_or_state": "fail closed with ArithmeticError; no quality certificate",
+      "state_and_model_dtypes": [
+        "float32",
+        "float64"
+      ]
+    },
+    "paired_same_architecture_parameters_and_numeric_initialization": true,
+    "persistent_state_float_values": 176,
+    "prior_associative_parameters": 2301,
+    "prior_associative_state_float_values": 160,
+    "reset_priority": "pre-erase memory/validity/address context by keep before normalize/bmm/dot; active_write=keep*write; older=keep*previous; previous=current observed embedding",
+    "straight_through": "hard forward plus sigmoid derivative; no semantic event labels",
+    "token_semantic_id_branches": false,
+    "trainable_parameters": 2276,
+    "true_reset_or_write_labels_supplied": false,
+    "unknown_probability": "1-known_probability",
+    "validity": "same learned address and write event; target value 1 for every learned write, not an oracle write mask",
+    "value_width": 8,
+    "write_reset_threshold": 0.5
+  },
+  "parent_evidence_sha256": {
+    "gates/2026-11-05-round3-p2-reset-validity-protocol.json": "a02bc9f2601af393eb83adaf5b7845768778b25b0c35e7d4f40f40ff179d846c",
+    "gates/2026-11-05-round3-p2-reset-validity-results-artifacts/hcsn_reset_validity-613-weights.npz": "c566d10e325b6c703ce48af4b5fe995166533864b819626b60c9fba53bd5c111",
+    "gates/2026-11-05-round3-p2-reset-validity-results-artifacts/hcsn_reset_validity-719-weights.npz": "be1664e820f5fb3b9c341a508c3ab9fdcee313c6806b470ba0f3937f9a6b23c9",
+    "gates/2026-11-05-round3-p2-reset-validity-results-artifacts/ordinary_reset_validity-613-weights.npz": "77f6a766f8387b233bfcf1756efc6bcbc1159bf47c0aafbdaeca18d0b2375b7e",
+    "gates/2026-11-05-round3-p2-reset-validity-results-artifacts/ordinary_reset_validity-719-weights.npz": "d0c7e545204b157ff4b9d064002d855eb7c13061942c3e0f239b137ed57c8881",
+    "gates/2026-11-05-round3-p2-reset-validity-results.json": "b97e502b7063b0cb30f440d9f66cf10c834fdfacac9e4af1af78619017f0c485"
+  },
+  "parent_protocol_path": "gates/2026-11-05-round3-p2-reset-validity-protocol.json",
+  "parent_registration_commit": "b9571fb1de3c420ceaea27152f59898e36795dfe",
+  "parent_results_path": "gates/2026-11-05-round3-p2-reset-validity-results.json",
+  "prefix_tensor_comparison": "dtype, shape and C-order bytes must all match; signed zero differences rejected",
+  "reason": "The original registered 180s execution remains INCOMPLETE_RETAINED (3x300 steps plus HCSN719 at173). Explicitly authorized completion preserves model, seeds, data, optimizer and acceptance thresholds after negative development results. It does not relabel the original budget failure.",
+  "replay_configuration": {
+    "checks_before_any_heldout_construction": true,
+    "final_updates": 300,
+    "mode": "hcsn_reset_validity",
+    "on_mismatch": "retain failed replay, do not retry or evaluate heldout",
+    "prefix_checks": [
+      "every one of173 losses exactly equal",
+      "every one of173 preclip gradient norms exactly equal",
+      "training stream SHA256 and13,700 query labels exactly equal",
+      "all model tensors after173 updates bitwise equal to original partial checkpoint"
+    ],
+    "prefix_updates": 173,
+    "rationale": "Original optimizer state was not saved. Replay from identical initialization reconstructs optimizer without approximating or discarding its state.",
+    "seed": 719
+  },
+  "reused_final_configurations": [
+    {
+      "checkpoint": {
+        "filename": "ordinary_reset_validity-613-weights.npz",
+        "sha256": "77f6a766f8387b233bfcf1756efc6bcbc1159bf47c0aafbdaeca18d0b2375b7e"
+      },
+      "mode": "ordinary_reset_validity",
+      "seed": 613,
+      "updates": 300
+    },
+    {
+      "checkpoint": {
+        "filename": "hcsn_reset_validity-613-weights.npz",
+        "sha256": "c566d10e325b6c703ce48af4b5fe995166533864b819626b60c9fba53bd5c111"
+      },
+      "mode": "hcsn_reset_validity",
+      "seed": 613,
+      "updates": 300
+    },
+    {
+      "checkpoint": {
+        "filename": "ordinary_reset_validity-719-weights.npz",
+        "sha256": "d0c7e545204b157ff4b9d064002d855eb7c13061942c3e0f239b137ed57c8881"
+      },
+      "mode": "ordinary_reset_validity",
+      "seed": 719,
+      "updates": 300
+    }
+  ],
+  "schema": "hcsn.p2.reset-validity-completion-fixed-protocol.v1",
+  "scope": {
+    "all_failures_retained": true,
+    "all_scientific_gates_remain_OPEN": true,
+    "architecture_and_hyperparameters_unchanged": true,
+    "external_independent_attestation": false,
+    "extra_optimizer_fit_is_explicit": true,
+    "heldout_seeds_unchanged": true,
+    "original_180_second_budget_pass": false,
+    "production_activation": false
+  },
+  "source_sha256": {
+    "p2_associative_campaign.py": "08230b1cfcb71b7af67a551ee7ed9881e899ea69cdd0bad96276b1fadcb7771b",
+    "p2_associative_memory.py": "d42d95de0bca5bafb6e541dff9a9b912cd56de3ed2a6333871cfae9f23de0680",
+    "p2_reset_validity.py": "7ebeaf9069bdd547a2e41d607345a3ce3b29c300d93acf187bdfb51ebc99a02d",
+    "p2_reset_validity_campaign.py": "58e0481d630839bd851fd01366797d0514e3ed2db9c3981a34a94f5c1e106c49",
+    "p2_reset_validity_completion.py": "d840ccfaec094c571933fcc572b5f80ad804bd659dbdcd45ab990d2fa8ff5063",
+    "p2_round2_raw_tokens.py": "3b98d687587d9c54b2b25e0ef27c51f85a46dc4e6d3d162bef7a6d378e5c1344",
+    "test_p2_reset_validity.py": "2cbff6ac73f6b346969d33c450df8438fffbe5a02b2d1223b3b4e12449de92e8",
+    "test_p2_reset_validity_completion.py": "13c97b731e48fe7d7e4e180759146d4ec3955b2d0ff7e23ae30201ca1de12ba8"
+  },
+  "status": "FROZEN_ADDITIONAL_FIXED_CONFIGURATION_COMPLETION_BEFORE_REPLAY_AND_HELDOUT",
+  "training": {
+    "all_actual_failures_and_partial_models_retained": true,
+    "batch_size": 16,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "checkpoint": "final fixed update only; no selection, seed filtering, retry, or schedule changes",
+    "episodes": 1,
+    "eps": 1e-08,
+    "gradient_clip": 1.0,
+    "ignore_probability": 0.4,
+    "learning_rate": 0.006,
+    "loss": "only query answer cross entropy; no event, key, or hidden-state auxiliary targets",
+    "model_seeds": [
+      613,
+      719
+    ],
+    "noise_gap": 2,
+    "optimizer": "Adam",
+    "overwrites": 4,
+    "stages": [
+      {
+        "tasks_round_robin": [
+          "mqar",
+          "overwrite"
+        ],
+        "updates": 100
+      },
+      {
+        "tasks_round_robin": [
+          "mqar",
+          "overwrite",
+          "state_tracking",
+          "multi_reset"
+        ],
+        "updates": 200
+      }
+    ],
+    "steps_per_model": 300,
+    "stream_base": 400000000,
+    "stream_seed_formula": "400000000 + model_seed*100000 + update_index"
+  }
+}
