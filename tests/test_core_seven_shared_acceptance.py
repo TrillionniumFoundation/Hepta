@@ -32,6 +32,14 @@ class SharedAcceptanceContractTests(unittest.TestCase):
             self.assertIn('experiments/hia_initialization_frontiers_20261103/' + name, paths)
 
 
+    def test_foreign_buffer_abi_is_bound_to_full_compiler_source_identity(self):
+        # Any new hepta/*.py byte is read by pipeline.compiler_hash.
+        # The frozen proof source set must refuse unregistered compiler input.
+        name = 'hepta/hia_foreign_buffer_abi.py'
+        self.assertTrue((p.ROOT / name).is_file())
+        self.assertIn(name, p.ADDITIONS)
+        self.assertIn(name, p.source_paths())
+
     def test_actual_compiler_hash_reads_cannot_escape_source_identity(self):
         registered = p.source_paths()
         expected = tuple(n for n in registered if n.startswith('hepta/') and
