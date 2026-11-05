@@ -1,0 +1,658 @@
+{
+  "source": {
+    "commit": "f48ae07eb86db1cc41acabfe22449634b897df31",
+    "status": "",
+    "tree": "ec6537ff93f67b0af0907616909ddad172bb3e64"
+  },
+  "status": "passed",
+  "source_unchanged": true,
+  "runtime_bindings_unchanged": true,
+  "result_sha256": "84c67725b23568d0fb3d19ffeb3e7ad16c0d96d09b0c42e438328aa942564caf",
+  "result_bytes": 250586461,
+  "counts": {
+    "actual_cache_invalidations": 84,
+    "actual_ndu_requests": 618,
+    "complete": true,
+    "episodes": 432,
+    "failed": 0,
+    "invocation_skips": 4422,
+    "optional_budget_withholdings": 0,
+    "passed": 432,
+    "planned_episodes": 432,
+    "planned_workload_executions": 10368,
+    "planner_requests": 2490,
+    "policy_retirements": 159,
+    "preparations": 579,
+    "reuse_events": 7377,
+    "workload_executions": 10368
+  },
+  "controls": {
+    "passed": true,
+    "skips": 0,
+    "native_planner_calls": 157,
+    "native_workload_calls": 22,
+    "wall_ns": 298653976
+  },
+  "control_cases": 37,
+  "refusal_cases": 20,
+  "costs": {
+    "actual_campaign_internal_before_report_ns": 91481178745,
+    "actual_service_sum_ns": 62707096924,
+    "all_arms_use_same_native_image": true,
+    "allocations_overlap_do_not_sum": true,
+    "conservative_alternative_allocations_before_outer_correction_ns": {
+      "beam": 106498069904,
+      "beam_ndu": 106277745886,
+      "direct": 107170013988,
+      "exact_dp": 104406619423,
+      "fixed": 105606102199,
+      "light": 104468542778
+    },
+    "observed_build_inner_ns": 66512584388,
+    "outer_process_and_build_wrapper_correction_required": true,
+    "separate_non_ndu_build_cost_not_isolated": true,
+    "service_by_arm_ns": {
+      "beam": 11211403695,
+      "beam_ndu": 10991079677,
+      "direct": 11883347779,
+      "exact_dp": 9119953214,
+      "fixed": 10319435990,
+      "light": 9181876569
+    },
+    "shared_campaign_remainder_ns": 28774081821,
+    "unknown_costs": [
+      "historical tool/dependency acquisition",
+      "human engineering/review",
+      "long-term operation and retention"
+    ]
+  },
+  "exact_audit_summary": {
+    "beam": {
+      "defined_gaps": 603,
+      "every_exact_minimum_independently_checked": true,
+      "independent_bottom_up_audit_sum_ns": 2055419467,
+      "maximum_gap_ns": 20581699,
+      "model_gap_is_not_actual_execution_regret": true,
+      "online_call_sum_ns": 3952919901,
+      "online_search_sum_ns": 197465975,
+      "positive_gap": 225,
+      "reference_exact_call_sum_ns": 2444708175,
+      "reference_exact_search_sum_ns": 718561772,
+      "requests": 618,
+      "sum_model_gap_ns": 2185827213,
+      "zero_gap": 378
+    },
+    "beam_ndu": {
+      "defined_gaps": 603,
+      "every_exact_minimum_independently_checked": true,
+      "independent_bottom_up_audit_sum_ns": 2052781119,
+      "maximum_gap_ns": 21087861,
+      "model_gap_is_not_actual_execution_regret": true,
+      "online_call_sum_ns": 3701168706,
+      "online_search_sum_ns": 194732100,
+      "positive_gap": 225,
+      "reference_exact_call_sum_ns": 2417590530,
+      "reference_exact_search_sum_ns": 729601523,
+      "requests": 618,
+      "sum_model_gap_ns": 2109763800,
+      "zero_gap": 378
+    },
+    "exact_dp": {
+      "defined_gaps": 624,
+      "every_exact_minimum_independently_checked": true,
+      "independent_bottom_up_audit_sum_ns": 1987596971,
+      "maximum_gap_ns": 0,
+      "model_gap_is_not_actual_execution_regret": true,
+      "online_call_sum_ns": 2181228104,
+      "online_search_sum_ns": 662522137,
+      "positive_gap": 0,
+      "reference_exact_call_sum_ns": 2364773212,
+      "reference_exact_search_sum_ns": 700764659,
+      "requests": 624,
+      "sum_model_gap_ns": 0,
+      "zero_gap": 624
+    },
+    "light": {
+      "defined_gaps": 630,
+      "every_exact_minimum_independently_checked": true,
+      "independent_bottom_up_audit_sum_ns": 1982425602,
+      "maximum_gap_ns": 82224936,
+      "model_gap_is_not_actual_execution_regret": true,
+      "online_call_sum_ns": 1536969804,
+      "online_search_sum_ns": 50780073,
+      "positive_gap": 276,
+      "reference_exact_call_sum_ns": 2379624978,
+      "reference_exact_search_sum_ns": 734538546,
+      "requests": 630,
+      "sum_model_gap_ns": 7795577550,
+      "zero_gap": 354
+    }
+  },
+  "audit_wall_ns": 18050397052,
+  "offline_before_online_ns": 1151840715,
+  "outer_wall_ns": 105143264754,
+  "outer_driver_before_receipt_wall_ns": 105541472198,
+  "build_outer_wall_ns": 66601443340,
+  "ratios": {
+    "ndu_over_exact_service": 1.205168427851981,
+    "ndu_over_beam_service": 0.9803482218646485,
+    "ndu_over_fixed_service": 1.0650853096672002,
+    "ndu_over_direct_service": 0.9249144164932379
+  },
+  "per_arm": {
+    "direct": {
+      "episodes": 72,
+      "passed": 72,
+      "service_ns": 11883347779,
+      "planner_requests": 0,
+      "actual_ndu_requests": 0,
+      "invocation_skips": 0,
+      "preparations": 0,
+      "reuses": 0,
+      "invalidations": 0,
+      "parts_ns": {
+        "data_mutation_and_invalidation": 109589985,
+        "decision_including_startup_and_replay": 30810560,
+        "execution_including_oracle_and_transport": 9288670039,
+        "initialization": 601692565,
+        "model_construction": 948052509,
+        "policy_retire": 0,
+        "prepare": 0,
+        "workload_close": 191701932,
+        "workload_startup": 679837036
+      },
+      "other_service_ns": 32993153,
+      "absolute_execution_forecast_error_ns": 831768491,
+      "signed_execution_forecast_error_ns": 585543751,
+      "allocation_retirement_balanced": true
+    },
+    "fixed": {
+      "episodes": 72,
+      "passed": 72,
+      "service_ns": 10319435990,
+      "planner_requests": 0,
+      "actual_ndu_requests": 0,
+      "invocation_skips": 0,
+      "preparations": 156,
+      "reuses": 3300,
+      "invalidations": 12,
+      "parts_ns": {
+        "data_mutation_and_invalidation": 109730215,
+        "decision_including_startup_and_replay": 32359930,
+        "execution_including_oracle_and_transport": 7296881215,
+        "initialization": 603270371,
+        "model_construction": 810272621,
+        "policy_retire": 0,
+        "prepare": 553452602,
+        "workload_close": 221397769,
+        "workload_startup": 655590163
+      },
+      "other_service_ns": 36481104,
+      "absolute_execution_forecast_error_ns": 752636642,
+      "signed_execution_forecast_error_ns": 496452508,
+      "allocation_retirement_balanced": true
+    },
+    "light": {
+      "episodes": 72,
+      "passed": 72,
+      "service_ns": 9181876569,
+      "planner_requests": 630,
+      "actual_ndu_requests": 0,
+      "invocation_skips": 1098,
+      "preparations": 105,
+      "reuses": 1047,
+      "invalidations": 18,
+      "parts_ns": {
+        "data_mutation_and_invalidation": 108735646,
+        "decision_including_startup_and_replay": 2058913796,
+        "execution_including_oracle_and_transport": 3982661262,
+        "initialization": 610180529,
+        "model_construction": 856794177,
+        "policy_retire": 16073815,
+        "prepare": 611298195,
+        "workload_close": 209985082,
+        "workload_startup": 647544947,
+        "planner_close": 45818157
+      },
+      "other_service_ns": 33870963,
+      "absolute_execution_forecast_error_ns": 351450230,
+      "signed_execution_forecast_error_ns": 165788532,
+      "allocation_retirement_balanced": true
+    },
+    "exact_dp": {
+      "episodes": 72,
+      "passed": 72,
+      "service_ns": 9119953214,
+      "planner_requests": 624,
+      "actual_ndu_requests": 0,
+      "invocation_skips": 1104,
+      "preparations": 108,
+      "reuses": 1032,
+      "invalidations": 18,
+      "parts_ns": {
+        "data_mutation_and_invalidation": 111305395,
+        "decision_including_startup_and_replay": 2715839824,
+        "execution_including_oracle_and_transport": 3330474456,
+        "initialization": 594711411,
+        "model_construction": 782463645,
+        "policy_retire": 16542591,
+        "prepare": 619774142,
+        "workload_close": 212612953,
+        "workload_startup": 651029133,
+        "planner_close": 51350084
+      },
+      "other_service_ns": 33849580,
+      "absolute_execution_forecast_error_ns": 336641662,
+      "signed_execution_forecast_error_ns": 154573962,
+      "allocation_retirement_balanced": true
+    },
+    "beam": {
+      "episodes": 72,
+      "passed": 72,
+      "service_ns": 11211403695,
+      "planner_requests": 618,
+      "actual_ndu_requests": 0,
+      "invocation_skips": 1110,
+      "preparations": 105,
+      "reuses": 987,
+      "invalidations": 18,
+      "parts_ns": {
+        "data_mutation_and_invalidation": 108065775,
+        "decision_including_startup_and_replay": 4481682991,
+        "execution_including_oracle_and_transport": 3613978705,
+        "initialization": 600366696,
+        "model_construction": 792772670,
+        "policy_retire": 16371422,
+        "prepare": 626105735,
+        "workload_close": 214580605,
+        "workload_startup": 669355983,
+        "planner_close": 52483438
+      },
+      "other_service_ns": 35639675,
+      "absolute_execution_forecast_error_ns": 386457809,
+      "signed_execution_forecast_error_ns": 213961297,
+      "allocation_retirement_balanced": true
+    },
+    "beam_ndu": {
+      "episodes": 72,
+      "passed": 72,
+      "service_ns": 10991079677,
+      "planner_requests": 618,
+      "actual_ndu_requests": 618,
+      "invocation_skips": 1110,
+      "preparations": 105,
+      "reuses": 1011,
+      "invalidations": 18,
+      "parts_ns": {
+        "data_mutation_and_invalidation": 108699274,
+        "decision_including_startup_and_replay": 4244080864,
+        "execution_including_oracle_and_transport": 3619567608,
+        "initialization": 601483818,
+        "model_construction": 791806076,
+        "policy_retire": 16833670,
+        "prepare": 640270215,
+        "workload_close": 222902812,
+        "workload_startup": 660438608,
+        "planner_close": 49665394
+      },
+      "other_service_ns": 35331338,
+      "absolute_execution_forecast_error_ns": 396362366,
+      "signed_execution_forecast_error_ns": 219550200,
+      "allocation_retirement_balanced": true
+    }
+  },
+  "cohort_service_wins": 0,
+  "cohorts": [
+    {
+      "id": "persistent_pair-n256-s7001",
+      "native_over_best": 1.227457987188952,
+      "native_over_beam": 1.025709006020904,
+      "native_beats_every": false,
+      "medians": {
+        "beam": 53940903,
+        "beam_ndu": 55327670,
+        "direct": 51297150,
+        "exact_dp": 55510860,
+        "fixed": 45075001,
+        "light": 54155962
+      }
+    },
+    {
+      "id": "persistent_pair-n256-s12289",
+      "native_over_best": 1.084619291685595,
+      "native_over_beam": 0.9688834120406353,
+      "native_beats_every": false,
+      "medians": {
+        "beam": 57685245,
+        "beam_ndu": 55890277,
+        "direct": 51529857,
+        "exact_dp": 55457033,
+        "fixed": 53389013,
+        "light": 56357544
+      }
+    },
+    {
+      "id": "persistent_pair-n896-s7001",
+      "native_over_best": 1.07403980837726,
+      "native_over_beam": 1.0159062136034782,
+      "native_beats_every": false,
+      "medians": {
+        "beam": 157788086,
+        "beam_ndu": 160297897,
+        "direct": 439108901,
+        "exact_dp": 149247631,
+        "fixed": 300585484,
+        "light": 149832533
+      }
+    },
+    {
+      "id": "persistent_pair-n896-s12289",
+      "native_over_best": 1.0479456431233383,
+      "native_over_beam": 0.9939359781476005,
+      "native_beats_every": false,
+      "medians": {
+        "beam": 155669129,
+        "beam_ndu": 154725148,
+        "direct": 431560913,
+        "exact_dp": 151796530,
+        "fixed": 440437795,
+        "light": 147646158
+      }
+    },
+    {
+      "id": "phase_reuse-n256-s7001",
+      "native_over_best": 1.191555881466642,
+      "native_over_beam": 0.9677084303578859,
+      "native_beats_every": false,
+      "medians": {
+        "beam": 55044057,
+        "beam_ndu": 53266598,
+        "direct": 49493343,
+        "exact_dp": 53645430,
+        "fixed": 44703399,
+        "light": 54327092
+      }
+    },
+    {
+      "id": "phase_reuse-n256-s12289",
+      "native_over_best": 1.1372439907124199,
+      "native_over_beam": 1.0157607349983078,
+      "native_beats_every": false,
+      "medians": {
+        "beam": 50451708,
+        "beam_ndu": 51246864,
+        "direct": 50995606,
+        "exact_dp": 51954064,
+        "fixed": 45062330,
+        "light": 48991190
+      }
+    },
+    {
+      "id": "phase_reuse-n896-s7001",
+      "native_over_best": 1.4852232605194773,
+      "native_over_beam": 1.0175168866242315,
+      "native_beats_every": false,
+      "medians": {
+        "beam": 315229819,
+        "beam_ndu": 320751664,
+        "direct": 347959313,
+        "exact_dp": 215961918,
+        "fixed": 281935685,
+        "light": 294571857
+      }
+    },
+    {
+      "id": "phase_reuse-n896-s12289",
+      "native_over_best": 1.309074837002655,
+      "native_over_beam": 1.0168285352591269,
+      "native_beats_every": false,
+      "medians": {
+        "beam": 275273393,
+        "beam_ndu": 279905841,
+        "direct": 395890116,
+        "exact_dp": 213819587,
+        "fixed": 278907946,
+        "light": 304426915
+      }
+    },
+    {
+      "id": "cyclic_pressure-n256-s7001",
+      "native_over_best": 1.0693909412760967,
+      "native_over_beam": 1.0261174095744818,
+      "native_beats_every": false,
+      "medians": {
+        "beam": 32268629,
+        "beam_ndu": 33111402,
+        "direct": 30962860,
+        "exact_dp": 33145041,
+        "fixed": 31437283,
+        "light": 33710242
+      }
+    },
+    {
+      "id": "cyclic_pressure-n256-s12289",
+      "native_over_best": 1.27744093060153,
+      "native_over_beam": 1.18648865357887,
+      "native_beats_every": false,
+      "medians": {
+        "beam": 33007236,
+        "beam_ndu": 39162711,
+        "direct": 30657160,
+        "exact_dp": 33504360,
+        "fixed": 32813923,
+        "light": 33379668
+      }
+    },
+    {
+      "id": "cyclic_pressure-n896-s7001",
+      "native_over_best": 2.25195564752657,
+      "native_over_beam": 1.0231186892513253,
+      "native_beats_every": false,
+      "medians": {
+        "beam": 224970237,
+        "beam_ndu": 230171254,
+        "direct": 103552524,
+        "exact_dp": 183902801,
+        "fixed": 102209497,
+        "light": 173226970
+      }
+    },
+    {
+      "id": "cyclic_pressure-n896-s12289",
+      "native_over_best": 2.27402398002071,
+      "native_over_beam": 1.0206252548456665,
+      "native_beats_every": false,
+      "medians": {
+        "beam": 228613854,
+        "beam_ndu": 233329073,
+        "direct": 106934910,
+        "exact_dp": 186245490,
+        "fixed": 102606250,
+        "light": 168834772
+      }
+    },
+    {
+      "id": "short_bursts-n256-s7001",
+      "native_over_best": 1.0985677760170671,
+      "native_over_beam": 0.9573240489637148,
+      "native_beats_every": false,
+      "medians": {
+        "beam": 35783151,
+        "beam_ndu": 34256071,
+        "direct": 31182483,
+        "exact_dp": 34091892,
+        "fixed": 31925163,
+        "light": 34154278
+      }
+    },
+    {
+      "id": "short_bursts-n256-s12289",
+      "native_over_best": 1.099039474825942,
+      "native_over_beam": 1.0185875954120214,
+      "native_beats_every": false,
+      "medians": {
+        "beam": 33847412,
+        "beam_ndu": 34476554,
+        "direct": 31369714,
+        "exact_dp": 33182668,
+        "fixed": 31517840,
+        "light": 34856170
+      }
+    },
+    {
+      "id": "short_bursts-n896-s7001",
+      "native_over_best": 2.3946623648197853,
+      "native_over_beam": 1.023128111688109,
+      "native_beats_every": false,
+      "medians": {
+        "beam": 227999634,
+        "beam_ndu": 233272835,
+        "direct": 97413664,
+        "exact_dp": 181490616,
+        "fixed": 97474235,
+        "light": 162625464
+      }
+    },
+    {
+      "id": "short_bursts-n896-s12289",
+      "native_over_best": 2.6570147985393113,
+      "native_over_beam": 1.0506341824806802,
+      "native_beats_every": false,
+      "medians": {
+        "beam": 246823280,
+        "beam_ndu": 259320975,
+        "direct": 97598619,
+        "exact_dp": 181237356,
+        "fixed": 97968029,
+        "light": 162744137
+      }
+    },
+    {
+      "id": "invalidate_recover-n256-s7001",
+      "native_over_best": 1.248367344426755,
+      "native_over_beam": 1.0420312857742267,
+      "native_beats_every": false,
+      "medians": {
+        "beam": 55866861,
+        "beam_ndu": 58215017,
+        "direct": 54980355,
+        "exact_dp": 55491901,
+        "fixed": 46632922,
+        "light": 55855097
+      }
+    },
+    {
+      "id": "invalidate_recover-n256-s12289",
+      "native_over_best": 1.017645943230166,
+      "native_over_beam": 0.9457159425291826,
+      "native_beats_every": false,
+      "medians": {
+        "beam": 58458121,
+        "beam_ndu": 55284777,
+        "direct": 54326141,
+        "exact_dp": 54584566,
+        "fixed": 56428664,
+        "light": 55603743
+      }
+    },
+    {
+      "id": "invalidate_recover-n896-s7001",
+      "native_over_best": 1.3325465644351182,
+      "native_over_beam": 0.9095322104655671,
+      "native_beats_every": false,
+      "medians": {
+        "beam": 324040768,
+        "beam_ndu": 294725516,
+        "direct": 473232998,
+        "exact_dp": 247638788,
+        "fixed": 331263722,
+        "light": 221174647
+      }
+    },
+    {
+      "id": "invalidate_recover-n896-s12289",
+      "native_over_best": 1.4453490996599019,
+      "native_over_beam": 1.0823814980114668,
+      "native_beats_every": false,
+      "medians": {
+        "beam": 292653127,
+        "beam_ndu": 316762330,
+        "direct": 480128936,
+        "exact_dp": 270649493,
+        "fixed": 489853620,
+        "light": 219159738
+      }
+    },
+    {
+      "id": "mixed_regime-n256-s7001",
+      "native_over_best": 1.0835020285091634,
+      "native_over_beam": 0.9981897574844798,
+      "native_beats_every": false,
+      "medians": {
+        "beam": 43631723,
+        "beam_ndu": 43552739,
+        "direct": 43465877,
+        "exact_dp": 43265586,
+        "fixed": 40196269,
+        "light": 45878117
+      }
+    },
+    {
+      "id": "mixed_regime-n256-s12289",
+      "native_over_best": 1.0990707507899362,
+      "native_over_beam": 0.8935060771262459,
+      "native_beats_every": false,
+      "medians": {
+        "beam": 46635694,
+        "beam_ndu": 41669276,
+        "direct": 37913188,
+        "exact_dp": 40237063,
+        "fixed": 38374200,
+        "light": 40614481
+      }
+    },
+    {
+      "id": "mixed_regime-n896-s7001",
+      "native_over_best": 1.7609570963675456,
+      "native_over_beam": 1.0639515550532461,
+      "native_beats_every": false,
+      "medians": {
+        "beam": 271968758,
+        "beam_ndu": 289361583,
+        "direct": 203752559,
+        "exact_dp": 258893584,
+        "fixed": 164320632,
+        "light": 220671149
+      }
+    },
+    {
+      "id": "mixed_regime-n896-s12289",
+      "native_over_best": 1.6515556508381342,
+      "native_over_beam": 1.0106878453553183,
+      "native_beats_every": false,
+      "medians": {
+        "beam": 299110241,
+        "beam_ndu": 302307085,
+        "direct": 218982700,
+        "exact_dp": 228916183,
+        "fixed": 183043838,
+        "light": 203248041
+      }
+    }
+  ],
+  "outer_corrected_primary_cost": {
+    "actual_build_plus_campaign_ns": 171744708094,
+    "shared_build_plus_nonservice_ns": 109037611170,
+    "alternative_allocations_ns": {
+      "beam": 120249014865,
+      "beam_ndu": 120028690847,
+      "direct": 120920958949,
+      "exact_dp": 118157564384,
+      "fixed": 119357047160,
+      "light": 118219487739
+    },
+    "actual_sum_excludes_separately_retained_unit_preflights_and_registration": true,
+    "alternative_allocations_overlap_do_not_sum": true,
+    "native_beats_every_control": false
+  }
+}
