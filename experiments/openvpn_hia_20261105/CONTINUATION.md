@@ -100,3 +100,24 @@ pilot does not silently replace the longer multi-rate, two-role deployment grid
 in [TUN_DCO_ACCEPTANCE.md](TUN_DCO_ACCEPTANCE.md), nor qualify WAN, physical NIC,
 cross-host or production performance. Execution and observed runtime status must
 be reported separately after the target job is actually run.
+
+## Published execution request and offline analysis
+
+The executable target source was published as
+`4365b1dd708d1ff61fdf721e2102737995d498b7`. The complete remote Git tree matches
+the local frozen continuation; the publication manifest is retained in
+[continuation-publication.json](review/continuation-publication.json).
+
+[Dedicated run 41998233420](https://github.com/TrillionniumFoundation/Hepta/actions/runs/41998233420)
+was triggered by that push. Its observed allocation/execution status and raw
+observations are recorded separately in
+[target execution status](target-results/run-41998233420/STATUS.md). A queued
+request does not establish a build, tunnel, profile, or performance result.
+
+The [offline analyzer](ANALYZE_TARGET.md) is also complete. It preserves all fixed
+case/workload positions, partial/failing observations, both receiving directions,
+UDP losses/jitter, whole-interval process CPU/RSS and all paired ratios. Its
+parser checks use explicitly synthetic software vectors and establish no runtime
+performance. It emits no target result when no actual build or matrix receipt
+exists. This later analyzer/evidence work does not modify the frozen target
+execution inputs or launch a second target matrix.
