@@ -251,11 +251,18 @@ class CEmitter:
         for child in e.children:
             self.require_nonmutating(child)
 
-    def sequence(self, e, lines):
+    def sequence(self, e, lines, *, allow_temporary=False):
         t = self.expr_type(e)
         if t.name not in {"array", "slice"}:
             fail("E_C_BACKEND_SUBSET", "Only fixed arrays and borrowed slices are supported sequences", e.span)
-        p = self.place(e, lines)
+        if allow_temporary and t.name == "array" and self.root(e) is None:
+            # Adapt PR #583's rvalue materialization to this Copy-only profile.
+            # Validate the complete layout before materializing it; unsupported
+            # runtime/resource values remain rejected by typ and the frontend.
+            self.typ(t)
+            p = self.value(e, lines)
+        else:
+            p = self.place(e, lines)
         return f"({p}).data", str(t.length) if t.name == "array" else f"({p}).len"
 
     def integer_helper(self, t):
@@ -297,7 +304,12 @@ class CEmitter:
             base = self.value(e.children[0], lines)
             expression = "(" + base + ").h_" + e.value
         elif k == "index":
-            expression = self.place(e, lines)
+            base, index = e.children
+            self.require_nonmutating(index)
+            data, length = self.sequence(base, lines, allow_temporary=True)
+            ix = self.value(index, lines)
+            lines.append(f"if ({ix} >= {length}) abort();")
+            expression = f"({data})[{ix}]"
         elif k == "unary":
             child = e.children[0]
             if e.value in {"read", "mut"}:
@@ -367,7 +379,7 @@ class CEmitter:
                 arg = e.children[0]
                 if arg.kind == "unary":
                     arg = arg.children[0]
-                _, expression = self.sequence(arg, lines)
+                _, expression = self.sequence(arg, lines, allow_temporary=True)
             elif e.value in {"wrapping_add", "wrapping_sub", "wrapping_mul", "min", "max"}:
                 args = [self.value(x, lines) for x in e.children]
                 expression = self.integer_helper(t) + e.value + "(" + ", ".join(args) + ")"

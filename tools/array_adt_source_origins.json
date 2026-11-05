@@ -1,0 +1,14 @@
+{
+  "adapted_sequence": "    def sequence(self, e, lines, *, allow_temporary=False):\n        t = self.expr_type(e)\n        if t.name not in {\"array\", \"slice\"}:\n            fail(\"E_C_BACKEND_SUBSET\", \"Only fixed arrays and borrowed slices are supported sequences\", e.span)\n        if allow_temporary and t.name == \"array\" and self.root(e) is None:\n            # Adapt PR #583's rvalue materialization to this Copy-only profile.\n            # Validate the complete layout before materializing it; unsupported\n            # runtime/resource values remain rejected by typ and the frontend.\n            self.typ(t)\n            p = self.value(e, lines)\n        else:\n            p = self.place(e, lines)\n        return f\"({p}).data\", str(t.length) if t.name == \"array\" else f\"({p}).len\"\n\n",
+  "destination_backend_sha256": "6f7d9dff07af9f5c291c083062f15a0ff73eb8ce0159e91879c61c67eb52f950",
+  "destination_commit": "a36ca868057967fe556c4ca9f7a72b8ef50ce5d5",
+  "destination_sequence": "    def sequence(self, e, lines):\n        t = self.expr_type(e)\n        if t.name not in {\"array\", \"slice\"}:\n            fail(\"E_C_BACKEND_SUBSET\", \"Only fixed arrays and borrowed slices are supported sequences\", e.span)\n        p = self.place(e, lines)\n        return f\"({p}).data\", str(t.length) if t.name == \"array\" else f\"({p}).len\"\n\n",
+  "origin_backend_blob": "693fc40d16d395beec0272a9ae176364ae78bb31",
+  "origin_commit": "a7e88847ede16c60951c4f044b54dfcf8bb1dfb6",
+  "origin_fragment_sha256": {
+    "index_read": "9aab912406ff0a69aa292af3f13c6e96566f081a7ecbe712d9be747d41cb437d",
+    "len_read": "ee87912892bfeb4053be2b36aa226162ae70595777c7952191174017e573dbad"
+  },
+  "origin_test_blob": "c222335a423b640caacc61330e186ff418a15ae7",
+  "origin_test_sha256": "e1e63fc1ff3b95188e241d2dc082c8ae8504993b697200a543ed9f24e9a5450b"
+}
