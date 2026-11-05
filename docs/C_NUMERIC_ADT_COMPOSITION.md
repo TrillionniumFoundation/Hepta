@@ -58,8 +58,8 @@ python tools/qualify_c_float_int_oracle.py
 python tools/qualify_c_numeric_adt_oracle.py
 ```
 
-The **native-C-only** gate freezes 319 unique methods: 22 newly authored scalar
-and joint methods, all 288 inherited Unit-gate identities in their original
+The **native-C-only** gate freezes 321 unique methods: 23 newly authored scalar
+and joint methods, all 289 inherited Unit-gate identities in their original
 order, and the nine original non-Rust numeric methods. The gate explicitly
 lists the two unexecuted Rust-reference methods. It does not label them passed
 or hide them as skipped. One historical unsupported-cast fixture now uses
@@ -67,7 +67,7 @@ unsupported i128 instead of the newly composed float-to-i32 conversion; its
 method identity, diagnostic and unrelated resource case are preserved.
 
 Set `HEPTA_ENUM_REQUIRE_RUST=1` with pinned Rust 1.90.0 both on PATH and selected
-by `RUSTC` to require the **321-method C-and-Rust inventory**. That mode adds both
+by `RUSTC` to require the **323-method C-and-Rust inventory**. That mode adds both
 original Rust-reference methods, and all new/native inherited consumers and
 both oracles require their actual Rust comparisons. Missing tools, mismatched
 versions, missing/duplicate inventory entries, skips/xfails/xpasses and input
@@ -102,9 +102,46 @@ Those parent failures are not presented as new-source passes. Earlier
 exploratory tests and fixture-correction failures are retained separately.
 
 The read-only exact-head workflow requests Linux x86-64/ARM64 × Python 3.11/3.13,
-pinned Rust, the complete 321-method mode and both native oracles. It checks
+pinned Rust, the complete 323-method mode and both native oracles. It checks
 exact source identity and cleanliness before/after and retains full logs.
 Local C-only runs, origin-branch hosted successes and queued new workflows do
 not establish native Rust/ARM or final integration qualification for this tree.
 No complete language parity, source/refinement proof, performance superiority,
 production qualification, merge, release or deployment is claimed.
+
+
+## 2026-11-05 retained hosted fixture failure and correction
+
+The original exact head `a36ca868057967fe556c4ca9f7a72b8ef50ce5d5` failed all
+four numeric jobs in [run 42014604491](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42014604491).
+Each ran the original 321-method C-and-Rust inventory and recorded 21 EACCES
+entries: nine scalar and eight joint consumers shared a Rust compile call that
+omitted `crate_type="bin"`; four more error entries were inherited Unit trap
+subcases. The default Rust compilation kind is correctly `rlib`, so a successful
+library build was followed by an invalid attempt to execute the library.
+Both numeric oracles were after the failed gate and were not reached there.
+
+All four inherited Unit jobs in
+[run 42014604334](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42014604334)
+separately ran the original 288 methods and recorded those four Unit EACCES
+entries. These failures remain original negative results, not successful Rust
+comparison or evidence of a compiler numerical error.
+
+The numeric success helper now explicitly requests a Rust binary. The exact
+three-file Unit test correction is carried from #705 commit
+`4e8ec1710c3f3b2ea7168ed93893942680eb7c63`, requesting a binary at both Rust
+emission and compilation. No production compiler, permission, executable-mode,
+security setting, expected output, trap assertion or original method is changed.
+No chmod or fallback execution is used. A read-only audit of all 23
+`compile_rust` callsites identified these two incorrect runnable callers;
+remaining compile-only, object, static-library and explicit-bin uses retain
+their intended artifact types.
+
+The two additional regression methods check the Rust call contract with mocked
+Rust compilation/execution while still compiling and running real C. They are
+explicitly not native Rust evidence. The new numeric contract regression fails
+against the original omission and passes with explicit `bin`. They expand the
+inventories to 321 C-only / 323 C-and-Rust, preserving every original method in
+relative order. The inherited Unit inventory is now 289. Real Rust and ARM
+correction results require the new exact-head hosted jobs; local C-only passes
+and mock contracts do not replace those executions.

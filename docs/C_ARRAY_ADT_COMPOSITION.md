@@ -101,3 +101,29 @@ run on Python 3.12/3.13 with GCC 14.2.0. Native Rust and ARM are not available
 locally and are not claimed. Initial example missing-effect and oracle
 missing-effect/duplicate-binding attempts are retained as failures, not passes.
 No merge, release, deployment or activation is authorized by this draft.
+
+## Executable Rust fixture correction (2026-11-05)
+
+The original 336-method native array workflow at head
+`5e88f0daba0a860411bde76c1d4351194d51bfa5` failed in all four host/Python lanes.
+Each reports 27 EACCES error entries: 23 uses of the shared numerical success
+helper and four Unit trap subcases. The fixtures compiled default Rust libraries
+and then tried to execute them. These original failures remain retained at
+[run 42017237683](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42017237683).
+No native result is inferred from the former local C-only passes.
+
+Copy the seven reviewed qualification-file repairs from #706 exact
+`d6b73fd355fbf1248bcfcb01d39d953a02a4245d`, including the byte-identical Unit fix
+from #705 `4e8ec1710c3f3b2ea7168ed93893942680eb7c63`. Both runnable helpers now
+request executable binaries explicitly. Two added mocked Rust caller-contract
+tests keep real C work and detect omitted emission/compilation kinds; mocked
+Rust is not native Rust execution. All production files, original transplanted
+corpora, compiler defaults, traps and no-skip requirements remain unchanged.
+
+The corrected inventory is 335 C-only / 338 required-Rust methods. Every former
+333/336 identity remains in its original relative order. The reversible fixture
+manifest binds repaired hashes/Git blobs and reconstructs the exact original
+qualification files; no inherited provenance digest is silently replaced.
+The old backend inverse still applies byte for byte. Missing native Rust still
+fails closed. New hosted results must refer to the corrected head; prior failed
+runs are not relabeled. No chmod, production workaround or gate weakening.

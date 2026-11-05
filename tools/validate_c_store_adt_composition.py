@@ -12,6 +12,7 @@ import unittest
 import validate_c_array_adt_composition as arrays
 import validate_c_numeric_adt_composition as inherited
 from verify_store_adt_sources import verify
+from verify_rust_fixture_repairs import verify as verify_fixture_repairs
 
 ROOT=Path(__file__).resolve().parents[1]
 ORIGIN_PREFIX='tests.raw_store_order_origin.RawStoreOrderTests.'
@@ -37,7 +38,7 @@ MODULES=arrays.MODULES+['test_c_store_adt_composition']+ORIGIN+(RUST_ONLY if RUS
 
 
 def main():
-    provenance=verify()
+    provenance={'fixture_repairs':verify_fixture_repairs(),'stores':verify()}
     if RUST_REQUIRED:
         rustc=shutil.which('rustc');selected=shutil.which(os.environ.get('RUSTC','rustc'))
         if not rustc or not selected or Path(rustc).resolve()!=Path(selected).resolve():

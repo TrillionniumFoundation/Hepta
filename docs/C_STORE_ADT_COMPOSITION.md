@@ -105,3 +105,29 @@ operand evaluation remain unsafe caller obligations. Ordered evaluation is not
 a memory-safety, ownership, MMIO, concurrency or durability guarantee. No
 performance advantage, full language/refinement proof or production qualification
 is established. P11/P01 remain PARTIAL. Draft only; no merge or deployment.
+
+## Executable Rust fixture correction (2026-11-05)
+
+Original head `b45d6621b0435dd8da4aabf87250b275dbe03927` retains its failed native
+[store run 42018730948](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42018730948).
+All four lanes executed 357 methods and reported 35 EACCES error entries: 30
+shared numerical-helper uses, four Unit trap subcases, and the aggregate-store
+trace fixture. The requested output kind defaulted to a Rust library, so those
+outputs were not runnable binaries. Later oracle commands were not reached.
+The inherited Unit/numeric/array workflows also failed for these same callers.
+
+Import the exact seven #706 repair files described in the array correction
+above, and make the store trace compilation explicitly request bin (its emitter
+already does). Add a third mocked Rust caller-contract regression with real C
+compilation/execution; both missing-emission and missing-compilation mutations
+fail. This checks fixture wiring only, not native Rust behavior.
+
+Corrected inventory: 352 C-only / 360 required-Rust methods. Every former
+349/357 method remains in its original relative order. The separate inherited
+array gate is 335/338, numeric 321/323, and Unit 289. The original store provenance
+manifest remains byte-identical. Its inherited qualification checks receive
+only exact, verified inverse projections of repaired files, while actual tests
+import and execute the corrected files. All production bytes and original
+transplanted corpora remain unchanged. Do not relabel old failures, mock results
+or missing Rust as native passes. No permissions change, production default
+change, source bypass, skipped method or weakened gate is part of this fix.
