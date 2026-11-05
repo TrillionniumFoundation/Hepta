@@ -150,14 +150,14 @@ def write_evidence_no_follow(path: Path, document: str) -> None:
     try:
         for name in parents:
             try:
-                os.mkdir(name, mode=0o777, dir_fd=directory_fd)
+                os.mkdir(name, mode=0o755, dir_fd=directory_fd)
             except FileExistsError:
                 pass
             next_fd = os.open(name, directory_flags, dir_fd=directory_fd)
             os.close(directory_fd)
             directory_fd = next_fd
         leaf_flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC
-        leaf_fd = os.open(parts[-1], leaf_flags, 0o666, dir_fd=directory_fd)
+        leaf_fd = os.open(parts[-1], leaf_flags, 0o644, dir_fd=directory_fd)
         try:
             stream = os.fdopen(leaf_fd, 'w', encoding='utf-8')
         except BaseException:

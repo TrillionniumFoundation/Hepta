@@ -119,4 +119,23 @@ class NetlinkPeerDumpTests(unittest.TestCase):
             self.assertEqual(__import__('json').loads(output.read_text())['schema'],'mock-peer')
             self.assertTrue(output.parent.is_dir())
 
+
+    def test_evidence_creation_respects_maximum_permissions_even_with_zero_umask(self):
+        # Root-invoked helpers must not create writable-by-others receipts or
+        # newly created parents when their inherited umask is permissive.
+        # This is an offline filesystem permission test, not a TUN/DCO pass.
+        import os
+        import stat
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / 'new' / 'nested' / 'peer.json'
+            previous = os.umask(0)
+            try:
+                module.write_evidence_no_follow(output, '{"schema":"umask"}\n')
+            finally:
+                os.umask(previous)
+            for path in (output.parent, output.parent.parent, output):
+                mode = stat.S_IMODE(path.stat().st_mode)
+                self.assertEqual(mode & 0o022, 0, (str(path), oct(mode)))
+            self.assertEqual(output.read_text(), '{"schema":"umask"}\n')
+
 if __name__=='__main__':unittest.main(verbosity=2)
