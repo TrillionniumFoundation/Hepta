@@ -514,3 +514,45 @@ omitted or inferred from this timing diagnostic.
 
 The final combined commit still requires a fresh full acceptance and independent
 replay. All twelve wider production obligations remain unproved.
+
+## Literal source indexing after the full v10 run
+
+The desktop run at b47ce924 completed all eleven fresh Lean stages, including
+the original wrong-arm negation. Finalization wrote its inner RESULT after
+558.870179933 seconds. The subsequent internal evidence replay did not finish
+before the unchanged 600-second overall deadline: the actual qualifier exited
+124 after 600.079463180 seconds. The inner passed record is not an accepted full
+run. A separate later evidence replay completed in 73.055962129 seconds; it
+does not retroactively turn that deadline failure into success.
+
+One bounded cProfile diagnostic then completed both actual preparation and
+reconstruction in 274.529666898 seconds, with all 23 source artifacts and all
+258 input hashes unchanged. Its 146.070123766-second preparation and
+127.548251013-second reconstruction include profiling overhead. Each phase
+still executed forty structured-source verifications, two seven-source gates
+and two byte-fact gates.
+
+The two selected hotspots repeatedly scan complete strings: scheduling each
+query used a whole-module count and replace, and each auxiliary name was checked
+against the entire original source for declaration collisions. The implementation
+now indexes every literal `def ` and `theorem ` marker from each actual source.
+Candidate keys stop at a literal ASCII space; exact full-string matches still
+decide the result. There is no identifier normalization, line anchor, word
+boundary, or cached acceptance result. Empty names, Unicode, embedded markers,
+and names containing spaces retain the original substring semantics.
+
+For ordinary unique independent theorem spans, query scheduling builds its
+result once from the original source slices. Explicitly noncanonical raw text,
+self-overlap, or intersecting spans automatically use the original sequential
+count/replace behavior. This fallback has no caller-selectable mode, catches no
+unrelated validation error, and cannot hide missing or duplicated ordinary
+declarations. The original inverse, fixed hashes, source byte counts, query
+inventory, actual reference and recovered-candidate gates all remain.
+
+The original 43 source controls remain, with three added controls for literal
+occurrences, automatic fallback parity with an independent old-algorithm oracle,
+and exact equality of all eleven v10 module hashes and manifest bytes. The
+actual modules must use the indexed path. Both CI inventory checks now bind all
+46 IDs; kernel, source-control and evidence budgets are unchanged. The fixed
+old-then-new cost comparison and final integrated qualification are separate
+evidence, with no repeated qualification attempt chosen for timing luck.

@@ -209,8 +209,9 @@ def _derive(prepared):
         stem, cert, namespace = data['stem'], data['cert'], data['namespace']
         block, names, (length, root_fact) = _facts(plan,stem)
         require(not (names & set().union(*(s.expected_theorems for s in stages))), 'theorem name collision')
+        markers = original._DeclarationMarkers(prepared['structured_certificates'][key]['source'])
         for name in names:
-            require(all(kind+' '+name.rsplit('.',1)[1]+' ' not in prepared['structured_certificates'][key]['source']
+            require(all(not markers.positions(kind+' '+name.rsplit('.',1)[1]+' ')
                         for kind in ('def','theorem')), 'auxiliary name collides with original declaration')
         targets = (
             (cert+'_length', stem+'Bytes.length ≤ transportByteLimit',

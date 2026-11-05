@@ -46,6 +46,37 @@ def _original_check(prepared):
             'strict original stage metadata')
 
 
+class _DeclarationMarkers:
+    """Literal candidate positions from this exact source, with no word anchors.
+
+    The key ends at the next ASCII space, not an identifier boundary. Exact
+    startswith checks retain empty names, embedded markers and Unicode text.
+    """
+    def __init__(self, source):
+        self.source = source
+        self.all = {}
+        self.tokens = {}
+        for marker in ('def ', 'theorem '):
+            positions = []
+            start = source.find(marker)
+            while start >= 0:
+                positions.append(start)
+                begin = start + len(marker)
+                stop = source.find(' ', begin)
+                if stop >= 0:
+                    self.tokens.setdefault((marker, source[begin:stop]), []).append(start)
+                start = source.find(marker, start + 1)
+            self.all[marker] = tuple(positions)
+
+    def positions(self, literal):
+        marker = next((m for m in self.all if literal.startswith(m)), None)
+        require(marker is not None, 'literal declaration marker required')
+        stop = literal.find(' ', len(marker))
+        candidates = (self.all[marker] if stop < 0 else
+                      self.tokens.get((marker, literal[len(marker):stop]), ()))
+        return tuple(pos for pos in candidates if self.source.startswith(literal, pos))
+
+
 def _parse(source):
     """Independent restricted framing parser, preserving full declaration bytes.
 

@@ -634,7 +634,7 @@ def _undo_compound_sharing(actual, v6):
 
 
 
-def _move_prints(source, rows):
+def _move_prints_legacy(source, rows):
     """Force each existing dependency query after its original theorem.
 
     Every actual non-print byte is retained. No theorem, query or name is added.
@@ -650,6 +650,50 @@ def _move_prints(source, rows):
             require(result.count(text) == 1, 'unique exact declaration for print scheduling')
             result = result.replace(text, text + '#print axioms ' + ns + '.' + name + '\n', 1)
     require(tuple(PRINT_PATTERN.findall(result)) == names and len(result.encode()) == len(source.encode()),
+            'same print multiplicities and source byte count')
+    return result
+
+
+def _move_prints(source, rows):
+    """Insert queries at unique independent literal spans of the actual source."""
+    if (type(source) is not str or not (type(rows) is tuple or type(rows) is list) or
+        any(not (type(row) is tuple or type(row) is list) or len(row) != 4 or
+            any(type(x) is not str for x in row[:3]) or type(row[3]) is not bytes
+            for row in rows)):
+        return _move_prints_legacy(source, rows)
+    names = tuple(ns + '.' + name for ns, kind, name, _ in rows if kind == 'theorem')
+    require(tuple(PRINT_PATTERN.findall(source)) == tuple(sorted(names)) and
+            len(names) == len(set(names)), 'complete original sorted print inventory')
+    declarations = []
+    for ns, kind, name, raw in rows:
+        if kind == 'theorem':
+            text = raw.decode()
+            query = '#print axioms ' + ns + '.' + name + '\n'
+            # Such inputs need the original sequential count/replace semantics.
+            # This is automatic input classification, never a caller-selected mode.
+            if (not text.startswith('theorem ' + name + ' ') or
+                not text.endswith('\n') or text.count('theorem ') != 1 or
+                '#print axioms ' in text or 'theorem ' in query):
+                return _move_prints_legacy(source, rows)
+            declarations.append((text, query))
+    original = PRINT_PATTERN.sub('', source)
+    markers = seven.original._DeclarationMarkers(original)
+    edits = []
+    for text, query in declarations:
+        positions = markers.positions(text)
+        require(len(positions) == 1, 'unique exact declaration for print scheduling')
+        edits.append((positions[0], positions[0] + len(text), query))
+    edits.sort()
+    if any(left[1] > right[0] for left, right in zip(edits, edits[1:])):
+        return _move_prints_legacy(source, rows)
+    chunks, cursor = [], 0
+    for start, end, query in edits:
+        chunks.extend((original[cursor:end], query))
+        cursor = end
+    chunks.append(original[cursor:])
+    result = ''.join(chunks)
+    require(tuple(PRINT_PATTERN.findall(result)) == names and
+            len(result.encode()) == len(source.encode()),
             'same print multiplicities and source byte count')
     return result
 

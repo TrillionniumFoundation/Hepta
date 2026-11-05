@@ -118,6 +118,9 @@ jobs:
               'tests.test_initialization_frontier_checker',
               'tests.test_initialization_prefix_conditions',
               'tests.test_hia_initialization.InitializationCoverageTests'])
+          if unittest.defaultTestLoader.errors:
+              print(json.dumps({'loader_errors': unittest.defaultTestLoader.errors}), flush=True)
+          assert not unittest.defaultTestLoader.errors, 'ordinary test loading failed'
           def flatten(suite):
               for item in suite:
                   if isinstance(item, unittest.TestSuite):
@@ -252,6 +255,9 @@ jobs:
           suites = {}
           for group, (names, expected) in groups.items():
               cases = sorted(flatten(unittest.defaultTestLoader.loadTestsFromNames(names)), key=lambda case: case.id())
+              if unittest.defaultTestLoader.errors:
+                  print(json.dumps({'group': group, 'loader_errors': unittest.defaultTestLoader.errors}), flush=True)
+              assert not unittest.defaultTestLoader.errors, 'isolated test loading failed: ' + group
               if group.startswith(('partition-sources-', 'seven-sources-', 'seven-execution-')):
                   complete_expected = 31 if group.startswith('seven-sources-') else 16
                   assert len(cases) == len({case.id() for case in cases}) == complete_expected, 'complete split inventory changed'

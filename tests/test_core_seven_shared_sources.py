@@ -8,6 +8,27 @@ from tools import core_seven_shared_acceptance_plan as plan
 from tools import core_syntax_structured_sources as structured
 
 
+# Frozen pre-index count/replace algorithm, independent of the production fallback.
+def _original_move_prints(source, rows):
+    """Force each existing dependency query after its original theorem.
+
+    Every actual non-print byte is retained. No theorem, query or name is added.
+    """
+    names = tuple(ns + '.' + name for ns, kind, name, _ in rows if kind == 'theorem')
+    actual = tuple(s.PRINT_PATTERN.findall(source))
+    plan.require(actual == tuple(sorted(names)) and len(names) == len(set(names)),
+            'complete original sorted print inventory')
+    result = s.PRINT_PATTERN.sub('', source)
+    for ns, kind, name, raw in rows:
+        if kind == 'theorem':
+            text = raw.decode()
+            plan.require(result.count(text) == 1, 'unique exact declaration for print scheduling')
+            result = result.replace(text, text + '#print axioms ' + ns + '.' + name + '\n', 1)
+    plan.require(tuple(s.PRINT_PATTERN.findall(result)) == names and len(result.encode()) == len(source.encode()),
+            'same print multiplicities and source byte count')
+    return result
+
+
 # Independent handwritten controls for the real linear_p6 -> linear_p151 failure.
 # A diagnostic compiles these against the actual checked parent and the new
 # helper. Their statements and altered closing byte do not come from the emitter.
@@ -91,6 +112,23 @@ class SharedSourceTests(unittest.TestCase):
         cls.proposal = s.build_sources(cls.prepared, cls.previous)
         cls.unrepaired = s._undo_consumer_repairs(cls.proposal.stages)
         cls.unscheduled = s._undo_scheduled_prints(cls.unrepaired)
+
+    def test_actual_fast_path_keeps_all_v10_modules_and_manifest(self):
+        unmarked = tuple(replace(stage, source=s.re.sub(r'(?m)^noncomputable def ', 'def ',
+                                                        stage.source))
+                         for stage in self.unscheduled)
+        _, blocks, _, _ = s.seven._extract(unmarked)
+        with patch.object(s, '_move_prints_legacy',
+                          side_effect=AssertionError('actual module used the legacy path')):
+            fast = s._schedule_prints(self.unscheduled)
+        self.assertEqual(fast, self.unrepaired)
+        for index, rows in enumerate(blocks, 1):
+            self.assertEqual(_original_move_prints(self.unscheduled[index].source, rows),
+                             fast[index].source)
+        self.assertEqual([stage.source_sha256 for stage in self.proposal.stages],
+                         ["e8b51eb4677048dce2dd53739f05835ee8e1b161454ed44b03a4b132231bf7fa","6fa99b2795cfe837e675ab4ecd33c37e389d37b1348f906ede12cd7cbc473a2b","f1a31931c6170592c3d0c645e8bcc32ce71324c8b1e74a9fe355df9229794818","c3ddb8fbd1a3b3d6092ef6ac6175820327e38dde445405183fcd48a3ef1965af","bfa3133c2de227ebebf9a9ae2558b88373d781ca22701bdfd846c1dc45703165","85c6702500237a1f5da71daabb856341aab7651efcaf5b95814e8ba6ba22e14a","13f4701d4f8462f8a7b3647fbd15b4070d44371dd6606e6b3d15349ee0e35187","f712a9c933a8826d96f80ffeb4f1946ff744db17db57c4e7e73458469e7a9029","787d4d8ee2921c4b3baa170cf4711b21539f9510494c482640a1ec9136907598","8e19048d3baa321df4edaca771aabd5a774df1d2b0832f773ee5d348f3835a94","8596f9d7f298d0768ad58f10b24dd1c0960bc65e95f3d05279df62b0b3ed6eb4"])
+        self.assertEqual(self.proposal.manifest_sha256,
+                         '373f18422dd9aebcdcd754c05242860fd0b5216533b81e49caaf00909414f990')
 
     def reject(self, proposal):
         with self.assertRaises(ValueError):
@@ -562,7 +600,64 @@ class CompoundProofTests(unittest.TestCase):
 
 
 
+class DeclarationMarkerTests(unittest.TestCase):
+    def test_literal_occurrences_match_independent_substring_scan(self):
+        pieces = ('def foo ', 'theorem foo ', 'theorem def foo ', 'nodef foo ',
+                  '-- theorem foo ', 'def foo_bar ', 'def fooé ', 'def é ',
+                  'def  ', 'theorem two words ', 'def tab\tname ',
+                  'def line\nname ', 'theorem theorem foo ', 'def foo\t',
+                  'theorem Ω ', 'def foo\n', 'aadef foo ', '/*def foo */')
+        source = '\n'.join(pieces) + '\n' + ''.join(reversed(pieces))
+        index = s.seven.original._DeclarationMarkers(source)
+        for kind in ('def', 'theorem'):
+            for short in ('foo', 'foo_bar', 'fooé', 'é', '', 'two words',
+                          'tab\tname', 'line\nname', 'theorem', 'Ω', 'missing'):
+                literal = kind + ' ' + short + ' '
+                expected = tuple(i for i in range(len(source)) if source.startswith(literal, i))
+                with self.subTest(literal=literal):
+                    self.assertEqual(index.positions(literal), expected)
+                    self.assertEqual(bool(index.positions(literal)), literal in source)
+        self.assertEqual(index.positions('theorem '),
+                         tuple(i for i in range(len(source)) if source.startswith('theorem ', i)))
+
+
 class PrintSchedulingTests(unittest.TestCase):
+    def test_indexed_and_legacy_paths_match_the_original_oracle(self):
+        a = b'theorem a : True := by trivial\n'
+        b = b'theorem b : True := by trivial\n'
+        def source(body, names):
+            return body + ''.join('#print axioms ' + n + '\n' for n in sorted(names))
+        def outcome(function, body, rows):
+            try:
+                return ('returned', function(body, rows))
+            except Exception as error:
+                return ('rejected', type(error).__name__, str(error))
+        controls = [
+            (source(a.decode() + b.decode(), ('N.a', 'N.b')),
+             (('N', 'theorem', 'a', a), ('N', 'theorem', 'b', b)), False),
+            (source(a.decode(), ('N.a',)), (('N', 'theorem', 'a', a),), False),
+            (source('prefix' + a.decode() + a.decode(), ('N.a',)),
+             (('N', 'theorem', 'a', a),), False),
+            (source(b.decode(), ('N.a',)), (('N', 'theorem', 'a', a),), False),
+            # str.count is nonoverlapping: this noncanonical raw is accepted.
+            (source(a.decode() * 3, ('N.a',)), (('N', 'theorem', 'a', a * 2),), True),
+            # Same-position distinct namespaces need the original sequential order.
+            (source(a.decode(), ('One.a', 'Two.a')),
+             (('One', 'theorem', 'a', a), ('Two', 'theorem', 'a', a)), True),
+            # An early insertion destroys one later overlapping occurrence.
+            (source('x\na\nb\na\nb\n', ('N.a', 'N.b')),
+             (('N', 'theorem', 'a', b'x\na\n'),
+              ('N', 'theorem', 'b', b'a\nb\n')), True),
+            (source(a.decode(), ('N.other',)),
+             (('N', 'theorem', 'other', a),), True),
+        ]
+        for body, rows, fallback in controls:
+            with self.subTest(body=body, fallback=fallback):
+                expected = outcome(_original_move_prints, body, rows)
+                with patch.object(s, '_move_prints_legacy', wraps=s._move_prints_legacy) as old:
+                    self.assertEqual(outcome(s._move_prints, body, rows), expected)
+                    self.assertEqual(bool(old.call_count), fallback)
+
     def test_independent_queries_move_without_changing_any_other_byte(self):
         z = b'theorem z : True := by trivial\n'
         a = b'theorem a : True := by trivial\n'
