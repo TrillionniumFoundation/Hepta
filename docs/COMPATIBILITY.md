@@ -30,6 +30,8 @@ files must be refreshed explicitly after approved source changes.
 
 The checked-in toolchain locks and release evidence identify supported tools.
 Dependency lock hashes provide reproducible source identity, not signed package
-authenticity. Remote registries, dependency resolution across version ranges,
-signed release distribution and automated language migration are not present.
+authenticity. Explicit local candidate sets support bounded resolution across restricted
+version ranges; selected content remains bound by the existing v1 lock format.
+Remote registries, general registry dependency resolution, signed release
+distribution and automated language migration are not present.
 No released 1.0 compatibility policy is claimed by this prototype.

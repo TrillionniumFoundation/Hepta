@@ -1,0 +1,38 @@
+name: Offline local package resolution
+
+on:
+  pull_request:
+    paths:
+      - 'hepta/packages.py'
+      - 'hepta/package_resolution.py'
+      - 'hepta/modules.py'
+      - 'tests/test_package_resolution.py'
+      - 'tests/package_resolution_oracle.py'
+      - 'docs/MODULES_PACKAGES.md'
+      - 'docs/COMPATIBILITY.md'
+      - 'docs/BLOCKERS.md'
+      - '.github/workflows/local-package-resolution.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  local-resolution:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Resolve local package graphs without native execution
+        run: |
+          python -m unittest discover -s tests -p test_package_resolution.py -v
+          PYTHONPATH=. python tests/package_resolution_oracle.py
