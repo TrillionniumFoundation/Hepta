@@ -55,7 +55,7 @@ python tools/qualify_c_unit_oracle.py
 python -m hepta run examples/c_unit_values.hepta --backend c
 ```
 
-The strict gate freezes **288 unique methods**: 19 new methods followed by all
+The strict gate freezes **289 unique methods**: 20 Unit methods followed by all
 269 inherited Result-gate identities in their original order. It requires equal
 planned/started/finished/passed lists, no skipped/expected-failure/unexpected-pass
 methods and stable hashes of all bound inputs. Historical refusal method names
@@ -80,3 +80,28 @@ Against unchanged #704 production, the new suite records Unit layout refusals,
 void-object native compilation failures and missing structured opaque-pointer
 refusal. That negative evidence is retained separately; baseline failures are
 not counted as final passes.
+
+## First hosted run and test-contract correction
+
+The original [Unit workflow run](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42011462330)
+on `9ecea4e1320039afdd720742e49e41b79ad02004` failed in all four native lanes.
+Each attempted all 288 methods, but the four Unit trap subcases errored before
+Rust execution. Their calls omitted `crate_type="bin"` from both Rust emission
+and compilation, whose default is a library. The test then attempted to execute
+the resulting `rust-trap` library and received PermissionError. Other new Rust
+success consumers in those lanes completed; those successes do not qualify the
+failed traps or the full gate. The oracle step did not run after the failed gate.
+
+The correction explicitly requests a binary in both calls. It changes no
+production compiler logic, filesystem permissions, signal/output requirements,
+workflow timeout, or skip policy. A new Rust-independent call-contract test
+requires an emitted `fn main` and binary compilation for all four trap cases at
+O0/O3. Its Rust boundary is explicitly mocked, while its C work remains real.
+It fails on the original call site and passes after correction; it is not native
+Rust evidence. All 288 previous method identities remain in order. Native Rust
+execution of the corrected traps still requires the new exact-head hosted run.
+
+The x86-64/Python 3.11 lane also had a separate 30-second `ar rcs` timeout in
+the inherited bidirectional C ABI test. That method passed in the other three
+original lanes. The timeout is retained as unresolved historical evidence; this
+correction does not change or relax it and does not establish its root cause.
