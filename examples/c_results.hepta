@@ -1,0 +1,16 @@
+// Explicit fallible computations without heap allocation or exceptions.
+fn quotient(a: i32, b: i32) -> Result<i32, u8> effects {panic} {
+    if b == 0 { return Result::Err(1); }
+    return Result::Ok(a / b);
+}
+
+fn main() -> Unit effects {panic} {
+    match quotient(84, 7) {
+        Result::Ok(value) => { assert(value == 12); },
+        Result::Err(_) => { assert(false); },
+    }
+    match quotient(84, 0) {
+        Result::Err(code) => { assert(code == 1); },
+        Result::Ok(_) => { assert(false); },
+    }
+}

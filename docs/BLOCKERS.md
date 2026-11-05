@@ -74,3 +74,7 @@ P11 新增非泛型、无载荷源码枚举与穷尽 match 降级，覆盖 Copy 
 ## 2026-11-05 泛型源码结构增量
 
 在 #702 具体 Copy 泛型枚举基础上，P11 新增具体 Copy 泛型源码结构降级。完整类型参数决定独立布局，参数替换覆盖嵌套结构、枚举、数组和已有 raw pointer 类型；字段仍按源码顺序求值并保持值快照。详见 [C_GENERIC_STRUCTS.md](C_GENERIC_STRUCTS.md)。泛型函数、Unit 字段、builtin Result、资源载荷、递归布局和泛型结构 C ABI 仍不开放。该增量不构成通用单态化、完整后端一致性、生命周期证明或生产资格，P11/P01 继续 PARTIAL。
+
+## 2026-11-05 builtin Copy Result 增量
+
+在 #703 具体 Copy 泛型结构基础上，P11 新增 builtin `Result<T,E>` 的 C 降级，支持已准入 Copy 类型的成功/失败载荷、有限嵌套、源码模块身份、一次性构造与匹配快照，以及 read/mut 参数和切片。详见 [C_RESULTS.md](C_RESULTS.md)。未构造的分支也验证布局。Unit/资源载荷、泛型函数、递归布局、Result C ABI 与完整后端一致性仍未闭合；没有加入异常、隐式传播、分配器或生命周期保证，P11/P01 保持 PARTIAL。

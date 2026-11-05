@@ -145,7 +145,7 @@ class PayloadEnumTests(unittest.TestCase):
     def test_unsupported_payloads_still_reject_even_unused(self):
         cases=['enum E {Value(Unit),Empty}', 'struct E<T> {value:T} enum Holder {Value(E<Unit>)}',
                'enum E {Value([Unit;2]),Empty}', 'enum E {Value([i32;0]),Empty}',
-               'enum E {Value(Result<i32,u8>),Empty}']
+               'enum E {Value(Result<i32,Unit>),Empty}']
         for decl in cases:
             with self.subTest(decl=decl):
                 p,c=self.frontend(decl+' fn main()->Unit effects {} {}')

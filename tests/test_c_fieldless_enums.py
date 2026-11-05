@@ -193,7 +193,7 @@ class FieldlessEnumTests(unittest.TestCase):
     def test_unit_payloads_and_generics_remain_unsupported(self):
         for source in ('enum Payload {Value(Unit),Empty} fn main()->Unit effects {} {}',
                        'struct Generic<T> {value:T} struct Holder {value:Generic<Unit>} fn main()->Unit effects {} {}',
-                       'fn main()->Unit effects {} {let x:Result<i32,u8>=Result::Ok(3);}',
+                       'fn main()->Unit effects {} {let x:Result<i32,Unit>=Result::Ok(3);}',
                        'enum Flag {A} fn id<T>(x:T)->T effects {} {return x;}'):
             with self.subTest(source=source):
                 p,c=self.frontend(source)
