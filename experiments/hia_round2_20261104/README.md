@@ -10,9 +10,10 @@
 | 原生动态缓存 NDU | 432/432 episodes；含 skip 的完整队列 0/24 组净胜全部强对照，实际 invoke 子集 0/12；不是 HIA 编译应用提速证据 | [中文报告](ndu/NDU_DYNAMIC_REPORT_ZH.md) |
 | C++、恢复、Agent 准备 | 328 份开发原件，包括失败、拒绝、实际生命周期控制及零模型生成的容量准备；未知人力和历史成本保留 null | [开发证据](development/README.md) |
 | 旧 head47 的完整 CI | 11 runs / 102 jobs：26 success、75 failure、1 optional skipped；101 个执行作业完整日志，75 失败均发生于测试清单检查 | [旧 CI 报告](ci-head47/README.md) |
+| 当前 3102 候选的完整 CI | 11 workflows 全部成功；101 个实际作业 success、1 optional 未执行；49 个源码控制与 912 个前沿测试实际通过，完整 shared proof artifact 已核验 | [当前 CI 中文报告](ci-head-3102/README_ZH.md) |
 | e06 候选的完整 CI | 11 workflows 全部成功；102 jobs 中 101 实际 success、1 optional skipped；207 + 705 = 912 个前沿测试逐项实际通过；shared 46 controls 和完整 kernel artifact 已独立核验 | [中文 CI 报告](ci-head-e06/README_ZH.md)、[硬件实际日志](ci-head-e06/hardware-review/README_ZH.md) |
 
-前三包共 97 件发布文件；旧 CI 包另有 11 件，e06 CI 包另有 46 件。各包提供原件和分片哈希、恢复脚本与实际全量恢复验证，发布内容经过完整字节回读。e06 包保存 400 份原件，25 个列出 artifacts 中只下载并核验 shared 的 2 个，其余仅保留元数据。旧 CI 包保存 293 份原件，仅下载过一个 source-controls ZIP；原 kernel 作业没有提供完整 proof artifact。签名下载凭据明确排除。
+前三包共 97 件发布文件；旧 CI 包另有 11 件，e06 CI 包另有 46 件，当前 3102 CI 包另有 53 件。当前 CI 包保存 398 份原件 / 53,331,742 字节，完整恢复和另一个新 Python 进程按公开 CLI 的第二次恢复均通过；25 份 artifact 中仍仅 shared 两份实际下载，其余 23 份只保留元数据。各包提供原件和分片哈希、恢复脚本与实际全量恢复验证，发布内容经过完整字节回读。e06 包保存 400 份原件，25 个列出 artifacts 中只下载并核验 shared 的 2 个，其余仅保留元数据。旧 CI 包保存 293 份原件，仅下载过一个 source-controls ZIP；原 kernel 作业没有提供完整 proof artifact。签名下载凭据明确排除。
 
 ## 各次证明结果分别保留
 
@@ -33,8 +34,8 @@
 
 此前恢复的 45 个历史 CI 依赖文件保留原 207 / 705 测试清单及 74 个隔离组。v12 保留原 46 个源码控制并扩展到 49 个：首轮因新增控制的 Unicode 快照序列化出错，实际 48 pass / 1 error；只修正测试快照后全部 49 项通过。失败源码字节和原记录保留。一次固定 old→new 准备/重建对照为 133.057458747→109.174032726 秒，完整 23 个源码文件、11 个 Lean 模块及清单字节一致；这不是正式整体验收或统计性能结论。
 
-3102 的 shared 与 frontier 工作流已报告成功，49-control 和完整 kernel artifact 正在独立收集；剩余工作流尚待终态。e06 的完整 CI 成功是独立历史观察，不能替代 3102 的最终 CI。
+3102 的 11 个工作流已全部实际成功结束，全部为 attempt 1；102 个作业中 101 个执行成功、1 个可选作业按原条件跳过且 0 steps。101 份完整 decoded log 共 7,164,392 字节已与 App 返回文本逐字节核对，另经 root 完整本地哈希回读。实际 49 个源码控制、912 个前沿测试及 shared kernel / replay 分别通过。完整原件见当前 CI 包；这些 CI 成功不会反转桌面原完整证明的 outer124。
 
-当前 36-command / 34-flag 组合尚未执行。源码明确将该行为组合与 shared 11-stage 研究链分开：下一步在冻结候选上独立观察 build/run/refuse/cancel/recover，并保留研究链整体验收未通过；这不是放宽任何原验证门槛或声明研究证明成功。正式 16-cell Agent 队列仍为零模型生成。
+当前 36-command / 34-flag 行为组合已在冻结的 5ee6/d47a 上实际结束，权威 Runtime exit0，外层记录有效 36/34、源码 clean/unchanged，观察到 outer 1,995.815171483 秒。其完整磁盘回执和各项性能/成本指标正在独立汇总，尚未在本索引中宣布所有科学门槛通过。源码明确将这个行为组合与 shared 11-stage 研究链分开；排程调整保留了原 proof124，未改变任何源码、观察器或门槛。最后的 ndu_model_planner lane 是既有模型规划检查，不是重跑独立 f48 的 432 个原生动态实验。正式 16-cell Agent 队列仍为零模型生成。
 
 最终组合必须得到自己的 AOT 分数；不能复制独立候选的 348/372，也不能挑选不同版本的通过项拼成成功。父子费用区间、并行任务及替代部署分摊不能重复相加。此前发布的实验目录及失败记录继续保留；本轮没有合并 main 或以前的 PR。
