@@ -1,29 +1,36 @@
 # Hepta / HIA 第二轮证据
 
-状态：已完成测量先行封存；最终同源证明、组合验收与 Agent 队列仍在推进。本提交不声明七项研究关闭条件全部达成。
+状态：持续实现与独立验收中；本目录不声明七项研究关闭条件全部达成。
 
-## 已完成并完整回读的证据
+## 已测量并封存的结果
 
-| 范围 | 已观察结果 | 入口 |
+| 范围 | 实际观察 | 入口 |
 | --- | --- | --- |
-| 强 Rust AOT 对照 | 两个新源码候选分别 318/372、348/372；第二个候选全部中位数门槛通过，但仍有 24 项尾延迟和 10 项冷调用成本失败 | [AOT 观测](aot/OBSERVATION.json) |
-| 原生动态缓存 NDU | 432/432 episodes 完成；允许 skip 的策略为 0/24 组同时超过全部对照，实际调用子集为 0/12；不是 HIA 编译应用的性能证据 | [中文 NDU 报告](ndu/NDU_DYNAMIC_REPORT_ZH.md) |
-| 迁移、恢复及 Agent 准备 | 328 份原始文件完整封存，包含拒绝、失败准备、原生控制与零模型生成的容量检查；未知成本保留为 null | [开发证据](development/README.md)、[成本说明](development/COST_INDEX.md) |
+| 强 Rust AOT 对照 | 两个独立候选分别 318/372、348/372；第二个候选全部中位数门槛通过，但有 24 项尾延迟和 10 项冷调用门槛失败 | [AOT 观测](aot/OBSERVATION.json) |
+| 原生动态缓存 NDU | 432/432 episodes；含 skip 的完整队列 0/24 组净胜全部强对照，实际 invoke 子集 0/12；不是 HIA 编译应用提速证据 | [中文报告](ndu/NDU_DYNAMIC_REPORT_ZH.md) |
+| C++、恢复、Agent 准备 | 328 份开发原件，包括失败、拒绝、实际生命周期控制及零模型生成的容量准备；未知人力和历史成本保留 null | [开发证据](development/README.md) |
+| 旧 head47 的完整 CI | 11 runs / 102 jobs：26 success、75 failure、1 optional skipped；101 个执行作业完整日志，75 失败均发生于测试清单检查 | [CI 可读报告](ci-head47/README.md)、[完整清单](ci-head47/CI_READOUT.json) |
 
-三包共 97 件发布文件，均通过完整字节回读；各包附带分片顺序、原件哈希、恢复脚本和实际全量恢复验证。开发成本的父子区间不能重复相加；各替代策略的独立费用分配也不能相加成一次实测总额。
+前三包共 97 件发布文件；旧 CI 包另有 11 件。各包提供原件和分片哈希、恢复脚本与实际全量恢复验证，发布内容经过完整字节回读。旧 CI 包保存 293 份原件，归档仅含 24 个列出 artifacts 中实际下载的一个 source-controls ZIP；原 kernel 作业没有提供完整 proof artifact。签名下载凭据明确排除。
 
-## 已保留的证明失败
+## 各次证明结果分别保留
 
-源码候选 `2d964d27b068b3eb0b19e72ea4132eefd12d4360` 的新鲜 11 阶段证明在前 10 阶段通过后，于最后 WrongArm 阶段拒绝；不是完整成功。详见 [该次原始结果索引](PROOF_V9_OBSERVATION.json)。后续修复必须重新以确切源码提交验收。所有更广的生产精化义务仍按各原始记录保持未证明。
+| 候选 | 实际结果 | 原始观察 |
+| --- | --- | --- |
+| v9 / `2d964d27` | 前 10 阶段通过，最后 WrongArm theorem 实际失败；不是总预算超时 | [v9](PROOF_V9_OBSERVATION.json) |
+| v10 / `b47ce924` | 11 个 fresh Lean 阶段通过，完整命令在内置回放中超时：outer 600.079463180 秒 / exit124；后来独立 replay 73.055962129 秒 / exit0 | [v10](PROOF_V10_OBSERVATION.json) |
+| v11 / `0c8a9100` | 11 个 fresh Lean 阶段通过，完整命令仍在内置回放中超时：outer 600.047503236 秒 / exit124；后来独立 replay 55.874570337 秒 / exit0 | [v11](PROOF_V11_OBSERVATION.json) |
 
-该候选的发布投影为 [`0d75c60d477444e469723aed7787f96fc8501da0`](https://github.com/TrillionniumFoundation/Hepta/tree/0d75c60d477444e469723aed7787f96fc8501da0)，二者 Git tree 均为 `6ac384198d9438df91888178e06e4a5ef44ed40f`。投影是相同源码树的发布身份，不冒称被直接测量的原始 commit。
+内层 RESULT、后来的独立 replay 和另一个环境中的 CI 成功均不能追溯改变原始完整命令的失败。原来的 600 秒整体、540 秒 launch、60 秒进程预算保持不变。所有 12 项更广生产精化义务仍未证明，权限保持 DENY_ALL。
 
-## 冻结候选 v10 与当前集成状态
+[v10 绝对 epoch 元数据精度纠正](PROOF_V10_EPOCH_PRECISION_CORRECTION.json) 精确列出三项序列化误差。原始 observer 记录和已发布历史文件都保留；耗时间隔、退出码、证据哈希和结论未改变。新观察使用十进制字符串保存超出 JavaScript 精确整数范围的绝对纳秒。
 
-[Draft PR #682](https://github.com/TrillionniumFoundation/Hepta/pull/682) 发布了 runtime `b47ce924c5941b42448e9da0b07a2bcedaf75d1f` 的同树投影 `47c9935d4d1406f6697810d23d45cb3b45c3b950`，共同 tree 为 `69cd887f7a2a56de62c6b074bea9fca717d01355`；完整回读记录见 [SOURCE_PUBLICATION_V10.json](SOURCE_PUBLICATION_V10.json)。
+## 当前源码与未完成工作
 
-该候选的新鲜 11 个 Lean 阶段均通过，但完整命令在最后证据重放期间触及原 600 秒外限，退出码为 124。内层 RESULT 在 558.870179933 秒写出不等于完整接受。随后独立证据重放以 73.055962129 秒、退出码 0 完成，它不能追溯改变原始验收失败；详见 [PROOF_V10_OBSERVATION.json](PROOF_V10_OBSERVATION.json)。
+[Draft PR #682](https://github.com/TrillionniumFoundation/Hepta/pull/682) 的当前候选为运行提交 `0c8a91003aee2732308bb654d0e1f941ae561728`，公开同树投影 `e06aacb66c849b202378268630249be2e7a153fa`，共同 Git tree `3870c31f7779a6c1bbcde21159c3c559e92b5501`。52 项本轮文件变化已经逐字节回读，见 [源码身份](SOURCE_PUBLICATION_V11.json)。投影提交不冒称直接测量的原始提交。
 
-初始化研究 CI 在执行测试前拒绝了缺失的历史测试依赖；固定清单引用的 39 个测试模块中有 31 个未纳入这份候选。正在恢复原始文件与依赖，保持原清单计数和证明预算。最终同源组合及正式 Agent 队列尚未开始；PR 保持草稿。
+该候选恢复 45 个历史 CI 依赖文件，保留原 207 / 705 测试清单及 74 个隔离组，并把全部原 43 个源码控制扩展为 46 个。一次固定 old→new 准备/重建对照为 137.284187024→117.147739773 秒，完整 23 个源码文件、11 个 Lean 模块及清单字节一致；这不是正式整体验收或统计性能结论。
 
-本目录的证据只增加到新的 round2 命名空间。以前的实验目录和原始失败记录继续保留。最终交付索引将另行关联完整源码 bundle、各自测量身份、同源验收、真实 CI 和正式 Agent 队列。
+截至此快照，新 head 的初始化 CI 75 个作业以及 shared 两个作业已经报告成功；新的 46-control artifact 已独立核验，新 kernel 完整 artifact 已提供并正在核验。剩余工作流及下一算法修复仍在推进。完整桌面证明未达预算，因此最终 36-command / 34-flag 同源组合和 16-cell 正式 Agent 队列尚未启动。
+
+最终组合必须得到自己的 AOT 分数；不能复制独立候选的 348/372，也不能挑选不同版本的通过项拼成成功。父子费用区间、并行任务及替代部署分摊不能重复相加。此前发布的实验目录及失败记录继续保留；本轮没有合并 main 或以前的 PR。

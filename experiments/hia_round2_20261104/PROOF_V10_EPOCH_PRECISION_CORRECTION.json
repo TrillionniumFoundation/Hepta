@@ -1,0 +1,38 @@
+{
+  "schema": "hepta.round2.published-epoch-integer-precision-correction.v1",
+  "affected_file": "experiments/hia_round2_20261104/PROOF_V10_OBSERVATION.json",
+  "original_publication_commit": "7cdd6c5ddca73e7a82d5faa9a53b25f8a7f80b66",
+  "reason": "Root metadata serialization decoded absolute Unix nanoseconds through JavaScript Number; these three values exceeded its exact integer range. Original process stdout and raw observer receipts retain the exact decimal integer tokens.",
+  "corrections": [
+    {
+      "field": "qualifier_outer.started_unix_ns",
+      "published": "1793848899623091000",
+      "exact_decimal": "1793848899623091034",
+      "runtime_job": "1a1a9b9f215-fc05-3702",
+      "published_minus_exact_ns": "-34"
+    },
+    {
+      "field": "qualifier_outer.finished_unix_ns",
+      "published": "1793849499702829600",
+      "exact_decimal": "1793849499702829664",
+      "runtime_job": "1a1a9b9f215-fc05-3702",
+      "published_minus_exact_ns": "-64"
+    },
+    {
+      "field": "subsequent_evidence_replay.outer.started_unix_ns",
+      "published": "1793849549983080700",
+      "exact_decimal": "1793849549983080683",
+      "runtime_job": "1a1a9c3d4ce-fc05-3765",
+      "published_minus_exact_ns": "17"
+    }
+  ],
+  "exact_values_are_decimal_strings": true,
+  "original_published_file_preserved": true,
+  "raw_observer_records_not_modified": true,
+  "elapsed_durations_unchanged": true,
+  "outer_exit_124_and_separate_replay_exit_0_unchanged": true,
+  "proof_result_hashes_unchanged": true,
+  "no_experiment_rerun_or_rescoring": true,
+  "scope": "Correct absolute epoch metadata precision only. All reported measured duration intervals fit within the safe integer range and are unchanged."
+}
+
