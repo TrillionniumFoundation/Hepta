@@ -112,7 +112,7 @@ class SharedAcceptanceContractTests(unittest.TestCase):
             with tempfile.TemporaryDirectory(prefix='hia-other-repo-') as other_dir:
                 other = Path(other_dir)
                 git(other, 'init', '-q')
-                (other / 'unrelated').write_bytes(b'unrelated\\n')
+                (other / 'unrelated').write_bytes(b'unrelated\n')
                 git(other, 'add', 'unrelated')
                 git(other, '-c', 'user.name=HIAContract',
                     '-c', 'user.email=hia@example.invalid', 'commit', '-qm', 'other')
