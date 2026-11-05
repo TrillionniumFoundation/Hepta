@@ -142,7 +142,7 @@ def _implementation_hash():
     """Bind the actual verifier/emitter and the native boundary helpers."""
     digest = sha256()
     root = Path(__file__).parent
-    for name in ("hia_schema.py", "hia_program.py", "hia_capability_flow.py", "hia_opcodes.py", "hia_program_composite.py", "hia_program_llvm.py", "hia_initialization.py", "hia_entry_layout.py", "hia_byte_sum.py", "artifact_publication.py",
+    for name in ("hia_schema.py", "hia_program.py", "hia_capability_flow.py", "hia_opcodes.py", "hia_program_composite.py", "hia_program_llvm.py", "hia_initialization.py", "hia_entry_layout.py", "hia_byte_sum.py", "hia_foreign_buffer_abi.py", "artifact_publication.py",
                  "clang_capture.py", "elf_shared_abi.py", "object_symbols.py",
                  "object_structure.py", "native_tool_identity.py"):
         content = (root / name).read_bytes()
@@ -221,6 +221,7 @@ class HIAProgramLLVM:
     target: str = TARGET
     input_sha256: str | None = None
     layout: str = "canonical"
+    foreign_buffer_exports: tuple[tuple[str, int], ...] = ()
 
 
 class _FunctionEmitter:
@@ -750,7 +751,7 @@ done:
 
 
 class _Emitter:
-    def __init__(self, document, target, allowed_exports, layout="canonical"):
+    def __init__(self, document, target, allowed_exports, layout="canonical", foreign_buffer_exports=()):
         self.document = document
         self.target = target
         self.functions = {fn["name"]: fn for fn in document["functions"]}
@@ -764,8 +765,14 @@ class _Emitter:
         self.exports = []
         self.allowed_exports = allowed_exports
         self.layout = layout
+        self.foreign_buffer_exports = dict(foreign_buffer_exports)
 
     def wrapper(self, fn, number):
+        if fn["name"] in self.foreign_buffer_exports:
+            from .hia_foreign_buffer_abi import render_wrapper
+            self.exports.append(fn["name"])
+            return render_wrapper(fn, number, self.foreign_buffer_exports[fn["name"]], self.target)
+
         # External entrypoints never accept forged owner/loan descriptors.
         # An erased nominal aggregate or task is still not a scalar public
         # signature.  Its tags/padding/protocol helpers cannot be constructed
@@ -854,7 +861,7 @@ class _Emitter:
                 + ('!0 = !{!"branch_weights", i32 2, i32 1}\n' if self.entry_zero_layout_hint else ""))
 
 
-def emit_program_llvm(program, *, target=TARGET, layout="canonical"):
+def emit_program_llvm(program, *, target=TARGET, layout="canonical", foreign_buffer_exports=()):
     """Emit LLVM from an independently verified immutable standalone program."""
     if target not in {TARGET, TARGET_AARCH64, TARGET_RISCV64}:
         _reject("unsupported 64-bit native target")
@@ -867,7 +874,15 @@ def emit_program_llvm(program, *, target=TARGET, layout="canonical"):
     verified = _verified(program)
     from .hia_program import SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8
     document = verified.as_dict()
-    emitter = _Emitter(document, target, verified.scalar_entrypoints, layout=layout)
+    from .hia_foreign_buffer_abi import normalize_exports, PROFILE as FOREIGN_PROFILE
+    foreign_buffer_exports = normalize_exports(foreign_buffer_exports, document)
+    if foreign_buffer_exports and verified.structured_bytes is not None:
+        _reject("foreign buffer v1 requires primitive source signatures; nominal erasure is not an external ABI",
+                "E_HIA_FOREIGN_ABI")
+    if foreign_buffer_exports and (target != TARGET or layout != CANONICAL):
+        _reject("foreign buffer v1 requires canonical Linux x86_64", "E_HIA_FOREIGN_ABI")
+    emitter = _Emitter(document, target, verified.scalar_entrypoints, layout=layout,
+                       foreign_buffer_exports=foreign_buffer_exports)
     text = emitter.render()
     if not text.isascii() or len(text.encode()) > MAX_LLVM_BYTES:
         _reject("generated LLVM exceeds the closed textual profile")
@@ -895,8 +910,11 @@ def emit_program_llvm(program, *, target=TARGET, layout="canonical"):
         profile = PROFILE_V2 if target == TARGET else PROFILE_AARCH64_V2
     else:
         profile = PROFILE if target == TARGET else PROFILE_AARCH64
+    if foreign_buffer_exports:
+        profile = FOREIGN_PROFILE
     return HIAProgramLLVM(text, sha256(text.encode()).hexdigest(), verified.sha256,
-                          before, tuple(sorted(emitter.exports)), profile, target, verified.input_sha256, layout)
+                          before, tuple(sorted(emitter.exports)), profile, target, verified.input_sha256, layout,
+                          foreign_buffer_exports)
 
 
 def _read_artifact(path):
@@ -982,7 +1000,8 @@ def compile_program_llvm(ir, *, program, output, clang="clang", kind="shared", c
     """
     if command_log is not None and type(command_log) is not list:
         _reject("command log must be a plain list", "E_HIA_COMMAND_LOG")
-    if not isinstance(ir, HIAProgramLLVM) or ir != emit_program_llvm(program, target=ir.target, layout=ir.layout):
+    if not isinstance(ir, HIAProgramLLVM) or ir != emit_program_llvm(program, target=ir.target, layout=ir.layout,
+                                                                            foreign_buffer_exports=ir.foreign_buffer_exports):
         _reject("LLVM differs from independently reverified standalone program", "E_HIA_PROGRAM_ORIGIN")
     if kind not in {"shared", "object"}:
         _reject("only shared libraries and relocatable objects are supported")
@@ -1048,13 +1067,21 @@ def compile_program_llvm(ir, *, program, output, clang="clang", kind="shared", c
             "llvm_ir_sha256": ir.sha256, "implementation_sha256": ir.implementation_sha256,
             "artifact_sha256": published["sha256"], "artifact_bytes": published["bytes"],
             "exports": list(ir.exports), "binary_inventory": inventory,
-            "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+            "foreign_buffer_exports": [list(pair) for pair in ir.foreign_buffer_exports],
+            "external_abi": ("bounded synchronous byte loans; u64 packs ABI status/high32 and Core u32/low32"
+                             if ir.foreign_buffer_exports else
+                             "scalar-only C functions; resource and multiple-result functions are internal"),
             "runtime_assumptions": ["Linux LP64 target with 64-bit pointers and size_t",
                                     "C calloc returns null or an initialized nonaliasing allocation of the requested size",
                                     "C malloc returns null or a fresh nonaliasing allocation of the requested size; bytes are initialized before read or remain unobserved",
                                     "C free accepts a live allocation from calloc or malloc, or null",
                                     "abort terminates execution; no cleanup after traps is promised",
-                                    "native compiler, linker, loader, libc and host hardware are trusted"],
+                                    "native compiler, linker, loader, libc and host hardware are trusted"]
+                                   + (["caller provides live memory covering every admitted range for the whole synchronous call",
+                                       "caller keeps mutable ranges exclusive and does not mutate read-only ranges during the call",
+                                       "numeric range checks do not authenticate allocation provenance or dangling C pointers",
+                                       "Core traps still abort and do not roll back already performed writes"]
+                                      if ir.foreign_buffer_exports else []),
             "toolchain": {"path": str(compiler), "sha256": compiler_digest,
                           "version": version.stdout.splitlines()[0], "default_target": target.stdout.strip()},
             "flags": flags,
@@ -1064,7 +1091,7 @@ def compile_program_llvm(ir, *, program, output, clang="clang", kind="shared", c
                        "native_execution_qualified": False, "backend_refinement_proved": False,
                        "cross_target_execution_qualified": False,
                        "whole_language_soundness_proved": False,
-                       "foreign_buffer_entrypoints_exposed": False}}
+                       "foreign_buffer_entrypoints_exposed": bool(ir.foreign_buffer_exports)}}
 
 
 def build_program_native(document, output, *, clang="clang", kind="shared", target=TARGET, command_log=None, layout="canonical"):
