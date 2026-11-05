@@ -143,9 +143,9 @@ class PayloadEnumTests(unittest.TestCase):
         self.assertEqual((result.returncode,result.stdout,result.stderr),(0,b'',b''))
 
     def test_unsupported_payloads_still_reject_even_unused(self):
-        cases=['enum E {Value(Unit),Empty}', 'struct E<T> {value:T} enum Holder {Value(E<Unit>)}',
-               'enum E {Value([Unit;2]),Empty}', 'enum E {Value([i32;0]),Empty}',
-               'enum E {Value(Result<i32,Unit>),Empty}']
+        cases=['enum E {Value(i128),Empty}', 'struct E<T> {value:T} enum Holder {Value(E<i128>)}',
+               'enum E {Value([i128;2]),Empty}', 'enum E {Value([i32;0]),Empty}',
+               'enum E {Value(Result<i32,i128>),Empty}']
         for decl in cases:
             with self.subTest(decl=decl):
                 p,c=self.frontend(decl+' fn main()->Unit effects {} {}')

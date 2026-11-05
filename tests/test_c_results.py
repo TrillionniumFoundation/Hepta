@@ -167,13 +167,13 @@ class ResultTests(unittest.TestCase):
         self.assertEqual((result.returncode,result.stdout,result.stderr),(0,b'',b''))
 
     def test_unsupported_variants_fail_even_if_never_constructed(self):
-        for typ in ['Unit','i128','[i32;0]','[Unit;2]','Result<Unit,u8>','raw const [i32;2]']:
+        for typ in ['u128','i128','[i32;0]','[i128;2]','Result<i128,u8>','raw const [i32;2]']:
             for result_type in [f'Result<i32,{typ}>',f'Result<{typ},u8>']:
                 with self.subTest(type=result_type):
                     program,checked=self.frontend(f'fn unused(x:{result_type})->Unit effects {{}} {{}} fn main()->Unit effects {{}} {{}}')
                     with self.assertRaises(HeptaError) as raised:emit_c(program,checked)
                     self.assertEqual(raised.exception.diagnostic.code,'E_C_BACKEND_SUBSET')
-        program,checked=self.frontend('fn main()->Unit effects {} {let x:Result<i32,Unit>=Result::Ok(3);}')
+        program,checked=self.frontend('fn main()->Unit effects {} {let x:Result<i32,i128>=Result::Ok(3);}')
         with self.assertRaises(HeptaError) as raised:emit_c(program,checked)
         self.assertEqual(raised.exception.diagnostic.code,'E_C_BACKEND_SUBSET')
 

@@ -38,9 +38,9 @@ No exception effect, `?` syntax, implicit propagation or allocation is added.
 
 ## Refusals and limits
 
-Unit payloads, zero-length or Unit-element arrays, i128/u128 and unsupported
-runtime types remain refused by C lowering, including nested or unused
-alternatives. Resource/control payloads remain forbidden by frontend Copy
+The subsequent [Unit value increment](C_UNIT_VALUES.md) enables Unit payloads
+and nonempty Unit arrays. Zero-length arrays, i128/u128 and unsupported runtime
+types remain refused by C lowering, including nested or unused alternatives. Resource/control payloads remain forbidden by frontend Copy
 bounds. Generic functions, recursive layouts, unions and other unsupported
 language features are not enabled. This increment does not execute recursive
 programs; inherited cycle regressions only check pre-layout rejection.

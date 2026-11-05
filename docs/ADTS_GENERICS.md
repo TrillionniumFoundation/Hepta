@@ -193,3 +193,12 @@ A dedicated test confirms that a generic mutable/read alias can pass the
 limited frontend and is then rejected by the real Rust borrow checker. This
 keeps the validation boundary visible instead of labeling frontend acceptance
 as native correctness.
+
+## Independent C internal Unit values
+
+The subsequent [Unit value increment](C_UNIT_VALUES.md) supports Unit locals,
+nonempty arrays/slices, source fields, concrete generic payloads and builtin
+Result payloads using a private inhabited C representation. Effects and bounds
+checks remain observable. Unit returns and opaque Unit pointers remain C void;
+direct Unit parameters and Unit-bearing foreign aggregates remain rejected.
+It does not close the broader P11/P01 boundaries above.

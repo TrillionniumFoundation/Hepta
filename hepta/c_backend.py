@@ -38,9 +38,6 @@ class CEmitter:
             fail("E_C_BACKEND_UNCHECKED", "C lowering requires a successful frontend check")
         if getattr(program, "unions", None):
             fail("E_C_BACKEND_SUBSET", "Union lowering is not yet supported by the C backend")
-        if any(field.name == "Unit" for enum in program.enums
-               for variant in enum.variants for field in variant.fields):
-            fail("E_C_BACKEND_SUBSET", "Unit enum payloads are not supported by the C backend")
         if any(getattr(item, "type_params", ()) for item in program.functions):
             fail("E_C_BACKEND_SUBSET", "Generic declarations require an explicit monomorphization pass before C lowering")
         self.program, self.checked, self.crate_type = program, checked, crate_type
@@ -95,8 +92,6 @@ class CEmitter:
             fail("E_C_BACKEND_SUBSET", "Generic enums require complete concrete type arguments", enum.span)
         mapping = dict(zip(enum.type_params, typ.args))
         fields = [substitute_type(field, mapping) for field in variant.fields]
-        if any(field.name == "Unit" for field in fields):
-            fail("E_C_BACKEND_SUBSET", "Unit enum payloads are not supported by the C backend", enum.span)
         return fields
 
     def struct_fields(self, typ):
@@ -107,6 +102,13 @@ class CEmitter:
         return [(field.name, substitute_type(field.type, mapping)) for field in struct.fields]
 
     def typ(self, t):
+        if t == Type("Unit"):
+            # C has no void objects. Internal Unit storage uses a private,
+            # inhabited representation; C function returns/pointees stay void.
+            if t not in self.types:
+                self.types[t] = "__hepta_cb_unit"
+                self.declarations.append("typedef struct { unsigned char unused; } __hepta_cb_unit;")
+            return self.types[t]
         if t.name in SCALARS and not t.args:
             return SCALARS[t.name]
         if t in self.types:
@@ -116,7 +118,7 @@ class CEmitter:
         if t.name in {"raw_const", "raw_mut"}:
             if t.args[0].name == "array":
                 fail("E_C_BACKEND_SUBSET", "Pointers to arrays require C declarator lowering not yet supported here")
-            child = self.typ(t.args[0])
+            child = "void" if t.args[0] == Type("Unit") else self.typ(t.args[0])
             name = "__hepta_cb_ptr_" + str(len(self.types))
             self.types[t] = name
             self.declarations.append(f"typedef {'const ' if t.name == 'raw_const' else ''}{child} *{name};")
@@ -125,8 +127,8 @@ class CEmitter:
             fail("E_C_BACKEND_SUBSET", "Slices must occur as read/mut parameters")
         if t.name not in self.structs and t.name not in self.enums and t.name != "array":
             fail("E_C_BACKEND_SUBSET", f"C backend does not yet lower {t}")
-        if t.name == "array" and (not t.length or t.args[0].name == "Unit"):
-            fail("E_C_BACKEND_SUBSET", "Zero-length and Unit-element arrays are not supported by the C backend")
+        if t.name == "array" and not t.length:
+            fail("E_C_BACKEND_SUBSET", "Zero-length arrays are not supported by the C backend")
         name = ("__hepta_cb_enum_" + str(len(self.types)) if t.name in self.enums else
                 "__hepta_cb_struct_" + str(len(self.types)) if t.name in self.structs and t.args else
                 "__hepta_cb_type_" + (t.name if t.name != "array" else "array_" + str(len(self.types))))
@@ -150,8 +152,6 @@ class CEmitter:
             if not st.fields:
                 fail("E_C_BACKEND_SUBSET", "Empty structs are not supported by the C backend")
             concrete_fields = self.struct_fields(t)
-            if any(field.name == "Unit" for _, field in concrete_fields):
-                fail("E_C_BACKEND_SUBSET", "Unit fields are not supported by the C backend")
             if st.repr_c and any(field.name == "array" for _, field in concrete_fields):
                 fail("E_C_BACKEND_SUBSET", "repr(C) array fields are not yet supported in the independent backend")
             fields = " ".join(self.typ(field) + " h_" + name + ";" for name, field in concrete_fields)
@@ -179,7 +179,8 @@ class CEmitter:
     def signature(self, fn):
         if fn.return_type.name == "slice" or getattr(fn, "type_params", None) or getattr(fn, "generics", None):
             fail("E_C_BACKEND_SUBSET", "Uninstantiated generics and returned slices are unsupported", fn.span)
-        return self.typ(fn.return_type) + " " + self.fn_name(fn) + "(" + (", ".join(self.parameter(p) for p in fn.params) or "void") + ")"
+        result = "void" if fn.return_type == Type("Unit") else self.typ(fn.return_type)
+        return result + " " + self.fn_name(fn) + "(" + (", ".join(self.parameter(p) for p in fn.params) or "void") + ")"
 
     def expr_type(self, e):
         t = self.checked.expr_types.get(id(e))
@@ -190,7 +191,7 @@ class CEmitter:
     def temp(self, t, expression, lines):
         if t.name == "Unit":
             lines.append(expression + ";")
-            return "((void)0)"
+            return f"({self.typ(t)}){{0}}"
         self.counter += 1
         name = f"__hepta_cb_v{self.counter}"
         lines.append(self.typ(t) + " " + name + " = " + expression + ";")
@@ -365,11 +366,13 @@ class CEmitter:
             elif e.value == "assert":
                 val = self.value(e.children[0], lines)
                 lines.append(f"if (!{val}) abort();")
-                return "((void)0)"
+                return f"({self.typ(t)}){{0}}"
             elif e.value == "print_i64":
                 val = self.value(e.children[0], lines)
                 expression = f'((void)printf("%" PRId64 "\\n", {val}))'
             elif e.value in {"load", "store"}:
+                if self.expr_type(e.children[0]).args[0] == Type("Unit"):
+                    fail("E_C_BACKEND_SUBSET", "Raw Unit pointers are opaque; load/store is not supported", e.span)
                 if e.value == "store":
                     for child in e.children:
                         self.require_nonmutating(child)

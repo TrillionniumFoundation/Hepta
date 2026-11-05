@@ -78,3 +78,7 @@ P11 新增非泛型、无载荷源码枚举与穷尽 match 降级，覆盖 Copy 
 ## 2026-11-05 builtin Copy Result 增量
 
 在 #703 具体 Copy 泛型结构基础上，P11 新增 builtin `Result<T,E>` 的 C 降级，支持已准入 Copy 类型的成功/失败载荷、有限嵌套、源码模块身份、一次性构造与匹配快照，以及 read/mut 参数和切片。详见 [C_RESULTS.md](C_RESULTS.md)。未构造的分支也验证布局。Unit/资源载荷、泛型函数、递归布局、Result C ABI 与完整后端一致性仍未闭合；没有加入异常、隐式传播、分配器或生命周期保证，P11/P01 保持 PARTIAL。
+
+## 2026-11-05 内部 Unit 值增量
+
+在 #704 builtin Result 基础上，P11 新增内部 Unit 值、局部变量、非空数组/切片、源码结构/枚举及 Result 载荷降级。私有非零大小表示保留表达式副作用、构造顺序、匹配快照和索引边界检查；C 返回值和 opaque Unit 指针仍使用 void。详见 [C_UNIT_VALUES.md](C_UNIT_VALUES.md)。直接 Unit 参数、Unit 聚合 C ABI、零长数组、泛型函数和资源载荷仍不支持。没有新生命周期保证、完整后端一致性或生产资格，P11/P01 保持 PARTIAL。
