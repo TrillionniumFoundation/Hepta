@@ -67,7 +67,11 @@ worker 的执行时间没有上界，因此这项功能不构成硬实时期限�
 共享预算统计显式附加组的线程、输入、队列容量和请求栈预留，worker/FFI 任意分配及
 OS 实际栈取整仍不在计费中；两组 select 通过登记信号唤醒。新任务树转移真实后代
 join 所有权并沿拓扑传播取消／失败；新 I/O reactor 单所有者显式 poll，持有实际 FD 和
-在途 Buffer。这两项尚未组合成通用异步调度器、任务树 I/O 取消或全局资源预算。
+在途 Buffer。后续已实现的[有限任务树/I/O 组合](TASK_TREE_IO_COMPOSITION.md)
+在 hosted Linux x86-64 Rust 路径连接 worker 本地所有的 reactor、同一显式共享池
+和任务树取消唤醒；worker 仍负责请求与 reactor 清理，取消仍不解除 join 义务。
+它不提供通用异步调度器、全进程资源预算或所有调度交错的证明；独立 C/LLVM、
+resource IR 和 concurrent IR 路径仍明确拒绝这一组合。
 
 ## 2. 完整声明盘点的真实 C 模块迁移
 
@@ -173,7 +177,7 @@ namespace 执行资格，直接验证生产隔离路径。第四臂没有额外�
 然后重试原始 CAS 请求：prepared 死亡后正常提交，published 死亡后拒绝 stale 请求。
 最终重新 pin 的版本通过 624 个隐藏原生输入。全部操作沿用同一个每案 wall budget，
 十六个重新封装的伪造证据对照必须被拒绝。该专用故障 worker 不进入 provider 胶囊。
-这些是脚本与恢复机制的资格，真实模型运行数仍为零。
+上述脚本与恢复机制资格本身不产生真实模型请求，不能计为模型任务成绩。
 
 五项任务覆盖跨文件 API、资源 Result、实际 C/C++ 库调用、真实线程取消与 join、
 跨模块边界缺陷修复。十个 starter 均能按原接口编译且未通过新目标；二十个四臂
@@ -192,12 +196,19 @@ usage 或有 pending request 时，总费用仍为未知。plan 绑定每个模�
 workspace profile。通过依赖当前宿主允许建立这些 namespace；受限宿主仍须拒绝，
 不会自动降级为可信 fixture。具体配置见 `SANDBOX_QUALIFICATION.md`。
 
-**当前真实模型运行数为 0。** 已实现带真实 HTTP usage/request-id 记账的独立
-OpenAI 适配器、导出器与离线传输测试，见 `tools/provider_adapter/README.md`。
-当前仍没有显式配置的 API 凭据、至少两个可用且固定的模型修订及运行预算；父环境
-和适配器胶囊的 API 域名解析也失败，尚未验证 TLS 握手与实际 HTTP 连接。没有
-执行真实 API 请求。适配器测试和可信参考脚本只验证实现，不能转换成 AI 成绩。
-模型/预算配置齐备后必须创建新 plan，运行全部四臂矩阵；现有资格不能证明 Agent 收益。
+**外部 API 实验与本地模型历史必须分开。** 独立 OpenAI 适配器、导出器与离线
+传输测试见 [适配器说明](../tools/provider_adapter/README.md)。保留的
+[无凭据运行时审查](../evidence/audits/provider-runtime-022ed82.json)中，父环境与
+适配器胶囊的 API 域名解析失败，未完成 TLS 握手或真实 HTTP 请求；这是当时的
+前置条件观察，不是对当前访问状态的复查。该外部 API 实验需要明确的模型修订、
+访问与预算，重新冻结 plan 并执行完整四臂矩阵；离线测试不能转换成 AI 成绩。
+
+[2026-10-26 本地模型证据](../evidence/seven_stage_20261026/README.md)记录另两个
+冻结协议的 36 + 68 = 104 次实际请求，包含 eligibility probes，并非 104 个成功任务。
+两个小模型未达到预定收益门槛；原来的失败和未启动 task cells 保留。该历史结果
+绑定自己的源码、任务与协议，不是本页五项跨文件任务的外部 API 实验结果，也不
+资格化当前候选。后续[上游修复 factorial](../benchmarks/hia_upstream_factorial/README.md)
+是另一个独立注册的 16-cell 研究，不能继承这些历史请求或成绩。Agent 收益仍未建立。
 
 ## 应用性能、内存与测量边界
 

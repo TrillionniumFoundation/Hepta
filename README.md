@@ -231,9 +231,15 @@ The [OpenAI reference adapter](tools/provider_adapter/README.md) implements
 real usage receipts, explicit failed attempts, and standalone export. Its
 transport tests are offline. Real model comparisons require explicitly
 configured model revisions, API access and budgets, plus a qualified isolated
-execution environment. No real model comparison has been run. Trusted fixture
-runs and strict namespace script runs test the evaluator and native tasks;
-they are not AI productivity evidence.
+execution environment. The retained external-API runtime audit did not complete
+a real API request. Trusted fixture runs and strict namespace script runs test
+the evaluator and native tasks; they are not AI productivity evidence.
+
+Separate [historical local-model studies](evidence/seven_stage_20261026/README.md)
+record 104 actual requests across two frozen protocols, without meeting their
+prespecified benefit criteria. Those results bind their own sources and do not
+qualify the current compiler or supply results for the separately registered
+[upstream repair factorial](benchmarks/hia_upstream_factorial/README.md).
 
 The original integration qualification is preserved in
 [evidence/next_stage](evidence/next_stage/manifest.json). Qualification after
