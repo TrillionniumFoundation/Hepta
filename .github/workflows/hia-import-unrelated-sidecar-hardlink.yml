@@ -1,0 +1,50 @@
+name: HIA C import unrelated sidecar hardlink protection
+on:
+  pull_request:
+    paths:
+      - 'hepta/cli.py'
+      - 'tests/test_c_import_unrelated_sidecar_hardlink.py'
+      - '.github/workflows/hia-import-unrelated-sidecar-hardlink.yml'
+permissions:
+  contents: read
+jobs:
+  native:
+    name: Native original sidecar hardlink regression
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify exact source and run real native regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          mkdir -p artifacts/unrelated-sidecar
+          { git rev-parse HEAD HEAD^{tree}; uname -a; python --version; gcc --version; sha256sum "$(command -v gcc)"; sha256sum hepta/cli.py tests/test_c_import_unrelated_sidecar_hardlink.py; } > artifacts/unrelated-sidecar/identity.txt
+          set +e
+          python -B -m unittest -v tests.test_c_import_unrelated_sidecar_hardlink 2>&1 | tee artifacts/unrelated-sidecar/native.log
+          code=${PIPESTATUS[0]}
+          set -e
+          test -z "$(git status --porcelain --untracked-files=no)"
+          exit "$code"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unrelated-sidecar-${{ matrix.os }}-${{ env.EXPECTED_HEAD }}
+          path: artifacts/unrelated-sidecar
+          if-no-files-found: error
