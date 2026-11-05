@@ -127,7 +127,7 @@ class GenericEnumTests(unittest.TestCase):
         self.assertEqual((result.returncode,result.stdout,result.stderr),(0,b'',b''))
 
     def test_specialized_unsupported_types_fail_before_native(self):
-        for typ in ['Unit','i128','[i32;0]','[Unit;2]','Result<i32,u8>']:
+        for typ in ['Unit','i128','[i32;0]','[Unit;2]','Result<i32,Unit>']:
             with self.subTest(typ=typ):
                 program,checked=self.frontend(f'enum Maybe<T> {{None,Some(T)}} fn unused(x:Maybe<{typ}>)->Unit effects {{}} {{}} fn main()->Unit effects {{}} {{}}')
                 with self.assertRaises(HeptaError) as raised:emit_c(program,checked)

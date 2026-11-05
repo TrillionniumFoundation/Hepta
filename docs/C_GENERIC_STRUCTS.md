@@ -36,7 +36,8 @@ effect, mutability, module lookup or C ABI admission rule changes.
 
 ## Retained boundaries
 
-Generic functions, builtin Result, Unit fields, zero-length or Unit-element
+Builtin Copy Result additionally uses [C_RESULTS.md](C_RESULTS.md).
+Generic functions, Unit fields, zero-length or Unit-element
 arrays, unsupported runtime/resource types, resource payloads, recursively
 defined C layouts and generic-record C ABI remain unsupported. Generic repr(C)
 declarations and foreign uses continue to fail frontend C ABI checks.

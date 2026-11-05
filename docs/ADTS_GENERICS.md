@@ -11,8 +11,9 @@ fieldless source-enum subset described in [C_FIELDLESS_ENUMS.md](C_FIELDLESS_ENU
 and supported Copy payloads described in [C_PAYLOAD_ENUMS.md](C_PAYLOAD_ENUMS.md).
 Concrete Copy-generic source enums additionally use the bounded specialization
 contract in [C_GENERIC_ENUMS.md](C_GENERIC_ENUMS.md). Concrete Copy-generic
-records use [C_GENERIC_STRUCTS.md](C_GENERIC_STRUCTS.md). Unit payloads, builtin
-Result and generic functions still require the Rust path.
+records use [C_GENERIC_STRUCTS.md](C_GENERIC_STRUCTS.md). Builtin Copy Result
+uses [C_RESULTS.md](C_RESULTS.md). Unit payloads and generic functions still
+require the Rust path.
 
 ## Algebraic data types
 

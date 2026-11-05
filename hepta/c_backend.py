@@ -15,7 +15,7 @@ import shutil
 import subprocess
 import tempfile
 
-from .ast import Diagnostic, HeptaError, Type
+from .ast import Diagnostic, Enum, EnumVariant, HeptaError, Type
 from .checker import substitute_type
 
 SCALARS = {"u8": "uint8_t", "i8": "int8_t", "u16": "uint16_t", "i16": "int16_t",
@@ -45,9 +45,14 @@ class CEmitter:
             fail("E_C_BACKEND_SUBSET", "Generic declarations require an explicit monomorphization pass before C lowering")
         self.program, self.checked, self.crate_type = program, checked, crate_type
         self.structs = {s.name: s for s in program.structs}
-        self.enums = {e.name: e for e in program.enums}
+        # The reserved builtin shares the checked source-enum representation and
+        # specialization path. Keep it private to lowering, not in the source AST.
+        self.enums = {"Result": Enum("Result", [EnumVariant("Ok", [Type("$ResultOk")]),
+                                               EnumVariant("Err", [Type("$ResultErr")])],
+                                      ("$ResultOk", "$ResultErr"), True)}
+        self.enums.update((e.name, e) for e in program.enums)
         self.variant_tags = {e.name: {v.name: i for i, v in enumerate(e.variants)}
-                             for e in program.enums}
+                             for e in self.enums.values()}
         self.functions = {f.name: f for f in program.functions}
         self.declarations, self.types, self.active = [], {}, set()
         self.helpers = set()
@@ -270,7 +275,7 @@ class CEmitter:
         elif k == "bool":
             expression = "true" if e.value else "false"
         elif k == "variant":
-            enum_type = self.typ(t)  # Reject unsupported builtin Result before lookup.
+            enum_type = self.typ(t)
             tag = self.variant_tags[t.name][e.value["variant"]]
             # Materialize each argument in source order before constructing the
             # union. C initializer evaluation order is not the language order.
