@@ -825,6 +825,8 @@ def main(argv=None) -> int:
             # the generated source. Reject it before either output changes.
             # This is preflight only, not transactional dual-file commit or
             # concurrent path-replacement protection.
+            if manifest.is_symlink():
+                raise ValueError("C import manifest destination must not be a symbolic link")
             if manifest.exists() and not manifest.is_file():
                 raise ValueError("C import manifest destination must be a regular file or absent")
             dest.parent.mkdir(parents=True, exist_ok=True)
