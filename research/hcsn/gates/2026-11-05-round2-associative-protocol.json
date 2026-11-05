@@ -1,0 +1,201 @@
+{
+  "acceptance": {
+    "each_panel_each_mode_each_model_seed_query_accuracy_at_least": 0.95,
+    "each_panel_each_mode_each_model_seed_sequence_exact_at_least": 0.9,
+    "no_threshold_relaxation": true
+  },
+  "base_head": "d54ee89fb93a685716bac5a5ab5b66096444d1e5",
+  "budget": {
+    "combined_development_and_new_campaign_cpu_goal_seconds": 300,
+    "final_evaluation_reserve_seconds": 20,
+    "new_training_cpu_soft_stop_seconds": 230,
+    "on_budget_overrun": "retain partial models, losses and failure; do not lower threshold or silently change planned updates",
+    "prior_development_seconds_charged": 46.95389520699973
+  },
+  "development": {
+    "evaluate_after_updates": [
+      140,
+      300
+    ],
+    "n": 32,
+    "role": "reported progress only; no tuning or model selection in this candidate",
+    "seeds": {
+      "mqar": 810001001,
+      "multi_reset": 810001004,
+      "overwrite": 810001002,
+      "state_tracking": 810001003
+    }
+  },
+  "development_provenance": {
+    "conservative_budget_charge_seconds": 46.95389520699973,
+    "observed_result": "one ordinary seed73, 300 MQAR/overwrite-only steps; development panel100%; not final evidence",
+    "original_cpu_seconds_recorded": false,
+    "report_sha256": "ec6d1bef0cc89775fe306f0188c06d4101125da8ecbd4c3f11542e97e06ce52d",
+    "retained_report": "research/hcsn/gates/2026-11-05-round2-associative-prior-development.json",
+    "source_file": "research/hcsn/p2_round2_delta_tokens.py",
+    "source_sha256": "44c91c1d3c069ff8b92cfdca5d3609e7b5a92e81049d06013e3688d401a1b875",
+    "wall_seconds": 46.95389520699973
+  },
+  "heldout": {
+    "contextual_false_writes": {
+      "ignore_probability": 1.0,
+      "kinds": [
+        "mqar",
+        "overwrite"
+      ],
+      "n": 96,
+      "noise_gap": 4,
+      "seed": 910001008
+    },
+    "irregular_time": {
+      "duration_max": 16.0,
+      "duration_min": 0.02,
+      "kinds": [
+        "mqar",
+        "overwrite",
+        "state_tracking",
+        "multi_reset"
+      ],
+      "n": 96,
+      "seed": 910001006
+    },
+    "mqar_id": {
+      "kinds": [
+        "mqar"
+      ],
+      "n": 96,
+      "noise_gap": 2,
+      "seed": 910001001
+    },
+    "mqar_long_distractors": {
+      "ignore_probability": 0.6,
+      "kinds": [
+        "mqar"
+      ],
+      "n": 96,
+      "noise_gap": 24,
+      "seed": 910001002
+    },
+    "overwrite": {
+      "kinds": [
+        "overwrite"
+      ],
+      "n": 96,
+      "noise_gap": 4,
+      "overwrites": 8,
+      "seed": 910001003
+    },
+    "repeated_visible_resets": {
+      "episodes": 4,
+      "kinds": [
+        "multi_reset"
+      ],
+      "n": 96,
+      "noise_gap": 2,
+      "seed": 910001005
+    },
+    "short_intervals": {
+      "duration_max": 0.02,
+      "duration_min": 0.005,
+      "kinds": [
+        "mqar",
+        "overwrite",
+        "state_tracking",
+        "multi_reset"
+      ],
+      "n": 96,
+      "seed": 910001007
+    },
+    "state_tracking": {
+      "kinds": [
+        "state_tracking"
+      ],
+      "n": 96,
+      "noise_gap": 4,
+      "overwrites": 8,
+      "seed": 910001004
+    }
+  },
+  "heldout_policy": "construct and score only after all four training runs finish; each model/panel scored once, derive all metrics and raw arrays from that forward",
+  "model": {
+    "address_source": "same learned projection of previous-token embedding for every position and for read/write",
+    "control_source": "learned three-token causal embedding window plus log1p elapsed time",
+    "control_width": 24,
+    "embedding_width": 16,
+    "inputs": [
+      "tokens",
+      "duration",
+      "optional model-produced initial state"
+    ],
+    "key_width": 16,
+    "mapped_put_linear_control": "derive after HCSN training; same canonical parameters",
+    "modes": [
+      "ordinary_delta",
+      "hcsn_delta"
+    ],
+    "old_rnn_state_float_values": 48,
+    "oracle_routing": false,
+    "persistent_state_float_values": 160,
+    "tokens_compared_with_semantic_ids_in_forward": false,
+    "trainable_parameters": 2301,
+    "value_source": "learned projection of current-token embedding",
+    "value_width": 8
+  },
+  "schema": "hcsn.p2.learned-associative-fixed-protocol.v1",
+  "scope": {
+    "adjacent_triple_inductive_bias": true,
+    "four_keyed_tasks_only": true,
+    "independent_external_attestation": false,
+    "larger_state_than_old_rnn": true,
+    "production_activation": false,
+    "same_architecture_gate_comparison": true,
+    "selective_copy_covered": false,
+    "structural_learned_routing_candidate": true,
+    "success_would_not_isolate_free_boundary_advantage": true,
+    "visible_reset_not_autonomous_first_passage": true
+  },
+  "status": "LOCAL_EXPLORATORY_FIXED_BEFORE_NEW_TRAINING_AND_FINAL_EVALUATION",
+  "training": {
+    "batch_size": 16,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "checkpoint": "final fixed update only; no dev/test selection",
+    "episodes": 1,
+    "eps": 1e-08,
+    "global_initial_function_or_FLOP_equality": false,
+    "gradient_clip": 1.0,
+    "ignore_probability": 0.4,
+    "learning_rate": 0.006,
+    "model_seeds": [
+      401,
+      503
+    ],
+    "noise_gap": 2,
+    "optimizer": "Adam",
+    "overwrites": 4,
+    "paired_same_numeric_initial_parameters": true,
+    "paired_same_training_tokens_and_targets": true,
+    "stages": [
+      {
+        "tasks_round_robin": [
+          "mqar",
+          "overwrite"
+        ],
+        "updates": 140
+      },
+      {
+        "tasks_round_robin": [
+          "mqar",
+          "overwrite",
+          "state_tracking",
+          "multi_reset"
+        ],
+        "updates": 160
+      }
+    ],
+    "steps_per_model": 300,
+    "training_seed_formula": "100000000 + model_seed*100000 + update_index"
+  }
+}
