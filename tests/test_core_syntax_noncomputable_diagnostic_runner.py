@@ -60,10 +60,18 @@ class NoncomputableDiagnosticRunnerTests(unittest.TestCase):
                     self.assertNotEqual(root / name, source)
                 if behavior == 'platform':
                     return {'status': 'diagnostic_infrastructure_failed', 'process_started': False,
+                            'leader_reaped': False, 'drain_complete': False, 'cleanup_deadline_exceeded': False,
+                            'cleanup_incomplete': False, 'output_truncated': False, 'returncode': None,
                             'files': {}, 'raw_files': {}, 'metadata_remaining_bytes': collector.METADATA_LIMIT}
                 calls.append(source.stem)
                 launched_sources.append(source.read_text())
-                for name, data in zip(collector.DIAGNOSTIC_FILES, (b'nonaccepting mock output', b'', b'{"mock":true}\n')):
+                process = dict(status='diagnostic_timeout' if behavior=='timeout' else 'diagnostic_completed',
+                               process_started=True, returncode=0, leader_reaped=True, drain_complete=True,
+                               cleanup_deadline_exceeded=False, cleanup_incomplete=False, output_truncated=False,
+                               manifest_reference=manifest_reference)
+                events = collector._record_bytes(dict(kind='terminal', process=process,
+                    accounting_before_terminal=dict(raw_written_bytes=len(b'nonaccepting mock output'), metadata_written_bytes=0)))
+                for name, data in zip(collector.DIAGNOSTIC_FILES, (b'nonaccepting mock output', b'', events)):
                     safe_root.write(name, data)
                 output.write_bytes(b'candidate output must never be admitted')
                 if behavior == 'changed_source':
@@ -78,8 +86,7 @@ class NoncomputableDiagnosticRunnerTests(unittest.TestCase):
                 for name in collector.DIAGNOSTIC_FILES:
                     raw = (root / name).read_bytes()
                     files[name] = {'path': name, 'bytes': len(raw), 'sha256': base.digest(raw)}
-                return {'status': 'diagnostic_timeout' if behavior == 'timeout' else 'diagnostic_completed',
-                        'process_started': True, 'files': files,
+                return {**process, 'files': files,
                         'raw_files': {name: info for name, info in files.items()
                                       if name != 'LinearTransport.events.jsonl'},
                         'metadata_remaining_bytes': collector.METADATA_LIMIT - files['LinearTransport.events.jsonl']['bytes']}

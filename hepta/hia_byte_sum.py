@@ -5,8 +5,9 @@ authorizes a checked addition, a changed stride, a write/call, or a different
 backedge transport. The original Core and its checked fallback stay unchanged.
 
 On the existing x86_64 target, SSE2's two unsigned eight-byte sums implement
-sixteen additions modulo 2**64. A vector read is reached only when both the loop
-bound and actual buffer extent contain all sixteen bytes. Other targets and
+sixteen additions modulo 2**64. A final eight-byte read fills only the low lane;
+its high lane is zero. Every grouped read is reached only when both the loop
+bound and actual buffer extent contain its complete width. Other targets and
 unrecognized loops keep the ordinary scalar emitter. This remains part of the
 trusted LLVM backend, not a machine-checked backend-refinement theorem.
 """
@@ -111,7 +112,7 @@ def byte_sum_plans(function):
 
 
 def render_byte_sum(emitter, block, plan):
-    """Consume a vector prefix, then a separate fixed-stride scalar tail.
+    """Consume a vector prefix, an optional eight-byte group, then scalar bytes.
 
     The original header/body is a pure wrapping reduction with identity
     transport. Its complete remaining iterations may therefore be grouped.
@@ -131,6 +132,8 @@ def render_byte_sum(emitter, block, plan):
     start = "byte_sum_start_" + suffix
     vector_head = "byte_sum_vector_head_" + suffix
     vector_body = "byte_sum_vector_body_" + suffix
+    half_head = "byte_sum_half_head_" + suffix
+    half_body = "byte_sum_half_body_" + suffix
     scalar_head = "byte_sum_scalar_head_" + suffix
     scalar_body = "byte_sum_scalar_body_" + suffix
     scalar_done = "byte_sum_scalar_done_" + suffix
@@ -138,8 +141,8 @@ def render_byte_sum(emitter, block, plan):
     vector_index_phi, vector_sum_phi = e.tmp(), e.tmp()
     scalar_index_phi, scalar_sum_phi = e.tmp(), e.tmp()
 
-    # Render both bodies first so their exact SSA backedge values are known
-    # before composing the two header phis. Named SSA values may be forward
+    # Render grouped and scalar bodies first so their exact SSA values are
+    # known before composing the header phis. Named SSA values may be forward
     # references on a backedge; the normal module regeneration still checks
     # every emitted byte before Clang receives it.
     e.lines = []
@@ -153,6 +156,21 @@ def render_byte_sum(emitter, block, plan):
     vector_sum = e.instruction("add i64 " + vector_sum_phi + ", " + subtotal)
     vector_index = e.instruction("add i64 " + vector_index_phi + ", 16")
     vector_lines = list(e.lines)
+
+    # A narrow unaligned read avoids reading the unused bytes of the final
+    # sixteen-byte group. Inserting into a zero vector makes the upper eight
+    # bytes zero independently of register contents or allocation padding.
+    e.lines = []
+    half_address = e.instruction("getelementptr i8, ptr " + pointer + ", i64 " + vector_index_phi)
+    packed = e.instruction("load i64, ptr " + half_address + ", align 1")
+    low = e.instruction("insertelement <2 x i64> zeroinitializer, i64 " + packed + ", i32 0")
+    half_lanes = e.instruction("bitcast <2 x i64> " + low + " to <16 x i8>")
+    half_pair = e.instruction("call <2 x i64> @" + INTRINSIC +
+                              "(<16 x i8> " + half_lanes + ", <16 x i8> zeroinitializer)")
+    half_subtotal = e.instruction("extractelement <2 x i64> " + half_pair + ", i32 0")
+    half_sum = e.instruction("add i64 " + vector_sum_phi + ", " + half_subtotal)
+    half_index = e.instruction("add i64 " + vector_index_phi + ", 8")
+    half_lines = list(e.lines)
 
     e.lines = []
     e.values = dict(original_values)
@@ -174,25 +192,36 @@ def render_byte_sum(emitter, block, plan):
     e.line(vector_sum_phi + " = phi i64 [ " + accumulator + ", %" + start +
            " ], [ " + vector_sum + ", %" + vector_body + " ]")
 
-    def contains_chunk(bound):
+    def contains_chunk(bound, width):
         # Ordered comparison prevents wrapped subtraction from granting a read.
         ordered = e.instruction("icmp ule i64 " + vector_index_phi + ", " + bound)
         remaining = e.instruction("sub i64 " + bound + ", " + vector_index_phi)
-        enough = e.instruction("icmp uge i64 " + remaining + ", 16")
+        enough = e.instruction("icmp uge i64 " + remaining + ", " + str(width))
         return e.instruction("and i1 " + ordered + ", " + enough)
 
-    logical = contains_chunk(limit)
-    physical = contains_chunk(extent)
+    logical = contains_chunk(limit, LANES)
+    physical = contains_chunk(extent, LANES)
     eligible = e.instruction("and i1 " + logical + ", " + physical)
-    e.line("br i1 " + eligible + ", label %" + vector_body + ", label %" + scalar_head)
+    e.line("br i1 " + eligible + ", label %" + vector_body + ", label %" + half_head)
     e.lines.append(vector_body + ":")
     e.lines.extend(vector_lines)
     e.line("br label %" + vector_head)
 
+    e.lines.append(half_head + ":")
+    half_logical = contains_chunk(limit, 8)
+    half_physical = contains_chunk(extent, 8)
+    half_eligible = e.instruction("and i1 " + half_logical + ", " + half_physical)
+    e.line("br i1 " + half_eligible + ", label %" + half_body + ", label %" + scalar_head)
+    e.lines.append(half_body + ":")
+    e.lines.extend(half_lines)
+    e.line("br label %" + scalar_head)
+
     e.lines.append(scalar_head + ":")
-    e.line(scalar_index_phi + " = phi i64 [ " + vector_index_phi + ", %" + vector_head +
+    e.line(scalar_index_phi + " = phi i64 [ " + vector_index_phi + ", %" + half_head +
+           " ], [ " + half_index + ", %" + half_body +
            " ], [ " + scalar_index + ", %" + scalar_done + " ]")
-    e.line(scalar_sum_phi + " = phi i64 [ " + vector_sum_phi + ", %" + vector_head +
+    e.line(scalar_sum_phi + " = phi i64 [ " + vector_sum_phi + ", %" + half_head +
+           " ], [ " + half_sum + ", %" + half_body +
            " ], [ " + scalar_sum + ", %" + scalar_done + " ]")
     more = e.instruction("icmp ult i64 " + scalar_index_phi + ", " + limit)
     e.line("br i1 " + more + ", label %" + scalar_body + ", label %" + finished)

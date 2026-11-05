@@ -163,6 +163,7 @@ def execute_diagnostic(executable, output_directory, prepared, proposal, diagnos
                 safe_root=root, markers=diagnostic.manifest['markers'], target='CertPart02',
                 manifest_reference=dict(path='diagnostic-manifest.json', sha256=diagnostic.manifest_sha256))
             require(type(result) is dict and type(result.get('process_started')) is bool, 'capture receipt missing')
+            collector.validate_cleanup_status(result)
             if not result['process_started']:
                 report['invocations'] -= 1
             report['invocation_count_exact'] = True
@@ -195,7 +196,8 @@ def execute_diagnostic(executable, output_directory, prepared, proposal, diagnos
                 require(result['process_started'] and type(result.get('returncode')) is int and
                         result['returncode'] == 0 and result.get('leader_reaped') is True and
                         result.get('drain_complete') is True and result.get('output_truncated') is False and
-                        result.get('cleanup_incomplete') is False, 'completed target process incomplete')
+                        result.get('cleanup_incomplete') is False and result.get('cleanup_deadline_exceeded') is False,
+                        'completed target process incomplete')
                 log = ''.join(root.read(n,collector.RAW_LIMIT).decode('utf-8',errors='strict')
                               for n in CAPTURE_FILES[:2]).replace('\r\n','\n')
                 inventory = theorem_inventory(log,set(stage.expected_theorems))
@@ -290,6 +292,7 @@ def _verify_capture(root, manifest_sha, stage):
     require(len(terminals) == 1 and records[-1] == terminals[0], 'terminal capture event missing or reordered')
     terminal = terminals[0]['process']
     reference = dict(path='diagnostic-manifest.json',sha256=manifest_sha)
+    collector.validate_terminal_cleanup(raw, stage, reference)
     require(terminal.get('manifest_reference') == reference, 'terminal manifest reference differs')
     require(terminal.get('status') == stage['status'] and
             terminal.get('process_started') is stage['process_started'], 'terminal result differs')
@@ -341,7 +344,8 @@ def _verify_capture(root, manifest_sha, stage):
     if stage['status'] == 'diagnostic_completed':
         require(type(terminal.get('returncode')) is int and terminal['returncode'] == 0 and
                 terminal.get('leader_reaped') is True and terminal.get('drain_complete') is True and
-                terminal.get('cleanup_incomplete') is False and terminal.get('output_truncated') is False,
+                terminal.get('cleanup_incomplete') is False and terminal.get('cleanup_deadline_exceeded') is False and
+                terminal.get('output_truncated') is False,
                 'terminal completed process differs')
 
 

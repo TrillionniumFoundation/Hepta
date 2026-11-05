@@ -53,11 +53,20 @@ class PartitionDiagnosticRunnerTests(unittest.TestCase):
                 self.assertEqual(manifest_reference['sha256'],self.diagnostic.manifest_sha256)
                 if behavior == 'platform':
                     return dict(status='diagnostic_infrastructure_failed', process_started=False,
+                                leader_reaped=False, drain_complete=False, cleanup_deadline_exceeded=False,
+                                cleanup_incomplete=False, output_truncated=False, returncode=None,
                                 files={},raw_files={},metadata_remaining_bytes=collector.METADATA_LIMIT)
                 calls.append(source.stem)
                 if behavior == 'uncertain':
                     raise RuntimeError('capture may have launched')
-                for name,raw in zip(runner.CAPTURE_FILES,(b'mock output',b'',b'{"mock":true}\n')):
+                status = {'timeout':'diagnostic_timeout','limit':'diagnostic_output_limit',
+                          'claim_pass':'passed'}.get(behavior,'diagnostic_completed')
+                process = dict(status=status, process_started=True, returncode=0, leader_reaped=True,
+                               drain_complete=True, cleanup_deadline_exceeded=False, cleanup_incomplete=False,
+                               output_truncated=status=='diagnostic_output_limit', manifest_reference=manifest_reference)
+                events = collector._record_bytes(dict(kind='terminal', process=process,
+                    accounting_before_terminal=dict(raw_written_bytes=len(b'mock output'), metadata_written_bytes=0)))
+                for name,raw in zip(runner.CAPTURE_FILES,(b'mock output',b'',events)):
                     safe_root.write(name,raw)
                 output.write_bytes(b'untrusted target module')
                 if behavior.startswith('target_mutate:'):
@@ -72,12 +81,10 @@ class PartitionDiagnosticRunnerTests(unittest.TestCase):
                     files[runner.CAPTURE_FILES[0]]['sha256'] = '0'*64
                 if behavior == 'changed_log':
                     (root/runner.CAPTURE_FILES[0]).write_bytes(b'changed after capture')
-                return dict(status={'timeout':'diagnostic_timeout','limit':'diagnostic_output_limit',
-                                    'claim_pass':'passed'}.get(behavior,'diagnostic_completed'),
-                            process_started=True, files=files,
+                return dict(**process, files=files,
                             raw_files={n:v for n,v in files.items() if n != runner.CAPTURE_FILES[2]},
                             metadata_remaining_bytes=0 if behavior == 'metadata' else
-                            collector.METADATA_LIMIT-len(b'{"mock":true}\n'))
+                            collector.METADATA_LIMIT-len(events))
             # The immutable fixture was fully validated at construction. These
             # process/file tamper cases change only the temporary output tree.
             # One integration control below also runs the real validator in-run.
@@ -219,6 +226,13 @@ class PartitionDiagnosticRunnerTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 self.print_bytes(path)
         self.exercise(inspect=inspect)
+        def false_completion(path,report):
+            self.assertEqual(report['stages'][-1]['status'],'diagnostic_timeout')
+            report['status']='diagnostic_completed'
+            (path/'RESULT.json').write_bytes(runner._encoded(report))
+            with self.assertRaisesRegex(ValueError,'completed diagnostic target status differs'):
+                self.print_bytes(path)
+        self.exercise('timeout',inspect=false_completion)
 
     def test_cli_always_exits_nonzero_after_target_completion(self):
         with patch.object(runner,'diagnose',return_value={'status':'diagnostic_completed'}), patch('builtins.print') as printer:

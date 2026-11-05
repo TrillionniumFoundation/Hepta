@@ -82,5 +82,67 @@ class UpstreamFactorialTests(unittest.TestCase):
             study.check_engine_registration(engine, expected, "m")
 
 
+class PublicEditFeedbackTests(unittest.TestCase):
+    def rejected(self, task, language, interface, answer):
+        text = canonical(answer).decode()
+        with self.assertRaises(ValueError) as rejected:
+            study.materialize(task, language, interface, text)
+        feedback = study.edit_contract_feedback(task, language, interface, text, rejected.exception)
+        self.assertEqual(feedback["edit_rejected"], str(rejected.exception))
+        return feedback["details"]
+
+    def test_file_names_and_value_types_are_public_and_symmetric(self):
+        for language, name in (("assembly", "target.hiaasm"), ("rust", "target.rs")):
+            # No oracle, expected results or hidden-case fields are available.
+            original = {name: "PUBLIC SOURCE\n"}
+            task = {"original_" + language: original}
+            details = self.rejected(task, language, "full", {
+                "expected_sha256": study.digest(original), "files": {"wrong.name": "PUBLIC SOURCE\n"}})
+            self.assertEqual(details["expected_files"], [name])
+            self.assertEqual(details["received_files"], ["wrong.name"])
+            self.assertEqual(details["base_sha256"], study.digest(original))
+            details = self.rejected(task, language, "full", {
+                "expected_sha256": study.digest(original), "files": {name: {"nested": "not source text"}}})
+            self.assertEqual(details["received_value_types"], [{"path": name, "type": "dict"}])
+            self.assertNotIn("PUBLIC SOURCE", canonical(details).decode())
+            self.assertNotIn("not source text", canonical(details).decode())
+
+    def test_patch_counts_use_each_ordered_step_and_reset_to_original(self):
+        for language, name in (("assembly", "target.hiaasm"), ("rust", "target.rs")):
+            original = {name: "one two"}
+            task = {"original_" + language: original}
+            answer = {"expected_sha256": study.digest(original), "patches": [
+                {"path": name, "old": "one", "new": "two"},
+                {"path": name, "old": "two", "new": "three"}]}
+            details = self.rejected(task, language, "patch", answer)
+            self.assertEqual(details["patch_index"], 1)
+            self.assertEqual(details["old_occurrences"], 2)
+            self.assertEqual(task["original_" + language], {name: "one two"})
+            answer["patches"] = [{"path": name, "old": "previous answer only", "new": "replacement"}]
+            self.assertEqual(self.rejected(task, language, "patch", answer)["old_occurrences"], 0)
+            answer["patches"][0]["path"] = "module.header"
+            details = self.rejected(task, language, "patch", answer)
+            self.assertEqual(details["path"], "module.header")
+            self.assertIsNone(details["old_occurrences"])
+
+    def test_diagnostics_are_bounded_and_never_echo_file_contents(self):
+        original = {"target.rs": "public original"}
+        task = {"original_rust": original}
+        files = {str(i) + "x" * 200: "source content is not a diagnostic" for i in range(64)}
+        details = self.rejected(task, "rust", "full", {
+            "expected_sha256": study.digest(original), "files": files})
+        self.assertEqual(details["received_file_count"], 64)
+        self.assertEqual(len(details["received_files"]), 8)
+        self.assertTrue(all(len(name) <= 120 for name in details["received_files"]))
+        self.assertNotIn("source content is not a diagnostic", canonical(details).decode())
+
+    def test_non_contract_decoder_errors_keep_the_original_public_message(self):
+        feedback = study.edit_contract_feedback({}, "rust", "full", "{", ValueError("E_JSON_SYNTAX"))
+        self.assertEqual(feedback, {"edit_rejected": "E_JSON_SYNTAX"})
+        feedback = study.edit_contract_feedback({}, "rust", "full", "x" * 65537,
+                                                ValueError("E_FACTORIAL_RESPONSE_BOUND"))
+        self.assertEqual(feedback, {"edit_rejected": "E_FACTORIAL_RESPONSE_BOUND"})
+
+
 if __name__ == "__main__":
     unittest.main()

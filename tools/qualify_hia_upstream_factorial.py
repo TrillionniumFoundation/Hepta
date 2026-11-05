@@ -129,6 +129,71 @@ def materialize(task, language, interface, text):
     return canonical({"files": files}).decode()
 
 
+def edit_contract_feedback(task, language, interface, text, error):
+    """Explain a rejected edit using only the already disclosed source contract.
+
+    Admission stays in materialize, unchanged. Never consult the correct source,
+    oracle, public executions or hidden cases while formatting these details.
+    """
+    feedback = {"edit_rejected": str(error)}
+    if ((language, interface) not in ARMS or type(text) is not str
+            or not str(error).startswith("E_FACTORIAL_")):
+        return feedback
+    try:
+        if len(text.encode()) > 65536:
+            return feedback
+        value = decode_json(text)
+    except ValueError:
+        return feedback
+    original = task["original_" + language]
+    key = "files" if interface == "full" else "patches"
+    details = {"schema": "hepta.agent.public-edit-feedback.v1",
+               "expected_files": sorted(original), "base_sha256": digest(original),
+               "expected_fields": ["expected_sha256", key],
+               "received_type": type(value).__name__}
+    feedback["details"] = details
+    if type(value) is not dict:
+        return feedback
+    details["received_fields"] = [name[:120] for name in sorted(value)[:8]]
+    details["received_field_count"] = len(value)
+    if interface == "full":
+        files = value.get("files")
+        details["received_files_type"] = type(files).__name__
+        if type(files) is dict:
+            details["received_file_count"] = len(files)
+            details["received_files"] = [name[:120] for name in sorted(files)[:8]]
+            details["received_value_types"] = [
+                {"path": name[:120], "type": type(files[name]).__name__}
+                for name in sorted(files)[:8]]
+        return feedback
+    edits = value.get("patches")
+    details["received_patches_type"] = type(edits).__name__
+    if type(edits) is not list:
+        return feedback
+    details["patch_count"] = len(edits)
+    if not 1 <= len(edits) <= 16:
+        return feedback
+    files = dict(original)
+    for index, edit in enumerate(edits):
+        if type(edit) is not dict or set(edit) != {"path", "old", "new"}:
+            details.update(patch_index=index, expected_edit_fields=["path", "old", "new"])
+            break
+        path, old, new = (edit[k] for k in ("path", "old", "new"))
+        known_path = type(path) is str and path in files
+        count = files[path].count(old) if known_path and type(old) is str and old else None
+        if not known_path or type(new) is not str or count != 1:
+            details.update(patch_index=index, path=path[:120] if type(path) is str else None,
+                           path_type=type(path).__name__, old_type=type(old).__name__,
+                           new_type=type(new).__name__, old_occurrences=count)
+            break
+        files[path] = files[path].replace(old, new, 1)
+        if len(files[path].encode()) > 65536:
+            details.update(patch_index=index, path=path[:120],
+                           resulting_file_bytes=len(files[path].encode()))
+            break
+    return feedback
+
+
 def answer(task, language, interface, label="correct"):
     original, target = task["original_" + language], task[label + "_" + language]
     if interface == "full":
@@ -417,8 +482,10 @@ def cell(task, descriptor, output, engine, registration, configuration):
                 try:
                     text = materialize(task, descriptor["language"], descriptor["interface"], response["text"])
                 except ValueError as error:
-                    feedback = {"edit_rejected": str(error)}
+                    feedback = edit_contract_feedback(task, descriptor["language"], descriptor["interface"],
+                                                      response["text"], error)
                     attempt["edit_error"] = str(error)
+                    attempt["edit_feedback"] = feedback
                 else:
                     built = evaluator.build(task, descriptor["language"], text, output / f"candidate-{index}",
                                             registration["tools"]["clang"]["path"], registration["tools"]["rustc"]["path"])
@@ -623,4 +690,3 @@ def main():
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

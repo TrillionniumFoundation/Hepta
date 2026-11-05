@@ -557,54 +557,115 @@ actual modules must use the indexed path. Both CI inventory checks now bind all
 old-then-new cost comparison and final integrated qualification are separate
 evidence, with no repeated qualification attempt chosen for timing luck.
 
-## Restricted data parsing after the full v11 run
+## Explicit compiler-input closure after the cache integration (2026-11-05)
 
-The desktop qualifier at 0c8a91003aee2732308bb654d0e1f941ae561728 again
-completed all eleven fresh Lean stages. Its inner RESULT was written after
-553.393567603 seconds, but the whole command exited 124 at
-600.047503236 seconds before the internal evidence replay completed. The
-separate later replay completed in 55.874570337 seconds. These are distinct
-observations: the original full run remains a deadline failure, and no stage
-results from separate attempts are combined into acceptance.
+The integrated source `e5f416992e1a81097f9f99135d4bb59bc37f04df` adds
+`hepta/hia_result_cache.py` and `hepta/hia_result_cache_audit.py` to the inputs
+read by `pipeline.compiler_hash`. Its first complete qualification correctly
+stopped in preparation: the previously reviewed 258-path identity did not
+contain these files. That failed run remains failed; it launched no Lean stage.
 
-The existing complete cProfile identified the original Raw-string predicate
-and expression lexer as further repeated work. In each profiled phase, the
-string predicate performed 13,411,832 Python generator steps. Five retained
-real inputs contain 2,510 fully literal decimal-list definitions out of 7,685;
-their spelling uses commas with no whitespace. This covers about 64.55 percent
-of decimal tokens in their right-hand sides. Counts and profiled times identify
-a candidate; they do not predict a completed run within the budget.
+The explicit `ADDITIONS` tuple now includes those two files and
+`tests/test_core_seven_shared_source_closure.py`. The new fixed closure is
+**261 paths**, with canonical commitment
+`5758e93bc7e92d4b10370593c3f20b713741b7530d977507a1430c6eb9cfb0eb`.
+Removing exactly those three names recovers all 258 original names and the
+unchanged old commitment
+`36af03771b8b81803d90baafc92fd290d9e6cadbb03e7e135a99beae804bb0f0`.
+The actual top-level compiler inventory is now 186 Python files. It is still
+compared exactly against the declared closure: an extra or missing filename
+rejects before external identity construction. No dynamic filename admission
+or weakening of the fixed commitment was added.
 
-For exact parser-created Raw objects, string conversion checks an exact
-builtin list and exact builtin integer identities before constructing bytes.
-It rejects constructor range/overflow errors with the original Raw-string
-domain error, then checks the original allowed ASCII bytes using a C-level
-deletion filter. The accepted range is still 32 through 126, excluding 34 and
-92. Empty strings remain valid. No length cap is added, and no user integer
-conversion, metaclass equality, or list-subclass iterator is admitted. A
-non-exact Raw subclass keeps the original attribute-read sequence and errors;
-the other Raw constructors are unchanged.
+The 780 support paths and their commitment are unchanged, as are all schemas,
+eleven Lean stages, subject/negative inventories, byte-reading checks, original
+validators, per-file caps and process/cleanup/launch/outer budgets. The five new
+filename controls have their own CI job and exact inventory; they do not enter
+the historical 46/207/705 inventories. The six existing acceptance-contract
+tests retain their IDs and now assert the reviewed 261/186 path counts.
 
-The expression parser has one strict fast sublanguage: an exact builtin string
-containing either an empty list or a comma-separated list of canonical
-nonnegative ASCII decimal integers, with no whitespace. Each number is either
-zero or starts with 1 through 9. A full match creates a fresh list with the
-original Python integer conversion; its integer range and overlong-digit
-exception are unchanged. Every nonmatching spelling uses the entire original
-lexer, including leading zeros, Unicode whitespace, constructors, aliases,
-append/cons operators, and nested lists. No exception is swallowed, no JSON
-parser broadens the grammar, and no parsed value or acceptance result is cached.
+Actual source construction was checked on the integrated compiler inputs
+before handoff. `prepare()` passed its unchanged original validation and
+negative-coordinate gates in a 59.076-second source-only observation. The
+independent frozen count/replace oracle matched every actual print-scheduled
+module byte. All eleven existing v10 source hashes and the manifest digest
+`373f18422dd9aebcdcd754c05242860fd0b5216533b81e49caaf00909414f990`
+remained identical; no generated-source hash or proof statement was updated.
+The new filename checks plus the unchanged acceptance tests passed 11/11 with
+no failures, errors or skips. The fixed identity encoding also fits the old
+144,713-byte file cap; a size check does not authenticate support contents.
 
-Three new controls compare the string domain and subclass reads with the frozen
-old conversion, compare the strict sublanguage and fallback with an independent
-copy of the old lexer, and run the complete verifier on all five actual inputs
-with both implementations. The existing 46 controls remain, including both
-mandatory old validation gates and exact eleven-module/manifest equality.
-Both CI inventory checks now bind all 49 actual test IDs. All source inverses,
-actual-byte hashes, theorem statements, subject multiplicities, eleven stages,
-and 60/540/600-second limits remain unchanged.
+These are preparation and regression observations, not a new Lean acceptance.
+The final combined source still requires fresh complete eleven-stage execution
+and replay under its own exact identity. The earlier failed integrated run
+cannot acquire that status from these checks.
 
-The fixed old-then-new cost diagnostic and fresh qualification of the next
-combined commit remain separate requirements. No success is inferred from the
-restricted fast paths. All twelve wider production obligations remain open,
-with DENY_ALL authority.
+## Cleanup receipt consumer repair (2026-11-05)
+
+The shared diagnostic collector records `cleanup_deadline_exceeded` independently
+of eventual drain/reap success. Its seven-certificate consumer previously omitted
+that field from the exact process schema and the exact setup-start record, so an
+otherwise successful real child was rejected. The consumer now retains and checks
+the field, including exact Boolean type, the cleanup-incomplete equation, and the
+condition that completed captures cannot be late. Byte-facts and the older
+partition/declaration capture and presentation paths validate the same cleanup
+facts and bind persisted terminal status to its stage and manifest. Unknown seven
+process fields remain refused; no collector deadline or output budget is enlarged.
+
+Three fragmentation controls now explicitly set the test-only `READ_CHUNK` to 1:
+child writes separated by 2 ms never guaranteed distinct PTY/pipe reads. This
+changes neither a production budget nor the original test IDs. The independent
+timeout fixture also accelerates only its process phase: its original 100x clock
+accidentally reduced the independent two-second cleanup budget to about 20 ms of
+wall time. The clock now remains continuous and resumes normal rate when the real
+group-kill cleanup starts; the declared 60/2-second limits are unchanged. Existing
+mock-only legacy orchestration fixtures now supply internally consistent terminal
+cleanup facts instead of placeholder JSON. No mock outcome becomes proof evidence.
+The byte-facts/seven fragmentation writers queue finite payloads and remain live
+until the collector stops them, with independent finite wall watchdogs. These
+quota controls explicitly hold a model clock until the real group-kill attempt,
+then resume continuous 1x time for cleanup. Actual reads, writes and fsync remain;
+this is no claim of one-second filesystem throughput. The process/cleanup
+constants, outer 180s limit and separate real-deadline tests remain unchanged.
+Terminal JSON decoding rejects duplicate keys and
+non-finite numbers, including exponent overflow, without requiring canonical
+whitespace from older valid serializers.
+The independent
+four-method `test_core_capture_cleanup_replay` module exercises actual child
+capture, late real-wait observations, rehashed cleanup lies and the strict seven
+round trip. It has its own CI job outside the historical 46/207/705 inventories.
+
+That exact new test filename is added to the fixed source identity closure:
+**262** paths, commitment
+`aceff8673d12c027792c8bf080afeb5d63c4770103018823c5cd710e3ed6517b`.
+Removing it recovers all **261** prior paths and commitment
+`5758e93bc7e92d4b10370593c3f20b713741b7530d977507a1430c6eb9cfb0eb`.
+All 186 compiler module paths, 780 support paths, schemas, per-file caps, stage
+counts, and 180/600-second qualification budgets remain unchanged. These controls
+are diagnostic protocol tests, not Lean execution or proof/admission authority.
+
+## Combined S3 verification input closure (2026-11-05)
+
+The combined candidate extends the intermediate 262-path closure above with
+three separately reviewed regression modules: structured-source reconstruction,
+partition parsing and bounded parallel full-file hashing. The new exact closure
+has **265 paths**, commitment
+`ffc0f4bd9585328bb21e99d0fe3bac7717b65d823a72cb5de9987886018055db`.
+Removing exactly these three paths recovers the 262-path commitment above;
+removing all four newly added validation modules recovers all 261 S2 paths and
+its original commitment. The five explicit closure controls retain their IDs
+and verify that every original 258 path and all 186 compiler modules remain.
+
+The 24 cost controls (10 + 6 + 8) have a separate fixed-inventory CI job.
+The four cleanup-replay controls also keep their separate job. All four modules
+are included in the actual composition regression command. The original 207,
+705 and 46 inventories and workflow bodies remain unchanged, as do the original
+36 composition commands, 34 result flags, 780 support paths and all existing
+process, cleanup, byte, launch and outer limits.
+
+The source optimizations preserve generated statements and all validation
+gates. Full external bytes are reread with at most two hash workers; Lean still
+uses one thread. The combined runner registers CPUs 20 and 21 for proof and
+replay, including the hashing resource change. No stat-only or cached digest
+substitutes for a read. This paragraph is a source registration, not a successful
+proof or composition receipt; the exact combined commit requires fresh execution.

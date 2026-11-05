@@ -1,0 +1,1323 @@
+{
+  "actual_controls": {
+    "accepted": 18,
+    "finite_controls_only": true,
+    "native_hia": true,
+    "rejected": 8,
+    "wall_ns": 714699
+  },
+  "artifact_substitution_refused": "native image identity mismatch",
+  "audit": {
+    "all_exact_minima_match": true,
+    "by_policy": {
+      "beam": {
+        "count": 14,
+        "gaps": [
+          1299134,
+          1301414,
+          1323474,
+          2598268,
+          2624888,
+          3921742,
+          3924022,
+          3948362,
+          5245216
+        ]
+      },
+      "beam_ndu": {
+        "count": 14,
+        "gaps": [
+          1299134,
+          1301414,
+          1323474,
+          2598268,
+          2624888,
+          3921742,
+          3924022,
+          3948362,
+          5245216
+        ]
+      },
+      "exact_dp": {
+        "count": 23,
+        "gaps": [
+          0
+        ]
+      },
+      "light": {
+        "count": 21,
+        "gaps": [
+          0,
+          630944,
+          655284,
+          657564
+        ]
+      }
+    },
+    "count": 72,
+    "wall_ns": 53002040
+  },
+  "build": {
+    "artifact_bytes": 15496,
+    "artifact_sha256": "3c1bd1f6a16e2f82ec368cd12566253ce1045e7a2127c7f250d62eb873482449",
+    "binary_inventory": {
+      "claims": {
+        "backend_refinement_proven": false,
+        "binary_abi_observed": true,
+        "native_execution_proven": false,
+        "whole_language_memory_safety_proven": false
+      },
+      "dynamic_exports": [
+        "calculate"
+      ],
+      "format": "ELF64",
+      "kind": "ET_DYN",
+      "machine": 62,
+      "schema": "hepta.elf-shared-abi.v1",
+      "source_exports_rechecked": true,
+      "unresolved_imports": [
+        "_ITM_deregisterTMCloneTable",
+        "_ITM_registerTMCloneTable",
+        "__cxa_finalize",
+        "__gmon_start__",
+        "abort",
+        "free",
+        "malloc"
+      ]
+    },
+    "build_host": {
+      "abi": "SysV AMD64 LP64",
+      "byteorder": "little",
+      "elf_machine": 62,
+      "long_bits": 64,
+      "machine": "x86_64",
+      "normalized_machine": "x86_64",
+      "pointer_bits": 64,
+      "size_t_bits": 64,
+      "system": "Linux",
+      "target": "x86_64-unknown-linux-gnu"
+    },
+    "claims": {
+      "backend_refinement_proved": false,
+      "c_codegen_used": false,
+      "cross_target_execution_qualified": false,
+      "fallback_used": false,
+      "foreign_buffer_entrypoints_exposed": false,
+      "native_execution_qualified": false,
+      "rust_codegen_used": false,
+      "rust_reference_required": false,
+      "source_ast_required": false,
+      "standalone_core_reverified": true,
+      "whole_language_soundness_proved": false
+    },
+    "core_sha256": "8503ab457a753f390940dc971e41a4cc42acf71f91eb45b2c9556c72ff8b081c",
+    "cross_target_compilation": false,
+    "entry_layout": "canonical",
+    "exports": [
+      "calculate"
+    ],
+    "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+    "flags": [
+      "--target=x86_64-unknown-linux-gnu",
+      "-x",
+      "ir",
+      "-O3",
+      "-fPIC",
+      "-shared"
+    ],
+    "implementation_sha256": "75e75f26817276e4176e496714a6053a7a035942ecb83d15148e06ae1564c764",
+    "input_sha256": "8503ab457a753f390940dc971e41a4cc42acf71f91eb45b2c9556c72ff8b081c",
+    "kind": "shared",
+    "llvm_ir_sha256": "8c25d2fc62e87d3beb10f21075ca5d363c29e02ff22b816e3bddd6f997ed0cd7",
+    "ok": true,
+    "output": "/data/hepta-hia-round4-9925-20261105/evidence-result-cache-pilot1/kernel.so",
+    "profile": "hepta.hia.program.llvm-linux-x86_64.v1",
+    "runtime_assumptions": [
+      "Linux LP64 target with 64-bit pointers and size_t",
+      "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+      "C malloc returns null or a fresh nonaliasing allocation of the requested size; bytes are initialized before read or remain unobserved",
+      "C free accepts a live allocation from calloc or malloc, or null",
+      "abort terminates execution; no cleanup after traps is promised",
+      "native compiler, linker, loader, libc and host hardware are trusted"
+    ],
+    "schema": "hepta.hia.program.native.v1",
+    "status": "native_compiled_not_executed",
+    "target": "x86_64-unknown-linux-gnu",
+    "toolchain": {
+      "default_target": "x86_64-pc-linux-gnu",
+      "path": "/data/hepta-hia-round2-20261104/toolchains/clang20/usr/lib/llvm-20/bin/clang",
+      "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+      "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+    }
+  },
+  "cohorts": [
+    {
+      "family": "stable",
+      "n": 262157,
+      "totals": {
+        "beam": {
+          "ndu_requests": 0,
+          "service_ns": 16366080
+        },
+        "beam_ndu": {
+          "ndu_requests": 0,
+          "service_ns": 15830440
+        },
+        "direct": {
+          "ndu_requests": 0,
+          "service_ns": 14357455
+        },
+        "exact_dp": {
+          "ndu_requests": 0,
+          "service_ns": 17164877
+        },
+        "fixed": {
+          "ndu_requests": 0,
+          "service_ns": 10990834
+        },
+        "light": {
+          "ndu_requests": 0,
+          "service_ns": 16221404
+        },
+        "local_light": {
+          "ndu_requests": 0,
+          "service_ns": 11388166
+        }
+      }
+    },
+    {
+      "family": "stable",
+      "n": 1048559,
+      "totals": {
+        "beam": {
+          "ndu_requests": 0,
+          "service_ns": 35807597
+        },
+        "beam_ndu": {
+          "ndu_requests": 3,
+          "service_ns": 36330291
+        },
+        "direct": {
+          "ndu_requests": 0,
+          "service_ns": 27765731
+        },
+        "exact_dp": {
+          "ndu_requests": 0,
+          "service_ns": 20745696
+        },
+        "fixed": {
+          "ndu_requests": 0,
+          "service_ns": 13611833
+        },
+        "light": {
+          "ndu_requests": 0,
+          "service_ns": 20533630
+        },
+        "local_light": {
+          "ndu_requests": 0,
+          "service_ns": 14383543
+        }
+      }
+    },
+    {
+      "family": "phase_shift",
+      "n": 262157,
+      "totals": {
+        "beam": {
+          "ndu_requests": 0,
+          "service_ns": 16570467
+        },
+        "beam_ndu": {
+          "ndu_requests": 0,
+          "service_ns": 17796212
+        },
+        "direct": {
+          "ndu_requests": 0,
+          "service_ns": 14393496
+        },
+        "exact_dp": {
+          "ndu_requests": 0,
+          "service_ns": 16790339
+        },
+        "fixed": {
+          "ndu_requests": 0,
+          "service_ns": 13053637
+        },
+        "light": {
+          "ndu_requests": 0,
+          "service_ns": 16667103
+        },
+        "local_light": {
+          "ndu_requests": 0,
+          "service_ns": 12795358
+        }
+      }
+    },
+    {
+      "family": "phase_shift",
+      "n": 1048559,
+      "totals": {
+        "beam": {
+          "ndu_requests": 0,
+          "service_ns": 67328574
+        },
+        "beam_ndu": {
+          "ndu_requests": 9,
+          "service_ns": 69251642
+        },
+        "direct": {
+          "ndu_requests": 0,
+          "service_ns": 28131579
+        },
+        "exact_dp": {
+          "ndu_requests": 0,
+          "service_ns": 43355562
+        },
+        "fixed": {
+          "ndu_requests": 0,
+          "service_ns": 23934600
+        },
+        "light": {
+          "ndu_requests": 0,
+          "service_ns": 39611099
+        },
+        "local_light": {
+          "ndu_requests": 0,
+          "service_ns": 20879143
+        }
+      }
+    },
+    {
+      "family": "invalidate",
+      "n": 262157,
+      "totals": {
+        "beam": {
+          "ndu_requests": 0,
+          "service_ns": 16943216
+        },
+        "beam_ndu": {
+          "ndu_requests": 0,
+          "service_ns": 16743497
+        },
+        "direct": {
+          "ndu_requests": 0,
+          "service_ns": 15943499
+        },
+        "exact_dp": {
+          "ndu_requests": 0,
+          "service_ns": 16340889
+        },
+        "fixed": {
+          "ndu_requests": 0,
+          "service_ns": 13763384
+        },
+        "light": {
+          "ndu_requests": 0,
+          "service_ns": 16266062
+        },
+        "local_light": {
+          "ndu_requests": 0,
+          "service_ns": 13594199
+        }
+      }
+    },
+    {
+      "family": "invalidate",
+      "n": 1048559,
+      "totals": {
+        "beam": {
+          "ndu_requests": 0,
+          "service_ns": 37558401
+        },
+        "beam_ndu": {
+          "ndu_requests": 2,
+          "service_ns": 37842644
+        },
+        "direct": {
+          "ndu_requests": 0,
+          "service_ns": 29647730
+        },
+        "exact_dp": {
+          "ndu_requests": 0,
+          "service_ns": 49339120
+        },
+        "fixed": {
+          "ndu_requests": 0,
+          "service_ns": 25475907
+        },
+        "light": {
+          "ndu_requests": 0,
+          "service_ns": 47340113
+        },
+        "local_light": {
+          "ndu_requests": 0,
+          "service_ns": 22496903
+        }
+      }
+    }
+  ],
+  "components": {
+    "beam": {
+      "decision": 71161628,
+      "direct_workload_calls": 113,
+      "execution_and_oracle": 46533365,
+      "init_and_cleanup": 235957,
+      "model_construction": 40970624,
+      "mutation": 97197,
+      "native_workload_calls": 121,
+      "preparation": 5886787,
+      "retirement": 0,
+      "unattributed_logging_state_checks_and_driver": 25688777
+    },
+    "beam_ndu": {
+      "decision": 73719913,
+      "direct_workload_calls": 113,
+      "execution_and_oracle": 46338462,
+      "init_and_cleanup": 277561,
+      "model_construction": 41745136,
+      "mutation": 102674,
+      "native_workload_calls": 121,
+      "preparation": 6546226,
+      "retirement": 0,
+      "unattributed_logging_state_checks_and_driver": 25064754
+    },
+    "direct": {
+      "decision": 2027247,
+      "direct_workload_calls": 144,
+      "execution_and_oracle": 68279730,
+      "init_and_cleanup": 198212,
+      "model_construction": 42436992,
+      "mutation": 97289,
+      "native_workload_calls": 144,
+      "preparation": 0,
+      "retirement": 0,
+      "unattributed_logging_state_checks_and_driver": 17200020
+    },
+    "exact_dp": {
+      "decision": 59566889,
+      "direct_workload_calls": 84,
+      "execution_and_oracle": 26169659,
+      "init_and_cleanup": 250780,
+      "model_construction": 42056063,
+      "mutation": 101229,
+      "native_workload_calls": 101,
+      "preparation": 12582069,
+      "retirement": 25202,
+      "unattributed_logging_state_checks_and_driver": 22984592
+    },
+    "fixed": {
+      "decision": 2121746,
+      "direct_workload_calls": 36,
+      "execution_and_oracle": 21878088,
+      "init_and_cleanup": 394901,
+      "model_construction": 41916866,
+      "mutation": 148216,
+      "native_workload_calls": 72,
+      "preparation": 16904799,
+      "retirement": 0,
+      "unattributed_logging_state_checks_and_driver": 17465579
+    },
+    "light": {
+      "decision": 52821836,
+      "direct_workload_calls": 86,
+      "execution_and_oracle": 27393385,
+      "init_and_cleanup": 243967,
+      "model_construction": 41088750,
+      "mutation": 108233,
+      "native_workload_calls": 103,
+      "preparation": 12462176,
+      "retirement": 46177,
+      "unattributed_logging_state_checks_and_driver": 22474887
+    },
+    "local_light": {
+      "decision": 5228090,
+      "direct_workload_calls": 22,
+      "execution_and_oracle": 14693663,
+      "init_and_cleanup": 303944,
+      "model_construction": 39653477,
+      "mutation": 109075,
+      "native_workload_calls": 60,
+      "preparation": 17670268,
+      "retirement": 59502,
+      "unattributed_logging_state_checks_and_driver": 17819293
+    }
+  },
+  "final_load_average": [
+    11.46533203125,
+    11.62451171875,
+    12.7431640625
+  ],
+  "fixed_selection": {
+    "choices": [
+      {
+        "forecast_training_ns": 3071088,
+        "mask": 0
+      },
+      {
+        "forecast_training_ns": 2805854,
+        "mask": 1
+      },
+      {
+        "forecast_training_ns": 2937316,
+        "mask": 2
+      },
+      {
+        "forecast_training_ns": 2672082,
+        "mask": 3
+      },
+      {
+        "forecast_training_ns": 3068778,
+        "mask": 4
+      },
+      {
+        "forecast_training_ns": 2803544,
+        "mask": 5
+      },
+      {
+        "forecast_training_ns": 2935006,
+        "mask": 6
+      },
+      {
+        "forecast_training_ns": 3199470,
+        "mask": 8
+      },
+      {
+        "forecast_training_ns": 2934236,
+        "mask": 9
+      },
+      {
+        "forecast_training_ns": 3065698,
+        "mask": 10
+      },
+      {
+        "forecast_training_ns": 3197160,
+        "mask": 12
+      }
+    ],
+    "holdout_timings_used": false,
+    "selected": {
+      "forecast_training_ns": 2672082,
+      "mask": 3
+    },
+    "selection_wall_ns": 526418
+  },
+  "hia_build_ns": 286664999,
+  "hia_load_ns": 406825,
+  "inventory": [
+    {
+      "bytes": 23153,
+      "name": "frozen-before-holdout.json",
+      "sha256": "a1b0af319c48b525f03f8921ecc161ee5bdb8cb9e4c2ee0764b5d04ef282e727"
+    },
+    {
+      "bytes": 2521,
+      "name": "hia-build-commands.json",
+      "sha256": "690a1a71536c521ae2c408933640f9c2369183abc875fc8f8efeb230295aec17"
+    },
+    {
+      "bytes": 132198,
+      "name": "invalidate-n1048559-r0-beam.json",
+      "sha256": "c7155799fa7b5d4efa70ba11b1fe373d9a6d7b71830324b02da1bca5a8f054dd"
+    },
+    {
+      "bytes": 135068,
+      "name": "invalidate-n1048559-r0-beam_ndu.json",
+      "sha256": "5f92e61081098f913a2900eead3a4bd6424bf2cf4dc05625c5ea3ca0b4ddef74"
+    },
+    {
+      "bytes": 49188,
+      "name": "invalidate-n1048559-r0-direct.json",
+      "sha256": "c6ae663f71f4133b336ca907048bdff2784221a60c48cd5c346320b5786c0586"
+    },
+    {
+      "bytes": 170541,
+      "name": "invalidate-n1048559-r0-exact_dp.json",
+      "sha256": "6e7fa77e4a4c4d7a1fc5efc4e273abea963579fcefffb7e659079bddb40c33ef"
+    },
+    {
+      "bytes": 50003,
+      "name": "invalidate-n1048559-r0-fixed.json",
+      "sha256": "d2990ee4ecb60556b9ad2fa49901c1fd2cd9d8b3aa8545b3e6679229e9f705e7"
+    },
+    {
+      "bytes": 170408,
+      "name": "invalidate-n1048559-r0-light.json",
+      "sha256": "55aa1c45eb13964fb26c24fa80c2aa9b1100e3a5ee6db9cb71582d0e1edaf65c"
+    },
+    {
+      "bytes": 50056,
+      "name": "invalidate-n1048559-r0-local_light.json",
+      "sha256": "c00000b0c94054b44020de9f13e4293e95e399998ba5a4daf63e5d9eacaa313f"
+    },
+    {
+      "bytes": 132072,
+      "name": "invalidate-n1048559-r1-beam.json",
+      "sha256": "9ebc15586eb63a56333166e083754ff423a3c12a25002c5a3eadceefbc34d664"
+    },
+    {
+      "bytes": 134941,
+      "name": "invalidate-n1048559-r1-beam_ndu.json",
+      "sha256": "b0c0810f8ff9fa51381fa499c0cc534409845937a955fb6e6e9e84225b47ba02"
+    },
+    {
+      "bytes": 49202,
+      "name": "invalidate-n1048559-r1-direct.json",
+      "sha256": "5efee116db1bc72abe32a27bad7201108278b1989305d6c8169d284f96c1920a"
+    },
+    {
+      "bytes": 250655,
+      "name": "invalidate-n1048559-r1-exact_dp.json",
+      "sha256": "ce93a66a764b27bc2d5cde150135e2432aa70f30b73e475bcd8c97508339524a"
+    },
+    {
+      "bytes": 50019,
+      "name": "invalidate-n1048559-r1-fixed.json",
+      "sha256": "a1bdb358b7d7aa25cb97c0209f4b376e39c7fc77d4fa8db945733f99d6c3e373"
+    },
+    {
+      "bytes": 250453,
+      "name": "invalidate-n1048559-r1-light.json",
+      "sha256": "fcece471d9a123a753ee2b399c940d889fd334bf879d9f96b0bcaba034297c07"
+    },
+    {
+      "bytes": 50020,
+      "name": "invalidate-n1048559-r1-local_light.json",
+      "sha256": "a09ede4ee4f27199c345245c28cc6611aef88efb81195c1be0aa0ad69212ee48"
+    },
+    {
+      "bytes": 55069,
+      "name": "invalidate-n262157-r0-beam.json",
+      "sha256": "b6875e0d9e8b0e56795c320e904440f2d3dbbb513c0e776b5799bd82962318b6"
+    },
+    {
+      "bytes": 55080,
+      "name": "invalidate-n262157-r0-beam_ndu.json",
+      "sha256": "f62be0da370a3da99b4313c276419b8596a5a296055675904c49d42c42e09910"
+    },
+    {
+      "bytes": 49015,
+      "name": "invalidate-n262157-r0-direct.json",
+      "sha256": "1ce044bf1d030558627291cfab80873a361e7cd86814f4c0e7fc98fb0dc843bd"
+    },
+    {
+      "bytes": 55076,
+      "name": "invalidate-n262157-r0-exact_dp.json",
+      "sha256": "61cee60beb204dafa8959e86103f27be7db57dd0c14742eec42521087d2bb827"
+    },
+    {
+      "bytes": 49842,
+      "name": "invalidate-n262157-r0-fixed.json",
+      "sha256": "5c7c5397cb9aa740dc3b8ed5fccfac0d6eaca7584c1cd075508af0757805ef15"
+    },
+    {
+      "bytes": 55058,
+      "name": "invalidate-n262157-r0-light.json",
+      "sha256": "fb8e9e22d4b7f7bd962b1766e283a88c1cd828a88caab49ec2eac4865b803a8c"
+    },
+    {
+      "bytes": 49899,
+      "name": "invalidate-n262157-r0-local_light.json",
+      "sha256": "16e7d1be7d393c8f9c8aee6c01294042cdbe6369cafde25c3b91757427edd6a5"
+    },
+    {
+      "bytes": 55091,
+      "name": "invalidate-n262157-r1-beam.json",
+      "sha256": "95a567c22d5adf1a52901bfcf07a799c2f21c4d1e4afdec03e05626398b6ad8f"
+    },
+    {
+      "bytes": 55099,
+      "name": "invalidate-n262157-r1-beam_ndu.json",
+      "sha256": "23a71e8b59d86dbcd76f63dca995dbfe27678a765e5a401b5ee3e7c47efa09a7"
+    },
+    {
+      "bytes": 49028,
+      "name": "invalidate-n262157-r1-direct.json",
+      "sha256": "77ccea05e98024077c899b7114ca471de3d8d4ee7ba3f3330f988a2920591359"
+    },
+    {
+      "bytes": 55099,
+      "name": "invalidate-n262157-r1-exact_dp.json",
+      "sha256": "4e3dd7e59b5f92b5f627e2f73499c583e933fafef114ca7775a9de904418b5b9"
+    },
+    {
+      "bytes": 49855,
+      "name": "invalidate-n262157-r1-fixed.json",
+      "sha256": "66b2b32c3066032a21a70661be0ce8dd614233b4f83a6451c10c2e40c5340048"
+    },
+    {
+      "bytes": 55081,
+      "name": "invalidate-n262157-r1-light.json",
+      "sha256": "ff5b91a14e41b7586a52aef3b887e0d838012dcf158de744672394ee52904437"
+    },
+    {
+      "bytes": 49858,
+      "name": "invalidate-n262157-r1-local_light.json",
+      "sha256": "d723292d6cdee09a811ce1af566e289894d1af9641bba7b3ded285089eec0170"
+    },
+    {
+      "bytes": 5803,
+      "name": "kernel.core.json",
+      "sha256": "a47e938da2c8310763cf1256349f41eec89c5b55ea9df43c90ed2f8c1ce158b0"
+    },
+    {
+      "bytes": 7274,
+      "name": "kernel.ll",
+      "sha256": "8c25d2fc62e87d3beb10f21075ca5d363c29e02ff22b816e3bddd6f997ed0cd7"
+    },
+    {
+      "bytes": 15496,
+      "name": "kernel.so",
+      "sha256": "3c1bd1f6a16e2f82ec368cd12566253ce1045e7a2127c7f250d62eb873482449"
+    },
+    {
+      "bytes": 353184,
+      "name": "phase_shift-n1048559-r0-beam.json",
+      "sha256": "8643625f8db6aed45fef4c686c5d5e61ffdb0be585629aed8e4b005f870f66f2"
+    },
+    {
+      "bytes": 364570,
+      "name": "phase_shift-n1048559-r0-beam_ndu.json",
+      "sha256": "5714aaeb8fc15b9dba4af28261650fd38868093b676f37da78400b81e893e80c"
+    },
+    {
+      "bytes": 48307,
+      "name": "phase_shift-n1048559-r0-direct.json",
+      "sha256": "3d8db65b3bd35c6d96ce7770daeb7450b965cf62de5f412dfc31fef35741f204"
+    },
+    {
+      "bytes": 196691,
+      "name": "phase_shift-n1048559-r0-exact_dp.json",
+      "sha256": "4ad78d50bf038407c476cbf5095acbc6f721850af5a4221d67a8c3aaf752d192"
+    },
+    {
+      "bytes": 48890,
+      "name": "phase_shift-n1048559-r0-fixed.json",
+      "sha256": "00f2812bd9745031bfdfd85a5528d8140c139309d25b2c48d02a0c573a9b8108"
+    },
+    {
+      "bytes": 169825,
+      "name": "phase_shift-n1048559-r0-light.json",
+      "sha256": "359e86042ce9d0fcc9112feb9d9a4ca4db9be4215456805ca8dc3edc818a468e"
+    },
+    {
+      "bytes": 49401,
+      "name": "phase_shift-n1048559-r0-local_light.json",
+      "sha256": "7fbd1279673edf123ec8798c66f6e517fd4bdf89c73a01796fbd7ced36c6d4ca"
+    },
+    {
+      "bytes": 416539,
+      "name": "phase_shift-n1048559-r1-beam.json",
+      "sha256": "44d0c1dea135285fc1ea7412873dc872cf9afcaed07e059abeecb0481539e93a"
+    },
+    {
+      "bytes": 430853,
+      "name": "phase_shift-n1048559-r1-beam_ndu.json",
+      "sha256": "728b9d1028fb1f1bfaff35cbbaded5f8b49032cb849ba2e1b9cedea96dae5234"
+    },
+    {
+      "bytes": 48333,
+      "name": "phase_shift-n1048559-r1-direct.json",
+      "sha256": "407ba6aef75b8193029bad0ae26bea8a9155716e269aae254b0e74e3542c0b72"
+    },
+    {
+      "bytes": 196742,
+      "name": "phase_shift-n1048559-r1-exact_dp.json",
+      "sha256": "4e85c84568d2529e53f936b80b0d4aa7d3b29b3ffe891321c1a0a4895ab758ed"
+    },
+    {
+      "bytes": 48914,
+      "name": "phase_shift-n1048559-r1-fixed.json",
+      "sha256": "100ca70a32881bc0ab3a2d1571ae228ac5909a7760385433ff67fd01ffd4210e"
+    },
+    {
+      "bytes": 169930,
+      "name": "phase_shift-n1048559-r1-light.json",
+      "sha256": "a9e5aa53bd9b9829accb9c8ee20aa099bd3c0a99fcd9cb9517822e047699d12d"
+    },
+    {
+      "bytes": 49415,
+      "name": "phase_shift-n1048559-r1-local_light.json",
+      "sha256": "cc2e09ba18a4c9b14d059bd9aa074afba1a04c518382875f9792ba361176abec"
+    },
+    {
+      "bytes": 54204,
+      "name": "phase_shift-n262157-r0-beam.json",
+      "sha256": "76bfe05e0ae363223e8ceaa891f84b387fc8b2317c219fd0dce983cd47cb4d06"
+    },
+    {
+      "bytes": 54212,
+      "name": "phase_shift-n262157-r0-beam_ndu.json",
+      "sha256": "da84da939b3e6aa6b37c5064c0e60429edf3f6107678b982745d18d62280368e"
+    },
+    {
+      "bytes": 48134,
+      "name": "phase_shift-n262157-r0-direct.json",
+      "sha256": "9e9504779d37cbbcc3f0d525792ca9bef127c243bcf81514d98585e7b375d861"
+    },
+    {
+      "bytes": 54210,
+      "name": "phase_shift-n262157-r0-exact_dp.json",
+      "sha256": "62324166c2524f7d81a83ee68b7f8afa50412370b48cb4f2233b5f49c39c8188"
+    },
+    {
+      "bytes": 48727,
+      "name": "phase_shift-n262157-r0-fixed.json",
+      "sha256": "b1f11fd40a1a440b656a9e735f4b3086ebbee224eb94a51765c189e99a867bd7"
+    },
+    {
+      "bytes": 54193,
+      "name": "phase_shift-n262157-r0-light.json",
+      "sha256": "008b4ab4e70bd42d9900f5dd960d37be7babf64cd9aa9c8de2dce0b46296b3ce"
+    },
+    {
+      "bytes": 49244,
+      "name": "phase_shift-n262157-r0-local_light.json",
+      "sha256": "5d5e737590a234b6acb4b2a88b9b452df634bbad3d85d34c8af8b2a999927123"
+    },
+    {
+      "bytes": 54228,
+      "name": "phase_shift-n262157-r1-beam.json",
+      "sha256": "34de51e339afa6f335b5fa920a66ea6381aa68ff87fad0e05b98d26a0c233aa3"
+    },
+    {
+      "bytes": 54237,
+      "name": "phase_shift-n262157-r1-beam_ndu.json",
+      "sha256": "f869d13a03b96473dc207fed5334ab3227a4960eafc5e666adde20fbfc42a546"
+    },
+    {
+      "bytes": 48160,
+      "name": "phase_shift-n262157-r1-direct.json",
+      "sha256": "2f7dd0db5f0e8af087c172cfdedc9166ebf883a8ba2f1c4aaf054e6010514ea4"
+    },
+    {
+      "bytes": 54236,
+      "name": "phase_shift-n262157-r1-exact_dp.json",
+      "sha256": "1cdaf8c2505b4c6be8590136641cc23512a1cb9312dc3fe892523d399e332c5a"
+    },
+    {
+      "bytes": 48754,
+      "name": "phase_shift-n262157-r1-fixed.json",
+      "sha256": "23243ee7d6c6f6abe440831f6f5453d4b836de6ae0555afffbfd8ba2b8d1d806"
+    },
+    {
+      "bytes": 54218,
+      "name": "phase_shift-n262157-r1-light.json",
+      "sha256": "ddb82f4c1d8859ac6d532c2bc714d1ef13dc87293896fc5815dc578795653f73"
+    },
+    {
+      "bytes": 49259,
+      "name": "phase_shift-n262157-r1-local_light.json",
+      "sha256": "32d3042b3519fa5c2230d46bab3f0a0dced7d87e2293e0925795081182fac76d"
+    },
+    {
+      "bytes": 448517,
+      "name": "planner-beam.jsonl",
+      "sha256": "434ceb423dc95ba353038c17eac1065a2b4dfb712bb98ae9929a97cb25f75f05"
+    },
+    {
+      "bytes": 469710,
+      "name": "planner-beam_ndu.jsonl",
+      "sha256": "9e88941b18def66217d1e3c94e4e4d2eeebf60bd9043d511807d42b93cdf5cd0"
+    },
+    {
+      "bytes": 266536,
+      "name": "planner-exact_dp.jsonl",
+      "sha256": "1537c3c911c21ce2c0d5f99489f41182d92bfd30c88192652a222cd016012640"
+    },
+    {
+      "bytes": 246572,
+      "name": "planner-light.jsonl",
+      "sha256": "20969bedc3cf04340f48fae6708828ef89315bf83e79f8b1164814a4ef8a1c17"
+    },
+    {
+      "bytes": 4331608,
+      "name": "raw.jsonl",
+      "sha256": "5c144182406229f0553aea0e0f0447019b061b02a2385189e8abdce86562dcf7"
+    },
+    {
+      "bytes": 24705,
+      "name": "registration.json",
+      "sha256": "ea6561e4664a9551fc180677877491211483e0e776c2f4091006bccf8e11aa3f"
+    },
+    {
+      "bytes": 8974782,
+      "name": "result.json",
+      "sha256": "9a82d9bc7f8bc414752925b29252a49dfa8a5d731b7a55c054e5418621528ddc"
+    },
+    {
+      "bytes": 131176,
+      "name": "stable-n1048559-r0-beam.json",
+      "sha256": "bc183792f96e6750835a12387345e6342fac3567bafcb74c93cb8d7ee744b688"
+    },
+    {
+      "bytes": 134046,
+      "name": "stable-n1048559-r0-beam_ndu.json",
+      "sha256": "90ef699000bb71d2575bb6c392993f3de11dadf6e45de2fa689f5f4d986951c4"
+    },
+    {
+      "bytes": 48297,
+      "name": "stable-n1048559-r0-direct.json",
+      "sha256": "e6ef55702e9ef1eaa2f347e22fdf3b82d6a40ad8e0d6bce8fe08b3f164515671"
+    },
+    {
+      "bytes": 83489,
+      "name": "stable-n1048559-r0-exact_dp.json",
+      "sha256": "6587cff709830f1e35bc5b71e3321f22c12cccc72122876dd0f7d2289675a945"
+    },
+    {
+      "bytes": 48850,
+      "name": "stable-n1048559-r0-fixed.json",
+      "sha256": "32e7b790b43dac685e8fde807426a949bec1288748e39bffe2375c3df97ed2ad"
+    },
+    {
+      "bytes": 83459,
+      "name": "stable-n1048559-r0-light.json",
+      "sha256": "ea9ed2f276f7b9e496b4c8d6cbde7cae821e3c3ed42d6fa744fe2f6f211d8fae"
+    },
+    {
+      "bytes": 49042,
+      "name": "stable-n1048559-r0-local_light.json",
+      "sha256": "43db5f1f05f8694771e83359a1c8acc1509877054bda9ad57bef8c161385bdbc"
+    },
+    {
+      "bytes": 207031,
+      "name": "stable-n1048559-r1-beam.json",
+      "sha256": "6cf57e483c390de9a661b5c87611acf4471420913204ba95ba9dcfb471075d51"
+    },
+    {
+      "bytes": 212697,
+      "name": "stable-n1048559-r1-beam_ndu.json",
+      "sha256": "8594c00172c0c5dcde3e7340e27924b8a536a7bf1b3269545788b4366a8a9445"
+    },
+    {
+      "bytes": 48323,
+      "name": "stable-n1048559-r1-direct.json",
+      "sha256": "44671b3ace618368a61483ada3a1eb0187422c1f73f616c9feaeb24baad8306a"
+    },
+    {
+      "bytes": 83517,
+      "name": "stable-n1048559-r1-exact_dp.json",
+      "sha256": "f37dfdda31cc84b580515c69c8cc6f7b07305e4556e077a920b70944fbe32378"
+    },
+    {
+      "bytes": 48876,
+      "name": "stable-n1048559-r1-fixed.json",
+      "sha256": "e7b992af383c7c50e321ff4eb349c1d34058d0d1a7f0a02aabb3fa686ee96ed4"
+    },
+    {
+      "bytes": 83484,
+      "name": "stable-n1048559-r1-light.json",
+      "sha256": "66badda11a457ca7eeab20c2273d0d76235b7cf1dd5bc51dc201fe8628c6bf5f"
+    },
+    {
+      "bytes": 49068,
+      "name": "stable-n1048559-r1-local_light.json",
+      "sha256": "10fba9682d7c4e2075b3c095f82ad40f472309cfe11aa23899ba52010f4a1d9b"
+    },
+    {
+      "bytes": 54193,
+      "name": "stable-n262157-r0-beam.json",
+      "sha256": "c8967bf6a9482dff3e4b885336e26ec2e9564a5a541304058f2c0c6b5db1af32"
+    },
+    {
+      "bytes": 54201,
+      "name": "stable-n262157-r0-beam_ndu.json",
+      "sha256": "7685acd3901328bab9abac83b2fbd23b9bf1a10dfe744af9bd50d7866f5e60fe"
+    },
+    {
+      "bytes": 48124,
+      "name": "stable-n262157-r0-direct.json",
+      "sha256": "83fce1527ac9cb63e3509eaf6bbe04ee48c3a1cccedd457055e6152aabff0666"
+    },
+    {
+      "bytes": 54199,
+      "name": "stable-n262157-r0-exact_dp.json",
+      "sha256": "eef2c15dc011df4d7b8be6c1e418e290f54c2d999c96fca6c37f149e3156f14f"
+    },
+    {
+      "bytes": 48703,
+      "name": "stable-n262157-r0-fixed.json",
+      "sha256": "346dac9797ed35b7c229a1934469b17bc9c1cc30ec9f4fc09514cdc022a94ca0"
+    },
+    {
+      "bytes": 54182,
+      "name": "stable-n262157-r0-light.json",
+      "sha256": "a069df85ceb0baab8c38bbed2c273215184120485c44a00e5ba78d127c79eb4f"
+    },
+    {
+      "bytes": 48896,
+      "name": "stable-n262157-r0-local_light.json",
+      "sha256": "6d32602663ad2478887c037a3627ee3bd6437ddc7f7750ec1580219b5060d425"
+    },
+    {
+      "bytes": 54224,
+      "name": "stable-n262157-r1-beam.json",
+      "sha256": "f3397950de33d4fe4376ed0bcb20273a20a0fdec2e1d534e054ec2da30b53ae9"
+    },
+    {
+      "bytes": 54232,
+      "name": "stable-n262157-r1-beam_ndu.json",
+      "sha256": "bdf02055fc4138d0fc3ee03b1f942f596bf865cf64df8c61173f9abded76013c"
+    },
+    {
+      "bytes": 48150,
+      "name": "stable-n262157-r1-direct.json",
+      "sha256": "7c7fbf48aaf2542ae6fd0666dc39a2ad645026395ec06503332a7665b27f63bb"
+    },
+    {
+      "bytes": 54233,
+      "name": "stable-n262157-r1-exact_dp.json",
+      "sha256": "e9bbd1ce317bfa4b0de8958aeb1b1b89f35df877f952e91b70bee85346147267"
+    },
+    {
+      "bytes": 48730,
+      "name": "stable-n262157-r1-fixed.json",
+      "sha256": "daad2e4d47e3fce0061064646940e86adf80b8d78434ef236f0e535cecb8e5b2"
+    },
+    {
+      "bytes": 54215,
+      "name": "stable-n262157-r1-light.json",
+      "sha256": "2b3f5b195025a98ab11a10bafa86bc96ae2b40bf58ed6ed9c7f1005e34299bcb"
+    },
+    {
+      "bytes": 48921,
+      "name": "stable-n262157-r1-local_light.json",
+      "sha256": "e7eb092630b409780ec5c591f9656b8c0bfe902fa6d4a339080ae6bf20656a21"
+    },
+    {
+      "bytes": 2363,
+      "name": "summary.json",
+      "sha256": "3086729f4b2c8b7f894c12421f5dbdaa6d281c85eddb1411df0a7c8aa4157589"
+    }
+  ],
+  "maxrss_kib_process_highwater": 39912,
+  "native_kernel_calls": 764,
+  "native_kernel_timed_ns": 286436068,
+  "observed_campaign_wall_ns": 2114788649,
+  "paired_ablation": {
+    "identical_candidates": true,
+    "identical_model": true,
+    "identical_selected_action": true
+  },
+  "planner_calibration": {
+    "beam": {
+      "close_estimate": "zero in model for already resident campaign session; actual close charged separately",
+      "estimates": {
+        "close_ns": 0,
+        "gate_ns": 93011,
+        "solve_ns": 102409,
+        "startup_ns": 8888324,
+        "transport_validation_ns": 4002919
+      },
+      "samples": [
+        {
+          "gate_ns": 93011,
+          "outer_call_ns": 4107534,
+          "search_ns": 104615
+        },
+        {
+          "gate_ns": 82986,
+          "outer_call_ns": 4466407,
+          "search_ns": 97329
+        },
+        {
+          "gate_ns": 94786,
+          "outer_call_ns": 4043983,
+          "search_ns": 102409
+        }
+      ],
+      "wall_ns": 13350133
+    },
+    "beam_ndu": {
+      "close_estimate": "zero in model for already resident campaign session; actual close charged separately",
+      "estimates": {
+        "close_ns": 0,
+        "gate_ns": 84796,
+        "solve_ns": 104637,
+        "startup_ns": 8474359,
+        "transport_validation_ns": 4525823
+      },
+      "samples": [
+        {
+          "gate_ns": 88877,
+          "outer_call_ns": 4630460,
+          "search_ns": 104637
+        },
+        {
+          "gate_ns": 84592,
+          "outer_call_ns": 4740674,
+          "search_ns": 101023
+        },
+        {
+          "gate_ns": 84796,
+          "outer_call_ns": 4266307,
+          "search_ns": 158316
+        }
+      ],
+      "wall_ns": 14376798
+    },
+    "exact_dp": {
+      "close_estimate": "zero in model for already resident campaign session; actual close charged separately",
+      "estimates": {
+        "close_ns": 0,
+        "gate_ns": 88816,
+        "solve_ns": 205104,
+        "startup_ns": 8860211,
+        "transport_validation_ns": 1862049
+      },
+      "samples": [
+        {
+          "gate_ns": 111284,
+          "outer_call_ns": 2100251,
+          "search_ns": 238202
+        },
+        {
+          "gate_ns": 83151,
+          "outer_call_ns": 1931159,
+          "search_ns": 188626
+        },
+        {
+          "gate_ns": 88816,
+          "outer_call_ns": 2114417,
+          "search_ns": 205104
+        }
+      ],
+      "wall_ns": 6903602
+    },
+    "light": {
+      "close_estimate": "zero in model for already resident campaign session; actual close charged separately",
+      "estimates": {
+        "close_ns": 0,
+        "gate_ns": 85738,
+        "solve_ns": 24778,
+        "startup_ns": 9876136,
+        "transport_validation_ns": 1942546
+      },
+      "samples": [
+        {
+          "gate_ns": 106629,
+          "outer_call_ns": 1948185,
+          "search_ns": 30970
+        },
+        {
+          "gate_ns": 85013,
+          "outer_call_ns": 1967324,
+          "search_ns": 24778
+        },
+        {
+          "gate_ns": 85738,
+          "outer_call_ns": 2076000,
+          "search_ns": 24121
+        }
+      ],
+      "wall_ns": 6762256
+    }
+  },
+  "planner_lifecycle": {
+    "beam": {
+      "calls": 18,
+      "close_ns": 1356284,
+      "returncode": 0,
+      "startup_ns": 8888324
+    },
+    "beam_ndu": {
+      "calls": 18,
+      "close_ns": 519821,
+      "returncode": 0,
+      "startup_ns": 8474359
+    },
+    "exact_dp": {
+      "calls": 26,
+      "close_ns": 579386,
+      "returncode": 0,
+      "startup_ns": 8860211
+    },
+    "light": {
+      "calls": 24,
+      "close_ns": 1489362,
+      "returncode": 0,
+      "startup_ns": 9876136
+    }
+  },
+  "registration": {
+    "command": [
+      "tools/qualify_hia_result_cache.py",
+      "--output",
+      "/data/hepta-hia-round4-9925-20261105/evidence-result-cache-pilot1",
+      "--clang",
+      "/data/hepta-hia-round2-20261104/toolchains/clang20/usr/lib/llvm-20/bin/clang",
+      "--planner",
+      "/data/hepta-hia-round3-20261105/evidence/ndu-build-r1/target/release/hia-ndu-bridge",
+      "--planner-manifest",
+      "/data/hepta-hia-round3-20261105/evidence/ndu-build-r1/build-receipt.json"
+    ],
+    "cpu_affinity": [
+      14
+    ],
+    "existing_planner_build": {
+      "cargo_wall_ns": 91940468878,
+      "child_cpu_ns": 89849307000,
+      "completed": true,
+      "dependency_cache_state": "not independently measured; acquisition charged if incurred",
+      "fully_cold_machine_claim": false,
+      "parent_cpu_ns": 154559004,
+      "schema": "hepta.hia.ndu.build-cost.v1",
+      "scope": "build() entry through pinned-source extraction, staging, Cargo, source/tool/binary validation and receipt preparation; excludes final receipt write, Python imports and caller startup",
+      "target_cache_at_start": "absent",
+      "wall_ns": 92447315372
+    },
+    "holdout_started": false,
+    "load_average": [
+      11.46533203125,
+      11.62451171875,
+      12.7431640625
+    ],
+    "planner": {
+      "bytes": 1251544,
+      "path": "/data/hepta-hia-round3-20261105/evidence/ndu-build-r1/target/release/hia-ndu-bridge",
+      "sha256": "2abca59106c8bacfa5d79f5243996a85d66e0d4b12af430f7c11970643179cce"
+    },
+    "planner_manifest": {
+      "bytes": 31731,
+      "path": "/data/hepta-hia-round3-20261105/evidence/ndu-build-r1/build-receipt.json",
+      "sha256": "5c7d95be87e972cb829f2979b02cf010aed253ebb3b9dab996fd5725ac5daea9"
+    },
+    "protocol": {
+      "authority": "DENY_ALL",
+      "cache_slots": 2,
+      "calibration_repetitions": 5,
+      "candidate_set": "all subsets of four current-version exact results within two 64-byte slots; direct HIA is always available",
+      "comparison": "a P1 improvement requires actual NDU invocation and lower observed service plus fully allocated known deployment cost than every fixed/light/exact/beam control; failures retained; no retries for timing",
+      "completion_value_ns": 10000000000,
+      "cost_accounting": "record all observed wall time, component times, build/load/calibration/startup/close/logging/offline audit, payload byte-nanoseconds and process max RSS; no sum of nested timers",
+      "episode_budget_ns": 3000000000,
+      "families": [
+        "stable",
+        "phase_shift",
+        "invalidate"
+      ],
+      "fixed_selection": "all eleven legal masks, evaluated once on separate training traces and frozen before holdout",
+      "holdout_sizes": [
+        262157,
+        1048559
+      ],
+      "jobs_per_episode": 12,
+      "layout": "canonical",
+      "limitations": [
+        "small deterministic pilot",
+        "shared host and unknown energy/human/provisioning cost",
+        "Python orchestration and cache; real HIA computation",
+        "payload quota does not bound Python metadata, ELF mappings or native allocations",
+        "no hardware isolation claim",
+        "not a whole-program safety or speedup theorem"
+      ],
+      "local_light": "score each artifact's announced per-epoch reuse saving minus preparation/retirement, keep up to two positive scores; no native planner",
+      "lookahead": 8,
+      "native_planner": "unchanged original NDU bridge pinned by source and binary hash; same finite candidate grammar; gate retains preparation lower bound",
+      "object_count": 4,
+      "observation": "identical current state and next up to eight registered object/epoch/seed requests; no held-out runtime timings",
+      "payload_slot_bytes": 64,
+      "policies": [
+        "direct",
+        "fixed",
+        "local_light",
+        "light",
+        "exact_dp",
+        "beam",
+        "beam_ndu"
+      ],
+      "production_activation": false,
+      "repeats": 2,
+      "schema": "hepta.hia.result-cache.protocol.v1",
+      "scope": "sequential Linux x86_64 finite research pilot; distinct from Rust matvec",
+      "target": "x86_64-unknown-linux-gnu",
+      "training_n": 65521,
+      "training_seeds": [
+        3,
+        79,
+        251,
+        17
+      ],
+      "workload": "actual source-verified HIA native scalar byte initialization and checked reduction; exact result cache"
+    },
+    "python": {
+      "bytes": 8020928,
+      "path": "/usr/bin/python3.12",
+      "sha256": "e50d468e8b0adfb05733f5b87b3cff34829c4a8c1aea50c865aa8bdfe4bb150f"
+    },
+    "registered_unix_ns": 1793852541658075253,
+    "source": {
+      "commit": "b89e881a51eed933e93ee79bdace91bb5433848f",
+      "tracked_status": "",
+      "tree": "3e8f311e4198aebb2fb54a01980b38eb1295f685"
+    },
+    "uname": [
+      "Linux",
+      "qian-qi",
+      "7.0.0-38-generic",
+      "#38~24.04.4-Ubuntu SMP PREEMPT_DYNAMIC Mon Sep 14 16:37:11 UTC 2",
+      "x86_64"
+    ]
+  },
+  "sources_unchanged": true,
+  "training": {
+    "estimates": {
+      "cached_ns": 41744,
+      "direct_ns": 85308,
+      "prepare_ns": 84078,
+      "retire_ns": 2280
+    },
+    "forecast": "direct/preparation scale linearly by n/training_n; cache/retire stay constant; frozen",
+    "samples": {
+      "cached_ns": [
+        84357,
+        43459,
+        40731,
+        43597,
+        39900,
+        41683,
+        40362,
+        42306,
+        40199,
+        41806
+      ],
+      "direct_ns": [
+        112969,
+        87816,
+        85678,
+        85531,
+        83827,
+        91039,
+        80546,
+        84841,
+        85084,
+        83730
+      ],
+      "prepare_ns": [
+        73524,
+        85261,
+        84129,
+        98506,
+        83623,
+        84027,
+        125187,
+        93511,
+        69236,
+        83630
+      ],
+      "retire_ns": [
+        4562,
+        2576,
+        2247,
+        2271,
+        2253,
+        2100,
+        2430,
+        2736,
+        2290,
+        2150
+      ]
+    },
+    "wall_ns": 2366747
+  }
+}

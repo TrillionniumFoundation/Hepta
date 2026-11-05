@@ -1,12 +1,17 @@
 """Do not accept historical raw binaries or changed build streams as a fresh composition."""
 import copy
 import json
+import os
+import signal
 from pathlib import Path
+import sys
 import tempfile
+import time
 import unittest
 from unittest.mock import patch
 
 from tools import qualify_hia_composition as subject
+from experiments.hia_round4_20261105 import run_frozen_candidate as frozen
 
 
 class RawCompositionIdentityTests(unittest.TestCase):
@@ -82,6 +87,165 @@ class RawCompositionIdentityTests(unittest.TestCase):
         saved = json.loads((self.root/'missing-compiler.command.json').read_text())
         self.assertEqual(saved,row)
         self.assertEqual(set(row['logs']),{'missing-compiler.stdout','missing-compiler.stderr'})
+
+    def test_frozen_deadline_kills_a_term_resistant_owned_child(self):
+        ready = self.root/'term-resistant.ready'
+        # The self-alarm also bounds a regression to the old unbounded TERM
+        # behavior; it is not a successful observer cleanup.
+        code = ('import os,signal,time\n'
+                'signal.signal(signal.SIGTERM,signal.SIG_IGN)\n'
+                'signal.alarm(8)\n'
+                'open('+repr(str(ready))+',"w").write(str(os.getpid()))\n'
+                'print("retained-before-deadline",flush=True)\n'
+                'while True: signal.pause()\n')
+        started = time.monotonic()
+        result = frozen.run_with_deadline([sys.executable,'-u','-c',code],1,
+                                         capture_output=True,text=True)
+        elapsed = time.monotonic()-started
+        self.assertTrue(ready.is_file(), 'child must actually install its TERM handler')
+        self.assertEqual(result.returncode,124)
+        self.assertIn('retained-before-deadline', result.stdout)
+        self.assertLess(elapsed,6, 'cleanup must precede the fixture self-alarm')
+        pid = int(ready.read_text())
+        status = Path('/proc')/str(pid)/'stat'
+        try:
+            state = status.read_text().rsplit(')',1)[1].split()[0]
+        except (FileNotFoundError, ProcessLookupError):
+            state = None
+        self.assertIsNone(state, 'owned direct child must be reaped')
+
+    def test_frozen_capture_refuses_live_descendant_after_leader_exit(self):
+        ready = self.root/'descendant.ready'
+        code = ('import os,signal,time\n'
+                'child=os.fork()\n'
+                'if child:\n'
+                '    time.sleep(0.1)\n'
+                '    os._exit(0)\n'
+                'signal.signal(signal.SIGTERM,signal.SIG_IGN)\n'
+                'signal.alarm(8)\n'
+                'open('+repr(str(ready))+',"w").write(str(os.getpid()))\n'
+                'print("descendant-keeps-capture",flush=True)\n'
+                'while True: signal.pause()\n')
+        started = time.monotonic()
+        result = frozen.run_with_deadline([sys.executable,'-u','-c',code],1,
+                                         capture_output=True,text=True)
+        self.assertTrue(ready.is_file(), 'same-group descendant must actually start')
+        # File-backed capture observes the exited leader directly; a live
+        # descendant is terminal failure 125, not a new success deadline.
+        self.assertEqual(result.returncode,125)
+        self.assertIn('descendant-keeps-capture',result.stdout)
+        self.assertLess(time.monotonic()-started,6)
+        pid = int(ready.read_text())
+        # An adopted descendant may close its descriptors before the kernel
+        # publishes Z/absence. Observe settlement within the same cleanup
+        # allowance; do not mislabel this observation as descendant reaping.
+        settle_until = min(started+3,time.monotonic()+0.5)
+        while True:
+            try:
+                state = (Path('/proc')/str(pid)/'stat').read_text().rsplit(')',1)[1].split()[0]
+            except (FileNotFoundError, ProcessLookupError):
+                state = None
+            if state in (None,'Z','X') or time.monotonic() >= settle_until:
+                break
+            time.sleep(0.005)
+        self.assertIn(state,(None,'Z','X'), 'same-group capture writer must no longer execute')
+
+    def test_frozen_deadline_preserves_normal_status_and_both_streams(self):
+        for status in (0,7):
+            with self.subTest(status=status):
+                code = ('import sys\nprint("stdout-prefix")\n'
+                        'print("stderr-prefix",file=sys.stderr)\nsys.exit('+str(status)+')\n')
+                result = frozen.run_with_deadline([sys.executable,'-c',code],10,
+                                                 capture_output=True,text=True)
+                self.assertEqual(result.returncode,status)
+                self.assertEqual(result.stdout,'stdout-prefix\n')
+                self.assertEqual(result.stderr,'stderr-prefix\n')
+
+    def _stop_owned_fixture_descendant(self, ready):
+        """Failing regressions clean only the recorded instance, using a pidfd."""
+        if not ready.exists():
+            return
+        identity = json.loads(ready.read_text())
+        pid = identity['pid']
+        try:
+            fd = os.pidfd_open(pid)
+        except ProcessLookupError:
+            return
+        try:
+            try:
+                fields = (Path('/proc')/str(pid)/'stat').read_text().rsplit(')',1)[1].split()
+            except (FileNotFoundError, ProcessLookupError):
+                return
+            self.assertEqual(fields[19], identity['starttime'])
+            self.assertEqual(int(fields[2]), identity['pgid'])
+            if fields[0] not in ('Z','X'):
+                signal.pidfd_send_signal(fd, signal.SIGKILL)
+        finally:
+            os.close(fd)
+        end = time.monotonic()+1
+        while True:
+            try:
+                fields = (Path('/proc')/str(pid)/'stat').read_text().rsplit(')',1)[1].split()
+                state = fields[0] if fields[19] == identity['starttime'] else None
+            except (FileNotFoundError, ProcessLookupError):
+                state = None
+            if state in (None,'Z','X') or time.monotonic() >= end:
+                break
+            time.sleep(0.005)
+        self.assertIn(state,(None,'Z','X'), 'owned regression descendant must stop')
+
+    def test_frozen_regular_files_refuse_success_with_a_live_descendant(self):
+        ready = self.root/'regular-descendant.ready'
+        code = ('import json,os,signal,time\n'
+                'from pathlib import Path\n'
+                'ready=Path('+repr(str(ready))+')\n'
+                'child=os.fork()\n'
+                'if child:\n'
+                '    signal.alarm(5)\n'
+                '    while not ready.exists(): time.sleep(0.001)\n'
+                '    os._exit(0)\n'
+                'signal.signal(signal.SIGTERM,signal.SIG_IGN)\n'
+                'signal.alarm(8)\n'
+                'print("regular-file-descendant",flush=True)\n'
+                'print("regular-file-stderr",file=__import__("sys").stderr,flush=True)\n'
+                'fields=Path("/proc/self/stat").read_text().rsplit(")",1)[1].split()\n'
+                'temporary=ready.with_suffix(".pending")\n'
+                'temporary.write_text(json.dumps({"pid":os.getpid(),"pgid":os.getpgrp(),"starttime":fields[19]}))\n'
+                'os.replace(temporary,ready)\n'
+                'while True: signal.pause()\n')
+        started = time.monotonic()
+        try:
+            with (self.root/'regular.stdout').open('wb') as out, (self.root/'regular.stderr').open('wb') as err:
+                result = frozen.run_with_deadline([sys.executable,'-u','-c',code],3,
+                                                 stdout=out,stderr=err)
+            self.assertTrue(ready.is_file(), 'live same-group descendant must really start')
+            self.assertEqual(result.returncode,125, 'leader exit 0 cannot attest group completion')
+            self.assertLess(time.monotonic()-started,5, 'terminal cleanup must precede the self-alarm')
+            self.assertEqual((self.root/'regular.stdout').read_text(),'regular-file-descendant\n')
+            self.assertEqual((self.root/'regular.stderr').read_text(),'regular-file-stderr\n')
+            self.assertIsNone(result.stdout)
+            self.assertIsNone(result.stderr)
+        finally:
+            self._stop_owned_fixture_descendant(ready)
+
+    def test_frozen_group_signal_precedes_leader_reaping(self):
+        observed = []
+        signal_group = os.killpg
+
+        def observe(leader, sig):
+            terminal = os.waitid(os.P_PID,leader,os.WEXITED|os.WNOWAIT|os.WNOHANG)
+            observed.append((leader,terminal.si_pid if terminal is not None else None,
+                             os.getpgid(leader),os.getsid(leader),sig))
+            return signal_group(leader,sig)
+
+        with patch.object(frozen.os,'killpg',side_effect=observe):
+            result = frozen.run_with_deadline([sys.executable,'-c','pass'],3,capture_output=True,text=True)
+        self.assertEqual(result.returncode,0)
+        self.assertEqual(len(observed),1)
+        leader,terminal,group,session,sig = observed[0]
+        self.assertEqual((terminal,group,session,sig),(leader,leader,leader,signal.SIGKILL))
+        self.assertFalse((Path('/proc')/str(leader)).exists(), 'direct leader must finally be reaped')
+
 
     def test_boolean_returncode_and_changed_fixed_argv_are_rejected(self):
         changed = copy.deepcopy(self.manifest)

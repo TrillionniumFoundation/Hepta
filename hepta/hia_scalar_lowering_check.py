@@ -109,13 +109,14 @@ class _LLVM:
                 self.blocks[label].append(line)
         _require(self.entry in self.blocks, "selected LLVM entry block is missing")
         _require(next(iter(self.blocks)) == self.entry, "LLVM entry order differs from selected Core entry")
-        definitions = list(self.env)
-        for lines in self.blocks.values():
+        self.definition_blocks = {name: None for name in self.env}
+        for label, lines in self.blocks.items():
+            self.budget.check()
             for line in lines:
                 match = re.fullmatch(rf"({_NAME}) = (.+)", line)
                 if match:
-                    definitions.append(match[1])
-        _require(len(definitions) == len(set(definitions)), "duplicate LLVM SSA definition")
+                    _require(match[1] not in self.definition_blocks, "duplicate LLVM SSA definition")
+                    self.definition_blocks[match[1]] = label
         self.aborted = z.BoolVal(False, ctx=context)
         self.poison = z.BoolVal(False, ctx=context)
         self.path = z.BoolVal(True, ctx=context)
@@ -242,46 +243,103 @@ class _LLVM:
             return pair[int(index)]
         raise ScalarLoweringRejected("LLVM expression is outside the audited profile: " + expression)
 
-    def execute(self):
-        z = self.z
+    def phi_plan(self):
+        """Check PHI edges and return signatures before path interpretation.
+
+        This is a bounded check for the existing acyclic scalar subset, not an
+        LLVM verifier. The subset admits one PHI value per predecessor; parallel
+        edges to a PHI block remain outside it, as do cycles and unknown syntax.
+        """
         graph = {}
         for label, lines in self.blocks.items():
+            self.budget.check()
             _require(lines, "empty LLVM block")
             term = lines[-1]
+            # Type validity cannot depend on a matching reference return path:
+            # a well-typed Core function may trap for every input.
+            returned = re.fullmatch(rf"ret i(\d+) ({_VALUE})", term)
+            if returned:
+                expected_width = WIDTHS.get(self.return_type, 1 if self.return_type == "bool" else 8)
+                _require(_width(returned[1]) == expected_width,
+                         "LLVM return type differs from selected function signature")
             branch = re.fullmatch(rf"br i1 ({_VALUE}), label %([A-Za-z_0-9]+), label %([A-Za-z_0-9]+)", term)
             jump = re.fullmatch(r"br label %([A-Za-z_0-9]+)", term)
             graph[label] = list(branch.groups()[1:]) if branch else [jump[1]] if jump else []
-        _acyclic(graph)
-        predecessors = {name: {origin for origin, targets in graph.items() if name in targets} for name in graph}
+        _require(len(graph) <= MAX_LLVM_STEPS, "LLVM block budget exceeded")
+        order = _acyclic(graph)
+        predecessors = {name: [] for name in graph}
+        for origin, targets in graph.items():
+            for target in targets:
+                predecessors[target].append(origin)
+        _require({name for name, origins in predecessors.items() if not origins} == {self.entry},
+                 "unaccounted LLVM blocks")
+        # Bit sets avoid quadratic Python set storage. In this acyclic graph,
+        # every predecessor has already supplied its complete dominator set.
+        bits = {name: 1 << index for index, name in enumerate(order)}
+        dominators = {}
+        for label in order:
+            self.budget.check()
+            origins = predecessors[label]
+            common = dominators[origins[0]] if origins else 0
+            for origin in origins[1:]:
+                common &= dominators[origin]
+            dominators[label] = common | bits[label]
+        plan = {}
+        for label, lines in self.blocks.items():
+            phis, seen_non_phi = [], False
+            for index, line in enumerate(lines):
+                self.budget.check()
+                phi = re.fullmatch(rf"({_NAME}) = phi i(\d+) (.+)", line)
+                if phi is None:
+                    seen_non_phi = True
+                    continue
+                _require(not seen_non_phi and label != self.entry and index < len(lines) - 1,
+                         "misplaced LLVM PHI")
+                name, width, incoming = phi.groups()
+                width = _width(width)
+                pieces = re.findall(rf"\[ ({_VALUE}), %([A-Za-z_0-9]+) \]", incoming)
+                _require(", ".join(f"[ {value}, %{origin} ]" for value, origin in pieces) == incoming and
+                         len({origin for _, origin in pieces}) == len(pieces) and
+                         sorted(origin for _, origin in pieces) == sorted(predecessors[label]),
+                         "malformed LLVM PHI")
+                for token, origin in pieces:
+                    self.budget.check()
+                    if token.startswith("%"):
+                        _require(token in self.definition_blocks, "undefined LLVM PHI value")
+                        owner = self.definition_blocks[token]
+                        _require(owner is None or dominators[origin] & bits[owner],
+                                 "LLVM PHI value does not dominate its incoming edge")
+                phis.append((name, width, {origin: token for token, origin in pieces}))
+            plan[label] = tuple(phis)
+        return plan
+
+    def execute(self):
+        z = self.z
+        phis = self.phi_plan()
         pending = [(self.entry, None, dict(self.env), self.path)]
         reached, returns = set(), []
         while pending:
             label, previous, self.env, self.path = pending.pop()
             reached.add(label)
             lines = self.blocks[label]
-            seen_non_phi = False
-            for index, line in enumerate(lines):
+            # Read every PHI RHS from the predecessor environment before any
+            # result is bound. Textual PHI order never creates an edge value.
+            phi_values = {}
+            for name, bits, incoming in phis[label]:
+                self.budget.consume()
+                self.steps += 1
+                _require(previous in incoming and name not in self.env, "LLVM PHI lacks incoming edge")
+                phi_values[name] = self.value(incoming[previous], bits)
+            self.env.update(phi_values)
+            for index in range(len(phis[label]), len(lines)):
+                line = lines[index]
                 self.budget.consume()
                 self.steps += 1
                 match = re.fullmatch(rf"({_NAME}) = (.+)", line)
                 if match:
                     name, expression = match.groups()
                     _require(name not in self.env and index < len(lines) - 1, "duplicate SSA or missing terminator")
-                    phi = re.fullmatch(r"phi i(\d+) (.+)", expression)
-                    if phi:
-                        _require(not seen_non_phi and previous is not None, "misplaced LLVM PHI")
-                        bits, incoming = phi.groups()
-                        bits = _width(bits)
-                        pieces = re.findall(rf"\[ ({_VALUE}), %([A-Za-z_0-9]+) \]", incoming)
-                        _require(", ".join(f"[ {value}, %{origin} ]" for value, origin in pieces) == incoming and
-                                 len({origin for _, origin in pieces}) == len(pieces) and
-                                 {origin for _, origin in pieces} == predecessors[label], "malformed LLVM PHI")
-                        values = [value for value, origin in pieces if origin == previous]
-                        _require(len(values) == 1, "LLVM PHI lacks incoming edge")
-                        self.env[name] = self.value(values[0], bits)
-                    else:
-                        seen_non_phi = True
-                        self.env[name] = self.assigned(expression)
+                    self.env[name] = self.assigned(expression)
                     continue
                 if line == "call void @abort()":
                     _require(lines[index:] == [line, "unreachable"], "abort must end the selected path")
@@ -316,15 +374,16 @@ def _acyclic(graph):
             _require(target in graph, "unknown control-flow target")
             indegree[target] += 1
     pending = [name for name, count in indegree.items() if count == 0]
-    seen = 0
+    order = []
     while pending:
         name = pending.pop()
-        seen += 1
+        order.append(name)
         for target in set(graph[name]):
             indegree[target] -= 1
             if indegree[target] == 0:
                 pending.append(target)
-    _require(seen == len(graph), "control-flow cycles are outside selected proof profile")
+    _require(len(order) == len(graph), "control-flow cycles are outside selected proof profile")
+    return order
 
 
 def _merge(z, context, returns, typ):

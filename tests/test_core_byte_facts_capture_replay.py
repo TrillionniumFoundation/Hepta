@@ -11,6 +11,28 @@ from tools import diagnose_core_byte_facts as runner
 from tools.check_core_syntax_staged import SafeRoot, digest
 
 
+def metadata_quota_clock(state):
+    """Model only pre-quota time; actual kill/reap cleanup resumes at 1x.
+
+    These byte/accounting controls do not measure one-second fsync throughput.
+    Real finite payload, reads, writes and fsync stay intact. The child has its
+    own finite wall watchdog; the unchanged outer test limit is still 180s.
+    """
+    def setup(root, stack):
+        real_clock, real_kill = capture.time.monotonic, capture.os.killpg
+        origin = real_clock()
+        state['released_at'] = None
+        def clock():
+            return origin if state['released_at'] is None else origin + real_clock() - state['released_at']
+        def killpg(*args):
+            if state['released_at'] is None:
+                state['released_at'] = real_clock()
+            return real_kill(*args)
+        stack.enter_context(patch.object(capture.time, 'monotonic', side_effect=clock))
+        stack.enter_context(patch.object(capture.os, 'killpg', side_effect=killpg))
+    return setup
+
+
 class CaptureReplayTests(unittest.TestCase):
     def run_capture(self, script, *, markers=(), setup=None, overrides=(), observer=None):
         manifest = json.dumps({'markers': list(markers)}).encode()
@@ -70,8 +92,13 @@ class CaptureReplayTests(unittest.TestCase):
 
     def test_fragmented_default_budget_preserves_replayable_prefix(self):
         for stream in (1, 2):
-            item = self.run_capture('import os,time\nfor i in range(200):\n os.write(%d,b"inert mock theorem line\\n");time.sleep(.002)' % stream)
+            # Child writes are not pipe/PTY read boundaries. Force small reads
+            # while retaining the production metadata and terminal budgets.
+            state = {}
+            item = self.run_capture('import os,signal;signal.alarm(60);os.write(%d,b"inert mock theorem line\\n"*200);signal.pause()' % stream,
+                                    setup=metadata_quota_clock(state), overrides=(('READ_CHUNK', 1),))
             result, files, _, _ = item
+            self.assertIsNotNone(state['released_at'])
             self.assertEqual(result['status'], 'diagnostic_infrastructure_failed')
             self.assertIn('metadata budget', result['error'])
             self.assertGreater(sum(result['observed_bytes'].values()), result['raw_written_bytes'])

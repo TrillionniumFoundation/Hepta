@@ -172,8 +172,15 @@ class SevenCaptureTests(unittest.TestCase):
         print('seven capture serialization: actual start=%d, full54+four trace=%d, live cap=8192'%(initial,used))
 
     def test_fragmentation_metadata_overflow_is_closed(self):
-        result,files,_=self.capture('import os,time\nfor i in range(200):\n os.write(1,b"inert theorem line\\n");time.sleep(.002)')
-        self.assertEqual(result['status'],'diagnostic_output_limit')
+        from tests.test_core_byte_facts_capture_replay import metadata_quota_clock
+        # Queue the finite payload and keep the writer alive: natural exit must
+        # not start the separately tested short drain window before the quota.
+        # This is a bounded model-clock quota check, not fsync throughput timing.
+        state={}
+        result,files,_=self.capture('import os,signal;signal.alarm(60);os.write(1,b"inert theorem line\\n"*200);signal.pause()',
+                                    setup=metadata_quota_clock(state),overrides=(('READ_CHUNK',1),))
+        self.assertIsNotNone(state['released_at'])
+        self.assertEqual(result['status'],'diagnostic_output_limit',result)
         self.assertTrue(result['output_truncated'])
         self.assertIn('metadata budget',result['error'])
         self.assertGreater(sum(result['observed_bytes'].values()),result['raw_written_bytes'])

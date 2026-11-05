@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import copy
 from hashlib import sha256
+import os
 from pathlib import Path
 import subprocess
 import tempfile
@@ -64,6 +65,77 @@ class CompositionIdentityTests(unittest.TestCase):
                     composition.source_identity()
                 path.write_bytes(registered)
                 self.git("update-index", undo, "hepta/hia_program.py")
+
+    def test_replacement_commit_cannot_attest_modified_source_under_original_sha(self):
+        self.source_fixture()
+        original = self.git("rev-parse", "HEAD")
+        (self.root / "hepta/hia_program.py").write_bytes(b"# replacement compiler bytes\n")
+        self.git("add", "hepta/hia_program.py")
+        self.git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
+                 "commit", "-qm", "Unreviewed replacement tree")
+        replacement = self.git("rev-parse", "HEAD")
+        self.git("update-ref", "HEAD", original)
+        self.git("replace", original, replacement)
+        self.assertEqual(self.git("rev-parse", "HEAD"), original)
+        self.assertEqual(self.git("status", "--porcelain", "--untracked-files=all"), "")
+        with patch.object(composition, "ROOT", self.root), self.assertRaises(ValueError):
+            composition.source_identity()
+
+    def test_git_repository_and_config_environment_cannot_relabel_source(self):
+        self.source_fixture()
+        with patch.object(composition, "ROOT", self.root):
+            expected = composition.source_identity()
+        with tempfile.TemporaryDirectory(prefix="hepta-other-source-") as directory:
+            other = Path(directory)
+
+            def other_git(*args):
+                return subprocess.check_output(["git", *args], cwd=other,
+                    env={k: v for k, v in os.environ.items() if not k.startswith("GIT_")},
+                    text=True, stderr=subprocess.PIPE).strip()
+
+            other_git("init", "-q")
+            for name in ("hepta/hia_program.py", "tools/qualify_hia_composition.py"):
+                path = other / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes((self.root / name).read_bytes())
+            other_git("add", ".")
+            other_git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
+                      "commit", "-qm", "Different source repository with identical bytes")
+            self.assertNotEqual(other_git("rev-parse", "HEAD"), expected["commit"])
+            with patch.dict(os.environ, {"GIT_DIR": str(other / ".git"),
+                    "GIT_WORK_TREE": str(other), "GIT_INDEX_FILE": str(other / ".git/index"),
+                    "GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "core.sparseCheckout",
+                    "GIT_CONFIG_VALUE_0": "true"}), patch.object(composition, "ROOT", self.root):
+                self.assertEqual(composition.source_identity(), expected)
+
+    def test_git_config_environment_cannot_forge_sparse_checkout(self):
+        self.source_fixture()
+        with patch.object(composition, "ROOT", self.root):
+            expected = composition.source_identity()
+            self.assertFalse(expected["sparse_checkout"])
+            with patch.dict(os.environ, {"GIT_CONFIG_COUNT": "1",
+                    "GIT_CONFIG_KEY_0": "core.sparseCheckout", "GIT_CONFIG_VALUE_0": "true"}):
+                self.assertEqual(composition.source_identity(), expected)
+
+    def test_head_move_during_materialized_scan_is_rejected(self):
+        self.source_fixture()
+        original = composition.git_bytes
+        moved = False
+
+        def move_after_tree(*args):
+            nonlocal moved
+            raw = original(*args)
+            if args[0] == "ls-tree":
+                self.git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
+                         "commit", "--allow-empty", "-qm", "Move during source identity")
+                moved = True
+            return raw
+
+        with patch.object(composition, "ROOT", self.root), \
+                patch.object(composition, "git_bytes", side_effect=move_after_tree), \
+                self.assertRaisesRegex(ValueError, "canonical Git baseline changed"):
+            composition.source_identity()
+        self.assertTrue(moved)
 
     def test_source_drift_produces_false_instead_of_losing_failure_report(self):
         with patch.object(composition, "source_identity", side_effect=ValueError("source changed")):

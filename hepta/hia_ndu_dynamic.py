@@ -146,6 +146,32 @@ def action(model, batch, ready, target):
     result["total_ns"] = sum(result[k] for k in ("execution_ns", "prepare_ns", "retire_ns", "future_decision_ns", "gate_ns"))
     return result
 
+def preparation_relaxed_lower_bound(model):
+    """Cost lower bound retaining preparation and announced epoch boundaries.
+
+    Relax the shared quota, retirements and future decision costs. In each
+    artifact/epoch segment, retaining a valid resident artifact is free; for
+    an absent artifact, preparation can recover at most the sum of announced
+    direct-to-packed savings. Every feasible original schedule maps into
+    this relaxed schedule with no larger cost. This is an arithmetic bound
+    for the supplied forecast model, not a wall-time or program-safety proof.
+    """
+    lower = sum(model["direct_ns"]) + len(model["targets"]) * model["decision"]["gate_ns"]
+    for index, artifact in enumerate(model["artifacts"]):
+        # The initial cache is useful only when its data version still matches.
+        resident = bool(model["ready_mask"] & (1 << index))
+        resident = resident and model["ready_epochs"][index] == artifact["epochs"][0]
+        epoch = artifact["epochs"][0]
+        savings = 0
+        for batch, current_epoch in enumerate(artifact["epochs"]):
+            if current_epoch != epoch:
+                lower -= savings if resident else max(0, savings - artifact["prepare_ns"])
+                resident, epoch, savings = False, current_epoch, 0
+            if model["targets"][batch] == index:
+                savings += max(0, model["direct_ns"][batch] - model["packed_ns"][batch])
+        lower -= savings if resident else max(0, savings - artifact["prepare_ns"])
+    return lower
+
 def invocation_gate(model):
     """No search or native launch. Supplied optimistic bound, not a deadline proof."""
     ready = model["ready_mask"]
@@ -154,14 +180,17 @@ def invocation_gate(model):
         step = action(model, batch, ready, live_mask(model, batch, ready))
         incumbent += step["total_ns"]
         ready = step["ready_after"]
-    lower = sum(min(a, b) for a, b in zip(model["direct_ns"], model["packed_ns"]))
-    lower += len(model["targets"]) * model["decision"]["gate_ns"]
+    free_preparation = sum(min(a, b) for a, b in zip(model["direct_ns"], model["packed_ns"]))
+    free_preparation += len(model["targets"]) * model["decision"]["gate_ns"]
+    lower = preparation_relaxed_lower_bound(model)
     call = call_cost(model, model["session_ready"])
     reserved_close = model["decision"]["close_ns"]
     worthwhile = incumbent - lower > call + (0 if model["session_ready"] else reserved_close)
     affordable = lower + call + reserved_close <= model["budget_ns"]
     return {"invoke": worthwhile and affordable, "incumbent_ns": incumbent,
         "optimistic_execution_lower_ns": lower, "call_estimate_ns": call,
+        "free_preparation_lower_ns": free_preparation,
+        "lower_bound_kind": "independent-artifact-epoch-preparation-relaxation-v1",
         "gross_saving_upper_ns": incumbent - lower, "budget_affordable": affordable,
         "scope": "supplied deterministic model; may overestimate benefit", "authority": "DENY_ALL"}
 

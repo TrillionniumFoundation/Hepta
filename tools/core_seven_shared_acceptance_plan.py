@@ -4,6 +4,7 @@ No compiler execution here. Fixed hash commitments use canonical JSON plus LF;
 legacy source manifest bytes retain their original no-LF protocol.
 """
 from dataclasses import replace
+from concurrent.futures import ThreadPoolExecutor
 import json
 import os
 from pathlib import Path
@@ -29,18 +30,27 @@ ADDITIONS = (
     'hepta/hia_ndu_dynamic.py',
     'hepta/hia_ndu_raw_model.py',
     'hepta/hia_ndu_raw_session.py',
+    'hepta/hia_result_cache.py',
+    'hepta/hia_result_cache_audit.py',
     'docs/seven-data-nocode.md',
     'docs/seven-shared-composition.md',
     'experiments/hia_initialization_frontiers_20261103/SharedTransport.lean',
     'tests/test_core_seven_nocode_sources.py',
     'tests/test_core_seven_shared_acceptance.py',
     'tests/test_core_seven_shared_sources.py',
+    'tests/test_core_seven_shared_source_closure.py',
+    'tests/test_core_structured_source_cost.py',
+    'tests/test_core_syntax_partition_parse_fast.py',
+    'tests/test_core_seven_external_hash.py',
+    'tests/test_core_capture_cleanup_replay.py',
     'tools/check_core_seven_shared.py',
     'tools/core_seven_nocode_sources.py',
     'tools/core_seven_shared_acceptance_plan.py',
     'tools/core_seven_shared_acceptance_replay.py',
     'tools/core_seven_shared_sources.py',
     'tools/diagnose_core_seven_nocode.py',
+    'tests/test_hia_scalar_return_signature.py',
+    'tests/test_hia_ndu_preparation_bound.py',
 )
 METADATA_RESERVE = 224589
 RAW_GLOBAL = 819891
@@ -133,7 +143,7 @@ SUPPORT_IDENTITY_PATHS = legacy.SUPPORT_IDENTITY_PATHS
 def source_paths():
     legacy.source_paths()  # retain the exact earlier source identity closure
     paths = SOURCE_IDENTITY_PATHS
-    require(len(paths) == len(set(paths)) == 258 and commitment(paths) == '36af03771b8b81803d90baafc92fd290d9e6cadbb03e7e135a99beae804bb0f0',
+    require(len(paths) == len(set(paths)) == 267 and commitment(paths) == 'd27b4d1edaa27950489d7b54fa6b8242b493883d0927933fa303e5b1203c9c55',
             'reviewed exact source identity closure')
     # pipeline.compiler_hash reads every actual top-level hepta/*.py byte,
     # including modules that are not imported by this selected proof profile.
@@ -145,6 +155,43 @@ def source_paths():
     require(actual_compiler_paths == bound_compiler_paths,
             'complete actual compiler_hash input set')
     return paths
+
+
+def require_canonical_git_blobs(root, expected_oids, *, commit='HEAD'):
+    """Bind streamed worktree bytes to an unreplaced committed source tree.
+
+    Status may hide assume-unchanged files and ordinary object reads honor
+    refs/replace. Neither is an authority for the bytes attributed to a commit.
+    """
+    require(type(expected_oids) is dict and bool(expected_oids), 'empty Git source closure')
+    require(all(type(name) is str and name and not name.startswith('/')
+                and all(part not in ('', '.', '..') for part in name.split('/'))
+                and type(oid) is str and re.fullmatch('[0-9a-f]{40}', oid)
+                for name, oid in expected_oids.items()), 'invalid Git source identity')
+    require(commit == 'HEAD' or type(commit) is str and re.fullmatch('[0-9a-f]{40}', commit),
+            'invalid Git source commit')
+    clean_git_env = {k: v for k, v in os.environ.items() if not k.startswith('GIT_')}
+    try:
+        raw = subprocess.check_output(
+            ['git', '--no-replace-objects', '--literal-pathspecs', 'ls-tree',
+             '-rz', '--full-tree', commit, '--', *sorted(expected_oids)],
+            cwd=root, env=clean_git_env, timeout=15)
+    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+        raise ValueError('canonical Git source tree unavailable') from exc
+    found = {}
+    for entry in raw.split(b'\0'):
+        if not entry:
+            continue
+        require(b'\t' in entry, 'invalid Git tree entry')
+        metadata, path = entry.split(b'\t', 1)
+        fields = metadata.split(b' ')
+        require(len(fields) == 3 and fields[0] in (b'100644', b'100755')
+                and fields[1] == b'blob' and re.fullmatch(b'[0-9a-f]{40}', fields[2]),
+                'unexpected Git tree object')
+        name = path.decode('utf-8', errors='strict')
+        require(name not in found, 'duplicate Git source object')
+        found[name] = fields[2].decode('ascii')
+    require(found == expected_oids, 'canonical HEAD differs from authenticated worktree source')
 
 
 def support_paths():
@@ -196,6 +243,53 @@ class Snapshot:
         return raw
 
 
+def _external_file_observation(item):
+    """Read every byte; return immutable observations without shared state.
+
+    Ancestors are observed on both sides of the descriptor read. The caller
+    reconciles every occurrence of a directory against the other workers and
+    the prior baseline before publishing any file or ancestor record.
+    """
+    import hashlib
+    name, maximum, source_blob = item
+    path = Path(name)
+    parents = []
+
+    def observe_parents():
+        for parent in path.parents:
+            info = os.stat(parent, follow_symlinks=False)
+            require(stat.S_ISDIR(info.st_mode), 'external ancestor changed')
+            parents.append((str(parent), (info.st_dev, info.st_ino)))
+
+    observe_parents()
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    try:
+        before = os.fstat(fd)
+        fields = lambda s: (s.st_dev, s.st_ino, s.st_size, s.st_mtime_ns, s.st_ctime_ns, s.st_nlink)
+        require(stat.S_ISREG(before.st_mode) and before.st_nlink == 1 and 0 <= before.st_size <= maximum,
+                'external unsafe file/size')
+        h, count = hashlib.sha256(), 0
+        # Hash source object IDs in the same descriptor read. Large support
+        # libraries retain their original SHA256-only stream and chunk bounds.
+        blob = hashlib.sha1(b'blob ' + str(before.st_size).encode('ascii') + b'\0') if source_blob else None
+        while True:
+            chunk = os.read(fd, 65536)
+            if not chunk:
+                break
+            count += len(chunk)
+            require(count <= maximum, 'external size grew')
+            h.update(chunk)
+            if blob is not None:
+                blob.update(chunk)
+        inode = fields(before)
+        require(inode == fields(os.fstat(fd)) == fields(os.stat(path, follow_symlinks=False)) and count == before.st_size,
+                'external read race')
+        observe_parents()
+        return name, tuple(parents), inode, count, h.hexdigest(), blob.hexdigest() if blob is not None else ''
+    finally:
+        os.close(fd)
+
+
 class External:
     """Actual pinned binary, all support bytes and exact repository source bytes."""
     def __init__(self, executable):
@@ -208,7 +302,6 @@ class External:
         self.check()
         pin = json.loads(self.read_source('formal/toolchain-lock.json'))['lean_binary_sha256']
         require(self.records[str(self.executable)]['sha256'] == pin, 'pinned binary required')
-        self.git = diagnostic._git_baseline()
 
     def reject_support_shadow(self):
         prefix = self.executable.parent.parent / 'lib/lean' / base.MODULE_PREFIX
@@ -216,38 +309,40 @@ class External:
 
     def check(self):
         self.reject_support_shadow()
-        # Streaming hashing avoids unbounded copies of support libraries.
-        import hashlib
-        for name, maximum in self.paths.items():
-            path = Path(name)
-            for parent in path.parents:
-                info = os.stat(parent, follow_symlinks=False)
-                key, value = str(parent), (info.st_dev, info.st_ino)
-                require(stat.S_ISDIR(info.st_mode) and (key not in self.parents or self.parents[key] == value), 'external ancestor changed')
-                self.parents[key] = value
-            fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
-            try:
-                before = os.fstat(fd)
-                value = lambda s: (s.st_dev, s.st_ino, s.st_size, s.st_mtime_ns, s.st_ctime_ns, s.st_nlink)
-                require(stat.S_ISREG(before.st_mode) and before.st_nlink == 1 and 0 <= before.st_size <= maximum,
-                        'external unsafe file/size')
-                h, count = hashlib.sha256(), 0
-                while True:
-                    chunk = os.read(fd, 65536)
-                    if not chunk: break
-                    count += len(chunk)
-                    require(count <= maximum, 'external size grew')
-                    h.update(chunk)
-                require(value(before) == value(os.fstat(fd)) == value(os.stat(path, follow_symlinks=False)) and count == before.st_size,
-                        'external read race')
-                require(name not in self.inodes or self.inodes[name] == value(before), 'external inode changed')
-                record = dict(bytes=count, sha256=h.hexdigest())
-                require(name not in self.records or same(self.records[name], record), 'external bytes changed')
-                self.inodes[name], self.records[name] = value(before), record
-            finally: os.close(fd)
+        git = self.git if hasattr(self, 'git') else diagnostic._git_baseline()
+        items = tuple(self.paths.items())
+        source_by_path = {str(ROOT / name): name for name in SOURCE_IDENTITY_PATHS}
+        read_items = tuple((name, maximum, name in source_by_path) for name, maximum in items)
+        # Two bounded readers, each with one descriptor and 65536-byte chunks.
+        # Failed work cancels queued reads and joins active readers before the
+        # exception escapes; no partial observation is committed to the object.
+        pool = ThreadPoolExecutor(max_workers=2)
+        try:
+            observations = tuple(pool.map(_external_file_observation, read_items))
+        finally:
+            pool.shutdown(wait=True, cancel_futures=True)
+        parents, inodes, records = dict(self.parents), dict(self.inodes), dict(self.records)
+        git_oids = {}
+        for (expected_name, _), (name, ancestors, inode, count, sha, blob_oid) in zip(items, observations):
+            require(name == expected_name, 'external observation path differs')
+            for key, value in ancestors:
+                require(key not in parents or parents[key] == value, 'external ancestor changed')
+                parents[key] = value
+            require(name not in inodes or inodes[name] == inode, 'external inode changed')
+            record = dict(bytes=count, sha256=sha)
+            require(name not in records or same(records[name], record), 'external bytes changed')
+            inodes[name], records[name] = inode, record
+            if name in source_by_path:
+                git_oids[source_by_path[name]] = blob_oid
+        require(tuple(self.paths.items()) == items, 'external path set changed')
         self.reject_support_shadow()
-        if hasattr(self, 'git'):
-            require(same(self.git, diagnostic._git_baseline()), 'git baseline changed')
+        require(set(git_oids) == set(SOURCE_IDENTITY_PATHS), 'incomplete authenticated Git source set')
+        require_canonical_git_blobs(ROOT, git_oids, commit=git['head'])
+        require(same(git, diagnostic._git_baseline()), 'git baseline changed')
+        self.parents.update(parents)
+        self.inodes.update(inodes)
+        self.records.update(records)
+        self.git = git
 
     def read_source(self, name):
         """Bounded nofollow reread of an already authenticated source file."""
