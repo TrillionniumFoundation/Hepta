@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+"""Pinned ovpn peer dump protocol regressions; offline, not kernel acceptance."""
+import importlib.util
+from pathlib import Path
+import struct
+import unittest
+from unittest import mock
+
+HERE=Path(__file__).resolve().parent
+spec=importlib.util.spec_from_file_location('dco_peer_stats',HERE/'dco_peer_stats.py')
+module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+
+class NetlinkPeerDumpTests(unittest.TestCase):
+    def sample_peer(self):
+        return module.attr(1,struct.pack('=I',17))+b''.join(module.attr(i,struct.pack('=Q',1000+i)) for i in module.COUNTERS)
+
+    def simulate(self, reply):
+        sock=mock.MagicMock()
+        sock.__enter__.return_value=sock
+        with mock.patch.object(module.socket,'if_nametoindex',return_value=3),mock.patch.object(module.socket,'socket',return_value=sock),mock.patch.object(module,'request',side_effect=[[{1:struct.pack('=H',44)}],reply]) as req:
+            result=module.query('tunbench-s');return result,req
+
+    def test_dump_request_has_ifindex_and_no_empty_peer_nest(self):
+        result,req=self.simulate([{2:self.sample_peer()}])
+        self.assertEqual(req.call_args_list[1].args[3],module.attr(1,struct.pack('=I',3)))
+        self.assertTrue(req.call_args_list[1].kwargs['dump'])
+        self.assertEqual(result['peers'][0]['peer_id'],17)
+        self.assertEqual(result['peers'][0]['vpn_rx_bytes'],1016)
+
+    def test_optional_ifindex_echo_must_match(self):
+        with self.assertRaisesRegex(ValueError,'another interface'):
+            self.simulate([{1:struct.pack('=I',999),2:self.sample_peer()}])
+
+    def test_missing_peer_counter_rejected(self):
+        missing=module.attr(1,struct.pack('=I',17))
+        with self.assertRaisesRegex(ValueError,'missing peer ID or counters'):
+            self.simulate([{2:missing}])
+
+    def test_duplicate_id_rejected(self):
+        with self.assertRaisesRegex(ValueError,'duplicate peer'):
+            self.simulate([{2:self.sample_peer()},{2:self.sample_peer()}])
+
+    def test_archived_kernel_einval_is_never_treated_as_counter_evidence(self):
+        # 2026-11-05 original target run 41998233420 returned -EINVAL for
+        # PEER_GET with the extra empty nested OVPN_A_PEER request attribute.
+        archived_request = bytes.fromhex(
+            '200000002c000103020000005627000003010000080001000300000004000280')
+        self.assertEqual(archived_request[20:],
+                         module.attr(1,struct.pack('=I',3)) + module.attr(2 | 0x8000,b''))
+        sock = mock.MagicMock()
+        sock.getsockname.return_value = (0x2756, 0)
+        error = module.NLHDR.pack(20, module.NLMSG_ERROR, 0, 2, 0) + struct.pack('=i', -22)
+        sock.recvmsg.return_value = (error, [], 0, (0, 0))
+        with self.assertRaises(OSError) as ctx:
+            module.request(sock,44,3,module.attr(1,struct.pack('=I',3)),2,dump=True)
+        self.assertEqual(ctx.exception.errno, 22)
+
+if __name__=='__main__':unittest.main(verbosity=2)
