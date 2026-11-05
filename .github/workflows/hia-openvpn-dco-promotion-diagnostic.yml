@@ -1,0 +1,44 @@
+name: OpenVPN DCO promotion source-derived diagnostic (DENY_ALL)
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/hia-openvpn-dco-promotion-diagnostic.yml
+      - experiments/openvpn_hia_20261105/target_host/dco_promotion_diagnostic/**
+  push:
+    branches:
+      - dot/diagnose-openvpn-dco-promotion-20261105
+    paths:
+      - .github/workflows/hia-openvpn-dco-promotion-diagnostic.yml
+      - experiments/openvpn_hia_20261105/target_host/dco_promotion_diagnostic/**
+
+permissions:
+  contents: read
+
+jobs:
+  extracted-source-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Compile only pure extracted scheduling functions and mock state
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          printf 'HEAD=%s\n' "$(git rev-parse HEAD)"
+          cc --version
+          curl --fail --location --proto '=https' --tlsv1.2 --max-time 30 \
+            https://raw.githubusercontent.com/OpenVPN/openvpn/dc1f569087135894ac2703aeabd7a960ee9452d4/src/openvpn/ssl.c \
+            --output "$RUNNER_TEMP/openvpn-promotion-ssl.c"
+          diagnostic=experiments/openvpn_hia_20261105/target_host/dco_promotion_diagnostic
+          sha256sum "$diagnostic"/*.py "$diagnostic"/*.json
+          python3 -B "$diagnostic/test_source_identity.py" "$RUNNER_TEMP/openvpn-promotion-ssl.c"
+          python3 -B "$diagnostic/reproduce_dco_promotion_schedule.py" "$RUNNER_TEMP/openvpn-promotion-ssl.c"
+          python3 -B "$diagnostic/review_dco_promotion_states.py" "$RUNNER_TEMP/openvpn-promotion-ssl.c"
+          test -z "$(git status --porcelain)"
+          printf '%s\n' 'Diagnostic only. No real TLS, TUN, DCO, or artifact execution; original target remains failed.'
