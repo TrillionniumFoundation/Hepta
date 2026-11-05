@@ -225,7 +225,10 @@ def equity_green(v:float,boundary:float,p:HXParams) -> float:
     upper=max(18.,x+10.)
     # Gaussian-decaying rollover part. The slowly decaying affine forcing
     # is solved in closed form above, avoiding finite quadrature bias.
-    left=quad(lambda y:math.exp(-gamma*x)*(math.exp(gamma*y)-math.exp(-eta*y))*
+    # 0 <= y <= x: each factor below is bounded by one.  The algebraically
+    # equivalent separate exp(gamma*y) overflows at legal low-volatility
+    # parameters even though the Green kernel and final value are finite.
+    left=quad(lambda y:math.exp(-gamma*(x-y))*(-math.expm1(-(eta+gamma)*y))*
               _rollover_forcing(y,boundary,p),0,x,epsabs=2e-8,epsrel=2e-9,limit=250)[0]
     right=quad(lambda y:math.exp(eta*x-eta*y)*(-math.expm1(-(eta+gamma)*x))*
                _rollover_forcing(y,boundary,p),x,upper,epsabs=2e-8,epsrel=2e-9,limit=250)[0]
