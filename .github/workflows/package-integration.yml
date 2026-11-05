@@ -39,7 +39,15 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Select pinned native Rust
         if: matrix.backend == 'rust'
-        run: rustup toolchain install 1.90.0 --profile minimal && rustup default 1.90.0
+        run: |
+          rustup toolchain install 1.90.0 --profile minimal
+          rustup default 1.90.0
+          printf 'PATH rustc: '; command -v rustc
+          printf 'Resolved PATH rustc: '; readlink -f "$(command -v rustc)"
+          rustc_path="$(rustup which --toolchain 1.90.0 rustc)"
+          test -x "$rustc_path"
+          printf 'RUSTC=%s\n' "$rustc_path" >> "$GITHUB_ENV"
+          "$rustc_path" -vV
       - name: Verify exact source identity
         env:
           EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}

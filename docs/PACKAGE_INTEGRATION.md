@@ -103,3 +103,26 @@ production standard library and ecosystem qualification remain open. Full
 project, release, formal and performance gates were not run. The finite native
 fixtures establish selection behavior only, not whole-compiler correctness,
 filesystem atomicity, concurrency safety or a security boundary.
+
+## Initial hosted toolchain-selection failure
+
+The first integration head `282586c2d63ea5911c22cd228cd462109e3f8e79`
+retains its original [run 41995147650](https://github.com/TrillionniumFoundation/Hepta/actions/runs/41995147650).
+All four C lanes passed. Rust jobs
+[127136406800](https://github.com/TrillionniumFoundation/Hepta/actions/runs/41995147650/job/127136406800),
+[127136407150](https://github.com/TrillionniumFoundation/Hepta/actions/runs/41995147650/job/127136407150)
+and [127136407151](https://github.com/TrillionniumFoundation/Hepta/actions/runs/41995147650/job/127136407151)
+installed/defaulted Rust 1.90.0 successfully, then rejected at the unchanged
+`toolchain_info(find_rustc())` preflight with `E_TOOLCHAIN_IDENTITY`, before any
+suite method or oracle. These are failed qualification attempts, not test passes.
+
+Selecting a rustup default does not supply a direct compiler path to Hepta:
+`find_rustc` resolves symlinks, while rustup's command-name-dispatched `rustc`
+shim can point to the rustup executable. The workflow now obtains the actual
+compiler with `rustup which --toolchain 1.90.0 rustc`, checks that it is executable,
+prints its complete `-vV` identity and exports that path as `RUSTC` for the gate
+and every child CLI invocation. It also records the original PATH/shim paths.
+No compiler production file, component bytes, test, oracle, inventory or gate
+acceptance rule changes. The strict 1.90.0 identity requirement remains intact.
+The original failed run is preserved; a fresh exact-head matrix must qualify
+this correction before hosted Rust success is claimed.
