@@ -123,7 +123,8 @@ def query(interface, journal=None):
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--interface',required=True);p.add_argument('--out',type=Path,required=True)
     a=p.parse_args()
-    if a.out.exists():p.error('output exists')
+    # Exclusive creation is the final file-system authorization check: Path.exists()
+    # is false for dangling links and cannot protect against a replacement race.
     journal = []
     try: result=query(a.interface, journal); code=0
     except Exception as e:
@@ -132,5 +133,13 @@ def main():
                 'helper_sha256':__import__('hashlib').sha256(Path(__file__).read_bytes()).hexdigest()};code=1
         try:result['ifindex']=socket.if_nametoindex(a.interface)
         except OSError:pass
-    a.out.parent.mkdir(parents=True,exist_ok=True);a.out.write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result));return code
+    a.out.parent.mkdir(parents=True,exist_ok=True)
+    try:
+        # Mode 'x' uses O_CREAT|O_EXCL: never follow or replace a leaf symlink,
+        # hard link, or file inserted between preflight and evidence publication.
+        with a.out.open('x', encoding='utf-8') as f:
+            f.write(json.dumps(result,indent=2)+'\n')
+    except FileExistsError:
+        p.error('output exists')
+    print(json.dumps(result));return code
 if __name__=='__main__':raise SystemExit(main())
