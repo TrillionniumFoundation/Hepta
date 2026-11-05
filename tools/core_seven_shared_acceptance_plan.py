@@ -148,6 +148,49 @@ def source_paths():
     return paths
 
 
+
+def require_canonical_git_blobs(root, expected_oids):
+    """Bind authenticated worktree bytes to *unreplaced* HEAD tree objects.
+
+    Git status can be empty with assume-unchanged, while ordinary cat-file can
+    return attacker-selected refs/replace bytes. Compare actual streamed blob
+    object IDs with the canonical tree instead of trusting these shortcuts.
+    """
+    require(type(expected_oids) is dict and bool(expected_oids), 'empty Git source closure')
+    names = tuple(sorted(expected_oids))
+    require(all(type(name) is str and name and not name.startswith('/')
+                and all(component not in ('', '.', '..') for component in name.split('/'))
+                and re.fullmatch('[0-9a-f]{40}', expected_oids[name])
+                for name in names), 'invalid Git source identity')
+    # Ignore inherited Git environment overrides (including GIT_DIR and custom
+    # replacement namespaces); read the actual checkout at this repository root.
+    clean_git_env = {k: v for k, v in os.environ.items() if not k.startswith('GIT_')}
+    try:
+        raw = subprocess.check_output(
+            ['git', '--no-replace-objects', 'ls-tree', '-rz', '--full-tree',
+             'HEAD', '--', *names],
+            cwd=root, env=clean_git_env, timeout=15)
+    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+        raise ValueError('canonical Git source tree unavailable') from exc
+    found = {}
+    for entry in raw.split(b'\0'):
+        if not entry:
+            continue
+        require(b'\t' in entry, 'invalid Git tree entry')
+        metadata, path = entry.split(b'\t', 1)
+        pieces = metadata.split(b' ')
+        require(len(pieces) == 3 and pieces[0] in (b'100644', b'100755')
+                and pieces[1] == b'blob'
+                and re.fullmatch(b'[0-9a-f]{40}', pieces[2]),
+                'unexpected Git tree object')
+        name = path.decode('utf-8', errors='strict')
+        require(name not in found, 'duplicate Git source object')
+        found[name] = pieces[2].decode('ascii')
+    require(found == expected_oids, 'canonical HEAD differs from authenticated worktree source')
+
+
+
+
 def support_paths():
     return legacy.support_paths()  # unchanged 780 paths and exact commitment
 
@@ -205,7 +248,7 @@ class External:
         self.paths = {str(ROOT / n): BUDGETS['source'] for n in source_paths()}
         self.paths.update({str(self.executable.parent.parent / n): 9223372036854775807 for n in support_paths()})
         self.paths[str(self.executable)] = 9223372036854775807
-        self.inodes, self.parents, self.records = {}, {}, {}
+        self.inodes, self.parents, self.records, self.git_oids = {}, {}, {}, {}
         self.check()
         pin = json.loads(self.read_source('formal/toolchain-lock.json'))['lean_binary_sha256']
         require(self.records[str(self.executable)]['sha256'] == pin, 'pinned binary required')
@@ -219,6 +262,7 @@ class External:
         self.reject_support_shadow()
         # Streaming hashing avoids unbounded copies of support libraries.
         import hashlib
+        source_by_path = {str(ROOT / rel): rel for rel in SOURCE_IDENTITY_PATHS}
         for name, maximum in self.paths.items():
             path = Path(name)
             for parent in path.parents:
@@ -233,20 +277,31 @@ class External:
                 require(stat.S_ISREG(before.st_mode) and before.st_nlink == 1 and 0 <= before.st_size <= maximum,
                         'external unsafe file/size')
                 h, count = hashlib.sha256(), 0
+                git_blob = None
+                if name in source_by_path:
+                    git_blob = hashlib.sha1(
+                        b'blob ' + str(before.st_size).encode('ascii') + b'\0')
                 while True:
                     chunk = os.read(fd, 65536)
                     if not chunk: break
                     count += len(chunk)
                     require(count <= maximum, 'external size grew')
                     h.update(chunk)
+                    if git_blob is not None:
+                        git_blob.update(chunk)
                 require(value(before) == value(os.fstat(fd)) == value(os.stat(path, follow_symlinks=False)) and count == before.st_size,
                         'external read race')
                 require(name not in self.inodes or self.inodes[name] == value(before), 'external inode changed')
                 record = dict(bytes=count, sha256=h.hexdigest())
                 require(name not in self.records or same(self.records[name], record), 'external bytes changed')
                 self.inodes[name], self.records[name] = value(before), record
+                if git_blob is not None:
+                    self.git_oids[source_by_path[name]] = git_blob.hexdigest()
             finally: os.close(fd)
         self.reject_support_shadow()
+        require(set(self.git_oids) == set(SOURCE_IDENTITY_PATHS),
+                'incomplete authenticated Git source set')
+        require_canonical_git_blobs(ROOT, self.git_oids)
         if hasattr(self, 'git'):
             require(same(self.git, diagnostic._git_baseline()), 'git baseline changed')
 
