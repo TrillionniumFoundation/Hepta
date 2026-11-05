@@ -1,3 +1,41 @@
+# Executable-fixture repair composition
+
+This correction retains original #715 `2a7724860824fa6b612d3ea701af4c7aed046804`
+and composes the corrected #713 draft, whose inherited repair source is exact
+#710 `a5cbdfda69cd9ba4c29bc9328e87845f88bd6270`. All 26 upstream repair files
+remain byte-identical, including the three explicit Rust binary callers and
+three Rust-independent contract regressions. All compiler, source-library,
+packaging configuration and eleven workflow bytes remain unchanged. No new
+workflow, dispatch, chmod, native Rust substitution or broad test run is added.
+
+The original 286-file #713 provenance manifest and all three #677 supplier
+identities remain unchanged. The artifact-only checker pins all 26 repaired
+files, recovers the 21 historical originals through exact inverse edits, and
+checks those projections against the original manifest. It never imports or
+executes a project, test or qualification module to do so. The other 265 original
+parent files are checked directly. Five new upstream repair files are required
+as actual archive inputs, bringing the complete supplied source inventory to
+298 and selected source inputs to 274, plus seven generated metadata members.
+
+Projection is used only for historical identity checks. All fresh builds,
+archive member comparisons, unpacked input checks and tests use actual repaired
+bytes. Missing or changed repair files and changed inverse records must refuse
+before any build command. No old failure or queued hosted job becomes a pass. An initial local adapter
+attempt refused before any build because the two immutable inverse manifests
+use different identity field shapes. Both original schemas are now handled
+explicitly; that failed attempt remains separately recorded.
+The unchanged installed/native qualifier remains a separate gate. The complete
+410/418-method aggregate, native Rust, ARM and Python 3.11 are not local claims.
+
+The original #715 parallel GCC `cc1`-killed result and original #710 hosted store
+failure ([run 42025621232](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42025621232))
+remain separate failures with their original source identities. All earlier
+upstream failure records remain intact. The following original-head report is
+retained as history, not qualification of this corrected source. P01/P11/P12
+remain PARTIAL. Draft only; no PR/main merge, release, deployment or activation.
+
+## Retained original-head contract
+
 # Development source-distribution composition
 
 This bounded P11/P12 increment combines the artifact contract from #677

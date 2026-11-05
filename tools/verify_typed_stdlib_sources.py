@@ -3,16 +3,18 @@
 import hashlib
 import json
 from pathlib import Path
+from verify_typed_fixture_repairs import project_original, verify as verify_fixture_repairs
 ROOT=Path(__file__).resolve().parents[1]
 
 def verify(root=ROOT):
+    verify_fixture_repairs(root)
     manifest=json.loads((root/'tools/typed_stdlib_components.json').read_bytes())
     if manifest['base_commit']!='b45d6621b0435dd8da4aabf87250b275dbe03927' or manifest['library_supplier_commit']!='653b508336a470151b94f5e1c0448654c4782030':
         raise ValueError('Unexpected suppliers')
     if len(manifest['unchanged_base'])!=168 or len(manifest['library_components'])!=35:
         raise ValueError('Incomplete supplier inventory')
     def check(path, expected):
-        data=(root/path).read_bytes()
+        data=project_original(path,(root/path).read_bytes(),root)
         actual={'git_blob':hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest(),'sha256':hashlib.sha256(data).hexdigest()}
         if actual!={k:expected[k] for k in actual}:
             raise ValueError('Changed supplier: '+path)
