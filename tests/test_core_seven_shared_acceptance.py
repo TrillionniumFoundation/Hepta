@@ -22,7 +22,7 @@ class SharedAcceptanceContractTests(unittest.TestCase):
 
     def test_source_identity_includes_every_new_trust_dependency(self):
         paths = p.source_paths()
-        self.assertEqual(len(paths), 258)
+        self.assertEqual(len(paths), 259)
         self.assertTrue(set(old.source_paths()) < set(paths))
         for name in p.ADDITIONS:
             self.assertIn(name, paths)
@@ -44,7 +44,7 @@ class SharedAcceptanceContractTests(unittest.TestCase):
         registered = p.source_paths()
         expected = tuple(n for n in registered if n.startswith('hepta/') and
                          n.count('/') == 1 and n.endswith('.py'))
-        self.assertEqual(len(expected), 184)
+        self.assertEqual(len(expected), 185)
         self.assertEqual(expected, tuple(sorted(x.relative_to(p.ROOT).as_posix()
                          for x in (p.ROOT / 'hepta').glob('*.py'))))
         with tempfile.TemporaryDirectory(prefix='hia-compiler-inputs-') as directory:
