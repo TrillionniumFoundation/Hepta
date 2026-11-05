@@ -1,0 +1,15 @@
+import typed;
+fn main() -> Unit effects { panic, write }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    let wire: [u8; 4] = [65, 65, 70, 66];
+    let mut scratch: [u8; 5] = [165, 165, 165, 165, 165];
+    let mut scalars: [u64; 3] = [999, 999, 999];
+    let result = typed::index_packet(read wire, 0, 4, mut scratch, mut scalars, 65);
+    match result {
+        Result::Ok(c) => { let complete = c.done; assert(c.value.scalars == 1); assert(c.value.lower == 1); assert(c.value.upper == 2); },
+        Result::Err(_) => { assert(false); }
+    }
+    assert(scratch[0] == 165 && scratch[1] == 0 && scratch[2] == 1 && scratch[3] == 65 && scratch[4] == 165);
+    assert(scalars[0] == 999 && scalars[1] == 65 && scalars[2] == 999);
+}

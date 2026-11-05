@@ -1,0 +1,32 @@
+// Application-level typed adapter. The four source libraries are unchanged.
+import packet;
+
+pub struct Bounds { scalars: usize, lower: usize, upper: usize }
+pub struct Committed<T> { value: T, done: Unit }
+pub enum PacketError {
+    Decode(Unit),
+    ShortHeader(Unit),
+    LengthMismatch(Unit),
+    InvalidText(Unit),
+    ScalarCapacity(usize)
+}
+fn done() -> Unit effects {} {}
+
+pub fn index_packet(input: read [u8], start: usize, end: usize,
+                    scratch: mut [u8], scalars: mut [u64], query: u64)
+    -> Result<Committed<Bounds>, PacketError>
+effects { panic, write }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    let result = packet::index_packet(read input, start, end, mut scratch, mut scalars, query);
+    if result.stage == 1 { return Result::Err(PacketError::Decode(done())); }
+    if result.stage == 2 { return Result::Err(PacketError::ShortHeader(done())); }
+    if result.stage == 3 { return Result::Err(PacketError::LengthMismatch(done())); }
+    if result.stage == 4 { return Result::Err(PacketError::InvalidText(done())); }
+    if result.stage == 5 { return Result::Err(PacketError::ScalarCapacity(len(read scalars))); }
+    assert(result.stage == 0);
+    return Result::Ok(Committed {
+        value: Bounds { scalars: result.scalars, lower: result.lower, upper: result.upper },
+        done: done()
+    });
+}
