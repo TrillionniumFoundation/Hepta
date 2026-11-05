@@ -1,0 +1,14 @@
+import packet;
+fn main() -> Unit effects { panic, write }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    let wire: [u8; 18] = [255, 65, 65, 112, 54, 119, 54, 110, 119, 110, 53, 105, 65, 119, 54, 107, 65, 255];
+    let mut scratch: [u8; 14] = [165,165,165,165,165,165,165,165,165,165,165,165,165,165];
+    let mut scalars: [u64; 7] = [999,999,999,999,999,999,999];
+    let result = packet::index_packet(read wire, 1, 17, mut scratch, mut scalars, 233);
+    assert(result.stage == 0 && result.scalars == 5);
+    assert(result.lower == 3 && result.upper == 5);
+    assert(scalars[0] == 999 && scalars[1] == 0 && scalars[2] == 122);
+    assert(scalars[3] == 233 && scalars[4] == 233 && scalars[5] == 128512 && scalars[6] == 999);
+    assert(scratch[0] == 165 && scratch[13] == 165);
+}

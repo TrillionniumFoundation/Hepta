@@ -1,0 +1,74 @@
+// Experimental runtime UTF-8 decoding over an explicit borrowed byte range.
+// This library does not parse Hepta source or compiler literals.
+module hepta_utf8;
+
+pub struct Decoded { scalar: u32, next: usize, ok: bool }
+pub struct Validation { scalars: usize, error: usize, ok: bool }
+
+pub fn decode_next(input: read [u8], start: usize, end: usize) -> Decoded
+effects { panic }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    let failure = Decoded { scalar: 0, next: start, ok: false };
+    if start >= end { return failure; }
+    if end > len(read input) { return failure; }
+    let first = input[start];
+    if first < 128 {
+        return Decoded { scalar: first as u32, next: start + 1, ok: true };
+    }
+    let remaining = end - start;
+    if first >= 194 && first <= 223 {
+        if remaining < 2 { return failure; }
+        let second = input[start + 1];
+        if second < 128 || second > 191 { return failure; }
+        let value: u32 = ((first as u32) & 31) << 6 | ((second as u32) & 63);
+        return Decoded { scalar: value, next: start + 2, ok: true };
+    }
+    if first >= 224 && first <= 239 {
+        if remaining < 3 { return failure; }
+        let second = input[start + 1];
+        let third = input[start + 2];
+        if second < 128 || second > 191 { return failure; }
+        if third < 128 || third > 191 { return failure; }
+        // E0 rejects overlong forms; ED excludes surrogate code points.
+        if first == 224 && second < 160 { return failure; }
+        if first == 237 && second > 159 { return failure; }
+        let value: u32 = ((first as u32) & 15) << 12
+            | (((second as u32) & 63) << 6) | ((third as u32) & 63);
+        return Decoded { scalar: value, next: start + 3, ok: true };
+    }
+    if first >= 240 && first <= 244 {
+        if remaining < 4 { return failure; }
+        let second = input[start + 1];
+        let third = input[start + 2];
+        let fourth = input[start + 3];
+        if second < 128 || second > 191 { return failure; }
+        if third < 128 || third > 191 { return failure; }
+        if fourth < 128 || fourth > 191 { return failure; }
+        // F0 rejects overlong forms; F4 caps the Unicode scalar at 10FFFF.
+        if first == 240 && second < 144 { return failure; }
+        if first == 244 && second > 143 { return failure; }
+        let value: u32 = ((first as u32) & 7) << 18
+            | (((second as u32) & 63) << 12) | (((third as u32) & 63) << 6)
+            | ((fourth as u32) & 63);
+        return Decoded { scalar: value, next: start + 4, ok: true };
+    }
+    return failure;
+}
+
+pub fn validate(input: read [u8], start: usize, end: usize) -> Validation
+effects { panic }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    if start > end { return Validation { scalars: 0, error: start, ok: false }; }
+    if end > len(read input) { return Validation { scalars: 0, error: start, ok: false }; }
+    let mut cursor = start;
+    let mut count: usize = 0;
+    while cursor < end {
+        let decoded = decode_next(read input, cursor, end);
+        if !decoded.ok { return Validation { scalars: count, error: cursor, ok: false }; }
+        cursor = decoded.next;
+        count = count + 1;
+    }
+    return Validation { scalars: count, error: end, ok: true };
+}
