@@ -829,6 +829,14 @@ def main(argv=None) -> int:
                 raise ValueError("C import manifest destination must not be a symbolic link")
             if manifest.exists() and not manifest.is_file():
                 raise ValueError("C import manifest destination must be a regular file or absent")
+            # A sidecar hardlink to any unrelated existing file would silently
+            # overwrite that file even if it aliases neither input nor output.
+            # This preflight check does not close concurrent TOCTOU races.
+            try:
+                if manifest.stat().st_nlink > 1:
+                    raise ValueError("C import manifest destination must not be hard-linked")
+            except FileNotFoundError:
+                pass
             dest.parent.mkdir(parents=True, exist_ok=True)
             dest.write_text(imported.source)
             manifest.write_text(json.dumps(imported.manifest, indent=2, sort_keys=True) + "\n")
