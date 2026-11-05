@@ -1,0 +1,71 @@
+name: Ordinary raw stores and Copy ADT composition
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'toolchain-lock.json'
+      - 'docs/C_STORE_ADT_COMPOSITION.md'
+      - 'tests/**'
+      - 'examples/**'
+      - 'tools/*enum*'
+      - 'tools/*struct*'
+      - 'tools/*result*'
+      - 'tools/*unit*'
+      - 'tools/*numeric*'
+      - 'tools/*float_int*'
+      - 'tools/*array_adt*'
+      - 'tools/*store_adt*'
+      - '.github/workflows/c-store-adt-composition.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+        python: ['3.11', '3.13']
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      HEPTA_ENUM_REQUIRE_RUST: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install exact Rust toolchain
+        run: |
+          rustup toolchain install 1.90.0 --profile minimal
+          echo "RUSTC=$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_ENV"
+          echo "$(dirname "$(rustup which --toolchain 1.90.0 rustc)")" >> "$GITHUB_PATH"
+      - name: Record exact source and native tools
+        run: |
+          set -euo pipefail
+          mkdir -p qualification
+          { git rev-parse HEAD; python --version; gcc --version; gcc -dumpmachine; "$RUSTC" --version --verbose; } | tee qualification/identity.log
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - name: Execute complete inventory with native C and Rust
+        run: |
+          set -euo pipefail
+          python tools/validate_c_store_adt_composition.py 2>&1 | tee qualification/tests.log
+          python tools/qualify_c_float_int_oracle.py 2>&1 | tee qualification/scalar-oracle.log
+          python tools/qualify_c_numeric_adt_oracle.py 2>&1 | tee qualification/adt-oracle.log
+          python tools/qualify_c_array_adt_oracle.py 2>&1 | tee qualification/array-adt-oracle.log
+          python tools/qualify_c_store_adt_oracle.py 2>&1 | tee qualification/store-adt-oracle.log
+      - name: Confirm source remains exact
+        if: always()
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          git diff --exit-code
+          git diff --cached --exit-code
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: c-store-adt-composition-${{ matrix.os }}-py${{ matrix.python }}-${{ github.event.pull_request.head.sha || github.sha }}
+          path: qualification/

@@ -10,7 +10,7 @@ import subprocess
 import sys
 import unittest
 import validate_c_numeric_adt_composition as inherited
-from verify_array_adt_sources import verify
+from verify_store_adt_sources import verify_inherited_arrays as verify
 
 ROOT=Path(__file__).resolve().parents[1]
 ORIGIN_PREFIX='tests.c_array_values_origin.CArrayValueTests.'

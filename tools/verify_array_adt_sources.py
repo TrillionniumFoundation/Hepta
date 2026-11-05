@@ -16,13 +16,14 @@ def fragments(source):
     return {'index_read':source[start:end], 'len_read':length}
 
 
-def verify():
+def verify(source=None):
     manifest=json.loads((ROOT/'tools/array_adt_source_origins.json').read_text())
     data=(ROOT/'tests/c_array_values_origin.py').read_bytes()
     blob=hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()
     if blob!=manifest['origin_test_blob'] or hashlib.sha256(data).hexdigest()!=manifest['origin_test_sha256']:
         raise ValueError('Original array test module changed')
-    source=(ROOT/'hepta/c_backend.py').read_text()
+    if source is None:
+        source=(ROOT/'hepta/c_backend.py').read_text()
     actual={name:hashlib.sha256(value.encode()).hexdigest() for name,value in fragments(source).items()}
     if actual!=manifest['origin_fragment_sha256']:
         raise ValueError('Original array-read fragments changed')

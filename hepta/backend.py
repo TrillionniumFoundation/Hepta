@@ -169,7 +169,11 @@ class Emitter:
             if e.value == "load":
                 return f"(*({args[0]}).add({args[1]}))"
             if e.value == "store":
-                return f"{{ *({args[0]}).add({args[1]}) = {args[2]}; }}"
+                # A builtin call evaluates its operands left-to-right; Rust
+                # assignment alone would evaluate the value before its place.
+                return (f"{{ let (__hepta_store_ptr, __hepta_store_index, __hepta_store_value) = "
+                        f"({args[0]}, {args[1]}, {args[2]}); "
+                        "*__hepta_store_ptr.add(__hepta_store_index) = __hepta_store_value; }")
             generics = "::<" + ", ".join(self.typ(t) for t in e.type_args) + ">" if e.type_args else ""
             return "h_" + e.value + generics + "(" + ", ".join(args) + ")"
         raise HeptaError(Diagnostic("E_BACKEND_AST", f"Unsupported expression {kind}", e.span, phase="lower"))
