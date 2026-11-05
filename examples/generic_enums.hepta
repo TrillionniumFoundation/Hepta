@@ -1,0 +1,21 @@
+enum Maybe<T> { None, Some(T) }
+enum Pair<A,B> { Empty, Both(A,B) }
+
+fn choose(value: Maybe<i32>, fallback: i32) -> i32 effects {} {
+    match value {
+        Maybe::None => { return fallback; },
+        Maybe::Some(n) => { return n; },
+    }
+}
+
+fn main() -> Unit effects {panic} {
+    let pair = Pair::<Maybe<i32>,bool>::Both(Maybe::Some(42),true);
+    match pair {
+        Pair::Empty => { assert(false); },
+        Pair::Both(value,ready) => {
+            assert(ready);
+            assert(choose(value,0)==42);
+        },
+    }
+    assert(choose(Maybe::None,7)==7);
+}
