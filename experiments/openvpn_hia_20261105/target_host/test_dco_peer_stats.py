@@ -4,6 +4,10 @@ import importlib.util
 from pathlib import Path
 import struct
 import unittest
+import tempfile
+import sys
+import io
+from contextlib import redirect_stdout, redirect_stderr
 from unittest import mock
 
 HERE=Path(__file__).resolve().parent
@@ -54,5 +58,34 @@ class NetlinkPeerDumpTests(unittest.TestCase):
         with self.assertRaises(OSError) as ctx:
             module.request(sock,44,3,module.attr(1,struct.pack('=I',3)),2,dump=True)
         self.assertEqual(ctx.exception.errno, 22)
+
+    def test_cli_rejects_dangling_output_symlink_without_touching_target(self):
+        # The older Path.exists() + write_text() silently followed this
+        # dangling leaf symlink and created a file outside the evidence path.
+        with tempfile.TemporaryDirectory() as tmp:
+            outside=Path(tmp)/'unrelated.json'
+            output=Path(tmp)/'peer.json'
+            output.symlink_to(outside)
+            with mock.patch.object(module,'query',return_value={'schema':'mock-peer'}), \
+                 mock.patch.object(sys,'argv',['dco_peer_stats.py','--interface','tunbench-s','--out',str(output)]), \
+                 redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit) as exit_result:
+                    module.main()
+            self.assertEqual(exit_result.exception.code,2)
+            self.assertTrue(output.is_symlink())
+            self.assertFalse(outside.exists())
+
+    def test_cli_writes_fresh_output_and_never_overwrites_existing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output=Path(tmp)/'peer.json'
+            with mock.patch.object(module,'query',return_value={'schema':'mock-peer'}), \
+                 mock.patch.object(sys,'argv',['dco_peer_stats.py','--interface','tunbench-s','--out',str(output)]), \
+                 redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                self.assertEqual(module.main(),0)
+                original=output.read_bytes()
+                with self.assertRaises(SystemExit) as exit_result:
+                    module.main()
+            self.assertEqual(exit_result.exception.code,2)
+            self.assertEqual(output.read_bytes(),original)
 
 if __name__=='__main__':unittest.main(verbosity=2)
