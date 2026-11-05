@@ -1,0 +1,117 @@
+{
+  "schema": "hepta.round2.frozen-ci-cancellation-configuration.v1",
+  "head_sha": "e06aacb66c849b202378268630249be2e7a153fa",
+  "workflow_count": 11,
+  "no_concurrency_declaration_count": 9,
+  "head_scoped_non_cancelling_count": 2,
+  "mandatory_native_ndu_no_workflow_or_job_cancellation_group": true,
+  "committed_configuration_does_not_cancel_previous_head_on_next_publication": true,
+  "scope": "Frozen workflow and job concurrency declarations plus explicit cancellation commands in these files; no new dispatch or workflow mutation.",
+  "workflows": [
+    {
+      "path": ".github/workflows/hepta-c-posttest-hosts.yml",
+      "name": "HIA captured C application on native Linux hosts",
+      "sha256": "a72d01e3720cd067a09376e0831daf01d927400a003c6719688ebefef96ed486",
+      "git_blob_sha1": "c918fb390350ef2ef48a941e8c1bd23bdbbe83e2",
+      "workflow_concurrency": null,
+      "job_concurrency": {},
+      "explicit_cancel_commands": []
+    },
+    {
+      "path": ".github/workflows/hepta-cpp-upstream-hosts.yml",
+      "name": "Hepta real upstream C++ host qualification",
+      "sha256": "0ec21eaa523ec339be80d6ac42f4bf6aaced1797627a7bb61088d79d41764979",
+      "git_blob_sha1": "ea88a334cd721b44218d93e99f411a6d7dfc2633",
+      "workflow_concurrency": {
+        "group": "${{ github.workflow }}-${{ github.event.pull_request.head.sha || github.sha }}",
+        "cancel-in-progress": false
+      },
+      "job_concurrency": {},
+      "explicit_cancel_commands": []
+    },
+    {
+      "path": ".github/workflows/hepta-crc-context.yml",
+      "name": "HIA finite CRC context and static controls",
+      "sha256": "ce1124d39719b8cd0ee1df2f8c63dfb90bb73f55a1e9dfdb390a9a4cc4bfd0ca",
+      "git_blob_sha1": "f4d78bde98510dd65ff353b35e2b1925beb4fe10",
+      "workflow_concurrency": null,
+      "job_concurrency": {},
+      "explicit_cancel_commands": []
+    },
+    {
+      "path": ".github/workflows/hepta-intelligent-assembly-closure.yml",
+      "name": "HIA intelligent assembly closure",
+      "sha256": "d5426c58c75b717a61b94b6ddc3a4d8ddfee6acb15a3abd2aa96b43edef4cd9d",
+      "git_blob_sha1": "d384193960434df52eede7cdaccd544325080f90",
+      "workflow_concurrency": null,
+      "job_concurrency": {},
+      "explicit_cancel_commands": []
+    },
+    {
+      "path": ".github/workflows/hepta-native-hosts.yml",
+      "name": "Hepta actual host ABI qualification",
+      "sha256": "33e4a5dd77775cd709a0358cc547b20fff28b60f6599400b227a11d15bfb12cb",
+      "git_blob_sha1": "2b927bc07c3549d6ceb83e4319faee4e88bce840",
+      "workflow_concurrency": {
+        "group": "${{ github.workflow }}-${{ github.event.pull_request.head.sha || github.sha }}",
+        "cancel-in-progress": false
+      },
+      "job_concurrency": {},
+      "explicit_cancel_commands": []
+    },
+    {
+      "path": ".github/workflows/hepta-six-outcomes.yml",
+      "name": "HIA six-outcome source and application gates",
+      "sha256": "f4d5b261f7a85383ab40574170c4f3a244889b5eb1e3e82941e6835c037e018b",
+      "git_blob_sha1": "146e187abcfa5486c3db5a6929001ddb62a77c35",
+      "workflow_concurrency": null,
+      "job_concurrency": {},
+      "explicit_cancel_commands": []
+    },
+    {
+      "path": ".github/workflows/hepta-verified-optimization.yml",
+      "name": "HIA verified optimization and native NDU integration",
+      "sha256": "8fa7267c17429b4e07e84200b9ad0088731a165987e95ce7401e4bfb10c4eb8e",
+      "git_blob_sha1": "b2312688dc2b4f12473eddee7eb7143daae9432c",
+      "workflow_concurrency": null,
+      "job_concurrency": {},
+      "explicit_cancel_commands": []
+    },
+    {
+      "path": ".github/workflows/hia-core-consistency.yml",
+      "name": "HIA ownership policy and scalar Core consistency",
+      "sha256": "f50db587c23bd2e440f9c660ca783af35f0a61cdbcee76598665799d79055b9f",
+      "git_blob_sha1": "3f91d9adb73c5fe1790b947c403acfd2e52d27a4",
+      "workflow_concurrency": null,
+      "job_concurrency": {},
+      "explicit_cancel_commands": []
+    },
+    {
+      "path": ".github/workflows/hia-core-syntax-kernel-research.yml",
+      "name": "HIA shared full eleven acceptance (DENY_ALL)",
+      "sha256": "ff04edddea3998c7a5b72982ccc960836e820a7af422f3f221a0336436347f58",
+      "git_blob_sha1": "40e7266eb597c3172b3918555e0b39d2d7e16b01",
+      "workflow_concurrency": null,
+      "job_concurrency": {},
+      "explicit_cancel_commands": []
+    },
+    {
+      "path": ".github/workflows/hia-guarded-slice-kernel-research.yml",
+      "name": "HIA projected guarded-slice kernel research (DENY_ALL)",
+      "sha256": "390a6153da7504d6063192ef4f61fbb84c0e71182f89839207f9ae85479caaf9",
+      "git_blob_sha1": "41de59a795b1a3d2bc6065a90f06948e5fdff70f",
+      "workflow_concurrency": null,
+      "job_concurrency": {},
+      "explicit_cancel_commands": []
+    },
+    {
+      "path": ".github/workflows/hia-initialization-frontier-research.yml",
+      "name": "HIA initialization frontier research (Python only, DENY_ALL)",
+      "sha256": "adbd1b5553ab61aa0c95392f0bb48f2ff85b51aa36be7d0aa034b3ba27f14ece",
+      "git_blob_sha1": "4bb9df397593b549bb3a804ce78c0a7ab441e4d0",
+      "workflow_concurrency": null,
+      "job_concurrency": {},
+      "explicit_cancel_commands": []
+    }
+  ]
+}
