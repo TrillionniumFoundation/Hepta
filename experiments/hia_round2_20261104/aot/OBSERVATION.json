@@ -1,0 +1,578 @@
+{
+  "analysis_wall_ns": 245422233,
+  "by_group": {
+    "historical_holdout": {
+      "passed": 87,
+      "total": 96
+    },
+    "historical_regression": {
+      "passed": 78,
+      "total": 84
+    },
+    "prior_wrapper_lengths": {
+      "passed": 89,
+      "total": 96
+    },
+    "prospective_lengths": {
+      "passed": 94,
+      "total": 96
+    }
+  },
+  "claims": {
+    "all_cost_gates_passed": false,
+    "all_memory_gates_passed": true,
+    "all_runtime_gates_passed": false,
+    "broad_rust_parity": false,
+    "full_lifecycle_net_benefit": false,
+    "machine_code_refinement_theorem": false
+  },
+  "comparison_scope": "Two separate complete fixed cohorts on a shared host; observed gate differences do not isolate a causal effect or establish statistical confidence.",
+  "correctness": {
+    "abort_children": 6,
+    "guarded_page_cases": 2304,
+    "native_tests": 36,
+    "resource_protocol_tests": 15
+  },
+  "failed_resource_cost_checks": [
+    {
+      "baseline": "rust_release",
+      "baseline_value": 104,
+      "calls": 1,
+      "candidate": 220,
+      "gate": "cost.cold_first_call",
+      "group": "historical_regression",
+      "limit": 124.8,
+      "n": 0,
+      "passed": false,
+      "ratio_maximum": 1.2,
+      "seed": 5471,
+      "workload": "linear"
+    },
+    {
+      "baseline": "rust_release",
+      "baseline_value": 120,
+      "calls": 1,
+      "candidate": 198,
+      "gate": "cost.cold_first_call",
+      "group": "historical_regression",
+      "limit": 144.0,
+      "n": 0,
+      "passed": false,
+      "ratio_maximum": 1.2,
+      "seed": 6761,
+      "workload": "linear"
+    },
+    {
+      "baseline": "rust_byte_release",
+      "baseline_value": 129,
+      "calls": 1,
+      "candidate": 198,
+      "gate": "cost.cold_first_call",
+      "group": "historical_regression",
+      "limit": 154.79999999999998,
+      "n": 0,
+      "passed": false,
+      "ratio_maximum": 1.2,
+      "seed": 6761,
+      "workload": "linear"
+    },
+    {
+      "baseline": "rust_byte_release",
+      "baseline_value": 92,
+      "calls": 1,
+      "candidate": 193,
+      "gate": "cost.cold_first_call",
+      "group": "historical_regression",
+      "limit": 110.39999999999999,
+      "n": 0,
+      "passed": false,
+      "ratio_maximum": 1.2,
+      "seed": 4294967291,
+      "workload": "linear"
+    },
+    {
+      "baseline": "rust_release",
+      "baseline_value": 140,
+      "calls": 1,
+      "candidate": 189,
+      "gate": "cost.cold_first_call",
+      "group": "historical_regression",
+      "limit": 168.0,
+      "n": 0,
+      "passed": false,
+      "ratio_maximum": 1.2,
+      "seed": 5471,
+      "workload": "affine"
+    },
+    {
+      "baseline": "rust_byte_release",
+      "baseline_value": 121,
+      "calls": 1,
+      "candidate": 189,
+      "gate": "cost.cold_first_call",
+      "group": "historical_regression",
+      "limit": 145.2,
+      "n": 0,
+      "passed": false,
+      "ratio_maximum": 1.2,
+      "seed": 5471,
+      "workload": "affine"
+    },
+    {
+      "baseline": "rust_release",
+      "baseline_value": 141,
+      "calls": 1,
+      "candidate": 218,
+      "gate": "cost.cold_first_call",
+      "group": "historical_regression",
+      "limit": 169.2,
+      "n": 0,
+      "passed": false,
+      "ratio_maximum": 1.2,
+      "seed": 6761,
+      "workload": "affine"
+    },
+    {
+      "baseline": "rust_byte_release",
+      "baseline_value": 93,
+      "calls": 1,
+      "candidate": 218,
+      "gate": "cost.cold_first_call",
+      "group": "historical_regression",
+      "limit": 111.6,
+      "n": 0,
+      "passed": false,
+      "ratio_maximum": 1.2,
+      "seed": 6761,
+      "workload": "affine"
+    },
+    {
+      "baseline": "rust_release",
+      "baseline_value": 107,
+      "calls": 1,
+      "candidate": 192,
+      "gate": "cost.cold_first_call",
+      "group": "historical_regression",
+      "limit": 128.4,
+      "n": 0,
+      "passed": false,
+      "ratio_maximum": 1.2,
+      "seed": 4294967291,
+      "workload": "affine"
+    },
+    {
+      "baseline": "rust_byte_release",
+      "baseline_value": 106,
+      "calls": 1,
+      "candidate": 192,
+      "gate": "cost.cold_first_call",
+      "group": "historical_regression",
+      "limit": 127.19999999999999,
+      "n": 0,
+      "passed": false,
+      "ratio_maximum": 1.2,
+      "seed": 4294967291,
+      "workload": "affine"
+    }
+  ],
+  "first_candidate": {
+    "median_misses": 11,
+    "outer_status": "failed_assessor_only_native_complete",
+    "passed": 318,
+    "raw_retained": true,
+    "source": "db98ea63604a4a6a41b3a9fb94692b30203a5c12",
+    "tail_only_misses": 43,
+    "total": 372
+  },
+  "gate_transition_counts": {
+    "previous_failed_new_passed": 46,
+    "previous_passed_new_failed": 16
+  },
+  "history": [
+    {
+      "commit": "db98ea63604a4a6a41b3a9fb94692b30203a5c12",
+      "parents": [
+        "3707b871ecbe563233ee9a3b69299fc627408936"
+      ],
+      "subject": "Lower verified wrapping byte sums with guarded SSE2 chunks",
+      "tree": "29f304c33559481566dc98e28a6f15326f15e00c"
+    },
+    {
+      "commit": "ee2c8e5be819602a6b9781e05ee782da3f8e09db",
+      "parents": [
+        "db98ea63604a4a6a41b3a9fb94692b30203a5c12"
+      ],
+      "subject": "Bind historical AOT loader costs to complete raw native traces",
+      "tree": "64f79a3a89cfd6743c49a5f19e0b27e7360700ec"
+    },
+    {
+      "commit": "d482f36cfa5f77558bd664749a37973a28083a6c",
+      "parents": [
+        "ee2c8e5be819602a6b9781e05ee782da3f8e09db"
+      ],
+      "subject": "Separate guarded SIMD prefixes from fixed-stride scalar tails",
+      "tree": "69ac2654a653146c40a408636008305e8b660773"
+    }
+  ],
+  "median_misses": [],
+  "memory_and_cost": {
+    "all_original_runtime_gates_passed": false,
+    "all_registered_automated_cost_gates_passed": false,
+    "all_registered_memory_gates_passed": true,
+    "assessment_valid": true,
+    "broad_rust_parity_established": false,
+    "by_gate": {
+      "cost.build_and_proof": {
+        "passed": 4,
+        "total": 4
+      },
+      "cost.cold_first_call": {
+        "passed": 38,
+        "total": 48
+      },
+      "cost.estimated_automated": {
+        "passed": 1116,
+        "total": 1116
+      },
+      "cost.median_load": {
+        "passed": 4,
+        "total": 4
+      },
+      "memory.library_file": {
+        "passed": 4,
+        "total": 4
+      },
+      "memory.loader_backing_resident_bytes": {
+        "passed": 48,
+        "total": 48
+      },
+      "memory.loader_mapped_bytes": {
+        "passed": 48,
+        "total": 48
+      },
+      "memory.peak_requested": {
+        "passed": 1116,
+        "total": 1116
+      },
+      "memory.peak_usable": {
+        "passed": 1116,
+        "total": 1116
+      },
+      "memory.requested_total": {
+        "passed": 1116,
+        "total": 1116
+      },
+      "memory.stack_max_distance": {
+        "passed": 1116,
+        "total": 1116
+      },
+      "memory.usable_total": {
+        "passed": 1116,
+        "total": 1116
+      }
+    },
+    "full_lifecycle_net_benefit_established": false
+  },
+  "misses": [
+    {
+      "baseline": "rust_byte_release",
+      "calls": 16,
+      "group": "historical_regression",
+      "median_ratio": 0.9807692307692307,
+      "n": 0,
+      "p95_ratio": 1.0769230769230769,
+      "p99_ratio": 1.366412213740458,
+      "passed": false,
+      "workload": "linear"
+    },
+    {
+      "baseline": "rust_release",
+      "calls": 1,
+      "group": "historical_holdout",
+      "median_ratio": 0.7808219178082192,
+      "n": 19,
+      "p95_ratio": 0.7254901960784313,
+      "p99_ratio": 1.373134328358209,
+      "passed": false,
+      "workload": "linear"
+    },
+    {
+      "baseline": "rust_byte_release",
+      "calls": 1,
+      "group": "historical_holdout",
+      "median_ratio": 0.8142857142857143,
+      "n": 19,
+      "p95_ratio": 0.7047619047619048,
+      "p99_ratio": 1.5206611570247934,
+      "passed": false,
+      "workload": "linear"
+    },
+    {
+      "baseline": "rust_release",
+      "calls": 16,
+      "group": "historical_holdout",
+      "median_ratio": 0.6735092864125122,
+      "n": 73,
+      "p95_ratio": 0.5475701574264202,
+      "p99_ratio": 19.002702702702702,
+      "passed": false,
+      "workload": "linear"
+    },
+    {
+      "baseline": "rust_byte_release",
+      "calls": 16,
+      "group": "historical_holdout",
+      "median_ratio": 0.7883295194508009,
+      "n": 73,
+      "p95_ratio": 0.8648648648648649,
+      "p99_ratio": 26.7592768791627,
+      "passed": false,
+      "workload": "linear"
+    },
+    {
+      "baseline": "rust_release",
+      "calls": 16,
+      "group": "historical_holdout",
+      "median_ratio": 0.5353348729792148,
+      "n": 269,
+      "p95_ratio": 0.5289694825298541,
+      "p99_ratio": 5.421696918531025,
+      "passed": false,
+      "workload": "linear"
+    },
+    {
+      "baseline": "rust_byte_release",
+      "calls": 16,
+      "group": "historical_holdout",
+      "median_ratio": 0.603331598125976,
+      "n": 269,
+      "p95_ratio": 0.6111394992335207,
+      "p99_ratio": 6.15428845232391,
+      "passed": false,
+      "workload": "linear"
+    },
+    {
+      "baseline": "rust_release",
+      "calls": 64,
+      "group": "prior_wrapper_lengths",
+      "median_ratio": 0.7564817853626518,
+      "n": 29,
+      "p95_ratio": 0.7682458386683739,
+      "p99_ratio": 1.21280353200883,
+      "passed": false,
+      "workload": "linear"
+    },
+    {
+      "baseline": "rust_byte_release",
+      "calls": 64,
+      "group": "prior_wrapper_lengths",
+      "median_ratio": 0.7779277759028013,
+      "n": 29,
+      "p95_ratio": 0.7981376787495843,
+      "p99_ratio": 4.485630306988896,
+      "passed": false,
+      "workload": "linear"
+    },
+    {
+      "baseline": "rust_byte_release",
+      "calls": 64,
+      "group": "prior_wrapper_lengths",
+      "median_ratio": 0.6955689277899344,
+      "n": 97,
+      "p95_ratio": 0.7097639484978541,
+      "p99_ratio": 2.784303397419015,
+      "passed": false,
+      "workload": "linear"
+    },
+    {
+      "baseline": "rust_release",
+      "calls": 64,
+      "group": "prospective_lengths",
+      "median_ratio": 0.6167534722222222,
+      "n": 101,
+      "p95_ratio": 0.6251621271076524,
+      "p99_ratio": 3.1208350906790385,
+      "passed": false,
+      "workload": "linear"
+    },
+    {
+      "baseline": "rust_byte_release",
+      "calls": 64,
+      "group": "prospective_lengths",
+      "median_ratio": 0.7304034952454382,
+      "n": 101,
+      "p95_ratio": 0.7240861291937907,
+      "p99_ratio": 1.2164228176886405,
+      "passed": false,
+      "workload": "linear"
+    },
+    {
+      "baseline": "rust_release",
+      "calls": 1,
+      "group": "historical_regression",
+      "median_ratio": 0.8846153846153846,
+      "n": 0,
+      "p95_ratio": 0.9090909090909091,
+      "p99_ratio": 1.9104477611940298,
+      "passed": false,
+      "workload": "affine"
+    },
+    {
+      "baseline": "rust_byte_release",
+      "calls": 1,
+      "group": "historical_regression",
+      "median_ratio": 0.8846153846153846,
+      "n": 0,
+      "p95_ratio": 0.975609756097561,
+      "p99_ratio": 1.9104477611940298,
+      "passed": false,
+      "workload": "affine"
+    },
+    {
+      "baseline": "rust_release",
+      "calls": 16,
+      "group": "historical_regression",
+      "median_ratio": 1.0625,
+      "n": 0,
+      "p95_ratio": 1.4943820224719102,
+      "p99_ratio": 0.967948717948718,
+      "passed": false,
+      "workload": "affine"
+    },
+    {
+      "baseline": "rust_byte_release",
+      "calls": 16,
+      "group": "historical_regression",
+      "median_ratio": 0.9807692307692307,
+      "n": 0,
+      "p95_ratio": 1.5113636363636365,
+      "p99_ratio": 1.055944055944056,
+      "passed": false,
+      "workload": "affine"
+    },
+    {
+      "baseline": "rust_release",
+      "calls": 1,
+      "group": "historical_regression",
+      "median_ratio": 0.9433962264150944,
+      "n": 1,
+      "p95_ratio": 0.9012345679012346,
+      "p99_ratio": 1.2164948453608246,
+      "passed": false,
+      "workload": "affine"
+    },
+    {
+      "baseline": "rust_release",
+      "calls": 64,
+      "group": "historical_holdout",
+      "median_ratio": 0.710478276743337,
+      "n": 19,
+      "p95_ratio": 0.7377983612397577,
+      "p99_ratio": 4.55010511562719,
+      "passed": false,
+      "workload": "affine"
+    },
+    {
+      "baseline": "rust_byte_release",
+      "calls": 64,
+      "group": "historical_holdout",
+      "median_ratio": 0.7433155080213903,
+      "n": 19,
+      "p95_ratio": 0.7800376647834275,
+      "p99_ratio": 4.699963807455664,
+      "passed": false,
+      "workload": "affine"
+    },
+    {
+      "baseline": "rust_byte_release",
+      "calls": 64,
+      "group": "historical_holdout",
+      "median_ratio": 0.590863309352518,
+      "n": 1051,
+      "p95_ratio": 0.5997061142570425,
+      "p99_ratio": 1.344302641764087,
+      "passed": false,
+      "workload": "affine"
+    },
+    {
+      "baseline": "rust_release",
+      "calls": 16,
+      "group": "prior_wrapper_lengths",
+      "median_ratio": 0.5573394495412844,
+      "n": 97,
+      "p95_ratio": 0.5545641729581332,
+      "p99_ratio": 4.441214470284238,
+      "passed": false,
+      "workload": "affine"
+    },
+    {
+      "baseline": "rust_byte_release",
+      "calls": 16,
+      "group": "prior_wrapper_lengths",
+      "median_ratio": 0.7182266009852217,
+      "n": 97,
+      "p95_ratio": 0.7666034155597723,
+      "p99_ratio": 5.921619293712317,
+      "passed": false,
+      "workload": "affine"
+    },
+    {
+      "baseline": "rust_release",
+      "calls": 64,
+      "group": "prior_wrapper_lengths",
+      "median_ratio": 0.512472487160675,
+      "n": 97,
+      "p95_ratio": 0.29538554948391016,
+      "p99_ratio": 2.3470842115828567,
+      "passed": false,
+      "workload": "affine"
+    },
+    {
+      "baseline": "rust_byte_release",
+      "calls": 64,
+      "group": "prior_wrapper_lengths",
+      "median_ratio": 0.7043105621376355,
+      "n": 97,
+      "p95_ratio": 0.732313095835424,
+      "p99_ratio": 5.711773326819737,
+      "passed": false,
+      "workload": "affine"
+    }
+  ],
+  "native_result": {
+    "bytes": 3955074,
+    "path": "/data/hepta-hia-round2-20261104/evidence/aot-campaign-r2/native/RESULT.json",
+    "sha256": "95f2aa1a33813d699b31a06e8660cf71593148b02425a591ee8211eb28cadbca"
+  },
+  "new_native_execution_or_decode": false,
+  "only_read_existing_results": true,
+  "original_baseline_context": {
+    "median_misses": 7,
+    "passed": 293,
+    "scope": "Original composition r3; full original evidence archived in prior-round repository delivery, not remeasured here.",
+    "source": "3707b871ecbe563233ee9a3b69299fc627408936",
+    "tail_only_misses": 72,
+    "total": 372
+  },
+  "outer_result": {
+    "bytes": 105410,
+    "path": "/data/hepta-hia-round2-20261104/evidence/aot-campaign-r2/OUTER_RESULT.json",
+    "sha256": "f798a0ff4cb71825be8037ddca3b7ba82b32b1a155b602b27a32012c7d9ec57c"
+  },
+  "passed": 348,
+  "resource_result": {
+    "bytes": 1927134,
+    "path": "/data/hepta-hia-round2-20261104/evidence/aot-campaign-r2/RESOURCE_COST_RESULT.json",
+    "sha256": "cbdaa45234b77d5d6d4454da8edcf72adc18310994e20031675fd44e2cfcc959"
+  },
+  "schema": "hepta.hia.byte-sum-candidate2.read-only-analysis.v1",
+  "source_commit": "d482f36cfa5f77558bd664749a37973a28083a6c",
+  "source_tree": "69ac2654a653146c40a408636008305e8b660773",
+  "statistic_miss_counts": {
+    "median": 0,
+    "p95": 2,
+    "p99": 22
+  },
+  "tail_only_misses": 24,
+  "total": 372
+}
