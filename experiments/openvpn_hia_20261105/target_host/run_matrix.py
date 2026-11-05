@@ -51,7 +51,14 @@ def process_stats(pid):
 
 def observe(text):
     lines = text.splitlines()
-    resets = [i for i, line in enumerate(lines) if 'TLS: soft reset' in line]
+    # A peer-initiated rekey can complete TLS and install new keys without the
+    # responder logging its own 'TLS: soft reset'. A received control reset is
+    # only a *candidate*: the segment must still prove TLS + installed keys.
+    local_resets = [i for i, line in enumerate(lines) if 'TLS: soft reset' in line]
+    peer_resets = [i for i, line in enumerate(lines)
+                   if 'P_CONTROL_SOFT_RESET_V1' in line
+                   and re.search(r'\bREAD \[\d+\]', line)]
+    resets = sorted(set(local_resets + peer_resets))
     boundaries = [i for i, line in enumerate(lines) if any(x in line for x in (
         'TLS: Initial packet', 'initial untrusted session promoted to trusted',
         'Initialization Sequence Completed', 'SIGUSR1[hard,'))]
@@ -85,7 +92,8 @@ def observe(text):
             'initial_packets':text.count('TLS: Initial packet'),
             'initial_promotions':text.count('initial untrusted session promoted to trusted'),
             'hard_restarts':text.count('SIGUSR1[hard,'),
-            'soft_resets':len(resets),
+            'soft_resets':len(local_resets),
+            'peer_soft_resets':len(peer_resets),
             'peer_connections':text.count('Peer Connection Initiated'),
             'rekey_cycles':completed,'completed_rekeys':len(completed),
             'protocol_lines':[line for line in lines if 'Protocol options:' in line],
@@ -331,7 +339,7 @@ class Pair:
             raise RuntimeError('behavior action is no longer in the first authenticated client session')
         for role,obs in observations.items():
             if session_marker(obs)!=markers[role]:raise RuntimeError(role+' session changed before its declared transition')
-            if no_rekey and (obs['soft_resets'] or obs['completed_rekeys']):
+            if no_rekey and (obs['soft_resets'] or obs['peer_soft_resets'] or obs['completed_rekeys']):
                 raise RuntimeError(role+' started a rekey during the declared same-epoch action')
         return observations
     def close(self):
