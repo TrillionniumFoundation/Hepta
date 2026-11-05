@@ -1,0 +1,31 @@
+# Source-distribution development inputs. Installed packages remain ["hepta"].
+include Makefile toolchain-lock.json
+include tools/*.py
+include tests/test*.py
+include docs/PACKAGING.md
+
+recursive-include benchmarks *.hepta *.rs *.c
+include benchmarks/README.md
+recursive-include examples *.hepta *.c *.h hepta.toml Hepta.lock
+
+include formal/HeptaCore.lean
+include formal/proof-dependencies.txt
+include formal/toolchain-lock.json
+include formal/qemu-toolchain-lock.json
+include formal/README.md
+
+# Preserve the existing evaluator's reviewable fixture inputs, not its results.
+include experiments/agent_eval/*.py
+include experiments/agent_eval/manifest.json
+include experiments/agent_eval/driver.c
+include experiments/agent_eval/hepta_reference.md
+include experiments/agent_eval/rust_reference.md
+include experiments/agent_eval/README.md
+include experiments/agent_eval/_private/*.py
+include experiments/agent_eval/fixtures/*.py
+recursive-include experiments/agent_eval/tasks instructions.md public.json starter.hepta starter.rs
+
+global-exclude *.py[cod]
+prune artifacts
+prune evidence
+prune experiments/agent_eval/evidence
