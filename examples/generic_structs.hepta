@@ -1,0 +1,21 @@
+struct Cell<T> { value: T }
+struct Pair<A,B> { left: A, right: B }
+enum Maybe<T> { None, Some(T) }
+
+fn advance(cells: mut [Cell<i32>]) -> Unit effects {write,panic} {
+    for i in 0..len(cells) { cells[i].value=cells[i].value+1; }
+}
+
+fn main() -> Unit effects {write,panic} {
+    let mut cells:[Cell<i32>;2]=[Cell{value:17},Cell{value:23}];
+    let before=cells[0];
+    advance(mut cells);
+    let pair=Pair::<Cell<i32>,bool>{right:true,left:cells[0]};
+    let event=Maybe::<Pair<Cell<i32>,bool>>::Some(pair);
+    match event {
+        Maybe::Some(value)=>{assert(value.left.value==18);assert(value.right);},
+        Maybe::None=>{assert(false);}
+    }
+    assert(before.value==17);
+    assert(cells[1].value==24);
+}

@@ -132,7 +132,7 @@ class GenericEnumTests(unittest.TestCase):
                 program,checked=self.frontend(f'enum Maybe<T> {{None,Some(T)}} fn unused(x:Maybe<{typ}>)->Unit effects {{}} {{}} fn main()->Unit effects {{}} {{}}')
                 with self.assertRaises(HeptaError) as raised:emit_c(program,checked)
                 self.assertEqual(raised.exception.diagnostic.code,'E_C_BACKEND_SUBSET')
-        for source in ['struct Record<T> {value:T} enum E {Value(Record<i32>)}',
+        for source in ['struct Record<T> {value:T} enum E {Value(Record<Unit>)}',
                        'enum E<T> {Value(T)} fn id<T>(x:T)->T effects {} {return x;}']:
             with self.subTest(source=source):
                 program,checked=self.frontend(source+' fn main()->Unit effects {} {}')
