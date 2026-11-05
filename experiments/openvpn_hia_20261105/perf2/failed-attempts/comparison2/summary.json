@@ -1,0 +1,234 @@
+{
+  "code_size": {
+    "new": {
+      "executable_section_bytes": 2632,
+      "object_bytes": 4224
+    },
+    "old": {
+      "executable_section_bytes": 2822,
+      "object_bytes": 4744
+    }
+  },
+  "commands": [
+    {
+      "command": [
+        "objcopy",
+        "--redefine-syms=/workspace/scratch/2719a9027f80/packet-perf2-comparison2/old-symbols.txt",
+        "/workspace/scratch/2719a9027f80/packet-run-final4/packet.o",
+        "/workspace/scratch/2719a9027f80/packet-perf2-comparison2/old-packet.o"
+      ],
+      "elapsed_seconds": 0.00482103600006667,
+      "label": "rename-old-packet.o",
+      "returncode": 0
+    },
+    {
+      "command": [
+        "objcopy",
+        "--redefine-syms=/workspace/scratch/2719a9027f80/packet-perf2-comparison2/old-symbols.txt",
+        "/workspace/scratch/2719a9027f80/packet-run-final4/adapter.o",
+        "/workspace/scratch/2719a9027f80/packet-perf2-comparison2/old-adapter.o"
+      ],
+      "elapsed_seconds": 0.0023829439996916335,
+      "label": "rename-old-adapter.o",
+      "returncode": 0
+    },
+    {
+      "command": [
+        "objcopy",
+        "--redefine-syms=/workspace/scratch/2719a9027f80/packet-perf2-comparison2/new-symbols.txt",
+        "/workspace/scratch/2719a9027f80/packet-perf2-candidate1/packet.o",
+        "/workspace/scratch/2719a9027f80/packet-perf2-comparison2/new-packet.o"
+      ],
+      "elapsed_seconds": 0.0019257969979662448,
+      "label": "rename-new-packet.o",
+      "returncode": 0
+    },
+    {
+      "command": [
+        "objcopy",
+        "--redefine-syms=/workspace/scratch/2719a9027f80/packet-perf2-comparison2/new-symbols.txt",
+        "/workspace/scratch/2719a9027f80/packet-perf2-candidate1/adapter.o",
+        "/workspace/scratch/2719a9027f80/packet-perf2-comparison2/new-adapter.o"
+      ],
+      "elapsed_seconds": 0.002858410000044387,
+      "label": "rename-new-adapter.o",
+      "returncode": 0
+    },
+    {
+      "command": [
+        "/workspace/scratch/2719a9027f80/toolchain/llvm20/usr/lib/llvm-20/bin/clang",
+        "--target=x86_64-unknown-linux-gnu",
+        "-O3",
+        "-fPIC",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-DHAVE_CONFIG_H",
+        "-I/workspace/scratch/2719a9027f80/openvpn-baseline/build-c",
+        "-I/workspace/scratch/2719a9027f80/openvpn-baseline/openvpn-2.7.8/src/openvpn",
+        "-I/workspace/scratch/2719a9027f80/openvpn-baseline/openvpn-2.7.8/include",
+        "-I/workspace/scratch/2719a9027f80/openvpn-baseline/openvpn-2.7.8/src/compat",
+        "-I/workspace/scratch/2719a9027f80/Hepta-frozen/experiments/openvpn_hia_20261105",
+        "-c",
+        "/workspace/scratch/2719a9027f80/Hepta-frozen/experiments/openvpn_hia_20261105/perf2/paired_benchmark.c",
+        "-o",
+        "/workspace/scratch/2719a9027f80/packet-perf2-comparison2/paired-benchmark.o"
+      ],
+      "elapsed_seconds": 0.3092497050020029,
+      "label": "compile-benchmark",
+      "returncode": 0
+    },
+    {
+      "command": [
+        "/workspace/scratch/2719a9027f80/toolchain/llvm20/usr/lib/llvm-20/bin/clang",
+        "-O3",
+        "-Wl,--gc-sections",
+        "/workspace/scratch/2719a9027f80/packet-perf2-candidate1/upstream-packet-id.o",
+        "/workspace/scratch/2719a9027f80/packet-perf2-candidate1/c-buffer-control.o",
+        "/workspace/scratch/2719a9027f80/packet-perf2-comparison2/old-packet.o",
+        "/workspace/scratch/2719a9027f80/packet-perf2-comparison2/old-adapter.o",
+        "/workspace/scratch/2719a9027f80/packet-perf2-comparison2/new-packet.o",
+        "/workspace/scratch/2719a9027f80/packet-perf2-comparison2/new-adapter.o",
+        "/workspace/scratch/2719a9027f80/packet-perf2-comparison2/paired-benchmark.o",
+        "-o",
+        "/workspace/scratch/2719a9027f80/packet-perf2-comparison2/paired-benchmark"
+      ],
+      "elapsed_seconds": 0.07985255700259586,
+      "label": "link-benchmark",
+      "returncode": 0
+    },
+    {
+      "command": [
+        "/workspace/scratch/2719a9027f80/packet-perf2-comparison2/paired-benchmark"
+      ],
+      "elapsed_seconds": 0.0818562739987101,
+      "label": "samples",
+      "returncode": -11
+    }
+  ],
+  "compiler": {
+    "path": "/workspace/scratch/2719a9027f80/toolchain/llvm20/usr/lib/llvm-20/bin/clang",
+    "sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+    "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)"
+  },
+  "error": "RuntimeError('samples failed; retained output')",
+  "finished_utc": "2026-11-05T08:22:39Z",
+  "flags": [
+    "--target=x86_64-unknown-linux-gnu",
+    "-O3",
+    "-fPIC",
+    "-ffunction-sections",
+    "-fdata-sections",
+    "-DHAVE_CONFIG_H",
+    "-I/workspace/scratch/2719a9027f80/openvpn-baseline/build-c",
+    "-I/workspace/scratch/2719a9027f80/openvpn-baseline/openvpn-2.7.8/src/openvpn",
+    "-I/workspace/scratch/2719a9027f80/openvpn-baseline/openvpn-2.7.8/include",
+    "-I/workspace/scratch/2719a9027f80/openvpn-baseline/openvpn-2.7.8/src/compat",
+    "-I/workspace/scratch/2719a9027f80/Hepta-frozen/experiments/openvpn_hia_20261105"
+  ],
+  "host": {
+    "allowed_cpus_before": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "cpu_affinity": [
+      0
+    ],
+    "load_average_before": [
+      0.4765625,
+      0.46142578125,
+      0.44970703125
+    ],
+    "platform": "Linux-6.18.57-x86_64-with-glibc2.39"
+  },
+  "limitations": [
+    "Both HIA variants retain range admission and byte/state contracts.",
+    "Shared host, no frequency lock or exclusive CPU.",
+    "Batch average nanoseconds per call, not request-tail latency.",
+    "C buffer control calls separately compiled official C; optimization visibility differs.",
+    "Different raw/adapter harness timings do not give exact additive adapter cost.",
+    "No tunnel/DCO performance or production-hotspot qualification."
+  ],
+  "new_receipt_sha256": "8f442072c99e61128419cda9d73f5b33ab64fc8191b362ffa0b3ff275f242db6",
+  "object_sha256": {
+    "new": {
+      "adapter.o": "64c78f6e9e8d04d9887a040460e157aae53a75aac738c996f650e80555e3ea6f",
+      "c-buffer-control.o": "8d23a199f71f6b4a2cdb1c2407d09eae7cf74ac94d903fdeaafc5cefde3a3e76",
+      "packet.o": "05d189d73cb75e49ef251ba8a7fe97bb36f837b3bb3936fe3b907614233e7c31",
+      "upstream-packet-id.o": "bde08ca29c2cb5338333ac1a186d877618821adfe8690b10b3c1ed49eef5e4e2"
+    },
+    "old": {
+      "adapter.o": "64c78f6e9e8d04d9887a040460e157aae53a75aac738c996f650e80555e3ea6f",
+      "c-buffer-control.o": "8d23a199f71f6b4a2cdb1c2407d09eae7cf74ac94d903fdeaafc5cefde3a3e76",
+      "packet.o": "67e17b4113f8aeca171efb9b1a45909373daddeaae448060c20ec080e0725983",
+      "upstream-packet-id.o": "bde08ca29c2cb5338333ac1a186d877618821adfe8690b10b3c1ed49eef5e4e2"
+    }
+  },
+  "ok": false,
+  "old_receipt_sha256": "fc73ee23117aef802865ab21cbf66020ec06fecd84807a66a816a5a942ff4e68",
+  "plan": {
+    "arms": [
+      "original_c",
+      "c_buffer_control",
+      "old_hia_raw",
+      "new_hia_raw",
+      "old_hia_adapter",
+      "new_hia_adapter"
+    ],
+    "calls_per_sample": 1000000,
+    "discarded_samples": 0,
+    "modes": [
+      "long_write",
+      "long_read",
+      "epoch_write",
+      "epoch_read"
+    ],
+    "order": "six-row Williams balanced order, repeat each row three times",
+    "repetition_policy": "one frozen comparison run; retain failures and every sample; no best-run selection",
+    "samples_per_mode_arm": 18,
+    "warmup_calls_per_mode_arm": 10000
+  },
+  "regression_receipt_sha256": "975df7ec14a229ab0959cbcef6b0346a594c9f6bd801d259344316f6c65c02d9",
+  "renaming": [
+    {
+      "executable_sections_identical": true,
+      "input": "/workspace/scratch/2719a9027f80/packet-run-final4/packet.o",
+      "input_sha256": "67e17b4113f8aeca171efb9b1a45909373daddeaae448060c20ec080e0725983",
+      "output": "/workspace/scratch/2719a9027f80/packet-perf2-comparison2/old-packet.o",
+      "output_sha256": "de7a0e924acedf80cb3a3676a14b75ced0f7ff5a940b9d8922a721569059111b"
+    },
+    {
+      "executable_sections_identical": true,
+      "input": "/workspace/scratch/2719a9027f80/packet-run-final4/adapter.o",
+      "input_sha256": "64c78f6e9e8d04d9887a040460e157aae53a75aac738c996f650e80555e3ea6f",
+      "output": "/workspace/scratch/2719a9027f80/packet-perf2-comparison2/old-adapter.o",
+      "output_sha256": "62c2476ea2dbe7dfd0aa8332a8b9ee9dccde4c4df5baf38d565924d753c1d81b"
+    },
+    {
+      "executable_sections_identical": true,
+      "input": "/workspace/scratch/2719a9027f80/packet-perf2-candidate1/packet.o",
+      "input_sha256": "05d189d73cb75e49ef251ba8a7fe97bb36f837b3bb3936fe3b907614233e7c31",
+      "output": "/workspace/scratch/2719a9027f80/packet-perf2-comparison2/new-packet.o",
+      "output_sha256": "9f883bede183d82620f509342257118d1a26978e426dc435155ff9de3bd6eb0b"
+    },
+    {
+      "executable_sections_identical": true,
+      "input": "/workspace/scratch/2719a9027f80/packet-perf2-candidate1/adapter.o",
+      "input_sha256": "64c78f6e9e8d04d9887a040460e157aae53a75aac738c996f650e80555e3ea6f",
+      "output": "/workspace/scratch/2719a9027f80/packet-perf2-comparison2/new-adapter.o",
+      "output_sha256": "e4d2d98d809cf110a8f4cfa2b3a5cacb8aa67b2a5e7f8c92cf24fb42df675380"
+    }
+  ],
+  "schema": "hepta.openvpn-hia.same-run-six-arm.v1",
+  "source_sha256": {
+    "paired_benchmark.c": "793bc1d2e0e5de6936c1faf8d682448a88333922ceb3eed8d4c28220cf63beac",
+    "run_comparison.py": "76d525523fcee63ae2b18424173051f8d832bebac11a81a972ca49a7ceb2b8fc"
+  },
+  "started_utc": "2026-11-05T08:22:39Z"
+}

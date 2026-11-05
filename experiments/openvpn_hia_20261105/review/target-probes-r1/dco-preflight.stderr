@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "/workspace/scratch/2719a9027f80/Hepta-frozen/experiments/openvpn_hia_20261105/tunnel_trial.py", line 373, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/workspace/scratch/2719a9027f80/Hepta-frozen/experiments/openvpn_hia_20261105/tunnel_trial.py", line 234, in main
+    result = {"schema": "hepta.openvpn-hia.real-tunnel-trial.v2", "preflight": preflight(args.mode),
+                                                                               ^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/2719a9027f80/Hepta-frozen/experiments/openvpn_hia_20261105/tunnel_trial.py", line 57, in preflight
+    isolated = netns_inode() != netns_inode(1)
+                                ^^^^^^^^^^^^^^
+  File "/workspace/scratch/2719a9027f80/Hepta-frozen/experiments/openvpn_hia_20261105/tunnel_trial.py", line 40, in netns_inode
+    return os.stat(f"/proc/{pid}/ns/net").st_ino
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: '/proc/1/ns/net'

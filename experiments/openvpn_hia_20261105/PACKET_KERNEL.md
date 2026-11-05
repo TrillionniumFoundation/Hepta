@@ -1,5 +1,10 @@
 # OpenVPN 2.7.8 packet-ID HIA experiment
 
+This page preserves the initial qualified object and its two timed runs. The
+later candidate and its complete same-round old/new comparison are recorded in
+[perf2/README.md](perf2/README.md), with application evidence linked from
+[CONTINUATION.md](CONTINUATION.md).
+
 This experiment implements the packet-ID codec in verified HIA Core and links
 its generated native object through a small C adapter. The wire arithmetic,
 network byte order, partial failures, rollover and state changes are HIA

@@ -1,0 +1,44 @@
+{
+  "base_commit": "5a699214b974c1af95a8044315f0818a2f72064f",
+  "baseline_files": {
+    "hia-build.json": "dc49d42730dc08a5e2e8b8ddf872dd76ad3048f644143fe1b8e6f50d8d8e9304",
+    "hia_program_llvm.py": "c9c502bb30cee77399fa53fe67f3ddac73f2bfe8e9ec76ca6642f3d4f8d6ae53",
+    "packet.ll": "41657dee78e0b25d0426b2f64f638f764ead9e587d91eb951b41a62a83946bd7",
+    "packet_program.py": "327d7bbdd1cae8e93f78f53dbbe37dc08db7dbacec5adb3ef48462bd0a20ac08",
+    "qualification-summary.json": "fc73ee23117aef802865ab21cbf66020ec06fecd84807a66a816a5a942ff4e68"
+  },
+  "benchmark_plan": {
+    "arms": [
+      "original_c",
+      "c_buffer_control",
+      "old_hia_raw",
+      "new_hia_raw",
+      "old_hia_adapter",
+      "new_hia_adapter"
+    ],
+    "calls_per_sample": 1000000,
+    "discarded_samples": 0,
+    "modes": [
+      "long_write",
+      "long_read",
+      "epoch_write",
+      "epoch_read"
+    ],
+    "order": "six-row Williams balanced order, repeat each row three times",
+    "repetition_policy": "one frozen comparison run; retain failures and every sample; no best-run selection",
+    "samples_per_mode_arm": 18,
+    "warmup_calls_per_mode_arm": 10000
+  },
+  "candidate": "bounded-index-plus-foreign-inline-v1",
+  "candidate_budget": 1,
+  "old_adapter_sha256": "64c78f6e9e8d04d9887a040460e157aae53a75aac738c996f650e80555e3ea6f",
+  "old_object_path": "/workspace/scratch/2719a9027f80/packet-run-final4/packet.o",
+  "old_object_sha256": "67e17b4113f8aeca171efb9b1a45909373daddeaae448060c20ec080e0725983",
+  "planned_qualification": [
+    "44 existing ABI/LLVM/source-export/command-log regression methods",
+    "existing complete C differential",
+    "existing guard-page boundary suite",
+    "existing admission/ownership/receiver suite",
+    "C-side ASan+fatal UBSan; HIA machine code not instrumented"
+  ]
+}

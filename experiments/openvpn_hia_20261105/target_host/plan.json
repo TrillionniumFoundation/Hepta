@@ -1,0 +1,166 @@
+{
+  "schema": "hepta.openvpn-hia.target-plan.v1",
+  "authority": "fixed-before-target-execution",
+  "budget_seconds": 1800,
+  "host_scope": "one disposable GitHub-hosted Ubuntu24.04 x86_64 VM; two isolated local network namespaces per case; no WAN generalization",
+  "underlay": {
+    "server": "192.0.2.1/30",
+    "client": "192.0.2.2/30",
+    "server_interface": "ovpn-us",
+    "client_interface": "ovpn-uc"
+  },
+  "vpn": {
+    "server": "10.77.0.1",
+    "client": "10.77.0.2",
+    "prefixlen": 24,
+    "server_interface": "tunbench-s",
+    "client_interface": "tunbench-c",
+    "mtu": 1400,
+    "transport": "udp4",
+    "port": 1194,
+    "cipher": "AES-256-GCM"
+  },
+  "behavior": {
+    "epoch_pairs": [
+      [
+        "c",
+        "c"
+      ],
+      [
+        "c",
+        "hia"
+      ],
+      [
+        "hia",
+        "c"
+      ],
+      [
+        "hia",
+        "hia"
+      ]
+    ],
+    "common_profile_clients": [
+      "c-user",
+      "hia-user",
+      "c-dco"
+    ],
+    "fixed_common_profile_server": "c-dco",
+    "connection_deadline_seconds": 30,
+    "rekey_seconds": 10,
+    "required_completed_rekeys_before_replay": 2,
+    "old_receiver_seconds": 48,
+    "strict_probe_count": 40,
+    "strict_probe_size": 256,
+    "strict_probe_interval_seconds": 0.01,
+    "continuous_count": 800,
+    "continuous_interval_seconds": 0.04,
+    "continuous_receiver_seconds": 36,
+    "negative_clients": [
+      "c",
+      "hia"
+    ],
+    "negative_server": "c",
+    "negative_probe_count": 40,
+    "negative_deadline_seconds": 8,
+    "encrypted_actions": [
+      "same-epoch-replay",
+      "same-epoch-flip",
+      "after-rekey-replay",
+      "after-rekey-flip",
+      "after-reconnect-replay"
+    ],
+    "positive_gates": "real tun/ovpn path and source-route; exact payload+echo before/after rekey/reconnect; no old duplicate/corrupt deliveries; actual TLS/key events and HIA entry trace when used",
+    "continuity_loss_policy": "retain every missing sequence and error through forced reconnect; phase-specific fresh probes require full delivery; continuity flow alone never establishes success"
+  },
+  "performance": {
+    "rounds": 3,
+    "orders": [
+      [
+        "c-user",
+        "hia-user",
+        "c-dco"
+      ],
+      [
+        "c-user",
+        "c-dco",
+        "hia-user"
+      ],
+      [
+        "hia-user",
+        "c-user",
+        "c-dco"
+      ],
+      [
+        "hia-user",
+        "c-dco",
+        "c-user"
+      ],
+      [
+        "c-dco",
+        "c-user",
+        "hia-user"
+      ],
+      [
+        "c-dco",
+        "hia-user",
+        "c-user"
+      ]
+    ],
+    "fixed_server": "c-dco",
+    "client_arms": [
+      "c-user",
+      "hia-user",
+      "c-dco"
+    ],
+    "seconds_per_workload": 5,
+    "omit_seconds": 0,
+    "bidirectional": true,
+    "workloads": [
+      {
+        "name": "udp-64",
+        "transport": "udp",
+        "payload_bytes": 64,
+        "offered_rate_each_direction": "100M"
+      },
+      {
+        "name": "udp-512",
+        "transport": "udp",
+        "payload_bytes": 512,
+        "offered_rate_each_direction": "100M"
+      },
+      {
+        "name": "udp-1200",
+        "transport": "udp",
+        "payload_bytes": 1200,
+        "offered_rate_each_direction": "100M"
+      },
+      {
+        "name": "tcp",
+        "transport": "tcp",
+        "parallel_streams_each_direction": 1
+      }
+    ],
+    "expected_case_count": 54,
+    "expected_workload_count": 216,
+    "trace": false,
+    "verbosity": 3,
+    "reneg_seconds": 3600,
+    "cpu_affinity": "server: first allowed CPU, client: second allowed CPU; workload endpoints share their role CPU; exact host affinity recorded",
+    "outlier_policy": "retain all trials, startup, losses, resets, failures and raw iperf fields; no selection or confidence inflation",
+    "claim_limit": "finite paired virtual-network observations on one shared hosted VM; not production, WAN, hardware-NIC or cross-host performance qualification"
+  },
+  "profile": {
+    "arms": [
+      "c-user",
+      "c-dco"
+    ],
+    "seconds": 10,
+    "workload": "bidirectional TCP iperf3",
+    "event": "cpu-clock",
+    "frequency_hz": 99,
+    "call_graph": "dwarf,8192",
+    "system_wide_on_case_cpus": true,
+    "fallback": "record failure; do not relabel gprof as complete process/kernel profile"
+  },
+  "cleanup": "only recorded case PIDs/groups and recorded namespace name+inode; remove private-work PKI; preserve public raw failures"
+}

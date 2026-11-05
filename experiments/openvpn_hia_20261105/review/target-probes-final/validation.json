@@ -1,0 +1,71 @@
+{
+  "schema": "hepta.openvpn-hia.target-probe-final-local-validation.v1",
+  "commands": [
+    {
+      "name": "unit-tests",
+      "argv": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "experiments/openvpn_hia_20261105/target_host",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 2.0091155750014877,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "faf409e23395f48760c409658f718b29fbb1844f1878d8f02f60b680bf268c37"
+    },
+    {
+      "name": "userspace-preflight",
+      "argv": [
+        "python3",
+        "experiments/openvpn_hia_20261105/tunnel_trial.py",
+        "--mode",
+        "userspace",
+        "--preflight-only",
+        "--out",
+        "/workspace/scratch/2719a9027f80/Hepta-frozen/experiments/openvpn_hia_20261105/review/target-probes-final/userspace"
+      ],
+      "exit_code": 2,
+      "elapsed_seconds": 0.04532525299873669,
+      "stdout_sha256": "8bbc4d01cfc26c185f8f55ac19d42f771f57f0df5c675a608fab2668fc7fef9e",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "dco-preflight",
+      "argv": [
+        "python3",
+        "experiments/openvpn_hia_20261105/tunnel_trial.py",
+        "--mode",
+        "dco",
+        "--preflight-only",
+        "--out",
+        "/workspace/scratch/2719a9027f80/Hepta-frozen/experiments/openvpn_hia_20261105/review/target-probes-final/dco"
+      ],
+      "exit_code": 2,
+      "elapsed_seconds": 0.05170770800032187,
+      "stdout_sha256": "c4b638db0865c48e51d390698146505026bfe81566b40d0eebde371e33c5dbcc",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "source_sha256": {
+    "tunnel_trial.py": "119044d57df295a20832a2ea17a65a400f240ee0eeae40f50a921be948335bc4",
+    "target_host/payload_probe.py": "6903c67b31492090b5b3f7853364b2a2f4dd479b6daa47fce26558301935cb0f",
+    "target_host/encrypted_capture.py": "a2e275152a49e5e434b8682ad01746945a598f5da3950400b8b9fa3604b38594",
+    "target_host/test_probes.py": "43d79cd17575bac2db5aed39105a3b46e0f5030a7822564a61a9ad02ad436bf0",
+    "target_host/test_tunnel_observer.py": "e6b8764ff315027e977793d688a0d6aa8027dc43642e96eda2d6128abd78c909",
+    "target_host/PROBE_PROTOCOL.md": "dac84ec87a8a4b22b1d9e88d70cd1c01b15ad8d40dbc457d2ac8baf1bb505dfc",
+    "review/TARGET_REVIEW.md": "fdaf0c555743e3406b5130b61a9ba122384534ae8f288586cede1ffbab8cb6ec",
+    "review/ABI_COST_REVIEW.md": "7cb628a55400e9b58b3f771973bc6fae689358f6a29a7559e0c5ffab0e93692c"
+  },
+  "unit_tests_passed": true,
+  "tests": 12,
+  "scope": "Probe unit/loopback instrumentation validation only; preserved real preflight blockers. No mock TUN/DCO runtime.",
+  "real_tun_passed": false,
+  "dco_runtime_passed": false,
+  "encrypted_capture_runtime_passed": false
+}

@@ -627,7 +627,12 @@ class _FunctionEmitter:
             self.blocks.append((block, list(self.lines)))
         params = ", ".join(_llvm_type(param["type"]) + " " + self.param_ids[param["name"]][0]
                            for param in entry["params"])
-        result = ["define internal " + _return_type(fn["returns"]) + " @__hia_fn_" + str(self.number) + "(" + params + ") {"]
+        # Only explicit finite foreign exports get this hint. Inlining lets LLVM
+        # retain the wrapper's extent facts while optimizing the actual Core body;
+        # all admission branches and per-operation traps are still emitted.
+        attributes = " alwaysinline" if fn["name"] in self.parent.foreign_buffer_exports else ""
+        result = ["define internal " + _return_type(fn["returns"]) + " @__hia_fn_" + str(self.number)
+                  + "(" + params + ")" + attributes + " {"]
         for block, body in self.blocks:
             result.append(self.block_ids[block["id"]] + ":")
             if block["id"] != fn["entry"]:

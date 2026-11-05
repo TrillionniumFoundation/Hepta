@@ -1,0 +1,73 @@
+{
+  "preflight": {
+    "blockers": [
+      "requires provisioned target CAP_NET_ADMIN and CAP_SYS_ADMIN; no escalation is attempted",
+      "/dev/net/tun absent",
+      "actual ovpn kernel implementation absent",
+      "iperf3 unavailable"
+    ],
+    "cleanup": {
+      "namespaces": [],
+      "passed": true,
+      "private_work_removed": true,
+      "schema": "hepta.openvpn-hia.target-cleanup.v1"
+    },
+    "complete": false,
+    "counts": {
+      "attempted_performance_workloads": 0,
+      "completed_performance_workloads": 0,
+      "failed_performance_workloads": 0,
+      "passed_authentication_cases": 0,
+      "passed_behavior_cases": 0,
+      "passed_performance_cases": 0,
+      "passed_profile_cases": 0,
+      "planned_authentication_cases": 2,
+      "planned_behavior_cases": 7,
+      "planned_performance_cases": 54,
+      "planned_performance_workloads": 216,
+      "planned_profile_cases": 2
+    },
+    "exit_code": 2,
+    "gates": {
+      "authentication": false,
+      "dco_runtime": false,
+      "encrypted_replay": false,
+      "fixed_performance_matrix": false,
+      "profile": false,
+      "real_tun": false,
+      "reconnect": false,
+      "rekey": false
+    },
+    "receipt_path": "/workspace/scratch/2719a9027f80/target-controller-review/preflight-blocked/target-result.json",
+    "receipt_sha256": "8bad168655367c7632b5150d6e4e60a590f3a13f8da619f350d2268a4df3d43b"
+  },
+  "schema": "hepta.openvpn-hia.target-controller-local-validation.v1",
+  "scope": "offline evidence-parser counterexamples and a real bounded child process; real blocked preflight only; no TUN/DCO/performance qualification",
+  "source_sha256": {
+    "README.md": "937a172802bf7a1c7fe8e17d1b114adf57d850a1cb1471c090b4b4c6cf0adf45",
+    "dco_peer_stats.py": "bf460fd616e5dda824871eb64043cfae51420f510cd155c2c4da3dc7404a4953",
+    "plan.json": "c0f9cdc63546e29251e27525beb16a03678ee9c44e6c75a494c5990c33928025",
+    "run_matrix.py": "ca05a3a4f7a8603260392aa82f00013711e9a1ab85017c8634e14c7de3cc42d9",
+    "test_matrix_evidence.py": "a0f2ce01c3caa8896a61ad9849083a1b3302f73f403854abbec47154cc0f2d7a"
+  },
+  "target_host_executed": false,
+  "tests": {
+    "command": [
+      "python3",
+      "-B",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "experiments/openvpn_hia_20261105/target_host",
+      "-p",
+      "test_matrix_evidence.py",
+      "-v"
+    ],
+    "errors": 0,
+    "exit_code": 0,
+    "failures": 0,
+    "tests_run": 11
+  },
+  "utc": "2026-11-05T08:52:02.318823+00:00"
+}

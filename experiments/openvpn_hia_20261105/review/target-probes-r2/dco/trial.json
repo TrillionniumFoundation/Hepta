@@ -1,0 +1,35 @@
+{
+  "schema": "hepta.openvpn-hia.real-tunnel-trial.v2",
+  "preflight": {
+    "mode": "dco",
+    "cap_eff": "0x0",
+    "tun_exists": false,
+    "network_namespace_inode": 4026532278,
+    "pid1_network_namespace_inode": null,
+    "namespace_probe_error": "[Errno 13] Permission denied: '/proc/1/ns/net'",
+    "isolated_network_namespace": null,
+    "kernel_flags": {
+      "CONFIG_TUN": "CONFIG_TUN=y",
+      "CONFIG_OVPN": "# CONFIG_OVPN is not set",
+      "CONFIG_NET_NS": "CONFIG_NET_NS=y"
+    },
+    "kernel_config_sha256": "d01566bd89e87ab860a2fbfcac7c374b04f69b935faf87e79b8e69a4f7216d25",
+    "blockers": [
+      "CAP_NET_ADMIN is absent",
+      "running kernel CONFIG_OVPN is disabled and no ovpn module is loaded",
+      "cannot verify separation from PID 1 network namespace: [Errno 13] Permission denied: '/proc/1/ns/net'",
+      "iperf3 is unavailable"
+    ],
+    "available": false
+  },
+  "runner_sha256": "c52dfa5c923206080b7fb5b3f49e5c7f15fc9cde8f116252de60ddf3e0a3b2fe",
+  "commands": [],
+  "scope": "diagnostic single-peer TCP smoke",
+  "real_tun_tunnel_passed": false,
+  "dco_runtime_passed": false,
+  "performance_qualified": false,
+  "authentication_negative_qualified": false,
+  "replay_qualified": false,
+  "reconnect_qualified": false,
+  "rekey_qualified": false
+}

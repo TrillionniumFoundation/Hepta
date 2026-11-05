@@ -1,5 +1,11 @@
 # OpenVPN / HIA native integration pilot — 2026-11-05
 
+**Continuation:** [CONTINUATION.md](CONTINUATION.md) records the later bounded
+codec optimization, fresh candidate application/replay runs and the separately
+prepared real target-VM experiment. The tables below preserve the initial
+`5a699214` delivery's identities and observations; they are not relabeled as
+measurements of the later candidate.
+
 This delivery contains a real, opt-in external byte-buffer ABI, a verified HIA
 packet-ID codec compiled to a native object, and an actual link into the official
 OpenVPN application. Finite correctness tests and bounded encrypted UDP sessions

@@ -1,0 +1,47 @@
+{
+  "schema": "hepta.openvpn-hia.target-probe-preflight-validation.v1",
+  "commands": [
+    {
+      "argv": [
+        "python3",
+        "experiments/openvpn_hia_20261105/tunnel_trial.py",
+        "--mode",
+        "userspace",
+        "--preflight-only",
+        "--out",
+        "/workspace/scratch/2719a9027f80/Hepta-frozen/experiments/openvpn_hia_20261105/review/target-probes-r2/userspace"
+      ],
+      "exit_code": 2,
+      "elapsed_seconds": 0.05092320000039763,
+      "blockers": [
+        "CAP_NET_ADMIN is absent",
+        "/dev/net/tun is absent",
+        "cannot verify separation from PID 1 network namespace: [Errno 13] Permission denied: '/proc/1/ns/net'",
+        "iperf3 is unavailable"
+      ]
+    },
+    {
+      "argv": [
+        "python3",
+        "experiments/openvpn_hia_20261105/tunnel_trial.py",
+        "--mode",
+        "dco",
+        "--preflight-only",
+        "--out",
+        "/workspace/scratch/2719a9027f80/Hepta-frozen/experiments/openvpn_hia_20261105/review/target-probes-r2/dco"
+      ],
+      "exit_code": 2,
+      "elapsed_seconds": 0.048325317999115214,
+      "blockers": [
+        "CAP_NET_ADMIN is absent",
+        "running kernel CONFIG_OVPN is disabled and no ovpn module is loaded",
+        "cannot verify separation from PID 1 network namespace: [Errno 13] Permission denied: '/proc/1/ns/net'",
+        "iperf3 is unavailable"
+      ]
+    }
+  ],
+  "tunnel_trial_sha256": "c52dfa5c923206080b7fb5b3f49e5c7f15fc9cde8f116252de60ddf3e0a3b2fe",
+  "prior_failure": "target-probes-r1 preserves the original /proc/1/ns/net PermissionError. Unknown isolation is now explicitly a blocker and saved to trial.json, never treated as permission.",
+  "real_tun_passed": false,
+  "dco_runtime_passed": false
+}

@@ -1,0 +1,92 @@
+{
+  "schema": "hepta.openvpn-hia.target-probe-local-validation.v1",
+  "commands": [
+    {
+      "name": "unit-tests",
+      "argv": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "experiments/openvpn_hia_20261105/target_host",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 2.051459676000377,
+      "stdout": "unit-tests.stdout",
+      "stderr": "unit-tests.stderr"
+    },
+    {
+      "name": "userspace-preflight",
+      "argv": [
+        "python3",
+        "experiments/openvpn_hia_20261105/tunnel_trial.py",
+        "--mode",
+        "userspace",
+        "--preflight-only",
+        "--out",
+        "/workspace/scratch/2719a9027f80/Hepta-frozen/experiments/openvpn_hia_20261105/review/target-probes-r1/userspace-preflight"
+      ],
+      "exit_code": 1,
+      "elapsed_seconds": 0.04150891600147588,
+      "stdout": "userspace-preflight.stdout",
+      "stderr": "userspace-preflight.stderr"
+    },
+    {
+      "name": "dco-preflight",
+      "argv": [
+        "python3",
+        "experiments/openvpn_hia_20261105/tunnel_trial.py",
+        "--mode",
+        "dco",
+        "--preflight-only",
+        "--out",
+        "/workspace/scratch/2719a9027f80/Hepta-frozen/experiments/openvpn_hia_20261105/review/target-probes-r1/dco-preflight"
+      ],
+      "exit_code": 1,
+      "elapsed_seconds": 0.04350428500038106,
+      "stdout": "dco-preflight.stdout",
+      "stderr": "dco-preflight.stderr"
+    },
+    {
+      "name": "capture-host-blocked",
+      "argv": [
+        "python3",
+        "experiments/openvpn_hia_20261105/target_host/encrypted_capture.py",
+        "capture",
+        "--interface",
+        "ovpn-uc",
+        "--src",
+        "192.0.2.2",
+        "--dst",
+        "192.0.2.1",
+        "--deadline",
+        "1",
+        "--out",
+        "/workspace/scratch/2719a9027f80/Hepta-frozen/experiments/openvpn_hia_20261105/review/target-probes-r1/capture-host-blocked"
+      ],
+      "exit_code": 1,
+      "elapsed_seconds": 0.04322029199829558,
+      "stdout": "capture-host-blocked.stdout",
+      "stderr": "capture-host-blocked.stderr"
+    }
+  ],
+  "source_sha256": {
+    "experiments/openvpn_hia_20261105/tunnel_trial.py": "8b97018ea597ffad02c04db86525366fc6e5cb007b56f2623afcfde9cfea868b",
+    "experiments/openvpn_hia_20261105/target_host/encrypted_capture.py": "a2e275152a49e5e434b8682ad01746945a598f5da3950400b8b9fa3604b38594",
+    "experiments/openvpn_hia_20261105/target_host/test_probes.py": "43d79cd17575bac2db5aed39105a3b46e0f5030a7822564a61a9ad02ad436bf0",
+    "experiments/openvpn_hia_20261105/target_host/test_tunnel_observer.py": "e6b8764ff315027e977793d688a0d6aa8027dc43642e96eda2d6128abd78c909",
+    "experiments/openvpn_hia_20261105/target_host/payload_probe.py": "6903c67b31492090b5b3f7853364b2a2f4dd479b6daa47fce26558301935cb0f"
+  },
+  "unit_tests_passed": true,
+  "scope": "Real loopback UDP probe tests, offline frame/checksum and log-parser unit tests, real subprocess timeout capture. No fake OpenVPN or fake TUN. Current-host real TUN/DCO preflight remains blocked.",
+  "claims": {
+    "real_tun_passed": false,
+    "dco_runtime_passed": false,
+    "encrypted_capture_executed": false,
+    "target_runner_qualified": false
+  }
+}

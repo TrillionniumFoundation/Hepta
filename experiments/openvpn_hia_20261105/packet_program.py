@@ -40,10 +40,20 @@ class Block:
     def cast(self, value, typ="u64"):
         return self.op("int.cast", [value], typ, mode="wrap")
 
+    def byte_base(self, offset):
+        # Entry admits wire capacity <=MAX_BYTES and exactly 32 state bytes.
+        # Metadata and per-word room checks dominate all dynamic indices. The
+        # u32 round-trip is therefore exact; widening before +i exposes a
+        # non-wrapping address calculation to LLVM without unchecked access.
+        return self.cast(self.cast(offset, "u32"), "usize")
+
     def word(self, buf, offset, width=8, endian="little"):
         result = self.c(0)
-        for i in range(width):
-            at = self.op("int.add.wrap", [offset, self.c(i, "usize")], "usize")
+        base = self.byte_base(offset)
+        # A complete word has already passed its room check. Highest index
+        # first lets its checked access dominate all lower byte indices.
+        for i in reversed(range(width)):
+            at = self.op("int.add.wrap", [base, self.c(i, "usize")], "usize")
             byte = self.op("buffer.load", [buf, at], "u8")
             wide = self.cast(byte)
             shift = i * 8 if endian == "little" else (width - 1 - i) * 8
@@ -52,11 +62,15 @@ class Block:
         return result
 
     def put(self, buf, offset, value, width=8, endian="little"):
-        for i in range(width):
+        base = self.byte_base(offset)
+        # This reorders bytes only inside a fully admitted word. Word ordering
+        # (ID then time for append, time then ID for prepend) remains unchanged,
+        # so upstream partial failures and sender transitions are preserved.
+        for i in reversed(range(width)):
             shift = i * 8 if endian == "little" else (width - 1 - i) * 8
             part = self.op("int.shr.checked", [value, self.c(shift)], "u64")
             byte = self.cast(part, "u8")
-            at = self.op("int.add.wrap", [offset, self.c(i, "usize")], "usize")
+            at = self.op("int.add.wrap", [base, self.c(i, "usize")], "usize")
             self.op("buffer.store", [buf, at, byte])
 
     def state_write(self, index, value):
@@ -88,6 +102,9 @@ class Function:
         b = self.block("entry", params)
         n = b.op("buffer.len", [b.values["state"]], "usize")
         ok = b.op("compare.eq", [n, b.c(STATE_BYTES, "usize")], "bool")
+        capacity = b.op("buffer.len", [b.values["wire"]], "usize")
+        bounded = b.op("compare.le", [capacity, b.c(MAX_BYTES, "usize")], "bool")
+        ok = b.op("bool.and", [ok, bounded], "bool")
         for flag in ("long_form", "prepend"):
             if flag in b.values:
                 legal = b.op("compare.le", [b.values[flag], b.c(1, "u32")], "bool")
