@@ -1,5 +1,7 @@
 """The new protocol keeps the old resource and independent-replay boundaries."""
+import hashlib
 import json
+import subprocess
 from pathlib import Path
 import tempfile
 import unittest
@@ -62,6 +64,47 @@ class SharedAcceptanceContractTests(unittest.TestCase):
                 (root / expected[0]).unlink()
                 with self.assertRaisesRegex(ValueError, 'compiler_hash input set'):
                     p.source_paths()
+
+
+    def test_canonical_git_tree_rejects_replace_and_hidden_worktree_mutation(self):
+        # Real Git attack fixture: replacement blobs plus assume-unchanged hide
+        # a modified source from porcelain and make ordinary cat-file lie.
+        def git(root, *args, data=None):
+            return subprocess.run(
+                ['git', '-C', str(root), *args], input=data,
+                capture_output=True, check=True).stdout
+
+        def oid(raw):
+            return hashlib.sha1(
+                b'blob ' + str(len(raw)).encode() + b'\\0' + raw).hexdigest()
+
+        with tempfile.TemporaryDirectory(prefix='hia-git-object-') as directory:
+            root = Path(directory)
+            git(root, 'init', '-q')
+            source = root / 'source.rs'
+            frozen = b'frozen original\\n'
+            source.write_bytes(frozen)
+            git(root, 'add', 'source.rs')
+            git(root, '-c', 'user.name=HIAContract',
+                '-c', 'user.email=hia@example.invalid', 'commit', '-qm', 'baseline')
+            original_oid = git(root, 'rev-parse', 'HEAD:source.rs').decode().strip()
+            self.assertEqual(original_oid, oid(frozen))
+            p.require_canonical_git_blobs(root, {'source.rs': oid(frozen)})
+
+            changed = b'unreviewed replacement\\n'
+            source.write_bytes(changed)
+            new_oid = git(root, 'hash-object', '-w', '--stdin', data=changed).decode().strip()
+            git(root, 'replace', original_oid, new_oid)
+            git(root, 'update-index', '--assume-unchanged', 'source.rs')
+            self.assertEqual(git(root, 'status', '--porcelain=v1'), b'')
+            self.assertEqual(git(root, 'cat-file', 'blob', original_oid), changed)
+            with self.assertRaisesRegex(ValueError, 'canonical HEAD'):
+                p.require_canonical_git_blobs(root, {'source.rs': oid(changed)})
+
+            git(root, 'replace', '-d', original_oid)
+            git(root, 'update-index', '--no-assume-unchanged', 'source.rs')
+            source.write_bytes(frozen)
+            p.require_canonical_git_blobs(root, {'source.rs': oid(frozen)})
 
     def test_success_flag_cannot_replace_complete_replay(self):
         with tempfile.TemporaryDirectory(prefix='hia-shared-') as directory:
