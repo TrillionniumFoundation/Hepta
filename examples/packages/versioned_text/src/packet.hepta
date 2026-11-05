@@ -1,0 +1,51 @@
+// A bounded application protocol, not a new standard-library API.
+// Wire bytes: canonical Base64 of a u16 big-endian byte length followed by UTF-8.
+module packet;
+import codec;
+import base64;
+import utf8;
+import order;
+
+// stage: 0 success, 1 Base64/range/scratch capacity, 2 short header,
+// 3 length mismatch, 4 invalid UTF-8, 5 scalar storage capacity.
+pub struct IndexResult { stage: u32, scalars: usize, lower: usize, upper: usize }
+
+pub fn index_packet(input: read [u8], start: usize, end: usize,
+                    scratch: mut [u8], scalars: mut [u64], query: u64) -> IndexResult
+effects { panic, write }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    // Scratch byte zero and scalar zero are caller-owned prefix sentinels.
+    let decoded = base64::decode(read input, start, end, mut scratch, 1);
+    if !decoded.ok { return IndexResult { stage: 1, scalars: 0, lower: 0, upper: 0 }; }
+    if decoded.bytes < 2 { return IndexResult { stage: 2, scalars: 0, lower: 0, upper: 0 }; }
+    let header = codec::read_u16_be(read scratch, 1);
+    assert(header.ok);
+    if (header.value as usize) != decoded.bytes - 2 {
+        return IndexResult { stage: 3, scalars: 0, lower: 0, upper: 0 };
+    }
+    let text_end = 1 + decoded.bytes;
+    let text = utf8::validate(read scratch, 3, text_end);
+    if !text.ok { return IndexResult { stage: 4, scalars: 0, lower: 0, upper: 0 }; }
+    let capacity = len(read scalars);
+    if capacity == 0 { return IndexResult { stage: 5, scalars: 0, lower: 0, upper: 0 }; }
+    if text.scalars > capacity - 1 {
+        return IndexResult { stage: 5, scalars: 0, lower: 0, upper: 0 };
+    }
+    let mut position: usize = 3;
+    let mut count: usize = 0;
+    while position < text_end {
+        let scalar = utf8::decode_next(read scratch, position, text_end);
+        assert(scalar.ok);
+        scalars[1 + count] = scalar.scalar as u64;
+        count = count + 1;
+        position = scalar.next;
+    }
+    assert(count == text.scalars);
+    let limit = 1 + count;
+    assert(order::sort_u64(mut scalars, 1, limit));
+    let low = order::lower_bound_u64(read scalars, 1, limit, query);
+    let high = order::upper_bound_u64(read scalars, 1, limit, query);
+    assert(low.ok && high.ok);
+    return IndexResult { stage: 0, scalars: count, lower: low.index, upper: high.index };
+}

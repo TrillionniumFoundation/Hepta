@@ -28,6 +28,10 @@ def main(argv=None) -> int:
     doctor.add_argument("--rustc")
     lock = sub.add_parser("lock", help="Lock local package source and dependency bytes")
     lock.add_argument("package", nargs="?", default=".")
+    lock_diff = sub.add_parser("lock-diff", help="Compare package locks without changing either file")
+    lock_diff.add_argument("before")
+    lock_diff.add_argument("after")
+    lock_diff.add_argument("--check", action="store_true", help="Exit 1 when valid snapshots differ")
     importer = sub.add_parser("import-c", help="Import the supported C header subset using real compiler probes")
     importer.add_argument("header")
     importer.add_argument("--output", "-o", required=True)
@@ -56,6 +60,11 @@ def main(argv=None) -> int:
             p.add_argument("--apply", action="store_true", help="Atomically apply after native validation")
     args = parser.parse_args(argv)
     try:
+        if args.command == "lock-diff":
+            from .lock_diff import compare_locks
+            result = compare_locks(args.before, args.after)
+            output_json(result)
+            return 1 if args.check and result["changed"] else 0
         if args.command == "lock":
             from .packages import write_lock
             output_json(write_lock(args.package))
