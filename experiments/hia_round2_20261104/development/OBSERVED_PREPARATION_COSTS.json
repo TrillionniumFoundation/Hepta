@@ -1,0 +1,449 @@
+{
+  "aggregation_rules": [
+    "Use an enclosing timer or its nested components, never both.",
+    "Native-control rows and repeated command/execution fields can describe the same execution. They are not independent additional costs.",
+    "Configured solver limits and request budgets are not observed elapsed times.",
+    "Endpoint timestamps are distinct from durations; nanosecond endpoint values are stored as decimal strings to avoid JSON floating-point precision loss.",
+    "No whole-round elapsed total is inferred from the mixture of partial command durations and differently scoped clocks.",
+    "Missing r1/r2 capture clocks and unmeasured labor/acquisition/energy remain null; later generation costs are not part of this package.",
+    "Delivery compression, archive restoration, publication and content readback are separate from study/qualification runtime."
+  ],
+  "complete_development_elapsed_ns": null,
+  "environment_or_credential_values_exported": false,
+  "failed_capacity_and_capture_attempts_retained": true,
+  "later_formal_model_cohort_included": false,
+  "model_generation_requests_in_selected_development_receipts": 0,
+  "observations": [
+    {
+      "field": "copy_and_hash_ns",
+      "id": "agent_asset_copy",
+      "kind": "recorded_duration",
+      "nanoseconds": 19715589075,
+      "scope": "Recorded copy-and-hash operation; no model generation.",
+      "seconds": "19.715589075",
+      "source_path": "AGENT_ASSET_COPIES.json",
+      "source_sha256": "bc2d5031523eeb9d8387b953d86fab962c4c10516aa4c84f7ac3a0c2b0a57802"
+    },
+    {
+      "field": "wall_ns",
+      "id": "integration_smoke_r1",
+      "kind": "recorded_duration",
+      "nanoseconds": 22184149891,
+      "scope": "Recorded smoke command wall time; not complete human development time.",
+      "seconds": "22.184149891",
+      "source_path": "integration-smoke-r1/RESULT.json",
+      "source_sha256": "ec0418942c86de44978c03a04d94d86cf121781852127d5b22a52761c5792570"
+    },
+    {
+      "field": "costs.complete_qualification_wall_ns",
+      "id": "cpp_swap_native_r1",
+      "kind": "recorded_duration",
+      "nanoseconds": 78966585149,
+      "scope": "Native qualification portion of cpp-swap-r1, including its nested migrations, builds, checks and negative controls.",
+      "seconds": "78.966585149",
+      "source_path": "cpp-swap-r1/native/qualification.json",
+      "source_sha256": "8fb6d140973ed439ab5f02b8815eaa662a002fcfa8a16e02cf6ebc3f2ed922d2"
+    },
+    {
+      "field": "whole_lifecycle_wall_ns",
+      "id": "native_race_r1",
+      "kind": "recorded_duration",
+      "nanoseconds": 2987499543,
+      "scope": "Recorded native-race qualification lifecycle; nested build times must not be added again.",
+      "seconds": "2.987499543",
+      "source_path": "native-race-development-01/RESULT.json",
+      "source_sha256": "4657fb61a0648a869d3ed2e9772a2e37639331b5fe0157ace6c571d2cfd4a1fa"
+    },
+    {
+      "field": "wall_ns",
+      "id": "capacity_r1",
+      "kind": "recorded_duration",
+      "nanoseconds": 21799127056,
+      "scope": "Failed initial capacity preparation; all_fit=false, generation requests=0.",
+      "seconds": "21.799127056",
+      "source_path": "upstream-agent-capacity-development-r1/RESULT.json",
+      "source_sha256": "cc0d0eafa7a7d7db7ea496c196ec675e1dbcbcaf46c27bd69266849685cd3724"
+    },
+    {
+      "field": "wall_ns",
+      "id": "capacity_r2",
+      "kind": "recorded_duration",
+      "nanoseconds": 34155296600,
+      "scope": "Revised capacity preparation; all_fit=true, generation requests=0; includes the recorded unit-test duration.",
+      "seconds": "34.155296600",
+      "source_path": "upstream-agent-capacity-development-r2/RESULT.json",
+      "source_sha256": "747365d5560f9728aa05ef52aa95e4606b9a2f16fb7658a4ef74ca5a45a5b89b"
+    },
+    {
+      "add_to_parent": false,
+      "field": "units.wall_ns",
+      "id": "capacity_r2_units",
+      "kind": "recorded_duration",
+      "nanoseconds": 666411535,
+      "nested_within": "capacity_r2",
+      "scope": "Unit command within capacity-r2.",
+      "seconds": "0.666411535",
+      "source_path": "upstream-agent-capacity-development-r2/RESULT.json",
+      "source_sha256": "747365d5560f9728aa05ef52aa95e4606b9a2f16fb7658a4ef74ca5a45a5b89b"
+    },
+    {
+      "field": "wall_ns",
+      "id": "capture_r3",
+      "kind": "recorded_duration",
+      "nanoseconds": 22764209452,
+      "scope": "Inner failed capture attempt r3; ok=false. Outer wrapper time is not known from this receipt.",
+      "seconds": "22.764209452",
+      "source_path": "upstream-agent-task-capture-r3/CAPTURE.json",
+      "source_sha256": "d75379e824e773e643889df9a2dc49c085e66492a77471366e3cf48f1145a75a"
+    },
+    {
+      "field": "wall_ns",
+      "id": "capture_r4",
+      "kind": "recorded_duration",
+      "nanoseconds": 3471629261,
+      "scope": "Inner failed capture attempt r4; ok=false. The configured 60,000-ms solver limit is not an observed duration.",
+      "seconds": "3.471629261",
+      "source_path": "upstream-agent-task-capture-r4/CAPTURE.json",
+      "source_sha256": "9b87d871a12405150b937d26413814ce51276522ba511452c88599ae0f078930"
+    },
+    {
+      "field": "wall_ns",
+      "id": "development_r5_driver",
+      "kind": "recorded_duration",
+      "nanoseconds": 34697529590,
+      "scope": "Driver's three serial child commands and its measured enclosing work; includes capture r5, native controls and units.",
+      "seconds": "34.697529590",
+      "source_path": "upstream-agent-development-r5/RESULT.json",
+      "source_sha256": "2ca430cab7636bc4c463520a6c86f4b41b543c4b48d32f83042501543cecbbf1"
+    },
+    {
+      "add_to_parent": false,
+      "field": "rows.0.wall_ns",
+      "id": "development_r5_capture_command",
+      "kind": "recorded_duration",
+      "nanoseconds": 25690746974,
+      "nested_within": "development_r5_driver",
+      "scope": "Actual capture child-command wall time.",
+      "seconds": "25.690746974",
+      "source_path": "upstream-agent-development-r5/RESULT.json",
+      "source_sha256": "2ca430cab7636bc4c463520a6c86f4b41b543c4b48d32f83042501543cecbbf1"
+    },
+    {
+      "add_to_parent": false,
+      "field": "rows.1.wall_ns",
+      "id": "development_r5_ports_command",
+      "kind": "recorded_duration",
+      "nanoseconds": 8589040327,
+      "nested_within": "development_r5_driver",
+      "scope": "Actual native-controls child-command wall time.",
+      "seconds": "8.589040327",
+      "source_path": "upstream-agent-development-r5/RESULT.json",
+      "source_sha256": "2ca430cab7636bc4c463520a6c86f4b41b543c4b48d32f83042501543cecbbf1"
+    },
+    {
+      "add_to_parent": false,
+      "field": "rows.2.wall_ns",
+      "id": "development_r5_units_command",
+      "kind": "recorded_duration",
+      "nanoseconds": 416139964,
+      "nested_within": "development_r5_driver",
+      "scope": "Actual unit-test child-command wall time.",
+      "seconds": "0.416139964",
+      "source_path": "upstream-agent-development-r5/RESULT.json",
+      "source_sha256": "2ca430cab7636bc4c463520a6c86f4b41b543c4b48d32f83042501543cecbbf1"
+    },
+    {
+      "add_to_parent": false,
+      "field": "wall_ns",
+      "id": "capture_r5_inner",
+      "kind": "recorded_duration",
+      "nanoseconds": 25148039068,
+      "nested_within": "development_r5_capture_command",
+      "scope": "Inner capture r5 receipt; ok=true. Its configured 10,000-ms solver limit is not elapsed time or approval of an unknown rewrite.",
+      "seconds": "25.148039068",
+      "source_path": "upstream-agent-task-capture-r5/CAPTURE.json",
+      "source_sha256": "e87b2fded9d20518676af9588346d95b6eb74515de55a6bbfd77c25741ae4d9c"
+    },
+    {
+      "add_to_parent": false,
+      "field": "wall_ns",
+      "id": "native_controls_r1_inner",
+      "kind": "recorded_duration",
+      "nanoseconds": 8309524771,
+      "nested_within": "development_r5_ports_command",
+      "scope": "Inner native port-control receipt; includes its build and execution observations.",
+      "seconds": "8.309524771",
+      "source_path": "upstream-agent-native-controls-r1/CONTROLS.json",
+      "source_sha256": "03099ea56639035e81842ba239ea122cf94ed59ad146944dd67dd78bd1013acc"
+    },
+    {
+      "add_nested_copy_sum": false,
+      "end_decimal_ns": "1793837426936992011",
+      "end_field": "finished_ns",
+      "id": "toolchain_copy_endpoint_delta",
+      "kind": "derived_endpoint_difference",
+      "nanoseconds": 27095269335,
+      "nested_copy_duration_sum": {
+        "nanoseconds": 27088858257,
+        "seconds": "27.088858257"
+      },
+      "nested_copy_fields": [
+        {
+          "path": "copies.0.copy_ns",
+          "value": 2132914313
+        },
+        {
+          "path": "copies.1.copy_ns",
+          "value": 1053237172
+        },
+        {
+          "path": "copies.2.copy_ns",
+          "value": 4221245119
+        },
+        {
+          "path": "copies.3.copy_ns",
+          "value": 2766493737
+        },
+        {
+          "path": "copies.4.copy_ns",
+          "value": 16914967916
+        }
+      ],
+      "scope": "Recorded endpoint difference. This is not an independently established monotonic-clock guarantee and is not added to its nested copy durations.",
+      "seconds": "27.095269335",
+      "source_path": "TOOLCHAIN_COPIES.json",
+      "source_sha256": "9d9a2081b532cf7a34e16d5bd58ec1376dfa16040fa43629ffc21dddad8781f0",
+      "start_decimal_ns": "1793837399841722676",
+      "start_field": "started_ns"
+    },
+    {
+      "command_fields": [
+        {
+          "path": "history.0.wall_ns",
+          "value": 8241963214
+        },
+        {
+          "path": "history.1.wall_ns",
+          "value": 2146476126
+        },
+        {
+          "path": "history.2.wall_ns",
+          "value": 3817546
+        },
+        {
+          "path": "history.3.wall_ns",
+          "value": 3223605
+        },
+        {
+          "path": "history.4.wall_ns",
+          "value": 691624484
+        },
+        {
+          "path": "history.5.wall_ns",
+          "value": 2239101754
+        },
+        {
+          "path": "history.6.wall_ns",
+          "value": 3417269
+        },
+        {
+          "path": "history.7.wall_ns",
+          "value": 3360511
+        },
+        {
+          "path": "history.8.wall_ns",
+          "value": 478145539
+        },
+        {
+          "path": "history.9.wall_ns",
+          "value": 2051707984
+        },
+        {
+          "path": "history.10.wall_ns",
+          "value": 3221756
+        },
+        {
+          "path": "history.11.wall_ns",
+          "value": 3935810
+        },
+        {
+          "path": "history.12.wall_ns",
+          "value": 1408077306
+        },
+        {
+          "path": "history.13.wall_ns",
+          "value": 2041348582
+        },
+        {
+          "path": "history.14.wall_ns",
+          "value": 3840034
+        },
+        {
+          "path": "history.15.wall_ns",
+          "value": 3508949
+        },
+        {
+          "path": "history.16.wall_ns",
+          "value": 555749517
+        },
+        {
+          "path": "history.17.wall_ns",
+          "value": 37974666
+        }
+      ],
+      "complete_setup_wall_ns": null,
+      "id": "workspace_setup_observed_commands",
+      "kind": "sum_of_partial_command_observations",
+      "nanoseconds": 19920494652,
+      "scope": "Sum of the 18 individually recorded command durations only; complete setup outer time is unknown.",
+      "seconds": "19.920494652",
+      "source_path": "WORKSPACE_SETUP.json",
+      "source_sha256": "d828a20a00c38cacce0b12fb4a95f8fedbaaa5417d0c47eb401d4e5f6dc0b984"
+    },
+    {
+      "add_nested_driver_or_commands": false,
+      "exit_unix_ms": 1793840936263,
+      "id": "development_r5_supervisor_observation",
+      "job_id": "1a1a93fe63e-fc05-334d",
+      "kind": "supervisor_endpoint_difference",
+      "nanoseconds": 34800000000,
+      "nested_driver": "development_r5_driver",
+      "scope": "Supervisor-observed elapsed time at millisecond resolution, not a new performance measurement. It encloses the r5 driver and its child commands; select this OR the inner accounting, never add both.",
+      "seconds": "34.800000000",
+      "source_files": [
+        {
+          "bytes": 3020,
+          "name": "request.json",
+          "path": "/home/qian-qi/.local/state/hepta-runtime-mac-worker/jobs/1a1a93fe63e-fc05-334d/request.json",
+          "sha256": "d8973a00c19cebd63574e68b3ba5364d4a41bf4567eaab0414b4913dc3c7e490"
+        },
+        {
+          "bytes": 329,
+          "name": "started.json",
+          "path": "/home/qian-qi/.local/state/hepta-runtime-mac-worker/jobs/1a1a93fe63e-fc05-334d/started.json",
+          "sha256": "e236298288eacc5d099b7fab0f10322c22da3bf96e6bd255a12abba3496dfbbc"
+        },
+        {
+          "bytes": 500,
+          "name": "exit.json",
+          "path": "/home/qian-qi/.local/state/hepta-runtime-mac-worker/jobs/1a1a93fe63e-fc05-334d/exit.json",
+          "sha256": "243830ab79c9dd728f204d56a4d3edd6050071faabeffb382ee73a1d4cea4d38"
+        },
+        {
+          "bytes": 4182,
+          "name": "stdout.log",
+          "path": "/home/qian-qi/.local/state/hepta-runtime-mac-worker/jobs/1a1a93fe63e-fc05-334d/stdout.log",
+          "sha256": "c6ae2c2626180f13a4899f36a44b7d671bc2769635b8a1a22351065de37f608c"
+        }
+      ],
+      "start_unix_ms": 1793840901463
+    }
+  ],
+  "only_explicitly_selected_tasks_and_one_parent_named_durable_job_inspected": true,
+  "schema": "hepta.round2.observed-preparation-costs.v1",
+  "scope": "Cost index for the explicitly selected completed development evidence only. Final proof, combined qualification and the formal Agent cohort are separate later packages.",
+  "sum_of_all_rows_is_not_a_valid_cost": true,
+  "unknown_costs": [
+    {
+      "nanoseconds": null,
+      "reason": "No CAPTURE.json exists; retained partial before/ migration/source artifacts do not establish a complete capture duration. No unrelated durable jobs were searched.",
+      "scope": "upstream-agent-task-capture-r1"
+    },
+    {
+      "nanoseconds": null,
+      "reason": "No CAPTURE.json exists; retained partial before/ migration/source artifacts do not establish a complete capture duration. No unrelated durable jobs were searched.",
+      "scope": "upstream-agent-task-capture-r2"
+    },
+    {
+      "nanoseconds": null,
+      "reason": "Only their inner capture durations are directly established by the selected records.",
+      "scope": "capture-r3/r4 outer wrappers"
+    },
+    {
+      "nanoseconds": null,
+      "reason": "Selected receipt records tool smoke outputs, not an enclosing timing.",
+      "scope": "TOOLCHAIN_SMOKE.json"
+    },
+    {
+      "nanoseconds": null,
+      "reason": "Source/Core development artifacts contain no observed enclosing timer.",
+      "scope": "cpp-swap-development-01"
+    },
+    {
+      "nanoseconds": null,
+      "reason": "The qualification timer is scoped; no complete surrounding development timer was established.",
+      "scope": "cpp-swap-r1 outside native qualification"
+    },
+    {
+      "nanoseconds": null,
+      "reason": "Individual command clocks are not the complete setup wrapper clock.",
+      "scope": "workspace setup outside recorded commands"
+    },
+    {
+      "nanoseconds": null,
+      "reason": "These are source provenance receipts without a measured enclosing integration duration.",
+      "scope": "AOT/NDU/PROOF_SOURCE_INTEGRATION.json"
+    },
+    {
+      "nanoseconds": null,
+      "reason": "Not measured; unknown must never be encoded as zero.",
+      "scope": "human development/review, historical download, energy, unobserved setup"
+    }
+  ],
+  "zero_generation_sources": [
+    {
+      "field": "models_inference_requests",
+      "path": "AGENT_ASSET_COPIES.json",
+      "sha256": "bc2d5031523eeb9d8387b953d86fab962c4c10516aa4c84f7ac3a0c2b0a57802",
+      "value": 0
+    },
+    {
+      "field": "model_requests",
+      "path": "integration-smoke-r1/RESULT.json",
+      "sha256": "ec0418942c86de44978c03a04d94d86cf121781852127d5b22a52761c5792570",
+      "value": 0
+    },
+    {
+      "field": "model_requests",
+      "path": "upstream-agent-capacity-development-r1/RESULT.json",
+      "sha256": "cc0d0eafa7a7d7db7ea496c196ec675e1dbcbcaf46c27bd69266849685cd3724",
+      "value": 0
+    },
+    {
+      "field": "model_requests",
+      "path": "upstream-agent-capacity-development-r2/RESULT.json",
+      "sha256": "747365d5560f9728aa05ef52aa95e4606b9a2f16fb7658a4ef74ca5a45a5b89b",
+      "value": 0
+    },
+    {
+      "field": "model_requests",
+      "path": "upstream-agent-development-r5/RESULT.json",
+      "sha256": "2ca430cab7636bc4c463520a6c86f4b41b543c4b48d32f83042501543cecbbf1",
+      "value": 0
+    },
+    {
+      "field": "model_requests",
+      "path": "upstream-agent-native-controls-r1/CONTROLS.json",
+      "sha256": "03099ea56639035e81842ba239ea122cf94ed59ad146944dd67dd78bd1013acc",
+      "value": 0
+    },
+    {
+      "field": "model_requests",
+      "path": "upstream-agent-task-capture-r3/CAPTURE.json",
+      "sha256": "d75379e824e773e643889df9a2dc49c085e66492a77471366e3cf48f1145a75a",
+      "value": 0
+    },
+    {
+      "field": "model_requests",
+      "path": "upstream-agent-task-capture-r4/CAPTURE.json",
+      "sha256": "9b87d871a12405150b937d26413814ce51276522ba511452c88599ae0f078930",
+      "value": 0
+    },
+    {
+      "field": "model_requests",
+      "path": "upstream-agent-task-capture-r5/CAPTURE.json",
+      "sha256": "e87b2fded9d20518676af9588346d95b6eb74515de55a6bbfd77c25741ae4d9c",
+      "value": 0
+    }
+  ]
+}
