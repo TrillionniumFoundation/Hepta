@@ -1,0 +1,21 @@
+import utf8;
+
+fn main() -> Unit
+effects { panic }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    // Frame bytes surround the UTF-8 text A, euro sign, smiling face.
+    let frame: [u8; 10] = [255, 65, 226, 130, 172, 240, 159, 152, 128, 255];
+    let valid = utf8::validate(read frame, 1, 9);
+    assert(valid.ok && valid.scalars == 3 && valid.error == 9);
+    let first = utf8::decode_next(read frame, 1, 9);
+    let second = utf8::decode_next(read frame, first.next, 9);
+    let third = utf8::decode_next(read frame, second.next, 9);
+    assert(first.ok && first.scalar == 65 && first.next == 2);
+    assert(second.ok && second.scalar == 8364 && second.next == 5);
+    assert(third.ok && third.scalar == 128512 && third.next == 9);
+    let incomplete = utf8::validate(read frame, 1, 8);
+    assert(!incomplete.ok && incomplete.scalars == 2 && incomplete.error == 5);
+    let empty = utf8::validate(read frame, 9, 9);
+    assert(empty.ok && empty.scalars == 0 && empty.error == 9);
+}

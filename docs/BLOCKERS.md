@@ -46,6 +46,10 @@ M07 不等于全进程内存/CPU 上限。M10 的 QEMU 运行不等于真机或�
 
 P10 当前 namespace sandbox 探测失败，生产 provider 模式在启动适配器前拒绝。可信 fixture 使用显式的进程分离路径，`ai_comparison_eligible=false`；不能当成真实模型成绩。具体环境失败原因保留在资格报告中。
 
+P12 新增一个有限的[运行时 UTF-8 源代码库](STANDARD_LIBRARY_UTF8.md)：
+借用字节区间的单标量解码、严格校验、前缀标量计数和错误字节位置。
+它不修改编译器源码/字面量验证，不提供生产 Unicode 文本体系；P12 保持 PARTIAL。
+
 ## 本轮集成审查修复
 
 - 保留原有工具链身份、非空产物、显式失效路径不回退，以及 unsafe 调用边界等回归门槛。
