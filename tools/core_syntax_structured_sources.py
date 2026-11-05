@@ -6,6 +6,8 @@ whole original Raw value and byte stream. Unsupported expressions fail closed.
 """
 from dataclasses import dataclass
 from hashlib import sha256
+from itertools import repeat
+from operator import is_
 import json
 import re
 
@@ -231,6 +233,21 @@ def _raw_value(raw):
     return {k: _raw_value(p[1]) for k, p in zip(keys, raw.value)}
 
 
+def _byte_alias_bytes(value):
+    """Read every actual value using exact builtin integer identity.
+
+    C-level iteration preserves the old type/range domain without invoking
+    metaclass equality, integer subclasses or user __index__ conversions.
+    The caller retains the separate original expanded-length bound.
+    """
+    require(type(value) is list and
+            all(map(is_, map(type, value), repeat(int))), 'byte alias range')
+    try:
+        return bytes(value)
+    except (ValueError, OverflowError):
+        require(False, 'byte alias range')
+
+
 def verify_structured_source(source, manifest, expected_tree, expected_bytes):
     """Independently parse and flatten emitted aliases; fail closed on drift."""
     require(type(source) is str and type(manifest) is dict, 'structured source/manifest types')
@@ -265,7 +282,7 @@ def verify_structured_source(source, manifest, expected_tree, expected_bytes):
         if ty == 'Raw':
             _raw_value(val)
         elif ty == 'List Nat':
-            require(type(val) is list and all(type(n) is int and 0 <= n < 256 for n in val), 'byte alias range')
+            _byte_alias_bytes(val)
             require(len(val) <= old.MAX_BYTES, 'byte alias length')
         elif ty == 'List Raw':
             require(type(val) is list, 'Raw list alias type')

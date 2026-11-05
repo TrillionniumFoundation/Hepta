@@ -19,8 +19,8 @@ from tools import diagnose_core_seven_certificate as diagnostic
 from tools.check_guarded_slice_lean import require
 
 ROOT = base.ROOT
-SCHEMA = 'hepta.hia.seven-shared-acceptance.v9'
-PROTOCOL = 'seven-shared-acceptance-v9'
+SCHEMA = 'hepta.hia.seven-shared-acceptance.v10'
+PROTOCOL = 'seven-shared-acceptance-v10'
 ADDITIONS = (
     'experiments/hia_initialization_frontiers_20261103/CORE_MODEL_CONNECTION.md',
     'experiments/hia_initialization_frontiers_20261103/UNSIGNED_STEP_CONNECTION.md',
@@ -296,9 +296,24 @@ def negative_locations(prepared, proposal):
     return locations
 
 
+def _reference_seven(prepared):
+    """Construct untrusted ancestor bytes, with no validation/admission state.
+
+    Both mandatory seven-source gates in the actual relocated inverse still
+    validate this reference and the separately recovered actual candidate.
+    Public legacy builders and validators remain unchanged.
+    """
+    earlier = seven.facts._derive(prepared)
+    stages = seven._derive_stages(earlier.stages)
+    previous_hash = earlier.manifest_sha256
+    del earlier
+    return seven.SevenCertificateSources(prepared['stages'], stages,
+        seven.encode(seven._manifest(prepared, stages, previous_hash)))
+
+
 def prepare():
     prepared = seven.original.build_inputs()
-    previous = seven.build_sources(prepared)
+    previous = _reference_seven(prepared)
     # This builder invokes the unchanged shared validator, including the
     # mandatory actual-declaration inverse and unchanged old full validators.
     proposal = shared.build_sources(prepared, previous)
@@ -358,7 +373,7 @@ def reconstruct(snapshot):
     prepared = dict(prepared, stages=actual_originals,
                     sources=MappingProxyType({s.module_name: s.source for s in actual_originals}),
                     manifest=manifest, manifest_json=manifest_json, manifest_sha256=digest(manifest_json.encode()))
-    previous = seven.build_sources(prepared)
+    previous = _reference_seven(prepared)
     # Derive metadata scaffolding without validating a discarded generated candidate.
     # Every actual retained candidate byte still undergoes the full validator below.
     expected = shared._derive_stages(prepared, previous)

@@ -407,3 +407,110 @@ exact final combined commit can establish the narrow Core syntax connection.
 All twelve wider obligations remain unproved, and all production admission,
 Python-exporter refinement, operational-Core bridge, body-prefix refinement,
 and broader safety or optimization authority remain denied.
+
+## v10: final wrong-arm rejection and repeated reference construction
+
+The first fresh combined v9 run at
+`2d964d27b068b3eb0b19e72ea4132eefd12d4360` passed the first ten registered
+stages, including all 75 consumer subjects in 15.381031663 seconds. WrongArm,
+the eleventh stage, exited 1 after 4.007495654 seconds. Its original monolithic
+`decide +kernel` produced a kernel error, followed by diagnostic pretty-print
+recursion failure and error-recovery `sorryAx`. This was a proof failure, not
+a time-limit failure. The actual run stopped before final reconstruction and
+independent replay. Its inner wall time was 495.656681267 seconds; the outer
+observation was 496.094883981 seconds. The failed RESULT SHA256
+`f3bb324d8ef1ea9cdea2b079f9eb0f541f3028a2a7c418b2ce4b9feb9d74206f`
+and every source, process receipt and error are retained.
+
+Version 10 preserves the complete original wrong-arm implementation, including
+its deliberate then-to-else edge mutation, the original hint and the exact
+negated target. A local universally quantified theorem derives equality with
+the proposed descriptor from any successful extraction. Projecting the
+descriptor's actual `incoming` field then contradicts the original target's
+field. The finite field inequality is checked by the pinned Lean kernel; no
+native evaluator or unchecked lemma is used. The corrected complete module
+passed a nonaccepting, same-parent diagnostic in 5.156632080 seconds with only
+`propext` and `Quot.sound`. An earlier diagnostic failed because the local
+Descriptor type name was not qualified in the reopened namespace; that failure
+is retained too.
+
+The source inverse replaces only this fixed proof body, uses the actual target
+header, and requires the complete recovered WrongArm SHA256
+`19c5e8a8725026a2eed1910920a9c28d6e80436b3cdaa8afdd6fd4ce2b94c3cc`.
+The proof has one source line, so original rejection coordinates, module graph,
+subject counts and the generic extractor remain unchanged. After this recovery,
+the existing consumer, query-scheduling, compound-proof and every older source
+inverse still run.
+
+A separate pure-Python diagnostic reconstructed the actual v9 source evidence
+in 104.201129023 seconds. A finer diagnostic found that one generated
+seven-source reference took 27.227843006 seconds, including four original-plan
+validation calls and twenty complete structured-input checks. Those diagnostic
+costs are not evidence that the failed v9 run reached or timed out in final
+replay; it did not reach that phase.
+
+The acceptance plan now constructs this untrusted ancestor reference using
+`_reference_seven`. The private helper derives the same eleven source files and
+the same manifest bytes without issuing an acceptance result. The public legacy
+builders and validators are unchanged. In both preparation and actual-evidence
+reconstruction, the complete actual candidate still reaches the existing
+shared-to-nocode-to-relocated inverse. That inverse separately invokes the
+original seven-source validator on the reference and on the separately recovered
+actual candidate. Both gates remain mandatory, and the original byte-fact,
+Raw/input, manifest, subject and dependency checks still execute. Regression
+controls compare every reference source and manifest byte against the old
+public builder and inject failures at each of the two actual old gates.
+
+The structured-input checker also preserves its exact List Nat type, range and
+expanded-length checks while performing its element identity scan through
+`operator.is_`, `type`, `map` and `itertools.repeat`. Only exact builtin ints
+reach `bytes` conversion. Boolean values, integer subclasses, custom metaclass
+equality and custom `__index__` conversions remain rejected without invoking
+those user callbacks. The original per-alias `MAX_BYTES` check, all Raw checks,
+and all later complete-value comparisons remain. No acceptance Boolean or
+cross-validation result is cached.
+
+An independent fixed-order diagnostic ran all five actual inputs once through
+the old checker, an id-set candidate and an identity-map candidate. The totals
+were 3.581398293, 3.739137027 and 2.929904012 seconds respectively. All fifteen
+complete outputs matched the frozen original outputs; all 45 type/boundary
+controls passed, including 39 actual full-verifier fault injections. This is
+exploratory diagnostic evidence, not a statistical performance qualification.
+The identity-map candidate is used; the slower id-set candidate is retained as
+an unselected experiment.
+
+The CI workflow now calls the shared full-acceptance and independent-replay
+entry points. A separate source-controls job executes the fixed 43 test IDs
+from the two shared test modules, records collection/start/finish IDs, and
+rejects skips, expected failures, unexpected successes or incomplete execution.
+It checks the exact clean commit before and after the suite, retains failure
+output, and acquires no Lean checker. Its source-only results grant no proof or
+production authority. The kernel job keeps its original fifteen-minute job
+limit and the unchanged eleven-process, 60/540/600-second protocol. The actual
+258 source paths and their frozen path-set commitment remain unchanged.
+
+After the test child exits with code zero, a separate Python process requires a
+complete successful RESULT with the fixed 43-ID commitment, exact collected,
+started and finished inventories, zero failure/skip counts, and matching clean
+source identities before and after execution. Missing, malformed, duplicate-key
+or incomplete JSON is rejected. The inner runner records BaseException failures,
+but that is not a substitute for the external receipt check. Both Z3 version
+checks use explicit exit codes and remain effective under Python optimization.
+A synthetic clean-Git diagnostic exercised the actual inline runner and receipt
+gate under `-O`: all 25 expected outcomes were observed, including rejection of
+SystemExit(0), os._exit(0), missing or damaged receipts, incomplete IDs and changed
+source identities. These are source-control fault tests, not a CI execution or
+kernel acceptance claim.
+
+The local complete 43-test suite passed with every fixed ID collected, started
+and finished, no skips or expected failures, and unchanged measured source.
+A separate nonexclusive diagnostic measured actual preparation at
+67.758620305 seconds and reconstruction of all 23 actual source artifacts at
+61.603523611 seconds. Both retained all source inverses and all 258 input hashes.
+This diagnostic ran no Lean and measured one reconstruction. The full qualifier
+still performs both its finalization reconstruction and the independent
+evidence-replay reconstruction inside the original 600-second limit; neither is
+omitted or inferred from this timing diagnostic.
+
+The final combined commit still requires a fresh full acceptance and independent
+replay. All twelve wider production obligations remain unproved.

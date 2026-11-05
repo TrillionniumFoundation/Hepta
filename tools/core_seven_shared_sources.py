@@ -18,8 +18,8 @@ from tools.check_guarded_slice_lean import require
 
 seven = nocode.seven
 encode, digest = nocode.encode, nocode.digest
-SCHEMA = 'hepta.hia.seven-shared-composition-source.v9'
-PROTOCOL = 'seven-shared-composition-source-v9'
+SCHEMA = 'hepta.hia.seven-shared-composition-source.v10'
+PROTOCOL = 'seven-shared-composition-source-v10'
 HELPER_PATH = 'experiments/hia_initialization_frontiers_20261103/SharedTransport.lean'
 NAMESPACE = 'HiaCoreSyntaxSlice.Shared'
 HELPER_NAMES = frozenset(NAMESPACE + '.' + name for name in (
@@ -853,12 +853,40 @@ def _consumer_source(source, values, *, inverse=False):
     return result, tuple(sorted(ledger, key=lambda row: row['name']))
 
 
+WRONG_ARM_BASE_SHA256 = V7_SOURCE_SHA256['WrongArm']
+WRONG_ARM_NAME = 'reject_wrong_arm_implementation'
+WRONG_ARM_PROOF = "by have proposed : ∀ (raw : Raw) (hint : Hint) (d : HiaGuardedUsizeSlice.Descriptor), extract raw hint = some d → reconstruct raw hint = d := (by intro raw hint d extracted; by_cases accepted : SliceSyntaxRelation raw hint (reconstruct raw hint) <;> simp_all [extract]); intro extracted; have mismatch : (reconstruct parallelRaw parallelHint).incoming ≠ HiaGuardedUsizeSlice.linear_0.incoming := (by decide +kernel); exact mismatch (congrArg (fun d : HiaGuardedUsizeSlice.Descriptor => d.incoming) (proposed _ _ _ extracted))"
+
+
+def _wrong_arm_source(source, *, inverse=False):
+    """Retain the complete original mutated extractor and exact negation."""
+    matches = tuple(re.finditer(r'^theorem ' + WRONG_ARM_NAME + r' : [^\n]+\n', source, re.M))
+    require(len(matches) == 1, 'one complete actual wrong-arm declaration')
+    actual = matches[0].group()
+    header, separator, _ = actual.partition(' := by ')
+    require(separator == ' := by ', 'wrong-arm proof delimiter')
+    before = header + ' := by decide +kernel\n'
+    after = header + ' := ' + WRONG_ARM_PROOF + '\n'
+    require(actual == (after if inverse else before), 'exact wrong-arm proof and target')
+    result = source[:matches[0].start()] + (before if inverse else after) + source[matches[0].end():]
+    require(result.count('\n') == source.count('\n'), 'original wrong-arm source coordinates')
+    original = result if inverse else source
+    require(digest(original.encode()) == WRONG_ARM_BASE_SHA256,
+            'all original wrong-arm implementation, hint, target and source bytes recovered')
+    return result, dict(name='HiaCoreSyntaxSlice.' + WRONG_ARM_NAME,
+                        statement_sha256=digest(header.encode()),
+                        before_sha256=digest(before.encode()),
+                        after_sha256=digest(after.encode()))
+
+
 def _repair_consumers(stages):
     require(tuple(stage.name for stage in stages) == seven.NAMES,
             'existing eleven consumer stage boundaries')
     result = list(stages)
     text, _ = _consumer_source(stages[9].source, _consumer_byte_values(stages))
     result[9] = replace(stages[9], source=text)
+    wrong, _ = _wrong_arm_source(stages[10].source)
+    result[10] = replace(stages[10], source=wrong)
     return tuple(result)
 
 
@@ -868,6 +896,8 @@ def _undo_consumer_repairs(stages):
     result = list(stages)
     text, _ = _consumer_source(stages[9].source, _consumer_byte_values(stages), inverse=True)
     result[9] = replace(stages[9], source=text)
+    wrong, _ = _wrong_arm_source(stages[10].source, inverse=True)
+    result[10] = replace(stages[10], source=wrong)
     result = tuple(result)
     require(_repair_consumers(result) == stages, 'unique complete consumer proof transformation')
     return result
@@ -890,6 +920,7 @@ def _manifest(prepared, previous, stages):
     scheduled = _undo_consumer_repairs(stages)
     consumer_values = _consumer_byte_values(scheduled)
     _, consumer_ledger = _consumer_source(scheduled[9].source, consumer_values)
+    _, wrong_arm_ledger = _wrong_arm_source(scheduled[10].source)
     stages = _undo_scheduled_prints(scheduled)
     moved_subjects = sum(len(seven._qualified_prints(stage.source)) for stage in stages[1:9])
     require(moved_subjects == 7190, 'complete original transport query count')
@@ -946,7 +977,7 @@ def _manifest(prepared, previous, stages):
                 consumer_proofs=dict(
                     original_source_sha256=CONSUMER_BASE_SHA256,
                     candidate_source_sha256=candidate[9].source_sha256,
-                    proof_changes=7, relation_conjuncts=58,
+                    proof_changes=8, relation_conjuncts=58,
                     selected_clause_indices=dict(wrong_phi=27, literal_two=46, wrong_condition=17),
                     original_generic_definitions_unchanged=True,
                     subjects_or_statements_changed=False,
@@ -959,7 +990,11 @@ def _manifest(prepared, previous, stages):
                         recovered_complete_old_source_sha256=CONSUMER_BASE_SHA256),
                     ledger=list(consumer_ledger),
                     changed_byte_original_proof_sha256=digest(CHANGED_BYTE_OLD_PROOF.encode()),
-                    changed_byte_candidate_proof_sha256=digest(CHANGED_BYTE_PROOF.encode())),
+                    changed_byte_candidate_proof_sha256=digest(CHANGED_BYTE_PROOF.encode()),
+                    wrong_arm=dict(**wrong_arm_ledger,
+                        original_source_sha256=WRONG_ARM_BASE_SHA256,
+                        candidate_source_sha256=candidate[10].source_sha256,
+                        projected_field='incoming', original_mutated_implementation_unchanged=True)),
                 prefix_cuts=list(PREFIX_CUTS),
                 part02_extension=dict(source='CertPart03', destination='CertPart02',
                     preceding_prefix_cuts=list(EXTENDED_PREFIX_CUTS),

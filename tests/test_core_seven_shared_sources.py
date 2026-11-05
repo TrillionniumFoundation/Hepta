@@ -2,7 +2,10 @@
 from dataclasses import replace
 from collections import Counter
 import unittest
+from unittest.mock import patch
 from tools import core_seven_shared_sources as s
+from tools import core_seven_shared_acceptance_plan as plan
+from tools import core_syntax_structured_sources as structured
 
 
 # Independent handwritten controls for the real linear_p6 -> linear_p151 failure.
@@ -125,6 +128,36 @@ class SharedSourceTests(unittest.TestCase):
         self.assertLess(p.manifest['retained_source_bytes'], s.MAX_TOTAL_SOURCE)
         self.assertFalse(p.manifest['acceptance_eligible'])
         self.assertFalse(p.manifest['kernel_core_syntax_connection_checked'])
+
+    def test_untrusted_reference_is_byte_identical_to_checked_old_builder(self):
+        reference = plan._reference_seven(self.prepared)
+        self.assertEqual(reference, self.previous)
+        self.assertEqual(reference.manifest_json, self.previous.manifest_json)
+        self.assertEqual(reference.manifest_sha256, self.previous.manifest_sha256)
+        self.assertEqual(len(reference.stages), 11)
+        self.assertEqual(tuple(x.source.encode() for x in reference.stages),
+                         tuple(x.source.encode() for x in self.previous.stages))
+        self.assertFalse(reference.manifest['acceptance_eligible'])
+
+    def test_both_actual_old_validation_gates_are_mandatory(self):
+        reference = plan._reference_seven(self.prepared)
+        actual_gate = s.seven.validate_sources
+        for failing_call in (1, 2):
+            visited = []
+            def inject(prepared, candidate, *args, **kwargs):
+                visited.append(candidate)
+                if len(visited) == failing_call:
+                    raise ValueError('required old gate ' + str(failing_call))
+                return actual_gate(prepared, candidate, *args, **kwargs)
+            with self.subTest(failing_call=failing_call), patch.object(
+                    s.seven, 'validate_sources', side_effect=inject):
+                with self.assertRaisesRegex(ValueError, 'required old gate ' + str(failing_call)):
+                    s.validate_sources(self.prepared, reference, self.proposal)
+            self.assertEqual(len(visited), failing_call)
+            self.assertIs(visited[0], reference)
+            if failing_call == 2:
+                self.assertIsNot(visited[1], reference)
+                self.assertEqual(visited[1], reference)
 
     def test_statement_cannot_be_weakened(self):
         self.reject(self.change(3, lambda x: x.replace('serializeFields 4085 29', 'serializeFields 4084 29', 1)))
@@ -292,12 +325,15 @@ class SharedSourceTests(unittest.TestCase):
         self.assertEqual(recovered, self.unrepaired)
         self.assertEqual(s.digest(recovered[9].source.encode()), s.CONSUMER_BASE_SHA256)
         self.assertEqual(recovered[:9], candidate[:9])
-        self.assertEqual(recovered[10:], candidate[10:])
+        self.assertEqual(s.digest(recovered[10].source.encode()), s.WRONG_ARM_BASE_SHA256)
+        self.assertEqual(Counter(s.seven._qualified_prints(recovered[10].source)),
+                         Counter(s.seven._qualified_prints(candidate[10].source)))
+        self.assertEqual(recovered[10].source.count('\n'), candidate[10].source.count('\n'))
         self.assertEqual(Counter(s.seven._qualified_prints(recovered[9].source)),
                          Counter(s.seven._qualified_prints(candidate[9].source)))
         self.assertEqual(recovered[9].source.count('\n'), candidate[9].source.count('\n'))
         self.assertEqual(len(candidate[9].expected_theorems), 75)
-        self.assertEqual(self.proposal.manifest['consumer_proofs']['proof_changes'], 7)
+        self.assertEqual(self.proposal.manifest['consumer_proofs']['proof_changes'], 8)
         values = s._consumer_byte_values(candidate)
         actual = s._changed_byte_value(s.CHANGED_BYTE_RHS, values)
         original = values['linearBytes']['value']
@@ -327,6 +363,26 @@ class SharedSourceTests(unittest.TestCase):
             self.assertIn(before, self.proposal.stages[9].source)
             self.reject(self.change(9, lambda text, a=before, b=after: text.replace(a, b, 1)))
 
+    def test_wrong_arm_mutation_statement_and_projected_field_remain_bound(self):
+        source = self.proposal.stages[10].source
+        original, ledger = s._wrong_arm_source(source, inverse=True)
+        self.assertEqual(s.digest(original.encode()), s.WRONG_ARM_BASE_SHA256)
+        self.assertEqual(s._wrong_arm_source(original)[0], source)
+        self.assertEqual(ledger['name'], 'HiaCoreSyntaxSlice.reject_wrong_arm_implementation')
+        self.assertEqual(len(self.proposal.stages[10].expected_theorems), 1)
+        for before, after in (
+            ('let edge := field (field header "term") "else"', 'let edge := field (field header "term") "then"'),
+            ('reconstruct raw hint = d :=', 'd = d :='),
+            (').incoming ≠ HiaGuardedUsizeSlice.linear_0.incoming', ').literalOrdinal ≠ HiaGuardedUsizeSlice.linear_0.literalOrdinal'),
+            ('some HiaGuardedUsizeSlice.linear_0) :=', 'some { HiaGuardedUsizeSlice.linear_0 with literalValue := 2 }) :='),
+            ('(by decide +kernel)', '(by native_decide)'),
+        ):
+            self.assertIn(before, source)
+            self.reject(self.change(10, lambda text, a=before, b=after: text.replace(a, b, 1)))
+        manifest = self.proposal.manifest
+        manifest['consumer_proofs']['wrong_arm']['projected_field'] = 'literalOrdinal'
+        self.reject(replace(self.proposal, manifest_json=s.encode(manifest)))
+
     def test_changed_byte_actual_reference_data_and_cancellation_are_bound(self):
         source = self.proposal.stages[9].source
         for before, after in (
@@ -345,6 +401,71 @@ class SharedSourceTests(unittest.TestCase):
         manifest = self.proposal.manifest
         manifest['consumer_proofs']['changed_byte_representation']['bytes'] -= 1
         self.reject(replace(self.proposal, manifest_json=s.encode(manifest)))
+
+
+class ByteAliasScanTests(unittest.TestCase):
+    def test_exact_integer_domain_matches_the_old_predicate(self):
+        class IntegerSubclass(int):
+            pass
+        atoms = [-1, 0, 1, 255, 256, 10 ** 100, False, True,
+                 IntegerSubclass(1), 1.0, None, object()]
+        values = [[], list(range(256)), (), b'abc']
+        values += [[x] for x in atoms]
+        values += [[x, y] for x in atoms for y in atoms]
+        for value in values:
+            expected = type(value) is list and all(
+                type(n) is int and 0 <= n < 256 for n in value)
+            with self.subTest(value=value):
+                if expected:
+                    self.assertEqual(structured._byte_alias_bytes(value), bytes(value))
+                else:
+                    with self.assertRaisesRegex(ValueError, 'byte alias range'):
+                        structured._byte_alias_bytes(value)
+
+    def test_type_protocols_cannot_impersonate_builtin_int(self):
+        callbacks = []
+        class Mimic(type):
+            def __hash__(cls):
+                callbacks.append('hash')
+                return hash(int)
+            def __eq__(cls, other):
+                callbacks.append('equality')
+                return True
+        class Impostor(metaclass=Mimic):
+            def __index__(self):
+                callbacks.append('index')
+                return 7
+        class IntegerSubclass(int):
+            def __index__(self):
+                callbacks.append('subclass index')
+                return 7
+        class ListSubclass(list):
+            def __iter__(self):
+                callbacks.append('list iteration')
+                return super().__iter__()
+        for value in ([Impostor()], [IntegerSubclass(7)], ListSubclass([7])):
+            with self.assertRaisesRegex(ValueError, 'byte alias range'):
+                structured._byte_alias_bytes(value)
+        self.assertEqual(callbacks, [])
+
+    def test_unused_alias_still_obeys_range_and_expanded_length_bounds(self):
+        tree = {'a': 1}
+        raw = b'{"a":1}'
+        namespace = 'HiaCoreSyntaxSlice.ByteScan'
+        example = structured.build_structured_input('tiny', tree, raw, namespace, 'tiny', 'tiny')
+        for value, reason in (([0] * 33, 'byte alias length'),
+                              ([0] * 32 + [256], 'byte alias range')):
+            rhs = '[' + ','.join(map(str, value)) + ']'
+            extra = 'def unused : List Nat := ' + rhs + '\n'
+            source = example.source.replace('end ' + namespace + '\n',
+                                            extra + 'end ' + namespace + '\n')
+            manifest = example.manifest
+            manifest['source_sha256'] = structured.digest(source.encode())
+            manifest['definitions'].append(dict(name='unused', type='List Nat',
+                                                rhs_sha256=structured.digest(rhs.encode())))
+            with self.subTest(reason=reason), patch.object(structured.old, 'MAX_BYTES', 32):
+                with self.assertRaisesRegex(ValueError, reason):
+                    structured.verify_structured_source(source, manifest, tree, raw)
 
 
 class CompoundProofTests(unittest.TestCase):
