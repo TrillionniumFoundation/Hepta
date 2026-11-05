@@ -19,6 +19,10 @@ GENLHDR = struct.Struct('=BBH')
 NLAHDR = struct.Struct('=HH')
 NLM_F_REQUEST, NLM_F_DUMP, NLM_F_MULTI = 1, 0x300, 2
 NLMSG_ERROR, NLMSG_DONE, GENL_ID_CTRL = 2, 3, 0x10
+# Per request, before journaling or accumulating untrusted multipart replies.
+# Exceeding either limit is a rejected measurement, never a partial peer result.
+MAX_NETLINK_WIRE_BYTES = 4 * 1024 * 1024
+MAX_NETLINK_MESSAGES = 4096
 COUNTERS = {16: 'vpn_rx_bytes', 17: 'vpn_tx_bytes', 18: 'vpn_rx_packets', 19: 'vpn_tx_packets',
             20: 'link_rx_bytes', 21: 'link_tx_bytes', 22: 'link_rx_packets', 23: 'link_tx_packets'}
 
@@ -59,14 +63,22 @@ def request(sock, family, cmd, payload, sequence, dump=False, journal=None):
     sock.send(raw); replies = []; finished = False
     if journal is not None: journal.append({'direction':'request','sequence':sequence,'hex':raw.hex()})
     until = time.monotonic() + 3
+    received_bytes = 0
+    received_messages = 0
     for _ in range(256):
         sock.settimeout(max(0.01, until-time.monotonic()))
         data, ancillary, recvflags, address = sock.recvmsg(1 << 20)
+        received_bytes += len(data)
+        if received_bytes > MAX_NETLINK_WIRE_BYTES:
+            raise ValueError('netlink reply wire budget exceeded')
         if journal is not None: journal.append({'direction':'reply','sequence':sequence,'hex':data.hex(),
                                                 'sender_port_id':address[0],'recv_flags':recvflags})
         if address[0] != 0 or recvflags & socket.MSG_TRUNC: raise ValueError('non-kernel or truncated netlink reply')
         pos = 0
         while pos < len(data):
+            received_messages += 1
+            if received_messages > MAX_NETLINK_MESSAGES:
+                raise ValueError('netlink message budget exceeded')
             if len(data) - pos < 16: raise ValueError('short netlink message')
             size, kind, flags, seq, pid = NLHDR.unpack_from(data, pos)
             if size < 16 or pos + size > len(data): raise ValueError('invalid netlink message extent')
