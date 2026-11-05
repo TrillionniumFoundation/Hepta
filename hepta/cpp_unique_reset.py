@@ -30,6 +30,7 @@ from .pipeline import analyze, compiler_hash
 
 PROFILE = "cpp20-direct-unique-byte-array-closed-reset-v1"
 REUSABLE_PROFILE = "cpp20-direct-unique-byte-array-reusable-reset-v2"
+SWAP_PROFILE = "cpp20-direct-unique-byte-array-reusable-swap-v3"
 UNIQUE = "std::unique_ptr<unsigned char[]>"
 MAX_ALLOCATION = 65536
 _REFERENCE = r'''#include <memory>
@@ -42,6 +43,8 @@ unsigned char hepta_library_contract(unsigned long size, unsigned long index) {
     return a[index];
 }
 '''
+_REFERENCE_SWAP = _REFERENCE.replace("    a.reset(b.release());",
+    "    a.swap(b);\n    b.swap(b);\n    a.reset(b.release());")
 
 
 def _only(node, kind=None):
@@ -74,10 +77,12 @@ def _nullptr(node):
             and _qual(node) == "std::nullptr_t")
 
 
-def _contracts(probe, external):
+def _contracts(probe, external, *, owner_swaps=False):
     selected = {name: set() for name in ("reset", "release", "operator[]", "new", "delete")}
+    if owner_swaps:
+        selected["swap"] = set()
     for node, _ in _nodes(probe):
-        if node.get("kind") == "MemberExpr" and node.get("name") in {"reset", "release"}:
+        if node.get("kind") == "MemberExpr" and node.get("name") in ({"reset", "release", "swap"} if owner_swaps else {"reset", "release"}):
             selected[node["name"]].add(external[node["referencedMemberDecl"]])
         if node.get("kind") == "DeclRefExpr" and node.get("referencedDecl", {}).get("name") == "operator[]":
             selected["operator[]"].add(external[node["referencedDecl"]["id"]])
@@ -92,15 +97,18 @@ def _contracts(probe, external):
 class _ResetTranslator(_Translator):
     """Reuse scalar typing, with a separate complete local ownership machine."""
 
-    def __init__(self, operation, external, contracts, *, reusable_released_owners=False):
+    def __init__(self, operation, external, contracts, *, reusable_released_owners=False,
+                 owner_swaps=False):
         self.operation, self.external, self.contracts = operation, external, contracts
         self.reusable_released_owners = reusable_released_owners
+        self.owner_swaps = owner_swaps
         self.roles, self.fields, self.methods, self.serial = {}, {}, {}, 0
         self.stats = {"scalar_expressions": 0, "if_statements": 0, "scalar_locals": 0,
                       "owner_constructions": 0, "source_returns": 0,
                       "distinct_release_reset": 0, "self_release_reset": 0,
                       "explicit_reset_null": 0, "guarded_subscripts": 0,
-                      "throw_cleanup_paths": 0}
+                      "throw_cleanup_paths": 0, "distinct_owner_swaps": 0,
+                      "self_owner_swaps": 0}
         self.mark(operation, "structurally_translated_direct_unique_function")
 
     def bound(self, ident, role):
@@ -265,6 +273,25 @@ class _ResetTranslator(_Translator):
         self.stats["distinct_release_reset"] += 1
         return lines
 
+    def swap(self, node, env):
+        if not self.owner_swaps:
+            _reject("Member swap requires the explicit v3 ownership profile", "E_CPP_RESET_SWAP_PROFILE")
+        left_id, left, arguments = self.member(node, env, "swap", empty=True)
+        if _qual(node) != "void" or len(arguments) != 1:
+            _reject("Swap requires exactly one complete owner argument", "E_CPP_RESET_SWAP")
+        right_id, right = self.owner(arguments[0], env, empty=True)
+        if left_id == right_id:
+            self.stats["self_owner_swaps"] += 1
+            return []
+        # An owner slot and an allocation are different identities. The C++
+        # objects keep declaration order and source names; only the allocation
+        # identity, initialization/length fact, and corresponding linear value
+        # change slots. No raw pointer or second live Hepta binding is created.
+        for field in ("alive", "length", "emitted"):
+            left[field], right[field] = right[field], left[field]
+        self.stats["distinct_owner_swaps"] += 1
+        return []
+
     def statements(self, statements, env, *, context, returns, depth=1, catch=None,
                    nested=False, scope_depth=0, **kwargs):
         if scope_depth > 16 or len(statements) > 256:
@@ -347,7 +374,11 @@ class _ResetTranslator(_Translator):
                     _reject("Only checked byte stores are admitted", "E_CPP_RESET_STORE")
                 lines.append(indent + place + " = " + value + ";")
             elif kind == "CXXMemberCallExpr":
-                lines += [indent + line for line in self.reset(node, env)]
+                if children and children[0].get("name") == "swap":
+                    rendered = self.swap(node, env)
+                else:
+                    rendered = self.reset(node, env)
+                lines += [indent + line for line in rendered]
             elif kind in {"ReturnStmt", "CXXThrowExpr"} and len(children) == 1:
                 if kind == "ReturnStmt":
                     value, typ = self.expr(children[0], env, context=context)
@@ -376,6 +407,8 @@ class _ResetTranslator(_Translator):
         source = "module cpp_unique_reset_migrated;\n\n" + self.lifecycle()
         if not self.stats["distinct_release_reset"]:
             _reject("Profile requires an actual distinct-owner release/reset", "E_CPP_RESET_PROFILE")
+        if self.owner_swaps and not self.stats["distinct_owner_swaps"]:
+            _reject("The v3 profile requires an actual distinct-owner swap", "E_CPP_RESET_PROFILE")
         inventory = []
         for node, path in _nodes(self.operation):
             if str(node.get("kind", "")).endswith("Decl"):
@@ -386,10 +419,15 @@ class _ResetTranslator(_Translator):
         return source, inventory
 
 
-def lower_unique_reset_project(database, *, clangxx="clang++", reusable_released_owners=False):
+def lower_unique_reset_project(database, *, clangxx="clang++", reusable_released_owners=False,
+                               owner_swaps=False):
     """Capture one real source TU, bind its library, and emit checked Core."""
     if type(reusable_released_owners) is not bool:
         raise ValueError("reusable_released_owners must be an explicit Boolean profile selection")
+    if type(owner_swaps) is not bool:
+        raise ValueError("owner_swaps must be an explicit Boolean profile selection")
+    if owner_swaps and not reusable_released_owners:
+        raise ValueError("owner_swaps requires reusable_released_owners=True")
     started = time.perf_counter_ns()
     before = compiler_hash()
     stage = time.perf_counter_ns()
@@ -410,17 +448,19 @@ def lower_unique_reset_project(database, *, clangxx="clang++", reusable_released
                 "E_CPP_RESET_INVENTORY")
     reference_config = _reference_config(config)
     actual_standard = _standard_snapshot(compiler, config)
-    reference_standard = _standard_snapshot(compiler, reference_config, source=_REFERENCE)
+    reference_source = _REFERENCE_SWAP if owner_swaps else _REFERENCE
+    reference_standard = _standard_snapshot(compiler, reference_config, source=reference_source)
     if not actual_standard or actual_standard != reference_standard:
         _reject("Project changes the expanded default standard-library contract", "E_CPP_RESET_STDLIB")
-    reference, reference_ast, reference_external, _, _ = _large_ast(compiler, reference_config, source=_REFERENCE)
+    reference, reference_ast, reference_external, _, _ = _large_ast(compiler, reference_config, source=reference_source)
     if len(reference) != 1 or reference[0][0].get("name") != "hepta_library_contract":
         _reject("Incomplete trusted operation probe", "E_CPP_RESET_CONTRACT")
-    contracts = _contracts(reference[0][0], reference_external)
+    contracts = _contracts(reference[0][0], reference_external, owner_swaps=owner_swaps)
     costs["ast_and_library_contract_capture_wall_ns"] = time.perf_counter_ns() - stage
     stage = time.perf_counter_ns()
     translator = _ResetTranslator(active[0][0], external, contracts,
-                                  reusable_released_owners=reusable_released_owners)
+                                  reusable_released_owners=reusable_released_owners,
+                                  owner_swaps=owner_swaps)
     source, inventory = translator.translate()
     costs["source_generation_wall_ns"] = time.perf_counter_ns() - stage
     stage = time.perf_counter_ns()
@@ -437,8 +477,9 @@ def lower_unique_reset_project(database, *, clangxx="clang++", reusable_released
     costs["source_toolchain_revalidation_wall_ns"] = time.perf_counter_ns() - stage
     costs["total_migration_wall_ns"] = time.perf_counter_ns() - started
     costs["human_engineering_seconds"] = None
-    return {"schema": "hepta.cpp-unique-reset-migration.v2" if reusable_released_owners else "hepta.cpp-unique-reset-migration.v1",
-            "profile": REUSABLE_PROFILE if reusable_released_owners else PROFILE, "ok": True,
+    return {"schema": ("hepta.cpp-unique-reset-migration.v3" if owner_swaps else
+                       "hepta.cpp-unique-reset-migration.v2" if reusable_released_owners else "hepta.cpp-unique-reset-migration.v1"),
+            "profile": SWAP_PROFILE if owner_swaps else REUSABLE_PROFILE if reusable_released_owners else PROFILE, "ok": True,
             "source": source, "program": program, "capture": capture, "compiler_sha256": before,
             "source_lowering": source_summary, "translation_statistics": translator.stats, "costs": costs,
             "project_function": active[0][0]["name"], "declarations": inventory,
@@ -446,7 +487,7 @@ def lower_unique_reset_project(database, *, clangxx="clang++", reusable_released
             "standard_library_declarations": library, "ast_capture": ast,
             "reference_ast_capture": reference_ast,
             "standard_library_expansion": {"reference_equal": True, "headers": actual_standard,
-                "reference_source_sha256": sha256(_REFERENCE.encode()).hexdigest()},
+                "reference_source_sha256": sha256(reference_source.encode()).hexdigest()},
             "library_operation_contracts": {key: sorted(value) for key, value in contracts.items()},
             "claims": {"actual_project_algorithm_structurally_translated": True,
                 "standalone_core_resource_check": "passed", "original_cpp_objects_in_target": False,
@@ -455,6 +496,8 @@ def lower_unique_reset_project(database, *, clangxx="clang++", reusable_released
                 "whole_cpp_supported": False, "scalar_abi_requires_native_qualification": True,
                 "cpp_class_abi_preserved": False, "pointer_escape_supported": False,
                 "released_source_reuse_supported": reusable_released_owners, "custom_deleters_supported": False,
+                "bound_member_swap_supported": owner_swaps, "std_swap_supported": False,
                 "loops_or_concurrency_supported": False, "maximum_guarded_allocation_bytes": MAX_ALLOCATION,
                 "allocator_contract": "zeroed byte allocation and default delete; replaceable allocator behavior outside contract is unsupported",
                 "abort_or_process_crash_recovery_qualified": False}}
+

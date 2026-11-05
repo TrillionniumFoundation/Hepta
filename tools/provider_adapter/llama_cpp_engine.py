@@ -82,7 +82,8 @@ def validate_completion(raw, input_ids, limit, *, json_object=False):
 class LlamaCppEngine:
     def __init__(self, *, binary, model, model_sha256, output_dir, threads=4, context=8192,
                  json_object=False):
-        if (type(threads) is not int or not 1 <= threads <= 64 or context != 8192
+        if (type(threads) is not int or not 1 <= threads <= 64
+                or type(context) is not int or context not in {8192, 32768}
                 or type(json_object) is not bool):
             raise ValueError("E_GGUF_CONFIG")
         self.json_object = json_object
@@ -365,3 +366,4 @@ class LlamaCppEngine:
 
     def __exit__(self, *exc):
         self.close()
+

@@ -36,6 +36,38 @@ keeps original HIA, strong native baselines, actual model maintenance tasks,
 upgrades and all optimization costs visible. These finite implementations and
 measurements do not grant a universal safety, performance or productivity claim.
 
+## Integrated follow-up
+
+The next [fixed-composition campaign](tools/qualify_hia_composition.py) binds
+the complete committed source, actual native NDU bridge, tools, protocols and
+targets before execution. Command completion, proof acceptance and empirical
+performance or productivity gates remain separate results. The research
+[sequential syntax transport chain](docs/seven-shared-composition.md) must be
+run and replayed afresh against that same combination; importing its source
+does not transfer a proof from another branch or prove the production verifier.
+
+New scoped qualifications include [C++ member-owner swap](docs/HIA_CPP_UNIQUE_SWAP_V3.md)
+with allocation/lifecycle observations and source refusals, and an
+[actual native recovery race](docs/HIA_HOST_REGION_RECOVERY_RACE.md) between
+concurrent readers, recovery contenders and an old-epoch caller. The latter
+is a finite Linux host-RAM execution, not a general concurrent-language, DMA
+or process-crash guarantee.
+
+The [historical upstream repair factorial](benchmarks/hia_upstream_factorial/README.md)
+compares HIA assembly and Rust under both complete-file and exact-patch tools.
+It preserves real source provenance, native reference controls, failed attempts
+and complete observed model costs. Its two correlated fixes from one stb
+header cannot establish a stable population-wide Agent advantage. Strong Rust
+performance gates and complete-cost NDU comparisons likewise remain open until
+the actual registered observations satisfy them.
+
+The [dynamic-cache controller study](benchmarks/hia_ndu_dynamic/README.md)
+uses an actual Rust workload with residency, reuse and invalidation. It keeps
+fixed, lightweight, exact-DP, beam and NDU-augmented controls under the same
+information and includes request, model, solver and witness costs. This study
+is separate from an HIA-compiled application qualification; a model-optimal
+plan is not a proof of globally optimal machine code.
+
 ## Implemented capabilities
 
 The table describes the union of the explicitly qualified profiles in this
@@ -224,3 +256,4 @@ The [credential-free runtime audit](evidence/audits/provider-runtime-022ed82.jso
 loaded the system CA store inside the adapter capsule, but DNS resolution of
 the API host failed in both parent and capsule. TLS/HTTP access and actual
 provider accounting therefore remain unqualified in this environment.
+

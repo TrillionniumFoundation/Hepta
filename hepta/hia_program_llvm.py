@@ -142,7 +142,7 @@ def _implementation_hash():
     """Bind the actual verifier/emitter and the native boundary helpers."""
     digest = sha256()
     root = Path(__file__).parent
-    for name in ("hia_schema.py", "hia_program.py", "hia_capability_flow.py", "hia_opcodes.py", "hia_program_composite.py", "hia_program_llvm.py", "hia_initialization.py", "hia_entry_layout.py", "artifact_publication.py",
+    for name in ("hia_schema.py", "hia_program.py", "hia_capability_flow.py", "hia_opcodes.py", "hia_program_composite.py", "hia_program_llvm.py", "hia_initialization.py", "hia_entry_layout.py", "hia_byte_sum.py", "artifact_publication.py",
                  "clang_capture.py", "elf_shared_abi.py", "object_symbols.py",
                  "object_structure.py", "native_tool_identity.py"):
         content = (root / name).read_bytes()
@@ -229,6 +229,8 @@ class _FunctionEmitter:
         self.function = function
         self.zero_bytes = "false" if _can_elide_zero_initialization(function) else "true"
         self.number = number
+        from .hia_byte_sum import byte_sum_plans
+        self.byte_sum_plans = byte_sum_plans(function) if parent.target == TARGET else {}
         self.serial = 0
         self.lines = []
         self.values = {}
@@ -613,8 +615,13 @@ class _FunctionEmitter:
         for block in ordered:
             self.lines = []
             self.values = {param["name"]: self.param_ids[param["name"]] for param in block["params"]}
-            for operation in block["ops"]:
-                self.operation(operation)
+            plan = self.byte_sum_plans.get(block["id"])
+            if plan is None:
+                for operation in block["ops"]:
+                    self.operation(operation)
+            else:
+                from .hia_byte_sum import render_byte_sum
+                render_byte_sum(self, block, plan)
             self.terminal(block["term"])
             self.blocks.append((block, list(self.lines)))
         params = ", ".join(_llvm_type(param["type"]) + " " + self.param_ids[param["name"]][0]
@@ -752,6 +759,8 @@ class _Emitter:
                                 if operation["op"] in {"buffer.fill", "buffer.fill_range", "buffer.copy", "buffer.move_within", "buffer.copy_range"}}
         self.indices = {fn["name"]: index for index, fn in enumerate(document["functions"])}
         self.intrinsics = set()
+        self.byte_sum_intrinsic = False
+        self.entry_zero_layout_hint = False
         self.exports = []
         self.allowed_exports = allowed_exports
         self.layout = layout
@@ -829,6 +838,8 @@ class _Emitter:
             declarations.append("declare void @llvm.memcpy.p0.p0.i64(ptr, ptr, i64, i1 immarg)")
         if "buffer.move_within" in self.bulk_operations:
             declarations.append("declare void @llvm.memmove.p0.p0.i64(ptr, ptr, i64, i1 immarg)")
+        if self.byte_sum_intrinsic:
+            declarations.append("declare <2 x i64> @llvm.x86.sse2.psad.bw(<16 x i8>, <16 x i8>)")
         declarations += ["declare { i" + str(bits) + ", i1 } @" + name + "(i" + str(bits) + ", i" + str(bits) + ")"
                          for name, bits in sorted(self.intrinsics)]
         recursive = supports_feature(self.document["schema"], "recursive_chain")
@@ -839,7 +850,8 @@ class _Emitter:
                 "%hia.buffer = type { ptr, i64 }\n%hia.alloc = type { %hia.buffer, i1 }\n"
                 + chain_types + "\n".join(declarations) + "\n" + _BUFFER_RUNTIME + "\n"
                 + (_CHAIN_RUNTIME if recursive else "")
-                + "\n\n".join(bodies + [wrapper for wrapper in wrappers if wrapper]) + "\n")
+                + "\n\n".join(bodies + [wrapper for wrapper in wrappers if wrapper]) + "\n"
+                + ('!0 = !{!"branch_weights", i32 2, i32 1}\n' if self.entry_zero_layout_hint else ""))
 
 
 def emit_program_llvm(program, *, target=TARGET, layout="canonical"):
