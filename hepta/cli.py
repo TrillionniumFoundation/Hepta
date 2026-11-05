@@ -17,7 +17,7 @@ from .protocol import apply_patch
 
 
 def output_json(value):
-    print(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True))
+    print(json.dumps(value, ensure_ascii=True, indent=2, sort_keys=True))
 
 
 def main(argv=None) -> int:
