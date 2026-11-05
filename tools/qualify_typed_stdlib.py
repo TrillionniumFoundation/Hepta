@@ -43,7 +43,7 @@ def main():
     planned=[t.id() for t in tracking.flatten(suite)]
     inventory='typed_stdlib_rust_inventory.json' if inherited.RUST_REQUIRED else 'typed_stdlib_inventory.json'
     expected=json.loads((ROOT/'tools'/inventory).read_bytes())
-    count=415 if inherited.RUST_REQUIRED else 407
+    count=418 if inherited.RUST_REQUIRED else 410
     if planned!=expected or len(planned)!=count or len(set(planned))!=count:raise SystemExit('Frozen method inventory mismatch')
     before=identity()
     print('TYPED_STDLIB_IDENTITY '+json.dumps({'python':sys.version,'host':platform.platform(),'backend':backend,'source_sha256':before,'provenance':provenance,'inherited':source},sort_keys=True),flush=True)

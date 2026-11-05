@@ -5,6 +5,7 @@ import signal
 import subprocess
 import sys
 import unittest
+from unittest.mock import patch
 
 from hepta.ast import HeptaError
 from hepta.backend import compile_rust, emit_rust
@@ -124,12 +125,44 @@ class StoreAdtCompositionTests(unittest.TestCase):
                 self.assertEqual(build.returncode,0,build.stderr)
             for optimize in [False,True]:
                 report=(compile_c(emit_c(p,c),output=self.root/'trace',optimize=optimize,sanitize=True,link_args=[str(helper)]) if backend=='c' else
-                        compile_rust(emit_rust(p,c,crate_type='bin'),output=self.root/'trace-rust',optimize=optimize,rustc=os.environ.get('RUSTC','rustc'),link_args=[str(obj)]))
+                        compile_rust(emit_rust(p,c,crate_type='bin'),crate_type='bin',output=self.root/'trace-rust',optimize=optimize,rustc=os.environ.get('RUSTC','rustc'),link_args=[str(obj)]))
                 self.assertTrue(report['ok'],report)
                 for fail,expected in [('',b'1234'),('1',b'1'),('2',b'12'),('3',b'123')]:
                     run=subprocess.run([report['artifact']],env={**os.environ,'HEPTA_FAIL':fail},capture_output=True,timeout=10)
                     self.assertEqual((run.returncode,run.stdout),(-signal.SIGABRT if fail else 0,expected),run.stderr)
                     self.assertNotIn(b'runtime error:',run.stderr)
+
+    def test_rust_trace_requests_binary_contract_without_native_rust(self):
+        """Mocked Rust boundary only; original C work remains real."""
+        original_run = subprocess.run
+        calls, observations = [], []
+        artifact = str(self.root / 'mocked-rust-trace-contract-not-an-executable')
+
+        def compile_contract(source, **kwargs):
+            self.assertEqual(kwargs.get('crate_type'), 'bin')
+            self.assertIn('fn main()', source)
+            self.assertEqual(kwargs['rustc'], 'mocked-rust-contract')
+            self.assertEqual(kwargs['output'], self.root / 'trace-rust')
+            self.assertEqual(kwargs['link_args'], [str(self.root / 'trace-helper.o')])
+            self.assertGreater((self.root / 'trace-helper.o').stat().st_size, 0)
+            calls.append(kwargs['optimize'])
+            return {'ok': True, 'artifact': artifact}
+
+        def run_contract(args, *positional, **kwargs):
+            if args == [artifact]:
+                failure = kwargs['env']['HEPTA_FAIL']
+                observations.append(failure)
+                output = b'1234' if not failure else b'123'[:int(failure)]
+                return subprocess.CompletedProcess(args, -signal.SIGABRT if failure else 0, output, b'')
+            return original_run(args, *positional, **kwargs)
+
+        with patch.dict(os.environ, {'HEPTA_ENUM_REQUIRE_RUST': '1',
+                                     'RUSTC': 'mocked-rust-contract'}), \
+             patch(__name__ + '.compile_rust', side_effect=compile_contract), \
+             patch('subprocess.run', side_effect=run_contract):
+            self.test_aggregate_operand_failure_stops_later_effects()
+        self.assertEqual(calls, [False, True])
+        self.assertEqual(observations, ['', '1', '2', '3'] * 2)
 
     def test_scalar_origin_order_control_without_volatile_admission(self):
         # The original combined method also requires unsupported volatile_store.
