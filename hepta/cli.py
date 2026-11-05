@@ -821,6 +821,12 @@ def main(argv=None) -> int:
                     or same_existing_inode(manifest, header)
                     or same_existing_inode(manifest, dest)):
                 raise ValueError("C import manifest cannot overwrite the C input or generated source")
+            # A non-file sidecar would fail only AFTER truncating/creating
+            # the generated source. Reject it before either output changes.
+            # This is preflight only, not transactional dual-file commit or
+            # concurrent path-replacement protection.
+            if manifest.exists() and not manifest.is_file():
+                raise ValueError("C import manifest destination must be a regular file or absent")
             dest.parent.mkdir(parents=True, exist_ok=True)
             dest.write_text(imported.source)
             manifest.write_text(json.dumps(imported.manifest, indent=2, sort_keys=True) + "\n")
