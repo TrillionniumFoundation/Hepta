@@ -152,6 +152,8 @@ def _segments(root, data):
 # This parser accepts only the emitted data-expression language. It neither
 # invokes the emitter nor treats a manifest's claimed flattened value as true.
 _TOKEN = re.compile(r'\s*(::|\+\+|\.[a-z]+|[A-Za-z][A-Za-z0-9_]*|[0-9]+|[\[\](),])')
+_TOKEN_COVERAGE = re.compile('(?:' + _TOKEN.pattern + ')*+')
+_RAW_STRING_BYTES = bytes(n for n in range(32, 127) if n not in (34, 92))
 
 
 @dataclass(frozen=True)
@@ -161,12 +163,12 @@ class _Raw:
 
 
 def _parse_expression(text, env):
-    tokens, pos = [], 0
-    while pos < len(text):
-        match = _TOKEN.match(text, pos)
-        require(match is not None, 'unsupported emitted data syntax')
-        tokens.append(match.group(1))
-        pos = match.end()
+    # Commit each greedy token exactly as the old adjacent match loop did.
+    # Fullmatch rejects gaps and trailing whitespace before the findall pass.
+    # Possessive repetition prevents repartition/backtracking over prior tokens,
+    # and the anchored check cannot rescan a long invalid whitespace suffix.
+    require(_TOKEN_COVERAGE.fullmatch(text) is not None, 'unsupported emitted data syntax')
+    tokens = _TOKEN.findall(text)
     index = 0
     def take(wanted=None):
         nonlocal index
@@ -222,8 +224,14 @@ def _raw_value(raw):
         require(type(raw.value) is int and 0 <= raw.value <= old.MAX_INTEGER, 'Raw numeric domain')
         return raw.value
     if raw.kind == 'str':
-        require(type(raw.value) is list and all(type(n) is int and 32 <= n <= 126 and n not in (34, 92) for n in raw.value), 'Raw string domain')
-        return bytes(raw.value).decode('ascii')
+        require(type(raw.value) is list and
+                all(map(is_, map(type, raw.value), repeat(int))), 'Raw string domain')
+        try:
+            encoded = bytes(raw.value)
+        except (ValueError, OverflowError):
+            require(False, 'Raw string domain')
+        require(not encoded.translate(None, _RAW_STRING_BYTES), 'Raw string domain')
+        return encoded.decode('ascii')
     require(type(raw.value) is list, 'Raw container domain')
     if raw.kind == 'arr':
         return [_raw_value(v) for v in raw.value]
@@ -231,6 +239,66 @@ def _raw_value(raw):
     keys = [_raw_value(_Raw('str', p[0])) for p in raw.value]
     require(keys == sorted(set(keys)), 'Raw object keys duplicate or unordered')
     return {k: _raw_value(p[1]) for k, p in zip(keys, raw.value)}
+
+
+class _ParsedRawValues:
+    """Private decoded values for one invocation's read-only parsed alias DAG.
+
+    The parser only constructs values or concatenates into fresh lists; it never
+    mutates a published alias. No caller-supplied cache, validation result, or
+    cross-invocation state is accepted. Strong object references prevent id reuse
+    by temporary Raw object wrappers. Decoded values stay inside verification.
+    """
+    def __init__(self):
+        self._values = {}
+
+    def decode(self, raw):
+        require(isinstance(raw, _Raw), 'expected Raw expression')
+        found = self._values.get(id(raw))
+        if found is not None and found[0] is raw:
+            return found[1]
+        if raw.kind in ('num', 'str'):
+            value = _raw_value(raw)
+        else:
+            require(type(raw.value) is list, 'Raw container domain')
+            if raw.kind == 'arr':
+                value = [self.decode(v) for v in raw.value]
+            else:
+                require(all(type(p) is tuple and len(p) == 2 for p in raw.value),
+                        'Raw object pair domain')
+                keys = [_raw_value(_Raw('str', p[0])) for p in raw.value]
+                require(keys == sorted(set(keys)), 'Raw object keys duplicate or unordered')
+                value = {k: self.decode(p[1]) for k, p in zip(keys, raw.value)}
+        # Failed domains and partially decoded parents never enter the table.
+        self._values[id(raw)] = (raw, value)
+        return value
+
+
+class _LiteralTheoremCounts:
+    """Index literal candidate starts without changing str.count semantics.
+
+    No line or identifier anchors are introduced. The key ends at the next
+    literal ASCII space; full startswith checks and non-overlap accounting still
+    inspect the actual source. Unindexed literal forms use str.count directly.
+    """
+    def __init__(self, source):
+        self.source = source
+        self.starts = {}
+        for match in re.finditer('theorem ', source):
+            end = source.find(' ', match.end())
+            if end >= 0:
+                self.starts.setdefault(source[match.end():end], []).append(match.start())
+
+    def count(self, literal):
+        end = literal.find(' ', len('theorem '))
+        if not literal.startswith('theorem ') or end < 0:
+            return self.source.count(literal)
+        total, after = 0, 0
+        for start in self.starts.get(literal[len('theorem '):end], ()):
+            if start >= after and self.source.startswith(literal, start):
+                total += 1
+                after = start + len(literal)
+        return total
 
 
 def _byte_alias_bytes(value):
@@ -274,26 +342,29 @@ def verify_structured_source(source, manifest, expected_tree, expected_bytes):
                           source.split('\n', 1)[1].rsplit('end ' + ns, 1)[0]) and
             not re.search(r'\b(sorry|native_decide)\b', source), 'unsupported structured source command')
     env, definitions, expressions = {}, [], {}
+    decoded = _ParsedRawValues()
     for match in re.finditer(r'(?m)^def ([A-Za-z][A-Za-z0-9_]*) : (.+?) := (.+)$', source):
         name, ty, rhs = match.groups()
         require(name not in env, 'duplicate data alias')
         require(ty in ('Raw', 'List Nat', 'List Raw', 'List (List Nat × Raw)'), 'unsupported data alias type')
         val = _parse_expression(rhs, env)
         if ty == 'Raw':
-            _raw_value(val)
+            decoded.decode(val)
         elif ty == 'List Nat':
             _byte_alias_bytes(val)
             require(len(val) <= old.MAX_BYTES, 'byte alias length')
         elif ty == 'List Raw':
             require(type(val) is list, 'Raw list alias type')
             for v in val:
-                _raw_value(v)
+                decoded.decode(v)
         else:
-            _raw_value(_Raw('obj', val))
+            decoded.decode(_Raw('obj', val))
         env[name] = val
         expressions[name] = rhs
         definitions.append({'name': name, 'type': ty, 'rhs_sha256': digest(rhs.encode())})
     require(definitions == manifest['definitions'], 'exact emitted definition manifest')
+    # Keep the caller-facing comparison on a fresh recursive value. A custom
+    # expected_tree equality method must never receive a cached list or dict.
     require(_raw_value(env[manifest['raw_name']]) == expected_tree, 'full emitted Raw differs')
     require(bytes(env[manifest['bytes_name']]) == expected_bytes, 'full emitted bytes differ')
     segments = manifest['segments']
@@ -313,7 +384,7 @@ def verify_structured_source(source, manifest, expected_tree, expected_bytes):
     require(canonical(manifest['list_steps']) == canonical(list_ledger), 'exact recursive list-step ledger')
     def check_node_aliases(node):
         ident = node['id']
-        require(_raw_value(env[f'{manifest["stem"]}_r{ident}']) == node['value'],
+        require(decoded.decode(env[f'{manifest["stem"]}_r{ident}']) == node['value'],
                 'exact complete subtree alias binding')
         require(bytes(env[f'{manifest["stem"]}_b{ident}']) == expected_bytes[node['start']:node['end']],
                 'exact subtree byte interval binding')
@@ -343,8 +414,9 @@ def verify_structured_source(source, manifest, expected_tree, expected_bytes):
         cert + '_byte_range': f': {stem}Bytes.all (fun byte => decide (byte ≤ 255)) = true',
         cert + '_transport': f': checkedEncode {stem}Raw = some {stem}Bytes',
     }
+    theorem_counts = _LiteralTheoremCounts(source)
     for name, statement in roots.items():
-        require(source.count('theorem ' + name + ' ' + statement + ' := ') == 1,
+        require(theorem_counts.count('theorem ' + name + ' ' + statement + ' := ') == 1,
                 'unchanged complete root theorem: ' + name)
     # Check the leaf/container equation schemas against the independently rebuilt
     # recursive ledger. In particular no numeric arbitrary-tail claim is allowed.
@@ -355,7 +427,7 @@ def verify_structured_source(source, manifest, expected_tree, expected_bytes):
         residual = f'({node["delimiter"]} :: tail)' if node['kind'] == 'num' else 'tail'
         result_tail = f'{node["delimiter"]} :: tail' if node['kind'] == 'num' else 'tail'
         parsed = f'theorem {cert}_p{i} (tail : List Nat) : parseRaw {f} {d} ({b} ++ {residual}) = some ({r}, {result_tail}) := '
-        require(source.count(serial) == 1 and source.count(parsed) == 1,
+        require(theorem_counts.count(serial) == 1 and theorem_counts.count(parsed) == 1,
                 'exact local fuel/depth and symbolic delimiter equation')
     for step in list_ledger:
         parent, i, f, d = step['parent'], step['index'], step['fuel'], step['depth']
@@ -364,7 +436,7 @@ def verify_structured_source(source, manifest, expected_tree, expected_bytes):
         pf = 'parseFields' if step['kind'] == 'obj' else 'parseItems'
         serial = f'theorem {cert}_sl{parent}_{i} : {sf} {f} {d} {xs} = some {bs} := '
         parsed = f'theorem {cert}_pl{parent}_{i} (tail : List Nat) : {pf} {f} {d} ({bs} ++ ({step["close"]} :: tail)) = some ({xs}, tail) := '
-        require(source.count(serial) == 1 and source.count(parsed) == 1,
+        require(theorem_counts.count(serial) == 1 and theorem_counts.count(parsed) == 1,
                 'exact list-step fuel/depth/closing-delimiter equation')
     expected_names = set(roots)
     for node in ledger:
@@ -553,3 +625,4 @@ def build_structured_input(key, tree, canonical_bytes, namespace, stem, cert):
                 'source_sha256': digest(source.encode())}
     verify_structured_source(source, manifest, tree, canonical_bytes)
     return StructuredInput(source, frozenset(names), json.dumps(manifest, sort_keys=True, separators=(',', ':')))
+

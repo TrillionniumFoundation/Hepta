@@ -86,9 +86,27 @@ class Part04RunnerTests(unittest.TestCase):
                     capture_stack.enter_context(patch.object(collector.subprocess,'Popen',side_effect=popen))
                     capture_stack.enter_context(patch.object(collector,'platform_observation',return_value=PLATFORM))
                     if behavior=='target_timeout':
-                        origin=time.monotonic()
-                        capture_stack.enter_context(patch.object(collector,'time',SimpleNamespace(monotonic=lambda:origin+(time.monotonic()-origin)*100)))
+                        # First retain the complete finite stdout, then cross
+                        # the unchanged process deadline once. Keep cleanup at
+                        # wall-clock speed: multiplying all time by 100 made
+                        # its original two seconds only 20 ms in the real run.
+                        append=collector._Sink.append
+                        progress={'stdout':0,'offset':0}
+                        def persist(sink,name,data,terminal=False):
+                            value=append(sink,name,data,terminal=terminal)
+                            if name==collector.DIAGNOSTIC_FILES[0]:
+                                progress['stdout']+=len(data)
+                                if progress['stdout']==len(out.encode()):
+                                    progress['offset']=collector.PROCESS_SECONDS
+                            return value
+                        capture_stack.enter_context(patch.object(collector._Sink,'append',new=persist))
+                        capture_stack.enter_context(patch.object(collector,'time',SimpleNamespace(
+                            monotonic=lambda:time.monotonic()+progress['offset'])))
                     captured=collector.capture_result(executable,source,output,root,**kwargs)
+                    if behavior=='target_timeout':
+                        self.assertEqual(progress['stdout'],len(out.encode()))
+                        self.assertEqual(progress['offset'],collector.PROCESS_SECONDS)
+                        self.assertEqual(captured['status'],'diagnostic_timeout',captured)
                 if behavior=='malformed_terminal':
                     event_path=root/runner.CAPTURE_FILES[2]
                     event_path.write_bytes(b''.join(event_path.read_bytes().splitlines(keepends=True)[:-1])+b'{"kind":"terminal"}\n')

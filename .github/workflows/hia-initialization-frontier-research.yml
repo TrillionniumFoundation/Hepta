@@ -14,6 +14,8 @@ on:
       - 'tools/check_core_seven_certificate.py'
       - 'tools/check_core_seven_relocation.py'
       - 'tools/core_seven_relocation_acceptance_plan.py'
+      - 'tools/core_seven_shared_acceptance_plan.py'
+      - 'tests/test_core_seven_shared_source_closure.py'
       - 'tools/core_seven_relocation_acceptance_replay.py'
       - 'tests/test_core_seven_relocation_acceptance.py'
       - 'docs/seven-relocation-acceptance.md'
@@ -46,6 +48,9 @@ on:
       - 'tools/core_syntax_structured_stages.py'
       - 'experiments/hia_initialization_frontiers_20261103/StructuredTransport.lean'
       - 'tests/test_core_syntax_*.py'
+      - 'tests/test_core_capture_terminal_deadline.py'
+      - 'tests/test_core_capture_cleanup_replay.py'
+      - 'docs/HIA_CAPTURE_TERMINAL_DEADLINE.md'
       - 'experiments/hia_initialization_frontiers_20261103/CoreSyntaxSlice.lean'
       - '.github/workflows/hia-core-syntax-kernel-research.yml'
       - 'benchmarks/hia_reduction_release/linear.hepta'
@@ -327,5 +332,225 @@ jobs:
           assert result.testsRun == expected and result.wasSuccessful(), 'isolated controls failed'
           assert not result.skipped and not result.expectedFailures and not result.unexpectedSuccesses
           PYDIAG
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+
+  fixed-source-closure-controls:
+    name: Exact compiler source closure
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONOPTIMIZE: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Keep the exact source and solver pin
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          python -m pip install 'z3-solver==4.15.4.0'
+          python -c "import z3,sys; sys.exit(0 if z3.get_version_string() == '4.15.4' else 1)"
+      - name: Keep new closure controls separate from historical inventories
+        run: |
+          set -euo pipefail
+          timeout 60s python -B - <<'PY'
+          import json, sys, unittest
+          names = [
+              'test_complete_reviewed_closure_retains_every_prior_path',
+              'test_duplicate_declared_filename_is_refused',
+              'test_each_new_compiler_module_is_required',
+              'test_extra_actual_compiler_filename_is_refused',
+              'test_unreviewed_declared_filename_is_refused',
+          ]
+          expected = sorted('tests.test_core_seven_shared_source_closure.FixedCompilerSourceClosureTests.' + name for name in names)
+          loader = unittest.TestLoader()
+          suite = loader.loadTestsFromName('tests.test_core_seven_shared_source_closure')
+          def flatten(items):
+              for item in items:
+                  if isinstance(item, unittest.TestSuite):
+                      yield from flatten(item)
+                  else:
+                      yield item.id()
+          actual = sorted(flatten(suite))
+          print(json.dumps({'expected': expected, 'actual': actual, 'loader_errors': loader.errors}))
+          if sys.flags.optimize or loader.errors or actual != expected:
+              raise SystemExit('fixed source closure control inventory changed')
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          if (result.testsRun != 5 or not result.wasSuccessful() or result.skipped
+                  or result.expectedFailures or result.unexpectedSuccesses):
+              raise SystemExit('fixed source closure controls incomplete or failed')
+          PY
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+
+  terminal-deadline-controls:
+    name: Real PTY terminal observation deadlines
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONOPTIMIZE: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Keep the exact source and existing solver pin
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          python -m pip install 'z3-solver==4.15.4.0'
+          python -c "import z3,sys; sys.exit(0 if z3.get_version_string() == '4.15.4' else 1)"
+      - name: Check every new deadline control without changing historical inventories
+        run: |
+          set -euo pipefail
+          timeout 60s python -B - <<'PY'
+          import json, sys, unittest
+          names = [
+              'test_cleanup_eof_after_deadline_is_rejected_without_renewal',
+              'test_cleanup_late_data_consumes_quota_without_persistence_or_renewal',
+              'test_cleanup_wait_returning_after_deadline_never_succeeds',
+              'test_delayed_natural_exit_confirmation_is_available_in_every_target',
+              'test_eof_read_returning_after_deadline_never_succeeds',
+              'test_first_eio_exit_observation_after_deadline_never_succeeds',
+              'test_late_nonempty_read_counts_bytes_without_persisting_or_accepting',
+              'test_live_closed_streams_are_not_successful_eof_in_any_target',
+          ]
+          expected = sorted('tests.test_core_capture_terminal_deadline.CaptureTerminalDeadlineTests.' + name for name in names)
+          loader = unittest.TestLoader()
+          suite = loader.loadTestsFromName('tests.test_core_capture_terminal_deadline')
+          def flatten(items):
+              for item in items:
+                  if isinstance(item, unittest.TestSuite):
+                      yield from flatten(item)
+                  else:
+                      yield item.id()
+          actual = sorted(flatten(suite))
+          print(json.dumps({'expected': expected, 'actual': actual, 'loader_errors': loader.errors}))
+          if sys.flags.optimize or loader.errors or actual != expected:
+              raise SystemExit('deadline control inventory changed')
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          if (result.testsRun != 8 or not result.wasSuccessful() or result.skipped
+                  or result.expectedFailures or result.unexpectedSuccesses):
+              raise SystemExit('deadline controls incomplete or failed')
+          PY
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+
+  cleanup-replay-controls:
+    name: Real collector cleanup receipt replay
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONOPTIMIZE: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Keep the exact source and existing solver pin
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          python -m pip install 'z3-solver==4.15.4.0'
+          python -c "import z3,sys; sys.exit(0 if z3.get_version_string() == '4.15.4' else 1)"
+      - name: Keep cleanup replay controls outside historical inventories
+        run: |
+          set -euo pipefail
+          timeout 180s python -B - <<'PY'
+          import json, sys, unittest
+          names = [
+              'test_actual_late_cleanup_replays_only_as_failure',
+              'test_actual_terminal_round_trip_all_three_profiles',
+              'test_byte_facts_replay_refuses_rehashed_cleanup_lies',
+              'test_seven_collector_round_trip_keeps_exact_process_schema',
+          ]
+          expected = sorted('tests.test_core_capture_cleanup_replay.CleanupReplayTests.' + name for name in names)
+          loader = unittest.TestLoader()
+          suite = loader.loadTestsFromName('tests.test_core_capture_cleanup_replay')
+          def flatten(items):
+              for item in items:
+                  if isinstance(item, unittest.TestSuite):
+                      yield from flatten(item)
+                  else:
+                      yield item.id()
+          actual = sorted(flatten(suite))
+          print(json.dumps({'expected': expected, 'actual': actual, 'loader_errors': loader.errors}))
+          if sys.flags.optimize or loader.errors or actual != expected:
+              raise SystemExit('cleanup replay control inventory changed')
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          if (result.testsRun != 4 or not result.wasSuccessful() or result.skipped
+                  or result.expectedFailures or result.unexpectedSuccesses):
+              raise SystemExit('cleanup replay controls incomplete or failed')
+          PY
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+
+  proof-source-cost-controls:
+    name: Exact source parser and full external reread controls
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONOPTIMIZE: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Keep the exact source and existing solver pin
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          python -m pip install 'z3-solver==4.15.4.0'
+          python -c "import z3,sys; sys.exit(0 if z3.get_version_string() == '4.15.4' else 1)"
+      - name: Keep cost controls separate from historical inventories
+        run: |
+          set -euo pipefail
+          timeout 60s python -B - <<'PYCOST'
+          import json, sys, unittest
+          expected = ['tests.test_core_seven_external_hash.ExternalHashTests.test_ancestor_replacement_before_fstat_is_refused_without_baseline', 'tests.test_core_seven_external_hash.ExternalHashTests.test_at_most_two_readers_and_immutable_observations', 'tests.test_core_seven_external_hash.ExternalHashTests.test_cross_worker_ancestor_observations_must_agree', 'tests.test_core_seven_external_hash.ExternalHashTests.test_every_check_reads_all_bytes_in_original_chunks', 'tests.test_core_seven_external_hash.ExternalHashTests.test_final_git_refusal_does_not_publish_observations', 'tests.test_core_seven_external_hash.ExternalHashTests.test_same_inode_rewrite_behind_reader_is_refused', 'tests.test_core_seven_external_hash.ExternalHashTests.test_unsafe_files_and_sizes_are_refused', 'tests.test_core_seven_external_hash.ExternalHashTests.test_worker_io_error_closes_descriptors_and_publishes_nothing', 'tests.test_core_structured_source_cost.StructuredSourceCostTests.test_caller_equality_cannot_mutate_private_decoded_values', 'tests.test_core_structured_source_cost.StructuredSourceCostTests.test_each_complete_verification_reconstructs_actual_changed_source', 'tests.test_core_structured_source_cost.StructuredSourceCostTests.test_expression_aliases_are_read_only_after_publication', 'tests.test_core_structured_source_cost.StructuredSourceCostTests.test_expression_tokens_match_complete_legacy_domain', 'tests.test_core_structured_source_cost.StructuredSourceCostTests.test_failed_parent_is_never_cached', 'tests.test_core_structured_source_cost.StructuredSourceCostTests.test_raw_dag_values_match_recursive_reference', 'tests.test_core_structured_source_cost.StructuredSourceCostTests.test_raw_string_byte_domain_is_exact', 'tests.test_core_structured_source_cost.StructuredSourceCostTests.test_temporary_wrapper_identity_cannot_be_reused', 'tests.test_core_structured_source_cost.StructuredSourceCostTests.test_theorem_index_preserves_literal_nonoverlapping_count', 'tests.test_core_structured_source_cost.StructuredSourceCostTests.test_tokenizer_rejects_long_gaps_without_searching_each_suffix', 'tests.test_core_syntax_partition_parse_fast.PartitionParseDispatchTests.test_ascii_names_and_unicode_word_boundaries_remain_exact', 'tests.test_core_syntax_partition_parse_fast.PartitionParseDispatchTests.test_continuation_retains_exact_utf8_bytes', 'tests.test_core_syntax_partition_parse_fast.PartitionParseDispatchTests.test_deterministic_mutations_match_value_bytes_or_exact_error', 'tests.test_core_syntax_partition_parse_fast.PartitionParseDispatchTests.test_duplicate_commands_and_print_positions_are_not_strengthened', 'tests.test_core_syntax_partition_parse_fast.PartitionParseDispatchTests.test_import_namespace_and_print_state_machine', 'tests.test_core_syntax_partition_parse_fast.PartitionParseDispatchTests.test_newlines_malformed_prefixes_and_non_sources_keep_rejection']
+          names = ['tests.test_core_structured_source_cost', 'tests.test_core_syntax_partition_parse_fast', 'tests.test_core_seven_external_hash']
+          loader = unittest.TestLoader()
+          suite = loader.loadTestsFromNames(names)
+          def flatten(items):
+              for item in items:
+                  if isinstance(item, unittest.TestSuite):
+                      yield from flatten(item)
+                  else:
+                      yield item.id()
+          actual = sorted(flatten(suite))
+          print(json.dumps({'expected': expected, 'actual': actual, 'loader_errors': loader.errors}))
+          if sys.flags.optimize or loader.errors or actual != expected:
+              raise SystemExit('source cost control inventory changed')
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          if (result.testsRun != 24 or not result.wasSuccessful() or result.skipped
+                  or result.expectedFailures or result.unexpectedSuccesses):
+              raise SystemExit('source cost controls incomplete or failed')
+          PYCOST
           test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
           test -z "$(git status --porcelain --untracked-files=all)"

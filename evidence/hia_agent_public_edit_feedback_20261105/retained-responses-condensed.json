@@ -1,0 +1,918 @@
+[
+  {
+    "id": "qwen_coder1_5b/stb_floor_overflow/assembly-full",
+    "attempt": 0,
+    "expected_files": [
+      "target.hiaasm"
+    ],
+    "edit_error": "E_FACTORIAL_FILE_INVENTORY",
+    "answer_sha256": "54e13bba44fd54b9fe9fcecde0ed760506c442d85e119723dcedca1d0f2a9c80",
+    "same_as_prior": false,
+    "stop": {
+      "stopped_eos": null,
+      "stopped_limit": null,
+      "stopping_word": "",
+      "tokens_predicted": 128,
+      "tokens_evaluated": 5398,
+      "truncated": false
+    },
+    "timings": {
+      "cache_n": 0,
+      "predicted_ms": 11361.809,
+      "predicted_n": 128,
+      "predicted_per_second": 11.177797479257045,
+      "predicted_per_token_ms": 89.46306299212598,
+      "prompt_ms": 106068.657,
+      "prompt_n": 5398,
+      "prompt_per_second": 50.89156545085699,
+      "prompt_per_token_ms": 19.649621526491295
+    },
+    "files_values": {
+      "hia-asm.v1": "str",
+      "hepta.hia.program.v6": "str",
+      "c_stb_div_floor": "str"
+    },
+    "answer": "{\n  \"expected_sha256\": \"5f11ccf67ffa0a85ecb32936fd6ff1453f476f00d0be84e3b9bb2cab80d1b8a9\",\n  \"files\": {\n    \"hia-asm.v1\": \"hia-asm.v1\",\n    \"hepta.hia.program.v6\": \"hepta.hia.program.v6\",\n    \"c_stb_div_floor\": \"c_stb_div_floor.hiaasm\"\n  }\n}"
+  },
+  {
+    "id": "qwen_coder1_5b/stb_floor_overflow/assembly-full",
+    "attempt": 1,
+    "expected_files": [
+      "target.hiaasm"
+    ],
+    "edit_error": "E_FACTORIAL_FILE_INVENTORY",
+    "answer_sha256": "54e13bba44fd54b9fe9fcecde0ed760506c442d85e119723dcedca1d0f2a9c80",
+    "same_as_prior": true,
+    "stop": {
+      "stopped_eos": null,
+      "stopped_limit": null,
+      "stopping_word": "",
+      "tokens_predicted": 128,
+      "tokens_evaluated": 5585,
+      "truncated": false
+    },
+    "timings": {
+      "cache_n": 0,
+      "predicted_ms": 11253.915,
+      "predicted_n": 128,
+      "predicted_per_second": 11.284961722209559,
+      "predicted_per_token_ms": 88.61350393700788,
+      "prompt_ms": 110871.587,
+      "prompt_n": 5585,
+      "prompt_per_second": 50.373591206915805,
+      "prompt_per_token_ms": 19.851671799462846
+    },
+    "files_values": {
+      "hia-asm.v1": "str",
+      "hepta.hia.program.v6": "str",
+      "c_stb_div_floor": "str"
+    }
+  },
+  {
+    "id": "qwen_coder1_5b/stb_floor_overflow/rust-full",
+    "attempt": 0,
+    "expected_files": [
+      "target.rs"
+    ],
+    "edit_error": null,
+    "answer_sha256": "3fde461783fd5d69440cd9db9da8ee0d63a4d254a8167d67961148bd862440d6",
+    "same_as_prior": false,
+    "stop": {
+      "stopped_eos": null,
+      "stopped_limit": null,
+      "stopping_word": "",
+      "tokens_predicted": 332,
+      "tokens_evaluated": 755,
+      "truncated": false
+    },
+    "timings": {
+      "cache_n": 0,
+      "predicted_ms": 18827.093,
+      "predicted_n": 332,
+      "predicted_per_second": 17.581046633168487,
+      "predicted_per_token_ms": 56.87943504531722,
+      "prompt_ms": 11145.048,
+      "prompt_n": 755,
+      "prompt_per_second": 67.74309092253348,
+      "prompt_per_token_ms": 14.761652980132451
+    },
+    "files_values": {
+      "target.rs": "str"
+    },
+    "answer": "{\n  \"expected_sha256\": \"c9824720b12cdc79f34b1ec94807864299f924b53f34f9f0828d1de1f3c3b866\",\n  \"files\": {\n    \"target.rs\": \"pub fn target(v1:i32,v2:i32)->i32 {\\n    if v1 >= 0 && v2 < 0 {\\n        if (-v1)+v2+1 < 0 { return -((-v1+v2+1)/v2); }\\n        else { return -((-v1)/v2) + if (-v1)%v2 != 0 {-1} else {0}; }\\n    }\\n    if v1 < 0 && v2 >= 0 {\\n        if v1 != i32::MIN {\\n            if v1-v2+1 < 0 { return -((v1-v2+1)/(-v2)); }\\n            else { return -((-v1)/v2) + if v1%(-v2) != 0 {-1} else {0}; }\\n        } else {\\n            return -((-(v1+v2))/v2) + if (-(v1+v2))%v2 != 0 {-2} else {-1};\\n        }\\n    } else { return v1/v2; }\\n}\\n\"\n  }\n}"
+  },
+  {
+    "id": "qwen_coder1_5b/stb_floor_overflow/rust-full",
+    "attempt": 1,
+    "expected_files": [
+      "target.rs"
+    ],
+    "edit_error": null,
+    "answer_sha256": "3fde461783fd5d69440cd9db9da8ee0d63a4d254a8167d67961148bd862440d6",
+    "same_as_prior": true,
+    "stop": {
+      "stopped_eos": null,
+      "stopped_limit": null,
+      "stopping_word": "",
+      "tokens_predicted": 332,
+      "tokens_evaluated": 1344,
+      "truncated": false
+    },
+    "timings": {
+      "cache_n": 0,
+      "predicted_ms": 21250.219,
+      "predicted_n": 332,
+      "predicted_per_second": 15.576310060616317,
+      "predicted_per_token_ms": 64.20005740181269,
+      "prompt_ms": 20970.815,
+      "prompt_n": 1344,
+      "prompt_per_second": 64.08906854597687,
+      "prompt_per_token_ms": 15.603284970238095
+    },
+    "files_values": {
+      "target.rs": "str"
+    }
+  },
+  {
+    "id": "qwen_coder1_5b/stb_floor_overflow/assembly-patch",
+    "attempt": 0,
+    "expected_files": [
+      "target.hiaasm"
+    ],
+    "edit_error": "E_FACTORIAL_EXACT_EDIT",
+    "answer_sha256": "4a552675d3937e837228fc5b45fe8cff389df38769dcfa4267b321fedc118775",
+    "same_as_prior": false,
+    "stop": {
+      "stopped_eos": null,
+      "stopped_limit": null,
+      "stopping_word": "",
+      "tokens_predicted": 208,
+      "tokens_evaluated": 5452,
+      "truncated": false
+    },
+    "timings": {
+      "cache_n": 0,
+      "predicted_ms": 23869.814,
+      "predicted_n": 208,
+      "predicted_per_second": 8.672040762445825,
+      "predicted_per_token_ms": 115.3131111111111,
+      "prompt_ms": 111139.248,
+      "prompt_n": 5452,
+      "prompt_per_second": 49.05557755798384,
+      "prompt_per_token_ms": 20.385041819515774
+    },
+    "matches": [
+      {
+        "path": "hia-asm.v1",
+        "count": null,
+        "old": "v104:bool = compare.ge(arg230,v103)"
+      },
+      {
+        "path": "hia-asm.v1",
+        "count": null,
+        "old": "v116:bool = compare.lt(v108,v115)"
+      }
+    ],
+    "answer": "{\n  \"expected_sha256\": \"5f11ccf67ffa0a85ecb32936fd6ff1453f476f00d0be84e3b9bb2cab80d1b8a9\",\n  \"patches\": [\n    {\n      \"path\": \"hia-asm.v1\",\n      \"old\": \"v104:bool = compare.ge(arg230,v103)\",\n      \"new\": \"v104:bool = compare.ge(arg230, const() {\\\"value\\\":0})\"\n    },\n    {\n      \"path\": \"hia-asm.v1\",\n      \"old\": \"v116:bool = compare.lt(v108,v115)\",\n      \"new\": \"v116:bool = compare.lt(arg230, const() {\\\"value\\\":0})\"\n    }\n  ]\n}"
+  },
+  {
+    "id": "qwen_coder1_5b/stb_floor_overflow/assembly-patch",
+    "attempt": 1,
+    "expected_files": [
+      "target.hiaasm"
+    ],
+    "edit_error": "E_FACTORIAL_EXACT_EDIT",
+    "answer_sha256": "4a552675d3937e837228fc5b45fe8cff389df38769dcfa4267b321fedc118775",
+    "same_as_prior": true,
+    "stop": {
+      "stopped_eos": null,
+      "stopped_limit": null,
+      "stopping_word": "",
+      "tokens_predicted": 206,
+      "tokens_evaluated": 5717,
+      "truncated": false
+    },
+    "timings": {
+      "cache_n": 0,
+      "predicted_ms": 19037.709,
+      "predicted_n": 206,
+      "predicted_per_second": 10.768102401397144,
+      "predicted_per_token_ms": 92.86687317073171,
+      "prompt_ms": 146394.168,
+      "prompt_n": 5717,
+      "prompt_per_second": 39.052102130188686,
+      "prompt_per_token_ms": 25.606816162322897
+    },
+    "matches": [
+      {
+        "path": "hia-asm.v1",
+        "count": null,
+        "old": "v104:bool = compare.ge(arg230,v103)"
+      },
+      {
+        "path": "hia-asm.v1",
+        "count": null,
+        "old": "v116:bool = compare.lt(v108,v115)"
+      }
+    ]
+  },
+  {
+    "id": "qwen_coder1_5b/stb_floor_overflow/rust-patch",
+    "attempt": 0,
+    "expected_files": [
+      "target.rs"
+    ],
+    "edit_error": null,
+    "answer_sha256": "1a534bc32c429cc2e266a793dab07a38590c0dc470aa2796417c1acdb87aae78",
+    "same_as_prior": false,
+    "stop": {
+      "stopped_eos": null,
+      "stopped_limit": null,
+      "stopping_word": "",
+      "tokens_predicted": 550,
+      "tokens_evaluated": 809,
+      "truncated": false
+    },
+    "timings": {
+      "cache_n": 0,
+      "predicted_ms": 48990.735,
+      "predicted_n": 550,
+      "predicted_per_second": 11.206200519343096,
+      "predicted_per_token_ms": 89.23631147540983,
+      "prompt_ms": 12363.497,
+      "prompt_n": 809,
+      "prompt_per_second": 65.43456111163371,
+      "prompt_per_token_ms": 15.282443757725586
+    },
+    "matches": [
+      {
+        "path": "target.rs",
+        "count": 1,
+        "old": "if v1 >= 0 && v2 < 0 {\n        if (-v1)+v2+1 < 0 { return -((-v1+v2+1)/v2); }\n        else { return -((-v1)/v2) + if (-v1)%v2 != 0 {-1} else {0}; }\n    }\n    if v1 < 0 && v2 >= 0 {\n        if v1 != i32::MIN {\n            if v1-v2+1 < 0 { return -((v1-v2+1)/(-v2)); }\n            else { return -((-v1)/v2) + if v1%(-v2) != 0 {-1} else {0}; }\n        } else {\n            return -((-(v1+v2))/v2) + if (-(v1+v2))%v2 != 0 {-2} else {-1};\n        }\n    } else { return v1/v2; }\n}"
+      }
+    ],
+    "answer": "{\n  \"expected_sha256\": \"c9824720b12cdc79f34b1ec94807864299f924b53f34f9f0828d1de1f3c3b866\",\n  \"patches\": [\n    {\n      \"path\": \"target.rs\",\n      \"old\": \"if v1 >= 0 && v2 < 0 {\\n        if (-v1)+v2+1 < 0 { return -((-v1+v2+1)/v2); }\\n        else { return -((-v1)/v2) + if (-v1)%v2 != 0 {-1} else {0}; }\\n    }\\n    if v1 < 0 && v2 >= 0 {\\n        if v1 != i32::MIN {\\n            if v1-v2+1 < 0 { return -((v1-v2+1)/(-v2)); }\\n            else { return -((-v1)/v2) + if v1%(-v2) != 0 {-1} else {0}; }\\n        } else {\\n            return -((-(v1+v2))/v2) + if (-(v1+v2))%v2 != 0 {-2} else {-1};\\n        }\\n    } else { return v1/v2; }\\n}\",\n      \"new\": \"if v1 >= 0 && v2 < 0 {\\n        if (-v1)+v2+1 < 0 { return -((-v1+v2+1)/v2); }\\n        else { return -((-v1)/v2) + if (-v1)%v2 != 0 {-1} else {0}; }\\n    }\\n    if v1 < 0 && v2 >= 0 {\\n        if v1 != i32::MIN {\\n            if v1-v2+1 < 0 { return -((-v1-v2+1)/(-v2)); }\\n            else { return -((-v1)/v2) + if v1%(-v2) != 0 {-1} else {0}; }\\n        } else {\\n            return -((-(v1+v2))/v2) + if (-(v1+v2))%v2 != 0 {-2} else {-1};\\n        }\\n    } else { return v1/v2; }\\n}\"\n    }\n  ]\n}"
+  },
+  {
+    "id": "qwen_coder1_5b/stb_floor_overflow/rust-patch",
+    "attempt": 1,
+    "expected_files": [
+      "target.rs"
+    ],
+    "edit_error": "E_FACTORIAL_EXACT_EDIT",
+    "answer_sha256": "c19e539d066b63b1ad75ae5f9417fbef53cdaf87c1e942491c8895c55dc4dc9b",
+    "same_as_prior": false,
+    "stop": {
+      "stopped_eos": null,
+      "stopped_limit": null,
+      "stopping_word": "",
+      "tokens_predicted": 550,
+      "tokens_evaluated": 1617,
+      "truncated": false
+    },
+    "timings": {
+      "cache_n": 0,
+      "predicted_ms": 36324.159,
+      "predicted_n": 550,
+      "predicted_per_second": 15.113908074237866,
+      "predicted_per_token_ms": 66.16422404371585,
+      "prompt_ms": 26486.462,
+      "prompt_n": 1617,
+      "prompt_per_second": 61.050056440154215,
+      "prompt_per_token_ms": 16.38000123685838
+    },
+    "matches": [
+      {
+        "path": "target.rs",
+        "count": 0,
+        "old": "if v1 >= 0 && v2 < 0 {\n        if (-v1)+v2+1 < 0 { return -((-v1+v2+1)/v2); }\n        else { return -((-v1)/v2) + if (-v1)%v2 != 0 {-1} else {0}; }\n    }\n    if v1 < 0 && v2 >= 0 {\n        if v1 != i32::MIN {\n            if v1-v2+1 < 0 { return -((-v1-v2+1)/(-v2)); }\n            else { return -((-v1)/v2) + if v1%(-v2) != 0 {-1} else {0}; }\n        } else {\n            return -((-(v1+v2))/v2) + if (-(v1+v2))%v2 != 0 {-2} else {-1};\n        }\n    } else { return v1/v2; }\n}"
+      }
+    ],
+    "answer": "{\n  \"expected_sha256\": \"c9824720b12cdc79f34b1ec94807864299f924b53f34f9f0828d1de1f3c3b866\",\n  \"patches\": [\n    {\n      \"path\": \"target.rs\",\n      \"old\": \"if v1 >= 0 && v2 < 0 {\\n        if (-v1)+v2+1 < 0 { return -((-v1+v2+1)/v2); }\\n        else { return -((-v1)/v2) + if (-v1)%v2 != 0 {-1} else {0}; }\\n    }\\n    if v1 < 0 && v2 >= 0 {\\n        if v1 != i32::MIN {\\n            if v1-v2+1 < 0 { return -((-v1-v2+1)/(-v2)); }\\n            else { return -((-v1)/v2) + if v1%(-v2) != 0 {-1} else {0}; }\\n        } else {\\n            return -((-(v1+v2))/v2) + if (-(v1+v2))%v2 != 0 {-2} else {-1};\\n        }\\n    } else { return v1/v2; }\\n}\",\n      \"new\": \"if v1 >= 0 && v2 < 0 {\\n        if (-v1)+v2+1 < 0 { return -((-v1+v2+1)/v2); }\\n        else { return -((-v1)/v2) + if (-v1)%v2 != 0 {-1} else {0}; }\\n    }\\n    if v1 < 0 && v2 >= 0 {\\n        if v1 != i32::MIN {\\n            if v1-v2+1 < 0 { return -((-v1-v2+1)/(-v2)); }\\n            else { return -((-v1)/v2) + if v1%(-v2) != 0 {-1} else {0}; }\\n        } else {\\n            return -((-(v1+v2))/v2) + if (-(v1+v2))%v2 != 0 {-2} else {-1};\\n        }\\n    } else { return v1/v2; }\\n}\"\n    }\n  ]\n}"
+  },
+  {
+    "id": "qwen_coder1_5b/stb_euclidean_int_min/rust-full",
+    "attempt": 0,
+    "expected_files": [
+      "target.rs"
+    ],
+    "edit_error": null,
+    "answer_sha256": "5dedc0740e22b434dc353f3a8dd68317861d82303d86bbbba4de209fb1066ff7",
+    "same_as_prior": false,
+    "stop": {
+      "stopped_eos": null,
+      "stopped_limit": null,
+      "stopping_word": "",
+      "tokens_predicted": 148,
+      "tokens_evaluated": 598,
+      "truncated": false
+    },
+    "timings": {
+      "cache_n": 0,
+      "predicted_ms": 7715.003,
+      "predicted_n": 148,
+      "predicted_per_second": 19.0537839065001,
+      "predicted_per_token_ms": 52.483013605442174,
+      "prompt_ms": 8829.11,
+      "prompt_n": 598,
+      "prompt_per_second": 67.73049605226348,
+      "prompt_per_token_ms": 14.764397993311038
+    },
+    "files_values": {
+      "target.rs": "str"
+    },
+    "answer": "{\n  \"expected_sha256\": \"f57a067247d9501370c5f586799aeb6e4728910c682938b3eac920f8443cbb62\",\n  \"files\": {\n    \"target.rs\": \"pub fn target(v1:i32,v2:i32)->i32 {\\n    let r=v1%v2;\\n    if r >= 0 { r } else { r + if v2>0 {v2} else {-v2} }\\n}\\n\"\n  }\n}"
+  },
+  {
+    "id": "qwen_coder1_5b/stb_euclidean_int_min/rust-full",
+    "attempt": 1,
+    "expected_files": [
+      "target.rs"
+    ],
+    "edit_error": null,
+    "answer_sha256": "5dedc0740e22b434dc353f3a8dd68317861d82303d86bbbba4de209fb1066ff7",
+    "same_as_prior": true,
+    "stop": {
+      "stopped_eos": null,
+      "stopped_limit": null,
+      "stopping_word": "",
+      "tokens_predicted": 148,
+      "tokens_evaluated": 1022,
+      "truncated": false
+    },
+    "timings": {
+      "cache_n": 0,
+      "predicted_ms": 8325.487,
+      "predicted_n": 148,
+      "predicted_per_second": 17.656624771619967,
+      "predicted_per_token_ms": 56.63596598639455,
+      "prompt_ms": 14905.181,
+      "prompt_n": 1022,
+      "prompt_per_second": 68.56676212117115,
+      "prompt_per_token_ms": 14.584325831702545
+    },
+    "files_values": {
+      "target.rs": "str"
+    }
+  },
+  {
+    "id": "qwen_coder1_5b/stb_euclidean_int_min/assembly-patch",
+    "attempt": 0,
+    "expected_files": [
+      "target.hiaasm"
+    ],
+    "edit_error": null,
+    "answer_sha256": "fd540cc5142018805e94296ba69c8fc783f3beec908c80b98b380d8eadbcb7f1",
+    "same_as_prior": false,
+    "stop": {
+      "stopped_eos": null,
+      "stopped_limit": null,
+      "stopping_word": "",
+      "tokens_predicted": 143,
+      "tokens_evaluated": 1388,
+      "truncated": false
+    },
+    "timings": {
+      "cache_n": 0,
+      "predicted_ms": 8513.719,
+      "predicted_n": 143,
+      "predicted_per_second": 16.67896250745415,
+      "predicted_per_token_ms": 59.955767605633795,
+      "prompt_ms": 21738.501,
+      "prompt_n": 1388,
+      "prompt_per_second": 63.8498487085195,
+      "prompt_per_token_ms": 15.66174423631124
+    },
+    "matches": [
+      {
+        "path": "target.hiaasm",
+        "count": 1,
+        "old": "v102:i32 = int.rem.checked(arg504,arg505)"
+      }
+    ],
+    "answer": "{\n  \"expected_sha256\": \"8b0a1d2b672c8135ec7209344af42666eff6b1ea9c6439a665e6267afc75b6e1\",\n  \"patches\": [\n    {\n      \"path\": \"target.hiaasm\",\n      \"old\": \"v102:i32 = int.rem.checked(arg504,arg505)\",\n      \"new\": \"v102:i32 = int.rem.checked(arg504,abs(arg505))\"\n    }\n  ]\n}"
+  },
+  {
+    "id": "qwen_coder1_5b/stb_euclidean_int_min/assembly-patch",
+    "attempt": 1,
+    "expected_files": [
+      "target.hiaasm"
+    ],
+    "edit_error": null,
+    "answer_sha256": "fd540cc5142018805e94296ba69c8fc783f3beec908c80b98b380d8eadbcb7f1",
+    "same_as_prior": true,
+    "stop": {
+      "stopped_eos": null,
+      "stopped_limit": null,
+      "stopping_word": "",
+      "tokens_predicted": 143,
+      "tokens_evaluated": 1616,
+      "truncated": false
+    },
+    "timings": {
+      "cache_n": 0,
+      "predicted_ms": 9531.461,
+      "predicted_n": 143,
+      "predicted_per_second": 14.898030847526945,
+      "predicted_per_token_ms": 67.12296478873239,
+      "prompt_ms": 25489.602,
+      "prompt_n": 1616,
+      "prompt_per_second": 63.39840064980223,
+      "prompt_per_token_ms": 15.773268564356435
+    },
+    "matches": [
+      {
+        "path": "target.hiaasm",
+        "count": 1,
+        "old": "v102:i32 = int.rem.checked(arg504,arg505)"
+      }
+    ]
+  },
+  {
+    "id": "qwen_coder1_5b/stb_euclidean_int_min/rust-patch",
+    "attempt": 0,
+    "expected_files": [
+      "target.rs"
+    ],
+    "edit_error": null,
+    "answer_sha256": "cc31890d8b5aca8a1fb62c547fb11f1fcbaf280e687ecdfc9605d69240721cb5",
+    "same_as_prior": false,
+    "stop": {
+      "stopped_eos": null,
+      "stopped_limit": null,
+      "stopping_word": "",
+      "tokens_predicted": 147,
+      "tokens_evaluated": 652,
+      "truncated": false
+    },
+    "timings": {
+      "cache_n": 0,
+      "predicted_ms": 8222.66,
+      "predicted_n": 147,
+      "predicted_per_second": 17.75581137977248,
+      "predicted_per_token_ms": 56.31958904109589,
+      "prompt_ms": 9932.155,
+      "prompt_n": 652,
+      "prompt_per_second": 65.64537101968303,
+      "prompt_per_token_ms": 15.233366564417178
+    },
+    "matches": [
+      {
+        "path": "target.rs",
+        "count": 1,
+        "old": "let r=v1%v2;"
+      }
+    ],
+    "answer": "{\n  \"expected_sha256\": \"f57a067247d9501370c5f586799aeb6e4728910c682938b3eac920f8443cbb62\",\n  \"patches\": [\n    {\n      \"path\": \"target.rs\",\n      \"old\": \"let r=v1%v2;\",\n      \"new\": \"let r=v1%v2; if r >= 0 { r } else { r + if v2>0 {v2} else {-v2} }\"\n    }\n  ]\n}"
+  },
+  {
+    "id": "qwen_coder1_5b/stb_euclidean_int_min/rust-patch",
+    "attempt": 1,
+    "expected_files": [
+      "target.rs"
+    ],
+    "edit_error": null,
+    "answer_sha256": "d4aea159126b2b40ad878c9636932c37b28cc0958556e9ec85abaa91da627960",
+    "same_as_prior": false,
+    "stop": {
+      "stopped_eos": null,
+      "stopped_limit": null,
+      "stopping_word": "",
+      "tokens_predicted": 149,
+      "tokens_evaluated": 1414,
+      "truncated": false
+    },
+    "timings": {
+      "cache_n": 0,
+      "predicted_ms": 9473.694,
+      "predicted_n": 149,
+      "predicted_per_second": 15.62220607927594,
+      "predicted_per_token_ms": 64.01144594594594,
+      "prompt_ms": 22612.866,
+      "prompt_n": 1414,
+      "prompt_per_second": 62.53077341014623,
+      "prompt_per_token_ms": 15.992125884016975
+    },
+    "matches": [
+      {
+        "path": "target.rs",
+        "count": 1,
+        "old": "let r=v1%v2;"
+      }
+    ],
+    "answer": "{\n  \"expected_sha256\": \"f57a067247d9501370c5f586799aeb6e4728910c682938b3eac920f8443cbb62\",\n  \"patches\": [\n    {\n      \"path\": \"target.rs\",\n      \"old\": \"let r=v1%v2;\",\n      \"new\": \"let r=v1%v2; if r >= 0 { return r; } else { r + if v2>0 {v2} else {-v2}; }\"\n    }\n  ]\n}"
+  },
+  {
+    "id": "qwen_coder1_5b/stb_euclidean_int_min/assembly-full",
+    "attempt": 0,
+    "expected_files": [
+      "target.hiaasm"
+    ],
+    "edit_error": "E_FACTORIAL_FILE_INVENTORY",
+    "answer_sha256": "f1fd9da9e634f4b4ef3a5311e1e6a7213133e34210b4ecbd8c5dba460eb95434",
+    "same_as_prior": false,
+    "stop": {
+      "stopped_eos": null,
+      "stopped_limit": null,
+      "stopping_word": "",
+      "tokens_predicted": 132,
+      "tokens_evaluated": 1334,
+      "truncated": false
+    },
+    "timings": {
+      "cache_n": 0,
+      "predicted_ms": 8004.497,
+      "predicted_n": 132,
+      "predicted_per_second": 16.365800374464502,
+      "predicted_per_token_ms": 61.10303053435115,
+      "prompt_ms": 21768.95,
+      "prompt_n": 1334,
+      "prompt_per_second": 61.279942303142775,
+      "prompt_per_token_ms": 16.318553223388307
+    },
+    "files_values": {
+      "hia-asm.v1": "str",
+      "hepta.hia.program.v6": "str",
+      "c_stb_mod_eucl": "str"
+    },
+    "answer": "{\n  \"expected_sha256\": \"8b0a1d2b672c8135ec7209344af42666eff6b1ea9c6439a665e6267afc75b6e1\",\n  \"files\": {\n    \"hia-asm.v1\": \"hia-asm.v1\",\n    \"hepta.hia.program.v6\": \"hepta.hia.program.v6\",\n    \"c_stb_mod_eucl\": \"c_stb_mod_eucl\"\n  }\n}"
+  },
+  {
+    "id": "qwen_coder1_5b/stb_euclidean_int_min/assembly-full",
+    "attempt": 1,
+    "expected_files": [
+      "target.hiaasm"
+    ],
+    "edit_error": "E_FACTORIAL_FILE_INVENTORY",
+    "answer_sha256": "f1fd9da9e634f4b4ef3a5311e1e6a7213133e34210b4ecbd8c5dba460eb95434",
+    "same_as_prior": true,
+    "stop": {
+      "stopped_eos": null,
+      "stopped_limit": null,
+      "stopping_word": "",
+      "tokens_predicted": 132,
+      "tokens_evaluated": 1525,
+      "truncated": false
+    },
+    "timings": {
+      "cache_n": 0,
+      "predicted_ms": 8573.415,
+      "predicted_n": 132,
+      "predicted_per_second": 15.279792241481367,
+      "predicted_per_token_ms": 65.44591603053436,
+      "prompt_ms": 23497.307,
+      "prompt_n": 1525,
+      "prompt_per_second": 64.90105440593682,
+      "prompt_per_token_ms": 15.408070163934427
+    },
+    "files_values": {
+      "hia-asm.v1": "str",
+      "hepta.hia.program.v6": "str",
+      "c_stb_mod_eucl": "str"
+    }
+  },
+  {
+    "id": "granite2b/stb_floor_overflow/rust-full",
+    "attempt": 0,
+    "expected_files": [
+      "target.rs"
+    ],
+    "edit_error": null,
+    "answer_sha256": "90e6df6353e885d282f1b08170bb01e7ae6c4f849956b20ae9b2dd8db9f59f15",
+    "same_as_prior": false,
+    "stop": {
+      "stopped_eos": null,
+      "stopped_limit": null,
+      "stopping_word": "",
+      "tokens_predicted": 339,
+      "tokens_evaluated": 844,
+      "truncated": false
+    },
+    "timings": {
+      "cache_n": 0,
+      "predicted_ms": 39015.609,
+      "predicted_n": 339,
+      "predicted_per_second": 8.663199387711723,
+      "predicted_per_token_ms": 115.43079585798816,
+      "prompt_ms": 23197.431,
+      "prompt_n": 844,
+      "prompt_per_second": 36.38333917234197,
+      "prompt_per_token_ms": 27.485107819905213
+    },
+    "files_values": {
+      "target.rs": "str"
+    },
+    "answer": "{\"expected_sha256\": \"c9824720b12cdc79f34b1ec94807864299f924b53f34f9f0828d1de1f3c3b866\",\n\"files\": {\n    \"target.rs\": \"pub fn target(v1:i32,v2:i32)->i32 {\\n    if v1 >= 0 && v2 < 0 {\\n        if (-v1)+v2+1 < 0 { return -((-v1+v2+1)/v2); }\\n        else { return -((-v1)/v2) + if (-v1)%v2 != 0 {-1} else {0}; }\\n    }\\n    if v1 < 0 && v2 >= 0 {\\n        if v1 != i32::MIN {\\n            if v1-v2+1 < 0 { return -((v1-v2+1)/(-v2)); }\\n            else { return -((-v1)/v2) + if v1%(-v2) != 0 {-1} else {0}; }\\n        } else {\\n            return -((-(v1+v2))/v2) + if (-(v1+v2))%v2 != 0 {-2} else {-1};\\n        }\\n    } else { return v1/v2; }\\n}\"\n}}"
+  },
+  {
+    "id": "granite2b/stb_floor_overflow/rust-full",
+    "attempt": 1,
+    "expected_files": [
+      "target.rs"
+    ],
+    "edit_error": null,
+    "answer_sha256": "8e5a91e536243cd8a24dc7c6ddb5b14646f0e2a08ad6b4c4ab6f2b995cd1713e",
+    "same_as_prior": false,
+    "stop": {
+      "stopped_eos": null,
+      "stopped_limit": null,
+      "stopping_word": "",
+      "tokens_predicted": 380,
+      "tokens_evaluated": 1458,
+      "truncated": false
+    },
+    "timings": {
+      "cache_n": 0,
+      "predicted_ms": 44979.177,
+      "predicted_n": 380,
+      "predicted_per_second": 8.426121269404284,
+      "predicted_per_token_ms": 118.67856728232191,
+      "prompt_ms": 40038.205,
+      "prompt_n": 1458,
+      "prompt_per_second": 36.41521891403473,
+      "prompt_per_token_ms": 27.46104595336077
+    },
+    "files_values": {
+      "target.rs": "str"
+    },
+    "answer": "{\"expected_sha256\": \"c9824720b12cdc79f34b1ec94807864299f924b53f34f9f0828d1de1f3c3b866\",\n\"files\": {\n    \"target.rs\": \"pub fn target(v1:i32,v2:i32)->i32 {\\n    if v1 >= 0 && v2 < 0 {\\n        if (-v1)+v2+1 < 0 { return -((-v1+v2+1)/v2); }\\n        else { return -((-v1)/v2) + if (-v1)%v2 != 0 {-1} else {0}; }\\n    }\\n    if v1 < 0 && v2 >= 0 {\\n        if v1 != i32::MIN {\\n            if v1-v2+1 < 0 { return -((v1-v2+1)/(-v2)); }\\n            else { return -((-v1)/v2) + if v1%(-v2) != 0 {-1} else {0}; }\\n        } else {\\n            return -((-(v1+v2))/v2) + if (-(v1+v2))%v2 != 0 {-2} else {-1};\\n        }\\n    } else {\\n        if v1 == i32::MIN {\\n            return -((v1-v2))/v2;\\n        } else {\\n            return v1/v2;\\n        }\\n    }\\n}\"\n}\n\n}"
+  },
+  {
+    "id": "granite2b/stb_floor_overflow/rust-patch",
+    "attempt": 0,
+    "expected_files": [
+      "target.rs"
+    ],
+    "edit_error": "E_FACTORIAL_EXACT_EDIT",
+    "answer_sha256": "cf7ad6e9029c92e8d8fd6441b10ca8c1ed4737f6eec476f281761a70edd732b3",
+    "same_as_prior": false,
+    "stop": {
+      "stopped_eos": null,
+      "stopped_limit": null,
+      "stopping_word": "",
+      "tokens_predicted": 370,
+      "tokens_evaluated": 897,
+      "truncated": false
+    },
+    "timings": {
+      "cache_n": 0,
+      "predicted_ms": 37976.353,
+      "predicted_n": 370,
+      "predicted_per_second": 9.71657283678609,
+      "predicted_per_token_ms": 102.916945799458,
+      "prompt_ms": 24254.624,
+      "prompt_n": 897,
+      "prompt_per_second": 36.982638856821694,
+      "prompt_per_token_ms": 27.039714604236345
+    },
+    "matches": [
+      {
+        "path": "target.rs",
+        "count": 0,
+        "old": "if v1 < 0 && v2 >= 0 {\n    if v1 != i32::MIN {\n        if v1-v2+1 < 0 { return -((v1-v2+1)/(-v2)); }\n        else { return -((-v1)/v2) + if v1%(-v2) != 0 {-1} else {0}; }\n    } else {\n        return -((-(v1+v2))/v2) + if (-(v1+v2))%v2 != 0 {-2} else {-1};\n    }\n}"
+      }
+    ],
+    "answer": "{\n  \"expected_sha256\": \"c9824720b12cdc79f34b1ec94807864299f924b53f34f9f0828d1de1f3c3b866\",\n  \"patches\": [\n    {\n      \"path\": \"target.rs\",\n      \"old\": \"if v1 < 0 && v2 >= 0 {\\n    if v1 != i32::MIN {\\n        if v1-v2+1 < 0 { return -((v1-v2+1)/(-v2)); }\\n        else { return -((-v1)/v2) + if v1%(-v2) != 0 {-1} else {0}; }\\n    } else {\\n        return -((-(v1+v2))/v2) + if (-(v1+v2))%v2 != 0 {-2} else {-1};\\n    }\\n}\",\n      \"new\": \"if v1 < 0 && v2 >= 0 {\\n    if v1 != i32::MIN {\\n        if v1-v2+1 < 0 { return -((v1-v2+1)/(-v2)); }\\n        else { return -((-v1)/v2) + if v1%(-v2) != 0 {-1} else {0}; }\\n    } else {\\n        return -((-v1)/v2) + if (-v1)%v2 != 0 {-1} else {0};\\n    }\\n}\"\n    }\n  ]\n}"
+  },
+  {
+    "id": "granite2b/stb_floor_overflow/rust-patch",
+    "attempt": 1,
+    "expected_files": [
+      "target.rs"
+    ],
+    "edit_error": "E_FACTORIAL_EXACT_EDIT",
+    "answer_sha256": "cf7ad6e9029c92e8d8fd6441b10ca8c1ed4737f6eec476f281761a70edd732b3",
+    "same_as_prior": true,
+    "stop": {
+      "stopped_eos": null,
+      "stopped_limit": null,
+      "stopping_word": "",
+      "tokens_predicted": 370,
+      "tokens_evaluated": 1330,
+      "truncated": false
+    },
+    "timings": {
+      "cache_n": 0,
+      "predicted_ms": 41224.021,
+      "predicted_n": 370,
+      "predicted_per_second": 8.95109188887712,
+      "predicted_per_token_ms": 111.71821409214093,
+      "prompt_ms": 35666.516,
+      "prompt_n": 1330,
+      "prompt_per_second": 37.28987714976141,
+      "prompt_per_token_ms": 26.816929323308273
+    },
+    "matches": [
+      {
+        "path": "target.rs",
+        "count": 0,
+        "old": "if v1 < 0 && v2 >= 0 {\n    if v1 != i32::MIN {\n        if v1-v2+1 < 0 { return -((v1-v2+1)/(-v2)); }\n        else { return -((-v1)/v2) + if v1%(-v2) != 0 {-1} else {0}; }\n    } else {\n        return -((-(v1+v2))/v2) + if (-(v1+v2))%v2 != 0 {-2} else {-1};\n    }\n}"
+      }
+    ]
+  },
+  {
+    "id": "granite2b/stb_euclidean_int_min/rust-patch",
+    "attempt": 0,
+    "expected_files": [
+      "target.rs"
+    ],
+    "edit_error": null,
+    "answer_sha256": "2270fa8f37e91d88bc24f669be334614f2ed2a55b0f35199c06789e2f1162a02",
+    "same_as_prior": false,
+    "stop": {
+      "stopped_eos": null,
+      "stopped_limit": null,
+      "stopping_word": "",
+      "tokens_predicted": 277,
+      "tokens_evaluated": 734,
+      "truncated": false
+    },
+    "timings": {
+      "cache_n": 0,
+      "predicted_ms": 28979.124,
+      "predicted_n": 277,
+      "predicted_per_second": 9.524097415781098,
+      "predicted_per_token_ms": 104.99682608695652,
+      "prompt_ms": 21052.568,
+      "prompt_n": 734,
+      "prompt_per_second": 34.86510529261798,
+      "prompt_per_token_ms": 28.681972752043595
+    },
+    "matches": [
+      {
+        "path": "target.rs",
+        "count": 1,
+        "old": "pub fn target(v1:i32,v2:i32)->i32 {\n    let r=v1%v2;\n    if r >= 0 { r } else { r + if v2>0 {v2} else {-v2} }\n}\n"
+      }
+    ],
+    "answer": "{\n  \"expected_sha256\": \"f57a067247d9501370c5f586799aeb6e4728910c682938b3eac920f8443cbb62\",\n  \"patches\": [\n    {\n      \"path\": \"target.rs\",\n      \"old\": \"pub fn target(v1:i32,v2:i32)->i32 {\\n    let r=v1%v2;\\n    if r >= 0 { r } else { r + if v2>0 {v2} else {-v2} }\\n}\\n\",\n      \"new\": \"pub fn target(v1:i32,v2:i32)->i32 {\\n    let r = if v2 == INT_MIN { \\n        if v1 == INT_MIN { 0 } else { 1 } \\n    } else { \\n        v1 % v2 \\n    };\\n    if r >= 0 { r } else { r + if v2 > 0 { v2 } else { -v2 } }\\n}\\n\"\n    }\n  ]\n}"
+  },
+  {
+    "id": "granite2b/stb_euclidean_int_min/rust-patch",
+    "attempt": 1,
+    "expected_files": [
+      "target.rs"
+    ],
+    "edit_error": null,
+    "answer_sha256": "2270fa8f37e91d88bc24f669be334614f2ed2a55b0f35199c06789e2f1162a02",
+    "same_as_prior": true,
+    "stop": {
+      "stopped_eos": null,
+      "stopped_limit": null,
+      "stopping_word": "",
+      "tokens_predicted": 277,
+      "tokens_evaluated": 1370,
+      "truncated": false
+    },
+    "timings": {
+      "cache_n": 0,
+      "predicted_ms": 32432.359,
+      "predicted_n": 277,
+      "predicted_per_second": 8.51001926810196,
+      "predicted_per_token_ms": 117.50854710144928,
+      "prompt_ms": 37696.811,
+      "prompt_n": 1370,
+      "prompt_per_second": 36.34259672522432,
+      "prompt_per_token_ms": 27.515920437956204
+    },
+    "matches": [
+      {
+        "path": "target.rs",
+        "count": 1,
+        "old": "pub fn target(v1:i32,v2:i32)->i32 {\n    let r=v1%v2;\n    if r >= 0 { r } else { r + if v2>0 {v2} else {-v2} }\n}\n"
+      }
+    ]
+  },
+  {
+    "id": "granite2b/stb_euclidean_int_min/assembly-full",
+    "attempt": 0,
+    "expected_files": [
+      "target.hiaasm"
+    ],
+    "edit_error": "E_FACTORIAL_FILE_INVENTORY",
+    "answer_sha256": "2a023c88e078cff139ee7e6af3f55c099be813bcd3fafb2681b2f54e1233acb5",
+    "same_as_prior": false,
+    "stop": {
+      "stopped_eos": null,
+      "stopped_limit": null,
+      "stopping_word": "",
+      "tokens_predicted": 124,
+      "tokens_evaluated": 1576,
+      "truncated": false
+    },
+    "timings": {
+      "cache_n": 0,
+      "predicted_ms": 16343.355,
+      "predicted_n": 124,
+      "predicted_per_second": 7.525994509695225,
+      "predicted_per_token_ms": 132.87280487804878,
+      "prompt_ms": 48551.937,
+      "prompt_n": 1576,
+      "prompt_per_second": 32.46008496015308,
+      "prompt_per_token_ms": 30.807066624365483
+    },
+    "files_values": {
+      "target.hiaasm": "dict"
+    },
+    "answer": "{\"expected_sha256\": \"8b0a1d2b672c8135ec7209344af42666eff6b1ea9c6439a665e6267afc75b6e1\", \"files\": {\"target.hiaasm\": {\"target\": {\"arg504:i32,arg505:i32} -> {\":\": \",\"i32\": {\"effects\": \"trap\", \"entry\": \"b0\"}}}}}"
+  },
+  {
+    "id": "granite2b/stb_euclidean_int_min/assembly-full",
+    "attempt": 1,
+    "expected_files": [
+      "target.hiaasm"
+    ],
+    "edit_error": "E_FACTORIAL_FILE_INVENTORY",
+    "answer_sha256": "9410554500e9aca833298d13eb21c67bb3c654fc3e6ff50d7bc10ecc196985a8",
+    "same_as_prior": false,
+    "stop": {
+      "stopped_eos": null,
+      "stopped_limit": null,
+      "stopping_word": "",
+      "tokens_predicted": 130,
+      "tokens_evaluated": 1763,
+      "truncated": false
+    },
+    "timings": {
+      "cache_n": 0,
+      "predicted_ms": 17250.166,
+      "predicted_n": 130,
+      "predicted_per_second": 7.478188905544445,
+      "predicted_per_token_ms": 133.72221705426358,
+      "prompt_ms": 51808.172,
+      "prompt_n": 1763,
+      "prompt_per_second": 34.02938053865325,
+      "prompt_per_token_ms": 29.386370958593307
+    },
+    "files_values": {
+      "target.hiaasm": "dict"
+    },
+    "answer": "{\"expected_sha256\": \"8b0a1d2b672c8135ec7209344af42666eff6b1ea9c6439a665e6267afc75b6e1\", \"files\": {\"target.hiaasm\": {\"target\": {\"arg504:i32,arg505:i32} -> {\":\": \",\", \":\".type: \",\"i32\": {\"effects\": \"trap\", \"entry\": \"b0\"}}}}}"
+  },
+  {
+    "id": "granite2b/stb_euclidean_int_min/rust-full",
+    "attempt": 0,
+    "expected_files": [
+      "target.rs"
+    ],
+    "edit_error": null,
+    "answer_sha256": "2f5e7c94c3da485962916f014d41f2b63111ad6623ec605f97d282576ee25dff",
+    "same_as_prior": false,
+    "stop": {
+      "stopped_eos": null,
+      "stopped_limit": null,
+      "stopping_word": "",
+      "tokens_predicted": 154,
+      "tokens_evaluated": 681,
+      "truncated": false
+    },
+    "timings": {
+      "cache_n": 0,
+      "predicted_ms": 16771.804,
+      "predicted_n": 154,
+      "predicted_per_second": 9.122453374723435,
+      "predicted_per_token_ms": 109.61963398692811,
+      "prompt_ms": 18819.804,
+      "prompt_n": 681,
+      "prompt_per_second": 36.18528652051849,
+      "prompt_per_token_ms": 27.635541850220264
+    },
+    "files_values": {
+      "target.rs": "str"
+    },
+    "answer": "{\"expected_sha256\": \"f57a067247d9501370c5f586799aeb6e4728910c682938b3eac920f8443cbb62\",\n\"files\": {\n    \"target.rs\": \"pub fn target(v1:i32,v2:i32)->i32 {\\n    let r = v1.checked_rem(v2);\\n    if r >= 0 { r } else { r + if v2 > 0 { v2 } else { -v2 } }\\n}\"\n}}"
+  },
+  {
+    "id": "granite2b/stb_euclidean_int_min/rust-full",
+    "attempt": 1,
+    "expected_files": [
+      "target.rs"
+    ],
+    "edit_error": "E_FACTORIAL_ENVELOPE",
+    "answer_sha256": "cd4e18252ba1fd02b8cafc324e68981122dfd39bc43f11e370f8559770cfdb8f",
+    "same_as_prior": false,
+    "stop": {
+      "stopped_eos": null,
+      "stopped_limit": null,
+      "stopping_word": "",
+      "tokens_predicted": 732,
+      "tokens_evaluated": 1794,
+      "truncated": false
+    },
+    "timings": {
+      "cache_n": 0,
+      "predicted_ms": 107872.876,
+      "predicted_n": 732,
+      "predicted_per_second": 6.776494955043194,
+      "predicted_per_token_ms": 147.56891381668947,
+      "prompt_ms": 52825.978,
+      "prompt_n": 1794,
+      "prompt_per_second": 33.960563872570425,
+      "prompt_per_token_ms": 29.44591861761427
+    },
+    "files_values": {
+      "target.rs": "str"
+    },
+    "answer": "{\"expected_sha256\": \"f57a067247d9501370c5f586799aeb6e4728910c682938b3eac920f8443cbb62\",\n\"files\": {\n    \"target.rs\": \"pub fn target(v1:i32,v2:i32)->i32 {\\n    let r = v1.checked_rem(v2);\\n    if r >= 0 { r } else { r + if v2 > 0 { v2 } else { -v2 } }\\n}\"\n},\n\"compile_status\": \"compile_rejected\",\n\"compiler_stderr\": \"error[E0308]: mismatched types\\n --> /data/hepta-hia-round2-20261104/evidence/upstream-agent-final-v10-r1/cells/granite2b/stb_euclidean_int_min/rust-full/candidate-0/target.rs:3:13\\n  |\\n3 |     if r >= 0 { r } else { r + if v2 > 0 { v2 } else { -v2 } }\\n  |        -    ^ expected `Option<i32>`, found integer\\n  |        |\\n  |        expected because this is `Option<i32>`\\n  |\\n  = note: tried to add `i32` and `Option<i32>`\\nhelp: consider using `Option::expect` to unwrap the `Option<i32>` value, panicking if the value is an `Option::None`\\n\\nerror[E0369]: cannot add `i32` to `Option<i32>`\\n   --> /data/hepta-hia-round2-20261104/evidence/upstream-agent-final-v10-r1/cells/granite2b/stb_euclidean_int_min/rust-full/candidate-0/target.rs:3:30\\n    |\\n  3 |     if r >= 0 { r } else { r + if v2 > 0 { v2 } else { -v2 } }\\n    |                            - ^ ----------------------------- i32\\n    |                            |\\n    |                            Option<i32>\\n    |\\nnote: `Option<i32>` does not implement `Add<i32>`\\n   --> /data/hepta-hia-round2-20261104/toolchains/rust-1.95.0/lib/rustlib/src/rust/library/core/src/option.rs:600:1\\n    |\\n600 | pub enum Option<T> {\\n    | ^^^^^^^^^^^^^^^^^^ `Option<i32>` is defined in another crate\\n\\nerror: aborting due to 3 previous errors\\n\\nSome errors have detailed explanations: E0308, E0369.\\nFor more information about an error, try `rustc --explain E0308`.\\n\"}"
+  }
+]

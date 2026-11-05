@@ -175,6 +175,10 @@ jobs:
           import unittest
 
           EXPECTED_IDS = [
+            "tests.test_core_seven_shared_acceptance.GitSourceProvenanceTests.test_baseline_ignores_replacement_commit_tree",
+            "tests.test_core_seven_shared_acceptance.GitSourceProvenanceTests.test_hidden_replaced_blob_rejected_before_source_admission",
+            "tests.test_core_seven_shared_acceptance.GitSourceProvenanceTests.test_inherited_repository_cannot_relabel_streamed_source",
+            "tests.test_core_seven_shared_acceptance.GitSourceProvenanceTests.test_source_head_move_before_publication_is_rejected",
             "tests.test_core_seven_shared_acceptance.SharedAcceptanceContractTests.test_actual_compiler_hash_reads_cannot_escape_source_identity",
             "tests.test_core_seven_shared_acceptance.SharedAcceptanceContractTests.test_every_existing_hard_budget_unchanged",
             "tests.test_core_seven_shared_acceptance.SharedAcceptanceContractTests.test_source_generation_never_grants_broader_authority",
@@ -222,7 +226,7 @@ jobs:
             "tests.test_core_seven_shared_sources.SharedSourceTests.test_untrusted_reference_is_byte_identical_to_checked_old_builder",
             "tests.test_core_seven_shared_sources.SharedSourceTests.test_wrong_arm_mutation_statement_and_projected_field_remain_bound"
           ]
-          EXPECTED_COUNT = 46
+          EXPECTED_COUNT = 50
           MODULES = ('tests.test_core_seven_shared_sources',
                      'tests.test_core_seven_shared_acceptance')
           ROOT = Path(os.environ['HIA_SOURCE_CONTROLS_DIR'])
@@ -323,8 +327,8 @@ jobs:
           from pathlib import Path
           import subprocess
 
-          EXPECTED_COUNT = 46
-          EXPECTED_IDS_SHA256 = '30f49daaabcc305f9af147c1550ce50c2776b25b8cfc27a41f929d6e5f431f84'
+          EXPECTED_COUNT = 50
+          EXPECTED_IDS_SHA256 = '09d5e1e5dd5e0fea1caf93f79040138937aeb7e89081a686fad886752c80dc90'
           EXPECTED_HEAD = os.environ['EXPECTED_HEAD']
 
           def require(condition, reason):

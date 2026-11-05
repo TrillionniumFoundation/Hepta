@@ -147,6 +147,7 @@ def execute_diagnostic(executable, output_directory, prepared, diagnostic, ident
                                 safe_root=root, markers=markers,
                                 manifest_reference={'path':'diagnostic-manifest.json', 'sha256':diagnostic.manifest_sha256})
             require(type(result) is dict and type(result.get('process_started')) is bool, 'diagnostic receipt missing')
+            collector.validate_cleanup_status(result)
             if not result['process_started']:
                 report['invocations'] -= 1
             report['invocation_count_exact'] = True
@@ -174,6 +175,9 @@ def execute_diagnostic(executable, output_directory, prepared, diagnostic, ident
             require(type(result.get('metadata_remaining_bytes')) is int and
                     result['metadata_remaining_bytes'] == collector.METADATA_LIMIT-event_bytes,
                     'diagnostic metadata receipt differs from actual bytes')
+            if 'LinearTransport.events.jsonl' in existing:
+                collector.validate_terminal_cleanup(root.read('LinearTransport.events.jsonl', collector.METADATA_LIMIT), result,
+                    dict(path='diagnostic-manifest.json', sha256=diagnostic.manifest_sha256))
             # The compact reference occurs once in RESULT; no second finished receipt or raw copies.
             report['stages'].append(compact)
             report['status'] = result['status']
@@ -305,13 +309,22 @@ def print_events(directory):
         os.close(fd)
     _evidence_budget({n:files[n] for n in LIVE_NAMES if n in files},collector)
     if 'RESULT.json' in files:
-        receipt=json.loads(files['RESULT.json'])
+        receipt=collector.decode_cleanup_json(files['RESULT.json'])
+        targets=[stage for stage in receipt.get('stages',[]) if stage.get('name')=='LinearTransport']
+        if receipt.get('status') == 'diagnostic_completed':
+            require(len(targets)==1 and targets[0].get('status')=='diagnostic_completed' and
+                    type(targets[0].get('capture_files')) is dict and
+                    'LinearTransport.events.jsonl' in files, 'completed diagnostic target status differs')
         for stage in receipt.get('stages',[]):
             if stage.get('name')=='LinearTransport' and 'capture_files' in stage:
                 actual={n:dict(path=n,bytes=len(files[n]),sha256=base.digest(files[n]))
                         for n in collector.DIAGNOSTIC_FILES if n in files}
                 require(_encoded(actual)==_encoded(stage['capture_files']),
                         'diagnostic evidence changed before presentation')
+                if 'LinearTransport.events.jsonl' in files:
+                    require('diagnostic-manifest.json' in files, 'cleanup manifest missing before presentation')
+                    collector.validate_terminal_cleanup(files['LinearTransport.events.jsonl'], stage,
+                        dict(path='diagnostic-manifest.json', sha256=base.digest(files['diagnostic-manifest.json'])))
     # No errors=replace expansion, pretty JSON, or second main() report copy.
     output=sys.stdout.buffer
     for name in names:

@@ -1,8 +1,11 @@
 """Pure-Python fake children exercise bounded capture, never Lean/native targets."""
 from contextlib import ExitStack
 from hashlib import sha256
+import array
+import fcntl
 import io
 import json
+import math
 import os
 from pathlib import Path
 import signal
@@ -10,6 +13,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -18,6 +22,132 @@ from tools.check_core_syntax_staged import SafeRoot
 
 PLATFORM = {'sys_platform': 'linux', 'machine': 'x86_64',
             'os_release': {'ID': 'ubuntu', 'VERSION_ID': '24.04'}, 'libc': 'glibc 2.39'}
+
+
+class ObservedCaptureClock:
+    """Test-only process clock; real cleanup always resumes continuously at 1x.
+
+    A caller advances the process clock only after its real observed premise.
+    Separate wall-deadline controls never install this helper.
+    """
+    def __init__(self, module):
+        self.module = module
+        self.real_clock = time.monotonic
+        self.origin = self.real_clock()
+        self.offset = 0
+        self.resumed = None
+        self.kill_calls = 0
+        self.deadline_events = 0
+        self.at_kill = None
+        self.observe_kill = lambda: None
+
+    def now(self):
+        return self.origin + self.offset + (0 if self.resumed is None else self.real_clock() - self.resumed)
+
+    def process_deadline(self):
+        assert self.resumed is None and self.deadline_events == 0
+        deadline = math.nextafter(self.origin + self.module.PROCESS_SECONDS, math.inf)
+        self.offset = deadline - self.origin
+        assert self.now() - self.origin >= self.module.PROCESS_SECONDS
+        self.deadline_events += 1
+
+    def setup(self, root, stack):
+        killpg = self.module.os.killpg
+        def kill(*args):
+            self.kill_calls += 1
+            if self.resumed is None:
+                self.at_kill = self.observe_kill()
+                self.resumed = self.real_clock()
+            return killpg(*args)
+        stack.enter_context(patch.object(self.module, 'time', SimpleNamespace(monotonic=self.now)))
+        stack.enter_context(patch.object(self.module.os, 'killpg', side_effect=kill))
+
+
+class BufferedCaptureFixture:
+    """Admit real selector events only after an owned buffer has enough bytes.
+
+    FIONREAD is a precondition, never a replacement for read/append/fsync. The
+    original collector still reads and accounts for every byte. Finite child
+    payloads and wall watchdogs bound failures to establish that precondition.
+    """
+    def __init__(self, module, clock, minimum, *, prefixes=None, after_raw=None, after_batch=None):
+        self.module, self.clock, self.minimum = module, clock, minimum
+        self.prefixes = prefixes or {}
+        self.after_raw, self.after_batch = after_raw, after_batch
+        self.counts = dict(stdout=0, stderr=0)
+        self.first = dict(stdout=b'', stderr=b'')
+        self.thresholds = {}
+        self.gated_events = 0
+        self.short_reads = []
+        self.batches = 0
+        clock.observe_kill = lambda: dict(self.counts)
+
+    def setup(self, root, stack):
+        module = self.module
+        self.clock.setup(root, stack)
+        append, factory = module._Sink.append, module.selectors.DefaultSelector
+        def persist(sink, name, data, terminal=False):
+            value = append(sink, name, data, terminal=terminal)
+            stream = 'stdout' if name.endswith('.stdout') else 'stderr' if name.endswith('.stderr') else None
+            if stream is not None and data:
+                remaining = module.RAW_LIMIT - sum(self.counts.values())
+                threshold = min(self.thresholds.get(stream, 0), remaining)
+                if self.clock.resumed is None and len(data) < threshold:
+                    self.short_reads.append(dict(stream=stream, actual=len(data), required=threshold))
+                if not self.first[stream]:
+                    self.first[stream] = data[:len(self.prefixes.get(stream, b''))]
+                self.counts[stream] += len(data)
+                if self.after_raw is not None:
+                    self.after_raw(self, name, data)
+            elif name.endswith('.events.jsonl') and not terminal and sum(self.counts.values()):
+                if data:
+                    self.batches += 1
+                if self.after_batch is not None:
+                    self.after_batch(self, name, data)
+            return value
+        def selector(*args, **kwargs):
+            selected = factory(*args, **kwargs)
+            select = selected.select
+            def ready(timeout=None):
+                events = select(timeout)
+                if self.clock.resumed is not None:
+                    return events
+                missing = {stream for stream in self.prefixes if not self.counts[stream]}
+                allowed = []
+                for key, mask in events:
+                    stream = key.data
+                    if missing and stream not in missing:
+                        continue
+                    minimum = self.minimum.get(stream)
+                    if not missing and minimum is None:
+                        allowed.append((key, mask))
+                        continue
+                    needed = len(self.prefixes[stream]) if missing else min(
+                        minimum, max(1, module.RAW_LIMIT - sum(self.counts.values())))
+                    pending = array.array('i', [0])
+                    fcntl.ioctl(key.fd, module.termios.FIONREAD, pending, True)
+                    if pending[0] >= needed:
+                        self.thresholds[stream] = needed
+                        self.gated_events += 1
+                        allowed.append((key, mask))
+                return allowed
+            selected.select = ready
+            return selected
+        stack.enter_context(patch.object(module._Sink, 'append', new=persist))
+        stack.enter_context(patch.object(module.selectors, 'DefaultSelector', side_effect=selector))
+
+
+def fixture_observation(test_id, result, files, clock, buffered=None, **details):
+    """Retain actual failure facts too; do not rely on a successful assertion."""
+    value = dict(test_id=test_id, result=result, details=details,
+        model_clock=None if clock is None else dict(deadline_events=clock.deadline_events,
+                         kill_calls=clock.kill_calls, cleanup_resumed=clock.resumed is not None,
+                         at_kill=clock.at_kill),
+        files={name:dict(bytes=len(raw),sha256=sha256(raw).hexdigest()) for name,raw in files.items()})
+    if buffered is not None:
+        value['observed_fixture'] = dict(persisted=buffered.counts, gated_events=buffered.gated_events,
+            short_reads=buffered.short_reads, completed_batches=buffered.batches)
+    print(json.dumps(value, sort_keys=True), flush=True)
 
 
 class DiagnosticCaptureTests(unittest.TestCase):
@@ -243,21 +373,34 @@ else:
         self.assertTrue(result['group_kill_sent'])
 
     def test_simultaneous_stream_bursts_share_one_read_budget(self):
-        script = """import os,threading
+        clock = ObservedCaptureClock(capture)
+        buffered = BufferedCaptureFixture(capture, clock, {'stdout':1024, 'stderr':1024},
+            prefixes={'stdout': b'OUT', 'stderr': b'ERR'})
+        script = """import os,threading,signal
+signal.alarm(60)
 os.write(1,b'OUT')
 os.write(2,b'ERR')
 def flood(fd):
- while True: os.write(fd,b'x'*1024)
+ data=b'x'*(65536+1)
+ while data:
+  count=os.write(fd,data);data=data[count:]
 a=threading.Thread(target=flood,args=(1,));b=threading.Thread(target=flood,args=(2,))
 a.start();b.start();a.join();b.join()
+signal.pause()
 """
-        result, files, _ = self.run_child(script, overrides=(('RAW_LIMIT', 65536),))
+        result, files, _ = self.run_child(script, setup=buffered.setup, overrides=(('RAW_LIMIT', 65536),))
+        fixture_observation(self.id(), result, files, clock, buffered)
         self.assertEqual(result['status'], 'diagnostic_output_limit')
         self.assertEqual(sum(result['observed_bytes'].values()), 65536)
         self.assertGreater(result['observed_bytes']['stdout'], 0)
         self.assertGreater(result['observed_bytes']['stderr'], 0)
         self.assertTrue(files[capture.DIAGNOSTIC_FILES[0]].startswith(b'OUT'))
         self.assertTrue(files[capture.DIAGNOSTIC_FILES[1]].startswith(b'ERR'))
+        self.assertEqual(buffered.first, {'stdout': b'OUT', 'stderr': b'ERR'})
+        self.assertEqual(sum(clock.at_kill.values()), 65536)
+        self.assertGreater(buffered.gated_events, 0)
+        self.assertEqual(buffered.short_reads, [])
+        self.assertEqual((clock.kill_calls, clock.deadline_events), (1, 0))
 
     def test_unsafe_preexisting_log_files_block_without_launch_or_overwrite(self):
         for kind in ('symlink', 'hardlink', 'fifo', 'regular'):
@@ -342,7 +485,12 @@ a.start();b.start();a.join();b.join()
             self.assertNotIn(key, terminal['process'])
 
     def test_full_production_raw_cap_leaves_room_for_exact_single_display(self):
-        result, files, _ = self.run_child('import os\nwhile True: os.write(2,b"x"*16384)')
+        clock = ObservedCaptureClock(capture)
+        buffered = BufferedCaptureFixture(capture, clock, {'stderr':8192})
+        script = ('import os,signal\nsignal.alarm(60)\ndata=b"x"*%d\n'
+                  'while data:\n count=os.write(2,data);data=data[count:]\nsignal.pause()' % (capture.RAW_LIMIT+1))
+        result, files, _ = self.run_child(script, setup=buffered.setup)
+        fixture_observation(self.id(), result, files, clock, buffered)
         self.assertEqual(result['status'], 'diagnostic_output_limit')
         self.assertEqual(sum(result['observed_bytes'].values()), 507392)
         self.assertEqual(result['raw_written_bytes'], 507392)
@@ -350,6 +498,10 @@ a.start();b.start();a.join();b.join()
         runner_reserve = result['metadata_remaining_bytes']
         self.assertLessEqual(durable + runner_reserve, capture.DURABLE_TOTAL)
         self.assertLessEqual(2 * (durable + runner_reserve) + capture.DISPLAY_LABEL_RESERVE, capture.TOTAL)
+        self.assertEqual(clock.at_kill, {'stdout': 0, 'stderr': 507392})
+        self.assertGreater(buffered.gated_events, 0)
+        self.assertEqual(buffered.short_reads, [])
+        self.assertEqual((clock.kill_calls, clock.deadline_events), (1, 0))
 
     def test_maximum_raw_and_metadata_writes_enforce_reserved_terminal_and_runner_space(self):
         with tempfile.TemporaryDirectory() as folder:

@@ -12,7 +12,8 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 from tests.test_core_seven_relocation_sources import fixture
-from tests.test_core_syntax_diagnostic_capture import PLATFORM
+from tests.test_core_syntax_diagnostic_capture import (
+    PLATFORM, ObservedCaptureClock, BufferedCaptureFixture, fixture_observation)
 from tools import diagnose_core_seven_relocation as runner
 from tools import core_seven_certificate_sources as seven
 from tools import core_seven_relocation_diagnostic_sources as diag
@@ -83,7 +84,12 @@ class Part04RunnerTests(unittest.TestCase):
                 if behavior=='target_sorry':out=out.replace('does not depend on any axioms','depends on axioms: [sorryAx]',1)
                 script='import os,pathlib,time\npathlib.Path(%r).write_bytes(b"untrusted fake target")\nos.write(1,%r)\ntime.sleep(.03)\n'%(str(output),out.encode())
                 if behavior=='fifth':script+='pathlib.Path(%r).write_bytes(b"forbidden fifth module")\n'%str(root/'HiaSyntaxResearch/CertPart05.olean')
-                if behavior=='target_timeout':script+='time.sleep(10)\n'
+                if behavior=='target_timeout':
+                    # This finite writer remains live until the exact emitted
+                    # prefix is durable, then the model process deadline fires.
+                    script=('import os,pathlib,signal\nsignal.alarm(60)\n'
+                            'pathlib.Path(%r).write_bytes(b"untrusted fake target")\n'
+                            'os.write(1,%r)\nsignal.pause()\n')%(str(output),out.encode())
                 if behavior=='target_limit':script='import os,time\nfor i in range(200):\n os.write(1,b"inert theorem line\\n");time.sleep(.002)\n'
                 if behavior=='target_exit':script+='raise SystemExit(1)\n'
                 real=subprocess.Popen
@@ -94,9 +100,31 @@ class Part04RunnerTests(unittest.TestCase):
                     capture_stack.enter_context(patch.object(collector.subprocess,'Popen',side_effect=popen))
                     capture_stack.enter_context(patch.object(collector,'platform_observation',return_value=PLATFORM))
                     if behavior=='target_timeout':
-                        origin=time.monotonic()
-                        capture_stack.enter_context(patch.object(collector,'time',SimpleNamespace(monotonic=lambda:origin+(time.monotonic()-origin)*100)))
+                        clock=ObservedCaptureClock(collector)
+                        progress=dict(marker_ids=[],payload_persisted=False)
+                        expected=[m['id'] for m in self.diagnostic.manifest['markers']]
+                        def persisted(buffered,name,raw):
+                            for row in (json.loads(line) for line in raw.splitlines()):
+                                self.assertEqual(row['kind'],'marker')
+                                progress['marker_ids'].append(row['event']['id'])
+                            if buffered.counts['stdout']==len(out.encode()):
+                                self.assertEqual(buffered.counts['stderr'],0)
+                                self.assertEqual(progress['marker_ids'],expected)
+                                self.assertEqual((root/runner.CAPTURE_FILES[0]).read_bytes(),out.encode())
+                                self.assertFalse(progress['payload_persisted'])
+                                progress['payload_persisted']=True
+                                clock.process_deadline()
+                        buffered=BufferedCaptureFixture(collector,clock,{'stdout':1},after_batch=persisted)
+                        buffered.setup(root,capture_stack)
                     captured=collector.capture_result(executable,source,output,root,**kwargs)
+                    if behavior=='target_timeout':
+                        actual={name:(root/name).read_bytes() for name in runner.CAPTURE_FILES if (root/name).is_file()}
+                        fixture_observation(self.id(),captured,actual,clock,buffered,
+                            behavior=behavior,precondition=progress)
+                        self.assertTrue(progress['payload_persisted'])
+                        self.assertEqual(progress['marker_ids'],expected)
+                        self.assertEqual((clock.kill_calls,clock.deadline_events),(1,1))
+                        self.assertEqual(buffered.short_reads,[])
                 if behavior=='malformed_terminal':
                     event_path=root/runner.CAPTURE_FILES[2]
                     event_path.write_bytes(b''.join(event_path.read_bytes().splitlines(keepends=True)[:-1])+b'{"kind":"terminal"}\n')

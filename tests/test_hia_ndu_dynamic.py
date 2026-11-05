@@ -2,7 +2,7 @@
 from copy import deepcopy
 import unittest
 
-from hepta.hia_ndu_dynamic import DynamicError, action, invocation_gate, validate_model
+from hepta.hia_ndu_dynamic import DynamicError, action, invocation_gate, validate_model, preparation_relaxed_lower_bound, call_cost
 from tools.qualify_hia_ndu_dynamic import control_model, schedule, exhaustive_cost, independent_exact_minimum
 
 class DynamicModelBoundaryTests(unittest.TestCase):
@@ -101,6 +101,48 @@ class DynamicModelBoundaryTests(unittest.TestCase):
         for seed in range(12):
             model = control_model(objects=1 + seed % 3, horizon=1 + seed % 3, seed=seed)
             self.assertEqual(independent_exact_minimum(model), exhaustive_cost(model))
+
+    def test_preparation_bound_refuses_no_amortization_opportunity(self):
+        model = control_model(objects=1, horizon=2)
+        model.update(ready_mask=0, ready_epochs=[0], targets=[0, 0],
+                     direct_ns=[100, 100], packed_ns=[10, 10])
+        model["artifacts"][0].update(epochs=[1, 1], prepare_ns=200)
+        gate = invocation_gate(validate_model(model))
+        self.assertFalse(gate["invoke"])
+        self.assertEqual(gate["gross_saving_upper_ns"], 0)
+        self.assertGreater(gate["optimistic_execution_lower_ns"], gate["free_preparation_lower_ns"])
+
+    def test_preparation_bound_separates_announced_epochs(self):
+        model = control_model(objects=1, horizon=2)
+        model.update(ready_mask=0, ready_epochs=[0], targets=[0, 0],
+                     direct_ns=[100, 100], packed_ns=[10, 10])
+        model["artifacts"][0].update(epochs=[1, 2], prepare_ns=100)
+        self.assertEqual(preparation_relaxed_lower_bound(validate_model(model)), 206)
+        model["artifacts"][0]["epochs"] = [1, 1]
+        self.assertEqual(preparation_relaxed_lower_bound(validate_model(model)), 126)
+
+    def test_preparation_bound_reuses_only_matching_initial_epoch(self):
+        model = control_model(objects=1, horizon=2)
+        model.update(ready_mask=1, ready_epochs=[1], targets=[0, 0],
+                     direct_ns=[100, 100], packed_ns=[10, 10])
+        model["artifacts"][0].update(epochs=[1, 1], prepare_ns=200)
+        self.assertEqual(preparation_relaxed_lower_bound(validate_model(model)), 26)
+        model["artifacts"][0]["epochs"] = [2, 2]
+        self.assertEqual(preparation_relaxed_lower_bound(validate_model(model)), 206)
+
+    def test_preparation_bound_is_below_independent_exact_optimum(self):
+        # Independent bottom-up exhaustive state enumeration is a stronger
+        # reference than replaying this bound's segment arithmetic.
+        for seed in range(240):
+            model = control_model(objects=1 + seed % 4, horizon=1 + seed % 5, seed=seed)
+            model = validate_model(model)
+            old = sum(min(d, p) for d, p in zip(model["direct_ns"], model["packed_ns"]))
+            old += len(model["targets"]) * model["decision"]["gate_ns"]
+            bound = preparation_relaxed_lower_bound(model)
+            exact = independent_exact_minimum(model)
+            common = call_cost(model, model["session_ready"]) + model["decision"]["close_ns"]
+            self.assertLessEqual(old, bound, seed)
+            self.assertLessEqual(bound + common, exact, seed)
 
     def test_empty_native_plan_is_not_proof_of_infeasibility(self):
         model = control_model(objects=1, horizon=1)

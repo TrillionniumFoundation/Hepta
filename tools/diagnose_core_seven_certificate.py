@@ -197,8 +197,16 @@ def source_identity():
 
 def _git_baseline():
     # Read-only source identity metadata, not a diagnostic/Lean invocation.
-    head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, timeout=5).decode().strip()
-    tree = subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], cwd=ROOT, timeout=5).decode().strip()
+    # Bind the real checkout, ignoring inherited repository/config overrides
+    # and replacement objects. One invocation retains the existing deadline.
+    clean_git_env = {k: v for k, v in os.environ.items() if not k.startswith('GIT_')}
+    values = subprocess.check_output(
+        ['git', '--no-replace-objects', '--no-pager', 'show', '--no-patch',
+         '--no-show-signature', '--no-notes', '--no-color', '--no-decorate',
+         '--format=%H%n%T', 'HEAD', '--'],
+        cwd=ROOT, env=clean_git_env, timeout=5).decode().splitlines()
+    require(len(values) == 2, 'Git baseline identity')
+    head, tree = values
     require(re.fullmatch('[0-9a-f]{40}', head) and re.fullmatch('[0-9a-f]{40}', tree), 'Git baseline identity')
     return dict(head=head, tree=tree)
 
@@ -512,7 +520,7 @@ def _verify_capture(snapshot, frozen, run, diagnostic, stage):
         'metadata_written_bytes', 'metadata_remaining_bytes', 'raw_written_bytes', 'compact_receipt_reference',
         'started_reference', 'argv', 'cwd', 'search_path', 'sysroot', 'manifest_reference', 'status', 'error',
         'observed_bytes', 'output_truncated', 'marker_count', 'last_observed_marker', 'next_planned_marker_id',
-        'cleanup_incomplete', 'elapsed_seconds', 'raw_files', 'files', 'terminal_record_persisted'}
+        'cleanup_incomplete', 'cleanup_deadline_exceeded', 'elapsed_seconds', 'raw_files', 'files', 'terminal_record_persisted'}
     optional_process = {'pid', 'interrupted', 'group_cleanup_error', 'leader_cleanup_error'}
     require(required_process <= set(process) <= required_process | optional_process, 'target process schema differs')
     if 'interrupted' in process:
@@ -529,14 +537,16 @@ def _verify_capture(snapshot, frozen, run, diagnostic, stage):
             process.get('started_reference') == dict(path=TARGET_STARTED, sha256=frozen[TARGET_STARTED]),
             'target manifest/started reference differs')
     require(_finite(process.get('elapsed_seconds')), 'target elapsed time invalid')
-    for key in ('leader_reaped', 'group_kill_sent', 'drain_complete', 'cleanup_incomplete',
+    for key in ('leader_reaped', 'group_kill_sent', 'drain_complete', 'cleanup_incomplete', 'cleanup_deadline_exceeded',
                 'output_truncated', 'terminal_record_persisted'):
         require(type(process.get(key)) is bool, 'target process flag type differs')
     require(process.get('returncode') is None or type(process['returncode']) is int, 'target returncode type')
     require(process.get('signal') is None or type(process['signal']) is int, 'target signal type')
     require(process['cleanup_incomplete'] is (process['process_started'] and not (
-            process['leader_reaped'] and process['drain_complete'] and 'group_cleanup_error' not in process)),
+            process['leader_reaped'] and process['drain_complete'] and not process['cleanup_deadline_exceeded'] and
+            'group_cleanup_error' not in process)),
             'target cleanup flag differs from actual cleanup outcome')
+    collector.validate_cleanup_status(process)
     require('leader_cleanup_error' not in process or 'group_cleanup_error' in process,
             'leader cleanup error requires failed group cleanup')
     require(process.get('signal') == (-process['returncode'] if type(process['returncode']) is int and
@@ -591,7 +601,7 @@ def _verify_capture(snapshot, frozen, run, diagnostic, stage):
                 start['session'] == 'new session; no controlling terminal', 'setup-start budgets differ')
         initial = dict(process_started=False, returncode=None, signal=None, timeout_seconds=60,
                        platform=process.get('platform'), pty=process.get('pty'), leader_reaped=False,
-                       group_kill_sent=False, drain_complete=False,
+                       group_kill_sent=False, drain_complete=False, cleanup_deadline_exceeded=False,
                        kernel_core_syntax_connection_checked=False, authority='DENY_ALL',
                        metadata_written_bytes=0, metadata_remaining_bytes=collector.METADATA_LIMIT,
                        raw_written_bytes=0, compact_receipt_reference=None,
@@ -646,7 +656,8 @@ def _verify_capture(snapshot, frozen, run, diagnostic, stage):
             'terminal marker frontier differs')
     status = process['status']
     clean = (process['leader_reaped'] is True and process['drain_complete'] is True and
-             process['cleanup_incomplete'] is False and process['output_truncated'] is False and
+             process['cleanup_incomplete'] is False and process['cleanup_deadline_exceeded'] is False and
+             process['output_truncated'] is False and
              observed == {name: len(raw) for name, raw in streams.items()})
     if status == 'diagnostic_completed':
         require(started and clean and type(process['returncode']) is int and process['returncode'] == 0 and

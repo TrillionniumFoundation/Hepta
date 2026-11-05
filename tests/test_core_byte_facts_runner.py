@@ -60,6 +60,8 @@ class ByteFactsRunnerTests(unittest.TestCase):
                 self.assertEqual(manifest_reference['sha256'],self.diagnostic.manifest_sha256)
                 if behavior == 'platform':
                     return dict(status='diagnostic_infrastructure_failed', process_started=False,
+                                leader_reaped=False, drain_complete=False, cleanup_deadline_exceeded=False,
+                                cleanup_incomplete=False, output_truncated=False, returncode=None,
                                 files={},raw_files={},metadata_remaining_bytes=collector.METADATA_LIMIT)
                 calls.append(source.stem)
                 if behavior == 'uncertain':
@@ -82,12 +84,15 @@ class ByteFactsRunnerTests(unittest.TestCase):
                              for n,v in zip(runner.CAPTURE_FILES[:2],(target_stdout.encode(),b''))}
                 process = dict(manifest_reference=manifest_reference,status=status,process_started=True,
                                returncode=0,leader_reaped=True,drain_complete=True,cleanup_incomplete=False,
+                                cleanup_deadline_exceeded=False,
                                output_truncated=False,raw_files=raw_files,marker_count=1,last_observed_marker=observed)
                 event_raw = runner._encoded(dict(kind='start',process=dict(manifest_reference=manifest_reference),
                     planned_markers=len(markers),raw_limit=collector.RAW_LIMIT,metadata_limit=collector.METADATA_LIMIT))
                 event_raw += runner._encoded(dict(kind='receive',stream='stdout',offset=0,bytes=len(target_stdout.encode()),received_seconds=0.1))
                 event_raw += runner._encoded(dict(kind='marker',event=observed,received_seconds=0.1))
-                event_raw += runner._encoded(dict(kind='terminal',process=process))
+                event_raw += runner._encoded(dict(kind='terminal',process=process,
+                    accounting_before_terminal=dict(raw_written_bytes=len(target_stdout.encode()),
+                                                    metadata_written_bytes=len(event_raw))))
                 if behavior == 'partial_capture':
                     event_raw = event_raw.splitlines(keepends=True)[0]
                 for name,raw in zip(runner.CAPTURE_FILES,(target_stdout.encode(),b'',event_raw)):
@@ -108,7 +113,7 @@ class ByteFactsRunnerTests(unittest.TestCase):
                 return dict(status={'timeout':'diagnostic_timeout','limit':'diagnostic_output_limit',
                                     'claim_pass':'passed'}.get(behavior,'diagnostic_completed'),
                             process_started=True, returncode=0, leader_reaped=True, drain_complete=True,
-                            output_truncated=False, cleanup_incomplete=False, files=files,
+                            output_truncated=False, cleanup_incomplete=False, cleanup_deadline_exceeded=False, files=files,
                             raw_files={n:v for n,v in files.items() if n != runner.CAPTURE_FILES[2]},
                             metadata_remaining_bytes=0 if behavior == 'metadata' else
                             collector.METADATA_LIMIT-len(event_raw))

@@ -154,6 +154,7 @@ def execute_diagnostic(executable, output_directory, prepared, diagnostic, ident
                 safe_root=root, markers=diagnostic.manifest['markers'], target='CertPart02',
                 manifest_reference=dict(path='diagnostic-manifest.json', sha256=diagnostic.manifest_sha256))
             require(type(result) is dict and type(result.get('process_started')) is bool, 'capture receipt missing')
+            collector.validate_cleanup_status(result)
             if not result['process_started']:
                 report['invocations'] -= 1
             report['invocation_count_exact'] = True
@@ -175,6 +176,9 @@ def execute_diagnostic(executable, output_directory, prepared, diagnostic, ident
                     'capture metadata receipt differs')
             if result['process_started']:
                 require(set(actual) == set(CAPTURE_FILES), 'incomplete capture files')
+            if CAPTURE_FILES[2] in actual:
+                collector.validate_terminal_cleanup(root.read(CAPTURE_FILES[2], collector.METADATA_LIMIT), result,
+                    dict(path='diagnostic-manifest.json', sha256=diagnostic.manifest_sha256))
             # The target output is retained only as untrusted bytes. Never admitted.
             if output_rel in existing:
                 frozen[output_rel] = base.digest(root.read(output_rel, base.MAX_MODULE))
@@ -268,7 +272,7 @@ def print_events(directory):
         except FileNotFoundError:
             print('Incomplete diagnostic output: final RESULT.json is missing; no proof evidence.')
             return
-        result = json.loads(result_raw)
+        result = collector.decode_cleanup_json(result_raw)
         require(result.get('protocol') == PROTOCOL and result.get('status') in STATUSES, 'invalid diagnostic result')
         require(all(result.get(k) == v for k,v in _denials().items()), 'diagnostic denial flags changed')
         evidence_raw = root.read('EVIDENCE.json', base.MAX_DIAGNOSTIC)
@@ -314,6 +318,12 @@ def print_events(directory):
             require(base.digest(raw) == expected, 'frozen evidence changed before presentation: '+name)
             if name in PARENT_FILES+CAPTURE_FILES+('RUN.json','IDENTITY.json','diagnostic-manifest.json'):
                 captured[name] = raw
+        for stage in stages:
+            if stage['name'] == 'CertPart02' and CAPTURE_FILES[2] in captured:
+                require(result['status'] != 'diagnostic_completed' or stage['status'] == 'diagnostic_completed',
+                        'completed diagnostic target status differs')
+                collector.validate_terminal_cleanup(captured[CAPTURE_FILES[2]], stage,
+                    dict(path='diagnostic-manifest.json', sha256=frozen['diagnostic-manifest.json']))
         _evidence_budget({n:v for n,v in captured.items() if n in LIVE_NAMES})
         require(sum(len(n.encode())+2+len(v) for n,v in captured.items())+
                 sum(len(v) for n,v in captured.items() if n in LIVE_NAMES) <= base.MAX_DIAGNOSTIC,

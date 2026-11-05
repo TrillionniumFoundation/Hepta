@@ -77,6 +77,13 @@ class _DeclarationMarkers:
         return tuple(pos for pos in candidates if self.source.startswith(literal, pos))
 
 
+_PARSE_IMPORT = re.compile(r'import ([A-Za-z][A-Za-z0-9_.]*)')
+_PARSE_NAMESPACE = re.compile(r'namespace ([A-Za-z][A-Za-z0-9_.]*)')
+_PARSE_END = re.compile(r'end ([A-Za-z][A-Za-z0-9_.]*)')
+_PARSE_DECLARATION = re.compile(r'^(def|theorem) ([A-Za-z][A-Za-z0-9_]*)\b')
+_PARSE_PRINT = re.compile(r'#print axioms ([A-Za-z][A-Za-z0-9_.]*)')
+
+
 def _parse(source):
     """Independent restricted framing parser, preserving full declaration bytes.
 
@@ -97,27 +104,34 @@ def _parse(source):
             current[3] += line
             continue
         current = None
-        match = re.fullmatch(r'import ([A-Za-z][A-Za-z0-9_.]*)', text)
-        if match:
-            require(not declarations and ns is None and not printing, 'late import')
-            imports.append(match[1]); continue
-        match = re.fullmatch(r'namespace ([A-Za-z][A-Za-z0-9_.]*)', text)
-        if match:
-            require(ns is None and not printing, 'nested or late namespace')
-            ns = match[1]; continue
-        match = re.fullmatch(r'end ([A-Za-z][A-Za-z0-9_.]*)', text)
-        if match:
-            require(ns is not None and ns == match[1], 'namespace close differs')
-            ns = None; continue
-        match = re.match(r'^(def|theorem) ([A-Za-z][A-Za-z0-9_]*)\b', text)
-        if match:
-            require(ns is not None and not printing and ' := ' in text, 'declaration framing')
-            current = [ns, match[1], match[2], line]
-            declarations.append(current); continue
-        match = re.fullmatch(r'#print axioms ([A-Za-z][A-Za-z0-9_.]*)', text)
-        if match:
-            require(ns is None, 'print inside namespace')
-            printing = True; prints.append(match[1]); continue
+        # These exact ASCII prefixes are disjoint. The same regex still decides
+        # framing; every line is decoded and every declaration byte is retained.
+        if text.startswith(('def ', 'theorem ')):
+            match = _PARSE_DECLARATION.match(text)
+            if match:
+                require(ns is not None and not printing and ' := ' in text, 'declaration framing')
+                current = [ns, match[1], match[2], line]
+                declarations.append(current); continue
+        elif text.startswith('#print axioms '):
+            match = _PARSE_PRINT.fullmatch(text)
+            if match:
+                require(ns is None, 'print inside namespace')
+                printing = True; prints.append(match[1]); continue
+        elif text.startswith('import '):
+            match = _PARSE_IMPORT.fullmatch(text)
+            if match:
+                require(not declarations and ns is None and not printing, 'late import')
+                imports.append(match[1]); continue
+        elif text.startswith('namespace '):
+            match = _PARSE_NAMESPACE.fullmatch(text)
+            if match:
+                require(ns is None and not printing, 'nested or late namespace')
+                ns = match[1]; continue
+        elif text.startswith('end '):
+            match = _PARSE_END.fullmatch(text)
+            if match:
+                require(ns is not None and ns == match[1], 'namespace close differs')
+                ns = None; continue
         require(False, 'unsupported partition command')
     require(ns is None and declarations, 'unclosed or empty declaration stream')
     return tuple(imports), tuple(tuple(d) for d in declarations), tuple(prints)

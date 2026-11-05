@@ -15,6 +15,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import shutil
 import signal
 import subprocess
@@ -38,6 +39,15 @@ CORE_TESTS = (
     'tests.test_hia_capability_lifecycle',
     'tests.test_hia_capability_borrow',
     'tests.test_hia_composition_identity',
+    'tests.test_core_capture_terminal_deadline',
+    'tests.test_core_seven_shared_source_closure',
+    'tests.test_core_capture_cleanup_replay',
+    'tests.test_core_structured_source_cost',
+    'tests.test_core_syntax_partition_parse_fast',
+    'tests.test_core_seven_external_hash',
+    'tests.test_hia_scalar_phi_edges',
+    'tests.test_hia_result_cache',
+    'tests.test_hia_result_cache_binding',
     'tests.test_hia_opcode_catalog',
     'tests.test_hia_program', 'tests.test_hia_execution_contract',
     'tests.test_hia_returned_loans', 'tests.test_hia_returned_loan_interfaces',
@@ -96,11 +106,29 @@ def write(path, value):
         stream.write('\n')
 
 
+def git_bytes(*args):
+    clean_git_env = {k: v for k, v in os.environ.items() if not k.startswith('GIT_')}
+    return subprocess.check_output(['git', '--no-replace-objects', *args], cwd=ROOT,
+                                   env=clean_git_env, timeout=20)
+
+
 def git(*args):
-    return subprocess.check_output(['git', *args], cwd=ROOT, text=True, timeout=20).strip()
+    return git_bytes(*args).decode().strip()
+
+
+def git_baseline():
+    # Both IDs must come from one resolved commit object, even if HEAD moves.
+    values = git_bytes('--no-pager', 'show', '--no-patch', '--no-show-signature',
+                       '--no-notes', '--no-color', '--no-decorate',
+                       '--format=%H%n%T', 'HEAD', '--').decode().splitlines()
+    if len(values) != 2 or not all(re.fullmatch('[0-9a-f]{40}', value) for value in values):
+        raise ValueError('canonical Git baseline identity unavailable')
+    return values
 
 
 def source_identity():
+    baseline = git_baseline()
+    commit, tree_sha = baseline
     status = git('status', '--porcelain', '--untracked-files=all')
     if status:
         raise ValueError('source must be clean and committed before qualification: '+status[:1000])
@@ -108,7 +136,7 @@ def source_identity():
     # Hash every materialized active source/fixture; never hash build outputs.
     included = ('hepta/', 'tools/', 'tests/', 'formal/', 'benchmarks/', 'rust/', '.cargo/',
                 'examples/', '.github/', 'experiments/')
-    tracked = subprocess.check_output(['git','ls-files','-z'],cwd=ROOT,text=True,timeout=20).split('\0')
+    tracked = git_bytes('ls-files', '-z').decode().split('\0')
     paths = [name for name in tracked if name.startswith(included) and (ROOT/name).is_file()]
     roots = [name for name in ('pyproject.toml', 'toolchain-lock.json', 'rust-toolchain.toml')
              if (ROOT/name).is_file()]
@@ -116,7 +144,7 @@ def source_identity():
     if not paths or 'hepta/hia_program.py' not in paths or 'tools/qualify_hia_composition.py' not in paths:
         raise ValueError('missing tracked implementation identity')
     tree = {}
-    for entry in subprocess.check_output(['git','ls-tree','-rz','HEAD'],cwd=ROOT,timeout=20).split(b'\0'):
+    for entry in git_bytes('ls-tree', '-rz', '--full-tree', commit).split(b'\0'):
         if entry:
             header,name=entry.split(b'\t',1)
             mode,kind,identity=header.decode().split()
@@ -132,11 +160,14 @@ def source_identity():
         if kind!='blob' or mode not in {'100644','100755'} or observed!=expected:
             raise ValueError('materialized source differs from HEAD blob: '+name)
         actual[name]=sha256(raw).hexdigest()
-    return {'commit': git('rev-parse', 'HEAD'), 'tree': git('rev-parse', 'HEAD^{tree}'),
+    if git_baseline() != baseline:
+        raise ValueError('canonical Git baseline changed during source identity')
+    clean_git_env = {k: v for k, v in os.environ.items() if not k.startswith('GIT_')}
+    sparse = subprocess.run(['git', '--no-replace-objects', 'config', '--get', 'core.sparseCheckout'],
+                            cwd=ROOT, env=clean_git_env, capture_output=True, text=True, timeout=20)
+    return {'commit': commit, 'tree': tree_sha,
             'materialized_files_sha256': actual,
-            'clean': True, 'sparse_checkout': git('config', '--get', 'core.sparseCheckout') == 'true'
-            if subprocess.run(['git','config','--get','core.sparseCheckout'],cwd=ROOT,
-                              stdout=subprocess.DEVNULL).returncode == 0 else False}
+            'clean': True, 'sparse_checkout': sparse.returncode == 0 and sparse.stdout.strip() == 'true'}
 
 
 def executable(path):

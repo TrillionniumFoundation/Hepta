@@ -76,9 +76,25 @@ class SevenRunnerTests(unittest.TestCase):
                 with ExitStack() as capture_stack:
                     capture_stack.enter_context(patch.object(collector.subprocess,'Popen',side_effect=popen))
                     capture_stack.enter_context(patch.object(collector,'platform_observation',return_value=PLATFORM))
+                    if behavior=='target_limit':
+                        capture_stack.enter_context(patch.object(collector,'READ_CHUNK',1))
                     if behavior=='target_timeout':
                         origin=time.monotonic()
-                        capture_stack.enter_context(patch.object(collector,'time',SimpleNamespace(monotonic=lambda:origin+(time.monotonic()-origin)*100)))
+                        clock={'cleanup_offset':None};killpg=os.killpg
+                        def observe_time():
+                            now=time.monotonic()
+                            return (origin+(now-origin)*100 if clock['cleanup_offset'] is None
+                                    else now+clock['cleanup_offset'])
+                        def begin_cleanup(*args):
+                            if clock['cleanup_offset'] is None:
+                                now=time.monotonic()
+                                clock['cleanup_offset']=(now-origin)*99
+                            return killpg(*args)
+                        # Accelerate only the process phase. Once the real
+                        # group kill begins cleanup, keep a continuous clock
+                        # at normal rate for its independent two-second budget.
+                        capture_stack.enter_context(patch.object(collector.os,'killpg',side_effect=begin_cleanup))
+                        capture_stack.enter_context(patch.object(collector,'time',SimpleNamespace(monotonic=observe_time)))
                     captured=collector.capture_result(executable,source,output,root,**kwargs)
                 if behavior=='malformed_terminal':
                     event_path=root/runner.CAPTURE_FILES[2]

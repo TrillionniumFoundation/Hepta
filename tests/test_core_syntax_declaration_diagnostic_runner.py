@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 from tools import diagnose_core_syntax_declarations as runner
 from tools import check_core_syntax_staged as base
+from tools import core_syntax_diagnostic_capture as collector
 from tools.core_syntax_structured_stages import build_inputs
 from tools.core_syntax_declaration_diagnostic_sources import build_diagnostic_sources
 
@@ -41,6 +42,8 @@ class DiagnosticRunnerTests(unittest.TestCase):
             def capture(exe, source, output, root, *, safe_root, markers, manifest_reference):
                 if behavior == 'platform':
                     return dict(status='diagnostic_infrastructure_failed', process_started=False,
+                                leader_reaped=False, drain_complete=False, cleanup_deadline_exceeded=False,
+                                cleanup_incomplete=False, output_truncated=False, returncode=None,
                                 metadata_remaining_bytes=16384, files={}, raw_files={})
                 calls.append(source.stem)
                 if behavior == 'uncertain':
@@ -48,9 +51,16 @@ class DiagnosticRunnerTests(unittest.TestCase):
                 self.assertEqual(source.read_text(), self.diagnostic.stages[2].source)
                 self.assertEqual(len(markers), 24)
                 self.assertEqual(manifest_reference['sha256'], self.diagnostic.manifest_sha256)
+                status = {'timeout':'diagnostic_timeout', 'limit':'diagnostic_output_limit',
+                          'claim_pass':'passed'}.get(behavior, 'diagnostic_completed')
+                process = dict(status=status, process_started=True, returncode=0, leader_reaped=True,
+                               drain_complete=True, cleanup_deadline_exceeded=False, cleanup_incomplete=False,
+                               output_truncated=status=='diagnostic_output_limit', manifest_reference=manifest_reference)
+                events = collector._record_bytes(dict(kind='terminal', process=process,
+                    accounting_before_terminal=dict(raw_written_bytes=len(b'fixed mock output'), metadata_written_bytes=0)))
                 for name, value in [('LinearTransport.stdout', b'fixed mock output'),
                                     ('LinearTransport.stderr', b''),
-                                    ('LinearTransport.events.jsonl', b'{"mock":true}\n')]:
+                                    ('LinearTransport.events.jsonl', events)]:
                     safe_root.write(name, value)
                 output.write_bytes(b'never admitted')
                 if behavior == 'change_parent':
@@ -59,17 +69,15 @@ class DiagnosticRunnerTests(unittest.TestCase):
                     (root/'HiaSyntaxResearch/ParallelTransport.olean').write_bytes(b'forbidden')
                 if behavior == 'change_binary':
                     executable.write_bytes(b'changed')
-                status = {'timeout':'diagnostic_timeout', 'limit':'diagnostic_output_limit',
-                          'claim_pass':'passed'}.get(behavior, 'diagnostic_completed')
                 files = {}
                 for name in ('LinearTransport.stdout','LinearTransport.stderr','LinearTransport.events.jsonl'):
                     raw=(root/name).read_bytes()
                     files[name]=dict(path=name,bytes=len(raw),sha256=base.digest(raw))
                 if behavior == 'changed_log':
                     (root/'LinearTransport.stdout').write_bytes(b'altered after frozen capture receipt')
-                return dict(status=status, process_started=True, files=files,
+                return dict(**process, files=files,
                             raw_files={n:v for n,v in files.items() if n != 'LinearTransport.events.jsonl'},
-                            metadata_remaining_bytes=0 if behavior=='no_metadata' else 16384-len(b'{"mock":true}\n'))
+                            metadata_remaining_bytes=0 if behavior=='no_metadata' else 16384-len(events))
             try:
                 report = runner.execute_diagnostic(executable, home/'out', self.prepared, self.diagnostic,
                           identity, support, lambda:identity, lambda _:support,

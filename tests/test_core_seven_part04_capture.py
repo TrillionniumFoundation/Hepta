@@ -10,11 +10,14 @@ import subprocess
 import sys
 import tempfile
 import time
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
 from tools import core_seven_part04_capture as capture
 from tools.check_core_syntax_staged import SafeRoot
+from tests.test_core_syntax_diagnostic_capture import (
+    ObservedCaptureClock, BufferedCaptureFixture, fixture_observation)
 
 PLATFORM = {'sys_platform': 'linux', 'machine': 'x86_64',
             'os_release': {'ID': 'ubuntu', 'VERSION_ID': '24.04'}, 'libc': 'glibc 2.39'}
@@ -144,10 +147,42 @@ class Part04CaptureTests(unittest.TestCase):
             script = 'import os,time\nos.write(1,%r)\ntime.sleep(10)' % prefix
             with self.subTest(prefix=prefix):
                 started = time.monotonic()
-                result, files, _ = self.run_child(script, overrides=(('PROCESS_SECONDS', 0.15),))
+                setup = None
+                if prefix:
+                    # The empty-output branch below retains its real clock.
+                    # This branch first establishes actual prefix persistence.
+                    clock = ObservedCaptureClock(capture)
+                    timing = {}
+                    def persisted(buffered, name, raw):
+                        if name == capture.DIAGNOSTIC_FILES[0]:
+                            self.assertEqual(raw, prefix)
+                            timing['prefix_persisted_wall'] = time.monotonic()
+                            clock.process_deadline()
+                    buffered = BufferedCaptureFixture(capture, clock, {'stdout':len(prefix)}, after_raw=persisted)
+                    setup = buffered.setup
+                    script = 'import os,signal;signal.alarm(60);os.write(1,%r);signal.pause()' % prefix
+                result, files, _ = self.run_child(script, setup=setup, overrides=(('PROCESS_SECONDS', 0.15),))
+                finished = time.monotonic()
+                if prefix:
+                    fixture_observation(self.id(), result, files, clock, buffered,
+                        prefix_hex=prefix.hex(), real_total_wall_seconds=finished-started,
+                        real_tail_seconds=(finished-timing['prefix_persisted_wall']
+                            if 'prefix_persisted_wall' in timing else None))
+                else:
+                    fixture_observation(self.id(), result, files, None,
+                        prefix_hex='', real_elapsed_seconds=finished-started)
                 self.assertEqual(result['status'], 'diagnostic_timeout', result)
                 self.assertEqual(files[capture.DIAGNOSTIC_FILES[0]], prefix)
+                # Restore the original real total-wall assertion for both
+                # branches. Prefix setup, waiting, reads and persistence all
+                # remain inside this unchanged start-to-assertion window.
                 self.assertLess(time.monotonic() - started, 1.5)
+                if prefix:
+                    self.assertIn('prefix_persisted_wall', timing)
+                    self.assertLess(result['elapsed_seconds'], 1.5)
+                    self.assertEqual(clock.at_kill, {'stdout':len(prefix), 'stderr':0})
+                    self.assertEqual((clock.kill_calls, clock.deadline_events), (1, 1))
+                    self.assertEqual(buffered.short_reads, [])
                 self.assertTrue(result['leader_reaped'])
                 self.assertTrue(result['group_kill_sent'])
                 self.assertEqual(result['signal'], signal.SIGKILL)
@@ -240,7 +275,12 @@ a.start();b.start();a.join();b.join()
                     safe.close()
 
     def test_full_production_raw_cap_leaves_room_for_exact_single_display(self):
-        result, files, _ = self.run_child('import os\nwhile True: os.write(2,b"x"*16384)')
+        clock = ObservedCaptureClock(capture)
+        buffered = BufferedCaptureFixture(capture, clock, {'stderr':8192})
+        script = ('import os,signal\nsignal.alarm(60)\ndata=b"x"*%d\n'
+                  'while data:\n count=os.write(2,data);data=data[count:]\nsignal.pause()' % (capture.RAW_LIMIT+1))
+        result, files, _ = self.run_child(script, setup=buffered.setup)
+        fixture_observation(self.id(), result, files, clock, buffered)
         self.assertEqual(result['status'], 'diagnostic_output_limit')
         self.assertEqual(sum(result['observed_bytes'].values()), 507392)
         self.assertEqual(result['raw_written_bytes'], 507392)
@@ -248,6 +288,10 @@ a.start();b.start();a.join();b.join()
         runner_reserve = result['metadata_remaining_bytes']
         self.assertLessEqual(durable + runner_reserve, capture.DURABLE_TOTAL)
         self.assertLessEqual(2 * (durable + runner_reserve) + capture.DISPLAY_LABEL_RESERVE, capture.TOTAL)
+        self.assertEqual(clock.at_kill, {'stdout':0, 'stderr':507392})
+        self.assertGreater(buffered.gated_events, 0)
+        self.assertEqual(buffered.short_reads, [])
+        self.assertEqual((clock.kill_calls, clock.deadline_events), (1, 0))
 
     def test_timeout_eio_after_group_kill_before_waitid_exit_remains_timeout(self):
         state = {'killed': False, 'pending_exit': False, 'injected_eio': 0, 'pending_waitid': 0}
@@ -281,10 +325,12 @@ a.start();b.start();a.join();b.join()
         self.assertTrue(result['group_kill_sent'])
         self.assertEqual(files[capture.DIAGNOSTIC_FILES[0]], b'partial')
 
-    def setup_race(self, state, *, reopen=None, late=None, interrupt=False, cleanup_error=False):
+    def setup_race(self, state, *, reopen=None, late=None, interrupt=False, cleanup_error=False,
+                   timeout_after_first_eio=False):
         def setup(safe, stack):
             read, waitid, killpg, openpty, monotonic = os.read, os.waitid, os.killpg, os.openpty, time.monotonic
             state.update(eios=0, confirmations=0, waits=0, killed=False, offset=0)
+            model_start = monotonic() if timeout_after_first_eio else None
             def allocate():
                 master, slave = openpty()
                 state['slave'] = os.ttyname(slave)
@@ -304,6 +350,8 @@ a.start();b.start();a.join();b.join()
                 except OSError as error:
                     if error.errno == errno.EIO and os.isatty(fd):
                         state['eios'] += 1
+                        if timeout_after_first_eio and state['eios'] == 1:
+                            state['first_eio_at'] = monotonic()
                         if late == 'exact' and 'frozen' not in state:
                             state['frozen'] = monotonic()
                     raise
@@ -338,7 +386,16 @@ a.start();b.start();a.join();b.join()
             stack.enter_context(patch.object(capture.os, 'read', side_effect=receive))
             stack.enter_context(patch.object(capture.os, 'waitid', side_effect=observe))
             stack.enter_context(patch.object(capture.os, 'killpg', side_effect=kill))
-            stack.enter_context(patch.object(capture.time, 'monotonic', side_effect=lambda: state.get('frozen', monotonic()) + state['offset']))
+            def clock():
+                if timeout_after_first_eio:
+                    # Establish a real first EIO before crossing the unchanged
+                    # process deadline. Cleanup then progresses at wall-clock
+                    # speed, so this is not a post-kill EOF control by accident.
+                    if 'first_eio_at' not in state:
+                        return model_start
+                    return model_start + capture.PROCESS_SECONDS + monotonic() - state['first_eio_at']
+                return state.get('frozen', monotonic()) + state['offset']
+            stack.enter_context(patch.object(capture.time, 'monotonic', side_effect=clock))
         return setup
 
     def test_real_eio_delayed_natural_exit_resolves_before_group_kill(self):
@@ -419,9 +476,11 @@ a.start();b.start();a.join();b.join()
     def test_pending_eio_timeout_never_resolves_after_group_kill(self):
         state = {}
         result, _, _ = self.run_child('import os,time;os.close(1);time.sleep(10)',
-                                     setup=self.setup_race(state), overrides=(('PROCESS_SECONDS', 0.04),))
+                                     setup=self.setup_race(state, timeout_after_first_eio=True),
+                                     overrides=(('PROCESS_SECONDS', 0.04),))
         self.assertEqual(result['status'], 'diagnostic_timeout', result)
         self.assertFalse(result['drain_complete'])
+        self.assertEqual(state['eios'], 1)
         self.assertEqual(state['confirmations'], 0)
 
     def test_nonzero_natural_exit_remains_failed(self):
@@ -476,8 +535,31 @@ a.start();b.start();a.join();b.join()
     def test_complete_fragmented_real_child_has_only_thirteen_events(self):
         payload = b'noise\n' + lines() + b'tail without newline\xff'
         script = 'import os\nfor b in %r: os.write(1,bytes([b]))\nos.write(2,b"stderr\\xff")' % payload
-        result, files, launches = self.run_child(script, overrides=(('READ_CHUNK', 1),))
+        progress = {}
+        def setup(safe, stack):
+            # This control checks every real one-byte fragment, retained byte,
+            # and marker event. Model time does not turn fsync/scheduling cost
+            # into an unrelated drain failure. Resume wall time after the known
+            # finite payload is durable; real deadline controls are separate.
+            append, monotonic = capture._Sink.append, time.monotonic
+            origin = monotonic()
+            expected = {capture.DIAGNOSTIC_FILES[0]: len(payload),
+                        capture.DIAGNOSTIC_FILES[1]: len(b'stderr\xff')}
+            progress.update(counts={name: 0 for name in expected}, resumed=None)
+            def persist(sink, name, data, terminal=False):
+                value = append(sink, name, data, terminal=terminal)
+                if name in expected:
+                    progress['counts'][name] += len(data)
+                    if progress['counts'] == expected and progress['resumed'] is None:
+                        progress['resumed'] = monotonic()
+                return value
+            def clock():
+                return origin if progress['resumed'] is None else origin + monotonic() - progress['resumed']
+            stack.enter_context(patch.object(capture._Sink, 'append', new=persist))
+            stack.enter_context(patch.object(capture, 'time', SimpleNamespace(monotonic=clock)))
+        result, files, launches = self.run_child(script, setup=setup, overrides=(('READ_CHUNK', 1),))
         self.assertEqual(result['status'], 'diagnostic_completed', result)
+        self.assertIsNotNone(progress['resumed'])
         self.assertEqual(len(launches), 1)
         self.assertEqual(files[capture.DIAGNOSTIC_FILES[0]], payload)
         self.assertEqual(files[capture.DIAGNOSTIC_FILES[1]], b'stderr\xff')
@@ -498,11 +580,56 @@ a.start();b.start();a.join();b.join()
 
     def test_clean_prefix_nonzero_and_timeout(self):
         prefix = lines().splitlines(keepends=True)[0]
-        for end, status in [('raise SystemExit(7)', 'diagnostic_failed'), ('import time;time.sleep(10)', 'diagnostic_timeout')]:
-            result, files, _ = self.run_child('import os;os.write(1,%r);%s' % (prefix,end), overrides=(('PROCESS_SECONDS', .15),))
-            self.assertEqual(result['status'], status, result)
-            self.assertEqual(result['marker_count'], 1)
-            self.assertEqual(files[capture.DIAGNOSTIC_FILES[0]], prefix)
+        for status in ('diagnostic_failed', 'diagnostic_timeout'):
+            with self.subTest(status=status):
+                clock = ObservedCaptureClock(capture)
+                state = dict(marker_persisted=False, ack_sent=False)
+                ack_read, ack_write = os.pipe()
+                try:
+                    def persisted(buffered, name, raw):
+                        records = [json.loads(line) for line in raw.splitlines()]
+                        self.assertEqual([row['kind'] for row in records], ['marker'])
+                        self.assertEqual(buffered.counts, {'stdout':len(prefix), 'stderr':0})
+                        self.assertFalse(state['marker_persisted'])
+                        state['marker_persisted'] = True
+                        if status == 'diagnostic_failed':
+                            self.assertEqual(os.write(ack_write, b'1'), 1)
+                            state['ack_sent'] = True
+                        else:
+                            clock.process_deadline()
+                    buffered = BufferedCaptureFixture(capture, clock, {'stdout':len(prefix)}, after_batch=persisted)
+                    def setup(root, stack):
+                        buffered.setup(root, stack)
+                        if status == 'diagnostic_failed':
+                            popen = capture.subprocess.Popen
+                            def launch(*args, **kwargs):
+                                # Only the Python test adapter receives this
+                                # owned ACK fd; collector/native policy is intact.
+                                kwargs['pass_fds'] = (ack_read,)
+                                return popen(*args, **kwargs)
+                            stack.enter_context(patch.object(capture.subprocess, 'Popen', side_effect=launch))
+                    end = ('assert os.read(%d,1)==b"1";os.close(%d);raise SystemExit(7)' % (ack_read,ack_read)
+                           if status == 'diagnostic_failed' else 'signal.pause()')
+                    script = 'import os,signal;signal.alarm(60);os.write(1,%r);%s' % (prefix,end)
+                    result, files, _ = self.run_child(script, setup=setup, overrides=(('PROCESS_SECONDS', .15),))
+                    fixture_observation(self.id(), result, files, clock, buffered,
+                        expected_status=status, precondition=state)
+                    self.assertEqual(result['status'], status, result)
+                    self.assertEqual(result['marker_count'], 1)
+                    self.assertEqual(files[capture.DIAGNOSTIC_FILES[0]], prefix)
+                    self.assertTrue(state['marker_persisted'])
+                    self.assertEqual(state['ack_sent'], status == 'diagnostic_failed')
+                    self.assertEqual(clock.at_kill, {'stdout':len(prefix), 'stderr':0})
+                    self.assertEqual(clock.kill_calls, 1)
+                    self.assertEqual(clock.deadline_events, int(status == 'diagnostic_timeout'))
+                    self.assertEqual(buffered.short_reads, [])
+                    self.assertTrue(result['leader_reaped'])
+                    if status == 'diagnostic_failed':
+                        self.assertEqual(result['returncode'], 7)
+                        self.assertTrue(result['drain_complete'])
+                finally:
+                    os.close(ack_read)
+                    os.close(ack_write)
 
     def test_partial_marker_eof_rejects(self):
         result, files, _ = self.run_child('import os;os.write(1,%r)' % lines().splitlines()[0])

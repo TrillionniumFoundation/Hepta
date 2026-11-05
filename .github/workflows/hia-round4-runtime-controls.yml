@@ -1,0 +1,55 @@
+name: HIA round4 runtime controls
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'tools/**'
+      - 'tests/**'
+      - '.github/workflows/hia-round4-runtime-controls.yml'
+permissions:
+  contents: read
+jobs:
+  scalar-and-cache:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONOPTIMIZE: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify the frozen implementation
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          python -m pip install 'z3-solver==4.15.4.0'
+          timeout 120s python -B - <<'PY'
+          import json,sys,unittest
+          expected=['tests.test_hia_result_cache.ResultCacheTests.test_close_is_idempotent_and_refuses_operations', 'tests.test_hia_result_cache.ResultCacheTests.test_corrupt_code_identity_is_refused', 'tests.test_hia_result_cache.ResultCacheTests.test_corrupt_value_is_refused', 'tests.test_hia_result_cache.ResultCacheTests.test_data_mutation_invalidates_and_rejects_stale', 'tests.test_hia_result_cache.ResultCacheTests.test_exact_integer_admission', 'tests.test_hia_result_cache.ResultCacheTests.test_generation_retirement_requires_reprepare', 'tests.test_hia_result_cache.ResultCacheTests.test_oracle_handles_u32_wrap_and_nonperiod_tail', 'tests.test_hia_result_cache.ResultCacheTests.test_prepare_executes_and_reuse_does_not_execute_again', 'tests.test_hia_result_cache.ResultCacheTests.test_quota_refuses_before_kernel', 'tests.test_hia_result_cache.ResultCacheTests.test_retirement_zeroes_slot', 'tests.test_hia_result_cache_binding.ResultCacheBindingTests.test_head_change_with_identical_tree_is_still_detected', 'tests.test_hia_result_cache_binding.ResultCacheBindingTests.test_protocol_and_each_tool_path_are_checked_after_observation', 'tests.test_hia_result_cache_binding.ResultCacheBindingTests.test_restoring_a_registration_does_not_erase_detected_corruption', 'tests.test_hia_result_cache_binding.ResultCacheBindingTests.test_untracked_source_is_not_a_clean_registration', 'tests.test_hia_scalar_phi_edges.ScalarPhiEdgesTests.test_duplicate_or_missing_phi_predecessor_refuses', 'tests.test_hia_scalar_phi_edges.ScalarPhiEdgesTests.test_every_incoming_edge_checked_before_symbolic_path_execution', 'tests.test_hia_scalar_phi_edges.ScalarPhiEdgesTests.test_false_incoming_edge_still_checks_value_type', 'tests.test_hia_scalar_phi_edges.ScalarPhiEdgesTests.test_later_phi_cannot_read_earlier_phi_on_incoming_edge', 'tests.test_hia_scalar_phi_edges.ScalarPhiEdgesTests.test_legal_dominating_values_and_phi_orders', 'tests.test_hia_scalar_phi_edges.ScalarPhiEdgesTests.test_other_predecessor_definition_cannot_cross_edges', 'tests.test_hia_scalar_phi_edges.ScalarPhiEdgesTests.test_parallel_cfg_edges_cannot_use_one_phi_entry', 'tests.test_hia_scalar_phi_edges.ScalarPhiEdgesTests.test_phi_after_non_phi_refuses', 'tests.test_hia_scalar_phi_edges.ScalarPhiEdgesTests.test_self_and_later_phi_are_not_predecessor_values', 'tests.test_hia_scalar_phi_edges.ScalarPhiEdgesTests.test_sequential_proof_chain_rejects_malformed_actual_lowering', 'tests.test_hia_scalar_phi_edges.ScalarPhiEdgesTests.test_undefined_incoming_value_refuses', 'tests.test_hia_upstream_factorial.PublicEditFeedbackTests.test_diagnostics_are_bounded_and_never_echo_file_contents', 'tests.test_hia_upstream_factorial.PublicEditFeedbackTests.test_file_names_and_value_types_are_public_and_symmetric', 'tests.test_hia_upstream_factorial.PublicEditFeedbackTests.test_non_contract_decoder_errors_keep_the_original_public_message', 'tests.test_hia_upstream_factorial.PublicEditFeedbackTests.test_patch_counts_use_each_ordered_step_and_reset_to_original', 'tests.test_hia_upstream_factorial.UpstreamFactorialTests.test_actual_owned_context_is_checked_independently_of_requested_argv', 'tests.test_hia_upstream_factorial.UpstreamFactorialTests.test_fixed_real_origin_and_independent_mathematical_oracle', 'tests.test_hia_upstream_factorial.UpstreamFactorialTests.test_full_patch_same_reference_stale_or_ambiguous_edits_refused', 'tests.test_hia_upstream_factorial.UpstreamFactorialTests.test_hia_candidate_cannot_add_effects_or_change_export', 'tests.test_hia_upstream_factorial.UpstreamFactorialTests.test_rust_public_subset_refuses_external_capabilities_and_recursion']
+          modules=['tests.test_hia_scalar_phi_edges', 'tests.test_hia_result_cache', 'tests.test_hia_result_cache_binding', 'tests.test_hia_upstream_factorial']
+          loader=unittest.TestLoader()
+          suite=loader.loadTestsFromNames(modules)
+          def flatten(suite):
+              for item in suite:
+                  if isinstance(item, unittest.TestSuite):
+                      yield from flatten(item)
+                  else:
+                      yield item.id()
+          actual=sorted(flatten(suite))
+          print(json.dumps({'expected':expected,'actual':actual,'loader_errors':loader.errors},sort_keys=True))
+          if sys.flags.optimize or loader.errors or actual != expected:
+              raise SystemExit('runtime control inventory differs')
+          result=unittest.TextTestRunner(verbosity=2).run(suite)
+          if result.testsRun != 34 or not result.wasSuccessful() or result.skipped or result.expectedFailures or result.unexpectedSuccesses:
+              raise SystemExit('runtime controls incomplete or failed')
+          PY
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"

@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 from tools import core_syntax_diagnostic_capture as capture
 from tests import test_core_seven_certificate_diagnostic as seven_tests
+from tests.test_core_syntax_diagnostic_capture import ObservedCaptureClock, fixture_observation
 
 
 class SevenPendingEIOTests(unittest.TestCase):
@@ -149,12 +150,59 @@ class SevenPendingEIOTests(unittest.TestCase):
                 self.assertFalse(result['drain_complete'])
 
     def test_pending_eio_timeout_never_resolves_after_group_kill(self):
-        state = {}
-        result, _, _ = self.capture('import os,time;os.close(1);time.sleep(10)',
-                                     setup=self.setup_race(state), overrides=(('PROCESS_SECONDS', 0.04),))
+        clock = ObservedCaptureClock(capture)
+        state = dict(eios=0, confirmations=0, pending_unregistered=0, waitid_none_after_eio=False)
+        def setup(safe, stack):
+            read, waitid, factory = os.read, os.waitid, capture.selectors.DefaultSelector
+            clock.observe_kill = lambda: dict(state)
+            clock.setup(safe, stack)
+            def receive(fd, count):
+                tty = os.isatty(fd)
+                if tty and state['eios']:
+                    state['confirmations'] += 1
+                try:
+                    return read(fd, count)
+                except OSError as error:
+                    if tty and error.errno == errno.EIO:
+                        state['eios'] += 1
+                    raise
+            def observe(*args):
+                info = waitid(*args)
+                if state['eios'] and not clock.kill_calls:
+                    state['waitid_none_after_eio'] = info is None
+                return info
+            def selector(*args, **kwargs):
+                selected = factory(*args, **kwargs)
+                unregister = selected.unregister
+                def remove(fd):
+                    key = unregister(fd)
+                    if key.data == 'stdout' and state['eios'] and not clock.kill_calls:
+                        # The actual pending assignment precedes this real
+                        # unregister. Jumping at the first EIO would be too early:
+                        # leader_exit also checks the deadline before assignment.
+                        self.assertEqual(state['eios'], 1)
+                        self.assertTrue(state['waitid_none_after_eio'])
+                        state['pending_unregistered'] += 1
+                        clock.process_deadline()
+                    return key
+                selected.unregister = remove
+                return selected
+            stack.enter_context(patch.object(capture.os, 'read', side_effect=receive))
+            stack.enter_context(patch.object(capture.os, 'waitid', side_effect=observe))
+            stack.enter_context(patch.object(capture.selectors, 'DefaultSelector', side_effect=selector))
+        result, files, _ = self.capture('import os,signal;signal.alarm(60);os.close(1);signal.pause()',
+                                     setup=setup, overrides=(('PROCESS_SECONDS', 0.04),))
+        fixture_observation(self.id(), result, files, clock, precondition=state)
         self.assertEqual(result['status'], 'diagnostic_timeout', result)
         self.assertFalse(result['drain_complete'])
         self.assertEqual(state['confirmations'], 0)
+        self.assertEqual(state['eios'], 1)
+        self.assertEqual(state['pending_unregistered'], 1)
+        self.assertTrue(state['waitid_none_after_eio'])
+        self.assertEqual(clock.at_kill, state)
+        self.assertEqual((clock.kill_calls, clock.deadline_events), (1, 1))
+        self.assertTrue(result['leader_reaped'])
+        self.assertTrue(result['group_kill_sent'])
 
     def test_nonzero_natural_exit_remains_failed(self):
         state = {}
@@ -205,12 +253,19 @@ class SevenPendingEIOTests(unittest.TestCase):
         self.assertEqual(files['SevenCertificatePart02.stdout'], b'')
         self.assertEqual(files['SevenCertificatePart02.stderr'], b'err')
 
-    def test_both_legacy_modes_keep_immediate_unexpected_eio_failure(self):
+    def test_both_legacy_modes_require_bounded_exit_and_eof_confirmation(self):
         from tests.test_core_syntax_diagnostic_capture import DiagnosticCaptureTests
         for target in ('LinearTransport', 'CertPart02'):
             with self.subTest(target=target):
                 state = {}
                 result, _, _ = DiagnosticCaptureTests().run_child('pass',
+                    target=target, setup=self.setup_race(state))
+                self.assertEqual(result['status'], 'diagnostic_completed', result)
+                self.assertTrue(result['drain_complete'])
+                self.assertEqual(state['confirmations'], 1)
+                state = {}
+                result, _, _ = DiagnosticCaptureTests().run_child(
+                    'import os,time;os.close(1);os.close(2);time.sleep(10)',
                     target=target, setup=self.setup_race(state))
                 self.assertEqual(result['status'], 'diagnostic_infrastructure_failed', result)
                 self.assertFalse(result['drain_complete'])

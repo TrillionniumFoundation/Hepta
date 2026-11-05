@@ -11,6 +11,28 @@ from tools import diagnose_core_byte_facts as runner
 from tools.check_core_syntax_staged import SafeRoot, digest
 
 
+def metadata_quota_clock(state):
+    """Model only pre-quota time; actual kill/reap cleanup resumes at 1x.
+
+    These byte/accounting controls do not measure one-second fsync throughput.
+    Real finite payload, reads, writes and fsync stay intact. The child has its
+    own finite wall watchdog; the unchanged outer test limit is still 180s.
+    """
+    def setup(root, stack):
+        real_clock, real_kill = capture.time.monotonic, capture.os.killpg
+        origin = real_clock()
+        state['released_at'] = None
+        def clock():
+            return origin if state['released_at'] is None else origin + real_clock() - state['released_at']
+        def killpg(*args):
+            if state['released_at'] is None:
+                state['released_at'] = real_clock()
+            return real_kill(*args)
+        stack.enter_context(patch.object(capture.time, 'monotonic', side_effect=clock))
+        stack.enter_context(patch.object(capture.os, 'killpg', side_effect=killpg))
+    return setup
+
+
 class CaptureReplayTests(unittest.TestCase):
     def run_capture(self, script, *, markers=(), setup=None, overrides=(), observer=None):
         manifest = json.dumps({'markers': list(markers)}).encode()
@@ -41,7 +63,7 @@ class CaptureReplayTests(unittest.TestCase):
         return dict(id='HIA_DIAG_v1_P02_%03d' % index,
                     original_offset=index, instrumented_offset=index)
 
-    def exact_budget(self, markers=(), short=0):
+    def exact_budget(self, markers=(), short=0, observation=None):
         # Set a tiny live budget after the real start record, using exact actual
         # serialized receive/marker sizes. Never enlarge the production budget.
         original_init = capture._Sink.__init__
@@ -54,6 +76,8 @@ class CaptureReplayTests(unittest.TestCase):
             def encode(value):
                 raw = original_encode(value)
                 if value.get('kind') == 'receive':
+                    if observation is not None:
+                        observation['receive_count'] = observation.get('receive_count', 0) + 1
                     observer = capture.MarkerObserver(markers, target='CertPart02')
                     text = b''.join(('"'+m['id']+'" : String\n').encode() for m in markers)
                     events = observer('stdout', text, 0, value['received_seconds'])
@@ -70,8 +94,13 @@ class CaptureReplayTests(unittest.TestCase):
 
     def test_fragmented_default_budget_preserves_replayable_prefix(self):
         for stream in (1, 2):
-            item = self.run_capture('import os,time\nfor i in range(200):\n os.write(%d,b"inert mock theorem line\\n");time.sleep(.002)' % stream)
+            # Child writes are not pipe/PTY read boundaries. Force small reads
+            # while retaining the production metadata and terminal budgets.
+            state = {}
+            item = self.run_capture('import os,signal;signal.alarm(60);os.write(%d,b"inert mock theorem line\\n"*200);signal.pause()' % stream,
+                                    setup=metadata_quota_clock(state), overrides=(('READ_CHUNK', 1),))
             result, files, _, _ = item
+            self.assertIsNotNone(state['released_at'])
             self.assertEqual(result['status'], 'diagnostic_infrastructure_failed')
             self.assertIn('metadata budget', result['error'])
             self.assertGreater(sum(result['observed_bytes'].values()), result['raw_written_bytes'])
@@ -85,14 +114,42 @@ class CaptureReplayTests(unittest.TestCase):
             data = b''.join(('"'+m['id']+'" : String\n').encode() for m in markers) or b'x'
             for short in (0, 1):
                 with self.subTest(count=count,short=short):
-                    item = self.run_capture('import os,time;os.write(1,%r);time.sleep(10)' % data,
-                        markers=markers,setup=self.exact_budget(markers,short),
+                    clock = harness.ObservedCaptureClock(capture)
+                    state = dict(receive_count=0, persisted_batch=False)
+                    def complete_batch(buffered, name, raw):
+                        if short or state['persisted_batch']:
+                            return
+                        records = [json.loads(line) for line in raw.splitlines()]
+                        self.assertEqual(buffered.counts, {'stdout':len(data), 'stderr':0})
+                        self.assertEqual(sum(r['bytes'] for r in records if r['kind']=='receive'), len(data))
+                        self.assertEqual(sum(r['kind']=='marker' for r in records), count)
+                        state['persisted_batch'] = True
+                        clock.process_deadline()
+                    buffered = harness.BufferedCaptureFixture(capture, clock, {'stdout':len(data)}, after_batch=complete_batch)
+                    budget = self.exact_budget(markers, short, observation=state)
+                    def setup(root, stack):
+                        budget(root, stack)
+                        buffered.setup(root, stack)
+                    item = self.run_capture('import os,signal;signal.alarm(60);os.write(1,%r);signal.pause()' % data,
+                        markers=markers,setup=setup,
                         overrides=(('PROCESS_SECONDS',.15),))
                     result, files, _, _ = item
+                    harness.fixture_observation(self.id(), result, files, clock, buffered,
+                        count=count, short=short, precondition=state)
                     self.assertEqual(result['status'], 'diagnostic_infrastructure_failed' if short else 'diagnostic_timeout')
                     self.assertEqual(files['CertPart02.stdout'], b'' if short else data)
                     self.assertEqual(result['marker_count'],0 if short else count)
                     self.assertEqual(result['observed_bytes']['stdout'],len(data))
+                    self.assertEqual(state['receive_count'], 1)
+                    self.assertIs(state['persisted_batch'], not short)
+                    self.assertEqual(clock.deadline_events, int(not short))
+                    self.assertEqual(clock.kill_calls, 1)
+                    self.assertEqual(buffered.short_reads, [])
+                    if short:
+                        self.assertIn('diagnostic metadata budget', result['error'])
+                        self.assertEqual(clock.at_kill, {'stdout':0, 'stderr':0})
+                    else:
+                        self.assertEqual(clock.at_kill, {'stdout':len(data), 'stderr':0})
                     self.verify(item)
 
     def test_split_markers_and_both_stream_orders_replay(self):
