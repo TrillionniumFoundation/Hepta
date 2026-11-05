@@ -81,8 +81,17 @@ jobs:
           set -euo pipefail
           python3 experiments/openvpn_hia_20261105/target_host/verify_result.py \
             --public "$RUNNER_TEMP/ovpn-hia-target/public" --commit "$GITHUB_SHA"
-      - name: Retain complete nonsecret evidence on success, failure or timeout
+      - name: Reject unsafe public evidence before upload (independent of experiment pass)
+        id: publication_privacy
         if: always()
+        run: |
+          set -euo pipefail
+          python3 -B experiments/openvpn_hia_20261105/target_host/test_publication_guard.py
+          python3 -B experiments/openvpn_hia_20261105/target_host/publication_guard.py \
+            --public "$RUNNER_TEMP/ovpn-hia-target/public" \
+            --marker "$RUNNER_TEMP/ovpn-hia-target/publication-ok.json"
+      - name: Retain complete nonsecret evidence on success, failure or timeout
+        if: always() && steps.publication_privacy.outcome == 'success'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: openvpn-hia-target-${{ github.sha }}-${{ github.run_attempt }}
