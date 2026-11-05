@@ -164,20 +164,35 @@ scores, **15 exact calibration replays**, **15 slot-permutation checks**, and
 These checks establish source/implementation consistency, not external
 scientific acceptance.
 
-Randomly interleaved CPU forward measurements include the complete FIFO,
-scorer and input validation, B=8, T=12, 40 repeats per mode per seed. The
-following are pooled medians over 120 samples, on a shared one-thread CPU:
+Cost review found one further comparator defect: ordinary tangent originally
+computed the analytic put and then replaced that unused tensor with its sigmoid
+control. The unused work inflated the ordinary baseline. It has been removed;
+the published pre-repair source is retained at `d431b0b1...` and the original
+timing samples remain in the raw result. No model is retrained or selected.
+At all six trained checkpoints and seven panels, **42 complete outputs/states
+are elementwise exactly equal**. Six additional comparisons show exact equality
+of gradients for every parameter and both embedding inputs. These comparisons
+use `torch.equal`; the raw receipt's historical `bitwise_equal` field names do
+not assert byte equality of signed zeros.
+
+New randomized interleaved measurements compare the corrected controls and
+the old ordinary implementation on the same fixed tensors and weights. They
+include the complete FIFO, scorer and input validation, B=8, T=12, **80 repeats
+per mode per seed**. Pooled medians over 240 samples on a shared one-thread CPU:
 
 | Mode | Full feature-to-answer forward median |
 |---|---:|
-| Call/Put | 3.6383 ms |
-| Mapped Put+linear | 3.6051 ms |
-| Ordinary tangent | 3.8306 ms |
-| Raw cosine | 1.9864 ms |
-| Time-only newest | 1.9761 ms |
+| Call/Put | 3.4676 ms |
+| Mapped Put+linear | 3.4711 ms |
+| Ordinary tangent, unused work removed | 3.2355 ms |
+| Ordinary prior implementation, same interleaved run | 3.6581 ms |
+| Raw cosine | 1.9455 ms |
+| Time-only newest | 1.8963 ms |
 
 These timings exclude encoding, process startup and network communication;
-qualities differ. They establish no fixed-quality full-system speedup. Actual
+qualities differ. Ordinary is cheaper than Call/Put after removing the unused
+work in this run; the original cost comparison is superseded. These timings
+establish no fixed-quality full-system speedup. Actual
 device energy and distributed communication remain unmeasured. Corrected-run
 peak process RSS was **365,355,008 bytes**. The two campaign bodies total
 **52.5111 wall / 51.4758 CPU seconds**; these counters start inside `execute()`
@@ -193,6 +208,7 @@ python -m research.hcsn.p3_causal_alignment_evidence --output /tmp/fresh-alignme
 python research/hcsn/audit_p3_alignment.py --root . \
   --evidence research/hcsn/gates/2026-11-05-round3-p3-causal-alignment-raw-v2.json.gz \
   --output /tmp/fresh-alignment-audit.json
+python -m research.hcsn.p3_baseline_cost_audit --output /tmp/fresh-cost-correction.json
 ```
 
 The public raw JSON is losslessly gzip-compressed. Its uncompressed SHA256 is

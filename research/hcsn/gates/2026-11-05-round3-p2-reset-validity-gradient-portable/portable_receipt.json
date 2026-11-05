@@ -1,0 +1,83 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "purpose": "Portable CLI and create-only output; unchanged 36-case synthetic gradient diagnostic",
+  "source_sha256": "7ebeaf9069bdd547a2e41d607345a3ce3b29c300d93acf187bdfb51ebc99a02d",
+  "source_unchanged": true,
+  "portable_script_sha256": "aee2932eca8b812ff516570e3d00a26e9e497a965e94bc8ec5fbce55df2daee2",
+  "original_script_sha256": "7bcc2a094906d81fc92357ad667fcd952a73d4c3077593ef44e86bdb399052c2",
+  "allowed_edit_scope": [
+    "argparse import",
+    "repository/output path parsing",
+    "exclusive creation of fresh output directory",
+    "exclusive JSON creation"
+  ],
+  "only_allowed_text_replacements": true,
+  "original_artifacts_sha256": {
+    "review_autograd.py": "7bcc2a094906d81fc92357ad667fcd952a73d4c3077593ef44e86bdb399052c2",
+    "REVIEW.md": "528edc74e5b784721fe5e2ead81a4b93ed91e14a23cd34352153638e420ec669",
+    "autograd_evidence.json": "a6286cbb23e9d2350d473006d230deb16fe380d274737d52b2dbca625597c5c2",
+    "execution.json": "d1725b1d60d477e95fb666bbc825736431af76ccaec1c34f689ebabeb9d3d028",
+    "execution.log": "06f73810a2a557c1fa48eeaf12fb9a8c7d1efe2b8b0260397cad5bd07d0a2ae2",
+    "SHA256SUMS.txt": "64b352cac5db7981dead1b8afacd8aec69e427a4b85d9302f8f8826ec85ec3e8"
+  },
+  "all_six_original_artifacts_unchanged": true,
+  "execution": {
+    "command": [
+      "/workspace/scratch/a20378baf59f/.venv/bin/python",
+      "/workspace/scratch/4a81596942e6/p2-gradient-portable/portable_review_autograd.py",
+      "--root",
+      "/workspace/scratch/4a81596942e6/p2-work",
+      "--output-dir",
+      "/workspace/scratch/4a81596942e6/p2-gradient-portable/run"
+    ],
+    "environment": {
+      "OPENBLAS_NUM_THREADS": "1",
+      "OMP_NUM_THREADS": "1",
+      "MKL_NUM_THREADS": "1"
+    },
+    "started_at_utc": "2026-11-05T07:06:19.768497+00:00",
+    "elapsed_seconds": 2.5681172060012614,
+    "exit_code": 0
+  },
+  "semantic_comparison": {
+    "ignored_provenance_fields": [
+      "source_path",
+      "script_sha256"
+    ],
+    "all_other_fields_exactly_equal": true,
+    "all_36_case_payloads_exactly_equal": true,
+    "canonical_semantic_sha256": "88a79de4cbb555cd03d8dbe5348f50d91dd95482d41a419581aa97c390595008",
+    "case_payload_sha256": "a407cef1b87c23befdfee25f70627b17ad645401ddefb0a749501a514cd8f4d7",
+    "original_evidence_sha256": "a6286cbb23e9d2350d473006d230deb16fe380d274737d52b2dbca625597c5c2",
+    "portable_evidence_sha256": "66eac636ac8b649c030fd97e545820e20c464577f7d6f248c4d8c9cbe9f6d501"
+  },
+  "counts": {
+    "total": 36,
+    "immediate": 12,
+    "all_reset": 6,
+    "no_reset": 6,
+    "future": 12
+  },
+  "fits": 0,
+  "optimizer_steps": 0,
+  "heldout_read": false,
+  "checkpoints_read": [],
+  "datasets_read": [],
+  "create_only_rejection": {
+    "command": [
+      "/workspace/scratch/a20378baf59f/.venv/bin/python",
+      "/workspace/scratch/4a81596942e6/p2-gradient-portable/portable_review_autograd.py",
+      "--root",
+      "/workspace/scratch/4a81596942e6/p2-work",
+      "--output-dir",
+      "/workspace/scratch/4a81596942e6/p2-gradient-portable/run"
+    ],
+    "exit_code": 2,
+    "elapsed_seconds": 0.03832825899917225,
+    "evidence_unchanged": true,
+    "diagnostic_cases_executed": 0,
+    "reason": "Existing --output-dir rejected before importing torch or running cases"
+  },
+  "scope": "Local STE/autograd mechanism evidence only; no additional training, checkpoint evaluation, heldout access, or change to the frozen scientific protocol."
+}

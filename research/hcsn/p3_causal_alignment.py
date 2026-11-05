@@ -52,11 +52,12 @@ class CausalMatcher(nn.Module):
         # r=.06, delta=.03, sigma=.2 gives beta=2, b=2/3.
         boundary, beta = 2 / 3, 2.
         linear = u - 1
-        put = torch.where(u > boundary,
-                          (1 - boundary) * torch.exp(-beta * torch.log(u / boundary)),
-                          1 - u)
         if self.mode == "ordinary_tangent":
             put = 2 * (1 - boundary) * torch.sigmoid(-2 * (u - boundary) / (1 - boundary))
+        else:
+            put = torch.where(u > boundary,
+                              (1 - boundary) * torch.exp(-beta * torch.log(u / boundary)),
+                              1 - u)
         channels = torch.cat((put, linear), -1) if self.mode == "put_linear" else torch.cat((put + linear, put), -1)
         return 20 * cosine + self.output(channels).squeeze(-1)
 

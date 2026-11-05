@@ -1,0 +1,27 @@
+{
+  "blockers": [
+    "finite FP32 initial memory/validity can overflow before reset multiplication; zero times infinity is NaN",
+    "FP16 normalization epsilon underflows; limit numerical contract to FP32/FP64",
+    "finite precision Put+linear identity can cross a hard event threshold; retain constructive counterexample and audit actual trained events"
+  ],
+  "correction": "pre-erase memory/validity/context before address and dot products, mask current write by keep; changed STE surrogate explicitly re-frozen before any fit",
+  "fits_executed": 0,
+  "heldout_evaluations_executed": 0,
+  "original_source_sha256": {
+    "gates/2026-11-05-round3-p2-reset-validity-protocol.json": "2ee6b6ef862aba719cbaf2d4283c6cbf48d29647d587d13db6ce45d7fc5380d0",
+    "p2_reset_validity.py": "393c2204a75b830f8713cd5dc968913660d036492a170305d3b01a673472d9fa",
+    "p2_reset_validity_campaign.py": "58e0481d630839bd851fd01366797d0514e3ed2db9c3981a34a94f5c1e106c49",
+    "test_p2_reset_validity.py": "3c32cadfcdfbb942f5c43b3b73f1209fbac4053b0b2118101f8d4e9fb4b6b787"
+  },
+  "positive_review": [
+    "no semantic token-ID branch in learned forward",
+    "query answer loss only; no true event labels or hidden state",
+    "all four fits fixed; no heldout construction before all finish"
+  ],
+  "scientific_limits": [
+    "validity vector is not exact per-key epoch table; address collision remains possible",
+    "conditional erasure is not learned semantic reset correctness",
+    "training180sec is soft cap; evaluation20sec only reserve"
+  ],
+  "status": "UNEXECUTED_REVIEW_REJECTED_DRAFT"
+}

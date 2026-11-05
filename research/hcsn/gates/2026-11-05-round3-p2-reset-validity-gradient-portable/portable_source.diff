@@ -1,0 +1,48 @@
+--- original/review_autograd.py
++++ portable/portable_review_autograd.py
+@@ -4,6 +4,7 @@
+ checkpoints, optimizers, backward parameter updates, or heldout results are used.
+ """
+ from __future__ import annotations
++import argparse
+ import contextlib
+ import hashlib
+ import json
+@@ -12,11 +13,23 @@
+ from pathlib import Path
+ import sys
+ 
+-ROOT = Path('/workspace/scratch/4a81596942e6/p2-work')
+-OUT = Path('/workspace/scratch/4a81596942e6/p2-gradient-review')
++_path_parser = argparse.ArgumentParser(description=__doc__)
++_path_parser.add_argument('--root', type=Path, required=True,
++                          help='Repository root containing research/hcsn/p2_reset_validity.py')
++_path_parser.add_argument('--output-dir', type=Path, required=True,
++                          help='Fresh output directory; an existing directory or symlink is refused')
++_path_args = _path_parser.parse_args()
++ROOT = _path_args.root.expanduser().resolve()
++OUT = _path_args.output_dir.expanduser().absolute()
++if not ROOT.is_dir():
++    _path_parser.error('--root must be an existing repository directory')
+ FROZEN_SHA = '7ebeaf9069bdd547a2e41d607345a3ce3b29c300d93acf187bdfb51ebc99a02d'
+ SOURCE = ROOT/'research/hcsn/p2_reset_validity.py'
+ assert hashlib.sha256(SOURCE.read_bytes()).hexdigest() == FROZEN_SHA
++try:
++    OUT.mkdir(parents=True, exist_ok=False)
++except FileExistsError:
++    _path_parser.error('--output-dir must not already exist: ' + str(OUT))
+ sys.path.insert(0, str(ROOT))
+ import torch
+ from torch.nn import functional as F
+@@ -236,9 +249,8 @@
+                 'future':sum(c['kind']=='future' for c in cases)}}
+     assert hashlib.sha256(SOURCE.read_bytes()).hexdigest()==FROZEN_SHA
+     path=OUT/'autograd_evidence.json'
+-    temp=path.with_suffix('.json.tmp')
+-    temp.write_text(json.dumps(payload,indent=2,allow_nan=False)+'\n')
+-    os.replace(temp,path)
++    with path.open('x',encoding='utf-8') as output_stream:
++        output_stream.write(json.dumps(payload,indent=2,allow_nan=False)+'\n')
+     readback=json.loads(path.read_text())
+     assert len(readback['cases'])==36
+     for c in cases:

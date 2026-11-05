@@ -1,0 +1,55 @@
+{
+  "schema": "hcsn.p2.no-fit-reset-numeric-review.v1",
+  "source_sha256": "7ebeaf9069bdd547a2e41d607345a3ce3b29c300d93acf187bdfb51ebc99a02d",
+  "reviewer_source_sha256": "0be225aac3b89bb580c2372eb221b53de1a245a5172183c35841ac092e3d0b4a",
+  "torch": "2.10.0+cpu",
+  "training_fits": 0,
+  "heldout_quality_panels": 0,
+  "purpose": "numeric edge cases and threshold semantics only",
+  "finite_initial_reset": {
+    "initial_finite": true,
+    "events": [
+      [
+        [
+          1.0,
+          1.0
+        ]
+      ]
+    ],
+    "output_finite": true,
+    "poststate_finite": [
+      true,
+      true,
+      true,
+      true
+    ],
+    "cleared": [
+      true,
+      true,
+      true
+    ]
+  },
+  "torch.float16": {
+    "exception": "ValueError",
+    "message": "this numerical contract supports FP32 and FP64 only"
+  },
+  "torch.bfloat16": {
+    "exception": "ValueError",
+    "message": "this numerical contract supports FP32 and FP64 only"
+  },
+  "threshold_mapping": {
+    "states": 4097,
+    "different_events": 1095,
+    "max_pre_sigmoid_difference": 2.384185791015625e-06,
+    "bias_chosen_per_point": true,
+    "this_is_not_an_empirical_model_error_rate": true,
+    "first": {
+      "u": -0.3779296875,
+      "bias": 1.8883278369903564,
+      "hcsn_logit": 0.0,
+      "mapped_logit": -2.384185791015625e-07,
+      "hcsn_event": 1.0,
+      "mapped_event": 0.0
+    }
+  }
+}
