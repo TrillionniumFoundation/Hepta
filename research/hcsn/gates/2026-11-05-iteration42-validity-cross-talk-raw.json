@@ -1,0 +1,73 @@
+{
+  "schema": "hcsn.p2.validity-projection-negative.v1",
+  "scope": "exact 2D subspace of 16D normalized keys, two detected writes, no resets; analytic recurrence only",
+  "original_subroutine": "research/hcsn/p2_reset_validity.py: validity <- validity+active_write*(1-bound_before)*key",
+  "preregistered": false,
+  "external_attestation": false,
+  "trained_checkpoint_tested": false,
+  "first_stored_key_lost": {
+    "k1": [
+      1,
+      0
+    ],
+    "second_key": [
+      -0.6,
+      0.8
+    ],
+    "postwrite_validity": [
+      0.040000000000000036,
+      1.2800000000000002
+    ],
+    "exact_postwrite_validity": [
+      "1/25",
+      "32/25"
+    ],
+    "prior_key_projection": 0.040000000000000036,
+    "known_probability": 0.003989865148994104,
+    "expected_semantics": "k1 was written, yet readout calls it UNKNOWN with probability > 0.995"
+  },
+  "unwritten_key_accepted": {
+    "k1": [
+      1,
+      0
+    ],
+    "second_key": [
+      0,
+      1
+    ],
+    "unwritten_key": [
+      0.6,
+      0.8
+    ],
+    "postwrite_validity": [
+      1,
+      1
+    ],
+    "exact_unwritten_projection": "7/5",
+    "unwritten_projection": 1.4,
+    "known_probability": 0.9999796009127201,
+    "expected_semantics": "key never written, yet readout allocates > 0.99997 probability to known classes"
+  },
+  "exact_erasure_control": {
+    "post_reset_validity": [
+      0,
+      0
+    ],
+    "known_probability": 0.0024726231566347743
+  },
+  "binary32_controls": {
+    "known_written_key_probability": 0.003989863329866345,
+    "unwritten_key_known_probability": 0.9999796009360645
+  },
+  "p0_to_p6": {
+    "P0": "OPEN",
+    "P1": "OPEN",
+    "P2": "OPEN",
+    "P3": "OPEN",
+    "P4": "OPEN",
+    "P5": "OPEN",
+    "P6": "OPEN"
+  },
+  "production_activation": false,
+  "pass_scope": "LIMITED_COUNTEREXAMPLE_ONLY"
+}
