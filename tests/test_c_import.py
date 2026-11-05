@@ -89,7 +89,7 @@ class CImportTests(unittest.TestCase):
             "int old_style();",
             "int callback(int (*cb)(int));",
             "typedef union U { int x; float y; } U;",
-            "enum Mode { A, B };",
+            "enum Mode;",
             "#define FN(x) ((x)+1)\nint safe(void);",
             "#if UNKNOWN\nint safe(void);\n#endif",
             "#include <pthread.h>\nint safe(void);",

@@ -41,7 +41,7 @@ class ImportResult:
 
 
 def tokens(text):
-    pattern = re.compile(r"\s+|[A-Za-z_][A-Za-z_0-9]*|[0-9]+|[{}();,*\[\]]")
+    pattern = re.compile(r"\s+|[A-Za-z_][A-Za-z_0-9]*|[0-9][A-Za-z_0-9]*|<<|>>|[{}();,*\[\]=+\-/%&|^~]")
     result, position = [], 0
     for match in pattern.finditer(text):
         if match.start() != position:
@@ -126,14 +126,19 @@ class HeaderParser:
     def __init__(self, text):
         declarations, self.macros = preprocess_subset(text)
         self.structs, self.tags, self.aliases, self.prototypes = {}, {}, {}, []
+        self.enums, self.enum_tags, self.enum_aliases, self.enumerators = {}, {}, {}, {}
+        self.enum_types = {}
         for chunk in split_top(tokens(declarations), ";"):
             if not chunk:
                 continue
             if "{" in chunk:
                 typedef = chunk[0] == "typedef"
                 leading = chunk[1:] if typedef else chunk
+                if leading and leading[0] == "enum":
+                    self.enum_definition(leading, typedef=typedef)
+                    continue
                 if not leading or leading[0] != "struct":
-                    reject("DECLARATION", "Function definitions, unions and enums are unsupported")
+                    reject("DECLARATION", "Function definitions and unions are unsupported")
                 opening, closing = leading.index("{"), leading.index("}")
                 if "{" in leading[opening+1:closing] or "}" in leading[closing+1:]:
                     reject("DECLARATION", "Inline anonymous nested records are unsupported; name each record separately")
@@ -171,6 +176,47 @@ class HeaderParser:
         self.constant_values = {}
         self.resolving = set()
 
+    def enum_definition(self, items, *, typedef):
+        if "}" not in items:
+            reject("ENUM", "An enum definition requires a closing brace")
+        opening, closing = items.index("{"), items.index("}")
+        if opening not in {1, 2} or "{" in items[opening+1:closing] or "}" in items[closing+1:]:
+            reject("ENUM", "Only standalone named or typedef enum definitions are supported")
+        tag = items[1] if opening == 2 else None
+        trailing = items[closing+1:]
+        alias = trailing[0] if typedef and len(trailing) == 1 else None
+        identifier = r"[A-Za-z_][A-Za-z_0-9]*"
+        if (tag is not None and not re.fullmatch(identifier, tag)) or (alias is not None and not re.fullmatch(identifier, alias)):
+            reject("ENUM", "Invalid enum type name")
+        if (typedef and alias is None) or (not typedef and (tag is None or trailing)):
+            reject("ENUM", "An enum needs a tag or one typedef name, without variable declarators")
+        c_name = "enum " + tag if tag else alias
+        if c_name in self.enums or (tag and tag in self.enum_tags) or (alias and alias in self.enum_aliases):
+            reject("ENUM", "Duplicate enum definition")
+        body = items[opening+1:closing]
+        if not body:
+            reject("ENUM", "Empty enums are unsupported")
+        entries = split_top(body, ",")
+        names = []
+        for entry in entries:
+            if not entry or not re.fullmatch(identifier, entry[0]):
+                reject("ENUM", "Each enum entry must begin with an identifier")
+            name = entry[0]
+            expression = None
+            if len(entry) > 1:
+                if len(entry) < 3 or entry[1] != "=" or not all(re.fullmatch(r"[A-Za-z_0-9]+|[()+\-*/%&|^~]|<<|>>", token) for token in entry[2:]):
+                    reject("ENUM", "Only integer constant expressions are supported in enums")
+                expression = " ".join(entry[2:])
+            if name in self.enumerators or name in self.macros:
+                reject("ENUM", "An enumerator must have a unique non-macro name")
+            self.enumerators[name] = {"enum": c_name, "expression": expression}
+            names.append(name)
+        self.enums[c_name] = {"enumerators": names}
+        if tag:
+            self.enum_tags[tag] = c_name
+        if alias:
+            self.enum_aliases[alias] = c_name
+
     def declaration(self, items, *, field=False, allow_unnamed=False):
         items = list(items)
         if any(x in items for x in {"volatile", "restrict", "_Atomic", "_Bool", "bool"}):
@@ -181,7 +227,12 @@ class HeaderParser:
             items.pop(0)
         if not items:
             reject("TYPE", "Missing C type")
-        if items[0] == "struct":
+        if items[0] == "enum":
+            if len(items) < 2 or items[1] not in self.enum_tags:
+                reject("ENUM", "Opaque or undefined enum tags are unsupported")
+            base = self.enum_types[self.enum_tags[items[1]]]
+            items = items[2:]
+        elif items[0] == "struct":
             if len(items) < 2 or items[1] not in self.tags:
                 reject("TYPE", "Opaque/undefined struct tags are not supported")
             base = Type(self.tags[items[1]])
@@ -200,7 +251,9 @@ class HeaderParser:
                 base = self.primitive_types[spelling]
         else:
             name = items.pop(0)
-            if name in self.structs:
+            if name in self.enum_aliases:
+                base = self.enum_types[self.enum_aliases[name]]
+            elif name in self.structs:
                 base = Type(name)
             elif name in self.primitive_types:
                 base = self.primitive_types[name]
@@ -258,6 +311,17 @@ def import_header(path, *, cc=None, module="c_imported", contracts=None) -> Impo
     for spelling in PRIMITIVES:
         signed = f"(({spelling})-1 < ({spelling})0)"
         probe.append(f'printf("P|{spelling}|%zu|%zu|%d\\n", sizeof({spelling}), _Alignof({spelling}), {signed});')
+    # Probe the compiler's compatible integer type, never infer enum storage
+    # from enumerator values. This also handles a compiler's short-enum mode.
+    for c_name in parser.enums:
+        selection = "_Generic((" + c_name + ")0, " + ", ".join(t + ": " + str(i + 1) for i, t in enumerate(MACRO_TYPES)) + ", default: 0)"
+        probe += [f'_Static_assert({selection} != 0, "enum has no supported compatible integer type");',
+                  f'printf("E|{c_name}|%d|%zu|%zu\\n", {selection}, sizeof({c_name}), _Alignof({c_name}));']
+    for name in parser.enumerators:
+        # C11 enumeration constants have type int. Reject extended-width GCC
+        # enumerators instead of treating an implementation extension as C11.
+        probe += [f'_Static_assert(_Generic(({name}), int: 1, default: 0), "enum constant is not a C11 int");',
+                  f'printf("V|{name}|%d\\n", {name});']
     for name in parser.macros:
         selection = "_Generic((" + name + "), " + ", ".join(t + ": " + str(i + 1) for i, t in enumerate(MACRO_TYPES)) + ", default: 0)"
         probe += [f'_Static_assert(__builtin_constant_p({name}), "macro is not constant");',
@@ -288,7 +352,7 @@ def import_header(path, *, cc=None, module="c_imported", contracts=None) -> Impo
         if run.returncode:
             reject("PROBE", "Native C probe execution failed")
         executable_hash = sha(binary.read_bytes())
-    primitive_facts, layouts, macro_values = {}, {}, {}
+    primitive_facts, layouts, macro_values, enum_facts, enum_values = {}, {}, {}, {}, {}
     for line in run.stdout.splitlines():
         parts = line.split("|")
         if parts[0] == "P":
@@ -309,6 +373,20 @@ def import_header(path, *, cc=None, module="c_imported", contracts=None) -> Impo
                     mapped = "usize"
             parser.primitive_types[name] = Type(mapped)
             primitive_facts[name] = {"size": size, "align": align, "signed": signed, "hepta": mapped}
+        elif parts[0] == "E":
+            c_name, index, size, align = parts[1], int(parts[2]), int(parts[3]), int(parts[4])
+            if not 1 <= index <= len(MACRO_TYPES):
+                reject("ENUM", "Native enum has an unsupported compatible type")
+            spelling = MACRO_TYPES[index - 1]
+            fact = primitive_facts[spelling]
+            if (size, align) != (fact["size"], fact["align"]):
+                reject("ENUM", "Native enum layout differs from its compatible integer type")
+            parser.enum_types[c_name] = Type(fact["hepta"])
+            enum_facts[c_name] = {"compatible_c_type": spelling, "hepta_type": fact["hepta"],
+                                  "size": size, "align": align, "enumerators": parser.enums[c_name]["enumerators"]}
+        elif parts[0] == "V":
+            enum_values[parts[1]] = {"c_type": "int", "hepta_type": primitive_facts["int"]["hepta"],
+                                    "value": int(parts[2]), **parser.enumerators[parts[1]]}
         elif parts[0] == "S":
             layouts[parts[1]] = {"size": int(parts[2]), "align": int(parts[3]), "fields": {}}
         elif parts[0] == "F":
@@ -320,9 +398,10 @@ def import_header(path, *, cc=None, module="c_imported", contracts=None) -> Impo
                                       "value": int(parts[3] if signed else parts[4]), "expression": parser.macros[parts[1]]}
         else:
             reject("PROBE", "Unexpected probe output; header side effects are not accepted")
+    macro_values.update(enum_values)
     output = ["module " + module + ";"]
     parser.constant_values = {name: fact["value"] for name, fact in macro_values.items()}
-    typedefs = {}
+    typedefs = {name: str(parser.enum_types[c_name]) for name, c_name in parser.enum_aliases.items()}
     for name, declaration in parser.aliases.items():
         _, resolved = parser.declaration(declaration, allow_unnamed=True)
         typedefs[name] = str(resolved)
@@ -355,5 +434,5 @@ def import_header(path, *, cc=None, module="c_imported", contracts=None) -> Impo
         "header": str(header), "header_sha256": sha(original), "source_sha256": sha(generated.encode()),
         "target": target.stdout.strip(), "host": {"system": platform.system(), "machine": platform.machine(), "pointer_bits": struct.calcsize("P") * 8}, "compiler": {"path": compiler, "version": version.stdout.strip(), "executable_sha256": sha(Path(compiler).read_bytes())},
         "probe_source_sha256": sha(source.encode()), "probe_artifact_sha256": executable_hash,
-        "primitive_types": primitive_facts, "typedefs": typedefs, "layouts": layouts, "constants": macro_values, "functions": functions,
-        "limitations": ["Only the recorded native host ABI was probed.", "No ownership, lifetimes, thread safety, device ordering or foreign implementation correctness is inferred from a header.", "Effects are conservative or caller-supplied assumptions.", "Attributes, packing, bitfields, unions, enums, varargs, function pointers, opaque records, complex preprocessing and array-parameter decay are explicitly unsupported."]})
+        "primitive_types": primitive_facts, "typedefs": typedefs, "layouts": layouts, "constants": macro_values, "functions": functions, "enums": enum_facts,
+        "limitations": ["Only the recorded native host ABI was probed.", "No ownership, lifetimes, thread safety, device ordering or foreign implementation correctness is inferred from a header.", "Effects are conservative or caller-supplied assumptions.", "Attributes, packing, bitfields, unions, extended-width or opaque enums, varargs, function pointers, opaque records, complex preprocessing and array-parameter decay are explicitly unsupported."]})

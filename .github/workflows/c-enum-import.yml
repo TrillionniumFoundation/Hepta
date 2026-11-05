@@ -1,0 +1,58 @@
+name: Native C enum import
+
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'tests/test_c_enum_import.py'
+      - 'tests/test_c_import.py'
+      - 'tests/test_c_backend.py'
+      - '.github/workflows/c-enum-import.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  enum-abi:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+        python: ['3.11', '3.13']
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    env:
+      HEPTA_REQUIRE_RUST: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Select pinned native Rust
+        run: |
+          rustup toolchain install 1.90.0 --profile minimal
+          echo "RUSTC=$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_ENV"
+      - name: Record exact source and tools
+        run: |
+          git rev-parse HEAD
+          python --version
+          gcc --version
+          "$RUSTC" -vV
+      - name: Require every selected method
+        run: |
+          python - <<'PY'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromNames([
+              "tests.test_c_enum_import", "tests.test_c_import", "tests.test_c_backend",
+          ])
+          planned = suite.countTestCases()
+          assert planned == 21, planned
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          assert result.testsRun == planned, (result.testsRun, planned)
+          assert result.wasSuccessful() and not result.skipped, result
+          print(f"COMPLETE_NATIVE_ENUM_PASS {planned}")
+          PY
