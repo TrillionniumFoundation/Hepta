@@ -1,6 +1,6 @@
 # Preserve typed qualification while repairing Rust fixture kinds
 
-This qualification-only correction is based on exact #710 `0594a85f2f1e05ef50a61bf9c5a18ae191499502`.
+This qualification-only correction is based on exact #719 `b67d1a00acec941ecc7f4218020a2eae8f6cd2b4`.
 It copies all 19 reviewed qualification/documentation changes from #708
 `021c0731e6105dcda7fe0fcafc4b62836e81657e` byte for byte, including the exact
 #705/#706 Unit and numeric repairs and the #708 ordinary-store trace repair.
@@ -32,6 +32,13 @@ contract regressions produce 410 C-only / 418 required-Rust identities. The
 inherited store, array, numeric and Unit inventories are respectively
 352/360, 335/338, 321/323 and 289. Required Rust still fails closed when absent.
 
+The versioned typed union retains every original 484/492 method in relative
+order and now requires 487/495 methods. All 65 package and 12 joint migration
+identities are unchanged. The union gate's inventory preflight can be run with
+`python -B tools/qualify_versioned_typed.py --verify-only`; it does not execute
+test bodies or native programs. None of the full union aggregate is executed
+as part of this repair's bounded local evidence.
+
 ## Bounded reproduction and evidence limits
 
 Run source verification without test execution:
@@ -50,6 +57,12 @@ PYTHONPATH=.:tests:tools python -B -m unittest -v \
   test_c_float_int_casts.FloatIntCastTests.test_rust_success_consumer_requests_binary_without_native_rust \
   test_c_store_adt_composition.StoreAdtCompositionTests.test_rust_trace_requests_binary_contract_without_native_rust
 PYTHONPATH=.:tests:tools python -B -m unittest -v test_typed_stdlib
+```
+
+The 12 unchanged migration methods are a separate bounded check:
+
+```sh
+PYTHONPATH=.:tests:tools python -B -m unittest -v test_versioned_typed
 ```
 
 Those scoped checks do not replace the full inherited compiler/library/package
