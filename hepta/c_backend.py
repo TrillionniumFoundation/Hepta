@@ -37,9 +37,11 @@ class CEmitter:
             fail("E_C_BACKEND_UNCHECKED", "C lowering requires a successful frontend check")
         if getattr(program, "unions", None):
             fail("E_C_BACKEND_SUBSET", "Union lowering is not yet supported by the C backend")
-        if any(enum.type_params or any(variant.fields for variant in enum.variants)
-               for enum in program.enums):
-            fail("E_C_BACKEND_SUBSET", "C enum lowering supports only non-generic fieldless enums")
+        if any(enum.type_params for enum in program.enums):
+            fail("E_C_BACKEND_SUBSET", "Generic enums require an explicit monomorphization pass before C lowering")
+        if any(field.name == "Unit" for enum in program.enums
+               for variant in enum.variants for field in variant.fields):
+            fail("E_C_BACKEND_SUBSET", "Unit enum payloads are not supported by the C backend")
         if any(getattr(item, "type_params", ()) for item in [*program.structs, *program.functions]):
             fail("E_C_BACKEND_SUBSET", "Generic declarations require an explicit monomorphization pass before C lowering")
         self.program, self.checked, self.crate_type = program, checked, crate_type
@@ -83,6 +85,14 @@ class CEmitter:
         if t.name in self.enums:
             # Compiler-private representation, deliberately not a foreign ABI.
             fields = "size_t tag;"
+            payloads = []
+            for tag, variant in enumerate(self.enums[t.name].variants):
+                if variant.fields:
+                    members = " ".join(self.typ(field) + f" f{index};"
+                                       for index, field in enumerate(variant.fields))
+                    payloads.append(f"struct {{ {members} }} v{tag};")
+            if payloads:
+                fields += " union { " + " ".join(payloads) + " } payload;"
         elif t.name == "array":
             fields = self.typ(t.args[0]) + f" data[{t.length}];"
         else:
@@ -216,7 +226,13 @@ class CEmitter:
         elif k == "variant":
             enum_type = self.typ(t)  # Reject unsupported builtin Result before lookup.
             tag = self.variant_tags[t.name][e.value["variant"]]
-            expression = f"({enum_type}){{ .tag = {tag} }}"
+            # Materialize each argument in source order before constructing the
+            # union. C initializer evaluation order is not the language order.
+            values = [self.value(child, lines) for child in e.children]
+            payload = (f", .payload.v{tag} = {{ " + ", ".join(
+                f".f{index} = {value}" for index, value in enumerate(values)) + " }"
+                if values else "")
+            expression = f"({enum_type}){{ .tag = {tag}" + payload + " }"
         elif k == "array":
             values = [self.value(x, lines) for x in e.children]
             expression = f"({self.typ(t)}){{ .data = {{" + ", ".join(values) + "} }"
@@ -345,7 +361,13 @@ class CEmitter:
                 arms = []
                 for arm in d["arms"]:
                     tag = self.variant_tags[typ.name][arm.pattern.variant]
-                    arms.append(f"case {tag}: {{ " + self.block(arm.body) + " break; }")
+                    variant = self.enums[typ.name].variants[tag]
+                    # Bind independent Copy values from the selected member of
+                    # the snapshot, never from the mutable original place.
+                    bindings = " ".join(self.typ(field) + f" h_{name} = ({value}).payload.v{tag}.f{index};"
+                                        for index, (name, field) in enumerate(zip(arm.pattern.bindings, variant.fields))
+                                        if name != "_")
+                    arms.append(f"case {tag}: {{ " + bindings + " " + self.block(arm.body) + " break; }")
                 # Frontend exhaustiveness covers every constructible source value.
                 # Invalid foreign/unsafe tags are not admitted as language values.
                 arms.append("default: abort();")

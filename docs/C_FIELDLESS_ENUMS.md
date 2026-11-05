@@ -28,8 +28,9 @@ case has a block and explicit break; the default aborts. Foreign construction
 of tags and representation-dependent operations are not a supported interface.
 This layout is compiler-private and has no size, tag or binary-stability promise.
 
-Payload enums, generic enums/functions/records, builtin Result and unions remain
-unsupported by this C backend. An unsupported enum declaration rejects even
+The stacked [Copy-payload increment](C_PAYLOAD_ENUMS.md) extends this original
+fieldless contract to supported non-generic tuple payloads. Unit payloads,
+generic enums/functions/records, builtin Result and unions remain unsupported. An unsupported enum declaration rejects even
 when unused. Enum exposure through C exports, extern declarations or repr(C)
 records remains rejected. This does not add equality, ordering, integer casts,
 pattern guards, catch-all arms or match expressions. No ownership/resource-payload
@@ -48,7 +49,7 @@ python tools/validate_c_fieldless_enums.py
 The frozen inventory contains 198 unique methods: 15 new enum methods, eight
 unchanged C-backend methods, 149 parser/checker methods and 25 ADT syntax/refusal
 methods, plus the existing cross-feature unsupported-language integration method
-updated to use a payload enum. The runner requires exact planned/started/finished/passed identities,
+updated to use a Unit-payload enum. The runner requires exact planned/started/finished/passed identities,
 zero skips/expected failures, and unchanged input hashes. This is a focused gate,
 not the full project's native, formal, performance or release suite.
 

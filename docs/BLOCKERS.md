@@ -62,3 +62,7 @@ P10 当前 namespace sandbox 探测失败，生产 provider 模式在启动适�
 ## 独立 C 后端的无载荷枚举增量
 
 P11 新增非泛型、无载荷源码枚举与穷尽 match 降级，覆盖 Copy 值、数组/结构、借用参数及模块使用；详见 [C_FIELDLESS_ENUMS.md](C_FIELDLESS_ENUMS.md)。它不是 C 头文件枚举导入，也不开放枚举 C ABI。载荷、Result、泛型、资源所有权 ADT 与完整后端一致性仍未闭合，P11 保持 PARTIAL。
+
+## 独立 C 后端的 Copy 载荷枚举增量
+
+在 #700 无载荷枚举基础上，P11 新增非泛型 Copy 载荷构造与穷尽 match 绑定；构造参数按源码顺序独立求值，匹配绑定来自一次性值快照。详见 [C_PAYLOAD_ENUMS.md](C_PAYLOAD_ENUMS.md)。Unit、泛型、Result、资源载荷和枚举 C ABI 仍不开放。该增量不等于完整语言覆盖或健全性证明，P11/P01 保持 PARTIAL。

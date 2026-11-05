@@ -7,8 +7,9 @@ the real pinned compiler. A frontend-only result does not establish native
 borrow correctness or successful code generation.
 
 The independent C backend additionally supports the bounded non-generic,
-fieldless source-enum subset described in [C_FIELDLESS_ENUMS.md](C_FIELDLESS_ENUMS.md).
-Payloads, Result and generics still require the Rust path.
+fieldless source-enum subset described in [C_FIELDLESS_ENUMS.md](C_FIELDLESS_ENUMS.md)
+and supported Copy payloads described in [C_PAYLOAD_ENUMS.md](C_PAYLOAD_ENUMS.md).
+Unit payloads, Result and generics still require the Rust path.
 
 ## Algebraic data types
 
