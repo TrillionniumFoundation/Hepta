@@ -330,3 +330,80 @@ All eleven registered stages, original declarations, process/source/module/log
 caps, 540-second preparation-and-launch budget and 600-second outer limit
 remain unchanged. Complete fresh acceptance and the independent final replay
 are still required; the twelve wider production obligations remain unproved.
+
+## v9: kernel-checked consumer rewrites and actual combined source closure
+
+This candidate targets the concrete consumer elaboration failures exposed after
+v8 completed its first nine stages. Lean generated the original mutually recursive
+`rawDecEq` through an irreducible well-founded wrapper. Diagnostic kernel checks
+could not reduce even `Raw.str [1] = Raw.str [1]` with that decision procedure.
+The original monolithic `decide +kernel` then hid its application-type mismatch
+behind a second recursion failure in diagnostic pretty printing. The original
+errors, error-recovery `sorryAx`, timeouts, and diagnostic failures remain evidence.
+
+The generic Raw datatype, equality procedures, syntax relation, extractor, and
+all original theorem statements remain unchanged. In each positive extraction
+proof, universally quantified local theorems rewrite string-tag `if` and
+`decide` expressions into constructor matching. Lean checks these theorems by
+cases, and separately checks every one of the 58 original relation conjuncts.
+The existing whole-tree bounds proof is reused. The three malformed-syntax
+rejections project necessary clauses of `extract_sound` (clauses 27, 46, and 17)
+and use constructor disjointness. The stale-descriptor rejection uses the
+already-checked positive extraction. No native evaluator result is trusted.
+
+The changed-final-byte datum retains its original name, List Nat type, and
+complete 14,466-byte value. Its representation shares the actually declared
+`linear_g0` and `linear_v0_0` prefix and retains the original final byte 93.
+A local, general append-cancellation theorem proves the unchanged rejection
+against the original closing byte 125 without repeatedly reducing the concrete
+common prefix. This one inert datum is `noncomputable`; its value is still a
+transparent kernel definition. All 7,685 original transport data definitions,
+4,215 transport theorems, 2,975 auxiliary facts, and the original subject
+multiplicities remain.
+
+The inverse consumes the actual candidate theorem headers, actual proof bodies,
+actual byte-expression text, and actual earlier List Nat definitions. The already
+registered independent `core_byte_facts_dag` grammar and bounded evaluator reject
+unknown, cyclic, forward, malformed, or oversized byte dependencies. All prior
+byte declarations are read in declaration order, and the 595 definitions reachable
+from the original linearBytes root are checked. The complete recovered old
+consumer must have SHA256
+`4a175bdb55f0a26c6bf8bafe20ddf72752d547f4241239490e8ecef906fe37eb`.
+Then the existing v8 print-schedule inverse, v7 exact-bound proof inverse, v6
+partition inverse, and every earlier original-source validator still run.
+The existing ten negative-source coordinates and all eleven module boundaries
+are retained.
+
+The actual combined base is
+`d33d559469cb620387c7e2b4bed57e1661a9fa51`, not the independently measured v8
+research branch. Its compiler_hash reads all 184 top-level `hepta/*.py` files.
+The old 251-path registration omitted five actual byte-read inputs:
+
+- `hepta/hia_byte_sum.py`
+- `hepta/hia_entry_layout.py`
+- `hepta/hia_ndu_dynamic.py`
+- `hepta/hia_ndu_raw_model.py`
+- `hepta/hia_ndu_raw_session.py`
+
+The first combined-source control also exposed two omitted direct identity reads:
+`experiments/hia_initialization_frontiers_20261103/CORE_MODEL_CONNECTION.md` and
+`experiments/hia_initialization_frontiers_20261103/UNSIGNED_STEP_CONNECTION.md`.
+Their absence was caught as `unknown/incomplete_extraction`, not as a changed
+Core program. Both files are restored byte-for-byte from frozen v8 and included
+in the identity. The unchanged four-slice requirement is retained.
+
+The updated plan binds all 258 source paths with canonical commitment
+`36af03771b8b81803d90baafc92fd290d9e6cadbb03e7e135a99beae804bb0f0`.
+`source_paths()` also compares the actual top-level glob to that registered set,
+so a missing or additional Python input is rejected before identity construction.
+These five files are byte-read dependencies; this does not assert that their
+runtime branches execute in this proof profile.
+
+The 60 s per-process limit, 540 s preparation/launch limit, 600 s outer limit,
+eleven processes, source/module/log/cleanup limits, 780 support paths, pinned
+Lean binary, and independent complete-evidence replay remain unchanged.
+Targeted diagnostics are not full acceptance. Only a fresh complete run on the
+exact final combined commit can establish the narrow Core syntax connection.
+All twelve wider obligations remain unproved, and all production admission,
+Python-exporter refinement, operational-Core bridge, body-prefix refinement,
+and broader safety or optimization authority remain denied.

@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 from tools import core_seven_relocation_acceptance_plan as old
 from tools import core_seven_shared_acceptance_plan as p
 from tools import core_seven_shared_acceptance_replay as replay
@@ -21,12 +22,38 @@ class SharedAcceptanceContractTests(unittest.TestCase):
 
     def test_source_identity_includes_every_new_trust_dependency(self):
         paths = p.source_paths()
-        self.assertEqual(len(paths), 251)
+        self.assertEqual(len(paths), 258)
         self.assertTrue(set(old.source_paths()) < set(paths))
         for name in p.ADDITIONS:
             self.assertIn(name, paths)
             self.assertTrue((p.ROOT / name).is_file(), name)
         self.assertIn(p.shared.HELPER_PATH, paths)
+        for name in ('CORE_MODEL_CONNECTION.md', 'UNSIGNED_STEP_CONNECTION.md'):
+            self.assertIn('experiments/hia_initialization_frontiers_20261103/' + name, paths)
+
+
+    def test_actual_compiler_hash_reads_cannot_escape_source_identity(self):
+        registered = p.source_paths()
+        expected = tuple(n for n in registered if n.startswith('hepta/') and
+                         n.count('/') == 1 and n.endswith('.py'))
+        self.assertEqual(len(expected), 184)
+        self.assertEqual(expected, tuple(sorted(x.relative_to(p.ROOT).as_posix()
+                         for x in (p.ROOT / 'hepta').glob('*.py'))))
+        with tempfile.TemporaryDirectory(prefix='hia-compiler-inputs-') as directory:
+            root = Path(directory)
+            (root / 'hepta').mkdir()
+            for name in expected:
+                (root / name).write_bytes(b'')
+            with patch.object(p, 'ROOT', root):
+                self.assertEqual(p.source_paths(), registered)
+                unbound = root / 'hepta' / 'unbound_compiler_input.py'
+                unbound.write_text('UNREGISTERED = True\n')
+                with self.assertRaisesRegex(ValueError, 'compiler_hash input set'):
+                    p.source_paths()
+                unbound.unlink()
+                (root / expected[0]).unlink()
+                with self.assertRaisesRegex(ValueError, 'compiler_hash input set'):
+                    p.source_paths()
 
     def test_success_flag_cannot_replace_complete_replay(self):
         with tempfile.TemporaryDirectory(prefix='hia-shared-') as directory:

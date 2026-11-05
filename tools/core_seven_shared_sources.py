@@ -13,12 +13,13 @@ import re
 from types import MappingProxyType, SimpleNamespace
 
 from tools import core_seven_nocode_sources as nocode
+from tools import core_byte_facts_dag as byte_dag
 from tools.check_guarded_slice_lean import require
 
 seven = nocode.seven
 encode, digest = nocode.encode, nocode.digest
-SCHEMA = 'hepta.hia.seven-shared-composition-source.v8'
-PROTOCOL = 'seven-shared-composition-source-v8'
+SCHEMA = 'hepta.hia.seven-shared-composition-source.v9'
+PROTOCOL = 'seven-shared-composition-source-v9'
 HELPER_PATH = 'experiments/hia_initialization_frontiers_20261103/SharedTransport.lean'
 NAMESPACE = 'HiaCoreSyntaxSlice.Shared'
 HELPER_NAMES = frozenset(NAMESPACE + '.' + name for name in (
@@ -692,6 +693,187 @@ def _undo_scheduled_prints(stages):
     return restored
 
 
+# This layer changes proofs of the existing consumer statements only. The
+# original Raw equality definitions remain byte-exact: their well-founded
+# recursion is not used as a kernel evaluator for string-tag decisions.
+CONSUMER_NAMES = ('linear_extraction', 'parallel_extraction',
+                  'reject_stale_descriptor', 'reject_wrong_phi',
+                  'reject_literal_two', 'reject_wrong_condition')
+CONSUMER_BASE_SHA256 = V7_SOURCE_SHA256['ConnectionsTransportRejections']
+CHANGED_BYTE_NAMESPACE = 'namespace HiaCoreSyntaxSlice.ChangedByte\n'
+CHANGED_BYTE_RHS = "HiaCoreSyntaxSlice.linear_g0 ++ (HiaCoreSyntaxSlice.linear_v0_0 ++ [93])"
+CHANGED_BYTE_OLD_PROOF = 'by\n  rw [HiaCoreSyntaxSlice.linear_transport]\n  decide +kernel\n'
+CHANGED_BYTE_PROOF = "by have cancel : ∀ (front left right : List Nat), front ++ left = front ++ right → left = right := (by intro front; induction front with | nil => intro left right same; exact same | cons head tail ih => intro left right same; exact ih left right (List.cons.inj same).2); intro encoded; have same := Option.some.inj (linear_transport.symm.trans encoded); change linear_g0 ++ (linear_v0_0 ++ [125]) = linear_g0 ++ (linear_v0_0 ++ [93]) at same; have last := cancel linear_v0_0 [125] [93] (cancel linear_g0 _ _ same); cases last\n\n\n"
+
+
+def _positive_consumer(raw, hint, bounds):
+    # Both local generic rewrites are ordinary universally quantified theorems.
+    # Every actual closed relation atom is still kernel checked, including the
+    # existing whole-tree bounds certificate and both arithmetic-tag cases.
+    tag = "have tag {α : Type} (raw : Raw) (value : List Nat) (yes no : α) : (if raw = Raw.str value then yes else no) = (match raw with | .str actual => if actual = value then yes else no | _ => no) := (by cases raw <;> simp); "
+    decision = "have tagDecision (raw : Raw) (value : List Nat) : decide (raw = Raw.str value) = (match raw with | .str actual => decide (actual = value) | _ => false) := (by cases raw <;> simp); "
+    return ('by ' + tag + decision +
+        f'have reconstructed : reconstruct {raw} {hint} = HiaGuardedUsizeSlice.linear_0 := '
+        '(by simp only [reconstruct, addTag, tag]; decide +kernel); ' +
+        f'have shape : goodProgram {raw} = true := '
+        '(by simp only [goodProgram, tagDecision]; decide +kernel); ' +
+        f'have accepted : SliceSyntaxRelation {raw} {hint} HiaGuardedUsizeSlice.linear_0 := '
+        '(by dsimp only [SliceSyntaxRelation]; refine ⟨' + bounds + ', shape, ' +
+        ', '.join('?' + '_' for _ in range(56)) +
+        '⟩; all_goals first | rfl | (exact Or.inl ⟨rfl, rfl⟩) | '
+        '(exact Or.inr ⟨rfl, rfl⟩) | decide +kernel); '
+        'unfold extract; rw [reconstructed]; exact if_pos accepted')
+
+
+def _negative_consumer(namespace, conjunct):
+    # These are necessary clauses of the unchanged declarative relation, not
+    # checks of a separate executable model. Constructor disjointness refutes
+    # the actual wrong edge, constant, or branch-condition syntax.
+    return (f'by intro success; have necessary := extract_sound {namespace}.linearRaw '
+            f'{namespace}.linearHint HiaGuardedUsizeSlice.linear_0 success; '
+            'have impossible := necessary' + '.2' * conjunct + '.1; cases impossible')
+
+
+def _consumer_proofs():
+    return dict(
+        linear_extraction=_positive_consumer('linearRaw', 'linearHint', 'linear_bounds'),
+        parallel_extraction=_positive_consumer('parallelRaw', 'parallelHint', 'parallel_bounds'),
+        reject_stale_descriptor='by rw [linear_extraction]; decide +kernel',
+        reject_wrong_phi=_negative_consumer('WrongPhi', 27),
+        reject_literal_two=_negative_consumer('LiteralTwo', 46),
+        reject_wrong_condition=_negative_consumer('WrongCondition', 17))
+
+
+def _consumer_byte_values(stages):
+    """Evaluate only ACTUAL prior linear byte definitions with the old reader.
+
+    Their complete sources, declaration/import order and original byte bindings
+    are subsequently authenticated by every existing v8-through-original inverse.
+    This bounded source check creates no Lean theorem or admission authority.
+    """
+    require(tuple(stage.name for stage in stages) == seven.NAMES and
+            all(type(stage.source) is str and stage.source_bytes <= MAX_SOURCE for stage in stages) and
+            sum(stage.source_bytes for stage in stages) <= MAX_TOTAL_SOURCE,
+            'bounded existing eleven byte-source modules')
+    values = {}
+    for stage in stages[1:9]:
+        namespace = None
+        for line in stage.source.splitlines():
+            if line.startswith('namespace '):
+                namespace = line[len('namespace '):]
+            elif line.startswith('end '):
+                namespace = None
+            elif namespace == 'HiaCoreSyntaxSlice':
+                match = re.fullmatch(r'noncomputable def (linear[A-Za-z0-9_]*) : List Nat := (.+)', line)
+                if match is not None:
+                    require(match[1] not in values and len(values) < byte_dag.MAX_VERTICES,
+                            'unique ordered actual byte definitions')
+                    ast = byte_dag.parse_rhs(match[2])
+                    values[match[1]] = dict(value=byte_dag._evaluate(ast, values),
+                                            dependencies=byte_dag._dependencies(ast))
+    require('linearBytes' in values, 'actual prior linear byte root')
+    reachable, pending = set(), ['linearBytes']
+    while pending:
+        name = pending.pop()
+        if name not in reachable:
+            reachable.add(name)
+            pending.extend(values[name]['dependencies'])
+    require(len(reachable) == 595 and
+            len(values['linearBytes']['value']) == 14466 and
+            values['linear_g0']['value'] == (123,) and values['linear_g406']['value'] == (125,),
+            'complete original linear byte DAG and delimiters')
+    return values
+
+
+def _changed_byte_value(rhs, values):
+    require(rhs == CHANGED_BYTE_RHS, 'fixed actual shared-prefix byte expression')
+    actual = byte_dag._evaluate(byte_dag.parse_rhs(rhs.replace('HiaCoreSyntaxSlice.', '')), values)
+    original = values['linearBytes']['value']
+    require(len(actual) == len(original) == 14466 and actual[:-1] == original[:-1] and
+            original[-1:] == (125,) and actual[-1:] == (93,),
+            'all actual prefix bytes retained and only original final-byte mutation')
+    return actual
+
+
+
+def _consumer_source(source, values, *, inverse=False):
+    """Restore actual complete v8 bytes, including every original target."""
+    proofs, found, result, ledger = _consumer_proofs(), set(), [], []
+    for line in source.splitlines(keepends=True):
+        match = re.match(r'^theorem ([A-Za-z][A-Za-z0-9_]*) : ', line)
+        if match is not None and match[1] in proofs:
+            name = match[1]
+            require(name not in found, 'one actual consumer declaration per fixed name')
+            header, separator, _ = line.partition(' := by ')
+            require(separator == ' := by ', 'consumer proof delimiter')
+            before = header + ' := by decide +kernel\n'
+            after = header + ' := ' + proofs[name] + '\n'
+            require(line == (after if inverse else before), 'exact consumer proof body and target')
+            result.append(before if inverse else after)
+            ledger.append(dict(name='HiaCoreSyntaxSlice.' + name,
+                               statement_sha256=digest(header.encode()),
+                               before_sha256=digest(before.encode()),
+                               after_sha256=digest(after.encode())))
+            found.add(name)
+        else:
+            result.append(line)
+    require(found == set(CONSUMER_NAMES), 'all six original consumer targets retained')
+    result = ''.join(result)
+
+    require(result.count(CHANGED_BYTE_NAMESPACE) == 1, 'one changed-byte namespace')
+    prefix, rest = result.split(CHANGED_BYTE_NAMESPACE, 1)
+    definition, rest = rest.split('\n', 1)
+    actual_prefix = ('noncomputable def linearBytes : List Nat := ' if inverse else
+                     'def linearBytes : List Nat := ')
+    require(definition.startswith(actual_prefix), 'actual changed-byte header')
+    actual_rhs = definition[len(actual_prefix):]
+    if inverse:
+        value = _changed_byte_value(actual_rhs, values)
+    else:
+        parsed = json.loads(actual_rhs)
+        require(type(parsed) is list and len(parsed) == 14466 and
+                all(type(byte) is int and 0 <= byte <= 255 for byte in parsed),
+                'original actual changed-byte literal values')
+        value = tuple(parsed)
+        require(value == _changed_byte_value(CHANGED_BYTE_RHS, values),
+                'actual complete original and shared-prefix byte values equal')
+    old_definition = 'def linearBytes : List Nat := [' + ','.join(map(str, value)) + ']'
+    new_definition = 'noncomputable def linearBytes : List Nat := ' + CHANGED_BYTE_RHS
+    require(definition == (new_definition if inverse else old_definition),
+            'actual changed-byte declaration exactly reconstructs original literal bytes')
+    result = prefix + CHANGED_BYTE_NAMESPACE + (old_definition if inverse else new_definition) + '\n' + rest
+    old, new = (CHANGED_BYTE_PROOF, CHANGED_BYTE_OLD_PROOF) if inverse else (
+        CHANGED_BYTE_OLD_PROOF, CHANGED_BYTE_PROOF)
+    require(result.count(old) == 1, 'one exact changed-byte rejection proof')
+    result = result.replace(old, new, 1)
+    require(source.count('\n') == result.count('\n'), 'original negative coordinates retained')
+    original = result if inverse else source
+    require(digest(original.encode()) == CONSUMER_BASE_SHA256,
+            'all complete frozen v8 consumer bytes recovered')
+    return result, tuple(sorted(ledger, key=lambda row: row['name']))
+
+
+def _repair_consumers(stages):
+    require(tuple(stage.name for stage in stages) == seven.NAMES,
+            'existing eleven consumer stage boundaries')
+    result = list(stages)
+    text, _ = _consumer_source(stages[9].source, _consumer_byte_values(stages))
+    result[9] = replace(stages[9], source=text)
+    return tuple(result)
+
+
+def _undo_consumer_repairs(stages):
+    require(tuple(stage.name for stage in stages) == seven.NAMES,
+            'exact eleven actual consumer stages')
+    result = list(stages)
+    text, _ = _consumer_source(stages[9].source, _consumer_byte_values(stages), inverse=True)
+    result[9] = replace(stages[9], source=text)
+    result = tuple(result)
+    require(_repair_consumers(result) == stages, 'unique complete consumer proof transformation')
+    return result
+
+
+
 def _derive_stages(prepared, previous):
     old, syntax, _, blocks, _ = _context(prepared, previous)
     v6 = _extend_part02(_repartition(_render(old, syntax, blocks, helpers=True)))
@@ -700,12 +882,15 @@ def _derive_stages(prepared, previous):
     names = nocode._definitions(replace(old, stages=adjusted))
     marked = tuple(replace(s, source=nocode._transform(s.source, names[s.name]))
                    for s in adjusted)
-    return _schedule_prints(marked)
+    return _repair_consumers(_schedule_prints(marked))
 
 
 def _manifest(prepared, previous, stages):
-    scheduled = stages
-    stages = _undo_scheduled_prints(stages)
+    candidate = stages
+    scheduled = _undo_consumer_repairs(stages)
+    consumer_values = _consumer_byte_values(scheduled)
+    _, consumer_ledger = _consumer_source(scheduled[9].source, consumer_values)
+    stages = _undo_scheduled_prints(scheduled)
     moved_subjects = sum(len(seven._qualified_prints(stage.source)) for stage in stages[1:9])
     require(moved_subjects == 7190, 'complete original transport query count')
     old, syntax, _, blocks, changes = _context(prepared, previous)
@@ -758,6 +943,23 @@ def _manifest(prepared, previous, stages):
                         original_sha256=digest(encode(seven._qualified_prints(before.source)).encode()),
                         scheduled_sha256=digest(encode(seven._qualified_prints(after.source)).encode()))
                         for before, after in zip(stages[1:9], scheduled[1:9])]),
+                consumer_proofs=dict(
+                    original_source_sha256=CONSUMER_BASE_SHA256,
+                    candidate_source_sha256=candidate[9].source_sha256,
+                    proof_changes=7, relation_conjuncts=58,
+                    selected_clause_indices=dict(wrong_phi=27, literal_two=46, wrong_condition=17),
+                    original_generic_definitions_unchanged=True,
+                    subjects_or_statements_changed=False,
+                    executable_data_exclusions=['HiaCoreSyntaxSlice.ChangedByte.linearBytes'],
+                    changed_byte_representation=dict(
+                        definition='HiaCoreSyntaxSlice.ChangedByte.linearBytes', bytes=14466,
+                        value_sha256=digest(bytes(_changed_byte_value(CHANGED_BYTE_RHS, consumer_values))),
+                        prior_definitions=len(consumer_values), root_reachable_definitions=595,
+                        actual_expression=CHANGED_BYTE_RHS,
+                        recovered_complete_old_source_sha256=CONSUMER_BASE_SHA256),
+                    ledger=list(consumer_ledger),
+                    changed_byte_original_proof_sha256=digest(CHANGED_BYTE_OLD_PROOF.encode()),
+                    changed_byte_candidate_proof_sha256=digest(CHANGED_BYTE_PROOF.encode())),
                 prefix_cuts=list(PREFIX_CUTS),
                 part02_extension=dict(source='CertPart03', destination='CertPart02',
                     preceding_prefix_cuts=list(EXTENDED_PREFIX_CUTS),
@@ -770,10 +972,10 @@ def _manifest(prepared, previous, stages):
                     body_sha256=digest(generic.encode()), subjects=sorted(seven._qualified_prints(generic))),
                 inputs_sha256=digest(encode(prepared['manifest']['inputs']).encode()),
                 root_owners=seven.ROOT_OWNERS, stage_counts=list(COUNTS),
-                stages=[seven.facts._compact(s) for s in scheduled],
+                stages=[seven.facts._compact(s) for s in candidate],
                 original_source_bytes=sum(s.source_bytes for s in prepared['stages']),
-                candidate_source_bytes=sum(s.source_bytes for s in stages),
-                retained_source_bytes=sum(s.source_bytes for s in prepared['stages'] + stages))
+                candidate_source_bytes=sum(s.source_bytes for s in candidate),
+                retained_source_bytes=sum(s.source_bytes for s in prepared['stages'] + candidate))
 
 
 def validate_retention(proposal, retained_copies=()):
@@ -786,7 +988,7 @@ def validate_sources(prepared, previous, proposal, retained_copies=()):
             tuple(s.name for s in proposal.stages) == seven.NAMES, 'exact originals and eleven-stage proposal')
     require(type(proposal.manifest_json) is str and len(proposal.manifest_json.encode()) <= MAX_MANIFEST,
             'bounded source manifest')
-    unscheduled = _undo_scheduled_prints(proposal.stages)
+    unscheduled = _undo_scheduled_prints(_undo_consumer_repairs(proposal.stages))
     old, old_syntax, old_blocks, new_blocks, changes = _context(prepared, previous)
     original_layout = _render(old, old_syntax, new_blocks, helpers=True)
     v4_layout = _repartition(original_layout)

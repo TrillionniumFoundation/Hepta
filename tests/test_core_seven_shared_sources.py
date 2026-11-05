@@ -72,13 +72,22 @@ COMPOUND_NEGATIVE_CONTROLS = {
 }
 
 
+# Handwritten generic controls; independent of the consumer proof emitter.
+CONSUMER_POSITIVE_CONTROL = "import HiaSyntaxResearch.Baseline\nnamespace HiaCoreSyntaxSlice.ConsumerRewriteRegression\ntheorem raw_tag (tree : Raw) (label : List Nat) :\n    decide (tree = Raw.str label) =\n      (match tree with | .str actual => decide (actual = label) | _ => false) := by\n  cases tree <;> simp\ntheorem changed_end (front : List Nat) :\n    front ++ [125] ≠ front ++ [93] := by\n  induction front with\n  | nil => intro same; cases same\n  | cons head rest ih =>\n    intro same\n    exact ih (List.cons.inj same).2\nend HiaCoreSyntaxSlice.ConsumerRewriteRegression\n#print axioms HiaCoreSyntaxSlice.ConsumerRewriteRegression.raw_tag\n#print axioms HiaCoreSyntaxSlice.ConsumerRewriteRegression.changed_end\n"
+CONSUMER_NEGATIVE_CONTROLS = {
+    'nonstring_tag': CONSUMER_POSITIVE_CONTROL.replace('| _ => false)', '| _ => true)'),
+    'equal_closing_byte': CONSUMER_POSITIVE_CONTROL.replace('front ++ [93]', 'front ++ [125]'),
+}
+
+
 class SharedSourceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.prepared = s.seven.original.build_inputs()
         cls.previous = s.seven.build_sources(cls.prepared)
         cls.proposal = s.build_sources(cls.prepared, cls.previous)
-        cls.unscheduled = s._undo_scheduled_prints(cls.proposal.stages)
+        cls.unrepaired = s._undo_consumer_repairs(cls.proposal.stages)
+        cls.unscheduled = s._undo_scheduled_prints(cls.unrepaired)
 
     def reject(self, proposal):
         with self.assertRaises(ValueError):
@@ -254,12 +263,12 @@ class SharedSourceTests(unittest.TestCase):
         self.assertEqual(p.manifest['print_schedule']['moved_subjects'], 7190)
         self.assertFalse(p.manifest['print_schedule']['proof_or_declaration_changes'])
         self.assertEqual(p.manifest['print_schedule']['source_byte_delta'], 0)
-        for before, after in zip(self.unscheduled, p.stages):
+        for before, after in zip(self.unscheduled, self.unrepaired):
             self.assertEqual(before.source_bytes, after.source_bytes)
             self.assertEqual(Counter(s.seven._qualified_prints(before.source)),
                              Counter(s.seven._qualified_prints(after.source)))
         self.assertEqual(p.stages[0], self.unscheduled[0])
-        self.assertEqual(p.stages[9:], self.unscheduled[9:])
+        self.assertEqual(self.unrepaired[9:], self.unscheduled[9:])
 
     def test_print_schedule_cannot_drop_duplicate_substitute_or_delay_queries(self):
         source = self.proposal.stages[3].source
@@ -274,6 +283,67 @@ class SharedSourceTests(unittest.TestCase):
         self.reject(self.change(3, lambda _: self.unscheduled[3].source))
         manifest = self.proposal.manifest
         manifest['print_schedule']['moved_subjects'] -= 1
+        self.reject(replace(self.proposal, manifest_json=s.encode(manifest)))
+
+
+    def test_consumer_repairs_reconstruct_complete_actual_old_bytes(self):
+        candidate = self.proposal.stages
+        recovered = s._undo_consumer_repairs(candidate)
+        self.assertEqual(recovered, self.unrepaired)
+        self.assertEqual(s.digest(recovered[9].source.encode()), s.CONSUMER_BASE_SHA256)
+        self.assertEqual(recovered[:9], candidate[:9])
+        self.assertEqual(recovered[10:], candidate[10:])
+        self.assertEqual(Counter(s.seven._qualified_prints(recovered[9].source)),
+                         Counter(s.seven._qualified_prints(candidate[9].source)))
+        self.assertEqual(recovered[9].source.count('\n'), candidate[9].source.count('\n'))
+        self.assertEqual(len(candidate[9].expected_theorems), 75)
+        self.assertEqual(self.proposal.manifest['consumer_proofs']['proof_changes'], 7)
+        values = s._consumer_byte_values(candidate)
+        actual = s._changed_byte_value(s.CHANGED_BYTE_RHS, values)
+        original = values['linearBytes']['value']
+        self.assertEqual(len(actual), 14466)
+        self.assertEqual(actual[:-1], original[:-1])
+        self.assertEqual((original[-1], actual[-1]), (125, 93))
+        # Every original target prefix remains literal; generic definitions are
+        # retained in full by the independent old-source SHA, not just a count.
+        names = (*s.CONSUMER_NAMES, 'reject_changed_exact_byte')
+        for name in names:
+            before = next(line for line in recovered[9].source.splitlines()
+                          if line.startswith('theorem ' + name + ' : '))
+            after = next(line for line in candidate[9].source.splitlines()
+                         if line.startswith('theorem ' + name + ' : '))
+            self.assertEqual(before.partition(' := by')[0], after.partition(' := by')[0])
+
+    def test_consumer_target_local_proof_and_negative_clause_tampering_reject(self):
+        edits = (
+            ('with literalValue := 2', 'with literalValue := 3'),
+            ('| _ => no) := (by cases raw', '| _ => yes) := (by cases raw'),
+            ('| _ => false) := (by cases raw', '| _ => true) := (by cases raw'),
+            ('have impossible := necessary.2.2', 'have impossible := necessary.2'),
+            ('have accepted : SliceSyntaxRelation', 'have accepted : True'),
+            ('exact if_pos accepted', 'exact of_decide_eq_true rfl'),
+        )
+        for before, after in edits:
+            self.assertIn(before, self.proposal.stages[9].source)
+            self.reject(self.change(9, lambda text, a=before, b=after: text.replace(a, b, 1)))
+
+    def test_changed_byte_actual_reference_data_and_cancellation_are_bound(self):
+        source = self.proposal.stages[9].source
+        for before, after in (
+            (s.CHANGED_BYTE_RHS, s.CHANGED_BYTE_RHS.replace('[93]', '[125]')),
+            (s.CHANGED_BYTE_RHS, s.CHANGED_BYTE_RHS.replace('linear_v0_0', 'parallel_v0_0')),
+            ('cancel linear_v0_0 [125] [93]', 'cancel linear_v0_0 [125] [125]'),
+            ('noncomputable def linearBytes : List Nat := ' + s.CHANGED_BYTE_RHS,
+             'def linearBytes : List Nat := ' + s.CHANGED_BYTE_RHS),
+        ):
+            self.assertIn(before, source)
+            self.reject(self.change(9, lambda text, a=before, b=after: text.replace(a, b, 1)))
+        # Corrupt the actually referenced parent, retaining the consumer text.
+        before = 'noncomputable def linear_g0 : List Nat := [123]'
+        index = next(i for i, stage in enumerate(self.proposal.stages) if before in stage.source)
+        self.reject(self.change(index, lambda text: text.replace(before, before.replace('123', '124'), 1)))
+        manifest = self.proposal.manifest
+        manifest['consumer_proofs']['changed_byte_representation']['bytes'] -= 1
         self.reject(replace(self.proposal, manifest_json=s.encode(manifest)))
 
 

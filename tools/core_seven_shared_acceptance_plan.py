@@ -19,9 +19,16 @@ from tools import diagnose_core_seven_certificate as diagnostic
 from tools.check_guarded_slice_lean import require
 
 ROOT = base.ROOT
-SCHEMA = 'hepta.hia.seven-shared-acceptance.v8'
-PROTOCOL = 'seven-shared-acceptance-v8'
+SCHEMA = 'hepta.hia.seven-shared-acceptance.v9'
+PROTOCOL = 'seven-shared-acceptance-v9'
 ADDITIONS = (
+    'experiments/hia_initialization_frontiers_20261103/CORE_MODEL_CONNECTION.md',
+    'experiments/hia_initialization_frontiers_20261103/UNSIGNED_STEP_CONNECTION.md',
+    'hepta/hia_byte_sum.py',
+    'hepta/hia_entry_layout.py',
+    'hepta/hia_ndu_dynamic.py',
+    'hepta/hia_ndu_raw_model.py',
+    'hepta/hia_ndu_raw_session.py',
     'docs/seven-data-nocode.md',
     'docs/seven-shared-composition.md',
     'experiments/hia_initialization_frontiers_20261103/SharedTransport.lean',
@@ -126,8 +133,17 @@ SUPPORT_IDENTITY_PATHS = legacy.SUPPORT_IDENTITY_PATHS
 def source_paths():
     legacy.source_paths()  # retain the exact earlier source identity closure
     paths = SOURCE_IDENTITY_PATHS
-    require(len(paths) == len(set(paths)) == 251 and commitment(paths) == 'db3868383b79db2d60fe55f723ff10f8f847f3eb0c210a22512ac6162dbbc416',
+    require(len(paths) == len(set(paths)) == 258 and commitment(paths) == '36af03771b8b81803d90baafc92fd290d9e6cadbb03e7e135a99beae804bb0f0',
             'reviewed exact source identity closure')
+    # pipeline.compiler_hash reads every actual top-level hepta/*.py byte,
+    # including modules that are not imported by this selected proof profile.
+    # Reject an extra or absent filename before an external identity is built.
+    actual_compiler_paths = tuple(sorted(p.relative_to(ROOT).as_posix()
+                                        for p in (ROOT / 'hepta').glob('*.py')))
+    bound_compiler_paths = tuple(n for n in paths if n.startswith('hepta/') and
+                                n.count('/') == 1 and n.endswith('.py'))
+    require(actual_compiler_paths == bound_compiler_paths,
+            'complete actual compiler_hash input set')
     return paths
 
 
