@@ -1,6 +1,7 @@
 """The new protocol keeps the old resource and independent-replay boundaries."""
 import hashlib
 import json
+import os
 import subprocess
 from pathlib import Path
 import tempfile
@@ -105,6 +106,23 @@ class SharedAcceptanceContractTests(unittest.TestCase):
             git(root, 'update-index', '--no-assume-unchanged', 'source.rs')
             source.write_bytes(frozen)
             p.require_canonical_git_blobs(root, {'source.rs': oid(frozen)})
+
+            # A caller-controlled GIT_DIR may otherwise make the same path
+            # advertise a completely different HEAD, without touching bytes.
+            with tempfile.TemporaryDirectory(prefix='hia-other-repo-') as other_dir:
+                other = Path(other_dir)
+                git(other, 'init', '-q')
+                (other / 'unrelated').write_bytes(b'unrelated\\n')
+                git(other, 'add', 'unrelated')
+                git(other, '-c', 'user.name=HIAContract',
+                    '-c', 'user.email=hia@example.invalid', 'commit', '-qm', 'other')
+                expected_head = git(root, 'rev-parse', 'HEAD').decode().strip()
+                other_head = git(other, 'rev-parse', 'HEAD').decode().strip()
+                self.assertNotEqual(expected_head, other_head)
+                with patch.object(p.diagnostic, 'ROOT', root), patch.dict(
+                        os.environ, {'GIT_DIR': str(other / '.git'),
+                                     'GIT_WORK_TREE': str(other)}):
+                    self.assertEqual(p.diagnostic._git_baseline()['head'], expected_head)
 
     def test_success_flag_cannot_replace_complete_replay(self):
         with tempfile.TemporaryDirectory(prefix='hia-shared-') as directory:
