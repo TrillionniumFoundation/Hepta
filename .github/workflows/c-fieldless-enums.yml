@@ -1,0 +1,50 @@
+name: C fieldless enum qualification
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'tests/**'
+      - 'examples/fieldless_enums.hepta'
+      - 'tools/validate_c_fieldless_enums.py'
+      - 'tools/c_fieldless_enum_test_ids.json'
+      - '.github/workflows/c-fieldless-enums.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+        python: ['3.11', '3.13']
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      HEPTA_ENUM_REQUIRE_RUST: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install exact Rust toolchain
+        run: |
+          rustup toolchain install 1.90.0 --profile minimal
+          echo "RUSTC=$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_ENV"
+      - name: Record exact source and native tools
+        run: |
+          set -euo pipefail
+          mkdir -p qualification
+          { git rev-parse HEAD; python --version; gcc --version; gcc -dumpmachine; "$RUSTC" --version --verbose; } | tee qualification/identity.log
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - name: Execute complete inventory with native C and Rust
+        run: |
+          set -euo pipefail
+          python tools/validate_c_fieldless_enums.py 2>&1 | tee qualification/tests.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: c-fieldless-enums-${{ matrix.os }}-py${{ matrix.python }}-${{ github.event.pull_request.head.sha || github.sha }}
+          path: qualification/

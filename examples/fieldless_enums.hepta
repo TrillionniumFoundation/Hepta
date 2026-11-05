@@ -1,0 +1,26 @@
+// A source enum is an internal Copy value, not a C ABI enum.
+enum Phase { Idle, Reading, Done }
+fn advance(phase: mut Phase) -> Unit effects { write } {
+    match phase {
+        Phase::Idle => { phase = Phase::Reading; },
+        Phase::Reading => { phase = Phase::Done; },
+        Phase::Done => {},
+    }
+}
+fn code(phase: read Phase) -> i32 effects {} {
+    match phase {
+        Phase::Done => { return 2; },
+        Phase::Idle => { return 0; },
+        Phase::Reading => { return 1; },
+    }
+}
+fn main() -> Unit effects { write, panic } {
+    let mut phase = Phase::Idle;
+    let original = phase;
+    advance(mut phase);
+    assert(code(read phase) == 1);
+    advance(mut phase);
+    advance(mut phase);
+    assert(code(read phase) == 2);
+    assert(code(read original) == 0);
+}
