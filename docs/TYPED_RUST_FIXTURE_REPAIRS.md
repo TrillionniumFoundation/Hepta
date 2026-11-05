@@ -1,6 +1,6 @@
 # Preserve typed qualification while repairing Rust fixture kinds
 
-This qualification-only correction is based on exact #719 `b67d1a00acec941ecc7f4218020a2eae8f6cd2b4`.
+This qualification-only correction is based on exact #721 `afaab042574c351bb2ac3cc505eeece493f091a8`.
 It copies all 19 reviewed qualification/documentation changes from #708
 `021c0731e6105dcda7fe0fcafc4b62836e81657e` byte for byte, including the exact
 #705/#706 Unit and numeric repairs and the #708 ordinary-store trace repair.
@@ -39,6 +39,11 @@ identities are unchanged. The union gate's inventory preflight can be run with
 test bodies or native programs. None of the full union aggregate is executed
 as part of this repair's bounded local evidence.
 
+The existing scoped package-context gate still requires exactly the same 99
+methods and all three of its existing oracles. Its source verification accepts
+only the exact reversible qualification repairs. No context/compiler guard,
+context test, scope omission or oracle changes.
+
 ## Bounded reproduction and evidence limits
 
 Run source verification without test execution:
@@ -63,6 +68,12 @@ The 12 unchanged migration methods are a separate bounded check:
 
 ```sh
 PYTHONPATH=.:tests:tools python -B -m unittest -v test_versioned_typed
+```
+
+The unchanged 99-method scope and its three original oracles run with:
+
+```sh
+python -B tools/qualify_typed_package_context.py
 ```
 
 Those scoped checks do not replace the full inherited compiler/library/package

@@ -1,8 +1,50 @@
 {
   "schema": 1,
-  "parent": "b67d1a00acec941ecc7f4218020a2eae8f6cd2b4",
+  "parent": "afaab042574c351bb2ac3cc505eeece493f091a8",
   "upstream": "021c0731e6105dcda7fe0fcafc4b62836e81657e",
   "files": {
+    "tools/qualify_typed_package_context.py": {
+      "original": {
+        "git_blob": "1ff76288de11872beb5261c9d2fa71561a564ba0",
+        "sha256": "f2aaee975a9714a6f2a92454f0ff598a49cb0b1cc7ba2e754d0193c5a86f634e"
+      },
+      "repaired": {
+        "git_blob": "b9813b62158d9b4d0fbff0de0b5ea79634e162ad",
+        "sha256": "98633a95af3e5051c43890fa485ee43d4f75ce929db19e742cbf09e042722aad"
+      },
+      "edits": [
+        {
+          "start": 451,
+          "end": 580,
+          "before": "",
+          "after": "\n    from verify_typed_fixture_repairs import project_original, verify as verify_fixture_repairs\n    verify_fixture_repairs(ROOT)"
+        },
+        {
+          "start": 1184,
+          "end": 1214,
+          "before": "",
+          "after": "project_original(actual_path, "
+        },
+        {
+          "start": 1246,
+          "end": 1253,
+          "before": "",
+          "after": "), ROOT"
+        },
+        {
+          "start": 1467,
+          "end": 1490,
+          "before": "",
+          "after": "project_original(path, "
+        },
+        {
+          "start": 1515,
+          "end": 1522,
+          "before": "",
+          "after": "), ROOT"
+        }
+      ]
+    },
     "tools/qualify_typed_stdlib.py": {
       "original": {
         "git_blob": "0d9d2bc0f26c98350e290ab4e803d7776a7a259c",
@@ -173,12 +215,12 @@
     },
     "tools/verify_versioned_typed_sources.py": {
       "original": {
-        "git_blob": "0530ca77179b63d02f784e0a26a3f3281d04f7a3",
-        "sha256": "193c3b7d82410b0eb792894eb535940bcbce3200bda4363c1ea0a85a79e1aff8"
+        "git_blob": "a46929996ded3e5b6e6b15ac2ba18504d79a7b57",
+        "sha256": "0876b1c15ee51e3e19a5d40c7ba451938f240fdc2c624b96cb7d931436211ed7"
       },
       "repaired": {
-        "git_blob": "f72f91d064019a90d5dcaad82bf990af60933033",
-        "sha256": "004e4cc7a2d8c5abe7ae29ce1b620337cdf56e1a3538e10bfbee1562452ad6f4"
+        "git_blob": "65a38aab25c49e91c6f6ecca4dcb47140ddb30da",
+        "sha256": "01a11c75a512e4dfeeeb0ee356e4c7d41e8cb5865024b19996fbdacf5066ecd0"
       },
       "edits": [
         {
@@ -188,20 +230,20 @@
           "after": "\nfrom verify_typed_fixture_repairs import project_original, verify as verify_fixture_repairs"
         },
         {
-          "start": 556,
-          "end": 589,
+          "start": 3644,
+          "end": 3677,
           "before": "",
-          "after": "\n    verify_fixture_repairs(root)"
+          "after": "fixture_repairs(root)\n    verify_"
         },
         {
-          "start": 1217,
-          "end": 1239,
+          "start": 4323,
+          "end": 4345,
           "before": "",
           "after": "project_original(path,"
         },
         {
-          "start": 1262,
-          "end": 1268,
+          "start": 4368,
+          "end": 4374,
           "before": "",
           "after": "),root"
         }

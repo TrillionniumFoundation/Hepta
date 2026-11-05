@@ -6,10 +6,10 @@ import json
 from verify_rust_fixture_repairs import project_original as upstream_original
 
 ROOT = Path(__file__).resolve().parents[1]
-PARENT = 'b67d1a00acec941ecc7f4218020a2eae8f6cd2b4'
+PARENT = 'afaab042574c351bb2ac3cc505eeece493f091a8'
 UPSTREAM = '021c0731e6105dcda7fe0fcafc4b62836e81657e'
 UPSTREAM_IDENTITIES = {'tools/verify_rust_fixture_repairs.py': {'git_blob': 'f827f4d37a42c4e8019b9bc29502f04b1e8f6f53', 'sha256': 'f1d08a9b40dbdd5542a69e5fecbf74921d9845ef6b7b5bb5ee32d89ad22644bb'}, 'tools/rust_fixture_repairs.json': {'git_blob': '9cd941a2a2500b3ba73a042b4736a9e0aa8587c0', 'sha256': '6651438da732145c4f8486580d22e92e71e06746a444fac3293030334e314d6e'}}
-EXPECTED_EDITS = ('tools/qualify_typed_stdlib.py', 'tools/qualify_versioned_typed.py', 'tools/typed_stdlib_inventory.json', 'tools/typed_stdlib_rust_inventory.json', 'tools/verify_typed_stdlib_sources.py', 'tools/verify_versioned_typed_sources.py')
+EXPECTED_EDITS = ('tools/qualify_typed_package_context.py', 'tools/qualify_typed_stdlib.py', 'tools/qualify_versioned_typed.py', 'tools/typed_stdlib_inventory.json', 'tools/typed_stdlib_rust_inventory.json', 'tools/verify_typed_stdlib_sources.py', 'tools/verify_versioned_typed_sources.py')
 
 def identity(data):
     return {'git_blob': hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest(),
