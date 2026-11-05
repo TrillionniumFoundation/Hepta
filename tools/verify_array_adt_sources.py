@@ -18,7 +18,7 @@ def fragments(source):
 
 def verify():
     manifest=json.loads((ROOT/'tools/array_adt_source_origins.json').read_text())
-    data=(ROOT/'tests/test_c_array_values.py').read_bytes()
+    data=(ROOT/'tests/c_array_values_origin.py').read_bytes()
     blob=hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()
     if blob!=manifest['origin_test_blob'] or hashlib.sha256(data).hexdigest()!=manifest['origin_test_sha256']:
         raise ValueError('Original array test module changed')

@@ -13,7 +13,7 @@ import validate_c_numeric_adt_composition as inherited
 from verify_array_adt_sources import verify
 
 ROOT=Path(__file__).resolve().parents[1]
-ORIGIN_PREFIX='tests.test_c_array_values.CArrayValueTests.'
+ORIGIN_PREFIX='tests.c_array_values_origin.CArrayValueTests.'
 ORIGIN=[ORIGIN_PREFIX+name for name in [
     'test_literals_returns_fields_nested_order_and_short_circuit',
     'test_dynamic_out_of_bounds_aborts_without_undefined_access',

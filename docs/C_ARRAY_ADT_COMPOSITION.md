@@ -47,7 +47,10 @@ The strict native-C inventory contains **333 unique methods**: all 319 inherited
 #706 identities in order, ten new joint controls and four unchanged applicable
 #583 controls. No skipped tests, expected failures, duplicate/missing methods,
 source changes or provenance mismatches qualify. The original six-method
-#583 test file is retained byte for byte, with its full original identities.
+#583 test file is retained byte for byte as `tests/c_array_values_origin.py`,
+with original method bodies and names. This non-discoverable fixture filename
+prevents ordinary unittest discovery from running its inapplicable diagnostic;
+the strict runner explicitly loads the applicable methods.
 Its generic/resource-gate diagnostic check is explicitly inapplicable to this
 narrower source: the new generic-function control requires earlier blanket
 refusal. It is not silently counted as passed. The original Rust-reference
@@ -87,6 +90,11 @@ this increment. Numerical and raw-pointer limits are unchanged. No recursive
 execution, literal admission, signature audit, import/publication or output-path
 change is included. Finite native tests are not whole-language soundness,
 performance superiority or production qualification. P11/P01 remain PARTIAL.
+
+The first published test layout used the original discoverable filename, which
+would make ordinary discovery run the inapplicable diagnostic. The source bytes
+are unchanged but were moved to the explicit origin fixture before final
+qualification. That superseded head is not relabeled as the final candidate.
 
 Local evidence: the 333-method combined gate and 319-method inherited gate are
 run on Python 3.12/3.13 with GCC 14.2.0. Native Rust and ARM are not available
