@@ -46,6 +46,9 @@ def main():
     raw=args.ssl_source.read_bytes()
     if hashlib.sha256(raw).hexdigest()!=d.SSL_SHA256:
         parser.error("source differs from pinned ssl.c")
+    git_blob=hashlib.sha1(b"blob "+str(len(raw)).encode()+b"\0"+raw).hexdigest()
+    if git_blob!=d.SSL_GIT_BLOB:
+        parser.error("source differs from the official upstream Git blob")
     source=raw.decode()
     functions="\n".join(d.function(source,decl) for decl in (
         "static inline void\ncompute_earliest_wakeup(",

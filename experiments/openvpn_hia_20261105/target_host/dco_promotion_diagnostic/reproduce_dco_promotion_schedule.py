@@ -14,7 +14,8 @@ import subprocess
 import tempfile
 
 UPSTREAM_COMMIT = "dc1f569087135894ac2703aeabd7a960ee9452d4"
-SSL_SHA256 = "169e4d6ac5cacbb9beac51062e1f1a2d3f211cce3fd6e51badc3ab41d5ee9f03"
+SSL_GIT_BLOB = "a2eee6a72c59b658aaa0308ebc8f2983efac1ffe"
+SSL_SHA256 = "67ee11ca19cd8bc6622a93a4996717e02122befcb560624ca5443f3992d3ce58"
 
 
 def function(source, declaration):
@@ -39,6 +40,9 @@ def main():
     raw = args.ssl_source.read_bytes()
     if hashlib.sha256(raw).hexdigest() != SSL_SHA256:
         parser.error("source differs from the pinned, reviewed OpenVPN 2.7.8 ssl.c")
+    git_blob = hashlib.sha1(b"blob " + str(len(raw)).encode() + b"\0" + raw).hexdigest()
+    if git_blob != SSL_GIT_BLOB:
+        parser.error("source differs from the official upstream Git blob")
     source = raw.decode("utf-8")
     functions = "\n\n".join(function(source, decl) for decl in (
         "static inline void\ncompute_earliest_wakeup(",

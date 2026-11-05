@@ -97,6 +97,7 @@ From this directory, using the original downloaded artifact and the official
 
 ```sh
 python -B verify_dco_promotion_evidence.py /path/to/hepta-716-13448779084.zip
+python -B test_source_identity.py /path/to/openvpn/src/openvpn/ssl.c
 python -B reproduce_dco_promotion_schedule.py /path/to/openvpn/src/openvpn/ssl.c
 python -B review_dco_promotion_states.py /path/to/openvpn/src/openvpn/ssl.c
 ```
@@ -106,7 +107,7 @@ source/tree, receipt/log hashes, original verdicts/counters, exact excerpt line
 numbers, and whole-archive endpoint out-of-sync counts.
 
 The scheduler check first requires source SHA-256
-`169e4d6ac5cacbb9beac51062e1f1a2d3f211cce3fd6e51badc3ab41d5ee9f03`. It extracts
+`67ee11ca19cd8bc6622a93a4996717e02122befcb560624ca5443f3992d3ce58`. It extracts
 three pure functions and the final scheduler fragment unchanged, supplies
 explicit mock state, and compiles only that bounded harness with installed `cc`.
 It does not compile or run the OpenVPN application, TLS, DCO, or archive binaries.
@@ -140,3 +141,20 @@ It does not fetch or execute the original target artifact; that archive check
 was performed locally and independently. No target dispatch, merge, deployment,
 or release qualification. Original target failure, replay/reconnect gaps, incomplete
 performance inventory, and all HIA P0–P7 blockers remain open.
+
+## Reproduction-input correction
+
+The first diagnostic head `e29fe22bf3d495a27bb5c93c00931ed0e230c4c8`
+pinned a local source copy with one extra trailing newline, SHA-256
+`169e4d6ac5cacbb9beac51062e1f1a2d3f211cce3fd6e51badc3ab41d5ee9f03`.
+The three extracted functions and timer fragment were unchanged, but that pin
+would reject the actual official download. Those initial local runs were not
+whole-file source-identity verification or hosted passes.
+
+The corrected pin above matches the actual Git blob
+`a2eee6a72c59b658aaa0308ebc8f2983efac1ffe`; both scripts now verify that blob
+identity as well as SHA-256. The 24 assertions and 343-state check were rerun
+with the canonical official bytes and passed. The newline-modified input is
+explicitly rejected. A new check covers six altered-input refusals before a
+compiler can start. Original target failure and all qualification limits stay
+unchanged. New-head hosted status must be checked independently.
