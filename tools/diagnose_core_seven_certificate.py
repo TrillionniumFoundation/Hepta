@@ -197,8 +197,15 @@ def source_identity():
 
 def _git_baseline():
     # Read-only source identity metadata, not a diagnostic/Lean invocation.
-    head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, timeout=5).decode().strip()
-    tree = subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], cwd=ROOT, timeout=5).decode().strip()
+    # Git replacement objects and inherited GIT_DIR/GIT_WORK_TREE overrides
+    # must never redefine the claimed source commit or tree identity.
+    clean_git_env = {k: v for k, v in os.environ.items() if not k.startswith('GIT_')}
+    head = subprocess.check_output(
+        ['git', '--no-replace-objects', 'rev-parse', 'HEAD'],
+        cwd=ROOT, env=clean_git_env, timeout=5).decode().strip()
+    tree = subprocess.check_output(
+        ['git', '--no-replace-objects', 'rev-parse', 'HEAD^{tree}'],
+        cwd=ROOT, env=clean_git_env, timeout=5).decode().strip()
     require(re.fullmatch('[0-9a-f]{40}', head) and re.fullmatch('[0-9a-f]{40}', tree), 'Git baseline identity')
     return dict(head=head, tree=tree)
 
