@@ -66,7 +66,7 @@ def load_package(root, _stack=None, _cache=None) -> Package:
     if not isinstance(version, str) or not re.fullmatch(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)", version):
         fail("E_PACKAGE_VERSION", "Package version must be an explicit major.minor.patch", manifest)
     kind = meta.get("kind", "bin")
-    if kind not in {"bin", "lib"}:
+    if not isinstance(kind, str) or kind not in {"bin", "lib"}:
         fail("E_PACKAGE_SCHEMA", "Package kind must be bin or lib", manifest)
     source_value = meta.get("source_root", "src")
     entry_value = meta.get("entry", f"{source_value}/{'main' if kind == 'bin' else 'lib'}.hepta")
