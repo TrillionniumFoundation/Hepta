@@ -28,3 +28,33 @@ python -m unittest discover -s research/hcsn -p 'test_*.py' -v
 ```
 
 No passing test authorizes production activation. Reference: https://www.princeton.edu/~wxiong/papers/rollover.pdf
+
+## 2026-11-05 P1 and user-P5 scoped update
+
+The table above is the retained 2026-10-31 historical ledger; its P6 scale
+label corresponds to the user's current P5. This addendum updates only the
+evidence produced on the P1 branch and does not silently reclassify other
+branches' work.
+
+Round 1 added Put + linear, signed Jacobian controls, and a source-exact
+replay. Round 2 trains a 32,176-parameter two-block causal byte generator
+end to end, replacing one and both internal feedforward modules. The fixed
+protocol uses three paired seeds and two heldout source documents; ordinary
+sigmoid has lower bpb in all 12 seed/document/replacement comparisons.
+
+The following scoped questions are resolved negatively: extra Call information
+given Put plus normalized linear payoff; extra function capacity under the
+implemented immediate affine consumers; dual superiority in the fixed legacy
+Bayes READ protocol; and the tiny LM's predeclared uniform-gain criterion.
+Native-coordinate Adam can differ even from function-matched initialization.
+Canonical-coordinate final bpb agrees within the declared 1e-5 tolerance, but
+FP32 parameter/logit/gradient trajectories are not identical. A targeted replay
+locates the largest parameter drift in an attention key-bias zero direction.
+
+These results are **closed scoped negatives**, not indefinitely pending
+positive claims. Overall independent mechanism benefit, medium/large-scale
+end-to-end benefit, and quality-matched system cost remain unestablished.
+Production activation remains false. Full evidence, limits, and exact
+reproduction are in
+[`gates/2026-11-05-round2-causal-lm.md`](gates/2026-11-05-round2-causal-lm.md)
+and its execution manifest. All prior negative reports are retained unchanged.
