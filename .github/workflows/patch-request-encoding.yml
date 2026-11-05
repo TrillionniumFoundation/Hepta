@@ -1,0 +1,31 @@
+name: Patch request UTF-8 decoding
+
+on:
+  pull_request:
+    paths:
+      - 'hepta/cli.py'
+      - 'tests/test_cli_request_encoding.py'
+      - 'docs/AGENT_PROTOCOL.md'
+      - '.github/workflows/patch-request-encoding.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  request-decoding:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Check request transport only
+        run: python -m unittest discover -s tests -p test_cli_request_encoding.py -v

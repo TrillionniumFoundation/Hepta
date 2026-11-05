@@ -61,7 +61,9 @@ in source or use it as the local v2 patch symbol.
 ## 2. Preferred project transaction: hepta.patch.v2
 
 Use v2 for an imported project or package. Save a request with exactly these
-string-valued keys:
+string-valued keys. Request files for both protocol versions are UTF-8 JSON,
+independent of the process locale; escaped and unescaped Unicode have the same
+decoded value:
 
 ```json
 {
