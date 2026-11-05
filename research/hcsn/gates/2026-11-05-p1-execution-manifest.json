@@ -1,0 +1,169 @@
+{
+  "artifacts": [
+    {
+      "bytes": 16568,
+      "path": "research/hcsn/p1_put_linear_control.py",
+      "sha256": "ca15ee7cde4b0a371be8319f348d8342aec33f08792c3ebaf0986d50e2ca3430"
+    },
+    {
+      "bytes": 8314,
+      "path": "research/hcsn/test_p1_put_linear_control.py",
+      "sha256": "7a2af18589d181cf9803be5f3cc3a1250eedaa5c2b0fe5d87c84fa516a06e8a8"
+    },
+    {
+      "bytes": 10821,
+      "path": "research/hcsn/gates/2026-11-05-p1-put-linear-control.md",
+      "sha256": "e917a38010be20e53ffa929ac1512cdae44f0ff18bc9d3db9bcd25b98350a937"
+    },
+    {
+      "bytes": 9340,
+      "path": "research/hcsn/gates/2026-11-05-p1-exact-checkout-legacy-replay.json",
+      "sha256": "f6dfffab00f6519a6972db6179107dd9bd77eec39b9af6c0906ae38e182ae439"
+    },
+    {
+      "bytes": 536256,
+      "path": "research/hcsn/gates/2026-11-05-p1-put-linear-control.json",
+      "sha256": "751b84cb97d6a2cdf8e396d4550eedb92cc9476b915378f1f030d8bea5e47843"
+    },
+    {
+      "bytes": 3959,
+      "path": "research/hcsn/gates/2026-11-05-p1-controls-tests.log",
+      "sha256": "609a72f4aa46b0e550dc8dad3c8b8705390e15fec78a1fd52dd232da59505085"
+    },
+    {
+      "bytes": 401,
+      "path": "research/hcsn/gates/2026-11-05-p1-put-linear-control.stderr.log",
+      "sha256": "afec673e8162987a2708e7d719a497e346b3675fc828b42b520d04d2767b97c7"
+    }
+  ],
+  "base_head": "9985a91dbf7233c973301b2fddaf8f1778cf9331",
+  "environment": {
+    "blas_mkl_omp_threads": 1,
+    "device": "CPU",
+    "numpy": "2.3.5",
+    "python": "3.12.14",
+    "scipy": "1.17.0",
+    "torch": "2.10.0+cpu"
+  },
+  "independent_gate": {
+    "command": "python -m research.hcsn.independent_gate --bundle research/hcsn --strict",
+    "returncode": 2,
+    "stderr": "",
+    "stdout": {
+      "full_closure": false,
+      "gates": {
+        "P0": {
+          "production_ready": false,
+          "reasons": [
+            "External trust root not configured"
+          ],
+          "status": "OPEN"
+        },
+        "P1": {
+          "production_ready": false,
+          "reasons": [
+            "External trust root not configured"
+          ],
+          "status": "OPEN"
+        },
+        "P2": {
+          "production_ready": false,
+          "reasons": [
+            "External trust root not configured"
+          ],
+          "status": "OPEN"
+        },
+        "P3": {
+          "production_ready": false,
+          "reasons": [
+            "External trust root not configured"
+          ],
+          "status": "OPEN"
+        },
+        "P4": {
+          "production_ready": false,
+          "reasons": [
+            "External trust root not configured"
+          ],
+          "status": "OPEN"
+        },
+        "P5": {
+          "production_ready": false,
+          "reasons": [
+            "External trust root not configured"
+          ],
+          "status": "OPEN"
+        },
+        "P6": {
+          "production_ready": false,
+          "reasons": [
+            "External trust root not configured"
+          ],
+          "status": "OPEN"
+        }
+      },
+      "independent_attestation_verified": false,
+      "production_activation": false,
+      "schema": "hcsn.independently-reviewed-gate.v2"
+    }
+  },
+  "legacy_replay": {
+    "all_legacy_mean_regrets_match_control_run": true,
+    "command": "python -m research.hcsn.p1_paired_policy_audit --output research/hcsn/gates/2026-11-05-p1-exact-checkout-legacy-replay.json",
+    "returncode": 0
+  },
+  "new_experiment": {
+    "command": "python -m research.hcsn.p1_put_linear_control --output research/hcsn/gates/2026-11-05-p1-put-linear-control.json",
+    "returncode": 0
+  },
+  "p1_scientific_gate": "OPEN",
+  "production_activation": false,
+  "recorded_at_utc": "2026-11-05T05:01:46.879585+00:00",
+  "schema": "hcsn.p1-put-linear-execution-manifest.v1",
+  "test_receipt": {
+    "command": "python -m unittest research.hcsn.test_p1_exact_policy_eval research.hcsn.test_p1_paired_policy_audit research.hcsn.test_p1_tangent_control research.hcsn.test_p1_hermite_control research.hcsn.test_study research.hcsn.test_p1_put_linear_control -v",
+    "failures": 0,
+    "log": "research/hcsn/gates/2026-11-05-p1-controls-tests.log",
+    "returncode": 0,
+    "skips": 0,
+    "tests_run": 21
+  },
+  "unchanged_dependencies": [
+    {
+      "git_blob_sha1": "3a8823e780655d3ccd997271a87de6030c2ad8dd",
+      "matches_base_exactly": true,
+      "path": "research/hcsn/train_study.py",
+      "sha256": "c8753ce6891110b34679228f774cb0a10a217ad182518d217e1a2247f65832d6"
+    },
+    {
+      "git_blob_sha1": "c0703dfec0706234b1333a7765d0f4c1af726f13",
+      "matches_base_exactly": true,
+      "path": "research/hcsn/boundary_content_bridge.py",
+      "sha256": "cc66e3989310cad4d9d4dec674ea695f708b917e441efac28be602ca8e52e980"
+    },
+    {
+      "git_blob_sha1": "2b9c8300f6effa32ee594ab1c57a7caaf7146bb3",
+      "matches_base_exactly": true,
+      "path": "research/hcsn/p1_hermite_control.py",
+      "sha256": "6bd12b9ba3918f9d964926f6730468e3bdc29d749816bcec75320a535e0d0ae1"
+    },
+    {
+      "git_blob_sha1": "9648f260ad61a149d7d0e0db9358ec5ac16e17f2",
+      "matches_base_exactly": true,
+      "path": "research/hcsn/p1_tangent_control.py",
+      "sha256": "01a29c274edebf5a4744cf2128f1c2b2990c0581d049e3418078db90865aa5a1"
+    },
+    {
+      "git_blob_sha1": "2a7efde8cf0a7f0d981dd55f26c39a7a07fb563e",
+      "matches_base_exactly": true,
+      "path": "research/hcsn/p1_exact_policy_eval.py",
+      "sha256": "c861aa31fc1bb1a774cf859be5551c819d27bebd9b572525b00306731a1a39cd"
+    },
+    {
+      "git_blob_sha1": "59537fd4a47e4071a1c10749fe0b4915dbe1b230",
+      "matches_base_exactly": true,
+      "path": "research/hcsn/p1_paired_policy_audit.py",
+      "sha256": "2990dca0dec5cf2fe23fd321a157f4db381aa94ec62a50e4a1b26d81cadabe48"
+    }
+  ]
+}
