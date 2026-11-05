@@ -1,0 +1,54 @@
+name: Package lock comparison
+
+on:
+  pull_request:
+    paths:
+      - 'hepta/lock_diff.py'
+      - 'hepta/packages.py'
+      - 'hepta/cli.py'
+      - 'tests/test_lock_diff.py'
+      - 'tests/lock_diff_graph_oracle.py'
+      - '.github/workflows/package-lock-diff.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lock-diff:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Verify source identity
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test -z "$(git status --porcelain)"
+          git rev-parse HEAD HEAD^{tree}
+          python --version
+      - name: Compare package snapshots
+        run: python -m unittest tests.test_lock_diff -v
+      - name: Independently check graph admission
+        run: python -m tests.lock_diff_graph_oracle
+      - name: Retain existing package controls
+        run: >-
+          python -m unittest -v
+          tests.test_modules.PackageTests.test_remote_dependency_rejected_without_network
+          tests.test_modules.PackageTests.test_unknown_build_script_key_rejected
+          tests.test_modules.PackageTests.test_bin_dependency_rejected
+          tests.test_modules.PackageTests.test_invalid_version_rejected
+          tests.test_modules.PackageTests.test_snapshot_is_portable_and_deterministic
+          tests.test_modules.PackageTests.test_dependency_source_changes_fail_lock
+      - name: Verify tracked source remains unchanged
+        run: git diff --exit-code && git diff --cached --exit-code
