@@ -1,0 +1,46 @@
+name: OpenVPN controlled DCO timer chain (DENY_ALL)
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/hia-openvpn-dco-timer-chain.yml
+      - experiments/openvpn_hia_20261105/target_host/dco_timer_chain/**
+  push:
+    branches:
+      - dot/trace-openvpn-dco-timer-chain-20261105
+    paths:
+      - .github/workflows/hia-openvpn-dco-timer-chain.yml
+      - experiments/openvpn_hia_20261105/target_host/dco_timer_chain/**
+
+permissions:
+  contents: read
+
+jobs:
+  controlled-timers-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Execute source-verified timer callbacks with explicit mocks
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          printf 'HEAD=%s\n' "$(git rev-parse HEAD)"
+          source_dir="$RUNNER_TEMP/openvpn-timer-source"
+          mkdir -p "$source_dir"
+          for source in ssl.c dco.c forward.c ssl_common.h interval.c interval.h otime.h; do
+            curl --fail --location --proto '=https' --tlsv1.2 --max-time 30 \
+              "https://raw.githubusercontent.com/OpenVPN/openvpn/dc1f569087135894ac2703aeabd7a960ee9452d4/src/openvpn/$source" \
+              --output "$source_dir/$source"
+          done
+          diagnostic=experiments/openvpn_hia_20261105/target_host/dco_timer_chain
+          sha256sum "$diagnostic"/*.py "$diagnostic"/*.c
+          python3 -B "$diagnostic/run_timer_chain.py" "$source_dir"
+          python3 -B "$diagnostic/test_inputs_and_mutation.py" "$source_dir"
+          test -z "$(git status --porcelain)"
+          printf '%s\n' 'Controlled mocks only. No full TLS, event loop, kernel, or target qualification.'
