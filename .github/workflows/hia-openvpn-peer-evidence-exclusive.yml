@@ -10,6 +10,8 @@ on:
       - experiments/openvpn_hia_20261105/target_host/dco_peer_stats.py
       - experiments/openvpn_hia_20261105/target_host/test_dco_peer_stats.py
       - experiments/openvpn_hia_20261105/target_host/test_dco_peer_stats_wire.py
+      - experiments/openvpn_hia_20261105/target_host/run_matrix.py
+      - experiments/openvpn_hia_20261105/target_host/test_run_matrix_rekey.py
   workflow_dispatch:
 
 permissions:
@@ -34,6 +36,9 @@ jobs:
           sha256sum experiments/openvpn_hia_20261105/target_host/dco_peer_stats.py
           sha256sum experiments/openvpn_hia_20261105/target_host/test_dco_peer_stats.py
           sha256sum experiments/openvpn_hia_20261105/target_host/test_dco_peer_stats_wire.py
+          sha256sum experiments/openvpn_hia_20261105/target_host/run_matrix.py
+          sha256sum experiments/openvpn_hia_20261105/target_host/test_run_matrix_rekey.py
           python3 -B experiments/openvpn_hia_20261105/target_host/test_dco_peer_stats.py -v
           python3 -B experiments/openvpn_hia_20261105/target_host/test_dco_peer_stats_wire.py -v
+          python3 -B experiments/openvpn_hia_20261105/target_host/test_run_matrix_rekey.py -v
           test -z "$(git status --porcelain)"
