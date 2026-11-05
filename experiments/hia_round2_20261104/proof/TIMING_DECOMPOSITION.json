@@ -1,0 +1,850 @@
+{
+  "schema": "hepta.proof.existing_receipt_timing_decomposition.v1",
+  "source_scope": "Only already retained receipts and source text were read; no test, profiler, validator, source edit, Lean process, or qualification rerun.",
+  "raw_analysis": {
+    "path": "/data/hepta-hia-round2-20261104/evidence/proof-timing-decomposition-v10-v12-r1.raw.json",
+    "bytes": 46985,
+    "sha256": "0c6d1d0a0c59d20cfa343de391a54f3c4a1327e01cb629477edfd29dee4cc14a",
+    "job_id": "1a1aa2be86c-fc05-3ea0",
+    "exit_code": 0
+  },
+  "units": "All *_ns fields are exact decimal strings. Durations are elapsed wall time, never CPU time.",
+  "clock_definitions": {
+    "checkpoint_ns": "540000000000 minus started.remaining_launch_ns; sampled after the first state check and before writing the started receipt, the second state check, and actual spawn.",
+    "capture_elapsed_ns": "Collector monotonic time from its adjacent-to-spawn timestamp through its terminal/kill observation. It is wall time, not pure Lean CPU execution.",
+    "capture_cleanup_ns": "Collector's separately recorded cleanup time.",
+    "inter_checkpoint_residual_ns": "Next checkpoint minus current checkpoint minus current capture elapsed and cleanup. This mixes pre-spawn state, artifact writes/reads, post-capture validation, independent stage replay, and the next initial state check.",
+    "last_checkpoint_residual_ns": "Inner RESULT wall minus last checkpoint minus last capture elapsed and cleanup. This mixes final-stage management with state checks, the precommit reconstruction, and preparation of the inner result.",
+    "outer_minus_inner_ns": "Different command/inner clock origins. Includes command startup, time after the inner timestamp (final-result persistence and internal replay/checks), and timeout termination overhead. It is NOT an exact internal-replay duration.",
+    "independent_replay_ns": "A separate later command over retained evidence, without a fresh Lean run. Its success does not accept the original timed-out qualifier."
+  },
+  "static_call_account": {
+    "basis": "Control-flow inspection, not a newly measured per-call profile.",
+    "source_files": [
+      {
+        "path": "/data/hepta-hia-round2-20261104/work-proof-integrated/tools/check_core_seven_shared.py",
+        "bytes": 13492,
+        "sha256": "7afc0b87e70bd0eb5c738c3be1c8b7d0bad7f93d927e8af0184f83937658164a"
+      },
+      {
+        "path": "/data/hepta-hia-round2-20261104/work-proof-integrated/tools/core_seven_shared_acceptance_plan.py",
+        "bytes": 29386,
+        "sha256": "345ddd707c0d9b816c67b9c6f5e53a04b9c744ec6b8c6f4b343c995bb6893d0b"
+      },
+      {
+        "path": "/data/hepta-hia-round2-20261104/work-proof-integrated/tools/core_seven_acceptance_capture.py",
+        "bytes": 15199,
+        "sha256": "31b376a523c11b0ee30fd34cc78520bcc9b71b70dfa50646fb0efac40f24f443"
+      },
+      {
+        "path": "/data/hepta-hia-round2-20261104/work-proof-integrated/tools/core_seven_shared_acceptance_replay.py",
+        "bytes": 8491,
+        "sha256": "878cbc7d38cf44f31cda2e4ae6f9102437716fc710d044cf79fe47db257ede59"
+      }
+    ],
+    "external_checks_before_inner_result": 48,
+    "explanation": "External construction 1, after prepare 1, four state checks per each of 11 stages 44, finalization state checks 2.",
+    "further_external_checks_on_complete_success_path": 3,
+    "further_completed_count_in_timed_out_runs": "unknown",
+    "source_files_per_check": 258,
+    "support_files_per_check": 780,
+    "pinned_lean_binary_also_checked": true,
+    "checks_rehash_actual_files": true,
+    "legacy_profiler_scope": "The old cProfile measures pure prepare and reconstruct, not the full qualifier's repeated external checks or artifact revalidation."
+  },
+  "runs": [
+    {
+      "revision": 10,
+      "source_commit": "b47ce924c5941b42448e9da0b07a2bcedaf75d1f",
+      "source_tree": "69cd887f7a2a56de62c6b074bea9fca717d01355",
+      "raw_receipts": {
+        "inner": {
+          "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v10-r1/RESULT.json",
+          "bytes": 2550,
+          "sha256": "2dcebc1a8c3951f83b63e3ccb8f6a19221ee344b74dce99229fe2d14942748b9"
+        },
+        "outer": {
+          "path": "/data/hepta-hia-round2-20261104/evidence/proof-acceptance-integrated-v10-r1/RESULT.json",
+          "bytes": 5128,
+          "sha256": "7a871e8eab37eafe8a93b97d6e8deebc69aed813a163bea87bb526c02c549978"
+        },
+        "replay": {
+          "path": "/data/hepta-hia-round2-20261104/evidence/proof-independent-replay-integrated-v10-r1/RESULT.json",
+          "bytes": 1236,
+          "sha256": "837c9184c8c3d46e3fc1b4aa791cd3aa8721ab32b8035dc52278f4901c43ca5a"
+        }
+      },
+      "full_qualification_passed": false,
+      "full_exit_code": 124,
+      "source_unchanged": true,
+      "fresh_stage_count": 11,
+      "derived": {
+        "first_checkpoint_ns": "75776569598",
+        "capture_elapsed_sum_ns": "297798510028",
+        "capture_cleanup_sum_ns": "293489502",
+        "inter_checkpoint_residual_sum_ns": "109192339928",
+        "last_checkpoint_to_inner_excluding_last_capture_ns": "75809270877",
+        "inner_excluding_capture_ns": "260778180403"
+      },
+      "inner_wall_ns": "558870179933",
+      "outer_wall_ns": "600079463180",
+      "outer_minus_inner_mixed_ns": "41209283247",
+      "independent_replay_exit_code": 0,
+      "independent_replay_ns": "73055962129",
+      "stages": [
+        {
+          "name": "Baseline",
+          "checkpoint_ns": "75776569598",
+          "elapsed_ns": "18901447885",
+          "cleanup_ns": "14508484",
+          "status": "stage_passed",
+          "subject_count": 102,
+          "started": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v10-r1/Baseline.started.json",
+            "bytes": 488,
+            "sha256": "bc8118c7c9cbabc97d0060354374f6106c578b7ef7da6316dfd3f211c554d5a2"
+          },
+          "finished": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v10-r1/Baseline.finished.json",
+            "bytes": 1263,
+            "sha256": "6df9ec3537c1fc08ff8cbd166b603c4ab2a44c187602d953cb5be7c776131824"
+          },
+          "checkpoint_to_next_ns": "29765434689",
+          "non_capture_between_checkpoints_ns": "10849478320"
+        },
+        {
+          "name": "SyntaxData",
+          "checkpoint_ns": "105542004287",
+          "elapsed_ns": "33913385884",
+          "cleanup_ns": "14286781",
+          "status": "stage_passed",
+          "subject_count": 256,
+          "started": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v10-r1/SyntaxData.started.json",
+            "bytes": 800,
+            "sha256": "329f759a6a8afbccea917e6b9bdd2bbef4a6106274527d9b17ff7ace08da4a6e"
+          },
+          "finished": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v10-r1/SyntaxData.finished.json",
+            "bytes": 1266,
+            "sha256": "b4dc897277e8798d8140252595d0424395ccb688af4328322a1b83e5558d7efc"
+          },
+          "checkpoint_to_next_ns": "44593179930",
+          "non_capture_between_checkpoints_ns": "10665507265"
+        },
+        {
+          "name": "CertPart01",
+          "checkpoint_ns": "150135184217",
+          "elapsed_ns": "29549748026",
+          "cleanup_ns": "14166635",
+          "status": "stage_passed",
+          "subject_count": 444,
+          "started": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v10-r1/CertPart01.started.json",
+            "bytes": 802,
+            "sha256": "536d87093cc46fd693cff6da3ccd688e74d01bc3438b0fc75af33ca85221fcd6"
+          },
+          "finished": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v10-r1/CertPart01.finished.json",
+            "bytes": 1265,
+            "sha256": "157662034424ab3b93d8ce32aa32bc8b0a69abd3131d4da8aa5ff5b977beac4f"
+          },
+          "checkpoint_to_next_ns": "40235449674",
+          "non_capture_between_checkpoints_ns": "10671535013"
+        },
+        {
+          "name": "CertPart02",
+          "checkpoint_ns": "190370633891",
+          "elapsed_ns": "16553611810",
+          "cleanup_ns": "14217218",
+          "status": "stage_passed",
+          "subject_count": 735,
+          "started": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v10-r1/CertPart02.started.json",
+            "bytes": 801,
+            "sha256": "ee4e24c1ffa8c58f02753dbdbe5e8c222043e781ae4c7f1f05a0f8b6e9517d57"
+          },
+          "finished": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v10-r1/CertPart02.finished.json",
+            "bytes": 1266,
+            "sha256": "2c0459647e07c1e75059eb90922e2d51cd07af8d4fc7d9dc29a74612cd1ce20e"
+          },
+          "checkpoint_to_next_ns": "27302859327",
+          "non_capture_between_checkpoints_ns": "10735030299"
+        },
+        {
+          "name": "CertPart03",
+          "checkpoint_ns": "217673493218",
+          "elapsed_ns": "32423230959",
+          "cleanup_ns": "14466132",
+          "status": "stage_passed",
+          "subject_count": 1057,
+          "started": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v10-r1/CertPart03.started.json",
+            "bytes": 802,
+            "sha256": "13aa4321b63e4d07592ec942b8a15dd4bd15729695d076495b98abeb3f32493d"
+          },
+          "finished": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v10-r1/CertPart03.finished.json",
+            "bytes": 1267,
+            "sha256": "8bbefd3f376e58b9e908645aea97cf6cba72052d8d03af423f3983bc6720e725"
+          },
+          "checkpoint_to_next_ns": "43168526386",
+          "non_capture_between_checkpoints_ns": "10730829295"
+        },
+        {
+          "name": "CertPart04",
+          "checkpoint_ns": "260842019604",
+          "elapsed_ns": "37521282842",
+          "cleanup_ns": "14347725",
+          "status": "stage_passed",
+          "subject_count": 807,
+          "started": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v10-r1/CertPart04.started.json",
+            "bytes": 802,
+            "sha256": "29cc8ae171b408200358a00bbe7bf1cc31a596c325eb0f2066f2e620811fedfa"
+          },
+          "finished": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v10-r1/CertPart04.finished.json",
+            "bytes": 1266,
+            "sha256": "b1639ca91a34212f45b4ae681f13bd9867d576e0852796bf86e1c0fc856a9f23"
+          },
+          "checkpoint_to_next_ns": "49283802716",
+          "non_capture_between_checkpoints_ns": "11748172149"
+        },
+        {
+          "name": "CertPart05",
+          "checkpoint_ns": "310125822320",
+          "elapsed_ns": "41039969572",
+          "cleanup_ns": "14178224",
+          "status": "stage_passed",
+          "subject_count": 1297,
+          "started": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v10-r1/CertPart05.started.json",
+            "bytes": 802,
+            "sha256": "5d2e3ece9aab0ac37d3705cc58e5843b8cec0ea094b51b3d9768f2482508bbe7"
+          },
+          "finished": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v10-r1/CertPart05.finished.json",
+            "bytes": 1267,
+            "sha256": "52012c487f850e1e16c9aac88c4d9e12074e6ed3c79724241fe4b312c3247ef9"
+          },
+          "checkpoint_to_next_ns": "52170511839",
+          "non_capture_between_checkpoints_ns": "11116364043"
+        },
+        {
+          "name": "CertPart06",
+          "checkpoint_ns": "362296334159",
+          "elapsed_ns": "40589902808",
+          "cleanup_ns": "14282561",
+          "status": "stage_passed",
+          "subject_count": 1297,
+          "started": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v10-r1/CertPart06.started.json",
+            "bytes": 802,
+            "sha256": "144e9393df5b2d332b4ab8e7ef4e2f1062254cf9c55d4c8fd867fe5ae77fc72c"
+          },
+          "finished": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v10-r1/CertPart06.finished.json",
+            "bytes": 1268,
+            "sha256": "db82aa358704b1c45ab58e471174a046a3811b9e1ad3941b8341976f7bfbca77"
+          },
+          "checkpoint_to_next_ns": "51474931686",
+          "non_capture_between_checkpoints_ns": "10870746317"
+        },
+        {
+          "name": "CertPart07",
+          "checkpoint_ns": "413771265845",
+          "elapsed_ns": "28211972328",
+          "cleanup_ns": "14163828",
+          "status": "stage_passed",
+          "subject_count": 1297,
+          "started": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v10-r1/CertPart07.started.json",
+            "bytes": 802,
+            "sha256": "69b26bca9047844cd38f5eb300100bedf4d56565d9b063e0325eaba2e43b0d65"
+          },
+          "finished": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v10-r1/CertPart07.finished.json",
+            "bytes": 1268,
+            "sha256": "4c46ca64c0374fb76ea36927924f0d7a644be14e21b975fee9009c8d19e25b4a"
+          },
+          "checkpoint_to_next_ns": "39114140691",
+          "non_capture_between_checkpoints_ns": "10888004535"
+        },
+        {
+          "name": "ConnectionsTransportRejections",
+          "checkpoint_ns": "452885406536",
+          "elapsed_ns": "16066867539",
+          "cleanup_ns": "57708456",
+          "status": "stage_passed",
+          "subject_count": 75,
+          "started": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v10-r1/ConnectionsTransportRejections.started.json",
+            "bytes": 821,
+            "sha256": "cd47e93737b573492b1a07f7472c94d16eaf56df1ffaeb91de0748cc84dcdcba"
+          },
+          "finished": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v10-r1/ConnectionsTransportRejections.finished.json",
+            "bytes": 1284,
+            "sha256": "03a451c2cc1eafa40872bc3579470051b98184655b679ef51437c21d4f780462"
+          },
+          "checkpoint_to_next_ns": "27041248687",
+          "non_capture_between_checkpoints_ns": "10916672692"
+        },
+        {
+          "name": "WrongArm",
+          "checkpoint_ns": "479926655223",
+          "elapsed_ns": "3027090375",
+          "cleanup_ns": "107163458",
+          "status": "stage_passed",
+          "subject_count": 1,
+          "started": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v10-r1/WrongArm.started.json",
+            "bytes": 800,
+            "sha256": "ac65817383fd085bf2eced006fbf22a8a1f6c39b9f6ba7e212e40d17718c662b"
+          },
+          "finished": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v10-r1/WrongArm.finished.json",
+            "bytes": 1260,
+            "sha256": "2a00c01b254341d33738286e37649f951217afb53c468f99b1d1f4aba329c867"
+          }
+        }
+      ]
+    },
+    {
+      "revision": 11,
+      "source_commit": "0c8a91003aee2732308bb654d0e1f941ae561728",
+      "source_tree": "3870c31f7779a6c1bbcde21159c3c559e92b5501",
+      "raw_receipts": {
+        "inner": {
+          "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v11-r1/RESULT.json",
+          "bytes": 2550,
+          "sha256": "9c18dea4737caccc87c47a605c8a63d958807eb1df47b9213fef0b64a0c5f8b8"
+        },
+        "outer": {
+          "path": "/data/hepta-hia-round2-20261104/evidence/proof-acceptance-integrated-v11-r1/RESULT.json",
+          "bytes": 5128,
+          "sha256": "e69265d47429640d0bbc7a4fa11497cff93c053d314eae9484a678f4c5d746f5"
+        },
+        "replay": {
+          "path": "/data/hepta-hia-round2-20261104/evidence/proof-independent-replay-integrated-v11-r1/RESULT.json",
+          "bytes": 1235,
+          "sha256": "4ea2d18021b9e6097a80e3684b7e46f45a9f40a772d7860a96c7d6f428aaad2b"
+        }
+      },
+      "full_qualification_passed": false,
+      "full_exit_code": 124,
+      "source_unchanged": true,
+      "fresh_stage_count": 11,
+      "derived": {
+        "first_checkpoint_ns": "63738214092",
+        "capture_elapsed_sum_ns": "312228743474",
+        "capture_cleanup_sum_ns": "246403855",
+        "inter_checkpoint_residual_sum_ns": "112051490141",
+        "last_checkpoint_to_inner_excluding_last_capture_ns": "65128716041",
+        "inner_excluding_capture_ns": "240918420274"
+      },
+      "inner_wall_ns": "553393567603",
+      "outer_wall_ns": "600047503236",
+      "outer_minus_inner_mixed_ns": "46653935633",
+      "independent_replay_exit_code": 0,
+      "independent_replay_ns": "55874570337",
+      "stages": [
+        {
+          "name": "Baseline",
+          "checkpoint_ns": "63738214092",
+          "elapsed_ns": "19122840901",
+          "cleanup_ns": "14398953",
+          "status": "stage_passed",
+          "subject_count": 102,
+          "started": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v11-r1/Baseline.started.json",
+            "bytes": 488,
+            "sha256": "6f386d95b2774ed5055fc03ac7bbe21b016d0463bf6afe5b28d51a8778c480f2"
+          },
+          "finished": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v11-r1/Baseline.finished.json",
+            "bytes": 1263,
+            "sha256": "1101afbc9d0b9ec39e0cf3c511957c60f1cbe5e4560d5e3689c790e4b99bbc10"
+          },
+          "checkpoint_to_next_ns": "30066249895",
+          "non_capture_between_checkpoints_ns": "10929010041"
+        },
+        {
+          "name": "SyntaxData",
+          "checkpoint_ns": "93804463987",
+          "elapsed_ns": "35288302321",
+          "cleanup_ns": "15292637",
+          "status": "stage_passed",
+          "subject_count": 256,
+          "started": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v11-r1/SyntaxData.started.json",
+            "bytes": 800,
+            "sha256": "5abfb64fc39a67396eecac5856e217f573f92d790ab1f067c1c0fa59895ca9f5"
+          },
+          "finished": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v11-r1/SyntaxData.finished.json",
+            "bytes": 1266,
+            "sha256": "dd2e7c0f0fe0a7ae6789808a87bd8508b1fe5d2f549784702991bfaf5cc1c640"
+          },
+          "checkpoint_to_next_ns": "46121119651",
+          "non_capture_between_checkpoints_ns": "10817524693"
+        },
+        {
+          "name": "CertPart01",
+          "checkpoint_ns": "139925583638",
+          "elapsed_ns": "31413958003",
+          "cleanup_ns": "14183792",
+          "status": "stage_passed",
+          "subject_count": 444,
+          "started": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v11-r1/CertPart01.started.json",
+            "bytes": 802,
+            "sha256": "a7d7fec65c374e6edfed4aade412372528040449357b7294c48fd6fc2d6c1ce1"
+          },
+          "finished": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v11-r1/CertPart01.finished.json",
+            "bytes": 1265,
+            "sha256": "f720972eca4fa2e03f56a6f339a21d54ca1e81ad6244316f63a474fcf879fbc9"
+          },
+          "checkpoint_to_next_ns": "42677955746",
+          "non_capture_between_checkpoints_ns": "11249813951"
+        },
+        {
+          "name": "CertPart02",
+          "checkpoint_ns": "182603539384",
+          "elapsed_ns": "17840784425",
+          "cleanup_ns": "14485107",
+          "status": "stage_passed",
+          "subject_count": 735,
+          "started": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v11-r1/CertPart02.started.json",
+            "bytes": 801,
+            "sha256": "8876ae4f8b016ade2ca740c2103dd0eeede2dd8cc4436e9741d1e111d962d8cc"
+          },
+          "finished": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v11-r1/CertPart02.finished.json",
+            "bytes": 1266,
+            "sha256": "339a1dc40e87f5052d209af0e34de5d986d7f0433d5876a20d51139bfbb94f1a"
+          },
+          "checkpoint_to_next_ns": "28677048080",
+          "non_capture_between_checkpoints_ns": "10821778548"
+        },
+        {
+          "name": "CertPart03",
+          "checkpoint_ns": "211280587464",
+          "elapsed_ns": "32062919285",
+          "cleanup_ns": "56048639",
+          "status": "stage_passed",
+          "subject_count": 1057,
+          "started": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v11-r1/CertPart03.started.json",
+            "bytes": 802,
+            "sha256": "03f31a02fca58a01483d465f346aa0002c059d1421d2cea21a115b66b9630d09"
+          },
+          "finished": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v11-r1/CertPart03.finished.json",
+            "bytes": 1267,
+            "sha256": "503484352e0b107ce0b6cfe953ff3d96b8a9f3b05bdf1c663a560c5cb9620fda"
+          },
+          "checkpoint_to_next_ns": "43008662314",
+          "non_capture_between_checkpoints_ns": "10889694390"
+        },
+        {
+          "name": "CertPart04",
+          "checkpoint_ns": "254289249778",
+          "elapsed_ns": "39702305867",
+          "cleanup_ns": "18024544",
+          "status": "stage_passed",
+          "subject_count": 807,
+          "started": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v11-r1/CertPart04.started.json",
+            "bytes": 802,
+            "sha256": "5f333a5b8bd8cd37e9419a09e41272ba59a4fc9a14e53ac556d8ea9365e8f0e9"
+          },
+          "finished": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v11-r1/CertPart04.finished.json",
+            "bytes": 1266,
+            "sha256": "ab2803931b979d574a5b36bcc0a9eeeed4ed463b68a4fbd84bbe66037452d45c"
+          },
+          "checkpoint_to_next_ns": "50640322301",
+          "non_capture_between_checkpoints_ns": "10919991890"
+        },
+        {
+          "name": "CertPart05",
+          "checkpoint_ns": "304929572079",
+          "elapsed_ns": "42053711639",
+          "cleanup_ns": "38269794",
+          "status": "stage_passed",
+          "subject_count": 1297,
+          "started": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v11-r1/CertPart05.started.json",
+            "bytes": 802,
+            "sha256": "686b1e70b9041e19667348151569576a76226e422d48c3c69752f56abe10343e"
+          },
+          "finished": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v11-r1/CertPart05.finished.json",
+            "bytes": 1267,
+            "sha256": "c8c3babecd91917e354757cb5f82a75a8a510dccfe7296842b34bc63c09114e4"
+          },
+          "checkpoint_to_next_ns": "53117652681",
+          "non_capture_between_checkpoints_ns": "11025671248"
+        },
+        {
+          "name": "CertPart06",
+          "checkpoint_ns": "358047224760",
+          "elapsed_ns": "43765225203",
+          "cleanup_ns": "59508985",
+          "status": "stage_passed",
+          "subject_count": 1297,
+          "started": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v11-r1/CertPart06.started.json",
+            "bytes": 802,
+            "sha256": "25e10cd06fc3f87a160d825a042da33ef987d1fd89f24a82f0e05efc5b2c700c"
+          },
+          "finished": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v11-r1/CertPart06.finished.json",
+            "bytes": 1268,
+            "sha256": "17ac5c29b4b5e8c1824558a78250bc57129d537dbd1da49e193588d1aafab75e"
+          },
+          "checkpoint_to_next_ns": "54812503242",
+          "non_capture_between_checkpoints_ns": "10987769054"
+        },
+        {
+          "name": "CertPart07",
+          "checkpoint_ns": "412859728002",
+          "elapsed_ns": "30260185752",
+          "cleanup_ns": "3100294",
+          "status": "stage_passed",
+          "subject_count": 1297,
+          "started": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v11-r1/CertPart07.started.json",
+            "bytes": 802,
+            "sha256": "4fba9d501e781b853aac2611669903d5db29a9a1512c15d40be8d6515e889070"
+          },
+          "finished": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v11-r1/CertPart07.finished.json",
+            "bytes": 1267,
+            "sha256": "8223bc6a79feae269abbd284a283b0c2ef612e77cdeafd8d4ccb329105d49f2e"
+          },
+          "checkpoint_to_next_ns": "41510333241",
+          "non_capture_between_checkpoints_ns": "11247047195"
+        },
+        {
+          "name": "ConnectionsTransportRejections",
+          "checkpoint_ns": "454370061243",
+          "elapsed_ns": "17542542971",
+          "cleanup_ns": "10922423",
+          "status": "stage_passed",
+          "subject_count": 75,
+          "started": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v11-r1/ConnectionsTransportRejections.started.json",
+            "bytes": 821,
+            "sha256": "266f920f1101c69f436416aa293fb9ca3a75b01c34de75561c810af6cbb03f12"
+          },
+          "finished": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v11-r1/ConnectionsTransportRejections.finished.json",
+            "bytes": 1284,
+            "sha256": "cec764685e77ee788f718debb31ee4ce1681626b64a500bb7e3936d656eb2bda"
+          },
+          "checkpoint_to_next_ns": "30716654525",
+          "non_capture_between_checkpoints_ns": "13163189131"
+        },
+        {
+          "name": "WrongArm",
+          "checkpoint_ns": "485086715768",
+          "elapsed_ns": "3175967107",
+          "cleanup_ns": "2168687",
+          "status": "stage_passed",
+          "subject_count": 1,
+          "started": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v11-r1/WrongArm.started.json",
+            "bytes": 800,
+            "sha256": "513ab91b3398272b98bca0b6e696d1627782adeb715f8b1cd18ff947b6ad0845"
+          },
+          "finished": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v11-r1/WrongArm.finished.json",
+            "bytes": 1258,
+            "sha256": "274df836d9708c2bd574b22ee7d19cab5cef54e66b1f5fc690b032e3f054064b"
+          }
+        }
+      ]
+    },
+    {
+      "revision": 12,
+      "source_commit": "5ee6d8fec0e5c72d87a36dbed60789de211abf1b",
+      "source_tree": "d47a711461dc66d4606bdc9659203889e205d6c7",
+      "raw_receipts": {
+        "inner": {
+          "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v12-r1/RESULT.json",
+          "bytes": 2550,
+          "sha256": "7bd76924b97877929b3264c91b7c0d7cb5c33b9a465327c7662f4dcbc9d28341"
+        },
+        "outer": {
+          "path": "/data/hepta-hia-round2-20261104/evidence/proof-acceptance-integrated-v12-r1/RESULT.json",
+          "bytes": 5128,
+          "sha256": "496981fa6a5bc1b2d0c8259bcfb325f3035f35839bc825d29f64a7ea2e3b868f"
+        },
+        "replay": {
+          "path": "/data/hepta-hia-round2-20261104/evidence/proof-independent-replay-integrated-v12-r1/RESULT.json",
+          "bytes": 1235,
+          "sha256": "4b7e34acafb06193b9af3ea89c9225a88371460a0eda8e2d16d1ed4e54b8290c"
+        }
+      },
+      "full_qualification_passed": false,
+      "full_exit_code": 124,
+      "source_unchanged": true,
+      "fresh_stage_count": 11,
+      "derived": {
+        "first_checkpoint_ns": "59736175151",
+        "capture_elapsed_sum_ns": "317554485787",
+        "capture_cleanup_sum_ns": "351822316",
+        "inter_checkpoint_residual_sum_ns": "109800511053",
+        "last_checkpoint_to_inner_excluding_last_capture_ns": "63118076555",
+        "inner_excluding_capture_ns": "232654762759"
+      },
+      "inner_wall_ns": "550561070862",
+      "outer_wall_ns": "600049994673",
+      "outer_minus_inner_mixed_ns": "49488923811",
+      "independent_replay_exit_code": 0,
+      "independent_replay_ns": "61189014082",
+      "stages": [
+        {
+          "name": "Baseline",
+          "checkpoint_ns": "59736175151",
+          "elapsed_ns": "19276819866",
+          "cleanup_ns": "19369139",
+          "status": "stage_passed",
+          "subject_count": 102,
+          "started": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v12-r1/Baseline.started.json",
+            "bytes": 488,
+            "sha256": "a7347409cf819b2aa21945881304a5cee0ec6db87c2d72b28257021043009df7"
+          },
+          "finished": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v12-r1/Baseline.finished.json",
+            "bytes": 1265,
+            "sha256": "b4e7b2f882aa3029f1ad738fa7410a0df2a9e93202d28e9f1697b19b95f43954"
+          },
+          "checkpoint_to_next_ns": "29839942182",
+          "non_capture_between_checkpoints_ns": "10543753177"
+        },
+        {
+          "name": "SyntaxData",
+          "checkpoint_ns": "89576117333",
+          "elapsed_ns": "33800904175",
+          "cleanup_ns": "56976665",
+          "status": "stage_passed",
+          "subject_count": 256,
+          "started": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v12-r1/SyntaxData.started.json",
+            "bytes": 800,
+            "sha256": "968c0471bf3b76476554d65fd6a78fa58c2f623fcb75e63e9c1719d238902b92"
+          },
+          "finished": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v12-r1/SyntaxData.finished.json",
+            "bytes": 1268,
+            "sha256": "1a2fc324c16dcb3cd9657b5d9be878b84ef6afab7244fc05d68eddef3e4d6afa"
+          },
+          "checkpoint_to_next_ns": "44662726470",
+          "non_capture_between_checkpoints_ns": "10804845630"
+        },
+        {
+          "name": "CertPart01",
+          "checkpoint_ns": "134238843803",
+          "elapsed_ns": "29018488330",
+          "cleanup_ns": "14118848",
+          "status": "stage_passed",
+          "subject_count": 444,
+          "started": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v12-r1/CertPart01.started.json",
+            "bytes": 802,
+            "sha256": "126eefe354b43e0834797c887322b523f7103a372d8fe48b8f0cf699b71681ad"
+          },
+          "finished": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v12-r1/CertPart01.finished.json",
+            "bytes": 1267,
+            "sha256": "f63e7f8d1b412d53656eb3b8a0468de791885209a4c6aa440605b1c88fa842ae"
+          },
+          "checkpoint_to_next_ns": "39937268774",
+          "non_capture_between_checkpoints_ns": "10904661596"
+        },
+        {
+          "name": "CertPart02",
+          "checkpoint_ns": "174176112577",
+          "elapsed_ns": "17480375933",
+          "cleanup_ns": "77008214",
+          "status": "stage_passed",
+          "subject_count": 735,
+          "started": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v12-r1/CertPart02.started.json",
+            "bytes": 801,
+            "sha256": "e2f374f94917f33555ac0bec9056649b0e34e4a9a1a71a5267d493b52aa0410f"
+          },
+          "finished": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v12-r1/CertPart02.finished.json",
+            "bytes": 1268,
+            "sha256": "b855538122b29c148e0e06b3531cc55685a99c6f8ce1763959e731b9c8d5a7dc"
+          },
+          "checkpoint_to_next_ns": "28356514967",
+          "non_capture_between_checkpoints_ns": "10799130820"
+        },
+        {
+          "name": "CertPart03",
+          "checkpoint_ns": "202532627544",
+          "elapsed_ns": "32132870976",
+          "cleanup_ns": "28497973",
+          "status": "stage_passed",
+          "subject_count": 1057,
+          "started": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v12-r1/CertPart03.started.json",
+            "bytes": 802,
+            "sha256": "61695302044d1c6a8ea9c7666df644afed1df08246f1718a203cc86f5c347c71"
+          },
+          "finished": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v12-r1/CertPart03.finished.json",
+            "bytes": 1269,
+            "sha256": "a787c274c3131ec77e3bfa9f802310b020090c95f17c4da68a6e5aa4d2814118"
+          },
+          "checkpoint_to_next_ns": "43082685614",
+          "non_capture_between_checkpoints_ns": "10921316665"
+        },
+        {
+          "name": "CertPart04",
+          "checkpoint_ns": "245615313158",
+          "elapsed_ns": "43210166379",
+          "cleanup_ns": "14294066",
+          "status": "stage_passed",
+          "subject_count": 807,
+          "started": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v12-r1/CertPart04.started.json",
+            "bytes": 802,
+            "sha256": "d85fafc7591a24275df477477489417452eca7f5c4b46dfaf7ec096a4ab8f483"
+          },
+          "finished": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v12-r1/CertPart04.finished.json",
+            "bytes": 1268,
+            "sha256": "f57de5b04f17d572a7c42327a1daf81f7b62da430b990a6178a85ef079e5b41d"
+          },
+          "checkpoint_to_next_ns": "54640741293",
+          "non_capture_between_checkpoints_ns": "11416280848"
+        },
+        {
+          "name": "CertPart05",
+          "checkpoint_ns": "300256054451",
+          "elapsed_ns": "46609385498",
+          "cleanup_ns": "11134354",
+          "status": "stage_passed",
+          "subject_count": 1297,
+          "started": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v12-r1/CertPart05.started.json",
+            "bytes": 802,
+            "sha256": "68c814bda49df461ba82db679f6e27dca318f05dfa96964f293334dceafe1196"
+          },
+          "finished": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v12-r1/CertPart05.finished.json",
+            "bytes": 1269,
+            "sha256": "b800fd96415225bd540ba7b43fe9611f06691001a65bcf899ccc2f7dc00c6608"
+          },
+          "checkpoint_to_next_ns": "58259329520",
+          "non_capture_between_checkpoints_ns": "11638809668"
+        },
+        {
+          "name": "CertPart06",
+          "checkpoint_ns": "358515383971",
+          "elapsed_ns": "45600705009",
+          "cleanup_ns": "48068432",
+          "status": "stage_passed",
+          "subject_count": 1297,
+          "started": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v12-r1/CertPart06.started.json",
+            "bytes": 802,
+            "sha256": "e0c14f14cad62bf0f3bbc9c70219d2a6c16b4e50dc2e69dab8c0d0885700a0ea"
+          },
+          "finished": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v12-r1/CertPart06.finished.json",
+            "bytes": 1270,
+            "sha256": "42d91973a1210e28272ba09a559ab5c8d63d4c73b2fd43cd28a9fef6bc68e0d6"
+          },
+          "checkpoint_to_next_ns": "56645221068",
+          "non_capture_between_checkpoints_ns": "10996447627"
+        },
+        {
+          "name": "CertPart07",
+          "checkpoint_ns": "415160605039",
+          "elapsed_ns": "29967501144",
+          "cleanup_ns": "53928756",
+          "status": "stage_passed",
+          "subject_count": 1297,
+          "started": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v12-r1/CertPart07.started.json",
+            "bytes": 802,
+            "sha256": "c9357c0970a1cd80eb0ef17152e8f58247bcc764f5bbd36c185fe259548ee38c"
+          },
+          "finished": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v12-r1/CertPart07.finished.json",
+            "bytes": 1270,
+            "sha256": "ca71c0eb3a0990fd117f24ef35f07424cd37b4c56c8325800d558017e52f9d28"
+          },
+          "checkpoint_to_next_ns": "40984865090",
+          "non_capture_between_checkpoints_ns": "10963435190"
+        },
+        {
+          "name": "ConnectionsTransportRejections",
+          "checkpoint_ns": "456145470129",
+          "elapsed_ns": "17319995359",
+          "cleanup_ns": "14232539",
+          "status": "stage_passed",
+          "subject_count": 75,
+          "started": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v12-r1/ConnectionsTransportRejections.started.json",
+            "bytes": 821,
+            "sha256": "6f8c38fe00655f455aba63383f90326b3666a81b911d53c423bff7f96c2bedb4"
+          },
+          "finished": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v12-r1/ConnectionsTransportRejections.finished.json",
+            "bytes": 1286,
+            "sha256": "3ae44451544fcf43873115dd53d161b0195e2ed03cffb326b2b2190f3416f871"
+          },
+          "checkpoint_to_next_ns": "28146057730",
+          "non_capture_between_checkpoints_ns": "10811829832"
+        },
+        {
+          "name": "WrongArm",
+          "checkpoint_ns": "484291527859",
+          "elapsed_ns": "3137273118",
+          "cleanup_ns": "14193330",
+          "status": "stage_passed",
+          "subject_count": 1,
+          "started": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v12-r1/WrongArm.started.json",
+            "bytes": 800,
+            "sha256": "0183ecd487b31a48d2782bbfb96b39a6596550afde19360bebd74ff6048dfc99"
+          },
+          "finished": {
+            "path": "/data/hepta-hia-round2-20261104/evidence/proof-integrated-v12-r1/WrongArm.finished.json",
+            "bytes": 1261,
+            "sha256": "206ccaf9197868e27c29bbc5ae7513023643ea82f1b8a835f8b1978cb7f806f7"
+          }
+        }
+      ]
+    }
+  ],
+  "v12_minus_v11_exact_account_ns": {
+    "capture_elapsed": "5325742313",
+    "capture_cleanup": "105418461",
+    "all_other_inner_work": "-8263657515",
+    "inner_total": "-2832496741",
+    "first_checkpoint": "-4002038941",
+    "inter_checkpoint_residuals": "-2250979088",
+    "last_checkpoint_residual": "-2010639486"
+  },
+  "interpretation": [
+    "The fixed v12 old-to-new diagnostic measured prepare plus one reconstruct: 133057458747 ns to 109174032726 ns, in that one ordered pair. It did not measure the full command.",
+    "Full qualification performs prepare once and reconstruct twice (precommit and internal evidence replay). The second reconstruct is outside the inner RESULT timestamp, together with further validation.",
+    "The formal v11-to-v12 inner difference is exactly accounted for by 8263657515 ns less non-capture work, offset by 5325742313 ns more capture wall and 105418461 ns more cleanup. These receipts do not establish the causes of those variations.",
+    "No exact durations are available for individual external checks, precommit reconstruct, or the interrupted internal replay. No claim assigns mixed residuals wholly to hashing or Python.",
+    "All three formal outer commands exited 124 at 600 seconds. The already written inner passed records and later replay successes cannot change that outcome."
+  ]
+}

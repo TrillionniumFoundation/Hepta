@@ -1,0 +1,66 @@
+{
+  "schema": "hepta.round2.gsl-denominator-scope-audit.v1",
+  "source_commit": "5ee6d8fec0e5c72d87a36dbed60789de211abf1b",
+  "public_source_commit": "3102c2bb6cd819c27aef36cc927c23b39b279204",
+  "source_tree": "d47a711461dc66d4606bdc9659203889e205d6c7",
+  "qualifier_source": {
+    "path": "tools/qualify_cpp_gsl_final_action.py",
+    "bytes": 22749,
+    "sha256": "6073a4656eb7b77f1c4c47395bbe17fb025be41738764dfd73ff159fa626aad9",
+    "git_blob_sha1": "c9b567b5a585f66338e62e78b11e25d17b3e56c8",
+    "url": "https://github.com/TrillionniumFoundation/Hepta/blob/3102c2bb6cd819c27aef36cc927c23b39b279204/tools/qualify_cpp_gsl_final_action.py"
+  },
+  "original_report_sha256": "22d0566a780035f0b15a6898aaa70547a7888565f948e3d58509f614e5bad38e",
+  "original_facts_sha256": "dcb31505de216e57c4570f0b0cfb1c6fc2dc6f4c67ca67d300b99452ba702c2d",
+  "basis": "Static App read of the fixed executed qualifier, together with the already retained completed report. This is a denominator-scope decomposition, not a rerun or an independent native hardware-call counter.",
+  "cases_per_pair": 416,
+  "ordinary_upstream_version_pairs": {
+    "3.1.0": 2,
+    "4.0.0": 3,
+    "5.0.1": 3
+  },
+  "ordinary_upstream_version_pair_count": 8,
+  "ordinary_upstream_version_positive_observation_rows": 6656,
+  "ordinary_upstream_version_positive_scalar_calls": 19968,
+  "authored_callback_variant_pair_count": 1,
+  "authored_callback_variant": {
+    "upstream_version": "4.0.0",
+    "change": "authored callback multiplier31 to37",
+    "report_location": "negative_controls.changed_actual_callback",
+    "original_and_migrated_both_match_adjusted_independent_oracle": true,
+    "positive_observation_rows": 832,
+    "positive_scalar_calls": 2496,
+    "not_a_fourth_upstream_version": true
+  },
+  "combined_positive_pairs": 9,
+  "combined_positive_observation_rows": 7488,
+  "combined_positive_scalar_calls": 22464,
+  "const_factory_subset": {
+    "pairs": 3,
+    "positive_scalar_calls": 7488,
+    "already_in_ordinary_version_totals": true
+  },
+  "wrong_but_linear_separate": {
+    "observation_rows": 416,
+    "scalar_calls": 1248,
+    "included_in_positive_totals": false
+  },
+  "incompatible_signature_controls_called": 0,
+  "actual_migration_backend": {
+    "source_surface": "legacy Hepta source with explicit closed ownership integration",
+    "analysis_backend": "c",
+    "independent_core_checked": true,
+    "emitted_source": "C",
+    "native_c_compile": [
+      "-std=c11",
+      "-O2",
+      "-fno-lto"
+    ],
+    "link_scope": "independent C harness and emitted C object; original C++ object not linked into migrated artifact",
+    "hia_program_llvm_backend_used_by_this_gsl_qualifier": false
+  },
+  "scope_note": "GSL real upstream component migration uses the legacy Hepta/Core C backend. The separate unique_ptr swap profile uses HIA/Core/LLVM. The9-pair combined count includes1 authored callback mutation pair and cannot be presented as9 unmodified upstream-version pairs.",
+  "raw_report_or_facts_modified": false,
+  "new_native_or_model_runs": 0,
+  "source_modified": false
+}

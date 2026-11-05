@@ -1,0 +1,2629 @@
+{
+  "schema": "hepta.round2.final-composition-ndu-readout.v1",
+  "generated_at_utc": "2026-11-05T06:23:01.929452+00:00",
+  "source_commit": "5ee6d8fec0e5c72d87a36dbed60789de211abf1b",
+  "source_tree": "d47a711461dc66d4606bdc9659203889e205d6c7",
+  "public_source_commit": "3102c2bb6cd819c27aef36cc927c23b39b279204",
+  "read_only_postprocessing": true,
+  "new_native_invocations": 0,
+  "scope": "This completed composition only. The separate f48 native dynamic-cache 432-episode cohort is not rerun or attributed to this source.",
+  "authority": "DENY_ALL",
+  "safety_certificate": false,
+  "native_source_pin": "8e52e1187f47f6d4edc8d942fc7cb7eca4bc447d",
+  "stream_profile": "zero-abstain-v1",
+  "full_cost_application": {
+    "status": "completed",
+    "acceptance": {
+      "actual_native_invocations": 9,
+      "complete_cost_accounting": true,
+      "complete_cost_accounting_scope": "Declared bridge build, shared offline build/training/proof/calibration, and actual per-policy service wall times. Parent interpreter startup/imports and final report output require separate composition outer receipts.",
+      "finite_native_correctness_passed": true,
+      "full_lifecycle_cost_complete": false,
+      "native_matches_same_information_exact_model": true,
+      "native_model_all_attempts_completed": true,
+      "native_model_attempted_count": 9,
+      "native_model_evaluated_count": 9,
+      "native_model_failed_count": 0,
+      "native_net_benefit_established": false,
+      "native_net_win_scenarios": 0,
+      "native_policy_evidence_present": true,
+      "reason": "Three repetitions are exploratory, never an application-wide or statistical net-benefit theorem.",
+      "same_information_controls": true,
+      "scenario_count": 3,
+      "skip_only_episodes_without_native_start": 3,
+      "source_stable_during_run": true
+    },
+    "comparisons": [
+      {
+        "episode": "tiny",
+        "median_service_ns": {
+          "exact_dp": 40100235,
+          "fixed": 36139953,
+          "lightweight": 39839723,
+          "native_ndu": 36259921
+        },
+        "native_beats_all_controls": false,
+        "native_over_best_control": 1.0033195394581724
+      },
+      {
+        "episode": "amortized",
+        "median_service_ns": {
+          "exact_dp": 154047832,
+          "fixed": 140997177,
+          "lightweight": 149420595,
+          "native_ndu": 163731969
+        },
+        "native_beats_all_controls": false,
+        "native_over_best_control": 1.161242887862925
+      },
+      {
+        "episode": "invalidate-recover",
+        "median_service_ns": {
+          "exact_dp": 129482598,
+          "fixed": 118674307,
+          "lightweight": 117489550,
+          "native_ndu": 138011824
+        },
+        "native_beats_all_controls": false,
+        "native_over_best_control": 1.1746731858280162
+      }
+    ],
+    "scenario_count": 3,
+    "policy_count": 4,
+    "repetitions": 3,
+    "episodes_total": 36,
+    "per_policy": {
+      "fixed": {
+        "episode_count": 9,
+        "service_wall_sum_ns": 945809349,
+        "actual_decision_wall_sum_ns": 178707,
+        "actual_decision_wall_median_per_episode_ns": 19855,
+        "actual_execution_roundtrip_sum_ns": 838495392,
+        "episode_rows": [
+          {
+            "actual_decision_ns": 16731,
+            "actual_execution_roundtrip_ns": 29209836,
+            "actual_prepare_ns": 680235,
+            "actual_proof_ns": 207902,
+            "actual_retire_ns": 0,
+            "baseline_load_ns": 1126839,
+            "baseline_proof_ns": 3938776,
+            "component_wall_ns": 36741511,
+            "driver_close_ns": 1561192,
+            "episode": "tiny",
+            "id": "0-tiny-fixed",
+            "native_close_ns": 0,
+            "native_invocations": 0,
+            "other_service_ns": 2375709,
+            "policy": "fixed",
+            "repeat": 0,
+            "service_wall_ns": 39117220
+          },
+          {
+            "actual_decision_ns": 22862,
+            "actual_execution_roundtrip_ns": 128918343,
+            "actual_prepare_ns": 765290,
+            "actual_proof_ns": 258512,
+            "actual_retire_ns": 0,
+            "baseline_load_ns": 1179320,
+            "baseline_proof_ns": 5304904,
+            "component_wall_ns": 138082551,
+            "driver_close_ns": 1633320,
+            "episode": "amortized",
+            "id": "0-amortized-fixed",
+            "native_close_ns": 0,
+            "native_invocations": 0,
+            "other_service_ns": 2914626,
+            "policy": "fixed",
+            "repeat": 0,
+            "service_wall_ns": 140997177
+          },
+          {
+            "actual_decision_ns": 19855,
+            "actual_execution_roundtrip_ns": 107370366,
+            "actual_prepare_ns": 1701684,
+            "actual_proof_ns": 551745,
+            "actual_retire_ns": 472759,
+            "baseline_load_ns": 839878,
+            "baseline_proof_ns": 3603778,
+            "component_wall_ns": 116038895,
+            "driver_close_ns": 1478830,
+            "episode": "invalidate-recover",
+            "id": "0-invalidate-recover-fixed",
+            "native_close_ns": 0,
+            "native_invocations": 0,
+            "other_service_ns": 2635412,
+            "policy": "fixed",
+            "repeat": 0,
+            "service_wall_ns": 118674307
+          },
+          {
+            "actual_decision_ns": 15392,
+            "actual_execution_roundtrip_ns": 26197047,
+            "actual_prepare_ns": 684361,
+            "actual_proof_ns": 187099,
+            "actual_retire_ns": 0,
+            "baseline_load_ns": 754404,
+            "baseline_proof_ns": 3745100,
+            "component_wall_ns": 33134958,
+            "driver_close_ns": 1551555,
+            "episode": "tiny",
+            "id": "1-tiny-fixed",
+            "native_close_ns": 0,
+            "native_invocations": 0,
+            "other_service_ns": 2789453,
+            "policy": "fixed",
+            "repeat": 1,
+            "service_wall_ns": 35924411
+          },
+          {
+            "actual_decision_ns": 17247,
+            "actual_execution_roundtrip_ns": 115971625,
+            "actual_prepare_ns": 590736,
+            "actual_proof_ns": 200689,
+            "actual_retire_ns": 0,
+            "baseline_load_ns": 876255,
+            "baseline_proof_ns": 3697605,
+            "component_wall_ns": 122908122,
+            "driver_close_ns": 1553965,
+            "episode": "amortized",
+            "id": "1-amortized-fixed",
+            "native_close_ns": 0,
+            "native_invocations": 0,
+            "other_service_ns": 2062266,
+            "policy": "fixed",
+            "repeat": 1,
+            "service_wall_ns": 124970388
+          },
+          {
+            "actual_decision_ns": 21215,
+            "actual_execution_roundtrip_ns": 90888809,
+            "actual_prepare_ns": 1876674,
+            "actual_proof_ns": 631742,
+            "actual_retire_ns": 579808,
+            "baseline_load_ns": 766817,
+            "baseline_proof_ns": 3749843,
+            "component_wall_ns": 99977380,
+            "driver_close_ns": 1462472,
+            "episode": "invalidate-recover",
+            "id": "1-invalidate-recover-fixed",
+            "native_close_ns": 0,
+            "native_invocations": 0,
+            "other_service_ns": 3085746,
+            "policy": "fixed",
+            "repeat": 1,
+            "service_wall_ns": 103063126
+          },
+          {
+            "actual_decision_ns": 15796,
+            "actual_execution_roundtrip_ns": 26616639,
+            "actual_prepare_ns": 639454,
+            "actual_proof_ns": 184634,
+            "actual_retire_ns": 0,
+            "baseline_load_ns": 776837,
+            "baseline_proof_ns": 3640352,
+            "component_wall_ns": 33383344,
+            "driver_close_ns": 1509632,
+            "episode": "tiny",
+            "id": "2-tiny-fixed",
+            "native_close_ns": 0,
+            "native_invocations": 0,
+            "other_service_ns": 2756609,
+            "policy": "fixed",
+            "repeat": 2,
+            "service_wall_ns": 36139953
+          },
+          {
+            "actual_decision_ns": 25433,
+            "actual_execution_roundtrip_ns": 189071183,
+            "actual_prepare_ns": 957325,
+            "actual_proof_ns": 318352,
+            "actual_retire_ns": 0,
+            "baseline_load_ns": 1207000,
+            "baseline_proof_ns": 8547432,
+            "component_wall_ns": 201684144,
+            "driver_close_ns": 1557419,
+            "episode": "amortized",
+            "id": "2-amortized-fixed",
+            "native_close_ns": 0,
+            "native_invocations": 0,
+            "other_service_ns": 3290882,
+            "policy": "fixed",
+            "repeat": 2,
+            "service_wall_ns": 204975026
+          },
+          {
+            "actual_decision_ns": 24176,
+            "actual_execution_roundtrip_ns": 124251544,
+            "actual_prepare_ns": 2246214,
+            "actual_proof_ns": 863070,
+            "actual_retire_ns": 375823,
+            "baseline_load_ns": 1482305,
+            "baseline_proof_ns": 7730343,
+            "component_wall_ns": 138405181,
+            "driver_close_ns": 1431706,
+            "episode": "invalidate-recover",
+            "id": "2-invalidate-recover-fixed",
+            "native_close_ns": 0,
+            "native_invocations": 0,
+            "other_service_ns": 3542560,
+            "policy": "fixed",
+            "repeat": 2,
+            "service_wall_ns": 141947741
+          }
+        ]
+      },
+      "lightweight": {
+        "episode_count": 9,
+        "service_wall_sum_ns": 968251960,
+        "actual_decision_wall_sum_ns": 17839948,
+        "actual_decision_wall_median_per_episode_ns": 1971256,
+        "actual_execution_roundtrip_sum_ns": 842444136,
+        "episode_rows": [
+          {
+            "actual_decision_ns": 1311967,
+            "actual_execution_roundtrip_ns": 30042734,
+            "actual_prepare_ns": 0,
+            "actual_proof_ns": 0,
+            "actual_retire_ns": 0,
+            "baseline_load_ns": 817378,
+            "baseline_proof_ns": 4030614,
+            "component_wall_ns": 37645725,
+            "driver_close_ns": 1443032,
+            "episode": "tiny",
+            "id": "0-tiny-lightweight",
+            "native_close_ns": 0,
+            "native_invocations": 0,
+            "other_service_ns": 2193998,
+            "policy": "lightweight",
+            "repeat": 0,
+            "service_wall_ns": 39839723
+          },
+          {
+            "actual_decision_ns": 3521386,
+            "actual_execution_roundtrip_ns": 130313526,
+            "actual_prepare_ns": 1058994,
+            "actual_proof_ns": 396768,
+            "actual_retire_ns": 0,
+            "baseline_load_ns": 1440480,
+            "baseline_proof_ns": 7679524,
+            "component_wall_ns": 145990229,
+            "driver_close_ns": 1579551,
+            "episode": "amortized",
+            "id": "0-amortized-lightweight",
+            "native_close_ns": 0,
+            "native_invocations": 0,
+            "other_service_ns": 3430366,
+            "policy": "lightweight",
+            "repeat": 0,
+            "service_wall_ns": 149420595
+          },
+          {
+            "actual_decision_ns": 1990405,
+            "actual_execution_roundtrip_ns": 99192446,
+            "actual_prepare_ns": 1760903,
+            "actual_proof_ns": 666774,
+            "actual_retire_ns": 382360,
+            "baseline_load_ns": 1340482,
+            "baseline_proof_ns": 7884498,
+            "component_wall_ns": 114592785,
+            "driver_close_ns": 1374917,
+            "episode": "invalidate-recover",
+            "id": "0-invalidate-recover-lightweight",
+            "native_close_ns": 0,
+            "native_invocations": 0,
+            "other_service_ns": 2896765,
+            "policy": "lightweight",
+            "repeat": 0,
+            "service_wall_ns": 117489550
+          },
+          {
+            "actual_decision_ns": 1183757,
+            "actual_execution_roundtrip_ns": 26340433,
+            "actual_prepare_ns": 0,
+            "actual_proof_ns": 0,
+            "actual_retire_ns": 0,
+            "baseline_load_ns": 801853,
+            "baseline_proof_ns": 3615876,
+            "component_wall_ns": 33432340,
+            "driver_close_ns": 1490421,
+            "episode": "tiny",
+            "id": "1-tiny-lightweight",
+            "native_close_ns": 0,
+            "native_invocations": 0,
+            "other_service_ns": 2462191,
+            "policy": "lightweight",
+            "repeat": 1,
+            "service_wall_ns": 35894531
+          },
+          {
+            "actual_decision_ns": 1971256,
+            "actual_execution_roundtrip_ns": 199458800,
+            "actual_prepare_ns": 622466,
+            "actual_proof_ns": 195022,
+            "actual_retire_ns": 0,
+            "baseline_load_ns": 936239,
+            "baseline_proof_ns": 3576628,
+            "component_wall_ns": 207358212,
+            "driver_close_ns": 597801,
+            "episode": "amortized",
+            "id": "1-amortized-lightweight",
+            "native_close_ns": 0,
+            "native_invocations": 0,
+            "other_service_ns": 2653707,
+            "policy": "lightweight",
+            "repeat": 1,
+            "service_wall_ns": 210011919
+          },
+          {
+            "actual_decision_ns": 1418765,
+            "actual_execution_roundtrip_ns": 89488481,
+            "actual_prepare_ns": 1253602,
+            "actual_proof_ns": 450105,
+            "actual_retire_ns": 358917,
+            "baseline_load_ns": 798747,
+            "baseline_proof_ns": 3744647,
+            "component_wall_ns": 98952989,
+            "driver_close_ns": 1439725,
+            "episode": "invalidate-recover",
+            "id": "1-invalidate-recover-lightweight",
+            "native_close_ns": 0,
+            "native_invocations": 0,
+            "other_service_ns": 2233455,
+            "policy": "lightweight",
+            "repeat": 1,
+            "service_wall_ns": 101186444
+          },
+          {
+            "actual_decision_ns": 1302001,
+            "actual_execution_roundtrip_ns": 34604028,
+            "actual_prepare_ns": 0,
+            "actual_proof_ns": 0,
+            "actual_retire_ns": 0,
+            "baseline_load_ns": 910582,
+            "baseline_proof_ns": 3598996,
+            "component_wall_ns": 41910814,
+            "driver_close_ns": 1495207,
+            "episode": "tiny",
+            "id": "2-tiny-lightweight",
+            "native_close_ns": 0,
+            "native_invocations": 0,
+            "other_service_ns": 2477235,
+            "policy": "lightweight",
+            "repeat": 2,
+            "service_wall_ns": 44388049
+          },
+          {
+            "actual_decision_ns": 2969536,
+            "actual_execution_roundtrip_ns": 117641156,
+            "actual_prepare_ns": 902082,
+            "actual_proof_ns": 323137,
+            "actual_retire_ns": 0,
+            "baseline_load_ns": 1322068,
+            "baseline_proof_ns": 6993137,
+            "component_wall_ns": 131790641,
+            "driver_close_ns": 1639525,
+            "episode": "amortized",
+            "id": "2-amortized-lightweight",
+            "native_close_ns": 0,
+            "native_invocations": 0,
+            "other_service_ns": 3902840,
+            "policy": "lightweight",
+            "repeat": 2,
+            "service_wall_ns": 135693481
+          },
+          {
+            "actual_decision_ns": 2170875,
+            "actual_execution_roundtrip_ns": 115362532,
+            "actual_prepare_ns": 1775762,
+            "actual_proof_ns": 676021,
+            "actual_retire_ns": 338340,
+            "baseline_load_ns": 1401330,
+            "baseline_proof_ns": 8181221,
+            "component_wall_ns": 131360718,
+            "driver_close_ns": 1454637,
+            "episode": "invalidate-recover",
+            "id": "2-invalidate-recover-lightweight",
+            "native_close_ns": 0,
+            "native_invocations": 0,
+            "other_service_ns": 2966950,
+            "policy": "lightweight",
+            "repeat": 2,
+            "service_wall_ns": 134327668
+          }
+        ]
+      },
+      "exact_dp": {
+        "episode_count": 9,
+        "service_wall_sum_ns": 991194909,
+        "actual_decision_wall_sum_ns": 21297151,
+        "actual_decision_wall_median_per_episode_ns": 2237811,
+        "actual_execution_roundtrip_sum_ns": 859959789,
+        "episode_rows": [
+          {
+            "actual_decision_ns": 879810,
+            "actual_execution_roundtrip_ns": 29779248,
+            "actual_prepare_ns": 0,
+            "actual_proof_ns": 0,
+            "actual_retire_ns": 0,
+            "baseline_load_ns": 834892,
+            "baseline_proof_ns": 4094439,
+            "component_wall_ns": 36997278,
+            "driver_close_ns": 1408889,
+            "episode": "tiny",
+            "id": "0-tiny-exact_dp",
+            "native_close_ns": 0,
+            "native_invocations": 0,
+            "other_service_ns": 2597987,
+            "policy": "exact_dp",
+            "repeat": 0,
+            "service_wall_ns": 39595265
+          },
+          {
+            "actual_decision_ns": 2211906,
+            "actual_execution_roundtrip_ns": 141479591,
+            "actual_prepare_ns": 798622,
+            "actual_proof_ns": 212617,
+            "actual_retire_ns": 0,
+            "baseline_load_ns": 904358,
+            "baseline_proof_ns": 4025659,
+            "component_wall_ns": 151141843,
+            "driver_close_ns": 1509090,
+            "episode": "amortized",
+            "id": "0-amortized-exact_dp",
+            "native_close_ns": 0,
+            "native_invocations": 0,
+            "other_service_ns": 2905989,
+            "policy": "exact_dp",
+            "repeat": 0,
+            "service_wall_ns": 154047832
+          },
+          {
+            "actual_decision_ns": 4360689,
+            "actual_execution_roundtrip_ns": 108828348,
+            "actual_prepare_ns": 1866450,
+            "actual_proof_ns": 710760,
+            "actual_retire_ns": 510332,
+            "baseline_load_ns": 1134365,
+            "baseline_proof_ns": 7609941,
+            "component_wall_ns": 126506320,
+            "driver_close_ns": 1485435,
+            "episode": "invalidate-recover",
+            "id": "0-invalidate-recover-exact_dp",
+            "native_close_ns": 0,
+            "native_invocations": 0,
+            "other_service_ns": 2976278,
+            "policy": "exact_dp",
+            "repeat": 0,
+            "service_wall_ns": 129482598
+          },
+          {
+            "actual_decision_ns": 1425528,
+            "actual_execution_roundtrip_ns": 47180954,
+            "actual_prepare_ns": 0,
+            "actual_proof_ns": 0,
+            "actual_retire_ns": 0,
+            "baseline_load_ns": 1171298,
+            "baseline_proof_ns": 8011453,
+            "component_wall_ns": 59205128,
+            "driver_close_ns": 1415895,
+            "episode": "tiny",
+            "id": "1-tiny-exact_dp",
+            "native_close_ns": 0,
+            "native_invocations": 0,
+            "other_service_ns": 2885053,
+            "policy": "exact_dp",
+            "repeat": 1,
+            "service_wall_ns": 62090181
+          },
+          {
+            "actual_decision_ns": 2890967,
+            "actual_execution_roundtrip_ns": 120291125,
+            "actual_prepare_ns": 1538719,
+            "actual_proof_ns": 494392,
+            "actual_retire_ns": 0,
+            "baseline_load_ns": 1348946,
+            "baseline_proof_ns": 7048151,
+            "component_wall_ns": 135089095,
+            "driver_close_ns": 1476795,
+            "episode": "amortized",
+            "id": "1-amortized-exact_dp",
+            "native_close_ns": 0,
+            "native_invocations": 0,
+            "other_service_ns": 2591855,
+            "policy": "exact_dp",
+            "repeat": 1,
+            "service_wall_ns": 137680950
+          },
+          {
+            "actual_decision_ns": 2313259,
+            "actual_execution_roundtrip_ns": 102793285,
+            "actual_prepare_ns": 1296963,
+            "actual_proof_ns": 432546,
+            "actual_retire_ns": 349044,
+            "baseline_load_ns": 790481,
+            "baseline_proof_ns": 3587497,
+            "component_wall_ns": 112974741,
+            "driver_close_ns": 1411666,
+            "episode": "invalidate-recover",
+            "id": "1-invalidate-recover-exact_dp",
+            "native_close_ns": 0,
+            "native_invocations": 0,
+            "other_service_ns": 2217474,
+            "policy": "exact_dp",
+            "repeat": 1,
+            "service_wall_ns": 115192215
+          },
+          {
+            "actual_decision_ns": 1264870,
+            "actual_execution_roundtrip_ns": 30489485,
+            "actual_prepare_ns": 0,
+            "actual_proof_ns": 0,
+            "actual_retire_ns": 0,
+            "baseline_load_ns": 766749,
+            "baseline_proof_ns": 3622562,
+            "component_wall_ns": 37519741,
+            "driver_close_ns": 1376075,
+            "episode": "tiny",
+            "id": "2-tiny-exact_dp",
+            "native_close_ns": 0,
+            "native_invocations": 0,
+            "other_service_ns": 2580494,
+            "policy": "exact_dp",
+            "repeat": 2,
+            "service_wall_ns": 40100235
+          },
+          {
+            "actual_decision_ns": 3712311,
+            "actual_execution_roundtrip_ns": 143267605,
+            "actual_prepare_ns": 1012089,
+            "actual_proof_ns": 347917,
+            "actual_retire_ns": 0,
+            "baseline_load_ns": 1325950,
+            "baseline_proof_ns": 6888271,
+            "component_wall_ns": 158109425,
+            "driver_close_ns": 1555282,
+            "episode": "amortized",
+            "id": "2-amortized-exact_dp",
+            "native_close_ns": 0,
+            "native_invocations": 0,
+            "other_service_ns": 3325656,
+            "policy": "exact_dp",
+            "repeat": 2,
+            "service_wall_ns": 161435081
+          },
+          {
+            "actual_decision_ns": 2237811,
+            "actual_execution_roundtrip_ns": 135850148,
+            "actual_prepare_ns": 1410882,
+            "actual_proof_ns": 429433,
+            "actual_retire_ns": 371661,
+            "baseline_load_ns": 842343,
+            "baseline_proof_ns": 6595755,
+            "component_wall_ns": 149156657,
+            "driver_close_ns": 1418624,
+            "episode": "invalidate-recover",
+            "id": "2-invalidate-recover-exact_dp",
+            "native_close_ns": 0,
+            "native_invocations": 0,
+            "other_service_ns": 2413895,
+            "policy": "exact_dp",
+            "repeat": 2,
+            "service_wall_ns": 151570552
+          }
+        ]
+      },
+      "native_ndu": {
+        "episode_count": 9,
+        "service_wall_sum_ns": 1041692159,
+        "actual_decision_wall_sum_ns": 101396029,
+        "actual_decision_wall_median_per_episode_ns": 15022909,
+        "actual_execution_roundtrip_sum_ns": 820837139,
+        "episode_rows": [
+          {
+            "actual_decision_ns": 862168,
+            "actual_execution_roundtrip_ns": 29314806,
+            "actual_prepare_ns": 0,
+            "actual_proof_ns": 0,
+            "actual_retire_ns": 0,
+            "baseline_load_ns": 769738,
+            "baseline_proof_ns": 3893027,
+            "component_wall_ns": 36342145,
+            "driver_close_ns": 1501344,
+            "episode": "tiny",
+            "id": "0-tiny-native_ndu",
+            "native_close_ns": 1062,
+            "native_invocations": 0,
+            "other_service_ns": 2220393,
+            "policy": "native_ndu",
+            "repeat": 0,
+            "service_wall_ns": 38562538
+          },
+          {
+            "actual_decision_ns": 19242362,
+            "actual_execution_roundtrip_ns": 127743555,
+            "actual_prepare_ns": 1205993,
+            "actual_proof_ns": 402417,
+            "actual_retire_ns": 0,
+            "baseline_load_ns": 1280753,
+            "baseline_proof_ns": 7954311,
+            "component_wall_ns": 160636939,
+            "driver_close_ns": 1461371,
+            "episode": "amortized",
+            "id": "0-amortized-native_ndu",
+            "native_close_ns": 1346177,
+            "native_invocations": 1,
+            "native_session": {
+              "authority": "DENY_ALL",
+              "binary_sha256": "fa0b623db863d8d7d6a997eac05d2e7c24f32cbae573044fd607a1d3b3482ad8",
+              "cleanup_errors": [],
+              "closed": true,
+              "content_binding": "sealed-bytes-verified-once; inode-seals-process-checked-per-request",
+              "identity": {
+                "algorithms": [
+                  "codex_hepta_ndu::evaluate_recursive_utility",
+                  "codex_hepta_ndu::evaluate_candidates_with_policy"
+                ],
+                "authority": "DENY_ALL",
+                "bridge_digest": "96e1494990c11fe9c318caee673d6e70290fd1e16ae1d3a6a953b712dc0b7961",
+                "rustc": "rustc 1.95.0 (59807616e 2026-04-14)",
+                "safety_certificate": false,
+                "schema": "hepta.hia.ndu.identity.v1",
+                "source_commit": "8e52e1187f47f6d4edc8d942fc7cb7eca4bc447d",
+                "source_digest": "82d9dde94b55b551e6fc2e11053d1907e888e06c852751f4cae02752d5c58baf"
+              },
+              "image_check_profile": "sealed",
+              "image_identity_checks": 3,
+              "initial_full_digest_verified": true,
+              "pid": 1211833,
+              "request_costs_ns": [
+                2787841
+              ],
+              "requests": 1,
+              "safety_certificate": false,
+              "schema": "hepta.hia.ndu.session-observation.v1",
+              "startup_cost_ns": 10968702,
+              "stderr": ""
+            },
+            "other_service_ns": 3095030,
+            "policy": "native_ndu",
+            "repeat": 0,
+            "service_wall_ns": 163731969
+          },
+          {
+            "actual_decision_ns": 14814203,
+            "actual_execution_roundtrip_ns": 101714234,
+            "actual_prepare_ns": 1885746,
+            "actual_proof_ns": 606421,
+            "actual_retire_ns": 510012,
+            "baseline_load_ns": 770410,
+            "baseline_proof_ns": 4403775,
+            "component_wall_ns": 127566336,
+            "driver_close_ns": 1574542,
+            "episode": "invalidate-recover",
+            "id": "0-invalidate-recover-native_ndu",
+            "native_close_ns": 1286993,
+            "native_invocations": 2,
+            "native_session": {
+              "authority": "DENY_ALL",
+              "binary_sha256": "fa0b623db863d8d7d6a997eac05d2e7c24f32cbae573044fd607a1d3b3482ad8",
+              "cleanup_errors": [],
+              "closed": true,
+              "content_binding": "sealed-bytes-verified-once; inode-seals-process-checked-per-request",
+              "identity": {
+                "algorithms": [
+                  "codex_hepta_ndu::evaluate_recursive_utility",
+                  "codex_hepta_ndu::evaluate_candidates_with_policy"
+                ],
+                "authority": "DENY_ALL",
+                "bridge_digest": "96e1494990c11fe9c318caee673d6e70290fd1e16ae1d3a6a953b712dc0b7961",
+                "rustc": "rustc 1.95.0 (59807616e 2026-04-14)",
+                "safety_certificate": false,
+                "schema": "hepta.hia.ndu.identity.v1",
+                "source_commit": "8e52e1187f47f6d4edc8d942fc7cb7eca4bc447d",
+                "source_digest": "82d9dde94b55b551e6fc2e11053d1907e888e06c852751f4cae02752d5c58baf"
+              },
+              "image_check_profile": "sealed",
+              "image_identity_checks": 5,
+              "initial_full_digest_verified": true,
+              "pid": 1211938,
+              "request_costs_ns": [
+                1754353,
+                2741799
+              ],
+              "requests": 2,
+              "safety_certificate": false,
+              "schema": "hepta.hia.ndu.session-observation.v1",
+              "startup_cost_ns": 5741399,
+              "stderr": ""
+            },
+            "other_service_ns": 2690674,
+            "policy": "native_ndu",
+            "repeat": 0,
+            "service_wall_ns": 130257010
+          },
+          {
+            "actual_decision_ns": 840184,
+            "actual_execution_roundtrip_ns": 26485555,
+            "actual_prepare_ns": 0,
+            "actual_proof_ns": 0,
+            "actual_retire_ns": 0,
+            "baseline_load_ns": 811969,
+            "baseline_proof_ns": 4410186,
+            "component_wall_ns": 33977844,
+            "driver_close_ns": 1429190,
+            "episode": "tiny",
+            "id": "1-tiny-native_ndu",
+            "native_close_ns": 760,
+            "native_invocations": 0,
+            "other_service_ns": 2282077,
+            "policy": "native_ndu",
+            "repeat": 1,
+            "service_wall_ns": 36259921
+          },
+          {
+            "actual_decision_ns": 15604135,
+            "actual_execution_roundtrip_ns": 116550788,
+            "actual_prepare_ns": 894640,
+            "actual_proof_ns": 329419,
+            "actual_retire_ns": 0,
+            "baseline_load_ns": 1108001,
+            "baseline_proof_ns": 7136092,
+            "component_wall_ns": 144344554,
+            "driver_close_ns": 1456005,
+            "episode": "amortized",
+            "id": "1-amortized-native_ndu",
+            "native_close_ns": 1265474,
+            "native_invocations": 1,
+            "native_session": {
+              "authority": "DENY_ALL",
+              "binary_sha256": "fa0b623db863d8d7d6a997eac05d2e7c24f32cbae573044fd607a1d3b3482ad8",
+              "cleanup_errors": [],
+              "closed": true,
+              "content_binding": "sealed-bytes-verified-once; inode-seals-process-checked-per-request",
+              "identity": {
+                "algorithms": [
+                  "codex_hepta_ndu::evaluate_recursive_utility",
+                  "codex_hepta_ndu::evaluate_candidates_with_policy"
+                ],
+                "authority": "DENY_ALL",
+                "bridge_digest": "96e1494990c11fe9c318caee673d6e70290fd1e16ae1d3a6a953b712dc0b7961",
+                "rustc": "rustc 1.95.0 (59807616e 2026-04-14)",
+                "safety_certificate": false,
+                "schema": "hepta.hia.ndu.identity.v1",
+                "source_commit": "8e52e1187f47f6d4edc8d942fc7cb7eca4bc447d",
+                "source_digest": "82d9dde94b55b551e6fc2e11053d1907e888e06c852751f4cae02752d5c58baf"
+              },
+              "image_check_profile": "sealed",
+              "image_identity_checks": 3,
+              "initial_full_digest_verified": true,
+              "pid": 1212185,
+              "request_costs_ns": [
+                2009330
+              ],
+              "requests": 1,
+              "safety_certificate": false,
+              "schema": "hepta.hia.ndu.session-observation.v1",
+              "startup_cost_ns": 8683648,
+              "stderr": ""
+            },
+            "other_service_ns": 2666487,
+            "policy": "native_ndu",
+            "repeat": 1,
+            "service_wall_ns": 147011041
+          },
+          {
+            "actual_decision_ns": 18636175,
+            "actual_execution_roundtrip_ns": 102982813,
+            "actual_prepare_ns": 2083386,
+            "actual_proof_ns": 676981,
+            "actual_retire_ns": 371542,
+            "baseline_load_ns": 1156207,
+            "baseline_proof_ns": 6637018,
+            "component_wall_ns": 135297710,
+            "driver_close_ns": 1457790,
+            "episode": "invalidate-recover",
+            "id": "1-invalidate-recover-native_ndu",
+            "native_close_ns": 1295798,
+            "native_invocations": 2,
+            "native_session": {
+              "authority": "DENY_ALL",
+              "binary_sha256": "fa0b623db863d8d7d6a997eac05d2e7c24f32cbae573044fd607a1d3b3482ad8",
+              "cleanup_errors": [],
+              "closed": true,
+              "content_binding": "sealed-bytes-verified-once; inode-seals-process-checked-per-request",
+              "identity": {
+                "algorithms": [
+                  "codex_hepta_ndu::evaluate_recursive_utility",
+                  "codex_hepta_ndu::evaluate_candidates_with_policy"
+                ],
+                "authority": "DENY_ALL",
+                "bridge_digest": "96e1494990c11fe9c318caee673d6e70290fd1e16ae1d3a6a953b712dc0b7961",
+                "rustc": "rustc 1.95.0 (59807616e 2026-04-14)",
+                "safety_certificate": false,
+                "schema": "hepta.hia.ndu.identity.v1",
+                "source_commit": "8e52e1187f47f6d4edc8d942fc7cb7eca4bc447d",
+                "source_digest": "82d9dde94b55b551e6fc2e11053d1907e888e06c852751f4cae02752d5c58baf"
+              },
+              "image_check_profile": "sealed",
+              "image_identity_checks": 5,
+              "initial_full_digest_verified": true,
+              "pid": 1212409,
+              "request_costs_ns": [
+                1984375,
+                2051640
+              ],
+              "requests": 2,
+              "safety_certificate": false,
+              "schema": "hepta.hia.ndu.session-observation.v1",
+              "startup_cost_ns": 8972073,
+              "stderr": ""
+            },
+            "other_service_ns": 2714114,
+            "policy": "native_ndu",
+            "repeat": 1,
+            "service_wall_ns": 138011824
+          },
+          {
+            "actual_decision_ns": 903586,
+            "actual_execution_roundtrip_ns": 26306360,
+            "actual_prepare_ns": 0,
+            "actual_proof_ns": 0,
+            "actual_retire_ns": 0,
+            "baseline_load_ns": 785235,
+            "baseline_proof_ns": 3678190,
+            "component_wall_ns": 33068479,
+            "driver_close_ns": 1394634,
+            "episode": "tiny",
+            "id": "2-tiny-native_ndu",
+            "native_close_ns": 474,
+            "native_invocations": 0,
+            "other_service_ns": 2410230,
+            "policy": "native_ndu",
+            "repeat": 2,
+            "service_wall_ns": 35478709
+          },
+          {
+            "actual_decision_ns": 15470307,
+            "actual_execution_roundtrip_ns": 153810056,
+            "actual_prepare_ns": 923661,
+            "actual_proof_ns": 313733,
+            "actual_retire_ns": 0,
+            "baseline_load_ns": 1164510,
+            "baseline_proof_ns": 7016127,
+            "component_wall_ns": 181585642,
+            "driver_close_ns": 1524819,
+            "episode": "amortized",
+            "id": "2-amortized-native_ndu",
+            "native_close_ns": 1362429,
+            "native_invocations": 1,
+            "native_session": {
+              "authority": "DENY_ALL",
+              "binary_sha256": "fa0b623db863d8d7d6a997eac05d2e7c24f32cbae573044fd607a1d3b3482ad8",
+              "cleanup_errors": [],
+              "closed": true,
+              "content_binding": "sealed-bytes-verified-once; inode-seals-process-checked-per-request",
+              "identity": {
+                "algorithms": [
+                  "codex_hepta_ndu::evaluate_recursive_utility",
+                  "codex_hepta_ndu::evaluate_candidates_with_policy"
+                ],
+                "authority": "DENY_ALL",
+                "bridge_digest": "96e1494990c11fe9c318caee673d6e70290fd1e16ae1d3a6a953b712dc0b7961",
+                "rustc": "rustc 1.95.0 (59807616e 2026-04-14)",
+                "safety_certificate": false,
+                "schema": "hepta.hia.ndu.identity.v1",
+                "source_commit": "8e52e1187f47f6d4edc8d942fc7cb7eca4bc447d",
+                "source_digest": "82d9dde94b55b551e6fc2e11053d1907e888e06c852751f4cae02752d5c58baf"
+              },
+              "image_check_profile": "sealed",
+              "image_identity_checks": 3,
+              "initial_full_digest_verified": true,
+              "pid": 1212531,
+              "request_costs_ns": [
+                2011360
+              ],
+              "requests": 1,
+              "safety_certificate": false,
+              "schema": "hepta.hia.ndu.session-observation.v1",
+              "startup_cost_ns": 8515833,
+              "stderr": ""
+            },
+            "other_service_ns": 2768969,
+            "policy": "native_ndu",
+            "repeat": 2,
+            "service_wall_ns": 184354611
+          },
+          {
+            "actual_decision_ns": 15022909,
+            "actual_execution_roundtrip_ns": 135928972,
+            "actual_prepare_ns": 1772585,
+            "actual_proof_ns": 552028,
+            "actual_retire_ns": 555799,
+            "baseline_load_ns": 1105458,
+            "baseline_proof_ns": 6859920,
+            "component_wall_ns": 164748558,
+            "driver_close_ns": 1563947,
+            "episode": "invalidate-recover",
+            "id": "2-invalidate-recover-native_ndu",
+            "native_close_ns": 1386940,
+            "native_invocations": 2,
+            "native_session": {
+              "authority": "DENY_ALL",
+              "binary_sha256": "fa0b623db863d8d7d6a997eac05d2e7c24f32cbae573044fd607a1d3b3482ad8",
+              "cleanup_errors": [],
+              "closed": true,
+              "content_binding": "sealed-bytes-verified-once; inode-seals-process-checked-per-request",
+              "identity": {
+                "algorithms": [
+                  "codex_hepta_ndu::evaluate_recursive_utility",
+                  "codex_hepta_ndu::evaluate_candidates_with_policy"
+                ],
+                "authority": "DENY_ALL",
+                "bridge_digest": "96e1494990c11fe9c318caee673d6e70290fd1e16ae1d3a6a953b712dc0b7961",
+                "rustc": "rustc 1.95.0 (59807616e 2026-04-14)",
+                "safety_certificate": false,
+                "schema": "hepta.hia.ndu.identity.v1",
+                "source_commit": "8e52e1187f47f6d4edc8d942fc7cb7eca4bc447d",
+                "source_digest": "82d9dde94b55b551e6fc2e11053d1907e888e06c852751f4cae02752d5c58baf"
+              },
+              "image_check_profile": "sealed",
+              "image_identity_checks": 5,
+              "initial_full_digest_verified": true,
+              "pid": 1212671,
+              "request_costs_ns": [
+                1545515,
+                2320059
+              ],
+              "requests": 2,
+              "safety_certificate": false,
+              "schema": "hepta.hia.ndu.session-observation.v1",
+              "startup_cost_ns": 6296672,
+              "stderr": ""
+            },
+            "other_service_ns": 3275978,
+            "policy": "native_ndu",
+            "repeat": 2,
+            "service_wall_ns": 168024536
+          }
+        ]
+      }
+    },
+    "controls": {
+      "exact_dp_quality_upper_bound": "Native cannot improve a correctly solved same-information deterministic scalar model; any incremental value must come from measured end-to-end cost or a richer model.",
+      "fixed_selected": {
+        "cost_ns": 44793923,
+        "ready": [
+          "cpp"
+        ]
+      },
+      "fixed_training_candidates": [
+        {
+          "cost_ns": 71978288,
+          "ready": []
+        },
+        {
+          "cost_ns": 63835602,
+          "ready": [
+            "rust"
+          ]
+        },
+        {
+          "cost_ns": 44793923,
+          "ready": [
+            "cpp"
+          ]
+        },
+        {
+          "cost_ns": 64756513,
+          "ready": [
+            "rust",
+            "cpp"
+          ]
+        }
+      ],
+      "native_uses_exact_first_action_compression": true,
+      "policy_cost_estimates": {
+        "exact_dp": {
+          "close_ns": 0,
+          "gate_ns": 195843,
+          "native_ns": 0,
+          "search_ns": 638365,
+          "startup_ns": 0,
+          "transport_ns": 0,
+          "validation_ns": 0
+        },
+        "fixed": {
+          "close_ns": 0,
+          "gate_ns": 0,
+          "native_ns": 0,
+          "search_ns": 0,
+          "startup_ns": 0,
+          "transport_ns": 0,
+          "validation_ns": 0
+        },
+        "lightweight": {
+          "close_ns": 0,
+          "gate_ns": 195843,
+          "native_ns": 0,
+          "search_ns": 185804,
+          "startup_ns": 0,
+          "transport_ns": 0,
+          "validation_ns": 0
+        },
+        "native_ndu": {
+          "close_ns": 1275181,
+          "gate_ns": 195843,
+          "native_ns": 0,
+          "search_ns": 1164919,
+          "startup_ns": 6350943,
+          "transport_ns": 1332356,
+          "validation_ns": 0
+        }
+      },
+      "same_workload_information": true
+    },
+    "native_decisions": {
+      "counts": {
+        "steps": 36,
+        "native_invoked_steps": 9,
+        "skip_steps": 27,
+        "prepared_artifact_count": 9,
+        "reuse_steps": 12,
+        "invalidating_action_steps": 0,
+        "invalidated_artifact_count": 0,
+        "actual_retired_steps": 3
+      },
+      "native_invocations": 9,
+      "invoking_episodes": 6,
+      "skip_only_episodes": 3,
+      "model_gap_count": 9,
+      "model_gaps_ns": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "all_evaluated_request_model_gaps_zero": true,
+      "search_ns": {
+        "observations": [
+          2918172,
+          1385064,
+          1185361,
+          2530826,
+          2560770,
+          824194,
+          2644384,
+          1495026,
+          1064458
+        ],
+        "sum": 16608255,
+        "median": 1495026,
+        "min": 824194,
+        "max": 2918172
+      },
+      "native_request_roundtrip_ns": {
+        "observations": [
+          2798669,
+          1760226,
+          2751071,
+          2016811,
+          1991556,
+          2058194,
+          2019107,
+          1550624,
+          2327029
+        ],
+        "sum": 19273287,
+        "median": 2019107,
+        "min": 1550624,
+        "max": 2798669
+      },
+      "startup_decision_envelope_ns": {
+        "observations": [
+          11941515,
+          6220460,
+          0,
+          9472704,
+          9826383,
+          0,
+          9418411,
+          6868601,
+          0
+        ],
+        "sum": 53748074,
+        "median": 6868601,
+        "min": 0,
+        "max": 11941515
+      },
+      "response_projection_ns": {
+        "observations": [
+          39413,
+          23088,
+          31388,
+          26515,
+          26844,
+          20826,
+          25905,
+          21265,
+          37742
+        ],
+        "sum": 252986,
+        "median": 26515,
+        "min": 20826,
+        "max": 39413
+      }
+    },
+    "actual_events": [
+      {
+        "episode_id": "0-tiny-native_ndu",
+        "batch": 0,
+        "epoch": 0,
+        "valid": true,
+        "native_invoked": false,
+        "dispatch": "hia",
+        "prepared": [],
+        "reused": [],
+        "retire_reasons": [],
+        "search_ns": 0,
+        "decision_wall_ns": 240289,
+        "model_gap_ns": null
+      },
+      {
+        "episode_id": "0-tiny-native_ndu",
+        "batch": 1,
+        "epoch": 0,
+        "valid": true,
+        "native_invoked": false,
+        "dispatch": "hia",
+        "prepared": [],
+        "reused": [],
+        "retire_reasons": [],
+        "search_ns": 0,
+        "decision_wall_ns": 216123,
+        "model_gap_ns": null
+      },
+      {
+        "episode_id": "0-tiny-native_ndu",
+        "batch": 2,
+        "epoch": 0,
+        "valid": true,
+        "native_invoked": false,
+        "dispatch": "hia",
+        "prepared": [],
+        "reused": [],
+        "retire_reasons": [],
+        "search_ns": 0,
+        "decision_wall_ns": 209948,
+        "model_gap_ns": null
+      },
+      {
+        "episode_id": "0-tiny-native_ndu",
+        "batch": 3,
+        "epoch": 0,
+        "valid": true,
+        "native_invoked": false,
+        "dispatch": "hia",
+        "prepared": [],
+        "reused": [],
+        "retire_reasons": [],
+        "search_ns": 0,
+        "decision_wall_ns": 195808,
+        "model_gap_ns": null
+      },
+      {
+        "episode_id": "0-amortized-native_ndu",
+        "batch": 0,
+        "epoch": 0,
+        "valid": true,
+        "native_invoked": true,
+        "dispatch": "cpp",
+        "prepared": [
+          "cpp"
+        ],
+        "reused": [],
+        "retire_reasons": [],
+        "search_ns": 2918172,
+        "decision_wall_ns": 18238191,
+        "model_gap_ns": 0
+      },
+      {
+        "episode_id": "0-amortized-native_ndu",
+        "batch": 1,
+        "epoch": 0,
+        "valid": true,
+        "native_invoked": false,
+        "dispatch": "cpp",
+        "prepared": [],
+        "reused": [
+          "cpp"
+        ],
+        "retire_reasons": [],
+        "search_ns": 0,
+        "decision_wall_ns": 464265,
+        "model_gap_ns": null
+      },
+      {
+        "episode_id": "0-amortized-native_ndu",
+        "batch": 2,
+        "epoch": 0,
+        "valid": true,
+        "native_invoked": false,
+        "dispatch": "cpp",
+        "prepared": [],
+        "reused": [
+          "cpp"
+        ],
+        "retire_reasons": [],
+        "search_ns": 0,
+        "decision_wall_ns": 239285,
+        "model_gap_ns": null
+      },
+      {
+        "episode_id": "0-amortized-native_ndu",
+        "batch": 3,
+        "epoch": 0,
+        "valid": true,
+        "native_invoked": false,
+        "dispatch": "cpp",
+        "prepared": [],
+        "reused": [
+          "cpp"
+        ],
+        "retire_reasons": [],
+        "search_ns": 0,
+        "decision_wall_ns": 300621,
+        "model_gap_ns": null
+      },
+      {
+        "episode_id": "0-invalidate-recover-native_ndu",
+        "batch": 0,
+        "epoch": 0,
+        "valid": true,
+        "native_invoked": true,
+        "dispatch": "cpp",
+        "prepared": [
+          "cpp"
+        ],
+        "reused": [],
+        "retire_reasons": [],
+        "search_ns": 1385064,
+        "decision_wall_ns": 9702447,
+        "model_gap_ns": 0
+      },
+      {
+        "episode_id": "0-invalidate-recover-native_ndu",
+        "batch": 1,
+        "epoch": 0,
+        "valid": true,
+        "native_invoked": false,
+        "dispatch": "cpp",
+        "prepared": [],
+        "reused": [
+          "cpp"
+        ],
+        "retire_reasons": [],
+        "search_ns": 0,
+        "decision_wall_ns": 399002,
+        "model_gap_ns": null
+      },
+      {
+        "episode_id": "0-invalidate-recover-native_ndu",
+        "batch": 2,
+        "epoch": 1,
+        "valid": false,
+        "native_invoked": false,
+        "dispatch": "hia",
+        "prepared": [],
+        "reused": [],
+        "retire_reasons": [
+          "epoch invalidation"
+        ],
+        "search_ns": 0,
+        "decision_wall_ns": 304292,
+        "model_gap_ns": null
+      },
+      {
+        "episode_id": "0-invalidate-recover-native_ndu",
+        "batch": 3,
+        "epoch": 2,
+        "valid": true,
+        "native_invoked": true,
+        "dispatch": "cpp",
+        "prepared": [
+          "cpp"
+        ],
+        "reused": [],
+        "retire_reasons": [],
+        "search_ns": 1185361,
+        "decision_wall_ns": 4408462,
+        "model_gap_ns": 0
+      },
+      {
+        "episode_id": "1-tiny-native_ndu",
+        "batch": 0,
+        "epoch": 0,
+        "valid": true,
+        "native_invoked": false,
+        "dispatch": "hia",
+        "prepared": [],
+        "reused": [],
+        "retire_reasons": [],
+        "search_ns": 0,
+        "decision_wall_ns": 217295,
+        "model_gap_ns": null
+      },
+      {
+        "episode_id": "1-tiny-native_ndu",
+        "batch": 1,
+        "epoch": 0,
+        "valid": true,
+        "native_invoked": false,
+        "dispatch": "hia",
+        "prepared": [],
+        "reused": [],
+        "retire_reasons": [],
+        "search_ns": 0,
+        "decision_wall_ns": 228111,
+        "model_gap_ns": null
+      },
+      {
+        "episode_id": "1-tiny-native_ndu",
+        "batch": 2,
+        "epoch": 0,
+        "valid": true,
+        "native_invoked": false,
+        "dispatch": "hia",
+        "prepared": [],
+        "reused": [],
+        "retire_reasons": [],
+        "search_ns": 0,
+        "decision_wall_ns": 188989,
+        "model_gap_ns": null
+      },
+      {
+        "episode_id": "1-tiny-native_ndu",
+        "batch": 3,
+        "epoch": 0,
+        "valid": true,
+        "native_invoked": false,
+        "dispatch": "hia",
+        "prepared": [],
+        "reused": [],
+        "retire_reasons": [],
+        "search_ns": 0,
+        "decision_wall_ns": 205789,
+        "model_gap_ns": null
+      },
+      {
+        "episode_id": "1-amortized-native_ndu",
+        "batch": 0,
+        "epoch": 0,
+        "valid": true,
+        "native_invoked": true,
+        "dispatch": "cpp",
+        "prepared": [
+          "cpp"
+        ],
+        "reused": [],
+        "retire_reasons": [],
+        "search_ns": 2530826,
+        "decision_wall_ns": 14517802,
+        "model_gap_ns": 0
+      },
+      {
+        "episode_id": "1-amortized-native_ndu",
+        "batch": 1,
+        "epoch": 0,
+        "valid": true,
+        "native_invoked": false,
+        "dispatch": "cpp",
+        "prepared": [],
+        "reused": [
+          "cpp"
+        ],
+        "retire_reasons": [],
+        "search_ns": 0,
+        "decision_wall_ns": 361626,
+        "model_gap_ns": null
+      },
+      {
+        "episode_id": "1-amortized-native_ndu",
+        "batch": 2,
+        "epoch": 0,
+        "valid": true,
+        "native_invoked": false,
+        "dispatch": "cpp",
+        "prepared": [],
+        "reused": [
+          "cpp"
+        ],
+        "retire_reasons": [],
+        "search_ns": 0,
+        "decision_wall_ns": 372354,
+        "model_gap_ns": null
+      },
+      {
+        "episode_id": "1-amortized-native_ndu",
+        "batch": 3,
+        "epoch": 0,
+        "valid": true,
+        "native_invoked": false,
+        "dispatch": "cpp",
+        "prepared": [],
+        "reused": [
+          "cpp"
+        ],
+        "retire_reasons": [],
+        "search_ns": 0,
+        "decision_wall_ns": 352353,
+        "model_gap_ns": null
+      },
+      {
+        "episode_id": "1-invalidate-recover-native_ndu",
+        "batch": 0,
+        "epoch": 0,
+        "valid": true,
+        "native_invoked": true,
+        "dispatch": "cpp",
+        "prepared": [
+          "cpp"
+        ],
+        "reused": [],
+        "retire_reasons": [],
+        "search_ns": 2560770,
+        "decision_wall_ns": 14902803,
+        "model_gap_ns": 0
+      },
+      {
+        "episode_id": "1-invalidate-recover-native_ndu",
+        "batch": 1,
+        "epoch": 0,
+        "valid": true,
+        "native_invoked": false,
+        "dispatch": "cpp",
+        "prepared": [],
+        "reused": [
+          "cpp"
+        ],
+        "retire_reasons": [],
+        "search_ns": 0,
+        "decision_wall_ns": 401475,
+        "model_gap_ns": null
+      },
+      {
+        "episode_id": "1-invalidate-recover-native_ndu",
+        "batch": 2,
+        "epoch": 1,
+        "valid": false,
+        "native_invoked": false,
+        "dispatch": "hia",
+        "prepared": [],
+        "reused": [],
+        "retire_reasons": [
+          "epoch invalidation"
+        ],
+        "search_ns": 0,
+        "decision_wall_ns": 205614,
+        "model_gap_ns": null
+      },
+      {
+        "episode_id": "1-invalidate-recover-native_ndu",
+        "batch": 3,
+        "epoch": 2,
+        "valid": true,
+        "native_invoked": true,
+        "dispatch": "cpp",
+        "prepared": [
+          "cpp"
+        ],
+        "reused": [],
+        "retire_reasons": [],
+        "search_ns": 824194,
+        "decision_wall_ns": 3126283,
+        "model_gap_ns": 0
+      },
+      {
+        "episode_id": "2-tiny-native_ndu",
+        "batch": 0,
+        "epoch": 0,
+        "valid": true,
+        "native_invoked": false,
+        "dispatch": "hia",
+        "prepared": [],
+        "reused": [],
+        "retire_reasons": [],
+        "search_ns": 0,
+        "decision_wall_ns": 273944,
+        "model_gap_ns": null
+      },
+      {
+        "episode_id": "2-tiny-native_ndu",
+        "batch": 1,
+        "epoch": 0,
+        "valid": true,
+        "native_invoked": false,
+        "dispatch": "hia",
+        "prepared": [],
+        "reused": [],
+        "retire_reasons": [],
+        "search_ns": 0,
+        "decision_wall_ns": 218158,
+        "model_gap_ns": null
+      },
+      {
+        "episode_id": "2-tiny-native_ndu",
+        "batch": 2,
+        "epoch": 0,
+        "valid": true,
+        "native_invoked": false,
+        "dispatch": "hia",
+        "prepared": [],
+        "reused": [],
+        "retire_reasons": [],
+        "search_ns": 0,
+        "decision_wall_ns": 211953,
+        "model_gap_ns": null
+      },
+      {
+        "episode_id": "2-tiny-native_ndu",
+        "batch": 3,
+        "epoch": 0,
+        "valid": true,
+        "native_invoked": false,
+        "dispatch": "hia",
+        "prepared": [],
+        "reused": [],
+        "retire_reasons": [],
+        "search_ns": 0,
+        "decision_wall_ns": 199531,
+        "model_gap_ns": null
+      },
+      {
+        "episode_id": "2-amortized-native_ndu",
+        "batch": 0,
+        "epoch": 0,
+        "valid": true,
+        "native_invoked": true,
+        "dispatch": "cpp",
+        "prepared": [
+          "cpp"
+        ],
+        "reused": [],
+        "retire_reasons": [],
+        "search_ns": 2644384,
+        "decision_wall_ns": 14594460,
+        "model_gap_ns": 0
+      },
+      {
+        "episode_id": "2-amortized-native_ndu",
+        "batch": 1,
+        "epoch": 0,
+        "valid": true,
+        "native_invoked": false,
+        "dispatch": "cpp",
+        "prepared": [],
+        "reused": [
+          "cpp"
+        ],
+        "retire_reasons": [],
+        "search_ns": 0,
+        "decision_wall_ns": 429003,
+        "model_gap_ns": null
+      },
+      {
+        "episode_id": "2-amortized-native_ndu",
+        "batch": 2,
+        "epoch": 0,
+        "valid": true,
+        "native_invoked": false,
+        "dispatch": "cpp",
+        "prepared": [],
+        "reused": [
+          "cpp"
+        ],
+        "retire_reasons": [],
+        "search_ns": 0,
+        "decision_wall_ns": 242056,
+        "model_gap_ns": null
+      },
+      {
+        "episode_id": "2-amortized-native_ndu",
+        "batch": 3,
+        "epoch": 0,
+        "valid": true,
+        "native_invoked": false,
+        "dispatch": "cpp",
+        "prepared": [],
+        "reused": [
+          "cpp"
+        ],
+        "retire_reasons": [],
+        "search_ns": 0,
+        "decision_wall_ns": 204788,
+        "model_gap_ns": null
+      },
+      {
+        "episode_id": "2-invalidate-recover-native_ndu",
+        "batch": 0,
+        "epoch": 0,
+        "valid": true,
+        "native_invoked": true,
+        "dispatch": "cpp",
+        "prepared": [
+          "cpp"
+        ],
+        "reused": [],
+        "retire_reasons": [],
+        "search_ns": 1495026,
+        "decision_wall_ns": 10268554,
+        "model_gap_ns": 0
+      },
+      {
+        "episode_id": "2-invalidate-recover-native_ndu",
+        "batch": 1,
+        "epoch": 0,
+        "valid": true,
+        "native_invoked": false,
+        "dispatch": "cpp",
+        "prepared": [],
+        "reused": [
+          "cpp"
+        ],
+        "retire_reasons": [],
+        "search_ns": 0,
+        "decision_wall_ns": 396709,
+        "model_gap_ns": null
+      },
+      {
+        "episode_id": "2-invalidate-recover-native_ndu",
+        "batch": 2,
+        "epoch": 1,
+        "valid": false,
+        "native_invoked": false,
+        "dispatch": "hia",
+        "prepared": [],
+        "reused": [],
+        "retire_reasons": [
+          "epoch invalidation"
+        ],
+        "search_ns": 0,
+        "decision_wall_ns": 419570,
+        "model_gap_ns": null
+      },
+      {
+        "episode_id": "2-invalidate-recover-native_ndu",
+        "batch": 3,
+        "epoch": 2,
+        "valid": true,
+        "native_invoked": true,
+        "dispatch": "cpp",
+        "prepared": [
+          "cpp"
+        ],
+        "reused": [],
+        "retire_reasons": [],
+        "search_ns": 1064458,
+        "decision_wall_ns": 3938076,
+        "model_gap_ns": 0
+      }
+    ],
+    "epoch_invalidation_retirements": [
+      {
+        "episode_id": "0-invalidate-recover-native_ndu",
+        "batch": 2,
+        "artifact": "cpp",
+        "evidence": {
+          "remaining_loader_mapped_bytes": 0,
+          "retire_ns": 66475,
+          "transport_outer_ns": 199018,
+          "unloaded": 1
+        },
+        "reason": "epoch invalidation",
+        "wall_ns": 510012
+      },
+      {
+        "episode_id": "1-invalidate-recover-native_ndu",
+        "batch": 2,
+        "artifact": "cpp",
+        "evidence": {
+          "remaining_loader_mapped_bytes": 0,
+          "retire_ns": 61338,
+          "transport_outer_ns": 168283,
+          "unloaded": 1
+        },
+        "reason": "epoch invalidation",
+        "wall_ns": 371542
+      },
+      {
+        "episode_id": "2-invalidate-recover-native_ndu",
+        "batch": 2,
+        "artifact": "cpp",
+        "evidence": {
+          "remaining_loader_mapped_bytes": 0,
+          "retire_ns": 89002,
+          "transport_outer_ns": 240374,
+          "unloaded": 1
+        },
+        "reason": "epoch invalidation",
+        "wall_ns": 555799
+      }
+    ],
+    "recovery_reacquisitions": [
+      {
+        "episode_id": "0-invalidate-recover-native_ndu",
+        "epoch": 2,
+        "prepared": [
+          "cpp"
+        ],
+        "native_invoked": true,
+        "dispatch": "cpp"
+      },
+      {
+        "episode_id": "1-invalidate-recover-native_ndu",
+        "epoch": 2,
+        "prepared": [
+          "cpp"
+        ],
+        "native_invoked": true,
+        "dispatch": "cpp"
+      },
+      {
+        "episode_id": "2-invalidate-recover-native_ndu",
+        "epoch": 2,
+        "prepared": [
+          "cpp"
+        ],
+        "native_invoked": true,
+        "dispatch": "cpp"
+      }
+    ],
+    "invalidation_scope": "Actual caller retires the old epoch before invoking the planner; action.invalidated is therefore empty. Three retained native-policy retirement receipts explicitly say epoch invalidation; all report zero remaining loader-mapped bytes.",
+    "dp_gap_scope": "Nine evaluated native requests, all selected complete finite-model witnesses equal the reported same-information exact minimum. The other 27 native-policy steps were not invoked; their native model gaps remain null. This is not actual runtime regret or machine-code global optimality.",
+    "solver_cost_scope": "Native search/request/projection clocks are actual subintervals of online decisions. Per-policy decision wall includes the full controller, not an isolated exact-DP solver. Pure exact-DP solve time is not inferred from calibration estimates.",
+    "isolated_exact_dp_solver_wall_ns": null,
+    "future_cost_scope": "Selected witnesses contain future invoke/skip, gate, search, transport, preparation, proof, retirement, residency and closing costs in the supplied finite forecast. Full frontier witnesses are retained in original episode files; forecast optimality does not imply clairvoyance or optimal actual execution.",
+    "specification": {
+      "backends": [
+        "c",
+        "cpp",
+        "rust",
+        "hia"
+      ],
+      "baseline": "hia",
+      "batch_calls": 1024,
+      "completion_value_ns": 100000000000,
+      "correctness_seeds": [
+        7,
+        1025
+      ],
+      "correctness_sizes": [
+        0,
+        1,
+        31,
+        63,
+        255,
+        4097,
+        65536
+      ],
+      "episodes": [
+        {
+          "epochs": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "id": "tiny",
+          "sizes": [
+            64,
+            64,
+            64,
+            64
+          ],
+          "valid": [
+            true,
+            true,
+            true,
+            true
+          ]
+        },
+        {
+          "epochs": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "id": "amortized",
+          "sizes": [
+            65536,
+            65536,
+            65536,
+            65536
+          ],
+          "valid": [
+            true,
+            true,
+            true,
+            true
+          ]
+        },
+        {
+          "epochs": [
+            0,
+            0,
+            1,
+            2
+          ],
+          "id": "invalidate-recover",
+          "sizes": [
+            65536,
+            65536,
+            4096,
+            65536
+          ],
+          "valid": [
+            true,
+            true,
+            false,
+            true
+          ]
+        }
+      ],
+      "model_budget_ns": 10000000000,
+      "repetitions": 3,
+      "resident_quota_bytes": 65536,
+      "sizes": [
+        64,
+        4096,
+        65536
+      ],
+      "training_samples_per_request": 3,
+      "training_seeds": [
+        19,
+        811,
+        2347
+      ],
+      "variants": [
+        "rust",
+        "cpp"
+      ],
+      "warmup_calls": 4
+    },
+    "frozen_training": {
+      "future_evaluation_timing_rows_used": 0,
+      "preparation_scope": "complete already-built artifact identity check, dlopen transport and initial mapping observation; not compilation",
+      "samples_are_admission_domain": "finite observed native cases, not an all-input theorem",
+      "sha256": "241167e8f259e00cfd75e1a3117fe29123dcf1a949ccb5744a6322adf5be5789",
+      "values": {
+        "c": {
+          "latency_ns": {
+            "4096": 2593996,
+            "64": 84606,
+            "65536": 30249321
+          },
+          "preparation_ns": 1198558,
+          "proof_ns": 184866,
+          "resident_bytes": 24576,
+          "retire_ns": 225558
+        },
+        "cpp": {
+          "latency_ns": {
+            "4096": 3010058,
+            "64": 84282,
+            "65536": 29661211
+          },
+          "preparation_ns": 942983,
+          "proof_ns": 176872,
+          "resident_bytes": 24576,
+          "retire_ns": 239496
+        },
+        "hia": {
+          "latency_ns": {
+            "4096": 3825731,
+            "64": 163358,
+            "65536": 49994627
+          },
+          "preparation_ns": 1160018,
+          "proof_ns": 3909878,
+          "resident_bytes": 24576,
+          "retire_ns": 212047
+        },
+        "rust": {
+          "latency_ns": {
+            "4096": 3125963,
+            "64": 117585,
+            "65536": 29438893
+          },
+          "preparation_ns": 15319748,
+          "proof_ns": 4939266,
+          "resident_bytes": 24576,
+          "retire_ns": 287279
+        }
+      }
+    },
+    "correctness_count": 84,
+    "refusal_recovery": {
+      "passed": true,
+      "phases": [
+        "refusal",
+        "recovery"
+      ],
+      "scope": "native model-level rejection of verified=false, then valid request on same process; independent verifier remains separate"
+    },
+    "refusal_recovery_session_closed": true,
+    "application_cancellation_observed_in_these_performance_episodes": false,
+    "residency_probe_count": 4,
+    "residency_probes_all_zero_mapped_after_retire": true,
+    "offline_wall_ns": 11561171483,
+    "campaign_inner_wall_ns": 15712893146,
+    "shared_cost_policy": {
+      "arm_full_cost_ns": {
+        "exact_dp": 12552366392,
+        "fixed": 12506980832,
+        "lightweight": 12529423443,
+        "native_ndu": 51929722539
+      },
+      "bridge_build_wall_ns": 39326858897,
+      "build_cost_observed": true,
+      "charged_per_arm": "one full shared offline campaign cost plus sum of actual service walls; no unreported amortization",
+      "cost_scope": "Declared bridge build, shared offline build/training/proof/calibration, and actual per-policy service wall times. Parent interpreter startup/imports and final report output require separate composition outer receipts.",
+      "execution_scope_cost_complete": true,
+      "full_lifecycle_cost_complete": false,
+      "limits": "Shared offline calibration includes native calibration for every arm as an identical workload-information campaign; bridge build is additional only for native. No fully cold host claim.",
+      "offline_build_training_proof_calibration_wall_ns": 11561171483,
+      "unknown_costs": [],
+      "unknown_costs_scope": "declared execution scope only",
+      "unmeasured_lifecycle_costs": {
+        "dependency_acquisition_before_campaign_ns": null,
+        "human_engineering_and_review_ns": null,
+        "long_term_residency_and_evidence_retention_ns": null,
+        "maintenance_and_recovery_beyond_observed_campaign_ns": null,
+        "toolchain_acquisition_ns": null
+      }
+    },
+    "outer_cost_completion": {
+      "allocation_rule": "Every policy pays the full common campaign remainder once; native additionally pays outer minus inner bridge build. Original nested report is retained unchanged.",
+      "common_unallocated_runner_overhead_ns": 450916713,
+      "conservative_solo_campaign_cost_by_policy_ns": {
+        "exact_dp": 13003283105,
+        "fixed": 12957897545,
+        "lightweight": 12980340156,
+        "native_ndu": 52638884840
+      },
+      "native_build_additional_charged_ns": 258245588,
+      "native_build_inner_wall_ns": 39326858897,
+      "native_build_outer_wall_ns": 39585104485,
+      "not_an_independently_executed_solo_campaign": true,
+      "whole_qualification_command_wall_ns": 15959036573
+    },
+    "actual_disjoint_bridge_build_plus_application_qualification_outer_ns": 55544141058,
+    "solo_allocations_are_alternatives_not_actual_sum": true,
+    "hia_compilation_scope": {
+      "schema": "hepta.hia.program.native.v1",
+      "kind": "object",
+      "status": "native_compiled_not_executed",
+      "ok": true,
+      "profile": "hepta.hia.program.llvm-linux-x86_64.v1",
+      "target": "x86_64-unknown-linux-gnu",
+      "entry_layout": "canonical",
+      "exports": [
+        "calculate"
+      ],
+      "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+      "claims": {
+        "backend_refinement_proved": false,
+        "c_codegen_used": false,
+        "cross_target_execution_qualified": false,
+        "fallback_used": false,
+        "foreign_buffer_entrypoints_exposed": false,
+        "native_execution_qualified": false,
+        "rust_codegen_used": false,
+        "rust_reference_required": false,
+        "source_ast_required": false,
+        "standalone_core_reverified": true,
+        "whole_language_soundness_proved": false
+      },
+      "runtime_assumptions": [
+        "Linux LP64 target with 64-bit pointers and size_t",
+        "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+        "C malloc returns null or a fresh nonaliasing allocation of the requested size; bytes are initialized before read or remain unobserved",
+        "C free accepts a live allocation from calloc or malloc, or null",
+        "abort terminates execution; no cleanup after traps is promised",
+        "native compiler, linker, loader, libc and host hardware are trusted"
+      ],
+      "flags": [
+        "--target=x86_64-unknown-linux-gnu",
+        "-x",
+        "ir",
+        "-O3",
+        "-fPIC",
+        "-c"
+      ],
+      "cross_target_compilation": false,
+      "build_host": {
+        "abi": "SysV AMD64 LP64",
+        "byteorder": "little",
+        "elf_machine": 62,
+        "long_bits": 64,
+        "machine": "x86_64",
+        "normalized_machine": "x86_64",
+        "pointer_bits": 64,
+        "size_t_bits": 64,
+        "system": "Linux",
+        "target": "x86_64-unknown-linux-gnu"
+      }
+    }
+  },
+  "raw_service": {
+    "planned_calls": 2976,
+    "attempted_calls": 2976,
+    "successful_calls": 2976,
+    "failed_calls": 0,
+    "unattempted_calls": 0,
+    "error_count": 0,
+    "completed_quartets": 744,
+    "case_count": 24,
+    "rounds": 31,
+    "arms": {
+      "one_shot_exact_dp": {
+        "amortized_service_per_call_ns": 16208758.245967742,
+        "call": {
+          "count": 744,
+          "maximum_ns": 37397790,
+          "mean_ns": 16208758.245967742,
+          "median_ns": 15223831.0,
+          "p95_ns": 23701466.700000003,
+          "p99_ns": 26443074.860000014,
+          "sum_ns": 12059316135
+        },
+        "close": {
+          "count": 0,
+          "maximum_ns": null,
+          "mean_ns": null,
+          "median_ns": null,
+          "p95_ns": null,
+          "p99_ns": null,
+          "sum_ns": 0
+        },
+        "observed_partial_service_ns": 12059316135,
+        "standalone_service_ns": 12059316135,
+        "startup": {
+          "count": 0,
+          "maximum_ns": null,
+          "mean_ns": null,
+          "median_ns": null,
+          "p95_ns": null,
+          "p99_ns": null,
+          "sum_ns": 0
+        },
+        "startup_close_already_in_call": true,
+        "successful_calls": 744,
+        "unattempted_calls": 0
+      },
+      "one_shot_ndu": {
+        "amortized_service_per_call_ns": 16365228.92204301,
+        "call": {
+          "count": 744,
+          "maximum_ns": 28224393,
+          "mean_ns": 16365228.92204301,
+          "median_ns": 15574766.5,
+          "p95_ns": 23471455.75,
+          "p99_ns": 26438634.410000004,
+          "sum_ns": 12175730318
+        },
+        "close": {
+          "count": 0,
+          "maximum_ns": null,
+          "mean_ns": null,
+          "median_ns": null,
+          "p95_ns": null,
+          "p99_ns": null,
+          "sum_ns": 0
+        },
+        "observed_partial_service_ns": 12175730318,
+        "standalone_service_ns": 12175730318,
+        "startup": {
+          "count": 0,
+          "maximum_ns": null,
+          "mean_ns": null,
+          "median_ns": null,
+          "p95_ns": null,
+          "p99_ns": null,
+          "sum_ns": 0
+        },
+        "startup_close_already_in_call": true,
+        "successful_calls": 744,
+        "unattempted_calls": 0
+      },
+      "session_exact_dp": {
+        "amortized_service_per_call_ns": 7546712.279569892,
+        "call": {
+          "count": 744,
+          "maximum_ns": 18369817,
+          "mean_ns": 7481619.981182796,
+          "median_ns": 7149480.5,
+          "p95_ns": 12126330.45,
+          "p99_ns": 14456691.67,
+          "sum_ns": 5566325266
+        },
+        "close": {
+          "count": 3,
+          "maximum_ns": 1763784,
+          "mean_ns": 1513772.3333333333,
+          "median_ns": 1488432,
+          "p95_ns": 1736248.8,
+          "p99_ns": 1758276.96,
+          "sum_ns": 4541317
+        },
+        "observed_partial_service_ns": 5614753936,
+        "standalone_service_ns": 5614753936,
+        "startup": {
+          "count": 3,
+          "maximum_ns": 17025894,
+          "mean_ns": 14629117.666666666,
+          "median_ns": 13501043,
+          "p95_ns": 16673408.9,
+          "p99_ns": 16955396.98,
+          "sum_ns": 43887353
+        },
+        "startup_close_already_in_call": false,
+        "successful_calls": 744,
+        "unattempted_calls": 0
+      },
+      "session_ndu": {
+        "amortized_service_per_call_ns": 7849100.344086021,
+        "call": {
+          "count": 744,
+          "maximum_ns": 18079589,
+          "mean_ns": 7790985.635752688,
+          "median_ns": 7548816.5,
+          "p95_ns": 12302152.750000002,
+          "p99_ns": 14407894.120000005,
+          "sum_ns": 5796493313
+        },
+        "close": {
+          "count": 3,
+          "maximum_ns": 1416819,
+          "mean_ns": 1366147.3333333333,
+          "median_ns": 1371288,
+          "p95_ns": 1412265.9,
+          "p99_ns": 1415908.38,
+          "sum_ns": 4098442
+        },
+        "observed_partial_service_ns": 5839730656,
+        "standalone_service_ns": 5839730656,
+        "startup": {
+          "count": 3,
+          "maximum_ns": 13090734,
+          "mean_ns": 13046300.333333334,
+          "median_ns": 13030808,
+          "p95_ns": 13084741.4,
+          "p99_ns": 13089535.48,
+          "sum_ns": 39138901
+        },
+        "startup_close_already_in_call": false,
+        "successful_calls": 744,
+        "unattempted_calls": 0
+      }
+    },
+    "descriptive_comparisons": [
+      {
+        "denominator": "one_shot_exact_dp",
+        "numerator": "session_exact_dp",
+        "service_cost_ratio": 0.46559472138757396
+      },
+      {
+        "denominator": "one_shot_ndu",
+        "numerator": "session_ndu",
+        "service_cost_ratio": 0.47962056513085133
+      },
+      {
+        "denominator": "one_shot_exact_dp",
+        "numerator": "one_shot_ndu",
+        "service_cost_ratio": 1.0096534647318953
+      },
+      {
+        "denominator": "session_exact_dp",
+        "numerator": "session_ndu",
+        "service_cost_ratio": 1.0400688476404143
+      }
+    ],
+    "all_decisions_and_witnesses_equal": true,
+    "additional_ndu_decision_quality_observed": false,
+    "application_execution_measured": false,
+    "full_application_lifecycle_advantage_established": false,
+    "build_cost": {
+      "scope": "build() entry through pinned-source extraction, staging, Cargo, source/tool/binary validation and receipt preparation; excludes final receipt write, Python imports and caller startup",
+      "status": "observed successful source-preserving build; compiler stream identities retained",
+      "wall_ns": 30928793240
+    },
+    "campaign_inner_wall_ns": 38952839796,
+    "inner_alternative_allocations": {
+      "amortized_build_plus_service_per_call_ns": {
+        "one_shot_exact_dp": 57779716.90188172,
+        "one_shot_ndu": 57936187.57795699,
+        "session_exact_dp": 49117670.93548387,
+        "session_ndu": 49420059.0
+      },
+      "common_build_wall_ns": 30928793240,
+      "rule": "each standalone arm charged the same entire B once, not B/4; per-call B/744",
+      "standalone_build_plus_service_ns": {
+        "one_shot_exact_dp": 42988109375,
+        "one_shot_ndu": 43104523558,
+        "session_exact_dp": 36543547176,
+        "session_ndu": 36768523896
+      }
+    },
+    "outer_cost_completion": {
+      "allocation_rule": "Each descriptive standalone service pays the complete observed outer build, its service, and all common caller/registration remainder once.",
+      "application_execution_included": false,
+      "common_runner_and_registration_remainder_ns": 3766843979,
+      "conservative_solo_service_cost_by_arm_ns": {
+        "one_shot_exact_dp": 46903338282,
+        "one_shot_ndu": 47019752465,
+        "session_exact_dp": 40458776083,
+        "session_ndu": 40683752803
+      },
+      "historical_preparation_or_human_cost_ns": null,
+      "native_build_additional_charged_ns": 148384928,
+      "native_build_inner_wall_ns": 30928793240,
+      "native_build_outer_wall_ns": 31077178168,
+      "not_an_independently_executed_solo_campaign": true,
+      "registration_command_wall_ns": 315485652,
+      "whole_service_command_wall_ns": 39140889372
+    },
+    "actual_disjoint_build_freeze_and_service_command_outer_ns": 70533553192,
+    "solo_allocations_are_alternatives_not_actual_sum": true,
+    "statistical_scope": "one fixed 31-round service campaign; descriptive only, no population or independent-host claim",
+    "original_records": {
+      "bytes": 56812124,
+      "file": "ORIGINAL.jsonl",
+      "gzip_file": "ORIGINAL.jsonl.gz",
+      "gzip_sha256": "c736b8b0e53a94b6a7bcaf46dc1369f6786c39e3e9f96a0ace2df3925faedf82",
+      "record_count": 6722,
+      "sha256": "a71138c91a3216e7015fd943657514d51ced8a7243c4899382fb1680022bfe86"
+    },
+    "correctness_controls": {
+      "status": "passed",
+      "tests": 22,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "native_calls": 318,
+      "native_rejections": 20,
+      "inputs_unchanged": true
+    }
+  },
+  "lazy_witness": {
+    "status": "passed",
+    "model_count": 256,
+    "checks_count": 256,
+    "sample_count": 44,
+    "native_invocations": 64,
+    "all_complete_witnesses_equal": true,
+    "all_independent_frontiers_equal": true,
+    "all_native_request_bytes_equal": true,
+    "application_execution_measured": false,
+    "native_ndu_advantage_established": false,
+    "full_lifecycle_net_benefit_established": false,
+    "summary": {
+      "build_request": {
+        "arms": {
+          "baseline": {
+            "median_ns": 165792223,
+            "p95_ns": 231772242,
+            "samples": 11,
+            "total_ns": 1911211746
+          },
+          "lazy": {
+            "median_ns": 127314287,
+            "p95_ns": 216038837,
+            "samples": 11,
+            "total_ns": 1531299412
+          }
+        },
+        "new_over_old_median": 0.7679147109330936,
+        "new_over_old_total": 0.801219129803318
+      },
+      "exact_control": {
+        "arms": {
+          "baseline": {
+            "median_ns": 63821741,
+            "p95_ns": 99758876,
+            "samples": 11,
+            "total_ns": 790431985
+          },
+          "lazy": {
+            "median_ns": 57390100,
+            "p95_ns": 91624586,
+            "samples": 11,
+            "total_ns": 689968995
+          }
+        },
+        "new_over_old_median": 0.899224920861999,
+        "new_over_old_total": 0.8729011579661722
+      }
+    },
+    "outer_wall_ns_excluding_final_result_write": 7958068183,
+    "actual_native_completed": 64,
+    "actual_native_attempted": 64,
+    "actual_native_response_equality": true,
+    "bridge_build_reused_not_recharged_as_actual": true,
+    "native_phase_wall_ns": 165323315
+  },
+  "budget_erasure": {
+    "status": "passed",
+    "model_count": 128,
+    "checks_count": 128,
+    "sample_count": 44,
+    "native_invocations": 0,
+    "all_complete_witnesses_equal": true,
+    "all_independent_frontiers_equal": true,
+    "all_native_request_bytes_equal": true,
+    "native_ndu_advantage_established": false,
+    "full_lifecycle_net_benefit_established": false,
+    "summary": {
+      "build_request": {
+        "arms": {
+          "budget_erased": {
+            "median_ns": 59427665,
+            "p95_ns": 62934311,
+            "samples": 11,
+            "total_ns": 653428462
+          },
+          "historical": {
+            "median_ns": 260087693,
+            "p95_ns": 265655809,
+            "samples": 11,
+            "total_ns": 2844856812
+          }
+        },
+        "new_over_old_median": 0.22849087672902693,
+        "new_over_old_total": 0.22968764517206922
+      },
+      "exact_control": {
+        "arms": {
+          "budget_erased": {
+            "median_ns": 28664660,
+            "p95_ns": 32537949,
+            "samples": 11,
+            "total_ns": 318967186
+          },
+          "historical": {
+            "median_ns": 168136172,
+            "p95_ns": 194937511,
+            "samples": 11,
+            "total_ns": 1898570739
+          }
+        },
+        "new_over_old_median": 0.1704847901497365,
+        "new_over_old_total": 0.16800384597099807
+      }
+    },
+    "outer_wall_ns_excluding_final_result_write": 7057636400,
+    "application_execution_measured": false,
+    "not_the_f48_native_432_episode_experiment": true
+  },
+  "command_envelopes": {
+    "ndu_full_cost": {
+      "wall_ns": 15959036573,
+      "returncode": 0,
+      "timed_out": false,
+      "input": {
+        "path": "commands/ndu_full_cost.command.json",
+        "bytes": 2577,
+        "sha256": "a982b62f3b9dea8ddd5955a0675b3f47dc6939975aff4a0b3fb4c268d0cd1ee3"
+      }
+    },
+    "ndu_lazy_witness": {
+      "wall_ns": 8139508174,
+      "returncode": 0,
+      "timed_out": false,
+      "input": {
+        "path": "commands/ndu_lazy_witness.command.json",
+        "bytes": 2413,
+        "sha256": "89e9561ebcdb1ae151a925601104cfc1e1617428a35fd3ab363297afb2d7bba3"
+      }
+    },
+    "ndu_model_planner": {
+      "wall_ns": 7236149105,
+      "returncode": 0,
+      "timed_out": false,
+      "input": {
+        "path": "commands/ndu_model_planner.command.json",
+        "bytes": 2106,
+        "sha256": "f64234c758c60c32603c3cf9b3a7fa712ae05d8953a2f1a95630f60641f0f5c1"
+      }
+    },
+    "raw_ndu_correctness": {
+      "wall_ns": 8488753709,
+      "returncode": 0,
+      "timed_out": false,
+      "input": {
+        "path": "commands/raw_ndu_correctness.command.json",
+        "bytes": 2361,
+        "sha256": "25a44889e587e3a32de268e8b4334cb2240586fbd9ccca8138d550e115daf106"
+      }
+    },
+    "raw_ndu_service_cost": {
+      "wall_ns": 39140889372,
+      "returncode": 0,
+      "timed_out": false,
+      "input": {
+        "path": "commands/raw_ndu_service_cost.command.json",
+        "bytes": 2123,
+        "sha256": "1f1803d75fc5894d40937fd580770c59b00f3c46c30cae48bb9381c87cfad2c9"
+      }
+    },
+    "raw_ndu_service_freeze": {
+      "wall_ns": 315485652,
+      "returncode": 0,
+      "timed_out": false,
+      "input": {
+        "path": "commands/raw_ndu_service_freeze.command.json",
+        "bytes": 2367,
+        "sha256": "fe08ef929cb39d737ecc3d93782ef1f284d7c7a33517c00766231e7068823eb1"
+      }
+    }
+  },
+  "full_lifecycle_cost_complete": false,
+  "whole_composition_outer_ns": 1995815171483,
+  "cost_scope": "All listed command clocks and lane costs are nested in composition outer. Do not add subintervals or alternative standalone allocations to actual command wall. Historical acquisition, human engineering, energy and complete lifecycle costs remain unobserved.",
+  "inputs": [
+    {
+      "path": "/data/hepta-hia-round2-20261104/evidence/composition-v4-r1/ndu-cost/REPORT.json",
+      "bytes": 277335,
+      "sha256": "1a9d393d3de50e348d894720bff75dc0ad3057518d9a666b59a5858b580fcda9"
+    },
+    {
+      "path": "/data/hepta-hia-round2-20261104/evidence/composition-v4-r1/ndu-lazy-witness/RESULT.json",
+      "bytes": 121100,
+      "sha256": "cd3ecd418549efc244621d427de8dbe0b33f0d364b1e5defc55a85c5dbcc4045"
+    },
+    {
+      "path": "/data/hepta-hia-round2-20261104/evidence/composition-v4-r1/raw-service-cost/RESULT.json",
+      "bytes": 6863,
+      "sha256": "41c7421e47d46a9033f7411b20fa5b754614b5e0b989508ed76e154136f37350"
+    },
+    {
+      "path": "/data/hepta-hia-round2-20261104/evidence/composition-v4-r1/ndu-model-planner/RESULT.json",
+      "bytes": 56883,
+      "sha256": "134a7381f42ab9ebe8d77f75f9f89991c3073bd31497729bd1837dd4ea1fe654"
+    },
+    {
+      "path": "/data/hepta-hia-round2-20261104/evidence/composition-v4-r1/RESULT.json",
+      "bytes": 877641,
+      "sha256": "c92fe59f1d50e84114560d7229e0db69ca19285582ef206a7d4171a7905a76d2"
+    },
+    {
+      "path": "/data/hepta-hia-round2-20261104/evidence/composition-v4-r1/ndu-cost/0-tiny-native_ndu.json",
+      "bytes": 19882,
+      "sha256": "cb298138e81399b040b7659747960cd4fba283e82600aa61e46a9082cdda75fd"
+    },
+    {
+      "path": "/data/hepta-hia-round2-20261104/evidence/composition-v4-r1/ndu-cost/0-amortized-native_ndu.json",
+      "bytes": 90044,
+      "sha256": "a5422b519f030e5b4eac2083a01fce14372d19a47f1f3ca0b0039e2a41c4740e"
+    },
+    {
+      "path": "/data/hepta-hia-round2-20261104/evidence/composition-v4-r1/ndu-cost/0-invalidate-recover-native_ndu.json",
+      "bytes": 127443,
+      "sha256": "43fa1d9b5a0a9075c766dcc21389b6206ddd15a2fdac67164cc51175fe264b32"
+    },
+    {
+      "path": "/data/hepta-hia-round2-20261104/evidence/composition-v4-r1/ndu-cost/1-tiny-native_ndu.json",
+      "bytes": 19881,
+      "sha256": "2cdaf5d32e1dd7c547baa180806a37319389653af538a0d294b6d47bc03fc5d0"
+    },
+    {
+      "path": "/data/hepta-hia-round2-20261104/evidence/composition-v4-r1/ndu-cost/1-amortized-native_ndu.json",
+      "bytes": 90037,
+      "sha256": "6659ba5340fa84c977abbeb1e2ce6758fa792731a2d0246673d9ffc4a8c5576f"
+    },
+    {
+      "path": "/data/hepta-hia-round2-20261104/evidence/composition-v4-r1/ndu-cost/1-invalidate-recover-native_ndu.json",
+      "bytes": 127448,
+      "sha256": "59bbd2793a7dbb969fff2bc3576cd7703ff602a2777f0951a5c38d9389bfa17d"
+    },
+    {
+      "path": "/data/hepta-hia-round2-20261104/evidence/composition-v4-r1/ndu-cost/2-tiny-native_ndu.json",
+      "bytes": 19879,
+      "sha256": "b993dcbb39c926b64f2d24913b9acf4db945e713091662f4d103f0280b4b7958"
+    },
+    {
+      "path": "/data/hepta-hia-round2-20261104/evidence/composition-v4-r1/ndu-cost/2-amortized-native_ndu.json",
+      "bytes": 90038,
+      "sha256": "bff287e6b3109f8a76fdbbbb91f9b11b5bb8ad2d6c37308ac50fa94671904593"
+    },
+    {
+      "path": "/data/hepta-hia-round2-20261104/evidence/composition-v4-r1/ndu-cost/2-invalidate-recover-native_ndu.json",
+      "bytes": 127448,
+      "sha256": "2157625a8e89ece784aa92811d2adcc6ece16537b9f525bbf5b436d6ee9579bf"
+    },
+    {
+      "path": "/data/hepta-hia-round2-20261104/evidence/composition-v4-r1.NDU_INPUT_PROJECTION.json",
+      "bytes": 122390,
+      "sha256": "21813bcb29150fcb566463ac446860480c89285c6a2d2db72da324e5f4390f9a"
+    },
+    {
+      "path": "/data/hepta-hia-round2-20261104/evidence/composition-v4-r1/RESULT.json",
+      "bytes": 877641,
+      "sha256": "c92fe59f1d50e84114560d7229e0db69ca19285582ef206a7d4171a7905a76d2"
+    },
+    {
+      "path": "/data/hepta-hia-round2-20261104/evidence/composition-v4-r1/ndu-cost/0-tiny-native_ndu.json",
+      "bytes": 19882,
+      "sha256": "cb298138e81399b040b7659747960cd4fba283e82600aa61e46a9082cdda75fd"
+    },
+    {
+      "path": "/data/hepta-hia-round2-20261104/evidence/composition-v4-r1/ndu-cost/0-amortized-native_ndu.json",
+      "bytes": 90044,
+      "sha256": "a5422b519f030e5b4eac2083a01fce14372d19a47f1f3ca0b0039e2a41c4740e"
+    },
+    {
+      "path": "/data/hepta-hia-round2-20261104/evidence/composition-v4-r1/ndu-cost/0-invalidate-recover-native_ndu.json",
+      "bytes": 127443,
+      "sha256": "43fa1d9b5a0a9075c766dcc21389b6206ddd15a2fdac67164cc51175fe264b32"
+    },
+    {
+      "path": "/data/hepta-hia-round2-20261104/evidence/composition-v4-r1/ndu-cost/1-tiny-native_ndu.json",
+      "bytes": 19881,
+      "sha256": "2cdaf5d32e1dd7c547baa180806a37319389653af538a0d294b6d47bc03fc5d0"
+    },
+    {
+      "path": "/data/hepta-hia-round2-20261104/evidence/composition-v4-r1/ndu-cost/1-amortized-native_ndu.json",
+      "bytes": 90037,
+      "sha256": "6659ba5340fa84c977abbeb1e2ce6758fa792731a2d0246673d9ffc4a8c5576f"
+    },
+    {
+      "path": "/data/hepta-hia-round2-20261104/evidence/composition-v4-r1/ndu-cost/1-invalidate-recover-native_ndu.json",
+      "bytes": 127448,
+      "sha256": "59bbd2793a7dbb969fff2bc3576cd7703ff602a2777f0951a5c38d9389bfa17d"
+    },
+    {
+      "path": "/data/hepta-hia-round2-20261104/evidence/composition-v4-r1/ndu-cost/2-tiny-native_ndu.json",
+      "bytes": 19879,
+      "sha256": "b993dcbb39c926b64f2d24913b9acf4db945e713091662f4d103f0280b4b7958"
+    },
+    {
+      "path": "/data/hepta-hia-round2-20261104/evidence/composition-v4-r1/ndu-cost/2-amortized-native_ndu.json",
+      "bytes": 90038,
+      "sha256": "bff287e6b3109f8a76fdbbbb91f9b11b5bb8ad2d6c37308ac50fa94671904593"
+    },
+    {
+      "path": "/data/hepta-hia-round2-20261104/evidence/composition-v4-r1/ndu-cost/2-invalidate-recover-native_ndu.json",
+      "bytes": 127448,
+      "sha256": "2157625a8e89ece784aa92811d2adcc6ece16537b9f525bbf5b436d6ee9579bf"
+    }
+  ],
+  "local_projection_inputs": [
+    {
+      "path": "NDU_INPUT_PROJECTION.json",
+      "bytes": 122390,
+      "sha256": "21813bcb29150fcb566463ac446860480c89285c6a2d2db72da324e5f4390f9a"
+    },
+    {
+      "path": "NDU_DECISION_METRICS.json",
+      "bytes": 101058,
+      "sha256": "d55d35629b11a76890541399cd8a59e7e8196b04dd18c043e61a54fdcf9d063b"
+    },
+    {
+      "path": "composition-v4-r1.DISK_AUDIT.json",
+      "bytes": 32533,
+      "sha256": "697ec0ecdb4c68fe7ef03a36ce1cc365aece0e65bfea201cdf810f320a85b26d"
+    },
+    {
+      "path": "composition-v4-r1.outer.json",
+      "bytes": 11175,
+      "sha256": "6ff3a63c0bb1d379f36eb8b5ba4a63e1e9e08525b36db3d7e98b211799bff939"
+    }
+  ],
+  "all_pinned_input_hashes_matched": true
+}

@@ -1,0 +1,993 @@
+{
+  "actual_host": {
+    "exclusive": false,
+    "loadavg_after": [
+      21.19482421875,
+      18.09521484375,
+      15.49609375
+    ],
+    "loadavg_before": [
+      19.375,
+      16.705078125,
+      14.81787109375
+    ],
+    "machine": "x86_64",
+    "original_affinity": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "platform": "Linux-7.0.0-38-generic-x86_64-with-glibc2.39",
+    "selected_cpu": 0
+  },
+  "claims": {
+    "all_registered_runtime_gates_passed": false,
+    "all_seven_closed": false,
+    "broad_rust_parity_established": false,
+    "full_lifecycle_net_benefit_established": false
+  },
+  "composition_active_materialized_paths": 5117,
+  "costs": {
+    "aot_command_outer_ns": 89845068227,
+    "aot_inner_whole_lifecycle_ns": 89348143761,
+    "cost_scope": "All AOT stages are nested in AOT inner, which is nested in its command outer; the resource assessor is a separate command. All command walls are themselves nested in the composition outer. Do not add nested clocks or reuse independent-arm allocations as actual campaign wall.",
+    "energy_joules": null,
+    "historical_acquisition_ns": null,
+    "human_engineering_ns": null,
+    "resource_analysis_inner_ns": 1256038156,
+    "resource_assessor_command_outer_ns": 1618909429,
+    "stage_wall_ns": {
+      "build_and_proofs": 48075028395,
+      "correctness_refusal": 174754629,
+      "timing": 39946482637
+    }
+  },
+  "full_original_git_tree_tracked_paths": 8946,
+  "inputs": [
+    {
+      "bytes": 3959254,
+      "path": "/data/hepta-hia-round2-20261104/evidence/composition-v4-r1/outlined-aot/RESULT.json",
+      "sha256": "3c1d47c23f7ad44b0215208838f2c4377de26f430d4cec68b456381dc24e7891"
+    },
+    {
+      "bytes": 1927126,
+      "path": "/data/hepta-hia-round2-20261104/evidence/composition-v4-r1/outlined-aot-resource-cost.json",
+      "sha256": "4a1fd7e5703fb9e63bf656805a410deb90b9e985b45e84e3e214861328dc1ac6"
+    },
+    {
+      "bytes": 877641,
+      "path": "/data/hepta-hia-round2-20261104/evidence/composition-v4-r1/RESULT.json",
+      "sha256": "c92fe59f1d50e84114560d7229e0db69ca19285582ef206a7d4171a7905a76d2"
+    }
+  ],
+  "postprocess_wall_ns": 268202587,
+  "protocols": {
+    "resource_canonical_sha256": "dad85bae60eb599fa1e1ed02197a7a3af0f07fb26b9f6d43099d29a9d872c5bc",
+    "resource_file_sha256": "6b84ff20b08c6ee087d57e44364c364bebed6ba6b5ded3fd279b2771be2d165f",
+    "runtime_canonical_sha256": "8706e62e4069669a0a8155c7d6b93e9701f23e4836ffa93c9bf14630ffa9ddfa",
+    "runtime_file_sha256": "66d45590cfcd6e7e0a09f31ea91e93d8b04af32eaf974ed2da563648e1ddb31b"
+  },
+  "resources": {
+    "all_registered_automated_cost_gates_passed": false,
+    "all_registered_memory_gates_passed": true,
+    "assessment_valid": true,
+    "by_gate": {
+      "cost.build_and_proof": {
+        "passed": 4,
+        "total": 4
+      },
+      "cost.cold_first_call": {
+        "passed": 34,
+        "total": 48
+      },
+      "cost.estimated_automated": {
+        "passed": 1116,
+        "total": 1116
+      },
+      "cost.median_load": {
+        "passed": 4,
+        "total": 4
+      },
+      "memory.library_file": {
+        "passed": 4,
+        "total": 4
+      },
+      "memory.loader_backing_resident_bytes": {
+        "passed": 48,
+        "total": 48
+      },
+      "memory.loader_mapped_bytes": {
+        "passed": 48,
+        "total": 48
+      },
+      "memory.peak_requested": {
+        "passed": 1116,
+        "total": 1116
+      },
+      "memory.peak_usable": {
+        "passed": 1116,
+        "total": 1116
+      },
+      "memory.requested_total": {
+        "passed": 1116,
+        "total": 1116
+      },
+      "memory.stack_max_distance": {
+        "passed": 1116,
+        "total": 1116
+      },
+      "memory.usable_total": {
+        "passed": 1116,
+        "total": 1116
+      }
+    },
+    "cold_failed_n_values": [
+      0,
+      31
+    ],
+    "cold_failed_rows": [
+      {
+        "baseline": "rust_release",
+        "baseline_value": 92,
+        "calls": 1,
+        "candidate": 232,
+        "gate": "cost.cold_first_call",
+        "group": "historical_regression",
+        "limit": 110.39999999999999,
+        "n": 0,
+        "passed": false,
+        "ratio_maximum": 1.2,
+        "seed": 5471,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "baseline_value": 118,
+        "calls": 1,
+        "candidate": 232,
+        "gate": "cost.cold_first_call",
+        "group": "historical_regression",
+        "limit": 141.6,
+        "n": 0,
+        "passed": false,
+        "ratio_maximum": 1.2,
+        "seed": 5471,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_release",
+        "baseline_value": 107,
+        "calls": 1,
+        "candidate": 373,
+        "gate": "cost.cold_first_call",
+        "group": "historical_regression",
+        "limit": 128.4,
+        "n": 0,
+        "passed": false,
+        "ratio_maximum": 1.2,
+        "seed": 6761,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "baseline_value": 100,
+        "calls": 1,
+        "candidate": 373,
+        "gate": "cost.cold_first_call",
+        "group": "historical_regression",
+        "limit": 120.0,
+        "n": 0,
+        "passed": false,
+        "ratio_maximum": 1.2,
+        "seed": 6761,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_release",
+        "baseline_value": 146,
+        "calls": 1,
+        "candidate": 195,
+        "gate": "cost.cold_first_call",
+        "group": "historical_regression",
+        "limit": 175.2,
+        "n": 0,
+        "passed": false,
+        "ratio_maximum": 1.2,
+        "seed": 4294967291,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "baseline_value": 135,
+        "calls": 1,
+        "candidate": 195,
+        "gate": "cost.cold_first_call",
+        "group": "historical_regression",
+        "limit": 162.0,
+        "n": 0,
+        "passed": false,
+        "ratio_maximum": 1.2,
+        "seed": 4294967291,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_release",
+        "baseline_value": 119,
+        "calls": 1,
+        "candidate": 202,
+        "gate": "cost.cold_first_call",
+        "group": "historical_regression",
+        "limit": 142.79999999999998,
+        "n": 0,
+        "passed": false,
+        "ratio_maximum": 1.2,
+        "seed": 5471,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "baseline_value": 118,
+        "calls": 1,
+        "candidate": 202,
+        "gate": "cost.cold_first_call",
+        "group": "historical_regression",
+        "limit": 141.6,
+        "n": 0,
+        "passed": false,
+        "ratio_maximum": 1.2,
+        "seed": 5471,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_release",
+        "baseline_value": 124,
+        "calls": 1,
+        "candidate": 158,
+        "gate": "cost.cold_first_call",
+        "group": "historical_regression",
+        "limit": 148.79999999999998,
+        "n": 0,
+        "passed": false,
+        "ratio_maximum": 1.2,
+        "seed": 6761,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "baseline_value": 104,
+        "calls": 1,
+        "candidate": 158,
+        "gate": "cost.cold_first_call",
+        "group": "historical_regression",
+        "limit": 124.8,
+        "n": 0,
+        "passed": false,
+        "ratio_maximum": 1.2,
+        "seed": 6761,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_release",
+        "baseline_value": 113,
+        "calls": 1,
+        "candidate": 194,
+        "gate": "cost.cold_first_call",
+        "group": "historical_regression",
+        "limit": 135.6,
+        "n": 0,
+        "passed": false,
+        "ratio_maximum": 1.2,
+        "seed": 4294967291,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "baseline_value": 94,
+        "calls": 1,
+        "candidate": 194,
+        "gate": "cost.cold_first_call",
+        "group": "historical_regression",
+        "limit": 112.8,
+        "n": 0,
+        "passed": false,
+        "ratio_maximum": 1.2,
+        "seed": 4294967291,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_release",
+        "baseline_value": 5200,
+        "calls": 1,
+        "candidate": 7060,
+        "gate": "cost.cold_first_call",
+        "group": "prospective_lengths",
+        "limit": 6240.0,
+        "n": 31,
+        "passed": false,
+        "ratio_maximum": 1.2,
+        "seed": 4294967197,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "baseline_value": 4901,
+        "calls": 1,
+        "candidate": 7060,
+        "gate": "cost.cold_first_call",
+        "group": "prospective_lengths",
+        "limit": 5881.2,
+        "n": 31,
+        "passed": false,
+        "ratio_maximum": 1.2,
+        "seed": 4294967197,
+        "workload": "affine"
+      }
+    ],
+    "memory": {
+      "passed": 5680,
+      "total": 5680
+    },
+    "whole_function_stack_bound_established": false
+  },
+  "runtime": {
+    "all_failed_comparisons": [
+      {
+        "baseline": "rust_release",
+        "calls": 1,
+        "failure_class": "tail_only",
+        "group": "historical_regression",
+        "median_ratio": 1.0,
+        "metric_passed": {
+          "median": true,
+          "p95": true,
+          "p99": false
+        },
+        "n": 0,
+        "p95_ratio": 1.0,
+        "p99_ratio": 5.462962962962963,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "calls": 1,
+        "failure_class": "tail_only",
+        "group": "historical_regression",
+        "median_ratio": 0.9615384615384616,
+        "metric_passed": {
+          "median": true,
+          "p95": true,
+          "p99": false
+        },
+        "n": 0,
+        "p95_ratio": 0.6567164179104478,
+        "p99_ratio": 4.27536231884058,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_release",
+        "calls": 64,
+        "failure_class": "tail_only",
+        "group": "historical_regression",
+        "median_ratio": 0.861904761904762,
+        "metric_passed": {
+          "median": true,
+          "p95": true,
+          "p99": false
+        },
+        "n": 1,
+        "p95_ratio": 0.8866840731070496,
+        "p99_ratio": 16.080162354134956,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "calls": 64,
+        "failure_class": "tail_only",
+        "group": "historical_regression",
+        "median_ratio": 0.5993377483443708,
+        "metric_passed": {
+          "median": true,
+          "p95": true,
+          "p99": false
+        },
+        "n": 1,
+        "p95_ratio": 0.434715821812596,
+        "p99_ratio": 7.9954591321897075,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_release",
+        "calls": 16,
+        "failure_class": "tail_only",
+        "group": "historical_regression",
+        "median_ratio": 0.6725768321513003,
+        "metric_passed": {
+          "median": true,
+          "p95": false,
+          "p99": false
+        },
+        "n": 64,
+        "p95_ratio": 1.3465458663646659,
+        "p99_ratio": 8.065040650406504,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_release",
+        "calls": 64,
+        "failure_class": "tail_only",
+        "group": "historical_regression",
+        "median_ratio": 0.6626728110599078,
+        "metric_passed": {
+          "median": true,
+          "p95": false,
+          "p99": false
+        },
+        "n": 64,
+        "p95_ratio": 1.2695099818511797,
+        "p99_ratio": 1.5485008818342152,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_release",
+        "calls": 1,
+        "failure_class": "tail_only",
+        "group": "historical_holdout",
+        "median_ratio": 0.821917808219178,
+        "metric_passed": {
+          "median": true,
+          "p95": true,
+          "p99": false
+        },
+        "n": 19,
+        "p95_ratio": 0.7596153846153846,
+        "p99_ratio": 1.3943661971830985,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "calls": 1,
+        "failure_class": "tail_only",
+        "group": "historical_holdout",
+        "median_ratio": 0.821917808219178,
+        "metric_passed": {
+          "median": true,
+          "p95": true,
+          "p99": false
+        },
+        "n": 19,
+        "p95_ratio": 0.6076923076923076,
+        "p99_ratio": 1.2073170731707317,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_release",
+        "calls": 16,
+        "failure_class": "tail_only",
+        "group": "historical_holdout",
+        "median_ratio": 0.7194950911640954,
+        "metric_passed": {
+          "median": true,
+          "p95": true,
+          "p99": false
+        },
+        "n": 19,
+        "p95_ratio": 0.8458445040214477,
+        "p99_ratio": 8.50242718446602,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "calls": 16,
+        "failure_class": "tail_only",
+        "group": "historical_holdout",
+        "median_ratio": 0.7245762711864406,
+        "metric_passed": {
+          "median": true,
+          "p95": true,
+          "p99": false
+        },
+        "n": 19,
+        "p95_ratio": 0.4783927217589083,
+        "p99_ratio": 4.157863501483679,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_release",
+        "calls": 16,
+        "failure_class": "tail_only",
+        "group": "historical_holdout",
+        "median_ratio": 0.44568898150560043,
+        "metric_passed": {
+          "median": true,
+          "p95": true,
+          "p99": false
+        },
+        "n": 1051,
+        "p95_ratio": 0.2634244432859164,
+        "p99_ratio": 1.5411750825861255,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "calls": 16,
+        "failure_class": "tail_only",
+        "group": "historical_holdout",
+        "median_ratio": 0.5771630966436161,
+        "metric_passed": {
+          "median": true,
+          "p95": true,
+          "p99": false
+        },
+        "n": 1051,
+        "p95_ratio": 0.5926608579088471,
+        "p99_ratio": 6.4118128272251305,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_release",
+        "calls": 64,
+        "failure_class": "tail_only",
+        "group": "prior_wrapper_lengths",
+        "median_ratio": 0.7804718217562254,
+        "metric_passed": {
+          "median": true,
+          "p95": true,
+          "p99": false
+        },
+        "n": 29,
+        "p95_ratio": 0.7742765273311897,
+        "p99_ratio": 3.4262550670408483,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "calls": 64,
+        "failure_class": "tail_only",
+        "group": "prior_wrapper_lengths",
+        "median_ratio": 0.8071840054218908,
+        "metric_passed": {
+          "median": true,
+          "p95": true,
+          "p99": false
+        },
+        "n": 29,
+        "p95_ratio": 0.8023992002665779,
+        "p99_ratio": 3.6347998676811115,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_release",
+        "calls": 64,
+        "failure_class": "tail_only",
+        "group": "prior_wrapper_lengths",
+        "median_ratio": 0.576662143826323,
+        "metric_passed": {
+          "median": true,
+          "p95": true,
+          "p99": false
+        },
+        "n": 97,
+        "p95_ratio": 0.5963570946705644,
+        "p99_ratio": 1.8831485587583148,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_release",
+        "calls": 16,
+        "failure_class": "tail_only",
+        "group": "prior_wrapper_lengths",
+        "median_ratio": 0.4457069228066065,
+        "metric_passed": {
+          "median": true,
+          "p95": true,
+          "p99": false
+        },
+        "n": 1237,
+        "p95_ratio": 0.7219010175763182,
+        "p99_ratio": 1.2985480943738656,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "calls": 16,
+        "failure_class": "tail_only",
+        "group": "prior_wrapper_lengths",
+        "median_ratio": 0.5753818236806291,
+        "metric_passed": {
+          "median": true,
+          "p95": true,
+          "p99": false
+        },
+        "n": 1237,
+        "p95_ratio": 0.93809166040571,
+        "p99_ratio": 2.7313169872265455,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_release",
+        "calls": 64,
+        "failure_class": "tail_only",
+        "group": "prospective_lengths",
+        "median_ratio": 0.79407025459233,
+        "metric_passed": {
+          "median": true,
+          "p95": false,
+          "p99": false
+        },
+        "n": 31,
+        "p95_ratio": 1.6739543726235742,
+        "p99_ratio": 1.7195882719900186,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "calls": 64,
+        "failure_class": "tail_only",
+        "group": "prospective_lengths",
+        "median_ratio": 0.8060189728491985,
+        "metric_passed": {
+          "median": true,
+          "p95": false,
+          "p99": false
+        },
+        "n": 31,
+        "p95_ratio": 1.6686670878079595,
+        "p99_ratio": 1.713708423997513,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_release",
+        "calls": 1,
+        "failure_class": "tail_only",
+        "group": "prospective_lengths",
+        "median_ratio": 0.7549019607843137,
+        "metric_passed": {
+          "median": true,
+          "p95": false,
+          "p99": false
+        },
+        "n": 101,
+        "p95_ratio": 1.2391304347826086,
+        "p99_ratio": 2.278787878787879,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "calls": 1,
+        "failure_class": "tail_only",
+        "group": "prospective_lengths",
+        "median_ratio": 0.8461538461538461,
+        "metric_passed": {
+          "median": true,
+          "p95": false,
+          "p99": false
+        },
+        "n": 101,
+        "p95_ratio": 1.2391304347826086,
+        "p99_ratio": 2.35,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_release",
+        "calls": 16,
+        "failure_class": "tail_only",
+        "group": "prospective_lengths",
+        "median_ratio": 0.48167737060823573,
+        "metric_passed": {
+          "median": true,
+          "p95": true,
+          "p99": false
+        },
+        "n": 331,
+        "p95_ratio": 0.5029873039581777,
+        "p99_ratio": 2.5208783297336215,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "calls": 16,
+        "failure_class": "tail_only",
+        "group": "prospective_lengths",
+        "median_ratio": 0.5900046274872744,
+        "metric_passed": {
+          "median": true,
+          "p95": true,
+          "p99": false
+        },
+        "n": 331,
+        "p95_ratio": 0.6108843537414966,
+        "p99_ratio": 2.9673728813559324,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "calls": 1,
+        "failure_class": "tail_only",
+        "group": "prospective_lengths",
+        "median_ratio": 0.4558724832214765,
+        "metric_passed": {
+          "median": true,
+          "p95": true,
+          "p99": false
+        },
+        "n": 21269,
+        "p95_ratio": 0.5134457992316687,
+        "p99_ratio": 2.788854888065711,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "calls": 16,
+        "failure_class": "tail_only",
+        "group": "historical_holdout",
+        "median_ratio": 0.7830985915492957,
+        "metric_passed": {
+          "median": true,
+          "p95": true,
+          "p99": false
+        },
+        "n": 19,
+        "p95_ratio": 0.39786967418546365,
+        "p99_ratio": 4.921994134897361,
+        "passed": false,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "calls": 16,
+        "failure_class": "tail_only",
+        "group": "historical_holdout",
+        "median_ratio": 0.5978135788262371,
+        "metric_passed": {
+          "median": true,
+          "p95": true,
+          "p99": false
+        },
+        "n": 1051,
+        "p95_ratio": 0.6146174668756234,
+        "p99_ratio": 1.6111421390672995,
+        "passed": false,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_release",
+        "calls": 64,
+        "failure_class": "tail_only",
+        "group": "prior_wrapper_lengths",
+        "median_ratio": 0.47667065458895913,
+        "metric_passed": {
+          "median": true,
+          "p95": true,
+          "p99": false
+        },
+        "n": 97,
+        "p95_ratio": 0.9155049302958177,
+        "p99_ratio": 1.9486531986531987,
+        "passed": false,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "calls": 64,
+        "failure_class": "tail_only",
+        "group": "prior_wrapper_lengths",
+        "median_ratio": 0.7028729838709677,
+        "metric_passed": {
+          "median": true,
+          "p95": false,
+          "p99": false
+        },
+        "n": 97,
+        "p95_ratio": 1.3459135216195952,
+        "p99_ratio": 2.8211065074335853,
+        "passed": false,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_release",
+        "calls": 1,
+        "failure_class": "tail_only",
+        "group": "prospective_lengths",
+        "median_ratio": 0.9012345679012346,
+        "metric_passed": {
+          "median": true,
+          "p95": true,
+          "p99": false
+        },
+        "n": 31,
+        "p95_ratio": 1.1370967741935485,
+        "p99_ratio": 1.7388059701492538,
+        "passed": false,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "calls": 1,
+        "failure_class": "tail_only",
+        "group": "prospective_lengths",
+        "median_ratio": 0.9240506329113924,
+        "metric_passed": {
+          "median": true,
+          "p95": false,
+          "p99": false
+        },
+        "n": 31,
+        "p95_ratio": 1.2155172413793103,
+        "p99_ratio": 1.7388059701492538,
+        "passed": false,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_release",
+        "calls": 16,
+        "failure_class": "tail_only",
+        "group": "prospective_lengths",
+        "median_ratio": 0.7636786961583236,
+        "metric_passed": {
+          "median": true,
+          "p95": false,
+          "p99": false
+        },
+        "n": 31,
+        "p95_ratio": 1.4583333333333333,
+        "p99_ratio": 1.369,
+        "passed": false,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_release",
+        "calls": 64,
+        "failure_class": "tail_only",
+        "group": "prospective_lengths",
+        "median_ratio": 0.7586102719033233,
+        "metric_passed": {
+          "median": true,
+          "p95": false,
+          "p99": false
+        },
+        "n": 31,
+        "p95_ratio": 1.5,
+        "p99_ratio": 1.529292343387471,
+        "passed": false,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "calls": 64,
+        "failure_class": "tail_only",
+        "group": "prospective_lengths",
+        "median_ratio": 0.8339422118897376,
+        "metric_passed": {
+          "median": true,
+          "p95": false,
+          "p99": false
+        },
+        "n": 31,
+        "p95_ratio": 1.6227141482194418,
+        "p99_ratio": 1.6665613147914033,
+        "passed": false,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_release",
+        "calls": 1,
+        "failure_class": "tail_only",
+        "group": "prospective_lengths",
+        "median_ratio": 0.26631853785900783,
+        "metric_passed": {
+          "median": true,
+          "p95": true,
+          "p99": false
+        },
+        "n": 5317,
+        "p95_ratio": 0.49740932642487046,
+        "p99_ratio": 1.9700920245398772,
+        "passed": false,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "calls": 1,
+        "failure_class": "tail_only",
+        "group": "prospective_lengths",
+        "median_ratio": 0.547798066595059,
+        "metric_passed": {
+          "median": true,
+          "p95": true,
+          "p99": false
+        },
+        "n": 5317,
+        "p95_ratio": 1.0153358011634057,
+        "p99_ratio": 3.9341500765696784,
+        "passed": false,
+        "workload": "affine"
+      }
+    ],
+    "batch_tail_scope": "Each metric uses the 63 retained raw batch-total times (21 samples per seed, 3 seeds). These gate percentiles are not divided by calls and are not independent per-kernel-call tail latency.",
+    "by_group": {
+      "historical_holdout": {
+        "passed": 88,
+        "total": 96
+      },
+      "historical_regression": {
+        "passed": 78,
+        "total": 84
+      },
+      "prior_wrapper_lengths": {
+        "passed": 89,
+        "total": 96
+      },
+      "prospective_lengths": {
+        "passed": 82,
+        "total": 96
+      }
+    },
+    "cohort_reruns": 0,
+    "failures": {
+      "median_failed": 0,
+      "tail_only": 35,
+      "total": 35
+    },
+    "gates": {
+      "median_ratio_maximum": 1.1,
+      "p95_ratio_maximum": 1.2,
+      "p99_ratio_maximum": 1.2
+    },
+    "joint": {
+      "passed": 337,
+      "total": 372
+    },
+    "per_metric": {
+      "median": {
+        "passed": 372,
+        "total": 372
+      },
+      "p95": {
+        "passed": 361,
+        "total": 372
+      },
+      "p99": {
+        "passed": 337,
+        "total": 372
+      }
+    },
+    "samples_excluded": 0,
+    "timed_batches": 70308,
+    "timed_kernel_calls": 1898316,
+    "timing_requests": 3348
+  },
+  "schema": "hepta.hia.composition-v4-aot-compact.v1",
+  "scope": "Read-only arithmetic from this unique final-composition cohort; no decoder, native binary, compiler, evaluator or experiment rerun. Earlier db98/d482 and previous3707 observations remain separate.",
+  "source": {
+    "commit": "5ee6d8fec0e5c72d87a36dbed60789de211abf1b",
+    "tree": "d47a711461dc66d4606bdc9659203889e205d6c7"
+  },
+  "source_unchanged": true,
+  "tool_artifact_identities_unchanged": true,
+  "valid_qualification": true
+}
