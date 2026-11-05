@@ -1,0 +1,17 @@
+struct Step { value: Unit, order: i32 }
+fn tick(n: mut i32) -> Unit effects {write, panic} { n = n + 1; }
+fn main() -> Unit effects {write, panic} {
+    let mut count: i32 = 0;
+    let step = Step { value: tick(mut count), order: count };
+    let done: Result<Unit, i32> = Result::Ok(step.value);
+    match done {
+        Result::Ok(value) => {
+            let xs: [Unit; 2] = [value, tick(mut count)];
+            let copied = xs[1];
+            assert(len(read xs) == 2);
+        },
+        Result::Err(_) => { assert(false); }
+    }
+    assert(step.order == 1);
+    assert(count == 2);
+}

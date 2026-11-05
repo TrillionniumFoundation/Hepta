@@ -191,9 +191,9 @@ class FieldlessEnumTests(unittest.TestCase):
         self.assertEqual((result.returncode,result.stdout,result.stderr),(0,b"",b""))
 
     def test_unit_payloads_and_generics_remain_unsupported(self):
-        for source in ('enum Payload {Value(Unit),Empty} fn main()->Unit effects {} {}',
-                       'struct Generic<T> {value:T} struct Holder {value:Generic<Unit>} fn main()->Unit effects {} {}',
-                       'fn main()->Unit effects {} {let x:Result<i32,Unit>=Result::Ok(3);}',
+        for source in ('enum Payload {Value(i128),Empty} fn main()->Unit effects {} {}',
+                       'struct Generic<T> {value:T} struct Holder {value:Generic<i128>} fn main()->Unit effects {} {}',
+                       'fn main()->Unit effects {} {let x:Result<i32,i128>=Result::Ok(3);}',
                        'enum Flag {A} fn id<T>(x:T)->T effects {} {return x;}'):
             with self.subTest(source=source):
                 p,c=self.frontend(source)

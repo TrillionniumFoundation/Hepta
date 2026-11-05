@@ -1,0 +1,60 @@
+name: C internal Unit qualification
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'tests/**'
+      - 'examples/**'
+      - 'tools/*enum*'
+      - 'tools/*struct*'
+      - 'tools/*result*'
+      - 'tools/*unit*'
+      - '.github/workflows/c-unit-values.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+        python: ['3.11', '3.13']
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      HEPTA_ENUM_REQUIRE_RUST: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install exact Rust toolchain
+        run: |
+          rustup toolchain install 1.90.0 --profile minimal
+          echo "RUSTC=$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_ENV"
+      - name: Record exact source and native tools
+        run: |
+          set -euo pipefail
+          mkdir -p qualification
+          { git rev-parse HEAD; python --version; gcc --version; gcc -dumpmachine; "$RUSTC" --version --verbose; } | tee qualification/identity.log
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - name: Execute complete inventory with native C and Rust
+        run: |
+          set -euo pipefail
+          python tools/validate_c_unit_values.py 2>&1 | tee qualification/tests.log
+          python tools/qualify_c_unit_oracle.py 2>&1 | tee qualification/oracle.log
+      - name: Confirm source remains exact
+        if: always()
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          git diff --exit-code
+          git diff --cached --exit-code
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: c-unit-values-${{ matrix.os }}-py${{ matrix.python }}-${{ github.event.pull_request.head.sha || github.sha }}
+          path: qualification/

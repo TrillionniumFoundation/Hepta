@@ -143,7 +143,7 @@ class GenericStructTests(unittest.TestCase):
         self.assertEqual((result.returncode,result.stdout,result.stderr),(0,b'',b''))
 
     def test_specialized_unsupported_types_fail_before_native(self):
-        for typ in ['Unit','i128','[i32;0]','[Unit;2]','Result<i32,Unit>']:
+        for typ in ['u128','i128','[i32;0]','[i128;2]','Result<i32,i128>']:
             with self.subTest(typ=typ):
                 program,checked=self.frontend(f'struct Box<T>{{value:T}} fn unused(x:Box<{typ}>)->Unit effects {{}} {{}} fn main()->Unit effects {{}} {{}}')
                 with self.assertRaises(HeptaError) as raised:emit_c(program,checked)
