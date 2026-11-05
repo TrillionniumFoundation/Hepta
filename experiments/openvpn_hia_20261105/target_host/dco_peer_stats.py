@@ -101,10 +101,10 @@ def query(interface, journal=None):
         family_rows = request(s, GENL_ID_CTRL, 3, attr(2,b'ovpn\0'), 1, journal=journal)
         if len(family_rows)!=1 or 1 not in family_rows[0]: raise ValueError('missing ovpn family ID')
         family = uint(family_rows[0][1], (2,))
-        rows = request(s, family, 3, attr(1,struct.pack('=I',index)) + attr(2 | 0x8000,b''), 2, dump=True, journal=journal)
+        rows = request(s, family, 3, attr(1,struct.pack('=I',index)), 2, dump=True, journal=journal)
     peers=[]; seen=set()
     for row in rows:
-        if 1 not in row or uint(row[1], (4,)) != index: raise ValueError('reply belongs to another interface')
+        if 1 in row and uint(row[1], (4,)) != index: raise ValueError('reply belongs to another interface')
         if 2 not in row: raise ValueError('missing nested peer attributes')
         peer=attrs(row[2])
         if 1 not in peer or not all(key in peer for key in COUNTERS): raise ValueError('missing peer ID or counters')
