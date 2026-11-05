@@ -556,3 +556,55 @@ actual modules must use the indexed path. Both CI inventory checks now bind all
 46 IDs; kernel, source-control and evidence budgets are unchanged. The fixed
 old-then-new cost comparison and final integrated qualification are separate
 evidence, with no repeated qualification attempt chosen for timing luck.
+
+## Restricted data parsing after the full v11 run
+
+The desktop qualifier at 0c8a91003aee2732308bb654d0e1f941ae561728 again
+completed all eleven fresh Lean stages. Its inner RESULT was written after
+553.393567603 seconds, but the whole command exited 124 at
+600.047503236 seconds before the internal evidence replay completed. The
+separate later replay completed in 55.874570337 seconds. These are distinct
+observations: the original full run remains a deadline failure, and no stage
+results from separate attempts are combined into acceptance.
+
+The existing complete cProfile identified the original Raw-string predicate
+and expression lexer as further repeated work. In each profiled phase, the
+string predicate performed 13,411,832 Python generator steps. Five retained
+real inputs contain 2,510 fully literal decimal-list definitions out of 7,685;
+their spelling uses commas with no whitespace. This covers about 64.55 percent
+of decimal tokens in their right-hand sides. Counts and profiled times identify
+a candidate; they do not predict a completed run within the budget.
+
+For exact parser-created Raw objects, string conversion checks an exact
+builtin list and exact builtin integer identities before constructing bytes.
+It rejects constructor range/overflow errors with the original Raw-string
+domain error, then checks the original allowed ASCII bytes using a C-level
+deletion filter. The accepted range is still 32 through 126, excluding 34 and
+92. Empty strings remain valid. No length cap is added, and no user integer
+conversion, metaclass equality, or list-subclass iterator is admitted. A
+non-exact Raw subclass keeps the original attribute-read sequence and errors;
+the other Raw constructors are unchanged.
+
+The expression parser has one strict fast sublanguage: an exact builtin string
+containing either an empty list or a comma-separated list of canonical
+nonnegative ASCII decimal integers, with no whitespace. Each number is either
+zero or starts with 1 through 9. A full match creates a fresh list with the
+original Python integer conversion; its integer range and overlong-digit
+exception are unchanged. Every nonmatching spelling uses the entire original
+lexer, including leading zeros, Unicode whitespace, constructors, aliases,
+append/cons operators, and nested lists. No exception is swallowed, no JSON
+parser broadens the grammar, and no parsed value or acceptance result is cached.
+
+Three new controls compare the string domain and subclass reads with the frozen
+old conversion, compare the strict sublanguage and fallback with an independent
+copy of the old lexer, and run the complete verifier on all five actual inputs
+with both implementations. The existing 46 controls remain, including both
+mandatory old validation gates and exact eleven-module/manifest equality.
+Both CI inventory checks now bind all 49 actual test IDs. All source inverses,
+actual-byte hashes, theorem statements, subject multiplicities, eleven stages,
+and 60/540/600-second limits remain unchanged.
+
+The fixed old-then-new cost diagnostic and fresh qualification of the next
+combined commit remain separate requirements. No success is inferred from the
+restricted fast paths. All twelve wider production obligations remain open,
+with DENY_ALL authority.

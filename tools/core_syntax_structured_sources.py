@@ -152,6 +152,10 @@ def _segments(root, data):
 # This parser accepts only the emitted data-expression language. It neither
 # invokes the emitter nor treats a manifest's claimed flattened value as true.
 _TOKEN = re.compile(r'\s*(::|\+\+|\.[a-z]+|[A-Za-z][A-Za-z0-9_]*|[0-9]+|[\[\](),])')
+# A strict sublanguage of the original lexer; every other spelling uses it unchanged.
+_FLAT_DECIMALS = re.compile(r'\[(?:(?:0|[1-9][0-9]*)(?:,(?:0|[1-9][0-9]*))*)?\]')
+_RAW_STRING_ALLOWED = bytes(n for n in range(32, 127) if n not in (34, 92))
+
 
 
 @dataclass(frozen=True)
@@ -161,6 +165,8 @@ class _Raw:
 
 
 def _parse_expression(text, env):
+    if type(text) is str and _FLAT_DECIMALS.fullmatch(text) is not None:
+        return [] if text == '[]' else list(map(int, text[1:-1].split(',')))
     tokens, pos = [], 0
     while pos < len(text):
         match = _TOKEN.match(text, pos)
@@ -222,8 +228,19 @@ def _raw_value(raw):
         require(type(raw.value) is int and 0 <= raw.value <= old.MAX_INTEGER, 'Raw numeric domain')
         return raw.value
     if raw.kind == 'str':
-        require(type(raw.value) is list and all(type(n) is int and 32 <= n <= 126 and n not in (34, 92) for n in raw.value), 'Raw string domain')
-        return bytes(raw.value).decode('ascii')
+        if type(raw) is not _Raw:
+            # Preserve subclass attribute-read and exception behavior exactly.
+            require(type(raw.value) is list and all(type(n) is int and 32 <= n <= 126 and n not in (34, 92) for n in raw.value), 'Raw string domain')
+            return bytes(raw.value).decode('ascii')
+        value = raw.value
+        require(type(value) is list and
+                all(map(is_, map(type, value), repeat(int))), 'Raw string domain')
+        try:
+            data = bytes(value)
+        except (ValueError, OverflowError):
+            require(False, 'Raw string domain')
+        require(not data.translate(None, _RAW_STRING_ALLOWED), 'Raw string domain')
+        return data.decode('ascii')
     require(type(raw.value) is list, 'Raw container domain')
     if raw.kind == 'arr':
         return [_raw_value(v) for v in raw.value]

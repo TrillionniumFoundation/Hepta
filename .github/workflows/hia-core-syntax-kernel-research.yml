@@ -193,9 +193,12 @@ jobs:
             "tests.test_core_seven_shared_sources.CompoundProofTests.test_nonclosed_data_or_nonliteral_bytes_cannot_reuse",
             "tests.test_core_seven_shared_sources.CompoundProofTests.test_zero_bounds_are_never_candidates",
             "tests.test_core_seven_shared_sources.DeclarationMarkerTests.test_literal_occurrences_match_independent_substring_scan",
+            "tests.test_core_seven_shared_sources.FlatDecimalListTests.test_strict_subgrammar_and_legacy_fallback_match_original",
             "tests.test_core_seven_shared_sources.PrintSchedulingTests.test_independent_queries_move_without_changing_any_other_byte",
             "tests.test_core_seven_shared_sources.PrintSchedulingTests.test_indexed_and_legacy_paths_match_the_original_oracle",
             "tests.test_core_seven_shared_sources.PrintSchedulingTests.test_missing_duplicated_or_foreign_subject_is_rejected",
+            "tests.test_core_seven_shared_sources.RawDataScanTests.test_raw_string_domain_and_subclass_reads_match_original",
+            "tests.test_core_seven_shared_sources.SharedSourceTests.test_actual_data_fast_paths_keep_full_verifier_outputs",
             "tests.test_core_seven_shared_sources.SharedSourceTests.test_actual_fast_path_keeps_all_v10_modules_and_manifest",
             "tests.test_core_seven_shared_sources.SharedSourceTests.test_both_actual_old_validation_gates_are_mandatory",
             "tests.test_core_seven_shared_sources.SharedSourceTests.test_changed_byte_actual_reference_data_and_cancellation_are_bound",
@@ -222,7 +225,7 @@ jobs:
             "tests.test_core_seven_shared_sources.SharedSourceTests.test_untrusted_reference_is_byte_identical_to_checked_old_builder",
             "tests.test_core_seven_shared_sources.SharedSourceTests.test_wrong_arm_mutation_statement_and_projected_field_remain_bound"
           ]
-          EXPECTED_COUNT = 46
+          EXPECTED_COUNT = 49
           MODULES = ('tests.test_core_seven_shared_sources',
                      'tests.test_core_seven_shared_acceptance')
           ROOT = Path(os.environ['HIA_SOURCE_CONTROLS_DIR'])
@@ -323,8 +326,8 @@ jobs:
           from pathlib import Path
           import subprocess
 
-          EXPECTED_COUNT = 46
-          EXPECTED_IDS_SHA256 = '30f49daaabcc305f9af147c1550ce50c2776b25b8cfc27a41f929d6e5f431f84'
+          EXPECTED_COUNT = 49
+          EXPECTED_IDS_SHA256 = '3140293a237ad1f497f26b4946f72914257124d97a5fdaea22da7740aee56ddf'
           EXPECTED_HEAD = os.environ['EXPECTED_HEAD']
 
           def require(condition, reason):
