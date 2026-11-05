@@ -16,6 +16,8 @@ def blob(data):
 
 
 def verify_inputs():
+    from verify_typed_fixture_repairs import project_original, verify as verify_fixture_repairs
+    verify_fixture_repairs(ROOT)
     manifest = json.loads((ROOT / "tools/typed_package_context_sources.json").read_bytes())
     if manifest["parent"] != "b67d1a00acec941ecc7f4218020a2eae8f6cd2b4" or len(manifest["parent_files"]) != 308:
         raise ValueError("Expected complete exact #719 source inventory")
@@ -23,11 +25,11 @@ def verify_inputs():
         raise ValueError("Expected four exact #720 qualification files")
     for path, expected in manifest["parent_files"].items():
         actual_path = manifest["originals"].get(path, path)
-        if blob((ROOT / actual_path).read_bytes()) != expected:
+        if blob(project_original(actual_path, (ROOT / actual_path).read_bytes(), ROOT)) != expected:
             raise ValueError("Changed #719 source: " + actual_path)
     for group in ("supplier_files", "reviewed_files"):
         for path, expected in manifest[group].items():
-            if blob((ROOT / path).read_bytes()) != expected:
+            if blob(project_original(path, (ROOT / path).read_bytes(), ROOT)) != expected:
                 raise ValueError("Changed composed source: " + path)
     from verify_versioned_typed_sources import verify
     verify()

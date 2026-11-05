@@ -38,8 +38,8 @@ def main():
     suite.addTests(unittest.defaultTestLoader.loadTestsFromNames(packages))
     suite.addTests(unittest.defaultTestLoader.loadTestsFromName('test_versioned_typed'))
     planned=[t.id() for t in tracking.flatten(suite)]
-    expected=inherited+packages+joint;count=492 if rust else 484
-    if len(inherited)!=(415 if rust else 407) or len(packages)!=65 or len(joint)!=12 or len(set(expected))!=count or expected!=planned:raise SystemExit('Exact union method inventory mismatch')
+    expected=inherited+packages+joint;count=495 if rust else 487
+    if len(inherited)!=(418 if rust else 410) or len(packages)!=65 or len(joint)!=12 or len(set(expected))!=count or expected!=planned:raise SystemExit('Exact union method inventory mismatch')
     if sys.argv[1:]==['--verify-only']:
         print('VERSIONED_TYPED_PREFLIGHT '+json.dumps({'methods':count,'provenance':provenance,'execution':False}));return
     before=identity()

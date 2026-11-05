@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import sys
 import unittest
+from unittest.mock import patch
 
 from hepta.ast import HeptaError
 from hepta.backend import compile_rust, emit_rust
@@ -44,11 +45,42 @@ class FloatIntCastTests(unittest.TestCase):
             version = subprocess.run([compiler, '--version'], capture_output=True, text=True, timeout=10)
             self.assertTrue(version.returncode == 0 and version.stdout.startswith('rustc 1.90.0 '), version)
             for optimize in (False, True):
-                report = compile_rust(rust, rustc=compiler, optimize=optimize, output=self.root/'rust')
+                report = compile_rust(rust, rustc=compiler, crate_type='bin', optimize=optimize, output=self.root/'rust')
                 self.assertTrue(report['ok'], report)
                 run = subprocess.run([report['artifact']], capture_output=True, timeout=10)
                 self.assertEqual((run.returncode, run.stdout, run.stderr), (0, b'', b''))
         return generated
+
+    def test_rust_success_consumer_requests_binary_without_native_rust(self):
+        """Mocked Rust call contract only; both C compilations/runs stay real."""
+        original_run = subprocess.run
+        calls = []
+        executions = []
+        compiler = 'mocked-rust-success-contract'
+        artifact = str(self.root / 'mocked-rust-contract-not-an-executable')
+
+        def compile_contract(source, **kwargs):
+            self.assertEqual(kwargs.get('crate_type'), 'bin')
+            self.assertIn('fn main()', source)
+            self.assertEqual(kwargs['rustc'], compiler)
+            calls.append(kwargs['optimize'])
+            return {'ok': True, 'artifact': artifact, 'crate_type': 'bin',
+                    'rustc_crate_type': 'bin'}
+
+        def run_contract(args, *positional, **kwargs):
+            if args == [compiler, '--version']:
+                return subprocess.CompletedProcess(args, 0, 'rustc 1.90.0 (mocked contract)\n', '')
+            if args == [artifact]:
+                executions.append(args)
+                return subprocess.CompletedProcess(args, 0, b'', b'')
+            return original_run(args, *positional, **kwargs)
+
+        with patch.dict(os.environ, {'HEPTA_ENUM_REQUIRE_RUST': '1', 'RUSTC': compiler}), \
+             patch(__name__ + '.compile_rust', side_effect=compile_contract), \
+             patch('subprocess.run', side_effect=run_contract):
+            self.execute('fn main()->Unit effects {panic} {assert((3.75 as i32)==3);}')
+        self.assertEqual(calls, [False, True])
+        self.assertEqual(executions, [[artifact], [artifact]])
 
     def test_every_float_integer_pair_truncates_both_signs(self):
         functions, assertions = [], []

@@ -3,6 +3,7 @@ import copy
 import hashlib
 import json
 from pathlib import Path
+from verify_typed_fixture_repairs import project_original, verify as verify_fixture_repairs
 ROOT=Path(__file__).resolve().parents[1]
 PARENT='0594a85f2f1e05ef50a61bf9c5a18ae191499502'
 SUPPLIER='653b508336a470151b94f5e1c0448654c4782030'
@@ -66,6 +67,7 @@ def verify_context_composition(root):
     return originals
 
 def verify(root=ROOT):
+    verify_fixture_repairs(root)
     verify_context_composition(root)
     doc=json.loads((root/'tools/versioned_typed_components.json').read_bytes())
     if doc['parent']!=PARENT or doc['supplier']!=SUPPLIER:raise ValueError('Unexpected exact suppliers')
@@ -74,7 +76,7 @@ def verify(root=ROOT):
     adapted={'tools/store_adt_source_origins.json','tools/typed_stdlib_components.json'}
     if set(doc['originals'])!=replaced|adapted or set(doc['adaptations'])!=adapted:raise ValueError('Unexpected adaptations')
     def check(path,expected):
-        data=(root/path).read_bytes()
+        data=project_original(path,(root/path).read_bytes(),root)
         if path=='hepta/modules.py':data=data.replace(CONTEXT_GUARD.encode(),b'',1)
         if identity(data)!=expected:raise ValueError('Changed source: '+path)
     for path,want in doc['parent_files'].items():
