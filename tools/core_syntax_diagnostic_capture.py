@@ -7,6 +7,7 @@ from copy import deepcopy
 import errno
 from hashlib import sha256
 import json
+import math
 import os
 from pathlib import Path
 import platform
@@ -52,6 +53,83 @@ class CaptureFailure(ValueError):
 def require(condition, message):
     if not condition:
         raise CaptureFailure(message)
+
+
+def validate_cleanup_status(process):
+    """Check the shared collector's cleanup facts without granting admission.
+
+    Replays must not infer a timely cleanup merely from an eventual successful
+    wait/drain. The deadline observation is an independent, mandatory fact.
+    """
+    require(type(process) is dict, 'capture cleanup process required')
+    for key in ('process_started', 'leader_reaped', 'drain_complete',
+                'cleanup_deadline_exceeded', 'cleanup_incomplete', 'output_truncated'):
+        require(type(process.get(key)) is bool, 'capture cleanup flag type differs: ' + key)
+    require(process['cleanup_incomplete'] is (process['process_started'] and not (
+            process['leader_reaped'] and process['drain_complete'] and
+            not process['cleanup_deadline_exceeded'] and 'group_cleanup_error' not in process)),
+            'capture cleanup flag differs from actual cleanup outcome')
+    require(process['process_started'] or process['cleanup_deadline_exceeded'] is False,
+            'unstarted capture cannot exceed a cleanup deadline')
+    for key in ('group_cleanup_error', 'leader_cleanup_error'):
+        if key in process:
+            require(type(process[key]) is str and bool(process[key]), 'capture cleanup error type differs')
+    require('leader_cleanup_error' not in process or 'group_cleanup_error' in process,
+            'leader cleanup error requires failed group cleanup')
+    if 'interrupted' in process:
+        require(type(process['interrupted']) is bool, 'capture interrupted flag type differs')
+    if process.get('status') == 'diagnostic_completed':
+        require(process['process_started'] and not process['cleanup_incomplete'] and
+                process['cleanup_deadline_exceeded'] is False and not process['output_truncated'] and
+                process.get('interrupted', False) is False and
+                type(process.get('returncode')) is int and process['returncode'] == 0,
+                'completed capture cleanup incomplete or late')
+
+
+def decode_cleanup_json(raw):
+    """Decode diagnostic facts without duplicate keys or non-finite numbers."""
+    def unique_object(pairs):
+        value = {}
+        for key, item in pairs:
+            require(key not in value, 'duplicate cleanup JSON key: ' + key)
+            value[key] = item
+        return value
+    def reject_constant(token):
+        raise CaptureFailure('non-finite cleanup JSON number: ' + token)
+    def finite_float(token):
+        value = float(token)
+        require(math.isfinite(value), 'non-finite cleanup JSON number')
+        return value
+    return json.loads(raw, object_pairs_hook=unique_object,
+                      parse_constant=reject_constant, parse_float=finite_float)
+
+
+def validate_terminal_cleanup(raw, stage, manifest_reference):
+    """Bind a persisted final cleanup observation to its nonaccepting stage."""
+    require(type(raw) is bytes and raw and raw.endswith(b'\n'), 'complete cleanup event bytes required')
+    records = [decode_cleanup_json(line) for line in raw.splitlines()]
+    require(all(type(row) is dict for row in records), 'cleanup event objects required')
+    terminals = [row for row in records if row.get('kind') == 'terminal']
+    require(len(terminals) == 1 and records[-1] is terminals[0] and
+            set(terminals[0]) == {'kind', 'process', 'accounting_before_terminal'},
+            'unique final cleanup terminal required')
+    process = terminals[0]['process']
+    validate_cleanup_status(process)
+    require(type(stage) is dict and type(stage.get('process_started')) is bool and
+            process.get('status') == stage.get('status') and
+            process['process_started'] is stage['process_started'], 'cleanup terminal stage differs')
+    # Live callers pass the complete result; replay stages deliberately retain
+    # only status/launch summaries. Bind all available live cleanup facts too.
+    if 'cleanup_incomplete' in stage:
+        validate_cleanup_status(stage)
+        for key in ('leader_reaped', 'drain_complete', 'cleanup_deadline_exceeded',
+                    'cleanup_incomplete', 'output_truncated', 'returncode', 'signal', 'error',
+                    'group_cleanup_error', 'leader_cleanup_error', 'interrupted'):
+            require((key in process) == (key in stage) and
+                    type(process.get(key)) is type(stage.get(key)) and process.get(key) == stage.get(key),
+                    'cleanup terminal live result differs: ' + key)
+    require(process.get('manifest_reference') == manifest_reference, 'cleanup terminal manifest differs')
+    return process
 
 
 def platform_observation():
@@ -248,9 +326,13 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
 
     class PendingEIOTimeout(CaptureFailure):
         pass
+
+    class CleanupDeadlineExceeded(CaptureFailure):
+        pass
     result = {'process_started': False, 'returncode': None, 'signal': None,
               'timeout_seconds': PROCESS_SECONDS, 'platform': None, 'pty': None,
               'leader_reaped': False, 'group_kill_sent': False, 'drain_complete': False,
+              'cleanup_deadline_exceeded': False,
               'kernel_core_syntax_connection_checked': False, 'authority': 'DENY_ALL',
               'metadata_written_bytes': 0, 'metadata_remaining_bytes': METADATA_LIMIT,
               'raw_written_bytes': 0, 'compact_receipt_reference': None}
@@ -264,7 +346,21 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
 
     def leader_exit():
         # WNOWAIT preserves our leader PID/PGID until group signalling is done.
-        return os.waitid(os.P_PID, process.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT)
+        observed = os.waitid(os.P_PID, process.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT)
+        check_active_deadline()
+        return observed
+
+    def check_active_deadline():
+        # A syscall can begin inside the budget and return after it. An exit or
+        # EOF observed then cannot authorize success. Once cleanup has begun,
+        # the separate, unchanged cleanup budget owns draining and reaping.
+        now = time.monotonic()
+        if cleanup_deadline is not None and now >= cleanup_deadline:
+            result['cleanup_deadline_exceeded'] = True
+            raise CleanupDeadlineExceeded('cleanup observation deadline exceeded')
+        if (cleanup_deadline is None and status == 'diagnostic_completed' and
+                now >= started + PROCESS_SECONDS):
+            raise PendingEIOTimeout('60-second process deadline')
 
     def kill_group():
         nonlocal group_signalled
@@ -345,12 +441,13 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
         except OSError as error:
             if error.errno != errno.EIO or stream != 'stdout':
                 raise
-            first_eio = time.monotonic() if target == 'SevenCertificatePart02' else None
+            first_eio = time.monotonic()
             if result['group_kill_sent'] or leader_exit() is not None:
                 data = b''
-            elif target == 'SevenCertificatePart02' and not group_signalled:
+            elif not group_signalled:
                 # Unregister, but retain ownership for exactly-once final closure.
                 # This deadline is fixed at the first EIO and never refreshed.
+                # All supported PTYs can close before waitid exposes the exit.
                 pending_eio = (fd, min(first_eio + PENDING_EIO_SECONDS,
                                        started + PROCESS_SECONDS,
                                        cleanup_deadline if cleanup_deadline is not None else float('inf')))
@@ -359,12 +456,13 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
                 return
             else:
                 raise
+        offset = observed_bytes[stream]
+        observed_bytes[stream] += len(data)
+        check_active_deadline()
         if not data:
             eof.add(stream)
             close_stream(fd)
             return
-        offset = observed_bytes[stream]
-        observed_bytes[stream] += len(data)
         elapsed = round(time.monotonic() - started, 6)
         # Reserve the complete replay batch before persisting any of this read.
         # A rejected read still consumes observed_bytes; collection then stops.
@@ -489,7 +587,8 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
             metadata_limit_hit = True
             status = 'diagnostic_output_limit'
         kill_group()
-        cleanup_deadline = time.monotonic() + CLEANUP_SECONDS
+        if cleanup_deadline is None:
+            cleanup_deadline = time.monotonic() + CLEANUP_SECONDS
     finally:
         if process is not None:
             kill_group()
@@ -514,7 +613,12 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
             try:
                 process.wait(timeout=max(0, cleanup_deadline - time.monotonic()))
                 result['leader_reaped'] = True
+                check_active_deadline()
+            except CleanupDeadlineExceeded:
+                reason = (reason or '') + '; leader reap observation after cleanup deadline'
+                status = 'diagnostic_infrastructure_failed'
             except subprocess.TimeoutExpired:
+                result['cleanup_deadline_exceeded'] = True
                 reason = (reason or '') + '; leader reap deadline exceeded'
                 status = 'diagnostic_infrastructure_failed'
             result['returncode'] = process.returncode
@@ -531,7 +635,7 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
             status, reason = 'diagnostic_infrastructure_failed', 'process group cleanup incomplete'
         if raw_limit_hit:
             status, reason = 'diagnostic_output_limit', 'combined raw read budget exhausted'
-        if status == 'diagnostic_completed' and (not result['leader_reaped'] or not result['drain_complete']):
+        if status == 'diagnostic_completed' and (not result['leader_reaped'] or not result['drain_complete'] or result['cleanup_deadline_exceeded']):
             status, reason = 'diagnostic_infrastructure_failed', 'incomplete cleanup or output drain'
         if process is not None and process.stderr is not None and not process.stderr.closed:
             process.stderr.close()
@@ -540,7 +644,7 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
         result.update(status=status, error=reason, observed_bytes=observed_bytes,
                       output_truncated=raw_limit_hit or metadata_limit_hit, marker_count=marker_count, last_observed_marker=last_marker,
                       next_planned_marker_id=(markers[marker_count]['id'] if marker_count < len(markers) else None),
-                      cleanup_incomplete=process is not None and not (result['leader_reaped'] and result['drain_complete'] and 'group_cleanup_error' not in result),
+                      cleanup_incomplete=process is not None and not (result['leader_reaped'] and result['drain_complete'] and not result['cleanup_deadline_exceeded'] and 'group_cleanup_error' not in result),
                       elapsed_seconds=round(time.monotonic() - started, 6))
         if sink is not None:
             result['raw_files'] = {name: row for name, row in sink.identities().items()

@@ -220,14 +220,48 @@ def skip_schedule(raw):
     return _skip_schedule(validate_model(raw))
 
 
+def _preparation_lower_bound(model, variants, horizon, free_execution_lower):
+    """Relax shared residency while charging each useful validity segment.
+
+    A nonresident artifact must pay preparation and proof before recovering
+    any baseline-minus-execution savings. An initially live artifact has
+    already paid that cost, but an invalidation ends its free segment. Grant
+    each artifact all positive per-batch savings after its own holding cost;
+    ignore retirement, quota competition, negative holding intervals and
+    future calls. Adding overlapping artifact savings can only overestimate
+    the recoverable benefit. The old free-execution bound remains a second,
+    independent lower bound, so their maximum is still optimistic.
+
+    This bounds the supplied finite integer model, not observed wall time.
+    """
+    lower = sum(model["baseline"]["latency_ns"])
+    for name, variant in variants.items():
+        if (variant["status"] != "verified"
+                or variant["resident_bytes"] > model["memory_budget_bytes"]):
+            continue
+        preparation = variant["prepare_ns"] + variant["proof_ns"]
+        resident = name in model["ready"] and variant["valid"][0]
+        savings = 0
+        for batch in range(horizon):
+            if not variant["valid"][batch]:
+                lower -= savings if resident else max(0, savings - preparation)
+                savings, resident = 0, False
+            else:
+                savings += max(0, model["baseline"]["latency_ns"][batch]
+                               - variant["latency_ns"][batch] - variant["holding_ns"])
+        lower -= savings if resident else max(0, savings - preparation)
+    return max(free_execution_lower, lower)
+
+
 def _gate(model):
     variants, _, horizon = _parts(model)
     skip = _skip_schedule(model)
-    # Optimistic: ignore all preparation, proof, holding, memory and retirement.
-    # Their nonnegativity makes this a lower bound for any delivery plan.
-    execution_lower = sum(min([model["baseline"]["latency_ns"][b]] +
+    # Keep the original free-execution relaxation and tighten it with the
+    # maximum savings recoverable after unavoidable preparation/proof costs.
+    free_execution_lower = sum(min([model["baseline"]["latency_ns"][b]] +
                              [v["latency_ns"][b] for v in variants.values()
                               if v["status"] == "verified" and v["valid"][b]]) for b in range(horizon))
+    execution_lower = _preparation_lower_bound(model, variants, horizon, free_execution_lower)
     decision = model["decision"]
     call_floor = sum(decision[k] for k in ("search_ns", "native_ns", "transport_ns", "validation_ns"))
     call_floor += 0 if model["session_ready"] else decision["startup_ns"]
@@ -243,6 +277,9 @@ def _gate(model):
         mode, reason = "consider", "a cost-feasible improvement is not ruled out"
     return {"mode": mode, "reason": reason, "skip": skip,
             "saving_upper_ns": saving_upper, "invocation_lower_ns": invocation_lower,
+            "free_execution_lower_ns": free_execution_lower,
+            "preparation_execution_lower_ns": execution_lower,
+            "lower_bound_kind": "artifact-validity-preparation-proof-holding-relaxation-v1",
             "bound_scope": "supplied finite integer model; measured estimates are not physical guarantees"}
 
 

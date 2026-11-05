@@ -205,12 +205,19 @@ class SevenPendingEIOTests(unittest.TestCase):
         self.assertEqual(files['SevenCertificatePart02.stdout'], b'')
         self.assertEqual(files['SevenCertificatePart02.stderr'], b'err')
 
-    def test_both_legacy_modes_keep_immediate_unexpected_eio_failure(self):
+    def test_both_legacy_modes_require_bounded_exit_and_eof_confirmation(self):
         from tests.test_core_syntax_diagnostic_capture import DiagnosticCaptureTests
         for target in ('LinearTransport', 'CertPart02'):
             with self.subTest(target=target):
                 state = {}
                 result, _, _ = DiagnosticCaptureTests().run_child('pass',
+                    target=target, setup=self.setup_race(state))
+                self.assertEqual(result['status'], 'diagnostic_completed', result)
+                self.assertTrue(result['drain_complete'])
+                self.assertEqual(state['confirmations'], 1)
+                state = {}
+                result, _, _ = DiagnosticCaptureTests().run_child(
+                    'import os,time;os.close(1);os.close(2);time.sleep(10)',
                     target=target, setup=self.setup_race(state))
                 self.assertEqual(result['status'], 'diagnostic_infrastructure_failed', result)
                 self.assertFalse(result['drain_complete'])

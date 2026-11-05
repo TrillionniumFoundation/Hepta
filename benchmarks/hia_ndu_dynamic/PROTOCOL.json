@@ -43,12 +43,12 @@
   "training_samples_per_combination": 3,
   "warmup_calls": 2,
   "holdout_dimensions": [
-    256,
-    896
+    320,
+    1024
   ],
   "holdout_seeds": [
-    7001,
-    12289
+    104729,
+    130363
   ],
   "schedule_families": [
     "persistent_pair",
@@ -73,7 +73,7 @@
   "exact_control": "Native scalar-cost DP with mask-bank cost precomputation and lazy action witnesses; no NDU evaluation. No artificial delay, Python continuation search, or duplicate proof work.",
   "beam_control": "At most four best prefix states after same-state compaction, same feasible action bank and transition costs. Approximate; retains all bounded winners and linear witness validation.",
   "ndu_control": "The exact same beam implementation and candidate bundle as beam, followed by unchanged upstream recursive utility and candidate evaluation APIs. No claim NDU improves scalar decision quality over its ablation.",
-  "invocation_gate": "A cheap supplied-model optimistic saving bound may skip planner creation/invocation. It ignores preparation/capacity/future fees, thus may overestimate benefit. A failed or over-budget proposal retains only current valid admitted caches; no new optional preparation.",
+  "invocation_gate": "A cheap supplied-model optimistic saving bound may skip planner creation/invocation. It retains preparation cost by artifact and announced epoch, including matching initial residency, while relaxing capacity, retirement and future solver fees. A failed or over-budget proposal retains only current valid admitted caches; no new optional preparation.",
   "reuse_invalidation": "Prepared cache data is physically resident and byte-metered. Monotonic data epochs invalidate/drop affected transposes. Ready state and every optional prepare are independently checked outside NDU; NDU authority remains DENY_ALL.",
   "exact_gap_audit": "After the online campaign, each unique actual dynamic model is solved by the same optimized native exact DP; replayed selected witness total minus exact minimum is reported. The reference receives exactly that model, including that arm's estimated solver fee. Audit cost is separately measured and included in conservative full campaign allocations; it never feeds online decisions. Every native exact minimum is independently verified by a Python bottom-up traversal of every legal resident state/transition, without calling native witness action replay or NDU. This extra wall time is separately measured and charged to offline audit. Hot-path search_complete is only the pinned implementation assertion.",
   "cost_boundary": {
@@ -94,5 +94,12 @@
   "expected_holdout_cohorts": 24,
   "new_protocol_requires_new_source_freeze": true,
   "episode_budget_ns": 30000000000,
-  "completion_value_ns": 100000000000
+  "completion_value_ns": 100000000000,
+  "round3_change": {
+    "kind": "invocation-gate-preparation-lower-bound",
+    "previous_native_source": "f48ae07eb86db1cc41acabfe22449634b897df31",
+    "previous_negative_result_preserved": true,
+    "bound": "Ignore quota, retirement and future decision costs, but retain preparation costs separately for each artifact and announced epoch; valid initially resident artifacts incur no preparation. Same bound implementation and measured gate overhead for all dynamic arms.",
+    "protocol_scope": "Same six schedules, six arms, 24 steps, lookahead, quotas and cost/acceptance rules. Prospective dimensions 320/1024 and seeds 104729/130363 selected before observing their timings. Prior 256/896 and 7001/12289 results remain historical regression; original trace gate replay is diagnostic only."
+  }
 }

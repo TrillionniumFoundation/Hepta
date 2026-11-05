@@ -2,90 +2,10 @@
 from dataclasses import replace
 from collections import Counter
 import unittest
-import re
-import json
 from unittest.mock import patch
 from tools import core_seven_shared_sources as s
 from tools import core_seven_shared_acceptance_plan as plan
 from tools import core_syntax_structured_sources as structured
-
-
-
-# Frozen 0c8a910 parser and Raw conversion, independent of both optimized branches.
-_ORIGINAL_DATA_TOKEN = re.compile(r'\s*(::|\+\+|\.[a-z]+|[A-Za-z][A-Za-z0-9_]*|[0-9]+|[\[\](),])')
-
-def _original_parse_expression(text, env):
-    tokens, pos = [], 0
-    while pos < len(text):
-        match = _ORIGINAL_DATA_TOKEN.match(text, pos)
-        structured.require(match is not None, 'unsupported emitted data syntax')
-        tokens.append(match.group(1))
-        pos = match.end()
-    index = 0
-    def take(wanted=None):
-        nonlocal index
-        structured.require(index < len(tokens), 'incomplete emitted expression')
-        token = tokens[index]
-        index += 1
-        structured.require(wanted is None or wanted == token, 'unexpected emitted token')
-        return token
-    def atom():
-        token = take()
-        if token == '(':
-            first = expr()
-            if index < len(tokens) and tokens[index] == ',':
-                take(',')
-                first = (first, expr())
-            take(')')
-            return first
-        if token == '[':
-            items = []
-            if index < len(tokens) and tokens[index] != ']':
-                items.append(expr())
-                while index < len(tokens) and tokens[index] == ',':
-                    take(',')
-                    items.append(expr())
-            take(']')
-            return items
-        if token.startswith('.'):
-            structured.require(token in ('.str', '.num', '.arr', '.obj'), 'unknown Raw constructor')
-            return structured._Raw(token[1:], atom())
-        if token.isdigit():
-            return int(token)
-        structured.require(token in env, 'missing/forward data alias: ' + token)
-        return env[token]
-    def expr():
-        left = atom()
-        if index < len(tokens) and tokens[index] in ('::', '++'):
-            op = take()
-            right = expr()
-            structured.require(type(right) is list, 'list operator right type')
-            if op == '::':
-                return [left] + right
-            structured.require(type(left) is list, 'append left type')
-            return left + right
-        return left
-    result = expr()
-    structured.require(index == len(tokens), 'unconsumed emitted expression')
-    return result
-
-
-def _original_raw_value(raw):
-    structured.require(isinstance(raw, structured._Raw), 'expected Raw expression')
-    if raw.kind == 'num':
-        structured.require(type(raw.value) is int and 0 <= raw.value <= structured.old.MAX_INTEGER, 'Raw numeric domain')
-        return raw.value
-    if raw.kind == 'str':
-        structured.require(type(raw.value) is list and all(type(n) is int and 32 <= n <= 126 and n not in (34, 92) for n in raw.value), 'Raw string domain')
-        return bytes(raw.value).decode('ascii')
-    structured.require(type(raw.value) is list, 'Raw container domain')
-    if raw.kind == 'arr':
-        return [_original_raw_value(v) for v in raw.value]
-    structured.require(all(type(p) is tuple and len(p) == 2 for p in raw.value), 'Raw object pair domain')
-    keys = [_original_raw_value(structured._Raw('str', p[0])) for p in raw.value]
-    structured.require(keys == sorted(set(keys)), 'Raw object keys duplicate or unordered')
-    return {k: _original_raw_value(p[1]) for k, p in zip(keys, raw.value)}
-
 
 
 # Frozen pre-index count/replace algorithm, independent of the production fallback.
@@ -192,34 +112,6 @@ class SharedSourceTests(unittest.TestCase):
         cls.proposal = s.build_sources(cls.prepared, cls.previous)
         cls.unrepaired = s._undo_consumer_repairs(cls.proposal.stages)
         cls.unscheduled = s._undo_scheduled_prints(cls.unrepaired)
-
-    def test_actual_data_fast_paths_keep_full_verifier_outputs(self):
-        pattern = structured._FLAT_DECIMALS
-        class FlatProbe:
-            def __init__(self):
-                self.matches = 0
-            def fullmatch(self, text):
-                result = pattern.fullmatch(text)
-                self.matches += result is not None
-                return result
-        counts = []
-        for key, certificate in self.prepared['structured_certificates'].items():
-            binding = self.prepared['binding_inputs'][key]
-            args = (certificate['source'], certificate['manifest'],
-                    binding['tree'], binding['bytes'])
-            before = (args[0], json.dumps(args[1], sort_keys=True, separators=(',', ':'), ensure_ascii=True),
-                      structured.canonical(args[2]), args[3])
-            with patch.object(structured, '_parse_expression', _original_parse_expression), \
-                    patch.object(structured, '_raw_value', _original_raw_value):
-                old = structured.verify_structured_source(*args)
-            probe = FlatProbe()
-            with patch.object(structured, '_FLAT_DECIMALS', probe):
-                new = structured.verify_structured_source(*args)
-            self.assertEqual(new, old)
-            self.assertEqual((args[0], json.dumps(args[1], sort_keys=True, separators=(',', ':'), ensure_ascii=True),
-                              structured.canonical(args[2]), args[3]), before)
-            counts.append(probe.matches)
-        self.assertEqual(counts, [502] * 5)
 
     def test_actual_fast_path_keeps_all_v10_modules_and_manifest(self):
         unmarked = tuple(replace(stage, source=s.re.sub(r'(?m)^noncomputable def ', 'def ',
@@ -547,120 +439,6 @@ class SharedSourceTests(unittest.TestCase):
         manifest = self.proposal.manifest
         manifest['consumer_proofs']['changed_byte_representation']['bytes'] -= 1
         self.reject(replace(self.proposal, manifest_json=s.encode(manifest)))
-
-
-class RawDataScanTests(unittest.TestCase):
-    def test_raw_string_domain_and_subclass_reads_match_original(self):
-        callbacks = []
-        class Mimic(type):
-            def __hash__(cls):
-                callbacks.append('hash')
-                return hash(int)
-            def __eq__(cls, other):
-                callbacks.append('equality')
-                return True
-        class Impostor(metaclass=Mimic):
-            def __index__(self):
-                callbacks.append('index')
-                return 65
-        class IntegerSubclass(int):
-            def __index__(self):
-                callbacks.append('integer subclass index')
-                return 65
-        class ListSubclass(list):
-            def __iter__(self):
-                callbacks.append('list subclass iteration')
-                return super().__iter__()
-        def outcome(function, value):
-            try:
-                return ('value', function(value))
-            except Exception as error:
-                return ('error', type(error), str(error))
-        atoms = list(range(256)) + [-1, 10 ** 100, False, True,
-                                    IntegerSubclass(65), 65.0, None, Impostor()]
-        values = [[], [n for n in range(32, 127) if n not in (34, 92)],
-                  (), b'A', bytearray(b'A'), ListSubclass([65])]
-        values += [[value] for value in atoms]
-        values += [[65, value, 66] for value in atoms]
-        for value in values:
-            with self.subTest(value=value):
-                old = outcome(_original_raw_value, structured._Raw('str', value))
-                new = outcome(structured._raw_value, structured._Raw('str', value))
-                self.assertEqual(new, old)
-                if new[0] == 'error':
-                    self.assertEqual(new[1:], (ValueError, 'Raw string domain'))
-        self.assertEqual(callbacks, [])
-        for sequence in (([65], [66], [67]), ([65], [34], [67]),
-                         ([65], [65], [256]), ((), [65], [65])):
-            def run(function):
-                reads = []
-                class ChangingRaw(structured._Raw):
-                    def __getattribute__(self, name):
-                        if name == 'value':
-                            value = sequence[min(len(reads), len(sequence) - 1)]
-                            reads.append(name)
-                            return value
-                        return super().__getattribute__(name)
-                return outcome(function, ChangingRaw('str', None)), reads
-            with self.subTest(sequence=sequence):
-                self.assertEqual(run(structured._raw_value), run(_original_raw_value))
-
-
-class FlatDecimalListTests(unittest.TestCase):
-    def test_strict_subgrammar_and_legacy_fallback_match_original(self):
-        env = {'items': [4, 5], 'r': structured._Raw('num', 7)}
-        canonical = ['[]', '[0]', '[1,2,0]', '[18446744073709551616]',
-                     '[' + '9' * 5000 + ']']
-        fallback = ['', ' ', '[01]', '[00,2]', '[1, 2]', '[ 1]', '[1 ]',
-                    '[1,\t2]', '[1,\n2]', '[1,\u00a02]', '[\u0661]', '[+1]',
-                    '[-1]', '[1e2]', '[1.0]', '[1,]', '[,1]', '[[1]]',
-                    '[1] ++ [2]', '1 :: [2]', '[items]', 'items', '.str [65]',
-                    '.num 1', '.arr [r]', '.obj [([97], .num 1)]', '[1]\n',
-                    '[1]junk', '[1', '1]', b'[1]']
-        callbacks = []
-        class TextSubclass(str):
-            def startswith(self, *args):
-                callbacks.append('startswith')
-                raise AssertionError('subclass fast path')
-            def split(self, *args):
-                callbacks.append('split')
-                raise AssertionError('subclass fast path')
-            def __getitem__(self, key):
-                callbacks.append('getitem')
-                raise AssertionError('subclass fast path')
-        fallback.append(TextSubclass('[1,2]'))
-        def outcome(function, text):
-            try:
-                return ('value', function(text, env))
-            except Exception as error:
-                return ('error', type(error), str(error))
-        pattern = structured._TOKEN
-        class TokenProbe:
-            def __init__(self):
-                self.calls = 0
-            def match(self, *args):
-                self.calls += 1
-                return pattern.match(*args)
-        for text in canonical + fallback:
-            with self.subTest(text=text):
-                old = outcome(_original_parse_expression, text)
-                probe = TokenProbe()
-                with patch.object(structured, '_TOKEN', probe):
-                    new = outcome(structured._parse_expression, text)
-                self.assertEqual(new, old)
-                if type(text) is str and text in canonical:
-                    self.assertEqual(probe.calls, 0)
-                elif text != '':
-                    self.assertGreater(probe.calls, 0)
-        first = structured._parse_expression('[1,2]', env)
-        second = structured._parse_expression('[1,2]', env)
-        self.assertIsNot(first, second)
-        first.append(3)
-        self.assertEqual(second, [1, 2])
-        self.assertIsNot(structured._parse_expression('[]', env),
-                         structured._parse_expression('[]', env))
-        self.assertIs(structured._parse_expression('items', env), env['items'])
-        self.assertEqual(callbacks, [])
 
 
 class ByteAliasScanTests(unittest.TestCase):

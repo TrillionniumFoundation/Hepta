@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -281,10 +282,12 @@ a.start();b.start();a.join();b.join()
         self.assertTrue(result['group_kill_sent'])
         self.assertEqual(files[capture.DIAGNOSTIC_FILES[0]], b'partial')
 
-    def setup_race(self, state, *, reopen=None, late=None, interrupt=False, cleanup_error=False):
+    def setup_race(self, state, *, reopen=None, late=None, interrupt=False, cleanup_error=False,
+                   timeout_after_first_eio=False):
         def setup(safe, stack):
             read, waitid, killpg, openpty, monotonic = os.read, os.waitid, os.killpg, os.openpty, time.monotonic
             state.update(eios=0, confirmations=0, waits=0, killed=False, offset=0)
+            model_start = monotonic() if timeout_after_first_eio else None
             def allocate():
                 master, slave = openpty()
                 state['slave'] = os.ttyname(slave)
@@ -304,6 +307,8 @@ a.start();b.start();a.join();b.join()
                 except OSError as error:
                     if error.errno == errno.EIO and os.isatty(fd):
                         state['eios'] += 1
+                        if timeout_after_first_eio and state['eios'] == 1:
+                            state['first_eio_at'] = monotonic()
                         if late == 'exact' and 'frozen' not in state:
                             state['frozen'] = monotonic()
                     raise
@@ -338,7 +343,16 @@ a.start();b.start();a.join();b.join()
             stack.enter_context(patch.object(capture.os, 'read', side_effect=receive))
             stack.enter_context(patch.object(capture.os, 'waitid', side_effect=observe))
             stack.enter_context(patch.object(capture.os, 'killpg', side_effect=kill))
-            stack.enter_context(patch.object(capture.time, 'monotonic', side_effect=lambda: state.get('frozen', monotonic()) + state['offset']))
+            def clock():
+                if timeout_after_first_eio:
+                    # Establish a real first EIO before crossing the unchanged
+                    # process deadline. Cleanup then progresses at wall-clock
+                    # speed, so this is not a post-kill EOF control by accident.
+                    if 'first_eio_at' not in state:
+                        return model_start
+                    return model_start + capture.PROCESS_SECONDS + monotonic() - state['first_eio_at']
+                return state.get('frozen', monotonic()) + state['offset']
+            stack.enter_context(patch.object(capture.time, 'monotonic', side_effect=clock))
         return setup
 
     def test_real_eio_delayed_natural_exit_resolves_before_group_kill(self):
@@ -419,9 +433,11 @@ a.start();b.start();a.join();b.join()
     def test_pending_eio_timeout_never_resolves_after_group_kill(self):
         state = {}
         result, _, _ = self.run_child('import os,time;os.close(1);time.sleep(10)',
-                                     setup=self.setup_race(state), overrides=(('PROCESS_SECONDS', 0.04),))
+                                     setup=self.setup_race(state, timeout_after_first_eio=True),
+                                     overrides=(('PROCESS_SECONDS', 0.04),))
         self.assertEqual(result['status'], 'diagnostic_timeout', result)
         self.assertFalse(result['drain_complete'])
+        self.assertEqual(state['eios'], 1)
         self.assertEqual(state['confirmations'], 0)
 
     def test_nonzero_natural_exit_remains_failed(self):
@@ -476,8 +492,31 @@ a.start();b.start();a.join();b.join()
     def test_complete_fragmented_real_child_has_only_thirteen_events(self):
         payload = b'noise\n' + lines() + b'tail without newline\xff'
         script = 'import os\nfor b in %r: os.write(1,bytes([b]))\nos.write(2,b"stderr\\xff")' % payload
-        result, files, launches = self.run_child(script, overrides=(('READ_CHUNK', 1),))
+        progress = {}
+        def setup(safe, stack):
+            # This control checks every real one-byte fragment, retained byte,
+            # and marker event. Model time does not turn fsync/scheduling cost
+            # into an unrelated drain failure. Resume wall time after the known
+            # finite payload is durable; real deadline controls are separate.
+            append, monotonic = capture._Sink.append, time.monotonic
+            origin = monotonic()
+            expected = {capture.DIAGNOSTIC_FILES[0]: len(payload),
+                        capture.DIAGNOSTIC_FILES[1]: len(b'stderr\xff')}
+            progress.update(counts={name: 0 for name in expected}, resumed=None)
+            def persist(sink, name, data, terminal=False):
+                value = append(sink, name, data, terminal=terminal)
+                if name in expected:
+                    progress['counts'][name] += len(data)
+                    if progress['counts'] == expected and progress['resumed'] is None:
+                        progress['resumed'] = monotonic()
+                return value
+            def clock():
+                return origin if progress['resumed'] is None else origin + monotonic() - progress['resumed']
+            stack.enter_context(patch.object(capture._Sink, 'append', new=persist))
+            stack.enter_context(patch.object(capture, 'time', SimpleNamespace(monotonic=clock)))
+        result, files, launches = self.run_child(script, setup=setup, overrides=(('READ_CHUNK', 1),))
         self.assertEqual(result['status'], 'diagnostic_completed', result)
+        self.assertIsNotNone(progress['resumed'])
         self.assertEqual(len(launches), 1)
         self.assertEqual(files[capture.DIAGNOSTIC_FILES[0]], payload)
         self.assertEqual(files[capture.DIAGNOSTIC_FILES[1]], b'stderr\xff')

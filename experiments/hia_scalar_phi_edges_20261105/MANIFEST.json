@@ -1,0 +1,663 @@
+{
+  "archive": {
+    "bytes": 170683,
+    "path": "evidence-a3d7a12.tar.gz",
+    "sha256": "faa65bdde2cb88b1510b3bee6736be0d30c3acbc7011b97de53c305898b0a0f5"
+  },
+  "claims": {
+    "full_language_soundness": false,
+    "full_llvm_verifier": false,
+    "native_refinement": false,
+    "production_authority": false,
+    "whole_safe_core_closed": false
+  },
+  "observed_boundary": "Scalar LLVM PHI structure and simultaneous binding in the existing acyclic profile.",
+  "observer_sources": {
+    "observe_phi_edges.py": {
+      "bytes": 11112,
+      "sha256": "068a00bab1b2af2505cc21f814eaa246fc14136c4adfdfdfd327ed6b8ce4f2d4"
+    },
+    "observe_phi_edges_v2.py": {
+      "bytes": 12026,
+      "sha256": "6c8a847cd55635616568d7b888818369575517773beaf878595a4659dd12c3ef"
+    }
+  },
+  "regression_only_commit": "50a2c11ce9f7895736bd1a77d79ab9b3d327b68c",
+  "repaired_runtime_commit": "a3d7a1273adb45a5f9ca9121a49057b603f6eb64",
+  "repaired_runtime_tree": "342314f662d7cd197bd5c9fc12f7c6425d8eb739",
+  "runs": [
+    {
+      "affinity": [
+        10
+      ],
+      "cases": [
+        {
+          "checker_ok": true,
+          "checker_status": "verified",
+          "expected_valid": true,
+          "name": "single_original",
+          "native": {
+            "observations": 64,
+            "passed": 64
+          },
+          "opt_ok": true,
+          "opt_returncode": 0
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "verified",
+          "expected_valid": true,
+          "name": "single_reordered",
+          "native": {
+            "observations": 64,
+            "passed": 64
+          },
+          "opt_ok": true,
+          "opt_returncode": 0
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "verified",
+          "expected_valid": true,
+          "name": "double_original",
+          "native": {
+            "observations": 128,
+            "passed": 128
+          },
+          "opt_ok": true,
+          "opt_returncode": 0
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "verified",
+          "expected_valid": true,
+          "name": "double_reordered",
+          "native": {
+            "observations": 128,
+            "passed": 128
+          },
+          "opt_ok": true,
+          "opt_returncode": 0
+        },
+        {
+          "checker_ok": false,
+          "checker_status": "verified",
+          "expected_valid": false,
+          "name": "earlier_phi",
+          "native": null,
+          "opt_ok": true,
+          "opt_returncode": 1
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "rejected",
+          "expected_valid": false,
+          "name": "self_phi",
+          "native": null,
+          "opt_ok": true,
+          "opt_returncode": 1
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "rejected",
+          "expected_valid": false,
+          "name": "later_phi",
+          "native": null,
+          "opt_ok": true,
+          "opt_returncode": 1
+        },
+        {
+          "checker_ok": false,
+          "checker_status": "refuted",
+          "expected_valid": false,
+          "name": "false_edge_phi",
+          "native": null,
+          "opt_ok": true,
+          "opt_returncode": 1
+        },
+        {
+          "checker_ok": false,
+          "checker_status": "verified",
+          "expected_valid": false,
+          "name": "parallel_cfg_edge",
+          "native": null,
+          "opt_ok": true,
+          "opt_returncode": 1
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "rejected",
+          "expected_valid": false,
+          "name": "undefined_phi",
+          "native": null,
+          "opt_ok": true,
+          "opt_returncode": 1
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "rejected",
+          "expected_valid": false,
+          "name": "wrong_type_false_edge",
+          "native": null,
+          "opt_ok": true,
+          "opt_returncode": 1
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "rejected",
+          "expected_valid": false,
+          "name": "other_predecessor",
+          "native": null,
+          "opt_ok": true,
+          "opt_returncode": 1
+        }
+      ],
+      "completed_utc": "2026-11-05T04:20:47.455573+00:00",
+      "directory": "safe-core-phi/original",
+      "member_manifest_sha256": "a13bde918241d5aa648eb8b06a981c09c0a24f3ff2ebe547b70d0ee954a20314",
+      "passed": false,
+      "protocol_revision": 1,
+      "result_sha256": "d1948d420d0576536386e820e9fadf8c8ed34f9dd13acf9635de15397ee503f4",
+      "source_after": {
+        "commit": "50a2c11ce9f7895736bd1a77d79ab9b3d327b68c",
+        "status": "",
+        "tree": "ba68321b80d10fec6fb98ce30900c2f284d58b6b"
+      },
+      "source_before": {
+        "commit": "50a2c11ce9f7895736bd1a77d79ab9b3d327b68c",
+        "status": "",
+        "tree": "ba68321b80d10fec6fb98ce30900c2f284d58b6b"
+      },
+      "source_unchanged": true,
+      "test_id_sha256": "967c2253605c29d6035da384eb050566ee28f939b3ac8e53c1e6b31df6705485",
+      "tests": {
+        "collected": 11,
+        "errors": 0,
+        "expected_failures": 0,
+        "failures": 12,
+        "passed": false,
+        "run": 11,
+        "skips": 0,
+        "unexpected_successes": 0
+      },
+      "tools_unchanged": true,
+      "verified_member_files": 105
+    },
+    {
+      "affinity": [
+        10
+      ],
+      "cases": [
+        {
+          "checker_ok": true,
+          "checker_status": "verified",
+          "expected_valid": true,
+          "name": "single_original",
+          "native": {
+            "observations": 64,
+            "passed": 64
+          },
+          "opt_ok": true,
+          "opt_returncode": 0
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "verified",
+          "expected_valid": true,
+          "name": "single_reordered",
+          "native": {
+            "observations": 64,
+            "passed": 64
+          },
+          "opt_ok": true,
+          "opt_returncode": 0
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "verified",
+          "expected_valid": true,
+          "name": "double_original",
+          "native": {
+            "observations": 128,
+            "passed": 128
+          },
+          "opt_ok": true,
+          "opt_returncode": 0
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "verified",
+          "expected_valid": true,
+          "name": "double_reordered",
+          "native": {
+            "observations": 128,
+            "passed": 128
+          },
+          "opt_ok": true,
+          "opt_returncode": 0
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "rejected",
+          "expected_valid": false,
+          "name": "earlier_phi",
+          "native": null,
+          "opt_ok": true,
+          "opt_returncode": 1
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "rejected",
+          "expected_valid": false,
+          "name": "self_phi",
+          "native": null,
+          "opt_ok": true,
+          "opt_returncode": 1
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "rejected",
+          "expected_valid": false,
+          "name": "later_phi",
+          "native": null,
+          "opt_ok": true,
+          "opt_returncode": 1
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "rejected",
+          "expected_valid": false,
+          "name": "false_edge_phi",
+          "native": null,
+          "opt_ok": true,
+          "opt_returncode": 1
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "rejected",
+          "expected_valid": false,
+          "name": "parallel_cfg_edge",
+          "native": null,
+          "opt_ok": true,
+          "opt_returncode": 1
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "rejected",
+          "expected_valid": false,
+          "name": "undefined_phi",
+          "native": null,
+          "opt_ok": true,
+          "opt_returncode": 1
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "rejected",
+          "expected_valid": false,
+          "name": "wrong_type_false_edge",
+          "native": null,
+          "opt_ok": true,
+          "opt_returncode": 1
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "rejected",
+          "expected_valid": false,
+          "name": "other_predecessor",
+          "native": null,
+          "opt_ok": true,
+          "opt_returncode": 1
+        }
+      ],
+      "completed_utc": "2026-11-05T04:23:47.671434+00:00",
+      "directory": "safe-core-phi/repaired",
+      "member_manifest_sha256": "4e777e38df9bef194e71de9a13222be28fac13005f8291736239bd97e6348705",
+      "passed": true,
+      "protocol_revision": 1,
+      "result_sha256": "ad12806df99e67d7c17311f11e92016b435fba0f79d0529fa68c1d049f2adf32",
+      "source_after": {
+        "commit": "a3d7a1273adb45a5f9ca9121a49057b603f6eb64",
+        "status": "",
+        "tree": "342314f662d7cd197bd5c9fc12f7c6425d8eb739"
+      },
+      "source_before": {
+        "commit": "a3d7a1273adb45a5f9ca9121a49057b603f6eb64",
+        "status": "",
+        "tree": "342314f662d7cd197bd5c9fc12f7c6425d8eb739"
+      },
+      "source_unchanged": true,
+      "test_id_sha256": "0cdf8f7dd67afabed0671a5758383cc32b4c4952b618f3f1e550bb930af0a6e2",
+      "tests": {
+        "collected": 103,
+        "errors": 0,
+        "expected_failures": 0,
+        "failures": 0,
+        "passed": true,
+        "run": 103,
+        "skips": 0,
+        "unexpected_successes": 0
+      },
+      "tools_unchanged": true,
+      "verified_member_files": 105
+    },
+    {
+      "affinity": [
+        10
+      ],
+      "cases": [
+        {
+          "checker_ok": true,
+          "checker_status": "verified",
+          "expected_valid": true,
+          "name": "single_original",
+          "native": {
+            "observations": 64,
+            "passed": 64
+          },
+          "opt_ok": true,
+          "opt_returncode": 0
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "verified",
+          "expected_valid": true,
+          "name": "single_reordered",
+          "native": {
+            "observations": 64,
+            "passed": 64
+          },
+          "opt_ok": true,
+          "opt_returncode": 0
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "verified",
+          "expected_valid": true,
+          "name": "double_original",
+          "native": {
+            "observations": 128,
+            "passed": 128
+          },
+          "opt_ok": true,
+          "opt_returncode": 0
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "verified",
+          "expected_valid": true,
+          "name": "double_reordered",
+          "native": {
+            "observations": 128,
+            "passed": 128
+          },
+          "opt_ok": true,
+          "opt_returncode": 0
+        },
+        {
+          "checker_ok": false,
+          "checker_status": "verified",
+          "expected_valid": false,
+          "name": "earlier_phi",
+          "native": null,
+          "opt_ok": true,
+          "opt_returncode": 1
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "rejected",
+          "expected_valid": false,
+          "name": "self_phi",
+          "native": null,
+          "opt_ok": true,
+          "opt_returncode": 1
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "rejected",
+          "expected_valid": false,
+          "name": "later_phi",
+          "native": null,
+          "opt_ok": true,
+          "opt_returncode": 1
+        },
+        {
+          "checker_ok": false,
+          "checker_status": "verified",
+          "expected_valid": false,
+          "name": "false_edge_phi",
+          "native": null,
+          "opt_ok": true,
+          "opt_returncode": 1
+        },
+        {
+          "checker_ok": false,
+          "checker_status": "verified",
+          "expected_valid": false,
+          "name": "parallel_cfg_edge",
+          "native": null,
+          "opt_ok": true,
+          "opt_returncode": 1
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "rejected",
+          "expected_valid": false,
+          "name": "undefined_phi",
+          "native": null,
+          "opt_ok": true,
+          "opt_returncode": 1
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "rejected",
+          "expected_valid": false,
+          "name": "wrong_type_false_edge",
+          "native": null,
+          "opt_ok": true,
+          "opt_returncode": 1
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "rejected",
+          "expected_valid": false,
+          "name": "other_predecessor",
+          "native": null,
+          "opt_ok": true,
+          "opt_returncode": 1
+        }
+      ],
+      "completed_utc": "2026-11-05T04:28:26.321289+00:00",
+      "directory": "safe-core-phi/original-v2",
+      "member_manifest_sha256": "f22541e3ddcaef88ba310c50b466edf5ba7e4e23dc8f3450b57fa41a84c2b93e",
+      "passed": false,
+      "protocol_revision": 2,
+      "result_sha256": "3f3fe6a3ad8616afc5fb5283e4cdb5bc49b8ccd263672d134d6b8df38e6c6fe1",
+      "source_after": {
+        "commit": "50a2c11ce9f7895736bd1a77d79ab9b3d327b68c",
+        "status": "",
+        "tree": "ba68321b80d10fec6fb98ce30900c2f284d58b6b"
+      },
+      "source_before": {
+        "commit": "50a2c11ce9f7895736bd1a77d79ab9b3d327b68c",
+        "status": "",
+        "tree": "ba68321b80d10fec6fb98ce30900c2f284d58b6b"
+      },
+      "source_unchanged": true,
+      "test_id_sha256": "967c2253605c29d6035da384eb050566ee28f939b3ac8e53c1e6b31df6705485",
+      "tests": {
+        "collected": 11,
+        "errors": 0,
+        "expected_failures": 0,
+        "failures": 12,
+        "passed": false,
+        "run": 11,
+        "skips": 0,
+        "unexpected_successes": 0
+      },
+      "tools_unchanged": true,
+      "verified_member_files": 105
+    },
+    {
+      "affinity": [
+        10
+      ],
+      "cases": [
+        {
+          "checker_ok": true,
+          "checker_status": "verified",
+          "expected_valid": true,
+          "name": "single_original",
+          "native": {
+            "observations": 64,
+            "passed": 64
+          },
+          "opt_ok": true,
+          "opt_returncode": 0
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "verified",
+          "expected_valid": true,
+          "name": "single_reordered",
+          "native": {
+            "observations": 64,
+            "passed": 64
+          },
+          "opt_ok": true,
+          "opt_returncode": 0
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "verified",
+          "expected_valid": true,
+          "name": "double_original",
+          "native": {
+            "observations": 128,
+            "passed": 128
+          },
+          "opt_ok": true,
+          "opt_returncode": 0
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "verified",
+          "expected_valid": true,
+          "name": "double_reordered",
+          "native": {
+            "observations": 128,
+            "passed": 128
+          },
+          "opt_ok": true,
+          "opt_returncode": 0
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "rejected",
+          "expected_valid": false,
+          "name": "earlier_phi",
+          "native": null,
+          "opt_ok": true,
+          "opt_returncode": 1
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "rejected",
+          "expected_valid": false,
+          "name": "self_phi",
+          "native": null,
+          "opt_ok": true,
+          "opt_returncode": 1
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "rejected",
+          "expected_valid": false,
+          "name": "later_phi",
+          "native": null,
+          "opt_ok": true,
+          "opt_returncode": 1
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "rejected",
+          "expected_valid": false,
+          "name": "false_edge_phi",
+          "native": null,
+          "opt_ok": true,
+          "opt_returncode": 1
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "rejected",
+          "expected_valid": false,
+          "name": "parallel_cfg_edge",
+          "native": null,
+          "opt_ok": true,
+          "opt_returncode": 1
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "rejected",
+          "expected_valid": false,
+          "name": "undefined_phi",
+          "native": null,
+          "opt_ok": true,
+          "opt_returncode": 1
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "rejected",
+          "expected_valid": false,
+          "name": "wrong_type_false_edge",
+          "native": null,
+          "opt_ok": true,
+          "opt_returncode": 1
+        },
+        {
+          "checker_ok": true,
+          "checker_status": "rejected",
+          "expected_valid": false,
+          "name": "other_predecessor",
+          "native": null,
+          "opt_ok": true,
+          "opt_returncode": 1
+        }
+      ],
+      "completed_utc": "2026-11-05T04:30:14.271415+00:00",
+      "directory": "safe-core-phi/repaired-v2",
+      "member_manifest_sha256": "50251ef4545a469a8bcd2309c5a83e5852bc4e2fa4c87ce10d0f2d76df23a7ec",
+      "passed": true,
+      "protocol_revision": 2,
+      "result_sha256": "76232d8d21f286407195c7bf5d12c443032df785370929728ca23c31d7ea8a87",
+      "source_after": {
+        "commit": "a3d7a1273adb45a5f9ca9121a49057b603f6eb64",
+        "status": "",
+        "tree": "342314f662d7cd197bd5c9fc12f7c6425d8eb739"
+      },
+      "source_before": {
+        "commit": "a3d7a1273adb45a5f9ca9121a49057b603f6eb64",
+        "status": "",
+        "tree": "342314f662d7cd197bd5c9fc12f7c6425d8eb739"
+      },
+      "source_unchanged": true,
+      "test_id_sha256": "0cdf8f7dd67afabed0671a5758383cc32b4c4952b618f3f1e550bb930af0a6e2",
+      "tests": {
+        "collected": 103,
+        "errors": 0,
+        "expected_failures": 0,
+        "failures": 0,
+        "passed": true,
+        "run": 103,
+        "skips": 0,
+        "unexpected_successes": 0
+      },
+      "tools_unchanged": true,
+      "verified_member_files": 105
+    }
+  ],
+  "runtime_parent": "b47ce924c5941b42448e9da0b07a2bcedaf75d1f",
+  "schema": "hepta.hia.scalar-phi-evidence-bundle.v1",
+  "v1_note": "Original-v1 false_edge_phi is refuted, not verified. Its stdout invalid_accepted label included every non-rejected case and was too broad; complete RESULT preserves the actual refuted status.",
+  "v2_note": "Core and LLVM both use the constant condition for false_edge_phi. The original checker verifies all three malformed cases; repaired source rejects all eight malformed cases. V1 remains unchanged.",
+  "validation": "All 420 files enumerated by the four contained manifests were read from this exact archive and matched byte length and SHA-256 before publication."
+}

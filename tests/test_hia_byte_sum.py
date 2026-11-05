@@ -135,7 +135,7 @@ class ByteSumStructureTests(unittest.TestCase):
         ir = emit_program_llvm(self.program)
         self.assertEqual(ir.core_sha256, self.program.sha256)
         self.assertEqual(self.program.canonical_bytes, before)
-        self.assertEqual(ir.text.count("call <2 x i64> @" + INTRINSIC), 1)
+        self.assertEqual(ir.text.count("call <2 x i64> @" + INTRINSIC), 2)
         self.assertIn("load <16 x i8>", ir.text)
         self.assertIn("align 1", ir.text)
         self.assertIn("call void @abort()", ir.text)
@@ -214,22 +214,25 @@ class ByteSumStructureTests(unittest.TestCase):
 
     def test_modular_arithmetic_and_nonwrapping_range_lemmas(self):
         import z3
-        lanes = [z3.BitVec("lane_" + str(i), 8) for i in range(16)]
-        initial = z3.BitVec("initial_sum", 64)
-        widened = [z3.ZeroExt(56, b) for b in lanes]
-        scalar = initial
-        for value in widened:
-            scalar = scalar + value
-        vector = initial + sum(widened[:8]) + sum(widened[8:])
-        solver = z3.Solver(); solver.set(timeout=5000)
-        solver.add(scalar != vector)
-        self.assertEqual(solver.check(), z3.unsat)
-        index, bound = z3.BitVecs("range_index range_bound", 64)
-        solver = z3.Solver(); solver.set(timeout=5000)
-        solver.add(z3.ULE(index, bound), z3.UGE(bound - index, 16))
-        solver.add(z3.Or(z3.UGE(index + 15, bound),
-                         z3.UGT(index + 16, bound), z3.ULT(index + 16, index)))
-        self.assertEqual(solver.check(), z3.unsat)
+        for width in (8, 16):
+            with self.subTest(width=width):
+                lanes = [z3.BitVec("lane_" + str(i), 8) for i in range(width)]
+                initial = z3.BitVec("initial_sum", 64)
+                widened = [z3.ZeroExt(56, b) for b in lanes]
+                scalar = initial
+                for value in widened:
+                    scalar = scalar + value
+                vector = initial + sum(widened[:8]) + sum(widened[8:])
+                solver = z3.Solver(); solver.set(timeout=5000)
+                solver.add(scalar != vector)
+                self.assertEqual(solver.check(), z3.unsat)
+                index, bound = z3.BitVecs("range_index range_bound", 64)
+                solver = z3.Solver(); solver.set(timeout=5000)
+                solver.add(z3.ULE(index, bound), z3.UGE(bound - index, width))
+                solver.add(z3.Or(z3.UGE(index + width - 1, bound),
+                                 z3.UGT(index + width, bound),
+                                 z3.ULT(index + width, index)))
+                self.assertEqual(solver.check(), z3.unsat)
 
     def test_interpreter_checked_overflow_bounds_and_refusal_are_unchanged(self):
         for name, args, code in (
@@ -252,15 +255,18 @@ class ByteSumStructureTests(unittest.TestCase):
 
     def test_modified_vector_range_guard_is_rejected_before_tool_execution(self):
         ir = emit_program_llvm(self.program)
-        changed = ir.text.replace(", 16\n", ", 15\n", 1)
-        self.assertNotEqual(changed, ir.text)
-        forged = replace(ir, text=changed, sha256=sha256(changed.encode()).hexdigest())
-        with tempfile.TemporaryDirectory() as folder, patch(
-                "hepta.hia_program_llvm.run_bounded",
-                side_effect=AssertionError("a forged module must not reach Clang")):
-            with self.assertRaisesRegex(HIAProgramLLVMRejected, "ORIGIN"):
-                compile_program_llvm(forged, program=self.program,
-                                     output=Path(folder) / "forged.o", kind="object")
+        for width in (8, 16):
+            with self.subTest(width=width):
+                changed = ir.text.replace(", " + str(width) + "\n",
+                                          ", " + str(width - 1) + "\n", 1)
+                self.assertNotEqual(changed, ir.text)
+                forged = replace(ir, text=changed, sha256=sha256(changed.encode()).hexdigest())
+                with tempfile.TemporaryDirectory() as folder, patch(
+                        "hepta.hia_program_llvm.run_bounded",
+                        side_effect=AssertionError("a forged module must not reach Clang")):
+                    with self.assertRaisesRegex(HIAProgramLLVMRejected, "ORIGIN"):
+                        compile_program_llvm(forged, program=self.program,
+                                             output=Path(folder) / "forged.o", kind="object")
 
 
 GUARD_DRIVER = r"""
@@ -279,7 +285,7 @@ uint64_t sum_wrap(size_t,size_t,size_t,uint64_t,uint8_t);
 uint64_t sum_checked(size_t,size_t,size_t,uint64_t,uint8_t);
 uint64_t index_checked(size_t,size_t,size_t,uint64_t,uint8_t);
 static void *mapping, *allocation;
-static size_t mapped_size, calls, releases, refused, cases;
+static size_t mapped_size, calls, releases, refused, cases, prefix_cases;
 static void *allocate(size_t n, int zeroed) {
     ++calls;
     if (n == 12281) { ++refused; return NULL; }
@@ -312,6 +318,9 @@ int main(int argc, char **argv) {
         if(!strcmp(argv[1],"short"))return (int)sum_wrap(15,16,0,0,255);
         if(!strcmp(argv[1],"last"))return (int)sum_wrap(16,17,0,0,255);
         if(!strcmp(argv[1],"tail19"))return (int)sum_wrap(19,20,0,0,255);
+        if(!strcmp(argv[1],"halfshort"))return (int)sum_wrap(7,8,0,0,255);
+        if(!strcmp(argv[1],"halflast"))return (int)sum_wrap(8,9,0,0,255);
+        if(!strcmp(argv[1],"tail24"))return (int)sum_wrap(24,25,0,0,255);
         if(!strcmp(argv[1],"tail31"))return (int)sum_wrap(31,32,0,0,255);
         if(!strcmp(argv[1],"high"))return (int)sum_wrap(16,SIZE_MAX,SIZE_MAX-1,0,255);
         if(!strcmp(argv[1],"overflow"))return (int)sum_checked(16,16,0,UINT64_MAX-1,255);
@@ -333,13 +342,26 @@ int main(int argc, char **argv) {
             || releases-before_frees!=(n!=0))return 98;
         ++cases;
     }
+    const size_t extents[] = {0,1,7,8,9,15,16,17,23,24,25,31,32,33,65};
+    for(size_t f=0;f<3;f+=2)
+    for(size_t s=0;s<sizeof(extents)/sizeof(extents[0]);s++)
+    for(size_t limit=0;limit<=extents[s];limit++)for(size_t position=0;position<4;position++) {
+        size_t n=extents[s], start=position==0 ? 0 : position==1 ? (limit<7?limit:7)
+                          : position==2 ? limit : limit+1;
+        uint64_t expected=UINT64_MAX-7+(uint64_t)(limit>start ? limit-start : 0)*255;
+        size_t before_calls=calls,before_frees=releases;
+        uint64_t result=functions[f](n,limit,start,UINT64_MAX-7,255);
+        if(result!=expected || allocation || calls-before_calls!=(n!=0)
+            || releases-before_frees!=(n!=0))return 102;
+        ++prefix_cases;
+    }
     for(size_t f=0;f<3;f++) {
         if(functions[f](12281,12281,0,0,255)!=1001 || allocation)return 99;
         if(functions[f](SIZE_MAX,SIZE_MAX,0,0,255)!=1001 || allocation)return 100;
     }
     if(calls!=releases+refused || refused!=3)return 101;
-    printf("{\"cases\":%zu,\"allocator_calls\":%zu,\"frees\":%zu,\"refusals\":%zu,\"live\":0}\n",
-           cases,calls,releases,refused);
+    printf("{\"cases\":%zu,\"prefix_cases\":%zu,\"allocator_calls\":%zu,\"frees\":%zu,\"refusals\":%zu,\"live\":0}\n",
+           cases,prefix_cases,calls,releases,refused);
     return 0;
 }
 """
@@ -378,12 +400,13 @@ class ByteSumNativeTests(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
         facts = json.loads(completed.stdout)
         self.assertEqual(facts["cases"], 2304)
+        self.assertEqual(facts["prefix_cases"], 2568)
         self.assertEqual(facts["allocator_calls"], facts["frees"] + facts["refusals"])
         self.assertEqual(facts["refusals"], 3)
         self.assertEqual(facts["live"], 0)
 
     def test_scalar_tail_bounds_and_checked_overflow_abort_not_page_fault(self):
-        for mode in ("short", "last", "tail19", "tail31", "high", "overflow"):
+        for mode in ("short", "last", "tail19", "tail31", "halfshort", "halflast", "tail24", "high", "overflow"):
             with self.subTest(mode=mode):
                 trapped = subprocess.run([str(self.binary), mode], capture_output=True,
                                          text=True, timeout=10)
