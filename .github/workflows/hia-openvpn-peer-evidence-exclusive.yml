@@ -1,0 +1,36 @@
+name: HIA OpenVPN peer evidence exclusive-create regression (DENY_ALL)
+
+on:
+  push:
+    branches:
+      - research/hia-openvpn-evidence-create-excl-20261105
+  pull_request:
+    paths:
+      - .github/workflows/hia-openvpn-peer-evidence-exclusive.yml
+      - experiments/openvpn_hia_20261105/target_host/dco_peer_stats.py
+      - experiments/openvpn_hia_20261105/target_host/test_dco_peer_stats.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-exact-offline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Freeze exact source and run fail-closed output plus netlink regressions
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          printf 'HEAD=%s\n' "$(git rev-parse HEAD)"
+          sha256sum experiments/openvpn_hia_20261105/target_host/dco_peer_stats.py
+          sha256sum experiments/openvpn_hia_20261105/target_host/test_dco_peer_stats.py
+          python3 -B experiments/openvpn_hia_20261105/target_host/test_dco_peer_stats.py -v
+          test -z "$(git status --porcelain)"
