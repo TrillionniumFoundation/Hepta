@@ -1,0 +1,12 @@
+struct Cell<T> { value: T, done: Unit }
+fn unit() -> Unit effects {} {}
+fn values() -> [Cell<f32>; 2] effects {} {
+    return [Cell { value: 16777217 as f32, done: unit() }, Cell { value: -3.75 as f32, done: unit() }];
+}
+fn main() -> Unit effects { panic, io, alloc, block } {
+    let cell = values()[0];
+    let stamp = cell.done;
+    assert(len(values()) == 2);
+    assert((cell.value as i64) == 16777216);
+    print_i64(cell.value as i64);
+}
