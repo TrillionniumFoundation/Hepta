@@ -1,0 +1,65 @@
+name: Isolated installed compiler
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'stdlib/**'
+      - 'pyproject.toml'
+      - 'examples/packages/typed_packet/**'
+      - 'examples/packages/typed_text/**'
+      - 'tools/qualify_installed_compiler.py'
+      - 'tools/installed_compiler_probe.py'
+      - 'tools/installed_compiler_components.json'
+      - 'docs/INSTALLED_COMPILER.md'
+      - '.github/workflows/installed-compiler.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  installed:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+        python: ['3.11', '3.13']
+        backend: [c, rust]
+        include:
+          - python: '3.11'
+            setuptools: '68.2.2'
+          - python: '3.13'
+            setuptools: '84.2.1'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Prepare explicit build tools
+        run: python -m pip install 'setuptools==${{ matrix.setuptools }}' 'wheel==0.45.1' 'pip==26.2.2'
+      - name: Select real pinned Rust
+        if: matrix.backend == 'rust'
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.90.0 --profile minimal
+          echo "HEPTA_INSTALLED_RUSTC=$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_ENV"
+      - name: Qualify actual offline installations and native consumers
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          git rev-parse HEAD
+          python --version
+          gcc --version
+          if test '${{ matrix.backend }}' = rust; then
+            python -B tools/qualify_installed_compiler.py --backend rust --rustc "$HEPTA_INSTALLED_RUSTC" | tee "$RUNNER_TEMP/installed-compiler.json"
+          else
+            python -B tools/qualify_installed_compiler.py --backend c | tee "$RUNNER_TEMP/installed-compiler.json"
+          fi
+          git diff --exit-code
+          git diff --cached --exit-code
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
