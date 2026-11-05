@@ -76,13 +76,13 @@ class SharedAcceptanceContractTests(unittest.TestCase):
 
         def oid(raw):
             return hashlib.sha1(
-                b'blob ' + str(len(raw)).encode() + b'\\0' + raw).hexdigest()
+                b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest()
 
         with tempfile.TemporaryDirectory(prefix='hia-git-object-') as directory:
             root = Path(directory)
             git(root, 'init', '-q')
             source = root / 'source.rs'
-            frozen = b'frozen original\\n'
+            frozen = b'frozen original\n'
             source.write_bytes(frozen)
             git(root, 'add', 'source.rs')
             git(root, '-c', 'user.name=HIAContract',
@@ -91,7 +91,7 @@ class SharedAcceptanceContractTests(unittest.TestCase):
             self.assertEqual(original_oid, oid(frozen))
             p.require_canonical_git_blobs(root, {'source.rs': oid(frozen)})
 
-            changed = b'unreviewed replacement\\n'
+            changed = b'unreviewed replacement\n'
             source.write_bytes(changed)
             new_oid = git(root, 'hash-object', '-w', '--stdin', data=changed).decode().strip()
             git(root, 'replace', original_oid, new_oid)
