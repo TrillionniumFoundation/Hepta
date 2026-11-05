@@ -58,10 +58,34 @@ def observe(text):
     peer_resets = [i for i, line in enumerate(lines)
                    if 'P_CONTROL_SOFT_RESET_V1' in line
                    and re.search(r'\bREAD \[\d+\]', line)]
-    resets = sorted(set(local_resets + peer_resets))
     boundaries = [i for i, line in enumerate(lines) if any(x in line for x in (
         'TLS: Initial packet', 'initial untrusted session promoted to trusted',
         'Initialization Sequence Completed', 'SIGUSR1[hard,'))]
+    # The peer that initiates renegotiation logs "TLS: soft reset"; a passive
+    # peer may only log the received SOFT_RESET packet. Neither is completion.
+    # Bind the response to an explicit reset, and keep retransmissions within
+    # the same attempt so they cannot split key evidence or discard an error.
+    resets = []
+    boundary_set = set(boundaries)
+    reset_key = None
+    pending_explicit = False
+    for i, line in enumerate(lines):
+        if i in boundary_set:
+            reset_key = None
+            pending_explicit = False
+        if 'TLS: soft reset' in line:
+            resets.append(i)
+            reset_key = None
+            pending_explicit = True
+        else:
+            packet = re.search(r'\bUDPv[46] READ \[\d+\] from \S+: '
+                               r'P_CONTROL_SOFT_RESET_V1 kid=([0-7])(?:\s|$)', line)
+            if packet:
+                key = int(packet[1])
+                if not pending_explicit and key != reset_key:
+                    resets.append(i)
+                reset_key = key
+                pending_explicit = False
     completed = []
     for begin in resets:
         end = min([i for i in resets + boundaries if i > begin] + [len(lines)])
