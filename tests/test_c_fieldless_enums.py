@@ -190,8 +190,8 @@ class FieldlessEnumTests(unittest.TestCase):
             cwd=ROOT,capture_output=True,timeout=30)
         self.assertEqual((result.returncode,result.stdout,result.stderr),(0,b"",b""))
 
-    def test_payload_enums_and_generics_remain_unsupported(self):
-        for source in ('enum Payload {Value(i32),Empty} fn main()->Unit effects {} {}',
+    def test_unit_payloads_and_generics_remain_unsupported(self):
+        for source in ('enum Payload {Value(Unit),Empty} fn main()->Unit effects {} {}',
                        'enum Generic<T> {Value(T),Empty} fn main()->Unit effects {} {}',
                        'fn main()->Unit effects {} {let x:Result<i32,u8>=Result::Ok(3);}',
                        'enum Flag {A} fn id<T>(x:T)->T effects {} {return x;}'):

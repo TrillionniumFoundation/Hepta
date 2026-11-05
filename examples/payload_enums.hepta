@@ -1,0 +1,21 @@
+enum Reply { Missing, Pair(i32, i32), Samples([i32; 3]) }
+fn sum(reply: read Reply) -> i32 effects {panic} {
+    match reply {
+        Reply::Missing => { return 0; },
+        Reply::Pair(a, b) => { return a + b; },
+        Reply::Samples(values) => { return values[0] + values[1] + values[2]; }
+    }
+}
+fn main() -> Unit effects {write, panic} {
+    let mut reply = Reply::Pair(13, 29);
+    let saved = reply;
+    reply = Reply::Samples([7, 11, 19]);
+    assert(sum(read saved) == 42);
+    assert(sum(read reply) == 37);
+    match reply {
+        Reply::Samples(values) => { reply = Reply::Missing; assert(values[2] == 19); },
+        Reply::Pair(_, _) => { assert(false); },
+        Reply::Missing => { assert(false); }
+    }
+    assert(sum(read reply) == 0);
+}
