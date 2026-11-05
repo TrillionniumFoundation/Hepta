@@ -82,3 +82,7 @@ P11 新增非泛型、无载荷源码枚举与穷尽 match 降级，覆盖 Copy 
 ## 2026-11-05 内部 Unit 值增量
 
 在 #704 builtin Result 基础上，P11 新增内部 Unit 值、局部变量、非空数组/切片、源码结构/枚举及 Result 载荷降级。私有非零大小表示保留表达式副作用、构造顺序、匹配快照和索引边界检查；C 返回值和 opaque Unit 指针仍使用 void。详见 [C_UNIT_VALUES.md](C_UNIT_VALUES.md)。直接 Unit 参数、Unit 聚合 C ABI、零长数组、泛型函数和资源载荷仍不支持。没有新生命周期保证、完整后端一致性或生产资格，P11/P01 保持 PARTIAL。
+
+## 2026-11-05 数值转换与 Copy ADT 的有界整合
+
+在 #705 的 Copy 结构/枚举、Result 和内部 Unit 上，按精确源码移植 #572/#579 已有数值转换，不重复发明转换功能，也不整分支合并 #564 的其他修改。新增共同原生验证覆盖 42 种转换在泛型载荷、匹配快照、复制/变更、Unit 副作用、借用切片和模块中的组合。详见 [C_NUMERIC_ADT_COMPOSITION.md](C_NUMERIC_ADT_COMPOSITION.md)。两个父树各自通过不等于新树通过，Rust/ARM 必须在新头实际执行。字面量、资源载荷、通用单态化、完整后端一致性和生产资格不在本增量内，P11/P01 保持 PARTIAL。
