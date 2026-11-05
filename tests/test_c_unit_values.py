@@ -6,6 +6,7 @@ import signal
 import subprocess
 import sys
 import unittest
+from unittest.mock import patch
 
 from hepta.ast import HeptaError
 from hepta.backend import compile_rust, emit_rust
@@ -145,11 +146,36 @@ class UnitValueTests(unittest.TestCase):
                     compiler=os.environ.get('RUSTC') or shutil.which('rustc')
                     self.assertTrue(compiler,'Native Rust required but unavailable')
                     for optimize in (False,True):
-                        report=compile_rust(emit_rust(program,checked),rustc=compiler,optimize=optimize,output=self.root/'rust-trap')
+                        report=compile_rust(emit_rust(program,checked,crate_type='bin'),rustc=compiler,crate_type='bin',optimize=optimize,output=self.root/'rust-trap')
                         self.assertTrue(report['ok'],report)
                         run=subprocess.run([report['artifact']],capture_output=True,timeout=10)
                         self.assertEqual(run.returncode,-signal.SIGABRT)
                         self.assertEqual(run.stdout,b'')
+
+    def test_rust_trap_requests_binary_contract_without_native_rust(self):
+        """Mocked Rust call contract only; all C compilations/runs stay real."""
+        original_run = subprocess.run
+        calls = []
+        artifact = str(self.root / 'mocked-rust-contract-not-an-executable')
+
+        def compile_contract(source, **kwargs):
+            self.assertEqual(kwargs.get('crate_type'), 'bin')
+            self.assertIn('fn main()', source)
+            self.assertEqual(kwargs['rustc'], 'mocked-rust-contract')
+            calls.append(kwargs['optimize'])
+            return {'ok': True, 'artifact': artifact}
+
+        def run_contract(args, *positional, **kwargs):
+            if args == [artifact]:
+                return subprocess.CompletedProcess(args, -signal.SIGABRT, b'', b'')
+            return original_run(args, *positional, **kwargs)
+
+        with patch.dict(os.environ, {'HEPTA_ENUM_REQUIRE_RUST': '1',
+                                     'RUSTC': 'mocked-rust-contract'}), \
+             patch(__name__ + '.compile_rust', side_effect=compile_contract), \
+             patch('subprocess.run', side_effect=run_contract):
+            self.test_bounds_and_assert_failures_trap_before_later_effects()
+        self.assertEqual(calls, [False, True] * 4)
 
     def test_void_return_and_opaque_unit_pointer_abi_are_unchanged(self):
         source='''pub export "C" fn identity(p:raw const Unit)->raw const Unit effects {} {return p;}
