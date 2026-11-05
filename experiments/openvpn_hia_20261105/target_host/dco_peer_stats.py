@@ -132,6 +132,43 @@ def query(interface, journal=None):
             'netlink_wire_records':journal}
 
 
+
+def write_evidence_no_follow(path: Path, document: str) -> None:
+    """Create evidence once without following any existing parent or leaf link.
+
+    Linux-only target helper: directory-fd traversal makes the directory-open
+    checks and leaf creation relative to pinned directory inodes. This does
+    not claim crash-atomic publication or resistance to rename of a writable
+    ancestor *after* its inode has been opened.
+    """
+    parts = path.parts
+    if not parts or parts[-1] in ('.', '..') or '..' in parts:
+        raise ValueError('invalid evidence path components')
+    parents = parts[1:-1] if path.is_absolute() else parts[:-1]
+    directory_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC
+    directory_fd = os.open('/' if path.is_absolute() else '.', directory_flags)
+    try:
+        for name in parents:
+            try:
+                os.mkdir(name, mode=0o777, dir_fd=directory_fd)
+            except FileExistsError:
+                pass
+            next_fd = os.open(name, directory_flags, dir_fd=directory_fd)
+            os.close(directory_fd)
+            directory_fd = next_fd
+        leaf_flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC
+        leaf_fd = os.open(parts[-1], leaf_flags, 0o666, dir_fd=directory_fd)
+        try:
+            stream = os.fdopen(leaf_fd, 'w', encoding='utf-8')
+        except BaseException:
+            os.close(leaf_fd)
+            raise
+        with stream:
+            stream.write(document)
+    finally:
+        os.close(directory_fd)
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--interface',required=True);p.add_argument('--out',type=Path,required=True)
     a=p.parse_args()
@@ -145,13 +182,11 @@ def main():
                 'helper_sha256':__import__('hashlib').sha256(Path(__file__).read_bytes()).hexdigest()};code=1
         try:result['ifindex']=socket.if_nametoindex(a.interface)
         except OSError:pass
-    a.out.parent.mkdir(parents=True,exist_ok=True)
     try:
-        # Mode 'x' uses O_CREAT|O_EXCL: never follow or replace a leaf symlink,
-        # hard link, or file inserted between preflight and evidence publication.
-        with a.out.open('x', encoding='utf-8') as f:
-            f.write(json.dumps(result,indent=2)+'\n')
+        write_evidence_no_follow(a.out, json.dumps(result,indent=2)+'\n')
     except FileExistsError:
         p.error('output exists')
+    except (OSError, ValueError) as exc:
+        p.error('unsafe output path: '+str(exc))
     print(json.dumps(result));return code
 if __name__=='__main__':raise SystemExit(main())

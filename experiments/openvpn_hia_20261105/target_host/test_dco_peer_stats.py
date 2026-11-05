@@ -88,4 +88,35 @@ class NetlinkPeerDumpTests(unittest.TestCase):
             self.assertEqual(exit_result.exception.code,2)
             self.assertEqual(output.read_bytes(),original)
 
+
+    def test_cli_rejects_symlink_parent_without_creating_external_evidence(self):
+        # The original exclusive-create leaf guard is not enough: mkdir
+        # accepts an existing directory symlink, and open('x') follows it.
+        # This is a location-integrity negative test, not a TUN/DCO claim.
+        with tempfile.TemporaryDirectory() as tmp:
+            base=Path(tmp)
+            external=base/'unrelated-directory'
+            external.mkdir()
+            symlink=base/'public-evidence'
+            symlink.symlink_to(external,target_is_directory=True)
+            output=symlink/'peer.json'
+            with mock.patch.object(module,'query',return_value={'schema':'mock-peer'}), \
+                 mock.patch.object(sys,'argv',['dco_peer_stats.py','--interface','tunbench-s','--out',str(output)]), \
+                 redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit) as exit_result:
+                    module.main()
+            self.assertEqual(exit_result.exception.code,2)
+            self.assertTrue(symlink.is_symlink())
+            self.assertFalse((external/'peer.json').exists())
+
+    def test_cli_creates_fresh_nested_directories_without_symlinks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output=Path(tmp)/'new'/'nested'/'peer.json'
+            with mock.patch.object(module,'query',return_value={'schema':'mock-peer'}), \
+                 mock.patch.object(sys,'argv',['dco_peer_stats.py','--interface','tunbench-s','--out',str(output)]), \
+                 redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                self.assertEqual(module.main(),0)
+            self.assertEqual(__import__('json').loads(output.read_text())['schema'],'mock-peer')
+            self.assertTrue(output.parent.is_dir())
+
 if __name__=='__main__':unittest.main(verbosity=2)
