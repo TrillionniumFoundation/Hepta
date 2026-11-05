@@ -92,4 +92,42 @@ class PeerGetDumpTests(unittest.TestCase):
         self.assertEqual(ctx.exception.errno, errno.EINVAL)
 
 
+    def test_rejects_cumulative_multipart_wire_bytes(self):
+        # Every individual datagram is below recvmsg(1 << 20), but the
+        # stream exceeds 4 MiB. A missing DONE must not permit unbounded
+        # journal hex strings or retained peer rows.
+        class OversizedKernel(FakeKernelNetlink):
+            def send(self, packet):
+                super().send(packet)
+                if mod.NLHDR.unpack_from(packet)[3] == 2:
+                    reply = self.packet(
+                        44, 2,
+                        mod.GENLHDR.pack(3, 1, 0) + mod.attr(99, b'Z' * 16300),
+                        mod.NLM_F_MULTI)
+                    self.pending = [reply * 40] * 8
+
+        sock = OversizedKernel()
+        sm, im = self.kernel(sock)
+        with sm, im, self.assertRaisesRegex(ValueError, 'netlink reply wire budget exceeded'):
+            mod.query('tunbench-s')
+
+    def test_rejects_cumulative_multipart_message_count(self):
+        # A single small datagram can hold thousands of distinct messages.
+        # Count frames before appending parsed objects to the reply list.
+        class ExcessiveMessagesKernel(FakeKernelNetlink):
+            def send(self, packet):
+                super().send(packet)
+                if mod.NLHDR.unpack_from(packet)[3] == 2:
+                    reply = self.packet(
+                        44, 2,
+                        mod.GENLHDR.pack(3, 1, 0) + mod.attr(99, b'Z'),
+                        mod.NLM_F_MULTI)
+                    done = self.packet(mod.NLMSG_DONE, 2, struct.pack('=i', 0))
+                    self.pending = [reply * 4097 + done]
+
+        sock = ExcessiveMessagesKernel()
+        sm, im = self.kernel(sock)
+        with sm, im, self.assertRaisesRegex(ValueError, 'netlink message budget exceeded'):
+            mod.query('tunbench-s')
+
 if __name__ == '__main__': unittest.main(verbosity=2)
