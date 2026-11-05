@@ -1,0 +1,50 @@
+{
+  "actual_source_functions": [
+    {
+      "path": "tools/qualify_hia_host_region.py",
+      "sha256": "ea4a5e5c769bab39b26cb9707a574d5ea2b0d1ccff71bbe52c0509a44f0b0618"
+    },
+    {
+      "path": "tools/qualify_hia_host_region_race.py",
+      "sha256": "ba4d4b812f897f20e7c182c0a63825a631dbd51754f214a1c266a6f0949d2eac"
+    }
+  ],
+  "checks": [
+    "Every stage receives and checks expected package manifest SHA256 and source commit/tree.",
+    "All hepta/tools loaded file and namespace origins must be inside package; checks run before and after functional exercise.",
+    "Python isolated/no-bytecode/assertions-enabled flags are mandatory and recorded.",
+    "Original base/race exercise functions assert semantic behavior, expected denials, recovery/epoch conditions and no retained handles before returning.",
+    "Fault stage requires exact SIGSEGV and fixed entry marker, rejecting an earlier load error.",
+    "Timeout sends SIGKILL to the owned process group and bounds post-kill communicate to two seconds."
+  ],
+  "execution_passed_claimed": false,
+  "finding": "v2 closes the external package binding and imported source origin omissions found in unexecuted v1",
+  "mode": "read-only static review; no source edits, tests, compilation or native execution by reviewer",
+  "original_desktop_optimize_observation": "Not retroactively inferred. One same-package v2 functional execution with explicit flags is a targeted way to obtain the missing observation without rebuilding or rerunning performance.",
+  "remaining_record_check": "Compare registration/final runner identities to externally pinned v2 runner SHA; the reviewed diff stored both identities but did not itself include their equality in passed. External readback can supply this check.",
+  "reviewed_unix_ns": 1793922339272752206,
+  "reviewer": "ndu_review",
+  "schema": "hepta.same-artifact-static-independent-review.v1",
+  "scope": [
+    "Same committed Python and desktop-built shared objects on a second Linux x86-64 host only.",
+    "No target-host compiler qualification, new ISA, all-schedules coverage, device/MMIO/DMA guarantee, general concurrency theorem, or performance advantage.",
+    "Detached descendants and kernel uninterruptible states are outside the narrow process-group cleanup argument."
+  ],
+  "scripts": [
+    {
+      "bytes": 6867,
+      "path": "/workspace/scratch/a3b410f715d6/delivery-audit/prepare_same_artifact_host.py",
+      "sha256": "639357231806ed57e2abe0a2779ec0ab64e8f57e59aa1ab5f4490e9cf636cc8a"
+    },
+    {
+      "bytes": 10182,
+      "path": "/workspace/scratch/a3b410f715d6/delivery-audit/run_same_artifact_host.py",
+      "sha256": "c9dd61ba5c02752675ea6fb5a0a42f253a45541735133ca8d99ac16ba8e24602"
+    },
+    {
+      "bytes": 12337,
+      "path": "/workspace/scratch/a3b410f715d6/delivery-audit/run_same_artifact_host_v2.py",
+      "sha256": "07623f5b28244c6fc3f95174ab962cba1caf222b2ff8ab84dfe55f92db8e7ca7"
+    }
+  ]
+}
