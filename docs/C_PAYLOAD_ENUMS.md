@@ -5,6 +5,10 @@ This finite P11 increment is stacked on fieldless-enum PR #700, exact commit
 enum payloads, not imported C enums or a public enum ABI. No other research
 branch is composed. P11 and P01 remain PARTIAL.
 
+A later bounded extension specializes concrete Copy-generic source enums; see
+[C_GENERIC_ENUMS.md](C_GENERIC_ENUMS.md). The original scope and qualification
+results recorded below describe this earlier increment, not a new full gate.
+
 ## Contract
 
 - Enums may mix fieldless variants and tuple variants with one or more payloads.

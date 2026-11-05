@@ -143,7 +143,7 @@ class PayloadEnumTests(unittest.TestCase):
         self.assertEqual((result.returncode,result.stdout,result.stderr),(0,b'',b''))
 
     def test_unsupported_payloads_still_reject_even_unused(self):
-        cases=['enum E {Value(Unit),Empty}', 'enum E<T> {Value(T),Empty}',
+        cases=['enum E {Value(Unit),Empty}', 'struct E<T> {value:T}',
                'enum E {Value([Unit;2]),Empty}', 'enum E {Value([i32;0]),Empty}',
                'enum E {Value(Result<i32,u8>),Empty}']
         for decl in cases:

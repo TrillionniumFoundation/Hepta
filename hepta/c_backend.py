@@ -16,6 +16,7 @@ import subprocess
 import tempfile
 
 from .ast import Diagnostic, HeptaError, Type
+from .checker import substitute_type
 
 SCALARS = {"u8": "uint8_t", "i8": "int8_t", "u16": "uint16_t", "i16": "int16_t",
            "u32": "uint32_t", "i32": "int32_t", "u64": "uint64_t", "i64": "int64_t",
@@ -37,8 +38,6 @@ class CEmitter:
             fail("E_C_BACKEND_UNCHECKED", "C lowering requires a successful frontend check")
         if getattr(program, "unions", None):
             fail("E_C_BACKEND_SUBSET", "Union lowering is not yet supported by the C backend")
-        if any(enum.type_params for enum in program.enums):
-            fail("E_C_BACKEND_SUBSET", "Generic enums require an explicit monomorphization pass before C lowering")
         if any(field.name == "Unit" for enum in program.enums
                for variant in enum.variants for field in variant.fields):
             fail("E_C_BACKEND_SUBSET", "Unit enum payloads are not supported by the C backend")
@@ -54,6 +53,45 @@ class CEmitter:
         self.helpers = set()
         self.counter = 0
         self.params = {}
+        self.validate_enum_templates()
+
+    def validate_enum_templates(self):
+        # An expanding generic cycle need not repeat the same concrete Type.
+        # Reject declaration cycles before specialization, including pointer
+        # edges: this backend does not implement forward recursive C layouts.
+        declarations = {**self.structs, **self.enums}
+        edges = {}
+        for name, declaration in declarations.items():
+            pending = ([field.type for field in declaration.fields] if name in self.structs else
+                       [field for variant in declaration.variants for field in variant.fields])
+            targets = set()
+            while pending:
+                field = pending.pop()
+                if field.name in declarations:
+                    targets.add(field.name)
+                pending.extend(field.args)
+            edges[name] = targets
+        for enum in self.program.enums:
+            if not enum.type_params:
+                continue
+            pending, seen = list(edges[enum.name]), set()
+            while pending:
+                name = pending.pop()
+                if name == enum.name:
+                    fail("E_C_BACKEND_SUBSET", "Recursive generic enum declarations are not supported by the C backend", enum.span)
+                if name not in seen:
+                    seen.add(name)
+                    pending.extend(edges[name])
+
+    def enum_fields(self, typ, variant):
+        enum = self.enums[typ.name]
+        if len(typ.args) != len(enum.type_params):
+            fail("E_C_BACKEND_SUBSET", "Generic enums require complete concrete type arguments", enum.span)
+        mapping = dict(zip(enum.type_params, typ.args))
+        fields = [substitute_type(field, mapping) for field in variant.fields]
+        if any(field.name == "Unit" for field in fields):
+            fail("E_C_BACKEND_SUBSET", "Unit enum payloads are not supported by the C backend", enum.span)
+        return fields
 
     def typ(self, t):
         if t.name in SCALARS and not t.args:
@@ -89,7 +127,7 @@ class CEmitter:
             for tag, variant in enumerate(self.enums[t.name].variants):
                 if variant.fields:
                     members = " ".join(self.typ(field) + f" f{index};"
-                                       for index, field in enumerate(variant.fields))
+                                       for index, field in enumerate(self.enum_fields(t, variant)))
                     payloads.append(f"struct {{ {members} }} v{tag};")
             if payloads:
                 fields += " union { " + " ".join(payloads) + " } payload;"
@@ -365,7 +403,7 @@ class CEmitter:
                     # Bind independent Copy values from the selected member of
                     # the snapshot, never from the mutable original place.
                     bindings = " ".join(self.typ(field) + f" h_{name} = ({value}).payload.v{tag}.f{index};"
-                                        for index, (name, field) in enumerate(zip(arm.pattern.bindings, variant.fields))
+                                        for index, (name, field) in enumerate(zip(arm.pattern.bindings, self.enum_fields(typ, variant)))
                                         if name != "_")
                     arms.append(f"case {tag}: {{ " + bindings + " " + self.block(arm.body) + " break; }")
                 # Frontend exhaustiveness covers every constructible source value.
@@ -411,7 +449,8 @@ class CEmitter:
 
     def emit(self):
         for enum in self.program.enums:
-            self.typ(Type(enum.name))
+            if not enum.type_params:
+                self.typ(Type(enum.name))
         for st in self.program.structs:
             self.typ(Type(st.name))
         signatures = [self.signature(fn) for fn in self.program.functions]

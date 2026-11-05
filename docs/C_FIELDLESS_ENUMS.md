@@ -6,6 +6,10 @@ It does not incorporate other research drafts. In particular, C header enum
 imports are separate: these are source-level nominal values, not integer aliases
 and not a public C enum representation.
 
+A later bounded extension specializes concrete Copy-generic source enums; see
+[C_GENERIC_ENUMS.md](C_GENERIC_ENUMS.md). The original scope and qualification
+results recorded below describe this earlier increment, not a new full gate.
+
 ## Supported contract
 
 - Non-generic source enums with one or more fieldless variants.

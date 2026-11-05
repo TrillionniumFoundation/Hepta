@@ -9,7 +9,9 @@ borrow correctness or successful code generation.
 The independent C backend additionally supports the bounded non-generic,
 fieldless source-enum subset described in [C_FIELDLESS_ENUMS.md](C_FIELDLESS_ENUMS.md)
 and supported Copy payloads described in [C_PAYLOAD_ENUMS.md](C_PAYLOAD_ENUMS.md).
-Unit payloads, Result and generics still require the Rust path.
+Concrete Copy-generic source enums additionally use the bounded specialization
+contract in [C_GENERIC_ENUMS.md](C_GENERIC_ENUMS.md). Unit payloads, builtin Result,
+generic functions and generic records still require the Rust path.
 
 ## Algebraic data types
 
