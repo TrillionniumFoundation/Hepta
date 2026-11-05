@@ -9,9 +9,15 @@ U(V)=V-K+(b/gamma)*(b/V)**gamma for V>b, and U(R)-c for V<=b,
 where gamma is the decaying GBM characteristic root and b solves
    gamma*(R-b-c) = b*(1-(b/R)**gamma).
 
-Value matching and smooth fit are exact. Events use *exact* Brownian
+``fixed_policy_value`` separately evaluates a supplied threshold by a renewal
+equation. It does not optimize that threshold or impose smooth fit. The
+``reset_boundary``/``regenerative_value`` pair optimizes the intervention time
+for this fixed R/c model; neither operation is the original HX economics.
+
+Value matching and smooth fit hold in the mathematical model. Events use Brownian
 first-passage distributions (conditional inverse Gaussian), not a frame-wise
-0/1 surrogate. This is a distinct impulse model, not the paper's A7.
+0/1 surrogate. Implementations are finite-precision research references; they
+do not certify every real parameter, an arbitrary reset map, or neural benefit.
 """
 from __future__ import annotations
 
@@ -20,7 +26,7 @@ import math
 
 import numpy as np
 from scipy.optimize import brentq
-from scipy.special import ndtr
+from scipy.special import erfcx, ndtr
 
 
 @dataclass(frozen=True)
@@ -48,19 +54,110 @@ class RegenerativeParams:
 
     @property
     def gamma(self):
-        a=self.drift_log/(self.sigma*self.sigma)
-        return math.hypot(a,math.sqrt(2*self.r)/self.sigma)+a
+        # Rationalize the small root when negative drift would subtract two
+        # almost equal positive numbers. This also conditions renewal values.
+        mu=self.drift_log
+        disc=math.hypot(mu,math.sqrt(2*self.r)*self.sigma)
+        if mu<0:
+            return 2*self.r/(disc-mu)
+        return (disc+mu)/(self.sigma*self.sigma)
+
+
+def _log_ratio(a:float,b:float)->float:
+    """Log(a/b) for positive floats, retaining a representable nearby gap."""
+    if abs(a-b)<=.5*b:
+        return math.log1p((a-b)/b)
+    return math.log(a)-math.log(b)
+
+
+def _reset_cost_fraction(w:float,g:float)->float:
+    """c/R implied by w=log(R/b), including its quadratic zero-cost limit."""
+    if (g+1)*w<.01:
+        # [g-(g+1)exp(-w)+exp(-(g+1)w)]/g starts at w^2.
+        # Expand the whole expression; subtracting two O(w) terms loses the
+        # small positive reset cost. Ten terms suffice in this bounded branch.
+        leading=((g+1)*w)*w
+        polynomial=power=1.
+        factorial=2.
+        terms=[leading/2]
+        for n in range(3,11):
+            power*=w
+            polynomial=power+(g+1)*w*polynomial
+            factorial*=n
+            terms.append((-1. if n%2 else 1.)*leading*polynomial/factorial)
+        return math.fsum(terms)
+    return math.fsum((-math.expm1(-w),
+                      math.exp(-w)*math.expm1(-g*w)/g))
 
 
 def reset_boundary(p:RegenerativeParams) -> float:
-    """Unique root on (0,R-cost) of positive smooth-fit condition."""
+    """Unique fixed-R/c smooth-fit root, using dimensionless brackets.
+
+    Near c=R, solve for b/(R-c) so an arbitrary absolute lower bound cannot
+    exclude the root. Near c=0, solve for log(R/b) without subtracting the
+    leading O(log(R/b)) terms. A trigger indistinguishable from R in binary64
+    is refused, rather than being turned into an instantaneous reset loop.
+    """
     g=p.gamma;R=p.reset_value;c=p.reset_cost
-    def residual(b):
-        return g*(R-b-c)-b*(-math.expm1(g*math.log(b/R)))
-    b=brentq(residual,max(1e-13,R*1e-12),R-c,xtol=1e-13)
+    if c<=R/2:
+        fraction=c/R
+        estimate=math.sqrt(fraction)*math.sqrt(2/(g+1))
+        if fraction==0 or math.exp(-estimate)==1.:
+            raise ArithmeticError('Reset trigger is not distinct from R in binary64')
+        upper=2*estimate
+        while _reset_cost_fraction(upper,g)<fraction:
+            upper*=2
+        w=brentq(lambda z:_reset_cost_fraction(z,g)-fraction,0.,upper,
+                 xtol=math.ulp(0.),rtol=8*np.finfo(float).eps)
+        b=R*math.exp(-w)
+    else:
+        remaining=R-c
+        log_fraction=_log_ratio(remaining,R)
+        def residual(t):
+            if t==0:return g
+            return g*(1-t)+t*math.expm1(g*(log_fraction+math.log(t)))
+        ratio=brentq(residual,0.,1.,xtol=math.ulp(0.),
+                     rtol=8*np.finfo(float).eps)
+        b=remaining*ratio
     if not (0<b<R-c):
         raise ArithmeticError('Degenerate regenerative boundary')
     return b
+
+
+def fixed_policy_value(v:float,threshold:float,p:RegenerativeParams)->float:
+    """Value of a GIVEN lower trigger followed by a reset to p.reset_value.
+
+    With H_b(v)=E_v[exp(-r*tau_b);tau_b<infinity]=(b/v)^gamma,
+    the one-cycle reward is (v-K)-H_b(v)*(b-K). The repeated-cycle
+    value follows from renewal, not a smooth-fit equation:
+
+        U_b(v)=v-K+H_b(v)*(R-b-c)/(1-H_b(R)),  v>b.
+
+    For v<=b the policy resets immediately and U_b(v)=U_b(R)-c.
+    Any finite 0<b<R is permitted, including a costly suboptimal policy.
+    No stopping/abandonment action is included in this impulse problem.
+    """
+    if not isinstance(p,RegenerativeParams):
+        raise TypeError('RegenerativeParams required')
+    if any(isinstance(x,bool) or not isinstance(x,(int,float))
+           or not math.isfinite(x) or x<=0 for x in (v,threshold)):
+        raise ValueError('State and threshold must be finite positive numbers')
+    R=p.reset_value
+    if threshold>=R:
+        raise ValueError('Fixed policy requires threshold < reset value')
+    log_discount=-p.gamma*_log_ratio(R,threshold)
+    denominator=-math.expm1(log_discount)
+    if not math.isfinite(denominator) or denominator<=0:
+        raise ArithmeticError('Renewal cycle is not contractive in binary64')
+    bonus=math.fsum((R,-threshold,-p.reset_cost))/denominator
+    if v<=threshold:
+        value=math.fsum((threshold,-p.k,bonus))
+    else:
+        hit=math.exp(-p.gamma*_log_ratio(v,threshold))
+        value=math.fsum((v,-p.k,hit*bonus))
+    if not math.isfinite(value):
+        raise ArithmeticError('Nonfinite fixed-policy renewal value')
+    return value
 
 
 def regenerative_value(v:float,p:RegenerativeParams) -> float:
@@ -93,7 +190,13 @@ def regenerative_residuals(v:float,p:RegenerativeParams):
 
 
 def first_passage_cdf(log_distance:float,horizon:float,p:RegenerativeParams):
-    """Exact P(hit lower boundary by horizon) for GBM starting above b."""
+    """P(hit lower boundary by horizon), with stable reflection terms.
+
+    Negative log drift can make exp(-2*mu*x/sigma^2) overflow although its
+    product with Phi((-x+mu*t)/(sigma*sqrt(t))) is a probability. Combining
+    the Gaussian exponent first gives .5*exp(-z1^2/2)*erfcx(-z2/sqrt(2)).
+    Both factors are bounded for mu<=0; no infinity-times-zero is evaluated.
+    """
     if not math.isfinite(log_distance) or log_distance<0:
         raise ValueError('Expected finite nonnegative distance')
     if not math.isfinite(horizon) or horizon<0:
@@ -101,11 +204,20 @@ def first_passage_cdf(log_distance:float,horizon:float,p:RegenerativeParams):
     if log_distance==0:return 1.
     if horizon==0:return 0.
     mu=p.drift_log
-    s=p.sigma*math.sqrt(horizon)
-    first=ndtr((-log_distance-mu*horizon)/s)
-    second=math.exp(-2*mu*log_distance/(p.sigma*p.sigma))*ndtr(
-        (-log_distance+mu*horizon)/s)
-    return float(min(1.,max(0.,first+second)))
+    root_time=math.sqrt(horizon)
+    scaled_distance=log_distance/(p.sigma*root_time)
+    scaled_drift=(mu/p.sigma)*root_time
+    z1=-scaled_distance-scaled_drift
+    z2=-scaled_distance+scaled_drift
+    first=float(ndtr(z1))
+    if mu<=0:
+        second=.5*math.exp(-.5*z1*z1)*float(erfcx(-z2/math.sqrt(2)))
+    else:
+        second=math.exp((-2*mu/p.sigma)*(log_distance/p.sigma))*float(ndtr(z2))
+    value=first+second
+    if not math.isfinite(value) or not -1e-12<=value<=1+1e-12:
+        raise ArithmeticError('Invalid first-passage probability')
+    return min(1.,max(0.,value))
 
 
 def sample_exact_first_passage(start:float,boundary:float,p:RegenerativeParams,
