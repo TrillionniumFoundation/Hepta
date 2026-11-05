@@ -1,0 +1,14 @@
+module vpn_feasibility_probe;
+
+extern "C" fn host_mask(value: u32) -> u32 effects { ffi, unsafe };
+
+export "C" fn probe_opcode(data: raw const u8, count: usize) -> u32 effects { panic, unsafe } {
+    if count == 0 { return 256; }
+    unsafe {
+        return (load(data, 0) as u32) >> 3;
+    }
+}
+
+export "C" fn probe_host_call(value: u32) -> u32 effects { ffi, unsafe } {
+    unsafe { return host_mask(value); }
+}
