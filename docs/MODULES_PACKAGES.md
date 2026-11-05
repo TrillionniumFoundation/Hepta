@@ -71,3 +71,9 @@ No remote registry, version solver, cyclic imports, re-exports, glob imports,
 incremental cache or arbitrary multi-file edit transaction is implemented.
 One semantic patch changes one body while validating and coordinating with its
 complete imported graph.
+
+For read-only review of an intentional dependency or source change,
+`hepta lock-diff BEFORE AFTER` compares two saved v1 locks and reports package,
+dependency-edge and file-hash differences. `--check` returns 1 when valid
+snapshots differ. It does not assess semantic compatibility or write locks.
+See [the comparison contract](PACKAGE_LOCK_DIFF.md).
