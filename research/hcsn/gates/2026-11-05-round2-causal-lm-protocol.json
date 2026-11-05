@@ -1,0 +1,113 @@
+{
+  "architecture": {
+    "attention_heads": 4,
+    "blocks": 2,
+    "context": 64,
+    "dropout": 0.0,
+    "feedforward_width": 24,
+    "replaced_last_blocks": [
+      1,
+      2
+    ],
+    "tokenizer": "literal UTF-8 bytes, no learned vocabulary or normalization",
+    "vocabulary": 256,
+    "width": 32
+  },
+  "base_sha": "9bfadcb94adee38406c842f17bc4d337033236a8",
+  "corpus": {
+    "heldout": [
+      {
+        "bytes": 2211,
+        "path": "docs/COMPATIBILITY.md",
+        "sha256": "5d13d5a9c09d4528de50a9a60c762e17271383082f451af83fee2841b99ad05e"
+      },
+      {
+        "bytes": 13223,
+        "path": "docs/AGENT_PROTOCOL.md",
+        "sha256": "500938abd82612dccca792f5239768dd87388e60b1479d01366c1d5d1a50e3db"
+      }
+    ],
+    "train": [
+      {
+        "bytes": 23718,
+        "path": "docs/SPEC.md",
+        "sha256": "f962caba93300bfdf6e9826a19fe57f55a19610a686af6db626ba62faee96d72"
+      },
+      {
+        "bytes": 8367,
+        "path": "docs/ADTS_GENERICS.md",
+        "sha256": "aba337ba006e76223b2fe2822a7097a1e359b430b593c38e393b8ef865bf1f08"
+      },
+      {
+        "bytes": 3301,
+        "path": "docs/MODULES_PACKAGES.md",
+        "sha256": "e446e8d9018aa165097733a972fda60c9cda342054ee5ca69e0e8b881649390c"
+      },
+      {
+        "bytes": 10811,
+        "path": "docs/C_INTEROP.md",
+        "sha256": "b405d6ef07e407ff15fa1eb2c7d84230504ac55372f6988348fc789609a9ff41"
+      },
+      {
+        "bytes": 9651,
+        "path": "docs/BOUNDED_CONCURRENCY.md",
+        "sha256": "ae18aad3840d4f314aa615bd848342452368eec7578ba7a2621d53234cad8355"
+      }
+    ]
+  },
+  "evaluation": {
+    "all_path_gradient_and_parameter_roundoff_observed_not_global_floating_point_proof": true,
+    "candidate_gain_criterion": "dual must improve each heldout document in every paired seed at both replacement counts; exploratory criterion only, no broad P5 qualification",
+    "canonical_bpb_roundoff_threshold": 1e-05,
+    "checkpoint_rule": "final fixed update; no test-set checkpoint or hyperparameter selection",
+    "exact_65_byte_train_overlap_windows_excluded": true,
+    "greedy_new_bytes": 32,
+    "greedy_prefix_bytes": 16,
+    "max_windows_per_document": 64,
+    "stride": 64,
+    "whole_document_heldout": true
+  },
+  "hypotheses": {
+    "capacity": "C-P=u-1 yields global function/first-Jacobian isomorphism for immediate affine consumers",
+    "end_to_end": "compare heldout next-byte prediction after training embeddings, attention, internal activation blocks and decoder together",
+    "optimizer": "canonical-coordinate Put+linear has equivalent full-network gradients and Adam updates; native-coordinate Adam need not"
+  },
+  "schema": "hcsn.p1-p5-round2-causal-lm-protocol.v1",
+  "scope": {
+    "genuine_end_to_end_trained_causal_generator": true,
+    "independent_attestation": false,
+    "large_scale_claim": false,
+    "pretrained_model": false,
+    "production_activation": false,
+    "quality_matched_energy_claim": false
+  },
+  "status": "EXPLORATORY_FIXED_BEFORE_RUN_NOT_INDEPENDENT_PREREGISTRATION",
+  "training": {
+    "batch": 4,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "dtype": "float32",
+    "eps": 1e-08,
+    "gradient_clipping": false,
+    "lr": 0.003,
+    "modes": [
+      "dual",
+      "put_linear_native",
+      "put_linear_canonical",
+      "ordinary_sigmoid_tangent"
+    ],
+    "optimizer": "Adam",
+    "ordinary_baseline_reused_across_replacement_fractions": true,
+    "seeds": [
+      11,
+      23,
+      37
+    ],
+    "target_tokens_per_model": 61440,
+    "threads": 1,
+    "updates": 240,
+    "weight_decay": 0.0
+  }
+}
