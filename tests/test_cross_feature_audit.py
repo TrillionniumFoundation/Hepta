@@ -346,7 +346,7 @@ class CIntegrationAudit(ProjectFixture):
         sources = [
             "enum Payload{Value(Unit),Empty} fn main()->Unit effects {} {}",
             "fn unused<T>(value:T)->T effects {} {return value;} fn main()->Unit effects {} {}",
-            "struct Box<T>{value:T} fn main()->Unit effects {} {let value:Box<u64>=Box{value:1};}",
+            "struct Box<T>{value:T} fn id<T>(x:T)->T effects {} {return x;} fn main()->Unit effects {} {let value:Box<u64>=Box{value:id::<u64>(1)};}",
             "fn value()->Result<u64,u8> effects {} {return Result::Ok(1);} fn main()->Unit effects {} {}",
             "fn main()->Unit effects {alloc,block,panic,write} {let group=task_group(0,0,1);group_cancel_and_join(move group);}",
         ]

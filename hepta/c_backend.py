@@ -41,7 +41,7 @@ class CEmitter:
         if any(field.name == "Unit" for enum in program.enums
                for variant in enum.variants for field in variant.fields):
             fail("E_C_BACKEND_SUBSET", "Unit enum payloads are not supported by the C backend")
-        if any(getattr(item, "type_params", ()) for item in [*program.structs, *program.functions]):
+        if any(getattr(item, "type_params", ()) for item in program.functions):
             fail("E_C_BACKEND_SUBSET", "Generic declarations require an explicit monomorphization pass before C lowering")
         self.program, self.checked, self.crate_type = program, checked, crate_type
         self.structs = {s.name: s for s in program.structs}
@@ -53,9 +53,9 @@ class CEmitter:
         self.helpers = set()
         self.counter = 0
         self.params = {}
-        self.validate_enum_templates()
+        self.validate_nominal_templates()
 
-    def validate_enum_templates(self):
+    def validate_nominal_templates(self):
         # An expanding generic cycle need not repeat the same concrete Type.
         # Reject declaration cycles before specialization, including pointer
         # edges: this backend does not implement forward recursive C layouts.
@@ -71,14 +71,15 @@ class CEmitter:
                     targets.add(field.name)
                 pending.extend(field.args)
             edges[name] = targets
-        for enum in self.program.enums:
-            if not enum.type_params:
+        for declaration in [*self.program.structs, *self.program.enums]:
+            if not declaration.type_params:
                 continue
-            pending, seen = list(edges[enum.name]), set()
+            pending, seen = list(edges[declaration.name]), set()
             while pending:
                 name = pending.pop()
-                if name == enum.name:
-                    fail("E_C_BACKEND_SUBSET", "Recursive generic enum declarations are not supported by the C backend", enum.span)
+                if name == declaration.name:
+                    kind = "struct" if name in self.structs else "enum"
+                    fail("E_C_BACKEND_SUBSET", f"Recursive generic {kind} declarations are not supported by the C backend", declaration.span)
                 if name not in seen:
                     seen.add(name)
                     pending.extend(edges[name])
@@ -92,6 +93,13 @@ class CEmitter:
         if any(field.name == "Unit" for field in fields):
             fail("E_C_BACKEND_SUBSET", "Unit enum payloads are not supported by the C backend", enum.span)
         return fields
+
+    def struct_fields(self, typ):
+        struct = self.structs[typ.name]
+        if len(typ.args) != len(struct.type_params):
+            fail("E_C_BACKEND_SUBSET", "Generic structs require complete concrete type arguments", struct.span)
+        mapping = dict(zip(struct.type_params, typ.args))
+        return [(field.name, substitute_type(field.type, mapping)) for field in struct.fields]
 
     def typ(self, t):
         if t.name in SCALARS and not t.args:
@@ -112,11 +120,10 @@ class CEmitter:
             fail("E_C_BACKEND_SUBSET", "Slices must occur as read/mut parameters")
         if t.name not in self.structs and t.name not in self.enums and t.name != "array":
             fail("E_C_BACKEND_SUBSET", f"C backend does not yet lower {t}")
-        if t.name in self.structs and t.args:
-            fail("E_C_BACKEND_SUBSET", "Generic structs must be concretely instantiated before C lowering")
         if t.name == "array" and (not t.length or t.args[0].name == "Unit"):
             fail("E_C_BACKEND_SUBSET", "Zero-length and Unit-element arrays are not supported by the C backend")
         name = ("__hepta_cb_enum_" + str(len(self.types)) if t.name in self.enums else
+                "__hepta_cb_struct_" + str(len(self.types)) if t.name in self.structs and t.args else
                 "__hepta_cb_type_" + (t.name if t.name != "array" else "array_" + str(len(self.types))))
         self.types[t] = name
         self.active.add(t)
@@ -137,11 +144,12 @@ class CEmitter:
             st = self.structs[t.name]
             if not st.fields:
                 fail("E_C_BACKEND_SUBSET", "Empty structs are not supported by the C backend")
-            if any(f.type.name == "Unit" for f in st.fields):
+            concrete_fields = self.struct_fields(t)
+            if any(field.name == "Unit" for _, field in concrete_fields):
                 fail("E_C_BACKEND_SUBSET", "Unit fields are not supported by the C backend")
-            if st.repr_c and any(f.type.name == "array" for f in st.fields):
+            if st.repr_c and any(field.name == "array" for _, field in concrete_fields):
                 fail("E_C_BACKEND_SUBSET", "repr(C) array fields are not yet supported in the independent backend")
-            fields = " ".join(self.typ(f.type) + " h_" + f.name + ";" for f in st.fields)
+            fields = " ".join(self.typ(field) + " h_" + name + ";" for name, field in concrete_fields)
         self.active.remove(t)
         self.declarations.append(f"typedef struct {{ {fields} }} {name};")
         return name
@@ -452,7 +460,8 @@ class CEmitter:
             if not enum.type_params:
                 self.typ(Type(enum.name))
         for st in self.program.structs:
-            self.typ(Type(st.name))
+            if not st.type_params:
+                self.typ(Type(st.name))
         signatures = [self.signature(fn) for fn in self.program.functions]
         bodies = []
         for fn, signature in zip(self.program.functions, signatures):

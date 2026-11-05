@@ -5,6 +5,10 @@ This bounded P11/P01 increment is stacked only on PR #701, exact parent
 not C-header imports, generic functions, or a foreign enum representation.
 P11 and P01 remain PARTIAL.
 
+A later bounded extension specializes concrete Copy-generic records; see
+[C_GENERIC_STRUCTS.md](C_GENERIC_STRUCTS.md). The original scope and results
+below describe this earlier increment, not a new full gate.
+
 ## Contract
 
 An enum such as `enum Maybe<T> { None, Some(T) }` can be instantiated at checked
