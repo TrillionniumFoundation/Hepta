@@ -1,41 +1,52 @@
-# Hepta / HIA 第二轮证据
+# Hepta / HIA 第二轮交付与证据
 
-状态：持续实现与独立验收中；本目录不声明七项研究关闭条件全部达成。
+**七项关闭条件中，P0-1 在声明的固定目标范围内关闭；其余六项仍开放。** 本轮交付包含可审查源码、同一冻结组合的实际执行、全部保留的失败、独立成本核算和可按字节恢复的原始证据。科学门槛未通过的项目不因 CI 成功而改为通过。
 
-## 已测量并封存的结果
+- [完整中文交付报告](DELIVERY_REPORT.md)
+- [机器可读关闭矩阵](closure-matrix.json)
+- [实现 Draft PR #682](https://github.com/TrillionniumFoundation/Hepta/pull/682)
 
-| 范围 | 实际观察 | 入口 |
+## 同一实现的实际结果
+
+实际测量提交为 `5ee6d8fec0e5c72d87a36dbed60789de211abf1b`；公开同树提交为 `3102c2bb6cd819c27aef36cc927c23b39b279204`，共同 Git tree 为 `d47a711461dc66d4606bdc9659203889e205d6c7`。两个 commit 的用途分别记录，不将公开投影冒称为原始测量身份。
+
+| 关闭条件 | 实际结果 | 结论与证据 |
 | --- | --- | --- |
-| 强 Rust AOT 对照 | 两个独立候选分别 318/372、348/372；第二个候选全部中位数门槛通过，但有 24 项批次尾延迟和 10 项冷调用门槛失败 | [AOT 观测](aot/OBSERVATION.json) |
-| 原生动态缓存 NDU | 432/432 episodes；含 skip 的完整队列 0/24 组净胜全部强对照，实际 invoke 子集 0/12；不是 HIA 编译应用提速证据 | [中文报告](ndu/NDU_DYNAMIC_REPORT_ZH.md) |
-| C++、恢复、Agent 准备 | 328 份开发原件，包括失败、拒绝、实际生命周期控制及零模型生成的容量准备；未知人力和历史成本保留 null | [开发证据](development/README.md) |
-| 旧 head47 的完整 CI | 11 runs / 102 jobs：26 success、75 failure、1 optional skipped；101 个执行作业完整日志，75 失败均发生于测试清单检查 | [旧 CI 报告](ci-head47/README.md) |
-| 当前 3102 候选的完整 CI | 11 workflows 全部成功；101 个实际作业 success、1 optional 未执行；49 个源码控制与 912 个前沿测试实际通过，完整 shared proof artifact 已核验 | [当前 CI 中文报告](ci-head-3102/README_ZH.md) |
-| e06 候选的完整 CI | 11 workflows 全部成功；102 jobs 中 101 实际 success、1 optional skipped；207 + 705 = 912 个前沿测试逐项实际通过；shared 46 controls 和完整 kernel artifact 已独立核验 | [中文 CI 报告](ci-head-e06/README_ZH.md)、[硬件实际日志](ci-head-e06/hardware-review/README_ZH.md) |
+| P0-1 固定实现组合 | 36/36 命令、34/34 门槛、516/516 核心检查；构建、执行、拒绝、取消及恢复均有实际观察，源码与工具前后不变 | 声明目标内关闭；[组合归档](composition/README.md) |
+| P0-2 顺序 Safe Core 证明链 | v12 的 11 个 Lean 阶段通过，完整桌面命令仍在 600 秒预算下 exit124；另一次独立 replay 通过。同树 CI 的有限研究链成功 | 12 项生产精化义务仍未证明；[完整证明历史与范围](proof/README.zh.md) |
+| P0-3 强 Rust AOT 对照 | 最终组合联合门槛 337/372；median 372/372、p95 361/372、p99 337/372；cold 34/48；内存 5680/5680 | 未达全部预设门槛；[最终 AOT 读数](composition/AOT_METRICS.json) |
+| P0-4 NDU 完整成本净收益 | 最终 HIA 应用 0/3 场景净胜；raw-session NDU/DP 成本比 1.0400688476。独立动态缓存实验为 0/24 组净胜，实际 invoke 子集 0/12 | 未证明净收益；[最终组合](composition/NDU_COMPOSITION_READOUT.json)、[独立动态实验](ndu/NDU_DYNAMIC_REPORT_ZH.md) |
+| P1-1 真实 C/C++ 迁移 | GSL 三个固定上游版本的限定生命周期升级差分；独立 HIA/Core/LLVM unique-owner swap 两个变体各 2616 案例 | 限定 profile 有证据；通用库迁移、完整 ABI 和低人工成本仍未证明；[范围与分母](composition/GSL_DENOMINATOR_SCOPE.json) |
+| P1-2 Agent 开发收益 | 正式 16/16 格完成，共 26 次尝试、0 次正确交付；四个语言×接口臂均为 0/4 | 不支持开发收益；[原始结果](agent/STUDY_RESULT.json)、[独立审计](agent/INDEPENDENT_AUDIT.json)、[成本与失败](agent/OUTER_COSTS_AND_FAILURES.json) |
+| P2 硬件与并发 | 同一组合的 host-RAM 受控恢复调度通过；CI 另有 17 个实际 ABI/C++/captured-C/AArch64 作业日志 | 未建立全交错、DMA/MMIO 或进程/OS 崩溃恢复保证；[实际平台范围](ci-head-3102/hardware-review/README_ZH.md) |
 
-前三包共 97 件发布文件；旧 CI 包另有 11 件，e06 CI 包另有 46 件，当前 3102 CI 包另有 53 件。当前 CI 包保存 398 份原件 / 53,331,742 字节，完整恢复和另一个新 Python 进程按公开 CLI 的第二次恢复均通过；25 份 artifact 中仍仅 shared 两份实际下载，其余 23 份只保留元数据。各包提供原件和分片哈希、恢复脚本与实际全量恢复验证，发布内容经过完整字节回读。e06 包保存 400 份原件，25 个列出 artifacts 中只下载并核验 shared 的 2 个，其余仅保留元数据。旧 CI 包保存 293 份原件，仅下载过一个 source-controls ZIP；原 kernel 作业没有提供完整 proof artifact。签名下载凭据明确排除。
+AOT 的 35 个联合失败均为批次尾延迟：24 个 p99-only、11 个 p95 与 p99 同时失败。14 个 cold-call 失败分别是 n=0 的 12 项与 n=31 的 2 项。门槛通过不表示每个点都快于 Rust；这些离散观测也不是所有长度或所有程序的性能证明。
 
-## 各次证明结果分别保留
+Agent 终态来自唯一预注册队列。模型、任务信息、上下文、输出上限、每请求 240 秒预算和最多两次尝试保持不变。独立审计通过且 issues 为空；26 次尝试包括 8 次超时、7 次编辑拒绝、2 次 HIA 类型/语法拒绝、3 次 Rust 编译拒绝、6 次实际公开执行未通过（5 次 Rust 退出 101、1 次 HIA 退出 −6），没有候选进入隐藏测试。10 个模型会话均完成回收，包含 2 次已记录的强制终止及 wait/reap。实际整轮 outer 为 4405.504830151 秒；互不重叠 cell 合计 4175.943945158 秒，公共外层成本为 229.560884993 秒。四臂的单独部署分摊属于替代情景，不能相加为实际整轮时间。零正确结果使每次正确交付成本未定义，保留 null；8 次未知输出 token，以及未知人工、能源和历史取得成本也不填零。
 
-| 候选 | 实际结果 | 原始观察 |
-| --- | --- | --- |
-| v9 / `2d964d27` | 前 10 阶段通过，最后 WrongArm theorem 实际失败；不是总预算超时 | [v9](PROOF_V9_OBSERVATION.json) |
-| v10 / `b47ce924` | 11 个 fresh Lean 阶段通过，完整命令在内置回放中超时：outer 600.079463180 秒 / exit124；后来独立 replay 73.055962129 秒 / exit0 | [v10](PROOF_V10_OBSERVATION.json) |
-| v11 / `0c8a9100` | 11 个 fresh Lean 阶段通过，完整命令仍超时：outer 600.047503236 秒 / exit124；后来独立 replay 55.874570337 秒 / exit0 | [v11](PROOF_V11_OBSERVATION.json) |
-| v12 / `5ee6d8fe` | 11 个 fresh Lean 阶段通过，inner 550.561070862 秒，但完整命令仍超时：outer 600.049994673 秒 / exit124；后来独立 replay 61.189014082 秒 / exit0 | [v12](PROOF_V12_OBSERVATION.json) |
+## 证明与优化权限
 
-内层 RESULT、后来的独立 replay 和另一个环境中的 CI 成功均不能追溯改变原始完整命令的失败。原来的 600 秒整体、540 秒 launch、60 秒进程预算保持不变。所有 12 项更广生产精化义务仍未证明，权限保持 DENY_ALL。
+v7–v12 的失败、源码身份、原始进程流和各自后续独立 replay 均保留。v10、v11、v12 的完整桌面命令分别为 exit124；后来的独立 replay 和另一个环境中的 CI 成功不追溯改变原结果。600 秒整体、540 秒 launch、60 秒子进程及 15 分钟 CI 预算未放宽。
 
-[v10 绝对 epoch 元数据精度纠正](PROOF_V10_EPOCH_PRECISION_CORRECTION.json) 精确列出三项序列化误差。原始 observer 记录和已发布历史文件都保留；耗时间隔、退出码、证据哈希和结论未改变。新观察使用十进制字符串保存超出 JavaScript 精确整数范围的绝对纳秒。
+11 阶段有限研究链和模型运输定理不等于生产语言 soundness、Python exporter refinement、完整源到 Core 精化或 LLVM/机器码正确性。12 项生产义务仍开放，相关新增证明授权保持 `DENY_ALL`。已验证桥的既有执行证据与这组尚未获准的生产优化权限分别解释。
 
-## 当前源码与未完成工作
+逐程序全输入验证仅覆盖相应编码、输入域与明确成功的求解结果。unknown 仍为 unknown；有限 native/差分/拒绝测试不能代替全输入证明。完整报告明确列出各类证据及可信计算边界。
 
-[Draft PR #682](https://github.com/TrillionniumFoundation/Hepta/pull/682) 当前候选为运行提交 `5ee6d8fec0e5c72d87a36dbed60789de211abf1b`，公开同树投影 `3102c2bb6cd819c27aef36cc927c23b39b279204`，共同 Git tree `d47a711461dc66d4606bdc9659203889e205d6c7`。本次 4 项源码变化已经逐字节回读，见 [源码身份](SOURCE_PUBLICATION_V12.json)。投影提交不冒称直接测量的原始提交。
+## 不混合不同实验的结果
 
-此前恢复的 45 个历史 CI 依赖文件保留原 207 / 705 测试清单及 74 个隔离组。v12 保留原 46 个源码控制并扩展到 49 个：首轮因新增控制的 Unicode 快照序列化出错，实际 48 pass / 1 error；只修正测试快照后全部 49 项通过。失败源码字节和原记录保留。一次固定 old→new 准备/重建对照为 133.057458747→109.174032726 秒，完整 23 个源码文件、11 个 Lean 模块及清单字节一致；这不是正式整体验收或统计性能结论。
+- 独立 AOT 候选的 318/372 与 348/372 保留在 [AOT 包](aot/OBSERVATION.json)。最终冻结组合单独得到 337/372，未复制最好成绩、重跑同一组合挑结果或排除失败点。
+- 独立 f48 原生动态缓存实验的 432 episodes、六个控制臂与 exact-DP 审计保留在 [NDU 包](ndu/ANALYSIS.json)。它与当前 HIA 应用 36 episodes 属于不同实验。
+- GSL 的真实升级使用既有 Hepta/Core 的 C 后端；unique_ptr swap 使用 HIA/Core/LLVM。GSL 8 个真实版本配对加 1 个人工 callback 变体配对，不能写成 9 个未经修改的上游版本配对。
+- 开发期的 dirty/unknown 源码身份、容量准备失败、缺失 CI 依赖的失败和早期证明失败均保留。[开发证据](development/README.md) 不追溯升级为最终 clean 组合验收。
+- 当前 CI 的 11 个工作流全部成功，101 个实际作业成功、1 个可选作业按原条件未执行。49 个源码控制和 207+705 个前沿测试有实际逐项记录；各 lane 可能重叠，不拼成不重复总测试数。[当前 CI](ci-head-3102/README_ZH.md)
 
-3102 的 11 个工作流已全部实际成功结束，全部为 attempt 1；102 个作业中 101 个执行成功、1 个可选作业按原条件跳过且 0 steps。101 份完整 decoded log 共 7,164,392 字节已与 App 返回文本逐字节核对，另经 root 完整本地哈希回读。实际 49 个源码控制、912 个前沿测试及 shared kernel / replay 分别通过。完整原件见当前 CI 包；这些 CI 成功不会反转桌面原完整证明的 outer124。
+## 归档与复现范围
 
-当前 36-command / 34-flag 行为组合已在冻结的 5ee6/d47a 上实际结束，权威 Runtime exit0，外层记录有效 36/34、源码 clean/unchanged，观察到 outer 1,995.815171483 秒。其完整磁盘回执和各项性能/成本指标正在独立汇总，尚未在本索引中宣布所有科学门槛通过。源码明确将这个行为组合与 shared 11-stage 研究链分开；排程调整保留了原 proof124，未改变任何源码、观察器或门槛。最后的 ndu_model_planner lane 是既有模型规划检查，不是重跑独立 f48 的 432 个原生动态实验。正式 16-cell Agent 队列仍为零模型生成。
+各公开包保留原件清单、完整 SHA256、恢复脚本、实际恢复回执以及逐文件省略范围。大型工具链、模型权重、可再生成的构建缓存与私有 NDU 上游源码不重复公开；原始测量使用的身份和必要合同仍明确记录。临时签名下载凭据不进入公开包。
 
-最终组合必须得到自己的 AOT 分数；不能复制独立候选的 348/372，也不能挑选不同版本的通过项拼成成功。父子费用区间、并行任务及替代部署分摊不能重复相加。此前发布的实验目录及失败记录继续保留；本轮没有合并 main 或以前的 PR。
+[源码历史证据](source-history/) 保留原始 commit/tree、增量 bundle、浅克隆边界、原 900 秒完整历史获取失败以及独立 object-store 恢复回执。公开源码 tree 可审查；小增量 bundle 仍要求公开提交 `f2b76f5741c83822be2e12cf5a50b50a8d27b96a` 及其先决对象闭包，不宣称它能独立恢复全部公共历史。尊重真实浅边界的本地对象包实际恢复成功，但不含完整公共祖先历史；该对象包未随公开包分发。
+
+父子计时、并行任务及不同策略的单独部署假设分摊不重复相加。未知整轮日历时间、人工及完整生命周期费用保留 null。压缩、传输、发布回读属于交付费用，不改变原始实验结果。
+
+实现 PR 保持 draft，未合并 main，也未合并以前的 PR。
+
