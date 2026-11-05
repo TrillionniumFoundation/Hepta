@@ -3,6 +3,7 @@
 from pathlib import Path
 import hashlib
 import json
+from verify_rust_fixture_repairs import project_original
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -34,10 +35,10 @@ def recover():
             raise ValueError('Inverse store integration differs from parent: '+name)
         restored[name]=text
     for name,digest in manifest['unchanged_parent_inputs'].items():
-        if sha((ROOT/name).read_bytes())!=digest:
+        if sha(project_original(name,(ROOT/name).read_bytes()))!=digest:
             raise ValueError('Inherited source changed: '+name)
     for name,identity in manifest['gate_adapters'].items():
-        text=(ROOT/name).read_text()
+        text=project_original(name,(ROOT/name).read_bytes()).decode('utf-8')
         for after,before in identity['replacements']:
             if text.count(after)!=1:
                 raise ValueError('Inherited gate adaptation changed: '+name)

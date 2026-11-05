@@ -3,6 +3,7 @@ import copy
 import hashlib
 import json
 from pathlib import Path
+from verify_typed_fixture_repairs import project_original, verify as verify_fixture_repairs
 ROOT=Path(__file__).resolve().parents[1]
 PARENT='0594a85f2f1e05ef50a61bf9c5a18ae191499502'
 SUPPLIER='653b508336a470151b94f5e1c0448654c4782030'
@@ -11,6 +12,7 @@ def identity(data):
     return {'git_blob':hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest(),'sha256':hashlib.sha256(data).hexdigest()}
 
 def verify(root=ROOT):
+    verify_fixture_repairs(root)
     doc=json.loads((root/'tools/versioned_typed_components.json').read_bytes())
     if doc['parent']!=PARENT or doc['supplier']!=SUPPLIER:raise ValueError('Unexpected exact suppliers')
     if len(doc['parent_files'])!=281 or len(doc['supplier_files'])!=12:raise ValueError('Incomplete exact-source inventories')
@@ -18,7 +20,7 @@ def verify(root=ROOT):
     adapted={'tools/store_adt_source_origins.json','tools/typed_stdlib_components.json'}
     if set(doc['originals'])!=replaced|adapted or set(doc['adaptations'])!=adapted:raise ValueError('Unexpected adaptations')
     def check(path,expected):
-        if identity((root/path).read_bytes())!=expected:raise ValueError('Changed source: '+path)
+        if identity(project_original(path,(root/path).read_bytes(),root))!=expected:raise ValueError('Changed source: '+path)
     for path,want in doc['parent_files'].items():
         check(doc['originals'].get(path,path),want)
     for path,want in doc['supplier_files'].items():check(path,want)
