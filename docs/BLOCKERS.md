@@ -58,3 +58,13 @@ P10 当前 namespace sandbox 探测失败，生产 provider 模式在启动适�
 - C 导入带公开结构、配对元数据、源码/主机身份及可见原始头文件哈希检查；未经验证的跨目标复用拒绝。
 
 准确的测试数、当前编译器身份、性能样本和运行结果，以最终验收报告及其绑定的证据为准。任何未执行、未知或环境阻塞项目均保持其真实状态。
+
+## P12 source-only ordering increment
+
+[STDLIB_ORDERING.md](STDLIB_ORDERING.md) defines an experimental local library
+for iterative range heapsort and lower/upper-bound search over `i32`/`u64`
+borrowed slices. The native test corpus uses independent Python sort/bisect
+oracles, invalid-range preservation and a locked public-CLI example. This
+advances a concrete standard-library component without changing compiler
+semantics. It does not close P12, establish a stable API, or claim whole-project
+native, proof, performance, distribution or release qualification.
