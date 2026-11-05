@@ -1,0 +1,10 @@
+fn quantize(value: f64) -> u8 effects {} {
+    return value as u8;
+}
+fn main() -> Unit effects {panic} {
+    assert(quantize(12.75) == 12);
+    assert(quantize(-0.75) == 0);
+    assert(quantize(999.0) == 255);
+    let zero: f64 = 0.0;
+    assert(quantize(zero / zero) == 0);
+}
