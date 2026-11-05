@@ -1,0 +1,1080 @@
+{
+  "schema": "hcsn.round3.p3.independent-accounting-review.v1",
+  "created_utc": "2026-11-05T06:25:43.359464+00:00",
+  "source_sha256": {
+    "p3_causal_alignment.py": "bf3deca12dedc4632e42cd677d9127a4b3855263dbfeb2fa07452bbb06a83f0f",
+    "p3_causal_alignment_evidence.py": "6521d1f7638992f10d3538d9c7fdd2f9bd1dbde29c51b3954478e1c18f35fd70",
+    "p3_round2_study.py": "a63a002c2d2106d3d67e838b1feb99dbdd227291315146502adc9fca5de579a6"
+  },
+  "raw_evidence_sha256": "4bf3f82382f8735605371bb91da5fa34bddf156f66c8d3aa8f524c2b5613f369",
+  "evidence_file_sha256": "91b446088e992f4d8bcdd28b9256841a2e355c331178c4fdeaff212a439fae6c",
+  "evidence_compression": "gzip",
+  "feature_sha256": "26d2501a6c0d0c7204f49dc3249287118de807220f53e38f5e9f81f7f1b1719c",
+  "audit_source_sha256": "85fca5003ba911ce485ef21f6db764956cc917ae2f4e68c61e24e05a0f78ae52",
+  "independent_queue_panels": {
+    "train_probe": {
+      "streams": 16,
+      "steps": 17,
+      "observed_queries": 210,
+      "multi_positive_queries": 3
+    },
+    "calibration": {
+      "streams": 64,
+      "steps": 12,
+      "observed_queries": 610,
+      "multi_positive_queries": 20
+    },
+    "aligned": {
+      "streams": 112,
+      "steps": 12,
+      "observed_queries": 1344,
+      "multi_positive_queries": 0
+    },
+    "delayed_text": {
+      "streams": 112,
+      "steps": 12,
+      "observed_queries": 1344,
+      "multi_positive_queries": 0
+    },
+    "missing_source_frame": {
+      "streams": 112,
+      "steps": 12,
+      "observed_queries": 1344,
+      "multi_positive_queries": 0
+    },
+    "text_gap": {
+      "streams": 112,
+      "steps": 12,
+      "observed_queries": 1120,
+      "multi_positive_queries": 0
+    },
+    "irregular_time": {
+      "streams": 112,
+      "steps": 12,
+      "observed_queries": 1344,
+      "multi_positive_queries": 0
+    },
+    "long_blank": {
+      "streams": 112,
+      "steps": 12,
+      "observed_queries": 1008,
+      "multi_positive_queries": 0
+    },
+    "evicted_source": {
+      "streams": 112,
+      "steps": 12,
+      "observed_queries": 1344,
+      "multi_positive_queries": 0
+    }
+  },
+  "paired_initialization": [
+    {
+      "seed": 101,
+      "parameters_each": 322,
+      "all_initial_parameters_equal": true
+    },
+    {
+      "seed": 113,
+      "parameters_each": 322,
+      "all_initial_parameters_equal": true
+    },
+    {
+      "seed": 127,
+      "parameters_each": 322,
+      "all_initial_parameters_equal": true
+    }
+  ],
+  "calibration_replay": [
+    {
+      "seed": 101,
+      "mode": "call_put",
+      "queries": 332,
+      "threshold_exactly_reproduced": true
+    },
+    {
+      "seed": 101,
+      "mode": "ordinary_tangent",
+      "queries": 332,
+      "threshold_exactly_reproduced": true
+    },
+    {
+      "seed": 101,
+      "mode": "put_linear_mapped",
+      "queries": 332,
+      "threshold_exactly_reproduced": true
+    },
+    {
+      "seed": 101,
+      "mode": "cosine",
+      "queries": 332,
+      "threshold_exactly_reproduced": true
+    },
+    {
+      "seed": 101,
+      "mode": "time_only_newest",
+      "queries": 332,
+      "threshold_exactly_reproduced": true
+    },
+    {
+      "seed": 113,
+      "mode": "call_put",
+      "queries": 332,
+      "threshold_exactly_reproduced": true
+    },
+    {
+      "seed": 113,
+      "mode": "ordinary_tangent",
+      "queries": 332,
+      "threshold_exactly_reproduced": true
+    },
+    {
+      "seed": 113,
+      "mode": "put_linear_mapped",
+      "queries": 332,
+      "threshold_exactly_reproduced": true
+    },
+    {
+      "seed": 113,
+      "mode": "cosine",
+      "queries": 332,
+      "threshold_exactly_reproduced": true
+    },
+    {
+      "seed": 113,
+      "mode": "time_only_newest",
+      "queries": 332,
+      "threshold_exactly_reproduced": true
+    },
+    {
+      "seed": 127,
+      "mode": "call_put",
+      "queries": 332,
+      "threshold_exactly_reproduced": true
+    },
+    {
+      "seed": 127,
+      "mode": "ordinary_tangent",
+      "queries": 332,
+      "threshold_exactly_reproduced": true
+    },
+    {
+      "seed": 127,
+      "mode": "put_linear_mapped",
+      "queries": 332,
+      "threshold_exactly_reproduced": true
+    },
+    {
+      "seed": 127,
+      "mode": "cosine",
+      "queries": 332,
+      "threshold_exactly_reproduced": true
+    },
+    {
+      "seed": 127,
+      "mode": "time_only_newest",
+      "queries": 332,
+      "threshold_exactly_reproduced": true
+    }
+  ],
+  "complete_metric_replay": [
+    {
+      "seed": 101,
+      "mode": "call_put",
+      "panel": "aligned",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "call_put",
+      "panel": "delayed_text",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "call_put",
+      "panel": "missing_source_frame",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "call_put",
+      "panel": "text_gap",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "call_put",
+      "panel": "irregular_time",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "call_put",
+      "panel": "long_blank",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "call_put",
+      "panel": "evicted_source",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "ordinary_tangent",
+      "panel": "aligned",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "ordinary_tangent",
+      "panel": "delayed_text",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "ordinary_tangent",
+      "panel": "missing_source_frame",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "ordinary_tangent",
+      "panel": "text_gap",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "ordinary_tangent",
+      "panel": "irregular_time",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "ordinary_tangent",
+      "panel": "long_blank",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "ordinary_tangent",
+      "panel": "evicted_source",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "put_linear_mapped",
+      "panel": "aligned",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "put_linear_mapped",
+      "panel": "delayed_text",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "put_linear_mapped",
+      "panel": "missing_source_frame",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "put_linear_mapped",
+      "panel": "text_gap",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "put_linear_mapped",
+      "panel": "irregular_time",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "put_linear_mapped",
+      "panel": "long_blank",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "put_linear_mapped",
+      "panel": "evicted_source",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "cosine",
+      "panel": "aligned",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "cosine",
+      "panel": "delayed_text",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "cosine",
+      "panel": "missing_source_frame",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "cosine",
+      "panel": "text_gap",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "cosine",
+      "panel": "irregular_time",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "cosine",
+      "panel": "long_blank",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "cosine",
+      "panel": "evicted_source",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "time_only_newest",
+      "panel": "aligned",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "time_only_newest",
+      "panel": "delayed_text",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "time_only_newest",
+      "panel": "missing_source_frame",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "time_only_newest",
+      "panel": "text_gap",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "time_only_newest",
+      "panel": "irregular_time",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "time_only_newest",
+      "panel": "long_blank",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "time_only_newest",
+      "panel": "evicted_source",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "call_put",
+      "panel": "aligned",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "call_put",
+      "panel": "delayed_text",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "call_put",
+      "panel": "missing_source_frame",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "call_put",
+      "panel": "text_gap",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "call_put",
+      "panel": "irregular_time",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "call_put",
+      "panel": "long_blank",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "call_put",
+      "panel": "evicted_source",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "ordinary_tangent",
+      "panel": "aligned",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "ordinary_tangent",
+      "panel": "delayed_text",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "ordinary_tangent",
+      "panel": "missing_source_frame",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "ordinary_tangent",
+      "panel": "text_gap",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "ordinary_tangent",
+      "panel": "irregular_time",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "ordinary_tangent",
+      "panel": "long_blank",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "ordinary_tangent",
+      "panel": "evicted_source",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "put_linear_mapped",
+      "panel": "aligned",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "put_linear_mapped",
+      "panel": "delayed_text",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "put_linear_mapped",
+      "panel": "missing_source_frame",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "put_linear_mapped",
+      "panel": "text_gap",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "put_linear_mapped",
+      "panel": "irregular_time",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "put_linear_mapped",
+      "panel": "long_blank",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "put_linear_mapped",
+      "panel": "evicted_source",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "cosine",
+      "panel": "aligned",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "cosine",
+      "panel": "delayed_text",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "cosine",
+      "panel": "missing_source_frame",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "cosine",
+      "panel": "text_gap",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "cosine",
+      "panel": "irregular_time",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "cosine",
+      "panel": "long_blank",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "cosine",
+      "panel": "evicted_source",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "time_only_newest",
+      "panel": "aligned",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "time_only_newest",
+      "panel": "delayed_text",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "time_only_newest",
+      "panel": "missing_source_frame",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "time_only_newest",
+      "panel": "text_gap",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "time_only_newest",
+      "panel": "irregular_time",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "time_only_newest",
+      "panel": "long_blank",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "time_only_newest",
+      "panel": "evicted_source",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "call_put",
+      "panel": "aligned",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "call_put",
+      "panel": "delayed_text",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "call_put",
+      "panel": "missing_source_frame",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "call_put",
+      "panel": "text_gap",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "call_put",
+      "panel": "irregular_time",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "call_put",
+      "panel": "long_blank",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "call_put",
+      "panel": "evicted_source",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "ordinary_tangent",
+      "panel": "aligned",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "ordinary_tangent",
+      "panel": "delayed_text",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "ordinary_tangent",
+      "panel": "missing_source_frame",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "ordinary_tangent",
+      "panel": "text_gap",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "ordinary_tangent",
+      "panel": "irregular_time",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "ordinary_tangent",
+      "panel": "long_blank",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "ordinary_tangent",
+      "panel": "evicted_source",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "put_linear_mapped",
+      "panel": "aligned",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "put_linear_mapped",
+      "panel": "delayed_text",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "put_linear_mapped",
+      "panel": "missing_source_frame",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "put_linear_mapped",
+      "panel": "text_gap",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "put_linear_mapped",
+      "panel": "irregular_time",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "put_linear_mapped",
+      "panel": "long_blank",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "put_linear_mapped",
+      "panel": "evicted_source",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "cosine",
+      "panel": "aligned",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "cosine",
+      "panel": "delayed_text",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "cosine",
+      "panel": "missing_source_frame",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "cosine",
+      "panel": "text_gap",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "cosine",
+      "panel": "irregular_time",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "cosine",
+      "panel": "long_blank",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "cosine",
+      "panel": "evicted_source",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "time_only_newest",
+      "panel": "aligned",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "time_only_newest",
+      "panel": "delayed_text",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "time_only_newest",
+      "panel": "missing_source_frame",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "time_only_newest",
+      "panel": "text_gap",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "time_only_newest",
+      "panel": "irregular_time",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "time_only_newest",
+      "panel": "long_blank",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "time_only_newest",
+      "panel": "evicted_source",
+      "query_count": 112,
+      "oracle_state_labels_metrics_exact": true
+    }
+  ],
+  "query_only_slot_permutation": [
+    {
+      "seed": 101,
+      "mode": "call_put",
+      "query_only_permutation_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "ordinary_tangent",
+      "query_only_permutation_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "put_linear_mapped",
+      "query_only_permutation_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "cosine",
+      "query_only_permutation_exact": true
+    },
+    {
+      "seed": 101,
+      "mode": "time_only_newest",
+      "query_only_permutation_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "call_put",
+      "query_only_permutation_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "ordinary_tangent",
+      "query_only_permutation_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "put_linear_mapped",
+      "query_only_permutation_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "cosine",
+      "query_only_permutation_exact": true
+    },
+    {
+      "seed": 113,
+      "mode": "time_only_newest",
+      "query_only_permutation_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "call_put",
+      "query_only_permutation_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "ordinary_tangent",
+      "query_only_permutation_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "put_linear_mapped",
+      "query_only_permutation_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "cosine",
+      "query_only_permutation_exact": true
+    },
+    {
+      "seed": 127,
+      "mode": "time_only_newest",
+      "query_only_permutation_exact": true
+    }
+  ],
+  "metadata_independence": [
+    {
+      "seed": 101,
+      "mode": "call_put",
+      "inference_metadata_independent": true
+    },
+    {
+      "seed": 101,
+      "mode": "ordinary_tangent",
+      "inference_metadata_independent": true
+    },
+    {
+      "seed": 101,
+      "mode": "put_linear_mapped",
+      "inference_metadata_independent": true
+    },
+    {
+      "seed": 101,
+      "mode": "cosine",
+      "inference_metadata_independent": true
+    },
+    {
+      "seed": 101,
+      "mode": "time_only_newest",
+      "inference_metadata_independent": true
+    },
+    {
+      "seed": 113,
+      "mode": "call_put",
+      "inference_metadata_independent": true
+    },
+    {
+      "seed": 113,
+      "mode": "ordinary_tangent",
+      "inference_metadata_independent": true
+    },
+    {
+      "seed": 113,
+      "mode": "put_linear_mapped",
+      "inference_metadata_independent": true
+    },
+    {
+      "seed": 113,
+      "mode": "cosine",
+      "inference_metadata_independent": true
+    },
+    {
+      "seed": 113,
+      "mode": "time_only_newest",
+      "inference_metadata_independent": true
+    },
+    {
+      "seed": 127,
+      "mode": "call_put",
+      "inference_metadata_independent": true
+    },
+    {
+      "seed": 127,
+      "mode": "ordinary_tangent",
+      "inference_metadata_independent": true
+    },
+    {
+      "seed": 127,
+      "mode": "put_linear_mapped",
+      "inference_metadata_independent": true
+    },
+    {
+      "seed": 127,
+      "mode": "cosine",
+      "inference_metadata_independent": true
+    },
+    {
+      "seed": 127,
+      "mode": "time_only_newest",
+      "inference_metadata_independent": true
+    }
+  ],
+  "no_new_training_or_threshold_selection": true,
+  "all_assertions_passed": true,
+  "external_scientific_attestation": false,
+  "notes": [
+    "Previously used image subset; exploratory, not untouched independent validation.",
+    "Source provenance matching differs from semantic contradiction or novel-class rejection.",
+    "Irregular-time panel inserts target in final step, so its age is zero; only distractor ages vary.",
+    "Caption rows and seeds sharing an original image are correlated.",
+    "Frozen raw cosine has near-ceiling retrieval; failure of a 2pp uniform-gain criterion is not proof of all possible HCSN hypotheses."
+  ]
+}
