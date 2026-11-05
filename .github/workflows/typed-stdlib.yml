@@ -1,0 +1,68 @@
+name: Typed source-library packet composition
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'stdlib/**'
+      - 'tests/**'
+      - 'tools/**'
+      - 'examples/**'
+      - 'docs/**'
+      - 'toolchain-lock.json'
+      - '.github/workflows/typed-stdlib.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+        python: ['3.11', '3.13']
+        backend: [c, rust]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    env:
+      HEPTA_ENUM_REQUIRE_RUST: '1'
+      HEPTA_TYPED_STDLIB_BACKEND: ${{ matrix.backend }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Select pinned native Rust
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.90.0 --profile minimal
+          echo "RUSTC=$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_ENV"
+          echo "$(dirname "$(rustup which --toolchain 1.90.0 rustc)")" >> "$GITHUB_PATH"
+      - name: Record exact source and tools
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/typed-stdlib-qualification"
+          { git rev-parse HEAD; python --version; gcc --version; gcc -dumpmachine; "$RUSTC" --version --verbose; } | tee "$RUNNER_TEMP/typed-stdlib-qualification/identity.log"
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - name: Execute complete no-skip gate and nine oracles
+        env:
+          HEPTA_TYPED_STDLIB_RECEIPTS: ${{ runner.temp }}/typed-stdlib-native.jsonl
+        run: |
+          set -euo pipefail
+          python -B tools/qualify_typed_stdlib.py 2>&1 | tee "$RUNNER_TEMP/typed-stdlib-qualification/gate.log"
+      - name: Preserve native receipts and confirm unchanged source
+        if: always()
+        run: |
+          set -euo pipefail
+          if test -f "$RUNNER_TEMP/typed-stdlib-native.jsonl"; then cp "$RUNNER_TEMP/typed-stdlib-native.jsonl" "$RUNNER_TEMP/typed-stdlib-qualification/native.jsonl"; fi
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          git diff --exit-code
+          git diff --cached --exit-code
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: typed-stdlib-${{ matrix.os }}-py${{ matrix.python }}-${{ matrix.backend }}-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/typed-stdlib-qualification/
