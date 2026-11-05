@@ -1,0 +1,23 @@
+{"case": "call_put_uncached", "hard_negative_accuracy": 0.75, "online_total_wall_seconds": 30.219220701, "p99_request_ms": 890.4566826099997, "isolated_process_peak_rss_bytes": 1751646208}
+{"case": "call_put_cached", "hard_negative_accuracy": 0.75, "online_total_wall_seconds": 4.209387719, "p99_request_ms": 760.4391479399998, "isolated_process_peak_rss_bytes": 1751519232}
+{"case": "put_linear_cached", "hard_negative_accuracy": 0.75, "online_total_wall_seconds": 4.108322868, "p99_request_ms": 773.7063815799996, "isolated_process_peak_rss_bytes": 1752502272}
+{"case": "overwrite_cached", "hard_negative_accuracy": 0.75, "online_total_wall_seconds": 4.019900812, "p99_request_ms": 696.4873236199985, "isolated_process_peak_rss_bytes": 1752412160}
+{
+  "schema": "hcsn.round2-complete-online-cpu.v1",
+  "same_call_put_full_trace_with_and_without_cache": true,
+  "all_encoder_outputs_equal_across_cases": true,
+  "mapped_caption_score_max_abs_error": 2.9802322387695312e-08,
+  "mapped_final_memory_max_abs_error": 2.9802322387695312e-08,
+  "call_put_cache_online_wall_speedup": 7.179006239933394,
+  "call_put_cache_cpu_ratio": 0.140097376201737,
+  "caveats": [
+    "eight-image cyclic synthetic load, not natural video",
+    "exact cache savings are ordinary input reuse, not free-boundary skipping",
+    "64 request samples per case; p99 is descriptive, not production qualification",
+    "filesystem cache and shared-host load uncontrolled; cases are separate processes in fixed order",
+    "encoder setup and warmup separately reported and included in whole child process time",
+    "no actual joules, accelerator, distributed traffic or production activation"
+  ],
+  "production_activation": false,
+  "p4_closed": false
+}
