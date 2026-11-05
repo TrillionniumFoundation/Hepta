@@ -1,0 +1,101 @@
+{
+  "all_requested_stages_closed": false,
+  "artifact_sha256": {
+    "research/hcsn/fixtures/frozen_clip_cifar10_20261105.json": "20f13f27e9148880fcb8b6eb7b5fdbd8bf9c48cd08dd5c04d5711babce225568",
+    "research/hcsn/fixtures/frozen_clip_cifar10_20261105.npz": "1da822cc4265c96d0331662f1303c36a5d2ac9936f83b392d22e40f081bcb91e",
+    "research/hcsn/gates/2026-11-05-p2-p3-import-context-failure.log": "a6058e4a201265d7ece6c37e66a9534a7bd36fdec07ef337674f5de9d545afdd",
+    "research/hcsn/gates/2026-11-05-p2-p3-integrated-tests.log": "8da5dc272a80e18c7afe71a48490c5fa31794e42c994786fcb983b690637d54f",
+    "research/hcsn/gates/2026-11-05-p3-frozen-clip-encoding.log": "6fcfa31ce745aee059d20a9b3b4ef2b706e3529b001d5e6de13fe6baa07d15c8",
+    "research/hcsn/gates/2026-11-05-p3-frozen-clip-temporal-raw.json": "35c197858a51608cc257d7160913b7746177d71ffea4d75f2b73276302866644",
+    "research/hcsn/gates/2026-11-05-p3-frozen-clip-temporal.md": "ba4b7b2ff83636ff531c224157f075dfe5cfbf6616baaf39de00c900769365a8",
+    "research/hcsn/gates/2026-11-05-p3-frozen-clip-tests.log": "3cb00884cc4680a68d822ea10e40ba159ab76b1e5a9f37e617965f3efc66b442",
+    "research/hcsn/gates/2026-11-05-p3-independent-gate.log": "7b895f6758982fc19030c9c39d72707b6e179e7d9c695c2fa93f86fc04c53203"
+  },
+  "cpu_quota": "800000 100000",
+  "device": "cpu",
+  "energy_counter_paths": [],
+  "executions": [
+    {
+      "exit_code": 130,
+      "scope": "slow archive download interrupted via original session"
+    },
+    {
+      "exit_code": 0,
+      "images": 400,
+      "scope": "frozen real CLIP encode via pinned HF Parquet backend",
+      "text_prompts": 10
+    },
+    {
+      "eval_length": 24,
+      "eval_streams": 128,
+      "exit_code": 0,
+      "modes": [
+        "call_put",
+        "put_linear",
+        "ordinary",
+        "overwrite"
+      ],
+      "scope": "P3 paired fusion study",
+      "seeds": [
+        11,
+        23,
+        37
+      ],
+      "train_batch": 24,
+      "train_length": 12,
+      "updates_per_model": 120
+    },
+    {
+      "exit_code": 0,
+      "passed": 11,
+      "scope": "new P3 tests",
+      "skipped": 0
+    },
+    {
+      "exit_code": 1,
+      "import_errors": 1,
+      "passed": 21,
+      "scope": "combined tests without upstream absolute-import path"
+    },
+    {
+      "command": "PYTHONPATH=.:research/hcsn python -m unittest research.hcsn.test_p2_task_only_ctmc_retention research.hcsn.test_p2_content_hold research.hcsn.test_p3_frozen_temporal_fusion -v",
+      "exit_code": 0,
+      "passed": 28,
+      "skipped": 0
+    },
+    {
+      "command": "python -m research.hcsn.independent_gate --bundle research/hcsn --strict",
+      "exit_code": 2
+    }
+  ],
+  "git_parent": "10e699c16c1e2bf9cf6a0b9da9bdefe2be9a21b0",
+  "heldout_test_image_pool": 32,
+  "known_test_image_pool": 128,
+  "memory_limit_bytes": 8589934592,
+  "original_failures_retained": true,
+  "packages": {
+    "Pillow": "13.0.0",
+    "ftfy": "6.3.1",
+    "mpmath": "1.3.0",
+    "numpy": "2.3.5",
+    "pyarrow": "23.0.1",
+    "regex": "2026.9.29",
+    "scipy": "1.17.0",
+    "torch": "2.10.0+cpu",
+    "torchvision": "0.25.0+cpu",
+    "tqdm": "4.70.1"
+  },
+  "preregistered_future_test": false,
+  "production_activation": false,
+  "publication_environment_note": "Initial manifest write hit ENOSPC. Only reproducible caches were cleared; this complete JSON was regenerated and all source/result digests checked. Experiments had already completed successfully.",
+  "python": "3.12.14",
+  "recorded_utc": "2026-11-05T05:16:36.521728+00:00",
+  "schema": "hcsn.frozen-clip-pilot.execution-v1",
+  "source_sha256": {
+    "research/hcsn/p3_frozen_clip_features.py": "84b7f7c6c4d06d29f80bf5752ff75cc57347bcce75035035596c87e7a2f52316",
+    "research/hcsn/p3_frozen_temporal_fusion.py": "3663d76bf3181761c405d9f9172a4bab637e17e321e6a91feec2f22e18955b2f",
+    "research/hcsn/test_p3_frozen_temporal_fusion.py": "a485c2e5d2437ff2ef48ac12cd95521585a925d8b468793e36acc20c926a3bf7"
+  },
+  "threads": 1,
+  "training_seeds_are_independent_image_datasets": false
+}
