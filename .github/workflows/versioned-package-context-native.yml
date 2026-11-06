@@ -1,0 +1,83 @@
+name: Versioned package context native Rust comparison
+
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'tests/**'
+      - 'tools/**'
+      - 'docs/VERSIONED_PACKAGE_CONTEXT_NATIVE.md'
+      - '.github/workflows/versioned-package-context-native.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  native-context:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+      CC: gcc
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Select actual pinned Rust
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.90.0 --profile minimal
+          rustc_path="$(rustup which --toolchain 1.90.0 rustc)"
+          test -x "$rustc_path"
+          printf 'RUSTC=%s\n' "$rustc_path" >> "$GITHUB_ENV"
+          "$rustc_path" -vV
+      - name: Bind exact head and export an isolated source snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          evidence="$RUNNER_TEMP/versioned-package-context-native-evidence"
+          snapshot="$RUNNER_TEMP/versioned-package-context-native-source"
+          mkdir "$evidence" "$snapshot"
+          {
+            git rev-parse HEAD HEAD^{tree}
+            uname -a
+            python --version
+            gcc --version
+            "$RUSTC" -vV
+            git --version
+            sha256sum "$(command -v python)" "$(command -v gcc)" "$RUSTC" "$(command -v git)"
+          } > "$evidence/identities.txt"
+          git ls-tree -r HEAD > "$evidence/source-tree.txt"
+          git archive --format=tar HEAD | tar -xf - -C "$snapshot"
+      - name: Run strict native comparison without skips
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          python -B "$RUNNER_TEMP/versioned-package-context-native-source/tools/qualify_versioned_package_context_native.py" \
+            2>&1 | tee "$RUNNER_TEMP/versioned-package-context-native-evidence/native.log"
+      - name: Verify final checkout identity
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: versioned-package-context-native-${{ matrix.os }}-${{ env.EXPECTED_HEAD }}
+          path: ${{ runner.temp }}/versioned-package-context-native-evidence
+          if-no-files-found: error
