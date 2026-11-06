@@ -24,11 +24,20 @@ permissions:
 jobs:
   native-tun-dco:
     runs-on: ubuntu-24.04
-    timeout-minutes: 55
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
+      - name: Run exact-source Netlink, publication and rekey regressions
+        run: |
+          set -euo pipefail
+          cd experiments/openvpn_hia_20261105/target_host
+          python3 -B -m unittest -v \
+            test_dco_peer_stats.py \
+            test_dco_peer_stats_wire.py \
+            test_run_matrix_rekey.py \
+            test_rekey_attempt_grouping.py
       - name: Freeze and build official C, actual HIA and the selected kernel DCO implementation
         run: |
           set -euo pipefail
@@ -45,10 +54,10 @@ jobs:
                      '--c', env['c'], '--hia', env['hia'], '--hia-trace', env['hia_trace'],
                      '--source', env['source'], '--build', env['build'],
                      '--out', str(root / 'public/tunnel'), '--private-work', str(root / 'private'),
-                     '--budget-seconds', '1800']
+                     '--budget-seconds', '2700']
           if env['perf']:
               command.extend(['--perf', env['perf']])
-          result = subprocess.run(command, timeout=1860)
+          result = subprocess.run(command, timeout=2760)
           raise SystemExit(result.returncode)
           PY
       - name: Clean only this experiment's recorded namespaces and private runtime material

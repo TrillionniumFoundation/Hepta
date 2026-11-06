@@ -64,6 +64,24 @@ def verify(public, expected_commit):
     build = read(public / "build.json")
     target = public / "tunnel"
     report = read(target / "target-result.json")
+    host = report.get("host", {})
+    allowed = host.get("allowed_cpus", [])
+    selected = host.get("selected_cpus", [])
+    topology = host.get("cpu_topology", {})
+    require(host.get("cpu_topology_error") is None, "physical CPU topology could not be established")
+    require(len(selected) == 2 and len(set(selected)) == 2 and
+            all(cpu in allowed for cpu in selected),
+            "two allowed benchmark CPUs were not selected")
+    core_keys = []
+    for cpu in selected:
+        item = topology.get(str(cpu))
+        require(isinstance(item, dict) and type(item.get("package_id")) is int
+                and type(item.get("core_id")) is int,
+                "selected CPU lacks a frozen physical package/core identity")
+        core_keys.append((item["package_id"], item["core_id"]))
+    require(len(set(core_keys)) == 2, "server/client benchmark CPUs share a physical core")
+    require(host.get("selected_physical_cores") == [list(key) for key in core_keys],
+            "selected physical-core receipt differs from the topology map")
     plan = read(HERE / "plan.json")
     require(build.get("ok") is True, "target build did not complete")
     require(build.get("hepta_commit") == expected_commit, "build belongs to another commit")
@@ -122,6 +140,10 @@ def verify(public, expected_commit):
                 "case receipt identity/verdict mismatch")
         require(case.get("arms") == row["arms"] and not case.get("cleanup_errors"),
                 "case arm/cleanup mismatch")
+        expected_rekey = (plan["behavior"]["rekey_seconds_by_role"] if row["kind"] == "behavior"
+                          else {"server": 3600, "client": 3600})
+        require(case.get("reneg_seconds_by_role") == expected_rekey,
+                "role-specific renegotiation schedule differs from the frozen plan")
         require(case.get("checks") and all(v is True for v in case["checks"].values()),
                 "case observation checks are incomplete")
         if row["kind"] == "performance":
@@ -132,7 +154,8 @@ def verify(public, expected_commit):
                     "performance position is outside the fixed design")
             expected_arm = plan["performance"]["orders"][row["order"]][row["position"]]
             require(row["arms"] == {"server": "c-dco", "client": expected_arm}, "performance arm order changed")
-            require(case.get("trace") is False and case.get("reneg_seconds") == 3600,
+            require(case.get("trace") is False and case.get("reneg_seconds") == 3600
+                    and case.get("reneg_seconds_by_role") == {"server": 3600, "client": 3600},
                     "diagnostic instrumentation/rekey timing entered the benchmark")
             values = case.get("measurements", [])
             require(len(values) == 4, "a performance workload is missing")

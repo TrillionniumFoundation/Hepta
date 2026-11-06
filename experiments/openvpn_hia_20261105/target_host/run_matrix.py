@@ -49,6 +49,55 @@ def process_stats(pid):
             'starttime_ticks': int(fields[19]), 'rss_bytes': int(fields[21])*os.sysconf('SC_PAGE_SIZE')}
 
 
+def read_cpu_topology(allowed, root=Path('/sys/devices/system/cpu')):
+    """Read physical package/core identity; logical CPU IDs alone are not topology."""
+    topology = {}
+    for cpu in sorted(set(int(value) for value in allowed)):
+        directory = Path(root) / f'cpu{cpu}' / 'topology'
+        try:
+            package_id = int((directory / 'physical_package_id').read_text().strip())
+            core_id = int((directory / 'core_id').read_text().strip())
+        except (OSError, ValueError) as exc:
+            raise RuntimeError(f'cannot establish physical core identity for CPU {cpu}: {exc}') from exc
+        topology[cpu] = (package_id, core_id)
+    return topology
+
+
+def select_distinct_physical_cpus(allowed, topology):
+    """Choose one allowed logical CPU from each of two distinct physical cores."""
+    selected = []
+    seen = set()
+    for cpu in sorted(set(int(value) for value in allowed)):
+        if cpu not in topology:
+            raise RuntimeError(f'physical core identity missing for allowed CPU {cpu}')
+        key = tuple(topology[cpu])
+        if len(key) != 2 or any(type(value) is not int for value in key):
+            raise RuntimeError(f'invalid physical core identity for CPU {cpu}')
+        if key not in seen:
+            selected.append(cpu)
+            seen.add(key)
+        if len(selected) == 2:
+            return selected
+    raise RuntimeError('at least two distinct physical CPU cores are required for fair two-sided measurement')
+
+
+def resolve_reneg_seconds(default, by_role=None):
+    """Resolve an explicit, positive renegotiation interval for both tunnel roles."""
+    if type(default) is not int or not 1 <= default <= 86400:
+        raise ValueError('default renegotiation seconds must be an integer in [1, 86400]')
+    if by_role is None:
+        return {role: default for role in ROLES}
+    if not isinstance(by_role, dict) or set(by_role) != set(ROLES):
+        raise ValueError('role-specific renegotiation schedule must cover server and client')
+    resolved = {}
+    for role in ROLES:
+        value = by_role[role]
+        if type(value) is not int or not 1 <= value <= 86400:
+            raise ValueError(f'{role} renegotiation seconds must be an integer in [1, 86400]')
+        resolved[role] = value
+    return resolved
+
+
 def observe(text):
     lines = text.splitlines()
     # A peer-initiated rekey can complete TLS and install new keys without the
@@ -262,10 +311,13 @@ class Ledger:
 
 
 class Pair:
-    def __init__(self,ledger,case,binaries,configuration,arms,trace=False,reneg=3600,negative=False):
+    def __init__(self,ledger,case,binaries,configuration,arms,trace=False,reneg=3600,negative=False,reneg_by_role=None):
         self.l=ledger;self.case=case;self.folder=ledger.out/'cases'/case;self.folder.mkdir(parents=True)
         self.arms=arms;self.trace=trace;self.negative=negative;self.jobs=[];self.processes={};self.names={};self.entries=[]
-        self.result={'case':case,'arms':arms,'trace':trace,'reneg_seconds':reneg,'status':'running','passed':False,'checks':{},'events':[]}
+        self.reneg_seconds_by_role=resolve_reneg_seconds(reneg,reneg_by_role)
+        self.result={'case':case,'arms':arms,'trace':trace,'reneg_seconds':reneg,
+                     'reneg_seconds_by_role':self.reneg_seconds_by_role,
+                     'status':'running','passed':False,'checks':{},'events':[]}
         unique=uuid.uuid4().hex[:10]
         try:
             for role,suffix in (('server','s'),('client','c')):
@@ -296,9 +348,10 @@ class Pair:
                 self.command(role,['ethtool','-k',dev],'underlay-offloads',required=False)
             for role in ROLES:
                 arm=arms[role];binary=binaries['hia_trace' if trace and arm.startswith('hia') else 'hia' if arm.startswith('hia') else 'c']
+                role_reneg=self.reneg_seconds_by_role[role]
                 command=['taskset','-c',str(configuration['cpus'][0 if role=='server' else 1]),str(binary),
                          '--config',str(configuration[role]),'--verb','6' if trace else '3','--status',str(self.folder/(role+'.status')),'1',
-                         '--status-version','3','--reneg-sec',str(reneg),str(reneg)]
+                         '--status-version','3','--reneg-sec',str(role_reneg),str(role_reneg)]
                 if not arm.endswith('dco'):command+=['--disable-dco']
                 if role=='client' and negative:command+=['--cert',str(configuration['untrusted_crt']),'--key',str(configuration['untrusted_key']),'--tls-exit']
                 job=self.spawn(role,command,role+'-openvpn');self.processes[role]=job
@@ -807,7 +860,7 @@ def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     for flag in ('c','hia','hia-trace','source','build','out','private-work','perf'):
         parser.add_argument('--'+flag,type=Path)
-    parser.add_argument('--budget-seconds',type=int,default=1800)
+    parser.add_argument('--budget-seconds',type=int,default=2700)
     parser.add_argument('--cleanup-state',type=Path)
     parser.add_argument('--preflight-only',action='store_true')
     args=parser.parse_args(argv)
@@ -828,6 +881,14 @@ def main(argv=None):
         ledger.deadline=time.monotonic()
     signal.signal(signal.SIGTERM,stop_requested);signal.signal(signal.SIGINT,stop_requested)
     allowed=sorted(os.sched_getaffinity(0))
+    cpu_topology_error=None
+    try:
+        cpu_topology=read_cpu_topology(allowed)
+        selected_cpus=select_distinct_physical_cpus(allowed,cpu_topology)
+    except Exception as exc:
+        cpu_topology={}
+        selected_cpus=[]
+        cpu_topology_error=repr(exc)
     tasks=[]
     for server,client in plan['behavior']['epoch_pairs']:
         tasks.append({'id':'epoch-'+server+'-'+client,'kind':'behavior','epoch':True,
@@ -846,8 +907,16 @@ def main(argv=None):
                               'arms':{'server':'c-dco','client':arm}})
     report={'schema':'hepta.openvpn-hia.target-matrix.v1','complete':False,
             'started_utc':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'plan':plan,'plan_sha256':digest(HERE/'plan.json'),
-            'inputs':{},'host':{'uname':platform.uname()._asdict(),'allowed_cpus':allowed,
-                  'selected_cpus':allowed[:2],'dedicated_physical_host':False,'frequency_locked':False},
+            'inputs':{},'host':{
+                'uname':platform.uname()._asdict(),
+                'allowed_cpus':allowed,
+                'selected_cpus':selected_cpus,
+                'cpu_topology':{str(cpu):{'package_id':key[0],'core_id':key[1]} for cpu,key in sorted(cpu_topology.items())},
+                'selected_physical_cores':[list(cpu_topology[cpu]) for cpu in selected_cpus],
+                'cpu_topology_source':'/sys/devices/system/cpu/cpu*/topology/{physical_package_id,core_id}',
+                'cpu_topology_error':cpu_topology_error,
+                'dedicated_physical_host':False,
+                'frequency_locked':False},
             'cases':[{**task,'status':'planned','passed':False} for task in tasks],
             'gates':{k:False for k in ('real_tun','dco_runtime','authentication','encrypted_replay','rekey','reconnect','profile','fixed_performance_matrix')},
             'counts':{'planned_behavior_cases':7,'passed_behavior_cases':0,'planned_authentication_cases':2,'passed_authentication_cases':0,
@@ -880,14 +949,14 @@ def main(argv=None):
         if os.geteuid()!=0 or not caps&(1<<12) or not caps&(1<<21):blockers.append('requires provisioned target CAP_NET_ADMIN and CAP_SYS_ADMIN; no escalation is attempted')
         if not Path('/dev/net/tun').exists():blockers.append('/dev/net/tun absent')
         if not Path('/sys/module/ovpn').exists():blockers.append('actual ovpn kernel implementation absent')
-        if len(allowed)<2:blockers.append('at least two allowed target CPUs required')
+        if len(selected_cpus)<2:blockers.append('at least two distinct physical CPU cores required for fair two-sided measurement')
         for command in ('ip','iperf3','openssl','taskset'):
             if not shutil.which(command):blockers.append(command+' unavailable')
         report['preflight']={'blockers':blockers,'passed':not blockers};save(receipt,report)
         if blockers or args.preflight_only:
             report['preflight_only']=True
             return 2 if blockers else 0
-        configuration=create_pki(ledger,args.c);configuration['cpus']=allowed[:2]
+        configuration=create_pki(ledger,args.c);configuration['cpus']=selected_cpus
         report['inputs']['configuration_sha256']={r:digest(configuration[r]) for r in ROLES}
         report['inputs']['public_cert_sha256']={p.name:digest(p) for p in (args.out/'pki').glob('*.crt')}
         save(receipt,report)
@@ -897,13 +966,14 @@ def main(argv=None):
                 if row['kind']=='profile' and not args.perf:raise RuntimeError('actual perf collector unavailable; no synthetic substitute')
                 behavior=row['kind']=='behavior';negative=row['kind']=='authentication'
                 pair=Pair(ledger,row['id'],binaries,configuration,row['arms'],trace=behavior or negative,
-                          reneg=plan['behavior']['rekey_seconds'] if behavior else 3600,negative=negative)
+                          reneg=plan['behavior']['rekey_seconds'] if behavior else 3600,negative=negative,
+                          reneg_by_role=plan['behavior'].get('rekey_seconds_by_role') if behavior else None)
                 if behavior:run_behavior(pair,plan,row['epoch'])
                 elif negative:run_negative(pair,plan)
                 else:
                     pair.connected();pair.protocol_gate(False)
                     if row['kind']=='profile':
-                        measurement=throughput(pair,{'name':'tcp-profile','transport':'tcp'},plan['profile']['seconds'],allowed[:2],
+                        measurement=throughput(pair,{'name':'tcp-profile','transport':'tcp'},plan['profile']['seconds'],selected_cpus,
                                                'tcp-profile',perf=args.perf)
                         if not measurement['passed'] or not measurement.get('profile',{}).get('passed'):
                             raise RuntimeError('actual tunnel traffic or perf profile failed')
@@ -911,7 +981,7 @@ def main(argv=None):
                     else:
                         pair.result['measurements']=[]
                         for index,workload in enumerate(plan['performance']['workloads']):
-                            measurement=throughput(pair,workload,plan['performance']['seconds_per_workload'],allowed[:2],
+                            measurement=throughput(pair,workload,plan['performance']['seconds_per_workload'],selected_cpus,
                                                    f'workload-{index}-'+workload['name'])
                             save(pair.folder/'case.json',pair.result)
                         pair.result['checks']={'four_workloads_completed':len(pair.result['measurements'])==4 and all(m['passed'] for m in pair.result['measurements']),
