@@ -1,0 +1,244 @@
+TAP version 13
+# Subtest: subnormal write refuses a nearby distinct normal ray
+not ok 1 - subnormal write refuses a nearby distinct normal ray
+  ---
+  duration_ms: 3.013442
+  type: 'test'
+  location: '/workspace/shared/hepta747-frozen/test_p2_subnormal_collision.mjs:21:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      {
+        epoch: 0,
+    +   status: 'unknown',
+    -   status: 'ambiguous',
+        value: null
+      }
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    status: 'ambiguous'
+    value: ~
+    epoch: 0
+  actual:
+    status: 'unknown'
+    value: ~
+    epoch: 0
+  operator: 'deepStrictEqual'
+  stack: |-
+    refusesNearby (file:///workspace/shared/hepta747-frozen/test_p2_subnormal_collision.mjs:15:10)
+    TestContext.<anonymous> (file:///workspace/shared/hepta747-frozen/test_p2_subnormal_collision.mjs:22:3)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1402:25)
+    Test.start (node:internal/test_runner/test:1262:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)
+  ...
+# Subtest: normal write refuses a nearby distinct subnormal ray
+not ok 2 - normal write refuses a nearby distinct subnormal ray
+  ---
+  duration_ms: 0.363205
+  type: 'test'
+  location: '/workspace/shared/hepta747-frozen/test_p2_subnormal_collision.mjs:25:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      {
+        epoch: 0,
+    +   status: 'unknown',
+    -   status: 'ambiguous',
+        value: null
+      }
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    status: 'ambiguous'
+    value: ~
+    epoch: 0
+  actual:
+    status: 'unknown'
+    value: ~
+    epoch: 0
+  operator: 'deepStrictEqual'
+  stack: |-
+    refusesNearby (file:///workspace/shared/hepta747-frozen/test_p2_subnormal_collision.mjs:15:10)
+    TestContext.<anonymous> (file:///workspace/shared/hepta747-frozen/test_p2_subnormal_collision.mjs:26:3)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1402:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+    Test.postRun (node:internal/test_runner/test:1542:19)
+    Test.run (node:internal/test_runner/test:1467:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+  ...
+# Subtest: exact overwrite retains near-collision refusal across scales
+not ok 3 - exact overwrite retains near-collision refusal across scales
+  ---
+  duration_ms: 0.43305
+  type: 'test'
+  location: '/workspace/shared/hepta747-frozen/test_p2_subnormal_collision.mjs:29:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'unknown'
+    - 'ambiguous'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'ambiguous'
+  actual: 'unknown'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///workspace/shared/hepta747-frozen/test_p2_subnormal_collision.mjs:36:12)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1402:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+    Test.postRun (node:internal/test_runner/test:1542:19)
+    Test.run (node:internal/test_runner/test:1467:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+  ...
+# Subtest: 16384 directed subnormal integer-ray near-collisions fail closed
+not ok 4 - 16384 directed subnormal integer-ray near-collisions fail closed
+  ---
+  duration_ms: 0.422264
+  type: 'test'
+  location: '/workspace/shared/hepta747-frozen/test_p2_subnormal_collision.mjs:42:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      {
+        epoch: 0,
+    +   status: 'unknown',
+    -   status: 'ambiguous',
+        value: null
+      }
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    status: 'ambiguous'
+    value: ~
+    epoch: 0
+  actual:
+    status: 'unknown'
+    value: ~
+    epoch: 0
+  operator: 'deepStrictEqual'
+  stack: |-
+    refusesNearby (file:///workspace/shared/hepta747-frozen/test_p2_subnormal_collision.mjs:15:10)
+    TestContext.<anonymous> (file:///workspace/shared/hepta747-frozen/test_p2_subnormal_collision.mjs:52:7)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1402:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+    Test.postRun (node:internal/test_runner/test:1542:19)
+    Test.run (node:internal/test_runner/test:1467:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+  ...
+# Subtest: signed subnormal near-collisions refuse in either insertion order
+not ok 5 - signed subnormal near-collisions refuse in either insertion order
+  ---
+  duration_ms: 0.308132
+  type: 'test'
+  location: '/workspace/shared/hepta747-frozen/test_p2_subnormal_collision.mjs:60:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      {
+        epoch: 0,
+    +   status: 'unknown',
+    -   status: 'ambiguous',
+        value: null
+      }
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    status: 'ambiguous'
+    value: ~
+    epoch: 0
+  actual:
+    status: 'unknown'
+    value: ~
+    epoch: 0
+  operator: 'deepStrictEqual'
+  stack: |-
+    refusesNearby (file:///workspace/shared/hepta747-frozen/test_p2_subnormal_collision.mjs:15:10)
+    TestContext.<anonymous> (file:///workspace/shared/hepta747-frozen/test_p2_subnormal_collision.mjs:65:7)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1402:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+    Test.postRun (node:internal/test_runner/test:1542:19)
+    Test.run (node:internal/test_runner/test:1467:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+  ...
+# Subtest: 4096-dimensional subnormal norm does not separate nearby rays
+ok 6 - 4096-dimensional subnormal norm does not separate nearby rays
+  ---
+  duration_ms: 14.887673
+  type: 'test'
+  ...
+# Subtest: subnormal-to-normal boundary retains exact and near directions
+ok 7 - subnormal-to-normal boundary retains exact and near directions
+  ---
+  duration_ms: 0.549855
+  type: 'test'
+  ...
+# Subtest: subnormal normalization captures getters only once on write and read
+not ok 8 - subnormal normalization captures getters only once on write and read
+  ---
+  duration_ms: 0.402144
+  type: 'test'
+  location: '/workspace/shared/hepta747-frozen/test_p2_subnormal_collision.mjs:91:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'unknown'
+    - 'ambiguous'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'ambiguous'
+  actual: 'unknown'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///workspace/shared/hepta747-frozen/test_p2_subnormal_collision.mjs:104:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1402:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+    Test.postRun (node:internal/test_runner/test:1542:19)
+    Test.run (node:internal/test_runner/test:1467:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+  ...
+# Subtest: distant and antipodal subnormal rays remain distinct
+ok 9 - distant and antipodal subnormal rays remain distinct
+  ---
+  duration_ms: 0.276435
+  type: 'test'
+  ...
+# Subtest: zero, invalid coordinates and overflowing norm still reject
+ok 10 - zero, invalid coordinates and overflowing norm still reject
+  ---
+  duration_ms: 0.381623
+  type: 'test'
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 4
+# fail 6
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 122.997397
