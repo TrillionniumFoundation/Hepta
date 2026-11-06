@@ -19,7 +19,7 @@ measurement evidence.
 
 ## Build and CLI
 
-Use a matching LLVM 20 development package and compiler:
+Use the pinned LLVM 20.1.8 development package and a matching compiler:
 
     cmake -S tools/hia_system -B /tmp/hia-system-build \
       -DLLVM_DIR=/path/to/llvm-20/lib/cmake/llvm
@@ -73,7 +73,7 @@ error. Temporaries cannot become output parameters or surviving fallback
 values.
 
 Values are structured records for integers, bit-exact floating constants,
-null/zero/undef/poison/token-none, aggregate elements, byte arrays, block
+null/zero/undef/poison/token-none/target-none, aggregate elements, byte arrays, block
 addresses, constant operations, inline assembly, metadata values and symbol
 references. Constant operations contain an opcode, typed operands, flags and,
 where applicable, GEP source type, no-wrap flags and in-range bounds. Actual

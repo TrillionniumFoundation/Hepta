@@ -32,6 +32,7 @@
 #include "llvm/IR/Metadata.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Operator.h"
+#include "llvm/IR/TrackingMDRef.h"
 #include "llvm/IR/Verifier.h"
 #include "llvm/IRReader/IRReader.h"
 #include "llvm/Support/Error.h"
@@ -320,6 +321,8 @@ J Encoder::value(const Value *V) {
     R["kind"] = "zero";
   } else if (isa<ConstantTokenNone>(V)) {
     R["kind"] = "token_none";
+  } else if (isa<ConstantTargetNone>(V)) {
+    R["kind"] = "target_none";
   } else if (auto *BA = dyn_cast<BlockAddress>(V)) {
     R["kind"] = "block_address";
     R["function"] = value(BA->getFunction());
@@ -613,7 +616,7 @@ Value *Decoder::value(const J &V) {
     APFloat F(T->getFltSemantics(), readBits(Width, req(O, "hex")));
     R = ConstantFP::get(P->C, F);
   } else if (K == "poison" || K == "undef" || K == "zero" ||
-             K == "null" || K == "token_none") {
+             K == "null" || K == "token_none" || K == "target_none") {
     keys(O, {"kind", "type"});
     if (K == "poison") R = PoisonValue::get(T);
     else if (K == "undef") R = UndefValue::get(T);
@@ -622,6 +625,8 @@ Value *Decoder::value(const J &V) {
       R = ConstantAggregateZero::get(T);
     } else if (K == "null")
       R = ConstantPointerNull::get(needTy<PointerType>(T, "pointer"));
+    else if (K == "target_none")
+      R = ConstantTargetNone::get(needTy<TargetExtType>(T, "target extension"));
     else R = ConstantTokenNone::get(P->C);
   } else if (K == "block_address") {
     keys(O, {"kind", "type", "function", "block"});
