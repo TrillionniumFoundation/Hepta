@@ -30,8 +30,8 @@ class NativePilotEvidence(unittest.TestCase):
             pilot.validate_observation(missing, expected, 2)
 
     def test_failed_process_lifecycle_cannot_become_a_success_or_hardware_skip(self):
-        normal = {'timed_out': False, 'process_group_cleanup': {
-            'group': 1, 'scope': 'owned_linux_process_group', 'drained': True,
+        normal = {'timed_out': False, 'process_group': 12345, 'process_group_cleanup': {
+            'group': 12345, 'scope': 'owned_linux_process_group', 'drained': True,
             'signals': [], 'live_members_after': [], 'errors': [], 'elapsed_ns': 0}}
         self.assertTrue(pilot.clean_command(normal))
         for mutation in ({'timed_out': True}, {'timed_out': 0},

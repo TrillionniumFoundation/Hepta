@@ -1,0 +1,84 @@
+{
+  "schema": "hepta.hia.linux.full-system-protocol.v1",
+  "scope": "complete_frozen_x86_64_configuration",
+  "linux": {
+    "version": "6.18.60",
+    "commit": "f45ed76d6791cf72ff1265ee93511175bbbc2f18",
+    "archive_sha256": "3c2f44ef6acc021a7ad444d9a2e6ec1ef488ff09368793d0004a6080f69d621e"
+  },
+  "configuration": {
+    "base": "x86_64_defconfig",
+    "boot_overlay": "tools.qualify_hia_linux_baseline.BOOT_OVERLAY",
+    "exact_config_required_equal_to_stock": true
+  },
+  "toolchain": {
+    "llvm": "20.1.8",
+    "frontend": "original C ABI flags and optimization macro settings, with LLVM passes disabled",
+    "system_profile": "hepta.hia.system.v1",
+    "assembly_profile": "hepta.hia.machine-assembly.v1",
+    "native_backend": "fresh LLVM module reconstructed from retained HIA"
+  },
+  "required_target_scope": [
+    "ordinary target C",
+    "generated target C",
+    "C-to-assembly generated bounds and offsets",
+    "target assembly",
+    "vDSO",
+    "realmode and boot code",
+    "compressed boot code and embedded binary inputs",
+    "built-in objects",
+    "all configured loadable modules"
+  ],
+  "trusted_build_scope": [
+    "host tools recorded under explicit HOSTCC/HOSTCXX drivers",
+    "registered compiler capability probes",
+    "preprocessing and linker scripts",
+    "native linker, archiver, objcopy and Kbuild postprocessing"
+  ],
+  "gates": [
+    "exact upstream archive inventory before and after",
+    "same frozen resolved config as stock",
+    "clean exact compiler source commit before and after",
+    "typed native codec executable bound to source hashes",
+    "full native codec semantic fixtures pass",
+    "fresh reconstruction per target C translation unit",
+    "canonical llvm-dis equality except external ModuleID comment",
+    "byte-exact explicit machine assembly reconstruction",
+    "no original C or object fallback",
+    "every saved Kbuild command and native object accounted for",
+    "full vmlinux, bzImage and modules build",
+    "boot actual HIA image in isolated QEMU",
+    "all finite guest checks pass"
+  ],
+  "replay": {
+    "required_for_source_independent_rebuild": true,
+    "original_frontend_payload_invocations": 0,
+    "original_frontend_probes_and_host_tools_separately_recorded": true,
+    "retained_programs": "compressed typed HIA JSON plus dependency and external-data bindings"
+  },
+  "measurement_boundaries": {
+    "safe_core_memory_proof": false,
+    "all_linux_configurations": false,
+    "all_architectures": false,
+    "qemu_tcg_is_physical_hardware_performance": false,
+    "full_kunit_kselftest_ltp": false,
+    "ndu_advantage_requires_separate_complete_matrix": true
+  },
+  "comparison_arms": [
+    "stock",
+    "hia_static",
+    "best_fixed",
+    "greedy",
+    "ordinary_mpc",
+    "same_objective",
+    "fixed_preference_ndu",
+    "dynamic_ndu"
+  ],
+  "ndu_acceptance": {
+    "full_build_and_boot_required_before_comparison": true,
+    "same_workloads_inputs_limits": true,
+    "include_translation_and_planning_cost": true,
+    "report_failures_and_missing_cells": true,
+    "no_gain_from_leaf_pilot_or_model_only_scores": true
+  }
+}
