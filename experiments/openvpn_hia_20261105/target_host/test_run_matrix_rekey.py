@@ -274,7 +274,7 @@ class PassiveDcoRekeyTests(unittest.TestCase):
         )
         lines.append("dco_swap_keys: peer-id 0")
 
-        observation = matrix.observe("\\n".join(lines))
+        observation = matrix.observe("\n".join(lines))
         self.assertEqual(observation["completed_rekeys"], 0)
         self.assertEqual(observation["rekey_cycles"], [])
 
