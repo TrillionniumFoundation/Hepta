@@ -119,4 +119,84 @@ class NetlinkPeerDumpTests(unittest.TestCase):
             self.assertEqual(__import__('json').loads(output.read_text())['schema'],'mock-peer')
             self.assertTrue(output.parent.is_dir())
 
+
+    def test_evidence_creation_respects_maximum_permissions_even_with_zero_umask(self):
+        # Root-invoked helpers must not create writable-by-others receipts or
+        # newly created parents when their inherited umask is permissive.
+        # This is an offline filesystem permission test, not a TUN/DCO pass.
+        import os
+        import stat
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / 'new' / 'nested' / 'peer.json'
+            previous = os.umask(0)
+            try:
+                module.write_evidence_no_follow(output, '{"schema":"umask"}\n')
+            finally:
+                os.umask(previous)
+            for path in (output.parent, output.parent.parent, output):
+                mode = stat.S_IMODE(path.stat().st_mode)
+                self.assertEqual(mode & 0o022, 0, (str(path), oct(mode)))
+            self.assertEqual(output.read_text(), '{"schema":"umask"}\n')
+
+    def test_atomic_partial_write_never_publishes(self):
+        import os
+        with tempfile.TemporaryDirectory() as root:
+            path = Path(root) / 'evidence.json'
+            real_fdopen = os.fdopen
+            class FailingStream:
+                def __init__(self, stream): self.stream = stream
+                def __enter__(self): return self
+                def __exit__(self, *args): return self.stream.__exit__(*args)
+                def write(self, document):
+                    self.stream.write(document[:8])
+                    self.stream.flush()
+                    raise OSError(28, 'injected ENOSPC')
+                def flush(self): return self.stream.flush()
+                def fileno(self): return self.stream.fileno()
+            def failing_fdopen(fd, *args, **kwargs):
+                return FailingStream(real_fdopen(fd, *args, **kwargs))
+            with mock.patch.object(module.os, 'fdopen', side_effect=failing_fdopen):
+                with self.assertRaises(OSError):
+                    module.write_evidence_no_follow(path, '{"complete":true}\\n')
+            self.assertFalse(path.exists())
+            self.assertEqual(list(Path(root).iterdir()), [])
+
+    def test_atomic_fsync_error_never_publishes(self):
+        import os
+        with tempfile.TemporaryDirectory() as root:
+            path = Path(root) / 'evidence.json'
+            real_fsync = os.fsync
+            calls = [0]
+            def fail_first_fsync(fd):
+                calls[0] += 1
+                if calls[0] == 1: raise OSError(5, 'injected EIO')
+                return real_fsync(fd)
+            with mock.patch.object(module.os, 'fsync', side_effect=fail_first_fsync):
+                with self.assertRaises(OSError):
+                    module.write_evidence_no_follow(path, 'complete')
+            self.assertFalse(path.exists())
+            self.assertEqual(list(Path(root).iterdir()), [])
+
+    def test_atomic_link_never_overwrites_racing_final(self):
+        import os
+        with tempfile.TemporaryDirectory() as root:
+            path = Path(root) / 'evidence.json'
+            real_link = os.link
+            def race_for_final(src, dst, *args, **kwargs):
+                path.write_text('winner')
+                return real_link(src, dst, *args, **kwargs)
+            with mock.patch.object(module.os, 'link', side_effect=race_for_final):
+                with self.assertRaises(FileExistsError):
+                    module.write_evidence_no_follow(path, 'loser')
+            self.assertEqual(path.read_text(), 'winner')
+            self.assertEqual(sorted(p.name for p in Path(root).iterdir()), ['evidence.json'])
+
+    def test_atomic_success_removes_staging_file(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = Path(root) / 'new' / 'receipt.json'
+            module.write_evidence_no_follow(path, '{"complete":true}')
+            self.assertEqual(path.read_text(), '{"complete":true}')
+            self.assertEqual(sorted(p.name for p in path.parent.iterdir()), ['receipt.json'])
+
+
 if __name__=='__main__':unittest.main(verbosity=2)
