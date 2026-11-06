@@ -1,0 +1,102 @@
+{
+  "additional_preserved_first_attempt_artifacts": [
+    {
+      "bytes": 25628,
+      "path": "/workspace/scratch/22f6defbc03d/independent-policy-review-draft-schema-mismatch.json.gz",
+      "sha256": "0c66c965e8236158394e1a654502a2352c3347a09feed35e606989fa3b9203b2"
+    },
+    {
+      "bytes": 5307,
+      "path": "/workspace/scratch/22f6defbc03d/independent-policy-audit-draft-schema-mismatch.log",
+      "sha256": "6eb93e225ba7bcfe8bd63c8908b903a873063d855a927337049ee1cbaeba9b6a"
+    }
+  ],
+  "attempts": [
+    {
+      "attempt": 1,
+      "checks": 1129250,
+      "explanation": "Reviewer incorrectly compared outer full-source-snapshot schema to inner source-identity schema by whole-object equality; this caused exactly two false negatives. No formal campaign failure or production-code change.",
+      "failed_checks": {
+        "outer_native_source_snapshot": 2
+      },
+      "log": {
+        "bytes": 5307,
+        "path": "/workspace/scratch/22f6defbc03d/independent-policy-audit.log",
+        "sha256": "6eb93e225ba7bcfe8bd63c8908b903a873063d855a927337049ee1cbaeba9b6a"
+      },
+      "report": {
+        "bytes": 360749,
+        "path": "/workspace/scratch/22f6defbc03d/independent-policy-review.json",
+        "sha256": "2a2acf108f11aaffb7a75244ca75a09beed11c3ffbdaaeb19b94bb20085a62f5"
+      },
+      "script": {
+        "bytes": 38772,
+        "path": "/workspace/scratch/22f6defbc03d/independent_policy_audit_draft_schema_mismatch.py",
+        "sha256": "aa1820ab0a59e60b5cd82f4a5da55132a04601e6ae872bc2cafd2f03de933595"
+      },
+      "status": "failed",
+      "wall_ns": 21877690925
+    },
+    {
+      "attempt": 2,
+      "checks": 1129251,
+      "explanation": "Corrected source check binds HEAD/clean metadata, frozen 230-file source subset and unchanged full 9105-file snapshot inventory. All independent checks passed. This run completed before the parent request for a distinct final output path arrived.",
+      "failed_checks": {},
+      "log": {
+        "bytes": 5311,
+        "path": "/workspace/scratch/22f6defbc03d/independent-policy-audit-corrected-prefinal.log",
+        "sha256": "35d2b6f6e91abf345140524873dc04b16fae795160b7a119dea673f7b8d994b4"
+      },
+      "report": {
+        "bytes": 360974,
+        "path": "/workspace/scratch/22f6defbc03d/independent-policy-review-corrected-prefinal.json",
+        "sha256": "792646009b19215bdc8e72196248dbf7a85a787c126a27d536c1f5a459e39142"
+      },
+      "script": {
+        "bytes": 39829,
+        "path": "/workspace/scratch/22f6defbc03d/independent_policy_audit_corrected_prefinal.py",
+        "sha256": "a317e26bc24a9171c7ce225e26473cc97033bcb418c9d265f1b5717f790b2831"
+      },
+      "status": "passed",
+      "wall_ns": 18865559789
+    },
+    {
+      "attempt": 3,
+      "checks": 1129252,
+      "explanation": "Same mathematical checks at a distinct create-only final output path, additionally binding the completed separate native cryptographic review and outer snapshot file hashes. No additional production run.",
+      "failed_checks": {},
+      "log": {
+        "bytes": 5314,
+        "path": "/workspace/scratch/22f6defbc03d/independent-policy-audit-v2.log",
+        "sha256": "4aa8b3e0e160c5ec96843699dac7d8eddc9aac8ba9fef34fe400e69204c5854b"
+      },
+      "report": {
+        "bytes": 361714,
+        "path": "/workspace/scratch/22f6defbc03d/independent-policy-review-v2.json",
+        "sha256": "4962be14832fa49d4ca255bd8258369315716feb87bacf4528d6737f120ddbfc"
+      },
+      "script": {
+        "bytes": 40392,
+        "path": "/workspace/scratch/22f6defbc03d/independent_policy_audit.py",
+        "sha256": "98554c7fa4daa17441e612c4ae7f5fc30682f58944ca6993a60e457a6e17203b"
+      },
+      "status": "passed",
+      "wall_ns": 18664982691
+    }
+  ],
+  "author": "independent evidence audit",
+  "final_report": {
+    "bytes": 361714,
+    "path": "/workspace/scratch/22f6defbc03d/independent-policy-review-v2.json",
+    "sha256": "4962be14832fa49d4ca255bd8258369315716feb87bacf4528d6737f120ddbfc"
+  },
+  "formal_campaign_modified": false,
+  "formal_campaign_or_native_binary_launched_by_reviewer": false,
+  "interpretation": "The first reviewer-script schema mistake is retained as a reviewer false negative; it is not represented as a production RED-to-GREEN test or a failed formal campaign. Attempts 2 and 3 only read immutable formal evidence and independently recompute the same declared model.",
+  "schema": "hepta.hia.ndu.independent-policy-review-attempts.v1",
+  "separate_native_review": {
+    "bytes": 52592,
+    "path": "/workspace/scratch/22f6defbc03d/ndu-native-frame-review/NATIVE_FRAME_AUDIT.json",
+    "sha256": "235eacf76dc7976118ebe8842d48c3dbf84f6baa14baa55c506e30f0d123097b"
+  }
+}
