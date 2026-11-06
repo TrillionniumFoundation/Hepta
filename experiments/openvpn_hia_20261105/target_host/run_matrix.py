@@ -155,6 +155,101 @@ def observe(text):
                               'incoming_key_line': incoming[0] if ordinary else None,
                               'dco_install_line': install[0] if offload else None,
                               'dco_swap_line': swap[-1] if offload else None})
+    # A passive DCO peer can promote the staged key at the next reset. Its
+    # dco_swap_keys event may therefore be in the next reset segment, before
+    # that segment's new key is installed, and the responder may not log a
+    # local TLS: soft reset. Pair the staged key with a later, different
+    # control-reset key and the same peer's swap. Initiator-side same-segment
+    # DCO receipts remain covered by the offload check above.
+    pending_dco = {}
+    current_session = None
+    for begin in resets:
+        # Peer IDs can be reused after a hard restart. A staged key from the
+        # previous TLS session must never be promoted by a later session's
+        # reset/swap sequence.
+        # Count TLS lifecycle boundaries so reused peer IDs cannot cross sessions.
+        session_id = sum(boundary < begin for boundary in boundaries)
+        if current_session is None:
+            current_session = session_id
+        elif session_id != current_session:
+            pending_dco.clear()
+            current_session = session_id
+        end = min([i for i in resets + boundaries if i > begin] + [len(lines)])
+        segment = lines[begin:end]
+        reset_keys = {
+            int(match[1])
+            for line in segment
+            for match in [re.search(r'P_CONTROL_SOFT_RESET_V1 kid=([0-7])(?:\s|$)', line)]
+            if match
+        }
+        reset_key = next(iter(reset_keys)) if len(reset_keys) == 1 else None
+        install_lines = {}
+        segment_failed = False
+        for offset, line in enumerate(segment):
+            absolute_line = begin + offset + 1
+            if any(token in line for token in (
+                'Cannot swap keys', 'Impossible to install key material',
+                'DCO key state mismatch', 'TLS Error:'
+            )):
+                segment_failed = True
+                for state in pending_dco.values():
+                    state['failed'] = True
+            swap_match = re.search(r'dco_swap_keys: peer-id (\d+)', line)
+            if swap_match:
+                peer_id = int(swap_match[1])
+                pending = pending_dco.pop(peer_id, None)
+                if (
+                    pending
+                    and not pending['failed']
+                    and reset_key is not None
+                    and reset_key != pending['key_id']
+                    and begin + 1 > pending['reset_line']
+                    and absolute_line > pending['new_key_line']
+                ):
+                    completed.append({
+                        'reset_line': pending['reset_line'],
+                        'tls_line': None,
+                        'outgoing_key_line': None,
+                        'incoming_key_line': None,
+                        'dco_install_line': pending['install_line'],
+                        'dco_swap_line': absolute_line,
+                        'dco_key_id': pending['key_id'],
+                        'dco_peer_id': peer_id,
+                        'dco_promotion_reset_line': begin + 1
+                    })
+            install_match = re.search(
+                r'dco_install_key: peer_id=(\d+) keyid=([0-7])', line
+            )
+            if install_match:
+                key = (int(install_match[1]), int(install_match[2]))
+                install_lines.setdefault(key, []).append(absolute_line)
+            new_match = re.search(
+                r'dco_new_key: slot 1, key-id ([0-7]), peer-id (\d+)', line
+            )
+            if new_match:
+                key_id = int(new_match[1])
+                peer_id = int(new_match[2])
+                matching_installs = install_lines.get((peer_id, key_id), [])
+                if (
+                    not segment_failed
+                    and reset_key == key_id
+                    and len(matching_installs) == 1
+                    and matching_installs[0] < absolute_line
+                ):
+                    # An unpromoted previous slot must never be overwritten by
+                    # a later install and then retroactively treated as valid.
+                    if peer_id in pending_dco:
+                        pending_dco.pop(peer_id, None)
+                    else:
+                        pending_dco[peer_id] = {
+                            'key_id': key_id,
+                            'peer_id': peer_id,
+                            'reset_line': begin + 1,
+                            'install_line': matching_installs[0],
+                            'new_key_line': absolute_line,
+                            'failed': False
+                        }
+    completed.sort(key=lambda cycle: cycle['reset_line'])
     traces = re.findall(r'OPENVPN_HIA_CALLS read=(\d+) write=(\d+) read_epoch=(\d+) write_epoch=(\d+) abi_failures=(\d+)',text)
     trace = dict(zip(('read','write','read_epoch','write_epoch','abi_failures'),map(int,traces[-1]))) if traces else None
     initializations=[i for i,line in enumerate(lines) if 'Initialization Sequence Completed' in line]
