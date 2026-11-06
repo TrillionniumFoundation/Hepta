@@ -118,11 +118,16 @@ bool exactFlag(unsigned Op) {
          Op == Instruction::LShr || Op == Instruction::AShr;
 }
 
+std::string wireText(StringRef Text) {
+  if (!json::isUTF8(Text))
+    fail("non-UTF-8 instruction tag is not representable in the text-name schema");
+  return Text.str();
+}
 std::string syncScope(const Instruction &I, SyncScope::ID ID) {
   auto Name = I.getContext().getSyncScopeName(ID);
   if (!Name)
     fail("unknown LLVM synchronization scope ID");
-  return Name->str();
+  return wireText(*Name);
 }
 SyncScope::ID syncScope(Fields &F, Decoder &D) {
   return D.context().getOrInsertSyncScopeID(F.str("sync_scope"));
@@ -239,7 +244,7 @@ void encodeCall(O &Out, const CallBase &Call, Encoder &E) {
   A Bundles;
   for (unsigned I = 0; I < Call.getNumOperandBundles(); ++I) {
     OperandBundleUse Bundle = Call.getOperandBundleAt(I);
-    Bundles.push_back(O{{"tag", Bundle.getTagName().str()},
+    Bundles.push_back(O{{"tag", wireText(Bundle.getTagName())},
                         {"size", int64_t(Bundle.Inputs.size())}});
   }
   Out["bundles"] = std::move(Bundles);
@@ -451,8 +456,12 @@ llvm::Instruction *decodeInstruction(const O &Object, Decoder &D,
   unsigned Op = opcode(F.str("op"));
   Type *ResultType = D.type(F.get("result_type"));
   std::vector<Value *> Storage;
-  for (const J &V : F.array("operands"))
-    Storage.push_back(D.value(V));
+  for (const J &V : F.array("operands")) {
+    Value *Operand = D.value(V);
+    if (!Operand)
+      fail("null executable instruction operand");
+    Storage.push_back(Operand);
+  }
   ArrayRef<Value *> V(Storage);
   auto Arity = [&](size_t N) {
     if (V.size() != N)

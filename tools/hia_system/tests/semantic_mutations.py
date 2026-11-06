@@ -263,6 +263,9 @@ def main():
         invalid = copy.deepcopy(probe)
         first(invalid, "add")["operands"].pop()
         rejected(invalid, "reject_wrong_operand_count")
+        invalid = copy.deepcopy(probe)
+        first(invalid, "add")["operands"][0] = None
+        rejected(invalid, "reject_null_operand")
         invalid = copy.deepcopy(properties)
         first(invalid, "getelementptr", inbounds=True)["nusw"] = False
         rejected(invalid, "reject_inconsistent_gep_flags")
