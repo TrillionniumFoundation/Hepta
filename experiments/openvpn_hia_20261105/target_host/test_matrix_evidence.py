@@ -309,8 +309,11 @@ class ProfileInventoryTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             verifier.verify_profile_process_samples(
                 {"openvpn_sample_headers_by_role": {"client": 0}}, "hia-user")
+        with self.assertRaises(ValueError):
+            verifier.verify_profile_process_samples(
+                {"openvpn_sample_headers_by_role": {"client": 1}, "hia_symbol_lines": 0}, "hia-user")
         verifier.verify_profile_process_samples(
-            {"openvpn_sample_headers_by_role": {"client": 1}}, "hia-user")
+            {"openvpn_sample_headers_by_role": {"client": 1}, "hia_symbol_lines": 2}, "hia-user")
 
 
 if __name__=='__main__':unittest.main(verbosity=2)

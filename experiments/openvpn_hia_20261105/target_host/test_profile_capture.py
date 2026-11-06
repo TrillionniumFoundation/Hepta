@@ -43,6 +43,16 @@ class ProfileRecorderWaitTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             matrix.profile_process_sample_required("unknown")
 
+    def test_hia_profile_symbol_counter_requires_exported_packet_id_hotspot(self):
+        report = """\
+  1.25% openvpn [.] ovpn_hia_packet_id_read
+  0.75% openvpn [.] ovpn_hia_packet_id_write_epoch
+  9.00% openvpn [.] ovpn_read
+  3.00% openvpn [.] hia_packet_id_read
+"""
+        self.assertEqual(matrix.hia_profile_symbol_lines(report), 2)
+        self.assertEqual(matrix.hia_profile_symbol_lines("  9.00% openvpn [.] ovpn_read\\n"), 0)
+
     def test_real_recorder_child_finishes_without_three_second_truncation(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
