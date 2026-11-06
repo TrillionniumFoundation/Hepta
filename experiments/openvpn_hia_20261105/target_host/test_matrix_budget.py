@@ -12,7 +12,7 @@ import unittest
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parents[3]
+ROOT = HERE.parents[2]
 PLAN = json.loads((HERE / "plan.json").read_text())
 WORKFLOW = (ROOT / ".github/workflows/hia-openvpn-target-host.yml").read_text()
 RUNNER = (HERE / "run_matrix.py").read_text()
