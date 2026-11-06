@@ -11,6 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from hashlib import sha256
 import ctypes
+import json
 import os
 from pathlib import Path
 import platform
@@ -18,6 +19,7 @@ import shutil
 import stat
 import sys
 import tempfile
+import time
 
 from .artifact_publication import publish_verified, verify_published, withdraw_own_link
 from .clang_capture import run_bounded
@@ -74,7 +76,7 @@ def _implementation_hash():
     for name in (
         "hia_schema.py", "hia_program.py", "hia_capability_flow.py", "hia_opcodes.py",
         "hia_json_preflight.py", "hia_program_composite.py", "hia_program_native.py",
-        "hia_machine_x64.py", "hia_machine_elf.py", "hia_static_budget.py",
+        "hia_machine_x64.py", "hia_machine_elf.py", "hia_agent_exec.py", "hia_static_budget.py",
         "hia_heap_bound.py", "artifact_publication.py",
         "clang_capture.py", "elf_shared_abi.py", "object_symbols.py",
         "object_structure.py", "native_tool_identity.py",
@@ -128,6 +130,7 @@ class HIAProgramMachine:
     target: str
     input_sha256: str
     function_frames: tuple[tuple[str, int], ...]
+    machine_plan_sha256: str | None = None
 
 
 class _Function:
@@ -486,7 +489,7 @@ class _Function:
             for word in range(_words(param["type"])):
                 c.load("rax", "rdi", n * 8); self.store(param["name"], word=word); n += 1
         c.jmp(self.block_label(self.fn["entry"]))
-        for block in self.fn["blocks"]:
+        for block in self.parent.ordered_blocks(self.fn):
             c.label(self.block_label(block["id"]))
             for ins in block["ops"]:
                 self.operation(ins)
@@ -518,11 +521,20 @@ class _Function:
 
 
 class _Emitter:
-    def __init__(self, document, allowed_exports):
+    def __init__(self, document, allowed_exports, block_order=None):
         self.document, self.allowed_exports = document, allowed_exports
         self.c, self.symbols, self.exports, self.frames = Code(), [], [], []
         self.indices = {fn["name"]: i for i, fn in enumerate(document["functions"])}
         self.serial = 0
+        self.block_order = block_order or {}
+
+    def ordered_blocks(self, fn):
+        """Realize the caller's checked layout; never choose a profitable order."""
+        order = self.block_order.get(fn["name"])
+        if order is None:
+            return fn["blocks"]
+        blocks = {block["id"]: block for block in fn["blocks"]}
+        return [blocks[name] for name in order]
 
     def label(self, suffix):
         self.serial += 1
@@ -598,7 +610,37 @@ class _Emitter:
         return text, obj
 
 
-def emit_program_machine(program, *, target=TARGET):
+def validate_block_layout_plan(program, machine_plan):
+    """Check the finite layout-only profile against the original immutable Core.
+
+    Every block ends in an explicit transfer, including entry and return. A
+    permutation changes addresses/fixups only: value slots, instructions and
+    resource/call order within each executed path remain canonical. This check
+    does not prove the canonical backend's Core-to-x86 refinement.
+    """
+    from .hia_program import verify_program
+    checked = verify_program(program)
+    if type(machine_plan) is not dict or set(machine_plan) != {"schema", "core_sha256", "block_order"}:
+        _reject("layout plan requires exactly schema, core_sha256 and block_order", "E_HIA_MACHINE_PLAN")
+    if machine_plan["schema"] != "hepta.hia.agent.block-layout.v1" or machine_plan["core_sha256"] != checked.sha256:
+        _reject("layout plan schema or Core binding differs", "E_HIA_MACHINE_PLAN")
+    orders = machine_plan["block_order"]
+    if type(orders) is not dict or not orders:
+        _reject("layout plan requires at least one explicit function order", "E_HIA_MACHINE_PLAN")
+    functions = {fn["name"]: fn for fn in checked.as_dict()["functions"]}
+    frozen = {}
+    for name, order in orders.items():
+        if type(name) is not str or name not in functions or type(order) is not list:
+            _reject("layout plan names an unknown function/order", "E_HIA_MACHINE_PLAN")
+        blocks = {block["id"] for block in functions[name]["blocks"]}
+        if (len(order) != len(blocks) or any(type(item) is not str for item in order)
+                or set(order) != blocks):
+            _reject("layout must be an exact permutation of every function block", "E_HIA_MACHINE_PLAN")
+        frozen[name] = list(order)
+    return {"schema": machine_plan["schema"], "core_sha256": checked.sha256, "block_order": frozen}
+
+
+def emit_program_machine(program, *, target=TARGET, machine_plan=None):
     """Recheck immutable Core and emit deterministic native object bytes."""
     from .hia_program import VerifiedProgram, verify_program
     if target != TARGET:
@@ -610,7 +652,11 @@ def emit_program_machine(program, *, target=TARGET):
     if (checked.canonical_bytes != program.canonical_bytes
             or checked.input_sha256 != program.input_sha256):
         _reject("verified program identity changed", "E_HIA_PROGRAM_ORIGIN")
-    emitter = _Emitter(checked.as_dict(), checked.scalar_entrypoints)
+    plan = None if machine_plan is None else validate_block_layout_plan(checked, machine_plan)
+    plan_hash = None if plan is None else sha256(json.dumps(
+        plan, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")).hexdigest()
+    emitter = _Emitter(checked.as_dict(), checked.scalar_entrypoints,
+                       None if plan is None else plan["block_order"])
     text, obj = emitter.render()
     if len(obj) > MAX_ARTIFACT_BYTES:
         _reject("object exceeds artifact byte budget", "E_HIA_PROGRAM_LIMIT")
@@ -620,7 +666,7 @@ def emit_program_machine(program, *, target=TARGET):
         _reject("verifier/emitter changed during generation", "E_HIA_PROGRAM_STALE")
     return HIAProgramMachine(obj, text, sha256(obj).hexdigest(), checked.sha256,
                              before, exports, PROFILE, target, checked.input_sha256,
-                             tuple(emitter.frames))
+                             tuple(emitter.frames), plan_hash)
 
 
 def _inspect_object(data, exports):
@@ -648,14 +694,26 @@ def _read_artifact(path):
     return data
 
 
-def _run_logged(argv, *, command_log=None, **kwargs):
+def _run_logged(argv, *, command_log=None, parent_death_guard=False, **kwargs):
     if command_log is not None and type(command_log) is not list:
         _reject("command log must be a plain list", "E_HIA_COMMAND_LOG")
     row = {"argv": list(argv), "status": "attempted", "returncode": None}
     if command_log is not None:
         command_log.append(row)
     try:
-        result = run_bounded(argv, **kwargs)
+        captured_argv = argv
+        if parent_death_guard:
+            if sys.platform != "linux":
+                _reject("parent-death guarded linkage requires Linux", "E_HIA_PROGRAM_TARGET")
+            captured_argv = [sys.executable, "-B", "-E", "-s", "-m", "hepta.hia_agent_exec",
+                             str(os.getpid()), *argv]
+            kwargs["cwd"] = Path(__file__).resolve().parent.parent
+            row["process_guard"] = {"profile": "linux-pdeathsig-sigkill-exec-v1",
+                "module": "hepta.hia_agent_exec", "sha256": sha256(
+                    Path(__file__).with_name("hia_agent_exec.py").read_bytes()).hexdigest(),
+                "capture_argv": captured_argv,
+                "role": "set parent-death SIGKILL then exec the recorded tool argv in the same PID"}
+        result = run_bounded(captured_argv, **kwargs)
     except BaseException as error:
         row.update(status="capture_failed", error={"type": type(error).__name__, "message": str(error)})
         capture = getattr(error, "capture", None)
@@ -686,11 +744,23 @@ def _host():
     return {"system": platform.system(), "machine": platform.machine(), "byteorder": sys.byteorder, **widths}
 
 
-def compile_program_machine(image, *, program, output, kind="shared", linker="cc", command_log=None):
+def compile_program_machine(image, *, program, output, kind="shared", linker="cc", command_log=None,
+                            machine_plan=None, parent_death_guard=False, timeout_seconds=None):
     """Publish a rederived object, or link and inspect a native shared library."""
     if command_log is not None and type(command_log) is not list:
         _reject("command log must be a plain list", "E_HIA_COMMAND_LOG")
-    if not isinstance(image, HIAProgramMachine) or image != emit_program_machine(program, target=image.target):
+    if (timeout_seconds is not None and (type(timeout_seconds) not in (int, float)
+            or not 0 < timeout_seconds <= 3600)):
+        _reject("linkage deadline must be in (0,3600] seconds", "E_HIA_PROGRAM_LIMIT")
+    deadline = None if timeout_seconds is None else time.monotonic() + timeout_seconds
+
+    def remaining(maximum):
+        budget = maximum if deadline is None else min(maximum, deadline - time.monotonic())
+        if budget <= 0:
+            _reject("native build deadline is exhausted", "E_HIA_PROGRAM_LIMIT")
+        return budget
+    if not isinstance(image, HIAProgramMachine) or image != emit_program_machine(
+            program, target=image.target, machine_plan=machine_plan):
         _reject("machine image differs from independently reverified Core", "E_HIA_PROGRAM_ORIGIN")
     if kind not in {"object", "shared"}:
         _reject("only relocatable objects and shared libraries are supported")
@@ -711,14 +781,16 @@ def compile_program_machine(image, *, program, output, kind="shared", linker="cc
         if found is None:
             _reject("GNU ld or a native C linker driver is required for shared linkage")
         tool = Path(found).resolve(); tool_digest = digest_executable(tool)
-        version = _run_logged([str(tool), "--version"], command_log=command_log, timeout=10, stdout_limit=65536, stderr_limit=65536)
+        version = _run_logged([str(tool), "--version"], command_log=command_log,
+                             parent_death_guard=parent_death_guard, timeout=remaining(10), stdout_limit=65536, stderr_limit=65536)
         if version.returncode:
             _reject("cannot identify the native linker")
         if version.stdout.startswith("GNU ld "):
             linker_mode, default_target = "gnu-ld", "elf_x86_64 (explicit emulation)"
         else:
             linker_mode = "c-driver"
-            triple = _run_logged([str(tool), "-dumpmachine"], command_log=command_log, timeout=10, stdout_limit=65536, stderr_limit=65536)
+            triple = _run_logged([str(tool), "-dumpmachine"], command_log=command_log,
+                                parent_death_guard=parent_death_guard, timeout=remaining(10), stdout_limit=65536, stderr_limit=65536)
             if (triple.returncode or triple.stdout.strip() not in
                     {"x86_64-linux-gnu", "x86_64-pc-linux-gnu", "x86_64-unknown-linux-gnu"}):
                 _reject("linker driver must target x86_64 GNU/Linux")
@@ -738,7 +810,8 @@ def compile_program_machine(image, *, program, output, kind="shared", linker="cc
                      ["-shared", "-Wl,-z,defs", "-Wl,-z,noexecstack", "-Wl,-z,relro", "-Wl,-z,now", "-Wl,--build-id=none"])
             libraries = ["-lc"] if linker_mode == "gnu-ld" else []
             result = _run_logged([str(tool), *flags, str(obj), *libraries, "-o", str(artifact)],
-                                 command_log=command_log, timeout=60, stdout_limit=65536, stderr_limit=1048576)
+                                 command_log=command_log, parent_death_guard=parent_death_guard,
+                                 timeout=remaining(60), stdout_limit=65536, stderr_limit=1048576)
             if result.returncode:
                 _reject("linker rejected generated machine object: " + result.stderr[:3000])
         data = _read_artifact(artifact)
@@ -764,6 +837,9 @@ def compile_program_machine(image, *, program, output, kind="shared", linker="cc
             "machine_text_bytes": len(image.text_bytes), "exports": list(image.exports),
             "binary_inventory": inventory, "build_host": host, "toolchain": toolchain, "flags": flags,
             "function_frames": dict(image.function_frames),
+            "machine_plan_sha256": image.machine_plan_sha256,
+            "implicit_profitability_optimizer_used": False,
+            "parent_death_guarded_linker": bool(parent_death_guard) if kind == "shared" else False,
             "external_abi": "SysV AMD64 scalar C functions; resources and multiple results are internal",
             "runtime_assumptions": ["Linux x86-64 LP64 runtime and ordinary C scalar ABI",
                 "calloc/malloc return null or fresh nonaliasing allocations; calloc initializes every byte",
