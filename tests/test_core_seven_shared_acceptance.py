@@ -124,6 +124,33 @@ class SharedAcceptanceContractTests(unittest.TestCase):
                                      'GIT_WORK_TREE': str(other)}):
                     self.assertEqual(p.diagnostic._git_baseline()['head'], expected_head)
 
+    def test_shared_ci_selector_matches_all_actual_source_controls(self):
+        # An added rejection test must never be silently absent from CI's
+        # fixed selector. A false-green or count-only receipt is forbidden.
+        import ast
+        import re
+        path = p.ROOT / '.github/workflows/hia-core-syntax-kernel-research.yml'
+        workflow = path.read_text(encoding='utf-8')
+        start = '          EXPECTED_IDS = [\n'
+        stop = '          ]\n'
+        self.assertEqual(workflow.count(start), 1)
+        ids = ast.literal_eval('[' + workflow.split(start, 1)[1].split(stop, 1)[0] + ']')
+        fixed_counts = [int(v) for v in re.findall(
+            r'^\s+EXPECTED_COUNT = (\d+)$', workflow, flags=re.MULTILINE)]
+        self.assertEqual(len(fixed_counts), 2)
+        self.assertEqual(fixed_counts, [len(ids), len(ids)])
+        self.assertEqual(len(ids), len(set(ids)))
+        suite = unittest.TestLoader().loadTestsFromNames(
+            ('tests.test_core_seven_shared_sources',
+             'tests.test_core_seven_shared_acceptance'))
+        def ids_in(s):
+            for item in s:
+                if isinstance(item, unittest.TestSuite):
+                    yield from ids_in(item)
+                else:
+                    yield item.id()
+        self.assertEqual(ids, sorted(ids_in(suite)))
+
     def test_success_flag_cannot_replace_complete_replay(self):
         with tempfile.TemporaryDirectory(prefix='hia-shared-') as directory:
             Path(directory, 'RESULT.json').write_text(json.dumps({
