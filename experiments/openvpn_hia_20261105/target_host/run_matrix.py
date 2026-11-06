@@ -395,6 +395,13 @@ def profile_record_grace_seconds(workload_seconds, configured_grace_seconds):
     return grace
 
 
+def profile_process_sample_required(arm):
+    """Userspace C and HIA profiles must include the measured client process PID."""
+    if arm not in ("c-user", "hia-user", "c-dco"):
+        raise ValueError("unknown profile arm: " + str(arm))
+    return arm in ("c-user", "hia-user")
+
+
 def wait_for_profile_recorder(job, workload_seconds, configured_grace_seconds):
     """Wait after traffic for perf's own shutdown/finalization, preserving timeout."""
     grace=profile_record_grace_seconds(workload_seconds,configured_grace_seconds)
@@ -1015,9 +1022,10 @@ def throughput(pair,workload,seconds,cpus,label,perf=None,udp_acceptance=None,re
                 profile.update(actual_samples_present=bool(headers and samples.proc.returncode==0),
                      actual_sample_headers=len(headers),openvpn_sample_headers_by_role=counts,
                      kernel_symbol_lines=kernel,ovpn_symbol_lines=sum(bool(re.search(r'\bovpn_[a-zA-Z_]',line)) for line in lines))
-                original_process_visible=counts['client']>0 if pair.arms['client']=='c-user' else True
+                required_process_visible=(not profile_process_sample_required(pair.arms['client'])
+                                            or counts['client']>0)
                 profile['passed']=bool(perf_job.proc.returncode==0 and report.proc.returncode==0 and samples.proc.returncode==0
-                                       and headers and kernel and original_process_visible)
+                                       and headers and kernel and required_process_visible)
             except Exception as exc:
                 if perf_job and not perf_job.finished:
                     try:perf_job.stop();profile['record']=perf_job.row

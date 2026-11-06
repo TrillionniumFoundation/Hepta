@@ -291,4 +291,29 @@ class UdpVerifierTests(unittest.TestCase):
             verifier.verify_udp_delivery(value,workload,policy)
 
 
+class ProfileInventoryTests(unittest.TestCase):
+    def test_hia_hotspot_and_dco_profiles_keep_fixed_65_case_216_workload_inventory(self):
+        plan = json.loads((HERE / "plan.json").read_text())
+        cases = verifier.expected_cases(plan)
+        profiles = [row["id"] for row in cases if row["kind"] == "profile"]
+        self.assertEqual(profiles, ["profile-hia-user", "profile-c-dco"])
+        self.assertEqual(len(cases), 65)
+        self.assertEqual(sum(row["kind"] == "performance" for row in cases), 54)
+        workloads = (plan["performance"]["rounds"]
+                     * len(plan["performance"]["orders"])
+                     * len(plan["performance"]["client_arms"])
+                     * len(plan["performance"]["workloads"]))
+        self.assertEqual(workloads, 216)
+
+    def test_independent_verifier_requires_hia_process_sample(self):
+        with self.assertRaises(ValueError):
+            verifier.verify_profile_process_samples(
+                {"openvpn_sample_headers_by_role": {"client": 0}}, "hia-user")
+        with self.assertRaises(ValueError):
+            verifier.verify_profile_process_samples(
+                {"openvpn_sample_headers_by_role": {"client": 1}, "hia_symbol_lines": 0}, "hia-user")
+        verifier.verify_profile_process_samples(
+            {"openvpn_sample_headers_by_role": {"client": 1}, "hia_symbol_lines": 2}, "hia-user")
+
+
 if __name__=='__main__':unittest.main(verbosity=2)
