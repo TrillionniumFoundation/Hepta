@@ -26,6 +26,7 @@ ADDITIONS = (
     'experiments/hia_initialization_frontiers_20261103/UNSIGNED_STEP_CONNECTION.md',
     'hepta/hia_byte_sum.py',
     'hepta/hia_entry_layout.py',
+    'hepta/hia_foreign_buffer_abi.py',
     'hepta/hia_ndu_dynamic.py',
     'hepta/hia_ndu_raw_model.py',
     'hepta/hia_ndu_raw_session.py',
@@ -133,7 +134,7 @@ SUPPORT_IDENTITY_PATHS = legacy.SUPPORT_IDENTITY_PATHS
 def source_paths():
     legacy.source_paths()  # retain the exact earlier source identity closure
     paths = SOURCE_IDENTITY_PATHS
-    require(len(paths) == len(set(paths)) == 258 and commitment(paths) == '36af03771b8b81803d90baafc92fd290d9e6cadbb03e7e135a99beae804bb0f0',
+    require(len(paths) == len(set(paths)) == 259 and commitment(paths) == '5b281e8f5a37999da6aeb49d4ad5264b31775450954e061c88767d1f1a2179fa',
             'reviewed exact source identity closure')
     # pipeline.compiler_hash reads every actual top-level hepta/*.py byte,
     # including modules that are not imported by this selected proof profile.
