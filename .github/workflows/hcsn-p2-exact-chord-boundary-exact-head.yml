@@ -1,0 +1,97 @@
+name: HCSN P2 exact chord-radius boundary and frozen negatives (HOLD)
+on:
+  push:
+    branches:
+      - research/hcsn-p2-exact-chord-boundary-20261106-gpt6-01
+  pull_request:
+    branches:
+      - research/hcsn-p2-subnormal-collision-20261106
+permissions:
+  contents: read
+jobs:
+  exact-boundary-and-frozen-negatives:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    env:
+      EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      FROZEN_BASE: 75d0a499bd987f84e85f7461066c38879fa6b06b
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Verify exact source, frozen parents, and original counterexample
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          node --version
+          python3 --version
+          test "$(git hash-object research/hcsn/p2_binary64_exact_ray_candidate.mjs)" = ecb12ffb3762df0b3ee8ed24c338f87587ebe669
+          test "$(git hash-object research/hcsn/p2_exact_radius_reference.mjs)" = 8c1c65d8d7146daba833b206061e918837a97f00
+          test "$(git hash-object research/hcsn/p2_exact_radius_reference.py)" = 0c399b0c3900479f0837711193b941deb3f90e4f
+          test "$(git hash-object research/hcsn/test_p2_exact_radius_predicate.mjs)" = 57ba40b640756b76dd37bb34eb2139773239f6d2
+          test "$(git hash-object research/hcsn/test_p2_exact_radius_reference.py)" = c3ba84c5e7146124077c04006c1aa99c8f0b03de
+          test "$(git hash-object research/hcsn/p2_exact_radius_negative.mjs)" = 2c0d71874900edf7f4475170efa8005055042c4c
+          test "$(git hash-object research/hcsn/p2_exact_radius_evidence.mjs)" = d1b7305a15b85f48088780e8a5222c72392e066e
+          test "$(git hash-object research/hcsn/gates/2026-11-06-iteration44-exact-radius-node22.json)" = 5329302972981da59c6c69f22fe27c1862726bb5
+          test "$(git hash-object research/hcsn/gates/2026-11-06-iteration44-exact-radius-python-reference.json)" = 7702374c2e3152cb4702fcadc5add1eca08e04e8
+          test "$(git hash-object research/hcsn/gates/2026-11-06-iteration44-exact-radius-old-negative-node22.json)" = 768c8502bc8c9b944b9c7533b1c161e7638da045
+          sha256sum -c research/hcsn/gates/2026-11-06-iteration44-exact-radius-SHA256SUMS.txt
+          for file in p2_exact_occupancy_reference.mjs p2_scale_equivariance_evidence.mjs test_p2_exact_occupancy_reference.mjs test_p2_config_contract.mjs test_p2_signed_zero_reference.mjs test_p2_input_snapshot.mjs test_p2_scale_equivariance_negative.mjs test_p2_subnormal_collision.mjs p2_subnormal_collision_negative.mjs; do
+            git diff --exit-code "$FROZEN_BASE" HEAD -- "research/hcsn/$file"
+          done
+          baseline="$RUNNER_TEMP/hcsn-exact-radius-baseline"
+          mkdir -p "$baseline"
+          git show "$FROZEN_BASE:research/hcsn/p2_binary64_exact_ray_candidate.mjs" > "$baseline/p2_binary64_exact_ray_candidate.mjs"
+          node research/hcsn/p2_exact_radius_negative.mjs "$baseline/p2_binary64_exact_ray_candidate.mjs"
+      - name: Run frozen controls and exact-radius candidate suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test --test-reporter=tap \
+            research/hcsn/test_p2_exact_occupancy_reference.mjs \
+            research/hcsn/test_p2_config_contract.mjs \
+            research/hcsn/test_p2_signed_zero_reference.mjs \
+            research/hcsn/test_p2_input_snapshot.mjs \
+            research/hcsn/test_p2_scale_equivariance_negative.mjs \
+            research/hcsn/test_p2_binary64_exact_ray_candidate.mjs \
+            research/hcsn/test_p2_subnormal_collision.mjs \
+            research/hcsn/test_p2_exact_radius_predicate.mjs | tee "$RUNNER_TEMP/hcsn-exact-radius.tap"
+          grep -Fx '# tests 53' "$RUNNER_TEMP/hcsn-exact-radius.tap"
+          grep -Fx '# pass 53' "$RUNNER_TEMP/hcsn-exact-radius.tap"
+          grep -Fx '# fail 0' "$RUNNER_TEMP/hcsn-exact-radius.tap"
+          grep -Fx '# skipped 0' "$RUNNER_TEMP/hcsn-exact-radius.tap"
+      - name: Run independent Python rational reference
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 research/hcsn/test_p2_exact_radius_reference.py
+          python3 research/hcsn/p2_exact_radius_reference.py > "$RUNNER_TEMP/hcsn-exact-radius-python.json"
+          cmp "$RUNNER_TEMP/hcsn-exact-radius-python.json" research/hcsn/gates/2026-11-06-iteration44-exact-radius-python-reference.json
+      - name: Retain strict non-acceptance result
+        shell: bash
+        run: |
+          set -euo pipefail
+          node research/hcsn/p2_exact_radius_evidence.mjs > "$RUNNER_TEMP/hcsn-exact-radius-evidence.json"
+          grep -F '"mismatches": 0' "$RUNNER_TEMP/hcsn-exact-radius-evidence.json"
+          set +e
+          node research/hcsn/p2_exact_radius_evidence.mjs --strict > "$RUNNER_TEMP/hcsn-exact-radius-strict.json"
+          code=$?
+          set -e
+          cat "$RUNNER_TEMP/hcsn-exact-radius-strict.json"
+          test "$code" -eq 2
+          set +e
+          node research/hcsn/p2_scale_equivariance_evidence.mjs --strict > "$RUNNER_TEMP/hcsn-scale-strict-negative.json"
+          code=$?
+          set -e
+          test "$code" -eq 2
+          echo "HOLD: exact binary64 geometry only; P0-P6 remain OPEN; production activation false"
