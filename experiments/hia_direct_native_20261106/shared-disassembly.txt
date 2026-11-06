@@ -1,0 +1,259 @@
+
+/tmp/hia-direct-evidence-u9_3ytf_/v8.so:     file format elf64-x86-64
+
+
+Disassembly of section .plt:
+
+0000000000001000 <free@plt-0x10>:
+    1000:	ff 35 d2 1f 00 00    	push   0x1fd2(%rip)        # 2fd8 <_GLOBAL_OFFSET_TABLE_+0x8>
+    1006:	ff 25 d4 1f 00 00    	jmp    *0x1fd4(%rip)        # 2fe0 <_GLOBAL_OFFSET_TABLE_+0x10>
+    100c:	0f 1f 40 00          	nopl   0x0(%rax)
+
+0000000000001010 <free@plt>:
+    1010:	ff 25 d2 1f 00 00    	jmp    *0x1fd2(%rip)        # 2fe8 <free@GLIBC_2.2.5>
+    1016:	68 00 00 00 00       	push   $0x0
+    101b:	e9 e0 ff ff ff       	jmp    1000 <free@plt-0x10>
+
+0000000000001020 <abort@plt>:
+    1020:	ff 25 ca 1f 00 00    	jmp    *0x1fca(%rip)        # 2ff0 <abort@GLIBC_2.2.5>
+    1026:	68 01 00 00 00       	push   $0x1
+    102b:	e9 d0 ff ff ff       	jmp    1000 <free@plt-0x10>
+
+0000000000001030 <calloc@plt>:
+    1030:	ff 25 c2 1f 00 00    	jmp    *0x1fc2(%rip)        # 2ff8 <calloc@GLIBC_2.2.5>
+    1036:	68 02 00 00 00       	push   $0x2
+    103b:	e9 c0 ff ff ff       	jmp    1000 <free@plt-0x10>
+
+Disassembly of section .text:
+
+0000000000001040 <__hia_native_fn_0>:
+    1040:	55                   	push   %rbp
+    1041:	48 89 e5             	mov    %rsp,%rbp
+    1044:	48 81 ec e0 00 00 00 	sub    $0xe0,%rsp
+    104b:	4c 8b 9c 24 00 00 00 	mov    0x0(%rsp),%r11
+    1052:	00 
+    1053:	48 89 b5 f8 ff ff ff 	mov    %rsi,-0x8(%rbp)
+    105a:	48 8b 87 00 00 00 00 	mov    0x0(%rdi),%rax
+    1061:	48 89 85 e8 ff ff ff 	mov    %rax,-0x18(%rbp)
+    1068:	48 8b 87 08 00 00 00 	mov    0x8(%rdi),%rax
+    106f:	48 89 85 f0 ff ff ff 	mov    %rax,-0x10(%rbp)
+    1076:	48 8b 87 10 00 00 00 	mov    0x10(%rdi),%rax
+    107d:	48 89 85 e0 ff ff ff 	mov    %rax,-0x20(%rbp)
+    1084:	e9 00 00 00 00       	jmp    1089 <__hia_native_fn_0+0x49>
+    1089:	48 b8 00 00 00 00 00 	movabs $0x0,%rax
+    1090:	00 00 00 
+    1093:	48 89 85 d8 ff ff ff 	mov    %rax,-0x28(%rbp)
+    109a:	48 8b 85 e0 ff ff ff 	mov    -0x20(%rbp),%rax
+    10a1:	48 8b 8d d8 ff ff ff 	mov    -0x28(%rbp),%rcx
+    10a8:	48 39 c8             	cmp    %rcx,%rax
+    10ab:	48 b8 00 00 00 00 00 	movabs $0x0,%rax
+    10b2:	00 00 00 
+    10b5:	40 0f 94 c0          	rex sete %al
+    10b9:	48 89 85 d0 ff ff ff 	mov    %rax,-0x30(%rbp)
+    10c0:	48 8b 85 d0 ff ff ff 	mov    -0x30(%rbp),%rax
+    10c7:	48 85 c0             	test   %rax,%rax
+    10ca:	0f 84 3d 00 00 00    	je     110d <__hia_native_fn_0+0xcd>
+    10d0:	48 8b 85 e8 ff ff ff 	mov    -0x18(%rbp),%rax
+    10d7:	48 89 85 70 ff ff ff 	mov    %rax,-0x90(%rbp)
+    10de:	48 8b 85 f0 ff ff ff 	mov    -0x10(%rbp),%rax
+    10e5:	48 89 85 78 ff ff ff 	mov    %rax,-0x88(%rbp)
+    10ec:	48 8b 85 70 ff ff ff 	mov    -0x90(%rbp),%rax
+    10f3:	48 89 85 c0 ff ff ff 	mov    %rax,-0x40(%rbp)
+    10fa:	48 8b 85 78 ff ff ff 	mov    -0x88(%rbp),%rax
+    1101:	48 89 85 c8 ff ff ff 	mov    %rax,-0x38(%rbp)
+    1108:	e9 59 00 00 00       	jmp    1166 <__hia_native_fn_0+0x126>
+    110d:	48 8b 85 e8 ff ff ff 	mov    -0x18(%rbp),%rax
+    1114:	48 89 85 70 ff ff ff 	mov    %rax,-0x90(%rbp)
+    111b:	48 8b 85 f0 ff ff ff 	mov    -0x10(%rbp),%rax
+    1122:	48 89 85 78 ff ff ff 	mov    %rax,-0x88(%rbp)
+    1129:	48 8b 85 e0 ff ff ff 	mov    -0x20(%rbp),%rax
+    1130:	48 89 85 80 ff ff ff 	mov    %rax,-0x80(%rbp)
+    1137:	48 8b 85 70 ff ff ff 	mov    -0x90(%rbp),%rax
+    113e:	48 89 85 b0 ff ff ff 	mov    %rax,-0x50(%rbp)
+    1145:	48 8b 85 78 ff ff ff 	mov    -0x88(%rbp),%rax
+    114c:	48 89 85 b8 ff ff ff 	mov    %rax,-0x48(%rbp)
+    1153:	48 8b 85 80 ff ff ff 	mov    -0x80(%rbp),%rax
+    115a:	48 89 85 a8 ff ff ff 	mov    %rax,-0x58(%rbp)
+    1161:	e9 25 00 00 00       	jmp    118b <__hia_native_fn_0+0x14b>
+    1166:	4c 8b 95 f8 ff ff ff 	mov    -0x8(%rbp),%r10
+    116d:	48 8b 85 c0 ff ff ff 	mov    -0x40(%rbp),%rax
+    1174:	49 89 82 00 00 00 00 	mov    %rax,0x0(%r10)
+    117b:	48 8b 85 c8 ff ff ff 	mov    -0x38(%rbp),%rax
+    1182:	49 89 82 08 00 00 00 	mov    %rax,0x8(%r10)
+    1189:	c9                   	leave
+    118a:	c3                   	ret
+    118b:	48 b8 01 00 00 00 00 	movabs $0x1,%rax
+    1192:	00 00 00 
+    1195:	48 89 85 a0 ff ff ff 	mov    %rax,-0x60(%rbp)
+    119c:	48 8b 85 a8 ff ff ff 	mov    -0x58(%rbp),%rax
+    11a3:	48 8b 8d a0 ff ff ff 	mov    -0x60(%rbp),%rcx
+    11aa:	48 29 c8             	sub    %rcx,%rax
+    11ad:	0f 82 a0 00 00 00    	jb     1253 <__hia_native_fn_0+0x213>
+    11b3:	49 bb ff ff ff ff 00 	movabs $0xffffffff,%r11
+    11ba:	00 00 00 
+    11bd:	4c 39 d8             	cmp    %r11,%rax
+    11c0:	0f 87 8d 00 00 00    	ja     1253 <__hia_native_fn_0+0x213>
+    11c6:	48 c1 e0 20          	shl    $0x20,%rax
+    11ca:	48 c1 e8 20          	shr    $0x20,%rax
+    11ce:	48 89 85 98 ff ff ff 	mov    %rax,-0x68(%rbp)
+    11d5:	48 8b 85 b0 ff ff ff 	mov    -0x50(%rbp),%rax
+    11dc:	48 89 85 58 ff ff ff 	mov    %rax,-0xa8(%rbp)
+    11e3:	48 8b 85 b8 ff ff ff 	mov    -0x48(%rbp),%rax
+    11ea:	48 89 85 60 ff ff ff 	mov    %rax,-0xa0(%rbp)
+    11f1:	48 8b 85 98 ff ff ff 	mov    -0x68(%rbp),%rax
+    11f8:	48 89 85 68 ff ff ff 	mov    %rax,-0x98(%rbp)
+    11ff:	48 8d bd 58 ff ff ff 	lea    -0xa8(%rbp),%rdi
+    1206:	48 8d b5 48 ff ff ff 	lea    -0xb8(%rbp),%rsi
+    120d:	e8 2e fe ff ff       	call   1040 <__hia_native_fn_0>
+    1212:	48 8b 85 48 ff ff ff 	mov    -0xb8(%rbp),%rax
+    1219:	48 89 85 88 ff ff ff 	mov    %rax,-0x78(%rbp)
+    1220:	48 8b 85 50 ff ff ff 	mov    -0xb0(%rbp),%rax
+    1227:	48 89 85 90 ff ff ff 	mov    %rax,-0x70(%rbp)
+    122e:	4c 8b 95 f8 ff ff ff 	mov    -0x8(%rbp),%r10
+    1235:	48 8b 85 88 ff ff ff 	mov    -0x78(%rbp),%rax
+    123c:	49 89 82 00 00 00 00 	mov    %rax,0x0(%r10)
+    1243:	48 8b 85 90 ff ff ff 	mov    -0x70(%rbp),%rax
+    124a:	49 89 82 08 00 00 00 	mov    %rax,0x8(%r10)
+    1251:	c9                   	leave
+    1252:	c3                   	ret
+    1253:	e8 c8 fd ff ff       	call   1020 <abort@plt>
+    1258:	0f 0b                	ud2
+
+000000000000125a <__hia_native_fn_1>:
+    125a:	55                   	push   %rbp
+    125b:	48 89 e5             	mov    %rsp,%rbp
+    125e:	48 81 ec e0 00 00 00 	sub    $0xe0,%rsp
+    1265:	4c 8b 9c 24 00 00 00 	mov    0x0(%rsp),%r11
+    126c:	00 
+    126d:	48 89 b5 f8 ff ff ff 	mov    %rsi,-0x8(%rbp)
+    1274:	48 8b 87 00 00 00 00 	mov    0x0(%rdi),%rax
+    127b:	48 89 85 f0 ff ff ff 	mov    %rax,-0x10(%rbp)
+    1282:	48 8b 87 08 00 00 00 	mov    0x8(%rdi),%rax
+    1289:	48 89 85 e8 ff ff ff 	mov    %rax,-0x18(%rbp)
+    1290:	e9 00 00 00 00       	jmp    1295 <__hia_native_fn_1+0x3b>
+    1295:	48 8b b5 f0 ff ff ff 	mov    -0x10(%rbp),%rsi
+    129c:	48 85 f6             	test   %rsi,%rsi
+    129f:	0f 84 45 00 00 00    	je     12ea <__hia_native_fn_1+0x90>
+    12a5:	49 bb ff ff ff ff ff 	movabs $0x7fffffffffffffff,%r11
+    12ac:	ff ff 7f 
+    12af:	4c 39 de             	cmp    %r11,%rsi
+    12b2:	0f 87 59 00 00 00    	ja     1311 <__hia_native_fn_1+0xb7>
+    12b8:	48 bf 01 00 00 00 00 	movabs $0x1,%rdi
+    12bf:	00 00 00 
+    12c2:	e8 69 fd ff ff       	call   1030 <calloc@plt>
+    12c7:	48 85 c0             	test   %rax,%rax
+    12ca:	0f 84 41 00 00 00    	je     1311 <__hia_native_fn_1+0xb7>
+    12d0:	48 89 85 d8 ff ff ff 	mov    %rax,-0x28(%rbp)
+    12d7:	48 8b 85 f0 ff ff ff 	mov    -0x10(%rbp),%rax
+    12de:	48 89 85 e0 ff ff ff 	mov    %rax,-0x20(%rbp)
+    12e5:	e9 2c 00 00 00       	jmp    1316 <__hia_native_fn_1+0xbc>
+    12ea:	48 b8 00 00 00 00 00 	movabs $0x0,%rax
+    12f1:	00 00 00 
+    12f4:	48 89 85 d8 ff ff ff 	mov    %rax,-0x28(%rbp)
+    12fb:	48 b8 00 00 00 00 00 	movabs $0x0,%rax
+    1302:	00 00 00 
+    1305:	48 89 85 e0 ff ff ff 	mov    %rax,-0x20(%rbp)
+    130c:	e9 05 00 00 00       	jmp    1316 <__hia_native_fn_1+0xbc>
+    1311:	e9 ce 01 00 00       	jmp    14e4 <__hia_native_fn_1+0x28a>
+    1316:	48 8b 85 d8 ff ff ff 	mov    -0x28(%rbp),%rax
+    131d:	48 89 85 c8 ff ff ff 	mov    %rax,-0x38(%rbp)
+    1324:	48 8b 85 e0 ff ff ff 	mov    -0x20(%rbp),%rax
+    132b:	48 89 85 d0 ff ff ff 	mov    %rax,-0x30(%rbp)
+    1332:	48 b8 00 00 00 00 00 	movabs $0x0,%rax
+    1339:	00 00 00 
+    133c:	48 89 85 c0 ff ff ff 	mov    %rax,-0x40(%rbp)
+    1343:	48 8b 95 d0 ff ff ff 	mov    -0x30(%rbp),%rdx
+    134a:	48 8b 8d c0 ff ff ff 	mov    -0x40(%rbp),%rcx
+    1351:	48 39 d1             	cmp    %rdx,%rcx
+    1354:	0f 83 8a 01 00 00    	jae    14e4 <__hia_native_fn_1+0x28a>
+    135a:	48 8b 85 c8 ff ff ff 	mov    -0x38(%rbp),%rax
+    1361:	48 01 c8             	add    %rcx,%rax
+    1364:	48 8b 8d e8 ff ff ff 	mov    -0x18(%rbp),%rcx
+    136b:	40 88 88 00 00 00 00 	rex mov %cl,0x0(%rax)
+    1372:	48 8b 85 d8 ff ff ff 	mov    -0x28(%rbp),%rax
+    1379:	48 89 85 b0 ff ff ff 	mov    %rax,-0x50(%rbp)
+    1380:	48 8b 85 e0 ff ff ff 	mov    -0x20(%rbp),%rax
+    1387:	48 89 85 b8 ff ff ff 	mov    %rax,-0x48(%rbp)
+    138e:	48 b8 03 00 00 00 00 	movabs $0x3,%rax
+    1395:	00 00 00 
+    1398:	48 89 85 a8 ff ff ff 	mov    %rax,-0x58(%rbp)
+    139f:	48 8b 85 b0 ff ff ff 	mov    -0x50(%rbp),%rax
+    13a6:	48 89 85 50 ff ff ff 	mov    %rax,-0xb0(%rbp)
+    13ad:	48 8b 85 b8 ff ff ff 	mov    -0x48(%rbp),%rax
+    13b4:	48 89 85 58 ff ff ff 	mov    %rax,-0xa8(%rbp)
+    13bb:	48 8b 85 a8 ff ff ff 	mov    -0x58(%rbp),%rax
+    13c2:	48 89 85 60 ff ff ff 	mov    %rax,-0xa0(%rbp)
+    13c9:	48 8d bd 50 ff ff ff 	lea    -0xb0(%rbp),%rdi
+    13d0:	48 8d b5 40 ff ff ff 	lea    -0xc0(%rbp),%rsi
+    13d7:	e8 64 fc ff ff       	call   1040 <__hia_native_fn_0>
+    13dc:	48 8b 85 40 ff ff ff 	mov    -0xc0(%rbp),%rax
+    13e3:	48 89 85 98 ff ff ff 	mov    %rax,-0x68(%rbp)
+    13ea:	48 8b 85 48 ff ff ff 	mov    -0xb8(%rbp),%rax
+    13f1:	48 89 85 a0 ff ff ff 	mov    %rax,-0x60(%rbp)
+    13f8:	48 b8 05 00 00 00 00 	movabs $0x5,%rax
+    13ff:	00 00 00 
+    1402:	48 89 85 90 ff ff ff 	mov    %rax,-0x70(%rbp)
+    1409:	48 8b 85 e8 ff ff ff 	mov    -0x18(%rbp),%rax
+    1410:	48 8b 8d 90 ff ff ff 	mov    -0x70(%rbp),%rcx
+    1417:	48 01 c8             	add    %rcx,%rax
+    141a:	48 c1 e0 38          	shl    $0x38,%rax
+    141e:	48 c1 e8 38          	shr    $0x38,%rax
+    1422:	48 89 85 88 ff ff ff 	mov    %rax,-0x78(%rbp)
+    1429:	48 8b 95 a0 ff ff ff 	mov    -0x60(%rbp),%rdx
+    1430:	48 8b 8d c0 ff ff ff 	mov    -0x40(%rbp),%rcx
+    1437:	48 39 d1             	cmp    %rdx,%rcx
+    143a:	0f 83 a4 00 00 00    	jae    14e4 <__hia_native_fn_1+0x28a>
+    1440:	48 8b 85 98 ff ff ff 	mov    -0x68(%rbp),%rax
+    1447:	48 01 c8             	add    %rcx,%rax
+    144a:	48 8b 8d 88 ff ff ff 	mov    -0x78(%rbp),%rcx
+    1451:	40 88 88 00 00 00 00 	rex mov %cl,0x0(%rax)
+    1458:	48 8b 95 a0 ff ff ff 	mov    -0x60(%rbp),%rdx
+    145f:	48 8b 8d c0 ff ff ff 	mov    -0x40(%rbp),%rcx
+    1466:	48 39 d1             	cmp    %rdx,%rcx
+    1469:	0f 83 75 00 00 00    	jae    14e4 <__hia_native_fn_1+0x28a>
+    146f:	48 8b 85 98 ff ff ff 	mov    -0x68(%rbp),%rax
+    1476:	48 01 c8             	add    %rcx,%rax
+    1479:	48 0f b6 80 00 00 00 	movzbq 0x0(%rax),%rax
+    1480:	00 
+    1481:	48 89 85 80 ff ff ff 	mov    %rax,-0x80(%rbp)
+    1488:	48 8b 95 b8 ff ff ff 	mov    -0x48(%rbp),%rdx
+    148f:	48 8b 8d c0 ff ff ff 	mov    -0x40(%rbp),%rcx
+    1496:	48 39 d1             	cmp    %rdx,%rcx
+    1499:	0f 83 45 00 00 00    	jae    14e4 <__hia_native_fn_1+0x28a>
+    149f:	48 8b 85 b0 ff ff ff 	mov    -0x50(%rbp),%rax
+    14a6:	48 01 c8             	add    %rcx,%rax
+    14a9:	48 0f b6 80 00 00 00 	movzbq 0x0(%rax),%rax
+    14b0:	00 
+    14b1:	48 89 85 78 ff ff ff 	mov    %rax,-0x88(%rbp)
+    14b8:	48 8b bd d8 ff ff ff 	mov    -0x28(%rbp),%rdi
+    14bf:	48 85 ff             	test   %rdi,%rdi
+    14c2:	0f 84 05 00 00 00    	je     14cd <__hia_native_fn_1+0x273>
+    14c8:	e8 43 fb ff ff       	call   1010 <free@plt>
+    14cd:	4c 8b 95 f8 ff ff ff 	mov    -0x8(%rbp),%r10
+    14d4:	48 8b 85 80 ff ff ff 	mov    -0x80(%rbp),%rax
+    14db:	49 89 82 00 00 00 00 	mov    %rax,0x0(%r10)
+    14e2:	c9                   	leave
+    14e3:	c3                   	ret
+    14e4:	e8 37 fb ff ff       	call   1020 <abort@plt>
+    14e9:	0f 0b                	ud2
+
+00000000000014eb <entry_mut_recursive>:
+    14eb:	55                   	push   %rbp
+    14ec:	48 89 e5             	mov    %rsp,%rbp
+    14ef:	48 81 ec 20 00 00 00 	sub    $0x20,%rsp
+    14f6:	4c 8b 9c 24 00 00 00 	mov    0x0(%rsp),%r11
+    14fd:	00 
+    14fe:	48 89 f8             	mov    %rdi,%rax
+    1501:	48 89 85 e0 ff ff ff 	mov    %rax,-0x20(%rbp)
+    1508:	48 89 f0             	mov    %rsi,%rax
+    150b:	48 c1 e0 38          	shl    $0x38,%rax
+    150f:	48 c1 e8 38          	shr    $0x38,%rax
+    1513:	48 89 85 e8 ff ff ff 	mov    %rax,-0x18(%rbp)
+    151a:	48 8d bd e0 ff ff ff 	lea    -0x20(%rbp),%rdi
+    1521:	48 8d b5 f8 ff ff ff 	lea    -0x8(%rbp),%rsi
+    1528:	e8 2d fd ff ff       	call   125a <__hia_native_fn_1>
+    152d:	48 8b 85 f8 ff ff ff 	mov    -0x8(%rbp),%rax
+    1534:	48 c1 e0 38          	shl    $0x38,%rax
+    1538:	48 c1 e8 38          	shr    $0x38,%rax
+    153c:	c9                   	leave
+    153d:	c3                   	ret
