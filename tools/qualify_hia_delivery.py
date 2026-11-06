@@ -322,7 +322,7 @@ def main(argv=None):
             raise
         finally:
             row["wall_ns"] = time.perf_counter_ns() - started
-            retain(label + ".json", row)
+            retain(label + ".command.json", row)
 
     def evidence(name):
         path = output / name
