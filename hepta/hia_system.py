@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 import re
 import shlex
+import stat
 import subprocess
 import sys
 import time
@@ -109,7 +110,7 @@ TAKES_VALUE = frozenset((
     "-Xlinker", "-include-pch", "-fmodule-file", "-imsvc", "-iframework",
     "-object-file-name", "-opt-record-file", "-opt-record-passes",
     "-opt-record-format", "-objc-isystem", "-objcxx-isystem", "-L", "-l",
-    "-u", "-T", "-z", "-arch"
+    "-u", "-T", "-z", "-arch", "--param"
 ))
 DEPENDENCY_VALUE = frozenset(("-MF", "-MT", "-MQ", "-MJ"))
 DEPENDENCY_SINGLE = frozenset(("-M", "-MM", "-MD", "-MMD", "-MG", "-MP"))
@@ -155,6 +156,9 @@ QUERY_FLAGS = frozenset((
 ))
 QUERY_PREFIXES = ("-print-file-name=", "-print-prog-name=", "--help=")
 KBUILD_PROBE_DIRECTORY = re.compile(r"\.tmp_[0-9]+\Z")
+KBUILD_PROBE_NAME = re.compile(r"tmp(?:\.(?:o|s|S|i))?\Z")
+RELR_PROBE_NAME = re.compile(r"tmp\.[A-Za-z0-9]{10}\.o\Z")
+RELR_PROBE_STDIN = b"void *p = &p;\n"
 
 
 def expand_arguments(arguments, records, depth=0):
@@ -313,10 +317,19 @@ def _probe_sink(output, mode):
     if output is None:
         return "implicit-discard" if mode != "-E" else "stdout"
     path = Path(output)
-    # The exact scripts/Makefile.compiler try-run shape. Merely containing
-    # ".tmp" or living under /tmp is not authorization to bypass target HIA.
-    if path.name == "tmp" and KBUILD_PROBE_DIRECTORY.fullmatch(path.parent.name):
+    # scripts/Makefile.compiler uses tmp; scripts/Kconfig.include uses tmp.o.
+    # Explicit assembly/preprocessor products retain the same temporary scope.
+    # Merely containing ".tmp" or living under /tmp does not authorize a bypass.
+    if (KBUILD_PROBE_NAME.fullmatch(path.name) and
+            KBUILD_PROBE_DIRECTORY.fullmatch(path.parent.name)):
         return "kbuild-try-run-temporary"
+    # scripts/tools-support-relr.sh reserves an empty mktemp file, then emits
+    # its object beside it. Its exact stdin and reservation are verified before
+    # compiler execution; a temporary-looking name alone is insufficient.
+    temporary_root = Path(os.environ.get("TMPDIR") or "/tmp").resolve()
+    if (mode == "-c" and path.is_absolute() and
+            path.parent.resolve() == temporary_root and RELR_PROBE_NAME.fullmatch(path.name)):
+        return "kbuild-relr-mktemp-object"
     return None
 
 
@@ -335,6 +348,10 @@ def classify(arguments):
                  "output_boundary": sink,
                  "force_discard_output": output is None and mode != "-E",
                  "rule": "pinned Kbuild compiler probe; no target artifact"}
+        if sink == "kbuild-relr-mktemp-object":
+            require(inputs[0]["path"] == "-" and inputs[0]["language"] == "c",
+                    "RELR mktemp boundary requires the pinned C stdin probe")
+            probe["stdin_contract"] = "linux-tools-support-relr-v1"
     elif special and inputs[0]["path"] == "-":
         raise SystemCompileError("stdin target payload needs an explicit source identity")
     elif mode == "-E" or deps["scan_only"]:
@@ -375,6 +392,25 @@ def classify(arguments):
     if probe is not None:
         result["probe"] = probe
     return result
+
+
+def validate_probe_inputs(classification, data):
+    """Validate the special RELR probe before any native compiler is launched."""
+    probe = classification.get("probe", {})
+    if probe.get("stdin_contract") != "linux-tools-support-relr-v1":
+        return None
+    require(data == RELR_PROBE_STDIN,
+            "RELR temporary output is reserved for the pinned probe stdin")
+    output = Path(classification["output"])
+    reservation = output.with_suffix("")
+    info = reservation.lstat()
+    require(stat.S_ISREG(info.st_mode) and info.st_size == 0 and
+            info.st_uid == os.geteuid() and info.st_nlink == 1,
+            "RELR probe requires an owned empty regular mktemp reservation")
+    require(not output.is_symlink(), "RELR probe output must not be a symlink")
+    return {"contract": probe["stdin_contract"],
+            "stdin_sha256": hashlib.sha256(data).hexdigest(),
+            "temporary_reservation": binding(reservation)}
 
 
 def change_phase(arguments, source, output, mode, *, backend=False, assembly=False,
@@ -881,6 +917,9 @@ def main(arguments=None):
             if data is not None:
                 write_new(directory / "stdin.bin", data)
                 record["stdin"] = binding(directory / "stdin.bin")
+            validated_probe = validate_probe_inputs(classification, data)
+            if validated_probe is not None:
+                record["validated_probe"] = validated_probe
             forwarded = list(expanded)
             if classification.get("probe", {}).get("force_discard_output"):
                 forwarded += ["-o", "/dev/null"]
