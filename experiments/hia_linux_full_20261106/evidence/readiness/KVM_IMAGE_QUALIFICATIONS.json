@@ -1,0 +1,611 @@
+{
+  "automatic_retry": false,
+  "calibration": false,
+  "collector_source": {
+    "bytes": 29909,
+    "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-collector-r3/source/tools/hia_linux_system_benchmark.py",
+    "sha256": "eb776c55866428c1bec42816660ab7b309b3ab4aa57590f41eed984edffeaf4d"
+  },
+  "collector_source_commit": "e3d2deac454993c8f70fd9182eff7f379d9375d1",
+  "completed_unix_ns": 1793989255555024583,
+  "controls": {
+    "expected_release": "6.18.60",
+    "host_cpus": [
+      0,
+      1
+    ],
+    "iterations": 1024,
+    "profile": "kvm",
+    "seed": 20261106,
+    "selection": "all",
+    "timeout": 240
+  },
+  "elapsed_ns": 2075246849548,
+  "full_build_source_commit": "a3c3ab3a386253afb7d2856eaf055c52634d9791",
+  "functional_qualification_only": true,
+  "guest_binary": {
+    "bytes": 851640,
+    "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-dev-r2/init",
+    "sha256": "6123393477fcd9b70ef2bcc863698e16036802466bdbafc283980a6ee861b07c"
+  },
+  "guest_build_receipt": {
+    "bytes": 12409,
+    "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-dev-r2/STATIC_BUILD.json",
+    "sha256": "9ae124dd2836fbdea2bfe2cb89f5d1de839ad8a48996abeb30da6eaccdee1e2e"
+  },
+  "guest_source_commit": "92754d5f1647fde3dcabc7d7904110f55b679f17",
+  "heldout": false,
+  "last_observed_full_build": {
+    "boot_status": "PASS",
+    "build_status": "PASS",
+    "error": null,
+    "image_id": "hia_os",
+    "receipt": {
+      "bytes": 32564,
+      "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/hia-os-r1/RESULT.json",
+      "sha256": "1c3bd9a7bebaf413c721642d01b95ee85a2c899d26a82d262512269f1a831217"
+    },
+    "status": "PASS"
+  },
+  "matrix_launched": false,
+  "plan": [
+    {
+      "backend_optimization": "original",
+      "full_result": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/hia-original-r3/RESULT.json",
+      "image_id": "hia_original",
+      "qualification_output": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-hia-original-kvm-r1"
+    },
+    {
+      "backend_optimization": "O3",
+      "full_result": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/hia-o3-r1/RESULT.json",
+      "image_id": "hia_o3",
+      "qualification_output": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-hia-o3-kvm-r1"
+    },
+    {
+      "backend_optimization": "Os",
+      "full_result": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/hia-os-r1/RESULT.json",
+      "image_id": "hia_os",
+      "qualification_output": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-hia-os-kvm-r1"
+    }
+  ],
+  "qualifications": [
+    {
+      "backend_optimization": "original",
+      "collector_source": {
+        "bytes": 29909,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-collector-r3/source/tools/hia_linux_system_benchmark.py",
+        "sha256": "eb776c55866428c1bec42816660ab7b309b3ab4aa57590f41eed984edffeaf4d"
+      },
+      "collector_source_commit": "e3d2deac454993c8f70fd9182eff7f379d9375d1",
+      "command_receipt": {
+        "argv": [
+          "/usr/bin/taskset",
+          "--cpu-list",
+          "0,1",
+          "/usr/bin/qemu-system-x86_64",
+          "-machine",
+          "pc-i440fx-8.2",
+          "-accel",
+          "kvm",
+          "-cpu",
+          "qemu64,-popcnt,-svm",
+          "-smp",
+          "2",
+          "-m",
+          "1024",
+          "-nodefaults",
+          "-no-user-config",
+          "-display",
+          "none",
+          "-monitor",
+          "none",
+          "-serial",
+          "stdio",
+          "-nic",
+          "none",
+          "-no-reboot",
+          "-L",
+          "/usr/share/qemu",
+          "-bios",
+          "/usr/share/seabios/bios-256k.bin",
+          "-kernel",
+          "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/hia-original-r3/build/arch/x86/boot/bzImage",
+          "-initrd",
+          "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-hia-original-kvm-r1/initramfs.cpio.gz",
+          "-append",
+          "console=ttyS0,115200 loglevel=5 rdinit=/init panic=-1 nokaslr hia_bench=1 hia_run_id=eeecd68538d24ef29596090b hia_expected_release=6.18.60 hia_seed=20261106 hia_iterations=1024 hia_phase=all"
+        ],
+        "child_system_seconds": 0.375058,
+        "child_user_seconds": 1.544238,
+        "completed_at_utc": "2026-11-06T17:52:31.131613+00:00",
+        "cwd": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-collector-r3/source",
+        "elapsed_ns": 1658180466,
+        "exit_code": 0,
+        "name": "boot-system-benchmark-kvm",
+        "process_group": 1297784,
+        "process_group_cleanup": {
+          "drained": true,
+          "elapsed_ns": 89658648,
+          "errors": [],
+          "group": 1297784,
+          "live_members_after": [],
+          "scope": "owned_linux_process_group",
+          "signals": []
+        },
+        "started_at_utc": "2026-11-06T17:52:29.473164+00:00",
+        "stderr": {
+          "bytes": 0,
+          "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-hia-original-kvm-r1/commands/000-boot-system-benchmark-kvm.stderr",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 23491,
+          "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-hia-original-kvm-r1/commands/000-boot-system-benchmark-kvm.stdout",
+          "sha256": "dbdc9384804625304ba686864fb71aaaae39b03664be75a6a0f5f20a70ed3bad"
+        },
+        "timed_out": false,
+        "timeout_seconds": 240
+      },
+      "config": {
+        "bytes": 146729,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/hia-original-r3/exact.config",
+        "sha256": "46aed354c1a2a059b3abffa9bc03524541c5336565d350102f2d450b39551c6c"
+      },
+      "coverage": {
+        "compiler_capability_probe": 132,
+        "compiler_invocations": 3235,
+        "compiler_query": 7,
+        "host_tool": 61,
+        "objects": 3089,
+        "preprocess": 6,
+        "saved_command_files": 4688,
+        "saved_commands": 4687,
+        "target_assembly": 71,
+        "target_c": 2958,
+        "unique_active_sources": 3027,
+        "unique_hia_programs": 3029
+      },
+      "error": null,
+      "full_build_inventory": {
+        "bytes": 4960073,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/hia-original-r3/full-build-inventory.json.gz",
+        "sha256": "98b75c3e090cc38980f9f282a1634a0f47469ae6d3f2df1f9229d3c7ccc5a0ad",
+        "uncompressed_sha256": "e06bea3969751c69269873bfd9e461b40130cd7d6f17bf0f4c64b924ff228ca5"
+      },
+      "full_build_receipt": {
+        "bytes": 32739,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/hia-original-r3/RESULT.json",
+        "sha256": "c320f15e440495d3a421d8fd3e77fa79e19c5985a6cc69b85e6cdc60efb17d1d"
+      },
+      "full_build_source_commit": "a3c3ab3a386253afb7d2856eaf055c52634d9791",
+      "guest_binary": {
+        "bytes": 851640,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-dev-r2/init",
+        "sha256": "6123393477fcd9b70ef2bcc863698e16036802466bdbafc283980a6ee861b07c"
+      },
+      "guest_build_receipt": {
+        "bytes": 12409,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-dev-r2/STATIC_BUILD.json",
+        "sha256": "9ae124dd2836fbdea2bfe2cb89f5d1de839ad8a48996abeb30da6eaccdee1e2e"
+      },
+      "image_id": "hia_original",
+      "initramfs": {
+        "bytes": 363793,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-hia-original-kvm-r1/initramfs.cpio.gz",
+        "sha256": "ab5f0c541fc047a760ef4d263a6baf2145f01e1266c41c6b8fe3cfe2b71cb850"
+      },
+      "kernel_image": {
+        "bytes": 14525440,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/hia-original-r3/build/arch/x86/boot/bzImage",
+        "sha256": "b904dc56222b7fba9cc261af536c7eb39540264a25e42cbc2204e2cc07ed1ec8"
+      },
+      "preexecution_binding": {
+        "bytes": 3050,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/kvm-image-qualifications-r1/bindings/hia_original.json",
+        "sha256": "44aeeba19a1d971c1c11d058899cb79169a7ec16d796c0c8afbe34ee672140fd"
+      },
+      "preexecution_manifest": {
+        "bytes": 5446,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-hia-original-kvm-r1/PREEXECUTION.json",
+        "sha256": "9ff707825a4b821dd85eab20eb76fefa29e949d0a886b47b06c30cbcfb6334bb"
+      },
+      "qualification_result": {
+        "bytes": 124349,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-hia-original-kvm-r1/RESULT.json",
+        "sha256": "fda5f158219860e465f6c53915ac2a4e53124125dea23ce2ccf36bc8b02ff02e"
+      },
+      "run_id": "eeecd68538d24ef29596090b",
+      "status": "PASS",
+      "summary": {
+        "aborted": false,
+        "completed_stages": 4,
+        "emitted_samples": 28,
+        "event": "summary",
+        "expected_samples": 28,
+        "measured_per_stage": 5,
+        "run_id": "eeecd68538d24ef29596090b",
+        "selection": "all",
+        "shutdown_required": true,
+        "status": "PASS",
+        "successful_samples": 28,
+        "warmups_per_stage": 2
+      },
+      "trace": {
+        "bytes": 90777,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-hia-original-kvm-r1/TRACE.json",
+        "sha256": "febd599a7db3a8bfa71daea199104f7892b9b5ecfb88b72f0d280049393b0e06"
+      },
+      "verdict_status": "PASS"
+    },
+    {
+      "backend_optimization": "O3",
+      "collector_source": {
+        "bytes": 29909,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-collector-r3/source/tools/hia_linux_system_benchmark.py",
+        "sha256": "eb776c55866428c1bec42816660ab7b309b3ab4aa57590f41eed984edffeaf4d"
+      },
+      "collector_source_commit": "e3d2deac454993c8f70fd9182eff7f379d9375d1",
+      "command_receipt": {
+        "argv": [
+          "/usr/bin/taskset",
+          "--cpu-list",
+          "0,1",
+          "/usr/bin/qemu-system-x86_64",
+          "-machine",
+          "pc-i440fx-8.2",
+          "-accel",
+          "kvm",
+          "-cpu",
+          "qemu64,-popcnt,-svm",
+          "-smp",
+          "2",
+          "-m",
+          "1024",
+          "-nodefaults",
+          "-no-user-config",
+          "-display",
+          "none",
+          "-monitor",
+          "none",
+          "-serial",
+          "stdio",
+          "-nic",
+          "none",
+          "-no-reboot",
+          "-L",
+          "/usr/share/qemu",
+          "-bios",
+          "/usr/share/seabios/bios-256k.bin",
+          "-kernel",
+          "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/hia-o3-r1/build/arch/x86/boot/bzImage",
+          "-initrd",
+          "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-hia-o3-kvm-r1/initramfs.cpio.gz",
+          "-append",
+          "console=ttyS0,115200 loglevel=5 rdinit=/init panic=-1 nokaslr hia_bench=1 hia_run_id=e68b96463890d900abc1a727 hia_expected_release=6.18.60 hia_seed=20261106 hia_iterations=1024 hia_phase=all"
+        ],
+        "child_system_seconds": 0.365664,
+        "child_user_seconds": 1.611304,
+        "completed_at_utc": "2026-11-06T18:20:50.199248+00:00",
+        "cwd": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-collector-r3/source",
+        "elapsed_ns": 1657597398,
+        "exit_code": 0,
+        "name": "boot-system-benchmark-kvm",
+        "process_group": 1514201,
+        "process_group_cleanup": {
+          "drained": true,
+          "elapsed_ns": 89619642,
+          "errors": [],
+          "group": 1514201,
+          "live_members_after": [],
+          "scope": "owned_linux_process_group",
+          "signals": []
+        },
+        "started_at_utc": "2026-11-06T18:20:48.541378+00:00",
+        "stderr": {
+          "bytes": 0,
+          "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-hia-o3-kvm-r1/commands/000-boot-system-benchmark-kvm.stderr",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 23496,
+          "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-hia-o3-kvm-r1/commands/000-boot-system-benchmark-kvm.stdout",
+          "sha256": "db43a61e5095d4f676bfbe9eb08637586ad3809f1815a41f426cbc7686da89eb"
+        },
+        "timed_out": false,
+        "timeout_seconds": 240
+      },
+      "config": {
+        "bytes": 146729,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/hia-o3-r1/exact.config",
+        "sha256": "46aed354c1a2a059b3abffa9bc03524541c5336565d350102f2d450b39551c6c"
+      },
+      "coverage": {
+        "compiler_capability_probe": 132,
+        "compiler_invocations": 3235,
+        "compiler_query": 7,
+        "host_tool": 61,
+        "objects": 3089,
+        "preprocess": 6,
+        "saved_command_files": 4688,
+        "saved_commands": 4687,
+        "target_assembly": 71,
+        "target_c": 2958,
+        "unique_active_sources": 3027,
+        "unique_hia_programs": 3029
+      },
+      "error": null,
+      "full_build_inventory": {
+        "bytes": 4960641,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/hia-o3-r1/full-build-inventory.json.gz",
+        "sha256": "2e339b2fe23f78676268a53620b327f87cbeed5e5a7717f68382615d0d324cf0",
+        "uncompressed_sha256": "400ce13900ef9eaffe82b4c32cc0a4ab7d29137336c0bd831499d61c6220c301"
+      },
+      "full_build_receipt": {
+        "bytes": 32551,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/hia-o3-r1/RESULT.json",
+        "sha256": "81235424e280dc3bd0516fbf937eca401ed39b7b60a10e1c8b48788eba289e8a"
+      },
+      "full_build_source_commit": "a3c3ab3a386253afb7d2856eaf055c52634d9791",
+      "guest_binary": {
+        "bytes": 851640,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-dev-r2/init",
+        "sha256": "6123393477fcd9b70ef2bcc863698e16036802466bdbafc283980a6ee861b07c"
+      },
+      "guest_build_receipt": {
+        "bytes": 12409,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-dev-r2/STATIC_BUILD.json",
+        "sha256": "9ae124dd2836fbdea2bfe2cb89f5d1de839ad8a48996abeb30da6eaccdee1e2e"
+      },
+      "image_id": "hia_o3",
+      "initramfs": {
+        "bytes": 363793,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-hia-o3-kvm-r1/initramfs.cpio.gz",
+        "sha256": "ab5f0c541fc047a760ef4d263a6baf2145f01e1266c41c6b8fe3cfe2b71cb850"
+      },
+      "kernel_image": {
+        "bytes": 15000576,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/hia-o3-r1/build/arch/x86/boot/bzImage",
+        "sha256": "fc9677d10c52dd6769f41758d5891e583cb8f6638db91a642c4001943b0189bd"
+      },
+      "preexecution_binding": {
+        "bytes": 3002,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/kvm-image-qualifications-r1/bindings/hia_o3.json",
+        "sha256": "c3b6e57d01140c78c57a5d4bc959a27194fc4db0fa16233aa722d17855be285d"
+      },
+      "preexecution_manifest": {
+        "bytes": 5404,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-hia-o3-kvm-r1/PREEXECUTION.json",
+        "sha256": "17a3ba58ed210624c08b4d58810a25474c0e369b32ec9f8d14dfd90bc3da1bd0"
+      },
+      "qualification_result": {
+        "bytes": 124260,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-hia-o3-kvm-r1/RESULT.json",
+        "sha256": "3dfcc2fd60e05f3cfe80bd1f033e121721250a6ac4720f2080df104979d2c908"
+      },
+      "run_id": "e68b96463890d900abc1a727",
+      "status": "PASS",
+      "summary": {
+        "aborted": false,
+        "completed_stages": 4,
+        "emitted_samples": 28,
+        "event": "summary",
+        "expected_samples": 28,
+        "measured_per_stage": 5,
+        "run_id": "e68b96463890d900abc1a727",
+        "selection": "all",
+        "shutdown_required": true,
+        "status": "PASS",
+        "successful_samples": 28,
+        "warmups_per_stage": 2
+      },
+      "trace": {
+        "bytes": 90778,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-hia-o3-kvm-r1/TRACE.json",
+        "sha256": "99a8d2f105e8588f2260542ea066f1cc5cab4489929b55968b54b3924dd738df"
+      },
+      "verdict_status": "PASS"
+    },
+    {
+      "backend_optimization": "Os",
+      "collector_source": {
+        "bytes": 29909,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-collector-r3/source/tools/hia_linux_system_benchmark.py",
+        "sha256": "eb776c55866428c1bec42816660ab7b309b3ab4aa57590f41eed984edffeaf4d"
+      },
+      "collector_source_commit": "e3d2deac454993c8f70fd9182eff7f379d9375d1",
+      "command_receipt": {
+        "argv": [
+          "/usr/bin/taskset",
+          "--cpu-list",
+          "0,1",
+          "/usr/bin/qemu-system-x86_64",
+          "-machine",
+          "pc-i440fx-8.2",
+          "-accel",
+          "kvm",
+          "-cpu",
+          "qemu64,-popcnt,-svm",
+          "-smp",
+          "2",
+          "-m",
+          "1024",
+          "-nodefaults",
+          "-no-user-config",
+          "-display",
+          "none",
+          "-monitor",
+          "none",
+          "-serial",
+          "stdio",
+          "-nic",
+          "none",
+          "-no-reboot",
+          "-L",
+          "/usr/share/qemu",
+          "-bios",
+          "/usr/share/seabios/bios-256k.bin",
+          "-kernel",
+          "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/hia-os-r1/build/arch/x86/boot/bzImage",
+          "-initrd",
+          "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-hia-os-kvm-r1/initramfs.cpio.gz",
+          "-append",
+          "console=ttyS0,115200 loglevel=5 rdinit=/init panic=-1 nokaslr hia_bench=1 hia_run_id=15f6f82ac0c74f5dd0b8d7cf hia_expected_release=6.18.60 hia_seed=20261106 hia_iterations=1024 hia_phase=all"
+        ],
+        "child_system_seconds": 0.40914799999999996,
+        "child_user_seconds": 1.4520329999999997,
+        "completed_at_utc": "2026-11-06T18:20:55.086207+00:00",
+        "cwd": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-collector-r3/source",
+        "elapsed_ns": 1663725629,
+        "exit_code": 0,
+        "name": "boot-system-benchmark-kvm",
+        "process_group": 1514329,
+        "process_group_cleanup": {
+          "drained": true,
+          "elapsed_ns": 95847128,
+          "errors": [],
+          "group": 1514329,
+          "live_members_after": [],
+          "scope": "owned_linux_process_group",
+          "signals": []
+        },
+        "started_at_utc": "2026-11-06T18:20:53.422239+00:00",
+        "stderr": {
+          "bytes": 0,
+          "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-hia-os-kvm-r1/commands/000-boot-system-benchmark-kvm.stderr",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 23508,
+          "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-hia-os-kvm-r1/commands/000-boot-system-benchmark-kvm.stdout",
+          "sha256": "39224a445486d389a0fd34a73a3c773c28ffb7c2a4e697ef71b0149c5e2b85c4"
+        },
+        "timed_out": false,
+        "timeout_seconds": 240
+      },
+      "config": {
+        "bytes": 146729,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/hia-os-r1/exact.config",
+        "sha256": "46aed354c1a2a059b3abffa9bc03524541c5336565d350102f2d450b39551c6c"
+      },
+      "coverage": {
+        "compiler_capability_probe": 132,
+        "compiler_invocations": 3235,
+        "compiler_query": 7,
+        "host_tool": 61,
+        "objects": 3089,
+        "preprocess": 6,
+        "saved_command_files": 4688,
+        "saved_commands": 4687,
+        "target_assembly": 71,
+        "target_c": 2958,
+        "unique_active_sources": 3027,
+        "unique_hia_programs": 3029
+      },
+      "error": null,
+      "full_build_inventory": {
+        "bytes": 4962077,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/hia-os-r1/full-build-inventory.json.gz",
+        "sha256": "712668f1ffae3f23a2a167acd5dc206fe04de4529dfed593e72e2f3c2592eb87",
+        "uncompressed_sha256": "63bacdb4eddaa71716fb8c1ee5cfe6df9c2b827867a3d7dcb7abfbc14d8bc6e2"
+      },
+      "full_build_receipt": {
+        "bytes": 32564,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/hia-os-r1/RESULT.json",
+        "sha256": "1c3bd9a7bebaf413c721642d01b95ee85a2c899d26a82d262512269f1a831217"
+      },
+      "full_build_source_commit": "a3c3ab3a386253afb7d2856eaf055c52634d9791",
+      "guest_binary": {
+        "bytes": 851640,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-dev-r2/init",
+        "sha256": "6123393477fcd9b70ef2bcc863698e16036802466bdbafc283980a6ee861b07c"
+      },
+      "guest_build_receipt": {
+        "bytes": 12409,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-dev-r2/STATIC_BUILD.json",
+        "sha256": "9ae124dd2836fbdea2bfe2cb89f5d1de839ad8a48996abeb30da6eaccdee1e2e"
+      },
+      "image_id": "hia_os",
+      "initramfs": {
+        "bytes": 363793,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-hia-os-kvm-r1/initramfs.cpio.gz",
+        "sha256": "ab5f0c541fc047a760ef4d263a6baf2145f01e1266c41c6b8fe3cfe2b71cb850"
+      },
+      "kernel_image": {
+        "bytes": 14001152,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/hia-os-r1/build/arch/x86/boot/bzImage",
+        "sha256": "9777c021d651e944ca342fdf7a879e7bf109ec821968e79be87ed3d7a1aec058"
+      },
+      "preexecution_binding": {
+        "bytes": 3002,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/kvm-image-qualifications-r1/bindings/hia_os.json",
+        "sha256": "918889e4eb26d1efd675c0dc54fb460be36568bc589b86d6e76620e8749b286d"
+      },
+      "preexecution_manifest": {
+        "bytes": 5404,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-hia-os-kvm-r1/PREEXECUTION.json",
+        "sha256": "699a2a3e39e48523e05421ec177a57d7fa992ade5dcd3dd473847ce3f2ebd7c2"
+      },
+      "qualification_result": {
+        "bytes": 124335,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-hia-os-kvm-r1/RESULT.json",
+        "sha256": "38b6d64fbf6009e9289e269e21fb0101f5abe3db63e005be1988b3c992c47d02"
+      },
+      "run_id": "15f6f82ac0c74f5dd0b8d7cf",
+      "status": "PASS",
+      "summary": {
+        "aborted": false,
+        "completed_stages": 4,
+        "emitted_samples": 28,
+        "event": "summary",
+        "expected_samples": 28,
+        "measured_per_stage": 5,
+        "run_id": "15f6f82ac0c74f5dd0b8d7cf",
+        "selection": "all",
+        "shutdown_required": true,
+        "status": "PASS",
+        "successful_samples": 28,
+        "warmups_per_stage": 2
+      },
+      "trace": {
+        "bytes": 90811,
+        "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-hia-os-kvm-r1/TRACE.json",
+        "sha256": "269b8cd61bb8c2d02f8251998d0cd2302fdd90751893cce39f4da07c0a42a4db"
+      },
+      "verdict_status": "PASS"
+    }
+  ],
+  "runtime_idempotency_key": "hia-full-linux-three-hia-image-kvm-qualifications-20261106-bedaafad8a2f-r1",
+  "schema": "hepta.hia.linux.kvm-image-qualifications.v1",
+  "started_unix_ns": 1793987180308174470,
+  "status": "PASS",
+  "stock_reference": {
+    "config": {
+      "bytes": 146729,
+      "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/stock-r1/exact.config",
+      "sha256": "46aed354c1a2a059b3abffa9bc03524541c5336565d350102f2d450b39551c6c"
+    },
+    "full_build_receipt": {
+      "bytes": 79956,
+      "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/stock-r1/RESULT.json",
+      "sha256": "42cc376ee916d6fa3a1629b0ea2b9598a25a63a3f9596a5784f4403ee6d761d9"
+    },
+    "kernel_image": {
+      "bytes": 14525440,
+      "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/stock-r1/build/arch/x86/boot/bzImage",
+      "sha256": "b904dc56222b7fba9cc261af536c7eb39540264a25e42cbc2204e2cc07ed1ec8"
+    },
+    "qualification_result": {
+      "bytes": 124409,
+      "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/guest-bench-smoke-stock-kvm-r3/RESULT.json",
+      "sha256": "5e6e8c5e3579b45e20b40bddb56867c418c009dbc1a763fd5bf80053f311da78"
+    },
+    "reused_without_rerun": true,
+    "run_id": "683350204295b1abb197fd0b",
+    "status": "PASS"
+  },
+  "watcher_source": {
+    "bytes": 14537,
+    "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/kvm-image-qualification-watch-r1.py",
+    "sha256": "69a3be15f21e5f94e11b3530be4a6b49d99781830a8305f3e24ec6539a44f376"
+  }
+}
