@@ -13,6 +13,7 @@ on:
       - experiments/openvpn_hia_20261105/target_host/run_matrix.py
       - experiments/openvpn_hia_20261105/target_host/test_run_matrix_rekey.py
       - experiments/openvpn_hia_20261105/target_host/test_rekey_attempt_grouping.py
+      - experiments/openvpn_hia_20261105/target_host/test_profile_capture.py
   workflow_dispatch:
 
 permissions:
@@ -33,15 +34,17 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
-          printf 'HEAD=%s\n' "$(git rev-parse HEAD)"
+          printf 'HEAD=%s\\n' "$(git rev-parse HEAD)"
           sha256sum experiments/openvpn_hia_20261105/target_host/dco_peer_stats.py
           sha256sum experiments/openvpn_hia_20261105/target_host/test_dco_peer_stats.py
           sha256sum experiments/openvpn_hia_20261105/target_host/test_dco_peer_stats_wire.py
           sha256sum experiments/openvpn_hia_20261105/target_host/run_matrix.py
           sha256sum experiments/openvpn_hia_20261105/target_host/test_run_matrix_rekey.py
           sha256sum experiments/openvpn_hia_20261105/target_host/test_rekey_attempt_grouping.py
+          sha256sum experiments/openvpn_hia_20261105/target_host/test_profile_capture.py
           python3 -B experiments/openvpn_hia_20261105/target_host/test_dco_peer_stats.py -v
           python3 -B experiments/openvpn_hia_20261105/target_host/test_dco_peer_stats_wire.py -v
           python3 -B experiments/openvpn_hia_20261105/target_host/test_run_matrix_rekey.py -v
           python3 -B experiments/openvpn_hia_20261105/target_host/test_rekey_attempt_grouping.py -v
+          python3 -B experiments/openvpn_hia_20261105/target_host/test_profile_capture.py -v
           test -z "$(git status --porcelain)"

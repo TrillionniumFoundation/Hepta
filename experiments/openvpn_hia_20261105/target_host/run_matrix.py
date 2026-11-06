@@ -381,6 +381,29 @@ class Job:
     def text(self):return read_text(self.stdout)+read_text(self.stderr)
 
 
+def profile_record_grace_seconds(workload_seconds, configured_grace_seconds):
+    """Bound recorder finalization after traffic without silently truncating it."""
+    for name,value in (("workload_seconds",workload_seconds),
+                       ("configured_grace_seconds",configured_grace_seconds)):
+        if isinstance(value,bool) or not isinstance(value,(int,float)) or not math.isfinite(value):
+            raise ValueError(name+" must be a finite number")
+    if workload_seconds<=0:raise ValueError("workload_seconds must be positive")
+    if configured_grace_seconds<5 or configured_grace_seconds>120:
+        raise ValueError("configured_grace_seconds must be between 5 and 120 seconds")
+    grace=max(float(configured_grace_seconds),float(workload_seconds)+5.0)
+    if grace>120:raise ValueError("required profile recorder grace exceeds the 120-second bound")
+    return grace
+
+
+def wait_for_profile_recorder(job, workload_seconds, configured_grace_seconds):
+    """Wait after traffic for perf's own shutdown/finalization, preserving timeout."""
+    grace=profile_record_grace_seconds(workload_seconds,configured_grace_seconds)
+    row=job.wait(timeout=grace,required=False)
+    row["workload_seconds"]=workload_seconds
+    row["post_workload_wait_timeout_seconds"]=grace
+    return row
+
+
 class Ledger:
     def __init__(self,out,private,budget):
         self.out=out;self.private=private;self.started=time.monotonic();self.deadline=self.started+budget
@@ -793,7 +816,7 @@ def local_bidir_receiver(document,role):
             'local_receiving_role':role,**row}
 
 
-def throughput(pair,workload,seconds,cpus,label,perf=None):
+def throughput(pair,workload,seconds,cpus,label,perf=None,record_grace_seconds=15):
     output=pair.folder/(label+'-measurement.json')
     result={'workload':workload,'bidirectional':True,'duration_requested_seconds':seconds,'omit_seconds':0,
             'status':'started','passed':False,'checks':{},'failures':[],
@@ -883,7 +906,7 @@ def throughput(pair,workload,seconds,cpus,label,perf=None):
             result['profile']=profile
             try:
                 if not perf_job:raise RuntimeError('perf record was never started')
-                perf_job.wait(3,required=False);profile['record']=perf_job.row
+                profile['record']=wait_for_profile_recorder(perf_job,seconds,record_grace_seconds)
                 profile['data_sha256']=digest(perf_file) if perf_file.exists() else None
                 report=pair.l.run([str(perf),'report','--stdio','--no-children','--sort','comm,dso,symbol','--input',str(perf_file)],label+'-perf-report',pair.folder,timeout=30,required=False)
                 samples=pair.l.run([str(perf),'script','--input',str(perf_file),'-F','comm,pid,tid,time,event,ip,sym,dso'],label+'-perf-samples',pair.folder,timeout=30,required=False)
@@ -1069,7 +1092,7 @@ def main(argv=None):
                     pair.connected();pair.protocol_gate(False)
                     if row['kind']=='profile':
                         measurement=throughput(pair,{'name':'tcp-profile','transport':'tcp'},plan['profile']['seconds'],selected_cpus,
-                                               'tcp-profile',perf=args.perf)
+                                               'tcp-profile',perf=args.perf,record_grace_seconds=plan['profile']['post_workload_grace_seconds'])
                         if not measurement['passed'] or not measurement.get('profile',{}).get('passed'):
                             raise RuntimeError('actual tunnel traffic or perf profile failed')
                         pair.result['checks']={'actual_tunnel_profile':True}
