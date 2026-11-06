@@ -60,7 +60,9 @@ jobs:
           for file in \
             "$RUNNER_TEMP/ovpn-hia-fair-dispatch/public/p2p-fair-dispatch-check.stderr" \
             "$RUNNER_TEMP/ovpn-hia-fair-dispatch/public/p2p-fair-dispatch-check.stdout" \
-            "$RUNNER_TEMP/ovpn-hia-fair-dispatch/public/p2p-fair-dispatch-apply.stderr"; do
+            "$RUNNER_TEMP/ovpn-hia-fair-dispatch/public/p2p-fair-dispatch-apply.stderr" \
+            "$RUNNER_TEMP/ovpn-hia-fair-dispatch/public/p2p-fair-dispatch-source-context.txt" \
+            "$RUNNER_TEMP/ovpn-hia-fair-dispatch/public/p2p-fair-dispatch-preflight.json"; do
             if [ -f "$file" ]; then
               echo "===== $(basename "$file") ====="
               sed -n '1,80p' "$file"
