@@ -376,10 +376,6 @@ class DirectNativeIndependentReview(unittest.TestCase):
             self.assertEqual(int(self.run_command([binary]).stdout), expected)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class SafetyContractDirectNativeBoundaryTests(unittest.TestCase):
     def test_direct_x86_machine_backend_is_explicitly_unproved(self):
         contract = json.loads((ROOT / "docs/HIA_SAFETY_CONTRACT.json").read_bytes())
@@ -390,3 +386,7 @@ class SafetyContractDirectNativeBoundaryTests(unittest.TestCase):
         self.assertFalse(contract["unproved_claims"]["core_to_native_refinement_proved"])
         capability = next(row for row in contract["capabilities"] if row["id"] == "native_lowering")
         self.assertTrue(any("direct x86-64 machine-code lowering" in item for item in capability["exclusions"]))
+
+
+if __name__ == "__main__":
+    unittest.main()
