@@ -1,7 +1,8 @@
 """Opt-in forecast/observed time debits for the finite feedback experiment.
 
-This profile reuses the existing planner and environment transitions. Forecasts
-are model inputs, never bounds on physical execution. A dispatch guard does not
+This profile shares the frozen model primitives and environment transitions
+with its separate compute_plan successor. Forecasts are model inputs, never
+bounds on physical execution. A dispatch guard does not
 preempt a native call, undo a past effect, or qualify Linux/kernel hard deadlines.
 The original price-only protocol and its historical results are not reinterpreted.
 """

@@ -11,6 +11,30 @@ The separate [compute-debit profile](../benchmarks/hia_ndu_feedback/COMPUTE_DEBI
 addresses those two finite-model defects. It is opt-in and does not relabel the
 original frozen cohorts or give their v1 bounds a new interpretation.
 
+## Preserve the byte-frozen v1 model
+
+The first implementation modified `model.py` while preserving its default
+behavior. That still violated the old coverage and whole-policy protocols,
+which deliberately commit to the model's exact source bytes. The combined
+source `02e421c562ab48a96fb45ff19ff2891186d259c1` passed its initial 96-test
+selection, then nine extension tests errored at the original frozen-model
+gate. Both observations must remain in the evidence; the first green selection
+cannot qualify the rejected source combination.
+
+The compatibility repair restores the original model Git blob
+`82fbd412342ec8053fca7c35c8b64e37568d5316`, SHA-256
+`56b335e5a7fc205e4ad955faf3eece2a63d43c097f71d5fb4af6d84ee1081b79`.
+It moves the new recurrence to `compute_plan.py` and makes the opt-in runner call
+that explicit entrypoint. Original coverage and policy protocol files, their
+hashes, registration validation and historical outcomes are unchanged.
+
+The successor reuses v1 primitives and backend response validation. Its local
+backend adapter replaces only the supplied objective digest with the
+compute-profile digest before forwarding the call; it does not mutate
+`model.plan`, shared globals, scenario objects or another controller. A regression
+calls the real old `coverage.load_protocol()` and checks the original model byte
+identity as well as the distinct successor entrypoint.
+
 ## Forecast transitions
 
 `ComputeDebitProfile` binds one scenario, an explicit calibration identity and
@@ -20,8 +44,9 @@ nanoseconds-per-utility-cost conversion. A future formal campaign must freeze
 training-only calibration inputs before held-out execution; a supplied hash
 does not establish that the calibration was valid or independently measured.
 
-`model.plan(..., compute_profile=profile)` reuses the existing recursive planner,
-action costs and observation forecast. At every root and future node it:
+`compute_plan.plan(..., compute_profile=profile)` owns the explicit successor
+recurrence and reuses the frozen v1 action costs and observation forecast.
+At every root and future node it:
 
 1. Obtains the declared computation duration for that remaining horizon.
 2. Projects `budget - compute` and `deadline - compute`, saturating at zero.

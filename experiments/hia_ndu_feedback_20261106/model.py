@@ -267,10 +267,10 @@ def scalar_backend(candidates, *, state_digest, preference_digest, objective_dig
             "native": False}
 
 
-def _call_backend(backend, candidates, scenario, observation, pref, *, objective_digest=None):
+def _call_backend(backend, candidates, scenario, observation, pref):
     fn = backend.evaluate if hasattr(backend, "evaluate") else backend
     response = fn(candidates, state_digest=observation.state_digest,
-                  preference_digest=digest(pref), objective_digest=objective_digest or scenario.objective_digest,
+                  preference_digest=digest(pref), objective_digest=scenario.objective_digest,
                   resource_budget_q32=q32(Fraction(min(observation.budget, observation.deadline), scenario.cost_unit)),
                   risk_ceiling_q32=Q32)
     values, winners = response.get("values"), response.get("winners")
@@ -287,18 +287,13 @@ def _call_backend(backend, candidates, scenario, observation, pref, *, objective
 
 
 def plan(scenario: Scenario, observation: Observation, arm: str, *, backend=None,
-         max_transitions: int = 20000, fixed_action: int = 0, compute_profile=None):
+         max_transitions: int = 20000, fixed_action: int = 0):
     """Choose a real cache action using only the current public observation.
 
     Forecasts are fixed before execution. Search-budget failure raises before
     advice is returned; callers must retain that failure rather than use a
     partially searched candidate. All planning arms use the full remaining
     finite horizon; ordinary MPC uses a different additive-cost objective.
-
-    An explicit compute-resource profile adds each depth's frozen controller
-    forecast to resource transitions and utility, including a future abstention.
-    It never turns forecasts into observed timing guarantees. The default v1
-    path and its independent oracle retain their original workload-only model.
     """
     validate_observation(scenario, observation)
     if arm not in ARMS and arm not in {"wrong-forecast", "no-adaptation"}:
@@ -309,13 +304,6 @@ def plan(scenario: Scenario, observation: Observation, arm: str, *, backend=None
         raise FeedbackError("fixed action must be a cache slot or empty")
     if arm in {"dynamic-ndu", "fixed-preference-ndu"} and backend is None:
         raise FeedbackError("native arm requires an explicit native backend")
-    compute_objective = None
-    if compute_profile is not None:
-        from .compute_debit import after_compute, validate_profile
-        validate_profile(compute_profile, scenario)
-        if arm == "exact-oracle":
-            raise FeedbackError("the v1 independent oracle does not implement compute-resource debits")
-        compute_objective = compute_profile.objective_digest(scenario)
     if arm == "exact-oracle":
         return independent_oracle(scenario, observation, max_transitions=max_transitions)
     start = time.perf_counter_ns()
@@ -343,31 +331,23 @@ def plan(scenario: Scenario, observation: Observation, arm: str, *, backend=None
         candidates = []
         if arm == "ordinary-mpc":
             pref = {"price_q32": Q32, "discount_q32": Q32, "risk_q32": 0, "scarcity_num": 0, "scarcity_den": 1}
-        compute_ns = 0 if compute_profile is None else compute_profile.forecast(modeling, state)
-        available = state if compute_profile is None else after_compute(modeling, state, compute_ns)
-        # The price is fixed at the observed, pre-computation state for this
-        # entire step, matching FeedbackEnvironment.step's actual-cost rule.
-        # A deadline already reached by computation permits no new service,
-        # including a declared zero-duration workload. Abstention remains legal.
-        compute_exhausted = compute_profile is not None and compute_ns >= min(state.budget, state.deadline)
         for action in ACTIONS:
             counters["transitions"] += 1
             if counters["transitions"] > max_transitions:
                 raise SearchBudgetExhausted(f"search exceeded {max_transitions} action expansions", transitions=max_transitions, statistics=counters)
             cost = action_cost(modeling, state, action)["total"]
-            total_cost = cost + compute_ns
-            feasible = not compute_exhausted and cost <= min(available.budget, available.deadline)
+            feasible = cost <= min(state.budget, state.deadline)
             continuation = []
             if feasible and remaining > 1:
                 for probability, request, signal, belief in forecast(modeling, state):
-                    child = Observation(state.step + 1, request, signal, action, available.budget - cost,
-                                        available.deadline - cost, belief.numerator, belief.denominator)
+                    child = Observation(state.step + 1, request, signal, action, state.budget - cost,
+                                        state.deadline - cost, belief.numerator, belief.denominator)
                     continuation.append((probability, solve(child, remaining - 1)[0]))
             value = certainty_equivalent(continuation, pref["risk_q32"])
-            instant = -q32(Fraction(total_cost, modeling.cost_unit)) if arm == "ordinary-mpc" else immediate(modeling, total_cost, pref)
+            instant = -q32(Fraction(cost, modeling.cost_unit)) if arm == "ordinary-mpc" else immediate(modeling, cost, pref)
             candidates.append({"id": action_name(action), "instant_q32": instant,
                                "terminal_q32": value, "discount_q32": pref["discount_q32"],
-                               "feasible": feasible, "resource_q32": q32(Fraction(total_cost, modeling.cost_unit)), "risk_q32": 0})
+                               "feasible": feasible, "resource_q32": q32(Fraction(cost, modeling.cost_unit)), "risk_q32": 0})
         # Upstream requires an explicit feasible abstention candidate. This
         # terminates delivery and incurs the registered remaining-request loss;
         # it is never an over-budget direct dispatch disguised as abstention.
@@ -375,14 +355,12 @@ def plan(scenario: Scenario, observation: Observation, arm: str, *, backend=None
         if counters["transitions"] > max_transitions:
             raise SearchBudgetExhausted(f"search exceeded {max_transitions} action expansions", transitions=max_transitions, statistics=counters)
         candidates.append({"id": "abstain",
-                           "instant_q32": -modeling.miss_penalty_q32 * (modeling.horizon-state.step)
-                               - mul_q32(pref["price_q32"], q32(Fraction(compute_ns, modeling.cost_unit))),
+                           "instant_q32": -modeling.miss_penalty_q32 * (modeling.horizon-state.step),
                            "terminal_q32": 0, "discount_q32": Q32, "feasible": True,
                            "resource_q32": 0, "risk_q32": 0})
         counters["backups"] += 1
         counters["backend_calls"] += int(evaluator is not scalar_backend)
-        response = _call_backend(evaluator, candidates, modeling, state, pref,
-                                 objective_digest=compute_objective)
+        response = _call_backend(evaluator, candidates, modeling, state, pref)
         chosen = response["winners"][0]
         if arm == "fixed":
             desired = action_name(fixed_action)
@@ -391,16 +369,10 @@ def plan(scenario: Scenario, observation: Observation, arm: str, *, backend=None
         values = response["values"]
         result = (values[chosen], action_number(chosen), values, candidates, pref)
         # A compact search proof trace contains every node and no hidden values.
-        node_receipt = {"state_digest": state.state_digest, "preference": pref,
-                        "candidate_ids": [c["id"] for c in candidates],
-                        "eligible": [c["id"] for c in candidates if c["feasible"]],
-                        "selected": chosen, "values_q32": values}
-        if compute_profile is not None:
-            node_receipt["compute_debit"] = {"forecast_ns": compute_ns,
-                "budget_before": state.budget, "deadline_before": state.deadline,
-                "budget_after": available.budget, "deadline_after": available.deadline,
-                "service_deadline_exhausted": compute_exhausted}
-        node_receipts.append(node_receipt)
+        node_receipts.append({"state_digest": state.state_digest, "preference": pref,
+                              "candidate_ids": [c["id"] for c in candidates],
+                              "eligible": [c["id"] for c in candidates if c["feasible"]],
+                              "selected": chosen, "values_q32": values})
         memo[key] = result
         return result
 
@@ -411,7 +383,7 @@ def plan(scenario: Scenario, observation: Observation, arm: str, *, backend=None
         error.transitions = error.search_stats["transitions"]
         error.controller_wall_ns = time.perf_counter_ns()-start
         raise
-    result = {"schema": "hepta.hia.ndu.feedback-plan.v1", "arm": arm, "action": selected,
+    return {"schema": "hepta.hia.ndu.feedback-plan.v1", "arm": arm, "action": selected,
             "selected_action": action_name(selected),
             "value_q32": value, "candidate_values_q32": values, "candidates": candidates,
             "preference": pref, "observation": asdict(observation), "state_digest": observation.state_digest,
@@ -424,14 +396,6 @@ def plan(scenario: Scenario, observation: Observation, arm: str, *, backend=None
             "native_backend_used": evaluator is not scalar_backend,
             "scope": "finite declared model; ordinary MPC has a different additive objective",
             "authority": AUTHORITY, "production_activation": False}
-    if compute_profile is not None:
-        from .compute_debit import PLAN_SCHEMA, SCHEMA
-        result["schema"] = PLAN_SCHEMA
-        result["compute_debit"] = {"schema": SCHEMA, "profile_sha256": compute_profile.identity,
-            "profile": asdict(compute_profile), "objective_digest": compute_objective,
-            "forecast_is_physical_guarantee": False, "hard_realtime_guarantee": False,
-            "cost_rule": "compute plus workload once at each modeled decision; measured total at dispatch"}
-    return result
 
 
 def independent_oracle(scenario, observation, *, max_transitions=20000):

@@ -1,17 +1,19 @@
 """Counterexamples for opt-in forecast and observed resource-time debits.
 
 Clocks and callbacks below are deterministic controls, not native-performance
-evidence. The original model/planner is used; no alternative planner is mocked
-into these correctness checks.
+evidence. The explicit successor recurrence and frozen v1 primitives are
+exercised; no alternative planner result is mocked into these checks.
 """
 from dataclasses import FrozenInstanceError, asdict, replace
+from hashlib import sha256
+import json
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
 from experiments.hia_ndu_feedback_20261106 import compute_debit as debit
-from experiments.hia_ndu_feedback_20261106 import model
+from experiments.hia_ndu_feedback_20261106 import compute_plan, coverage, model
 from experiments.hia_ndu_feedback_20261106.economical import priced_plan
 from tools import qualify_hia_ndu_feedback as campaign
 
@@ -45,10 +47,28 @@ def profile(s, forecasts):
 
 
 def choose(s, env, p, arm="same-objective", **kwargs):
-    return model.plan(s, env.observe(), arm, compute_profile=p, **kwargs)
+    return compute_plan.plan(s, env.observe(), arm, compute_profile=p, **kwargs)
 
 
 class ComputeDebitPlanningTests(unittest.TestCase):
+    def test_v1_model_bytes_and_original_coverage_registration_remain_unchanged(self):
+        # This is the concrete integration failure: the old coverage loader
+        # rejects even behavior-compatible edits to the frozen v1 model bytes.
+        original = coverage.load_protocol()
+        model_hash = sha256(Path(model.__file__).read_bytes()).hexdigest()
+        self.assertEqual(model_hash, original["base_model_sha256"])
+        self.assertEqual(model_hash, compute_plan.BASE_MODEL_SHA256)
+        contract = json.loads((Path(__file__).resolve().parents[1] /
+            "benchmarks/hia_ndu_feedback/COMPUTE_DEBIT_PROTOCOL.json").read_text())
+        self.assertEqual(contract["v1_compatibility"]["model_sha256"], model_hash)
+        self.assertEqual(contract["planner_entrypoint"],
+                         "experiments.hia_ndu_feedback_20261106.compute_plan.plan")
+        s = scenario()
+        env, p = model.FeedbackEnvironment(s, 1), profile(s, (1, 2))
+        with self.assertRaises(TypeError):
+            model.plan(s, env.observe(), "same-objective", compute_profile=p)
+        self.assertEqual(choose(s, env, p)["schema"], debit.PLAN_SCHEMA)
+
     def test_future_compute_can_remove_service_from_the_existing_transition_graph(self):
         # Old model: two deliveries cost 3+3 <= 8. New model: the second
         # decision costs 3 first, leaving 2; a 3-unit service is infeasible.
@@ -282,8 +302,8 @@ class ComputeDebitEpisodeTests(unittest.TestCase):
 
         def decision(sc, obs, arm, backend, fixed_action, allowance):
             observations.append(obs)
-            result = model.plan(sc, obs, arm, fixed_action=fixed_action,
-                                max_transitions=allowance, compute_profile=p)
+            result = compute_plan.plan(sc, obs, arm, fixed_action=fixed_action,
+                                       max_transitions=allowance, compute_profile=p)
             clock.advance(decision_wait)
             return result
 

@@ -60,6 +60,7 @@ def source_identity():
                 "benchmarks/hia_ndu_feedback_state_coverage", "tests/test_hia_ndu_feedback.py",
                 "tests/test_hia_ndu_feedback_workload.py", "tests/test_hia_ndu_feedback_campaign.py",
                 "tests/test_hia_ndu_compute_price.py", "tests/test_hia_ndu_economical.py",
+                "tests/test_hia_ndu_compute_debit.py",
                 "tests/test_hia_ndu_feedback_coverage.py").splitlines()
     files = {}
     for name in names:
@@ -199,6 +200,7 @@ def episode(scenario, seed, arm, *, fixed_action, inputs, output, native, n, rep
         if compute_profile is not None:
             from experiments.hia_ndu_feedback_20261106.compute_debit import (
                 dispatch_after_compute, validate_profile)
+            from experiments.hia_ndu_feedback_20261106.compute_plan import plan as compute_plan
             validate_profile(compute_profile, scenario)
             if not native:
                 raise ValueError("observed compute-resource debits require the real-workload route")
@@ -223,7 +225,7 @@ def episode(scenario, seed, arm, *, fixed_action, inputs, output, native, n, rep
                 raise model.SearchBudgetExhausted("controller lifecycle budget exhausted before next decision")
             try:
                 if compute_profile is not None and decision_function is None:
-                    selected = model.plan(scenario, observation, arm, backend=backend,
+                    selected = compute_plan(scenario, observation, arm, backend=backend,
                         fixed_action=fixed_action, max_transitions=allowance, compute_profile=compute_profile)
                 else:
                     selected = (decision_function or decide)(scenario, observation, arm, backend, fixed_action, allowance)
