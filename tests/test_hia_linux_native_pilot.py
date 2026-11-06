@@ -30,9 +30,16 @@ class NativePilotEvidence(unittest.TestCase):
             pilot.validate_observation(missing, expected, 2)
 
     def test_failed_process_lifecycle_cannot_become_a_success_or_hardware_skip(self):
-        normal = {'timed_out': False, 'process_group': 12345, 'process_group_cleanup': {
-            'group': 12345, 'scope': 'owned_linux_process_group', 'drained': True,
-            'signals': [], 'live_members_after': [], 'errors': [], 'elapsed_ns': 0}}
+        tree = {'schema': 'hepta.hia.process-tree-cleanup.v1',
+                'supervisor_pid': 12345, 'target_pid': 12346, 'target_process_group': 12346,
+                'target_exit_code': 0, 'interrupted_signal': None, 'incomplete_process_tree': False,
+                'adopted_children_before_cleanup': [], 'adopted_children_after_cleanup': [],
+                'target_group_members_after': [], 'signals': [], 'errors': [],
+                'drained': True, 'elapsed_ns': 0, 'child_user_seconds': 0.0, 'child_system_seconds': 0.0}
+        normal = {'timed_out': False, 'exit_code': 0, 'process_group': 12345,
+                  'process_group_cleanup': {'group': 12345, 'scope': 'owned_linux_process_group',
+                    'drained': True, 'signals': [], 'live_members_after': [], 'errors': [], 'elapsed_ns': 0},
+                  'process_tree_cleanup': tree}
         self.assertTrue(pilot.clean_command(normal))
         for mutation in ({'timed_out': True}, {'timed_out': 0},
                          {'interruption': {'type': 'KeyboardInterrupt'}},
@@ -63,7 +70,13 @@ class NativePilotEvidence(unittest.TestCase):
                          {'process_group_cleanup': {'group': 12345, 'scope': 'owned_linux_process_group',
                                                     'drained': True, 'signals': [],
                                                     'live_members_after': [], 'errors': [], 'elapsed_ns': -1}},
-                         {'process_group_cleanup': None}):
+                         {'process_group_cleanup': None},
+                         {'process_tree_cleanup': None},
+                         {'process_tree_cleanup': {**tree, 'incomplete_process_tree': True}},
+                         {'process_tree_cleanup': {**tree, 'adopted_children_before_cleanup': [{'pid': 99}]}},
+                         {'process_tree_cleanup': {**tree, 'signals': [{'signal': 'SIGKILL'}]}},
+                         {'process_tree_cleanup': {**tree, 'supervisor_pid': 12346}},
+                         {'process_tree_cleanup': {**tree, 'target_exit_code': 1}}):
             with self.subTest(mutation=mutation):
                 self.assertFalse(pilot.clean_command({**normal, **mutation}))
 

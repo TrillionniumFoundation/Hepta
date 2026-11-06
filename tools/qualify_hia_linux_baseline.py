@@ -14,6 +14,7 @@ import gzip
 import hashlib
 import io
 import json
+import math
 import os
 from pathlib import Path, PurePosixPath
 import re
@@ -29,6 +30,7 @@ import time
 
 
 ROOT = Path(__file__).resolve().parents[1]
+PROCESS_SUPERVISOR = ROOT / 'tools/hia_linux_process_supervisor.py'
 KERNEL_VERSION = '6.18.60'
 UPSTREAM_COMMIT = 'f45ed76d6791cf72ff1265ee93511175bbbc2f18'
 ARCHIVE_SHA256 = '3c2f44ef6acc021a7ad444d9a2e6ec1ef488ff09368793d0004a6080f69d621e'
@@ -95,6 +97,7 @@ def source_identity(expected_head):
     require(not git('status', '--porcelain', '--untracked-files=all'), 'execution wrapper source is dirty')
     return {'commit': actual, 'tree': git('rev-parse', 'HEAD^{tree}'), 'clean': True,
             'wrapper': identity(__file__),
+            'process_supervisor': identity(PROCESS_SUPERVISOR),
             'guest_source': identity(ROOT / 'experiments/hia_linux_kernel_20261106/guest_init.c')}
 
 
@@ -187,6 +190,8 @@ def qemu_runtime_modules(env):
 
 GROUP_TERM_GRACE_SECONDS = 5.0
 GROUP_KILL_GRACE_SECONDS = 2.0
+SUPERVISOR_TERM_GRACE_SECONDS = 5.0
+SUPERVISOR_KILL_GRACE_SECONDS = 2.0
 
 
 def live_process_group_members(group):
@@ -205,7 +210,7 @@ def live_process_group_members(group):
     return sorted(members, key=lambda item: item['pid'])
 
 
-def terminate_owned_process_group(process):
+def terminate_owned_process_group(process, *, term_grace=None, kill_grace=None):
     """Bound cleanup by the whole group, even after its leader has exited.
 
     Only call for a Popen created with start_new_session=True. This does not
@@ -216,8 +221,9 @@ def terminate_owned_process_group(process):
     receipt = {'group': group, 'scope': 'owned_linux_process_group', 'drained': False,
                'signals': [], 'live_members_after': None, 'errors': []}
     started = time.monotonic_ns()
-    for sig, grace in ((signal.SIGTERM, GROUP_TERM_GRACE_SECONDS),
-                       (signal.SIGKILL, GROUP_KILL_GRACE_SECONDS)):
+    term_grace = GROUP_TERM_GRACE_SECONDS if term_grace is None else term_grace
+    kill_grace = GROUP_KILL_GRACE_SECONDS if kill_grace is None else kill_grace
+    for sig, grace in ((signal.SIGTERM, term_grace), (signal.SIGKILL, kill_grace)):
         try:
             os.killpg(group, sig)
             receipt['signals'].append(sig.name)
@@ -248,7 +254,7 @@ def terminate_owned_process_group(process):
 
 
 def process_group_outcome_admissible(record):
-    """Require a complete, empty observation for this command's owned group."""
+    """Require supervisor-group drain and a complete child-tree receipt."""
     if not isinstance(record, dict) or 'interruption' in record:
         return False
     if record.get('incomplete_process_group', False) is not False:
@@ -263,14 +269,43 @@ def process_group_outcome_admissible(record):
         return False
     if cleanup.get('scope') != 'owned_linux_process_group' or cleanup.get('drained') is not True:
         return False
-    signals = cleanup.get('signals')
-    live = cleanup.get('live_members_after')
-    errors = cleanup.get('errors')
-    elapsed = cleanup.get('elapsed_ns')
-    return (type(signals) is list and not signals
-            and type(live) is list and not live
-            and type(errors) is list and not errors
-            and type(elapsed) is int and elapsed >= 0)
+    if (type(cleanup.get('signals')) is not list or cleanup['signals']
+            or type(cleanup.get('live_members_after')) is not list or cleanup['live_members_after']
+            or type(cleanup.get('errors')) is not list or cleanup['errors']
+            or type(cleanup.get('elapsed_ns')) is not int or cleanup['elapsed_ns'] < 0):
+        return False
+    tree = record.get('process_tree_cleanup')
+    required = {
+        'schema', 'supervisor_pid', 'target_pid', 'target_process_group', 'target_exit_code',
+        'interrupted_signal', 'incomplete_process_tree', 'adopted_children_before_cleanup',
+        'adopted_children_after_cleanup', 'target_group_members_after', 'signals', 'errors',
+        'drained', 'elapsed_ns', 'child_user_seconds', 'child_system_seconds'
+    }
+    if type(tree) is not dict or set(tree) != required:
+        return False
+    if tree.get('schema') != 'hepta.hia.process-tree-cleanup.v1':
+        return False
+    if type(tree.get('supervisor_pid')) is not int or tree['supervisor_pid'] != group:
+        return False
+    if (type(tree.get('target_pid')) is not int or tree['target_pid'] <= 1
+            or type(tree.get('target_process_group')) is not int
+            or tree['target_process_group'] != tree['target_pid']):
+        return False
+    if type(tree.get('target_exit_code')) is not int or tree['target_exit_code'] != record.get('exit_code'):
+        return False
+    if tree.get('interrupted_signal') is not None or tree.get('incomplete_process_tree') is not False:
+        return False
+    for key in ('adopted_children_before_cleanup', 'adopted_children_after_cleanup',
+                'target_group_members_after', 'signals', 'errors'):
+        if type(tree.get(key)) is not list or tree[key]:
+            return False
+    if tree.get('drained') is not True or type(tree.get('elapsed_ns')) is not int or tree['elapsed_ns'] < 0:
+        return False
+    for key in ('child_user_seconds', 'child_system_seconds'):
+        value = tree.get(key)
+        if type(value) not in (int, float) or not math.isfinite(value) or value < 0:
+            return False
+    return True
 
 
 def command_succeeded(record):
@@ -305,10 +340,14 @@ class CommandRunner:
             stdout = streams.enter_context(open(str(stem) + '.stdout', 'xb'))
             stderr = streams.enter_context(open(str(stem) + '.stderr', 'xb'))
             stdin = streams.enter_context(open(record['stdin']['path'], 'rb')) if stdin_bytes is not None else subprocess.DEVNULL
+            result_path = Path(str(stem) + '.process-tree.json')
             try:
-                process = subprocess.Popen(record['argv'], cwd=cwd or ROOT, env=self.env,
+                supervisor_argv = [sys.executable, str(PROCESS_SUPERVISOR), str(result_path),
+                                   str(Path(cwd or ROOT).resolve()), '--', *record['argv']]
+                process = subprocess.Popen(supervisor_argv, cwd=ROOT, env=self.env,
                                            stdin=stdin, stdout=stdout, stderr=stderr, start_new_session=True)
                 record['process_group'] = process.pid
+                record['process_supervisor'] = identity(PROCESS_SUPERVISOR)
             except OSError as error:
                 code = 127
                 record['spawn_error'] = str(error)
@@ -319,15 +358,12 @@ class CommandRunner:
                     remaining = live_process_group_members(process.pid)
                     observation_elapsed = time.monotonic_ns() - observation_started
                     if remaining:
-                        # A zero exit from the leader cannot seal streams that
-                        # its descendants can still change. Preserve that exit
-                        # code, stop the group, and reject the command outcome.
                         record['incomplete_process_group'] = True
                         record['live_members_after_leader_exit'] = remaining
-                        record['process_group_cleanup'] = terminate_owned_process_group(process)
+                        record['process_group_cleanup'] = terminate_owned_process_group(
+                            process, term_grace=SUPERVISOR_TERM_GRACE_SECONDS,
+                            kill_grace=SUPERVISOR_KILL_GRACE_SECONDS)
                     else:
-                        # Normal completion still needs an explicit observation:
-                        # an absent receipt must never mean that group drain was proven.
                         record['process_group_cleanup'] = {
                             'group': process.pid,
                             'scope': 'owned_linux_process_group',
@@ -339,18 +375,40 @@ class CommandRunner:
                         }
                 except subprocess.TimeoutExpired:
                     record['timed_out'] = True
-                    record['process_group_cleanup'] = terminate_owned_process_group(process)
+                    record['process_group_cleanup'] = terminate_owned_process_group(
+                        process, term_grace=SUPERVISOR_TERM_GRACE_SECONDS,
+                        kill_grace=SUPERVISOR_KILL_GRACE_SECONDS)
                     code = process.returncode
                 except BaseException as error:
                     interruption = error
                     record['interruption'] = {'type': type(error).__name__, 'message': str(error)}
-                    record['process_group_cleanup'] = terminate_owned_process_group(process)
+                    record['process_group_cleanup'] = terminate_owned_process_group(
+                        process, term_grace=SUPERVISOR_TERM_GRACE_SECONDS,
+                        kill_grace=SUPERVISOR_KILL_GRACE_SECONDS)
                     code = process.returncode
+            try:
+                tree_receipt = json.loads(result_path.read_text(encoding='utf-8'))
+                require(type(tree_receipt) is dict, 'process supervisor receipt must be an object')
+                record['process_tree_cleanup'] = tree_receipt
+                record['process_tree_cleanup_receipt'] = identity(result_path)
+                if type(tree_receipt.get('target_exit_code')) is int:
+                    code = tree_receipt['target_exit_code']
+                if tree_receipt.get('incomplete_process_tree') is not False or tree_receipt.get('drained') is not True:
+                    record['incomplete_process_group'] = True
+            except (OSError, ValueError, TypeError) as error:
+                record['process_tree_cleanup_error'] = str(error)
+                record['incomplete_process_group'] = True
         after = resource.getrusage(resource.RUSAGE_CHILDREN)
         record.update(exit_code=code, elapsed_ns=time.monotonic_ns() - start, completed_at_utc=utc(),
                       child_user_seconds=after.ru_utime-before.ru_utime,
                       child_system_seconds=after.ru_stime-before.ru_stime,
                       stdout=identity(str(stem) + '.stdout'), stderr=identity(str(stem) + '.stderr'))
+        tree_receipt = record.get('process_tree_cleanup')
+        if isinstance(tree_receipt, dict):
+            for key in ('child_user_seconds', 'child_system_seconds'):
+                value = tree_receipt.get(key)
+                if type(value) in (int, float) and math.isfinite(value) and value >= 0:
+                    record[key] = value
         write_json(str(stem) + '.json', record)
         self.records.append(record)
         completed = command_succeeded(record)
