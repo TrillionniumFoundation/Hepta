@@ -77,11 +77,19 @@ def replace_json(path, value):
     os.replace(temporary, path)
 
 
+def backend_optimization(manifest):
+    policy = manifest.get("backend_optimization", "original")
+    require(type(policy) is str and policy in ("original", "O2", "O3", "Os"),
+            "backend_optimization must be original, O2, O3, or Os")
+    return policy
+
+
 def load_manifest():
     path = Path(os.environ["HIA_SYSTEM_MANIFEST"]).resolve(strict=True)
     value = strict_json(path.read_bytes())
     require(value.get("schema") == MANIFEST_SCHEMA, "explicit HIA system build manifest required")
     require(value.get("mode") in ("import", "replay"), "explicit import/replay mode required")
+    backend_optimization(value)
     for name in ("clang", "clangxx", "llvm_dis", "codec"):
         tool = value["tools"][name]
         require(binding(tool["path"]) == tool, "bound tool changed: " + name)
@@ -685,6 +693,7 @@ def persist_program(program, record, directory, manifest, key, canonical_hash, d
     meta = {"schema": PROGRAM_BINDING_SCHEMA, "key": key, "kind": record["classification"]["kind"],
             "program": binding(stored), "canonical_input_sha256": canonical_hash,
             "source": record["source"], "original_cwd": record["cwd"], "original_argv": record["argv"],
+            "backend_optimization": backend_optimization(manifest),
             "original_build_root": manifest["build_root"], "external_inputs": record.get("external_inputs", [])}
     if record["classification"]["dependency_requested"]:
         require(dependency is not None and dependency.is_file(), "frontend did not produce dependencies")
@@ -699,6 +708,8 @@ def persist_program(program, record, directory, manifest, key, canonical_hash, d
         path = index / (key + ".json")
         if path.exists():
             old = strict_json(path.read_bytes())
+            require(old.get("backend_optimization", "original") == meta["backend_optimization"],
+                    "compiler key reused across backend variants; use a distinct program root")
             require(old["canonical_input_sha256"] == canonical_hash and old["kind"] == meta["kind"],
                     "same compiler key produced different semantic source; freeze a new profile")
         else:
@@ -724,6 +735,10 @@ def compile_payload(arguments, classification, manifest, record, directory):
     dependency_stage = directory / "frontend.d" if classification["dependency_requested"] else None
     dependency_data = None
     is_assembly = classification["kind"] == "target_assembly"
+    policy = backend_optimization(manifest)
+    effective_policy = "original" if is_assembly else policy
+    record["requested_backend_optimization"] = policy
+    record["backend_optimization"] = effective_policy
     hia = directory / "program.hia.json"
     if manifest["mode"] == "replay":
         index = Path(manifest["program_root"]) / "index" / (key + ".json")
@@ -732,6 +747,8 @@ def compile_payload(arguments, classification, manifest, record, directory):
         require(type(meta) is dict and meta.get("schema") == PROGRAM_BINDING_SCHEMA,
                 "invalid retained program index")
         require(meta["key"] == key and meta["kind"] == classification["kind"], "replay route mismatch")
+        require(meta.get("backend_optimization", "original") == policy,
+                "replay backend variant differs from retained program; re-import into a distinct program root")
         require(binding(meta["program"]["path"]) == meta["program"], "retained HIA program changed")
         write_new(hia, gzip.decompress(Path(meta["program"]["path"]).read_bytes()))
         record["retained_program"] = meta["program"]
@@ -795,6 +812,8 @@ def compile_payload(arguments, classification, manifest, record, directory):
         validate_replay_external_inputs(meta, record["external_inputs"], manifest)
     args = change_phase(arguments, emitted, target, classification["mode"],
                         backend=True, assembly=is_assembly)
+    if effective_policy != "original":
+        args.append("-" + effective_policy)
     # A successful no-op compiler invocation must not reuse a pre-existing
     # object as apparent HIA output.
     if target.is_file():
@@ -827,7 +846,9 @@ def invocation_record(manifest_path, manifest, arguments, directory, role):
     return {"schema": "hepta.hia.system-compiler-invocation.v1", "id": directory.name,
             "role": role, "source_commit": manifest["source_commit"],
             "manifest": binding(manifest_path), "cwd": str(Path.cwd().resolve()),
-            "argv": arguments, "mode": manifest["mode"], "status": "RUNNING",
+            "argv": arguments, "mode": manifest["mode"],
+            "requested_backend_optimization": backend_optimization(manifest),
+            "backend_optimization": "original", "status": "RUNNING",
             "commands": [], "response_files": [], "started_ns": time.time_ns()}
 
 

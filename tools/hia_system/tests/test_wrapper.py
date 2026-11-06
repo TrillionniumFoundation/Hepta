@@ -155,6 +155,14 @@ class ClassificationTests(unittest.TestCase):
 
 
 class PhaseTests(unittest.TestCase):
+    def test_backend_optimization_enum_is_closed_and_defaults_to_original(self):
+        self.assertEqual(hia.backend_optimization({}), "original")
+        for policy in ("original", "O2", "O3", "Os"):
+            self.assertEqual(hia.backend_optimization({"backend_optimization": policy}), policy)
+        for policy in ("Ofast", "O0", "", None, 3):
+            with self.subTest(policy=policy), self.assertRaises(hia.SystemCompileError):
+                hia.backend_optimization({"backend_optimization": policy})
+
     def test_frontend_keeps_source_semantics_and_binds_original_dependency_target(self):
         argv = ["-O2", "-std=gnu11", "-D__KERNEL__", "-I/source/include",
                 "-mcmodel=kernel", "-Wp,-MMD,kernel/.a.o.d", "-c",
@@ -408,6 +416,37 @@ class PipelineTests(unittest.TestCase):
                          ["decode-hia-fresh-module", "hia-native-codegen"])
         self.assertEqual(replay_record["dependency_output"]["sha256"], hia.sha(self.dep))
 
+    def test_explicit_optimization_changes_only_c_backend_and_binds_replay_variant(self):
+        phases = FakePhases(self.target)
+        record, _ = self.invoke("O3-import", phases,
+                               manifest={**self.manifest, "backend_optimization": "O3"})
+        frontend = next(argv for name, argv in phases.calls if name == "clang-c-frontend-only")
+        backend = next(argv for name, argv in phases.calls if name == "hia-native-codegen")
+        self.assertIn("-O2", frontend)
+        self.assertNotIn("-O3", frontend)
+        self.assertEqual(backend[-1], "-O3")
+        self.assertEqual(record["backend_optimization"], "O3")
+        index = hia.strict_json(Path(record["program_index"]["path"]).read_bytes())
+        self.assertEqual(index["backend_optimization"], "O3")
+        wrong = FakePhases(self.target)
+        with self.assertRaises(hia.SystemCompileError):
+            self.invoke("wrong-policy-replay", wrong,
+                        manifest={**self.manifest, "mode": "replay"})
+        self.assertEqual(wrong.calls, [])
+
+    def test_explicit_optimization_does_not_modify_machine_assembly(self):
+        assembly = self.source / "raw.s"
+        assembly.write_text(".text\\nret\\n".replace("\\n", "\n"))
+        self.argv = ["-c", str(assembly), "-o", str(self.target)]
+        self.classification = hia.classify(self.argv)
+        phases = FakePhases(self.target)
+        record, _ = self.invoke("asm-Os", phases,
+                               manifest={**self.manifest, "backend_optimization": "Os"})
+        backend = next(argv for name, argv in phases.calls if name == "hia-native-codegen")
+        self.assertNotIn("-Os", backend)
+        self.assertEqual(record["backend_optimization"], "original")
+        self.assertEqual(record["requested_backend_optimization"], "Os")
+
     def test_missing_replay_never_invokes_frontend_or_codegen(self):
         phases = FakePhases(self.target)
         with self.assertRaises(hia.SystemCompileError):
@@ -463,6 +502,7 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(replay.calls, [])
 
     def test_probe_nonzero_exit_is_recorded_without_payload_failure(self):
+        self.manifest["backend_optimization"] = "Os"
         manifest_path = self.root / "manifest.json"
         manifest_path.write_bytes(b"{}")
         captured = []
@@ -479,6 +519,7 @@ class PipelineTests(unittest.TestCase):
             code = hia.main(["-c", "-xc", "-"])
         self.assertEqual(code, 17)
         self.assertEqual(captured[0][0][-2:], ["-o", "/dev/null"])
+        self.assertNotIn("-Os", captured[0][0])
         self.assertEqual(captured[0][1], b"int probe;\n")
         receipts = list(Path(self.manifest["ledger_root"]).glob("*/RESULT.json"))
         result = hia.strict_json(receipts[0].read_bytes())
@@ -487,6 +528,7 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(result["classification"]["kind"], "compiler_capability_probe")
 
     def test_host_cpp_is_explicitly_logged_and_original_argv_is_forwarded(self):
+        self.manifest["backend_optimization"] = "O3"
         manifest_path = self.root / "manifest.json"
         manifest_path.write_bytes(b"{}")
         source = self.source / "host.cpp"
@@ -511,6 +553,8 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(result["role"], "host_tool")
         self.assertEqual(result["host_toolchain"], "clangxx")
         self.assertEqual(result["host_driver_mode"], "g++")
+        self.assertEqual(result["backend_optimization"], "original")
+        self.assertEqual(result["requested_backend_optimization"], "O3")
         self.assertEqual(result["classification"]["kind"], "host_tool")
         self.assertEqual(result["compiler_output"], hia.binding(output))
         self.assertNotIn("retained_program", result)
