@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import secrets
 from pathlib import Path
 import socket
 import struct
@@ -134,12 +135,12 @@ def query(interface, journal=None):
 
 
 def write_evidence_no_follow(path: Path, document: str) -> None:
-    """Create evidence once without following any existing parent or leaf link.
+    """Publish complete evidence only, via no-replace hard-link from fsynced staging.
 
-    Linux-only target helper: directory-fd traversal makes the directory-open
-    checks and leaf creation relative to pinned directory inodes. This does
-    not claim crash-atomic publication or resistance to rename of a writable
-    ancestor *after* its inode has been opened.
+    The final filename never exposes an incomplete ordinary write. This does
+    not establish physical power-loss durability, safety in attacker-writable
+    parent directories, or resistance to parent rename after fd pinning.
+    Filesystems without hard links or directory fsync fail closed.
     """
     parts = path.parts
     if not parts or parts[-1] in ('.', '..') or '..' in parts:
@@ -156,15 +157,38 @@ def write_evidence_no_follow(path: Path, document: str) -> None:
             next_fd = os.open(name, directory_flags, dir_fd=directory_fd)
             os.close(directory_fd)
             directory_fd = next_fd
-        leaf_flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC
-        leaf_fd = os.open(parts[-1], leaf_flags, 0o644, dir_fd=directory_fd)
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC
+        temp_name = None
         try:
-            stream = os.fdopen(leaf_fd, 'w', encoding='utf-8')
-        except BaseException:
-            os.close(leaf_fd)
-            raise
-        with stream:
-            stream.write(document)
+            for _ in range(8):
+                candidate = '.dco-peer-evidence-' + secrets.token_hex(16) + '.tmp'
+                if candidate == parts[-1]:
+                    continue
+                try:
+                    temp_fd = os.open(candidate, flags, 0o644, dir_fd=directory_fd)
+                except FileExistsError:
+                    continue
+                temp_name = candidate
+                break
+            if temp_name is None:
+                raise FileExistsError('unable to reserve staging name')
+            try:
+                stream = os.fdopen(temp_fd, 'w', encoding='utf-8')
+            except BaseException:
+                os.close(temp_fd)
+                raise
+            with stream:
+                stream.write(document)
+                stream.flush()
+                os.fsync(stream.fileno())
+            # link() is no-replace. A racing/dangling leaf is never overwritten.
+            os.link(temp_name, parts[-1], src_dir_fd=directory_fd,
+                    dst_dir_fd=directory_fd, follow_symlinks=False)
+            os.fsync(directory_fd)
+        finally:
+            if temp_name is not None:
+                os.unlink(temp_name, dir_fd=directory_fd)
+                os.fsync(directory_fd)
     finally:
         os.close(directory_fd)
 
