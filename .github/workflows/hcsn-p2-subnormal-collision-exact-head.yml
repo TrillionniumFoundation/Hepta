@@ -1,0 +1,71 @@
+name: HCSN P2 subnormal collision candidate and frozen negatives (HOLD)
+on:
+  push:
+    branches:
+      - research/hcsn-p2-subnormal-collision-20261106
+  pull_request:
+    branches:
+      - research/hcsn-p2-binary64-ray-candidate-20261106-gpt6-01
+permissions:
+  contents: read
+jobs:
+  candidate-and-frozen-negatives:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    env:
+      EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      FROZEN_BASE: 3877297cdcd896a02e42fd0fd7b2ade45070d4d0
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Verify exact source and retain both original negatives
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          node --version
+          test "$(git hash-object research/hcsn/p2_exact_occupancy_reference.mjs)" = ac5a4a6c757c5c9c01983639d17178b29c08d406
+          test "$(git hash-object research/hcsn/p2_binary64_exact_ray_candidate.mjs)" = ad18bd8ed8821b9b60eb1948f08605a73ae6e841
+          test "$(git hash-object research/hcsn/test_p2_binary64_exact_ray_candidate.mjs)" = cbfad7ec164175739aa9705c1e591d6386eec2a2
+          test "$(git hash-object research/hcsn/test_p2_subnormal_collision.mjs)" = 28e8ab22152f5ccf4372f56f10e72c3c1097c6eb
+          test "$(git hash-object research/hcsn/p2_subnormal_collision_negative.mjs)" = f9d4133445f3364e1c2b6b6108d663860901d1e2
+          for file in p2_exact_occupancy_reference.mjs p2_scale_equivariance_evidence.mjs test_p2_exact_occupancy_reference.mjs test_p2_config_contract.mjs test_p2_signed_zero_reference.mjs test_p2_input_snapshot.mjs test_p2_scale_equivariance_negative.mjs test_p2_binary64_exact_ray_candidate.mjs; do
+            git diff --exit-code "$FROZEN_BASE" HEAD -- "research/hcsn/$file"
+          done
+          baseline="$RUNNER_TEMP/hcsn-subnormal-baseline"
+          mkdir -p "$baseline"
+          git show "$FROZEN_BASE:research/hcsn/p2_binary64_exact_ray_candidate.mjs" > "$baseline/p2_binary64_exact_ray_candidate.mjs"
+          node research/hcsn/p2_subnormal_collision_negative.mjs "$baseline/p2_binary64_exact_ray_candidate.mjs"
+          cp research/hcsn/test_p2_subnormal_collision.mjs "$baseline/"
+          set +e
+          node --test --test-reporter=tap "$baseline/test_p2_subnormal_collision.mjs" > "$RUNNER_TEMP/hcsn-subnormal-baseline.tap"
+          code=$?
+          set -e
+          cat "$RUNNER_TEMP/hcsn-subnormal-baseline.tap"
+          test "$code" -eq 1
+          grep -Fx '# tests 10' "$RUNNER_TEMP/hcsn-subnormal-baseline.tap"
+          grep -Fx '# pass 4' "$RUNNER_TEMP/hcsn-subnormal-baseline.tap"
+          grep -Fx '# fail 6' "$RUNNER_TEMP/hcsn-subnormal-baseline.tap"
+          grep -Fx '# skipped 0' "$RUNNER_TEMP/hcsn-subnormal-baseline.tap"
+          node --test --test-reporter=tap research/hcsn/test_p2_exact_occupancy_reference.mjs research/hcsn/test_p2_config_contract.mjs research/hcsn/test_p2_signed_zero_reference.mjs research/hcsn/test_p2_input_snapshot.mjs research/hcsn/test_p2_scale_equivariance_negative.mjs research/hcsn/test_p2_binary64_exact_ray_candidate.mjs research/hcsn/test_p2_subnormal_collision.mjs | tee "$RUNNER_TEMP/hcsn-subnormal-fixed.tap"
+          grep -Fx '# tests 45' "$RUNNER_TEMP/hcsn-subnormal-fixed.tap"
+          grep -Fx '# pass 45' "$RUNNER_TEMP/hcsn-subnormal-fixed.tap"
+          grep -Fx '# fail 0' "$RUNNER_TEMP/hcsn-subnormal-fixed.tap"
+          grep -Fx '# skipped 0' "$RUNNER_TEMP/hcsn-subnormal-fixed.tap"
+          set +e
+          node research/hcsn/p2_scale_equivariance_evidence.mjs --strict > "$RUNNER_TEMP/hcsn-scale-strict-negative.json"
+          code=$?
+          set -e
+          cat "$RUNNER_TEMP/hcsn-scale-strict-negative.json"
+          test "$code" -eq 2
+          echo "HOLD: finite numerical repair only; both original negatives retained; P0-P6 remain OPEN"

@@ -73,10 +73,20 @@ function normalize(raw, dimension) {
   if (!(magnitude > 0) || !Number.isFinite(magnitude)) {
     throw new AddressContractError('invalid zero or nonfinite address norm');
   }
+  // A subnormal norm can have order-one relative rounding error: hypot(m, m)
+  // rounds to m for m = Number.MIN_VALUE. Dividing by it produces [1, 1],
+  // not a unit vector, and can hide a nearby distinct ray from the guard.
+  // Scale this numeric copy exactly into the normal range before measuring.
+  // Keep the captured coordinates for exact identity and preserve the original
+  // zero/overflow contract and ordinary-magnitude normalization above.
+  const normalizationCoordinates = magnitude < 2 ** -1022
+    ? coordinates.map(x => x * 2 ** 1022) : coordinates;
+  const normalizationMagnitude = normalizationCoordinates === coordinates
+    ? magnitude : Math.hypot(...normalizationCoordinates);
   // Object.is distinguishes -0 from +0, but numeric vector addresses do not.
   // Canonicalize the sign of zero to preserve exact writes and readback.
-  const key = coordinates.map(x => {
-    const unit = x / magnitude;
+  const key = normalizationCoordinates.map(x => {
+    const unit = x / normalizationMagnitude;
     return unit === 0 ? 0 : unit;
   });
   if (key.some(x => !Number.isFinite(x))) {
