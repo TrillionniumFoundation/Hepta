@@ -127,7 +127,10 @@ class CandidateReleaseTests(unittest.TestCase):
                   '    value["cached_inventory_probe"] = True\n    return value\n')
         code = compile(source.read_text() + suffix, str(source), "exec")
         info = source.stat()
-        cache = Path(importlib.util.cache_from_source(str(source)))
+        # Put the adversarial cache where an ordinary import would read it,
+        # independently of the delivery gate's own cold-cache prefix.
+        with mock.patch.object(sys, "pycache_prefix", None):
+            cache = Path(importlib.util.cache_from_source(str(source)))
         cache.parent.mkdir(exist_ok=True)
         previous = cache.read_bytes() if cache.exists() else None
         poison = (importlib.util.MAGIC_NUMBER
@@ -138,6 +141,15 @@ class CandidateReleaseTests(unittest.TestCase):
         try:
             cache.write_bytes(poison)
             exclude.write_bytes(original_exclude + b"\n__pycache__/\n")
+            control = subprocess.run([
+                sys.executable, "-I", "-B", "-c",
+                "import json,sys;sys.path.insert(0,sys.argv[1]);"
+                "from hepta.hia_routes import route_inventory;"
+                "print(json.dumps(route_inventory().get('cached_inventory_probe')))",
+                str(self.root),
+            ], check=True, capture_output=True, text=True)
+            self.assertIs(json.loads(control.stdout), True,
+                          "ordinary imports must actually observe the stale cache")
             repeated = self.base / "timestamp-cache-rebuild"
             receipt = build_candidate(repeated, root=self.root)
             self.assertEqual(receipt["source_manifest_sha256"], self.receipt["source_manifest_sha256"])
