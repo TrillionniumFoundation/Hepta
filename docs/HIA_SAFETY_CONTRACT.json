@@ -250,7 +250,8 @@
       "exclusions": [
         "Core-to-LLVM refinement not proved",
         "OS, allocator, linker, loader, LLVM and hardware remain trusted",
-        "no arbitrary C/C++ unsafe-code safety guarantee"
+        "no arbitrary C/C++ unsafe-code safety guarantee",
+        "direct x86-64 machine-code lowering is a separate unqualified research path; Core-to-machine-code refinement is not proved"
       ],
       "guarantee": "finite_execution_evidence",
       "id": "native_lowering",
@@ -276,7 +277,8 @@
         "tests.test_hia_v6_differential.ExistingV6CoreDifferentialTests.test_rejected_source_builder_diagnostics_are_detached_and_never_authority",
         "tests.test_hia_v6_differential.ExistingV6CoreDifferentialTests.test_malformed_or_over_budget_build_diagnostics_keep_the_original_refusal",
         "tests.test_hia_v6_differential.ExistingV6CoreDifferentialTests.test_diagnostic_allocation_failure_cannot_replace_qualification_rejection",
-        "tests.test_hia_v6_differential.ExistingV6CoreDifferentialTests.test_pinned_hepta_owned_source_to_single_core_native"
+        "tests.test_hia_v6_differential.ExistingV6CoreDifferentialTests.test_pinned_hepta_owned_source_to_single_core_native",
+        "tests.test_hia_program_native_review.SafetyContractDirectNativeBoundaryTests.test_direct_x86_machine_backend_is_explicitly_unproved"
       ],
       "scope": "direct LLVM from immutable reverified HIA; Linux x86-64 native execution; other target qualification is separate; filecheck research full-LTO IR explicitly retains the same C frontend CPU and complete positive/negative feature policy, with actual masked-x86 CPU refusal and success controls; the legacy LTO, IR-PGO generation/use, and separate resource-observer object paths freshly bind and recheck the original Core/IR, bound IR, compiler, complete frontend CPU feature profile and declared flags; supervised native failures retain their actual child status without retry; the checked Hepta-source bridge consumes the same closed native receipt, independently binds its measured build-host identity and exact cross-target boolean, and retains bounded diagnostic context on a rejected source qualification without granting execution authority"
     },
@@ -1660,8 +1662,7 @@
     ],
     "instruction_catalog": {
       "admission_authority": "hepta.hia_program.verify_program",
-      "backend_scope": "VM and direct LLVM have separate supported-target/entry-ABI checks; catalog inclusion grants no native entry ABI",
-      "catalog_sha256": "dd6fc836b5e71db165dcf81bfcdd233fda25dc6888f720dcc472dcdcf986ee54",
+      "backend_scope": "VM, direct LLVM and direct x86-64 machine backends have separate supported-target/entry-ABI checks; catalog inclusion grants no native entry ABI",
       "conditional_effects": {
         "call": "all callee effects",
         "int.cast": "checked mode requires trap"
@@ -2757,7 +2758,8 @@
         "unit",
         "usize"
       ],
-      "word_bits": 64
+      "word_bits": 64,
+      "catalog_sha256": "ca5e51df74cd7cc7ad8eeb1354c98a403f1278a115c9016ccb88ca0a627f7f10"
     },
     "latest_core_schema": "hepta.hia.program.v8",
     "legacy_nominal": {
