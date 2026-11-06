@@ -1,0 +1,365 @@
+{
+  "schema": "hepta.hia.linux.system-benchmark.protocol.v1",
+  "program": "experiments/hia_linux_full_20261106/guest_bench.c",
+  "record_prefix": "HIA_LINUX_BENCH ",
+  "json_rule": "One complete JSON object after the exact prefix per line. Unknown, duplicate, out-of-order, malformed or non-finite benchmark records fail collector admission.",
+  "execution": {
+    "pid": 1,
+    "dmi_allow_case_insensitive_substrings": [
+      "qemu",
+      "bochs"
+    ],
+    "dmi_files": [
+      "/sys/class/dmi/id/sys_vendor",
+      "/sys/class/dmi/id/product_name"
+    ],
+    "machine": "x86_64",
+    "release": "exact uname.release == hia_expected_release",
+    "page_bytes": 4096,
+    "parent_cpu_affinity": [
+      0
+    ],
+    "children_inherit_affinity": true,
+    "guard_mounts": [
+      "proc",
+      "sysfs"
+    ],
+    "workload_deadline_seconds": 180,
+    "outer_qemu_timeout_seconds": 240,
+    "host_execution_allowed": false,
+    "production_activation": false
+  },
+  "parameters": {
+    "hia_bench": {
+      "required": true,
+      "literal": "1"
+    },
+    "hia_run_id": {
+      "required": true,
+      "pattern": "^[0-9a-f]{24}$"
+    },
+    "hia_expected_release": {
+      "required": true,
+      "max_bytes": 64,
+      "pattern": "^[A-Za-z0-9._+-]+$"
+    },
+    "hia_seed": {
+      "required": false,
+      "type": "strict decimal uint32",
+      "default": 20261106,
+      "min": 0,
+      "max": 4294967295
+    },
+    "hia_iterations": {
+      "required": false,
+      "type": "strict decimal uint32",
+      "default": 1024,
+      "min": 64,
+      "max": 8192
+    },
+    "hia_phase": {
+      "required": false,
+      "default": "all",
+      "enum": [
+        "all",
+        "syscall_process_pipe",
+        "anonymous_memory",
+        "tmpfs_files",
+        "unix_tcp"
+      ]
+    },
+    "duplicates": "rejected",
+    "unknown_hia_prefix_arguments": "rejected",
+    "non_hia_kernel_arguments": "ignored"
+  },
+  "schedule": {
+    "phase_order": [
+      "syscall_process_pipe",
+      "anonymous_memory",
+      "tmpfs_files",
+      "unix_tcp"
+    ],
+    "all_selection": {
+      "stages": 4,
+      "warmups_per_stage": 2,
+      "measured_per_stage": 5,
+      "samples": 28
+    },
+    "single_phase_selection": {
+      "stages": 1,
+      "warmups": 2,
+      "measured": 5,
+      "samples": 7
+    },
+    "samples_per_phase": "warmup indices 0,1 then measured indices 0,1,2,3,4",
+    "sequence": "continuous from 0 within each boot",
+    "sample_seed": "identical seed/iterations for all repetitions of the same phase",
+    "phase_setup": "Only selected phase-specific setup executes. Common VM/identity/affinity setup always executes.",
+    "dynamic_selection": "Freeze selected image/phase and controller input transcript before boot; do not feed later heldout outcomes to controller."
+  },
+  "phases": [
+    {
+      "id": "syscall_process_pipe",
+      "operation_unit": "pipe_request_response_cycles",
+      "operation_count": "iterations",
+      "work": {
+        "explicit_identity_syscalls": "2 * iterations (SYS_getpid and SYS_gettid)",
+        "pipe_round_trips": "iterations",
+        "request_bytes": 8,
+        "response_bytes": 8,
+        "children": 1
+      },
+      "correctness": [
+        "PID1 getpid/gettid both equal 1",
+        "child validates every request",
+        "parent validates every transformed reply",
+        "child exits 0 and is reaped"
+      ]
+    },
+    {
+      "id": "anonymous_memory",
+      "operation_unit": "pages_initialized_and_verified",
+      "operation_count": "iterations",
+      "work": {
+        "mapping_bytes": "4096 * iterations",
+        "page_bytes": 4096,
+        "madvise": "MADV_NOHUGEPAGE",
+        "mprotect_transitions": [
+          "READ|WRITE -> READ",
+          "READ -> READ|WRITE"
+        ],
+        "children": 1
+      },
+      "correctness": [
+        "first/last page bytes match deterministic patterns",
+        "two untouched bytes per page remain zero",
+        "child SIGSEGV handler requires SEGV_ACCERR at exact protected address and exits 73",
+        "parent reaps exit 73",
+        "restored writable mapping passes modified-byte verification",
+        "mapping is unmapped"
+      ],
+      "logging_control": "Handled protection fault prevents repeated unhandled-fault printk/rate-limit effects."
+    },
+    {
+      "id": "tmpfs_files",
+      "operation_unit": "file_lifecycles",
+      "operation_count": "iterations",
+      "work": {
+        "files": "iterations",
+        "file_bytes": 4096,
+        "write_bytes": "4096 * iterations",
+        "read_bytes": "4096 * iterations",
+        "children": 0
+      },
+      "correctness": [
+        "O_EXCL creation",
+        "complete write and complete read",
+        "EOF and fstat size exactly 4096",
+        "full memcmp against written bytes",
+        "close and unlink",
+        "fstatat after unlink reports ENOENT"
+      ],
+      "storage": "Fresh guest tmpfs /tmp, 64 MiB cap; one live test file at a time; no persistence claim."
+    },
+    {
+      "id": "unix_tcp",
+      "operation_unit": "socket_request_response_cycles",
+      "operation_count": "2 * iterations",
+      "work": {
+        "unix_round_trips": "iterations",
+        "tcp_round_trips": "iterations",
+        "request_bytes": 8,
+        "response_bytes": 8,
+        "children": 1
+      },
+      "correctness": [
+        "AF_UNIX socketpair and AF_INET 127.0.0.1 TCP both transfer exact payloads",
+        "both TCP endpoints set TCP_NODELAY",
+        "port 0 allocation is excluded from checksum",
+        "child validates requests and parent validates replies",
+        "child exits 0 and is reaped"
+      ],
+      "socket_timeout_seconds": 5
+    }
+  ],
+  "timing": {
+    "clock": "CLOCK_MONOTONIC_RAW",
+    "duration_ns": "actual after-minus-before, strictly positive integer",
+    "window": "starts after before-rusage reads and ends after all phase children are reaped and phase resources are released; phase syscall/FD/mapping/fork setup is inside; reference checksum construction, fixed template construction and JSON output are outside",
+    "optimization": false,
+    "synthetic_timing": false
+  },
+  "rusage": {
+    "subjects": [
+      "RUSAGE_SELF",
+      "RUSAGE_CHILDREN"
+    ],
+    "sample_objects": [
+      "self_rusage_delta",
+      "children_rusage_delta"
+    ],
+    "additive_delta_fields": {
+      "user_ns": "timeval delta converted to ns (microsecond accounting resolution)",
+      "system_ns": "timeval delta converted to ns (microsecond accounting resolution)",
+      "minor_faults": "count",
+      "major_faults": "count",
+      "input_blocks": "count",
+      "output_blocks": "count",
+      "voluntary_switches": "count",
+      "involuntary_switches": "count"
+    },
+    "nonadditive_fields": {
+      "maxrss_before_kib": "high watermark before sample",
+      "maxrss_after_kib": "high watermark after sample"
+    },
+    "child_completion": "All phase children are waited/reaped before after-rusage sample. Max RSS is not an additive per-sample measurement."
+  },
+  "checksum": {
+    "encoding": "16 lowercase hexadecimal characters; never a JSON number",
+    "arithmetic": "unsigned modulo 2^64",
+    "mix64": [
+      "x ^= x >> 30",
+      "x *= 0xbf58476d1ce4e5b9",
+      "x ^= x >> 27",
+      "x *= 0x94d049bb133111eb",
+      "x ^= x >> 31"
+    ],
+    "request": "mix64((uint64(seed) << 32) xor index xor channel)",
+    "fold": "(hash xor value) * 0x100000001b3",
+    "initial": "0xcbf29ce484222325",
+    "channels": {
+      "pipe": "0x504950455f524551",
+      "unix": "0x554e49585f524551",
+      "tcp": "0x5443505f52455131",
+      "page": "0x504147455f544147",
+      "file": "0x46494c455f544147"
+    },
+    "reply": {
+      "pipe": {
+        "rotl": 17,
+        "xor": "0x9e3779b97f4a7c15"
+      },
+      "unix": {
+        "rotl": 23,
+        "xor": "0xd6e8feb86659fd93"
+      },
+      "tcp": {
+        "rotl": 31,
+        "xor": "0xa0761d6478bd642f"
+      }
+    },
+    "phase_word_order": {
+      "syscall_process_pipe": "pipe reply for each index",
+      "anonymous_memory": "all uint16(page request) values, then all those values xor 0xa55a",
+      "tmpfs_files": "file tag then tag xor 0xd6e8feb86659fd93 per file",
+      "unix_tcp": "UNIX reply then TCP reply per iteration"
+    },
+    "reference": "Collector recomputes independently from seed/iterations, not by trusting guest expected_checksum."
+  },
+  "records": {
+    "begin": {
+      "required": [
+        "event",
+        "protocol",
+        "run_id",
+        "pid",
+        "seed",
+        "iterations",
+        "release",
+        "machine",
+        "clock",
+        "cpu_affinity",
+        "online_cpus",
+        "page_bytes",
+        "file_bytes",
+        "deadline_seconds",
+        "selection",
+        "stage_count",
+        "defined_stage_count",
+        "warmups_per_stage",
+        "measured_per_stage",
+        "expected_samples",
+        "dmi_vendor",
+        "dmi_product"
+      ],
+      "protocol": "hepta.hia.linux.system-benchmark.v1"
+    },
+    "sample": {
+      "required": [
+        "event",
+        "run_id",
+        "sequence",
+        "stage",
+        "warmup",
+        "sample_index",
+        "operation_count",
+        "operation_unit",
+        "duration_ns",
+        "checksum",
+        "expected_checksum",
+        "correctness",
+        "errno",
+        "reason",
+        "self_rusage_delta",
+        "children_rusage_delta"
+      ],
+      "accepted": {
+        "correctness": true,
+        "errno": 0,
+        "reason": "ok"
+      }
+    },
+    "summary": {
+      "required": [
+        "event",
+        "run_id",
+        "status",
+        "selection",
+        "aborted",
+        "expected_samples",
+        "emitted_samples",
+        "successful_samples",
+        "completed_stages",
+        "warmups_per_stage",
+        "measured_per_stage",
+        "shutdown_required"
+      ],
+      "accepted": {
+        "status": "PASS",
+        "aborted": false,
+        "shutdown_required": true
+      },
+      "counts": "28/28/28 and 4 stages for all; 7/7/7 and 1 stage for single-phase"
+    },
+    "error": {
+      "always_reject": true,
+      "required": [
+        "event",
+        "run_id",
+        "status",
+        "reason",
+        "errno"
+      ]
+    },
+    "deadline_failure": "error then FAIL summary; unfinished counters may be null. Never admit as a measurement result."
+  },
+  "admission": {
+    "required": [
+      "exact guest source/commit, compiler flags/binary, initramfs, kernel image, resolved config, seed, iterations, selection, run_id and QEMU invocation hashes",
+      "real terminal QEMU exit 0, no timeout/cancellation, complete durable stdout/stderr and drained owned process group",
+      "one matching begin, every required ordered sample, one matching terminal PASS summary, no error record or extra benchmark record",
+      "all checksums independently recomputed; every correctness true",
+      "kernel power-down observed after summary; a guest PASS alone does not prove shutdown"
+    ],
+    "static_checks_are_not_execution": true,
+    "smoke_is_not_performance_comparison": true
+  },
+  "limitations": [
+    "finite four-phase collector, not Linux KUnit/kselftest/LTP",
+    "tmpfs does not test persistent storage",
+    "loopback/socketpair do not test external networks",
+    "QEMU TCG results are scoped to that emulator setup; hardware or KVM performance requires separately identified runs",
+    "Five measured repeats within one boot are not five independent system boots",
+    "Protocol and controller must be frozen before heldout measurements"
+  ]
+}
