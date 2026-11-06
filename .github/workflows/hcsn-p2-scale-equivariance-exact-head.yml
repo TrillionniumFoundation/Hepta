@@ -1,0 +1,35 @@
+name: HCSN P2 scale-equivariance negative exact-head (HOLD)
+on:
+  push:
+    branches:
+      - research/hcsn-p2-scale-equivariance-negative-20261106-gpt6
+  pull_request:
+    branches:
+      - fix/hcsn-p2-single-read-input-20261106-gpt6
+permissions:
+  contents: read
+jobs:
+  exact-head-negative:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify bounded negative, NOT full science acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test "$(git hash-object research/hcsn/p2_exact_occupancy_reference.mjs)" = ac5a4a6c757c5c9c01983639d17178b29c08d406
+          node --version
+          node --test research/hcsn/test_p2_exact_occupancy_reference.mjs research/hcsn/test_p2_config_contract.mjs research/hcsn/test_p2_signed_zero_reference.mjs research/hcsn/test_p2_input_snapshot.mjs research/hcsn/test_p2_scale_equivariance_negative.mjs
+          node research/hcsn/p2_scale_equivariance_evidence.mjs --json /tmp/scale-raw.json
+          set +e
+          node research/hcsn/p2_scale_equivariance_evidence.mjs --strict >/tmp/scale-strict.json
+          code=$?
+          set -e
+          test "$code" -eq 2
