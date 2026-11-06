@@ -247,6 +247,24 @@ def terminate_owned_process_group(process):
     return receipt
 
 
+def process_group_outcome_admissible(record):
+    """Reject observed lifecycle failures without inventing old drain evidence."""
+    if not isinstance(record, dict) or 'interruption' in record:
+        return False
+    if record.get('incomplete_process_group', False) is not False:
+        return False
+    if 'process_group_cleanup' not in record:
+        return True  # Legacy receipt: group drain was not observed by this schema.
+    cleanup = record['process_group_cleanup']
+    return isinstance(cleanup, dict) and cleanup.get('drained') is True
+
+
+def command_succeeded(record):
+    return (isinstance(record, dict) and type(record.get('exit_code')) is int
+            and record['exit_code'] == 0 and record.get('timed_out') is False
+            and process_group_outcome_admissible(record))
+
+
 class CommandRunner:
     def __init__(self, output, env):
         self.output, self.env, self.records = Path(output), env, []
@@ -306,9 +324,7 @@ class CommandRunner:
                       stdout=identity(str(stem) + '.stdout'), stderr=identity(str(stem) + '.stderr'))
         write_json(str(stem) + '.json', record)
         self.records.append(record)
-        completed = (code == 0 and not record['timed_out'] and interruption is None
-                     and not record.get('incomplete_process_group', False)
-                     and record.get('process_group_cleanup', {}).get('drained', True))
+        completed = command_succeeded(record)
         print(json.dumps({'stage': name, 'status': 'PASS' if completed else 'FAIL',
                           'exit_code': code, 'elapsed_ns': record['elapsed_ns']}), flush=True)
         if interruption is not None:
@@ -355,7 +371,7 @@ def create_initramfs(init, path):
         stream.write(gzip.compress(newc(entries), mtime=0))
 
 
-def parse_guest_serial(text, run_id, exit_code, timed_out):
+def parse_guest_serial(text, run_id, exit_code, timed_out, *, command_receipt=None):
     rows = {key: {'id': key, 'status': 'NOT_RUN'} for key in CHECK_IDS}
     events, errors = [], []
     state = 'not_started'
@@ -390,6 +406,8 @@ def parse_guest_serial(text, run_id, exit_code, timed_out):
             events.append(event)
         except (ValueError, TypeError) as error:
             errors.append(str(error))
+    if command_receipt is not None and not process_group_outcome_admissible(command_receipt):
+        errors.append('host command process group did not complete')
     totals = {'total': len(CHECK_IDS), 'passed': sum(r['status'] == 'PASS' for r in rows.values()),
               'failed': sum(r['status'] == 'FAIL' for r in rows.values()), 'skipped': 0,
               'not_run': sum(r['status'] == 'NOT_RUN' for r in rows.values())}
@@ -530,7 +548,7 @@ def main(argv=None):
         preflight = runner.run('qemu-tcg-runtime-preflight',
                                qemu_machine_command(args.qemu, args.qemu_data, args.bios, paused=True),
                                timeout=15, check=False, stdin_bytes=b'quit\n')
-        preflight_ok = preflight['exit_code'] == 0 and not preflight['timed_out']
+        preflight_ok = command_succeeded(preflight)
         result['qemu']['runtime_preflight'] = {
             'status': 'PASS' if preflight_ok else 'FAIL',
             'scope': 'paused_tcg_startup_no_kernel_execution', 'command_receipt': preflight}
@@ -605,7 +623,7 @@ def main(argv=None):
                                              if key in result['qemu']}, 'QEMU runtime modules changed before boot')
         rec = runner.run('boot-stock-kernel-tcg', command, timeout=args.boot_timeout, check=False)
         serial = Path(rec['stdout']['path']).read_text(errors='replace')
-        verdict = parse_guest_serial(serial, run_id, rec['exit_code'], rec['timed_out'])
+        verdict = parse_guest_serial(serial, run_id, rec['exit_code'], rec['timed_out'], command_receipt=rec)
         write_json(output / 'guest-verdict.json', verdict)
         result['boot'] = {**verdict, 'command_receipt': rec}
         result['guest_tests'] = verdict['guest_tests']

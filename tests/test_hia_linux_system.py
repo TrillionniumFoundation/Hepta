@@ -72,4 +72,26 @@ class SystemEvidence(unittest.TestCase):
             with self.assertRaises(ValueError):system.validate_stock(value)
 
 
+    def test_stock_pass_cannot_override_observed_boot_process_group_failure(self):
+        # Reuse only the explicit synthetic receipt fixture; no guest runs here.
+        from tests import test_hia_linux_kernel_contract as fixtures
+        fixture = fixtures.KernelContractTests()
+        fixture.setUp()
+        self.addCleanup(fixture.doCleanups)
+        stock = fixture.baseline
+        stock['compiler'] = fixture.write('tools/clang', b'SYNTHETIC COMPILER; NOT EXECUTABLE')
+        stock['source_before']['wrapper'] = system.base.identity(system.base.__file__)
+        stock['source_before']['guest_source'] = system.base.identity(
+            system.ROOT / 'experiments/hia_linux_kernel_20261106/guest_init.c')
+        self.assertEqual(system.validate_stock(stock)['status'], 'PASS')
+        for failure in ({'incomplete_process_group': True},
+                        {'process_group_cleanup': {'drained': False}},
+                        {'interruption': {'type': 'RequestedCancellation', 'message': 'cancelled'}}):
+            with self.subTest(failure=failure):
+                changed = copy.deepcopy(stock)
+                changed['boot']['command_receipt'].update(failure)
+                with self.assertRaisesRegex(ValueError, 'stock boot command process group did not complete'):
+                    system.validate_stock(changed)
+
+
 if __name__=='__main__':unittest.main()

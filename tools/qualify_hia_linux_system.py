@@ -47,6 +47,8 @@ def validate_stock(stock):
     require(stock.get('image_kind') == 'stock_linux' and stock.get('linux_source_unchanged') is True,
             'unchanged stock source evidence required')
     require(stock.get('source_archive_sha256') == base.ARCHIVE_SHA256, 'wrong stock upstream')
+    command = stock.get('boot', {}).get('command_receipt', {})
+    require(base.command_succeeded(command), 'stock boot command process group did not complete')
     for key in ('config', 'kernel_image', 'vmlinux', 'guest_init', 'initramfs', 'compiler'):
         checked_binding(stock[key])
     checked_binding(stock['qemu'])
@@ -57,13 +59,12 @@ def validate_stock(stock):
         require(environment.get('QEMU_MODULE_DIR') == stock['qemu']['module_dir'], 'stock QEMU module environment mismatch')
         require(base.qemu_runtime_modules(environment) == {key: stock['qemu'][key] for key in ('module_dir', 'modules')},
                 'stock QEMU runtime modules changed')
-    command = stock['boot']['command_receipt']
     for key in ('stdout', 'stderr'):
         checked_binding(command[key])
     require(single_option(command['argv'], '-kernel') == stock['kernel_image']['path'], 'stock boot image mismatch')
     require(single_option(command['argv'], '-initrd') == stock['initramfs']['path'], 'stock boot initramfs mismatch')
     verdict = base.parse_guest_serial(Path(command['stdout']['path']).read_text(errors='strict'),
-                                     stock['run_id'], command['exit_code'], command['timed_out'])
+                                     stock['run_id'], command['exit_code'], command['timed_out'], command_receipt=command)
     require(verdict['status'] == 'PASS' and verdict['guest_tests'] == stock['guest_tests'], 'stock raw boot replay failed')
     require(base.sha(Path(base.__file__)) == stock['source_before']['wrapper']['sha256'], 'stock runner bytes changed')
     require(base.sha(ROOT / 'experiments/hia_linux_kernel_20261106/guest_init.c') ==
@@ -192,7 +193,7 @@ def main(argv=None):
         preflight = runner.run('qemu-tcg-runtime-preflight', base.qemu_machine_command(
             stock['qemu']['path'], single_option(stock_argv, '-L'), stock['qemu']['bios']['path'], paused=True),
             timeout=15, check=False, stdin_bytes=b'quit\n')
-        preflight_ok = preflight['exit_code'] == 0 and not preflight['timed_out']
+        preflight_ok = base.command_succeeded(preflight)
         result['qemu']['runtime_preflight'] = {
             'status': 'PASS' if preflight_ok else 'FAIL', 'scope': 'paused_tcg_startup_no_kernel_execution',
             'command_receipt': preflight}
@@ -269,7 +270,7 @@ def main(argv=None):
         require(base.qemu_runtime_modules(env) == {key: stock['qemu'][key] for key in ('module_dir', 'modules')
                                                  if key in stock['qemu']}, 'QEMU runtime modules changed during paired boot')
         serial = Path(rec['stdout']['path']).read_text(errors='strict')
-        verdict = base.parse_guest_serial(serial, result['run_id'], rec['exit_code'], rec['timed_out'])
+        verdict = base.parse_guest_serial(serial, result['run_id'], rec['exit_code'], rec['timed_out'], command_receipt=rec)
         result['boot'], result['boot_status'], result['guest_tests'] = {**verdict, 'command_receipt': rec}, verdict['status'], verdict['guest_tests']
         require(verdict['status'] == 'PASS', 'common real boot smoke failed')
         observation = validate_component_observation(serial, args.arm, prepared)

@@ -76,6 +76,29 @@ class GuestEvidence(unittest.TestCase):
         self.assertEqual(baseline.parse_guest_serial(text, RUN_ID, 0, False)['status'], 'FAIL')
 
 
+    def test_complete_guest_stream_cannot_override_observed_host_group_failure(self):
+        for failure in ({'incomplete_process_group': True},
+                        {'process_group_cleanup': {'drained': False}},
+                        {'interruption': {'type': 'RequestedCancellation', 'message': 'cancelled'}}):
+            with self.subTest(failure=failure):
+                record = {'exit_code': 0, 'timed_out': False, **failure}
+                self.assertFalse(baseline.command_succeeded(record))
+                verdict = baseline.parse_guest_serial(serial(), RUN_ID, 0, False, command_receipt=record)
+                self.assertEqual(verdict['guest_tests']['passed'], 14)
+                self.assertEqual(verdict['status'], 'FAIL')
+                self.assertIn('host command process group did not complete', verdict['protocol_errors'])
+
+    def test_legacy_receipt_stays_unmeasured_and_known_completed_group_is_allowed(self):
+        legacy = {'exit_code': 0, 'timed_out': False}
+        expected = baseline.parse_guest_serial(serial(), RUN_ID, 0, False)
+        self.assertTrue(baseline.command_succeeded(legacy))
+        self.assertEqual(baseline.parse_guest_serial(serial(), RUN_ID, 0, False, command_receipt=legacy), expected)
+        self.assertNotIn('process_group_cleanup', legacy)
+        completed = {**legacy, 'process_group_cleanup': {'drained': True}}
+        self.assertTrue(baseline.command_succeeded(completed))
+        self.assertEqual(baseline.parse_guest_serial(serial(), RUN_ID, 0, False, command_receipt=completed), expected)
+
+
 class InputsAndProcesses(unittest.TestCase):
     def test_module_directory_is_explicit_and_never_inherited_from_ambient_environment(self):
         with tempfile.TemporaryDirectory() as directory, mock.patch.dict(os.environ, {'QEMU_MODULE_DIR': '/ambient/untrusted'}):
