@@ -309,11 +309,18 @@ class ProfileInventoryTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             verifier.verify_profile_process_samples(
                 {"openvpn_sample_headers_by_role": {"client": 0}}, "hia-user")
-        with self.assertRaises(ValueError):
-            verifier.verify_profile_process_samples(
-                {"openvpn_sample_headers_by_role": {"client": 1}, "hia_symbol_lines": 0}, "hia-user")
         verifier.verify_profile_process_samples(
-            {"openvpn_sample_headers_by_role": {"client": 1}, "hia_symbol_lines": 2}, "hia-user")
+            {"openvpn_sample_headers_by_role": {"client": 1}}, "hia-user")
+        report = "\\n".join((
+            "  1.25% openvpn [.] ovpn_hia_packet_id_read",
+            "  0.75% openvpn [.] ovpn_hia_packet_id_write",
+        ))
+        verifier.verify_hia_profile_hotspot(
+            {"hia_profile_symbol_lines": 2}, report, "hia-user")
+        with self.assertRaises(ValueError):
+            verifier.verify_hia_profile_hotspot(
+                {"hia_profile_symbol_lines": 2},
+                "  1.25% openvpn [.] ovpn_hia_packet_id_read_epoch", "hia-user")
 
 
 if __name__=='__main__':unittest.main(verbosity=2)
