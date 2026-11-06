@@ -167,6 +167,7 @@ def observe(text):
         # Peer IDs can be reused after a hard restart. A staged key from the
         # previous TLS session must never be promoted by a later session's
         # reset/swap sequence.
+        # Count TLS lifecycle boundaries so reused peer IDs cannot cross sessions.
         session_id = sum(boundary < begin for boundary in boundaries)
         if current_session is None:
             current_session = session_id
