@@ -191,7 +191,10 @@ Shared feedback is not free: results report direct delivery with supplied past
 feedback and a separate scenario charging acquisition of all shared boot
 feedback. Common model/candidate construction is charged to each adaptive arm
 when estimating standalone controller cost, while actual once-per-cell planning
-wall is also retained. Admission/audit/statistical-processing costs are separated
+wall is also retained. Native decision wall includes request/state preparation,
+JSON serialization/parsing, durable request/response logs and cold-process I/O;
+the inner process wall and native service time remain separate fields. Independent
+Python arithmetic verification is recorded as audit cost. Admission/audit/statistical-processing costs are separated
 from controller mathematics. Unamortized setup and amortization at 1, 10, 100,
 1000 and 10000 four-phase cold-boot cycles are reported. Break-even is conditional
 on the observed workload/cost regime and is unreachable without positive measured

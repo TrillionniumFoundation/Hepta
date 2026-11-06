@@ -297,12 +297,54 @@ class EvidenceAndStateGates(unittest.TestCase):
             self.assertEqual(c.load(Path(directory) / "STATE.json")["status"], "FAIL")
             self.assertEqual(result["retained_pending"]["inflight"]["arm"], "stock")
 
+    def test_interrupted_execution_never_calls_collector_again(self):
+        with tempfile.TemporaryDirectory() as directory:
+            # State-only refusal fixture: no build or measurement PASS is made.
+            state = {"status": "EXECUTING", "pending": {"inflight": {"arm": "stock"}}}
+            with patch.object(c, "read_campaign", return_value=({}, state)), \
+                 patch.object(c, "load_collector", side_effect=AssertionError("must not load or execute guest")):
+                result = c.execute_next(directory)
+            self.assertEqual(result["status"], "FAIL")
+            self.assertFalse(result["retry_allowed"])
+
+    def test_pending_plan_cannot_be_replaced_using_current_outcomes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = {"status": "PLANNED", "pending": {"plan": {"path": "state-only-fixture"}}, "next_index": 0}
+            with patch.object(c, "read_campaign", return_value=({}, state)), \
+                 patch.object(c, "load_collector", side_effect=AssertionError("must not plan or boot")):
+                result = c.plan_next(directory, phase=c.PHASES[0], seed=20261200)
+            self.assertEqual(result["status"], "FAIL")
+
+    def test_evaluate_refuses_partial_campaign(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = {"status": "READY", "pending": None, "next_index": 1}
+            with patch.object(c, "read_campaign", return_value=({}, state)), \
+                 patch.object(c, "load_collector", side_effect=AssertionError("must not fabricate evaluation")):
+                result = c.evaluate(directory)
+            self.assertEqual(result["status"], "FAIL")
+
     def test_ordinary_control_cannot_be_a_native_response(self):
         with self.assertRaises(ValueError):
             c.check_ordinary_response({"request": {}}, {"schema": "hepta.hia.kernel-ndu.response.v1"}, {}, {})
 
 
 class StatisticsAndAccounting(unittest.TestCase):
+    def test_parallel_build_wall_is_not_sum_of_parallel_commands(self):
+        # Arithmetic-only interval fixture; contains no build/boot verdicts.
+        builds = {}
+        for image, start, duration in zip(c.IMAGES, (0, 10, 30, 30), (10, 20, 50, 30)):
+            builds[image] = {"started_unix_ns": start, "whole_build_wall_ns": duration,
+                             "kbuild_child_cpu_ns": duration * 2, "all_recorded_commands_child_cpu_ns": duration * 3}
+        registry = {"images": builds, "qualifications": {image: {"qemu_wall_ns": 1} for image in c.IMAGES},
+                    "calibration": {"qemu_wall_ns": 12}, "native": {"preparation_wall_ns": 7},
+                    "ordinary_control": {"preparation_wall_ns": 5}}
+        accounting = c.setup_cost(registry, "dynamic-ndu")["build_concurrency"]
+        self.assertEqual(accounting["sum_individual_pipeline_wall_ns"], 110)
+        self.assertEqual(accounting["observed_pipeline_window_ns"], 80)
+        self.assertEqual(accounting["active_pipeline_union_wall_ns"], 80)
+        self.assertEqual(accounting["maximum_overlapping_pipelines"], 2)
+        self.assertEqual(accounting["kbuild_child_cpu_ns"], 220)
+
     def test_block_bootstrap_uses_five_clusters(self):
         result = c.paired_cluster_bootstrap([(100, 90)] * 5)
         self.assertEqual(result["bootstrap_replicates"], 3125)

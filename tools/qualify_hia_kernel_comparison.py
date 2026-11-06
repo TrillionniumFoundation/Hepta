@@ -1373,6 +1373,7 @@ def child_cpu_ns():
 
 def native_call(binding, request, directory):
     """One actual cold native process with complete raw JSON request/response."""
+    total_started, total_cpu, total_children = time.monotonic_ns(), time.process_time_ns(), child_cpu_ns()
     check_binding(binding)
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=False)
@@ -1404,8 +1405,12 @@ def native_call(binding, request, directory):
     response = strict_json(stdout)
     integer(response["service_before_output_ns"], "native measured service ns")
     return response, {"request": request_binding, "response": record["stdout"],
-                      "command": record_binding, "wall_ns": record["elapsed_ns"],
-                      "parent_cpu_ns": record["parent_cpu_ns"], "child_cpu_ns": record["child_cpu_ns"],
+                      "command": record_binding, "wall_ns": time.monotonic_ns() - total_started,
+                      "parent_cpu_ns": time.process_time_ns() - total_cpu,
+                      "child_cpu_ns": child_cpu_ns() - total_children,
+                      "cold_process_io_wall_ns": record["elapsed_ns"],
+                      "request_bytes": len(payload), "response_bytes": len(stdout),
+                      "cost_scope": "binary binding, JSON serialization, durable request/response/command logs, cold process I/O and JSON parsing; excludes independent arithmetic audit",
                       "service_ns": response["service_before_output_ns"]}
 
 
@@ -1535,12 +1540,15 @@ def plan_next(output, *, phase, seed):
                     "decision_cpu_ns": time.process_time_ns() - cpu, "service_ns": 0, "audit_wall_ns": 0}}
             # Independent Rust action is fixed before either NDU response exists.
             arm = "independent-same-objective"
+            decision_start, decision_cpu, decision_children = time.monotonic_ns(), time.process_time_ns(), child_cpu_ns()
             previous = prior_controller_values(history, arm)
             request = native_request(registry, snapshot, candidates, case["index"] + 1,
                                      mode="dynamic", previous_state=None)
             envelope = {"schema": "hepta.hia.kernel-ordinary-control.request.v1",
                         "request": request, "previous_weights": previous}
             response, call = native_call(registry["ordinary_control"]["executable"], envelope, directory / arm)
+            decision_wall = time.monotonic_ns() - decision_start
+            decision_cpu_used = time.process_time_ns() - decision_cpu + child_cpu_ns() - decision_children
             start = time.monotonic_ns()
             pref = preference_reference(axis_map(previous) if previous else genesis, target)
             reference = evaluate_paths(candidates, pref["values"], budget=budget)
@@ -1548,14 +1556,17 @@ def plan_next(output, *, phase, seed):
             arms[arm] = {"selected_image": response["selected_first_image_id"],
                 "image_id": response["selected_first_image_id"] or "hia-original",
                 "abstain": response["selected_first_image_id"] is None, "native_call": call,
-                "independent_audit": checked, "cost": {"decision_wall_ns": call["wall_ns"],
-                "decision_cpu_ns": call["parent_cpu_ns"] + call["child_cpu_ns"],
+                "independent_audit": checked, "cost": {"decision_wall_ns": decision_wall,
+                "decision_cpu_ns": decision_cpu_used,
                 "service_ns": call["service_ns"], "audit_wall_ns": time.monotonic_ns() - start}}
             for arm, mode in (("fixed-ndu", "fixed"), ("dynamic-ndu", "dynamic")):
+                decision_start, decision_cpu, decision_children = time.monotonic_ns(), time.process_time_ns(), child_cpu_ns()
                 previous = prior_controller_values(history, arm)
                 request = native_request(registry, snapshot, candidates, case["index"] + 1,
                                          mode=mode, previous_state=previous)
                 response, call = native_call(registry["native"]["executable"], request, directory / arm)
+                decision_wall = time.monotonic_ns() - decision_start
+                decision_cpu_used = time.process_time_ns() - decision_cpu + child_cpu_ns() - decision_children
                 start = time.monotonic_ns()
                 pref = preference_reference(axis_map(previous["values"]) if previous else genesis,
                                             target, mode=mode)
@@ -1564,8 +1575,8 @@ def plan_next(output, *, phase, seed):
                 arms[arm] = {"selected_image": response["selected_first_image_id"],
                     "image_id": response["selected_first_image_id"] or "hia-original",
                     "abstain": response["selected_first_image_id"] is None, "native_call": call,
-                    "independent_audit": checked, "cost": {"decision_wall_ns": call["wall_ns"],
-                    "decision_cpu_ns": call["parent_cpu_ns"] + call["child_cpu_ns"],
+                    "independent_audit": checked, "cost": {"decision_wall_ns": decision_wall,
+                    "decision_cpu_ns": decision_cpu_used,
                     "service_ns": call["service_ns"], "solve_ns": response["preference"]["solve_ns"],
                     "audit_wall_ns": time.monotonic_ns() - start}}
             for arm, row in arms.items():
