@@ -261,6 +261,23 @@ class PassiveDcoRekeyTests(unittest.TestCase):
             for cycle in observation["rekey_cycles"]
         ))
 
+    def test_passive_pending_key_cannot_cross_reconnect_session(self):
+        lines = ["Initialization Sequence Completed"]
+        lines.extend(dco_server_reset(1))
+        lines.append("SIGUSR1[hard,] received, process restarting")
+        lines.append("TLS: Initial packet from [AF_INET]192.0.2.1:1194, sid=next")
+        lines.append("TLS: tls_multi_process: initial untrusted session promoted to trusted")
+        lines.append("Initialization Sequence Completed")
+        lines.append(
+            "UDPv4 READ [54] from [AF_INET]192.0.2.1:1194: "
+            "P_CONTROL_SOFT_RESET_V1 kid=2 pid=[ 456 ]"
+        )
+        lines.append("dco_swap_keys: peer-id 0")
+
+        observation = matrix.observe("\\n".join(lines))
+        self.assertEqual(observation["completed_rekeys"], 0)
+        self.assertEqual(observation["rekey_cycles"], [])
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

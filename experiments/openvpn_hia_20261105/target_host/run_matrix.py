@@ -162,7 +162,17 @@ def observe(text):
     # control-reset key and the same peer's swap. Initiator-side same-segment
     # DCO receipts remain covered by the offload check above.
     pending_dco = {}
+    current_session = None
     for begin in resets:
+        # Peer IDs can be reused after a hard restart. A staged key from the
+        # previous TLS session must never be promoted by a later session's
+        # reset/swap sequence.
+        session_id = sum(boundary < begin for boundary in boundaries)
+        if current_session is None:
+            current_session = session_id
+        elif session_id != current_session:
+            pending_dco.clear()
+            current_session = session_id
         end = min([i for i in resets + boundaries if i > begin] + [len(lines)])
         segment = lines[begin:end]
         reset_keys = {
