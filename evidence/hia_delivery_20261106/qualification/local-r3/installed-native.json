@@ -1,0 +1,337 @@
+{
+  "claims": {
+    "cross_target_execution_qualified": false,
+    "installed_verify_run_emit": true,
+    "performance_advantage_established": false,
+    "production_release_qualified": false
+  },
+  "manifest_sha256": "4c1e62181f9a611f7e02c00c1b4244e4f343c133b18658260b13bdad8b157a12",
+  "native": {
+    "build_receipt": {
+      "artifact_bytes": 15312,
+      "artifact_sha256": "e63c7ad744f626c01460320bc5628fcfe72e164b77ed072792867c892bac2fa4",
+      "binary_inventory": {
+        "claims": {
+          "backend_refinement_proven": false,
+          "binary_abi_observed": true,
+          "native_execution_proven": false,
+          "whole_language_memory_safety_proven": false
+        },
+        "dynamic_exports": [
+          "increment"
+        ],
+        "format": "ELF64",
+        "kind": "ET_DYN",
+        "machine": 62,
+        "schema": "hepta.elf-shared-abi.v1",
+        "source_exports_rechecked": true,
+        "unresolved_imports": [
+          "_ITM_deregisterTMCloneTable",
+          "_ITM_registerTMCloneTable",
+          "__cxa_finalize",
+          "__gmon_start__",
+          "abort"
+        ]
+      },
+      "build_host": {
+        "abi": "SysV AMD64 LP64",
+        "byteorder": "little",
+        "elf_machine": 62,
+        "long_bits": 64,
+        "machine": "x86_64",
+        "normalized_machine": "x86_64",
+        "pointer_bits": 64,
+        "size_t_bits": 64,
+        "system": "Linux",
+        "target": "x86_64-unknown-linux-gnu"
+      },
+      "claims": {
+        "backend_refinement_proved": false,
+        "c_codegen_used": false,
+        "cross_target_execution_qualified": false,
+        "fallback_used": false,
+        "foreign_buffer_entrypoints_exposed": false,
+        "native_execution_qualified": false,
+        "rust_codegen_used": false,
+        "rust_reference_required": false,
+        "source_ast_required": false,
+        "standalone_core_reverified": true,
+        "whole_language_soundness_proved": false
+      },
+      "core_sha256": "bf8dbe0377012dbcd5ea1d63a4eaebbe092daaa3dd814debc2b41cf55b9df64b",
+      "cross_target_compilation": false,
+      "entry_layout": "canonical",
+      "exports": [
+        "increment"
+      ],
+      "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+      "flags": [
+        "--target=x86_64-unknown-linux-gnu",
+        "-x",
+        "ir",
+        "-O3",
+        "-fPIC",
+        "-shared"
+      ],
+      "implementation_sha256": "3c0dd36f323f16a9c08c0a97251a6f7b739f9369ffa3304c9c755ebc52c3cc20",
+      "input_sha256": "bf8dbe0377012dbcd5ea1d63a4eaebbe092daaa3dd814debc2b41cf55b9df64b",
+      "kind": "shared",
+      "llvm_ir_sha256": "e54211d86b542b720d90e7813c04e9702a5cba174f617a4ca4ea5a8f4d2deeb4",
+      "ok": true,
+      "output": "/tmp/hia-installed-candidate-_0knjwa3/counter.so",
+      "profile": "hepta.hia.program.llvm-linux-x86_64.v1",
+      "runtime_assumptions": [
+        "Linux LP64 target with 64-bit pointers and size_t",
+        "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+        "C malloc returns null or a fresh nonaliasing allocation of the requested size; bytes are initialized before read or remain unobserved",
+        "C free accepts a live allocation from calloc or malloc, or null",
+        "abort terminates execution; no cleanup after traps is promised",
+        "native compiler, linker, loader, libc and host hardware are trusted"
+      ],
+      "schema": "hepta.hia.program.native.v1",
+      "status": "native_compiled_not_executed",
+      "target": "x86_64-unknown-linux-gnu",
+      "toolchain": {
+        "default_target": "x86_64-pc-linux-gnu",
+        "path": "/workspace/scratch/5e5f40464be2/llvm20/extracted/usr/lib/llvm-20/bin/clang",
+        "sha256": "7a23fc98a565f8628764a7b6a56584f7ab5ee9a0020e9ff50760da75d99e2454",
+        "version": "Debian clang version 20.1.8 (++20250708063551+0c9f909b7976-1~exp1~20250708183702.136)"
+      }
+    },
+    "execution_qualified": true,
+    "scope": "one bundled u32 counter on the actual host",
+    "status": "counter_executed"
+  },
+  "observations": [
+    {
+      "arguments": [
+        "-m",
+        "pip",
+        "install",
+        "--no-index",
+        "--no-deps",
+        "--no-compile",
+        "/tmp/hia-installed-candidate-_0knjwa3/hepta_language-0.2.0+hia.gd21359485776.s0ca27dca9ad8-py3-none-any.whl"
+      ],
+      "name": "offline_wheel_install",
+      "returncode": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "5df69efeed3e0ef4cedb8e4759517ea6e6cd0ac8baf955432b72a27d0018c529"
+    },
+    {
+      "arguments": [
+        "-c",
+        "import json, sys, sysconfig\nprint(json.dumps({\"prefix\":sys.prefix,\"purelib\":sysconfig.get_path(\"purelib\")}))"
+      ],
+      "name": "installed_layout",
+      "returncode": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "7538d027554f40f6b9fa2348cf4acaeb46dd8e2fc8a400a4a969b0a7f38b418d"
+    },
+    {
+      "file_count": 193,
+      "name": "installed_package_before",
+      "package_manifest_sha256": "18d9423b25d090cf186a93d34e1745be92f9948e29e48849604312bcdbecc16f",
+      "returncode": 0
+    },
+    {
+      "arguments": [
+        "-c",
+        "import json, pathlib, sys\nimport hepta\nfrom importlib.metadata import version\nfrom hepta.pipeline import compiler_hash\nfrom hepta.hia_program_llvm import _implementation_hash, TARGET, TARGET_AARCH64, TARGET_RISCV64\nfrom hepta.hia_routes import route_inventory\nfrom hepta.hia_schema import schema_registry\nprint(json.dumps({\"location\":str(pathlib.Path(hepta.__file__).resolve()),\n \"compiler_sha256\":compiler_hash(),\"llvm_implementation_sha256\":_implementation_hash(),\"routes\":route_inventory(),\n \"schemas\":schema_registry(),\n \"abi\":{\"targets\":[TARGET,TARGET_AARCH64,TARGET_RISCV64],\"data_model\":\"LP64\",\n \"exports\":\"public scalar parameters; zero or one scalar return; resource returns remain internal\",\n \"cross_target_native_execution_qualified\":False},\n \"distribution_version\":version(\"hepta-language\")}))"
+      ],
+      "name": "installed_identity",
+      "returncode": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "4d7f7b248ce574855adaea3ec2b37b2b511ca25799eb87fc881706468816a647"
+    },
+    {
+      "arguments": [
+        "-m",
+        "hepta",
+        "hia",
+        "verify",
+        "counter.hia"
+      ],
+      "name": "verify_counter.hia",
+      "returncode": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "dd8a358e552b0ab91187a03edc7283f67111351d4155fc1ab42cc17b88c3a8e4"
+    },
+    {
+      "arguments": [
+        "-m",
+        "hepta",
+        "hia",
+        "verify",
+        "parameter_loan_return_v8.hia"
+      ],
+      "name": "verify_parameter_loan_return_v8.hia",
+      "returncode": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "a99cd96ae11f65771edbcb39554b0a0e4c0a8a9bd5513e862a1f254db87b9184"
+    },
+    {
+      "arguments": [
+        "-m",
+        "hepta",
+        "hia",
+        "run",
+        "counter.hia",
+        "--function",
+        "increment",
+        "--arguments",
+        "[40]"
+      ],
+      "name": "interpret",
+      "returncode": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "992b4ce3f3cb143389622281ca9d46e20e2480e2fe7c8f346c2cafe89087226d"
+    },
+    {
+      "arguments": [
+        "-m",
+        "hepta",
+        "hia",
+        "emit",
+        "parameter_loan_return_v8.hia",
+        "--target",
+        "x86_64-unknown-linux-gnu"
+      ],
+      "name": "emit_x86_64-unknown-linux-gnu",
+      "returncode": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "7f097b9b5fe4f5014afe2e4e3f4b6043be6fa4ca2c98725eb0d0b2317e7f8ab3"
+    },
+    {
+      "arguments": [
+        "-m",
+        "hepta",
+        "hia",
+        "emit",
+        "parameter_loan_return_v8.hia",
+        "--target",
+        "aarch64-unknown-linux-gnu"
+      ],
+      "name": "emit_aarch64-unknown-linux-gnu",
+      "returncode": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "f34165e2d8809e5155ddd9bf24ac31b31a00ade65124719a5eef35d4a4cc0735"
+    },
+    {
+      "arguments": [
+        "-m",
+        "hepta",
+        "hia",
+        "emit",
+        "parameter_loan_return_v8.hia",
+        "--target",
+        "riscv64-unknown-linux-gnu"
+      ],
+      "name": "emit_riscv64-unknown-linux-gnu",
+      "returncode": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "4628c47a98e0e57c350f856aef8314f66aec560cf3a38a47d10cf39f9010c958"
+    },
+    {
+      "name": "installed_console_script",
+      "returncode": 0
+    },
+    {
+      "arguments": [
+        "-m",
+        "hepta.apps.quota",
+        "--ledger",
+        "installed-quota",
+        "init",
+        "--initial",
+        "100"
+      ],
+      "name": "installed_quota_init",
+      "returncode": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "a1bccc681015fa8f91cd3a6e19a42569b83791af380a3484b163198679b3a9de"
+    },
+    {
+      "arguments": [
+        "-m",
+        "hepta.apps.quota",
+        "--ledger",
+        "installed-quota",
+        "apply",
+        "reserve-1",
+        "reserve",
+        "40"
+      ],
+      "name": "installed_quota_reserve",
+      "returncode": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "f7cd3138f05d4fc8cd83cdfd8d5a843497e2a646c8549ca07d97e2fd96c628f8"
+    },
+    {
+      "arguments": [
+        "-m",
+        "hepta.apps.quota",
+        "--ledger",
+        "installed-quota",
+        "upgrade",
+        "upgrade-1"
+      ],
+      "name": "installed_quota_upgrade",
+      "returncode": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "781ac33a2333fabc57caa1894ed28e8977b34c166a7b6033d713b519d5cf949c"
+    },
+    {
+      "arguments": [
+        "-m",
+        "hepta.apps.quota",
+        "--ledger",
+        "installed-quota",
+        "status"
+      ],
+      "name": "installed_quota_recover",
+      "returncode": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "5f6c641eaef309ccd408e9888f62bacb24b248e3405ad8882ba7dbffed85b345"
+    },
+    {
+      "arguments": [
+        "-m",
+        "hepta",
+        "hia",
+        "build",
+        "counter.hia",
+        "--clang",
+        "/workspace/scratch/5e5f40464be2/llvm20/extracted/usr/lib/llvm-20/bin/clang",
+        "-o",
+        "counter.so"
+      ],
+      "name": "native_build",
+      "returncode": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "83c5b57a94f247b0095ac63c8e58b45d8cc65e77b573724f16c028c64235b205"
+    },
+    {
+      "arguments": [
+        "-c",
+        "import ctypes\nlib=ctypes.CDLL('./counter.so')\nlib.increment.argtypes=[ctypes.c_uint32]\nlib.increment.restype=ctypes.c_uint32\nassert lib.increment(40)==41\nprint(41)"
+      ],
+      "name": "native_execute",
+      "returncode": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "040316eca5e77dbb2212c1efe8b81cb23bc67ce0ac8cb5c9d902d98bd45ddfa1"
+    },
+    {
+      "file_count": 193,
+      "name": "installed_package_after",
+      "package_manifest_sha256": "18d9423b25d090cf186a93d34e1745be92f9948e29e48849604312bcdbecc16f",
+      "returncode": 0
+    }
+  ],
+  "schema": "hepta.hia.candidate-installed-verification.v1",
+  "source_commit": "d21359485776c0a9687e88d0f69c8ec06a3b3b98",
+  "source_manifest_sha256": "0ca27dca9ad8565393a317510e50549b5fdd67dd51f9ed210e0d86769b5f0e91",
+  "status": "passed",
+  "wheel_sha256": "01a099c2f51f842303be79028fb709285e9c67d63229777e1c39abe8614e6198",
+  "worktree_dirty": false
+}

@@ -1,0 +1,406 @@
+{
+  "claims": {
+    "external_effect_exactly_once": false,
+    "hardware_power_loss_tested": false,
+    "hia_business_transition": true,
+    "hia_language_speedup": false,
+    "native_execution_tested": true,
+    "process_restart_tested": true,
+    "production_authorization": false
+  },
+  "errors": 0,
+  "expected_failures": 0,
+  "failures": 0,
+  "full_test_log": "test_actual_process_death_after_record_publication_reconciles_same_request_once (tests.test_hia_quota_application.QuotaApplicationTests.test_actual_process_death_after_record_publication_reconciles_same_request_once) ... ok\ntest_cancel_before_and_after_pure_hia_never_commits_computed_transition (tests.test_hia_quota_application.QuotaApplicationTests.test_cancel_before_and_after_pure_hia_never_commits_computed_transition) ... ok\ntest_cleanup_interrupt_after_link_is_unknown (tests.test_hia_quota_application.QuotaApplicationTests.test_cleanup_interrupt_after_link_is_unknown) ... ok\ntest_complete_reserve_consume_release_error_and_reopen (tests.test_hia_quota_application.QuotaApplicationTests.test_complete_reserve_consume_release_error_and_reopen) ... ok\ntest_corrupt_committed_bytes_are_never_discarded_or_repaired (tests.test_hia_quota_application.QuotaApplicationTests.test_corrupt_committed_bytes_are_never_discarded_or_repaired) ... ok\ntest_directory_sync_failure_retains_unknown_and_reconciles (tests.test_hia_quota_application.QuotaApplicationTests.test_directory_sync_failure_retains_unknown_and_reconciles) ... ok\ntest_duplicate_request_retains_original_receipt_and_conflict_rejects (tests.test_hia_quota_application.QuotaApplicationTests.test_duplicate_request_retains_original_receipt_and_conflict_rejects) ... ok\ntest_forked_handle_cannot_inherit_parent_execution_authority (tests.test_hia_quota_application.QuotaApplicationTests.test_forked_handle_cannot_inherit_parent_execution_authority) ... ok\ntest_hia_all_boundary_and_registered_random_inputs_match_independent_oracle (tests.test_hia_quota_application.QuotaApplicationTests.test_hia_all_boundary_and_registered_random_inputs_match_independent_oracle) ... ok\ntest_hostile_version_object_rejects_before_journal_publication (tests.test_hia_quota_application.QuotaApplicationTests.test_hostile_version_object_rejects_before_journal_publication) ... ok\ntest_lost_link_acknowledgment_is_unknown_not_a_clean_failure (tests.test_hia_quota_application.QuotaApplicationTests.test_lost_link_acknowledgment_is_unknown_not_a_clean_failure) ... ok\ntest_missing_record_and_changed_program_identity_reject (tests.test_hia_quota_application.QuotaApplicationTests.test_missing_record_and_changed_program_identity_reject) ... ok\ntest_postcommit_readback_failure_is_unknown_and_retry_does_not_repeat (tests.test_hia_quota_application.QuotaApplicationTests.test_postcommit_readback_failure_is_unknown_and_retry_does_not_repeat) ... ok\ntest_postpublication_interrupt_is_unknown_and_same_request_reconciles (tests.test_hia_quota_application.QuotaApplicationTests.test_postpublication_interrupt_is_unknown_and_same_request_reconciles) ... ok\ntest_real_cli_restart_uses_the_same_hia_module (tests.test_hia_quota_application.QuotaApplicationTests.test_real_cli_restart_uses_the_same_hia_module) ... ok\ntest_single_owner_lock_and_thread_serialization (tests.test_hia_quota_application.QuotaApplicationTests.test_single_owner_lock_and_thread_serialization) ... ok\ntest_type_budget_reentrancy_symlink_and_closed_owner_rejections (tests.test_hia_quota_application.QuotaApplicationTests.test_type_budget_reentrancy_symlink_and_closed_owner_rejections) ... ok\ntest_upgrade_is_durable_preserves_state_and_new_hia_behavior_runs (tests.test_hia_quota_application.QuotaApplicationTests.test_upgrade_is_durable_preserves_state_and_new_hia_behavior_runs) ... ok\ntest_wrong_well_typed_backend_result_cannot_poison_new_or_existing_journal (tests.test_hia_quota_application.QuotaApplicationTests.test_wrong_well_typed_backend_result_cannot_poison_new_or_existing_journal) ... ok\ntest_real_native_versions_match_independent_oracle_and_durable_application (tests.test_hia_quota_application.QuotaNativeTests.test_real_native_versions_match_independent_oracle_and_durable_application) ... ok\n\n----------------------------------------------------------------------\nRan 20 tests in 16.558s\n\nOK\n",
+  "inventory": 20,
+  "native_build_receipts": [
+    {
+      "artifact_bytes": 15064,
+      "artifact_sha256": "d6632bd4ac55525e2f80d4045d6fe41171f21ed78d7d8b1b9ac6a96ddf2ba016",
+      "binary_inventory": {
+        "claims": {
+          "backend_refinement_proven": false,
+          "binary_abi_observed": true,
+          "native_execution_proven": false,
+          "whole_language_memory_safety_proven": false
+        },
+        "dynamic_exports": [
+          "transition"
+        ],
+        "format": "ELF64",
+        "kind": "ET_DYN",
+        "machine": 62,
+        "schema": "hepta.elf-shared-abi.v1",
+        "source_exports_rechecked": true,
+        "unresolved_imports": [
+          "_ITM_deregisterTMCloneTable",
+          "_ITM_registerTMCloneTable",
+          "__cxa_finalize",
+          "__gmon_start__"
+        ]
+      },
+      "build_host": {
+        "abi": "SysV AMD64 LP64",
+        "byteorder": "little",
+        "elf_machine": 62,
+        "long_bits": 64,
+        "machine": "x86_64",
+        "normalized_machine": "x86_64",
+        "pointer_bits": 64,
+        "size_t_bits": 64,
+        "system": "Linux",
+        "target": "x86_64-unknown-linux-gnu"
+      },
+      "claims": {
+        "backend_refinement_proved": false,
+        "c_codegen_used": false,
+        "cross_target_execution_qualified": false,
+        "fallback_used": false,
+        "foreign_buffer_entrypoints_exposed": false,
+        "native_execution_qualified": false,
+        "rust_codegen_used": false,
+        "rust_reference_required": false,
+        "source_ast_required": false,
+        "standalone_core_reverified": true,
+        "whole_language_soundness_proved": false
+      },
+      "core_sha256": "3e26545677a878dcc50dbfc6c707103c0e423fe162469d52985a65d675370b94",
+      "cross_target_compilation": false,
+      "entry_layout": "canonical",
+      "exports": [
+        "transition"
+      ],
+      "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+      "flags": [
+        "--target=x86_64-unknown-linux-gnu",
+        "-x",
+        "ir",
+        "-O3",
+        "-fPIC",
+        "-shared"
+      ],
+      "implementation_sha256": "3c0dd36f323f16a9c08c0a97251a6f7b739f9369ffa3304c9c755ebc52c3cc20",
+      "input_sha256": "3e26545677a878dcc50dbfc6c707103c0e423fe162469d52985a65d675370b94",
+      "kind": "shared",
+      "llvm_ir_sha256": "2e7497520dc64ad95b9f5cc56ac4312a31308a860f9dee28906ef15350db3f7e",
+      "ok": true,
+      "output": "/tmp/hia-quota-native-_ioxjam2/v1.so",
+      "profile": "hepta.hia.program.llvm-linux-x86_64-range-fill.v6",
+      "runtime_assumptions": [
+        "Linux LP64 target with 64-bit pointers and size_t",
+        "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+        "C malloc returns null or a fresh nonaliasing allocation of the requested size; bytes are initialized before read or remain unobserved",
+        "C free accepts a live allocation from calloc or malloc, or null",
+        "abort terminates execution; no cleanup after traps is promised",
+        "native compiler, linker, loader, libc and host hardware are trusted"
+      ],
+      "schema": "hepta.hia.program.native.v1",
+      "status": "native_compiled_not_executed",
+      "target": "x86_64-unknown-linux-gnu",
+      "toolchain": {
+        "default_target": "x86_64-pc-linux-gnu",
+        "path": "/workspace/scratch/5e5f40464be2/llvm20/extracted/usr/lib/llvm-20/bin/clang",
+        "sha256": "7a23fc98a565f8628764a7b6a56584f7ab5ee9a0020e9ff50760da75d99e2454",
+        "version": "Debian clang version 20.1.8 (++20250708063551+0c9f909b7976-1~exp1~20250708183702.136)"
+      }
+    },
+    {
+      "artifact_bytes": 15064,
+      "artifact_sha256": "ce1e572fb56b0cc674e21b459d0d8f149219506b7e7aede879ea5911ad1300d4",
+      "binary_inventory": {
+        "claims": {
+          "backend_refinement_proven": false,
+          "binary_abi_observed": true,
+          "native_execution_proven": false,
+          "whole_language_memory_safety_proven": false
+        },
+        "dynamic_exports": [
+          "transition"
+        ],
+        "format": "ELF64",
+        "kind": "ET_DYN",
+        "machine": 62,
+        "schema": "hepta.elf-shared-abi.v1",
+        "source_exports_rechecked": true,
+        "unresolved_imports": [
+          "_ITM_deregisterTMCloneTable",
+          "_ITM_registerTMCloneTable",
+          "__cxa_finalize",
+          "__gmon_start__"
+        ]
+      },
+      "build_host": {
+        "abi": "SysV AMD64 LP64",
+        "byteorder": "little",
+        "elf_machine": 62,
+        "long_bits": 64,
+        "machine": "x86_64",
+        "normalized_machine": "x86_64",
+        "pointer_bits": 64,
+        "size_t_bits": 64,
+        "system": "Linux",
+        "target": "x86_64-unknown-linux-gnu"
+      },
+      "claims": {
+        "backend_refinement_proved": false,
+        "c_codegen_used": false,
+        "cross_target_execution_qualified": false,
+        "fallback_used": false,
+        "foreign_buffer_entrypoints_exposed": false,
+        "native_execution_qualified": false,
+        "rust_codegen_used": false,
+        "rust_reference_required": false,
+        "source_ast_required": false,
+        "standalone_core_reverified": true,
+        "whole_language_soundness_proved": false
+      },
+      "core_sha256": "a4265d901179973aabf19450071e8b099c51ca6cca94cd59c4eeb492140918ad",
+      "cross_target_compilation": false,
+      "entry_layout": "canonical",
+      "exports": [
+        "transition"
+      ],
+      "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+      "flags": [
+        "--target=x86_64-unknown-linux-gnu",
+        "-x",
+        "ir",
+        "-O3",
+        "-fPIC",
+        "-shared"
+      ],
+      "implementation_sha256": "3c0dd36f323f16a9c08c0a97251a6f7b739f9369ffa3304c9c755ebc52c3cc20",
+      "input_sha256": "a4265d901179973aabf19450071e8b099c51ca6cca94cd59c4eeb492140918ad",
+      "kind": "shared",
+      "llvm_ir_sha256": "940eca846a7d07d2d55b042973611b6e608be88c01b1f9c95204a71d7db89263",
+      "ok": true,
+      "output": "/tmp/hia-quota-native-_ioxjam2/v2.so",
+      "profile": "hepta.hia.program.llvm-linux-x86_64-range-fill.v6",
+      "runtime_assumptions": [
+        "Linux LP64 target with 64-bit pointers and size_t",
+        "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+        "C malloc returns null or a fresh nonaliasing allocation of the requested size; bytes are initialized before read or remain unobserved",
+        "C free accepts a live allocation from calloc or malloc, or null",
+        "abort terminates execution; no cleanup after traps is promised",
+        "native compiler, linker, loader, libc and host hardware are trusted"
+      ],
+      "schema": "hepta.hia.program.native.v1",
+      "status": "native_compiled_not_executed",
+      "target": "x86_64-unknown-linux-gnu",
+      "toolchain": {
+        "default_target": "x86_64-pc-linux-gnu",
+        "path": "/workspace/scratch/5e5f40464be2/llvm20/extracted/usr/lib/llvm-20/bin/clang",
+        "sha256": "7a23fc98a565f8628764a7b6a56584f7ab5ee9a0020e9ff50760da75d99e2454",
+        "version": "Debian clang version 20.1.8 (++20250708063551+0c9f909b7976-1~exp1~20250708183702.136)"
+      }
+    }
+  ],
+  "native_status": "executed",
+  "observations": [
+    {
+      "detail": null,
+      "outcome": "passed",
+      "test": "tests.test_hia_quota_application.QuotaApplicationTests.test_actual_process_death_after_record_publication_reconciles_same_request_once",
+      "wall_ns": 383831665
+    },
+    {
+      "detail": null,
+      "outcome": "passed",
+      "test": "tests.test_hia_quota_application.QuotaApplicationTests.test_cancel_before_and_after_pure_hia_never_commits_computed_transition",
+      "wall_ns": 92638969
+    },
+    {
+      "detail": null,
+      "outcome": "passed",
+      "test": "tests.test_hia_quota_application.QuotaApplicationTests.test_cleanup_interrupt_after_link_is_unknown",
+      "wall_ns": 61763465
+    },
+    {
+      "detail": null,
+      "outcome": "passed",
+      "test": "tests.test_hia_quota_application.QuotaApplicationTests.test_complete_reserve_consume_release_error_and_reopen",
+      "wall_ns": 289026993
+    },
+    {
+      "detail": null,
+      "outcome": "passed",
+      "test": "tests.test_hia_quota_application.QuotaApplicationTests.test_corrupt_committed_bytes_are_never_discarded_or_repaired",
+      "wall_ns": 71943785
+    },
+    {
+      "detail": null,
+      "outcome": "passed",
+      "test": "tests.test_hia_quota_application.QuotaApplicationTests.test_directory_sync_failure_retains_unknown_and_reconciles",
+      "wall_ns": 45834151
+    },
+    {
+      "detail": null,
+      "outcome": "passed",
+      "test": "tests.test_hia_quota_application.QuotaApplicationTests.test_duplicate_request_retains_original_receipt_and_conflict_rejects",
+      "wall_ns": 66986941
+    },
+    {
+      "detail": null,
+      "outcome": "passed",
+      "test": "tests.test_hia_quota_application.QuotaApplicationTests.test_forked_handle_cannot_inherit_parent_execution_authority",
+      "wall_ns": 51265789
+    },
+    {
+      "detail": null,
+      "outcome": "passed",
+      "test": "tests.test_hia_quota_application.QuotaApplicationTests.test_hia_all_boundary_and_registered_random_inputs_match_independent_oracle",
+      "wall_ns": 12412038978
+    },
+    {
+      "detail": null,
+      "outcome": "passed",
+      "test": "tests.test_hia_quota_application.QuotaApplicationTests.test_hostile_version_object_rejects_before_journal_publication",
+      "wall_ns": 70436308
+    },
+    {
+      "detail": null,
+      "outcome": "passed",
+      "test": "tests.test_hia_quota_application.QuotaApplicationTests.test_lost_link_acknowledgment_is_unknown_not_a_clean_failure",
+      "wall_ns": 65067373
+    },
+    {
+      "detail": null,
+      "outcome": "passed",
+      "test": "tests.test_hia_quota_application.QuotaApplicationTests.test_missing_record_and_changed_program_identity_reject",
+      "wall_ns": 143295083
+    },
+    {
+      "detail": null,
+      "outcome": "passed",
+      "test": "tests.test_hia_quota_application.QuotaApplicationTests.test_postcommit_readback_failure_is_unknown_and_retry_does_not_repeat",
+      "wall_ns": 87900985
+    },
+    {
+      "detail": null,
+      "outcome": "passed",
+      "test": "tests.test_hia_quota_application.QuotaApplicationTests.test_postpublication_interrupt_is_unknown_and_same_request_reconciles",
+      "wall_ns": 53638748
+    },
+    {
+      "detail": null,
+      "outcome": "passed",
+      "test": "tests.test_hia_quota_application.QuotaApplicationTests.test_real_cli_restart_uses_the_same_hia_module",
+      "wall_ns": 936977672
+    },
+    {
+      "detail": null,
+      "outcome": "passed",
+      "test": "tests.test_hia_quota_application.QuotaApplicationTests.test_single_owner_lock_and_thread_serialization",
+      "wall_ns": 853664167
+    },
+    {
+      "detail": null,
+      "outcome": "passed",
+      "test": "tests.test_hia_quota_application.QuotaApplicationTests.test_type_budget_reentrancy_symlink_and_closed_owner_rejections",
+      "wall_ns": 64176148
+    },
+    {
+      "detail": null,
+      "outcome": "passed",
+      "test": "tests.test_hia_quota_application.QuotaApplicationTests.test_upgrade_is_durable_preserves_state_and_new_hia_behavior_runs",
+      "wall_ns": 270059642
+    },
+    {
+      "detail": null,
+      "outcome": "passed",
+      "test": "tests.test_hia_quota_application.QuotaApplicationTests.test_wrong_well_typed_backend_result_cannot_poison_new_or_existing_journal",
+      "wall_ns": 79547024
+    },
+    {
+      "detail": null,
+      "outcome": "passed",
+      "test": "tests.test_hia_quota_application.QuotaNativeTests.test_real_native_versions_match_independent_oracle_and_durable_application",
+      "wall_ns": 457477715
+    }
+  ],
+  "oracle_cases_per_version_per_backend": 1768,
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "program_sha256": {
+    "v1": "3e26545677a878dcc50dbfc6c707103c0e423fe162469d52985a65d675370b94",
+    "v2": "a4265d901179973aabf19450071e8b099c51ca6cca94cd59c4eeb492140918ad"
+  },
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "qualified": true,
+  "schema": "hepta.hia.quota-qualification.v1",
+  "scope": "bounded single-account local POSIX journal and HIA balance transition",
+  "skips": 0,
+  "source_sha256": {
+    "hepta/apps/__init__.py": "30fe98aa20b4bb47159e820a0ca6d23423add636578b14083b6296f27e63eee1",
+    "hepta/apps/quota.py": "62346885ee44f3511689835f4a66f93b50b8867558698e10afc14f5a9655b984",
+    "hepta/apps/quota_v1.hiaasm": "8964a74dba0eb61b2f46e29917f9105da7fe4a1fa69eae61292456cbf457f5f5",
+    "hepta/apps/quota_v2.hiaasm": "77bd64ef187615e6510ee7cf07367d9b52e6e74ff695e0efb0e8c04c0e457c59",
+    "tests/test_hia_quota_application.py": "349f11581f2a44bf22254756dbd2c4d022a87012f9fc011e6dc6d59a7211cebd",
+    "tools/qualify_hia_quota_application.py": "73f2e2a7b15c4f07f55d8dfe52e139e917763fe0ef3e53886afc92468b14338d"
+  },
+  "source_unchanged": true,
+  "static_budgets": {
+    "v1": {
+      "claims": {
+        "allocator_interactions_upper_bounded": true,
+        "finite_acyclic_cfg_and_call_graph_checked": true,
+        "full_source_to_core_refinement_proved": false,
+        "native_cpu_time_or_rss_proved": false,
+        "requested_live_payload_bytes_upper_bounded": true,
+        "vm_tick_events_upper_bounded": true,
+        "whole_language_soundness_proved": false
+      },
+      "core_sha256": "3e26545677a878dcc50dbfc6c707103c0e423fe162469d52985a65d675370b94",
+      "functions": [
+        {
+          "function": "transition",
+          "max_allocator_interactions": 0,
+          "max_call_depth": 1,
+          "max_live_heap_bytes": 0,
+          "max_vm_ticks": 63
+        }
+      ],
+      "limits": {
+        "max_allocator_interactions": 0,
+        "max_call_depth": 1,
+        "max_live_heap_bytes": 0,
+        "max_vm_ticks": 128
+      },
+      "schema": "hepta.hia.static-budget.v1",
+      "sha256": "1ab9d2862195681156bdbb0f43d99f8263dd2f3b9e860599dd2e4335d1964295",
+      "status": "finite_structural_upper_bound_not_native_time_proof"
+    },
+    "v2": {
+      "claims": {
+        "allocator_interactions_upper_bounded": true,
+        "finite_acyclic_cfg_and_call_graph_checked": true,
+        "full_source_to_core_refinement_proved": false,
+        "native_cpu_time_or_rss_proved": false,
+        "requested_live_payload_bytes_upper_bounded": true,
+        "vm_tick_events_upper_bounded": true,
+        "whole_language_soundness_proved": false
+      },
+      "core_sha256": "a4265d901179973aabf19450071e8b099c51ca6cca94cd59c4eeb492140918ad",
+      "functions": [
+        {
+          "function": "transition",
+          "max_allocator_interactions": 0,
+          "max_call_depth": 1,
+          "max_live_heap_bytes": 0,
+          "max_vm_ticks": 63
+        }
+      ],
+      "limits": {
+        "max_allocator_interactions": 0,
+        "max_call_depth": 1,
+        "max_live_heap_bytes": 0,
+        "max_vm_ticks": 128
+      },
+      "schema": "hepta.hia.static-budget.v1",
+      "sha256": "4b5fb0902ca0d552c20b9211a03de147d9155b873d3c8e28885599d07284e11e",
+      "status": "finite_structural_upper_bound_not_native_time_proof"
+    }
+  },
+  "tests_run": 20,
+  "unexpected_successes": 0,
+  "wall_ns": 16558635759
+}
