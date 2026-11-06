@@ -1,0 +1,131 @@
+{
+  "results": [
+    {
+      "committed_after": {
+        "available": 91,
+        "held": 10
+      },
+      "expected_after": {
+        "available": 90,
+        "held": 10
+      },
+      "first": {
+        "message": "publication completed but result readback failed; recover the same request_id",
+        "type": "CommitUnknown"
+      },
+      "name": "well_typed_wrong_backend_result",
+      "retry_after_restoring_engine": {
+        "message": "committed result differs from HIA replay",
+        "type": "QuotaRejected"
+      }
+    },
+    {
+      "name": "malformed_backend_results",
+      "outcomes": [
+        {
+          "error": {
+            "message": "HIA did not return an exact u64",
+            "type": "QuotaRejected"
+          },
+          "input_type": "bool"
+        },
+        {
+          "error": {
+            "message": "HIA did not return an exact u64",
+            "type": "QuotaRejected"
+          },
+          "input_type": "int"
+        },
+        {
+          "error": {
+            "message": "HIA did not return an exact u64",
+            "type": "QuotaRejected"
+          },
+          "input_type": "int"
+        },
+        {
+          "error": {
+            "message": "HIA did not return an exact u64",
+            "type": "QuotaRejected"
+          },
+          "input_type": "float"
+        },
+        {
+          "error": {
+            "message": "HIA did not return an exact u64",
+            "type": "QuotaRejected"
+          },
+          "input_type": "NoneType"
+        },
+        {
+          "error": {
+            "message": "HIA did not return an exact u64",
+            "type": "QuotaRejected"
+          },
+          "input_type": "dict"
+        }
+      ],
+      "snapshot": {
+        "backend": "vm",
+        "committed_records": 1,
+        "head_sha256": "cf6edf83700f9ce409b8415101b92d724d731ad6ea4fe7f0d941d3b014c550ef",
+        "program_sha256": "3e26545677a878dcc50dbfc6c707103c0e423fe162469d52985a65d675370b94",
+        "schema": "hepta.hia.quota-snapshot.v1",
+        "state": {
+          "available": 100,
+          "held": 0
+        },
+        "version": "v1"
+      }
+    },
+    {
+      "first": {
+        "message": "interrupt during stage cleanup",
+        "type": "KeyboardInterrupt"
+      },
+      "name": "stage_cleanup_interrupt",
+      "retry": {
+        "code": 0,
+        "execution_version": "v1",
+        "program_sha256": "3e26545677a878dcc50dbfc6c707103c0e423fe162469d52985a65d675370b94",
+        "record_sha256": "2d3e8d6e722d7a3638108e467f0d0d6d702ee5a2d46531f3ed87901137729144",
+        "replayed": true,
+        "request_id": "cleanup-interrupt",
+        "schema": "hepta.hia.quota-receipt.v1",
+        "sequence": 1,
+        "state": {
+          "available": 90,
+          "held": 10
+        },
+        "status": "applied"
+      },
+      "snapshot": {
+        "backend": "vm",
+        "committed_records": 2,
+        "head_sha256": "2d3e8d6e722d7a3638108e467f0d0d6d702ee5a2d46531f3ed87901137729144",
+        "program_sha256": "3e26545677a878dcc50dbfc6c707103c0e423fe162469d52985a65d675370b94",
+        "schema": "hepta.hia.quota-snapshot.v1",
+        "state": {
+          "available": 90,
+          "held": 10
+        },
+        "version": "v1"
+      }
+    },
+    {
+      "committed_record_names": [
+        "00000000.json"
+      ],
+      "first": {
+        "message": "genesis does not replay through HIA",
+        "type": "QuotaRejected"
+      },
+      "name": "wrong_genesis_backend_result",
+      "reopen_after_restoring_engine": {
+        "message": "genesis does not replay through HIA",
+        "type": "QuotaRejected"
+      }
+    }
+  ],
+  "source_sha256": "27452f9b8b18ee794f7d78914883e95e56dd4928c6e101fbeba56f2868ffac01"
+}

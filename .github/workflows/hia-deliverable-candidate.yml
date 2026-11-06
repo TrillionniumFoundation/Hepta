@@ -1,0 +1,46 @@
+name: HIA reproducible deliverable candidate
+
+on:
+  push:
+    branches: [feat/hia-deliverable-candidate-20261106]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unified-candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      CLANG: /usr/bin/clang-20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install actual LLVM compiler
+        run: |
+          set -eu
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/hia-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key
+          fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hia-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')
+          test "$fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+          sudo install -m 0644 "$RUNNER_TEMP/hia-llvm.asc" /usr/share/keyrings/hia-llvm.asc
+          printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hia-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hia-llvm20.list
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y clang-20 build-essential
+          python -m pip install 'setuptools==80.9.0' 'wheel==0.45.1'
+      - name: Verify the same clean source, application and installed candidate
+        run: |
+          set -eu
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python -B -X pycache_prefix="$RUNNER_TEMP/hia-delivery-cold-cache" -m tools.qualify_hia_delivery --clang "$CLANG" --output-directory "$RUNNER_TEMP/hia-delivery"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hia-delivery-${{ github.sha }}
+          path: ${{ runner.temp }}/hia-delivery
+          if-no-files-found: warn

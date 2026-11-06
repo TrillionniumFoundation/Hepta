@@ -1,0 +1,131 @@
+{
+  "schema": "hepta.ndu.blocker-disposition.v1",
+  "source_commit": "a07c5ecae52436234af370779cc440686dbe4139",
+  "source_tree": "273e7c458713ede9593c03267245a5bf756fc4f7",
+  "formal_campaign_runs": 1,
+  "formal_campaign_status": "passed",
+  "formal_campaign_modified_after_execution": false,
+  "diagnostic_implementation_blockers_closed_within_declared_scope": true,
+  "all_blockers_closed": false,
+  "scientific_superiority_claim_passed": false,
+  "decision": "NO_GO_FOR_EXCLUSIVE_GAIN_OR_PRODUCTION",
+  "pull_request_draft": true,
+  "production_activation": false,
+  "authority": "DENY_ALL",
+  "ci_observed_at": "2026-11-06 11:01:00 UTC",
+  "items": [
+    {
+      "id": "D01",
+      "issue": "保留预期持平的退化对照",
+      "disposition": "closed_preserved",
+      "finding": "旧v1及所有负结果完整固化；未重标成功。",
+      "evidence": "old evidence e51de7a422988e69ddecaceba595e62b7d051507"
+    },
+    {
+      "id": "D02",
+      "issue": "数值偏好到实际动作接线",
+      "disposition": "closed_with_scope",
+      "finding": "旧supplied网格24个严格反转与43次真实缓存witness执行；本轮原生搜索结果消费和摘要独立核验。",
+      "evidence": "old physical witnesses; NATIVE_FRAME_AUDIT.json"
+    },
+    {
+      "id": "D03",
+      "issue": "自然状态覆盖漏掉其他合法控制历史",
+      "disposition": "closed_finite",
+      "finding": "固定54 profiles全合法动作前缀，10224状态18624边；独立全图复算。",
+      "evidence": "policy-final-v1/RESULT.json; independent-policy-review-v2.json"
+    },
+    {
+      "id": "D04",
+      "issue": "首动作regret误代完整policy",
+      "disposition": "closed_finite",
+      "finding": "全部122688控制决策的自身continuation完整评价；实际发现first=0/full>0。",
+      "evidence": "policy-final-v1/*/STATE_RESULTS.json.gz"
+    },
+    {
+      "id": "D05",
+      "issue": "belief与preference联合消融归因",
+      "disposition": "closed_finite",
+      "finding": "新增pure-belief-only与2x2外部完整policy差分；旧joint标签解释更正。",
+      "evidence": "policy-descriptive-summary.json"
+    },
+    {
+      "id": "D06",
+      "issue": "最强fixed与普通控制器不公平",
+      "disposition": "closed_finite",
+      "finding": "在登记三个常量优先动作+既定可行性回退类中，每profile只选一个ex-ante最优；计入全部候选；MPC/同目标/固定偏好/动态/oracle同等机会。并非所有开环时间表的全局fixed最优。",
+      "evidence": "policy-final-v1/*/SUMMARY.json"
+    },
+    {
+      "id": "D07",
+      "issue": "native只有标签或离线评分",
+      "disposition": "closed_verified",
+      "finding": "两native arms搜索时实际84960calls；108正常退出；20448根决策消费；原帧和摘要逐项重算。",
+      "evidence": "NATIVE_FRAME_AUDIT.json"
+    },
+    {
+      "id": "D08",
+      "issue": "注册污染、失败分母和源码漂移",
+      "disposition": "closed_verified",
+      "finding": "一次正式campaign完成全分母；tamper/interruption/budget/source变动有独立回归；原注册和attempts保留。",
+      "evidence": "combined-local-qualification.json; source snapshots; CI artifact"
+    },
+    {
+      "id": "D09",
+      "issue": "CI遗漏实际依赖路径",
+      "disposition": "closed_verified",
+      "finding": "覆盖实际import/CLI/builders；26新增独立测试；新HEAD184唯一测试零skip且远端nativeCI成功。",
+      "evidence": "PR761; CI42205882393"
+    },
+    {
+      "id": "S01",
+      "issue": "自然动态偏好额外收益",
+      "disposition": "closed_negative_for_registered_model",
+      "finding": "6068数值偏好变化、6444候选值变化，但10224状态动作/完整policy收益变化全零。",
+      "evidence": "policy-descriptive-summary.json"
+    },
+    {
+      "id": "S02",
+      "issue": "NDU超普通控制器的独占优势",
+      "disposition": "closed_negative_for_registered_model",
+      "finding": "ordinary-MPC在10224状态/54完整初始profile上复制所有动作与外部策略价值。",
+      "evidence": "policy-descriptive-summary.json"
+    },
+    {
+      "id": "C01",
+      "issue": "何时停止额外计算",
+      "disposition": "closed_observed_stopping_only",
+      "finding": "旧priced arm72/72跳过native、0NDUcalls；保留其成本与greedy对比，不能声称NDU收益。",
+      "evidence": "old compute-price-final-v1"
+    },
+    {
+      "id": "C02",
+      "issue": "真实端到端净收益及全生命周期成本",
+      "disposition": "open_not_established_no_go",
+      "finding": "当前数据未证明超过greedy/MPC的净收益；历史工程/能耗/货币成本仍未知。",
+      "evidence": "cost scope in report and retained old/new ledgers"
+    },
+    {
+      "id": "C03",
+      "issue": "计算耗时进入未来资源和硬期限",
+      "disposition": "open_for_realtime_admission",
+      "finding": "现有bound仅扣效用预测费，未来budget/deadline未扣计算；无法据此准入硬实时。",
+      "evidence": "docs/HIA_NDU_POLICY_AUDIT.md"
+    },
+    {
+      "id": "M01",
+      "issue": "未知模型学习、continuation训练与参数梯度",
+      "disposition": "not_validated_not_claimed",
+      "finding": "没有实现/评价训练求导器；U和Z不是参数梯度，finite oracle一致性不证明学习或FBSDE。",
+      "evidence": "frozen protocol scope"
+    },
+    {
+      "id": "I01",
+      "issue": "整个仓库跨平台CI全绿",
+      "disposition": "open_external_execution_pending",
+      "finding": "NDU专项成功，其他Actions有未完成项；旧Mac重试runner_id=0且零steps，没有成功执行证据。",
+      "evidence": "closure-ci-snapshot.json"
+    }
+  ],
+  "interpretation": "Closed-negative means this registered candidate claim is rejected within scope; it does not satisfy the claim or justify broad impossibility. Open scientific/deployment/external execution issues are not converted into engineering PASS."
+}

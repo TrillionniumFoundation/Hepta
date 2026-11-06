@@ -1,0 +1,15 @@
+gpg: keybox '/workspace/scratch/5e5f40464be2/llvm20/gnupg/pubring.kbx' created
+gpg: /workspace/scratch/5e5f40464be2/llvm20/gnupg/trustdb.gpg: trustdb created
+gpg: keybox '/workspace/scratch/5e5f40464be2/llvm20/llvm.gpg' created
+gpg: key 15CF4D18AF4F7421: public key "Sylvestre Ledru - Debian LLVM packages <sylvestre@debian.org>" imported
+gpg: error running '/usr/bin/gpg-agent': exit status 2
+gpg: failed to start gpg-agent '/usr/bin/gpg-agent': General error
+gpg: can't connect to the gpg-agent: General error
+gpg: Total number processed: 1
+gpg:               imported: 1
+Traceback (most recent call last):
+  File "/workspace/scratch/5e5f40464be2/bootstrap_llvm.py", line 26, in <module>
+    subprocess.run(['gpg', '--homedir', str(home), '--no-default-keyring', '--keyring', str(keyring), '--import', str(key)], check=True)
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['gpg', '--homedir', '/workspace/scratch/5e5f40464be2/llvm20/gnupg', '--no-default-keyring', '--keyring', '/workspace/scratch/5e5f40464be2/llvm20/llvm.gpg', '--import', '/workspace/scratch/5e5f40464be2/llvm20/llvm.asc']' returned non-zero exit status 2.

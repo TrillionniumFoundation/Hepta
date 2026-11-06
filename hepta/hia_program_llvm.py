@@ -23,13 +23,17 @@ import shutil
 import stat
 import sys
 import tempfile
+from types import MappingProxyType
 
 from .artifact_publication import publish_verified, verify_published, withdraw_own_link
 from .clang_capture import run_bounded
 from .elf_shared_abi import inspect_owned_shared_elf
 from .native_tool_identity import digest_executable
 from .object_symbols import inspect_object_symbols
-from .hia_schema import supports_feature
+from .hia_schema import (
+    SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7,
+    SCHEMA_V8, supports_feature,
+)
 
 
 PROFILE = "hepta.hia.program.llvm-linux-x86_64.v1"
@@ -54,11 +58,36 @@ PROFILE_V7 = "hepta.hia.program.llvm-linux-x86_64-recursive-chain.v7"
 PROFILE_AARCH64_V7 = "hepta.hia.program.llvm-linux-aarch64-recursive-chain-object.v7"
 PROFILE_V8 = "hepta.hia.program.llvm-linux-x86_64-parameter-loan-returns.v8"
 PROFILE_AARCH64_V8 = "hepta.hia.program.llvm-linux-aarch64-parameter-loan-returns-object.v8"
+# These exact tables are shared by emission, publication admission, and the
+# generated compatibility matrix. A future Core version is not admitted by
+# parsing its suffix or copying an older target receipt.
+_NATIVE_CORE_SCHEMAS = (SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5,
+                        SCHEMA_V6, SCHEMA_V7, SCHEMA_V8)
+_NATIVE_PROFILES = MappingProxyType({
+    TARGET: MappingProxyType(dict(zip(_NATIVE_CORE_SCHEMAS, (
+        PROFILE, PROFILE_V2, PROFILE_V3, PROFILE_V4, PROFILE_V5, PROFILE_V6,
+        PROFILE_V7, PROFILE_V8)))),
+    TARGET_AARCH64: MappingProxyType(dict(zip(_NATIVE_CORE_SCHEMAS, (
+        PROFILE_AARCH64, PROFILE_AARCH64_V2, PROFILE_AARCH64_V3,
+        PROFILE_AARCH64_V4, PROFILE_AARCH64_V5, PROFILE_AARCH64_V6,
+        PROFILE_AARCH64_V7, PROFILE_AARCH64_V8)))),
+    TARGET_RISCV64: MappingProxyType(dict(zip(_NATIVE_CORE_SCHEMAS,
+        (_RISCV64_PROFILES[version] for version in range(1, 9))))),
+})
+_NATIVE_PUBLICATION_KINDS = MappingProxyType({
+    TARGET: ("shared", "object"), TARGET_AARCH64: ("object",),
+    TARGET_RISCV64: ("object",),
+})
+_TARGET_EXTRA_FLAGS = MappingProxyType({
+    TARGET: (), TARGET_AARCH64: (), TARGET_RISCV64: ("-march=rv64gc", "-mabi=lp64d"),
+})
 MAX_LLVM_BYTES = 16 * 1024 * 1024
 MAX_ARTIFACT_BYTES = 64 * 1024 * 1024
 _WIDTHS = {**{f"{sign}{bits}": bits for sign in ("i", "u")
              for bits in (8, 16, 32, 64)}, "usize": 64, "isize": 64}
 _BUFFERS = {"buffer", "readbuf", "mutbuf"}
+_PUBLIC_ARGUMENT_TYPES = frozenset(_WIDTHS) | {"bool"}
+_PUBLIC_RESULT_TYPES = _PUBLIC_ARGUMENT_TYPES | {"unit"}
 _RUNTIME_NAMES = {"abort", "calloc", "free", "malloc", "memset", "memcpy", "memmove"}
 _IMPORTS = {"abort", "calloc", "free", "malloc", "memset", "memcpy", "memmove"}
 
@@ -199,6 +228,52 @@ def _abi_attr(typ, target=TARGET):
     if typ in {"u8", "u16", "bool"}:
         return "zeroext "
     return ""
+
+
+def native_compatibility() -> dict:
+    """Detached metadata from the tables that admit actual native boundaries.
+
+    This describes available grammars and LLVM wrappers, not the outcome of
+    any compiler invocation or execution. Callers must still independently
+    verify programs and retain the relevant native qualification receipt.
+    """
+    return {
+        "schema": "hepta.hia.native-compatibility.v1",
+        "word_bits": 64,
+        "public_entry": {
+            "argument_types": sorted(_PUBLIC_ARGUMENT_TYPES),
+            "result_types": sorted(_PUBLIC_RESULT_TYPES),
+            "maximum_results": 1,
+            "empty_result_llvm_type": "void",
+            "unit_result_llvm_type": "void",
+            "unit_argument_admitted": False,
+            "resource_or_nominal_abi_admitted": False,
+            "explicit_unrepresentable_exports": "reject",
+            "implicit_unrepresentable_entries": "omit",
+            "minimum_entrypoints": 1,
+            "maximum_entrypoints": 128,
+        },
+        "targets": [
+            {"target": target, "profiles": dict(profiles),
+             "publication_kinds": list(_NATIVE_PUBLICATION_KINDS[target]),
+             "compiler_flags": list(_TARGET_EXTRA_FLAGS[target]),
+             "shared_publication_host": TARGET if "shared" in _NATIVE_PUBLICATION_KINDS[target] else None,
+             "scalar_abi": [
+                 {"type": typ, "llvm_type": _llvm_type(typ),
+                  "argument_extension": _abi_attr(typ, target).strip() or "none",
+                  "result_extension": _abi_attr(typ, target).strip() or "none"}
+                 for typ in sorted(_PUBLIC_ARGUMENT_TYPES)
+             ]}
+            for target, profiles in _NATIVE_PROFILES.items()
+        ],
+        "native_build": {
+            "compiler": "Clang", "minimum_major_version": 20,
+            "host_targets": [TARGET, TARGET_AARCH64],
+            "host_requirements": "little-endian Linux LP64 with matching GNU/Linux Clang driver",
+        },
+        "native_compilation_evidence": False,
+        "target_execution_evidence": False,
+    }
 
 
 def _signed(typ):
@@ -771,9 +846,9 @@ class _Emitter:
         # signature.  Its tags/padding/protocol helpers cannot be constructed
         # by callers through the scalar C ABI.
         if (fn["name"] not in self.allowed_exports
-                or any(param["type"] not in set(_WIDTHS) | {"bool"} for param in fn["params"])
+                or any(param["type"] not in _PUBLIC_ARGUMENT_TYPES for param in fn["params"])
                 or len(fn["returns"]) > 1 or
-                any(typ not in set(_WIDTHS) | {"bool", "unit"} for typ in fn["returns"])):
+                any(typ not in _PUBLIC_RESULT_TYPES for typ in fn["returns"])):
             return ""
         name = fn["name"]
         if name in _RUNTIME_NAMES or name.startswith("__hia_"):
@@ -856,7 +931,7 @@ class _Emitter:
 
 def emit_program_llvm(program, *, target=TARGET, layout="canonical"):
     """Emit LLVM from an independently verified immutable standalone program."""
-    if target not in {TARGET, TARGET_AARCH64, TARGET_RISCV64}:
+    if target not in _NATIVE_PROFILES:
         _reject("unsupported 64-bit native target")
     from .hia_entry_layout import CANONICAL, LAYOUTS
     if type(layout) is not str or layout not in LAYOUTS:
@@ -865,36 +940,16 @@ def emit_program_llvm(program, *, target=TARGET, layout="canonical"):
         _reject("outlined entry layout currently requires x86_64 Linux", "E_HIA_PROGRAM_LAYOUT")
     before = _implementation_hash()
     verified = _verified(program)
-    from .hia_program import SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8
     document = verified.as_dict()
+    if document["schema"] not in _NATIVE_PROFILES[target]:
+        _reject("unsupported Core schema for native target")
     emitter = _Emitter(document, target, verified.scalar_entrypoints, layout=layout)
     text = emitter.render()
     if not text.isascii() or len(text.encode()) > MAX_LLVM_BYTES:
         _reject("generated LLVM exceeds the closed textual profile")
     if _implementation_hash() != before:
         _reject("verifier/emitter implementation changed during generation", "E_HIA_PROGRAM_STALE")
-    if target == TARGET_RISCV64:
-        # The verifier has already selected a known primitive schema; never infer
-        # a layout/ABI from an arbitrary version suffix before verification.
-        versions = {SCHEMA: 1, SCHEMA_V2: 2, SCHEMA_V3: 3, SCHEMA_V4: 4,
-                    SCHEMA_V5: 5, SCHEMA_V6: 6, SCHEMA_V7: 7, SCHEMA_V8: 8}
-        profile = _RISCV64_PROFILES[versions[document["schema"]]]
-    elif document["schema"] == SCHEMA_V8:
-        profile = PROFILE_V8 if target == TARGET else PROFILE_AARCH64_V8
-    elif document["schema"] == SCHEMA_V7:
-        profile = PROFILE_V7 if target == TARGET else PROFILE_AARCH64_V7
-    elif document["schema"] == SCHEMA_V6:
-        profile = PROFILE_V6 if target == TARGET else PROFILE_AARCH64_V6
-    elif document["schema"] == SCHEMA_V5:
-        profile = PROFILE_V5 if target == TARGET else PROFILE_AARCH64_V5
-    elif document["schema"] == SCHEMA_V4:
-        profile = PROFILE_V4 if target == TARGET else PROFILE_AARCH64_V4
-    elif document["schema"] == SCHEMA_V3:
-        profile = PROFILE_V3 if target == TARGET else PROFILE_AARCH64_V3
-    elif document["schema"] == SCHEMA_V2:
-        profile = PROFILE_V2 if target == TARGET else PROFILE_AARCH64_V2
-    else:
-        profile = PROFILE if target == TARGET else PROFILE_AARCH64
+    profile = _NATIVE_PROFILES[target][document["schema"]]
     return HIAProgramLLVM(text, sha256(text.encode()).hexdigest(), verified.sha256,
                           before, tuple(sorted(emitter.exports)), profile, target, verified.input_sha256, layout)
 
@@ -986,7 +1041,7 @@ def compile_program_llvm(ir, *, program, output, clang="clang", kind="shared", c
         _reject("LLVM differs from independently reverified standalone program", "E_HIA_PROGRAM_ORIGIN")
     if kind not in {"shared", "object"}:
         _reject("only shared libraries and relocatable objects are supported")
-    if ir.target in {TARGET_AARCH64, TARGET_RISCV64} and kind != "object":
+    if kind not in _NATIVE_PUBLICATION_KINDS[ir.target]:
         _reject("cross-target builds produce relocatable objects; execution requires a separate target runtime")
     host = native_host_profile()
     if kind == "shared" and host["target"] != TARGET:
@@ -1010,8 +1065,7 @@ def compile_program_llvm(ir, *, program, output, clang="clang", kind="shared", c
         artifact = Path(directory) / ("program.so" if kind == "shared" else "program.o")
         source.write_text(ir.text, encoding="ascii")
         flags = ["--target=" + ir.target, "-x", "ir", "-O3", "-fPIC", "-shared" if kind == "shared" else "-c"]
-        if ir.target == TARGET_RISCV64:
-            flags += ["-march=rv64gc", "-mabi=lp64d"]
+        flags += _TARGET_EXTRA_FLAGS[ir.target]
         command = [str(compiler), *flags, str(source), "-o", str(artifact)]
         compiled = _run_logged(command, command_log=command_log, timeout=60, stdout_limit=65536, stderr_limit=1048576)
         if compiled.returncode:

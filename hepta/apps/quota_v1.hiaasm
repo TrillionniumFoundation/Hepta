@@ -1,0 +1,67 @@
+hia-asm.v1 hepta.hia.program.v6 quota_v1
+exports(transition)
+fn transition(available:u32,held:u32,amount:u32,operation:u32) -> (u64) effects() entry(entry)
+block entry(available:u32,held:u32,amount:u32,operation:u32)
+  zero:u64 = const() {"value":0}
+  one:u64 = const() {"value":1}
+  two:u64 = const() {"value":2}
+  three:u64 = const() {"value":3}
+  limit:u64 = const() {"value":2147483647}
+  radix:u64 = const() {"value":2147483648}
+  status_radix:u64 = const() {"value":4611686018427387904}
+  credit_code:u32 = const() {"value":0}
+  reserve_code:u32 = const() {"value":1}
+  consume_code:u32 = const() {"value":2}
+  release_code:u32 = const() {"value":3}
+  debit_code:u32 = const() {"value":4}
+  last_code:u32 = const() {"value":3}
+  a:u64 = int.cast(available) {"mode":"wrap"}
+  h:u64 = int.cast(held) {"mode":"wrap"}
+  n:u64 = int.cast(amount) {"mode":"wrap"}
+  total:u64 = int.add.wrap(a,h)
+  state_valid:bool = compare.le(total,limit)
+  amount_valid:bool = compare.le(n,limit)
+  input_valid:bool = bool.and(state_valid,amount_valid)
+  known:bool = compare.le(operation,last_code)
+  credit:bool = compare.eq(operation,credit_code)
+  reserve:bool = compare.eq(operation,reserve_code)
+  consume:bool = compare.eq(operation,consume_code)
+  release:bool = compare.eq(operation,release_code)
+  debit:bool = compare.eq(operation,debit_code)
+  uses_available:bool = bool.or(reserve,debit)
+  uses_held:bool = bool.or(consume,release)
+  available_enough:bool = compare.ge(a,n)
+  held_enough:bool = compare.ge(h,n)
+  true_value:bool = const() {"value":true}
+  enough_available:bool = select(uses_available,available_enough,true_value)
+  enough_held:bool = select(uses_held,held_enough,true_value)
+  enough:bool = bool.and(enough_available,enough_held)
+  credited_total:u64 = int.add.wrap(total,n)
+  credit_fits:bool = compare.le(credited_total,limit)
+  capacity:bool = select(credit,credit_fits,true_value)
+  permitted:bool = bool.and(known,input_valid)
+  funded:bool = bool.and(enough,capacity)
+  accepted:bool = bool.and(permitted,funded)
+  funding_status:u64 = select(enough,three,one)
+  known_status:u64 = select(known,funding_status,two)
+  failure_status:u64 = select(input_valid,known_status,three)
+  status:u64 = select(accepted,zero,failure_status)
+  a_plus:u64 = int.add.wrap(a,n)
+  a_minus:u64 = int.sub.wrap(a,n)
+  h_plus:u64 = int.add.wrap(h,n)
+  h_minus:u64 = int.sub.wrap(h,n)
+  adds_available:bool = bool.or(credit,release)
+  available_candidate:u64 = select(adds_available,a_plus,a)
+  available_next:u64 = select(uses_available,a_minus,available_candidate)
+  held_candidate:u64 = select(reserve,h_plus,h)
+  held_next:u64 = select(uses_held,h_minus,held_candidate)
+  available_result:u64 = select(accepted,available_next,a)
+  held_result:u64 = select(accepted,held_next,h)
+  valid_available:u64 = select(state_valid,available_result,zero)
+  valid_held:u64 = select(state_valid,held_result,zero)
+  held_bits:u64 = int.mul.wrap(valid_held,radix)
+  state_bits:u64 = bit.or(valid_available,held_bits)
+  status_bits:u64 = int.mul.wrap(status,status_radix)
+  result:u64 = bit.or(state_bits,status_bits)
+  ret(result)
+end

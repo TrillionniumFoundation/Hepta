@@ -16,5 +16,8 @@ optimization = ["z3-solver==4.15.4.0"]
 [project.scripts]
 hepta = "hepta.cli:main"
 
-[tool.setuptools]
-packages = ["hepta"]
+[tool.setuptools.packages.find]
+include = ["hepta", "hepta.*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.hia", "*.hiaasm", "*.json"]

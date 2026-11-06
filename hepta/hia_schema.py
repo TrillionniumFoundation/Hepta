@@ -121,3 +121,60 @@ def schema_registry() -> dict:
                            "explicit_adapter": "import_legacy_composite_v2"},
         "schemas_are_not_safety_receipts": True,
     }
+
+
+def compatibility_registry() -> dict:
+    """Describe current grammar, target and scalar ABI admission from authority.
+
+    Catalog hashes bind the complete instruction/signature/effect descriptions,
+    not just opcode names. This is compatibility metadata and cannot substitute
+    for verification, native compilation, or execution qualification receipts.
+    """
+    from hashlib import sha256
+    import json
+
+    from .hia_opcodes import opcode_catalog
+    from .hia_program_llvm import native_compatibility
+
+    native = native_compatibility()
+    primitive = []
+    for schema, profile in PRIMITIVE_PROFILES.items():
+        catalog = opcode_catalog(schema)
+        primitive.append({
+            "schema": schema, "profile": profile,
+            "features": sorted(PRIMITIVE_FEATURES[schema]),
+            "types": list(catalog["types"]),
+            "instructions": [row["name"] for row in catalog["instructions"]],
+            "terminators": [row["name"] for row in catalog["terminators"]],
+            "function_contract": dict(catalog["function_contract"]),
+            "opcode_catalog_sha256": catalog["catalog_sha256"],
+            "llvm_targets": [row["target"] for row in native["targets"]
+                             if schema in row["profiles"]],
+        })
+    targets_by_schema = {row["schema"]: row["llvm_targets"] for row in primitive}
+    result = {
+        "schema": "hepta.hia.compatibility.v1",
+        "canonical_core_schema": CANONICAL_CORE_SCHEMA,
+        "latest_core_schema": LATEST_CORE_SCHEMA,
+        "primitive": primitive,
+        "composite": [
+            {"schema": schema, "profile": profile,
+             "normalizes_to": composite_core_schema(schema),
+             "nominal_operations": sorted(COMPOSITE_OPERATIONS_BY_SCHEMA[schema]),
+             "llvm_targets": list(targets_by_schema[composite_core_schema(schema)])}
+            for schema, profile in COMPOSITE_PROFILES.items()
+        ],
+        "legacy_nominal": {
+            "schema": LEGACY_COMPOSITE_SCHEMA,
+            "implicit_dispatch": False,
+            "explicit_adapter": "import_legacy_composite_v2",
+            "normalizes_to": CANONICAL_CORE_SCHEMA,
+        },
+        "native": native,
+        "is_verification_receipt": False,
+        "is_native_qualification_receipt": False,
+    }
+    result["compatibility_sha256"] = sha256(json.dumps(
+        result, sort_keys=True, separators=(",", ":"), ensure_ascii=True,
+    ).encode("ascii")).hexdigest()
+    return result

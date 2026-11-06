@@ -1,0 +1,455 @@
+{
+  "arms": {
+    "hia_full": {
+      "cells": 4,
+      "conservative_budget_charge": 105224,
+      "correct_cells": 3,
+      "hidden_evaluated_cells": 3,
+      "reported_input_plus_output": 104846,
+      "reported_request_wall_ns": 96536585646,
+      "reported_usage": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 77184,
+        "input_tokens": 99782,
+        "output_tokens": 5064,
+        "reasoning_output_tokens": 378
+      },
+      "request_attempts": 6,
+      "unknown_usage_requests": 0
+    },
+    "hia_node": {
+      "cells": 4,
+      "conservative_budget_charge": 107430,
+      "correct_cells": 3,
+      "hidden_evaluated_cells": 3,
+      "reported_input_plus_output": 106472,
+      "reported_request_wall_ns": 113266068601,
+      "reported_usage": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 74496,
+        "input_tokens": 104070,
+        "output_tokens": 2402,
+        "reasoning_output_tokens": 958
+      },
+      "request_attempts": 6,
+      "unknown_usage_requests": 0
+    },
+    "rust_full": {
+      "cells": 4,
+      "conservative_budget_charge": 62586,
+      "correct_cells": 4,
+      "hidden_evaluated_cells": 4,
+      "reported_input_plus_output": 62524,
+      "reported_request_wall_ns": 33807767570,
+      "reported_usage": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 25728,
+        "input_tokens": 62008,
+        "output_tokens": 516,
+        "reasoning_output_tokens": 62
+      },
+      "request_attempts": 4,
+      "unknown_usage_requests": 0
+    },
+    "rust_node": {
+      "cells": 4,
+      "conservative_budget_charge": 67774,
+      "correct_cells": 4,
+      "hidden_evaluated_cells": 4,
+      "reported_input_plus_output": 67750,
+      "reported_request_wall_ns": 26596148691,
+      "reported_usage": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 23296,
+        "input_tokens": 67466,
+        "output_tokens": 284,
+        "reasoning_output_tokens": 24
+      },
+      "request_attempts": 4,
+      "unknown_usage_requests": 0
+    }
+  },
+  "bootstrap": {
+    "actual_requests": 2,
+    "complete_usage_requests": 1,
+    "known_json_input_plus_output": 14588,
+    "record": {
+      "bytes": 1939,
+      "path": "/workspace/scratch/8245a7ab856a/agent-frontier-study/bootstrap/BOOTSTRAP.json",
+      "sha256": "ecec326013c444400b8b6cb5d24ed9ef2e4d7c39c6111a6cf3a04274f2d90ba8"
+    },
+    "unknown_usage_requests": 1,
+    "whole_service_lifecycle_usage_complete": false
+  },
+  "cells": [
+    {
+      "arm": "rust_node",
+      "attempts": 1,
+      "conservative_budget_charge": 16228,
+      "correct": true,
+      "hidden_evaluated": true,
+      "public_rejection_messages": [],
+      "stage": "calibration",
+      "status": "correct",
+      "task": "json_scalar_reasoning"
+    },
+    {
+      "arm": "rust_node",
+      "attempts": 1,
+      "conservative_budget_charge": 16516,
+      "correct": true,
+      "hidden_evaluated": true,
+      "public_rejection_messages": [],
+      "stage": "calibration",
+      "status": "correct",
+      "task": "two_file_signature_repair"
+    },
+    {
+      "arm": "rust_node",
+      "attempts": 1,
+      "conservative_budget_charge": 19573,
+      "correct": true,
+      "hidden_evaluated": true,
+      "public_rejection_messages": [],
+      "stage": "calibration",
+      "status": "correct",
+      "task": "owner_flow_repair"
+    },
+    {
+      "arm": "hia_full",
+      "attempts": 3,
+      "conservative_budget_charge": 52894,
+      "correct": false,
+      "hidden_evaluated": false,
+      "public_rejection_messages": [
+        "E_HIA_OPCODE: unsupported opcode int.gt",
+        "E_HIA_OPCODE: unsupported opcode int.lt",
+        "E_HIA_OPCODE: unsupported opcode int.cmp.lt"
+      ],
+      "stage": "main",
+      "status": "public_repairs_exhausted",
+      "task": "saturating_score"
+    },
+    {
+      "arm": "hia_node",
+      "attempts": 3,
+      "conservative_budget_charge": 55091,
+      "correct": false,
+      "hidden_evaluated": false,
+      "public_rejection_messages": [
+        "E_HIA_OPCODE: unsupported opcode int.gt",
+        "E_HIA_OPCODE: unsupported opcode int.lt",
+        "E_HIA_OPCODE: unsupported opcode cmp.lt"
+      ],
+      "stage": "main",
+      "status": "public_repairs_exhausted",
+      "task": "saturating_score"
+    },
+    {
+      "arm": "rust_full",
+      "attempts": 1,
+      "conservative_budget_charge": 15562,
+      "correct": true,
+      "hidden_evaluated": true,
+      "public_rejection_messages": [],
+      "stage": "main",
+      "status": "correct",
+      "task": "saturating_score"
+    },
+    {
+      "arm": "rust_node",
+      "attempts": 1,
+      "conservative_budget_charge": 16395,
+      "correct": true,
+      "hidden_evaluated": true,
+      "public_rejection_messages": [],
+      "stage": "main",
+      "status": "correct",
+      "task": "saturating_score"
+    },
+    {
+      "arm": "hia_node",
+      "attempts": 1,
+      "conservative_budget_charge": 17172,
+      "correct": true,
+      "hidden_evaluated": true,
+      "public_rejection_messages": [],
+      "stage": "main",
+      "status": "correct",
+      "task": "wide_span_upgrade"
+    },
+    {
+      "arm": "rust_full",
+      "attempts": 1,
+      "conservative_budget_charge": 15556,
+      "correct": true,
+      "hidden_evaluated": true,
+      "public_rejection_messages": [],
+      "stage": "main",
+      "status": "correct",
+      "task": "wide_span_upgrade"
+    },
+    {
+      "arm": "rust_node",
+      "attempts": 1,
+      "conservative_budget_charge": 16784,
+      "correct": true,
+      "hidden_evaluated": true,
+      "public_rejection_messages": [],
+      "stage": "main",
+      "status": "correct",
+      "task": "wide_span_upgrade"
+    },
+    {
+      "arm": "hia_full",
+      "attempts": 1,
+      "conservative_budget_charge": 16842,
+      "correct": true,
+      "hidden_evaluated": true,
+      "public_rejection_messages": [],
+      "stage": "main",
+      "status": "correct",
+      "task": "wide_span_upgrade"
+    },
+    {
+      "arm": "rust_full",
+      "attempts": 1,
+      "conservative_budget_charge": 15762,
+      "correct": true,
+      "hidden_evaluated": true,
+      "public_rejection_messages": [],
+      "stage": "main",
+      "status": "correct",
+      "task": "owned_byte_return"
+    },
+    {
+      "arm": "rust_node",
+      "attempts": 1,
+      "conservative_budget_charge": 17217,
+      "correct": true,
+      "hidden_evaluated": true,
+      "public_rejection_messages": [],
+      "stage": "main",
+      "status": "correct",
+      "task": "owned_byte_return"
+    },
+    {
+      "arm": "hia_full",
+      "attempts": 1,
+      "conservative_budget_charge": 17827,
+      "correct": true,
+      "hidden_evaluated": true,
+      "public_rejection_messages": [],
+      "stage": "main",
+      "status": "correct",
+      "task": "owned_byte_return"
+    },
+    {
+      "arm": "hia_node",
+      "attempts": 1,
+      "conservative_budget_charge": 17681,
+      "correct": true,
+      "hidden_evaluated": true,
+      "public_rejection_messages": [],
+      "stage": "main",
+      "status": "correct",
+      "task": "owned_byte_return"
+    },
+    {
+      "arm": "rust_node",
+      "attempts": 1,
+      "conservative_budget_charge": 17378,
+      "correct": true,
+      "hidden_evaluated": true,
+      "public_rejection_messages": [],
+      "stage": "main",
+      "status": "correct",
+      "task": "owner_pair_replace"
+    },
+    {
+      "arm": "hia_full",
+      "attempts": 1,
+      "conservative_budget_charge": 17661,
+      "correct": true,
+      "hidden_evaluated": true,
+      "public_rejection_messages": [],
+      "stage": "main",
+      "status": "correct",
+      "task": "owner_pair_replace"
+    },
+    {
+      "arm": "hia_node",
+      "attempts": 1,
+      "conservative_budget_charge": 17486,
+      "correct": true,
+      "hidden_evaluated": true,
+      "public_rejection_messages": [],
+      "stage": "main",
+      "status": "correct",
+      "task": "owner_pair_replace"
+    },
+    {
+      "arm": "rust_full",
+      "attempts": 1,
+      "conservative_budget_charge": 15706,
+      "correct": true,
+      "hidden_evaluated": true,
+      "public_rejection_messages": [],
+      "stage": "main",
+      "status": "correct",
+      "task": "owner_pair_replace"
+    }
+  ],
+  "controls": {
+    "bytes": 8751,
+    "path": "/workspace/scratch/8245a7ab856a/agent-frontier-study/controls-02/RESULT.json",
+    "sha256": "a56a8247022e13238ff0a04d8436a9ab0d4a06972da8130175b7c1c1f501a8a8"
+  },
+  "created_at_utc": "2026-10-30T06:48:27.614387+00:00",
+  "experiment_wall_ns": 327131960289,
+  "freeze": {
+    "bytes": 24735,
+    "path": "/workspace/scratch/8245a7ab856a/agent-frontier-study/FREEZE.json",
+    "sha256": "bd93c93e120b642a428888fd719a6ee6aa7effe2c8b000982b33463270604b35"
+  },
+  "identity_checks": {
+    "all_rehashed_equal": true,
+    "git_head_equal": true,
+    "git_worktree_clean": true,
+    "pilot_files": 3,
+    "source_files": 181,
+    "tool_files": 4
+  },
+  "lifecycle_receipts": {
+    "all_cleanup_confirmed": true,
+    "all_returncodes_zero": true,
+    "all_streams_complete": true,
+    "evaluation_workers": 23,
+    "model_requests": 23,
+    "process_receipts": 46
+  },
+  "limits": [
+    "One preregistered runtime/model-alias candidate and four fixed main tasks; no statistical or general Agent productivity advantage is established.",
+    "All 16 main cells were attempted. The two public failures remain in the denominator. No prompt/model tuning or rerun occurred.",
+    "Qualification receipt is a live pre-main state snapshot: its top-level requests=0 had not yet been aggregated; its three actual request rows and final RESULT/raw events supply the actual costs.",
+    "Provider-reported input/output/reasoning/cache fields are retained separately. Conservative charge sums output plus reasoning and is not an independently verified exact token total.",
+    "Prior header observed reasoning effort none, but actual task requests include nonzero reported reasoning tokens. No settings override or per-request backend/weight attestation is claimed.",
+    "Token limits were checked after requests; wall/output byte limits were enforced by the local runner. This is not V9 tokenizer capacity proof.",
+    "No visible forbidden tool event was admitted. Preserved user rules/config/hooks and empty cwd do not establish physical inability to access reference files.",
+    "Finite public/native/resource/hidden checks do not constitute a whole-language soundness proof, full source-to-machine refinement proof, or universal memory/resource safety.",
+    "Task generation costs are complete as CLI-reported fields; the second preparatory READY request lacks exact usage, so whole service lifecycle cost remains incomplete. Human engineering time and monetary cost were not measured.",
+    "Request wall time is operational evidence, not a controlled compiler/code-performance comparison."
+  ],
+  "main": {
+    "cells": 16,
+    "conservative_budget_charge": 343014,
+    "correct_cells": 14,
+    "hidden_evaluated_cells": 14,
+    "reported_input_plus_output": 341592,
+    "reported_request_wall_ns": 270206570508,
+    "reported_usage": {
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 200704,
+      "input_tokens": 333326,
+      "output_tokens": 8266,
+      "reasoning_output_tokens": 1422
+    },
+    "request_attempts": 20,
+    "unknown_usage_requests": 0
+  },
+  "maximum_conservative_cell_charge": 55091,
+  "maximum_conservative_output_charge": 1094,
+  "maximum_reported_input_tokens": 19507,
+  "model": {
+    "backend_route_version": "unknown",
+    "cli_version_observed": "0.166.0-alpha.1",
+    "exact_alias_is_not_weight_hash": true,
+    "observed_prior_header_alias": "gpt-6.1-sol",
+    "observed_prior_header_provider": "openai",
+    "observed_prior_header_reasoning_effort": "none",
+    "per_request_model_attestation": false,
+    "provider_caching": "uncontrolled; raw cached/cache-write fields retained",
+    "requested_alias": "gpt-6.1-sol",
+    "sampling_settings": "unknown; inherited user/provider configuration, not overridden",
+    "underlying_weights_version": "unknown"
+  },
+  "observed_nonzero_reasoning_requests": 14,
+  "overall": {
+    "cells": 19,
+    "conservative_budget_charge": 395331,
+    "correct_cells": 17,
+    "hidden_evaluated_cells": 17,
+    "reported_input_plus_output": 393875,
+    "reported_request_wall_ns": 287123619240,
+    "reported_usage": {
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 224000,
+      "input_tokens": 385335,
+      "output_tokens": 8540,
+      "reasoning_output_tokens": 1456
+    },
+    "request_attempts": 23,
+    "unknown_usage_requests": 0
+  },
+  "plan": {
+    "bytes": 33314,
+    "path": "/workspace/scratch/8245a7ab856a/agent-frontier-study/run-01/PLAN.json",
+    "sha256": "ea7b299a9b5499def00a926eb51b48cbeebb55658d445b14047c228835b8f4e0"
+  },
+  "preregistered_review": {
+    "bytes": 11290,
+    "path": "/workspace/scratch/8245a7ab856a/run-evidence/agent-frontier-independent-review-final.json",
+    "sha256": "3336a9524a9211eb43fe96e830a21174573cbca32b9ef9a1c54abbe4dd3a135b"
+  },
+  "qualification": {
+    "cells": 3,
+    "conservative_budget_charge": 52317,
+    "correct_cells": 3,
+    "hidden_evaluated_cells": 3,
+    "reported_input_plus_output": 52283,
+    "reported_request_wall_ns": 16917048732,
+    "reported_usage": {
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 23296,
+      "input_tokens": 52009,
+      "output_tokens": 274,
+      "reasoning_output_tokens": 34
+    },
+    "request_attempts": 3,
+    "unknown_usage_requests": 0
+  },
+  "qualification_eligible": true,
+  "qualification_receipt": {
+    "bytes": 32011,
+    "path": "/workspace/scratch/8245a7ab856a/agent-frontier-study/run-01/QUALIFICATION.json",
+    "sha256": "1e3a3be8db8340203be30783370c72d508e38aec440a147bdea03894a23937e4"
+  },
+  "registration": {
+    "bytes": 1537,
+    "path": "/workspace/scratch/8245a7ab856a/agent-frontier-study/REGISTRATION.json",
+    "sha256": "95c23d65bf94172ddb6072ca1aaddc16bf3b45a3eead3c2b2d170eb3ed804e86"
+  },
+  "remote_preregistration_commit": "5e4ad121e5721e6d82fe071b6a1e3f805cbe2674",
+  "remote_preregistration_tree": "40a4e3c5c881dbd32c05c083478f15f09ef3aa10",
+  "report_role": "Post-run descriptive aggregation and retained-file/source identity check; independent final review is a separate artifact. No model or native task rerun performed.",
+  "result": {
+    "bytes": 424982,
+    "path": "/workspace/scratch/8245a7ab856a/agent-frontier-study/run-01/RESULT.json",
+    "sha256": "34e24898a7317372e5eddd9ac81fbbe6f024b4d9836a23efd12313de32c904f3"
+  },
+  "retained_file_bytes": 46179320,
+  "retained_file_count": 607,
+  "retained_file_manifest": {
+    "bytes": 129080,
+    "path": "/workspace/scratch/8245a7ab856a/run-evidence/agent-frontier-run-01-file-manifest.json",
+    "sha256": "bff3661a7a221a677b88428d2d4d87e5b92b789991a25e09084ab6307900f1e9"
+  },
+  "schema": "hepta.agent-frontier-run-summary.v1",
+  "source_commit": "60dfedc626b7ce3feaaa87ac16d711fe0cc8e9d3",
+  "status": "main_all_16_cells_attempted",
+  "stdout": {
+    "bytes": 145,
+    "path": "/workspace/scratch/8245a7ab856a/agent-frontier-study/run-01.stdout.log",
+    "sha256": "41aab9d27eb2f46b3d7c45303bb9924eebab6cabe06a31ceee2a2509a5c122ea"
+  }
+}

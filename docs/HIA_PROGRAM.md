@@ -3,15 +3,17 @@
 This document defines the independently checked primitive
 `hepta.hia.program.v1` through `hepta.hia.program.v8` profiles and the distinct
 structural nominal input namespaces `hepta.hia.composite.v1`,
-`hepta.hia.composite.v2` and `hepta.hia.composite.v3`. Their
+`hepta.hia.composite.v2`, `hepta.hia.composite.v3` and
+`hepta.hia.composite.v4`. Their
 executable admission authority is `hepta.hia_program.verify_core` (also exposed
 as `hepta.core.verify_core` and `verify_program`). The direct interpreter and
 LLVM backend consume the same immutable, reverified program bytes. No original
 Hepta, C, C++, Rust or assembly source is required to admit or execute this
 program. A caller-provided hash, proof claim or producer receipt grants no
 additional permission. Composite v1 input is structurally elaborated into
-primitive v6; composite v2/v3 inputs are elaborated into primitive v7. In all cases
-the complete resulting core is independently rechecked. Admission does not
+primitive v6; composite v2/v3 inputs are elaborated into primitive v7; composite
+v4 inputs are elaborated into primitive v8. In all cases the complete resulting
+core is independently rechecked. Admission does not
 depend on a source-language checker or a producer's assertion.
 
 This is a typed, resource-aware assembly/IR for agent editing. It deliberately
@@ -87,26 +89,34 @@ executable authority.
 instruction grammar; it is never a safety receipt or permission to skip
 verification. Primitive schemas remain exact, cumulative capabilities:
 
-| Input schema | Additional capability | Executable identity |
+<!-- BEGIN GENERATED HIA COMPATIBILITY -->
+| Input schema | Verified executable schema | LLVM targets |
 | --- | --- | --- |
-| `hepta.hia.program.v1` | Typed scalar SSA, owners, loans and byte access | Original v1 bytes |
-| `hepta.hia.program.v2` | Bulk byte copy and fill | Original v2 bytes |
-| `hepta.hia.program.v3` | Overlapping in-place byte movement | Original v3 bytes |
-| `hepta.hia.program.v4` | Byte swap | Original v4 bytes |
-| `hepta.hia.program.v5` | Copy with source and destination offsets | Original v5 bytes |
-| `hepta.hia.program.v6` | Fill a checked subrange | Original v6 bytes |
-| `hepta.hia.program.v7` | Runtime-sized linear chains of owned byte buffers | Original v7 bytes |
-| `hepta.hia.program.v8` | Parameter-bound internal returned loans | Original v8 bytes |
-| `hepta.hia.composite.v1` | Generic nominal products, enums, stored local loans and cooperative tasks over all v6 operations | Independently checked primitive v6 normalization |
-| `hepta.hia.composite.v2` | The same nominal operations over v7, including primitive chain fields and task state | Independently checked primitive v7 normalization |
-| `hepta.hia.composite.v3` | Explicit linear partial-record initialized-field states over the v2 capabilities | Independently checked primitive v7 normalization |
+| `hepta.hia.program.v1` | `hepta.hia.program.v1` (preserved) | `x86_64`, `aarch64`, `riscv64` |
+| `hepta.hia.program.v2` | `hepta.hia.program.v2` (preserved) | `x86_64`, `aarch64`, `riscv64` |
+| `hepta.hia.program.v3` | `hepta.hia.program.v3` (preserved) | `x86_64`, `aarch64`, `riscv64` |
+| `hepta.hia.program.v4` | `hepta.hia.program.v4` (preserved) | `x86_64`, `aarch64`, `riscv64` |
+| `hepta.hia.program.v5` | `hepta.hia.program.v5` (preserved) | `x86_64`, `aarch64`, `riscv64` |
+| `hepta.hia.program.v6` | `hepta.hia.program.v6` (preserved) | `x86_64`, `aarch64`, `riscv64` |
+| `hepta.hia.program.v7` | `hepta.hia.program.v7` (preserved) | `x86_64`, `aarch64`, `riscv64` |
+| `hepta.hia.program.v8` | `hepta.hia.program.v8` (preserved) | `x86_64`, `aarch64`, `riscv64` |
+| `hepta.hia.composite.v1` | `hepta.hia.program.v6` (checked normalization) | `x86_64`, `aarch64`, `riscv64` |
+| `hepta.hia.composite.v2` | `hepta.hia.program.v7` (checked normalization) | `x86_64`, `aarch64`, `riscv64` |
+| `hepta.hia.composite.v3` | `hepta.hia.program.v7` (checked normalization) | `x86_64`, `aarch64`, `riscv64` |
+| `hepta.hia.composite.v4` | `hepta.hia.program.v8` (checked normalization) | `x86_64`, `aarch64`, `riscv64` |
+<!-- END GENERATED HIA COMPATIBILITY -->
+
+The full [compatibility contract](HIA_COMPATIBILITY.md) records per-version
+features, opcodes, target publication kinds and exact scalar input/output ABI.
+`python tools/check_hia_compatibility.py --check` checks both generated tables
+and the version summary above against the implementation registries.
 
 The registry deliberately distinguishes `CANONICAL_CORE_SCHEMA` (v6, the
 existing composite-v1 normalization target) from `LATEST_CORE_SCHEMA` (v8).
 `composite_core_schema(input_schema)` selects the exact target; no consumer
 may replace that selection with an unconditional latest-version upgrade.
 The registry's legacy singular `composite` entry describes v1; the full
-`composite_versions` list describes all three versions. Primitive input retains
+`composite_versions` list describes all four versions. Primitive input retains
 its declared version and canonical identity during ordinary verification.
 Explicit `hia upgrade-v7` changes the schema only after checking the old and
 new programs; it does not add operations or prove source/native equivalence.
@@ -341,7 +351,7 @@ standalone ISA:
 | `hia_program_source.lower_c_multi_owner` and the source migrations passed through `lower_program` | Primitive v1 | Their actual generated Hepta must fit the same source frontend; successful legacy C/C++ migration alone does not establish this |
 | `cpp_project_migrate` / `hia import-cpp-project` | Primitive v1 | Captured, actually instantiated scalar C++ template bodies and supported declarations, via the same checked source frontend |
 | Direct primitive JSON | The declared v1–v8 | Every operation, edge and resource obligation is independently checked |
-| Direct composite JSON | v1 → primitive v6; v2/v3 → primitive v7 | Structural elaboration of the respective nominal grammar, including v3 initialized-field states, followed by full primitive checking; no implicit v8 upgrade |
+| Direct composite JSON | v1 → primitive v6; v2/v3 → primitive v7; v4 → primitive v8 | Structural elaboration of the respective nominal grammar, including v3 initialized-field states and v4 parameter/field-bound returned loans, followed by full primitive checking; no implicit version upgrade |
 
 Version support by the verifier does not silently increase a producer's source
 language coverage. An explicit upgrade can change an existing primitive
@@ -439,14 +449,16 @@ Its library compatibility results are not implementation-migration results.
 
 ## Nominal products, enums and cooperative tasks
 
-Standalone `hepta.hia.composite.v1`, `hepta.hia.composite.v2` and
-`hepta.hia.composite.v3` inputs have
+Standalone `hepta.hia.composite.v1`, `hepta.hia.composite.v2`,
+`hepta.hia.composite.v3` and `hepta.hia.composite.v4` inputs have
 exactly `schema`, `module`, `types`, and `functions`. Each automatically exports
 original scalar-signature functions. An explicit narrower export list can be expressed in its normalized
 primitive Core; the nominal input itself does not accept `exports`.
 Function/block/instruction
 structure follows the primitive grammar. Composite v1 admits primitive v1
-through v6 instructions; composite v2/v3 admit v1 through v7. Their checked
+through v6 instructions; composite v2/v3 admit v1 through v7; composite v4
+admits v1 through v8 with explicit parameter/field-bound `return_loans`
+contracts ([details](HIA_COMPOSITE_RETURNED_LOANS_V4.md)). Their checked
 resource rules still apply. Parameter,
 result and instruction-output types may additionally name declared nominal
 types. A generic application is `{"name":"Pair","args":["buffer","usize"]}`.
@@ -489,7 +501,7 @@ recursively or treating a `chain` field as a byte view is outside this
 operation's finite profile. Chain head access uses the explicit v7 operations.
 
 `enum.make` selects a declared variant. Inactive owner slots contain real
-empty buffers or, in composite v2, Nil chains, with no allocator call, so
+empty buffers or, in composite v2/v3/v4, Nil chains, with no allocator call, so
 every control-flow edge can account for them. `enum.tag` observes the tag
 without consuming the enum.
 The `match` terminator must list every variant exactly once; each case has
@@ -523,8 +535,8 @@ guarantees after abort/budget exhaustion. The allocator, ABI and compiler
 assumptions remain the same as the primitive core.
 
 `verify_core` elaborates composite input, verifies every primitive operation
-and edge, and stores the canonical primitive v6 core for composite v1 or v7
-core for composite v2/v3, as selected by the registry. A `VerifiedProgram` may
+and edge, and stores the canonical primitive v6 core for composite v1, v7
+core for composite v2/v3, or v8 core for composite v4, as selected by the registry. A `VerifiedProgram` may
 additionally retain canonical composite bytes for audit identity. Public
 consumers re-elaborate such retained bytes
 and require exact core equality; a forged origin/core pair rejects even if a
@@ -574,7 +586,7 @@ does not automatically qualify every analyzer or shadow implementation:
 
 | Consumer | Accepted scope | Meaning of acceptance |
 | --- | --- | --- |
-| Python `verify_core`, direct interpreter and direct LLVM | Primitive v1–v8; composite v1/v2/v3 via their exact normalization | Static executable admission; interpreter/native operations still obey dynamic checks and their separate runtime/target limits |
+| Python `verify_core`, direct interpreter and direct LLVM | Primitive v1–v8; composite v1/v2/v3/v4 via their exact normalization | Static executable admission; interpreter/native operations still obey dynamic checks and their separate runtime/target limits |
 | `hia_incremental.IncrementalVerifier` | Session-local primitive v1–v8 checking under the v2 closed-body/callee-interface contract; nominal inputs receive a full check | Complete global shape validation on every candidate; body reuse requires unchanged body bytes, callee parameter identities/types, return types/origins, effects and checker policy. Execution and native consumers still fully reverify. No behavioral-equivalence or model-efficiency claim. |
 | `hia_static_budget.analyze_static_budget` | Original finite acyclic primitive v1–v6 profile; separate byte-owner v8 profile | Structural VM-tick, allocator-interaction and call-depth bounds. v8 uses receipt v2, excludes chains, and does not silently inherit the old optional heap/native meaning; v7 remains unsupported |
 | Legacy `hia_heap_bound.analyze_constant_live_heap` / `qualify_live_heap_budget` | Audited primitive v1–v6 live-heap profiles, including bounded same-block owner lifetimes in admitted CFG cycles | Requested live payload bytes; rejects v7/v8 and unsupported allocator cycles/ownership flows |
@@ -619,9 +631,10 @@ RISC-V ABI and does not introduce floating-point HIA operations. The checked
 source bridge in `hia_source_bridge.py` still admits only its x86-64/AArch64
 profiles; direct standalone RV64 support does not widen that bridge.
 
-Primitive v8 additionally emits on Linux x86-64. AArch64 and RV64 v8 emission
-explicitly rejects; the older target receipts do not establish returned-loan
-native behavior there. V8 borrowed returns remain private internal calls and
+Primitive v8 emits for all three targets above; AArch64 and RV64 retain their
+object-only publication boundary. Emission support does not establish native
+execution: returned-loan behavior requires the corresponding target qualification
+receipt. V8 borrowed returns remain private internal calls and
 do not create external C/C++ borrowed-result ABI contracts.
 
 The original finite AArch64 execution gate links the independently emitted
