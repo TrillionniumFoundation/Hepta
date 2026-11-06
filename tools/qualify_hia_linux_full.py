@@ -39,6 +39,8 @@ SOURCE_FILES = (
     "tools/hia_system/system_module.cpp",
     "tools/hia_system/system_instructions.cpp",
     "tools/hia_system/system_wire.h",
+    "tools/hia_system/system_debug.cpp",
+    "tools/hia_system/system_debug_metadata.cpp",
     "tools/hia_system/CMakeLists.txt",
     "schemas/hia_system.v1.schema.json",
     "experiments/hia_linux_kernel_20261106/guest_init.c",
@@ -81,9 +83,10 @@ def validate_stock(path, llvm, source):
     require(values.get("CONFIG_CC_IS_CLANG") == "y" and values.get("CONFIG_LD_IS_LLD") == "y",
             "frozen config does not use the required LLVM toolchain")
     require(values.get("CONFIG_RUST") != "y", "Rust target units require a separately registered frontend")
-    # Debug metadata is not discarded to force a pass. The current codec
-    # explicitly rejects unsupported specialized debug metadata.
-    require(values.get("CONFIG_DEBUG_INFO") != "y", "this registered full profile has no debug-info lowering")
+    # This profile retains DEBUG_INFO_NONE from the stock configuration.
+    # Some realmode Kbuild rules still require -g. Their typed DI metadata and
+    # debug records are retained and separately qualified without stripping.
+    require(values.get("CONFIG_DEBUG_INFO_NONE") == "y", "registered stock debug configuration changed")
     return value
 
 
@@ -105,10 +108,27 @@ def verify_codec_receipt(path, codec):
             "codec build receipt does not bind the executing binary")
     source_map = receipt.get("sources")
     require(isinstance(source_map, dict), "native codec sources missing from build receipt")
-    for name in ("system_module.cpp", "system_instructions.cpp", "system_wire.h"):
+    for name in ("system_module.cpp", "system_instructions.cpp", "system_wire.h",
+                 "system_debug.cpp", "system_debug_metadata.cpp"):
         row = source_map.get(name) or source_map.get("tools/hia_system/" + name)
         require(isinstance(row, dict) and row.get("sha256") == baseline.sha(ROOT / "tools/hia_system" / name),
                 "native codec source differs from clean Git checkout: " + name)
+    debug = receipt.get("debug_qualification", {})
+    require(debug.get("status") == "PASS" and debug.get("real_kernel_units", 0) >= 26 and
+            debug.get("fixture_count", 0) >= 1,
+            "typed debug qualification on every real -g target C unit required")
+    debug_binding = debug.get("report")
+    require(isinstance(debug_binding, dict) and file_matches(debug_binding),
+            "typed debug qualification report changed")
+    debug_report = json.loads(Path(debug_binding["path"]).read_bytes())
+    require(debug_report.get("schema") == "hepta.hia.native-codec-debug-qualification.v1" and
+            debug_report.get("status") == "PASS" and
+            debug_report.get("original_debug_flags_preserved") is True and
+            debug_report.get("metadata_or_records_stripped") is False and
+            debug_report.get("ignored_canonical_lines") == "first ModuleID only",
+            "typed debug qualification cannot strip flags, metadata, records or canonical IR")
+    require(debug_report.get("binary", {}).get("sha256") == baseline.sha(codec),
+            "typed debug qualification used another codec")
     return receipt
 
 

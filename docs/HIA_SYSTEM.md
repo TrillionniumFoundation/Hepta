@@ -105,12 +105,23 @@ it can affect canonical printing. Module flags, source-location arrays,
 alias scopes and ordinary annotations are therefore data, not discarded
 comments.
 
-Specialized debug metadata and LLVM debug records are currently explicit
-unsupported features. The encoder rejects them; it does not strip debug
-information or silently switch the kernel configuration. A build can only use
-this implementation as written if its real configuration produces no such
-records. Supporting a debug configuration requires implementing those typed
-records and adding roundtrip tests.
+Specialized debug metadata is represented by explicit node classes, scalar
+fields and metadata references. The current LLVM 20.1.8 profile supports
+DIFile, DICompileUnit, DIBasicType, DIDerivedType, DICompositeType,
+DISubroutineType, DISubprogram, DILocation, DILocalVariable, DILexicalBlock,
+DILexicalBlockFile, DIGlobalVariable, DIGlobalVariableExpression, DISubrange,
+DIExpression, DIEnumerator, DILabel, DIAssignID and DIArgList. Recursive types
+and scopes use tracked temporary forward references followed by replacement
+with freshly constructed specialized nodes. Unlisted classes reject.
+
+Ordered dbg_declare, dbg_value, dbg_assign and dbg_label records are stored
+at their exact instruction or trailing-block positions, with typed location,
+variable, expression, label and assignment references. No debug text is
+embedded and no record is converted into an opaque instruction. Original
+per-unit debug flags remain unchanged, including the unconditional -g used by
+Linux real-mode boot C even with CONFIG_DEBUG_INFO_NONE=y. These paths require
+their own real boot-unit roundtrip qualification in addition to the 53 core
+opcode/structure checks.
 
 ## Required whole-build gates
 
@@ -148,3 +159,13 @@ HIA-with-NDU runs, including compilation costs, image size, boot, workload
 throughput/latency, memory usage and failure rates. Results must state the
 measured configuration and workloads rather than generalizing to every
 Linux configuration.
+
+## Basic-block use order
+
+Every basic block explicitly records `use_order`, an ordered list of user values
+and operand indices. Reconstruction validates that this list is a bijection over
+the freshly created uses, including blockaddress constants, and restores it before
+writing bitcode with LLVM use-list preservation enabled. This preserves exact
+predecessor presentation and iteration order without dropping canonical-IR lines
+or weakening the full roundtrip equality gate. Missing, duplicate, foreign, or
+out-of-range use references reject.

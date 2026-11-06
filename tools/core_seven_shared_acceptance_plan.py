@@ -110,10 +110,14 @@ SYSTEM_ADDITIONS = (
     'tests/test_hia_linux_full_inventory.py',
     'tools/hia_linux_full_inventory.py',
     'tools/hia_system/CMakeLists.txt',
+    'tools/hia_system/system_debug.cpp',
+    'tools/hia_system/system_debug_metadata.cpp',
     'tools/hia_system/system_instructions.cpp',
     'tools/hia_system/system_module.cpp',
     'tools/hia_system/system_wire.h',
+    'tools/hia_system/tests/debug_roundtrip.py',
     'tools/hia_system/tests/fixtures/asm_goto.c',
+    'tools/hia_system/tests/fixtures/debug_records.ll',
     'tools/hia_system/tests/fixtures/instruction_properties.ll',
     'tools/hia_system/tests/fixtures/module_properties.ll',
     'tools/hia_system/tests/fixtures/native_mutation.ll',
@@ -124,6 +128,7 @@ SYSTEM_ADDITIONS = (
     'tools/hia_system/tests/fixtures/wrapper_offsets.c',
     'tools/hia_system/tests/fixtures/wrapper_policy.c',
     'tools/hia_system/tests/fixtures/wrapper_raw.s',
+    'tools/hia_system/tests/kernel_roundtrip.py',
     'tools/hia_system/tests/native_wrapper_smoke.py',
     'tools/hia_system/tests/semantic_mutations.py',
     'tools/hia_system/tests/test_wrapper.py',
@@ -224,7 +229,7 @@ SUPPORT_IDENTITY_PATHS = legacy.SUPPORT_IDENTITY_PATHS
 def source_paths():
     legacy.source_paths()  # retain the exact earlier source identity closure
     paths = SOURCE_IDENTITY_PATHS
-    require(len(paths) == len(set(paths)) == 344 and commitment(paths) == '0bc3fb2a0364b9358827c59f641537719521afa6820bb8a703679b8d4838fed2',
+    require(len(paths) == len(set(paths)) == 349 and commitment(paths) == 'fc52a52b299345340ca991659bfd42765d1a080edf74fcad90d3dbf2fe6e631e',
             'reviewed exact source identity closure')
     # pipeline.compiler_hash reads every actual top-level hepta/*.py byte,
     # including modules that are not imported by this selected proof profile.
