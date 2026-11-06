@@ -1,0 +1,1853 @@
+{
+  "actual_test_evidence": {
+    "bounded_native_fixture": {
+      "cases": 5,
+      "cases_observed": [
+        {
+          "comparison": {
+            "allocations": true,
+            "attempts": true,
+            "frees": true,
+            "live_bytes": true,
+            "no_bad_frees": true,
+            "normal_cleanup": true,
+            "peak_bytes": true,
+            "result": true
+          },
+          "passed": true,
+          "refuse_at": 0,
+          "result": 1
+        },
+        {
+          "comparison": {
+            "allocations": true,
+            "attempts": true,
+            "frees": true,
+            "live_bytes": true,
+            "no_bad_frees": true,
+            "normal_cleanup": true,
+            "peak_bytes": true,
+            "result": true
+          },
+          "passed": true,
+          "refuse_at": 1,
+          "result": 0
+        },
+        {
+          "comparison": {
+            "allocations": true,
+            "attempts": true,
+            "frees": true,
+            "live_bytes": true,
+            "no_bad_frees": true,
+            "normal_cleanup": true,
+            "peak_bytes": true,
+            "result": true
+          },
+          "passed": true,
+          "refuse_at": 2,
+          "result": 0
+        },
+        {
+          "comparison": {
+            "allocations": true,
+            "attempts": true,
+            "frees": true,
+            "live_bytes": true,
+            "no_bad_frees": true,
+            "normal_cleanup": true,
+            "peak_bytes": true,
+            "result": true
+          },
+          "passed": true,
+          "refuse_at": 3,
+          "result": 0
+        },
+        {
+          "comparison": {
+            "allocations": true,
+            "attempts": true,
+            "frees": true,
+            "live_bytes": true,
+            "no_bad_frees": true,
+            "normal_cleanup": true,
+            "peak_bytes": true,
+            "result": true
+          },
+          "passed": true,
+          "refuse_at": 4,
+          "result": 1
+        }
+      ],
+      "claims": {
+        "all_inputs_resource_safety_proved": false,
+        "checker_or_backend_refinement_proved": false,
+        "finite_native_allocator_observations_match_vm": true
+      },
+      "code_refs": [
+        {
+          "file": "tests/test_hia_bounded_profile.py",
+          "symbols": [
+            "test_actual_native_allocation_denials_match_bounded_vm_observations",
+            "test_every_allocator_denial_preserves_normal_error_cleanup"
+          ]
+        }
+      ],
+      "compiler": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)",
+      "computed_bounds": [
+        {
+          "function": "fallible_entry",
+          "max_allocator_interactions": 6,
+          "max_call_depth": 3,
+          "max_live_heap_bytes": 8,
+          "max_vm_ticks": 26
+        }
+      ],
+      "core_sha256": "408360181a39b32cc30592ad497096f294bf6e13b3bccbee19df2f4cee632d39",
+      "evidence_paths": [
+        "/workspace/scratch/00b1abdae74b/semantic-evidence/qualification.json",
+        "/workspace/scratch/00b1abdae74b/semantic-evidence/core.hia.json",
+        "/workspace/scratch/00b1abdae74b/semantic-evidence/program.ll",
+        "/workspace/scratch/00b1abdae74b/semantic-evidence/native/observed.o",
+        "/workspace/scratch/00b1abdae74b/semantic-evidence/native/observer.c"
+      ],
+      "passed": true,
+      "scope_zh": "v8嵌套borrowed calls、3次fallible allocation。0表示不拒绝；1/2/3拒绝返回错误值0，4不存在因此返回1。返回值、attempts/allocations/frees/live/peak以及正常owner/loan cleanup对照；有限fixture，不是所有程序/输入的安全证明。"
+    },
+    "bounded_profile_targeted_regression": {
+      "code_refs": [
+        {
+          "file": "tests/test_hia_bounded_profile.py",
+          "symbols": [
+            "BoundedProfileTests",
+            "fallible_module"
+          ]
+        }
+      ],
+      "evidence_paths": [
+        "/workspace/scratch/00b1abdae74b/semantic-evidence/bounded-initial.log",
+        "/workspace/scratch/00b1abdae74b/semantic-evidence/regression.log",
+        "/workspace/scratch/00b1abdae74b/semantic-evidence/source-identity.json"
+      ],
+      "new_test_methods": 16,
+      "passed": true,
+      "recorded_source_files_match_final": {
+        "docs/HIA_BOUNDED_BYTE_PROFILE.md": true,
+        "docs/HIA_SEMANTICS_CONTRACT.md": true,
+        "hepta/core.py": true,
+        "hepta/hia_capability_flow.py": true,
+        "hepta/hia_heap_bound.py": true,
+        "hepta/hia_opcodes.py": true,
+        "hepta/hia_program.py": true,
+        "hepta/hia_program_llvm.py": true,
+        "hepta/hia_program_runtime.py": true,
+        "hepta/hia_schema.py": true,
+        "hepta/hia_static_budget.py": true,
+        "tests/test_hia_bounded_profile.py": true
+      },
+      "related_tests": 90,
+      "scope_zh": "此前专项运行；其记录的12个源码/文档文件哈希全部与最终c3989242相同。该覆盖与最终679项重叠。",
+      "seconds": 7.283,
+      "skips": 0
+    },
+    "capture_integrity_regression": {
+      "code_refs": [
+        {
+          "file": "tools/core_seven_acceptance_capture.py",
+          "symbols": [
+            "owned_leader_identity",
+            "_leader_identity",
+            "capture"
+          ]
+        },
+        {
+          "file": "experiments/hia_round4_20261105/run_frozen_candidate.py",
+          "symbols": [
+            "_owned_proc_leader",
+            "run_with_deadline"
+          ]
+        }
+      ],
+      "evidence_paths": [
+        "/workspace/scratch/00b1abdae74b/semantic-evidence/kernel-capture/regression.log",
+        "/workspace/scratch/00b1abdae74b/semantic-evidence/kernel-capture/before/result.json",
+        "/workspace/scratch/00b1abdae74b/semantic-evidence/kernel-capture/after/result.json",
+        "/workspace/scratch/00b1abdae74b/semantic-evidence/kernel-capture/invalid-identity/result.json"
+      ],
+      "passed": true,
+      "scope_zh": "同一shared pidfd→procfs身份helper的受控capture/launch/cleanup与frozen runner回归；不是Lean kernel、HIA checker或backend证明。",
+      "seconds": 15.912,
+      "skips": 0,
+      "tests": 157
+    },
+    "counts_overlap_do_not_sum": true,
+    "final_frozen_core_regression": {
+      "bounded_profile_tests_in_this_run": 16,
+      "code_refs": [
+        {
+          "file": "tools/qualify_hia_composition.py",
+          "symbols": [
+            "CORE_TESTS"
+          ]
+        },
+        {
+          "file": "tests/test_hia_bounded_profile.py",
+          "symbols": [
+            "BoundedProfileTests"
+          ]
+        },
+        {
+          "file": "tests/test_core_seven_acceptance.py",
+          "symbols": [
+            "OwnedProcessIdentityTests"
+          ]
+        }
+      ],
+      "errors": 0,
+      "evidence_paths": [
+        "/workspace/scratch/00b1abdae74b/core-final-4.json",
+        "/workspace/scratch/00b1abdae74b/core-final-4.receipt.json",
+        "/workspace/scratch/00b1abdae74b/core-final-4.log"
+      ],
+      "failures": 0,
+      "finished": 679,
+      "outer_wall_ns": 125760683028,
+      "owned_identity_tests_in_this_run": 4,
+      "passed": true,
+      "planned": 679,
+      "scope_zh": "最终冻结候选的实际回归。测试通过不替代全输入refinement theorem。",
+      "skips": 0,
+      "source_commit": "c3989242881dbe6e4fba330d4979b5c94b7fc5a9",
+      "source_tree": "cae8dd7f2404b92cdf602e65d94f99f3d992a8e1",
+      "source_unchanged": true,
+      "started": 679,
+      "tests": 679
+    }
+  },
+  "bounded_configuration": {
+    "accepted_core_zh": "显式 primitive v1–v6 或已审查 byte-only v8；1..128个显式 scalar exports；无环CFG和direct call graph。",
+    "claims_exactly_as_recorded": {
+      "acyclic_control_and_call_graphs_checked": true,
+      "allocator_interactions_and_vm_ticks_bounded": true,
+      "allocator_success_guaranteed": false,
+      "canonical_core_reverified": true,
+      "checker_to_formal_model_refinement_proved": false,
+      "every_explicit_public_export_covered": true,
+      "normal_return_resource_obligations_checked": true,
+      "process_rss_or_native_stack_bytes_bounded": false,
+      "program_traps_excluded": false,
+      "requested_live_hia_byte_payload_bounded": true,
+      "retained_receipt_grants_admission": false,
+      "root_inclusive_synchronous_vm_frames_bounded": true,
+      "source_to_core_or_native_backend_refinement_proved": false,
+      "whole_language_soundness_proved": false
+    },
+    "code_refs": [
+      {
+        "file": "hepta/hia_static_budget.py",
+        "symbols": [
+          "qualify_bounded_resources",
+          "analyze_static_budget"
+        ]
+      },
+      {
+        "file": "hepta/hia_heap_bound.py",
+        "symbols": [
+          "analyze_constant_live_heap",
+          "qualify_entry_live_heap_budget"
+        ]
+      }
+    ],
+    "evidence_paths": [
+      "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_BOUNDED_BYTE_PROFILE.md",
+      "/workspace/scratch/00b1abdae74b/semantic-evidence/resource-budget.json",
+      "/workspace/scratch/00b1abdae74b/semantic-evidence/qualification.json"
+    ],
+    "integration": [
+      {
+        "claim_zh": "execute_core/execute_program 的 bounded_resource_limits 在调用前fresh qualification。",
+        "code_refs": [
+          {
+            "file": "hepta/core.py",
+            "symbols": [
+              "execute_core"
+            ]
+          },
+          {
+            "file": "hepta/hia_program_runtime.py",
+            "symbols": [
+              "execute_program"
+            ]
+          }
+        ],
+        "evidence_paths": [
+          "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_BOUNDED_BYTE_PROFILE.md"
+        ],
+        "id": "vm_policy_gate",
+        "scope_zh": "调用参数与policy捕获；runtime limits不得低于该入口计算值，effective runtime limits不超过policy。",
+        "status": "implemented_and_statically_reviewed"
+      },
+      {
+        "claim_zh": "build_core/build_program_native 的 bounded_resource_limits 在LLVM emission/publication之前fresh qualification。",
+        "code_refs": [
+          {
+            "file": "hepta/core.py",
+            "symbols": [
+              "build_core"
+            ]
+          },
+          {
+            "file": "hepta/hia_program_llvm.py",
+            "symbols": [
+              "build_program_native"
+            ]
+          }
+        ],
+        "evidence_paths": [
+          "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_BOUNDED_BYTE_PROFILE.md"
+        ],
+        "id": "native_policy_gate",
+        "scope_zh": "native ABI和编译准入继续独立检查；资源回执不证明LLVM/machine-code维持上界。",
+        "status": "implemented_and_statically_reviewed"
+      },
+      {
+        "claim_zh": "这是一种明确选择的完整配置，未请求该参数时既有更宽standalone路径仍保留。",
+        "code_refs": [
+          {
+            "file": "hepta/hia_program_llvm.py",
+            "symbols": [
+              "build_program_native",
+              "compile_program_llvm"
+            ]
+          },
+          {
+            "file": "hepta/hia_source_bridge.py",
+            "symbols": [
+              "build_checked_hepta_hia_native",
+              "_validate_static_budget_receipt"
+            ]
+          }
+        ],
+        "evidence_paths": [
+          "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_BOUNDED_BYTE_PROFILE.md"
+        ],
+        "id": "optional_not_global_default",
+        "scope_zh": "不能写成所有source/native调用默认强制该profile；现有source bridge static_resource_limits仍是其原有、单独声明的预算路径。",
+        "status": "implemented_and_statically_reviewed"
+      }
+    ],
+    "not_bounded_zh": [
+      "process RSS、allocator metadata、native stack bytes、VM view object storage、wall-clock time",
+      "loop/recursion/async/task/foreign-call的一般成本",
+      "host内存、OS termination、外部allocator可用性"
+    ],
+    "policy": {
+      "max_allocator_interactions": {
+        "meaning_zh": "潜在allocation/free interactions的保守上界",
+        "minimum": 0,
+        "type": "exact int"
+      },
+      "max_call_depth": {
+        "maximum": 256,
+        "meaning_zh": "包含根帧的同步调用深度",
+        "minimum": 1,
+        "type": "exact int"
+      },
+      "max_live_heap_bytes": {
+        "maximum": 1073741824,
+        "meaning_zh": "requested live HIA byte payload",
+        "minimum": 0,
+        "type": "exact int"
+      },
+      "max_vm_ticks": {
+        "maximum": 10000000,
+        "meaning_zh": "VM opcode/terminator/invocation events",
+        "minimum": 1,
+        "type": "exact int"
+      }
+    },
+    "profile": "explicit-scalar-exports-acyclic-byte-resources-v1",
+    "rejections": [
+      {
+        "claim_zh": "非完整 plain dict、缺字段、未知字段、bool/float/string 冒充整数、超出共同 VM 范围",
+        "code_refs": [
+          {
+            "file": "hepta/hia_static_budget.py",
+            "symbols": [
+              "qualify_bounded_resources",
+              "analyze_static_budget"
+            ]
+          },
+          {
+            "file": "hepta/hia_heap_bound.py",
+            "symbols": [
+              "analyze_constant_live_heap",
+              "qualify_entry_live_heap_budget"
+            ]
+          }
+        ],
+        "error_code": "E_HIA_BUDGET_POLICY",
+        "evidence_paths": [
+          "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_BOUNDED_BYTE_PROFILE.md"
+        ],
+        "id": "policy_shape",
+        "scope_zh": "仅拒绝此组合配置；合法Core可仍由其他明确profile使用。",
+        "status": "implemented_rejection"
+      },
+      {
+        "claim_zh": "nominal/structured input、v7、新未审查 schema；不自动把 v7 改标为 v8",
+        "code_refs": [
+          {
+            "file": "hepta/hia_static_budget.py",
+            "symbols": [
+              "qualify_bounded_resources",
+              "analyze_static_budget"
+            ]
+          },
+          {
+            "file": "hepta/hia_heap_bound.py",
+            "symbols": [
+              "analyze_constant_live_heap",
+              "qualify_entry_live_heap_budget"
+            ]
+          }
+        ],
+        "error_code": "E_HIA_BUDGET_PROFILE",
+        "evidence_paths": [
+          "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_BOUNDED_BYTE_PROFILE.md"
+        ],
+        "id": "profile_schema",
+        "scope_zh": "仅拒绝此组合配置；合法Core可仍由其他明确profile使用。",
+        "status": "implemented_rejection"
+      },
+      {
+        "claim_zh": "未显式声明 exports、空 exports 或超过128个入口",
+        "code_refs": [
+          {
+            "file": "hepta/hia_static_budget.py",
+            "symbols": [
+              "qualify_bounded_resources",
+              "analyze_static_budget"
+            ]
+          },
+          {
+            "file": "hepta/hia_heap_bound.py",
+            "symbols": [
+              "analyze_constant_live_heap",
+              "qualify_entry_live_heap_budget"
+            ]
+          }
+        ],
+        "error_code": "E_HIA_BUDGET_PROFILE",
+        "evidence_paths": [
+          "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_BOUNDED_BYTE_PROFILE.md"
+        ],
+        "id": "exports",
+        "scope_zh": "仅拒绝此组合配置；合法Core可仍由其他明确profile使用。",
+        "status": "implemented_rejection"
+      },
+      {
+        "claim_zh": "任何被检查定义中的递归调用或 CFG cycle",
+        "code_refs": [
+          {
+            "file": "hepta/hia_static_budget.py",
+            "symbols": [
+              "qualify_bounded_resources",
+              "analyze_static_budget"
+            ]
+          },
+          {
+            "file": "hepta/hia_heap_bound.py",
+            "symbols": [
+              "analyze_constant_live_heap",
+              "qualify_entry_live_heap_budget"
+            ]
+          }
+        ],
+        "error_code": "E_HIA_BUDGET_UNBOUNDED",
+        "evidence_paths": [
+          "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_BOUNDED_BYTE_PROFILE.md"
+        ],
+        "id": "graph_cycles",
+        "scope_zh": "仅拒绝此组合配置；合法Core可仍由其他明确profile使用。",
+        "status": "implemented_rejection"
+      },
+      {
+        "claim_zh": "链资源、未审查 owner transfer 或未知/无法界定的分配长度与借用 extent",
+        "code_refs": [
+          {
+            "file": "hepta/hia_static_budget.py",
+            "symbols": [
+              "qualify_bounded_resources",
+              "analyze_static_budget"
+            ]
+          },
+          {
+            "file": "hepta/hia_heap_bound.py",
+            "symbols": [
+              "analyze_constant_live_heap",
+              "qualify_entry_live_heap_budget"
+            ]
+          }
+        ],
+        "error_code": "existing static/heap profile rejection",
+        "evidence_paths": [
+          "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_BOUNDED_BYTE_PROFILE.md"
+        ],
+        "id": "resource_domain",
+        "scope_zh": "仅拒绝此组合配置；合法Core可仍由其他明确profile使用。",
+        "status": "implemented_rejection"
+      },
+      {
+        "claim_zh": "任一被覆盖入口/定义的 event、frame 或 payload 上限超过请求",
+        "code_refs": [
+          {
+            "file": "hepta/hia_static_budget.py",
+            "symbols": [
+              "qualify_bounded_resources",
+              "analyze_static_budget"
+            ]
+          },
+          {
+            "file": "hepta/hia_heap_bound.py",
+            "symbols": [
+              "analyze_constant_live_heap",
+              "qualify_entry_live_heap_budget"
+            ]
+          }
+        ],
+        "error_code": "E_HIA_BUDGET_EXCEEDED",
+        "evidence_paths": [
+          "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_BOUNDED_BYTE_PROFILE.md"
+        ],
+        "id": "exceeded_limits",
+        "scope_zh": "仅拒绝此组合配置；合法Core可仍由其他明确profile使用。",
+        "status": "implemented_rejection"
+      },
+      {
+        "claim_zh": "执行器另行给定的 steps/heap/call 限额低于所选入口已计算边界",
+        "code_refs": [
+          {
+            "file": "hepta/hia_static_budget.py",
+            "symbols": [
+              "qualify_bounded_resources",
+              "analyze_static_budget"
+            ]
+          },
+          {
+            "file": "hepta/hia_heap_bound.py",
+            "symbols": [
+              "analyze_constant_live_heap",
+              "qualify_entry_live_heap_budget"
+            ]
+          }
+        ],
+        "error_code": "E_HIA_BUDGET_POLICY",
+        "evidence_paths": [
+          "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_BOUNDED_BYTE_PROFILE.md"
+        ],
+        "id": "runtime_limits",
+        "scope_zh": "仅拒绝此组合配置；合法Core可仍由其他明确profile使用。",
+        "status": "implemented_rejection"
+      },
+      {
+        "claim_zh": "类型/effect/borrow/return origin/owner cleanup 等 canonical Core 规则失败",
+        "code_refs": [
+          {
+            "file": "hepta/hia_static_budget.py",
+            "symbols": [
+              "qualify_bounded_resources",
+              "analyze_static_budget"
+            ]
+          },
+          {
+            "file": "hepta/hia_heap_bound.py",
+            "symbols": [
+              "analyze_constant_live_heap",
+              "qualify_entry_live_heap_budget"
+            ]
+          }
+        ],
+        "error_code": "existing canonical HIA rejection",
+        "evidence_paths": [
+          "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_BOUNDED_BYTE_PROFILE.md"
+        ],
+        "id": "canonical_invalid",
+        "scope_zh": "仅拒绝此组合配置；合法Core可仍由其他明确profile使用。",
+        "status": "implemented_rejection"
+      }
+    ],
+    "schema": "hepta.hia.bounded-resources.v1",
+    "scope_zh": "每次新调用重新分析 exact immutable Core；所有定义接受event/call审查，公开入口逐个覆盖；v1–v6用既有all-function payload分析，v8逐公开入口合成borrowed-call local peak。",
+    "status": "qualified_structural_events_and_requested_payload_only"
+  },
+  "consumers": [
+    {
+      "claim_zh": "execute_core→execute_program 在执行前重验同一 Core，只允许精确类型的 scalar 公开输入/输出。",
+      "code_refs": [
+        {
+          "file": "hepta/core.py",
+          "symbols": [
+            "execute_core"
+          ]
+        },
+        {
+          "file": "hepta/hia_program_runtime.py",
+          "symbols": [
+            "execute_program",
+            "_Machine.invoke",
+            "_Machine.report"
+          ]
+        },
+        {
+          "file": "hepta/hia_opcodes.py",
+          "symbols": [
+            "validate_execution_observation"
+          ]
+        }
+      ],
+      "evidence_paths": [
+        "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEMANTICS_CONTRACT.md",
+        "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_BOUNDED_BYTE_PROFILE.md"
+      ],
+      "id": "vm_consumer",
+      "scope_zh": "owner/loan 可在内部创建、移动和调用；普通成功/错误值 return 必须平衡资源；trap 和 evaluator budget 是不同终止结果。",
+      "status": "implemented_and_statically_reviewed"
+    },
+    {
+      "claim_zh": "build_core→build_program_native→emit_program_llvm→compile_program_llvm 使用同一 reverified Core。",
+      "code_refs": [
+        {
+          "file": "hepta/core.py",
+          "symbols": [
+            "build_core"
+          ]
+        },
+        {
+          "file": "hepta/hia_program_llvm.py",
+          "symbols": [
+            "build_program_native",
+            "emit_program_llvm",
+            "compile_program_llvm",
+            "_verified",
+            "_Emitter.wrapper"
+          ]
+        }
+      ],
+      "evidence_paths": [
+        "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEMANTICS_CONTRACT.md",
+        "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEQUENTIAL_CORE_PROOF_CHAIN.md"
+      ],
+      "id": "llvm_consumer",
+      "scope_zh": "compile 再生成并比对 LLVM；保留实际 compiler、artifact 和 ABI 检查。x86-64 shared/object 与其他目标 object 的资格不同；没有 LLVM 优化/codegen/ABI 全证明。",
+      "status": "implemented_and_statically_reviewed"
+    },
+    {
+      "claim_zh": "选定 scalar totality 与 actual LLVM lowering validators 消费 exact Core/artifact，而非生产者自报结论。",
+      "code_refs": [
+        {
+          "file": "hepta/hia_scalar_totality.py",
+          "symbols": [
+            "validate_scalar_totality",
+            "validate_scalar_call_totality"
+          ]
+        },
+        {
+          "file": "hepta/hia_scalar_lowering_check.py",
+          "symbols": [
+            "verify_scalar_lowering"
+          ]
+        },
+        {
+          "file": "tools/qualify_hia_sequential_core.py",
+          "symbols": [
+            "verify_sequential_core",
+            "_evaluate"
+          ]
+        }
+      ],
+      "evidence_paths": [
+        "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEQUENTIAL_CORE_PROOF_CHAIN.md"
+      ],
+      "id": "proof_consumers",
+      "scope_zh": "这是受限无环 scalar artifact 的逐公开入口全类型输入 SMT 检查；资源、loop、FFI、机器码与一般 checker soundness 不在该组合证明内。",
+      "status": "implemented_and_statically_reviewed"
+    }
+  ],
+  "created_at_utc": "2026-11-06T07:27:48.530732+00:00",
+  "forbidden_overstatements_zh": [
+    "不得说已闭合checker↔Lean↔LLVM全程序证明，或所有合法HIA程序均内存安全/无trap。",
+    "不得说scalar全输入SMT证明已覆盖v8 buffer/loan配置；它们有不同支持范围和额外义务。",
+    "不得把requested payload写成RSS、VM ticks写成CPU时间、同步frames写成native stack bytes。",
+    "不得把6个service包装的错误值合同扩大到全部18个公开Core入口的totality。",
+    "不得把模块本身零分配解释为一般分配失败路径已经在完整真实模块上得到验证；非零buffer/loan拒绝路径证据来自明确的v8 fixture。",
+    "不得把共享捕获器的PID namespace修复、运行时cleanup闭合或source closure身份完整性写成语言语义refinement证明。",
+    "不得把不同提交/协议/目标/失败与成功运行的局部行拼成一次完整资格通过；保留负结果及每项证据来源。"
+  ],
+  "formal_scope": [
+    {
+      "claim_zh": "仓库包含良构直线寄存器模型的泛型 Lean 总执行/已定义读取定理。",
+      "code_refs": [
+        {
+          "file": "formal/HiaRegisterSafety.lean",
+          "symbols": [
+            "execute_total",
+            "run_total",
+            "read_defined"
+          ]
+        }
+      ],
+      "evidence_paths": [
+        "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEQUENTIAL_CORE_PROOF_CHAIN.md"
+      ],
+      "id": "abstract_register_model",
+      "scope_zh": "模型中的所有良构程序；不是生产 verifier、CFG/SSA exporter 或 LLVM 的 refinement。本次静态审计未运行 Lean。",
+      "status": "existing_model_theorems_scope_only"
+    },
+    {
+      "claim_zh": "仓库包含 capability lifecycle、borrow compatibility、no-parent-cycle 和 access exclusivity 模型定理及有限 production witnesses。",
+      "code_refs": [
+        {
+          "file": "formal/HiaCapabilityLifecycle.lean",
+          "symbols": [
+            "trace_closed",
+            "trace_ranked",
+            "trace_unique",
+            "trace_no_parent_cycle"
+          ]
+        },
+        {
+          "file": "formal/HiaCapabilityBorrow.lean",
+          "symbols": [
+            "trace_compatible",
+            "trace_accessible_exclusive"
+          ]
+        },
+        {
+          "file": "tools/verify_hia_capabilities.py",
+          "symbols": []
+        },
+        {
+          "file": "tools/verify_hia_capability_borrow.py",
+          "symbols": []
+        }
+      ],
+      "evidence_paths": [
+        "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEQUENTIAL_CORE_PROOF_CHAIN.md",
+        "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_PRODUCTION_CAPABILITY_WITNESSES.md"
+      ],
+      "id": "abstract_capability_models",
+      "scope_zh": "具体导出的图/步骤或抽象模型轨迹；不是真实程序所有输入上的动态内存安全，也不是实际 checker/VM/native allocator 的一般 soundness。",
+      "status": "existing_model_and_finite_witness_scope_only"
+    },
+    {
+      "claim_zh": "初始化前缀模型的覆盖和初始字节独立性定理仍只覆盖满足前提的模型执行。",
+      "code_refs": [
+        {
+          "file": "formal/HiaInitializationPrefix.lean",
+          "symbols": [
+            "prefix_invariant",
+            "completed_fill_independent_of_initial",
+            "completed_fill_matches_zeroed"
+          ]
+        },
+        {
+          "file": "tools/extract_initialization_obligations.py",
+          "symbols": [
+            "OBLIGATIONS",
+            "extract_obligations",
+            "check_obligation_transport"
+          ]
+        }
+      ],
+      "evidence_paths": [
+        "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEQUENTIAL_CORE_PROOF_CHAIN.md"
+      ],
+      "id": "abstract_initialization_prefix",
+      "scope_zh": "下面12项 production Core→model 连接义务仍未证明；witness/transport 成功不授予 malloc elision 或执行权限。",
+      "status": "existing_model_theorems_scope_only"
+    },
+    {
+      "claim_zh": "正式 seven-shared 协议自身把范围固定为窄 Core syntax connection，authority 保持 DENY_ALL。",
+      "code_refs": [
+        {
+          "file": "tools/core_seven_shared_acceptance_plan.py",
+          "symbols": [
+            "SCOPE",
+            "make_result"
+          ]
+        },
+        {
+          "file": "tools/core_seven_shared_sources.py",
+          "symbols": []
+        }
+      ],
+      "evidence_paths": [
+        "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEQUENTIAL_CORE_PROOF_CHAIN.md",
+        "/workspace/scratch/00b1abdae74b/hepta-work/tools/core_seven_shared_acceptance_plan.py"
+      ],
+      "id": "narrow_kernel_syntax",
+      "scope_zh": "即使后续最终 kernel 运行通过，也不关闭12项更宽义务，不证明 actual_core_bridge/python_exporter/body_prefix/all_edge_transfer。最终 kernel 运行状态由根代理引用其实际回执；本审计不裁定其通过。",
+      "status": "protocol_scope_statically_verified"
+    }
+  ],
+  "method": {
+    "lean_runs_by_this_audit": 0,
+    "outputs_created": [
+      "/workspace/scratch/00b1abdae74b/semantic-evidence/final-claim-audit.json"
+    ],
+    "scope_zh": "只读取冻结源码与既有回执/日志，并核对小型文件哈希；没有调用 verifier、SMT、compiler、benchmark 或模型API。",
+    "source_files_modified": false,
+    "static_only": true,
+    "tests_run_by_this_audit": 0
+  },
+  "producers": [
+    {
+      "claim_zh": "独立 primitive/composite HIA 通过同一个 verify_program 准入。",
+      "code_refs": [
+        {
+          "file": "hepta/hia_routes.py",
+          "symbols": [
+            "admit_route"
+          ]
+        },
+        {
+          "file": "hepta/hia_program.py",
+          "symbols": [
+            "verify_program"
+          ]
+        },
+        {
+          "file": "hepta/hia_schema.py",
+          "symbols": [
+            "composite_core_schema"
+          ]
+        },
+        {
+          "file": "hepta/hia_program_composite.py",
+          "symbols": [
+            "elaborate_program"
+          ]
+        }
+      ],
+      "evidence_paths": [
+        "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEMANTICS_CONTRACT.md"
+      ],
+      "id": "standalone_core",
+      "scope_zh": "primitive v1–v8；composite v1/v2/v3/v4 分别显式展开到 primitive v6/v7/v7/v8；展开后的整份 Core 再验证。",
+      "status": "implemented_and_statically_reviewed"
+    },
+    {
+      "claim_zh": "Agent assembly 是生成既有 Core 的输入语法，不另建执行器。",
+      "code_refs": [
+        {
+          "file": "hepta/hia_agent_assembly.py",
+          "symbols": [
+            "assemble_program"
+          ]
+        },
+        {
+          "file": "hepta/hia_routes.py",
+          "symbols": [
+            "admit_route"
+          ]
+        }
+      ],
+      "evidence_paths": [
+        "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEMANTICS_CONTRACT.md"
+      ],
+      "id": "typed_agent_assembly",
+      "scope_zh": "hia-asm.v1 必须显式选择 primitive v6/v7/v8；assemble_program 后仍由 admit_route 的 verify_program 收口。",
+      "status": "implemented_and_statically_reviewed"
+    },
+    {
+      "claim_zh": "受支持的 Hepta 源程序经现有检查与 lowering 后进入 canonical Core verifier。",
+      "code_refs": [
+        {
+          "file": "hepta/hia_program_source.py",
+          "symbols": [
+            "lower_source"
+          ]
+        },
+        {
+          "file": "hepta/checker.py",
+          "symbols": [
+            "check"
+          ]
+        },
+        {
+          "file": "hepta/hia_routes.py",
+          "symbols": [
+            "admit_route"
+          ]
+        }
+      ],
+      "evidence_paths": [
+        "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEMANTICS_CONTRACT.md",
+        "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEQUENTIAL_CORE_PROOF_CHAIN.md"
+      ],
+      "id": "checked_hepta_source",
+      "scope_zh": "有限、可表达的 source profile；source checker 与 source→Core 的形式 refinement 仍未证明。",
+      "status": "implemented_and_statically_reviewed"
+    },
+    {
+      "claim_zh": "历史 executable/scalar 快照必须保留实际源程序与项目身份验证，再转换并重验 Core。",
+      "code_refs": [
+        {
+          "file": "hepta/core.py",
+          "symbols": [
+            "from_executable_core",
+            "from_scalar_core"
+          ]
+        },
+        {
+          "file": "hepta/hia_core_upgrade.py",
+          "symbols": [
+            "import_legacy_composite_v2"
+          ]
+        },
+        {
+          "file": "hepta/hia_program.py",
+          "symbols": [
+            "verify_program"
+          ]
+        },
+        {
+          "file": "hepta/hia_routes.py",
+          "symbols": [
+            "admit_route"
+          ]
+        }
+      ],
+      "evidence_paths": [
+        "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEMANTICS_CONTRACT.md"
+      ],
+      "id": "authenticated_legacy_imports",
+      "scope_zh": "hepta.executable-core.v1 和 hepta.hia.scalar-core.v0；历史 nominal v2 与 primitive v2 重名必须经显式 import_legacy_composite_v2，不能凭形状猜测。",
+      "status": "implemented_and_statically_reviewed"
+    },
+    {
+      "claim_zh": "已有 C/C++ 迁移与 captured C++ routes 的可表达结果须通过同一 Core admission。",
+      "code_refs": [
+        {
+          "file": "hepta/hia_routes.py",
+          "symbols": [
+            "route_inventory",
+            "admit_captured_cpp",
+            "admit_route"
+          ]
+        },
+        {
+          "file": "tools/qualify_hia_stb_divide_update.py",
+          "symbols": [
+            "qualify"
+          ]
+        },
+        {
+          "file": "tools/qualify_hia_stb_service.py",
+          "symbols": [
+            "qualify",
+            "hia_source"
+          ]
+        }
+      ],
+      "evidence_paths": [
+        "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEMANTICS_CONTRACT.md",
+        "/workspace/scratch/00b1abdae74b/hepta-work/benchmarks/hia_stb_service/PROTOCOL.json"
+      ],
+      "id": "captured_c_cpp",
+      "scope_zh": "捕获的具体 body/configuration；特定 scalar、leaf/composed owner、default-deleter unique_ptr profile。不是一般 C/C++ 指针、异常、ABI 或所有宏配置的等价证明。",
+      "status": "implemented_and_statically_reviewed"
+    }
+  ],
+  "real_module_connection": {
+    "actual_export_count": 18,
+    "claim_zh": "最终源码已在stb_divide服务资格工具中把真实迁移Core、同一资源policy、VM replay与native build连接。",
+    "code_refs": [
+      {
+        "file": "tools/qualify_hia_stb_service.py",
+        "symbols": [
+          "specification",
+          "hia_source",
+          "qualify",
+          "validate_qualification"
+        ]
+      },
+      {
+        "file": "benchmarks/hia_stb_service/PROTOCOL.json",
+        "symbols": []
+      }
+    ],
+    "core_schema": "hepta.hia.program.v1",
+    "core_sha256": "9b93ed8dd3bd7e2ba214052af21558aac80a1042fee96ce17892a1a378c5acff",
+    "evidence_paths": [
+      "/workspace/scratch/00b1abdae74b/migration-evidence/service-final-1/registration.json",
+      "/workspace/scratch/00b1abdae74b/migration-evidence/service-final-1/bounded-resources.json",
+      "/workspace/scratch/00b1abdae74b/migration-evidence/service-final-1/budget-rejection.json"
+    ],
+    "exports": [
+      {
+        "function": "c_bool_to_int",
+        "max_allocator_interactions": 0,
+        "max_call_depth": 1,
+        "max_live_heap_bytes": 0,
+        "max_vm_ticks": 4
+      },
+      {
+        "function": "c_stb_div_eucl",
+        "max_allocator_interactions": 0,
+        "max_call_depth": 2,
+        "max_live_heap_bytes": 0,
+        "max_vm_ticks": 23
+      },
+      {
+        "function": "c_stb_div_floor",
+        "max_allocator_interactions": 0,
+        "max_call_depth": 2,
+        "max_live_heap_bytes": 0,
+        "max_vm_ticks": 56
+      },
+      {
+        "function": "c_stb_div_trunc",
+        "max_allocator_interactions": 0,
+        "max_call_depth": 1,
+        "max_live_heap_bytes": 0,
+        "max_vm_ticks": 3
+      },
+      {
+        "function": "c_stb_mod_eucl",
+        "max_allocator_interactions": 0,
+        "max_call_depth": 2,
+        "max_live_heap_bytes": 0,
+        "max_vm_ticks": 16
+      },
+      {
+        "function": "c_stb_mod_floor",
+        "max_allocator_interactions": 0,
+        "max_call_depth": 1,
+        "max_live_heap_bytes": 0,
+        "max_vm_ticks": 12
+      },
+      {
+        "function": "c_stb_mod_trunc",
+        "max_allocator_interactions": 0,
+        "max_call_depth": 1,
+        "max_live_heap_bytes": 0,
+        "max_vm_ticks": 3
+      },
+      {
+        "function": "migration_conditional_1",
+        "max_allocator_interactions": 0,
+        "max_call_depth": 1,
+        "max_live_heap_bytes": 0,
+        "max_vm_ticks": 9
+      },
+      {
+        "function": "migration_conditional_2",
+        "max_allocator_interactions": 0,
+        "max_call_depth": 1,
+        "max_live_heap_bytes": 0,
+        "max_vm_ticks": 11
+      },
+      {
+        "function": "migration_conditional_3",
+        "max_allocator_interactions": 0,
+        "max_call_depth": 1,
+        "max_live_heap_bytes": 0,
+        "max_vm_ticks": 11
+      },
+      {
+        "function": "migration_conditional_4",
+        "max_allocator_interactions": 0,
+        "max_call_depth": 1,
+        "max_live_heap_bytes": 0,
+        "max_vm_ticks": 12
+      },
+      {
+        "function": "migration_conditional_5",
+        "max_allocator_interactions": 0,
+        "max_call_depth": 1,
+        "max_live_heap_bytes": 0,
+        "max_vm_ticks": 7
+      },
+      {
+        "function": "service_stb_div_eucl",
+        "max_allocator_interactions": 0,
+        "max_call_depth": 3,
+        "max_live_heap_bytes": 0,
+        "max_vm_ticks": 37
+      },
+      {
+        "function": "service_stb_div_floor",
+        "max_allocator_interactions": 0,
+        "max_call_depth": 3,
+        "max_live_heap_bytes": 0,
+        "max_vm_ticks": 70
+      },
+      {
+        "function": "service_stb_div_trunc",
+        "max_allocator_interactions": 0,
+        "max_call_depth": 2,
+        "max_live_heap_bytes": 0,
+        "max_vm_ticks": 17
+      },
+      {
+        "function": "service_stb_mod_eucl",
+        "max_allocator_interactions": 0,
+        "max_call_depth": 3,
+        "max_live_heap_bytes": 0,
+        "max_vm_ticks": 30
+      },
+      {
+        "function": "service_stb_mod_floor",
+        "max_allocator_interactions": 0,
+        "max_call_depth": 2,
+        "max_live_heap_bytes": 0,
+        "max_vm_ticks": 26
+      },
+      {
+        "function": "service_stb_mod_trunc",
+        "max_allocator_interactions": 0,
+        "max_call_depth": 2,
+        "max_live_heap_bytes": 0,
+        "max_vm_ticks": 17
+      }
+    ],
+    "functional_contract_zh": "仅6个service_*包装明确把除零返回2147483648、INT_MIN/-1返回2147483649；接口i64(i32,i32)。预算同时覆盖全部18个显式exports，其中另12个为迁移函数/辅助，不宣称它们全部无trap。",
+    "limits": {
+      "max_allocator_interactions": 0,
+      "max_call_depth": 3,
+      "max_live_heap_bytes": 0,
+      "max_vm_ticks": 70
+    },
+    "observations_not_completed_by_this_audit": {
+      "claims": {
+        "all_input_translation_refinement": false,
+        "human_effort_measured": false,
+        "native_allocation_counters_measured": false,
+        "performance_superiority": false,
+        "production_authorized": false,
+        "whole_language_soundness": false
+      },
+      "ok": true,
+      "schema": "hepta.hia.stb-service.report.v1",
+      "status": "completed",
+      "vm_observations": 1542
+    },
+    "qualification_status_zh": "已读取本轮同源registration、budget与69-tick拒绝原始文件；性能/完整qualification是否通过由根代理引用最终report，不在此静态审计提前裁定。",
+    "scope_zh": "完整stb_divide 0.94在声明C_INTEGER_DIVISION_TRUNCATES配置下的6个活动函数；资源为scalar-only零分配，不包含buffer/loan的真实模块迁移证明。循环发生在长运行测量driver的重复调用层，70 ticks是单次Core入口上界。",
+    "service_export_count": 6,
+    "source_head": "c3989242881dbe6e4fba330d4979b5c94b7fc5a9",
+    "source_tree": "cae8dd7f2404b92cdf602e65d94f99f3d992a8e1",
+    "under_budget_refusal": {
+      "artifact_published": false,
+      "code": "E_HIA_BUDGET_EXCEEDED",
+      "limits": {
+        "max_allocator_interactions": 0,
+        "max_call_depth": 3,
+        "max_live_heap_bytes": 0,
+        "max_vm_ticks": 69
+      }
+    }
+  },
+  "recommended_summary_zh": [
+    "已把接入的生产者收口到同一 HIA schema/opcode/canonical verifier，并将完整资源策略接到实际 VM 与 native build 入口。",
+    "最小组合配置建立了明确的准入、拒绝、资源计数与有限原生对照证据；它不是 checker↔Lean↔LLVM 的全程序证明。",
+    "最终 c3989242 的 core regression 为679项通过、零失败/错误/跳过；相互重叠的专项测试数字不能累加成新的独立样本数。"
+  ],
+  "schema": "hepta.hia.semantic-claim-audit.v1",
+  "semantic_contract": [
+    {
+      "claim_zh": "保留8/16/32/64位 signed/unsigned 与64位 usize/isize；checked overflow、wrap、signed div/rem、checked shift-count、cast 各有明确含义。",
+      "code_refs": [
+        {
+          "file": "hepta/hia_opcodes.py",
+          "symbols": [
+            "OPCODES"
+          ]
+        },
+        {
+          "file": "hepta/hia_program_runtime.py",
+          "symbols": [
+            "_Machine.operation"
+          ]
+        }
+      ],
+      "evidence_paths": [
+        "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEMANTICS_CONTRACT.md"
+      ],
+      "id": "integer_rules",
+      "scope_zh": "bool不冒充integer；checked shift检查count后保留低位；首个trap停止后续操作；不推导一般C/C++ overflow/exception等价。",
+      "status": "implemented_and_statically_reviewed"
+    },
+    {
+      "claim_zh": "buffer.try_new 拒绝产生空 owner/false；零长度保留逻辑 owner 而不调用 allocator；正常错误值 return 同样必须消费 owner/end loan。",
+      "code_refs": [
+        {
+          "file": "hepta/hia_program.py",
+          "symbols": [
+            "_BlockCheck.finish"
+          ]
+        },
+        {
+          "file": "hepta/hia_program_runtime.py",
+          "symbols": [
+            "_Machine.allocate",
+            "execute_program"
+          ]
+        },
+        {
+          "file": "hepta/hia_opcodes.py",
+          "symbols": [
+            "validate_execution_observation"
+          ]
+        }
+      ],
+      "evidence_paths": [
+        "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEMANTICS_CONTRACT.md",
+        "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_BOUNDED_BYTE_PROFILE.md"
+      ],
+      "id": "resource_exit_rules",
+      "scope_zh": "infallible allocation、bounds、overflow trap 保持独立；不保证 abort 后析构/cleanup、host allocator成功或RSS。",
+      "status": "implemented_and_statically_reviewed"
+    }
+  ],
+  "single_admission_authority": [
+    {
+      "claim_zh": "schema registry 是明确 wire grammar 与版本特征的唯一目录；版本标签不是证明凭证。",
+      "code_refs": [
+        {
+          "file": "hepta/hia_schema.py",
+          "symbols": [
+            "PRIMITIVE_PROFILES",
+            "COMPOSITE_PROFILES",
+            "schema_registry",
+            "profile_for_schema"
+          ]
+        }
+      ],
+      "evidence_paths": [
+        "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEMANTICS_CONTRACT.md"
+      ],
+      "id": "wire_authority",
+      "scope_zh": "canonical compatibility Core 为 v6，latest 为 v8；新版本是否被某个 consumer 支持必须单独审查。",
+      "status": "implemented_and_statically_reviewed"
+    },
+    {
+      "claim_zh": "opcode catalog 集中指令签名、属性、effects、guards 与声明的 scalar/resource 规则。",
+      "code_refs": [
+        {
+          "file": "hepta/hia_opcodes.py",
+          "symbols": [
+            "OpcodeSpec",
+            "OPCODES",
+            "opcode_catalog",
+            "validate_execution_observation"
+          ]
+        }
+      ],
+      "evidence_paths": [
+        "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEMANTICS_CONTRACT.md",
+        "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEQUENTIAL_CORE_PROOF_CHAIN.md"
+      ],
+      "id": "opcode_contract",
+      "scope_zh": "VM 和 LLVM 仍是独立实现；共享 catalog 不等于两者已经获得形式语义等价证明。",
+      "status": "implemented_and_statically_reviewed"
+    },
+    {
+      "claim_zh": "所有接入 route 的最终准入点是 verify_program，逐函数/CFG 边检查类型、效果和 capability flow。",
+      "code_refs": [
+        {
+          "file": "hepta/hia_program.py",
+          "symbols": [
+            "VerifiedProgram",
+            "verify_program",
+            "_primitive_structure",
+            "_verify_function",
+            "_BlockCheck"
+          ]
+        },
+        {
+          "file": "hepta/hia_capability_flow.py",
+          "symbols": [
+            "rename_capabilities"
+          ]
+        }
+      ],
+      "evidence_paths": [
+        "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEMANTICS_CONTRACT.md",
+        "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_BOUNDED_BYTE_PROFILE.md"
+      ],
+      "id": "canonical_admission",
+      "scope_zh": "包括手工构造的 VerifiedProgram 也重读不可变 bytes；结构化 bytes 与展开结果必须一致，hash/dataclass 不能绕过验证。",
+      "status": "implemented_and_statically_reviewed"
+    },
+    {
+      "claim_zh": "HSIR/HMIR/resource IR 与历史描述性 CFG 不能独立授予 standalone execution 权限。",
+      "code_refs": [
+        {
+          "file": "hepta/hia_routes.py",
+          "symbols": [
+            "route_inventory",
+            "admit_route"
+          ]
+        }
+      ],
+      "evidence_paths": [
+        "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEMANTICS_CONTRACT.md"
+      ],
+      "id": "historical_non_authorities",
+      "scope_zh": "保留明确 adapters 与各自边界；Rust raw-byte DAG 是独立受限 consumer，不能签发 Python VerifiedProgram 或直接授权 native 输出。",
+      "status": "implemented_and_statically_reviewed"
+    }
+  ],
+  "source": {
+    "commit": "c3989242881dbe6e4fba330d4979b5c94b7fc5a9",
+    "pull_request": "https://github.com/TrillionniumFoundation/Hepta/pull/752",
+    "repository": "TrillionniumFoundation/Hepta",
+    "tree": "cae8dd7f2404b92cdf602e65d94f99f3d992a8e1"
+  },
+  "source_reference_index": {
+    "benchmarks/hia_stb_service/PROTOCOL.json": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/benchmarks/hia_stb_service/PROTOCOL.json",
+      "sha256": "1a5644f5c9eca1b3978be58fb720a0016458a5ee4457aefad0984d8c9a3e9ae0"
+    },
+    "experiments/hia_round4_20261105/run_frozen_candidate.py": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/experiments/hia_round4_20261105/run_frozen_candidate.py",
+      "sha256": "e744a4d670e148780716a9b32c8fcacd6d4b235112e4841a876fbc3c7a3f0b88"
+    },
+    "formal/HeptaCore.lean": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/formal/HeptaCore.lean",
+      "sha256": "d3c3fb1e773cde932b5801684ddaffba2149dd565a67950a4c3b8623bca63423"
+    },
+    "formal/HiaCapabilityBorrow.lean": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/formal/HiaCapabilityBorrow.lean",
+      "sha256": "9435379c47d31f9d6c5349d2ded92bab5a5c145e0eca66a0479df55445924ae3"
+    },
+    "formal/HiaCapabilityLifecycle.lean": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/formal/HiaCapabilityLifecycle.lean",
+      "sha256": "e530f7e7bfbfd759a7ac27c81290a5ad1d0b4b524417d185981d47b3fb610020"
+    },
+    "formal/HiaInitializationPrefix.lean": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/formal/HiaInitializationPrefix.lean",
+      "sha256": "167316fc09da9a871b2fbcb3667966fcc6f9288b7ac1ede2f0aac501c8636278"
+    },
+    "formal/HiaRegisterSafety.lean": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/formal/HiaRegisterSafety.lean",
+      "sha256": "40f10041a8031f5f459d30229d42528b2f990d88c0035b5c6d31d76608f7b10a"
+    },
+    "hepta/checker.py": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/hepta/checker.py",
+      "sha256": "83fa87f5098f2bef27265e5d810a70d9cf4625b816b8550a6a7b6d713005240a"
+    },
+    "hepta/core.py": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/hepta/core.py",
+      "sha256": "6bd130f3b6277c49f9ce756235642c36c27ae865fd2f9b63d6bac09dedb9c4c8"
+    },
+    "hepta/hia_agent_assembly.py": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/hepta/hia_agent_assembly.py",
+      "sha256": "0f50123394b1bd2d82f1a87657e66055443770361dade9c57329fa69336add27"
+    },
+    "hepta/hia_capability_flow.py": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/hepta/hia_capability_flow.py",
+      "sha256": "95394f56ae64be96919f234142e96d7af9a8ec18524504b10cf8f7cea3b9b530"
+    },
+    "hepta/hia_core_upgrade.py": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/hepta/hia_core_upgrade.py",
+      "sha256": "550608c7b654c0af45cda8f122230188c1989069fda2dac4e05c285f7ce77570"
+    },
+    "hepta/hia_heap_bound.py": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/hepta/hia_heap_bound.py",
+      "sha256": "62dbb3e9335350b415a2da8808b2b87048407343001ba6668ab2023f4ea0cce1"
+    },
+    "hepta/hia_opcodes.py": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/hepta/hia_opcodes.py",
+      "sha256": "155ad9de58affbb4352725daa73aed95de3abca6f420b206d3defe3b799b2f63"
+    },
+    "hepta/hia_program.py": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/hepta/hia_program.py",
+      "sha256": "7e4f3ba54e0862b42b053e765addfae6116469100245f4f16882d4a8f20049d5"
+    },
+    "hepta/hia_program_composite.py": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/hepta/hia_program_composite.py",
+      "sha256": "ef86ca2ce6973c8ec2042b0853fbda5fca345e575c784cd751ca3670ea6e3a11"
+    },
+    "hepta/hia_program_llvm.py": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/hepta/hia_program_llvm.py",
+      "sha256": "334776f8bf9623ffbb172393cda8a59d6950e66c9794f7c9d41d7f9bbd57667b"
+    },
+    "hepta/hia_program_runtime.py": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/hepta/hia_program_runtime.py",
+      "sha256": "1f3c6c1718809c5a00a0c796a116ada0e6e4d64d998e01418f8ce53f1234205b"
+    },
+    "hepta/hia_program_source.py": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/hepta/hia_program_source.py",
+      "sha256": "70c6a864d7bd69dc923a60903314614dadfb1bbafdb14491037a99c08fd2fa9b"
+    },
+    "hepta/hia_routes.py": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/hepta/hia_routes.py",
+      "sha256": "b4b018564331440b497c450382743f3d4f6043ce9b4a62e9701317c3a144f811"
+    },
+    "hepta/hia_scalar_lowering_check.py": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/hepta/hia_scalar_lowering_check.py",
+      "sha256": "ce622a85751a8108babf2eda2286eb7ca5fb9ac3b3ebee06cd5552fea59e181b"
+    },
+    "hepta/hia_scalar_totality.py": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/hepta/hia_scalar_totality.py",
+      "sha256": "115d9dafcb9461476fed05978e07b9eb0104e96c410fdf447689e4961e200704"
+    },
+    "hepta/hia_schema.py": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/hepta/hia_schema.py",
+      "sha256": "b6bd0864fbe2a90e8f2f705da1d81c8b1afae001d8608f54f8f1fca477cdf253"
+    },
+    "hepta/hia_source_bridge.py": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/hepta/hia_source_bridge.py",
+      "sha256": "e7e47a7e8ae90135af0d2c52b6e16b73c5db0db76b6efaa69b7cee5fb18ab82e"
+    },
+    "hepta/hia_static_budget.py": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/hepta/hia_static_budget.py",
+      "sha256": "c26ec6ba5badc4c8c4863dbbfab9cfbe99e8167c8b674f216763694f1995b1d5"
+    },
+    "tests/test_core_seven_acceptance.py": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/tests/test_core_seven_acceptance.py",
+      "sha256": "ed79e513624dca0e6fde04555142b31c8168dacad4800eafa72aaf553d4ed538"
+    },
+    "tests/test_hia_bounded_profile.py": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/tests/test_hia_bounded_profile.py",
+      "sha256": "666925ddbb0b5267407e567aed4ba7a9f37b70726d2be57c28c22f0162c160d8"
+    },
+    "tools/core_seven_acceptance_capture.py": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/tools/core_seven_acceptance_capture.py",
+      "sha256": "6b8a939bf37cd86518b8a4ad3583e43fc1f5611ef5809d8399f0a44b733b56ba"
+    },
+    "tools/core_seven_shared_acceptance_plan.py": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/tools/core_seven_shared_acceptance_plan.py",
+      "sha256": "b85869fec7a417d063f0b7dcea9e7aaf5903fbbf4acbf1d95cbdbd5e2588d69a"
+    },
+    "tools/core_seven_shared_sources.py": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/tools/core_seven_shared_sources.py",
+      "sha256": "2ce1b2f646976e189cff120b5b6790a12e24ecfc8fe7541f0947b9cb3723a61f"
+    },
+    "tools/extract_initialization_obligations.py": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/tools/extract_initialization_obligations.py",
+      "sha256": "aff85512735981de46fc72c7b875f70434206d750e47ff5583f7f2ce917b4da3"
+    },
+    "tools/qualify_hia_composition.py": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/tools/qualify_hia_composition.py",
+      "sha256": "156d8364e4ac854baa2d47b8aac6d41da26537530e354e7565193a29cc876d35"
+    },
+    "tools/qualify_hia_sequential_core.py": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/tools/qualify_hia_sequential_core.py",
+      "sha256": "4fcfd16d0c5d10c015e35a9ad873bf6cb2e46b4514ef1499f25771705b3815a3"
+    },
+    "tools/qualify_hia_stb_divide_update.py": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/tools/qualify_hia_stb_divide_update.py",
+      "sha256": "e9c772fe60106f275066897241f28037448776c6573c4ab169b00d5a1befe23b"
+    },
+    "tools/qualify_hia_stb_service.py": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/tools/qualify_hia_stb_service.py",
+      "sha256": "c0f99c98f4c601425fabb1cbd6213ddfa49457d0470d5deaa1dc41c4852c6ef4"
+    },
+    "tools/verify_hia_capabilities.py": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/tools/verify_hia_capabilities.py",
+      "sha256": "410f2e8cc85dd7a08479fcc090d32419b1360edd14869204dae2f3a170c4682e"
+    },
+    "tools/verify_hia_capability_borrow.py": {
+      "absolute_path": "/workspace/scratch/00b1abdae74b/hepta-work/tools/verify_hia_capability_borrow.py",
+      "sha256": "9ae3ad6c2d65be01949143ade178aca2dad40e56804f7ad5da8af30d5606b1bb"
+    }
+  },
+  "still_unproved": {
+    "additional_implementation_gaps": [
+      {
+        "claim_zh": "生产source checker/迁移器/Hepta lowering→实际Core的全输入refinement尚缺。",
+        "code_refs": [
+          {
+            "file": "hepta/hia_program_source.py",
+            "symbols": [
+              "lower_source"
+            ]
+          },
+          {
+            "file": "hepta/checker.py",
+            "symbols": [
+              "check"
+            ]
+          }
+        ],
+        "evidence_paths": [
+          "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEQUENTIAL_CORE_PROOF_CHAIN.md"
+        ],
+        "id": "source_refinement",
+        "scope_zh": "有限原body迁移对照和源身份检查不能代替该证明。",
+        "status": "UNPROVED"
+      },
+      {
+        "claim_zh": "实际Core type/owner/loan checker→Lean资源模型的soundness/refinement尚缺。",
+        "code_refs": [
+          {
+            "file": "hepta/hia_program.py",
+            "symbols": [
+              "verify_program",
+              "_BlockCheck"
+            ]
+          },
+          {
+            "file": "formal/HiaCapabilityBorrow.lean",
+            "symbols": []
+          }
+        ],
+        "evidence_paths": [
+          "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEQUENTIAL_CORE_PROOF_CHAIN.md"
+        ],
+        "id": "checker_model_refinement",
+        "scope_zh": "抽象trace定理与有限实际witness不蕴含所有接受程序安全。",
+        "status": "UNPROVED"
+      },
+      {
+        "claim_zh": "事件/heap分析到实际VM全部执行的泛型机器检查soundness证明尚缺。",
+        "code_refs": [
+          {
+            "file": "hepta/hia_static_budget.py",
+            "symbols": [
+              "qualify_bounded_resources",
+              "analyze_static_budget"
+            ]
+          },
+          {
+            "file": "hepta/hia_heap_bound.py",
+            "symbols": [
+              "analyze_constant_live_heap",
+              "qualify_entry_live_heap_budget"
+            ]
+          }
+        ],
+        "evidence_paths": [
+          "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_BOUNDED_BYTE_PROFILE.md"
+        ],
+        "id": "budget_analysis_soundness",
+        "scope_zh": "本轮fresh准入、保守分析与有限ledger对照不能写成新的Lean资源定理。",
+        "status": "UNPROVED"
+      },
+      {
+        "claim_zh": "动态allocation/epoch、memory load/store、owner/loan/drop、allocator refusal及首个trap在VM/LLVM间的一般保持证明尚缺。",
+        "code_refs": [
+          {
+            "file": "hepta/hia_program_runtime.py",
+            "symbols": [
+              "_Machine"
+            ]
+          },
+          {
+            "file": "hepta/hia_program_llvm.py",
+            "symbols": [
+              "_FunctionEmitter"
+            ]
+          },
+          {
+            "file": "hepta/hia_scalar_lowering_check.py",
+            "symbols": [
+              "verify_scalar_lowering"
+            ]
+          }
+        ],
+        "evidence_paths": [
+          "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEQUENTIAL_CORE_PROOF_CHAIN.md",
+          "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_BOUNDED_BYTE_PROFILE.md"
+        ],
+        "id": "resource_vm_llvm_refinement",
+        "scope_zh": "scalar lowering validator排除resources；两种profile不能通过共享名称或不同artifact的通过结果拼成此结论。",
+        "status": "UNPROVED"
+      },
+      {
+        "claim_zh": "LLVM优化/codegen、linker、C ABI、loader/libc、OS与硬件的组合保证尚缺。",
+        "code_refs": [
+          {
+            "file": "hepta/hia_program_llvm.py",
+            "symbols": [
+              "compile_program_llvm"
+            ]
+          },
+          {
+            "file": "formal/HeptaCore.lean",
+            "symbols": [
+              "lowering_preserves_value"
+            ]
+          }
+        ],
+        "evidence_paths": [
+          "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEQUENTIAL_CORE_PROOF_CHAIN.md"
+        ],
+        "id": "machine_backend_and_abi",
+        "scope_zh": "实际native编译和有限对照属于执行证据；抽象栈机lowering theorem不是LLVM emitter证明。",
+        "status": "UNPROVED"
+      }
+    ],
+    "initialization_bridge_obligations": [
+      {
+        "code_refs": [
+          {
+            "file": "tools/extract_initialization_obligations.py",
+            "symbols": [
+              "OBLIGATIONS",
+              "MODEL_SYMBOLS",
+              "extract_obligations",
+              "check_obligation_transport"
+            ]
+          }
+        ],
+        "definition": "Simultaneous ordered incoming operands refine the model environment.",
+        "description_zh": "真实 VM state、operand 和同步 PHI/CFG edge binding 到模型环境的映射。",
+        "evidence_paths": [
+          "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEQUENTIAL_CORE_PROOF_CHAIN.md",
+          "/workspace/scratch/00b1abdae74b/hepta-work/experiments/hia_initialization_frontiers_20261103/CORE_MODEL_CONNECTION.md"
+        ],
+        "id": "environment_phi",
+        "scope_zh": "production Core→初始化前缀模型的连接义务；不能用窄syntax certificate或保存的witness关闭。",
+        "status": "UNPROVED"
+      },
+      {
+        "code_refs": [
+          {
+            "file": "tools/extract_initialization_obligations.py",
+            "symbols": [
+              "OBLIGATIONS",
+              "MODEL_SYMBOLS",
+              "extract_obligations",
+              "check_obligation_transport"
+            ]
+          }
+        ],
+        "definition": "Static root denotes the same live dynamic allocation instance.",
+        "description_zh": "静态 allocation root 与相同 live dynamic allocation instance/epoch 的对应。",
+        "evidence_paths": [
+          "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEQUENTIAL_CORE_PROOF_CHAIN.md",
+          "/workspace/scratch/00b1abdae74b/hepta-work/experiments/hia_initialization_frontiers_20261103/CORE_MODEL_CONNECTION.md"
+        ],
+        "id": "dynamic_owner",
+        "scope_zh": "production Core→初始化前缀模型的连接义务；不能用窄syntax certificate或保存的witness关闭。",
+        "status": "UNPROVED"
+      },
+      {
+        "code_refs": [
+          {
+            "file": "tools/extract_initialization_obligations.py",
+            "symbols": [
+              "OBLIGATIONS",
+              "MODEL_SYMBOLS",
+              "extract_obligations",
+              "check_obligation_transport"
+            ]
+          }
+        ],
+        "definition": "Normal allocation success binds requested N to actual owner length; failure does not.",
+        "description_zh": "请求长度、成功 owner 长度、try_new 失败空 owner、对象/usize/预算边界及 allocator outcome 耦合。",
+        "evidence_paths": [
+          "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEQUENTIAL_CORE_PROOF_CHAIN.md",
+          "/workspace/scratch/00b1abdae74b/hepta-work/experiments/hia_initialization_frontiers_20261103/CORE_MODEL_CONNECTION.md"
+        ],
+        "id": "allocation_extent",
+        "scope_zh": "production Core→初始化前缀模型的连接义务；不能用窄syntax certificate或保存的witness关闭。",
+        "status": "UNPROVED"
+      },
+      {
+        "code_refs": [
+          {
+            "file": "tools/extract_initialization_obligations.py",
+            "symbols": [
+              "OBLIGATIONS",
+              "MODEL_SYMBOLS",
+              "extract_obligations",
+              "check_obligation_transport"
+            ]
+          }
+        ],
+        "definition": "Unsigned Core values and unit steps refine bounded Nat without wrap.",
+        "description_zh": "Core 有限 unsigned 算术到 Nat 的映射与必要 checked/wrap guard。",
+        "evidence_paths": [
+          "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEQUENTIAL_CORE_PROOF_CHAIN.md",
+          "/workspace/scratch/00b1abdae74b/hepta-work/experiments/hia_initialization_frontiers_20261103/CORE_MODEL_CONNECTION.md"
+        ],
+        "id": "finite_integer",
+        "scope_zh": "production Core→初始化前缀模型的连接义务；不能用窄syntax certificate或保存的witness关闭。",
+        "status": "UNPROVED"
+      },
+      {
+        "code_refs": [
+          {
+            "file": "tools/extract_initialization_obligations.py",
+            "symbols": [
+              "OBLIGATIONS",
+              "MODEL_SYMBOLS",
+              "extract_obligations",
+              "check_obligation_transport"
+            ]
+          }
+        ],
+        "definition": "Successful checked seed store establishes 0<N; traps do not complete.",
+        "description_zh": "header/body seed 及成功首个 store 所需 0<N；trap 不能算完成。",
+        "evidence_paths": [
+          "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEQUENTIAL_CORE_PROOF_CHAIN.md",
+          "/workspace/scratch/00b1abdae74b/hepta-work/experiments/hia_initialization_frontiers_20261103/CORE_MODEL_CONNECTION.md"
+        ],
+        "id": "direct_body_seed",
+        "scope_zh": "production Core→初始化前缀模型的连接义务；不能用窄syntax certificate或保存的witness关闭。",
+        "status": "UNPROVED"
+      },
+      {
+        "code_refs": [
+          {
+            "file": "tools/extract_initialization_obligations.py",
+            "symbols": [
+              "OBLIGATIONS",
+              "MODEL_SYMBOLS",
+              "extract_obligations",
+              "check_obligation_transport"
+            ]
+          }
+        ],
+        "definition": "Successful store refines write at the same root/index/byte and frames other bytes.",
+        "description_zh": "真实 store 对同一 live root/index/value 的 write 与其他字节 frame。",
+        "evidence_paths": [
+          "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEQUENTIAL_CORE_PROOF_CHAIN.md",
+          "/workspace/scratch/00b1abdae74b/hepta-work/experiments/hia_initialization_frontiers_20261103/CORE_MODEL_CONNECTION.md"
+        ],
+        "id": "store_write_frame",
+        "scope_zh": "production Core→初始化前缀模型的连接义务；不能用窄syntax certificate或保存的witness关闭。",
+        "status": "UNPROVED"
+      },
+      {
+        "code_refs": [
+          {
+            "file": "tools/extract_initialization_obligations.py",
+            "symbols": [
+              "OBLIGATIONS",
+              "MODEL_SYMBOLS",
+              "extract_obligations",
+              "check_obligation_transport"
+            ]
+          }
+        ],
+        "definition": "Stored value schedule and dependencies are independent of initial bytes where needed.",
+        "description_zh": "写入值序列及其依赖在所需范围内独立于初始字节。",
+        "evidence_paths": [
+          "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEQUENTIAL_CORE_PROOF_CHAIN.md",
+          "/workspace/scratch/00b1abdae74b/hepta-work/experiments/hia_initialization_frontiers_20261103/CORE_MODEL_CONNECTION.md"
+        ],
+        "id": "value_schedule",
+        "scope_zh": "production Core→初始化前缀模型的连接义务；不能用窄syntax certificate或保存的witness关闭。",
+        "status": "UNPROVED"
+      },
+      {
+        "code_refs": [
+          {
+            "file": "tools/extract_initialization_obligations.py",
+            "symbols": [
+              "OBLIGATIONS",
+              "MODEL_SYMBOLS",
+              "extract_obligations",
+              "check_obligation_transport"
+            ]
+          }
+        ],
+        "definition": "Reached completion edge entails normal completed fill, not a trapped prefix.",
+        "description_zh": "实际 completion 代表正常完成，区分 trapped prefix、预算停止和不终止。",
+        "evidence_paths": [
+          "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEQUENTIAL_CORE_PROOF_CHAIN.md",
+          "/workspace/scratch/00b1abdae74b/hepta-work/experiments/hia_initialization_frontiers_20261103/CORE_MODEL_CONNECTION.md"
+        ],
+        "id": "normal_completion",
+        "scope_zh": "production Core→初始化前缀模型的连接义务；不能用窄syntax certificate或保存的witness关闭。",
+        "status": "UNPROVED"
+      },
+      {
+        "code_refs": [
+          {
+            "file": "tools/extract_initialization_obligations.py",
+            "symbols": [
+              "OBLIGATIONS",
+              "MODEL_SYMBOLS",
+              "extract_obligations",
+              "check_obligation_transport"
+            ]
+          }
+        ],
+        "definition": "Empty completion uses the same allocation extent, including every phi edge.",
+        "description_zh": "N=0 completion 使用同一 allocation extent，包含所有 PHI 边。",
+        "evidence_paths": [
+          "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEQUENTIAL_CORE_PROOF_CHAIN.md",
+          "/workspace/scratch/00b1abdae74b/hepta-work/experiments/hia_initialization_frontiers_20261103/CORE_MODEL_CONNECTION.md"
+        ],
+        "id": "empty_extent",
+        "scope_zh": "production Core→初始化前缀模型的连接义务；不能用窄syntax certificate或保存的witness关闭。",
+        "status": "UNPROVED"
+      },
+      {
+        "code_refs": [
+          {
+            "file": "tools/extract_initialization_obligations.py",
+            "symbols": [
+              "OBLIGATIONS",
+              "MODEL_SYMBOLS",
+              "extract_obligations",
+              "check_obligation_transport"
+            ]
+          }
+        ],
+        "definition": "Actual traces refine labelled CFG edges and per-load same-root cuts.",
+        "description_zh": "真实 trace 对应 labelled CFG edges 与每个 load 的同根 completion cut。",
+        "evidence_paths": [
+          "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEQUENTIAL_CORE_PROOF_CHAIN.md",
+          "/workspace/scratch/00b1abdae74b/hepta-work/experiments/hia_initialization_frontiers_20261103/CORE_MODEL_CONNECTION.md"
+        ],
+        "id": "trace_edge_cut",
+        "scope_zh": "production Core→初始化前缀模型的连接义务；不能用窄syntax certificate或保存的witness关闭。",
+        "status": "UNPROVED"
+      },
+      {
+        "code_refs": [
+          {
+            "file": "tools/extract_initialization_obligations.py",
+            "symbols": [
+              "OBLIGATIONS",
+              "MODEL_SYMBOLS",
+              "extract_obligations",
+              "check_obligation_transport"
+            ]
+          }
+        ],
+        "definition": "Coverage persists through later effects without inheriting a dropped/reallocated root.",
+        "description_zh": "completion 后 coverage/frame 在 borrow/move/drop/reallocation 后的正确维持。",
+        "evidence_paths": [
+          "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEQUENTIAL_CORE_PROOF_CHAIN.md",
+          "/workspace/scratch/00b1abdae74b/hepta-work/experiments/hia_initialization_frontiers_20261103/CORE_MODEL_CONNECTION.md"
+        ],
+        "id": "post_completion_frame",
+        "scope_zh": "production Core→初始化前缀模型的连接义务；不能用窄syntax certificate或保存的witness关闭。",
+        "status": "UNPROVED"
+      },
+      {
+        "code_refs": [
+          {
+            "file": "tools/extract_initialization_obligations.py",
+            "symbols": [
+              "OBLIGATIONS",
+              "MODEL_SYMBOLS",
+              "extract_obligations",
+              "check_obligation_transport"
+            ]
+          }
+        ],
+        "definition": "Output/resource/backend/quota equivalence requires separate proofs.",
+        "description_zh": "同一程序上组合 output/resource/first-trap/refusal、分配耦合、backend 与 quota 边界；不得推出时间/step/quota 等价。",
+        "evidence_paths": [
+          "/workspace/scratch/00b1abdae74b/hepta-work/docs/HIA_SEQUENTIAL_CORE_PROOF_CHAIN.md",
+          "/workspace/scratch/00b1abdae74b/hepta-work/experiments/hia_initialization_frontiers_20261103/CORE_MODEL_CONNECTION.md"
+        ],
+        "id": "observational_boundary",
+        "scope_zh": "production Core→初始化前缀模型的连接义务；不能用窄syntax certificate或保存的witness关闭。",
+        "status": "UNPROVED"
+      }
+    ]
+  }
+}
