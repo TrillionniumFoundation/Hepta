@@ -40,7 +40,7 @@ def require(value, message):
 
 def verify_udp_delivery(value, workload, policy):
     """Independently recompute offered load, receiver goodput and loss from raw iperf receipts."""
-    offered_match = re.fullmatch(r"([0-9]+(?:\\.[0-9]+)?)([KMG])",
+    offered_match = re.fullmatch(r"([0-9]+(?:\.[0-9]+)?)([KMG])",
                                  str(workload.get("offered_rate_each_direction")))
     require(offered_match is not None, "unsupported UDP offered-rate syntax")
     scale = {"K": 1_000, "M": 1_000_000, "G": 1_000_000_000}[offered_match.group(2)]
