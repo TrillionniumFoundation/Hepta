@@ -1,0 +1,54 @@
+name: HIA Linux native component and evidence contract
+
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'examples/hia_linux_kernel/**'
+      - 'experiments/hia_linux_kernel_20261106/**'
+      - 'benchmarks/hia_linux_kernel/**'
+      - 'tools/qualify_hia_linux_*.py'
+      - 'tools/qualify_hia_three_lane.py'
+      - 'tests/test_hia_linux_*.py'
+      - '.github/workflows/hia-linux-kernel.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-object-and-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      HIA_KERNEL_CLANG: /usr/lib/llvm-20/bin/clang
+      HIA_KERNEL_OBJDUMP: /usr/lib/llvm-20/bin/llvm-objdump
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Clang 20 and exact solver dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/hia-linux-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key
+          llvm_fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hia-linux-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')
+          test "$llvm_fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+          sudo install -m 0644 "$RUNNER_TEMP/hia-linux-llvm.asc" /usr/share/keyrings/hia-linux-llvm.asc
+          printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hia-linux-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hia-linux-llvm20.list
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y clang-20 llvm-20 lld-20 build-essential
+          python -m pip install --disable-pip-version-check 'z3-solver==4.15.4.0'
+          "$HIA_KERNEL_CLANG" --version
+          "$HIA_KERNEL_OBJDUMP" --version
+      - name: Execute exact regression inventory with zero skips
+        run: python -B tools/qualify_hia_linux_tests.py --output "$RUNNER_TEMP/hia-linux-regressions.json"
+      - name: Retain actual regression receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-linux-native-contract-${{ github.sha }}
+          path: ${{ runner.temp }}/hia-linux-regressions.json
+          if-no-files-found: error
