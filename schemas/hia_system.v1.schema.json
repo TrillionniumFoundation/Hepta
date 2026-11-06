@@ -1648,12 +1648,35 @@
           "items": {
             "$ref": "#/$defs/instruction"
           }
+        },
+        "use_order": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "user": {
+                "$ref": "#/$defs/value"
+              },
+              "operand": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4294967295
+              }
+            },
+            "required": [
+              "user",
+              "operand"
+            ],
+            "additionalProperties": false
+          },
+          "description": "Exact ordered references to the users and operand slots of this basic block. The decoder validates a bijection over all fresh LLVM uses and writes bitcode preserving the resulting order."
         }
       },
       "required": [
         "id",
         "name",
-        "instructions"
+        "instructions",
+        "use_order"
       ],
       "additionalProperties": false
     },

@@ -1036,8 +1036,16 @@ J encodeModule(const Module &M) {
         Inst["metadata"] = attachments(I, E);
         Insts.push_back(std::move(Inst));
       }
+      // LLVM's predecessor iteration follows the BasicBlock use-list. Preserve
+      // its exact edge order as explicit user/operand references, including
+      // blockaddress users; no original instruction or module is reused.
+      A Uses;
+      for (const Use &U : B.uses())
+        Uses.push_back(O{{"user", E.value(U.getUser())},
+                         {"operand", int64_t(U.getOperandNo())}});
       Blocks.push_back(O{{"id", E.P->Values.at(&B)}, {"name", B.getName().str()},
-                         {"instructions", std::move(Insts)}});
+                         {"instructions", std::move(Insts)},
+                         {"use_order", std::move(Uses)}});
     }
     R["blocks"] = std::move(Blocks);
     Functions.push_back(std::move(R));
@@ -1212,7 +1220,7 @@ std::unique_ptr<Module> decodeModule(const J &Document, LLVMContext &C) {
     }
     for (auto &Block : arr(req(O, "blocks"))) {
       auto &BO = obj(Block);
-      keys(BO, {"id", "name", "instructions"});
+      keys(BO, {"id", "name", "instructions", "use_order"});
       auto *B = BasicBlock::Create(C, str(BO, "name"), F);
       if (B->getName() != str(BO, "name")) fail("duplicate block name");
       D.bind(str(BO, "id"), B);
@@ -1286,6 +1294,30 @@ std::unique_ptr<Module> decodeModule(const J &Document, LLVMContext &C) {
     }
   }
   D.finish();
+  // Restore use-list order only after all instruction operands, constants and
+  // metadata exist. The descriptor must be a bijection over the fresh uses.
+  for (auto &Entry : arr(req(Root, "functions"))) {
+    for (auto &Block : arr(req(obj(Entry), "blocks"))) {
+      auto &BO = obj(Block);
+      auto *B = cast<BasicBlock>(D.P->Values.at(str(BO, "id")));
+      std::map<const Use *, unsigned> Rank;
+      unsigned Position = 0;
+      for (auto &UseEntry : arr(req(BO, "use_order"))) {
+        auto &UO = obj(UseEntry);
+        keys(UO, {"user", "operand"});
+        auto *User = need<llvm::User>(D.value(req(UO, "user")), "basic block use-list user");
+        unsigned Operand = uint(UO, "operand", UINT32_MAX);
+        if (Operand >= User->getNumOperands()) fail("basic block use operand is out of range");
+        auto &U = User->getOperandUse(Operand);
+        if (U.get() != B) fail("use-list edge does not reference its basic block");
+        if (!Rank.emplace(&U, Position++).second) fail("duplicate basic block use-list edge");
+      }
+      if (Rank.size() != B->getNumUses()) fail("incomplete basic block use-list");
+      B->sortUseList([&](const Use &L, const Use &R) {
+        return Rank.at(&L) < Rank.at(&R);
+      });
+    }
+  }
   return M;
 }
 
@@ -1369,7 +1401,7 @@ int main(int Argc, char **Argv) {
       std::error_code EC;
       llvm::raw_fd_ostream Out(Argv[3], EC, llvm::sys::fs::OF_None);
       if (EC) hia::fail(llvm::Twine("cannot open bitcode output: ") + EC.message());
-      llvm::WriteBitcodeToFile(*Module, Out, false);
+      llvm::WriteBitcodeToFile(*Module, Out, true);
       Out.flush();
       if (Out.has_error()) hia::fail("bitcode output failed");
     }

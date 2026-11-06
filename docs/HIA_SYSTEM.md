@@ -148,3 +148,13 @@ HIA-with-NDU runs, including compilation costs, image size, boot, workload
 throughput/latency, memory usage and failure rates. Results must state the
 measured configuration and workloads rather than generalizing to every
 Linux configuration.
+
+## Basic-block use order
+
+Every basic block explicitly records `use_order`, an ordered list of user values
+and operand indices. Reconstruction validates that this list is a bijection over
+the freshly created uses, including blockaddress constants, and restores it before
+writing bitcode with LLVM use-list preservation enabled. This preserves exact
+predecessor presentation and iteration order without dropping canonical-IR lines
+or weakening the full roundtrip equality gate. Missing, duplicate, foreign, or
+out-of-range use references reject.
