@@ -233,6 +233,36 @@ def _same_path(left, right, name):
     _require(Path(left).resolve(strict=True) == Path(right).resolve(strict=True), name + " path differs from executed command")
 
 
+def _qemu_runtime_evidence(baseline, boot_argv):
+    """Bind the workspace TCG modules and its observed paused startup."""
+    from tools.qualify_hia_linux_baseline import qemu_machine_command
+    qemu = baseline["qemu"]
+    _require({"module_dir", "modules", "runtime_preflight"} <= set(qemu) and "build_environment" in baseline,
+             "boot PASS requires bound QEMU modules, environment and runtime preflight")
+    directory = Path(qemu["module_dir"])
+    _require(directory.is_absolute() and str(directory.resolve(strict=True)) == qemu["module_dir"] and
+             (directory / "accel-tcg-x86_64.so").is_file(), "bound QEMU TCG module directory is incomplete")
+    actual = [_identity(path) for path in sorted(directory.glob("*.so")) if path.is_file()]
+    _require(type(qemu["modules"]) is list and actual == qemu["modules"], "QEMU module bytes or complete module denominator differ")
+    _bound(baseline["build_environment"], "QEMU execution environment")
+    environment = _read(baseline["build_environment"]["path"])
+    _require(environment.get("QEMU_MODULE_DIR") == qemu["module_dir"], "QEMU module environment differs from bound directory")
+    preflight = qemu["runtime_preflight"]
+    _require(preflight.get("status") == "PASS" and preflight.get("scope") == "paused_tcg_startup_no_kernel_execution",
+             "QEMU runtime preflight is incomplete or claims kernel execution")
+    record = preflight["command_receipt"]
+    argv = _command(record, "qemu-tcg-runtime-preflight")
+    _require([r for r in baseline["commands"] if r.get("name") == "qemu-tcg-runtime-preflight"] == [record],
+             "runtime preflight is not the unique original command")
+    _same_path(argv[0], qemu["path"], "preflight QEMU binary")
+    _require(argv == qemu_machine_command(argv[0], _option(boot_argv, "-L"), qemu["bios"]["path"], paused=True),
+             "runtime preflight arguments differ from the bound paused TCG machine")
+    _bound(record["stdin"], "runtime preflight input")
+    _require(Path(record["stdin"]["path"]).read_bytes() == b"quit\n" and record.get("timeout_seconds") == 15 and
+             record["exit_code"] == 0 and record["timed_out"] is False,
+             "runtime preflight did not complete its registered paused startup and quit")
+
+
 def _boot_evidence(protocol, baseline, *, command_name="boot-stock-kernel-tcg"):
     """Replay actual serial frames and bind the exact guest invocation.
 
@@ -259,6 +289,8 @@ def _boot_evidence(protocol, baseline, *, command_name="boot-stock-kernel-tcg"):
                             baseline["qemu"]["bios"]["path"], baseline["kernel_image"]["path"],
                             baseline["initramfs"]["path"], run_id, protocol["linux"]["version"])
     _require(argv == expected, "boot arguments do not match the bound image, initramfs, identity and frozen machine")
+    if baseline["boot_status"] == "PASS":
+        _qemu_runtime_evidence(baseline, argv)
     init = Path(baseline["guest_init"]["path"]).read_bytes()
     entries = [(name, stat.S_IFDIR | 0o755, b"", 0, 0) for name in ("dev", "proc", "sys", "tmp")]
     entries += [("dev/console", stat.S_IFCHR | 0o600, b"", 5, 1),

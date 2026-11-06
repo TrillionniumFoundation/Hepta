@@ -10,6 +10,7 @@ import sys
 import tarfile
 import tempfile
 import unittest
+from unittest import mock
 
 from tools import qualify_hia_linux_baseline as baseline
 
@@ -71,6 +72,41 @@ class GuestEvidence(unittest.TestCase):
 
 
 class InputsAndProcesses(unittest.TestCase):
+    def test_module_directory_is_explicit_and_never_inherited_from_ambient_environment(self):
+        with tempfile.TemporaryDirectory() as directory, mock.patch.dict(os.environ, {'QEMU_MODULE_DIR': '/ambient/untrusted'}):
+            root = Path(directory)
+            env = baseline.build_environment(root/'llvm/bin', root/'sysroot')
+            self.assertEqual(env['QEMU_MODULE_DIR'], str(root/'sysroot/usr/lib/x86_64-linux-gnu/qemu'))
+            self.assertNotIn('QEMU_MODULE_DIR', baseline.build_environment(root/'llvm/bin'))
+            with self.assertRaisesRegex(ValueError, 'runtime module is missing'):
+                baseline.qemu_runtime_modules(env)
+            modules = Path(env['QEMU_MODULE_DIR']); modules.mkdir(parents=True)
+            target = modules/'accel-tcg-x86_64.so'; target.write_bytes(b'first module bytes')
+            before = baseline.qemu_runtime_modules(env)
+            target.write_bytes(b'different module bytes')
+            self.assertNotEqual(baseline.qemu_runtime_modules(env), before)
+
+    def test_preflight_keeps_cpu_paused_and_has_no_kernel_or_network(self):
+        command = baseline.qemu_machine_command('qemu', 'data', 'bios', paused=True)
+        self.assertIn('-S', command)
+        self.assertEqual(command[command.index('-monitor')+1], 'stdio')
+        self.assertEqual(command[command.index('-serial')+1], 'none')
+        self.assertEqual(command[command.index('-nic')+1], 'none')
+        self.assertNotIn('-kernel', command)
+        self.assertNotIn('-initrd', command)
+
+    def test_bounded_real_process_input_is_preserved_and_not_interactive(self):
+        with tempfile.TemporaryDirectory() as directory:
+            runner = baseline.CommandRunner(directory, {'PATH': os.environ['PATH']})
+            record = runner.run('quit-input', [sys.executable, '-c',
+                'import sys; data=sys.stdin.buffer.read(); sys.stdout.buffer.write(data); sys.exit(0 if data==b"quit\\n" else 7)'],
+                stdin_bytes=b'quit\n')
+            self.assertEqual(Path(record['stdin']['path']).read_bytes(), b'quit\n')
+            self.assertEqual(record['stdin']['sha256'], hashlib.sha256(b'quit\n').hexdigest())
+            self.assertEqual(Path(record['stdout']['path']).read_bytes(), b'quit\n')
+            with self.assertRaisesRegex(ValueError, 'bounded bytes'):
+                runner.run('too-large', [sys.executable], stdin_bytes=b'x'*4097)
+
     def test_newc_preserves_executable_bytes_and_console_device(self):
         body = b'ELF fixture bytes\x00\xff'
         archive = baseline.newc([('init', stat.S_IFREG | 0o755, body, 0, 0),

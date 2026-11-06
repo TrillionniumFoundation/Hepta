@@ -51,6 +51,12 @@ def validate_stock(stock):
         checked_binding(stock[key])
     checked_binding(stock['qemu'])
     checked_binding(stock['qemu']['bios'])
+    if 'module_dir' in stock['qemu']:
+        checked_binding(stock['build_environment'])
+        environment = json.loads(Path(stock['build_environment']['path']).read_bytes())
+        require(environment.get('QEMU_MODULE_DIR') == stock['qemu']['module_dir'], 'stock QEMU module environment mismatch')
+        require(base.qemu_runtime_modules(environment) == {key: stock['qemu'][key] for key in ('module_dir', 'modules')},
+                'stock QEMU runtime modules changed')
     command = stock['boot']['command_receipt']
     for key in ('stdout', 'stderr'):
         checked_binding(command[key])
@@ -180,8 +186,17 @@ def main(argv=None):
         stock_environment = Path(args.baseline).parent / 'build-environment.json'
         require(json.loads(stock_environment.read_bytes()) == env, 'compiler environment differs from stock')
         result['build_environment'] = base.identity(stock_environment)
-        result['compiler'], result['llvm_tools'], result['qemu'] = stock['compiler'], stock['llvm_tools'], stock['qemu']
+        result['compiler'], result['llvm_tools'], result['qemu'] = stock['compiler'], stock['llvm_tools'], dict(stock['qemu'])
         runner = base.CommandRunner(output, env)
+        stock_argv = stock['boot']['command_receipt']['argv']
+        preflight = runner.run('qemu-tcg-runtime-preflight', base.qemu_machine_command(
+            stock['qemu']['path'], single_option(stock_argv, '-L'), stock['qemu']['bios']['path'], paused=True),
+            timeout=15, check=False, stdin_bytes=b'quit\n')
+        preflight_ok = preflight['exit_code'] == 0 and not preflight['timed_out']
+        result['qemu']['runtime_preflight'] = {
+            'status': 'PASS' if preflight_ok else 'FAIL', 'scope': 'paused_tcg_startup_no_kernel_execution',
+            'command_receipt': preflight}
+        require(preflight_ok, 'paired QEMU TCG runtime preflight failed before kernel build')
         copied = output / 'linux-source'
         runner.run('copy-pristine-source', ['cp', '--reflink=auto', '-a', source, copied], timeout=300)
         require_independent_inodes(source, copied, before)
@@ -246,10 +261,13 @@ def main(argv=None):
         result['build_status'] = 'PASS'
         result['guest_init'], result['initramfs'] = stock['guest_init'], stock['initramfs']
         result['run_id'] = hashlib.sha256((str(output) + base.utc()).encode()).hexdigest()[:24]
-        stock_argv = stock['boot']['command_receipt']['argv']
         command = base.qemu_command(stock['qemu']['path'], single_option(stock_argv, '-L'), stock['qemu']['bios']['path'],
                                     result['kernel_image']['path'], stock['initramfs']['path'], result['run_id'], stock['kernel_version'])
+        require(base.qemu_runtime_modules(env) == {key: stock['qemu'][key] for key in ('module_dir', 'modules')
+                                                 if key in stock['qemu']}, 'QEMU runtime modules changed before paired boot')
         rec = runner.run('boot-' + args.arm + '-kernel-tcg', command, timeout=args.boot_timeout, check=False)
+        require(base.qemu_runtime_modules(env) == {key: stock['qemu'][key] for key in ('module_dir', 'modules')
+                                                 if key in stock['qemu']}, 'QEMU runtime modules changed during paired boot')
         serial = Path(rec['stdout']['path']).read_text(errors='strict')
         verdict = base.parse_guest_serial(serial, result['run_id'], rec['exit_code'], rec['timed_out'])
         result['boot'], result['boot_status'], result['guest_tests'] = {**verdict, 'command_receipt': rec}, verdict['status'], verdict['guest_tests']

@@ -8,6 +8,7 @@ new O= directory. A stock PASS is not HIA translation or whole-Linux qualificati
 from __future__ import annotations
 
 import argparse
+from contextlib import ExitStack
 from datetime import datetime, timezone
 import gzip
 import hashlib
@@ -166,6 +167,7 @@ def build_environment(llvm_bin, sysroot=None):
         env['BISON_PKGDATADIR'] = str(sysroot / 'usr/share/bison')
         env['M4'] = str(sysroot / 'usr/bin/m4')
         env['PKG_CONFIG_SYSROOT_DIR'] = str(sysroot)
+        env['QEMU_MODULE_DIR'] = str(sysroot / 'usr/lib/x86_64-linux-gnu/qemu')
         env['PKG_CONFIG_LIBDIR'] = ':'.join(map(str, [
             sysroot / 'usr/lib/x86_64-linux-gnu/pkgconfig',
             Path('/usr/lib/x86_64-linux-gnu/pkgconfig'), Path('/usr/share/pkgconfig')]))
@@ -173,25 +175,44 @@ def build_environment(llvm_bin, sysroot=None):
     return env
 
 
+def qemu_runtime_modules(env):
+    directory = env.get('QEMU_MODULE_DIR')
+    if directory is None:
+        return {}
+    directory = Path(directory).resolve()
+    require((directory / 'accel-tcg-x86_64.so').is_file(), 'workspace QEMU TCG runtime module is missing')
+    return {'module_dir': str(directory),
+            'modules': [identity(path) for path in sorted(directory.glob('*.so')) if path.is_file()]}
+
+
 class CommandRunner:
     def __init__(self, output, env):
         self.output, self.env, self.records = Path(output), env, []
         (self.output / 'commands').mkdir()
 
-    def run(self, name, argv, *, cwd=None, timeout=120, check=True):
+    def run(self, name, argv, *, cwd=None, timeout=120, check=True, stdin_bytes=None):
         require(re.fullmatch(r'[a-zA-Z0-9_-]+', name), 'invalid command label')
+        require(stdin_bytes is None or (type(stdin_bytes) is bytes and len(stdin_bytes) <= 4096),
+                'only a bounded bytes input is accepted')
         number = len(self.records)
         stem = self.output / 'commands' / f'{number:03d}-{name}'
         record = {'name': name, 'argv': list(map(str, argv)), 'cwd': str(cwd or ROOT),
                   'started_at_utc': utc(), 'timeout_seconds': timeout, 'timed_out': False}
+        if stdin_bytes is not None:
+            with open(str(stem) + '.stdin', 'xb') as stream:
+                stream.write(stdin_bytes)
+            record['stdin'] = identity(str(stem) + '.stdin')
         write_json(str(stem) + '.started.json', record)
         print(json.dumps({'stage': name, 'status': 'RUNNING', 'started_at_utc': record['started_at_utc']}), flush=True)
         before = resource.getrusage(resource.RUSAGE_CHILDREN)
         start = time.monotonic_ns()
-        with open(str(stem) + '.stdout', 'xb') as stdout, open(str(stem) + '.stderr', 'xb') as stderr:
+        with ExitStack() as streams:
+            stdout = streams.enter_context(open(str(stem) + '.stdout', 'xb'))
+            stderr = streams.enter_context(open(str(stem) + '.stderr', 'xb'))
+            stdin = streams.enter_context(open(record['stdin']['path'], 'rb')) if stdin_bytes is not None else subprocess.DEVNULL
             try:
                 process = subprocess.Popen(record['argv'], cwd=cwd or ROOT, env=self.env,
-                                           stdout=stdout, stderr=stderr, start_new_session=True)
+                                           stdin=stdin, stdout=stdout, stderr=stderr, start_new_session=True)
             except OSError as error:
                 code = 127
                 record['spawn_error'] = str(error)
@@ -352,16 +373,22 @@ def collect_build_inventory(source, build, output, database):
     return write_gzip_json(output / 'build-inventory.json.gz', record), record
 
 
+def qemu_machine_command(qemu, data, bios, *, paused=False):
+    command = [str(qemu), '-machine', 'pc-i440fx-8.2', '-accel', 'tcg,thread=multi',
+               '-cpu', 'qemu64,-popcnt', '-smp', '2', '-m', '1024', '-nodefaults',
+               '-no-user-config', '-display', 'none', '-monitor', 'stdio' if paused else 'none',
+               '-serial', 'none' if paused else 'stdio', '-nic', 'none', '-no-reboot',
+               '-L', str(data), '-bios', str(bios)]
+    return command + ['-S'] if paused else command
+
+
 def qemu_command(qemu, data, bios, kernel, initramfs, run_id, release):
     require(re.fullmatch(r'[a-f0-9]{24}', run_id) is not None, 'invalid run id')
     require(re.fullmatch(r'[a-zA-Z0-9._+-]+', release) is not None, 'invalid kernel release')
     cmdline = ('console=ttyS0,115200 rdinit=/init panic=-1 nokaslr '
                f'hia_run_id={run_id} hia_kernel_release={release}')
-    return [str(qemu), '-machine', 'pc-i440fx-8.2', '-accel', 'tcg,thread=multi',
-            '-cpu', 'qemu64,-popcnt', '-smp', '2', '-m', '1024', '-nodefaults',
-            '-no-user-config', '-display', 'none', '-monitor', 'none', '-serial', 'stdio',
-            '-nic', 'none', '-no-reboot', '-L', str(data), '-bios', str(bios),
-            '-kernel', str(kernel), '-initrd', str(initramfs), '-append', cmdline]
+    return qemu_machine_command(qemu, data, bios) + [
+        '-kernel', str(kernel), '-initrd', str(initramfs), '-append', cmdline]
 
 
 def main(argv=None):
@@ -417,6 +444,7 @@ def main(argv=None):
             'rust_sources': sum(x['path'].endswith('.rs') for x in before)}
         env = build_environment(llvm, args.tool_sysroot)
         write_json(output / 'build-environment.json', env)
+        result['build_environment'] = identity(output / 'build-environment.json')
         runner = CommandRunner(output, env)
         tools = {}
         for name in LLVM_TOOLS:
@@ -430,6 +458,15 @@ def main(argv=None):
         rec = runner.run('version-qemu', [args.qemu, '--version'])
         result['qemu'] = {**identity(args.qemu), 'version': Path(rec['stdout']['path']).read_text().splitlines()[0],
                           'bios': identity(args.bios), 'machine': 'pc-i440fx-8.2', 'cpu': 'qemu64,-popcnt', 'acceleration': 'tcg'}
+        result['qemu'].update(qemu_runtime_modules(env))
+        preflight = runner.run('qemu-tcg-runtime-preflight',
+                               qemu_machine_command(args.qemu, args.qemu_data, args.bios, paused=True),
+                               timeout=15, check=False, stdin_bytes=b'quit\n')
+        preflight_ok = preflight['exit_code'] == 0 and not preflight['timed_out']
+        result['qemu']['runtime_preflight'] = {
+            'status': 'PASS' if preflight_ok else 'FAIL',
+            'scope': 'paused_tcg_startup_no_kernel_execution', 'command_receipt': preflight}
+        require(preflight_ok, 'QEMU TCG runtime preflight failed before kernel build')
         if args.dependency_receipt:
             shutil.copyfile(args.dependency_receipt, output / 'dependency-receipt.json')
             result['dependency_receipt'] = identity(output / 'dependency-receipt.json')
@@ -496,6 +533,8 @@ def main(argv=None):
         require(release == KERNEL_VERSION, 'built kernel release differs from frozen version')
         command = qemu_command(args.qemu, args.qemu_data, args.bios,
                                result['kernel_image']['path'], initramfs, run_id, release)
+        require(qemu_runtime_modules(env) == {key: result['qemu'][key] for key in ('module_dir', 'modules')
+                                             if key in result['qemu']}, 'QEMU runtime modules changed before boot')
         rec = runner.run('boot-stock-kernel-tcg', command, timeout=args.boot_timeout, check=False)
         serial = Path(rec['stdout']['path']).read_text(errors='replace')
         verdict = parse_guest_serial(serial, run_id, rec['exit_code'], rec['timed_out'])
@@ -504,6 +543,8 @@ def main(argv=None):
         result['guest_tests'] = verdict['guest_tests']
         result['boot_status'] = verdict['status']
         require(verdict['status'] == 'PASS', 'finite guest smoke failed; original serial and verdict retained')
+        require(qemu_runtime_modules(env) == {key: result['qemu'][key] for key in ('module_dir', 'modules')
+                                             if key in result['qemu']}, 'QEMU runtime modules changed during boot')
         result['status'] = 'PASS'
     except Exception as error:
         result['error'] = {'type': type(error).__name__, 'message': str(error)}

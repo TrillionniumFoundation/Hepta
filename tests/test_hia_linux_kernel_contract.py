@@ -18,7 +18,7 @@ import unittest
 from unittest.mock import patch
 
 from tools import qualify_hia_linux_kernel as contract
-from tools.qualify_hia_linux_baseline import create_initramfs, parse_guest_serial, qemu_command
+from tools.qualify_hia_linux_baseline import create_initramfs, parse_guest_serial, qemu_command, qemu_machine_command
 
 
 def canonical(value):
@@ -121,6 +121,15 @@ class KernelContractTests(unittest.TestCase):
         create_initramfs(init["path"], initrd)
         qemu = {**self.write("tools/qemu", b"SYNTHETIC QEMU FIXTURE; NOT EXECUTABLE"),
                 "bios": self.write("tools/bios.bin", b"SYNTHETIC BIOS FIXTURE")}
+        modules = [self.write("tools/modules/accel-tcg-x86_64.so", b"SYNTHETIC MODULE; NOT EXECUTABLE"),
+                   self.write("tools/modules/fixture-module.so", b"SECOND SYNTHETIC MODULE")]
+        qemu.update(module_dir=str(self.root / "tools/modules"), modules=modules)
+        environment = self.write("build-environment.json", {"QEMU_MODULE_DIR": qemu["module_dir"]})
+        preflight = self.command("qemu-tcg-runtime-preflight",
+            qemu_machine_command(qemu["path"], self.root / "tools", qemu["bios"]["path"], paused=True),
+            b"SYNTHETIC QEMU MONITOR RECORD; NOT EXECUTION\n")
+        preflight.update(timeout_seconds=15, stdin=self.write("commands/qemu-tcg-runtime-preflight.stdin", b"quit\n"))
+        qemu["runtime_preflight"] = {"status": "PASS", "scope": "paused_tcg_startup_no_kernel_execution", "command_receipt": preflight}
         run_id = "0123456789abcdef01234567"
         events = [{"event": "begin", "run_id": run_id, "pid": 1}]
         events += [{"event": "check", "run_id": run_id, "id": name, "passed": True, "errno": 0} for name in CHECKS]
@@ -139,7 +148,8 @@ class KernelContractTests(unittest.TestCase):
             "compile_commands": target_db, "compile_commands_sha256": target_db["sha256"],
             "original_compile_commands": full_db, "original_compile_commands_sha256": full_db["sha256"],
             "target_compile_indices": [0, 2], "guest_init": init, "initramfs": binding(initrd), "qemu": qemu,
-            "run_id": run_id, "commands": [make, boot], "boot": {**verdict, "command_receipt": boot},
+            "build_environment": environment,
+            "run_id": run_id, "commands": [preflight, make, boot], "boot": {**verdict, "command_receipt": boot},
             "guest_tests": verdict["guest_tests"], "linux_source_unchanged": True,
             "linux_source_inventory": self.write("source-before.json.gz", gzip.compress(canonical(source_snapshot), mtime=0)),
             "linux_source_after_inventory": self.write("source-after.json.gz", gzip.compress(canonical(source_snapshot), mtime=0)),
@@ -328,7 +338,7 @@ class KernelContractTests(unittest.TestCase):
 
     def test_partial_build_and_unbound_config_cannot_pass(self):
         changed = copy.deepcopy(self.baseline)
-        changed["commands"][0]["argv"].remove("modules")
+        next(row for row in changed["commands"] if row["name"] == "full-kbuild")["argv"].remove("modules")
         with self.assertRaisesRegex(ValueError, "partial/failed"):
             self.assess(baseline=changed)
         (self.root / "build/.config").write_bytes(CONFIG + b"CONFIG_FAKE=y\n")
@@ -364,6 +374,10 @@ class KernelContractTests(unittest.TestCase):
         lines = Path(self.baseline["boot"]["command_receipt"]["stdout"]["path"]).read_bytes().splitlines(keepends=True)
         base = copy.deepcopy(self.baseline)
         self.replace_serial(base, b"".join(lines[:2]), update_verdict=True)
+        for key in ("module_dir", "modules", "runtime_preflight"):
+            del base["qemu"][key]
+        del base["build_environment"]
+        base["commands"] = [row for row in base["commands"] if row["name"] != "qemu-tcg-runtime-preflight"]
         result = self.assess(baseline=base)
         self.assertTrue(result["claims"]["stock_kernel_built"])
         self.assertFalse(result["claims"]["stock_kernel_booted"])
@@ -393,6 +407,40 @@ class KernelContractTests(unittest.TestCase):
         argv[0] = other["path"]
         with self.assertRaisesRegex(ValueError, "executed QEMU binary path differs"):
             self.assess()
+
+    def test_boot_pass_rejects_unbound_modules_omitted_module_or_different_environment(self):
+        for kind in ("missing_binding", "changed_hash", "omitted_module", "wrong_environment"):
+            with self.subTest(kind=kind):
+                changed = copy.deepcopy(self.baseline)
+                if kind == "missing_binding":
+                    del changed["qemu"]["modules"]
+                elif kind == "changed_hash":
+                    changed["qemu"]["modules"][0]["sha256"] = "0" * 64
+                elif kind == "omitted_module":
+                    changed["qemu"]["modules"].pop()
+                else:
+                    changed["build_environment"] = self.write("wrong-environment.json", {"QEMU_MODULE_DIR": "/unbound/host/modules"})
+                with self.assertRaises(ValueError):
+                    self.assess(baseline=changed)
+
+    def test_boot_pass_rejects_failed_unpaused_or_unbound_runtime_preflight(self):
+        for kind in ("failed", "timeout", "unpaused", "wrong_stdin", "missing_command"):
+            with self.subTest(kind=kind):
+                changed = copy.deepcopy(self.baseline)
+                preflight = changed["qemu"]["runtime_preflight"]
+                record = preflight["command_receipt"]
+                if kind == "failed":
+                    record["exit_code"] = 1
+                elif kind == "timeout":
+                    record["timed_out"] = True
+                elif kind == "unpaused":
+                    record["argv"].remove("-S")
+                elif kind == "wrong_stdin":
+                    record["stdin"] = self.write("wrong-preflight.stdin", b"cont\nquit\n")
+                else:
+                    changed["commands"] = [row for row in changed["commands"] if row["name"] != "qemu-tcg-runtime-preflight"]
+                with self.assertRaises(ValueError):
+                    self.assess(baseline=changed)
 
     def test_summary_labels_without_raw_boot_receipt_and_fabricated_guest_totals_reject(self):
         for kind in ("no_boot", "omit_not_run", "zero_qemu_exit_without_timeout_check"):

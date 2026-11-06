@@ -92,6 +92,14 @@ checks are finite OS smoke tests. They are neither the complete Linux
 `kselftest` suite nor all KUnit tests, and CPU enumeration is not a proof of
 SMP race freedom. TCG timings are not bare-metal performance measurements.
 
+Workspace QEMU packages require their explicit `QEMU_MODULE_DIR`. The runner
+binds every shared module in that directory and records a paused TCG startup
+followed by `quit` before spending time on a kernel build. That preflight does
+not execute a kernel. A boot PASS additionally requires the actual guest run;
+the module bytes and execution environment must remain bound throughout.
+Retain an earlier module-loading failure and its successful build separately
+from any newly frozen, complete build-and-boot campaign.
+
 The component path targets the software 32-bit population-count implementation
 used by the x86 kernel. On this architecture the active original is
 `arch/x86/lib/hweight.S`; the superficially similar `lib/hweight.c` is not the
