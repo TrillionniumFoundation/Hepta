@@ -1,0 +1,490 @@
+{
+  "schema": "hepta.hia.ndu.feedback-ci-observation.v2",
+  "repository": "TrillionniumFoundation/Hepta",
+  "pull_request": 758,
+  "requested_head": "78c0b951adc08b02be60d64b386620c5ac9faf99",
+  "expected_tree": "a96e501429fa0482330c7d5d477f8549a132bd52",
+  "run_id": 42198653917,
+  "run_url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/42198653917",
+  "first_observed_at_utc": "2026-11-06 09:55:48 UTC",
+  "workflow": {
+    "content": "name: HIA NDU feedback mechanism gates (research)\n\non:\n  pull_request:\n    paths:\n      - '.github/workflows/hia-ndu-feedback.yml'\n      - 'experiments/hia_ndu_feedback_20261106/**'\n      - 'benchmarks/hia_ndu_feedback/**'\n      - 'benchmarks/hia_ndu_feedback_state_coverage/**'\n      - 'rust/hia-ndu-value/**'\n      - 'tests/test_hia_ndu_feedback.py'\n      - 'tests/test_hia_ndu_feedback_workload.py'\n      - 'tests/test_hia_ndu_feedback_campaign.py'\n      - 'tests/test_hia_ndu_feedback_coverage.py'\n      - 'tests/test_hia_ndu_economical.py'\n      - 'tests/test_hia_ndu_compute_price.py'\n      - 'tools/build_hia_ndu_value_bridge.py'\n      - 'tools/qualify_hia_ndu_feedback.py'\n      - 'tools/qualify_hia_ndu_compute_price.py'\n      - 'docs/HIA_NDU_NATIVE_VALUE.md'\n  workflow_dispatch:\n\npermissions:\n  contents: read\n\njobs:\n  reference-and-native:\n    runs-on: ubuntu-24.04\n    timeout-minutes: 30\n    env:\n      PYTHONDONTWRITEBYTECODE: '1'\n      GIT_TERMINAL_PROMPT: '0'\n      EXPECTED_SOURCE_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}\n    steps:\n      - uses: actions/checkout@v4\n        with:\n          ref: ${{ github.event.pull_request.head.sha || github.sha }}\n          persist-credentials: false\n      - uses: actions/setup-python@v5\n        with:\n          python-version: '3.12'\n      - name: Freeze clean source before evaluation\n        id: source_identity\n        run: |\n          feedback_actual_head=$(git rev-parse HEAD)\n          printf 'actual_head=%s\\n' \"$feedback_actual_head\" >> \"$GITHUB_OUTPUT\"\n          python -B -m experiments.hia_ndu_feedback_20261106.ci snapshot \\\n            --expected-head \"$EXPECTED_SOURCE_HEAD\" \\\n            --output \"$RUNNER_TEMP/hia-ndu-feedback/public/source-before.json\"\n      - name: Require rejection of wrong heads and same-tree synthetic merges\n        run: |\n          python -B -m experiments.hia_ndu_feedback_20261106.ci guard-controls \\\n            --evidence \"$RUNNER_TEMP/hia-ndu-feedback/public\"\n      - name: Require mechanism, price, campaign and source-boundary tests with zero skips\n        run: |\n          python -B -m experiments.hia_ndu_feedback_20261106.ci reference \\\n            --evidence \"$RUNNER_TEMP/hia-ndu-feedback/public\"\n      - name: Acquire pinned original source and build both native adapters\n        run: |\n          # Anonymous, exact-commit Git fetch follows existing NDU workflows.\n          # No extra token/secret, permission widening or fallback evaluator.\n          # An inaccessible upstream fails this gate and leaves an OPEN receipt.\n          python -B -m experiments.hia_ndu_feedback_20261106.ci prepare \\\n            --scratch \"$RUNNER_TEMP/hia-ndu-feedback/private\" \\\n            --evidence \"$RUNNER_TEMP/hia-ndu-feedback/public\"\n      - name: Require native tests, reversals, degeneration and actual execution\n        run: |\n          python -B -m experiments.hia_ndu_feedback_20261106.ci native \\\n            --config \"$RUNNER_TEMP/hia-ndu-feedback/private/native-config.json\" \\\n            --evidence \"$RUNNER_TEMP/hia-ndu-feedback/public\"\n      - name: Verify identical clean source after success or failure\n        if: always()\n        run: |\n          python -B -m experiments.hia_ndu_feedback_20261106.ci snapshot \\\n            --expected-head \"$EXPECTED_SOURCE_HEAD\" \\\n            --before \"$RUNNER_TEMP/hia-ndu-feedback/public/source-before.json\" \\\n            --output \"$RUNNER_TEMP/hia-ndu-feedback/public/source-after.json\"\n      - name: Stage only the explicit public evidence allowlist\n        if: always()\n        run: |\n          python -B -m experiments.hia_ndu_feedback_20261106.ci publish \\\n            --evidence \"$RUNNER_TEMP/hia-ndu-feedback/public\" \\\n            --output \"$RUNNER_TEMP/hia-ndu-feedback/upload\"\n      - name: Retain receipts and protocol frames, including failures\n        uses: actions/upload-artifact@v4\n        if: always()\n        with:\n          name: hia-ndu-feedback-${{ steps.source_identity.outputs.actual_head || 'unobserved-head' }}\n          if-no-files-found: error\n          retention-days: 30\n          path: ${{ runner.temp }}/hia-ndu-feedback/upload/\n",
+    "encoding": "utf-8",
+    "sha": "55daabdf39858eb45daff0f3913f3c6453167b3c",
+    "display_url": "https://github.com/TrillionniumFoundation/Hepta/blob/78c0b951adc08b02be60d64b386620c5ac9faf99/.github/workflows/hia-ndu-feedback.yml",
+    "display_title": "hia-ndu-feedback.yml"
+  },
+  "pull_request_metadata": {
+    "url": "https://github.com/TrillionniumFoundation/Hepta/pull/758",
+    "number": 758,
+    "state": "open",
+    "merged": false,
+    "mergeable": true,
+    "draft": true,
+    "body": "## Problem\n\nRound 6's unit-discount linear cost experiment correctly tied after ordinary planning. That experiment cannot distinguish numeric preference wiring, feedback modeling, solver error, and runtime costs.\n\n## Changes\n\n- Preserve the degeneration control and add hand-calculated non-dominated action reversals.\n- Use unchanged source-pinned native NDU at every Bellman decision backup, before action selection, with explicit eligible abstention.\n- Add an immutable observed-state interface, hidden future request generation, a physical one-slot native cache executor, and complete partial-failure/cleanup cost records.\n- Compare fixed, state-greedy, ordinary MPC, same-objective, fixed-preference NDU, dynamic NDU, and an independently encoded exact oracle. Add a bounded compute gate.\n- Freeze three environments and 288 primary cells, retain all model/real-workload observations and every failed denominator, and diagnose deliberate model errors separately.\n- Add independent adversarial tests and a native CI workflow that fails if original-source access or native execution is unavailable.\n\n## Validation status\n\nImplementation source: b1746d3e436f001ea5c69d154d766fadf7231136; tree 92f3241ee7b5452d49947129a3a462765ada034e.\n\nDevelopment reference tests: 63/63. Existing source-closure/dynamic-cache regressions: 32/32. Original native value differential controls and causal integration ran successfully; frozen final campaign is running and will be attached separately.\n\nThis PR remains Draft. Research authority is DENY_ALL. No production activation, FBSDE/gradient-training claim, or independent net-gain claim is made from wiring success. Raw final results, including any negative benefit, will determine the acceptance status.",
+    "title": "NDU feedback gates: causal native decisions, exact controls, and complete costs",
+    "base": "codex/hia-round6-closed-module-20261106",
+    "base_sha": "c3989242881dbe6e4fba330d4979b5c94b7fc5a9",
+    "head": "codex/hia-ndu-four-gates-20261106",
+    "head_sha": "78c0b951adc08b02be60d64b386620c5ac9faf99",
+    "head_repo_id": 1432132756,
+    "head_repo_full_name": "TrillionniumFoundation/Hepta",
+    "merge_commit_sha": "ee003c974ff3db90b6c56cbf75dce1f457b285d0",
+    "user": {
+      "login": "Tomasrgbsf",
+      "name": "Tomasrgbsf",
+      "email": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/273673612?v=4",
+      "id": 273673612
+    },
+    "requested_reviewers": null,
+    "requested_team_reviewers": null,
+    "diff": null,
+    "comments": null,
+    "created_at": "2026-11-06T09:27:00Z",
+    "updated_at": "2026-11-06T09:55:09Z",
+    "closed_at": null,
+    "merged_at": null,
+    "commits": 2,
+    "changed_files": 28,
+    "additions": 7437,
+    "deletions": 0,
+    "display_url": "https://github.com/TrillionniumFoundation/Hepta/pull/758",
+    "display_title": "NDU feedback gates: causal native decisions, exact controls, and complete costs"
+  },
+  "jobs": [
+    {
+      "id": 127828162757,
+      "name": "reference-and-native",
+      "status": "completed",
+      "conclusion": "success",
+      "run_id": 42198653917,
+      "logs_url": null,
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2
+        },
+        {
+          "name": "Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3
+        },
+        {
+          "name": "Freeze clean source before evaluation",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4
+        },
+        {
+          "name": "Require rejection of wrong heads and same-tree synthetic merges",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5
+        },
+        {
+          "name": "Require mechanism, price, campaign and source-boundary tests with zero skips",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6
+        },
+        {
+          "name": "Acquire pinned original source and build both native adapters",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7
+        },
+        {
+          "name": "Require native tests, reversals, degeneration and actual execution",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8
+        },
+        {
+          "name": "Verify identical clean source after success or failure",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9
+        },
+        {
+          "name": "Stage only the explicit public evidence allowlist",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10
+        },
+        {
+          "name": "Retain receipts and protocol frames, including failures",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11
+        },
+        {
+          "name": "Post Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 21
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 22
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 23
+        }
+      ]
+    }
+  ],
+  "workflow_runs_initial": [
+    {
+      "id": 42198653950,
+      "name": "Hepta actual host ABI qualification",
+      "status": "queued",
+      "conclusion": null,
+      "run_number": 264,
+      "jobs_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/runs/42198653950/jobs",
+      "logs_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/runs/42198653950/logs",
+      "workflow_id": 395572319
+    },
+    {
+      "id": 42198653867,
+      "name": "HIA verified optimization and native NDU integration",
+      "status": "queued",
+      "conclusion": null,
+      "run_number": 440,
+      "jobs_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/runs/42198653867/jobs",
+      "logs_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/runs/42198653867/logs",
+      "workflow_id": 398497862
+    },
+    {
+      "id": 42198654107,
+      "name": "HIA round4 runtime controls",
+      "status": "queued",
+      "conclusion": null,
+      "run_number": 6,
+      "jobs_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/runs/42198654107/jobs",
+      "logs_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/runs/42198654107/logs",
+      "workflow_id": 408763960
+    },
+    {
+      "id": 42198654093,
+      "name": "Hepta real upstream C++ host qualification",
+      "status": "queued",
+      "conclusion": null,
+      "run_number": 203,
+      "jobs_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/runs/42198654093/jobs",
+      "logs_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/runs/42198654093/logs",
+      "workflow_id": 399661836
+    },
+    {
+      "id": 42198653884,
+      "name": "HIA six-outcome source and application gates",
+      "status": "queued",
+      "conclusion": null,
+      "run_number": 390,
+      "jobs_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/runs/42198653884/jobs",
+      "logs_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/runs/42198653884/logs",
+      "workflow_id": 399749189
+    },
+    {
+      "id": 42198653917,
+      "name": "HIA NDU feedback mechanism gates (research)",
+      "status": "queued",
+      "conclusion": null,
+      "run_number": 2,
+      "jobs_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/runs/42198653917/jobs",
+      "logs_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/runs/42198653917/logs",
+      "workflow_id": 409148252
+    },
+    {
+      "id": 42198653882,
+      "name": "HIA intelligent assembly closure",
+      "status": "queued",
+      "conclusion": null,
+      "run_number": 331,
+      "jobs_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/runs/42198653882/jobs",
+      "logs_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/runs/42198653882/logs",
+      "workflow_id": 401438725
+    },
+    {
+      "id": 42198654074,
+      "name": "HIA finite CRC context and static controls",
+      "status": "queued",
+      "conclusion": null,
+      "run_number": 332,
+      "jobs_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/runs/42198654074/jobs",
+      "logs_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/runs/42198654074/logs",
+      "workflow_id": 401345131
+    }
+  ],
+  "run_status": "completed",
+  "run_conclusion": "success",
+  "actual_checkout_sha": null,
+  "history": [
+    {
+      "at_utc": "2026-11-06 09:55:48 UTC",
+      "jobs": [
+        {
+          "id": 127828162757,
+          "name": "reference-and-native",
+          "status": "queued",
+          "conclusion": null,
+          "run_id": 42198653917,
+          "logs_url": null,
+          "steps": null
+        }
+      ]
+    },
+    {
+      "at_utc": "2026-11-06 09:58:45 UTC",
+      "jobs": [
+        {
+          "id": 127828162757,
+          "name": "reference-and-native",
+          "status": "queued",
+          "conclusion": null,
+          "run_id": 42198653917,
+          "logs_url": null,
+          "steps": null
+        }
+      ]
+    },
+    {
+      "at_utc": "2026-11-06 10:00:36 UTC",
+      "jobs": [
+        {
+          "id": 127828162757,
+          "name": "reference-and-native",
+          "status": "queued",
+          "conclusion": null,
+          "run_id": 42198653917,
+          "logs_url": null,
+          "steps": null
+        }
+      ]
+    },
+    {
+      "at_utc": "2026-11-06 10:01:57 UTC",
+      "jobs": [
+        {
+          "id": 127828162757,
+          "name": "reference-and-native",
+          "status": "queued",
+          "conclusion": null,
+          "run_id": 42198653917,
+          "logs_url": null,
+          "steps": null
+        }
+      ]
+    },
+    {
+      "at_utc": "2026-11-06 10:04:00 UTC",
+      "jobs": [
+        {
+          "id": 127828162757,
+          "name": "reference-and-native",
+          "status": "in_progress",
+          "conclusion": null,
+          "run_id": 42198653917,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Freeze clean source before evaluation",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Require rejection of wrong heads and same-tree synthetic merges",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Require mechanism, price, campaign and source-boundary tests with zero skips",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Acquire pinned original source and build both native adapters",
+              "status": "in_progress",
+              "conclusion": null,
+              "number": 7
+            },
+            {
+              "name": "Require native tests, reversals, degeneration and actual execution",
+              "status": "pending",
+              "conclusion": null,
+              "number": 8
+            },
+            {
+              "name": "Verify identical clean source after success or failure",
+              "status": "pending",
+              "conclusion": null,
+              "number": 9
+            },
+            {
+              "name": "Stage only the explicit public evidence allowlist",
+              "status": "pending",
+              "conclusion": null,
+              "number": 10
+            },
+            {
+              "name": "Retain receipts and protocol frames, including failures",
+              "status": "pending",
+              "conclusion": null,
+              "number": 11
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "status": "pending",
+              "conclusion": null,
+              "number": 21
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "status": "pending",
+              "conclusion": null,
+              "number": 22
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "at_utc": "2026-11-06 10:05:52 UTC",
+      "jobs": [
+        {
+          "id": 127828162757,
+          "name": "reference-and-native",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 42198653917,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Freeze clean source before evaluation",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Require rejection of wrong heads and same-tree synthetic merges",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Require mechanism, price, campaign and source-boundary tests with zero skips",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Acquire pinned original source and build both native adapters",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Require native tests, reversals, degeneration and actual execution",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Verify identical clean source after success or failure",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9
+            },
+            {
+              "name": "Stage only the explicit public evidence allowlist",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10
+            },
+            {
+              "name": "Retain receipts and protocol frames, including failures",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 21
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 22
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 23
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "authority": "DENY_ALL",
+  "source_mutations_by_observer": false,
+  "reruns_or_comments_or_dispatches_by_observer": false,
+  "observed_at_utc": "2026-11-06 10:05:52 UTC"
+}

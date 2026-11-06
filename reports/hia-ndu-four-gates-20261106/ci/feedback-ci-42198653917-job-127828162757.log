@@ -1,0 +1,373 @@
+﻿2026-11-06T10:03:16.2511121Z Current runner version: '2.338.2'
+2026-11-06T10:03:16.2546847Z ##[group]Runner Image Provisioner
+2026-11-06T10:03:16.2548411Z Hosted Compute Agent
+2026-11-06T10:03:16.2549717Z Version: 20261028.624
+2026-11-06T10:03:16.2551014Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+2026-11-06T10:03:16.2552427Z Build Date: 2026-10-28T21:51:42Z
+2026-11-06T10:03:16.2554336Z Worker ID: {501938c4-88de-4fe6-97d8-342d5dacfb9f}
+2026-11-06T10:03:16.2555725Z Region: northcentralus
+2026-11-06T10:03:16.2556824Z Cloud: Azure
+2026-11-06T10:03:16.2557786Z ##[endgroup]
+2026-11-06T10:03:16.2560575Z ##[group]Operating System
+2026-11-06T10:03:16.2562016Z Ubuntu
+2026-11-06T10:03:16.2563089Z 24.04.5
+2026-11-06T10:03:16.2564354Z LTS
+2026-11-06T10:03:16.2565296Z ##[endgroup]
+2026-11-06T10:03:16.2566392Z ##[group]Runner Image
+2026-11-06T10:03:16.2567645Z Image: ubuntu-24.04
+2026-11-06T10:03:16.2568769Z Version: 20261101.360.1
+2026-11-06T10:03:16.2571126Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-06T10:03:16.2574322Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261101.360
+2026-11-06T10:03:16.2576314Z ##[endgroup]
+2026-11-06T10:03:16.2578340Z ##[group]GITHUB_TOKEN Permissions
+2026-11-06T10:03:16.2581438Z Contents: read
+2026-11-06T10:03:16.2582509Z Metadata: read
+2026-11-06T10:03:16.2583724Z ##[endgroup]
+2026-11-06T10:03:16.2586755Z Secret source: Actions
+2026-11-06T10:03:16.2587949Z Cache mode: write
+2026-11-06T10:03:16.2589020Z Prepare workflow directory
+2026-11-06T10:03:16.3285201Z Prepare all required actions
+2026-11-06T10:03:16.3357237Z Getting action download info
+2026-11-06T10:03:16.6108212Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-11-06T10:03:16.7512481Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-11-06T10:03:16.8389648Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-11-06T10:03:17.0397562Z Complete job name: reference-and-native
+2026-11-06T10:03:17.1249954Z ##[group]Run actions/checkout@v4
+2026-11-06T10:03:17.1250868Z with:
+2026-11-06T10:03:17.1251337Z   ref: 78c0b951adc08b02be60d64b386620c5ac9faf99
+2026-11-06T10:03:17.1251943Z   persist-credentials: false
+2026-11-06T10:03:17.1252487Z   repository: TrillionniumFoundation/Hepta
+2026-11-06T10:03:17.1256656Z   token: ***
+2026-11-06T10:03:17.1257085Z   ssh-strict: true
+2026-11-06T10:03:17.1257523Z   ssh-user: git
+2026-11-06T10:03:17.1257943Z   clean: true
+2026-11-06T10:03:17.1258378Z   sparse-checkout-cone-mode: true
+2026-11-06T10:03:17.1258909Z   fetch-depth: 1
+2026-11-06T10:03:17.1259336Z   fetch-tags: false
+2026-11-06T10:03:17.1259798Z   show-progress: true
+2026-11-06T10:03:17.1260253Z   lfs: false
+2026-11-06T10:03:17.1260658Z   submodules: false
+2026-11-06T10:03:17.1261109Z   set-safe-directory: true
+2026-11-06T10:03:17.1261608Z   allow-unsafe-pr-checkout: false
+2026-11-06T10:03:17.1262413Z env:
+2026-11-06T10:03:17.1262848Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-06T10:03:17.1263697Z   GIT_TERMINAL_PROMPT: 0
+2026-11-06T10:03:17.1264332Z   EXPECTED_SOURCE_HEAD: 78c0b951adc08b02be60d64b386620c5ac9faf99
+2026-11-06T10:03:17.1264987Z ##[endgroup]
+2026-11-06T10:03:17.4317442Z Syncing repository: TrillionniumFoundation/Hepta
+2026-11-06T10:03:17.4320433Z ##[group]Getting Git version info
+2026-11-06T10:03:17.4321663Z Working directory is '/home/runner/work/Hepta/Hepta'
+2026-11-06T10:03:17.4323265Z [command]/usr/bin/git version
+2026-11-06T10:03:17.4438306Z git version 2.56.0
+2026-11-06T10:03:17.4469717Z ##[endgroup]
+2026-11-06T10:03:17.4477659Z Temporarily overriding HOME='/home/runner/work/_temp/f19dda60-f762-491c-8065-0a061140706b' before making global git config changes
+2026-11-06T10:03:17.4480088Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-06T10:03:17.4484946Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-06T10:03:17.4558064Z Deleting the contents of '/home/runner/work/Hepta/Hepta'
+2026-11-06T10:03:17.4562688Z ##[group]Initializing the repository
+2026-11-06T10:03:17.4568233Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta
+2026-11-06T10:03:17.4691233Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-06T10:03:17.4693154Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-06T10:03:17.4695142Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-06T10:03:17.4696461Z hint: call:
+2026-11-06T10:03:17.4697245Z hint:
+2026-11-06T10:03:17.4698226Z hint: 	git config --global init.defaultBranch <name>
+2026-11-06T10:03:17.4699405Z hint:
+2026-11-06T10:03:17.4700443Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-06T10:03:17.4702071Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-06T10:03:17.4703682Z hint:
+2026-11-06T10:03:17.4704464Z hint: 	git branch -m <name>
+2026-11-06T10:03:17.4705363Z hint:
+2026-11-06T10:03:17.4706581Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-06T10:03:17.4708385Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/.git/
+2026-11-06T10:03:17.4716756Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-11-06T10:03:17.4770804Z ##[endgroup]
+2026-11-06T10:03:17.4772009Z ##[group]Disabling automatic garbage collection
+2026-11-06T10:03:17.4775393Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-06T10:03:17.4811702Z ##[endgroup]
+2026-11-06T10:03:17.4812874Z ##[group]Setting up auth
+2026-11-06T10:03:17.4820052Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-06T10:03:17.4859896Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-06T10:03:17.5301184Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-06T10:03:17.5345644Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-06T10:03:17.5592326Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-06T10:03:17.5643101Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-06T10:03:17.5886368Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-06T10:03:17.6016074Z ##[endgroup]
+2026-11-06T10:03:17.6016942Z ##[group]Fetching the repository
+2026-11-06T10:03:17.6018240Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin 78c0b951adc08b02be60d64b386620c5ac9faf99
+2026-11-06T10:03:24.1411053Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-06T10:03:24.1413618Z  * branch            78c0b951adc08b02be60d64b386620c5ac9faf99 -> FETCH_HEAD
+2026-11-06T10:03:24.1418353Z ##[endgroup]
+2026-11-06T10:03:24.1419590Z ##[group]Determining the checkout info
+2026-11-06T10:03:24.1420965Z ##[endgroup]
+2026-11-06T10:03:24.1424468Z [command]/usr/bin/git sparse-checkout disable
+2026-11-06T10:03:24.1491320Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-06T10:03:24.1529800Z ##[group]Checking out the ref
+2026-11-06T10:03:24.1533620Z [command]/usr/bin/git checkout --progress --force 78c0b951adc08b02be60d64b386620c5ac9faf99
+2026-11-06T10:03:25.1730875Z Updating files:  52% (4759/9098)
+2026-11-06T10:03:25.1769882Z Updating files:  53% (4822/9098)
+2026-11-06T10:03:25.1807514Z Updating files:  54% (4913/9098)
+2026-11-06T10:03:25.1840907Z Updating files:  55% (5004/9098)
+2026-11-06T10:03:25.1879379Z Updating files:  56% (5095/9098)
+2026-11-06T10:03:25.1925708Z Updating files:  57% (5186/9098)
+2026-11-06T10:03:25.1978693Z Updating files:  58% (5277/9098)
+2026-11-06T10:03:25.2021524Z Updating files:  59% (5368/9098)
+2026-11-06T10:03:25.2058402Z Updating files:  60% (5459/9098)
+2026-11-06T10:03:25.2093655Z Updating files:  61% (5550/9098)
+2026-11-06T10:03:25.2170520Z Updating files:  62% (5641/9098)
+2026-11-06T10:03:25.2222189Z Updating files:  63% (5732/9098)
+2026-11-06T10:03:25.2266595Z Updating files:  64% (5823/9098)
+2026-11-06T10:03:25.2311870Z Updating files:  65% (5914/9098)
+2026-11-06T10:03:25.2355922Z Updating files:  66% (6005/9098)
+2026-11-06T10:03:25.2396940Z Updating files:  67% (6096/9098)
+2026-11-06T10:03:25.2447807Z Updating files:  68% (6187/9098)
+2026-11-06T10:03:25.2487781Z Updating files:  69% (6278/9098)
+2026-11-06T10:03:25.2632668Z Updating files:  70% (6369/9098)
+2026-11-06T10:03:25.2759306Z Updating files:  71% (6460/9098)
+2026-11-06T10:03:25.2868758Z Updating files:  72% (6551/9098)
+2026-11-06T10:03:25.2947668Z Updating files:  73% (6642/9098)
+2026-11-06T10:03:25.3095750Z Updating files:  74% (6733/9098)
+2026-11-06T10:03:25.3196688Z Updating files:  75% (6824/9098)
+2026-11-06T10:03:25.3271584Z Updating files:  76% (6915/9098)
+2026-11-06T10:03:25.3442313Z Updating files:  77% (7006/9098)
+2026-11-06T10:03:25.3760167Z Updating files:  78% (7097/9098)
+2026-11-06T10:03:25.3893656Z Updating files:  79% (7188/9098)
+2026-11-06T10:03:25.3997904Z Updating files:  80% (7279/9098)
+2026-11-06T10:03:25.4056498Z Updating files:  81% (7370/9098)
+2026-11-06T10:03:25.4116155Z Updating files:  82% (7461/9098)
+2026-11-06T10:03:25.4542598Z Updating files:  83% (7552/9098)
+2026-11-06T10:03:25.4628190Z Updating files:  84% (7643/9098)
+2026-11-06T10:03:25.4706402Z Updating files:  85% (7734/9098)
+2026-11-06T10:03:25.4974887Z Updating files:  86% (7825/9098)
+2026-11-06T10:03:25.5042506Z Updating files:  87% (7916/9098)
+2026-11-06T10:03:25.5141337Z Updating files:  88% (8007/9098)
+2026-11-06T10:03:25.5204268Z Updating files:  89% (8098/9098)
+2026-11-06T10:03:25.5281587Z Updating files:  90% (8189/9098)
+2026-11-06T10:03:25.5350547Z Updating files:  91% (8280/9098)
+2026-11-06T10:03:25.5413359Z Updating files:  92% (8371/9098)
+2026-11-06T10:03:25.5485533Z Updating files:  93% (8462/9098)
+2026-11-06T10:03:25.5556050Z Updating files:  94% (8553/9098)
+2026-11-06T10:03:25.5621964Z Updating files:  95% (8644/9098)
+2026-11-06T10:03:25.5698053Z Updating files:  96% (8735/9098)
+2026-11-06T10:03:25.5786248Z Updating files:  97% (8826/9098)
+2026-11-06T10:03:25.5889179Z Updating files:  98% (8917/9098)
+2026-11-06T10:03:25.5989443Z Updating files:  99% (9008/9098)
+2026-11-06T10:03:25.5989976Z Updating files: 100% (9098/9098)
+2026-11-06T10:03:25.5990352Z Updating files: 100% (9098/9098), done.
+2026-11-06T10:03:25.6085581Z Note: switching to '78c0b951adc08b02be60d64b386620c5ac9faf99'.
+2026-11-06T10:03:25.6086773Z 
+2026-11-06T10:03:25.6087190Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-11-06T10:03:25.6088135Z changes and commit them, and you can discard any commits you make in this
+2026-11-06T10:03:25.6088997Z state without impacting any branches by switching back to a branch.
+2026-11-06T10:03:25.6089455Z 
+2026-11-06T10:03:25.6089764Z If you want to create a new branch to retain commits you create, you may
+2026-11-06T10:03:25.6090515Z do so (now or later) by using -c with the switch command. Example:
+2026-11-06T10:03:25.6090964Z 
+2026-11-06T10:03:25.6091153Z   git switch -c <new-branch-name>
+2026-11-06T10:03:25.6091464Z 
+2026-11-06T10:03:25.6091638Z Or undo this operation with:
+2026-11-06T10:03:25.6091915Z 
+2026-11-06T10:03:25.6092070Z   git switch -
+2026-11-06T10:03:25.6092277Z 
+2026-11-06T10:03:25.6092684Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-11-06T10:03:25.6093231Z 
+2026-11-06T10:03:25.6093788Z HEAD is now at 78c0b95 Qualify NDU state coverage and price the decision to plan
+2026-11-06T10:03:25.6233984Z ##[endgroup]
+2026-11-06T10:03:25.6298811Z [command]/usr/bin/git log -1 --format=%H
+2026-11-06T10:03:25.6337200Z 78c0b951adc08b02be60d64b386620c5ac9faf99
+2026-11-06T10:03:25.6355003Z ##[group]Removing auth
+2026-11-06T10:03:25.6355450Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-06T10:03:25.6403842Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-06T10:03:25.6693888Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-06T10:03:25.6726432Z http.https://github.com/.extraheader
+2026-11-06T10:03:25.6733998Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-06T10:03:25.6776672Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-06T10:03:25.7034384Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-06T10:03:25.7085535Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-06T10:03:25.7338546Z ##[endgroup]
+2026-11-06T10:03:25.7596811Z ##[group]Run actions/setup-python@v5
+2026-11-06T10:03:25.7597122Z with:
+2026-11-06T10:03:25.7597334Z   python-version: 3.12
+2026-11-06T10:03:25.7597560Z   check-latest: false
+2026-11-06T10:03:25.7600208Z   token: ***
+2026-11-06T10:03:25.7600425Z   update-environment: true
+2026-11-06T10:03:25.7600670Z   allow-prereleases: false
+2026-11-06T10:03:25.7600912Z   freethreaded: false
+2026-11-06T10:03:25.7601116Z env:
+2026-11-06T10:03:25.7601319Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-06T10:03:25.7601560Z   GIT_TERMINAL_PROMPT: 0
+2026-11-06T10:03:25.7601858Z   EXPECTED_SOURCE_HEAD: 78c0b951adc08b02be60d64b386620c5ac9faf99
+2026-11-06T10:03:25.7602195Z ##[endgroup]
+2026-11-06T10:03:25.8990385Z ##[group]Installed versions
+2026-11-06T10:03:25.9089541Z (node:2440) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-06T10:03:25.9090836Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-06T10:03:25.9092098Z Successfully set up CPython (3.12.16)
+2026-11-06T10:03:25.9093021Z ##[endgroup]
+2026-11-06T10:03:25.9274649Z ##[group]Run feedback_actual_head=$(git rev-parse HEAD)
+2026-11-06T10:03:25.9275201Z [36;1mfeedback_actual_head=$(git rev-parse HEAD)[0m
+2026-11-06T10:03:25.9275659Z [36;1mprintf 'actual_head=%s\n' "$feedback_actual_head" >> "$GITHUB_OUTPUT"[0m
+2026-11-06T10:03:25.9276190Z [36;1mpython -B -m experiments.hia_ndu_feedback_20261106.ci snapshot \[0m
+2026-11-06T10:03:25.9276639Z [36;1m  --expected-head "$EXPECTED_SOURCE_HEAD" \[0m
+2026-11-06T10:03:25.9277079Z [36;1m  --output "$RUNNER_TEMP/hia-ndu-feedback/public/source-before.json"[0m
+2026-11-06T10:03:25.9315659Z shell: /usr/bin/bash -e {0}
+2026-11-06T10:03:25.9315961Z env:
+2026-11-06T10:03:25.9316178Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-06T10:03:25.9316440Z   GIT_TERMINAL_PROMPT: 0
+2026-11-06T10:03:25.9316751Z   EXPECTED_SOURCE_HEAD: 78c0b951adc08b02be60d64b386620c5ac9faf99
+2026-11-06T10:03:25.9317179Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-06T10:03:25.9317673Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-06T10:03:25.9318100Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-06T10:03:25.9318481Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-06T10:03:25.9318873Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-06T10:03:25.9319255Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-06T10:03:25.9319580Z ##[endgroup]
+2026-11-06T10:03:27.7740334Z ##[group]Run python -B -m experiments.hia_ndu_feedback_20261106.ci guard-controls \
+2026-11-06T10:03:27.7740943Z [36;1mpython -B -m experiments.hia_ndu_feedback_20261106.ci guard-controls \[0m
+2026-11-06T10:03:27.7741620Z [36;1m  --evidence "$RUNNER_TEMP/hia-ndu-feedback/public"[0m
+2026-11-06T10:03:27.7762939Z shell: /usr/bin/bash -e {0}
+2026-11-06T10:03:27.7763185Z env:
+2026-11-06T10:03:27.7763677Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-06T10:03:27.7763939Z   GIT_TERMINAL_PROMPT: 0
+2026-11-06T10:03:27.7764246Z   EXPECTED_SOURCE_HEAD: 78c0b951adc08b02be60d64b386620c5ac9faf99
+2026-11-06T10:03:27.7764657Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-06T10:03:27.7765076Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-06T10:03:27.7765511Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-06T10:03:27.7765888Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-06T10:03:27.7766306Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-06T10:03:27.7766687Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-06T10:03:27.7767008Z ##[endgroup]
+2026-11-06T10:03:28.0580100Z ##[group]Run python -B -m experiments.hia_ndu_feedback_20261106.ci reference \
+2026-11-06T10:03:28.0580673Z [36;1mpython -B -m experiments.hia_ndu_feedback_20261106.ci reference \[0m
+2026-11-06T10:03:28.0581115Z [36;1m  --evidence "$RUNNER_TEMP/hia-ndu-feedback/public"[0m
+2026-11-06T10:03:28.0602377Z shell: /usr/bin/bash -e {0}
+2026-11-06T10:03:28.0602630Z env:
+2026-11-06T10:03:28.0602840Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-06T10:03:28.0603098Z   GIT_TERMINAL_PROMPT: 0
+2026-11-06T10:03:28.0603763Z   EXPECTED_SOURCE_HEAD: 78c0b951adc08b02be60d64b386620c5ac9faf99
+2026-11-06T10:03:28.0604323Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-06T10:03:28.0604752Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-06T10:03:28.0605172Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-06T10:03:28.0605554Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-06T10:03:28.0605978Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-06T10:03:28.0606369Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-06T10:03:28.0606697Z ##[endgroup]
+2026-11-06T10:03:35.7153051Z ##[group]Run # Anonymous, exact-commit Git fetch follows existing NDU workflows.
+2026-11-06T10:03:35.7153877Z [36;1m# Anonymous, exact-commit Git fetch follows existing NDU workflows.[0m
+2026-11-06T10:03:35.7154390Z [36;1m# No extra token/secret, permission widening or fallback evaluator.[0m
+2026-11-06T10:03:35.7154894Z [36;1m# An inaccessible upstream fails this gate and leaves an OPEN receipt.[0m
+2026-11-06T10:03:35.7155388Z [36;1mpython -B -m experiments.hia_ndu_feedback_20261106.ci prepare \[0m
+2026-11-06T10:03:35.7155848Z [36;1m  --scratch "$RUNNER_TEMP/hia-ndu-feedback/private" \[0m
+2026-11-06T10:03:35.7156246Z [36;1m  --evidence "$RUNNER_TEMP/hia-ndu-feedback/public"[0m
+2026-11-06T10:03:35.7176272Z shell: /usr/bin/bash -e {0}
+2026-11-06T10:03:35.7176519Z env:
+2026-11-06T10:03:35.7176726Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-06T10:03:35.7177003Z   GIT_TERMINAL_PROMPT: 0
+2026-11-06T10:03:35.7177329Z   EXPECTED_SOURCE_HEAD: 78c0b951adc08b02be60d64b386620c5ac9faf99
+2026-11-06T10:03:35.7177779Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-06T10:03:35.7178208Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-06T10:03:35.7178627Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-06T10:03:35.7179005Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-06T10:03:35.7179385Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-06T10:03:35.7179775Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-06T10:03:35.7180096Z ##[endgroup]
+2026-11-06T10:04:40.1996056Z ##[group]Run python -B -m experiments.hia_ndu_feedback_20261106.ci native \
+2026-11-06T10:04:40.1996605Z [36;1mpython -B -m experiments.hia_ndu_feedback_20261106.ci native \[0m
+2026-11-06T10:04:40.1997103Z [36;1m  --config "$RUNNER_TEMP/hia-ndu-feedback/private/native-config.json" \[0m
+2026-11-06T10:04:40.1997761Z [36;1m  --evidence "$RUNNER_TEMP/hia-ndu-feedback/public"[0m
+2026-11-06T10:04:40.2018477Z shell: /usr/bin/bash -e {0}
+2026-11-06T10:04:40.2018727Z env:
+2026-11-06T10:04:40.2018933Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-06T10:04:40.2019191Z   GIT_TERMINAL_PROMPT: 0
+2026-11-06T10:04:40.2019491Z   EXPECTED_SOURCE_HEAD: 78c0b951adc08b02be60d64b386620c5ac9faf99
+2026-11-06T10:04:40.2019906Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-06T10:04:40.2020327Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-06T10:04:40.2020743Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-06T10:04:40.2021156Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-06T10:04:40.2021543Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-06T10:04:40.2021921Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-06T10:04:40.2022246Z ##[endgroup]
+2026-11-06T10:04:42.4044289Z ##[group]Run python -B -m experiments.hia_ndu_feedback_20261106.ci snapshot \
+2026-11-06T10:04:42.4044895Z [36;1mpython -B -m experiments.hia_ndu_feedback_20261106.ci snapshot \[0m
+2026-11-06T10:04:42.4045330Z [36;1m  --expected-head "$EXPECTED_SOURCE_HEAD" \[0m
+2026-11-06T10:04:42.4045763Z [36;1m  --before "$RUNNER_TEMP/hia-ndu-feedback/public/source-before.json" \[0m
+2026-11-06T10:04:42.4046273Z [36;1m  --output "$RUNNER_TEMP/hia-ndu-feedback/public/source-after.json"[0m
+2026-11-06T10:04:42.4066575Z shell: /usr/bin/bash -e {0}
+2026-11-06T10:04:42.4066821Z env:
+2026-11-06T10:04:42.4067026Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-06T10:04:42.4067280Z   GIT_TERMINAL_PROMPT: 0
+2026-11-06T10:04:42.4067576Z   EXPECTED_SOURCE_HEAD: 78c0b951adc08b02be60d64b386620c5ac9faf99
+2026-11-06T10:04:42.4067987Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-06T10:04:42.4068412Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-06T10:04:42.4068863Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-06T10:04:42.4069247Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-06T10:04:42.4069626Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-06T10:04:42.4070003Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-06T10:04:42.4070323Z ##[endgroup]
+2026-11-06T10:04:43.4631829Z ##[group]Run python -B -m experiments.hia_ndu_feedback_20261106.ci publish \
+2026-11-06T10:04:43.4632858Z [36;1mpython -B -m experiments.hia_ndu_feedback_20261106.ci publish \[0m
+2026-11-06T10:04:43.4633972Z [36;1m  --evidence "$RUNNER_TEMP/hia-ndu-feedback/public" \[0m
+2026-11-06T10:04:43.4634736Z [36;1m  --output "$RUNNER_TEMP/hia-ndu-feedback/upload"[0m
+2026-11-06T10:04:43.4665757Z shell: /usr/bin/bash -e {0}
+2026-11-06T10:04:43.4666173Z env:
+2026-11-06T10:04:43.4666517Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-06T10:04:43.4666958Z   GIT_TERMINAL_PROMPT: 0
+2026-11-06T10:04:43.4667500Z   EXPECTED_SOURCE_HEAD: 78c0b951adc08b02be60d64b386620c5ac9faf99
+2026-11-06T10:04:43.4668267Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-06T10:04:43.4669038Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-06T10:04:43.4669801Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-06T10:04:43.4670526Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-06T10:04:43.4671190Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-06T10:04:43.4671856Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-06T10:04:43.4672433Z ##[endgroup]
+2026-11-06T10:04:43.6511236Z ##[group]Run actions/upload-artifact@v4
+2026-11-06T10:04:43.6511547Z with:
+2026-11-06T10:04:43.6511846Z   name: hia-ndu-feedback-78c0b951adc08b02be60d64b386620c5ac9faf99
+2026-11-06T10:04:43.6512215Z   if-no-files-found: error
+2026-11-06T10:04:43.6512447Z   retention-days: 30
+2026-11-06T10:04:43.6512716Z   path: /home/runner/work/_temp/hia-ndu-feedback/upload/
+2026-11-06T10:04:43.6513212Z   compression-level: 6
+2026-11-06T10:04:43.6513630Z   overwrite: false
+2026-11-06T10:04:43.6513844Z   include-hidden-files: false
+2026-11-06T10:04:43.6514074Z env:
+2026-11-06T10:04:43.6514270Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-06T10:04:43.6514531Z   GIT_TERMINAL_PROMPT: 0
+2026-11-06T10:04:43.6514833Z   EXPECTED_SOURCE_HEAD: 78c0b951adc08b02be60d64b386620c5ac9faf99
+2026-11-06T10:04:43.6515238Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-06T10:04:43.6515657Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-06T10:04:43.6516122Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-06T10:04:43.6516506Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-06T10:04:43.6516888Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-06T10:04:43.6517270Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-06T10:04:43.6517593Z ##[endgroup]
+2026-11-06T10:04:43.8298937Z (node:4470) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-06T10:04:43.8299870Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-06T10:04:43.8448266Z With the provided path, there will be 37 files uploaded
+2026-11-06T10:04:43.8453923Z Artifact name is valid!
+2026-11-06T10:04:43.8454548Z Root directory input is valid!
+2026-11-06T10:04:44.1113728Z Beginning upload of artifact content to blob storage
+2026-11-06T10:04:44.4328668Z (node:4470) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-11-06T10:04:44.7384351Z Uploaded bytes 2914237
+2026-11-06T10:04:44.7747831Z Finished uploading artifact content to blob storage!
+2026-11-06T10:04:44.7748799Z SHA256 digest of uploaded artifact zip is 17a562917b29d7e10d26ce08412d12b87b91b357976fdaa8f5d59b103058533e
+2026-11-06T10:04:44.7750410Z Finalizing artifact upload
+2026-11-06T10:04:45.1865991Z Artifact hia-ndu-feedback-78c0b951adc08b02be60d64b386620c5ac9faf99.zip successfully finalized. Artifact ID 13492974690
+2026-11-06T10:04:45.1867881Z Artifact hia-ndu-feedback-78c0b951adc08b02be60d64b386620c5ac9faf99 has been successfully uploaded! Final size is 2914237 bytes. Artifact ID is 13492974690
+2026-11-06T10:04:45.1874356Z Artifact download URL: https://github.com/TrillionniumFoundation/Hepta/actions/runs/42198653917/artifacts/13492974690
+2026-11-06T10:04:45.2102921Z Post job cleanup.
+2026-11-06T10:04:45.3376497Z (node:4483) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-06T10:04:45.3377547Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-06T10:04:45.3528202Z Post job cleanup.
+2026-11-06T10:04:45.4438165Z [command]/usr/bin/git version
+2026-11-06T10:04:45.4483278Z git version 2.56.0
+2026-11-06T10:04:45.4555946Z Temporarily overriding HOME='/home/runner/work/_temp/98200645-efcd-4bff-b27e-8774138c562d' before making global git config changes
+2026-11-06T10:04:45.4557238Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-06T10:04:45.4562491Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-06T10:04:45.4620380Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-06T10:04:45.4667999Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-06T10:04:45.4965597Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-06T10:04:45.5012698Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-06T10:04:45.5352108Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-06T10:04:45.5404132Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-06T10:04:45.5831739Z Cleaning up orphan processes
+2026-11-06T10:04:45.6198733Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-python@v5, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
