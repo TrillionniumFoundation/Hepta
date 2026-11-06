@@ -185,6 +185,11 @@ class SevenRunnerTests(unittest.TestCase):
     def test_complete_failure_replay_and_spawn_semantics(self):
         for behavior in ('parent_exit','parent_timeout','missing','no_output','spawn','target_missing','target_sorry','target_timeout','target_limit'):
             def inspect(path,report,identity,support):
+                if behavior == 'target_limit':
+                    self.assertEqual(report['status'], 'diagnostic_output_limit', report)
+                    self.assertTrue(report['evidence_complete'], report)
+                    self.assertNotIn('closure_failed', report)
+                    self.assertEqual(report['stages'][-1]['process']['status'], 'diagnostic_output_limit')
                 verified=self.replay(path,identity,support)
                 self.assertEqual(verified['validated_markers'],behavior=='target_timeout')
                 self.assertLessEqual(verified['validated_parent_count'],3)
