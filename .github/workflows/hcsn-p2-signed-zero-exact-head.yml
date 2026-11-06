@@ -1,0 +1,27 @@
+name: HCSN P2 signed-zero exact-source regression (HOLD)
+on:
+  push:
+    branches:
+      - fix/hcsn-p2-signed-zero-20261106-gpt6
+  pull_request:
+    branches:
+      - fix/hcsn-p2-immutable-occupancy-contract-20261106-gpt6
+permissions:
+  contents: read
+jobs:
+  exact-head-reference:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Source-bound P2 regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          node --test research/hcsn/test_p2_exact_occupancy_reference.mjs research/hcsn/test_p2_config_contract.mjs research/hcsn/test_p2_signed_zero_reference.mjs
