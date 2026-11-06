@@ -1,0 +1,413 @@
+﻿2026-11-04T04:45:55.2434960Z Current runner version: '2.338.2'
+2026-11-04T04:45:55.2457003Z ##[group]Runner Image Provisioner
+2026-11-04T04:45:55.2457727Z Hosted Compute Agent
+2026-11-04T04:45:55.2458307Z Version: 20261028.624
+2026-11-04T04:45:55.2458840Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+2026-11-04T04:45:55.2459459Z Build Date: 2026-10-28T21:51:42Z
+2026-11-04T04:45:55.2460078Z Worker ID: {6c2c7c92-1efa-48a3-b48c-9b8742c436fb}
+2026-11-04T04:45:55.2460677Z Region: mexicocentral
+2026-11-04T04:45:55.2461237Z Cloud: Azure
+2026-11-04T04:45:55.2461795Z ##[endgroup]
+2026-11-04T04:45:55.2462968Z ##[group]Operating System
+2026-11-04T04:45:55.2463554Z Ubuntu
+2026-11-04T04:45:55.2464203Z 24.04.5
+2026-11-04T04:45:55.2464710Z LTS
+2026-11-04T04:45:55.2465156Z ##[endgroup]
+2026-11-04T04:45:55.2465621Z ##[group]Runner Image
+2026-11-04T04:45:55.2466206Z Image: ubuntu-24.04
+2026-11-04T04:45:55.2466697Z Version: 20261101.360.1
+2026-11-04T04:45:55.2467807Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-04T04:45:55.2469098Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261101.360
+2026-11-04T04:45:55.2470035Z ##[endgroup]
+2026-11-04T04:45:55.2470978Z ##[group]GITHUB_TOKEN Permissions
+2026-11-04T04:45:55.2472821Z Contents: read
+2026-11-04T04:45:55.2473333Z Metadata: read
+2026-11-04T04:45:55.2473901Z ##[endgroup]
+2026-11-04T04:45:55.2475963Z Secret source: Actions
+2026-11-04T04:45:55.2476804Z Cache mode: write
+2026-11-04T04:45:55.2477734Z Prepare workflow directory
+2026-11-04T04:45:55.2939516Z Prepare all required actions
+2026-11-04T04:45:55.2978784Z Getting action download info
+2026-11-04T04:45:55.5822144Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-11-04T04:45:55.6705341Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-11-04T04:45:55.8578245Z Complete job name: source-integers (ubuntu-24.04, 3.13)
+2026-11-04T04:45:55.9212944Z ##[group]Run actions/checkout@v4
+2026-11-04T04:45:55.9213628Z with:
+2026-11-04T04:45:55.9214319Z   ref: c12ae2c3788c3b74acf8e283676b4145743b1883
+2026-11-04T04:45:55.9214825Z   persist-credentials: false
+2026-11-04T04:45:55.9215267Z   repository: TrillionniumFoundation/Hepta
+2026-11-04T04:45:55.9218580Z   token: ***
+2026-11-04T04:45:55.9218939Z   ssh-strict: true
+2026-11-04T04:45:55.9219308Z   ssh-user: git
+2026-11-04T04:45:55.9219651Z   clean: true
+2026-11-04T04:45:55.9220013Z   sparse-checkout-cone-mode: true
+2026-11-04T04:45:55.9220440Z   fetch-depth: 1
+2026-11-04T04:45:55.9220792Z   fetch-tags: false
+2026-11-04T04:45:55.9221157Z   show-progress: true
+2026-11-04T04:45:55.9221518Z   lfs: false
+2026-11-04T04:45:55.9221853Z   submodules: false
+2026-11-04T04:45:55.9222271Z   set-safe-directory: true
+2026-11-04T04:45:55.9222681Z   allow-unsafe-pr-checkout: false
+2026-11-04T04:45:55.9223286Z env:
+2026-11-04T04:45:55.9223748Z   HEPTA_SOURCE_SHA: c12ae2c3788c3b74acf8e283676b4145743b1883
+2026-11-04T04:45:55.9224453Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-04T04:45:55.9224850Z ##[endgroup]
+2026-11-04T04:45:56.1798673Z Syncing repository: TrillionniumFoundation/Hepta
+2026-11-04T04:45:56.1800142Z ##[group]Getting Git version info
+2026-11-04T04:45:56.1800682Z Working directory is '/home/runner/work/Hepta/Hepta'
+2026-11-04T04:45:56.1801459Z [command]/usr/bin/git version
+2026-11-04T04:45:56.1894296Z git version 2.56.0
+2026-11-04T04:45:56.1917289Z ##[endgroup]
+2026-11-04T04:45:56.1923409Z Temporarily overriding HOME='/home/runner/work/_temp/382c6a86-7f1f-4368-904e-181c337d5735' before making global git config changes
+2026-11-04T04:45:56.1924918Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-04T04:45:56.1928095Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-04T04:45:56.1982112Z Deleting the contents of '/home/runner/work/Hepta/Hepta'
+2026-11-04T04:45:56.1987282Z ##[group]Initializing the repository
+2026-11-04T04:45:56.1990980Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta
+2026-11-04T04:45:56.2122113Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-04T04:45:56.2123551Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-04T04:45:56.2125128Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-04T04:45:56.2126186Z hint: call:
+2026-11-04T04:45:56.2126825Z hint:
+2026-11-04T04:45:56.2127539Z hint: 	git config --global init.defaultBranch <name>
+2026-11-04T04:45:56.2128416Z hint:
+2026-11-04T04:45:56.2129300Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-04T04:45:56.2130576Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-04T04:45:56.2131615Z hint:
+2026-11-04T04:45:56.2132273Z hint: 	git branch -m <name>
+2026-11-04T04:45:56.2132961Z hint:
+2026-11-04T04:45:56.2133852Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-04T04:45:56.2135519Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/.git/
+2026-11-04T04:45:56.2155248Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-11-04T04:45:56.2202739Z ##[endgroup]
+2026-11-04T04:45:56.2203651Z ##[group]Disabling automatic garbage collection
+2026-11-04T04:45:56.2206799Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-04T04:45:56.2240551Z ##[endgroup]
+2026-11-04T04:45:56.2241967Z ##[group]Setting up auth
+2026-11-04T04:45:56.2247219Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-04T04:45:56.2283727Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-04T04:45:56.2731332Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-04T04:45:56.2771804Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-04T04:45:56.3005650Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-04T04:45:56.3052772Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-04T04:45:56.3293259Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-04T04:45:56.3344511Z ##[endgroup]
+2026-11-04T04:45:56.3345619Z ##[group]Fetching the repository
+2026-11-04T04:45:56.3356907Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin c12ae2c3788c3b74acf8e283676b4145743b1883
+2026-11-04T04:46:03.9044614Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-04T04:46:03.9046165Z  * branch            c12ae2c3788c3b74acf8e283676b4145743b1883 -> FETCH_HEAD
+2026-11-04T04:46:03.9049293Z ##[endgroup]
+2026-11-04T04:46:03.9050332Z ##[group]Determining the checkout info
+2026-11-04T04:46:03.9051578Z ##[endgroup]
+2026-11-04T04:46:03.9055875Z [command]/usr/bin/git sparse-checkout disable
+2026-11-04T04:46:03.9125235Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-04T04:46:03.9159502Z ##[group]Checking out the ref
+2026-11-04T04:46:03.9164538Z [command]/usr/bin/git checkout --progress --force c12ae2c3788c3b74acf8e283676b4145743b1883
+2026-11-04T04:46:04.9499961Z Updating files:  84% (7352/8664)
+2026-11-04T04:46:04.9576905Z Updating files:  85% (7365/8664)
+2026-11-04T04:46:04.9634549Z Updating files:  86% (7452/8664)
+2026-11-04T04:46:04.9768380Z Updating files:  87% (7538/8664)
+2026-11-04T04:46:04.9916566Z Updating files:  88% (7625/8664)
+2026-11-04T04:46:04.9968592Z Updating files:  89% (7711/8664)
+2026-11-04T04:46:05.0035275Z Updating files:  90% (7798/8664)
+2026-11-04T04:46:05.0085069Z Updating files:  91% (7885/8664)
+2026-11-04T04:46:05.0133294Z Updating files:  92% (7971/8664)
+2026-11-04T04:46:05.0178901Z Updating files:  93% (8058/8664)
+2026-11-04T04:46:05.0228189Z Updating files:  94% (8145/8664)
+2026-11-04T04:46:05.0278908Z Updating files:  95% (8231/8664)
+2026-11-04T04:46:05.0328126Z Updating files:  96% (8318/8664)
+2026-11-04T04:46:05.0384856Z Updating files:  97% (8405/8664)
+2026-11-04T04:46:05.0462242Z Updating files:  98% (8491/8664)
+2026-11-04T04:46:05.0552507Z Updating files:  99% (8578/8664)
+2026-11-04T04:46:05.0553516Z Updating files: 100% (8664/8664)
+2026-11-04T04:46:05.0554499Z Updating files: 100% (8664/8664), done.
+2026-11-04T04:46:05.0672481Z Note: switching to 'c12ae2c3788c3b74acf8e283676b4145743b1883'.
+2026-11-04T04:46:05.0673181Z 
+2026-11-04T04:46:05.0673600Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-11-04T04:46:05.0674965Z changes and commit them, and you can discard any commits you make in this
+2026-11-04T04:46:05.0676249Z state without impacting any branches by switching back to a branch.
+2026-11-04T04:46:05.0676918Z 
+2026-11-04T04:46:05.0677398Z If you want to create a new branch to retain commits you create, you may
+2026-11-04T04:46:05.0678441Z do so (now or later) by using -c with the switch command. Example:
+2026-11-04T04:46:05.0679058Z 
+2026-11-04T04:46:05.0679238Z   git switch -c <new-branch-name>
+2026-11-04T04:46:05.0679632Z 
+2026-11-04T04:46:05.0679817Z Or undo this operation with:
+2026-11-04T04:46:05.0680173Z 
+2026-11-04T04:46:05.0680323Z   git switch -
+2026-11-04T04:46:05.0680573Z 
+2026-11-04T04:46:05.0681125Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-11-04T04:46:05.0681978Z 
+2026-11-04T04:46:05.0682647Z HEAD is now at c12ae2c Compose integer admission with independent Windows identity repair
+2026-11-04T04:46:05.0793318Z ##[endgroup]
+2026-11-04T04:46:05.1405634Z [command]/usr/bin/git log -1 --format=%H
+2026-11-04T04:46:05.1439227Z c12ae2c3788c3b74acf8e283676b4145743b1883
+2026-11-04T04:46:05.1452140Z ##[group]Removing auth
+2026-11-04T04:46:05.1463212Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-04T04:46:05.1488099Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-04T04:46:05.1710049Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-04T04:46:05.1857114Z http.https://github.com/.extraheader
+2026-11-04T04:46:05.1863283Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-04T04:46:05.1903853Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-04T04:46:05.2120908Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-04T04:46:05.2160145Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-04T04:46:05.2370842Z ##[endgroup]
+2026-11-04T04:46:05.2710075Z ##[group]Run actions/setup-python@v5
+2026-11-04T04:46:05.2710365Z with:
+2026-11-04T04:46:05.2710570Z   python-version: 3.13
+2026-11-04T04:46:05.2710796Z   check-latest: false
+2026-11-04T04:46:05.2712954Z   token: ***
+2026-11-04T04:46:05.2713167Z   update-environment: true
+2026-11-04T04:46:05.2713404Z   allow-prereleases: false
+2026-11-04T04:46:05.2713632Z   freethreaded: false
+2026-11-04T04:46:05.2713848Z env:
+2026-11-04T04:46:05.2714244Z   HEPTA_SOURCE_SHA: c12ae2c3788c3b74acf8e283676b4145743b1883
+2026-11-04T04:46:05.2714564Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-04T04:46:05.2714792Z ##[endgroup]
+2026-11-04T04:46:05.4399205Z ##[group]Installed versions
+2026-11-04T04:46:05.5714798Z (node:2217) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-04T04:46:05.5716324Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-04T04:46:05.5716809Z Successfully set up CPython (3.13.18)
+2026-11-04T04:46:05.5717441Z ##[endgroup]
+2026-11-04T04:46:05.5854684Z ##[group]Run rustup toolchain install 1.90.0 --profile minimal
+2026-11-04T04:46:05.5855196Z [36;1mrustup toolchain install 1.90.0 --profile minimal[0m
+2026-11-04T04:46:05.5855503Z [36;1mrustup default 1.90.0[0m
+2026-11-04T04:46:05.5855749Z [36;1mrustc --version --verbose[0m
+2026-11-04T04:46:05.6091468Z shell: /usr/bin/bash -e {0}
+2026-11-04T04:46:05.6091765Z env:
+2026-11-04T04:46:05.6092028Z   HEPTA_SOURCE_SHA: c12ae2c3788c3b74acf8e283676b4145743b1883
+2026-11-04T04:46:05.6092354Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-04T04:46:05.6092640Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.18/x64
+2026-11-04T04:46:05.6093049Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib/pkgconfig
+2026-11-04T04:46:05.6093435Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+2026-11-04T04:46:05.6093788Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+2026-11-04T04:46:05.6094534Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+2026-11-04T04:46:05.6095023Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib
+2026-11-04T04:46:05.6095329Z ##[endgroup]
+2026-11-04T04:46:06.1303258Z info: syncing channel updates for 1.90.0-x86_64-unknown-linux-gnu
+2026-11-04T04:46:06.7112315Z info: latest update on 2025-09-18 for version 1.90.0 (1159e78c4 2025-09-14)
+2026-11-04T04:46:06.7115022Z info: downloading 3 components
+2026-11-04T04:46:13.6720848Z 
+2026-11-04T04:46:13.6793674Z   1.90.0-x86_64-unknown-linux-gnu installed - rustc 1.90.0 (1159e78c4 2025-09-14)
+2026-11-04T04:46:13.6794257Z 
+2026-11-04T04:46:13.7020258Z info: using existing install for 1.90.0-x86_64-unknown-linux-gnu
+2026-11-04T04:46:13.7026674Z info: default toolchain set to 1.90.0-x86_64-unknown-linux-gnu
+2026-11-04T04:46:13.7027032Z 
+2026-11-04T04:46:13.7097151Z   1.90.0-x86_64-unknown-linux-gnu unchanged - rustc 1.90.0 (1159e78c4 2025-09-14)
+2026-11-04T04:46:13.7097760Z 
+2026-11-04T04:46:13.7208176Z rustc 1.90.0 (1159e78c4 2025-09-14)
+2026-11-04T04:46:13.7208445Z binary: rustc
+2026-11-04T04:46:13.7208777Z commit-hash: 1159e78c4747b02ef996e55082b704c09b970588
+2026-11-04T04:46:13.7209059Z commit-date: 2025-09-14
+2026-11-04T04:46:13.7209261Z host: x86_64-unknown-linux-gnu
+2026-11-04T04:46:13.7209457Z release: 1.90.0
+2026-11-04T04:46:13.7209782Z LLVM version: 20.1.8
+2026-11-04T04:46:13.7256041Z ##[group]Run import os, platform, subprocess, sys, unittest
+2026-11-04T04:46:13.7256436Z [36;1mimport os, platform, subprocess, sys, unittest[0m
+2026-11-04T04:46:13.7256713Z [36;1msys.path.insert(0, os.getcwd())[0m
+2026-11-04T04:46:13.7257161Z [36;1mactual = subprocess.check_output(['git', '--no-replace-objects', 'rev-parse', 'HEAD'], text=True).strip()[0m
+2026-11-04T04:46:13.7257719Z [36;1massert actual == os.environ['HEPTA_SOURCE_SHA'], (actual, os.environ['HEPTA_SOURCE_SHA'])[0m
+2026-11-04T04:46:13.7258268Z [36;1massert not subprocess.check_output(['git', 'status', '--porcelain', '--untracked-files=all'], text=True).strip()[0m
+2026-11-04T04:46:13.7258794Z [36;1mprint('Source:', actual, 'Host:', platform.platform(), 'Python:', sys.version, flush=True)[0m
+2026-11-04T04:46:13.7259295Z [36;1msuite = unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromName(name) for name in ([0m
+2026-11-04T04:46:13.7259832Z [36;1m    'tests.test_integer_literal_admission', 'tests.test_parser', 'tests.test_checker'))[0m
+2026-11-04T04:46:13.7260249Z [36;1mresult = unittest.TextTestRunner(verbosity=2).run(suite)[0m
+2026-11-04T04:46:13.7260734Z [36;1massert result.wasSuccessful() and not result.skipped and not result.expectedFailures and not result.unexpectedSuccesses[0m
+2026-11-04T04:46:13.7264289Z shell: /opt/hostedtoolcache/Python/3.13.18/x64/bin/python {0}
+2026-11-04T04:46:13.7264567Z env:
+2026-11-04T04:46:13.7264789Z   HEPTA_SOURCE_SHA: c12ae2c3788c3b74acf8e283676b4145743b1883
+2026-11-04T04:46:13.7265216Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-04T04:46:13.7265471Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.18/x64
+2026-11-04T04:46:13.7265797Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib/pkgconfig
+2026-11-04T04:46:13.7266132Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+2026-11-04T04:46:13.7266436Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+2026-11-04T04:46:13.7266749Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+2026-11-04T04:46:13.7267046Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib
+2026-11-04T04:46:13.7267302Z ##[endgroup]
+2026-11-04T04:46:15.1459896Z Source: c12ae2c3788c3b74acf8e283676b4145743b1883 Host: Linux-7.0.0-1017-azure-x86_64-with-glibc2.39 Python: 3.13.18 (main, Oct 26 2026, 14:20:56) [GCC 13.3.0]
+2026-11-04T04:46:15.7582528Z test_admitted_boundaries_pass_native_rust_validation (tests.test_integer_literal_admission.IntegerLiteralAdmissionTests.test_admitted_boundaries_pass_native_rust_validation) ... ok
+2026-11-04T04:46:15.9525100Z test_admitted_interface_values_hash_and_resource_diagnostics_render (tests.test_integer_literal_admission.IntegerLiteralAdmissionTests.test_admitted_interface_values_hash_and_resource_diagnostics_render) ... ok
+2026-11-04T04:46:16.1514278Z test_all_original_crash_contexts_return_serializable_diagnostics (tests.test_integer_literal_admission.IntegerLiteralAdmissionTests.test_all_original_crash_contexts_return_serializable_diagnostics) ... ok
+2026-11-04T04:46:16.4944521Z test_boundary_rejection_is_context_and_base_independent (tests.test_integer_literal_admission.IntegerLiteralAdmissionTests.test_boundary_rejection_is_context_and_base_independent) ... ok
+2026-11-04T04:46:16.9185157Z test_cli_returns_json_without_traceback_for_original_crashes (tests.test_integer_literal_admission.IntegerLiteralAdmissionTests.test_cli_returns_json_without_traceback_for_original_crashes) ... ok
+2026-11-04T04:46:16.9450282Z test_existing_spelling_limit_includes_prefix_but_not_separators (tests.test_integer_literal_admission.IntegerLiteralAdmissionTests.test_existing_spelling_limit_includes_prefix_but_not_separators) ... ok
+2026-11-04T04:46:17.0332173Z test_fixed_width_type_ranges_and_signed_minimum_are_preserved (tests.test_integer_literal_admission.IntegerLiteralAdmissionTests.test_fixed_width_type_ranges_and_signed_minimum_are_preserved) ... ok
+2026-11-04T04:46:17.0334450Z test_float_values_do_not_inherit_integer_ceiling (tests.test_integer_literal_admission.IntegerLiteralAdmissionTests.test_float_values_do_not_inherit_integer_ceiling) ... ok
+2026-11-04T04:46:17.0355121Z test_imported_huge_value_is_a_positioned_source_error (tests.test_integer_literal_admission.IntegerLiteralAdmissionTests.test_imported_huge_value_is_a_positioned_source_error) ... ok
+2026-11-04T04:46:17.0403237Z test_leading_zeroes_and_separators_preserve_values (tests.test_integer_literal_admission.IntegerLiteralAdmissionTests.test_leading_zeroes_and_separators_preserve_values) ... ok
+2026-11-04T04:46:17.0460971Z test_long_magnitudes_rejected_without_decimal_conversion (tests.test_integer_literal_admission.IntegerLiteralAdmissionTests.test_long_magnitudes_rejected_without_decimal_conversion) ... ok
+2026-11-04T04:46:17.0466264Z test_maximum_and_signed_minimum_magnitude_in_every_base (tests.test_integer_literal_admission.IntegerLiteralAdmissionTests.test_maximum_and_signed_minimum_magnitude_in_every_base) ... ok
+2026-11-04T04:46:17.0469301Z test_one_above_maximum_rejected_in_every_base_with_exact_span (tests.test_integer_literal_admission.IntegerLiteralAdmissionTests.test_one_above_maximum_rejected_in_every_base_with_exact_span) ... ok
+2026-11-04T04:46:17.0663037Z test_pointer_sized_ranges_still_belong_to_the_target (tests.test_integer_literal_admission.IntegerLiteralAdmissionTests.test_pointer_sized_ranges_still_belong_to_the_target) ... ok
+2026-11-04T04:46:17.1876966Z test_smallest_python_decimal_limit_without_mutating_process_setting (tests.test_integer_literal_admission.IntegerLiteralAdmissionTests.test_smallest_python_decimal_limit_without_mutating_process_setting) ... ok
+2026-11-04T04:46:17.1878777Z test_comment_between_tokens_does_not_join_identifiers (tests.test_parser.LexerTests.test_comment_between_tokens_does_not_join_identifiers) ... ok
+2026-11-04T04:46:17.1879557Z test_comment_spans_survive_unicode_and_crlf (tests.test_parser.LexerTests.test_comment_spans_survive_unicode_and_crlf) ... ok
+2026-11-04T04:46:17.1880182Z test_comments_are_not_code_and_nest (tests.test_parser.LexerTests.test_comments_are_not_code_and_nest) ... ok
+2026-11-04T04:46:17.1880909Z test_cr_only_and_tabs_have_documented_columns (tests.test_parser.LexerTests.test_cr_only_and_tabs_have_documented_columns) ... ok
+2026-11-04T04:46:17.1881633Z test_invalid_characters_are_positioned (tests.test_parser.LexerTests.test_invalid_characters_are_positioned) ... ok
+2026-11-04T04:46:17.1882331Z test_longest_operators (tests.test_parser.LexerTests.test_longest_operators) ... ok
+2026-11-04T04:46:17.1902643Z test_malformed_numbers_fail_closed (tests.test_parser.LexerTests.test_malformed_numbers_fail_closed) ... ok
+2026-11-04T04:46:17.1903939Z test_numeric_values_and_range_disambiguation (tests.test_parser.LexerTests.test_numeric_values_and_range_disambiguation) ... ok
+2026-11-04T04:46:17.1905738Z test_strings_are_not_escape_channels (tests.test_parser.LexerTests.test_strings_are_not_escape_channels) ... ok
+2026-11-04T04:46:17.1906923Z test_unterminated_block_comment_has_opening_location (tests.test_parser.LexerTests.test_unterminated_block_comment_has_opening_location) ... ok
+2026-11-04T04:46:17.1911781Z test_abi_is_exact_and_strings_cannot_be_expressions (tests.test_parser.ParserTests.test_abi_is_exact_and_strings_cannot_be_expressions) ... ok
+2026-11-04T04:46:17.1913058Z test_all_binary_precedence_levels (tests.test_parser.ParserTests.test_all_binary_precedence_levels) ... ok
+2026-11-04T04:46:17.1916285Z test_arithmetic_precedence_and_left_associativity (tests.test_parser.ParserTests.test_arithmetic_precedence_and_left_associativity) ... ok
+2026-11-04T04:46:17.1919048Z test_arrays_and_struct_literals (tests.test_parser.ParserTests.test_arrays_and_struct_literals) ... ok
+2026-11-04T04:46:17.1923503Z test_complete_module_abi_and_resource_shapes (tests.test_parser.ParserTests.test_complete_module_abi_and_resource_shapes) ... ok
+2026-11-04T04:46:17.1924404Z test_default_module_and_empty_file (tests.test_parser.ParserTests.test_default_module_and_empty_file) ... ok
+2026-11-04T04:46:17.1926439Z test_duplicate_effects_and_resources_are_not_silently_collapsed (tests.test_parser.ParserTests.test_duplicate_effects_and_resources_are_not_silently_collapsed) ... ok
+2026-11-04T04:46:17.1927477Z test_error_span_points_to_actual_missing_delimiter_location (tests.test_parser.ParserTests.test_error_span_points_to_actual_missing_delimiter_location) ... ok
+2026-11-04T04:46:17.1928504Z test_extern_span_includes_semicolon (tests.test_parser.ParserTests.test_extern_span_includes_semicolon) ... ok
+2026-11-04T04:46:17.1931373Z test_function_and_body_spans_include_full_delimiters (tests.test_parser.ParserTests.test_function_and_body_spans_include_full_delimiters) ... ok
+2026-11-04T04:46:17.1933553Z test_generic_closing_angle_can_touch_assignment (tests.test_parser.ParserTests.test_generic_closing_angle_can_touch_assignment) ... ok
+2026-11-04T04:46:17.1936173Z test_if_and_while_names_are_not_mistaken_for_structs (tests.test_parser.ParserTests.test_if_and_while_names_are_not_mistaken_for_structs) ... ok
+2026-11-04T04:46:17.1941778Z test_invalid_assignment_and_missing_semicolons (tests.test_parser.ParserTests.test_invalid_assignment_and_missing_semicolons) ... ok
+2026-11-04T04:46:17.2228340Z test_iteratively_parsed_chains_cannot_overflow_downstream_passes (tests.test_parser.ParserTests.test_iteratively_parsed_chains_cannot_overflow_downstream_passes) ... ok
+2026-11-04T04:46:17.2231490Z test_methods_and_indirect_calls_fail (tests.test_parser.ParserTests.test_methods_and_indirect_calls_fail) ... ok
+2026-11-04T04:46:17.2234243Z test_missing_effects_and_modifiers_fail (tests.test_parser.ParserTests.test_missing_effects_and_modifiers_fail) ... ok
+2026-11-04T04:46:17.2256105Z test_nested_syntax_fails_with_diagnostic_not_recursion_crash (tests.test_parser.ParserTests.test_nested_syntax_fails_with_diagnostic_not_recursion_crash) ... ok
+2026-11-04T04:46:17.2258925Z test_parenthesized_structs_work_in_conditions (tests.test_parser.ParserTests.test_parenthesized_structs_work_in_conditions) ... ok
+2026-11-04T04:46:17.2268152Z test_source_injection_and_unsupported_syntax_fail (tests.test_parser.ParserTests.test_source_injection_and_unsupported_syntax_fail) ... ok
+2026-11-04T04:46:17.2274413Z test_statement_shapes_and_block_boundaries (tests.test_parser.ParserTests.test_statement_shapes_and_block_boundaries) ... ok
+2026-11-04T04:46:17.2278921Z test_task_generic_type_uses_shared_ast_without_new_expression_syntax (tests.test_parser.ParserTests.test_task_generic_type_uses_shared_ast_without_new_expression_syntax) ... ok
+2026-11-04T04:46:17.2281471Z test_trailing_tokens_and_unbalanced_blocks_fail (tests.test_parser.ParserTests.test_trailing_tokens_and_unbalanced_blocks_fail) ... ok
+2026-11-04T04:46:17.2284493Z test_types_parameter_modes_and_nested_closing_angles (tests.test_parser.ParserTests.test_types_parameter_modes_and_nested_closing_angles) ... ok
+2026-11-04T04:46:17.2288383Z test_unary_borrow_and_move_do_not_consume_binary_expression (tests.test_parser.ParserTests.test_unary_borrow_and_move_do_not_consume_binary_expression) ... ok
+2026-11-04T04:46:17.2290319Z test_unary_cast_postfix_and_group_spans (tests.test_parser.ParserTests.test_unary_cast_postfix_and_group_spans) ... ok
+2026-11-04T04:46:17.2298766Z test_array_shape_mismatch (tests.test_checker.CheckerTests.test_array_shape_mismatch) ... ok
+2026-11-04T04:46:17.2306573Z test_borrow_alias_local_is_unsupported (tests.test_checker.CheckerTests.test_borrow_alias_local_is_unsupported) ... ok
+2026-11-04T04:46:17.2317425Z test_borrow_buffer_as_slice (tests.test_checker.CheckerTests.test_borrow_buffer_as_slice) ... ok
+2026-11-04T04:46:17.2325624Z test_borrowed_buffer_cannot_move (tests.test_checker.CheckerTests.test_borrowed_buffer_cannot_move) ... ok
+2026-11-04T04:46:17.2335772Z test_both_branches_return (tests.test_checker.CheckerTests.test_both_branches_return) ... ok
+2026-11-04T04:46:17.2345583Z test_branch_both_consume (tests.test_checker.CheckerTests.test_branch_both_consume) ... ok
+2026-11-04T04:46:17.2355813Z test_branch_must_consume_on_both_paths (tests.test_checker.CheckerTests.test_branch_must_consume_on_both_paths) ... ok
+2026-11-04T04:46:17.2365431Z test_buffer_alias_needs_move (tests.test_checker.CheckerTests.test_buffer_alias_needs_move) ... ok
+2026-11-04T04:46:17.2374843Z test_buffer_alloc_release (tests.test_checker.CheckerTests.test_buffer_alloc_release) ... ok
+2026-11-04T04:46:17.2385728Z test_buffer_reassignment (tests.test_checker.CheckerTests.test_buffer_reassignment) ... ok
+2026-11-04T04:46:17.2394791Z test_buffer_requires_release (tests.test_checker.CheckerTests.test_buffer_requires_release) ... ok
+2026-11-04T04:46:17.2402442Z test_c11_keyword_rejected (tests.test_checker.CheckerTests.test_c11_keyword_rejected) ... ok
+2026-11-04T04:46:17.2445881Z test_c_boundary_rejects_unsound_aggregate_forms (tests.test_checker.CheckerTests.test_c_boundary_rejects_unsound_aggregate_forms) ... ok
+2026-11-04T04:46:17.2454845Z test_c_ffi_assumptions (tests.test_checker.CheckerTests.test_c_ffi_assumptions) ... ok
+2026-11-04T04:46:17.2465947Z test_c_ffi_call_requires_unsafe (tests.test_checker.CheckerTests.test_c_ffi_call_requires_unsafe) ... ok
+2026-11-04T04:46:17.2473221Z test_c_ffi_must_declare_effect (tests.test_checker.CheckerTests.test_c_ffi_must_declare_effect) ... ok
+2026-11-04T04:46:17.2481050Z test_c_keyword_field_rejected (tests.test_checker.CheckerTests.test_c_keyword_field_rejected) ... ok
+2026-11-04T04:46:17.2488879Z test_c_keyword_parameter_rejected (tests.test_checker.CheckerTests.test_c_keyword_parameter_rejected) ... ok
+2026-11-04T04:46:17.2496331Z test_c_keyword_symbol_rejected (tests.test_checker.CheckerTests.test_c_keyword_symbol_rejected) ... ok
+2026-11-04T04:46:17.2508597Z test_c_recursive_pointer (tests.test_checker.CheckerTests.test_c_recursive_pointer) ... ok
+2026-11-04T04:46:17.2517900Z test_c_repr_is_recursive (tests.test_checker.CheckerTests.test_c_repr_is_recursive) ... ok
+2026-11-04T04:46:17.2527057Z test_c_struct_array_field (tests.test_checker.CheckerTests.test_c_struct_array_field) ... ok
+2026-11-04T04:46:17.2549328Z test_c_typedef_symbol_collision_rejected (tests.test_checker.CheckerTests.test_c_typedef_symbol_collision_rejected) ... ok
+2026-11-04T04:46:17.2559806Z test_cast_cannot_escape_linearity (tests.test_checker.CheckerTests.test_cast_cannot_escape_linearity) ... ok
+2026-11-04T04:46:17.2574392Z test_cpp_keyword_rejected_at_c_boundary (tests.test_checker.CheckerTests.test_cpp_keyword_rejected_at_c_boundary) ... ok
+2026-11-04T04:46:17.2582431Z test_declared_effect_is_modular_upper_bound (tests.test_checker.CheckerTests.test_declared_effect_is_modular_upper_bound) ... ok
+2026-11-04T04:46:17.2592409Z test_discard_fresh_buffer (tests.test_checker.CheckerTests.test_discard_fresh_buffer) ... ok
+2026-11-04T04:46:17.2601615Z test_duplicate_release (tests.test_checker.CheckerTests.test_duplicate_release) ... ok
+2026-11-04T04:46:17.2611670Z test_early_return_consumes (tests.test_checker.CheckerTests.test_early_return_consumes) ... ok
+2026-11-04T04:46:17.2621011Z test_early_return_leak (tests.test_checker.CheckerTests.test_early_return_leak) ... ok
+2026-11-04T04:46:17.2634956Z test_every_expression_gets_type (tests.test_checker.CheckerTests.test_every_expression_gets_type) ... ok
+2026-11-04T04:46:17.2646064Z test_float_arithmetic_does_not_panic (tests.test_checker.CheckerTests.test_float_arithmetic_does_not_panic) ... ok
+2026-11-04T04:46:17.2654325Z test_generated_typedef_symbol_collision_rejected (tests.test_checker.CheckerTests.test_generated_typedef_symbol_collision_rejected) ... ok
+2026-11-04T04:46:17.2703211Z test_header_macro_collision_rejected (tests.test_checker.CheckerTests.test_header_macro_collision_rejected) ... ok
+2026-11-04T04:46:17.2711061Z test_immutable_assignment (tests.test_checker.CheckerTests.test_immutable_assignment) ... ok
+2026-11-04T04:46:17.2721009Z test_implementation_reserved_c_identifier_rejected (tests.test_checker.CheckerTests.test_implementation_reserved_c_identifier_rejected) ... ok
+2026-11-04T04:46:17.2729439Z test_index_fresh_buffer_rejected (tests.test_checker.CheckerTests.test_index_fresh_buffer_rejected) ... ok
+2026-11-04T04:46:17.2782611Z test_integer_arithmetic_has_panic (tests.test_checker.CheckerTests.test_integer_arithmetic_has_panic) ... ok
+2026-11-04T04:46:17.2789824Z test_integer_literal_range (tests.test_checker.CheckerTests.test_integer_literal_range) ... ok
+2026-11-04T04:46:17.2798215Z test_integer_pointer_cast_rejected (tests.test_checker.CheckerTests.test_integer_pointer_cast_rejected) ... ok
+2026-11-04T04:46:17.2808534Z test_len_fresh_buffer_rejected (tests.test_checker.CheckerTests.test_len_fresh_buffer_rejected) ... ok
+2026-11-04T04:46:17.2817250Z test_len_move_cannot_escape_linearity (tests.test_checker.CheckerTests.test_len_move_cannot_escape_linearity) ... ok
+2026-11-04T04:46:17.2826226Z test_local_cannot_shadow_function_name (tests.test_checker.CheckerTests.test_local_cannot_shadow_function_name) ... ok
+2026-11-04T04:46:17.2835128Z test_local_mutation_is_not_write_effect (tests.test_checker.CheckerTests.test_local_mutation_is_not_write_effect) ... ok
+2026-11-04T04:46:17.2844697Z test_loop_borrows_outer_owner (tests.test_checker.CheckerTests.test_loop_borrows_outer_owner) ... ok
+2026-11-04T04:46:17.2856525Z test_loop_local_owner_consumed (tests.test_checker.CheckerTests.test_loop_local_owner_consumed) ... ok
+2026-11-04T04:46:17.2865159Z test_loop_local_owner_leak (tests.test_checker.CheckerTests.test_loop_local_owner_leak) ... ok
+2026-11-04T04:46:17.2874168Z test_loop_may_run_zero_times (tests.test_checker.CheckerTests.test_loop_may_run_zero_times) ... ok
+2026-11-04T04:46:17.2882075Z test_missing_return (tests.test_checker.CheckerTests.test_missing_return) ... ok
+2026-11-04T04:46:17.2901876Z test_mutation_of_borrowed_input_has_write (tests.test_checker.CheckerTests.test_mutation_of_borrowed_input_has_write) ... ok
+2026-11-04T04:46:17.2910907Z test_nested_array_buffer_rejected (tests.test_checker.CheckerTests.test_nested_array_buffer_rejected) ... ok
+2026-11-04T04:46:17.2935471Z test_nested_type_buffer_rejected (tests.test_checker.CheckerTests.test_nested_type_buffer_rejected) ... ok
+2026-11-04T04:46:17.2945081Z test_non_ffi_name_may_use_c_keyword (tests.test_checker.CheckerTests.test_non_ffi_name_may_use_c_keyword) ... ok
+2026-11-04T04:46:17.2953396Z test_owning_buffer_parameter_requires_take (tests.test_checker.CheckerTests.test_owning_buffer_parameter_requires_take) ... ok
+2026-11-04T04:46:17.2962015Z test_print_is_not_claimed_nonblocking_noalloc (tests.test_checker.CheckerTests.test_print_is_not_claimed_nonblocking_noalloc) ... ok
+2026-11-04T04:46:17.2970279Z test_pure_wrapping (tests.test_checker.CheckerTests.test_pure_wrapping) ... ok
+2026-11-04T04:46:17.2981855Z test_raw_load_and_store (tests.test_checker.CheckerTests.test_raw_load_and_store) ... ok
+2026-11-04T04:46:17.2990335Z test_raw_load_requires_unsafe (tests.test_checker.CheckerTests.test_raw_load_requires_unsafe) ... ok
+2026-11-04T04:46:17.2998920Z test_raw_store_const_rejected (tests.test_checker.CheckerTests.test_raw_store_const_rejected) ... ok
+2026-11-04T04:46:17.3007367Z test_read_parameter_cannot_mutate (tests.test_checker.CheckerTests.test_read_parameter_cannot_mutate) ... ok
+2026-11-04T04:46:17.3016257Z test_recursive_effects_terminate (tests.test_checker.CheckerTests.test_recursive_effects_terminate) ... ok
+2026-11-04T04:46:17.3023823Z test_recursive_layout (tests.test_checker.CheckerTests.test_recursive_layout) ... ok
+2026-11-04T04:46:17.3034726Z test_release_needs_move (tests.test_checker.CheckerTests.test_release_needs_move) ... ok
+2026-11-04T04:46:17.3042306Z test_resource_boolean_not_treated_as_integer (tests.test_checker.CheckerTests.test_resource_boolean_not_treated_as_integer) ... ok
+2026-11-04T04:46:17.3052575Z test_resource_transitive_violation (tests.test_checker.CheckerTests.test_resource_transitive_violation) ... ok
+2026-11-04T04:46:17.3060333Z test_resources_do_not_claim_unsupported_bounds (tests.test_checker.CheckerTests.test_resources_do_not_claim_unsupported_bounds) ... ok
+2026-11-04T04:46:17.3070076Z test_resources_reject_unknown (tests.test_checker.CheckerTests.test_resources_reject_unknown) ... ok
+2026-11-04T04:46:17.3082130Z test_short_circuit_cannot_conditionally_consume (tests.test_checker.CheckerTests.test_short_circuit_cannot_conditionally_consume) ... ok
+2026-11-04T04:46:17.3089685Z test_signed_minimum_literal (tests.test_checker.CheckerTests.test_signed_minimum_literal) ... ok
+2026-11-04T04:46:17.3098507Z test_struct_buffer_cannot_hide_a_forgotten_owner (tests.test_checker.CheckerTests.test_struct_buffer_cannot_hide_a_forgotten_owner) ... ok
+2026-11-04T04:46:17.3118384Z test_struct_initialization (tests.test_checker.CheckerTests.test_struct_initialization) ... ok
+2026-11-04T04:46:17.3126640Z test_supported_resource_clauses (tests.test_checker.CheckerTests.test_supported_resource_clauses) ... ok
+2026-11-04T04:46:17.3137717Z test_take_and_return (tests.test_checker.CheckerTests.test_take_and_return) ... ok
+2026-11-04T04:46:17.3148306Z test_take_requires_explicit_move (tests.test_checker.CheckerTests.test_take_requires_explicit_move) ... ok
+2026-11-04T04:46:17.3158729Z test_transitive_effect_fixed_point (tests.test_checker.CheckerTests.test_transitive_effect_fixed_point) ... ok
+2026-11-04T04:46:17.3168563Z test_type_mismatch (tests.test_checker.CheckerTests.test_type_mismatch) ... ok
+2026-11-04T04:46:17.3176377Z test_typedef_field_shadowing_rejected (tests.test_checker.CheckerTests.test_typedef_field_shadowing_rejected) ... ok
+2026-11-04T04:46:17.3184606Z test_typedef_parameter_shadowing_rejected (tests.test_checker.CheckerTests.test_typedef_parameter_shadowing_rejected) ... ok
+2026-11-04T04:46:17.3193305Z test_unary_cannot_escape_linearity (tests.test_checker.CheckerTests.test_unary_cannot_escape_linearity) ... ok
+2026-11-04T04:46:17.3200565Z test_unknown_ast_unary_fails_closed (tests.test_checker.CheckerTests.test_unknown_ast_unary_fails_closed) ... ok
+2026-11-04T04:46:17.3210023Z test_unknown_effect (tests.test_checker.CheckerTests.test_unknown_effect) ... ok
+2026-11-04T04:46:17.3223575Z test_unknown_names_and_calls (tests.test_checker.CheckerTests.test_unknown_names_and_calls) ... ok
+2026-11-04T04:46:17.3239010Z test_unsafe_effect_call_requires_explicit_unsafe (tests.test_checker.CheckerTests.test_unsafe_effect_call_requires_explicit_unsafe) ... ok
+2026-11-04T04:46:17.3250122Z test_use_after_move (tests.test_checker.CheckerTests.test_use_after_move) ... ok
+2026-11-04T04:46:17.3261004Z test_while_condition_cannot_consume (tests.test_checker.CheckerTests.test_while_condition_cannot_consume) ... ok
+2026-11-04T04:46:17.3275283Z test_cancellation_cannot_be_nested (tests.test_checker.TaskCheckerTests.test_cancellation_cannot_be_nested) ... ok
+2026-11-04T04:46:17.3283263Z test_cancellation_cannot_copy_to_local (tests.test_checker.TaskCheckerTests.test_cancellation_cannot_copy_to_local) ... ok
+2026-11-04T04:46:17.3293313Z test_cancellation_cannot_return (tests.test_checker.TaskCheckerTests.test_cancellation_cannot_return) ... ok
+2026-11-04T04:46:17.3314292Z test_cancellation_is_read_only_capability (tests.test_checker.TaskCheckerTests.test_cancellation_is_read_only_capability) ... ok
+2026-11-04T04:46:17.3322285Z test_cancellation_requires_explicit_borrow (tests.test_checker.TaskCheckerTests.test_cancellation_requires_explicit_borrow) ... ok
+2026-11-04T04:46:17.3337441Z test_task_branch_join_required (tests.test_checker.TaskCheckerTests.test_task_branch_join_required) ... ok
+2026-11-04T04:46:17.3350294Z test_task_cancel_and_join (tests.test_checker.TaskCheckerTests.test_task_cancel_and_join) ... ok
+2026-11-04T04:46:17.3362278Z test_task_cannot_discard (tests.test_checker.TaskCheckerTests.test_task_cannot_discard) ... ok
+2026-11-04T04:46:17.3375656Z test_task_data_is_moved_into_worker (tests.test_checker.TaskCheckerTests.test_task_data_is_moved_into_worker) ... ok
+2026-11-04T04:46:17.3390554Z test_task_data_requires_explicit_move (tests.test_checker.TaskCheckerTests.test_task_data_requires_explicit_move) ... ok
+2026-11-04T04:46:17.3403580Z test_task_duplicate_join (tests.test_checker.TaskCheckerTests.test_task_duplicate_join) ... ok
+2026-11-04T04:46:17.3416128Z test_task_effects_propagate_worker_io (tests.test_checker.TaskCheckerTests.test_task_effects_propagate_worker_io) ... ok
+2026-11-04T04:46:17.3429032Z test_task_join_needs_move (tests.test_checker.TaskCheckerTests.test_task_join_needs_move) ... ok
+2026-11-04T04:46:17.3444646Z test_task_loop_local_join (tests.test_checker.TaskCheckerTests.test_task_loop_local_join) ... ok
+2026-11-04T04:46:17.3457926Z test_task_move_alias_then_join (tests.test_checker.TaskCheckerTests.test_task_move_alias_then_join) ... ok
+2026-11-04T04:46:17.3470029Z test_task_must_join (tests.test_checker.TaskCheckerTests.test_task_must_join) ... ok
+2026-11-04T04:46:17.3483027Z test_task_nested_array_rejected (tests.test_checker.TaskCheckerTests.test_task_nested_array_rejected) ... ok
+2026-11-04T04:46:17.3493397Z test_task_nested_raw_rejected (tests.test_checker.TaskCheckerTests.test_task_nested_raw_rejected) ... ok
+2026-11-04T04:46:17.3501932Z test_task_parameter_escape_rejected (tests.test_checker.TaskCheckerTests.test_task_parameter_escape_rejected) ... ok
+2026-11-04T04:46:17.3514687Z test_task_resource_no_spawn_rejected (tests.test_checker.TaskCheckerTests.test_task_resource_no_spawn_rejected) ... ok
+2026-11-04T04:46:17.3526812Z test_task_return_escape_rejected (tests.test_checker.TaskCheckerTests.test_task_return_escape_rejected) ... ok
+2026-11-04T04:46:17.3542597Z test_task_spawn_join (tests.test_checker.TaskCheckerTests.test_task_spawn_join) ... ok
+2026-11-04T04:46:17.3555951Z test_task_worker_cannot_hide_unsafe_in_helper (tests.test_checker.TaskCheckerTests.test_task_worker_cannot_hide_unsafe_in_helper) ... ok
+2026-11-04T04:46:17.3568743Z test_task_worker_cannot_spawn_recursively (tests.test_checker.TaskCheckerTests.test_task_worker_cannot_spawn_recursively) ... ok
+2026-11-04T04:46:17.3581724Z test_task_worker_must_be_named_local_function (tests.test_checker.TaskCheckerTests.test_task_worker_must_be_named_local_function) ... ok
+2026-11-04T04:46:17.3590284Z test_task_worker_must_consume_input (tests.test_checker.TaskCheckerTests.test_task_worker_must_consume_input) ... ok
+2026-11-04T04:46:17.3603022Z test_task_worker_signature_checked (tests.test_checker.TaskCheckerTests.test_task_worker_signature_checked) ... ok
+2026-11-04T04:46:17.3614581Z test_task_worker_weak_effect_annotation_rejected (tests.test_checker.TaskCheckerTests.test_task_worker_weak_effect_annotation_rejected) ... ok
+2026-11-04T04:46:17.3627837Z test_task_wrong_result_type_rejected (tests.test_checker.TaskCheckerTests.test_task_wrong_result_type_rejected) ... ok
+2026-11-04T04:46:17.3628361Z 
+2026-11-04T04:46:17.3628581Z ----------------------------------------------------------------------
+2026-11-04T04:46:17.3628994Z Ran 164 tests in 1.645s
+2026-11-04T04:46:17.3629171Z 
+2026-11-04T04:46:17.3629257Z OK
+2026-11-04T04:46:17.3825422Z Post job cleanup.
+2026-11-04T04:46:17.4804511Z (node:2308) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-04T04:46:17.4805393Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-04T04:46:17.4997182Z Post job cleanup.
+2026-11-04T04:46:17.5698135Z [command]/usr/bin/git version
+2026-11-04T04:46:17.5737022Z git version 2.56.0
+2026-11-04T04:46:17.5770301Z Temporarily overriding HOME='/home/runner/work/_temp/7154033a-3910-4633-aa70-3350579d3fd2' before making global git config changes
+2026-11-04T04:46:17.5771125Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-04T04:46:17.5775124Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-04T04:46:17.5812154Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-04T04:46:17.5869624Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-04T04:46:17.6115474Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-04T04:46:17.6151162Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-04T04:46:17.6393444Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-04T04:46:17.6431975Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-04T04:46:17.6795762Z Cleaning up orphan processes
+2026-11-04T04:46:17.7080064Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-python@v5. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

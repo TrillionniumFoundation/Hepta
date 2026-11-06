@@ -1,0 +1,7 @@
+# Additional source proof: 43 objects
+
+This separate ledger contains 43 immutable-path byte-verified source/build identities outside the frozen 6,116-candidate union: 11 notebook source-cell strings, 30 complete new-file source/build postimages from mixed patches, and two Theta build configurations. The prior 41 rows are unchanged. The latest two total 47 bytes and reuse existing theta-theory Git blobs. Seven immutable paths, including the source manifest and byte verifier, were read back with Git blob, SHA-256 and exact byte length checks. The downloaded verifier independently reproduced all 32 selected original source hunks across five exact parent patches.
+
+The nine-parent Theta inspection read 232,166,450 original bytes, with each exact bounded byte snapshot independently parsed by read-only Git numstat. It found 264 unique source/build objects, of which 262 were already formally verified. Generated JSON/output, binary and oversized blocks were not promoted to source. The original mixed patches and notebooks remain unsynchronized as complete parent objects. No archived source was executed and no recovered patch was applied.
+
+The formal count remains 5,887 of 6,116, with 229 frozen candidates not verified. The formal incremental ledger remains 3,870 rows with SHA-256 4f5d47b4feffbf85870dcbccb2f69e8ebb52073d26435265deacafc019928d21. Original archive/history completeness, all-source synchronization, science and production qualification remain unproven. Original deletion remains zero. DRAFT / SHADOW_ONLY / DENY_ALL / HOLD_NO_GO remain.

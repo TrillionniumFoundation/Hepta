@@ -1,0 +1,7 @@
+# Additional-source ledger: 48 exact identities
+
+This checkpoint adds three original Python source files from HCSN iteration 32 to the separate additional-source ledger. All were already published in Hepta Draft #512 at `e179de289b44210920e80ed5f376e5abbe864fee`; no source payload was uploaded or duplicated. The complete Library text, restored terminal LF, original size and original report SHA-256 agree with the complete immutable Git path bytes. The three source files total 16,285 bytes.
+
+The prior 45 object records are unchanged. All 48 identities are outside the frozen 6,116 candidates. Formal source accounting remains 5,888 verified / 228 unverified; the exact 3,871-row formal ledger was reconstructed again in V8 to 4,209,028 bytes and SHA-256 `8777382e09d4d838cf481a2b60cd7a4c82dffbcd0678c8430cac1eea9e515739`. The additional ledger here is 197039 bytes with SHA-256 `453d299fbecea6ccbbc0ec0649f407c391bbf77cc7bab4fd62ae1657a6cdfe85`.
+
+The current #512 head contains iteration 33 even though the PR description still summarizes iteration 20. Its iteration-33 source report explicitly retains P0-P6 OPEN and strict gate exit 2; these historical research measurements were not rerun by this reader. Source byte preservation is not scientific acceptance, current native qualification or archive/history completion. Fifteen other TaskFlow source versions remain unrecovered in this environment. Original deletion remains zero; DRAFT / SHADOW_ONLY / DENY_ALL / HOLD_NO_GO.

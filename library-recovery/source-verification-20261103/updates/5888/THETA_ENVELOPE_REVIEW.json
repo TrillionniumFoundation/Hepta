@@ -1,0 +1,25 @@
+{
+  "schema": "theta-mail-envelope-independent-static-review-v1",
+  "reviewer_scope": "Read only envelope(), bounded fingerprinted snapshot to git apply --numstat, and integration with previously reviewed core parser. No archives re-read, no subprocess or source execution, no publication and no edits to the inspected files.",
+  "input": {
+    "path": "/workspace/scratch/1f1d02319616/hepta-source-recovery-current/inspect_theta_patch_sources.py",
+    "bytes": 10578,
+    "sha256": "53d35dcca6173bab625d543b8b3d6d1c23b835c30b56dcd4b2cb043b74077951"
+  },
+  "core_parser": {
+    "path": "/workspace/scratch/1f1d02319616/hepta-source-recovery-current/inspect_mixed_patch_sources.py",
+    "sha256": "a73573376fb040eac7d69fbbcab739304b3d3bfefeb5e008cd39f8e30ceff26e"
+  },
+  "findings": [
+    "No new blocking defect found in the inspected narrow envelope and stdin binding.",
+    "Mail prefix is outside the returned diff blocks; the recognized final three-line Git signature is excluded before the last block is parsed. Raw added source lines start with + and therefore cannot masquerade as an unprefixed diff separator.",
+    "Git receives the exact in-memory bytes after size and SHA/Git-blob checks. The fixed argv uses --numstat without --apply, shell execution or an input path reopened by Git.",
+    "The original strict parse_new_file still owns regular new-file mode, complete hunk, byte count, no-newline and Git index hash checks. Prefix/footer acceptance alone grants no complete-source status."
+  ],
+  "limits": [
+    "The envelope recognition is a bounded accepted format, not authentication or complete RFC email validation.",
+    "numstat success and diff-count agreement corroborate parsing only; they do not prove complete application semantics, repository ownership, parent patch synchronization or production/research acceptance.",
+    "Static review did not independently rerun the reported nine patch inspections."
+  ],
+  "status": "NO_NEW_BLOCKER_IN_REVIEWED_SCOPE"
+}
