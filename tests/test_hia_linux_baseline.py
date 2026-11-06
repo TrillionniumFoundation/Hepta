@@ -437,5 +437,68 @@ time.sleep(10)
                 self.cleanup_fixture(root, sentinel)
 
 
+    def test_session_escaped_descendant_cannot_mutate_receipt_after_leader_exit(self):
+        with tempfile.TemporaryDirectory() as directory, self.reap_orphaned_fixture_children():
+            root = Path(directory)
+            script = root / 'escaped-session.py'
+            script.write_text('''import os, pathlib, signal, sys, time
+root = pathlib.Path(sys.argv[1])
+(root / 'leader.pid').write_text(str(os.getpid()))
+if os.fork() == 0:
+    os.setsid()
+    signal.signal(signal.SIGTERM, signal.SIG_IGN)
+    (root / 'child.pid').write_text(str(os.getpid()))
+    (root / 'child.pgid').write_text(str(os.getpgrp()))
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline:
+        print('escaped-descendant-output', flush=True)
+        time.sleep(0.02)
+    os._exit(0)
+deadline = time.monotonic() + 5
+while not (root / 'child.pgid').exists() and time.monotonic() < deadline:
+    time.sleep(0.005)
+sys.exit(0 if (root / 'child.pgid').exists() else 7)
+''')
+            sentinel = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(10)'],
+                                        start_new_session=True)
+            runner = baseline.CommandRunner(root, {'PATH': os.environ['PATH']})
+            try:
+                record = runner.run('escaped-descendant',
+                                    [sys.executable, '-u', str(script), str(root)],
+                                    timeout=4, check=False)
+                child = int((root / 'child.pid').read_text())
+                child_group = int((root / 'child.pgid').read_text())
+                self.assertNotEqual(child_group, record['process_group'])
+                self.assertTrue(self.live(child), 'session-escaped descendant unexpectedly stopped')
+                self.assertTrue(record['process_group_cleanup']['drained'])
+                self.assertEqual(record['process_group_cleanup']['live_members_after'], [])
+                self.assertIsNone(sentinel.poll(), 'cleanup signalled an unrelated session')
+                self.assertFalse(
+                    baseline.command_succeeded(record),
+                    'leader exit was accepted while a session-escaped descendant remained live')
+            finally:
+                child_file = root / 'child.pid'
+                if child_file.exists():
+                    pid = int(child_file.read_text())
+                    try:
+                        os.kill(pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                    deadline = time.monotonic() + 3
+                    while time.monotonic() < deadline:
+                        try:
+                            waited, _ = os.waitpid(pid, os.WNOHANG)
+                        except ChildProcessError:
+                            break
+                        if waited == pid:
+                            break
+                        time.sleep(0.01)
+                    else:
+                        raise AssertionError('session-escaped fixture child did not reap after SIGKILL')
+                if sentinel.poll() is None:
+                    sentinel.terminate()
+                sentinel.wait(timeout=3)
+
+
 if __name__ == '__main__':
     unittest.main()
