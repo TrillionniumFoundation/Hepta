@@ -23,5 +23,16 @@
     "upload_artifact_v4": "ea165f8d65b6e75b540449e92b4886f43607fa02"
   },
   "runtime_freeze": "Record exact runner image, kernel/configuration, selected ovpn module, libraries and binaries before samples. Prefer the runner kernel's available official ovpn module; build the pinned official backport only when absent. Never combine samples from different runtime identities.",
-  "scope": "A dedicated disposable Linux VM with two real network namespaces. No container privilege escape and no modification of an existing production host."
+  "scope": "A dedicated disposable Linux VM with two real network namespaces. No container privilege escape and no modification of an existing production host.",
+  "p2p_fair_dispatch": {
+    "path": "patches/0001-openvpn-p2p-dual-read-fairness.patch",
+    "sha256": "c444c6f44ed68cc9d5e9eae7192ff5bd58cb8b748af5f21ea36bf4ded78abba0",
+    "upstream_commit": "dc1f569087135894ac2703aeabd7a960ee9452d4",
+    "files": [
+      "src/openvpn/openvpn.h",
+      "src/openvpn/forward.c"
+    ],
+    "policy": "Context-local alternation only when SOCKET_READ and TUN_READ are simultaneously ready; SOCKET_WRITE and TUN_WRITE remain higher priority; DCO_READ dispatch is unchanged.",
+    "scope": "Applied identically to the official C-user, HIA-user and C-DCO application builds. The unmodified upstream archive remains separately frozen and is never overwritten."
+  }
 }
