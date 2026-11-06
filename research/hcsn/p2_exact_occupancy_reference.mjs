@@ -12,17 +12,27 @@ export class CapacityExceeded extends Error {}
 export class AddressCollision extends Error {}
 
 function normalize(raw, dimension) {
-  if (!Array.isArray(raw) || raw.length !== dimension ||
-      raw.some(x => typeof x !== 'number' || !Number.isFinite(x))) {
+  if (!Array.isArray(raw) || raw.length !== dimension) {
     throw new AddressContractError('expected finite numeric address of fixed dimension');
   }
-  const magnitude = Math.hypot(...raw);
+  // Capture each coordinate once. A caller-supplied Array may contain getters,
+  // so validating, measuring and normalizing `raw` in separate passes can
+  // observe different addresses and insert a slot that cannot be read back.
+  const coordinates = [];
+  for (let i = 0; i < dimension; i++) {
+    const x = raw[i];
+    if (typeof x !== 'number' || !Number.isFinite(x)) {
+      throw new AddressContractError('expected finite numeric address of fixed dimension');
+    }
+    coordinates.push(x);
+  }
+  const magnitude = Math.hypot(...coordinates);
   if (!(magnitude > 0) || !Number.isFinite(magnitude)) {
     throw new AddressContractError('invalid zero or nonfinite address norm');
   }
   // Object.is distinguishes -0 from +0, but numeric vector addresses do not.
   // Canonicalize the sign of zero to preserve exact writes and readback.
-  const key = raw.map(x => {
+  const key = coordinates.map(x => {
     const unit = x / magnitude;
     return unit === 0 ? 0 : unit;
   });
