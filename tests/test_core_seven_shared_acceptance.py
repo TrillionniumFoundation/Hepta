@@ -138,7 +138,7 @@ class SharedAcceptanceContractTests(unittest.TestCase):
 
     def test_source_identity_includes_every_new_trust_dependency(self):
         paths = p.source_paths()
-        self.assertEqual(len(paths), 336)
+        self.assertEqual(len(paths), 344)
         self.assertTrue(set(old.source_paths()) < set(paths))
         for name in (*p.ADDITIONS, *p.ROUND6_ADDITIONS, *p.LINUX_ADDITIONS, *p.SYSTEM_ADDITIONS):
             self.assertIn(name, paths)

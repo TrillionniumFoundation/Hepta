@@ -117,6 +117,14 @@ SYSTEM_ADDITIONS = (
     'tools/hia_system/tests/fixtures/instruction_properties.ll',
     'tools/hia_system/tests/fixtures/module_properties.ll',
     'tools/hia_system/tests/fixtures/native_mutation.ll',
+    'tools/hia_system/tests/fixtures/wrapper_config.h',
+    'tools/hia_system/tests/fixtures/wrapper_host.cpp',
+    'tools/hia_system/tests/fixtures/wrapper_machine.S',
+    'tools/hia_system/tests/fixtures/wrapper_main.c',
+    'tools/hia_system/tests/fixtures/wrapper_offsets.c',
+    'tools/hia_system/tests/fixtures/wrapper_policy.c',
+    'tools/hia_system/tests/fixtures/wrapper_raw.s',
+    'tools/hia_system/tests/native_wrapper_smoke.py',
     'tools/hia_system/tests/semantic_mutations.py',
     'tools/hia_system/tests/test_wrapper.py',
     'tools/hia_system_cc.py',
@@ -216,7 +224,7 @@ SUPPORT_IDENTITY_PATHS = legacy.SUPPORT_IDENTITY_PATHS
 def source_paths():
     legacy.source_paths()  # retain the exact earlier source identity closure
     paths = SOURCE_IDENTITY_PATHS
-    require(len(paths) == len(set(paths)) == 336 and commitment(paths) == 'b79f797a75cf54aca7de929ae2e56e35be3b5f4aef3a15b8e5540ce446bd1c57',
+    require(len(paths) == len(set(paths)) == 344 and commitment(paths) == '0bc3fb2a0364b9358827c59f641537719521afa6820bb8a703679b8d4838fed2',
             'reviewed exact source identity closure')
     # pipeline.compiler_hash reads every actual top-level hepta/*.py byte,
     # including modules that are not imported by this selected proof profile.

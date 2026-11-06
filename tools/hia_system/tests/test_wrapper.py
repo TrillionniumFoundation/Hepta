@@ -154,7 +154,96 @@ class ClassificationTests(unittest.TestCase):
                 hia.classify(argv)
 
 
+    def test_kconfig_temporary_extensions_are_bounded_to_special_inputs(self):
+        for name in ("tmp", "tmp.o", "tmp.s", "tmp.S", "tmp.i"):
+            output = ".tmp_953636/" + name
+            result = hia.classify(["-c", "-xc", "/dev/null", "-o", output])
+            self.assertEqual(result["kind"], "compiler_capability_probe")
+            self.assertFalse(result["probe"]["force_discard_output"])
+            self.assertEqual(hia.classify(["-c", "actual.c", "-o", output])["kind"],
+                             "target_c")
+        for output in (".tmp_42/tmp.target.o", ".tmp_no_pid/tmp.o", "kernel/tmp.o"):
+            self.assertEqual(hia.classify(["-c", "-xc", "/dev/null", "-o", output])["kind"],
+                             "target_c")
+
+    def test_gcc_param_value_is_not_a_second_source_and_is_forwarded_intact(self):
+        for param in ("asan-kernel-mem-intrinsic-prefix=1",
+                      "tsan-distinguish-volatile=1", "tsan-compound-read-before-write=1"):
+            for flag in (["--param", param], ["--param=" + param]):
+                argv = ["-Werror", "-fsanitize=thread", *flag,
+                        "-c", "-x", "c", "/dev/null", "-o", ".tmp_953505/tmp.o"]
+                result = hia.classify(argv)
+                self.assertEqual(result["inputs"], ["/dev/null"])
+                self.assertEqual(result["kind"], "compiler_capability_probe")
+                tokens = [token for entry in hia.argument_entries(argv) for token in entry["tokens"]]
+                self.assertEqual(tokens, argv)
+        with self.assertRaises(hia.SystemCompileError):
+            hia.classify(["--param", "tsan-distinguish-volatile=1",
+                          "-c", "one.c", "second.c", "-o", "real.o"])
+
+    def test_relr_mktemp_shape_requires_stdin_and_does_not_capture_real_sources(self):
+        with patch.dict(os.environ, {"TMPDIR": "/tmp"}):
+            output = "/tmp/tmp.Ai77tJFwQZ.o"
+            result = hia.classify(["-c", "-x", "c", "-", "-o", output])
+            self.assertEqual(result["probe"]["stdin_contract"], "linux-tools-support-relr-v1")
+            self.assertFalse(result["probe"]["force_discard_output"])
+            self.assertEqual(hia.classify(["-c", "real.c", "-o", output])["kind"], "target_c")
+            for bad in ("/tmp/ordinary.o", "/tmp/tmp.tooshort.o",
+                        "/tmp/tmp.Ai77tJFwQZ.extra.o", "/elsewhere/tmp.Ai77tJFwQZ.o"):
+                with self.subTest(bad=bad), self.assertRaises(hia.SystemCompileError):
+                    hia.classify(["-c", "-xc", "-", "-o", bad])
+
+    def test_relr_probe_validates_exact_source_and_reserved_empty_file(self):
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {"TMPDIR": tmp}):
+            reserved = Path(tmp) / "tmp.Ai77tJFwQZ"
+            reserved.write_bytes(b"")
+            result = hia.classify(["-c", "-xc", "-", "-o", str(reserved) + ".o"])
+            validation = hia.validate_probe_inputs(result, b"void *p = &p;\n")
+            self.assertEqual(validation["temporary_reservation"], hia.binding(reserved))
+            self.assertEqual(validation["stdin_sha256"],
+                             hashlib.sha256(b"void *p = &p;\n").hexdigest())
+            for source in (b"int actual_kernel_payload;\n", b"void *p = &p;\nvoid f(void) {}\n", None):
+                with self.subTest(source=source), self.assertRaises(hia.SystemCompileError):
+                    hia.validate_probe_inputs(result, source)
+            reserved.write_bytes(b"already used")
+            with self.assertRaises(hia.SystemCompileError):
+                hia.validate_probe_inputs(result, hia.RELR_PROBE_STDIN)
+
+    def test_relr_probe_rejects_symlink_reservation_or_output(self):
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {"TMPDIR": tmp}):
+            root = Path(tmp)
+            real = root / "empty"
+            real.write_bytes(b"")
+            reserved = root / "tmp.Ai77tJFwQZ"
+            reserved.symlink_to(real)
+            result = hia.classify(["-c", "-xc", "-", "-o", str(reserved) + ".o"])
+            with self.assertRaises(hia.SystemCompileError):
+                hia.validate_probe_inputs(result, hia.RELR_PROBE_STDIN)
+            reserved.unlink()
+            reserved.write_bytes(b"")
+            Path(str(reserved) + ".o").symlink_to(real)
+            with self.assertRaises(hia.SystemCompileError):
+                hia.validate_probe_inputs(result, hia.RELR_PROBE_STDIN)
+
+    def test_relr_probe_honors_explicit_mktemp_directory_only(self):
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {"TMPDIR": tmp}):
+            allowed = str(Path(tmp) / "tmp.Ai77tJFwQZ.o")
+            self.assertEqual(hia.classify(["-c", "-xc", "-", "-o", allowed])["kind"],
+                             "compiler_capability_probe")
+            with self.assertRaises(hia.SystemCompileError):
+                hia.classify(["-c", "-xc", "-", "-o", "/tmp/tmp.Ai77tJFwQZ.o"])
+
+
+
 class PhaseTests(unittest.TestCase):
+    def test_backend_optimization_enum_is_closed_and_defaults_to_original(self):
+        self.assertEqual(hia.backend_optimization({}), "original")
+        for policy in ("original", "O2", "O3", "Os"):
+            self.assertEqual(hia.backend_optimization({"backend_optimization": policy}), policy)
+        for policy in ("Ofast", "O0", "", None, 3):
+            with self.subTest(policy=policy), self.assertRaises(hia.SystemCompileError):
+                hia.backend_optimization({"backend_optimization": policy})
+
     def test_frontend_keeps_source_semantics_and_binds_original_dependency_target(self):
         argv = ["-O2", "-std=gnu11", "-D__KERNEL__", "-I/source/include",
                 "-mcmodel=kernel", "-Wp,-MMD,kernel/.a.o.d", "-c",
@@ -408,6 +497,37 @@ class PipelineTests(unittest.TestCase):
                          ["decode-hia-fresh-module", "hia-native-codegen"])
         self.assertEqual(replay_record["dependency_output"]["sha256"], hia.sha(self.dep))
 
+    def test_explicit_optimization_changes_only_c_backend_and_binds_replay_variant(self):
+        phases = FakePhases(self.target)
+        record, _ = self.invoke("O3-import", phases,
+                               manifest={**self.manifest, "backend_optimization": "O3"})
+        frontend = next(argv for name, argv in phases.calls if name == "clang-c-frontend-only")
+        backend = next(argv for name, argv in phases.calls if name == "hia-native-codegen")
+        self.assertIn("-O2", frontend)
+        self.assertNotIn("-O3", frontend)
+        self.assertEqual(backend[-1], "-O3")
+        self.assertEqual(record["backend_optimization"], "O3")
+        index = hia.strict_json(Path(record["program_index"]["path"]).read_bytes())
+        self.assertEqual(index["backend_optimization"], "O3")
+        wrong = FakePhases(self.target)
+        with self.assertRaises(hia.SystemCompileError):
+            self.invoke("wrong-policy-replay", wrong,
+                        manifest={**self.manifest, "mode": "replay"})
+        self.assertEqual(wrong.calls, [])
+
+    def test_explicit_optimization_does_not_modify_machine_assembly(self):
+        assembly = self.source / "raw.s"
+        assembly.write_text(".text\\nret\\n".replace("\\n", "\n"))
+        self.argv = ["-c", str(assembly), "-o", str(self.target)]
+        self.classification = hia.classify(self.argv)
+        phases = FakePhases(self.target)
+        record, _ = self.invoke("asm-Os", phases,
+                               manifest={**self.manifest, "backend_optimization": "Os"})
+        backend = next(argv for name, argv in phases.calls if name == "hia-native-codegen")
+        self.assertNotIn("-Os", backend)
+        self.assertEqual(record["backend_optimization"], "original")
+        self.assertEqual(record["requested_backend_optimization"], "Os")
+
     def test_missing_replay_never_invokes_frontend_or_codegen(self):
         phases = FakePhases(self.target)
         with self.assertRaises(hia.SystemCompileError):
@@ -463,6 +583,7 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(replay.calls, [])
 
     def test_probe_nonzero_exit_is_recorded_without_payload_failure(self):
+        self.manifest["backend_optimization"] = "Os"
         manifest_path = self.root / "manifest.json"
         manifest_path.write_bytes(b"{}")
         captured = []
@@ -479,6 +600,7 @@ class PipelineTests(unittest.TestCase):
             code = hia.main(["-c", "-xc", "-"])
         self.assertEqual(code, 17)
         self.assertEqual(captured[0][0][-2:], ["-o", "/dev/null"])
+        self.assertNotIn("-Os", captured[0][0])
         self.assertEqual(captured[0][1], b"int probe;\n")
         receipts = list(Path(self.manifest["ledger_root"]).glob("*/RESULT.json"))
         result = hia.strict_json(receipts[0].read_bytes())
@@ -486,7 +608,53 @@ class PipelineTests(unittest.TestCase):
         self.assertFalse(result["payload_failure"])
         self.assertEqual(result["classification"]["kind"], "compiler_capability_probe")
 
+    def test_relr_probe_keeps_object_for_linker_and_records_bound_stdin(self):
+        manifest_path = self.root / "manifest.json"
+        manifest_path.write_bytes(b"{}")
+        reserved = self.root / "tmp.Ai77tJFwQZ"
+        reserved.write_bytes(b"")
+        output = Path(str(reserved) + ".o")
+        argv = ["-c", "-x", "c", "-", "-o", str(output)]
+        seen = []
+        def command(record, directory, name, command, **kwargs):
+            seen.append((command, kwargs["input_bytes"]))
+            output.write_bytes(b"probe-object")
+            item = {"name": name, "argv": command, "exit_code": 0}
+            record["commands"].append(item)
+            return item
+        stdin = type("Input", (), {"buffer": io.BytesIO(hia.RELR_PROBE_STDIN)})()
+        with patch.dict(os.environ, {"TMPDIR": str(self.root)}), \
+                patch.object(hia, "load_manifest", return_value=(manifest_path, self.manifest)), \
+                patch.object(hia, "run_command", command), patch.object(hia.sys, "stdin", stdin):
+            self.assertEqual(hia.main(argv), 0)
+        self.assertEqual(seen, [(["/bound/clang", *argv], hia.RELR_PROBE_STDIN)])
+        result = hia.strict_json(next(Path(self.manifest["ledger_root"]).glob("*/RESULT.json")).read_bytes())
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["compiler_output"], hia.binding(output))
+        self.assertEqual(result["validated_probe"]["temporary_reservation"], hia.binding(reserved))
+        self.assertFalse(result["payload_failure"])
+        self.assertNotIn("retained_program", result)
+
+    def test_relr_forged_source_is_rejected_before_native_execution(self):
+        manifest_path = self.root / "manifest.json"
+        manifest_path.write_bytes(b"{}")
+        reserved = self.root / "tmp.Ai77tJFwQZ"
+        reserved.write_bytes(b"")
+        output = Path(str(reserved) + ".o")
+        stdin = type("Input", (), {"buffer": io.BytesIO(b"int real_payload;\n")})()
+        with patch.dict(os.environ, {"TMPDIR": str(self.root)}), \
+                patch.object(hia, "load_manifest", return_value=(manifest_path, self.manifest)), \
+                patch.object(hia, "run_command") as command, patch.object(hia.sys, "stdin", stdin), \
+                patch.object(hia.sys, "stderr", io.StringIO()):
+            self.assertNotEqual(hia.main(["-c", "-xc", "-", "-o", str(output)]), 0)
+        command.assert_not_called()
+        self.assertFalse(output.exists())
+        result = hia.strict_json(next(Path(self.manifest["ledger_root"]).glob("*/RESULT.json")).read_bytes())
+        self.assertEqual(result["status"], "FAIL")
+        self.assertEqual(result["commands"], [])
+
     def test_host_cpp_is_explicitly_logged_and_original_argv_is_forwarded(self):
+        self.manifest["backend_optimization"] = "O3"
         manifest_path = self.root / "manifest.json"
         manifest_path.write_bytes(b"{}")
         source = self.source / "host.cpp"
@@ -511,6 +679,8 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(result["role"], "host_tool")
         self.assertEqual(result["host_toolchain"], "clangxx")
         self.assertEqual(result["host_driver_mode"], "g++")
+        self.assertEqual(result["backend_optimization"], "original")
+        self.assertEqual(result["requested_backend_optimization"], "O3")
         self.assertEqual(result["classification"]["kind"], "host_tool")
         self.assertEqual(result["compiler_output"], hia.binding(output))
         self.assertNotIn("retained_program", result)

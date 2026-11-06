@@ -51,10 +51,11 @@
     "all finite guest checks pass"
   ],
   "replay": {
-    "required_for_source_independent_rebuild": true,
     "original_frontend_payload_invocations": 0,
     "original_frontend_probes_and_host_tools_separately_recorded": true,
-    "retained_programs": "compressed typed HIA JSON plus dependency and external-data bindings"
+    "retained_programs": "compressed typed HIA JSON plus dependency and external-data bindings",
+    "required_for_frontend_independent_target_rebuild": true,
+    "kbuild_still_requires_frozen_dependency_graph_and_host_generators": true
   },
   "measurement_boundaries": {
     "safe_core_memory_proof": false,
@@ -80,5 +81,13 @@
     "include_translation_and_planning_cost": true,
     "report_failures_and_missing_cells": true,
     "no_gain_from_leaf_pilot_or_model_only_scores": true
+  },
+  "optimization_variants": {
+    "original": "retain each original Kbuild target optimization flag",
+    "O2": "append -O2 only at target-C native code generation",
+    "O3": "append -O3 only at target-C native code generation",
+    "Os": "append -Os only at target-C native code generation",
+    "frontend_optimization_macro_settings_unchanged": true,
+    "independent_import_and_program_root_per_variant": true
   }
 }

@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 import re
 import shlex
+import stat
 import subprocess
 import sys
 import time
@@ -77,11 +78,19 @@ def replace_json(path, value):
     os.replace(temporary, path)
 
 
+def backend_optimization(manifest):
+    policy = manifest.get("backend_optimization", "original")
+    require(type(policy) is str and policy in ("original", "O2", "O3", "Os"),
+            "backend_optimization must be original, O2, O3, or Os")
+    return policy
+
+
 def load_manifest():
     path = Path(os.environ["HIA_SYSTEM_MANIFEST"]).resolve(strict=True)
     value = strict_json(path.read_bytes())
     require(value.get("schema") == MANIFEST_SCHEMA, "explicit HIA system build manifest required")
     require(value.get("mode") in ("import", "replay"), "explicit import/replay mode required")
+    backend_optimization(value)
     for name in ("clang", "clangxx", "llvm_dis", "codec"):
         tool = value["tools"][name]
         require(binding(tool["path"]) == tool, "bound tool changed: " + name)
@@ -101,7 +110,7 @@ TAKES_VALUE = frozenset((
     "-Xlinker", "-include-pch", "-fmodule-file", "-imsvc", "-iframework",
     "-object-file-name", "-opt-record-file", "-opt-record-passes",
     "-opt-record-format", "-objc-isystem", "-objcxx-isystem", "-L", "-l",
-    "-u", "-T", "-z", "-arch"
+    "-u", "-T", "-z", "-arch", "--param"
 ))
 DEPENDENCY_VALUE = frozenset(("-MF", "-MT", "-MQ", "-MJ"))
 DEPENDENCY_SINGLE = frozenset(("-M", "-MM", "-MD", "-MMD", "-MG", "-MP"))
@@ -147,6 +156,9 @@ QUERY_FLAGS = frozenset((
 ))
 QUERY_PREFIXES = ("-print-file-name=", "-print-prog-name=", "--help=")
 KBUILD_PROBE_DIRECTORY = re.compile(r"\.tmp_[0-9]+\Z")
+KBUILD_PROBE_NAME = re.compile(r"tmp(?:\.(?:o|s|S|i))?\Z")
+RELR_PROBE_NAME = re.compile(r"tmp\.[A-Za-z0-9]{10}\.o\Z")
+RELR_PROBE_STDIN = b"void *p = &p;\n"
 
 
 def expand_arguments(arguments, records, depth=0):
@@ -305,10 +317,19 @@ def _probe_sink(output, mode):
     if output is None:
         return "implicit-discard" if mode != "-E" else "stdout"
     path = Path(output)
-    # The exact scripts/Makefile.compiler try-run shape. Merely containing
-    # ".tmp" or living under /tmp is not authorization to bypass target HIA.
-    if path.name == "tmp" and KBUILD_PROBE_DIRECTORY.fullmatch(path.parent.name):
+    # scripts/Makefile.compiler uses tmp; scripts/Kconfig.include uses tmp.o.
+    # Explicit assembly/preprocessor products retain the same temporary scope.
+    # Merely containing ".tmp" or living under /tmp does not authorize a bypass.
+    if (KBUILD_PROBE_NAME.fullmatch(path.name) and
+            KBUILD_PROBE_DIRECTORY.fullmatch(path.parent.name)):
         return "kbuild-try-run-temporary"
+    # scripts/tools-support-relr.sh reserves an empty mktemp file, then emits
+    # its object beside it. Its exact stdin and reservation are verified before
+    # compiler execution; a temporary-looking name alone is insufficient.
+    temporary_root = Path(os.environ.get("TMPDIR") or "/tmp").resolve()
+    if (mode == "-c" and path.is_absolute() and
+            path.parent.resolve() == temporary_root and RELR_PROBE_NAME.fullmatch(path.name)):
+        return "kbuild-relr-mktemp-object"
     return None
 
 
@@ -327,6 +348,10 @@ def classify(arguments):
                  "output_boundary": sink,
                  "force_discard_output": output is None and mode != "-E",
                  "rule": "pinned Kbuild compiler probe; no target artifact"}
+        if sink == "kbuild-relr-mktemp-object":
+            require(inputs[0]["path"] == "-" and inputs[0]["language"] == "c",
+                    "RELR mktemp boundary requires the pinned C stdin probe")
+            probe["stdin_contract"] = "linux-tools-support-relr-v1"
     elif special and inputs[0]["path"] == "-":
         raise SystemCompileError("stdin target payload needs an explicit source identity")
     elif mode == "-E" or deps["scan_only"]:
@@ -367,6 +392,25 @@ def classify(arguments):
     if probe is not None:
         result["probe"] = probe
     return result
+
+
+def validate_probe_inputs(classification, data):
+    """Validate the special RELR probe before any native compiler is launched."""
+    probe = classification.get("probe", {})
+    if probe.get("stdin_contract") != "linux-tools-support-relr-v1":
+        return None
+    require(data == RELR_PROBE_STDIN,
+            "RELR temporary output is reserved for the pinned probe stdin")
+    output = Path(classification["output"])
+    reservation = output.with_suffix("")
+    info = reservation.lstat()
+    require(stat.S_ISREG(info.st_mode) and info.st_size == 0 and
+            info.st_uid == os.geteuid() and info.st_nlink == 1,
+            "RELR probe requires an owned empty regular mktemp reservation")
+    require(not output.is_symlink(), "RELR probe output must not be a symlink")
+    return {"contract": probe["stdin_contract"],
+            "stdin_sha256": hashlib.sha256(data).hexdigest(),
+            "temporary_reservation": binding(reservation)}
 
 
 def change_phase(arguments, source, output, mode, *, backend=False, assembly=False,
@@ -685,6 +729,7 @@ def persist_program(program, record, directory, manifest, key, canonical_hash, d
     meta = {"schema": PROGRAM_BINDING_SCHEMA, "key": key, "kind": record["classification"]["kind"],
             "program": binding(stored), "canonical_input_sha256": canonical_hash,
             "source": record["source"], "original_cwd": record["cwd"], "original_argv": record["argv"],
+            "backend_optimization": backend_optimization(manifest),
             "original_build_root": manifest["build_root"], "external_inputs": record.get("external_inputs", [])}
     if record["classification"]["dependency_requested"]:
         require(dependency is not None and dependency.is_file(), "frontend did not produce dependencies")
@@ -699,6 +744,8 @@ def persist_program(program, record, directory, manifest, key, canonical_hash, d
         path = index / (key + ".json")
         if path.exists():
             old = strict_json(path.read_bytes())
+            require(old.get("backend_optimization", "original") == meta["backend_optimization"],
+                    "compiler key reused across backend variants; use a distinct program root")
             require(old["canonical_input_sha256"] == canonical_hash and old["kind"] == meta["kind"],
                     "same compiler key produced different semantic source; freeze a new profile")
         else:
@@ -724,6 +771,10 @@ def compile_payload(arguments, classification, manifest, record, directory):
     dependency_stage = directory / "frontend.d" if classification["dependency_requested"] else None
     dependency_data = None
     is_assembly = classification["kind"] == "target_assembly"
+    policy = backend_optimization(manifest)
+    effective_policy = "original" if is_assembly else policy
+    record["requested_backend_optimization"] = policy
+    record["backend_optimization"] = effective_policy
     hia = directory / "program.hia.json"
     if manifest["mode"] == "replay":
         index = Path(manifest["program_root"]) / "index" / (key + ".json")
@@ -732,6 +783,8 @@ def compile_payload(arguments, classification, manifest, record, directory):
         require(type(meta) is dict and meta.get("schema") == PROGRAM_BINDING_SCHEMA,
                 "invalid retained program index")
         require(meta["key"] == key and meta["kind"] == classification["kind"], "replay route mismatch")
+        require(meta.get("backend_optimization", "original") == policy,
+                "replay backend variant differs from retained program; re-import into a distinct program root")
         require(binding(meta["program"]["path"]) == meta["program"], "retained HIA program changed")
         write_new(hia, gzip.decompress(Path(meta["program"]["path"]).read_bytes()))
         record["retained_program"] = meta["program"]
@@ -795,6 +848,8 @@ def compile_payload(arguments, classification, manifest, record, directory):
         validate_replay_external_inputs(meta, record["external_inputs"], manifest)
     args = change_phase(arguments, emitted, target, classification["mode"],
                         backend=True, assembly=is_assembly)
+    if effective_policy != "original":
+        args.append("-" + effective_policy)
     # A successful no-op compiler invocation must not reuse a pre-existing
     # object as apparent HIA output.
     if target.is_file():
@@ -827,7 +882,9 @@ def invocation_record(manifest_path, manifest, arguments, directory, role):
     return {"schema": "hepta.hia.system-compiler-invocation.v1", "id": directory.name,
             "role": role, "source_commit": manifest["source_commit"],
             "manifest": binding(manifest_path), "cwd": str(Path.cwd().resolve()),
-            "argv": arguments, "mode": manifest["mode"], "status": "RUNNING",
+            "argv": arguments, "mode": manifest["mode"],
+            "requested_backend_optimization": backend_optimization(manifest),
+            "backend_optimization": "original", "status": "RUNNING",
             "commands": [], "response_files": [], "started_ns": time.time_ns()}
 
 
@@ -860,6 +917,9 @@ def main(arguments=None):
             if data is not None:
                 write_new(directory / "stdin.bin", data)
                 record["stdin"] = binding(directory / "stdin.bin")
+            validated_probe = validate_probe_inputs(classification, data)
+            if validated_probe is not None:
+                record["validated_probe"] = validated_probe
             forwarded = list(expanded)
             if classification.get("probe", {}).get("force_discard_output"):
                 forwarded += ["-o", "/dev/null"]

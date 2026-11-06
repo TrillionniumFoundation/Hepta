@@ -3,7 +3,8 @@
 
 This is the explicit unsafe systems dialect. It neither invokes the bounded
 safe-Core checker for unsupported pointer operations nor reuses original target
-objects. Replay mode reconstructs the image from retained HIA programs.
+objects. Replay reconstructs target objects from retained HIA programs. The frozen
+Kbuild source graph still supplies dependencies and trusted host generators.
 """
 from __future__ import annotations
 
@@ -125,6 +126,7 @@ def main(argv=None):
     parser.add_argument("--expected-head", required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--replay-programs", type=Path)
+    parser.add_argument("--backend-optimization", choices=("original", "O2", "O3", "Os"), default="original")
     parser.add_argument("--jobs", type=int, default=8)
     parser.add_argument("--build-timeout", type=int, default=14400)
     parser.add_argument("--boot-timeout", type=int, default=180)
@@ -142,6 +144,7 @@ def main(argv=None):
         "kernel_version": baseline.KERNEL_VERSION, "upstream_commit": baseline.UPSTREAM_COMMIT,
         "source_commit": args.expected_head, "scope": "complete_frozen_x86_64_configuration",
         "mode": "replay" if args.replay_programs else "import",
+        "backend_optimization": args.backend_optimization,
         "image_kind": "hia_system_linux", "build_status": "NOT_RUN", "boot_status": "NOT_RUN",
         "all_configured_target_units_rewritten": False, "all_linux_configurations": False,
         "fallback_c_units": None, "legacy_safe_core_memory_proof": False,
@@ -175,6 +178,7 @@ def main(argv=None):
         }.items()}
         manifest = {
             "schema": hia_system.MANIFEST_SCHEMA, "mode": result["mode"],
+            "backend_optimization": args.backend_optimization,
             "source_commit": args.expected_head, "source_root": str(source), "build_root": str(build),
             "program_root": str(programs), "ledger_root": str(ledger), "tools": tools,
         }
