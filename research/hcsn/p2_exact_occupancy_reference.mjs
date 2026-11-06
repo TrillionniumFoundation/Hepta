@@ -49,6 +49,8 @@ export class ExactOccupancyLedger {
     this.dimension = dimension;
     this.capacity = capacity;
     this.collisionRadius = collisionRadius;
+    // Config is part of the safety contract; private slots/epoch stay mutable.
+    Object.freeze(this);
   }
 
   get occupancy() { return this.#slots.length; }
