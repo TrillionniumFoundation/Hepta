@@ -239,7 +239,7 @@ void encodeCall(O &Out, const CallBase &Call, Encoder &E) {
   A Bundles;
   for (unsigned I = 0; I < Call.getNumOperandBundles(); ++I) {
     OperandBundleUse Bundle = Call.getOperandBundleAt(I);
-    Bundles.push_back(O{{"tag", Bundle.getTagName()},
+    Bundles.push_back(O{{"tag", Bundle.getTagName().str()},
                         {"size", int64_t(Bundle.Inputs.size())}});
   }
   Out["bundles"] = std::move(Bundles);

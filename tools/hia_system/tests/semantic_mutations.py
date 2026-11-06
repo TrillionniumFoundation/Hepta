@@ -168,6 +168,12 @@ def main():
         record("all_instruction_properties_roundtrip_exactly",
                instruction_count=len(descriptors(properties)))
 
+        module_bc = work / "module_properties.bc"
+        run([assembler, args.fixtures / "module_properties.ll", "-o", module_bc])
+        module_properties = encode(module_bc, "module_properties")
+        roundtrip(module_properties, "module_properties_rebuilt")
+        record("module_graph_constants_aliases_ifuncs_attributes_and_cyclic_metadata")
+
         asm_bc = work / "asm_goto.bc"
         run([clang, "-std=gnu11", "-O1", "-Xclang", "-disable-llvm-passes",
              "-g0", "-emit-llvm", "-c", args.fixtures / "asm_goto.c",
