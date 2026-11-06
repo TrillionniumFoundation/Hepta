@@ -100,6 +100,7 @@ ROUND6_ADDITIONS = (
     'rust/hia-ndu-dynamic-model/Cargo.lock',
     'rust/hia-ndu-dynamic-model/upstream.json',
 )
+LINUX_ADDITIONS = ('hepta/hia_linux_kernel.py',)
 METADATA_RESERVE = 224589
 RAW_GLOBAL = 819891
 BUDGETS = dict(source=2097152, sources=8388608, module=33554432, modules=134217728,
@@ -184,14 +185,14 @@ def flags(success=False):
 
 
 # Frozen exact identity paths: do not hash files merely to discover their names.
-SOURCE_IDENTITY_PATHS = tuple(sorted((*legacy.SOURCE_IDENTITY_PATHS, *ADDITIONS, *ROUND6_ADDITIONS)))
+SOURCE_IDENTITY_PATHS = tuple(sorted((*legacy.SOURCE_IDENTITY_PATHS, *ADDITIONS, *ROUND6_ADDITIONS, *LINUX_ADDITIONS)))
 SUPPORT_IDENTITY_PATHS = legacy.SUPPORT_IDENTITY_PATHS
 
 
 def source_paths():
     legacy.source_paths()  # retain the exact earlier source identity closure
     paths = SOURCE_IDENTITY_PATHS
-    require(len(paths) == len(set(paths)) == 313 and commitment(paths) == 'cf9552f6ab3bfef9bb5a74b59bfd0f3793762be2555b5c5f07e3a8e280186ad6',
+    require(len(paths) == len(set(paths)) == 314 and commitment(paths) == 'a48ba3c0244975ebaf4219e6409a0293fa3ae7339704554dc4ba1f3e0c6eb86c',
             'reviewed exact source identity closure')
     # pipeline.compiler_hash reads every actual top-level hepta/*.py byte,
     # including modules that are not imported by this selected proof profile.
