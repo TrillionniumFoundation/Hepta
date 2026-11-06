@@ -6,6 +6,7 @@ on:
       - research/hia-openvpn-evidence-create-excl-20261105
       - fix/openvpn-hia-hotspot-symbols-20261106-gpt6
       - fix/openvpn-hia-hotspot-test-contract-20261106-gpt6
+      - fix/openvpn-hia-p2p-read-fairness-20261106-gpt6
   pull_request:
     paths:
       - .github/workflows/hia-openvpn-peer-evidence-exclusive.yml
@@ -20,6 +21,12 @@ on:
       - experiments/openvpn_hia_20261105/target_host/verify_result.py
       - experiments/openvpn_hia_20261105/target_host/test_matrix_budget.py
       - experiments/openvpn_hia_20261105/target_host/plan.json
+      - experiments/openvpn_hia_20261105/target_host/source-lock.json
+      - experiments/openvpn_hia_20261105/target_host/build.py
+      - experiments/openvpn_hia_20261105/target_host/patches/**
+      - experiments/openvpn_hia_20261105/target_host/test_p2p_fair_dispatch_patch.py
+      - experiments/openvpn_hia_20261105/target_host/verify_p2p_fair_dispatch_build.py
+      - .github/workflows/hia-openvpn-fair-dispatch-build.yml
       - .github/workflows/hia-openvpn-target-host.yml
   workflow_dispatch:
 
@@ -55,6 +62,12 @@ jobs:
           sha256sum experiments/openvpn_hia_20261105/target_host/verify_result.py
           sha256sum experiments/openvpn_hia_20261105/target_host/test_matrix_budget.py
           sha256sum experiments/openvpn_hia_20261105/target_host/plan.json
+          sha256sum experiments/openvpn_hia_20261105/target_host/source-lock.json
+          sha256sum experiments/openvpn_hia_20261105/target_host/build.py
+          sha256sum experiments/openvpn_hia_20261105/target_host/patches/0001-openvpn-p2p-dual-read-fairness.patch
+          sha256sum experiments/openvpn_hia_20261105/target_host/test_p2p_fair_dispatch_patch.py
+          sha256sum experiments/openvpn_hia_20261105/target_host/verify_p2p_fair_dispatch_build.py
+          sha256sum .github/workflows/hia-openvpn-fair-dispatch-build.yml
           sha256sum .github/workflows/hia-openvpn-target-host.yml
           python3 -B experiments/openvpn_hia_20261105/target_host/test_dco_peer_stats.py -v
           python3 -B experiments/openvpn_hia_20261105/target_host/test_dco_peer_stats_wire.py -v
@@ -63,4 +76,5 @@ jobs:
           python3 -B experiments/openvpn_hia_20261105/target_host/test_profile_capture.py -v
           python3 -B experiments/openvpn_hia_20261105/target_host/test_matrix_evidence.py -v
           python3 -B experiments/openvpn_hia_20261105/target_host/test_matrix_budget.py -v
+          python3 -B experiments/openvpn_hia_20261105/target_host/test_p2p_fair_dispatch_patch.py -v
           test -z "$(git status --porcelain)"
