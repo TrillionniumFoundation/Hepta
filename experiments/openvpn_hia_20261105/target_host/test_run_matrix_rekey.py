@@ -133,7 +133,8 @@ class PassiveDcoRekeyTests(unittest.TestCase):
         for cycle in passive:
             self.assertLess(cycle["reset_line"], cycle["dco_install_line"])
             self.assertLess(cycle["dco_install_line"], cycle["dco_swap_line"])
-            self.assertLess(cycle["dco_swap_line"], cycle["dco_promotion_reset_line"] + 100)
+            self.assertLess(cycle["reset_line"], cycle["dco_promotion_reset_line"])
+            self.assertLessEqual(cycle["dco_promotion_reset_line"], cycle["dco_swap_line"])
 
     def test_unpromoted_or_same_key_dco_swap_does_not_count(self):
         lines = ["Initialization Sequence Completed"]
@@ -148,7 +149,12 @@ class PassiveDcoRekeyTests(unittest.TestCase):
             "UDPv4 READ [54] from [AF_INET]192.0.2.1:1194: "
             "P_CONTROL_SOFT_RESET_V1 kid=1 pid=[ 123 ]"
         )
-        lines.extend(dco_server_reset(2))
+        lines.append(
+            "dco_install_key: peer_id=0 keyid=2 epoch=0, currently 1 keys installed"
+        )
+        lines.append(
+            "dco_new_key: slot 1, key-id 2, peer-id 0, cipher AES-256-GCM, epoch 0"
+        )
         lines.append(
             "UDPv4 READ [54] from [AF_INET]192.0.2.1:1194: "
             "P_CONTROL_SOFT_RESET_V1 kid=3 pid=[ 125 ]"
