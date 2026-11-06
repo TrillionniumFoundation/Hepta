@@ -1,7 +1,7 @@
 {
   "schema": "hepta.openvpn-hia.target-plan.v1",
   "authority": "fixed-before-target-execution",
-  "budget_seconds": 2700,
+  "budget_seconds": 3600,
   "host_scope": "one disposable GitHub-hosted Ubuntu24.04 x86_64 VM; requires two distinct physical CPU cores; two isolated local network namespaces per case; no WAN generalization",
   "underlay": {
     "server": "192.0.2.1/30",
@@ -117,6 +117,11 @@
       "c-dco"
     ],
     "seconds_per_workload": 5,
+    "udp_acceptance": {
+      "minimum_offered_rate_fraction": 0.95,
+      "maximum_receiver_loss_percent": 1.0,
+      "interpretation": "both send directions must offer at least 95% of the declared rate; both local receivers must deliver at least 95% with at most 1% packet loss; every under-offer or degraded receipt remains a failure"
+    },
     "omit_seconds": 0,
     "bidirectional": true,
     "workloads": [
@@ -152,6 +157,8 @@
     "cpu_affinity": "server and client: one allowed logical CPU from each of two distinct physical cores; OpenVPN and local iperf endpoint share that role CPU; identical mapping for every arm; exact package/core topology recorded",
     "outlier_policy": "retain all trials, startup, losses, resets, failures and raw iperf fields; no selection or confidence inflation",
     "claim_limit": "finite paired virtual-network observations on one shared hosted VM; not production, WAN, hardware-NIC or cross-host performance qualification",
+    "case_setup_reserve_seconds": 30,
+    "non_performance_reserve_seconds": 600,
     "minimum_distinct_physical_cores": 2
   },
   "profile": {

@@ -2,7 +2,7 @@ name: OpenVPN HIA real TUN and DCO target experiment
 
 on:
   push:
-    branches: [work/openvpn-hia-buffer-20261105, research/hia-openvpn-evidence-create-excl-20261105, fix/openvpn-hia-target-evidence-integration-20261106-gpt6]
+    branches: [work/openvpn-hia-buffer-20261105, research/hia-openvpn-evidence-create-excl-20261105, fix/openvpn-hia-target-evidence-integration-20261106-gpt6, research/openvpn-hia-matrix-budget-20261106, integrate/openvpn-hia-five-stage-20261106-gpt6]
     paths:
       - .github/workflows/hia-openvpn-target-host.yml
       - experiments/openvpn_hia_20261105/target_host/*.py
@@ -38,6 +38,8 @@ jobs:
             test_dco_peer_stats_wire.py \
             test_run_matrix_rekey.py \
             test_rekey_attempt_grouping.py
+      - name: Validate full fixed-matrix budget before any privileged target work
+        run: python3 -B experiments/openvpn_hia_20261105/target_host/test_matrix_budget.py
       - name: Freeze and build official C, actual HIA and the selected kernel DCO implementation
         run: |
           set -euo pipefail
@@ -54,10 +56,10 @@ jobs:
                      '--c', env['c'], '--hia', env['hia'], '--hia-trace', env['hia_trace'],
                      '--source', env['source'], '--build', env['build'],
                      '--out', str(root / 'public/tunnel'), '--private-work', str(root / 'private'),
-                     '--budget-seconds', '2700']
+                     '--budget-seconds', '3600']
           if env['perf']:
               command.extend(['--perf', env['perf']])
-          result = subprocess.run(command, timeout=2760)
+          result = subprocess.run(command, timeout=3660)
           raise SystemExit(result.returncode)
           PY
       - name: Clean only this experiment's recorded namespaces and private runtime material
