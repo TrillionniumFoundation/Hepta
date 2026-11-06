@@ -224,7 +224,7 @@ def main():
         command("p2p-fair-dispatch-apply", ["git", "apply", patch_path], cwd=build_source)
 
         init_source = (source / "src/openvpn/init.c").read_text()
-        reset_pattern = r"void\\s+context_clear_2\\s*\\(\\s*struct context \\*c\\s*\\)\\s*\\{\\s*CLEAR\\(c->c2\\);\\s*\\}"
+        reset_pattern = r"void\s+context_clear_2\s*\(\s*struct context \*c\s*\)\s*\{\s*CLEAR\(c->c2\);\s*\}"
         if not re.search(reset_pattern, init_source, re.S):
             raise RuntimeError("context_clear_2 no longer zeroes the context-local fairness state")
         patched_forward = (build_source / "src/openvpn/forward.c").read_text()
