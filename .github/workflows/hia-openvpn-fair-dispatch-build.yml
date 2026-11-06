@@ -54,8 +54,8 @@ jobs:
         if: always()
         run: |
           python3 - <<'PY'
-          import hashlib, importlib.util, json, pathlib
-          root = pathlib.Path("$RUNNER_TEMP") / "ovpn-hia-fair-dispatch" / "public"
+          import hashlib, importlib.util, json, os, pathlib
+          root = pathlib.Path(os.environ["RUNNER_TEMP"]) / "ovpn-hia-fair-dispatch" / "public"
           spec = importlib.util.spec_from_file_location(
               "publication_guard",
               "experiments/openvpn_hia_20261105/target_host/publication_guard.py")
@@ -75,7 +75,7 @@ jobs:
                       raw = value.encode()
                       match = guard.SECRETS.search(raw)
                       if match:
-                          print(json.dumps({"field": field, "matched_pattern": match.group(0)[:0].decode(),
+                          print(json.dumps({"field": field, "matched_pattern": match.re.pattern.decode(),
                                             "value_sha256": hashlib.sha256(raw).hexdigest(),
                                             "value_bytes": len(raw)}))
               walk(document)
