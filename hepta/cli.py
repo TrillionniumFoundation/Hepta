@@ -143,6 +143,11 @@ def main(argv=None) -> int:
         if action in {"build", "build-optimized", "build-guarded", "build-narrowed", "build-guarded-narrowed"}:
             h.add_argument("--clang", default="clang")
             h.add_argument("--kind", choices=["shared", "object"], default="shared")
+        if action == "build":
+            h.add_argument("--backend", choices=["llvm", "native"], default="llvm",
+                           help="native writes x86-64 instructions and ELF directly; llvm preserves the existing backend")
+            h.add_argument("--linker", default="cc",
+                           help="System linker (ld) or C driver for native shared libraries; unused for native objects")
         if action in {"emit", "build"}:
             h.add_argument("--target", choices=["x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu",
                                                "riscv64-unknown-linux-gnu"],
@@ -594,6 +599,13 @@ def main(argv=None) -> int:
                 output_json(result)
                 return 0 if result.get("status") == "returned" else 1
             if args.hia_action in {"emit", "build"}:
+                if args.hia_action == "build" and args.backend == "native":
+                    if args.target != "x86_64-unknown-linux-gnu":
+                        raise ValueError("E_HIA_PROGRAM_NATIVE: direct machine backend supports x86_64-unknown-linux-gnu")
+                    from .hia_program_native import build_program_machine
+                    result = build_program_machine(program, args.output, kind=args.kind, linker=args.linker)
+                    output_json(result)
+                    return 0 if result.get("ok") is True else 1
                 from .hia_program_llvm import emit_program_llvm, build_program_native
                 if args.hia_action == "build":
                     result = build_program_native(program, args.output, clang=args.clang,

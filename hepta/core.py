@@ -192,9 +192,17 @@ def execute_core(program, function, arguments, **limits):
 
 
 def build_core(program, output, *, clang="clang", kind="shared",
-               target="x86_64-unknown-linux-gnu", bounded_resource_limits=None):
-    from .hia_program_llvm import build_program_native
+               target="x86_64-unknown-linux-gnu", bounded_resource_limits=None,
+               backend="llvm", linker="cc"):
+    """Explicitly select code generation; existing callers retain LLVM."""
+    if type(backend) is not str or backend not in {"llvm", "native"}:
+        raise ValueError("E_HIA_BACKEND: expected explicit llvm or native backend")
     options = {} if bounded_resource_limits is None else {
         "bounded_resource_limits": bounded_resource_limits}
+    if backend == "native":
+        from .hia_program_native import build_program_machine
+        return build_program_machine(verify_core(program), output, kind=kind,
+                                     target=target, linker=linker, **options)
+    from .hia_program_llvm import build_program_native
     return build_program_native(verify_core(program), output, clang=clang, kind=kind,
                                 target=target, **options)

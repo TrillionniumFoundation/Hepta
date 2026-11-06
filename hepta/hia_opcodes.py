@@ -248,7 +248,7 @@ def opcode_catalog(schema: str | None = None) -> dict:
         "function_contract": {"return_loans": "explicit formal-name/null per return; parameter origin checked" if version >= 8 else "loan returns forbidden"},
         "conditional_effects": {"int.cast": "checked mode requires trap", "call": "all callee effects"},
         "resource_checks": "all guards, transitions, exact CFG joins and return cleanup remain mandatory",
-        "backend_scope": "VM and direct LLVM have separate supported-target/entry-ABI checks; catalog inclusion grants no native entry ABI",
+        "backend_scope": "VM, direct LLVM and direct x86-64 machine backends have separate supported-target/entry-ABI checks; catalog inclusion grants no native entry ABI",
         "admission_authority": "hepta.hia_program.verify_program", "safety_certificate": False,
         "generated_checker_scope": "opcode/version, operand/result signatures, attributes, effects, named resource guards",
         "not_generated_or_proved": ["CFG ownership algorithm", "interpreter", "LLVM lowering", "machine code"]}
