@@ -17,7 +17,7 @@ NEW_INPUTS = (*CACHE_INPUTS, 'tests/test_core_seven_shared_source_closure.py', *
 PRIOR_COMMITMENT = '36af03771b8b81803d90baafc92fd290d9e6cadbb03e7e135a99beae804bb0f0'
 ROUND4_COMMITMENT = 'ffc0f4bd9585328bb21e99d0fe3bac7717b65d823a72cb5de9987886018055db'
 ROUND5_COMMITMENT = 'd27b4d1edaa27950489d7b54fa6b8242b493883d0927933fa303e5b1203c9c55'
-CURRENT_COMMITMENT = '85089dadfa8c87d8ef59560b5bce5a85e0a685eba58ea1897f7665b656c25887'
+CURRENT_COMMITMENT = 'cf9552f6ab3bfef9bb5a74b59bfd0f3793762be2555b5c5f07e3a8e280186ad6'
 
 
 @contextmanager
@@ -36,7 +36,7 @@ def compiler_directory():
 class FixedCompilerSourceClosureTests(unittest.TestCase):
     def test_complete_reviewed_closure_retains_every_prior_path(self):
         actual = plan.source_paths()
-        self.assertEqual(len(actual), 292)
+        self.assertEqual(len(actual), 313)
         round5 = tuple(name for name in actual if name not in ROUND6_INPUTS)
         self.assertEqual(len(round5), 267)
         self.assertEqual(plan.commitment(round5), ROUND5_COMMITMENT)

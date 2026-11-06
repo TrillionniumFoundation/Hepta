@@ -13,6 +13,7 @@ class FrontierFactorialTests(TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
         self.record = {"schedule": study.base.schedule(study.PROTOCOL), "source": {},
+                       "protocol": study.PROTOCOL,
                        "tools": {"clang": {"path": "fixture"}, "rustc": {"path": "fixture"}},
                        "preparation_wall_ns": 1}
         (self.root / "REGISTRATION.json").write_text(json.dumps(self.record))
@@ -40,6 +41,33 @@ class FrontierFactorialTests(TestCase):
             study.begin(self.root, 0)
             with self.assertRaises(FileExistsError):
                 study.begin(self.root, 0)
+
+    def test_upstream_cohort_keeps_its_own_tasks_and_full_denominator(self):
+        self.record.update(protocol=study.UPSTREAM_PROTOCOL,
+                           schedule=study.upstream.schedule(study.UPSTREAM_PROTOCOL))
+        with patch.object(study, "validate", return_value=self.record):
+            result = study.summarize(self.root)
+        self.assertEqual(result["planned_cells"], 8)
+        self.assertEqual(len(result["missing_cells"]), 8)
+        self.assertTrue(all(arm["planned"] == 2 for arm in result["arms"]))
+        self.assertFalse(result["population_productivity_proved"])
+        task = study.upstream.fixtures.make_fixtures()[0]
+        response = json.loads(study.upstream.answer(task, "assembly", "full"))
+        response["expected_sha256"] = "0" * 64
+        with patch.object(study, "validate", return_value=self.record), patch.object(
+                study.upstream.evaluator, "build") as build:
+            study.begin(self.root, 0)
+            (self.root / "cell-00/RESPONSE.json").write_text(json.dumps(response))
+            row = study.evaluate(self.root, 0)
+        self.assertFalse(row["correct"])
+        self.assertIn("STALE_SOURCE", row["error"]["message"])
+        build.assert_not_called()
+
+    def test_cohort_cannot_be_replaced_or_relabelled(self):
+        for changed in ({**study.PROTOCOL, "cohort": "upstream"},
+                        {**study.PROTOCOL, "attempts_per_cell": True}):
+            with self.assertRaisesRegex(ValueError, "unregistered"):
+                study.cohort(changed)
 
     def test_stale_response_rejects_without_compile_or_second_scoring(self):
         task = study.base.fixtures.make_fixtures()[0]

@@ -10,7 +10,14 @@
   ],
   "beam_width": 2,
   "candidate_space": "all quota-legal resident masks at every step, with the same epochs and cost model; approximate policies may prune search states and say so",
-  "cost_boundary": "declared workload model costs and measured host wall are distinct; every losing training candidate, generation selection, oracle audit and reporting overhead is retained",
+  "controller_arms": [
+    "fixed-direct",
+    "greedy",
+    "beam",
+    "learned-value",
+    "evolved-policy"
+  ],
+  "cost_boundary": "declared workload model costs and measured host wall are distinct; every losing training candidate, generation selection, oracle audit and reporting overhead is retained; model validation, witness replay, build and native ranking are wall costs outside the search-transition unit",
   "evolution": "three rounds of local parameter mutation; train-only proposal, fresh selection split for each generation, strict modeled no-regression gate",
   "final_holdout_seeds": [
     10007,
@@ -60,7 +67,9 @@
   },
   "native_ablation": "frozen policy supplies <=4 complete candidates to source-pinned native supplied/supplied_ndu modes; same candidate set, no DP/search in either native mode; absence remains blocked",
   "objects": 3,
-  "per_learned_arm_training_transition_cap": 2000000,
+  "oracle_arm": "exact",
+  "oracle_budget_scope": "exact is an independent diagnostic oracle control with separately retained search/wall cost, not an equal-budget controller",
+  "per_controller_total_transition_cap": 2000000,
   "per_task_transition_cap": 4096,
   "production_activation": false,
   "quota_items": 2,
@@ -130,6 +139,7 @@
     223,
     227
   ],
+  "transition_budget_scope": "one shared allowance per controller; every considered search action is charged as executed across all training candidates, every generation incumbent/candidate selection, and final search; failed work remains charged",
   "unknown_costs": [
     "historical engineering",
     "human review",

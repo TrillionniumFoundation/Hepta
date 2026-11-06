@@ -21,12 +21,14 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 from tools import qualify_hia_agent_edit_factorial as base
+from tools import qualify_hia_upstream_factorial as upstream
 from hepta.hia_program_tools import read_bounded
 from tools.provider_adapter.llama_cpp_engine import canonical, file_identity
 
 SCHEMA = "hepta.agent.frontier-factorial.v1"
 PROTOCOL = {
     "schema": SCHEMA,
+    "cohort": "authored",
     "models": [{"id": "inherited_session_model", "provider": "delegated_model"}],
     "tasks": ["average_floor_stamp", "clamped_delta_bias", "stride_span_v2", "floor_multiple_v2"],
     "arms": [list(arm) for arm in base.ARMS], "expected_cells": 16,
@@ -41,6 +43,20 @@ PROTOCOL = {
     "schedule": "existing rotated 2x2 order; no retry, replacement or result-based reselection",
     "wall_scope": "host-observed begin-to-response ingestion including dispatch and file publication",
 }
+UPSTREAM_PROTOCOL = {
+    **PROTOCOL, "cohort": "upstream",
+    "tasks": ["stb_floor_overflow", "stb_euclidean_int_min"],
+    "expected_cells": 8,
+    "task_scope": "two inherited historical stb_divide fixes; one project, unknown training exposure, not an independent maintenance population",
+    "native_scoring": "existing upstream factorial native evaluator and same-Core VM check for admitted HIA; immutable image; terminal public/hidden checks",
+}
+
+
+def cohort(configuration):
+    for registered, owner in ((PROTOCOL, base), (UPSTREAM_PROTOCOL, upstream)):
+        if type(configuration) is dict and canonical(configuration) == canonical(registered):
+            return owner
+    raise ValueError("unregistered external factorial cohort")
 
 
 def save(path, value):
@@ -54,6 +70,7 @@ def git(*args):
 
 def bindings():
     sources = base.source_bindings()
+    sources.update(upstream.source_bindings())
     sources[str(Path(__file__).relative_to(ROOT))] = file_identity(__file__)["sha256"]
     return dict(sorted(sources.items()))
 
@@ -69,29 +86,32 @@ def current_identity():
     return {"head": head, "tree": git("rev-parse", head + "^{tree}").decode().strip(), "sources": sources}
 
 
-def prepare(output, clang, rustc):
+def prepare(output, clang, rustc, cohort_name="authored"):
+    configuration = {"authored": PROTOCOL, "upstream": UPSTREAM_PROTOCOL}.get(cohort_name)
+    owner = cohort(configuration)
     output = Path(output).resolve()
     if output.is_relative_to(ROOT):
         raise ValueError("evidence must be outside the source checkout")
     output.mkdir(parents=True, exist_ok=False)
     started = time.monotonic_ns()
     source = current_identity()
-    tasks = base.fixtures.make_fixtures()
-    if [t["id"] for t in tasks] != PROTOCOL["tasks"]:
+    tasks = owner.fixtures.make_fixtures()
+    if [t["id"] for t in tasks] != configuration["tasks"]:
         raise ValueError("task inventory changed")
-    controls = base.evaluator.reference_controls(tasks, output / "controls", clang, rustc)
+    controls = ((base.evaluator.reference_controls if owner is base else upstream.reference_controls)
+                (tasks, output / "controls", clang, rustc))
     if controls["passed"] != controls["count"]:
         raise ValueError("native positive/negative controls failed")
-    schedule = base.schedule(PROTOCOL)
+    schedule = owner.schedule(configuration)
     for index, descriptor in enumerate(schedule):
         task = next(t for t in tasks if t["id"] == descriptor["task"])
         directory = output / ("cell-" + str(index).zfill(2))
         directory.mkdir()
-        text = base.prompt(task, descriptor["language"], descriptor["interface"])
+        text = owner.prompt(task, descriptor["language"], descriptor["interface"])
         (directory / "PUBLIC_PROMPT.txt").write_text(text + "\n")
         descriptor["prompt_sha256"] = sha256((text + "\n").encode()).hexdigest()
-    record = {"schema": SCHEMA + ".registration", "protocol": PROTOCOL,
-              "source": source, "fixtures_sha256": base.digest(tasks), "schedule": schedule,
+    record = {"schema": SCHEMA + ".registration", "protocol": configuration,
+              "source": source, "fixtures_sha256": owner.digest(tasks), "schedule": schedule,
               "tools": {k: file_identity(v) for k, v in (("clang", clang), ("rustc", rustc))},
               "controls": {"count": controls["count"], "passed": controls["passed"],
                            "file": file_identity(output / "controls/CONTROLS.json")},
@@ -106,11 +126,12 @@ def prepare(output, clang, rustc):
 def validate(output):
     output = Path(output).resolve()
     record = json.loads((output / "REGISTRATION.json").read_bytes())
-    if (record.get("schema") != SCHEMA + ".registration" or record["protocol"] != PROTOCOL
+    owner = cohort(record["protocol"])
+    if (record.get("schema") != SCHEMA + ".registration"
             or record["source"] != current_identity()
-            or record["fixtures_sha256"] != base.digest(base.fixtures.make_fixtures())):
+            or record["fixtures_sha256"] != owner.digest(owner.fixtures.make_fixtures())):
         raise ValueError("factorial registration/source drift")
-    schedule = base.schedule(PROTOCOL)
+    schedule = owner.schedule(record["protocol"])
     if len(record["schedule"]) != len(schedule):
         raise ValueError("factorial schedule changed")
     for index, (actual, expected) in enumerate(zip(record["schedule"], schedule)):
@@ -149,6 +170,8 @@ def begin(output, index):
 
 def evaluate(output, index):
     record = validate(output)
+    configuration = record["protocol"]
+    owner = cohort(configuration)
     folder = cell_dir(output, index, record)
     start = json.loads((folder / "STARTED.json").read_bytes())
     if (start["descriptor"] != record["schedule"][index]
@@ -160,24 +183,24 @@ def evaluate(output, index):
            "human_review_seconds": None, "delivery_wall_ns": entered - start["started_monotonic_ns"],
            "response_provenance": "external delegated response; provider token/routing attestation absent"}
     try:
-        if row["delivery_wall_ns"] < 0 or row["delivery_wall_ns"] > PROTOCOL["max_delivery_wall_seconds"] * 1_000_000_000:
+        if row["delivery_wall_ns"] < 0 or row["delivery_wall_ns"] > configuration["max_delivery_wall_seconds"] * 1_000_000_000:
             raise ValueError("external delivery wall budget exceeded")
-        raw = read_bounded(folder / "RESPONSE.json", PROTOCOL["response_limit_bytes"])
+        raw = read_bounded(folder / "RESPONSE.json", configuration["response_limit_bytes"])
         with (folder / "RAW_RESPONSE.txt").open("xb") as stream:
             stream.write(raw)
         row["response_sha256"] = sha256(raw).hexdigest()
-        task = next(t for t in base.fixtures.make_fixtures() if t["id"] == row["task"])
-        text = base.materialize(task, row["language"], row["interface"], raw.decode())
+        task = next(t for t in owner.fixtures.make_fixtures() if t["id"] == row["task"])
+        text = owner.materialize(task, row["language"], row["interface"], raw.decode())
         row["status"] = "native_validation"
-        built = base.evaluator.build(task, row["language"], text, folder / "candidate",
+        built = owner.evaluator.build(task, row["language"], text, folder / "candidate",
                                      record["tools"]["clang"]["path"], record["tools"]["rustc"]["path"])
         row["build"] = built
         row["status"] = built["status"]
         if built["native_built"]:
-            public = base.evaluator.execute(built, task, task["public_cases"], task["public_expected"])
+            public = owner.evaluator.execute(built, task, task["public_cases"], task["public_expected"])
             row["public"] = public
             if public["status"] == "correct" and public["artifact_unchanged"]:
-                hidden = base.evaluator.execute(built, task, task["hidden_cases"], task["hidden_expected"])
+                hidden = owner.evaluator.execute(built, task, task["hidden_cases"], task["hidden_expected"])
                 row["hidden"] = hidden
                 row["correct"] = hidden["status"] == "correct" and hidden["artifact_unchanged"]
                 row["status"] = "correct" if row["correct"] else "hidden_wrong"
@@ -197,6 +220,8 @@ def evaluate(output, index):
 
 def summarize(output):
     record = validate(output)
+    configuration = record["protocol"]
+    owner = cohort(configuration)
     rows, missing = [], []
     for index, descriptor in enumerate(record["schedule"]):
         path = cell_dir(output, index, record) / "CELL.json"
@@ -216,16 +241,16 @@ def summarize(output):
         else:
             missing.append(descriptor["id"])
     arms = []
-    for language, interface in base.ARMS:
+    for language, interface in owner.ARMS:
         selected = [r for r in rows if (r["language"], r["interface"]) == (language, interface)]
-        arms.append({"language": language, "interface": interface, "planned": 4, "observed": len(selected),
+        arms.append({"language": language, "interface": interface, "planned": len(configuration["tasks"]), "observed": len(selected),
                      "correct": sum(r["correct"] is True and r["status"] == "correct" for r in selected),
                      "delivery_wall_ns": sum(r["delivery_wall_ns"] for r in selected),
                      "validation_wall_ns": sum(r["validation_wall_ns"] for r in selected),
                      "token_usage": None, "human_review_seconds": None, "total_cost_advantage_proved": False})
-    return {"schema": SCHEMA + ".result", "complete": not missing, "planned_cells": 16,
+    return {"schema": SCHEMA + ".result", "complete": not missing, "planned_cells": configuration["expected_cells"],
             "observed_cells": len(rows), "missing_cells": missing, "arms": arms,
-            "preparation_wall_ns": record["preparation_wall_ns"], "protocol": PROTOCOL,
+            "preparation_wall_ns": record["preparation_wall_ns"], "protocol": configuration,
             "source": record["source"], "population_productivity_proved": False}
 
 
@@ -233,10 +258,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=("prepare", "begin", "evaluate", "summary"))
     parser.add_argument("--output", required=True)
+    parser.add_argument("--cohort", choices=("authored", "upstream"), default="authored")
     parser.add_argument("--clang"); parser.add_argument("--rustc"); parser.add_argument("--cell", type=int)
     args = parser.parse_args()
     if args.action == "prepare":
-        result = prepare(args.output, args.clang, args.rustc)
+        result = prepare(args.output, args.clang, args.rustc, args.cohort)
         print(json.dumps({"prepared": True, "expected_cells": len(result["schedule"]), "controls": result["controls"]["passed"]}))
     elif args.action == "begin":
         print(json.dumps(begin(args.output, args.cell), indent=2))

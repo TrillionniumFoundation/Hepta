@@ -24,6 +24,12 @@ def require(ok, message):
 
 
 def validate_cost_report(report):
+    """Check the cost-table shape only, without qualifying its provenance.
+
+    Synthetic tables remain useful to test the pure model adapter. Formal
+    freeze/run callers must go through ``read_cost_report`` and its complete
+    service-evidence readback before calling the model adapter.
+    """
     require(type(report) is dict and report.get("schema") == "hepta.hia.stb-service.report.v1"
             and report.get("ok") is True and report.get("status") == "completed"
             and report.get("stage") == "study", "completed native study required")
@@ -73,10 +79,23 @@ def validate_cost_report(report):
 
 def read_cost_report(path, *, expected_source):
     path = Path(path).resolve(strict=True)
+    require(path.name == "report.json", "canonical native study report required")
     raw = path.read_bytes()
     require(len(raw) <= 8_000_000, "report byte limit")
     report = validate_cost_report(json.loads(raw))
     require(report["source_before"]["head"] == expected_source, "native study source differs from policy source")
+    # A shaped summary and matching image hashes are not native-study evidence.
+    # Reuse the service owner's full source/registration/upgrade/VM/commands/
+    # PGO/timing/inventory reconciliation instead of inventing a second one.
+    from tools.qualify_hia_stb_service import validate_qualification
+    try:
+        qualification = validate_qualification(path.parent, report=report)
+    except (KeyError, TypeError, ValueError, OSError) as error:
+        raise DynamicError("measured module input: complete native study readback failed: "
+                           + type(error).__name__ + ": " + str(error)) from error
+    require(type(qualification) is dict and qualification.get("verified") is True
+            and qualification.get("authority") == "DENY_ALL",
+            "complete native study readback did not verify")
     artifacts = {}
     for name in ARMS:
         build = report["builds"][name]
@@ -94,9 +113,11 @@ def read_cost_report(path, *, expected_source):
         require(len(data) == identity["bytes"] and sha256(data).hexdigest() == identity["sha256"],
                 "candidate image differs from native evidence")
         artifacts[name] = {"bytes": len(data), "sha256": identity["sha256"]}
+    require(path.read_bytes() == raw, "native study report changed during import")
     return {"schema": "hepta.hia.ndu.measured-module-costs.v1",
             "report": {"path": str(path), "sha256": sha256(raw).hexdigest()},
             "source_commit": expected_source, "native_report": report, "artifacts": artifacts,
+            "qualification": qualification,
             "scope": "pairwise HIA/incumbent versus one registered alternative; modeled image admission using real batch/load costs",
             "unknown_costs": ["unload time", "actual resident-memory limit", "new workload dispatch", "human review", "maintenance"],
             "assumptions": ["candidate binaries are already built; build cost retained separately",

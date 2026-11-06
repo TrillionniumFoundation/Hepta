@@ -48,8 +48,13 @@ The fixed parameter grid varies lookahead and a nonnegative retention weight.
 This is an ordinary empirical learner. It makes no LLM request and has no
 unreported model training or weights. Width is fixed at two for the learned
 arms. A selection evaluates no more than 4,096 transitions. Each learned arm
-has the same two-million-transition training ceiling. Unused work is recorded
-rather than padded. The complete candidate replays and input validation are
+shares one two-million-transition allowance across training, every generation's
+incumbent and candidate selection, and final search. The fixed, greedy, and
+ordinary beam controllers receive that same total ceiling. A shared counter
+charges each search action as it happens, so losing candidates and incomplete
+searches consume the remaining allowance too. Unused work is recorded rather
+than padded. The exact control is a separately costed diagnostic oracle; it is
+not represented as an equal-budget controller. Complete candidate replays and input validation are
 included in observed wall time; the transition counter counts search work,
 not every Python instruction.
 
@@ -60,12 +65,16 @@ not every Python instruction.
 | `beam` | Width two, no retention feature | Current model only |
 | `learned-value` | Empirical minimum across the frozen feature grid | Training tasks only |
 | `evolved-policy` | Three rounds of adjacent parameter mutations | Training proposal, a fresh selection set per round |
-| `exact` | Retain every legal resident state | Final model only; audited independently afterward |
+| `exact` | Retain every legal resident state | Separately costed oracle control; audited independently afterward |
 
 All candidate generation, losing training candidates, validation generations,
 final policies, exact controls, transport, native evaluation, and audit costs
 remain visible. Exceeding a work ceiling raises an explicit refusal. A partial
-search is never returned as a completed task.
+search is never returned as a completed task. The lifecycle counter measures
+considered search actions, not wall time. Input validation, witness replay,
+compilation, native ranking, and oracle audits remain in the wall ledger. Native
+supplied modes perform zero search actions; shared Python candidate generation
+is charged once to its originating controller rather than charged again.
 
 ## Restricted evolution and independent final evaluation
 
@@ -99,7 +108,13 @@ all four timing groups, the original per-batch samples, the same call count and
 checksum across candidates, complete six-function VM/native observations,
 no PGO evaluation leakage, unchanged source identity, and matching bytes of
 every built image. The imported report and images are hashed at freeze and
-checked again at execution.
+checked again at execution. Formal import must pass the service owner's
+complete `validate_qualification` readback over the retained study directory;
+summary flags, matching image hashes, or a shaped cost table are insufficient.
+The same complete readback runs before policy execution and again before a
+completed result is emitted. Its receipt and validation cost are retained.
+Pure adapter tests may still use explicitly synthetic tables, which do not
+qualify a native study.
 
 Each imported task compares HIA with **one** of the seven registered
 alternatives. This is a pairwise image-admission study; it does not quietly
@@ -166,7 +181,12 @@ python -m unittest tests.test_hia_ndu_policy.OriginalNduSuppliedPathTests
 The unconfigured native test is an explicit skip, not native evidence. Preserve
 `RESULT.json`, `LEARNED.json`, `EVOLUTION.json`, each generation/arm file,
 `native-frames.jsonl`, registration, and both native/source-module build
-receipts. The caller should also time the enclosing command, including final
+receipts. Native build costs are parsed from the exact manifest bytes whose
+frozen hash was checked, and both native identities are checked again after
+the session. A completed build with an initially absent target directory is
+required. The session must exit with code zero; `native-session-close.json`
+retains its actual exit code and close cost even when that gate rejects it.
+The caller should also time the enclosing command, including final
 serialization. Nested wall measurements must not be added to their enclosing
 wall. Human review and long-term maintenance remain unknown unless actually
 recorded. A completed finite-model campaign does not by itself meet the

@@ -22,6 +22,40 @@ class PolicyBudgetExhausted(DynamicError):
     """No truncated search result is returned as a complete plan."""
 
 
+class TransitionBudget:
+    """One controller's search allowance, shared across its entire lifecycle.
+
+    Count each considered search action as it happens, including work before
+    a failed search. Input checking, witness replay, compilation, and native
+    ranking remain separately observed wall costs rather than fake transitions.
+    """
+    def __init__(self, maximum):
+        integer(maximum, "controller lifecycle transition budget", 100_000_000)
+        self.maximum = maximum
+        self.transitions = 0
+        self.phases = []
+
+    @property
+    def remaining(self):
+        return self.maximum - self.transitions
+
+    def take(self, phase):
+        if self.transitions >= self.maximum:
+            raise PolicyBudgetExhausted("controller lifecycle transition budget exhausted")
+        self.transitions += 1
+        if self.phases and self.phases[-1]["phase"] == phase:
+            self.phases[-1]["transitions"] += 1
+        else:
+            self.phases.append({"phase": phase, "transitions": 1})
+
+    def snapshot(self):
+        return {"limit": self.maximum, "transitions": self.transitions,
+                "remaining": self.remaining, "phases": deepcopy(self.phases),
+                "unit": "considered search actions, including failed and losing candidates",
+                "scope": "training, all generation selection, and final policy search",
+                "other_costs": "input checking, witness replay, builds, native ranking, and audits are charged as wall time"}
+
+
 def policy(*, width=4, lookahead=0, retention_weight=0):
     return {"schema": POLICY_SCHEMA, "width": width, "lookahead": lookahead,
             "retention_weight": retention_weight}
@@ -43,10 +77,14 @@ def validate_policy(raw):
 class _Budget:
     maximum: int
     transitions: int = 0
+    total: TransitionBudget | None = None
+    phase: str = "search"
 
     def take(self):
         if self.transitions >= self.maximum:
             raise PolicyBudgetExhausted("complete policy transition budget exhausted")
+        if self.total is not None:
+            self.total.take(self.phase)
         self.transitions += 1
 
 
@@ -99,7 +137,8 @@ def validate_plan(raw_model, plan):
     return expected
 
 
-def select(raw_model, raw_policy, *, max_transitions=MAX_TRANSITIONS, fixed_mask=None):
+def select(raw_model, raw_policy, *, max_transitions=MAX_TRANSITIONS, fixed_mask=None,
+           total_budget=None, budget_phase="search"):
     """Search one fixed candidate universe under an explicit work cap.
 
     ``width=1, lookahead=0`` is the greedy control. ``width>=legal masks``
@@ -110,7 +149,11 @@ def select(raw_model, raw_policy, *, max_transitions=MAX_TRANSITIONS, fixed_mask
     started = time.perf_counter_ns()
     model, configuration = validate_model(raw_model), validate_policy(raw_policy)
     integer(max_transitions, "maximum transitions", MAX_TRANSITIONS)
-    budget = _Budget(max_transitions)
+    if total_budget is not None and type(total_budget) is not TransitionBudget:
+        raise DynamicError("exact controller transition budget required")
+    if type(budget_phase) is not str or not 1 <= len(budget_phase) <= 256:
+        raise DynamicError("bounded search budget phase required")
+    budget = _Budget(max_transitions, total=total_budget, phase=budget_phase)
     masks = [m for m in range(1 << len(model["artifacts"]))
              if resident_bytes(model, m) <= model["memory_quota_bytes"]]
     if fixed_mask is not None:
@@ -159,7 +202,7 @@ def select(raw_model, raw_policy, *, max_transitions=MAX_TRANSITIONS, fixed_mask
 
 
 def propose_generation(training_models, incumbent, candidates, *, max_transitions,
-                       generation_budget):
+                       generation_budget, total_budget=None, budget_phase="training"):
     """Fit a finite search-policy mutation using training tasks only.
 
     This is empirical policy search, not self-authorized code rewriting. Every
@@ -168,6 +211,8 @@ def propose_generation(training_models, incumbent, candidates, *, max_transition
     A caller must independently validate any winner on untouched tasks.
     """
     started = time.perf_counter_ns()
+    if type(budget_phase) is not str or not 1 <= len(budget_phase) <= 200:
+        raise DynamicError("bounded training budget phase required")
     if type(training_models) is not list or not 1 <= len(training_models) <= 256:
         raise DynamicError("one to 256 training models required")
     models = [validate_model(m) for m in training_models]
@@ -182,13 +227,15 @@ def propose_generation(training_models, incumbent, candidates, *, max_transition
         if configuration not in configurations:
             configurations.append(configuration)
     used, rows = 0, []
-    for configuration in configurations:
+    for candidate_index, configuration in enumerate(configurations):
         observations = []
         for model in models:
             remaining = generation_budget - used
             if remaining <= 0:
                 raise PolicyBudgetExhausted("generation training budget exhausted")
-            result = select(model, configuration, max_transitions=min(max_transitions, remaining))
+            result = select(model, configuration, max_transitions=min(max_transitions, remaining),
+                            total_budget=total_budget,
+                            budget_phase=f"{budget_phase}/candidate-{candidate_index}")
             used += result["search"]["transitions"]
             if result["plan"] is None:
                 raise DynamicError("training candidate did not deliver the declared complete task")

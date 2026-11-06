@@ -57,6 +57,18 @@ ROUND6_ADDITIONS = (
     'benchmarks/hia_stb_service/PROTOCOL.json',
     'benchmarks/hia_stb_service/baseline.rs',
     'benchmarks/hia_stb_service/driver.c',
+    'benchmarks/hia_upstream_factorial/PROTOCOL.json',
+    'benchmarks/hia_upstream_factorial/README.md',
+    'benchmarks/hia_upstream_factorial/UPSTREAM_FIX.json',
+    'benchmarks/hia_upstream_factorial/UPSTREAM_TASKS.json',
+    'benchmarks/hia_upstream_factorial/c_stb_div_floor-before.hiaasm',
+    'benchmarks/hia_upstream_factorial/c_stb_mod_eucl-after.hiaasm',
+    'benchmarks/hia_upstream_factorial/c_stb_mod_eucl-before.hiaasm',
+    'benchmarks/hia_upstream_factorial/evaluator.py',
+    'benchmarks/hia_upstream_factorial/floor_reference.hiaasm',
+    'benchmarks/hia_upstream_factorial/tasks.py',
+    'tests/test_hia_upstream_factorial.py',
+    'tools/qualify_hia_upstream_factorial.py',
     'docs/HIA_BOUNDED_BYTE_PROFILE.md',
     'docs/HIA_NDU_POLICY_EVOLUTION.md',
     'docs/HIA_FRONTIER_FACTORIAL.md',
@@ -75,9 +87,18 @@ ROUND6_ADDITIONS = (
     'tests/test_hia_agent_provider.py',
     'tools/qualify_hia_composition.py',
     'experiments/hia_agent_assembly_v4_20261030/evaluator.py',
+    'experiments/hia_round4_20261105/run_frozen_candidate.py',
+    'tests/test_hia_composition_raw_identity.py',
+    'tools/build_hia_ndu_bridge.py',
+    'tools/build_hia_ndu_dynamic_bridge.py',
     'rust/hia-ndu-dynamic-model/src/main.rs',
     'rust/hia-ndu-dynamic-model/src/planner.rs',
+    'rust/hia-ndu-dynamic-model/src/model.rs',
+    'rust/hia-ndu-dynamic-model/src/ndu.rs',
+    'rust/hia-ndu-dynamic-model/src/workload.rs',
     'rust/hia-ndu-dynamic-model/Cargo.toml',
+    'rust/hia-ndu-dynamic-model/Cargo.lock',
+    'rust/hia-ndu-dynamic-model/upstream.json',
 )
 METADATA_RESERVE = 224589
 RAW_GLOBAL = 819891
@@ -170,7 +191,7 @@ SUPPORT_IDENTITY_PATHS = legacy.SUPPORT_IDENTITY_PATHS
 def source_paths():
     legacy.source_paths()  # retain the exact earlier source identity closure
     paths = SOURCE_IDENTITY_PATHS
-    require(len(paths) == len(set(paths)) == 292 and commitment(paths) == '85089dadfa8c87d8ef59560b5bce5a85e0a685eba58ea1897f7665b656c25887',
+    require(len(paths) == len(set(paths)) == 313 and commitment(paths) == 'cf9552f6ab3bfef9bb5a74b59bfd0f3793762be2555b5c5f07e3a8e280186ad6',
             'reviewed exact source identity closure')
     # pipeline.compiler_hash reads every actual top-level hepta/*.py byte,
     # including modules that are not imported by this selected proof profile.

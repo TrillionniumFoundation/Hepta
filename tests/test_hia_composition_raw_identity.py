@@ -14,6 +14,17 @@ from tools import qualify_hia_composition as subject
 from experiments.hia_round4_20261105 import run_frozen_candidate as frozen
 
 
+def fixture_identity_code(ready):
+    """Record syscall and procfs coordinates independently inside the child."""
+    return ('raw=Path("/proc/self/stat").read_text()\n'
+            'fields=raw.rsplit(")",1)[1].split()\n'
+            'temporary=Path('+repr(str(ready))+').with_suffix(".pending")\n'
+            'temporary.write_text(json.dumps({"pid":os.getpid(),"pgid":os.getpgrp(),'
+            '"proc_pid":int(raw.split("(",1)[0]),"proc_pgid":int(fields[2]),'
+            '"proc_sid":int(fields[3]),"starttime":fields[19]}))\n'
+            'os.replace(temporary,Path('+repr(str(ready))+'))\n')
+
+
 class RawCompositionIdentityTests(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory(prefix='hia-raw-build-identity-')
@@ -92,10 +103,11 @@ class RawCompositionIdentityTests(unittest.TestCase):
         ready = self.root/'term-resistant.ready'
         # The self-alarm also bounds a regression to the old unbounded TERM
         # behavior; it is not a successful observer cleanup.
-        code = ('import os,signal,time\n'
+        code = ('import json,os,signal,time\n'
+                'from pathlib import Path\n'
                 'signal.signal(signal.SIGTERM,signal.SIG_IGN)\n'
                 'signal.alarm(8)\n'
-                'open('+repr(str(ready))+',"w").write(str(os.getpid()))\n'
+                + fixture_identity_code(ready) +
                 'print("retained-before-deadline",flush=True)\n'
                 'while True: signal.pause()\n')
         started = time.monotonic()
@@ -106,24 +118,23 @@ class RawCompositionIdentityTests(unittest.TestCase):
         self.assertEqual(result.returncode,124)
         self.assertIn('retained-before-deadline', result.stdout)
         self.assertLess(elapsed,6, 'cleanup must precede the fixture self-alarm')
-        pid = int(ready.read_text())
-        status = Path('/proc')/str(pid)/'stat'
-        try:
-            state = status.read_text().rsplit(')',1)[1].split()[0]
-        except (FileNotFoundError, ProcessLookupError):
-            state = None
-        self.assertIsNone(state, 'owned direct child must be reaped')
+        identity = json.loads(ready.read_text())
+        self.assertIsNone(self._fixture_state(identity), 'owned direct child must be reaped')
+        with self.assertRaises(ChildProcessError):
+            os.waitid(os.P_PID,identity['pid'],os.WEXITED|os.WNOWAIT|os.WNOHANG)
 
     def test_frozen_capture_refuses_live_descendant_after_leader_exit(self):
         ready = self.root/'descendant.ready'
-        code = ('import os,signal,time\n'
+        self.addCleanup(self._stop_owned_fixture_descendant, ready)
+        code = ('import json,os,signal,time\n'
+                'from pathlib import Path\n'
                 'child=os.fork()\n'
                 'if child:\n'
                 '    time.sleep(0.1)\n'
                 '    os._exit(0)\n'
                 'signal.signal(signal.SIGTERM,signal.SIG_IGN)\n'
                 'signal.alarm(8)\n'
-                'open('+repr(str(ready))+',"w").write(str(os.getpid()))\n'
+                + fixture_identity_code(ready) +
                 'print("descendant-keeps-capture",flush=True)\n'
                 'while True: signal.pause()\n')
         started = time.monotonic()
@@ -135,16 +146,13 @@ class RawCompositionIdentityTests(unittest.TestCase):
         self.assertEqual(result.returncode,125)
         self.assertIn('descendant-keeps-capture',result.stdout)
         self.assertLess(time.monotonic()-started,6)
-        pid = int(ready.read_text())
+        identity = json.loads(ready.read_text())
         # An adopted descendant may close its descriptors before the kernel
         # publishes Z/absence. Observe settlement within the same cleanup
         # allowance; do not mislabel this observation as descendant reaping.
         settle_until = min(started+3,time.monotonic()+0.5)
         while True:
-            try:
-                state = (Path('/proc')/str(pid)/'stat').read_text().rsplit(')',1)[1].split()[0]
-            except (FileNotFoundError, ProcessLookupError):
-                state = None
+            state = self._fixture_state(identity)
             if state in (None,'Z','X') or time.monotonic() >= settle_until:
                 break
             time.sleep(0.005)
@@ -161,34 +169,45 @@ class RawCompositionIdentityTests(unittest.TestCase):
                 self.assertEqual(result.stdout,'stdout-prefix\n')
                 self.assertEqual(result.stderr,'stderr-prefix\n')
 
+    def _fixture_state(self, identity):
+        # The fixture itself records this procfs coordinate and start time.
+        # A reused PID is not the instance whose completion we are observing.
+        try:
+            raw = (Path('/proc')/str(identity['proc_pid'])/'stat').read_text()
+        except (FileNotFoundError, ProcessLookupError):
+            return None
+        fields = raw.rsplit(')',1)[1].split()
+        if fields[19] != identity['starttime']:
+            return None
+        self.assertEqual(int(raw.split('(',1)[0]), identity['proc_pid'])
+        self.assertEqual(int(fields[2]), identity['proc_pgid'])
+        self.assertEqual(int(fields[3]), identity['proc_sid'])
+        return fields[0]
+
     def _stop_owned_fixture_descendant(self, ready):
         """Failing regressions clean only the recorded instance, using a pidfd."""
         if not ready.exists():
             return
         identity = json.loads(ready.read_text())
-        pid = identity['pid']
+        if self._fixture_state(identity) in (None,'Z','X'):
+            return
         try:
-            fd = os.pidfd_open(pid)
+            fd = os.pidfd_open(identity['pid'])
         except ProcessLookupError:
             return
         try:
-            try:
-                fields = (Path('/proc')/str(pid)/'stat').read_text().rsplit(')',1)[1].split()
-            except (FileNotFoundError, ProcessLookupError):
+            if self._fixture_state(identity) in (None,'Z','X'):
                 return
-            self.assertEqual(fields[19], identity['starttime'])
-            self.assertEqual(int(fields[2]), identity['pgid'])
-            if fields[0] not in ('Z','X'):
-                signal.pidfd_send_signal(fd, signal.SIGKILL)
+            info = (Path('/proc/self/fdinfo')/str(fd)).read_text().splitlines()
+            nspid = [int(value) for line in info if line.startswith('NSpid:')
+                     for value in line.partition(':')[2].split()]
+            self.assertEqual((nspid[0],nspid[-1]), (identity['proc_pid'],identity['pid']))
+            signal.pidfd_send_signal(fd, signal.SIGKILL)
         finally:
             os.close(fd)
         end = time.monotonic()+1
         while True:
-            try:
-                fields = (Path('/proc')/str(pid)/'stat').read_text().rsplit(')',1)[1].split()
-                state = fields[0] if fields[19] == identity['starttime'] else None
-            except (FileNotFoundError, ProcessLookupError):
-                state = None
+            state = self._fixture_state(identity)
             if state in (None,'Z','X') or time.monotonic() >= end:
                 break
             time.sleep(0.005)
@@ -208,10 +227,7 @@ class RawCompositionIdentityTests(unittest.TestCase):
                 'signal.alarm(8)\n'
                 'print("regular-file-descendant",flush=True)\n'
                 'print("regular-file-stderr",file=__import__("sys").stderr,flush=True)\n'
-                'fields=Path("/proc/self/stat").read_text().rsplit(")",1)[1].split()\n'
-                'temporary=ready.with_suffix(".pending")\n'
-                'temporary.write_text(json.dumps({"pid":os.getpid(),"pgid":os.getpgrp(),"starttime":fields[19]}))\n'
-                'os.replace(temporary,ready)\n'
+                + fixture_identity_code(ready) +
                 'while True: signal.pause()\n')
         started = time.monotonic()
         try:
@@ -244,8 +260,52 @@ class RawCompositionIdentityTests(unittest.TestCase):
         self.assertEqual(len(observed),1)
         leader,terminal,group,session,sig = observed[0]
         self.assertEqual((terminal,group,session,sig),(leader,leader,leader,signal.SIGKILL))
-        self.assertFalse((Path('/proc')/str(leader)).exists(), 'direct leader must finally be reaped')
+        with self.assertRaises(ChildProcessError):
+            os.waitid(os.P_PID,leader,os.WEXITED|os.WNOWAIT|os.WNOHANG)
 
+
+    def test_frozen_unavailable_namespace_identity_cannot_attest_success(self):
+        with patch.object(frozen,'_proc_nspid',side_effect=ValueError('unavailable namespace identity')):
+            with self.assertRaisesRegex(ValueError,'unavailable namespace identity'):
+                frozen.run_with_deadline([sys.executable,'-c','pass'],3,
+                                         capture_output=True,text=True)
+
+    def test_frozen_group_scan_requires_an_owned_unreaped_child(self):
+        with self.assertRaises(ChildProcessError):
+            frozen._owned_group_live(os.getpid(),time.monotonic()+1)
+
+    def test_dynamic_adapter_requires_its_own_current_sources_and_original_streams(self):
+        def validate_dynamic(manifest):
+            self.receipt.write_text(json.dumps(manifest))
+            with patch.object(subject,'ROOT',self.root):
+                return subject.validate_dynamic_build(self.receipt,self.tools)
+
+        # Same build schema and binary protocol do not authenticate a second
+        # adapter. Its actual source inventory is an independent identity.
+        with self.assertRaises((ValueError,FileNotFoundError)):
+            validate_dynamic(self.manifest)
+        adapter = self.root/'rust/hia-ndu-dynamic-model'
+        (adapter/'src').mkdir(parents=True)
+        (adapter/'Cargo.toml').write_text('locked dynamic adapter\n')
+        (adapter/'src/main.rs').write_text('distinct supplied-candidate implementation\n')
+        with self.assertRaises(ValueError):
+            validate_dynamic(self.manifest)
+        dynamic = copy.deepcopy(self.manifest)
+        dynamic['adapter_files'] = {
+            str(p.relative_to(adapter)):subject.digest(p) for p in adapter.rglob('*') if p.is_file()}
+        self.assertEqual(validate_dynamic(dynamic),dynamic)
+        with self.assertRaises(ValueError):
+            self.validate(dynamic)
+        for name in ('rust/hia-ndu-dynamic-model/src/main.rs',
+                     'build/command-evidence/cargo.stdout','build/command-evidence/cargo.stderr'):
+            path = self.root/name
+            original = path.read_bytes()
+            path.write_bytes(original+b'changed')
+            try:
+                with self.subTest(name=name),self.assertRaises(ValueError):
+                    validate_dynamic(dynamic)
+            finally:
+                path.write_bytes(original)
 
     def test_boolean_returncode_and_changed_fixed_argv_are_rejected(self):
         changed = copy.deepcopy(self.manifest)
