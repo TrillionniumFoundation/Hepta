@@ -225,7 +225,7 @@ def main():
         original_files = {name: digest(source / name) for name in dispatch_lock["files"]}
         forward_lines = (source / "src/openvpn/forward.c").read_text().splitlines()
         context_lines = list(enumerate(forward_lines[2268:2320], start=2269))
-        context_text = "\\n".join(f"{line_no}: {line}" for line_no, line in context_lines) + "\\n"
+        context_text = "\n".join(f"{line_no}: {line}" for line_no, line in context_lines) + "\n"
         (public / "p2p-fair-dispatch-source-context.txt").write_text(context_text)
         preflight = {
             "upstream_commit": lock["openvpn"]["commit"],
