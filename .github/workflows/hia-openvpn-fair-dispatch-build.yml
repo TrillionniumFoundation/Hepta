@@ -53,6 +53,19 @@ jobs:
           set -euo pipefail
           bash experiments/openvpn_hia_20261105/target_host/build.sh \
             --task-root "$RUNNER_TEMP/ovpn-hia-fair-dispatch"
+      - name: Show bounded patch-application diagnostics
+        if: always()
+        run: |
+          set +e
+          for file in \
+            "$RUNNER_TEMP/ovpn-hia-fair-dispatch/public/p2p-fair-dispatch-check.stderr" \
+            "$RUNNER_TEMP/ovpn-hia-fair-dispatch/public/p2p-fair-dispatch-check.stdout" \
+            "$RUNNER_TEMP/ovpn-hia-fair-dispatch/public/p2p-fair-dispatch-apply.stderr"; do
+            if [ -f "$file" ]; then
+              echo "===== $(basename "$file") ====="
+              sed -n '1,80p' "$file"
+            fi
+          done
       - name: Diagnose privacy matches without printing matched bytes
         if: always()
         run: |
@@ -107,7 +120,7 @@ jobs:
           python3 -B experiments/openvpn_hia_20261105/target_host/test_publication_guard.py
           python3 -B experiments/openvpn_hia_20261105/target_host/publication_guard.py \
             --public "$RUNNER_TEMP/ovpn-hia-fair-dispatch/public" \
-            --marker "$RUNNER_TEMP/ovpn-hia-fair-dispatch/public/publication-ok.json"
+            --marker "$RUNNER_TEMP/ovpn-hia-fair-dispatch-publication-ok.json"
       - name: Retain nonsecret build evidence on success or failure
         if: always() && steps.publication_privacy.outcome == 'success'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
