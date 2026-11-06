@@ -130,6 +130,55 @@ def verify_udp_delivery(value, workload, policy):
     require(all(checks.values()), "UDP workload did not achieve its declared bidirectional load")
 
 
+def verify_p2p_fair_dispatch_build(build):
+    """Bind every target binary to the exact shared userspace dispatch patch."""
+    lock = read(HERE / "source-lock.json")
+    expected = lock.get("p2p_fair_dispatch")
+    require(isinstance(expected, dict), "source lock lacks the P2P fairness patch")
+    observed = build.get("p2p_fair_dispatch")
+    require(isinstance(observed, dict) and observed.get("enabled") is True,
+            "application build did not apply the P2P fairness patch")
+    require(observed.get("patch_path") == expected.get("path")
+            and observed.get("patch_sha256") == expected.get("sha256"),
+            "application build used a different P2P fairness patch")
+    require(observed.get("upstream_commit") == lock["openvpn"]["commit"]
+            and observed.get("source_archive_sha256") == lock["openvpn"]["archive_sha256"],
+            "P2P fairness patch is not bound to the pinned OpenVPN source")
+    require(observed.get("policy") == expected.get("policy"),
+            "P2P fairness policy differs from the frozen source lock")
+    expected_files = set(expected.get("files", []))
+    require(expected_files == {"src/openvpn/openvpn.h", "src/openvpn/forward.c"},
+            "P2P fairness patch scope is not the two reviewed OpenVPN files")
+    original = observed.get("original_files")
+    patched = observed.get("patched_files")
+    require(isinstance(original, dict) and set(original) == expected_files,
+            "original P2P source hashes are incomplete")
+    require(isinstance(patched, dict) and set(patched) == expected_files,
+            "patched P2P source hashes are incomplete")
+    for name in expected_files:
+        require(re.fullmatch(r"[0-9a-f]{64}", str(original[name])) is not None
+                and re.fullmatch(r"[0-9a-f]{64}", str(patched[name])) is not None,
+                "P2P source hash is malformed: " + name)
+        require(original[name] != patched[name],
+                "P2P patch did not change its declared source file: " + name)
+    require(observed.get("context_reset_verified") is True,
+            "context-local fairness state is not proven to reset")
+    require(observed.get("pending_write_priority_preserved") is True,
+            "pending write priority is not preserved")
+    require(observed.get("dco_read_branch_present") is True,
+            "DCO read dispatch is absent")
+    return observed
+
+
+def verify_p2p_fair_dispatch(build, report, public):
+    """Bind the target matrix receipt to the exact patch-bound build receipt."""
+    observed = verify_p2p_fair_dispatch_build(build)
+    inputs = report.get("inputs", {})
+    require(inputs.get("build_receipt_sha256") == digest(public / "build.json"),
+            "target matrix does not bind the public build receipt")
+    require(inputs.get("p2p_fair_dispatch") == observed,
+            "target matrix and build receipt disagree on P2P fairness patch identity")
+
 def expected_cases(plan):
     rows = []
     for server, client in plan["behavior"]["epoch_pairs"]:
@@ -156,6 +205,7 @@ def verify(public, expected_commit):
     build = read(public / "build.json")
     target = public / "tunnel"
     report = read(target / "target-result.json")
+    verify_p2p_fair_dispatch(build, report, public)
     host = report.get("host", {})
     allowed = host.get("allowed_cpus", [])
     selected = host.get("selected_cpus", [])
