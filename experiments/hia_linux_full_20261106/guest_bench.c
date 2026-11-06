@@ -57,6 +57,8 @@ static char run_id[25], expected_release[65];
 static volatile sig_atomic_t vm_verified;
 static int bench_directory = -1, selected_stage = -1;
 static void *expected_fault_address;
+static const char *hugepage_policy = "not_selected";
+static int use_nohugepage;
 static const char *failure_reason = "unspecified";
 static int failure_errno;
 static unsigned emitted_samples, successful_samples, completed_stages;
@@ -428,7 +430,9 @@ static int stage_memory(uint64_t *checksum)
     int ok = 0;
     pid_t child = -1;
     uint64_t hash = HASH_OFFSET;
-    if (madvise(memory, length, MADV_NOHUGEPAGE)) { fail("madvise_nohugepage"); goto done; }
+    if (use_nohugepage && madvise(memory, length, MADV_NOHUGEPAGE)) {
+        fail("madvise_nohugepage"); goto done;
+    }
     for (uint32_t i = 0; i < iterations; ++i) {
         memory[(size_t)i * PAGE_BYTES] = (unsigned char)page_values[i];
         memory[(size_t)i * PAGE_BYTES + PAGE_BYTES - 1] = (unsigned char)(page_values[i] >> 8);
@@ -738,17 +742,33 @@ int main(void)
     if (wants_stage(3) && !loopback_up()) {
         emit_error(failure_reason, failure_errno); emit_summary(0, 1); power_off();
     }
-    if (wants_stage(1))
+    if (wants_stage(1)) {
+        struct stat hugepage_info;
+        if (stat("/sys/kernel/mm/transparent_hugepage", &hugepage_info) == 0) {
+            if (!S_ISDIR(hugepage_info.st_mode)) {
+                emit_error("invalid_hugepage_interface", EPROTO); emit_summary(0, 1); power_off();
+            }
+            hugepage_policy = "madvise_nohugepage";
+            use_nohugepage = 1;
+        } else if (errno == ENOENT) {
+            /* Collector also requires CONFIG_TRANSPARENT_HUGEPAGE != y.
+             * This is an explicit no-THP configuration path, not a failed
+             * madvise operation silently accepted as success. */
+            hugepage_policy = "kernel_not_exposed";
+        } else {
+            emit_error("hugepage_interface_stat", errno); emit_summary(0, 1); power_off();
+        }
         for (uint32_t i = 0; i < iterations; ++i)
             page_values[i] = (uint16_t)request_value(UINT64_C(0x504147455f544147), i);
+    }
     printf(PREFIX "{\"event\":\"begin\",\"protocol\":\"hepta.hia.linux.system-benchmark.v1\","
            "\"run_id\":\"%s\",\"pid\":1,\"seed\":%" PRIu32 ",\"iterations\":%" PRIu32
            ",\"release\":\"%s\",\"machine\":\"%s\",\"clock\":\"CLOCK_MONOTONIC_RAW\","
-           "\"cpu_affinity\":[0],\"online_cpus\":%ld,\"page_bytes\":%u,\"file_bytes\":%u,"
+           "\"cpu_affinity\":[0],\"online_cpus\":%ld,\"page_bytes\":%u,\"file_bytes\":%u,\"hugepage_policy\":\"%s\","
            "\"deadline_seconds\":%u,\"selection\":\"%s\",\"stage_count\":%u,\"defined_stage_count\":4,\"warmups_per_stage\":%u,"
            "\"measured_per_stage\":%u,\"expected_samples\":%u,\"dmi_vendor\":",
            run_id, seed, iterations, identity.release, identity.machine, sysconf(_SC_NPROCESSORS_ONLN),
-           PAGE_BYTES, FILE_BYTES, DEADLINE_SECONDS, selection_name(), selected_stage_count(), WARMUPS, MEASURED,
+           PAGE_BYTES, FILE_BYTES, hugepage_policy, DEADLINE_SECONDS, selection_name(), selected_stage_count(), WARMUPS, MEASURED,
            expected_sample_count());
     json_string(vendor); fputs(",\"dmi_product\":", stdout); json_string(product); fputs("}\n", stdout);
     for (unsigned stage = 0; stage < STAGES; ++stage) {

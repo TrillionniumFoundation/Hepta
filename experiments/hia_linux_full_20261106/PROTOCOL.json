@@ -27,7 +27,12 @@
     "workload_deadline_seconds": 180,
     "outer_qemu_timeout_seconds": 240,
     "host_execution_allowed": false,
-    "production_activation": false
+    "production_activation": false,
+    "memory_hugepage_policies": {
+      "not_selected": "memory phase is not selected",
+      "madvise_nohugepage": "THP config enabled and interface present; every mapping must admit MADV_NOHUGEPAGE",
+      "kernel_not_exposed": "THP interface absent, with exact config independently checked by collector to have CONFIG_TRANSPARENT_HUGEPAGE != y"
+    }
   },
   "parameters": {
     "hia_bench": {
@@ -123,7 +128,7 @@
       "work": {
         "mapping_bytes": "4096 * iterations",
         "page_bytes": 4096,
-        "madvise": "MADV_NOHUGEPAGE",
+        "madvise": "Require MADV_NOHUGEPAGE when THP interface exists. For CONFIG_TRANSPARENT_HUGEPAGE != y plus absent sysfs interface, explicitly declare kernel_not_exposed and do not issue an unsupported madvise.",
         "mprotect_transitions": [
           "READ|WRITE -> READ",
           "READ -> READ|WRITE"
@@ -280,7 +285,8 @@
         "measured_per_stage",
         "expected_samples",
         "dmi_vendor",
-        "dmi_product"
+        "dmi_product",
+        "hugepage_policy"
       ],
       "protocol": "hepta.hia.linux.system-benchmark.v1"
     },
@@ -349,7 +355,8 @@
       "real terminal QEMU exit 0, no timeout/cancellation, complete durable stdout/stderr and drained owned process group",
       "one matching begin, every required ordered sample, one matching terminal PASS summary, no error record or extra benchmark record",
       "all checksums independently recomputed; every correctness true",
-      "kernel power-down observed after summary; a guest PASS alone does not prove shutdown"
+      "kernel power-down observed after summary; a guest PASS alone does not prove shutdown",
+      "memory hugepage_policy agrees with the exact resolved CONFIG_TRANSPARENT_HUGEPAGE setting, or is not_selected for a non-memory single phase"
     ],
     "static_checks_are_not_execution": true,
     "smoke_is_not_performance_comparison": true

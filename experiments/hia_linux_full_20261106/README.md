@@ -19,9 +19,11 @@ Omitting `hia_phase`, or selecting `all`, executes all four phases in the order 
 | Phase | Deterministic operation unit | Work and correctness |
 |---|---|---|
 | `syscall_process_pipe` | N pipe request/response cycles | Explicit getpid/gettid calls, fork/wait and two-pipe ping-pong; both endpoints validate every payload. |
-| `anonymous_memory` | N initialized and verified pages | Fresh anonymous mapping, `MADV_NOHUGEPAGE`, page touches, read-only protection, an expected access fault, restored writes and unmap. |
+| `anonymous_memory` | N initialized and verified pages | Fresh anonymous mapping, explicit THP policy, page touches, read-only protection, an expected access fault, restored writes and unmap. |
 | `tmpfs_files` | N file lifecycles | Exclusive creation, full 4096-byte write/read comparison, EOF and size checks, close, unlink and missing-path confirmation. |
 | `unix_tcp` | 2N socket request/response cycles | N AF_UNIX exchanges and N TCP loopback exchanges; both TCP endpoints use TCP_NODELAY and every payload is checked. |
+
+The memory phase declares `hugepage_policy`. If the kernel exposes THP, every mapping must accept `MADV_NOHUGEPAGE`. If THP is absent, the guest declares `kernel_not_exposed`, and the collector independently requires `CONFIG_TRANSPARENT_HUGEPAGE != y` in the exact resolved configuration. An unsupported advice syscall is never silently accepted. Non-memory single-phase runs declare `not_selected`.
 
 The protection-fault child installs an SA_SIGINFO handler. It must receive SIGSEGV/SEGV_ACCERR at the exact protected address and exit through that handler; the parent verifies and reaps that exit. This avoids unhandled-fault kernel logging and printk rate-limit changes between repeated samples.
 
@@ -57,3 +59,15 @@ Static compilation/source review and actual guest execution are distinct evidenc
 For a controller, freeze the chosen image, current phase, seed and all allowed prior observations before boot. Set `hia_phase=<phase_id>` to collect only the selected phase. Do not expose later heldout outcomes to the decision process. Calibration and heldout traces must retain separate labels and immutable image/config/guest identities.
 
 Within-boot repetitions share one system session. Across-image comparisons require the same frozen protocol and guest binary plus an explicit independent-boot schedule and environment controls. TCG and hardware/KVM results belong to different measurement environments.
+
+## Reusable collector
+
+`tools/hia_linux_system_benchmark.py` publishes `expected_checksums()`, `parse_serial()`, `qemu_argv()` and `run_guest()`. The CLI mirrors `run_guest` keyword names with hyphens. It requires predeclared kernel/config SHA256 values, the actual static guest build receipt, the actual source commit, explicit QEMU/data/module/BIOS paths, and a new output directory.
+
+`--profile tcg` uses `tcg,thread=multi` with `qemu64,-popcnt`; `--profile kvm` uses `kvm` with `qemu64,-popcnt,-svm`. Both profiles keep the same machine, memory, guest CPU count and guest affinity. Each profile must complete its own real collector qualification. Results from different profiles must not be pooled or inherit one another's admission.
+
+Optional `--host-cpus 2,4` enforces a nonempty subset of the launcher's actual allowed CPU set through an explicit taskset prefix. The result records the allowed/requested/inherited masks, taskset identity, complete execution argv and bare QEMU argv. The collector does not claim live per-vCPU thread migration sampling. Without this option, QEMU inherits and records the launcher's current affinity.
+
+Before starting QEMU, `PREEXECUTION.json` freezes image/config/guest/initramfs/collector/protocol/QEMU/dependency hashes, selection, seed, iteration budget, profile, argv and environment. `TRACE.json` retains raw parsed records, all samples and admitted measured samples. `RESULT.json` binds those artifacts to the real process-group receipt and unchanged input identities.
+
+`parse_serial` requires the predeclared argv, actual command receipt, raw UTF-8-decoded stdout/stderr, exact config text and run controls. Use `read_bytes().decode("utf-8")`, preserving CRLF: edited, excerpted, or newline-rewritten logs fail the recorded raw hash binding. Duplicate JSON keys, non-finite values, incorrect types, missing samples, forged checksums, incomplete groups, and missing powerdown are rejected. Synthetic parser counterexamples in `tests/test_hia_linux_system_benchmark.py` are separate from real guest observations.
