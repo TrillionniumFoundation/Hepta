@@ -1,0 +1,114 @@
+{
+  "schema": "hepta.hia.kernel-ordinary-control.budget-qualification.v1",
+  "status": "PASS",
+  "synthetic_arithmetic_fixtures": true,
+  "kernel_performance_observations": false,
+  "resource_unit": "microseconds",
+  "model_ns": {
+    "original": [
+      1000503,
+      2000251,
+      3000127,
+      4000759
+    ],
+    "fast": [
+      1400705,
+      2600323,
+      3900173,
+      5200967
+    ],
+    "small": [
+      600301,
+      1400177,
+      2100089,
+      2800531
+    ]
+  },
+  "model_q32_microseconds": {
+    "original": [
+      4297127664550,
+      8591012628791,
+      12885447348847,
+      17183129064178
+    ],
+    "fast": [
+      6015982166344,
+      11168302244037,
+      16751115483742,
+      22337983172575
+    ],
+    "small": [
+      2578273162756,
+      6013714423611,
+      9019813573689,
+      12028189056434
+    ]
+  },
+  "baseline_budget_q32": 42956716706366,
+  "ordinary_binary": {
+    "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/kernel-ordinary-dev-r1/native-build-r1/target/release/hia-kernel-ordinary-control",
+    "bytes": 918696,
+    "sha256": "e37d8f0c3bbf71d6ad90956748fc645a82f9eb426b738a50eda132d0a2fdf0d4"
+  },
+  "native_binary": {
+    "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/kernel-ndu-dev-r1/native-build-r1/target/release/hia-ndu-bridge",
+    "bytes": 1159632,
+    "sha256": "9d9abcda41b6a975592d16c690d5b64025259938a50c56dec83299ac1d455c07"
+  },
+  "frozen_test_harness": {
+    "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/kernel-ordinary-dev-r1/tests/test_hia_kernel_ordinary_control.py",
+    "bytes": 22186,
+    "sha256": "622ae42ffbab4c005d9a6331cc89ff709e5f127fd1eb7b77d14033e7325a85d9"
+  },
+  "cases": [
+    {
+      "name": "exact_baseline_budget",
+      "status": "PASS",
+      "resource_budget_q32": 42956716706366,
+      "baseline_path_id": "path-000",
+      "baseline_path_cost_q32": 42956716706366,
+      "baseline_path_feasible": true,
+      "feasible_count": 42,
+      "rejected_count": 40,
+      "frontier": [
+        "path-000"
+      ],
+      "selected_first_image_id": "original",
+      "ordinary_wall_ns": 12266839,
+      "native_wall_ns": 16963179
+    },
+    {
+      "name": "one_raw_unit_below_baseline",
+      "status": "PASS",
+      "resource_budget_q32": 42956716706365,
+      "baseline_path_id": "path-000",
+      "baseline_path_cost_q32": 42956716706366,
+      "baseline_path_feasible": false,
+      "feasible_count": 41,
+      "rejected_count": 41,
+      "frontier": [
+        "path-038"
+      ],
+      "selected_first_image_id": "fast",
+      "ordinary_wall_ns": 13850120,
+      "native_wall_ns": 21420982
+    },
+    {
+      "name": "fixed_preference_budget",
+      "status": "PASS",
+      "resource_budget_q32": 42956716706366,
+      "baseline_path_id": "path-000",
+      "baseline_path_cost_q32": 42956716706366,
+      "baseline_path_feasible": true,
+      "feasible_count": 42,
+      "rejected_count": 40,
+      "frontier": [
+        "path-000"
+      ],
+      "selected_first_image_id": "original",
+      "ordinary_wall_ns": 12329777,
+      "native_wall_ns": 16963569
+    }
+  ],
+  "qualification_wall_ns": 183133187
+}
