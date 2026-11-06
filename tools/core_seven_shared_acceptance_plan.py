@@ -104,7 +104,6 @@ LINUX_ADDITIONS = (
     'hepta/hia_linux_kernel.py',
     'hepta/hia_machine_elf.py',
     'hepta/hia_machine_x64.py',
-    'hepta/hia_opcodes.py',
     'hepta/hia_program_native.py',
 )
 METADATA_RESERVE = 224589
@@ -198,7 +197,7 @@ SUPPORT_IDENTITY_PATHS = legacy.SUPPORT_IDENTITY_PATHS
 def source_paths():
     legacy.source_paths()  # retain the exact earlier source identity closure
     paths = SOURCE_IDENTITY_PATHS
-    require(len(paths) == len(set(paths)) == 318 and commitment(paths) == '733bec217331126d15bfc7428c2173b22f7180c4be2b215a2c10d57d246254cf',
+    require(len(paths) == len(set(paths)) == 317 and commitment(paths) == '0e7c51be1b8ef08d1a7aaad7faaf19e20658f5549d17f6fefd38104828f79ad3',
             'reviewed exact source identity closure')
     # pipeline.compiler_hash reads every actual top-level hepta/*.py byte,
     # including modules that are not imported by this selected proof profile.
