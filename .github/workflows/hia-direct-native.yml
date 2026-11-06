@@ -1,0 +1,59 @@
+name: HIA direct x86-64 machine backend
+
+on:
+  push:
+    branches: [feat/hia-direct-native-20261106]
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'tests/**'
+      - 'tools/**'
+      - 'examples/hia_program/**'
+      - 'examples/hia_recursive_chain/**'
+      - '.github/workflows/hia-direct-native.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  direct-native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      HEPTA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEPTA_SOURCE_SHA }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify exact source and native tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          command -v cc
+          command -v ld
+          command -v readelf
+          command -v objdump
+          mkdir "$RUNNER_TEMP/hia-direct-native"
+      - name: Run complete direct-machine and Core qualification without skips
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          python -B tools/qualify_hia_direct_native.py \
+            --output "$RUNNER_TEMP/hia-direct-native/result.json" \
+            2>&1 | tee "$RUNNER_TEMP/hia-direct-native/tests.log"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hia-direct-native-${{ env.HEPTA_SOURCE_SHA }}
+          path: ${{ runner.temp }}/hia-direct-native/
+          if-no-files-found: error
+          retention-days: 30
