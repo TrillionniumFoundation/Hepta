@@ -44,10 +44,49 @@ jobs:
           sha256sum experiments/openvpn_hia_20261105/target_host/verify_p2p_fair_dispatch_build.py
           python3 -B experiments/openvpn_hia_20261105/target_host/test_p2p_fair_dispatch_patch.py -v
       - name: Build official C, HIA and DCO-enabled OpenVPN from the patched source copy
+        env:
+          HEPTA_EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
           bash experiments/openvpn_hia_20261105/target_host/build.sh \
             --task-root "$RUNNER_TEMP/ovpn-hia-fair-dispatch"
+      - name: Diagnose privacy matches without printing matched bytes
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import hashlib, importlib.util, json, pathlib
+          root = pathlib.Path("$RUNNER_TEMP") / "ovpn-hia-fair-dispatch" / "public"
+          spec = importlib.util.spec_from_file_location(
+              "publication_guard",
+              "experiments/openvpn_hia_20261105/target_host/publication_guard.py")
+          guard = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(guard)
+          path = root / "build.json"
+          if path.is_file():
+              document = json.loads(path.read_text())
+              def walk(value, field="$"):
+                  if isinstance(value, dict):
+                      for key, item in value.items():
+                          walk(item, field + "." + str(key))
+                  elif isinstance(value, list):
+                      for index, item in enumerate(value):
+                          walk(item, field + "[" + str(index) + "]")
+                  elif isinstance(value, str):
+                      raw = value.encode()
+                      match = guard.SECRETS.search(raw)
+                      if match:
+                          print(json.dumps({"field": field, "matched_pattern": match.group(0)[:0].decode(),
+                                            "value_sha256": hashlib.sha256(raw).hexdigest(),
+                                            "value_bytes": len(raw)}))
+              walk(document)
+              raw = path.read_bytes()
+              match = guard.SECRETS.search(raw)
+              if match:
+                  print(json.dumps({"file": "build.json", "raw_match": True,
+                                    "offset": match.start(), "matched_length": len(match.group(0))}))
+          else:
+              print("build.json not present")
+          PY
       - name: Independently verify the patch-bound full application build
         if: always()
         env:
