@@ -88,15 +88,31 @@ class GuestEvidence(unittest.TestCase):
                 self.assertEqual(verdict['status'], 'FAIL')
                 self.assertIn('host command process group did not complete', verdict['protocol_errors'])
 
-    def test_legacy_receipt_stays_unmeasured_and_known_completed_group_is_allowed(self):
+    def test_legacy_or_partial_group_receipt_cannot_be_admitted(self):
         legacy = {'exit_code': 0, 'timed_out': False}
-        expected = baseline.parse_guest_serial(serial(), RUN_ID, 0, False)
-        self.assertTrue(baseline.command_succeeded(legacy))
-        self.assertEqual(baseline.parse_guest_serial(serial(), RUN_ID, 0, False, command_receipt=legacy), expected)
-        self.assertNotIn('process_group_cleanup', legacy)
-        completed = {**legacy, 'process_group_cleanup': {'drained': True}}
+        verdict = baseline.parse_guest_serial(serial(), RUN_ID, 0, False, command_receipt=legacy)
+        self.assertFalse(baseline.command_succeeded(legacy))
+        self.assertEqual(verdict['guest_tests']['passed'], 14)
+        self.assertEqual(verdict['status'], 'FAIL')
+        self.assertIn('host command process group did not complete', verdict['protocol_errors'])
+        partial_receipts = (
+            {'drained': True},
+            {'group': 1, 'scope': 'owned_linux_process_group', 'drained': True},
+            {'group': 1, 'scope': 'owned_linux_process_group', 'drained': True,
+             'signals': [], 'live_members_after': [{'pid': 99, 'state': 'S'}], 'errors': []},
+            {'group': 1, 'scope': 'owned_linux_process_group', 'drained': True,
+             'signals': [], 'live_members_after': []},
+        )
+        for cleanup in partial_receipts:
+            with self.subTest(cleanup=cleanup):
+                self.assertFalse(baseline.command_succeeded(
+                    {**legacy, 'process_group_cleanup': cleanup}))
+        completed = {**legacy, 'process_group_cleanup': {
+            'group': 1, 'scope': 'owned_linux_process_group', 'drained': True,
+            'signals': [], 'live_members_after': [], 'errors': [], 'elapsed_ns': 0}}
         self.assertTrue(baseline.command_succeeded(completed))
-        self.assertEqual(baseline.parse_guest_serial(serial(), RUN_ID, 0, False, command_receipt=completed), expected)
+        self.assertEqual(baseline.parse_guest_serial(
+            serial(), RUN_ID, 0, False, command_receipt=completed)['status'], 'PASS')
 
 
 class InputsAndProcesses(unittest.TestCase):
@@ -129,6 +145,11 @@ class InputsAndProcesses(unittest.TestCase):
             record = runner.run('quit-input', [sys.executable, '-c',
                 'import sys; data=sys.stdin.buffer.read(); sys.stdout.buffer.write(data); sys.exit(0 if data==b"quit\\n" else 7)'],
                 stdin_bytes=b'quit\n')
+            self.assertTrue(baseline.command_succeeded(record))
+            self.assertEqual(record['process_group_cleanup']['scope'], 'owned_linux_process_group')
+            self.assertIs(type(record['process_group_cleanup']['group']), int)
+            self.assertTrue(record['process_group_cleanup']['drained'])
+            self.assertEqual(record['process_group_cleanup']['live_members_after'], [])
             self.assertEqual(Path(record['stdin']['path']).read_bytes(), b'quit\n')
             self.assertEqual(record['stdin']['sha256'], hashlib.sha256(b'quit\n').hexdigest())
             self.assertEqual(Path(record['stdout']['path']).read_bytes(), b'quit\n')

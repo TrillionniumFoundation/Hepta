@@ -30,13 +30,20 @@ class NativePilotEvidence(unittest.TestCase):
             pilot.validate_observation(missing, expected, 2)
 
     def test_failed_process_lifecycle_cannot_become_a_success_or_hardware_skip(self):
-        normal = {'timed_out': False}
+        normal = {'timed_out': False, 'process_group_cleanup': {
+            'group': 1, 'scope': 'owned_linux_process_group', 'drained': True,
+            'signals': [], 'live_members_after': [], 'errors': [], 'elapsed_ns': 0}}
         self.assertTrue(pilot.clean_command(normal))
         for mutation in ({'timed_out': True}, {'timed_out': 0},
                          {'interruption': {'type': 'KeyboardInterrupt'}},
                          {'incomplete_process_group': True}, {'incomplete_process_group': 0},
                          {'process_group_cleanup': {'drained': False}},
                          {'process_group_cleanup': {'drained': 1}},
+                         {'process_group_cleanup': {'drained': True}},
+                         {'process_group_cleanup': {'group': 1, 'scope': 'owned_linux_process_group',
+                                                    'drained': True, 'signals': [],
+                                                    'live_members_after': [{'pid': 99, 'state': 'S'}],
+                                                    'errors': []}},
                          {'process_group_cleanup': None}):
             with self.subTest(mutation=mutation):
                 self.assertFalse(pilot.clean_command({**normal, **mutation}))

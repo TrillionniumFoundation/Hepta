@@ -98,6 +98,8 @@ class KernelContractTests(unittest.TestCase):
     def command(self, name, argv, stdout=b"", exit_code=0):
         return {"name": name, "argv": list(map(str, argv)), "cwd": str(self.root),
                 "exit_code": exit_code, "timed_out": False, "elapsed_ns": 10,
+                "process_group_cleanup": {"group": 1, "scope": "owned_linux_process_group",
+                    "drained": True, "signals": [], "live_members_after": [], "errors": [], "elapsed_ns": 0},
                 "stdout": self.write("commands/" + name + ".stdout", stdout),
                 "stderr": self.write("commands/" + name + ".stderr", b"")}
 
