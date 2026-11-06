@@ -268,6 +268,14 @@ class InputsAndProcesses(unittest.TestCase):
             record = runner.run('missing', ['/this-executable-does-not-exist'], check=False)
             self.assertEqual(record['exit_code'], 127)
             self.assertIn('spawn_error', record)
+            tree = record['process_tree_cleanup']
+            self.assertIsNone(tree['target_pid'])
+            self.assertTrue(tree['incomplete_process_tree'])
+            self.assertFalse(tree['drained'])
+            self.assertEqual(tree['errors'][0]['type'], 'FileNotFoundError')
+            self.assertEqual(record['spawn_error'], tree['errors'][0]['message'])
+            self.assertTrue(record['incomplete_process_group'])
+            self.assertFalse(baseline.command_succeeded(record))
             self.assertTrue(list((Path(directory)/'commands').glob('*-missing.json')))
 
 

@@ -391,6 +391,17 @@ class CommandRunner:
                 require(type(tree_receipt) is dict, 'process supervisor receipt must be an object')
                 record['process_tree_cleanup'] = tree_receipt
                 record['process_tree_cleanup_receipt'] = identity(result_path)
+                # A target-spawn failure is distinct from a missing cleanup receipt.
+                # Preserve the original failed-command diagnostic while keeping the
+                # incomplete tree receipt fail-closed for admission.
+                if (tree_receipt.get('target_pid') is None
+                        and type(tree_receipt.get('errors')) is list):
+                    spawn_errors = [item for item in tree_receipt['errors']
+                                    if type(item) is dict
+                                    and item.get('phase') == 'supervisor'
+                                    and item.get('type') == 'FileNotFoundError']
+                    if len(spawn_errors) == 1 and type(spawn_errors[0].get('message')) is str:
+                        record['spawn_error'] = spawn_errors[0]['message']
                 if type(tree_receipt.get('target_exit_code')) is int:
                     code = tree_receipt['target_exit_code']
                 if tree_receipt.get('incomplete_process_tree') is not False or tree_receipt.get('drained') is not True:
