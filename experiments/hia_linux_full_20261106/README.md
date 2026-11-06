@@ -1,3 +1,13 @@
+> **Completed full-kernel experiment — [中文实测报告](REPORT.zh-CN.md).**
+>
+> All 2,958 configured target C units and 71 assembly units were translated through the explicit HIA systems dialect; full original/O3/Os builds and target-frontend-free replay passed. Twelve calibration and 160 heldout boots passed without replacement or exclusion.
+>
+> Dynamic NDU and the independent Rust same-objective control selected the same image in all 20 decisions. No NDU-specific selection gain was established; measured four-phase net delivery was 18.16% above stock under the registered cold-boot accounting. Read the report for descriptive intervals, action equivalence, controller overhead and scope.
+>
+> [Raw evaluation](evidence/comparison/EVALUATION.json) · [Observations](evidence/comparison/HELDOUT_OBSERVATIONS.json) · [Independent review](evidence/review/REVIEW.md) · [Complete HIA/artifact preservation](evidence/archive/PRESERVATION_MANIFEST.json)
+>
+> The measured comparison source was frozen at `0f1d1b53b177b902453ca12c132a9cd45a6948ca`. The guest execution contract below is retained.
+
 # Finite Linux system benchmark guest
 
 `guest_bench.c` is a static PID1 collector for a disposable x86_64 QEMU/Bochs guest. It emits real measurements for four fixed operating-system workloads. It does not install a host kernel, run as a host benchmark, modify the existing 14-check `guest_init.c`, or claim complete Linux validation.

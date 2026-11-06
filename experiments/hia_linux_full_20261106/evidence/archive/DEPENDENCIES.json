@@ -1,0 +1,86 @@
+{
+  "created_unix": 1793992123.832632,
+  "external_durable_roots": [
+    {
+      "apt_index_url": "https://apt.llvm.org/bookworm/dists/llvm-toolchain-bookworm-20/main/binary-amd64/Packages.gz",
+      "compiler_bin": "/data/hepta-hia-linux-followthrough-20261106-bedaafad8a2f/llvm20/sysroot/usr/lib/llvm-20/bin",
+      "duplicated": false,
+      "package_version": "1:20.1.8~++20250708063551+0c9f909b7976-1~exp1~20250708183702.136",
+      "path": "/data/hepta-hia-linux-followthrough-20261106-bedaafad8a2f/llvm20",
+      "reason": "exact LLVM20.1.8 runtime sysroot and cached published apt package inputs; already on persistent /data",
+      "recorded_index_sha256": "52b4648112f27a77794badfa8d02f0dfc54f0b876dfe80316ab3e97bb3a18b08",
+      "verification": "published-index-sha256-checked-no-local-signature-check"
+    },
+    {
+      "cargo_version": "cargo 1.95.0 (f2d3ce0bd 2026-03-21)",
+      "duplicated": false,
+      "path": "/home/qian-qi/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu",
+      "reason": "exact installed Cargo/Rust toolchain with support libraries and standard library; already outside scratch",
+      "recorded_cargo_sha256": "841072d1d92f9e841d9ba5b0814182a0adf064acf4527cd120967b7bc49dcb66",
+      "recorded_rustc_sha256": "bff349e72704ff70bc08a234a3847338e797065bbedde5e556808bc87b7bf7c6",
+      "rustc_version": "rustc 1.95.0 (59807616e 2026-04-14)"
+    }
+  ],
+  "git_alternates_note": "Explicit external Git object references discovered while hashing are preserved in snapshot/GIT_ALTERNATES.json. Actual frozen source bytes remain archived.",
+  "offline_self_contained": false,
+  "root_preservation": "entire experimental tree, all failed and successful attempts",
+  "schema": "hepta.hia.linux.restore-dependencies.v1",
+  "source_build_receipts": [
+    {
+      "bytes": 18488,
+      "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/STOCK_HANDOFF.json",
+      "sha256": "833f407161d3b3b83a0d624270f63f014b6838423663b87bce77abd9a837f119"
+    },
+    {
+      "bytes": 35186,
+      "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/BENCHMARK_HANDOFF.json",
+      "sha256": "fae84880886671dc7d66f54e4bf27be0c56dfd9f23589eb9187598a8621f12c3"
+    },
+    {
+      "bytes": 31196,
+      "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/kernel-ndu-dev-r1/native-build-r1/build-receipt.json",
+      "sha256": "cb69e14c794a56944c356e391545ffe5308922271c4d7854957b269fb997b993"
+    },
+    {
+      "bytes": 9943,
+      "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/kernel-ordinary-dev-r1/native-build-r1/build-receipt.json",
+      "sha256": "28635efc86163f2412d0c4cd7fc2edb1646a7534308e8eb0e96aea6ede10ca48"
+    },
+    {
+      "bytes": 12464,
+      "path": "/tmp/hepta-hia-linux-full-20261106-bedaafad8a2f-r1/llvm20-dev/PROVENANCE.json",
+      "sha256": "5626851a5e9d5104d2cc99df364ff673ef9cb74a2b702c321bf0d6034aab5fc0"
+    }
+  ],
+  "system_package_query": {
+    "argv": [
+      "dpkg-query",
+      "-W",
+      "-f=${binary:Package}\\t${Version}\\t${Architecture}\\n",
+      "qemu-system-x86",
+      "qemu-system-common",
+      "qemu-system-data",
+      "seabios",
+      "ipxe-qemu",
+      "libc6",
+      "libc6-dev",
+      "binutils",
+      "make",
+      "flex",
+      "bison",
+      "libelf1",
+      "libelf-dev",
+      "libssl3",
+      "libssl-dev",
+      "pkg-config",
+      "python3",
+      "zstd",
+      "tar",
+      "gzip"
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "stdout": "binutils\t2.42-4ubuntu2.10\tamd64\nbison\t2:3.8.2+dfsg-1ubuntu0.24.04.1\tamd64\nflex\t2.6.4-8.2build1\tamd64\ngzip\t1.12-1ubuntu3.2\tamd64\nipxe-qemu\t1.21.1+git-20220113.fbbdc3926-0ubuntu2\tall\nlibc6:amd64\t2.39-0ubuntu8.9\tamd64\nlibc6:i386\t2.39-0ubuntu8.9\ti386\nlibc6-dev:amd64\t2.39-0ubuntu8.9\tamd64\nlibelf-dev:amd64\t0.190-1.1ubuntu0.1\tamd64\nlibelf1\t\t\nlibssl-dev:amd64\t3.0.13-0ubuntu3.16\tamd64\nlibssl3\t\t\nmake\t4.3-4.1build2\tamd64\npkg-config:amd64\t1.8.1-2build1\tamd64\npython3\t3.12.3-0ubuntu2.1\tamd64\nqemu-system-common\t1:8.2.2+ds-0ubuntu1.18\tamd64\nqemu-system-data\t1:8.2.2+ds-0ubuntu1.18\tall\nqemu-system-x86\t1:8.2.2+ds-0ubuntu1.18\tamd64\nseabios\t1.16.3-2\tall\ntar\t1.35+dfsg-3ubuntu0.4\tamd64\nzstd\t1.5.5+dfsg2-2build1.1\tamd64\n"
+  },
+  "system_runtime_note": "QEMU, its firmware and runtime shared libraries, GNU build tools and libc remain external installed dependencies; exact versions observed above and original execution identities in archived receipts. No host-wide dependency crawl performed. Cargo source/cache requirements follow archived native build receipts."
+}
