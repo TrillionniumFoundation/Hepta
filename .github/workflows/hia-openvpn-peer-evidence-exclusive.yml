@@ -14,6 +14,11 @@ on:
       - experiments/openvpn_hia_20261105/target_host/test_run_matrix_rekey.py
       - experiments/openvpn_hia_20261105/target_host/test_rekey_attempt_grouping.py
       - experiments/openvpn_hia_20261105/target_host/test_profile_capture.py
+      - experiments/openvpn_hia_20261105/target_host/test_matrix_evidence.py
+      - experiments/openvpn_hia_20261105/target_host/verify_result.py
+      - experiments/openvpn_hia_20261105/target_host/test_matrix_budget.py
+      - experiments/openvpn_hia_20261105/target_host/plan.json
+      - .github/workflows/hia-openvpn-target-host.yml
   workflow_dispatch:
 
 permissions:
@@ -44,9 +49,16 @@ jobs:
           sha256sum experiments/openvpn_hia_20261105/target_host/test_run_matrix_rekey.py
           sha256sum experiments/openvpn_hia_20261105/target_host/test_rekey_attempt_grouping.py
           sha256sum experiments/openvpn_hia_20261105/target_host/test_profile_capture.py
+          sha256sum experiments/openvpn_hia_20261105/target_host/test_matrix_evidence.py
+          sha256sum experiments/openvpn_hia_20261105/target_host/verify_result.py
+          sha256sum experiments/openvpn_hia_20261105/target_host/test_matrix_budget.py
+          sha256sum experiments/openvpn_hia_20261105/target_host/plan.json
+          sha256sum .github/workflows/hia-openvpn-target-host.yml
           python3 -B experiments/openvpn_hia_20261105/target_host/test_dco_peer_stats.py -v
           python3 -B experiments/openvpn_hia_20261105/target_host/test_dco_peer_stats_wire.py -v
           python3 -B experiments/openvpn_hia_20261105/target_host/test_run_matrix_rekey.py -v
           python3 -B experiments/openvpn_hia_20261105/target_host/test_rekey_attempt_grouping.py -v
           python3 -B experiments/openvpn_hia_20261105/target_host/test_profile_capture.py -v
+          python3 -B experiments/openvpn_hia_20261105/target_host/test_matrix_evidence.py -v
+          python3 -B experiments/openvpn_hia_20261105/target_host/test_matrix_budget.py -v
           test -z "$(git status --porcelain)"
