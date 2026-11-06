@@ -118,8 +118,14 @@ def verify_codec_receipt(path, codec):
             debug.get("fixture_count", 0) >= 1,
             "typed debug qualification on every real -g target C unit required")
     debug_binding = debug.get("report")
-    require(isinstance(debug_binding, dict) and file_matches(debug_binding),
+    require(isinstance(debug_binding, dict), "typed debug report binding missing")
+    debug_identity = baseline.identity(debug_binding["path"])
+    require(all(debug_binding.get(key) == value for key, value in debug_identity.items()),
             "typed debug qualification report changed")
+    if "git_blob_sha" in debug_binding:
+        debug_bytes = Path(debug_binding["path"]).read_bytes()
+        require(hashlib.sha1(b"blob " + str(len(debug_bytes)).encode() + b"\0" + debug_bytes).hexdigest()
+                == debug_binding["git_blob_sha"], "typed debug report Git identity changed")
     debug_report = json.loads(Path(debug_binding["path"]).read_bytes())
     require(debug_report.get("schema") == "hepta.hia.native-codec-debug-qualification.v1" and
             debug_report.get("status") == "PASS" and
@@ -129,6 +135,23 @@ def verify_codec_receipt(path, codec):
             "typed debug qualification cannot strip flags, metadata, records or canonical IR")
     require(debug_report.get("binary", {}).get("sha256") == baseline.sha(codec),
             "typed debug qualification used another codec")
+    actual_units = debug_report.get("actual_units", [])
+    require(len(actual_units) == debug["real_kernel_units"] and
+            all(row.get("canonical_equal") is True and
+                row.get("original_captured_inputs_unchanged") is True for row in actual_units),
+            "real debug translation-unit coverage or complete equality is missing")
+    for name in ("system_module.cpp", "system_instructions.cpp", "system_wire.h",
+                 "system_debug.cpp", "system_debug_metadata.cpp"):
+        require(debug_report.get("sources", {}).get(name, {}).get("sha256") ==
+                baseline.sha(ROOT / "tools/hia_system" / name),
+                "typed debug qualification source mismatch: " + name)
+    regression = receipt.get("kernel_regression_qualification", {})
+    require(regression.get("status") == "PASS" and regression.get("real_kernel_units", 0) >= 27
+            and regression.get("rejection_checks", 0) >= 4,
+            "real-kernel use-order regression qualification required")
+    regression_binding = regression.get("report", {})
+    require(regression_binding.get("sha256") == baseline.sha(regression_binding["path"]),
+            "real-kernel regression qualification report changed")
     return receipt
 
 
