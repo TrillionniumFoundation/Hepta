@@ -1,0 +1,67 @@
+name: Package kind and versioned context diagnostics
+
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'tests/**'
+      - 'tools/**'
+      - 'docs/VERSIONED_PACKAGE_KIND.md'
+      - '.github/workflows/package-kind-context.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  schema-context:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Bind exact head and export an isolated source snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          evidence="$RUNNER_TEMP/package-kind-context-evidence"
+          snapshot="$RUNNER_TEMP/package-kind-context-source"
+          mkdir "$evidence" "$snapshot"
+          {
+            git rev-parse HEAD HEAD^{tree}
+            uname -a
+            python --version
+            git --version
+            sha256sum "$(command -v python)" "$(command -v git)"
+          } > "$evidence/identities.txt"
+          git ls-tree -r HEAD > "$evidence/source-tree.txt"
+          git archive --format=tar HEAD | tar -xf - -C "$snapshot"
+      - name: Run 14 schema and version-context methods without native execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          python -B "$RUNNER_TEMP/package-kind-context-source/tools/qualify_package_kind_context.py" \
+            2>&1 | tee "$RUNNER_TEMP/package-kind-context-evidence/scoped.log"
+      - name: Verify final checkout identity
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: package-kind-context-py313-${{ env.EXPECTED_HEAD }}
+          path: ${{ runner.temp }}/package-kind-context-evidence
+          if-no-files-found: error
