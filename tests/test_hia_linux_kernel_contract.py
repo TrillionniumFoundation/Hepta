@@ -442,6 +442,20 @@ class KernelContractTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     self.assess(baseline=changed)
 
+    def test_zero_exit_cannot_hide_observed_build_preflight_or_boot_group_failure(self):
+        self.assertTrue(self.assess()['claims']['stock_kernel_booted'])
+        for name in ('full-kbuild', 'qemu-tcg-runtime-preflight', 'boot-stock-kernel-tcg'):
+            for failure in ({'incomplete_process_group': True},
+                            {'process_group_cleanup': {'drained': False}},
+                            {'interruption': {'type': 'RequestedCancellation', 'message': 'cancelled'}}):
+                with self.subTest(command=name, failure=failure):
+                    changed = copy.deepcopy(self.baseline)
+                    record = next(row for row in changed['commands'] if row['name'] == name)
+                    record.update(failure)
+                    self.assertEqual(record['exit_code'], 0)
+                    with self.assertRaisesRegex(ValueError, 'command process group did not complete'):
+                        self.assess(baseline=changed)
+
     def test_summary_labels_without_raw_boot_receipt_and_fabricated_guest_totals_reject(self):
         for kind in ("no_boot", "omit_not_run", "zero_qemu_exit_without_timeout_check"):
             with self.subTest(kind=kind):

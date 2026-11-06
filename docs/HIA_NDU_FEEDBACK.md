@@ -132,3 +132,8 @@ a warm-process prediction; the final episode wall includes cold starts and
 cleanup. Post-execution exact-oracle regret and actual total wall are reported
 separately. A successful stopping mechanism is available to ordinary planning
 too, so savings against always-planning NDU do not establish unique NDU value.
+
+The separate opt-in [compute-resource debit profile](HIA_NDU_COMPUTE_DEBIT.md)
+adds forecast computation to future budget/deadline transitions and revalidates
+actual remaining resources before dispatch. The v1 price-only cohort and its
+bounds remain unchanged; they do not qualify this new profile or hard deadlines.

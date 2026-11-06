@@ -1,0 +1,41 @@
+{
+  "schema": "hepta.hia.ndu.compute-resource-debit.v1",
+  "status": "implemented_opt_in_correctness_profile_no_formal_campaign",
+  "resource_unit": "nanoseconds of serialized controller and workload wall time",
+  "profile": "Immutable scenario SHA-256, calibration SHA-256 and a tuple of nonnegative forecast nanoseconds indexed by remaining horizon minus one. A new campaign must freeze actual training-only calibration evidence; the hash alone does not certify its provenance.",
+  "planner": "Use the separate compute_plan.plan successor recurrence and the frozen v1 action, cost, observation, forecast, fixed-point and backend-validation primitives. Each visited decision pays its depth's compute forecast before checking workload feasibility. Successor budget and deadline subtract compute plus workload once. Current-step price/risk are determined from the incoming observation, as in the existing actual-cost environment transition.",
+  "utility": "Each service includes compute plus workload cost once. Abstention also pays the already incurred or forecast computation bill. Native candidate costs and objective identity bind the complete compute profile. No original task objective is silently reused for the changed model.",
+  "deadline": "When computation reaches or exceeds either available resource, no new service is admitted, including a nominal zero-duration service. Otherwise the registered workload forecast must fit the post-computation resource projection.",
+  "dispatch": "episode requires explicit compute_profile and the native-workload route. Immediately before the workload callback, it measures actual elapsed time since step start and revalidates the selected action against the remaining resources. The environment is not mutated by that check: env.step charges the final measured whole step exactly once. It never adds the forecast or the compute subtotal a second time.",
+  "failures": "A rejected action is recorded as not executed and its observed controller cost is retained. A workload that actually overruns remains an executed budget failure. A failing callback remains UNKNOWN with elapsed cost and no retry; a dispatch guard cannot undo effects.",
+  "historical_paths": "model.py is restored byte-for-byte to the original committed v1 blob. Default model.plan and episode calls preserve their v1 semantics. COMPUTE_PRICE_PROTOCOL.json, the original coverage/POLICY_PROTOCOL hashes and all original cohorts remain unchanged. The v1 price-only bound and independent oracle explicitly refuse this profile because their proofs and transitions do not cover it.",
+  "scope": "Finite feedback-cache research model and actual per-step debit implementation; not Linux kernel integration, physical NDU performance, a new training run or a whole-system comparison.",
+  "unqualified": [
+    "A supplied forecast is not a worst-case bound on actual compute or workload time",
+    "The sampling-to-callback gap is not an OS-enforced deadline reservation",
+    "Native calls are not preempted and effects are not rolled back",
+    "Initialization, cleanup and between-step bookkeeping remain separately recorded in episode wall, outside the per-step resource model",
+    "No independent compute-aware full-policy oracle campaign has been performed",
+    "No compute-aware replacement of the v1 priced-plan bound has been proved",
+    "No NDU-exclusive advantage, full Linux rewrite or hard-realtime qualification"
+  ],
+  "hard_realtime_guarantee": false,
+  "native_performance_qualified": false,
+  "unique_NDU_advantage_claim": false,
+  "authority": "DENY_ALL",
+  "production_activation": false,
+  "planner_entrypoint": "experiments.hia_ndu_feedback_20261106.compute_plan.plan",
+  "v1_compatibility": {
+    "model_path": "experiments/hia_ndu_feedback_20261106/model.py",
+    "model_sha256": "56b335e5a7fc205e4ad955faf3eece2a63d43c097f71d5fb4af6d84ee1081b79",
+    "model_git_blob": "82fbd412342ec8053fca7c35c8b64e37568d5316",
+    "original_source_commit": "a07c5ecae52436234af370779cc440686dbe4139",
+    "rule": "Keep the original model bytes, original coverage and policy protocol hashes, historical registrations and results unchanged. The successor recurrence and objective adapter live only in compute_plan.py. No monkeypatching or replacement of model.plan is permitted."
+  },
+  "compatibility_repair": {
+    "rejected_composition": "02e421c562ab48a96fb45ff19ff2891186d259c1",
+    "prior_compute_revision": "72a83b8e84b8f8fd81f450f33a57f8311b49c40a",
+    "observed_failure": "coverage.load_protocol rejected the edited v1 model bytes; nine extension tests errored. The successful 96-test run did not cover that frozen-model gate.",
+    "disposition": "Restore the exact original model blob and register a separate compute-aware entrypoint. Preserve both prior test outcomes. This repair requires exact-commit regression replay."
+  }
+}

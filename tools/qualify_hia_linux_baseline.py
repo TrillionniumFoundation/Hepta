@@ -185,6 +185,86 @@ def qemu_runtime_modules(env):
             'modules': [identity(path) for path in sorted(directory.glob('*.so')) if path.is_file()]}
 
 
+GROUP_TERM_GRACE_SECONDS = 5.0
+GROUP_KILL_GRACE_SECONDS = 2.0
+
+
+def live_process_group_members(group):
+    """Observe writers in our Linux session; zombies cannot keep writing logs."""
+    members = []
+    for entry in Path('/proc').iterdir():
+        if not entry.name.isdecimal():
+            continue
+        try:
+            fields = (entry / 'stat').read_text().rsplit(')', 1)[1].split()
+        except (FileNotFoundError, ProcessLookupError):
+            continue
+        if int(fields[2]) == group and fields[0] not in ('Z', 'X'):
+            require(int(fields[3]) == group, 'owned process group changed its session')
+            members.append({'pid': int(entry.name), 'state': fields[0], 'start_ticks': int(fields[19])})
+    return sorted(members, key=lambda item: item['pid'])
+
+
+def terminate_owned_process_group(process):
+    """Bound cleanup by the whole group, even after its leader has exited.
+
+    Only call for a Popen created with start_new_session=True. This does not
+    contain a descendant that deliberately escapes that session/group.
+    """
+    group = process.pid
+    require(group > 0 and group != os.getpgrp(), 'refuse to signal the caller process group')
+    receipt = {'group': group, 'scope': 'owned_linux_process_group', 'drained': False,
+               'signals': [], 'live_members_after': None, 'errors': []}
+    started = time.monotonic_ns()
+    for sig, grace in ((signal.SIGTERM, GROUP_TERM_GRACE_SECONDS),
+                       (signal.SIGKILL, GROUP_KILL_GRACE_SECONDS)):
+        try:
+            os.killpg(group, sig)
+            receipt['signals'].append(sig.name)
+        except ProcessLookupError:
+            pass
+        except OSError as error:
+            receipt['errors'].append({'phase': sig.name, 'type': type(error).__name__, 'message': str(error)})
+        deadline = time.monotonic() + grace
+        while True:
+            # Reaping the leader is distinct from observing live descendants.
+            process.poll()
+            try:
+                receipt['live_members_after'] = live_process_group_members(group)
+            except (OSError, ValueError, IndexError) as error:
+                receipt['errors'].append({'phase': 'observe', 'type': type(error).__name__, 'message': str(error)})
+                break
+            if not receipt['live_members_after'] and process.returncode is not None:
+                receipt['drained'] = True
+                break
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            time.sleep(min(0.01, remaining))
+        if receipt['drained']:
+            break
+    receipt['elapsed_ns'] = time.monotonic_ns() - started
+    return receipt
+
+
+def process_group_outcome_admissible(record):
+    """Reject observed lifecycle failures without inventing old drain evidence."""
+    if not isinstance(record, dict) or 'interruption' in record:
+        return False
+    if record.get('incomplete_process_group', False) is not False:
+        return False
+    if 'process_group_cleanup' not in record:
+        return True  # Legacy receipt: group drain was not observed by this schema.
+    cleanup = record['process_group_cleanup']
+    return isinstance(cleanup, dict) and cleanup.get('drained') is True
+
+
+def command_succeeded(record):
+    return (isinstance(record, dict) and type(record.get('exit_code')) is int
+            and record['exit_code'] == 0 and record.get('timed_out') is False
+            and process_group_outcome_admissible(record))
+
+
 class CommandRunner:
     def __init__(self, output, env):
         self.output, self.env, self.records = Path(output), env, []
@@ -206,6 +286,7 @@ class CommandRunner:
         print(json.dumps({'stage': name, 'status': 'RUNNING', 'started_at_utc': record['started_at_utc']}), flush=True)
         before = resource.getrusage(resource.RUSAGE_CHILDREN)
         start = time.monotonic_ns()
+        interruption = None
         with ExitStack() as streams:
             stdout = streams.enter_context(open(str(stem) + '.stdout', 'xb'))
             stderr = streams.enter_context(open(str(stem) + '.stderr', 'xb'))
@@ -219,23 +300,23 @@ class CommandRunner:
             else:
                 try:
                     code = process.wait(timeout=timeout)
+                    remaining = live_process_group_members(process.pid)
+                    if remaining:
+                        # A zero exit from the leader cannot seal streams that
+                        # its descendants can still change. Preserve that exit
+                        # code, stop the group, and reject the command outcome.
+                        record['incomplete_process_group'] = True
+                        record['live_members_after_leader_exit'] = remaining
+                        record['process_group_cleanup'] = terminate_owned_process_group(process)
                 except subprocess.TimeoutExpired:
                     record['timed_out'] = True
-                    os.killpg(process.pid, signal.SIGTERM)
-                    try:
-                        code = process.wait(timeout=5)
-                    except subprocess.TimeoutExpired:
-                        os.killpg(process.pid, signal.SIGKILL)
-                        code = process.wait()
-                except BaseException:
-                    if process.poll() is None:
-                        os.killpg(process.pid, signal.SIGTERM)
-                        try:
-                            process.wait(timeout=5)
-                        except subprocess.TimeoutExpired:
-                            os.killpg(process.pid, signal.SIGKILL)
-                            process.wait()
-                    raise
+                    record['process_group_cleanup'] = terminate_owned_process_group(process)
+                    code = process.returncode
+                except BaseException as error:
+                    interruption = error
+                    record['interruption'] = {'type': type(error).__name__, 'message': str(error)}
+                    record['process_group_cleanup'] = terminate_owned_process_group(process)
+                    code = process.returncode
         after = resource.getrusage(resource.RUSAGE_CHILDREN)
         record.update(exit_code=code, elapsed_ns=time.monotonic_ns() - start, completed_at_utc=utc(),
                       child_user_seconds=after.ru_utime-before.ru_utime,
@@ -243,9 +324,12 @@ class CommandRunner:
                       stdout=identity(str(stem) + '.stdout'), stderr=identity(str(stem) + '.stderr'))
         write_json(str(stem) + '.json', record)
         self.records.append(record)
-        print(json.dumps({'stage': name, 'status': 'PASS' if code == 0 and not record['timed_out'] else 'FAIL',
+        completed = command_succeeded(record)
+        print(json.dumps({'stage': name, 'status': 'PASS' if completed else 'FAIL',
                           'exit_code': code, 'elapsed_ns': record['elapsed_ns']}), flush=True)
-        require(not check or (code == 0 and not record['timed_out']),
+        if interruption is not None:
+            raise interruption
+        require(not check or completed,
                 'command failed: ' + name + '; inspect ' + str(stem) + '.json')
         return record
 
@@ -287,7 +371,7 @@ def create_initramfs(init, path):
         stream.write(gzip.compress(newc(entries), mtime=0))
 
 
-def parse_guest_serial(text, run_id, exit_code, timed_out):
+def parse_guest_serial(text, run_id, exit_code, timed_out, *, command_receipt=None):
     rows = {key: {'id': key, 'status': 'NOT_RUN'} for key in CHECK_IDS}
     events, errors = [], []
     state = 'not_started'
@@ -322,6 +406,8 @@ def parse_guest_serial(text, run_id, exit_code, timed_out):
             events.append(event)
         except (ValueError, TypeError) as error:
             errors.append(str(error))
+    if command_receipt is not None and not process_group_outcome_admissible(command_receipt):
+        errors.append('host command process group did not complete')
     totals = {'total': len(CHECK_IDS), 'passed': sum(r['status'] == 'PASS' for r in rows.values()),
               'failed': sum(r['status'] == 'FAIL' for r in rows.values()), 'skipped': 0,
               'not_run': sum(r['status'] == 'NOT_RUN' for r in rows.values())}
@@ -462,7 +548,7 @@ def main(argv=None):
         preflight = runner.run('qemu-tcg-runtime-preflight',
                                qemu_machine_command(args.qemu, args.qemu_data, args.bios, paused=True),
                                timeout=15, check=False, stdin_bytes=b'quit\n')
-        preflight_ok = preflight['exit_code'] == 0 and not preflight['timed_out']
+        preflight_ok = command_succeeded(preflight)
         result['qemu']['runtime_preflight'] = {
             'status': 'PASS' if preflight_ok else 'FAIL',
             'scope': 'paused_tcg_startup_no_kernel_execution', 'command_receipt': preflight}
@@ -537,7 +623,7 @@ def main(argv=None):
                                              if key in result['qemu']}, 'QEMU runtime modules changed before boot')
         rec = runner.run('boot-stock-kernel-tcg', command, timeout=args.boot_timeout, check=False)
         serial = Path(rec['stdout']['path']).read_text(errors='replace')
-        verdict = parse_guest_serial(serial, run_id, rec['exit_code'], rec['timed_out'])
+        verdict = parse_guest_serial(serial, run_id, rec['exit_code'], rec['timed_out'], command_receipt=rec)
         write_json(output / 'guest-verdict.json', verdict)
         result['boot'] = {**verdict, 'command_receipt': rec}
         result['guest_tests'] = verdict['guest_tests']

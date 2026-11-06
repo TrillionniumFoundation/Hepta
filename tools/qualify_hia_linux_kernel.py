@@ -213,11 +213,13 @@ def _inventory(protocol, inventory):
 
 
 def _command(record, name):
+    from tools.qualify_hia_linux_baseline import process_group_outcome_admissible
     _require(type(record) is dict and record.get("name") == name, "missing original command: " + name)
     _require(type(record.get("argv")) is list and record["argv"] and
              all(type(x) is str for x in record["argv"]), "invalid original command arguments")
     _require(type(record.get("exit_code")) is int and type(record.get("timed_out")) is bool,
              "command termination was not observed")
+    _require(process_group_outcome_admissible(record), "command process group did not complete: " + name)
     _int(record.get("elapsed_ns"), "command elapsed time", 1)
     _bound(record["stdout"], name + " stdout")
     _bound(record["stderr"], name + " stderr")
@@ -303,7 +305,7 @@ def _boot_evidence(protocol, baseline, *, command_name="boot-stock-kernel-tcg"):
     for line in text.splitlines():
         if baseline["boot_status"] == "PASS" and line.startswith("HIA_LINUX_SMOKE "):
             _decode(line.removeprefix("HIA_LINUX_SMOKE "))
-    replay = parse_guest_serial(text, run_id, record["exit_code"], record["timed_out"])
+    replay = parse_guest_serial(text, run_id, record["exit_code"], record["timed_out"], command_receipt=record)
     _require(all(boot.get(key) == value for key, value in replay.items()), "boot verdict differs from original serial replay")
     _require(replay["guest_tests"] == baseline["guest_tests"] and replay["status"] == baseline["boot_status"],
              "boot summary differs from raw guest evidence")
