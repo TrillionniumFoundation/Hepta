@@ -29,6 +29,8 @@ def main():
         raise ValueError("full OpenVPN/HIA application build did not complete")
     if build.get("hepta_commit") != args.expected_commit:
         raise ValueError("build receipt belongs to another Hepta commit")
+    if build.get("expected_hepta_commit") != args.expected_commit:
+        raise ValueError("build receipt did not bind the expected source HEAD")
     if build.get("official_source_freeze", {}).get("archive_sha256") != build.get(
             "official_source_after", {}).get("archive_sha256"):
         raise ValueError("pristine OpenVPN archive identity changed during build")
