@@ -119,13 +119,21 @@ def check_binding(row):
     require(type(row) is dict and all(k in row for k in ("path", "bytes", "sha256")),
             "complete file binding required")
     actual = identity(row["path"])
-    require(all(actual[k] == row[k] and type(actual[k]) is type(row[k])
-                for k in actual), "bound file changed: " + str(row.get("path")))
+    require(type(row["path"]) is str and Path(row["path"]).is_absolute() and
+            all(actual[k] == row[k] and type(actual[k]) is type(row[k]) for k in ("bytes", "sha256")),
+            "bound file changed: " + str(row.get("path")))
     if "git_blob_sha1" in row:
         data = Path(actual["path"]).read_bytes()
         require(hashlib.sha1(("blob " + str(len(data)) + "\0").encode() + data).hexdigest()
                 == row["git_blob_sha1"], "Git blob changed: " + actual["path"])
-    return actual
+    # Baseline/static receipts may retain the invoked symlink spelling, such as
+    # ld.lld -> lld. Validate its actual bytes while preserving that argv path.
+    return {"path": row["path"], "bytes": actual["bytes"], "sha256": actual["sha256"]}
+
+
+def read_utf8_bound_log(binding):
+    check_binding(binding)
+    return Path(binding["path"]).read_bytes().decode("utf-8", errors="strict")
 
 
 def bind_nested(value, *, skip_keys=()):
@@ -972,8 +980,8 @@ def admit_guest(path, registry, image_id, collector, *, partition, expected=None
                             "PYTHONDONTWRITEBYTECODE": "1", "QEMU_MODULE_DIR": env["qemu_modules"]["path"]}
     require(manifest["environment"] == value["environment"] == expected_environment and
             manifest["timeout_seconds"] == expected["timeout"], "execution environment/deadline differs")
-    stdout = Path(command["stdout"]["path"]).read_bytes().decode("utf-8", errors="strict")
-    stderr = Path(command["stderr"]["path"]).read_bytes().decode("utf-8", errors="strict")
+    stdout = read_utf8_bound_log(command["stdout"])
+    stderr = read_utf8_bound_log(command["stderr"])
     verdict = collector.parse_serial(
         stdout, run_id=expected["run_id"], seed=expected["seed"], iterations=expected["iterations"],
         selection=expected["selection"], expected_release=expected["expected_release"],
@@ -1290,6 +1298,9 @@ def register(spec_path, calibration_result, output):
         registry["training"] = registry["calibration"]["observations"]
         registry["best_fixed"] = training_best_fixed(registry)
         registry["schedule"] = make_schedule(registry["protocol"], registry["campaign_id"])
+        registry["artifact_equivalence_groups"] = {}
+        for name in IMAGES:
+            registry["artifact_equivalence_groups"].setdefault(registry["images"][name]["kernel"]["sha256"], []).append(name)
         registry["external_runtime_evidence"] = [identity(path) for path in spec.get("external_runtime_evidence", [])]
         registry["created_unix_ns"] = time.time_ns()
         registry["registration_wall_ns"] = time.monotonic_ns() - started
@@ -1569,6 +1580,8 @@ def plan_next(output, *, phase, seed):
             plan = {"schema": SCHEMA + ".plan.v1", "registry": state["registry"], "intent": intent,
                 "snapshot": snapshot_binding, "case": case, "arms": arms,
                 "candidate_count": 82, "resource_unit": "microseconds", "resource_budget_q32": budget,
+                "feasible_candidate_count": sum(row["resource_cost_q32"] <= budget for row in candidates),
+                "resource_rejected_candidate_count": sum(row["resource_cost_q32"] > budget for row in candidates),
                 "common_model_cost": common_model, "common_paths_cost": common_paths,
                 "planned_unix_ns": time.time_ns(), "no_boot_started": True,
                 "actual_total_planning_wall_ns": time.monotonic_ns() - planning_started}
@@ -1802,11 +1815,15 @@ def evaluate(output):
             collector = load_collector(registry["runtime"]["collector"])
             lightweight_inputs(registry, collector)
             history = past_history(registry, state)
-            rows, actual_planning_ns, native_records = [], 0, []
+            rows, actual_planning_ns, native_records, budgets = [], 0, [], []
             for complete in history:
                 plan = load(complete["plan"]["path"])
                 require(plan["case"] == registry["schedule"][complete["index"]], "planned schedule differs")
                 actual_planning_ns += plan["actual_total_planning_wall_ns"]
+                budgets.append({"index": complete["index"], "phase": complete["phase"],
+                    "resource_budget_q32": plan["resource_budget_q32"],
+                    "feasible_candidates": plan["feasible_candidate_count"],
+                    "resource_rejected_candidates": plan["resource_rejected_candidate_count"]})
                 for binding, row in zip(complete["observation_files"], complete["observations"]):
                     check_binding(binding)
                     require(load(binding["path"]) == row, "completed observation changed")
@@ -1851,6 +1868,9 @@ def evaluate(output):
                 "actual_controller_native_calls": native_records,
                 "registration_wall_ns": registry["registration_wall_ns"],
                 "calibration_pipeline_wall_ns": registry["calibration"]["pipeline_wall_ns"],
+                "artifact_equivalence_groups": registry["artifact_equivalence_groups"],
+                "prediction_budget_observations": budgets,
+                "cells_with_active_prediction_budget": sum(row["resource_rejected_candidates"] > 0 for row in budgets),
                 "external_runtime_evidence": registry["external_runtime_evidence"],
                 "files_alone_are_execution_attestation": False,
                 "claims": registry["protocol"]["claims"], "completed_unix_ns": time.time_ns()}

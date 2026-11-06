@@ -213,6 +213,28 @@ class ForecastAndBudget(unittest.TestCase):
 
 
 class EvidenceAndStateGates(unittest.TestCase):
+    def test_original_symlink_spelling_keeps_actual_content_binding(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target, alias = root / "lld", root / "ld.lld"
+            target.write_bytes(b"qualified tool bytes")
+            alias.symlink_to(target.name)
+            binding = {**c.identity(target), "path": str(alias)}
+            self.assertEqual(c.check_binding(binding), binding)
+            target.write_bytes(b"different tool bytes")
+            with self.assertRaises(ValueError):
+                c.check_binding(binding)
+
+    def test_serial_crlf_is_not_normalized_before_hash_parser(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "raw.stdout"
+            raw = b'prefix\r\n{"event":"synthetic-parser-fixture"}\r\n'
+            path.write_bytes(raw)
+            binding = c.identity(path)
+            text = c.read_utf8_bound_log(binding)
+            self.assertEqual(text.encode("utf-8"), raw)
+            self.assertEqual(len(text.encode()), binding["bytes"])
+
     def test_pass_word_is_not_whole_build_evidence(self):
         for image in c.IMAGES:
             with self.assertRaises(ValueError):
