@@ -1,14 +1,19 @@
 """Refuse incomplete guest evidence and preserve real process failures."""
+from contextlib import contextmanager
+import ctypes
 import gzip
 import hashlib
 import io
 import json
 import os
 from pathlib import Path
+import signal
 import stat
+import subprocess
 import sys
 import tarfile
 import tempfile
+import time
 import unittest
 from unittest import mock
 
@@ -190,6 +195,182 @@ class InputsAndProcesses(unittest.TestCase):
             self.assertEqual(record['exit_code'], 127)
             self.assertIn('spawn_error', record)
             self.assertTrue(list((Path(directory)/'commands').glob('*-missing.json')))
+
+
+class ProcessGroupTeardown(unittest.TestCase):
+    """A leader's exit is not evidence that its descendants stopped writing."""
+
+    @staticmethod
+    @contextmanager
+    def reap_orphaned_fixture_children():
+        libc = ctypes.CDLL(None, use_errno=True)
+        previous = ctypes.c_int()
+        if libc.prctl(37, ctypes.byref(previous), 0, 0, 0) != 0:
+            raise OSError(ctypes.get_errno(), 'PR_GET_CHILD_SUBREAPER failed')
+        if libc.prctl(36, 1, 0, 0, 0) != 0:
+            raise OSError(ctypes.get_errno(), 'PR_SET_CHILD_SUBREAPER failed')
+        try:
+            yield
+        finally:
+            if libc.prctl(36, previous.value, 0, 0, 0) != 0:
+                raise OSError(ctypes.get_errno(), 'restore child subreaper failed')
+
+    @staticmethod
+    def live(pid):
+        try:
+            fields = (Path('/proc') / str(pid) / 'stat').read_text().rsplit(')', 1)[1].split()
+        except FileNotFoundError:
+            return False
+        return fields[0] not in ('Z', 'X')
+
+    @staticmethod
+    def child_command(root, *, leader_exits=False):
+        script = root / 'group.py'
+        script.write_text('''import os, pathlib, signal, sys, time
+root = pathlib.Path(sys.argv[1])
+(root / 'leader.pid').write_text(str(os.getpid()))
+if os.fork() == 0:
+    signal.signal(signal.SIGTERM, signal.SIG_IGN)
+    (root / 'child.pid').write_text(str(os.getpid()))
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline:
+        print('descendant-output', flush=True)
+        time.sleep(0.02)
+    os._exit(0)
+if sys.argv[2] == 'exit':
+    while not (root / 'child.pid').exists():
+        time.sleep(0.005)
+    sys.exit(0)
+time.sleep(10)
+''')
+        return [sys.executable, '-u', str(script), str(root), 'exit' if leader_exits else 'wait']
+
+    @staticmethod
+    def cleanup_fixture(root, sentinel):
+        # Only the session/group created by this fixture may be signalled.
+        leader = root / 'leader.pid'
+        if leader.exists():
+            try:
+                os.killpg(int(leader.read_text()), signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        child = root / 'child.pid'
+        if child.exists():
+            pid = int(child.read_text())
+            deadline = time.monotonic() + 3
+            while True:
+                try:
+                    waited, _ = os.waitpid(pid, os.WNOHANG)
+                except ChildProcessError:
+                    break
+                if waited == pid:
+                    break
+                if time.monotonic() >= deadline:
+                    raise AssertionError('fixture child did not reap after SIGKILL')
+                time.sleep(0.01)
+        if sentinel.poll() is None:
+            sentinel.terminate()
+        sentinel.wait(timeout=3)
+
+    def assert_quiescent(self, root, runner, sentinel, record, *, leader_exit=-signal.SIGTERM):
+        child = int((root / 'child.pid').read_text())
+        self.assertFalse(self.live(child), 'TERM-ignoring descendant survived command cleanup')
+        self.assertIsNone(sentinel.poll(), 'cleanup signalled an unrelated session')
+        self.assertEqual(record['exit_code'], leader_exit)
+        self.assertEqual(len(runner.records), 1)
+        self.assertTrue(record['process_group_cleanup']['drained'])
+        # The terminal receipt must describe final streams, after all writers stop.
+        for key in ('stdout', 'stderr'):
+            original = Path(record[key]['path']).read_bytes()
+            self.assertEqual(hashlib.sha256(original).hexdigest(), record[key]['sha256'])
+            time.sleep(0.03)
+            self.assertEqual(Path(record[key]['path']).read_bytes(), original)
+
+    def test_timeout_drains_term_ignoring_descendant_after_leader_exits(self):
+        with tempfile.TemporaryDirectory() as directory, self.reap_orphaned_fixture_children():
+            root = Path(directory)
+            command = self.child_command(root)
+            sentinel = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(10)'],
+                                        start_new_session=True)
+            runner = baseline.CommandRunner(root, {'PATH': os.environ['PATH']})
+            try:
+                with mock.patch.object(baseline, 'GROUP_TERM_GRACE_SECONDS', 0.1, create=True), \
+                     mock.patch.object(baseline, 'GROUP_KILL_GRACE_SECONDS', 1.0, create=True):
+                    record = runner.run('timeout-descendant', command, timeout=0.75, check=False)
+                self.assertTrue(record['timed_out'])
+                self.assert_quiescent(root, runner, sentinel, record)
+            finally:
+                self.cleanup_fixture(root, sentinel)
+
+    def test_successful_leader_cannot_finalize_while_descendant_keeps_writing(self):
+        with tempfile.TemporaryDirectory() as directory, self.reap_orphaned_fixture_children():
+            root = Path(directory)
+            command = self.child_command(root, leader_exits=True)
+            sentinel = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(10)'],
+                                        start_new_session=True)
+            runner = baseline.CommandRunner(root, {'PATH': os.environ['PATH']})
+            rejection = None
+            try:
+                with mock.patch.object(baseline, 'GROUP_TERM_GRACE_SECONDS', 0.1, create=True), \
+                     mock.patch.object(baseline, 'GROUP_KILL_GRACE_SECONDS', 1.0, create=True):
+                    try:
+                        runner.run('orphaned-writer', command, timeout=4)
+                    except ValueError as error:
+                        rejection = error
+                self.assertFalse(self.live(int((root / 'child.pid').read_text())),
+                                 'successful leader left its output writer alive')
+                self.assertIsNotNone(rejection, 'incomplete process group was accepted as a successful command')
+                self.assertIn('command failed', str(rejection))
+                record = runner.records[0]
+                self.assertFalse(record['timed_out'])
+                self.assertTrue(record['incomplete_process_group'])
+                self.assert_quiescent(root, runner, sentinel, record, leader_exit=0)
+            finally:
+                self.cleanup_fixture(root, sentinel)
+
+    def test_cancellation_drains_descendants_and_preserves_exception_and_receipt(self):
+        class RequestedCancellation(BaseException):
+            pass
+
+        with tempfile.TemporaryDirectory() as directory, self.reap_orphaned_fixture_children():
+            root = Path(directory)
+            command = self.child_command(root)
+            sentinel = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(10)'],
+                                        start_new_session=True)
+            runner = baseline.CommandRunner(root, {'PATH': os.environ['PATH']})
+            cancellation = RequestedCancellation('cancel this owned command')
+            real_wait, injected = subprocess.Popen.wait, False
+
+            def interrupt_after_child_is_ready(process, *args, **kwargs):
+                nonlocal injected
+                if process.args == command and not injected:
+                    deadline = time.monotonic() + 3
+                    while not (root / 'child.pid').exists() and time.monotonic() < deadline:
+                        time.sleep(0.005)
+                    self.assertTrue((root / 'child.pid').exists(), 'real descendant did not start')
+                    injected = True
+                    raise cancellation
+                return real_wait(process, *args, **kwargs)
+
+            try:
+                with mock.patch.object(subprocess.Popen, 'wait', interrupt_after_child_is_ready), \
+                     mock.patch.object(baseline, 'GROUP_TERM_GRACE_SECONDS', 0.1, create=True), \
+                     mock.patch.object(baseline, 'GROUP_KILL_GRACE_SECONDS', 1.0, create=True):
+                    with self.assertRaises(RequestedCancellation) as caught:
+                        runner.run('cancel-descendant', command, timeout=4)
+                self.assertIs(caught.exception, cancellation)
+                self.assertFalse(self.live(int((root / 'child.pid').read_text())),
+                                 'cancelled command left a live descendant')
+                self.assertEqual(len(runner.records), 1, 'interrupted command lost its terminal receipt')
+                record = runner.records[0]
+                self.assertFalse(record['timed_out'])
+                self.assertEqual(record['interruption']['type'], 'RequestedCancellation')
+                self.assertEqual(record['interruption']['message'], str(cancellation))
+                self.assert_quiescent(root, runner, sentinel, record)
+                final = root / 'commands/000-cancel-descendant.json'
+                self.assertEqual(json.loads(final.read_text()), record)
+            finally:
+                self.cleanup_fixture(root, sentinel)
 
 
 if __name__ == '__main__':
