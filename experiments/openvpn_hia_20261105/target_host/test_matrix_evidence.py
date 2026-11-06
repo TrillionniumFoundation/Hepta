@@ -119,14 +119,14 @@ class ThroughputEvidenceTests(unittest.TestCase):
         self.assertTrue(result["checks"]["loss_within_limit"])
 
     def test_exact_userspace_udp512_loss_is_not_a_pass(self):
-        # Exact target-run failure: the server received about 88.8 Mbit/s and
-        # iperf reported about 9.1% loss, while the other direction was healthy.
-        document = self.udp_client_document(100_000_000.0, 100_000_000.0)
+        # Exact target-run case perf-r0-o0-p0-c-user: the server received
+        # 90.55 Mbit/s with 9.1296% loss; the opposite direction stayed healthy.
+        document = self.udp_client_document(99_979_099.0045469, 100_315_767.5804186)
         result = matrix.udp_delivery_evidence(
             {"transport": "udp", "offered_rate_each_direction": "100M"},
             document,
-            self.udp_receiver(99_608_142.59, 0.0),
-            self.udp_receiver(88_832_779.79, 9.13),
+            self.udp_receiver(99_622_849.58243865, 0.0),
+            self.udp_receiver(90_547_672.19435424, 9.12964040212039),
             self.udp_policy(),
         )
         self.assertFalse(result["passed"])
