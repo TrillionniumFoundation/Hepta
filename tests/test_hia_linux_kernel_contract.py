@@ -101,6 +101,13 @@ class KernelContractTests(unittest.TestCase):
                 "process_group": 12345,
                 "process_group_cleanup": {"group": 12345, "scope": "owned_linux_process_group",
                     "drained": True, "signals": [], "live_members_after": [], "errors": [], "elapsed_ns": 0},
+                "process_tree_cleanup": {"schema": "hepta.hia.process-tree-cleanup.v1",
+                    "supervisor_pid": 12345, "target_pid": 12346, "target_process_group": 12346,
+                    "target_exit_code": exit_code, "interrupted_signal": None,
+                    "incomplete_process_tree": False, "adopted_children_before_cleanup": [],
+                    "adopted_children_after_cleanup": [], "target_group_members_after": [],
+                    "signals": [], "errors": [], "drained": True, "elapsed_ns": 0,
+                    "child_user_seconds": 0.0, "child_system_seconds": 0.0},
                 "stdout": self.write("commands/" + name + ".stdout", stdout),
                 "stderr": self.write("commands/" + name + ".stderr", b"")}
 

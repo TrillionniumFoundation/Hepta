@@ -112,7 +112,17 @@ class GuestEvidence(unittest.TestCase):
         complete_cleanup = {
             'group': group, 'scope': 'owned_linux_process_group', 'drained': True,
             'signals': [], 'live_members_after': [], 'errors': [], 'elapsed_ns': 0}
-        completed = {**scoped, 'process_group_cleanup': complete_cleanup}
+        complete_tree = {
+            'schema': 'hepta.hia.process-tree-cleanup.v1',
+            'supervisor_pid': group, 'target_pid': group + 1,
+            'target_process_group': group + 1, 'target_exit_code': 0,
+            'interrupted_signal': None, 'incomplete_process_tree': False,
+            'adopted_children_before_cleanup': [], 'adopted_children_after_cleanup': [],
+            'target_group_members_after': [], 'signals': [], 'errors': [],
+            'drained': True, 'elapsed_ns': 0,
+            'child_user_seconds': 0.0, 'child_system_seconds': 0.0}
+        completed = {**scoped, 'process_group_cleanup': complete_cleanup,
+                     'process_tree_cleanup': complete_tree}
         self.assertTrue(baseline.command_succeeded(completed))
         self.assertEqual(baseline.parse_guest_serial(
             serial(), RUN_ID, 0, False, command_receipt=completed)['status'], 'PASS')
@@ -343,6 +353,10 @@ time.sleep(10)
         self.assertEqual(record['exit_code'], leader_exit)
         self.assertEqual(len(runner.records), 1)
         self.assertTrue(record['process_group_cleanup']['drained'])
+        tree = record['process_tree_cleanup']
+        self.assertTrue(tree['drained'])
+        self.assertEqual(tree['adopted_children_after_cleanup'], [])
+        self.assertEqual(tree['target_group_members_after'], [])
         # The terminal receipt must describe final streams, after all writers stop.
         for key in ('stdout', 'stderr'):
             original = Path(record[key]['path']).read_bytes()
@@ -407,7 +421,8 @@ time.sleep(10)
 
             def interrupt_after_child_is_ready(process, *args, **kwargs):
                 nonlocal injected
-                if process.args == command and not injected:
+                if (isinstance(process.args, (list, tuple)) and len(process.args) > 1
+                        and Path(process.args[1]) == baseline.PROCESS_SUPERVISOR and not injected):
                     deadline = time.monotonic() + 3
                     while not (root / 'child.pid').exists() and time.monotonic() < deadline:
                         time.sleep(0.005)
@@ -469,9 +484,15 @@ sys.exit(0 if (root / 'child.pgid').exists() else 7)
                 child = int((root / 'child.pid').read_text())
                 child_group = int((root / 'child.pgid').read_text())
                 self.assertNotEqual(child_group, record['process_group'])
-                self.assertTrue(self.live(child), 'session-escaped descendant unexpectedly stopped')
+                self.assertFalse(self.live(child), 'session-escaped descendant survived supervisor cleanup')
+                self.assertTrue(record['incomplete_process_group'])
                 self.assertTrue(record['process_group_cleanup']['drained'])
                 self.assertEqual(record['process_group_cleanup']['live_members_after'], [])
+                tree = record['process_tree_cleanup']
+                self.assertTrue(tree['drained'])
+                self.assertTrue(tree['incomplete_process_tree'])
+                self.assertIn(child, [row['pid'] for row in tree['adopted_children_before_cleanup']])
+                self.assertEqual(tree['adopted_children_after_cleanup'], [])
                 self.assertIsNone(sentinel.poll(), 'cleanup signalled an unrelated session')
                 self.assertFalse(
                     baseline.command_succeeded(record),
