@@ -27,7 +27,7 @@ from tools.qualify_hia_three_lane import (
 MODULES = (
     "tests.test_hia_linux_baseline", "tests.test_hia_linux_translation",
     "tests.test_hia_linux_component", "tests.test_hia_linux_system",
-    "tests.test_hia_linux_kernel_contract",
+    "tests.test_hia_linux_kernel_contract", "tests.test_hia_linux_native_pilot",
 )
 
 

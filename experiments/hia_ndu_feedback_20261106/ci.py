@@ -191,6 +191,7 @@ def reference(evidence):
     return run_tests(["tests.test_hia_ndu_feedback", "tests.test_hia_ndu_feedback_workload",
                       "tests.test_hia_ndu_feedback_campaign", "tests.test_hia_ndu_feedback_coverage",
                       "tests.test_hia_ndu_economical", "tests.test_hia_ndu_compute_price",
+                      "tests.test_hia_ndu_compute_debit",
                       "tests.test_hia_ndu_policy_audit", "tests.test_hia_ndu_policy_campaign",
                       "tests.test_hia_ndu_feedback_ci_paths",
                       "tests.test_core_seven_shared_source_closure", "tests.test_hia_ndu_dynamic",

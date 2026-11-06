@@ -186,7 +186,7 @@ def derived_native_scenario(base, calibration, n, p):
 
 
 def episode(scenario, seed, arm, *, fixed_action, inputs, output, native, n, repeats, cap,
-            remaining_transitions=2000000, decision_function=None):
+            remaining_transitions=2000000, decision_function=None, compute_profile=None):
     """Keep partial failures and cleanup in the original planned denominator."""
     began = time.monotonic_ns()
     result = {"scenario": scenario.name, "seed": seed, "arm": arm, "native_workload": native,
@@ -196,6 +196,14 @@ def episode(scenario, seed, arm, *, fixed_action, inputs, output, native, n, rep
     backend, worker, online_started = None, None, None
     env = model.FeedbackEnvironment(scenario, seed)
     try:
+        if compute_profile is not None:
+            from experiments.hia_ndu_feedback_20261106.compute_debit import (
+                dispatch_after_compute, validate_profile)
+            validate_profile(compute_profile, scenario)
+            if not native:
+                raise ValueError("observed compute-resource debits require the real-workload route")
+            result["compute_debit_profile"] = asdict(compute_profile)
+            result["hard_realtime_guarantee"] = False
         if arm in NATIVE_ARMS:
             backend = LazyBackend(inputs, output / "values.jsonl")
         if native:
@@ -214,7 +222,11 @@ def episode(scenario, seed, arm, *, fixed_action, inputs, output, native, n, rep
             if allowance <= 0:
                 raise model.SearchBudgetExhausted("controller lifecycle budget exhausted before next decision")
             try:
-                selected = (decision_function or decide)(scenario, observation, arm, backend, fixed_action, allowance)
+                if compute_profile is not None and decision_function is None:
+                    selected = model.plan(scenario, observation, arm, backend=backend,
+                        fixed_action=fixed_action, max_transitions=allowance, compute_profile=compute_profile)
+                else:
+                    selected = (decision_function or decide)(scenario, observation, arm, backend, fixed_action, allowance)
             except Exception as error:
                 consumed = getattr(error, "search_stats", {}).get("transitions",
                     getattr(error, "transitions", allowance if isinstance(error, model.SearchBudgetExhausted) else 0))
@@ -226,7 +238,23 @@ def episode(scenario, seed, arm, *, fixed_action, inputs, output, native, n, rep
             decision_elapsed = time.monotonic_ns() - step_start
             row = {"decision": selected, "observed_decision_wall_ns": decision_elapsed}
             result["steps"].append(row)
-            if selected["action"] is None:
+            if compute_profile is not None:
+                def execute_guarded(remaining, action):
+                    if remaining.resident != worker.resident:
+                        raise ValueError("observed/physical cache diverged before dispatch")
+                    return worker.execute(action, remaining.request, repeats=repeats,
+                        vector_seed=(seed * 131 + remaining.step * 17) & 0xffffffff,
+                        expected_state_digest=worker.state_digest)
+                try:
+                    row.update(dispatch_after_compute(env, selected, compute_profile,
+                        step_started_ns=step_start, execute=execute_guarded))
+                except BaseException as error:
+                    if hasattr(error, "compute_debit_receipt"):
+                        row["compute_debit"] = error.compute_debit_receipt
+                    raise
+                if worker.resident != row["outcome"]["resident_after"]:
+                    raise ValueError("selected/physical/next observed action mismatch")
+            elif selected["action"] is None:
                 row["outcome"] = env.step(None, actual_cost=decision_elapsed if native else 0)
             elif native:
                 if decision_elapsed > min(observation.budget, observation.deadline):
@@ -285,6 +313,9 @@ def episode(scenario, seed, arm, *, fixed_action, inputs, output, native, n, rep
 
 
 def audit_episode(scenario, result, cap):
+    if result.get("compute_debit_profile") is not None or any(
+            step.get("decision", {}).get("compute_debit") is not None for step in result["steps"]):
+        raise ValueError("v1 oracle audit cannot qualify the compute-resource model; a profile-aware independent audit is required")
     began = time.monotonic_ns()
     rows = []
     for step in result["steps"]:

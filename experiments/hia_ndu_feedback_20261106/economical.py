@@ -23,7 +23,8 @@ def _require(condition, reason):
 
 
 def priced_plan(scenario, observation, planner_arm, *, backend=None,
-                forecast_control_ns, greedy_forecast_ns, max_transitions=20000):
+                forecast_control_ns, greedy_forecast_ns, max_transitions=20000,
+                compute_profile=None):
     """Return a complete ``plan`` decision with an explicit ``compute_gate``.
 
     ``forecast_control_ns`` measures this arm's full planner on separate training
@@ -64,6 +65,8 @@ def priced_plan(scenario, observation, planner_arm, *, backend=None,
     planner_stats = {}
     gate = None
     try:
+        _require(compute_profile is None,
+                 "v1 price-only bounds do not cover compute-resource debits; use the explicit profiled planner")
         validate_observation(scenario, observation)
         _require(planner_arm in PLANNER_ARMS, "planner must be same-objective or dynamic-ndu")
         for name, value in (("forecast_control_ns", forecast_control_ns), ("greedy_forecast_ns", greedy_forecast_ns)):
