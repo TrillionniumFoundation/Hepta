@@ -31,6 +31,18 @@ class ProfileRecorderWaitTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     matrix.profile_record_grace_seconds(workload, configured)
 
+    def test_c_and_hia_userspace_profiles_require_client_process_samples(self):
+        for arm in ("c-user", "hia-user"):
+            with self.subTest(arm=arm):
+                self.assertTrue(matrix.profile_process_sample_required(arm))
+
+    def test_dco_profile_is_qualified_by_kernel_samples_not_userspace_pid(self):
+        self.assertFalse(matrix.profile_process_sample_required("c-dco"))
+
+    def test_unknown_profile_arm_is_rejected(self):
+        with self.assertRaises(ValueError):
+            matrix.profile_process_sample_required("unknown")
+
     def test_real_recorder_child_finishes_without_three_second_truncation(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
