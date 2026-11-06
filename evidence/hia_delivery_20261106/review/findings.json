@@ -1,0 +1,131 @@
+{
+  "results": [
+    {
+      "name": "post_publication_read_failure",
+      "raised": "OSError",
+      "retry": {
+        "code": 0,
+        "execution_version": "v1",
+        "program_sha256": "3e26545677a878dcc50dbfc6c707103c0e423fe162469d52985a65d675370b94",
+        "record_sha256": "dea3ede6c803a5273b6c725a7913a07b44329d44e6b4d879410df407b14ea3fa",
+        "replayed": true,
+        "request_id": "read-failure",
+        "schema": "hepta.hia.quota-receipt.v1",
+        "sequence": 1,
+        "state": {
+          "available": 90,
+          "held": 10
+        },
+        "status": "applied"
+      },
+      "snapshot": {
+        "backend": "vm",
+        "committed_records": 2,
+        "head_sha256": "dea3ede6c803a5273b6c725a7913a07b44329d44e6b4d879410df407b14ea3fa",
+        "program_sha256": "3e26545677a878dcc50dbfc6c707103c0e423fe162469d52985a65d675370b94",
+        "schema": "hepta.hia.quota-snapshot.v1",
+        "state": {
+          "available": 90,
+          "held": 10
+        },
+        "version": "v1"
+      }
+    },
+    {
+      "name": "interrupt_after_publication",
+      "raised": "KeyboardInterrupt",
+      "retry": {
+        "code": 0,
+        "execution_version": "v1",
+        "program_sha256": "3e26545677a878dcc50dbfc6c707103c0e423fe162469d52985a65d675370b94",
+        "record_sha256": "ef9429980a7491a7517ff52d97cddf715007444c6274327a2e7f1d3c429cd1f0",
+        "replayed": true,
+        "request_id": "interrupted",
+        "schema": "hepta.hia.quota-receipt.v1",
+        "sequence": 1,
+        "state": {
+          "available": 90,
+          "held": 10
+        },
+        "status": "applied"
+      },
+      "snapshot": {
+        "backend": "vm",
+        "committed_records": 2,
+        "head_sha256": "ef9429980a7491a7517ff52d97cddf715007444c6274327a2e7f1d3c429cd1f0",
+        "program_sha256": "3e26545677a878dcc50dbfc6c707103c0e423fe162469d52985a65d675370b94",
+        "schema": "hepta.hia.quota-snapshot.v1",
+        "state": {
+          "available": 90,
+          "held": 10
+        },
+        "version": "v1"
+      }
+    },
+    {
+      "committed_record_names": [
+        "00000000.json",
+        "00000001.json"
+      ],
+      "name": "non_exact_upgrade_target",
+      "next_request_failure": {
+        "message": "only an explicit v1 to v2 upgrade is supported",
+        "type": "QuotaRejected"
+      },
+      "raised": {
+        "message": "only an explicit v1 to v2 upgrade is supported",
+        "type": "QuotaRejected"
+      }
+    },
+    {
+      "actual_record_request_at_parent_receipt_sequence": "child-request",
+      "child": {
+        "receipt": {
+          "code": 0,
+          "execution_version": "v1",
+          "program_sha256": "3e26545677a878dcc50dbfc6c707103c0e423fe162469d52985a65d675370b94",
+          "record_sha256": "efce9e9559ef17476ef5b64877ec9b036c57b22c3ba96daece8df2de70540af1",
+          "replayed": false,
+          "request_id": "child-request",
+          "schema": "hepta.hia.quota-receipt.v1",
+          "sequence": 2,
+          "state": {
+            "available": 70,
+            "held": 30
+          },
+          "status": "applied"
+        }
+      },
+      "child_exit_status": 0,
+      "name": "fork_inherited_instance",
+      "parent_receipt": {
+        "code": 0,
+        "execution_version": "v1",
+        "program_sha256": "3e26545677a878dcc50dbfc6c707103c0e423fe162469d52985a65d675370b94",
+        "record_sha256": "efce9e9559ef17476ef5b64877ec9b036c57b22c3ba96daece8df2de70540af1",
+        "replayed": false,
+        "request_id": "parent-request",
+        "schema": "hepta.hia.quota-receipt.v1",
+        "sequence": 2,
+        "state": {
+          "available": 80,
+          "held": 20
+        },
+        "status": "applied"
+      },
+      "snapshot": {
+        "backend": "vm",
+        "committed_records": 3,
+        "head_sha256": "efce9e9559ef17476ef5b64877ec9b036c57b22c3ba96daece8df2de70540af1",
+        "program_sha256": "3e26545677a878dcc50dbfc6c707103c0e423fe162469d52985a65d675370b94",
+        "schema": "hepta.hia.quota-snapshot.v1",
+        "state": {
+          "available": 70,
+          "held": 30
+        },
+        "version": "v1"
+      }
+    }
+  ],
+  "source_sha256": "ffdae52c99112844fa186ffe90e7659aeed43f78373ff408842a80108353ce79"
+}

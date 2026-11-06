@@ -5,7 +5,21 @@ human and coding-agent collaboration. Its checked ownership model, explicit
 effects, source-bound interfaces, and transaction protocol make resource and
 interface obligations visible to tools.
 
-The standalone **HIA program v1** accepts AI-authored typed SSA programs
+**HIA is a typed virtual assembly language for AI Agent authored programs and
+verified optimization, with independent Core semantics, ownership and resource
+checking, an interpreter and direct LLVM compilation.**
+
+The [installable HIA candidate](docs/HIA_RELEASE_CANDIDATE.md) supplies a
+deterministic wheel and an isolated offline installation check from one exact
+source snapshot. The [compatibility contract](docs/HIA_COMPATIBILITY.md) binds
+primitive v1–v8, composite v1–v4, instructions, targets and the scalar public ABI
+to executable checks. The complete [quota application](docs/HIA_QUOTA_APPLICATION.md)
+executes business transitions in HIA and verifies local restart, cancellation,
+request reconciliation and a two-version upgrade under an explicit host interface.
+The [intelligence and value contract](docs/HIA_INTELLIGENCE_CONTRACT.md) keeps
+Agent productivity, model semantics and NDU gain as separately measured goals.
+
+The standalone **HIA program** accepts AI-authored typed SSA programs
 without original high-level source. `python -m hepta hia verify`, `run`,
 `build`, and `patch` share an independent ownership/effect verifier. Its direct
 LLVM path does not invoke Rust. Existing executable Core operations and HIA
@@ -117,6 +131,19 @@ The [resource IR](docs/RESOURCE_IR.md),
 [next-stage acceptance map](docs/NEXT_STAGE_EXECUTION.md) describe their exact scopes.
 
 ## Build and run
+
+For the complete scoped delivery gate, start from a clean candidate checkout and
+use new output/cache directories outside it:
+
+```sh
+python -B -X pycache_prefix=/tmp/hia-delivery-new-cache -m tools.qualify_hia_delivery \
+  --clang /path/to/clang-20 --output-directory /tmp/hia-delivery-new
+```
+
+This binds the test inventory, actual native application, two equal wheel
+rebuilds and an isolated installed execution to one source snapshot. The result
+is a standalone delivery qualification; the full project release gate and
+separate productivity/performance questions retain their own evidence.
 
 The independent HIA entry works with Python and a qualified Clang for native
 builds; no Rust installation or original source is needed:

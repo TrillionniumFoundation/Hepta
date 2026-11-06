@@ -1,0 +1,26 @@
+{
+  "negative_counterexamples_retained": [
+    "findings.json",
+    "quota-source-snapshot.py",
+    "engine-findings.json",
+    "quota-source-engine-probes.py"
+  ],
+  "returncode": 0,
+  "schema": "hia.quota.independent-finding-verification.v1",
+  "scope": "six concrete audit findings only; not whole application/native qualification",
+  "source_files": {
+    "hepta/apps/quota.py": "62346885ee44f3511689835f4a66f93b50b8867558698e10afc14f5a9655b984",
+    "tests/test_hia_quota_application.py": "349f11581f2a44bf22254756dbd2c4d022a87012f9fc011e6dc6d59a7211cebd"
+  },
+  "source_unchanged_during_run": true,
+  "status": "passed",
+  "stdout_stderr_sha256": "86d6075136f253d2dc33c4054da58b94097520b57ac4105d8bd9490f14e20586",
+  "tests": [
+    "test_postcommit_readback_failure_is_unknown_and_retry_does_not_repeat",
+    "test_postpublication_interrupt_is_unknown_and_same_request_reconciles",
+    "test_hostile_version_object_rejects_before_journal_publication",
+    "test_wrong_well_typed_backend_result_cannot_poison_new_or_existing_journal",
+    "test_cleanup_interrupt_after_link_is_unknown",
+    "test_forked_handle_cannot_inherit_parent_execution_authority"
+  ]
+}
