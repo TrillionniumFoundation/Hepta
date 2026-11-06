@@ -450,9 +450,8 @@ J Encoder::metadata(const Metadata *MD) {
     for (auto &Op : N->operands()) Ops.push_back(metadata(Op.get()));
     R["operands"] = std::move(Ops);
   } else {
-    fail(Twine("unsupported specialized metadata kind: ") +
-         Twine(MD->getMetadataID()) +
-         "; debug records and DI nodes must not be silently stripped");
+    R = encodeDebugMetadata(*MD, *this);
+    R["id"] = ID;
   }
   P->MDDefs[Slot] = std::move(R);
   return ID;
@@ -815,6 +814,21 @@ Metadata *Decoder::metadata(const J &V) {
     if (!LV || isa<Constant>(LV) || LV->getType()->isVoidTy())
       fail("invalid local metadata value");
     R = ValueAsMetadata::get(LV);
+  } else if (StringRef(K).starts_with("DI")) {
+    if (K == "DIArgList") {
+      R = decodeDebugMetadata(O, *this);
+    } else {
+      // Specialized nodes can participate in recursive types, scopes, and
+      // compile units. A tracked temporary represents only a forward edge;
+      // the final object is constructed from explicit typed HIA fields.
+      auto Temp = MDTuple::getTemporary(P->C, {});
+      P->MDs.emplace(ID, TrackingMDRef(Temp.get()));
+      R = decodeDebugMetadata(O, *this);
+      TrackingMDRef Actual(R);
+      Temp->replaceAllUsesWith(R);
+      R = Actual.get();
+      P->MDs[ID].reset(R);
+    }
   } else fail(Twine("unknown metadata kind: ") + K);
   P->MDs[ID].reset(R);
   return R;
@@ -830,7 +844,6 @@ void Decoder::finish() {
     if (auto *N = dyn_cast_or_null<MDNode>(E.second.get()))
       if (!N->isResolved()) N->resolveCycles();
   }
-  if (verifyModule(P->M, &errs())) fail("LLVM verifier rejected reconstructed module");
 }
 
 namespace {
@@ -948,13 +961,6 @@ unsigned addressSpace(const O &O) { return uint(O, "address_space", 0xffffff); }
 Constant *constant(Decoder &D, const J &V) {
   return need<Constant>(D.value(V), "constant");
 }
-void noDebugRecords(const BasicBlock &B) {
-  if (const_cast<BasicBlock &>(B).getTrailingDbgRecords())
-    fail("trailing debug records are not yet represented in system.v1");
-  for (auto &I : B)
-    if (I.hasDbgRecords())
-      fail("debug records are not yet represented in system.v1; refusing to drop them");
-}
 } // namespace
 
 J encodeModule(const Module &M) {
@@ -1027,13 +1033,13 @@ J encodeModule(const Module &M) {
     R["arguments"] = std::move(Args);
     A Blocks;
     for (auto &B : F) {
-      noDebugRecords(B);
       A Insts;
       for (auto &I : B) {
         O Inst = encodeInstruction(I, E);
         Inst["id"] = E.P->Values.at(&I);
         Inst["name"] = I.getName().str();
         Inst["metadata"] = attachments(I, E);
+        Inst["debug_records"] = encodeDebugRecords(I, E);
         Insts.push_back(std::move(Inst));
       }
       // LLVM's predecessor iteration follows the BasicBlock use-list. Preserve
@@ -1045,7 +1051,8 @@ J encodeModule(const Module &M) {
                          {"operand", int64_t(U.getOperandNo())}});
       Blocks.push_back(O{{"id", E.P->Values.at(&B)}, {"name", B.getName().str()},
                          {"instructions", std::move(Insts)},
-                         {"use_order", std::move(Uses)}});
+                         {"use_order", std::move(Uses)},
+                         {"trailing_debug_records", encodeTrailingDebugRecords(B, E)}});
     }
     R["blocks"] = std::move(Blocks);
     Functions.push_back(std::move(R));
@@ -1200,6 +1207,7 @@ std::unique_ptr<Module> decodeModule(const J &Document, LLVMContext &C) {
               "prologue", "arguments", "blocks"});
     auto *FT = needTy<FunctionType>(D.type(req(O, "value_type")), "function");
     auto *F = Function::Create(FT, linkage(O), addressSpace(O), str(O, "name"), M.get());
+    F->setNewDbgInfoFormatFlag(boolean(MO, "new_debug_format"));
     D.bind(str(O, "id"), F);
     UniqueName(*F, O);
     setCommon(*F, req(O, "properties"));
@@ -1220,8 +1228,9 @@ std::unique_ptr<Module> decodeModule(const J &Document, LLVMContext &C) {
     }
     for (auto &Block : arr(req(O, "blocks"))) {
       auto &BO = obj(Block);
-      keys(BO, {"id", "name", "instructions", "use_order"});
+      keys(BO, {"id", "name", "instructions", "use_order", "trailing_debug_records"});
       auto *B = BasicBlock::Create(C, str(BO, "name"), F);
+      B->setNewDbgInfoFormatFlag(boolean(MO, "new_debug_format"));
       if (B->getName() != str(BO, "name")) fail("duplicate block name");
       D.bind(str(BO, "id"), B);
     }
@@ -1294,6 +1303,20 @@ std::unique_ptr<Module> decodeModule(const J &Document, LLVMContext &C) {
     }
   }
   D.finish();
+  // Debug records are positioned between instructions, including off-end
+  // markers; attach them after the entire SSA/metadata graph is resolved.
+  for (auto &Entry : arr(req(Root, "functions"))) {
+    for (auto &Block : arr(req(obj(Entry), "blocks"))) {
+      auto &BO = obj(Block);
+      auto *B = cast<BasicBlock>(D.P->Values.at(str(BO, "id")));
+      for (auto &Inst : arr(req(BO, "instructions"))) {
+        auto &IO = obj(Inst);
+        auto *I = cast<Instruction>(D.P->Values.at(str(IO, "id")));
+        decodeDebugRecords(req(IO, "debug_records"), D, *I);
+      }
+      decodeTrailingDebugRecords(req(BO, "trailing_debug_records"), D, *B);
+    }
+  }
   // Restore use-list order only after all instruction operands, constants and
   // metadata exist. The descriptor must be a bijection over the fresh uses.
   for (auto &Entry : arr(req(Root, "functions"))) {
@@ -1318,6 +1341,7 @@ std::unique_ptr<Module> decodeModule(const J &Document, LLVMContext &C) {
       });
     }
   }
+  if (verifyModule(*M, &errs())) fail("LLVM verifier rejected reconstructed module");
   return M;
 }
 

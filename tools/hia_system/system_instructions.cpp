@@ -36,7 +36,7 @@ namespace {
 using namespace llvm;
 
 // Required fields and a closed attribute set make unsupported refinements fail
-// closed. The enclosing module codec owns id, name, and metadata.
+// closed. The enclosing module codec owns id, name, metadata, and debug records.
 class Fields {
   const O &Object;
   std::set<std::string> Read;
@@ -88,7 +88,8 @@ public:
       if (Read.count(Key.str()))
         continue;
       if (IsInstruction &&
-          (Key == "id" || Key == "name" || Key == "metadata"))
+          (Key == "id" || Key == "name" || Key == "metadata" ||
+           Key == "debug_records"))
         continue;
       fail(Twine("unconsumed instruction field: ") + Key);
     }

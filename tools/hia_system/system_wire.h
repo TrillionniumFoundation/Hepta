@@ -58,6 +58,13 @@ public:
   void finish();
 };
 
+O encodeDebugMetadata(const llvm::Metadata &metadata, Encoder &encoder);
+llvm::Metadata *decodeDebugMetadata(const O &metadata, Decoder &decoder);
+J encodeDebugRecords(const llvm::Instruction &instruction, Encoder &encoder);
+void decodeDebugRecords(const J &records, Decoder &decoder, llvm::Instruction &instruction);
+J encodeTrailingDebugRecords(const llvm::BasicBlock &block, Encoder &encoder);
+void decodeTrailingDebugRecords(const J &records, Decoder &decoder, llvm::BasicBlock &block);
+
 O encodeInstruction(const llvm::Instruction &instruction, Encoder &encoder);
 llvm::Instruction *decodeInstruction(const O &instruction, Decoder &decoder,
                                     llvm::BasicBlock *block);

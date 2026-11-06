@@ -1076,6 +1076,1617 @@
             "operands"
           ],
           "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/metadataId"
+            },
+            "kind": {
+              "const": "DIBasicType"
+            },
+            "distinct": {
+              "type": "boolean"
+            },
+            "tag": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 65535
+            },
+            "name": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "size_bits": {
+              "$ref": "#/$defs/decimal"
+            },
+            "align_bits": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            "encoding": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            "extra_inhabitants": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            "flags": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            }
+          },
+          "required": [
+            "id",
+            "kind",
+            "distinct",
+            "tag",
+            "name",
+            "size_bits",
+            "align_bits",
+            "encoding",
+            "extra_inhabitants",
+            "flags"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/metadataId"
+            },
+            "kind": {
+              "const": "DIDerivedType"
+            },
+            "distinct": {
+              "type": "boolean"
+            },
+            "tag": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 65535
+            },
+            "name": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "file": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "line": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            "scope": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "base_type": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "size_bits": {
+              "$ref": "#/$defs/decimal"
+            },
+            "align_bits": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            "offset_bits": {
+              "$ref": "#/$defs/decimal"
+            },
+            "dwarf_address_space": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4294967295
+                }
+              ]
+            },
+            "pointer_auth_raw": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 8388607
+                }
+              ]
+            },
+            "flags": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            "extra_data": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "annotations": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "kind",
+            "distinct",
+            "tag",
+            "name",
+            "file",
+            "line",
+            "scope",
+            "base_type",
+            "size_bits",
+            "align_bits",
+            "offset_bits",
+            "dwarf_address_space",
+            "pointer_auth_raw",
+            "flags",
+            "extra_data",
+            "annotations"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/metadataId"
+            },
+            "kind": {
+              "const": "DICompositeType"
+            },
+            "distinct": {
+              "type": "boolean"
+            },
+            "tag": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 65535
+            },
+            "name": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "file": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "line": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            "scope": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "base_type": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "size_bits": {
+              "$ref": "#/$defs/decimal"
+            },
+            "align_bits": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            "offset_bits": {
+              "$ref": "#/$defs/decimal"
+            },
+            "flags": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            "elements": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "runtime_language": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            "vtable_holder": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "template_parameters": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "identifier": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "discriminator": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "data_location": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "associated": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "allocated": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "rank": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "annotations": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "specification": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "extra_inhabitants": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            }
+          },
+          "required": [
+            "id",
+            "kind",
+            "distinct",
+            "tag",
+            "name",
+            "file",
+            "line",
+            "scope",
+            "base_type",
+            "size_bits",
+            "align_bits",
+            "offset_bits",
+            "flags",
+            "elements",
+            "runtime_language",
+            "vtable_holder",
+            "template_parameters",
+            "identifier",
+            "discriminator",
+            "data_location",
+            "associated",
+            "allocated",
+            "rank",
+            "annotations",
+            "specification",
+            "extra_inhabitants"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/metadataId"
+            },
+            "kind": {
+              "const": "DISubroutineType"
+            },
+            "distinct": {
+              "type": "boolean"
+            },
+            "flags": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            "calling_convention": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            "types": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "kind",
+            "distinct",
+            "flags",
+            "calling_convention",
+            "types"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/metadataId"
+            },
+            "kind": {
+              "const": "DICompileUnit"
+            },
+            "distinct": {
+              "const": true
+            },
+            "source_language": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            "file": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "producer": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "optimized": {
+              "type": "boolean"
+            },
+            "flags_string": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "runtime_version": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            "split_debug_filename": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "emission_kind": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3
+            },
+            "enum_types": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "retained_types": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "global_variables": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "imported_entities": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "macros": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "dwo_id": {
+              "$ref": "#/$defs/decimal"
+            },
+            "split_debug_inlining": {
+              "type": "boolean"
+            },
+            "debug_info_for_profiling": {
+              "type": "boolean"
+            },
+            "name_table_kind": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3
+            },
+            "ranges_base_address": {
+              "type": "boolean"
+            },
+            "sysroot": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "sdk": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "kind",
+            "distinct",
+            "source_language",
+            "file",
+            "producer",
+            "optimized",
+            "flags_string",
+            "runtime_version",
+            "split_debug_filename",
+            "emission_kind",
+            "enum_types",
+            "retained_types",
+            "global_variables",
+            "imported_entities",
+            "macros",
+            "dwo_id",
+            "split_debug_inlining",
+            "debug_info_for_profiling",
+            "name_table_kind",
+            "ranges_base_address",
+            "sysroot",
+            "sdk"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/metadataId"
+            },
+            "kind": {
+              "const": "DISubprogram"
+            },
+            "distinct": {
+              "type": "boolean"
+            },
+            "scope": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "name": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "linkage_name": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "file": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "line": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            "type": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "scope_line": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            "containing_type": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "virtual_index": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            "this_adjustment": {
+              "type": "integer",
+              "minimum": -2147483648,
+              "maximum": 2147483647
+            },
+            "flags": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            "subprogram_flags": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            "unit": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "template_parameters": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "declaration": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "retained_nodes": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "thrown_types": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "annotations": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "target_function_name": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "kind",
+            "distinct",
+            "scope",
+            "name",
+            "linkage_name",
+            "file",
+            "line",
+            "type",
+            "scope_line",
+            "containing_type",
+            "virtual_index",
+            "this_adjustment",
+            "flags",
+            "subprogram_flags",
+            "unit",
+            "template_parameters",
+            "declaration",
+            "retained_nodes",
+            "thrown_types",
+            "annotations",
+            "target_function_name"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/metadataId"
+            },
+            "kind": {
+              "const": "DILocation"
+            },
+            "distinct": {
+              "type": "boolean"
+            },
+            "line": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            "column": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 65535
+            },
+            "scope": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "inlined_at": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "implicit_code": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "id",
+            "kind",
+            "distinct",
+            "line",
+            "column",
+            "scope",
+            "inlined_at",
+            "implicit_code"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/metadataId"
+            },
+            "kind": {
+              "const": "DILocalVariable"
+            },
+            "distinct": {
+              "type": "boolean"
+            },
+            "scope": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "name": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "file": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "line": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            "type": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "argument": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 65535
+            },
+            "flags": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            "align_bits": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            "annotations": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "kind",
+            "distinct",
+            "scope",
+            "name",
+            "file",
+            "line",
+            "type",
+            "argument",
+            "flags",
+            "align_bits",
+            "annotations"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/metadataId"
+            },
+            "kind": {
+              "const": "DILexicalBlock"
+            },
+            "distinct": {
+              "type": "boolean"
+            },
+            "scope": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "file": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "line": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            "column": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 65535
+            }
+          },
+          "required": [
+            "id",
+            "kind",
+            "distinct",
+            "scope",
+            "file",
+            "line",
+            "column"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/metadataId"
+            },
+            "kind": {
+              "const": "DILexicalBlockFile"
+            },
+            "distinct": {
+              "type": "boolean"
+            },
+            "scope": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "file": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "discriminator": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            }
+          },
+          "required": [
+            "id",
+            "kind",
+            "distinct",
+            "scope",
+            "file",
+            "discriminator"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/metadataId"
+            },
+            "kind": {
+              "const": "DIGlobalVariable"
+            },
+            "distinct": {
+              "type": "boolean"
+            },
+            "scope": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "name": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "linkage_name": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "file": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "line": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            "type": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "local_to_unit": {
+              "type": "boolean"
+            },
+            "definition": {
+              "type": "boolean"
+            },
+            "static_data_member_declaration": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "template_parameters": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "align_bits": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            "annotations": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "kind",
+            "distinct",
+            "scope",
+            "name",
+            "linkage_name",
+            "file",
+            "line",
+            "type",
+            "local_to_unit",
+            "definition",
+            "static_data_member_declaration",
+            "template_parameters",
+            "align_bits",
+            "annotations"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/metadataId"
+            },
+            "kind": {
+              "const": "DIGlobalVariableExpression"
+            },
+            "distinct": {
+              "type": "boolean"
+            },
+            "variable": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "expression": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "kind",
+            "distinct",
+            "variable",
+            "expression"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/metadataId"
+            },
+            "kind": {
+              "const": "DISubrange"
+            },
+            "distinct": {
+              "type": "boolean"
+            },
+            "count": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "lower_bound": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "upper_bound": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "stride": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "kind",
+            "distinct",
+            "count",
+            "lower_bound",
+            "upper_bound",
+            "stride"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/metadataId"
+            },
+            "kind": {
+              "const": "DILabel"
+            },
+            "distinct": {
+              "type": "boolean"
+            },
+            "scope": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "name": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "file": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "line": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            }
+          },
+          "required": [
+            "id",
+            "kind",
+            "distinct",
+            "scope",
+            "name",
+            "file",
+            "line"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/metadataId"
+            },
+            "kind": {
+              "const": "DIFile"
+            },
+            "distinct": {
+              "type": "boolean"
+            },
+            "filename": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "directory": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "checksum": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 3
+                    },
+                    "value": {
+                      "$ref": "#/$defs/metadataId"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "value"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "source": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "kind",
+            "distinct",
+            "filename",
+            "directory",
+            "checksum",
+            "source"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/metadataId"
+            },
+            "kind": {
+              "const": "DIExpression"
+            },
+            "distinct": {
+              "type": "boolean"
+            },
+            "elements": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/decimal"
+              }
+            }
+          },
+          "required": [
+            "id",
+            "kind",
+            "distinct",
+            "elements"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/metadataId"
+            },
+            "kind": {
+              "const": "DIEnumerator"
+            },
+            "distinct": {
+              "type": "boolean"
+            },
+            "width": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1048576
+            },
+            "value_hex": {
+              "$ref": "#/$defs/bits"
+            },
+            "unsigned": {
+              "type": "boolean"
+            },
+            "name": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "kind",
+            "distinct",
+            "width",
+            "value_hex",
+            "unsigned",
+            "name"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/metadataId"
+            },
+            "kind": {
+              "const": "DIAssignID"
+            },
+            "distinct": {
+              "const": true
+            }
+          },
+          "required": [
+            "id",
+            "kind",
+            "distinct"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/metadataId"
+            },
+            "kind": {
+              "const": "DIArgList"
+            },
+            "arguments": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/metadataId"
+              }
+            }
+          },
+          "required": [
+            "id",
+            "kind",
+            "arguments"
+          ],
+          "additionalProperties": false
         }
       ]
     },
@@ -1621,6 +3232,12 @@
         },
         "has_unwind": {
           "type": "boolean"
+        },
+        "debug_records": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/debugRecord"
+          }
         }
       },
       "required": [
@@ -1629,7 +3246,8 @@
         "operands",
         "id",
         "name",
-        "metadata"
+        "metadata",
+        "debug_records"
       ],
       "additionalProperties": false,
       "description": "Operation-specific required/forbidden fields and semantics are enforced by system_instructions.cpp; each result is constructed anew and LLVM verification is mandatory."
@@ -1670,13 +3288,20 @@
             "additionalProperties": false
           },
           "description": "Exact ordered references to the users and operand slots of this basic block. The decoder validates a bijection over all fresh LLVM uses and writes bitcode preserving the resulting order."
+        },
+        "trailing_debug_records": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/debugRecord"
+          }
         }
       },
       "required": [
         "id",
         "name",
         "instructions",
-        "use_order"
+        "use_order",
+        "trailing_debug_records"
       ],
       "additionalProperties": false
     },
@@ -1830,6 +3455,122 @@
         "new_debug_format"
       ],
       "additionalProperties": false
+    },
+    "debugRecord": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "enum": [
+                "dbg_declare",
+                "dbg_value"
+              ]
+            },
+            "debug_location": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "location": {
+              "$ref": "#/$defs/metadataId"
+            },
+            "variable": {
+              "$ref": "#/$defs/metadataId"
+            },
+            "expression": {
+              "$ref": "#/$defs/metadataId"
+            }
+          },
+          "required": [
+            "kind",
+            "debug_location",
+            "location",
+            "variable",
+            "expression"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "dbg_assign"
+            },
+            "debug_location": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "location": {
+              "$ref": "#/$defs/metadataId"
+            },
+            "variable": {
+              "$ref": "#/$defs/metadataId"
+            },
+            "expression": {
+              "$ref": "#/$defs/metadataId"
+            },
+            "assign_id": {
+              "$ref": "#/$defs/metadataId"
+            },
+            "address": {
+              "$ref": "#/$defs/metadataId"
+            },
+            "address_expression": {
+              "$ref": "#/$defs/metadataId"
+            }
+          },
+          "required": [
+            "kind",
+            "debug_location",
+            "location",
+            "variable",
+            "expression",
+            "assign_id",
+            "address",
+            "address_expression"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "dbg_label"
+            },
+            "debug_location": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/metadataId"
+                }
+              ]
+            },
+            "label": {
+              "$ref": "#/$defs/metadataId"
+            }
+          },
+          "required": [
+            "kind",
+            "debug_location",
+            "label"
+          ],
+          "additionalProperties": false
+        }
+      ]
     }
   }
 }
