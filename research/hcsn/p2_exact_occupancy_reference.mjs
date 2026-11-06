@@ -20,7 +20,12 @@ function normalize(raw, dimension) {
   if (!(magnitude > 0) || !Number.isFinite(magnitude)) {
     throw new AddressContractError('invalid zero or nonfinite address norm');
   }
-  const key = raw.map(x => x / magnitude);
+  // Object.is distinguishes -0 from +0, but numeric vector addresses do not.
+  // Canonicalize the sign of zero to preserve exact writes and readback.
+  const key = raw.map(x => {
+    const unit = x / magnitude;
+    return unit === 0 ? 0 : unit;
+  });
   if (key.some(x => !Number.isFinite(x))) {
     throw new AddressContractError('nonfinite normalized address');
   }
