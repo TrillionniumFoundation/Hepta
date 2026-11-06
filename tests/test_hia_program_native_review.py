@@ -378,3 +378,15 @@ class DirectNativeIndependentReview(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SafetyContractDirectNativeBoundaryTests(unittest.TestCase):
+    def test_direct_x86_machine_backend_is_explicitly_unproved(self):
+        contract = json.loads((ROOT / "docs/HIA_SAFETY_CONTRACT.json").read_bytes())
+        catalog = contract["registry"]["instruction_catalog"]
+        self.assertIn("direct x86-64 machine backends", catalog["backend_scope"])
+        self.assertIn("catalog inclusion grants no native entry ABI", catalog["backend_scope"])
+        self.assertFalse(catalog["safety_certificate"])
+        self.assertFalse(contract["unproved_claims"]["core_to_native_refinement_proved"])
+        capability = next(row for row in contract["capabilities"] if row["id"] == "native_lowering")
+        self.assertTrue(any("direct x86-64 machine-code lowering" in item for item in capability["exclusions"]))
