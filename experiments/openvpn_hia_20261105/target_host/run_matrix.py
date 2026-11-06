@@ -807,7 +807,7 @@ def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     for flag in ('c','hia','hia-trace','source','build','out','private-work','perf'):
         parser.add_argument('--'+flag,type=Path)
-    parser.add_argument('--budget-seconds',type=int,default=1800)
+    parser.add_argument('--budget-seconds',type=int,default=3600)
     parser.add_argument('--cleanup-state',type=Path)
     parser.add_argument('--preflight-only',action='store_true')
     args=parser.parse_args(argv)
