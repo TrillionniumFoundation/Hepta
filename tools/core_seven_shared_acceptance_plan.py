@@ -52,6 +52,33 @@ ADDITIONS = (
     'tests/test_hia_scalar_return_signature.py',
     'tests/test_hia_ndu_preparation_bound.py',
 )
+ROUND6_ADDITIONS = (
+    'benchmarks/hia_ndu_policy_evolution/PROTOCOL.json',
+    'benchmarks/hia_stb_service/PROTOCOL.json',
+    'benchmarks/hia_stb_service/baseline.rs',
+    'benchmarks/hia_stb_service/driver.c',
+    'docs/HIA_BOUNDED_BYTE_PROFILE.md',
+    'docs/HIA_NDU_POLICY_EVOLUTION.md',
+    'docs/HIA_FRONTIER_FACTORIAL.md',
+    'docs/HIA_STB_SERVICE.md',
+    'hepta/hia_ndu_module_costs.py',
+    'hepta/hia_ndu_policy.py',
+    'tests/test_hia_agent_frontier_factorial.py',
+    'tests/test_hia_agent_sealed_execution.py',
+    'tests/test_hia_bounded_profile.py',
+    'tests/test_hia_ndu_policy.py',
+    'tests/test_hia_stb_service.py',
+    'tools/qualify_hia_agent_frontier_factorial.py',
+    'tools/qualify_hia_ndu_policy_evolution.py',
+    'tools/qualify_hia_stb_service.py',
+    'tools/qualify_hia_agent_provider.py',
+    'tests/test_hia_agent_provider.py',
+    'tools/qualify_hia_composition.py',
+    'experiments/hia_agent_assembly_v4_20261030/evaluator.py',
+    'rust/hia-ndu-dynamic-model/src/main.rs',
+    'rust/hia-ndu-dynamic-model/src/planner.rs',
+    'rust/hia-ndu-dynamic-model/Cargo.toml',
+)
 METADATA_RESERVE = 224589
 RAW_GLOBAL = 819891
 BUDGETS = dict(source=2097152, sources=8388608, module=33554432, modules=134217728,
@@ -136,14 +163,14 @@ def flags(success=False):
 
 
 # Frozen exact identity paths: do not hash files merely to discover their names.
-SOURCE_IDENTITY_PATHS = tuple(sorted((*legacy.SOURCE_IDENTITY_PATHS, *ADDITIONS)))
+SOURCE_IDENTITY_PATHS = tuple(sorted((*legacy.SOURCE_IDENTITY_PATHS, *ADDITIONS, *ROUND6_ADDITIONS)))
 SUPPORT_IDENTITY_PATHS = legacy.SUPPORT_IDENTITY_PATHS
 
 
 def source_paths():
     legacy.source_paths()  # retain the exact earlier source identity closure
     paths = SOURCE_IDENTITY_PATHS
-    require(len(paths) == len(set(paths)) == 267 and commitment(paths) == 'd27b4d1edaa27950489d7b54fa6b8242b493883d0927933fa303e5b1203c9c55',
+    require(len(paths) == len(set(paths)) == 292 and commitment(paths) == '85089dadfa8c87d8ef59560b5bce5a85e0a685eba58ea1897f7665b656c25887',
             'reviewed exact source identity closure')
     # pipeline.compiler_hash reads every actual top-level hepta/*.py byte,
     # including modules that are not imported by this selected proof profile.

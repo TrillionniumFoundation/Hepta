@@ -339,3 +339,98 @@ def analyze_static_budget(program, *, max_allocator_interactions=None,
                          ensure_ascii=False, allow_nan=False).encode("utf-8")
     result["sha256"] = sha256(content).hexdigest()
     return result
+
+
+
+def qualify_bounded_resources(program, *, limits: dict) -> dict:
+    """Compose existing analyses for every explicit public scalar export.
+
+    This is an optional production admission profile, not another Core or
+    opcode semantics. It accepts no proof receipt: the same immutable Core
+    is reverified and all quantities are freshly computed by the existing
+    event/CFG and requested-payload analyzers. A normal application error is
+    still a Core return, with Core's existing owner/loan obligations.
+
+    Primitive v1..v6 use the existing all-function payload analysis. V8 uses
+    the reviewed borrowed-call local-peak analysis independently for each
+    public entry. V7 and nominal inputs retain their existing standalone
+    support but need a separate composed-profile review. In particular, a
+    schema relabel is never used to import a newer resource interpretation.
+    """
+    from .hia_program import verify_program
+    from .hia_heap_bound import analyze_constant_live_heap, qualify_entry_live_heap_budget
+
+    keys = {"max_allocator_interactions", "max_vm_ticks", "max_call_depth",
+            "max_live_heap_bytes"}
+    if type(limits) is not dict:
+        _reject("E_HIA_BUDGET_POLICY", "bounded resource limits must be a plain object")
+    # One capture of immutable built-in integers; later caller edits cannot
+    # widen the policy between analysis and execution/native publication.
+    policy = limits.copy()
+    if (set(policy) != keys or any(type(value) is not int or value < 0
+                                   for value in policy.values())
+            or not 1 <= policy["max_vm_ticks"] <= 10_000_000
+            or not 1 <= policy["max_call_depth"] <= 256
+            or policy["max_live_heap_bytes"] > 1024 * 1024 * 1024):
+        _reject("E_HIA_BUDGET_POLICY",
+                "complete exact integer limits required: allocator interactions >=0, "
+                "VM ticks 1..10000000, call frames 1..256, payload bytes 0..1073741824")
+    checked = verify_program(program)
+    document = checked.as_dict()
+    if (checked.structured_bytes is not None
+            or document["schema"] not in _ALLOWED_CORE_SCHEMAS | {_V8_SCHEMA}):
+        _reject("E_HIA_BUDGET_PROFILE",
+                "bounded resources require explicit primitive v1..v6 or reviewed byte-only v8 Core")
+    exports = document.get("exports")
+    if type(exports) is not list or not 1 <= len(exports) <= 128:
+        _reject("E_HIA_BUDGET_PROFILE", "bounded resources require 1..128 explicit scalar exports")
+    # This checks *all* definitions and call edges, including private code.
+    # Traps and allocator refusal do not erase a syntactic possible path.
+    events = analyze_static_budget(checked,
+        max_allocator_interactions=policy["max_allocator_interactions"],
+        max_vm_ticks=policy["max_vm_ticks"],
+        max_call_depth=policy["max_call_depth"])
+    event_rows = {row["function"]: row for row in events["functions"]}
+    heaps = []
+    if document["schema"] == _V8_SCHEMA:
+        for name in exports:
+            heaps.append(qualify_entry_live_heap_budget(checked, name,
+                max_live_heap_bytes=policy["max_live_heap_bytes"]))
+        peaks = {row["function"]: row["peak_bound_bytes"] for row in heaps}
+    else:
+        peaks = analyze_constant_live_heap(checked)
+        if any(value > policy["max_live_heap_bytes"] for value in peaks.values()):
+            _reject("E_HIA_BUDGET_EXCEEDED", "requested payload peak exceeds bounded resource policy")
+    rows = [{**event_rows[name], "max_live_heap_bytes": peaks[name]} for name in exports]
+    report = {
+        "schema": "hepta.hia.bounded-resources.v1",
+        "profile": "explicit-scalar-exports-acyclic-byte-resources-v1",
+        "status": "qualified_structural_events_and_requested_payload_only",
+        "core_schema": document["schema"],
+        "core_sha256": checked.sha256,
+        "input_sha256": checked.input_sha256,
+        "limits": policy,
+        "exports": rows,
+        "static_events": events,
+        "borrowed_entry_payload": heaps,
+        "claims": {
+            "canonical_core_reverified": True,
+            "every_explicit_public_export_covered": True,
+            "acyclic_control_and_call_graphs_checked": True,
+            "allocator_interactions_and_vm_ticks_bounded": True,
+            "root_inclusive_synchronous_vm_frames_bounded": True,
+            "requested_live_hia_byte_payload_bounded": True,
+            "normal_return_resource_obligations_checked": True,
+            "program_traps_excluded": False,
+            "allocator_success_guaranteed": False,
+            "checker_to_formal_model_refinement_proved": False,
+            "source_to_core_or_native_backend_refinement_proved": False,
+            "process_rss_or_native_stack_bytes_bounded": False,
+            "whole_language_soundness_proved": False,
+            "retained_receipt_grants_admission": False,
+        },
+    }
+    raw = json.dumps(report, sort_keys=True, separators=(",", ":"),
+                     ensure_ascii=False, allow_nan=False).encode("utf-8")
+    report["sha256"] = sha256(raw).hexdigest()
+    return report

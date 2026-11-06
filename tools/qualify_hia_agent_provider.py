@@ -27,6 +27,7 @@ from tools.qualify_hia_agent_repository_maintenance_v2 import CohortEvents
 
 MAX_STREAM = 16 * 1024 * 1024
 MAX_LINE = 1024 * 1024
+MAX_CATALOG_WARNINGS = 16
 PROMPT = b"Do not use tools. Reply with exactly the single word AVAILABLE. This is an availability probe, not a coding task.\n"
 
 
@@ -118,12 +119,45 @@ def classify(process, raw):
     return result
 
 
+def catalog_warning(event):
+    """Admit bounded configuration metadata, never a response or model event.
+
+    Codex 0.167's generated app-server schema includes configWarning between
+    initialize and model/list. Retain it rather than closing stdin before the
+    requested response arrives. All other notification methods still refuse.
+    """
+    if (type(event) is not dict or not {"method", "params"} <= set(event)
+            or not set(event) <= {"method", "params", "emittedAtMs"}
+            or event["method"] != "configWarning" or type(event["params"]) is not dict):
+        raise ValueError("unregistered catalog notification")
+    if "emittedAtMs" in event and (type(event["emittedAtMs"]) is not int
+                                    or not 0 <= event["emittedAtMs"] < 2**63):
+        raise ValueError("invalid catalog notification timestamp")
+    params = event["params"]
+    if (not {"summary"} <= set(params) or not set(params) <= {"summary", "details", "path", "range"}
+            or type(params["summary"]) is not str or not 0 < len(params["summary"]) <= 65536):
+        raise ValueError("invalid configuration warning")
+    for field in ("details", "path"):
+        if params.get(field) is not None and (type(params[field]) is not str or len(params[field]) > 65536):
+            raise ValueError("invalid configuration warning text")
+    location = params.get("range")
+    if location is not None:
+        if type(location) is not dict or set(location) != {"start", "end"}:
+            raise ValueError("invalid configuration warning range")
+        for position in location.values():
+            if (type(position) is not dict or set(position) != {"line", "column"}
+                    or any(type(n) is not int or not 0 <= n < 2**32 for n in position.values())):
+                raise ValueError("invalid configuration warning position")
+    return event
+
+
 def catalog_response(raw):
     lines, events = event_lines(raw)
-    if len(events) != 2:
+    if not 2 <= len(events) <= MAX_CATALOG_WARNINGS + 2:
         raise ValueError("exactly one initialization ACK and one catalog response required")
     startup_response(lines[0])
-    response = events[1]
+    warnings = [catalog_warning(event) for event in events[1:-1]]
+    response = events[-1]
     if (set(response) != {"id", "result"} or type(response["id"]) is not int or response["id"] != 2
             or type(response["result"]) is not dict or set(response["result"]) != {"data", "nextCursor"}):
         raise ValueError("unexpected catalog envelope")
@@ -141,7 +175,8 @@ def catalog_response(raw):
         models.append({k: row[k] for k in ("id", "model", "isDefault")})
     if len({m["id"] for m in models}) != len(models) or len({m["model"] for m in models}) != len(models):
         raise ValueError("duplicate catalog identity")
-    return {"models": models, "model_generation_requests": 0, "account_entitlement_attested": False}
+    return {"models": models, "model_generation_requests": 0, "account_entitlement_attested": False,
+            "catalog_notifications": warnings}
 
 
 def _catalog_worker(codex, logs):
@@ -163,7 +198,16 @@ def _catalog_worker(codex, logs):
     startup_response(receive())
     send(initialized)
     send(canonical({"id": 2, "method": "model/list", "params": {}}) + b"\n")
-    receive()
+    # A notification is not the response to id=2. Do not send EOF until that
+    # response is observed; retain every allowed warning in the raw stream.
+    for count in range(MAX_CATALOG_WARNINGS + 1):
+        _, incoming = event_lines(receive())
+        event = incoming[0]
+        if type(event.get("id")) is int and event["id"] == 2:
+            break
+        catalog_warning(event)
+    else:
+        raise ValueError("catalog notification budget exhausted")
     child.stdin.close()
     while True:
         extra = child.stdout.read(65536)

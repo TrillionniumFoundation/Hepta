@@ -515,7 +515,7 @@ class _Machine:
 
 def execute_program(program, function, arguments, *, max_steps=1_000_000,
                     max_heap_bytes=16 * 1024 * 1024, allocation_fail_at=None,
-                    max_call_depth=256):
+                    max_call_depth=256, bounded_resource_limits=None):
     """Verify immutable bytes, then execute a scalar public entry point.
 
     Owners and views can be created, moved and called internally. Python callers
@@ -537,7 +537,27 @@ def execute_program(program, function, arguments, *, max_steps=1_000_000,
     arguments = tuple(arguments)
     if function not in checked.scalar_entrypoints:
         raise HIAProgramRejected("nominal/internal signatures are not public scalar entries", "E_HIA_INPUT")
+    budget = None
+    if bounded_resource_limits is not None:
+        from .hia_static_budget import HIAStaticBudgetRejected, qualify_bounded_resources
+        budget = qualify_bounded_resources(checked, limits=bounded_resource_limits)
+        row = next(row for row in budget["exports"] if row["function"] == function)
+        # Smaller evaluator limits remain meaningful, but cannot silently
+        # invalidate the finite profile promised for this invocation.
+        if (max_steps < row["max_vm_ticks"] or max_heap_bytes < row["max_live_heap_bytes"]
+                or max_call_depth < row["max_call_depth"]):
+            raise HIAStaticBudgetRejected("E_HIA_BUDGET_POLICY",
+                "evaluator limits are below the selected entry's qualified resource bounds")
+        max_steps = min(max_steps, budget["limits"]["max_vm_ticks"])
+        max_heap_bytes = min(max_heap_bytes, budget["limits"]["max_live_heap_bytes"])
+        max_call_depth = min(max_call_depth, budget["limits"]["max_call_depth"])
     machine = _Machine(checked, max_steps, max_heap_bytes, allocation_fail_at, max_call_depth)
+
+    def report(status, values=None, error=None):
+        observed = machine.report(function, status, values, error)
+        if budget is not None:
+            observed["bounded_resources"] = budget
+        return observed
     fn = machine.functions.get(function)
     if fn is None or len(fn["params"]) != len(arguments):
         raise HIAProgramRejected("unknown entry/wrong argument count", "E_HIA_INPUT")
@@ -548,15 +568,15 @@ def execute_program(program, function, arguments, *, max_steps=1_000_000,
     try:
         values = machine.invoke(fn, arguments)
     except HIAProgramTrap as exc:
-        exc.report = machine.report(function, "trapped", error=exc)
+        exc.report = report("trapped", error=exc)
         raise
     except HIAProgramBudgetExceeded as exc:
-        exc.report = machine.report(function, "budget_exceeded", error=exc)
+        exc.report = report("budget_exceeded", error=exc)
         raise
     except RecursionError as exc:
         limit = HIAProgramBudgetExceeded("calls", "host recursion limit reached")
-        limit.report = machine.report(function, "budget_exceeded", error=limit)
+        limit.report = report("budget_exceeded", error=limit)
         raise limit from exc
     if machine.owners or machine.chains or machine.loans_started != machine.loans_ended:
         raise HIAProgramRejected("successful scalar entry leaked a verified resource", "E_HIA_RUNTIME_INVARIANT")
-    return machine.report(function, "returned", values)
+    return report("returned", values)

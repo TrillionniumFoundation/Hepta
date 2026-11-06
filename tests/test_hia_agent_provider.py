@@ -167,6 +167,7 @@ class ProviderTests(unittest.TestCase):
                 " print(json.dumps({'id':1,'result':{'userAgent':'non-model-fixture'}}),flush=True)\n" +
                 " assert json.loads(input())['method']=='initialized'\n" +
                 " assert json.loads(input())=={'id':2,'method':'model/list','params':{}}\n" +
+                " print(json.dumps({'method':'configWarning','params':{'summary':'fixture warning','details':None},'emittedAtMs':1}),flush=True)\n" +
                 " print(json.dumps({'id':2,'result':{'data':[{'id':'fixture','model':'fixture','isDefault':True}],'nextCursor':None}}),flush=True)\n" +
                 " assert sys.stdin.read()==''\n" +
                 "else:\n" +
@@ -183,12 +184,46 @@ class ProviderTests(unittest.TestCase):
             self.assertEqual(report["status"], "catalog_observed")
             self.assertTrue(report["process"]["cleanup_confirmed"])
             self.assertFalse(report["account_entitlement_attested"])
+            self.assertEqual(len(report["catalog_notifications"]), 1)
             batch = root / "batch"
             batch.mkdir()
             rows = provider.probe_batch(str(executable), ["fixture"], batch, 10)
             self.assertTrue(rows[0]["available"])
             self.assertTrue(rows[0]["process"]["cleanup_confirmed"])
             self.assertEqual(rows[0]["usage"], USAGE)
+
+    def test_catalog_configuration_metadata_never_replaces_response(self):
+        ack = {"id": 1, "result": {"userAgent": "fixture"}}
+        warning = {"method": "configWarning", "params": {"summary": "fixture", "details": None},
+                   "emittedAtMs": 42}
+        response = {"id": 2, "result": {"data": [{"id": "fixture", "model": "fixture", "isDefault": True}],
+                                       "nextCursor": None}}
+        result = provider.catalog_response(wire([ack, warning, response]))
+        self.assertEqual(result["catalog_notifications"], [warning])
+        self.assertFalse(result["account_entitlement_attested"])
+        self.assertEqual(result["model_generation_requests"], 0)
+        for events in ([ack, warning], [warning, ack, response], [ack, response, warning],
+                       [ack, warning, response, response], [ack, ack, response],
+                       [ack] + [warning] * (provider.MAX_CATALOG_WARNINGS + 1) + [response]):
+            with self.subTest(events=events), self.assertRaises(ValueError):
+                provider.catalog_response(wire(events))
+
+    def test_catalog_notification_shape_and_unknown_methods_refuse(self):
+        warning = {"method": "configWarning", "params": {"summary": "fixture"}, "emittedAtMs": 42}
+        for mutation in (lambda w: w.update(method="turn/started"), lambda w: w.update(id=2),
+                         lambda w: w.update(emittedAtMs=True), lambda w: w.update(emittedAtMs=-1),
+                         lambda w: w["params"].update(summary=""), lambda w: w["params"].update(details=[]),
+                         lambda w: w["params"].update(path={}), lambda w: w["params"].update(extra=True),
+                         lambda w: w["params"].update(range={"start": {"line": True, "column": 1},
+                                                             "end": {"line": 1, "column": 1}})):
+            changed = deepcopy(warning)
+            mutation(changed)
+            with self.subTest(changed=changed), self.assertRaises(ValueError):
+                provider.catalog_warning(changed)
+        full = deepcopy(warning)
+        full["params"].update(details="details", path="fixture.toml",
+                             range={"start": {"line": 1, "column": 0}, "end": {"line": 1, "column": 1}})
+        self.assertEqual(provider.catalog_warning(full), full)
 
 
 if __name__ == "__main__":

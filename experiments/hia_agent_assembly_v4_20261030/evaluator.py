@@ -188,6 +188,23 @@ def build(task, language, text, folder, clang, rustc, *, enforce_contract=True):
     return record
 
 
+def seal_execution_image(descriptor):
+    """Require Linux's immutable memfd, including on Python without constants.
+
+    These Linux UAPI values are also used by the native HIA observers. A
+    missing Python name never removes the syscall or its readback check.
+    """
+    required = (getattr(fcntl, "F_SEAL_WRITE", 0x0008)
+                | getattr(fcntl, "F_SEAL_SHRINK", 0x0002)
+                | getattr(fcntl, "F_SEAL_GROW", 0x0004)
+                | getattr(fcntl, "F_SEAL_SEAL", 0x0001))
+    fcntl.fcntl(descriptor, getattr(fcntl, "F_ADD_SEALS", 1033), required)
+    observed = fcntl.fcntl(descriptor, getattr(fcntl, "F_GET_SEALS", 1034))
+    if type(observed) is not int or observed & required != required:
+        raise RuntimeError("E_MATCHED_EXECUTION_IMAGE_NOT_SEALED")
+    return observed
+
+
 def execute(built, task, cases, expected):
     if not built["native_built"]:
         raise ValueError("unbuilt candidate")
@@ -200,8 +217,7 @@ def execute(built, task, cases, expected):
         with os.fdopen(os.dup(descriptor), "wb") as stream:
             stream.write(data)
         os.fchmod(descriptor, 0o500)
-        required = fcntl.F_SEAL_WRITE | fcntl.F_SEAL_SHRINK | fcntl.F_SEAL_GROW | fcntl.F_SEAL_SEAL
-        fcntl.fcntl(descriptor, fcntl.F_ADD_SEALS, required)
+        seal_execution_image(descriptor)
 
         def limits():
             resource.setrlimit(resource.RLIMIT_CPU, (2,2))
@@ -229,7 +245,7 @@ def execute(built, task, cases, expected):
             "returncode": result.returncode, "stdout": result.stdout, "stderr": result.stderr,
             "cases": cases, "expected": expected, "actual": actual, "native_execution_ns": execution_ns,
             "artifact_sha256": artifact["sha256"], "artifact_unchanged": file_identity(artifact["path"]) == artifact,
-            "sealed_image": True, "seals": fcntl.fcntl(descriptor, fcntl.F_GET_SEALS)}
+            "sealed_image": True, "seals": fcntl.fcntl(descriptor, getattr(fcntl, "F_GET_SEALS", 1034))}
         if built["provider_audit"]:
             audit_started = time.monotonic_ns()
             wanted = [[int(value) for value in provider_values(task["id"],case)] for case in cases]

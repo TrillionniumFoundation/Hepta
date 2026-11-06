@@ -192,6 +192,9 @@ def execute_core(program, function, arguments, **limits):
 
 
 def build_core(program, output, *, clang="clang", kind="shared",
-               target="x86_64-unknown-linux-gnu"):
+               target="x86_64-unknown-linux-gnu", bounded_resource_limits=None):
     from .hia_program_llvm import build_program_native
-    return build_program_native(verify_core(program), output, clang=clang, kind=kind, target=target)
+    options = {} if bounded_resource_limits is None else {
+        "bounded_resource_limits": bounded_resource_limits}
+    return build_program_native(verify_core(program), output, clang=clang, kind=kind,
+                                target=target, **options)

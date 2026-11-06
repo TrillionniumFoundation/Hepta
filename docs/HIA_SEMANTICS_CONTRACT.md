@@ -313,3 +313,12 @@ changed renaming code, stale imported class aliases and changed capability
 equality cannot retain a cached ownership admission. These tests retain the
 distinction between an executed finite contract and an unproved whole-toolchain
 refinement claim.
+
+## Optional composed byte-resource admission
+
+The production interpreter and native builder accept the same optional
+`bounded_resource_limits` policy. The [bounded byte profile](HIA_BOUNDED_BYTE_PROFILE.md)
+reuses the canonical Core verifier and existing event/payload analyses for every
+explicit public export before execution or LLVM emission. It does not widen
+any schema, alter error/trap semantics, or discharge the outstanding checker,
+model and native-backend refinement obligations.
