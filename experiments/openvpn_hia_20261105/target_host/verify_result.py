@@ -38,6 +38,13 @@ def require(value, message):
         raise ValueError(message)
 
 
+def verify_profile_process_samples(profile, client_arm):
+    """Require PID-attributed samples for every userspace profile arm."""
+    if client_arm in ("c-user", "hia-user"):
+        require(profile.get("openvpn_sample_headers_by_role", {}).get("client", 0) > 0,
+                client_arm + " userspace process was not sampled")
+
+
 def verify_udp_delivery(value, workload, policy):
     """Independently recompute offered load, receiver goodput and loss from raw iperf receipts."""
     offered_match = re.fullmatch(r"([0-9]+(?:\.[0-9]+)?)([KMG])",
@@ -274,9 +281,7 @@ def verify(public, expected_commit):
             require(profile.get("actual_samples_present") is True, "profile contains no samples")
             require(profile.get("actual_sample_headers", 0) > 0 and profile.get("kernel_symbol_lines", 0) > 0,
                     "profile lacks actual process/kernel sampling")
-            if row["arms"]["client"] == "c-user":
-                require(profile.get("openvpn_sample_headers_by_role", {}).get("client", 0) > 0,
-                        "original C userspace process was not sampled")
+            verify_profile_process_samples(profile, row["arms"]["client"])
             for name in ("report", "samples"):
                 record = profile[name]
                 path = beneath(target, record["stdout"])
