@@ -48,7 +48,7 @@ class ProfileRecorderWaitTests(unittest.TestCase):
             matrix.profile_process_sample_required("unknown")
 
     def test_hia_profile_symbol_counter_requires_both_non_epoch_packet_id_hotspots(self):
-        report = "\\n".join([
+        report = "\n".join([
             "  1.25% openvpn [.] ovpn_hia_packet_id_read",
             "  0.75% openvpn [.] ovpn_hia_packet_id_write",
             "  0.50% openvpn [.] ovpn_hia_packet_id_read_epoch",
@@ -61,7 +61,7 @@ class ProfileRecorderWaitTests(unittest.TestCase):
         self.assertEqual(matrix.hia_profile_symbol_lines("  9.00% openvpn [.] ovpn_read"), 0)
 
     def test_independent_verifier_recomputes_hia_profile_hotspots(self):
-        report = "\\n".join([
+        report = "\n".join([
             "  1.25% openvpn [.] ovpn_hia_packet_id_read",
             "  0.75% openvpn [.] ovpn_hia_packet_id_write",
         ])
