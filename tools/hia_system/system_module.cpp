@@ -347,6 +347,9 @@ J Encoder::value(const Value *V) {
       Flags = OB->getNoWrapKind();
     if (auto *EX = dyn_cast<PossiblyExactOperator>(CE))
       Flags = EX->isExact() ? PossiblyExactOperator::IsExact : 0;
+    if (CE->getOpcode() != Instruction::GetElementPtr &&
+        CE->getRawSubclassOptionalData() != Flags)
+      fail("unrepresented constant-expression flags");
     R["flags"] = int64_t(Flags);
     if (auto *GE = dyn_cast<GEPOperator>(CE)) {
       R["source_element"] = type(GE->getSourceElementType());
@@ -666,6 +669,13 @@ Value *Decoder::value(const J &V) {
     keys(O, {"kind", "type", "op", "operands", "flags", "source_element",
              "gep_no_wrap", "in_range", "shuffle_mask"});
     unsigned Op = opcode(str(O, "op"));
+    if (Op == Instruction::GetElementPtr)
+      keys(O, {"kind", "type", "op", "operands", "flags", "source_element",
+               "gep_no_wrap", "in_range"});
+    else if (Op == Instruction::ShuffleVector)
+      keys(O, {"kind", "type", "op", "operands", "flags", "shuffle_mask"});
+    else
+      keys(O, {"kind", "type", "op", "operands", "flags"});
     unsigned Flags = uint(O, "flags", 3);
     std::vector<Constant *> Ops;
     for (auto &E : arr(req(O, "operands"))) Ops.push_back(CV(E));
@@ -673,6 +683,7 @@ Value *Decoder::value(const J &V) {
     if (Instruction::isCast(Op)) {
       Count(1);
       if (Flags) fail("unsupported constant cast flags");
+      if (!ConstantExpr::isSupportedCastOp(Op)) fail("unsupported constant cast opcode");
       if (!CastInst::castIsValid(Instruction::CastOps(Op), Ops[0], T))
         fail("invalid constant cast");
       R = ConstantExpr::getCast(Op, Ops[0], T);
@@ -687,7 +698,11 @@ Value *Decoder::value(const J &V) {
           ArrayRef<Constant *>(Ops).drop_front(), GEPNoWrapFlags::fromRaw(NW), Range);
     } else if (Instruction::isBinaryOp(Op)) {
       Count(2);
-      if (Ops[0]->getType() != Ops[1]->getType()) fail("constant binary operand types");
+      if (Ops[0]->getType() != Ops[1]->getType() ||
+          !Ops[0]->getType()->isIntOrIntVectorTy())
+        fail("constant binary operand types");
+      if (!ConstantExpr::isSupportedBinOp(Op)) fail("unsupported constant binary opcode");
+      if (Op == Instruction::Xor && Flags) fail("flags on constant xor");
       R = ConstantExpr::get(Op, Ops[0], Ops[1], Flags);
     } else if (Op == Instruction::ExtractElement) {
       Count(2); if (Flags) fail("extractelement flags");
