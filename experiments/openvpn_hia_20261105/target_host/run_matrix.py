@@ -402,6 +402,21 @@ def profile_process_sample_required(arm):
     return arm in ("c-user", "hia-user")
 
 
+def hia_profile_symbol_lines(report_text):
+    """Count both exported non-epoch HIA packet-ID entrypoints in OpenVPN's perf report."""
+    if not isinstance(report_text, str):
+        raise ValueError("perf report text must be a string")
+    required = ("ovpn_hia_packet_id_read", "ovpn_hia_packet_id_write")
+    found = set()
+    for line in report_text.splitlines():
+        if not re.search(r"\bopenvpn\b", line):
+            continue
+        for symbol in required:
+            if re.search(r"\b" + re.escape(symbol) + r"\b", line):
+                found.add(symbol)
+    return len(found)
+
+
 def wait_for_profile_recorder(job, workload_seconds, configured_grace_seconds):
     """Wait after traffic for perf's own shutdown/finalization, preserving timeout."""
     grace=profile_record_grace_seconds(workload_seconds,configured_grace_seconds)
@@ -1022,10 +1037,14 @@ def throughput(pair,workload,seconds,cpus,label,perf=None,udp_acceptance=None,re
                 profile.update(actual_samples_present=bool(headers and samples.proc.returncode==0),
                      actual_sample_headers=len(headers),openvpn_sample_headers_by_role=counts,
                      kernel_symbol_lines=kernel,ovpn_symbol_lines=sum(bool(re.search(r'\bovpn_[a-zA-Z_]',line)) for line in lines))
+                report_text=read_text(report.stdout)
+                hia_symbols=hia_profile_symbol_lines(report_text)
+                profile['hia_profile_symbol_lines']=hia_symbols
                 required_process_visible=(not profile_process_sample_required(pair.arms['client'])
                                             or counts['client']>0)
+                required_hia_hotspot=(pair.arms['client']!='hia-user' or hia_symbols==2)
                 profile['passed']=bool(perf_job.proc.returncode==0 and report.proc.returncode==0 and samples.proc.returncode==0
-                                       and headers and kernel and required_process_visible)
+                                       and headers and kernel and required_process_visible and required_hia_hotspot)
             except Exception as exc:
                 if perf_job and not perf_job.finished:
                     try:perf_job.stop();profile['record']=perf_job.row
