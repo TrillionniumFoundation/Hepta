@@ -731,7 +731,7 @@ def local_bidir_receiver(document,role):
 
 def iperf_rate_bps(value):
     """Parse the decimal K/M/G rate syntax passed to iperf3 --bitrate."""
-    match = re.fullmatch(r'([0-9]+(?:\\.[0-9]+)?)([KMG])', str(value))
+    match = re.fullmatch(r'([0-9]+(?:\.[0-9]+)?)([KMG])', str(value))
     if not match:
         raise ValueError('unsupported iperf offered-rate syntax')
     scale = {'K': 1_000, 'M': 1_000_000, 'G': 1_000_000_000}[match.group(2)]
