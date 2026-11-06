@@ -27,6 +27,7 @@ def load(name):
 
 matrix=load('run_matrix')
 netlink=load('dco_peer_stats')
+verifier=load('verify_result')
 
 
 class SessionEvidenceTests(unittest.TestCase):
@@ -239,6 +240,55 @@ class ProcessEvidenceTests(unittest.TestCase):
                 child.signal(signal.SIGTERM)
                 self.assertEqual(row['stdout_sha256'],matrix.digest(child.stdout))
             finally:ledger.close()
+
+
+
+class UdpVerifierTests(unittest.TestCase):
+    def valid_receipt(self):
+        workload={"transport":"udp","offered_rate_each_direction":"100M"}
+        policy={"minimum_offered_rate_fraction":0.95,"maximum_receiver_loss_percent":1.0}
+        client_document={"end":{
+            "sum_sent":{"bits_per_second":100_000_000.0,"sender":True},
+            "sum_sent_bidir_reverse":{"bits_per_second":100_000_000.0,"sender":True},
+        }}
+        server_receiver={"bits_per_second":99_600_000.0,"lost_percent":0.2,"sender":False}
+        client_receiver={"bits_per_second":99_700_000.0,"lost_percent":0.1,"sender":False}
+        evidence=matrix.udp_delivery_evidence(
+            workload,client_document,client_receiver,server_receiver,policy)
+        value={
+            "client_iperf":client_document,
+            "server_local_receiver":server_receiver,
+            "client_local_receiver":client_receiver,
+            "udp_delivery":evidence,
+            "checks":{
+                "udp_offered_rate_met":True,
+                "udp_receiver_rate_met":True,
+                "udp_loss_within_limit":True,
+            },
+        }
+        return value,workload,policy
+
+    def test_independent_verifier_accepts_complete_bidirectional_udp_receipt(self):
+        value,workload,policy=self.valid_receipt()
+        verifier.verify_udp_delivery(value,workload,policy)
+
+    def test_independent_verifier_rejects_raw_receiver_loss_changed_after_summary(self):
+        value,workload,policy=self.valid_receipt()
+        value["server_local_receiver"]["lost_percent"]=2.0
+        with self.assertRaises(ValueError):
+            verifier.verify_udp_delivery(value,workload,policy)
+
+    def test_independent_verifier_rejects_forged_direction_summary(self):
+        value,workload,policy=self.valid_receipt()
+        value["udp_delivery"]["directions"]["client_to_server"]["receiver_bps"]+=1.0
+        with self.assertRaises(ValueError):
+            verifier.verify_udp_delivery(value,workload,policy)
+
+    def test_independent_verifier_rejects_missing_reverse_receiver(self):
+        value,workload,policy=self.valid_receipt()
+        del value["client_local_receiver"]
+        with self.assertRaises(ValueError):
+            verifier.verify_udp_delivery(value,workload,policy)
 
 
 if __name__=='__main__':unittest.main(verbosity=2)
