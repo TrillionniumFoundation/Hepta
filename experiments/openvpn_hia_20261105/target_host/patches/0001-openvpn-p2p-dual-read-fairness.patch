@@ -1,0 +1,51 @@
+diff --git a/src/openvpn/openvpn.h b/src/openvpn/openvpn.h
+--- a/src/openvpn/openvpn.h
++++ b/src/openvpn/openvpn.h
+@@ -232,6 +232,9 @@ struct context_2
+     /* bitmask for event status. Check event.h for possible values */
+     unsigned int event_set_status;
+ 
++    /* Last selected input when both P2P queues were ready. */
++    bool prefer_tun_read;
++
+     struct link_socket **link_sockets;
+     struct link_socket_info **link_socket_infos;
+ 
+diff --git a/src/openvpn/forward.c b/src/openvpn/forward.c
+--- a/src/openvpn/forward.c
++++ b/src/openvpn/forward.c
+@@ -2271,7 +2271,17 @@
+ void
+ process_io(struct context *c, struct link_socket *sock)
+ {
+-    const unsigned int status = c->c2.event_set_status;
++    unsigned int status = c->c2.event_set_status;
++
++    /*
++     * Preserve pending-write priority. When both P2P input directions are
++     * ready, give the next read to the direction not read last.
++     */
++    if ((status & (SOCKET_READ | TUN_READ)) == (SOCKET_READ | TUN_READ)
++        && c->c2.prefer_tun_read)
++    {
++        status &= ~SOCKET_READ;
++    }
+ 
+ #ifdef ENABLE_MANAGEMENT
+     if (status & (MANAGEMENT_READ | MANAGEMENT_WRITE))
+@@ -2294,6 +2304,7 @@
+     /* Incoming data on TCP/UDP port */
+     else if (status & SOCKET_READ)
+     {
++        c->c2.prefer_tun_read = true;
+         read_incoming_link(c, sock);
+         if (!IS_SIG(c))
+         {
+@@ -2303,6 +2314,7 @@
+     /* Incoming data on TUN device */
+     else if (status & TUN_READ)
+     {
++        c->c2.prefer_tun_read = false;
+         read_incoming_tun(c);
+         if (!IS_SIG(c))
+         {

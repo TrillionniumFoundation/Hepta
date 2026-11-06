@@ -55,7 +55,7 @@ def main():
         "commands": [], "runtime_acceptance": False,
         "runner": {key: os.environ.get(key) for key in (
             "GITHUB_SHA", "GITHUB_RUN_ID", "GITHUB_RUN_ATTEMPT", "RUNNER_OS",
-            "RUNNER_ARCH", "ImageOS", "ImageVersion")},
+            "RUNNER_ARCH", "ImageOS", "ImageVersion", "HEPTA_EXPECTED_SHA")},
         "kernel": platform.uname()._asdict(),
         "source_lock_sha256": digest(HERE / "source-lock.json"),
     }
@@ -122,9 +122,11 @@ def main():
     try:
         _, commit = command("source-commit", ["git", "rev-parse", "HEAD"])
         _, tree = command("source-tree", ["git", "rev-parse", "HEAD^{tree}"])
+        expected_commit = os.environ.get("HEPTA_EXPECTED_SHA") or os.environ["GITHUB_SHA"]
+        report["expected_hepta_commit"] = expected_commit
+        if commit.strip() != expected_commit:
+            raise RuntimeError("checkout is not the exact expected source commit")
         report.update(hepta_commit=commit.strip(), hepta_tree=tree.strip())
-        if commit.strip() != os.environ["GITHUB_SHA"]:
-            raise RuntimeError("checkout is not the exact triggering source commit")
         command("source-clean", ["git", "diff", "--exit-code", "HEAD"])
         command("sudo-available", ["sudo", "-n", "true"])
         command("privileged-capabilities", ["sudo", "-n", "python3", "-c",
@@ -204,11 +206,83 @@ def main():
         baseline = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(baseline)
         report["official_source_freeze"] = baseline.source_freeze(source, archive)
+
+        # Keep the downloaded upstream archive pristine. Build every application
+        # arm from a separate copy carrying the exact, source-locked P2P fairness
+        # patch. This patch changes only the userspace dual-read dispatcher;
+        # packet codec/replay oracles continue to use the pristine source above.
+        dispatch_lock = lock.get("p2p_fair_dispatch")
+        if not isinstance(dispatch_lock, dict):
+            raise RuntimeError("pinned P2P fairness patch is absent from source lock")
+        if dispatch_lock.get("upstream_commit") != lock["openvpn"]["commit"]:
+            raise RuntimeError("P2P fairness patch targets a different OpenVPN commit")
+        patch_path = HERE / dispatch_lock["path"]
+        patch_sha256 = digest(patch_path)
+        if patch_sha256 != dispatch_lock["sha256"]:
+            raise RuntimeError("P2P fairness patch differs from source lock")
+        build_source = work / "openvpn-2.7.8-p2p-fair-dispatch"
+        shutil.copytree(source, build_source)
+        original_files = {name: digest(source / name) for name in dispatch_lock["files"]}
+        forward_lines = (source / "src/openvpn/forward.c").read_text().splitlines()
+        context_lines = list(enumerate(forward_lines[2268:2320], start=2269))
+        context_text = "\n".join(f"{line_no}: {line}" for line_no, line in context_lines) + "\n"
+        (public / "p2p-fair-dispatch-source-context.txt").write_text(context_text)
+        preflight = {
+            "upstream_commit": lock["openvpn"]["commit"],
+            "source_archive_sha256": lock["openvpn"]["archive_sha256"],
+            "patch_sha256": patch_sha256,
+            "original_files": original_files,
+            "forward_context_start_line": 2269,
+            "forward_context_end_line": 2320,
+        }
+        report["p2p_fair_dispatch_preflight"] = preflight
+        save(public / "p2p-fair-dispatch-preflight.json", preflight)
+        save(public / "build.json", report)
+        command("p2p-fair-dispatch-check", ["git", "apply", "--check", "--verbose", patch_path], cwd=build_source)
+        command("p2p-fair-dispatch-apply", ["git", "apply", patch_path], cwd=build_source)
+
+        init_source = (source / "src/openvpn/init.c").read_text()
+        reset_pattern = r"void\s+context_clear_2\s*\(\s*struct context \*c\s*\)\s*\{\s*CLEAR\(c->c2\);\s*\}"
+        if not re.search(reset_pattern, init_source, re.S):
+            raise RuntimeError("context_clear_2 no longer zeroes the context-local fairness state")
+        patched_forward = (build_source / "src/openvpn/forward.c").read_text()
+        patched_header = (build_source / "src/openvpn/openvpn.h").read_text()
+        process_start = patched_forward.index("process_io(struct context *c, struct link_socket *sock)")
+        process_io = patched_forward[process_start:]
+        if patched_header.count("bool prefer_tun_read;") != 1:
+            raise RuntimeError("context-local fairness field is absent or duplicated")
+        for required in ("status &= ~SOCKET_READ;", "c->c2.prefer_tun_read = true;",
+                         "c->c2.prefer_tun_read = false;"):
+            if process_io.count(required) != 1:
+                raise RuntimeError("patched process_io is missing a unique fairness operation: " + required)
+        ordered = ("if (status & SOCKET_WRITE)", "else if (status & TUN_WRITE)",
+                   "else if (status & SOCKET_READ)", "else if (status & TUN_READ)",
+                   "else if (status & DCO_READ)")
+        positions = [process_io.index(token) for token in ordered]
+        if positions != sorted(positions):
+            raise RuntimeError("P2P fairness patch changed write or DCO dispatch priority")
+        dispatch_receipt = {
+            "enabled": True,
+            "patch_path": dispatch_lock["path"],
+            "patch_sha256": patch_sha256,
+            "upstream_commit": lock["openvpn"]["commit"],
+            "source_archive_sha256": lock["openvpn"]["archive_sha256"],
+            "policy": dispatch_lock["policy"],
+            "original_files": {name: digest(source / name) for name in dispatch_lock["files"]},
+            "patched_files": {name: digest(build_source / name) for name in dispatch_lock["files"]},
+            "context_reset_verified": True,
+            "pending_write_priority_preserved": True,
+            "dco_read_branch_present": True,
+        }
+        if any(dispatch_receipt["original_files"][name] == dispatch_receipt["patched_files"][name]
+               for name in dispatch_lock["files"]):
+            raise RuntimeError("P2P fairness patch did not change every pinned source file")
+        report["p2p_fair_dispatch"] = dispatch_receipt
         build = work / "build-c"
         build.mkdir()
         flags = lock["application_cflags"]
         environment["CC"] = str(compiler)
-        command("configure", [source / "configure", "--disable-lzo", "--disable-lz4",
+        command("configure", [build_source / "configure", "--disable-lzo", "--disable-lz4",
                 "--disable-plugin-auth-pam", "--disable-plugin-down-root", "--disable-unit-tests",
                 "CFLAGS=" + flags, "LDFLAGS="], cwd=build, timeout=180)
         command("make", ["make", "-j2"], cwd=build, timeout=480)
@@ -269,7 +343,8 @@ def main():
                     break
         report["perf"] = {"path": str(perf), "sha256": digest(perf)} if perf else None
         run_env = {"c": str(c_binary), "hia": str(hia), "hia_trace": str(hia_trace),
-                   "source": str(source), "build": str(build), "perf": str(perf) if perf else None,
+                   "source": str(source), "build_source": str(build_source), "build": str(build),
+                   "p2p_fair_dispatch": dispatch_receipt, "perf": str(perf) if perf else None,
                    "ld_library_path": environment["LD_LIBRARY_PATH"], "hepta_commit": commit.strip()}
         save(public / "build-env.json", run_env)
         command("source-clean-after", ["git", "diff", "--exit-code", "HEAD"])

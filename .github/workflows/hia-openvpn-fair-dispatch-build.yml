@@ -1,0 +1,133 @@
+name: OpenVPN HIA P2P fair-dispatch full build (no target matrix)
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/hia-openvpn-fair-dispatch-build.yml
+      - experiments/openvpn_hia_20261105/target_host/build.py
+      - experiments/openvpn_hia_20261105/target_host/run_matrix.py
+      - experiments/openvpn_hia_20261105/target_host/verify_result.py
+      - experiments/openvpn_hia_20261105/target_host/source-lock.json
+      - .github/workflows/hia-openvpn-peer-evidence-exclusive.yml
+      - experiments/openvpn_hia_20261105/target_host/plan.json
+      - experiments/openvpn_hia_20261105/target_host/patches/**
+      - experiments/openvpn_hia_20261105/target_host/test_p2p_fair_dispatch_patch.py
+      - experiments/openvpn_hia_20261105/target_host/verify_p2p_fair_dispatch_build.py
+      - experiments/openvpn_hia_20261105/openvpn_hia_adapter.*
+      - experiments/openvpn_hia_20261105/packet_program.py
+      - tools/qualify_openvpn_hia.py
+      - tools/openvpn_hia_baseline.py
+      - experiments/openvpn_hia_20261105/run_replay.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  patched-application-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Freeze exact source and run P2P patch regressions
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          printf 'HEAD=%s\n' "$(git rev-parse HEAD)"
+          sha256sum experiments/openvpn_hia_20261105/target_host/source-lock.json
+          sha256sum experiments/openvpn_hia_20261105/target_host/plan.json
+          sha256sum experiments/openvpn_hia_20261105/target_host/patches/0001-openvpn-p2p-dual-read-fairness.patch
+          sha256sum experiments/openvpn_hia_20261105/target_host/build.py
+          sha256sum experiments/openvpn_hia_20261105/target_host/test_p2p_fair_dispatch_patch.py
+          sha256sum experiments/openvpn_hia_20261105/target_host/verify_p2p_fair_dispatch_build.py
+          python3 -B experiments/openvpn_hia_20261105/target_host/test_p2p_fair_dispatch_patch.py -v
+      - name: Build official C, HIA and DCO-enabled OpenVPN from the patched source copy
+        env:
+          HEPTA_EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          bash experiments/openvpn_hia_20261105/target_host/build.sh \
+            --task-root "$RUNNER_TEMP/ovpn-hia-fair-dispatch"
+      - name: Show bounded patch-application diagnostics
+        if: always()
+        run: |
+          set +e
+          for file in \
+            "$RUNNER_TEMP/ovpn-hia-fair-dispatch/public/p2p-fair-dispatch-check.stderr" \
+            "$RUNNER_TEMP/ovpn-hia-fair-dispatch/public/p2p-fair-dispatch-check.stdout" \
+            "$RUNNER_TEMP/ovpn-hia-fair-dispatch/public/p2p-fair-dispatch-apply.stderr" \
+            "$RUNNER_TEMP/ovpn-hia-fair-dispatch/public/p2p-fair-dispatch-source-context.txt" \
+            "$RUNNER_TEMP/ovpn-hia-fair-dispatch/public/p2p-fair-dispatch-preflight.json"; do
+            if [ -f "$file" ]; then
+              echo "===== $(basename "$file") ====="
+              sed -n '1,80p' "$file"
+            fi
+          done
+      - name: Diagnose privacy matches without printing matched bytes
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import hashlib, importlib.util, json, os, pathlib
+          root = pathlib.Path(os.environ["RUNNER_TEMP"]) / "ovpn-hia-fair-dispatch" / "public"
+          spec = importlib.util.spec_from_file_location(
+              "publication_guard",
+              "experiments/openvpn_hia_20261105/target_host/publication_guard.py")
+          guard = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(guard)
+          path = root / "build.json"
+          if path.is_file():
+              document = json.loads(path.read_text())
+              def walk(value, field="$"):
+                  if isinstance(value, dict):
+                      for key, item in value.items():
+                          walk(item, field + "." + str(key))
+                  elif isinstance(value, list):
+                      for index, item in enumerate(value):
+                          walk(item, field + "[" + str(index) + "]")
+                  elif isinstance(value, str):
+                      raw = value.encode()
+                      match = guard.SECRETS.search(raw)
+                      if match:
+                          print(json.dumps({"field": field, "matched_pattern": match.re.pattern.decode(),
+                                            "value_sha256": hashlib.sha256(raw).hexdigest(),
+                                            "value_bytes": len(raw)}))
+              walk(document)
+              raw = path.read_bytes()
+              match = guard.SECRETS.search(raw)
+              if match:
+                  print(json.dumps({"file": "build.json", "raw_match": True,
+                                    "offset": match.start(), "matched_length": len(match.group(0))}))
+          else:
+              print("build.json not present")
+          PY
+      - name: Independently verify the patch-bound full application build
+        if: always()
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          python3 -B experiments/openvpn_hia_20261105/target_host/verify_p2p_fair_dispatch_build.py \
+            --public "$RUNNER_TEMP/ovpn-hia-fair-dispatch/public" \
+            --expected-commit "$EXPECTED_SHA"
+      - name: Reject unsafe public build evidence before upload
+        id: publication_privacy
+        if: always()
+        run: |
+          set -euo pipefail
+          python3 -B experiments/openvpn_hia_20261105/target_host/test_publication_guard.py
+          python3 -B experiments/openvpn_hia_20261105/target_host/publication_guard.py \
+            --public "$RUNNER_TEMP/ovpn-hia-fair-dispatch/public" \
+            --marker "$RUNNER_TEMP/ovpn-hia-fair-dispatch-publication-ok.json"
+      - name: Retain nonsecret build evidence on success or failure
+        if: always() && steps.publication_privacy.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: openvpn-hia-fair-dispatch-build-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ovpn-hia-fair-dispatch/public/
+          if-no-files-found: error
+          retention-days: 14

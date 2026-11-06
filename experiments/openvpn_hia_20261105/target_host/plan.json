@@ -119,7 +119,7 @@
     "seconds_per_workload": 5,
     "udp_acceptance": {
       "minimum_offered_rate_fraction": 0.95,
-      "maximum_receiver_loss_percent": 1.0,
+      "maximum_receiver_loss_percent": 1,
       "interpretation": "both send directions must offer at least 95% of the declared rate; both local receivers must deliver at least 95% with at most 1% packet loss; every under-offer or degraded receipt remains a failure"
     },
     "omit_seconds": 0,
@@ -175,5 +175,17 @@
     "system_wide_on_case_cpus": true,
     "fallback": "record failure; do not relabel gprof as complete process/kernel profile"
   },
-  "cleanup": "only recorded case PIDs/groups and recorded namespace name+inode; remove private-work PKI; preserve public raw failures"
+  "cleanup": "only recorded case PIDs/groups and recorded namespace name+inode; remove private-work PKI; preserve public raw failures",
+  "p2p_dispatch": {
+    "patch_path": "patches/0001-openvpn-p2p-dual-read-fairness.patch",
+    "patch_sha256": "b5821dfeea2e8e60427fbbe62f668f0f3cdd12f6964e155f3287efd269d7854c",
+    "upstream_commit": "dc1f569087135894ac2703aeabd7a960ee9452d4",
+    "applies_identically_to": [
+      "c-user",
+      "hia-user",
+      "c-dco"
+    ],
+    "policy": "When SOCKET_READ and TUN_READ are both ready, alternate the next read by context-local last-read state. Pending SOCKET_WRITE/TUN_WRITE retain priority. DCO_READ is unchanged.",
+    "claim_limit": "A controlled poll-readiness counterexample motivates this patch; only a full target run can establish its effect on real tunnel performance."
+  }
 }

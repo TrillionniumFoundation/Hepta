@@ -1174,6 +1174,12 @@ def main(argv=None):
         report['inputs']['binaries']={name:{'path':str(path),'sha256':digest(path)} for name,path in binaries.items()}
         report['inputs']['scripts']={p.name:digest(p) for p in sorted(HERE.glob('*.py'))}
         report['inputs']['build_config_sha256']=digest(args.build/'config.h')
+        build_receipt_path = args.build.parent.parent/'public'/'build.json'
+        if not build_receipt_path.is_file():
+            raise RuntimeError('patch-bound build receipt is missing')
+        build_receipt = json.loads(build_receipt_path.read_text())
+        report['inputs']['build_receipt_sha256'] = digest(build_receipt_path)
+        report['inputs']['p2p_fair_dispatch'] = build_receipt.get('p2p_fair_dispatch')
         for name in ('c','hia'):
             if b'OPENVPN_HIA_CALLS' in binaries[name].read_bytes():raise RuntimeError('performance input contains diagnostic trace: '+name)
         if b'OPENVPN_HIA_CALLS' not in args.hia_trace.read_bytes():raise RuntimeError('diagnostic HIA input lacks entry tracer')
