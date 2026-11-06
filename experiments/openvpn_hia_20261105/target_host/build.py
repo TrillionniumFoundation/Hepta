@@ -55,7 +55,7 @@ def main():
         "commands": [], "runtime_acceptance": False,
         "runner": {key: os.environ.get(key) for key in (
             "GITHUB_SHA", "GITHUB_RUN_ID", "GITHUB_RUN_ATTEMPT", "RUNNER_OS",
-            "RUNNER_ARCH", "ImageOS", "ImageVersion")},
+            "RUNNER_ARCH", "ImageOS", "ImageVersion", "HEPTA_EXPECTED_SHA")},
         "kernel": platform.uname()._asdict(),
         "source_lock_sha256": digest(HERE / "source-lock.json"),
     }
@@ -122,9 +122,11 @@ def main():
     try:
         _, commit = command("source-commit", ["git", "rev-parse", "HEAD"])
         _, tree = command("source-tree", ["git", "rev-parse", "HEAD^{tree}"])
+        expected_commit = os.environ.get("HEPTA_EXPECTED_SHA") or os.environ["GITHUB_SHA"]
+        report["expected_hepta_commit"] = expected_commit
+        if commit.strip() != expected_commit:
+            raise RuntimeError("checkout is not the exact expected source commit")
         report.update(hepta_commit=commit.strip(), hepta_tree=tree.strip())
-        if commit.strip() != os.environ["GITHUB_SHA"]:
-            raise RuntimeError("checkout is not the exact triggering source commit")
         command("source-clean", ["git", "diff", "--exit-code", "HEAD"])
         command("sudo-available", ["sudo", "-n", "true"])
         command("privileged-capabilities", ["sudo", "-n", "python3", "-c",
