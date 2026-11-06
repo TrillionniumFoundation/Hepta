@@ -741,6 +741,8 @@ def audit_build(path, image_id, p, audit_directory, *, deep=True):
     receipt = identity(path)
     value = load(path)
     build_gate_header(value, image_id, p)
+    if deep:
+        bind_nested(value["source_before"])
     for key in ("config", "kernel_image", "vmlinux", "source_archive"):
         check_binding(value[key])
     require(value["config"]["sha256"] == value["config_sha256"], "config receipt mismatch")
