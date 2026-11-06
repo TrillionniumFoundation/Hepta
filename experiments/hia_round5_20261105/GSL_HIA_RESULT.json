@@ -1,0 +1,880 @@
+{
+  "claims": {
+    "compiler_refinement_proved": false,
+    "full_semantic_equivalence_proved": false,
+    "general_cpp_migration": false,
+    "general_exception_abi_translation": false,
+    "maintenance_or_performance_advantage": false,
+    "original_qualification_replaced": false,
+    "whole_gsl_migrated": false
+  },
+  "cost": {
+    "child_cpu_ns": 4961489000,
+    "self_cpu_ns": 3990047000,
+    "wall_ns": 9690739659
+  },
+  "cost_boundary": "driver start through final source/tool identity checks; excludes this final report and artifact-manifest serialization, prior agent preparation, and human engineering time",
+  "execution_denominator": {
+    "cases_per_pair": 416,
+    "positive_native_scalar_calls": 7488,
+    "positive_observation_rows": 2496,
+    "positive_pairs": 3,
+    "wrong_but_linear_native_scalar_calls": 1248,
+    "wrong_but_linear_observation_rows": 416
+  },
+  "native_abi": {
+    "compiler_targets": {
+      "cc": "x86_64-linux-gnu",
+      "clang": "x86_64-pc-linux-gnu",
+      "cxx": "x86_64-linux-gnu"
+    },
+    "entry_signature": "u64(u64,u64,u32,u32)",
+    "host": {
+      "abi": "SysV AMD64 LP64",
+      "byteorder": "little",
+      "elf_machine": 62,
+      "long_bits": 64,
+      "machine": "x86_64",
+      "normalized_machine": "x86_64",
+      "pointer_bits": 64,
+      "size_t_bits": 64,
+      "system": "Linux",
+      "target": "x86_64-unknown-linux-gnu"
+    },
+    "scope": "actual host scalar C calls; C++ class layout and general exception ABI not translated"
+  },
+  "negative_controls": {
+    "duplicate_owner": {
+      "diagnostics": [
+        {
+          "code": "E_USE_AFTER_MOVE",
+          "message": "place owner is moved or partially initialized",
+          "notes": [],
+          "phase": "check",
+          "span": {
+            "column": 71,
+            "end": 1628,
+            "line": 38,
+            "path": "<input>",
+            "start": 1623
+          }
+        }
+      ],
+      "native_execution_attempted": false,
+      "rejected": true
+    },
+    "lost_owner": {
+      "diagnostics": [
+        {
+          "code": "E_LINEAR_UNCONSUMED",
+          "message": "unconsumed linear owner(s) on return: owner.token",
+          "notes": [
+            "consume resource values with release/drop/take/return or consuming match, and task handles with join/cancel_and_join, on every normal exit"
+          ],
+          "phase": "check",
+          "span": {
+            "column": 20,
+            "end": 1584,
+            "line": 38,
+            "path": "<input>",
+            "start": 1572
+          }
+        }
+      ],
+      "native_execution_attempted": false,
+      "rejected": true
+    },
+    "wrong_but_linear": {
+      "build": {
+        "artifact_bytes": 1296,
+        "artifact_sha256": "7133526b55d18189badb79851dcbbfeea9d79481ac1498a5726a2a1ddd48060c",
+        "binary_inventory": {
+          "defined": [
+            "migrated_case"
+          ],
+          "undefined": []
+        },
+        "build_host": {
+          "abi": "SysV AMD64 LP64",
+          "byteorder": "little",
+          "elf_machine": 62,
+          "long_bits": 64,
+          "machine": "x86_64",
+          "normalized_machine": "x86_64",
+          "pointer_bits": 64,
+          "size_t_bits": 64,
+          "system": "Linux",
+          "target": "x86_64-unknown-linux-gnu"
+        },
+        "claims": {
+          "backend_refinement_proved": false,
+          "c_codegen_used": false,
+          "cross_target_execution_qualified": false,
+          "fallback_used": false,
+          "foreign_buffer_entrypoints_exposed": false,
+          "native_execution_qualified": false,
+          "rust_codegen_used": false,
+          "rust_reference_required": false,
+          "source_ast_required": false,
+          "standalone_core_reverified": true,
+          "whole_language_soundness_proved": false
+        },
+        "core_sha256": "4a4f7cbcd2904959fba59cfd6dfc8952d1e4ea7cf5793d065287dabb9d1edfbc",
+        "cross_target_compilation": false,
+        "entry_layout": "canonical",
+        "exports": [
+          "migrated_case"
+        ],
+        "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+        "flags": [
+          "--target=x86_64-unknown-linux-gnu",
+          "-x",
+          "ir",
+          "-O3",
+          "-fPIC",
+          "-c"
+        ],
+        "implementation_sha256": "d151be041a8771db690b7c8b1651dbb06b9b21f581b442b98f76eaaf93b0e2ff",
+        "input_sha256": "4a4f7cbcd2904959fba59cfd6dfc8952d1e4ea7cf5793d065287dabb9d1edfbc",
+        "kind": "object",
+        "llvm_ir_sha256": "e8d028d5fb730ff6beeb886c94415b70de065fab2d43f1c4547e1c85717de73f",
+        "ok": true,
+        "output": "/data/hepta-hia-round5-a3b4-20261105/evidence/gsl-hia-connection-r1/5.0.1/wrong_but_linear.hia.o",
+        "profile": "hepta.hia.program.llvm-linux-x86_64.v1",
+        "runtime_assumptions": [
+          "Linux LP64 target with 64-bit pointers and size_t",
+          "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+          "C malloc returns null or a fresh nonaliasing allocation of the requested size; bytes are initialized before read or remain unobserved",
+          "C free accepts a live allocation from calloc or malloc, or null",
+          "abort terminates execution; no cleanup after traps is promised",
+          "native compiler, linker, loader, libc and host hardware are trusted"
+        ],
+        "schema": "hepta.hia.program.native.v1",
+        "status": "native_compiled_not_executed",
+        "target": "x86_64-unknown-linux-gnu",
+        "toolchain": {
+          "default_target": "x86_64-pc-linux-gnu",
+          "path": "/data/hepta-hia-round2-20261104/toolchains/clang20/usr/lib/llvm-20/bin/clang",
+          "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+          "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+        }
+      },
+      "case_count": 416,
+      "detected": true,
+      "mismatch_count": 325
+    }
+  },
+  "ok": true,
+  "pairs": {
+    "const_factory_migrated": {
+      "build": {
+        "artifact_bytes": 632,
+        "artifact_sha256": "40c62cc7fcec095c292b8c7305862afae0c97b8b535929daa0cd6955ff9c635e",
+        "binary_inventory": {
+          "defined": [
+            "migrated_case"
+          ],
+          "undefined": []
+        },
+        "build_host": {
+          "abi": "SysV AMD64 LP64",
+          "byteorder": "little",
+          "elf_machine": 62,
+          "long_bits": 64,
+          "machine": "x86_64",
+          "normalized_machine": "x86_64",
+          "pointer_bits": 64,
+          "size_t_bits": 64,
+          "system": "Linux",
+          "target": "x86_64-unknown-linux-gnu"
+        },
+        "claims": {
+          "backend_refinement_proved": false,
+          "c_codegen_used": false,
+          "cross_target_execution_qualified": false,
+          "fallback_used": false,
+          "foreign_buffer_entrypoints_exposed": false,
+          "native_execution_qualified": false,
+          "rust_codegen_used": false,
+          "rust_reference_required": false,
+          "source_ast_required": false,
+          "standalone_core_reverified": true,
+          "whole_language_soundness_proved": false
+        },
+        "core_sha256": "9cf2b3cf76850e115959348ba8939dc8b125d0b93bb22ee97a05ec940bbda405",
+        "cross_target_compilation": false,
+        "entry_layout": "canonical",
+        "exports": [
+          "migrated_case"
+        ],
+        "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+        "flags": [
+          "--target=x86_64-unknown-linux-gnu",
+          "-x",
+          "ir",
+          "-O3",
+          "-fPIC",
+          "-c"
+        ],
+        "implementation_sha256": "d151be041a8771db690b7c8b1651dbb06b9b21f581b442b98f76eaaf93b0e2ff",
+        "input_sha256": "9cf2b3cf76850e115959348ba8939dc8b125d0b93bb22ee97a05ec940bbda405",
+        "kind": "object",
+        "llvm_ir_sha256": "9d22ea043c64e77f06bee8cd36f66eef843d79d06c7bc61c2ec587a0e2e1d836",
+        "ok": true,
+        "output": "/data/hepta-hia-round5-a3b4-20261105/evidence/gsl-hia-connection-r1/5.0.1/const_factory_migrated.hia.o",
+        "profile": "hepta.hia.program.llvm-linux-x86_64.v1",
+        "runtime_assumptions": [
+          "Linux LP64 target with 64-bit pointers and size_t",
+          "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+          "C malloc returns null or a fresh nonaliasing allocation of the requested size; bytes are initialized before read or remain unobserved",
+          "C free accepts a live allocation from calloc or malloc, or null",
+          "abort terminates execution; no cleanup after traps is promised",
+          "native compiler, linker, loader, libc and host hardware are trusted"
+        ],
+        "schema": "hepta.hia.program.native.v1",
+        "status": "native_compiled_not_executed",
+        "target": "x86_64-unknown-linux-gnu",
+        "toolchain": {
+          "default_target": "x86_64-pc-linux-gnu",
+          "path": "/data/hepta-hia-round2-20261104/toolchains/clang20/usr/lib/llvm-20/bin/clang",
+          "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+          "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+        }
+      },
+      "cases": 416,
+      "hia_binary_sha256": "7bb2908ed6e6810aff760081d80776fd28fc0956c2c8a9adffea02e3fd613ba1",
+      "linked_original_cpp_objects": [],
+      "native_scalar_calls": 2496,
+      "observation_rows": 832,
+      "original_sha256": "466554a8b75c450d6845a55210363ab5a0196e08b2640a75d0e43edeb31005c5",
+      "passed": true,
+      "source_precheck_c_output_compiled": false
+    },
+    "factory_migrated": {
+      "build": {
+        "artifact_bytes": 632,
+        "artifact_sha256": "40c62cc7fcec095c292b8c7305862afae0c97b8b535929daa0cd6955ff9c635e",
+        "binary_inventory": {
+          "defined": [
+            "migrated_case"
+          ],
+          "undefined": []
+        },
+        "build_host": {
+          "abi": "SysV AMD64 LP64",
+          "byteorder": "little",
+          "elf_machine": 62,
+          "long_bits": 64,
+          "machine": "x86_64",
+          "normalized_machine": "x86_64",
+          "pointer_bits": 64,
+          "size_t_bits": 64,
+          "system": "Linux",
+          "target": "x86_64-unknown-linux-gnu"
+        },
+        "claims": {
+          "backend_refinement_proved": false,
+          "c_codegen_used": false,
+          "cross_target_execution_qualified": false,
+          "fallback_used": false,
+          "foreign_buffer_entrypoints_exposed": false,
+          "native_execution_qualified": false,
+          "rust_codegen_used": false,
+          "rust_reference_required": false,
+          "source_ast_required": false,
+          "standalone_core_reverified": true,
+          "whole_language_soundness_proved": false
+        },
+        "core_sha256": "b9d283cf13363c1bdb94575943d29f97af9c7f17dcb84c831bf2c43067141e71",
+        "cross_target_compilation": false,
+        "entry_layout": "canonical",
+        "exports": [
+          "migrated_case"
+        ],
+        "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+        "flags": [
+          "--target=x86_64-unknown-linux-gnu",
+          "-x",
+          "ir",
+          "-O3",
+          "-fPIC",
+          "-c"
+        ],
+        "implementation_sha256": "d151be041a8771db690b7c8b1651dbb06b9b21f581b442b98f76eaaf93b0e2ff",
+        "input_sha256": "b9d283cf13363c1bdb94575943d29f97af9c7f17dcb84c831bf2c43067141e71",
+        "kind": "object",
+        "llvm_ir_sha256": "b916fade869c01f79463a5d1f5a5c341f7784eccfe5d65647f3b3df64eed6421",
+        "ok": true,
+        "output": "/data/hepta-hia-round5-a3b4-20261105/evidence/gsl-hia-connection-r1/5.0.1/factory_migrated.hia.o",
+        "profile": "hepta.hia.program.llvm-linux-x86_64.v1",
+        "runtime_assumptions": [
+          "Linux LP64 target with 64-bit pointers and size_t",
+          "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+          "C malloc returns null or a fresh nonaliasing allocation of the requested size; bytes are initialized before read or remain unobserved",
+          "C free accepts a live allocation from calloc or malloc, or null",
+          "abort terminates execution; no cleanup after traps is promised",
+          "native compiler, linker, loader, libc and host hardware are trusted"
+        ],
+        "schema": "hepta.hia.program.native.v1",
+        "status": "native_compiled_not_executed",
+        "target": "x86_64-unknown-linux-gnu",
+        "toolchain": {
+          "default_target": "x86_64-pc-linux-gnu",
+          "path": "/data/hepta-hia-round2-20261104/toolchains/clang20/usr/lib/llvm-20/bin/clang",
+          "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+          "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+        }
+      },
+      "cases": 416,
+      "hia_binary_sha256": "7bb2908ed6e6810aff760081d80776fd28fc0956c2c8a9adffea02e3fd613ba1",
+      "linked_original_cpp_objects": [],
+      "native_scalar_calls": 2496,
+      "observation_rows": 832,
+      "original_sha256": "c3036431dc7f38ae0a21a0cdd562560384dcc5f4b50cb3d7ed2d50892e491d93",
+      "passed": true,
+      "source_precheck_c_output_compiled": false
+    },
+    "migrated": {
+      "build": {
+        "artifact_bytes": 1312,
+        "artifact_sha256": "f2453fd5af5e058cd6b8814d352f21013abbb7f0389bced7b44500deaf6a9cd1",
+        "binary_inventory": {
+          "defined": [
+            "migrated_case"
+          ],
+          "undefined": []
+        },
+        "build_host": {
+          "abi": "SysV AMD64 LP64",
+          "byteorder": "little",
+          "elf_machine": 62,
+          "long_bits": 64,
+          "machine": "x86_64",
+          "normalized_machine": "x86_64",
+          "pointer_bits": 64,
+          "size_t_bits": 64,
+          "system": "Linux",
+          "target": "x86_64-unknown-linux-gnu"
+        },
+        "claims": {
+          "backend_refinement_proved": false,
+          "c_codegen_used": false,
+          "cross_target_execution_qualified": false,
+          "fallback_used": false,
+          "foreign_buffer_entrypoints_exposed": false,
+          "native_execution_qualified": false,
+          "rust_codegen_used": false,
+          "rust_reference_required": false,
+          "source_ast_required": false,
+          "standalone_core_reverified": true,
+          "whole_language_soundness_proved": false
+        },
+        "core_sha256": "ded0c5e93069765ce447a4b094d77bb13ae53029607001eb8c463a251502e704",
+        "cross_target_compilation": false,
+        "entry_layout": "canonical",
+        "exports": [
+          "migrated_case"
+        ],
+        "external_abi": "scalar-only C functions; resource and multiple-result functions are internal",
+        "flags": [
+          "--target=x86_64-unknown-linux-gnu",
+          "-x",
+          "ir",
+          "-O3",
+          "-fPIC",
+          "-c"
+        ],
+        "implementation_sha256": "d151be041a8771db690b7c8b1651dbb06b9b21f581b442b98f76eaaf93b0e2ff",
+        "input_sha256": "ded0c5e93069765ce447a4b094d77bb13ae53029607001eb8c463a251502e704",
+        "kind": "object",
+        "llvm_ir_sha256": "246cdd7d3b679fe9703939ef23a2eadc0d1918ab7f1e84d5a6d92d2ebe7d07fc",
+        "ok": true,
+        "output": "/data/hepta-hia-round5-a3b4-20261105/evidence/gsl-hia-connection-r1/5.0.1/migrated.hia.o",
+        "profile": "hepta.hia.program.llvm-linux-x86_64.v1",
+        "runtime_assumptions": [
+          "Linux LP64 target with 64-bit pointers and size_t",
+          "C calloc returns null or an initialized nonaliasing allocation of the requested size",
+          "C malloc returns null or a fresh nonaliasing allocation of the requested size; bytes are initialized before read or remain unobserved",
+          "C free accepts a live allocation from calloc or malloc, or null",
+          "abort terminates execution; no cleanup after traps is promised",
+          "native compiler, linker, loader, libc and host hardware are trusted"
+        ],
+        "schema": "hepta.hia.program.native.v1",
+        "status": "native_compiled_not_executed",
+        "target": "x86_64-unknown-linux-gnu",
+        "toolchain": {
+          "default_target": "x86_64-pc-linux-gnu",
+          "path": "/data/hepta-hia-round2-20261104/toolchains/clang20/usr/lib/llvm-20/bin/clang",
+          "sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+          "version": "Ubuntu clang version 20.1.2 (0ubuntu1~24.04.3)"
+        }
+      },
+      "cases": 416,
+      "hia_binary_sha256": "760b72b5fdb16372979c07c2760b29d737a0199ffe3a477e4da165028cb95992",
+      "linked_original_cpp_objects": [],
+      "native_scalar_calls": 2496,
+      "observation_rows": 832,
+      "original_sha256": "c08b54c7a3940fdd634cbb4aeca00b53e46bffcba9ed8615c1a96f5e0403d93e",
+      "passed": true,
+      "source_precheck_c_output_compiled": false
+    }
+  },
+  "qualification_registration_sha256": "48c3611b540ff086b14ffeb85dec3e1aadac1377048e82e9c39dc34e8dcc7588",
+  "schema": "hepta.gsl5-hia-connection.v1",
+  "source_commit": "0a06ef4f0894681af92b0caefba0704c1278d2cc",
+  "source_identity_unchanged": true,
+  "source_tree": "a5239982f9fd8f08ab3a6e791147fc989e8d9df6",
+  "stages": [
+    {
+      "cost": {
+        "child_cpu_ns": 83722000,
+        "self_cpu_ns": 1299773000,
+        "wall_ns": 1515111427
+      },
+      "ok": true,
+      "stage": "initial_canonical_source_identity",
+      "started_unix_ns": 1793922429921265813
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 38705000,
+        "self_cpu_ns": 550000,
+        "wall_ns": 39043542
+      },
+      "ok": true,
+      "stage": "clang_target_probe",
+      "started_unix_ns": 1793922431443137958
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 31680000,
+        "self_cpu_ns": 521000,
+        "wall_ns": 32015534
+      },
+      "ok": true,
+      "stage": "clang_version_probe",
+      "started_unix_ns": 1793922431482937567
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 1271000,
+        "self_cpu_ns": 411000,
+        "wall_ns": 1540535
+      },
+      "ok": true,
+      "stage": "cc_target_probe",
+      "started_unix_ns": 1793922431515650358
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 1226000,
+        "self_cpu_ns": 304000,
+        "wall_ns": 1409794
+      },
+      "ok": true,
+      "stage": "cc_version_probe",
+      "started_unix_ns": 1793922431517806951
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 974000,
+        "self_cpu_ns": 284000,
+        "wall_ns": 1146172
+      },
+      "ok": true,
+      "stage": "cxx_target_probe",
+      "started_unix_ns": 1793922431519867190
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 1156000,
+        "self_cpu_ns": 307000,
+        "wall_ns": 1345775
+      },
+      "ok": true,
+      "stage": "cxx_version_probe",
+      "started_unix_ns": 1793922431521607202
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 1774219000,
+        "self_cpu_ns": 234371000,
+        "wall_ns": 2380155109
+      },
+      "ok": true,
+      "stage": "fresh_clang20_capture_and_source_lowering",
+      "started_unix_ns": 1793922431528821654
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 0,
+        "self_cpu_ns": 117933000,
+        "wall_ns": 118657440
+      },
+      "ok": true,
+      "stage": "migrated_source_checker",
+      "started_unix_ns": 1793922433910139081
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 0,
+        "self_cpu_ns": 28894000,
+        "wall_ns": 28897372
+      },
+      "ok": true,
+      "stage": "migrated_actual_source_to_core",
+      "started_unix_ns": 1793922434029968337
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 0,
+        "self_cpu_ns": 38502000,
+        "wall_ns": 38504500
+      },
+      "ok": true,
+      "stage": "migrated_verified_llvm_emission",
+      "started_unix_ns": 1793922434063819585
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 136926000,
+        "self_cpu_ns": 79685000,
+        "wall_ns": 244343343
+      },
+      "ok": true,
+      "stage": "migrated_core_llvm_native_build",
+      "started_unix_ns": 1793922434103331989
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 61733000,
+        "self_cpu_ns": 597000,
+        "wall_ns": 62718250
+      },
+      "ok": true,
+      "stage": "migrated_harness_link",
+      "started_unix_ns": 1793922434349066699
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 0,
+        "self_cpu_ns": 44316000,
+        "wall_ns": 44320135
+      },
+      "ok": true,
+      "stage": "factory_migrated_source_checker",
+      "started_unix_ns": 1793922434413232005
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 0,
+        "self_cpu_ns": 13770000,
+        "wall_ns": 13772861
+      },
+      "ok": true,
+      "stage": "factory_migrated_actual_source_to_core",
+      "started_unix_ns": 1793922434458892944
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 0,
+        "self_cpu_ns": 13152000,
+        "wall_ns": 13154989
+      },
+      "ok": true,
+      "stage": "factory_migrated_verified_llvm_emission",
+      "started_unix_ns": 1793922434475512694
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 113906000,
+        "self_cpu_ns": 42854000,
+        "wall_ns": 175127076
+      },
+      "ok": true,
+      "stage": "factory_migrated_core_llvm_native_build",
+      "started_unix_ns": 1793922434489892768
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 60809000,
+        "self_cpu_ns": 691000,
+        "wall_ns": 61314741
+      },
+      "ok": true,
+      "stage": "factory_migrated_harness_link",
+      "started_unix_ns": 1793922434666851380
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 0,
+        "self_cpu_ns": 71397000,
+        "wall_ns": 71395135
+      },
+      "ok": true,
+      "stage": "const_factory_migrated_source_checker",
+      "started_unix_ns": 1793922434730793535
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 0,
+        "self_cpu_ns": 14089000,
+        "wall_ns": 14093021
+      },
+      "ok": true,
+      "stage": "const_factory_migrated_actual_source_to_core",
+      "started_unix_ns": 1793922434803772997
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 0,
+        "self_cpu_ns": 13324000,
+        "wall_ns": 13328171
+      },
+      "ok": true,
+      "stage": "const_factory_migrated_verified_llvm_emission",
+      "started_unix_ns": 1793922434820961352
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 114888000,
+        "self_cpu_ns": 44139000,
+        "wall_ns": 176550757
+      },
+      "ok": true,
+      "stage": "const_factory_migrated_core_llvm_native_build",
+      "started_unix_ns": 1793922434835675621
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 60318000,
+        "self_cpu_ns": 735000,
+        "wall_ns": 60801682
+      },
+      "ok": true,
+      "stage": "const_factory_migrated_harness_link",
+      "started_unix_ns": 1793922435014534532
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 1152714000,
+        "self_cpu_ns": 2988000,
+        "wall_ns": 1216056329
+      },
+      "ok": true,
+      "stage": "original_cpp_three_unit_build",
+      "started_unix_ns": 1793922435078016191
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 469017000,
+        "self_cpu_ns": 548000,
+        "wall_ns": 474372739
+      },
+      "ok": true,
+      "stage": "factory_migrated_original_compile",
+      "started_unix_ns": 1793922436295548644
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 32103000,
+        "self_cpu_ns": 487000,
+        "wall_ns": 33655033
+      },
+      "ok": true,
+      "stage": "factory_migrated_original_harness",
+      "started_unix_ns": 1793922436771522697
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 36442000,
+        "self_cpu_ns": 483000,
+        "wall_ns": 37991162
+      },
+      "ok": true,
+      "stage": "factory_migrated_original_link",
+      "started_unix_ns": 1793922436806587758
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 464932000,
+        "self_cpu_ns": 498000,
+        "wall_ns": 466515600
+      },
+      "ok": true,
+      "stage": "const_factory_migrated_original_compile",
+      "started_unix_ns": 1793922436846134783
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 32466000,
+        "self_cpu_ns": 547000,
+        "wall_ns": 34080662
+      },
+      "ok": true,
+      "stage": "const_factory_migrated_original_harness",
+      "started_unix_ns": 1793922437314145035
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 36370000,
+        "self_cpu_ns": 477000,
+        "wall_ns": 37863272
+      },
+      "ok": true,
+      "stage": "const_factory_migrated_original_link",
+      "started_unix_ns": 1793922437349937204
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 2796000,
+        "self_cpu_ns": 1478000,
+        "wall_ns": 5327320
+      },
+      "ok": true,
+      "stage": "migrated_original_native_observation",
+      "started_unix_ns": 1793922437389371742
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 931000,
+        "self_cpu_ns": 1169000,
+        "wall_ns": 3170549
+      },
+      "ok": true,
+      "stage": "migrated_hia_native_observation",
+      "started_unix_ns": 1793922437396079272
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 1035000,
+        "self_cpu_ns": 1418000,
+        "wall_ns": 3531345
+      },
+      "ok": true,
+      "stage": "factory_migrated_original_native_observation",
+      "started_unix_ns": 1793922437406530700
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 967000,
+        "self_cpu_ns": 1056000,
+        "wall_ns": 3089260
+      },
+      "ok": true,
+      "stage": "factory_migrated_hia_native_observation",
+      "started_unix_ns": 1793922437411730328
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 1031000,
+        "self_cpu_ns": 1191000,
+        "wall_ns": 3285861
+      },
+      "ok": true,
+      "stage": "const_factory_migrated_original_native_observation",
+      "started_unix_ns": 1793922437422495110
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 916000,
+        "self_cpu_ns": 1120000,
+        "wall_ns": 3079813
+      },
+      "ok": true,
+      "stage": "const_factory_migrated_hia_native_observation",
+      "started_unix_ns": 1793922437427397222
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 0,
+        "self_cpu_ns": 53777000,
+        "wall_ns": 53778298
+      },
+      "ok": true,
+      "stage": "wrong_but_linear_source_checker",
+      "started_unix_ns": 1793922437438254730
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 0,
+        "self_cpu_ns": 24634000,
+        "wall_ns": 24634540
+      },
+      "ok": true,
+      "stage": "wrong_but_linear_actual_source_to_core",
+      "started_unix_ns": 1793922437494073293
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 0,
+        "self_cpu_ns": 24731000,
+        "wall_ns": 24739533
+      },
+      "ok": true,
+      "stage": "wrong_but_linear_verified_llvm_emission",
+      "started_unix_ns": 1793922437524591294
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 116956000,
+        "self_cpu_ns": 68284000,
+        "wall_ns": 206395788
+      },
+      "ok": true,
+      "stage": "wrong_but_linear_core_llvm_native_build",
+      "started_unix_ns": 1793922437551264005
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 55499000,
+        "self_cpu_ns": 550000,
+        "wall_ns": 57089521
+      },
+      "ok": true,
+      "stage": "wrong_but_linear_harness_link",
+      "started_unix_ns": 1793922437759834961
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 1196000,
+        "self_cpu_ns": 1245000,
+        "wall_ns": 3505118
+      },
+      "ok": true,
+      "stage": "wrong_but_linear_native_observation",
+      "started_unix_ns": 1793922437819315099
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 0,
+        "self_cpu_ns": 38354000,
+        "wall_ns": 38368993
+      },
+      "ok": true,
+      "stage": "duplicate_owner_checker_rejection",
+      "started_unix_ns": 1793922437829709131
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 0,
+        "self_cpu_ns": 37544000,
+        "wall_ns": 37547769
+      },
+      "ok": true,
+      "stage": "lost_owner_checker_rejection",
+      "started_unix_ns": 1793922437870621477
+    },
+    {
+      "cost": {
+        "child_cpu_ns": 74585000,
+        "self_cpu_ns": 1213369000,
+        "wall_ns": 1293745759
+      },
+      "ok": true,
+      "stage": "final_canonical_source_identity",
+      "started_unix_ns": 1793922437910588462
+    }
+  ],
+  "tool_identity_unchanged": true
+}

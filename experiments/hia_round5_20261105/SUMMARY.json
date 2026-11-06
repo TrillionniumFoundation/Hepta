@@ -1,0 +1,1740 @@
+{
+  "all_seven_targets_closed": false,
+  "aot": {
+    "batch_p99_scope": "63 pooled samples per cell; nearest-rank p99 is the maximum sample; no population-tail theorem.",
+    "by_gate": {
+      "cost.build_and_proof": {
+        "passed": 4,
+        "total": 4
+      },
+      "cost.cold_first_call": {
+        "passed": 38,
+        "total": 48
+      },
+      "cost.estimated_automated": {
+        "passed": 1116,
+        "total": 1116
+      },
+      "cost.median_load": {
+        "passed": 4,
+        "total": 4
+      },
+      "memory.library_file": {
+        "passed": 4,
+        "total": 4
+      },
+      "memory.loader_backing_resident_bytes": {
+        "passed": 48,
+        "total": 48
+      },
+      "memory.loader_mapped_bytes": {
+        "passed": 48,
+        "total": 48
+      },
+      "memory.peak_requested": {
+        "passed": 1116,
+        "total": 1116
+      },
+      "memory.peak_usable": {
+        "passed": 1116,
+        "total": 1116
+      },
+      "memory.requested_total": {
+        "passed": 1116,
+        "total": 1116
+      },
+      "memory.stack_max_distance": {
+        "passed": 1116,
+        "total": 1116
+      },
+      "memory.usable_total": {
+        "passed": 1116,
+        "total": 1116
+      }
+    },
+    "cold_failed_cells": [
+      {
+        "baseline": "rust_byte_release",
+        "baseline_value": 98,
+        "calls": 1,
+        "candidate": 133,
+        "gate": "cost.cold_first_call",
+        "group": "historical_regression",
+        "limit": 117.6,
+        "n": 0,
+        "passed": false,
+        "ratio_maximum": 1.2,
+        "seed": 5471,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_release",
+        "baseline_value": 96,
+        "calls": 1,
+        "candidate": 189,
+        "gate": "cost.cold_first_call",
+        "group": "historical_regression",
+        "limit": 115.19999999999999,
+        "n": 0,
+        "passed": false,
+        "ratio_maximum": 1.2,
+        "seed": 6761,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "baseline_value": 117,
+        "calls": 1,
+        "candidate": 189,
+        "gate": "cost.cold_first_call",
+        "group": "historical_regression",
+        "limit": 140.4,
+        "n": 0,
+        "passed": false,
+        "ratio_maximum": 1.2,
+        "seed": 6761,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_release",
+        "baseline_value": 111,
+        "calls": 1,
+        "candidate": 168,
+        "gate": "cost.cold_first_call",
+        "group": "historical_regression",
+        "limit": 133.2,
+        "n": 0,
+        "passed": false,
+        "ratio_maximum": 1.2,
+        "seed": 4294967291,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "baseline_value": 119,
+        "calls": 1,
+        "candidate": 168,
+        "gate": "cost.cold_first_call",
+        "group": "historical_regression",
+        "limit": 142.79999999999998,
+        "n": 0,
+        "passed": false,
+        "ratio_maximum": 1.2,
+        "seed": 4294967291,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_release",
+        "baseline_value": 99,
+        "calls": 1,
+        "candidate": 197,
+        "gate": "cost.cold_first_call",
+        "group": "historical_regression",
+        "limit": 118.8,
+        "n": 0,
+        "passed": false,
+        "ratio_maximum": 1.2,
+        "seed": 5471,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "baseline_value": 134,
+        "calls": 1,
+        "candidate": 197,
+        "gate": "cost.cold_first_call",
+        "group": "historical_regression",
+        "limit": 160.79999999999998,
+        "n": 0,
+        "passed": false,
+        "ratio_maximum": 1.2,
+        "seed": 5471,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_release",
+        "baseline_value": 112,
+        "calls": 1,
+        "candidate": 174,
+        "gate": "cost.cold_first_call",
+        "group": "historical_regression",
+        "limit": 134.4,
+        "n": 0,
+        "passed": false,
+        "ratio_maximum": 1.2,
+        "seed": 6761,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_release",
+        "baseline_value": 104,
+        "calls": 1,
+        "candidate": 179,
+        "gate": "cost.cold_first_call",
+        "group": "historical_regression",
+        "limit": 124.8,
+        "n": 0,
+        "passed": false,
+        "ratio_maximum": 1.2,
+        "seed": 4294967291,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "baseline_value": 122,
+        "calls": 1,
+        "candidate": 179,
+        "gate": "cost.cold_first_call",
+        "group": "historical_regression",
+        "limit": 146.4,
+        "n": 0,
+        "passed": false,
+        "ratio_maximum": 1.2,
+        "seed": 4294967291,
+        "workload": "affine"
+      }
+    ],
+    "cold_failure_distribution": {
+      "affine/n=0": 5,
+      "linear/n=0": 5
+    },
+    "cold_passed": 38,
+    "cold_total": 48,
+    "failure_metric_sets": {
+      "p95+p99": 1,
+      "p99": 31
+    },
+    "host": {
+      "exclusive": false,
+      "loadavg_after": [
+        9.392578125,
+        10.13134765625,
+        10.51416015625
+      ],
+      "loadavg_before": [
+        9.33984375,
+        10.40869140625,
+        10.63232421875
+      ],
+      "machine": "x86_64",
+      "original_affinity": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "platform": "Linux-7.0.0-38-generic-x86_64-with-glibc2.39",
+      "selected_cpu": 0
+    },
+    "joint_failed_cells": [
+      {
+        "baseline": "rust_release",
+        "calls": 64,
+        "failed_metrics": [
+          "p99"
+        ],
+        "group": "historical_regression",
+        "median_ratio": 0.8931052912880812,
+        "n": 1,
+        "p95_ratio": 0.9129082426127527,
+        "p99_ratio": 1.2930946291560101,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_release",
+        "calls": 64,
+        "failed_metrics": [
+          "p99"
+        ],
+        "group": "historical_regression",
+        "median_ratio": 0.6845988318475253,
+        "n": 64,
+        "p95_ratio": 0.7016104527499241,
+        "p99_ratio": 3.9151193633952253,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_release",
+        "calls": 64,
+        "failed_metrics": [
+          "p99"
+        ],
+        "group": "historical_regression",
+        "median_ratio": 0.5279781148967918,
+        "n": 257,
+        "p95_ratio": 0.5327056491575818,
+        "p99_ratio": 2.5603346165235417,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_release",
+        "calls": 16,
+        "failed_metrics": [
+          "p99"
+        ],
+        "group": "historical_holdout",
+        "median_ratio": 0.7026647966339411,
+        "n": 19,
+        "p95_ratio": 0.8600269179004038,
+        "p99_ratio": 14.944510035419126,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "calls": 16,
+        "failed_metrics": [
+          "p99"
+        ],
+        "group": "historical_holdout",
+        "median_ratio": 0.736764705882353,
+        "n": 19,
+        "p95_ratio": 0.8565683646112601,
+        "p99_ratio": 15.343030303030304,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_release",
+        "calls": 16,
+        "failed_metrics": [
+          "p99"
+        ],
+        "group": "historical_holdout",
+        "median_ratio": 0.4446472812622245,
+        "n": 1051,
+        "p95_ratio": 0.497988841313092,
+        "p99_ratio": 2.0213173346949196,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_release",
+        "calls": 1,
+        "failed_metrics": [
+          "p99"
+        ],
+        "group": "historical_holdout",
+        "median_ratio": 0.4251824817518248,
+        "n": 4109,
+        "p95_ratio": 0.45346062052505964,
+        "p99_ratio": 6.53175519630485,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "calls": 1,
+        "failed_metrics": [
+          "p99"
+        ],
+        "group": "historical_holdout",
+        "median_ratio": 0.5448168355416991,
+        "n": 4109,
+        "p95_ratio": 0.5744520030234316,
+        "p99_ratio": 8.209724238026125,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_release",
+        "calls": 16,
+        "failed_metrics": [
+          "p99"
+        ],
+        "group": "prior_wrapper_lengths",
+        "median_ratio": 0.8364153627311522,
+        "n": 29,
+        "p95_ratio": 0.843520782396088,
+        "p99_ratio": 12.503954802259887,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "calls": 16,
+        "failed_metrics": [
+          "p99"
+        ],
+        "group": "prior_wrapper_lengths",
+        "median_ratio": 0.7808764940239044,
+        "n": 29,
+        "p95_ratio": 0.8625,
+        "p99_ratio": 13.018823529411765,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_release",
+        "calls": 64,
+        "failed_metrics": [
+          "p95",
+          "p99"
+        ],
+        "group": "prospective_lengths",
+        "median_ratio": 0.6407302760269507,
+        "n": 101,
+        "p95_ratio": 2.22611327280588,
+        "p99_ratio": 8.3258785942492,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "calls": 64,
+        "failed_metrics": [
+          "p99"
+        ],
+        "group": "prospective_lengths",
+        "median_ratio": 0.7741596638655462,
+        "n": 101,
+        "p95_ratio": 0.6873122872588934,
+        "p99_ratio": 2.5735729804463756,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_release",
+        "calls": 16,
+        "failed_metrics": [
+          "p99"
+        ],
+        "group": "prospective_lengths",
+        "median_ratio": 0.531987814166032,
+        "n": 331,
+        "p95_ratio": 0.5555137372977041,
+        "p99_ratio": 3.5638718963655993,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "calls": 16,
+        "failed_metrics": [
+          "p99"
+        ],
+        "group": "prospective_lengths",
+        "median_ratio": 0.6476587853500232,
+        "n": 331,
+        "p95_ratio": 0.6709090909090909,
+        "p99_ratio": 1.3142250530785562,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "calls": 1,
+        "failed_metrics": [
+          "p99"
+        ],
+        "group": "prospective_lengths",
+        "median_ratio": 0.5293757649938801,
+        "n": 5317,
+        "p95_ratio": 0.5754830917874396,
+        "p99_ratio": 7.378020713463751,
+        "passed": false,
+        "workload": "linear"
+      },
+      {
+        "baseline": "rust_release",
+        "calls": 64,
+        "failed_metrics": [
+          "p99"
+        ],
+        "group": "historical_regression",
+        "median_ratio": 0.9387296233839235,
+        "n": 1,
+        "p95_ratio": 0.9541531823085221,
+        "p99_ratio": 2.056277389098178,
+        "passed": false,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "calls": 64,
+        "failed_metrics": [
+          "p99"
+        ],
+        "group": "historical_regression",
+        "median_ratio": 0.9308807134894092,
+        "n": 1,
+        "p95_ratio": 0.9671951886276654,
+        "p99_ratio": 14.211477151965994,
+        "passed": false,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_release",
+        "calls": 16,
+        "failed_metrics": [
+          "p99"
+        ],
+        "group": "historical_regression",
+        "median_ratio": 0.5490196078431373,
+        "n": 64,
+        "p95_ratio": 0.5888187556357078,
+        "p99_ratio": 10.218823529411765,
+        "passed": false,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "calls": 16,
+        "failed_metrics": [
+          "p99"
+        ],
+        "group": "historical_regression",
+        "median_ratio": 0.7331670822942643,
+        "n": 64,
+        "p95_ratio": 0.7829736211031175,
+        "p99_ratio": 13.39054470709147,
+        "passed": false,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_release",
+        "calls": 64,
+        "failed_metrics": [
+          "p99"
+        ],
+        "group": "historical_regression",
+        "median_ratio": 0.5671927307508369,
+        "n": 64,
+        "p95_ratio": 0.571632216678546,
+        "p99_ratio": 3.075075075075075,
+        "passed": false,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "calls": 64,
+        "failed_metrics": [
+          "p99"
+        ],
+        "group": "historical_regression",
+        "median_ratio": 0.7617212588310854,
+        "n": 64,
+        "p95_ratio": 0.7580340264650284,
+        "p99_ratio": 4.068459657701712,
+        "passed": false,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_release",
+        "calls": 64,
+        "failed_metrics": [
+          "p99"
+        ],
+        "group": "historical_holdout",
+        "median_ratio": 0.5663265306122449,
+        "n": 73,
+        "p95_ratio": 0.5709219858156028,
+        "p99_ratio": 1.3905932360007391,
+        "passed": false,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "calls": 64,
+        "failed_metrics": [
+          "p99"
+        ],
+        "group": "historical_holdout",
+        "median_ratio": 0.7540760869565217,
+        "n": 73,
+        "p95_ratio": 0.7828200972447326,
+        "p99_ratio": 1.5945115490570037,
+        "passed": false,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_release",
+        "calls": 1,
+        "failed_metrics": [
+          "p99"
+        ],
+        "group": "prior_wrapper_lengths",
+        "median_ratio": 0.8375,
+        "n": 29,
+        "p95_ratio": 0.6942148760330579,
+        "p99_ratio": 1.3724137931034484,
+        "passed": false,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "calls": 1,
+        "failed_metrics": [
+          "p99"
+        ],
+        "group": "prior_wrapper_lengths",
+        "median_ratio": 0.9571428571428572,
+        "n": 29,
+        "p95_ratio": 0.8235294117647058,
+        "p99_ratio": 1.3006535947712419,
+        "passed": false,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_release",
+        "calls": 64,
+        "failed_metrics": [
+          "p99"
+        ],
+        "group": "prior_wrapper_lengths",
+        "median_ratio": 0.7803617571059431,
+        "n": 29,
+        "p95_ratio": 0.8064618308520748,
+        "p99_ratio": 4.372340425531915,
+        "passed": false,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "calls": 64,
+        "failed_metrics": [
+          "p99"
+        ],
+        "group": "prior_wrapper_lengths",
+        "median_ratio": 0.6812326345036626,
+        "n": 97,
+        "p95_ratio": 0.7278180454886278,
+        "p99_ratio": 2.220219244823386,
+        "passed": false,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "calls": 1,
+        "failed_metrics": [
+          "p99"
+        ],
+        "group": "prior_wrapper_lengths",
+        "median_ratio": 0.6534653465346535,
+        "n": 1237,
+        "p95_ratio": 0.7282809611829945,
+        "p99_ratio": 20.731907894736842,
+        "passed": false,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_release",
+        "calls": 1,
+        "failed_metrics": [
+          "p99"
+        ],
+        "group": "prospective_lengths",
+        "median_ratio": 0.47265625,
+        "n": 331,
+        "p95_ratio": 0.6188925081433225,
+        "p99_ratio": 34.142857142857146,
+        "passed": false,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "calls": 1,
+        "failed_metrics": [
+          "p99"
+        ],
+        "group": "prospective_lengths",
+        "median_ratio": 0.6648351648351648,
+        "n": 331,
+        "p95_ratio": 0.9004739336492891,
+        "p99_ratio": 47.254752851711025,
+        "passed": false,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_release",
+        "calls": 16,
+        "failed_metrics": [
+          "p99"
+        ],
+        "group": "prospective_lengths",
+        "median_ratio": 0.335941204362257,
+        "n": 331,
+        "p95_ratio": 0.36180197090567806,
+        "p99_ratio": 2.9582564575645756,
+        "passed": false,
+        "workload": "affine"
+      },
+      {
+        "baseline": "rust_byte_release",
+        "calls": 1,
+        "failed_metrics": [
+          "p99"
+        ],
+        "group": "prospective_lengths",
+        "median_ratio": 0.6541889483065954,
+        "n": 5317,
+        "p95_ratio": 0.5779388917659244,
+        "p99_ratio": 6.131539611360239,
+        "passed": false,
+        "workload": "affine"
+      }
+    ],
+    "joint_passed": 340,
+    "joint_total": 372,
+    "limits": [
+      "Only two authored reduction workloads on one shared nonexclusive x86_64 host.",
+      "Stack metric is allocator-hook distance, not a full function stack high-water proof.",
+      "Loader mapped/backing-resident pages and file bytes are different observations; RSS is reported but is not an attributable per-arm heap metric.",
+      "Cold-first-call observations are individual paired observations, not a population tail guarantee.",
+      "Amortization is a warm-median estimate; every raw cold observation and complete campaign wall remain separate.",
+      "Development, prerequisite/tool-copy and evidence-postprocess work is reported separately from the measured campaign. Unknown human engineering, energy and historical acquisition remain null.",
+      "Passing these finite observed gates does not establish broad Rust parity, universal full lifecycle benefit or a verified machine backend."
+    ],
+    "memory_passed": 5680,
+    "memory_total": 5680,
+    "metric_pass_counts": {
+      "median": {
+        "passed": 372,
+        "total": 372
+      },
+      "p95": {
+        "passed": 371,
+        "total": 372
+      },
+      "p99": {
+        "passed": 340,
+        "total": 372
+      }
+    },
+    "resource_cost_passed": 6842,
+    "resource_cost_total": 6852,
+    "s3_transitions": {
+      "cell_lists": {
+        "interpretation": "One complete registered cohort each; shared-host observations, no causal noise correction or selected-cell rerun.",
+        "new_failed_cells": [
+          [
+            "affine",
+            "historical_holdout",
+            73,
+            64,
+            "rust_byte_release"
+          ],
+          [
+            "affine",
+            "historical_holdout",
+            73,
+            64,
+            "rust_release"
+          ],
+          [
+            "affine",
+            "historical_regression",
+            1,
+            64,
+            "rust_byte_release"
+          ],
+          [
+            "affine",
+            "historical_regression",
+            1,
+            64,
+            "rust_release"
+          ],
+          [
+            "affine",
+            "historical_regression",
+            64,
+            16,
+            "rust_byte_release"
+          ],
+          [
+            "affine",
+            "historical_regression",
+            64,
+            16,
+            "rust_release"
+          ],
+          [
+            "affine",
+            "historical_regression",
+            64,
+            64,
+            "rust_byte_release"
+          ],
+          [
+            "affine",
+            "historical_regression",
+            64,
+            64,
+            "rust_release"
+          ],
+          [
+            "affine",
+            "prior_wrapper_lengths",
+            29,
+            1,
+            "rust_byte_release"
+          ],
+          [
+            "affine",
+            "prior_wrapper_lengths",
+            29,
+            1,
+            "rust_release"
+          ],
+          [
+            "affine",
+            "prior_wrapper_lengths",
+            97,
+            64,
+            "rust_byte_release"
+          ],
+          [
+            "affine",
+            "prior_wrapper_lengths",
+            1237,
+            1,
+            "rust_byte_release"
+          ],
+          [
+            "affine",
+            "prospective_lengths",
+            331,
+            1,
+            "rust_byte_release"
+          ],
+          [
+            "affine",
+            "prospective_lengths",
+            331,
+            1,
+            "rust_release"
+          ],
+          [
+            "affine",
+            "prospective_lengths",
+            331,
+            16,
+            "rust_release"
+          ],
+          [
+            "affine",
+            "prospective_lengths",
+            5317,
+            1,
+            "rust_byte_release"
+          ],
+          [
+            "linear",
+            "historical_holdout",
+            19,
+            16,
+            "rust_release"
+          ],
+          [
+            "linear",
+            "historical_holdout",
+            1051,
+            16,
+            "rust_release"
+          ],
+          [
+            "linear",
+            "historical_holdout",
+            4109,
+            1,
+            "rust_byte_release"
+          ],
+          [
+            "linear",
+            "historical_holdout",
+            4109,
+            1,
+            "rust_release"
+          ],
+          [
+            "linear",
+            "historical_regression",
+            1,
+            64,
+            "rust_release"
+          ],
+          [
+            "linear",
+            "historical_regression",
+            257,
+            64,
+            "rust_release"
+          ],
+          [
+            "linear",
+            "prospective_lengths",
+            101,
+            64,
+            "rust_release"
+          ],
+          [
+            "linear",
+            "prospective_lengths",
+            331,
+            16,
+            "rust_byte_release"
+          ],
+          [
+            "linear",
+            "prospective_lengths",
+            331,
+            16,
+            "rust_release"
+          ],
+          [
+            "linear",
+            "prospective_lengths",
+            5317,
+            1,
+            "rust_byte_release"
+          ]
+        ],
+        "now_passed": [
+          [
+            "affine",
+            "historical_holdout",
+            73,
+            1,
+            "rust_byte_release"
+          ],
+          [
+            "affine",
+            "historical_holdout",
+            269,
+            1,
+            "rust_byte_release"
+          ],
+          [
+            "affine",
+            "historical_holdout",
+            269,
+            1,
+            "rust_release"
+          ],
+          [
+            "affine",
+            "historical_holdout",
+            1051,
+            16,
+            "rust_byte_release"
+          ],
+          [
+            "affine",
+            "historical_holdout",
+            1051,
+            16,
+            "rust_release"
+          ],
+          [
+            "affine",
+            "historical_holdout",
+            65557,
+            1,
+            "rust_byte_release"
+          ],
+          [
+            "affine",
+            "historical_regression",
+            0,
+            1,
+            "rust_release"
+          ],
+          [
+            "affine",
+            "historical_regression",
+            0,
+            64,
+            "rust_byte_release"
+          ],
+          [
+            "affine",
+            "historical_regression",
+            0,
+            64,
+            "rust_release"
+          ],
+          [
+            "affine",
+            "historical_regression",
+            257,
+            1,
+            "rust_byte_release"
+          ],
+          [
+            "affine",
+            "historical_regression",
+            257,
+            1,
+            "rust_release"
+          ],
+          [
+            "affine",
+            "prior_wrapper_lengths",
+            29,
+            64,
+            "rust_byte_release"
+          ],
+          [
+            "affine",
+            "prior_wrapper_lengths",
+            307,
+            16,
+            "rust_byte_release"
+          ],
+          [
+            "affine",
+            "prior_wrapper_lengths",
+            307,
+            16,
+            "rust_release"
+          ],
+          [
+            "affine",
+            "prior_wrapper_lengths",
+            307,
+            64,
+            "rust_byte_release"
+          ],
+          [
+            "affine",
+            "prior_wrapper_lengths",
+            79039,
+            1,
+            "rust_byte_release"
+          ],
+          [
+            "affine",
+            "prospective_lengths",
+            101,
+            1,
+            "rust_byte_release"
+          ],
+          [
+            "affine",
+            "prospective_lengths",
+            101,
+            1,
+            "rust_release"
+          ],
+          [
+            "affine",
+            "prospective_lengths",
+            1327,
+            16,
+            "rust_byte_release"
+          ],
+          [
+            "affine",
+            "prospective_lengths",
+            1327,
+            16,
+            "rust_release"
+          ],
+          [
+            "linear",
+            "historical_holdout",
+            19,
+            1,
+            "rust_byte_release"
+          ],
+          [
+            "linear",
+            "historical_holdout",
+            19,
+            1,
+            "rust_release"
+          ],
+          [
+            "linear",
+            "historical_holdout",
+            19,
+            64,
+            "rust_byte_release"
+          ],
+          [
+            "linear",
+            "historical_holdout",
+            73,
+            1,
+            "rust_byte_release"
+          ],
+          [
+            "linear",
+            "historical_holdout",
+            73,
+            1,
+            "rust_release"
+          ],
+          [
+            "linear",
+            "historical_holdout",
+            73,
+            16,
+            "rust_byte_release"
+          ],
+          [
+            "linear",
+            "historical_holdout",
+            73,
+            64,
+            "rust_byte_release"
+          ],
+          [
+            "linear",
+            "historical_holdout",
+            1051,
+            1,
+            "rust_byte_release"
+          ],
+          [
+            "linear",
+            "historical_holdout",
+            16421,
+            1,
+            "rust_byte_release"
+          ],
+          [
+            "linear",
+            "historical_holdout",
+            16421,
+            1,
+            "rust_release"
+          ],
+          [
+            "linear",
+            "historical_holdout",
+            65557,
+            1,
+            "rust_byte_release"
+          ],
+          [
+            "linear",
+            "historical_regression",
+            0,
+            1,
+            "rust_byte_release"
+          ],
+          [
+            "linear",
+            "historical_regression",
+            1,
+            1,
+            "rust_byte_release"
+          ],
+          [
+            "linear",
+            "historical_regression",
+            1,
+            1,
+            "rust_release"
+          ],
+          [
+            "linear",
+            "historical_regression",
+            1,
+            16,
+            "rust_byte_release"
+          ],
+          [
+            "linear",
+            "historical_regression",
+            1,
+            16,
+            "rust_release"
+          ],
+          [
+            "linear",
+            "historical_regression",
+            64,
+            64,
+            "rust_byte_release"
+          ],
+          [
+            "linear",
+            "historical_regression",
+            257,
+            1,
+            "rust_byte_release"
+          ],
+          [
+            "linear",
+            "historical_regression",
+            257,
+            1,
+            "rust_release"
+          ],
+          [
+            "linear",
+            "historical_regression",
+            4096,
+            16,
+            "rust_byte_release"
+          ],
+          [
+            "linear",
+            "historical_regression",
+            4096,
+            16,
+            "rust_release"
+          ],
+          [
+            "linear",
+            "prior_wrapper_lengths",
+            29,
+            64,
+            "rust_byte_release"
+          ],
+          [
+            "linear",
+            "prior_wrapper_lengths",
+            29,
+            64,
+            "rust_release"
+          ],
+          [
+            "linear",
+            "prior_wrapper_lengths",
+            97,
+            64,
+            "rust_byte_release"
+          ],
+          [
+            "linear",
+            "prior_wrapper_lengths",
+            97,
+            64,
+            "rust_release"
+          ],
+          [
+            "linear",
+            "prior_wrapper_lengths",
+            4937,
+            1,
+            "rust_byte_release"
+          ],
+          [
+            "linear",
+            "prior_wrapper_lengths",
+            4937,
+            1,
+            "rust_release"
+          ],
+          [
+            "linear",
+            "prior_wrapper_lengths",
+            4937,
+            16,
+            "rust_byte_release"
+          ],
+          [
+            "linear",
+            "prior_wrapper_lengths",
+            4937,
+            16,
+            "rust_release"
+          ],
+          [
+            "linear",
+            "prospective_lengths",
+            101,
+            16,
+            "rust_byte_release"
+          ],
+          [
+            "linear",
+            "prospective_lengths",
+            331,
+            64,
+            "rust_byte_release"
+          ]
+        ],
+        "old_failed": 57,
+        "still_failed": [
+          [
+            "affine",
+            "prior_wrapper_lengths",
+            29,
+            64,
+            "rust_release"
+          ],
+          [
+            "linear",
+            "historical_holdout",
+            19,
+            16,
+            "rust_byte_release"
+          ],
+          [
+            "linear",
+            "historical_regression",
+            64,
+            64,
+            "rust_release"
+          ],
+          [
+            "linear",
+            "prior_wrapper_lengths",
+            29,
+            16,
+            "rust_byte_release"
+          ],
+          [
+            "linear",
+            "prior_wrapper_lengths",
+            29,
+            16,
+            "rust_release"
+          ],
+          [
+            "linear",
+            "prospective_lengths",
+            101,
+            64,
+            "rust_byte_release"
+          ]
+        ]
+      },
+      "fail_to_fail": 6,
+      "fail_to_pass": 51,
+      "not_a_speedup_percentage": true,
+      "pass_to_fail": 26,
+      "pass_to_pass": 289
+    },
+    "sample_exclusions": 0,
+    "timed_batches": 70308,
+    "timed_calls": 1898316,
+    "timing_requests": 3348
+  },
+  "artifacts": {
+    "FINAL_AUDIT.json": {
+      "bytes": 417373,
+      "sha256": "de6f81fb7fc74b9f17da4bf12db8e3eed561de78cfe1def9a81d5372377b270f"
+    },
+    "GITHUB_FINAL_SNAPSHOT.json": {
+      "bytes": 1004784,
+      "path": "/data/hepta-hia-round5-a3b4-20261105/evidence/independent-analysis-0a06ef4f0894-r1/GITHUB_FINAL_SNAPSHOT.json",
+      "sha256": "28fe8b7250e764090cf5369445c784ee65f5c0a65b1067e0743009e70af97885"
+    },
+    "TERMINAL_STATUS.json": {
+      "bytes": 1699,
+      "path": "/data/hepta-hia-round5-a3b4-20261105/evidence/independent-analysis-0a06ef4f0894-r1/TERMINAL_STATUS.json",
+      "sha256": "0ab7d7d96fdd888fc9b53c62d43dbec33d85a68550b055dc0af925a4553c3a5b"
+    },
+    "parser_v2_sha256": "09f5faf83f50a62c5bd5a97a424b0d86a5c2eecc3f3926831540b5e4750408cf"
+  },
+  "authority": "DENY_ALL",
+  "commands_total": 36,
+  "core": {
+    "added_ids": [
+      "tests.test_hia_composition_identity.CompositionIdentityTests.test_git_config_environment_cannot_forge_sparse_checkout",
+      "tests.test_hia_composition_identity.CompositionIdentityTests.test_git_repository_and_config_environment_cannot_relabel_source",
+      "tests.test_hia_composition_identity.CompositionIdentityTests.test_head_move_during_materialized_scan_is_rejected",
+      "tests.test_hia_composition_identity.CompositionIdentityTests.test_replacement_commit_cannot_attest_modified_source_under_original_sha",
+      "tests.test_hia_composition_raw_identity.RawCompositionIdentityTests.test_frozen_capture_refuses_live_descendant_after_leader_exit",
+      "tests.test_hia_composition_raw_identity.RawCompositionIdentityTests.test_frozen_deadline_kills_a_term_resistant_owned_child",
+      "tests.test_hia_composition_raw_identity.RawCompositionIdentityTests.test_frozen_deadline_preserves_normal_status_and_both_streams",
+      "tests.test_hia_composition_raw_identity.RawCompositionIdentityTests.test_frozen_group_signal_precedes_leader_reaping",
+      "tests.test_hia_composition_raw_identity.RawCompositionIdentityTests.test_frozen_regular_files_refuse_success_with_a_live_descendant",
+      "tests.test_hia_ndu_preparation_bound.PreparationBoundTests.test_bound_and_gate_decisions_against_independent_all_schedule_oracle",
+      "tests.test_hia_ndu_preparation_bound.PreparationBoundTests.test_each_invalidation_ends_the_free_resident_segment",
+      "tests.test_hia_ndu_preparation_bound.PreparationBoundTests.test_existing_resident_does_not_pay_preparation_again",
+      "tests.test_hia_ndu_preparation_bound.PreparationBoundTests.test_holding_cost_can_require_releasing_an_initial_resident",
+      "tests.test_hia_ndu_preparation_bound.PreparationBoundTests.test_individually_oversized_artifact_cannot_supply_a_saving",
+      "tests.test_hia_ndu_preparation_bound.PreparationBoundTests.test_invalid_initial_resident_does_not_prepay_a_later_epoch",
+      "tests.test_hia_ndu_preparation_bound.PreparationBoundTests.test_negative_and_boolean_costs_are_still_rejected_before_the_bound",
+      "tests.test_hia_ndu_preparation_bound.PreparationBoundTests.test_overlapping_savings_never_weaken_the_free_execution_bound",
+      "tests.test_hia_ndu_preparation_bound.PreparationBoundTests.test_short_request_cannot_amortize_prepare_and_proof",
+      "tests.test_hia_ndu_preparation_bound.PreparationBoundTests.test_zero_costs_and_exact_ties_preserve_the_existing_contract",
+      "tests.test_hia_scalar_return_signature.ScalarReturnSignatureTests.test_all_trap_core_and_actual_emission_remain_valid",
+      "tests.test_hia_scalar_return_signature.ScalarReturnSignatureTests.test_return_signature_is_checked_before_symbolic_path_execution",
+      "tests.test_hia_scalar_return_signature.ScalarReturnSignatureTests.test_well_typed_infeasible_return_preserves_trap_behavior",
+      "tests.test_hia_scalar_return_signature.ScalarReturnSignatureTests.test_wrong_dead_return_type_refuses_without_reference_return_paths"
+    ],
+    "errors": 0,
+    "failures": 0,
+    "removed_s3_ids": [],
+    "s3_registered_tests": 590,
+    "skips": 0,
+    "tests": 613
+  },
+  "costs": {
+    "composition_inner_wall_ns": 2004608895285,
+    "composition_remainder_ns": 242965656006,
+    "nested_composition_commands_wall_ns": 1761643239279,
+    "nested_sequence_command_wall_ns": 2643970104287,
+    "rule": "Parent walls include their child walls. Never sum parent plus children; conservative solo-policy allocations are alternative attributed scenarios, not separately executed campaigns.",
+    "sequence_remainder_ns": 26990559588,
+    "sequence_wall_ns": 2670960663875,
+    "unknown_human_engineering_energy_historical_acquisition": null
+  },
+  "created_utc": "2026-11-06T00:35:46.449491+00:00",
+  "github": {
+    "all_ci_passed": false,
+    "artifact_profile_review_is_separate": true,
+    "completed_jobs": [
+      {
+        "completed_at": "2026-11-05T23:43:26Z",
+        "conclusion": "success",
+        "executed_step_names": [
+          "Set up job",
+          "Run actions/checkout@v4",
+          "Retain failed setup state before installing tools",
+          "Run actions/setup-python@v5",
+          "Bind exact source and native Rust",
+          "Establish the actual Visual Studio and Windows SDK environment",
+          "Check C++ host identity and evidence refusal contracts",
+          "Execute unchanged upstream C++ versions through compiled Hepta",
+          "Retain original host files and failures",
+          "Post Run actions/setup-python@v5",
+          "Post Run actions/checkout@v4",
+          "Complete job"
+        ],
+        "id": 127608284785,
+        "name": "windows-2025 / x86_64 / clang",
+        "run_id": 42131297029,
+        "runner_name": "GitHub Actions 1000005820",
+        "skipped_step_names": [],
+        "started_at": "2026-11-05T23:41:51Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-11-05T23:55:38Z",
+        "conclusion": "success",
+        "executed_step_names": [
+          "Set up job",
+          "Run actions/checkout@v4",
+          "Retain failed setup state before installing tools",
+          "Run actions/setup-python@v5",
+          "Bind exact source and native Rust",
+          "Check C++ host identity and evidence refusal contracts",
+          "Execute unchanged upstream C++ versions through compiled Hepta",
+          "Retain original host files and failures",
+          "Post Run actions/setup-python@v5",
+          "Post Run actions/checkout@v4",
+          "Complete job"
+        ],
+        "id": 127608285065,
+        "name": "macos-15 / aarch64 / clang",
+        "run_id": 42131297029,
+        "runner_name": "GitHub Actions 1000005949",
+        "skipped_step_names": [
+          "Establish the actual Visual Studio and Windows SDK environment"
+        ],
+        "started_at": "2026-11-05T23:54:53Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-11-05T23:44:22Z",
+        "conclusion": "success",
+        "executed_step_names": [
+          "Set up job",
+          "Run actions/checkout@v4",
+          "Retain failed setup state before installing tools",
+          "Run actions/setup-python@v5",
+          "Bind exact source and native Rust",
+          "Establish the actual Visual Studio and Windows SDK environment",
+          "Check C++ host identity and evidence refusal contracts",
+          "Execute unchanged upstream C++ versions through compiled Hepta",
+          "Retain original host files and failures",
+          "Post Run actions/setup-python@v5",
+          "Post Run actions/checkout@v4",
+          "Complete job"
+        ],
+        "id": 127608285285,
+        "name": "windows-2025 / x86_64 / msvc",
+        "run_id": 42131297029,
+        "runner_name": "GitHub Actions 1000005827",
+        "skipped_step_names": [],
+        "started_at": "2026-11-05T23:42:48Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-11-05T23:46:35Z",
+        "conclusion": "success",
+        "executed_step_names": [
+          "Set up job",
+          "Run actions/checkout@v4",
+          "Retain an unqualified result if setup or execution never finishes",
+          "Run actions/setup-python@v5",
+          "Verify exact head and install the pinned native Rust version",
+          "Establish the actual Visual Studio and Windows SDK environment",
+          "Check adapter and failed-report contracts",
+          "Execute both C profiles, three ill-typed declarations, and a compiled wrong echo",
+          "Check bounded compiler capture process ownership on this host",
+          "Check serialized-AST process status and argument forwarding on this host",
+          "Resolve capture Clang and check actual original array parameter types",
+          "Execute the complete frozen stb_divide C component on this actual host",
+          "Verify final exact head and unchanged clean tracked source",
+          "Retain actual host evidence, including failures",
+          "Post Run actions/setup-python@v5",
+          "Post Run actions/checkout@v4",
+          "Complete job"
+        ],
+        "id": 127608287181,
+        "name": "windows-2025 / x86_64 / clang",
+        "run_id": 42131297248,
+        "runner_name": "GitHub Actions 1000005854",
+        "skipped_step_names": [
+          "Check non-reaping POSIX leader and capture-read boundaries"
+        ],
+        "started_at": "2026-11-05T23:44:34Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-11-05T23:47:45Z",
+        "conclusion": "success",
+        "executed_step_names": [
+          "Set up job",
+          "Run actions/checkout@v4",
+          "Retain an unqualified result if setup or execution never finishes",
+          "Run actions/setup-python@v5",
+          "Verify exact head and install the pinned native Rust version",
+          "Establish the actual Visual Studio and Windows SDK environment",
+          "Check adapter and failed-report contracts",
+          "Execute both C profiles, three ill-typed declarations, and a compiled wrong echo",
+          "Check bounded compiler capture process ownership on this host",
+          "Check serialized-AST process status and argument forwarding on this host",
+          "Resolve capture Clang and check actual original array parameter types",
+          "Execute the complete frozen stb_divide C component on this actual host",
+          "Verify final exact head and unchanged clean tracked source",
+          "Retain actual host evidence, including failures",
+          "Post Run actions/setup-python@v5",
+          "Post Run actions/checkout@v4",
+          "Complete job"
+        ],
+        "id": 127608287194,
+        "name": "windows-2025 / x86_64 / msvc",
+        "run_id": 42131297248,
+        "runner_name": "GitHub Actions 1000005859",
+        "skipped_step_names": [
+          "Check non-reaping POSIX leader and capture-read boundaries"
+        ],
+        "started_at": "2026-11-05T23:45:06Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-11-05T23:57:34Z",
+        "conclusion": "success",
+        "executed_step_names": [
+          "Set up job",
+          "Run actions/checkout@v4",
+          "Retain an unqualified result if setup or execution never finishes",
+          "Run actions/setup-python@v5",
+          "Verify exact head and install the pinned native Rust version",
+          "Check adapter and failed-report contracts",
+          "Execute both C profiles, three ill-typed declarations, and a compiled wrong echo",
+          "Check bounded compiler capture process ownership on this host",
+          "Check non-reaping POSIX leader and capture-read boundaries",
+          "Check serialized-AST process status and argument forwarding on this host",
+          "Resolve capture Clang and check actual original array parameter types",
+          "Execute the complete frozen stb_divide C component on this actual host",
+          "Verify final exact head and unchanged clean tracked source",
+          "Retain actual host evidence, including failures",
+          "Post Run actions/setup-python@v5",
+          "Post Run actions/checkout@v4",
+          "Complete job"
+        ],
+        "id": 127608287303,
+        "name": "macos-15 / aarch64 / clang",
+        "run_id": 42131297248,
+        "runner_name": "GitHub Actions 1000005975",
+        "skipped_step_names": [
+          "Establish the actual Visual Studio and Windows SDK environment"
+        ],
+        "started_at": "2026-11-05T23:54:58Z",
+        "status": "completed"
+      }
+    ],
+    "exact_head": "67da0ab0a51203f6f640c4459bc15bef442885b8",
+    "job_status_conclusion_counts": {
+      "completed/success": 6,
+      "queued/None": 100
+    },
+    "workflow_status_counts": {
+      "queued": 12
+    }
+  },
+  "historical_test_scope": {
+    "all_historical_tests_identical": false,
+    "common_method_ast_unchanged": 40,
+    "fiveee_branch_is_s3_ancestor": false,
+    "new_structured_source_controls": 10,
+    "report": "HISTORICAL_TEST_SCOPE_AUDIT.json",
+    "shared_methods_5ee6": 43,
+    "shared_methods_s3_current": 40
+  },
+  "identity_errors": [],
+  "independent_audit_errors": [],
+  "measured_source_commit": "0a06ef4f0894681af92b0caefba0704c1278d2cc",
+  "measured_source_tree": "a5239982f9fd8f08ab3a6e791147fc989e8d9df6",
+  "ndu": {
+    "acceptance": {
+      "actual_native_invocations": 9,
+      "complete_cost_accounting": true,
+      "complete_cost_accounting_scope": "Declared bridge build, shared offline build/training/proof/calibration, and actual per-policy service wall times. Parent interpreter startup/imports and final report output require separate composition outer receipts.",
+      "finite_native_correctness_passed": true,
+      "full_lifecycle_cost_complete": false,
+      "native_matches_same_information_exact_model": true,
+      "native_model_all_attempts_completed": true,
+      "native_model_attempted_count": 9,
+      "native_model_evaluated_count": 9,
+      "native_model_failed_count": 0,
+      "native_net_benefit_established": false,
+      "native_net_win_scenarios": 0,
+      "native_policy_evidence_present": true,
+      "reason": "Three repetitions are exploratory, never an application-wide or statistical net-benefit theorem.",
+      "same_information_controls": true,
+      "scenario_count": 3,
+      "skip_only_episodes_without_native_start": 3,
+      "source_stable_during_run": true
+    },
+    "actual_fresh_bridge_plus_qualification_command_wall_ns": 51333880935,
+    "alternative_policy_costs_must_not_be_summed": true,
+    "fresh_bridge_build_receipt": {
+      "child_cpu_ns": 77786247000,
+      "dependency_cache": "caller supplied; downloads charged if incurred",
+      "fully_cold_machine_claim": false,
+      "parent_cpu_ns": 528482631,
+      "scope": "source/blob admission, inventory, cargo, raw command evidence, binary/tool admission; excludes this manifest write and process startup",
+      "target_cache": "empty",
+      "wall_ns": 37015251921
+    },
+    "outer_cost_completion": {
+      "allocation_rule": "Every policy pays the full common campaign remainder once; native additionally pays outer minus inner bridge build. Original nested report is retained unchanged.",
+      "common_unallocated_runner_overhead_ns": 431643231,
+      "conservative_solo_campaign_cost_by_policy_ns": {
+        "exact_dp": 11309013613,
+        "fixed": 11283078238,
+        "lightweight": 11299919508,
+        "native_ndu": 48631855777
+      },
+      "native_build_additional_charged_ns": 221394111,
+      "native_build_inner_wall_ns": 37015251921,
+      "native_build_outer_wall_ns": 37236646032,
+      "not_an_independently_executed_solo_campaign": true,
+      "whole_qualification_command_wall_ns": 14097234903
+    },
+    "scenario_comparisons": [
+      {
+        "episode": "tiny",
+        "independently_recomputed_native_beats_controls": false,
+        "median_service_ns": {
+          "exact_dp": 38746358,
+          "fixed": 37740465,
+          "lightweight": 43726289,
+          "native_ndu": 39043825
+        },
+        "native_beats_all_controls": false,
+        "native_over_best_control": 1.034534815615017
+      },
+      {
+        "episode": "amortized",
+        "independently_recomputed_native_beats_controls": false,
+        "median_service_ns": {
+          "exact_dp": 147038824,
+          "fixed": 140300471,
+          "lightweight": 139742754,
+          "native_ndu": 153246003
+        },
+        "native_beats_all_controls": false,
+        "native_over_best_control": 1.0966293322085237
+      },
+      {
+        "episode": "invalidate-recover",
+        "independently_recomputed_native_beats_controls": false,
+        "median_service_ns": {
+          "exact_dp": 113964074,
+          "fixed": 121181635,
+          "lightweight": 108780444,
+          "native_ndu": 133801081
+        },
+        "native_beats_all_controls": false,
+        "native_over_best_control": 1.2300104327575645
+      }
+    ],
+    "scenario_service_sum_ns": {
+      "amortized": {
+        "exact_dp": 441064131,
+        "fixed": 425637051,
+        "lightweight": 419321667,
+        "native_ndu": 468161594
+      },
+      "invalidate-recover": {
+        "exact_dp": 341424632,
+        "fixed": 347116529,
+        "lightweight": 336542670,
+        "native_ndu": 405293851
+      },
+      "tiny": {
+        "exact_dp": 129862783,
+        "fixed": 113662591,
+        "lightweight": 147393104,
+        "native_ndu": 125092233
+      }
+    },
+    "scenario_standalone_full_lifecycle_cost": {
+      "amortized": {
+        "reason": "No independently observed per-scenario build/shared allocation; actual service medians and sums retained separately.",
+        "standalone_full_lifecycle_cost_ns": null
+      },
+      "invalidate-recover": {
+        "reason": "No independently observed per-scenario build/shared allocation; actual service medians and sums retained separately.",
+        "standalone_full_lifecycle_cost_ns": null
+      },
+      "tiny": {
+        "reason": "No independently observed per-scenario build/shared allocation; actual service medians and sums retained separately.",
+        "standalone_full_lifecycle_cost_ns": null
+      }
+    },
+    "service_sum_by_policy_ns": {
+      "exact_dp": 912351546,
+      "fixed": 886416171,
+      "lightweight": 903257441,
+      "native_ndu": 998547678
+    },
+    "shared_cost_policy": {
+      "arm_full_cost_ns": {
+        "exact_dp": 10877370382,
+        "fixed": 10851435007,
+        "lightweight": 10868276277,
+        "native_ndu": 47978818435
+      },
+      "bridge_build_wall_ns": 37015251921,
+      "build_cost_observed": true,
+      "charged_per_arm": "one full shared offline campaign cost plus sum of actual service walls; no unreported amortization",
+      "cost_scope": "Declared bridge build, shared offline build/training/proof/calibration, and actual per-policy service wall times. Parent interpreter startup/imports and final report output require separate composition outer receipts.",
+      "execution_scope_cost_complete": true,
+      "full_lifecycle_cost_complete": false,
+      "limits": "Shared offline calibration includes native calibration for every arm as an identical workload-information campaign; bridge build is additional only for native. No fully cold host claim.",
+      "offline_build_training_proof_calibration_wall_ns": 9965018836,
+      "unknown_costs": [],
+      "unknown_costs_scope": "declared execution scope only",
+      "unmeasured_lifecycle_costs": {
+        "dependency_acquisition_before_campaign_ns": null,
+        "human_engineering_and_review_ns": null,
+        "long_term_residency_and_evidence_retention_ns": null,
+        "maintenance_and_recovery_beyond_observed_campaign_ns": null,
+        "toolchain_acquisition_ns": null
+      }
+    },
+    "specialist_66d_costs_used": false
+  },
+  "postprocess_wall_ns_before_serialization": 22454743,
+  "qualification_flags": 34,
+  "qualification_flags_true": 34,
+  "same_combination_lifecycle_qualified": true,
+  "schema": "hepta.hia.independent-final-summary.v1",
+  "separate_published_github_head": "67da0ab0a51203f6f640c4459bc15bef442885b8",
+  "sequence_stage_walls_ns": {
+    "composition": 2005257633654,
+    "independent-replay": 43595967989,
+    "proof": 595116502644
+  },
+  "source_and_tools_unchanged": true,
+  "summary_is_new_measurement": false,
+  "wider_refinement_obligations_unproved": 12
+}

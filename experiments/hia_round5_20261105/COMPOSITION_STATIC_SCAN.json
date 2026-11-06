@@ -1,0 +1,38 @@
+{
+  "archive_unchanged": true,
+  "correction": "URL/header whitespace expressions use single regex whitespace escapes; previous overescaped scan retained as historical.",
+  "cpu_affinity": [
+    10,
+    11
+  ],
+  "decoded_json_strings": 4222910,
+  "finished_utc": "2026-11-06T00:58:40.902922+00:00",
+  "gzip_views": 8,
+  "matches": [],
+  "ok": true,
+  "parsed_json_documents": 27286,
+  "pattern_expressions": {
+    "authorization_header": "authorization[\\s\"\\x27:=]+(?:bearer|basic)[ ]+[A-Za-z0-9+/_=.-]{16,}",
+    "aws_access_key": "AKIA[0-9A-Z]{16}",
+    "github_token": "(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,})",
+    "private_key": "-----BEGIN (?:RSA |OPENSSH |EC )?PRIVATE KEY-----",
+    "signed_or_token_url": "https?://[^\\s\"<>]+[?&](?:X-Amz-Signature|X-Amz-Credential|X-Goog-Signature|X-Goog-Credential|sig|access_token|oauth_token|token)=[^\\s\"<>]+",
+    "url_userinfo_password": "https?://[^\\s\"<>/@:]+:[^\\s\"<>/@]+@[^\\s\"<>]+"
+  },
+  "patterns": [
+    "github_token",
+    "private_key",
+    "signed_or_token_url",
+    "url_userinfo_password",
+    "authorization_header",
+    "aws_access_key"
+  ],
+  "retained_files_identity_rechecked": 1778,
+  "revision": 2,
+  "schema": "hepta.publication-static-sensitive-pattern-scan.v1",
+  "scope": "known credential/header/private-key and temporary signed/token URL patterns over retained UTF-8 text plus decoded JSON strings and gzip payloads; no native or CI execution",
+  "started_utc": "2026-11-06T00:58:17.842834+00:00",
+  "synthetic_nonsecret_pattern_checks_passed": true,
+  "utf8_text_views": 1545,
+  "wall_seconds": 23.060125591000542
+}
