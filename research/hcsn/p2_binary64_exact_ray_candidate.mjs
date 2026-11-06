@@ -95,8 +95,44 @@ function normalize(raw, dimension) {
   return {key, ray: exactBinary64Ray(coordinates)};
 }
 
-function distance(a, b) {
-  return Math.hypot(...a.map((x, i) => x - b[i]));
+function exactPositiveBinary64Fraction(value) {
+  const view = new DataView(new ArrayBuffer(8));
+  view.setFloat64(0, value, false);
+  const bits = view.getBigUint64(0, false);
+  const exponentBits = Number((bits >> 52n) & 0x7ffn);
+  const significand = (bits & FRACTION_MASK) +
+    (exponentBits === 0 ? 0n : (1n << 52n));
+  const exponent = exponentBits === 0 ? -1074 : exponentBits - 1075;
+  return exponent >= 0
+    ? {numerator: significand << BigInt(exponent), denominator: 1n}
+    : {numerator: significand, denominator: 1n << BigInt(-exponent)};
+}
+
+/** Exact chord-distance comparison for two nonzero binary64 vectors.
+ *
+ * rayA and rayB are primitive integer representatives of the exact input
+ * directions. For D=rayA·rayB>0, unit-chord distance d satisfies
+ * d² = 2 - 2D/sqrt(A B), where A=||rayA||² and B=||rayB||².
+ * With radius r=p/q, d<=r is exactly equivalent to
+ * D²(2q²)² >= (2q²-p²)² A B. This avoids rounded normalization and rounded
+ * Math.hypot deciding the safety boundary. For r<1, D<=0 cannot collide.
+ */
+function withinExactRadius(rayA, rayB, radiusNumerator, radiusDenominator) {
+  let dot = 0n;
+  let normA = 0n;
+  let normB = 0n;
+  for (let i = 0; i < rayA.length; i++) {
+    const a = rayA[i];
+    const b = rayB[i];
+    dot += a * b;
+    normA += a * a;
+    normB += b * b;
+  }
+  if (dot <= 0n) return false;
+  const denominator = 2n * radiusDenominator * radiusDenominator;
+  const numerator = denominator - radiusNumerator * radiusNumerator;
+  return dot * dot * denominator * denominator >=
+    numerator * numerator * normA * normB;
 }
 
 /** Bounded, exact-address occupancy with explicit conservative ambiguity.
@@ -106,6 +142,8 @@ function distance(a, b) {
 export class ExactOccupancyLedger {
   #slots = [];
   #epoch = 0;
+  #radiusNumerator;
+  #radiusDenominator;
 
   constructor({dimension, capacity, collisionRadius = 1e-6} = {}) {
     if (!Number.isSafeInteger(dimension) || dimension < 1 || dimension > 4096 ||
@@ -117,6 +155,9 @@ export class ExactOccupancyLedger {
     this.dimension = dimension;
     this.capacity = capacity;
     this.collisionRadius = collisionRadius;
+    const radius = exactPositiveBinary64Fraction(collisionRadius);
+    this.#radiusNumerator = radius.numerator;
+    this.#radiusDenominator = radius.denominator;
     // Config is part of the safety contract; private slots/epoch stay mutable.
     Object.freeze(this);
   }
@@ -139,7 +180,7 @@ export class ExactOccupancyLedger {
         slot.value = value;  // Explicit latest-write-wins for exact repeats.
         return 'overwritten';
       }
-      if (distance(slot.key, key) <= this.collisionRadius) {
+      if (withinExactRadius(slot.ray, ray, this.#radiusNumerator, this.#radiusDenominator)) {
         throw new AddressCollision('distinct nearby learned keys cannot be disambiguated');
       }
     }
@@ -157,7 +198,8 @@ export class ExactOccupancyLedger {
         return {status: 'known', value: slot.value, epoch: this.#epoch};
       }
     }
-    if (this.#slots.some(slot => distance(slot.key, key) <= this.collisionRadius)) {
+    if (this.#slots.some(slot => withinExactRadius(
+      slot.ray, ray, this.#radiusNumerator, this.#radiusDenominator))) {
       return {status: 'ambiguous', value: null, epoch: this.#epoch};
     }
     return {status: 'unknown', value: null, epoch: this.#epoch};
