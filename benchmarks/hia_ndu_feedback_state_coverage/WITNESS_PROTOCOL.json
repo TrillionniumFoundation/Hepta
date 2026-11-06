@@ -1,0 +1,21 @@
+{
+  "schema": "hepta.hia.ndu.physical-witness-protocol.v1",
+  "families": ["all-distinct", "natural-support"],
+  "environments": ["adaptive", "fixed", "misleading"],
+  "mechanisms": {
+    "numeric_preference": {"flags": ["preference_external_gain", "preference_both_deliver"], "comparison_arm": "fixed-preference-ndu"},
+    "prediction_error": {"flags": ["misleading_belief_cost"], "comparison_arm": "wrong-forecast"},
+    "planning": {"flags": ["planning_value_over_greedy"], "comparison_arm": "state-greedy"},
+    "fixed_sufficient": {"flags": ["fixed_policy_sufficient"], "comparison_arm": "fixed"}
+  },
+  "selection": "For each family, environment and mechanism, retain the lexicographically first qualified state satisfying every declared flag. Retain empty groups explicitly. Deduplicate identical state/arm executions while retaining every group membership. Selection uses no measured latency.",
+  "arms": "Original native dynamic NDU, ordinary same-objective control, and the declared counterfactual for each selected state. Counterfactual fixed-preference NDU also uses the original native value backend.",
+  "dimension": 128,
+  "kernel_repeats": 4,
+  "matrix_seed": 19001,
+  "vector_seed": 19009,
+  "max_transitions_per_decision": 20000,
+  "resource_units": "The supplied finite state retains its declared model resource units. The physical cache is recreated at that residency and the chosen current action is actually dispatched. Measured nanoseconds are separately retained; they are never substituted into the abstract 24-unit budget or fed back as a fictitious model outcome.",
+  "scope": "Physical action-consumption witness, not a new latency advantage estimate or a naturally reached physical history. Closed-loop latency evidence is reported in the separately frozen v1 and compute-price cohorts.",
+  "authority": "DENY_ALL"
+}

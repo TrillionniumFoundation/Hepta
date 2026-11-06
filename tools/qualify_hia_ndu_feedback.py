@@ -31,7 +31,7 @@ from experiments.hia_ndu_feedback_20261106.native import NativeValueBackend
 from experiments.hia_ndu_feedback_20261106.workload import NativeCache, calibrate
 
 PROTOCOL = ROOT / "benchmarks/hia_ndu_feedback/PROTOCOL.json"
-NATIVE_ARMS = ("fixed-preference-ndu", "dynamic-ndu", "dynamic-ndu-gated")
+NATIVE_ARMS = ("fixed-preference-ndu", "dynamic-ndu", "dynamic-ndu-gated", "dynamic-ndu-priced")
 
 
 def write(path, value):
@@ -56,8 +56,11 @@ def source_identity():
     names = git("ls-files", "hepta", "experiments/hia_ndu_feedback_20261106",
                 "rust/hia-ndu-value", "rust/hia-ndu-dynamic-model", "benchmarks/hia_ndu_feedback",
                 "tools/build_hia_ndu_bridge.py", "tools/build_hia_ndu_value_bridge.py",
-                "tools/qualify_hia_ndu_feedback.py", "tests/test_hia_ndu_feedback.py",
-                "tests/test_hia_ndu_feedback_workload.py", "tests/test_hia_ndu_feedback_campaign.py").splitlines()
+                "tools/qualify_hia_ndu_feedback.py", "tools/qualify_hia_ndu_compute_price.py", "tools/qualify_hia_ndu_witnesses.py",
+                "benchmarks/hia_ndu_feedback_state_coverage", "tests/test_hia_ndu_feedback.py",
+                "tests/test_hia_ndu_feedback_workload.py", "tests/test_hia_ndu_feedback_campaign.py",
+                "tests/test_hia_ndu_compute_price.py", "tests/test_hia_ndu_economical.py",
+                "tests/test_hia_ndu_feedback_coverage.py").splitlines()
     files = {}
     for name in names:
         raw = (ROOT / name).read_bytes()
@@ -183,7 +186,7 @@ def derived_native_scenario(base, calibration, n, p):
 
 
 def episode(scenario, seed, arm, *, fixed_action, inputs, output, native, n, repeats, cap,
-            remaining_transitions=2000000):
+            remaining_transitions=2000000, decision_function=None):
     """Keep partial failures and cleanup in the original planned denominator."""
     began = time.monotonic_ns()
     result = {"scenario": scenario.name, "seed": seed, "arm": arm, "native_workload": native,
@@ -211,12 +214,14 @@ def episode(scenario, seed, arm, *, fixed_action, inputs, output, native, n, rep
             if allowance <= 0:
                 raise model.SearchBudgetExhausted("controller lifecycle budget exhausted before next decision")
             try:
-                selected = decide(scenario, observation, arm, backend, fixed_action, allowance)
+                selected = (decision_function or decide)(scenario, observation, arm, backend, fixed_action, allowance)
             except Exception as error:
                 consumed = getattr(error, "search_stats", {}).get("transitions",
                     getattr(error, "transitions", allowance if isinstance(error, model.SearchBudgetExhausted) else 0))
                 result["failed_search_transitions"] += consumed
                 result["failed_search_statistics"] = getattr(error, "search_stats", {})
+                if hasattr(error, "cost_receipt"):
+                    result["failed_controller_cost_receipt"] = error.cost_receipt
                 raise
             decision_elapsed = time.monotonic_ns() - step_start
             row = {"decision": selected, "observed_decision_wall_ns": decision_elapsed}
@@ -289,10 +294,23 @@ def audit_episode(scenario, result, cap):
         chosen = choice["selected_action"] or "abstain"
         conditional = oracle["candidate_values_q32"].get(chosen)
         regret = None if conditional is None else oracle["value_q32"]-conditional
-        same_target = result["arm"] in ("same-objective", "dynamic-ndu", "dynamic-ndu-gated", "exact-oracle")
+        priced = result["arm"] in ("same-objective-priced", "dynamic-ndu-priced")
+        gate = choice.get("compute_gate", {})
+        same_target = (result["arm"] in ("same-objective", "dynamic-ndu", "dynamic-ndu-gated", "exact-oracle")
+                       or priced and gate.get("invoke") is True)
         matches = (oracle.get("eligibility", {}).get(chosen, conditional is not None)
                    and conditional == oracle["value_q32"] and choice["value_q32"] == oracle["value_q32"]) if same_target else None
         fixed_ablation = None
+        priced_incumbent_agrees = None
+        priced_bound_valid = None
+        if priced:
+            priced_bound_valid = (type(gate.get("invoke")) is bool
+                                  and type(gate.get("optimal_upper_q32")) is int
+                                  and oracle["value_q32"] <= gate["optimal_upper_q32"])
+            if gate.get("invoke") is False:
+                greedy = model.plan(scenario, obs, "state-greedy", max_transitions=cap)
+                priced_incumbent_agrees = (choice["action"], choice["value_q32"], choice["candidate_values_q32"]) == (
+                    greedy["action"], greedy["value_q32"], greedy["candidate_values_q32"])
         if result["arm"] in ("dynamic-ndu", "dynamic-ndu-gated"):
             fixed = model.plan(scenario, obs, "fixed-preference-ndu", backend=model.scalar_backend,
                                max_transitions=cap)
@@ -305,6 +323,8 @@ def audit_episode(scenario, result, cap):
                      "oracle_action": oracle["selected_action"], "selected_conditional_regret_q32": regret,
                      "same_objective_required": same_target, "same_objective_agrees": matches,
                      "canonical_action_agrees": choice["action"] == oracle["action"],
+                     "priced_incumbent_agrees": priced_incumbent_agrees,
+                     "priced_optimal_upper_valid": priced_bound_valid,
                      "fixed_preference_ablation": fixed_ablation,
                      "search_transitions": oracle["search"]["transitions"]})
     return {"rows": rows, "wall_ns": time.monotonic_ns()-began,

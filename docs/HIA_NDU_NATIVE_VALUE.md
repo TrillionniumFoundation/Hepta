@@ -217,10 +217,19 @@ RUSTC=/absolute/rust-1.95.0/bin/rustc \
 The [dedicated workflow](../.github/workflows/hia-ndu-feedback.yml) uses one job
 with read-only repository permission and no added secret. It runs these gates:
 
-1. Freeze a clean `HEAD`, every tracked source hash and the worktree status.
-2. Run the engine, workload boundary and exact-arithmetic reference tests. Empty
-   inventories, import failures, test failures, errors, expected failures and
-   skips cannot produce a pass.
+1. Check out `github.event.pull_request.head.sha` for a pull request and
+   `github.sha` for a manual dispatch. Both source snapshots require an explicit
+   `--expected-head` from that event identity and compare it to the actual
+   checked-out `HEAD`. Freeze every tracked source hash and the worktree status.
+   The final snapshot must retain the same expected identity as the first.
+   Artifact names use the observed checkout SHA. A clean, unchanged synthetic
+   merge does not satisfy an exact PR-head requirement, even when its tree is
+   byte-identical. Temporary Git-fixture controls verify rejection of wrong
+   heads, same-tree merge commits and a changed expected head between snapshots.
+2. Run the engine, workload boundary, campaign, mechanism-coverage, forecast-price,
+   exact-arithmetic, source-closure, dynamic-cache and preparation-bound tests.
+   Empty inventories, import failures, test failures, errors, expected failures
+   and skips cannot produce a pass.
 3. Install Rust/Cargo 1.95.0, anonymously fetch the exact upstream pin using the
    repository's existing Git-fetch pattern, and build separate value and workload
    adapters outside the checkout.

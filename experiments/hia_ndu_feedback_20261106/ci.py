@@ -16,6 +16,7 @@ import resource
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import unittest
 
@@ -46,8 +47,11 @@ def fingerprint(path):
     return {"bytes": len(data), "sha256": sha256(data).hexdigest()}
 
 
-def source_snapshot(output, *, before=None, root=ROOT):
-    """Freeze every tracked byte, HEAD and worktree cleanliness, not just a glob."""
+def source_snapshot(output, *, expected_head, before=None, root=ROOT):
+    """Require the exact requested commit as well as stable, clean source bytes."""
+    require(type(expected_head) is str and len(expected_head) == 40
+            and expected_head != "0" * 40 and set(expected_head) <= set("0123456789abcdef"),
+            "expected source head must be a nonzero full lowercase Git SHA")
     root = Path(root).resolve()
     head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
     status = subprocess.check_output(["git", "status", "--porcelain=v1", "--untracked-files=all"], cwd=root, text=True)
@@ -68,15 +72,88 @@ def source_snapshot(output, *, before=None, root=ROOT):
             data = path.read_bytes()
         files[relative] = {"mode": mode, "bytes": len(data), "sha256": sha256(data).hexdigest()}
     snapshot = {"schema": "hepta.hia.ndu.feedback-source-snapshot.v1", "head": head,
+                "expected_head": expected_head, "matches_expected_head": head == expected_head,
                 "clean": not status, "status_porcelain": status, "files": files, **AUTHORITY}
     if before is not None:
         expected = json.loads(Path(before).read_text())
         snapshot["matches_before"] = (expected.get("clean") is True and not status
+                                      and expected.get("expected_head") == expected_head
+                                      and expected.get("matches_expected_head") is True
                                       and head == expected.get("head") and files == expected.get("files"))
     write_json(output, snapshot)
+    require(snapshot["matches_expected_head"], "checked-out HEAD is not the exact requested source head")
     require(not status, "research CI requires a clean worktree; no reset or source rewrite is performed")
     require(before is None or snapshot["matches_before"], "tracked source changed during research CI")
     return snapshot
+
+
+def guard_controls(evidence):
+    """Reject a real same-tree synthetic merge and changes to the expected head.
+
+Only a temporary fixture Git repository is mutated. The published source and
+the original experiment's source/measurement receipts are never rewritten.
+"""
+    output = Path(evidence) / "source-guard-controls"
+    output.mkdir(parents=True, exist_ok=False)
+    receipt = {"schema": "hepta.hia.ndu.feedback-source-guard-controls.v1", "passed": False, **AUTHORITY}
+    started = time.monotonic_ns()
+    try:
+        with tempfile.TemporaryDirectory(prefix="hia-feedback-source-guard-") as temporary:
+            fixture = Path(temporary) / "repo"
+            fixture.mkdir()
+            env = dict(os.environ, GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull,
+                       GIT_AUTHOR_NAME="NDU guard fixture", GIT_AUTHOR_EMAIL="fixture@example.invalid",
+                       GIT_COMMITTER_NAME="NDU guard fixture", GIT_COMMITTER_EMAIL="fixture@example.invalid",
+                       GIT_AUTHOR_DATE="2000-01-01T00:00:00+00:00", GIT_COMMITTER_DATE="2000-01-01T00:00:00+00:00",
+                       PYTHONDONTWRITEBYTECODE="1")
+
+            def git(*args):
+                return subprocess.check_output(["git", "-C", str(fixture), *args], env=env,
+                                               stderr=subprocess.PIPE, text=True).strip()
+
+            git("init", "--quiet")
+            (fixture / "fixture.txt").write_text("identical bytes at the head and merge\n")
+            git("add", "fixture.txt")
+            tree = git("write-tree")
+            base = git("commit-tree", tree, "-m", "fixture base")
+            head = git("commit-tree", tree, "-p", base, "-m", "requested PR head")
+            other = git("commit-tree", tree, "-p", base, "-m", "base branch tip")
+            merge = git("commit-tree", tree, "-p", other, "-p", head, "-m", "synthetic PR merge")
+            git("checkout", "--quiet", "--detach", head)
+            before = output / "exact-before.json"
+            source_snapshot(before, expected_head=head, root=fixture)
+            source_snapshot(output / "exact-after.json", expected_head=head, before=before, root=fixture)
+
+            def rejected(name, *, expected, previous=None):
+                try:
+                    source_snapshot(output / (name + ".json"), expected_head=expected, before=previous, root=fixture)
+                except GateError as error:
+                    return {"rejected": True, "reason": str(error)}
+                raise GateError("source guard accepted negative control: " + name)
+
+            controls = {"wrong_exact_head": rejected("wrong-exact-head", expected=other)}
+            git("checkout", "--quiet", "--detach", merge)
+            require(git("rev-parse", "HEAD^{tree}") == tree and merge != head, "invalid same-tree merge fixture")
+            controls["same_tree_merge"] = rejected("same-tree-merge", expected=head)
+            controls["merge_after_exact_head"] = rejected("merge-after-exact-head", expected=head, previous=before)
+            controls["changed_expected_head"] = rejected("changed-expected-head", expected=merge, previous=before)
+
+            omitted_output = Path(temporary) / "omitted-expected-head.json"
+            command = [sys.executable, "-B", "-m", "experiments.hia_ndu_feedback_20261106.ci", "snapshot",
+                       "--root", str(fixture), "--output", str(omitted_output)]
+            omitted = subprocess.run(command, cwd=ROOT, env=env, capture_output=True, text=True, check=False)
+            require(omitted.returncode == 2 and "--expected-head" in omitted.stderr and not omitted_output.exists(),
+                    "snapshot CLI accepted an omitted expected head")
+            write_json(output / "required-head-cli.json", {"argv": command, "returncode": omitted.returncode,
+                       "stdout": omitted.stdout, "stderr": omitted.stderr, "snapshot_written": omitted_output.exists()})
+            receipt.update(passed=True, controls=controls, required_head_cli_rejected=True,
+                           fixture={"base": base, "requested_head": head, "other_head": other,
+                                    "synthetic_merge": merge, "shared_tree": tree,
+                                    "merge_parents": git("rev-list", "--parents", "-n", "1", merge).split()[1:]})
+    finally:
+        receipt["wall_ns"] = time.monotonic_ns() - started
+        write_json(output / "receipt.json", receipt)
+    return receipt
 
 
 def test_ids(suite):
@@ -112,6 +189,10 @@ def run_tests(names, output):
 
 def reference(evidence):
     return run_tests(["tests.test_hia_ndu_feedback", "tests.test_hia_ndu_feedback_workload",
+                      "tests.test_hia_ndu_feedback_campaign", "tests.test_hia_ndu_feedback_coverage",
+                      "tests.test_hia_ndu_economical", "tests.test_hia_ndu_compute_price",
+                      "tests.test_core_seven_shared_source_closure", "tests.test_hia_ndu_dynamic",
+                      "tests.test_hia_ndu_preparation_bound",
                       "experiments.hia_ndu_feedback_20261106.test_native.ExactArithmeticTests"],
                      Path(evidence) / "reference-tests")
 
@@ -320,13 +401,16 @@ def publish(evidence, output):
     manifests = {f"build-receipts/{profile}/{name}" for profile in ("value", "workload")
                  for name in ("build-receipt.json", "build-failure.json", "command-evidence/cargo.json")}
     suites = {f"{suite}/{name}" for suite in ("reference-tests", "native-tests") for name in ("receipt.json", "unittest.log")}
+    guards = {"source-guard-controls/" + name + ".json" for name in
+              ("exact-before", "exact-after", "wrong-exact-head", "same-tree-merge", "merge-after-exact-head",
+               "changed-expected-head", "required-head-cli", "receipt")}
     sources = []
     for path in sorted(evidence.rglob("*")):
         require(not path.is_symlink(), "symlink in public evidence")
         if not path.is_file():
             continue
         relative = path.relative_to(evidence).as_posix()
-        allow = (relative in named | manifests | suites or
+        allow = (relative in named | manifests | suites | guards or
                  path.parent == evidence / "native-controls" and path.name.startswith("test_") and path.suffix == ".jsonl")
         require(allow, "unexpected public evidence member: " + relative)
         if path.suffix == ".json":
@@ -351,9 +435,10 @@ def main():
     sub = parser.add_subparsers(dest="command", required=True)
     snap = sub.add_parser("snapshot")
     snap.add_argument("--output", type=Path, required=True)
+    snap.add_argument("--expected-head", required=True)
     snap.add_argument("--before", type=Path)
     snap.add_argument("--root", type=Path, default=ROOT)
-    for name in ("reference", "prepare", "native", "publish"):
+    for name in ("guard-controls", "reference", "prepare", "native", "publish"):
         command = sub.add_parser(name)
         command.add_argument("--evidence", type=Path, required=True)
         if name == "prepare":
@@ -366,7 +451,9 @@ def main():
             command.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     if args.command == "snapshot":
-        source_snapshot(args.output, before=args.before, root=args.root)
+        source_snapshot(args.output, expected_head=args.expected_head, before=args.before, root=args.root)
+    elif args.command == "guard-controls":
+        guard_controls(args.evidence)
     elif args.command == "reference":
         reference(args.evidence)
     elif args.command == "prepare":

@@ -65,3 +65,70 @@ The protocol is frozen in `benchmarks/hia_ndu_feedback/PROTOCOL.json` before
 final measurements. Final records contain exact source/binary identities,
 planned denominators, original frames, all failures and explicit open gates.
 All research artifacts retain `DENY_ALL` authority.
+
+## Separate state coverage after the v1 result
+
+The source-pinned v1 campaign completed all 288 cells and 864 planned requests.
+Its numerical preference ablation changed neither the preference nor the action
+in any of 216 observed states. Its wrong-posterior and reset-prior diagnostics
+also tied. Those are preserved negative coverage findings, not evidence that
+the model is immune to errors or that dynamic preference is valuable.
+
+`benchmarks/hia_ndu_feedback_state_coverage/PROTOCOL.json` registers a separate
+complete finite inventory. It includes all 1,080 coarse supplied states, a
+1,950-state symmetric boundary mesh and all 64 request/signal tapes for each
+of 54 declared natural-support profiles. Duplicate public states are evaluated
+once, while all profile, tape and state memberships remain in the denominator.
+The supplied-state mesh is explicitly distinct from posteriors reached by a
+declared initial prior and public event history. State membership counts and
+correlated prefixes are not independent statistical samples.
+
+The protocol discloses both development sweeps. It expands a whole analytic
+boundary mesh rather than retaining only reversals found in development. It
+freezes the unchanged v1 model bytes and compares the original native dynamic
+and fixed-preference NDU with ordinary controls and a separately encoded exact
+oracle on every registered state. Fixed-policy sufficiency means equality of
+the full policy value, including its registered feasibility fallback, rather
+than merely matching the first action. All numeric changes, action changes,
+wrong-model regret and no-change states are retained.
+
+The separate `WITNESS_PROTOCOL.json` selects the lexicographically first state
+for each declared mechanism/environment/family group before any physical
+timing. It recreates physical cache residency, repeats the native decision and
+dispatches the chosen current action. Both dynamic and fixed-preference actions
+must serve the current request for a numerical-preference witness. These are
+action-consumption witnesses from supplied public states. Their abstract model
+resources are not falsely relabeled as measured nanoseconds, and they do not
+constitute another physical latency advantage cohort.
+
+## Price the decision to plan
+
+The v1 gate evaluated an entire incumbent future policy before testing a
+zero-gap certificate, and only stopped at the final step in that cohort.
+`economical.priced_plan` instead takes one greedy root decision plus at most
+`3 * remaining_horizon + 5` counted root/bound expansions. It does not enumerate
+future observations to decide whether full planning is worth attempting.
+
+Its finite-model upper bound gives the hypothetical planner free future
+loads/retirements, hot execution, the minimum price and no downside loss. Its
+incumbent lower bound includes maximum declared delivery costs, the state-price
+envelope, possible future abstention and forecast greedy fees. The computation
+gate compares that opportunity bound with a frozen forecast of the additional
+full planner's cost. One-step and certified zero-task-gain cases stop without a
+native value call. The gate and any admitted planner share the same expansion
+allowance, and failed work retains cost and search receipts.
+
+`COMPUTE_PRICE_PROTOCOL.json` gives this gate to both the ordinary same-objective
+controller and dynamic NDU. It freezes the independently audited original
+192/640 training-calibration bytes, uses fresh final dimension 448 and four
+fresh final seeds, and retains all 120 cells / 360 requests. It measures planner
+prices on the same training observations before any final dispatch. Each
+forecast future greedy fee is the maximum remaining-depth training median.
+All raw trials, failed attempts, startup and cleanup costs remain available.
+
+These are model opportunity bounds and a forecast cost admission rule. They
+are not hard bounds on shared-host elapsed time. The training median is mainly
+a warm-process prediction; the final episode wall includes cold starts and
+cleanup. Post-execution exact-oracle regret and actual total wall are reported
+separately. A successful stopping mechanism is available to ordinary planning
+too, so savings against always-planning NDU do not establish unique NDU value.
