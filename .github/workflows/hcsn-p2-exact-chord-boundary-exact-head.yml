@@ -46,7 +46,7 @@ jobs:
           test "$(git hash-object research/hcsn/gates/2026-11-06-iteration44-exact-radius-python-reference.json)" = 7702374c2e3152cb4702fcadc5add1eca08e04e8
           test "$(git hash-object research/hcsn/gates/2026-11-06-iteration44-exact-radius-old-negative-node22.json)" = 768c8502bc8c9b944b9c7533b1c161e7638da045
           sha256sum -c research/hcsn/gates/2026-11-06-iteration44-exact-radius-SHA256SUMS.txt
-          for file in p2_exact_occupancy_reference.mjs p2_scale_equivariance_evidence.mjs test_p2_exact_occupancy_reference.mjs test_p2_config_contract.mjs test_p2_signed_zero_reference.mjs test_p2_input_snapshot.mjs test_p2_scale_equivariance_negative.mjs test_p2_subnormal_collision.mjs p2_subnormal_collision_negative.mjs; do
+          for file in p2_exact_occupancy_reference.mjs p2_scale_equivariance_evidence.mjs test_p2_exact_occupancy_reference.mjs test_p2_config_contract.mjs test_p2_signed_zero_reference.mjs test_p2_input_snapshot.mjs test_p2_scale_equivariance_negative.mjs test_p2_binary64_exact_ray_candidate.mjs test_p2_subnormal_collision.mjs p2_subnormal_collision_negative.mjs; do
             git diff --exit-code "$FROZEN_BASE" HEAD -- "research/hcsn/$file"
           done
           baseline="$RUNNER_TEMP/hcsn-exact-radius-baseline"
