@@ -34,7 +34,9 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
-          printf 'HEAD=%s\\n' "$(git rev-parse HEAD)"
+          head_record="$(printf 'HEAD=%s\n' "$(git rev-parse HEAD)")"
+          test "$head_record" = "HEAD=$EXPECTED_SHA"
+          printf '%s\n' "$head_record"
           sha256sum experiments/openvpn_hia_20261105/target_host/dco_peer_stats.py
           sha256sum experiments/openvpn_hia_20261105/target_host/test_dco_peer_stats.py
           sha256sum experiments/openvpn_hia_20261105/target_host/test_dco_peer_stats_wire.py
