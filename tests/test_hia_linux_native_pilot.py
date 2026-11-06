@@ -20,6 +20,10 @@ class NativePilotEvidence(unittest.TestCase):
         for mutation in mutations:
             with self.subTest(mutation=mutation), self.assertRaises(ValueError):
                 pilot.validate_observation({**good, **mutation}, expected, 2)
+        hardware_expected = {**expected, 'arm': 3}
+        with self.assertRaises(ValueError):
+            pilot.validate_observation({**good, 'arm': 3, 'has_popcnt': False,
+                                        'comparisons': 6}, hardware_expected, 2)
         missing = copy.deepcopy(good)
         del missing['sum']
         with self.assertRaises(ValueError):
@@ -32,7 +36,8 @@ class NativePilotEvidence(unittest.TestCase):
                          {'interruption': {'type': 'KeyboardInterrupt'}},
                          {'incomplete_process_group': True}, {'incomplete_process_group': 0},
                          {'process_group_cleanup': {'drained': False}},
-                         {'process_group_cleanup': {'drained': 1}}):
+                         {'process_group_cleanup': {'drained': 1}},
+                         {'process_group_cleanup': None}):
             with self.subTest(mutation=mutation):
                 self.assertFalse(pilot.clean_command({**normal, **mutation}))
 

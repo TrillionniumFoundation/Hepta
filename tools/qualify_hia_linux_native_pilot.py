@@ -31,10 +31,8 @@ def put(path, value):
 
 
 def clean_command(record):
-    return (record.get('timed_out') is False and 'interruption' not in record
-            and record.get('incomplete_process_group', False) is False
-            and (not 'process_group_cleanup' in record
-                 or record['process_group_cleanup'].get('drained') is True))
+    return (type(record) is dict and record.get('timed_out') is False
+            and base.process_group_outcome_admissible(record))
 
 
 def validate_observation(value, expected, cases):
@@ -43,6 +41,8 @@ def validate_observation(value, expected, cases):
     require(all(type(value[k]) is type(v) and value[k] == v for k, v in expected.items()),
             'native trial denominator/output differs')
     require(type(value['has_popcnt']) is bool, 'actual POPCNT observation must be boolean')
+    require(expected['arm'] != 3 or value['has_popcnt'] is True,
+            'hardware POPCNT arm requires observed CPU support')
     require(type(value['comparisons']) is int and value['comparisons'] == cases*(4 if value['has_popcnt'] else 3)
             and type(value['wall_ns']) is int and value['wall_ns'] > 0
             and type(value['cpu_ns']) is int and value['cpu_ns'] > 0,
