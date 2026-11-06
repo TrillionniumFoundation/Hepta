@@ -40,6 +40,7 @@ CORE_TESTS = (
     'tests.test_hia_capability_borrow',
     'tests.test_hia_composition_identity',
     'tests.test_core_capture_terminal_deadline',
+    'tests.test_core_seven_acceptance.OwnedProcessIdentityTests',
     'tests.test_core_seven_shared_source_closure',
     'tests.test_core_capture_cleanup_replay',
     'tests.test_core_structured_source_cost',

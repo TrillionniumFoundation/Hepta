@@ -10,6 +10,7 @@ import codecs
 import errno
 import hashlib
 import os
+from pathlib import Path
 import selectors
 import signal
 import stat
@@ -33,19 +34,77 @@ def unspawned_process():
                 post_reap_group_probe="not_observed")
 
 
-def _leader_identity(pid):
+def _proc_stat(path):
     # /proc stat comm can contain spaces and ')'; all subsequent fields cannot.
-    with open(f"/proc/{pid}/stat", "rb", buffering=0) as stream:
+    with open(path, "rb", buffering=0) as stream:
         raw = stream.read(4097)
-    if len(raw) > 4096 or not raw.startswith(str(pid).encode() + b" ("):
+    prefix = raw.partition(b" (")[0]
+    if len(raw) > 4096 or not prefix.isdigit():
         raise ValueError("process identity")
-    fields = raw[raw.rindex(b")") + 2:].split()
-    if int(fields[2]) != pid or int(fields[3]) != pid:
-        raise ValueError("session identity")
-    ticks = int(fields[19])
-    if not 0 <= ticks <= 18_446_744_073_709_551_615:
-        raise ValueError("start ticks")
-    return ticks
+    fields = [field.decode("ascii") for field in raw[raw.rindex(b")") + 2:].split()]
+    if len(fields) < 20:
+        raise ValueError("incomplete process identity")
+    return int(prefix), fields
+
+
+def _proc_nspid(path):
+    with open(path, "rb", buffering=0) as stream:
+        raw = stream.read(4097)
+    if len(raw) > 4096:
+        raise ValueError("oversized process namespace identity")
+    rows = [line.partition(b":")[2].split() for line in raw.splitlines()
+            if line.startswith(b"NSpid:")]
+    if len(rows) != 1 or not rows[0] or any(not value.isdigit() for value in rows[0]):
+        raise ValueError("unavailable process PID-namespace identity")
+    return tuple(map(int, rows[0]))
+
+
+def owned_leader_identity(leader):
+    """Return authenticated (procfs PID, start ticks) for our unreaped child.
+
+    An ancestor-mounted /proc uses different numbers from the observer's PID
+    namespace. The kernel pidfd identity provides that mapping; no numeric PID
+    guess or process-name search is allowed. The child remains owned through
+    WNOWAIT and its pidfd while procfs parent/session and syscall session are
+    checked. Unavailable or inconsistent observations reject admission.
+
+    Callers retain exclusive child ownership until their final group signal.
+    Only the original syscall leader is valid for waitid/getpgid/getsid/killpg;
+    the returned procfs PID is for observation only. No receipt authority or
+    new process/time/output budget is introduced by this shared helper.
+    """
+    if type(leader) is not int or leader <= 0:
+        raise ValueError("owned child identity")
+    os.waitid(os.P_PID, leader, os.WEXITED | os.WNOWAIT | os.WNOHANG)
+    parent, _ = _proc_stat(Path('/proc/self/stat'))
+    namespace = _proc_nspid(Path('/proc/self/status'))
+    if namespace[0] != parent or namespace[-1] != os.getpid():
+        raise ValueError("observer procfs PID namespace cannot be authenticated")
+    descriptor = os.pidfd_open(leader)
+    try:
+        child_namespace = _proc_nspid(Path('/proc/self/fdinfo')/str(descriptor))
+        if len(child_namespace) != len(namespace) or child_namespace[-1] != leader:
+            raise ValueError("owned child PID namespace differs from its observer")
+        proc_leader = child_namespace[0]
+        pid, fields = _proc_stat(Path('/proc')/str(proc_leader)/'stat')
+        if (proc_leader <= 0 or pid != proc_leader or int(fields[1]) != parent
+                or int(fields[2]) != proc_leader or int(fields[3]) != proc_leader):
+            raise ValueError("owned leader procfs identity or session changed")
+        ticks = int(fields[19])
+        if not 0 <= ticks <= 18_446_744_073_709_551_615:
+            raise ValueError("start ticks")
+        os.waitid(os.P_PID, leader, os.WEXITED | os.WNOWAIT | os.WNOHANG)
+        if os.getpgid(leader) != leader or os.getsid(leader) != leader:
+            raise ValueError("owned syscall process-group session changed")
+        return proc_leader, ticks
+    finally:
+        os.close(descriptor)
+
+
+def _leader_identity(pid):
+    # Keep the established receipt field: ticks belong to the authenticated
+    # process, while leader_pid/original_pgid remain syscall namespace IDs.
+    return owned_leader_identity(pid)[1]
 
 
 def capture(argv, *, cwd, env, stdout_path, stderr_path, raw_remaining,

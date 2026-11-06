@@ -22,6 +22,7 @@ import time
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from tools import qualify_hia_composition as composition
+from tools import core_seven_acceptance_capture as capture_identity
 
 
 def canonical(value):
@@ -40,53 +41,9 @@ def write(path, value):
         os.fsync(stream.fileno())
 
 
-def _proc_stat(path):
-    raw = path.read_text()
-    fields = raw.rsplit(')', 1)[1].split()
-    if len(fields) < 20:
-        raise ValueError('incomplete process-group observation')
-    return int(raw.split('(', 1)[0]), fields
-
-
-def _proc_nspid(path):
-    rows = [line.partition(':')[2].split() for line in path.read_text().splitlines()
-            if line.startswith('NSpid:')]
-    if len(rows) != 1 or not rows[0] or any(not value.isdigit() for value in rows[0]):
-        raise ValueError('unavailable process PID-namespace identity')
-    return tuple(map(int, rows[0]))
-
-
 def _owned_proc_leader(leader, deadline):
-    """Map our unreaped direct child into the mounted procfs PID namespace.
-
-    A container may expose an ancestor's /proc: syscall PID 6 need not mean
-    /proc/6. The kernel's pidfd fdinfo binds the owned syscall PID to procfs
-    coordinates. Parent, namespace depth and session checks must agree; an
-    unavailable mapping is never evidence that the process group is empty.
-    """
-    _owned_leader_exit(leader)
-    parent, _ = _proc_stat(Path('/proc/self/stat'))
-    namespace = _proc_nspid(Path('/proc/self/status'))
-    if namespace[0] != parent or namespace[-1] != os.getpid():
-        raise ValueError('observer procfs PID namespace cannot be authenticated')
-    descriptor = os.pidfd_open(leader)
-    try:
-        identity = Path('/proc/self/fdinfo')/str(descriptor)
-        child_namespace = _proc_nspid(identity)
-        if len(child_namespace) != len(namespace) or child_namespace[-1] != leader:
-            raise ValueError('owned child PID namespace differs from its observer')
-        proc_leader = child_namespace[0]
-        pid, fields = _proc_stat(Path('/proc')/str(proc_leader)/'stat')
-        if (proc_leader <= 0 or pid != proc_leader or int(fields[1]) != parent
-                or int(fields[2]) != proc_leader or int(fields[3]) != proc_leader):
-            raise ValueError('owned leader procfs identity or session changed')
-        # Keep both pidfd and WNOWAIT ownership during authentication. Only
-        # syscall namespace IDs are passed to waitid/getpgid/getsid/killpg.
-        _owned_leader_exit(leader)
-        if os.getpgid(leader) != leader or os.getsid(leader) != leader:
-            raise ValueError('owned syscall process-group session changed')
-    finally:
-        os.close(descriptor)
+    """Reuse the formal capture's authenticated procfs identity, not a PID guess."""
+    proc_leader, _ = capture_identity.owned_leader_identity(leader)
     if time.monotonic() >= deadline:
         raise subprocess.TimeoutExpired(['owned-process-group', str(leader)], 2)
     return proc_leader
@@ -102,7 +59,7 @@ def _owned_group_live(leader, deadline):
         if not entry.name.isdigit() or int(entry.name) == proc_leader:
             continue
         try:
-            pid, fields = _proc_stat(entry/'stat')
+            pid, fields = capture_identity._proc_stat(entry/'stat')
         except (FileNotFoundError, ProcessLookupError):
             continue
         if int(fields[2]) != proc_leader:

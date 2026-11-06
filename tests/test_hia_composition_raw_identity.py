@@ -265,7 +265,7 @@ class RawCompositionIdentityTests(unittest.TestCase):
 
 
     def test_frozen_unavailable_namespace_identity_cannot_attest_success(self):
-        with patch.object(frozen,'_proc_nspid',side_effect=ValueError('unavailable namespace identity')):
+        with patch.object(frozen.capture_identity,'_proc_nspid',side_effect=ValueError('unavailable namespace identity')):
             with self.assertRaisesRegex(ValueError,'unavailable namespace identity'):
                 frozen.run_with_deadline([sys.executable,'-c','pass'],3,
                                          capture_output=True,text=True)
