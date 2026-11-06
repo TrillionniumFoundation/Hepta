@@ -106,6 +106,8 @@ class P2PFairDispatchPatchTests(unittest.TestCase):
         self.assertIn('"build_source": str(build_source)', self.build_source)
         self.assertIn('"p2p_fair_dispatch": dispatch_receipt', self.build_source)
         self.assertIn("context_clear_2", self.build_source)
+        self.assertIn('os.environ.get("HEPTA_EXPECTED_SHA") or os.environ["GITHUB_SHA"]',
+                      self.build_source)
 
     def test_target_result_binds_the_build_receipt_and_patch_identity(self):
         self.assertIn("build_receipt_path = args.build.parent.parent/'public'/'build.json'",
