@@ -219,6 +219,9 @@ class BenchmarkAdmissionTests(unittest.TestCase):
         self.assertEqual("kvm", kvm[kvm.index("-accel")+1])
         self.assertEqual("qemu64,-popcnt,-svm", kvm[kvm.index("-cpu")+1])
         self.assertIn("hia_phase=unix_tcp", kvm[-1])
+        for argv in (tcg, kvm):
+            self.assertEqual(["loglevel=5"], [item for item in argv[-1].split() if item.startswith("loglevel=")])
+            self.assertNotIn("quiet", argv[-1].split())
         with self.assertRaises(ValueError):
             bench.qemu_argv(profile="unqualified", **arguments)
 

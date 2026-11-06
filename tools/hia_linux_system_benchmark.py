@@ -317,7 +317,8 @@ def qemu_argv(*, qemu, qemu_data, bios, kernel, initramfs, profile, run_id,
     validate_parameters(seed=seed, iterations=iterations, selection=selection,
                         run_id=run_id, expected_release=expected_release)
     cfg = PROFILES[profile]
-    cmdline = (f'console=ttyS0,115200 rdinit=/init panic=-1 nokaslr hia_bench=1 '
+    # Keep warning/error diagnostics while preventing info printk from splicing JSON.
+    cmdline = (f'console=ttyS0,115200 loglevel=5 rdinit=/init panic=-1 nokaslr hia_bench=1 '
                f'hia_run_id={run_id} hia_expected_release={expected_release} '
                f'hia_seed={seed} hia_iterations={iterations} hia_phase={selection}')
     return [str(qemu), '-machine', 'pc-i440fx-8.2', '-accel', cfg['accel'],
