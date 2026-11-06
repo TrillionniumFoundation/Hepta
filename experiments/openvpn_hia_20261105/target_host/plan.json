@@ -1,8 +1,8 @@
 {
   "schema": "hepta.openvpn-hia.target-plan.v1",
   "authority": "fixed-before-target-execution",
-  "budget_seconds": 1800,
-  "host_scope": "one disposable GitHub-hosted Ubuntu24.04 x86_64 VM; two isolated local network namespaces per case; no WAN generalization",
+  "budget_seconds": 2700,
+  "host_scope": "one disposable GitHub-hosted Ubuntu24.04 x86_64 VM; requires two distinct physical CPU cores; two isolated local network namespaces per case; no WAN generalization",
   "underlay": {
     "server": "192.0.2.1/30",
     "client": "192.0.2.2/30",
@@ -70,7 +70,11 @@
       "after-reconnect-replay"
     ],
     "positive_gates": "real tun/ovpn path and source-route; exact payload+echo before/after rekey/reconnect; no old duplicate/corrupt deliveries; actual TLS/key events and HIA entry trace when used",
-    "continuity_loss_policy": "retain every missing sequence and error through forced reconnect; phase-specific fresh probes require full delivery; continuity flow alone never establishes success"
+    "continuity_loss_policy": "retain every missing sequence and error through forced reconnect; phase-specific fresh probes require full delivery; continuity flow alone never establishes success",
+    "rekey_seconds_by_role": {
+      "client": 10,
+      "server": 3600
+    }
   },
   "performance": {
     "rounds": 3,
@@ -145,9 +149,10 @@
     "trace": false,
     "verbosity": 3,
     "reneg_seconds": 3600,
-    "cpu_affinity": "server: first allowed CPU, client: second allowed CPU; workload endpoints share their role CPU; exact host affinity recorded",
+    "cpu_affinity": "server and client: one allowed logical CPU from each of two distinct physical cores; OpenVPN and local iperf endpoint share that role CPU; identical mapping for every arm; exact package/core topology recorded",
     "outlier_policy": "retain all trials, startup, losses, resets, failures and raw iperf fields; no selection or confidence inflation",
-    "claim_limit": "finite paired virtual-network observations on one shared hosted VM; not production, WAN, hardware-NIC or cross-host performance qualification"
+    "claim_limit": "finite paired virtual-network observations on one shared hosted VM; not production, WAN, hardware-NIC or cross-host performance qualification",
+    "minimum_distinct_physical_cores": 2
   },
   "profile": {
     "arms": [

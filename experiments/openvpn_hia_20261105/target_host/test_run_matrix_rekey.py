@@ -10,6 +10,7 @@ TUN/DCO qualification or proof of old-ciphertext rejection.
 """
 import importlib.util
 from pathlib import Path
+import tempfile
 import unittest
 
 HERE = Path(__file__).resolve().parent
@@ -92,6 +93,42 @@ class AcceptedPeerRekeyTests(unittest.TestCase):
         observation = matrix.observe('\n'.join(lines))
         self.assertEqual(observation['peer_soft_resets'], 0)
         self.assertEqual(observation['completed_rekeys'], 0)
+
+
+class TargetMatrixControlTests(unittest.TestCase):
+    def test_sysfs_topology_reader_records_package_and_core(self):
+        with tempfile.TemporaryDirectory() as root:
+            for cpu, package, core in ((0, 0, 0), (1, 0, 0), (2, 0, 1), (3, 0, 1)):
+                topology = Path(root) / f"cpu{cpu}" / "topology"
+                topology.mkdir(parents=True)
+                (topology / "physical_package_id").write_text(f"{package}\n")
+                (topology / "core_id").write_text(f"{core}\n")
+            self.assertEqual(
+                matrix.read_cpu_topology([0, 1, 2, 3], Path(root)),
+                {0: (0, 0), 1: (0, 0), 2: (0, 1), 3: (0, 1)},
+            )
+
+    def test_physical_cpu_selection_skips_smt_siblings(self):
+        topology = {0: (0, 0), 1: (0, 0), 2: (0, 1), 3: (0, 1)}
+        self.assertEqual(matrix.select_distinct_physical_cpus([0, 1, 2, 3], topology), [0, 2])
+
+    def test_physical_cpu_selection_fails_closed_on_one_core(self):
+        with self.assertRaisesRegex(RuntimeError, "two distinct physical CPU cores"):
+            matrix.select_distinct_physical_cpus([0, 1], {0: (0, 0), 1: (0, 0)})
+
+    def test_client_initiates_and_server_responds_to_rekey(self):
+        self.assertEqual(
+            matrix.resolve_reneg_seconds(10, {"client": 10, "server": 3600}),
+            {"server": 3600, "client": 10},
+        )
+
+    def test_role_schedule_must_cover_both_roles_and_be_positive(self):
+        with self.assertRaisesRegex(ValueError, "cover server and client"):
+            matrix.resolve_reneg_seconds(10, {"client": 10})
+        with self.assertRaisesRegex(ValueError, "server renegotiation seconds"):
+            matrix.resolve_reneg_seconds(10, {"client": 10, "server": 0})
+        with self.assertRaisesRegex(ValueError, "client renegotiation seconds"):
+            matrix.resolve_reneg_seconds(10, {"client": True, "server": 3600})
 
 
 if __name__ == '__main__':
