@@ -64,19 +64,29 @@ implicitly on the direct path.
 
 ## 3. Source scope and current evidence
 
-This design was checked against Hepta commit
-`542b8ae69ae4d7322638b2044c27f58943cc383c` and the hepta-runtime PR #84 candidate
+This design was checked against the Hepta Core/tool base
+`542b8ae69ae4d7322638b2044c27f58943cc383c`, the subsequently published direct-native
+PR #773 candidate `1cb9dafc5f670a7b991645f5b6fc06474f37451b`, and the hepta-runtime PR #84 candidate
 `b3bac9e47fd09ee2c6bb0d62802bd55b7662f366`. The runtime default branch is
 `hepta-runtime-base`, at `ba574f2a6a1b74e85191c58d7bec011720736bb9`; it is not a
 substitute for the PR #84 candidate. No claim is made that these candidates are
 deployed together or that either PR is merged.
 
-A separate local `feat/hia-direct-native-20261106` worktree was observed at the
-Hepta base with uncommitted native implementation files. Its proposed
-`emit_program_machine`, `compile_program_machine`, `build_program_machine` and
-`HIAProgramMachine` boundary informs this design. Those observations do not
-establish a committed backend, passing tests or native qualification. This design
-does not modify that worktree or freeze its implementation API.
+The direct backend was initially observed as work in progress and was published
+during this design review as [PR #773](https://github.com/TrillionniumFoundation/Hepta/pull/773).
+Its `emit_program_machine`, `compile_program_machine`, `build_program_machine` and
+`HIAProgramMachine` boundary informs this design. The candidate owns x86-64 bytes
+and ELF64 object generation, with separate optional linkage. Its published
+[usage and ABI](https://github.com/TrillionniumFoundation/Hepta/blob/1cb9dafc5f670a7b991645f5b6fc06474f37451b/docs/HIA_DIRECT_NATIVE.md)
+and [local qualification record](https://github.com/TrillionniumFoundation/Hepta/blob/1cb9dafc5f670a7b991645f5b6fc06474f37451b/experiments/hia_direct_native_20261106/README.md)
+are separate from the schema checks in this design. These schema checks do not
+rerun native qualification or establish hosted CI, deployment or performance.
+
+The PR keeps LLVM as the CLI default. A HIA MCP adapter must explicitly call the
+direct machine API or select `hia build --backend native`. The existing CLI
+`hia emit` still emits LLVM text; it must not be confused with the proposed
+`hia_emit` MCP tool. This design does not modify the backend worktree or claim its
+current API is already registered with hepta-runtime.
 
 Existing reusable HIA entry points include:
 

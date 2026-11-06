@@ -297,6 +297,7 @@ catalog = {
     'status': 'design_not_registered',
     'source_scope': {
         'Hepta': '542b8ae69ae4d7322638b2044c27f58943cc383c',
+        'Hepta-direct-native-candidate': '1cb9dafc5f670a7b991645f5b6fc06474f37451b',
         'hepta-runtime': 'b3bac9e47fd09ee2c6bb0d62802bd55b7662f366',
     },
     'requirements': {
