@@ -222,7 +222,23 @@ def main():
             raise RuntimeError("P2P fairness patch differs from source lock")
         build_source = work / "openvpn-2.7.8-p2p-fair-dispatch"
         shutil.copytree(source, build_source)
-        command("p2p-fair-dispatch-check", ["git", "apply", "--check", patch_path], cwd=build_source)
+        original_files = {name: digest(source / name) for name in dispatch_lock["files"]}
+        forward_lines = (source / "src/openvpn/forward.c").read_text().splitlines()
+        context_lines = list(enumerate(forward_lines[2268:2320], start=2269))
+        context_text = "\\n".join(f"{line_no}: {line}" for line_no, line in context_lines) + "\\n"
+        (public / "p2p-fair-dispatch-source-context.txt").write_text(context_text)
+        preflight = {
+            "upstream_commit": lock["openvpn"]["commit"],
+            "source_archive_sha256": lock["openvpn"]["archive_sha256"],
+            "patch_sha256": patch_sha256,
+            "original_files": original_files,
+            "forward_context_start_line": 2269,
+            "forward_context_end_line": 2320,
+        }
+        report["p2p_fair_dispatch_preflight"] = preflight
+        save(public / "p2p-fair-dispatch-preflight.json", preflight)
+        save(public / "build.json", report)
+        command("p2p-fair-dispatch-check", ["git", "apply", "--check", "--verbose", patch_path], cwd=build_source)
         command("p2p-fair-dispatch-apply", ["git", "apply", patch_path], cwd=build_source)
 
         init_source = (source / "src/openvpn/init.c").read_text()
