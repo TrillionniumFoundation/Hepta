@@ -26,6 +26,7 @@ REFUSAL_SCHEMA = "hepta.hia.ndu.dynamic-cache.refusal.v1"
 MAX_NS = 1_000_000_000_000
 MAX_BYTES = 1_048_576
 MODES = ("light", "exact_dp", "beam", "beam_ndu")
+SUPPLIED_MODES = ("supplied", "supplied_ndu")
 
 class DynamicError(ValueError):
     pass
@@ -214,7 +215,7 @@ def validate_response(model, mode, payload, response):
         require(type(response.get(key)) is type(value) and response[key] == value, "response " + key)
     require(all(response.get(k) is False for k in ("safety_certificate", "execution_authorized", "global_program_optimality", "hia_compiler_qualification")), "response authority")
     native = response.get("ndu_evaluation")
-    require((mode != "beam_ndu" and native is None) or (mode == "beam_ndu" and type(native) is dict
+    require((mode not in ("beam_ndu", "supplied_ndu") and native is None) or (mode in ("beam_ndu", "supplied_ndu") and type(native) is dict
         and native.get("entry_points") == ["codex_hepta_ndu::evaluate_recursive_utility", "codex_hepta_ndu::evaluate_candidates_with_policy"]
         and native.get("authority") == "DENY_ALL" and native.get("safety_certificate") is False), "native provenance")
     bundle = response.get("bundle")
@@ -222,7 +223,7 @@ def validate_response(model, mode, payload, response):
     require(bundle["authority"] == "DENY_ALL" and bundle["safety_certificate"] is False
             and bundle["search_complete"] is (mode == "exact_dp"), "bundle claims")
     plans = bundle["plans"]
-    require(type(plans) is dict and len(plans) <= (4 if mode in ("beam", "beam_ndu") else 1), "plan count")
+    require(type(plans) is dict and len(plans) <= (4 if mode in ("beam", "beam_ndu", "supplied", "supplied_ndu") else 1), "plan count")
     common = call_cost(model, model["session_ready"]) + model["decision"]["close_ns"]
     for identity, plan in plans.items():
         require(type(identity) is str, "plan identity type")
@@ -345,15 +346,30 @@ class JsonProcess:
         self._record(record)
         return response, record
 
-    def evaluate(self, raw, mode):
+    def evaluate(self, raw, mode, *, paths=None):
         started = time.monotonic_ns()
-        require(self.role == "--planner-stream" and mode in MODES, "planning role or mode")
+        require(self.role == "--planner-stream" and mode in (*MODES, *SUPPLIED_MODES), "planning role or mode")
         model = validate_model(raw)
         request = {"schema": REQUEST_SCHEMA, "mode": mode, "model": model}
+        if mode in ("supplied", "supplied_ndu"):
+            require(type(paths) is list and 1 <= len(paths) <= 4, "supplied path count")
+            require(all(type(path) is list and len(path) == len(model["targets"]) for path in paths), "supplied complete horizon")
+            require(all(type(mask) is int and 0 <= mask < (1 << len(model["artifacts"]))
+                        for path in paths for mask in path), "supplied resident mask")
+            require(len(set(tuple(path) for path in paths)) == len(paths), "duplicate supplied path")
+            request["paths"] = [list(path) for path in paths]
+        else:
+            require(paths is None, "paths only valid in supplied modes")
         payload = wire(request)
         response, record = self.ask(request)
         validated = time.monotonic_ns()
         validate_response(model, mode, payload, response)
+        if paths is not None:
+            received = sorted(tuple(a["ready_after"] for a in p["actions"])
+                              for p in response["bundle"]["plans"].values())
+            require(received == sorted(tuple(p) for p in request["paths"]), "native supplied candidate inventory changed")
+            require(response["search"]["states"] == response["search"]["transitions"] == 0,
+                    "supplied candidates unexpectedly invoked search")
         record["validation_ns"] = time.monotonic_ns() - validated
         record["outer_call_ns"] = time.monotonic_ns() - started
         return response, record

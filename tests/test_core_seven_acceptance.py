@@ -319,6 +319,91 @@ class CaptureTests(unittest.TestCase):
   self.assertEqual(r['error_code'],'capture_incomplete'); self.assertTrue(r['process']['leader_reaped']); self.assertTrue(r['process']['original_group_empty'])
 
 
+class OwnedProcessIdentityTests(unittest.TestCase):
+    """Actual child identities, independent of whether procfs uses ancestor PIDs."""
+
+    def capture_child(self, code):
+        with tempfile.TemporaryDirectory() as directory:
+            result = c.capture([sys.executable, '-c', code], cwd=directory, env={},
+                stdout_path=directory+'/stdout', stderr_path=directory+'/stderr',
+                raw_remaining=c.RAW_GLOBAL, launch_deadline_ns=time.monotonic_ns()+10**10)
+            stdout = Path(directory+'/stdout').read_text()
+            stderr = Path(directory+'/stderr').read_text()
+        p.validate_process(result['process'])
+        self.assertEqual(set(result['process']), set(c.unspawned_process()))
+        return result, stdout, stderr
+
+    def assert_identity_rejection(self, result):
+        self.assertEqual(result['error_code'], 'capture_incomplete', result)
+        observed = result['process']
+        self.assertTrue(observed['spawned'])
+        self.assertTrue(observed['incomplete'])
+        self.assertIsNone(observed['leader_start_ticks'])
+        self.assertTrue(observed['leader_reaped'])
+        self.assertTrue(observed['original_group_empty'])
+        self.assertEqual(observed['post_reap_group_probe'], 'esrch')
+        self.assertIn(observed['pre_reap_group_signal'],
+                      ('sigkill_sent', 'sigkill_no_signalable_group'))
+
+    def test_actual_child_self_identity_matches_the_shared_authentication(self):
+        code = ('import json,os,sys\nfrom pathlib import Path\n'
+                'raw=Path("/proc/self/stat").read_text()\n'
+                'fields=raw.rsplit(")",1)[1].split()\n'
+                'print(json.dumps({"pid":os.getpid(),"pgid":os.getpgrp(),"sid":os.getsid(0),'
+                '"proc_pid":int(raw.split("(",1)[0]),"ticks":int(fields[19])}))\n'
+                'print("identity-stderr",file=sys.stderr)\n')
+        authenticate = c.owned_leader_identity
+        identities = []
+        def observe(pid):
+            identity = authenticate(pid)
+            identities.append(identity)
+            return identity
+        with patch.object(c, 'owned_leader_identity', side_effect=observe):
+            result, stdout, stderr = self.capture_child(code)
+        self.assertIsNone(result['error_code'], result)
+        expected = json.loads(stdout)
+        self.assertEqual(identities, [(expected['proc_pid'], expected['ticks'])])
+        self.assertEqual(result['process']['leader_start_ticks'], expected['ticks'])
+        self.assertEqual(result['process']['leader_pid'], expected['pid'])
+        self.assertEqual(expected['pid'], expected['pgid'])
+        self.assertEqual(expected['pid'], expected['sid'])
+        self.assertEqual(stderr, 'identity-stderr\n')
+
+    def test_mismatched_pidfd_namespace_cannot_use_a_guessed_proc_pid(self):
+        original = c._proc_nspid
+        injected = []
+        def mismatch(path):
+            identity = original(path)
+            if Path(path).parent == Path('/proc/self/fdinfo'):
+                injected.append(identity)
+                return (*identity[:-1], identity[-1]+1)
+            return identity
+        with patch.object(c, '_proc_nspid', side_effect=mismatch):
+            result, _, _ = self.capture_child('pass')
+        self.assertEqual(len(injected), 1)
+        self.assert_identity_rejection(result)
+
+    def test_inconsistent_procfs_session_cannot_attest_child_identity(self):
+        original = c._proc_stat
+        injected = []
+        def mismatch(path):
+            pid, fields = original(path)
+            if Path(path).parent.name.isdigit():
+                injected.append(pid)
+                fields = list(fields)
+                fields[3] = str(pid+1)
+            return pid, fields
+        with patch.object(c, '_proc_stat', side_effect=mismatch):
+            result, _, _ = self.capture_child('pass')
+        self.assertEqual(len(injected), 1)
+        self.assert_identity_rejection(result)
+
+    def test_unavailable_pidfd_never_falls_back_to_numeric_proc_path(self):
+        with patch.object(c.os, 'pidfd_open', side_effect=OSError(38, 'unavailable pidfd')):
+            result, _, _ = self.capture_child('pass')
+        self.assert_identity_rejection(result)
+
+
 class RecordAndSizingTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):cls.prepared,cls.proposal=fixture()

@@ -1067,11 +1067,24 @@ def compile_program_llvm(ir, *, program, output, clang="clang", kind="shared", c
                        "foreign_buffer_entrypoints_exposed": False}}
 
 
-def build_program_native(document, output, *, clang="clang", kind="shared", target=TARGET, command_log=None, layout="canonical"):
-    """Convenience path: verify standalone document, emit LLVM, compile it."""
+def build_program_native(document, output, *, clang="clang", kind="shared", target=TARGET, command_log=None, layout="canonical", bounded_resource_limits=None):
+    """Verify standalone Core, optionally qualify its resources, then compile.
+
+    The bounded profile is freshly checked before LLVM emission or native
+    publication. It adds no claim of LLVM/machine-code resource refinement.
+    Omitting it preserves the standalone Core's existing admission profile.
+    """
     from .hia_program import verify_program
     program = verify_program(document)
+    budget = None
+    if bounded_resource_limits is not None:
+        from .hia_static_budget import qualify_bounded_resources
+        budget = qualify_bounded_resources(program, limits=bounded_resource_limits)
     ir = emit_program_llvm(program, target=target, layout=layout)
     if command_log is None:
-        return compile_program_llvm(ir, program=program, output=output, clang=clang, kind=kind)
-    return compile_program_llvm(ir, program=program, output=output, clang=clang, kind=kind, command_log=command_log)
+        native = compile_program_llvm(ir, program=program, output=output, clang=clang, kind=kind)
+    else:
+        native = compile_program_llvm(ir, program=program, output=output, clang=clang, kind=kind, command_log=command_log)
+    if budget is not None:
+        native["bounded_resources"] = budget
+    return native

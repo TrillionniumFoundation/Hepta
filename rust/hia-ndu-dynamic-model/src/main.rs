@@ -17,7 +17,11 @@ const MAX_REQUESTS: usize = 4096;
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Request { schema: String, mode: String, model: model::Model }
+struct Request {
+    schema: String, mode: String, model: model::Model,
+    #[serde(default)]
+    paths: Option<Vec<Vec<u16>>>,
+}
 
 pub fn digest(value: &impl Serialize) -> Result<String,String> {
     let value = serde_json::to_value(value).map_err(|e|e.to_string())?;
@@ -28,21 +32,25 @@ fn evaluate(input:&[u8]) -> Result<Value,String> {
     let started=Instant::now();
     let request:Request=serde_json::from_slice(input).map_err(|e|e.to_string())?;
     if request.schema!="hepta.hia.ndu.dynamic-cache.request.v1"
-        || !matches!(request.mode.as_str(),"exact_dp"|"light"|"beam"|"beam_ndu") {
+        || !matches!(request.mode.as_str(),"exact_dp"|"light"|"beam"|"beam_ndu"|"supplied"|"supplied_ndu") {
         return Err("dynamic request schema or mode".into());
     }
+    let supplied = matches!(request.mode.as_str(), "supplied"|"supplied_ndu");
+    if supplied != request.paths.is_some() { return Err("paths required only for supplied candidate modes".into()); }
     request.model.validate()?;
     let search=Instant::now();
     let mut planner=planner::Planner::new(&request.model)?;
     let frontier=match request.mode.as_str() {
-        "exact_dp"=>planner.exact()?, "light"=>planner.light()?, _=>planner.beam(4)?,
+        "exact_dp"=>planner.exact()?, "light"=>planner.light()?,
+        "supplied"|"supplied_ndu"=>planner.supplied(request.paths.as_ref().ok_or("missing paths")?)?,
+        _=>planner.beam(4)?,
     };
     let search_ns=search.elapsed().as_nanos();
     let construction=Instant::now();
     let bundle=ndu::bundle(&request.model,frontier,request.mode=="exact_dp")?;
     let construction_ns=construction.elapsed().as_nanos();
     let evaluation=Instant::now();
-    let (winners,native)=if request.mode=="beam_ndu" {
+    let (winners,native)=if matches!(request.mode.as_str(), "beam_ndu"|"supplied_ndu") {
         let (w,n)=ndu::original_ndu(&bundle)?; (w,Some(n))
     } else { (ndu::exact_winners(&bundle)?,None) };
     let evaluation_ns=evaluation.elapsed().as_nanos();
@@ -72,7 +80,7 @@ fn run()->Result<(),String>{
     let mut output=std::io::stdout().lock();
     if role=="--identity" {
         return emit(&mut output,&json!({"profile":"hepta.hia.ndu.dynamic-cache.v1","upstream_commit":UPSTREAM,
-            "modes":["exact_dp","light","beam","beam_ndu"],"beam_width":4,
+            "modes":["exact_dp","light","beam","beam_ndu","supplied","supplied_ndu"],"beam_width":4,
             "maximum_artifacts":model::MAX_ARTIFACTS,"maximum_horizon":model::MAX_HORIZON,
             "unsafe_code":"forbidden","hia_compiler_qualification":false}));
     }

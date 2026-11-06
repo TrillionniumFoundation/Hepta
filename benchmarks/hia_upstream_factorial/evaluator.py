@@ -20,6 +20,7 @@ from hepta.hia_program import verify_program
 from hepta.hia_program_runtime import execute_program, HIAProgramTrap, HIAProgramBudgetExceeded
 from hepta.hia_program_tools import decode_json
 from tools.provider_adapter.llama_cpp_engine import canonical, file_identity
+from experiments.hia_agent_assembly_v4_20261030.evaluator import seal_execution_image
 
 METHODS = frozenset({"wrapping_add", "wrapping_sub", "wrapping_mul", "wrapping_neg", "wrapping_div", "wrapping_rem",
                      "checked_add", "checked_sub", "checked_mul", "checked_neg", "checked_div", "checked_rem",
@@ -177,8 +178,7 @@ def execute(built, task, cases, expected):
         with os.fdopen(os.dup(fd), "wb") as stream:
             stream.write(image)
         os.fchmod(fd, 0o500)
-        seals = fcntl.F_SEAL_WRITE | fcntl.F_SEAL_GROW | fcntl.F_SEAL_SHRINK | fcntl.F_SEAL_SEAL
-        fcntl.fcntl(fd, fcntl.F_ADD_SEALS, seals)
+        seals = seal_execution_image(fd)
 
         def limits():
             resource.setrlimit(resource.RLIMIT_CPU, (2, 2))
@@ -198,7 +198,7 @@ def execute(built, task, cases, expected):
         except subprocess.TimeoutExpired as error:
             row = {"status": "observable_timeout", "error": str(error), "cases": cases, "expected": expected}
         row.update(artifact_unchanged=file_identity(built["artifact"]["path"]) == built["artifact"],
-                   sealed_image=True, seals=fcntl.fcntl(fd, fcntl.F_GET_SEALS))
+                   sealed_image=True, seals=fcntl.fcntl(fd, getattr(fcntl, "F_GET_SEALS", 1034)))
         if built["language"] == "assembly" and row["status"] == "correct":
             if file_identity(built["core"]["path"]) != built["core"]:
                 raise RuntimeError("Core changed")

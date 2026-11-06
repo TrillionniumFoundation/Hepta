@@ -22,6 +22,7 @@ import time
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from tools import qualify_hia_composition as composition
+from tools import core_seven_acceptance_capture as capture_identity
 
 
 def canonical(value):
@@ -40,26 +41,34 @@ def write(path, value):
         os.fsync(stream.fileno())
 
 
+def _owned_proc_leader(leader, deadline):
+    """Reuse the formal capture's authenticated procfs identity, not a PID guess."""
+    proc_leader, _ = capture_identity.owned_leader_identity(leader)
+    if time.monotonic() >= deadline:
+        raise subprocess.TimeoutExpired(['owned-process-group', str(leader)], 2)
+    return proc_leader
+
+
 def _owned_group_live(leader, deadline):
     """Observe same-session group members while the leader is still unreaped."""
+    proc_leader = _owned_proc_leader(leader, deadline)
     live = []
     for entry in Path('/proc').iterdir():
         if time.monotonic() >= deadline:
             raise subprocess.TimeoutExpired(['owned-process-group', str(leader)], 2)
-        if not entry.name.isdigit() or int(entry.name) == leader:
+        if not entry.name.isdigit() or int(entry.name) == proc_leader:
             continue
         try:
-            fields = (entry/'stat').read_text().rsplit(')', 1)[1].split()
+            pid, fields = capture_identity._proc_stat(entry/'stat')
         except (FileNotFoundError, ProcessLookupError):
             continue
-        if len(fields) < 20:
-            raise ValueError('incomplete process-group observation')
-        if int(fields[2]) != leader:
+        if int(fields[2]) != proc_leader:
             continue
-        if int(fields[3]) != leader:
+        if pid != int(entry.name) or int(fields[3]) != proc_leader:
             raise ValueError('owned process-group session changed')
         if fields[0] not in ('Z', 'X'):
-            live.append(int(entry.name))
+            live.append(pid)
+    _owned_leader_exit(leader)
     return live
 
 
@@ -76,12 +85,15 @@ def run_with_deadline(argv, budget, *, cwd=None, env=None, stdout=None, stderr=N
     Deadline failure is 124. A normally exited leader with a live same-group
     descendant is a terminal-contract failure, 125. Capture uses temporary
     files, matching actual step streams without a pipe-dependent terminal.
+    Procfs can be mounted in an ancestor PID namespace; its group coordinates
+    are authenticated against the owned child before treating a scan as empty.
     The leader remains unreaped through group cleanup, so no group signal uses
     a post-reap PGID. Two seconds bound cleanup; Z/X descendants are stopped,
     not claimed reaped. Detached descendants, external reapers and kernel tasks
     that cannot settle remain outside a general containment/recovery claim.
     """
     if (not sys.platform.startswith('linux') or not hasattr(os, 'WNOWAIT')
+            or not hasattr(os, 'pidfd_open')
             or signal.getsignal(signal.SIGCHLD) != signal.SIG_DFL):
         raise ValueError('exclusive Linux child ownership required')
     if type(budget) not in (int, float) or not math.isfinite(budget) or budget <= 0:

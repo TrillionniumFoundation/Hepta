@@ -40,6 +40,7 @@ CORE_TESTS = (
     'tests.test_hia_capability_borrow',
     'tests.test_hia_composition_identity',
     'tests.test_core_capture_terminal_deadline',
+    'tests.test_core_seven_acceptance.OwnedProcessIdentityTests',
     'tests.test_core_seven_shared_source_closure',
     'tests.test_core_capture_cleanup_replay',
     'tests.test_core_structured_source_cost',
@@ -47,6 +48,7 @@ CORE_TESTS = (
     'tests.test_core_seven_external_hash',
     'tests.test_hia_scalar_phi_edges',
     'tests.test_hia_scalar_return_signature',
+    'tests.test_hia_bounded_profile',
     'tests.test_hia_ndu_preparation_bound',
     'tests.test_hia_result_cache',
     'tests.test_hia_result_cache_binding',
@@ -61,6 +63,8 @@ CORE_TESTS = (
     'tests.test_hia_agent_preflight',
     'tests.test_hia_agent_transport_framing',
     'tests.test_hia_agent_provider',
+    'tests.test_hia_agent_sealed_execution',
+    'tests.test_hia_agent_frontier_factorial',
     'experiments.hia_agent_local_recovery_20261103.test_recovery',
     'tests.test_hia_durable_queue', 'tests.test_hia_durable_revision',
     'tests.test_hia_production_capability_witness',
@@ -77,6 +81,7 @@ CORE_TESTS = (
     'tests.test_hia_agent_factorial', 'tests.test_hia_agent_edit_factorial',
     'tests.test_hia_upstream_factorial',
     'tests.test_hia_agent_gguf', 'tests.test_hia_ndu_dynamic',
+    'tests.test_hia_ndu_policy', 'tests.test_hia_stb_service',
     'tests.test_cpp_unique_reuse.UniqueReuseProfileTests.test_profile_flag_is_exact_boolean',
     'tests.test_cpp_unique_swap.UniqueSwapTests.test_explicit_profile_and_reusable_slots_required',
     'tests.test_modules.PackageTests.test_source_directory_alias_rejected_before_locking',
@@ -271,11 +276,22 @@ def unchanged(source, tools, frozen=None):
 
 def validate_raw_build(path, tools):
     """Bind the second protocol to a fresh build of this exact adapter/toolchain."""
+    return _validate_model_build(path, tools, 'hia-ndu-raw-model')
+
+
+def validate_dynamic_build(path, tools):
+    """The supplied-candidate controls require their own actual native adapter."""
+    return _validate_model_build(path, tools, 'hia-ndu-dynamic-model')
+
+
+def _validate_model_build(path, tools, adapter_name):
+    if adapter_name not in ('hia-ndu-raw-model', 'hia-ndu-dynamic-model'):
+        raise ValueError('unregistered native model adapter')
     path = Path(path).resolve()
     manifest = json.loads(path.read_text())
     from tools.measure_hia_raw_model_cost import build_cost_observation
     observed_cost = build_cost_observation(manifest,path)
-    adapter = ROOT / 'rust/hia-ndu-raw-model'
+    adapter = ROOT / 'rust' / adapter_name
     files = {str(p.relative_to(adapter)):digest(p) for p in sorted(adapter.rglob('*')) if p.is_file()}
     required_true = ('original_rust_sources_unchanged', 'all_original_non_manifest_inputs_unchanged',
                      'build_inputs_unchanged', 'locked_dependencies', 'isolated_production_manifests')
@@ -299,13 +315,13 @@ def validate_raw_build(path, tools):
             or command.get('original_streams_retained') is not True
             or command.get('argv') != manifest.get('build_command')
             or command.get('argv') != expected_command or command.get('cwd') != str(ROOT)):
-        raise ValueError('raw native build differs from the registered source/toolchain/empty target')
+        raise ValueError('native model build differs from the registered source/toolchain/empty target')
     for stream in ('stdout', 'stderr'):
         item = command.get(stream, {})
         logfile = (path.parent / item.get('path', '')).resolve(strict=True)
         if (not logfile.is_relative_to(path.parent) or not logfile.is_file()
                 or logfile.stat().st_size != item.get('bytes') or digest(logfile) != item.get('sha256')):
-            raise ValueError('raw build original command stream changed')
+            raise ValueError('native model build original command stream changed')
     return manifest
 
 
@@ -439,14 +455,33 @@ def qualify(args):
             raise ValueError('raw native NDU failed to build; original streams retained')
         raw_manifest = validate_raw_build(raw_receipt,tools)
         raw_bridge = Path(raw_manifest['binary']).resolve()
+        dynamic_build = output/'dynamic-ndu-build'
+        dynamic_receipt = dynamic_build/'build-receipt.json'
+        passed['dynamic_ndu_build'] = step('dynamic-ndu-build', py+[
+            'tools/build_hia_ndu_dynamic_bridge.py',
+            '--upstream',str(Path(args.ndu_object_source or args.ndu_source).resolve()),
+            '--output',str(dynamic_build),'--cargo',tools['cargo']['path']],
+            environment={'CARGO_TARGET_DIR':str(output/'dynamic-cargo-target'),
+                         'CARGO_NET_OFFLINE':'true' if args.offline else 'false',
+                         'GIT_NO_LAZY_FETCH':'1'})
+        if not passed['dynamic_ndu_build']:
+            raise ValueError('dynamic native NDU failed to build; original streams retained')
+        dynamic_manifest = validate_dynamic_build(dynamic_receipt,tools)
+        dynamic_bridge = Path(dynamic_manifest['binary']).resolve()
         combination = {**plan, 'ndu_build_identity_sha256':digest(identity),
                        'ndu':manifest, 'raw_ndu':raw_manifest,
                        'raw_ndu_build_receipt_sha256':digest(raw_receipt),
+                       'dynamic_ndu':dynamic_manifest,
+                       'dynamic_ndu_build_receipt_sha256':digest(dynamic_receipt),
                        'plan_sha256':digest(output/'PLAN.json')}
         write(output/'COMBINATION.json',combination)
         frozen.update({str(identity):digest(identity),str(bridge):digest(bridge),
                        str(raw_receipt):digest(raw_receipt),str(raw_bridge):digest(raw_bridge),
+                       str(dynamic_receipt):digest(dynamic_receipt),
+                       str(dynamic_bridge):digest(dynamic_bridge),
                        str(output/'COMBINATION.json'):digest(output/'COMBINATION.json')})
+        execution_env.update(HEPTA_DYNAMIC_POLICY_BINARY=str(dynamic_bridge),
+                             HEPTA_DYNAMIC_POLICY_MANIFEST=str(dynamic_receipt))
         fetch=[tools['cargo']['path'],'fetch','--locked','--manifest-path',str(ROOT/'rust/hia-core-shadow/Cargo.toml')]
         if args.offline:
             fetch.append('--offline')
@@ -549,7 +584,7 @@ def qualify(args):
             '--output',str(output/'ndu-model-planner')])
         report = {'status':'completed','qualifications':passed,'qualification_commands_passed':all(passed.values()),
                   'p0_same_combination_build_execute_reject_cancel_recover':all(passed.get(k,False) for k in
-                      ('rust_shadow_dependencies','rust_shadow_build','core',
+                      ('rust_shadow_dependencies','rust_shadow_build','dynamic_ndu_build','core',
                        'capability_proof','capability_lifecycle','capability_borrow','memory_proof','core_proof','register_proof',
                        'production_capabilities','sequential_core','ndu_budget_model',
                        'continuation','reduction','outlined_aot','ndu_full_cost','ndu_model_planner','ndu_lazy_witness','host_region',

@@ -351,21 +351,13 @@ def validate(output):
     return registration
 
 
-def prepare(output, *, binary, assets, clang, rustc):
-    output = Path(output).resolve()
-    if output.is_relative_to(ROOT):
-        raise ValueError("evidence must be outside the source checkout")
-    output.mkdir(parents=True, exist_ok=False)
-    entered = time.monotonic_ns()
-    configuration = protocol()
-    tasks = fixtures.make_fixtures()
-    if [t["id"] for t in tasks] != configuration["tasks"]:
-        raise ValueError("fixture order differs from protocol")
+def reference_controls(tasks, output, clang, rustc):
+    """Use the same real native positive/historical controls for every transport."""
     controls = []
-    control_root = output / "controls"
-    control_root.mkdir()
+    control_root = Path(output)
+    control_root.mkdir(parents=True, exist_ok=False)
     for task in tasks:
-        for language in configuration["languages"]:
+        for language in ("assembly", "rust"):
             full = materialize(task, language, "full", answer(task, language, "full"))
             patched = materialize(task, language, "patch", answer(task, language, "patch"))
             if full != patched:
@@ -390,7 +382,24 @@ def prepare(output, *, binary, assets, clang, rustc):
                              "passed": old_fails, "build": old_build, "observed": old_observed})
             if not old_fails:
                 raise ValueError("historical defect not observed in an actual native port")
-    save(output / "CONTROLS.json", {"model_answers": False, "rows": controls, "passed": len(controls)})
+    report = {"model_answers": False, "rows": controls,
+              "count": len(controls), "passed": sum(row["passed"] for row in controls)}
+    save(control_root / "CONTROLS.json", report)
+    return report
+
+
+def prepare(output, *, binary, assets, clang, rustc):
+    output = Path(output).resolve()
+    if output.is_relative_to(ROOT):
+        raise ValueError("evidence must be outside the source checkout")
+    output.mkdir(parents=True, exist_ok=False)
+    entered = time.monotonic_ns()
+    configuration = protocol()
+    tasks = fixtures.make_fixtures()
+    if [t["id"] for t in tasks] != configuration["tasks"]:
+        raise ValueError("fixture order differs from protocol")
+    controls = reference_controls(tasks, output / "controls", clang, rustc)
+    save(output / "CONTROLS.json", controls)
     tools = {k: file_identity(v) for k, v in {"binary": binary, "clang": clang, "rustc": rustc}.items()}
     frozen_runtime = runtime_inventory(binary)
     models, capacities = {}, []

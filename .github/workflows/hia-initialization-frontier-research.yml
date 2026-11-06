@@ -210,7 +210,20 @@ jobs:
               'part04-runner-a': (['tests.test_core_seven_part04_runner.Part04RunnerTests'], 8),
               'part04-runner-b': (['tests.test_core_seven_part04_runner.Part04RunnerTests'], 8),
               'part04-runner-inverse': (['tests.test_core_seven_part04_runner.Part04RunnerTests'], 1),
-              'seven-acceptance-fast': (['tests.test_core_seven_acceptance.SchemaTests', 'tests.test_core_seven_acceptance.FilesystemTests', 'tests.test_core_seven_acceptance.CaptureTests', 'tests.test_core_seven_acceptance.ClockTests', 'tests.test_core_seven_acceptance.LaunchTests', 'tests.test_core_seven_acceptance.TransitionTests', 'tests.test_core_seven_acceptance.VerifiedDisplayTests', 'tests.test_core_seven_acceptance.ReceiptBoundaryTests'], 108),
+              'seven-acceptance-fast': ([
+                  'tests.test_core_seven_acceptance.SchemaTests',
+                  'tests.test_core_seven_acceptance.FilesystemTests',
+                  'tests.test_core_seven_acceptance.CaptureTests',
+                  'tests.test_core_seven_acceptance.ClockTests',
+                  'tests.test_core_seven_acceptance.LaunchTests',
+                  'tests.test_core_seven_acceptance.TransitionTests',
+                  'tests.test_core_seven_acceptance.VerifiedDisplayTests',
+                  'tests.test_core_seven_acceptance.ReceiptBoundaryTests',
+                  'tests.test_core_seven_acceptance.OwnedProcessIdentityTests.test_actual_child_self_identity_matches_the_shared_authentication',
+                  'tests.test_core_seven_acceptance.OwnedProcessIdentityTests.test_mismatched_pidfd_namespace_cannot_use_a_guessed_proc_pid',
+                  'tests.test_core_seven_acceptance.OwnedProcessIdentityTests.test_inconsistent_procfs_session_cannot_attest_child_identity',
+                  'tests.test_core_seven_acceptance.OwnedProcessIdentityTests.test_unavailable_pidfd_never_falls_back_to_numeric_proc_path',
+              ], 112),
               'seven-acceptance-records': (['tests.test_core_seven_acceptance.RecordAndSizingTests.test_all_failed_stage_codes_and_fields', 'tests.test_core_seven_acceptance.RecordAndSizingTests.test_every_nested_identity_plan_run_field', 'tests.test_core_seven_acceptance.RecordAndSizingTests.test_exact_approved_serialized_reserve'], 3),
               'seven-acceptance-record_types': (['tests.test_core_seven_acceptance.RecordAndSizingTests.test_every_nested_wrong_type_unknown_and_numeric_bounds'], 1),
               'seven-acceptance-full_eleven': (['tests.test_core_seven_acceptance.FullRunTests'], 1),
@@ -299,11 +312,11 @@ jobs:
           all_ids = [test_id for ids in inventories.values() for test_id in ids]
           all_names = sorted({name for names, _ in groups.values() for name in names})
           complete_ids = [case.id() for case in flatten(unittest.defaultTestLoader.loadTestsFromNames(all_names))]
-          assert len(all_ids) == len(set(all_ids)) == len(complete_ids) == 705, 'combined inventory changed'
+          assert len(all_ids) == len(set(all_ids)) == len(complete_ids) == 709, 'combined inventory changed'
           assert set(all_ids) == set(complete_ids), 'split omitted or duplicated controls'
           acceptance_ids = [case.id() for case in flatten(unittest.defaultTestLoader.loadTestsFromName('tests.test_core_seven_acceptance'))]
           assigned_acceptance_ids = [test_id for group, ids in inventories.items() if group.startswith('seven-acceptance-') for test_id in ids]
-          assert len(acceptance_ids) == len(set(acceptance_ids)) == len(assigned_acceptance_ids) == len(set(assigned_acceptance_ids)) == 136, 'complete acceptance inventory changed'
+          assert len(acceptance_ids) == len(set(acceptance_ids)) == len(assigned_acceptance_ids) == len(set(assigned_acceptance_ids)) == 140, 'complete acceptance inventory changed'
           assert set(acceptance_ids) == set(assigned_acceptance_ids), 'acceptance shards omitted or duplicated controls'
           part04_names = ['tests.test_core_seven_part04_sources', 'tests.test_core_seven_part04_capture', 'tests.test_core_seven_part04_runner']
           part04_ids = [case.id() for case in flatten(unittest.defaultTestLoader.loadTestsFromNames(part04_names))]
@@ -311,7 +324,7 @@ jobs:
           assert len(part04_ids) == len(set(part04_ids)) == len(assigned_part04_ids) == len(set(assigned_part04_ids)) == 73, 'complete Part04 inventory changed'
           assert set(part04_ids) == set(assigned_part04_ids), 'Part04 shards omitted or duplicated controls'
           legacy_ids = [test_id for group, ids in inventories.items() if not group.startswith(('relocation-', 'full-relocation-acceptance-')) for test_id in ids]
-          assert len(legacy_ids) == len(set(legacy_ids)) == 500, 'all prior isolated controls must remain assigned once'
+          assert len(legacy_ids) == len(set(legacy_ids)) == 504, 'all prior isolated controls must remain assigned once'
           relocation_names = ['tests.test_core_seven_parallel_relocation_sources', 'tests.test_core_seven_relocation_sources', 'tests.test_core_seven_relocation_runner']
           relocation_ids = [case.id() for case in flatten(unittest.defaultTestLoader.loadTestsFromNames(relocation_names))]
           assigned_relocation_ids = [test_id for group, ids in inventories.items() if group.startswith('relocation-') for test_id in ids]
@@ -322,7 +335,7 @@ jobs:
           assert len(full_relocation_ids) == len(set(full_relocation_ids)) == len(assigned_full_relocation_ids) == len(set(assigned_full_relocation_ids)) == 140, 'complete full relocation acceptance inventory changed'
           assert set(full_relocation_ids) == set(assigned_full_relocation_ids), 'full relocation acceptance shards omitted or duplicated controls'
           old_ids = [test_id for group, ids in inventories.items() if not group.startswith('full-relocation-acceptance-') for test_id in ids]
-          assert len(old_ids) == len(set(old_ids)) == 565, 'all prior isolated controls retained once'
+          assert len(old_ids) == len(set(old_ids)) == 569, 'all prior isolated controls retained once'
           group = os.environ['CONTROL_GROUP']
           ids, suite = inventories[group], suites[group]
           expected = groups[group][1]

@@ -131,6 +131,26 @@ impl<'a> Planner<'a> {
         Ok(Plan { actions, current_committed_ns: current, close_ns: close, total_ns: total })
     }
 
+    pub fn supplied(&mut self, paths: &[Vec<u16>]) -> Result<Vec<Plan>, String> {
+        // No native search or oracle call. Independently replay the bounded
+        // caller-proposed paths through the same quota/epoch/cost owner.
+        if paths.is_empty() || paths.len() > 4 { return Err("supplied candidate count".into()); }
+        let mut seen = std::collections::BTreeSet::new();
+        let mut result = Vec::new();
+        for path in paths {
+            if path.len() != self.m.targets.len() || !seen.insert(path.clone()) {
+                return Err("incomplete or duplicate supplied candidate".into());
+            }
+            if path.iter().any(|mask| !self.masks.contains(mask)) {
+                return Err("supplied candidate exceeds resident quota".into());
+            }
+            let plan = self.plan(path)?;
+            if plan.total_ns > self.m.budget_ns { return Err("supplied candidate exceeds cost budget".into()); }
+            result.push(plan);
+        }
+        Ok(result)
+    }
+
     pub fn exact(&mut self) -> Result<Vec<Plan>, String> {
         self.tail(0, self.m.ready_mask)?;
         let mut ready = self.m.ready_mask;
