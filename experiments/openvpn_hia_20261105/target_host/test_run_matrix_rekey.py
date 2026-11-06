@@ -94,5 +94,131 @@ class AcceptedPeerRekeyTests(unittest.TestCase):
         self.assertEqual(observation['completed_rekeys'], 0)
 
 
+
+def dco_server_reset(key, peer=0):
+    return [
+        f"UDPv4 READ [54] from [AF_INET]192.0.2.1:1194: "
+        f"P_CONTROL_SOFT_RESET_V1 kid={key} pid=[ 123 ]",
+        f"dco_install_key: peer_id={peer} keyid={key} epoch=0, currently 1 keys installed",
+        f"dco_new_key: slot 1, key-id {key}, peer-id {peer}, "
+        "cipher AES-256-GCM, epoch 0",
+    ]
+
+
+class PassiveDcoRekeyTests(unittest.TestCase):
+    def test_passive_responder_counts_only_later_peer_key_promotions(self):
+        lines = ["Initialization Sequence Completed"]
+        lines.extend(dco_server_reset(1))
+        lines.append(
+            "UDPv4 READ [54] from [AF_INET]192.0.2.1:1194: "
+            "P_CONTROL_SOFT_RESET_V1 kid=2 pid=[ 124 ]"
+        )
+        lines.append("dco_swap_keys: peer-id 0")
+        lines.extend(dco_server_reset(2))
+        lines.append(
+            "UDPv4 READ [54] from [AF_INET]192.0.2.1:1194: "
+            "P_CONTROL_SOFT_RESET_V1 kid=3 pid=[ 125 ]"
+        )
+        lines.append("dco_swap_keys: peer-id 0")
+        lines.extend(dco_server_reset(3))
+
+        observation = matrix.observe("\n".join(lines))
+        passive = [
+            cycle for cycle in observation["rekey_cycles"]
+            if "dco_promotion_reset_line" in cycle
+        ]
+        self.assertEqual(observation["completed_rekeys"], 2)
+        self.assertEqual([cycle["dco_key_id"] for cycle in passive], [1, 2])
+        self.assertEqual([cycle["dco_peer_id"] for cycle in passive], [0, 0])
+        for cycle in passive:
+            self.assertLess(cycle["reset_line"], cycle["dco_install_line"])
+            self.assertLess(cycle["dco_install_line"], cycle["dco_swap_line"])
+            self.assertLess(cycle["dco_swap_line"], cycle["dco_promotion_reset_line"] + 100)
+
+    def test_unpromoted_or_same_key_dco_swap_does_not_count(self):
+        lines = ["Initialization Sequence Completed"]
+        lines.extend(dco_server_reset(1))
+        lines.append("dco_swap_keys: peer-id 0")
+        observation = matrix.observe("\n".join(lines))
+        self.assertEqual(observation["completed_rekeys"], 0)
+
+    def test_passive_dco_requires_reset_and_installed_key_ids_to_match(self):
+        lines = ["Initialization Sequence Completed"]
+        lines.append(
+            "UDPv4 READ [54] from [AF_INET]192.0.2.1:1194: "
+            "P_CONTROL_SOFT_RESET_V1 kid=1 pid=[ 123 ]"
+        )
+        lines.extend(dco_server_reset(2))
+        lines.append(
+            "UDPv4 READ [54] from [AF_INET]192.0.2.1:1194: "
+            "P_CONTROL_SOFT_RESET_V1 kid=3 pid=[ 125 ]"
+        )
+        lines.append("dco_swap_keys: peer-id 0")
+        observation = matrix.observe("\n".join(lines))
+        self.assertEqual(observation["completed_rekeys"], 0)
+
+    def test_tls_error_before_passive_dco_promotion_invalidates_pending_key(self):
+        lines = ["Initialization Sequence Completed"]
+        lines.extend(dco_server_reset(1))
+        lines.append(
+            "UDPv4 READ [54] from [AF_INET]192.0.2.1:1194: "
+            "P_CONTROL_SOFT_RESET_V1 kid=2 pid=[ 124 ]"
+        )
+        lines.append(
+            "TLS Error: local/remote TLS keys are out of sync"
+        )
+        lines.append("dco_swap_keys: peer-id 0")
+        lines.extend(dco_server_reset(2))
+        observation = matrix.observe("\n".join(lines))
+        self.assertEqual(observation["completed_rekeys"], 0)
+
+    def test_passive_dco_swaps_are_scoped_to_the_matching_peer(self):
+        lines = ["Initialization Sequence Completed"]
+        lines.extend(dco_server_reset(1, peer=0))
+        lines.extend(dco_server_reset(1, peer=1))
+        lines.append(
+            "UDPv4 READ [54] from [AF_INET]192.0.2.1:1194: "
+            "P_CONTROL_SOFT_RESET_V1 kid=2 pid=[ 124 ]"
+        )
+        lines.append("dco_swap_keys: peer-id 1")
+        lines.extend(dco_server_reset(2, peer=1))
+        lines.append(
+            "UDPv4 READ [54] from [AF_INET]192.0.2.1:1194: "
+            "P_CONTROL_SOFT_RESET_V1 kid=3 pid=[ 125 ]"
+        )
+        lines.append("dco_swap_keys: peer-id 0")
+        lines.extend(dco_server_reset(3, peer=0))
+
+        observation = matrix.observe("\n".join(lines))
+        passive = [
+            cycle for cycle in observation["rekey_cycles"]
+            if "dco_promotion_reset_line" in cycle
+        ]
+        self.assertEqual(
+            {(cycle["dco_peer_id"], cycle["dco_key_id"]) for cycle in passive},
+            {(0, 1), (1, 1)}
+        )
+
+    def test_same_segment_dco_initiator_receipt_is_not_double_counted(self):
+        lines = [
+            "Initialization Sequence Completed",
+            "TLS: soft reset sec=10/10 bytes=100/100 pkts=1/1",
+            "UDPv4 WRITE [54] to [AF_INET]192.0.2.1:1194: "
+            "P_CONTROL_SOFT_RESET_V1 kid=1 pid=[ 123 ]",
+            "UDPv4 READ [54] from [AF_INET]192.0.2.1:1194: "
+            "P_CONTROL_SOFT_RESET_V1 kid=1 pid=[ 124 ]",
+            "Control Channel: TLSv1.3, cipher TLS_AES_256_GCM_SHA384",
+            "dco_install_key: peer_id=0 keyid=1 epoch=0, currently 1 keys installed",
+            "dco_new_key: slot 1, key-id 1, peer-id 0, cipher AES-256-GCM, epoch 0",
+            "dco_swap_keys: peer-id 0",
+        ]
+        observation = matrix.observe("\n".join(lines))
+        self.assertEqual(observation["completed_rekeys"], 1)
+        self.assertFalse(any(
+            "dco_promotion_reset_line" in cycle
+            for cycle in observation["rekey_cycles"]
+        ))
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
