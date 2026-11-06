@@ -87,6 +87,77 @@ class ThroughputEvidenceTests(unittest.TestCase):
         document['start']['test_start']['bidir']=0
         with self.assertRaises(ValueError):matrix.local_bidir_receiver(document,'client')
 
+    def udp_client_document(self, client_to_server_bps, server_to_client_bps):
+        return {"end": {
+            "sum_sent": {"bits_per_second": client_to_server_bps, "sender": True},
+            "sum_sent_bidir_reverse": {"bits_per_second": server_to_client_bps, "sender": True},
+        }}
+
+    def udp_receiver(self, bits_per_second, lost_percent):
+        return {"bits_per_second": bits_per_second, "lost_percent": lost_percent,
+                "sender": False}
+
+    def udp_policy(self):
+        return {"minimum_offered_rate_fraction": 0.95,
+                "maximum_receiver_loss_percent": 1.0}
+
+    def test_exact_dco_udp64_under_offer_is_not_a_pass(self):
+        # Exact values retained from target run 42174797170, profile-c-dco,
+        # workload-0-udp-64. Both senders were CPU-limited below the declared
+        # 100 Mbit/s in each direction, despite zero packet loss.
+        document = self.udp_client_document(59_806_802.81, 16_570_974.66)
+        result = matrix.udp_delivery_evidence(
+            {"transport": "udp", "offered_rate_each_direction": "100M"},
+            document,
+            self.udp_receiver(16_523_656.37, 0.0),
+            self.udp_receiver(59_779_815.18, 0.0),
+            self.udp_policy(),
+        )
+        self.assertFalse(result["passed"])
+        self.assertFalse(result["checks"]["offered_rate_met"])
+        self.assertFalse(result["checks"]["receiver_rate_met"])
+        self.assertTrue(result["checks"]["loss_within_limit"])
+
+    def test_exact_userspace_udp512_loss_is_not_a_pass(self):
+        # Exact target-run case perf-r0-o0-p0-c-user: the server received
+        # 90.55 Mbit/s with 9.1296% loss; the opposite direction stayed healthy.
+        document = self.udp_client_document(99_979_099.0045469, 100_315_767.5804186)
+        result = matrix.udp_delivery_evidence(
+            {"transport": "udp", "offered_rate_each_direction": "100M"},
+            document,
+            self.udp_receiver(99_622_849.58243865, 0.0),
+            self.udp_receiver(90_547_672.19435424, 9.12964040212039),
+            self.udp_policy(),
+        )
+        self.assertFalse(result["passed"])
+        self.assertTrue(result["checks"]["offered_rate_met"])
+        self.assertFalse(result["checks"]["receiver_rate_met"])
+        self.assertFalse(result["checks"]["loss_within_limit"])
+
+    def test_udp_workload_passes_only_when_both_directions_meet_policy(self):
+        document = self.udp_client_document(100_000_000.0, 100_000_000.0)
+        result = matrix.udp_delivery_evidence(
+            {"transport": "udp", "offered_rate_each_direction": "100M"},
+            document,
+            self.udp_receiver(99_500_000.0, 0.1),
+            self.udp_receiver(99_700_000.0, 0.0),
+            self.udp_policy(),
+        )
+        self.assertTrue(result["passed"])
+        self.assertTrue(all(result["checks"].values()))
+
+    def test_udp_sender_receipt_must_be_explicit_and_finite(self):
+        document = self.udp_client_document(100_000_000.0, 100_000_000.0)
+        document["end"]["sum_sent"]["sender"] = False
+        with self.assertRaises(ValueError):
+            matrix.udp_delivery_evidence(
+                {"transport": "udp", "offered_rate_each_direction": "100M"},
+                document,
+                self.udp_receiver(99_500_000.0, 0.1),
+                self.udp_receiver(99_700_000.0, 0.0),
+                self.udp_policy(),
+            )
+
     def test_failure_before_traffic_still_writes_failed_measurement(self):
         def broken_spawn(*args,**kwargs):raise OSError('deliberate pre-traffic spawn failure')
         with tempfile.TemporaryDirectory() as directory:

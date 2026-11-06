@@ -38,6 +38,73 @@ def require(value, message):
         raise ValueError(message)
 
 
+def verify_udp_delivery(value, workload, policy):
+    """Independently recompute offered load, receiver goodput and loss from raw iperf receipts."""
+    offered_match = re.fullmatch(r"([0-9]+(?:\.[0-9]+)?)([KMG])",
+                                 str(workload.get("offered_rate_each_direction")))
+    require(offered_match is not None, "unsupported UDP offered-rate syntax")
+    scale = {"K": 1_000, "M": 1_000_000, "G": 1_000_000_000}[offered_match.group(2)]
+    offered = float(offered_match.group(1)) * scale
+    fraction = policy.get("minimum_offered_rate_fraction")
+    max_loss = policy.get("maximum_receiver_loss_percent")
+    require(isinstance(fraction, (int, float)) and not isinstance(fraction, bool)
+            and math.isfinite(fraction) and 0 < fraction <= 1,
+            "invalid minimum offered-rate fraction")
+    require(isinstance(max_loss, (int, float)) and not isinstance(max_loss, bool)
+            and math.isfinite(max_loss) and 0 <= max_loss <= 100,
+            "invalid maximum UDP receiver loss")
+    end = value.get("client_iperf", {}).get("end", {})
+    senders = {
+        "client_to_server": end.get("sum_sent"),
+        "server_to_client": end.get("sum_sent_bidir_reverse"),
+    }
+    receivers = {
+        "client_to_server": value.get("server_local_receiver"),
+        "server_to_client": value.get("client_local_receiver"),
+    }
+    minimum = offered * fraction
+    directions = {}
+    for name in ("client_to_server", "server_to_client"):
+        sender, receiver = senders[name], receivers[name]
+        require(isinstance(sender, dict) and sender.get("sender") is True,
+                name + " lacks an explicit sender receipt")
+        require(isinstance(receiver, dict) and receiver.get("sender") is False,
+                name + " lacks a local receiver receipt")
+        sender_rate = sender.get("bits_per_second")
+        receiver_rate = receiver.get("bits_per_second")
+        loss = receiver.get("lost_percent")
+        for label, number in (("sender rate", sender_rate), ("receiver rate", receiver_rate),
+                              ("receiver loss", loss)):
+            require(isinstance(number, (int, float)) and not isinstance(number, bool)
+                    and math.isfinite(number), name + " has invalid " + label)
+        require(sender_rate > 0 and receiver_rate > 0 and 0 <= loss <= 100,
+                name + " has non-positive rate or out-of-range loss")
+        directions[name] = {
+            "sender_bps": sender_rate,
+            "receiver_bps": receiver_rate,
+            "lost_percent": loss,
+        }
+    checks = {
+        "offered_rate_met": all(item["sender_bps"] >= minimum for item in directions.values()),
+        "receiver_rate_met": all(item["receiver_bps"] >= minimum for item in directions.values()),
+        "loss_within_limit": all(item["lost_percent"] <= max_loss for item in directions.values()),
+    }
+    recorded = value.get("udp_delivery")
+    require(isinstance(recorded, dict) and recorded.get("passed") is True
+            and recorded.get("failures") == [], "UDP acceptance receipt is missing or failed")
+    require(recorded.get("offered_rate_bps") == offered
+            and recorded.get("minimum_rate_bps") == minimum
+            and recorded.get("minimum_offered_rate_fraction") == fraction
+            and recorded.get("maximum_receiver_loss_percent") == max_loss,
+            "UDP acceptance policy differs from the frozen plan")
+    require(recorded.get("checks") == checks and recorded.get("directions") == directions,
+            "UDP acceptance summary differs from raw iperf sender/receiver receipts")
+    require(all(value.get("checks", {}).get("udp_" + name) is True
+                for name in ("offered_rate_met", "receiver_rate_met", "loss_within_limit")),
+            "UDP acceptance check is not closed")
+    require(all(checks.values()), "UDP workload did not achieve its declared bidirectional load")
+
+
 def expected_cases(plan):
     rows = []
     for server, client in plan["behavior"]["epoch_pairs"]:
@@ -168,6 +235,8 @@ def verify(public, expected_commit):
                             "vpn_rx_bytes", "vpn_tx_bytes", "link_rx_bytes", "link_tx_bytes"))
                             for p in peers.values()),
                                 "DCO peer byte counters did not increase")
+                if workload.get("transport") == "udp":
+                    verify_udp_delivery(value, workload, plan["performance"]["udp_acceptance"])
                 measurements += 1
         elif row["kind"] == "profile":
             values = case.get("measurements", [])
