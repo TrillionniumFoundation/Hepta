@@ -14,7 +14,7 @@ diff --git a/src/openvpn/openvpn.h b/src/openvpn/openvpn.h
 diff --git a/src/openvpn/forward.c b/src/openvpn/forward.c
 --- a/src/openvpn/forward.c
 +++ b/src/openvpn/forward.c
-@@ -2273,7 +2273,17 @@ process_io(struct context *c, struct link_socket *sock)
+@@ -2273,2 +2273,12 @@ process_io(struct context *c, struct link_socket *sock)
  {
 -    const unsigned int status = c->c2.event_set_status;
 +    unsigned int status = c->c2.event_set_status;
@@ -29,8 +29,6 @@ diff --git a/src/openvpn/forward.c b/src/openvpn/forward.c
 +        status &= ~SOCKET_READ;
 +    }
  
- #ifdef ENABLE_MANAGEMENT
-     if (status & (MANAGEMENT_READ | MANAGEMENT_WRITE))
 @@ -2295,5 +2305,6 @@ process_io(struct context *c, struct link_socket *sock)
      else if (status & SOCKET_READ)
      {
