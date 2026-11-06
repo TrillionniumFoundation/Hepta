@@ -45,6 +45,24 @@ def verify_profile_process_samples(profile, client_arm):
                 client_arm + " userspace process was not sampled")
 
 
+def verify_hia_profile_hotspot(profile, report_text, client_arm):
+    """Independently require both non-epoch HIA packet-ID symbols in the report."""
+    if client_arm != "hia-user":
+        return
+    required = ("ovpn_hia_packet_id_read", "ovpn_hia_packet_id_write")
+    found = set()
+    for line in report_text.splitlines():
+        if not re.search(r"\bopenvpn\b", line):
+            continue
+        for symbol in required:
+            if re.search(r"\b" + re.escape(symbol) + r"\b", line):
+                found.add(symbol)
+    require(found == set(required),
+            "HIA-user profile lacks both exported non-epoch packet-ID hotspots")
+    require(profile.get("hia_profile_symbol_lines") == len(found),
+            "stored HIA packet-ID symbol count differs from the perf report")
+
+
 def verify_udp_delivery(value, workload, policy):
     """Independently recompute offered load, receiver goodput and loss from raw iperf receipts."""
     offered_match = re.fullmatch(r"([0-9]+(?:\.[0-9]+)?)([KMG])",
@@ -282,11 +300,15 @@ def verify(public, expected_commit):
             require(profile.get("actual_sample_headers", 0) > 0 and profile.get("kernel_symbol_lines", 0) > 0,
                     "profile lacks actual process/kernel sampling")
             verify_profile_process_samples(profile, row["arms"]["client"])
+            report_text = None
             for name in ("report", "samples"):
                 record = profile[name]
                 path = beneath(target, record["stdout"])
                 require(record["exit_code"] == 0 and digest(path) == record["stdout_sha256"],
                         "profile text is incomplete or changed")
+                if name == "report":
+                    report_text = path.read_text()
+            verify_hia_profile_hotspot(profile, report_text, row["arms"]["client"])
     require(measurements == 216, "workload observation inventory is incomplete")
 
     checked_logs = 0
