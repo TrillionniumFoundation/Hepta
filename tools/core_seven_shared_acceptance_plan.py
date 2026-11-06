@@ -103,12 +103,33 @@ ROUND6_ADDITIONS = (
 LINUX_ADDITIONS = ('hepta/hia_linux_kernel.py',)
 SYSTEM_ADDITIONS = (
     'benchmarks/hia_linux_full/PROTOCOL.json',
+    'docs/HIA_KERNEL_COMPARISON.md',
+    'docs/HIA_KERNEL_NDU.md',
+    'docs/HIA_KERNEL_ORDINARY_CONTROL.md',
     'docs/HIA_SYSTEM.md',
+    'experiments/hia_linux_full_20261106/COMPARISON_PROTOCOL.json',
+    'experiments/hia_linux_full_20261106/PROTOCOL.json',
+    'experiments/hia_linux_full_20261106/README.md',
+    'experiments/hia_linux_full_20261106/guest_bench.c',
     'experiments/hia_linux_kernel_20261106/guest_init.c',
     'hepta/hia_system.py',
+    'rust/hia-kernel-ndu/Cargo.lock',
+    'rust/hia-kernel-ndu/Cargo.toml',
+    'rust/hia-kernel-ndu/src/main.rs',
+    'rust/hia-kernel-ndu/upstream.json',
+    'rust/hia-kernel-ordinary-control/Cargo.lock',
+    'rust/hia-kernel-ordinary-control/Cargo.toml',
+    'rust/hia-kernel-ordinary-control/src/main.rs',
     'schemas/hia_system.v1.schema.json',
+    'tests/test_hia_kernel_comparison.py',
+    'tests/test_hia_kernel_ndu.py',
+    'tests/test_hia_kernel_ordinary_control.py',
     'tests/test_hia_linux_full_inventory.py',
+    'tests/test_hia_linux_system_benchmark.py',
+    'tools/build_hia_kernel_ndu_bridge.py',
+    'tools/build_hia_kernel_ordinary_control.py',
     'tools/hia_linux_full_inventory.py',
+    'tools/hia_linux_system_benchmark.py',
     'tools/hia_system/CMakeLists.txt',
     'tools/hia_system/system_debug.cpp',
     'tools/hia_system/system_debug_metadata.cpp',
@@ -135,6 +156,7 @@ SYSTEM_ADDITIONS = (
     'tools/hia_system_cc.py',
     'tools/hia_system_host_cc.py',
     'tools/hia_system_host_cxx.py',
+    'tools/qualify_hia_kernel_comparison.py',
     'tools/qualify_hia_linux_baseline.py',
     'tools/qualify_hia_linux_full.py',
 )
@@ -229,7 +251,7 @@ SUPPORT_IDENTITY_PATHS = legacy.SUPPORT_IDENTITY_PATHS
 def source_paths():
     legacy.source_paths()  # retain the exact earlier source identity closure
     paths = SOURCE_IDENTITY_PATHS
-    require(len(paths) == len(set(paths)) == 349 and commitment(paths) == 'fc52a52b299345340ca991659bfd42765d1a080edf74fcad90d3dbf2fe6e631e',
+    require(len(paths) == len(set(paths)) == 371 and commitment(paths) == 'bcfc68373f052eeb240c55bb431550d9d1bf2e8a000184f6d54fe42f4e0f4267',
             'reviewed exact source identity closure')
     # pipeline.compiler_hash reads every actual top-level hepta/*.py byte,
     # including modules that are not imported by this selected proof profile.
