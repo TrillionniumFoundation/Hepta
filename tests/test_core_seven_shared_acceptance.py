@@ -136,40 +136,7 @@ class SharedAcceptanceContractTests(unittest.TestCase):
         self.assertEqual(workflow.count(start), 1)
         ids = ast.literal_eval('[' + workflow.split(start, 1)[1].split(stop, 1)[0] + ']')
         fixed_counts = [int(v) for v in re.findall(
-            r'^\s+EXPECTED_COUNT = (\d+)
-        with tempfile.TemporaryDirectory(prefix='hia-shared-') as directory:
-            Path(directory, 'RESULT.json').write_text(json.dumps({
-                'status': 'passed', 'kernel_core_syntax_connection_checked': True}))
-            with self.assertRaises(ValueError):
-                replay.verify_evidence(directory)
-
-    def test_source_generation_never_grants_broader_authority(self):
-        for checked in (False, True):
-            flags = p.flags(checked)
-            self.assertFalse(flags['actual_core_bridge_proved'])
-            self.assertFalse(flags['python_exporter_refinement_proved'])
-            self.assertTrue(all(x['status'] == 'unproved' for x in flags['obligations']))
-            self.assertEqual(flags['authority']['authority'], 'DENY_ALL')
-            self.assertFalse(flags['authority']['production_admission'])
-
-    def test_timeouts_and_unobserved_cleanup_still_fail(self):
-        process = dict(spawned=True, returncode=0, timed_out=False, incomplete=False,
-            output_truncated=False, leader_reaped=True, stdout_eof=True, stderr_eof=True,
-            original_group_empty=True, elapsed_ns=1, cleanup_ns=1, leader_pid=123,
-            original_pgid=123, leader_start_ticks=1, terminal_observation='waitid_wnowait',
-            pre_reap_group_signal='sigkill_sent', leader_reap_observed=True,
-            post_reap_group_probe='esrch')
-        p.validate_process(process, success=True)
-        for changed in ({'elapsed_ns': 60000000000}, {'cleanup_ns': 2000000000},
-                        {'leader_reap_observed': False}, {'stdout_eof': False},
-                        {'original_group_empty': False}, {'timed_out': True}):
-            with self.subTest(changed=changed), self.assertRaises(ValueError):
-                p.validate_process({**process, **changed}, success=True)
-
-
-if __name__ == '__main__':
-    unittest.main()
-, workflow, flags=re.MULTILINE)]
+            r'^\s+EXPECTED_COUNT = (\d+)$', workflow, flags=re.MULTILINE)]
         self.assertEqual(len(fixed_counts), 2)
         self.assertEqual(fixed_counts, [len(ids), len(ids)])
         self.assertEqual(len(ids), len(set(ids)))
