@@ -95,24 +95,39 @@ class GuestEvidence(unittest.TestCase):
         self.assertEqual(verdict['guest_tests']['passed'], 14)
         self.assertEqual(verdict['status'], 'FAIL')
         self.assertIn('host command process group did not complete', verdict['protocol_errors'])
+        group = 12345
+        scoped = {**legacy, 'process_group': group}
         partial_receipts = (
             {'drained': True},
-            {'group': 1, 'scope': 'owned_linux_process_group', 'drained': True},
-            {'group': 1, 'scope': 'owned_linux_process_group', 'drained': True,
+            {'group': group, 'scope': 'owned_linux_process_group', 'drained': True},
+            {'group': group, 'scope': 'owned_linux_process_group', 'drained': True,
              'signals': [], 'live_members_after': [{'pid': 99, 'state': 'S'}], 'errors': []},
-            {'group': 1, 'scope': 'owned_linux_process_group', 'drained': True,
+            {'group': group, 'scope': 'owned_linux_process_group', 'drained': True,
              'signals': [], 'live_members_after': []},
         )
         for cleanup in partial_receipts:
             with self.subTest(cleanup=cleanup):
                 self.assertFalse(baseline.command_succeeded(
-                    {**legacy, 'process_group_cleanup': cleanup}))
-        completed = {**legacy, 'process_group_cleanup': {
-            'group': 1, 'scope': 'owned_linux_process_group', 'drained': True,
-            'signals': [], 'live_members_after': [], 'errors': [], 'elapsed_ns': 0}}
+                    {**scoped, 'process_group_cleanup': cleanup}))
+        complete_cleanup = {
+            'group': group, 'scope': 'owned_linux_process_group', 'drained': True,
+            'signals': [], 'live_members_after': [], 'errors': [], 'elapsed_ns': 0}
+        completed = {**scoped, 'process_group_cleanup': complete_cleanup}
         self.assertTrue(baseline.command_succeeded(completed))
         self.assertEqual(baseline.parse_guest_serial(
             serial(), RUN_ID, 0, False, command_receipt=completed)['status'], 'PASS')
+        tampered = (
+            {**completed, 'process_group': group + 1},
+            {**scoped, 'process_group_cleanup': {**complete_cleanup, 'group': group + 1}},
+            {**scoped, 'process_group_cleanup': {**complete_cleanup, 'scope': 'other'}},
+            {**scoped, 'process_group_cleanup': {**complete_cleanup, 'signals': ['SIGTERM']}},
+            {**scoped, 'process_group_cleanup': {**complete_cleanup, 'errors': [{'phase': 'observe'}]}},
+            {**scoped, 'process_group_cleanup': {**complete_cleanup, 'elapsed_ns': -1}},
+            {**scoped, 'process_group_cleanup': {**complete_cleanup, 'elapsed_ns': True}},
+        )
+        for record in tampered:
+            with self.subTest(record=record):
+                self.assertFalse(baseline.command_succeeded(record))
 
 
 class InputsAndProcesses(unittest.TestCase):
@@ -147,9 +162,14 @@ class InputsAndProcesses(unittest.TestCase):
                 stdin_bytes=b'quit\n')
             self.assertTrue(baseline.command_succeeded(record))
             self.assertEqual(record['process_group_cleanup']['scope'], 'owned_linux_process_group')
+            self.assertIs(type(record['process_group']), int)
+            self.assertEqual(record['process_group'], record['process_group_cleanup']['group'])
             self.assertIs(type(record['process_group_cleanup']['group']), int)
             self.assertTrue(record['process_group_cleanup']['drained'])
+            self.assertEqual(record['process_group_cleanup']['signals'], [])
             self.assertEqual(record['process_group_cleanup']['live_members_after'], [])
+            self.assertEqual(record['process_group_cleanup']['errors'], [])
+            self.assertIs(type(record['process_group_cleanup']['elapsed_ns']), int)
             self.assertEqual(Path(record['stdin']['path']).read_bytes(), b'quit\n')
             self.assertEqual(record['stdin']['sha256'], hashlib.sha256(b'quit\n').hexdigest())
             self.assertEqual(Path(record['stdout']['path']).read_bytes(), b'quit\n')

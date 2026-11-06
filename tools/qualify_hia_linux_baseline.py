@@ -248,15 +248,29 @@ def terminate_owned_process_group(process):
 
 
 def process_group_outcome_admissible(record):
-    """Reject observed lifecycle failures without inventing old drain evidence."""
+    """Require a complete, empty observation for this command's owned group."""
     if not isinstance(record, dict) or 'interruption' in record:
         return False
     if record.get('incomplete_process_group', False) is not False:
         return False
-    if 'process_group_cleanup' not in record:
-        return True  # Legacy receipt: group drain was not observed by this schema.
-    cleanup = record['process_group_cleanup']
-    return isinstance(cleanup, dict) and cleanup.get('drained') is True
+    group = record.get('process_group')
+    if type(group) is not int or group <= 1:
+        return False
+    cleanup = record.get('process_group_cleanup')
+    if not isinstance(cleanup, dict):
+        return False
+    if type(cleanup.get('group')) is not int or cleanup['group'] != group:
+        return False
+    if cleanup.get('scope') != 'owned_linux_process_group' or cleanup.get('drained') is not True:
+        return False
+    signals = cleanup.get('signals')
+    live = cleanup.get('live_members_after')
+    errors = cleanup.get('errors')
+    elapsed = cleanup.get('elapsed_ns')
+    return (type(signals) is list and not signals
+            and type(live) is list and not live
+            and type(errors) is list and not errors
+            and type(elapsed) is int and elapsed >= 0)
 
 
 def command_succeeded(record):
@@ -294,13 +308,16 @@ class CommandRunner:
             try:
                 process = subprocess.Popen(record['argv'], cwd=cwd or ROOT, env=self.env,
                                            stdin=stdin, stdout=stdout, stderr=stderr, start_new_session=True)
+                record['process_group'] = process.pid
             except OSError as error:
                 code = 127
                 record['spawn_error'] = str(error)
             else:
                 try:
                     code = process.wait(timeout=timeout)
+                    observation_started = time.monotonic_ns()
                     remaining = live_process_group_members(process.pid)
+                    observation_elapsed = time.monotonic_ns() - observation_started
                     if remaining:
                         # A zero exit from the leader cannot seal streams that
                         # its descendants can still change. Preserve that exit
@@ -308,6 +325,18 @@ class CommandRunner:
                         record['incomplete_process_group'] = True
                         record['live_members_after_leader_exit'] = remaining
                         record['process_group_cleanup'] = terminate_owned_process_group(process)
+                    else:
+                        # Normal completion still needs an explicit observation:
+                        # an absent receipt must never mean that group drain was proven.
+                        record['process_group_cleanup'] = {
+                            'group': process.pid,
+                            'scope': 'owned_linux_process_group',
+                            'drained': True,
+                            'signals': [],
+                            'live_members_after': [],
+                            'errors': [],
+                            'elapsed_ns': observation_elapsed,
+                        }
                 except subprocess.TimeoutExpired:
                     record['timed_out'] = True
                     record['process_group_cleanup'] = terminate_owned_process_group(process)
