@@ -161,7 +161,7 @@ using its optimal path set cannot establish a new NDU search advantage.
 Register development/calibration/holdout partitions, stationary/adaptive/
 misleading-feedback regimes, objective units and targets, forecast inputs,
 resource caps, path generation, tie handling and the complete arm/workload/
-repeat matrix before measurements. Freeze candidate generation and choices
+repeat matrix before measurements. Freeze candidate generation and selection rules
 before holdout; controllers only receive current/past information and declared
 forecasts. Preserve correctness failures and failed compilation variants in
 the planned inventory. Performance conclusions need the registered actual

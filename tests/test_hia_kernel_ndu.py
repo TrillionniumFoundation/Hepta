@@ -179,7 +179,7 @@ def qualify(binary, output):
         (output / "report.json").write_text(json.dumps(report, indent=2) + "\n")
     def call(request, name, reject=False):
         payload = wire(request)
-        (output / (name + ".request.json")).write_bytes(payload + b"\n")
+        (output / (name + ".request.json")).write_bytes(payload)
         start = time.monotonic_ns()
         result = subprocess.run([str(binary)], input=payload, capture_output=True, timeout=30)
         (output / (name + ".stdout")).write_bytes(result.stdout)
