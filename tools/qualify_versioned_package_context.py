@@ -22,6 +22,8 @@ def blob(data):
 
 
 def verify_inputs():
+    from tools.verify_package_kind_context_sources import verify
+    verify()
     manifest = json.loads((ROOT / "tools/versioned_package_context_sources.json").read_text())
     for path, expected in manifest["parent_files"].items():
         data = (ROOT / path).read_bytes()
