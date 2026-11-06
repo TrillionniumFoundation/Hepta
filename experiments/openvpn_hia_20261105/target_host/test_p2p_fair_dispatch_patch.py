@@ -100,7 +100,7 @@ class P2PFairDispatchPatchTests(unittest.TestCase):
 
     def test_build_applies_patch_to_a_private_copy_and_keeps_archive_pristine(self):
         self.assertIn("shutil.copytree(source, build_source)", self.build_source)
-        self.assertIn('"git", "apply", "--check", patch_path', self.build_source)
+        self.assertIn('"git", "apply", "--check", "--verbose", patch_path', self.build_source)
         self.assertIn('"git", "apply", patch_path', self.build_source)
         self.assertIn("baseline.source_freeze(source, archive)", self.build_source)
         self.assertIn('"build_source": str(build_source)', self.build_source)
