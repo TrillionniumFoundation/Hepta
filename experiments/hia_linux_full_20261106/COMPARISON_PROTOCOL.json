@@ -1,0 +1,190 @@
+{
+  "schema": "hepta.hia.kernel-comparison.protocol.v1",
+  "scope": "complete frozen x86_64 Linux configuration; separate disposable KVM cold boots",
+  "kernel": {
+    "version": "6.18.60",
+    "upstream_commit": "f45ed76d6791cf72ff1265ee93511175bbbc2f18",
+    "all_linux_configurations": false
+  },
+  "images": [
+    "stock",
+    "hia-original",
+    "hia-o3",
+    "hia-os"
+  ],
+  "native_backend_slots": {
+    "hia-original": "O2",
+    "hia-o3": "O3",
+    "hia-os": "Os"
+  },
+  "original_slot_semantics": "O2 is the native registry slot for the original per-TU backend recipe, including actual O2/Os mixtures; it is not uniform -O2",
+  "hia_variants": "three independently imported and qualified complete builds with distinct build_root and program_root; generated HIA bundle identity is not assumed equal",
+  "arms": [
+    "stock",
+    "hia-static",
+    "best-fixed",
+    "greedy",
+    "ordinary-mpc",
+    "independent-same-objective",
+    "fixed-ndu",
+    "dynamic-ndu"
+  ],
+  "phases": [
+    "syscall_process_pipe",
+    "anonymous_memory",
+    "tmpfs_files",
+    "unix_tcp"
+  ],
+  "blocks": 5,
+  "heldout_boots": 160,
+  "iterations": 1024,
+  "qualification_seed": 20261106,
+  "training_seeds": [
+    20261107,
+    20261108,
+    20261109
+  ],
+  "heldout_seed_start": 20261200,
+  "randomization_seed": 202611061,
+  "run_id_rule": "first 24 hex characters of SHA256 canonical [campaign_id,partition,block,phase,arm-or-image,seed]",
+  "arm_order_rule": "sort all eight arms by SHA256 canonical [randomization_seed,block,phase,arm], with lexical tie break",
+  "phase_order": "the four registered phases once in each block; controllers receive only the current phase, never a future phase list or future observations",
+  "prediction": {
+    "unit": "one independent boot statistic = median of five measured guest samples",
+    "window_boots": 9,
+    "initial_boots_per_image_phase": 3,
+    "feedback": "same complete ended history for all adaptive arms; no partial episode, qualification, or future outcome is a model input",
+    "aggregation": "exact rational median of training plus completed heldout boot medians; retain latest nine"
+  },
+  "transition_model": {
+    "prior": "one Laplace pseudocount for each ordered pair of phases",
+    "training": "within each actual calibration all-boot phase sequence",
+    "history": "one transition between successive completed decision phases; not one per arm or within-boot repeat",
+    "forecast": "current phase is stage zero; later distributions are exact rational Markov propagation from past counts"
+  },
+  "objective": {
+    "axes": [
+      "image_size",
+      "latency"
+    ],
+    "latency": "Q32 ties-even of 100 * stock same-phase training median ns / predicted or observed boot median ns",
+    "image_size": "Q32 ties-even of 100 * stock bzImage bytes / selected bzImage bytes; not runtime RAM",
+    "public_targets_q32": {
+      "syscall_process_pipe": {
+        "latency": 4294967296,
+        "image_size": 0
+      },
+      "anonymous_memory": {
+        "latency": 3221225472,
+        "image_size": 1073741824
+      },
+      "tmpfs_files": {
+        "latency": 2147483648,
+        "image_size": 2147483648
+      },
+      "unix_tcp": {
+        "latency": 4294967296,
+        "image_size": 0
+      }
+    },
+    "genesis_q32": {
+      "latency": 3221225472,
+      "image_size": 1073741824
+    },
+    "eta_q32": 1073741824,
+    "residual_limit_q32": 4096,
+    "maximum_preference_iterations": 64,
+    "horizon": 4,
+    "discount_q32": 3758096384,
+    "terminal_q32": 0,
+    "switch_cost_q32": 0,
+    "switch_cost_reason": "every image is already a separate cold boot; no artificial action-coupling reward or penalty",
+    "resource_unit": "microseconds",
+    "risk_q32": 0,
+    "uncertainty_q32": 0,
+    "risk_meaning": "unmodeled, not a calibrated safety probability",
+    "risk_ceiling_q32": 0,
+    "utility_unit": "stock-relative-percent-utility",
+    "candidate_inventory": "all 3^4=81 complete paths plus literal abstain; no score-based pruning",
+    "tie_policy": "only an image common to the entire optimal frontier is selected; otherwise abstain",
+    "abstain": "execute the incumbent hia-original for the full mandatory workload and charge all actual costs",
+    "ordinary_mpc": "hold current public target over the entire horizon",
+    "same_objective": "independent Rust signed ties-even preference solve, every term/value/feasibility/frontier; its own previous weights, no native response input; independent Python audits all results",
+    "ndu": "invoke pinned production Rust kernel adapter; dynamic uses actual next_request_state lineage; fixed uses actual native fixed mode",
+    "best_fixed": "choose one image before holdout by mean of four phase-specific public-target training utilities; ties use hia-original, hia-o3, hia-os order",
+    "resource_cost": "sum of four stage Q32 predictions: each exact past-only phase distribution weights the actual calibration/history boot-median duration_ns, converted to microseconds with ties-even",
+    "resource_budget": "the same model's complete four-stage incumbent hia-original path cost; all 81 paths are submitted before feasibility filtering",
+    "resource_meaning": "predicted execution-time budget coupling the four stages; neither a measured deadline guarantee nor a risk probability",
+    "greedy": "choose greatest instantaneous utility only among first images with at least one feasible complete suffix under the identical four-stage prediction budget"
+  },
+  "runtime": {
+    "profile": "kvm",
+    "host_cpus": [
+      0,
+      1
+    ],
+    "timeout_seconds": 240,
+    "guest_warmups": 2,
+    "guest_measured_samples": 5,
+    "online_guest_cpus": 2,
+    "guest_affinity": [
+      0
+    ],
+    "host_frequency_locked": false,
+    "host_cores_exclusive": false,
+    "host_profile_required": true,
+    "calibration_after_all_builds": true
+  },
+  "statistics": {
+    "independent_cluster": "one of five boot blocks containing all four phase cells and all eight arms",
+    "bootstrap": "exhaustive paired nonparametric block bootstrap: 5^5=3125 resamples",
+    "confidence_interval": "percentile 2.5 and 97.5 percent, exact rational interpolation",
+    "within_boot_repeats_are_independent": false,
+    "phase_cells_are_independent_clusters": false,
+    "comparisons_are_descriptive": true
+  },
+  "costs": {
+    "record": [
+      "whole builds",
+      "image qualification",
+      "calibration",
+      "native adapter preparation",
+      "independent Rust control preparation",
+      "shared model/candidate construction",
+      "per-arm planning wall and CPU",
+      "native service and solve ns",
+      "actual complete QEMU wall",
+      "shared feedback acquisition",
+      "actual parallel build window and child command CPU"
+    ],
+    "static_setup": "only that arm's necessary image build and qualification; no three-image search, calibration, or native adapter fees",
+    "feedback": "report delivery cost and supplied-feedback condition separately from the fully charged shared-feedback scenario",
+    "deployment_unit": "one four-phase cycle containing four cold boots",
+    "deployment_counts": [
+      1,
+      10,
+      100,
+      1000,
+      10000
+    ],
+    "break_even": "computed only from registered measured setup and cycle costs; report unreachable when per-cycle savings are nonpositive; extrapolation is conditional, not an online deployment claim"
+  },
+  "admission": {
+    "four_complete_build_and_boot_pass": true,
+    "all_hia_configured_targets": true,
+    "zero_c_fallback": true,
+    "same_linux_config_guest_llvm": true,
+    "independent_kvm_all_qualification_per_image": true,
+    "three_separate_calibration_all_boots_per_image": true,
+    "qualification_not_training": true,
+    "bind_raw_logs_and_preexecution": true,
+    "failed_or_interrupted_run": "retain and stop the entire campaign; no rerun, seed redraw, outlier filtering, or fabricated PASS",
+    "trust_boundary": "source and hash closure detects changes and reuse; files alone are not cryptographic proof against an operator fabricating all evidence"
+  },
+  "claims": {
+    "ndu_advantage_presupposed": false,
+    "same_actions": "if same-objective and dynamic-NDU actions coincide, report mechanism equivalence on this experiment and compare implementation overhead",
+    "cold_boot_limit": "this does not measure seamless online kernel replacement or livepatch"
+  }
+}
+
