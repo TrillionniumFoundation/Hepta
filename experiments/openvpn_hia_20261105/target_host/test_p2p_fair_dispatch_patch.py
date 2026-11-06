@@ -79,7 +79,7 @@ class P2PFairDispatchPatchTests(unittest.TestCase):
 
     def test_forward_dispatch_hunk_has_context_for_exact_git_apply(self):
         self.assertIn(
-            "@@ -2271,7 +2271,17 @@\\n void\\n process_io(struct context *c, struct link_socket *sock)\\n {",
+            "@@ -2271,7 +2271,17 @@\n void\n process_io(struct context *c, struct link_socket *sock)\n {",
             self.patch)
         self.assertNotIn("@@ -2273,2 +2273,12 @@", self.patch)
 
