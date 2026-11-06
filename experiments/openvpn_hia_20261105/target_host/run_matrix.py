@@ -729,7 +729,87 @@ def local_bidir_receiver(document,role):
             'local_receiving_role':role,**row}
 
 
-def throughput(pair,workload,seconds,cpus,label,perf=None):
+def iperf_rate_bps(value):
+    """Parse the decimal K/M/G rate syntax passed to iperf3 --bitrate."""
+    match = re.fullmatch(r'([0-9]+(?:\\.[0-9]+)?)([KMG])', str(value))
+    if not match:
+        raise ValueError('unsupported iperf offered-rate syntax')
+    scale = {'K': 1_000, 'M': 1_000_000, 'G': 1_000_000_000}[match.group(2)]
+    rate = float(match.group(1)) * scale
+    if not math.isfinite(rate) or rate <= 0:
+        raise ValueError('offered rate must be finite and positive')
+    return rate
+
+
+def udp_delivery_evidence(workload, client_document, client_receiver, server_receiver, policy):
+    """Require both UDP send directions to offer the declared load and both receivers to sustain it."""
+    if workload.get('transport') != 'udp':
+        raise ValueError('UDP delivery evidence requested for a non-UDP workload')
+    offered = iperf_rate_bps(workload.get('offered_rate_each_direction'))
+    fraction = policy.get('minimum_offered_rate_fraction')
+    max_loss = policy.get('maximum_receiver_loss_percent')
+    if isinstance(fraction, bool) or not isinstance(fraction, (int, float)) or not math.isfinite(fraction) or not 0 < fraction <= 1:
+        raise ValueError('minimum offered-rate fraction must be finite and in (0, 1]')
+    if isinstance(max_loss, bool) or not isinstance(max_loss, (int, float)) or not math.isfinite(max_loss) or not 0 <= max_loss <= 100:
+        raise ValueError('maximum receiver loss percent must be finite and in [0, 100]')
+    end = client_document.get('end', {})
+    senders = {
+        'client_to_server': end.get('sum_sent'),
+        'server_to_client': end.get('sum_sent_bidir_reverse'),
+    }
+    receivers = {
+        'client_to_server': server_receiver,
+        'server_to_client': client_receiver,
+    }
+    minimum = offered * fraction
+    directions = {}
+    for name in ('client_to_server', 'server_to_client'):
+        sender = senders[name]
+        receiver = receivers[name]
+        if not isinstance(sender, dict) or sender.get('sender') is not True:
+            raise ValueError(name + ' lacks an explicit iperf sender summary')
+        if not isinstance(receiver, dict) or receiver.get('sender') is not False:
+            raise ValueError(name + ' lacks a local iperf receiver summary')
+        sender_rate = sender.get('bits_per_second')
+        receiver_rate = receiver.get('bits_per_second')
+        loss = receiver.get('lost_percent')
+        for field, value in (('sender rate', sender_rate), ('receiver rate', receiver_rate),
+                             ('receiver loss', loss)):
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+                raise ValueError(name + ' has invalid ' + field)
+        if sender_rate <= 0 or receiver_rate <= 0 or not 0 <= loss <= 100:
+            raise ValueError(name + ' has non-positive rate or out-of-range loss')
+        directions[name] = {
+            'sender_bps': sender_rate,
+            'receiver_bps': receiver_rate,
+            'lost_percent': loss,
+        }
+    checks = {
+        'offered_rate_met': all(item['sender_bps'] >= minimum for item in directions.values()),
+        'receiver_rate_met': all(item['receiver_bps'] >= minimum for item in directions.values()),
+        'loss_within_limit': all(item['lost_percent'] <= max_loss for item in directions.values()),
+    }
+    failures = []
+    for name, item in directions.items():
+        if item['sender_bps'] < minimum:
+            failures.append(f'{name} sender offered {item["sender_bps"]:.3f} bps below {minimum:.3f} bps')
+        if item['receiver_bps'] < minimum:
+            failures.append(f'{name} receiver delivered {item["receiver_bps"]:.3f} bps below {minimum:.3f} bps')
+        if item['lost_percent'] > max_loss:
+            failures.append(f'{name} receiver loss {item["lost_percent"]:.6f}% exceeds {max_loss:.6f}%')
+    return {
+        'offered_rate_bps': offered,
+        'minimum_rate_bps': minimum,
+        'minimum_offered_rate_fraction': fraction,
+        'maximum_receiver_loss_percent': max_loss,
+        'directions': directions,
+        'checks': checks,
+        'passed': all(checks.values()),
+        'failures': failures,
+    }
+
+
+def throughput(pair,workload,seconds,cpus,label,perf=None,udp_acceptance=None):
     output=pair.folder/(label+'-measurement.json')
     result={'workload':workload,'bidirectional':True,'duration_requested_seconds':seconds,'omit_seconds':0,
             'status':'started','passed':False,'checks':{},'failures':[],
@@ -790,6 +870,23 @@ def throughput(pair,workload,seconds,cpus,label,perf=None):
                 result[role+'_local_receiver']=local_bidir_receiver(document,role)
                 result['checks'][role+'_received_its_direction']=True
             except Exception as exc:failure(role+'-receipt',exc)
+        if workload.get('transport') == 'udp':
+            try:
+                evidence = udp_delivery_evidence(
+                    workload, result['client_iperf'], result['client_local_receiver'],
+                    result['server_local_receiver'], udp_acceptance)
+                result['udp_delivery'] = evidence
+                result['checks'].update(
+                    udp_offered_rate_met=evidence['checks']['offered_rate_met'],
+                    udp_receiver_rate_met=evidence['checks']['receiver_rate_met'],
+                    udp_loss_within_limit=evidence['checks']['loss_within_limit'])
+                if not evidence['passed']:
+                    failure('udp-delivery-acceptance', RuntimeError('; '.join(evidence['failures'])))
+            except Exception as exc:
+                result['udp_delivery'] = {'passed': False, 'failures': [repr(exc)]}
+                result['checks'].update(udp_offered_rate_met=False,
+                    udp_receiver_rate_met=False, udp_loss_within_limit=False)
+                failure('udp-delivery-acceptance', exc)
         if started is not None and 'elapsed_seconds' not in result:
             result['elapsed_seconds']=time.monotonic()-started
             result['traffic_finished_monotonic_ns']=time.monotonic_ns()
@@ -996,7 +1093,8 @@ def main(argv=None):
                         pair.result['measurements']=[]
                         for index,workload in enumerate(plan['performance']['workloads']):
                             measurement=throughput(pair,workload,plan['performance']['seconds_per_workload'],allowed[:2],
-                                                   f'workload-{index}-'+workload['name'])
+                                                   f'workload-{index}-'+workload['name'],
+                                                   udp_acceptance=plan['performance']['udp_acceptance'])
                             save(pair.folder/'case.json',pair.result)
                         pair.result['checks']={'four_workloads_completed':len(pair.result['measurements'])==4 and all(m['passed'] for m in pair.result['measurements']),
                                                'trace_excluded':True,'common_non_epoch_profile':True}
