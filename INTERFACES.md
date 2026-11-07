@@ -6,6 +6,9 @@ contract is [docs/SPEC.md](docs/SPEC.md); named JSON schemas are described in
 standard library. Native outputs do not depend on Python. Internal Python APIs
 and AST shapes are not a stable public compatibility promise.
 
+For source-checkout commands and the difference between frontend, native, and
+full validation, see [the development guide](docs/DEVELOPMENT.md).
+
 ## Source and graph
 
 `parse(source, path) -> Program` consumes a closed syntax model from `hepta.ast`.
