@@ -26,6 +26,9 @@ class SelfhostContractTests(unittest.TestCase):
         self.assertFalse(contract["claims"]["whole_HIA_language_self_hosted"])
         status = {row["area"]: row["status"] for row in contract["support"]}
         self.assertEqual(status["recursion"], "rejected")
+        resources = next(row for row in contract["support"] if row["area"] == "resources")
+        self.assertIn("buffer.swap with both bounds before access", resources["items"])
+        self.assertIn("tools/hia_selfhost_resources.py", files)
         self.assertEqual(status["successor_object_output"], "bounded_subset")
         self.assertEqual(status["general_object_linking"], "not_implemented")
 

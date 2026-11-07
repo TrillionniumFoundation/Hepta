@@ -24,7 +24,7 @@ requires every check to pass.
 ## Fixed version and support identity
 
 The machine-readable [support contract](HIA_SELFHOST_CORE_SUPPORT.json) names
-`selfhost-core-linux-x86_64-v3`, the sole target, the seed and successor ABIs,
+`selfhost-core-linux-x86_64-v4`, the sole target, the seed and successor ABIs,
 resource limits, supported and excluded features, and SHA-256 identities for
 the compiler assembly, authoring aid, loader, qualification, test fixtures and
 complete Python seed package. It is checked before B0. A stale source file,
@@ -111,7 +111,7 @@ cannot be removed. Optional spaces inside parameter/argument lists remain valid.
 | Integer operations | `int.add.wrap`, `int.sub.wrap`, `int.mul.wrap`, `bit.and`, `bit.or`, `bit.xor`, checked left/right shifts |
 | Conditions | Unsigned `compare.eq`, `ne`, `lt`, `le`, `gt`, `ge`; `bool.and`, `bool.or`, `bool.not` |
 | Casts | `int.cast` with `{"mode":"wrap"}` between integer types |
-| Bytes | `buffer.len`, `buffer.load`, `buffer.store` |
+| Bytes | `buffer.len`, `buffer.load`, `buffer.store`, `buffer.swap` |
 | Calls | Scalar-return direct `call` to any numbered function in an acyclic call graph, with exact parameter/return types |
 | Control flow | `ret`, `jump`, `branch` with explicit, typed block arguments |
 | Effects | Every function explicitly declares `effects(read,write,trap)` |
@@ -202,6 +202,41 @@ correct even on loops. Calls pass an argument array and a result slot. The
 emitter touches each stack page while reserving a frame. The flat image's first
 instruction is its SysV entry wrapper; all calls and branches are relative and
 there are no external symbol relocations.
+
+## Borrowed-resource batch: byte swap
+
+Version 4 adds `buffer.swap(mutbuf, usize, usize)`, with no result binding.
+It preserves the existing borrowed-buffer lifetime model and original size
+limits. Both indices are compared with the carried buffer length before either
+pointer is formed or either byte is read or written. Equal valid indices are a
+no-op; equal invalid indices still trap. The instruction exchanges exactly two
+bytes without allocating storage or creating a new loan. Read-only buffers,
+incorrect index types, result bindings and incorrect arities are rejected.
+
+The qualification records a separate resource batch for the original and the
+modified fixed-point compiler. Its independent general Core reference runs
+before B0 and uses owned allocation, borrowing, initialization, swapping,
+loads, loan ending and owner cleanup to expose the resulting bytes. The native
+program uses the supported borrowed parameters. Nine cases cover both swap
+directions, interior bytes, equal indices, either invalid operand, the maximum
+`usize` value and an empty extent. Five malformed programs are independently
+rejected by both checkers. A native ELF swap object must contain the same text
+bytes as the flat image from the same compiler.
+
+For each runtime trap, the loader's optional qualification-only shared output
+mapping retains the actual bytes after the child terminates with `SIGILL`.
+Each failing swap must leave its input bytes unchanged. A positive control
+performs a store before a failing swap: the retained output must contain that
+store, confirming that the observer sees actual writes and that an arbitrary
+program has no rollback guarantee. The loader does not catch signals or change
+native control flow. The report preserves preimage/output hashes, independent
+results, child exit status, raw logs and wall time, including failed executions.
+
+This batch does not add allocation, owner movement, new loans, returned loans
+or recursion to Selfhost-Core. Those constructs remain outside the fixed
+profile; the general Core reference's broader ownership support is not evidence
+that the native self-hosting checker implements it. These finite cases are
+regression evidence rather than a general checker or refinement proof.
 
 ## Modification experiment
 

@@ -56,6 +56,15 @@ class SelfhostSourceTests(unittest.TestCase):
             with self.subTest(case=name), self.assertRaisesRegex(HIAProgramRejected, "E_HIA_RESOURCE"):
                 assemble_program(invalid[name])
 
+    def test_resource_reference_and_refusals_are_independent_core_observations(self):
+        from tools.hia_selfhost_resources import independent_resource_reference
+        result = independent_resource_reference()
+        self.assertEqual(len(result["cases"]), 9)
+        self.assertEqual(sum(row["trap"] for row in result["cases"]), 5)
+        self.assertEqual(len(result["rejections"]), 5)
+        for row in result["cases"]:
+            self.assertEqual(row["reference_result"]["status"], "trapped" if row["trap"] else "returned")
+
     def test_call_graph_admission_distinguishes_general_core_from_fixed_profile(self):
         assemble_program(backward_bytesum_source(SAMPLE.read_bytes()))
         assemble_program(backward_chain_source())
@@ -165,6 +174,22 @@ class SelfhostNativeTests(unittest.TestCase):
                 ("bad-header-extent", 40, struct.pack("<Q", len(data)))):
             with self.subTest(case=label), self.assertRaises(ValueError):
                 inspect_selfhost_object(data[:offset] + replacement + data[offset + len(replacement):])
+
+    def test_swap_effects_bounds_refusals_and_trap_observer_positive_control(self):
+        rows = self.report["resource_observations"]
+        observations = [r for r in rows if "shared_output_observation" in r]
+        self.assertEqual(len(observations), 20)
+        for result in observations:
+            self.assertTrue(result["shared_output_observation"]["available"], result)
+            if result["status"] == "child_failed":
+                self.assertEqual(result["returncode"], -4)
+                # The positive control stores before a trapping swap; its
+                # mutation must remain observable when the child has died.
+                self.assertEqual(result["shared_output_observation"]["unchanged"],
+                                 not result["case"].endswith("observer-control"), result)
+        for name, accepted in self.report["checks"].items():
+            if "swap" in name:
+                self.assertTrue(accepted, name)
 
     def test_generated_byte_bounds_and_checked_shift_really_trap(self):
         sample = self.directory / "original-bytesum.image.bin"

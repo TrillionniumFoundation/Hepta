@@ -97,7 +97,8 @@ def build_seed(directory, source=None):
 
 
 def invoke(directory, label, image, source, *, image_format="flat-x86-64",
-           capacity=CAPACITY, workspace_size=CAPACITY, workspace_fill=0):
+           capacity=CAPACITY, workspace_size=CAPACITY, workspace_fill=0,
+           output_initial=None, observe_trap_writes=False):
     """Copy private inputs and run one pinned artifact under fixed limits."""
     directory, image = Path(directory), Path(image)
     source_path, output_path = directory / (label + ".input.bin"), directory / (label + ".output.bin")
@@ -109,6 +110,12 @@ def invoke(directory, label, image, source, *, image_format="flat-x86-64",
                "source_sha256": digest(source), "capacity": capacity,
                "workspace_size": workspace_size, "workspace_fill": workspace_fill,
                "output": str(output_path.resolve())}
+    if output_initial is not None:
+        if not isinstance(output_initial, bytes) or len(output_initial) != capacity:
+            raise ValueError("output preimage must match the capacity")
+        request["output_initial_hex"] = output_initial.hex()
+    if observe_trap_writes:
+        request["observe_trap_writes"] = True
     request_path.write_text(json.dumps(request, sort_keys=True) + "\n")
     started = time.monotonic_ns()
     try:
@@ -131,7 +138,15 @@ def invoke(directory, label, image, source, *, image_format="flat-x86-64",
                    "runner_sha256": child_hash, "wall_elapsed_ns": time.monotonic_ns() - started})
     if digest(CHILD.read_bytes()) != child_hash or digest(image.read_bytes()) != request["image_sha256"]:
         raise AssertionError("runner or artifact changed during invocation")
-    output = output_path.read_bytes() if output_path.exists() else b""
+    output_exists = output_path.exists()
+    output = output_path.read_bytes()[:capacity] if output_exists else b""
+    if observe_trap_writes:
+        initial = output_initial if output_initial is not None else bytes([0xa5]) * capacity
+        result["shared_output_observation"] = {
+            "available": output_exists and len(output) == capacity,
+            "initial_sha256": digest(initial), "observed_sha256": digest(output),
+            "observed_bytes": len(output), "unchanged": output == initial,
+        }
     (directory / (label + ".receipt.json")).write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
     return result, output
 
@@ -406,6 +421,9 @@ def qualify(output):
     directory = output.with_suffix(".evidence")
     directory.mkdir(parents=True, exist_ok=False, mode=0o700)
     source, sample = SOURCE.read_bytes(), SAMPLE.read_bytes()
+    from tools.hia_selfhost_resources import independent_resource_reference, qualify_resources
+    resource_reference = independent_resource_reference()
+    (directory / "independent-resource-reference.json").write_text(json.dumps(resource_reference, indent=2, sort_keys=True) + "\n")
     independent = independent_call_reference(sample)
     (directory / "independent-core-reference.json").write_text(json.dumps(independent, indent=2, sort_keys=True) + "\n")
     seed, seed_receipt = build_seed(directory, source)
@@ -483,9 +501,10 @@ def qualify(output):
     checks["short_workspace_rejected"] = workspace.get("status") == "returned" and workspace.get("core_u32") == NO_SPACE and workspace.get("output_unchanged")
     elf_observations = qualify_elf_outputs(directory,
         (("original", original, source), ("modified", previous, changed)), sample, checks)
+    resource_observations = qualify_resources(directory, (("original", original), ("modified", previous)), checks, resource_reference)
     checks["source_closure_unchanged"] = source_manifest() == before
     report = {
-        "schema": "hepta.hia.selfhost-qualification.v3",
+        "schema": "hepta.hia.selfhost-qualification.v4",
         "status": "SELF_HOSTED_FIXED_CORE_PASS" if all(checks.values()) else "FAIL",
         "profile": contract["profile"], "target": contract["target"], "abi": contract["abi"],
         "support_contract": {"path": CONTRACT_PATH, "sha256": before[CONTRACT_PATH]},
@@ -497,6 +516,7 @@ def qualify(output):
         "readonly_call_observations": [readonly_build, readonly],
         "call_graph_observations": call_observations, "independent_core_reference": independent,
         "elf_object_observations": elf_observations,
+        "resource_observations": resource_observations, "independent_resource_reference": resource_reference,
         "capacity_observations": [small, workspace], "elapsed_ns": time.monotonic_ns() - started,
         "claims": {"HIA_parser_used_after_seed": True, "HIA_validator_used_after_seed": True,
                    "HIA_x86_generator_used_after_seed": True, "own_source_compiled": True,

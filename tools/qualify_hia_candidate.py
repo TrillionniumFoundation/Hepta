@@ -34,6 +34,7 @@ NEW_SUITES = (
     "tests.test_hia_bootstrap_components",
     "tests.test_hia_selfhost",
     "tests.test_hia_selfhost_contract",
+    "tests.test_hia_selfhost_machine_plans",
     "tests.test_hia_agent_macro_policy",
     "tests.test_hia_macro_campaign",
     "tests.test_hia_macro_codex_provider",

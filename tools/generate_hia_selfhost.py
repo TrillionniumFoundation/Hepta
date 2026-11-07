@@ -15,7 +15,7 @@ from hepta.hia_agent_assembly import render_assembly
 
 TYPES = {"u64": 1, "usize": 2, "u32": 3, "u8": 4, "bool": 5, "readbuf": 6, "mutbuf": 7}
 WORDS = ["hia-asm.v1", "hepta.hia.program.v8", "selfhost", "fn", "effects", "read", "write", "trap", "entry", "block", "end", "ret", "jump", "branch", "value", "mode", "wrap", "function", "true", "false", *TYPES,
- "const", "int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor", "int.shl.checked", "int.shr.checked", "compare.eq", "compare.ne", "compare.lt", "compare.le", "compare.gt", "compare.ge", "bool.and", "bool.or", "bool.not", "int.cast", "buffer.len", "buffer.load", "buffer.store", "call", "selfhost_elf"]
+ "const", "int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor", "int.shl.checked", "int.shr.checked", "compare.eq", "compare.ne", "compare.lt", "compare.le", "compare.gt", "compare.ge", "bool.and", "bool.or", "bool.not", "int.cast", "buffer.len", "buffer.load", "buffer.store", "call", "selfhost_elf", "buffer.swap"]
 W = {s: i + 300 for i,s in enumerate(WORDS)}
 # Scratch ABI: state 0..2047; function records; block records; local SSA types;
 # argument vector; relative relocation records; bounded call graph and marks.
@@ -417,7 +417,7 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         define(w, v, t)
         store_var(o, w, v, 0)
     else:
-        if op != @buffer.store@:
+        if op != @buffer.store@ and op != @buffer.swap@:
             fail(w, 27)
     expect(s, w, 10)
     return 0
@@ -427,6 +427,21 @@ def operation(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t
         if n != 1 or at < 6 or t != 2:
             fail(w, 28)
         load_var(o, w, 0, a, 1)
+        return 0
+    if op == @buffer.swap@:
+        if n != 3 or t != 0 or at != 7 or bt != 2 or variable(w, get(w, ARGS + 16)) != 2:
+            fail(w, 57)
+        load_var(o, w, 1, b, 0)
+        load_var(o, w, 2, a, 1)
+        # cmp rcx, rdx; jb +2; ud2; nop. Both checks precede all memory access.
+        emit8(o, w, 10379406269396105544)
+        load_var(o, w, 6, get(w, ARGS + 16), 0)
+        emit8(o, w, 10379406269396433224)
+        load_var(o, w, 0, a, 0)
+        # add rcx, rax; add rsi, rax; movzx edx, [rcx]; mov al, [rsi];
+        # mov [rcx], al; mov [rsi], dl; nop. All value slots stay in memory.
+        emit8(o, w, 13118921948371419464)
+        emit8(o, w, 10382635531107731985)
         return 0
     if op == @buffer.load@ or op == @buffer.store@:
         if at < 6 or bt != 2:

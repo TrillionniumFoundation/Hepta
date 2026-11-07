@@ -25,6 +25,7 @@ on:
       - 'tests/test_hia_bootstrap_components.py'
       - 'tests/test_hia_selfhost.py'
       - 'tests/test_hia_selfhost_contract.py'
+      - 'tests/test_hia_selfhost_machine_plans.py'
       - 'tools/hia_candidate_preflight.py'
       - 'tools/hia_release.py'
       - 'tools/qualify_hia_first_use.py'
@@ -41,9 +42,12 @@ on:
       - 'tools/qualify_hia_machine_registers.py'
       - 'tools/qualify_hia_bootstrap_components.py'
       - 'tools/qualify_hia_selfhost.py'
+      - 'tools/qualify_hia_selfhost_machine_plans.py'
+      - 'tools/prepare_hia_first_use_example.py'
       - 'tools/hia_selfhost_child.py'
       - 'tools/generate_hia_selfhost.py'
       - 'tools/hia_selfhost_cases.py'
+      - 'tools/hia_selfhost_resources.py'
       - 'tools/hia_selfhost_contract.py'
       - 'tools/generate_hia_selfhost_contract.py'
       - 'tools/replay_hia_selfhost_cold.py'
@@ -118,6 +122,14 @@ jobs:
         run: |
           set -eu
           python -B tools/qualify_hia_selfhost.py --output "$RUNNER_TEMP/hia-unified/selfhost.json"
+      - name: Check explicit machine plans on the selected real compiler workload
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B tools/qualify_hia_selfhost_machine_plans.py run \
+            --output "$RUNNER_TEMP/hia-unified/selfhost-machine-plans" --repetitions 7
+          python -B tools/qualify_hia_selfhost_machine_plans.py verify \
+            --output "$RUNNER_TEMP/hia-unified/selfhost-machine-plans"
       - name: Rebuild the pinned Selfhost-Core with fresh source and Python state
         run: |
           set -eu

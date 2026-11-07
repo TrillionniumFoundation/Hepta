@@ -43,6 +43,7 @@ BOOTSTRAP_FILES = (
     "examples/hia_bootstrap/bytesum.hiaasm", "tools/hia_selfhost_child.py",
     "tools/qualify_hia_selfhost.py", "tools/generate_hia_selfhost.py",
     "tools/hia_selfhost_cases.py", "tools/hia_selfhost_contract.py",
+    "tools/hia_selfhost_resources.py",
     "tools/generate_hia_selfhost_contract.py", "tools/replay_hia_selfhost_cold.py",
     "tests/test_hia_selfhost.py", "tests/test_hia_selfhost_contract.py",
 )
