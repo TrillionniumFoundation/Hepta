@@ -29,9 +29,10 @@ print(result.manifest)
 
 Supported input includes include guards or `#pragma once`, `stdint.h`, `stddef.h`
 and `limits.h`, plain function prototypes, simple scalar/pointer typedefs, named
-structs and typedef structs, fixed nonempty array fields, const-qualified raw
-pointers, and integer constant macros. A fixed array dimension may be a positive
-literal or a separately probed integer macro. Named nested records are supported.
+structs and typedef structs, ordinary named/typedef C11 enums, fixed nonempty
+array fields, const-qualified raw pointers, and integer constant macros. A fixed
+array dimension may be a positive literal, probed integer macro, or enumerator.
+Named nested records are supported.
 Parameter names become `arg0`, `arg1`, etc.; external C symbol names are retained.
 Typedefs are resolved into concrete Hepta types and recorded in the manifest.
 
@@ -40,6 +41,54 @@ through `import native_api;` and `native_api::TypeName`. Imported extern functio
 are visible module bindings. Integer macros become public `cconst_NAME()`
 accessors; negative accessors conservatively declare `panic` for signed negation.
 The importer does not add a global constant declaration to the language.
+
+### Ordinary C11 enums
+
+The importer accepts standalone named definitions, named typedef definitions,
+and anonymous typedef definitions, for example:
+
+```c
+enum Mode { IDLE, READY = 3, DONE };
+typedef enum Result { FAILURE = -2, SUCCESS = 0 } Result;
+typedef enum { DISABLED, ENABLED } Toggle;
+typedef struct Status { enum Mode mode; Result result; Toggle enabled; } Status;
+Result advance(enum Mode mode);
+```
+
+Implicit increments, duplicate values, trailing commas, and integer constant
+expressions using identifiers, integer literals, parentheses and arithmetic/
+bitwise operators are accepted. The C compiler evaluates these expressions.
+The supported token subset also admits ordinary integer casts and `sizeof`;
+the expression must still be a valid C11 integer constant expression. Character
+constants, conditional expressions and other unsupported tokens are rejected.
+
+Each enum's **compatible integer type** is measured with the native compiler,
+not guessed from its values. Its size and alignment must match that type. Enum
+parameters, results, fields and pointers then use the corresponding concrete
+Hepta integer type. Simple enum typedef chains and const-qualified enum pointers
+are supported. The optional `enums` field in the v1 import manifest records the
+C type spelling, compatible integer type, Hepta type, size, alignment and names
+of its enumerators. This importer emits that field even when it is empty.
+
+Enumeration constants are separately required to have C11 `int` type and become
+the same public `cconst_NAME()` accessors as macros. They remain native `int`
+even when the enum's storage is unsigned or a compiler uses `-fshort-enums`.
+Their manifest constant records additionally identify the enum and the explicit
+expression, or `null` for an implicit value. No Hepta enum/variant declaration
+or closed-value validity check is introduced. Consumers may need an explicit
+integer cast between an accessor and an enum's concrete storage type.
+
+Opaque enums, anonymous non-typedef definitions, inline enum fields, variables
+declared alongside an enum, multiple typedef names, fixed-underlying-type syntax,
+attributes and enumerators beyond C11 `int` remain rejected. The existing
+restrictions on `repr(C)` array fields in the C backend also remain.
+
+The probe records only the selected compiler's ABI. A different compiler or
+different enum-affecting flags require a new import and matching compilation of
+foreign objects. `-fshort-enums` is tested through an explicitly selected compiler
+wrapper, not a new CLI flag or a guarantee that a mixed-flag link will be detected.
+Use the original C header in C consumers. A generated Hepta header exposes the
+concrete integer representation, not the original C enum spelling.
 
 The importer compiles and executes a GCC probe against the original header. Its
 manifest records the compiler version and executable hash, native target, host
@@ -88,7 +137,7 @@ includes `ffi` and `unsafe`; narrowing effects does not prove memory safety or
 any other semantic promise. Probe facts and these assumptions remain separate.
 
 Unsupported constructs produce explicit errors: attributes/packing, bitfields,
-varargs, function pointers, unions, enums, opaque records, function definitions,
+varargs, function pointers, unions, unsupported enum forms, opaque records, function definitions,
 old-style unspecified `()` prototypes, array-parameter decay, volatile/restrict/
 atomic/bool types, and conditional or general-purpose preprocessing. Unsupported
 typedefs are rejected even when unused. Failure does not return a partial set

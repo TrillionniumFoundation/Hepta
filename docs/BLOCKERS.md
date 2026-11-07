@@ -35,7 +35,7 @@ M07 不等于全进程内存/CPU 上限。M10 的 QEMU 运行不等于真机或�
 | P02 | PARTIAL / OPEN_RESEARCH — 11 个抽象核心定理已检查 | 指针 provenance / 别名 / 生命周期形式化、核心类型健全性、真实 AST 与双后端降级精化、unsafe/FFI 条件 |
 | P03 | PARTIAL — 组内三类数值预算与取消/失败协议可执行 | 分配器/线程栈/worker 新分配/FFI 统一计费、嵌套任务树、全局预算、可证明的故障与恢复边界 |
 | P04 | PARTIAL — channel、背压、任务组、协作取消已实现 | 异步 I/O、select/调度器、超时与结构化任务树、真实网络服务负载、长期运行与故障注入 |
-| P05 | PARTIAL — 头文件导入、简单整数宏、普通结构与函数可用 | inline/函数式宏、packed、bitfields、varargs、复杂预处理、异步/保留回调与跨线程外部生命周期 |
+| P05 | PARTIAL — 头文件导入、简单整数宏、普通结构与函数，以及原生探测的普通 C11 enum 可用 | inline/函数式宏、packed、bitfields、varargs、复杂预处理、异步/保留回调与跨线程外部生命周期 |
 | P06 | PARTIAL / ENVIRONMENT_REQUIRED — 多目标对象与 AArch64 QEMU 通过 | Windows/AArch64 等真实宿主、各自 C 编译器/链接器双向执行、持续平台矩阵 |
 | P07 | OPEN / HARDWARE_REQUIRED — no_std 对象路径存在 | 板卡启动入口、链接脚本、MMIO/DMA/IRQ、设备协议、真实板卡资格 |
 | P08 | OPEN / HARDWARE_REQUIRED — GPU 尚未实现 | 地址空间、kernel 与同步语义、GPU 后端、驱动互操作、真实设备性能与正确性 |
@@ -45,6 +45,12 @@ M07 不等于全进程内存/CPU 上限。M10 的 QEMU 运行不等于真机或�
 | P12 | PARTIAL — 本地内容锁、版本化工具协议、公开仓库 | 注册表/版本求解、兼容性与迁移工具、发布签名和持续平台维护、生产标准库/文档体系 |
 
 P10 当前 namespace sandbox 探测失败，生产 provider 模式在启动适配器前拒绝。可信 fixture 使用显式的进程分离路径，`ai_comparison_eligible=false`；不能当成真实模型成绩。具体环境失败原因保留在资格报告中。
+
+P05 的 enum 增量以实际 C 编译器探测兼容整数类型、大小、对齐及枚举常量，
+不将 C enum 误认为 Hepta 的封闭 ADT。有限双向 C ABI、短枚举与常量测试见
+`tests/test_c_enum_import.py`；支持范围和保留限制见 `C_INTEROP.md`。
+本地缺少 Rust 时必须显式报告跳过，不能当成双后端原生资格。
+这不是 P05、全项目、跨平台或外部实现正确性的完整闭合。
 
 ## 本轮集成审查修复
 
