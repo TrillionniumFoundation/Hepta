@@ -331,6 +331,32 @@ def dco_rejection_delta(before, after):
     return deltas
 
 
+def continuity_sender_completion(row):
+    """Allow a completed degraded sender, but never a timeout, kill or unbalanced pause."""
+    if not isinstance(row, dict) or row.get("timed_out"):
+        raise ValueError("continuous payload sender timed out before isolated DCO injection")
+    if type(row.get("exit_code")) is not int or row["exit_code"] not in (0, 1):
+        raise ValueError("continuous payload sender exited with an unexpected status")
+    state = False
+    signals = row.get("signals", [])
+    if not isinstance(signals, list):
+        raise ValueError("continuous payload sender signal receipt is malformed")
+    for item in signals:
+        if not isinstance(item, dict):
+            raise ValueError("continuous payload sender signal receipt is malformed")
+        signum = item.get("signal")
+        if signum == signal.SIGSTOP and not state:
+            state = True
+        elif signum == signal.SIGCONT and state:
+            state = False
+        else:
+            raise ValueError("continuous payload sender has an unmatched or unexpected signal")
+    if state:
+        raise ValueError("continuous payload sender remained stopped before isolated DCO injection")
+    return {"sender_exit_code": row["exit_code"], "sender_timed_out": False,
+            "sender_signals": signals}
+
+
 def path_delta(before, after, require_peer=True):
     out={}
     for role in ROLES:
@@ -656,6 +682,87 @@ def probe_finish(probe,required=True):
     return result
 
 
+def inclusive_ranges(values):
+    ordered=sorted(set(values));out=[]
+    for value in ordered:
+        if not out or value>out[-1][1]+1:out.append([value,value])
+        else:out[-1][1]=value
+    return out
+
+
+def continuity_loss_receipt(probe,result):
+    """Accept only a completed continuity window whose every loss/error remains explicit."""
+    sender=result.get('sender',{});receiver=result.get('receiver',{});expected=probe['count']
+    if result.get('run_id')!=probe['run_id'] or sender.get('run_id')!=probe['run_id'] or receiver.get('run_id')!=probe['run_id']:
+        raise ValueError('continuity run identity changed')
+    if sender.get('expected_count')!=expected or sender.get('send_attempts')!=expected or sender.get('all_sends_attempted') is not True:
+        raise ValueError('continuity sender did not attempt the frozen sequence inventory')
+    if sender.get('sent_packets',0)+sender.get('send_errors',0)!=expected:
+        raise ValueError('continuity sender omitted sent or errored sequence numbers')
+    if receiver.get('expected_count')!=expected or receiver.get('received_packets',0)+receiver.get('missing_count',0)!=expected:
+        raise ValueError('continuity receiver omitted received or missing sequence numbers')
+    if sender.get('deadline_reached') is not False or receiver.get('deadline_reached') is not True:
+        raise ValueError('continuity sender/receiver did not finish their declared observation windows')
+    if sender.get('stop_signal') is not None or receiver.get('stop_signal') is not None:
+        raise ValueError('continuity sender/receiver was externally stopped')
+    if result.get('sender_exit') not in (0,1) or result.get('receiver_exit') not in (0,1):
+        raise ValueError('continuity process exit status is outside the retained-loss contract')
+    if result.get('sender_exit') != (0 if sender.get('passed') is True else 1):
+        raise ValueError('continuity sender exit does not match its retained summary')
+    if result.get('receiver_exit') != (0 if receiver.get('passed') is True else 1):
+        raise ValueError('continuity receiver exit does not match its retained summary')
+    if sender.get('duplicate_echoes')!=0 or sender.get('invalid_echoes')!=0 or sender.get('reordered_echoes')!=0 or sender.get('unexpected_peer_packets')!=0:
+        raise ValueError('continuity sender observed duplicate, invalid, reordered or foreign echoes')
+    if receiver.get('duplicate_packets')!=0 or receiver.get('invalid_packets')!=0 or receiver.get('reordered_packets')!=0 or receiver.get('foreign_run_packets')!=0 or receiver.get('unexpected_peer_packets')!=0:
+        raise ValueError('continuity receiver observed duplicate, invalid, reordered or foreign payloads')
+    sender_events_path=probe['sender_dir']/sender.get('events','')
+    receiver_events_path=probe['receiver_dir']/receiver.get('events','')
+    if not sender_events_path.is_file() or not receiver_events_path.is_file():
+        raise ValueError('continuity event stream is missing')
+    if digest(sender_events_path)!=sender.get('events_sha256') or digest(receiver_events_path)!=receiver.get('events_sha256'):
+        raise ValueError('continuity event stream digest changed')
+    sender_events=[json.loads(line) for line in sender_events_path.read_text().splitlines()]
+    receiver_events=[json.loads(line) for line in receiver_events_path.read_text().splitlines()]
+    if len(sender_events)!=sender.get('event_count') or len(receiver_events)!=receiver.get('event_count'):
+        raise ValueError('continuity event count differs from its summary')
+    if not sender_events or sender_events[0].get('kind')!='ready' or not receiver_events or receiver_events[0].get('kind')!='ready':
+        raise ValueError('continuity event stream lacks its ready record')
+    expected_set=set(range(expected))
+    sent=[row.get('sequence') for row in sender_events if row.get('kind')=='sent']
+    errors=[row.get('sequence') for row in sender_events if row.get('kind')=='send_error']
+    echoes=[row.get('sequence') for row in sender_events if row.get('kind')=='echo']
+    payloads=[row.get('sequence') for row in receiver_events if row.get('kind')=='payload']
+    if len(sent)!=sender.get('sent_packets') or len(errors)!=sender.get('send_errors') or len(echoes)!=sender.get('unique_echoes'):
+        raise ValueError('continuity sender event inventory differs from its summary')
+    if len(payloads)!=receiver.get('received_packets') or len(receiver_events)!=len(payloads)+1:
+        raise ValueError('continuity receiver event inventory differs from its summary')
+    if any(len(values)!=len(set(values)) for values in (sent,errors,echoes,payloads)):
+        raise ValueError('continuity event stream contains duplicate sequence records')
+    if set(sent)|set(errors)!=expected_set or set(sent)&set(errors):
+        raise ValueError('continuity sender events do not partition all attempted sequences')
+    if not set(echoes).issubset(set(sent)) or not set(payloads).issubset(set(sent)):
+        raise ValueError('continuity echo/payload sequence lacks a successful send')
+    missing_echo=expected_set-set(echoes);missing_payload=expected_set-set(payloads)
+    if sender.get('missing_echo_count')!=len(missing_echo) or sender.get('missing_echo_ranges_inclusive')!=inclusive_ranges(missing_echo):
+        raise ValueError('continuity sender missing-echo ranges are not fully retained')
+    if receiver.get('missing_count')!=len(missing_payload) or receiver.get('missing_ranges_inclusive')!=inclusive_ranges(missing_payload):
+        raise ValueError('continuity receiver missing-payload ranges are not fully retained')
+    if not set(errors).issubset(missing_echo) or not set(errors).issubset(missing_payload):
+        raise ValueError('continuity send errors are not represented in both missing inventories')
+    if any(not isinstance(row.get('error'),str) or not row['error'] for row in sender_events if row.get('kind')=='send_error'):
+        raise ValueError('continuity send error lacks its exact error text')
+    if any(row.get('duplicate') is not False or row.get('reordered') is not False or row.get('bytes')!=probe['size']
+           for row in receiver_events if row.get('kind')=='payload'):
+        raise ValueError('continuity receiver payload event is malformed')
+    sender_clean=not missing_echo and not errors and sender.get('passed') is True
+    receiver_clean=not missing_payload and receiver.get('passed') is True
+    if sender.get('passed') is not sender_clean or receiver.get('passed') is not receiver_clean:
+        raise ValueError('continuity pass flags disagree with the retained loss inventory')
+    if result.get('passed') is not bool(sender_clean and receiver_clean and result.get('sender_exit')==0 and result.get('receiver_exit')==0):
+        raise ValueError('continuity aggregate pass flag disagrees with its component receipts')
+    return True
+
+
 def strict_probe(pair,label,port):
     before=pair.snapshot(label+'-before')
     probe=probe_start(pair,label,port)
@@ -689,10 +796,9 @@ def inject(pair,capture,old_receiver,label,mode,traffic_sender=None):
             traffic_pause={'paused':True,'sender_label':traffic_sender.label,'stop_monotonic_ns':stop_ns}
         else:
             finished=traffic_sender.finish()
+            completion=continuity_sender_completion(finished)
             traffic_pause={'paused':False,'sender_finished_before':True,'sender_label':traffic_sender.label,
-                           'sender_exit_code':finished['exit_code'],'observed_finished_monotonic_ns':time.monotonic_ns()}
-            if finished['exit_code']!=0 or finished.get('timed_out'):
-                raise RuntimeError('continuous payload sender did not finish cleanly before isolated DCO injection')
+                           **completion,'observed_finished_monotonic_ns':time.monotonic_ns()}
     server_before=pair.observation('server')
     server_line_before=len(pair.processes['server'].text().splitlines())
     dco_before=None;dco_before_path=None;dco_before_command=None
@@ -810,8 +916,8 @@ def run_behavior(pair,plan,epoch):
     pair.result['injections']=injections
     pair.result['continuity']=probe_finish(continuous,required=False)
     cont=pair.result['continuity']
-    if cont['receiver']['duplicate_packets'] or cont['receiver']['invalid_packets'] or cont['sender']['duplicate_echoes']:
-        raise RuntimeError('continuous real payload was duplicated/corrupted')
+    if not continuity_loss_receipt(continuous,cont):
+        raise RuntimeError('continuous payload loss/error inventory is incomplete or its observation window ended early')
     pair.result['old_payload_final']=probe_finish(old)
     if pair.result['old_payload_final']['receiver']['finished_monotonic_ns']<=max(
             item['observation_finished_monotonic_ns'] for item in injections):
@@ -1221,14 +1327,17 @@ def build_tasks(plan):
 
 
 def select_tasks(tasks,only_kind=None):
-    """Permit only the explicit profile-only diagnostic subset; never weaken full mode."""
+    """Permit only the predeclared diagnostic subsets; never weaken full mode."""
     if only_kind is None:
         return list(tasks)
-    if only_kind!='profile':
-        raise ValueError('only the predeclared profile-only subset is supported')
-    selected=[task for task in tasks if task['kind']=='profile']
+    if only_kind=='profile':
+        selected=[task for task in tasks if task['kind']=='profile']
+    elif only_kind=='security':
+        selected=[task for task in tasks if task['kind'] in ('behavior','authentication')]
+    else:
+        raise ValueError('unsupported target subset')
     if not selected:
-        raise ValueError('profile-only inventory is empty')
+        raise ValueError('predeclared target subset is empty')
     return selected
 
 def profile_claim_limit(profile_only):
@@ -1240,6 +1349,15 @@ def profile_claim_limit(profile_only):
                 "not full target, not production and not performance qualification")
     return "finite single hosted VM namespace/veth observations only; every failed/lost/slow sample retained"
 
+def security_claim_limit(security_only):
+    if type(security_only) is not bool:
+        raise ValueError("security_only must be a boolean")
+    if security_only:
+        return ("security-only: seven real behavior and two untrusted-certificate cases; "
+                "not profile qualification, not the 54-case/216-workload matrix, "
+                "not production and not performance qualification")
+    return "finite single hosted VM namespace/veth observations only; every failed/lost/slow sample retained"
+
 
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
@@ -1248,8 +1366,8 @@ def main(argv=None):
     parser.add_argument('--budget-seconds',type=int,default=3600)
     parser.add_argument('--cleanup-state',type=Path)
     parser.add_argument('--preflight-only',action='store_true')
-    parser.add_argument('--only-kind',choices=('profile',),
-                        help='run only the two frozen target-host profile cases; not a full matrix')
+    parser.add_argument('--only-kind',choices=('profile','security'),
+                        help='run only the two profile cases or the seven behavior plus two certificate cases; not a full matrix')
     args=parser.parse_args(argv)
     if args.cleanup_state:
         result=cleanup_state(args.cleanup_state);print(json.dumps(result));return 0 if result['passed'] else 1
@@ -1278,11 +1396,14 @@ def main(argv=None):
         cpu_topology_error=repr(exc)
     tasks=select_tasks(build_tasks(plan),args.only_kind)
     profile_only=args.only_kind=='profile'
+    security_only=args.only_kind=='security'
     planned={kind:sum(task['kind']==kind for task in tasks)
              for kind in ('behavior','authentication','profile','performance')}
-    report={'schema':'hepta.openvpn-hia.target-profile.v1' if profile_only else 'hepta.openvpn-hia.target-matrix.v1',
-            'execution_mode':'profile-only' if profile_only else 'full-matrix',
+    report={'schema':'hepta.openvpn-hia.target-profile.v1' if profile_only else
+                'hepta.openvpn-hia.target-security.v1' if security_only else 'hepta.openvpn-hia.target-matrix.v1',
+            'execution_mode':'profile-only' if profile_only else 'security-only' if security_only else 'full-matrix',
             'selected_case_kinds':['profile'] if profile_only else
+                ['behavior','authentication'] if security_only else
                 ['behavior','authentication','profile','performance'],
             'complete':False,'started_utc':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),
             'plan':plan,'plan_sha256':digest(HERE/'plan.json'),'inputs':{},'host':{
@@ -1305,7 +1426,7 @@ def main(argv=None):
                       'failed_performance_workloads':0,
                       'planned_profile_cases':planned['profile'],'passed_profile_cases':0},
             'cleanup':{'passed':False},'production_performance_qualified':False,
-            'claim_limit':profile_claim_limit(profile_only)}
+            'claim_limit':profile_claim_limit(profile_only) if profile_only else security_claim_limit(security_only)}
 
     receipt=args.out/'target-result.json';save(receipt,report)
     binaries={'c':args.c,'hia':args.hia,'hia_trace':args.hia_trace}
@@ -1435,6 +1556,18 @@ def main(argv=None):
             report['gates']['profile']=(len(bykind['profile'])==report['counts']['planned_profile_cases']>0
                                         and all(r['passed'] for r in bykind['profile']))
             report['complete']=bool(report['gates']['profile'] and report['cleanup']['passed']
+                                    and report['cleanup'].get('private_work_removed') is True
+                                    and not report.get('failure'))
+        elif security_only:
+            behavior_ok=len(bykind['behavior'])==7 and all(r['passed'] for r in bykind['behavior'])
+            common=[r for r in bykind['behavior'] if not r['epoch']]
+            authentication_ok=len(bykind['authentication'])==2 and all(r['passed'] for r in bykind['authentication'])
+            report['gates'].update(real_tun=behavior_ok,dco_runtime=len(common)==3 and all(r['passed'] for r in common),
+                     authentication=authentication_ok,encrypted_replay=behavior_ok,rekey=behavior_ok,reconnect=behavior_ok,
+                     profile=False,fixed_performance_matrix=False)
+            report['complete']=bool(all(report['gates'][name] for name in
+                                    ('real_tun','dco_runtime','authentication','encrypted_replay','rekey','reconnect'))
+                                    and report['cleanup']['passed']
                                     and report['cleanup'].get('private_work_removed') is True
                                     and not report.get('failure'))
         else:
