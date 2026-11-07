@@ -71,6 +71,39 @@ class ProfileOnlyInventoryTests(unittest.TestCase):
                 "hia-user",
             )
 
+    def test_profile_record_command_uses_frozen_sampling_budget(self):
+        profile = self.plan["profile"]
+        command = matrix.profile_record_argv(
+            "/usr/bin/perf", [0, 2], "/tmp/profile.perf.data",
+            profile["seconds"], profile,
+        )
+        self.assertEqual(command[command.index("--freq") + 1], str(profile["frequency_hz"]))
+        self.assertEqual(command[command.index("--call-graph") + 1], profile["call_graph"])
+        self.assertEqual(command[-1], str(profile["seconds"] + 1))
+
+    def test_profile_record_command_rejects_invalid_frequency(self):
+        profile = {**self.plan["profile"], "frequency_hz": 0}
+        with self.assertRaises(ValueError):
+            matrix.profile_record_argv(
+                "/usr/bin/perf", [0, 2], "/tmp/profile.perf.data",
+                profile["seconds"], profile,
+            )
+
+    def test_profile_sampling_verifier_rejects_plan_mismatch(self):
+        profile = {
+            "sampling": {
+                "frequency_hz": self.plan["profile"]["frequency_hz"],
+                "duration_seconds": self.plan["profile"]["seconds"],
+                "call_graph": self.plan["profile"]["call_graph"],
+            }
+        }
+        verifier.verify_profile_sampling(profile, self.plan["profile"])
+        with self.assertRaises(ValueError):
+            verifier.verify_profile_sampling(
+                {**profile, "sampling": {**profile["sampling"], "frequency_hz": 99}},
+                self.plan["profile"],
+            )
+
     def test_kernel_dco_profile_requires_ovpn_symbols(self):
         profile = {
             "actual_samples_present": True,
