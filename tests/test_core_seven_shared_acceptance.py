@@ -153,23 +153,33 @@ class SharedAcceptanceContractTests(unittest.TestCase):
         self.assertEqual(len(old.encode(historical)), 144713)
         self.assertEqual({n: identity['sources'][n] for n in old.source_paths()},
                          historical['sources'])
-        previous = {**identity, 'sources': {
+        p0_p3 = {**identity, 'sources': {
             n: record for n, record in identity['sources'].items()
+            if n not in p.SAFE_CORE_ADDITIONS}}
+        self.assertEqual(len(p0_p3['sources']), 328)
+        self.assertEqual(p.commitment(tuple(sorted(p0_p3['sources']))),
+                         '77fb9af75d987acab91d224cf47c5e6734f8c6eb9c4fa895064fba306289a016')
+        self.assertEqual(len(p.encode(p0_p3)), 156678)
+        previous = {**p0_p3, 'sources': {
+            n: record for n, record in p0_p3['sources'].items()
             if n not in p.P0_P3_ADDITIONS}}
         self.assertEqual(len(previous['sources']), 323)
         self.assertEqual(p.commitment(tuple(sorted(previous['sources']))),
                          'd999ff7dc718330771ddb745dbed6a5a7ecdcdea8f9011e35f0a07417f09b9c0')
         self.assertEqual(len(p.encode(previous)), 156044)
         raw_identity = p.encode(identity)
-        self.assertEqual(len(raw_identity), 156678)
-        self.assertEqual(len(raw_identity) - len(p.encode(previous)), 634)
+        self.assertEqual(len(raw_identity), 157043)
+        self.assertEqual(len(p.encode(p0_p3)) - len(p.encode(previous)), 634)
+        self.assertEqual(len(raw_identity) - len(p.encode(p0_p3)), 365)
         self.assertEqual(p.cap('IDENTITY.json'), len(raw_identity))
         self.assertEqual(p.IDENTITY_RESERVE_DELTA,
                          len(raw_identity) - len(old.encode(historical)))
-        self.assertEqual(p.METADATA_RESERVE, 236554)
-        self.assertEqual(p.RAW_GLOBAL, 807926)
-        self.assertEqual(p.METADATA_RESERVE - 235920, 634)
-        self.assertEqual(808560 - p.RAW_GLOBAL, 634)
+        self.assertEqual(p.METADATA_RESERVE, 236919)
+        self.assertEqual(p.RAW_GLOBAL, 807561)
+        self.assertEqual(p.METADATA_RESERVE - 236554, 365)
+        self.assertEqual(807926 - p.RAW_GLOBAL, 365)
+        self.assertEqual(p.METADATA_RESERVE - 235920, 634 + 365)
+        self.assertEqual(808560 - p.RAW_GLOBAL, 634 + 365)
         self.assertEqual(p.METADATA_RESERVE - old.METADATA_RESERVE,
                          old.RAW_GLOBAL - p.RAW_GLOBAL)
         self.assertEqual(p.METADATA_RESERVE + p.RAW_GLOBAL + p.BUDGETS['display'],
@@ -197,9 +207,9 @@ class SharedAcceptanceContractTests(unittest.TestCase):
 
     def test_source_identity_includes_every_new_trust_dependency(self):
         paths = p.source_paths()
-        self.assertEqual(len(paths), 328)
+        self.assertEqual(len(paths), 331)
         self.assertTrue(set(old.source_paths()) < set(paths))
-        for name in (*p.ADDITIONS, *p.ROUND6_ADDITIONS, *p.LINUX_ADDITIONS, *p.NATIVE_AGENT_ADDITIONS, *p.P0_P3_ADDITIONS):
+        for name in (*p.ADDITIONS, *p.ROUND6_ADDITIONS, *p.LINUX_ADDITIONS, *p.NATIVE_AGENT_ADDITIONS, *p.P0_P3_ADDITIONS, *p.SAFE_CORE_ADDITIONS):
             self.assertIn(name, paths)
             self.assertTrue((p.ROOT / name).is_file(), name)
         self.assertIn(p.shared.HELPER_PATH, paths)
@@ -211,7 +221,7 @@ class SharedAcceptanceContractTests(unittest.TestCase):
         registered = p.source_paths()
         expected = tuple(n for n in registered if n.startswith('hepta/') and
                          n.count('/') == 1 and n.endswith('.py'))
-        self.assertEqual(len(expected), 203)
+        self.assertEqual(len(expected), 206)
         self.assertEqual(expected, tuple(sorted(x.relative_to(p.ROOT).as_posix()
                          for x in (p.ROOT / 'hepta').glob('*.py'))))
         with tempfile.TemporaryDirectory(prefix='hia-compiler-inputs-') as directory:

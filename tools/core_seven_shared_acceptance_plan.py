@@ -124,15 +124,24 @@ P0_P3_ADDITIONS = (
     'hepta/hia_native_byte_abi.py',
     'hepta/hia_native_byte_runner.py',
 )
+# Existing reviewed Safe Core verifier and final-image emitters are also actual
+# compiler_hash inputs. Bind these exact names without changing the historical
+# 328-path P0/P3 or 323-path native-Agent projections.
+SAFE_CORE_ADDITIONS = (
+    'hepta/hia_safe_core.py',
+    'hepta/hia_safe_core_elf.py',
+    'hepta/hia_safe_core_x64.py',
+)
 # The legacy identity cap describes 239 source records. The reviewed shared
-# closure has 328 source records and the same 780 support records: canonical
+# closure has 331 source records and the same 780 support records: canonical
 # JSON with seven-/nineteen-digit byte counts and fixed hash widths is exactly
-# 156678 bytes. The historical 323-path projection still occupies 156044 bytes;
-# these five additions cost 634 bytes. Transfer only the full 11965-byte
+# 157043 bytes. The historical 328-/323-path projections still occupy
+# 156678/156044 bytes; these three additions cost exactly 365 bytes. Transfer
+# only the full 12330-byte
 # increase over the legacy identity from raw logs; keep the
 # legacy protocol and the aggregate evidence, source, module and time caps.
-IDENTITY_CAP = 156678
-IDENTITY_RESERVE_DELTA = 11965
+IDENTITY_CAP = 157043
+IDENTITY_RESERVE_DELTA = 12330
 METADATA_RESERVE = 224589 + IDENTITY_RESERVE_DELTA
 RAW_GLOBAL = 819891 - IDENTITY_RESERVE_DELTA
 BUDGETS = dict(source=2097152, sources=8388608, module=33554432, modules=134217728,
@@ -219,16 +228,20 @@ def flags(success=False):
 # Frozen exact identity paths: do not hash files merely to discover their names.
 SOURCE_IDENTITY_PATHS = tuple(sorted((*legacy.SOURCE_IDENTITY_PATHS, *ADDITIONS,
                                     *ROUND6_ADDITIONS, *LINUX_ADDITIONS,
-                                    *NATIVE_AGENT_ADDITIONS, *P0_P3_ADDITIONS)))
+                                    *NATIVE_AGENT_ADDITIONS, *P0_P3_ADDITIONS,
+                                    *SAFE_CORE_ADDITIONS)))
 SUPPORT_IDENTITY_PATHS = legacy.SUPPORT_IDENTITY_PATHS
 
 
 def source_paths():
     legacy.source_paths()  # retain the exact earlier source identity closure
     paths = SOURCE_IDENTITY_PATHS
-    require(len(paths) == len(set(paths)) == 328 and commitment(paths) == '77fb9af75d987acab91d224cf47c5e6734f8c6eb9c4fa895064fba306289a016',
+    require(len(paths) == len(set(paths)) == 331 and commitment(paths) == '223c03fa82d871fee3d85d57bb1e254d658a9d85007ec11bea5bfbb1fad5d1b5',
             'reviewed exact source identity closure')
-    previous = tuple(name for name in paths if name not in P0_P3_ADDITIONS)
+    previous = tuple(name for name in paths if name not in SAFE_CORE_ADDITIONS)
+    require(len(previous) == 328 and commitment(previous) == '77fb9af75d987acab91d224cf47c5e6734f8c6eb9c4fa895064fba306289a016',
+            'historical P0/P3 source identity projection')
+    previous = tuple(name for name in previous if name not in P0_P3_ADDITIONS)
     require(len(previous) == 323 and commitment(previous) == 'd999ff7dc718330771ddb745dbed6a5a7ecdcdea8f9011e35f0a07417f09b9c0',
             'historical native-Agent source identity projection')
     # pipeline.compiler_hash reads every actual top-level hepta/*.py byte,

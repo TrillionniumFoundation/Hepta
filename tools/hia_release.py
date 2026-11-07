@@ -73,6 +73,8 @@ CANDIDATE_FILES = (
     "tools/hia_macro_exec_adapter.py", "tools/prepare_hia_macro_launcher.py",
     "benchmarks/hia_macro_multistep/PROTOCOL.json", "docs/HIA_AGENT_MACRO_MULTISTEP.md",
     "tests/test_hia_macro_multistep.py", "tests/test_hia_macro_exec_adapter.py",
+    "tools/core_seven_shared_acceptance_plan.py",
+    "tests/test_core_seven_shared_acceptance.py", "tests/test_core_seven_shared_source_closure.py",
 )
 RUNTIME_FILES = ("Cargo.toml", "Cargo.lock",
     "src/mcp/hia_tool_catalog.json", "src/mcp/hia_contract.rs", "src/mcp/hia_provider.rs",
