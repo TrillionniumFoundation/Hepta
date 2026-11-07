@@ -355,7 +355,7 @@ def dco_quiet_signature(peer, device, underlay):
         raise ValueError("DCO quiet sample is not bound to the server underlay")
     device_rx = device[0].get("stats64", device[0].get("stats", {})).get("rx", {})
     underlay_rx = underlay[0].get("stats64", underlay[0].get("stats", {})).get("rx", {})
-    peer_values = tuple(peer_row.get(key) for key in PEER_COUNTERS)
+    peer_values = tuple(peer_row.get(key) for key in ("vpn_rx_bytes", "link_rx_bytes", "vpn_rx_packets", "link_rx_packets"))
     device_values = tuple(device_rx.get(key) for key in ("dropped", "packets", "bytes", "errors"))
     underlay_values = tuple(underlay_rx.get(key) for key in ("packets", "bytes", "errors", "dropped"))
     all_values = peer_values + device_values + underlay_values
@@ -371,6 +371,22 @@ def dco_quiet_signature(peer, device, underlay):
         device[0]["ifindex"], device_values,
         underlay[0]["ifindex"], underlay[0].get("link_type"), underlay_values,
     )
+
+
+def verify_dco_quiet_window(samples):
+    """Reject any receive-counter drift across the three native quiet samples."""
+    if not isinstance(samples, list) or len(samples) < 3:
+        raise ValueError("DCO quiet window needs at least three native samples")
+    times = [row.get("monotonic_ns") for row in samples]
+    if (any(type(value) is not int for value in times)
+            or any(left >= right for left, right in zip(times, times[1:]))
+            or times[-1] - times[0] < 180_000_000):
+        raise ValueError("DCO quiet window is not three ordered samples over at least 180 ms")
+    signatures = [dco_quiet_signature(row.get("peer"), row.get("device"), row.get("underlay"))
+                  for row in samples]
+    if any(signature != signatures[0] for signature in signatures[1:]):
+        raise ValueError("DCO peer/device/underlay receive counters changed during the quiet window")
+    return True
 
 
 def dco_underlay_replay_delta(before, after, frame_bytes):
@@ -774,6 +790,13 @@ def wait_dco_receive_quiet(pair, label, timeout=3.0, interval=0.1):
             stable = [sample]
         if len(stable) >= 3 and stable[-1]["monotonic_ns"] - stable[-3]["monotonic_ns"] >= 180_000_000:
             chosen = stable[-3:]
+            verify_dco_quiet_window([
+                {"monotonic_ns": row["monotonic_ns"],
+                 "peer": read_json(pair.l.out / row["peer_path"]),
+                 "device": read_json(pair.l.out / row["device_path"]),
+                 "underlay": read_json(pair.l.out / row["underlay_path"])}
+                for row in chosen
+            ])
             return {
                 "stable_samples": 3,
                 "started_monotonic_ns": chosen[0]["monotonic_ns"],
