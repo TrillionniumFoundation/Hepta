@@ -1,0 +1,185 @@
+// Experimental source-only standard library: explicit byte-order codecs.
+// No unsafe operations, allocation, native-endian layout or alignment assumptions.
+module hepta_bytes;
+
+pub struct ReadU16 { value: u16, ok: bool }
+
+pub struct ReadU32 { value: u32, ok: bool }
+
+pub struct ReadU64 { value: u64, ok: bool }
+
+pub fn read_u16_le(input: read [u8], offset: usize) -> ReadU16
+effects { panic }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    let length = len(read input);
+    if offset > length { return ReadU16 { value: 0, ok: false }; }
+    if 2 > length - offset { return ReadU16 { value: 0, ok: false }; }
+    let value: u16 = (input[offset] as u16)
+        | ((input[offset + 1] as u16) << 8);
+    return ReadU16 { value: value, ok: true };
+}
+
+pub fn write_u16_le(output: mut [u8], offset: usize, value: u16) -> bool
+effects { panic, write }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    let length = len(read output);
+    if offset > length { return false; }
+    if 2 > length - offset { return false; }
+    output[offset] = value as u8;
+    output[offset + 1] = (value >> 8) as u8;
+    return true;
+}
+
+pub fn read_u16_be(input: read [u8], offset: usize) -> ReadU16
+effects { panic }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    let length = len(read input);
+    if offset > length { return ReadU16 { value: 0, ok: false }; }
+    if 2 > length - offset { return ReadU16 { value: 0, ok: false }; }
+    let value: u16 = ((input[offset] as u16) << 8)
+        | (input[offset + 1] as u16);
+    return ReadU16 { value: value, ok: true };
+}
+
+pub fn write_u16_be(output: mut [u8], offset: usize, value: u16) -> bool
+effects { panic, write }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    let length = len(read output);
+    if offset > length { return false; }
+    if 2 > length - offset { return false; }
+    output[offset] = (value >> 8) as u8;
+    output[offset + 1] = value as u8;
+    return true;
+}
+
+pub fn read_u32_le(input: read [u8], offset: usize) -> ReadU32
+effects { panic }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    let length = len(read input);
+    if offset > length { return ReadU32 { value: 0, ok: false }; }
+    if 4 > length - offset { return ReadU32 { value: 0, ok: false }; }
+    let value: u32 = (input[offset] as u32)
+        | ((input[offset + 1] as u32) << 8)
+        | ((input[offset + 2] as u32) << 16)
+        | ((input[offset + 3] as u32) << 24);
+    return ReadU32 { value: value, ok: true };
+}
+
+pub fn write_u32_le(output: mut [u8], offset: usize, value: u32) -> bool
+effects { panic, write }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    let length = len(read output);
+    if offset > length { return false; }
+    if 4 > length - offset { return false; }
+    output[offset] = value as u8;
+    output[offset + 1] = (value >> 8) as u8;
+    output[offset + 2] = (value >> 16) as u8;
+    output[offset + 3] = (value >> 24) as u8;
+    return true;
+}
+
+pub fn read_u32_be(input: read [u8], offset: usize) -> ReadU32
+effects { panic }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    let length = len(read input);
+    if offset > length { return ReadU32 { value: 0, ok: false }; }
+    if 4 > length - offset { return ReadU32 { value: 0, ok: false }; }
+    let value: u32 = ((input[offset] as u32) << 24)
+        | ((input[offset + 1] as u32) << 16)
+        | ((input[offset + 2] as u32) << 8)
+        | (input[offset + 3] as u32);
+    return ReadU32 { value: value, ok: true };
+}
+
+pub fn write_u32_be(output: mut [u8], offset: usize, value: u32) -> bool
+effects { panic, write }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    let length = len(read output);
+    if offset > length { return false; }
+    if 4 > length - offset { return false; }
+    output[offset] = (value >> 24) as u8;
+    output[offset + 1] = (value >> 16) as u8;
+    output[offset + 2] = (value >> 8) as u8;
+    output[offset + 3] = value as u8;
+    return true;
+}
+
+pub fn read_u64_le(input: read [u8], offset: usize) -> ReadU64
+effects { panic }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    let length = len(read input);
+    if offset > length { return ReadU64 { value: 0, ok: false }; }
+    if 8 > length - offset { return ReadU64 { value: 0, ok: false }; }
+    let value: u64 = (input[offset] as u64)
+        | ((input[offset + 1] as u64) << 8)
+        | ((input[offset + 2] as u64) << 16)
+        | ((input[offset + 3] as u64) << 24)
+        | ((input[offset + 4] as u64) << 32)
+        | ((input[offset + 5] as u64) << 40)
+        | ((input[offset + 6] as u64) << 48)
+        | ((input[offset + 7] as u64) << 56);
+    return ReadU64 { value: value, ok: true };
+}
+
+pub fn write_u64_le(output: mut [u8], offset: usize, value: u64) -> bool
+effects { panic, write }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    let length = len(read output);
+    if offset > length { return false; }
+    if 8 > length - offset { return false; }
+    output[offset] = value as u8;
+    output[offset + 1] = (value >> 8) as u8;
+    output[offset + 2] = (value >> 16) as u8;
+    output[offset + 3] = (value >> 24) as u8;
+    output[offset + 4] = (value >> 32) as u8;
+    output[offset + 5] = (value >> 40) as u8;
+    output[offset + 6] = (value >> 48) as u8;
+    output[offset + 7] = (value >> 56) as u8;
+    return true;
+}
+
+pub fn read_u64_be(input: read [u8], offset: usize) -> ReadU64
+effects { panic }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    let length = len(read input);
+    if offset > length { return ReadU64 { value: 0, ok: false }; }
+    if 8 > length - offset { return ReadU64 { value: 0, ok: false }; }
+    let value: u64 = ((input[offset] as u64) << 56)
+        | ((input[offset + 1] as u64) << 48)
+        | ((input[offset + 2] as u64) << 40)
+        | ((input[offset + 3] as u64) << 32)
+        | ((input[offset + 4] as u64) << 24)
+        | ((input[offset + 5] as u64) << 16)
+        | ((input[offset + 6] as u64) << 8)
+        | (input[offset + 7] as u64);
+    return ReadU64 { value: value, ok: true };
+}
+
+pub fn write_u64_be(output: mut [u8], offset: usize, value: u64) -> bool
+effects { panic, write }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    let length = len(read output);
+    if offset > length { return false; }
+    if 8 > length - offset { return false; }
+    output[offset] = (value >> 56) as u8;
+    output[offset + 1] = (value >> 48) as u8;
+    output[offset + 2] = (value >> 40) as u8;
+    output[offset + 3] = (value >> 32) as u8;
+    output[offset + 4] = (value >> 24) as u8;
+    output[offset + 5] = (value >> 16) as u8;
+    output[offset + 6] = (value >> 8) as u8;
+    output[offset + 7] = value as u8;
+    return true;
+}
