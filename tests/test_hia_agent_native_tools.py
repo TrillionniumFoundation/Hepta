@@ -616,3 +616,19 @@ class NativeLifecycleTests(AgentToolCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class AgentStoreDirectoryPermissionTests(unittest.TestCase):
+    def test_preexisting_world_writable_artifact_directory_is_rejected(self):
+        with tempfile.TemporaryDirectory(prefix="hia-store-permission-") as directory:
+            root = Path(directory) / "state"
+            root.mkdir(mode=0o700)
+            artifacts = root / "artifacts"
+            artifacts.mkdir(mode=0o700)
+            artifacts.chmod(0o777)
+
+            # A pre-existing shared artifact directory lets another local user
+            # unlink or replace content-addressed files despite the private
+            # state-root check. Store initialization must fail closed.
+            with self.assertRaisesRegex(ValueError, "artifact directory"):
+                HIAAgentService(root)

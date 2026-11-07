@@ -17,6 +17,11 @@ from .hia_agent_store import AgentRejected, reject, wire
 VERSION = "hepta.hia.agent-native.v1"
 ROOT = Path(__file__).resolve().parent.parent
 CATALOG_PATH = ROOT / "docs" / "HIA_AGENT_NATIVE_TOOL_CATALOG.json"
+DISCOVERY_FILES = (
+    "HIA_AGENT_NATIVE_TOOL_CATALOG.json", "HIA_AGENT_ASSEMBLY.md", "HIA_PROGRAM.md",
+    "HIA_AGENT_MACHINE_PLANS.md", "HIA_AGENT_MACRO_POLICY.md", "HIA_DIRECT_BYTE_BOOTSTRAP.md",
+    "HIA_SELF_HOSTING_CORE.md",
+)
 
 
 def catalog():
@@ -33,7 +38,7 @@ def installation_manifest():
     entries = {}
     for path in sorted((ROOT / "hepta").rglob("*.py")):
         entries[str(path.relative_to(ROOT))] = sha256(path.read_bytes()).hexdigest()
-    for filename in ("HIA_AGENT_NATIVE_TOOL_CATALOG.json", "HIA_AGENT_ASSEMBLY.md", "HIA_PROGRAM.md"):
+    for filename in DISCOVERY_FILES:
         path = ROOT / "docs" / filename
         entries[str(path.relative_to(ROOT))] = sha256(path.read_bytes()).hexdigest()
     from .hia_program_native import _implementation_hash
@@ -186,10 +191,38 @@ COST_POLICY_SCHEMA = obj({
     "external_costs_complete": {"type": "boolean"},
     "expected_invocations": U64,
 })
-PLAN_SCHEMA = obj({
+BLOCK_PLAN_SCHEMA = obj({
     "schema": {"const": "hepta.hia.agent.block-layout.v1"},
     "core_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "block_order": {"type": "object", "minProperties": 1, "maxProperties": 1024,
         "additionalProperties": {"type": "array", "minItems": 1, "maxItems": 4096,
             "items": {"type": "string", "minLength": 1, "maxLength": 128}, "uniqueItems": True}},
 })
+
+# Artifact-referenced plans preserve the eleven-tool wire catalog. Discovery
+# publishes the original layout profile and the explicit v2/v3 choices.
+MACHINE_PLAN_SCHEMA = obj({
+    "schema": {"const": "hepta.hia.agent.machine-plan.v2"},
+    "core_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "block_order": {"type": "object", "maxProperties": 1024,
+        "additionalProperties": {"type": "array", "minItems": 1, "maxItems": 4096,
+            "items": {"type": "string", "minLength": 1, "maxLength": 128}, "uniqueItems": True}},
+    "function_order": {"type": "array", "minItems": 1, "maxItems": 1024, "uniqueItems": True,
+        "items": {"type": "string", "minLength": 1, "maxLength": 128}},
+    "scratch_registers": obj({"r10": {"enum": ["r10", "r11"]}, "r11": {"enum": ["r10", "r11"]}}),
+    "instruction_selection": obj({
+        "move_immediate": {"enum": ["movabs", "mov32_if_exact"]},
+        "alu_immediate": {"enum": ["imm32", "imm8_if_exact"]}}),
+    "function_alignment": {"type": "integer", "enum": [1, 16, 32, 64]},
+})
+VALUE_REGISTER_PLAN_SCHEMA = obj({
+    **MACHINE_PLAN_SCHEMA["properties"],
+    "schema": {"const": "hepta.hia.agent.machine-plan.v3"},
+    "instruction_selection": obj({
+        **MACHINE_PLAN_SCHEMA["properties"]["instruction_selection"]["properties"],
+        "scalar_select": {"enum": ["branch", "cmov_scalar"]}}),
+    "value_registers": {"type": "object", "maxProperties": 1024,
+        "additionalProperties": {"type": "object", "maxProperties": 65536,
+            "additionalProperties": {"enum": ["rbx", "r12", "r13", "r14", "r15"]}}},
+})
+PLAN_SCHEMA = {"oneOf": [BLOCK_PLAN_SCHEMA, MACHINE_PLAN_SCHEMA, VALUE_REGISTER_PLAN_SCHEMA]}

@@ -55,11 +55,35 @@ class Code:
     therefore produces identical bytes on repeated calls.
     """
 
-    def __init__(self):
+    def __init__(self, *, scratch_registers=None, move_immediate="movabs", alu_immediate="imm32"):
+        # Both registers are explicit scratch operands, never implicit ISA or
+        # SysV argument/result registers. Only a complete bijection is admitted.
+        mapping = {"r10": "r10", "r11": "r11"} if scratch_registers is None else scratch_registers
+        if (type(mapping) is not dict or set(mapping) != {"r10", "r11"}
+                or any(type(value) is not str for value in mapping.values())
+                or set(mapping.values()) != {"r10", "r11"}):
+            raise MachineEncodingError("scratch registers must bijectively rename r10/r11")
+        if type(move_immediate) is not str or move_immediate not in {"movabs", "mov32_if_exact"}:
+            raise MachineEncodingError("unreviewed immediate move selection")
+        if type(alu_immediate) is not str or alu_immediate not in {"imm32", "imm8_if_exact"}:
+            raise MachineEncodingError("unreviewed immediate arithmetic selection")
+        self.scratch_registers = dict(mapping)
+        self.move_immediate, self.alu_immediate = move_immediate, alu_immediate
         self.data = bytearray()
         self.labels = {}
         self.fixups = []
         self.relocations = []
+
+    def _reg(self, value):
+        # Check type first so malformed/unhashable operands retain typed errors.
+        if type(value) is not str:
+            raise MachineEncodingError("unknown x86-64 register")
+        return _reg(self.scratch_registers.get(value, value))
+
+    def align(self, boundary):
+        if type(boundary) is not int or boundary not in {1, 16, 32, 64}:
+            raise MachineEncodingError("unreviewed function alignment")
+        self.emit(b"\x90" * ((-len(self.data)) % boundary))
 
     @property
     def offset(self):
@@ -73,12 +97,12 @@ class Code:
         self.data.extend(value)
 
     def _rr(self, opcode, reg, rm, *, wide=True):
-        r, m = _reg(reg), _reg(rm)
+        r, m = self._reg(reg), self._reg(rm)
         rex = 0x40 | (8 if wide else 0) | ((r >> 3) << 2) | (m >> 3)
         self.emit(bytes([rex]) + opcode + bytes([0xc0 | ((r & 7) << 3) | (m & 7)]))
 
     def _mem(self, opcode, reg, base, disp=0, *, wide=True):
-        r, b = _reg(reg), _reg(base)
+        r, b = self._reg(reg), self._reg(base)
         displacement = _s32(disp)
         rex = 0x40 | (8 if wide else 0) | ((r >> 3) << 2) | (b >> 3)
         modrm = 0x80 | ((r & 7) << 3) | (b & 7)
@@ -115,11 +139,16 @@ class Code:
         self._rr(b"\x89", src, dst)
 
     def mov_imm(self, dst, value):
-        reg = _reg(dst)
+        reg = self._reg(dst)
         if type(value) is not int or not -(1 << 63) <= value < 1 << 64:
             raise MachineEncodingError("immediate is outside the 64-bit word")
-        self.emit(bytes([0x48 | (reg >> 3), 0xb8 + (reg & 7)]) +
-                  struct.pack("<Q", value & ((1 << 64) - 1)))
+        if self.move_immediate == "mov32_if_exact" and 0 <= value < 1 << 32:
+            # A 32-bit destination write zero-extends and MOV leaves flags alone.
+            prefix = b"\x41" if reg >= 8 else b""
+            self.emit(prefix + bytes([0xb8 + (reg & 7)]) + struct.pack("<I", value))
+        else:
+            self.emit(bytes([0x48 | (reg >> 3), 0xb8 + (reg & 7)]) +
+                      struct.pack("<Q", value & ((1 << 64) - 1)))
 
     def load(self, dst, base, disp=0):
         self._mem(b"\x8b", dst, base, disp)
@@ -149,16 +178,19 @@ class Code:
         groups = {"add": 0, "or": 1, "and": 4, "sub": 5, "xor": 6, "cmp": 7}
         if type(op) is not str or op not in groups:
             raise MachineEncodingError("unsupported immediate ALU operation")
-        r = _reg(dst)
+        r = self._reg(dst)
         immediate = _s32(value)
-        self.emit(bytes([0x48 | (r >> 3), 0x81,
+        compact = self.alu_immediate == "imm8_if_exact" and -128 <= value <= 127
+        if compact:
+            immediate = struct.pack("<b", value)
+        self.emit(bytes([0x48 | (r >> 3), 0x83 if compact else 0x81,
                          0xc0 | (groups[op] << 3) | (r & 7)]) + immediate)
 
     def shift(self, op, dst, count):
         groups = {"shl": 4, "shr": 5, "sar": 7}
         if type(op) is not str or op not in groups:
             raise MachineEncodingError("unsupported shift operation")
-        r = _reg(dst)
+        r = self._reg(dst)
         prefix = bytes([0x48 | (r >> 3)])
         modrm = bytes([0xc0 | (groups[op] << 3) | (r & 7)])
         if count == "cl":
@@ -181,7 +213,7 @@ class Code:
     def imul_rr(self, dst, src): self.imul(dst, src)
 
     def _unary(self, group, src):
-        r = _reg(src)
+        r = self._reg(src)
         self.emit(bytes([0x48 | (r >> 3), 0xf7, 0xc0 | (group << 3) | (r & 7)]))
 
     def mul(self, src): self._unary(4, src)
@@ -194,17 +226,22 @@ class Code:
 
     def setcc(self, condition, dst):
         condition = _condition(condition)
-        r = _reg(dst)
+        r = self._reg(dst)
         # MOV preserves flags; this creates the canonical zero-extended bool.
         self.mov_imm(dst, 0)
         self.emit(bytes([0x40 | (r >> 3), 0x0f, 0x90 + condition, 0xc0 | (r & 7)]))
 
+    def cmov(self, condition, dst, src):
+        # The reviewed form has register operands only. It preserves flags and
+        # cannot introduce a speculative memory access to an unselected input.
+        self._rr(bytes([0x0f, 0x40 + _condition(condition)]), dst, src)
+
     def push(self, reg):
-        r = _reg(reg)
+        r = self._reg(reg)
         self.emit((b"\x41" if r >= 8 else b"") + bytes([0x50 + (r & 7)]))
 
     def pop(self, reg):
-        r = _reg(reg)
+        r = self._reg(reg)
         self.emit((b"\x41" if r >= 8 else b"") + bytes([0x58 + (r & 7)]))
 
     def ret(self): self.emit(b"\xc3")

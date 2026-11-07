@@ -102,15 +102,15 @@ class HIAAgentService:
                 "behavior_equivalence": ["exact Core identity", "exhaustive pure acyclic scalar domain with at most 12 input bits",
                     "optional existing pinned-Z3 structural scalar/effect profile"],
                 "canonical_core_to_machine_refinement": "unsupported",
-                "machine_plan_refinement": "block-layout permutation relative to assumed-correct canonical lowering",
+                "machine_plan_refinement": "separately checked layout, scratch-register, scalar register-lifetime and exact encoding choices relative to assumed-correct canonical lowering",
                 "encoding_check": "rederive entire object and linked image; validate retained identities and ABI",
                 "sample_tests_are_proofs": False},
             "lowering": {**common, "schema": "hepta.hia.agent.lowering-profile.v1",
                 "rules": "fixed stack slots; fixed scratch registers; source block order; explicit control transfers",
                 "selection_authority": "semantic implementation only", "profitability_passes": []},
             "plan": {**common, "schema": "hepta.hia.agent.plan-profile.v1", "plan_schema": PLAN_SCHEMA,
-                "choices": "explicit exact block permutation per named function",
-                "preserved": ["original Core", "value slots", "instruction and effect order within each block", "entry and CFG edges", "public ABI"],
+                "choices": "v1 block permutation; v2 block/function permutation, r10/r11 bijection, exact immediate encodings and bounded function alignment; v3 checked scalar assignments to rbx/r12-r15 and explicit register-only CMOV selection",
+                "preserved": ["original Core", "checked scalar value locations", "logical operation and effect order within each block", "entry and CFG edges", "public ABI"],
                 "unchecked_bytes": False, "automatic_layout_search": False},
         }
         self.profiles, self.profile_artifacts = {}, {}
@@ -125,14 +125,20 @@ class HIAAgentService:
             "plan_schema": self.store.json(PLAN_SCHEMA, "discovery"),
         }
         for name, filename in (("assembly_grammar", "HIA_AGENT_ASSEMBLY.md"),
-                               ("core_language", "HIA_PROGRAM.md")):
+                               ("core_language", "HIA_PROGRAM.md"),
+                               ("machine_plan_guide", "HIA_AGENT_MACHINE_PLANS.md"),
+                               ("macro_policy_guide", "HIA_AGENT_MACRO_POLICY.md"),
+                               ("byte_bootstrap_guide", "HIA_DIRECT_BYTE_BOOTSTRAP.md"),
+                               ("self_hosting_core_guide", "HIA_SELF_HOSTING_CORE.md")):
             self.resources[name] = self.store.put((ROOT / "docs" / filename).read_bytes(), "discovery")
+        from .hia_agent_macro_discovery import macro_policy_guidance
+        self.resources["macro_policy"] = self.store.json(macro_policy_guidance(self.identities), "discovery")
         self.resources["examples"] = self.store.json(self._examples(), "discovery")
         self.resources["diagnostics"] = self.store.json({"schema": "hepta.hia.agent.diagnostics.v1",
             "phases": ["admission", "context", "verification", "codegen", "execution", "adoption"],
             "codes": {"E_HIA_SCHEMA": "repair the named input field", "E_HIA_CONTEXT_STALE": "rediscover installed source and create a new context",
                 "E_HIA_REQUEST_CONFLICT": "same key belongs to different arguments", "E_HIA_REQUEST_UNKNOWN": "observe the original runtime job; never relaunch",
-                "E_HIA_ARTIFACT_IDENTITY": "use the complete issued reference", "E_HIA_MACHINE_PLAN": "supply an exact block permutation",
+                "E_HIA_ARTIFACT_IDENTITY": "use the complete issued reference", "E_HIA_MACHINE_PLAN": "read plan_schema and supply only checked Core-bound machine choices",
                 "E_HIA_CLAIM_REQUIRED": "requested acceptance proof has no exact qualifying retained receipt",
                 "E_HIA_GENERATION_STALE": "inspect current slot through the authorized consumer; use a fresh conditional request"}}, "discovery")
         self.manifest = self.store.json({"schema": "hepta.hia.agent.manifest.v1",
@@ -142,7 +148,7 @@ class HIAAgentService:
             "cold_start": ["read assembly_grammar/core_language and an exact opcode catalog",
                 "retain workload, objective and cost-policy JSON as artifacts", "freeze context using discovered profiles",
                 "import or patch an explicit Core candidate", "verify requested claims for the exact subject",
-                "emit using canonical lowering or a checked explicit block-layout plan", "verify actual encoding",
+                "emit using canonical lowering or a checked explicit machine plan", "verify actual encoding",
                 "evaluate baseline and candidate on the entire frozen workload", "adopt only with qualifying receipts and expected generation/epoch"],
             "execution_authority": "administrator-installed runtime provider, never supplied context",
             "cold_start_learning_or_net_benefit_proved": False,
@@ -313,9 +319,12 @@ class HIAAgentService:
         resources = {
             "manifest": [self.manifest],
             "language": [self.resources["schema_registry"], self.resources["assembly_grammar"], self.resources["core_language"], language_ref],
-            "backend": [self.profile_artifacts["backend"], self.profile_artifacts["lowering"], self.profile_artifacts["target"]],
+            "backend": [self.profile_artifacts["backend"], self.profile_artifacts["lowering"], self.profile_artifacts["target"],
+                        self.resources["byte_bootstrap_guide"]],
             "examples": [self.resources["examples"]], "diagnostics": [self.resources["diagnostics"]],
-            "plans": [self.profile_artifacts["plan"], self.resources["plan_schema"]],
+            "plans": [self.profile_artifacts["plan"], self.resources["plan_schema"],
+                      self.resources["machine_plan_guide"], self.resources["macro_policy"],
+                      self.resources["macro_policy_guide"]],
         }[section]
         return {"catalog_sha256": self.catalog_sha256, "manifest": self.manifest,
             "language_catalogs": [profile], "backend_profiles": [self.profiles["backend"]],
@@ -621,14 +630,20 @@ class HIAAgentService:
                     from .hia_program_native import emit_program_machine
                     image = emit_program_machine(program, machine_plan=plan)
                     canonical = emit_program_machine(program)
-                    status, domain = "proved", "Exact block permutation preserves canonical lowered CFG, slots and per-path operations, conditional on canonical lowering/encoder correctness"
+                    from .hia_machine_plan import preservation_checks
+                    choice_checks = preservation_checks(plan, program)
+                    status, domain = "proved", "Checked explicit machine choices preserve canonical CFG, scalar value lifetimes and path effects, conditional on canonical lowering/encoder correctness"
                     assumptions = self.store.json({"schema": "hepta.hia.agent.plan-assumptions.v1",
                         "assumptions": ["canonical Core lowering implements Core semantics", "x86 encoder and relocation machinery implement their declared instructions"],
-                        "assumptions_proved_here": False, "claim_scope": "layout-only refinement relative to canonical lowering",
+                        "assumptions_proved_here": False, "claim_scope": "reviewed explicit machine choices relative to canonical lowering",
                         "universal_core_to_machine_refinement_proved": False}, "verification-assumptions")
-                    evidence = {"method": "explicit_cfg_block_permutation", "core_sha256": program.sha256,
+                    evidence = {"method": "checked_explicit_machine_choices", "choice_checks": choice_checks, "core_sha256": program.sha256,
                         "plan": plan, "canonical_object_sha256": canonical.sha256,
-                        "planned_object_sha256": image.sha256, "same_slots": canonical.function_frames == image.function_frames,
+                        "planned_object_sha256": image.sha256,
+                        "same_slots": not any(plan.get("value_registers", {}).values()),
+                        "same_frame_sizes": dict(canonical.function_frames) == dict(image.function_frames),
+                        "canonical_frame_bytes": dict(canonical.function_frames),
+                        "planned_frame_bytes": dict(image.function_frames),
                         "implicit_optimizer_used": False}
             elif claim == "encoding_check":
                 subject = args["subject"]

@@ -115,14 +115,24 @@ NATIVE_AGENT_ADDITIONS = (
     'hepta/hia_machine_x64.py',
     'hepta/hia_program_native.py',
 )
+# The unified candidate extends the reviewed native-Agent inventory explicitly;
+# its five new compiler_hash inputs do not alter the historical 323-path tuple.
+P0_P3_ADDITIONS = (
+    'hepta/hia_agent_macro_discovery.py',
+    'hepta/hia_agent_macro_policy.py',
+    'hepta/hia_machine_plan.py',
+    'hepta/hia_native_byte_abi.py',
+    'hepta/hia_native_byte_runner.py',
+)
 # The legacy identity cap describes 239 source records. The reviewed shared
-# closure has 323 source records and the same 780 support records: canonical
+# closure has 328 source records and the same 780 support records: canonical
 # JSON with seven-/nineteen-digit byte counts and fixed hash widths is exactly
-# 156044 bytes. This covers all 84 reviewed additions; the latest nine account
-# for 1098 bytes. Transfer only the 11331-byte increase from raw logs; keep the
+# 156678 bytes. The historical 323-path projection still occupies 156044 bytes;
+# these five additions cost 634 bytes. Transfer only the full 11965-byte
+# increase over the legacy identity from raw logs; keep the
 # legacy protocol and the aggregate evidence, source, module and time caps.
-IDENTITY_CAP = 156044
-IDENTITY_RESERVE_DELTA = 11331
+IDENTITY_CAP = 156678
+IDENTITY_RESERVE_DELTA = 11965
 METADATA_RESERVE = 224589 + IDENTITY_RESERVE_DELTA
 RAW_GLOBAL = 819891 - IDENTITY_RESERVE_DELTA
 BUDGETS = dict(source=2097152, sources=8388608, module=33554432, modules=134217728,
@@ -209,15 +219,18 @@ def flags(success=False):
 # Frozen exact identity paths: do not hash files merely to discover their names.
 SOURCE_IDENTITY_PATHS = tuple(sorted((*legacy.SOURCE_IDENTITY_PATHS, *ADDITIONS,
                                     *ROUND6_ADDITIONS, *LINUX_ADDITIONS,
-                                    *NATIVE_AGENT_ADDITIONS)))
+                                    *NATIVE_AGENT_ADDITIONS, *P0_P3_ADDITIONS)))
 SUPPORT_IDENTITY_PATHS = legacy.SUPPORT_IDENTITY_PATHS
 
 
 def source_paths():
     legacy.source_paths()  # retain the exact earlier source identity closure
     paths = SOURCE_IDENTITY_PATHS
-    require(len(paths) == len(set(paths)) == 323 and commitment(paths) == 'd999ff7dc718330771ddb745dbed6a5a7ecdcdea8f9011e35f0a07417f09b9c0',
+    require(len(paths) == len(set(paths)) == 328 and commitment(paths) == '77fb9af75d987acab91d224cf47c5e6734f8c6eb9c4fa895064fba306289a016',
             'reviewed exact source identity closure')
+    previous = tuple(name for name in paths if name not in P0_P3_ADDITIONS)
+    require(len(previous) == 323 and commitment(previous) == 'd999ff7dc718330771ddb745dbed6a5a7ecdcdea8f9011e35f0a07417f09b9c0',
+            'historical native-Agent source identity projection')
     # pipeline.compiler_hash reads every actual top-level hepta/*.py byte,
     # including modules that are not imported by this selected proof profile.
     # Reject an extra or absent filename before an external identity is built.

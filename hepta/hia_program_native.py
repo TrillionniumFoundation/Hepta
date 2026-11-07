@@ -76,7 +76,7 @@ def _implementation_hash():
     for name in (
         "hia_schema.py", "hia_program.py", "hia_capability_flow.py", "hia_opcodes.py",
         "hia_json_preflight.py", "hia_program_composite.py", "hia_program_native.py",
-        "hia_machine_x64.py", "hia_machine_elf.py", "hia_agent_exec.py", "hia_static_budget.py",
+        "hia_machine_x64.py", "hia_machine_elf.py", "hia_machine_plan.py", "hia_native_byte_abi.py", "hia_agent_exec.py", "hia_static_budget.py",
         "hia_heap_bound.py", "artifact_publication.py",
         "clang_capture.py", "elf_shared_abi.py", "object_symbols.py",
         "object_structure.py", "native_tool_identity.py",
@@ -131,6 +131,7 @@ class HIAProgramMachine:
     input_sha256: str
     function_frames: tuple[tuple[str, int], ...]
     machine_plan_sha256: str | None = None
+    foreign_buffer_exports: tuple[tuple[str, int], ...] = ()
 
 
 class _Function:
@@ -139,6 +140,9 @@ class _Function:
         self.c = parent.c
         self.cursor = 8  # saved output-array pointer at rbp-8
         self.slots, self.types = {}, {}
+        plan = parent.machine_plan or {}
+        self.value_registers = plan.get("value_registers", {}).get(fn["name"], {})
+        self.scalar_select = plan.get("instruction_selection", {}).get("scalar_select", "branch")
         self.blocks = {b["id"]: b for b in fn["blocks"]}
         for block in fn["blocks"]:
             definitions = block["params"] + [out for op in block["ops"] for out in op["out"]]
@@ -154,6 +158,12 @@ class _Function:
         self.call_slot = self.allocate(max(1, self.call_words))
         self.result_slot = self.allocate(max(1, self.result_words))
         self.temporary = self.allocate(4)
+        from .hia_machine_plan import VALUE_REGISTERS
+        # Keep canonical staging/temporary locations disjoint from saved ABI
+        # registers. A selected SSA value lives only in its checked register;
+        # its canonical slot is reserved but no stale spill is ever read.
+        self.saved_registers = {reg: self.allocate(1) for reg in VALUE_REGISTERS
+                                if reg in self.value_registers.values()}
         self.frame = (self.cursor + 15) & -16
         if self.frame > MAX_FRAME_BYTES:
             _reject("function stack frame exceeds 64 KiB: " + fn["name"], "E_HIA_PROGRAM_LIMIT")
@@ -170,10 +180,20 @@ class _Function:
         return "fn" + str(self.index) + "_block_" + name
 
     def load(self, name, reg="rax", word=0):
-        self.c.load(reg, "rbp", self.slots[name] + word * 8)
+        if name in self.value_registers:
+            if word:
+                _reject("multiword value cannot use the scalar register plan", "E_HIA_MACHINE_PLAN")
+            self.c.mov_rr(reg, self.value_registers[name])
+        else:
+            self.c.load(reg, "rbp", self.slots[name] + word * 8)
 
     def store(self, name, reg="rax", word=0):
-        self.c.store("rbp", self.slots[name] + word * 8, reg)
+        if name in self.value_registers:
+            if word:
+                _reject("multiword value cannot use the scalar register plan", "E_HIA_MACHINE_PLAN")
+            self.c.mov_rr(self.value_registers[name], reg)
+        else:
+            self.c.store("rbp", self.slots[name] + word * 8, reg)
 
     def immediate(self, name, value, word=0):
         self.c.mov_imm("rax", int(value) & ((1 << 64) - 1))
@@ -308,10 +328,18 @@ class _Function:
                 self.range_check("rax", dest, typ)
             _normalize(c, "rax", dest); self.store(out[0])
         elif op == "select":
-            yes, done = self.label("select_yes"), self.label("select_done")
-            self.load(args[0]); c.test("rax", "rax"); c.jcc("ne", yes)
-            self.copy(args[2], out[0]); c.jmp(done)
-            c.label(yes); self.copy(args[1], out[0]); c.label(done)
+            if self.scalar_select == "cmov_scalar":
+                # Core SELECT admits only already-defined nonresource values.
+                # Register-only CMOV adds no conditional memory read or effect;
+                # loading these scalar representations uses flag-preserving MOV.
+                self.load(args[0]); c.test("rax", "rax")
+                self.load(args[2]); self.load(args[1], "rcx")
+                c.cmov("ne", "rax", "rcx"); self.store(out[0])
+            else:
+                yes, done = self.label("select_yes"), self.label("select_done")
+                self.load(args[0]); c.test("rax", "rax"); c.jcc("ne", yes)
+                self.copy(args[2], out[0]); c.jmp(done)
+                c.label(yes); self.copy(args[1], out[0]); c.label(done)
         elif op == "call":
             n = 0
             for arg in args:
@@ -483,6 +511,8 @@ class _Function:
         c = self.c
         begin = len(c.data)
         _prologue(c, self.frame)
+        for register, slot in self.saved_registers.items():
+            c.store("rbp", slot, register)
         c.store("rbp", -8, "rsi")
         n = 0
         for param in self.fn["params"]:
@@ -509,6 +539,8 @@ class _Function:
                 for arg in term["values"]:
                     for word in range(_words(self.types[arg])):
                         self.load(arg, word=word); c.store("r10", n * 8, "rax"); n += 1
+                for register, slot in self.saved_registers.items():
+                    c.load(register, "rbp", slot)
                 c.leave(); c.ret()
             else:
                 _reject("unknown native terminator")
@@ -521,12 +553,16 @@ class _Function:
 
 
 class _Emitter:
-    def __init__(self, document, allowed_exports, block_order=None):
+    def __init__(self, document, allowed_exports, block_order=None, foreign_buffer_exports=(), machine_plan=None):
+        from .hia_machine_plan import code_options
         self.document, self.allowed_exports = document, allowed_exports
-        self.c, self.symbols, self.exports, self.frames = Code(), [], [], []
+        self.c, self.symbols, self.exports, self.frames = Code(**code_options(machine_plan)), [], [], []
+        self.machine_plan = machine_plan
+        self.function_alignment = 1 if machine_plan is None else machine_plan.get("function_alignment", 1)
         self.indices = {fn["name"]: i for i, fn in enumerate(document["functions"])}
         self.serial = 0
         self.block_order = block_order or {}
+        self.foreign_buffer_exports = dict(foreign_buffer_exports)
 
     def ordered_blocks(self, fn):
         """Realize the caller's checked layout; never choose a profitable order."""
@@ -545,6 +581,10 @@ class _Emitter:
 
     def wrapper(self, fn):
         name = fn["name"]
+        if name in self.foreign_buffer_exports:
+            from .hia_native_byte_abi import emit_wrapper
+            emit_wrapper(self, fn, self.foreign_buffer_exports[name])
+            return
         if (name not in self.allowed_exports
                 or any(p["type"] not in set(WIDTHS) | {"bool"} for p in fn["params"])
                 or len(fn["returns"]) > 1
@@ -594,53 +634,44 @@ class _Emitter:
                     types.extend(p["type"] for p in instruction["out"])
             if any(typ not in _TYPES for typ in types):
                 _reject("type lacks a reviewed direct lowering", "E_HIA_PROGRAM_PROFILE")
-        for i, fn in enumerate(self.document["functions"]):
-            _Function(self, fn, i).render()
-        for fn in self.document["functions"]:
+        functions = self.document["functions"]
+        if self.machine_plan is not None and "function_order" in self.machine_plan:
+            by_name = {fn["name"]: fn for fn in functions}
+            functions = [by_name[name] for name in self.machine_plan["function_order"]]
+        for fn in functions:
+            self.c.align(self.function_alignment)
+            _Function(self, fn, self.indices[fn["name"]]).render()
+        for fn in functions:
+            self.c.align(self.function_alignment)
             self.wrapper(fn)
         missing = set(self.document.get("exports", [])) - set(self.exports)
         if missing:
             _reject("explicit exports have signatures outside the native C ABI: " + ", ".join(sorted(missing)), "E_HIA_PROGRAM_ABI")
         if not 1 <= len(self.exports) <= 128:
-            _reject("native profile requires between 1 and 128 scalar entrypoints")
+            _reject("native profile requires between 1 and 128 admitted entrypoints")
         if len(self.c.data) > MAX_TEXT_BYTES:
             _reject("direct code exceeds the text budget", "E_HIA_PROGRAM_LIMIT")
         text, relocations = self.c.finalize()
-        obj = write_elf_object(text, self.symbols, relocations)
+        obj = write_elf_object(text, self.symbols, relocations,
+                               text_alignment=max(16, self.function_alignment))
         return text, obj
 
 
 def validate_block_layout_plan(program, machine_plan):
-    """Check the finite layout-only profile against the original immutable Core.
+    """Compatibility entry for v1 layouts and explicit v2 machine choices.
 
-    Every block ends in an explicit transfer, including entry and return. A
-    permutation changes addresses/fixups only: value slots, instructions and
-    resource/call order within each executed path remain canonical. This check
-    does not prove the canonical backend's Core-to-x86 refinement.
+    This checks a finite preservation contract relative to canonical lowering;
+    it is not a universal Core-to-machine semantic proof.
     """
     from .hia_program import verify_program
-    checked = verify_program(program)
-    if type(machine_plan) is not dict or set(machine_plan) != {"schema", "core_sha256", "block_order"}:
-        _reject("layout plan requires exactly schema, core_sha256 and block_order", "E_HIA_MACHINE_PLAN")
-    if machine_plan["schema"] != "hepta.hia.agent.block-layout.v1" or machine_plan["core_sha256"] != checked.sha256:
-        _reject("layout plan schema or Core binding differs", "E_HIA_MACHINE_PLAN")
-    orders = machine_plan["block_order"]
-    if type(orders) is not dict or not orders:
-        _reject("layout plan requires at least one explicit function order", "E_HIA_MACHINE_PLAN")
-    functions = {fn["name"]: fn for fn in checked.as_dict()["functions"]}
-    frozen = {}
-    for name, order in orders.items():
-        if type(name) is not str or name not in functions or type(order) is not list:
-            _reject("layout plan names an unknown function/order", "E_HIA_MACHINE_PLAN")
-        blocks = {block["id"] for block in functions[name]["blocks"]}
-        if (len(order) != len(blocks) or any(type(item) is not str for item in order)
-                or set(order) != blocks):
-            _reject("layout must be an exact permutation of every function block", "E_HIA_MACHINE_PLAN")
-        frozen[name] = list(order)
-    return {"schema": machine_plan["schema"], "core_sha256": checked.sha256, "block_order": frozen}
+    from .hia_machine_plan import MachinePlanRejected, validate_plan
+    try:
+        return validate_plan(verify_program(program), machine_plan)
+    except MachinePlanRejected as exc:
+        _reject(str(exc).split(": ", 1)[-1], "E_HIA_MACHINE_PLAN")
 
 
-def emit_program_machine(program, *, target=TARGET, machine_plan=None):
+def emit_program_machine(program, *, target=TARGET, machine_plan=None, foreign_buffer_exports=()):
     """Recheck immutable Core and emit deterministic native object bytes."""
     from .hia_program import VerifiedProgram, verify_program
     if target != TARGET:
@@ -652,11 +683,13 @@ def emit_program_machine(program, *, target=TARGET, machine_plan=None):
     if (checked.canonical_bytes != program.canonical_bytes
             or checked.input_sha256 != program.input_sha256):
         _reject("verified program identity changed", "E_HIA_PROGRAM_ORIGIN")
+    from .hia_native_byte_abi import normalize_exports, PROFILE as BYTE_PROFILE
+    byte_exports = normalize_exports(foreign_buffer_exports, checked)
     plan = None if machine_plan is None else validate_block_layout_plan(checked, machine_plan)
     plan_hash = None if plan is None else sha256(json.dumps(
         plan, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")).hexdigest()
     emitter = _Emitter(checked.as_dict(), checked.scalar_entrypoints,
-                       None if plan is None else plan["block_order"])
+                       None if plan is None else plan["block_order"], byte_exports, plan)
     text, obj = emitter.render()
     if len(obj) > MAX_ARTIFACT_BYTES:
         _reject("object exceeds artifact byte budget", "E_HIA_PROGRAM_LIMIT")
@@ -665,8 +698,8 @@ def emit_program_machine(program, *, target=TARGET, machine_plan=None):
     if _implementation_hash() != before:
         _reject("verifier/emitter changed during generation", "E_HIA_PROGRAM_STALE")
     return HIAProgramMachine(obj, text, sha256(obj).hexdigest(), checked.sha256,
-                             before, exports, PROFILE, target, checked.input_sha256,
-                             tuple(emitter.frames), plan_hash)
+                             before, exports, BYTE_PROFILE if byte_exports else PROFILE, target, checked.input_sha256,
+                             tuple(emitter.frames), plan_hash, byte_exports)
 
 
 def _inspect_object(data, exports):
@@ -760,7 +793,8 @@ def compile_program_machine(image, *, program, output, kind="shared", linker="cc
             _reject("native build deadline is exhausted", "E_HIA_PROGRAM_LIMIT")
         return budget
     if not isinstance(image, HIAProgramMachine) or image != emit_program_machine(
-            program, target=image.target, machine_plan=machine_plan):
+            program, target=image.target, machine_plan=machine_plan,
+            foreign_buffer_exports=image.foreign_buffer_exports):
         _reject("machine image differs from independently reverified Core", "E_HIA_PROGRAM_ORIGIN")
     if kind not in {"object", "shared"}:
         _reject("only relocatable objects and shared libraries are supported")
@@ -838,32 +872,38 @@ def compile_program_machine(image, *, program, output, kind="shared", linker="cc
             "binary_inventory": inventory, "build_host": host, "toolchain": toolchain, "flags": flags,
             "function_frames": dict(image.function_frames),
             "machine_plan_sha256": image.machine_plan_sha256,
+            "foreign_buffer_exports": [list(pair) for pair in image.foreign_buffer_exports],
             "implicit_profitability_optimizer_used": False,
             "parent_death_guarded_linker": bool(parent_death_guard) if kind == "shared" else False,
-            "external_abi": "SysV AMD64 scalar C functions; resources and multiple results are internal",
+            "external_abi": ("SysV AMD64 scalar C functions plus explicit synchronous borrowed-byte pointer/length entrypoints"
+                             if image.foreign_buffer_exports else
+                             "SysV AMD64 scalar C functions; resources and multiple results are internal"),
             "runtime_assumptions": ["Linux x86-64 LP64 runtime and ordinary C scalar ABI",
                 "calloc/malloc return null or fresh nonaliasing allocations; calloc initializes every byte",
                 "free releases a live allocation; libc memory functions implement their standard byte semantics",
                 "abort terminates execution; traps do not promise cleanup",
-                "linker, loader, libc and host hardware are trusted; native execution has no VM step/heap/call quotas"],
+                "linker, loader, libc and host hardware are trusted; native execution has no VM step/heap/call quotas"] +
+                (["foreign caller supplies live, correctly sized allocations for the synchronous call",
+                  "mutable foreign ranges are exclusive and read-only ranges are not concurrently mutated",
+                  "numeric guards do not prove allocation provenance or pointer liveness"] if image.foreign_buffer_exports else []),
             "claims": {"standalone_core_reverified": True, "direct_machine_code": True,
                 "llvm_ir_used": False, "llvm_codegen_used": False, "assembler_used": False,
                 "source_ast_required": False, "rust_reference_required": False,
                 "rust_codegen_used": False, "c_codegen_used": False, "fallback_used": False,
                 "external_linker_used": kind == "shared", "native_execution_qualified": False,
                 "backend_refinement_proved": False, "whole_language_soundness_proved": False,
-                "self_hosted": False, "foreign_buffer_entrypoints_exposed": False}}
+                "self_hosted": False, "foreign_buffer_entrypoints_exposed": bool(image.foreign_buffer_exports)}}
 
 
 def build_program_machine(document, output, *, kind="shared", linker="cc", target=TARGET,
-                          command_log=None, bounded_resource_limits=None):
+                          command_log=None, bounded_resource_limits=None, foreign_buffer_exports=()):
     from .hia_program import verify_program
     program = verify_program(document)
     budget = None
     if bounded_resource_limits is not None:
         from .hia_static_budget import qualify_bounded_resources
         budget = qualify_bounded_resources(program, limits=bounded_resource_limits)
-    image = emit_program_machine(program, target=target)
+    image = emit_program_machine(program, target=target, foreign_buffer_exports=foreign_buffer_exports)
     result = compile_program_machine(image, program=program, output=output, kind=kind,
                                      linker=linker, command_log=command_log)
     if budget is not None:
