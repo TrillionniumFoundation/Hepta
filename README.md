@@ -1,49 +1,81 @@
 # Hepta / HIA
 
-HIA is a typed virtual assembly language for programs authored by AI agents and verified optimization, with independent Core semantics, ownership and resource checks, interpretation, and direct LLVM compilation.
+HIA is a typed assembly language for Agent-authored programs, with explicit Core
+semantics, resource checks and native code generation.
 
-This `main` branch currently provides the discovery and installation entry for the fixed candidate below. Use that candidate for the capabilities described here. Complete historical source integration into `main` remains unfinished; existing release gates continue to apply.
+## One release entry
 
-## Fixed candidate
+Use **`python3 -B tools/hia_release.py`** with the default
+[version contract](releases/hia-current.json). That contract binds Hepta, runtime,
+worker, backend, the eleven-tool HIA catalog, target, ABI and the Selfhost-Core
+subset. Full commit hashes and measured file identities select the release.
 
-- **Source:** [`d21359485776c0a9687e88d0f69c8ec06a3b3b98`](https://github.com/TrillionniumFoundation/Hepta/tree/d21359485776c0a9687e88d0f69c8ec06a3b3b98)
-- **Manifest SHA-256:** `4c1e62181f9a611f7e02c00c1b4244e4f343c133b18658260b13bdad8b157a12`
-- **Download:** [candidate bundle, 999,453 bytes](https://github.com/TrillionniumFoundation/Hepta/raw/636c3189722e9bb48c39913e779d688c4e8cbcb3/releases/hia/20261106/candidate-d21359485776.zip), with [offline installation instructions](https://github.com/TrillionniumFoundation/Hepta/blob/636c3189722e9bb48c39913e779d688c4e8cbcb3/releases/hia/20261106/README.md).
-- **Evidence snapshot:** [`636c3189722e9bb48c39913e779d688c4e8cbcb3`](https://github.com/TrillionniumFoundation/Hepta/tree/636c3189722e9bb48c39913e779d688c4e8cbcb3)
-- **Recorded CI run:** [candidate checks](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42263076114)
+This branch supplies release metadata and the entry files. The implementation
+is obtained from the exact source commits in the contract; the checkout of this
+branch is not the worker installation. The source commit precedes the metadata
+commit that carries its lock.
 
-The full local qualification passed 123 regression tests and 20 application tests, with zero skips, identical rebuild bytes and installed native execution. At the 2026-11-06 17:40 UTC CI observation, the remote job was still queued with no assigned runner or executed steps; this is not a remote pass.
-
-The full source commit and manifest digest identify this candidate. Branch names and earlier CI results do not substitute for those identities.
-
-## Rebuild, verify, and install
-
-Use Python 3.11+ and Git on Linux, with the directories below absent. Fetch the complete commit explicitly:
+With Python 3.11+ and Git, inspect the contract and create a new source directory:
 
 ```sh
-set -eu
-git init hia-candidate
-git -C hia-candidate remote add origin https://github.com/TrillionniumFoundation/Hepta.git
-git -C hia-candidate fetch --depth=1 origin d21359485776c0a9687e88d0f69c8ec06a3b3b98
-git -C hia-candidate checkout --detach FETCH_HEAD
-cd hia-candidate
-test "$(git rev-parse HEAD)" = "d21359485776c0a9687e88d0f69c8ec06a3b3b98"
-python3 tools/build_hia_candidate.py --output-directory ../hia-bundle
-python3 tools/build_hia_candidate.py --output-directory ../hia-bundle-repeat
-cmp ../hia-bundle/SHA256SUMS ../hia-bundle-repeat/SHA256SUMS
-python3 tools/verify_hia_candidate.py --candidate-directory ../hia-bundle \
-  --expected-manifest-sha256 4c1e62181f9a611f7e02c00c1b4244e4f343c133b18658260b13bdad8b157a12 --output ../hia-installed.json
-cd ..
-python3 -m venv hia-env
-hia-env/bin/python -I -m pip install --no-index --no-deps hia-bundle/hepta_language-0.2.0+hia.gd21359485776.s0ca27dca9ad8-py3-none-any.whl
-hia-env/bin/python -I -m hepta hia run hia-bundle/counter.hia \
-  --function increment --arguments '[40]'
+python3 -B tools/hia_release.py describe
+python3 -B tools/hia_release.py materialize --directory /absolute/new/hia-release
+python3 -B tools/hia_release.py check \
+  --hepta-root /absolute/new/hia-release/hepta \
+  --runtime-checkout /absolute/new/hia-release/runtime
 ```
 
-The counter must return `41`. The verifier checks exact package bytes and exercises installed verification, interpretation, LLVM emission, and the quota application's initialization, reservation, upgrade, and recovery. For native compilation and execution with an explicit supported Clang 20+ toolchain, follow the [candidate delivery guide](https://github.com/TrillionniumFoundation/Hepta/blob/d21359485776c0a9687e88d0f69c8ec06a3b3b98/docs/HIA_RELEASE_CANDIDATE.md).
+The entry fetches the exact public GitHub commits and measures the declared
+source and installed capability identities. It refuses a different commit, a
+modified required file, a worker bytecode/native shadow, or an existing output
+directory. It does not fall back to another branch or remote. Dependencies and
+the runtime executable must be provided by the environment.
 
-## Scope and evidence
+## Selected contract
 
-This is an experimental, installable candidate. Production qualification, HIA performance or Agent productivity gains, and NDU net benefit are not claimed. The linked receipts record the checks actually performed; LLVM emission alone does not establish execution on another architecture.
+| Component | Selection |
+| --- | --- |
+| Release | `hia-v6-20261107-faa85-r5` |
+| Contract SHA-256 | `82853c9b804ecabc3760d0235b3c3aac54b0e54d838f7255887e070de8b6bab8` |
+| Hepta source | [`3ead0f535c271b07766c5d7c5d15ca69f0f3e8df`](https://github.com/TrillionniumFoundation/Hepta/tree/3ead0f535c271b07766c5d7c5d15ca69f0f3e8df) |
+| Runtime source | [`c53917f4d147fbdb3ce0e094bc9c32a305411866`](https://github.com/TrillionniumFoundation/hepta-runtime/tree/c53917f4d147fbdb3ce0e094bc9c32a305411866) |
+| Target | `x86_64-unknown-linux-gnu`; ELF64 / AMD64 / little-endian / LP64 |
+| ABI | System V AMD64; scalar and explicit borrowed-byte profiles |
+| Core subset | `selfhost-core-linux-x86_64-v6` |
+| Native code generator | `hia-direct` |
 
-See the pinned [compatibility contract](https://github.com/TrillionniumFoundation/Hepta/blob/d21359485776c0a9687e88d0f69c8ec06a3b3b98/docs/HIA_COMPATIBILITY.md), [quota application](https://github.com/TrillionniumFoundation/Hepta/blob/d21359485776c0a9687e88d0f69c8ec06a3b3b98/docs/HIA_QUOTA_APPLICATION.md), and [intelligence and value protocol](https://github.com/TrillionniumFoundation/Hepta/blob/d21359485776c0a9687e88d0f69c8ec06a3b3b98/docs/HIA_INTELLIGENCE_CONTRACT.md) for supported behavior and remaining limits.
+The full worker, backend and catalog digests are in the contract. Read the
+[release guide](docs/HIA_RELEASE_ENTRY.md) for offline local Git transports,
+worker preparation, whole-server discovery and exact binary probes.
+
+## Supported scope and qualification
+
+Selfhost-Core v6 supports its fixed borrowed-buffer subset, bounded ELF object
+profile and direct tail self calls with zero additional native stack frames.
+Non-tail or mutual recursion, owned allocation/free, ownership transfer, newly
+created or returned loans, a general checker, external relocations and general
+ELF linking remain outside that selfhost subset. The complete support matrix,
+seed implementation, compiler source and loader identities are pinned by the
+contract and available in the materialized source.
+
+Cold replay uses a fresh source directory, HOME, temporary directory and isolated
+Python state. It shares the host's kernel, Python executable, linker and libc.
+The required observations are B0→B1→B2→B3, B1=B2=B3, and a changed source reaching
+M2=M3 with M2 different from B2; this is not a fresh-VM guarantee.
+
+Explicit r8/r9 leaf plans are opt-in and have a finite operation whitelist.
+Measured finite-workload results do not establish a default speedup, general
+register allocation or NDU economic benefit.
+
+The source contract is a reproducibility boundary. Formal endpoint operation,
+current-Agent discovery of all eleven tools, production before/after task
+inventories, successful first-use maintenance, CI and complete-cost NDU
+comparisons retain their own acceptance receipts. Selecting this source does
+not turn a held or failed operational gate into a pass.
+
+## Previous candidate
+
+The earlier [d21359485776 candidate](https://github.com/TrillionniumFoundation/Hepta/tree/d21359485776c0a9687e88d0f69c8ec06a3b3b98)
+and its [636c3189722e evidence snapshot](https://github.com/TrillionniumFoundation/Hepta/tree/636c3189722e9bb48c39913e779d688c4e8cbcb3)
+remain historical records. The default contract above selects this entry's
+release; the older candidate is not a second default installation route.
