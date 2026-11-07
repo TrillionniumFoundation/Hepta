@@ -918,7 +918,26 @@ def udp_delivery_evidence(workload, client_document, client_receiver, server_rec
     }
 
 
-def throughput(pair,workload,seconds,cpus,label,perf=None,udp_acceptance=None,record_grace_seconds=15):
+def profile_record_argv(perf, cpus, output, seconds, profile):
+    """Build perf record from the frozen profile budget; never silently use defaults."""
+    if not isinstance(profile, dict):
+        raise ValueError("profile sampling configuration is required")
+    frequency = profile.get("frequency_hz")
+    call_graph = profile.get("call_graph")
+    if type(seconds) is not int or seconds <= 0:
+        raise ValueError("profile duration must be a positive integer")
+    if type(frequency) is not int or not 1 <= frequency <= 1000:
+        raise ValueError("profile frequency must be an integer in [1, 1000]")
+    if not isinstance(call_graph, str) or not call_graph:
+        raise ValueError("profile call graph must be a non-empty string")
+    if not isinstance(cpus, (list, tuple)) or len(cpus) != 2 or len(set(cpus)) != 2:
+        raise ValueError("profile sampling requires two distinct selected CPUs")
+    return [str(perf), "record", "--all-cpus", "--cpu", ",".join(map(str, cpus)),
+            "--freq", str(frequency), "--event", "cpu-clock", "--call-graph", call_graph,
+            "--output", str(output), "--", "sleep", str(seconds + 1)]
+
+
+def throughput(pair,workload,seconds,cpus,label,perf=None,udp_acceptance=None,record_grace_seconds=15,profile_config=None):
     output=pair.folder/(label+'-measurement.json')
     result={'workload':workload,'bidirectional':True,'duration_requested_seconds':seconds,'omit_seconds':0,
             'status':'started','passed':False,'checks':{},'failures':[],
@@ -941,9 +960,10 @@ def throughput(pair,workload,seconds,cpus,label,perf=None,udp_acceptance=None,re
         if perf:
             perf_folder=pair.l.private/'perf'/pair.case;perf_folder.mkdir(parents=True,exist_ok=True)
             perf_file=perf_folder/(label+'.perf.data')
-            perf_job=Job(pair.l,label+'-perf-record',[str(perf),'record','--all-cpus','--cpu',','.join(map(str,cpus)),
-                     '--freq','99','--event','cpu-clock','--call-graph','dwarf,8192','--output',str(perf_file),
-                     '--','sleep',str(seconds+1)],pair.folder)
+            if not isinstance(profile_config, dict):
+                raise ValueError('perf recording requires the frozen profile sampling configuration')
+            perf_job=Job(pair.l,label+'-perf-record',
+                         profile_record_argv(perf,cpus,perf_file,seconds,profile_config),pair.folder)
             pair.jobs.append(perf_job)
         started=time.monotonic();result['traffic_started_monotonic_ns']=time.monotonic_ns()
         client=pair.spawn('client',command,label+'-iperf-client')
@@ -1021,6 +1041,8 @@ def throughput(pair,workload,seconds,cpus,label,perf=None,udp_acceptance=None,re
         result['checks']['both_openvpn_cpu_receipts']=len(result['process_cpu_seconds'])==2
         if perf:
             profile={'passed':False,'raw_stack_file_published':False,
+                     'sampling':{'frequency_hz':profile_config['frequency_hz'],
+                                 'duration_seconds':seconds,'call_graph':profile_config['call_graph']},
                      'scope':'system-wide sampling on the two test vCPUs; includes kernel/shared VM activity; only bounded symbol fields published; raw DWARF stack memory is private and deleted'}
             result['profile']=profile
             try:
@@ -1256,7 +1278,8 @@ def main(argv=None):
                     pair.connected();pair.protocol_gate(False)
                     if row['kind']=='profile':
                         measurement=throughput(pair,{'name':'tcp-profile','transport':'tcp'},plan['profile']['seconds'],selected_cpus,
-                                               'tcp-profile',perf=args.perf,record_grace_seconds=plan['profile']['post_workload_grace_seconds'])
+                                               'tcp-profile',perf=args.perf,record_grace_seconds=plan['profile']['post_workload_grace_seconds'],
+                                               profile_config=plan['profile'])
                         if not measurement['passed'] or not measurement.get('profile',{}).get('passed'):
                             raise RuntimeError('actual tunnel traffic or perf profile failed')
                         pair.result['checks']={'actual_tunnel_profile':True}
