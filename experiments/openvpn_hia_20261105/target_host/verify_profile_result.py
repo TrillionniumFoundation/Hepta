@@ -35,6 +35,16 @@ def require(value, message):
         raise ValueError(message)
 
 
+def verify_profile_sampling(profile, plan_profile):
+    expected = {
+        "frequency_hz": plan_profile["frequency_hz"],
+        "duration_seconds": plan_profile["seconds"],
+        "call_graph": plan_profile["call_graph"],
+    }
+    require(profile.get("sampling") == expected,
+            "actual perf sampling differs from the frozen profile plan")
+
+
 def verify_profile_samples(profile, report_text, client_arm):
     """Require actual process/kernel samples and the exact HIA packet-ID hotspots."""
     require(profile.get("actual_samples_present") is True, "profile contains no actual perf samples")
@@ -234,6 +244,7 @@ def verify(public, expected_commit):
             for peer in peers.values()), "kernel DCO peer counters did not progress")
 
         profile = value.get("profile", {})
+        verify_profile_sampling(profile, plan["profile"])
         require(profile.get("raw_stack_file_published") is False,
                 "raw DWARF/perf stack data must remain private")
         require(profile.get("record", {}).get("exit_code") == 0
