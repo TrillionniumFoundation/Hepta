@@ -50,6 +50,10 @@ execution fallback that can turn an unknown proof result into approval.
    caller-memory effects. For borrowed entrypoints the independent Core-side
    model also covers oversized extents, nonempty null ranges and address-wrap
    rejection before entering Core.
+   Every `CALL` also decrements the stack pointer and checks its implicit
+   return-address store before entering the callee, including nonreturning
+   `abort`. Treating the callee as terminal cannot skip the calling instruction's
+   memory access or admit a stack pointer outside the caller's stack budget.
 
 4. **Relocation and loader authority.** `hia_safe_core_elf.py` compares every
    final text byte against the object, permitting differences only in the exact
@@ -154,10 +158,11 @@ python tools/qualify_hia_safe_core.py --output /tmp/hia-safe-core-qualification
 ```
 
 This runs the full targeted test inventory with no allowed skips, builds three
-positive examples, retains four wrong-backend object/image pairs, and replays
+positive examples, retains five wrong-backend object/image pairs, and replays
 every retained query with a fresh solver context. The wrong producers mutate
 addition into subtraction, admit the equal-to-extent byte access, emit an
-eight-byte store in place of a byte store, and clobber a callee-saved register.
+eight-byte store in place of a byte store, clobber a callee-saved register, and
+set `RSP` to zero immediately before the nonreturning `abort` call.
 They are accepted by their own image regeneration step and must still produce
 real semantic `sat` counterexamples in the independent checker.
 

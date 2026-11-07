@@ -334,11 +334,14 @@ class Executor:
                 elif op == "call":
                     self.abi_faults.append(z.And(state.path, (regs[4] & self.value(15)) != 0))
                     target = self.calls[state.pc]
+                    # CALL writes its return address before entering either a
+                    # local function or a nonreturning external one.  Modelling
+                    # abort as terminal must not erase this stack memory access.
+                    regs[4] = z.simplify(regs[4] - self.value(8))
+                    self.memory(state, regs[4], 8, self.codebase + self.value(nextpc))
                     if target == "abort":
                         self.outcomes.append(dict(kind="abort", path=state.path, value=self.value(0), memory=state.memory))
                         break
-                    regs[4] = z.simplify(regs[4] - self.value(8))
-                    self.memory(state, regs[4], 8, self.codebase + self.value(nextpc))
                     state.pc = target
                     continue
                 elif op == "ret":

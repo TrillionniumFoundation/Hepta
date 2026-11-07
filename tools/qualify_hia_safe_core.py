@@ -1,4 +1,4 @@
-"""Retain exact Safe Core images, five raw SMT obligations and four SAT mutants.
+"""Retain exact Safe Core images, five raw SMT obligations and five SAT mutants.
 
 The qualification also requires the complete targeted adversarial/native test
 inventory with zero skips.  Finite native execution and all-input SMT model
@@ -82,6 +82,14 @@ def _mutant(name):
             original(code)
         with patch.object(Code, "ret", clobber):
             yield
+    elif name == "nonreturning_abort_uses_invalid_stack":
+        original = Code.call
+        def corrupt_stack(code, symbol):
+            if symbol == "abort":
+                code.mov_imm("rsp", 0)
+            return original(code, symbol)
+        with patch.object(Code, "call", corrupt_stack):
+            yield
     else:
         raise ValueError("unknown negative mutation")
 
@@ -120,7 +128,8 @@ def qualify(output):
         for name, case, extent in (("addition_becomes_subtraction", "scalar_add", None),
                                    ("equal_extent_is_admitted", "read_byte", 64),
                                    ("byte_store_becomes_word_store", "guarded_update", 4096),
-                                   ("callee_saved_rbx_is_clobbered", "scalar_add", None)):
+                                   ("callee_saved_rbx_is_clobbered", "scalar_add", None),
+                                   ("nonreturning_abort_uses_invalid_stack", "read_byte", 64)):
             path = output / name
             path.mkdir()
             tick = time.monotonic()

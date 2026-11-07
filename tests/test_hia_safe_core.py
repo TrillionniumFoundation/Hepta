@@ -190,6 +190,40 @@ class SafeCoreTests(unittest.TestCase):
                 build_safe_core(arithmetic("int.add.wrap", "u32"), self.newpath("clobber.so"))
         self.assertEqual(caught.exception.counterexample["obligation"], "sysv_stack_alignment_and_preservation")
 
+    def test_nonreturning_abort_call_must_still_write_to_the_admitted_stack(self):
+        original = Code.call
+        def corrupt_stack(code, symbol):
+            if symbol == "abort":
+                code.mov_imm("rsp", 0)
+            return original(code, symbol)
+        for name, core, extent in (("scalar", arithmetic("int.add.checked", "u32"), None),
+                                   ("borrowed", read_byte(), 64)):
+            output = self.newpath(name + "-invalid-abort-stack.so")
+            with self.subTest(entry=name), patch.object(Code, "call", corrupt_stack):
+                with self.assertRaises(SafeCoreRejected) as caught:
+                    build_safe_core(core, output, foreign_extent=extent)
+                self.assertFalse(output.exists())
+                witness = caught.exception.counterexample
+                self.assertEqual(witness["obligation"], "machine_memory_access_bounds")
+                if name == "scalar":
+                    left, right = (word & 0xffffffff for word in witness["abi_words"])
+                    self.assertGreater(left + right, 0xffffffff)
+                else:
+                    self.assertGreaterEqual(witness["abi_words"][2], witness["abi_words"][1])
+
+    def test_nonreturning_abort_call_cannot_push_beyond_the_declared_stack(self):
+        original = Code.call
+        def exhaust_stack(code, symbol):
+            if symbol == "abort":
+                code.mov_imm("rax", 16384)
+                code.sub("rsp", "rax")
+            return original(code, symbol)
+        output = self.newpath("exhausted-abort-stack.so")
+        with patch.object(Code, "call", exhaust_stack):
+            with self.assertRaisesRegex(ValueError, "bounded displacement of the caller stack"):
+                build_safe_core(arithmetic("int.add.checked", "u32"), output)
+        self.assertFalse(output.exists())
+
     def test_final_instruction_byte_change_cannot_reuse_source_or_a_receipt(self):
         changed = bytearray(self.data)
         changed[self.elf.section(".text")["offset"] + 1] ^= 1
