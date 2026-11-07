@@ -1,0 +1,62 @@
+name: HCSN P2 validity cross-talk exact-head negative (HOLD)
+on:
+  push:
+    branches:
+      - research/hcsn-p2-validity-cross-talk-exact-20261107-gpt6-01
+  pull_request:
+    branches:
+      - research/hcsn-edge-refractory-negative-20261031-gpt6
+permissions:
+  contents: read
+jobs:
+  validity-cross-talk-negative:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    env:
+      EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Verify exact source and committed evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          node --version
+          test "$(git hash-object research/hcsn/p2_validity_cross_talk_reference.mjs)" = c8d98b5d3db494561bdc4a66249abe56f6ac852d
+          test "$(git hash-object research/hcsn/test_p2_validity_cross_talk_reference.mjs)" = a971ccd43f76e0a3145c279f3d4764e18781252a
+          test "$(git hash-object research/hcsn/gates/2026-11-05-iteration42-validity-cross-talk-raw.json)" = 15142ba258c36f634a5ed69a83ce670894b5540d
+          test "$(git hash-object research/hcsn/gates/2026-11-05-iteration42-validity-cross-talk.md)" = 8c8aa62370f31ad646238ef045af72d04f2dccb8
+          test "$(git hash-object research/hcsn/gates/2026-11-05-iteration42-SHA256SUMS.txt)" = 6d603b5af0fe2de81e2e44e1976c6d6c6528b43a
+          (cd research/hcsn && sha256sum -c gates/2026-11-05-iteration42-SHA256SUMS.txt)
+      - name: Run source-bound rational counterexample tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test --test-reporter=tap research/hcsn/test_p2_validity_cross_talk_reference.mjs | tee "$RUNNER_TEMP/hcsn42-tests.tap"
+          grep -Fx '# tests 5' "$RUNNER_TEMP/hcsn42-tests.tap"
+          grep -Fx '# pass 5' "$RUNNER_TEMP/hcsn42-tests.tap"
+          grep -Fx '# fail 0' "$RUNNER_TEMP/hcsn42-tests.tap"
+          grep -Fx '# skipped 0' "$RUNNER_TEMP/hcsn42-tests.tap"
+      - name: Reproduce raw JSON and require strict non-acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          node research/hcsn/p2_validity_cross_talk_reference.mjs > "$RUNNER_TEMP/hcsn42.json"
+          cmp "$RUNNER_TEMP/hcsn42.json" research/hcsn/gates/2026-11-05-iteration42-validity-cross-talk-raw.json
+          set +e
+          node research/hcsn/p2_validity_cross_talk_reference.mjs --strict > "$RUNNER_TEMP/hcsn42-strict.json"
+          code=$?
+          set -e
+          test "$code" -eq 2
+          cmp "$RUNNER_TEMP/hcsn42.json" "$RUNNER_TEMP/hcsn42-strict.json"
+          echo "HOLD: algebraic validity cross-talk witness only; P0-P6 remain OPEN; production activation false"
