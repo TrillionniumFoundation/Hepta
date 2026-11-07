@@ -1,0 +1,1414 @@
+diff --git a/tools/hia-probe/P0_P7_STATUS.md b/tools/hia-probe/P0_P7_STATUS.md
+new file mode 100644
+index 0000000..1705938
+--- /dev/null
++++ b/tools/hia-probe/P0_P7_STATUS.md
+@@ -0,0 +1,29 @@
++# P0–P7 closeout ledger — research-only independent probe
++
++Date: 2026-10-31. All project-level `blocker_closed` values remain **false**.
++
++| Gate | Executed in this kit | Scope actually supported | Remaining blocker / next action |
++|---|---|---|---|
++| P0 shared semantics | Independent, strict `u32` SSA verifier and parser, checked/wrap semantics, adversarial tests | One block; research JSON schema separate from canonical HIA | Compare exact SHA/version against `hepta.hia_opcodes`, `hia_schema`, `hia_program`, Python VM, Rust verifier and LLVM; generate one registry and versioned adapters; run canonical source-bound tests |
++| P1 resources and failures | Straight-line owner/loan/static peak payload, negative alias/double-drop cases; checked arithmetic with explicit overflow/div-zero/shift traps and real native status ABI | Straight line, no host crash/cancellation, true heap RSS or native stack bound | Prove whole control-flow borrow and cleanup; allocator failure schedule, trap ledger, cooperative cancel, interruption, parallelism; independent Rust and formal checks |
++| P2 real ABI | Actual GCC + Clang generated shared objects and C/C++ C ABI executable consumer on local machine | Host-specific `u32` ABI, C++ demo; 32-bit unsigned assumption asserted | x86-64 and AArch64 system ABI, cross-compiler/native artifacts, layouts, complete back-end refinement, physical device test |
++| P3 `c2hepta` | Clang AST source to standalone strict research u32 Core; original C vs generated C/VM differential | Single unsigned-return C function and supported scalar operators, no macros/includes/global/calls/control flow | Replace/prove against canonical translator, real maintained existing C project, original headers/build/clients, upstream upgrade, fault injection, measured human time |
++| P4 C++ | Real Clang++/G++ toy C++ RAII, exception, stale-handle, C ABI call | Demo component, one session, no real external library | Migrate actual version-pinned C++ dependency, upstream upgrade, exception/RTTI/template/inheritance cases, record engineering hours |
++| P5 global optimizer | Finite oracle+DP, full seven-component declared one-time costs, abstention when no positive benefit | Synthetic accounting, not actual optimized Hepta/Rust timings | Freeze prospective workloads; benchmark optimized Rust and Clang LTO/PGO; verify e-graph/SMT transforms; prove *real* positive full net benefit |
++| P6 NDU value | Same-information fixed, greedy, exact DP, exhaustive experimental controls; `native_ndu=UNAVAILABLE` | Does NOT run original Rust NDU or native bridge | Reconnect original Rust NDU `evaluate_recursive_utility` and `evaluate_candidates_with_policy`; same candidates/info/budgets, independently measured controller cost, prospective holdout |
++| P7 production/Agents | Full test log and artifact hash inventory for this probe | Offline toy profiles only | Rust/Lean/Agent fresh hidden tasks, actual maintenance costs, RSS/p95/p99, real CPU/GPU/AArch64, crash/restart/rollback, production version gate, independent audit |
++
++## Trust boundary
++
++This kit is an **advisory test input**. Its receipts carry `DENY_ALL` and cannot prove/authorize arbitrary transformed binaries. The separate Hepta canonical admission authority must verify every actual Core, invocation, target and artifact at the time of execution. A verified digest, by itself, does not authenticate who verified it.
++
++## Highest-priority integration actions when access returns
++
++1. Freeze *current* main and HIA active candidate HEADs and exact toolchains. Do not assume last session's `125d11c5454835a7df1dc51915fc49901fbede5b` main or `3201298a9828927452d42bcac146e610e1348a7f` candidate remains current.
++2. Check the new probe against the existing instruction contracts; any contradictory behavior must produce **REJECT**, not silently change the production Core. Do not add a second public compiler.
++3. Integrate only independently useful regression cases into existing canonical tests/validators; preserve original P0–P7 evidence and current active stacks.
++4. Run exact-head Rust/LLVM/source migration tests and native ABI qualification on x86-64 and AArch64.
++5. Register real unseen workload baselines and the full optimization cost ledger **before** candidate selection; use the original native NDU, fixed, DP and exhaustive controls.
++6. Only mark a blocker closed with source-bound independently reproducible receipts. Negative advantages remain negative and do not block documenting partial technical progress.
++
++GitHub connector blocker at execution time: **403 `Sorry. Your account was suspended`**. No changes were pushed to either repository.
+diff --git a/tools/hia-probe/README.md b/tools/hia-probe/README.md
+new file mode 100644
+index 0000000..d401bfb
+--- /dev/null
++++ b/tools/hia-probe/README.md
+@@ -0,0 +1,57 @@
++# Hepta Intelligent Assembly — independent P0–P7 qualification probe
++
++**Research-only, `DENY_ALL`, not integrated into Hepta.**
++
++This additive kit is an independently written **bounded-profile experiment**, not a copy of `hepta.hia_program` and not a proposal to replace it. It tests whether a strict `u32` SSA/Clang/owner prototype can reject unsafe inputs, reproduce real native results, and account honestly for optimization costs.
++
++## Verified local scope
++
++- `hia_probe.py`: explicit schema, closed single-block SSA, `u32` wrap arithmetic, checked arithmetic/traps, bounded Clang AST conversion for one C function, real GCC/Clang C output and fail-closed straight-line owned-byte resource analysis.
++- `test_probe.py`: adversarial parsing, schema, type, SSI/SSA, ownership, C translation and independent original-C / generated-C / interpreter differential checks.
++- `test_traps.py`: traps are observable. Checked arithmetic uses a separate status-return ABI and compares against actual GCC/Clang output, including negative cases.
++- `cpp_bridge_fixture.cpp`, `cpp_c_consumer.c`, `test_cpp_bridge.py`: real, **toy** C-to-C++ ABI, RAII/exception/handle-generation controls compiled and run under Clang and GCC families. This is **not** a third-party library migration.
++- `economic_probe.py`, `test_economic_probe.py`: full declared one-time cost accounting and same-information fixed/greedy/exact-DP/exhaustive controls, with a native NDU **UNAVAILABLE** marker. Numbers in the fixture are synthetic, **not** an observed application speedup.
++- `qualify.py`: executes all tests and writes a source-bound machine-readable receipt to `evidence/`; complete negative outcomes remain visible.
++
++No Rust, Lean, GPU, ARM64, real third-party maintenance cycle or existing Hepta checks are run in this kit.
++
++## Run on a Linux host
++
++Requirements: Python 3.10+, Clang + Clang++, GCC + G++ (for full native differential qualification).
++
++```bash
++python3 -m unittest discover -p 'test_*.py' -v
++python3 qualify.py
++```
++
++All tests are written with `unittest`; no Python package download is needed. The native tests compile and actually execute shared libraries and C/C++ consumers. Any missing native tool causes a reported skip, and `qualify.py` marks skip-containing runs as unqualified.
++
++## Integration after GitHub access is restored
++
++The repository-relative additive path is intended to be `tools/hia-probe/` in `TrillionniumFoundation/Hepta`. The sibling `add_hia_probe.patch` contains the source addition; **do not apply blindly**:
++
++```bash
++cd /path/to/Hepta
++# Compare exact base source & branch first; do not modify active stacked PRs.
++git apply --check /path/to/add_hia_probe.patch
++git apply /path/to/add_hia_probe.patch
++python3 tools/hia-probe/qualify.py
++```
++
++Keep the changes on a new branch and open a draft PR. Only after independently rerunning current Hepta canonical and Rust/LLVM gates should this be used as supplementary evidence. The kit does not invoke or bypass the production `verify_program`, nor does it publish a native executable to a production route.
++
++## Security/trust limits
++
++1. The schema `hepta.audit.scalar-u32.v1` is a **separate research schema**. It is **not** a released Hepta Core profile. The `const`, wrap/checked arithmetic semantics are limited to 32-bit unsigned scalars, one SSA block, no calls/branches/loops, and checked traps only in this prototype.
++2. The resource checker is straight-line with explicit allocate/move/borrow/end/drop operations. It has no whole-language lifetime theorem, nonlocal exits, allocator failure semantics, async cancellation, concurrency, foreign pointers, DMA, memory-mapped I/O, stack/RSS bounds or crash recovery. `peak_payload_bytes` excludes allocator metadata and process RSS.
++3. Migration accepts one `unsigned int` return-expression function and only explicitly allowed operators. It rejects whole translation units containing unsupported top-level declarations. Clang AST must be bounded. It is **not** a general C99/C11 translator.
++4. `unsigned int` width is checked to be 32 bits by native `_Static_assert`. The local C ABI tests prove only the observed toolchain/platform slice. Native and source semantics are not universally proved.
++5. The C++ fixture has a mutex-protected generation handle and exception-to-error conversion; its correctness on a toy case does not establish a generic C++ ABI or fully safe foreign library ecosystem.
++6. The cost planner trusts its supplied dataset and evidence digests; it **never authorizes execution**. Synthetic positive numbers are not real performance evidence. Unknown one-time cost components are refused, and NDU is not replaced by a mock that claims victory.
++7. Regressions, bounded cross-compilation observations, and tests are not full-machine refinement or proof of superiority to optimized Rust.
++
++## Repository access limitation
++
++During this session, the installed GitHub connector returned `403` with `Sorry. Your account was suspended` on both target repositories, including read-only requests. No remote branch, commit, PR, or merge has been created. Current main/PR HEADs could not be refreshed; prior referenced SHAs are historical provenance, not current status.
++
++See `P0_P7_STATUS.md` for strict gate-by-gate blockers.
+diff --git a/tools/hia-probe/cpp_bridge_fixture.cpp b/tools/hia-probe/cpp_bridge_fixture.cpp
+new file mode 100644
+index 0000000..3911a31
+--- /dev/null
++++ b/tools/hia-probe/cpp_bridge_fixture.cpp
+@@ -0,0 +1,89 @@
++// Deliberately tiny C++-to-C ABI lifetime probe; NOT a third-party library migration.
++#include <cstdint>
++#include <climits>
++#include <memory>
++#include <new>
++#include <stdexcept>
++#include <array>
++#include <limits>
++#include <mutex>
++
++namespace {
++constexpr std::size_t CAPACITY=16;
++struct Resource {
++    explicit Resource(std::int32_t value) : value_(value) { ++constructed; }
++    ~Resource() noexcept { ++destroyed; }
++    std::int32_t value_;
++    static inline std::uint64_t constructed=0;
++    static inline std::uint64_t destroyed=0;
++};
++struct Slot {
++    std::unique_ptr<Resource> owner;
++    std::uint64_t generation=0;
++};
++std::mutex mtx;
++std::array<Slot,CAPACITY> slots;
++std::uint64_t encode(std::size_t index,std::uint64_t gen) {
++    return (gen << 8) | static_cast<std::uint64_t>(index+1);
++}
++Slot* decode(std::uint64_t handle) {
++    const std::uint64_t index_byte=handle & 255u;
++    if(index_byte==0 || index_byte>CAPACITY) return nullptr;
++    Slot &slot=slots[index_byte-1];
++    if(!slot.owner || slot.generation!=(handle>>8)) return nullptr;
++    return &slot;
++}
++}
++
++extern "C" {
++// 0 means failed creation. The returned integer is opaque to the C consumer.
++std::uint64_t hia_cpp_new(std::int32_t initial) noexcept {
++    try {
++        std::lock_guard<std::mutex> lock(mtx);
++        for(std::size_t i=0;i<CAPACITY;i++){
++            Slot &slot=slots[i];
++            if(!slot.owner){
++                if(slot.generation>=((std::numeric_limits<std::uint64_t>::max)() >> 8)-1u) return 0;
++                auto created=std::make_unique<Resource>(initial);
++                ++slot.generation;
++                slot.owner=std::move(created);
++                return encode(i,slot.generation);
++            }
++        }
++    } catch(...) { return 0; }
++    return 0;
++}
++
++// status: 0=OK, 1=stale, 2=bad outptr, 3=explicit exception, 4=range.
++int hia_cpp_step(std::uint64_t handle,std::int32_t delta,std::int32_t *out) noexcept {
++    if(!out) return 2;
++    try {
++        std::lock_guard<std::mutex> lock(mtx);
++        Slot *slot=decode(handle);
++        if(!slot) return 1;
++        if(delta==INT32_MIN) throw std::runtime_error("deliberate exception boundary test");
++        const std::int64_t value=static_cast<std::int64_t>(slot->owner->value_)+delta;
++        if(value<INT32_MIN || value>INT32_MAX) return 4;
++        slot->owner->value_=static_cast<std::int32_t>(value);
++        *out=slot->owner->value_;
++        return 0;
++    } catch(...) { return 3; }
++}
++
++int hia_cpp_delete(std::uint64_t handle) noexcept {
++    try {
++        std::lock_guard<std::mutex> lock(mtx);
++        Slot *slot=decode(handle);
++        if(!slot) return 1;
++        slot->owner.reset();
++        return 0;
++    } catch(...) { return 3; }
++}
++
++std::uint64_t hia_cpp_constructed() noexcept {
++    std::lock_guard<std::mutex> lock(mtx); return Resource::constructed;
++}
++std::uint64_t hia_cpp_destroyed() noexcept {
++    std::lock_guard<std::mutex> lock(mtx); return Resource::destroyed;
++}
++}
+diff --git a/tools/hia-probe/cpp_c_consumer.c b/tools/hia-probe/cpp_c_consumer.c
+new file mode 100644
+index 0000000..189373a
+--- /dev/null
++++ b/tools/hia-probe/cpp_c_consumer.c
+@@ -0,0 +1,23 @@
++// True C translation unit linked against C++ implementation through the C ABI.
++#include <stdint.h>
++#include <limits.h>
++extern uint64_t hia_cpp_new(int32_t);
++extern int hia_cpp_step(uint64_t, int32_t, int32_t *);
++extern int hia_cpp_delete(uint64_t);
++extern uint64_t hia_cpp_constructed(void);
++extern uint64_t hia_cpp_destroyed(void);
++int main(void) {
++    uint64_t handle = hia_cpp_new(40);
++    if(!handle) return 1;
++    int32_t value = 0;
++    if(hia_cpp_step(handle,2,&value) != 0 || value != 42) return 2;
++    if(hia_cpp_step(handle,INT32_MIN,&value) != 3 || value != 42) return 3;
++    if(hia_cpp_delete(handle) != 0) return 4;
++    if(hia_cpp_delete(handle) != 1) return 5;
++    if(hia_cpp_step(handle,1,&value) != 1) return 6;
++    uint64_t another = hia_cpp_new(7);
++    if(!another || another == handle) return 7;
++    if(hia_cpp_delete(another) != 0) return 8;
++    if(hia_cpp_constructed() != 2 || hia_cpp_destroyed() != 2) return 9;
++    return 0;
++}
+diff --git a/tools/hia-probe/economic_probe.py b/tools/hia-probe/economic_probe.py
+new file mode 100644
+index 0000000..b7f0b87
+--- /dev/null
++++ b/tools/hia-probe/economic_probe.py
+@@ -0,0 +1,178 @@
++#!/usr/bin/env python3
++"""Finite, independent *advisory* optimization-accounting experiment.
++
++This is a same-information fixed/greedy/DP/exhaustive control harness.
++NO native hepta NDU is called; NDU and application net-benefit gates stay open.
++"""
++from __future__ import annotations
++import itertools
++from hia_probe import Rejected, identity, reject
++
++COST_FIELDS=('compile_ns','verify_ns','measure_ns','switch_ns',
++             'rollback_reserve_ns','cleanup_ns','prepare_ns')
++MAX_JOBS=8
++MAX_CANDIDATES=6
++MAX_PLANS=100_000
++
++
++def validate_experiment(record: object) -> dict:
++    if type(record) is not dict or set(record)!={'schema','study_kind','frozen_source_digest','objective_digest','max_one_time_ns','jobs'}:
++        reject('E_MODEL','exact experiment schema required')
++    if record['schema']!='hepta.audit.net-benefit.v1' or record['study_kind'] not in ('synthetic','measured'):
++        reject('E_MODEL','study type or version')
++    for k in ('frozen_source_digest','objective_digest'):
++        v=record[k]
++        if type(v) is not str or len(v)!=64 or any(c not in '0123456789abcdef' for c in v):
++            reject('E_PROVENANCE','must be fixed lowercase sha256')
++    budget=record['max_one_time_ns']
++    if type(budget) is not int or budget < 0 or budget > 10**15:
++        reject('E_BUDGET','invalid one-time optimization budget')
++    jobs=record['jobs']
++    if type(jobs) is not list or not 1<=len(jobs)<=MAX_JOBS:
++        reject('E_MODEL','bounded jobs only')
++    ids=set()
++    for job in jobs:
++        if type(job) is not dict or set(job)!={'id','invocations','baseline_run_ns','candidates'}:
++            reject('E_JOB','exact job schema')
++        if type(job['id']) is not str or not job['id'] or job['id'] in ids:
++            reject('E_JOB','unique name required')
++        ids.add(job['id'])
++        for key in ('invocations','baseline_run_ns'):
++            if type(job[key]) is not int or not 1<=job[key]<=10**12:
++                reject('E_JOB','invalid invocation or runtime')
++        cs=job['candidates']
++        if type(cs) is not list or len(cs)>MAX_CANDIDATES:
++            reject('E_MODEL','candidate budget')
++        candidate_ids=set()
++        for c in cs:
++            if type(c) is not dict or set(c)!={'id','run_ns','verified_core_digest',*COST_FIELDS}:
++                reject('E_CANDIDATE','exact candidate schema')
++            if type(c['id']) is not str or not c['id'] or c['id']=='baseline' or c['id'] in candidate_ids:
++                reject('E_CANDIDATE','unique candidate IDs required')
++            candidate_ids.add(c['id'])
++            for key in ('run_ns',*COST_FIELDS):
++                if type(c[key]) is not int or not 0<=c[key]<=10**12:
++                    reject('E_COST','no unknown or negative costs permitted')
++            dig=c['verified_core_digest']
++            if type(dig) is not str or len(dig)!=64 or any(x not in '0123456789abcdef' for x in dig):
++                reject('E_PROVENANCE','identity is evidence identity, not proof')
++    return record
++
++
++def score_option(job: dict, option: dict | None) -> tuple[int,int]:
++    if option is None:
++        return (0,0)
++    prep=sum(option[k] for k in COST_FIELDS)
++    saved=job['invocations'] * (job['baseline_run_ns']-option['run_ns'])-prep
++    return (prep,saved)
++
++
++def options(job: dict) -> list[dict|None]:
++    return [None,*job['candidates']]
++
++
++def _output(study: dict, label: str, selected: list[dict|None]) -> dict:
++    if len(selected)!=len(study['jobs']):
++        reject('E_PLAN','incomplete plan')
++    one_time=0; net=0; parts=[]
++    for job,choice in zip(study['jobs'],selected):
++        prep,saved=score_option(job,choice)
++        one_time+=prep;net+=saved
++        parts.append({'job':job['id'],'variant':choice['id'] if choice else 'baseline',
++                      'one_time_ns':prep,'net_savings_ns':saved})
++    return {'strategy':label,'plan':parts,'one_time_ns':one_time,
++            'net_savings_ns':net,'within_budget':one_time<=study['max_one_time_ns'],
++            'source_digest':study['frozen_source_digest'],'objective_digest':study['objective_digest'],
++            'advisory_only':True, 'authority':'DENY_ALL', 'safety_certificate':False}
++
++
++def exact_exhaustive(record: object) -> dict:
++    study=validate_experiment(record)
++    choices=[options(j) for j in study['jobs']]
++    count=1
++    for group in choices:
++        count*=len(group)
++        if count>MAX_PLANS:
++            reject('E_ENUM_BUDGET','too many candidate combinations for oracle')
++    winner=_output(study,'exhaustive',[None for _ in choices])
++    best_key=(0,0,tuple('baseline' for _ in choices))
++    for choice in itertools.product(*choices):
++        trial=_output(study,'exhaustive',list(choice))
++        if not trial['within_budget']:
++            continue
++        # maximize net, prefer cheaper spend in ties, then stable IDs
++        key=(trial['net_savings_ns'],-trial['one_time_ns'],
++             tuple(p['variant'] for p in trial['plan']))
++        if key[:2]>best_key[:2] or (key[:2]==best_key[:2] and key[2]<best_key[2]):
++            winner=trial;best_key=key
++    return winner
++
++
++def exact_dp(record: object) -> dict:
++    study=validate_experiment(record)
++    # Sparse exact DP over actual one-time costs. One plan retained per cost.
++    states:dict[int,tuple[int,tuple[int,...]]]={0:(0,())}
++    for j,job in enumerate(study['jobs']):
++        revised={}
++        for spent,(net,selected) in states.items():
++            for i,choice in enumerate(options(job)):
++                prep,saved=score_option(job,choice)
++                new_cost=spent+prep
++                if new_cost>study['max_one_time_ns']:
++                    continue
++                candidate=(net+saved,selected+(i,))
++                old=revised.get(new_cost)
++                if old is None or candidate[0]>old[0] or (candidate[0]==old[0] and candidate[1]<old[1]):
++                    revised[new_cost]=candidate
++        states=revised
++        if not states or len(states)>500_000:
++            reject('E_DP_BUDGET','exact state budget exhausted')
++    spent,(net,indices)=min(states.items(),key=lambda kv:(-kv[1][0],kv[0],kv[1][1]))
++    choice=[options(j)[idx] for j,idx in zip(study['jobs'],indices)]
++    return _output(study,'exact_sparse_dp',choice)
++
++
++def strong_fixed(record: object) -> dict:
++    study=validate_experiment(record)
++    # One shared named variant across every job; if missing, cannot use it.
++    ids={c['id'] for c in study['jobs'][0]['candidates']}
++    for job in study['jobs'][1:]:
++        ids &= {c['id'] for c in job['candidates']}
++    winner=_output(study,'strong_fixed',[None]*len(study['jobs']))
++    for label in sorted(ids):
++        candidates=[next(c for c in j['candidates'] if c['id']==label) for j in study['jobs']]
++        r=_output(study,'strong_fixed',candidates)
++        if r['within_budget'] and (r['net_savings_ns']>winner['net_savings_ns'] or
++            (r['net_savings_ns']==winner['net_savings_ns'] and r['one_time_ns']<winner['one_time_ns'])):
++            winner=r
++    return winner
++
++
++def same_information_greedy(record: object) -> dict:
++    study=validate_experiment(record)
++    # Process in immutable user job order; choose best available feasible net move.
++    budget=study['max_one_time_ns'];chosen=[]
++    for job in study['jobs']:
++        best=None;best_net=0
++        for c in job['candidates']:
++            prep,saved=score_option(job,c)
++            if prep<=budget and saved>best_net:
++                best=c;best_net=saved
++        if best:
++            budget-=score_option(job,best)[0]
++        chosen.append(best)
++    return _output(study,'same_information_greedy',chosen)
++
++
++def comparison(record: object) -> dict:
++    study=validate_experiment(record)
++    outputs=[strong_fixed(study),same_information_greedy(study),exact_dp(study)]
++    enum=exact_exhaustive(study)
++    if (outputs[2]['one_time_ns'],outputs[2]['net_savings_ns']) != (enum['one_time_ns'],enum['net_savings_ns']):
++        reject('E_ORACLE_MISMATCH','independent exhaustive solver disagrees with exact DP')
++    return {'schema':'hepta.audit.same-information-control.v1',
++            'study_kind':study['study_kind'], 'study_sha256':identity(study),
++            'results':outputs+[enum],
++            'native_ndu':{'status':'UNAVAILABLE','reason':'native bridge not executed in this offline prototype'},
++            'acceptance':{'ndu_incremental_value_proved':False,'real_application_net_benefit_proved':False},
++            'authority':'DENY_ALL'}
+diff --git a/tools/hia-probe/hia_probe.py b/tools/hia-probe/hia_probe.py
+new file mode 100644
+index 0000000..72f2654
+--- /dev/null
++++ b/tools/hia-probe/hia_probe.py
+@@ -0,0 +1,424 @@
++#!/usr/bin/env python3
++"""Independent, fail-closed HIA scalar and resource *research probe*.
++
++NOT a replacement for hepta.hia_program.verify_program and NOT release authority.
++The strict subset is deliberately small enough to admit independent native checks.
++"""
++from __future__ import annotations
++
++import hashlib
++import json
++import os
++import re
++import resource
++import subprocess
++import tempfile
++from pathlib import Path
++
++SCHEMA = 'hepta.audit.scalar-u32.v1'
++UINT32 = 2**32 - 1
++OPERATORS = {'+': 'int.add.wrap', '-': 'int.sub.wrap', '*': 'int.mul.wrap',
++             '^': 'bit.xor', '&': 'bit.and', '|': 'bit.or'}
++C_OPS = {v: k for k, v in OPERATORS.items()}
++CHECKED_OPS = frozenset({'int.add.checked','int.sub.checked','int.mul.checked',
++                         'int.div.checked','int.rem.checked','int.shl.checked','int.shr.checked'})
++BINARY_OPS = frozenset(C_OPS)|CHECKED_OPS
++MAX_SOURCE = 65_536
++MAX_PROGRAM = 256*1024
++MAX_AST = 2 * 1024 * 1024
++MAX_NODES = 4096
++MAX_DEPTH = 128
++MAX_INSTRUCTIONS = 256
++IDENT = re.compile(r'[A-Za-z_][A-Za-z0-9_]{0,62}\Z')
++
++class ProgramTrap(RuntimeError):
++    def __init__(self, code: str):
++        self.code = code
++        super().__init__('program trap: '+code)
++
++class Rejected(ValueError):
++    def __init__(self, code: str, reason: str):
++        self.code = code
++        super().__init__(f'{code}: {reason}')
++
++def reject(code: str, reason: str) -> None:
++    raise Rejected(code, reason)
++
++def canonical_bytes(value: object) -> bytes:
++    # Bound canonicalization while walking the object rather than after dumping it.
++    encoder=json.JSONEncoder(sort_keys=True, separators=(',', ':'), ensure_ascii=True,
++                             allow_nan=False, check_circular=True)
++    chunks=[];length=0
++    try:
++        for part in encoder.iterencode(value):
++            data=part.encode('ascii')
++            length+=len(data)
++            if length>MAX_PROGRAM:
++                reject('E_JSON_BUDGET','canonical input exceeds bounded profile')
++            chunks.append(data)
++    except (RecursionError, UnicodeError):
++        reject('E_JSON','invalid or overly nested JSON input')
++    return b''.join(chunks)
++
++def identity(value: object) -> str:
++    return hashlib.sha256(canonical_bytes(value)).hexdigest()
++
++def _keys(obj: object, expected: set[str], code: str) -> None:
++    if type(obj) is not dict or set(obj) != expected:
++        reject(code, f'expected exact fields {sorted(expected)}')
++
++def _ident(v: object, code: str) -> str:
++    if type(v) is not str or IDENT.fullmatch(v) is None:
++        reject(code, 'not a bounded identifier')
++    return v
++
++def verify_scalar(program: object) -> dict:
++    """Check exact, bounded, one-block, u32 SSA; return a detached copy."""
++    try:
++        p = json.loads(canonical_bytes(program), parse_constant=lambda _: reject('E_JSON', 'nonfinite'))
++    except (TypeError, ValueError, OverflowError) as e:
++        if isinstance(e, Rejected):
++            raise
++        reject('E_JSON', str(e))
++    _keys(p, {'schema', 'name', 'params', 'ops', 'result'}, 'E_SCHEMA')
++    if p['schema'] != SCHEMA:
++        reject('E_VERSION', 'explicit schema required')
++    _ident(p['name'], 'E_NAME')
++    if type(p['params']) is not list or len(p['params']) > 16:
++        reject('E_PARAMS', 'invalid parameters')
++    if type(p['ops']) is not list or len(p['ops']) > MAX_INSTRUCTIONS:
++        reject('E_OP_BUDGET', 'instruction limit')
++    names = set()
++    for param in p['params']:
++        _keys(param, {'name', 'type'}, 'E_PARAM')
++        name = _ident(param['name'], 'E_PARAM')
++        if name in names or param['type'] != 'u32':
++            reject('E_PARAM', 'non-unique parameter or unsupported type')
++        names.add(name)
++    for op in p['ops']:
++        if type(op) is not dict or 'opcode' not in op:
++            reject('E_OPCODE', 'operation record required')
++        op_name = op['opcode']
++        required = {'id', 'opcode', 'value'} if op_name == 'const' else {'id', 'opcode', 'args'}
++        _keys(op, required, 'E_OPCODE')
++        new_id = _ident(op['id'], 'E_SSA')
++        if new_id in names:
++            reject('E_SSA', 'SSA reassignment')
++        if op_name == 'const':
++            if type(op['value']) is not int or not 0 <= op['value'] <= UINT32:
++                reject('E_CONST', 'constant must be exact unsigned 32-bit integer')
++        elif op_name in BINARY_OPS:
++            if type(op['args']) is not list or len(op['args']) != 2:
++                reject('E_ARGS', 'binary instruction requires two operands')
++            for arg in op['args']:
++                if type(arg) is not str or arg not in names:
++                    reject('E_SSA', 'use before definition')
++        else:
++            reject('E_OPCODE', f'unsupported opcode {op_name}')
++        names.add(new_id)
++    if type(p['result']) is not str or p['result'] not in names:
++        reject('E_RETURN', 'undefined result')
++    return p
++
++def interpret_scalar(program: object, args: object) -> int:
++    p = verify_scalar(program)
++    if type(args) not in (tuple, list) or len(args) != len(p['params']):
++        reject('E_INVOKE', 'argument count mismatch')
++    vals: dict[str,int] = {}
++    for param, arg in zip(p['params'], args):
++        if type(arg) is not int or not 0 <= arg <= UINT32:
++            reject('E_INVOKE', 'argument out of u32 domain')
++        vals[param['name']] = arg
++    for op in p['ops']:
++        name = op['opcode']
++        if name == 'const':
++            result = op['value']
++        else:
++            a, b = (vals[x] for x in op['args'])
++            if name in CHECKED_OPS:
++                operation=name.split('.')[1]
++                if operation=='add':
++                    result=a+b
++                elif operation=='sub':
++                    result=a-b
++                elif operation=='mul':
++                    result=a*b
++                elif operation=='div':
++                    if b==0:raise ProgramTrap('division_by_zero')
++                    result=a//b
++                elif operation=='rem':
++                    if b==0:raise ProgramTrap('division_by_zero')
++                    result=a%b
++                elif operation=='shl':
++                    if b>=32:raise ProgramTrap('shift_count')
++                    result=(a<<b)&UINT32  # count checked, value wraps per HIA finite profile
++                else:
++                    if b>=32:raise ProgramTrap('shift_count')
++                    result=a>>b
++                if not 0<=result<=UINT32:
++                    raise ProgramTrap('overflow')
++            else:
++                result = {'int.add.wrap': lambda: a+b,
++                          'int.sub.wrap': lambda: a-b,
++                          'int.mul.wrap': lambda: a*b,
++                          'bit.and': lambda: a&b,
++                          'bit.or': lambda: a|b,
++                          'bit.xor': lambda: a^b}[name]() & UINT32
++        vals[op['id']] = result
++    return vals[p['result']]
++
++def emit_native_c(program: object, func: str = 'hia_entry') -> str:
++    p = verify_scalar(program)
++    _ident(func, 'E_NATIVE_NAME')
++    if any(op['opcode'] in CHECKED_OPS for op in p['ops']):
++        reject('E_ABI_TRAP', 'trapping opcode requires explicit status-return ABI')
++    sig = ', '.join('uint32_t '+a['name'] for a in p['params']) or 'void'
++    src = ['#include <stdint.h>', '#include <limits.h>',
++           '_Static_assert(sizeof(unsigned int)*CHAR_BIT == 32, "u32 requires 32-bit unsigned int");',
++           f'uint32_t {func}({sig}) {{']
++    for op in p['ops']:
++        if op['opcode'] == 'const':
++            expr = f'UINT32_C({op["value"]})'
++        else:
++            a, b = op['args']
++            expr = f'(({a}) {C_OPS[op["opcode"]]} ({b}))'
++        src.append(f'    uint32_t {op["id"]} = {expr};')
++    src.append(f'    return {p["result"]};')
++    src.append('}')
++    return '\n'.join(src)+'\n'
++
++def emit_checked_native_c(program: object, func: str = 'hia_checked') -> str:
++    """Explicitly report traps as status, never silently alter return semantics.
++
++    Status: 0=OK, 1=overflow, 2=division by zero, 3=invalid shift count,
++    4=invalid output pointer (ABI contract). Only for this finite unsigned profile.
++    """
++    p=verify_scalar(program)
++    _ident(func,'E_NATIVE_NAME')
++    sig=', '.join('uint32_t '+a['name'] for a in p['params'])
++    sig=(sig+', ' if sig else '')+'uint32_t *out'
++    src=['#include <stdint.h>','#include <limits.h>',
++         '_Static_assert(sizeof(unsigned int)*CHAR_BIT == 32, "u32 requires 32-bit unsigned int");',
++         f'int {func}({sig}) {{','    if (out == 0) return 4;']
++    for op in p['ops']:
++        name=op['opcode'];new=op['id']
++        if name=='const':
++            src.append(f'    uint32_t {new} = UINT32_C({op["value"]});')
++            continue
++        a,b=op['args']
++        if name in C_OPS:
++            expr=f'(({a}) {C_OPS[name]} ({b}))'
++        else:
++            action=name.split('.')[1]
++            if action=='add':
++                src.append(f'    if ((uint64_t){a} + (uint64_t){b} > UINT32_MAX) return 1;')
++                expr=f'({a} + {b})'
++            elif action=='sub':
++                src.append(f'    if ({a} < {b}) return 1;')
++                expr=f'({a} - {b})'
++            elif action=='mul':
++                src.append(f'    if ((uint64_t){a} * (uint64_t){b} > UINT32_MAX) return 1;')
++                expr=f'({a} * {b})'
++            elif action in ('div','rem'):
++                src.append(f'    if ({b} == 0) return 2;')
++                expr=f'({a} {"/" if action=="div" else "%"} {b})'
++            elif action in ('shl','shr'):
++                src.append(f'    if ({b} >= 32) return 3;')
++                expr=f'({a} {"<<" if action=="shl" else ">>"} {b})'
++            else:
++                reject('E_NATIVE','unexpected operation')
++        src.append(f'    uint32_t {new} = {expr};')
++    src.append(f'    *out = {p["result"]};')
++    src.append('    return 0;')
++    src.append('}')
++    return '\n'.join(src)+'\n'
++
++def _clang_rlimits() -> None:
++    resource.setrlimit(resource.RLIMIT_CPU, (8, 9))
++    resource.setrlimit(resource.RLIMIT_FSIZE, (MAX_AST, MAX_AST))
++    resource.setrlimit(resource.RLIMIT_AS, (1024*1024*1024, 1024*1024*1024))
++
++def _validate_ast_tree(obj: object) -> None:
++    todo = [(obj, 1)]
++    seen = 0
++    while todo:
++        n, depth = todo.pop()
++        if depth > MAX_DEPTH:
++            reject('E_AST_DEPTH', 'Clang AST depth budget exceeded')
++        if type(n) is not dict:
++            reject('E_AST', 'non-dictionary AST node')
++        seen += 1
++        if seen > MAX_NODES:
++            reject('E_AST_BUDGET', 'Clang AST node budget exceeded')
++        children = n.get('inner', [])
++        if type(children) is not list:
++            reject('E_AST', 'malformed child list')
++        todo.extend((child, depth+1) for child in children)
++
++def translate_clang_scalar(source: str, function_name: str, clang: str = 'clang') -> dict:
++    """Wholly reject unsupported C; no macros, global state, calls, pointers or signed math."""
++    if type(source) is not str:
++        reject('E_SOURCE', 'source must be unicode text')
++    try:
++        data = source.encode('utf-8')
++    except UnicodeError:
++        reject('E_SOURCE', 'invalid unicode encoding')
++    if not data or len(data) > MAX_SOURCE or b'\x00' in data or '#' in source:
++        reject('E_SOURCE', 'invalid/oversized or preprocessed source')
++    _ident(function_name, 'E_FUNCTION')
++    with tempfile.TemporaryDirectory(prefix='hia-clang-') as folder:
++        src_path = Path(folder) / 'source.c'
++        ast_path = Path(folder) / 'ast.json'
++        src_path.write_bytes(data)
++        error_path=Path(folder)/'clang.stderr'
++        with ast_path.open('wb') as stdout, error_path.open('wb') as stderr:
++            try:
++                p = subprocess.run([clang, '-Xclang', '-ast-dump=json', '-fsyntax-only',
++                                    '-std=c11', '-fno-color-diagnostics', '-Werror', str(src_path)],
++                                   stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr,
++                                   timeout=15, preexec_fn=_clang_rlimits(), check=False)
++            except (subprocess.TimeoutExpired, OSError) as e:
++                reject('E_CLANG', str(e))
++        if p.returncode or ast_path.stat().st_size > MAX_AST:
++            with error_path.open('rb') as errors:
++                error_summary=errors.read(256).decode('utf-8','replace')
++            reject('E_CLANG', 'AST generation failed, was truncated or exceeded budget: '+error_summary)
++        try:
++            root = json.loads(ast_path.read_bytes())
++        except (ValueError, OSError, RecursionError):
++            reject('E_AST', 'not valid bounded JSON')
++    if type(root) is not dict or type(root.get('inner')) is not list:
++        reject('E_AST', 'invalid translation unit')
++    # The Clang builtins (no source position) are not user program declarations.
++    user_decls = [d for d in root['inner']
++                  if type(d) is dict and isinstance(d.get('loc'), dict)
++                  and type(d['loc'].get('offset')) is int]
++    if len(user_decls) != 1:
++        reject('E_WHOLE_UNIT', 'requires exactly one user-defined function and no globals')
++    fn = user_decls[0]
++    _validate_ast_tree(fn)
++    if fn.get('kind') != 'FunctionDecl' or fn.get('name') != function_name:
++        reject('E_FUNCTION', 'single function does not match requested name')
++    if fn.get('type', {}).get('qualType') not in ('unsigned int (unsigned int)',
++            'unsigned int (unsigned int, unsigned int)', 'unsigned int (void)',
++            'unsigned int (unsigned int, unsigned int, unsigned int)'):
++        reject('E_TYPE', 'strict unsigned-int signature only')
++    children = fn.get('inner', [])
++    params = [x for x in children if x.get('kind') == 'ParmVarDecl']
++    bodies = [x for x in children if x.get('kind') == 'CompoundStmt']
++    if len(bodies) != 1 or len(params) + 1 != len(children):
++        reject('E_BODY', 'one body and only parameters required')
++    names=[]
++    for par in params:
++        if par.get('type', {}).get('desugaredQualType', par.get('type', {}).get('qualType')) != 'unsigned int':
++            reject('E_TYPE', 'all parameters must be exactly unsigned int')
++        names.append(_ident(par.get('name'), 'E_PARAM'))
++    if len(set(names)) != len(names):
++        reject('E_PARAM', 'duplicate parameter')
++    body = bodies[0]
++    stmts = body.get('inner', [])
++    if len(stmts) != 1 or stmts[0].get('kind') != 'ReturnStmt' or len(stmts[0].get('inner', [])) != 1:
++        reject('E_BODY', 'single return expression required')
++    ops: list[dict] = []
++    def lower(node: object) -> str:
++        if type(node) is not dict:
++            reject('E_EXPR', 'invalid expression node')
++        kind = node.get('kind')
++        if kind in ('ImplicitCastExpr', 'ParenExpr'):
++            if kind == 'ImplicitCastExpr' and node.get('castKind') != 'LValueToRValue':
++                reject('E_CAST', 'implicit conversion outside safe scalar subset')
++            inside=node.get('inner', [])
++            if len(inside)!=1:
++                reject('E_CAST', 'one operand required')
++            return lower(inside[0])
++        if kind == 'DeclRefExpr':
++            name=node.get('referencedDecl', {}).get('name')
++            if name not in names:
++                reject('E_REF', 'not a function parameter')
++            return name
++        if kind == 'IntegerLiteral':
++            try:
++                value=int(node.get('value'))
++            except (ValueError, TypeError):
++                reject('E_LITERAL','invalid literal')
++            if not 0<=value<=UINT32:
++                reject('E_LITERAL','out of u32 range')
++            ident='v'+str(len(ops))
++            ops.append({'id':ident,'opcode':'const','value':value})
++            return ident
++        if kind == 'BinaryOperator':
++            opcode=node.get('opcode')
++            if opcode not in OPERATORS or node.get('type',{}).get('desugaredQualType',node.get('type',{}).get('qualType')) != 'unsigned int':
++                reject('E_EXPR','unsupported operator or type')
++            operands=node.get('inner', [])
++            if len(operands)!=2:
++                reject('E_EXPR','binary node must have two operands')
++            left=lower(operands[0]); right=lower(operands[1])
++            ident='v'+str(len(ops))
++            ops.append({'id':ident,'opcode':OPERATORS[opcode],'args':[left,right]})
++            return ident
++        reject('E_EXPR', 'unsupported '+str(kind))
++    result=lower(stmts[0]['inner'][0])
++    program={'schema':SCHEMA,'name':function_name,
++             'params':[{'name':x,'type':'u32'} for x in names],
++             'ops':ops, 'result':result}
++    return verify_scalar(program)
++
++def verify_linear_resource(operations: object, max_live_bytes: int = 1_048_576) -> dict:
++    """Finite straight-line owner/loan validator, NOT Rust lifetime soundness."""
++    if type(operations) is not list or len(operations)>256 or type(max_live_bytes) is not int or max_live_bytes<0:
++        reject('E_RESOURCE_BUDGET','bad resource program/budget')
++    owners:dict[str,int]={}
++    loans:dict[str,tuple[str,str]]={}
++    all_ids:set[str]=set()
++    peak=0
++    for idx,op in enumerate(operations):
++        if type(op) is not dict or 'op' not in op:
++            reject('E_RESOURCE',f'bad record at {idx}')
++        kind=op['op']
++        allowed={'owner.new':{'op','id','bytes'}, 'owner.move':{'op','from','to'},
++                 'borrow.read':{'op','owner','id'},'borrow.mut':{'op','owner','id'},
++                 'loan.end':{'op','id'},'owner.drop':{'op','id'}}
++        if kind not in allowed or set(op)!=allowed[kind]:
++            reject('E_RESOURCE','unsupported or extra resource attributes')
++        if kind=='owner.new':
++            new=_ident(op['id'],'E_RESOURCE')
++            size=op['bytes']
++            if new in all_ids or type(size) is not int or size<0 or size>max_live_bytes:
++                reject('E_RESOURCE','duplicate owner or invalid extent')
++            all_ids.add(new)
++            owners[new]=size
++        elif kind=='owner.move':
++            old=_ident(op['from'],'E_RESOURCE'); new=_ident(op['to'],'E_RESOURCE')
++            if old not in owners or new in all_ids or any(v[0]==old for v in loans.values()):
++                reject('E_RESOURCE','move invalid or has active loans')
++            all_ids.add(new)
++            owners[new]=owners.pop(old)
++        elif kind in ('borrow.read','borrow.mut'):
++            root=_ident(op['owner'],'E_RESOURCE'); name=_ident(op['id'],'E_RESOURCE')
++            if root not in owners or name in all_ids:
++                reject('E_RESOURCE','invalid borrow')
++            if kind=='borrow.mut' and any(v[0]==root for v in loans.values()):
++                reject('E_ALIAS','mutable borrow requires exclusivity')
++            if kind=='borrow.read' and any(v==(root,'mut') for v in loans.values()):
++                reject('E_ALIAS','read blocked by mutable loan')
++            all_ids.add(name)
++            loans[name]=(root,'mut' if kind=='borrow.mut' else 'read')
++        elif kind=='loan.end':
++            if op['id'] not in loans:
++                reject('E_LOAN','loan missing or already ended')
++            del loans[op['id']]
++        else:
++            owner=_ident(op['id'],'E_RESOURCE')
++            if owner not in owners or any(v[0]==owner for v in loans.values()):
++                reject('E_RESOURCE','invalid drop or live loans')
++            del owners[owner]
++        live=sum(owners.values())
++        peak=max(peak,live)
++        if live>max_live_bytes:
++            reject('E_RESOURCE_BUDGET','live heap budget exceeded')
++    if owners or loans:
++        reject('E_LEAK','unclosed owners/loans')
++    return {'profile':'straight_line_owned_bytes.v1', 'peak_payload_bytes':peak,
++            'source_digest':identity(operations),'authority':'DENY_ALL',
++            'excluded':['allocator_metadata','rss','host_crash','ffi','async_cancel','threads']}
+diff --git a/tools/hia-probe/qualify.py b/tools/hia-probe/qualify.py
+new file mode 100644
+index 0000000..fb5af18
+--- /dev/null
++++ b/tools/hia-probe/qualify.py
+@@ -0,0 +1,69 @@
++#!/usr/bin/env python3
++"""Execute exact local tests, record identities and conservatively qualify the slice."""
++from __future__ import annotations
++import hashlib
++import json
++import platform
++import re
++import subprocess
++import sys
++from pathlib import Path
++from economic_probe import comparison
++from test_economic_probe import study
++
++ROOT=Path(__file__).resolve().parent
++OUT=ROOT/'evidence'
++FILES=('README.md','P0_P7_STATUS.md','hia_probe.py','economic_probe.py',
++       'test_probe.py','test_traps.py','test_cpp_bridge.py','test_economic_probe.py',
++       'cpp_bridge_fixture.cpp','cpp_c_consumer.c','qualify.py')
++
++def sha(path:Path) -> str:
++    return hashlib.sha256(path.read_bytes()).hexdigest()
++
++def cmd(argv:list[str], timeout:int=120) -> dict:
++    try:
++        r=subprocess.run(argv,cwd=ROOT,text=True,capture_output=True,timeout=timeout,check=False)
++        return {'command':argv,'returncode':r.returncode,'stdout':r.stdout,'stderr':r.stderr}
++    except (subprocess.TimeoutExpired,OSError) as e:
++        return {'command':argv,'returncode':-1,'stdout':'','stderr':str(e)}
++
++def main() -> int:
++    OUT.mkdir(exist_ok=True)
++    result=cmd([sys.executable,'-m','unittest','discover','-p','test_*.py','-v'],timeout=90)
++    (OUT/'tests.stdout.log').write_text(result['stdout'])
++    (OUT/'tests.stderr.log').write_text(result['stderr'])
++    full=result['stdout']+'\n'+result['stderr']
++    match=re.search(r'Ran (\d+) tests? in ',full)
++    count=int(match.group(1)) if match else 0
++    skipped=bool(re.search(r'\bskipped=\d+|\bSKIP\b|\.\.\. skipped',full,re.I))
++    passes=result['returncode']==0 and count>=1 and not skipped and '\nOK' in full
++    versions={c:cmd([c,'--version'],10)['stdout'].splitlines()[:1] for c in ('clang','gcc','clang++','g++')}
++    files={name:sha(ROOT/name) for name in FILES}
++    plan=comparison(study())
++    (OUT/'synthetic_planner.json').write_text(json.dumps(plan,sort_keys=True,indent=2)+'\n')
++    report={
++       'schema':'hepta.audit.offline-qualification.v1',
++       'profile':'independent_bounded_research_only',
++       'authority':'DENY_ALL', 'production_activation_allowed':False,
++       'all_p0_p7_blockers_closed':False,
++       'qualification_of_local_slice':bool(passes),
++       'test_count':count,'test_skips_detected':skipped,'test_exit_code':result['returncode'],
++       'machine':{'platform':platform.platform(),'machine':platform.machine(),
++                  'python':platform.python_version(),'compilers':versions},
++       'source_identities':files,
++       'logs':{'stdout_sha256':sha(OUT/'tests.stdout.log'),
++               'stderr_sha256':sha(OUT/'tests.stderr.log')},
++       'planner':{'dataset_kind':'synthetic','report_sha256':sha(OUT/'synthetic_planner.json'),
++                  'native_ndu_executed':False,'application_net_benefit_proved':False},
++       'github':{'read_write_status':'BLOCKED_403_ACCOUNT_SUSPENDED',
++                  'remote_push_performed':False,'remote_pr_created':False},
++       'scope_exclusions':['canonical Hepta verification','independent Rust backend',
++            'whole-program safety','actual C/C++ project migration','ARM64 ABI','Agent hidden evaluation',
++            'physical hardware','measured NDU advantage','production cutover']}
++    (OUT/'REPORT.json').write_text(json.dumps(report,sort_keys=True,indent=2)+'\n')
++    (OUT/'SOURCE_MANIFEST.json').write_text(json.dumps(files,sort_keys=True,indent=2)+'\n')
++    print(json.dumps({'local_pass':passes,'tests':count,'skips':skipped,
++                      'report':str(OUT/'REPORT.json'), 'remote_status':'BLOCKED_403'},sort_keys=True))
++    return 0 if passes else 1
++
++if __name__=='__main__':sys.exit(main())
+diff --git a/tools/hia-probe/test_cpp_bridge.py b/tools/hia-probe/test_cpp_bridge.py
+new file mode 100644
+index 0000000..56520b3
+--- /dev/null
++++ b/tools/hia-probe/test_cpp_bridge.py
+@@ -0,0 +1,47 @@
++import ctypes
++import shutil
++import subprocess
++import tempfile
++import unittest
++from pathlib import Path
++
++ROOT=Path(__file__).resolve().parent
++
++class CppBridgeTests(unittest.TestCase):
++    def test_cpp_gcc_clang_true_c_abi(self):
++        if not all(shutil.which(x) for x in ['gcc','g++','clang','clang++']):
++            self.skipTest('requires gcc/g++ and clang/clang++')
++        for cpp,cc in [('g++','gcc'),('clang++','clang')]:
++            with self.subTest(cpp=cpp,cc=cc), tempfile.TemporaryDirectory() as d:
++                lib=Path(d)/'libhia_cpp.so'
++                build=subprocess.run([cpp,'-std=c++17','-fPIC','-shared','-O2',
++                    '-Wall','-Wextra','-Werror',str(ROOT/'cpp_bridge_fixture.cpp'),'-o',str(lib)],
++                    text=True,capture_output=True,timeout=20)
++                self.assertEqual(build.returncode,0,build.stderr)
++                app=Path(d)/'consumer'
++                build=subprocess.run([cc,'-std=c11','-O2','-Wall','-Wextra','-Werror',
++                    str(ROOT/'cpp_c_consumer.c'),'-L'+d,'-lhia_cpp',
++                    '-Wl,-rpath,'+d,'-o',str(app)],text=True,capture_output=True,timeout=20)
++                self.assertEqual(build.returncode,0,build.stderr)
++                execution=subprocess.run([str(app)],capture_output=True,text=True,timeout=10)
++                self.assertEqual(execution.returncode,0,(execution.returncode,execution.stderr))
++                # Separate process run above is the authoritative C consumer; below is a fresh
++                # in-process C ABI check with no C++ exceptions crossing the boundary.
++                library=ctypes.CDLL(str(lib))
++                library.hia_cpp_new.argtypes=[ctypes.c_int32];library.hia_cpp_new.restype=ctypes.c_uint64
++                library.hia_cpp_delete.argtypes=[ctypes.c_uint64];library.hia_cpp_delete.restype=ctypes.c_int
++                library.hia_cpp_step.argtypes=[ctypes.c_uint64,ctypes.c_int32,ctypes.POINTER(ctypes.c_int32)]
++                library.hia_cpp_step.restype=ctypes.c_int
++                library.hia_cpp_constructed.restype=ctypes.c_uint64
++                library.hia_cpp_destroyed.restype=ctypes.c_uint64
++                old=library.hia_cpp_new(42);self.assertNotEqual(old,0)
++                result=ctypes.c_int32(0)
++                self.assertEqual(library.hia_cpp_step(old,7,ctypes.byref(result)),0)
++                self.assertEqual(result.value,49)
++                self.assertEqual(library.hia_cpp_delete(old),0)
++                self.assertEqual(library.hia_cpp_delete(old),1)
++                new=library.hia_cpp_new(4)
++                self.assertNotEqual(new,old)
++                self.assertEqual(library.hia_cpp_step(old,9,ctypes.byref(result)),1)
++                self.assertEqual(library.hia_cpp_delete(new),0)
++                self.assertEqual(library.hia_cpp_constructed(),library.hia_cpp_destroyed())
+diff --git a/tools/hia-probe/test_economic_probe.py b/tools/hia-probe/test_economic_probe.py
+new file mode 100644
+index 0000000..605875d
+--- /dev/null
++++ b/tools/hia-probe/test_economic_probe.py
+@@ -0,0 +1,84 @@
++import copy
++import random
++import unittest
++from economic_probe import (COST_FIELDS, comparison, exact_dp, exact_exhaustive,
++                            same_information_greedy, strong_fixed)
++from hia_probe import Rejected
++
++D='a'*64
++
++def candidate(name,run,**costs):
++    base={'id':name,'run_ns':run,'verified_core_digest':D}
++    base.update({k:costs.get(k,0) for k in COST_FIELDS})
++    return base
++
++def study():
++    return {'schema':'hepta.audit.net-benefit.v1', 'study_kind':'synthetic',
++            'frozen_source_digest':D, 'objective_digest':D,
++            'max_one_time_ns':20,
++            'jobs':[{'id':'a','invocations':10,'baseline_run_ns':100,
++                     'candidates':[candidate('fast',60,compile_ns=15),candidate('tiny',99,compile_ns=4)]},
++                    {'id':'b','invocations':10,'baseline_run_ns':100,
++                     'candidates':[candidate('fast',90,compile_ns=15),candidate('tiny',30,compile_ns=4)]}]}
++
++class EconomicTests(unittest.TestCase):
++    def test_oracle_agreement(self):
++        a=exact_dp(study());b=exact_exhaustive(study())
++        self.assertEqual(a['net_savings_ns'],b['net_savings_ns'])
++        self.assertEqual(a['one_time_ns'],b['one_time_ns'])
++        self.assertGreater(a['net_savings_ns'],0)
++
++    def test_compare_same_information(self):
++        result=comparison(study())
++        self.assertEqual(len(result['results']),4)
++        self.assertEqual(result['native_ndu']['status'],'UNAVAILABLE')
++        self.assertFalse(result['acceptance']['ndu_incremental_value_proved'])
++        self.assertTrue(all(r['authority']=='DENY_ALL' for r in result['results']))
++
++    def test_negative_costs_reject(self):
++        t=study();t['jobs'][0]['candidates'][0]['compile_ns']=-1
++        with self.assertRaises(Rejected) as e:comparison(t)
++        self.assertEqual(e.exception.code,'E_COST')
++
++    def test_unknown_costs_reject(self):
++        t=study();t['jobs'][0]['candidates'][0].pop('rollback_reserve_ns')
++        with self.assertRaises(Rejected) as e:comparison(t)
++        self.assertEqual(e.exception.code,'E_CANDIDATE')
++
++    def test_missing_source_identity_reject(self):
++        t=study();t['objective_digest']=''
++        with self.assertRaises(Rejected) as e:comparison(t)
++        self.assertEqual(e.exception.code,'E_PROVENANCE')
++
++    def test_negative_benefit_keeps_baseline(self):
++        t=study()
++        for j in t['jobs']:
++            for c in j['candidates']:
++                c['run_ns']=j['baseline_run_ns']+1
++        for solve in (exact_dp,exact_exhaustive,strong_fixed,same_information_greedy):
++            self.assertEqual(solve(t)['net_savings_ns'],0)
++            self.assertEqual(solve(t)['one_time_ns'],0)
++
++    def test_budget_is_a_hard_constraint(self):
++        t=study();t['max_one_time_ns']=0
++        for solve in (exact_dp,exact_exhaustive,strong_fixed,same_information_greedy):
++            self.assertEqual(solve(t)['one_time_ns'],0)
++
++    def test_exact_randomized_against_exhaustive(self):
++        rng=random.Random(20261031)
++        for _ in range(70):
++            t=study();t['max_one_time_ns']=rng.randrange(0,100)
++            t['jobs']=[]
++            for j in range(rng.randrange(1,6)):
++                t['jobs'].append({'id':f'j{j}', 'invocations':rng.randrange(1,200),
++                    'baseline_run_ns':rng.randrange(1,10000),
++                    'candidates':[candidate(f'v{i}',rng.randrange(0,10000),
++                                             compile_ns=rng.randrange(0,30),
++                                             verify_ns=rng.randrange(0,15),
++                                             switch_ns=rng.randrange(0,10))
++                                  for i in range(rng.randrange(0,4))]})
++            d=exact_dp(t);e=exact_exhaustive(t)
++            self.assertEqual((d['one_time_ns'],d['net_savings_ns']),
++                             (e['one_time_ns'],e['net_savings_ns']))
++
++if __name__=='__main__':unittest.main()
+diff --git a/tools/hia-probe/test_probe.py b/tools/hia-probe/test_probe.py
+new file mode 100644
+index 0000000..be6f66e
+--- /dev/null
++++ b/tools/hia-probe/test_probe.py
+@@ -0,0 +1,278 @@
++#!/usr/bin/env python3
++"""HIA bounded-profile regression and actual Clang/GCC oracle comparison."""
++import ctypes
++import copy
++import json
++import os
++import random
++import shutil
++import subprocess
++import tempfile
++import unittest
++from pathlib import Path
++
++from hia_probe import (Rejected, SCHEMA, UINT32, emit_native_c, identity,
++                       interpret_scalar, translate_clang_scalar, verify_linear_resource,
++                       verify_scalar)
++
++EXPRESSION_CASES = {
++    'add': ('a + b', lambda a,b: (a+b)&UINT32),
++    'sub': ('a - b', lambda a,b: (a-b)&UINT32),
++    'mul': ('a * b', lambda a,b: (a*b)&UINT32),
++    'xor': ('a ^ b', lambda a,b: a^b),
++    'and': ('a & b', lambda a,b: a&b),
++    'or': ('a | b', lambda a,b: a|b),
++    'nested': ('((a + 3u) * (b ^ 7u)) - a', lambda a,b: (((a+3)* (b^7))-a)&UINT32),
++}
++
++def sample_program():
++    return {'schema':SCHEMA, 'name':'f','params':[{'name':'a','type':'u32'}, {'name':'b','type':'u32'}],
++            'ops':[{'id':'v0','opcode':'int.add.wrap','args':['a','b']}], 'result':'v0'}
++
++class ScalarTests(unittest.TestCase):
++    def expect_reject(self, code, call):
++        with self.assertRaises(Rejected) as c:
++            call()
++        self.assertEqual(c.exception.code,code)
++
++    def test_positive_wrap(self):
++        self.assertEqual(interpret_scalar(sample_program(), [UINT32, 42]), 41)
++        self.assertEqual(interpret_scalar(sample_program(), [0, 0]), 0)
++        self.assertEqual(interpret_scalar(sample_program(), [123, 456]), 579)
++
++    def test_immutable_snapshot(self):
++        source=sample_program()
++        snap=verify_scalar(source)
++        digest=identity(snap)
++        source['ops'][0]['args'][1]='malicious'
++        self.assertEqual(identity(snap),digest)
++        self.assertEqual(interpret_scalar(snap,[2,3]),5)
++        self.expect_reject('E_SSA',lambda: interpret_scalar(source,[2,3]))
++
++    def test_unknown_schema(self):
++        p=sample_program();p['schema']='hepta.audit.scalar-u32.v99'
++        self.expect_reject('E_VERSION',lambda:verify_scalar(p))
++
++    def test_extra_fields(self):
++        p=sample_program();p['safety_certificate']=True
++        self.expect_reject('E_SCHEMA',lambda:verify_scalar(p))
++
++    def test_noninteger_and_bool_arguments(self):
++        self.expect_reject('E_INVOKE',lambda:interpret_scalar(sample_program(),[True,0]))
++        self.expect_reject('E_INVOKE',lambda:interpret_scalar(sample_program(),[-1,0]))
++        self.expect_reject('E_INVOKE',lambda:interpret_scalar(sample_program(),[UINT32+1,0]))
++
++    def test_use_before_definition(self):
++        p=sample_program();p['ops'][0]['args'][0]='v1'
++        self.expect_reject('E_SSA',lambda:verify_scalar(p))
++
++    def test_duplicate_ssa(self):
++        p=sample_program();p['ops'][0]['id']='a'
++        self.expect_reject('E_SSA',lambda:verify_scalar(p))
++
++    def test_bad_const(self):
++        p=sample_program();p['ops']=[{'id':'v0','opcode':'const','value':True}]
++        self.expect_reject('E_CONST',lambda:verify_scalar(p))
++
++    def test_unsupported_instruction(self):
++        p=sample_program();p['ops'][0]['opcode']='raw.ptr.load'
++        self.expect_reject('E_OPCODE',lambda:verify_scalar(p))
++
++    def test_instructions_budget(self):
++        p=sample_program();p['ops']=[{'id':f'v{i}','opcode':'const','value':1} for i in range(257)]
++        self.expect_reject('E_OP_BUDGET',lambda:verify_scalar(p))
++
++    def test_undefined_return(self):
++        p=sample_program();p['result']='unknown'
++        self.expect_reject('E_RETURN',lambda:verify_scalar(p))
++
++    def test_bad_op_attributes(self):
++        p=sample_program();p['ops'][0]['secret']='yes'
++        self.expect_reject('E_OPCODE',lambda:verify_scalar(p))
++
++class ResourceTests(unittest.TestCase):
++    def test_valid_read_move_drop(self):
++        ops=[{'op':'owner.new','id':'x','bytes':128},
++             {'op':'borrow.read','owner':'x','id':'r1'},
++             {'op':'borrow.read','owner':'x','id':'r2'},
++             {'op':'loan.end','id':'r2'}, {'op':'loan.end','id':'r1'},
++             {'op':'owner.move','from':'x','to':'y'},
++             {'op':'borrow.mut','owner':'y','id':'w'},
++             {'op':'loan.end','id':'w'}, {'op':'owner.drop','id':'y'}]
++        receipt=verify_linear_resource(ops)
++        self.assertEqual(receipt['peak_payload_bytes'],128)
++        self.assertEqual(receipt['authority'],'DENY_ALL')
++
++    def test_mut_alias_forbidden(self):
++        ops=[{'op':'owner.new','id':'x','bytes':128},
++             {'op':'borrow.read','owner':'x','id':'r'},
++             {'op':'borrow.mut','owner':'x','id':'w'},
++             {'op':'loan.end','id':'r'}, {'op':'loan.end','id':'w'},
++             {'op':'owner.drop','id':'x'}]
++        with self.assertRaises(Rejected) as e:verify_linear_resource(ops)
++        self.assertEqual(e.exception.code,'E_ALIAS')
++
++    def test_mut_read_forbidden(self):
++        ops=[{'op':'owner.new','id':'x','bytes':1},
++             {'op':'borrow.mut','owner':'x','id':'w'},
++             {'op':'borrow.read','owner':'x','id':'r'}]
++        with self.assertRaises(Rejected) as e:verify_linear_resource(ops)
++        self.assertEqual(e.exception.code,'E_ALIAS')
++
++    def test_move_during_loan_forbidden(self):
++        ops=[{'op':'owner.new','id':'x','bytes':1},
++             {'op':'borrow.read','owner':'x','id':'r'},
++             {'op':'owner.move','from':'x','to':'y'}]
++        with self.assertRaises(Rejected) as e:verify_linear_resource(ops)
++        self.assertEqual(e.exception.code,'E_RESOURCE')
++
++    def test_drop_during_loan_forbidden(self):
++        ops=[{'op':'owner.new','id':'x','bytes':1},
++             {'op':'borrow.read','owner':'x','id':'r'},
++             {'op':'owner.drop','id':'x'}]
++        with self.assertRaises(Rejected) as e:verify_linear_resource(ops)
++        self.assertEqual(e.exception.code,'E_RESOURCE')
++
++    def test_double_drop_forbidden(self):
++        ops=[{'op':'owner.new','id':'x','bytes':1},
++             {'op':'owner.drop','id':'x'},
++             {'op':'owner.drop','id':'x'}]
++        with self.assertRaises(Rejected) as e:verify_linear_resource(ops)
++        self.assertEqual(e.exception.code,'E_RESOURCE')
++
++    def test_leak_forbidden(self):
++        with self.assertRaises(Rejected) as e:verify_linear_resource([{'op':'owner.new','id':'x','bytes':1}])
++        self.assertEqual(e.exception.code,'E_LEAK')
++
++    def test_budget_forbidden(self):
++        with self.assertRaises(Rejected) as e:verify_linear_resource([{'op':'owner.new','id':'x','bytes':9}],8)
++        self.assertEqual(e.exception.code,'E_RESOURCE')
++
++    def test_extra_effect_forbidden(self):
++        with self.assertRaises(Rejected) as e:verify_linear_resource([{'op':'owner.drop','id':'x','force':True}])
++        self.assertEqual(e.exception.code,'E_RESOURCE')
++
++class MigrationTests(unittest.TestCase):
++    def test_each_operator_translates(self):
++        for name,(expr,oracle) in EXPRESSION_CASES.items():
++            with self.subTest(name=name):
++                src=f'unsigned int {name}(unsigned int a, unsigned int b) {{ return {expr}; }}'
++                p=translate_clang_scalar(src,name)
++                self.assertEqual(p['schema'],SCHEMA)
++                self.assertEqual(interpret_scalar(p,[UINT32,11]),oracle(UINT32,11))
++
++    def test_other_function_rejected(self):
++        src='unsigned int f(unsigned int a){return a;} unsigned int g(unsigned int a){return a;}'
++        with self.assertRaises(Rejected) as e:translate_clang_scalar(src,'f')
++        self.assertEqual(e.exception.code,'E_WHOLE_UNIT')
++
++    def test_globals_rejected(self):
++        src='unsigned int extra=1; unsigned int f(unsigned int a){return a+extra;}'
++        with self.assertRaises(Rejected) as e:translate_clang_scalar(src,'f')
++        self.assertIn(e.exception.code,['E_WHOLE_UNIT','E_REF'])
++
++    def test_preprocessor_rejected(self):
++        with self.assertRaises(Rejected) as e:translate_clang_scalar('#define FOO 1\nunsigned int f(unsigned int a){return a+FOO;}','f')
++        self.assertEqual(e.exception.code,'E_SOURCE')
++
++    def test_pointer_rejected(self):
++        with self.assertRaises(Rejected) as e:translate_clang_scalar('unsigned int f(unsigned int *a){return *a;}','f')
++        self.assertEqual(e.exception.code,'E_TYPE')
++
++    def test_signed_overflow_rejected(self):
++        with self.assertRaises(Rejected) as e:translate_clang_scalar('int f(int a){return a+1;}','f')
++        self.assertEqual(e.exception.code,'E_TYPE')
++
++    def test_division_rejected(self):
++        with self.assertRaises(Rejected) as e:translate_clang_scalar('unsigned int f(unsigned int a,unsigned int b){return a/b;}','f')
++        self.assertEqual(e.exception.code,'E_EXPR')
++
++    def test_control_flow_rejected(self):
++        with self.assertRaises(Rejected) as e:translate_clang_scalar('unsigned int f(unsigned int a){if(a)return 1;return 0;}','f')
++        self.assertEqual(e.exception.code,'E_BODY')
++
++    def test_implicit_conversion_rejected(self):
++        with self.assertRaises(Rejected) as e:translate_clang_scalar('unsigned int f(unsigned int a){return (unsigned char)a;}','f')
++        self.assertEqual(e.exception.code,'E_CAST')
++
++    def test_oversized_source_rejected(self):
++        with self.assertRaises(Rejected) as e:translate_clang_scalar(' '*65537,'f')
++        self.assertEqual(e.exception.code,'E_SOURCE')
++
++    def test_no_silent_partial_outputs(self):
++        with self.assertRaises(Rejected):
++            translate_clang_scalar('unsigned int f(unsigned int a){return a+1;} int g;','f')
++
++    def test_native_clang_gcc_differential(self):
++        if shutil.which('clang') is None or shutil.which('gcc') is None:
++            self.skipTest('requires both real clang and gcc')
++        samples=[0,1,2,3,7,256,0x80000000,UINT32,UINT32-1,0x12345678,0x87654321]
++        rng=random.Random(20261031)
++        pairs=[(a,b) for a in samples for b in samples]
++        pairs.extend((rng.randrange(UINT32+1),rng.randrange(UINT32+1)) for _ in range(200))
++        for label,(expr,oracle) in EXPRESSION_CASES.items():
++            src=f'unsigned int {label}(unsigned int a, unsigned int b) {{ return {expr}; }}\n'
++            p=translate_clang_scalar(src,label)
++            generated=emit_native_c(p,'hia_entry')
++            with tempfile.TemporaryDirectory(prefix='hia-native-') as folder:
++                source=Path(folder)/'source.c'; source.write_text(src)
++                native=Path(folder)/'native.c'; native.write_text(generated)
++                for compiler in ['clang','gcc']:
++                    paths=[]
++                    for tag,sp in [('original',source),('hia',native)]:
++                        binary=Path(folder)/f'{compiler}-{tag}.so'
++                        run=subprocess.run([compiler,'-std=c11','-O3','-fPIC','-shared',
++                                            '-Wall','-Wextra','-Werror',str(sp),'-o',str(binary)],
++                                           text=True,capture_output=True,timeout=20)
++                        self.assertEqual(run.returncode,0,(label,compiler,tag,run.stderr))
++                        self.assertGreater(binary.stat().st_size,0)
++                        lib=ctypes.CDLL(str(binary))
++                        fn=getattr(lib,label if tag=='original' else 'hia_entry')
++                        fn.argtypes=[ctypes.c_uint32,ctypes.c_uint32]
++                        fn.restype=ctypes.c_uint32
++                        paths.append(fn)
++                    original,hia=paths
++                    for a,b in pairs:
++                        expected=oracle(a,b)
++                        self.assertEqual(interpret_scalar(p,[a,b]),expected,(label,compiler,a,b,'vm'))
++                        self.assertEqual(original(a,b),expected,(label,compiler,a,b,'original'))
++                        self.assertEqual(hia(a,b),expected,(label,compiler,a,b,'hia'))
++
++if __name__=='__main__':
++    unittest.main(verbosity=2)
++
++class AdditionalAdversarialTests(unittest.TestCase):
++    def test_owner_ssa_identity_cannot_be_reused(self):
++        ops=[{'op':'owner.new','id':'x','bytes':1},
++             {'op':'owner.drop','id':'x'},
++             {'op':'owner.new','id':'x','bytes':1},
++             {'op':'owner.drop','id':'x'}]
++        with self.assertRaises(Rejected) as err:verify_linear_resource(ops)
++        self.assertEqual(err.exception.code,'E_RESOURCE')
++
++    def test_ended_loan_id_cannot_be_reused(self):
++        ops=[{'op':'owner.new','id':'x','bytes':1},
++             {'op':'borrow.read','owner':'x','id':'r'},
++             {'op':'loan.end','id':'r'},
++             {'op':'borrow.read','owner':'x','id':'r'}]
++        with self.assertRaises(Rejected) as err:verify_linear_resource(ops)
++        self.assertEqual(err.exception.code,'E_RESOURCE')
++
++    def test_ast_preflight_rejects_deep_chain(self):
++        from hia_probe import _validate_ast_tree
++        node={'kind':'IntegerLiteral'}
++        for _ in range(132):
++            node={'kind':'ParenExpr','inner':[node]}
++        with self.assertRaises(Rejected) as err:_validate_ast_tree(node)
++        self.assertEqual(err.exception.code,'E_AST_DEPTH')
++
++    def test_ast_preflight_rejects_wide_chain(self):
++        from hia_probe import _validate_ast_tree
++        node={'kind':'CompoundStmt','inner':[{'kind':'IntegerLiteral'} for _ in range(4097)]}
++        with self.assertRaises(Rejected) as err:_validate_ast_tree(node)
++        self.assertEqual(err.exception.code,'E_AST_BUDGET')
++
++    def test_ast_preflight_rejects_malformed_child(self):
++        from hia_probe import _validate_ast_tree
++        with self.assertRaises(Rejected) as err:_validate_ast_tree({'kind':'ReturnStmt','inner':{}})
++        self.assertEqual(err.exception.code,'E_AST')
+diff --git a/tools/hia-probe/test_traps.py b/tools/hia-probe/test_traps.py
+new file mode 100644
+index 0000000..e2d3226
+--- /dev/null
++++ b/tools/hia-probe/test_traps.py
+@@ -0,0 +1,70 @@
++import ctypes
++import random
++import shutil
++import subprocess
++import tempfile
++import unittest
++from pathlib import Path
++from hia_probe import (SCHEMA,UINT32,Rejected,ProgramTrap,
++                       emit_native_c,emit_checked_native_c,interpret_scalar)
++
++OPERATIONS=['int.add.checked','int.sub.checked','int.mul.checked','int.div.checked',
++            'int.rem.checked','int.shl.checked','int.shr.checked']
++
++def program(op):
++    return {'schema':SCHEMA,'name':'t','params':[{'name':'a','type':'u32'},{'name':'b','type':'u32'}],
++            'ops':[{'id':'v0','opcode':op,'args':['a','b']}],'result':'v0'}
++
++class CheckedTrapTests(unittest.TestCase):
++    def test_checked_trap_vectors(self):
++        checks=[('int.add.checked',[UINT32,1],'overflow'),
++                ('int.sub.checked',[0,1],'overflow'),
++                ('int.mul.checked',[UINT32,2],'overflow'),
++                ('int.div.checked',[2,0],'division_by_zero'),
++                ('int.rem.checked',[2,0],'division_by_zero'),
++                ('int.shl.checked',[1,32],'shift_count'),
++                ('int.shr.checked',[1,32],'shift_count')]
++        for op,values,expected in checks:
++            with self.subTest(op=op):
++                with self.assertRaises(ProgramTrap) as e:interpret_scalar(program(op),values)
++                self.assertEqual(e.exception.code,expected)
++
++    def test_checked_shift_valid_count_wraps_value(self):
++        self.assertEqual(interpret_scalar(program('int.shl.checked'),[UINT32,31]),0x80000000)
++        self.assertEqual(interpret_scalar(program('int.shr.checked'),[UINT32,31]),1)
++
++    def test_no_trap_erasure_to_scalar_abi(self):
++        with self.assertRaises(Rejected) as e:emit_native_c(program('int.add.checked'))
++        self.assertEqual(e.exception.code,'E_ABI_TRAP')
++
++    def test_checked_native_differential(self):
++        if not shutil.which('gcc') or not shutil.which('clang'):
++            self.skipTest('requires real GCC and Clang')
++        rng=random.Random(20261031)
++        special=[0,1,2,3,15,31,32,33,127,255,65535,0x80000000,UINT32]
++        pairs=[(a,b) for a in special for b in special]
++        pairs.extend((rng.randrange(UINT32+1),rng.randrange(UINT32+1)) for _ in range(200))
++        for opcode in OPERATIONS:
++            for compiler in ['gcc','clang']:
++                with self.subTest(opcode=opcode,compiler=compiler),tempfile.TemporaryDirectory() as d:
++                    src=Path(d)/'generated.c';src.write_text(emit_checked_native_c(program(opcode)))
++                    lib=Path(d)/'native.so'
++                    r=subprocess.run([compiler,'-std=c11','-O3','-Wall','-Wextra','-Werror',
++                        '-fPIC','-shared',str(src),'-o',str(lib)],capture_output=True,text=True,timeout=20)
++                    self.assertEqual(r.returncode,0,r.stderr)
++                    f=ctypes.CDLL(str(lib)).hia_checked
++                    f.argtypes=[ctypes.c_uint32,ctypes.c_uint32,ctypes.POINTER(ctypes.c_uint32)]
++                    f.restype=ctypes.c_int
++                    self.assertEqual(f(1,2,None),4)
++                    for a,b in pairs:
++                        expected_code=0
++                        try:expected=interpret_scalar(program(opcode),[a,b])
++                        except ProgramTrap as error:
++                            expected_code={'overflow':1,'division_by_zero':2,'shift_count':3}[error.code]
++                        out=ctypes.c_uint32(0xDEADBEEF)
++                        status=f(a,b,ctypes.byref(out))
++                        self.assertEqual(status,expected_code,(opcode,compiler,a,b))
++                        if expected_code==0:self.assertEqual(out.value,expected,(opcode,compiler,a,b))
++                        else:self.assertEqual(out.value,0xDEADBEEF,(opcode,compiler,a,b))
++
++if __name__=='__main__':unittest.main()
