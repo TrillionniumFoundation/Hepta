@@ -15,6 +15,7 @@ import marshal
 from pathlib import Path
 import os
 import py_compile
+import re
 import shutil
 import stat
 import subprocess
@@ -370,6 +371,11 @@ for line in sys.stdin:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--runtime-checkout", required=True, type=Path)
+    parser.add_argument("--runtime-revision", default=RUNTIME_REVISION,
+                        help="exact 40-hex runtime commit selected by the release lock")
     args, remaining = parser.parse_known_args()
+    if not re.fullmatch(r"[0-9a-f]{40}", args.runtime_revision):
+        parser.error("--runtime-revision requires an immutable 40-hex commit")
     RUNTIME_CHECKOUT = args.runtime_checkout
+    RUNTIME_REVISION = args.runtime_revision
     unittest.main(argv=[sys.argv[0], *remaining])
