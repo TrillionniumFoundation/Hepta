@@ -80,7 +80,7 @@ def main(argv=None) -> int:
         if args.command == "patch":
             if args.backend != "rust" or args.locked:
                 raise ValueError("patch currently validates with the Rust backend; regenerate the package lock after an applied edit")
-            request = json.loads(Path(args.request).read_text())
+            request = json.loads(Path(args.request).read_text(encoding="utf-8"))
             if isinstance(request, dict) and request.get("schema") == "hepta.patch.v2":
                 from .protocol import apply_project_patch
                 result = apply_project_patch(file, request, apply=args.apply, rustc=args.rustc, target=args.target)
