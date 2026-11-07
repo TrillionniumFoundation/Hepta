@@ -364,6 +364,31 @@ class DcoReplayEvidenceTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     verifier.verify_dco_path_scope(candidate, before, after)
 
+    def test_dco_device_command_binding_requires_finished_ledger_and_exact_stdout(self):
+        command = {
+            "label": "00010-server-replay-dco-device-before",
+            "argv": ["ip", "netns", "exec", "ohia-test-s", "ip", "-d", "-s", "-j",
+                     "link", "show", "dev", "tunbench-s"],
+            "namespace": "ohia-test-s",
+            "stdout": "cases/common-c-dco/00010-server-replay-dco-device-before.stdout",
+            "stdout_sha256": "a" * 64,
+            "exit_code": 0,
+            "timed_out": False,
+        }
+        ledger = [{"event": "spawn", "label": command["label"]},
+                  {"event": "finished", **command}]
+        self.assertTrue(verifier.verify_dco_device_command_binding(
+            command, ledger, "ohia-test-s", command["stdout"], command["stdout_sha256"]))
+        bad_command = copy.deepcopy(command)
+        bad_command["stdout"] = "cases/other.stdout"
+        with self.assertRaises(ValueError):
+            verifier.verify_dco_device_command_binding(
+                bad_command, ledger, "ohia-test-s", command["stdout"], command["stdout_sha256"])
+        duplicate_ledger = ledger + [{"event": "finished", **command}]
+        with self.assertRaises(ValueError):
+            verifier.verify_dco_device_command_binding(
+                command, duplicate_ledger, "ohia-test-s", command["stdout"], command["stdout_sha256"])
+
     def test_dco_device_drop_delta_requires_exactly_one_drop_without_delivery(self):
         before = self.device()
         after = self.device(dropped=11)
