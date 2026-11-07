@@ -334,8 +334,11 @@ def dco_rejection_delta(before, after, packet_peer_id=None, allow_stale_peer_id=
         if packet_peer_id is not None and not stale_peer and packet_peer_id != peer_id:
             raise ValueError("encrypted datagram peer ID differs from the active DCO peer")
         if stale_peer:
-            if any(value != 0 for value in row.values()):
-                raise ValueError("stale prior-session peer ID changed current DCO peer counters")
+            if row["link_rx_packets"] <= 0 or row["link_rx_bytes"] <= 0:
+                raise ValueError("stale prior-session peer packet did not reach current DCO peer ingress")
+            if any(value != 0 for key, value in row.items()
+                   if key not in ("link_rx_packets", "link_rx_bytes")):
+                raise ValueError("stale prior-session packet changed non-ingress DCO peer counters")
         else:
             if row["link_rx_packets"] <= 0 or row["link_rx_bytes"] <= 0:
                 raise ValueError("DCO kernel peer did not record incoming link traffic")

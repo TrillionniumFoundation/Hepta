@@ -171,8 +171,11 @@ def verify_dco_rejection_delta(before, after, packet_peer_id=None, allow_stale_p
         require(stale_peer or packet_peer_id is None or packet_peer_id == peer_id,
                 "encrypted datagram peer ID differs from the active DCO peer")
         if stale_peer:
-            require(all(value == 0 for value in delta.values()),
-                    "stale prior-session peer ID changed current DCO peer counters")
+            require(delta["link_rx_packets"] > 0 and delta["link_rx_bytes"] > 0,
+                    "stale prior-session peer packet did not reach current DCO peer ingress")
+            require(all(value == 0 for key, value in delta.items()
+                        if key not in ("link_rx_packets", "link_rx_bytes")),
+                    "stale prior-session packet changed non-ingress DCO peer counters")
         else:
             require(delta["link_rx_packets"] > 0 and delta["link_rx_bytes"] > 0,
                     "DCO peer did not account incoming encrypted link traffic")

@@ -367,23 +367,52 @@ class DcoReplayEvidenceTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 function(before, after)
 
-    def test_dco_replay_accepts_zero_current_peer_delta_for_prior_peer_id_after_reconnect(self):
+    def test_dco_replay_rejects_missing_current_peer_ingress_for_prior_peer_id_after_reconnect(self):
         before = self.peer()
         before["peers"][0]["peer_id"] = 1
         after = copy.deepcopy(before)
-        expected = {"1": {key: 0 for key in matrix.PEER_COUNTERS}}
+        for function in (matrix.dco_rejection_delta, verifier.verify_dco_rejection_delta):
+            with self.assertRaises(ValueError):
+                function(before, after, packet_peer_id=0, allow_stale_peer_id=True)
+
+    def test_dco_replay_accepts_stale_prior_peer_id_when_only_link_ingress_advances(self):
+        before = self.peer()
+        before["peers"][0]["peer_id"] = 1
+        after = copy.deepcopy(before)
+        after["peers"][0]["link_rx_bytes"] += 72
+        after["peers"][0]["link_rx_packets"] += 1
+        expected = {"1": {
+            "vpn_rx_bytes": 0, "vpn_tx_bytes": 0,
+            "vpn_rx_packets": 0, "vpn_tx_packets": 0,
+            "link_rx_bytes": 72, "link_tx_bytes": 0,
+            "link_rx_packets": 1, "link_tx_packets": 0,
+        }}
         for function in (matrix.dco_rejection_delta, verifier.verify_dco_rejection_delta):
             self.assertEqual(
                 function(before, after, packet_peer_id=0, allow_stale_peer_id=True),
                 expected,
             )
 
-    def test_dco_replay_rejects_counter_change_for_prior_peer_id(self):
+    def test_dco_replay_rejects_stale_prior_peer_id_when_vpn_receives_packet(self):
         before = self.peer()
         before["peers"][0]["peer_id"] = 1
         after = copy.deepcopy(before)
-        after["peers"][0]["link_rx_bytes"] += 350
+        after["peers"][0]["link_rx_bytes"] += 72
         after["peers"][0]["link_rx_packets"] += 1
+        after["peers"][0]["vpn_rx_bytes"] += 1
+        after["peers"][0]["vpn_rx_packets"] += 1
+        for function in (matrix.dco_rejection_delta, verifier.verify_dco_rejection_delta):
+            with self.assertRaises(ValueError):
+                function(before, after, packet_peer_id=0, allow_stale_peer_id=True)
+
+    def test_dco_replay_rejects_stale_prior_peer_id_when_link_transmit_changes(self):
+        before = self.peer()
+        before["peers"][0]["peer_id"] = 1
+        after = copy.deepcopy(before)
+        after["peers"][0]["link_rx_bytes"] += 72
+        after["peers"][0]["link_rx_packets"] += 1
+        after["peers"][0]["link_tx_bytes"] += 1
+        after["peers"][0]["link_tx_packets"] += 1
         for function in (matrix.dco_rejection_delta, verifier.verify_dco_rejection_delta):
             with self.assertRaises(ValueError):
                 function(before, after, packet_peer_id=0, allow_stale_peer_id=True)
