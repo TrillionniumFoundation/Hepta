@@ -23,6 +23,8 @@ if __package__ in {None, ""}:
 from tools.qualify_hia_direct_native import SUITES as ORIGINAL_DIRECT_SUITES, Result, _ids
 
 NEW_SUITES = (
+    "tests.test_core_seven_shared_acceptance",
+    "tests.test_core_seven_shared_source_closure",
     "tests.test_hia_agent_native_tools",
     "tests.test_hia_agent_native_machine_choices",
     "tests.test_hia_machine_plan",

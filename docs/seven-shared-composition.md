@@ -669,3 +669,45 @@ uses one thread. The combined runner registers CPUs 20 and 21 for proof and
 replay, including the hashing resource change. No stat-only or cached digest
 substitutes for a read. This paragraph is a source registration, not a successful
 proof or composition receipt; the exact combined commit requires fresh execution.
+
+## Unified native candidate source closure (2026-11-07)
+
+Candidate `117f568b198894d3e209977adf3b88aa2773af2a` added five top-level
+compiler modules without extending the reviewed source identity. The shared
+acceptance source controls and initialization frontier closure controls rejected
+that candidate with `complete actual compiler_hash input set`. Shared kernel
+acceptance then stopped during preparation with zero Lean invocations. Those
+failed observations remain failures; this repair does not rewrite their records.
+
+The explicit `P0_P3_ADDITIONS` tuple now binds these exact filenames:
+
+- `hepta/hia_agent_macro_discovery.py`
+- `hepta/hia_agent_macro_policy.py`
+- `hepta/hia_machine_plan.py`
+- `hepta/hia_native_byte_abi.py`
+- `hepta/hia_native_byte_runner.py`
+
+The new identity contains **328 source paths**, including all **203** actual
+top-level compiler Python modules, with canonical path commitment
+`77fb9af75d987acab91d224cf47c5e6734f8c6eb9c4fa895064fba306289a016`.
+Removing exactly those five names recovers the historical **323-path** tuple and
+its unchanged commitment
+`d999ff7dc718330771ddb745dbed6a5a7ecdcdea8f9011e35f0a07417f09b9c0`.
+Both commitments are checked before constructing an external source identity;
+the earlier projections and all 780 support paths remain fixed. Extra or
+missing actual compiler filenames still reject, and each new filename has an
+omission regression within the existing five-control inventory.
+
+The maximum canonical identity encoding grows from **156,044** to **156,678**
+bytes. Exactly **634** bytes move from the raw-log reserve (**808,560** to
+**807,926**) to the metadata reserve (**235,920** to **236,554**). The total
+increase over the legacy 239-source identity is **11,965** bytes. The historical
+323-source maximum encoding is separately asserted in the budget test. The
+one-MiB evidence/display ceiling, 4,096-byte display allowance, source/module
+limits, process/cleanup/launch/outer budgets, schemas, proof statements and
+eleven-stage inventory are unchanged. The per-identity cap and aggregate
+boundaries still reject one excess byte.
+
+These are explicit source registration and accounting changes. Acceptance of
+the repaired source requires fresh complete execution and replay at its own
+commit; source-control success cannot confer Lean proof or production authority.
